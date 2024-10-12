@@ -2,6 +2,7 @@
 plugins {
     kotlin("jvm") version "2.0.21"
     `java-library`
+    `maven-publish`
 }
 
 
@@ -27,6 +28,29 @@ java {
         languageVersion = JavaLanguageVersion.of(21)
     }
     withSourcesJar()
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            from(components["java"])
+
+            groupId = "com.github.pavelo8501"
+            artifactId = "data_service"
+            version = "0.1.0"
+        }
+    }
+
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/pavelo8501/ReKotlin") // Replace with your repo URL
+            credentials {
+                username = project.findProperty("gpr.user") as String? ?: System.getenv("GITHUB_USERNAME")
+                password = project.findProperty("gpr.token") as String? ?: System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
 }
 
 tasks.jar {
