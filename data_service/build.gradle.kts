@@ -1,4 +1,8 @@
 
+val exposedVersion: String by project
+val hikaricpVersion: String by project
+val mysqlVersion: String by project
+
 plugins {
     kotlin("jvm") version "2.0.21"
     `java-library`
@@ -13,6 +17,15 @@ repositories {
 }
 
 dependencies {
+
+
+    implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
+    implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
+    implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
+    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposedVersion")
+    implementation("com.zaxxer:HikariCP:$hikaricpVersion")
+    implementation("mysql:mysql-connector-java:$mysqlVersion")
+
 
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
