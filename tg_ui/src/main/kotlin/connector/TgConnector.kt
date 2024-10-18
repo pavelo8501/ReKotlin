@@ -1,0 +1,4 @@
+package connector
+
+class TgConnector {
+}
