@@ -1,10 +1,10 @@
 import org.gradle.api.tasks.Exec
 
-
+val ktorVersion: String by project
 val exposedVersion: String by project
+val kotlinSerializationVersion: String by project
 val hikaricpVersion: String by project
 val mysqlVersion: String by project
-val serializationVersion : String by project
 
 
 plugins {
@@ -21,8 +21,14 @@ repositories {
 
 dependencies {
     implementation(project(":data_service"))
+    implementation(project(":rest_service"))
 
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$serializationVersion")
+    implementation("io.ktor:ktor-server-netty:$ktorVersion")
+    implementation("io.ktor:ktor-server-core:$ktorVersion")
+    implementation("io.ktor:ktor-server-status-pages:$ktorVersion")
+    implementation("io.ktor:ktor-server-auth-jwt:$ktorVersion")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinSerializationVersion")
 
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")

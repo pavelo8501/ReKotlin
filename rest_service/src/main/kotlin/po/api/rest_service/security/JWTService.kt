@@ -37,6 +37,21 @@ object JWTService {
         publicKey = KeyFactory.getInstance("RSA").generatePublic(publicKeySpec) as RSAPublicKey
     }
 
+    fun configure(config: JwtConfig):JWTService {
+        audience = config.audience
+        issuer = config.issuer
+
+        // Decode and initialize RSA keys
+        val privateDecoded = Base64.getDecoder().decode(config.privateKeyString)
+        val privateKeySpec = PKCS8EncodedKeySpec(privateDecoded)
+        privateKey = KeyFactory.getInstance("RSA").generatePrivate(privateKeySpec) as RSAPrivateKey
+
+        val publicDecoded = Base64.getDecoder().decode(config.publicKeyString)
+        val publicKeySpec = X509EncodedKeySpec(publicDecoded)
+        publicKey = KeyFactory.getInstance("RSA").generatePublic(publicKeySpec) as RSAPublicKey
+        return this
+    }
+
     fun generateToken(user: SecureUser, jsonEncodedPayload: String): String? {
         return JWT.create()
             .withAudience(audience)

@@ -9,7 +9,9 @@ data class JwtConfig(
     val realm: String,
     val audience: String,
     val issuer: String,
-    val secret: String
+    val secret: String,
+    val privateKeyString: String,
+    val publicKeyString: String
 ) {
     val algorithm: Algorithm = Algorithm.HMAC256(secret)
     val verifier: JWTVerifier = JWT.require(algorithm)
