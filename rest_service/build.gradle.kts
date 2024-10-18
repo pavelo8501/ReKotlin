@@ -1,4 +1,3 @@
-
 val exposedVersion: String by project
 val hikaricpVersion: String by project
 val mysqlVersion: String by project
@@ -9,7 +8,6 @@ plugins {
     `maven-publish`
 }
 
-
 version = "0.1.0"
 
 repositories {
@@ -18,20 +16,8 @@ repositories {
 
 dependencies {
 
-
-    implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
-    implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
-    implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
-    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposedVersion")
-    implementation("com.zaxxer:HikariCP:$hikaricpVersion")
-    implementation("mysql:mysql-connector-java:$mysqlVersion")
-
-
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-
-
-    api(libs.commons.math3)
 
     implementation(libs.guava)
 }
@@ -47,9 +33,8 @@ publishing {
     publications {
         create<MavenPublication>("mavenJava") {
             from(components["java"])
-
             groupId = "com.github.pavelo8501"
-            artifactId = "data_service"
+            artifactId = "rest_service"
             version = "0.1.0"
         }
     }
@@ -74,5 +59,6 @@ tasks.jar {
 }
 
 tasks.named<Test>("test") {
+    // Use JUnit Platform for unit tests.
     useJUnitPlatform()
 }

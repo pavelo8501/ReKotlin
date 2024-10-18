@@ -15,5 +15,4 @@ fun startDataService(connectionData : ConnectionModel) {
 
     val result = dbManager.partnerService().saveModel(partner)
 
-    val a  = result
 }

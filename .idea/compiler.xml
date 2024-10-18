@@ -8,6 +8,8 @@
       <module name="kotlinReusables.lib.test" target="21" />
       <module name="ReKotlin.lib.main" target="21" />
       <module name="ReKotlin.lib.test" target="21" />
+      <module name="rest_service.lib.main" target="21" />
+      <module name="rest_service.lib.test" target="21" />
     </bytecodeTargetLevel>
   </component>
 </project>

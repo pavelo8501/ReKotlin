@@ -10,6 +10,7 @@
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/data_service" />
             <option value="$PROJECT_DIR$/playground" />
+            <option value="$PROJECT_DIR$/rest_service" />
           </set>
         </option>
       </GradleProjectSettings>
