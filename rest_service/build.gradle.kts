@@ -1,3 +1,4 @@
+val ktorVersion: String by project
 val exposedVersion: String by project
 val hikaricpVersion: String by project
 val mysqlVersion: String by project
@@ -15,6 +16,9 @@ repositories {
 }
 
 dependencies {
+
+    implementation("io.ktor:ktor-client-core:$ktorVersion")
+    implementation("io.ktor:ktor-client-cio:$ktorVersion")
 
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
