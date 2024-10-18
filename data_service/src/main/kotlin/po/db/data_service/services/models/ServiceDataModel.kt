@@ -4,28 +4,43 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
+import org.jetbrains.exposed.dao.id.EntityID
 import po.db.data_service.exceptions.DataServiceException
 import po.db.data_service.exceptions.ErrorCodes
 import po.db.data_service.services.BasicDataService
 
+open class ServiceDataModelClass<T : ServiceDataModel<E>, E : ServiceDBEntity>(val entityClass: LongEntityClass<E>) {
 
-open class ServiceDataModelClass<T: ServiceDataModel<E>, E: ServiceDBEntity>() {
     val nowDateTime = LocalDateTime.Companion.parse(Clock.System.now().toLocalDateTime(TimeZone.UTC).toString())
-    var dataService: BasicDataService<T, E>? = null
+    var dataService: BasicDataService<T,E>? = null
+    val companionObject: Any = this
     fun createModel() {
 
     }
     fun initDataService(dataService : BasicDataService<T,E>){
         this.dataService = dataService
     }
+
+    fun saveChildModels(childModels : List<ServiceDataModel<E>>) {
+        if(dataService == null) throw DataServiceException("Data Service not initialized for model class: ${this::class.simpleName}", ErrorCodes.NOT_INITIALIZED)
+        childModels.forEach { model ->
+            dataService!!.saveModel(model as T)
+        }
+    }
+
+    fun saveChildMapping(childMapping :  ChildMapping<out ServiceDataModel<*>, out ServiceDBEntity>, parentEntityId : EntityID<Long>? = null) {
+        if(dataService == null) throw DataServiceException("Data Service not initialized for model class: ${this::class.simpleName}", ErrorCodes.NOT_INITIALIZED)
+        childMapping.models.forEach { model ->
+
+            dataService!!.saveModelForParent(model as T, parentEntityId!!)
+        }
+    }
 }
 
-abstract class ServiceDataModel<E: ServiceDBEntity>(): IdContainingData{
+abstract class ServiceDataModel<E : ServiceDBEntity>: IdContainingData{
 
-    abstract  var sourceEntity: E?
-    fun updateInt(value: Int?): Int?{
+    fun updateInt(value: Int): Int?{
         return value
     }
     fun updateStringOrNull(value: String?): String?{
@@ -34,11 +49,19 @@ abstract class ServiceDataModel<E: ServiceDBEntity>(): IdContainingData{
     fun updateString(value: String): String{
         return value
     }
+    fun updateBoolean(value: Boolean): Boolean{
+        return value
+    }
     fun updateId(value: Long): Long{
         return value
     }
+    fun updateParentEntityId(value: EntityID<Long>): EntityID<Long>{
+        return value
+    }
 
-   // abstract var parentService : BasicDataService<ServiceDataModel<E>,E>
+    abstract var sourceEntity: E?
+
+    abstract var parentEntityId : EntityID<Long>?
 
     fun saveToEntity(entity: E):E {
        this.sourceEntity = entity
@@ -56,6 +79,9 @@ abstract class ServiceDataModel<E: ServiceDBEntity>(): IdContainingData{
         }
     }
 
+
+    open val childMapping: List<ChildMapping<out ServiceDataModel<*>, out ServiceDBEntity>> = listOf()
+
     val hasEntity : Boolean
     get() = sourceEntity != null
 
@@ -64,8 +90,11 @@ abstract class ServiceDataModel<E: ServiceDBEntity>(): IdContainingData{
         if(update) triggerEntityUpdate()
         return this.sourceEntity!!
     }
-    fun setEntity(entity: E){
+    open fun setEntity(entity: E){
         sourceEntity = entity
     }
+
+    @Transient
+    var initialized : Boolean = false
 
 }

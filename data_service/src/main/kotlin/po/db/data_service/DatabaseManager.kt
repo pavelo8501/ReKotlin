@@ -6,12 +6,12 @@ import org.jetbrains.exposed.sql.Database
 import po.db.data_service.exceptions.DataServiceException
 import po.db.data_service.exceptions.ErrorCodes
 import po.db.data_service.models.ConnectionModel
-import po.db.data_service.services.DataServiceDataContext
+import po.db.data_service.services.BasicDataService
 
 
 abstract class DatabaseManager(val connectionInfo: ConnectionModel) {
 
-    val services =  mutableMapOf<String, DataServiceDataContext<*>>()
+    val services =  mutableMapOf<String, BasicDataService<*,*>>()
     private var connection : Database? = null
 
     init {
@@ -32,12 +32,12 @@ abstract class DatabaseManager(val connectionInfo: ConnectionModel) {
         return HikariDataSource(hikariConfig)
     }
 
-    fun addService(name:String, service : DataServiceDataContext<*>){
+    fun addService(name:String, service :BasicDataService<*,*>){
         this.services[name] = service
     }
-    fun getService(name:String): DataServiceDataContext<*>{
+    fun getService(name:String): BasicDataService<*,*>{
         if(services.containsKey(name) == false){
-            throw DataServiceException("Service $name not found", ErrorCodes.NOT_INITIALIZED)
+            throw DataServiceException("Service  \"$name\" not found", ErrorCodes.NOT_INITIALIZED)
         }
         return services[name]!!
     }

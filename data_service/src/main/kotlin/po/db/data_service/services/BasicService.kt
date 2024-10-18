@@ -1,7 +1,7 @@
 package po.db.data_service.services
 
 import kotlinx.coroutines.Dispatchers
-import org.jetbrains.exposed.dao.LongEntityClass
+import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.LongIdTable
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.exists
@@ -15,21 +15,7 @@ import po.db.data_service.services.models.ServiceDataModel
 import po.db.data_service.services.models.ServiceDataModelClass
 
 
-interface DataServiceDataContext<T>{
-
-    val dbManager: DatabaseManager
-    val autoload : Boolean
-    val table: LongIdTable
-    var itemList : MutableList<T>
-
-    var onItemsUpdated: ((List<T>) -> Unit)?
-
-    var initComplete: Boolean
-    var onInitComplete: ((Boolean) -> Unit)?
-
-}
-
-abstract class BasicDataService<T: ServiceDataModel<E>, E: ServiceDBEntity>(private val dataClass: ServiceDataModelClass<T,E>, private val entityClass: LongEntityClass<E>) {
+abstract class BasicDataService<T : ServiceDataModel<E>, E:ServiceDBEntity>(private val modelClass: ServiceDataModelClass<T,E>) {
 
     abstract  val dbManager: DatabaseManager
 
@@ -46,9 +32,8 @@ abstract class BasicDataService<T: ServiceDataModel<E>, E: ServiceDBEntity>(priv
 
     var onItemsUpdated: ((List<T>) -> Unit)? = null
     var itemList : MutableList<T> = mutableListOf()
-    // protected abstract fun saveRecord(record: T):T
 
-   // abstract fun newItem():T
+    protected open var childServices: List<BasicDataService<*,*>> = listOf()
 
     abstract val table: LongIdTable
 
@@ -63,20 +48,32 @@ abstract class BasicDataService<T: ServiceDataModel<E>, E: ServiceDBEntity>(priv
                 initComplete = true
             }
         }
-        dataClass.initDataService(this)
+        modelClass.initDataService(this)
     }
 
-    fun initModel(model:T):T{
+    private fun initModelAnySubClass(model:ServiceDataModel<E>):ServiceDataModel<E>{
         if(model.id != 0L){
             val result = getModel(model.id)
             if(result == null) {
-               return model
+                return model.also { it.initialized = true }
             }else{
-                return copyModel(model,result)
-                return result
+                return copyModel(model as T, result as T).also { it.initialized = true }
             }
         }else{
-            return model
+            return model.also { it.initialized = true }
+        }
+    }
+
+    private fun initModel(model:T):T{
+        if(model.id != 0L){
+            val result = getModel(model.id)
+            if(result == null) {
+               return model.also { it.initialized = true }
+            }else{
+                return copyModel(model,result).also { it.initialized = true }
+            }
+        }else{
+            return model.also { it.initialized = true }
         }
     }
 
@@ -88,20 +85,65 @@ abstract class BasicDataService<T: ServiceDataModel<E>, E: ServiceDBEntity>(priv
         addItem(model)
         return model
     }
+
+    fun saveModelAnySubClass(model: ServiceDataModel<E>){
+
+        val initializedModel = if(model.initialized == false){
+            initModelAnySubClass(model)
+        }else {
+            model
+        }
+
+        val result = dbQuery {
+
+        }
+    }
+
     fun saveModel(model:T):T{
-       val result = dbQuery {
-            entityClass.new {
-              val savedEntity=  model.saveToEntity(this)
+        val initializedModel = if(model.initialized == false){
+            initModel(model)
+        }else {
+            model
+        }
+        if(initializedModel.hasEntity) {
+            return updateModel(initializedModel)
+        }
+        val result = dbQuery {
+           modelClass.entityClass.new {
+               initializedModel.saveToEntity(this)
+           }
+        }
+        initializedModel.childMapping.forEach { mapping ->
+            mapping.modelClass.saveChildMapping(mapping, mapping.parentEntityId)
+        }
+        initializedModel.setEntity(result)
+        return initializedModel
+    }
+    fun saveModelForParent(model:T, parentEntityId : EntityID<Long> ):T{
+        val initializedModel = if(model.initialized == false){
+            initModel(model)
+        }else {
+            model
+        }
+        if(initializedModel.hasEntity) {
+            return updateModel(initializedModel)
+        }
+        val result = dbQuery {
+            modelClass.entityClass.new {
+                initializedModel.parentEntityId = parentEntityId
+                initializedModel.saveToEntity(this)
             }
         }
-        model.setEntity(result)
-        return model
+        initializedModel.childMapping.forEach { mapping ->
+            mapping.modelClass.saveChildMapping(mapping, parentEntityId)
+        }
+        initializedModel.setEntity(result)
+        return initializedModel
     }
     fun updateModel(model:T):T{
         if(!model.hasEntity){
             return saveModel(model)
         }
-
         dbQuery {
             val entity = model.getEntity(true)
             entity.flush()
@@ -124,15 +166,14 @@ abstract class BasicDataService<T: ServiceDataModel<E>, E: ServiceDBEntity>(priv
         return true
     }
 
-
     private fun pick(id: Long): E?{
         return dbQuery {
-            entityClass.findById(id)
+            modelClass.entityClass.findById(id)
         }
     }
     private fun selectAll(): List<E>{
         return dbQuery {
-            entityClass.all().toList()
+            modelClass.entityClass.all().toList()
         }
     }
 
@@ -153,24 +194,6 @@ abstract class BasicDataService<T: ServiceDataModel<E>, E: ServiceDBEntity>(priv
             return result
         }
     }
-
-//    open fun itemsCount(): Int{
-//        return itemList.count()
-//    }
-//
-//    open fun getItem(id: Long):T?{
-//        val foundItem = this.itemList.firstOrNull { it.id == id }
-//        return foundItem
-//    }
-//    open fun getItems(reload: Boolean = false): List<T>{
-//        if(reload){
-//          //  itemList =  selectAll().map {  this.  createItem(it).apply { setEntity(it) } }.toMutableList()
-//        }
-//        return itemList.toList()
-//    }
-//    open fun getItemsCount(): Int{
-//        return itemList.toList().size
-//    }
 
     fun  <T>dbQuery(body : () -> T): T = transaction(dbManager.getConnection()) {
         body()

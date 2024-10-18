@@ -5,10 +5,10 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.dao.id.LongIdTable
+import org.jetbrains.exposed.sql.SchemaUtils
+import org.jetbrains.exposed.sql.exists
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 import po.db.data_service.services.BasicDataService
-import po.db.data_service.services.models.ServiceDataModel
-import po.db.data_service.services.models.ServiceDataModelClass
 import po.playground.projects.data_service.DBManager
 import po.playground.projects.data_service.services.models.PartnerEntity
 import po.playground.projects.data_service.services.models.PartnerModel
@@ -23,11 +23,11 @@ object Partners : LongIdTable("partners", "id") {
     val updated = datetime("updated").nullable().default(nowDateTime)
 }
 
-
-class PartnerService(override val dbManager: DBManager) : BasicDataService<PartnerModel, PartnerEntity>(PartnerModel,  PartnerEntity){
+class PartnerService(override val dbManager: DBManager) : BasicDataService<PartnerModel, PartnerEntity>(PartnerModel){
 
     override val autoload: Boolean = true
     override val table: LongIdTable = Partners
+
     override fun newDataModel(entity: PartnerEntity): PartnerModel {
        return entity.toDataModel()
     }
@@ -38,10 +38,12 @@ class PartnerService(override val dbManager: DBManager) : BasicDataService<Partn
         return targetCopy
     }
 
-
     init {
+        dbQuery {
+            if(!Departments.exists()){
+                SchemaUtils.create(Departments)
+            }
+        }
         super.initializeService()
     }
-
-
 }
