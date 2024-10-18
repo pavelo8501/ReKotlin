@@ -3,14 +3,11 @@ package po.api.rest_service
 import po.api.rest_service.common.ApiEntity
 import po.api.rest_service.common.RestService
 
-import io.ktor.client.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
+
+import io.ktor.server.engine.*
+import io.ktor.server.netty.*
 
 class KtorRestService : RestService<ApiEntity> {
-
-    private val client = HttpClient()
-
 
     override fun create(resource: ApiEntity): ApiEntity {
         TODO("Not yet implemented")
@@ -34,6 +31,5 @@ class KtorRestService : RestService<ApiEntity> {
     override fun getAll(): List<ApiEntity> {
         TODO("Not yet implemented")
     }
-
 
 }
