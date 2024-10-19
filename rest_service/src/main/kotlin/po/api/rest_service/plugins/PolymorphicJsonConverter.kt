@@ -15,10 +15,13 @@ import kotlin.reflect.KType
 
 class PolymorphicJsonConverter (private val json: Json) : ContentConverter{
 
+    private val serializerCache = mutableMapOf<KType, KSerializer<Any>>()
 
     private fun getSerializerForType(type: KType): KSerializer<Any> {
         @Suppress("UNCHECKED_CAST")
-        return json.serializersModule.serializer(type) as KSerializer<Any>
+        return serializerCache.getOrPut(type) {
+            json.serializersModule.serializer(type) as KSerializer<Any>
+        }
     }
 
     override suspend fun serialize(
