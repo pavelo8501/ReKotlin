@@ -7,4 +7,5 @@ plugins {
 rootProject.name = "ReKotlin"
 include("data_service")
 include("rest_service")
+include("tg_ui")
 include("playground")

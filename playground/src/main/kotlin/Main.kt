@@ -7,7 +7,7 @@ import po.playground.projects.data_service.startDataService
 
 
 import po.api.rest_service.server.ApiServer
-
+import po.playground.projects.rest_service.startApiServer
 
 
 fun main() {
@@ -23,10 +23,10 @@ fun main() {
 
 
     val host = dotenv["SERVER_HOST"]
-    val port = dotenv["SERVER_PORT"]
+    val port = dotenv["SERVER_PORT"].toInt()
 
+    startApiServer(host, port)
 
-
-
+    val a = 10
 
 }

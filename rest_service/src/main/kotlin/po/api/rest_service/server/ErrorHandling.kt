@@ -6,6 +6,9 @@ import io.ktor.server.response.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.http.*
 
+class AuthenticationException(message: String) : RuntimeException(message)
+class AuthorizationException(message: String) : RuntimeException(message)
+
 fun Application.configureErrorHandling() {
     install(StatusPages) {
         exception<AuthenticationException> { call, reason ->
@@ -20,5 +23,3 @@ fun Application.configureErrorHandling() {
     }
 }
 
-class AuthenticationException(message: String) : RuntimeException(message)
-class AuthorizationException(message: String) : RuntimeException(message)

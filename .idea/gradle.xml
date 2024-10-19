@@ -11,6 +11,7 @@
             <option value="$PROJECT_DIR$/data_service" />
             <option value="$PROJECT_DIR$/playground" />
             <option value="$PROJECT_DIR$/rest_service" />
+            <option value="$PROJECT_DIR$/tg_ui" />
           </set>
         </option>
       </GradleProjectSettings>

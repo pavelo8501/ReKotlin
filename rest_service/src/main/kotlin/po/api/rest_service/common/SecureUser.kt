@@ -6,4 +6,7 @@ interface SecureUser {
     val password: String
     val roles: List<String>
 
+
+    fun toPayload(): String
+
 }
