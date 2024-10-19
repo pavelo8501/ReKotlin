@@ -31,7 +31,6 @@ import java.nio.file.Paths
 
 import po.playground.projects.rest_service.users.User
 
-
 fun startApiServer(host: String, port: Int) {
 
     val currentDir = File("").absolutePath
@@ -89,7 +88,7 @@ fun startApiServer(host: String, port: Int) {
                             throw AuthenticationException("Invalid credentials")
                         }
                         val token = tokenService.generateToken(user)
-                        call.response.header("Access-Control-Allow-Origin", "*")
+
                         call.respond(hashMapOf("token" to token))
                     }catch (e: AuthenticationException){
                         call.respondText("Invalid credentials", status = HttpStatusCode.Unauthorized)
