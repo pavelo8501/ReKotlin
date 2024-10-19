@@ -18,3 +18,10 @@ interface ApiDeleteEntity {
     val includingChild: Boolean
 
 }
+
+interface ApiLoginRequestDataContext {
+
+    val username: String
+    val password: String
+
+}

@@ -16,11 +16,15 @@ import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.SerializersModuleBuilder
 import kotlinx.serialization.json.Json
+import po.api.rest_service.common.ApiLoginRequestDataContext
+import po.api.rest_service.models.DefaultLoginRequest
 
 import po.api.rest_service.models.DeleteRequestData
+import po.api.rest_service.models.LoginRequestData
 import po.api.rest_service.models.RequestData
 import po.api.rest_service.models.SelectRequestData
 import po.api.rest_service.models.UpdateRequestData
+import po.api.rest_service.plugins.PolymorphicJsonConverter
 
 
 class ApiServer(
@@ -63,14 +67,24 @@ class ApiServer(
                 //Can do something here if ContentNegotiation is already installed
             } else {
                 install(ContentNegotiation) {
-                    val json = jsonDefault() {
-                        polymorphic(RequestData::class) {
-                            subclass(SelectRequestData::class, SelectRequestData.serializer())
-                            subclass(UpdateRequestData::class, UpdateRequestData.serializer())
-                            subclass(DeleteRequestData::class, DeleteRequestData.serializer())
-                        }
-                    }
-                    json(json)
+                    //Register custom JSON converter, since the default one does not support polymorphic serialization
+                    register(
+                        ContentType.Application.Json,
+                        PolymorphicJsonConverter(
+                            jsonDefault() {
+    //                        polymorphic(ApiLoginRequestDataContext::class) {
+    //                            subclass(DefaultLoginRequest::class, DefaultLoginRequest.serializer())
+    //                        }
+
+                                polymorphic(RequestData::class) {
+                                    //   subclass(SelectRequestData::class, SelectRequestData.serializer())
+                                    //   subclass(UpdateRequestData::class, UpdateRequestData.serializer())
+                                    //   subclass(DeleteRequestData::class, DeleteRequestData.serializer())
+                                    subclass(LoginRequestData::class, LoginRequestData.serializer())
+                                }
+                            }
+                        )
+                    )
                 }
             }
 
@@ -86,7 +100,6 @@ class ApiServer(
                     }
                 }
             }
-
             routing {
                 // Default routes
             }

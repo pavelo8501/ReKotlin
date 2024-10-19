@@ -24,7 +24,17 @@ import io.ktor.server.plugins.cors.*
 
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.http.*
+import io.ktor.server.plugins.CannotTransformContentToTypeException
 import io.ktor.server.routing.*
+import kotlinx.serialization.modules.polymorphic
+import po.api.rest_service.exceptions.DataErrorCodes
+import po.api.rest_service.exceptions.DataException
+import po.api.rest_service.models.ApiRequest
+import po.api.rest_service.models.DeleteRequestData
+import po.api.rest_service.models.LoginRequestData
+import po.api.rest_service.models.RequestData
+import po.api.rest_service.models.SelectRequestData
+import po.api.rest_service.models.UpdateRequestData
 
 import java.io.File
 import java.nio.file.Paths
@@ -63,52 +73,69 @@ fun startApiServer(host: String, port: Int) {
         configureErrorHandling()
 
         routing {
-            get("/.well-known/jwks.json") {
-                val appPath = Paths.get("").toAbsolutePath().toString()
-                val jwksContent = File(appPath+File.separator+"certs"+File.separator+"jwks.json").readText()
-                call.respondText(jwksContent, ContentType.Application.Json)
-            }
-            route("/api/login") {
-                get {
-                    call.respondText("Hello :) Better use POST")
+                get("/.well-known/jwks.json") {
+                    val appPath = Paths.get("").toAbsolutePath().toString()
+                    val jwksContent = File(appPath + File.separator + "certs" + File.separator + "jwks.json").readText()
+                    call.respondText(jwksContent, ContentType.Application.Json)
                 }
-                post {
-                    try {
-                        val parameters = call.receiveParameters()
-                        val username = parameters["username"] ?: ""
-                        val password = parameters["password"] ?: ""
+                route("/api/login") {
+                    get {
+                        call.respondText("Hello :) Better use POST")
+                    }
+                    post {
+                        try {
+                            //val loginRequest = call.receive<ApiRequest<RequestData>>()
 
-                        //!!! Remember to substitute this with a real authentication in production
-                        val user =  if (username == "user" && password == "pass") {
-                            User(username, password).also {
-                                it.id = 1
-                                it.email = "some@mail.com"
+                            val json = ApiServer.jsonDefault {
+                                polymorphic(RequestData::class) {
+                                    subclass(LoginRequestData::class, LoginRequestData.serializer())
+                                }
                             }
-                        }else {
-                            throw AuthenticationException("Invalid credentials")
+                          //  val text = call.receiveText()
+                          //  val loginRequest =  json.decodeFromString<ApiRequest<RequestData>>(text)
+
+                            val loginRequest = call.receive<ApiRequest<RequestData>>()
+
+                            if(loginRequest.data !is LoginRequestData){
+                                throw DataException(DataErrorCodes.REQUEST_DATA_MISMATCH,"Not a login request")
+                            }
+                            (loginRequest.data as LoginRequestData).let { loginData ->
+                                //!!! Remember to substitute this with a real authentication in production
+                                val user = if (loginData.value.username == "user" && loginData.value.password == "pass") {
+                                    User(loginData.value.username, loginData.value.password).also {
+                                        it.id = 1
+                                        it.email = "some@mail.com"
+                                    }
+                                } else {
+                                    throw AuthenticationException("Invalid credentials")
+                                }
+                                val token = tokenService.generateToken(user)
+                                call.respond(hashMapOf("token" to token))
+                            }
+                        } catch (e: AuthenticationException) {
+                            call.respondText("Invalid credentials", status = HttpStatusCode.Unauthorized)
+                        } catch (e: CannotTransformContentToTypeException) {
+                            println(e.message)
+                            call.respondText("Request data cannot be deserialized", status = HttpStatusCode.NotAcceptable)
                         }
-                        val token = tokenService.generateToken(user)
-
-                        call.respond(hashMapOf("token" to token))
-                    }catch (e: AuthenticationException){
-                        call.respondText("Invalid credentials", status = HttpStatusCode.Unauthorized)
-                    }
-                    catch (e: Exception){
-                        call.respondText(e.message?:"Internal server error", status = HttpStatusCode.InternalServerError)
+                        catch (e: Exception) {
+                            val message = e.message ?: "Internal server error"
+                            println(message)
+                            call.respondText("Internal server error", status = HttpStatusCode.InternalServerError)
+                        }
                     }
                 }
-            }
-            authenticate("auth-jwt") {
-                get("/secure-endpoint") {
-                    val principal = call.principal<JWTPrincipal>()
-                    val username = principal!!.payload.getClaim("username").asString()
-                    call.respondText("Hello, $username")
+                authenticate("auth-jwt") {
+                    get("/secure-endpoint") {
+                        val principal = call.principal<JWTPrincipal>()
+                        val username = principal!!.payload.getClaim("username").asString()
+                        call.respondText("Hello, $username")
+                    }
                 }
-            }
 
-            get("/public-endpoint") {
-                call.respondText("This is a public endpoint.")
-            }
+                get("/public-endpoint") {
+                    call.respondText("This is a public endpoint.")
+                }
         }
     }
     apiServer.configureHost(host, port)
