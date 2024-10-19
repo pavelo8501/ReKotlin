@@ -84,15 +84,8 @@ fun startApiServer(host: String, port: Int) {
                     }
                     post {
                         try {
-                            //val loginRequest = call.receive<ApiRequest<RequestData>>()
 
-                            val json = ApiServer.jsonDefault {
-                                polymorphic(RequestData::class) {
-                                    subclass(LoginRequestData::class, LoginRequestData.serializer())
-                                }
-                            }
-                          //  val text = call.receiveText()
-                          //  val loginRequest =  json.decodeFromString<ApiRequest<RequestData>>(text)
+                            println("Request content type: ${call.request.contentType()}")
 
                             val loginRequest = call.receive<ApiRequest<RequestData>>()
 

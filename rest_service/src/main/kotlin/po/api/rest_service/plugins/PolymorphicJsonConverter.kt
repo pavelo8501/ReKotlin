@@ -10,13 +10,12 @@ import io.ktor.utils.io.core.*
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.decodeFromString
 import java.nio.charset.Charset
 import kotlin.reflect.KType
 
-
 class PolymorphicJsonConverter (private val json: Json) : ContentConverter{
+
+
     private fun getSerializerForType(type: KType): KSerializer<Any> {
         @Suppress("UNCHECKED_CAST")
         return json.serializersModule.serializer(type) as KSerializer<Any>
@@ -28,8 +27,11 @@ class PolymorphicJsonConverter (private val json: Json) : ContentConverter{
         typeInfo: TypeInfo,
         value: Any?
     ): OutgoingContent? {
-        if (value == null) return null
-
+        if (value == null) {
+            println("PolymorphicJsonConverter: return null because value is null")
+            return null
+        }
+        println("PolymorphicJsonConverter: serialize called with value: $value")
         val serializer = getSerializerForType(typeInfo.kotlinType!!)
         val jsonText = json.encodeToString(serializer, value)
         return TextContent(jsonText, contentType.withCharset(charset))
@@ -40,7 +42,9 @@ class PolymorphicJsonConverter (private val json: Json) : ContentConverter{
         typeInfo: TypeInfo,
         content: ByteReadChannel
     ): Any? {
+        println("PolymorphicJsonConverter: deserialize called")
         val text = content.readRemaining().readText(charset)
+        println("PolymorphicJsonConverter: Raw request body: $text")
         val serializer = getSerializerForType(typeInfo.kotlinType!!)
         return json.decodeFromString(serializer, text)
     }

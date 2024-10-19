@@ -72,15 +72,14 @@ class ApiServer(
                         ContentType.Application.Json,
                         PolymorphicJsonConverter(
                             jsonDefault() {
-    //                        polymorphic(ApiLoginRequestDataContext::class) {
-    //                            subclass(DefaultLoginRequest::class, DefaultLoginRequest.serializer())
-    //                        }
-
+                                polymorphic(ApiLoginRequestDataContext::class) {
+                                    subclass(DefaultLoginRequest::class, DefaultLoginRequest.serializer())
+                                }
                                 polymorphic(RequestData::class) {
-                                    //   subclass(SelectRequestData::class, SelectRequestData.serializer())
-                                    //   subclass(UpdateRequestData::class, UpdateRequestData.serializer())
-                                    //   subclass(DeleteRequestData::class, DeleteRequestData.serializer())
-                                    subclass(LoginRequestData::class, LoginRequestData.serializer())
+                                   subclass(SelectRequestData::class, SelectRequestData.serializer())
+                                   subclass(UpdateRequestData::class, UpdateRequestData.serializer())
+                                   subclass(DeleteRequestData::class, DeleteRequestData.serializer())
+                                   subclass(LoginRequestData::class, LoginRequestData.serializer())
                                 }
                             }
                         )
