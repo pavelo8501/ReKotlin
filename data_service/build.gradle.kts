@@ -4,7 +4,7 @@ val hikaricpVersion: String by project
 val mysqlVersion: String by project
 
 plugins {
-    kotlin("jvm") version "2.0.21"
+    kotlin("jvm")
     `java-library`
     `maven-publish`
 }

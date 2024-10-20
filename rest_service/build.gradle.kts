@@ -13,13 +13,13 @@ val junitVersion: String by project
 
 
 plugins {
-    kotlin("jvm") version "2.0.21"
+    kotlin("jvm")
     kotlin("plugin.serialization") version "2.0.21"
     `java-library`
     `maven-publish`
 }
 
-version = "0.1.0"
+version = "0.0.2"
 
 repositories {
     mavenCentral()
@@ -40,8 +40,9 @@ dependencies {
 
     implementation(libs.guava)
 
-    testImplementation(libs.junit.jupiter)
-    testImplementation("io.ktor:ktor-server-tests:3.0.0-beta-1")
+    //testImplementation(libs.junit.jupiter)
+    testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
+    testImplementation("org.jetbrains.kotlin:kotlin-test:$kotlinVersion")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$testCoroutinesVersion")
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
     testImplementation("ch.qos.logback:logback-classic:$logbackClassicVersion")
@@ -53,7 +54,7 @@ dependencies {
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion = JavaLanguageVersion.of(22)
     }
     withSourcesJar()
 }
@@ -64,7 +65,7 @@ publishing {
             from(components["java"])
             groupId = "com.github.pavelo8501"
             artifactId = "rest_service"
-            version = "0.1.0"
+            version = "0.0.2"
         }
     }
 
@@ -87,6 +88,12 @@ tasks.jar {
     }
 }
 
+
+
 tasks.named<Test>("test") {
     useJUnitPlatform()
+}
+
+tasks.withType<PublishToMavenRepository> {
+    dependsOn("test")
 }

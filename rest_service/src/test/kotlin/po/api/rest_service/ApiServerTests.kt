@@ -19,13 +19,25 @@ import po.api.rest_service.models.LoginRequestData
 import po.api.rest_service.models.RequestData
 import po.api.rest_service.models.SelectRequestData
 import po.api.rest_service.models.UpdateRequestData
+import kotlin.text.get
 
 class ApiServerTest {
 
     @Test
+    fun `server starts with no params supplied`() = testApplication {
+        application {
+            RestServer().configure(this)
+        }
+        val response = client.get("/api/status")
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals("OK", response.bodyAsText())
+    }
+
+
+    @Test
     fun `test logger is registered in attributes`() = testApplication {
         application {
-            RestServer().start()
+            RestServer().configure(this)
             val logger = this.attributes[RestServer.loggerKey]
             assertNotNull(logger, "Logger should be registered in the application attributes.")
         }
@@ -34,9 +46,7 @@ class ApiServerTest {
     @Test
     fun `test status route returns OK`() = testApplication {
         application {
-            RestServer {
-                // Setup application
-            }.start()
+            RestServer().configure(this)
         }
 
         // Make a GET request to the /api/status endpoint
@@ -48,42 +58,31 @@ class ApiServerTest {
     @Test
     fun `test ContentNegotiation plugin is installed`() = testApplication {
         application {
-            RestServer {
-                // Configuration block
-            }.start()
+            RestServer().configure(this)
         }
-
-        // Make a request to a route that requires JSON serialization
-        val response = client.get("/api/status") {
+        val response = client.get("/api/status-json") {
             accept(ContentType.Application.Json)
         }
-
-        // Check if the response is in JSON format
         assertEquals(ContentType.Application.Json.withCharset(Charsets.UTF_8), response.contentType())
     }
 
     @Test
     fun `test CORS plugin is installed`() = testApplication {
         application {
-            RestServer {
-                // Configuration block
-            }.start()
+            RestServer().configure(this)
         }
-
-        // Make a request to check CORS headers
         val response = client.options("/api/status") {
-            header(HttpHeaders.Origin, "http://localhost")
-            method = HttpMethod.Options
+            header(HttpHeaders.Origin, "http://localhost") // Ensure the correct origin is set
         }
-
-        // Verify that the Access-Control-Allow-Origin header is present
-        assertEquals("*", response.headers[HttpHeaders.AccessControlAllowOrigin])
+        println("Response headers: ${response.headers}")
+        println("Status: ${response.status}")
+        val corsHeader = response.headers[HttpHeaders.AccessControlAllowOrigin]
+        assertNotNull(corsHeader, "CORS header should be present")
+        assertEquals("*", corsHeader)
     }
 
     @Test
     fun `test logging occurs when status endpoint is called`() = testApplication {
-
-
         var logMessage: String? = null
 
         application {
@@ -91,7 +90,7 @@ class ApiServerTest {
                 apiLogger.registerLogFunction(LogLevel.MESSAGE) { msg, _, _, _ ->
                     logMessage = msg
                 }
-            }.start()
+            }.configure(this)
         }
 
         val response = client.get("/api/status")
