@@ -6,6 +6,7 @@ import io.ktor.server.netty.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.CORS
+import io.ktor.server.response.respondText
 import io.ktor.server.routing.*
 import io.ktor.util.AttributeKey
 
@@ -23,11 +24,15 @@ import po.api.rest_service.models.LoginRequestData
 import po.api.rest_service.models.RequestData
 import po.api.rest_service.models.SelectRequestData
 import po.api.rest_service.models.UpdateRequestData
+import po.api.rest_service.plugins.LoggingPlugin
 import po.api.rest_service.plugins.PolymorphicJsonConverter
 
 
 val Application.apiLogger: LoggingService
-    get() = attributes[ApiServer.loggerKey]
+    get() = run {
+        println("Application.apiLogger get(): ${attributes.hashCode()}")
+        attributes[ApiServer.loggerKey]
+    }
 
 class ApiServer(
     private val configure: (Application.() -> Unit)? = null
@@ -59,7 +64,7 @@ class ApiServer(
     private var host: String = "0.0.0.0"
     private var port: Int = 8080
 
-    val apiLogger by LoggingService()
+    val apiLogger: LoggingService = LoggingService()
 
     fun configureHost(host: String, port: Int): ApiServer {
         this.host = host
@@ -70,12 +75,10 @@ class ApiServer(
     fun start(wait: Boolean = true) {
         embeddedServer(Netty, port, host) {
 
-            monitor.subscribe(ApplicationStarted){ app->
-                val logger = LoggingService()
-                app.attributes.put(loggerKey, logger)
-            }
+            install(LoggingPlugin)
 
             configure?.invoke(this)
+
             if (this.pluginOrNull(ContentNegotiation) != null) {
                 //Can do something here if ContentNegotiation is already installed
             } else {
@@ -113,7 +116,17 @@ class ApiServer(
                 }
             }
             routing {
-
+                get("/api/status") {
+                    println("Accessing Application: ${application.hashCode()}")
+                    try {
+                        val logger = call.application.apiLogger
+                        logger.info("Status endpoint called.")
+                        call.respondText("OK")
+                    } catch (e: Exception) {
+                        println("Error accessing logger: ${e.message}")
+                        call.respondText("Error accessing logger", status = HttpStatusCode.InternalServerError)
+                    }
+                }
             }
         }.start(wait)
     }

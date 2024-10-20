@@ -57,6 +57,9 @@ fun startApiServer(host: String, port: Int) {
     }
 
     val apiServer = ApiServer(){
+
+        apiLogger.registerLogFunction(LogLevel.MESSAGE, customLogFunction)
+
         install(Authentication) {
             jwt("auth-jwt") {
                 realm = jwtConfig.realm
@@ -69,7 +72,6 @@ fun startApiServer(host: String, port: Int) {
             }
         }
         configureErrorHandling()
-
         routing {
                 get("/.well-known/jwks.json") {
                     val appPath = Paths.get("").toAbsolutePath().toString()
@@ -82,6 +84,7 @@ fun startApiServer(host: String, port: Int) {
                     }
                     post {
                         try {
+                            println("Calling apiLogger.info")
                             apiLogger.info("Request content type: ${call.request.contentType()}")
                             val loginRequest = call.receive<ApiRequest<RequestData>>()
                             if(loginRequest.data !is LoginRequestData){
@@ -125,9 +128,8 @@ fun startApiServer(host: String, port: Int) {
                     call.respondText("This is a public endpoint.")
                 }
         }
+    }.apply {
+        configureHost(host, port)
     }
-    apiServer.apiLogger.registerLogFunction(LogLevel.MESSAGE, customLogFunction)
-    apiServer.configureHost(host, port)
     apiServer.start()
-
 }
