@@ -14,27 +14,12 @@ import io.ktor.server.auth.jwt.*
 import io.ktor.server.response.*
 import io.ktor.server.request.*
 
-import io.ktor.server.engine.*
-import io.ktor.server.netty.*
-import io.ktor.server.application.*
-import io.ktor.serialization.kotlinx.json.*
-
-import io.ktor.server.plugins.contentnegotiation.*
-import io.ktor.server.plugins.cors.*
-
-import io.ktor.server.plugins.cors.routing.CORS
-import io.ktor.http.*
 import io.ktor.server.plugins.CannotTransformContentToTypeException
-import io.ktor.server.routing.*
-import kotlinx.serialization.modules.polymorphic
 import po.api.rest_service.exceptions.DataErrorCodes
 import po.api.rest_service.exceptions.DataException
 import po.api.rest_service.models.ApiRequest
-import po.api.rest_service.models.DeleteRequestData
 import po.api.rest_service.models.LoginRequestData
 import po.api.rest_service.models.RequestData
-import po.api.rest_service.models.SelectRequestData
-import po.api.rest_service.models.UpdateRequestData
 
 import java.io.File
 import java.nio.file.Paths
