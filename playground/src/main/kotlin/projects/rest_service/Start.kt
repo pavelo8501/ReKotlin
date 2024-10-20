@@ -20,6 +20,7 @@ import po.api.rest_service.exceptions.DataException
 import po.api.rest_service.logger.LogFunction
 import po.api.rest_service.logger.LogLevel
 import po.api.rest_service.models.ApiRequest
+import po.api.rest_service.models.ApiResponse
 import po.api.rest_service.models.LoginRequestData
 import po.api.rest_service.models.RequestData
 
@@ -100,8 +101,12 @@ fun startApiServer(host: String, port: Int) {
                                 } else {
                                     throw AuthenticationException("Invalid credentials")
                                 }
-                                val token = tokenService.generateToken(user)
-                                call.respond(hashMapOf("token" to token))
+                                tokenService.generateToken(user).let { token ->
+                                    if (token == null) {
+                                        throw Exception("Token generation failed")
+                                    }
+                                    call.respond(ApiResponse(token))
+                                }
                             }
                         } catch (e: AuthenticationException) {
                             call.respondText("Invalid credentials", status = HttpStatusCode.Unauthorized)
@@ -117,10 +122,10 @@ fun startApiServer(host: String, port: Int) {
                     }
                 }
                 authenticate("auth-jwt") {
-                    get("/secure-endpoint") {
+                    get("/api/secure-endpoint") {
                         val principal = call.principal<JWTPrincipal>()
                         val username = principal!!.payload.getClaim("username").asString()
-                        call.respondText("Hello, $username")
+                        call.respond(ApiResponse("Hello, $username"))
                     }
                 }
 
