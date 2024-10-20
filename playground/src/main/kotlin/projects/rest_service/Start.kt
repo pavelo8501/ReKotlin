@@ -29,6 +29,8 @@ import io.ktor.server.routing.*
 import kotlinx.serialization.modules.polymorphic
 import po.api.rest_service.exceptions.DataErrorCodes
 import po.api.rest_service.exceptions.DataException
+import po.api.rest_service.logger.LogFunction
+import po.api.rest_service.logger.LogLevel
 import po.api.rest_service.models.ApiRequest
 import po.api.rest_service.models.DeleteRequestData
 import po.api.rest_service.models.LoginRequestData
@@ -57,8 +59,19 @@ fun startApiServer(host: String, port: Int) {
     )
     val tokenService = JWTService.configure(jwtConfig)
 
-    val apiServer = ApiServer(){
+    val customLogFunction: LogFunction = { message, level, date, throwable ->
+        // User's custom logging logic
+        // For example, using SLF4J:
+        val logger = org.slf4j.LoggerFactory.getLogger("ApiServerLogger")
+        when (level) {
+            LogLevel.MESSAGE -> logger.debug("[{}] {}", date, message)
+            LogLevel.ACTION -> logger.info("[$date] $message")
+            LogLevel.WARNING -> logger.warn("[$date] $message")
+            LogLevel.EXCEPTION -> logger.error("[$date] $message", throwable)
+        }
+    }
 
+    val apiServer = ApiServer(){
         install(Authentication) {
             jwt("auth-jwt") {
                 realm = jwtConfig.realm
@@ -84,11 +97,8 @@ fun startApiServer(host: String, port: Int) {
                     }
                     post {
                         try {
-
-                            println("Request content type: ${call.request.contentType()}")
-
+                            apiLogger.info("Request content type: ${call.request.contentType()}")
                             val loginRequest = call.receive<ApiRequest<RequestData>>()
-
                             if(loginRequest.data !is LoginRequestData){
                                 throw DataException(DataErrorCodes.REQUEST_DATA_MISMATCH,"Not a login request")
                             }
@@ -131,6 +141,7 @@ fun startApiServer(host: String, port: Int) {
                 }
         }
     }
+    apiServer.apiLogger.registerLogFunction(LogLevel.MESSAGE, customLogFunction)
     apiServer.configureHost(host, port)
     apiServer.start()
 
