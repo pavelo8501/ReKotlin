@@ -29,10 +29,8 @@ import po.api.rest_service.plugins.PolymorphicJsonConverter
 
 
 val Application.apiLogger: LoggingService
-    get() = run {
-        println("Application.apiLogger get(): ${attributes.hashCode()}")
-        attributes[ApiServer.loggerKey]
-    }
+    get() = attributes[ApiServer.loggerKey]
+
 
 class ApiServer(
     private val configure: (Application.() -> Unit)? = null
@@ -61,14 +59,19 @@ class ApiServer(
         }
     }
 
-    private var host: String = "0.0.0.0"
-    private var port: Int = 8080
+    private var _host: String = "0.0.0.0"
+    val host: String
+        get() = _host
+
+    private var _port: Int = 8080
+    val port: Int
+        get() = _port
 
     val apiLogger: LoggingService = LoggingService()
 
     fun configureHost(host: String, port: Int): ApiServer {
-        this.host = host
-        this.port = port
+        this._host = host
+        this._port = port
         return this
     }
 

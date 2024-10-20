@@ -11,14 +11,14 @@ import po.playground.projects.rest_service.startApiServer
 
 
 fun main() {
-     val dotenv = dotenv()
-//    val driver = dotenv["MYSQL_DRIVER"]
-//    val dbHost = dotenv["MYSQL_HOST"]
-//    val dbPort = dotenv["MYSQL_PORT"]
-//    val dbName = dotenv["MYSQL_DATABASE"]
-//    val dbUsername = dotenv["MYSQL_USER"]
-//    val dbPassword = dotenv["MYSQL_PASSWORD"]
-//
+    val dotenv = dotenv()
+    val driver = dotenv["MYSQL_DRIVER"]
+    val dbHost = dotenv["MYSQL_HOST"]
+    val dbPort = dotenv["MYSQL_PORT"]
+    val dbName = dotenv["MYSQL_DATABASE"]
+    val dbUsername = dotenv["MYSQL_USER"]
+    val dbPassword = dotenv["MYSQL_PASSWORD"]
+
 //    startDataService(ConnectionModel(dbHost, dbName, dbUsername, dbPassword, dbPort))
 
 

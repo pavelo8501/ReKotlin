@@ -6,6 +6,9 @@ val exposedVersion: String by project
 val hikaricpVersion: String by project
 val mysqlVersion: String by project
 
+val testCoroutinesVersion: String by project
+val junitVersion: String by project
+
 plugins {
     kotlin("jvm") version "2.0.21"
     kotlin("plugin.serialization") version "2.0.21"
@@ -35,7 +38,12 @@ dependencies {
     implementation(libs.guava)
 
     testImplementation(libs.junit.jupiter)
+    testImplementation("io.ktor:ktor-server-tests:3.0.0-beta-1")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$testCoroutinesVersion")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
+
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
 
 }
 
