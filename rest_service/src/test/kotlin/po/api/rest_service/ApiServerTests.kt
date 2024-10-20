@@ -10,7 +10,6 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.server.testing.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import po.api.rest_service.server.ApiServer
 
 import kotlinx.serialization.modules.polymorphic
 import po.api.rest_service.logger.LogLevel
@@ -20,15 +19,14 @@ import po.api.rest_service.models.LoginRequestData
 import po.api.rest_service.models.RequestData
 import po.api.rest_service.models.SelectRequestData
 import po.api.rest_service.models.UpdateRequestData
-import po.api.rest_service.server.apiLogger
 
 class ApiServerTest {
 
     @Test
     fun `test logger is registered in attributes`() = testApplication {
         application {
-            ApiServer().start()
-            val logger = this.attributes[ApiServer.loggerKey]
+            RestServer().start()
+            val logger = this.attributes[RestServer.loggerKey]
             assertNotNull(logger, "Logger should be registered in the application attributes.")
         }
     }
@@ -36,7 +34,7 @@ class ApiServerTest {
     @Test
     fun `test status route returns OK`() = testApplication {
         application {
-            ApiServer {
+            RestServer {
                 // Setup application
             }.start()
         }
@@ -50,7 +48,7 @@ class ApiServerTest {
     @Test
     fun `test ContentNegotiation plugin is installed`() = testApplication {
         application {
-            ApiServer {
+            RestServer {
                 // Configuration block
             }.start()
         }
@@ -67,7 +65,7 @@ class ApiServerTest {
     @Test
     fun `test CORS plugin is installed`() = testApplication {
         application {
-            ApiServer {
+            RestServer {
                 // Configuration block
             }.start()
         }
@@ -89,7 +87,7 @@ class ApiServerTest {
         var logMessage: String? = null
 
         application {
-            ApiServer {
+            RestServer {
                 apiLogger.registerLogFunction(LogLevel.MESSAGE) { msg, _, _, _ ->
                     logMessage = msg
                 }
@@ -104,7 +102,7 @@ class ApiServerTest {
 
     @Test
     fun `test configureHost sets host and port correctly`() {
-        val apiServer = ApiServer().configureHost("127.0.0.1", 8081)
+        val apiServer = RestServer().configureHost("127.0.0.1", 8081)
         assertEquals("127.0.0.1", apiServer.host)
         assertEquals(8081, apiServer.port)
     }
@@ -112,7 +110,7 @@ class ApiServerTest {
     @Test
     fun `test jsonDefault with polymorphic configuration`() {
 
-        val json = ApiServer.jsonDefault {
+        val json = RestServer.jsonDefault {
             polymorphic(RequestData::class) {
                 subclass(SelectRequestData::class, SelectRequestData.serializer())
                 subclass(UpdateRequestData::class, UpdateRequestData.serializer())

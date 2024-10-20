@@ -15,6 +15,8 @@ import io.ktor.server.response.*
 import io.ktor.server.request.*
 
 import io.ktor.server.plugins.CannotTransformContentToTypeException
+import po.api.rest_service.RestServer
+import po.api.rest_service.apiLogger
 import po.api.rest_service.exceptions.DataErrorCodes
 import po.api.rest_service.exceptions.DataException
 import po.api.rest_service.logger.LogFunction
@@ -57,7 +59,7 @@ fun startApiServer(host: String, port: Int) {
         }
     }
 
-    val apiServer = ApiServer(){
+    val apiServer = RestServer() {
 
         apiLogger.registerLogFunction(LogLevel.MESSAGE, customLogFunction)
 
@@ -74,64 +76,63 @@ fun startApiServer(host: String, port: Int) {
         }
         configureErrorHandling()
         routing {
-                get("/.well-known/jwks.json") {
-                    val appPath = Paths.get("").toAbsolutePath().toString()
-                    val jwksContent = File(appPath + File.separator + "certs" + File.separator + "jwks.json").readText()
-                    call.respondText(jwksContent, ContentType.Application.Json)
+            get("/.well-known/jwks.json") {
+                val appPath = Paths.get("").toAbsolutePath().toString()
+                val jwksContent = File(appPath + File.separator + "certs" + File.separator + "jwks.json").readText()
+                call.respondText(jwksContent, ContentType.Application.Json)
+            }
+            route("/api/login") {
+                get {
+                    call.respondText("Hello :) Better use POST")
                 }
-                route("/api/login") {
-                    get {
-                        call.respondText("Hello :) Better use POST")
-                    }
-                    post {
-                        try {
-                            println("Calling apiLogger.info")
-                            apiLogger.info("Request content type: ${call.request.contentType()}")
-                            val loginRequest = call.receive<ApiRequest<RequestData>>()
-                            if(loginRequest.data !is LoginRequestData){
-                                throw DataException(DataErrorCodes.REQUEST_DATA_MISMATCH,"Not a login request")
-                            }
-                            (loginRequest.data as LoginRequestData).let { loginData ->
-                                //!!! Remember to substitute this with a real authentication in production
-                                val user = if (loginData.value.username == "user" && loginData.value.password == "pass") {
-                                    User(loginData.value.username, loginData.value.password).also {
-                                        it.id = 1
-                                        it.email = "some@mail.com"
-                                    }
-                                } else {
-                                    throw AuthenticationException("Invalid credentials")
-                                }
-                                tokenService.generateToken(user).let { token ->
-                                    if (token == null) {
-                                        throw Exception("Token generation failed")
-                                    }
-                                    call.respond(ApiResponse(token))
-                                }
-                            }
-                        } catch (e: AuthenticationException) {
-                            call.respondText("Invalid credentials", status = HttpStatusCode.Unauthorized)
-                        } catch (e: CannotTransformContentToTypeException) {
-                            println(e.message)
-                            call.respondText("Request data cannot be deserialized", status = HttpStatusCode.NotAcceptable)
+                post {
+                    try {
+                        println("Calling apiLogger.info")
+                        apiLogger.info("Request content type: ${call.request.contentType()}")
+                        val loginRequest = call.receive<ApiRequest<RequestData>>()
+                        if (loginRequest.data !is LoginRequestData) {
+                            throw DataException(DataErrorCodes.REQUEST_DATA_MISMATCH, "Not a login request")
                         }
-                        catch (e: Exception) {
-                            val message = e.message ?: "Internal server error"
-                            println(message)
-                            call.respondText("Internal server error", status = HttpStatusCode.InternalServerError)
+                        (loginRequest.data as LoginRequestData).let { loginData ->
+                            //!!! Remember to substitute this with a real authentication in production
+                            val user = if (loginData.value.username == "user" && loginData.value.password == "pass") {
+                                User(loginData.value.username, loginData.value.password).also {
+                                    it.id = 1
+                                    it.email = "some@mail.com"
+                                }
+                            } else {
+                                throw AuthenticationException("Invalid credentials")
+                            }
+                            tokenService.generateToken(user).let { token ->
+                                if (token == null) {
+                                    throw Exception("Token generation failed")
+                                }
+                                call.respond(ApiResponse(token))
+                            }
                         }
+                    } catch (e: AuthenticationException) {
+                        call.respondText("Invalid credentials", status = HttpStatusCode.Unauthorized)
+                    } catch (e: CannotTransformContentToTypeException) {
+                        println(e.message)
+                        call.respondText("Request data cannot be deserialized", status = HttpStatusCode.NotAcceptable)
+                    } catch (e: Exception) {
+                        val message = e.message ?: "Internal server error"
+                        println(message)
+                        call.respondText("Internal server error", status = HttpStatusCode.InternalServerError)
                     }
                 }
-                authenticate("auth-jwt") {
-                    get("/api/secure-endpoint") {
-                        val principal = call.principal<JWTPrincipal>()
-                        val username = principal!!.payload.getClaim("username").asString()
-                        call.respond(ApiResponse("Hello, $username"))
-                    }
+            }
+            authenticate("auth-jwt") {
+                get("/api/secure-endpoint") {
+                    val principal = call.principal<JWTPrincipal>()
+                    val username = principal!!.payload.getClaim("username").asString()
+                    call.respond(ApiResponse("Hello, $username"))
                 }
+            }
 
-                get("/public-endpoint") {
-                    call.respondText("This is a public endpoint.")
-                }
+            get("/public-endpoint") {
+                call.respondText("This is a public endpoint.")
+            }
         }
     }.apply {
         configureHost(host, port)

@@ -6,8 +6,11 @@ val exposedVersion: String by project
 val hikaricpVersion: String by project
 val mysqlVersion: String by project
 
+
+val logbackClassicVersion: String by project
 val testCoroutinesVersion: String by project
 val junitVersion: String by project
+
 
 plugins {
     kotlin("jvm") version "2.0.21"
@@ -41,6 +44,7 @@ dependencies {
     testImplementation("io.ktor:ktor-server-tests:3.0.0-beta-1")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$testCoroutinesVersion")
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
+    testImplementation("ch.qos.logback:logback-classic:$logbackClassicVersion")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
@@ -84,6 +88,5 @@ tasks.jar {
 }
 
 tasks.named<Test>("test") {
-    // Use JUnit Platform for unit tests.
     useJUnitPlatform()
 }

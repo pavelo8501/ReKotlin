@@ -1,4 +1,4 @@
-package po.api.rest_service.server
+package po.api.rest_service
 
 import io.ktor.http.*
 import io.ktor.server.engine.*
@@ -29,18 +29,18 @@ import po.api.rest_service.plugins.PolymorphicJsonConverter
 
 
 val Application.apiLogger: LoggingService
-    get() = attributes[ApiServer.loggerKey]
+    get() = attributes[RestServer.loggerKey]
 
 
-class ApiServer(
+class RestServer(
     private val configure: (Application.() -> Unit)? = null
 ) {
     companion object {
 
         val loggerKey = AttributeKey<LoggingService>("Logger")
 
-        fun create(configure: (Application.() -> Unit)? = null): ApiServer {
-            return ApiServer(configure)
+        fun create(configure: (Application.() -> Unit)? = null): RestServer {
+            return RestServer(configure)
         }
 
         fun start(host: String, port: Int, configure: (Application.() -> Unit)? = null) {
@@ -69,7 +69,7 @@ class ApiServer(
 
     val apiLogger: LoggingService = LoggingService()
 
-    fun configureHost(host: String, port: Int): ApiServer {
+    fun configureHost(host: String, port: Int): RestServer {
         this._host = host
         this._port = port
         return this

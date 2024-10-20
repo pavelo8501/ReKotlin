@@ -1,8 +1,6 @@
 package po.api.rest_service.plugins
 
-import io.ktor.server.application.*
 import po.api.rest_service.logger.LoggingService
-import po.api.rest_service.server.ApiServer
 
 class ApiPlugins(private val apiLogger: LoggingService) {
 
