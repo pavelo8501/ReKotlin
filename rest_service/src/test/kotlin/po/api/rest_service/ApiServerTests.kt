@@ -48,8 +48,6 @@ class ApiServerTest {
         application {
             RestServer().configure(this)
         }
-
-        // Make a GET request to the /api/status endpoint
         val response = client.get("/api/status")
         assertEquals(200, response.status.value)
         assertEquals("OK", response.bodyAsText())
@@ -117,7 +115,6 @@ class ApiServerTest {
                 subclass(LoginRequestData::class, LoginRequestData.serializer())
             }
         }
-
         val data = LoginRequestData(DefaultLoginRequest("username", "password"))
         val serialized = json.encodeToString(RequestData.serializer(), data)
         val deserialized = json.decodeFromString(RequestData.serializer(), serialized)
