@@ -8,7 +8,7 @@ val mysqlVersion: String by project
 
 
 plugins {
-    kotlin("jvm") version "2.0.21"
+    kotlin("jvm")
     application
 }
 
@@ -56,7 +56,7 @@ application {
 
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(22)
 }
 
 tasks.register<Exec>("dockerComposeUp") {
