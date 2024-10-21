@@ -1,12 +1,11 @@
-import org.gradle.kotlin.dsl.from
-import org.gradle.kotlin.dsl.repositories
-
 val kotlinVersion: String by project
 val ktorVersion: String by project
 val kotlinSerializationVersion: String by project
 val exposedVersion: String by project
 val hikaricpVersion: String by project
 val mysqlVersion: String by project
+
+val restServerVersion: String by project
 
 
 val logbackClassicVersion: String by project
@@ -15,14 +14,14 @@ val junitVersion: String by project
 
 
 plugins {
-    kotlin("jvm") version "2.0.21"
+    kotlin("jvm") version kotlinVersion
     kotlin("plugin.serialization")
     `java-library`
     `maven-publish`
 }
 
-group = "po.api"
-version = "0.10.23"
+group = "po.api.rest"
+version = restServerVersion
 
 repositories {
     mavenCentral()
@@ -48,9 +47,6 @@ dependencies {
     implementation(libs.guava)
 
     //testImplementation(libs.junit.jupiter)
-    testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
-    testImplementation("org.jetbrains.kotlin:kotlin-test:$kotlinVersion")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$testCoroutinesVersion")
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
     testImplementation("ch.qos.logback:logback-classic:$logbackClassicVersion")
 
@@ -83,7 +79,7 @@ publishing {
             from(components["java"])
             groupId = "com.github.pavelo8501"
             artifactId = "rest-api-wrapper"
-            version = this.version
+            version = restServerVersion
         }
     }
 }

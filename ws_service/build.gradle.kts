@@ -1,4 +1,3 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 //WsApiServerWrapper
 
@@ -15,61 +14,37 @@ val testCoroutinesVersion: String by project
 val junitVersion: String by project
 
 val restWrapperVersion: String by project
-
 val wsWrapperVersion: String by project
 
-
 plugins {
-    kotlin("jvm") version "2.0.21"
+    kotlin("jvm") version kotlinVersion
     kotlin("plugin.serialization")
-    id("org.gradle.kotlin.kotlin-dsl") version "5.1.2"
-    id("com.diffplug.spotless") version "7.0.0.BETA3"
-    id("com.gradleup.shadow") version "8.3.3"
-
+//    id("org.gradle.kotlin.kotlin-dsl") version "5.1.2"
+//    id("com.diffplug.spotless") version "7.0.0.BETA3"
+//    id("com.gradleup.shadow") version "8.3.3"
     `java-library`
     `maven-publish`
 }
 
-group = "po.api"
+group = "po.api.ws"
 version = wsWrapperVersion
-
-
-spotless {
-    kotlinGradle {
-      //  ktlint()
-        target("**/*.kts")
-        targetExclude("build-logic/build/**")
-    }
-}
 
 
 repositories {
     mavenCentral()
 
     maven {
-        name = "GitHubPackages"
+        name = "PublicGitHubPackages"
         url = uri("https://maven.pkg.github.com/pavelo8501/ReKotlin")
     }
 }
 
-val publishOnly by configurations.creating
-val developmentOnly = configurations.create("developmentOnly")
-configurations.runtimeClasspath.get().extendsFrom(developmentOnly)
-
-
 dependencies {
-
-    implementation("com.github.pavelo8501:rest-api-wrapper:$restWrapperVersion")
     implementation(project(":RestApiServerWrapper"))
     implementation("io.ktor:ktor-server-websockets:$ktorVersion")
     implementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinSerializationVersion")
-
-
-    // compileOnly(localGroovy())
-   // developmentOnly(project(":RestApiServerWrapper"))
-   // publishOnly("com.github.pavelo8501:rest-api-wrapper:$restWrapperVersion")
 
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
     testImplementation("org.jetbrains.kotlin:kotlin-test:$kotlinVersion")
@@ -79,18 +54,7 @@ dependencies {
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
-
 }
-
-configurations.all {
-    resolutionStrategy {
-        dependencySubstitution {
-            substitute(module("com.github.pavelo8501:rest-api-wrapper"))
-                .using(project(":RestApiServerWrapper"))
-        }
-    }
-}
-
 
 kotlin {
     jvmToolchain {
@@ -102,47 +66,33 @@ publishing {
     apply(plugin = "maven-publish")
     repositories {
         maven {
-            name = "GitHubPackages"
+            name = "PublicGitHubPackages"
             url = uri("https://maven.pkg.github.com/pavelo8501/ReKotlin")
             credentials {
                 username = project.findProperty("gpr.user") as String? ?: System.getenv("GITHUB_USERNAME")
-                password = project.findProperty("gpr.token") as String? ?: System.getenv("GITHUB_TOKEN")
+                password = project.findProperty("gpr.key") as String? ?: System.getenv("GITHUB_TOKEN")
             }
         }
     }
+
     publications {
-        create<MavenPublication>("mavenJava") {
+        register<MavenPublication>("gpr") {
             from(components["java"])
             groupId = "com.github.pavelo8501"
             artifactId = "ws-api-wrapper"
-            version = wsWrapperVersion
+            version = this.version
         }
-
-    }
-}
-
-spotless {
-    kotlinGradle {
-        ktlint()
-        target("**/*.kts")
-        targetExclude("build-logic/build/**")
     }
 }
 
 
-tasks.withType<ShadowJar> {
-    archiveClassifier.set("all")
-    mergeServiceFiles()
-    manifest {
-        attributes(mapOf("Implementation-Title" to project.name,
-            "Implementation-Version" to project.version))
-    }
-}
-
-
-tasks.withType<JavaExec> {
-    // Already included via runtimeClasspath, no need to manipulate classpath manually
-}
+//spotless {
+//    kotlinGradle {
+//        ktlint()
+//        target("**/*.kts")
+//        targetExclude("build-logic/build/**")
+//    }
+//}
 
 
 tasks.named<Test>("test") {
@@ -151,24 +101,9 @@ tasks.named<Test>("test") {
 
 tasks.withType<PublishToMavenRepository> {
     dependsOn("test")
-    doFirst {
-        configurations["publishOnly"].resolve()
-    }
-}
-
-tasks.register("release") {
-
-    dependencies {
-        implementation("com.github.pavelo8501:rest-api-wrapper:$restWrapperVersion")
-    }
-
-    dependsOn(
-        dependsOn("test"),
-        tasks.withType<ShadowJar>(),
-        tasks.publish,
-       // tasks.publishPlugins,
-      //  tasks.gitPublishPush,
-    )
+//    doFirst {
+//        configurations["publishOnly"].resolve()
+//    }
 }
 
 

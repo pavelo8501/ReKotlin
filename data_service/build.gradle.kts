@@ -1,12 +1,15 @@
+import org.jetbrains.kotlin.library.impl.buildKotlinLibrary
 
+val kotlinVersion: String by project
 val exposedVersion: String by project
 val hikaricpVersion: String by project
 val mysqlVersion: String by project
 
 plugins {
-    kotlin("jvm") version "2.0.21"
+    kotlin("jvm") version kotlinVersion
     `java-library`
     `maven-publish`
+    buildKotlinLibrary()
 }
 
 version = "0.0.1"

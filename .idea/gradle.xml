@@ -16,6 +16,9 @@
           </set>
         </option>
       </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/tg_components" />
+      </GradleProjectSettings>
     </option>
   </component>
 </project>

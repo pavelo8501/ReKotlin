@@ -1,6 +1,5 @@
-import org.gradle.api.tasks.Exec
-import kotlin.collections.addAll
 
+val kotlinVersion: String by project
 val ktorVersion: String by project
 val exposedVersion: String by project
 val kotlinSerializationVersion: String by project
@@ -9,10 +8,12 @@ val mysqlVersion: String by project
 
 
 plugins {
-    kotlin("jvm") version "2.0.21"
-    kotlin("plugin.serialization")
-    application
+    id("buildlogic.kotlin-application-conventions")
 }
+
+
+
+
 
 group = "po.playground"
 version = "1.0.0"
@@ -32,14 +33,12 @@ dependencies {
     implementation(project(":WsApiServerWrapper"))
 
 
-    implementation("io.ktor:ktor-server-core:$ktorVersion")
-    implementation("io.ktor:ktor-server-netty:$ktorVersion")
+   // implementation("io.ktor:ktor-server-core:$ktorVersion")
+   // implementation("io.ktor:ktor-server-netty:$ktorVersion")
     implementation("io.ktor:ktor-server-status-pages:$ktorVersion")
     implementation("io.ktor:ktor-server-auth-jwt:$ktorVersion")
 
     implementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinSerializationVersion")
 
     implementation("io.ktor:ktor-server-auth-jwt:$ktorVersion")
 
@@ -59,7 +58,7 @@ dependencies {
 }
 
 application {
-    mainClass.set("po.playground.MainKt") // Set your main class
+    mainClass = ("po.playground.MainKt")
 }
 
 

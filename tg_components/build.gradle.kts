@@ -6,9 +6,13 @@ val exposedVersion: String by project
 val hikaricpVersion: String by project
 val mysqlVersion: String by project
 
-plugins {
-    kotlin("jvm") version "2.0.21"
-    `java-library`
+
+plugins{
+
+    kotlin("jvm") version kotlinVersion
+    kotlin("plugin.serialization")
+    application
+
 }
 
 version = "0.1.0"
