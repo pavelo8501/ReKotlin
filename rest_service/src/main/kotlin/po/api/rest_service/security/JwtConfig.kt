@@ -7,9 +7,9 @@ import com.auth0.jwt.JWTVerifier
 import com.auth0.jwt.algorithms.Algorithm
 
 data class JwtConfig(
-    val realm: String,
-    val audience: String,
-    val issuer: String,
+    val realm: String = "Access to secure API",
+    val audience: String = "jwt-audience",
+    val issuer: String = "http://0.0.0.0:8080/"
 ) {
 
     val secret: String = "secret"

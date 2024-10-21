@@ -4,19 +4,15 @@ import io.ktor.http.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.application.*
-import io.ktor.server.application.call
-import io.ktor.server.plugins.CannotTransformContentToTypeException
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.CORS
-import io.ktor.server.request.contentType
 import io.ktor.server.request.receive
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.*
-import io.ktor.server.routing.application
 import io.ktor.util.AttributeKey
-import io.ktor.util.toMap
+import jdk.tools.jlink.resources.plugins
 
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.modules.SerializersModule
@@ -25,7 +21,9 @@ import kotlinx.serialization.modules.SerializersModuleBuilder
 import kotlinx.serialization.json.Json
 
 import po.api.rest_service.common.ApiLoginRequestDataContext
+import po.api.rest_service.common.SecureUserContext
 import po.api.rest_service.exceptions.AuthErrorCodes
+import po.api.rest_service.exceptions.AuthException
 import po.api.rest_service.exceptions.ConfigurationErrorCodes
 import po.api.rest_service.exceptions.ConfigurationException
 import po.api.rest_service.exceptions.DataErrorCodes
@@ -39,15 +37,19 @@ import po.api.rest_service.models.LoginRequestData
 import po.api.rest_service.models.RequestData
 import po.api.rest_service.models.SelectRequestData
 import po.api.rest_service.models.UpdateRequestData
+import po.api.rest_service.plugins.Jwt
 import po.api.rest_service.plugins.LoggingPlugin
 import po.api.rest_service.plugins.PolymorphicJsonConverter
 import po.api.rest_service.plugins.RateLimiter
+import po.api.rest_service.security.JWTService
 import po.api.rest_service.server.ApiConfig
-import po.api.rest_service.server.AuthenticationException
 
 
 val Application.apiLogger: LoggingService
     get() = attributes[RestServer.loggerKey]
+
+val Application.jwtService: JWTService
+    get() = plugin(Jwt).jwtService?: throw ConfigurationException(ConfigurationErrorCodes.REQUESTING_UNDEFINED_PLUGIN, "JWT plugin not found or JwtService not initialized")
 
 
 class RestServer(
@@ -84,7 +86,7 @@ class RestServer(
         }
     }
 
-    var onLoginRequest: ((LoginRequestData) -> Boolean)? = null
+    var onLoginRequest: ((LoginRequestData) -> SecureUserContext?)? = null
 
     private var _host: String = "0.0.0.0"
     val host: String
@@ -109,10 +111,24 @@ class RestServer(
 
             configure?.invoke(this)
 
+
+            if (this.pluginOrNull(Jwt) != null) {
+                apiLogger.info("Custom JWT installed")
+            } else {
+                if(apiConfig.enableDefaultJwt) {
+                    apiLogger.info("Installing default JWT")
+                    install(Jwt)
+                    apiLogger.info("Default JWT installed")
+                }else {
+                    apiLogger.info("Skip JWT installation")
+                }
+            }
+
             if (apiConfig.enableRateLimiting) {
                 apiLogger.info("Installing RateLimiter")
                 install(RateLimiter) {
                     requestsPerMinute = 60
+                    suspendInSeconds = 60
                 }
                 apiLogger.info("RateLimiter installed")
             }else{
@@ -186,8 +202,8 @@ class RestServer(
                                     if(onLoginRequest == null){
                                         throw ConfigurationException(ConfigurationErrorCodes.UNABLE_TO_CALLBACK, "onLoginRequest callback not set")
                                     }
-                                    val result = onLoginRequest!!.invoke(loginData)
-                                    if(!result){
+                                    val user = onLoginRequest!!.invoke(loginData)
+                                    if(user == null){
                                         apiLogger.action("Login failed for ${loginData.value.username} with password ${loginData.value.password}")
                                         call.response.status(HttpStatusCode.Unauthorized)
                                         call.respond(ApiResponse(null).setErrorMessage(AuthErrorCodes.INVALID_CREDENTIALS.code,"Authentication failed"))
@@ -196,27 +212,15 @@ class RestServer(
                                     if(apiConfig.useWellKnownHost){
 
                                     }else{
-
+                                        jwtService.generateToken(user).let { token ->
+                                            if (token == null) {
+                                                apiLogger.error("Token generation failed",AuthException(AuthErrorCodes.TOKEN_GENERATION_FAILED, "Token generation failed"))
+                                            }
+                                            //Finally got to success point
+                                            call.respond(ApiResponse(token))
+                                        }
                                     }
                                 }
-
-//                                (loginRequest.data as LoginRequestData).let { loginData ->
-//                                    //!!! Remember to substitute this with a real authentication in production
-//                                    val user = if (loginData.value.username == "user" && loginData.value.password == "pass") {
-//                                        User(loginData.value.username, loginData.value.password).also {
-//                                            it.id = 1
-//                                            it.email = "some@mail.com"
-//                                        }
-//                                    } else {
-//                                        throw AuthenticationException("Invalid credentials")
-//                                    }
-//                                    tokenService.generateToken(user).let { token ->
-//                                        if (token == null) {
-//                                            throw Exception("Token generation failed")
-//                                        }
-//                                        call.respond(ApiResponse(token))
-//                                    }
-//                                }
                             } catch (e: Exception) {
                                 apiLogger.error(e.message?: "Internal server error")
                                 call.response.status(HttpStatusCode.InternalServerError)

@@ -20,7 +20,7 @@ import po.api.rest_service.exceptions.AuthErrorCodes
 import po.api.rest_service.exceptions.AuthException
 import java.util.concurrent.TimeUnit
 
-object JWTService {
+class JWTService {
 
     private lateinit var audience: String
     private lateinit var issuer: String

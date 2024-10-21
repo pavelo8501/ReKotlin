@@ -1,11 +1,9 @@
 package po.api.rest_service.common
 
-interface SecureUser {
+interface SecureUserContext {
 
     val username: String
-    val password: String
     val roles: List<String>
-
 
     fun toPayload(): String
 

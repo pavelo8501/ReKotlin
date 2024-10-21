@@ -1,10 +1,12 @@
 package po.api.rest_service.server
 
+import po.api.rest_service.plugins.Jwt
 import po.api.rest_service.plugins.RateLimiterConfig
 
 data class ApiConfig(
     var enableRateLimiting: Boolean  = true,
     var enableDefaultSecurity: Boolean = true,
+    var enableDefaultJwt: Boolean = true,
     val enableDefaultCors: Boolean = true,
     val enableDefaultContentNegotiation: Boolean = true,
 ) {
