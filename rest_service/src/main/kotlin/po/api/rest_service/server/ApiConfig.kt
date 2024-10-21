@@ -1,5 +1,6 @@
 package po.api.rest_service.server
 
+import po.api.rest_service.plugins.Jwt
 import po.api.rest_service.plugins.RateLimiterConfig
 
 data class ApiConfig(
@@ -11,14 +12,6 @@ data class ApiConfig(
 
     var baseApiRoute = "/api"
 
-    var useWellKnownHost: Boolean = false
-    private var _wellKnownPath: String? = null
-    var wellKnownPath: String?
-        get() = _wellKnownPath
-        set(value) {
-            _wellKnownPath = value
-            adjustConfig()
-        }
 
     private var _rateLimiterConfig: RateLimiterConfig? = null
     var rateLimiterConfig: RateLimiterConfig = RateLimiterConfig()
@@ -34,11 +27,36 @@ data class ApiConfig(
             adjustConfig()
         }
 
+    var privateKeyString: String? = null
+    var publicKeyString: String? = null
+    var useWellKnownHost: Boolean = false
+    var wellKnownPath: String? = null
+    fun setAuthKeys(publicKey: String, privateKey: String) {
+        this.publicKeyString = publicKey
+        this.privateKeyString = privateKey
+        this.wellKnownPath = null
+        adjustConfig()
+    }
+
+    fun setWellKnown(path: String) {
+        this.wellKnownPath = path
+        this.publicKeyString = null
+        this.privateKeyString = null
+        adjustConfig()
+    }
+
     private fun adjustConfig() {
         if(wellKnownPath != null) {
             enableDefaultSecurity = true
             useWellKnownHost = true
         }
+
+        if(privateKeyString != null && publicKeyString != null) {
+            enableDefaultSecurity = true
+            useWellKnownHost = false
+        }
+
+
         if(this._rateLimiterConfig != null) {
             enableRateLimiting = true
         }

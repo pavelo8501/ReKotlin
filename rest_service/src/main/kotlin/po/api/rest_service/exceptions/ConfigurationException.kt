@@ -5,7 +5,8 @@ package po.api.rest_service.exceptions
 enum class ConfigurationErrorCodes(val code: Int) {
 
     UNKNOWN_ERROR(0),
-    UNABLE_TO_CALLBACK(3001);
+    UNABLE_TO_CALLBACK(3001),
+    REQUESTING_UNDEFINED_PLUGIN(3002);
 
     companion object {
         fun fromValue(code: Int): ConfigurationErrorCodes? {
