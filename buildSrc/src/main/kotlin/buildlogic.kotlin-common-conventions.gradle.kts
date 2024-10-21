@@ -1,12 +1,6 @@
-import kotlinSerializationVersion
-import kotlinVersion
-import ktorVersion
-import testCoroutinesVersion
 
 plugins {
-
-    id("buildlogic.kotlin-common-conventions")
-    'java-library'
+    id("kotlin-jvm")
 }
 
 repositories {
@@ -35,5 +29,5 @@ dependencies {
 }
 
 tasks.named<Test>("test") {
-    useJUnitPlatform() // <5>
+    useJUnitPlatform()
 }

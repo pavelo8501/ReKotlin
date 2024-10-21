@@ -1,11 +1,11 @@
 plugins {
-    `kotlin-dsl` // <1>
+    `kotlin-dsl`
 }
 
 repositories {
-    gradlePluginPortal() // <2>
+    mavenCentral()
 }
 
 dependencies {
-    implementation(libs.kotlin.gradle.plugin)
+    implementation("org.gradle.kotlin.kotlin-dsl:5.1.2")
 }

@@ -9,11 +9,8 @@ plugins {
 }
 
 rootProject.name = "ReKotlin"
-include("data_service",
-        "rest_service",
-        "ws_service",
-        "tg_ui",
-        "playground")
+include("list",
+        "app")
 
 project(":data_service").also {
     it.name = "ExposedDAOWrapper"
@@ -34,12 +31,5 @@ project(":tg_components").also {
     it.name = "TelegramComponents"
     it.buildFileName = "tg_components/build.gradle.kts"
 }
-
-
-
-
-
-
-
 
 
