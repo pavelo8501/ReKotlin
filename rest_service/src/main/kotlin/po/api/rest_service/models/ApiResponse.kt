@@ -6,8 +6,8 @@ import kotlinx.serialization.json.JsonElement
 
 
 @Serializable
-data class ApiResponse<T>(
-    val data : T? = null,
+open class ApiResponse<T>(
+    open val data : T? = null,
 ){
     var ok: Boolean = false
     var msg: String = ""

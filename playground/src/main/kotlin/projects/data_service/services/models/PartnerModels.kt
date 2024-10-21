@@ -1,8 +1,8 @@
 package po.playground.projects.data_service.services.models
 
 import kotlinx.datetime.LocalDateTime
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.*
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import po.db.data_service.services.models.ServiceDBEntity
@@ -11,6 +11,8 @@ import po.db.data_service.services.models.ServiceDataModelClass
 import po.db.data_service.services.models.ChildMapping
 import po.playground.projects.data_service.services.Departments
 import po.playground.projects.data_service.services.Partners
+
+
 
 class PartnerEntity(id: EntityID<Long>) : ServiceDBEntity(id){
     companion object : LongEntityClass<PartnerEntity>(Partners)
@@ -69,8 +71,10 @@ data class PartnerModel(
     var created: LocalDateTime? = nowDateTime
     var updated: LocalDateTime? = nowDateTime
 
+    @Transient
     override var sourceEntity: PartnerEntity? = null
 
+    @Transient
     override var parentEntityId: EntityID<Long>? = null
 
     override fun updateEntity() = listOf(

@@ -15,14 +15,14 @@ val junitVersion: String by project
 
 
 plugins {
-    kotlin("jvm")
+    kotlin("jvm") version "2.0.21"
     kotlin("plugin.serialization")
     `java-library`
     `maven-publish`
 }
 
 group = "po.api"
-version = "0.10.21"
+version = "0.10.23"
 
 repositories {
     mavenCentral()

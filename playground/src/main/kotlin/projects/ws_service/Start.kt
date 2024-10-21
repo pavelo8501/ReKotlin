@@ -4,11 +4,10 @@ import po.api.ws_service.WebSocketServer
 
 fun startWebSocketServer(host: String, port: Int) {
 
-
     val wsServer =  WebSocketServer(){
-        configureHost(host, port)
-    }
 
+    }
+    wsServer.configureWSHost(host, 8080)
     wsServer.start(true)
 
 }

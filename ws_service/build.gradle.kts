@@ -20,11 +20,9 @@ val wsWrapperVersion: String by project
 
 
 plugins {
-    kotlin("jvm").also{
-        println("kotlin jvm plugin version $it")
-    }
+    kotlin("jvm") version "2.0.21"
     kotlin("plugin.serialization")
-    id("org.gradle.kotlin.kotlin-dsl")
+    id("org.gradle.kotlin.kotlin-dsl") version "5.1.2"
     id("com.diffplug.spotless") version "7.0.0.BETA3"
     id("com.gradleup.shadow") version "8.3.3"
 

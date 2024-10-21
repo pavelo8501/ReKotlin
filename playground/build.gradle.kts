@@ -9,7 +9,7 @@ val mysqlVersion: String by project
 
 
 plugins {
-    kotlin("jvm")
+    kotlin("jvm") version "2.0.21"
     kotlin("plugin.serialization")
     application
 }

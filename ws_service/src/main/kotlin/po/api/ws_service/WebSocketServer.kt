@@ -15,9 +15,19 @@ import io.ktor.server.websocket.timeout
 import io.ktor.server.websocket.webSocket
 import io.ktor.websocket.Frame
 import io.ktor.websocket.readText
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.serializersModuleOf
 import po.api.rest_service.*
+import po.api.rest_service.models.CreateRequestData
+import po.api.rest_service.models.DeleteRequestData
+import po.api.rest_service.models.RequestData
+import po.api.rest_service.models.SelectRequestData
+import po.api.rest_service.models.UpdateRequestData
 import po.api.rest_service.server.ApiConfig
+import po.api.ws_service.models.WSApiRequest
+import po.api.ws_service.models.WSApiResponse
+import po.api.ws_service.plugins.sendCloseReason
 import kotlin.time.Duration
 
 
@@ -41,8 +51,19 @@ class WebSocketServer (
 
         @OptIn(ExperimentalSerializationApi::class)
         private var  _jsonDefault :  Json = Json{
+
+            serializersModule = SerializersModule {
+                polymorphic(RequestData::class) {
+                    subclass(CreateRequestData::class, CreateRequestData.serializer())
+                    subclass(SelectRequestData::class, SelectRequestData.serializer())
+                    subclass(UpdateRequestData::class, UpdateRequestData.serializer())
+                    subclass(DeleteRequestData::class, DeleteRequestData.serializer())
+                }
+            }
+            classDiscriminator = "type"
             ignoreUnknownKeys = true
             decodeEnumsCaseInsensitive = true
+
         }
         var jsonDefault : Json   = _jsonDefault
             get() = _jsonDefault
@@ -61,12 +82,8 @@ class WebSocketServer (
         }
     }
 
-    fun configureRestHost(host: String, port: Int) {
-        super.configureHost(host, port)
-    }
-
     fun configureWSHost(host: String, port: Int) {
-
+        super.configureHost(host, port)
     }
 
     private fun configureWSRouting(application: Application):Application{
@@ -79,10 +96,13 @@ class WebSocketServer (
                             if (frame is Frame.Text) {
                                 val receivedText = frame.readText()
                                 WebSocketServer
-                                val request =  jsonDefault.decodeFromString<WSApiRequest<RequestData>>(receivedText)
-                                request.json = json
-                                handlePartnerWebSocket(request, generalService.dbManager)
-                                // println(receivedText)
+                                var request =  jsonDefault.decodeFromString<WSApiRequest<RequestData>>(receivedText)
+
+                                val requestText = "Vsje chetko ty prislal ${(request.data as SelectRequestData).value} ${request.module} and ${request.action}"
+                                val response : WSApiResponse<String> = WSApiResponse<String>(requestText)
+                                val responseText = jsonDefault.encodeToString<WSApiResponse<String>>(response)
+                                send(Frame.Text(responseText))
+
                             }
                         }
                     } catch (e: Exception) {
@@ -91,7 +111,7 @@ class WebSocketServer (
                 }
             }
         }
-
+        return application
     }
 
     override fun configure(application: Application): Application {

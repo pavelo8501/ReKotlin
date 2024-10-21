@@ -228,7 +228,7 @@ open class RestServer(
                                     if(onLoginRequest == null){
                                         throw ConfigurationException(ConfigurationErrorCodes.UNABLE_TO_CALLBACK, "onLoginRequest callback not set")
                                     }
-                                    val user = onLoginRequest!!.invoke(loginData)
+                                    val user = onLoginRequest!!.invoke(loginData as LoginRequestData)
                                     if(user == null){
                                         apiLogger.action("Login failed for ${loginData.value.username} with password ${loginData.value.password}")
                                         call.response.status(HttpStatusCode.Unauthorized)

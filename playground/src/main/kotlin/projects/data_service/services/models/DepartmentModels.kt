@@ -76,6 +76,7 @@ data class DepartmentModel(
     var created: LocalDateTime = Departments.nowDateTime
     var updated: LocalDateTime =  Departments.nowDateTime
 
+    @Transient
     override var parentEntityId : EntityID<Long>? = null
 
 
