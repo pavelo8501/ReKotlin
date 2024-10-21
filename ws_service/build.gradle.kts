@@ -11,6 +11,8 @@ val logbackClassicVersion: String by project
 val testCoroutinesVersion: String by project
 val junitVersion: String by project
 
+val restApiVersion: String by project
+
 
 plugins {
     kotlin("jvm")
@@ -19,7 +21,8 @@ plugins {
     `maven-publish`
 }
 
-version = "0.10.22"
+
+version = "0.0.1"
 
 repositories {
     mavenCentral()
@@ -27,16 +30,9 @@ repositories {
 
 dependencies {
 
-    implementation("io.ktor:ktor-server-core:$ktorVersion")
-    implementation("io.ktor:ktor-server-netty:$ktorVersion")
-    implementation("io.ktor:ktor-server-status-pages:$ktorVersion")
-    implementation("io.ktor:ktor-server-auth-jwt:$ktorVersion")
 
-    implementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinSerializationVersion")
+    implementation("com.github.pavelo8501.rest_service:$restApiVersion")
 
-    implementation("io.ktor:ktor-server-cors:$ktorVersion")
 
     implementation(libs.guava)
 
@@ -64,7 +60,7 @@ publishing {
         create<MavenPublication>("mavenJava") {
             from(components["java"])
             groupId = "com.github.pavelo8501"
-            artifactId = "rest_service"
+            artifactId = "WebSocketApiWrapper"
             version = this.version
         }
     }
@@ -97,3 +93,5 @@ tasks.named<Test>("test") {
 tasks.withType<PublishToMavenRepository> {
     dependsOn("test")
 }
+
+
