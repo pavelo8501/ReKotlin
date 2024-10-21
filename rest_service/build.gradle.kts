@@ -1,3 +1,5 @@
+import org.gradle.kotlin.dsl.from
+import org.gradle.kotlin.dsl.repositories
 
 val kotlinVersion: String by project
 val ktorVersion: String by project
@@ -60,26 +62,27 @@ java {
 }
 
 publishing {
-    publications {
-        create<MavenPublication>("mavenJava") {
-            from(components["java"])
-            groupId = "com.github.pavelo8501"
-            artifactId = "rest_service"
-            version = this.version
-        }
-    }
-
+    apply(plugin = "maven-publish")
     repositories {
         maven {
             name = "GitHubPackages"
             url = uri("https://maven.pkg.github.com/pavelo8501/ReKotlin")
             credentials {
                 username = project.findProperty("gpr.user") as String? ?: System.getenv("GITHUB_USERNAME")
-                password = project.findProperty("gpr.token") as String? ?: System.getenv("GITHUB_TOKEN")
+                password = project.findProperty("gpr.key") as String? ?: System.getenv("GITHUB_TOKEN")
             }
         }
     }
+    publications {
+        register<MavenPublication>("gpr") {
+            from(components["java"])
+            groupId = "com.github.pavelo8501"
+            artifactId = "rest-service"
+            version = this.version
+        }
+    }
 }
+
 
 tasks.jar {
     manifest {
@@ -87,8 +90,6 @@ tasks.jar {
             "Implementation-Version" to project.version))
     }
 }
-
-
 
 tasks.named<Test>("test") {
     useJUnitPlatform()

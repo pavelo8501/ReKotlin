@@ -6,7 +6,6 @@ val mysqlVersion: String by project
 plugins {
     kotlin("jvm")
     `java-library`
-    `maven-publish`
 }
 
 
@@ -43,28 +42,7 @@ java {
     withSourcesJar()
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("mavenJava") {
-            from(components["java"])
 
-            groupId = "com.github.pavelo8501"
-            artifactId = "data_service"
-            version = "0.1.0"
-        }
-    }
-
-    repositories {
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/pavelo8501/ReKotlin")
-            credentials {
-                username = project.findProperty("gpr.user") as String? ?: System.getenv("GITHUB_USERNAME")
-                password = project.findProperty("gpr.token") as String? ?: System.getenv("GITHUB_TOKEN")
-            }
-        }
-    }
-}
 
 tasks.jar {
     manifest {

@@ -26,17 +26,18 @@ version = "0.0.1"
 
 repositories {
     mavenCentral()
+
+    maven {
+        name = "PublicGitHubPackages"
+        url = uri("https://maven.pkg.github.com/pavelo8501/ReKotlin")
+    }
 }
 
 dependencies {
 
+    implementation("com.github.pavelo8501:rest-service:$restApiVersion")
 
-    implementation("com.github.pavelo8501.rest_service:$restApiVersion")
 
-
-    implementation(libs.guava)
-
-    //testImplementation(libs.junit.jupiter)
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
     testImplementation("org.jetbrains.kotlin:kotlin-test:$kotlinVersion")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$testCoroutinesVersion")
@@ -56,15 +57,7 @@ java {
 }
 
 publishing {
-    publications {
-        create<MavenPublication>("mavenJava") {
-            from(components["java"])
-            groupId = "com.github.pavelo8501"
-            artifactId = "WebSocketApiWrapper"
-            version = this.version
-        }
-    }
-
+    apply(plugin = "maven-publish")
     repositories {
         maven {
             name = "GitHubPackages"
@@ -75,6 +68,17 @@ publishing {
             }
         }
     }
+    publications {
+        create<MavenPublication>("mavenJava") {
+            from(components["java"])
+            groupId = "com.github.pavelo8501"
+            artifactId = "ws-api-wrapper"
+            version = this.version
+        }
+
+    }
+
+
 }
 
 tasks.jar {

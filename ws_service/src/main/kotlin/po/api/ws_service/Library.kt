@@ -3,6 +3,8 @@
  */
 package po.api.ws_service
 
+import po.api.rest_service.*
+
 class Library {
     fun someLibraryMethod(): Boolean {
         return true

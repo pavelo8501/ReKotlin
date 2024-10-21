@@ -9,7 +9,6 @@ val mysqlVersion: String by project
 plugins {
     kotlin("jvm")
     `java-library`
-    `maven-publish`
 }
 
 version = "0.1.0"
@@ -19,7 +18,6 @@ repositories {
 }
 
 dependencies {
-
 
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
@@ -34,34 +32,6 @@ java {
     withSourcesJar()
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("mavenJava") {
-            from(components["java"])
-            groupId = "com.github.pavelo8501"
-            artifactId = "tg_ui"
-            version = "0.1.0"
-        }
-    }
-
-    repositories {
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/pavelo8501/ReKotlin")
-            credentials {
-                username = project.findProperty("gpr.user") as String? ?: System.getenv("GITHUB_USERNAME")
-                password = project.findProperty("gpr.token") as String? ?: System.getenv("GITHUB_TOKEN")
-            }
-        }
-    }
-}
-
-tasks.jar {
-    manifest {
-        attributes(mapOf("Implementation-Title" to project.name,
-            "Implementation-Version" to project.version))
-    }
-}
 
 tasks.named<Test>("test") {
     // Use JUnit Platform for unit tests.

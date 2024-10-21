@@ -30,8 +30,19 @@ allowing developers to focus on implementing business logic.
 Add the following dependency to your project's `build.gradle.kts` file:
 
 ```kotlin
+
+repositories {
+    mavenCentral() // or another repository
+
+    maven {
+        name = "PublicGitHubPackages"
+        url = uri("https://maven.pkg.github.com/pavelo8501/ReKotlin")
+    }
+}
+
+
 dependencies {
-    implementation("com.github.pavelo8501.rest_service:0.10.22")
+    implementation("com.github.pavelo8501:rest-service:0.10.22")
 }
 ```
 #### Basic Setup
