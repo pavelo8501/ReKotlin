@@ -21,7 +21,8 @@ plugins {
     `maven-publish`
 }
 
-version = "0.10.22"
+group = "po.api"
+version = "0.10.20"
 
 repositories {
     mavenCentral()
@@ -77,7 +78,7 @@ publishing {
         register<MavenPublication>("gpr") {
             from(components["java"])
             groupId = "com.github.pavelo8501"
-            artifactId = "rest-service"
+            artifactId = "rest-api-wrapper"
             version = this.version
         }
     }

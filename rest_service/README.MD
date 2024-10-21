@@ -42,7 +42,7 @@ repositories {
 
 
 dependencies {
-    implementation("com.github.pavelo8501:rest-service:0.10.22")
+    implementation("com.github.pavelo8501:rest-api-wrapper:0.10.20")
 }
 ```
 #### Basic Setup

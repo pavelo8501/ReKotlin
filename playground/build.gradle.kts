@@ -20,8 +20,10 @@ repositories {
 }
 
 dependencies {
-    implementation(project(":data_service"))
-    implementation(project(":rest_service"))
+
+    implementation(project(":ExposedDAOWrapper"))
+    implementation(project(":RestApiServerWrapper"))
+    implementation(project(":WsApiServerWrapper"))
 
 
     implementation("io.ktor:ktor-server-core:$ktorVersion")

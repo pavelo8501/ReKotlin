@@ -21,7 +21,7 @@ plugins {
     `maven-publish`
 }
 
-
+group = "po.api"
 version = "0.0.1"
 
 repositories {
@@ -35,7 +35,7 @@ repositories {
 
 dependencies {
 
-    implementation("com.github.pavelo8501:rest-service:$restApiVersion")
+    implementation("com.github.pavelo8501:rest-api-wrapper:$restApiVersion")
 
 
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")

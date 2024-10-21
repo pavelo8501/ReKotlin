@@ -6,8 +6,17 @@
       <module name="kotlinReusables.lib" target="21" />
       <module name="kotlinReusables.lib.main" target="21" />
       <module name="kotlinReusables.lib.test" target="21" />
+      <module name="ReKotlin.data_service" target="21" />
+      <module name="ReKotlin.data_service.main" target="21" />
+      <module name="ReKotlin.data_service.test" target="21" />
       <module name="ReKotlin.lib.main" target="21" />
       <module name="ReKotlin.lib.test" target="21" />
+      <module name="ReKotlin.rest_service" target="22" />
+      <module name="ReKotlin.rest_service.main" target="22" />
+      <module name="ReKotlin.rest_service.test" target="22" />
+      <module name="ReKotlin.ws_service" target="22" />
+      <module name="ReKotlin.ws_service.main" target="22" />
+      <module name="ReKotlin.ws_service.test" target="22" />
       <module name="rest_service.lib.main" target="21" />
       <module name="rest_service.lib.test" target="21" />
     </bytecodeTargetLevel>

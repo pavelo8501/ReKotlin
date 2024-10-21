@@ -6,18 +6,24 @@ val mysqlVersion: String by project
 plugins {
     kotlin("jvm")
     `java-library`
+    `maven-publish`
 }
 
 
-version = "0.1.0"
+version = "0.0.1"
 
 repositories {
     mavenCentral()
+
+    maven {
+        name = "GitHubPackages"
+        url = uri("https://maven.pkg.github.com/pavelo8501/ReKotlin")
+    }
 }
 
 dependencies {
 
-
+    implementation(libs.guava)
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
@@ -29,20 +35,36 @@ dependencies {
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
+}
 
-    api(libs.commons.math3)
-
-    implementation(libs.guava)
+publishing {
+    apply(plugin = "maven-publish")
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/pavelo8501/ReKotlin")
+            credentials {
+                username = project.findProperty("gpr.user") as String? ?: System.getenv("GITHUB_USERNAME")
+                password = project.findProperty("gpr.key") as String? ?: System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
+    publications {
+        register<MavenPublication>("gpr") {
+            from(components["java"])
+            groupId = "com.github.pavelo8501"
+            artifactId = "data-service"
+            version = this.version
+        }
+    }
 }
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion = JavaLanguageVersion.of(22)
     }
     withSourcesJar()
 }
-
-
 
 tasks.jar {
     manifest {
@@ -51,6 +73,13 @@ tasks.jar {
     }
 }
 
+
+
 tasks.named<Test>("test") {
     useJUnitPlatform()
 }
+
+tasks.withType<PublishToMavenRepository> {
+    dependsOn("test")
+}
+
