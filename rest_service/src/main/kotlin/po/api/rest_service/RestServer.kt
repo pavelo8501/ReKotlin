@@ -4,8 +4,12 @@ import io.ktor.http.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.application.*
+import io.ktor.server.application.call
+import io.ktor.server.plugins.CannotTransformContentToTypeException
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.CORS
+import io.ktor.server.request.contentType
+import io.ktor.server.request.receive
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
@@ -21,7 +25,13 @@ import kotlinx.serialization.modules.SerializersModuleBuilder
 import kotlinx.serialization.json.Json
 
 import po.api.rest_service.common.ApiLoginRequestDataContext
+import po.api.rest_service.exceptions.AuthErrorCodes
+import po.api.rest_service.exceptions.ConfigurationErrorCodes
+import po.api.rest_service.exceptions.ConfigurationException
+import po.api.rest_service.exceptions.DataErrorCodes
+import po.api.rest_service.exceptions.DataException
 import po.api.rest_service.logger.LoggingService
+import po.api.rest_service.models.ApiRequest
 import po.api.rest_service.models.ApiResponse
 import po.api.rest_service.models.DefaultLoginRequest
 import po.api.rest_service.models.DeleteRequestData
@@ -32,6 +42,8 @@ import po.api.rest_service.models.UpdateRequestData
 import po.api.rest_service.plugins.LoggingPlugin
 import po.api.rest_service.plugins.PolymorphicJsonConverter
 import po.api.rest_service.plugins.RateLimiter
+import po.api.rest_service.server.ApiConfig
+import po.api.rest_service.server.AuthenticationException
 
 
 val Application.apiLogger: LoggingService
@@ -45,6 +57,11 @@ class RestServer(
 
         val loggerKey = AttributeKey<LoggingService>("Logger")
 
+        val apiConfig : ApiConfig = getDefaultConfig()
+        fun getDefaultConfig(): ApiConfig{
+            return ApiConfig()
+        }
+
         fun create(configure: (Application.() -> Unit)? = null): RestServer {
             return RestServer(configure)
         }
@@ -52,6 +69,8 @@ class RestServer(
         fun start(host: String, port: Int, configure: (Application.() -> Unit)? = null) {
             create(configure).configureHost(host, port).start()
         }
+
+
 
         @OptIn(ExperimentalSerializationApi::class)
         fun jsonDefault(builderAction: SerializersModuleBuilder.() -> Unit): Json{
@@ -64,6 +83,8 @@ class RestServer(
             return json
         }
     }
+
+    var onLoginRequest: ((LoginRequestData) -> Boolean)? = null
 
     private var _host: String = "0.0.0.0"
     val host: String
@@ -88,58 +109,122 @@ class RestServer(
 
             configure?.invoke(this)
 
-
-            install(RateLimiter) {
-                requestsPerMinute = 60
+            if (apiConfig.enableRateLimiting) {
+                apiLogger.info("Installing RateLimiter")
+                install(RateLimiter) {
+                    requestsPerMinute = 60
+                }
+                apiLogger.info("RateLimiter installed")
+            }else{
+                apiLogger.info("Skip Rate Limiter installation")
             }
-
 
             apiLogger.info("Installing CORS")
             if (this.pluginOrNull(CORS) != null) {
                 apiLogger.info("Custom CORS installed")
             } else {
-                install(CORS) {
-                    allowMethod(HttpMethod.Options)
-                    allowMethod(HttpMethod.Get)
-                    allowMethod(HttpMethod.Post)
-                    allowHeader(HttpHeaders.ContentType)
-                    allowHeader(HttpHeaders.Origin)
-                    allowCredentials = true
-                    anyHost()
+                if(apiConfig.enableDefaultCors) {
+                    install(CORS) {
+                        allowMethod(HttpMethod.Options)
+                        allowMethod(HttpMethod.Get)
+                        allowMethod(HttpMethod.Post)
+                        allowHeader(HttpHeaders.ContentType)
+                        allowHeader(HttpHeaders.Origin)
+                        allowCredentials = true
+                        anyHost()
+                    }
+                    apiLogger.info("Default CORS installed")
+                }else{
+                    apiLogger.info("Skip CORS installation")
                 }
-                apiLogger.info("Default CORS installed")
             }
 
             apiLogger.info("Installing ContentNegotiation")
             if (this.pluginOrNull(ContentNegotiation) != null) {
                 apiLogger.info("Custom ContentNegotiation installed")
             } else {
-                install(ContentNegotiation) {
-                    //Register custom JSON converter, since the default one does not support polymorphic serialization
-                    register(
-                        ContentType.Application.Json,
-                        PolymorphicJsonConverter(
-                            jsonDefault() {
-                                polymorphic(ApiLoginRequestDataContext::class) {
-                                    subclass(DefaultLoginRequest::class, DefaultLoginRequest.serializer())
+                if (apiConfig.enableDefaultContentNegotiation) {
+                    install(ContentNegotiation) {
+                        register(
+                            ContentType.Application.Json,
+                            PolymorphicJsonConverter(
+                                jsonDefault() {
+                                    polymorphic(ApiLoginRequestDataContext::class) {
+                                        subclass(DefaultLoginRequest::class, DefaultLoginRequest.serializer())
+                                    }
+                                    polymorphic(RequestData::class) {
+                                        subclass(SelectRequestData::class, SelectRequestData.serializer())
+                                        subclass(UpdateRequestData::class, UpdateRequestData.serializer())
+                                        subclass(DeleteRequestData::class, DeleteRequestData.serializer())
+                                        subclass(LoginRequestData::class, LoginRequestData.serializer())
+                                    }
                                 }
-                                polymorphic(RequestData::class) {
-                                    subclass(SelectRequestData::class, SelectRequestData.serializer())
-                                    subclass(UpdateRequestData::class, UpdateRequestData.serializer())
-                                    subclass(DeleteRequestData::class, DeleteRequestData.serializer())
-                                    subclass(LoginRequestData::class, LoginRequestData.serializer())
-                                }
-                            }
+                            )
                         )
-                    )
+                    }
+                    apiLogger.info("Default ContentNegotiation installed")
+                } else {
+                    apiLogger.info("Skip ContentNegotiation installation")
                 }
-                apiLogger.info("Default ContentNegotiation installed")
             }
 
             apiLogger.info("Default rout initialization")
 
 
             routing {
+
+                if(apiConfig.enableDefaultSecurity){
+                    route("${apiConfig.baseApiRoute}/login") {
+                        post {
+                            try {
+                              //  apiLogger.info("Request content type: ${call.request.contentType()}")
+                                val loginRequest = call.receive<ApiRequest<RequestData>>()
+                                if (loginRequest.data !is LoginRequestData) {
+                                    throw DataException(DataErrorCodes.REQUEST_DATA_MISMATCH, "Not a login request")
+                                }
+                                (loginRequest.data).let { loginData ->
+                                    if(onLoginRequest == null){
+                                        throw ConfigurationException(ConfigurationErrorCodes.UNABLE_TO_CALLBACK, "onLoginRequest callback not set")
+                                    }
+                                    val result = onLoginRequest!!.invoke(loginData)
+                                    if(!result){
+                                        apiLogger.action("Login failed for ${loginData.value.username} with password ${loginData.value.password}")
+                                        call.response.status(HttpStatusCode.Unauthorized)
+                                        call.respond(ApiResponse(null).setErrorMessage(AuthErrorCodes.INVALID_CREDENTIALS.code,"Authentication failed"))
+                                        return@post
+                                    }
+                                    if(apiConfig.useWellKnownHost){
+
+                                    }else{
+
+                                    }
+                                }
+
+//                                (loginRequest.data as LoginRequestData).let { loginData ->
+//                                    //!!! Remember to substitute this with a real authentication in production
+//                                    val user = if (loginData.value.username == "user" && loginData.value.password == "pass") {
+//                                        User(loginData.value.username, loginData.value.password).also {
+//                                            it.id = 1
+//                                            it.email = "some@mail.com"
+//                                        }
+//                                    } else {
+//                                        throw AuthenticationException("Invalid credentials")
+//                                    }
+//                                    tokenService.generateToken(user).let { token ->
+//                                        if (token == null) {
+//                                            throw Exception("Token generation failed")
+//                                        }
+//                                        call.respond(ApiResponse(token))
+//                                    }
+//                                }
+                            } catch (e: Exception) {
+                                apiLogger.error(e.message?: "Internal server error")
+                                call.response.status(HttpStatusCode.InternalServerError)
+                                call.respond(ApiResponse(null).setErrorMessage(500,"Internal server error"))
+                            }
+                        }
+                    }
+                }
 
                 options("/api/status") {
                     call.response.header("Access-Control-Allow-Origin", "*")

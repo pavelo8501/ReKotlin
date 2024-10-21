@@ -19,7 +19,7 @@ plugins {
     `maven-publish`
 }
 
-version = "0.0.2"
+version = "0.10.21"
 
 repositories {
     mavenCentral()
@@ -65,7 +65,7 @@ publishing {
             from(components["java"])
             groupId = "com.github.pavelo8501"
             artifactId = "rest_service"
-            version = "0.0.2"
+            version = "0.10.21"
         }
     }
 
