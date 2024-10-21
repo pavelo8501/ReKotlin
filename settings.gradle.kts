@@ -1,8 +1,14 @@
 
+import  org.gradle.kotlin.dsl.*
+import org.gradle.api.artifacts.*
+
+val restWrapperVersion: String by settings
+
 plugins {
-    // Apply the foojay-resolver plugin to allow automatic download of JDKs
     kotlin("jvm") version "2.0.21" apply false
+    kotlin("plugin.serialization") version "2.0.21" apply false
     id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
+    id("org.gradle.kotlin.kotlin-dsl") version "5.1.2" apply false
 }
 
 rootProject.name = "ReKotlin"
@@ -15,3 +21,9 @@ include("playground")
 project(":data_service").name = "ExposedDAOWrapper"
 project(":rest_service").name = "RestApiServerWrapper"
 project(":ws_service").name = "WsApiServerWrapper"
+
+
+
+
+
+

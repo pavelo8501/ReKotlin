@@ -16,16 +16,20 @@ val junitVersion: String by project
 
 plugins {
     kotlin("jvm")
-    kotlin("plugin.serialization") version "2.0.21"
+    kotlin("plugin.serialization")
     `java-library`
     `maven-publish`
 }
 
 group = "po.api"
-version = "0.10.20"
+version = "0.10.21"
 
 repositories {
     mavenCentral()
+    maven {
+        name = "PublicGitHubPackages"
+        url = uri("https://maven.pkg.github.com/pavelo8501/ReKotlin")
+    }
 }
 
 dependencies {

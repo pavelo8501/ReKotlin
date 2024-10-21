@@ -54,7 +54,7 @@ val Application.jwtService: JWTService
     get() = plugin(Jwt).jwtService?: throw ConfigurationException(ConfigurationErrorCodes.REQUESTING_UNDEFINED_PLUGIN, "JWT plugin not found or JwtService not initialized")
 
 
-class RestServer(
+open class RestServer(
     private val configure: (Application.() -> Unit)? = null
 ) {
     companion object {
@@ -106,7 +106,7 @@ class RestServer(
         return this
     }
 
-    fun configure(application: Application): Application {
+    open fun configure(application: Application): Application {
         application.apply {
             install(LoggingPlugin)
             apiLogger.info("Starting server initialization")

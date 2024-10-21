@@ -1,4 +1,5 @@
 import org.gradle.api.tasks.Exec
+import kotlin.collections.addAll
 
 val ktorVersion: String by project
 val exposedVersion: String by project
@@ -9,6 +10,7 @@ val mysqlVersion: String by project
 
 plugins {
     kotlin("jvm")
+    kotlin("plugin.serialization")
     application
 }
 
@@ -17,6 +19,10 @@ version = "1.0.0"
 
 repositories {
     mavenCentral()
+    maven {
+        name = "PublicGitHubPackages"
+        url = uri("https://maven.pkg.github.com/pavelo8501/ReKotlin")
+    }
 }
 
 dependencies {

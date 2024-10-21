@@ -9,7 +9,6 @@ plugins {
     `maven-publish`
 }
 
-
 version = "0.0.1"
 
 repositories {
@@ -53,7 +52,7 @@ publishing {
         register<MavenPublication>("gpr") {
             from(components["java"])
             groupId = "com.github.pavelo8501"
-            artifactId = "data-service"
+            artifactId = "exposed-dao-wrapper"
             version = this.version
         }
     }
@@ -72,7 +71,6 @@ tasks.jar {
             "Implementation-Version" to project.version))
     }
 }
-
 
 
 tasks.named<Test>("test") {

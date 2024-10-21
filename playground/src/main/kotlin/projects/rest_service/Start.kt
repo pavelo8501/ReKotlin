@@ -1,35 +1,19 @@
 package po.playground.projects.rest_service
 
 import io.ktor.http.ContentType
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.install
 import po.api.rest_service.server.*
-import po.api.rest_service.security.JwtConfig
-import po.api.rest_service.security.JWTService
 
 import io.ktor.server.routing.*
-import io.ktor.server.auth.authenticate
-import io.ktor.server.auth.*
-import io.ktor.server.auth.jwt.*
 import io.ktor.server.response.*
-import io.ktor.server.request.*
 
-import io.ktor.server.plugins.CannotTransformContentToTypeException
 import po.api.rest_service.RestServer
 import po.api.rest_service.apiLogger
-import po.api.rest_service.exceptions.DataErrorCodes
-import po.api.rest_service.exceptions.DataException
 import po.api.rest_service.logger.LogFunction
 import po.api.rest_service.logger.LogLevel
-import po.api.rest_service.models.ApiRequest
-import po.api.rest_service.models.ApiResponse
-import po.api.rest_service.models.LoginRequestData
-import po.api.rest_service.models.RequestData
 
 import java.io.File
 import java.nio.file.Paths
 
-import po.playground.projects.rest_service.users.User
 
 fun startApiServer(host: String, port: Int) {
 

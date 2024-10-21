@@ -5,6 +5,7 @@ import io.github.cdimascio.dotenv.dotenv
 
 
 import po.playground.projects.rest_service.startApiServer
+import po.playground.projects.ws_service.startWebSocketServer
 
 
 fun main() {
@@ -22,7 +23,10 @@ fun main() {
     val host = dotenv["SERVER_HOST"]
     val port = dotenv["SERVER_PORT"].toInt()
 
-    startApiServer(host, port)
+   // startApiServer(host, port)
+
+
+    startWebSocketServer(host, port)
 
     val a = 10
 

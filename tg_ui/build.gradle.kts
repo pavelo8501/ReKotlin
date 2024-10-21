@@ -8,7 +8,7 @@ val mysqlVersion: String by project
 
 plugins {
     kotlin("jvm")
-    `java-library`
+    //`java-library`
 }
 
 version = "0.1.0"

@@ -42,6 +42,6 @@ data class DeleteRequestData(val value: ApiDeleteEntity) : RequestData()
 data class LoginRequestData(val value: DefaultLoginRequest) : RequestData()
 
 @Serializable
-data class ApiRequest<R : RequestData>(
+open data class ApiRequest<R : RequestData>(
     val data : R
 )
