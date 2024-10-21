@@ -33,12 +33,10 @@ data class JwtConfig(
         this.privateKeyString = privateKeyString
     }
 
-
     fun setKeys(jwkProvider: JwkProvider, privateKeyString: String) {
         this.jwkProvider = jwkProvider
         this.privateKeyString = privateKeyString
     }
-
 }
 
 
