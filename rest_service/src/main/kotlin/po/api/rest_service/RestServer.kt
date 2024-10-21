@@ -4,6 +4,9 @@ import io.ktor.http.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.Authentication
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.request.receive
@@ -12,7 +15,6 @@ import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.*
 import io.ktor.util.AttributeKey
-import jdk.tools.jlink.resources.plugins
 
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.modules.SerializersModule
@@ -104,21 +106,45 @@ class RestServer(
         return this
     }
 
-    fun configure(application: Application) {
+    fun configure(application: Application): Application {
         application.apply {
             install(LoggingPlugin)
             apiLogger.info("Starting server initialization")
 
             configure?.invoke(this)
 
-
             if (this.pluginOrNull(Jwt) != null) {
                 apiLogger.info("Custom JWT installed")
             } else {
-                if(apiConfig.enableDefaultJwt) {
+                if(apiConfig.enableDefaultSecurity) {
                     apiLogger.info("Installing default JWT")
-                    install(Jwt)
+                    install(Jwt){
+                        privateKeyString = apiConfig.privateKeyString
+                        publicKeyString = apiConfig.publicKeyString
+                    }
                     apiLogger.info("Default JWT installed")
+
+                    if(this.pluginOrNull(Authentication) != null) {
+                        apiLogger.info("Custom Authentication installed")
+                    }else{
+                        apiLogger.info("Installing default Authentication")
+                        if(jwtService.ready){
+                            install(Authentication) {
+                                jwt("auth-jwt") {
+                                    realm =  this@apply.jwtService.realm
+                                    verifier(  this@apply.jwtService.getVerifier())
+                                    validate { credential ->
+                                        if (credential.payload.audience.contains(this@apply.jwtService.audience)) {
+                                            JWTPrincipal(credential.payload)
+                                        } else null
+                                    }
+                                }
+                            }
+                        }else{
+                            apiLogger.warn("Default Authentication not installed due to JWT service not ready")
+                        }
+                        apiLogger.info("Default Authentication installed")
+                    }
                 }else {
                     apiLogger.info("Skip JWT installation")
                 }
@@ -262,6 +288,7 @@ class RestServer(
             apiLogger.info("Default rout initialized")
             apiLogger.info("Server initialization complete")
         }
+        return application
     }
 
 

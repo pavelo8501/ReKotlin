@@ -35,17 +35,11 @@ fun startApiServer(host: String, port: Int) {
 
     val currentDir = File("").absolutePath
 
-    val jwtConfig = JwtConfig(
-        realm = "Secure api access",
-        audience = "audience",
-        issuer = "http://127.0.0.1:8080",
-    )
-
-    jwtConfig.setKeys(
-        publicKeyString =   File(currentDir+File.separator+"keys"+File.separator+"ktor.spki").readText(),
-        privateKeyString =  File(currentDir+File.separator+"keys"+File.separator+"ktor.pk8").readText()
-    )
-    val tokenService = JWTService.configure(jwtConfig)
+//    val jwtConfig = JwtConfig(
+//        realm = "Secure api access",
+//        audience = "audience",
+//        issuer = "http://127.0.0.1:8080",
+//    )
 
     val customLogFunction: LogFunction = { message, level, date, throwable ->
         // User's custom logging logic
@@ -59,21 +53,15 @@ fun startApiServer(host: String, port: Int) {
         }
     }
 
+    RestServer.apiConfig.setAuthKeys(
+        publicKey  =  File(currentDir+File.separator+"keys"+File.separator+"ktor.spki").readText(),
+        privateKey =  File(currentDir+File.separator+"keys"+File.separator+"ktor.pk8").readText()
+    )
+
     val apiServer = RestServer() {
 
         apiLogger.registerLogFunction(LogLevel.MESSAGE, customLogFunction)
 
-        install(Authentication) {
-            jwt("auth-jwt") {
-                realm = jwtConfig.realm
-                verifier(tokenService.getVerifier())
-                validate { credential ->
-                    if (credential.payload.audience.contains(jwtConfig.audience)) {
-                        JWTPrincipal(credential.payload)
-                    } else null
-                }
-            }
-        }
         configureErrorHandling()
         routing {
             get("/.well-known/jwks.json") {
@@ -85,50 +73,14 @@ fun startApiServer(host: String, port: Int) {
                 get {
                     call.respondText("Hello :) Better use POST")
                 }
-                post {
-                    try {
-                        println("Calling apiLogger.info")
-                        apiLogger.info("Request content type: ${call.request.contentType()}")
-                        val loginRequest = call.receive<ApiRequest<RequestData>>()
-                        if (loginRequest.data !is LoginRequestData) {
-                            throw DataException(DataErrorCodes.REQUEST_DATA_MISMATCH, "Not a login request")
-                        }
-                        (loginRequest.data as LoginRequestData).let { loginData ->
-                            //!!! Remember to substitute this with a real authentication in production
-                            val user = if (loginData.value.username == "user" && loginData.value.password == "pass") {
-                                User(loginData.value.username, loginData.value.password).also {
-                                    it.id = 1
-                                    it.email = "some@mail.com"
-                                }
-                            } else {
-                                throw AuthenticationException("Invalid credentials")
-                            }
-                            tokenService.generateToken(user).let { token ->
-                                if (token == null) {
-                                    throw Exception("Token generation failed")
-                                }
-                                call.respond(ApiResponse(token))
-                            }
-                        }
-                    } catch (e: AuthenticationException) {
-                        call.respondText("Invalid credentials", status = HttpStatusCode.Unauthorized)
-                    } catch (e: CannotTransformContentToTypeException) {
-                        println(e.message)
-                        call.respondText("Request data cannot be deserialized", status = HttpStatusCode.NotAcceptable)
-                    } catch (e: Exception) {
-                        val message = e.message ?: "Internal server error"
-                        println(message)
-                        call.respondText("Internal server error", status = HttpStatusCode.InternalServerError)
-                    }
-                }
             }
-            authenticate("auth-jwt") {
-                get("/api/secure-endpoint") {
-                    val principal = call.principal<JWTPrincipal>()
-                    val username = principal!!.payload.getClaim("username").asString()
-                    call.respond(ApiResponse("Hello, $username"))
-                }
-            }
+//            authenticate("auth-jwt") {
+//                get("/api/secure-endpoint") {
+//                    val principal = call.principal<JWTPrincipal>()
+//                    val username = principal!!.payload.getClaim("username").asString()
+//                    call.respond(ApiResponse("Hello, $username"))
+//                }
+//            }
 
             get("/public-endpoint") {
                 call.respondText("This is a public endpoint.")
