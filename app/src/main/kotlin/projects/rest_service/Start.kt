@@ -4,6 +4,7 @@ import io.ktor.http.ContentType
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
+import io.ktor.server.request.receive
 import po.api.rest_service.server.*
 
 import io.ktor.server.routing.*
@@ -13,7 +14,9 @@ import po.api.rest_service.RestServer
 import po.api.rest_service.apiLogger
 import po.api.rest_service.logger.LogFunction
 import po.api.rest_service.logger.LogLevel
+import po.api.rest_service.models.ApiRequest
 import po.api.rest_service.models.ApiResponse
+import po.api.rest_service.models.RequestData
 
 import java.io.File
 import java.nio.file.Paths
@@ -22,12 +25,6 @@ import java.nio.file.Paths
 fun startApiServer(host: String, port: Int) {
 
     val currentDir = File("").absolutePath
-
-//    val jwtConfig = JwtConfig(
-//        realm = "Secure api access",
-//        audience = "audience",
-//        issuer = "http://127.0.0.1:8080",
-//    )
 
     val customLogFunction: LogFunction = { message, level, date, throwable ->
         // User's custom logging logic
@@ -57,17 +54,19 @@ fun startApiServer(host: String, port: Int) {
                 val jwksContent = File(appPath + File.separator + "certs" + File.separator + "jwks.json").readText()
                 call.respondText(jwksContent, ContentType.Application.Json)
             }
-            route("/api/login") {
-                get {
-                    call.respondText("Hello :) Better use POST")
-                }
-            }
+
             authenticate("auth-jwt") {
                 get("/api/secure-endpoint") {
                     val principal = call.principal<JWTPrincipal>()
                     val username = principal!!.payload.getClaim("username").asString()
                     call.respond(ApiResponse("Hello, $username"))
                 }
+            }
+
+            post("/api/test") {
+               val request = call.receive<ApiRequest<RequestData>>()
+               val response =  ApiResponse<String>("OK Test Received")
+                call.respond(response)
             }
 
             get("/public-endpoint") {

@@ -47,7 +47,6 @@ import po.api.rest_service.plugins.RateLimiter
 import po.api.rest_service.security.JWTService
 import po.api.rest_service.server.ApiConfig
 
-
 val Application.apiLogger: LoggingService
     get() = attributes[RestServer.loggerKey]
 
@@ -59,9 +58,7 @@ open class RestServer(
     private val configure: (Application.() -> Unit)? = null
 ) {
     companion object {
-
         val loggerKey = AttributeKey<LoggingService>("Logger")
-
         val apiConfig : ApiConfig = getDefaultConfig()
         fun getDefaultConfig(): ApiConfig{
             return ApiConfig()
@@ -74,8 +71,6 @@ open class RestServer(
         fun start(host: String, port: Int, configure: (Application.() -> Unit)? = null) {
             create(configure).configureHost(host, port).start()
         }
-
-
 
         @OptIn(ExperimentalSerializationApi::class)
         fun jsonDefault(builderAction: SerializersModuleBuilder.() -> Unit): Json{
@@ -286,9 +281,6 @@ open class RestServer(
         application.apply {
             install(LoggingPlugin)
             apiLogger.info("Starting server initialization")
-
-            configure?.invoke(this)
-
             if (this.pluginOrNull(Jwt) != null) {
                 apiLogger.info("Custom JWT installed")
             } else {
@@ -321,6 +313,7 @@ open class RestServer(
             configDefaultRouting(this)
             apiLogger.info("Server initialization complete")
         }
+        configure?.invoke(application)
         return application
     }
 
