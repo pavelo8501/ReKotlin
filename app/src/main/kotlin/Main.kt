@@ -23,10 +23,10 @@ fun main() {
     val host = dotenv["SERVER_HOST"]
     val port = dotenv["SERVER_PORT"].toInt()
 
-   // startApiServer(host, port)
+    startApiServer(host, port)
 
 
-    startWebSocketServer(host, port)
+   // startWebSocketServer(host, port)
 
     val a = 10
 

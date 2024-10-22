@@ -6,9 +6,6 @@
       <module name="kotlinReusables.lib" target="21" />
       <module name="kotlinReusables.lib.main" target="21" />
       <module name="kotlinReusables.lib.test" target="21" />
-      <module name="ReKotlin.app" target="22" />
-      <module name="ReKotlin.app.main" target="22" />
-      <module name="ReKotlin.app.test" target="22" />
       <module name="ReKotlin.data_service" target="21" />
       <module name="ReKotlin.data_service.main" target="21" />
       <module name="ReKotlin.data_service.test" target="21" />

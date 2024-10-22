@@ -6,8 +6,6 @@ val kotlinSerializationVersion: String by project
 val hikaricpVersion: String by project
 val mysqlVersion: String by project
 
-
-
 plugins {
     kotlin("jvm") version "2.0.21"
     kotlin("plugin.serialization") version "2.0.21"
@@ -27,13 +25,13 @@ repositories {
 
 dependencies {
 
-   // implementation(project(":ExposedDAOWrapper"))
-   // implementation(project(":RestApiServerWrapper"))
-  //  implementation(project(":WsApiServerWrapper"))
+    implementation(project(":lib:ExposedDAOWrapper"))
+    implementation(project(":lib:RestApiServerWrapper"))
+    implementation(project(":lib:WSApiServerWrapper"))
 
 
-   // implementation("io.ktor:ktor-server-core:$ktorVersion")
-   // implementation("io.ktor:ktor-server-netty:$ktorVersion")
+    implementation("io.ktor:ktor-server-core:$ktorVersion")
+    implementation("io.ktor:ktor-server-netty:$ktorVersion")
     implementation("io.ktor:ktor-server-status-pages:$ktorVersion")
     implementation("io.ktor:ktor-server-auth-jwt:$ktorVersion")
 

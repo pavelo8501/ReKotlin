@@ -1,6 +1,9 @@
 package po.playground.projects.rest_service
 
 import io.ktor.http.ContentType
+import io.ktor.server.auth.authenticate
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 import po.api.rest_service.server.*
 
 import io.ktor.server.routing.*
@@ -10,6 +13,7 @@ import po.api.rest_service.RestServer
 import po.api.rest_service.apiLogger
 import po.api.rest_service.logger.LogFunction
 import po.api.rest_service.logger.LogLevel
+import po.api.rest_service.models.ApiResponse
 
 import java.io.File
 import java.nio.file.Paths
@@ -58,16 +62,16 @@ fun startApiServer(host: String, port: Int) {
                     call.respondText("Hello :) Better use POST")
                 }
             }
-//            authenticate("auth-jwt") {
-//                get("/api/secure-endpoint") {
-//                    val principal = call.principal<JWTPrincipal>()
-//                    val username = principal!!.payload.getClaim("username").asString()
-//                    call.respond(ApiResponse("Hello, $username"))
-//                }
-//            }
+            authenticate("auth-jwt") {
+                get("/api/secure-endpoint") {
+                    val principal = call.principal<JWTPrincipal>()
+                    val username = principal!!.payload.getClaim("username").asString()
+                    call.respond(ApiResponse("Hello, $username"))
+                }
+            }
 
             get("/public-endpoint") {
-                call.respondText("This is a public endpoint.")
+                call.respond(ApiResponse("Public endpoint"))
             }
         }
     }.apply {

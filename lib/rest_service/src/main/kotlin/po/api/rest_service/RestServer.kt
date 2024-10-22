@@ -21,6 +21,7 @@ import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.SerializersModuleBuilder
 import kotlinx.serialization.json.Json
+import po.api.rest_service.apiLogger
 
 import po.api.rest_service.common.ApiLoginRequestDataContext
 import po.api.rest_service.common.SecureUserContext
@@ -106,120 +107,113 @@ open class RestServer(
         return this
     }
 
-    open fun configure(application: Application): Application {
-        application.apply {
-            install(LoggingPlugin)
-            apiLogger.info("Starting server initialization")
+    private fun installRateLimiter(app: Application):Application{
+        app.apply {
+            apiLogger.info("Installing RateLimiter")
+            install(RateLimiter) {
+                requestsPerMinute = 60
+                suspendInSeconds = 60
+            }
+            apiLogger.info("RateLimiter installed")
+        }
+        return app
+    }
 
-            configure?.invoke(this)
+    private fun installDefaultContentNegotiation(app: Application):Application{
+        app.apply {
+            apiLogger.info("Installing Default ContentNegotiation")
+            install(ContentNegotiation) {
+                register(
+                    ContentType.Application.Json,
+                    PolymorphicJsonConverter(
+                        jsonDefault() {
+                            polymorphic(ApiLoginRequestDataContext::class) {
+                                subclass(DefaultLoginRequest::class, DefaultLoginRequest.serializer())
+                            }
+                            polymorphic(RequestData::class) {
+                                subclass(SelectRequestData::class, SelectRequestData.serializer())
+                                subclass(UpdateRequestData::class, UpdateRequestData.serializer())
+                                subclass(DeleteRequestData::class, DeleteRequestData.serializer())
+                                subclass(LoginRequestData::class, LoginRequestData.serializer())
+                            }
+                        }
+                    )
+                )
+            }
+            apiLogger.info("Default ContentNegotiation installed")
+        }
+        return app
+    }
 
-            if (this.pluginOrNull(Jwt) != null) {
-                apiLogger.info("Custom JWT installed")
-            } else {
-                if(apiConfig.enableDefaultSecurity) {
-                    apiLogger.info("Installing default JWT")
-                    install(Jwt){
-                        privateKeyString = apiConfig.privateKeyString
-                        publicKeyString = apiConfig.publicKeyString
-                    }
-                    apiLogger.info("Default JWT installed")
+    private fun installDefaultCors(app: Application):Application{
+        app.apply {
+            apiLogger.info("Installing Default CORS")
+            if(apiConfig.enableDefaultCors) {
+                install(CORS) {
+                    allowMethod(HttpMethod.Options)
+                    allowMethod(HttpMethod.Get)
+                    allowMethod(HttpMethod.Post)
+                    allowHeader(HttpHeaders.ContentType)
+                    allowHeader(HttpHeaders.Origin)
+                    allowCredentials = true
+                    anyHost()
+                }
+                apiLogger.info("Default CORS installed")
+            }else{
+                apiLogger.info("Skip CORS installation")
+            }
+        }
+        return app
+    }
 
-                    if(this.pluginOrNull(Authentication) != null) {
-                        apiLogger.info("Custom Authentication installed")
-                    }else{
-                        apiLogger.info("Installing default Authentication")
-                        if(jwtService.ready){
-                            install(Authentication) {
-                                jwt("auth-jwt") {
-                                    realm =  this@apply.jwtService.realm
-                                    verifier(  this@apply.jwtService.getVerifier())
-                                    validate { credential ->
-                                        if (credential.payload.audience.contains(this@apply.jwtService.audience)) {
-                                            JWTPrincipal(credential.payload)
-                                        } else null
-                                    }
+    private fun installDefaultAuthentication(app: Application):Application{
+        app.apply {
+            if(apiConfig.enableDefaultSecurity) {
+                apiLogger.info("Installing default JWT")
+                install(Jwt){
+                    privateKeyString = apiConfig.privateKeyString
+                    publicKeyString = apiConfig.publicKeyString
+                }
+                apiLogger.info("Default JWT installed")
+
+                if(this.pluginOrNull(Authentication) != null) {
+                    apiLogger.info("Custom Authentication installed")
+                }else{
+                    apiLogger.info("Installing default Authentication")
+
+                    if(jwtService.ready){
+                        install(Authentication) {
+                            jwt("auth-jwt") {
+                                realm =  this@apply.jwtService.realm
+                                verifier(  this@apply.jwtService.getVerifier())
+                                validate { credential ->
+                                    if (credential.payload.audience.contains(this@apply.jwtService.audience)) {
+                                        JWTPrincipal(credential.payload)
+                                    } else null
                                 }
                             }
-                        }else{
-                            apiLogger.warn("Default Authentication not installed due to JWT service not ready")
                         }
-                        apiLogger.info("Default Authentication installed")
+                    }else{
+                        apiLogger.warn("Default Authentication not installed due to JWT service not ready")
                     }
-                }else {
-                    apiLogger.info("Skip JWT installation")
+                    apiLogger.info("Default Authentication installed")
                 }
+            }else {
+                apiLogger.info("Skip JWT installation")
             }
+        }
+        return app
+    }
 
-            if (apiConfig.enableRateLimiting) {
-                apiLogger.info("Installing RateLimiter")
-                install(RateLimiter) {
-                    requestsPerMinute = 60
-                    suspendInSeconds = 60
-                }
-                apiLogger.info("RateLimiter installed")
-            }else{
-                apiLogger.info("Skip Rate Limiter installation")
-            }
-
-            apiLogger.info("Installing CORS")
-            if (this.pluginOrNull(CORS) != null) {
-                apiLogger.info("Custom CORS installed")
-            } else {
-                if(apiConfig.enableDefaultCors) {
-                    install(CORS) {
-                        allowMethod(HttpMethod.Options)
-                        allowMethod(HttpMethod.Get)
-                        allowMethod(HttpMethod.Post)
-                        allowHeader(HttpHeaders.ContentType)
-                        allowHeader(HttpHeaders.Origin)
-                        allowCredentials = true
-                        anyHost()
-                    }
-                    apiLogger.info("Default CORS installed")
-                }else{
-                    apiLogger.info("Skip CORS installation")
-                }
-            }
-
-            apiLogger.info("Installing ContentNegotiation")
-            if (this.pluginOrNull(ContentNegotiation) != null) {
-                apiLogger.info("Custom ContentNegotiation installed")
-            } else {
-                if (apiConfig.enableDefaultContentNegotiation) {
-                    install(ContentNegotiation) {
-                        register(
-                            ContentType.Application.Json,
-                            PolymorphicJsonConverter(
-                                jsonDefault() {
-                                    polymorphic(ApiLoginRequestDataContext::class) {
-                                        subclass(DefaultLoginRequest::class, DefaultLoginRequest.serializer())
-                                    }
-                                    polymorphic(RequestData::class) {
-                                        subclass(SelectRequestData::class, SelectRequestData.serializer())
-                                        subclass(UpdateRequestData::class, UpdateRequestData.serializer())
-                                        subclass(DeleteRequestData::class, DeleteRequestData.serializer())
-                                        subclass(LoginRequestData::class, LoginRequestData.serializer())
-                                    }
-                                }
-                            )
-                        )
-                    }
-                    apiLogger.info("Default ContentNegotiation installed")
-                } else {
-                    apiLogger.info("Skip ContentNegotiation installation")
-                }
-            }
-
-            apiLogger.info("Default rout initialization")
-
-
+    private fun configDefaultRouting(app: Application): Application{
+        apiLogger.info("Default rout initialization")
+        app.apply {
             routing {
-
                 if(apiConfig.enableDefaultSecurity){
                     route("${apiConfig.baseApiRoute}/login") {
                         post {
                             try {
-                              //  apiLogger.info("Request content type: ${call.request.contentType()}")
+                                //  apiLogger.info("Request content type: ${call.request.contentType()}")
                                 val loginRequest = call.receive<ApiRequest<RequestData>>()
                                 if (loginRequest.data !is LoginRequestData) {
                                     throw DataException(DataErrorCodes.REQUEST_DATA_MISMATCH, "Not a login request")
@@ -260,7 +254,6 @@ open class RestServer(
                     call.response.header("Access-Control-Allow-Origin", "*")
                     call.respond(HttpStatusCode.OK)
                 }
-
                 get("/api/status") {
                     println("Accessing Application: ${application.hashCode()}")
                     try {
@@ -283,14 +276,53 @@ open class RestServer(
                         call.respondText("Error accessing logger", status = HttpStatusCode.InternalServerError)
                     }
                 }
-
             }
-            apiLogger.info("Default rout initialized")
+        }
+        apiLogger.info("Default rout initialized")
+        return app
+    }
+
+    open fun configure(application: Application): Application {
+        application.apply {
+            install(LoggingPlugin)
+            apiLogger.info("Starting server initialization")
+
+            configure?.invoke(this)
+
+            if (this.pluginOrNull(Jwt) != null) {
+                apiLogger.info("Custom JWT installed")
+            } else {
+                installDefaultAuthentication(this)
+            }
+
+            if (apiConfig.enableRateLimiting) {
+                installRateLimiter(this)
+            }else{
+                apiLogger.info("Skip Rate Limiter installation")
+            }
+
+            apiLogger.info("Installing CORS")
+            if (this.pluginOrNull(CORS) != null) {
+                apiLogger.info("Custom CORS installed")
+            } else {
+                installDefaultCors(this)
+            }
+
+            apiLogger.info("Installing ContentNegotiation")
+            if (this.pluginOrNull(ContentNegotiation) != null) {
+                apiLogger.info("Custom ContentNegotiation installed")
+            } else {
+                if (apiConfig.enableDefaultContentNegotiation) {
+                    installDefaultContentNegotiation(this)
+                } else {
+                    apiLogger.info("Skip ContentNegotiation installation")
+                }
+            }
+            configDefaultRouting(this)
             apiLogger.info("Server initialization complete")
         }
         return application
     }
-
 
     fun start(wait: Boolean = true) {
         embeddedServer(Netty, port, host) {

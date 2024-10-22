@@ -16,7 +16,7 @@ pluginManagement {
 
 
 includeBuild("build-logic")
-include("lib", "lib:rest_service", "lib:ws_service", "lib:tg_components", "lib:data_service")
+include("app","lib", "lib:rest_service", "lib:ws_service", "lib:tg_components", "lib:data_service")
 
 project(":lib:rest_service").also {
     it.name = "RestApiServerWrapper"
