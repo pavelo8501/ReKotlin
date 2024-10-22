@@ -14,7 +14,7 @@ val junitVersion: String by project
 
 
 plugins {
-    kotlin("jvm") version kotlinVersion
+    kotlin("jvm") version "2.0.21"
     kotlin("plugin.serialization")
     `java-library`
     `maven-publish`
@@ -23,13 +23,15 @@ plugins {
 group = "po.api.rest"
 version = restServerVersion
 
-repositories {
+
+repositories{
     mavenCentral()
     maven {
         name = "PublicGitHubPackages"
         url = uri("https://maven.pkg.github.com/pavelo8501/ReKotlin")
     }
 }
+
 
 dependencies {
 
@@ -44,22 +46,22 @@ dependencies {
 
     implementation("io.ktor:ktor-server-cors:$ktorVersion")
 
-    implementation(libs.guava)
 
     //testImplementation(libs.junit.jupiter)
+
+    testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
+    testImplementation("org.jetbrains.kotlin:kotlin-test:$kotlinVersion")
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
     testImplementation("ch.qos.logback:logback-classic:$logbackClassicVersion")
-
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
 
 }
 
-java {
-    toolchain {
+kotlin {
+    jvmToolchain {
         languageVersion = JavaLanguageVersion.of(22)
     }
-    withSourcesJar()
 }
 
 publishing {
@@ -74,6 +76,11 @@ publishing {
             }
         }
     }
+
+    run {
+
+    }
+
     publications {
         register<MavenPublication>("gpr") {
             from(components["java"])
@@ -98,4 +105,5 @@ tasks.named<Test>("test") {
 
 tasks.withType<PublishToMavenRepository> {
     dependsOn("test")
+
 }

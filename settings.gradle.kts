@@ -1,35 +1,33 @@
-val restWrapperVersion: String by settings
-
-pluginManagement {
-   // includeBuild("build-logic")
-}
-
-plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
-}
 
 rootProject.name = "ReKotlin"
-include("list",
-        "app")
 
-project(":data_service").also {
-    it.name = "ExposedDAOWrapper"
-    it.buildFileName = "data_service/build.gradle.kts"
+pluginManagement {
+    plugins{
+        id("org.jetbrains.kotlin.jvm") version "2.1.0-Beta2"
+        id("org.jetbrains.kotlin.plugin.serialization") version "2.0.21"
+    }
+
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
 }
 
-project(":rest_service").also {
+
+
+includeBuild("build-logic")
+include("lib", "lib:rest_service", "lib:ws_service", "lib:tg_components", "lib:data_service")
+
+project(":lib:rest_service").also {
     it.name = "RestApiServerWrapper"
-    it.buildFileName = "rest_service/build.gradle.kts"
 }
 
-project(":ws_service").also {
-    it.name = "WsApiServerWrapper"
-    it.buildFileName = "ws_service/build.gradle.kts"
+project(":lib:ws_service").also {
+    it.name = "WSApiServerWrapper"
 }
 
-project(":tg_components").also {
-    it.name = "TelegramComponents"
-    it.buildFileName = "tg_components/build.gradle.kts"
+project(":lib:data_service").also {
+    it.name = "ExposedDAOWrapper"
 }
 
 

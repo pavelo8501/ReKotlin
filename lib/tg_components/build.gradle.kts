@@ -9,10 +9,6 @@ val mysqlVersion: String by project
 
 plugins{
 
-    kotlin("jvm") version kotlinVersion
-    kotlin("plugin.serialization")
-    application
-
 }
 
 version = "0.1.0"
@@ -23,21 +19,8 @@ repositories {
 
 dependencies {
 
-    testImplementation(libs.junit.jupiter)
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+   // testImplementation(libs.junit.jupiter)
+  //  testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
-    implementation(libs.guava)
-}
-
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
-    withSourcesJar()
-}
-
-
-tasks.named<Test>("test") {
-    // Use JUnit Platform for unit tests.
-    useJUnitPlatform()
+    //implementation(libs.guava)
 }

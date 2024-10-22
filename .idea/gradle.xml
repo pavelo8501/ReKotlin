@@ -4,15 +4,27 @@
   <component name="GradleSettings">
     <option name="linkedExternalProjectsSettings">
       <GradleProjectSettings>
+        <compositeConfiguration>
+          <compositeBuild compositeDefinitionSource="SCRIPT">
+            <builds>
+              <build path="$PROJECT_DIR$/build-logic" name="buildFactory">
+                <projects>
+                  <project path="$PROJECT_DIR$/build-logic" />
+                </projects>
+              </build>
+            </builds>
+          </compositeBuild>
+        </compositeConfiguration>
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
-            <option value="$PROJECT_DIR$/data_service" />
-            <option value="$PROJECT_DIR$/playground" />
-            <option value="$PROJECT_DIR$/rest_service" />
-            <option value="$PROJECT_DIR$/tg_ui" />
-            <option value="$PROJECT_DIR$/ws_service" />
+            <option value="$PROJECT_DIR$/build-logic" />
+            <option value="$PROJECT_DIR$/lib" />
+            <option value="$PROJECT_DIR$/lib/data_service" />
+            <option value="$PROJECT_DIR$/lib/rest_service" />
+            <option value="$PROJECT_DIR$/lib/tg_components" />
+            <option value="$PROJECT_DIR$/lib/ws_service" />
           </set>
         </option>
       </GradleProjectSettings>

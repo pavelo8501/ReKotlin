@@ -7,13 +7,12 @@ val hikaricpVersion: String by project
 val mysqlVersion: String by project
 
 
+
 plugins {
-    id("buildlogic.kotlin-application-conventions")
+    kotlin("jvm") version "2.0.21"
+    kotlin("plugin.serialization") version "2.0.21"
+    application
 }
-
-
-
-
 
 group = "po.playground"
 version = "1.0.0"
@@ -28,9 +27,9 @@ repositories {
 
 dependencies {
 
-    implementation(project(":ExposedDAOWrapper"))
-    implementation(project(":RestApiServerWrapper"))
-    implementation(project(":WsApiServerWrapper"))
+   // implementation(project(":ExposedDAOWrapper"))
+   // implementation(project(":RestApiServerWrapper"))
+  //  implementation(project(":WsApiServerWrapper"))
 
 
    // implementation("io.ktor:ktor-server-core:$ktorVersion")

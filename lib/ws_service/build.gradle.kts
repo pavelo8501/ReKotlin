@@ -1,38 +1,30 @@
-
-//WsApiServerWrapper
+import org.gradle.kotlin.dsl.dependencies
 
 val kotlinVersion: String by project
 val ktorVersion: String by project
 val kotlinSerializationVersion: String by project
-val exposedVersion: String by project
-val hikaricpVersion: String by project
-val mysqlVersion: String by project
 
 
 val logbackClassicVersion: String by project
 val testCoroutinesVersion: String by project
 val junitVersion: String by project
 
-val restWrapperVersion: String by project
-val wsWrapperVersion: String by project
+val restServerVersion: String by project
+val wsServerVersion: String by project
 
 plugins {
-    kotlin("jvm") version kotlinVersion
+    kotlin("jvm") version "2.0.21"
     kotlin("plugin.serialization")
-//    id("org.gradle.kotlin.kotlin-dsl") version "5.1.2"
-//    id("com.diffplug.spotless") version "7.0.0.BETA3"
-//    id("com.gradleup.shadow") version "8.3.3"
+    id("com.gradleup.shadow") version "8.3.3"
     `java-library`
     `maven-publish`
 }
 
 group = "po.api.ws"
-version = wsWrapperVersion
+version = wsServerVersion
 
-
-repositories {
+repositories{
     mavenCentral()
-
     maven {
         name = "PublicGitHubPackages"
         url = uri("https://maven.pkg.github.com/pavelo8501/ReKotlin")
@@ -40,7 +32,9 @@ repositories {
 }
 
 dependencies {
-    implementation(project(":RestApiServerWrapper"))
+
+    implementation(project(":lib:RestApiServerWrapper"))
+
     implementation("io.ktor:ktor-server-websockets:$ktorVersion")
     implementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
@@ -66,7 +60,7 @@ publishing {
     apply(plugin = "maven-publish")
     repositories {
         maven {
-            name = "PublicGitHubPackages"
+            name = "GitHubPackages"
             url = uri("https://maven.pkg.github.com/pavelo8501/ReKotlin")
             credentials {
                 username = project.findProperty("gpr.user") as String? ?: System.getenv("GITHUB_USERNAME")
@@ -77,7 +71,7 @@ publishing {
 
     publications {
         register<MavenPublication>("gpr") {
-            from(components["java"])
+            artifact(tasks["shadowJar"])
             groupId = "com.github.pavelo8501"
             artifactId = "ws-api-wrapper"
             version = this.version
@@ -85,25 +79,26 @@ publishing {
     }
 }
 
-
-//spotless {
-//    kotlinGradle {
-//        ktlint()
-//        target("**/*.kts")
-//        targetExclude("build-logic/build/**")
-//    }
-//}
-
-
 tasks.named<Test>("test") {
     useJUnitPlatform()
 }
 
+
+
+tasks {
+    shadowJar {
+        mergeServiceFiles()
+        configurations = listOf(project.configurations.runtimeClasspath.get())
+        dependencies {
+            include(project(":lib:RestApiServerWrapper"))
+        }
+    }
+}
+
 tasks.withType<PublishToMavenRepository> {
     dependsOn("test")
-//    doFirst {
-//        configurations["publishOnly"].resolve()
-//    }
+    doFirst{
+    }
 }
 
 

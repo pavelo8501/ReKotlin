@@ -7,5 +7,6 @@
   <component name="com.itcodebox.notebooks.projectservice.ProjectUIState">
     <option name="selectedNotebookId" value="2" />
     <option name="selectedChapterId" value="3" />
+    <option name="selectedNoteId" value="2" />
   </component>
 </project>
