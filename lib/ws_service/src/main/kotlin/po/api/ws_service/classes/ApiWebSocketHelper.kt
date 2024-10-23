@@ -1,4 +1,4 @@
-package po.api.ws_service.classes
+package po.api.ws_service.service.classes
 
 class ApiWebSocketHelper {
 

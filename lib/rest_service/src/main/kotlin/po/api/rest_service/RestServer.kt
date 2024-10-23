@@ -45,7 +45,7 @@ val Application.jwtService: JWTService
 
 
 open class RestServer(
-   open val config: (Application.() -> Unit)? = null
+   private val config: (Application.() -> Unit)? = null
 ) {
     companion object {
         val loggerKey = AttributeKey<LoggingService>("Logger")
@@ -263,6 +263,9 @@ open class RestServer(
         application.apply {
             install(LoggingPlugin)
             apiLogger.info("Starting server initialization")
+
+            config?.invoke(this)
+
             if (this.pluginOrNull(Jwt) != null) {
                 apiLogger.info("Custom JWT installed")
             } else {
@@ -301,7 +304,6 @@ open class RestServer(
     open fun start(wait: Boolean = true){
      embeddedServer(Netty, port, host) {
             configureServer(this)
-            config?.invoke(this)
             apiLogger.info("Starting Rest API server on $host:$port")
         }.start(wait)
     }

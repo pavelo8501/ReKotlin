@@ -1,14 +1,6 @@
-package po.api.ws_service.extensions
+package po.api.ws_service.service.extensions
 
-import io.ktor.server.application.ApplicationCall
-import io.ktor.server.application.ApplicationCallPipeline
-import io.ktor.server.application.application
-import io.ktor.server.application.plugin
-import io.ktor.server.http.content.resource
-import io.ktor.server.http.content.staticResources
-import io.ktor.server.routing.Route
-import io.ktor.server.routing.intercept
-import io.ktor.server.websocket.DefaultWebSocketServerSession
+import po.api.ws_service.service.models.WSApiRequest
 import io.ktor.util.AttributeKey
 import io.ktor.websocket.Frame
 import io.ktor.websocket.FrameType
@@ -17,32 +9,21 @@ import io.ktor.websocket.WebSocketExtensionFactory
 import io.ktor.websocket.WebSocketExtensionHeader
 import io.ktor.websocket.readText
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.serializer
-import po.api.rest_service.models.ApiRequest
-import po.api.ws_service.CallAttributeKey
-import po.api.ws_service.WebSocketMethodRegistryItem
-import po.api.ws_service.WebSocketServer
-import po.api.ws_service.models.WSApiRequest
-import po.api.ws_service.webSocketMethodRegistryKey
+import po.api.ws_service.services.TrafficService
 
 
-class RouteNegotiator() {
-    val someVal: String = "someval"
+class TTConfig() {
+    lateinit var service: TrafficService
 }
 
-class RouteContentNegotiatorConfig() {
-    lateinit var negotiator: RouteNegotiator
-}
-
-class RouteContent(config:RouteContentNegotiatorConfig):WebSocketExtension<RouteContentNegotiatorConfig>{
 
 
+class TrafficController(config:TTConfig):WebSocketExtension<TTConfig>{
 
-    companion object Extension : WebSocketExtensionFactory<RouteContentNegotiatorConfig,RouteContent> {
+    companion object Extension : WebSocketExtensionFactory<TTConfig,TrafficController> {
         /* Key to discover installed extension instance */
-        override val key: AttributeKey<RouteContent> = AttributeKey("frame-logger")
+        override val key: AttributeKey<TrafficController> = AttributeKey("frame-logger")
 
         /** List of occupied rsv bits.
          * If the extension occupies a bit, it can't be used in other installed extensions. We use these bits to prevent plugin conflicts(prevent installing multiple compression plugins). If you're implementing a plugin using some RFC, rsv occupied bits should be referenced there.
@@ -51,14 +32,14 @@ class RouteContent(config:RouteContentNegotiatorConfig):WebSocketExtension<Route
         override val rsv2: Boolean = false
         override val rsv3: Boolean = false
 
-        override fun install(config: RouteContentNegotiatorConfig.() -> Unit): RouteContent {
+        override fun install(config: TTConfig.() -> Unit): TrafficController {
            val a = 10
-           val config =  RouteContentNegotiatorConfig().apply(config)
-           return RouteContent(config)
+           val config =  TTConfig().apply(config)
+           return TrafficController(config)
         }
     }
 
-    override val factory: WebSocketExtensionFactory<RouteContentNegotiatorConfig, out WebSocketExtension<RouteContentNegotiatorConfig>> = RouteContent
+    override val factory: WebSocketExtensionFactory<TTConfig, out WebSocketExtension<TTConfig>> = TrafficController
 
     override val protocols: List<WebSocketExtensionHeader> = emptyList()
     override fun clientNegotiation(negotiatedProtocols: List<WebSocketExtensionHeader>): Boolean {
@@ -93,7 +74,6 @@ class RouteContent(config:RouteContentNegotiatorConfig):WebSocketExtension<Route
             }
             else -> {}
         }
-
 
         return frame
     }

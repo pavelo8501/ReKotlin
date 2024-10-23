@@ -1,4 +1,4 @@
-package po.api.ws_service.security
+package api.ws_service.service.security
 
 import io.ktor.websocket.WebSocketSession
 import po.api.rest_service.common.SecureUserContext

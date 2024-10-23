@@ -1,10 +1,8 @@
-package po.api.ws_service.models
+package po.api.ws_service.service.models
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import po.api.rest_service.models.ApiResponse
-import po.api.rest_service.models.CreateRequestData
 
 
 @Serializable

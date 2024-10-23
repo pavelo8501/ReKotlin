@@ -1,7 +1,6 @@
 import org.gradle.kotlin.dsl.dependencies
 
 
-
 val kotlinVersion: String by project
 val ktorVersion: String by project
 val kotlinSerializationVersion: String by project

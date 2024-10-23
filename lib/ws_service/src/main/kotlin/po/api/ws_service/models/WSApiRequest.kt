@@ -1,14 +1,10 @@
-package po.api.ws_service.models
+package po.api.ws_service.service.models
 
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.*
 import kotlinx.serialization.json.JsonClassDiscriminator
 import kotlinx.serialization.json.JsonElement
-import po.api.rest_service.common.ApiEntity
-import po.api.rest_service.common.ApiUpdateEntity
-import po.api.rest_service.models.ApiRequest
-import po.api.rest_service.models.CreateRequestData
 
 
 enum class ApiRequestAction(val value: Int){

@@ -13,8 +13,9 @@ import kotlinx.serialization.json.Json
 import po.api.rest_service.RestServer
 import po.api.rest_service.common.SecureUserContext
 import po.api.ws_service.WebSocketServer
-import po.api.ws_service.apiWebSocket
-import po.api.ws_service.apiWebSocketMethod
+import po.api.ws_service.service.routing.apiWebSocket
+import po.api.ws_service.service.routing.apiWebSocketMethod
+
 import java.io.File
 import kotlin.io.readText
 
@@ -45,16 +46,24 @@ fun startWebSocketServer(host: String, port: Int) {
         privateKey =  File(currentDir+File.separator+"keys"+File.separator+"ktor.pk8").readText()
     )
 
-    val wsServer =  WebSocketServer(){
-
-
-
+    val wsServer = WebSocketServer(){
         routing {
-            apiWebSocket("/ws/apiTest"){
-                apiWebSocketMethod<TestPartner>("partners"){
 
-                    val a = 10
+            apiWebSocket("/ws/apiTest") {
+
+
+                apiWebSocketMethod("Partners") {
+                    receiveApiRequest={
+                        println(it)
+                    }
                 }
+
+                apiWebSocketMethod("Departments") {
+                    receiveApiRequest={
+                        println(it)
+                    }
+                }
+
             }
         }
     }

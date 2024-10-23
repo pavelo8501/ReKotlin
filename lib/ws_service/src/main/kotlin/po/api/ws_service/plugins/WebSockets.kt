@@ -1,13 +1,9 @@
-package po.api.ws_service.plugins
+package po.api.ws_service.service.plugins
 
 import io.ktor.server.application.Application
 import io.ktor.server.application.BaseApplicationPlugin
-import io.ktor.server.application.plugin
 import io.ktor.server.websocket.WebSockets
 import io.ktor.util.AttributeKey
-import po.api.rest_service.plugins.RateLimiter
-import po.api.rest_service.plugins.RateLimiterConfig
-
 
 
 class ApiWebSocketsConfig(){

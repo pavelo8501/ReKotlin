@@ -1,10 +1,10 @@
-package po.api.ws_service.plugins
+package po.api.ws_service.service.plugins
 
+import po.api.ws_service.service.models.ServiceResponse
 import io.ktor.server.websocket.WebSocketServerSession
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
 import io.ktor.websocket.close
-import po.api.ws_service.models.ServiceResponse
 
 suspend fun WebSocketServerSession.sendSystemMessage(message: String = "Connection established successfully", isError: Boolean = false) {
     val response = if (isError) {
