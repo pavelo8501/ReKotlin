@@ -2,7 +2,6 @@ package po.api.rest_service.models
 
 import kotlinx.serialization.*
 import kotlinx.serialization.json.JsonClassDiscriminator
-import po.api.rest_service.common.ApiDeleteEntity
 
 import po.api.rest_service.common.ApiEntity
 import po.api.rest_service.common.ApiLoginRequestDataContext
@@ -24,24 +23,31 @@ sealed class RequestData
 @SerialName("create")
 data class CreateRequestData(val value: ApiEntity) : RequestData()
 
+
+
 @Serializable
-@SerialName("update")
 data class UpdateRequestData(val value: ApiUpdateEntity) : RequestData()
 
 
 @Serializable
-@SerialName("select")
-data class SelectRequestData(val value: Long) : RequestData()
+data class SelectRequestData(
+    val value: Long
+)
+
 
 @Serializable
-@SerialName("delete")
-data class DeleteRequestData(val value: ApiDeleteEntity) : RequestData()
+data class DeleteRequestData(
+    val id: Long,
+    val includingChild: Boolean
+)
 
 @Serializable
-@SerialName("credentials")
-data class LoginRequestData(val value: DefaultLoginRequest) : RequestData()
+data class LoginRequest(
+    val username: String,
+    val password: String
+)
 
 @Serializable
-data class ApiRequest<R : RequestData>(
+data class ApiRequest<R>(
     val data : R
 )

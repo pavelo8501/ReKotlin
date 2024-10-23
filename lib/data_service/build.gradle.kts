@@ -8,22 +8,26 @@ val logbackClassicVersion: String by project
 val testCoroutinesVersion: String by project
 val junitVersion: String by project
 
+val daoServiceVersion: String by project
+
 plugins {
-
      kotlin("jvm") version "2.0.21"
-    `java-library`
+     kotlin("plugin.serialization")
     `maven-publish`
-
 }
 
-version = "0.0.1"
+version = daoServiceVersion
 
 repositories {
     mavenCentral()
 
     maven {
-        name = "GitHubPackages"
+        name = "PublicGitHubPackages"
         url = uri("https://maven.pkg.github.com/pavelo8501/ReKotlin")
+        credentials {
+            username = project.findProperty("gpr.user") as String? ?: System.getenv("GITHUB_USERNAME")
+            password = project.findProperty("gpr.key") as String? ?: System.getenv("GITHUB_TOKEN")
+        }
     }
 }
 
@@ -48,33 +52,32 @@ dependencies {
 
 }
 
-//publishing {
-//    apply(plugin = "maven-publish")
-//    repositories {
-//        maven {
-//            name = "GitHubPackages"
-//            url = uri("https://maven.pkg.github.com/pavelo8501/ReKotlin")
-//            credentials {
-//                username = project.findProperty("gpr.user") as String? ?: System.getenv("GITHUB_USERNAME")
-//                password = project.findProperty("gpr.key") as String? ?: System.getenv("GITHUB_TOKEN")
-//            }
-//        }
-//    }
-//    publications {
-//        register<MavenPublication>("gpr") {
-//            from(components["java"])
-//            groupId = "com.github.pavelo8501"
-//            artifactId = "exposed-dao-wrapper"
-//            version = this.version
-//        }
-//    }
-//}
+publishing {
+    apply(plugin = "maven-publish")
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/pavelo8501/ReKotlin")
+            credentials {
+                username = project.findProperty("gpr.user") as String? ?: System.getenv("GITHUB_USERNAME")
+                password = project.findProperty("gpr.key") as String? ?: System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
+    publications {
+        register<MavenPublication>("gpr") {
+            from(components["java"])
+            groupId = "com.github.pavelo8501"
+            artifactId = "exposed-dao-wrapper"
+            version = daoServiceVersion
+        }
+    }
+}
 
-java {
-    toolchain {
+kotlin {
+    jvmToolchain {
         languageVersion = JavaLanguageVersion.of(22)
     }
-    withSourcesJar()
 }
 
 tasks.jar {

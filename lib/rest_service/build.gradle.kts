@@ -7,7 +7,6 @@ val mysqlVersion: String by project
 
 val restServerVersion: String by project
 
-
 val logbackClassicVersion: String by project
 val testCoroutinesVersion: String by project
 val junitVersion: String by project
@@ -16,7 +15,6 @@ val junitVersion: String by project
 plugins {
     kotlin("jvm") version "2.0.21"
     kotlin("plugin.serialization")
-    `java-library`
     `maven-publish`
 }
 
@@ -48,7 +46,6 @@ dependencies {
 
 
     //testImplementation(libs.junit.jupiter)
-
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
     testImplementation("org.jetbrains.kotlin:kotlin-test:$kotlinVersion")
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
@@ -75,10 +72,6 @@ publishing {
                 password = project.findProperty("gpr.key") as String? ?: System.getenv("GITHUB_TOKEN")
             }
         }
-    }
-
-    run {
-
     }
 
     publications {

@@ -16,34 +16,24 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.*
 import io.ktor.util.AttributeKey
 
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.modules.SerializersModule
-import kotlinx.serialization.modules.polymorphic
-import kotlinx.serialization.modules.SerializersModuleBuilder
+import io.ktor.serialization.kotlinx.json.*
+import io.ktor.server.request.contentType
 import kotlinx.serialization.json.Json
-import po.api.rest_service.apiLogger
 
-import po.api.rest_service.common.ApiLoginRequestDataContext
 import po.api.rest_service.common.SecureUserContext
 import po.api.rest_service.exceptions.AuthErrorCodes
 import po.api.rest_service.exceptions.AuthException
 import po.api.rest_service.exceptions.ConfigurationErrorCodes
 import po.api.rest_service.exceptions.ConfigurationException
-import po.api.rest_service.exceptions.DataErrorCodes
-import po.api.rest_service.exceptions.DataException
 import po.api.rest_service.logger.LoggingService
 import po.api.rest_service.models.ApiRequest
 import po.api.rest_service.models.ApiResponse
-import po.api.rest_service.models.DefaultLoginRequest
-import po.api.rest_service.models.DeleteRequestData
-import po.api.rest_service.models.LoginRequestData
-import po.api.rest_service.models.RequestData
+import po.api.rest_service.models.LoginRequest
 import po.api.rest_service.models.SelectRequestData
-import po.api.rest_service.models.UpdateRequestData
 import po.api.rest_service.plugins.Jwt
 import po.api.rest_service.plugins.LoggingPlugin
-import po.api.rest_service.plugins.PolymorphicJsonConverter
 import po.api.rest_service.plugins.RateLimiter
+import po.api.rest_service.security.AuthenticatedModel
 import po.api.rest_service.security.JWTService
 import po.api.rest_service.server.ApiConfig
 
@@ -55,7 +45,7 @@ val Application.jwtService: JWTService
 
 
 open class RestServer(
-    private val configure: (Application.() -> Unit)? = null
+   open val config: (Application.() -> Unit)? = null
 ) {
     companion object {
         val loggerKey = AttributeKey<LoggingService>("Logger")
@@ -72,19 +62,22 @@ open class RestServer(
             create(configure).configureHost(host, port).start()
         }
 
-        @OptIn(ExperimentalSerializationApi::class)
-        fun jsonDefault(builderAction: SerializersModuleBuilder.() -> Unit): Json{
-            val json = Json {
-                serializersModule = SerializersModule(builderAction)
-                classDiscriminator = "type"
-                ignoreUnknownKeys = true
-                decodeEnumsCaseInsensitive = true
-            }
-            return json
-        }
+//        @OptIn(ExperimentalSerializationApi::class)
+//        fun jsonDefault(builderAction: (SerializersModuleBuilder.() -> Unit)? = null): Json{
+//            val json = Json {
+//                if(builderAction != null){
+//                    serializersModule = SerializersModule(builderAction)
+//                }
+//                ignoreUnknownKeys = true
+//                decodeEnumsCaseInsensitive = true
+//                encodeDefaults = true
+//            }
+//            return json
+//        }
     }
 
-    var onLoginRequest: ((LoginRequestData) -> SecureUserContext?)? = null
+    var onLoginRequest: ((LoginRequest) -> SecureUserContext?)? = null
+    var onAuthenticated : ((AuthenticatedModel) -> Unit)? = null
 
     private var _host: String = "0.0.0.0"
     val host: String
@@ -118,22 +111,12 @@ open class RestServer(
         app.apply {
             apiLogger.info("Installing Default ContentNegotiation")
             install(ContentNegotiation) {
-                register(
-                    ContentType.Application.Json,
-                    PolymorphicJsonConverter(
-                        jsonDefault() {
-                            polymorphic(ApiLoginRequestDataContext::class) {
-                                subclass(DefaultLoginRequest::class, DefaultLoginRequest.serializer())
-                            }
-                            polymorphic(RequestData::class) {
-                                subclass(SelectRequestData::class, SelectRequestData.serializer())
-                                subclass(UpdateRequestData::class, UpdateRequestData.serializer())
-                                subclass(DeleteRequestData::class, DeleteRequestData.serializer())
-                                subclass(LoginRequestData::class, LoginRequestData.serializer())
-                            }
-                        }
-                    )
-                )
+                json(Json{
+                    prettyPrint = true
+                    isLenient = true
+                    ignoreUnknownKeys = true
+                    encodeDefaults = true
+                })
             }
             apiLogger.info("Default ContentNegotiation installed")
         }
@@ -208,18 +191,16 @@ open class RestServer(
                     route("${apiConfig.baseApiRoute}/login") {
                         post {
                             try {
-                                //  apiLogger.info("Request content type: ${call.request.contentType()}")
-                                val loginRequest = call.receive<ApiRequest<RequestData>>()
-                                if (loginRequest.data !is LoginRequestData) {
-                                    throw DataException(DataErrorCodes.REQUEST_DATA_MISMATCH, "Not a login request")
-                                }
-                                (loginRequest.data).let { loginData ->
+                                apiLogger.info("Request content type: ${call.request.contentType()}")
+                                val loginRequest = call.receive<ApiRequest<LoginRequest>>()
+
+                                 loginRequest.data.let { loginData ->
                                     if(onLoginRequest == null){
                                         throw ConfigurationException(ConfigurationErrorCodes.UNABLE_TO_CALLBACK, "onLoginRequest callback not set")
                                     }
-                                    val user = onLoginRequest!!.invoke(loginData as LoginRequestData)
+                                    val user = onLoginRequest!!.invoke(loginData)
                                     if(user == null){
-                                        apiLogger.action("Login failed for ${loginData.value.username} with password ${loginData.value.password}")
+                                        apiLogger.action("Login failed for ${loginData.username} with password ${loginData.password}")
                                         call.response.status(HttpStatusCode.Unauthorized)
                                         call.respond(ApiResponse(null).setErrorMessage(AuthErrorCodes.INVALID_CREDENTIALS.code,"Authentication failed"))
                                         return@post
@@ -233,6 +214,7 @@ open class RestServer(
                                             }
                                             //Finally got to success point
                                             call.respond(ApiResponse(token))
+                                            onAuthenticated?.invoke(AuthenticatedModel(token!!,true, 1))
                                         }
                                     }
                                 }
@@ -277,7 +259,7 @@ open class RestServer(
         return app
     }
 
-    open fun configure(application: Application): Application {
+    fun configureServer(application: Application): Application {
         application.apply {
             install(LoggingPlugin)
             apiLogger.info("Starting server initialization")
@@ -313,13 +295,13 @@ open class RestServer(
             configDefaultRouting(this)
             apiLogger.info("Server initialization complete")
         }
-        configure?.invoke(application)
         return application
     }
 
-    fun start(wait: Boolean = true) {
-        embeddedServer(Netty, port, host) {
-            configure(this)
+    open fun start(wait: Boolean = true){
+     embeddedServer(Netty, port, host) {
+            configureServer(this)
+            config?.invoke(this)
             apiLogger.info("Starting Rest API server on $host:$port")
         }.start(wait)
     }

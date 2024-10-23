@@ -1,5 +1,7 @@
 import org.gradle.kotlin.dsl.dependencies
 
+
+
 val kotlinVersion: String by project
 val ktorVersion: String by project
 val kotlinSerializationVersion: String by project
@@ -9,14 +11,12 @@ val logbackClassicVersion: String by project
 val testCoroutinesVersion: String by project
 val junitVersion: String by project
 
-val restServerVersion: String by project
 val wsServerVersion: String by project
 
 plugins {
     kotlin("jvm") version "2.0.21"
     kotlin("plugin.serialization")
     id("com.gradleup.shadow") version "8.3.3"
-    `java-library`
     `maven-publish`
 }
 
@@ -34,7 +34,8 @@ repositories{
 dependencies {
 
     implementation(project(":lib:RestApiServerWrapper"))
-
+    implementation("io.ktor:ktor-server-core:$ktorVersion")
+    implementation("io.ktor:ktor-server-netty:$ktorVersion")
     implementation("io.ktor:ktor-server-websockets:$ktorVersion")
     implementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
@@ -74,7 +75,7 @@ publishing {
             artifact(tasks["shadowJar"])
             groupId = "com.github.pavelo8501"
             artifactId = "ws-api-wrapper"
-            version = this.version
+            version = wsServerVersion
         }
     }
 }
@@ -85,8 +86,9 @@ tasks.named<Test>("test") {
 
 tasks {
     shadowJar {
+        archiveClassifier.set("")
         mergeServiceFiles()
-        configurations = listOf(project.configurations.runtimeClasspath.get())
+       // configurations = listOf(project.configurations.runtimeClasspath.get())
         dependencies {
             include(project(":lib:RestApiServerWrapper"))
         }

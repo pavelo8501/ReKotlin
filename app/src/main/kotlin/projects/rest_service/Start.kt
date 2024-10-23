@@ -9,18 +9,30 @@ import po.api.rest_service.server.*
 
 import io.ktor.server.routing.*
 import io.ktor.server.response.*
+import kotlinx.serialization.Serializable
 
 import po.api.rest_service.RestServer
 import po.api.rest_service.apiLogger
+import po.api.rest_service.common.ApiEntity
 import po.api.rest_service.logger.LogFunction
 import po.api.rest_service.logger.LogLevel
 import po.api.rest_service.models.ApiRequest
 import po.api.rest_service.models.ApiResponse
 import po.api.rest_service.models.RequestData
+import po.api.rest_service.models.CreateRequestData
 
 import java.io.File
 import java.nio.file.Paths
 
+@Serializable
+sealed class TestPartner(): ApiEntity{
+
+    override val id: Long = 0
+
+    val name: String = ""
+    val nr: Int = 0
+
+}
 
 fun startApiServer(host: String, port: Int) {
 
@@ -63,10 +75,11 @@ fun startApiServer(host: String, port: Int) {
                 }
             }
 
-            post("/api/test") {
-               val request = call.receive<ApiRequest<RequestData>>()
-               val response =  ApiResponse<String>("OK Test Received")
-                call.respond(response)
+            post("/api/partners") {
+
+             val partner =  call.receive<ApiRequest<TestPartner>>()
+             val a =10
+
             }
 
             get("/public-endpoint") {
