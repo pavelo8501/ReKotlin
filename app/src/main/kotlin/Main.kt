@@ -28,6 +28,8 @@ fun main() {
 
     startWebSocketServer(host, port)
 
+   // testConverter()
+
     val a = 10
 
 }

@@ -1,20 +1,18 @@
 package po.playground.projects.ws_service
 
+
 import io.ktor.server.application.install
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
-import io.ktor.server.websocket.webSocket
-import io.ktor.websocket.Frame
-import io.ktor.websocket.parseWebSocketExtensions
-import io.ktor.websocket.readText
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import po.api.rest_service.RestServer
 import po.api.rest_service.common.SecureUserContext
 import po.api.ws_service.WebSocketServer
+import po.api.ws_service.service.models.WSApiRequestDataInterface
 import po.api.ws_service.service.routing.apiWebSocket
-import po.api.ws_service.service.routing.apiWebSocketMethod
+
 
 import java.io.File
 import kotlin.io.readText
@@ -24,7 +22,21 @@ import kotlin.io.readText
 data class TestPartner(
     val name: String?  = null,
     val vat: Int? = null
-)
+):WSApiRequestDataInterface
+
+@Serializable
+data class TestDepartment(
+    val name: String,
+    val street: String,
+    val hq: Boolean
+):WSApiRequestDataInterface
+
+@Serializable
+data class TestContact(
+    val name: String,
+    val surname: String,
+    val age: Int,
+):WSApiRequestDataInterface
 
 @Serializable
 data class WsUser(
@@ -47,20 +59,15 @@ fun startWebSocketServer(host: String, port: Int) {
     )
 
     val wsServer = WebSocketServer(){
-        routing {
 
-            apiWebSocket("/ws/apiTest") {
+            routing {
 
+            apiWebSocket("/ws/partners") {
 
-                apiWebSocketMethod("Partners") {
+                apiWebSocketMethod<TestPartner>("partners"){
                     receiveApiRequest={
-                        println(it)
-                    }
-                }
-
-                apiWebSocketMethod("Departments") {
-                    receiveApiRequest={
-                        println(it)
+                        val request = it
+                        println("Request received in user module ${request.module}")
                     }
                 }
 
@@ -76,7 +83,5 @@ fun startWebSocketServer(host: String, port: Int) {
     }
 
     wsServer.start(true)
-
-
-
 }
+

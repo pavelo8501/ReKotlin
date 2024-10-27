@@ -2,11 +2,7 @@ package po.api.ws_service
 
 import api.ws_service.service.security.ActiveUsers
 import api.ws_service.service.security.ApiUser
-import po.api.ws_service.service.extensions.TrafficController
-import po.api.ws_service.service.models.DeleteRequestData
-import po.api.ws_service.service.models.RequestData
-import po.api.ws_service.service.routing.ApiWebSocketClass
-import po.api.ws_service.service.routing.ApiWebSocketMethodClass
+import io.ktor.serialization.ContentConverter
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.SerializersModuleBuilder
@@ -18,39 +14,34 @@ import io.ktor.server.application.pluginOrNull
 import io.ktor.server.websocket.WebSockets
 import io.ktor.server.websocket.pingPeriod
 import io.ktor.server.websocket.timeout
-import kotlinx.serialization.modules.polymorphic
 import po.api.rest_service.*
 import po.api.rest_service.server.ApiConfig
 import kotlin.time.Duration
 
-import io.ktor.server.application.ApplicationCall
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
-import io.ktor.util.AttributeKey
+import io.netty.handler.codec.DefaultHeaders
+import po.api.rest_service.logger.LoggingService
+import po.api.ws_service.plugins.ApiHeaderPlugin
+import po.api.ws_service.plugins.WSApiContentConverter
+
+import po.api.ws_service.service.extensions.TrafficController
+import po.api.ws_service.service.plugins.Authenticator
+import po.api.ws_service.service.plugins.PolymorphicJsonConverter
+import po.api.ws_service.services.ConnectionService
 
 
 
-val CallAttributeKey = AttributeKey<ApplicationCall>("call")
-class WebSocketMethodRegistryItem(var  method: String, body: suspend WebSocketMethodDataContext.() -> Unit)
-
-class WebSocketMethodDataContext(){
-    val receiveApiRequest : (suspend (Unit) -> Unit)? = null
-
-    suspend fun sendApiRequest(){
-
-    }
-}
-
-val webSocketMethodRegistryKey = AttributeKey<MutableList<WebSocketMethodRegistryItem>>("WebSocketMethod")
+//val webSocketMethodRegistryKey = AttributeKey<MutableList<WebSocketMethodRegistryItem>>("WebSocketMethod")
 
 
 class WebSocketServer (
     private val config: (Application.() -> Unit)?
 ) : RestServer(null) {
     companion object {
-        val apiConfig : ApiConfig = getDefaultConfig()
+        val apiConfig: ApiConfig = getDefaultConfig()
 
-        fun getDefaultConfig(): ApiConfig{
+        fun getDefaultConfig(): ApiConfig {
             return ApiConfig()
         }
 
@@ -62,25 +53,24 @@ class WebSocketServer (
             create(configure).configureHost(host, port).start()
         }
 
-        @OptIn(ExperimentalSerializationApi::class)
-        private var  _jsonDefault :  Json = Json{
+        val connectionService =  ConnectionService
+        lateinit var  apiLogger:  LoggingService
 
-            serializersModule = SerializersModule {
-                polymorphic(RequestData::class) {
-                    subclass(DeleteRequestData::class, DeleteRequestData.serializer())
-                }
-            }
+
+        @OptIn(ExperimentalSerializationApi::class)
+        private var _jsonDefault: Json = Json {
+
             classDiscriminator = "type"
             ignoreUnknownKeys = true
             decodeEnumsCaseInsensitive = true
         }
-        var jsonDefault : Json   = _jsonDefault
+        var jsonDefault: Json = _jsonDefault
             get() = _jsonDefault
 
         @OptIn(ExperimentalSerializationApi::class)
-        fun setJsonDefault(builderAction  : (SerializersModuleBuilder.() -> Unit)? = null ) {
+        fun setJsonDefault(builderAction: (SerializersModuleBuilder.() -> Unit)? = null) {
 
-           val newInstance = Json {
+            val newInstance = Json {
                 if (builderAction != null) {
                     serializersModule = SerializersModule(builderAction)
                 }
@@ -89,15 +79,15 @@ class WebSocketServer (
             }
             this._jsonDefault = newInstance
         }
-
     }
 
     val activeUsers = ActiveUsers()
 
     init {
-        super.onAuthenticated={
-            if(it.success){
-              val newUser = ApiUser(it.id, "someuser").also { user->
+
+        super.onAuthenticated = {
+            if (it.success) {
+                val newUser = ApiUser(it.id, "someuser").also { user ->
                     user.setToken(it.token)
                 }
                 activeUsers.addUser(newUser)
@@ -109,30 +99,73 @@ class WebSocketServer (
         super.configureHost(host, port)
     }
 
-    private fun configureContentNegotiation(application: Application): Application {
+   private fun configureDefaultHeaders(application: Application):Application{
+       apiLogger.info("Configuring Api Headers")
+       application.apply {
+           if (this.pluginOrNull(ApiHeaderPlugin) != null) {
+               println("Already installed")
+           }else{
+               install(ApiHeaderPlugin)
+           }
+       }
+       return application
+   }
+
+    private fun  configureCallLogging(application: Application):Application{
         application.apply {
 
         }
         return application
     }
 
-    private fun configureWSRouting(application:  Application){
-        ApiWebSocketMethodClass.registerListener(ApiWebSocketClass)
+    private fun configureContentNegotiation(application: Application,  polymorphicConverter : PolymorphicJsonConverter): Application {
+        application.apply {
+
+          val contentConverter = WSApiContentConverter().create()
+
+
+            if (this.pluginOrNull(contentConverter) != null) {
+               println("Already installed")
+            }else{
+                install(contentConverter) {
+                    register(polymorphicConverter)
+                }
+            }
+
+        }
+        return application
+    }
+
+    private fun configureSecurity(application: Application): Application {
+        application.apply {
+            install(Authenticator)
+        }
+        return application
     }
 
     fun configureWebSocketServer(application: Application): Application {
 
         application.apply {
+
+           Companion.apiLogger = apiLogger
+
+            //configureSecurity(this)
+         //   configureDefaultHeaders(this)
+          //  configureCallLogging(this)
+
+            val polymorphicConverter =   PolymorphicJsonConverter(connectionService,null)
+
             if (this.pluginOrNull(WebSockets) != null) {
                 apiLogger.info("Custom socket installation present")
             }else{
                apiLogger.info("Installing default websocket")
+
                install(WebSockets){
                     pingPeriod =  Duration.parse("60s")
                     timeout = Duration.parse("15s")
                     maxFrameSize = Long.MAX_VALUE
                     masking = false
-                   // contentConverter = KotlinxWebsocketSerializationConverter(Json)
+                    contentConverter = polymorphicConverter
                       extensions {
                           install(TrafficController){
 
@@ -142,9 +175,14 @@ class WebSocketServer (
                 apiLogger.info("Default websocket installed")
             }
 
+            apiLogger.info("Installing default ContentNegotiation")
+          //  configureContentNegotiation(this,polymorphicConverter)
+            apiLogger.info("Default ContentNegotiation installed")
 
-            configureWSRouting(this)
             config?.invoke(this)
+
+
+
 
             apiLogger.info("Websocket routing configured")
         }
@@ -156,6 +194,7 @@ class WebSocketServer (
             super.configureServer(this)
             configureWebSocketServer(this)
             apiLogger.info("Starting Rest API server on $host:$port")
+
         }.start(wait)
     }
 

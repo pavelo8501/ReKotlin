@@ -1,28 +1,35 @@
 package po.api.ws_service.service.extensions
 
+import io.ktor.serialization.WebsocketContentConverter
+import io.ktor.server.websocket.DefaultWebSocketServerSession
 import po.api.ws_service.service.models.WSApiRequest
 import io.ktor.util.AttributeKey
+import io.ktor.util.reflect.typeInfo
 import io.ktor.websocket.Frame
 import io.ktor.websocket.FrameType
 import io.ktor.websocket.WebSocketExtension
 import io.ktor.websocket.WebSocketExtensionFactory
 import io.ktor.websocket.WebSocketExtensionHeader
 import io.ktor.websocket.readText
+import kotlinx.coroutines.channels.produce
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
+import po.api.ws_service.service.models.ApiRequestDataType
 import po.api.ws_service.services.TrafficService
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 
 class TTConfig() {
     lateinit var service: TrafficService
+    lateinit var contentConverter : WebsocketContentConverter
 }
 
 
 
 class TrafficController(config:TTConfig):WebSocketExtension<TTConfig>{
-
+    val service = config
     companion object Extension : WebSocketExtensionFactory<TTConfig,TrafficController> {
-        /* Key to discover installed extension instance */
         override val key: AttributeKey<TrafficController> = AttributeKey("frame-logger")
 
         /** List of occupied rsv bits.
@@ -33,7 +40,6 @@ class TrafficController(config:TTConfig):WebSocketExtension<TTConfig>{
         override val rsv3: Boolean = false
 
         override fun install(config: TTConfig.() -> Unit): TrafficController {
-           val a = 10
            val config =  TTConfig().apply(config)
            return TrafficController(config)
         }
@@ -51,30 +57,13 @@ class TrafficController(config:TTConfig):WebSocketExtension<TTConfig>{
     }
 
     override fun processOutgoingFrame(frame: Frame): Frame {
-        println("Process outgoing frame: $frame")
+       // println("Process outgoing frame: $frame")
         return frame
     }
 
     @OptIn(ExperimentalSerializationApi::class)
     override fun processIncomingFrame(frame: Frame): Frame {
-
-        val json = Json{
-            ignoreUnknownKeys = true
-            decodeEnumsCaseInsensitive = true
-        }
-
-
-        when(frame.frameType){
-
-            FrameType.TEXT -> {
-                val text =  (frame as Frame.Text).readText()
-                val request = json.decodeFromString<WSApiRequest>(text)
-
-               val a = 10
-            }
-            else -> {}
-        }
-
+       // println("Process Incoming frame: $frame")
         return frame
     }
 }
