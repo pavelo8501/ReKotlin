@@ -98,3 +98,5 @@ abstract class ServiceDataModel<E : ServiceDBEntity>: IdContainingData{
     var initialized : Boolean = false
 
 }
+
+
