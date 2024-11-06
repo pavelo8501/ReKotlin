@@ -1,6 +1,7 @@
 package po.api.ws_service.service.models
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -24,11 +25,18 @@ data class ServiceResponse(var serviceMessage : String = "" ){
 }
 
 @Serializable
-data class WSApiResponse<T>(val result : T? = null) {
+data class WSApiResponse<T>(@Transient private val parentRequest: WSApiRequest<ApiRequestDataType>? = null, val result : T? = null) {
 
     var ok: Boolean = true
     var msg: String = ""
     var errorCode: Int = 0
+
+    val request: String
+
+    init {
+        request = parentRequest?.requestJson?:""
+    }
+
 
     fun setErrorMessage(errorCode: Int, message: String):WSApiResponse<T>{
         ok = false

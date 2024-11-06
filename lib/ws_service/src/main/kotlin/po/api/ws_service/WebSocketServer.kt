@@ -30,10 +30,7 @@ import po.api.ws_service.service.plugins.Authenticator
 import po.api.ws_service.service.plugins.PolymorphicJsonConverter
 import po.api.ws_service.services.ConnectionService
 
-
-
 //val webSocketMethodRegistryKey = AttributeKey<MutableList<WebSocketMethodRegistryItem>>("WebSocketMethod")
-
 
 class WebSocketServer (
     private val config: (Application.() -> Unit)?

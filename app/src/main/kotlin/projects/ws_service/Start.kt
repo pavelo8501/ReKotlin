@@ -11,6 +11,7 @@ import po.api.rest_service.RestServer
 import po.api.rest_service.common.SecureUserContext
 import po.api.ws_service.WebSocketServer
 import po.api.ws_service.service.models.WSApiRequestDataInterface
+import po.api.ws_service.service.models.WSApiResponse
 import po.api.ws_service.service.routing.apiWebSocket
 
 
@@ -66,11 +67,12 @@ fun startWebSocketServer(host: String, port: Int) {
 
                 apiWebSocketMethod<TestPartner>("partners"){
                     receiveApiRequest={
-                        val request = it
-                        println("Request received in user module ${request.module}")
+                        println("Request received in user module ${it.module}")
+                        val partnerResp = TestPartner("SomeName2", 123433)
+                        val response = it.toResponse(partnerResp)
+                        sendApiResponse(response)
                     }
                 }
-
             }
         }
     }

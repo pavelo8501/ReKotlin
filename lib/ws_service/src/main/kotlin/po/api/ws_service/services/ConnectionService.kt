@@ -19,7 +19,6 @@ import java.util.concurrent.atomic.AtomicReference
 data class Connection(
     val session : DefaultWebSocketServerSession,
     val path: String,
-    val protocol: String?,
     val wsApiSocketClass : ApiWebSocketClass,
 ){
     var resourceName: String = ""
@@ -34,8 +33,7 @@ data class Connection(
 
     fun getWSMethod(method: String): ApiWebSocketMethodClass?{
         method.lowercase()
-       val found =  wsApiSocketClass.apiMethods.firstOrNull { it.method == method  }
-
+        val found =  wsApiSocketClass.getApiMethod(method)
         return  found
     }
 }
@@ -52,8 +50,8 @@ object ConnectionService {
    fun addConnection(connection:  Connection): Connection{
         val existingConnection = connections.firstOrNull { it.session == connection.session }
         if(existingConnection != null){
-            connection.wsApiSocketClass.apiMethods.forEach {
-                existingConnection.wsApiSocketClass.apiMethods.add(it)
+            connection.wsApiSocketClass.getApiMethods().forEach {
+                existingConnection.wsApiSocketClass.addWebSocketMethod(it)
             }
         }
         connections.add(connection)

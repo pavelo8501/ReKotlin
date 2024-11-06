@@ -55,19 +55,12 @@ sealed class ApiRequestDataType(){
 }
 
 @Serializable
-@SerialName("create")
-data class CreateRequest<out D : WSApiRequestDataInterface>(
+@SerialName("entity")
+data class EntityBasedRequest<out D : WSApiRequestDataInterface>(
     @Contextual
     val resource: D
 ):ApiRequestDataType(){
 }
-
-@Serializable
-@SerialName("update")
-data class UpdateRequest<D>(
-   @Contextual
-   val resource: D
-):ApiRequestDataType()
 
 @Serializable
 @SerialName("select")
@@ -93,13 +86,26 @@ data class WSApiRequestBase(
 ):WSApiRequestBaseContext
 
 @Serializable
-data class WSApiRequest<T :ApiRequestDataType>(
+data class WSApiRequest< T :ApiRequestDataType>(
 
     override val module : String,
     override val action : ApiRequestAction,
     var data : T?,
 
 ):WSApiRequestBaseContext{
+
+
+    var requestJson : String = ""
+
     var dataAsJson : JsonElement? = null
+
+    fun setSourceJson(json: String){
+        requestJson = json
+    }
+
+    fun <R>toResponse(result:R): WSApiResponse<R>{
+        val response = WSApiResponse<R>(this as WSApiRequest<ApiRequestDataType>, result)
+        return response
+    }
 
 }
