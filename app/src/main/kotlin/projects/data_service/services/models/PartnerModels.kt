@@ -12,11 +12,10 @@ import po.db.data_service.services.models.ServiceDataModelClass
 import po.db.data_service.services.models.ChildMapping
 import po.db.data_service.services.models.ContainerModel
 import po.db.data_service.services.models.CoreDbEntity
+import po.db.data_service.services.models.CoreDbEntityContext
 import po.playground.projects.data_service.services.Departments
 import po.playground.projects.data_service.services.PartnerEntity
 import po.playground.projects.data_service.services.Partners
-
-
 
 
 class PartnerModel(
@@ -32,12 +31,8 @@ class PartnerModel(
     @SerialName("vat_nr")
     @BindProperty("vatNr")
     val vatNr : String? = null,
-    ): ContainerModel() {
+    ): ContainerModel<PartnerEntity>(PartnerEntity::class) {
 
-
-    override var dbEntity: PartnerEntity
-
-    override lateinit var entityClass: LongEntityClass<CoreDbEntity>
 
 }
 

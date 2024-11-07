@@ -14,6 +14,7 @@ import po.db.data_service.DatabaseManager
 import po.db.data_service.services.BasicDataService
 import po.db.data_service.services.CoreService
 import po.db.data_service.services.models.CoreDbEntity
+import po.db.data_service.services.models.CoreDbEntityContext
 import po.db.data_service.services.models.ServiceDBEntity
 import po.playground.projects.data_service.DBManager
 import po.playground.projects.data_service.services.models.DepartmentEntity
@@ -30,7 +31,7 @@ object Partners : LongIdTable("partners", "id") {
 }
 
 
-class PartnerEntity(id: EntityID<Long>) : CoreDbEntity(id){
+class PartnerEntity(id: EntityID<Long>) : CoreDbEntity(id), CoreDbEntityContext {
     companion object : LongEntityClass<PartnerEntity>(Partners)
 
     var name by Partners.name
@@ -57,18 +58,18 @@ class PartnerEntity(id: EntityID<Long>) : CoreDbEntity(id){
 }
 
 
-object PartnerService : CoreService<PartnerModel>(PartnerModel::class,"partner"){
-
-    override lateinit var  dbManager: DatabaseManager
-
-    fun initialize(dbManager: DatabaseManager){
-        this.dbManager = dbManager
-
-
-    }
-
-
-}
+//object PartnerService : CoreService<PartnerModel>(PartnerModel::class,"partner"){
+//
+//    override lateinit var  dbManager: DatabaseManager
+//
+//    fun initialize(dbManager: DatabaseManager){
+//        this.dbManager = dbManager
+//
+//
+//    }
+//
+//
+//}
 
 
 //class PartnerService(override val dbManager: DBManager) : BasicDataService<PartnerModel, PartnerEntity>(PartnerModel){

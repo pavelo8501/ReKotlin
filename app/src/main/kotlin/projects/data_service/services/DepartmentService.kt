@@ -10,8 +10,6 @@ import po.db.data_service.services.BasicDataService
 import po.playground.projects.data_service.DBManager
 import po.playground.projects.data_service.services.models.DepartmentEntity
 import po.playground.projects.data_service.services.models.DepartmentModel
-import po.playground.projects.data_service.services.models.PartnerEntity
-import po.playground.projects.data_service.services.models.PartnerModel
 
 object Departments : LongIdTable("departments", "id") {
     public val nowDateTime = LocalDateTime.Companion.parse(Clock.System.now().toLocalDateTime(TimeZone.UTC).toString())

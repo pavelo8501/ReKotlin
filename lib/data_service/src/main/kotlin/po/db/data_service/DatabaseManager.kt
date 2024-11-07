@@ -6,10 +6,13 @@ import org.jetbrains.exposed.sql.Database
 import po.db.data_service.exceptions.DataServiceException
 import po.db.data_service.exceptions.ErrorCodes
 import po.db.data_service.models.ConnectionModel
+import po.db.data_service.services.BaseService
 import po.db.data_service.services.BasicDataService
 
 
 abstract class DatabaseManager(val connectionInfo: ConnectionModel) {
+
+    val baseService =  BaseService("base",this)
 
     val services =  mutableMapOf<String, BasicDataService<*,*>>()
     private var connection : Database? = null
@@ -35,6 +38,7 @@ abstract class DatabaseManager(val connectionInfo: ConnectionModel) {
     fun addService(name:String, service :BasicDataService<*,*>){
         this.services[name] = service
     }
+
     fun getService(name:String): BasicDataService<*,*>{
         if(services.containsKey(name) == false){
             throw DataServiceException("Service  \"$name\" not found", ErrorCodes.NOT_INITIALIZED)
