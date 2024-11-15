@@ -1,40 +1,25 @@
 package po.playground.projects.data_service.services.models
 
-import kotlinx.datetime.LocalDateTime
-import kotlinx.serialization.Contextual
-import kotlinx.serialization.*
+import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
-import org.jetbrains.exposed.dao.id.EntityID
-import po.db.data_service.annotations.BindProperty
-import po.db.data_service.services.models.ServiceDBEntity
-import po.db.data_service.services.models.ServiceDataModel
-import po.db.data_service.services.models.ServiceDataModelClass
-import po.db.data_service.services.models.ChildMapping
 import po.db.data_service.services.models.ContainerModel
-import po.db.data_service.services.models.CoreDbEntity
-import po.db.data_service.services.models.CoreDbEntityContext
-import po.playground.projects.data_service.services.Departments
-import po.playground.projects.data_service.services.PartnerEntity
-import po.playground.projects.data_service.services.Partners
 
-
-class PartnerModel(
-    override var id: Long,
-    @BindProperty("name")
-    var name : String,
-    @SerialName("legal_name")
-    @BindProperty("legalName")
-    var legalName: String,
-    @SerialName("reg_nr")
-    @BindProperty("regNr")
-    val regNr : String? = null,
-    @SerialName("vat_nr")
-    @BindProperty("vatNr")
-    val vatNr : String? = null,
-    ): ContainerModel<PartnerEntity>(PartnerEntity::class) {
-
-
-}
+//class PartnerModel(
+//    override var id: Long,
+//    var name : String,
+//    var legalName: String,
+//    var regNr : String? = null,
+//    var vatNr : String? = null,
+//    ): ContainerModel<LongEntityClass<LongEntity>>(PartnerEntity) {
+//        init {
+//            val a = 10
+//        }
+//        override fun initialize(){
+//            childBindings {
+//              // childContainer<DepartmentModel, PartnerEntity>(DepartmentModel::class, PartnerEntity::departments, false)
+//            }
+//        }
+//}
 
 //@Serializable
 //data class PartnerModel(
@@ -81,7 +66,7 @@ class PartnerModel(
 //
 //    override fun setEntity(entity: PartnerEntity) {
 //        super.setEntity(entity)
-//        // Refresh child mapping with the new parentEntityId (if necessary)
+//      // Refresh child mapping with the new parentEntityId (if necessary)
 //        childMapping.forEach { it.parentEntityId = entity.id }
 //    }
 //

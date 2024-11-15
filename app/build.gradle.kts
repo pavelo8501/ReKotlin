@@ -9,6 +9,7 @@ val mysqlVersion: String by project
 plugins {
     kotlin("jvm") version "2.0.21"
     kotlin("plugin.serialization")
+    id("com.google.devtools.ksp")
     application
 }
 
@@ -27,11 +28,17 @@ repositories {
     }
 }
 
+
 dependencies {
+
+    implementation(kotlin("stdlib-jdk8"))
 
     implementation(project(":lib:ExposedDAOWrapper"))
     implementation(project(":lib:RestApiServerWrapper"))
     implementation(project(":lib:WSApiServerWrapper"))
+
+   // implementation(project(":lib:binderPlugin"))
+   // ksp(project(":lib:binderPlugin"))
 
 
     implementation("io.ktor:ktor-server-core:$ktorVersion")
@@ -65,7 +72,9 @@ application {
 
 
 kotlin {
-    jvmToolchain(22)
+    jvmToolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
 }
 
 tasks.register<Exec>("dockerComposeUp") {

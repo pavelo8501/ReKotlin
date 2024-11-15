@@ -12,6 +12,9 @@
       <module name="ReKotlin.ExposedDAOWrapper" target="22" />
       <module name="ReKotlin.ExposedDAOWrapper.main" target="22" />
       <module name="ReKotlin.ExposedDAOWrapper.test" target="22" />
+      <module name="ReKotlin.lib.binder" target="22" />
+      <module name="ReKotlin.lib.binder.main" target="22" />
+      <module name="ReKotlin.lib.binder.test" target="22" />
       <module name="ReKotlin.lib.data_service" target="22" />
       <module name="ReKotlin.lib.data_service.main" target="22" />
       <module name="ReKotlin.lib.data_service.test" target="22" />

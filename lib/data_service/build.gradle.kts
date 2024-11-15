@@ -7,13 +7,14 @@ val mysqlVersion: String by project
 val logbackClassicVersion: String by project
 val testCoroutinesVersion: String by project
 val junitVersion: String by project
+val kotlinSerializationVersion : String by project
 
 val daoServiceVersion: String by project
 
 plugins {
-     kotlin("jvm") version "2.0.21"
-     kotlin("plugin.serialization")
-    `maven-publish`
+    kotlin("jvm")
+    kotlin("plugin.serialization")
+   `maven-publish`
 }
 
 version = daoServiceVersion
@@ -33,6 +34,7 @@ repositories {
 
 dependencies {
 
+    implementation("io.ktor:ktor-server-core:$ktorVersion")
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
@@ -46,6 +48,8 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$testCoroutinesVersion")
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
     testImplementation("ch.qos.logback:logback-classic:$logbackClassicVersion")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinSerializationVersion")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
@@ -74,11 +78,6 @@ publishing {
     }
 }
 
-kotlin {
-    jvmToolchain {
-        languageVersion = JavaLanguageVersion.of(22)
-    }
-}
 
 tasks.jar {
     manifest {

@@ -13,7 +13,7 @@ val junitVersion: String by project
 
 
 plugins {
-    kotlin("jvm") version "2.0.21"
+    kotlin("jvm")
     kotlin("plugin.serialization")
     `maven-publish`
 }
@@ -55,11 +55,7 @@ dependencies {
 
 }
 
-kotlin {
-    jvmToolchain {
-        languageVersion = JavaLanguageVersion.of(22)
-    }
-}
+
 
 publishing {
     apply(plugin = "maven-publish")

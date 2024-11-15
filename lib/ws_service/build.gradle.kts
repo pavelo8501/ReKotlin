@@ -13,7 +13,7 @@ val junitVersion: String by project
 val wsServerVersion: String by project
 
 plugins {
-    kotlin("jvm") version "2.0.21"
+    kotlin("jvm")
     kotlin("plugin.serialization")
     id("com.gradleup.shadow") version "8.3.3"
     `maven-publish`
@@ -50,11 +50,6 @@ dependencies {
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
 }
 
-kotlin {
-    jvmToolchain {
-        languageVersion = JavaLanguageVersion.of(22)
-    }
-}
 
 publishing {
     apply(plugin = "maven-publish")
