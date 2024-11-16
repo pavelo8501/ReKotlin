@@ -1,8 +1,6 @@
 package po.playground.projects.data_service.dto
 
 import kotlinx.datetime.LocalDateTime
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID

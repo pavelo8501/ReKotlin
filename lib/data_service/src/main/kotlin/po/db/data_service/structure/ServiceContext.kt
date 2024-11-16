@@ -10,23 +10,23 @@ import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.EntityDTO
 import po.db.data_service.dto.EntityDTOClass
 import po.db.data_service.dto.ModelDTOContext
-import kotlin.reflect.KClass
 
 class ServiceContext<T: ModelDTOContext, E: LongEntity>(
     val name : String,
     val connection: Database,
-    dtoCompanion : DTOClass<T,E>,
+    val dtoCompanion : DTOClass<T,E>,
 ) {
     val entityCompanion : EntityDTOClass<T,E> = dtoCompanion.parentEntityDTO
 
-    fun saveDTO(dto: EntityDTO<T,E>){
+    fun saveDTO(dto: EntityDTO<out ModelDTOContext, out LongEntity>){
         dbQuery{
+            dto.initChild()
             dto.update()
         }
     }
 
     private fun getDependantTables(forTable:IdTable<Long>): List<IdTable<Long>> {
-        val dependant = entityCompanion.registeredTables.filter { it.foreignKeys.map { keyMap->keyMap.targetTable.tableName }.contains(forTable.tableName) }
+        val dependant = dtoCompanion.parentEntityDTO.registeredTables.filter { it.foreignKeys.map { keyMap->keyMap.targetTable.tableName }.contains(forTable.tableName) }
         return dependant
     }
 

@@ -1,16 +1,16 @@
 package po.playground.projects.data_service.dto
 
 import kotlinx.datetime.LocalDateTime
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import po.db.data_service.binder.BindPropertyClass
+import po.db.data_service.binder.ChildClasses
 import po.db.data_service.binder.DTOBinderClass
+import po.db.data_service.binder.OneToManyBinding
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.EntityDTO
-import po.db.data_service.dto.ModelDTOContext
+import po.db.data_service.dto.ParentDTOContext
 import po.playground.projects.data_service.services.Departments
 import po.playground.projects.data_service.services.Partners
 import kotlin.Long
@@ -60,7 +60,7 @@ data class PartnerDTO(
     var updated: LocalDateTime,
     @PropertyBinder("created")
     var created: LocalDateTime,
-): EntityDTO<PartnerDTO, PartnerEntity>(PartnerDTO,PartnerEntity), ModelDTOContext{
+): EntityDTO<PartnerDTO, PartnerEntity>(PartnerDTO,PartnerEntity), ParentDTOContext{
 
     companion object : DTOClass<PartnerDTO, PartnerEntity>(
             DTOBinderClass(
@@ -73,5 +73,16 @@ data class PartnerDTO(
             )
     )
 
+  val departments: MutableList<DepartmentDTO> = mutableListOf()
 
+  override fun bindings(): ChildClasses<*,*,*,*> {
+     return ChildClasses<DepartmentDTO,DepartmentEntity, PartnerDTO, PartnerEntity>(
+                PartnerDTO,
+                OneToManyBinding<DepartmentDTO,DepartmentEntity,PartnerDTO,PartnerEntity>(DepartmentDTO, PartnerEntity::departments, DepartmentEntity::partner, departments)
+            )
+    }
+
+    override fun updateChild(){
+
+    }
 }

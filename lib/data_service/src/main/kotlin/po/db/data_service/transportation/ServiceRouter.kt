@@ -51,40 +51,6 @@ class ServiceRouter(
             return it
         }
     }
-
-//    fun <T: EntityDTO<T,E>,E:LongEntity>initializeRoute(routeName: String, entityDTOCompanion : DTOClass<T,E>): ServiceContext<T,E>{
-//
-//
-//    }
-
-
-
-//    fun <T: EntityDTO<T,E>, E: DaoEntityContext>processRequest(dataModels: List<DbTransaction<T, E>>){
-//        processData<T,E>(dataModels)
-//    }
-
-
-//    private fun <T: EntityDTO<T,E>, E: DaoEntityContext>processData(dataModels: List<DbTransaction<T,E>>) {
-//        services.firstOrNull { it.dtoEntity?.serviceName == dataModels.first().serviceName }?.let {
-//
-//        }
-//    }
-
-//    fun <T: EntityDTO<T,E>, E: DaoEntityContext>getRequest(dataModels: List<DbTransaction<T, E>>){
-//        processData<T,E>(dataModels)
-//    }
-
-
-
-//    fun <T, E:> setEmmitTransaction(
-//        callback: ((transaction: DbTransaction<T, E>) -> Unit)?
-//    ) where T : EntityDTO<T, E>, E : DaoEntityContext {
-//        // Use the callback
-//    }
-
- //   val services = mutableListOf<DbTransaction<T, E>>()
-
-
 }
 
 
