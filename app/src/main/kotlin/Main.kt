@@ -1,13 +1,8 @@
 package po.playground
 
-
 import io.github.cdimascio.dotenv.dotenv
 import po.db.data_service.models.ConnectionInfo
 import po.playground.projects.data_service.startDataService
-
-import po.playground.projects.rest_service.startApiServer
-import po.playground.projects.ws_service.startWebSocketServer
-
 
 fun main() {
     val dotenv = dotenv()

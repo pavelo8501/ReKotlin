@@ -11,9 +11,9 @@ class CoroutineEmitter(
     val name: String,
     val originatorContext : CoroutineContext
 ) {
-   inline fun dispatch(
+   fun dispatch(
         waypoint: String,
-        noinline block: (String) -> Unit
+        block: (String) -> Unit
    ){
         val listenerScope = CoroutineScope(
             Dispatchers.IO + CoroutineName(name) + originatorContext

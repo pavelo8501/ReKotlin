@@ -18,6 +18,9 @@
       <module name="ReKotlin.lib.data_service" target="22" />
       <module name="ReKotlin.lib.data_service.main" target="22" />
       <module name="ReKotlin.lib.data_service.test" target="22" />
+      <module name="ReKotlin.lib.tg_components" target="21" />
+      <module name="ReKotlin.lib.tg_components.main" target="21" />
+      <module name="ReKotlin.lib.tg_components.test" target="21" />
       <module name="ReKotlin.playground" target="22" />
       <module name="ReKotlin.playground.main" target="22" />
       <module name="ReKotlin.playground.test" target="22" />
