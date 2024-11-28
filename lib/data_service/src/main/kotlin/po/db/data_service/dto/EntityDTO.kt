@@ -1,12 +1,17 @@
 package po.db.data_service.dto
 
 import io.ktor.util.reflect.TypeInfo
+import kotlinx.datetime.Clock
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.exposed.dao.Entity
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
+import org.jetbrains.exposed.dao.id.IdTable
 import po.db.data_service.binder.*
-
-
+import javax.xml.crypto.Data
 
 
 interface ModelDTOContext{
@@ -16,7 +21,7 @@ interface ModelDTOContext{
 interface ParentDTOContext : ModelDTOContext{
     companion object
 
-    fun bindings() : ChildClasses<*, *, *, *>
+   // fun bindings() : ChildClasses<*, *, *, *>
 
     fun updateChild()
 }
@@ -72,9 +77,7 @@ class MyEntity(id: EntityID<Long>) : LongEntity(id)
 //        }
 //    }
 //
-//    fun nowDateTime(): LocalDateTime{
-//        return LocalDateTime.Companion.parse(Clock.System.now().toLocalDateTime(TimeZone.UTC).toString())
-//    }
+//
 //
 //    fun beforeInit(){
 //        onBeforeInit?.invoke()
@@ -90,25 +93,33 @@ interface DAOClassContext<ENTITY>{
 
 interface CompleteDtoContext
 
-class CompleteDto<DATA: ModelDTOContext, ENTITY : LongEntity>(val data: CommonDTO<DATA, ENTITY>, val entity: LongEntity){
+//class CompleteDto<DATA: ModelDTOContext, ENTITY : LongEntity>(
+//    val data: CommonDTO<DATA, ENTITY>,
+//    val entity: LongEntity
+//){
+//
+//}
 
-}
+
+
 
 //Companion for user defined DTO classes
-open class DTOClass<DTO,  ENTITY>(
-    val propertyBinder: DTOBinder<DTO, ENTITY>
-) where DTO : CommonDTO<*, ENTITY>, ENTITY : LongEntity
+//open class DTOClass<DTO, DAO : EntityDAO<ENTITY>, ENTITY : LongEntity >(
+//   val entityDTO : DTO,
+//   val  modelDAO : ENTITY )
+//{
+//
+//    fun nowDateTime(): LocalDateTime{
+//        return LocalDateTime.Companion.parse(Clock.System.now().toLocalDateTime(TimeZone.UTC).toString())
+//    }
+//
+//    fun processBindings(entityDTO  : DTO) {
+//      //  this.initializeBindings(entityDTO)
+//    }
+//
+//
+//    lateinit var thisTypeInfo :  TypeInfo
 
-{
-
-    fun process(dto: DTO) {
-        propertyBinder.bind(dto, dto.entityDAO)
-    }
-
-   lateinit var thisTypeInfo :  TypeInfo
-
-   var daoEntity: ENTITY? = null
-   var daoEntityCompanion: LongEntityClass<LongEntity>? = null
 //
 //   val onInitTasks : MutableList<ServiceCreateOptions<T,E>> = mutableListOf()
 //   var primaryTable : IdTable<Long>? = null
@@ -138,12 +149,11 @@ open class DTOClass<DTO,  ENTITY>(
 //    fun nowDateTime(): LocalDateTime{
 //       return EntityDTO.nowDateTime()
 //    }
-}
+//}
 
 
-//
-//open class CommonDTOClass<DTO, ENTITY> (
-//    val propertyBinder : DTOBinder<ENTITY>) where DTO : CommonDTO<*, ENTITY>, ENTITY : LongEntity
+
+//open class CommonDTOClass<DTO, ENTITY> ( ) where DTO : CommonDTO<DATA, ENTITY>, ENTITY : LongEntity
 //{
 //    //T::class.java.simpleName
 //   private  var primaryTable : IdTable<Long>? = null
@@ -164,41 +174,51 @@ open class DTOClass<DTO,  ENTITY>(
 //            }
 //        }
 //    }
+
+
 //
+//class CommonDTOClass<DATA, ENTITY>(
+//    val propertyBinder: DTOBinder<DATA, ENTITY> ) where DTO : CommonDTO<*, ENTITY>, ENTITY : LongEntity {
+//    fun process(dto: DTO) {
+//        propertyBinder.bind(dto, dto.entity)
+//    }
+//}
 
+abstract class CommonDTO<DATA: ModelDTOContext, ENTITY : LongEntity>() {
 
-class CommonDTOClass<DATA, ENTITY>(
-    val propertyBinder: DTOBinder<DTO, ENTITY>
-    ) where
-DTO : CommonDTO<*, ENTITY>,
-ENTITY : LongEntity {
-    fun process(dto: DTO) {
-        propertyBinder.bind(dto, dto.entity)
-    }
-}
-
-abstract class CommonDTO<DATA : ModelDTOContext, ENTITY : LongEntity>() {
-
-    protected abstract val entityClass: LongEntityClass<ENTITY>
     // private val binder: DTOBinder<T, E> by lazy { createBinder() }
 
-    // var dtoCompanion :  DTOClass<ENTITY>? = null
+    abstract val id : Long
+    var daoClass : LongEntityClass<ENTITY>? = null
+    var dtoEntity : CommonDTO<DATA,ENTITY>? = null
+
     var initialized: Boolean = false
-    private var binder: DTOBinder<ENTITY>? = null
 
-    var entityDAO: ENTITY? = null
-        private set
 
-    fun setBinder(binder: DTOBinder<ENTITY>): DTOBinder<ENTITY> {
-        // this.binder = binder
-        return binder
+ //   private var binder: DTOBinder : DTOClass ? = null
+
+    private var entityDAO: ENTITY? = null
+
+    init {
+        if(this::class.isCompanion){
+            dtoEntity = this::class.objectInstance
+        }
+
+//        if(entityDTO::class.isCompanion){
+//            dtoEntity = entityDTO::class.objectInstance
+//        }
     }
 
-   // constructor() {}
-    constructor(dtoClass : DTOClass<ENTITY> , entityDAO: ENTITY) : this() {
-        // this.binder = binder
-         this.entityDAO = entityDAO
+//    fun setBinder(binder: DTOBinder<CommonDTO<DATA, ENTITY>, DATA, ENTITY>) {
+//        this.binder = binder
+//    }
+
+    init {
+
+      //  entityDAO = entityClass.get(id)
     }
+
+
 }
 
 

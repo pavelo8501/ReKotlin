@@ -7,7 +7,6 @@ import po.db.data_service.services.models.ChildBindingClass
 
 annotation class ChildMapping( val mappingName: String)
 
-
 data class ChildMappingExt(
     val parentContainer: ChildBindingClass
 ){

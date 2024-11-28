@@ -1,106 +1,53 @@
 package po.db.data_service.binder
 
-import org.jetbrains.exposed.dao.Entity
 import org.jetbrains.exposed.dao.LongEntity
-import po.db.data_service.dto.CommonDTO
-import po.db.data_service.dto.CompleteDto
-import po.db.data_service.dto.DTOClass
-import po.db.data_service.dto.ModelDTOContext
+import po.db.data_service.dto.MarkerInterface
 import kotlin.reflect.KMutableProperty1
 
-//data class Model(
-//    val name: String,
-//    val legalName: String,
-//    val regNr: String,
-//    val updated: LocalDateTime,
-//    val created: LocalDateTime,
-//    )
-//
-//class Entity(
-//    val name: String,
-//    val legalName: String,
-//    val regNr: String,
-//    val updated: LocalDateTime,
-//    val created: LocalDateTime,
-//)
 
-interface CommonBinder<DTO, ENTITY, TYPE>{
-    var dtoProperty: KMutableProperty1<DTO, TYPE>
-    var entityProperty: KMutableProperty1<ENTITY,TYPE>
-//    fun getDTO(): CompleteDto {
-//        return modelDTO
-//    }
-//    fun getDAO():ENTITY{
-//        return entityDAO
-//    }
-var properties: List<PropertyBinding<DTO, ENTITY, TYPE>>
-    fun updateProperties(entity : ENTITY, force: Boolean = false): ENTITY
-}
-
-
-
-class PropertyBinding<DTO, ENTITY, TYPE>(
-    var name: String,
-    override var dtoProperty :  KMutableProperty1<DTO, TYPE>,
-    override var entityProperty : KMutableProperty1<ENTITY,TYPE>,
-    var binder  :  DTOBinder<DTO,ENTITY> ) : CommonBinder<ENTITY, TYPE>
+class PropertyBinding<DATA_MODEL, ENTITY, TYPE>(
+    val name : String,
+    val dtoProperty : KMutableProperty1<DATA_MODEL, TYPE>,
+    val entityProperty : KMutableProperty1<ENTITY, TYPE>) where  DATA_MODEL : MarkerInterface, ENTITY : LongEntity
 {
 
-    override var properties: List<PropertyBinding<ENTITY, TYPE>>
-        get() = TODO("Not yet implemented")
-        set(value) {}
-
-    override fun updateProperties(entity: ENTITY, force: Boolean): ENTITY {
-        properties.forEach {
-            it.update(force)
-        }
-        return entity
-    }
-
-
-    fun update(force: Boolean = false): Boolean {
-
-        val dtoValue = dtoProperty.get(binder.modelDTO)
-        if(!force) {
-            val daoValue = entityProperty.get(binder.entityDAO)
-            if (dtoValue == daoValue) return false
-        }
-        entityProperty.set(binder.entityDAO, dtoValue)
+    fun update(dtoModel: DATA_MODEL, entityModel: ENTITY, force: Boolean = false): Boolean {
+        val dtoValue = dtoProperty.get(dtoModel)
+        val entityValue = entityProperty.get(entityModel)
+        if (!force && dtoValue == entityValue) return false
+        entityProperty.set(entityModel, dtoValue)
         return true
     }
 }
 
-class DTOBinder<DTO, ENTITY> (props : List<PropertyBinding<DTO, ENTITY,*>>) {
 
 
-    var  entityDTO : DTO? = null
-    var  entityDAO : ENTITY? = null
+class DataTransferObjectsPropertyBinder <DATA_MODEL, ENTITY, TYPE>(
+    vararg  props : PropertyBinding<DATA_MODEL, ENTITY, TYPE >)
+        where DATA_MODEL : MarkerInterface, ENTITY : LongEntity{
 
-    fun bind(dto: DTO, entity: ENTITY) {
-        this.entityDAO = entity
-        this.entityDTO= dto
-        //println("Binding DTO with entity ID ${entity.id}")
+    private val properties = props.toList()
+
+    fun setProperties(vararg  props : PropertyBinding<DATA_MODEL, ENTITY, TYPE >){
+
+    }
+
+    fun updateProperties(dataModel: DATA_MODEL, entityModel: ENTITY, force: Boolean = false) {
+        properties.forEach { it.update(dataModel, entityModel, force) }
     }
 
 
-    var properties : List<PropertyBinding<DTO, ENTITY, *>> = emptyList()
-    init {
-        this.properties = props.toList()
-        properties.forEach{
-            it.binder = this
-        }
-    }
-    fun setModelObject(model : DTO){
-        this.entityDTO = model
-    }
-    fun updateProperties(entity: ENTITY, force: Boolean): ENTITY {
-        entityDAO = entity
-        properties.forEach {
-            it.update(force)
-        }
-        return entity
-    }
+
 }
+
+
+//class DTOBinder <DATA, ENTITY, TYPE>( vararg  props : PropertyBinding<DATA, ENTITY, TYPE >)
+//        where DATA : ModelDTOContext, ENTITY : LongEntity{
+//    private val properties = props.toList()
+//    fun updateProperties(dataModel: DATA, entityModel: ENTITY, force: Boolean = false) {
+//        properties.forEach { it.update(dataModel, entityModel, force) }
+//    }
+//}
 
 
 //class DTOBinderClass<T : ModelDTOContext, E : LongEntity>(vararg  props : BindPropertyClass<T, E, *>):  CommonBinder<T, E>{

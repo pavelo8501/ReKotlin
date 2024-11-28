@@ -1,27 +1,30 @@
 package po.playground.projects.data_service.dto
 
-import kotlinx.datetime.LocalDateTime
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
-import po.db.data_service.binder.*
+import po.db.data_service.annotations.ClassBinder
+import po.db.data_service.annotations.PropertyBinder
+import po.db.data_service.binder.PropertyBinding
+import po.db.data_service.dao.EntityDAO
 import po.db.data_service.dto.*
-import po.playground.projects.data_service.services.Departments
 import po.playground.projects.data_service.services.Partners
-import kotlin.Long
-
-@Target(AnnotationTarget.CLASS)
-@Retention(AnnotationRetention.SOURCE)
-annotation class ClassBinder(val key: String)
-
-@Target(AnnotationTarget.PROPERTY)
-@Retention(AnnotationRetention.SOURCE)
-annotation class PropertyBinder (val key: String = "")
 
 
 @ClassBinder("Partner")
-class PartnerEntity(id: EntityID<Long>) : LongEntity(id){
+class PartnerEntity  (id: EntityID<Long>) : LongEntity(id), EntityDAO< PartnerEntity, Partner > {
+
     companion object : LongEntityClass<PartnerEntity>(Partners)
+
+    override var entityDAO: LongEntityClass<PartnerEntity> = PartnerEntity
+
+    override fun initialize(
+        daoEntity: LongEntityClass<PartnerEntity>,
+        dataTransferObject: DataTransferObjectsParent<Partner>
+    ){
+        super.initialize(daoEntity, dataTransferObject)
+    }
+
     @PropertyBinder("name")
     var name by Partners.name
     @PropertyBinder("legalName")
@@ -34,59 +37,73 @@ class PartnerEntity(id: EntityID<Long>) : LongEntity(id){
     var created by Partners.created
     @PropertyBinder("updated")
     var updated by Partners.updated
-
-  //  val departments by  DepartmentEntity referrersOn Departments.partner
-
+    //val departments by  DepartmentEntity referrersOn Departments.partne
 }
 
-
-
-
-@ClassBinder("Partner")
-data class PartnerDTO(
+data class Partner(
     override var id: Long,
-    @PropertyBinder("name")
-    var name: String,
-    @PropertyBinder("legalName")
-    var legalName: String,
-    @PropertyBinder("regNr")
-    var regNr: String? = null,
-    @PropertyBinder("vatNr")
-    var vatNr: String? = null,
-    @PropertyBinder("updated")
-    var updated: LocalDateTime,
-    @PropertyBinder("created")
-    var created: LocalDateTime,
-): CommonDTO<PartnerDTO, PartnerEntity>(), ModelDTOContext{
+    var name: String
+): DataTransferObjectsParent<Partner>(),MarkerInterface{
 
-    companion object : DTOClass<PartnerEntity>(PartnerEntity,
-        DTOBinder<PartnerEntity>
-    )
 
-    //        DTOBinder(this,
-//            PropertyBinding("name",PartnerNewDTO::name ,PartnerEntity::name),
-//            PropertyBinding("legalName",PartnerNewDTO::legalName ,PartnerEntity::legalName),
-//            PropertyBinding("regNr",PartnerNewDTO::regNr ,PartnerEntity::regNr),
-//            PropertyBinding("vatNr",PartnerNewDTO::vatNr ,PartnerEntity::vatNr),
-//            PropertyBinding("updated",PartnerNewDTO::updated ,PartnerEntity::updated),
-//            PropertyBinding("created",PartnerNewDTO::created ,PartnerEntity::created),
-//        )
-
-    override val entityClass: LongEntityClass<PartnerEntity> = null
-
-    val departments: MutableList<DepartmentDTO> = mutableListOf()
-
-     fun bindings(): ChildClasses<*,*,*,*> {
-        return ChildClasses<DepartmentDTO,DepartmentEntity, PartnerDTO, PartnerEntity>(
-            PartnerDTO,
-            OneToManyBinding<DepartmentDTO,DepartmentEntity,PartnerDTO,PartnerEntity>(DepartmentDTO, PartnerEntity::departments, DepartmentEntity::partner, departments)
-        )
+    fun companion(): DataTransferObjectsParent<Partner>{
+       return  this.companionObject()
     }
 
-     fun updateChild(){
+    fun initEntityDao(){
+       Companion.createModelEntityPair(companion().sysName, companion(), PartnerEntity)
+        EntityDAO.pairEntities(PartnerEntity,companion())
+    }
 
+    override fun <T> dataTransferModelsConfiguration(body: DTObConfigContext, function: DTObConfigContext.() -> Unit) {
+
+        initEntityDao()
+
+        configureDataTransferObject{
+                cretePropertyBindings(
+                    PropertyBinding("name", Partner::name,PartnerEntity::name)
+                )
+            }
     }
 }
+
+
+
+//@ClassBinder("Partner")
+//data class PartnerDTO(
+//    override var id: Long,
+//    @PropertyBinder("name")
+//    var name: String,
+//    @PropertyBinder("legalName")
+//    var legalName: String,
+//    @PropertyBinder("regNr")
+//    var regNr: String? = null,
+//    @PropertyBinder("vatNr")
+//    var vatNr: String? = null,
+//    @PropertyBinder("updated")
+//    var updated: LocalDateTime,
+//    @PropertyBinder("created")
+//    var created: LocalDateTime,
+//): CommonDTO<PartnerDTO, PartnerEntity>(), ModelDTOContext{
+//    val self : PartnerDTO;
+//    init {
+//        self = this
+//    }
+//    companion object : DTOClass<PartnerDTO, PartnerEntity>()  {
+//
+//
+//    }
+//    val departments: MutableList<DepartmentDTO> = mutableListOf()
+//     fun bindings(): ChildClasses<*,*,*,*> {
+//        return ChildClasses<DepartmentDTO,DepartmentEntity, PartnerDTO, PartnerEntity>(
+//            PartnerDTO,
+//            OneToManyBinding<DepartmentDTO,DepartmentEntity,PartnerDTO,PartnerEntity>(DepartmentDTO, PartnerEntity::departments, DepartmentEntity::partner, departments)
+//        )
+//    }
+//     fun updateChild(){
+//
+//    }
+//}
 
 
 
