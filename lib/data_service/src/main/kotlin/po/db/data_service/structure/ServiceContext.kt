@@ -5,19 +5,22 @@ import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction
 import po.db.data_service.dto.AbstractDTOModel
+import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.DTOMarker
 
 class ServiceContext<DATA_MODEL, ENTITY>(
     val name : String,
     val connection: Database,
-    val dtoModel : AbstractDTOModel<DATA_MODEL>,
-    val entityModel : ENTITY,
+    val dtoModel : DTOClass<DATA_MODEL>,
+    val entityModel : LongEntityClass<ENTITY>,
 )  where DATA_MODEL : DTOMarker, ENTITY : LongEntity
 {
 
     //val dtoModelCompanion : AbstractDTOModel<DATA_MODEL> = dtoModel
 
-    fun saveDTO(dtoModel: AbstractDTOModel<DATA_MODEL>){
+    fun saveDtoEntity(dtoEntity: AbstractDTOModel<DATA_MODEL>){
+
+        val a = dtoEntity
         dbQuery{
          //   dtoModel.initChild()
          //   dtoModel.update()

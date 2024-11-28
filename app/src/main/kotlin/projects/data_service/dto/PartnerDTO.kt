@@ -13,11 +13,13 @@ import po.playground.projects.data_service.services.Partners
 
 
 @ClassBinder("Partner")
-class PartnerEntity  (id: EntityID<Long>) : LongEntity(id), EntityDAO< PartnerEntity, Partner > {
+class PartnerEntity  (id: EntityID<Long>) : LongEntity(id), EntityDAO<Partner, PartnerEntity> {
 
     companion object : LongEntityClass<PartnerEntity>(Partners)
 
-    override var entityDAO: LongEntityClass<PartnerEntity> = PartnerEntity
+    var entityDAO: EntityDAO<Partner, PartnerEntity>  = this
+
+ //   var entityDaoClass: EntityDAO<Partner, PartnerEntity =
 
     override fun initialize(
         daoEntity: LongEntityClass<PartnerEntity>,
@@ -25,6 +27,8 @@ class PartnerEntity  (id: EntityID<Long>) : LongEntity(id), EntityDAO< PartnerEn
     ){
         super.initialize(daoEntity, dataTransferObject)
     }
+
+    override var entityDao: EntityDAO<Partner, PartnerEntity> =  this
 
     @PropertyBinder("name")
     var name by Partners.name
@@ -41,7 +45,7 @@ class PartnerEntity  (id: EntityID<Long>) : LongEntity(id), EntityDAO< PartnerEn
     //val departments by  DepartmentEntity referrersOn Departments.partne
 }
 
-data class Partner(
+class Partner(
     override var id: Long,
     var name: String,
     var legalName: String,
@@ -49,15 +53,32 @@ data class Partner(
     var vatNr: String? = null,
     var updated: LocalDateTime,
     var created: LocalDateTime
-): AbstractDTOModel<Partner>(),MarkerInterface{
+): AbstractDTOModel<Partner>(Partner),DataModel{
 
-    fun companion(): AbstractDTOModel<Partner>{
-       return  this.companionObject()
+
+    companion object : DTOClass<Partner>() {
+        fun test(){
+           println(this::class.qualifiedName)
+        }
     }
 
+//    companion object{
+//        val parentClass = AbstractDTOModel.Companion
+//        fun nowTime() : LocalDateTime{
+//            return AbstractDTOModel.nowTime()
+//        }
+//    }
+
+   lateinit var  companionInstance: AbstractDTOModel<Partner>
+
+   init {
+       sharedFunctionality("Shared from Child")
+       test()
+   }
+
+
     fun initEntityDao(){
-        Companion.createModelEntityPair(companion().sysName, companion(), PartnerEntity)
-        EntityDAO.pairEntities(PartnerEntity,companion())
+       // Companion.createModelEntityPair(companion().sysName, companion(), PartnerEntity)
     }
 
     override fun <T> dataTransferModelsConfiguration(body: DTObConfigContext, function: DTObConfigContext.() -> Unit) {

@@ -5,7 +5,7 @@ import po.db.data_service.dto.DTOMarker
 import kotlin.reflect.KClass
 
 class ServiceUniqueKey(
-    val sysName:String,
+    val serviceName: String,
     val dataModelClass: KClass<*>
 )
 //where  DATA_MODEL : DTOMarker

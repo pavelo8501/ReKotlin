@@ -10,7 +10,6 @@ import po.db.data_service.structure.ConnectionContext
 
 
 
-
 object DatabaseManager {
 
 

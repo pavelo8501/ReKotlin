@@ -10,13 +10,15 @@ import po.db.data_service.dto.ModelEntityPairContainer
 class SysNameKey<DATA_MODEL : DTOMarker>(val sysName: String)
 
 /*
-    Acts as an linking interface for of DTO  and DataBase entities
+    Acts as an linking interface for of DTOClasses  and Entities
     Part of the property mapping system
  */
 interface EntityDAO<DATA_MODEL, ENTITY>
         where ENTITY: LongEntity, DATA_MODEL : DTOMarker
 {
-    var entityDAO : LongEntityClass<ENTITY>
+   // var entityDAO : LongEntityClass<ENTITY>
+
+    var entityDao : EntityDAO<DATA_MODEL, ENTITY>
 
 
     companion object{

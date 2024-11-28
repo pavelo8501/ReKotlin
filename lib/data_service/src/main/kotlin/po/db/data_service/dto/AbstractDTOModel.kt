@@ -1,5 +1,9 @@
 package po.db.data_service.dto
 
+import kotlinx.datetime.Clock
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import po.db.data_service.binder.DataTransferObjectsPropertyBinder
@@ -22,23 +26,28 @@ data class ModelEntityPairContainer<DATA_MODEL: DTOMarker, ENTITY : LongEntity>(
     val entityModel : LongEntityClass<ENTITY>
 )
 
-abstract  class AbstractDTOModel<DATA_MODEL: DTOMarker>(): DTOMarker{
-     val  dataModelObject : DATA_MODEL? = null
-     protected abstract val id : Long
+abstract class DTOClass<DATA_MODEL: DTOMarker>{
 
-     companion object{
-        fun associateWithDAOEntity(daoEntity : DTOMarker){
+    fun sharedFunctionality(str: String){
+        println(str)
+        println(this::class.qualifiedName)
+    }
 
+    fun nowTime():LocalDateTime{
+        return LocalDateTime.Companion.parse(Clock.System.now().toLocalDateTime(TimeZone.UTC).toString())
+    }
+
+}
+
+abstract  class AbstractDTOModel<DATA_MODEL: DTOMarker>(val  dataModelObject : DTOClass<DATA_MODEL>): DTOMarker{
+    // val  dataModelObject : DATA_MODEL? = null
+    protected abstract val id : Long
+
+
+    private val childClass: AbstractDTOModel<DATA_MODEL>
+        get (){
+            return this
         }
-
-        fun <DATA_MODEL: DTOMarker, ENTITY : LongEntity>createModelEntityPair(
-            key:String,
-            dataModel :  AbstractDTOModel<DATA_MODEL>,
-            entity : LongEntityClass<ENTITY>
-        ):ModelEntityPairContainer<DATA_MODEL, ENTITY>{
-            return  ModelEntityPairContainer(key,dataModel,entity)
-        }
-     }
 
     private val configuration = DTObConfigContext()
 
@@ -46,6 +55,11 @@ abstract  class AbstractDTOModel<DATA_MODEL: DTOMarker>(): DTOMarker{
     override val sysName : String = "Partner"
 
    init {
+
+       println("Print Child Class")
+       println(this.childClass::class.qualifiedName)
+       dataModelObject.sharedFunctionality("Request from Parent through dataModelObject")
+       println(dataModelObject::class.qualifiedName)
        initializeChildConfiguration()
    }
 
@@ -63,9 +77,7 @@ abstract  class AbstractDTOModel<DATA_MODEL: DTOMarker>(): DTOMarker{
         }
     }
 
-    protected fun companionObject():AbstractDTOModel<DATA_MODEL>{
-        return this
-    }
+
 }
 
 

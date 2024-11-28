@@ -10,8 +10,13 @@ import org.jetbrains.exposed.dao.LongEntityClass
     Part of the property mapping system
  */
 interface DTOMarker {
-
     val sysName : String
-
 }
 
+/*
+    Interface  identifying that Extending Class acts as a DataModel
+    Part of the property mapping system
+ */
+interface DataModel : DTOMarker {
+    var id : Long
+}
