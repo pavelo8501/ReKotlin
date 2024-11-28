@@ -2,19 +2,19 @@ package po.db.data_service.dao
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
-import po.db.data_service.dto.DataTransferObjectsParent
-import po.db.data_service.dto.MarkerInterface
+import po.db.data_service.dto.AbstractDTOModel
+import po.db.data_service.dto.DTOMarker
 import po.db.data_service.dto.ModelEntityPairContainer
 
 
-class SysNameKey<DATA_MODEL : MarkerInterface>(val sysName: String)
+class SysNameKey<DATA_MODEL : DTOMarker>(val sysName: String)
 
 /*
     Acts as an linking interface for of DTO  and DataBase entities
     Part of the property mapping system
  */
-interface EntityDAO<ENTITY, DATA_MODEL>
-        where ENTITY: LongEntity, DATA_MODEL : MarkerInterface
+interface EntityDAO<DATA_MODEL, ENTITY>
+        where ENTITY: LongEntity, DATA_MODEL : DTOMarker
 {
     var entityDAO : LongEntityClass<ENTITY>
 
@@ -25,21 +25,21 @@ interface EntityDAO<ENTITY, DATA_MODEL>
 
         private fun <ENTITY , DATA_MODEL> pair(
             first: LongEntityClass<ENTITY>,
-            second: DataTransferObjectsParent<DATA_MODEL>
+            second: AbstractDTOModel<DATA_MODEL>
 
-        ): Pair<LongEntityClass<ENTITY>, DataTransferObjectsParent<DATA_MODEL>> where ENTITY:LongEntity, DATA_MODEL  : MarkerInterface {
+        ): Pair<LongEntityClass<ENTITY>, AbstractDTOModel<DATA_MODEL>> where ENTITY:LongEntity, DATA_MODEL  : DTOMarker {
             return Pair(first,  second)
         }
 
-        fun <ENTITY : LongEntity, DATA_MODEL : MarkerInterface> pairEntities(
+        fun <ENTITY : LongEntity, DATA_MODEL : DTOMarker> pairEntities(
             dao: LongEntityClass<ENTITY>,
-            dataTransferObject: DataTransferObjectsParent<DATA_MODEL>
+            dataTransferObject: AbstractDTOModel<DATA_MODEL>
         ) {
             val key = SysNameKey<DATA_MODEL>(dataTransferObject.sysName)
             keyedEntityDataModelPairs[key] = pair(dao, dataTransferObject)
         }
 
-        fun <ENTITY : LongEntity, DATA_MODEL : MarkerInterface>saveContainer(
+        fun <ENTITY : LongEntity, DATA_MODEL : DTOMarker>saveContainer(
             key : String,
             dataTransferObject: ModelEntityPairContainer<DATA_MODEL, ENTITY>
         ) {
@@ -47,13 +47,13 @@ interface EntityDAO<ENTITY, DATA_MODEL>
         }
 
         @Suppress("UNCHECKED_CAST")
-        fun <DATA_MODEL : MarkerInterface> getDataModel(sysName: String): DataTransferObjectsParent<DATA_MODEL>? {
+        fun <DATA_MODEL : DTOMarker> getDataModel(sysName: String): AbstractDTOModel<DATA_MODEL>? {
             val key = SysNameKey<DATA_MODEL>(sysName)
-            return (keyedEntityDataModelPairs[key]?.second as? DataTransferObjectsParent<DATA_MODEL>)
+            return (keyedEntityDataModelPairs[key]?.second as? AbstractDTOModel<DATA_MODEL>)
         }
     }
 
-    fun initialize(daoEntity :  LongEntityClass<ENTITY>, dataTransferObject : DataTransferObjectsParent<DATA_MODEL>){
+    fun initialize(daoEntity :  LongEntityClass<ENTITY>, dataTransferObject : AbstractDTOModel<DATA_MODEL>){
         pairEntities(daoEntity, dataTransferObject)
     }
 }

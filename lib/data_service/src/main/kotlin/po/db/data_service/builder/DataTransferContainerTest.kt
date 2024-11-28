@@ -1,9 +1,6 @@
 package po.db.data_service.builder
 
 
-import po.db.data_service.dto.DataTransferObjectsParent
-
-
 data class DataModel(val id : Int = 5 , val name : String = "Some Data"){
 
 }

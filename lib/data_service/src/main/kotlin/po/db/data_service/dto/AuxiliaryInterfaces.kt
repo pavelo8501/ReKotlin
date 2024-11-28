@@ -9,7 +9,7 @@ import org.jetbrains.exposed.dao.LongEntityClass
     Interface used to identify DataClass with DataBase Entity
     Part of the property mapping system
  */
-interface MarkerInterface {
+interface DTOMarker {
 
     val sysName : String
 

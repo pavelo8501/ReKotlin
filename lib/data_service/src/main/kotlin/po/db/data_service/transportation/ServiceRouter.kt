@@ -1,9 +1,10 @@
 package po.db.data_service.transportation
 
-import io.ktor.util.reflect.TypeInfo
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Database
-import po.db.data_service.dto.ModelDTOContext
+import po.db.data_service.dto.AbstractDTOModel
+import po.db.data_service.dto.DTOMarker
+import po.db.data_service.services.models.ServiceUniqueKey
 import po.db.data_service.structure.ServiceContext
 
 
@@ -12,10 +13,11 @@ enum  class TableCreateMode{
     FORCE_RECREATE
 }
 
-data class ServiceCreateOptions<T : ModelDTOContext ,E : LongEntity>(
+data class ServiceCreateOptions<DATA_MODEL, ENTITY>(
     val createTable: TableCreateMode = TableCreateMode.CREATE,
-){
-    var service: ServiceContext<T,E> ? = null
+) where DATA_MODEL : DTOMarker, ENTITY : LongEntity
+{
+    var service: ServiceContext<DATA_MODEL, ENTITY> ? = null
 }
 
 
@@ -23,32 +25,44 @@ class ServiceRouter(
     private val connectionName: String,
     private val connection: Database,
 )
+//where DATA_MODEL : DTOMarker
 {
 
-    val services :  MutableMap<String, ServiceContext<*,*>> = mutableMapOf()
+    //private val services :  MutableMap<String, ServiceContext<*,*>> = mutableMapOf()
 
-//    private fun <T : ModelDTOContext, E: LongEntity>getOrCreateService(routeName:String, entityDTOClass: DTOClass<T,E>):ServiceContext<T, E>{
-//        services[routeName]?.let {
-//            @Suppress("UNCHECKED_CAST")
-//            return it as ServiceContext<T,E>
-//        }
-//        ServiceContext(routeName, connection, entityDTOClass).let {
-//            services[routeName] = it
-//            return it
-//        }
-//    }
+    private val serviceRegistry = hashMapOf<ServiceUniqueKey, ServiceContext<*,*>>()
 
-//    fun <T : ModelDTOContext, E: LongEntity >initializeRoute(
-//        routeName: String,
-//        entityDTOClass: DTOClass<T,E>,
-//        createOptions: ServiceCreateOptions<T,E>? = null
-//    ): ServiceContext<T,E> {
-//
-//        getOrCreateService(routeName, entityDTOClass).let {
-//
-//            return it
-//        }
-//    }
+    private fun <DATA_MODEL : DTOMarker, ENTITY : LongEntity> createService(
+        serviceName:String,
+        dtoModel : AbstractDTOModel<DATA_MODEL>,
+        entityModel : ENTITY ) : ServiceContext<DATA_MODEL, ENTITY>{
+
+        return ServiceContext(serviceName,connection,dtoModel,entityModel)
+    }
+
+    private fun <DATA_MODEL, ENTITY> getOrCreateService(
+        routeKey: ServiceUniqueKey,
+        dataModel: AbstractDTOModel<DATA_MODEL>,
+        entityModel : ENTITY
+    ) : ServiceContext<*, *>  where DATA_MODEL : DTOMarker, ENTITY : LongEntity{
+
+      val service =  serviceRegistry.getOrPut(routeKey) {
+          createService<DATA_MODEL,ENTITY>("${connectionName}|${routeKey.sysName}", dataModel, entityModel)
+      }
+
+        return service
+    }
+
+    fun <DATA_MODEL : DTOMarker, ENTITY: LongEntity >initializeRoute(
+        serviceUniqueKey: ServiceUniqueKey,
+        dtoModel : AbstractDTOModel<DATA_MODEL>,
+        entityModel : ENTITY
+    ): ServiceContext<*, *> {
+
+        getOrCreateService(serviceUniqueKey, dtoModel,  entityModel).let {
+            return it
+        }
+    }
 }
 
 

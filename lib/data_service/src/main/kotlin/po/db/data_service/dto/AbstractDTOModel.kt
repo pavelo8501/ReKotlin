@@ -1,6 +1,5 @@
 package po.db.data_service.dto
 
-import com.mysql.cj.conf.StringProperty
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import po.db.data_service.binder.DataTransferObjectsPropertyBinder
@@ -11,32 +10,30 @@ class DTObConfigContext(
 ) {
   //  lateinit var  binder  : DataTransferObjectsPropertyBinder<DATA_MODEL, ENTITY, *>
 
-
-
-    fun <DATA_MODEL: MarkerInterface, ENTITY : LongEntity, TYPE>cretePropertyBindings(vararg props: PropertyBinding<DATA_MODEL, ENTITY, TYPE>): DataTransferObjectsPropertyBinder<DATA_MODEL, ENTITY, TYPE> {
+    fun <DATA_MODEL: DTOMarker, ENTITY : LongEntity, TYPE>cretePropertyBindings(vararg props: PropertyBinding<DATA_MODEL, ENTITY, TYPE>): DataTransferObjectsPropertyBinder<DATA_MODEL, ENTITY, TYPE> {
         return DataTransferObjectsPropertyBinder<DATA_MODEL, ENTITY, TYPE>(*props)
     }
 
 }
 
-data class ModelEntityPairContainer<DATA_MODEL: MarkerInterface, ENTITY : LongEntity>(
+data class ModelEntityPairContainer<DATA_MODEL: DTOMarker, ENTITY : LongEntity>(
     val uniqueKey : String,
-    val dataModel : DataTransferObjectsParent<DATA_MODEL>,
+    val dataModel : AbstractDTOModel<DATA_MODEL>,
     val entityModel : LongEntityClass<ENTITY>
 )
 
-abstract  class DataTransferObjectsParent<DATA_MODEL: MarkerInterface>(): MarkerInterface{
+abstract  class AbstractDTOModel<DATA_MODEL: DTOMarker>(): DTOMarker{
      val  dataModelObject : DATA_MODEL? = null
      protected abstract val id : Long
 
      companion object{
-        fun associateWithDAOEntity(daoEntity : MarkerInterface){
+        fun associateWithDAOEntity(daoEntity : DTOMarker){
 
         }
 
-        fun <DATA_MODEL: MarkerInterface, ENTITY : LongEntity>createModelEntityPair(
+        fun <DATA_MODEL: DTOMarker, ENTITY : LongEntity>createModelEntityPair(
             key:String,
-            dataModel :  DataTransferObjectsParent<DATA_MODEL>,
+            dataModel :  AbstractDTOModel<DATA_MODEL>,
             entity : LongEntityClass<ENTITY>
         ):ModelEntityPairContainer<DATA_MODEL, ENTITY>{
             return  ModelEntityPairContainer(key,dataModel,entity)
@@ -66,7 +63,7 @@ abstract  class DataTransferObjectsParent<DATA_MODEL: MarkerInterface>(): Marker
         }
     }
 
-    protected fun companionObject():DataTransferObjectsParent<DATA_MODEL>{
+    protected fun companionObject():AbstractDTOModel<DATA_MODEL>{
         return this
     }
 }
