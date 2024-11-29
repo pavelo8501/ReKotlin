@@ -23,7 +23,7 @@ class PartnerEntity  (id: EntityID<Long>) : LongEntity(id), EntityDAO<Partner, P
 
     override fun initialize(
         daoEntity: LongEntityClass<PartnerEntity>,
-        dataTransferObject: AbstractDTOModel<Partner>
+        dataTransferObject: AbstractDTOModel<Partner, PartnerEntity>
     ){
         super.initialize(daoEntity, dataTransferObject)
     }
@@ -53,44 +53,22 @@ class Partner(
     var vatNr: String? = null,
     var updated: LocalDateTime,
     var created: LocalDateTime
-): AbstractDTOModel<Partner>(Partner),DataModel{
+): AbstractDTOModel<Partner, PartnerEntity>(Partner),DataModel{
 
-
-    companion object : DTOClass<Partner>() {
-        fun test(){
-           println(this::class.qualifiedName)
-        }
-    }
-
-//    companion object{
-//        val parentClass = AbstractDTOModel.Companion
-//        fun nowTime() : LocalDateTime{
-//            return AbstractDTOModel.nowTime()
-//        }
-//    }
-
-   lateinit var  companionInstance: AbstractDTOModel<Partner>
+   companion object : DTOClass<Partner, PartnerEntity>()
 
    init {
-       sharedFunctionality("Shared from Child")
-       test()
-   }
-
-
-    fun initEntityDao(){
-       // Companion.createModelEntityPair(companion().sysName, companion(), PartnerEntity)
-    }
-
-    override fun <T> dataTransferModelsConfiguration(body: DTObConfigContext, function: DTObConfigContext.() -> Unit) {
-
-        initEntityDao()
-
-        configureDataTransferObject{
-            cretePropertyBindings(
-                PropertyBinding("name", Partner::name,PartnerEntity::name)
-            )
+        config {
+            setProperties(
+                PropertyBinding("name", Partner::name, PartnerEntity::name),
+                PropertyBinding("legalName",Partner::legalName, PartnerEntity::legalName),
+                PropertyBinding("regNr", Partner::regNr, PartnerEntity::regNr),
+                PropertyBinding("vatNr", Partner::vatNr, PartnerEntity::vatNr),
+                PropertyBinding("updated", Partner::updated, PartnerEntity::updated),
+                PropertyBinding("created", Partner::created, PartnerEntity::created)
+                )
         }
-    }
+   }
 }
 
 

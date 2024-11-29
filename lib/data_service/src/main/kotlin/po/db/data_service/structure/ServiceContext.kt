@@ -4,21 +4,39 @@ import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction
-import po.db.data_service.dto.AbstractDTOModel
-import po.db.data_service.dto.DTOClass
-import po.db.data_service.dto.DTOMarker
+import po.db.data_service.dto.*
 
 class ServiceContext<DATA_MODEL, ENTITY>(
     val name : String,
-    val connection: Database,
-    val dtoModel : DTOClass<DATA_MODEL>,
-    val entityModel : LongEntityClass<ENTITY>,
+    private val connection: Database,
+    private val dtoModel : DTOClass<DATA_MODEL, ENTITY>,
+    private val entityModel : LongEntityClass<ENTITY>,
+   // val dtoModelFactory: (ServiceContext<DATA_MODEL, ENTITY>) -> AbstractDTOModel<DATA_MODEL>
 )  where DATA_MODEL : DTOMarker, ENTITY : LongEntity
 {
+//    fun createModel(): AbstractDTOModel<DATA_MODEL> {
+//        return dtoModelFactory(this) // Pass the context during creation
+//    }
 
-    //val dtoModelCompanion : AbstractDTOModel<DATA_MODEL> = dtoModel
+    private var modelConfiguration = ModelDTOConfig(dtoModel, entityModel)
 
-    fun saveDtoEntity(dtoEntity: AbstractDTOModel<DATA_MODEL>){
+    private  fun <T>configuration(conf: ModelDTOConfig<DATA_MODEL,ENTITY>, statement: ModelDTOConfig<DATA_MODEL, ENTITY>.() -> T): T =   statement.invoke(conf)
+
+    fun  <T>config(serviceBody: ModelDTOConfig<DATA_MODEL, ENTITY>.() -> T): T = configuration(modelConfiguration) {
+        serviceBody()
+    }
+
+    init {
+          dtoModel.passContext(this)
+    }
+
+//    fun <T> T.configure(block: T.() -> Unit): T {
+//        block() // `this` is the calling context (an instance of `T`)
+//        return this
+//    }
+
+
+    fun saveDtoEntity(dtoEntity: AbstractDTOModel<DATA_MODEL, ENTITY>){
 
         val a = dtoEntity
         dbQuery{

@@ -37,15 +37,15 @@ class ServiceRouter(
 
     fun <DATA_MODEL : DTOMarker, ENTITY : LongEntity> createService(
         serviceName:String,
-        dtoModel : DTOClass<DATA_MODEL>,
+        dtoModel : DTOClass<DATA_MODEL, ENTITY>,
         entityModel : LongEntityClass<ENTITY> ) : ServiceContext<DATA_MODEL, ENTITY>{
 
-        return ServiceContext(serviceName, connection, dtoModel, entityModel)
+        return ServiceContext(serviceName, connection, dtoModel, entityModel )
     }
 
     private fun <DATA_MODEL, ENTITY> getOrCreateService(
         routeKey: ServiceUniqueKey,
-        dtoModel: DTOClass<DATA_MODEL>,
+        dtoModel: DTOClass<DATA_MODEL, ENTITY>,
         entityModel : LongEntityClass<ENTITY>,
     ) : ServiceContext<DATA_MODEL, ENTITY >  where DATA_MODEL : DTOMarker, ENTITY : LongEntity{
 

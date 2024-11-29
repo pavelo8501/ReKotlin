@@ -13,20 +13,12 @@ import po.playground.projects.data_service.dto.PartnerEntity
 
 fun startDataService(connectionInfo : ConnectionInfo) {
 
-
-
-//   DatabaseManager.openConnection(connectionInfo){
-//      runTest<Partner>(Partner(0,"SomeName", "SomeName SIA", null,null, Partner.nowTime(),Partner.nowTime()))
-//   }
-
   DatabaseManager.openConnection(connectionInfo){
-   //   val model = EntityDAO<Partner, PartnerEntity>::entityDao
-
-
-
     initializeService<Partner, PartnerEntity>("Partner", Partner, PartnerEntity){
 
         val partner =  Partner(0,"SomeName", "SomeName SIA", null,null, Partner.nowTime(),Partner.nowTime())
+
+
 
         saveDtoEntity(partner)
 

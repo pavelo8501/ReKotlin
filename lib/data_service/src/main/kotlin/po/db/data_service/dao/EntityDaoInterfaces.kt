@@ -27,15 +27,15 @@ interface EntityDAO<DATA_MODEL, ENTITY>
 
         private fun <ENTITY , DATA_MODEL> pair(
             first: LongEntityClass<ENTITY>,
-            second: AbstractDTOModel<DATA_MODEL>
+            second: AbstractDTOModel<DATA_MODEL, ENTITY>
 
-        ): Pair<LongEntityClass<ENTITY>, AbstractDTOModel<DATA_MODEL>> where ENTITY:LongEntity, DATA_MODEL  : DTOMarker {
+        ): Pair<LongEntityClass<ENTITY>, AbstractDTOModel<DATA_MODEL, ENTITY>> where ENTITY:LongEntity, DATA_MODEL  : DTOMarker {
             return Pair(first,  second)
         }
 
         fun <ENTITY : LongEntity, DATA_MODEL : DTOMarker> pairEntities(
             dao: LongEntityClass<ENTITY>,
-            dataTransferObject: AbstractDTOModel<DATA_MODEL>
+            dataTransferObject: AbstractDTOModel<DATA_MODEL, ENTITY>
         ) {
             val key = SysNameKey<DATA_MODEL>(dataTransferObject.sysName)
             keyedEntityDataModelPairs[key] = pair(dao, dataTransferObject)
@@ -49,13 +49,13 @@ interface EntityDAO<DATA_MODEL, ENTITY>
         }
 
         @Suppress("UNCHECKED_CAST")
-        fun <DATA_MODEL : DTOMarker> getDataModel(sysName: String): AbstractDTOModel<DATA_MODEL>? {
+        fun <DATA_MODEL : DTOMarker, ENTITY: LongEntity> getDataModel(sysName: String): AbstractDTOModel<DATA_MODEL, ENTITY>? {
             val key = SysNameKey<DATA_MODEL>(sysName)
-            return (keyedEntityDataModelPairs[key]?.second as? AbstractDTOModel<DATA_MODEL>)
+            return (keyedEntityDataModelPairs[key]?.second as? AbstractDTOModel<DATA_MODEL, ENTITY>)
         }
     }
 
-    fun initialize(daoEntity :  LongEntityClass<ENTITY>, dataTransferObject : AbstractDTOModel<DATA_MODEL>){
+    fun initialize(daoEntity :  LongEntityClass<ENTITY>, dataTransferObject : AbstractDTOModel<DATA_MODEL, ENTITY>){
         pairEntities(daoEntity, dataTransferObject)
     }
 }

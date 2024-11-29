@@ -7,8 +7,8 @@ import kotlin.reflect.KMutableProperty1
 
 class PropertyBinding<DATA_MODEL, ENTITY, TYPE>(
     val name : String,
-    val dtoProperty : KMutableProperty1<DATA_MODEL, TYPE>,
-    val entityProperty : KMutableProperty1<ENTITY, TYPE>) where  DATA_MODEL : DTOMarker, ENTITY : LongEntity
+    private val dtoProperty : KMutableProperty1<DATA_MODEL, TYPE>,
+    private val entityProperty : KMutableProperty1<ENTITY, TYPE>) where  DATA_MODEL : DTOMarker, ENTITY : LongEntity
 {
 
     fun update(dtoModel: DATA_MODEL, entityModel: ENTITY, force: Boolean = false): Boolean {
@@ -20,24 +20,24 @@ class PropertyBinding<DATA_MODEL, ENTITY, TYPE>(
     }
 }
 
+class DTOPropertyBinder <DATA_MODEL, ENTITY>(
+    vararg  props : PropertyBinding<DATA_MODEL, ENTITY, *> = emptyArray() )
+        where DATA_MODEL : DTOMarker, ENTITY : LongEntity {
 
+    private var propertyList = props.toList()
 
-class DataTransferObjectsPropertyBinder <DATA_MODEL, ENTITY, TYPE>(
-    vararg  props : PropertyBinding<DATA_MODEL, ENTITY, TYPE >)
-        where DATA_MODEL : DTOMarker, ENTITY : LongEntity{
-
-    private val properties = props.toList()
-
-    fun setProperties(vararg  props : PropertyBinding<DATA_MODEL, ENTITY, TYPE >){
-
+    fun setProperties(properties: List<PropertyBinding<DATA_MODEL, ENTITY, *>>){
+        propertyList = properties
     }
+
+    fun properties(vararg  props : PropertyBinding<DATA_MODEL, ENTITY, * >){
+        setProperties(props.toList())
+    }
+
 
     fun updateProperties(dataModel: DATA_MODEL, entityModel: ENTITY, force: Boolean = false) {
-        properties.forEach { it.update(dataModel, entityModel, force) }
+        propertyList.forEach { it.update(dataModel, entityModel, force) }
     }
-
-
-
 }
 
 

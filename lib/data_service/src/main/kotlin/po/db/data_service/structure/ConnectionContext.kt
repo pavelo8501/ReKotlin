@@ -24,7 +24,7 @@ class ConnectionContext(
 
     inline fun <reified DATA_MODEL, ENTITY> ConnectionContext.initializeService(
         name: String,
-        dtoModel :    DTOClass<DATA_MODEL>,
+        dtoModel :    DTOClass<DATA_MODEL, ENTITY>,
         daoModel :    LongEntityClass<ENTITY>,
         createOptions: ServiceCreateOptions<DATA_MODEL, ENTITY>? = null,
         service: ServiceContext<DATA_MODEL, ENTITY>.() -> Unit
@@ -43,16 +43,9 @@ class ConnectionContext(
 
     }
 
-    inline fun <reified  DATA_MODEL : DTOMarker>ConnectionContext.runTest(
-        dtoModel : AbstractDTOModel<DATA_MODEL>
+    inline fun <reified  DATA_MODEL : DTOMarker, ENTITY: LongEntity>ConnectionContext.runTest(
+        dtoModel : AbstractDTOModel<DATA_MODEL, ENTITY>
     ) {
-
-
-
-        val receivedThroughConstr =  dtoModel.dataModelObject
-        val asStatic  = dtoModel::dataModelObject
         val aaa = dtoModel
-
     }
-
 }
