@@ -9,7 +9,7 @@ import org.jetbrains.exposed.dao.LongEntityClass
     Interface used to identify DataClass with DataBase Entity
     Part of the property mapping system
  */
-interface DTOMarker {
+interface DTOEntityMarker {
     val sysName : String
 }
 
@@ -17,6 +17,6 @@ interface DTOMarker {
     Interface  identifying that Extending Class acts as a DataModel
     Part of the property mapping system
  */
-interface DataModel : DTOMarker {
+interface DataModel : DTOEntityMarker {
     var id : Long
 }

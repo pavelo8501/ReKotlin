@@ -1,26 +1,27 @@
 package po.playground.projects.data_service
 
-import kotlinx.datetime.LocalDateTime
-import org.jetbrains.exposed.dao.LongEntityClass
 import po.db.data_service.DatabaseManager
-import po.db.data_service.dao.EntityDAO
-import po.db.data_service.dto.AbstractDTOModel
 import po.db.data_service.models.ConnectionInfo
-import po.db.data_service.transportation.ServiceCreateOptions
 import po.playground.projects.data_service.dto.Partner
 import po.playground.projects.data_service.dto.PartnerEntity
 
 
 fun startDataService(connectionInfo : ConnectionInfo) {
 
-  DatabaseManager.openConnection(connectionInfo){
-    initializeService<Partner, PartnerEntity>("Partner", Partner, PartnerEntity){
+    val list = listOf<Partner>(
+        Partner(0,"SomeName", "SomeName SIA", null,null, Partner.nowTime(),Partner.nowTime()),
+        Partner(0,"SomeName2", "SomeName2 SIA", null,null, Partner.nowTime(),Partner.nowTime()),
+        Partner(0,"SomeName3", "SomeName2 SIA", null,null, Partner.nowTime(),Partner.nowTime())
+    )
 
-        val partner =  Partner(0,"SomeName", "SomeName SIA", null,null, Partner.nowTime(),Partner.nowTime())
+    DatabaseManager.openConnection(connectionInfo){
 
+        service<Partner, PartnerEntity>("Partner",  Partner, PartnerEntity){
 
+            Partner.update(list) {
 
-        saveDtoEntity(partner)
+            }
+
 
      //     val department = DepartmentDTO(0, true, "Department 1", "Street 1", "Riga", "Latvia", "LV-1010", "27177723", "some@mail.com",12, null,
 //             // DepartmentDTO.nowDateTime(), DepartmentDTO.nowDateTime())

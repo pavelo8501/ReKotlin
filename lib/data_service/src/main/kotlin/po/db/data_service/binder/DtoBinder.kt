@@ -1,14 +1,15 @@
 package po.db.data_service.binder
 
 import org.jetbrains.exposed.dao.LongEntity
-import po.db.data_service.dto.DTOMarker
+import po.db.data_service.dto.DTOEntityMarker
+import po.db.data_service.dto.DataModel
 import kotlin.reflect.KMutableProperty1
 
 
 class PropertyBinding<DATA_MODEL, ENTITY, TYPE>(
     val name : String,
     private val dtoProperty : KMutableProperty1<DATA_MODEL, TYPE>,
-    private val entityProperty : KMutableProperty1<ENTITY, TYPE>) where  DATA_MODEL : DTOMarker, ENTITY : LongEntity
+    private val entityProperty : KMutableProperty1<ENTITY, TYPE>) where  DATA_MODEL : DataModel, ENTITY : LongEntity
 {
 
     fun update(dtoModel: DATA_MODEL, entityModel: ENTITY, force: Boolean = false): Boolean {
@@ -22,7 +23,7 @@ class PropertyBinding<DATA_MODEL, ENTITY, TYPE>(
 
 class DTOPropertyBinder <DATA_MODEL, ENTITY>(
     vararg  props : PropertyBinding<DATA_MODEL, ENTITY, *> = emptyArray() )
-        where DATA_MODEL : DTOMarker, ENTITY : LongEntity {
+        where DATA_MODEL : DataModel, ENTITY : LongEntity {
 
     private var propertyList = props.toList()
 

@@ -45,6 +45,14 @@ class PartnerEntity  (id: EntityID<Long>) : LongEntity(id), EntityDAO<Partner, P
     //val departments by  DepartmentEntity referrersOn Departments.partne
 }
 
+
+
+class PartnerData(
+    override var id :Long = 0,
+    override val sysName: String = "PD",
+    val name: String
+    ) : DataModel
+
 class Partner(
     override var id: Long,
     var name: String,
@@ -52,23 +60,28 @@ class Partner(
     var regNr: String? = null,
     var vatNr: String? = null,
     var updated: LocalDateTime,
-    var created: LocalDateTime
+    var created: LocalDateTime,
 ): AbstractDTOModel<Partner, PartnerEntity>(Partner),DataModel{
 
-   companion object : DTOClass<Partner, PartnerEntity>()
+    override val dataModel: Partner = this
+    override val sysName = "PartnerDTO"
 
-   init {
-        config {
-            setProperties(
-                PropertyBinding("name", Partner::name, PartnerEntity::name),
-                PropertyBinding("legalName",Partner::legalName, PartnerEntity::legalName),
-                PropertyBinding("regNr", Partner::regNr, PartnerEntity::regNr),
-                PropertyBinding("vatNr", Partner::vatNr, PartnerEntity::vatNr),
-                PropertyBinding("updated", Partner::updated, PartnerEntity::updated),
-                PropertyBinding("created", Partner::created, PartnerEntity::created)
+    companion object : DTOClass<Partner, PartnerEntity>() {
+        override fun configuration() {
+            config() {
+                setProperties(
+                    PropertyBinding("name", Partner::name, PartnerEntity::name),
+                    PropertyBinding("legalName",Partner::legalName, PartnerEntity::legalName),
+                    PropertyBinding("regNr", Partner::regNr, PartnerEntity::regNr),
+                    PropertyBinding("vatNr", Partner::vatNr, PartnerEntity::vatNr),
+                    PropertyBinding("updated", Partner::updated, PartnerEntity::updated),
+                    PropertyBinding("created", Partner::created, PartnerEntity::created)
                 )
+            }
         }
-   }
+    }
+
+
 }
 
 
