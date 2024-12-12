@@ -8,7 +8,9 @@ enum class  ExceptionCodes (val errorCode:Int) {
     INVALID_DATA(1004),
     KEY_NOT_FOUND(1005),
 
-    NO_EMPTY_CONSTRUCTOR(2001);
+    NO_EMPTY_CONSTRUCTOR(2001),
+    REFLECTION_ERROR(2002);
+
 
     companion object {
         fun fromValue(errorCode: Int): ExceptionCodes {

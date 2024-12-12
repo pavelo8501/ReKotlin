@@ -5,28 +5,55 @@ import po.db.data_service.exceptions.ExceptionCodes.*
 import po.db.data_service.exceptions.InitializationException
 
 
-abstract  class AbstractDTOModel<DATA_MODEL: DataModel, ENTITY : LongEntity>(): DTOEntityMarker{
+abstract class AbstractDTOModel<DATA_MODEL: DataModel<ENTITY>, ENTITY : LongEntity>(): DTOEntityMarker<ENTITY>{
+
     abstract var id : Long
-    abstract val dataModel : DATA_MODEL
+    override val dataModelClassName: String = ""
+
+    private var _dataModel : DATA_MODEL? = null
+    val dataModel : DATA_MODEL
+        get(){
+            return _dataModel?: throw InitializationException("dataModel uninitialized", NOT_INITIALIZED)
+        }
 
     private var dtoModel : DTOClass<DATA_MODEL, ENTITY>? = null
 
     private var _entityDAO : ENTITY? = null
-    var entityDAO : ENTITY
+    val entityDAO : ENTITY
         get(): ENTITY {
-            return _entityDAO?: throw InitializationException("Trying to access database daoEntity associated with ${this.sysName}", NOT_INITIALIZED)
+            return _entityDAO?: throw InitializationException("Trying to access database daoEntity associated with ${this.dataModelClassName}", NOT_INITIALIZED)
         }
-        set(entity){
-            _entityDAO = entity
-            if(id != entity.id.value){
-                id = entity.id.value
-            }
+
+    override fun setEntityDAO(entity :ENTITY){
+        _entityDAO = entity as ENTITY
+        if(id != entity.id.value){
+            id = entity.id.value
+
         }
+    }
+
+    fun asDataModel():DATA_MODEL{
+        return dataModel
+    }
+
+    fun asDTOEntity(): AbstractDTOModel<DATA_MODEL , ENTITY>{
+        return this
+    }
 
     val initialized : Boolean
         get(){
             return _entityDAO != null
         }
+
+
+//    val dtoConfig =  ModelDTOConfig<DATA_MODEL, ENTITY>()
+//    abstract fun configuration(dataModelInit : (dataModel : DATA_MODEL) -> Unit )
+
+    init {
+//        this.configuration {
+//            this._dataModel =  it
+//        }
+    }
 
     constructor(dataModelObject : DTOClass<DATA_MODEL, ENTITY>) : this(){
         dtoModel = dataModelObject

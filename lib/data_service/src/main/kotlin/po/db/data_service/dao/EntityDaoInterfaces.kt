@@ -38,7 +38,7 @@ interface EntityDAO<DATA_MODEL, ENTITY>
             dao: LongEntityClass<ENTITY>,
             dataTransferObject: AbstractDTOModel<DATA_MODEL, ENTITY>
         ) {
-            val key = SysNameKey<DATA_MODEL>(dataTransferObject.sysName)
+            val key = SysNameKey<DATA_MODEL>(dataTransferObject.dataModelClassName)
             keyedEntityDataModelPairs[key] = pair(dao, dataTransferObject)
         }
 

@@ -14,7 +14,7 @@ import kotlin.reflect.KClass
 class ServiceContext<DATA_MODEL, ENTITY>(
     val name : String,
     private val connection: Database,
-    private val dtoModel : DTOClass<DATA_MODEL, ENTITY>,
+    private val rootDtoModel : DTOClass<DATA_MODEL, ENTITY>,
     private val entityModel : LongEntityClass<ENTITY>,
 )  where DATA_MODEL : DataModel, ENTITY : LongEntity {
 
@@ -29,22 +29,17 @@ class ServiceContext<DATA_MODEL, ENTITY>(
 
     var dataModelClass: KClass<DATA_MODEL>? = null
 
-    private var modelConfiguration = ModelDTOConfig(dtoModel, entityModel)
+    private var modelConfiguration = ModelDTOConfig<DATA_MODEL,ENTITY>()
     private  fun <T>configuration(conf: ModelDTOConfig<DATA_MODEL,ENTITY>, statement: ModelDTOConfig<DATA_MODEL, ENTITY>.() -> T): T =   statement.invoke(conf)
     fun  <T>config(serviceBody: ModelDTOConfig<DATA_MODEL, ENTITY>.() -> T): T = configuration(modelConfiguration) {
         serviceBody()
-    }
-
-    init {
-     // dtoModel.initialize(this)
-      dtoModel.configuration()
     }
 
     private fun initializeDTO(entityDTO : AbstractDTOModel<DATA_MODEL,ENTITY>){
         if(entityDTO.id == 0L){
            val newEntity = dbQuery {
                 return@dbQuery  entityModel.new {
-                    modelConfiguration.propertyBinder.updateProperties(entityDTO.dataModel, this)
+                   // modelConfiguration.propertyBinder.updateProperties(entityDTO.dataModel, this)
                 }
             }
             entityDTO.entityDAO = newEntity
@@ -53,11 +48,15 @@ class ServiceContext<DATA_MODEL, ENTITY>(
 
     fun initialize(metaData : ServiceMetadata<DATA_MODEL, ENTITY>){
         this._metaData = metaData
+        rootDtoModel.configuration()
+        metaData.getBlueprint<DATA_MODEL>(rootDtoModel.dtoModelClassName)?.let {
+            rootDtoModel.initialize(it, this)
+        }?: throw  InitializationException("Service $name failed to initialize DTO Model Class", ExceptionCodes.NOT_INITIALIZED )
     }
 
-    fun <DATA_MODEL : DataModel, ENTITY : LongEntity>getDTOBlueprint(): ConstructorBlueprint<DATA_MODEL>{
-        this.metaData.addBlueprint()
-    }
+//    fun <DATA_MODEL : DataModel, ENTITY : LongEntity>getDTOBlueprint(): ConstructorBlueprint<DATA_MODEL>{
+//       // this.metaData.addBlueprint()
+//    }
 
     fun <T : DTOClass<DATA_MODEL, ENTITY>> T.update(single:AbstractDTOModel<DATA_MODEL, ENTITY>, block: T.() -> Unit): Unit {
         this@ServiceContext.initializeDTO(single)
@@ -69,18 +68,15 @@ class ServiceContext<DATA_MODEL, ENTITY>(
         this.block()
     }
 
-    fun <DTO : DTOClass<DATA_MODEL, ENTITY>> DTO.select(block: DTO.() -> Unit): Unit {
-        this.block()
-         var  entityDAO : ENTITY
+    fun <DTO : DTOClass<DATA_MODEL, ENTITY>> DTO.select(block: DTO.(List<DATA_MODEL>) -> Unit): Unit {
+        val result  = mutableListOf<DATA_MODEL>()
         dbQuery {
             entityModel.all().forEach {
-
-              //  this.create()
-                entityDAO = it
-
+                result.add(this.create(it))
             }
         }
-         val a = 10
+        this.block(result)
+      //  return result
     }
 
 

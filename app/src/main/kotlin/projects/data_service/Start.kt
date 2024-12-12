@@ -9,21 +9,20 @@ import po.playground.projects.data_service.dto.PartnerEntity
 fun startDataService(connectionInfo : ConnectionInfo) {
 
     val list = listOf<Partner>(
-        Partner(0,"SomeName", "SomeName SIA", null,null, Partner.nowTime(),Partner.nowTime()),
-        Partner(0,"SomeName2", "SomeName2 SIA", null,null, Partner.nowTime(),Partner.nowTime()),
-        Partner(0,"SomeName3", "SomeName2 SIA", null,null, Partner.nowTime(),Partner.nowTime())
+        Partner(0,"SomeName", "SomeName SIA", null,null,    Partner.nowTime(),Partner.nowTime()),
+        Partner(0,"SomeName2", "SomeName2 SIA", null,null,  Partner.nowTime(),Partner.nowTime()),
+        Partner(0,"SomeName3", "SomeName2 SIA", null,null,  Partner.nowTime(),Partner.nowTime())
     )
 
     DatabaseManager.openConnection(connectionInfo){
-
         service<Partner, PartnerEntity>("Partner",  Partner, PartnerEntity){
-
 //            Partner.update(list) {
-//
 //            }
 
-            Partner.select {  }
-
+            Partner.select {
+                val list = it
+                val a = 10
+            }
 
      //     val department = DepartmentDTO(0, true, "Department 1", "Street 1", "Riga", "Latvia", "LV-1010", "27177723", "some@mail.com",12, null,
 //             // DepartmentDTO.nowDateTime(), DepartmentDTO.nowDateTime())
@@ -32,6 +31,6 @@ fun startDataService(connectionInfo : ConnectionInfo) {
 //          saveDTO(partner)
       }
    }
-
+   val dataModel =  list[0].asDataModel()
    val stop = 10
 }

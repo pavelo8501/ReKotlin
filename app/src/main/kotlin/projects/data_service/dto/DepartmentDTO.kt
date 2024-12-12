@@ -73,12 +73,11 @@ data class Department(
     var created: LocalDateTime,
 ): AbstractDTOModel<Department, DepartmentEntity>(Department), DataModel {
 
-    override val dataModel: Department = this
-    override val sysName = "DepartmentDTO"
+   // override val dataModel: Department = thi
 
-    companion object : DTOClass<Department, DepartmentEntity>() {
+    companion object : DTOClass<Department, DepartmentEntity>(DepartmentEntity) {
         override fun configuration() {
-            config {
+            config<Department> {
                 setProperties(
                     PropertyBinding("hq",Department::hq, DepartmentEntity::hq),
                     PropertyBinding("name",Department::name, DepartmentEntity::name),

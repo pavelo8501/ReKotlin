@@ -6,12 +6,9 @@ import po.db.data_service.binder.DTOPropertyBinder
 import po.db.data_service.binder.PropertyBinding
 
 
-class ModelDTOConfig<DATA_MODEL, ENTITY> (
-    val dtoModel : DTOClass<DATA_MODEL, ENTITY>,
-    val entityModel : LongEntityClass<ENTITY>
-) where DATA_MODEL : DataModel, ENTITY : LongEntity {
+class ModelDTOConfig<DATA_MODEL, ENTITY>  where DATA_MODEL : DataModel, ENTITY : LongEntity {
 
-    val propertyBinder = DTOPropertyBinder<DATA_MODEL, ENTITY>()
+    private val propertyBinder = DTOPropertyBinder<DATA_MODEL, ENTITY>()
 
     fun setProperties(vararg props: PropertyBinding<DATA_MODEL, ENTITY, *>) =
         propertyBinder.setProperties(props.toList())

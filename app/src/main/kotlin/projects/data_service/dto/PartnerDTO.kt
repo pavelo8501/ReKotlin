@@ -33,7 +33,7 @@ class PartnerEntity  (id: EntityID<Long>) : LongEntity(id), EntityDAO<Partner, P
     //val departments by  DepartmentEntity referrersOn Departments.partne
 }
 
-class Partner(
+data class Partner(
     override var id: Long,
     var name: String,
     var legalName: String,
@@ -41,14 +41,11 @@ class Partner(
     var vatNr: String? = null,
     var updated: LocalDateTime,
     var created: LocalDateTime,
-): AbstractDTOModel<Partner, PartnerEntity>(Partner),DataModel{
+): AbstractDTOModel<Partner, PartnerEntity>(Partner), DataModel<PartnerEntity>{
 
-    override val dataModel: Partner = this
-    override val sysName = "PartnerDTO"
-
-    companion object : DTOClass<Partner, PartnerEntity>() {
+    companion object : DTOClass<Partner, PartnerEntity>(PartnerEntity) {
         override fun configuration() {
-            config() {
+            config<Partner>{
                 setProperties(
                     PropertyBinding("name", Partner::name, PartnerEntity::name),
                     PropertyBinding("legalName",Partner::legalName, PartnerEntity::legalName),

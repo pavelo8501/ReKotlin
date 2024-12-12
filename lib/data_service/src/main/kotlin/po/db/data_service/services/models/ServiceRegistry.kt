@@ -14,19 +14,24 @@ data class ServiceMetadata<DATA_MODEL : DataModel, ENTITY : LongEntity>(
     private val entityBlueprint : ConstructorBlueprint<DATA_MODEL>,
    // val dtoClass: KClass<DATA_MODEL>,
    // val entityClass:  KClass<LongEntityClass<ENTITY>>
-){
-    private val dtoEntityBlueprints = mutableMapOf<String, ConstructorBlueprint<DATA_MODEL>>()
+) {
+    private val dtoEntityBlueprints = mutableMapOf<String, ConstructorBlueprint<*>>()
 
     init {
         addBlueprint(entityBlueprint)
     }
 
-    fun addBlueprint(entityBlueprint: ConstructorBlueprint<DATA_MODEL>){
+    fun <DATA_MODEL : DataModel> addBlueprint(entityBlueprint: ConstructorBlueprint<DATA_MODEL>) {
         dtoEntityBlueprints.putIfAbsent(entityBlueprint.className, entityBlueprint)
     }
 
-
-
+    @Suppress("UNCHECKED_CAST")
+    fun <DATA_MODEL : DataModel> getBlueprint(className: String): ConstructorBlueprint<DATA_MODEL>? {
+        this.dtoEntityBlueprints[className]?.let {
+            return it as ConstructorBlueprint<DATA_MODEL>
+        }
+        return null
+    }
 }
 
 class ServiceRegistry {
@@ -41,11 +46,11 @@ class ServiceRegistry {
     ): ServiceMetadata<DATA_MODEL, ENTITY> {
         val metadata = ServiceMetadata(key, service, dtoEntityBlueprint)
         serviceRegistry.putIfAbsent(key,metadata).let {
-            if (it != null) {
-                throw InitializationException("Service with the given unique key ${key.serviceName} already exists", ExceptionCodes.ALREADY_EXISTS )
+            if (it == null) {
+                return metadata
             }
         }
-        return metadata
+        throw InitializationException("Service with the given unique key ${key.serviceName} already exists", ExceptionCodes.ALREADY_EXISTS )
     }
 
     fun <DATA_MODEL : DataModel,  ENTITY : LongEntity>addDTOBlueprint(key: ServiceUniqueKey,  blueprint : ConstructorBlueprint<DATA_MODEL>){
