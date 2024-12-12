@@ -18,9 +18,11 @@ fun startDataService(connectionInfo : ConnectionInfo) {
 
         service<Partner, PartnerEntity>("Partner",  Partner, PartnerEntity){
 
-            Partner.update(list) {
+//            Partner.update(list) {
+//
+//            }
 
-            }
+            Partner.select {  }
 
 
      //     val department = DepartmentDTO(0, true, "Department 1", "Street 1", "Riga", "Latvia", "LV-1010", "27177723", "some@mail.com",12, null,

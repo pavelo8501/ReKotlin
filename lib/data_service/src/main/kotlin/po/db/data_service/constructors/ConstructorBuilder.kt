@@ -1,8 +1,9 @@
 package po.db.data_service.constructors
 
-import org.jetbrains.exposed.dao.LongEntity
+import po.db.data_service.dto.DataModel
 import kotlin.collections.mutableMapOf
 import kotlin.reflect.KClass
+import kotlin.reflect.KFunction
 import kotlin.reflect.KParameter
 import kotlin.reflect.KType
 
@@ -31,16 +32,45 @@ import kotlin.reflect.KType
 //    }
 //}
 //
-//class Constructor{
-//    fun getDefaultForType(kType: KType): Any? {
-//        return when (kType.classifier) {
-//            Int::class -> 0
-//            String::class -> ""
-//            Boolean::class -> false
-//            Long::class -> 0L
-//            else -> null
-//        }
-//    }
+
+data class ConstructorBlueprint<T: Any>(
+    val className: String,
+    val clazz : KClass<T>
+){
+    var constructorParams  = mutableMapOf<String,  KParameter>()
+        private set
+
+    var effectiveConstructor : KFunction<T>? = null
+
+    fun addParam(name: String , type: KParameter){
+        constructorParams.putIfAbsent(name, type)
+    }
+}
+
+object ConstructorBuilder {
+
+    fun <T: DataModel>getConstructorBlueprint(clazz: KClass<T>):ConstructorBlueprint<T>{
+        val newBlueprint = ConstructorBlueprint((clazz.qualifiedName?: clazz::simpleName).toString(), clazz)
+        if (clazz.constructors.isNotEmpty()){
+            val constructor = clazz.constructors.first()
+            constructor.parameters.forEach { param ->
+                newBlueprint.addParam(param.name ?: "_", param)
+            }
+            newBlueprint.effectiveConstructor = constructor
+        }
+        return newBlueprint
+    }
+
+    fun getDefaultForType(kType: KType): Any? {
+        return when (kType.classifier) {
+            Int::class -> 0
+            String::class -> ""
+            Boolean::class -> false
+            Long::class -> 0L
+            else -> null
+        }
+    }
+
 //    fun <T:  EntityDTO<T,E>,E:LongEntity>instantiateFromClass(clazz : KClass<T>, containerConstructor : ConstructorContainer<T,E> ):T?{
 //        clazz.constructors.forEach {classConstructor->
 //            containerConstructor.constructors.firstOrNull { classConstructor.parameters.size == it.size }?.let { appropriate->
@@ -56,4 +86,5 @@ import kotlin.reflect.KType
 //        }
 //        return null
 //    }
-//}
+
+}

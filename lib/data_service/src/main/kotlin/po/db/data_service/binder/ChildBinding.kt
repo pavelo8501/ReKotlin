@@ -1,10 +1,6 @@
 package po.db.data_service.binder
 
-import org.jetbrains.exposed.dao.LongEntity
-import org.jetbrains.exposed.sql.SizedIterable
-import po.db.data_service.dto.ModelDTOContext
-import kotlin.reflect.KMutableProperty1
-import kotlin.reflect.KProperty1
+
 
 
 enum class BindingType{

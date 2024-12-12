@@ -3,13 +3,13 @@ package po.db.data_service.transportation
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.sql.Database
+import po.db.data_service.constructors.ConstructorBlueprint
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.DataModel
 import po.db.data_service.services.models.ServiceRegistry
 import po.db.data_service.services.models.ServiceUniqueKey
 import po.db.data_service.structure.ServiceContext
 import kotlin.reflect.KClass
-
 
 enum  class TableCreateMode{
     CREATE,
@@ -28,17 +28,11 @@ class ServiceRouter(
     private val connectionName: String,
     private val connection: Database,
     private val serviceRegistry :ServiceRegistry
-)
-//where DATA_MODEL : DTOMarker
-{
-
-    //private val services :  MutableMap<String, ServiceContext<*,*>> = mutableMapOf()
-
+) {
     fun <DATA_MODEL : DataModel, ENTITY : LongEntity> createService(
         serviceName:String,
         dtoModel : DTOClass<DATA_MODEL, ENTITY>,
         entityModel : LongEntityClass<ENTITY> ) : ServiceContext<DATA_MODEL, ENTITY>{
-
         return ServiceContext(serviceName, connection,  dtoModel, entityModel )
     }
 
@@ -57,25 +51,15 @@ class ServiceRouter(
     fun <DATA_MODEL : DataModel, ENTITY: LongEntity >initializeRoute(
         serviceUniqueKey: ServiceUniqueKey,
         service  : ServiceContext<DATA_MODEL, ENTITY>,
-        dataModelClass: KClass<DATA_MODEL>,
-     //   entityModelClass: KClass<LongEntityClass <ENTITY>>
+        rootDataModelBlueprint: ConstructorBlueprint<DATA_MODEL>,
     ): ServiceContext<DATA_MODEL, ENTITY> {
+        serviceRegistry.registerService(serviceUniqueKey, service, rootDataModelBlueprint).let {
+            service.initialize(it)
+        }
+        service.dataModelClass = rootDataModelBlueprint.clazz
 
-        serviceRegistry.registerService(serviceUniqueKey, service, dataModelClass)
         return service
     }
-
-
-//    fun <DATA_MODEL : DTOMarker, ENTITY: LongEntity >initializeRoute(
-//        serviceUniqueKey: ServiceUniqueKey,
-//        dtoModel : AbstractDTOModel<DATA_MODEL>,
-//        entityModel : ENTITY
-//    ): ServiceContext<DATA_MODEL, ENTITY> {
-//
-//        getOrCreateService(serviceUniqueKey, dtoModel,  entityModel).let {
-//            return it
-//        }
-//    }
 }
 
 

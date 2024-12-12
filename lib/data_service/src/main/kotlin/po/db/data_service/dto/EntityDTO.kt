@@ -1,35 +1,32 @@
 package po.db.data_service.dto
 
 import org.jetbrains.exposed.dao.LongEntity
-import org.jetbrains.exposed.dao.LongEntityClass
-import po.db.data_service.binder.DTOPropertyBinder
-import kotlin.reflect.jvm.internal.impl.descriptors.Visibilities.Private
+import po.db.data_service.exceptions.ExceptionCodes.*
+import po.db.data_service.exceptions.InitializationException
 
-
-interface ModelDTOContext{
-    var id: Long
-}
 
 abstract  class AbstractDTOModel<DATA_MODEL: DataModel, ENTITY : LongEntity>(): DTOEntityMarker{
-    // val  dataModelObject : DATA_MODEL? = null
-
-    abstract val id : Long
+    abstract var id : Long
     abstract val dataModel : DATA_MODEL
 
     private var dtoModel : DTOClass<DATA_MODEL, ENTITY>? = null
 
-    var entityDAO : ENTITY? = null
+    private var _entityDAO : ENTITY? = null
+    var entityDAO : ENTITY
+        get(): ENTITY {
+            return _entityDAO?: throw InitializationException("Trying to access database daoEntity associated with ${this.sysName}", NOT_INITIALIZED)
+        }
+        set(entity){
+            _entityDAO = entity
+            if(id != entity.id.value){
+                id = entity.id.value
+            }
+        }
 
     val initialized : Boolean
         get(){
-            return entityDAO != null
+            return _entityDAO != null
         }
-
-
-
-    fun update() {
-      //  binder.updateProperties(this,)
-    }
 
     constructor(dataModelObject : DTOClass<DATA_MODEL, ENTITY>) : this(){
         dtoModel = dataModelObject
@@ -41,41 +38,7 @@ abstract  class AbstractDTOModel<DATA_MODEL: DataModel, ENTITY : LongEntity>(): 
         }
 }
 
-
-//abstract class CommonDTO<DATA: ModelDTOContext, ENTITY : LongEntity>() {
-//
-//    // private val binder: DTOBinder<T, E> by lazy { createBinder() }
-//    abstract val id : Long
-//    var daoClass : LongEntityClass<ENTITY>? = null
-//    var dtoEntity : CommonDTO<DATA,ENTITY>? = null
-//    var initialized: Boolean = false
-//
-// //   private var binder: DTOBinder : DTOClass ? = null
-//
-//    private var entityDAO: ENTITY? = null
-//
-//    init {
-//        if(this::class.isCompanion){
-//            dtoEntity = this::class.objectInstance
-//        }
-
-//        if(entityDTO::class.isCompanion){
-//            dtoEntity = entityDTO::class.objectInstance
-//        }
-   // }
-//    fun setBinder(binder: DTOBinder<CommonDTO<DATA, ENTITY>, DATA, ENTITY>) {
-//        this.binder = binder
-//    }
-
-  //  init {
-
-      //  entityDAO = entityClass.get(id)
-   // }
-//}
-
-
 //abstract class EntityDTO<T: ModelDTOContext, E: LongEntity>{
-//
 //    //companion object : EntityDTOClass<ModelDTOContext,LongEntity>()
 //    abstract var id : Long;
 //
@@ -106,7 +69,7 @@ abstract  class AbstractDTOModel<DATA_MODEL: DataModel, ENTITY : LongEntity>(): 
 //    }
 //    constructor(dtoClass :  DTOClass<T, E>, entityCompanion: LongEntityClass<E>) : this() {
 //
-//        this.daoEntityCompanion = entityCompanion
+//       this.daoEntityCompanion = entityCompanion
 //       dtoCompanion = dtoClass
 //       if(dtoCompanion == null) throw Exception("DTO class is not initialized")
 //       if(daoEntityCompanion == null) throw Exception("Entity DAO LongEntityClass<LongEntity> is not initialized")
@@ -115,7 +78,7 @@ abstract  class AbstractDTOModel<DATA_MODEL: DataModel, ENTITY : LongEntity>(): 
 //
 //       propertyBinder = dtoCompanion!!.propertyBinder
 //       propertyBinder!!.setModelObject(this as T)
-//        @Suppress("UNCHECKED_CAST")
+//       @Suppress("UNCHECKED_CAST")
 //       registerDTOClass(dtoCompanion as DTOClass<ModelDTOContext, LongEntity>)
 //       initChild()
 //       beforeInit()

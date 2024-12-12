@@ -14,19 +14,7 @@ import po.playground.projects.data_service.services.Partners
 
 @ClassBinder("Partner")
 class PartnerEntity  (id: EntityID<Long>) : LongEntity(id), EntityDAO<Partner, PartnerEntity> {
-
     companion object : LongEntityClass<PartnerEntity>(Partners)
-
-    var entityDAO: EntityDAO<Partner, PartnerEntity>  = this
-
- //   var entityDaoClass: EntityDAO<Partner, PartnerEntity =
-
-    override fun initialize(
-        daoEntity: LongEntityClass<PartnerEntity>,
-        dataTransferObject: AbstractDTOModel<Partner, PartnerEntity>
-    ){
-        super.initialize(daoEntity, dataTransferObject)
-    }
 
     override var entityDao: EntityDAO<Partner, PartnerEntity> =  this
 
@@ -44,14 +32,6 @@ class PartnerEntity  (id: EntityID<Long>) : LongEntity(id), EntityDAO<Partner, P
     var updated by Partners.updated
     //val departments by  DepartmentEntity referrersOn Departments.partne
 }
-
-
-
-class PartnerData(
-    override var id :Long = 0,
-    override val sysName: String = "PD",
-    val name: String
-    ) : DataModel
 
 class Partner(
     override var id: Long,
@@ -80,42 +60,4 @@ class Partner(
             }
         }
     }
-
-
 }
-
-
-//@ClassBinder("Partner")
-//data class PartnerDTO(
-//    override var id: Long,
-//    @PropertyBinder("name")
-//    var name: String,
-//    @PropertyBinder("legalName")
-//    var legalName: String,
-//    @PropertyBinder("regNr")
-//    var regNr: String? = null,
-//    @PropertyBinder("vatNr")
-//    var vatNr: String? = null,
-//    @PropertyBinder("updated")
-//    var updated: LocalDateTime,
-//    @PropertyBinder("created")
-//    var created: LocalDateTime,
-//): EntityDTO<PartnerDTO, PartnerEntity>(PartnerDTO,PartnerEntity), ParentDTOContext{
-//
-//    companion object : DTOClass<PartnerDTO, PartnerEntity>(
-//
-//    )
-//
-//  val departments: MutableList<DepartmentDTO> = mutableListOf()
-//
-//  override fun bindings(): ChildClasses<*,*,*,*> {
-//     return ChildClasses<DepartmentDTO,DepartmentEntity, PartnerDTO, PartnerEntity>(
-//                PartnerDTO,
-//                OneToManyBinding<DepartmentDTO,DepartmentEntity,PartnerDTO,PartnerEntity>(DepartmentDTO, PartnerEntity::departments, DepartmentEntity::partner, departments)
-//            )
-//    }
-//
-//    override fun updateChild(){
-//
-//    }
-//}

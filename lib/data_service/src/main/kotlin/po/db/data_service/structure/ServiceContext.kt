@@ -4,19 +4,30 @@ import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction
+import po.db.data_service.constructors.ConstructorBlueprint
 import po.db.data_service.dto.*
+import po.db.data_service.exceptions.ExceptionCodes
+import po.db.data_service.exceptions.InitializationException
+import po.db.data_service.services.models.ServiceMetadata
+import kotlin.reflect.KClass
 
 class ServiceContext<DATA_MODEL, ENTITY>(
     val name : String,
     private val connection: Database,
     private val dtoModel : DTOClass<DATA_MODEL, ENTITY>,
     private val entityModel : LongEntityClass<ENTITY>,
-   // val dtoModelFactory: (ServiceContext<DATA_MODEL, ENTITY>) -> AbstractDTOModel<DATA_MODEL>
-)  where DATA_MODEL : DataModel, ENTITY : LongEntity
-{
-//    fun createModel(): AbstractDTOModel<DATA_MODEL> {
-//        return dtoModelFactory(this) // Pass the context during creation
-//    }
+)  where DATA_MODEL : DataModel, ENTITY : LongEntity {
+
+    private var _metaData : ServiceMetadata<DATA_MODEL, ENTITY>? = null
+    private val metaData : ServiceMetadata<DATA_MODEL, ENTITY>
+        get(){
+            if(_metaData == null){
+                throw InitializationException("Service $name failed to initialize properly. MetaData missing", ExceptionCodes.NOT_INITIALIZED)
+            }
+            return this._metaData!!
+        }
+
+    var dataModelClass: KClass<DATA_MODEL>? = null
 
     private var modelConfiguration = ModelDTOConfig(dtoModel, entityModel)
     private  fun <T>configuration(conf: ModelDTOConfig<DATA_MODEL,ENTITY>, statement: ModelDTOConfig<DATA_MODEL, ENTITY>.() -> T): T =   statement.invoke(conf)
@@ -25,9 +36,8 @@ class ServiceContext<DATA_MODEL, ENTITY>(
     }
 
     init {
-          dtoModel.setContext(this)
-          dtoModel.configuration()
-          val a = 10
+     // dtoModel.initialize(this)
+      dtoModel.configuration()
     }
 
     private fun initializeDTO(entityDTO : AbstractDTOModel<DATA_MODEL,ENTITY>){
@@ -35,11 +45,18 @@ class ServiceContext<DATA_MODEL, ENTITY>(
            val newEntity = dbQuery {
                 return@dbQuery  entityModel.new {
                     modelConfiguration.propertyBinder.updateProperties(entityDTO.dataModel, this)
-
                 }
             }
             entityDTO.entityDAO = newEntity
         }
+    }
+
+    fun initialize(metaData : ServiceMetadata<DATA_MODEL, ENTITY>){
+        this._metaData = metaData
+    }
+
+    fun <DATA_MODEL : DataModel, ENTITY : LongEntity>getDTOBlueprint(): ConstructorBlueprint<DATA_MODEL>{
+        this.metaData.addBlueprint()
     }
 
     fun <T : DTOClass<DATA_MODEL, ENTITY>> T.update(single:AbstractDTOModel<DATA_MODEL, ENTITY>, block: T.() -> Unit): Unit {
@@ -52,14 +69,21 @@ class ServiceContext<DATA_MODEL, ENTITY>(
         this.block()
     }
 
-    fun saveDtoEntity(dtoEntity: AbstractDTOModel<DATA_MODEL, ENTITY>){
+    fun <DTO : DTOClass<DATA_MODEL, ENTITY>> DTO.select(block: DTO.() -> Unit): Unit {
+        this.block()
+         var  entityDAO : ENTITY
+        dbQuery {
+            entityModel.all().forEach {
 
-        val a = dtoEntity
-        dbQuery{
-         //   dtoModel.initChild()
-         //   dtoModel.update()
+              //  this.create()
+                entityDAO = it
+
+            }
         }
+         val a = 10
     }
+
+
 
 //    private fun getDependantTables(forTable:IdTable<Long>): List<IdTable<Long>> {
 //        val dependant = dtoCompanion.parentEntityDTO.registeredTables.filter { it.foreignKeys.map { keyMap->keyMap.targetTable.tableName }.contains(forTable.tableName) }

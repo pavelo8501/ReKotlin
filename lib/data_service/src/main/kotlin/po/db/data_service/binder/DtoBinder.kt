@@ -1,7 +1,6 @@
 package po.db.data_service.binder
 
 import org.jetbrains.exposed.dao.LongEntity
-import po.db.data_service.dto.DTOEntityMarker
 import po.db.data_service.dto.DataModel
 import kotlin.reflect.KMutableProperty1
 
@@ -40,35 +39,3 @@ class DTOPropertyBinder <DATA_MODEL, ENTITY>(
         propertyList.forEach { it.update(dataModel, entityModel, force) }
     }
 }
-
-
-//class DTOBinder <DATA, ENTITY, TYPE>( vararg  props : PropertyBinding<DATA, ENTITY, TYPE >)
-//        where DATA : ModelDTOContext, ENTITY : LongEntity{
-//    private val properties = props.toList()
-//    fun updateProperties(dataModel: DATA, entityModel: ENTITY, force: Boolean = false) {
-//        properties.forEach { it.update(dataModel, entityModel, force) }
-//    }
-//}
-
-
-//class DTOBinderClass<T : ModelDTOContext, E : LongEntity>(vararg  props : BindPropertyClass<T, E, *>):  CommonBinder<T, E>{
-//    override var modelDTO   : T? = null
-//    override var entityDAO  : E? = null
-//    override var properties : List<BindPropertyClass<T, E, *>> = emptyList()
-//    init {
-//        this.properties = props.toList()
-//        properties.forEach{
-//            it.binder = this
-//        }
-//    }
-//    fun setModelObject(model : T){
-//        this.modelDTO = model
-//    }
-//    override fun updateProperties(entity: E, force: Boolean): E {
-//        entityDAO = entity
-//        properties.forEach {
-//            it.update(force)
-//        }
-//        return entity
-//    }
-//}
