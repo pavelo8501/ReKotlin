@@ -29,7 +29,6 @@ import po.api.rest_service.logger.LoggingService
 import po.api.rest_service.models.ApiRequest
 import po.api.rest_service.models.ApiResponse
 import po.api.rest_service.models.LoginRequest
-import po.api.rest_service.models.SelectRequestData
 import po.api.rest_service.plugins.Jwt
 import po.api.rest_service.plugins.LoggingPlugin
 import po.api.rest_service.plugins.RateLimiter

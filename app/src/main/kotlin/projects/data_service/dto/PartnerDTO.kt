@@ -4,29 +4,20 @@ import kotlinx.datetime.LocalDateTime
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
-import po.db.data_service.binder.BindPropertyClass
-import po.db.data_service.binder.ChildClasses
-import po.db.data_service.binder.DTOBinderClass
-import po.db.data_service.binder.OneToManyBinding
-import po.db.data_service.dto.DTOClass
-import po.db.data_service.dto.EntityDTO
-import po.db.data_service.dto.ParentDTOContext
-import po.playground.projects.data_service.services.Departments
+import po.db.data_service.annotations.ClassBinder
+import po.db.data_service.annotations.PropertyBinder
+import po.db.data_service.binder.PropertyBinding
+import po.db.data_service.dao.EntityDAO
+import po.db.data_service.dto.*
 import po.playground.projects.data_service.services.Partners
-import kotlin.Long
-
-@Target(AnnotationTarget.CLASS)
-@Retention(AnnotationRetention.SOURCE)
-annotation class ClassBinder(val key: String)
-
-@Target(AnnotationTarget.PROPERTY)
-@Retention(AnnotationRetention.SOURCE)
-annotation class PropertyBinder (val key: String = "")
 
 
 @ClassBinder("Partner")
-class PartnerEntity(id: EntityID<Long>) : LongEntity(id){
+class PartnerEntity  (id: EntityID<Long>) : LongEntity(id), EntityDAO<Partner, PartnerEntity> {
     companion object : LongEntityClass<PartnerEntity>(Partners)
+
+    override var entityDao: EntityDAO<Partner, PartnerEntity> =  this
+
     @PropertyBinder("name")
     var name by Partners.name
     @PropertyBinder("legalName")
@@ -39,50 +30,31 @@ class PartnerEntity(id: EntityID<Long>) : LongEntity(id){
     var created by Partners.created
     @PropertyBinder("updated")
     var updated by Partners.updated
-
-    val departments by  DepartmentEntity referrersOn Departments.partner
-
+    //val departments by  DepartmentEntity referrersOn Departments.partne
 }
 
-
-@ClassBinder("Partner")
-data class PartnerDTO(
+data class Partner(
     override var id: Long,
-    @PropertyBinder("name")
     var name: String,
-    @PropertyBinder("legalName")
     var legalName: String,
-    @PropertyBinder("regNr")
     var regNr: String? = null,
-    @PropertyBinder("vatNr")
     var vatNr: String? = null,
-    @PropertyBinder("updated")
     var updated: LocalDateTime,
-    @PropertyBinder("created")
     var created: LocalDateTime,
-): EntityDTO<PartnerDTO, PartnerEntity>(PartnerDTO,PartnerEntity), ParentDTOContext{
+): AbstractDTOModel<Partner, PartnerEntity>(Partner), DataModel<PartnerEntity>{
 
-    companion object : DTOClass<PartnerDTO, PartnerEntity>(
-            DTOBinderClass(
-                BindPropertyClass("name",PartnerDTO::name ,PartnerEntity::name),
-                BindPropertyClass("legalName",PartnerDTO::legalName ,PartnerEntity::legalName),
-                BindPropertyClass("regNr",PartnerDTO::regNr ,PartnerEntity::regNr),
-                BindPropertyClass("vatNr",PartnerDTO::vatNr ,PartnerEntity::vatNr),
-                BindPropertyClass("updated",PartnerDTO::updated ,PartnerEntity::updated),
-                BindPropertyClass("created",PartnerDTO::created ,PartnerEntity::created),
-            )
-    )
-
-  val departments: MutableList<DepartmentDTO> = mutableListOf()
-
-  override fun bindings(): ChildClasses<*,*,*,*> {
-     return ChildClasses<DepartmentDTO,DepartmentEntity, PartnerDTO, PartnerEntity>(
-                PartnerDTO,
-                OneToManyBinding<DepartmentDTO,DepartmentEntity,PartnerDTO,PartnerEntity>(DepartmentDTO, PartnerEntity::departments, DepartmentEntity::partner, departments)
-            )
-    }
-
-    override fun updateChild(){
-
+    companion object : DTOClass<Partner, PartnerEntity>(PartnerEntity) {
+        override fun configuration() {
+            config<Partner>{
+                setProperties(
+                    PropertyBinding("name", Partner::name, PartnerEntity::name),
+                    PropertyBinding("legalName",Partner::legalName, PartnerEntity::legalName),
+                    PropertyBinding("regNr", Partner::regNr, PartnerEntity::regNr),
+                    PropertyBinding("vatNr", Partner::vatNr, PartnerEntity::vatNr),
+                    PropertyBinding("updated", Partner::updated, PartnerEntity::updated),
+                    PropertyBinding("created", Partner::created, PartnerEntity::created)
+                )
+            }
+        }
     }
 }

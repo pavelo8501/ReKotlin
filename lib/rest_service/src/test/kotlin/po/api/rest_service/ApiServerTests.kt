@@ -11,22 +11,15 @@ import io.ktor.server.testing.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
-import kotlinx.serialization.modules.polymorphic
 import po.api.rest_service.logger.LogLevel
-import po.api.rest_service.models.DefaultLoginRequest
-import po.api.rest_service.models.DeleteRequestData
-import po.api.rest_service.models.LoginRequestData
-import po.api.rest_service.models.RequestData
-import po.api.rest_service.models.SelectRequestData
-import po.api.rest_service.models.UpdateRequestData
-import kotlin.text.get
+
 
 class ApiServerTest {
 
     @Test
     fun `server starts with no params supplied`() = testApplication {
         application {
-            RestServer().configure(this)
+            RestServer().configureServer(this)
         }
         val response = client.get("/api/status")
         assertEquals(HttpStatusCode.OK, response.status)
@@ -37,7 +30,7 @@ class ApiServerTest {
     @Test
     fun `test logger is registered in attributes`() = testApplication {
         application {
-            RestServer().configure(this)
+            RestServer().configureServer(this)
             val logger = this.attributes[RestServer.loggerKey]
             assertNotNull(logger, "Logger should be registered in the application attributes.")
         }
@@ -46,7 +39,7 @@ class ApiServerTest {
     @Test
     fun `test status route returns OK`() = testApplication {
         application {
-            RestServer().configure(this)
+            RestServer().configureServer(this)
         }
         val response = client.get("/api/status")
         assertEquals(200, response.status.value)
@@ -56,7 +49,7 @@ class ApiServerTest {
     @Test
     fun `test ContentNegotiation plugin is installed`() = testApplication {
         application {
-            RestServer().configure(this)
+            RestServer().configureServer(this)
         }
         val response = client.get("/api/status-json") {
             accept(ContentType.Application.Json)
@@ -67,7 +60,7 @@ class ApiServerTest {
     @Test
     fun `test CORS plugin is installed`() = testApplication {
         application {
-            RestServer().configure(this)
+            RestServer().configureServer(this)
         }
         val response = client.options("/api/status") {
             header(HttpHeaders.Origin, "http://localhost") // Ensure the correct origin is set
@@ -88,7 +81,7 @@ class ApiServerTest {
                 apiLogger.registerLogFunction(LogLevel.MESSAGE) { msg, _, _, _ ->
                     logMessage = msg
                 }
-            }.configure(this)
+            }.configureServer(this)
         }
 
         val response = client.get("/api/status")
@@ -104,22 +97,6 @@ class ApiServerTest {
         assertEquals(8081, apiServer.port)
     }
 
-    @Test
-    fun `test jsonDefault with polymorphic configuration`() {
 
-        val json = RestServer.jsonDefault {
-            polymorphic(RequestData::class) {
-                subclass(SelectRequestData::class, SelectRequestData.serializer())
-                subclass(UpdateRequestData::class, UpdateRequestData.serializer())
-                subclass(DeleteRequestData::class, DeleteRequestData.serializer())
-                subclass(LoginRequestData::class, LoginRequestData.serializer())
-            }
-        }
-        val data = LoginRequestData(DefaultLoginRequest("username", "password"))
-        val serialized = json.encodeToString(RequestData.serializer(), data)
-        val deserialized = json.decodeFromString(RequestData.serializer(), serialized)
-
-        assertEquals(data, deserialized)
-    }
 
 }

@@ -7,7 +7,7 @@ val hikaricpVersion: String by project
 val mysqlVersion: String by project
 
 plugins {
-    kotlin("jvm") version "2.0.21"
+    kotlin("jvm")
     kotlin("plugin.serialization")
     id("com.google.devtools.ksp")
     application

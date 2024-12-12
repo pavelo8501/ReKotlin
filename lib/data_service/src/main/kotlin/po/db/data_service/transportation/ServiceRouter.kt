@@ -1,55 +1,64 @@
 package po.db.data_service.transportation
 
-import io.ktor.util.reflect.TypeInfo
 import org.jetbrains.exposed.dao.LongEntity
+import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.sql.Database
+import po.db.data_service.constructors.ConstructorBlueprint
 import po.db.data_service.dto.DTOClass
-import po.db.data_service.dto.EntityDTO
-import po.db.data_service.dto.ModelDTOContext
+import po.db.data_service.dto.DataModel
+import po.db.data_service.services.models.ServiceRegistry
+import po.db.data_service.services.models.ServiceUniqueKey
 import po.db.data_service.structure.ServiceContext
-
+import kotlin.reflect.KClass
 
 enum  class TableCreateMode{
     CREATE,
     FORCE_RECREATE
 }
 
-data class ServiceCreateOptions<T : ModelDTOContext ,E : LongEntity>(
+data class ServiceCreateOptions<DATA_MODEL, ENTITY>(
     val createTable: TableCreateMode = TableCreateMode.CREATE,
-){
-    var service: ServiceContext<T,E> ? = null
+) where DATA_MODEL : DataModel, ENTITY : LongEntity
+{
+    var service: ServiceContext<DATA_MODEL, ENTITY> ? = null
 }
 
 
 class ServiceRouter(
     private val connectionName: String,
     private val connection: Database,
-)
-{
+    private val serviceRegistry :ServiceRegistry
+) {
+    fun <DATA_MODEL : DataModel, ENTITY : LongEntity> createService(
+        serviceName:String,
+        dtoModel : DTOClass<DATA_MODEL, ENTITY>,
+        entityModel : LongEntityClass<ENTITY> ) : ServiceContext<DATA_MODEL, ENTITY>{
+        return ServiceContext(serviceName, connection,  dtoModel, entityModel )
+    }
 
-    val services :  MutableMap<String, ServiceContext<*,*>> = mutableMapOf()
+    private fun <DATA_MODEL, ENTITY> getOrCreateService(
+        routeKey: ServiceUniqueKey,
+        dtoModel: DTOClass<DATA_MODEL, ENTITY>,
+        entityModel : LongEntityClass<ENTITY>,
+    ) : ServiceContext<DATA_MODEL, ENTITY >  where DATA_MODEL : DataModel, ENTITY : LongEntity{
 
-    private fun <T : ModelDTOContext, E: LongEntity>getOrCreateService(routeName:String, entityDTOClass: DTOClass<T,E>):ServiceContext<T, E>{
-        services[routeName]?.let {
-            @Suppress("UNCHECKED_CAST")
-            return it as ServiceContext<T,E>
-        }
-        ServiceContext(routeName, connection, entityDTOClass).let {
-            services[routeName] = it
+        createService<DATA_MODEL,ENTITY>(routeKey.serviceName, dtoModel, entityModel ).let {
+           // serviceRegistry.registerService(routeKey, it, dataModelClass, entityModelClass)
             return it
         }
     }
 
-    fun <T : ModelDTOContext, E: LongEntity >initializeRoute(
-        routeName: String,
-        entityDTOClass: DTOClass<T,E>,
-        createOptions: ServiceCreateOptions<T,E>? = null
-    ): ServiceContext<T,E> {
-
-        getOrCreateService(routeName, entityDTOClass).let {
-
-            return it
+    fun <DATA_MODEL : DataModel, ENTITY: LongEntity >initializeRoute(
+        serviceUniqueKey: ServiceUniqueKey,
+        service  : ServiceContext<DATA_MODEL, ENTITY>,
+        rootDataModelBlueprint: ConstructorBlueprint<DATA_MODEL>,
+    ): ServiceContext<DATA_MODEL, ENTITY> {
+        serviceRegistry.registerService(serviceUniqueKey, service, rootDataModelBlueprint).let {
+            service.initialize(it)
         }
+        service.dataModelClass = rootDataModelBlueprint.clazz
+
+        return service
     }
 }
 

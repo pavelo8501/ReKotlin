@@ -21,7 +21,7 @@ class JwtPluginTest {
     @Test
     fun `Jwt plugin installs correctly`() = testApplication {
         application {
-            RestServer().configure(this)
+            RestServer().configureServer(this)
             assertNotNull(this.jwtService, "JWT plugin should be installed and jwtService should not be null.")
         }
     }
@@ -29,7 +29,7 @@ class JwtPluginTest {
     @Test
     fun `Jwt plugin handles missing configuration`() = testApplication {
         application {
-            RestServer().configure(this)
+            RestServer().configureServer(this)
             assertFalse(this.jwtService.ready)
         }
     }
