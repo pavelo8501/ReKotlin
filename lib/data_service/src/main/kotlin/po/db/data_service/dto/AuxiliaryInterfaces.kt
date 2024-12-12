@@ -17,4 +17,5 @@ interface DTOEntityMarker<ENTITY> {
  */
 interface DataModel<ENTITY> : DTOEntityMarker<ENTITY> {
     var id : Long
+    val dataModel : Any
 }

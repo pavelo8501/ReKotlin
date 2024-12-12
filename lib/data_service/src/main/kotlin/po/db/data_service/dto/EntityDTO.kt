@@ -65,6 +65,24 @@ abstract class AbstractDTOModel<DATA_MODEL: DataModel<ENTITY>, ENTITY : LongEnti
         }
 }
 
+abstract class DTOCommon<DATA_MODEL : Any, ENTITY : LongEntity>(private val data: DATA_MODEL):DTOEntityMarker<ENTITY>{
+
+    override val dataModelClassName: String = ""
+
+    abstract fun mapToEntity(entity: ENTITY): ENTITY
+    abstract fun mapFromEntity(entity: ENTITY): DATA_MODEL
+
+    fun updateEntity(entity: ENTITY): ENTITY {
+        return mapToEntity(entity)
+    }
+
+    override fun setEntityDAO(entity: ENTITY) {
+        TODO("Not yet implemented")
+    }
+
+    fun toDTO(): DATA_MODEL = data
+}
+
 //abstract class EntityDTO<T: ModelDTOContext, E: LongEntity>{
 //    //companion object : EntityDTOClass<ModelDTOContext,LongEntity>()
 //    abstract var id : Long;
