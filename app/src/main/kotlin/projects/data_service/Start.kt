@@ -16,11 +16,10 @@ fun startDataService(connectionInfo : ConnectionInfo) {
     )
 
     DatabaseManager.openConnection(connectionInfo){
-        service<PartnerDataModel, PartnerEntity>("Partner",PartnerDTO, PartnerEntity){
-//            Partner.update(list) {
-//            }
+        service<PartnerDataModel, PartnerEntity>("Partner", PartnerDTO){
 
-
+            //            Partner.update(list) {
+            // }
 
             PartnerDTO.select {
                 val list = it

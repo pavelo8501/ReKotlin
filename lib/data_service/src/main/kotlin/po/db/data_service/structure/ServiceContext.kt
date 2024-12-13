@@ -4,26 +4,44 @@ import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction
+import po.db.data_service.constructors.ConstructorBuilder
 import po.db.data_service.dto.*
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.InitializationException
+import po.db.data_service.models.NotificationEvent
 import po.db.data_service.services.models.ServiceMetadata
 import kotlin.reflect.KClass
 
 class ServiceContext<DATA_MODEL : DataModel, ENTITY : LongEntity>(
     val name : String,
-    private val connection: Database,
     private val rootDtoModel : DTOClass<DATA_MODEL, ENTITY>,
-    private val entityModel : LongEntityClass<ENTITY>,
+    private val dbConnection: Database,
+    private val connectionContext : ConnectionContext,
 ) {
+    companion object : ConstructorBuilder()
+
+    var state : ContextState = ContextState.UNINITIALIZED
+        set(value){
+            if(field != value){
+                field = value
+                when(field){
+                    ContextState.INITIALIZED->{
+                        initialize(metaData)
+                    }
+                    else->{}
+                }
+            }
+        }
+
     private var _metaData : ServiceMetadata<DATA_MODEL, ENTITY>? = null
     private val metaData : ServiceMetadata<DATA_MODEL, ENTITY>
         get(){
-            if(_metaData == null){
-                throw InitializationException("Service $name failed to initialize properly. MetaData missing", ExceptionCodes.NOT_INITIALIZED)
-            }
-            return this._metaData!!
+            return _metaData?: throw InitializationException("Service $name failed to initialize properly. MetaData missing", ExceptionCodes.NOT_INITIALIZED)
         }
+    fun setServiceMetadata(meta : ServiceMetadata<DATA_MODEL, ENTITY>){
+        _metaData  = meta
+        state = ContextState.INITIALIZED
+    }
 
     var dataModelClass: KClass<DATA_MODEL>? = null
 
@@ -34,32 +52,39 @@ class ServiceContext<DATA_MODEL : DataModel, ENTITY : LongEntity>(
     }
 
     init {
-        this._metaData = metaData
-        rootDtoModel.initializeDTO {
-          //  metaData.getBlueprint<DATA_MODEL>(rootDtoModel.dtoModelClassName)?.let {
-//           // rootDtoModel.initDTO(it, this)
-//        }?: throw  InitializationException("Service $name failed to initialize DTO Model Class", ExceptionCodes.NOT_INITIALIZED )
-           // setBlueprints()
-        }
+
+    }
+
+    private fun handleDtoInitialization(outer : DTOClassOuterContext<DATA_MODEL, ENTITY>, inner : DTOClassInnerContext<DATA_MODEL, ENTITY> ){
+        val modelBlueprint = getConstructorBlueprint(outer.dataModelClass)
+        metaData.addModelBlueprint(outer.dataModelClass, modelBlueprint)
+        val dtoBlueprint =  getConstructorBlueprint(outer.dtoModelClass)
+        metaData.addDtoBlueprint(outer.dtoModelClass, dtoBlueprint)
+        inner.setBlueprints(dtoBlueprint, modelBlueprint)
     }
 
 
-    private fun initDTO(entityDTO : AbstractDTOModel<DATA_MODEL,ENTITY>){
-        if(entityDTO.id == 0L){
-           val newEntity = dbQuery {
-                return@dbQuery  entityModel.new {
-                   // modelConfiguration.propertyBinder.updateProperties(entityDTO.dataModel, this)
-                }
-            }
-            entityDTO.setEntityDAO(newEntity)
-        }
-    }
+//    private fun initDTO(entityDTO : AbstractDTOModel<DATA_MODEL,ENTITY>){
+//        if(entityDTO.id == 0L){
+//           val newEntity = dbQuery {
+//                return@dbQuery  entityDTO. .new {
+//                   // modelConfiguration.propertyBinder.updateProperties(entityDTO.dataModel, this)
+//                }
+//            }
+//            entityDTO.setEntityDAO(newEntity)
+//        }
+//    }
 
     fun initialize(metaData : ServiceMetadata<DATA_MODEL, ENTITY>){
-       // rootDtoModel.configuration()
-//        metaData.getBlueprint<DATA_MODEL>(rootDtoModel.dtoModelClassName)?.let {
-//           // rootDtoModel.initDTO(it, this)
-//        }?: throw  InitializationException("Service $name failed to initialize DTO Model Class", ExceptionCodes.NOT_INITIALIZED )
+        rootDtoModel.initializeDTO(this) {
+            if(outerContext.state == ContextState.INITIALIZED){
+                handleDtoInitialization(this.outerContext, this)
+            }else{
+                outerContext.notificator.subscribe("ServiceContext", NotificationEvent.ON_INITIALIZED){
+                    handleDtoInitialization(this.outerContext, this)
+                }
+            }
+        }
     }
 
 //    fun <DATA_MODEL : DataModel, ENTITY : LongEntity>getDTOBlueprint(): ConstructorBlueprint<DATA_MODEL>{
@@ -67,23 +92,24 @@ class ServiceContext<DATA_MODEL : DataModel, ENTITY : LongEntity>(
 //    }
 
     fun <T : DTOClass<DATA_MODEL, ENTITY>> T.update(single:AbstractDTOModel<DATA_MODEL, ENTITY>, block: T.() -> Unit): Unit {
-        this@ServiceContext.initDTO(single)
+      // this@ServiceContext.initDTO(single)
         this.block()
     }
 
     fun <DTO : DTOClass<DATA_MODEL, ENTITY>> DTO.update(list : List<AbstractDTOModel<DATA_MODEL, ENTITY>>,   block: DTO.() -> Unit): Unit {
-        list.forEach { this@ServiceContext.initDTO(it) }
+       // list.forEach { this@ServiceContext.initDTO(it) }
         this.block()
     }
 
-    fun <DTO : DTOClass<DATA_MODEL, ENTITY>> DTO.select(block: DTO.(List<DATA_MODEL>) -> Unit): Unit {
-        val result  = mutableListOf<DATA_MODEL>()
+    fun <DATA_MODEL : DataModel, ENTITY: LongEntity> DTOClass<DATA_MODEL, ENTITY>.select(block: DTOClass<DATA_MODEL, ENTITY>.(List<DATA_MODEL>) -> Unit): Unit {
+
+        val result  = mutableListOf<CommonDTO<DATA_MODEL, ENTITY>>()
         dbQuery {
-            entityModel.all().forEach {
+            this.daoEntityModel.all().forEach {
                 result.add(this.create(it))
             }
         }
-        this.block(result)
+
       //  return result
     }
 
@@ -136,7 +162,7 @@ class ServiceContext<DATA_MODEL : DataModel, ENTITY : LongEntity>(
 //        }
 //    }
 //
-   private fun  <T>dbQuery(body : () -> T): T = transaction(connection) {
+   private fun  <T>dbQuery(body : () -> T): T = transaction(dbConnection) {
         body()
     }
 

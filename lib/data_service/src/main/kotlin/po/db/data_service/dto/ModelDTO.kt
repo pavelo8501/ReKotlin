@@ -8,9 +8,11 @@ import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import po.db.data_service.binder.PropertyBinding
 import po.db.data_service.constructors.ClassBlueprint
+import po.db.data_service.constructors.ConstructorBuilder
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.InitializationException
 import po.db.data_service.exceptions.OperationsException
+import po.db.data_service.models.NotificationEvent
 import po.db.data_service.models.Notificator
 import po.db.data_service.structure.ServiceContext
 import kotlin.reflect.KClass
@@ -22,18 +24,27 @@ data class ModelEntityPairContainer<DATA_MODEL, ENTITY>(
 //    val entityModel : LongEntityClass<ENTITY>
 )
 
-
+enum class ContextState{
+    UNINITIALIZED,
+    BEFORE_INITIALIZATION,
+    INITIALIZED,
+    INITIALIZATION_FAILURE
+}
 
 class DTOClassInnerContext<DATA_MODEL, ENTITY>(
-    val configuration : ModelDTOConfig<DATA_MODEL, ENTITY>,
-    subscribe :  (Notificator.()-> Unit)? = null): CanNotify  where   DATA_MODEL : DataModel, ENTITY : LongEntity{
+    private val configuration : ModelDTOConfig<DATA_MODEL, ENTITY>,
+    val outerContext : DTOClassOuterContext<DATA_MODEL, ENTITY>,
+    notifications: ((Notificator)-> Unit)? = null ): CanNotify  where   DATA_MODEL : DataModel, ENTITY : LongEntity{
+
+    companion object : ConstructorBuilder()
 
     override val name = "DTOClassInnerContext"
+    private var notificator = Notificator(this)
 
-    val notifications = Notificator(this)
-
-    init{
-        subscribe?.invoke(notifications)
+    init {
+        if(notifications != null){
+            notificator  = Notificator(this).also(notifications)
+        }
     }
 
     private var  _dtoModelBlueprint : ClassBlueprint<CommonDTO<DATA_MODEL, ENTITY>>? = null
@@ -51,22 +62,80 @@ class DTOClassInnerContext<DATA_MODEL, ENTITY>(
         _dtoModelBlueprint = dtoBluePrint
         _dataModelBlueprint = dataModelBlueprint
     }
+
+    var serviceContext: ServiceContext<DATA_MODEL, ENTITY>? = null
+        get() {return field }
+        set(value){
+            field = value
+        }
+
+    fun create(daoEntity : ENTITY): CommonDTO<DATA_MODEL, ENTITY> {
+        val dataModel = try {
+            val model = configuration.dataModelConstructor?.invoke().let { model ->
+                model?: dataModelBlueprint.getEffectiveConstructor().callBy(dataModelBlueprint.constructorParams)
+            }
+            model
+        }catch (ex: Exception) {
+            throw OperationsException("DataModel  creation failed ${ex.message}", ExceptionCodes.REFLECTION_ERROR)
+        }
+
+        val dtoEntity = try {
+            val params = dtoModelBlueprint.constructorParams
+            val args =  getArgsForConstructor(dtoModelBlueprint){
+                 when(it){
+                     "dataModel"->{
+                         dataModel
+                     }
+                     else->{null}
+                 }
+             }
+             dtoModelBlueprint.getEffectiveConstructor().callBy(args)
+        }catch (ex:Exception){
+            throw  OperationsException("DTO entity creation failed ${ex.message} ", ExceptionCodes.REFLECTION_ERROR)
+        }
+        dtoEntity.setEntityDAO(daoEntity)
+        return dtoEntity
+
+//        return if(!initialClassCheckComplete){
+//            if(model::class.isSubclassOf(AbstractDTOModel::class)){
+//                initialClassCheckComplete = true
+//                (model as AbstractDTOModel<DATA_MODEL, ENTITY>).also {
+//                    it.entityDAO = daoEntity
+//                }
+//            }else{
+//                throw OperationsException("Created model class does not derive from AbstractDTOModel", ExceptionCodes.REFLECTION_ERROR)
+//            }
+//        }else{
+//            model as AbstractDTOModel<DATA_MODEL, ENTITY>
+//        }
+    }
 }
 
 class DTOClassOuterContext<DATA_MODEL, ENTITY>(
     private val configuration : ModelDTOConfig<DATA_MODEL, ENTITY>,
-    notifications : (Notificator)-> Unit): CanNotify  where   DATA_MODEL : DataModel, ENTITY : LongEntity{
+    notifications : ((Notificator)-> Unit)?= null) : CanNotify  where   DATA_MODEL : DataModel, ENTITY : LongEntity{
+
+    var state:ContextState = ContextState.UNINITIALIZED
+        set(value){
+            if(field!=value){
+                field = value
+                when(field){
+                    ContextState.INITIALIZED->{
+                        notificator.trigger(NotificationEvent.ON_INITIALIZED)
+                    }
+                    else->{}
+                }
+            }
+        }
 
     override val name = "DTOClassOuterContext"
-
-    val notificator : Notificator
+    var notificator  = Notificator(this)
 
     init {
-        notificator = Notificator(this).also(notifications)
+        if(notifications!=null){
+            notificator = Notificator(this).also(notifications)
+        }
     }
-
-   // val notifications = Notificator(this)
-
     private var dtoModelClassName : String = "undefined"
 
     private var _entityModel: LongEntityClass<ENTITY>? = null
@@ -102,7 +171,7 @@ class DTOClassOuterContext<DATA_MODEL, ENTITY>(
         setDataModelClass(dataModel)
         setDTOModelClass(dtoModel)
         setEntityModel(daoEntityModel)
-        notificator.triggerNotification()
+        state = ContextState.INITIALIZED
     }
 
     fun setProperties(vararg props: PropertyBinding<DATA_MODEL, ENTITY, *>) = configuration.setProperties(props.toList())
@@ -114,110 +183,31 @@ abstract class DTOClass<DATA_MODEL, ENTITY>() where DATA_MODEL : DataModel, ENTI
 
     private val dtoConfig  = ModelDTOConfig<DATA_MODEL, ENTITY>()
 
-    private val innerContext = DTOClassInnerContext(dtoConfig)
+    val outerContext = DTOClassOuterContext(dtoConfig)
+    private val innerContext = DTOClassInnerContext(dtoConfig, outerContext)
 
-    val outerContext = DTOClassOuterContext(dtoConfig){
-       it.subscribe(this, it.notifications[2]){
-            println("Callback Fired")
-        }
-    }
+    val daoEntityModel: LongEntityClass<ENTITY>
+        get (){return outerContext.entityModel}
 
-    private var  _dtoBlueprint : ClassBlueprint<DATA_MODEL>? = null
-    private val dtoBlueprint : ClassBlueprint<DATA_MODEL>
-        get(){
-            return _dtoBlueprint?: throw InitializationException("dtoBlueprint", ExceptionCodes.NOT_INITIALIZED)
-        }
+    fun create(daoENTITY: ENTITY) = innerContext.create(daoENTITY)
 
-
-    private var _serviceContext:ServiceContext<DATA_MODEL, ENTITY>? = null
-    val serviceContext: ServiceContext<DATA_MODEL, ENTITY>
-        get() = _serviceContext ?: throw InitializationException(
-            "DTO model should be configured inside  DTOClass configuration function",
-            ExceptionCodes.INITIALIZATION_OUTSIDE_CONTEXT
-        )
 
     protected abstract fun configuration()
-
-    //abstract fun configuration2(context : (DTOClassOuterContext<DATA_MODEL, ENTITY>)-> Unit )
-
-    fun initializeRef(
-        dtoBlueprint : ClassBlueprint<DATA_MODEL>,
-        context : ServiceContext<DATA_MODEL, ENTITY>
-    ){
-        this._dtoBlueprint = dtoBlueprint
-        this._serviceContext = context
-    }
-
-//    fun config()
-    //    private  fun <T>conf(conf: DTOClassOuterContext<DATA_MODEL,ENTITY>, statement: DTOClassOuterContext<DATA_MODEL,ENTITY>.() -> T): T =   statement.invoke(outerContext)
-    //    abstract fun <T>configuration(config : ()->Unit ):T
-    //    private val con: (DTOClassOuterContext<DATA_MODEL, ENTITY>.() -> Unit) = {
-//    }
 
     init {
         this.configuration()
     }
 
-    fun initializeDTO(context: DTOClassInnerContext<DATA_MODEL, ENTITY>.() -> Unit){
+    fun initializeDTO(serviceContext : ServiceContext<DATA_MODEL, ENTITY>,  context: DTOClassInnerContext<DATA_MODEL, ENTITY>.() -> Unit){
+        innerContext.serviceContext = serviceContext
         context(innerContext)
     }
-//    inline fun <reified T:DataModel> config(noinline body: ModelDTOConfig<DATA_MODEL, ENTITY>.() ->  Unit) = serviceContext.config{
-//        body.invoke(this)
-//        dtoModelClass = T::class
-//        val clazz =  T::class
-//        val a = 10
-//    }
 
     fun nowTime():LocalDateTime{
         return LocalDateTime.Companion.parse(Clock.System.now().toLocalDateTime(TimeZone.UTC).toString())
     }
 
     var initialClassCheckComplete = false
-
-    fun <T : Any>create(daoEntity : ENTITY): T {
-        val dataModel = try {
-             val model = dtoConfig.dataModelConstructor?.invoke().let { model ->
-                 model?: if (dtoBlueprint.effectiveConstructor != null) {
-                         dtoBlueprint.effectiveConstructor!!.callBy(dtoBlueprint.constructorParams)
-                     }else {
-                         dtoBlueprint.clazz.constructors.find { it.parameters.isEmpty() }?.call()
-                         throw OperationsException(
-                             "DTO entity creation failed, supplied class definition has no appropriate constructor",
-                             ExceptionCodes.NO_EMPTY_CONSTRUCTOR
-                         )
-                     }
-                 }
-             model
-             }catch (ex: Exception) {
-                throw OperationsException("DataModel  creation failed ${ex.message}", ExceptionCodes.REFLECTION_ERROR)
-            }
-
-            val dtoEntity = try {
-                if(dtoBlueprint.effectiveConstructor != null) {
-                   dtoBlueprint.effectiveConstructor!!.callBy(dtoBlueprint.constructorParams)
-                }else {
-                    dtoBlueprint.clazz.constructors.find { it.parameters.isEmpty() }?.call()
-                    throw  OperationsException("DTO entity creation failed, supplied class definition has no appropriate constructor", ExceptionCodes.NO_EMPTY_CONSTRUCTOR)
-                }
-            }catch (ex:Exception){
-                throw  OperationsException("DTO entity creation failed ${ex.message} ", ExceptionCodes.REFLECTION_ERROR)
-            }
-
-        return dtoEntity as T
-
-//        return if(!initialClassCheckComplete){
-//            if(model::class.isSubclassOf(AbstractDTOModel::class)){
-//                initialClassCheckComplete = true
-//                (model as AbstractDTOModel<DATA_MODEL, ENTITY>).also {
-//                    it.entityDAO = daoEntity
-//                }
-//            }else{
-//                throw OperationsException("Created model class does not derive from AbstractDTOModel", ExceptionCodes.REFLECTION_ERROR)
-//            }
-//        }else{
-//            model as AbstractDTOModel<DATA_MODEL, ENTITY>
-//        }
-    }
 
     inline fun <reified DTO : CommonDTO<DATA_MODEL, ENTITY>,  reified DATA_MODEL, ENTITY>  DTOClass<DATA_MODEL, ENTITY>.initializeDTO(
         entityModel: LongEntityClass<ENTITY>,

@@ -10,8 +10,8 @@ enum class  ExceptionCodes (val errorCode:Int) {
     LAZY_NOT_INITIALIZED (1006),
 
     NO_EMPTY_CONSTRUCTOR(2001),
-    REFLECTION_ERROR(2002);
-
+    REFLECTION_ERROR(2002),
+    CONSTRUCTOR_MISSING(2003);
 
     companion object {
         fun fromValue(errorCode: Int): ExceptionCodes {

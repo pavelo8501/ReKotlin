@@ -2,33 +2,40 @@ package po.db.data_service.services.models
 
 import org.jetbrains.exposed.dao.LongEntity
 import po.db.data_service.constructors.ClassBlueprint
+import po.db.data_service.dto.CommonDTO
+import po.db.data_service.dto.DAOWInstance
 import po.db.data_service.dto.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.InitializationException
 import po.db.data_service.structure.ServiceContext
+import kotlin.reflect.KClass
 
 
-data class ServiceMetadata<DATA_MODEL : DataModel, ENTITY : LongEntity>(
+data class ServiceMetadata<DATA_MODEL, ENTITY>(
     val key: ServiceUniqueKey,
     val service: ServiceContext<DATA_MODEL, ENTITY>,
-    private val entityBlueprint : ClassBlueprint<DATA_MODEL>,
-   // val dtoClass: KClass<DATA_MODEL>,
-   // val entityClass:  KClass<LongEntityClass<ENTITY>>
-) {
-    private val dtoEntityBlueprints = mutableMapOf<String, ClassBlueprint<*>>()
+) where DATA_MODEL :  DataModel, ENTITY : LongEntity {
 
-    init {
-        addBlueprint(entityBlueprint)
+    private val modelBlueprints = mutableMapOf<KClass<DATA_MODEL>, ClassBlueprint<DATA_MODEL>>()
+    private val dtoBlueprints = mutableMapOf<KClass<out CommonDTO<DATA_MODEL, ENTITY>>, ClassBlueprint<CommonDTO<DATA_MODEL,ENTITY>>>()
+
+    fun addDtoBlueprint(classDefinition : KClass<CommonDTO<DATA_MODEL, ENTITY>>, entityBlueprint: ClassBlueprint<CommonDTO<DATA_MODEL,ENTITY>>) {
+        dtoBlueprints.putIfAbsent(classDefinition, entityBlueprint)
     }
 
-    fun <DATA_MODEL : DataModel> addBlueprint(entityBlueprint: ClassBlueprint<DATA_MODEL>) {
-        dtoEntityBlueprints.putIfAbsent(entityBlueprint.className, entityBlueprint)
+    fun addModelBlueprint(classDefinition : KClass<DATA_MODEL>, modelBlueprint: ClassBlueprint<DATA_MODEL>) {
+        modelBlueprints.putIfAbsent(classDefinition, modelBlueprint)
     }
 
-    @Suppress("UNCHECKED_CAST")
-    fun <DATA_MODEL : DataModel> getBlueprint(className: String): ClassBlueprint<DATA_MODEL>? {
-        this.dtoEntityBlueprints[className]?.let {
-            return it as ClassBlueprint<DATA_MODEL>
+    fun getDTOBlueprint(classDefinition: KClass<CommonDTO<DATA_MODEL, ENTITY>>): ClassBlueprint<CommonDTO<DATA_MODEL, ENTITY>>? {
+        this.dtoBlueprints[classDefinition]?.let {
+            return it
+        }
+        return null
+    }
+    fun getModelBlueprint(classDefinition: KClass<DATA_MODEL>): ClassBlueprint<DATA_MODEL>? {
+        this.modelBlueprints[classDefinition]?.let {
+            return it
         }
         return null
     }
@@ -41,23 +48,14 @@ class ServiceRegistry {
     fun <DATA_MODEL : DataModel, ENTITY : LongEntity> registerService(
         key: ServiceUniqueKey,
         service: ServiceContext<DATA_MODEL, ENTITY>,
-        dtoEntityBlueprint : ClassBlueprint<DATA_MODEL>,
-       // dtoClass: KClass<DATA_MODEL>,
     ): ServiceMetadata<DATA_MODEL, ENTITY> {
-        val metadata = ServiceMetadata(key, service, dtoEntityBlueprint)
+        val metadata = ServiceMetadata(key, service)
         serviceRegistry.putIfAbsent(key,metadata).let {
             if (it == null) {
                 return metadata
             }
         }
         throw InitializationException("Service with the given unique key ${key.serviceName} already exists", ExceptionCodes.ALREADY_EXISTS )
-    }
-
-    fun <DATA_MODEL : DataModel,  ENTITY : LongEntity>addDTOBlueprint(key: ServiceUniqueKey,  blueprint : ClassBlueprint<DATA_MODEL>){
-        getServiceMeta<DATA_MODEL, ENTITY>(key)?.addBlueprint(blueprint) ?:
-            throw InitializationException("Unable to add blueprint to the service name ${key.serviceName}. No service registered with this key",
-                ExceptionCodes.KEY_NOT_FOUND
-            )
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -68,8 +66,6 @@ class ServiceRegistry {
 
     fun <DATA_MODEL : DataModel, ENTITY : LongEntity> getService(
         key: ServiceUniqueKey,
-//        dtoClass: KClass<DATA_MODEL>,
-//        entityClass: KClass<ENTITY>
     ): ServiceContext<DATA_MODEL, ENTITY>? {
         // val metadata = serviceRegistry[key] ?: return null
         // if (metadata.dtoClass == dtoClass && metadata.entityClass == entityClass) {

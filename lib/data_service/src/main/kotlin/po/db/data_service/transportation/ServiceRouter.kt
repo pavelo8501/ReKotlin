@@ -8,6 +8,7 @@ import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.DataModel
 import po.db.data_service.services.models.ServiceRegistry
 import po.db.data_service.services.models.ServiceUniqueKey
+import po.db.data_service.structure.ConnectionContext
 import po.db.data_service.structure.ServiceContext
 
 enum  class TableCreateMode{
@@ -25,38 +26,34 @@ data class ServiceCreateOptions<DATA_MODEL, ENTITY>(
 
 class ServiceRouter(
     private val connectionName: String,
-    private val connection: Database,
+    private val dbConnection: Database,
     private val serviceRegistry :ServiceRegistry
 ) {
     fun <DATA_MODEL : DataModel, ENTITY : LongEntity> createService(
         serviceName:String,
         dtoModel : DTOClass<DATA_MODEL, ENTITY>,
-        entityModel : LongEntityClass<ENTITY> ) : ServiceContext<DATA_MODEL, ENTITY>{
-        return ServiceContext(serviceName, connection, dtoModel, entityModel )
+        connectionContext: ConnectionContext) : ServiceContext<DATA_MODEL, ENTITY>{
+        return ServiceContext(serviceName, dtoModel, dbConnection,  connectionContext)
     }
 
-    private fun <DATA_MODEL, ENTITY> getOrCreateService(
-        routeKey: ServiceUniqueKey,
-        dtoModel: DTOClass<DATA_MODEL, ENTITY>,
-        entityModel : LongEntityClass<ENTITY>,
-    ) : ServiceContext<DATA_MODEL, ENTITY >  where DATA_MODEL : DataModel, ENTITY : LongEntity{
+//    private fun <DATA_MODEL, ENTITY> getOrCreateService(
+//        routeKey: ServiceUniqueKey,
+//        dtoModel: DTOClass<DATA_MODEL, ENTITY>,
+//        entityModel : LongEntityClass<ENTITY>,
+//    ) : ServiceContext<DATA_MODEL, ENTITY >  where DATA_MODEL : DataModel, ENTITY : LongEntity{
+//        createService<DATA_MODEL,ENTITY>(routeKey.serviceName, dtoModel, ).let {
+//           // serviceRegistry.registerService(routeKey, it, dataModelClass, entityModelClass)
+//            return it
+//        }
+//    }
 
-        createService<DATA_MODEL,ENTITY>(routeKey.serviceName, dtoModel, entityModel ).let {
-           // serviceRegistry.registerService(routeKey, it, dataModelClass, entityModelClass)
-            return it
-        }
-    }
-
-    fun <DATA_MODEL : DataModel, ENTITY: LongEntity >initializeRoute(
+    fun <DATA_MODEL : DataModel, ENTITY: LongEntity>initializeRoute(
         serviceUniqueKey: ServiceUniqueKey,
         service  : ServiceContext<DATA_MODEL, ENTITY>,
-        rootDataModelBlueprint: ClassBlueprint<DATA_MODEL>,
     ): ServiceContext<DATA_MODEL, ENTITY> {
-        serviceRegistry.registerService(serviceUniqueKey, service, rootDataModelBlueprint).let {
-            service.initialize(it)
+        serviceRegistry.registerService(serviceUniqueKey, service).let {meta->
+            service.setServiceMetadata(meta)
         }
-        service.dataModelClass = rootDataModelBlueprint.clazz
-
         return service
     }
 }

@@ -2,50 +2,48 @@ package po.db.data_service.models
 
 import po.db.data_service.dto.CanNotify
 
-data class NotificationCallbacks(
-    val onStart : (()-> Unit)? = null,
-    val onFinish : (()-> Unit)? = null,
-    val onInitialized : (()-> Unit)? = null,
-    val onComplete : (()-> Unit)? = null
-){
-    fun asArray():Array<()->Unit>{
-        return Array<()->Unit>(4) {
-            {
-                onStart
-                onFinish
-                onInitialized
-                onComplete
-            }
-        }
+enum class NotificationEvent{
+    ON_START,
+    ON_STOP,
+    ON_INITIALIZED,
+    ON_ERROR;
+    companion object {
+        fun isValidEvent(name: String): Boolean = entries.any { it.name == name }
     }
 }
 
 data class NotifySubscription(
    private val name: String,
-   private val notification : ()->Unit,
    private val callbackFun : ()->Unit
 ){
-    fun triggerNotification(){
-        callbackFun()
+    fun triggerCallback(){
+        this.callbackFun.invoke()
     }
 }
 
 class Notificator(private val owner : CanNotify) {
 
-    val notifications = NotificationCallbacks().asArray()
-    val subscriptions = mutableMapOf<String, NotifySubscription>()
+    private val subscriptions = mutableMapOf<String, MutableList<NotifySubscription>>()
 
-    inline fun <reified T: Any>subscribe(subscriber:T, noinline notification : ()->Unit, noinline callbackFun : ()->Unit ){
-      val name =   subscriber::class.qualifiedName?:subscriber::class.simpleName?: throw Exception("Unable read name")
-      this.subscriptions.putIfAbsent( name ,NotifySubscription(name, notification, callbackFun ) ).let {
-          if(it!= null){
-              //Logic to add subscription
-          }
-      }
+    private fun addSubscription(subscriber: String, event: NotificationEvent, callback: () -> Unit) {
+        subscriptions.computeIfAbsent(event.name) { mutableListOf() }
+            .add(NotifySubscription(subscriber,  callback))
     }
 
-    fun triggerNotification(){
-        this.subscriptions.forEach { it.value.triggerNotification() }
+    fun trigger(event: NotificationEvent) {
+        subscriptions[event.name]?.forEach { subscription ->
+            subscription.triggerCallback()
+        }
     }
+
+    inline fun <reified T: CanNotify>subscribe(event : NotificationEvent, noinline callbackFun : ()->Unit ){
+      val name = T::class.qualifiedName?:T::class.simpleName?: throw Exception("Can not infer class name of a subscriber")
+      this.subscribe(name, event, callbackFun)
+    }
+
+    fun subscribe(subscriberName:String,  event : NotificationEvent, callbackFun : ()->Unit ){
+        this.addSubscription(subscriberName, event, callbackFun)
+    }
+
 
 }
