@@ -4,20 +4,18 @@ import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction
-import po.db.data_service.constructors.ConstructorBlueprint
 import po.db.data_service.dto.*
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.InitializationException
 import po.db.data_service.services.models.ServiceMetadata
 import kotlin.reflect.KClass
 
-class ServiceContext<DATA_MODEL, ENTITY>(
+class ServiceContext<DATA_MODEL : DataModel, ENTITY : LongEntity>(
     val name : String,
     private val connection: Database,
     private val rootDtoModel : DTOClass<DATA_MODEL, ENTITY>,
     private val entityModel : LongEntityClass<ENTITY>,
-)  where DATA_MODEL : DataModel, ENTITY : LongEntity {
-
+) {
     private var _metaData : ServiceMetadata<DATA_MODEL, ENTITY>? = null
     private val metaData : ServiceMetadata<DATA_MODEL, ENTITY>
         get(){
@@ -35,23 +33,33 @@ class ServiceContext<DATA_MODEL, ENTITY>(
         serviceBody()
     }
 
-    private fun initializeDTO(entityDTO : AbstractDTOModel<DATA_MODEL,ENTITY>){
+    init {
+        this._metaData = metaData
+        rootDtoModel.initializeDTO {
+          //  metaData.getBlueprint<DATA_MODEL>(rootDtoModel.dtoModelClassName)?.let {
+//           // rootDtoModel.initDTO(it, this)
+//        }?: throw  InitializationException("Service $name failed to initialize DTO Model Class", ExceptionCodes.NOT_INITIALIZED )
+           // setBlueprints()
+        }
+    }
+
+
+    private fun initDTO(entityDTO : AbstractDTOModel<DATA_MODEL,ENTITY>){
         if(entityDTO.id == 0L){
            val newEntity = dbQuery {
                 return@dbQuery  entityModel.new {
                    // modelConfiguration.propertyBinder.updateProperties(entityDTO.dataModel, this)
                 }
             }
-            entityDTO.entityDAO = newEntity
+            entityDTO.setEntityDAO(newEntity)
         }
     }
 
     fun initialize(metaData : ServiceMetadata<DATA_MODEL, ENTITY>){
-        this._metaData = metaData
-        rootDtoModel.configuration()
-        metaData.getBlueprint<DATA_MODEL>(rootDtoModel.dtoModelClassName)?.let {
-            rootDtoModel.initialize(it, this)
-        }?: throw  InitializationException("Service $name failed to initialize DTO Model Class", ExceptionCodes.NOT_INITIALIZED )
+       // rootDtoModel.configuration()
+//        metaData.getBlueprint<DATA_MODEL>(rootDtoModel.dtoModelClassName)?.let {
+//           // rootDtoModel.initDTO(it, this)
+//        }?: throw  InitializationException("Service $name failed to initialize DTO Model Class", ExceptionCodes.NOT_INITIALIZED )
     }
 
 //    fun <DATA_MODEL : DataModel, ENTITY : LongEntity>getDTOBlueprint(): ConstructorBlueprint<DATA_MODEL>{
@@ -59,12 +67,12 @@ class ServiceContext<DATA_MODEL, ENTITY>(
 //    }
 
     fun <T : DTOClass<DATA_MODEL, ENTITY>> T.update(single:AbstractDTOModel<DATA_MODEL, ENTITY>, block: T.() -> Unit): Unit {
-        this@ServiceContext.initializeDTO(single)
+        this@ServiceContext.initDTO(single)
         this.block()
     }
 
     fun <DTO : DTOClass<DATA_MODEL, ENTITY>> DTO.update(list : List<AbstractDTOModel<DATA_MODEL, ENTITY>>,   block: DTO.() -> Unit): Unit {
-        list.forEach { this@ServiceContext.initializeDTO(it) }
+        list.forEach { this@ServiceContext.initDTO(it) }
         this.block()
     }
 

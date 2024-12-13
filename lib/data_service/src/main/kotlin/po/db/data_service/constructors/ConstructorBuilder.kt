@@ -11,8 +11,7 @@ import kotlin.reflect.KFunction
 import kotlin.reflect.KParameter
 import kotlin.reflect.KType
 
-
-data class ConstructorBlueprint<T: Any>(
+data class ClassBlueprint<T: Any>(
     val className: String,
     val clazz : KClass<T>
 ){
@@ -35,9 +34,7 @@ data class ConstructorBlueprint<T: Any>(
 }
 
 object ConstructorBuilder {
-
      private  fun getDefaultForType(kType: KType): Any? {
-
          return when (kType.classifier) {
             Int::class -> 0
             String::class -> ""
@@ -52,8 +49,8 @@ object ConstructorBuilder {
         return LocalDateTime.Companion.parse(Clock.System.now().toLocalDateTime(TimeZone.UTC).toString())
     }
 
-    fun <T: DataModel>getConstructorBlueprint(clazz: KClass<T>):ConstructorBlueprint<T>{
-        val newBlueprint = ConstructorBlueprint((clazz.qualifiedName?: clazz::simpleName).toString(), clazz)
+    fun <T: DataModel>getConstructorBlueprint(clazz: KClass<T>):ClassBlueprint<T>{
+        val newBlueprint = ClassBlueprint((clazz.qualifiedName?: clazz::simpleName).toString(), clazz)
         if (clazz.constructors.isNotEmpty()){
             val constructor = clazz.constructors.first()
 
@@ -71,21 +68,4 @@ object ConstructorBuilder {
         }
         return newBlueprint
     }
-
-//    fun <T:  EntityDTO<T,E>,E:LongEntity>instantiateFromClass(clazz : KClass<T>, containerConstructor : ConstructorContainer<T,E> ):T?{
-//        clazz.constructors.forEach {classConstructor->
-//            containerConstructor.constructors.firstOrNull { classConstructor.parameters.size == it.size }?.let { appropriate->
-//                val args = appropriate.map { param ->
-//                    classConstructor.parameters.first { it.name == param.key } to getDefaultForType(param.value.type)
-//                }.toMap()
-//                try {
-//                    return classConstructor.callBy(args)
-//                }catch (e: Exception){
-//                    println(e.message)
-//                }
-//            }
-//        }
-//        return null
-//    }
-
 }

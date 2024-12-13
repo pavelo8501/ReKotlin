@@ -22,7 +22,7 @@ class PropertyBinding<DATA_MODEL, ENTITY, TYPE>(
 
 class DTOPropertyBinder <DATA_MODEL, ENTITY>(
     vararg  props : PropertyBinding<DATA_MODEL, ENTITY, *> = emptyArray() )
-        where DATA_MODEL : DataModel, ENTITY : LongEntity {
+        where DATA_MODEL :DataModel, ENTITY : LongEntity {
 
     private var propertyList = props.toList()
 

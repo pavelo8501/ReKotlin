@@ -1,21 +1,36 @@
 package po.db.data_service.dto
 
-import org.jetbrains.exposed.dao.LongEntity
 
 /*
     Interface used to identify Class as a DTO Entity
     Part of the property data handling system
  */
-interface DTOEntityMarker<ENTITY> {
+interface DTOEntityMarker<DATA_MODEL, ENTITY> {
+    var id : Long
     val dataModelClassName : String
     fun setEntityDAO(entity : ENTITY)
 }
 
 /*
-    Interface  identifying that Extending Class acts as a DataModel
+    Interface  identifying DTO Entity Class
     Part of the property data handling system
  */
-interface DataModel<ENTITY> : DTOEntityMarker<ENTITY> {
+interface DTOModel {
+    val dtoModel : CommonDTO<*,*>
+    val dataModel: DataModel
+}
+
+/*
+    Interface  identifying DataModel Class
+    Part of the property data handling system
+ */
+interface DataModel {
     var id : Long
-    val dataModel : Any
+}
+
+/*
+    Interface for common behaviour of classes hosting Notificator Class
+ */
+interface CanNotify{
+    val name : String
 }

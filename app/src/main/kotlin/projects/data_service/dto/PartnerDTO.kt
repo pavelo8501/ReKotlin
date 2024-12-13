@@ -7,17 +7,15 @@ import org.jetbrains.exposed.dao.id.EntityID
 import po.db.data_service.annotations.ClassBinder
 import po.db.data_service.annotations.PropertyBinder
 import po.db.data_service.binder.PropertyBinding
-import po.db.data_service.dao.EntityDAO
 import po.db.data_service.dto.*
-import po.playground.projects.data_service.dto.Partner.Companion
 import po.playground.projects.data_service.services.Partners
 
 
 @ClassBinder("Partner")
-class PartnerEntity  (id: EntityID<Long>) : LongEntity(id), EntityDAO<Partner, PartnerEntity> {
+class PartnerEntity  (id: EntityID<Long>) : LongEntity(id){
     companion object : LongEntityClass<PartnerEntity>(Partners)
 
-    override var entityDao: EntityDAO<Partner, PartnerEntity> =  this
+    //override var entityDao: EntityDAO<PartnerDTO, PartnerEntity> =  this
 
     @PropertyBinder("name")
     var name by Partners.name
@@ -61,23 +59,29 @@ class PartnerEntity  (id: EntityID<Long>) : LongEntity(id), EntityDAO<Partner, P
 //}
 
 data class PartnerDataModel(
-    var id: Long,
+    override var id: Long,
     var name: String,
     var legalName: String,
     var regNr: String? = null,
     var vatNr: String? = null,
     var updated: LocalDateTime,
     var created: LocalDateTime,
-)
+): DataModel
 
 class PartnerDTO(
     override var id: Long,
     override val dataModel: PartnerDataModel,
-): DTOCommon<PartnerDataModel, PartnerEntity>(dataModel), DataModel<PartnerEntity>{
+): CommonDTO<PartnerDataModel, PartnerEntity>(dataModel), DTOModel {
 
-    companion object : DTOClass<PartnerDataModel, PartnerEntity>(PartnerEntity){
-        override fun configuration() {
-            config<PartnerDataModel> {
+    init {
+
+    }
+
+    override val dtoModel: CommonDTO<PartnerDataModel, PartnerEntity> = this
+
+    companion object : DTOClass<PartnerDataModel, PartnerEntity>() {
+        override fun configuration(){
+            initializeDTO<PartnerDTO, PartnerDataModel, PartnerEntity>(PartnerEntity){
                 setProperties(
                     PropertyBinding("name", PartnerDataModel::name, PartnerEntity::name),
                     PropertyBinding("legalName", PartnerDataModel::legalName, PartnerEntity::legalName),
@@ -86,33 +90,58 @@ class PartnerDTO(
                     PropertyBinding("updated", PartnerDataModel::updated, PartnerEntity::updated),
                     PropertyBinding("created", PartnerDataModel::created, PartnerEntity::created)
                 )
+                setDataModelConstructor {
+                    PartnerDataModel(0,"","",null, null, nowTime(), nowTime())
+                }
             }
         }
     }
 
+
     override fun mapToEntity(entity: PartnerEntity): PartnerEntity {
-//        entity.name = data.name
-//        entity.legalName = data.legalName
-//        entity.regNr = data.regNr
-//        entity.vatNr = data.vatNr
-//        entity.updated = data.updated
-//        entity.created = data.created
-//        return entity
-        return entity
+        TODO("Not yet implemented")
     }
 
     override fun mapFromEntity(entity: PartnerEntity): PartnerDataModel {
-        return PartnerDataModel(
-            id = entity.id.value,
-            name = entity.name,
-            legalName = entity.legalName,
-            regNr = entity.regNr,
-            vatNr = entity.vatNr,
-            updated = entity.updated,
-            created = entity.created
-        )
+        TODO("Not yet implemented")
     }
-
 }
+
+//        override fun configuration() {
+//            config<PartnerDataModel> {
+//                setProperties(
+//                    PropertyBinding("name", PartnerDataModel::name, PartnerEntity::name),
+//                    PropertyBinding("legalName", PartnerDataModel::legalName, PartnerEntity::legalName),
+//                    PropertyBinding("regNr", PartnerDataModel::regNr, PartnerEntity::regNr),
+//                    PropertyBinding("vatNr", PartnerDataModel::vatNr, PartnerEntity::vatNr),
+//                    PropertyBinding("updated", PartnerDataModel::updated, PartnerEntity::updated),
+//                    PropertyBinding("created", PartnerDataModel::created, PartnerEntity::created)
+//                )
+//            }
+//        }
+
+
+//    override fun mapToEntity(entity: PartnerEntity): PartnerEntity {
+////        entity.name = data.name
+////        entity.legalName = data.legalName
+////        entity.regNr = data.regNr
+////        entity.vatNr = data.vatNr
+////        entity.updated = data.updated
+////        entity.created = data.created
+////        return entity
+//        return entity
+//    }
+//
+//    override fun mapFromEntity(entity: PartnerEntity): PartnerDataModel {
+//        return PartnerDataModel(
+//            id = entity.id.value,
+//            name = entity.name,
+//            legalName = entity.legalName,
+//            regNr = entity.regNr,
+//            vatNr = entity.vatNr,
+//            updated = entity.updated,
+//            created = entity.created
+//        )
+//    }
 
 

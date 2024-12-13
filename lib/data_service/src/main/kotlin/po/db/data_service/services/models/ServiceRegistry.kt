@@ -1,7 +1,7 @@
 package po.db.data_service.services.models
 
 import org.jetbrains.exposed.dao.LongEntity
-import po.db.data_service.constructors.ConstructorBlueprint
+import po.db.data_service.constructors.ClassBlueprint
 import po.db.data_service.dto.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.InitializationException
@@ -11,24 +11,24 @@ import po.db.data_service.structure.ServiceContext
 data class ServiceMetadata<DATA_MODEL : DataModel, ENTITY : LongEntity>(
     val key: ServiceUniqueKey,
     val service: ServiceContext<DATA_MODEL, ENTITY>,
-    private val entityBlueprint : ConstructorBlueprint<DATA_MODEL>,
+    private val entityBlueprint : ClassBlueprint<DATA_MODEL>,
    // val dtoClass: KClass<DATA_MODEL>,
    // val entityClass:  KClass<LongEntityClass<ENTITY>>
 ) {
-    private val dtoEntityBlueprints = mutableMapOf<String, ConstructorBlueprint<*>>()
+    private val dtoEntityBlueprints = mutableMapOf<String, ClassBlueprint<*>>()
 
     init {
         addBlueprint(entityBlueprint)
     }
 
-    fun <DATA_MODEL : DataModel> addBlueprint(entityBlueprint: ConstructorBlueprint<DATA_MODEL>) {
+    fun <DATA_MODEL : DataModel> addBlueprint(entityBlueprint: ClassBlueprint<DATA_MODEL>) {
         dtoEntityBlueprints.putIfAbsent(entityBlueprint.className, entityBlueprint)
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun <DATA_MODEL : DataModel> getBlueprint(className: String): ConstructorBlueprint<DATA_MODEL>? {
+    fun <DATA_MODEL : DataModel> getBlueprint(className: String): ClassBlueprint<DATA_MODEL>? {
         this.dtoEntityBlueprints[className]?.let {
-            return it as ConstructorBlueprint<DATA_MODEL>
+            return it as ClassBlueprint<DATA_MODEL>
         }
         return null
     }
@@ -41,7 +41,7 @@ class ServiceRegistry {
     fun <DATA_MODEL : DataModel, ENTITY : LongEntity> registerService(
         key: ServiceUniqueKey,
         service: ServiceContext<DATA_MODEL, ENTITY>,
-        dtoEntityBlueprint : ConstructorBlueprint<DATA_MODEL>,
+        dtoEntityBlueprint : ClassBlueprint<DATA_MODEL>,
        // dtoClass: KClass<DATA_MODEL>,
     ): ServiceMetadata<DATA_MODEL, ENTITY> {
         val metadata = ServiceMetadata(key, service, dtoEntityBlueprint)
@@ -53,7 +53,7 @@ class ServiceRegistry {
         throw InitializationException("Service with the given unique key ${key.serviceName} already exists", ExceptionCodes.ALREADY_EXISTS )
     }
 
-    fun <DATA_MODEL : DataModel,  ENTITY : LongEntity>addDTOBlueprint(key: ServiceUniqueKey,  blueprint : ConstructorBlueprint<DATA_MODEL>){
+    fun <DATA_MODEL : DataModel,  ENTITY : LongEntity>addDTOBlueprint(key: ServiceUniqueKey,  blueprint : ClassBlueprint<DATA_MODEL>){
         getServiceMeta<DATA_MODEL, ENTITY>(key)?.addBlueprint(blueprint) ?:
             throw InitializationException("Unable to add blueprint to the service name ${key.serviceName}. No service registered with this key",
                 ExceptionCodes.KEY_NOT_FOUND

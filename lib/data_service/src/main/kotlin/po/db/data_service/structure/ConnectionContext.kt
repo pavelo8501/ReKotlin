@@ -5,6 +5,7 @@ import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.sql.Database
 import po.db.data_service.constructors.ConstructorBuilder
 import po.db.data_service.dto.AbstractDTOModel
+import po.db.data_service.dto.CommonDTO
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.DataModel
 import po.db.data_service.services.models.ServiceRegistry
@@ -24,10 +25,10 @@ class ConnectionContext(
     /**
      * Service initialization function
      */
-    inline fun <reified DATA_MODEL, ENTITY> ConnectionContext.service(
+    inline fun <reified DATA_MODEL , ENTITY> ConnectionContext.service(
         name: String,
-        dtoModel :    DTOClass<DATA_MODEL, ENTITY>,
-        daoModel :    LongEntityClass<ENTITY>,
+        dtoModel :  DTOClass<DATA_MODEL, ENTITY>,
+        daoModel :   LongEntityClass<ENTITY>,
         createOptions: ServiceCreateOptions<DATA_MODEL, ENTITY>? = null,
         service: ServiceContext<DATA_MODEL, ENTITY>.() -> Unit
     ) where DATA_MODEL : DataModel, ENTITY : LongEntity {
@@ -35,7 +36,6 @@ class ConnectionContext(
         val dataModelClass =  DATA_MODEL::class
        // val dtoModelClass = dtoModel::class
         val blueprint = ConstructorBuilder.getConstructorBlueprint(dataModelClass)
-        val a  = 10
 
         serviceRouter.createService(name, dtoModel, daoModel).let{ serviceContext->
             serviceRouter.initializeRoute(ServiceUniqueKey(name), serviceContext, blueprint ).let {
@@ -45,7 +45,7 @@ class ConnectionContext(
     }
 
     inline fun <reified  DATA_MODEL : DataModel, ENTITY: LongEntity>ConnectionContext.runTest(
-        dtoModel : AbstractDTOModel<DATA_MODEL, ENTITY>
+        dtoModel : CommonDTO<DATA_MODEL, ENTITY>
     ) {
         val aaa = dtoModel
     }
