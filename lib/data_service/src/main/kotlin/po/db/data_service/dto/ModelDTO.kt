@@ -95,19 +95,6 @@ class DTOClassInnerContext<DATA_MODEL, ENTITY>(
         }
         dtoEntity.setEntityDAO(daoEntity)
         return dtoEntity
-
-//        return if(!initialClassCheckComplete){
-//            if(model::class.isSubclassOf(AbstractDTOModel::class)){
-//                initialClassCheckComplete = true
-//                (model as AbstractDTOModel<DATA_MODEL, ENTITY>).also {
-//                    it.entityDAO = daoEntity
-//                }
-//            }else{
-//                throw OperationsException("Created model class does not derive from AbstractDTOModel", ExceptionCodes.REFLECTION_ERROR)
-//            }
-//        }else{
-//            model as AbstractDTOModel<DATA_MODEL, ENTITY>
-//        }
     }
 }
 

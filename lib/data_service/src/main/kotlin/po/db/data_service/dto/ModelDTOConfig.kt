@@ -20,5 +20,4 @@ class ModelDTOConfig<DATA_MODEL, ENTITY>() where DATA_MODEL : DataModel, ENTITY 
     fun setDataModelConstructor(dataModelConstructor: () -> DATA_MODEL){
         this.dataModelConstructor = dataModelConstructor
     }
-
 }
