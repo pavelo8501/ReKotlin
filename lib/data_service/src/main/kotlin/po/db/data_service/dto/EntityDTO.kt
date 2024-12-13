@@ -24,10 +24,11 @@ abstract class AbstractDTOModel<DATA_MODEL: DataModel, ENTITY : LongEntity>(): D
             return _entityDAO?: throw InitializationException("Trying to access database daoEntity associated with ${this.dataModelClassName}", NOT_INITIALIZED)
         }
 
-    override fun setEntityDAO(entity :ENTITY){
+    fun setEntityDAO(entity :ENTITY){
         _entityDAO = entity as ENTITY
         if(id != entity.id.value){
             id = entity.id.value
+            dtoModel?.update(dataModel, entity)
         }
     }
 

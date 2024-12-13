@@ -17,7 +17,6 @@ interface DAOWInstance{
 interface DTOEntityMarker<DATA_MODEL, ENTITY> :  DAOWInstance{
     var id : Long
     val dataModelClassName : String
-    fun setEntityDAO(entity : ENTITY)
 }
 
 /*
@@ -25,7 +24,7 @@ interface DTOEntityMarker<DATA_MODEL, ENTITY> :  DAOWInstance{
     Part of the property data handling system
  */
 interface DTOModel : DAOWInstance {
-    val dtoModel : CommonDTO<*,*>
+    //val dtoModel : CommonDTO<*,*>
     val dataModel: DataModel
 }
 
@@ -42,5 +41,6 @@ interface DataModel : DAOWInstance {
  */
 interface CanNotify{
     val name : String
+    val notificator : Notificator
   //  fun <T>subscribe (subscriber: T, notification : ()-> Unit,  callbackFun: () -> Unit)
 }

@@ -73,12 +73,6 @@ class PartnerDTO(
     override val dataModel: PartnerDataModel,
 ): CommonDTO<PartnerDataModel, PartnerEntity>(dataModel), DTOModel {
 
-    init {
-
-    }
-
-    override val dtoModel: CommonDTO<PartnerDataModel, PartnerEntity> = this
-
     companion object : DTOClass<PartnerDataModel, PartnerEntity>() {
         override fun configuration(){
             initializeDTO<PartnerDTO, PartnerDataModel, PartnerEntity>(PartnerEntity){
@@ -96,52 +90,6 @@ class PartnerDTO(
             }
         }
     }
-
-
-    override fun mapToEntity(entity: PartnerEntity): PartnerEntity {
-        TODO("Not yet implemented")
-    }
-
-    override fun mapFromEntity(entity: PartnerEntity): PartnerDataModel {
-        TODO("Not yet implemented")
-    }
 }
-
-//        override fun configuration() {
-//            config<PartnerDataModel> {
-//                setProperties(
-//                    PropertyBinding("name", PartnerDataModel::name, PartnerEntity::name),
-//                    PropertyBinding("legalName", PartnerDataModel::legalName, PartnerEntity::legalName),
-//                    PropertyBinding("regNr", PartnerDataModel::regNr, PartnerEntity::regNr),
-//                    PropertyBinding("vatNr", PartnerDataModel::vatNr, PartnerEntity::vatNr),
-//                    PropertyBinding("updated", PartnerDataModel::updated, PartnerEntity::updated),
-//                    PropertyBinding("created", PartnerDataModel::created, PartnerEntity::created)
-//                )
-//            }
-//        }
-
-
-//    override fun mapToEntity(entity: PartnerEntity): PartnerEntity {
-////        entity.name = data.name
-////        entity.legalName = data.legalName
-////        entity.regNr = data.regNr
-////        entity.vatNr = data.vatNr
-////        entity.updated = data.updated
-////        entity.created = data.created
-////        return entity
-//        return entity
-//    }
-//
-//    override fun mapFromEntity(entity: PartnerEntity): PartnerDataModel {
-//        return PartnerDataModel(
-//            id = entity.id.value,
-//            name = entity.name,
-//            legalName = entity.legalName,
-//            regNr = entity.regNr,
-//            vatNr = entity.vatNr,
-//            updated = entity.updated,
-//            created = entity.created
-//        )
-//    }
 
 

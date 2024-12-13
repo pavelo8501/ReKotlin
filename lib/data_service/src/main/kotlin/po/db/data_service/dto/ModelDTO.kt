@@ -6,6 +6,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
+import po.db.data_service.binder.DTOPropertyBinder
 import po.db.data_service.binder.PropertyBinding
 import po.db.data_service.constructors.ClassBlueprint
 import po.db.data_service.constructors.ConstructorBuilder
@@ -14,6 +15,7 @@ import po.db.data_service.exceptions.InitializationException
 import po.db.data_service.exceptions.OperationsException
 import po.db.data_service.models.NotificationEvent
 import po.db.data_service.models.Notificator
+import po.db.data_service.models.subscribe
 import po.db.data_service.structure.ServiceContext
 import kotlin.reflect.KClass
 
@@ -39,7 +41,7 @@ class DTOClassInnerContext<DATA_MODEL, ENTITY>(
     companion object : ConstructorBuilder()
 
     override val name = "DTOClassInnerContext"
-    private var notificator = Notificator(this)
+    override var notificator = Notificator(this)
 
     init {
         if(notifications != null){
@@ -69,7 +71,7 @@ class DTOClassInnerContext<DATA_MODEL, ENTITY>(
             field = value
         }
 
-    fun create(daoEntity : ENTITY): CommonDTO<DATA_MODEL, ENTITY> {
+    fun create(daoEntity : ENTITY, dtoModel: DTOClass<DATA_MODEL, ENTITY> ): CommonDTO<DATA_MODEL, ENTITY> {
         val dataModel = try {
             val model = configuration.dataModelConstructor?.invoke().let { model ->
                 model?: dataModelBlueprint.getEffectiveConstructor().callBy(dataModelBlueprint.constructorParams)
@@ -93,14 +95,13 @@ class DTOClassInnerContext<DATA_MODEL, ENTITY>(
         }catch (ex:Exception){
             throw  OperationsException("DTO entity creation failed ${ex.message} ", ExceptionCodes.REFLECTION_ERROR)
         }
-        dtoEntity.setEntityDAO(daoEntity)
+        dtoEntity.setEntityDAO(daoEntity,dtoModel)
         return dtoEntity
     }
 }
 
 class DTOClassOuterContext<DATA_MODEL, ENTITY>(
-    private val configuration : ModelDTOConfig<DATA_MODEL, ENTITY>,
-    notifications : ((Notificator)-> Unit)?= null) : CanNotify  where   DATA_MODEL : DataModel, ENTITY : LongEntity{
+    private val configuration : ModelDTOConfig<DATA_MODEL, ENTITY>) : CanNotify  where   DATA_MODEL : DataModel, ENTITY : LongEntity{
 
     var state:ContextState = ContextState.UNINITIALIZED
         set(value){
@@ -108,7 +109,7 @@ class DTOClassOuterContext<DATA_MODEL, ENTITY>(
                 field = value
                 when(field){
                     ContextState.INITIALIZED->{
-                        notificator.trigger(NotificationEvent.ON_INITIALIZED)
+                        notificator.trigger<Unit>(NotificationEvent.ON_INITIALIZED)
                     }
                     else->{}
                 }
@@ -116,12 +117,10 @@ class DTOClassOuterContext<DATA_MODEL, ENTITY>(
         }
 
     override val name = "DTOClassOuterContext"
-    var notificator  = Notificator(this)
+    override var notificator  = Notificator(this)
 
     init {
-        if(notifications!=null){
-            notificator = Notificator(this).also(notifications)
-        }
+
     }
     private var dtoModelClassName : String = "undefined"
 
@@ -166,9 +165,10 @@ class DTOClassOuterContext<DATA_MODEL, ENTITY>(
 
 }
 
-abstract class DTOClass<DATA_MODEL, ENTITY>() where DATA_MODEL : DataModel, ENTITY : LongEntity{
+abstract class DTOClass<DATA_MODEL, ENTITY>(): DAOWInstance where DATA_MODEL : DataModel, ENTITY : LongEntity{
 
     private val dtoConfig  = ModelDTOConfig<DATA_MODEL, ENTITY>()
+
 
     val outerContext = DTOClassOuterContext(dtoConfig)
     private val innerContext = DTOClassInnerContext(dtoConfig, outerContext)
@@ -176,12 +176,24 @@ abstract class DTOClass<DATA_MODEL, ENTITY>() where DATA_MODEL : DataModel, ENTI
     val daoEntityModel: LongEntityClass<ENTITY>
         get (){return outerContext.entityModel}
 
-    fun create(daoENTITY: ENTITY) = innerContext.create(daoENTITY)
+    fun create(daoENTITY: ENTITY) = innerContext.create(daoENTITY, this)
 
+    fun update(dataModel: DATA_MODEL, entity: ENTITY) {
+        onUpdateProperties?.invoke(dataModel, entity)
+    }
+    var  onUpdateProperties :  ((dataModel: DATA_MODEL, entity: ENTITY)->Unit)? = null
+
+   // abstract fun updateProperties(dataModel: DATA_MODEL, entity: ENTITY )
 
     protected abstract fun configuration()
 
     init {
+        this.dtoConfig.subscribe<DTOClass<DATA_MODEL, ENTITY>,ModelDTOConfig<DATA_MODEL, ENTITY>, DTOPropertyBinder<DATA_MODEL, ENTITY>>(NotificationEvent.ON_INITIALIZED){ binder->
+            binder?.update{
+                this@DTOClass.onUpdateProperties = { dataModel, entity -> this.updateProperties(dataModel, entity) }
+            }
+        }
+
         this.configuration()
     }
 

@@ -80,7 +80,7 @@ class ServiceContext<DATA_MODEL : DataModel, ENTITY : LongEntity>(
             if(outerContext.state == ContextState.INITIALIZED){
                 handleDtoInitialization(this.outerContext, this)
             }else{
-                outerContext.notificator.subscribe("ServiceContext", NotificationEvent.ON_INITIALIZED){
+                outerContext.notificator.subscribe<Nothing?>("ServiceContext", NotificationEvent.ON_INITIALIZED){
                     handleDtoInitialization(this.outerContext, this)
                 }
             }

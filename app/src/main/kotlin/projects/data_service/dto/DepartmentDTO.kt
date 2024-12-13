@@ -73,10 +73,8 @@ data class DepartmentDataModel(
 
 class DepartmentDTO(
     override var id: Long,
-    override val dataModel: DepartmentDataModel
+    override val dataModel: DepartmentDataModel,
 ): CommonDTO<DepartmentDataModel, DepartmentEntity>(dataModel), DTOModel{
-
-    override val dtoModel: CommonDTO<*, *> = this
 
     companion object : DTOClass<DepartmentDataModel, DepartmentEntity>(){
         override fun configuration() {
@@ -97,13 +95,5 @@ class DepartmentDTO(
                 )
             }
         }
-    }
-
-    override fun mapToEntity(entity: DepartmentEntity): DepartmentEntity {
-        TODO("Not yet implemented")
-    }
-
-    override fun mapFromEntity(entity: DepartmentEntity): DepartmentDataModel {
-        TODO("Not yet implemented")
     }
 }
