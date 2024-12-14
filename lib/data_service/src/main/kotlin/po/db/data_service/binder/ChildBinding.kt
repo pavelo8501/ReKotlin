@@ -1,8 +1,5 @@
 package po.db.data_service.binder
 
-
-
-
 enum class BindingType{
     ONE_TO_ONE,
     ONE_TO_MANY,

@@ -1,26 +1,30 @@
 package po.playground.projects.data_service
 
 import po.db.data_service.DatabaseManager
-import po.db.data_service.models.ConnectionInfo
-import po.playground.projects.data_service.dto.Partner
+import po.db.data_service.controls.ConnectionInfo
+import po.playground.projects.data_service.dto.PartnerDTO
+import po.playground.projects.data_service.dto.PartnerDataModel
 import po.playground.projects.data_service.dto.PartnerEntity
 
 
 fun startDataService(connectionInfo : ConnectionInfo) {
 
-    val list = listOf<Partner>(
-        Partner(0,"SomeName", "SomeName SIA", null,null,    Partner.nowTime(),Partner.nowTime()),
-        Partner(0,"SomeName2", "SomeName2 SIA", null,null,  Partner.nowTime(),Partner.nowTime()),
-        Partner(0,"SomeName3", "SomeName2 SIA", null,null,  Partner.nowTime(),Partner.nowTime())
+    val list = listOf<PartnerDataModel>(
+        PartnerDataModel(0,"SomeName", "SomeName SIA", null,null,    PartnerDTO.nowTime(), PartnerDTO.nowTime()),
+        PartnerDataModel(0,"SomeName2", "SomeName2 SIA", null,null,  PartnerDTO.nowTime(), PartnerDTO.nowTime()),
+        PartnerDataModel(0,"SomeName3", "SomeName2 SIA", null,null,  PartnerDTO.nowTime(), PartnerDTO.nowTime())
     )
 
     DatabaseManager.openConnection(connectionInfo){
-        service<Partner, PartnerEntity>("Partner",  Partner, PartnerEntity){
-//            Partner.update(list) {
-//            }
 
-            Partner.select {
+        service<PartnerDataModel, PartnerEntity>("Partner", PartnerDTO){
+
+            //            Partner.update(list) {
+            // }
+
+            PartnerDTO.select {
                 val list = it
+                list[0].copy()
                 val a = 10
             }
 
@@ -31,6 +35,6 @@ fun startDataService(connectionInfo : ConnectionInfo) {
 //          saveDTO(partner)
       }
    }
-   val dataModel =  list[0].asDataModel()
-   val stop = 10
+   //val dataModel =  list[0].asDataModel()
+ //  val stop = 10
 }

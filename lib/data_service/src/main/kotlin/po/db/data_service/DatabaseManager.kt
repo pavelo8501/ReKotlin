@@ -5,13 +5,12 @@ import com.zaxxer.hikari.HikariDataSource
 import org.jetbrains.exposed.sql.Database
 
 
-import po.db.data_service.models.ConnectionInfo
-import po.db.data_service.structure.ConnectionContext
+import po.db.data_service.controls.ConnectionInfo
+import po.db.data_service.scope.connection.ConnectionContext
 
 
 
 object DatabaseManager {
-
 
     private fun provideDataSource(connectionInfo:ConnectionInfo): HikariDataSource {
         val hikariConfig= HikariConfig().apply {

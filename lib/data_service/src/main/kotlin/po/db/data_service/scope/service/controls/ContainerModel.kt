@@ -1,4 +1,4 @@
-package po.db.data_service.services.models
+package po.db.data_service.scope.service.controls
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
@@ -17,7 +17,7 @@ class PropertyBindings{
 }
 
 
-class ChildHolder<T:ContainerDatContext, E : Any>(
+class ChildHolder<T: ContainerDatContext, E : Any>(
     val childClass : KClass<T>,
     val dbEntityProperty : KProperty1<E, SizedIterable<*>>,
     val single: Boolean = false){
@@ -32,13 +32,13 @@ class ChildHolder<T:ContainerDatContext, E : Any>(
 
 class ChildBindingClass(val parentContainer: ContainerModel<*>){
 
-    private val childBindings = mutableListOf<ChildHolder<*,*>>()
+    private val childBindings = mutableListOf<ChildHolder<*, *>>()
 
-    private fun <T:ContainerDatContext>initialInitialization(childClass : KClass<T>){
+    private fun <T: ContainerDatContext>initialInitialization(childClass : KClass<T>){
 
     }
 
-    fun addNewBinding(binding : ChildHolder<*,*>){
+    fun addNewBinding(binding : ChildHolder<*, *>){
         childBindings.add(binding)
     }
 

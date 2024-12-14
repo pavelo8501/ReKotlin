@@ -7,9 +7,10 @@ import org.jetbrains.exposed.dao.id.EntityID
 import po.db.data_service.annotations.ClassBinder
 import po.db.data_service.annotations.PropertyBinder
 import po.db.data_service.binder.PropertyBinding
-import po.db.data_service.dto.AbstractDTOModel
-import po.db.data_service.dto.DTOClass
-import po.db.data_service.dto.DataModel
+import po.db.data_service.dto.*
+import po.db.data_service.dto.interfaces.DTOModel
+import po.db.data_service.dto.interfaces.DataModel
+import po.db.data_service.models.CommonDTO
 
 
 import po.playground.projects.data_service.services.Departments
@@ -45,52 +46,43 @@ class DepartmentEntity(id: EntityID<Long>) : LongEntity(id) {
 }
 
 @ClassBinder("Department")
-data class Department(
+data class DepartmentDataModel(
     override var id: Long,
-    @PropertyBinder("hq")
     var hq: Boolean,
-    @PropertyBinder("name")
     var name: String,
-    @PropertyBinder("street")
     var street: String? = null,
-    @PropertyBinder("city")
     var city: String? = null,
-    @PropertyBinder("country")
     var country: String? = null,
-    @PropertyBinder("postCode")
     var postCode: String? = null,
-    @PropertyBinder("phone")
     var phone: String? = null,
-    @PropertyBinder("email")
     var email: String? = null,
-    @PropertyBinder("frequency")
     var frequency: Int,
-    @PropertyBinder("lastInspection")
     var lastInspection: LocalDateTime? = null,
-    @PropertyBinder("updated")
     var updated: LocalDateTime,
-    @PropertyBinder("created")
     var created: LocalDateTime,
-): AbstractDTOModel<Department, DepartmentEntity>(Department), DataModel {
+): DataModel
 
-   // override val dataModel: Department = thi
+class DepartmentDTO(
+    override var id: Long,
+    override val dataModel: DepartmentDataModel,
+): CommonDTO<DepartmentDataModel, DepartmentEntity>(dataModel), DTOModel {
 
-    companion object : DTOClass<Department, DepartmentEntity>(DepartmentEntity) {
+    companion object : DTOClass<DepartmentDataModel, DepartmentEntity>(){
         override fun configuration() {
-            config<Department> {
+            initializeDTO<DepartmentDTO, DepartmentDataModel, DepartmentEntity>(DepartmentEntity) {
                 setProperties(
-                    PropertyBinding("hq",Department::hq, DepartmentEntity::hq),
-                    PropertyBinding("name",Department::name, DepartmentEntity::name),
-                    PropertyBinding("street",Department::street, DepartmentEntity::street),
-                    PropertyBinding("city",Department::city, DepartmentEntity::city),
-                    PropertyBinding("country",Department::country, DepartmentEntity::country),
-                    PropertyBinding("postCode",Department::postCode, DepartmentEntity::postCode),
-                    PropertyBinding("phone",Department::phone, DepartmentEntity::phone),
-                    PropertyBinding("email",Department::email, DepartmentEntity::email),
-                    PropertyBinding("frequency",Department::frequency, DepartmentEntity::frequency),
-                    PropertyBinding("lastInspection",Department::lastInspection, DepartmentEntity::lastInspection),
-                    PropertyBinding("updated",Department::updated, DepartmentEntity::updated),
-                    PropertyBinding("created",Department::created, DepartmentEntity::created),
+                    PropertyBinding("hq",DepartmentDataModel::hq, DepartmentEntity::hq),
+                    PropertyBinding("name",DepartmentDataModel::name, DepartmentEntity::name),
+                    PropertyBinding("street",DepartmentDataModel::street, DepartmentEntity::street),
+                    PropertyBinding("city",DepartmentDataModel::city, DepartmentEntity::city),
+                    PropertyBinding("country",DepartmentDataModel::country, DepartmentEntity::country),
+                    PropertyBinding("postCode",DepartmentDataModel::postCode, DepartmentEntity::postCode),
+                    PropertyBinding("phone",DepartmentDataModel::phone, DepartmentEntity::phone),
+                    PropertyBinding("email",DepartmentDataModel::email, DepartmentEntity::email),
+                    PropertyBinding("frequency",DepartmentDataModel::frequency, DepartmentEntity::frequency),
+                    PropertyBinding("lastInspection",DepartmentDataModel::lastInspection, DepartmentEntity::lastInspection),
+                    PropertyBinding("updated",DepartmentDataModel::updated, DepartmentEntity::updated),
+                    PropertyBinding("created",DepartmentDataModel::created, DepartmentEntity::created),
                 )
             }
         }
