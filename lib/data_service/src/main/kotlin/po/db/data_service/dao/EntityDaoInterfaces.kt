@@ -3,6 +3,9 @@ package po.db.data_service.dao
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import po.db.data_service.dto.*
+import po.db.data_service.dto.interfaces.DTOEntityMarker
+import po.db.data_service.dto.interfaces.DataModel
+import po.db.data_service.models.AbstractDTOModel
 
 
 class SysNameKey<DATA_MODEL : DTOEntityMarker<DATA_MODEL, *>>(val sysName: String)

@@ -8,6 +8,9 @@ import po.db.data_service.annotations.ClassBinder
 import po.db.data_service.annotations.PropertyBinder
 import po.db.data_service.binder.PropertyBinding
 import po.db.data_service.dto.*
+import po.db.data_service.dto.interfaces.DTOModel
+import po.db.data_service.dto.interfaces.DataModel
+import po.db.data_service.models.CommonDTO
 import po.playground.projects.data_service.services.Partners
 
 

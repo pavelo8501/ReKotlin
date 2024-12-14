@@ -1,9 +1,6 @@
 package po.db.data_service.constructors
 
-import org.jetbrains.exposed.dao.LongEntity
-import po.db.data_service.dto.CommonDTO
-import po.db.data_service.dto.DAOWInstance
-import po.db.data_service.dto.DataModel
+import po.db.data_service.dto.interfaces.DAOWInstance
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.OperationsException
 import kotlin.reflect.KClass

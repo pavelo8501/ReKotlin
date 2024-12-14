@@ -1,8 +1,8 @@
-package po.db.data_service.models
+package po.db.data_service.controls
 
 import com.zaxxer.hikari.HikariDataSource
 import org.jetbrains.exposed.sql.Database
-import po.db.data_service.structure.ConnectionContext
+import po.db.data_service.scope.connection.ConnectionContext
 
 
 class ConnectionInfo(val host: String, val dbName: String, val user: String, val pwd: String, val port: String = "3306") {

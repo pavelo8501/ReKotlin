@@ -8,6 +8,9 @@ import po.db.data_service.annotations.ClassBinder
 import po.db.data_service.annotations.PropertyBinder
 import po.db.data_service.binder.PropertyBinding
 import po.db.data_service.dto.*
+import po.db.data_service.dto.interfaces.DTOModel
+import po.db.data_service.dto.interfaces.DataModel
+import po.db.data_service.models.CommonDTO
 
 
 import po.playground.projects.data_service.services.Departments
@@ -45,36 +48,24 @@ class DepartmentEntity(id: EntityID<Long>) : LongEntity(id) {
 @ClassBinder("Department")
 data class DepartmentDataModel(
     override var id: Long,
-    @PropertyBinder("hq")
     var hq: Boolean,
-    @PropertyBinder("name")
     var name: String,
-    @PropertyBinder("street")
     var street: String? = null,
-    @PropertyBinder("city")
     var city: String? = null,
-    @PropertyBinder("country")
     var country: String? = null,
-    @PropertyBinder("postCode")
     var postCode: String? = null,
-    @PropertyBinder("phone")
     var phone: String? = null,
-    @PropertyBinder("email")
     var email: String? = null,
-    @PropertyBinder("frequency")
     var frequency: Int,
-    @PropertyBinder("lastInspection")
     var lastInspection: LocalDateTime? = null,
-    @PropertyBinder("updated")
     var updated: LocalDateTime,
-    @PropertyBinder("created")
     var created: LocalDateTime,
-):DataModel
+): DataModel
 
 class DepartmentDTO(
     override var id: Long,
     override val dataModel: DepartmentDataModel,
-): CommonDTO<DepartmentDataModel, DepartmentEntity>(dataModel), DTOModel{
+): CommonDTO<DepartmentDataModel, DepartmentEntity>(dataModel), DTOModel {
 
     companion object : DTOClass<DepartmentDataModel, DepartmentEntity>(){
         override fun configuration() {

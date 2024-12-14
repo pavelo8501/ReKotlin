@@ -1,6 +1,6 @@
-package po.db.data_service.dto
+package po.db.data_service.dto.interfaces
 
-import po.db.data_service.models.Notificator
+import po.db.data_service.controls.Notificator
 
 /*
     Wide marker for wrapper classes
@@ -14,7 +14,7 @@ interface DAOWInstance{
     Interface used to identify Class as a DTO Entity
     Part of the property data handling system
  */
-interface DTOEntityMarker<DATA_MODEL, ENTITY> :  DAOWInstance{
+interface DTOEntityMarker<DATA_MODEL, ENTITY> : DAOWInstance {
     var id : Long
     val dataModelClassName : String
 }

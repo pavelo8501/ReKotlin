@@ -1,15 +1,20 @@
-package po.db.data_service.structure
+package po.db.data_service.scope.service
 
 import org.jetbrains.exposed.dao.LongEntity
-import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction
 import po.db.data_service.constructors.ConstructorBuilder
 import po.db.data_service.dto.*
+import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.InitializationException
-import po.db.data_service.models.NotificationEvent
-import po.db.data_service.services.models.ServiceMetadata
+import po.db.data_service.controls.NotificationEvent
+import po.db.data_service.dto.classes.ContextState
+import po.db.data_service.dto.classes.DtoComponents
+import po.db.data_service.models.AbstractDTOModel
+import po.db.data_service.models.CommonDTO
+import po.db.data_service.scope.connection.ConnectionContext
+import po.db.data_service.scope.service.controls.ServiceMetadata
 import kotlin.reflect.KClass
 
 class ServiceContext<DATA_MODEL : DataModel, ENTITY : LongEntity>(
@@ -55,7 +60,7 @@ class ServiceContext<DATA_MODEL : DataModel, ENTITY : LongEntity>(
 
     }
 
-    private fun handleDtoInitialization(outer : DTOClassOuterContext<DATA_MODEL, ENTITY>, inner : DTOClassInnerContext<DATA_MODEL, ENTITY> ){
+    private fun handleDtoInitialization(outer : DTOContext<DATA_MODEL, ENTITY>, inner : DtoComponents<DATA_MODEL, ENTITY> ){
         val modelBlueprint = getConstructorBlueprint(outer.dataModelClass)
         metaData.addModelBlueprint(outer.dataModelClass, modelBlueprint)
         val dtoBlueprint =  getConstructorBlueprint(outer.dtoModelClass)
@@ -91,12 +96,12 @@ class ServiceContext<DATA_MODEL : DataModel, ENTITY : LongEntity>(
 //       // this.metaData.addBlueprint()
 //    }
 
-    fun <T : DTOClass<DATA_MODEL, ENTITY>> T.update(single:AbstractDTOModel<DATA_MODEL, ENTITY>, block: T.() -> Unit): Unit {
+    fun <T : DTOClass<DATA_MODEL, ENTITY>> T.update(single: AbstractDTOModel<DATA_MODEL, ENTITY>, block: T.() -> Unit): Unit {
       // this@ServiceContext.initDTO(single)
         this.block()
     }
 
-    fun <DTO : DTOClass<DATA_MODEL, ENTITY>> DTO.update(list : List<AbstractDTOModel<DATA_MODEL, ENTITY>>,   block: DTO.() -> Unit): Unit {
+    fun <DTO : DTOClass<DATA_MODEL, ENTITY>> DTO.update(list : List<AbstractDTOModel<DATA_MODEL, ENTITY>>, block: DTO.() -> Unit): Unit {
        // list.forEach { this@ServiceContext.initDTO(it) }
         this.block()
     }

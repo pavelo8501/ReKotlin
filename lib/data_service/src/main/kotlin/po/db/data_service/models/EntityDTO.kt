@@ -1,11 +1,14 @@
-package po.db.data_service.dto
+package po.db.data_service.models
 
 import org.jetbrains.exposed.dao.LongEntity
+import po.db.data_service.dto.DTOClass
+import po.db.data_service.dto.interfaces.DTOEntityMarker
+import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes.*
 import po.db.data_service.exceptions.InitializationException
 
 
-abstract class AbstractDTOModel<DATA_MODEL: DataModel, ENTITY : LongEntity>(): DTOEntityMarker<DATA_MODEL, ENTITY>{
+abstract class AbstractDTOModel<DATA_MODEL: DataModel, ENTITY : LongEntity>(): DTOEntityMarker<DATA_MODEL, ENTITY> {
 
     abstract override var id : Long
     override val dataModelClassName: String = ""
@@ -36,7 +39,7 @@ abstract class AbstractDTOModel<DATA_MODEL: DataModel, ENTITY : LongEntity>(): D
         return dataModel
     }
 
-    fun asDTOEntity(): AbstractDTOModel<DATA_MODEL , ENTITY>{
+    fun asDTOEntity(): AbstractDTOModel<DATA_MODEL, ENTITY> {
         return this
     }
 

@@ -1,11 +1,13 @@
 package po.db.data_service.dto
 
 import org.jetbrains.exposed.dao.LongEntity
-import org.jetbrains.exposed.dao.LongEntityClass
 import po.db.data_service.binder.DTOPropertyBinder
 import po.db.data_service.binder.PropertyBinding
-import po.db.data_service.models.NotificationEvent
-import po.db.data_service.models.Notificator
+import po.db.data_service.dto.interfaces.CanNotify
+import po.db.data_service.dto.interfaces.DataModel
+import po.db.data_service.controls.NotificationEvent
+import po.db.data_service.controls.Notificator
+import po.db.data_service.dto.classes.ContextState
 
 
 class ModelDTOConfig<DATA_MODEL, ENTITY>(): CanNotify where DATA_MODEL : DataModel, ENTITY : LongEntity{

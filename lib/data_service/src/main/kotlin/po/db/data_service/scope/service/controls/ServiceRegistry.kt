@@ -1,25 +1,25 @@
-package po.db.data_service.services.models
+package po.db.data_service.scope.service.controls
 
 import org.jetbrains.exposed.dao.LongEntity
 import po.db.data_service.constructors.ClassBlueprint
-import po.db.data_service.dto.CommonDTO
-import po.db.data_service.dto.DAOWInstance
-import po.db.data_service.dto.DataModel
+import po.db.data_service.models.CommonDTO
+import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.InitializationException
-import po.db.data_service.structure.ServiceContext
+import po.db.data_service.scope.service.ServiceContext
+import po.db.data_service.scope.service.models.ServiceUniqueKey
 import kotlin.reflect.KClass
 
 
 data class ServiceMetadata<DATA_MODEL, ENTITY>(
     val key: ServiceUniqueKey,
     val service: ServiceContext<DATA_MODEL, ENTITY>,
-) where DATA_MODEL :  DataModel, ENTITY : LongEntity {
+) where DATA_MODEL : DataModel, ENTITY : LongEntity {
 
     private val modelBlueprints = mutableMapOf<KClass<DATA_MODEL>, ClassBlueprint<DATA_MODEL>>()
-    private val dtoBlueprints = mutableMapOf<KClass<out CommonDTO<DATA_MODEL, ENTITY>>, ClassBlueprint<CommonDTO<DATA_MODEL,ENTITY>>>()
+    private val dtoBlueprints = mutableMapOf<KClass<out CommonDTO<DATA_MODEL, ENTITY>>, ClassBlueprint<CommonDTO<DATA_MODEL, ENTITY>>>()
 
-    fun addDtoBlueprint(classDefinition : KClass<CommonDTO<DATA_MODEL, ENTITY>>, entityBlueprint: ClassBlueprint<CommonDTO<DATA_MODEL,ENTITY>>) {
+    fun addDtoBlueprint(classDefinition : KClass<CommonDTO<DATA_MODEL, ENTITY>>, entityBlueprint: ClassBlueprint<CommonDTO<DATA_MODEL, ENTITY>>) {
         dtoBlueprints.putIfAbsent(classDefinition, entityBlueprint)
     }
 
@@ -59,9 +59,9 @@ class ServiceRegistry {
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun <DATA_MODEL : DataModel, ENTITY : LongEntity> getServiceMeta(key: ServiceUniqueKey):ServiceMetadata<DATA_MODEL, ENTITY>?{
+    private fun <DATA_MODEL : DataModel, ENTITY : LongEntity> getServiceMeta(key: ServiceUniqueKey): ServiceMetadata<DATA_MODEL, ENTITY>?{
         val metadata = serviceRegistry[key] ?: return null
-        return metadata as ServiceMetadata<DATA_MODEL,ENTITY>
+        return metadata as ServiceMetadata<DATA_MODEL, ENTITY>
     }
 
     fun <DATA_MODEL : DataModel, ENTITY : LongEntity> getService(

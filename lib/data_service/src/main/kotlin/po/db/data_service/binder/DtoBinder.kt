@@ -1,7 +1,7 @@
 package po.db.data_service.binder
 
 import org.jetbrains.exposed.dao.LongEntity
-import po.db.data_service.dto.DataModel
+import po.db.data_service.dto.interfaces.DataModel
 import kotlin.reflect.KMutableProperty1
 
 enum class UpdateMode  (val value:Int) {
@@ -61,7 +61,7 @@ class PropertyBinding<DATA_MODEL, ENTITY, TYPE>(
 
 class DTOPropertyBinder <DATA_MODEL, ENTITY>(
     vararg  props : PropertyBinding<DATA_MODEL, ENTITY, *> = emptyArray() )
-        where DATA_MODEL :DataModel, ENTITY : LongEntity {
+        where DATA_MODEL : DataModel, ENTITY : LongEntity {
 
     var onInitialized : ((DTOPropertyBinder <DATA_MODEL, ENTITY>)-> Unit) ? = null
     private var propertyList = props.toList()

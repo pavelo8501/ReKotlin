@@ -1,7 +1,7 @@
 package po.playground.projects.data_service
 
 import po.db.data_service.DatabaseManager
-import po.db.data_service.models.ConnectionInfo
+import po.db.data_service.controls.ConnectionInfo
 import po.playground.projects.data_service.dto.PartnerDTO
 import po.playground.projects.data_service.dto.PartnerDataModel
 import po.playground.projects.data_service.dto.PartnerEntity
@@ -16,6 +16,7 @@ fun startDataService(connectionInfo : ConnectionInfo) {
     )
 
     DatabaseManager.openConnection(connectionInfo){
+
         service<PartnerDataModel, PartnerEntity>("Partner", PartnerDTO){
 
             //            Partner.update(list) {

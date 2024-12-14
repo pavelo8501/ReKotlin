@@ -1,6 +1,6 @@
 package po.db.data_service.annotations
 
-import po.db.data_service.services.models.ChildBindingClass
+import po.db.data_service.scope.service.controls.ChildBindingClass
 
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)

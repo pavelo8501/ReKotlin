@@ -1,7 +1,7 @@
-package po.db.data_service.models
+package po.db.data_service.controls
 
-import po.db.data_service.dto.CanNotify
-import po.db.data_service.dto.DAOWInstance
+import po.db.data_service.dto.interfaces.CanNotify
+import po.db.data_service.dto.interfaces.DAOWInstance
 
 enum class NotificationEvent{
     ON_START,
@@ -40,7 +40,7 @@ class Notificator(private val owner : CanNotify) {
     }
 }
 
-inline fun <reified S:DAOWInstance, H : CanNotify, T:Any?>  CanNotify.subscribe(event : NotificationEvent, noinline callbackFun : (T?)->Unit ){
+inline fun <reified S: DAOWInstance, H : CanNotify, T:Any?> CanNotify.subscribe(event : NotificationEvent, noinline callbackFun : (T?)->Unit ){
     val name = S::class.qualifiedName?:S::class.simpleName?: throw Exception("Can not infer class name of a subscriber")
     this.notificator.subscribe(name,event,callbackFun)
 
