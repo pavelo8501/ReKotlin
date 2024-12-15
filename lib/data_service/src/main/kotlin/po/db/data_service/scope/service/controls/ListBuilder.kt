@@ -4,12 +4,36 @@ import po.db.data_service.scope.service.controls.service_registry.ServiceRegistr
 import po.db.data_service.scope.service.controls.service_registry.ServiceRegistryItemBuilder
 import po.db.data_service.scope.service.controls.service_registry.serviceRegistry
 
-class ListBuilderL<T>(initial: Collection<T> = emptyList()) {
+/**
+ * Represents a builder for creating immutable lists dynamically.
+ *
+ * This class provides a fluent API to add elements conditionally or in bulk.
+ *
+ * @param T The type of elements in the list.
+ */
+open class ListBuilder<T>(initial: Collection<T> = emptyList()) {
     private val _list: MutableList<T> = initial.toMutableList()
+    /**
+     * The immutable list built by this builder.
+     */
     val list: List<T> get() = _list
 
+    /**
+     * Adds an element to the list.
+     *
+     * @param element The element to be added.
+     * @return The current instance of the builder for chaining.
+     */
     fun add(element: T) = apply { _list.add(element) }
 
+    /**
+     * Adds an element to the list if the provided [predicate] evaluates to `true`.
+     *
+     * @param element The element to be conditionally added.
+     * @param predicate A function that takes the element and the current list as arguments
+     * and returns `true` if the element should be added.
+     * @return The current instance of the builder for chaining.
+     */
     fun addIf(element: T, predicate: (T, List<T>) -> Boolean) = apply {
         if (predicate(element, _list)) _list.add(element)
     }
@@ -24,13 +48,6 @@ class ListBuilderL<T>(initial: Collection<T> = emptyList()) {
 
     fun <R> addTransformed(element: R, transform: (R) -> T) = apply {
         _list.add(transform(element))
-    }
-
-    fun <DATA_MODEL : Any, ENTITY : Any> ListBuilderL<ServiceRegistryItem<DATA_MODEL, ENTITY>>.addServiceRegistryItem(
-        init: ServiceRegistryItemBuilder<DATA_MODEL, ENTITY>.() -> Unit
-    ) = apply {
-        val serviceRegistryItem = serviceRegistry(init)
-        add(serviceRegistryItem)
     }
 
     fun build(): List<T> = list

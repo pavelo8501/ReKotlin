@@ -1,6 +1,9 @@
 package po.db.data_service.scope.service.controls.service_registry
 
-class ServiceRegistryItemBuilder<DATA_MODEL : Any, ENTITY : Any> {
+import org.jetbrains.exposed.dao.LongEntity
+import po.db.data_service.dto.interfaces.DataModel
+
+class ServiceRegistryItemBuilder<DATA_MODEL, ENTITY> where DATA_MODEL : DataModel, ENTITY : LongEntity {
     var key: ServiceUniqueKey? = null
     var metadata: ServiceMetadata<DATA_MODEL, ENTITY>? = null
 

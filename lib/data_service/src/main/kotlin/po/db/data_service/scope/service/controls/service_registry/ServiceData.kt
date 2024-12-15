@@ -5,22 +5,20 @@ import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.models.CommonDTO
 import kotlin.reflect.KClass
 
-class ServiceDataBuilder<DATA_MODEL : DataModel, ENTITY : LongEntity> {
-    var rootDTOModel: KClass<CommonDTO<DATA_MODEL, ENTITY>>? = null
-    var entityModel: KClass<ENTITY>? = null
-    val subEntityModels = mutableListOf<SubEntityModel<*, *>>()
+class ServiceDataBuilder<DATA_MODEL, ENTITY>  where DATA_MODEL: DataModel, ENTITY : LongEntity {
+    var rootDTOModelData: DTOData<DATA_MODEL, ENTITY>? = null
+    val childDTOModels = mutableListOf<ChildDTOData<*, *>>()
 
-    inline fun <reified SUB_ENTITY : Any, reified SUB_DTO : Any> subEntityModel(
-        init: SubEntityModelBuilder<SUB_ENTITY, SUB_DTO>.() -> Unit
-    ) {
-        val builder = SubEntityModelBuilder<SUB_ENTITY, SUB_DTO>()
+    inline fun <reified CHILD_DATA_MODEL, reified CHILD_ENTITY> subEntityModel(
+        init: SubEntityModelBuilder<CHILD_DATA_MODEL, CHILD_ENTITY>.() -> Unit
+    ) where CHILD_DATA_MODEL : DataModel, CHILD_ENTITY :  LongEntity {
+        val builder = SubEntityModelBuilder<CHILD_DATA_MODEL, CHILD_ENTITY>()
         builder.init()
-        subEntityModels.add(builder.build())
+        childDTOModels.add(builder.build())
     }
 
-    fun build(): ServiceData<DATA_MODEL, ENTITY> {
-        requireNotNull(rootDTOModel) { "ServiceData must have a rootDTOModel" }
-        requireNotNull(entityModel) { "ServiceData must have an entityModel" }
-        return ServiceData(rootDTOModel!!, entityModel!!, subEntityModels)
+    fun build(): ServiceData<DATA_MODEL,ENTITY>{
+        requireNotNull(rootDTOModelData) { "ServiceData must have a rootDTOModel" }
+        return ServiceData(rootDTOModelData!!,childDTOModels)
     }
 }
