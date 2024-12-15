@@ -1,4 +1,4 @@
-package po.db.data_service.dto.classes
+package po.db.data_service.dto.components
 
 import org.jetbrains.exposed.dao.LongEntity
 import po.db.data_service.constructors.ClassBlueprint
@@ -21,20 +21,18 @@ enum class ContextState{
     INITIALIZATION_FAILURE
 }
 
-class DtoComponents<DATA_MODEL, ENTITY>(
-    private val configuration : ModelDTOConfig<DATA_MODEL, ENTITY>,
-    val outerContext : DTOContext<DATA_MODEL, ENTITY>,
-    notifications: ((Notificator)-> Unit)? = null ): CanNotify where   DATA_MODEL : DataModel, ENTITY : LongEntity {
+
+
+class DTOComponents<DATA_MODEL, ENTITY>(): CanNotify where   DATA_MODEL : DataModel, ENTITY : LongEntity {
 
     companion object : ConstructorBuilder()
-
-    override val name = "DTOClassInnerContext"
+    val configuration = DTOConfig<DATA_MODEL, ENTITY>()
+    //EX inner
+    override val name = "DtoComponents"
     override var notificator = Notificator(this)
 
     init {
-        if(notifications != null){
-            notificator  = Notificator(this).also(notifications)
-        }
+
     }
 
     private var  _dtoModelBlueprint : ClassBlueprint<CommonDTO<DATA_MODEL, ENTITY>>? = null

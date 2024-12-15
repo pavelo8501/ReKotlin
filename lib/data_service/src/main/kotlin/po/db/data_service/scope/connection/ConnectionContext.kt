@@ -8,16 +8,15 @@ import po.db.data_service.scope.service.models.ServiceUniqueKey
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.scope.connection.controls.ServiceCreateOptions
 import po.db.data_service.scope.connection.controls.ServiceRouter
+import po.db.data_service.scope.service.ServiceClass
 import po.db.data_service.scope.service.ServiceContext
 
 class ConnectionContext(
     var connectionName: String,
     val connection: Database,
+    val connectionClass: ConnectionClass,
+
 ) {
-
-    private val serviceRegistry = ServiceRegistry()
-    val serviceRouter = ServiceRouter(connectionName, connection, serviceRegistry)
-
     /**
      * Service initialization function
      */
@@ -28,10 +27,14 @@ class ConnectionContext(
         service: ServiceContext<DATA_MODEL, ENTITY>.() -> Unit
     ) where DATA_MODEL : DataModel, ENTITY : LongEntity {
 
-        serviceRouter.createService(name, rootDtoModel, this).let{ serviceContext->
-            serviceRouter.initializeRoute(ServiceUniqueKey(name), serviceContext).let {
-                service.invoke(it)
-            }
+        ServiceClass<DATA_MODEL,ENTITY>(connection, name, rootDtoModel).let {
+
         }
+
+//        serviceRouter.createService(name, rootDtoModel, this).let{ serviceContext->
+//            serviceRouter.initializeRoute(ServiceUniqueKey(name), serviceContext).let {
+//                service.invoke(it)
+//            }
+//        }
     }
 }

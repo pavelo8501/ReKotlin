@@ -1,9 +1,7 @@
 package po.db.data_service.builder
 
 
-data class DataModel(val id : Int = 5 , val name : String = "Some Data"){
 
-}
 //class DataTransferModel(override val id: Long) : DataTransferObjectsParent<DataTransferModel>(){
 //    override fun configDTOModel(context: ConfigurationContext.() -> Unit) {
 //        val a = 10

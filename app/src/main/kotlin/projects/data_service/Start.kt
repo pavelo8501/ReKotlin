@@ -17,6 +17,7 @@ fun startDataService(connectionInfo : ConnectionInfo) {
 
     DatabaseManager.openConnection(connectionInfo){
 
+
         service<PartnerDataModel, PartnerEntity>("Partner", PartnerDTO){
 
             //            Partner.update(list) {

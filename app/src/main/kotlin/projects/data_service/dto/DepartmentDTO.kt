@@ -67,6 +67,8 @@ class DepartmentDTO(
     override val dataModel: DepartmentDataModel,
 ): CommonDTO<DepartmentDataModel, DepartmentEntity>(dataModel), DTOModel {
 
+    override val className: String = "DepartmentDTO"
+
     companion object : DTOClass<DepartmentDataModel, DepartmentEntity>(){
         override fun configuration() {
             initializeDTO<DepartmentDTO, DepartmentDataModel, DepartmentEntity>(DepartmentEntity) {

@@ -26,6 +26,7 @@ interface DTOEntityMarker<DATA_MODEL, ENTITY> : DAOWInstance {
 interface DTOModel : DAOWInstance {
     //val dtoModel : CommonDTO<*,*>
     val dataModel: DataModel
+    val className : String
 }
 
 /*

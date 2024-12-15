@@ -21,7 +21,6 @@ data class ServiceCreateOptions<DATA_MODEL, ENTITY>(
     var service: ServiceContext<DATA_MODEL, ENTITY>? = null
 }
 
-
 class ServiceRouter(
     private val connectionName: String,
     private val dbConnection: Database,
@@ -35,17 +34,6 @@ class ServiceRouter(
         return ServiceContext(serviceName, dtoModel, dbConnection,  connectionContext)
     }
 
-//    private fun <DATA_MODEL, ENTITY> getOrCreateService(
-//        routeKey: ServiceUniqueKey,
-//        dtoModel: DTOClass<DATA_MODEL, ENTITY>,
-//        entityModel : LongEntityClass<ENTITY>,
-//    ) : ServiceContext<DATA_MODEL, ENTITY >  where DATA_MODEL : DataModel, ENTITY : LongEntity{
-//        createService<DATA_MODEL,ENTITY>(routeKey.serviceName, dtoModel, ).let {
-//           // serviceRegistry.registerService(routeKey, it, dataModelClass, entityModelClass)
-//            return it
-//        }
-//    }
-
     fun <DATA_MODEL : DataModel, ENTITY: LongEntity>initializeRoute(
         serviceUniqueKey: ServiceUniqueKey,
         service  : ServiceContext<DATA_MODEL, ENTITY>,
@@ -56,5 +44,7 @@ class ServiceRouter(
         return service
     }
 }
+
+
 
 

@@ -21,13 +21,10 @@ enum class UpdateMode  (val value:Int) {
     }
 }
 
-
 class PropertyBinding<DATA_MODEL, ENTITY, TYPE>(
     val name : String,
     private val dtoProperty : KMutableProperty1<DATA_MODEL, TYPE>,
-    private val entityProperty : KMutableProperty1<ENTITY, TYPE>) where  DATA_MODEL : DataModel, ENTITY : LongEntity
-{
-
+    private val entityProperty : KMutableProperty1<ENTITY, TYPE>) where  DATA_MODEL : DataModel, ENTITY : LongEntity {
     fun update(dtoModel: DATA_MODEL, entityModel: ENTITY, mode:UpdateMode): Boolean {
         val dtoValue = dtoProperty.get(dtoModel)
         val entityValue = entityProperty.get(entityModel)

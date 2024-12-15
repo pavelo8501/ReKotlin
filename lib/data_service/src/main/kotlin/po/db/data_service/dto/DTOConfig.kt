@@ -7,10 +7,14 @@ import po.db.data_service.dto.interfaces.CanNotify
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.controls.NotificationEvent
 import po.db.data_service.controls.Notificator
-import po.db.data_service.dto.classes.ContextState
+import po.db.data_service.dto.components.BindingType
+import po.db.data_service.dto.components.ContextState
+import po.db.data_service.dto.components.RelationBinder
+import po.db.data_service.models.CommonDTO
 
 
-class ModelDTOConfig<DATA_MODEL, ENTITY>(): CanNotify where DATA_MODEL : DataModel, ENTITY : LongEntity{
+class DTOConfig<DATA_MODEL, ENTITY>(): CanNotify
+        where DATA_MODEL : DataModel, ENTITY : LongEntity{
 
     override val name: String = "ModelDTOConfig"
     override val notificator  = Notificator(this)
@@ -30,12 +34,12 @@ class ModelDTOConfig<DATA_MODEL, ENTITY>(): CanNotify where DATA_MODEL : DataMod
             }
         }
 
-    private val propertyBinder = DTOPropertyBinder<DATA_MODEL, ENTITY>()
+    val propertyBinder = DTOPropertyBinder<DATA_MODEL, ENTITY>()
+  //  val relationalBinder =  RelationBinder<DATA_MODEL, ENTITY>()
 
     init {
         this.propertyBinder.onInitialized={
             state = ContextState.INITIALIZED
-
         }
     }
     var dataModelConstructor : (() -> DATA_MODEL)? = null
@@ -49,4 +53,7 @@ class ModelDTOConfig<DATA_MODEL, ENTITY>(): CanNotify where DATA_MODEL : DataMod
     fun setDataModelConstructor(dataModelConstructor: () -> DATA_MODEL){
         this.dataModelConstructor = dataModelConstructor
     }
+
+//    fun setChildBindings(dtoModel: DTOClass<CHILD_DATA_MODEL, CHILD_ENTITY>, type : BindingType)
+//     = childBinding.addChild(dtoModel,type)
 }

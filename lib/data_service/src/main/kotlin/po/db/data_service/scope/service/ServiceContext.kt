@@ -8,9 +8,8 @@ import po.db.data_service.dto.*
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.InitializationException
-import po.db.data_service.controls.NotificationEvent
-import po.db.data_service.dto.classes.ContextState
-import po.db.data_service.dto.classes.DtoComponents
+import po.db.data_service.dto.components.ContextState
+import po.db.data_service.dto.components.DTOComponents
 import po.db.data_service.models.AbstractDTOModel
 import po.db.data_service.models.CommonDTO
 import po.db.data_service.scope.connection.ConnectionContext
@@ -25,13 +24,17 @@ class ServiceContext<DATA_MODEL : DataModel, ENTITY : LongEntity>(
 ) {
     companion object : ConstructorBuilder()
 
+    private fun  <T>dbQuery(body : () -> T): T = transaction(dbConnection) {
+        body()
+    }
+
     var state : ContextState = ContextState.UNINITIALIZED
         set(value){
             if(field != value){
                 field = value
                 when(field){
                     ContextState.INITIALIZED->{
-                        initialize(metaData)
+                     //   initialize(metaData)
                     }
                     else->{}
                 }
@@ -48,11 +51,12 @@ class ServiceContext<DATA_MODEL : DataModel, ENTITY : LongEntity>(
         state = ContextState.INITIALIZED
     }
 
+
     var dataModelClass: KClass<DATA_MODEL>? = null
 
-    private var modelConfiguration = ModelDTOConfig<DATA_MODEL,ENTITY>()
-    private  fun <T>configuration(conf: ModelDTOConfig<DATA_MODEL,ENTITY>, statement: ModelDTOConfig<DATA_MODEL, ENTITY>.() -> T): T =   statement.invoke(conf)
-    fun  <T>config(serviceBody: ModelDTOConfig<DATA_MODEL, ENTITY>.() -> T): T = configuration(modelConfiguration) {
+    private var modelConfiguration = DTOConfig<DATA_MODEL,ENTITY>()
+    private  fun <T>configuration(conf: DTOConfig<DATA_MODEL,ENTITY>, statement: DTOConfig<DATA_MODEL, ENTITY>.() -> T): T =   statement.invoke(conf)
+    fun  <T>config(serviceBody: DTOConfig<DATA_MODEL, ENTITY>.() -> T): T = configuration(modelConfiguration) {
         serviceBody()
     }
 
@@ -60,7 +64,7 @@ class ServiceContext<DATA_MODEL : DataModel, ENTITY : LongEntity>(
 
     }
 
-    private fun handleDtoInitialization(outer : DTOContext<DATA_MODEL, ENTITY>, inner : DtoComponents<DATA_MODEL, ENTITY> ){
+    private fun handleDtoInitialization(outer : DTOContext<DATA_MODEL, ENTITY>, inner : DTOComponents<DATA_MODEL, ENTITY> ){
         val modelBlueprint = getConstructorBlueprint(outer.dataModelClass)
         metaData.addModelBlueprint(outer.dataModelClass, modelBlueprint)
         val dtoBlueprint =  getConstructorBlueprint(outer.dtoModelClass)
@@ -68,33 +72,6 @@ class ServiceContext<DATA_MODEL : DataModel, ENTITY : LongEntity>(
         inner.setBlueprints(dtoBlueprint, modelBlueprint)
     }
 
-
-//    private fun initDTO(entityDTO : AbstractDTOModel<DATA_MODEL,ENTITY>){
-//        if(entityDTO.id == 0L){
-//           val newEntity = dbQuery {
-//                return@dbQuery  entityDTO. .new {
-//                   // modelConfiguration.propertyBinder.updateProperties(entityDTO.dataModel, this)
-//                }
-//            }
-//            entityDTO.setEntityDAO(newEntity)
-//        }
-//    }
-
-    fun initialize(metaData : ServiceMetadata<DATA_MODEL, ENTITY>){
-        rootDtoModel.initializeDTO(this) {
-            if(outerContext.state == ContextState.INITIALIZED){
-                handleDtoInitialization(this.outerContext, this)
-            }else{
-                outerContext.notificator.subscribe<Nothing?>("ServiceContext", NotificationEvent.ON_INITIALIZED){
-                    handleDtoInitialization(this.outerContext, this)
-                }
-            }
-        }
-    }
-
-//    fun <DATA_MODEL : DataModel, ENTITY : LongEntity>getDTOBlueprint(): ConstructorBlueprint<DATA_MODEL>{
-//       // this.metaData.addBlueprint()
-//    }
 
     fun <T : DTOClass<DATA_MODEL, ENTITY>> T.update(single: AbstractDTOModel<DATA_MODEL, ENTITY>, block: T.() -> Unit): Unit {
       // this@ServiceContext.initDTO(single)
@@ -167,8 +144,6 @@ class ServiceContext<DATA_MODEL : DataModel, ENTITY : LongEntity>(
 //        }
 //    }
 //
-   private fun  <T>dbQuery(body : () -> T): T = transaction(dbConnection) {
-        body()
-    }
+
 
 }
