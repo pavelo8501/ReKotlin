@@ -13,7 +13,6 @@ import po.db.data_service.dto.components.DTOComponents
 import po.db.data_service.models.AbstractDTOModel
 import po.db.data_service.models.CommonDTO
 import po.db.data_service.scope.connection.ConnectionContext
-import po.db.data_service.scope.service.controls.ServiceMetadata
 import kotlin.reflect.KClass
 
 class ServiceContext<DATA_MODEL : DataModel, ENTITY : LongEntity>(
@@ -41,15 +40,15 @@ class ServiceContext<DATA_MODEL : DataModel, ENTITY : LongEntity>(
             }
         }
 
-    private var _metaData : ServiceMetadata<DATA_MODEL, ENTITY>? = null
-    private val metaData : ServiceMetadata<DATA_MODEL, ENTITY>
-        get(){
-            return _metaData?: throw InitializationException("Service $name failed to initialize properly. MetaData missing", ExceptionCodes.NOT_INITIALIZED)
-        }
-    fun setServiceMetadata(meta : ServiceMetadata<DATA_MODEL, ENTITY>){
-        _metaData  = meta
-        state = ContextState.INITIALIZED
-    }
+//    private var _metaData : ServiceMetadata<DATA_MODEL, ENTITY>? = null
+//    private val metaData : ServiceMetadata<DATA_MODEL, ENTITY>
+//        get(){
+//            return _metaData?: throw InitializationException("Service $name failed to initialize properly. MetaData missing", ExceptionCodes.NOT_INITIALIZED)
+//        }
+//    fun setServiceMetadata(meta : ServiceMetadata<DATA_MODEL, ENTITY>){
+//        _metaData  = meta
+//        state = ContextState.INITIALIZED
+//    }
 
 
     var dataModelClass: KClass<DATA_MODEL>? = null
@@ -64,13 +63,13 @@ class ServiceContext<DATA_MODEL : DataModel, ENTITY : LongEntity>(
 
     }
 
-    private fun handleDtoInitialization(outer : DTOContext<DATA_MODEL, ENTITY>, inner : DTOComponents<DATA_MODEL, ENTITY> ){
-        val modelBlueprint = getConstructorBlueprint(outer.dataModelClass)
-        metaData.addModelBlueprint(outer.dataModelClass, modelBlueprint)
-        val dtoBlueprint =  getConstructorBlueprint(outer.dtoModelClass)
-        metaData.addDtoBlueprint(outer.dtoModelClass, dtoBlueprint)
-        inner.setBlueprints(dtoBlueprint, modelBlueprint)
-    }
+//    private fun handleDtoInitialization(outer : DTOContext<DATA_MODEL, ENTITY>, inner : DTOComponents<DATA_MODEL, ENTITY> ){
+//        val modelBlueprint = getConstructorBlueprint(outer.dataModelClass)
+//        metaData.addModelBlueprint(outer.dataModelClass, modelBlueprint)
+//        val dtoBlueprint =  getConstructorBlueprint(outer.dtoModelClass)
+//        metaData.addDtoBlueprint(outer.dtoModelClass, dtoBlueprint)
+//        inner.setBlueprints(dtoBlueprint, modelBlueprint)
+//    }
 
 
     fun <T : DTOClass<DATA_MODEL, ENTITY>> T.update(single: AbstractDTOModel<DATA_MODEL, ENTITY>, block: T.() -> Unit): Unit {

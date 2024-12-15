@@ -4,15 +4,12 @@ import org.jetbrains.exposed.dao.LongEntity
 import po.db.data_service.constructors.ClassBlueprint
 import po.db.data_service.models.CommonDTO
 import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.exceptions.ExceptionCodes
-import po.db.data_service.exceptions.InitializationException
 import po.db.data_service.scope.service.ServiceContext
-import po.db.data_service.scope.service.models.ServiceUniqueKey
 import kotlin.reflect.KClass
 
 
 data class ServiceMetadataDepr<DATA_MODEL, ENTITY>(
-    val key: ServiceUniqueKey,
+   // val key: ServiceUniqueKey,
     val service: ServiceContext<DATA_MODEL, ENTITY>,
 ) where DATA_MODEL : DataModel, ENTITY : LongEntity {
 
@@ -43,37 +40,37 @@ data class ServiceMetadataDepr<DATA_MODEL, ENTITY>(
 
 class ServiceRegistryDepr {
 
-    private val serviceRegistry = mutableMapOf<ServiceUniqueKey, ServiceMetadata<*, *>>()
+   // private val serviceRegistry = mutableMapOf<ServiceUniqueKey, ServiceMetadata<*, *>>()
 
-    fun <DATA_MODEL : DataModel, ENTITY : LongEntity> registerService(
-        key: ServiceUniqueKey,
-        service: ServiceContext<DATA_MODEL, ENTITY>,
-    ): ServiceMetadata<DATA_MODEL, ENTITY> {
-        val metadata = ServiceMetadata(key, service)
-        serviceRegistry.putIfAbsent(key,metadata).let {
-            if (it == null) {
-                return metadata
-            }
-        }
-        throw InitializationException("Service with the given unique key ${key.serviceName} already exists", ExceptionCodes.ALREADY_EXISTS )
-    }
+//    fun <DATA_MODEL : DataModel, ENTITY : LongEntity> registerService(
+//        key: ServiceUniqueKey,
+//        service: ServiceContext<DATA_MODEL, ENTITY>,
+//    ): ServiceMetadata<DATA_MODEL, ENTITY> {
+//        val metadata = ServiceMetadata(key, service)
+//        serviceRegistry.putIfAbsent(key,metadata).let {
+//            if (it == null) {
+//                return metadata
+//            }
+//        }
+//        throw InitializationException("Service with the given unique key ${key.serviceName} already exists", ExceptionCodes.ALREADY_EXISTS )
+//    }
 
-    @Suppress("UNCHECKED_CAST")
-    private fun <DATA_MODEL : DataModel, ENTITY : LongEntity> getServiceMeta(key: ServiceUniqueKey): ServiceMetadata<DATA_MODEL, ENTITY>?{
-        val metadata = serviceRegistry[key] ?: return null
-        return metadata as ServiceMetadata<DATA_MODEL, ENTITY>
-    }
+//    @Suppress("UNCHECKED_CAST")
+//    private fun <DATA_MODEL : DataModel, ENTITY : LongEntity> getServiceMeta(key: ServiceUniqueKey): ServiceMetadata<DATA_MODEL, ENTITY>?{
+//        val metadata = serviceRegistry[key] ?: return null
+//        return metadata as ServiceMetadata<DATA_MODEL, ENTITY>
+//    }
 
-    fun <DATA_MODEL : DataModel, ENTITY : LongEntity> getService(
-        key: ServiceUniqueKey,
-    ): ServiceContext<DATA_MODEL, ENTITY>? {
-        // val metadata = serviceRegistry[key] ?: return null
-        // if (metadata.dtoClass == dtoClass && metadata.entityClass == entityClass) {
-        return getServiceMeta<DATA_MODEL, ENTITY>(key)?.service
-
-//        throw TypeMismatchException(
-//           // "Service type mismatch. Expected DTO: $dtoClass, ENTITY: $entityClass but found DTO: ${metadata.dtoClass}, ENTITY: ${metadata.entityClass}"
-//            "Service type mismatch. Expected DTO: $dtoClass, ENTITY: $entityClass but found DTO: ${metadata.dtoClass}"
-//        )
-    }
+//    fun <DATA_MODEL : DataModel, ENTITY : LongEntity> getService(
+//        key: ServiceUniqueKey,
+//    ): ServiceContext<DATA_MODEL, ENTITY>? {
+//        // val metadata = serviceRegistry[key] ?: return null
+//        // if (metadata.dtoClass == dtoClass && metadata.entityClass == entityClass) {
+//        return getServiceMeta<DATA_MODEL, ENTITY>(key)?.service
+//
+////        throw TypeMismatchException(
+////           // "Service type mismatch. Expected DTO: $dtoClass, ENTITY: $entityClass but found DTO: ${metadata.dtoClass}, ENTITY: ${metadata.entityClass}"
+////            "Service type mismatch. Expected DTO: $dtoClass, ENTITY: $entityClass but found DTO: ${metadata.dtoClass}"
+////        )
+//    }
 }

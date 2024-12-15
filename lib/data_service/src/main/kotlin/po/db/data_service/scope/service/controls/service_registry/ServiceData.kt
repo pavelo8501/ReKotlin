@@ -9,10 +9,10 @@ class ServiceDataBuilder<DATA_MODEL, ENTITY>  where DATA_MODEL: DataModel, ENTIT
     var rootDTOModelData: DTOData<DATA_MODEL, ENTITY>? = null
     val childDTOModels = mutableListOf<ChildDTOData<*, *>>()
 
-    inline fun <reified CHILD_DATA_MODEL, reified CHILD_ENTITY> subEntityModel(
-        init: SubEntityModelBuilder<CHILD_DATA_MODEL, CHILD_ENTITY>.() -> Unit
+    inline fun <reified CHILD_DATA_MODEL, reified CHILD_ENTITY> childDTOModel(
+        init: ChildDTODataBuilder<CHILD_DATA_MODEL, CHILD_ENTITY>.() -> Unit
     ) where CHILD_DATA_MODEL : DataModel, CHILD_ENTITY :  LongEntity {
-        val builder = SubEntityModelBuilder<CHILD_DATA_MODEL, CHILD_ENTITY>()
+        val builder = ChildDTODataBuilder<CHILD_DATA_MODEL, CHILD_ENTITY>()
         builder.init()
         childDTOModels.add(builder.build())
     }

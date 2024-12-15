@@ -14,4 +14,11 @@ class ServiceRegistryBuilder<DATA_MODEL : DataModel, ENTITY : LongEntity> : List
         val serviceRegistryItem = serviceRegistry(init)
         add(serviceRegistryItem)
     }
+
+    fun validateUniqueKeys() {
+        val duplicateKeys = list.groupBy { it.key }.filter { it.value.size > 1 }
+        require(duplicateKeys.isEmpty()) {
+            "Duplicate keys found: ${duplicateKeys.keys}"
+        }
+    }
 }
