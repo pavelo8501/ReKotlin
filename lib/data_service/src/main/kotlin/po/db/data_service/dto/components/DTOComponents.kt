@@ -23,7 +23,9 @@ enum class ContextState{
 
 
 
-class DTOComponents<DATA_MODEL, ENTITY>(): CanNotify where   DATA_MODEL : DataModel, ENTITY : LongEntity {
+class DTOComponents<DATA_MODEL, ENTITY>(
+    block : (DTOComponents<DATA_MODEL, ENTITY>.()->Unit)? = null
+): CanNotify where   DATA_MODEL : DataModel, ENTITY : LongEntity {
 
     companion object : ConstructorBuilder()
     val configuration = DTOConfig<DATA_MODEL, ENTITY>()

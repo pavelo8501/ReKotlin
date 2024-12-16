@@ -6,21 +6,18 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import po.db.data_service.constructors.ConstructorBuilder
 import po.db.data_service.dto.*
 import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.exceptions.ExceptionCodes
-import po.db.data_service.exceptions.InitializationException
 import po.db.data_service.dto.components.ContextState
-import po.db.data_service.dto.components.DTOComponents
-import po.db.data_service.models.AbstractDTOModel
+import po.db.data_service.dto.components.DTOConfig
 import po.db.data_service.models.CommonDTO
 import po.db.data_service.scope.connection.ConnectionContext
 import kotlin.reflect.KClass
 
-class ServiceContext<DATA_MODEL : DataModel, ENTITY : LongEntity>(
+class ServiceContext<DATA_MODEL, ENTITY>(
     val name : String,
     private val rootDtoModel : DTOClass<DATA_MODEL, ENTITY>,
     private val dbConnection: Database,
     private val connectionContext : ConnectionContext,
-) {
+) where DATA_MODEL: DataModel,  ENTITY : LongEntity{
     companion object : ConstructorBuilder()
 
     private fun  <T>dbQuery(body : () -> T): T = transaction(dbConnection) {
@@ -54,7 +51,7 @@ class ServiceContext<DATA_MODEL : DataModel, ENTITY : LongEntity>(
     var dataModelClass: KClass<DATA_MODEL>? = null
 
     private var modelConfiguration = DTOConfig<DATA_MODEL,ENTITY>()
-    private  fun <T>configuration(conf: DTOConfig<DATA_MODEL,ENTITY>, statement: DTOConfig<DATA_MODEL, ENTITY>.() -> T): T =   statement.invoke(conf)
+    private  fun <T>configuration(conf: DTOConfig<DATA_MODEL, ENTITY>, statement: DTOConfig<DATA_MODEL, ENTITY>.() -> T): T =   statement.invoke(conf)
     fun  <T>config(serviceBody: DTOConfig<DATA_MODEL, ENTITY>.() -> T): T = configuration(modelConfiguration) {
         serviceBody()
     }
@@ -72,12 +69,12 @@ class ServiceContext<DATA_MODEL : DataModel, ENTITY : LongEntity>(
 //    }
 
 
-    fun <T : DTOClass<DATA_MODEL, ENTITY>> T.update(single: AbstractDTOModel<DATA_MODEL, ENTITY>, block: T.() -> Unit): Unit {
+    fun <T : DTOClass<DATA_MODEL, ENTITY>> T.update(single: DTOClass<DATA_MODEL, ENTITY>, block: T.() -> Unit): Unit {
       // this@ServiceContext.initDTO(single)
         this.block()
     }
 
-    fun <DTO : DTOClass<DATA_MODEL, ENTITY>> DTO.update(list : List<AbstractDTOModel<DATA_MODEL, ENTITY>>, block: DTO.() -> Unit): Unit {
+    fun <DTO : DTOClass<DATA_MODEL, ENTITY>> DTO.update(list : List<DTOClass<DATA_MODEL, ENTITY>>, block: DTO.() -> Unit): Unit {
        // list.forEach { this@ServiceContext.initDTO(it) }
         this.block()
     }

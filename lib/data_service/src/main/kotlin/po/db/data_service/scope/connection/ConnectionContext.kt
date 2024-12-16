@@ -3,20 +3,17 @@ package po.db.data_service.scope.connection
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Database
 import po.db.data_service.dto.*
-import po.db.data_service.scope.service.controls.ServiceRegistry
-import po.db.data_service.scope.service.models.ServiceUniqueKey
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.scope.connection.controls.ServiceCreateOptions
-import po.db.data_service.scope.connection.controls.ServiceRouter
 import po.db.data_service.scope.service.ServiceClass
 import po.db.data_service.scope.service.ServiceContext
 
 class ConnectionContext(
     var connectionName: String,
     val connection: Database,
-    val connectionClass: ConnectionClass,
-
+    val connectionClass :  ConnectionClass
 ) {
+
     /**
      * Service initialization function
      */

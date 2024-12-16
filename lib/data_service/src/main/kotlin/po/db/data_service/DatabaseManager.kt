@@ -15,9 +15,8 @@ object DatabaseManager {
 
     private val connections  = mutableListOf<ConnectionClass>()
 
-
-    private fun addConnection(connectionInfo : ConnectionInfo){
-        connections.add(ConnectionClass(connectionInfo))
+    private fun addConnection(connection : ConnectionClass){
+        connections.add(connection)
     }
 
     private fun provideDataSource(connectionInfo:ConnectionInfo): HikariDataSource {
@@ -39,12 +38,12 @@ object DatabaseManager {
         connectionInfo.hikariDataSource = provideDataSource(connectionInfo)
         try{
            val newConnection = Database.connect(connectionInfo.hikariDataSource!!)
-
-            val connectionContext =  ConnectionContext("Connection ${connectionInfo.dbName}",newConnection).also {
+            val connectionClass =  ConnectionClass(connectionInfo)
+            val connectionContext =  ConnectionContext("Connection ${connectionInfo.dbName}",newConnection, connectionClass).also {
                 connectionInfo.connections.add(it)
             }
             connection?.invoke(connectionContext)
-            addConnection(connectionInfo)
+            addConnection(connectionClass)
             return connectionContext
         }catch (e: Exception){
             connectionInfo.lastError = e.message

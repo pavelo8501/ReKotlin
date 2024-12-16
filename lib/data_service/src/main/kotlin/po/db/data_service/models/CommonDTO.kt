@@ -7,9 +7,10 @@ import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes.NOT_INITIALIZED
 import po.db.data_service.exceptions.InitializationException
 
-abstract class CommonDTO<DATA_MODEL : DataModel, ENTITY : LongEntity>(
-    private val injectedDataModel : DATA_MODEL
-): DTOEntityMarker<DATA_MODEL, ENTITY>, Cloneable{
+
+
+abstract class CommonDTO<DATA_MODEL, ENTITY>(
+    private val injectedDataModel : DATA_MODEL): DTOEntityMarker<DATA_MODEL, ENTITY>, Cloneable where DATA_MODEL : DataModel, ENTITY : LongEntity{
 
     override var id:Long = 0L
 

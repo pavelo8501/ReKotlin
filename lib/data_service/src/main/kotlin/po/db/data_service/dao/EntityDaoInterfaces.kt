@@ -5,7 +5,6 @@ import org.jetbrains.exposed.dao.LongEntityClass
 import po.db.data_service.dto.*
 import po.db.data_service.dto.interfaces.DTOEntityMarker
 import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.models.AbstractDTOModel
 
 
 class SysNameKey<DATA_MODEL : DTOEntityMarker<DATA_MODEL, *>>(val sysName: String)
@@ -25,14 +24,6 @@ interface EntityDAO<DATA_MODEL, ENTITY>
     companion object{
         private val keyedEntityDataModelPairs = mutableMapOf<SysNameKey<*>, Pair<*, *>>()
         private val keyedEntityDataModelContainers = mutableMapOf<String, ModelEntityPairContainer<*,*>>()
-
-        private fun <ENTITY , DATA_MODEL> pair(
-            first: LongEntityClass<ENTITY>,
-            second: AbstractDTOModel<DATA_MODEL, ENTITY>
-
-        ): Pair<LongEntityClass<ENTITY>, AbstractDTOModel<DATA_MODEL, ENTITY>> where ENTITY:LongEntity, DATA_MODEL  : DataModel {
-            return Pair(first,  second)
-        }
 
 //        fun <ENTITY : LongEntity, DATA_MODEL> pairEntities(
 //            dao: LongEntityClass<ENTITY>,

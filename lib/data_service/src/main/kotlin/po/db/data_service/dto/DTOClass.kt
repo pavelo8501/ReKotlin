@@ -9,6 +9,8 @@ import org.jetbrains.exposed.dao.LongEntityClass
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.dto.components.DTOComponents
 import po.db.data_service.models.CommonDTO
+import po.db.data_service.scope.service.controls.service_registry.DTOData
+import kotlin.reflect.KClass
 
 
 data class ModelEntityPairContainer<DATA_MODEL, ENTITY>(
@@ -20,8 +22,9 @@ data class ModelEntityPairContainer<DATA_MODEL, ENTITY>(
 
 abstract class DTOClass<DATA_MODEL, ENTITY>() where DATA_MODEL : DataModel, ENTITY : LongEntity{
 
-    val dtoContext = DTOContext<DATA_MODEL, ENTITY>()
-    val dtoComponents = DTOComponents<DATA_MODEL, ENTITY>()
+   val dtoContext = DTOContext<DATA_MODEL, ENTITY>()
+   val dtoComponents = DTOComponents<DATA_MODEL, ENTITY>()
+
     val daoEntityModel: LongEntityClass<ENTITY>
         get (){return dtoContext.entityModel}
 
@@ -35,33 +38,28 @@ abstract class DTOClass<DATA_MODEL, ENTITY>() where DATA_MODEL : DataModel, ENTI
 
     protected abstract fun configuration()
 
-    init {
+    var onInitialized : ((DTOData<DATA_MODEL, ENTITY>)-> Unit)? = null
 
-       // this.configuration()
+    fun initialization(callback: (DTOData<DATA_MODEL, ENTITY>)-> Unit): DTOClass<DATA_MODEL, ENTITY>{
+        onInitialized = callback
+        configuration()
+       // val dtoData = DTOData(dtoContext.dtoModelClass, dtoContext.entityModel, dtoContext.dataModelClass)
+       // onInitialized.invoke(dtoData)
+        return this
     }
-
-//    fun initializeDTO(serviceContext : ServiceContext<DATA_MODEL, ENTITY>, context: DTOComponents<DATA_MODEL, ENTITY>.() -> Unit){
-//        innerContext.serviceContext = serviceContext
-//        context(innerContext)
-//    }
 
     fun nowTime():LocalDateTime{
         return LocalDateTime.Companion.parse(Clock.System.now().toLocalDateTime(TimeZone.UTC).toString())
     }
-
-    var initialClassCheckComplete = false
 }
 
-inline fun <reified DATA_MODEL, reified ENTITY> DTOClass<DATA_MODEL, ENTITY>.initializeDTO(
+inline fun <reified DTO : CommonDTO<DATA_MODEL, ENTITY>, reified DATA_MODEL, reified ENTITY>  DTOClass<DATA_MODEL, ENTITY>.initializeDTO(
     entityModel: LongEntityClass<ENTITY>,
-    crossinline block: DTOContext<DATA_MODEL, ENTITY> .() -> Unit) where  DATA_MODEL : DataModel, ENTITY : LongEntity{
+    block: DTOContext<DATA_MODEL, ENTITY> .() -> Unit) where DATA_MODEL : DataModel, ENTITY : LongEntity{
 
-    dtoContext.setDataModelClass(DATA_MODEL::class)
-    dtoContext.setDTOModelClass(CommonDTO::class)
-    dtoContext.setEntityModel(entityModel)
-    dtoContext.setInitValues(DATA_MODEL::class, CommonDTO::class, entityModel )
-
+    val dtoData = dtoContext.setInitValues(DATA_MODEL::class, CommonDTO::class as KClass<CommonDTO<DATA_MODEL, ENTITY>>, entityModel)
     block(dtoContext)
+    onInitialized?.invoke(dtoData)
 }
 
 

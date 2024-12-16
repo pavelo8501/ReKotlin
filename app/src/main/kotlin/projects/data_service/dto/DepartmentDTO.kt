@@ -70,6 +70,7 @@ class DepartmentDTO(
     override val className: String = "DepartmentDTO"
 
     companion object : DTOClass<DepartmentDataModel, DepartmentEntity>(){
+
         override fun configuration() {
             initializeDTO<DepartmentDTO, DepartmentDataModel, DepartmentEntity>(DepartmentEntity) {
                 setProperties(

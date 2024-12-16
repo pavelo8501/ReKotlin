@@ -1,4 +1,4 @@
-package po.db.data_service.dto
+package po.db.data_service.dto.components
 
 import org.jetbrains.exposed.dao.LongEntity
 import po.db.data_service.binder.DTOPropertyBinder
@@ -7,10 +7,6 @@ import po.db.data_service.dto.interfaces.CanNotify
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.controls.NotificationEvent
 import po.db.data_service.controls.Notificator
-import po.db.data_service.dto.components.BindingType
-import po.db.data_service.dto.components.ContextState
-import po.db.data_service.dto.components.RelationBinder
-import po.db.data_service.models.CommonDTO
 
 
 class DTOConfig<DATA_MODEL, ENTITY>(): CanNotify
@@ -34,7 +30,7 @@ class DTOConfig<DATA_MODEL, ENTITY>(): CanNotify
             }
         }
 
-    val propertyBinder = DTOPropertyBinder<DATA_MODEL, ENTITY>()
+    private val propertyBinder = DTOPropertyBinder<DATA_MODEL, ENTITY>()
   //  val relationalBinder =  RelationBinder<DATA_MODEL, ENTITY>()
 
     init {

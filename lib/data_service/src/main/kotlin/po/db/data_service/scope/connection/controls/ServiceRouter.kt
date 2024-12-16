@@ -5,9 +5,9 @@ import org.jetbrains.exposed.sql.Database
 import po.db.data_service.scope.connection.ConnectionContext
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.scope.service.controls.ServiceRegistry
-import po.db.data_service.scope.service.models.ServiceUniqueKey
 import po.db.data_service.scope.service.ServiceContext
+import po.db.data_service.scope.service.controls.ServiceRegistryBuilder
+import po.db.data_service.scope.service.controls.service_registry.ServiceUniqueKey
 
 enum  class TableCreateMode{
     CREATE,
@@ -21,11 +21,16 @@ data class ServiceCreateOptions<DATA_MODEL, ENTITY>(
     var service: ServiceContext<DATA_MODEL, ENTITY>? = null
 }
 
-class ServiceRouter(
+class ServiceRouter<DATA_MODEL : DataModel, ENTITY : LongEntity>(
     private val connectionName: String,
     private val dbConnection: Database,
-    private val serviceRegistry : ServiceRegistry
 ) {
+
+
+    init {
+
+    }
+
     fun <DATA_MODEL : DataModel, ENTITY : LongEntity> createService(
         serviceName:String,
         dtoModel : DTOClass<DATA_MODEL, ENTITY>,
@@ -38,9 +43,9 @@ class ServiceRouter(
         serviceUniqueKey: ServiceUniqueKey,
         service  : ServiceContext<DATA_MODEL, ENTITY>,
     ): ServiceContext<DATA_MODEL, ENTITY> {
-        serviceRegistry.registerService(serviceUniqueKey, service).let {meta->
-            service.setServiceMetadata(meta)
-        }
+//        serviceRegistry.registerService(serviceUniqueKey, service).let {meta->
+//            service.setServiceMetadata(meta)
+//        }
         return service
     }
 }

@@ -5,7 +5,6 @@ import org.jetbrains.exposed.dao.id.EntityID
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import po.db.data_service.data.*
-import po.db.data_service.scope.service.controls.service_registry.ChildDTOData
 import po.db.data_service.scope.service.controls.service_registry.DTOData
 import po.db.data_service.scope.service.controls.service_registry.ServiceUniqueKey
 import kotlin.test.assertEquals
@@ -28,7 +27,7 @@ class ServiceRegistryTest {
 
                     service {
                         rootDTOModelData = DTOData(
-                            dtoModel = testDTO,
+                            dtoModelClass = testDTO,
                             daoEntityModel = TestEntity,
                             dataModelClass = TestDataModel::class
                         )
@@ -208,5 +207,4 @@ class ServiceRegistryTest {
         }
         assertEquals("Duplicate keys found: [DuplicateKey]", exception.message)
     }
-
 }

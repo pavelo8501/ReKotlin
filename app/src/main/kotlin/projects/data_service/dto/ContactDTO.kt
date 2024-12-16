@@ -22,7 +22,7 @@ class ContactDTO(
 
     companion object : DTOClass<ContactDataModel, ContactEntity>() {
         override fun configuration() {
-
+            val config2 = "configurationContactDTO"
         }
     }
 }

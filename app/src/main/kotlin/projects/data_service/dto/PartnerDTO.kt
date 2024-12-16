@@ -8,9 +8,7 @@ import po.db.data_service.annotations.ClassBinder
 import po.db.data_service.annotations.PropertyBinder
 import po.db.data_service.binder.PropertyBinding
 import po.db.data_service.dto.*
-import po.db.data_service.dto.components.BindingContainer
 import po.db.data_service.dto.components.BindingType
-import po.db.data_service.dto.components.RelationBinder
 import po.db.data_service.dto.interfaces.DTOModel
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.models.CommonDTO
@@ -55,8 +53,9 @@ class PartnerDTO(
     override val className: String = "PartnerDTO"
 
     companion object : DTOClass<PartnerDataModel, PartnerEntity>() {
+
         override fun configuration(){
-            initializeDTO<PartnerDataModel, PartnerEntity>(PartnerEntity){
+            initializeDTO<PartnerDTO, PartnerDataModel, PartnerEntity>(PartnerEntity){
                 setProperties(
                     PropertyBinding("name", PartnerDataModel::name, PartnerEntity::name),
                     PropertyBinding("legalName", PartnerDataModel::legalName, PartnerEntity::legalName),
@@ -68,7 +67,8 @@ class PartnerDTO(
                 setDataModelConstructor {
                     PartnerDataModel(0,"","",null, null, nowTime(), nowTime())
                 }
-
+                setChildBinding(DepartmentDTO, BindingType.ONE_TO_MANY)
+                setChildBinding(ContactDTO, BindingType.ONE_TO_MANY)
             }
         }
     }
