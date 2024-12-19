@@ -7,14 +7,9 @@ import org.jetbrains.exposed.dao.id.EntityID
 import po.db.data_service.annotations.ClassBinder
 import po.db.data_service.annotations.PropertyBinder
 import po.db.data_service.binder.OrdinanceType
-import po.db.data_service.binder.PropertyBinding
 import po.db.data_service.binder.PropertyBindingV2
 import po.db.data_service.dto.*
-import po.db.data_service.dto.components.BindingType
-import po.db.data_service.dto.interfaces.DTOModel
-import po.db.data_service.dto.interfaces.DTOModelV2
 import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.models.CommonDTO
 import po.db.data_service.models.CommonDTOV2
 import po.playground.projects.data_service.services.Departments
 import po.playground.projects.data_service.services.Partners
@@ -49,31 +44,6 @@ data class PartnerDataModel(
 ): DataModel
 
 
-class PartnerDTO(
-    override var id: Long,
-    override val dataModel: PartnerDataModel,
-): CommonDTO<PartnerDataModel, PartnerEntity>(dataModel), DTOModel {
-    override val className: String = "PartnerDTO"
-    companion object : DTOClass<PartnerDataModel, PartnerEntity>() {
-        override fun configuration(){
-            initializeDTO<PartnerDTO, PartnerDataModel, PartnerEntity>(PartnerEntity){
-                setProperties(
-                    PropertyBinding("name", PartnerDataModel::name, PartnerEntity::name),
-                    PropertyBinding("legalName", PartnerDataModel::legalName, PartnerEntity::legalName),
-                    PropertyBinding("regNr", PartnerDataModel::regNr, PartnerEntity::regNr),
-                    PropertyBinding("vatNr", PartnerDataModel::vatNr, PartnerEntity::vatNr),
-                    PropertyBinding("updated", PartnerDataModel::updated, PartnerEntity::updated),
-                    PropertyBinding("created", PartnerDataModel::created, PartnerEntity::created)
-                )
-                setDataModelConstructor {
-                    PartnerDataModel(0,"","",null, null, nowTime(), nowTime())
-                }
-                setChildBinding(ContactDTO, BindingType.ONE_TO_MANY)
-            }
-        }
-    }
-}
-
 class PartnerDTOV2(
     override var id: Long,
     override val dataModel: PartnerDataModel,
@@ -91,11 +61,10 @@ class PartnerDTOV2(
                     PropertyBindingV2("updated", PartnerDataModel::updated, PartnerEntity::updated),
                     PropertyBindingV2("created", PartnerDataModel::created, PartnerEntity::created)
                 )
-                childBinding(DepartmentDTOV2, OrdinanceType.ONE_TO_MANY)
+                childBinding<DepartmentEntity>(DepartmentDTOV2, PartnerEntity::departments,  OrdinanceType.ONE_TO_MANY)
             }
         }
     }
-
 }
 
 

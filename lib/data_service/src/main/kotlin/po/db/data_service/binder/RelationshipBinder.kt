@@ -2,12 +2,8 @@ package po.db.data_service.binder
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.SizedIterable
-import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.DTOClassV2
-import po.db.data_service.dto.components.BindingType
-import po.db.data_service.dto.components.DTORelationBindingContainer
-import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.models.CommonDTO
+import kotlin.reflect.KProperty1
 
 
 enum class OrdinanceType{
@@ -17,31 +13,120 @@ enum class OrdinanceType{
     MANY_TO_MANY
 }
 
-data class ChildContainer(
-    val dtoModelClass : DTOClassV2,
-    val byProperty : SizedIterable<LongEntity>,
-    val type:  OrdinanceType
+data class ChildContainer<PARENT : LongEntity, CHILD : LongEntity>(
+    val dtoModelClass: DTOClassV2,
+    val byProperty: KProperty1<PARENT, SizedIterable<CHILD>>,
+    val type: OrdinanceType,
+    val parentClass: Class<PARENT>
 )
 
-class RelationshipBinder  {
+sealed class BindingContainer {
+    data class TypedBinding<PARENT : LongEntity, CHILD : LongEntity>(
+        val container: ChildContainer<PARENT, CHILD>
+    ) : BindingContainer()
+}
+
+class RelationshipBinder {
     var bindingKeys = mutableListOf<String>()
         private set
-    private var childBindings = mutableMapOf<String, ChildContainer>()
 
-    fun loadChildren(key:String?=null){
-        if(key == null){
-            bindingKeys.forEach {
-                childBindings[it]?.byProperty?.forEach { child ->
-                    println(child.id)
-                }
-            }
+    val childBindings = mutableMapOf<String, BindingContainer>()
+
+    fun loadChildren(entity: LongEntity, key: String) {
+        val binding = childBindings[key] as? BindingContainer.TypedBinding<*, *> ?: return
+
+        val container = binding.container
+        if (!container.parentClass.isInstance(entity)) {
+            throw IllegalArgumentException("Entity type mismatch for key: $key. Expected: ${container.parentClass}, Found: ${entity::class.java}")
+        }
+
+        val parentEntity = container.parentClass.cast(entity)
+
+        @Suppress("UNCHECKED_CAST")
+        val childEntities = (container.byProperty as KProperty1<LongEntity, SizedIterable<LongEntity>>).get(parentEntity)
+
+        childEntities.forEach { childEntity ->
+            println("Child entity ID: ${childEntity.id}")
         }
     }
 
-    fun addChildBinding(dtoClass: DTOClassV2, byProperty : SizedIterable<LongEntity>, type: OrdinanceType) {
-        ChildContainer(dtoClass, byProperty, type).let {
-            this.childBindings.putIfAbsent(dtoClass.className, it)
-            bindingKeys.add(dtoClass.className)
-        }
+    inline fun <reified PARENT, reified CHILD> addChildBinding(
+        parentDto: DTOClassV2,
+        childDtoModel: DTOClassV2,
+        byProperty: KProperty1<LongEntity, SizedIterable<CHILD>>,
+        type: OrdinanceType,
+    ) where PARENT : LongEntity,  CHILD : LongEntity  {
+
+        val container = ChildContainer(parentDto, byProperty, type, PARENT::class.java)
+        val typedBinding = BindingContainer.TypedBinding(container)
+
+        childBindings.putIfAbsent(childDtoModel.className, typedBinding)
+        bindingKeys.add(childDtoModel.className)
     }
 }
+
+
+//class RelationshipBinder  {
+//    var bindingKeys = mutableListOf<String>()
+//        private set
+//    var childBindings = mutableMapOf<String, ChildContainer>()
+//        private set
+//
+//    inline fun <reified P : LongEntity> loadChildren(
+//        entity: P,
+//        daoModel: LongEntityClass<P>,
+//        key: String? = null
+//    ) {
+//        // If a specific key is provided, load only that binding
+//        val keysToProcess = key?.let { listOf(it) } ?: bindingKeys
+//        keysToProcess.forEach { bindingKey ->
+//            val container = childBindings[bindingKey] ?: return@forEach
+//            val byProperty = container.byProperty
+//
+//            if (container.dtoModelClass.daoModel == daoModel) {
+//                // Now we can safely call byProperty.get(entity)
+//
+//                val childEntities = byProperty.get()
+//                childEntities.forEach { childEntity ->
+//                    println("Child entity ID: ${childEntity.id}")
+//                }
+//            } else {
+//                println("Entity type or DAO model mismatch for key: $bindingKey")
+//            }
+//
+//        }
+//
+//    }
+//
+//    fun loadChildren(entity: LongEntity, key:String?=null){
+//
+//        // If a specific key is provided, load only that binding
+//        val keysToProcess = key?.let { listOf(it) } ?: bindingKeys
+//
+//        keysToProcess.forEach { bindingKey ->
+//            val container = childBindings[bindingKey] ?: return@forEach
+//            val byProperty = container.byProperty
+//
+//            val childEntities = byProperty.get(entity)
+//            childEntities.forEach { childEntity ->
+//                println("Child entity ID: ${childEntity.id}")
+//            }
+//        }
+//
+//        if(key == null){
+//            bindingKeys.forEach {
+////                childBindings[it]?.byProperty.
+////                childBindings[it]?.byProperty?.forEach { child ->
+////                    println(child.id)
+////                }
+//            }
+//        }
+//    }
+//
+//    fun addChildBinding(dtoClass: DTOClassV2, byProperty : KProperty1<out LongEntity, SizedIterable<LongEntity>>, type: OrdinanceType) {
+//        ChildContainer(dtoClass, byProperty, type).let {
+//            this.childBindings.putIfAbsent(dtoClass.className, it)
+//            bindingKeys.add(dtoClass.className)
+//        }
+//    }
+//}

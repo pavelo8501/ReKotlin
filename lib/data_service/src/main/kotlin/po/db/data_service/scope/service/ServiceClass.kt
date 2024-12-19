@@ -28,7 +28,7 @@ class ServiceClass(
     }
 
     private fun getClassBlueprint(dtoModel: DTOClassV2):ClassBlueprintContainer{
-        dtoModel.configuration.also {
+        dtoModel.conf.also {
            return ClassBlueprintContainer(
                 getConstructorBlueprint<Any>(it.dtoModelClass as KClass<*>),
                 getConstructorBlueprint<Any>(it.dataModelClass as KClass<*>)

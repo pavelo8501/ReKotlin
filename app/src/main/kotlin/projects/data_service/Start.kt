@@ -2,7 +2,6 @@ package po.playground.projects.data_service
 
 import po.db.data_service.DatabaseManager
 import po.db.data_service.controls.ConnectionInfo
-import po.playground.projects.data_service.dto.PartnerDTO
 import po.playground.projects.data_service.dto.PartnerDTOV2
 import po.playground.projects.data_service.dto.PartnerDataModel
 import po.playground.projects.data_service.dto.PartnerEntity
@@ -11,9 +10,9 @@ import po.playground.projects.data_service.dto.PartnerEntity
 fun startDataService(connectionInfo : ConnectionInfo) {
 
     val list = listOf<PartnerDataModel>(
-        PartnerDataModel(0,"SomeName", "SomeName SIA", null,null,    PartnerDTO.nowTime(), PartnerDTO.nowTime()),
-        PartnerDataModel(0,"SomeName2", "SomeName2 SIA", null,null,  PartnerDTO.nowTime(), PartnerDTO.nowTime()),
-        PartnerDataModel(0,"SomeName3", "SomeName2 SIA", null,null,  PartnerDTO.nowTime(), PartnerDTO.nowTime())
+        PartnerDataModel(0,"SomeName", "SomeName SIA", null,null,    PartnerDTOV2.nowTime(), PartnerDTOV2.nowTime()),
+        PartnerDataModel(0,"SomeName2", "SomeName2 SIA", null,null,  PartnerDTOV2.nowTime(), PartnerDTOV2.nowTime()),
+        PartnerDataModel(0,"SomeName3", "SomeName2 SIA", null,null,  PartnerDTOV2.nowTime(), PartnerDTOV2.nowTime())
     )
 
     DatabaseManager.openConnection(connectionInfo){

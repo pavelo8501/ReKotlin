@@ -6,7 +6,6 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
-import org.jetbrains.exposed.sql.transactions.transaction
 import po.db.data_service.binder.UpdateMode
 import po.db.data_service.constructors.ClassBlueprintContainer
 import po.db.data_service.constructors.ConstructorBuilder
@@ -26,99 +25,104 @@ abstract class DTOClassV2(){
 
     var initialized: Boolean = false
     var className : String = ""
-    var configuration = DTOConfigV2()
+    var conf = DTOConfigV2()
 
+    var onDtoInitializationCallback: ((DTOClassV2) -> ClassBlueprintContainer)? = null
+        private set
     private var _blueprints : ClassBlueprintContainer? = null
     private val blueprints : ClassBlueprintContainer
         get(){
             return  _blueprints?: throw InitializationException("blueprints for Class $className no set", ExceptionCodes.LAZY_NOT_INITIALIZED)
         }
 
-    val daoModel : LongEntityClass<LongEntity>
+    private var _daoEntity: LongEntity? = null
+    val daoEntity: LongEntity
+        get(){return _daoEntity?: throw OperationsException("Reading daoEntity while undefined for $className", ExceptionCodes.LAZY_NOT_INITIALIZED)}
+
+    val daoModel: LongEntityClass<LongEntity>
         get(){
-            return  configuration.daoModel?: throw OperationsException("Unable read daoModel property on $className", ExceptionCodes.LAZY_NOT_INITIALIZED)
+            return  conf.daoModel?: throw OperationsException("Unable read daoModel property on $className", ExceptionCodes.LAZY_NOT_INITIALIZED)
         }
 
-    val dtoContainer = mutableListOf<CommonDTOV2>()
+    private val dtoContainer = mutableListOf<CommonDTOV2>()
 
+        protected abstract fun setup()
 
-    protected abstract fun setup()
-
-    fun nowTime(): LocalDateTime {
-        return LocalDateTime.Companion.parse(Clock.System.now().toLocalDateTime(TimeZone.UTC).toString())
-    }
-
-    fun setConfiguration(className : String, config : DTOConfigV2){
-        configuration = config
-        this.className = className
-    }
-
-    fun initialization(onDtoInitialized: (DTOClassV2)-> ClassBlueprintContainer){
-        setup()
-        onDtoInitialized(this).let {
-            _blueprints = it
+        fun nowTime(): LocalDateTime {
+            return LocalDateTime.Companion.parse(Clock.System.now().toLocalDateTime(TimeZone.UTC).toString())
         }
-        initialized = true
-    }
 
+        fun setConfiguration(className: String, config: DTOConfigV2) {
+            conf = config
+            this.className = className
+        }
 
-    fun create(receiver: ServiceContextV2.()-> Unit,  daoEntity : LongEntity):CommonDTOV2{
-
-        val dataModel = try {
-            val model = configuration.dataModelConstructor?.invoke().let { model ->
-                val params = blueprints.dataModel.constructorParams
-                val args = getArgsForConstructor(blueprints.dataModel)
-                model?: blueprints.dataModel.getEffectiveConstructor().callBy(args)
+        fun initialization(onDtoInitialization: (DTOClassV2) -> ClassBlueprintContainer) {
+            conf.setParent(this)
+            onDtoInitializationCallback = onDtoInitialization
+            setup()
+            onDtoInitialization(this).let {
+                _blueprints = it
             }
-            model
-        }catch (ex: Exception) {
-            throw OperationsException("DataModel  creation failed ${ex.message}", ExceptionCodes.REFLECTION_ERROR)
+            initialized = true
         }
 
-        val dtoEntity = try {
-            val params = blueprints.dtoModel.constructorParams
-            val args = getArgsForConstructor(blueprints.dtoModel){
-                when(it){
-                    "dataModel"->{
-                        dataModel
-                    }
-                    else->{null}
+        fun create(daoEntity: LongEntity, receiver: ServiceContextV2.() -> Unit): CommonDTOV2 {
+            val dataModel = try {
+                val model = conf.dataModelConstructor?.invoke().let { model ->
+                    val params = blueprints.dataModel.constructorParams
+                    val args = getArgsForConstructor(blueprints.dataModel)
+                    model ?: blueprints.dataModel.getEffectiveConstructor().callBy(args)
                 }
+                model
+            } catch (ex: Exception) {
+                throw OperationsException("DataModel  creation failed ${ex.message}", ExceptionCodes.REFLECTION_ERROR)
             }
-            val dtoEntity = blueprints.dtoModel.getEffectiveConstructor().callBy(args) as CommonDTOV2
-            dtoEntity
-        }catch (ex:Exception){
-            throw  OperationsException("DTO entity creation failed ${ex.message} ", ExceptionCodes.REFLECTION_ERROR)
+
+            val dtoEntity = try {
+                val params = blueprints.dtoModel.constructorParams
+                val args = getArgsForConstructor(blueprints.dtoModel) {
+                    when (it) {
+                        "dataModel" -> {
+                            dataModel
+                        }
+
+                        else -> {
+                            null
+                        }
+                    }
+                }
+                val dtoEntity = blueprints.dtoModel.getEffectiveConstructor().callBy(args) as CommonDTOV2
+                dtoEntity
+            } catch (ex: Exception) {
+                throw OperationsException("DTO entity creation failed ${ex.message} ", ExceptionCodes.REFLECTION_ERROR)
+            }
+            dtoEntity.setEntityDAO(daoEntity, this)
+            dtoContainer.add(dtoEntity)
+            _daoEntity = daoEntity
+            conf.relationBinder.loadChildren(daoEntity, key = "DepartmentDTOV2")
+            return dtoEntity
         }
-        dtoEntity.setEntityDAO(daoEntity,this)
-        dtoContainer.add(dtoEntity)
-        return dtoEntity
-    }
-    fun update(update: DataModel, from: LongEntity) {
-        configuration.propertyBinder?.updateProperties(update, from, UpdateMode.ENTITY_TO_MODEL)
-    }
-    fun update(update: LongEntity, from: DataModel) {
-        configuration.propertyBinder?.updateProperties(from, update, UpdateMode.MODEL_TO_ENTITY)
-    }
-    fun loadChildren(){
 
-        service {
-           this
+        fun update(update: DataModel, from: LongEntity) {
+            conf.propertyBinder?.updateProperties(update, from, UpdateMode.ENTITY_TO_MODEL)
         }
 
-        configuration.relationBinder.bindingKeys.forEach { bindKey->
-
+        fun update(update: LongEntity, from: DataModel) {
+            conf.propertyBinder?.updateProperties(from, update, UpdateMode.MODEL_TO_ENTITY)
         }
-    }
 
-    inline fun  <reified DTO, reified DATA> dtoSettings(daoModel : LongEntityClass<LongEntity>, block: DTOConfigV2.() -> Unit)
-    where  DTO : DTOModelV2, DATA : DataModel {
-        val config = DTOConfigV2()
-        config.block()
-        val rootDtoModelClass = DTO::class
-        config.setClassData(rootDtoModelClass, DATA::class, daoModel)
-        setConfiguration(rootDtoModelClass.qualifiedName!!,config)
-    }
 
-}
+        inline fun <reified DTO, reified DATA> dtoSettings(
+            daoModel: LongEntityClass<LongEntity>,
+            block: DTOConfigV2.() -> Unit
+        ) where  DTO : DTOModelV2, DATA : DataModel {
+            val config = DTOConfigV2()
+            config.block()
+            val rootDtoModelClass = DTO::class
+            config.setClassData(rootDtoModelClass, DATA::class, daoModel)
+            setConfiguration(rootDtoModelClass.qualifiedName!!, config)
+        }
+
+    }
 

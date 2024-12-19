@@ -9,7 +9,6 @@ import org.jetbrains.exposed.dao.LongEntityClass
 import po.db.data_service.binder.PropertyBinding
 import po.db.data_service.dto.components.ContextState
 import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.dto.components.DTOComponents
 import po.db.data_service.dto.components.DTOConfig
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.InitializationException
@@ -28,11 +27,9 @@ data class ModelEntityPairContainer<DATA_MODEL, ENTITY>(
 abstract class DTOClass<DATA_MODEL, ENTITY>()
         where DATA_MODEL : DataModel, ENTITY : LongEntity{
 
-   val dtoComponents = DTOComponents<DATA_MODEL, ENTITY>()
    val dtoModelConfig = DTOConfig<DATA_MODEL, ENTITY>()
 
 
-    fun create(daoENTITY: ENTITY) = dtoComponents.create(daoENTITY, this)
     fun update(dataModel: DATA_MODEL, entity: ENTITY) {
         onUpdateProperties?.invoke(dataModel, entity)
     }

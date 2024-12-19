@@ -27,7 +27,7 @@ class ServiceContextV2(
         serviceBody()
     }
 
-    private fun select(entityModel : LongEntityClass<LongEntity>): SizedIterable<LongEntity>{
+    private fun daoSelect(entityModel : LongEntityClass<LongEntity>): SizedIterable<LongEntity>{
        val result =  dbQuery {
             entityModel.all()
         }
@@ -37,8 +37,10 @@ class ServiceContextV2(
     fun  DTOClassV2.select(block: DTOClassV2.(List<CommonDTOV2>) -> Unit): Unit {
         val result  = mutableListOf<CommonDTOV2>()
         dbQuery {
-            select(this.daoModel).forEach {
-                val dtoEntity =  this.create(serviceContext, it)
+            daoSelect(this.daoModel).forEach {
+                val dtoEntity =  this.create(it){
+                    val a = 10
+                }
                 result.add(dtoEntity)
             }
         }
