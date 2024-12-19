@@ -10,13 +10,8 @@ import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.LongIdTable
 
 object Contacts : LongIdTable("contacts", "id") {
-    val nowDateTime = LocalDateTime.Companion.parse(Clock.System.now().toLocalDateTime(TimeZone.UTC).toString())
+
     val name = varchar("name",128)
-    val surname = varchar("legal_name",128)
+    val surname = varchar("surname",128)
 }
 
-class ContactEntity  (id: EntityID<Long>) : LongEntity(id){
-    companion object : LongEntityClass<ContactEntity>(Contacts)
-    var name by Contacts.name
-    var surname by Contacts.surname
-}

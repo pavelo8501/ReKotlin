@@ -1,12 +1,13 @@
 package po.db.data_service.models
 
 import org.jetbrains.exposed.dao.LongEntity
+import org.jetbrains.exposed.dao.LongEntityClass
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.interfaces.DTOEntityMarker
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes.NOT_INITIALIZED
 import po.db.data_service.exceptions.InitializationException
-
+import po.db.data_service.models.interfaces.DTOEntity
 
 
 abstract class CommonDTO<DATA_MODEL, ENTITY>(

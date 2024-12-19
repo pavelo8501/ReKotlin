@@ -1,46 +1,66 @@
 package po.db.data_service.scope.service
 
-import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Database
-import po.db.data_service.dto.DTOClass
-import po.db.data_service.dto.initializeDTO
-import po.db.data_service.dto.interfaces.DataModel
+import po.db.data_service.constructors.ClassBlueprintContainer
+import po.db.data_service.constructors.ConstructorBuilder
+import po.db.data_service.dto.DTOClassV2
+import po.db.data_service.dto.interfaces.DTOModelClass
+import po.db.data_service.dto.interfaces.DTOModelV2
+import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.InitializationException
-import po.db.data_service.scope.connection.controls.ServiceRouter
-import po.db.data_service.scope.service.controls.ServiceRegistryBuilder
-import po.db.data_service.scope.service.controls.service_registry.DTOData
-import po.db.data_service.scope.service.controls.service_registry.ServiceUniqueKey
+import kotlin.reflect.KClass
 
-class ServiceClass<DATA_MODEL, ENTITY>(
+class ServiceClass(
     private val connection :Database,
-    private val connectionName : String,
-    private val rootDataModel : DTOClass<DATA_MODEL, ENTITY>,
-) where DATA_MODEL:DataModel,  ENTITY : LongEntity {
+    private val rootDTOModel : DTOClassV2,
+){
 
-    val serviceRouter = ServiceRouter<DATA_MODEL, ENTITY>(connectionName, connection)
-    private val serviceRegistry = ServiceRegistryBuilder<DATA_MODEL, ENTITY>()
+   companion object :  ConstructorBuilder()
+
+   var name : String = "undefined"
 
     init {
         try {
-            initializeService()
+            start()
         }catch (initException : InitializationException){
             println(initException.message)
         }
     }
 
-    private fun initializeService(){
-        serviceRegistry.addServiceRegistryItem {
-            key = ServiceUniqueKey("TestRun")
-            metadata {
-                key = ServiceUniqueKey("TestRun")
-                service {
-                    rootDataModel.initialization() {
-                        rootDTOModelData = it
-                        childDTOModels
-                    }
-                }
-            }
+   private fun getClassBlueprint(dtoModel: DTOClassV2):ClassBlueprintContainer{
+        if(dtoModel.configuration != null){
+           val dtoBlueprint =  getConstructorBlueprint<Any>(dtoModel.configuration!!.dtoModelClass as KClass<*>)
+           val dataBlueprint =  getConstructorBlueprint<Any>(dtoModel.configuration!!.dataModelClass as KClass<*>)
+           return ClassBlueprintContainer(dtoBlueprint, dataBlueprint)
+        }else{
+            throw InitializationException("Unable to build  ${dtoModel.className} constructor blueprints. configuration not initialized", ExceptionCodes.NOT_INITIALIZED)
         }
+    }
+
+    private fun initializeDTOs(context: ServiceClass.() -> Unit ) {
+        context.invoke(this)
+    }
+
+    private fun start(){
+        initializeDTOs{
+            rootDTOModel.initialization{
+                getClassBlueprint(it)
+            }
+            name = " ${rootDTOModel.className}|Service"
+
+        }
+    }
+
+
+//        serviceRegistry.addServiceRegistryItem {
+//            key = ServiceUniqueKey("TestRun")
+//            metadata {
+//                key = ServiceUniqueKey("TestRun")
+//                service {
+//                    rootDTOModel.initialization()
+//                }
+//            }
+//        }
 
 //        rootDataModel.initialization().also { dtoClass->
 //           dtoClass.dtoContext.also {
@@ -56,8 +76,8 @@ class ServiceClass<DATA_MODEL, ENTITY>(
 //               }
 //            }
 //        }
-        val vb  = 10
-    }
+       // val vb  = 10
+
 
   //  val serviceRouter = ServiceRouter(connectionName, connection, serviceRegistry)
 }

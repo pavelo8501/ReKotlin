@@ -7,6 +7,9 @@ import po.db.data_service.dto.interfaces.CanNotify
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.controls.NotificationEvent
 import po.db.data_service.controls.Notificator
+import po.db.data_service.dto.DTOClass
+import po.db.data_service.models.CommonDTO
+import kotlin.reflect.KClass
 
 
 class DTOConfig<DATA_MODEL, ENTITY>(): CanNotify
@@ -49,6 +52,16 @@ class DTOConfig<DATA_MODEL, ENTITY>(): CanNotify
     fun setDataModelConstructor(dataModelConstructor: () -> DATA_MODEL){
         this.dataModelConstructor = dataModelConstructor
     }
+
+    inline fun <reified DTO : CommonDTO<CHILD_DATA_MODEL, CHILD_ENTITY>, reified CHILD_DATA_MODEL, reified CHILD_ENTITY>  setChildBinding(
+        childDTO : DTOClass<CHILD_DATA_MODEL, CHILD_ENTITY>,
+        type: BindingType,
+    ) where CHILD_DATA_MODEL : DataModel, CHILD_ENTITY : LongEntity{
+        val commonDTO = CommonDTO::class as KClass<CommonDTO<CHILD_DATA_MODEL, CHILD_ENTITY>>
+        val child = CHILD_DATA_MODEL::class
+        val a = 10
+    }
+
 
 //    fun setChildBindings(dtoModel: DTOClass<CHILD_DATA_MODEL, CHILD_ENTITY>, type : BindingType)
 //     = childBinding.addChild(dtoModel,type)

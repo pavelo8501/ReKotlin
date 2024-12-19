@@ -16,9 +16,12 @@ class ServiceContext<DATA_MODEL, ENTITY>(
     val name : String,
     private val rootDtoModel : DTOClass<DATA_MODEL, ENTITY>,
     private val dbConnection: Database,
-    private val connectionContext : ConnectionContext,
 ) where DATA_MODEL: DataModel,  ENTITY : LongEntity{
     companion object : ConstructorBuilder()
+
+    init {
+        println("ServiceContext name $name started")
+    }
 
     private fun  <T>dbQuery(body : () -> T): T = transaction(dbConnection) {
         body()
@@ -50,11 +53,11 @@ class ServiceContext<DATA_MODEL, ENTITY>(
 
     var dataModelClass: KClass<DATA_MODEL>? = null
 
-    private var modelConfiguration = DTOConfig<DATA_MODEL,ENTITY>()
-    private  fun <T>configuration(conf: DTOConfig<DATA_MODEL, ENTITY>, statement: DTOConfig<DATA_MODEL, ENTITY>.() -> T): T =   statement.invoke(conf)
-    fun  <T>config(serviceBody: DTOConfig<DATA_MODEL, ENTITY>.() -> T): T = configuration(modelConfiguration) {
-        serviceBody()
-    }
+//    private var modelConfiguration = DTOConfig<DATA_MODEL,ENTITY>()
+//    private  fun <T>configuration(conf: DTOConfig<DATA_MODEL, ENTITY>, statement: DTOConfig<DATA_MODEL, ENTITY>.() -> T): T =   statement.invoke(conf)
+//    fun  <T>config(serviceBody: DTOConfig<DATA_MODEL, ENTITY>.() -> T): T = configuration(modelConfiguration) {
+//        serviceBody()
+//    }
 
     init {
 
@@ -83,9 +86,9 @@ class ServiceContext<DATA_MODEL, ENTITY>(
 
         val result  = mutableListOf<CommonDTO<DATA_MODEL, ENTITY>>()
         dbQuery {
-            this.daoEntityModel.all().forEach {
-                result.add(this.create(it))
-            }
+//            this.daoEntityModel.all().forEach {
+//                result.add(this.create(it))
+//            }
         }
 
       //  return result

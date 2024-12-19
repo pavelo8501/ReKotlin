@@ -13,29 +13,29 @@ data class ServiceMetadataDepr<DATA_MODEL, ENTITY>(
     val service: ServiceContext<DATA_MODEL, ENTITY>,
 ) where DATA_MODEL : DataModel, ENTITY : LongEntity {
 
-    private val modelBlueprints = mutableMapOf<KClass<DATA_MODEL>, ClassBlueprint<DATA_MODEL>>()
-    private val dtoBlueprints = mutableMapOf<KClass<out CommonDTO<DATA_MODEL, ENTITY>>, ClassBlueprint<CommonDTO<DATA_MODEL, ENTITY>>>()
-
-    fun addDtoBlueprint(classDefinition : KClass<CommonDTO<DATA_MODEL, ENTITY>>, entityBlueprint: ClassBlueprint<CommonDTO<DATA_MODEL, ENTITY>>) {
-        dtoBlueprints.putIfAbsent(classDefinition, entityBlueprint)
-    }
-
-    fun addModelBlueprint(classDefinition : KClass<DATA_MODEL>, modelBlueprint: ClassBlueprint<DATA_MODEL>) {
-        modelBlueprints.putIfAbsent(classDefinition, modelBlueprint)
-    }
-
-    fun getDTOBlueprint(classDefinition: KClass<CommonDTO<DATA_MODEL, ENTITY>>): ClassBlueprint<CommonDTO<DATA_MODEL, ENTITY>>? {
-        this.dtoBlueprints[classDefinition]?.let {
-            return it
-        }
-        return null
-    }
-    fun getModelBlueprint(classDefinition: KClass<DATA_MODEL>): ClassBlueprint<DATA_MODEL>? {
-        this.modelBlueprints[classDefinition]?.let {
-            return it
-        }
-        return null
-    }
+//    private val modelBlueprints = mutableMapOf<KClass<DATA_MODEL>, ClassBlueprint<DATA_MODEL>>()
+//    private val dtoBlueprints = mutableMapOf<KClass<out CommonDTO<DATA_MODEL, ENTITY>>, ClassBlueprint<CommonDTO<DATA_MODEL, ENTITY>>>()
+//
+//    fun addDtoBlueprint(classDefinition : KClass<CommonDTO<DATA_MODEL, ENTITY>>, entityBlueprint: ClassBlueprint<CommonDTO<DATA_MODEL, ENTITY>>) {
+//        dtoBlueprints.putIfAbsent(classDefinition, entityBlueprint)
+//    }
+//
+//    fun addModelBlueprint(classDefinition : KClass<DATA_MODEL>, modelBlueprint: ClassBlueprint<DATA_MODEL>) {
+//        modelBlueprints.putIfAbsent(classDefinition, modelBlueprint)
+//    }
+//
+//    fun getDTOBlueprint(classDefinition: KClass<CommonDTO<DATA_MODEL, ENTITY>>): ClassBlueprint<CommonDTO<DATA_MODEL, ENTITY>>? {
+//        this.dtoBlueprints[classDefinition]?.let {
+//            return it
+//        }
+//        return null
+//    }
+//    fun getModelBlueprint(classDefinition: KClass<DATA_MODEL>): ClassBlueprint<DATA_MODEL>? {
+//        this.modelBlueprints[classDefinition]?.let {
+//            return it
+//        }
+//        return null
+//    }
 }
 
 class ServiceRegistryDepr {

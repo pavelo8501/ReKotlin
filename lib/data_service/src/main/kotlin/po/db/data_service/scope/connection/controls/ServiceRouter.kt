@@ -36,7 +36,7 @@ class ServiceRouter<DATA_MODEL : DataModel, ENTITY : LongEntity>(
         dtoModel : DTOClass<DATA_MODEL, ENTITY>,
         connectionContext: ConnectionContext
     ) : ServiceContext<DATA_MODEL, ENTITY> {
-        return ServiceContext(serviceName, dtoModel, dbConnection,  connectionContext)
+        return ServiceContext(serviceName, dtoModel, dbConnection)
     }
 
     fun <DATA_MODEL : DataModel, ENTITY: LongEntity>initializeRoute(

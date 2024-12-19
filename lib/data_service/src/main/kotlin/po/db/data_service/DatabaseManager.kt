@@ -9,8 +9,6 @@ import po.db.data_service.controls.ConnectionInfo
 import po.db.data_service.scope.connection.ConnectionClass
 import po.db.data_service.scope.connection.ConnectionContext
 
-
-
 object DatabaseManager {
 
     private val connections  = mutableListOf<ConnectionClass>()

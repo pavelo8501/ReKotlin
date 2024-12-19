@@ -25,8 +25,8 @@ class ChildDTODataBuilder<CHILD_DATA_MODEL, CHILD_ENTITY> where CHILD_DATA_MODEL
 
     fun build(): ChildDTOData<CHILD_DATA_MODEL, CHILD_ENTITY> {
         requireNotNull(dtoModel) { "ChildDTOModel must have a dtoModel" }
-        requireNotNull(entityModel) { "ChildDTOModel must have an entityModel" }
-        requireNotNull(dataModelClass) { "ChildDTOModel must have an dataModelClass" }
-        return ChildDTOData(dtoModel!!, entityModel!!, dataModelClass!!)
+        requireNotNull(dataModelClass) { "ChildDTOModel must have an entityModel" }
+        requireNotNull(entityModel) { "ChildDTOModel must have an dataModelClass" }
+        return ChildDTOData(dtoModel!!,dataModelClass!!, entityModel!!)
     }
 }

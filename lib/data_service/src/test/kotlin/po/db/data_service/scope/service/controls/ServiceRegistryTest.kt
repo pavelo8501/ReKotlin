@@ -26,8 +26,8 @@ class ServiceRegistryTest {
                     key = ServiceUniqueKey("TestMetadata")
 
                     service {
-                        rootDTOModelData = DTOData(
-                            dtoModelClass = testDTO,
+                        rootdtoModelClassData = DTOData(
+                            dtoModelClassClass = testDTO,
                             daoEntityModel = TestEntity,
                             dataModelClass = TestDataModel::class
                         )
@@ -40,11 +40,11 @@ class ServiceRegistryTest {
         val item = registry.first()
         assertEquals("TestService", item.key.key)
         assertEquals("TestMetadata", item.metadata.key.key)
-        assertEquals(testDTO, item.metadata.service.rootDTOModelData.dtoModel)
+        assertEquals(testDTO, item.metadata.service.rootdtoModelClassData.dtoModelClassClass)
     }
 
     @Test
-    fun `should throw exception when rootDTOModelData is missing`() {
+    fun `should throw exception when rootdtoModelClassData is missing`() {
         val exception = assertThrows<IllegalArgumentException> {
             ServiceRegistryBuilder<TestDataModel, TestEntity>()
                 .addServiceRegistryItem {
@@ -54,13 +54,13 @@ class ServiceRegistryTest {
                         key = ServiceUniqueKey("TestMetadata")
 
                         service {
-                            // rootDTOModelData is not set
+                            // rootdtoModelClassData is not set
                         }
                     }
                 }
                 .build()
         }
-        assertEquals("ServiceData must have a rootDTOModel", exception.message)
+        assertEquals("ServiceData must have a rootdtoModelClass", exception.message)
     }
 
     @Test
@@ -73,8 +73,8 @@ class ServiceRegistryTest {
                     metadata {
                         // key is not set
                         service {
-                            rootDTOModelData = DTOData(
-                                dtoModel = TestDTO(TestDataModel()),
+                            rootdtoModelClassData = DTOData(
+                                dtoModelClass = TestDTO(TestDataModel()),
                                 daoEntityModel = TestEntity::class as LongEntityClass<TestEntity>,
                                 dataModelClass = TestDataModel::class
                             )
@@ -97,20 +97,22 @@ class ServiceRegistryTest {
                     key = ServiceUniqueKey("TestMetadata")
 
                     service {
-                        rootDTOModelData = DTOData(
-                            dtoModel = TestDTO(TestDataModel()),
+                        rootdtoModelClassData = DTOData(
+                            dtoModelClass = TestDTO(TestDataModel()),
                             daoEntityModel = TestEntity::class as LongEntityClass<TestEntity>,
                             dataModelClass = TestDataModel::class
                         )
 
-                        childDTOModel<TestChildDataModel , TestChildEntity> {
-                            setDTOModel(TestChildDTO(TestChildDataModel()))
+                        childdtoModelClass<TestChildDataModel , TestChildEntity> {
+                            setdtoModelClass(TestChildDTO(TestChildDataModel()))
                             setEntityModel(TestChildEntity::class as LongEntityClass<TestChildEntity>)
                             setDataModel(TestChildDataModel::class)
                         }
 
-                        childDTOModel<TestChildDataModel, TestChildEntity> {
-                            setDTOModel(TestChildDTO(TestChildDataModel()))
+
+
+                        childdtoModelClass<TestChildDataModel, TestChildEntity> {
+                            setdtoModelClass(TestChildDTO(TestChildDataModel()))
                             setEntityModel(TestChildEntity::class as LongEntityClass<TestChildEntity>)
                             setDataModel(TestChildDataModel::class)
                         }
@@ -120,7 +122,7 @@ class ServiceRegistryTest {
             .build()
 
         val serviceData = registry.first().metadata.service
-        assertEquals(2, serviceData.childDTOModelsData.size)
+        assertEquals(2, serviceData.childdtoModelClasssData.size)
     }
 
     @Test
@@ -133,8 +135,8 @@ class ServiceRegistryTest {
                     key = ServiceUniqueKey("FirstMetadata")
 
                     service {
-                        rootDTOModelData = DTOData(
-                            dtoModel = TestDTO(TestDataModel()),
+                        rootdtoModelClassData = DTOData(
+                            dtoModelClass = TestDTO(TestDataModel()),
                             daoEntityModel = TestEntity::class as LongEntityClass<TestEntity>,
                             dataModelClass = TestDataModel::class
                         )
@@ -148,8 +150,8 @@ class ServiceRegistryTest {
                     key = ServiceUniqueKey("SecondMetadata")
 
                     service {
-                        rootDTOModelData = DTOData(
-                            dtoModel = TestDTO(TestDataModel()),
+                        rootdtoModelClassData = DTOData(
+                            dtoModelClass = TestDTO(TestDataModel()),
                             daoEntityModel = TestEntity::class as LongEntityClass<TestEntity>,
                             dataModelClass = TestDataModel::class
                         )
@@ -180,8 +182,8 @@ class ServiceRegistryTest {
                         key = ServiceUniqueKey("Metadata1")
 
                         service {
-                            rootDTOModelData = DTOData(
-                                dtoModel = TestDTO(TestDataModel()),
+                            rootdtoModelClassData = DTOData(
+                                dtoModelClass = TestDTO(TestDataModel()),
                                 daoEntityModel = TestEntity::class as LongEntityClass<TestEntity>,
                                 dataModelClass = TestDataModel::class
                             )
@@ -195,8 +197,8 @@ class ServiceRegistryTest {
                         key = ServiceUniqueKey("Metadata2")
 
                         service {
-                            rootDTOModelData = DTOData(
-                                dtoModel = TestDTO(TestDataModel()),
+                            rootdtoModelClassData = DTOData(
+                                dtoModelClass = TestDTO(TestDataModel()),
                                 daoEntityModel = TestEntity::class as LongEntityClass<TestEntity>,
                                 dataModelClass = TestDataModel::class
                             )
