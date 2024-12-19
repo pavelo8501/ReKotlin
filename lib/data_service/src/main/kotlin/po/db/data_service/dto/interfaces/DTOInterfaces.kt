@@ -35,7 +35,6 @@ interface DTOModelClass {
 interface DTOModelV2 : DTOEntity {
     val dataModel: DataModel
     val className : String
-
 }
 
 /*

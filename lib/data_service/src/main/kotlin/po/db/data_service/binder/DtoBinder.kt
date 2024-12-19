@@ -72,7 +72,7 @@ class DTOPropertyBinder <DATA_MODEL, ENTITY>(
         statement: DTOPropertyBinder <DATA_MODEL, ENTITY>.() -> T
     ): T = statement.invoke(this)
 
-    fun <T> update(binderBody: DTOPropertyBinder <DATA_MODEL, ENTITY>.() -> T): T = updateProps() { binderBody() }
+    fun <T> update(binderBody: DTOPropertyBinder <DATA_MODEL, ENTITY>.() -> T): T = updateProps{ binderBody() }
 
     fun updateProperties(dataModel: DATA_MODEL, entityModel: ENTITY, updateMode: UpdateMode) {
         propertyList.forEach { it.update(dataModel, entityModel, updateMode) }

@@ -1,6 +1,7 @@
 package po.db.data_service.binder
 
 import org.jetbrains.exposed.dao.LongEntity
+import org.jetbrains.exposed.sql.SizedIterable
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.DTOClassV2
 import po.db.data_service.dto.components.BindingType
@@ -18,12 +19,29 @@ enum class OrdinanceType{
 
 data class ChildContainer(
     val dtoModelClass : DTOClassV2,
+    val byProperty : SizedIterable<LongEntity>,
     val type:  OrdinanceType
 )
 
 class RelationshipBinder  {
+    var bindingKeys = mutableListOf<String>()
+        private set
     private var childBindings = mutableMapOf<String, ChildContainer>()
-    fun addChildBinding(dtoClass: DTOClassV2, type: OrdinanceType) {
-        ChildContainer(dtoClass, type).let { this.childBindings.putIfAbsent(dtoClass.className, it) }
+
+    fun loadChildren(key:String?=null){
+        if(key == null){
+            bindingKeys.forEach {
+                childBindings[it]?.byProperty?.forEach { child ->
+                    println(child.id)
+                }
+            }
+        }
+    }
+
+    fun addChildBinding(dtoClass: DTOClassV2, byProperty : SizedIterable<LongEntity>, type: OrdinanceType) {
+        ChildContainer(dtoClass, byProperty, type).let {
+            this.childBindings.putIfAbsent(dtoClass.className, it)
+            bindingKeys.add(dtoClass.className)
+        }
     }
 }

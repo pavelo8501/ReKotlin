@@ -16,6 +16,7 @@ import po.db.data_service.dto.interfaces.DTOModelV2
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.models.CommonDTO
 import po.db.data_service.models.CommonDTOV2
+import po.playground.projects.data_service.services.Departments
 import po.playground.projects.data_service.services.Partners
 
 
@@ -34,7 +35,7 @@ class PartnerEntity  (id: EntityID<Long>) : LongEntity(id){
     var created by Partners.created
     @PropertyBinder("updated")
     var updated by Partners.updated
-    //val departments by  DepartmentEntity referrersOn Departments.partne
+    val departments by  DepartmentEntity referrersOn Departments.partner
 }
 
 data class PartnerDataModel(
@@ -67,7 +68,6 @@ class PartnerDTO(
                 setDataModelConstructor {
                     PartnerDataModel(0,"","",null, null, nowTime(), nowTime())
                 }
-                setChildBinding(DepartmentDTO, BindingType.ONE_TO_MANY)
                 setChildBinding(ContactDTO, BindingType.ONE_TO_MANY)
             }
         }

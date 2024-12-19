@@ -10,16 +10,22 @@ abstract class CommonDTOV2(private val injectedDataModel : DataModel): DTOModelV
 
     override var id:Long = 0L
     private var dtoModel : DTOClassV2? = null
+    private var entityDAO : LongEntity? = null
 
     public override fun clone(): DataModel = this.clone()
 
-    private var entityDAO : LongEntity? = null
+    fun toDTO(): DataModel =  this.injectedDataModel
+
+    fun loadChildren(){
+        dtoModel.
+    }
+
     fun setEntityDAO(entity :LongEntity, dtoModel : DTOClassV2){
         this.dtoModel = dtoModel
         entityDAO = entity
         if(id != entity.id.value){
             id = entity.id.value
-            //dtoModel.update(toDTO(), entity)
+            dtoModel.update(toDTO(), entity)
         }
     }
 

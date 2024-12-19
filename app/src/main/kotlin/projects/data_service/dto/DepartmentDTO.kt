@@ -67,35 +67,6 @@ data class DepartmentDataModel(
     var created: LocalDateTime,
 ): DataModel
 
-class DepartmentDTO(
-    override var id: Long,
-    override val dataModel: DepartmentDataModel,
-): CommonDTO<DepartmentDataModel, DepartmentEntity>(dataModel), DTOModel {
-
-    override val className: String = "DepartmentDTO"
-
-    companion object : DTOClass<DepartmentDataModel, DepartmentEntity>(){
-
-        override fun configuration() {
-            initializeDTO<DepartmentDTO, DepartmentDataModel, DepartmentEntity>(DepartmentEntity) {
-                setProperties(
-                    PropertyBinding("hq",DepartmentDataModel::hq, DepartmentEntity::hq),
-                    PropertyBinding("name",DepartmentDataModel::name, DepartmentEntity::name),
-                    PropertyBinding("street",DepartmentDataModel::street, DepartmentEntity::street),
-                    PropertyBinding("city",DepartmentDataModel::city, DepartmentEntity::city),
-                    PropertyBinding("country",DepartmentDataModel::country, DepartmentEntity::country),
-                    PropertyBinding("postCode",DepartmentDataModel::postCode, DepartmentEntity::postCode),
-                    PropertyBinding("phone",DepartmentDataModel::phone, DepartmentEntity::phone),
-                    PropertyBinding("email",DepartmentDataModel::email, DepartmentEntity::email),
-                    PropertyBinding("frequency",DepartmentDataModel::frequency, DepartmentEntity::frequency),
-                    PropertyBinding("lastInspection",DepartmentDataModel::lastInspection, DepartmentEntity::lastInspection),
-                    PropertyBinding("updated",DepartmentDataModel::updated, DepartmentEntity::updated),
-                    PropertyBinding("created",DepartmentDataModel::created, DepartmentEntity::created),
-                )
-            }
-        }
-    }
-}
 
 class DepartmentDTOV2(
     override var id: Long,
@@ -121,6 +92,9 @@ class DepartmentDTOV2(
                     PropertyBindingV2("updated",DepartmentDataModel::updated, DepartmentEntity::updated),
                     PropertyBindingV2("created",DepartmentDataModel::created, DepartmentEntity::created),
                 )
+                setDataModelConstructor{
+                    DepartmentDataModel(0,false,"",null,null,null,null,null,null,12, null, nowTime(), nowTime() )
+                }
             }
         }
     }

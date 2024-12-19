@@ -18,7 +18,7 @@ fun startDataService(connectionInfo : ConnectionInfo) {
 
     DatabaseManager.openConnection(connectionInfo){
 
-        serviceV2(PartnerDTOV2){
+        serviceV2<PartnerDTOV2>(PartnerDTOV2){
 
             PartnerDTOV2.select {
 

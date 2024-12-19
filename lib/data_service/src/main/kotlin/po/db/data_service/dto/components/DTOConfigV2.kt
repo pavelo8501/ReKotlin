@@ -2,10 +2,8 @@ package po.db.data_service.dto.components
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
-import po.db.data_service.binder.OrdinanceType
-import po.db.data_service.binder.PropertyBinderV2
-import po.db.data_service.binder.PropertyBindingV2
-import po.db.data_service.binder.RelationshipBinder
+import org.jetbrains.exposed.sql.SizedIterable
+import po.db.data_service.binder.*
 import po.db.data_service.dto.DTOClassV2
 import po.db.data_service.dto.interfaces.DTOModelV2
 import po.db.data_service.dto.interfaces.DataModel
@@ -18,8 +16,11 @@ class DTOConfigV2 {
 
     var daoModel:LongEntityClass<LongEntity>? = null
 
-    private var propertyBinder : PropertyBinderV2? = null
-    private var relationBinder : RelationshipBinder? = null
+    var propertyBinder : PropertyBinderV2? = null
+        private set
+
+    var relationBinder  = RelationshipBinder()
+        private set
 
     var dataModelConstructor : (() -> DataModel)? = null
         private set
@@ -31,10 +32,15 @@ class DTOConfigV2 {
         }
     }
 
-    fun childBinding(childDtoModel : DTOClassV2, type: OrdinanceType){
+    fun updateProperties(dataModel: DataModel, daoEntity : LongEntity){
+        propertyBinder?.updateProperties(dataModel, daoEntity, UpdateMode.ENTITY_TO_MODEL)
+    }
+
+
+    fun childBinding(childDtoModel : DTOClassV2, byProperty:SizedIterable<LongEntity>, type: OrdinanceType){
       //  childDtoModel.setup()
         RelationshipBinder().let {
-            it.addChildBinding(childDtoModel,type)
+            it.addChildBinding(childDtoModel,byProperty,  type)
             relationBinder = it
         }
     }

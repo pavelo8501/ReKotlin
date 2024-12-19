@@ -5,8 +5,8 @@ package po.db.data_service.constructors
 //}
 
 data class ClassBlueprintContainer(
-   val model: ClassBlueprint,
-   val data: ClassBlueprint,
+   val dtoModel: ClassBlueprint,
+   val dataModel: ClassBlueprint,
 ){
 
 }

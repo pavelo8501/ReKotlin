@@ -27,13 +27,12 @@ class ServiceClass(
         }
     }
 
-   private fun getClassBlueprint(dtoModel: DTOClassV2):ClassBlueprintContainer{
-        if(dtoModel.configuration != null){
-           val dtoBlueprint =  getConstructorBlueprint<Any>(dtoModel.configuration!!.dtoModelClass as KClass<*>)
-           val dataBlueprint =  getConstructorBlueprint<Any>(dtoModel.configuration!!.dataModelClass as KClass<*>)
-           return ClassBlueprintContainer(dtoBlueprint, dataBlueprint)
-        }else{
-            throw InitializationException("Unable to build  ${dtoModel.className} constructor blueprints. configuration not initialized", ExceptionCodes.NOT_INITIALIZED)
+    private fun getClassBlueprint(dtoModel: DTOClassV2):ClassBlueprintContainer{
+        dtoModel.configuration.also {
+           return ClassBlueprintContainer(
+                getConstructorBlueprint<Any>(it.dtoModelClass as KClass<*>),
+                getConstructorBlueprint<Any>(it.dataModelClass as KClass<*>)
+            )
         }
     }
 
@@ -47,8 +46,12 @@ class ServiceClass(
                 getClassBlueprint(it)
             }
             name = " ${rootDTOModel.className}|Service"
-
         }
+    }
+
+    fun launch(receiver: ServiceContextV2.()->Unit ){
+        val serviceContext = ServiceContextV2(connection, rootDTOModel)
+        serviceContext.receiver()
     }
 
 

@@ -20,13 +20,14 @@ class ConnectionContext(
     val connectionClass :  ConnectionClass
 ) {
 
-    fun ConnectionContext.serviceV2(
+    fun <DTO : CommonDTOV2 >ConnectionContext.serviceV2(
         rootDtoModel : DTOClassV2,
         context: ServiceContextV2.()->Unit,
     ){
         try {
-                ServiceClass(connection, rootDtoModel).let {
-                    connectionClass.addService(it)
+            ServiceClass(connection, rootDtoModel).let {
+                connectionClass.addService(it)
+                it.launch(context)
             }
         }catch (exception: Exception){
             println(exception.message)
