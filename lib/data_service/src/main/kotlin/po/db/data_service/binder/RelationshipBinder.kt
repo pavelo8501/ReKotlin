@@ -55,7 +55,7 @@ class RelationshipBinder(
     inline fun <reified PARENT, reified CHILD> addChildBinding(
         parentDto: DTOClass,
         childDtoModel: DTOClass,
-        byProperty: KProperty1<LongEntity, SizedIterable<CHILD>>,
+        byProperty: KProperty1<out LongEntity, SizedIterable<CHILD>>,
         type: OrdinanceType,
     ) where PARENT : LongEntity,  CHILD : LongEntity  {
 

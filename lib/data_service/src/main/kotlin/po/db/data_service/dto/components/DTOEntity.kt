@@ -1,8 +1,5 @@
 package po.db.data_service.dto.components
 
-import po.db.data_service.dto.interfaces.DTOEntity
-import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.models.CommonDTO
 
 
 //abstract class BaseDTO<DTO : CommonDTO (

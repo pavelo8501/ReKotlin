@@ -2,8 +2,6 @@ package po.db.data_service.scope.service.controls.service_registry
 
 import org.jetbrains.exposed.dao.LongEntity
 import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.models.CommonDTO
-import kotlin.reflect.KClass
 
 class ServiceDataBuilder<DATA_MODEL, ENTITY>  where DATA_MODEL: DataModel, ENTITY : LongEntity {
     var rootDTOModelData: DTOData<DATA_MODEL, ENTITY>? = null

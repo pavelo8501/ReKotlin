@@ -8,9 +8,8 @@ import po.db.data_service.annotations.ClassBinder
 import po.db.data_service.annotations.PropertyBinder
 import po.db.data_service.binder.PropertyBindingV2
 import po.db.data_service.dto.*
-import po.db.data_service.dto.interfaces.DTOModelV2
 import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.models.CommonDTOV2
+import po.db.data_service.models.CommonDTO
 
 
 import po.playground.projects.data_service.services.Departments
@@ -66,7 +65,7 @@ data class DepartmentDataModel(
 class DepartmentDTOV2(
     override var id: Long,
     override val dataModel: DepartmentDataModel,
-): CommonDTOV2(dataModel), DTOModelV2 {
+): CommonDTO(dataModel){
 
     override var className: String = "DepartmentDTOV2"
 

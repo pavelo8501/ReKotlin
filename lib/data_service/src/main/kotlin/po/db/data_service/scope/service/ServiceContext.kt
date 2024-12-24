@@ -7,9 +7,6 @@ import po.db.data_service.constructors.ConstructorBuilder
 import po.db.data_service.dto.*
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.dto.components.ContextState
-import po.db.data_service.dto.components.DTOConfig
-import po.db.data_service.models.CommonDTO
-import po.db.data_service.scope.connection.ConnectionContext
 import kotlin.reflect.KClass
 
 class ServiceContext<DATA_MODEL, ENTITY>(

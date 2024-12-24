@@ -3,10 +3,11 @@ package po.playground.projects.data_service.dto
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
+import po.db.data_service.binder.PropertyBindingV2
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.interfaces.DTOModelV2
 import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.models.CommonDTOV2
+import po.db.data_service.models.CommonDTO
 import po.playground.projects.data_service.services.Contacts
 
 
@@ -26,7 +27,7 @@ data class ContactDataModel(
 class ContactDTO(
     override var id: Long,
     override val dataModel: ContactDataModel,
-): CommonDTOV2(dataModel), DTOModelV2 {
+): CommonDTO(dataModel){
 
     override var className: String = "ContactDTO"
 
@@ -34,8 +35,8 @@ class ContactDTO(
         override fun setup() {
             dtoSettings<ContactDTO, ContactDataModel>(ContactEntity){
 //                propertyBindings(
-//                  //  PropertyBindingV2("name",  ContactDataModel::name, ContactEntity::name),
-//                    //PropertyBindingV2("surname", ContactDataModel::surname, ContactEntity::surname)
+//                  //  PropertyBindingV2("name", ContactDataModel::name, ContactEntity::name),
+//                   // PropertyBindingV2("surname", ContactDataModel::surname, ContactEntity::surname)
 //                )
             }
         }

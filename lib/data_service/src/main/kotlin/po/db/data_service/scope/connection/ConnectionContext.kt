@@ -2,7 +2,7 @@ package po.db.data_service.scope.connection
 
 import org.jetbrains.exposed.sql.Database
 import po.db.data_service.dto.*
-import po.db.data_service.models.CommonDTOV2
+import po.db.data_service.models.CommonDTO
 import po.db.data_service.scope.service.ServiceClass
 import po.db.data_service.scope.service.ServiceContextV2
 
@@ -12,7 +12,7 @@ class ConnectionContext(
     val connectionClass :  ConnectionClass
 ) {
 
-    fun <DTO : CommonDTOV2 >ConnectionContext.service(
+    fun <DTO : CommonDTO >ConnectionContext.service(
         rootDtoModel : DTOClass,
         context: ServiceContextV2.()->Unit,
     ){

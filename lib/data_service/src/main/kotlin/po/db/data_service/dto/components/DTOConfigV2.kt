@@ -46,10 +46,13 @@ class DTOConfigV2() {
     }
 
     inline  fun <reified PARENT,  reified CHILD> DTOClass.childBinding(
-        parentDTOModel: DTOClass,
         childDtoModel: DTOClass,
-        byProperty: KProperty1<LongEntity, SizedIterable<CHILD>>, type: OrdinanceType
+        byProperty: KProperty1<out LongEntity, SizedIterable<CHILD>>,
+        type: OrdinanceType
     ) where PARENT :  LongEntity, CHILD: LongEntity{
+
+       val  parentDTOModel  = this
+
         if(!childDtoModel.initialized) {
             parent.onDtoInitializationCallback?.let { callback ->
                 childDtoModel.initialization(callback)

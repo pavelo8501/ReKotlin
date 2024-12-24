@@ -7,11 +7,11 @@ import po.db.data_service.models.CommonDTO
 import kotlin.reflect.KClass
 
 class ChildDTODataBuilder<CHILD_DATA_MODEL, CHILD_ENTITY> where CHILD_DATA_MODEL : DataModel, CHILD_ENTITY : LongEntity   {
-    private var dtoModel: KClass<CommonDTO<CHILD_DATA_MODEL, CHILD_ENTITY>> ? = null
+    private var dtoModel: KClass<CommonDTO> ? = null
     private var dataModelClass: KClass<CHILD_DATA_MODEL>? = null
     private var entityModel: LongEntityClass<CHILD_ENTITY>? = null
 
-    fun setDTOModel(dtoModel: KClass<CommonDTO<CHILD_DATA_MODEL, CHILD_ENTITY>>) = apply {
+    fun setDTOModel(dtoModel: KClass<CommonDTO>) = apply {
         this.dtoModel = dtoModel
     }
 

@@ -1,14 +1,11 @@
 package po.db.data_service.scope.service.controls
 
 import org.jetbrains.exposed.dao.LongEntity
-import po.db.data_service.constructors.ClassBlueprint
-import po.db.data_service.models.CommonDTO
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.scope.service.ServiceContext
-import kotlin.reflect.KClass
 
 
-data class ServiceMetadataDepr<DATA_MODEL, ENTITY>(
+data class ServiceMetadataDepreciated<DATA_MODEL, ENTITY>(
    // val key: ServiceUniqueKey,
     val service: ServiceContext<DATA_MODEL, ENTITY>,
 ) where DATA_MODEL : DataModel, ENTITY : LongEntity {

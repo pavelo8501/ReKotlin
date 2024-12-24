@@ -10,7 +10,7 @@ import po.db.data_service.binder.OrdinanceType
 import po.db.data_service.binder.PropertyBindingV2
 import po.db.data_service.dto.*
 import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.models.CommonDTOV2
+import po.db.data_service.models.CommonDTO
 import po.playground.projects.data_service.services.Departments
 import po.playground.projects.data_service.services.Partners
 
@@ -47,7 +47,7 @@ data class PartnerDataModel(
 class PartnerDTO(
     override var id: Long,
     override val dataModel: PartnerDataModel,
-): CommonDTOV2(dataModel){
+): CommonDTO(dataModel){
     override var className: String = "PartnerDTO"
 
     companion object: DTOClass() {
@@ -61,7 +61,7 @@ class PartnerDTO(
                     PropertyBindingV2("updated", PartnerDataModel::updated, PartnerEntity::updated),
                     PropertyBindingV2("created", PartnerDataModel::created, PartnerEntity::created)
                 )
-               // childBinding<DepartmentEntity>(DepartmentDTOV2, PartnerEntity::departments,  OrdinanceType.ONE_TO_MANY)
+                childBinding<PartnerEntity, DepartmentEntity>(DepartmentDTOV2, PartnerEntity::departments,  OrdinanceType.ONE_TO_MANY)
             }
         }
     }

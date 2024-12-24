@@ -15,7 +15,7 @@ import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.InitializationException
 import po.db.data_service.exceptions.OperationsException
-import po.db.data_service.models.CommonDTOV2
+import po.db.data_service.models.CommonDTO
 import po.db.data_service.scope.service.ServiceContextV2
 
 abstract class DTOClass(){
@@ -45,7 +45,7 @@ abstract class DTOClass(){
         return this._daoEntity?: throw OperationsException("Reading daoEntity while undefined for $className", ExceptionCodes.LAZY_NOT_INITIALIZED)
     }
 
-    private val dtoContainer = mutableListOf<CommonDTOV2>()
+    private val dtoContainer = mutableListOf<CommonDTO>()
 
     protected abstract fun setup()
 
@@ -68,7 +68,7 @@ abstract class DTOClass(){
             initialized = true
         }
 
-        fun create(daoEntity: LongEntity, receiver: ServiceContextV2.() -> Unit): CommonDTOV2 {
+        fun create(daoEntity: LongEntity, receiver: ServiceContextV2.() -> Unit): CommonDTO {
             val dataModel = try {
                 val model = conf.dataModelConstructor?.invoke().let { model ->
                     val params = blueprints.dataModel.constructorParams
@@ -93,7 +93,7 @@ abstract class DTOClass(){
                         }
                     }
                 }
-                val dtoEntity = blueprints.dtoModel.getEffectiveConstructor().callBy(args) as CommonDTOV2
+                val dtoEntity = blueprints.dtoModel.getEffectiveConstructor().callBy(args) as CommonDTO
                 dtoEntity
             } catch (ex: Exception) {
                 throw OperationsException("DTO entity creation failed ${ex.message} ", ExceptionCodes.REFLECTION_ERROR)
