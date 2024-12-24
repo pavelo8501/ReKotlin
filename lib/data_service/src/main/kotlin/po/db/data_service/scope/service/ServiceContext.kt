@@ -14,7 +14,7 @@ import kotlin.reflect.KClass
 
 class ServiceContext<DATA_MODEL, ENTITY>(
     val name : String,
-    private val rootDtoModel : DTOClass<DATA_MODEL, ENTITY>,
+    private val rootDtoModel : DTOClass,
     private val dbConnection: Database,
 ) where DATA_MODEL: DataModel,  ENTITY : LongEntity{
     companion object : ConstructorBuilder()
@@ -72,27 +72,25 @@ class ServiceContext<DATA_MODEL, ENTITY>(
 //    }
 
 
-    fun <T : DTOClass<DATA_MODEL, ENTITY>> T.update(single: DTOClass<DATA_MODEL, ENTITY>, block: T.() -> Unit): Unit {
-      // this@ServiceContext.initDTO(single)
-        this.block()
-    }
+//    fun <T : DTOClass<DATA_MODEL, ENTITY>> T.update(single: DTOClass<DATA_MODEL, ENTITY>, block: T.() -> Unit): Unit {
+//       this@ServiceContext.initDTO(single)
+//        this.block()
+//    }
 
-    fun <DTO : DTOClass<DATA_MODEL, ENTITY>> DTO.update(list : List<DTOClass<DATA_MODEL, ENTITY>>, block: DTO.() -> Unit): Unit {
-       // list.forEach { this@ServiceContext.initDTO(it) }
-        this.block()
-    }
+//    fun <DTO : DTOClass<DATA_MODEL, ENTITY>> DTO.update(list : List<DTOClass<DATA_MODEL, ENTITY>>, block: DTO.() -> Unit): Unit {
+//       // list.forEach { this@ServiceContext.initDTO(it) }
+//        this.block()
+//    }
 
-    fun <DATA_MODEL : DataModel, ENTITY: LongEntity> DTOClass<DATA_MODEL, ENTITY>.select(block: DTOClass<DATA_MODEL, ENTITY>.(List<DATA_MODEL>) -> Unit): Unit {
-
-        val result  = mutableListOf<CommonDTO<DATA_MODEL, ENTITY>>()
-        dbQuery {
-//            this.daoEntityModel.all().forEach {
-//                result.add(this.create(it))
+//    fun DTOClassV2.select(block: DTOClassV2.(List<DATA_MODEL>) -> Unit): Unit {
+//        val result  = mutableListOf<CommonDTO<DATA_MODEL, ENTITY>>()
+//        dbQuery {
+//            this.daoModel.all().forEach {
+//                //result.add(this.create(it))
 //            }
-        }
-
-      //  return result
-    }
+//        }
+//        return result
+//    }
 
 
 

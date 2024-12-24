@@ -18,8 +18,7 @@ import po.db.data_service.exceptions.OperationsException
 import po.db.data_service.models.CommonDTOV2
 import po.db.data_service.scope.service.ServiceContextV2
 
-
-abstract class DTOClassV2(){
+abstract class DTOClass(){
 
     companion object : ConstructorBuilder()
 
@@ -27,7 +26,7 @@ abstract class DTOClassV2(){
     var className : String = ""
     var conf = DTOConfigV2()
 
-    var onDtoInitializationCallback: ((DTOClassV2) -> ClassBlueprintContainer)? = null
+    var onDtoInitializationCallback: ((DTOClass) -> ClassBlueprintContainer)? = null
         private set
     private var _blueprints : ClassBlueprintContainer? = null
     private val blueprints : ClassBlueprintContainer
@@ -36,28 +35,30 @@ abstract class DTOClassV2(){
         }
 
     private var _daoEntity: LongEntity? = null
-    val daoEntity: LongEntity
-        get(){return _daoEntity?: throw OperationsException("Reading daoEntity while undefined for $className", ExceptionCodes.LAZY_NOT_INITIALIZED)}
 
     val daoModel: LongEntityClass<LongEntity>
         get(){
             return  conf.daoModel?: throw OperationsException("Unable read daoModel property on $className", ExceptionCodes.LAZY_NOT_INITIALIZED)
         }
 
+    fun daoEntity(id:Long):LongEntity{
+        return this._daoEntity?: throw OperationsException("Reading daoEntity while undefined for $className", ExceptionCodes.LAZY_NOT_INITIALIZED)
+    }
+
     private val dtoContainer = mutableListOf<CommonDTOV2>()
 
-        protected abstract fun setup()
+    protected abstract fun setup()
 
-        fun nowTime(): LocalDateTime {
-            return LocalDateTime.Companion.parse(Clock.System.now().toLocalDateTime(TimeZone.UTC).toString())
-        }
+    fun nowTime(): LocalDateTime {
+        return LocalDateTime.Companion.parse(Clock.System.now().toLocalDateTime(TimeZone.UTC).toString())
+    }
 
         fun setConfiguration(className: String, config: DTOConfigV2) {
             conf = config
             this.className = className
         }
 
-        fun initialization(onDtoInitialization: (DTOClassV2) -> ClassBlueprintContainer) {
+        fun initialization(onDtoInitialization: (DTOClass) -> ClassBlueprintContainer) {
             conf.setParent(this)
             onDtoInitializationCallback = onDtoInitialization
             setup()

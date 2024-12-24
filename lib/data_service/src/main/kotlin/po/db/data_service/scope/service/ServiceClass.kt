@@ -3,16 +3,13 @@ package po.db.data_service.scope.service
 import org.jetbrains.exposed.sql.Database
 import po.db.data_service.constructors.ClassBlueprintContainer
 import po.db.data_service.constructors.ConstructorBuilder
-import po.db.data_service.dto.DTOClassV2
-import po.db.data_service.dto.interfaces.DTOModelClass
-import po.db.data_service.dto.interfaces.DTOModelV2
-import po.db.data_service.exceptions.ExceptionCodes
+import po.db.data_service.dto.DTOClass
 import po.db.data_service.exceptions.InitializationException
 import kotlin.reflect.KClass
 
 class ServiceClass(
     private val connection :Database,
-    private val rootDTOModel : DTOClassV2,
+    private val rootDTOModel : DTOClass,
 ){
 
    companion object :  ConstructorBuilder()
@@ -27,7 +24,7 @@ class ServiceClass(
         }
     }
 
-    private fun getClassBlueprint(dtoModel: DTOClassV2):ClassBlueprintContainer{
+    private fun getClassBlueprint(dtoModel: DTOClass):ClassBlueprintContainer{
         dtoModel.conf.also {
            return ClassBlueprintContainer(
                 getConstructorBlueprint<Any>(it.dtoModelClass as KClass<*>),

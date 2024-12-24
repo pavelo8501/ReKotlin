@@ -7,13 +7,13 @@ import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SizedIterable
 import org.jetbrains.exposed.sql.transactions.transaction
 import po.db.data_service.binder.DTOPropertyBinder
-import po.db.data_service.dto.DTOClassV2
+import po.db.data_service.dto.DTOClass
 import po.db.data_service.models.CommonDTOV2
 
 
 class ServiceContextV2(
     private val dbConnection: Database,
-    private val rootDtoModel : DTOClassV2,
+    private val rootDtoModel : DTOClass,
 ){
 
     val name : String = rootDtoModel.className + "|Service"
@@ -34,7 +34,7 @@ class ServiceContextV2(
         return result
     }
 
-    fun  DTOClassV2.select(block: DTOClassV2.(List<CommonDTOV2>) -> Unit): Unit {
+    fun  DTOClass.select(block: DTOClass.(List<CommonDTOV2>) -> Unit): Unit {
         val result  = mutableListOf<CommonDTOV2>()
         dbQuery {
             daoSelect(this.daoModel).forEach {

@@ -2,11 +2,10 @@ package po.db.data_service.scope.connection.controls
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Database
-import po.db.data_service.scope.connection.ConnectionContext
 import po.db.data_service.dto.DTOClass
+import po.db.data_service.scope.connection.ConnectionContext
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.scope.service.ServiceContext
-import po.db.data_service.scope.service.controls.ServiceRegistryBuilder
 import po.db.data_service.scope.service.controls.service_registry.ServiceUniqueKey
 
 enum  class TableCreateMode{
@@ -33,7 +32,7 @@ class ServiceRouter<DATA_MODEL : DataModel, ENTITY : LongEntity>(
 
     fun <DATA_MODEL : DataModel, ENTITY : LongEntity> createService(
         serviceName:String,
-        dtoModel : DTOClass<DATA_MODEL, ENTITY>,
+        dtoModel : DTOClass,
         connectionContext: ConnectionContext
     ) : ServiceContext<DATA_MODEL, ENTITY> {
         return ServiceContext(serviceName, dtoModel, dbConnection)

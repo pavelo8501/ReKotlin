@@ -4,10 +4,9 @@ import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import po.db.data_service.dto.DTOClass
-import po.db.data_service.dto.initializeDTO
-import po.db.data_service.dto.interfaces.DTOModel
+import po.db.data_service.dto.interfaces.DTOModelV2
 import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.models.CommonDTO
+import po.db.data_service.models.CommonDTOV2
 import po.playground.projects.data_service.services.Contacts
 
 
@@ -27,19 +26,18 @@ data class ContactDataModel(
 class ContactDTO(
     override var id: Long,
     override val dataModel: ContactDataModel,
-): CommonDTO<ContactDataModel, ContactEntity>(dataModel), DTOModel {
+): CommonDTOV2(dataModel), DTOModelV2 {
 
-    override val className: String = ""
+    override var className: String = "ContactDTO"
 
-    companion object : DTOClass<ContactDataModel, ContactEntity>() {
-        override fun configuration() {
-            initializeDTO<ContactDTO, ContactDataModel, ContactEntity>(ContactEntity) {
-               setProperties(
-//                   PropertyBinding("name",ContactDataModel::name, ContactEntity::name),
-//                   PropertyBinding("surname",ContactDataModel::surname, ContactEntity::surname)
-               )
+    companion object: DTOClass() {
+        override fun setup() {
+            dtoSettings<ContactDTO, ContactDataModel>(ContactEntity){
+//                propertyBindings(
+//                  //  PropertyBindingV2("name",  ContactDataModel::name, ContactEntity::name),
+//                    //PropertyBindingV2("surname", ContactDataModel::surname, ContactEntity::surname)
+//                )
             }
         }
     }
-
 }

@@ -44,15 +44,15 @@ data class PartnerDataModel(
 ): DataModel
 
 
-class PartnerDTOV2(
+class PartnerDTO(
     override var id: Long,
     override val dataModel: PartnerDataModel,
 ): CommonDTOV2(dataModel){
-    override var className: String = "PartnerDTOV2"
+    override var className: String = "PartnerDTO"
 
-    companion object: DTOClassV2() {
+    companion object: DTOClass() {
         override fun setup() {
-            dtoSettings<PartnerDTOV2, PartnerDataModel>(PartnerEntity){
+            dtoSettings<PartnerDTO, PartnerDataModel>(PartnerEntity){
                 propertyBindings(
                     PropertyBindingV2("name", PartnerDataModel::name, PartnerEntity::name),
                     PropertyBindingV2("legalName", PartnerDataModel::legalName, PartnerEntity::legalName),
@@ -61,7 +61,7 @@ class PartnerDTOV2(
                     PropertyBindingV2("updated", PartnerDataModel::updated, PartnerEntity::updated),
                     PropertyBindingV2("created", PartnerDataModel::created, PartnerEntity::created)
                 )
-                childBinding<DepartmentEntity>(DepartmentDTOV2, PartnerEntity::departments,  OrdinanceType.ONE_TO_MANY)
+               // childBinding<DepartmentEntity>(DepartmentDTOV2, PartnerEntity::departments,  OrdinanceType.ONE_TO_MANY)
             }
         }
     }

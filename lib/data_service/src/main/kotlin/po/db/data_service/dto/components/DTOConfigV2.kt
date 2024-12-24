@@ -5,7 +5,7 @@ import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.sql.SizedIterable
 import org.jetbrains.exposed.sql.transactions.transaction
 import po.db.data_service.binder.*
-import po.db.data_service.dto.DTOClassV2
+import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.interfaces.DTOModelV2
 import po.db.data_service.dto.interfaces.DataModel
 import kotlin.reflect.KClass
@@ -21,16 +21,16 @@ class DTOConfigV2() {
     var propertyBinder : PropertyBinderV2? = null
         private set
 
-    var relationBinder  = RelationshipBinder()
+    var relationBinder  = RelationshipBinder(parent)
 
     var dataModelConstructor : (() -> DataModel)? = null
         private set
 
-    private var _parent: DTOClassV2? = null
-    val parent: DTOClassV2
+    private var _parent: DTOClass? = null
+    val parent: DTOClass
         get(){return  _parent!!}
 
-    fun setParent(parent : DTOClassV2){
+    fun setParent(parent : DTOClass){
         _parent = parent
     }
 
@@ -45,17 +45,18 @@ class DTOConfigV2() {
         propertyBinder?.updateProperties(dataModel, daoEntity, UpdateMode.ENTITY_TO_MODEL)
     }
 
-    inline  fun <reified CHILD> childBinding(
-        childDtoModel: DTOClassV2,
-        byProperty: KProperty1<out LongEntity, SizedIterable<CHILD>>, type: OrdinanceType
-    ) where CHILD: LongEntity{
+    inline  fun <reified PARENT,  reified CHILD> DTOClass.childBinding(
+        parentDTOModel: DTOClass,
+        childDtoModel: DTOClass,
+        byProperty: KProperty1<LongEntity, SizedIterable<CHILD>>, type: OrdinanceType
+    ) where PARENT :  LongEntity, CHILD: LongEntity{
         if(!childDtoModel.initialized) {
             parent.onDtoInitializationCallback?.let { callback ->
                 childDtoModel.initialization(callback)
             }
         }
-        RelationshipBinder().let {
-            it.addChildBinding(childDtoModel, byProperty, type)
+        RelationshipBinder(parentDTOModel).let {
+            it.addChildBinding<PARENT, CHILD>(parentDTOModel, childDtoModel, byProperty, type)
             relationBinder = it
         }
     }

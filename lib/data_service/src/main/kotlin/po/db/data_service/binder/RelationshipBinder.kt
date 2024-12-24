@@ -2,7 +2,7 @@ package po.db.data_service.binder
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.SizedIterable
-import po.db.data_service.dto.DTOClassV2
+import po.db.data_service.dto.DTOClass
 import kotlin.reflect.KProperty1
 
 
@@ -14,7 +14,7 @@ enum class OrdinanceType{
 }
 
 data class ChildContainer<PARENT : LongEntity, CHILD : LongEntity>(
-    val dtoModelClass: DTOClassV2,
+    val dtoModelClass: DTOClass,
     val byProperty: KProperty1<PARENT, SizedIterable<CHILD>>,
     val type: OrdinanceType,
     val parentClass: Class<PARENT>
@@ -26,7 +26,9 @@ sealed class BindingContainer {
     ) : BindingContainer()
 }
 
-class RelationshipBinder {
+class RelationshipBinder(
+    val parentDTOModel: DTOClass
+) {
     var bindingKeys = mutableListOf<String>()
         private set
 
@@ -51,16 +53,16 @@ class RelationshipBinder {
     }
 
     inline fun <reified PARENT, reified CHILD> addChildBinding(
-        parentDto: DTOClassV2,
-        childDtoModel: DTOClassV2,
+        parentDto: DTOClass,
+        childDtoModel: DTOClass,
         byProperty: KProperty1<LongEntity, SizedIterable<CHILD>>,
         type: OrdinanceType,
     ) where PARENT : LongEntity,  CHILD : LongEntity  {
 
-        val container = ChildContainer(parentDto, byProperty, type, PARENT::class.java)
-        val typedBinding = BindingContainer.TypedBinding(container)
+       // val container = ChildContainer(parentDto, byProperty, type, parentDTOModel.daoEntity(1)::class.java)
+      //  val typedBinding = BindingContainer.TypedBinding(container)
 
-        childBindings.putIfAbsent(childDtoModel.className, typedBinding)
+      //  childBindings.putIfAbsent(childDtoModel.className, typedBinding)
         bindingKeys.add(childDtoModel.className)
     }
 }

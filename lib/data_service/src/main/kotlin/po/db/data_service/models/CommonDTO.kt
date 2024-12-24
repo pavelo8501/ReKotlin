@@ -1,13 +1,10 @@
 package po.db.data_service.models
 
 import org.jetbrains.exposed.dao.LongEntity
-import org.jetbrains.exposed.dao.LongEntityClass
-import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.interfaces.DTOEntityMarker
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes.NOT_INITIALIZED
 import po.db.data_service.exceptions.InitializationException
-import po.db.data_service.models.interfaces.DTOEntity
 
 
 abstract class CommonDTO<DATA_MODEL, ENTITY>(
@@ -19,8 +16,6 @@ abstract class CommonDTO<DATA_MODEL, ENTITY>(
 
     public override fun clone(): DATA_MODEL = this.clone()
 
-    var dtoModel : DTOClass<DATA_MODEL, ENTITY>? = null
-
     fun toDTO(): DATA_MODEL =  this.injectedDataModel
 
     private var _entityDAO : ENTITY? = null
@@ -29,12 +24,4 @@ abstract class CommonDTO<DATA_MODEL, ENTITY>(
             return _entityDAO?: throw InitializationException("Trying to access database daoEntity associated with ${this.dataModelClassName}", NOT_INITIALIZED)
         }
 
-    fun setEntityDAO(entity :ENTITY, dtoModel : DTOClass<DATA_MODEL, ENTITY>){
-        this.dtoModel = dtoModel
-        _entityDAO = entity as ENTITY
-        if(id != entity.id.value){
-            id = entity.id.value
-            dtoModel.update(toDTO(), entity)
-        }
-    }
 }
