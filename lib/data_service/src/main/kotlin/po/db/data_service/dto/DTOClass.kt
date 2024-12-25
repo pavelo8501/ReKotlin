@@ -68,6 +68,39 @@ abstract class DTOClass<ENTITY> where ENTITY : LongEntity  {
         initialized = true
     }
 
+    private fun constructDtoEntity(dataModel : DataModel):CommonDTO{
+        val dtoEntity = try {
+            val params = blueprints.dtoModel.constructorParams
+            val args = getArgsForConstructor(blueprints.dtoModel) {
+                when (it) {
+                    "dataModel" -> {
+                        dataModel
+                    }
+                    else -> {
+                        null
+                    }
+                }
+            }
+            val dtoEntity = blueprints.dtoModel.getEffectiveConstructor().callBy(args) as CommonDTO
+            dtoEntity.initialize(conf.propertyBinder)
+            dtoEntity
+        } catch (ex: Exception) {
+            throw OperationsException("DTO entity creation failed ${ex.message} ", ExceptionCodes.REFLECTION_ERROR)
+        }
+        return dtoEntity
+    }
+
+    /**
+     * Create new CommonDTO entity from DataModel provided
+     * @input dataModel: DataModel
+     * @return CommonDTO
+     * */
+    fun create(dataModel: DataModel) : CommonDTO {
+        val newDTO = constructDtoEntity(dataModel)
+        dtoContainer.add(newDTO)
+        return  newDTO
+    }
+
     fun create(daoEntity: LongEntity) : CommonDTO {
         val dataModel = try {
             val model = conf.dataModelConstructor?.invoke().let { model ->
@@ -102,7 +135,7 @@ abstract class DTOClass<ENTITY> where ENTITY : LongEntity  {
         dtoContainer.add(dtoEntity)
         _daoEntity = daoEntity
 
-        conf.relationBinder.loadChildren((daoEntity as ENTITY) , "DepartmentDTOV2")
+        conf.relationBinder.loadChildren((daoEntity) , "DepartmentDTOV2")
         return dtoEntity
     }
 

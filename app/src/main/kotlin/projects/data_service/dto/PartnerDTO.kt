@@ -14,7 +14,6 @@ import po.db.data_service.models.CommonDTO
 import po.playground.projects.data_service.services.Departments
 import po.playground.projects.data_service.services.Partners
 
-
 @ClassBinder("Partner")
 class PartnerEntity  (id: EntityID<Long>) : LongEntity(id){
     companion object : LongEntityClass<PartnerEntity>(Partners)
@@ -41,8 +40,9 @@ data class PartnerDataModel(
     var vatNr: String? = null,
     var updated: LocalDateTime,
     var created: LocalDateTime,
-): DataModel
-
+): DataModel{
+    val departments = mutableListOf<DepartmentDataModel>()
+}
 
 class PartnerDTO(
     override var id: Long,
@@ -54,12 +54,12 @@ class PartnerDTO(
         override fun setup() {
             dtoSettings<PartnerDTO, PartnerDataModel>(PartnerEntity){
                 propertyBindings(
-                    PropertyBindingV2("name", PartnerDataModel::name, PartnerEntity::name),
-                    PropertyBindingV2("legalName", PartnerDataModel::legalName, PartnerEntity::legalName),
-                    PropertyBindingV2("regNr", PartnerDataModel::regNr, PartnerEntity::regNr),
-                    PropertyBindingV2("vatNr", PartnerDataModel::vatNr, PartnerEntity::vatNr),
-                    PropertyBindingV2("updated", PartnerDataModel::updated, PartnerEntity::updated),
-                    PropertyBindingV2("created", PartnerDataModel::created, PartnerEntity::created)
+                    PropertyBinding("name", PartnerDataModel::name, PartnerEntity::name),
+                    PropertyBinding("legalName", PartnerDataModel::legalName, PartnerEntity::legalName),
+                    PropertyBinding("regNr", PartnerDataModel::regNr, PartnerEntity::regNr),
+                    PropertyBinding("vatNr", PartnerDataModel::vatNr, PartnerEntity::vatNr),
+                    PropertyBinding("updated", PartnerDataModel::updated, PartnerEntity::updated),
+                    PropertyBinding("created", PartnerDataModel::created, PartnerEntity::created)
                 )
                 childBinding<DepartmentEntity>(DepartmentDTOV2, PartnerEntity::departments,  OrdinanceType.ONE_TO_MANY)
             }

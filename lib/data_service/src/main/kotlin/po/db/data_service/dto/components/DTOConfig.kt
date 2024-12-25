@@ -19,14 +19,13 @@ class DTOConfig<ENTITY>(
 
     var daoModel:LongEntityClass<LongEntity>? = null
 
-    var propertyBinder : PropertyBinderV2? = null
+    var propertyBinder : PropertyBinder? = null
         private set
 
     var relationBinder  = RelationshipBinder<ENTITY>(parent)
 
     var dataModelConstructor : (() -> DataModel)? = null
         private set
-
 
     fun <DM: DataModel, E: LongEntity>propertyBindings(vararg props: PropertyBindingV2<DM, E, *>) {
         PropertyBinderV2().let {
@@ -42,15 +41,13 @@ class DTOConfig<ENTITY>(
     inline  fun <reified CHILD> DTOClass<ENTITY>.childBinding(
         childDtoModel: DTOClass<CHILD>,
         byProperty: KProperty1<ENTITY, SizedIterable<CHILD>>,
-        type: OrdinanceType
+        type: OrdinanceType,
+        childDataModelList : MutableList<DataModel>? = null
     ) where CHILD: LongEntity{
-
        val  parentDTOModel  = this
        if(!childDtoModel.initialized) {
             parent.onDtoInitializationCallback?.let { callback ->
-
                 childDtoModel.initialization(callback)
-                val a = callback
             }
         }
         RelationshipBinder(parentDTOModel).let {

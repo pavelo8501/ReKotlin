@@ -73,18 +73,18 @@ class DepartmentDTOV2(
         override fun setup() {
             dtoSettings<DepartmentDTOV2, DepartmentDataModel>(DepartmentEntity){
                 propertyBindings(
-                    PropertyBindingV2("hq",DepartmentDataModel::hq, DepartmentEntity::hq),
-                    PropertyBindingV2("name",DepartmentDataModel::name, DepartmentEntity::name),
-                    PropertyBindingV2("street",DepartmentDataModel::street, DepartmentEntity::street),
-                    PropertyBindingV2("city",DepartmentDataModel::city, DepartmentEntity::city),
-                    PropertyBindingV2("country",DepartmentDataModel::country, DepartmentEntity::country),
-                    PropertyBindingV2("postCode",DepartmentDataModel::postCode, DepartmentEntity::postCode),
-                    PropertyBindingV2("phone",DepartmentDataModel::phone, DepartmentEntity::phone),
-                    PropertyBindingV2("email",DepartmentDataModel::email, DepartmentEntity::email),
-                    PropertyBindingV2("frequency",DepartmentDataModel::frequency, DepartmentEntity::frequency),
-                    PropertyBindingV2("lastInspection",DepartmentDataModel::lastInspection, DepartmentEntity::lastInspection),
-                    PropertyBindingV2("updated",DepartmentDataModel::updated, DepartmentEntity::updated),
-                    PropertyBindingV2("created",DepartmentDataModel::created, DepartmentEntity::created),
+                    PropertyBinding("hq",DepartmentDataModel::hq, DepartmentEntity::hq),
+                    PropertyBinding("name",DepartmentDataModel::name, DepartmentEntity::name),
+                    PropertyBinding("street",DepartmentDataModel::street, DepartmentEntity::street),
+                    PropertyBinding("city",DepartmentDataModel::city, DepartmentEntity::city),
+                    PropertyBinding("country",DepartmentDataModel::country, DepartmentEntity::country),
+                    PropertyBinding("postCode",DepartmentDataModel::postCode, DepartmentEntity::postCode),
+                    PropertyBinding("phone",DepartmentDataModel::phone, DepartmentEntity::phone),
+                    PropertyBinding("email",DepartmentDataModel::email, DepartmentEntity::email),
+                    PropertyBinding("frequency",DepartmentDataModel::frequency, DepartmentEntity::frequency),
+                    PropertyBinding("lastInspection",DepartmentDataModel::lastInspection, DepartmentEntity::lastInspection),
+                    PropertyBinding("updated",DepartmentDataModel::updated, DepartmentEntity::updated),
+                    PropertyBinding("created",DepartmentDataModel::created, DepartmentEntity::created),
                 )
                 setDataModelConstructor{
                     DepartmentDataModel(0,false,"",null,null,null,null,null,null,12, null, nowTime(), nowTime() )

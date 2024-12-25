@@ -4,13 +4,22 @@ import org.jetbrains.exposed.dao.LongEntity
 import po.db.data_service.dto.interfaces.DataModel
 import kotlin.reflect.KMutableProperty1
 
+
+enum class UpdateMode{
+    ENTITY_TO_MODEL,
+    ENTITY_TO_MODEL_FORCED,
+    MODEL_TO_ENTITY,
+    MODEL_TO_ENTITY_FORCED,
+}
+
+
 sealed class PropertyBindingSealed{
     abstract val name: String
     abstract fun update(dtoModel: DataModel, entityModel: LongEntity, mode: UpdateMode): Boolean
 }
 
 
-class PropertyBindingV2<DM : DataModel, E : LongEntity, T>(
+class PropertyBinding<DM : DataModel, E : LongEntity, T>(
     override val name: String,
     private val dtoProperty: KMutableProperty1<DM, T>,
     private val entityProperty: KMutableProperty1<E, T>
@@ -48,8 +57,8 @@ class PropertyBindingV2<DM : DataModel, E : LongEntity, T>(
     }
 }
 
-class PropertyBinderV2 {
-    var onInitialized: ((PropertyBinderV2) -> Unit)? = null
+class PropertyBinder {
+    var onInitialized: ((PropertyBinder) -> Unit)? = null
     private var propertyList = emptyList<PropertyBindingSealed>()
 
     fun setProperties(properties: List<PropertyBindingSealed>) {

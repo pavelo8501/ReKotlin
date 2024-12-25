@@ -2,6 +2,7 @@ package po.db.data_service.dto.interfaces
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
+import po.db.data_service.binder.PropertyBinding
 import po.db.data_service.controls.Notificator
 import po.db.data_service.dto.components.DTOConfig
 import po.db.data_service.models.interfaces.DTOEntity
@@ -13,22 +14,16 @@ interface DAOWInstance{
 
 }
 
-
-
-
-/*
-    Interface used to identify Class as a DTO Entity
-    Part of the property data handling system
- */
-interface DTOEntityMarker<DATA_MODEL, ENTITY> : DAOWInstance {
-    var id : Long
-    val dataModelClassName : String
-}
-
-
 interface DTOModelClass<ENTITY> where  ENTITY : LongEntity{
     var className : String
     val configuration : DTOConfig<ENTITY>?
+}
+
+interface DTOEntity{
+    val id:Long
+    val dataModel: DataModel
+    val className : String
+    fun initialize(binder : PropertyBinder, dataModel : DataModel?)
 }
 
 interface DTOModelV2 : DTOEntity {
@@ -53,9 +48,6 @@ interface DataModel : DAOWInstance {
     var id : Long
 }
 
-interface DTOEntity<DATA_MODEL> : DTOModel, DataModel  {
-
-}
 
 
 /*

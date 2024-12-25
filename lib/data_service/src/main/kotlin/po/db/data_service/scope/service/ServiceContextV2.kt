@@ -43,4 +43,9 @@ class ServiceContextV2<ENTITY>(
         //  return result
     }
 
+    fun DTOClass<ENTITY>.update(list : List<CommonDTO>, block: DTOClass<ENTITY>.() -> Unit): Unit {
+       // list.forEach { this@ServiceContext.initDTO(it) }
+        this.block()
+    }
+
 }
