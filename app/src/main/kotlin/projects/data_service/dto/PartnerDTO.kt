@@ -7,7 +7,7 @@ import org.jetbrains.exposed.dao.id.EntityID
 import po.db.data_service.annotations.ClassBinder
 import po.db.data_service.annotations.PropertyBinder
 import po.db.data_service.binder.OrdinanceType
-import po.db.data_service.binder.PropertyBindingV2
+import po.db.data_service.binder.PropertyBinding
 import po.db.data_service.dto.*
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.models.CommonDTO
@@ -41,13 +41,13 @@ data class PartnerDataModel(
     var updated: LocalDateTime,
     var created: LocalDateTime,
 ): DataModel{
-    val departments = mutableListOf<DepartmentDataModel>()
+    var departments = mutableListOf<DepartmentDataModel>()
 }
 
 class PartnerDTO(
     override var id: Long,
     override val dataModel: PartnerDataModel,
-): CommonDTO(dataModel){
+): CommonDTO(dataModel, dataModel.departments){
     override var className: String = "PartnerDTO"
 
     companion object: DTOClass<PartnerEntity>() {
@@ -61,7 +61,9 @@ class PartnerDTO(
                     PropertyBinding("updated", PartnerDataModel::updated, PartnerEntity::updated),
                     PropertyBinding("created", PartnerDataModel::created, PartnerEntity::created)
                 )
-                childBinding<DepartmentEntity>(DepartmentDTOV2, PartnerEntity::departments,  OrdinanceType.ONE_TO_MANY)
+                childBinding<DepartmentEntity>(DepartmentDTO, PartnerEntity::departments, DepartmentEntity::partner, OrdinanceType.ONE_TO_MANY){
+                   // childDataSource(PartnerDataModel::departments)
+                }
             }
         }
     }

@@ -24,6 +24,8 @@ class PropertyBinding<DM : DataModel, E : LongEntity, T>(
     private val dtoProperty: KMutableProperty1<DM, T>,
     private val entityProperty: KMutableProperty1<E, T>
 ) : PropertyBindingSealed() {
+
+
     override fun update(dtoModel: DataModel, entityModel: LongEntity, mode: UpdateMode): Boolean {
         @Suppress("UNCHECKED_CAST")
         val dm = dtoModel as DM
@@ -31,14 +33,21 @@ class PropertyBinding<DM : DataModel, E : LongEntity, T>(
         val em = entityModel as E
 
         val dtoValue = dtoProperty.get(dm)
-        val entityValue = entityProperty.get(em)
+        val entityValue: T? = try {
+            entityProperty.get(em)
+        } catch (e: Exception) {
+            null
+        }
         val valuesDiffer = dtoValue != entityValue
 
         return when (mode) {
             UpdateMode.ENTITY_TO_MODEL -> {
                 if (!valuesDiffer) return false
-                dtoProperty.set(dm, entityValue)
-                true
+                if(entityValue != null){
+                    dtoProperty.set(dm, entityValue)
+                    return true
+                }
+                return false
             }
             UpdateMode.MODEL_TO_ENTITY -> {
                 if (!valuesDiffer) return false
@@ -46,8 +55,11 @@ class PropertyBinding<DM : DataModel, E : LongEntity, T>(
                 true
             }
             UpdateMode.MODEL_TO_ENTITY_FORCED -> {
-                dtoProperty.set(dm, entityValue)
-                true
+                if(entityValue != null) {
+                    dtoProperty.set(dm, entityValue)
+                    return true
+                }
+                return false
             }
             UpdateMode.ENTITY_TO_MODEL_FORCED -> {
                 entityProperty.set(em, dtoValue)

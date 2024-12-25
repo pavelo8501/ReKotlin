@@ -6,7 +6,7 @@ import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import po.db.data_service.annotations.ClassBinder
 import po.db.data_service.annotations.PropertyBinder
-import po.db.data_service.binder.PropertyBindingV2
+import po.db.data_service.binder.PropertyBinding
 import po.db.data_service.dto.*
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.models.CommonDTO
@@ -41,6 +41,7 @@ class DepartmentEntity(id: EntityID<Long>) : LongEntity(id) {
     var created by Departments.created
     @PropertyBinder("updated")
     var updated by Departments.updated
+
     var partner by PartnerEntity referencedOn Departments.partner
 }
 
@@ -62,7 +63,7 @@ data class DepartmentDataModel(
 ): DataModel
 
 
-class DepartmentDTOV2(
+class DepartmentDTO(
     override var id: Long,
     override val dataModel: DepartmentDataModel,
 ): CommonDTO(dataModel){
@@ -71,7 +72,7 @@ class DepartmentDTOV2(
 
     companion object: DTOClass<DepartmentEntity>() {
         override fun setup() {
-            dtoSettings<DepartmentDTOV2, DepartmentDataModel>(DepartmentEntity){
+            dtoSettings<DepartmentDTO, DepartmentDataModel>(DepartmentEntity){
                 propertyBindings(
                     PropertyBinding("hq",DepartmentDataModel::hq, DepartmentEntity::hq),
                     PropertyBinding("name",DepartmentDataModel::name, DepartmentEntity::name),

@@ -5,19 +5,20 @@ import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.sql.SizedIterable
 import po.db.data_service.binder.*
 import po.db.data_service.dto.DTOClass
-import po.db.data_service.dto.interfaces.DTOModelV2
+import po.db.data_service.dto.interfaces.DTOEntity
 import po.db.data_service.dto.interfaces.DataModel
 import kotlin.reflect.KClass
+import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
 
 class DTOConfig<ENTITY>(
     val parent: DTOClass<ENTITY>
 ) where  ENTITY : LongEntity{
 
-    var dtoModelClass: KClass<out DTOModelV2>? = null
+    var dtoModelClass: KClass<out DTOEntity>? = null
     var dataModelClass: KClass<out DataModel>? = null
 
-    var daoModel:LongEntityClass<LongEntity>? = null
+    var daoModel:LongEntityClass<ENTITY>? = null
 
     var propertyBinder : PropertyBinder? = null
         private set
@@ -27,8 +28,8 @@ class DTOConfig<ENTITY>(
     var dataModelConstructor : (() -> DataModel)? = null
         private set
 
-    fun <DM: DataModel, E: LongEntity>propertyBindings(vararg props: PropertyBindingV2<DM, E, *>) {
-        PropertyBinderV2().let {
+    fun <DM: DataModel, E: LongEntity>propertyBindings(vararg props: PropertyBinding<DM, E, *>) {
+        PropertyBinder().let {
             it.setProperties(props.toList())
             propertyBinder = it
         }
@@ -41,8 +42,10 @@ class DTOConfig<ENTITY>(
     inline  fun <reified CHILD> DTOClass<ENTITY>.childBinding(
         childDtoModel: DTOClass<CHILD>,
         byProperty: KProperty1<ENTITY, SizedIterable<CHILD>>,
+        referencedOnProperty: KMutableProperty1<CHILD, ENTITY>,
         type: OrdinanceType,
-        childDataModelList : MutableList<DataModel>? = null
+        binderContext: ChildContainer<ENTITY, CHILD>.()->Unit,
+       // childDataProperty:  KMutableProperty1<Any, List<DataModel>>? = null
     ) where CHILD: LongEntity{
        val  parentDTOModel  = this
        if(!childDtoModel.initialized) {
@@ -51,7 +54,7 @@ class DTOConfig<ENTITY>(
             }
         }
         RelationshipBinder(parentDTOModel).let {
-            it.addChildBinding<CHILD>(childDtoModel, byProperty, OrdinanceType.ONE_TO_MANY)
+            it.addChildBinding<CHILD>(childDtoModel, byProperty, referencedOnProperty, type)
             relationBinder = it
         }
     }
@@ -63,8 +66,8 @@ class DTOConfig<ENTITY>(
     fun <DTO>setClassData(
         dtoClass : KClass<DTO>,
         dataClass : KClass<out DataModel>,
-        dao: LongEntityClass<LongEntity>
-    ) where DTO: DTOModelV2 {
+        dao: LongEntityClass<ENTITY>
+    ) where DTO: DTOEntity {
         dtoModelClass = dtoClass
         dataModelClass = dataClass
         daoModel = dao

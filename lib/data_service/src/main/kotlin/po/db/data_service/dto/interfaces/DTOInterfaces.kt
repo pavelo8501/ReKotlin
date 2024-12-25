@@ -1,11 +1,9 @@
 package po.db.data_service.dto.interfaces
 
 import org.jetbrains.exposed.dao.LongEntity
-import org.jetbrains.exposed.dao.LongEntityClass
-import po.db.data_service.binder.PropertyBinding
+import po.db.data_service.binder.PropertyBinder
 import po.db.data_service.controls.Notificator
 import po.db.data_service.dto.components.DTOConfig
-import po.db.data_service.models.interfaces.DTOEntity
 
 /*
     Wide marker for wrapper classes
@@ -23,13 +21,9 @@ interface DTOEntity{
     val id:Long
     val dataModel: DataModel
     val className : String
-    fun initialize(binder : PropertyBinder, dataModel : DataModel?)
+    fun initialize(binder : PropertyBinder?, dataModel : DataModel? = null)
 }
 
-interface DTOModelV2 : DTOEntity {
-    val dataModel: DataModel
-    val className : String
-}
 
 /*
     Interface  identifying DTO Entity Class

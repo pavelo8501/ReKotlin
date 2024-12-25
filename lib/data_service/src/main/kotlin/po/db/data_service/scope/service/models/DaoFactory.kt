@@ -13,14 +13,35 @@ class DaoFactory(private val connection : Database) {
         body()
     }
 
-    fun <ENTITY: LongEntity>update(dtoModel: DTOClass<ENTITY>, dtoEntity: CommonDTO ){
-
-        if(dtoEntity.id == 0L){
+    fun <ENTITY: LongEntity>new(dtoModel : DTOClass<ENTITY>, fn: ((ENTITY)->Unit)? = null ): ENTITY{
+        val daoEntity = dbQuery {
             dtoModel.daoModel.new {
-                dtoEntity.newDAO(this)
+                fn?.invoke(this)
             }
-        }else{
-
         }
+        return daoEntity
+    }
+
+    fun <ENTITY: LongEntity>all(dtoModel: DTOClass<ENTITY>): List<ENTITY> {
+        val result = dbQuery {
+            return@dbQuery  dtoModel.daoModel.all().toList()
+        }
+        return result
+    }
+
+    fun <ENTITY: LongEntity>update(dtoEntity: CommonDTO, dtoModel : DTOClass<ENTITY>): LongEntity?{
+      val daoEntity =  if(dtoEntity.id == 0L){
+          dbQuery {
+              dtoModel.daoModel.new {
+                  dtoEntity.updateDAO(this)
+              }
+          }
+        }else{
+            null
+      }
+      if(daoEntity != null){
+          dtoEntity.id = daoEntity.id.value
+      }
+      return daoEntity
     }
 }

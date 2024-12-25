@@ -5,7 +5,8 @@ import org.jetbrains.exposed.sql.Database
 import po.db.data_service.dto.*
 import po.db.data_service.models.CommonDTO
 import po.db.data_service.scope.service.ServiceClass
-import po.db.data_service.scope.service.ServiceContextV2
+import po.db.data_service.scope.service.ServiceContext
+import po.db.data_service.scope.service.TableCreateMode
 
 class ConnectionContext(
     var connectionName: String,
@@ -15,10 +16,11 @@ class ConnectionContext(
 
     fun <DTO, ENTITY  >ConnectionContext.service(
         rootDtoModel : DTOClass<ENTITY>,
-        context: ServiceContextV2<ENTITY>.()->Unit,
+        serviceCreateOption : TableCreateMode? = null,
+        context: ServiceContext<ENTITY>.()->Unit,
     ) where DTO : CommonDTO,   ENTITY : LongEntity {
         try {
-            ServiceClass(connection, rootDtoModel).let {
+            ServiceClass(connection, rootDtoModel, serviceCreateOption).let {
                 connectionClass.addService(it)
                 it.launch(context)
             }

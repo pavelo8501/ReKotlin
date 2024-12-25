@@ -3,9 +3,7 @@ package po.playground.projects.data_service.dto
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
-import po.db.data_service.binder.PropertyBindingV2
 import po.db.data_service.dto.DTOClass
-import po.db.data_service.dto.interfaces.DTOModelV2
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.models.CommonDTO
 import po.playground.projects.data_service.services.Contacts
