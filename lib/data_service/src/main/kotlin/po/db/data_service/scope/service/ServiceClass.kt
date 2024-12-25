@@ -1,5 +1,6 @@
 package po.db.data_service.scope.service
 
+import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Database
 import po.db.data_service.constructors.ClassBlueprintContainer
 import po.db.data_service.constructors.ConstructorBuilder
@@ -7,10 +8,10 @@ import po.db.data_service.dto.DTOClass
 import po.db.data_service.exceptions.InitializationException
 import kotlin.reflect.KClass
 
-class ServiceClass(
+class ServiceClass<ENTITY>(
     private val connection :Database,
-    private val rootDTOModel : DTOClass,
-){
+    private val rootDTOModel : DTOClass<ENTITY>,
+)  where  ENTITY : LongEntity{
 
    companion object :  ConstructorBuilder()
 
@@ -24,7 +25,7 @@ class ServiceClass(
         }
     }
 
-    private fun getClassBlueprint(dtoModel: DTOClass):ClassBlueprintContainer{
+    private fun getClassBlueprint(dtoModel: DTOClass<*>):ClassBlueprintContainer{
         dtoModel.conf.also {
            return ClassBlueprintContainer(
                 getConstructorBlueprint<Any>(it.dtoModelClass as KClass<*>),
@@ -33,7 +34,7 @@ class ServiceClass(
         }
     }
 
-    private fun initializeDTOs(context: ServiceClass.() -> Unit ) {
+    private fun initializeDTOs(context: ServiceClass<ENTITY>.() -> Unit ) {
         context.invoke(this)
     }
 
@@ -46,7 +47,7 @@ class ServiceClass(
         }
     }
 
-    fun launch(receiver: ServiceContextV2.()->Unit ){
+    fun launch(receiver: ServiceContextV2<ENTITY>.()->Unit ){
         val serviceContext = ServiceContextV2(connection, rootDTOModel)
         serviceContext.receiver()
     }

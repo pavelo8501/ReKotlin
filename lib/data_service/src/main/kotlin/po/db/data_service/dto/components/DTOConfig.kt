@@ -1,62 +1,77 @@
 package po.db.data_service.dto.components
 
 import org.jetbrains.exposed.dao.LongEntity
-import po.db.data_service.binder.DTOPropertyBinder
-import po.db.data_service.binder.PropertyBinding
-import po.db.data_service.dto.interfaces.CanNotify
+import org.jetbrains.exposed.dao.LongEntityClass
+import org.jetbrains.exposed.sql.SizedIterable
+import po.db.data_service.binder.*
+import po.db.data_service.dto.DTOClass
+import po.db.data_service.dto.interfaces.DTOModelV2
 import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.controls.NotificationEvent
-import po.db.data_service.controls.Notificator
+import kotlin.reflect.KClass
+import kotlin.reflect.KProperty1
+
+class DTOConfig<ENTITY>(
+    val parent: DTOClass<ENTITY>
+) where  ENTITY : LongEntity{
+
+    var dtoModelClass: KClass<out DTOModelV2>? = null
+    var dataModelClass: KClass<out DataModel>? = null
+
+    var daoModel:LongEntityClass<LongEntity>? = null
+
+    var propertyBinder : PropertyBinderV2? = null
+        private set
+
+    var relationBinder  = RelationshipBinder<ENTITY>(parent)
+
+    var dataModelConstructor : (() -> DataModel)? = null
+        private set
 
 
-enum class ContextState{
-    UNINITIALIZED,
-    BEFORE_INITIALIZATION,
-    INITIALIZED,
-    INITIALIZATION_FAILURE
-}
-
-class DTOConfig<DATA_MODEL, ENTITY>(): CanNotify
-        where DATA_MODEL : DataModel, ENTITY : LongEntity{
-
-    override val name: String = "ModelDTOConfig"
-    override val notificator  = Notificator(this)
-
-    var state :ContextState = ContextState.UNINITIALIZED
-        set(value){
-            if(field!= value){
-                field = value
-                when(field){
-                    ContextState.INITIALIZED->{
-                        notificator.trigger(NotificationEvent.ON_INITIALIZED, propertyBinder)
-                    }
-                    else->{
-
-                    }
-                }
-            }
-        }
-
-    private val propertyBinder = DTOPropertyBinder<DATA_MODEL, ENTITY>()
-  //  val relationalBinder =  RelationBinder<DATA_MODEL, ENTITY>()
-
-    init {
-        this.propertyBinder.onInitialized={
-            state = ContextState.INITIALIZED
+    fun <DM: DataModel, E: LongEntity>propertyBindings(vararg props: PropertyBindingV2<DM, E, *>) {
+        PropertyBinderV2().let {
+            it.setProperties(props.toList())
+            propertyBinder = it
         }
     }
-    var dataModelConstructor : (() -> DATA_MODEL)? = null
-        private set
-    fun setProperties(vararg props: PropertyBinding<DATA_MODEL, ENTITY, *>) =
-        propertyBinder.setProperties(props.toList())
 
-    fun setProperties(propertyList: List<PropertyBinding<DATA_MODEL, ENTITY, *>>) =
-        propertyBinder.setProperties(propertyList)
+    fun updateProperties(dataModel: DataModel, daoEntity : LongEntity){
+        propertyBinder?.updateProperties(dataModel, daoEntity, UpdateMode.ENTITY_TO_MODEL)
+    }
 
-    fun setDataModelConstructor(dataModelConstructor: () -> DATA_MODEL){
+    inline  fun <reified CHILD> DTOClass<ENTITY>.childBinding(
+        childDtoModel: DTOClass<CHILD>,
+        byProperty: KProperty1<ENTITY, SizedIterable<CHILD>>,
+        type: OrdinanceType
+    ) where CHILD: LongEntity{
+
+       val  parentDTOModel  = this
+       if(!childDtoModel.initialized) {
+            parent.onDtoInitializationCallback?.let { callback ->
+
+                childDtoModel.initialization(callback)
+                val a = callback
+            }
+        }
+        RelationshipBinder(parentDTOModel).let {
+            it.addChildBinding<CHILD>(childDtoModel, byProperty, OrdinanceType.ONE_TO_MANY)
+            relationBinder = it
+        }
+    }
+
+    fun setDataModelConstructor(dataModelConstructor: () -> DataModel){
         this.dataModelConstructor = dataModelConstructor
     }
 
-//    fun setChildBindings(dtoModel: DTOClass<CHILD_DATA_MODEL, CHILD_ENTITY>, type : BindingType)
-//     = childBinding.addChild(dtoModel,type)
+    fun <DTO>setClassData(
+        dtoClass : KClass<DTO>,
+        dataClass : KClass<out DataModel>,
+        dao: LongEntityClass<LongEntity>
+    ) where DTO: DTOModelV2 {
+        dtoModelClass = dtoClass
+        dataModelClass = dataClass
+        daoModel = dao
+    }
+
+
 }

@@ -1,5 +1,6 @@
 package po.db.data_service.scope.connection
 
+import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Database
 import po.db.data_service.dto.*
 import po.db.data_service.models.CommonDTO
@@ -12,10 +13,10 @@ class ConnectionContext(
     val connectionClass :  ConnectionClass
 ) {
 
-    fun <DTO : CommonDTO >ConnectionContext.service(
-        rootDtoModel : DTOClass,
-        context: ServiceContextV2.()->Unit,
-    ){
+    fun <DTO, ENTITY  >ConnectionContext.service(
+        rootDtoModel : DTOClass<ENTITY>,
+        context: ServiceContextV2<ENTITY>.()->Unit,
+    ) where DTO : CommonDTO,   ENTITY : LongEntity {
         try {
             ServiceClass(connection, rootDtoModel).let {
                 connectionClass.addService(it)

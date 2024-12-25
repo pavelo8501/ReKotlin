@@ -50,7 +50,7 @@ class PartnerDTO(
 ): CommonDTO(dataModel){
     override var className: String = "PartnerDTO"
 
-    companion object: DTOClass() {
+    companion object: DTOClass<PartnerEntity>() {
         override fun setup() {
             dtoSettings<PartnerDTO, PartnerDataModel>(PartnerEntity){
                 propertyBindings(
@@ -61,7 +61,7 @@ class PartnerDTO(
                     PropertyBindingV2("updated", PartnerDataModel::updated, PartnerEntity::updated),
                     PropertyBindingV2("created", PartnerDataModel::created, PartnerEntity::created)
                 )
-                childBinding<PartnerEntity, DepartmentEntity>(DepartmentDTOV2, PartnerEntity::departments,  OrdinanceType.ONE_TO_MANY)
+                childBinding<DepartmentEntity>(DepartmentDTOV2, PartnerEntity::departments,  OrdinanceType.ONE_TO_MANY)
             }
         }
     }

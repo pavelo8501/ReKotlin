@@ -69,7 +69,7 @@ class DepartmentDTOV2(
 
     override var className: String = "DepartmentDTOV2"
 
-    companion object: DTOClass() {
+    companion object: DTOClass<DepartmentEntity>() {
         override fun setup() {
             dtoSettings<DepartmentDTOV2, DepartmentDataModel>(DepartmentEntity){
                 propertyBindings(

@@ -9,9 +9,9 @@ import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.dto.components.ContextState
 import kotlin.reflect.KClass
 
-class ServiceContext<DATA_MODEL, ENTITY>(
+class ServiceContextDepreciated<DATA_MODEL, ENTITY>(
     val name : String,
-    private val rootDtoModel : DTOClass,
+    private val rootDtoModel : DTOClass<*>,
     private val dbConnection: Database,
 ) where DATA_MODEL: DataModel,  ENTITY : LongEntity{
     companion object : ConstructorBuilder()

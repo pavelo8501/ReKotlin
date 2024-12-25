@@ -31,7 +31,7 @@ class ContactDTO(
 
     override var className: String = "ContactDTO"
 
-    companion object: DTOClass() {
+    companion object: DTOClass<ContactEntity>() {
         override fun setup() {
             dtoSettings<ContactDTO, ContactDataModel>(ContactEntity){
 //                propertyBindings(

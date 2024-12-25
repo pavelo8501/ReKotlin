@@ -3,7 +3,7 @@ package po.db.data_service.dto.interfaces
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import po.db.data_service.controls.Notificator
-import po.db.data_service.dto.components.DTOConfigV2
+import po.db.data_service.dto.components.DTOConfig
 import po.db.data_service.models.interfaces.DTOEntity
 
 /*
@@ -26,10 +26,9 @@ interface DTOEntityMarker<DATA_MODEL, ENTITY> : DAOWInstance {
 }
 
 
-interface DTOModelClass {
+interface DTOModelClass<ENTITY> where  ENTITY : LongEntity{
     var className : String
-    val configuration : DTOConfigV2?
-
+    val configuration : DTOConfig<ENTITY>?
 }
 
 interface DTOModelV2 : DTOEntity {

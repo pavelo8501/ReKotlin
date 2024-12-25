@@ -1,20 +1,17 @@
 package po.db.data_service.scope.service
 
-import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SizedIterable
 import org.jetbrains.exposed.sql.transactions.transaction
-import po.db.data_service.binder.DTOPropertyBinder
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.models.CommonDTO
 
-
-class ServiceContextV2(
+class ServiceContextV2<ENTITY>(
     private val dbConnection: Database,
-    private val rootDtoModel : DTOClass,
-){
+    private val rootDtoModel : DTOClass<ENTITY>,
+) where  ENTITY : LongEntity{
 
     val name : String = rootDtoModel.className + "|Service"
 
@@ -22,34 +19,28 @@ class ServiceContextV2(
         body()
     }
 
-    private fun <T> serviceContext( statement: ServiceContextV2.() -> T): T = statement.invoke(this)
-    fun <T> context(serviceBody: ServiceContextV2.() -> T): T = serviceContext{
+    private fun <T> serviceContext( statement: ServiceContextV2<ENTITY>.() -> T): T = statement.invoke(this)
+    fun <T> context(serviceBody: ServiceContextV2<ENTITY>.() -> T): T = serviceContext{
         serviceBody()
     }
 
-    private fun daoSelect(entityModel : LongEntityClass<LongEntity>): SizedIterable<LongEntity>{
+    private fun <E : LongEntity>daoSelect(entityModel : LongEntityClass<E>): SizedIterable<E>{
        val result =  dbQuery {
             entityModel.all()
         }
         return result
     }
 
-    fun  DTOClass.select(block: DTOClass.(List<CommonDTO>) -> Unit): Unit {
+    fun DTOClass<ENTITY>.select(block: DTOClass<ENTITY>.(List<CommonDTO>) -> Unit): Unit {
         val result  = mutableListOf<CommonDTO>()
         dbQuery {
             daoSelect(this.daoModel).forEach {
-                val dtoEntity =  this.create(it){
-                    val a = 10
-                }
+                val dtoEntity =  this.create(it)
                 result.add(dtoEntity)
             }
         }
-
-
       //  block.invoke(result.toList())
         //  return result
     }
-
-
 
 }

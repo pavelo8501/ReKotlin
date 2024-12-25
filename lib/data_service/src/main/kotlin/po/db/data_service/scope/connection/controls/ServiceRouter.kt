@@ -5,7 +5,7 @@ import org.jetbrains.exposed.sql.Database
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.scope.connection.ConnectionContext
 import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.scope.service.ServiceContext
+import po.db.data_service.scope.service.ServiceContextV2
 import po.db.data_service.scope.service.controls.service_registry.ServiceUniqueKey
 
 enum  class TableCreateMode{
@@ -17,7 +17,7 @@ data class ServiceCreateOptions<DATA_MODEL, ENTITY>(
     val createTable: TableCreateMode = TableCreateMode.CREATE,
 ) where DATA_MODEL : DataModel, ENTITY : LongEntity
 {
-    var service: ServiceContext<DATA_MODEL, ENTITY>? = null
+    var service: ServiceContextV2<ENTITY>? = null
 }
 
 class ServiceRouter<DATA_MODEL : DataModel, ENTITY : LongEntity>(
@@ -32,16 +32,16 @@ class ServiceRouter<DATA_MODEL : DataModel, ENTITY : LongEntity>(
 
     fun <DATA_MODEL : DataModel, ENTITY : LongEntity> createService(
         serviceName:String,
-        dtoModel : DTOClass,
+        dtoModel : DTOClass<ENTITY>,
         connectionContext: ConnectionContext
-    ) : ServiceContext<DATA_MODEL, ENTITY> {
-        return ServiceContext(serviceName, dtoModel, dbConnection)
+    ) : ServiceContextV2<ENTITY> {
+        return ServiceContextV2<ENTITY>(dbConnection, dtoModel)
     }
 
     fun <DATA_MODEL : DataModel, ENTITY: LongEntity>initializeRoute(
         serviceUniqueKey: ServiceUniqueKey,
-        service  : ServiceContext<DATA_MODEL, ENTITY>,
-    ): ServiceContext<DATA_MODEL, ENTITY> {
+        service  : ServiceContextV2<ENTITY>,
+    ): ServiceContextV2<ENTITY>{
 //        serviceRegistry.registerService(serviceUniqueKey, service).let {meta->
 //            service.setServiceMetadata(meta)
 //        }
