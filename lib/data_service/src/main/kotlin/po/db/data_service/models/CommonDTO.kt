@@ -1,38 +1,68 @@
 package po.db.data_service.models
 
 import org.jetbrains.exposed.dao.LongEntity
+import po.db.data_service.binder.PropertyBinder
+import po.db.data_service.binder.UpdateMode
 import po.db.data_service.dto.DTOClass
-import po.db.data_service.dto.interfaces.DTOEntityMarker
+import po.db.data_service.dto.interfaces.DTOEntity
 import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.exceptions.ExceptionCodes.NOT_INITIALIZED
-import po.db.data_service.exceptions.InitializationException
+import po.db.data_service.exceptions.ExceptionCodes
+import po.db.data_service.exceptions.OperationsException
+import kotlin.reflect.KMutableProperty1
 
-abstract class CommonDTO<DATA_MODEL : DataModel, ENTITY : LongEntity>(
-    private val injectedDataModel : DATA_MODEL
-): DTOEntityMarker<DATA_MODEL, ENTITY>, Cloneable{
+abstract class CommonDTO(private val injectedDataModel : DataModel, val  childDataSource: List<DataModel>? = null): DTOEntity, Cloneable {
 
     override var id:Long = 0L
+    private var _dtoModel : DTOClass<*>? = null
+    val dtoModel : DTOClass<*>
+        get(){return  _dtoModel?:
+        throw OperationsException("Trying to access dtoModel property of CommonDTOV2 id :$id while undefined",
+            ExceptionCodes.LAZY_NOT_INITIALIZED) }
 
-    override val dataModelClassName: String = ""
 
-    public override fun clone(): DATA_MODEL = this.clone()
-
-    var dtoModel : DTOClass<DATA_MODEL, ENTITY>? = null
-
-    fun toDTO(): DATA_MODEL =  this.injectedDataModel
-
-    private var _entityDAO : ENTITY? = null
-    val entityDAO : ENTITY
-        get(): ENTITY {
-            return _entityDAO?: throw InitializationException("Trying to access database daoEntity associated with ${this.dataModelClassName}", NOT_INITIALIZED)
+    private var _entityDAO : LongEntity? = null
+        set(value){
+            if(value!= null){
+                field = value
+               // id = value.id.value
+            }
         }
+    fun <ENTITY: LongEntity>getEntityDAO():ENTITY{
+        @Suppress("UNCHECKED_CAST")
+        return (_entityDAO as ENTITY)?: throw OperationsException("Reading entityDAO while undefined", ExceptionCodes.LAZY_NOT_INITIALIZED)
+    }
 
-    fun setEntityDAO(entity :ENTITY, dtoModel : DTOClass<DATA_MODEL, ENTITY>){
-        this.dtoModel = dtoModel
-        _entityDAO = entity as ENTITY
-        if(id != entity.id.value){
-            id = entity.id.value
-            dtoModel.update(toDTO(), entity)
+    private var propertyBinder: PropertyBinder? = null
+
+    val childDTOs = mutableListOf<CommonDTO>()
+
+    override fun initialize(binder : PropertyBinder?, dataModel : DataModel?){
+        propertyBinder = binder
+        id = injectedDataModel.id
+    }
+
+    public override fun clone(): DataModel = this.clone()
+
+    fun toDTO(): DataModel =  this.injectedDataModel
+
+    fun updateDAO(daoEntity: LongEntity):LongEntity?{
+        if(propertyBinder != null){
+            propertyBinder!!.updateProperties(injectedDataModel, daoEntity, UpdateMode.MODEL_TO_ENTITY)
+            _entityDAO = daoEntity
+            return daoEntity
+        }
+        //Issue warning
+            return null
+    }
+
+    fun updateDTO (entity :LongEntity, dtoModel : DTOClass<*>){
+        this._dtoModel = dtoModel
+        _entityDAO = entity
+        id = entity.id.value
+        if(propertyBinder!= null){
+            propertyBinder!!.updateProperties(injectedDataModel, entity, UpdateMode.ENTITY_TO_MODEL )
+        }else{
+            //Issue Warning
         }
     }
 }

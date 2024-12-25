@@ -26,12 +26,9 @@ import java.nio.file.Paths
 
 @Serializable
 sealed class TestPartner(): ApiEntity{
-
     override val id: Long = 0
-
     val name: String = ""
     val nr: Int = 0
-
 }
 
 fun startApiServer(host: String, port: Int) {

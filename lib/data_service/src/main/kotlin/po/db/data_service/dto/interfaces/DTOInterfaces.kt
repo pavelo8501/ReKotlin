@@ -1,6 +1,9 @@
 package po.db.data_service.dto.interfaces
 
+import org.jetbrains.exposed.dao.LongEntity
+import po.db.data_service.binder.PropertyBinder
 import po.db.data_service.controls.Notificator
+import po.db.data_service.dto.components.DTOConfig
 
 /*
     Wide marker for wrapper classes
@@ -9,23 +12,26 @@ interface DAOWInstance{
 
 }
 
-
-/*
-    Interface used to identify Class as a DTO Entity
-    Part of the property data handling system
- */
-interface DTOEntityMarker<DATA_MODEL, ENTITY> : DAOWInstance {
-    var id : Long
-    val dataModelClassName : String
+interface DTOModelClass<ENTITY> where  ENTITY : LongEntity{
+    var className : String
+    val configuration : DTOConfig<ENTITY>?
 }
+
+interface DTOEntity{
+    val id:Long
+    val dataModel: DataModel
+    val className : String
+    fun initialize(binder : PropertyBinder?, dataModel : DataModel? = null)
+}
+
 
 /*
     Interface  identifying DTO Entity Class
     Part of the property data handling system
  */
 interface DTOModel : DAOWInstance {
-    //val dtoModel : CommonDTO<*,*>
     val dataModel: DataModel
+    val className : String
 }
 
 /*
@@ -35,6 +41,8 @@ interface DTOModel : DAOWInstance {
 interface DataModel : DAOWInstance {
     var id : Long
 }
+
+
 
 /*
     Interface for common behaviour of classes hosting Notificator Class

@@ -23,7 +23,8 @@ abstract class ConstructorBuilder {
         }
     }
 
-    fun <T: DAOWInstance>getConstructorBlueprint(clazz: KClass<T>):ClassBlueprint<T>{
+    fun <T: Any>getConstructorBlueprint(clazz: KClass<*>):ClassBlueprint{
+
         val className = (clazz.qualifiedName?: clazz::simpleName).toString()
         val newBlueprint = ClassBlueprint(className, clazz)
         clazz.primaryConstructor?.let {
@@ -39,7 +40,7 @@ abstract class ConstructorBuilder {
         return newBlueprint
     }
 
-    fun <T: DAOWInstance> getArgsForConstructor(bluePrint : ClassBlueprint<T>, overrideDefault : ((name:String?)->Any?)? = null): Map<KParameter, Any?>{
+    fun getArgsForConstructor(bluePrint : ClassBlueprint, overrideDefault : ((name:String?)->Any?)? = null): Map<KParameter, Any?>{
         bluePrint.getEffectiveConstructor().let { constructor ->
            val args = constructor.parameters.associateWith { param ->
                 if(param.type.isMarkedNullable) {

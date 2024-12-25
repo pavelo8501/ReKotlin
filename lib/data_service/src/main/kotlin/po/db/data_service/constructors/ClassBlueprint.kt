@@ -20,33 +20,26 @@ enum class ConstructorType{
     NON_EMPTY
 }
 
-data class ClassBlueprint<T: DAOWInstance>(
+data class ClassBlueprint(
     val className: String,
-    val clazz : KClass<T>,
+    val clazz : KClass<*>,
 ){
-
-    var constructorArgs  = mutableListOf<ConstructorArgument>()
-        private set
+    private var constructorArgs  = mutableListOf<ConstructorArgument>()
 
     var constructorParams  = mutableMapOf<KParameter,  Any?>()
         private set
 
-    private var effectiveConstructor : KFunction<T>? = null
+    private var effectiveConstructor : KFunction<*>? = null
     private var effectiveConstructorSize : Number  = 0
 
-    fun setEffectiveConstructor(constructor : KFunction<T>){
+    fun setEffectiveConstructor(constructor : KFunction<*>){
         effectiveConstructor = constructor
         effectiveConstructorSize = constructor.parameters.size
     }
 
-    fun getEffectiveConstructor(): KFunction<T>{
+    fun getEffectiveConstructor(): KFunction<*>{
         return effectiveConstructor?: throw OperationsException("Effective constructor not set", ExceptionCodes.CONSTRUCTOR_MISSING)
     }
-
-
-//    fun addArg(name: String , value: Any?){
-//        constructorParams.putIfAbsent(name, value)
-//    }
 
     fun addAsArg(param : KParameter){
         val paramName = param.name ?: "_"
