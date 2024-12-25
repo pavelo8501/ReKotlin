@@ -129,6 +129,11 @@ fun startDataService(connectionInfo : ConnectionInfo) {
             PartnerDTO.select {
 
             }
+
+            PartnerDTO.sequence("load_&_update").select {
+
+            }
+
         }
    }
 }

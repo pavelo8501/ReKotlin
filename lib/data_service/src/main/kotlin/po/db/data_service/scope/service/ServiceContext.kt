@@ -46,4 +46,13 @@ class ServiceContext<ENTITY>(
         this.block()
     }
 
+//    fun DTOClass<ENTITY>.sequence(name:String, block: DTOClass<ENTITY>.() -> Unit){
+//
+//    }
+
+    fun DTOClass<ENTITY>.sequence(name:String):DTOClass<ENTITY>{
+        return this
+    }
+
+
 }
