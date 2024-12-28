@@ -11,14 +11,13 @@ import po.db.data_service.constructors.ConstructorBuilder
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.InitializationException
+import po.db.data_service.scope.service.models.SequenceTag
 import kotlin.reflect.KClass
-
 
 enum  class TableCreateMode{
     CREATE,
     FORCE_RECREATE
 }
-
 
 class ServiceClass<ENTITY>(
     private val connection :Database,
@@ -42,14 +41,7 @@ class ServiceClass<ENTITY>(
         body()
     }
 
-    private fun getClassBlueprint(dtoModel: DTOClass<*>):ClassBlueprintContainer{
-        dtoModel.conf.also {
-           return ClassBlueprintContainer(
-                getConstructorBlueprint<Any>(it.dtoModelClass as KClass<*>),
-                getConstructorBlueprint<Any>(it.dataModelClass as KClass<*>)
-            )
-        }
-    }
+
 
     private fun createTable(table : IdTable<Long>): Boolean{
         return try {
@@ -82,7 +74,7 @@ class ServiceClass<ENTITY>(
         }
     }
 
-    private fun initializeDTOs(context: ServiceClass<ENTITY>.() -> Unit ) {
+    private fun initializeDTO(context: ServiceClass<ENTITY>.() -> Unit ) {
         context.invoke(this)
     }
 
@@ -101,10 +93,11 @@ class ServiceClass<ENTITY>(
     }
 
     private fun start(){
-        initializeDTOs{
-            rootDTOModel.initialization{
-                getClassBlueprint(it)
-            }
+        initializeDTO{
+            rootDTOModel.initialization(connection)
+//            rootDTOModel.i(){
+//                it.conf.getBlueprinting(this)
+//            }
             name = " ${rootDTOModel.className}|Service"
         }
         if(serviceCreateOption!=null){
@@ -113,37 +106,10 @@ class ServiceClass<ENTITY>(
     }
 
     fun launch(receiver: ServiceContext<ENTITY>.()->Unit ){
-        val serviceContext = ServiceContext(connection, rootDTOModel)
-        serviceContext.receiver()
+        if(connection!=null){
+            val serviceContext = ServiceContext(connection, rootDTOModel)
+            serviceContext.receiver()
+        }
     }
 
-
-//        serviceRegistry.addServiceRegistryItem {
-//            key = ServiceUniqueKey("TestRun")
-//            metadata {
-//                key = ServiceUniqueKey("TestRun")
-//                service {
-//                    rootDTOModel.initialization()
-//                }
-//            }
-//        }
-
-//        rootDataModel.initialization().also { dtoClass->
-//           dtoClass.dtoContext.also {
-//              val dtoData =  DTOData(it.dtoModelClass, it.entityModel, it.dataModelClass)
-//               serviceRegistry.addServiceRegistryItem {
-//                   key = ServiceUniqueKey(dtoClass.dtoContext.name)
-//                   metadata {
-//                       key = ServiceUniqueKey(dtoClass.dtoContext.name)
-//                       service {
-//                           rootDTOModelData = dtoData
-//                       }
-//                   }
-//               }
-//            }
-//        }
-       // val vb  = 10
-
-
-  //  val serviceRouter = ServiceRouter(connectionName, connection, serviceRegistry)
 }

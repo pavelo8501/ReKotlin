@@ -3,6 +3,7 @@ package po.db.data_service.dto.interfaces
 import org.jetbrains.exposed.dao.LongEntity
 import po.db.data_service.binder.PropertyBinder
 import po.db.data_service.controls.Notificator
+import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.components.DTOConfig
 
 /*
@@ -18,10 +19,13 @@ interface DTOModelClass<ENTITY> where  ENTITY : LongEntity{
 }
 
 interface DTOEntity{
-    val id:Long
+
     val dataModel: DataModel
     val className : String
-    fun initialize(binder : PropertyBinder?, dataModel : DataModel? = null)
+    val injectedDataModel:DataModel
+    fun <ENTITY:LongEntity>initialize (binder : PropertyBinder,dtoModel : DTOClass<ENTITY>)
+    fun getId():Long
+    fun setId(value:Long)
 }
 
 

@@ -14,12 +14,14 @@ class ConnectionContext(
     val connectionClass :  ConnectionClass
 ) {
 
-    fun <DTO, ENTITY  >ConnectionContext.service(
+    fun <DTO, ENTITY>ConnectionContext.service(
         rootDtoModel : DTOClass<ENTITY>,
         serviceCreateOption : TableCreateMode? = null,
         context: ServiceContext<ENTITY>.()->Unit,
     ) where DTO : CommonDTO,   ENTITY : LongEntity {
         try {
+
+
             ServiceClass(connection, rootDtoModel, serviceCreateOption).let {
                 connectionClass.addService(it)
                 it.launch(context)

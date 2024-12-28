@@ -9,17 +9,21 @@ import po.db.data_service.models.CommonDTO
 
 class DaoFactory(private val connection : Database) {
 
-    private fun  <T>dbQuery(body : () -> T): T = transaction(connection) {
+    fun  <T>dbQuery(body : () -> T): T = transaction(connection) {
         body()
     }
 
-    fun <ENTITY: LongEntity>new(dtoModel : DTOClass<ENTITY>, fn: ((ENTITY)->Unit)? = null ): ENTITY{
-        val daoEntity = dbQuery {
-            dtoModel.daoModel.new {
-                fn?.invoke(this)
+    fun <ENTITY: LongEntity>new(commonDTO: CommonDTO, dtoModel : DTOClass<ENTITY>): ENTITY?{
+        try {
+            val daoEntity = dbQuery {
+                dtoModel.daoModel.new {
+                    commonDTO.updateDAO(this)
+                }
             }
+            return daoEntity
+        }catch (ex:Exception){
+            return null
         }
-        return daoEntity
     }
 
     fun <ENTITY: LongEntity>all(dtoModel: DTOClass<ENTITY>): List<ENTITY> {
@@ -30,18 +34,24 @@ class DaoFactory(private val connection : Database) {
     }
 
     fun <ENTITY: LongEntity>update(dtoEntity: CommonDTO, dtoModel : DTOClass<ENTITY>): LongEntity?{
-      val daoEntity =  if(dtoEntity.id == 0L){
-          dbQuery {
-              dtoModel.daoModel.new {
-                  dtoEntity.updateDAO(this)
+      try {
+          val daoEntity = dbQuery {
+              dtoEntity.getEntityDAO<ENTITY>().let {
+                  if (it != null) {
+                      dtoEntity.updateDAO(it)
+                      return@dbQuery it
+                  } else {
+                      dtoModel.daoModel.get(dtoEntity.dataModel.id).let { newDao ->
+                          dtoEntity.updateDTO(newDao, dtoModel)
+                          return@dbQuery newDao
+                      }
+                  }
               }
           }
-        }else{
-            null
+          return daoEntity
+      }catch (ex:Exception){
+          println(ex.message)
+          return null
       }
-      if(daoEntity != null){
-          dtoEntity.id = daoEntity.id.value
-      }
-      return daoEntity
     }
 }

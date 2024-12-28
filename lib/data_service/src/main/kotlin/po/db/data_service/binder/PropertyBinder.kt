@@ -4,7 +4,6 @@ import org.jetbrains.exposed.dao.LongEntity
 import po.db.data_service.dto.interfaces.DataModel
 import kotlin.reflect.KMutableProperty1
 
-
 enum class UpdateMode{
     ENTITY_TO_MODEL,
     ENTITY_TO_MODEL_FORCED,
@@ -12,19 +11,16 @@ enum class UpdateMode{
     MODEL_TO_ENTITY_FORCED,
 }
 
-
 sealed class PropertyBindingSealed{
     abstract val name: String
     abstract fun update(dtoModel: DataModel, entityModel: LongEntity, mode: UpdateMode): Boolean
 }
-
 
 class PropertyBinding<DM : DataModel, E : LongEntity, T>(
     override val name: String,
     private val dtoProperty: KMutableProperty1<DM, T>,
     private val entityProperty: KMutableProperty1<E, T>
 ) : PropertyBindingSealed() {
-
 
     override fun update(dtoModel: DataModel, entityModel: LongEntity, mode: UpdateMode): Boolean {
         @Suppress("UNCHECKED_CAST")

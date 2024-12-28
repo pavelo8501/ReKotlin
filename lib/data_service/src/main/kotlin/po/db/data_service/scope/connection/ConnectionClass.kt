@@ -12,7 +12,7 @@ class ConnectionClass(val connectionInfo: ConnectionInfo) {
     }
 
     fun addService(service : ServiceClass<*>){
-        services.putIfAbsent(service.name, service)
+
     }
 
 }

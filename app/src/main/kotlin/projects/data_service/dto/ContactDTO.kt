@@ -23,14 +23,13 @@ data class ContactDataModel(
 
 
 class ContactDTO(
-    override var id: Long,
     override val dataModel: ContactDataModel,
 ): CommonDTO(dataModel){
 
     override var className: String = "ContactDTO"
 
     companion object: DTOClass<ContactEntity>() {
-        override fun setup() {
+        override fun modelSetup() {
             dtoSettings<ContactDTO, ContactDataModel>(ContactEntity){
 //                propertyBindings(
 //                  //  PropertyBindingV2("name", ContactDataModel::name, ContactEntity::name),

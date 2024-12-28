@@ -29,30 +29,30 @@ class PartnerEntity  (id: EntityID<Long>) : LongEntity(id){
     var created by Partners.created
     @PropertyBinder("updated")
     var updated by Partners.updated
+
     val departments by  DepartmentEntity referrersOn Departments.partner
 }
 
 data class PartnerDataModel(
-    override var id: Long,
     var name: String,
     var legalName: String,
     var regNr: String? = null,
     var vatNr: String? = null,
-    var updated: LocalDateTime,
-    var created: LocalDateTime,
 ): DataModel{
-    var departments = mutableListOf<DepartmentDataModel>()
+    override var id: Long = 0
+    var updated: LocalDateTime = PartnerDTO.nowTime()
+    var created: LocalDateTime = PartnerDTO.nowTime()
+    val departments = mutableListOf<DepartmentDataModel>()
 }
 
 class PartnerDTO(
-    override var id: Long,
     override val dataModel: PartnerDataModel,
-): CommonDTO(dataModel, dataModel.departments){
+): CommonDTO(dataModel){
     override var className: String = "PartnerDTO"
 
     companion object: DTOClass<PartnerEntity>() {
-        override fun setup() {
-            dtoSettings<PartnerDTO, PartnerDataModel>(PartnerEntity){
+        override fun modelSetup() {
+            dtoSettings<PartnerDTO, PartnerDataModel>(PartnerEntity) {
                 propertyBindings(
                     PropertyBinding("name", PartnerDataModel::name, PartnerEntity::name),
                     PropertyBinding("legalName", PartnerDataModel::legalName, PartnerEntity::legalName),
@@ -61,10 +61,15 @@ class PartnerDTO(
                     PropertyBinding("updated", PartnerDataModel::updated, PartnerEntity::updated),
                     PropertyBinding("created", PartnerDataModel::created, PartnerEntity::created)
                 )
-                childBinding<DepartmentEntity>(DepartmentDTO, PartnerEntity::departments, DepartmentEntity::partner, OrdinanceType.ONE_TO_MANY){
-                   // childDataSource(PartnerDataModel::departments)
+            }
+            relationBindings<PartnerDTO>{
+                addBinding(DepartmentDTO, PartnerEntity::departments, DepartmentEntity::partner){
+                    setDataSource<PartnerDataModel, DepartmentDataModel>(PartnerDataModel::departments){
+
+                    }
                 }
             }
+
         }
     }
 }

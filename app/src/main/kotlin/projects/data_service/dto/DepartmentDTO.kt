@@ -64,14 +64,13 @@ data class DepartmentDataModel(
 
 
 class DepartmentDTO(
-    override var id: Long,
     override val dataModel: DepartmentDataModel,
 ): CommonDTO(dataModel){
 
     override var className: String = "DepartmentDTOV2"
 
     companion object: DTOClass<DepartmentEntity>() {
-        override fun setup() {
+        override fun modelSetup() {
             dtoSettings<DepartmentDTO, DepartmentDataModel>(DepartmentEntity){
                 propertyBindings(
                     PropertyBinding("hq",DepartmentDataModel::hq, DepartmentEntity::hq),

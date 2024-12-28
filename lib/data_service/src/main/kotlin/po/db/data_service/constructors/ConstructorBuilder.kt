@@ -23,7 +23,7 @@ abstract class ConstructorBuilder {
         }
     }
 
-    fun <T: Any>getConstructorBlueprint(clazz: KClass<*>):ClassBlueprint{
+    fun <T: Any> getConstructorBlueprint(clazz: KClass<T>):ClassBlueprint{
 
         val className = (clazz.qualifiedName?: clazz::simpleName).toString()
         val newBlueprint = ClassBlueprint(className, clazz)
@@ -39,6 +39,23 @@ abstract class ConstructorBuilder {
         }
         return newBlueprint
     }
+
+//    fun <T: Any>getConstructorBlueprint(clazz: KClass<*>):ClassBlueprint{
+//
+//        val className = (clazz.qualifiedName?: clazz::simpleName).toString()
+//        val newBlueprint = ClassBlueprint(className, clazz)
+//        clazz.primaryConstructor?.let {
+//            if(it.parameters.isEmpty()){
+//                newBlueprint.setEffectiveConstructor(it)
+//            }else{
+//                newBlueprint.setEffectiveConstructor(it)
+//                it.parameters.forEach { param ->
+//                    newBlueprint.addAsArg(param)
+//                }
+//            }
+//        }
+//        return newBlueprint
+//    }
 
     fun getArgsForConstructor(bluePrint : ClassBlueprint, overrideDefault : ((name:String?)->Any?)? = null): Map<KParameter, Any?>{
         bluePrint.getEffectiveConstructor().let { constructor ->
