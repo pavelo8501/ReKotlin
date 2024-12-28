@@ -51,10 +51,8 @@ class ServiceContext<ENTITY>(
     }
 
     fun DTOClass<ENTITY>.update(dataModelList : List<DataModel>, block: DTOClass<ENTITY>.() -> Unit): Unit {
-        dataModelList.forEach { dataModel ->
-            this.create(dataModel)
-        }
-        this.block()
+       val dtoEntities =   dataModelList.map { this.create(it) }
+       this.block()
     }
 
     fun <DTO, DTO_ENTITY> DTOClass<DTO_ENTITY>.dtoSequence(tag:SequenceTag, context: DTOContext<ENTITY, DTO_ENTITY>.(DTOClass<DTO_ENTITY>)->Unit):DTOResult<DTO_ENTITY> where DTO : DTOClass<DTO_ENTITY>, DTO_ENTITY : LongEntity{

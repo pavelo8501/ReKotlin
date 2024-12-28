@@ -63,13 +63,10 @@ class PartnerDTO(
                 )
             }
             relationBindings<PartnerDTO>{
-                addBinding(DepartmentDTO, PartnerEntity::departments, DepartmentEntity::partner){
-                    setDataSource<PartnerDataModel, DepartmentDataModel>(PartnerDataModel::departments){
-
-                    }
+                addBinding<DepartmentEntity, PartnerDataModel>(DepartmentDTO, PartnerEntity::departments, DepartmentEntity::partner){
+                    setDataSource(PartnerDataModel::departments)
                 }
             }
-
         }
     }
 }

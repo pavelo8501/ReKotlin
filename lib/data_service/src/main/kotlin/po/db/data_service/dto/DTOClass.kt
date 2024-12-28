@@ -108,9 +108,15 @@ abstract class DTOClass<ENTITY> where ENTITY : LongEntity  {
             conf.propertyBinder?.let {propBinder->
                 dto.initialize(propBinder,this)
                 dtoContainer.add(dto)
-                conf.relationBinder.getBindingList().forEach {
-                    it.addDTORepository(dto)
-
+                conf.relationBinder.getBindingList().forEach {bindContainer->
+                    bindContainer.addDTORepository(dto)
+                    bindContainer.getDataModel(dataModel).forEach { childModel->
+                        bindContainer.withChildModel(dto){parent->
+                            create(childModel)?.let {
+                                parent.addChildDTO(it,bindContainer.thisKey)
+                            }
+                        }
+                    }
                 }
                 return dto
             }

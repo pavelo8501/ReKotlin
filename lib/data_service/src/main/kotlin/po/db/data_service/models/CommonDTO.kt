@@ -1,10 +1,7 @@
 package po.db.data_service.models
 
 import org.jetbrains.exposed.dao.LongEntity
-import po.db.data_service.binder.BindingContainer
-import po.db.data_service.binder.DataSource
-import po.db.data_service.binder.PropertyBinder
-import po.db.data_service.binder.UpdateMode
+import po.db.data_service.binder.*
 import po.db.data_service.common.enums.InitStatus
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.components.DTORepo
@@ -43,10 +40,15 @@ abstract class CommonDTO(override val injectedDataModel : DataModel, val childDa
         throw OperationsException("Trying to access dtoModel property of CommonDTOV2 id :${getId()} while undefined",
             ExceptionCodes.LAZY_NOT_INITIALIZED) }
 
-    val repos = mutableListOf<DTORepo<*,*>>()
-    fun <ENTITY: LongEntity, CHILD_ENTITY: LongEntity > addRepository(repo: DTORepo<ENTITY,CHILD_ENTITY>){
-        repos.add(repo)
+    private val repos = mutableMapOf<BindingKey,DTORepo>()
+    fun addRepository(key: BindingKey, repo: DTORepo){
+        repos[key] = repo
     }
+
+    fun addChildDTO(dto:CommonDTO, repoKey:BindingKey){
+        repos[repoKey]?.add(dto)
+    }
+
 
     private var _entityDAO : LongEntity? = null
         set(value){
