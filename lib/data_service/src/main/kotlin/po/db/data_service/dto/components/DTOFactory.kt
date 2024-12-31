@@ -10,6 +10,7 @@ import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.InitializationException
 import po.db.data_service.exceptions.OperationsException
 import po.db.data_service.models.CommonDTO
+import po.db.data_service.models.CommonDTO2
 import kotlin.reflect.KClass
 
 class DTOFactory<ENTITY>(
@@ -44,7 +45,7 @@ class DTOFactory<ENTITY>(
         this.dataModelConstructor = dataModelConstructor
     }
 
-    fun constructDtoEntity(dataModel : DataModel? = null): CommonDTO? {
+    fun constructDtoEntity(dataModel : DataModel? = null): CommonDTO2? {
         val model = dataModel?: constructDataModel()
         try {
             dtoBlueprint?.let { blueprint ->
@@ -58,7 +59,7 @@ class DTOFactory<ENTITY>(
                             null
                         }
                     }
-                }.let { blueprint.getEffectiveConstructor().callBy(it) as CommonDTO }
+                }.let { blueprint.getEffectiveConstructor().callBy(it) as CommonDTO2 }
             }
             return null
         }catch (ex: Exception) {

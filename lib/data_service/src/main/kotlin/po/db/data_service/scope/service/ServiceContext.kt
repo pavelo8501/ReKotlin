@@ -5,9 +5,13 @@ import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.DTOContext
+import po.db.data_service.dto.components.DTORepo
+import po.db.data_service.dto.components.HostableRepo
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.dto.models.DTOResult
 import po.db.data_service.models.CommonDTO
+import po.db.data_service.models.CommonDTO2
+import po.db.data_service.models.HostableDTO
 import po.db.data_service.scope.service.interfaces.ServiceInterface
 import po.db.data_service.scope.service.models.DaoFactory
 import po.db.data_service.scope.service.models.SequenceTag
@@ -20,56 +24,38 @@ class ServiceContext<ENTITY>(
     val sequenceRegistry = mutableMapOf<SequenceTag, DTOContext<*, ENTITY>.(DTOClass<*>)->Unit>()
     val daoFactory = DaoFactory(dbConnection)
 
-
-    init {
-        initDtoModel()
-    }
-
     private fun  <T>dbQuery(body : () -> T): T = transaction(dbConnection) {
         body()
     }
-
     private fun <T> serviceContext( statement: ServiceContext<ENTITY>.() -> T): T = statement.invoke(this)
     fun <T> context(serviceBody: ServiceContext<ENTITY>.() -> T): T = serviceContext{
         serviceBody()
     }
 
+
     fun DTOClass<ENTITY>.select(block: DTOContext<ENTITY, ENTITY>.() -> Unit) {
-        daoFactory.all(this).forEach {
-            dbQuery {
-               // this.create(it)
+       // val dtoEntities =   daoFactory.select(this).map { create(it) }
+       // val context = this.getDtoContext(this@ServiceContext)
+
+    }
+
+    fun DTOClass<ENTITY>.update(dtoList : List<CommonDTO2>, block: DTOContext<ENTITY,ENTITY>.() -> Unit): Unit {
+            this.reInit(dtoList).let {it.getAll().filter{ it.isNew}.let{new->
+                toDtoContext(this@ServiceContext){this.update(new) {  } }
             }
         }
-        val context = this.getDtoContext(this@ServiceContext)
-        context.block()
     }
 
-    fun DTOClass<ENTITY>.update(dataModel : DataModel , block: DTOClass<ENTITY>.() -> Unit): Unit {
-
-        //val result =  this.create(dataModel, daoFactory)
-        this.block()
-    }
-
+    @JvmName("updateListDataModel")
     fun DTOClass<ENTITY>.update(dataModelList : List<DataModel>, block: DTOClass<ENTITY>.() -> Unit): Unit {
-       val dtoEntities =   dataModelList.map { this.create(it) }
-       this.block()
+       val result = dataModelList.map { this.create(it, this.repository)}
     }
 
     fun <DTO, DTO_ENTITY> DTOClass<DTO_ENTITY>.dtoSequence(tag:SequenceTag, context: DTOContext<ENTITY, DTO_ENTITY>.(DTOClass<DTO_ENTITY>)->Unit):DTOResult<DTO_ENTITY> where DTO : DTOClass<DTO_ENTITY>, DTO_ENTITY : LongEntity{
-       // @Suppress("UNCHECKED_CAST")
-       // this@ServiceContext.sequenceRegistry[tag] = (context as  DTOContext<*, ENTITY>.(DTOClass<*>)->Unit)
-
-        this.let {
-          val dtoContext =  it.getDtoContext(this@ServiceContext)
-            dtoContext.context(this)
-        }
         return DTOResult(this)
     }
 
-    override fun initDtoModel(): DTOClass<ENTITY> {
-       // rootDtoModel.initializationByService(daoFactory)
-        return rootDtoModel
-    }
+
 
 
 }

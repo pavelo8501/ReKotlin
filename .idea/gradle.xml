@@ -14,7 +14,6 @@
             <option value="$PROJECT_DIR$/lib/data_service" />
             <option value="$PROJECT_DIR$/lib/function_processor" />
             <option value="$PROJECT_DIR$/lib/rest_service" />
-            <option value="$PROJECT_DIR$/lib/tg_components" />
             <option value="$PROJECT_DIR$/lib/ws_service" />
           </set>
         </option>

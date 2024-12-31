@@ -28,9 +28,13 @@ fun main() {
 
  val connection = dbManager.openConnection(ConnectionInfo(dbHost, dbName, dbUsername, dbPassword, dbPort)){
      service<PartnerDTO,PartnerEntity>(PartnerDTO, TableCreateMode.FORCE_RECREATE){
-         PartnerDTO.update(initFromDataModel()){
+         PartnerDTO.update(listOf(initFromDTO())){
 
          }
+
+//         PartnerDTO.select {
+//
+//         }
      }
  }
 

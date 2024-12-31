@@ -10,6 +10,7 @@ import po.db.data_service.binder.PropertyBinding
 import po.db.data_service.dto.*
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.models.CommonDTO
+import po.db.data_service.models.CommonDTO2
 
 
 import po.playground.projects.data_service.services.Departments
@@ -65,11 +66,11 @@ data class DepartmentDataModel(
 
 class DepartmentDTO(
     override val dataModel: DepartmentDataModel,
-): CommonDTO(dataModel){
+): CommonDTO2(dataModel){
 
     override var className: String = "DepartmentDTOV2"
 
-    companion object: DTOClass<DepartmentEntity>() {
+    companion object: DTOClass<DepartmentEntity>(DepartmentEntity::class) {
         override fun modelSetup() {
             dtoSettings<DepartmentDTO, DepartmentDataModel>(DepartmentEntity){
                 propertyBindings(

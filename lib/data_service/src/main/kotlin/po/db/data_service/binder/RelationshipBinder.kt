@@ -5,16 +5,14 @@ import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.SizedIterable
 import po.db.data_service.common.enums.InitStatus
 import po.db.data_service.dto.DTOClass
-import po.db.data_service.dto.components.DTORepo
-import po.db.data_service.dto.interfaces.DTOEntity
+import po.db.data_service.dto.components.HostableRepo
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.models.CommonDTO
+import po.db.data_service.models.HostableDTO
 
 import po.db.data_service.scope.service.models.DaoFactory
-import javax.xml.crypto.Data
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
-import kotlin.reflect.full.memberProperties
 
 
 enum class OrdinanceType{
@@ -31,46 +29,42 @@ data class BindingKey(
 
 
 open class BindingContainer<PARENT, CHILD, DM>(
-    parentDTOModel: DTOClass<PARENT>,
+    val parentDTOModel: DTOClass<PARENT>,
     val childDTOModel: DTOClass<CHILD>,
-    private val type: OrdinanceType,
-    private val byProperty: KProperty1<PARENT, SizedIterable<CHILD>>,
+    val type: OrdinanceType,
+    val byProperty: KProperty1<PARENT, SizedIterable<CHILD>>,
+    val referencedOnProperty : KMutableProperty1<CHILD, PARENT>,
     val thisKey :BindingKey
-) : BindingContainerBase<PARENT, CHILD, DM>(parentDTOModel,childDTOModel,type) where PARENT:LongEntity, CHILD : LongEntity, DM:DataModel   {
+) : BindingContainerBase<PARENT, CHILD, DM>(parentDTOModel, childDTOModel,type) where PARENT:LongEntity, CHILD : LongEntity, DM:DataModel   {
 
     var dataSourceProperty : KProperty1<DM, Iterable<DataModel>>? = null
 
-    fun createChild(parent : CommonDTO,  dataModel : DataModel):CommonDTO?{
-//        return  childDTOModel.create(dataModel).let {dto->
-//            dataSourceProperty?.let {
-//
-////                it.get(dataModel).forEach {
-////                    childDTOModel.create(it)
-////                }
-//            }
-//
-////            daoFactory.new<CHILD>(dto,  childDTOModel)?.let{childEntity->
-////                parent.getEntityDAO<PARENT>()?.let {parentEntity->
-////                    referencedOnProperty.set(childEntity, parentEntity)
-////                    dto.updateDAO(childEntity)
-////                }
-////            }
-//            dto
-//        }
-        return null
+    fun attachToParent(parentEntity : PARENT, parentDTO :  HostableDTO<PARENT> ){
+        withChildModel {
+            parentDTO.repos[thisKey]?.getAll()?.forEach {it as HostableDTO<CHILD>
+                childDTOModel.daoModel.new {
+                    it.updateDTO(this, UpdateMode.MODEL_TO_ENTITY)
+                    referencedOnProperty.set(this , parentEntity)
+                }
+            }
+        }
+        parentEntity.flush()
     }
 
-    fun loadChild(parentDTO : CommonDTO, daoFactory: DaoFactory):List<CommonDTO> {
+    fun loadChild(parentDTO : HostableDTO<PARENT>, daoFactory:DaoFactory):List<CommonDTO> {
         val result = mutableListOf<CommonDTO>()
         try {
             daoFactory.dbQuery {
-//                parentDTO.getEntityDAO<PARENT>()?.let{parentEntity->
-//                    val childEntities = this.byProperty.get(parentEntity)
-//                    childEntities.forEach { childEntity ->
-////                        val childDto = childDTOModel.create(childEntity)
-////                        result.add(childDto)
-//                    }
-//                }
+                withChildModel(parentDTO){
+                    parentDTO.entityDAO?.let {
+                        val childEntities = this@BindingContainer.byProperty.get(it)
+                        childEntities.forEach { childEntity ->
+                            childDTOModel.create(childEntity)?.let {childDto->
+                                //parentDTO.addChildDTO(childDto,this@BindingContainer.thisKey )
+                            }
+                        }
+                    }
+                }
             }
         }catch (ex:Exception){
             println(ex.message)
@@ -78,13 +72,19 @@ open class BindingContainer<PARENT, CHILD, DM>(
         return result
     }
 
-    fun addDTORepository(dto:CommonDTO):CommonDTO{
-        try {
-            dto.also {
-                it.addRepository(thisKey,DTORepo())
+
+    fun createChildEntities(dto : HostableDTO<PARENT>): HostableDTO<PARENT> {
+        withChildModel{
+            //val newRepo = HostableRepo(this, thisKey,dto.getId())
+            val newRepo =  this.createRepository(thisKey,0).also {repository->
+                val childModels = getDataModel(dto.dataModel)
+                childModels.forEach {childDataModel->
+                    val hostable = this.copyAsHostableDTO(this.dtoFactory.constructDtoEntity(childDataModel)!!)
+                    hostable.initialize(this.conf)
+                    repository.add(hostable)
+                }
+                dto.addRepo(thisKey, repository as HostableRepo<PARENT>)
             }
-        }catch (ex:Exception){
-            dto.addError(ex.message?:"UnknownException")
         }
         return dto
     }
@@ -94,7 +94,6 @@ open class BindingContainer<PARENT, CHILD, DM>(
             dataSourceProperty?.let {
                 @Suppress("UNCHECKED_CAST")
                 parentModel as DM
-                @Suppress("UNCHECKED_CAST")
                 return it.get(parentModel) as List<DataModel>
             }
         }catch (ex:Exception){
@@ -103,26 +102,30 @@ open class BindingContainer<PARENT, CHILD, DM>(
         return emptyList()
     }
 
-    fun withChildModel(parentDTO:CommonDTO, body: DTOClass<CHILD>.(CommonDTO)->Unit ){
-        childDTOModel.body(parentDTO)
+    fun withChildModel(dto: HostableDTO<PARENT>, body: DTOClass<CHILD>.(HostableDTO<PARENT>)->Unit ){
+        childDTOModel.body(dto)
+    }
+
+    fun withChildModel(body: DTOClass<CHILD>.()->Unit ){
+        childDTOModel.body()
+    }
+
+    fun executeOnChildModel(parentDTO:CommonDTO, body: DTOClass<CHILD>.(CommonDTO)->  DTOClass<CHILD> ){
+        executeOnChildModel(parentDTO, body)
     }
 
     fun setDataSource(sourceProperty :  KProperty1<DM, Iterable<DataModel>>){
         dataSourceProperty = sourceProperty
     }
-
 }
 
-sealed class BindingContainerBase<PARENT : LongEntity, CHILD : LongEntity, DM:DataModel>(
+
+sealed class BindingContainerBase<PARENT : LongEntity, CHILD : LongEntity, DM: DataModel>(
     parentModel: DTOClass<PARENT>,
     childModel: DTOClass<CHILD>,
     type: OrdinanceType,
 ){
-    private var  container : BindingContainer<PARENT,CHILD, DM>? = null
 
-    fun <T, DATA: DataModel> DTOClass<PARENT>.createChildReceive(body: T.()->CommonDTO){
-        val a = 10
-    }
     companion object{
         fun <PARENT:LongEntity, CHILD:LongEntity, DM:DataModel> createContainer(
             parentDTOModel: DTOClass<PARENT>,
@@ -132,7 +135,7 @@ sealed class BindingContainerBase<PARENT : LongEntity, CHILD : LongEntity, DM:Da
             referencedOnProperty: KMutableProperty1<CHILD, PARENT>
         ): BindingContainer<PARENT, CHILD, DM>{
             val key  = BindingKey(type, byProperty.name)
-            val newContainer =  object :  BindingContainer<PARENT, CHILD, DM>(parentDTOModel, childDtoModel,type, byProperty, key){}
+            val newContainer =  object :  BindingContainer<PARENT, CHILD, DM>(parentDTOModel, childDtoModel,type, byProperty,referencedOnProperty, key){}
             return newContainer
         }
     }
@@ -146,12 +149,8 @@ class RelationshipBinder<PARENT> (
 
     val lastKeys = mutableListOf<BindingKey>()
 
-    fun getBindingList():List<BindingContainer<PARENT, *,*>>{
+    fun bindings():List<BindingContainer<PARENT, *,*>>{
         return childBindings.values.toList()
-    }
-
-    fun getBinding(key: BindingKey):BindingContainer<PARENT, *,*>?{
-        return childBindings[key]
     }
 
     fun getKeys():List<BindingKey>{
@@ -169,16 +168,13 @@ class RelationshipBinder<PARENT> (
            childDtoModel.initialization(parentDTOModel.dbConnection)
        }
         val key = BindingKey(type, byProperty.name)
-        val container =  BindingContainerBase.createContainer<PARENT, CHILD, DM>(parentDTOModel, childDtoModel, type,  byProperty, referencedOnProperty)
-        childBindings[key] = container
-        lastKeys.add(key)
-        if(context!= null){
-            container.context()
+        BindingContainerBase.createContainer<PARENT, CHILD, DM>(parentDTOModel, childDtoModel, type,  byProperty, referencedOnProperty).let {
+            childBindings[key] = it
+            lastKeys.add(key)
+            context?.invoke(it)
+            return it
         }
-        return container
     }
-
-
 
     fun getDependantTables():List<IdTable<Long>>{
         val result = mutableListOf<IdTable<Long>>()

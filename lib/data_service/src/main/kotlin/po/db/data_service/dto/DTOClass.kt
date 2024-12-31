@@ -8,38 +8,38 @@ import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
+import po.db.data_service.binder.BindingKey
+import po.db.data_service.binder.OrdinanceType
 import po.db.data_service.binder.RelationshipBinder
 import po.db.data_service.common.enums.InitStatus
-import po.db.data_service.constructors.ConstructorBuilder
 import po.db.data_service.dto.components.DTOConfig
 import po.db.data_service.dto.components.DTOFactory
 import po.db.data_service.dto.components.DTORepo
+import po.db.data_service.dto.components.HostableRepo
 import po.db.data_service.dto.interfaces.DTOEntity
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.OperationsException
+import po.db.data_service.models.Basic
 import po.db.data_service.models.CommonDTO
+import po.db.data_service.models.CommonDTO2
+import po.db.data_service.models.Hostable
+import po.db.data_service.models.HostableDTO
+import po.db.data_service.models.RootDTO
 import po.db.data_service.scope.service.ServiceContext
 import po.db.data_service.scope.service.models.DaoFactory
+import kotlin.reflect.KClass
 
 
-inline fun <ENTITY : LongEntity> DTOClass<ENTITY>.startInitSequence(
-
-    body : ServiceContext<ENTITY>.()->Unit
-){
-
-}
-
-abstract class DTOClass<ENTITY> where ENTITY : LongEntity  {
+abstract class DTOClass<ENTITY>(val entityClass : KClass<ENTITY>) where ENTITY : LongEntity  {
 
     lateinit var dbConnection : Database
     var initStatus:InitStatus = InitStatus.UNINITIALIZED
-    var initialized: Boolean = false
     var className : String = "Undefined"
 
     lateinit var conf : DTOConfig<ENTITY>
     lateinit var dtoFactory :  DTOFactory<ENTITY>
-
+    val repository = HostableRepo<ENTITY>(this, BindingKey(OrdinanceType.ONE_TO_MANY,"container"),0)
 
     val daoModel: LongEntityClass<ENTITY>
         get(){
@@ -48,16 +48,14 @@ abstract class DTOClass<ENTITY> where ENTITY : LongEntity  {
 
     lateinit var daoFactory : DaoFactory
 
-    val dtoContainer = mutableListOf<CommonDTO>()
-
     protected abstract fun modelSetup()
 
     fun nowTime(): LocalDateTime {
         return LocalDateTime.Companion.parse(Clock.System.now().toLocalDateTime(TimeZone.UTC).toString())
     }
 
-    fun <SERVICE_ENTITY: LongEntity>getDtoContext(serviceContext: ServiceContext<SERVICE_ENTITY>):DTOContext<SERVICE_ENTITY, ENTITY>{
-       return DTOContext(this)
+    fun <SERVICE_ENTITY: LongEntity>  toDtoContext(serviceContext: ServiceContext<SERVICE_ENTITY>, body: DTOContext<SERVICE_ENTITY, ENTITY>.()->Unit ){
+        DTOContext<SERVICE_ENTITY, ENTITY>(this, daoFactory, dtoFactory).body()
     }
 
     fun <ENTITY:LongEntity>  ServiceContext<ENTITY>.service(): ServiceContext<ENTITY>{
@@ -91,84 +89,136 @@ abstract class DTOClass<ENTITY> where ENTITY : LongEntity  {
         }
     }
 
-    private fun getFromRepo(id:Long):CommonDTO?{
-        return null
+    private fun getFromRepo(id:Long): HostableDTO<ENTITY>?{
+       return repository.get(id)
+    }
+
+    fun createRepository(key : BindingKey, parentId: Long ): HostableRepo<ENTITY>{
+        try {
+            return HostableRepo<ENTITY>(this,key,parentId)
+        }catch (ex:Exception){
+            println(ex.message)
+            throw ex
+        }
+    }
+
+    fun addDtoToRepository(dto: HostableDTO<ENTITY>, repo  :  HostableRepo<ENTITY>){
+         repo.add(dto)
+         val a =10
+    }
+
+
+
+    fun copyAsCommonDTO(dto: HostableDTO<*>):CommonDTO2{
+        return when (dto) {
+            is Hostable -> dto.copyAsChild(dto.className)
+        }
+    }
+
+    fun copyAsHostableDTO(dto: CommonDTO2): HostableDTO<ENTITY>{
+        return when (dto) {
+            is Basic -> dto.copyAsHostable(dto.className, this)
+        }
+    }
+
+
+
+    /**
+     * Reinitialize DTO from  and check consistency
+     * if id is 0 initialize as new else lookup in the repository for existent copy
+     * if existent copy differs from the dto supplied substitute it with dto supplied
+     * @input dtoList: List<CommonDTO>
+     * @return List<CommonDTO>
+     * */
+    fun reInitFromModel(dtoModel: DTOClass<*>):List<CommonDTO2>{
+        val dtoList = dtoModel.repository.getAll().map { copyAsCommonDTO(it) }
+        return reInit(dtoList).getAll()
+    }
+
+
+    /**
+     * Reinitialize DTO and check consistency
+     * if id is 0 initialize as new else lookup in the repository for existent copy
+     * if existent copy differs from the dto supplied substitute it with dto supplied
+     * @input dtoList: List<CommonDTO>
+     * @return List<CommonDTO>
+     * */
+    fun reInit(dtoList: List<CommonDTO2>): HostableRepo<ENTITY>{
+        val resultingList = mutableListOf<CommonDTO>()
+        val repo =  this.repository
+        dtoList.filter { it.getId() != 0L }.let { }
+
+        dtoList.filter { it.getId() == 0L }.map { it.toDataModel() }.forEach {dataModel->
+
+             create(dataModel, repo)
+        }
+        return repo
     }
 
     /**
      * Create new CommonDTO entity from DataModel provided
      * @input dataModel: DataModel
-     * @return CommonDTO
+     * @return CommonDTO or null
      * */
-    fun create(dataModel: DataModel) : CommonDTO? {
-       val dto = getFromRepo(dataModel.id)?: run {
-           dtoFactory.constructDtoEntity(dataModel)
-        }
-        if(dto!=null){
-            conf.propertyBinder?.let {propBinder->
-                dto.initialize(propBinder,this)
-                dtoContainer.add(dto)
-                conf.relationBinder.getBindingList().forEach {bindContainer->
-                    bindContainer.addDTORepository(dto)
-                    bindContainer.getDataModel(dataModel).forEach { childModel->
-                        bindContainer.withChildModel(dto){parent->
-                            create(childModel)?.let {
-                                parent.addChildDTO(it,bindContainer.thisKey)
-                            }
+    fun create(dataModel: DataModel, repository:  HostableRepo<ENTITY>) {
+        repository.get(dataModel.id).let { dto ->
+            when (dto) {
+                null -> {
+                    dtoFactory.constructDtoEntity(dataModel)?.let { commonDto ->
+                        val hostableDTO = this.copyAsHostableDTO(commonDto)
+                        hostableDTO.initialize(conf)
+                        repository.add(hostableDTO)
+                        conf.relationBinder.bindings().forEach { container ->
+                            container.createChildEntities(hostableDTO)
+                            repository.add(hostableDTO)
                         }
                     }
                 }
-                return dto
+                else -> {
+
+                }
             }
-            return null
-        }else{
-            return null
         }
-
-       // val newDTO = dtoFactory.constructDtoEntity(dataModel)
-//        if(dto!=null){
-//            dtoContainer.add(newDTO)
-//            conf.relationBinder.lastKeys
-////            conf.relationBinder.getBindingList().forEach { binding->
-////                if(newDTO.childDataSource!= null){
-////                    newDTO.childDataSource.forEach { dataModel->
-////                        val childDTO = binding.createChild(newDTO, dataModel)
-////                        newDTO.childDTOs.add(childDTO)
-////                    }
-////                }
-////            }
-//            return  newDTO
-//        }else{
-//            return null
-//        }
     }
 
-    fun create(daoEntity: ENTITY) : CommonDTO? {
-        val newDTO = dtoFactory.constructDtoEntity()
-        if(newDTO!=null){
-            newDTO.updateDTO(daoEntity, this)
-//            conf.relationBinder.getBindingList().forEach { binding ->
-//                binding.loadChild( newDTO, dtoFactory!!) .let {
-//                    newDTO.childDTOs.addAll(it)
-//                }
-//            }
-            dtoContainer.add(newDTO)
-            return newDTO
+    /**
+     * Create new CommonDTO entity from DAO LongEntity
+     * @input daoEntity: LongEntity
+     * @return CommonDTO or null
+     * */
+    fun create(daoEntity: ENTITY) : HostableDTO<ENTITY>? {
+        val dto = repository.get(daoEntity.id.value)?: run {
+            dtoFactory.constructDtoEntity()
+        }
+        if(dto != null){
+            val hostableDTO = this.copyAsHostableDTO(dto)
+            conf.propertyBinder?.let {
+                hostableDTO.initialize(conf)
+                hostableDTO.let {
+                    conf.relationBinder.bindings().forEach { bindContainer ->
+
+                        // bindContainer.createOrGetRepository(dto)
+                        bindContainer.loadChild(hostableDTO, daoFactory)
+                    }
+                }
+                repository.add(hostableDTO)
+            }
+            return hostableDTO
         }else{
             return null
         }
     }
 
-//    fun initializeDTOEntities(dataModels: List<DataModel>){
-//        dataModels.forEach {dataModel->
-//
-//        }
-//    }
+    fun setHostEntityClass(entity:KClass<ENTITY>){
+        //@Suppress("UNCHECKED_CAST")
+        //this.entityClass = entity::class
+    }
+
 
     inline fun <reified DTO, reified DATA>  dtoSettings(
         daoModel: LongEntityClass<ENTITY>,
         block: DTOConfig<ENTITY>.() -> Unit
-    ) where  DTO : DTOEntity, DATA : DataModel {
+    ) where  DTO : DTOEntity, DATA : DataModel{
         val rootDtoModelClass = DTO::class
         this.className  = rootDtoModelClass.simpleName!!
         conf.also{

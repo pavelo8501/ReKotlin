@@ -6,6 +6,7 @@ import org.jetbrains.exposed.dao.id.EntityID
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.models.CommonDTO
+import po.db.data_service.models.CommonDTO2
 import po.playground.projects.data_service.services.Contacts
 
 
@@ -24,11 +25,11 @@ data class ContactDataModel(
 
 class ContactDTO(
     override val dataModel: ContactDataModel,
-): CommonDTO(dataModel){
+): CommonDTO2(dataModel){
 
     override var className: String = "ContactDTO"
 
-    companion object: DTOClass<ContactEntity>() {
+    companion object: DTOClass<ContactEntity>(ContactEntity::class) {
         override fun modelSetup() {
             dtoSettings<ContactDTO, ContactDataModel>(ContactEntity){
 //                propertyBindings(

@@ -43,6 +43,10 @@ val dataModel = PartnerDataModel("Partner 1", "Partner 1 SIA", null, null).also 
     )
 }
 
+fun initFromDTOAsList():PartnerDTO{
+    return PartnerDTO(dataModel)
+}
+
 fun initFromDTO():PartnerDTO{
    return PartnerDTO(dataModel)
 }

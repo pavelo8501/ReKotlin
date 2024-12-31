@@ -12,7 +12,7 @@ import po.db.data_service.scope.service.ServiceClass.Companion.getConstructorBlu
 import kotlin.reflect.KClass
 
 class DTOConfig<ENTITY>(
-    private val parent: DTOClass<ENTITY>
+    val parent: DTOClass<ENTITY>
 ) where  ENTITY : LongEntity{
 
     private var dataModelConstructor : (() -> DataModel)? = null

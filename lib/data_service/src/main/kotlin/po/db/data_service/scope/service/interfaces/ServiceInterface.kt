@@ -5,6 +5,6 @@ import po.db.data_service.dto.DTOClass
 
 interface ServiceInterface<ENTITY : LongEntity> {
 
-    fun initDtoModel():DTOClass<ENTITY>
+
 
 }

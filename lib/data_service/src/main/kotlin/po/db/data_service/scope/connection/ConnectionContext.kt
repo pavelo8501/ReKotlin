@@ -4,6 +4,7 @@ import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Database
 import po.db.data_service.dto.*
 import po.db.data_service.models.CommonDTO
+import po.db.data_service.models.CommonDTO2
 import po.db.data_service.scope.service.ServiceClass
 import po.db.data_service.scope.service.ServiceContext
 import po.db.data_service.scope.service.TableCreateMode
@@ -18,7 +19,7 @@ class ConnectionContext(
         rootDtoModel : DTOClass<ENTITY>,
         serviceCreateOption : TableCreateMode? = null,
         context: ServiceContext<ENTITY>.()->Unit,
-    ) where DTO : CommonDTO,   ENTITY : LongEntity {
+    ) where DTO : CommonDTO2,   ENTITY : LongEntity {
         try {
 
 

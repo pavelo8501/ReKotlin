@@ -14,7 +14,9 @@ enum class  ExceptionCodes (val errorCode:Int) {
     CONSTRUCTOR_MISSING(2003),
 
     DB_TABLE_CREATION_FAILURE(3001),
-    ENTITY_UPDATE_FAILURE(3002);
+    ENTITY_UPDATE_FAILURE(3002),
+    DTO_SELECTION_FAILURE(3003),
+    REPOSITORY_FAILURE(3002);
 
     companion object {
         fun fromValue(errorCode: Int): ExceptionCodes {

@@ -6,13 +6,14 @@ import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import po.db.data_service.annotations.ClassBinder
 import po.db.data_service.annotations.PropertyBinder
-import po.db.data_service.binder.OrdinanceType
 import po.db.data_service.binder.PropertyBinding
 import po.db.data_service.dto.*
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.models.CommonDTO
+import po.db.data_service.models.CommonDTO2
 import po.playground.projects.data_service.services.Departments
 import po.playground.projects.data_service.services.Partners
+import kotlin.io.path.Path
 
 @ClassBinder("Partner")
 class PartnerEntity  (id: EntityID<Long>) : LongEntity(id){
@@ -47,10 +48,10 @@ data class PartnerDataModel(
 
 class PartnerDTO(
     override val dataModel: PartnerDataModel,
-): CommonDTO(dataModel){
+): CommonDTO2(dataModel){
     override var className: String = "PartnerDTO"
 
-    companion object: DTOClass<PartnerEntity>() {
+    companion object: DTOClass<PartnerEntity>(PartnerEntity::class) {
         override fun modelSetup() {
             dtoSettings<PartnerDTO, PartnerDataModel>(PartnerEntity) {
                 propertyBindings(
@@ -59,7 +60,7 @@ class PartnerDTO(
                     PropertyBinding("regNr", PartnerDataModel::regNr, PartnerEntity::regNr),
                     PropertyBinding("vatNr", PartnerDataModel::vatNr, PartnerEntity::vatNr),
                     PropertyBinding("updated", PartnerDataModel::updated, PartnerEntity::updated),
-                    PropertyBinding("created", PartnerDataModel::created, PartnerEntity::created)
+                    PropertyBinding("created", PartnerDataModel::created, PartnerEntity::created),
                 )
             }
             relationBindings<PartnerDTO>{
@@ -70,6 +71,7 @@ class PartnerDTO(
         }
     }
 }
+
 
 
 
