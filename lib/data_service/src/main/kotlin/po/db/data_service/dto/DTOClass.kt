@@ -103,8 +103,6 @@ abstract class DTOClass<ENTITY> where ENTITY : LongEntity  {
         }
     }
 
-
-
     /**
      * Create new CommonDTO entity from DataModel provided
      * @input dataModel: DataModel
