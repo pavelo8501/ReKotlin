@@ -6,79 +6,63 @@ import kotlin.reflect.KMutableProperty1
 
 
 enum class UpdateMode{
-    ENTITY_TO_MODEL,
-    ENTITY_TO_MODEL_FORCED,
-    MODEL_TO_ENTITY,
-    MODEL_TO_ENTITY_FORCED,
+    ENTNTITY_TO_MODEL,
+    ENTNTITY_TO_MODEL_FORCED,
+    MODE_TO_ENTNTITY,
+    MODEL_TO_ENTNTITY_FORCENTD,
 }
 
+class PropertyBinding<DATA : DataModel, ENT : LongEntity, T>(
+    private val dtoProperty: KMutableProperty1<DATA, T>,
+    private val entityProperty: KMutableProperty1<ENT, T>
 
-sealed class PropertyBindingSealed{
-    abstract val name: String
-    abstract fun update(dtoModel: DataModel, entityModel: LongEntity, mode: UpdateMode): Boolean
-}
+){
+     fun update(dtoModel: DATA, entityModel: ENT, mode: UpdateMode): Boolean {
 
-
-class PropertyBinding<DM : DataModel, E : LongEntity, T>(
-    override val name: String,
-    private val dtoProperty: KMutableProperty1<DM, T>,
-    private val entityProperty: KMutableProperty1<E, T>
-) : PropertyBindingSealed() {
-
-
-    override fun update(dtoModel: DataModel, entityModel: LongEntity, mode: UpdateMode): Boolean {
-        @Suppress("UNCHECKED_CAST")
-        val dm = dtoModel as DM
-        @Suppress("UNCHECKED_CAST")
-        val em = entityModel as E
-
-        val dtoValue = dtoProperty.get(dm)
-        val entityValue: T? = try {
-            entityProperty.get(em)
-        } catch (e: Exception) {
-            null
-        }
+        val dtoValue = dtoProperty.get(dtoModel)
+        val entityValue =  entityProperty.get(entityModel)
         val valuesDiffer = dtoValue != entityValue
 
         return when (mode) {
-            UpdateMode.ENTITY_TO_MODEL -> {
+            UpdateMode.ENTNTITY_TO_MODEL -> {
                 if (!valuesDiffer) return false
                 if(entityValue != null){
-                    dtoProperty.set(dm, entityValue)
+                    dtoProperty.set(dtoModel, entityValue)
                     return true
                 }
                 return false
             }
-            UpdateMode.MODEL_TO_ENTITY -> {
+            UpdateMode.MODE_TO_ENTNTITY -> {
                 if (!valuesDiffer) return false
-                entityProperty.set(em, dtoValue)
+                entityProperty.set(entityModel, dtoValue)
                 true
             }
-            UpdateMode.MODEL_TO_ENTITY_FORCED -> {
+            UpdateMode.MODEL_TO_ENTNTITY_FORCENTD -> {
                 if(entityValue != null) {
-                    dtoProperty.set(dm, entityValue)
+                    dtoProperty.set(dtoModel, entityValue)
                     return true
                 }
                 return false
             }
-            UpdateMode.ENTITY_TO_MODEL_FORCED -> {
-                entityProperty.set(em, dtoValue)
+            UpdateMode.ENTNTITY_TO_MODEL_FORCED -> {
+                entityProperty.set(entityModel, dtoValue)
                 true
             }
         }
     }
 }
 
-class PropertyBinder {
-    var onInitialized: ((PropertyBinder) -> Unit)? = null
-    private var propertyList = emptyList<PropertyBindingSealed>()
+class PropertyBinder<DATA : DataModel, ENT : LongEntity, T>  {
 
-    fun setProperties(properties: List<PropertyBindingSealed>) {
+    var onInitialized: ((PropertyBinder<DATA, ENT,T>) -> Unit)? = null
+    private var propertyList = emptyList<PropertyBinding<DATA, ENT,T>> ()
+
+    fun setProperties(properties: List<PropertyBinding<DATA, ENT, T>> ) {
         propertyList = properties
         onInitialized?.invoke(this)
     }
 
-    fun updateProperties(dataModel: DataModel, daoModel: LongEntity, updateMode: UpdateMode) {
+    fun updateProperties(dataModel: DATA, daoModel: ENT, updateMode: UpdateMode) {
         propertyList.forEach { it.update(dataModel, daoModel, updateMode) }
     }
 }

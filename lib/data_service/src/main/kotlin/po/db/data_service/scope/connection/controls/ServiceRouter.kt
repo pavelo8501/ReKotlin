@@ -11,35 +11,33 @@ import po.db.data_service.scope.service.controls.service_registry.ServiceUniqueK
 
 
 
-data class ServiceCreateOptions<DATA_MODEL, ENTITY>(
+data class ServiceCreateOptions<DATA, ENTITY>(
     val createTable: TableCreateMode = TableCreateMode.CREATE,
-) where DATA_MODEL : DataModel, ENTITY : LongEntity
+) where DATA : DataModel, ENTITY : LongEntity
 {
-    var service: ServiceContext<ENTITY>? = null
+    var service: ServiceContext<DATA,ENTITY>? = null
 }
 
-class ServiceRouter<DATA_MODEL : DataModel, ENTITY : LongEntity>(
+class ServiceRouter<DATA, EMTITY>(
     private val connectionName: String,
     private val dbConnection: Database,
-) {
-
+) where  DATA: DataModel,  EMTITY : LongEntity {
 
     init {
 
     }
-
     fun <DATA_MODEL : DataModel, ENTITY : LongEntity> createService(
         serviceName:String,
-        dtoModel : DTOClass<ENTITY>,
+        dtoModel : DTOClass<DATA,ENTITY>,
         connectionContext: ConnectionContext
-    ) : ServiceContext<ENTITY> {
-        return ServiceContext<ENTITY>(dbConnection, dtoModel)
+    ) : ServiceContext<DATA,ENTITY> {
+        return ServiceContext<DATA,ENTITY>(dbConnection, dtoModel)
     }
 
-    fun <DATA_MODEL : DataModel, ENTITY: LongEntity>initializeRoute(
+    fun <ENTITY: LongEntity>initializeRoute(
         serviceUniqueKey: ServiceUniqueKey,
-        service  : ServiceContext<ENTITY>,
-    ): ServiceContext<ENTITY>{
+        service  : ServiceContext<DATA,ENTITY>,
+    ): ServiceContext<DATA,ENTITY>{
 //        serviceRegistry.registerService(serviceUniqueKey, service).let {meta->
 //            service.setServiceMetadata(meta)
 //        }

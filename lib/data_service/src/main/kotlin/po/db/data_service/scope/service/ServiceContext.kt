@@ -7,10 +7,10 @@ import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.scope.service.models.DaoFactory
 
-class ServiceContext<ENTITY>(
+class ServiceContext<DATA,ENTITY>(
     private val dbConnection: Database,
-    private val rootDtoModel : DTOClass<ENTITY>,
-) where  ENTITY : LongEntity{
+    private val rootDtoModel : DTOClass<DATA,ENTITY>,
+) where  ENTITY : LongEntity,DATA: DataModel{
 
     val name : String = rootDtoModel.className + "|Service"
 
@@ -20,12 +20,12 @@ class ServiceContext<ENTITY>(
         body()
     }
 
-    private fun <T> serviceContext( statement: ServiceContext<ENTITY>.() -> T): T = statement.invoke(this)
-    fun <T> context(serviceBody: ServiceContext<ENTITY>.() -> T): T = serviceContext{
+    private fun <T> serviceContext( statement: ServiceContext<DATA,ENTITY>.() -> T): T = statement.invoke(this)
+    fun <T> context(serviceBody: ServiceContext<DATA,ENTITY>.() -> T): T = serviceContext{
         serviceBody()
     }
 
-    fun DTOClass<ENTITY>.select(block: DTOClass<ENTITY>.() -> Unit): Unit {
+    fun DTOClass<DATA,ENTITY>.select(block: DTOClass<DATA,ENTITY>.() -> Unit): Unit {
         daoFactory.all(this).forEach {
             dbQuery {
                 this.create(it)
@@ -34,12 +34,12 @@ class ServiceContext<ENTITY>(
         this.block()
     }
 
-    fun DTOClass<ENTITY>.update(dataModel : DataModel , block: DTOClass<ENTITY>.() -> Unit): Unit {
+    fun DTOClass<DATA,ENTITY>.update(dataModel : DATA , block: DTOClass<DATA,ENTITY>.() -> Unit): Unit {
         val result =  this.create(dataModel, daoFactory)
         this.block()
     }
 
-    fun DTOClass<ENTITY>.update(dataModelList : List<DataModel>, block: DTOClass<ENTITY>.() -> Unit): Unit {
+    fun DTOClass<DATA,ENTITY>.update(dataModelList : List<DATA>, block: DTOClass<DATA,ENTITY>.() -> Unit): Unit {
         dataModelList.forEach { dataModel ->
             this.create(dataModel, daoFactory)
         }
@@ -50,7 +50,7 @@ class ServiceContext<ENTITY>(
 //
 //    }
 
-    fun DTOClass<ENTITY>.sequence(name:String):DTOClass<ENTITY>{
+    fun DTOClass<DATA,ENTITY>.sequence(name:String):DTOClass<DATA,ENTITY>{
         return this
     }
 

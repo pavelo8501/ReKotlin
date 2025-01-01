@@ -9,10 +9,10 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import po.db.data_service.constructors.ClassBlueprintContainer
 import po.db.data_service.constructors.ConstructorBuilder
 import po.db.data_service.dto.DTOClass
+import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.InitializationException
 import kotlin.reflect.KClass
-
 
 enum  class TableCreateMode{
     CREATE,
@@ -20,11 +20,11 @@ enum  class TableCreateMode{
 }
 
 
-class ServiceClass<ENTITY>(
+class ServiceClass<DATA,ENTITY>(
     private val connection :Database,
-    private val rootDTOModel : DTOClass<ENTITY>,
+    private val rootDTOModel : DTOClass<DATA,ENTITY>,
     private val serviceCreateOption: TableCreateMode? = null
-)  where  ENTITY : LongEntity{
+)  where  ENTITY : LongEntity, DATA: DataModel{
 
    companion object :  ConstructorBuilder()
 
@@ -42,7 +42,7 @@ class ServiceClass<ENTITY>(
         body()
     }
 
-    private fun getClassBlueprint(dtoModel: DTOClass<*>):ClassBlueprintContainer{
+    private fun getClassBlueprint(dtoModel: DTOClass<DATA,ENTITY>):ClassBlueprintContainer{
         dtoModel.conf.also {
            return ClassBlueprintContainer(
                 getConstructorBlueprint<Any>(it.dtoModelClass as KClass<*>),
@@ -82,7 +82,7 @@ class ServiceClass<ENTITY>(
         }
     }
 
-    private fun initializeDTOs(context: ServiceClass<ENTITY>.() -> Unit ) {
+    private fun initializeDTOs(context: ServiceClass<DATA,ENTITY>.() -> Unit ) {
         context.invoke(this)
     }
 
@@ -112,7 +112,7 @@ class ServiceClass<ENTITY>(
         }
     }
 
-    fun launch(receiver: ServiceContext<ENTITY>.()->Unit ){
+    fun launch(receiver: ServiceContext<DATA,ENTITY>.()->Unit ){
         val serviceContext = ServiceContext(connection, rootDTOModel)
         serviceContext.receiver()
     }

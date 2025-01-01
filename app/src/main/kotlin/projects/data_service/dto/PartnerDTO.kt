@@ -47,22 +47,22 @@ data class PartnerDataModel(
 class PartnerDTO(
     override var id: Long,
     override val dataModel: PartnerDataModel,
-): CommonDTO(dataModel, dataModel.departments){
+): CommonDTO<PartnerDataModel>(dataModel){
     override var className: String = "PartnerDTO"
 
-    companion object: DTOClass<PartnerEntity>() {
-        override fun setup() {
-            dtoSettings<PartnerDTO, PartnerDataModel>(PartnerEntity){
+    companion object: DTOClass<PartnerDataModel, PartnerEntity>() {
+         override fun setup() {
+            dtoSettings<PartnerDataModel, PartnerEntity>(PartnerEntity){
                 propertyBindings(
-                    PropertyBinding("name", PartnerDataModel::name, PartnerEntity::name),
-                    PropertyBinding("legalName", PartnerDataModel::legalName, PartnerEntity::legalName),
-                    PropertyBinding("regNr", PartnerDataModel::regNr, PartnerEntity::regNr),
-                    PropertyBinding("vatNr", PartnerDataModel::vatNr, PartnerEntity::vatNr),
-                    PropertyBinding("updated", PartnerDataModel::updated, PartnerEntity::updated),
-                    PropertyBinding("created", PartnerDataModel::created, PartnerEntity::created)
+                    PropertyBinding(PartnerDataModel::name, PartnerEntity::name),
+                    PropertyBinding( PartnerDataModel::legalName, PartnerEntity::legalName),
+                    PropertyBinding(PartnerDataModel::regNr, PartnerEntity::regNr),
+                    PropertyBinding(PartnerDataModel::vatNr, PartnerEntity::vatNr),
+                    PropertyBinding( PartnerDataModel::updated, PartnerEntity::updated),
+                    PropertyBinding( PartnerDataModel::created, PartnerEntity::created)
                 )
-                childBinding<DepartmentEntity>(DepartmentDTO, PartnerEntity::departments, DepartmentEntity::partner, OrdinanceType.ONE_TO_MANY){
-                   // childDataSource(PartnerDataModel::departments)
+                childBinding<DepartmentEntity>(PartnerEntity::departments, DepartmentEntity::partner,
+                    OrdinanceType.ONE_TO_MANY){
                 }
             }
         }

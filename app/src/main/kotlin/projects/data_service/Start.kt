@@ -124,7 +124,7 @@ fun startDataService(connectionInfo : ConnectionInfo) {
     )
 
     DatabaseManager.openConnection(connectionInfo){
-        service<PartnerDTO, PartnerEntity>(PartnerDTO, TableCreateMode.CREATE){
+        service<PartnerDataModel, PartnerEntity>(PartnerDTO, TableCreateMode.CREATE){
 
             PartnerDTO.select {
 

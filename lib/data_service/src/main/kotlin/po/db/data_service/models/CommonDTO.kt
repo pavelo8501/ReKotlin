@@ -8,13 +8,18 @@ import po.db.data_service.dto.interfaces.DTOEntity
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.OperationsException
-import kotlin.reflect.KMutableProperty1
 
-abstract class CommonDTO(private val injectedDataModel : DataModel, val  childDataSource: List<DataModel>? = null): DTOEntity, Cloneable {
+
+
+
+abstract class CommonDTO<DATA>(
+    val injectedDataModel : DATA,
+    val childDataSource : List<DATA>? =null
+): DTOContainerBase<DATA>(injectedDataModel,  childDataSource),  DTOEntity<DATA, LongEntity>, Cloneable where DATA: DataModel {
 
     override var id:Long = 0L
-    private var _dtoModel : DTOClass<*>? = null
-    val dtoModel : DTOClass<*>
+    private var _dtoModel : DTOClass<DATA,*>? = null
+    val dtoModel : DTOClass<DATA,*>
         get(){return  _dtoModel?:
         throw OperationsException("Trying to access dtoModel property of CommonDTOV2 id :$id while undefined",
             ExceptionCodes.LAZY_NOT_INITIALIZED) }
@@ -29,14 +34,40 @@ abstract class CommonDTO(private val injectedDataModel : DataModel, val  childDa
         }
     fun <ENTITY: LongEntity>getEntityDAO():ENTITY{
         @Suppress("UNCHECKED_CAST")
-        return (_entityDAO as ENTITY)?: throw OperationsException("Reading entityDAO while undefined", ExceptionCodes.LAZY_NOT_INITIALIZED)
+        return (_entityDAO as ENTITY)
     }
 
-    private var propertyBinder: PropertyBinder? = null
+    companion object{
+        val childCompanionList = mutableListOf<DTOClass.Companion>()
+        fun reportToMe(childCompanion: DTOClass<*,*>){
+            when(childCompanion::class){
+                is DTOClass<*,*> ->  {
+                    val a =10
 
-    val childDTOs = mutableListOf<CommonDTO>()
+                    val b = 39
+                }
+            }
+            println("${childCompanion::class} Captured")
+        }
+        override fun hashCode(): Int {
+            return super.hashCode()
+        }
+        override fun equals(other: Any?): Boolean {
+            return super.equals(other)
+        }
+        fun getThisCommonDTO():CommonDTO.Companion{
+            return this
+        }
+        fun <E: LongEntity>getChildCompanion(): DTOClass.Companion{
+            return DTOClass.Companion
+        }
+    }
 
-    override fun initialize(binder : PropertyBinder?, dataModel : DataModel?){
+    private var propertyBinder: PropertyBinder<DATA,LongEntity,*>? = null
+
+    val childDTOs = mutableListOf<CommonDTO<DATA>>()
+
+    override fun initialize(binder : PropertyBinder<DATA, LongEntity,*>?, dataModel : DATA?){
         propertyBinder = binder
         id = injectedDataModel.id
     }
@@ -45,9 +76,9 @@ abstract class CommonDTO(private val injectedDataModel : DataModel, val  childDa
 
     fun toDTO(): DataModel =  this.injectedDataModel
 
-    fun updateDAO(daoEntity: LongEntity):LongEntity?{
+    fun <ENTITY: LongEntity>updateDAO(daoEntity: ENTITY):LongEntity?{
         if(propertyBinder != null){
-            propertyBinder!!.updateProperties(injectedDataModel, daoEntity, UpdateMode.MODEL_TO_ENTITY)
+            propertyBinder!!.updateProperties(injectedDataModel, daoEntity, UpdateMode.MODE_TO_ENTNTITY)
             _entityDAO = daoEntity
             return daoEntity
         }
@@ -55,14 +86,18 @@ abstract class CommonDTO(private val injectedDataModel : DataModel, val  childDa
             return null
     }
 
-    fun updateDTO (entity :LongEntity, dtoModel : DTOClass<*>){
+    fun <ENTITY: LongEntity>updateDTO (entity :ENTITY, dtoModel : DTOClass<DATA,ENTITY>){
         this._dtoModel = dtoModel
         _entityDAO = entity
         id = entity.id.value
         if(propertyBinder!= null){
-            propertyBinder!!.updateProperties(injectedDataModel, entity, UpdateMode.ENTITY_TO_MODEL )
+            propertyBinder!!.updateProperties(injectedDataModel, entity, UpdateMode.ENTNTITY_TO_MODEL )
         }else{
             //Issue Warning
         }
     }
+}
+
+sealed class DTOContainerBase<DATA>(injectedDataModel : DataModel,   childDataSource: List<DataModel>? = null){
+
 }

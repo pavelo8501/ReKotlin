@@ -5,27 +5,25 @@ import po.db.data_service.binder.PropertyBinder
 import po.db.data_service.controls.Notificator
 import po.db.data_service.dto.components.DTOConfig
 
-/*
-    Wide marker for wrapper classes
- */
+
 interface DAOWInstance{
 
 }
 
-interface DTOModelClass<ENTITY> where  ENTITY : LongEntity{
+interface DTOModelClass<DATA,ENTITY> where  ENTITY : LongEntity, DATA: DataModel{
     var className : String
-    val configuration : DTOConfig<ENTITY>?
+    val configuration : DTOConfig<DATA,ENTITY>?
 }
 
-interface DTOEntity{
+interface DTOEntity<DATA: DataModel,ENTITY:LongEntity>{
     val id:Long
-    val dataModel: DataModel
+    val dataModel: DATA
     val className : String
-    fun initialize(binder : PropertyBinder?, dataModel : DataModel? = null)
+    fun initialize(binder : PropertyBinder<DATA , ENTITY, *>?, dataModel : DATA? = null)
 }
 
 
-/*
+/**
     Interface  identifying DTO Entity Class
     Part of the property data handling system
  */
@@ -34,19 +32,17 @@ interface DTOModel : DAOWInstance {
     val className : String
 }
 
-/*
+/**
     Interface  identifying DataModel Class
     Part of the property data handling system
- */
+ **/
 interface DataModel : DAOWInstance {
     var id : Long
 }
 
-
-
-/*
+/**
     Interface for common behaviour of classes hosting Notificator Class
- */
+ **/
 interface CanNotify{
     val name : String
     val notificator : Notificator
