@@ -9,30 +9,9 @@ import po.playground.projects.data_service.dto.*
 fun startDataService(connectionInfo : ConnectionInfo) {
 
     val partnerList = listOf<PartnerDataModel>(
-        PartnerDataModel(
-            0,
-            "Partner 1",
-            "Partner 1 SIA",
-            null,
-            null,
-            PartnerDTO.nowTime(),
-            PartnerDTO.nowTime()).also {
+        PartnerDataModel(0, "Partner 1", "Partner 1 SIA", null, null, PartnerDTO.nowTime(), PartnerDTO.nowTime()).also {
             it.departments.addAll(
-               listOf(DepartmentDataModel(
-                    0L,
-                    true,
-                    "Partner 1 Department 1",
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    12,
-                    null,
-                   DepartmentDTO.nowTime(),
-                   DepartmentDTO.nowTime()
-                ),
+               listOf(DepartmentDataModel(0L, true, "Partner 1 Department 1", null, null, null, null, null, null, 12, null, DepartmentDTO.nowTime(), DepartmentDTO.nowTime()),
                    DepartmentDataModel(
                        0L,
                        false,
@@ -123,15 +102,20 @@ fun startDataService(connectionInfo : ConnectionInfo) {
         }
     )
 
+
+
+
     DatabaseManager.openConnection(connectionInfo){
+
         service<PartnerDataModel, PartnerEntity>(PartnerDTO, TableCreateMode.CREATE){
 
             PartnerDTO.select {
 
+
             }
 
             PartnerDTO.sequence("load_&_update").select {
-
+                PartnerDTO.Companion::class.nestedClasses.size.toString().let { println(it) }
             }
 
         }

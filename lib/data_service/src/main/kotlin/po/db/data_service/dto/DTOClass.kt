@@ -8,13 +8,11 @@ import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.SizedIterable
-import po.db.data_service.binder.ChildContainer
 import po.db.data_service.binder.OrdinanceType
 import po.db.data_service.binder.RelationshipBinder
 import po.db.data_service.constructors.ClassBlueprintContainer
 import po.db.data_service.constructors.ConstructorBuilder
 import po.db.data_service.dto.components.DTOConfig
-import po.db.data_service.dto.interfaces.DTOEntity
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.InitializationException
@@ -25,18 +23,27 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
 
-abstract class DTOClass<DATA, ENTITY> where DATA : DataModel, ENTITY : LongEntity{
+
+sealed interface HierarchyRoot : HierarchyBase {
+    val className : String
+}
+
+sealed interface HierarchyMember : HierarchyBase {
+    val className : String
+}
+
+interface HierarchyBase {
+
+}
+
+
+abstract class DTOClass<DATA, ENTITY>(val sourceClass: KClass<out CommonDTO<DATA>>): HierarchyRoot where DATA : DataModel, ENTITY : LongEntity{
 
     companion object : ConstructorBuilder()
 
     var initialized: Boolean = false
-    var className : String = "Undefined"
+    override var className : String = "Undefined"
     var conf = DTOConfig<DATA,ENTITY>(this,RelationshipBinder<ENTITY,DATA>(this))
-
-
-    init {
-
-    }
 
     var onDtoInitializationCallback: ((DTOClass<DATA, ENTITY>) -> ClassBlueprintContainer)? = null
         private set
@@ -93,10 +100,16 @@ abstract class DTOClass<DATA, ENTITY> where DATA : DataModel, ENTITY : LongEntit
         }
         initialized = true
         afterInit(this) {
-           if(this.initialized){
+                when(this) {
+                    is HierarchyMember -> {
+                        println(this::class.simpleName)
+                    }
+                    else -> {
+                       println(this::class.simpleName)
 
+                    }
+                }
                println("${this::class.simpleName} Class initialization complete with result ${initialized}")
-           }
         }
     }
 
@@ -180,12 +193,14 @@ abstract class DTOClass<DATA, ENTITY> where DATA : DataModel, ENTITY : LongEntit
         newConf.block()
     }
 
-    fun <CHILD: LongEntity>childBinding(
+   inline fun <reified CHILD, reified CHILDDATA> childBinding(
+        child:  DTOClass<CHILD ,  CHILDDATA>,
         byProperty: KProperty1<ENTITY, SizedIterable<CHILD>>,
         referencedOnProperty: KMutableProperty1<CHILD, ENTITY>,
         type: OrdinanceType,
-        body:  DTOClass<DATA,CHILD>.()-> Unit){
+        body:  DTOClass<DATA,CHILDDATA>.()-> Unit) where CHILD : DataModel, CHILDDATA : LongEntity {
 
+            val a =10
 
     }
 

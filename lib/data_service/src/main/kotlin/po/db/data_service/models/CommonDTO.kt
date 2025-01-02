@@ -9,9 +9,6 @@ import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.OperationsException
 
-
-
-
 abstract class CommonDTO<DATA>(
     val injectedDataModel : DATA,
     val childDataSource : List<DATA>? =null

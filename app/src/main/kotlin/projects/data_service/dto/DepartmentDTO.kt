@@ -62,11 +62,19 @@ data class DepartmentDataModel(
     var created: LocalDateTime,
 ): DataModel
 
+sealed interface HierarchyMember : HierarchyBase {
+    val className : String
+}
+
+
+
+
+
 
 class DepartmentDTO(
     override var id: Long,
     override val dataModel: DepartmentDataModel,
-): CommonDTO<DepartmentDataModel>(dataModel,null){
+): CommonDTO<DepartmentDataModel>(dataModel,null), HierarchyMember{
 
     override var className: String = "DepartmentDTOV2"
 
@@ -88,10 +96,9 @@ class DepartmentDTO(
                     PropertyBinding(DepartmentDataModel::created, DepartmentEntity::created),
                 )
                 setDataModelConstructor{
-                    DepartmentDataModel(0,false,"",null,null,null,null,null,null,12, null, nowTime(), nowTime() )
+                    DepartmentDataModel(0, false,"",null,null,null,null,null,null,12, null, nowTime(), nowTime() )
                 }
             }
         }
     }
-
 }

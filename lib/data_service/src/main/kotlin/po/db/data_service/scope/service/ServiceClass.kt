@@ -19,7 +19,6 @@ enum  class TableCreateMode{
     FORCE_RECREATE
 }
 
-
 class ServiceClass<DATA,ENTITY>(
     private val connection :Database,
     private val rootDTOModel : DTOClass<DATA,ENTITY>,
