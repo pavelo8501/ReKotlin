@@ -31,8 +31,8 @@ data class ChildContainer<PARENT : LongEntity, CHILD : LongEntity, DATA : DataMo
     fun createChild(parent : CommonDTO<DATA>,  dataModel : DATA, daoFactory: DaoFactory):CommonDTO<DATA>{
        return  childDTOModel.create(dataModel).let {dto->
             daoFactory.new<CHILD,DATA>(childDTOModel){
-                referencedOnProperty.set(it, parent.getEntityDAO())
-                dto.updateDAO(it)
+                referencedOnProperty.set(it, parent.entityDAO as PARENT)
+               // dto.updateDTO(it)
             }
             dto
         }

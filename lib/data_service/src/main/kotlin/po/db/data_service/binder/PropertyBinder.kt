@@ -6,10 +6,10 @@ import kotlin.reflect.KMutableProperty1
 
 
 enum class UpdateMode{
-    ENTNTITY_TO_MODEL,
-    ENTNTITY_TO_MODEL_FORCED,
-    MODE_TO_ENTNTITY,
-    MODEL_TO_ENTNTITY_FORCENTD,
+    ENTITY_TO_MODEL,
+    ENTITY_TO_MODEL_FORCED,
+    MODEL_TO_ENTNTY,
+    MODEL_TO_ENTNTY_FORCENTD,
 }
 
 class PropertyBinding<DATA : DataModel, ENT : LongEntity, T>(
@@ -24,7 +24,7 @@ class PropertyBinding<DATA : DataModel, ENT : LongEntity, T>(
         val valuesDiffer = dtoValue != entityValue
 
         return when (mode) {
-            UpdateMode.ENTNTITY_TO_MODEL -> {
+            UpdateMode.ENTITY_TO_MODEL -> {
                 if (!valuesDiffer) return false
                 if(entityValue != null){
                     dtoProperty.set(dtoModel, entityValue)
@@ -32,19 +32,19 @@ class PropertyBinding<DATA : DataModel, ENT : LongEntity, T>(
                 }
                 return false
             }
-            UpdateMode.MODE_TO_ENTNTITY -> {
+            UpdateMode.MODEL_TO_ENTNTY -> {
                 if (!valuesDiffer) return false
                 entityProperty.set(entityModel, dtoValue)
                 true
             }
-            UpdateMode.MODEL_TO_ENTNTITY_FORCENTD -> {
+            UpdateMode.MODEL_TO_ENTNTY_FORCENTD -> {
                 if(entityValue != null) {
                     dtoProperty.set(dtoModel, entityValue)
                     return true
                 }
                 return false
             }
-            UpdateMode.ENTNTITY_TO_MODEL_FORCED -> {
+            UpdateMode.ENTITY_TO_MODEL_FORCED -> {
                 entityProperty.set(entityModel, dtoValue)
                 true
             }
@@ -52,17 +52,17 @@ class PropertyBinding<DATA : DataModel, ENT : LongEntity, T>(
     }
 }
 
-class PropertyBinder<DATA : DataModel, ENT : LongEntity, T>  {
+class PropertyBinder<DATA : DataModel, ENT : LongEntity>  {
 
-    var onInitialized: ((PropertyBinder<DATA, ENT,T>) -> Unit)? = null
-    private var propertyList = emptyList<PropertyBinding<DATA, ENT,T>> ()
+    var onInitialized: ((PropertyBinder<DATA, ENT>) -> Unit)? = null
+    private var propertyList = emptyList<PropertyBinding<DATA, ENT, *>> ()
 
-    fun setProperties(properties: List<PropertyBinding<DATA, ENT, T>> ) {
+    fun setProperties(properties: List<PropertyBinding<DATA, ENT, *>> ) {
         propertyList = properties
         onInitialized?.invoke(this)
     }
 
-    fun updateProperties(dataModel: DATA, daoModel: ENT, updateMode: UpdateMode) {
+    fun update(dataModel: DATA, daoModel: ENT, updateMode: UpdateMode) {
         propertyList.forEach { it.update(dataModel, daoModel, updateMode) }
     }
 }

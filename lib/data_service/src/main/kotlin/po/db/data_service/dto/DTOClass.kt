@@ -10,6 +10,7 @@ import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.SizedIterable
 import po.db.data_service.binder.OrdinanceType
 import po.db.data_service.binder.RelationshipBinder
+import po.db.data_service.binder.UpdateMode
 import po.db.data_service.constructors.ClassBlueprintContainer
 import po.db.data_service.constructors.ConstructorBuilder
 import po.db.data_service.dto.components.DTOConfig
@@ -18,6 +19,7 @@ import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.InitializationException
 import po.db.data_service.exceptions.OperationsException
 import po.db.data_service.models.CommonDTO
+import po.db.data_service.models.EntityDTO
 import po.db.data_service.scope.service.models.DaoFactory
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1
@@ -37,7 +39,7 @@ interface HierarchyBase {
 }
 
 
-abstract class DTOClass<DATA, ENTITY>(val sourceClass: KClass<out CommonDTO<DATA>>): HierarchyRoot where DATA : DataModel, ENTITY : LongEntity{
+abstract class DTOClass<DATA, ENTITY>(val sourceClass: KClass<out EntityDTO<DATA, ENTITY>>): HierarchyRoot where DATA : DataModel, ENTITY : LongEntity{
 
     companion object : ConstructorBuilder()
 
@@ -127,7 +129,8 @@ abstract class DTOClass<DATA, ENTITY>(val sourceClass: KClass<out CommonDTO<DATA
                 }
             }
             val dtoEntity = blueprints.dtoModel.getEffectiveConstructor().callBy(args)
-            return dtoEntity as CommonDTO<DATA>
+            (dtoEntity as CommonDTO<DATA>).initialize(this as DTOClass<DATA, LongEntity>)
+            return dtoEntity
         } catch (ex: Exception) {
             throw OperationsException("DTO entity creation failed ${ex.message} ", ExceptionCodes.REFLECTION_ERROR)
         }
@@ -155,10 +158,8 @@ abstract class DTOClass<DATA, ENTITY>(val sourceClass: KClass<out CommonDTO<DATA
         val newDTO = create(dataModel)
         daoFactory.new(this)
         conf.relationBinder.getBindingList().forEach { binding->
-            newDTO.childDataSource?.forEach { dataModel->
-                val childDTO = binding.createChild(newDTO, dataModel, daoFactory)
-                newDTO.childDTOs.add(childDTO)
-            }
+            val childDTO = binding.createChild(newDTO, dataModel, daoFactory)
+            newDTO.childDTOs.add(childDTO)
         }
         return  newDTO
     }
@@ -172,7 +173,8 @@ abstract class DTOClass<DATA, ENTITY>(val sourceClass: KClass<out CommonDTO<DATA
     fun create(daoEntity: ENTITY) : CommonDTO<DATA> {
         val dataModel = constructDataModel()
         val newDTO = constructDtoEntity(dataModel)
-        newDTO.updateDTO(daoEntity, this)
+
+        newDTO.updateDTO(daoEntity, UpdateMode.ENTITY_TO_MODEL )
         conf.relationBinder.getBindingList().forEach { binding ->
             binding.loadChild(daoEntity).let {
                 newDTO.childDTOs.addAll(it)

@@ -19,7 +19,6 @@ interface DTOEntity<DATA: DataModel,ENTITY:LongEntity>{
     val id:Long
     val dataModel: DATA
     val className : String
-    fun initialize(binder : PropertyBinder<DATA , ENTITY, *>?, dataModel : DATA? = null)
 }
 
 

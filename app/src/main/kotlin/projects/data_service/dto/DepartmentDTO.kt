@@ -10,6 +10,7 @@ import po.db.data_service.binder.PropertyBinding
 import po.db.data_service.dto.*
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.models.CommonDTO
+import po.db.data_service.models.EntityDTO
 
 
 import po.playground.projects.data_service.services.Departments
@@ -67,18 +68,13 @@ sealed interface HierarchyMember : HierarchyBase {
 }
 
 
-
-
-
-
 class DepartmentDTO(
-    override var id: Long,
     override val dataModel: DepartmentDataModel,
-): CommonDTO<DepartmentDataModel>(dataModel,null), HierarchyMember{
+): EntityDTO<DepartmentDataModel, DepartmentEntity>(dataModel), HierarchyMember{
 
     override var className: String = "DepartmentDTOV2"
 
-    companion object: DTOClass<DepartmentDataModel, DepartmentEntity>() {
+    companion object: DTOClass<DepartmentDataModel, DepartmentEntity>(DepartmentDTO::class) {
         override fun setup() {
             dtoSettings<DepartmentDataModel, DepartmentEntity>(DepartmentEntity){
                 propertyBindings(

@@ -6,11 +6,11 @@ import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import po.db.data_service.annotations.ClassBinder
 import po.db.data_service.annotations.PropertyBinder
-import po.db.data_service.binder.OrdinanceType
+
 import po.db.data_service.binder.PropertyBinding
 import po.db.data_service.dto.*
 import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.models.CommonDTO
+import po.db.data_service.models.EntityDTO
 import po.playground.projects.data_service.services.Departments
 import po.playground.projects.data_service.services.Partners
 
@@ -45,17 +45,17 @@ data class PartnerDataModel(
 }
 
 class PartnerDTO(
-    override var id: Long,
     override val dataModel: PartnerDataModel,
-): CommonDTO<PartnerDataModel>(dataModel){
+): EntityDTO<PartnerDataModel, PartnerEntity>(dataModel){
     override var className: String = "PartnerDTO"
+
 
     companion object: DTOClass<PartnerDataModel, PartnerEntity>(PartnerDTO::class) {
          override fun setup() {
             dtoSettings<PartnerDataModel, PartnerEntity>(PartnerEntity){
                 propertyBindings(
                     PropertyBinding(PartnerDataModel::name, PartnerEntity::name),
-                    PropertyBinding( PartnerDataModel::legalName, PartnerEntity::legalName),
+                    PropertyBinding(PartnerDataModel::legalName, PartnerEntity::legalName),
                     PropertyBinding(PartnerDataModel::regNr, PartnerEntity::regNr),
                     PropertyBinding(PartnerDataModel::vatNr, PartnerEntity::vatNr),
                     PropertyBinding( PartnerDataModel::updated, PartnerEntity::updated),

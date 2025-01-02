@@ -1,9 +1,9 @@
 package po.db.data_service.scope.service.models
 
 import org.jetbrains.exposed.dao.LongEntity
-import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction
+import po.db.data_service.binder.UpdateMode
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.models.CommonDTO
@@ -34,7 +34,7 @@ class DaoFactory(private val connection : Database)  {
       val daoEntity =  if(dtoEntity.id == 0L){
           dbQuery {
               dtoModel.daoModel.new {
-                  dtoEntity.updateDAO(this)
+                  dtoEntity.updateDTO(this, UpdateMode.ENTITY_TO_MODEL)
               }
           }
         }else{
