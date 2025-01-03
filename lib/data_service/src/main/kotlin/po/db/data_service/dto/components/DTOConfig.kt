@@ -2,17 +2,19 @@ package po.db.data_service.dto.components
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
+import org.jetbrains.exposed.sql.SizedIterable
 import po.db.data_service.binder.*
 import po.db.data_service.binder.RelationshipBinder
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.models.CommonDTO
 import kotlin.reflect.KClass
+import kotlin.reflect.KMutableProperty1
+import kotlin.reflect.KProperty1
 
 
 class DTOConfig<DATA, ENTITY>(
-    val  parent : DTOClass<DATA,ENTITY>,
-    var relationBinder : RelationshipBinder<ENTITY,DATA>
+    parent : DTOClass<DATA,ENTITY>
 ) where  ENTITY : LongEntity, DATA: DataModel  {
 
     var dtoModelClass: KClass<out CommonDTO<DATA>>? = null
@@ -21,20 +23,20 @@ class DTOConfig<DATA, ENTITY>(
     var daoModel:LongEntityClass<ENTITY>? = null
 
     val propertyBinder : PropertyBinder<DATA,ENTITY> = PropertyBinder()
-
+    val relationBinder : RelationshipBinder<DATA,ENTITY> = RelationshipBinder(parent)
 
     var dataModelConstructor : (() -> DataModel)? = null
         private set
 
 
     fun propertyBindings(vararg props: PropertyBinding<DATA, ENTITY, *>) =  propertyBinder.setProperties(props.toList())
+    fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity>childBindings(
+        childModel: DTOClass<CHILD_DATA, CHILD_ENTITY>,
+        byProperty: KProperty1<ENTITY, SizedIterable<CHILD_ENTITY>>,
+        referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>
+    )
+    = relationBinder.addChildBinding(childModel,byProperty,referencedOnProperty)
 
-//    fun <T>propertyBindings(vararg props: PropertyBinding<DATA, ENTITY, T>) {
-//
-//
-//        propertyBinder.setProperties<T>(props.toList())
-//
-//    }
 
     fun updateProperties(dto: CommonDTO<DATA>, daoEntity : ENTITY){
         propertyBinder.update(dto.injectedDataModel,daoEntity, UpdateMode.ENTITY_TO_MODEL)

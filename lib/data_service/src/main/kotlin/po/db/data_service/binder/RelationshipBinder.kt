@@ -18,61 +18,71 @@ enum class OrdinanceType{
     MANY_TO_MANY
 }
 
-data class ChildContainer<PARENT : LongEntity, CHILD : LongEntity, DATA : DataModel>(
-    val parentDTOModel: DTOClass<DATA,PARENT>,
-    val childDTOModel: DTOClass<DATA,CHILD>,
-    val byProperty: KProperty1<PARENT, SizedIterable<CHILD>>,
-    val referencedOnProperty: KMutableProperty1<CHILD, PARENT>,
+data class ChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
+    val parentDTOModel: DTOClass<DATA,ENTITY>,
+    val childDTOModel: DTOClass<CHILD_DATA,CHILD_ENTITY>,
+    val byProperty: KProperty1<ENTITY, SizedIterable<CHILD_ENTITY>>,
+    val referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>,
     val type: OrdinanceType,
-) : BindingContainer<PARENT, CHILD>() {
+) : BindingContainer<DATA, ENTITY, CHILD_DATA,CHILD_ENTITY>(parentDTOModel,childDTOModel)
+        where DATA : DataModel, ENTITY : LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity{
 
     val dtoRepository = listOf<CommonDTO<DATA>>()
 
-    fun createChild(parent : CommonDTO<DATA>,  dataModel : DATA, daoFactory: DaoFactory):CommonDTO<DATA>{
-       return  childDTOModel.create(dataModel).let {dto->
-            daoFactory.new<CHILD,DATA>(childDTOModel){
-                referencedOnProperty.set(it, parent.entityDAO as PARENT)
-               // dto.updateDTO(it)
-            }
-            dto
-        }
+    fun createChild(parent : CommonDTO<DATA>,  dataModel : DATA, daoFactory: DaoFactory):CommonDTO<DATA>?{
+//       return  childDTOModel.create(dataModel).let {dto->
+//            daoFactory.new<CHILD,DATA>(childDTOModel){
+//                referencedOnProperty.set(it, parent.entityDAO as PARENT)
+//               // dto.updateDTO(it)
+//            }
+//            dto
+//        }
+        return null
     }
 
-    fun loadChild(entityDao : PARENT):List<CommonDTO<DATA>> {
-        val result = mutableListOf<CommonDTO<DATA>>()
-      //  val entityDao = parent.getEntityDAO<PARENT>()
-        val childEntities = byProperty.get(entityDao)
-        childEntities.forEach {childEntity ->
-            val childDto =  childDTOModel.create(childEntity)
-            result.add(childDto)
-        }
-        return result
-    }
+//    fun loadChild(entityDao : PARENT):List<CommonDTO<DATA>> {
+//        val result = mutableListOf<CommonDTO<DATA>>()
+//      //  val entityDao = parent.getEntityDAO<PARENT>()
+//        val childEntities = byProperty.get(entityDao)
+//        childEntities.forEach {childEntity ->
+//            val childDto =  childDTOModel.create(childEntity)
+//            result.add(childDto)
+//        }
+//        return result
+//    }
 }
 
-sealed class BindingContainer<PARENT : LongEntity, CHILD : LongEntity>() {
+sealed class BindingContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
+    parentDTOModel: DTOClass<DATA,ENTITY>,
+    childDTOModel: DTOClass<CHILD_DATA,CHILD_ENTITY>,
+) where DATA : DataModel, ENTITY : LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity {
+
 }
 
-class RelationshipBinder<PARENT, DATA> (
-    val parentDTOModel: DTOClass<DATA,PARENT>
-)  where PARENT : LongEntity, DATA: DataModel {
+class RelationshipBinder<DATA, ENTITY> (
+    val thisDTOModel: DTOClass<DATA, ENTITY>
+)  where ENTITY : LongEntity, DATA: DataModel {
 
-    private val childBindings = mutableMapOf<OrdinanceType, ChildContainer<PARENT, *, DATA>>()
 
-    fun getBindingList():List<ChildContainer<PARENT, *, DATA>>{
+    private val childBindings = mutableMapOf<OrdinanceType, ChildContainer<DATA, ENTITY,*,*>>()
+
+    fun getBindingList():List<ChildContainer<DATA,ENTITY,* ,*>>{
         return childBindings.values.toList()
     }
 
-    fun <CHILD> addChildBinding(
-        childDtoModel: DTOClass<DATA,CHILD>,
-        byProperty: KProperty1<PARENT, SizedIterable<CHILD>>,
-        referencedOnProperty: KMutableProperty1<CHILD, PARENT>,
-        type: OrdinanceType,
-        body:  DTOClass<DATA,CHILD>.()-> Unit
-    ):ChildContainer<PARENT, CHILD, DATA> where CHILD : LongEntity{
-        val container = ChildContainer<PARENT, CHILD, DATA>(parentDTOModel,childDtoModel, byProperty, referencedOnProperty,  type)
-        childBindings.putIfAbsent(type, container)
-        return container
+    fun <CHILD_DATA, CHILD_ENTITY> addChildBinding(
+        childModel: DTOClass<CHILD_DATA, CHILD_ENTITY>,
+        byProperty: KProperty1<ENTITY, SizedIterable<CHILD_ENTITY>>,
+        referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>,
+    ) where CHILD_ENTITY : LongEntity, CHILD_DATA : DataModel{
+        if(!childModel.initialized){
+            childModel.initialization()
+        }
+        val type =  OrdinanceType.ONE_TO_MANY
+        childBindings.putIfAbsent(
+            type,
+            ChildContainer<DATA, ENTITY,CHILD_DATA, CHILD_ENTITY>(thisDTOModel, childModel, byProperty, referencedOnProperty,  type)
+        )
     }
 
     fun getDependantTables():List<IdTable<Long>>{

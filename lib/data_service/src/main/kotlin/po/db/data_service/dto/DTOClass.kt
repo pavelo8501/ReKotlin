@@ -7,9 +7,6 @@ import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.IdTable
-import org.jetbrains.exposed.sql.SizedIterable
-import po.db.data_service.binder.OrdinanceType
-import po.db.data_service.binder.RelationshipBinder
 import po.db.data_service.binder.UpdateMode
 import po.db.data_service.constructors.ClassBlueprintContainer
 import po.db.data_service.constructors.ConstructorBuilder
@@ -22,8 +19,6 @@ import po.db.data_service.models.CommonDTO
 import po.db.data_service.models.EntityDTO
 import po.db.data_service.scope.service.models.DaoFactory
 import kotlin.reflect.KClass
-import kotlin.reflect.KMutableProperty1
-import kotlin.reflect.KProperty1
 
 
 sealed interface HierarchyRoot : HierarchyBase {
@@ -45,7 +40,7 @@ abstract class DTOClass<DATA, ENTITY>(val sourceClass: KClass<out EntityDTO<DATA
 
     var initialized: Boolean = false
     override var className : String = "Undefined"
-    var conf = DTOConfig<DATA,ENTITY>(this,RelationshipBinder<ENTITY,DATA>(this))
+    var conf = DTOConfig<DATA,ENTITY>(this)
 
     var onDtoInitializationCallback: ((DTOClass<DATA, ENTITY>) -> ClassBlueprintContainer)? = null
         private set
@@ -88,18 +83,15 @@ abstract class DTOClass<DATA, ENTITY>(val sourceClass: KClass<out EntityDTO<DATA
         context.onDtoBefore()
     }
 
-    fun afterInit( context : DTOClass<DATA,ENTITY>,  onDtoAfter: DTOClass<DATA,ENTITY>.() -> Unit){
+     fun afterInit( context : DTOClass<DATA,ENTITY>,  onDtoAfter: DTOClass<DATA,ENTITY>.() -> Unit){
          context.onDtoAfter()
     }
 
-    fun initialization(onDtoInitialization: (DTOClass<DATA,ENTITY>) -> ClassBlueprintContainer) {
+    fun initialization() {
         beforeInit(this) {
             println("${this::class.simpleName}  Class  before initialization")
         }
         setup()
-        onDtoInitialization(this).let {
-            _blueprints = it
-        }
         initialized = true
         afterInit(this) {
                 when(this) {
@@ -158,8 +150,8 @@ abstract class DTOClass<DATA, ENTITY>(val sourceClass: KClass<out EntityDTO<DATA
         val newDTO = create(dataModel)
         daoFactory.new(this)
         conf.relationBinder.getBindingList().forEach { binding->
-            val childDTO = binding.createChild(newDTO, dataModel, daoFactory)
-            newDTO.childDTOs.add(childDTO)
+//            val childDTO = binding.createChild(newDTO, dataModel, daoFactory)
+//            newDTO.childDTOs.add(childDTO)
         }
         return  newDTO
     }
@@ -176,9 +168,9 @@ abstract class DTOClass<DATA, ENTITY>(val sourceClass: KClass<out EntityDTO<DATA
 
         newDTO.updateDTO(daoEntity, UpdateMode.ENTITY_TO_MODEL )
         conf.relationBinder.getBindingList().forEach { binding ->
-            binding.loadChild(daoEntity).let {
-                newDTO.childDTOs.addAll(it)
-            }
+//            binding.loadChild(daoEntity).let {
+//                newDTO.childDTOs.addAll(it)
+//            }
         }
         dtoContainer.add(newDTO)
         return newDTO
@@ -189,22 +181,10 @@ abstract class DTOClass<DATA, ENTITY>(val sourceClass: KClass<out EntityDTO<DATA
         block: DTOConfig<DATA,ENTITY>.() -> Unit
     ) where  ENTITY : LongEntity, DATA : DataModel {
         val rootDtoModelClass = DATA::class
-    val newConf = DTOConfig<DATA,ENTITY>(this, RelationshipBinder<ENTITY,DATA >(this) )
+    val newConf = DTOConfig<DATA,ENTITY>(this)
         newConf.setClassData(rootDtoModelClass as KClass<out CommonDTO<DATA>>,DataModel::class, daoModel)
         setConfiguration(rootDtoModelClass.simpleName!!, newConf)
         newConf.block()
     }
-
-   inline fun <reified CHILD, reified CHILDDATA> childBinding(
-        child:  DTOClass<CHILD ,  CHILDDATA>,
-        byProperty: KProperty1<ENTITY, SizedIterable<CHILD>>,
-        referencedOnProperty: KMutableProperty1<CHILD, ENTITY>,
-        type: OrdinanceType,
-        body:  DTOClass<DATA,CHILDDATA>.()-> Unit) where CHILD : DataModel, CHILDDATA : LongEntity {
-
-            val a =10
-
-    }
-
 
 }
