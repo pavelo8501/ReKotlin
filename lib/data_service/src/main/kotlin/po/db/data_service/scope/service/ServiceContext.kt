@@ -5,6 +5,8 @@ import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.interfaces.DataModel
+import po.db.data_service.models.CommonDTO
+import po.db.data_service.models.EntityDTO
 import po.db.data_service.scope.service.models.DaoFactory
 
 class ServiceContext<DATA,ENTITY>(
@@ -28,31 +30,31 @@ class ServiceContext<DATA,ENTITY>(
     fun DTOClass<DATA,ENTITY>.select(block: DTOClass<DATA,ENTITY>.() -> Unit): Unit {
         daoFactory.all(this).forEach {
             dbQuery {
-                this.create(it)
+                //this.create(it)
             }
         }
         this.block()
     }
 
-    fun DTOClass<DATA,ENTITY>.update(dataModel : DATA , block: DTOClass<DATA,ENTITY>.() -> Unit): Unit {
-        val result =  this.create(dataModel, daoFactory)
-        this.block()
-    }
-
-    fun DTOClass<DATA,ENTITY>.update(dataModelList : List<DATA>, block: DTOClass<DATA,ENTITY>.() -> Unit): Unit {
-        dataModelList.forEach { dataModel ->
-            this.create(dataModel, daoFactory)
+    @JvmName("updateDataModels")
+    fun DTOClass<DATA,ENTITY>.update(dataModels : List<DATA> , block: DTOClass<DATA,ENTITY>.() -> Unit): Unit {
+        dbQuery{
+            dataModels.forEach {
+               val result =  create(it)
+               val a =10
+            }
         }
         this.block()
     }
 
-//    fun DTOClass<ENTITY>.sequence(name:String, block: DTOClass<ENTITY>.() -> Unit){
-//
-//    }
+    fun DTOClass<DATA,ENTITY>.update(dataModelList : List<EntityDTO<DATA,ENTITY> >, block: DTOClass<DATA,ENTITY>.() -> Unit): Unit {
+        dataModelList.forEach {
+            initDTO(it)
+        }
+        this.block()
+    }
 
     fun DTOClass<DATA,ENTITY>.sequence(name:String):DTOClass<DATA,ENTITY>{
         return this
     }
-
-
 }

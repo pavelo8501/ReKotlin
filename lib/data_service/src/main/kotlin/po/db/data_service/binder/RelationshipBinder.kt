@@ -6,6 +6,7 @@ import org.jetbrains.exposed.sql.SizedIterable
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.models.CommonDTO
+import po.db.data_service.models.EntityDTO
 import po.db.data_service.scope.service.models.DaoFactory
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
@@ -29,8 +30,22 @@ data class ChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
 
     val dtoRepository = listOf<CommonDTO<DATA>>()
 
-    fun createChild(parent : CommonDTO<DATA>,  dataModel : DATA, daoFactory: DaoFactory):CommonDTO<DATA>?{
-//       return  childDTOModel.create(dataModel).let {dto->
+    fun doStuff(parentDto: EntityDTO<DATA,ENTITY>, fn : DTOClass<DATA, ENTITY>.() -> Unit){
+
+        childDTOModel.execute<CHILD_DATA,CHILD_ENTITY>{
+            parentDTOModel.fn()
+        }
+
+        parentDTOModel.fn()
+    }
+
+    fun createChild(parent : CommonDTO<DATA>,  dataModel : CHILD_DATA):CommonDTO<DATA>?{
+
+        childDTOModel.create(dataModel)?.let {
+
+        }
+
+//        return  childDTOModel.create(dataModel)?.let {dto->
 //            daoFactory.new<CHILD,DATA>(childDTOModel){
 //                referencedOnProperty.set(it, parent.entityDAO as PARENT)
 //               // dto.updateDTO(it)
@@ -63,10 +78,16 @@ class RelationshipBinder<DATA, ENTITY> (
     val thisDTOModel: DTOClass<DATA, ENTITY>
 )  where ENTITY : LongEntity, DATA: DataModel {
 
-
     private val childBindings = mutableMapOf<OrdinanceType, ChildContainer<DATA, ENTITY,*,*>>()
 
-    fun getBindingList():List<ChildContainer<DATA,ENTITY,* ,*>>{
+    fun  onBindings(dto : EntityDTO<DATA, ENTITY>, fn : DTOClass<DATA, ENTITY>.() -> Unit ){
+        childBindings.values.forEach {binding->
+            binding.childDTOModel
+            binding.doStuff(dto,fn)
+        }
+    }
+
+    fun bindings(): List<ChildContainer<DATA, ENTITY,*,*>> {
         return childBindings.values.toList()
     }
 
@@ -88,7 +109,7 @@ class RelationshipBinder<DATA, ENTITY> (
     fun getDependantTables():List<IdTable<Long>>{
         val result = mutableListOf<IdTable<Long>>()
         childBindings.values.forEach {container ->
-            result.add(container.childDTOModel.daoModel.table)
+            result.add(container.childDTOModel.entityModel.table)
             container.childDTOModel.getAssociatedTables()
         }
         return result

@@ -6,6 +6,7 @@ import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import po.db.data_service.binder.PropertyBinding
 import po.db.data_service.dto.*
+import po.db.data_service.dto.interfaces.DTOModel
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.models.EntityDTO
 import po.playground.projects.data_service.services.Departments
@@ -23,25 +24,24 @@ class PartnerEntity  (id: EntityID<Long>) : LongEntity(id){
 }
 
 data class PartnerDataModel(
-    override var id: Long,
     var name: String,
     var legalName: String,
     var regNr: String? = null,
     var vatNr: String? = null,
-    var updated: LocalDateTime,
-    var created: LocalDateTime,
 ): DataModel{
+    override var id: Long = 0L
+    var updated: LocalDateTime = PartnerDTO.nowTime()
+    var created: LocalDateTime = PartnerDTO.nowTime()
     var departments = mutableListOf<DepartmentDataModel>()
 }
 
 class PartnerDTO(
     override val dataModel: PartnerDataModel,
-): EntityDTO<PartnerDataModel, PartnerEntity>(dataModel){
-    override var className: String = "PartnerDTO"
-
+): EntityDTO<PartnerDataModel, PartnerEntity>(dataModel), DTOModel{
 
     companion object: DTOClass<PartnerDataModel, PartnerEntity>(PartnerDTO::class) {
          override fun setup() {
+
             dtoSettings<PartnerDataModel, PartnerEntity>(PartnerEntity){
                 propertyBindings(
                     PropertyBinding(PartnerDataModel::name, PartnerEntity::name),

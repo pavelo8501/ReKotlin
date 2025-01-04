@@ -13,62 +13,94 @@ import po.db.data_service.models.EntityDTO
 import kotlin.reflect.KClass
 
 class Factory<DATA, ENTITY>(
-   parent: DTOClass<DATA,ENTITY>,
- val  dataModelClass: KClass<DATA>,
- val  daoEntityClass : KClass<ENTITY>
-)where DATA: DataModel,   ENTITY: LongEntity  {
+   val parent: DTOClass<DATA,ENTITY>,
+   val entityDTOClass : KClass<out EntityDTO<DATA, ENTITY>>
+)where DATA: DataModel,   ENTITY: LongEntity   {
     companion object : ConstructorBuilder()
 
+    private var _dataModelClass: KClass<DATA>? = null
+    private val dataModelClass: KClass<DATA>
+        get(){return _dataModelClass?: throw OperationsException("DataModel Class uninitialized", ExceptionCodes.LAZY_NOT_INITIALIZED) }
 
-    private var dataBlueprint = DataModelBlueprint<DATA>(dataModelClass)
-    private var entityBlueprint = EntityBlueprint<ENTITY>(daoEntityClass)
-    private val daoBlueprint = DTOBlueprint<DATA,ENTITY>(dataModelClass, daoEntityClass)
+    private var _daoEntityClass: KClass<ENTITY>? = null
+    private val daoEntityClass: KClass<ENTITY>
+        get(){return _daoEntityClass?: throw OperationsException("DataModel Class uninitialized", ExceptionCodes.LAZY_NOT_INITIALIZED) }
 
+    private var dataBlueprint : DataModelBlueprint<DATA>? = null
+    private lateinit var entityBlueprint : EntityBlueprint<ENTITY>
+    private val daoBlueprint = DTOBlueprint(entityDTOClass).also { it.initialize(Companion) }
 
     private var dataModelConstructor : (() -> DATA)? = null
+
+    /**
+     * Initializes the blueprints for DataModel, Entity, and DTO based on the provided classes.
+     *  @input dataClazz: KClass<DATA>
+     *  @input entityClass : KClass<ENTITY>
+     */
+    fun initializeBlueprints(
+        dataClazz : KClass<DATA>,
+        entityClass : KClass<ENTITY>,
+    ){
+        _dataModelClass = dataClazz
+        _daoEntityClass = entityClass
+
+        dataBlueprint =   DataModelBlueprint(dataModelClass).also { it.initialize(Companion) }
+        entityBlueprint = EntityBlueprint(daoEntityClass).also { it.initialize(Companion) }
+    }
+
     fun setDataModelConstructor(dataModelConstructor : (() -> DATA)){
         this.dataModelConstructor = dataModelConstructor
     }
 
-    fun createDataModel():DATA{
+    /**
+     * Create new instance of DatModel injectable to the specific EntityDTO<DATA, ENTITY> described by generics set
+     * Has an optional parameter with manually defined constructor function
+     * @input constructFn : (() -> DATA)? = null
+     * @return DATA
+     * */
+    fun createDataModel(constructFn : (() -> DATA)? = null):DATA{
         try{
-            dataModelConstructor?.let { return  it.invoke() }
+            constructFn?.let { return  it.invoke() }
 
-            dataBlueprint.let {blueprint->
+            dataBlueprint?.let {blueprint->
                 return  getArgsForConstructor(blueprint).let {argMap->
                     blueprint.getConstructor().let { construct->
                       val data =  construct.callBy(argMap)
                       data
                     }
                 }
+            }?:run {
+                TODO("Extract DATA blueprint from entityDTOClass as a reserve fallback")
             }
         } catch (ex: Exception) {
             throw OperationsException("DataModel  creation failed ${ex.message}", ExceptionCodes.REFLECTION_ERROR)
         }
     }
-
-//    fun copyAsChild(thisClassName: String): EntityDTO<DATA,ENTITY> {
-//        return object : EntityDTO<DATA, ENTITY>(this, this.childDataSource) {
-//            override val dataModel: DataModel = this.injectedDataModel
-//            override val className: String = thisClassName
-//        }
-//    }
-
-    fun createDtoEntity(dataModel : DataModel? = null): EntityDTO<DATA,*>? {
+    /**
+     * Create new instance of  EntityDTO
+     * if input param dataModel provided use it as an injection into constructor
+     * if not then create new DataModel instance with default parameters i.e. no data will be preserved
+     * @input dataModel:  DATA?
+     * @return EntityDTO<DATA, ENTITY> or null
+     * */
+    fun createEntityDto(dataModel : DATA? = null): EntityDTO<DATA, ENTITY>? {
         val model = dataModel?: createDataModel()
         try {
             daoBlueprint.let { blueprint ->
-                return getArgsForConstructor(blueprint) {
-                    when (it) {
+                val constructor =  blueprint.getConstructor()
+                blueprint.getArgsForConstructor {paramName->
+                    when (paramName) {
                         "dataModel" -> {
                             model
                         }
-
                         else -> {
                             null
                         }
                     }
-                }.let { blueprint.getEffectiveConstructor().callBy(it) as EntityDTO<DATA,*> }
+                }.let {
+                   println("Argument map used for creation $it")
+                 return  constructor.callBy(it)
+                }
             }
             return null
         }catch (ex: Exception) {

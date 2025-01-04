@@ -6,6 +6,7 @@ import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import po.db.data_service.binder.PropertyBinding
 import po.db.data_service.dto.*
+import po.db.data_service.dto.interfaces.DTOModel
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.models.EntityDTO
 
@@ -30,29 +31,31 @@ class DepartmentEntity(id: EntityID<Long>) : LongEntity(id) {
 }
 
 data class DepartmentDataModel(
-    override var id: Long,
     var hq: Boolean,
     var name: String,
+    var frequency: Int,
     var street: String? = null,
     var city: String? = null,
     var country: String? = null,
     var postCode: String? = null,
     var phone: String? = null,
     var email: String? = null,
-    var frequency: Int,
     var lastInspection: LocalDateTime? = null,
-    var updated: LocalDateTime,
-    var created: LocalDateTime,
-): DataModel
+): DataModel{
+    override var id: Long = 0L
+    var updated: LocalDateTime = DepartmentDTO.nowTime()
+    var created: LocalDateTime = DepartmentDTO.nowTime()
+
+}
 
 sealed interface HierarchyMember : HierarchyBase {
-    val className : String
+    override val className : String
 }
 
 
 class DepartmentDTO(
     override val dataModel: DepartmentDataModel,
-): EntityDTO<DepartmentDataModel, DepartmentEntity>(dataModel), HierarchyMember{
+): EntityDTO<DepartmentDataModel, DepartmentEntity>(dataModel), DTOModel, HierarchyMember{
 
     override var className: String = "DepartmentDTOV2"
 
@@ -74,7 +77,7 @@ class DepartmentDTO(
                     PropertyBinding(DepartmentDataModel::created, DepartmentEntity::created),
                 )
                 setDataModelConstructor{
-                    DepartmentDataModel(0, false,"",null,null,null,null,null,null,12, null, nowTime(), nowTime() )
+                    DepartmentDataModel(false,"",12)
                 }
             }
         }

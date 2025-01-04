@@ -35,25 +35,74 @@ class DataModelBlueprint<DATA: DataModel>(
 class EntityBlueprint<ENTITY : LongEntity >(
     clazz : KClass<ENTITY>
 ) : ClassBlueprintBase<ENTITY>(clazz){
-    fun getConstructor():KFunction<ENTITY>{
-        return super.getEffectiveConstructor()
-    }
+
 }
 
 class DTOBlueprint<DATA, ENTITY>(
-    clazz : KClass<DATA>,
-    entityClazz: KClass<ENTITY>
-) : ClassBlueprintBase<DATA>(clazz) where ENTITY : LongEntity, DATA : DataModel   {
-    fun getConstructor():KFunction<DATA>{
-        return super.getEffectiveConstructor()
+    override val clazz  : KClass<out EntityDTO<DATA, ENTITY>>,
+) : CovariantClassBlueprintBase< EntityDTO<DATA,ENTITY>>() where ENTITY : LongEntity, DATA : DataModel
+
+abstract class CovariantClassBlueprintBase<T: Any>{
+    abstract val clazz : KClass<out T>
+    var  className: String = ""
+    var  qualifiedName : String = ""
+
+    private var constructorArgs  = mutableListOf<ConstructorArgument>()
+
+    private  var constructorParams  = mutableMapOf<KParameter,  Any?>()
+
+    private var effectiveConstructor : KFunction<T>? = null
+    private var effectiveConstructorSize : Number  = 0
+    private lateinit var constructorBuilder : ConstructorBuilder
+
+    fun initialize(builder : ConstructorBuilder){
+        constructorBuilder = builder
+        builder.getCovariantBlueprint<T>(this)
+    }
+
+    fun setEffectiveConstructor(constructor : KFunction<T>){
+        effectiveConstructor = constructor
+        effectiveConstructorSize = constructor.parameters.size
+    }
+
+    fun getConstructor(): KFunction<T>{
+        return effectiveConstructor?: throw OperationsException("Effective constructor not set", ExceptionCodes.CONSTRUCTOR_MISSING)
+    }
+
+    fun getArgsForConstructor(overrideDefault : ((name:String?)->Any?)? = null): Map<KParameter, Any?>{
+        getConstructor().let { constructor ->
+            val args = constructor.parameters.associateWith { param ->
+                constructorBuilder.let { builder->
+                    if(param.type.isMarkedNullable) {
+                        null
+                    }else{
+                        val result = if(overrideDefault == null) {
+                            builder.getDefaultForType(param.type)
+                        }else{
+                            overrideDefault.invoke(param.name)?:builder.getDefaultForType(param.type)
+                        }
+                        result
+                    }
+                }
+            }
+            this.setParams(args)
+            return args
+        }
+    }
+
+    fun addAsArg(param : KParameter){
+        val paramName = param.name ?: "_"
+        constructorArgs.add(ConstructorArgument(paramName, param.type, param.isOptional) )
+    }
+
+    fun setParams(params :  Map<KParameter,  Any?>){
+        constructorParams = params.toMutableMap()
     }
 }
 
 
-abstract class ClassBlueprintBase<T: Any>(
-    val clazz : KClass<T>,
-){
 
+abstract class ClassBlueprintBase<T: Any>(val clazz : KClass<T>, ){
     var  className: String = ""
     var  qualifiedName : String = ""
 
@@ -64,6 +113,13 @@ abstract class ClassBlueprintBase<T: Any>(
 
     private var effectiveConstructor : KFunction<T>? = null
     private var effectiveConstructorSize : Number  = 0
+    private var constructorBuilder : ConstructorBuilder? = null
+
+    fun initialize(builder : ConstructorBuilder){
+        constructorBuilder = builder
+        builder.getBlueprint<T>(this)
+        val a = 10
+    }
 
     fun setEffectiveConstructor(constructor : KFunction<T>){
         effectiveConstructor = constructor
@@ -81,9 +137,5 @@ abstract class ClassBlueprintBase<T: Any>(
 
     fun setParams(params :  Map<KParameter,  Any?>){
         constructorParams = params.toMutableMap()
-    }
-
-    fun addParam(param: KParameter, value: Any?){
-        constructorParams.putIfAbsent(param, value)
     }
 }

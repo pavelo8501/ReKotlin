@@ -11,7 +11,7 @@ import kotlin.reflect.full.primaryConstructor
 
 abstract class ConstructorBuilder {
 
-    private  fun getDefaultForType(kType: KType): Any? {
+    fun getDefaultForType(kType: KType): Any? {
          return when (kType.classifier) {
             Int::class -> 0
             String::class -> ""
@@ -41,6 +41,25 @@ abstract class ConstructorBuilder {
         return container
     }
 
+    fun <T: Any>getCovariantBlueprint(container : CovariantClassBlueprintBase<T>): CovariantClassBlueprintBase<T>{
+
+        container.className  = container.clazz::simpleName.toString()
+        container.qualifiedName = container.clazz.qualifiedName.toString()
+
+        container.clazz.primaryConstructor?.let {
+            if(it.parameters.isEmpty()){
+                container.setEffectiveConstructor(it)
+            }else{
+                container.setEffectiveConstructor(it)
+                it.parameters.forEach { param ->
+                    container.addAsArg(param)
+                }
+            }
+        }
+        return container
+    }
+
+
     fun <T: Any>getArgsForConstructor(
         bluePrint : ClassBlueprintBase<T>,
         overrideDefault : ((name:String?)->Any?)? = null
@@ -63,5 +82,4 @@ abstract class ConstructorBuilder {
             return args
         }
     }
-
 }

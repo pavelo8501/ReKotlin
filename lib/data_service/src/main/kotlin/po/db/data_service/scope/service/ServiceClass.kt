@@ -6,13 +6,11 @@ import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.exists
 import org.jetbrains.exposed.sql.transactions.transaction
-import po.db.data_service.constructors.ClassBlueprintContainer
 import po.db.data_service.constructors.ConstructorBuilder
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.InitializationException
-import kotlin.reflect.KClass
 
 enum  class TableCreateMode{
     CREATE,
@@ -41,14 +39,6 @@ class ServiceClass<DATA,ENTITY>(
         body()
     }
 
-    private fun getClassBlueprint(dtoModel: DTOClass<DATA,ENTITY>):ClassBlueprintContainer{
-        dtoModel.conf.also {
-           return ClassBlueprintContainer(
-                getConstructorBlueprint<Any>(it.dtoModelClass as KClass<*>),
-                getConstructorBlueprint<Any>(it.dataModelClass as KClass<*>)
-            )
-        }
-    }
 
     private fun createTable(table : IdTable<Long>): Boolean{
         return try {
@@ -101,9 +91,7 @@ class ServiceClass<DATA,ENTITY>(
 
     private fun start(){
         initializeDTOs{
-            rootDTOModel.initialization{
-                getClassBlueprint(it)
-            }
+            rootDTOModel.initialization()
             name = " ${rootDTOModel.className}|Service"
         }
         if(serviceCreateOption!=null){
@@ -116,33 +104,4 @@ class ServiceClass<DATA,ENTITY>(
         serviceContext.receiver()
     }
 
-
-//        serviceRegistry.addServiceRegistryItem {
-//            key = ServiceUniqueKey("TestRun")
-//            metadata {
-//                key = ServiceUniqueKey("TestRun")
-//                service {
-//                    rootDTOModel.initialization()
-//                }
-//            }
-//        }
-
-//        rootDataModel.initialization().also { dtoClass->
-//           dtoClass.dtoContext.also {
-//              val dtoData =  DTOData(it.dtoModelClass, it.entityModel, it.dataModelClass)
-//               serviceRegistry.addServiceRegistryItem {
-//                   key = ServiceUniqueKey(dtoClass.dtoContext.name)
-//                   metadata {
-//                       key = ServiceUniqueKey(dtoClass.dtoContext.name)
-//                       service {
-//                           rootDTOModelData = dtoData
-//                       }
-//                   }
-//               }
-//            }
-//        }
-       // val vb  = 10
-
-
-  //  val serviceRouter = ServiceRouter(connectionName, connection, serviceRegistry)
 }

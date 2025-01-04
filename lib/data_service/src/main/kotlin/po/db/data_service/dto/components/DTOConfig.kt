@@ -17,10 +17,10 @@ class DTOConfig<DATA, ENTITY>(
     parent : DTOClass<DATA,ENTITY>
 ) where  ENTITY : LongEntity, DATA: DataModel  {
 
-    var dtoModelClass: KClass<out CommonDTO<DATA>>? = null
-    var dataModelClass: KClass<out DataModel>? = null
+    var entityClass: KClass<ENTITY>? = null
+    var dataModelClass: KClass<DATA>? = null
 
-    var daoModel:LongEntityClass<ENTITY>? = null
+    var entityModel:LongEntityClass<ENTITY>? = null
 
     val propertyBinder : PropertyBinder<DATA,ENTITY> = PropertyBinder()
     val relationBinder : RelationshipBinder<DATA,ENTITY> = RelationshipBinder(parent)
@@ -46,15 +46,6 @@ class DTOConfig<DATA, ENTITY>(
         this.dataModelConstructor = dataModelConstructor
     }
 
-    fun setClassData(
-        dtoClass : KClass<out CommonDTO<DATA>>,
-        dataClass : KClass<out DataModel>,
-        dao: LongEntityClass<ENTITY>
-    )  {
-        dtoModelClass = dtoClass
-        dataModelClass = dataClass
-        daoModel = dao
-    }
     
 }
 
