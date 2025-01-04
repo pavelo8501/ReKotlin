@@ -55,7 +55,7 @@ abstract class DTOClass<DATA, ENTITY>(val sourceClass: KClass<out EntityDTO<DATA
     var initialized: Boolean = false
     val conf = DTOConfig(this)
 
-    val factory = Factory(this)
+    val factory = Factory(this, sourceClass)
 
     val entityModel: LongEntityClass<ENTITY>
         get(){
@@ -181,7 +181,7 @@ abstract class DTOClass<DATA, ENTITY>(val sourceClass: KClass<out EntityDTO<DATA
         entityModel: LongEntityClass<ENTITY>,
         block: DTOConfig<DATA,ENTITY>.() -> Unit
     ) where  ENTITY : LongEntity, DATA : DataModel{
-        factory.setSourceClasses(DATA::class, ENTITY::class,sourceClass)
+        factory.initializeBlueprints(DATA::class, ENTITY::class)
         conf.dataModelClass = DATA::class
         conf.entityClass = ENTITY::class
         conf.entityModel = entityModel

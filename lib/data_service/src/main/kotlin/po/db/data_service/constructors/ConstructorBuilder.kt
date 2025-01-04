@@ -24,15 +24,11 @@ abstract class ConstructorBuilder {
 
 
     fun <T: Any>getBlueprint(container : ClassBlueprintBase<T>): ClassBlueprintBase<T>{
-
-        container.className  = container.clazz::simpleName.toString()
-        container.qualifiedName = container.clazz.qualifiedName.toString()
-
-         container.clazz.primaryConstructor?.let {
+         container.getClass().primaryConstructor?.let {
             if(it.parameters.isEmpty()){
-                container.setEffectiveConstructor(it)
+                container.setConstructor(it)
             }else{
-                container.setEffectiveConstructor(it)
+                container.setConstructor(it)
                 it.parameters.forEach { param ->
                     container.addAsArg(param)
                 }
@@ -47,31 +43,32 @@ abstract class ConstructorBuilder {
         container.qualifiedName = container.clazz.qualifiedName.toString()
 
         container.clazz.primaryConstructor?.let {
+
+            val params = mutableMapOf<KParameter, Any?>()
+
             if(it.parameters.isEmpty()){
-                container.setEffectiveConstructor(it)
+                container.setConstructor(it)
             }else{
-                container.setEffectiveConstructor(it)
+                container.setConstructor(it)
                 it.parameters.forEach { param ->
+                    params[param] = getDefaultForType(param.type)
                     container.addAsArg(param)
                 }
             }
+            container.setParams(params)
         }
         return container
     }
 
 
-    fun <T: Any>getArgsForConstructor(
-        bluePrint : ClassBlueprintBase<T>,
-        overrideDefault : ((name:String?)->Any?)? = null
-    ): Map<KParameter, Any?>{
-
-        bluePrint.getEffectiveConstructor().let { constructor ->
+    fun <T: Any>getArgsForConstructor(bluePrint : ClassBlueprintBase<T>, overrideDefault : ((name:String?)->Any?)? = null): Map<KParameter, Any?>{
+        bluePrint.getConstructor().let { constructor ->
            val args = constructor.parameters.associateWith { param ->
                 if(param.type.isMarkedNullable) {
                     null
                 }else{
                    val result =  if(overrideDefault == null) {
-                        getDefaultForType(param.type)
+                        param
                     }else{
                       overrideDefault.invoke(param.name)?:getDefaultForType(param.type)
                     }

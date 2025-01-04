@@ -9,14 +9,19 @@ import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.LongIdTable
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
+import po.db.data_service.data.TestPartners.nowDateTime
 import po.db.data_service.dto.interfaces.DTOModel
 import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.models.CommonDTO
+import po.db.data_service.models.EntityDTO
 
 
-class TestDataModel : DataModel  {
-    override var id :Long = 0
-    val name: String = "SomeName"
+class TestDataModel(
+    val name: String = "SomeName",
+    val legalName : String = "SomeLegalName",
+) : DataModel  {
+    override var id :Long = 0L
+    val created = nowDateTime
+    val updated = nowDateTime
 }
 
 class TestChildDataModel : DataModel  {
@@ -56,20 +61,14 @@ class TestEntity(id: EntityID<Long>) : LongEntity(id) {
     var name: String = "Test Partner"
 }
 
-class TestDTO(
-    override val dataModel: TestDataModel,
-) : CommonDTO<TestDataModel, TestEntity>(dataModel), DTOModel {
-    override val className: String = "TestDTO"
-}
+class TestDTO(override val dataModel: TestDataModel) : EntityDTO<TestDataModel, TestEntity>(dataModel), DTOModel
+
 
 class TestChildEntity(id: EntityID<Long>) : LongEntity(id) {
     companion object : LongEntityClass<TestChildEntity>(TestDepartments)
     var name: String = "TestChildEntity"
 }
 
-class TestChildDTO(
-    override val dataModel: TestChildDataModel,
-) : CommonDTO<TestChildDataModel, TestChildEntity>(dataModel), DTOModel {
-    override val className: String = "TestChildDTO"
-}
+class TestChildDTO(override val dataModel: TestChildDataModel) : EntityDTO<TestChildDataModel, TestChildEntity>(dataModel), DTOModel
+
 

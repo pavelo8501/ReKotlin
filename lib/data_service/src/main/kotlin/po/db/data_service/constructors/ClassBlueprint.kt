@@ -22,12 +22,13 @@ enum class ConstructorType{
     NON_EMPTY
 }
 
+
 class DataModelBlueprint<DATA: DataModel>(
     clazz : KClass<DATA>
 ) : ClassBlueprintBase<DATA>(clazz){
 
-    fun getConstructor():KFunction<DATA>{
-        return super.getEffectiveConstructor()
+    override fun getClass(): KClass<DATA> {
+        return getSourceClass()
     }
 }
 
@@ -36,97 +37,88 @@ class EntityBlueprint<ENTITY : LongEntity >(
     clazz : KClass<ENTITY>
 ) : ClassBlueprintBase<ENTITY>(clazz){
 
+    override fun getClass(): KClass<ENTITY> {
+       return getSourceClass()
+    }
+
 }
 
 class DTOBlueprint<DATA, ENTITY>(
     override val clazz  : KClass<out EntityDTO<DATA, ENTITY>>,
 ) : CovariantClassBlueprintBase< EntityDTO<DATA,ENTITY>>() where ENTITY : LongEntity, DATA : DataModel
 
-abstract class CovariantClassBlueprintBase<T: Any>{
+
+
+abstract class CovariantClassBlueprintBase<T: Any>(): ClassBlueprintBase<T>(){
+
     abstract val clazz : KClass<out T>
-    var  className: String = ""
-    var  qualifiedName : String = ""
 
-    private var constructorArgs  = mutableListOf<ConstructorArgument>()
-
-    private  var constructorParams  = mutableMapOf<KParameter,  Any?>()
-
-    private var effectiveConstructor : KFunction<T>? = null
-    private var effectiveConstructorSize : Number  = 0
-    private lateinit var constructorBuilder : ConstructorBuilder
-
-    fun initialize(builder : ConstructorBuilder){
-        constructorBuilder = builder
-        builder.getCovariantBlueprint<T>(this)
-    }
-
-    fun setEffectiveConstructor(constructor : KFunction<T>){
-        effectiveConstructor = constructor
-        effectiveConstructorSize = constructor.parameters.size
-    }
-
-    fun getConstructor(): KFunction<T>{
+    override fun getConstructor(): KFunction<T>{
         return effectiveConstructor?: throw OperationsException("Effective constructor not set", ExceptionCodes.CONSTRUCTOR_MISSING)
     }
 
     fun getArgsForConstructor(overrideDefault : ((name:String?)->Any?)? = null): Map<KParameter, Any?>{
         getConstructor().let { constructor ->
-            val args = constructor.parameters.associateWith { param ->
-                constructorBuilder.let { builder->
-                    if(param.type.isMarkedNullable) {
-                        null
+        val args = constructor.parameters.associateWith { param ->
+            constructorBuilder.let { builder->
+                if(param.type.isMarkedNullable) {
+                    null
+                }else{
+                    val result = if(overrideDefault == null) {
+                        builder.getDefaultForType(param.type)
                     }else{
-                        val result = if(overrideDefault == null) {
-                            builder.getDefaultForType(param.type)
-                        }else{
-                            overrideDefault.invoke(param.name)?:builder.getDefaultForType(param.type)
-                        }
-                        result
+                        overrideDefault.invoke(param.name)?:builder.getDefaultForType(param.type)
                     }
-                }
+                    result
+                } }
             }
             this.setParams(args)
             return args
         }
     }
 
-    fun addAsArg(param : KParameter){
-        val paramName = param.name ?: "_"
-        constructorArgs.add(ConstructorArgument(paramName, param.type, param.isOptional) )
+    override fun getClass():KClass<out T>{
+        return clazz
     }
 
-    fun setParams(params :  Map<KParameter,  Any?>){
-        constructorParams = params.toMutableMap()
-    }
 }
 
 
 
-abstract class ClassBlueprintBase<T: Any>(val clazz : KClass<T>, ){
+abstract class ClassBlueprintBase<T: Any>(inputClazz : KClass<T>? = null){
+
+    private val forClass : KClass<T>? = inputClazz
+
     var  className: String = ""
     var  qualifiedName : String = ""
-
-    private var constructorArgs  = mutableListOf<ConstructorArgument>()
+    var constructorArgs  = mutableListOf<ConstructorArgument>()
 
     var constructorParams  = mutableMapOf<KParameter,  Any?>()
         private set
 
-    private var effectiveConstructor : KFunction<T>? = null
+    protected var effectiveConstructor : KFunction<T>? = null
     private var effectiveConstructorSize : Number  = 0
-    private var constructorBuilder : ConstructorBuilder? = null
+
+    lateinit var constructorBuilder : ConstructorBuilder
+
 
     fun initialize(builder : ConstructorBuilder){
         constructorBuilder = builder
         builder.getBlueprint<T>(this)
-        val a = 10
     }
 
-    fun setEffectiveConstructor(constructor : KFunction<T>){
+    protected fun getSourceClass(): KClass<T>{
+        return forClass!!
+    }
+
+    abstract fun getClass(): KClass<out T>
+
+    fun setConstructor(constructor : KFunction<T>){
         effectiveConstructor = constructor
         effectiveConstructorSize = constructor.parameters.size
     }
 
-    fun getEffectiveConstructor(): KFunction<T>{
+    open fun getConstructor(): KFunction<T>{
         return effectiveConstructor?: throw OperationsException("Effective constructor not set", ExceptionCodes.CONSTRUCTOR_MISSING)
     }
 
