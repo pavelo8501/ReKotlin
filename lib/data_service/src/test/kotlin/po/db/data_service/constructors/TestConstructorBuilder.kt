@@ -13,9 +13,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
-
 class TestBuilder : ConstructorBuilder() {}
-
 
 fun <T : Any> getCovariantBlueprint(container: CovariantClassBlueprintBase<T>): CovariantClassBlueprintBase<T> {
         container.clazz.primaryConstructor?.let { constructor ->
@@ -37,7 +35,6 @@ class TestConstructorBuilder {
 
     @Test
     fun `initialize sets effective constructor`() {
-
         val dtoBlueprint = DTOBlueprint<TestDataModel, TestEntity>(TestDTO::class)
         dtoBlueprint.initialize(TestBuilder())
         val constructor   = dtoBlueprint.getConstructor()
@@ -47,15 +44,10 @@ class TestConstructorBuilder {
 
     @Test
     fun `getArgsForConstructor generates correct arguments`() {
-
-
         val dtoBlueprint = DTOBlueprint<TestDataModel, TestEntity>(TestDTO::class)
-
         dtoBlueprint.initialize(TestBuilder())
-
         val args = dtoBlueprint.getArgsForConstructor()
         val constructor = dtoBlueprint.getConstructor()
-
         assertNotNull(args, "Args should not be null")
         assertEquals(constructor.parameters.size, args.size, "Args size should match constructor parameters size")
     }
