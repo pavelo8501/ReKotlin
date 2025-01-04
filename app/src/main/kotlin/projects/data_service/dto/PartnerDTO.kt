@@ -51,7 +51,9 @@ class PartnerDTO(
                     PropertyBinding( PartnerDataModel::updated, PartnerEntity::updated),
                     PropertyBinding( PartnerDataModel::created, PartnerEntity::created)
                 )
-                childBindings<DepartmentDataModel, DepartmentEntity>(DepartmentDTO,PartnerEntity::departments, DepartmentEntity::partner)
+                childBindings<DepartmentDataModel, DepartmentEntity>(DepartmentDTO,PartnerEntity::departments, DepartmentEntity::partner){
+                    dataSource(PartnerDataModel::departments)
+                }
             }
         }
     }

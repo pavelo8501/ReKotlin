@@ -11,6 +11,7 @@ import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.OperationsException
 import po.db.data_service.models.EntityDTO
 import kotlin.reflect.KClass
+import kotlin.reflect.KProperty1
 
 class Factory<DATA, ENTITY>(
    val parent: DTOClass<DATA,ENTITY>,
@@ -50,6 +51,41 @@ class Factory<DATA, ENTITY>(
 
     fun setDataModelConstructor(dataModelConstructor : (() -> DATA)){
         this.dataModelConstructor = dataModelConstructor
+    }
+
+
+    /**
+     * Extracts a list of child data models from a parent data model based on the specified property.
+     *
+     * This function uses a given property (a `KProperty1`) to access an iterable collection of child
+     * data models (`DATA`) from a parent data model (`PARENT_DATA`). It converts the iterable collection
+     * into a `List` for further processing.
+     *
+     * @param PARENT_DATA The type of the parent data model.
+     * @param DATA The type of the child data model.
+     * @param property The property of the parent data model that holds the iterable collection of child data models.
+     * @param owningDataModel The instance of the parent data model from which to extract the child data models.
+     * @return A `List` of child data models extracted from the parent data model.
+     *
+     * @throws IllegalStateException If the property accessor is inaccessible or improperly configured.
+     *
+     * @sample
+     * ```
+     * data class Parent(val children: List<Child>)
+     * data class Child(val name: String)
+     *
+     * val parent = Parent(listOf(Child("Alice"), Child("Bob")))
+     * val children = extractDataModel(Parent::children, parent)
+     * println(children) // Output: [Child(name=Alice), Child(name=Bob)]
+     * ```
+     */
+    fun extractDataModel(property: KProperty1<DataModel, Iterable<DATA>>, owningDataModel:DataModel): List<DATA>{
+        try {
+            return  property.get(owningDataModel).toList()
+        }catch (ex: IllegalStateException){
+            println(ex.message)
+            return emptyList()
+        }
     }
 
     /**

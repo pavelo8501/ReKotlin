@@ -17,13 +17,14 @@ import po.db.data_service.exceptions.OperationsException
 import po.db.data_service.models.CommonDTO
 import po.db.data_service.models.EntityDTO
 import kotlin.reflect.KClass
+import kotlin.reflect.KProperty1
 
 
-sealed interface HierarchyRoot : HierarchyBase {
+sealed interface HierarchyRoot: HierarchyBase {
 
 }
 
-sealed interface HierarchyMember : HierarchyBase {
+sealed interface HierarchyMember :HierarchyBase{
 
 }
 
@@ -33,7 +34,8 @@ interface HierarchyBase {
 
 
 
-abstract class DTOClass<DATA, ENTITY>(val sourceClass: KClass<out EntityDTO<DATA, ENTITY>>): HierarchyRoot where DATA : DataModel, ENTITY : LongEntity{
+abstract class DTOClass<DATA, ENTITY>(val sourceClass: KClass<out EntityDTO<DATA, ENTITY>>): HierarchyRoot
+        where DATA : DataModel, ENTITY : LongEntity{
 
     companion object{
 
@@ -53,7 +55,7 @@ abstract class DTOClass<DATA, ENTITY>(val sourceClass: KClass<out EntityDTO<DATA
     private val qualifiedClassName  = sourceClass.qualifiedName.toString()
     override val className  = sourceClass.simpleName.toString()
     var initialized: Boolean = false
-    val conf = DTOConfig(this)
+    val conf = DTOConfig<DATA, ENTITY>(this)
 
     val factory = Factory(this, sourceClass)
 
@@ -61,11 +63,6 @@ abstract class DTOClass<DATA, ENTITY>(val sourceClass: KClass<out EntityDTO<DATA
         get(){
             return  conf.entityModel?: throw OperationsException("Unable read daoModel property on $className", ExceptionCodes.LAZY_NOT_INITIALIZED)
         }
-
-    init {
-
-
-    }
 
     private val commonDTOContainer = mutableListOf<CommonDTO<DATA>>()
      
@@ -93,7 +90,6 @@ abstract class DTOClass<DATA, ENTITY>(val sourceClass: KClass<out EntityDTO<DATA
     }
 
     fun initialization() {
-
         beforeInit(this) {
             println("${this::class.simpleName}  Class  before initialization")
         }
@@ -102,6 +98,16 @@ abstract class DTOClass<DATA, ENTITY>(val sourceClass: KClass<out EntityDTO<DATA
         afterInit(this) {
                println("${this::class.simpleName} Class initialization complete with result ${initialized}")
         }
+    }
+
+    inline fun <reified DATA, reified ENTITY> DTOClass<DATA, ENTITY>.dtoSettings(
+        entityModel: LongEntityClass<ENTITY>,
+        block: DTOConfig<DATA,ENTITY>.() -> Unit) where  ENTITY : LongEntity, DATA : DataModel{
+        factory.initializeBlueprints(DATA::class, ENTITY::class)
+        conf.dataModelClass = DATA::class
+        conf.entityClass = ENTITY::class
+        conf.entityModel = entityModel
+        conf.block()
     }
 
     fun <CHILD_DATA: DataModel, CHILF_ENTITY: LongEntity> execute(fn : (DTOClass<DATA, ENTITY>)-> Unit  ){
@@ -118,33 +124,19 @@ abstract class DTOClass<DATA, ENTITY>(val sourceClass: KClass<out EntityDTO<DATA
        val existentEntityDTO =  tempRepository.firstOrNull { it.id == commonDTO.id }
         if(existentEntityDTO == null){
            val dto =  commonDTO.copyAsEntityDTO(this)
-           when(dto.isUnsaved){
-               true ->{
-                   newEntity(dto,entityModel)?.let {
-                       conf.relationBinder.onBindings(dto){
 
-                       }
-                   }
-                   val entity =  newEntity(dto,entityModel)
-               }
-               false ->{
-                   TODO("Has some Id. Get from the DB corresponding entity")
-               }
-           }
         }else{
             TODO("Reinitialize and update if needed")
         }
         return null
     }
 
-
     fun initDTO(entityDTO: EntityDTO<DATA, ENTITY>) : EntityDTO<DATA,ENTITY>? {
         val existentEntityDTO =  tempRepository.firstOrNull { it.id == entityDTO.id }
         if(existentEntityDTO == null){
             when(entityDTO.isUnsaved){
                 true ->{
-
-                    conf.relationBinder.bindings().forEach {
+                    conf.relationBinder?.bindings()?.forEach {
                         if(it.type == OrdinanceType.ONE_TO_MANY){
                             entityDTO.injectedDataModel
                         }
@@ -169,23 +161,36 @@ abstract class DTOClass<DATA, ENTITY>(val sourceClass: KClass<out EntityDTO<DATA
      * */
     fun create(dataModel: DATA) : EntityDTO<DATA, ENTITY>? {
 
-        val entityDTO =  factory.createEntityDto(dataModel)
-        if(entityDTO != null){
-            entityDTO.initialize(this)
+        factory.createEntityDto(dataModel)?.let {newEntity->
+            newEntity.initialize(this)
 
+            conf.relationBinder?.bindings()?.forEach {binding->
+                when(binding.type){
+                    OrdinanceType.ONE_TO_MANY -> {
+                        binding.getSourceProperty()?.let {
+
+                           // binding.getChild().create(dataModel)
+
+//                                binding.doWithParent(newEntity){
+//                                   // binding.getChild()
+//                                }
+
+
+
+
+                        }
+                        if(binding.getSourceProperty()!= null){
+
+                        }
+                    }
+                    else -> {return null}
+                }
+            }
+            return newEntity
         }
-        return  entityDTO
+        return  null
     }
 
-    inline fun <reified DATA,  reified ENTITY>   DTOClass<DATA, ENTITY>.dtoSettings(
-        entityModel: LongEntityClass<ENTITY>,
-        block: DTOConfig<DATA,ENTITY>.() -> Unit
-    ) where  ENTITY : LongEntity, DATA : DataModel{
-        factory.initializeBlueprints(DATA::class, ENTITY::class)
-        conf.dataModelClass = DATA::class
-        conf.entityClass = ENTITY::class
-        conf.entityModel = entityModel
-        conf.block()
-    }
+
 
 }
