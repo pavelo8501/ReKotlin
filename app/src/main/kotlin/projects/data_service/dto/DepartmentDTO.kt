@@ -5,7 +5,7 @@ import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import po.db.data_service.binder.PropertyBinding
-import po.db.data_service.dto.*
+import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.interfaces.DTOModel
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.models.EntityDTO
@@ -48,16 +48,9 @@ data class DepartmentDataModel(
 
 }
 
-sealed interface HierarchyMember : HierarchyBase {
-    override val className : String
-}
-
-
 class DepartmentDTO(
     override val dataModel: DepartmentDataModel,
-): EntityDTO<DepartmentDataModel, DepartmentEntity>(dataModel), DTOModel, HierarchyMember{
-
-    override var className: String = "DepartmentDTOV2"
+): EntityDTO<DepartmentDataModel, DepartmentEntity>(dataModel), DTOModel{
 
     companion object: DTOClass<DepartmentDataModel, DepartmentEntity>(DepartmentDTO::class) {
         override fun setup() {
@@ -76,9 +69,6 @@ class DepartmentDTO(
                     PropertyBinding(DepartmentDataModel::updated, DepartmentEntity::updated),
                     PropertyBinding(DepartmentDataModel::created, DepartmentEntity::created),
                 )
-                setDataModelConstructor{
-                    DepartmentDataModel(false,"",12)
-                }
             }
         }
     }

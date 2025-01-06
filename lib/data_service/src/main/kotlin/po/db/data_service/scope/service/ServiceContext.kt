@@ -22,8 +22,8 @@ class ServiceContext<DATA,ENTITY>(
         body()
     }
 
-    private fun <T> serviceContext( statement: ServiceContext<DATA,ENTITY>.() -> T): T = statement.invoke(this)
-    fun <T> context(serviceBody: ServiceContext<DATA,ENTITY>.() -> T): T = serviceContext{
+    private fun <T> service(statement: ServiceContext<DATA,ENTITY>.() -> T): T = statement.invoke(this)
+    fun <T> context(serviceBody: ServiceContext<DATA,ENTITY>.() -> T): T = service{
         serviceBody()
     }
 
@@ -40,15 +40,18 @@ class ServiceContext<DATA,ENTITY>(
     fun DTOClass<DATA,ENTITY>.update(dataModels : List<DATA> , block: DTOClass<DATA,ENTITY>.() -> Unit): Unit {
         dbQuery{
             dataModels.forEach {
-               val result =  create(it)
+               val result =  create<DATA, ENTITY>(it)
                val a =10
             }
         }
         this.block()
     }
 
-    fun DTOClass<DATA,ENTITY>.update(dataModelList : List<EntityDTO<DATA,ENTITY> >, block: DTOClass<DATA,ENTITY>.() -> Unit): Unit {
-        dataModelList.forEach {
+    fun DTOClass<DATA,ENTITY>.update(
+        dataModes : List<EntityDTO<DATA,ENTITY> >,
+        block: DTOClass<DATA,ENTITY>.() -> Unit
+    ){
+        dataModes.forEach {
             initDTO(it)
         }
         this.block()

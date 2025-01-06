@@ -61,13 +61,16 @@ class ServiceClass<DATA,ENTITY>(
                 SchemaUtils.drop(*backwards.toTypedArray<IdTable<Long>>(), inBatch = true)
                 tables.forEach {
                    if(!createTable(it)){
-                       throw InitializationException("Table ${it.schemaName} creation after drop failed", ExceptionCodes.DB_TABLE_CREATION_FAILURE)
+                       throw InitializationException(
+                           "Table ${it.schemaName} creation after drop failed",
+                           ExceptionCodes.DB_TABLE_CREATION_FAILURE)
                    }
                 }
             }
             true
         }catch (ex:Exception) {
-            false
+            println(ex.message)
+            throw ex
         }
     }
 

@@ -3,9 +3,10 @@ package po.playground.projects.data_service
 import po.db.data_service.DatabaseManager
 import po.db.data_service.controls.ConnectionInfo
 import po.db.data_service.scope.service.TableCreateMode
-import po.playground.projects.data_service.data_source.asDTO
 import po.playground.projects.data_service.data_source.asDataModels
-import po.playground.projects.data_service.dto.*
+import po.playground.projects.data_service.dto.PartnerDTO
+import po.playground.projects.data_service.dto.PartnerDataModel
+import po.playground.projects.data_service.dto.PartnerEntity
 
 
 fun startDataService(connectionInfo : ConnectionInfo) {
@@ -14,7 +15,7 @@ fun startDataService(connectionInfo : ConnectionInfo) {
 
     val connection = dbManager.openConnection(connectionInfo){
 
-        service<PartnerDataModel, PartnerEntity>(PartnerDTO, TableCreateMode.CREATE){
+        service<PartnerDataModel, PartnerEntity>(PartnerDTO, TableCreateMode.FORCE_RECREATE){
 
             PartnerDTO.update(asDataModels()){
             }

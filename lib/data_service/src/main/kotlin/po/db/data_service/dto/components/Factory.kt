@@ -79,7 +79,9 @@ class Factory<DATA, ENTITY>(
      * println(children) // Output: [Child(name=Alice), Child(name=Bob)]
      * ```
      */
-    fun extractDataModel(property: KProperty1<DataModel, Iterable<DATA>>, owningDataModel:DataModel): List<DATA>{
+    fun <PARENT_DATA: DataModel>extractDataModel(
+        property: KProperty1<PARENT_DATA, Iterable<DATA>>,
+        owningDataModel:PARENT_DATA): List<DATA>{
         try {
             return  property.get(owningDataModel).toList()
         }catch (ex: IllegalStateException){
@@ -97,7 +99,6 @@ class Factory<DATA, ENTITY>(
     fun createDataModel(constructFn : (() -> DATA)? = null):DATA{
         try{
             constructFn?.let { return  it.invoke() }
-
             dataBlueprint?.let {blueprint->
                 return  getArgsForConstructor(blueprint).let {argMap->
                     blueprint.getConstructor().let { construct->

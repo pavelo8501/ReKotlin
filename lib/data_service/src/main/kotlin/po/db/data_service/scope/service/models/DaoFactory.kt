@@ -14,7 +14,10 @@ class DaoFactory(private val connection : Database)  {
         body()
     }
 
-    fun <ENTITY: LongEntity, DATA: DataModel>new(dtoModel : DTOClass<DATA,ENTITY>, fn: ((ENTITY)->Unit)? = null ): ENTITY{
+    fun <ENTITY: LongEntity, DATA: DataModel>new(
+        dtoModel : DTOClass<DATA,ENTITY>,
+        fn: ((ENTITY)->Unit)? = null
+    ): ENTITY{
         val daoEntity = dbQuery {
             dtoModel.entityModel.new {
                 fn?.invoke(this)
@@ -30,11 +33,14 @@ class DaoFactory(private val connection : Database)  {
         return result
     }
 
-    fun <ENTITY: LongEntity,DATA: DataModel>update(dtoEntity: CommonDTO<DATA>, dtoModel : DTOClass<DATA,ENTITY>): LongEntity?{
+    fun <ENTITY: LongEntity,DATA: DataModel>update(
+        dtoEntity: CommonDTO<DATA>,
+        dtoModel : DTOClass<DATA,ENTITY>
+    ): LongEntity?{
       val daoEntity =  if(dtoEntity.id == 0L){
           dbQuery {
               dtoModel.entityModel.new {
-                  dtoEntity.updateDTO(this, UpdateMode.ENTITY_TO_MODEL)
+                  dtoEntity.update(this, UpdateMode.ENTITY_TO_MODEL)
               }
           }
         }else{

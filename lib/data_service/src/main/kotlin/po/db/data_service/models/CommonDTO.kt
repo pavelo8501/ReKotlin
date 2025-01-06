@@ -11,31 +11,20 @@ import po.db.data_service.exceptions.OperationsException
 
 abstract class EntityDTO<DATA, ENTITY>(
     injectedDataModel : DATA
-): DTOContainerBase<DATA, ENTITY>(injectedDataModel),  DTOEntity<DATA, ENTITY>, Cloneable where DATA: DataModel , ENTITY : LongEntity {
-
-//    final override fun initialize(model: DTOClass<DATA, ENTITY>): PropertyBinder<DATA, ENTITY> {
-//        sourceModel = model
-//        initStatus = DTOInitStatus.PARTIAL_WITH_DATA
-//        return model.conf.propertyBinder
-//    }
-}
+): DTOContainerBase<DATA, ENTITY>(injectedDataModel), DTOEntity<DATA, ENTITY>, Cloneable
+        where DATA: DataModel , ENTITY : LongEntity
 
 abstract class CommonDTO<DATA>(
     injectedDataModel : DATA
-): DTOContainerBase<DATA, LongEntity>(injectedDataModel),  DTOEntity<DATA, LongEntity>, Cloneable where DATA: DataModel {
+): DTOContainerBase<DATA, LongEntity>(injectedDataModel), DTOEntity<DATA, LongEntity>, Cloneable
+        where DATA: DataModel {
 
     val childDTOs = mutableListOf<CommonDTO<DATA>>()
-
-//    final override fun initialize(model: DTOClass<DATA, LongEntity>): PropertyBinder<DATA, LongEntity> {
-//        sourceModel = model
-//        initStatus = DTOInitStatus.PARTIAL_WITH_DATA
-//        return model.conf.propertyBinder
-//    }
 
     public override fun clone(): DataModel = this.clone()
 
     fun <ENTITY: LongEntity>copyAsEntityDTO(dtoClass: DTOClass<DATA, ENTITY>): EntityDTO<DATA, ENTITY> {
-        return  DTOContainerBase.copyAsEntityDTO(injectedDataModel, dtoClass)
+        return  copyAsEntityDTO(injectedDataModel, dtoClass)
     }
 }
 
@@ -57,15 +46,18 @@ sealed class DTOContainerBase<DATA, ENTITY>(
         set(value) {injectedDataModel.id = value}
 
    private  var _sourceModel: DTOClass<DATA, ENTITY>? = null
-   var sourceModel : DTOClass<DATA,ENTITY>
-        get(){return  _sourceModel?: throw OperationsException("Trying to access dtoModel property of CommonDTOV2 id :$id while undefined",
+   var sourceModel : DTOClass<DATA, ENTITY>
+        get(){return  _sourceModel?: throw OperationsException(
+            "Trying to access dtoModel property of CommonDTOV2 id :$id while undefined",
             ExceptionCodes.LAZY_NOT_INITIALIZED) }
         set(value){ _sourceModel = value}
 
    private var _entityDAO : ENTITY? = null
    var entityDAO : ENTITY
         set(value){  _entityDAO = value }
-        get(){return  _entityDAO?:throw OperationsException("Entity uninitialized", ExceptionCodes.LAZY_NOT_INITIALIZED) }
+        get(){return  _entityDAO?:throw OperationsException(
+            "Entity uninitialized",
+            ExceptionCodes.LAZY_NOT_INITIALIZED) }
 
     val isUnsaved : Boolean
         get(){
@@ -74,7 +66,7 @@ sealed class DTOContainerBase<DATA, ENTITY>(
 
    val propertyBinder: PropertyBinder<DATA,ENTITY> by lazy { initialize(sourceModel) }
 
-   fun toDataModel(): DataModel =  this.injectedDataModel
+   fun toDataModel(): DATA =  this.injectedDataModel
 
    fun initialize(model: DTOClass<DATA, ENTITY>): PropertyBinder<DATA, ENTITY> {
        sourceModel = model
@@ -82,16 +74,19 @@ sealed class DTOContainerBase<DATA, ENTITY>(
        return model.conf.propertyBinder
    }
 
-   fun updateDTO (entity :ENTITY, mode: UpdateMode){
-        entityDAO = entity
+   fun update(entity :ENTITY, mode: UpdateMode){
         propertyBinder.update(injectedDataModel, entity, mode)
+        entityDAO = entity
         if(mode != UpdateMode.MODEL_TO_ENTNTY){
             id =  entity.id.value
         }
     }
 
     companion object{
-        fun <DATA: DataModel, ENTITY: LongEntity>copyAsEntityDTO(injectedDataModel: DATA, dtoClass: DTOClass<DATA,ENTITY>): EntityDTO<DATA,ENTITY> {
+        fun <DATA: DataModel, ENTITY: LongEntity>copyAsEntityDTO(
+            injectedDataModel: DATA,
+            dtoClass: DTOClass<DATA,ENTITY>
+        ): EntityDTO<DATA,ENTITY> {
             return object : EntityDTO<DATA, ENTITY>(injectedDataModel) {}.apply {
                 initialize(dtoClass)
             }

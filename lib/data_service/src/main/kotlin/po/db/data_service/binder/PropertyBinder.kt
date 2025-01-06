@@ -20,8 +20,13 @@ class PropertyBinding<DATA : DataModel, ENT : LongEntity, T>(
      fun update(dtoModel: DATA, entityModel: ENT, mode: UpdateMode): Boolean {
 
         val dtoValue = dtoProperty.get(dtoModel)
-        val entityValue =  entityProperty.get(entityModel)
-        val valuesDiffer = dtoValue != entityValue
+
+       val entityValue =  try {
+            entityProperty.get(entityModel)
+        }catch (ex: Exception){
+            null
+        }
+         val valuesDiffer = dtoValue != entityValue
 
         return when (mode) {
             UpdateMode.ENTITY_TO_MODEL -> {
@@ -63,6 +68,11 @@ class PropertyBinder<DATA : DataModel, ENT : LongEntity>  {
     }
 
     fun update(dataModel: DATA, daoModel: ENT, updateMode: UpdateMode) {
-        propertyList.forEach { it.update(dataModel, daoModel, updateMode) }
+        try {
+            propertyList.forEach { it.update(dataModel, daoModel, updateMode) }
+        }catch (ex: Exception){
+            println("Property Binder: ${ex.message}")
+            throw ex
+        }
     }
 }
