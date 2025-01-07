@@ -8,13 +8,10 @@ import po.playground.projects.data_service.dto.PartnerDTO
 import po.playground.projects.data_service.dto.PartnerDataModel
 import po.playground.projects.data_service.dto.PartnerEntity
 
-
 fun startDataService(connectionInfo : ConnectionInfo) {
 
     val dbManager =  DatabaseManager
-
     val connection = dbManager.openConnection(connectionInfo){
-
         service<PartnerDataModel, PartnerEntity>(PartnerDTO, TableCreateMode.FORCE_RECREATE){
 
             PartnerDTO.update(asDataModels()){
