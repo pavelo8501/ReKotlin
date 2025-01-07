@@ -5,7 +5,7 @@ import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import po.db.data_service.binder.PropertyBinding
-import po.db.data_service.dto.*
+import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.interfaces.DTOModel
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.models.EntityDTO

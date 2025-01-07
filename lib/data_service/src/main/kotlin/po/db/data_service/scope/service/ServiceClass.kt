@@ -1,34 +1,45 @@
 package po.db.data_service.scope.service
 
+import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.LocalDateTime
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.exists
 import org.jetbrains.exposed.sql.transactions.transaction
+import po.db.data_service.components.logger.LoggingService
+import po.db.data_service.components.logger.enums.LogLevel
 import po.db.data_service.constructors.ConstructorBuilder
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.InitializationException
+import java.time.format.DateTimeFormatter
 
 enum  class TableCreateMode{
     CREATE,
     FORCE_RECREATE
 }
 
-class ServiceClass<DATA,ENTITY>(
+class ServiceClass<DATA, ENTITY>(
     private val connection :Database,
-    private val rootDTOModel : DTOClass<DATA,ENTITY>,
+    private val rootDTOModel : DTOClass<DATA, ENTITY>,
     private val serviceCreateOption: TableCreateMode? = null
-)  where  ENTITY : LongEntity, DATA: DataModel{
-
-   companion object :  ConstructorBuilder()
+)  where  DATA: DataModel, ENTITY : LongEntity{
 
    var name : String = "undefined"
 
+    val logger = LoggingService()
+
     init {
         try {
+            runBlocking {
+                logger.registerLogFunction(LogLevel.MESSAGE){msg, level, time, throwable->
+                    println("Service${name} Logger|${msg}|${time.toString()}")
+                }
+            }
+
             start()
         }catch (initException : InitializationException){
             println(initException.message)
@@ -38,7 +49,6 @@ class ServiceClass<DATA,ENTITY>(
     private fun  <T>dbQuery(body : () -> T): T = transaction(connection) {
         body()
     }
-
 
     private fun createTable(table : IdTable<Long>): Boolean{
         return try {

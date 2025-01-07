@@ -29,8 +29,9 @@ abstract class CommonDTO<DATA>(
 }
 
 sealed class DTOContainerBase<DATA, ENTITY>(
-    val injectedDataModel : DATA
-) where DATA : DataModel, ENTITY: LongEntity{
+    override val injectedDataModel : DATA
+): DTOEntity<DATA, ENTITY>  where DATA : DataModel, ENTITY: LongEntity{
+
 
     var onInitializationStatusChange : ((DTOContainerBase<DATA, ENTITY>)-> Unit)? = null
     var initStatus: DTOInitStatus = DTOInitStatus.UNINITIALIZED
@@ -41,7 +42,7 @@ sealed class DTOContainerBase<DATA, ENTITY>(
             }
         }
 
-    var id : Long
+    override var id : Long
         get(){return injectedDataModel.id}
         set(value) {injectedDataModel.id = value}
 
@@ -53,7 +54,7 @@ sealed class DTOContainerBase<DATA, ENTITY>(
         set(value){ _sourceModel = value}
 
    private var _entityDAO : ENTITY? = null
-   var entityDAO : ENTITY
+   override var entityDAO : ENTITY
         set(value){  _entityDAO = value }
         get(){return  _entityDAO?:throw OperationsException(
             "Entity uninitialized",

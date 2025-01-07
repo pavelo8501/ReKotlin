@@ -11,26 +11,22 @@ import po.db.data_service.binder.BindingKeyBase
 import po.db.data_service.binder.ChildContainer
 import po.db.data_service.binder.OrdinanceType
 import po.db.data_service.binder.UpdateMode
+import po.db.data_service.components.eventhandler.RootEventHandler
+import po.db.data_service.components.eventhandler.interfaces.CanNotify
 import po.db.data_service.dto.components.DTOConfig
 import po.db.data_service.dto.components.Factory
+import po.db.data_service.dto.interfaces.DTOInstance
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.OperationsException
 import po.db.data_service.models.CommonDTO
 import po.db.data_service.models.EntityDTO
-import kotlin.math.min
 import kotlin.reflect.KClass
-
-
-
-interface HierarchyMember {
-    val className : String
-}
 
 
 abstract class DTOClass<DATA, ENTITY>(
     val sourceClass: KClass<out EntityDTO<DATA, ENTITY>>
-):HierarchyMember where DATA : DataModel, ENTITY : LongEntity{
+): DTOInstance, CanNotify  where DATA : DataModel, ENTITY : LongEntity{
 
     companion object{
 
@@ -42,9 +38,7 @@ abstract class DTOClass<DATA, ENTITY>(
             try {
               val newEntity = entityModel.new {
                   dto.update(this, UpdateMode.MODEL_TO_ENTNTY)
-                  if(block!=null){
-                      block.invoke(this)
-                  }
+                  block?.invoke(this)
               }
               return newEntity
             }catch (ex: Exception){
@@ -54,7 +48,7 @@ abstract class DTOClass<DATA, ENTITY>(
         }
     }
 
-    private val qualifiedClassName  = sourceClass.qualifiedName.toString()
+    override val qualifiedName  = sourceClass.qualifiedName.toString()
     override val className  = sourceClass.simpleName.toString()
     var initialized: Boolean = false
     val conf = DTOConfig<DATA, ENTITY>(this)
@@ -73,6 +67,8 @@ abstract class DTOClass<DATA, ENTITY>(
     private val repository = mutableListOf<EntityDTO<DATA, ENTITY>>()
      
     val tempRepository : MutableList<EntityDTO<DATA,ENTITY>> = mutableListOf()
+
+    override val eventHandler = RootEventHandler(className)
 
     protected abstract fun setup()
 
@@ -174,10 +170,10 @@ abstract class DTOClass<DATA, ENTITY>(
                 "Calling create(dataModel.id=${dataModel.id}) on model uninitialized",
                 ExceptionCodes.NOT_INITIALIZED)
         }
+
         factory.createEntityDto(dataModel)?.let {newDto->
             newDto.initialize(this)
             saveNew(newDto, entityModel, block)
-
 
             bindings.keys.forEach {key->
                 when(key.ordinance){

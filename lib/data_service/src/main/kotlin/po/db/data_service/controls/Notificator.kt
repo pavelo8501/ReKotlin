@@ -1,7 +1,7 @@
 package po.db.data_service.controls
 
-import po.db.data_service.dto.interfaces.CanNotify
-import po.db.data_service.dto.interfaces.DAOWInstance
+import po.db.data_service.dto.interfaces.CanNotifyDepr
+import po.db.data_service.dto.interfaces.DTOInstance
 
 enum class NotificationEvent{
     ON_START,
@@ -16,17 +16,19 @@ enum class NotificationEvent{
 data class NotifySubscription<T : Any?>(
     private val name: String,
     val callbackFun: (T?)->Unit
-){
+)
 
-}
-
-class Notificator(private val owner : CanNotify) {
+class Notificator(private val owner: CanNotifyDepr) {
 
     private val subscriptions = mutableMapOf<String, MutableList<NotifySubscription<*>>>()
 
-    private fun <T:Any>addSubscription(subscriber: String, event: NotificationEvent, callback: (T?) -> Unit) {
-        subscriptions.computeIfAbsent(event.name) { mutableListOf() }
-            .add(NotifySubscription(subscriber,  callback ))
+    private fun <T:Any>addSubscription(
+        subscriber: String,
+        event: NotificationEvent,
+        callback: (T?) -> Unit) {
+        subscriptions.computeIfAbsent(event.name){
+            mutableListOf()
+        }.add(NotifySubscription(subscriber,  callback ))
     }
 
     fun <T:Any?>trigger(event: NotificationEvent, optionalReceiver: T? = null ) {
@@ -35,13 +37,18 @@ class Notificator(private val owner : CanNotify) {
         }
     }
 
-    fun <T:Any?>subscribe(subscriberName:String, event : NotificationEvent, callbackFun : (T?)->Unit ){
+    fun <T:Any?>subscribe(
+        subscriberName:String,
+        event : NotificationEvent,
+        callbackFun : (T?)->Unit){
         this.addSubscription(subscriberName, event, callbackFun)
     }
 }
 
-inline fun <reified S: DAOWInstance, H : CanNotify, T:Any?> CanNotify.subscribe(event : NotificationEvent, noinline callbackFun : (T?)->Unit ){
-    val name = S::class.qualifiedName?:S::class.simpleName?: throw Exception("Can not infer class name of a subscriber")
+inline fun <reified S: DTOInstance, H : CanNotifyDepr, T:Any?> CanNotifyDepr.subscribe(
+    event : NotificationEvent,
+    noinline callbackFun : (T?)->Unit
+){
+    val name = S::class.qualifiedName?:S::class.simpleName?:throw Exception("Can not infer class name of a subscriber")
     this.notificator.subscribe(name,event,callbackFun)
-
 }
