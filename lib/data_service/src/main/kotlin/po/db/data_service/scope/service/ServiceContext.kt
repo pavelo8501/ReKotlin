@@ -35,12 +35,11 @@ class ServiceContext<DATA,ENTITY>(
     }
 
     @JvmName("updateDataModels")
-    fun DTOClass<DATA,ENTITY>.update(dataModels : List<DATA> , block: DTOClass<DATA,ENTITY>.() -> Unit): Unit {
+    fun DTOClass<DATA,ENTITY>.update(
+        dataModels : List<DATA>,
+        block: DTOClass<DATA,ENTITY>.() -> Unit){
         dbQuery{
-            dataModels.forEach {
-               val result = create<DATA, ENTITY>(it)
-               val a =10
-            }
+            dataModels.map{create<DATA,ENTITY>(it)}
         }
         this.block()
     }

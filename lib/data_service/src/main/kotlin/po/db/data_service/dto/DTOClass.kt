@@ -24,7 +24,6 @@ import po.db.data_service.models.CommonDTO
 import po.db.data_service.models.EntityDTO
 import kotlin.reflect.KClass
 
-
 abstract class DTOClass<DATA, ENTITY>(
     val sourceClass: KClass<out EntityDTO<DATA, ENTITY>>
 ): DTOInstance, CanNotify  where DATA : DataModel, ENTITY : LongEntity{
@@ -48,10 +47,27 @@ abstract class DTOClass<DATA, ENTITY>(
             }
         }
 
+        protected fun <DATA: DataModel,ENTITY: LongEntity>updateExistent(
+            dto : EntityDTO<DATA, ENTITY>,
+            entityModel: LongEntityClass<ENTITY>
+        ){
+            try {
+                val entity = entityModel[(dto.id)]
+                dto.update(entity, UpdateMode.MODEL_TO_ENTNTY)
+            }catch (ex: Exception){
+                println(ex.message)
+            }
+        }
+
         protected fun <ENTITY: LongEntity> selectAll(
             entityModel: LongEntityClass<ENTITY>
-        ):  SizedIterable<ENTITY>{
-            return entityModel.all()
+        ): SizedIterable<ENTITY>{
+            try {
+                return entityModel.all()
+            }catch (ex: Exception){
+                println(ex.message)
+                throw ex
+            }
         }
     }
 
@@ -105,17 +121,12 @@ abstract class DTOClass<DATA, ENTITY>(
 
     inline fun <reified DATA, reified ENTITY> DTOClass<DATA, ENTITY>.dtoSettings(
         entityModel: LongEntityClass<ENTITY>,
-        block: DTOConfig<DATA,ENTITY>.() -> Unit
-    )where ENTITY: LongEntity, DATA: DataModel{
+        block: DTOConfig<DATA,ENTITY>.() -> Unit) where ENTITY: LongEntity, DATA: DataModel{
         factory.initializeBlueprints(DATA::class, ENTITY::class)
         conf.dataModelClass = DATA::class
         conf.entityClass = ENTITY::class
         conf.entityModel = entityModel
         conf.block()
-    }
-
-    fun <CHILD_DATA: DataModel, CHILF_ENTITY: LongEntity> execute(fn : (DTOClass<DATA, ENTITY>)-> Unit  ){
-        fn.invoke(this)
     }
 
     /**
@@ -126,7 +137,7 @@ abstract class DTOClass<DATA, ENTITY>(
     fun initDTO(commonDTO: CommonDTO<DATA>) : EntityDTO<DATA,ENTITY>? {
        val tempRepository = mutableListOf<EntityDTO<DATA, ENTITY>>()
        val existentEntityDTO =  tempRepository.firstOrNull { it.id == commonDTO.id }
-        if(existentEntityDTO == null){
+       if(existentEntityDTO == null){
            val dto =  commonDTO.copyAsEntityDTO(this)
 
         }else{
@@ -136,9 +147,7 @@ abstract class DTOClass<DATA, ENTITY>(
     }
 
     fun initDTO(entityDTO: EntityDTO<DATA, ENTITY>): EntityDTO<DATA,ENTITY>?{
-
         val tempRepository = mutableListOf<EntityDTO<DATA, ENTITY>>()
-
         val existentEntityDTO = tempRepository.firstOrNull { it.id == entityDTO.id }
         if(existentEntityDTO == null){
             when(entityDTO.isUnsaved){
@@ -160,6 +169,11 @@ abstract class DTOClass<DATA, ENTITY>(
         return null
     }
 
+    /**
+     * Create List of EntityDTO from the database records of source LongEntityClass<LongEntity>
+     * @input entity: LongEntity
+     * @return EntityDTO
+     **/
     fun select(): List<EntityDTO<DATA, ENTITY>>{
        val entities = selectAll(entityModel)
        notify("select() count=${entities.count()}")
@@ -180,7 +194,9 @@ abstract class DTOClass<DATA, ENTITY>(
      * @input entity: LongEntity
      * @return EntityDTO
      **/
-    fun create(entity: ENTITY): EntityDTO<DATA, ENTITY>?{
+    fun create(
+        entity: ENTITY
+    ): EntityDTO<DATA, ENTITY>?{
         if(initialized == false){
             throw OperationsException(
                 "Calling create(entity.id=${entity.id.value}) on model uninitialized",
@@ -199,14 +215,14 @@ abstract class DTOClass<DATA, ENTITY>(
             }
             return newDto
         }
-       return null
+        return null
     }
 
     /**
      * Create new EntityDTO from DataModel provided
      * @input dataModel: DataModel
      * @return EntityDTO
-     * */
+     **/
     fun <PARENT_DATA: DataModel, PARENT_ENTITY: LongEntity>create(
         dataModel: DATA,
         block: ((ENTITY)-> Unit)? = null): EntityDTO<DATA, ENTITY>?{
@@ -218,7 +234,11 @@ abstract class DTOClass<DATA, ENTITY>(
 
         factory.createEntityDto(dataModel)?.let {newDto->
             newDto.initialize(this)
-            saveNew(newDto, entityModel, block)
+            if(dataModel.id == 0L) {
+                saveNew(newDto, entityModel, block)
+            }else{
+                updateExistent(newDto,entityModel)
+            }
 
             bindings.keys.forEach {key->
                 when(key.ordinance){
@@ -232,5 +252,4 @@ abstract class DTOClass<DATA, ENTITY>(
         }
         return  null
     }
-
 }
