@@ -11,21 +11,7 @@ class RootEventHandler(moduleName: String): EventHandlerBase(moduleName)
 class EventHandler(
     moduleName: String,
     parentHandler: EventHandlerBase
-): EventHandlerBase(moduleName, parentHandler){
-
-//    override fun notify(message: String) {
-//        val thisEvent = Event(moduleName, message, EventType.INFO, System.currentTimeMillis())
-//        if(parentHandler == null){
-//            super.notify(message)
-//        }else{
-//            parentHandler.apply{
-//                currentEvent?.let { hostingEvent->
-//                    hostingEvent.subEvents.add(thisEvent)
-//                }?: notify()
-//            }
-//        }
-//    }
-}
+): EventHandlerBase(moduleName, parentHandler)
 
 sealed class EventHandlerBase(
     val moduleName: String,
