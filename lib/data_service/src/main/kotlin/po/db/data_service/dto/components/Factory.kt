@@ -1,10 +1,13 @@
 package po.db.data_service.dto.components
 
 import org.jetbrains.exposed.dao.LongEntity
+import po.db.data_service.components.eventhandler.EventHandler
+import po.db.data_service.components.eventhandler.interfaces.CanNotify
 import po.db.data_service.constructors.ConstructorBuilder
 import po.db.data_service.constructors.DTOBlueprint
 import po.db.data_service.constructors.DataModelBlueprint
 import po.db.data_service.constructors.EntityBlueprint
+import po.db.data_service.controls.Notificator
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
@@ -16,7 +19,7 @@ import kotlin.reflect.KProperty1
 class Factory<DATA, ENTITY>(
    val parent: DTOClass<DATA,ENTITY>,
    val entityDTOClass : KClass<out EntityDTO<DATA, ENTITY>>
-)where DATA: DataModel,   ENTITY: LongEntity   {
+): CanNotify where DATA: DataModel,   ENTITY: LongEntity   {
     companion object : ConstructorBuilder()
 
     private var _dataModelClass: KClass<DATA>? = null
@@ -34,6 +37,9 @@ class Factory<DATA, ENTITY>(
     private val daoBlueprint = DTOBlueprint(entityDTOClass).also { it.initialize(Companion) }
 
     private var dataModelConstructor : (() -> DATA)? = null
+
+    override val eventHandler =  EventHandler("${parent.className}:Factory")
+
 
     /**
      * Initializes the blueprints for DataModel, Entity, and DTO based on the provided classes.
@@ -139,7 +145,7 @@ class Factory<DATA, ENTITY>(
                         }
                     }
                 }.let {
-                   println("Argument map used for creation $it")
+                    notify("LOL")
                  return  constructor.callBy(it)
                 }
             }

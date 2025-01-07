@@ -1,18 +1,12 @@
 package po.db.data_service.dto.interfaces
 
 import org.jetbrains.exposed.dao.LongEntity
-import po.db.data_service.binder.PropertyBinder
 import po.db.data_service.controls.Notificator
-import po.db.data_service.dto.components.DTOConfig
 
 
-interface DAOWInstance{
-
-}
-
-interface DTOModelClass<DATA,ENTITY> where  ENTITY : LongEntity, DATA: DataModel{
-    var className : String
-    val configuration : DTOConfig<DATA,ENTITY>?
+interface DTOInstance{
+  val className : String
+  val qualifiedName : String
 }
 
 interface DTOEntity<DATA: DataModel,ENTITY:LongEntity>{
@@ -21,12 +15,11 @@ interface DTOEntity<DATA: DataModel,ENTITY:LongEntity>{
     val entityDAO : ENTITY
 }
 
-
 /**
     Interface  identifying DTO Entity Class
     Part of the property data handling system
  */
-interface DTOModel : DAOWInstance {
+interface DTOModel{
     val dataModel: DataModel
 }
 
@@ -34,14 +27,14 @@ interface DTOModel : DAOWInstance {
     Interface  identifying DataModel Class
     Part of the property data handling system
  **/
-interface DataModel : DAOWInstance {
+interface DataModel {
     var id : Long
 }
 
 /**
     Interface for common behaviour of classes hosting Notificator Class
  **/
-interface CanNotify{
+interface CanNotifyDepr{
     val name : String
     val notificator : Notificator
   //  fun <T>subscribe (subscriber: T, notification : ()-> Unit,  callbackFun: () -> Unit)
