@@ -28,11 +28,8 @@ class ServiceContext<DATA,ENTITY>(
     }
 
     fun DTOClass<DATA, ENTITY>.select(block: DTOClass<DATA, ENTITY>.() -> Unit){
-
-        daoFactory.all(this).forEach {
-            dbQuery {
-                //this.create(it)
-            }
+        dbQuery {
+           select()
         }
         this.block()
     }

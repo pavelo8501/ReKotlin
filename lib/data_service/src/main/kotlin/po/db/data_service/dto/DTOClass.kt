@@ -7,6 +7,7 @@ import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.IdTable
+import org.jetbrains.exposed.sql.SizedIterable
 import po.db.data_service.binder.BindingKeyBase
 import po.db.data_service.binder.ChildContainer
 import po.db.data_service.binder.OrdinanceType
@@ -49,13 +50,15 @@ abstract class DTOClass<DATA, ENTITY>(
 
         protected fun <ENTITY: LongEntity> selectAll(
             entityModel: LongEntityClass<ENTITY>
-        ): List<ENTITY>{
-            return entityModel.all().toList()
+        ):  SizedIterable<ENTITY>{
+            return entityModel.all()
         }
     }
 
     override val qualifiedName  = sourceClass.qualifiedName.toString()
     override val className  = sourceClass.simpleName.toString()
+    override val eventHandler = RootEventHandler(className)
+
     var initialized: Boolean = false
     val conf = DTOConfig<DATA, ENTITY>(this)
 
@@ -69,12 +72,6 @@ abstract class DTOClass<DATA, ENTITY>(
         }
 
     val bindings = mutableMapOf<BindingKeyBase, ChildContainer<DATA, ENTITY, *, *>>()
-
-    private val repository = mutableListOf<EntityDTO<DATA, ENTITY>>()
-     
-    val tempRepository : MutableList<EntityDTO<DATA,ENTITY>> = mutableListOf()
-
-    override val eventHandler = RootEventHandler(className)
 
     protected abstract fun setup()
 
@@ -127,6 +124,7 @@ abstract class DTOClass<DATA, ENTITY>(
      * @return EntityDTO<DATA,ENTITY> or null
      * */
     fun initDTO(commonDTO: CommonDTO<DATA>) : EntityDTO<DATA,ENTITY>? {
+       val tempRepository = mutableListOf<EntityDTO<DATA, ENTITY>>()
        val existentEntityDTO =  tempRepository.firstOrNull { it.id == commonDTO.id }
         if(existentEntityDTO == null){
            val dto =  commonDTO.copyAsEntityDTO(this)
@@ -138,6 +136,9 @@ abstract class DTOClass<DATA, ENTITY>(
     }
 
     fun initDTO(entityDTO: EntityDTO<DATA, ENTITY>): EntityDTO<DATA,ENTITY>?{
+
+        val tempRepository = mutableListOf<EntityDTO<DATA, ENTITY>>()
+
         val existentEntityDTO = tempRepository.firstOrNull { it.id == entityDTO.id }
         if(existentEntityDTO == null){
             when(entityDTO.isUnsaved){
@@ -161,17 +162,17 @@ abstract class DTOClass<DATA, ENTITY>(
 
     fun select(): List<EntityDTO<DATA, ENTITY>>{
        val entities = selectAll(entityModel)
-       val result = mutableListOf<EntityDTO<DATA, ENTITY>>()
-       notify("select() count=${entities.size}")
+       notify("select() count=${entities.count()}")
+       val repository = mutableListOf<EntityDTO<DATA, ENTITY>>()
        entities.forEach {
            val dto = create(it)
            if(dto != null){
-               result.add(dto)
+               repository.add(dto)
            }else{
                TODO("Action on creation failure")
            }
        }
-       return result.toList()
+       return repository.toList()
     }
 
     /**
@@ -188,6 +189,14 @@ abstract class DTOClass<DATA, ENTITY>(
         factory.createEntityDto()?.let {newDto->
             newDto.initialize(this)
             newDto.update(entity, UpdateMode.ENTITY_TO_MODEL)
+            bindings.keys.forEach {key->
+                when(key.ordinance){
+                    OrdinanceType.ONE_TO_MANY -> {
+                       bindings[key]!!.createFromEntity(newDto, key)
+                    }
+                    else -> {}
+                }
+            }
             return newDto
         }
        return null
@@ -214,7 +223,7 @@ abstract class DTOClass<DATA, ENTITY>(
             bindings.keys.forEach {key->
                 when(key.ordinance){
                     OrdinanceType.ONE_TO_MANY -> {
-                        bindings[key]!!.createWithParent(newDto)
+                        bindings[key]!!.createFromDataModel(newDto)
                     }
                     else -> {}
                 }

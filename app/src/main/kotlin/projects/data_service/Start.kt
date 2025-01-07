@@ -12,10 +12,8 @@ fun startDataService(connectionInfo : ConnectionInfo) {
 
     val dbManager =  DatabaseManager
     val connection = dbManager.openConnection(connectionInfo){
-        service<PartnerDataModel, PartnerEntity>(PartnerDTO, TableCreateMode.FORCE_RECREATE){
+        service<PartnerDataModel, PartnerEntity>(PartnerDTO, TableCreateMode.CREATE){
 
-            PartnerDTO.update(asDataModels()){
-            }
             PartnerDTO.select {
             }
         }

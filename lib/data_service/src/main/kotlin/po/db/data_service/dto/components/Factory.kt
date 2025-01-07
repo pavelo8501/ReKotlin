@@ -38,8 +38,11 @@ class Factory<DATA, ENTITY>(
 
     private var dataModelConstructor : (() -> DATA)? = null
 
-    override val eventHandler =  EventHandler("${parent.className}:Factory",parent.eventHandler)
+    override val eventHandler : EventHandler
 
+    init {
+        eventHandler =  EventHandler("Factory", parent.eventHandler)
+    }
 
     /**
      * Initializes the blueprints for DataModel, Entity, and DTO based on the provided classes.

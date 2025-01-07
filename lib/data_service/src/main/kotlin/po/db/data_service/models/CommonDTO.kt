@@ -1,6 +1,8 @@
 package po.db.data_service.models
 
 import org.jetbrains.exposed.dao.LongEntity
+import po.db.data_service.binder.BindingKeyBase
+import po.db.data_service.binder.ChildContainer
 import po.db.data_service.binder.PropertyBinder
 import po.db.data_service.binder.UpdateMode
 import po.db.data_service.dto.DTOClass
@@ -9,17 +11,20 @@ import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.OperationsException
 
+
+
+
+
+
 abstract class EntityDTO<DATA, ENTITY>(
-    injectedDataModel : DATA
+    injectedDataModel: DATA
 ): DTOContainerBase<DATA, ENTITY>(injectedDataModel), DTOEntity<DATA, ENTITY>, Cloneable
-        where DATA: DataModel , ENTITY : LongEntity
+        where DATA: DataModel , ENTITY: LongEntity
 
 abstract class CommonDTO<DATA>(
     injectedDataModel : DATA
 ): DTOContainerBase<DATA, LongEntity>(injectedDataModel), DTOEntity<DATA, LongEntity>, Cloneable
         where DATA: DataModel {
-
-    val childDTOs = mutableListOf<CommonDTO<DATA>>()
 
     public override fun clone(): DataModel = this.clone()
 
@@ -66,6 +71,8 @@ sealed class DTOContainerBase<DATA, ENTITY>(
         }
 
    val propertyBinder: PropertyBinder<DATA,ENTITY> by lazy { initialize(sourceModel) }
+
+    val bindings = mutableMapOf<BindingKeyBase, ChildContainer<DATA, ENTITY, *, *>>()
 
    fun toDataModel(): DATA =  this.injectedDataModel
 
