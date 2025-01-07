@@ -1,9 +1,9 @@
 package po.db.data_service.scope.service.models
 
 import org.jetbrains.exposed.dao.LongEntity
-import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction
+import po.db.data_service.binder.UpdateMode
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.models.CommonDTO
@@ -14,9 +14,12 @@ class DaoFactory(private val connection : Database)  {
         body()
     }
 
-    fun <ENTITY: LongEntity, DATA: DataModel>new(dtoModel : DTOClass<DATA,ENTITY>, fn: ((ENTITY)->Unit)? = null ): ENTITY{
+    fun <ENTITY: LongEntity, DATA: DataModel>new(
+        dtoModel : DTOClass<DATA,ENTITY>,
+        fn: ((ENTITY)->Unit)? = null
+    ): ENTITY{
         val daoEntity = dbQuery {
-            dtoModel.daoModel.new {
+            dtoModel.entityModel.new {
                 fn?.invoke(this)
             }
         }
@@ -25,16 +28,19 @@ class DaoFactory(private val connection : Database)  {
 
     fun <ENTITY: LongEntity, DATA: DataModel>all(dtoModel: DTOClass<DATA,ENTITY>): List<ENTITY> {
         val result = dbQuery {
-            return@dbQuery  dtoModel.daoModel.all().toList()
+            return@dbQuery  dtoModel.entityModel.all().toList()
         }
         return result
     }
 
-    fun <ENTITY: LongEntity,DATA: DataModel>update(dtoEntity: CommonDTO<DATA>, dtoModel : DTOClass<DATA,ENTITY>): LongEntity?{
+    fun <ENTITY: LongEntity,DATA: DataModel>update(
+        dtoEntity: CommonDTO<DATA>,
+        dtoModel : DTOClass<DATA,ENTITY>
+    ): LongEntity?{
       val daoEntity =  if(dtoEntity.id == 0L){
           dbQuery {
-              dtoModel.daoModel.new {
-                  dtoEntity.updateDAO(this)
+              dtoModel.entityModel.new {
+                  dtoEntity.update(this, UpdateMode.ENTITY_TO_MODEL)
               }
           }
         }else{

@@ -17,9 +17,8 @@ interface DTOModelClass<DATA,ENTITY> where  ENTITY : LongEntity, DATA: DataModel
 
 interface DTOEntity<DATA: DataModel,ENTITY:LongEntity>{
     val id:Long
-    val dataModel: DATA
-    val className : String
-    fun initialize(binder : PropertyBinder<DATA , ENTITY, *>?, dataModel : DATA? = null)
+    val injectedDataModel: DATA
+    val entityDAO : ENTITY
 }
 
 
@@ -29,7 +28,6 @@ interface DTOEntity<DATA: DataModel,ENTITY:LongEntity>{
  */
 interface DTOModel : DAOWInstance {
     val dataModel: DataModel
-    val className : String
 }
 
 /**

@@ -7,7 +7,8 @@ import po.db.data_service.scope.service.controls.service_registry.ServiceRegistr
 import po.db.data_service.scope.service.controls.service_registry.serviceRegistry
 
 
-class ServiceRegistryBuilder<DATA_MODEL : DataModel, ENTITY : LongEntity> : ListBuilder<ServiceRegistryItem<DATA_MODEL, ENTITY>>() {
+class ServiceRegistryBuilder<DATA_MODEL : DataModel, ENTITY : LongEntity>
+    : ListBuilder<ServiceRegistryItem<DATA_MODEL, ENTITY>>() {
     fun addServiceRegistryItem(
         init: ServiceRegistryItemBuilder<DATA_MODEL, ENTITY>.() -> Unit
     ) = apply {

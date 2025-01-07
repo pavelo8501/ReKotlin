@@ -31,21 +31,23 @@ object DatabaseManager {
 
     fun openConnection(
         connectionInfo : ConnectionInfo,
-        connection: (ConnectionContext.() -> Unit)? = null
-    ): ConnectionContext {
+        context: ConnectionContext.()->Unit
+    ): Boolean  {
         connectionInfo.hikariDataSource = provideDataSource(connectionInfo)
         try{
-           val newConnection = Database.connect(connectionInfo.hikariDataSource!!)
+            val newConnection = Database.connect(connectionInfo.hikariDataSource!!)
             val connectionClass =  ConnectionClass(connectionInfo)
-            val connectionContext =  ConnectionContext("Connection ${connectionInfo.dbName}",newConnection, connectionClass).also {
-                connectionInfo.connections.add(it)
+            val connectionContext =  ConnectionContext(
+                "Connection ${connectionInfo.dbName}",
+                newConnection, connectionClass).also {
+                    connectionInfo.connections.add(it)
             }
-            connection?.invoke(connectionContext)
             addConnection(connectionClass)
-            return connectionContext
+            connectionContext.context()
+            return true
         }catch (e: Exception){
             connectionInfo.lastError = e.message
-            throw e
+            return false
         }
     }
 }

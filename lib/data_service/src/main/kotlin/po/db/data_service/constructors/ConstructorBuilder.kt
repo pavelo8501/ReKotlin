@@ -4,15 +4,14 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import po.db.data_service.dto.interfaces.DAOWInstance
-import kotlin.reflect.KClass
 import kotlin.reflect.KParameter
 import kotlin.reflect.KType
 import kotlin.reflect.full.primaryConstructor
 
 
 abstract class ConstructorBuilder {
-     private  fun getDefaultForType(kType: KType): Any? {
+
+    fun getDefaultForType(kType: KType): Any? {
          return when (kType.classifier) {
             Int::class -> 0
             String::class -> ""
@@ -23,31 +22,53 @@ abstract class ConstructorBuilder {
         }
     }
 
-    fun <T: Any>getConstructorBlueprint(clazz: KClass<*>):ClassBlueprint{
 
-        val className = (clazz.qualifiedName?: clazz::simpleName).toString()
-        val newBlueprint = ClassBlueprint(className, clazz)
-        clazz.primaryConstructor?.let {
+    fun <T: Any>getBlueprint(container : ClassBlueprintBase<T>): ClassBlueprintBase<T>{
+         container.getClass().primaryConstructor?.let {
             if(it.parameters.isEmpty()){
-                newBlueprint.setEffectiveConstructor(it)
+                container.setConstructor(it)
             }else{
-                newBlueprint.setEffectiveConstructor(it)
+                container.setConstructor(it)
                 it.parameters.forEach { param ->
-                    newBlueprint.addAsArg(param)
+                    container.addAsArg(param)
                 }
             }
         }
-        return newBlueprint
+        return container
     }
 
-    fun getArgsForConstructor(bluePrint : ClassBlueprint, overrideDefault : ((name:String?)->Any?)? = null): Map<KParameter, Any?>{
-        bluePrint.getEffectiveConstructor().let { constructor ->
+    fun <T: Any>getCovariantBlueprint(container : CovariantClassBlueprintBase<T>): CovariantClassBlueprintBase<T>{
+
+        container.className  = container.clazz::simpleName.toString()
+        container.qualifiedName = container.clazz.qualifiedName.toString()
+
+        container.clazz.primaryConstructor?.let {
+
+            val params = mutableMapOf<KParameter, Any?>()
+
+            if(it.parameters.isEmpty()){
+                container.setConstructor(it)
+            }else{
+                container.setConstructor(it)
+                it.parameters.forEach { param ->
+                    params[param] = getDefaultForType(param.type)
+                    container.addAsArg(param)
+                }
+            }
+            container.setParams(params)
+        }
+        return container
+    }
+
+
+    fun <T: Any>getArgsForConstructor(bluePrint : ClassBlueprintBase<T>, overrideDefault : ((name:String?)->Any?)? = null): Map<KParameter, Any?>{
+        bluePrint.getConstructor().let { constructor ->
            val args = constructor.parameters.associateWith { param ->
                 if(param.type.isMarkedNullable) {
                     null
                 }else{
                    val result =  if(overrideDefault == null) {
-                        getDefaultForType(param.type)
+                        param
                     }else{
                       overrideDefault.invoke(param.name)?:getDefaultForType(param.type)
                     }
@@ -58,24 +79,4 @@ abstract class ConstructorBuilder {
             return args
         }
     }
-
-//    fun <T: DataModel>getConstructorBlueprint(clazz: KClass<T>):ClassBlueprint<T>{
-//        val className = (clazz.qualifiedName?: clazz::simpleName).toString()
-//        val newBlueprint = ClassBlueprint(className, clazz)
-//        if (clazz.constructors.isNotEmpty()){
-//            val constructor = clazz.constructors.first()
-//            val args = constructor.parameters.associateWith {if(it.type.isMarkedNullable) { null }else{ getDefaultForType(it.type)} }
-//
-//            args.forEach { (param, value) ->
-//                println("Param: ${param.name}, Type: ${param.type}, Value: $value")
-//            }
-//            newBlueprint.setParams(args)
-//
-//            constructor.parameters.forEach { param ->
-//              newBlueprint.addAsArg(param)
-//            }
-//            newBlueprint.effectiveConstructor = constructor
-//        }
-//        return newBlueprint
-//    }
 }
