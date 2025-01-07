@@ -8,4 +8,6 @@ data class Event(
     val msg: String,
     val type: EventType,
     val timestamp: Long
-)
+){
+    val subEvents = mutableListOf<Event>()
+}

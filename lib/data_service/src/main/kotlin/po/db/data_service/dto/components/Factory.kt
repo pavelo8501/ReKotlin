@@ -38,7 +38,7 @@ class Factory<DATA, ENTITY>(
 
     private var dataModelConstructor : (() -> DATA)? = null
 
-    override val eventHandler =  EventHandler("${parent.className}:Factory")
+    override val eventHandler =  EventHandler("${parent.className}:Factory",parent.eventHandler)
 
 
     /**

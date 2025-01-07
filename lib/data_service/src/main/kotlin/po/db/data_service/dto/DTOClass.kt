@@ -12,6 +12,7 @@ import po.db.data_service.binder.ChildContainer
 import po.db.data_service.binder.OrdinanceType
 import po.db.data_service.binder.UpdateMode
 import po.db.data_service.components.eventhandler.EventHandler
+import po.db.data_service.components.eventhandler.RootEventHandler
 import po.db.data_service.components.eventhandler.interfaces.CanNotify
 import po.db.data_service.dto.components.DTOConfig
 import po.db.data_service.dto.components.Factory
@@ -69,7 +70,7 @@ abstract class DTOClass<DATA, ENTITY>(
      
     val tempRepository : MutableList<EntityDTO<DATA,ENTITY>> = mutableListOf()
 
-    override val eventHandler =  EventHandler(className)
+    override val eventHandler = RootEventHandler(className)
 
     protected abstract fun setup()
 

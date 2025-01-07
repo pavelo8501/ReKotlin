@@ -1,6 +1,6 @@
 package po.db.data_service.components.eventhandler.interfaces
 
-import po.db.data_service.components.eventhandler.EventHandler
+import po.db.data_service.components.eventhandler.EventHandlerBase
 
 interface CanNotify{
 
@@ -9,7 +9,7 @@ interface CanNotify{
     fun notifyError(message: String) =  eventHandler.notifyError(message)
 
 
-    val eventHandler: EventHandler
+    val eventHandler: EventHandlerBase
 
 
 }
