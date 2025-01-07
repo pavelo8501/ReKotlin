@@ -22,12 +22,13 @@ class ServiceContext<DATA,ENTITY>(
         body()
     }
 
-    private fun <T> service(statement: ServiceContext<DATA,ENTITY>.() -> T): T = statement.invoke(this)
-    fun <T> context(serviceBody: ServiceContext<DATA,ENTITY>.() -> T): T = service{
+    private fun <T> service(statement: ServiceContext<DATA, ENTITY>.() -> T): T = statement.invoke(this)
+    fun <T> context(serviceBody: ServiceContext<DATA, ENTITY>.() -> T): T = service{
         serviceBody()
     }
 
-    fun DTOClass<DATA,ENTITY>.select(block: DTOClass<DATA,ENTITY>.() -> Unit): Unit {
+    fun DTOClass<DATA, ENTITY>.select(block: DTOClass<DATA, ENTITY>.() -> Unit){
+
         daoFactory.all(this).forEach {
             dbQuery {
                 //this.create(it)
@@ -40,7 +41,7 @@ class ServiceContext<DATA,ENTITY>(
     fun DTOClass<DATA,ENTITY>.update(dataModels : List<DATA> , block: DTOClass<DATA,ENTITY>.() -> Unit): Unit {
         dbQuery{
             dataModels.forEach {
-               val result =  create<DATA, ENTITY>(it)
+               val result = create<DATA, ENTITY>(it)
                val a =10
             }
         }

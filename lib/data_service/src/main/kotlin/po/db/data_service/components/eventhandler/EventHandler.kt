@@ -1,10 +1,8 @@
 package po.db.data_service.components.eventhandler
 
-
 import po.db.data_service.components.eventhandler.enums.EventType
 import po.db.data_service.components.eventhandler.models.Event
 import java.util.concurrent.CopyOnWriteArrayList
-
 
 class RootEventHandler(moduleName: String): EventHandlerBase(moduleName)
 
@@ -46,7 +44,7 @@ sealed class EventHandlerBase(
         }
     }
 
-    open fun notify(message: String){
+    fun notify(message: String){
         handleEvent(Event(routedName, message, EventType.INFO,  System.currentTimeMillis()))
     }
     fun notifyError(message: String){

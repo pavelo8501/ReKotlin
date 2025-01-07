@@ -34,7 +34,7 @@ class Factory<DATA, ENTITY>(
 
     private var dataBlueprint : DataModelBlueprint<DATA>? = null
     private lateinit var entityBlueprint : EntityBlueprint<ENTITY>
-    private val daoBlueprint = DTOBlueprint(entityDTOClass).also { it.initialize(Companion) }
+    private val dtoBlueprint = DTOBlueprint(entityDTOClass).also { it.initialize(Companion) }
 
     private var dataModelConstructor : (() -> DATA)? = null
 
@@ -107,15 +107,19 @@ class Factory<DATA, ENTITY>(
     fun createDataModel(constructFn : (() -> DATA)? = null):DATA{
         try{
             constructFn?.let {
+                notify("DataModel created from constructor provided in the createDataModel(constructFn)")
                 return  it.invoke()
             }
             dataModelConstructor?.let {
+                notify("DataModel created from constructor provided in the dataModelConstructor")
                 return it.invoke()
             }
 
             dataBlueprint?.let {
                 val constructor =  it.getConstructor()
-                return  constructor.callBy(it.getArgsForConstructor())
+                val newDataModel =  constructor.callBy(it.getArgsForConstructor())
+                notify("DataModel created from dataBlueprint [reflection]")
+                return newDataModel
             }?:run {
                 TODO("Extract DATA blueprint from entityDTOClass as a reserve fallback")
             }
@@ -133,7 +137,7 @@ class Factory<DATA, ENTITY>(
     fun createEntityDto(dataModel : DATA? = null): EntityDTO<DATA, ENTITY>? {
         val model = dataModel?: createDataModel()
         try {
-            daoBlueprint.let { blueprint ->
+            dtoBlueprint.let { blueprint ->
                 val constructor =  blueprint.getConstructor()
                 blueprint.getArgsForConstructor {paramName->
                     when (paramName) {
@@ -145,8 +149,9 @@ class Factory<DATA, ENTITY>(
                         }
                     }
                 }.let {
-                    notify("LOL")
-                 return  constructor.callBy(it)
+                 val newDto = constructor.callBy(it)
+                 notify("EntityDTO created from dtoBlueprint [reflection]")
+                 return newDto
                 }
             }
             return null

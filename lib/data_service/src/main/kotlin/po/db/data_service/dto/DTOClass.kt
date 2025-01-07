@@ -46,6 +46,12 @@ abstract class DTOClass<DATA, ENTITY>(
                 return null
             }
         }
+
+        protected fun <ENTITY: LongEntity> selectAll(
+            entityModel: LongEntityClass<ENTITY>
+        ): List<ENTITY>{
+            return entityModel.all().toList()
+        }
     }
 
     override val qualifiedName  = sourceClass.qualifiedName.toString()
@@ -71,10 +77,6 @@ abstract class DTOClass<DATA, ENTITY>(
     override val eventHandler = RootEventHandler(className)
 
     protected abstract fun setup()
-
-    fun nowTime(): LocalDateTime {
-        return LocalDateTime.Companion.parse(Clock.System.now().toLocalDateTime(TimeZone.UTC).toString())
-    }
 
     fun getAssociatedTables():List<IdTable<Long>>{
        val result = mutableListOf<IdTable<Long>>()
@@ -107,7 +109,7 @@ abstract class DTOClass<DATA, ENTITY>(
     inline fun <reified DATA, reified ENTITY> DTOClass<DATA, ENTITY>.dtoSettings(
         entityModel: LongEntityClass<ENTITY>,
         block: DTOConfig<DATA,ENTITY>.() -> Unit
-    ) where  ENTITY : LongEntity, DATA : DataModel{
+    )where ENTITY: LongEntity, DATA: DataModel{
         factory.initializeBlueprints(DATA::class, ENTITY::class)
         conf.dataModelClass = DATA::class
         conf.entityClass = ENTITY::class
@@ -135,7 +137,7 @@ abstract class DTOClass<DATA, ENTITY>(
         return null
     }
 
-    fun initDTO(entityDTO: EntityDTO<DATA, ENTITY>) : EntityDTO<DATA,ENTITY>? {
+    fun initDTO(entityDTO: EntityDTO<DATA, ENTITY>): EntityDTO<DATA,ENTITY>?{
         val existentEntityDTO = tempRepository.firstOrNull { it.id == entityDTO.id }
         if(existentEntityDTO == null){
             when(entityDTO.isUnsaved){
@@ -157,14 +159,48 @@ abstract class DTOClass<DATA, ENTITY>(
         return null
     }
 
+    fun select(): List<EntityDTO<DATA, ENTITY>>{
+       val entities = selectAll(entityModel)
+       val result = mutableListOf<EntityDTO<DATA, ENTITY>>()
+       notify("select() count=${entities.size}")
+       entities.forEach {
+           val dto = create(it)
+           if(dto != null){
+               result.add(dto)
+           }else{
+               TODO("Action on creation failure")
+           }
+       }
+       return result.toList()
+    }
+
     /**
-     * Create new CommonDTO entity from DataModel provided
+     * Create new EntityDTO from LongEntity provided
+     * @input entity: LongEntity
+     * @return EntityDTO
+     **/
+    fun create(entity: ENTITY): EntityDTO<DATA, ENTITY>?{
+        if(initialized == false){
+            throw OperationsException(
+                "Calling create(entity.id=${entity.id.value}) on model uninitialized",
+                ExceptionCodes.NOT_INITIALIZED)
+        }
+        factory.createEntityDto()?.let {newDto->
+            newDto.initialize(this)
+            newDto.update(entity, UpdateMode.ENTITY_TO_MODEL)
+            return newDto
+        }
+       return null
+    }
+
+    /**
+     * Create new EntityDTO from DataModel provided
      * @input dataModel: DataModel
-     * @return CommonDTO
+     * @return EntityDTO
      * */
     fun <PARENT_DATA: DataModel, PARENT_ENTITY: LongEntity>create(
         dataModel: DATA,
-        block: ((ENTITY)-> Unit)? = null ) : EntityDTO<DATA, ENTITY>? {
+        block: ((ENTITY)-> Unit)? = null): EntityDTO<DATA, ENTITY>?{
         if(initialized == false){
             throw OperationsException(
                 "Calling create(dataModel.id=${dataModel.id}) on model uninitialized",

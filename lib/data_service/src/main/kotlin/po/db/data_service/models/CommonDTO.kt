@@ -78,9 +78,10 @@ sealed class DTOContainerBase<DATA, ENTITY>(
    fun update(entity :ENTITY, mode: UpdateMode){
         propertyBinder.update(injectedDataModel, entity, mode)
         entityDAO = entity
-        if(mode != UpdateMode.MODEL_TO_ENTNTY){
+        if(mode == UpdateMode.ENTITY_TO_MODEL || mode == UpdateMode.ENTITY_TO_MODEL_FORCED){
             id =  entity.id.value
         }
+       initStatus = DTOInitStatus.INITIALIZED
     }
 
     companion object{

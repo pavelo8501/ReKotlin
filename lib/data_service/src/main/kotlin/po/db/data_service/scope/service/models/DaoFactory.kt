@@ -28,7 +28,7 @@ class DaoFactory(private val connection : Database)  {
 
     fun <ENTITY: LongEntity, DATA: DataModel>all(dtoModel: DTOClass<DATA,ENTITY>): List<ENTITY> {
         val result = dbQuery {
-            return@dbQuery  dtoModel.entityModel.all().toList()
+            return@dbQuery dtoModel.entityModel.all().toList()
         }
         return result
     }
