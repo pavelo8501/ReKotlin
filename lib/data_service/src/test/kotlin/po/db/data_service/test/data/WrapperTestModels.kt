@@ -1,4 +1,4 @@
-package po.db.data_service.data
+package po.db.data_service.test.data
 
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime
@@ -9,24 +9,31 @@ import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.LongIdTable
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
-import po.db.data_service.data.TestPartners.nowDateTime
+import po.db.data_service.dto.DTOClass
+import po.db.data_service.test.data.TestPartners.nowDateTime
 import po.db.data_service.dto.interfaces.DTOModel
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.models.EntityDTO
 
 
-class TestDataModel(
+class TestPartnerDataModel(
     val name: String = "SomeName",
     val legalName : String = "SomeLegalName",
 ) : DataModel  {
     override var id :Long = 0L
+
+    val departnemts = mutableListOf<TestDepartmentDataModel>()
+
     val created = nowDateTime
     val updated = nowDateTime
 }
 
-class TestChildDataModel : DataModel  {
+class TestDepartmentDataModel(
+    val hq: Boolean = true,
+    val name: String = "SomeDepartmentName",
+    var frequency: Int = 12,
+) : DataModel{
     override var id :Long = 0
-    val name: String = "SomeDepartmentName"
 }
 
 object TestPartners : LongIdTable("partners", "id") {
@@ -56,19 +63,38 @@ object TestDepartments : LongIdTable("departments", "id") {
     val partner = reference("partner", TestPartners)
 }
 
-class TestEntity(id: EntityID<Long>) : LongEntity(id) {
-    companion object : LongEntityClass<TestEntity>(TestPartners)
+class TestPartnerEntity(id: EntityID<Long>) : LongEntity(id) {
+    companion object : LongEntityClass<TestPartnerEntity>(TestPartners)
     var name: String = "Test Partner"
 }
 
-class TestDTO(override val dataModel: TestDataModel) : EntityDTO<TestDataModel, TestEntity>(dataModel), DTOModel
+class TestPartnerDTO(
+    override val dataModel: TestPartnerDataModel
+): EntityDTO<TestPartnerDataModel, TestPartnerEntity>(dataModel), DTOModel{
+
+    companion object : DTOClass<TestPartnerDataModel, TestPartnerEntity>(TestPartnerDTO::class){
+        override fun setup() {
+            TODO("Not yet implemented")
+        }
+    }
+}
 
 
-class TestChildEntity(id: EntityID<Long>) : LongEntity(id) {
-    companion object : LongEntityClass<TestChildEntity>(TestDepartments)
+class TestDepartmentEntity(id: EntityID<Long>) : LongEntity(id) {
+    companion object : LongEntityClass<TestDepartmentEntity>(TestDepartments)
     var name: String = "TestChildEntity"
 }
 
-class TestChildDTO(override val dataModel: TestChildDataModel) : EntityDTO<TestChildDataModel, TestChildEntity>(dataModel), DTOModel
+class TestDepartmentDTO(
+    override val dataModel: TestDepartmentDataModel
+) : EntityDTO<TestDepartmentDataModel, TestDepartmentEntity>(dataModel), DTOModel{
+
+    companion object : DTOClass<TestDepartmentDataModel, TestDepartmentEntity>(TestDepartmentDTO::class){
+        override fun setup() {
+            TODO("Not yet implemented")
+        }
+    }
+
+}
 
 

@@ -54,28 +54,29 @@ abstract class CovariantClassBlueprintBase<T: Any>(): ClassBlueprintBase<T>(){
     abstract val clazz : KClass<out T>
 
     override fun getConstructor(): KFunction<T>{
-        return effectiveConstructor?: throw OperationsException("Effective constructor not set", ExceptionCodes.CONSTRUCTOR_MISSING)
+        return effectiveConstructor?: throw OperationsException(
+            "Effective constructor not set", ExceptionCodes.CONSTRUCTOR_MISSING)
     }
 
-    fun getArgsForConstructor(overrideDefault : ((name:String?)->Any?)? = null): Map<KParameter, Any?>{
-        getConstructor().let { constructor ->
-        val args = constructor.parameters.associateWith { param ->
-            constructorBuilder.let { builder->
-                if(param.type.isMarkedNullable) {
-                    null
-                }else{
-                    val result = if(overrideDefault == null) {
-                        builder.getDefaultForType(param.type)
-                    }else{
-                        overrideDefault.invoke(param.name)?:builder.getDefaultForType(param.type)
-                    }
-                    result
-                } }
-            }
-            this.setParams(args)
-            return args
-        }
-    }
+//    fun getArgsForConstructor(overrideDefault : ((name:String?)->Any?)? = null): Map<KParameter, Any?>{
+//        getConstructor().let { constructor ->
+//        val args = constructor.parameters.associateWith { param ->
+//            constructorBuilder.let { builder->
+//                if(param.type.isMarkedNullable) {
+//                    null
+//                }else{
+//                    val result = if(overrideDefault == null) {
+//                        builder.getDefaultForType(param.type)
+//                    }else{
+//                        overrideDefault.invoke(param.name)?:builder.getDefaultForType(param.type)
+//                    }
+//                    result
+//                } }
+//            }
+//            this.setParams(args)
+//            return args
+//        }
+//    }
 
     override fun getClass():KClass<out T>{
         return clazz
@@ -116,6 +117,26 @@ abstract class ClassBlueprintBase<T: Any>(inputClazz : KClass<T>? = null){
     fun setConstructor(constructor : KFunction<T>){
         effectiveConstructor = constructor
         effectiveConstructorSize = constructor.parameters.size
+    }
+
+    fun getArgsForConstructor(overrideDefault : ((name:String?)->Any?)? = null): Map<KParameter, Any?>{
+        getConstructor().let { constructor ->
+            val args = constructor.parameters.associateWith { param ->
+                constructorBuilder.let { builder->
+                    if(param.type.isMarkedNullable) {
+                        null
+                    }else{
+                        val result = if(overrideDefault == null) {
+                            builder.getDefaultForType(param.type)
+                        }else{
+                            overrideDefault.invoke(param.name)?:builder.getDefaultForType(param.type)
+                        }
+                        result
+                    } }
+            }
+            this.setParams(args)
+            return args
+        }
     }
 
     open fun getConstructor(): KFunction<T>{

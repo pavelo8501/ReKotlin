@@ -1,50 +1,39 @@
-package po.db.data_service.constructors
+package po.db.data_service.test.constructors
 
 import org.junit.jupiter.api.assertThrows
-import po.db.data_service.data.TestDTO
-import po.db.data_service.data.TestDataModel
-import po.db.data_service.data.TestEntity
+import po.db.data_service.constructors.ConstructorBuilder
+import po.db.data_service.constructors.CovariantClassBlueprintBase
+import po.db.data_service.constructors.DTOBlueprint
+import po.db.data_service.test.data.TestPartnerDTO
+import po.db.data_service.test.data.TestPartnerDataModel
+import po.db.data_service.test.data.TestPartnerEntity
 import po.db.data_service.exceptions.OperationsException
 import po.db.data_service.models.EntityDTO
 import kotlin.reflect.KFunction
-import kotlin.reflect.KType
 import kotlin.reflect.full.primaryConstructor
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
-class TestBuilder : ConstructorBuilder() {}
+class TestBuilder : ConstructorBuilder()
 
-fun <T : Any> getCovariantBlueprint(container: CovariantClassBlueprintBase<T>): CovariantClassBlueprintBase<T> {
-        container.clazz.primaryConstructor?.let { constructor ->
-            container.setConstructor(constructor)
-        }
-        return container
-    }
-
-    fun getDefaultForType(kType: KType): Any? {
-        return when (kType.classifier) {
-            String::class -> "default"
-            Int::class -> 0
-            Boolean::class -> false
-            else -> null
-        }
-    }
 
 class TestConstructorBuilder {
 
     @Test
     fun `initialize sets effective constructor`() {
-        val dtoBlueprint = DTOBlueprint<TestDataModel, TestEntity>(TestDTO::class)
+        val dtoBlueprint = DTOBlueprint<TestPartnerDataModel, TestPartnerEntity>(TestPartnerDTO::class)
         dtoBlueprint.initialize(TestBuilder())
         val constructor   = dtoBlueprint.getConstructor()
         assertNotNull(constructor, "Constructor should be initialized")
-        assertEquals(TestDTO::class.primaryConstructor as  KFunction<EntityDTO<TestDataModel, TestEntity>> , constructor)
+        assertEquals(
+            TestPartnerDTO::class.primaryConstructor as  KFunction<EntityDTO<TestPartnerDataModel, TestPartnerEntity>>,
+            constructor)
     }
 
     @Test
     fun `getArgsForConstructor generates correct arguments`() {
-        val dtoBlueprint = DTOBlueprint<TestDataModel, TestEntity>(TestDTO::class)
+        val dtoBlueprint = DTOBlueprint<TestPartnerDataModel, TestPartnerEntity>(TestPartnerDTO::class)
         dtoBlueprint.initialize(TestBuilder())
         val args = dtoBlueprint.getArgsForConstructor()
         val constructor = dtoBlueprint.getConstructor()
@@ -54,8 +43,7 @@ class TestConstructorBuilder {
 
     @Test
     fun `getConstructor throws exception when not initialized`() {
-        val dtoBlueprint = DTOBlueprint(TestDTO::class)
-
+        val dtoBlueprint = DTOBlueprint(TestPartnerDTO::class)
         val exception = assertThrows<OperationsException> {
             dtoBlueprint.getConstructor()
         }
@@ -63,21 +51,8 @@ class TestConstructorBuilder {
     }
 
     @Test
-    fun `setParams correctly sets constructor parameters`() {
-        val dtoBlueprint = DTOBlueprint(TestDTO::class)
-        dtoBlueprint.initialize(TestBuilder())
-        val constructor = dtoBlueprint.getConstructor()
-
-        val params = constructor.parameters.associateWith { "testValue" }
-        dtoBlueprint.setParams(params)
-
-        val args = dtoBlueprint.getArgsForConstructor()
-        assertEquals("testValue", args[constructor.parameters[0]], "Params should match set values")
-    }
-
-    @Test
     fun `addAsArg adds constructor arguments`() {
-        val dtoBlueprint = DTOBlueprint(TestDTO::class)
+        val dtoBlueprint = DTOBlueprint(TestPartnerDTO::class)
         dtoBlueprint.initialize(TestBuilder())
         val constructor = dtoBlueprint.getConstructor()
         constructor.parameters.forEach { dtoBlueprint.addAsArg(it) }

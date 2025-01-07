@@ -20,12 +20,14 @@ class Factory<DATA, ENTITY>(
     companion object : ConstructorBuilder()
 
     private var _dataModelClass: KClass<DATA>? = null
-    private val dataModelClass: KClass<DATA>
-        get(){return _dataModelClass?: throw OperationsException("DataModel Class uninitialized", ExceptionCodes.LAZY_NOT_INITIALIZED) }
+    val dataModelClass: KClass<DATA>
+        get(){return _dataModelClass?: throw OperationsException(
+            "DataModel Class uninitialized", ExceptionCodes.LAZY_NOT_INITIALIZED) }
 
     private var _daoEntityClass: KClass<ENTITY>? = null
-    private val daoEntityClass: KClass<ENTITY>
-        get(){return _daoEntityClass?: throw OperationsException("DataModel Class uninitialized", ExceptionCodes.LAZY_NOT_INITIALIZED) }
+    val daoEntityClass: KClass<ENTITY>
+        get(){return _daoEntityClass?: throw OperationsException(
+            "DataModel Class uninitialized", ExceptionCodes.LAZY_NOT_INITIALIZED) }
 
     private var dataBlueprint : DataModelBlueprint<DATA>? = null
     private lateinit var entityBlueprint : EntityBlueprint<ENTITY>
@@ -98,14 +100,16 @@ class Factory<DATA, ENTITY>(
      * */
     fun createDataModel(constructFn : (() -> DATA)? = null):DATA{
         try{
-            constructFn?.let { return  it.invoke() }
-            dataBlueprint?.let {blueprint->
-                return  getArgsForConstructor(blueprint).let {argMap->
-                    blueprint.getConstructor().let { construct->
-                      val data =  construct.callBy(argMap)
-                      data
-                    }
-                }
+            constructFn?.let {
+                return  it.invoke()
+            }
+            dataModelConstructor?.let {
+                return it.invoke()
+            }
+
+            dataBlueprint?.let {
+                val constructor =  it.getConstructor()
+                return  constructor.callBy(it.getArgsForConstructor())
             }?:run {
                 TODO("Extract DATA blueprint from entityDTOClass as a reserve fallback")
             }
