@@ -11,13 +11,11 @@ import po.db.data_service.binder.BindingKeyBase
 import po.db.data_service.binder.ChildContainer
 import po.db.data_service.binder.OrdinanceType
 import po.db.data_service.binder.UpdateMode
-import po.db.data_service.components.eventhandler.EventHandler
 import po.db.data_service.components.eventhandler.RootEventHandler
 import po.db.data_service.components.eventhandler.interfaces.CanNotify
 import po.db.data_service.dto.components.DTOConfig
 import po.db.data_service.dto.components.Factory
 import po.db.data_service.dto.interfaces.DTOInstance
-import po.db.data_service.dto.interfaces.DTOModel
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.OperationsException
