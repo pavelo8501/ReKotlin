@@ -13,6 +13,11 @@ abstract class AbstractOperationResult : OperationResult {
     override fun isSuccess(): Boolean = true
 }
 
+data class CrudResultSingle<DATA, ENTITY>(
+    val dto: EntityDTO<DATA, ENTITY>,
+    val event: Event?
+): AbstractOperationResult() where DATA: DataModel, ENTITY : LongEntity
+
 data class CrudResult<DATA, ENTITY>(
         val rootDTOs: List<EntityDTO<DATA, ENTITY>>,
         val event: Event?

@@ -3,6 +3,7 @@ package po.playground.projects.data_service.data_source
 import po.playground.projects.data_service.dto.DepartmentDataModel
 import po.playground.projects.data_service.dto.PartnerDTO
 import po.playground.projects.data_service.dto.PartnerDataModel
+import kotlin.random.Random
 
 fun asDataModels():List<PartnerDataModel>{
 
@@ -34,4 +35,33 @@ fun asDataModels():List<PartnerDataModel>{
 
 fun asDTO(): List<PartnerDTO> {
     return asDataModels().map { PartnerDTO(it) }
+}
+
+fun asDataModelDynamically(
+    partnerCount: Int,
+    departmentCount: Int,
+    randomizeDepartmentCount: Boolean = true
+):List<PartnerDataModel>{
+    val result = mutableListOf<PartnerDataModel>()
+    for(i in 1..partnerCount){
+        val partner = PartnerDataModel("Partner $i", "Partner $i SIA", "400100$i", "LV-400100$i")
+        var depCount = departmentCount
+        if(randomizeDepartmentCount){
+            depCount = Random.nextInt(1, departmentCount)
+        }
+        for (a in 1..depCount){
+            val isHq = a == 1
+            val department = DepartmentDataModel(
+                isHq,
+                "Department $a of ${partner.name}",
+                12, "Some street $a",
+                "Riga", "Latvia",
+                "Lv-190$a",
+                "26000$i$a",
+                "Department$a@${partner.name}.lv")
+            partner.departments.add(department)
+        }
+        result.add(partner)
+    }
+    return result
 }

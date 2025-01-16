@@ -35,24 +35,22 @@ class ServiceContext<DATA,ENTITY>(
         context.block()
     }
 
-    @JvmName("updateDataModels")
+    @JvmName("updateFromDataModels")
     fun DTOClass<DATA, ENTITY>.update(
         dataModels : List<DATA>,
-        block: DTOClass<DATA,ENTITY>.() -> Unit){
-        dbQuery{
-            dataModels.map{create<DATA,ENTITY>(it)}
+        block: DTOContext<DATA, ENTITY>.() -> Unit){
+        val createdDTOs =  dbQuery {
+            create<DATA, ENTITY>(dataModels)
         }
-        this.block()
+        val context = DTOContext(createdDTOs)
+        context.block()
     }
 
     fun DTOClass<DATA, ENTITY>.update(
-        dataModes : List<EntityDTO<DATA, ENTITY>>,
+        dataModels : List<EntityDTO<DATA, ENTITY>>,
         block: DTOClass<DATA, ENTITY>.() -> Unit
     ){
-        dataModes.forEach {
-            initDTO(it)
-        }
-        this.block()
+        TODO("To implement update variance if EntityDTO list is supplied")
     }
 
     fun DTOClass<DATA, ENTITY>.sequence(name:String):DTOClass<DATA, ENTITY>{
