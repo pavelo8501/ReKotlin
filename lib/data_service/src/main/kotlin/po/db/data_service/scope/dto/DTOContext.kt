@@ -1,7 +1,9 @@
 package po.db.data_service.scope.dto
 
 import org.jetbrains.exposed.dao.LongEntity
+import po.db.data_service.components.eventhandler.models.Event
 import po.db.data_service.dto.interfaces.DataModel
+import po.db.data_service.models.CrudResult
 import po.db.data_service.models.EntityDTO
 
 /**
@@ -16,7 +18,8 @@ import po.db.data_service.models.EntityDTO
  *
  * @param DATA The type of data model being processed.
  * @param ENTITY The type of entity represented by the `EntityDTO` instances.
- * @property rootDTOs The list of `EntityDTO` objects that this context operates on.
+ * @property crudResult an instance of CrudResult containing list of EntityDROs together with
+ * the operation execution result represented by the Event class object
  *
  * Example usage:
  * ```
@@ -33,12 +36,16 @@ import po.db.data_service.models.EntityDTO
  * ```
  */
 class DTOContext<DATA, ENTITY>(
-    private val rootDTOs: List<EntityDTO<DATA, ENTITY>>,
-
+    private val  crudResult : CrudResult<DATA, ENTITY>,
     )  where DATA : DataModel, ENTITY : LongEntity {
 
     fun result(): List<EntityDTO<DATA, ENTITY>>{
-        return  rootDTOs
+        return  crudResult.rootDTOs
+    }
+
+    fun getStats(): Event?{
+        crudResult.event?.print()
+        return crudResult.event
     }
 
 }

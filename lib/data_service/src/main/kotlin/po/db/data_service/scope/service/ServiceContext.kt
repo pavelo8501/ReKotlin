@@ -31,7 +31,8 @@ class ServiceContext<DATA,ENTITY>(
         val selectedDTOs = dbQuery {
            select()
         }
-        DTOContext(selectedDTOs).block()
+        val context  = DTOContext(selectedDTOs)
+        context.block()
     }
 
     @JvmName("updateDataModels")

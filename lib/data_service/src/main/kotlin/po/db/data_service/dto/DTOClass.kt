@@ -16,6 +16,7 @@ import po.db.data_service.dto.interfaces.DTOInstance
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.OperationsException
+import po.db.data_service.models.CrudResult
 import po.db.data_service.models.EntityDTO
 import kotlin.reflect.KClass
 
@@ -152,7 +153,7 @@ abstract class DTOClass<DATA, ENTITY>(
      * @input entity: LongEntity
      * @return EntityDTO
      **/
-    fun select(): List<EntityDTO<DATA, ENTITY>>{
+    fun select(): CrudResult<DATA, ENTITY> {
        val entities = selectAll(entityModel)
        val repository = mutableListOf<EntityDTO<DATA, ENTITY>>()
        notify("select() count=${entities.count()}"){
@@ -166,7 +167,7 @@ abstract class DTOClass<DATA, ENTITY>(
                }
            }
        }
-       return repository.toList()
+       return CrudResult(repository.toList(), eventHandler.getEvent())
     }
 
     /**

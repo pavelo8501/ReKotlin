@@ -4,7 +4,25 @@ import po.db.data_service.components.eventhandler.enums.EventType
 import po.db.data_service.components.eventhandler.models.Event
 import java.util.concurrent.CopyOnWriteArrayList
 
-class RootEventHandler(moduleName: String): EventHandlerBase(moduleName)
+class RootEventHandler(moduleName: String): EventHandlerBase(moduleName){
+    fun getEvent(wipeData: Boolean = true): Event?{
+        val currentEventCopy = currentEvent?.let { event ->
+            Event(
+                module = event.module,
+                msg = event.msg,
+                type = event.type,
+                timestamp = event.timestamp
+            ).also {
+                it.setElapsed(event.elapsedMills ?: 0)
+                it.subEvents.addAll(event.subEvents)
+            }
+        }
+        if (wipeData) {
+            this.wipeData()
+        }
+        return currentEventCopy
+    }
+}
 
 class EventHandler(
     moduleName: String,
@@ -15,7 +33,6 @@ sealed class EventHandlerBase(
     val moduleName: String,
     val parentHandler : EventHandlerBase? = null
 ) {
-
     var routedName: String = moduleName
     val eventQue = CopyOnWriteArrayList<Event>()
     var currentEvent : Event? = null
@@ -32,18 +49,8 @@ sealed class EventHandlerBase(
         currentEvent = event
     }
 
+    @Synchronized
     fun handleEvent(event: Event): Event{
-//        if(parentHandler == null){
-//           registerEvent(event)
-//           return event
-//        }
-//        parentHandler.apply{
-//            currentEvent?.let { hostingEvent->
-//                hostingEvent.subEvents.add(event)
-//            }?: handleEvent(event)
-//        }
-//        return event
-
         val startMills = System.currentTimeMillis()
         val processedEvent = if (parentHandler == null) {
             registerEvent(event)
@@ -76,5 +83,11 @@ sealed class EventHandlerBase(
 
     fun notifyError(message: String){
         handleEvent(Event(routedName, message, EventType.ERROR,  System.currentTimeMillis()))
+    }
+
+    fun wipeData(){
+        eventQue.clear()
+        currentEvent?.subEvents?.clear()
+        currentEvent = null
     }
 }
