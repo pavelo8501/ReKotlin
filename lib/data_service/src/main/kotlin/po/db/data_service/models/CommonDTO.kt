@@ -14,29 +14,16 @@ import po.db.data_service.exceptions.OperationsException
 
 
 
-
-
 abstract class EntityDTO<DATA, ENTITY>(
     injectedDataModel: DATA
 ): DTOContainerBase<DATA, ENTITY>(injectedDataModel), DTOEntity<DATA, ENTITY>, Cloneable
         where DATA: DataModel , ENTITY: LongEntity
 
-abstract class CommonDTO<DATA>(
-    injectedDataModel : DATA
-): DTOContainerBase<DATA, LongEntity>(injectedDataModel), DTOEntity<DATA, LongEntity>, Cloneable
-        where DATA: DataModel {
 
-    public override fun clone(): DataModel = this.clone()
-
-    fun <ENTITY: LongEntity>copyAsEntityDTO(dtoClass: DTOClass<DATA, ENTITY>): EntityDTO<DATA, ENTITY> {
-        return  copyAsEntityDTO(injectedDataModel, dtoClass)
-    }
-}
 
 sealed class DTOContainerBase<DATA, ENTITY>(
     override val injectedDataModel : DATA
 ): DTOEntity<DATA, ENTITY>  where DATA : DataModel, ENTITY: LongEntity{
-
 
     var onInitializationStatusChange : ((DTOContainerBase<DATA, ENTITY>)-> Unit)? = null
     var initStatus: DTOInitStatus = DTOInitStatus.UNINITIALIZED

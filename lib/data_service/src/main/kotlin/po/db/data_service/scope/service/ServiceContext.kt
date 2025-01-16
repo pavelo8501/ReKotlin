@@ -4,8 +4,8 @@ import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction
 import po.db.data_service.dto.DTOClass
+import po.db.data_service.scope.dto.DTOContext
 import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.models.CommonDTO
 import po.db.data_service.models.EntityDTO
 import po.db.data_service.scope.service.models.DaoFactory
 
@@ -27,15 +27,15 @@ class ServiceContext<DATA,ENTITY>(
         serviceBody()
     }
 
-    fun DTOClass<DATA, ENTITY>.select(block: DTOClass<DATA, ENTITY>.() -> Unit){
-        dbQuery {
+    fun DTOClass<DATA, ENTITY>.select(block: DTOContext<DATA, ENTITY>.() -> Unit){
+        val selectedDTOs = dbQuery {
            select()
         }
-        this.block()
+        DTOContext(selectedDTOs).block()
     }
 
     @JvmName("updateDataModels")
-    fun DTOClass<DATA,ENTITY>.update(
+    fun DTOClass<DATA, ENTITY>.update(
         dataModels : List<DATA>,
         block: DTOClass<DATA,ENTITY>.() -> Unit){
         dbQuery{
@@ -44,9 +44,9 @@ class ServiceContext<DATA,ENTITY>(
         this.block()
     }
 
-    fun DTOClass<DATA,ENTITY>.update(
-        dataModes : List<EntityDTO<DATA,ENTITY> >,
-        block: DTOClass<DATA,ENTITY>.() -> Unit
+    fun DTOClass<DATA, ENTITY>.update(
+        dataModes : List<EntityDTO<DATA, ENTITY>>,
+        block: DTOClass<DATA, ENTITY>.() -> Unit
     ){
         dataModes.forEach {
             initDTO(it)
@@ -54,7 +54,7 @@ class ServiceContext<DATA,ENTITY>(
         this.block()
     }
 
-    fun DTOClass<DATA,ENTITY>.sequence(name:String):DTOClass<DATA,ENTITY>{
+    fun DTOClass<DATA, ENTITY>.sequence(name:String):DTOClass<DATA, ENTITY>{
         return this
     }
 }

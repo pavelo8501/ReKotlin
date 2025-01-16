@@ -1,9 +1,5 @@
 package po.db.data_service.dto
 
-import kotlinx.datetime.Clock
-import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.IdTable
@@ -20,7 +16,6 @@ import po.db.data_service.dto.interfaces.DTOInstance
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.OperationsException
-import po.db.data_service.models.CommonDTO
 import po.db.data_service.models.EntityDTO
 import kotlin.reflect.KClass
 
@@ -129,23 +124,6 @@ abstract class DTOClass<DATA, ENTITY>(
         conf.block()
     }
 
-    /**
-     * Initialize CommonDTO received from the ServiceContext
-     * @input commonDTO:  CommonDTO<DATA>
-     * @return EntityDTO<DATA,ENTITY> or null
-     * */
-    fun initDTO(commonDTO: CommonDTO<DATA>) : EntityDTO<DATA,ENTITY>? {
-       val tempRepository = mutableListOf<EntityDTO<DATA, ENTITY>>()
-       val existentEntityDTO =  tempRepository.firstOrNull { it.id == commonDTO.id }
-       if(existentEntityDTO == null){
-           val dto =  commonDTO.copyAsEntityDTO(this)
-
-        }else{
-            TODO("Reinitialize and update if needed")
-        }
-        return null
-    }
-
     fun initDTO(entityDTO: EntityDTO<DATA, ENTITY>): EntityDTO<DATA,ENTITY>?{
         val tempRepository = mutableListOf<EntityDTO<DATA, ENTITY>>()
         val existentEntityDTO = tempRepository.firstOrNull { it.id == entityDTO.id }
@@ -176,14 +154,16 @@ abstract class DTOClass<DATA, ENTITY>(
      **/
     fun select(): List<EntityDTO<DATA, ENTITY>>{
        val entities = selectAll(entityModel)
-       notify("select() count=${entities.count()}")
        val repository = mutableListOf<EntityDTO<DATA, ENTITY>>()
-       entities.forEach {
-           val dto = create(it)
-           if(dto != null){
-               repository.add(dto)
-           }else{
-               TODO("Action on creation failure")
+       notify("select() count=${entities.count()}"){
+
+           entities.forEach {
+               val dto = create(it)
+               if(dto != null){
+                   repository.add(dto)
+               }else{
+                   TODO("Action on creation failure")
+               }
            }
        }
        return repository.toList()

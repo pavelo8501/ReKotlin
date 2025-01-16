@@ -6,7 +6,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import po.db.data_service.binder.UpdateMode
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.models.CommonDTO
+import po.db.data_service.models.EntityDTO
 
 class DaoFactory(private val connection : Database)  {
 
@@ -33,8 +33,8 @@ class DaoFactory(private val connection : Database)  {
         return result
     }
 
-    fun <ENTITY: LongEntity,DATA: DataModel>update(
-        dtoEntity: CommonDTO<DATA>,
+    fun <DATA: DataModel, ENTITY: LongEntity>update(
+        dtoEntity: EntityDTO<DATA, ENTITY>,
         dtoModel : DTOClass<DATA,ENTITY>
     ): LongEntity?{
       val daoEntity =  if(dtoEntity.id == 0L){

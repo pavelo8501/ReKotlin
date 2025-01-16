@@ -3,7 +3,7 @@ package po.db.data_service.scope.service.controls.service_registry
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.models.CommonDTO
+import po.db.data_service.models.EntityDTO
 import kotlin.reflect.KClass
 
 data class ServiceRegistryItem<DATA_MODEL, ENTITY>(
@@ -21,20 +21,19 @@ data class ServiceData<DATA_MODEL, ENTITY>(
     val childDTOModelsData: List<ChildDTOData<*,*>>,
 ) where  DATA_MODEL : DataModel, ENTITY : LongEntity
 
-data class DTOData<DATA_MODEL, ENTITY>(
-    val dtoModelClass: KClass<CommonDTO<DATA_MODEL>>,
-    val dataModelClass: KClass<DATA_MODEL>,
+data class DTOData<DATA, ENTITY>(
+    val dtoModelClass: KClass<EntityDTO<DATA, ENTITY>>,
+    val dataModelClass: KClass<DATA>,
     val daoEntityModel: LongEntityClass<ENTITY>,
-) where  DATA_MODEL : DataModel, ENTITY : LongEntity {
+) where  DATA : DataModel, ENTITY : LongEntity {
    // val dtoModelClass: KClass<out CommonDTO<DATA_MODEL, ENTITY>> get() = dtoModel::class
 }
 
-data class ChildDTOData<CHILD_DATA_MODEL, CHILD_ENTITY>(
-    val dtoModelClass: KClass<CommonDTO<CHILD_DATA_MODEL>>,
-    val dataModelClass: KClass<CHILD_DATA_MODEL>,
+data class ChildDTOData<CHILD_DATA, CHILD_ENTITY>(
+    val dtoModelClass: KClass<EntityDTO<CHILD_DATA, CHILD_ENTITY>>,
+    val dataModelClass: KClass<CHILD_DATA>,
     val daoEntityModel: LongEntityClass<CHILD_ENTITY>,
-   // val childDTOModels: List<ChildDTOData<*,*>>, // <-Here another list of child in order to create tree like structure
-) where  CHILD_DATA_MODEL : DataModel, CHILD_ENTITY : LongEntity{
+) where  CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity{
    // val dtoModelClass: KClass<out CommonDTO<CHILD_DATA_MODEL, CHILD_ENTITY>> get() = dtoModel::class
 }
 

@@ -130,6 +130,7 @@ class Factory<DATA, ENTITY>(
             throw OperationsException("DataModel  creation failed ${ex.message}", ExceptionCodes.REFLECTION_ERROR)
         }
     }
+
     /**
      * Create new instance of  EntityDTO
      * if input param dataModel provided use it as an injection into constructor
@@ -140,24 +141,25 @@ class Factory<DATA, ENTITY>(
     fun createEntityDto(dataModel : DATA? = null): EntityDTO<DATA, ENTITY>? {
         val model = dataModel?: createDataModel()
         try {
-            dtoBlueprint.let { blueprint ->
-                val constructor =  blueprint.getConstructor()
-                blueprint.getArgsForConstructor {paramName->
-                    when (paramName) {
-                        "dataModel" -> {
-                            model
+          val dto =  notify<EntityDTO<DATA, ENTITY>>("EntityDTO created from dtoBlueprint [reflection]"){
+                dtoBlueprint.let { blueprint ->
+                    val constructor =  blueprint.getConstructor()
+                    blueprint.getArgsForConstructor {paramName->
+                        when (paramName) {
+                            "dataModel" -> {
+                                model
+                            }
+                            else -> {
+                                null
+                            }
                         }
-                        else -> {
-                            null
-                        }
+                    }.let {
+                       val newDto = constructor.callBy(it)
+                       newDto
                     }
-                }.let {
-                 val newDto = constructor.callBy(it)
-                 notify("EntityDTO created from dtoBlueprint [reflection]")
-                 return newDto
                 }
             }
-            return null
+            return dto
         }catch (ex: Exception) {
             throw OperationsException("DTO entity creation failed ${ex.message} ", ExceptionCodes.REFLECTION_ERROR)
         }

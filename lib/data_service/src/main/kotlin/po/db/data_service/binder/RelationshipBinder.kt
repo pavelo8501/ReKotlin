@@ -9,7 +9,6 @@ import kotlin.collections.set
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
 
-
 enum class OrdinanceType{
     ONE_TO_ONE,
     ONE_TO_MANY,
@@ -93,7 +92,6 @@ class ChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
         repository.clear()
     }
 
-
     fun copy():ChildContainer<DATA,ENTITY,CHILD_DATA, CHILD_ENTITY>{
         return  ChildContainer<DATA,ENTITY,CHILD_DATA, CHILD_ENTITY>(
             this.childDTOModel,
@@ -161,9 +159,6 @@ class RelationshipBinder<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
     }
 }
 
-
 sealed class BindingContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
     val parentModel: DTOClass<DATA,ENTITY>
-) where DATA : DataModel, ENTITY : LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity{
-
-}
+) where DATA : DataModel, ENTITY : LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity
