@@ -18,9 +18,8 @@ abstract class DAOService<DATA, ENTITY>(
 
    override val eventHandler : EventHandler = EventHandler("DAOService", parent.eventHandler)
 
-    val entityModel : LongEntityClass<ENTITY>
+   val entityModel : LongEntityClass<ENTITY>
         get(){return  parent.entityModel}
-
 
     fun saveNew(
         dto : EntityDTO<DATA, ENTITY>,
@@ -29,11 +28,14 @@ abstract class DAOService<DATA, ENTITY>(
         try {
             val newEntity = entityModel.new {
                 dto.update(this, UpdateMode.MODEL_TO_ENTNTY)
-                block?.invoke(this)
+                block?.let {
+                    it(this)
+                    notify("Block invoked for entity: $this")
+                }
             }
             return newEntity
         }catch (ex: Exception){
-            println(ex.message)
+            notifyError(ex.message?:"Unknown Exception")
             return null
         }
     }

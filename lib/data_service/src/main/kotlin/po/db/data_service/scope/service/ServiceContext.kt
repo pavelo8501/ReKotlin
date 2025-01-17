@@ -7,7 +7,7 @@ import po.db.data_service.dto.DTOClass
 import po.db.data_service.scope.dto.DTOContext
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.models.EntityDTO
-import po.db.data_service.scope.service.models.DaoFactory
+import po.db.data_service.scope.service.enums.WriteMode
 
 class ServiceContext<DATA,ENTITY>(
     private val dbConnection: Database,
@@ -15,8 +15,6 @@ class ServiceContext<DATA,ENTITY>(
 ) where  ENTITY : LongEntity,DATA: DataModel{
 
     val name : String = rootDtoModel.className + "|Service"
-
-    private val daoFactory = DaoFactory(dbConnection)
 
     private fun  <T>dbQuery(body : () -> T): T = transaction(dbConnection) {
         body()
@@ -38,6 +36,7 @@ class ServiceContext<DATA,ENTITY>(
     @JvmName("updateFromDataModels")
     fun DTOClass<DATA, ENTITY>.update(
         dataModels : List<DATA>,
+        writeMode: WriteMode = WriteMode.STRICT,
         block: DTOContext<DATA, ENTITY>.() -> Unit){
         val createdDTOs =  dbQuery {
             create<DATA, ENTITY>(dataModels)

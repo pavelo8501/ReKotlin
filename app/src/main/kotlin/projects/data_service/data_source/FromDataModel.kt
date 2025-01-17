@@ -56,9 +56,9 @@ fun asDataModelDynamically(
                 "Department $a of ${partner.name}",
                 12, "Some street $a",
                 "Riga", "Latvia",
-                "Lv-190$a",
+                "LV-190$a",
                 "26000$i$a",
-                "Department$a@${partner.name}.lv")
+                "Department$a@Partner${i}.lv")
             partner.departments.add(department)
         }
         result.add(partner)

@@ -63,23 +63,43 @@ class ChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
 
     val repository = mutableListOf<EntityDTO<CHILD_DATA, CHILD_ENTITY>>()
 
+    private fun setChildParentRelationship(
+        childEntity: CHILD_ENTITY,
+        parentEntity: ENTITY,
+        property: KMutableProperty1<CHILD_ENTITY, ENTITY>
+    ) {
+        property.set(childEntity, parentEntity)
+    }
+
     fun createFromDataModel(parentDto: EntityDTO<DATA, ENTITY>){
-        childDTOModel.apply {
-            val parentData = parentDto.injectedDataModel
-            val extractedChildModels = childDTOModel.factory.extractDataModel(sourceProperty, parentData)
-            extractedChildModels.forEach { childDataModel->
-                childDTOModel.initDTO<DATA, ENTITY>(childDataModel)
+        println("Creating from DataModel for parent DTO: ${parentDto.id}")
+        val parentData = parentDto.injectedDataModel
+        val extractedChildModels = childDTOModel.factory.extractDataModel(sourceProperty, parentData)
+        extractedChildModels.forEach { childDataModel ->
+            val newDto = childDTOModel.initDTO<DATA, ENTITY>(childDataModel) { childEntity ->
+                referencedOnProperty.set(childEntity, parentDto.entityDAO)
+                println("Set referenced property on child entity: $childEntity with parent: ${parentDto.entityDAO}")
             }
-                create<DATA, ENTITY>(childData, parentDto){
-                    referencedOnProperty.set(it, parentDto.entityDAO )
-                    repository.add(it.dto)
-                }
-
+            if (newDto != null) {
+                repository.add(newDto)
+            }
         }
-
-        repository.add()
-
         parentDto.bindings[thisKey] = this
+
+//
+//        childDTOModel.apply {
+//            val parentData = parentDto.injectedDataModel
+//            val extractedChildModels = childDTOModel.factory.extractDataModel(sourceProperty, parentData)
+//            extractedChildModels.forEach { childDataModel->
+//              val newDto =  childDTOModel.initDTO<DATA, ENTITY>(childDataModel){
+//                    referencedOnProperty.set(it, parentDto.entityDAO )
+//              }
+//              if(newDto!=null){
+//                  repository.add(newDto)
+//              }
+//            }
+//        }
+//        parentDto.bindings[thisKey] = this
     }
 
     fun createFromEntity(
@@ -106,12 +126,12 @@ class ChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
             this.referencedOnProperty,
             this.sourceProperty,
             this.type,
-            this.parentModel).also {
+            this.parentModel,
+            this.thisKey).also {
                it.repository.addAll(this.repository.toList())
         }
 
     }
-
 }
 
 class RelationshipBinder<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(

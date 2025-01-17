@@ -134,30 +134,32 @@ class Factory<DATA, ENTITY>(
      * @input dataModel:  DATA?
      * @return EntityDTO<DATA, ENTITY> or null
      * */
-    fun createEntityDto(dataModel : DATA? = null): EntityDTO<DATA, ENTITY>? {
+    fun createEntityDto(dataModel : DATA? = null): EntityDTO<DATA, ENTITY>?{
         val model = dataModel?: createDataModel()
         try {
-          val dto =  notify<EntityDTO<DATA, ENTITY>>("EntityDTO created from dtoBlueprint [reflection]"){
+            val dto = notify<EntityDTO<DATA, ENTITY>>("EntityDTO created from dtoBlueprint [reflection]") {
                 dtoBlueprint.let { blueprint ->
-                    val constructor =  blueprint.getConstructor()
-                    blueprint.getArgsForConstructor {paramName->
+                    val constructor = blueprint.getConstructor()
+                    blueprint.getArgsForConstructor { paramName ->
                         when (paramName) {
                             "dataModel" -> {
                                 model
                             }
+
                             else -> {
                                 null
                             }
                         }
                     }.let {
-                       val newDto = constructor.callBy(it)
-                       newDto
+                        val newDto = constructor.callBy(it)
+                        newDto
                     }
                 }
             }
             return dto
-        }catch (ex: Exception) {
-            throw OperationsException("DTO entity creation failed ${ex.message} ", ExceptionCodes.REFLECTION_ERROR)
+        }catch (ex: Exception){
+            notifyError(ex.message?:"Unknown exception")
+            return null
         }
     }
 }

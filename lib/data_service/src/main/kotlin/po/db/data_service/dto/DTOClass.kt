@@ -142,19 +142,18 @@ abstract class DTOClass<DATA, ENTITY>(
 
     fun <PARENT_DATA: DataModel, PARENT_ENTITY: LongEntity>initDTO(
         dataModel : DATA,
-        block: ((ENTITY)-> Unit)? = null): EntityDTO<DATA, ENTITY>{
-        val keys = bindings.keys
+        block: ((ENTITY)-> Unit)? = null): EntityDTO<DATA, ENTITY>?{
+       // val keys = bindings.keys
+        notify("Initializing DTO for dataModel: $dataModel with keys: ${bindings.keys}")
         val dto = if(dataModel.id == 0L){
             factory.createEntityDto(dataModel)?.let {newDto->
-                keys.forEach {bindingKey->
-                   bindings[bindingKey]!!.createFromDataModel(newDto)
-                   if(block!= null){
-                       daoService.saveNew(newDto, block)
-                   }
-                   newDto
+                newDto.initialize(this)
+                bindings.keys.forEach { bindingKey ->
+                    bindings[bindingKey]?.createFromDataModel(newDto)
                 }
+                daoService.saveNew(newDto, block)
+                newDto
             }
-            throw OperationsException("Factory Failed to create EntityDTO", ExceptionCodes.REFLECTION_ERROR)
         }else{
             select(dataModel.id)
         }
@@ -267,7 +266,9 @@ abstract class DTOClass<DATA, ENTITY>(
         notify("create() count=${dataModels.count()}") {
             dataModels.forEach {dataModel->
                 val dto = initDTO<PARENT_DATA, PARENT_ENTITY>(dataModel)
-                resultDTOs.add(dto)
+                if(dto!=null){
+                    resultDTOs.add(dto)
+                }
             }
         }
         return CrudResult(resultDTOs.toList(), eventHandler.getEvent())
