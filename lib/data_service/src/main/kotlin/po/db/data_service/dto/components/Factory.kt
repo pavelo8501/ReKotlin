@@ -34,12 +34,11 @@ class Factory<DATA, ENTITY>(
 
     private var dataBlueprint : DataModelBlueprint<DATA>? = null
     private lateinit var entityBlueprint : EntityBlueprint<ENTITY>
-    private val daoBlueprint = DTOBlueprint(entityDTOClass).also { it.initialize(Companion) }
+    private val dtoBlueprint = DTOBlueprint(entityDTOClass).also { it.initialize(Companion) }
 
     private var dataModelConstructor : (() -> DATA)? = null
 
-    override val eventHandler =  EventHandler("${parent.className}:Factory",parent.eventHandler)
-
+    override val eventHandler : EventHandler = EventHandler("Factory", parent.eventHandler)
 
     /**
      * Initializes the blueprints for DataModel, Entity, and DTO based on the provided classes.
@@ -107,15 +106,20 @@ class Factory<DATA, ENTITY>(
     fun createDataModel(constructFn : (() -> DATA)? = null):DATA{
         try{
             constructFn?.let {
+                notify("DataModel created from constructor provided in the createDataModel(constructFn)")
                 return  it.invoke()
             }
             dataModelConstructor?.let {
+                notify("DataModel created from constructor provided in the dataModelConstructor")
                 return it.invoke()
             }
 
             dataBlueprint?.let {
-                val constructor =  it.getConstructor()
-                return  constructor.callBy(it.getArgsForConstructor())
+               val dataModel = notify("DataModel created from dataBlueprint [reflection]"){
+                    val constructor =  it.getConstructor()
+                    constructor.callBy(it.getArgsForConstructor())
+                }
+                return dataModel!!
             }?:run {
                 TODO("Extract DATA blueprint from entityDTOClass as a reserve fallback")
             }
@@ -123,6 +127,7 @@ class Factory<DATA, ENTITY>(
             throw OperationsException("DataModel  creation failed ${ex.message}", ExceptionCodes.REFLECTION_ERROR)
         }
     }
+
     /**
      * Create new instance of  EntityDTO
      * if input param dataModel provided use it as an injection into constructor
@@ -130,28 +135,32 @@ class Factory<DATA, ENTITY>(
      * @input dataModel:  DATA?
      * @return EntityDTO<DATA, ENTITY> or null
      * */
-    fun createEntityDto(dataModel : DATA? = null): EntityDTO<DATA, ENTITY>? {
+    fun createEntityDto(dataModel : DATA? = null): EntityDTO<DATA, ENTITY>?{
         val model = dataModel?: createDataModel()
         try {
-            daoBlueprint.let { blueprint ->
-                val constructor =  blueprint.getConstructor()
-                blueprint.getArgsForConstructor {paramName->
-                    when (paramName) {
-                        "dataModel" -> {
-                            model
+            val dto = notify<EntityDTO<DATA, ENTITY>>("EntityDTO created from dtoBlueprint [reflection]") {
+                dtoBlueprint.let { blueprint ->
+                    val constructor = blueprint.getConstructor()
+                    blueprint.getArgsForConstructor { paramName ->
+                        when (paramName) {
+                            "dataModel" -> {
+                                model
+                            }
+
+                            else -> {
+                                null
+                            }
                         }
-                        else -> {
-                            null
-                        }
+                    }.let {
+                        val newDto = constructor.callBy(it)
+                        newDto
                     }
-                }.let {
-                    notify("LOL")
-                 return  constructor.callBy(it)
                 }
             }
+            return dto
+        }catch (ex: Exception){
+            notifyError(ex.message?:"Unknown exception")
             return null
-        }catch (ex: Exception) {
-            throw OperationsException("DTO entity creation failed ${ex.message} ", ExceptionCodes.REFLECTION_ERROR)
         }
     }
 }

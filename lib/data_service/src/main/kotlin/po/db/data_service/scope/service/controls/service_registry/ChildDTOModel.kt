@@ -3,15 +3,16 @@ package po.db.data_service.scope.service.controls.service_registry
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.models.CommonDTO
+import po.db.data_service.models.EntityDTO
 import kotlin.reflect.KClass
 
-class ChildDTODataBuilder<CHILD_DATA_MODEL, CHILD_ENTITY> where CHILD_DATA_MODEL : DataModel, CHILD_ENTITY : LongEntity   {
-    private var dtoModel: KClass<CommonDTO<CHILD_DATA_MODEL>> ? = null
+class ChildDTODataBuilder<CHILD_DATA_MODEL, CHILD_ENTITY>
+        where CHILD_DATA_MODEL : DataModel, CHILD_ENTITY : LongEntity   {
+    private var dtoModel: KClass<EntityDTO<CHILD_DATA_MODEL, CHILD_ENTITY>> ? = null
     private var dataModelClass: KClass<CHILD_DATA_MODEL>? = null
     private var entityModel: LongEntityClass<CHILD_ENTITY>? = null
 
-    fun setDTOModel(dtoModel: KClass<CommonDTO<CHILD_DATA_MODEL>>) = apply {
+    fun setDTOModel(dtoModel: KClass<EntityDTO<CHILD_DATA_MODEL, CHILD_ENTITY>>) = apply {
         this.dtoModel = dtoModel
     }
 

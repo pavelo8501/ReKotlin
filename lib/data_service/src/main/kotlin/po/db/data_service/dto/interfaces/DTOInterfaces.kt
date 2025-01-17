@@ -1,5 +1,9 @@
 package po.db.data_service.dto.interfaces
 
+import kotlinx.datetime.Clock
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.dao.LongEntity
 import po.db.data_service.controls.Notificator
 
@@ -7,6 +11,11 @@ import po.db.data_service.controls.Notificator
 interface DTOInstance{
   val className : String
   val qualifiedName : String
+
+    fun nowTime(): LocalDateTime {
+        return LocalDateTime.Companion.parse(Clock.System.now().toLocalDateTime(TimeZone.UTC).toString())
+    }
+
 }
 
 interface DTOEntity<DATA: DataModel,ENTITY:LongEntity>{

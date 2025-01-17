@@ -1,7 +1,6 @@
 package po.db.data_service.scope.service
 
 import kotlinx.coroutines.runBlocking
-import kotlinx.datetime.LocalDateTime
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
@@ -10,12 +9,10 @@ import org.jetbrains.exposed.sql.exists
 import org.jetbrains.exposed.sql.transactions.transaction
 import po.db.data_service.components.logger.LoggingService
 import po.db.data_service.components.logger.enums.LogLevel
-import po.db.data_service.constructors.ConstructorBuilder
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.InitializationException
-import java.time.format.DateTimeFormatter
 
 enum  class TableCreateMode{
     CREATE,
@@ -36,7 +33,7 @@ class ServiceClass<DATA, ENTITY>(
         try {
             runBlocking {
                 logger.registerLogFunction(LogLevel.MESSAGE){msg, level, time, throwable->
-                    println("Service${name} Logger|${msg}|${time.toString()}")
+                    println("Service${name} Logger|${msg}|${time}")
                 }
             }
 

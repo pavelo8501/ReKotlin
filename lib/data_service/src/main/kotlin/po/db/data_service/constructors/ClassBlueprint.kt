@@ -58,26 +58,6 @@ abstract class CovariantClassBlueprintBase<T: Any>(): ClassBlueprintBase<T>(){
             "Effective constructor not set", ExceptionCodes.CONSTRUCTOR_MISSING)
     }
 
-//    fun getArgsForConstructor(overrideDefault : ((name:String?)->Any?)? = null): Map<KParameter, Any?>{
-//        getConstructor().let { constructor ->
-//        val args = constructor.parameters.associateWith { param ->
-//            constructorBuilder.let { builder->
-//                if(param.type.isMarkedNullable) {
-//                    null
-//                }else{
-//                    val result = if(overrideDefault == null) {
-//                        builder.getDefaultForType(param.type)
-//                    }else{
-//                        overrideDefault.invoke(param.name)?:builder.getDefaultForType(param.type)
-//                    }
-//                    result
-//                } }
-//            }
-//            this.setParams(args)
-//            return args
-//        }
-//    }
-
     override fun getClass():KClass<out T>{
         return clazz
     }

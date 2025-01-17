@@ -5,9 +5,9 @@ import org.jetbrains.exposed.sql.SizedIterable
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.models.EntityDTO
+import kotlin.collections.set
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
-
 
 enum class OrdinanceType{
     ONE_TO_ONE,
@@ -16,7 +16,6 @@ enum class OrdinanceType{
 }
 
 sealed class BindingKeyBase(val ordinance: OrdinanceType) {
-
     abstract class  ManyToMany<CHILD_DATA: DataModel, CHILD_ENTITY: LongEntity>(
         val childModel : DTOClass<CHILD_DATA,CHILD_ENTITY>
     ):BindingKeyBase(OrdinanceType.MANY_TO_MANY)
@@ -51,34 +50,75 @@ sealed class BindingKeyBase(val ordinance: OrdinanceType) {
 }
 
 class ChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
-    val childDTOModel: DTOClass<CHILD_DATA,CHILD_ENTITY>,
+    val childModel: DTOClass<CHILD_DATA,CHILD_ENTITY>,
     val byProperty: KProperty1<ENTITY, SizedIterable<CHILD_ENTITY>>,
     val referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>,
     val sourceProperty: KProperty1<DATA, Iterable<CHILD_DATA>>,
     val type: OrdinanceType,
-    thisDTOModel: DTOClass<DATA,ENTITY>,
-) : BindingContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(thisDTOModel)
+    parentModel: DTOClass<DATA,ENTITY>,
+
+): BindingContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(parentModel)
         where DATA : DataModel, ENTITY : LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity {
 
-    val repository = mutableListOf<EntityDTO<CHILD_DATA,CHILD_ENTITY>>()
+    val thisKey: BindingKeyBase = BindingKeyBase.createKey(type, childModel)
+    val repository = mutableListOf<EntityDTO<CHILD_DATA, CHILD_ENTITY>>()
 
-    fun createWithParent(parentEntity: EntityDTO<DATA,ENTITY>){
-        childDTOModel.apply {
-            val parentData = parentEntity.injectedDataModel
-            childDTOModel.factory.extractDataModel(sourceProperty, parentData).forEach {childData->
-                create<DATA, ENTITY>(childData){
-                    referencedOnProperty.set(it, parentEntity.entityDAO )
-                }?.let {childDto->
+    fun createFromDataModel(parentDto: EntityDTO<DATA, ENTITY>){
+        val parentData = parentDto.injectedDataModel
+        val extractedChildModels = childModel.factory.extractDataModel(sourceProperty, parentData)
+        extractedChildModels.forEach { childDataModel ->
+            val newDto = childModel.initDTO<DATA, ENTITY>(childDataModel) { childEntity ->
+                referencedOnProperty.set(childEntity, parentDto.entityDAO)
+            }
+            if (newDto != null) {
+                repository.add(newDto)
+            }
+        }
+        parentDto.bindings[thisKey] = this
+    }
+
+    fun createFromEntity(parentDto: EntityDTO<DATA,ENTITY>){
+        childModel.apply {
+            byProperty.get(parentDto.entityDAO).forEach {
+               val childDto = initDTO(it)
+                if(childDto != null){
                     repository.add(childDto)
+                }else{
+                    TODO("Actions to be taken on child dto creation null")
                 }
             }
         }
+        parentDto.bindings[thisKey] = this.copy()
+        repository.clear()
+    }
+
+    fun <DATA: DataModel, ENTITY: LongEntity>deleteChildren(parentDto: EntityDTO<DATA,ENTITY>){
+        val binding =  parentDto.bindings[thisKey]
+        if (binding != null){
+            binding.repository.forEach {
+               @Suppress("UNCHECKED_CAST")
+               childModel.delete(it as EntityDTO<CHILD_DATA, CHILD_ENTITY>)
+            }
+        }
+    }
+
+    fun copy():ChildContainer<DATA,ENTITY,CHILD_DATA, CHILD_ENTITY>{
+        return  ChildContainer<DATA,ENTITY,CHILD_DATA, CHILD_ENTITY>(
+            this.childModel,
+            this.byProperty,
+            this.referencedOnProperty,
+            this.sourceProperty,
+            this.type,
+            this.parentModel).also {
+               it.repository.addAll(this.repository.toList())
+        }
+
     }
 }
 
 class RelationshipBinder<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
    val parentModel: DTOClass<DATA, ENTITY>
-) where ENTITY : LongEntity, DATA: DataModel, CHILD_DATA : DataModel, CHILD_ENTITY: LongEntity {
+) where DATA: DataModel, ENTITY : LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY: LongEntity {
 
     private var childBindings = mapOf<BindingKeyBase, ChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>>()
 
@@ -105,22 +145,20 @@ class RelationshipBinder<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
         if(!childModel.initialized){
             childModel.initialization()
         }
+
         val container = ChildContainer<DATA, ENTITY,CHILD_DATA, CHILD_ENTITY>(
             childModel,
             byProperty,
             referencedOnProperty,
             sourceProperty,
             OrdinanceType.ONE_TO_MANY,
-            parentModel
-        ).also{
-            val key = BindingKeyBase.createKey(OrdinanceType.ONE_TO_MANY, childModel)
-            attachBinding(key, it)
-            parentModel.bindings[key] = it
-        }
+            parentModel)
+
         if(body!=null){
             container.body()
         }
-
+        attachBinding(container.thisKey, container)
+        parentModel.bindings[container.thisKey] = container
     }
 
     fun bindings(): List<ChildContainer<DATA,ENTITY,CHILD_DATA, CHILD_ENTITY>>{
@@ -128,9 +166,6 @@ class RelationshipBinder<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
     }
 }
 
-
 sealed class BindingContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
     val parentModel: DTOClass<DATA,ENTITY>
-) where DATA : DataModel, ENTITY : LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity{
-
-}
+) where DATA : DataModel, ENTITY : LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity

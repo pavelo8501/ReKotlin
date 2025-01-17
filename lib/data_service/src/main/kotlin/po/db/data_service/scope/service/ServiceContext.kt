@@ -4,60 +4,64 @@ import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction
 import po.db.data_service.dto.DTOClass
+import po.db.data_service.scope.dto.DTOContext
 import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.models.CommonDTO
 import po.db.data_service.models.EntityDTO
-import po.db.data_service.scope.service.models.DaoFactory
+import po.db.data_service.scope.service.enums.WriteMode
 
 class ServiceContext<DATA,ENTITY>(
     private val dbConnection: Database,
     private val rootDtoModel : DTOClass<DATA,ENTITY>,
 ) where  ENTITY : LongEntity,DATA: DataModel{
 
-    val name : String = rootDtoModel.className + "|Service"
-
-    private val daoFactory = DaoFactory(dbConnection)
+    val name : String = "${rootDtoModel.className}|Service"
 
     private fun  <T>dbQuery(body : () -> T): T = transaction(dbConnection) {
         body()
     }
 
-    private fun <T> service(statement: ServiceContext<DATA,ENTITY>.() -> T): T = statement.invoke(this)
-    fun <T> context(serviceBody: ServiceContext<DATA,ENTITY>.() -> T): T = service{
+    private fun <T> service(statement: ServiceContext<DATA, ENTITY>.() -> T): T = statement.invoke(this)
+    fun <T> context(serviceBody: ServiceContext<DATA, ENTITY>.() -> T): T = service{
         serviceBody()
     }
 
-    fun DTOClass<DATA,ENTITY>.select(block: DTOClass<DATA,ENTITY>.() -> Unit): Unit {
-        daoFactory.all(this).forEach {
-            dbQuery {
-                //this.create(it)
-            }
+    fun DTOClass<DATA, ENTITY>.select(block: DTOContext<DATA, ENTITY>.() -> Unit){
+        val selectedDTOs = dbQuery {
+           select()
         }
-        this.block()
+        val context  = DTOContext(selectedDTOs)
+        context.block()
     }
 
-    @JvmName("updateDataModels")
-    fun DTOClass<DATA,ENTITY>.update(dataModels : List<DATA> , block: DTOClass<DATA,ENTITY>.() -> Unit): Unit {
-        dbQuery{
-            dataModels.forEach {
-               val result =  create<DATA, ENTITY>(it)
-               val a =10
-            }
+    @JvmName("updateFromDataModels")
+    fun DTOClass<DATA, ENTITY>.update(
+        dataModels : List<DATA>,
+        writeMode: WriteMode = WriteMode.STRICT,
+        block: DTOContext<DATA, ENTITY>.() -> Unit){
+        val createdDTOs =  dbQuery {
+            update<DATA, ENTITY>(dataModels)
         }
-        this.block()
+        val context = DTOContext(createdDTOs)
+        context.block()
     }
 
-    fun DTOClass<DATA,ENTITY>.update(
-        dataModes : List<EntityDTO<DATA,ENTITY> >,
-        block: DTOClass<DATA,ENTITY>.() -> Unit
+    fun DTOClass<DATA, ENTITY>.update(
+        dtoList : List<EntityDTO<DATA, ENTITY>>,
+        block: DTOClass<DATA, ENTITY>.() -> Unit
     ){
-        dataModes.forEach {
-            initDTO(it)
-        }
-        this.block()
+        TODO("To implement update variance if EntityDTO list is supplied")
     }
 
-    fun DTOClass<DATA,ENTITY>.sequence(name:String):DTOClass<DATA,ENTITY>{
+    fun DTOClass<DATA, ENTITY>.delete(toDelete: DATA, block: DTOContext<DATA, ENTITY>.() -> Unit){
+        val selectedDTOs = dbQuery {
+            delete<DATA, ENTITY>(toDelete)
+        }
+        val context  = DTOContext(selectedDTOs)
+        context.block()
+    }
+
+
+    fun DTOClass<DATA, ENTITY>.sequence(name:String):DTOClass<DATA, ENTITY>{
         return this
     }
 }
