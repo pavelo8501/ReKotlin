@@ -13,6 +13,8 @@ abstract class AbstractOperationResult : OperationResult {
     override fun isSuccess(): Boolean = true
 }
 
+
+
 data class CrudResultSingle<DATA, ENTITY>(
     val dto: EntityDTO<DATA, ENTITY>,
     val event: Event?
