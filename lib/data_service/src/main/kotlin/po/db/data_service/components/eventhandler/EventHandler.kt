@@ -50,19 +50,14 @@ sealed class EventHandlerBase(
     }
 
     @Synchronized
-    fun handleEvent(event: Event): Event{
-        val startMills = System.currentTimeMillis()
-        val processedEvent = if (parentHandler == null) {
+    fun handleEvent(event: Event){
+        if (parentHandler == null) {
             registerEvent(event)
-            event
         } else {
             parentHandler.currentEvent?.let { hostingEvent ->
                 hostingEvent.subEvents.add(event)
-                event
             } ?: parentHandler.handleEvent(event)
         }
-        processedEvent.setElapsed(System.currentTimeMillis() - startMills)
-        return processedEvent
     }
 
     /**
@@ -74,7 +69,8 @@ sealed class EventHandlerBase(
 
     fun <T: Any>notify(message: String, fn:()-> T?):T?{
         val startMills = System.nanoTime()
-        val event = handleEvent(Event(routedName, message, EventType.INFO, startMills))
+        val event = Event(routedName, message, EventType.INFO, startMills)
+        handleEvent(event)
         val res =  fn.invoke()
         val elapsedMills = (System.nanoTime() - startMills)
         event.setElapsed(elapsedMills)

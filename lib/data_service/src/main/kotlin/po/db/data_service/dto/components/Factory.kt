@@ -115,10 +115,11 @@ class Factory<DATA, ENTITY>(
             }
 
             dataBlueprint?.let {
-                val constructor =  it.getConstructor()
-                val newDataModel =  constructor.callBy(it.getArgsForConstructor())
-                notify("DataModel created from dataBlueprint [reflection]")
-                return newDataModel
+               val dataModel = notify("DataModel created from dataBlueprint [reflection]"){
+                    val constructor =  it.getConstructor()
+                    constructor.callBy(it.getArgsForConstructor())
+                }
+                return dataModel!!
             }?:run {
                 TODO("Extract DATA blueprint from entityDTOClass as a reserve fallback")
             }

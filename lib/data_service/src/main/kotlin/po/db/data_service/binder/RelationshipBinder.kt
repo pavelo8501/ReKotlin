@@ -77,12 +77,10 @@ class ChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
         parentDto.bindings[thisKey] = this
     }
 
-    fun createFromEntity(
-        parentDto: EntityDTO<DATA,ENTITY>,
-        key: BindingKeyBase){
+    fun createFromEntity(parentDto: EntityDTO<DATA,ENTITY>){
         childModel.apply {
             byProperty.get(parentDto.entityDAO).forEach {
-               val childDto = create(it)
+               val childDto = initDTO(it)
                 if(childDto != null){
                     repository.add(childDto)
                 }else{
@@ -90,8 +88,18 @@ class ChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
                 }
             }
         }
-        parentDto.bindings[key] = this.copy()
+        parentDto.bindings[thisKey] = this.copy()
         repository.clear()
+    }
+
+    fun <DATA: DataModel, ENTITY: LongEntity>deleteChildren(parentDto: EntityDTO<DATA,ENTITY>){
+        val binding =  parentDto.bindings[thisKey]
+        if (binding != null){
+            binding.repository.forEach {
+               @Suppress("UNCHECKED_CAST")
+               childModel.delete(it as EntityDTO<CHILD_DATA, CHILD_ENTITY>)
+            }
+        }
     }
 
     fun copy():ChildContainer<DATA,ENTITY,CHILD_DATA, CHILD_ENTITY>{

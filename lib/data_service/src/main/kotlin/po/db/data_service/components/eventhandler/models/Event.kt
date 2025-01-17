@@ -16,8 +16,8 @@ data class Event(
     val elapsedTime: String
         get(){
             elapsedMills?.let {
-                val timeInSeconds : Float  = (it / 100f)
-                return "Elapsed time $timeInSeconds sec."
+                val timeInSeconds : Float  = (it / 1000f)
+                return "Elapsed time $timeInSeconds ms."
             }
             return "Elapsed time - N/A"
         }

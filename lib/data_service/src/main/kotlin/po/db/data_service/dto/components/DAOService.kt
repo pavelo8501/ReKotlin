@@ -21,10 +21,7 @@ class DAOService<DATA, ENTITY>(
    val entityModel : LongEntityClass<ENTITY>
         get(){return  parent.entityModel}
 
-    fun saveNew(
-        dto : EntityDTO<DATA, ENTITY>,
-        block: ((ENTITY)-> Unit)? = null
-    ): ENTITY? {
+    fun saveNew(dto : EntityDTO<DATA, ENTITY>, block: ((ENTITY)-> Unit)? = null): ENTITY? {
         try {
             val entity = notify("saveNew() for dto ${dto.sourceModel.className}"){
                 val newEntity = entityModel.new {
@@ -42,35 +39,37 @@ class DAOService<DATA, ENTITY>(
         }
     }
 
-    fun updateExistent(
-        dto : EntityDTO<DATA, ENTITY>,
-        entityModel: LongEntityClass<ENTITY>
-    ){
+    fun updateExistent(dto : EntityDTO<DATA, ENTITY>){
         try {
-            val entity = selectWhere(dto.id, entityModel)
+            val entity = selectWhere(dto.id)
             dto.update(entity, UpdateMode.MODEL_TO_ENTNTY)
         }catch (ex: Exception){
             println(ex.message)
         }
     }
 
-    fun selectAll(
-        entityModel: LongEntityClass<ENTITY>
-    ): SizedIterable<ENTITY>{
+    fun selectAll(): SizedIterable<ENTITY>{
         try {
-            return entityModel.all()
+           val entities = notify("selectAll() for dtoModel ${parent.className}") {
+                entityModel.all()
+            }
+            return entities!!
         }catch (ex: Exception){
             println(ex.message)
             throw ex
         }
     }
 
-    fun  selectWhere(
-        id: Long,  entityModel: LongEntityClass<ENTITY>
-    ): ENTITY{
+    fun  selectWhere(id: Long): ENTITY{
         if(id == 0L) throw OperationsException("Id should be greater than 0", ExceptionCodes.INVALID_DATA)
-        val entity = entityModel[id]
-        return entity
+        val entity = notify("selectAll() for dtoModel ${parent.className}") {
+            entityModel[id]
+        }
+        return entity!!
+    }
+
+    fun delete(dto : EntityDTO<DATA, ENTITY>){
+        dto.entityDAO.delete()
     }
 
 }

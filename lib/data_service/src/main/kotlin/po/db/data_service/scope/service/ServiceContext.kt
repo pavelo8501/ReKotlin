@@ -14,7 +14,7 @@ class ServiceContext<DATA,ENTITY>(
     private val rootDtoModel : DTOClass<DATA,ENTITY>,
 ) where  ENTITY : LongEntity,DATA: DataModel{
 
-    val name : String = rootDtoModel.className + "|Service"
+    val name : String = "${rootDtoModel.className}|Service"
 
     private fun  <T>dbQuery(body : () -> T): T = transaction(dbConnection) {
         body()
@@ -39,7 +39,7 @@ class ServiceContext<DATA,ENTITY>(
         writeMode: WriteMode = WriteMode.STRICT,
         block: DTOContext<DATA, ENTITY>.() -> Unit){
         val createdDTOs =  dbQuery {
-            create<DATA, ENTITY>(dataModels)
+            update<DATA, ENTITY>(dataModels)
         }
         val context = DTOContext(createdDTOs)
         context.block()
@@ -51,6 +51,15 @@ class ServiceContext<DATA,ENTITY>(
     ){
         TODO("To implement update variance if EntityDTO list is supplied")
     }
+
+    fun DTOClass<DATA, ENTITY>.delete(toDelete: DATA, block: DTOContext<DATA, ENTITY>.() -> Unit){
+        val selectedDTOs = dbQuery {
+            delete<DATA, ENTITY>(toDelete)
+        }
+        val context  = DTOContext(selectedDTOs)
+        context.block()
+    }
+
 
     fun DTOClass<DATA, ENTITY>.sequence(name:String):DTOClass<DATA, ENTITY>{
         return this

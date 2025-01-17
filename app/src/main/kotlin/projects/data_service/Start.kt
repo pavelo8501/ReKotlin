@@ -14,13 +14,25 @@ fun startDataService(connectionInfo : ConnectionInfo) {
 
     val selected =  mutableListOf<EntityDTO<PartnerDataModel, PartnerEntity>>()
 
+    var toDelete : EntityDTO<PartnerDataModel, PartnerEntity>? = null
+
     val dbManager =  DatabaseManager
     val connection = dbManager.openConnection(connectionInfo){
-        service<PartnerDataModel, PartnerEntity>(PartnerDTO, TableCreateMode.FORCE_RECREATE){
+        service<PartnerDataModel, PartnerEntity>(PartnerDTO, TableCreateMode.CREATE){
 
-            PartnerDTO.update(asDataModelDynamically(partnerCount = 2, departmentCount = 2), WriteMode.RELAXED){
-                getStats()
+            PartnerDTO.select{
+                toDelete = result()[0]
             }
+
+            if(toDelete!= null){
+                PartnerDTO.delete(toDelete.injectedDataModel){
+
+                }
+            }
+
+//            PartnerDTO.update(asDataModelDynamically(partnerCount = 4, departmentCount = 5), WriteMode.RELAXED){
+//                getStats()
+//            }
 
         }
     }
