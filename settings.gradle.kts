@@ -6,6 +6,7 @@ pluginManagement {
     plugins{
         id("com.google.devtools.ksp") version "2.0.21-1.0.25" apply false
         id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
+        id("io.gitlab.arturbosch.detekt") version "1.23.7"
         kotlin("plugin.serialization")  version "2.0.21" apply false
         kotlin("jvm") version "2.0.21" apply false
 
@@ -20,7 +21,14 @@ pluginManagement {
 
 
 //includeBuild("build-logic")
-include("app", "lib:rest_service", "lib:ws_service", "lib:data_service", "lib:tg_components", "lib:function_processor", "lib:binder")
+include(
+    "app",
+    "lib:rest_service",
+    "lib:ws_service",
+    "lib:data_service",
+    "lib:tg_components",
+    "lib:function_processor",
+    "lib:binder")
 
 project(":lib:rest_service").also {
     it.name = "RestApiServerWrapper"

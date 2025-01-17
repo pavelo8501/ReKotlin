@@ -14,7 +14,6 @@ abstract class AbstractOperationResult : OperationResult {
 }
 
 
-
 data class CrudResultSingle<DATA, ENTITY>(
     val dto: EntityDTO<DATA, ENTITY>,
     val event: Event?

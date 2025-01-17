@@ -1,16 +1,19 @@
 
-//import org.jetbrains.kotlin
-
-val kotlinVersion: String by project
-val ktorVersion: String by project
-val kotlinSerializationVersion: String by project
-val junitVersion: String by project
-val logbackClassicVersion: String by project
-
 plugins {
     kotlin("jvm")  version "2.0.21"
     id("com.google.devtools.ksp")
 }
+
+buildscript {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    dependencies {
+        classpath("io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.23.7")
+    }
+}
+
 
 allprojects {
     repositories {
@@ -21,6 +24,7 @@ allprojects {
 
 subprojects {
 
+    apply(plugin = "io.gitlab.arturbosch.detekt")
     apply(plugin = "org.jetbrains.kotlin.jvm")
     apply(plugin = "com.google.devtools.ksp")
 
@@ -32,5 +36,7 @@ subprojects {
         }
     }
 }
+
+
 
 

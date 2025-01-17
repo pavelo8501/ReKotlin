@@ -24,11 +24,11 @@ fun startDataService(connectionInfo : ConnectionInfo) {
                 toDelete = result()[0]
             }
 
-            if(toDelete!= null){
-                PartnerDTO.delete(toDelete.injectedDataModel){
-
-                }
-            }
+//            if(toDelete!= null){
+//                PartnerDTO.delete(toDelete.injectedDataModel){
+//
+//                }
+//            }
 
 //            PartnerDTO.update(asDataModelDynamically(partnerCount = 4, departmentCount = 5), WriteMode.RELAXED){
 //                getStats()

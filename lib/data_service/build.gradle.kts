@@ -14,10 +14,26 @@ val daoServiceVersion: String by project
 plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
+
    `maven-publish`
 }
 
 version = daoServiceVersion
+
+detekt {
+    toolVersion = "1.23.7"
+    config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
+    buildUponDefaultConfig = true // Merge with Detekt's default rules
+
+    tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
+        reports {
+            html.required.set(true)
+            xml.required.set(true)
+            txt.required.set(false)
+        }
+    }
+
+}
 
 repositories {
     mavenCentral()
