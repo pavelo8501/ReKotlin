@@ -12,7 +12,7 @@ import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.OperationsException
 import po.db.data_service.models.EntityDTO
 
-abstract class DAOService<DATA, ENTITY>(
+class DAOService<DATA, ENTITY>(
   private val parent : DTOClass<DATA, ENTITY>
 ): CanNotify where  DATA : DataModel,  ENTITY : LongEntity {
 
@@ -26,14 +26,16 @@ abstract class DAOService<DATA, ENTITY>(
         block: ((ENTITY)-> Unit)? = null
     ): ENTITY? {
         try {
-            val newEntity = entityModel.new {
-                dto.update(this, UpdateMode.MODEL_TO_ENTNTY)
-                block?.let {
-                    it(this)
-                    notify("Block invoked for entity: $this")
+            val entity = notify("saveNew() for dto ${dto.sourceModel.className}"){
+                val newEntity = entityModel.new {
+                    dto.update(this, UpdateMode.MODEL_TO_ENTNTY)
+                    block?.let {
+                        it(this)
+                    }
                 }
+                newEntity
             }
-            return newEntity
+            return entity
         }catch (ex: Exception){
             notifyError(ex.message?:"Unknown Exception")
             return null

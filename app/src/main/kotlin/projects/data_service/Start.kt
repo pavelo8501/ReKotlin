@@ -18,13 +18,15 @@ fun startDataService(connectionInfo : ConnectionInfo) {
     val connection = dbManager.openConnection(connectionInfo){
         service<PartnerDataModel, PartnerEntity>(PartnerDTO, TableCreateMode.FORCE_RECREATE){
 
-            PartnerDTO.update(asDataModelDynamically(partnerCount =  2, departmentCount =  4), WriteMode.RELAXED){
+            PartnerDTO.update(asDataModelDynamically(partnerCount = 2, departmentCount = 2), WriteMode.RELAXED){
                 getStats()
             }
+
         }
     }
-    println(selected)
-    val a = 10
+
+   println(selected)
+
    if(connection){
        println("Connection OK")
    }else{

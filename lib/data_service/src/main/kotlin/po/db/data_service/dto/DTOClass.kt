@@ -3,7 +3,6 @@ package po.db.data_service.dto
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.IdTable
-import org.jetbrains.exposed.sql.SizedIterable
 import po.db.data_service.binder.BindingKeyBase
 import po.db.data_service.binder.ChildContainer
 import po.db.data_service.binder.OrdinanceType
@@ -13,7 +12,6 @@ import po.db.data_service.components.eventhandler.interfaces.CanNotify
 import po.db.data_service.dto.components.DAOService
 import po.db.data_service.dto.components.DTOConfig
 import po.db.data_service.dto.components.Factory
-import po.db.data_service.dto.interfaces.DTOEntity
 import po.db.data_service.dto.interfaces.DTOInstance
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
@@ -26,58 +24,6 @@ import kotlin.reflect.KClass
 abstract class DTOClass<DATA, ENTITY>(
     val sourceClass: KClass<out EntityDTO<DATA, ENTITY>>
 ): DTOInstance, CanNotify  where DATA : DataModel, ENTITY : LongEntity{
-
-
-//    companion object{
-//
-//        protected fun <DATA: DataModel,ENTITY: LongEntity> saveNew(
-//            dto : EntityDTO<DATA, ENTITY>,
-//            entityModel: LongEntityClass<ENTITY>,
-//            block: ((ENTITY)-> Unit)? = null
-//        ): ENTITY? {
-//            try {
-//              val newEntity = entityModel.new {
-//                  dto.update(this, UpdateMode.MODEL_TO_ENTNTY)
-//                  block?.invoke(this)
-//              }
-//              return newEntity
-//            }catch (ex: Exception){
-//                println(ex.message)
-//                return null
-//            }
-//        }
-//
-//        protected fun <DATA: DataModel,ENTITY: LongEntity>updateExistent(
-//            dto : EntityDTO<DATA, ENTITY>,
-//            entityModel: LongEntityClass<ENTITY>
-//        ){
-//            try {
-//                val entity = selectWhere(dto.id, entityModel)
-//                dto.update(entity, UpdateMode.MODEL_TO_ENTNTY)
-//            }catch (ex: Exception){
-//                println(ex.message)
-//            }
-//        }
-//
-//        protected fun <ENTITY: LongEntity> selectAll(
-//            entityModel: LongEntityClass<ENTITY>
-//        ): SizedIterable<ENTITY>{
-//            try {
-//                return entityModel.all()
-//            }catch (ex: Exception){
-//                println(ex.message)
-//                throw ex
-//            }
-//        }
-//
-//        protected fun <ENTITY: LongEntity> selectWhere(
-//            id: Long,  entityModel: LongEntityClass<ENTITY>
-//        ): ENTITY{
-//            if(id == 0L) throw OperationsException("Id should be greater than 0", ExceptionCodes.INVALID_DATA)
-//            val entity = entityModel[id]
-//            return entity
-//        }
-//    }
 
     override val qualifiedName  = sourceClass.qualifiedName.toString()
     override val className  = sourceClass.simpleName.toString()
@@ -95,7 +41,7 @@ abstract class DTOClass<DATA, ENTITY>(
                 ExceptionCodes.LAZY_NOT_INITIALIZED)
         }
 
-    val daoService  = object : DAOService<DATA, ENTITY>(this){}
+    val daoService  =  DAOService<DATA, ENTITY>(this)
 
     val bindings = mutableMapOf<BindingKeyBase, ChildContainer<DATA, ENTITY, *, *>>()
 
@@ -105,7 +51,7 @@ abstract class DTOClass<DATA, ENTITY>(
        val result = mutableListOf<IdTable<Long>>()
        result.add(this.entityModel.table)
        bindings.values.forEach {
-           result.add(it.childDTOModel.entityModel.table)
+           result.add(it.childModel.entityModel.table)
        }
        return result
     }
@@ -139,19 +85,17 @@ abstract class DTOClass<DATA, ENTITY>(
         conf.block()
     }
 
-
     fun <PARENT_DATA: DataModel, PARENT_ENTITY: LongEntity>initDTO(
         dataModel : DATA,
         block: ((ENTITY)-> Unit)? = null): EntityDTO<DATA, ENTITY>?{
-       // val keys = bindings.keys
         notify("Initializing DTO for dataModel: $dataModel with keys: ${bindings.keys}")
         val dto = if(dataModel.id == 0L){
             factory.createEntityDto(dataModel)?.let {newDto->
                 newDto.initialize(this)
+                daoService.saveNew(newDto, block)
                 bindings.keys.forEach { bindingKey ->
                     bindings[bindingKey]?.createFromDataModel(newDto)
                 }
-                daoService.saveNew(newDto, block)
                 newDto
             }
         }else{

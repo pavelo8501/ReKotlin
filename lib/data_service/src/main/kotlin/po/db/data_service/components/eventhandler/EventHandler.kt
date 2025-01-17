@@ -73,10 +73,10 @@ sealed class EventHandlerBase(
     }
 
     fun <T: Any>notify(message: String, fn:()-> T?):T?{
-        val startMills = System.currentTimeMillis()
-        val event = handleEvent(Event(routedName, message, EventType.INFO,  System.currentTimeMillis()))
+        val startMills = System.nanoTime()
+        val event = handleEvent(Event(routedName, message, EventType.INFO, startMills))
         val res =  fn.invoke()
-        val elapsedMills = ( System.currentTimeMillis() - startMills)
+        val elapsedMills = (System.nanoTime() - startMills)
         event.setElapsed(elapsedMills)
         return res
     }

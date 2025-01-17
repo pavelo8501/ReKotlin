@@ -46,7 +46,7 @@ class ServiceContext<DATA,ENTITY>(
     }
 
     fun DTOClass<DATA, ENTITY>.update(
-        dataModels : List<EntityDTO<DATA, ENTITY>>,
+        dtoList : List<EntityDTO<DATA, ENTITY>>,
         block: DTOClass<DATA, ENTITY>.() -> Unit
     ){
         TODO("To implement update variance if EntityDTO list is supplied")
