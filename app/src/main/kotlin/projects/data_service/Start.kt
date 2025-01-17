@@ -2,7 +2,7 @@ package po.playground.projects.data_service
 
 import po.db.data_service.DatabaseManager
 import po.db.data_service.controls.ConnectionInfo
-import po.db.data_service.models.EntityDTO
+import po.db.data_service.models.CommonDTO
 import po.db.data_service.scope.service.TableCreateMode
 import po.db.data_service.scope.service.enums.WriteMode
 import po.playground.projects.data_service.data_source.asDataModelDynamically
@@ -12,9 +12,9 @@ import po.playground.projects.data_service.dto.PartnerEntity
 
 fun startDataService(connectionInfo : ConnectionInfo) {
 
-    val selected =  mutableListOf<EntityDTO<PartnerDataModel, PartnerEntity>>()
+    val selected =  mutableListOf<CommonDTO<PartnerDataModel, PartnerEntity>>()
 
-    var toDelete : EntityDTO<PartnerDataModel, PartnerEntity>? = null
+    var toDelete : CommonDTO<PartnerDataModel, PartnerEntity>? = null
 
     val dbManager =  DatabaseManager
     val connection = dbManager.openConnection(connectionInfo){

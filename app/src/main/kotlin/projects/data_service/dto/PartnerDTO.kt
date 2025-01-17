@@ -8,7 +8,7 @@ import po.db.data_service.binder.PropertyBinding
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.interfaces.DTOModel
 import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.models.EntityDTO
+import po.db.data_service.models.CommonDTO
 import po.playground.projects.data_service.services.Departments
 import po.playground.projects.data_service.services.Partners
 
@@ -37,7 +37,7 @@ data class PartnerDataModel(
 
 class PartnerDTO(
     override val dataModel: PartnerDataModel,
-): EntityDTO<PartnerDataModel, PartnerEntity>(dataModel), DTOModel{
+): CommonDTO<PartnerDataModel, PartnerEntity>(dataModel), DTOModel{
 
     companion object: DTOClass<PartnerDataModel, PartnerEntity>(PartnerDTO::class) {
          override fun setup() {

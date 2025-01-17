@@ -3,7 +3,7 @@ package po.db.data_service.scope.service.controls.service_registry
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.models.EntityDTO
+import po.db.data_service.models.CommonDTO
 import kotlin.reflect.KClass
 
 data class ServiceRegistryItem<DATA_MODEL, ENTITY>(
@@ -22,7 +22,7 @@ data class ServiceData<DATA_MODEL, ENTITY>(
 ) where  DATA_MODEL : DataModel, ENTITY : LongEntity
 
 data class DTOData<DATA, ENTITY>(
-    val dtoModelClass: KClass<EntityDTO<DATA, ENTITY>>,
+    val dtoModelClass: KClass<CommonDTO<DATA, ENTITY>>,
     val dataModelClass: KClass<DATA>,
     val daoEntityModel: LongEntityClass<ENTITY>,
 ) where  DATA : DataModel, ENTITY : LongEntity {
@@ -30,7 +30,7 @@ data class DTOData<DATA, ENTITY>(
 }
 
 data class ChildDTOData<CHILD_DATA, CHILD_ENTITY>(
-    val dtoModelClass: KClass<EntityDTO<CHILD_DATA, CHILD_ENTITY>>,
+    val dtoModelClass: KClass<CommonDTO<CHILD_DATA, CHILD_ENTITY>>,
     val dataModelClass: KClass<CHILD_DATA>,
     val daoEntityModel: LongEntityClass<CHILD_ENTITY>,
 ) where  CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity{

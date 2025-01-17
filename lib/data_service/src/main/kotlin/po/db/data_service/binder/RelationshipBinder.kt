@@ -4,7 +4,7 @@ import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.SizedIterable
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.models.EntityDTO
+import po.db.data_service.models.CommonDTO
 import kotlin.collections.set
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
@@ -61,9 +61,9 @@ class ChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
         where DATA : DataModel, ENTITY : LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity {
 
     val thisKey: BindingKeyBase = BindingKeyBase.createKey(type, childModel)
-    val repository = mutableListOf<EntityDTO<CHILD_DATA, CHILD_ENTITY>>()
+    val repository = mutableListOf<CommonDTO<CHILD_DATA, CHILD_ENTITY>>()
 
-    fun createFromDataModel(parentDto: EntityDTO<DATA, ENTITY>){
+    fun createFromDataModel(parentDto: CommonDTO<DATA, ENTITY>){
         val parentData = parentDto.injectedDataModel
         val extractedChildModels = childModel.factory.extractDataModel(sourceProperty, parentData)
         extractedChildModels.forEach { childDataModel ->
@@ -77,7 +77,7 @@ class ChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
         parentDto.bindings[thisKey] = this
     }
 
-    fun createFromEntity(parentDto: EntityDTO<DATA,ENTITY>){
+    fun createFromEntity(parentDto: CommonDTO<DATA,ENTITY>){
         childModel.apply {
             byProperty.get(parentDto.entityDAO).forEach {
                val childDto = initDTO(it)
@@ -92,12 +92,12 @@ class ChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
         repository.clear()
     }
 
-    fun <DATA: DataModel, ENTITY: LongEntity>deleteChildren(parentDto: EntityDTO<DATA,ENTITY>){
+    fun <DATA: DataModel, ENTITY: LongEntity>deleteChildren(parentDto: CommonDTO<DATA,ENTITY>){
         val binding =  parentDto.bindings[thisKey]
         if (binding != null){
             binding.repository.forEach {
                @Suppress("UNCHECKED_CAST")
-               childModel.delete(it as EntityDTO<CHILD_DATA, CHILD_ENTITY>)
+               childModel.delete(it as CommonDTO<CHILD_DATA, CHILD_ENTITY>)
             }
         }
     }

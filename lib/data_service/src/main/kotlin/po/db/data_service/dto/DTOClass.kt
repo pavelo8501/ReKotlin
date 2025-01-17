@@ -17,11 +17,11 @@ import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.OperationsException
 import po.db.data_service.models.CrudResult
-import po.db.data_service.models.EntityDTO
+import po.db.data_service.models.CommonDTO
 import kotlin.reflect.KClass
 
 abstract class DTOClass<DATA, ENTITY>(
-    val sourceClass: KClass<out EntityDTO<DATA, ENTITY>>
+    val sourceClass: KClass<out CommonDTO<DATA, ENTITY>>
 ): DTOInstance, CanNotify  where DATA : DataModel, ENTITY : LongEntity{
 
     override val qualifiedName  = sourceClass.qualifiedName.toString()
@@ -92,7 +92,7 @@ abstract class DTOClass<DATA, ENTITY>(
      */
     fun <PARENT_DATA: DataModel, PARENT_ENTITY: LongEntity>initDTO(
         dataModel : DATA,
-        block: ((ENTITY)-> Unit)? = null): EntityDTO<DATA, ENTITY>?{
+        block: ((ENTITY)-> Unit)? = null): CommonDTO<DATA, ENTITY>?{
         notify("Initializing DTO for dataModel: $dataModel with keys: ${bindings.keys}")
         val dto = if(dataModel.id == 0L){
             factory.createEntityDto(dataModel)?.let {newDto->
@@ -118,7 +118,7 @@ abstract class DTOClass<DATA, ENTITY>(
      * @return The initialized DTO or null if the creation process fails.
      * @throws OperationsException if the model is not properly initialized.
      */
-    fun initDTO(entity: ENTITY): EntityDTO<DATA, ENTITY>?{
+    fun initDTO(entity: ENTITY): CommonDTO<DATA, ENTITY>?{
         if(initialized == false){
             throw OperationsException(
                 "Calling create(entity.id=${entity.id.value}) on model uninitialized",
@@ -141,7 +141,7 @@ abstract class DTOClass<DATA, ENTITY>(
      * @return A [CrudResult] containing a list of initialized DTOs and associated events.
      */
     fun select(): CrudResult<DATA, ENTITY> {
-       val repository = mutableListOf<EntityDTO<DATA, ENTITY>>()
+       val repository = mutableListOf<CommonDTO<DATA, ENTITY>>()
        notify("select()"){
            val entities = daoService.selectAll()
            entities.forEach {
@@ -162,7 +162,7 @@ abstract class DTOClass<DATA, ENTITY>(
      * @return A [CrudResult] containing a list of initialized DTOs and associated events.
      */
     fun <PARENT_DATA: DataModel, PARENT_ENTITY: LongEntity>update(dataModels: List<DATA>): CrudResult<DATA, ENTITY>{
-        val resultDTOs = mutableListOf<EntityDTO<DATA, ENTITY>>()
+        val resultDTOs = mutableListOf<CommonDTO<DATA, ENTITY>>()
         notify("create() count=${dataModels.count()}") {
             dataModels.forEach {dataModel->
                 val dto = initDTO<PARENT_DATA, PARENT_ENTITY>(dataModel)
@@ -180,7 +180,7 @@ abstract class DTOClass<DATA, ENTITY>(
      *
      * @param dto The DTO to delete.
      */
-    fun delete(dto : EntityDTO<DATA, ENTITY>){
+    fun delete(dto : CommonDTO<DATA, ENTITY>){
         bindings.values.forEach{binding->
             when(binding.type){
                 OrdinanceType.ONE_TO_MANY -> {
@@ -201,7 +201,7 @@ abstract class DTOClass<DATA, ENTITY>(
      * @return A [CrudResult] containing a list of successfully deleted DTOs and associated events.
      */
     fun delete(dataModel: DATA): CrudResult<DATA, ENTITY>{
-        val resultDTOs = mutableListOf<EntityDTO<DATA, ENTITY>>()
+        val resultDTOs = mutableListOf<CommonDTO<DATA, ENTITY>>()
         notify("delete(dataModel.id = ${dataModel.id})") {
            val entity = daoService.selectWhere(dataModel.id)
            val dto = initDTO(entity)

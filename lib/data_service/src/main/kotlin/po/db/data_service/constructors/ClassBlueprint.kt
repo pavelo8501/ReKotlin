@@ -4,7 +4,7 @@ import org.jetbrains.exposed.dao.LongEntity
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.OperationsException
-import po.db.data_service.models.EntityDTO
+import po.db.data_service.models.CommonDTO
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.KParameter
@@ -44,8 +44,8 @@ class EntityBlueprint<ENTITY : LongEntity >(
 }
 
 class DTOBlueprint<DATA, ENTITY>(
-    override val clazz  : KClass<out EntityDTO<DATA, ENTITY>>,
-) : CovariantClassBlueprintBase< EntityDTO<DATA,ENTITY>>() where ENTITY : LongEntity, DATA : DataModel
+    override val clazz  : KClass<out CommonDTO<DATA, ENTITY>>,
+) : CovariantClassBlueprintBase< CommonDTO<DATA,ENTITY>>() where ENTITY : LongEntity, DATA : DataModel
 
 
 

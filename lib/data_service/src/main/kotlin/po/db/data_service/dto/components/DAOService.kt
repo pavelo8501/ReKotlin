@@ -10,7 +10,7 @@ import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.OperationsException
-import po.db.data_service.models.EntityDTO
+import po.db.data_service.models.CommonDTO
 
 class DAOService<DATA, ENTITY>(
   private val parent : DTOClass<DATA, ENTITY>
@@ -21,7 +21,7 @@ class DAOService<DATA, ENTITY>(
    val entityModel : LongEntityClass<ENTITY>
         get(){return  parent.entityModel}
 
-    fun saveNew(dto : EntityDTO<DATA, ENTITY>, block: ((ENTITY)-> Unit)? = null): ENTITY? {
+    fun saveNew(dto : CommonDTO<DATA, ENTITY>, block: ((ENTITY)-> Unit)? = null): ENTITY? {
         try {
             val entity = notify("saveNew() for dto ${dto.sourceModel.className}"){
                 val newEntity = entityModel.new {
@@ -39,7 +39,7 @@ class DAOService<DATA, ENTITY>(
         }
     }
 
-    fun updateExistent(dto : EntityDTO<DATA, ENTITY>){
+    fun updateExistent(dto : CommonDTO<DATA, ENTITY>){
         try {
             val entity = selectWhere(dto.id)
             dto.update(entity, UpdateMode.MODEL_TO_ENTNTY)
@@ -68,7 +68,7 @@ class DAOService<DATA, ENTITY>(
         return entity!!
     }
 
-    fun delete(dto : EntityDTO<DATA, ENTITY>){
+    fun delete(dto : CommonDTO<DATA, ENTITY>){
         dto.entityDAO.delete()
     }
 

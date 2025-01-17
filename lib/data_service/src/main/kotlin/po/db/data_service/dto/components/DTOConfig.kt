@@ -10,7 +10,7 @@ import po.db.data_service.binder.RelationshipBinder
 import po.db.data_service.binder.UpdateMode
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.models.EntityDTO
+import po.db.data_service.models.CommonDTO
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
@@ -48,7 +48,7 @@ class DTOConfig<DATA, ENTITY>(
 
     }
 
-    fun updateProperties(dto: EntityDTO<DATA, ENTITY>, daoEntity : ENTITY){
+    fun updateProperties(dto: CommonDTO<DATA, ENTITY>, daoEntity : ENTITY){
         propertyBinder.update(dto.injectedDataModel,daoEntity, UpdateMode.ENTITY_TO_MODEL)
     }
 

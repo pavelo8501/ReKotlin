@@ -54,7 +54,7 @@ fun asDataModelDynamically(
             val department = DepartmentDataModel(
                 isHq,
                 "Department $a of ${partner.name}",
-                12, "Some street $a",
+                 12, "Some street $a",
                 "Riga", "Latvia",
                 "LV-190$a",
                 "26000$i$a",

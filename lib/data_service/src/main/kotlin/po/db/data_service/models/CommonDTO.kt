@@ -12,14 +12,10 @@ import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.OperationsException
 
 
-
-
-abstract class EntityDTO<DATA, ENTITY>(
+abstract class CommonDTO<DATA, ENTITY>(
     injectedDataModel: DATA
 ): DTOContainerBase<DATA, ENTITY>(injectedDataModel), DTOEntity<DATA, ENTITY>, Cloneable
         where DATA: DataModel , ENTITY: LongEntity
-
-
 
 sealed class DTOContainerBase<DATA, ENTITY>(
     override val injectedDataModel : DATA
@@ -82,8 +78,8 @@ sealed class DTOContainerBase<DATA, ENTITY>(
         fun <DATA: DataModel, ENTITY: LongEntity>copyAsEntityDTO(
             injectedDataModel: DATA,
             dtoClass: DTOClass<DATA,ENTITY>
-        ): EntityDTO<DATA,ENTITY> {
-            return object : EntityDTO<DATA, ENTITY>(injectedDataModel) {}.apply {
+        ): CommonDTO<DATA,ENTITY> {
+            return object : CommonDTO<DATA, ENTITY>(injectedDataModel) {}.apply {
                 initialize(dtoClass)
             }
         }

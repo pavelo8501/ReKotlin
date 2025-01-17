@@ -15,11 +15,11 @@ abstract class AbstractOperationResult : OperationResult {
 
 
 data class CrudResultSingle<DATA, ENTITY>(
-    val dto: EntityDTO<DATA, ENTITY>,
+    val dto: CommonDTO<DATA, ENTITY>,
     val event: Event?
 ): AbstractOperationResult() where DATA: DataModel, ENTITY : LongEntity
 
 data class CrudResult<DATA, ENTITY>(
-        val rootDTOs: List<EntityDTO<DATA, ENTITY>>,
+        val rootDTOs: List<CommonDTO<DATA, ENTITY>>,
         val event: Event?
 ) : AbstractOperationResult() where DATA: DataModel, ENTITY : LongEntity
