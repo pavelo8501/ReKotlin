@@ -74,7 +74,7 @@ class ChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
                 repository.add(newDto)
             }
         }
-        parentDto.bindings[thisKey] = this
+       // parentDto.bindings[thisKey] = this
     }
 
     fun createFromEntity(parentDto: CommonDTO<DATA,ENTITY>){
@@ -88,7 +88,7 @@ class ChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
                 }
             }
         }
-        parentDto.bindings[thisKey] = this.copy()
+       // parentDto.bindings[thisKey] = this.copy()
         repository.clear()
     }
 

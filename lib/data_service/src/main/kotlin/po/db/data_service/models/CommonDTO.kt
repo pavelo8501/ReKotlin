@@ -12,16 +12,30 @@ import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.OperationsException
 
 
+open class HostingDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
+    injectedDataModel: DATA
+): DTOContainerBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(injectedDataModel)
+        where DATA : DataModel, ENTITY: LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY: LongEntity
+
 abstract class CommonDTO<DATA, ENTITY>(
     injectedDataModel: DATA
-): DTOContainerBase<DATA, ENTITY>(injectedDataModel), DTOEntity<DATA, ENTITY>, Cloneable
-        where DATA: DataModel , ENTITY: LongEntity
+): DTOContainerBase<DATA, ENTITY, DataModel, LongEntity>(injectedDataModel), DTOEntity<DATA, ENTITY>, Cloneable
+        where DATA: DataModel , ENTITY: LongEntity {
 
-sealed class DTOContainerBase<DATA, ENTITY>(
+    fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity> copyAsHostingDTO()
+    : HostingDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY> {
+        val result = object : HostingDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(injectedDataModel){}
+        return result
+    }
+}
+
+
+sealed class DTOContainerBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
     override val injectedDataModel : DATA
-): DTOEntity<DATA, ENTITY>  where DATA : DataModel, ENTITY: LongEntity{
+): DTOEntity<DATA, ENTITY>
+        where DATA : DataModel, ENTITY: LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY: LongEntity{
 
-    var onInitializationStatusChange : ((DTOContainerBase<DATA, ENTITY>)-> Unit)? = null
+    var onInitializationStatusChange : ((DTOContainerBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>)-> Unit)? = null
     var initStatus: DTOInitStatus = DTOInitStatus.UNINITIALIZED
         set(value){
             if(value!= field){
@@ -55,7 +69,7 @@ sealed class DTOContainerBase<DATA, ENTITY>(
 
    val propertyBinder: PropertyBinder<DATA,ENTITY> by lazy { initialize(sourceModel) }
 
-    val bindings = mutableMapOf<BindingKeyBase, ChildContainer<DATA, ENTITY, *, *>>()
+   val bindings = mutableMapOf<BindingKeyBase, ChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>>()
 
    fun toDataModel(): DATA =  this.injectedDataModel
 
