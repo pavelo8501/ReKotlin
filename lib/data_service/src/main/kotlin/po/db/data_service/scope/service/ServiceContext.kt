@@ -6,7 +6,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.scope.dto.DTOContext
 import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.models.EntityDTO
+import po.db.data_service.models.CommonDTO
 import po.db.data_service.scope.service.enums.WriteMode
 
 class ServiceContext<DATA,ENTITY>(
@@ -46,15 +46,16 @@ class ServiceContext<DATA,ENTITY>(
     }
 
     fun DTOClass<DATA, ENTITY>.update(
-        dtoList : List<EntityDTO<DATA, ENTITY>>,
+        dtoList : List<CommonDTO<DATA, ENTITY>>,
         block: DTOClass<DATA, ENTITY>.() -> Unit
     ){
-        TODO("To implement update variance if EntityDTO list is supplied")
+        TODO("To implement update variance if CommonDTO list is supplied")
     }
 
     fun DTOClass<DATA, ENTITY>.delete(toDelete: DATA, block: DTOContext<DATA, ENTITY>.() -> Unit){
+
         val selectedDTOs = dbQuery {
-            delete<DATA, ENTITY>(toDelete)
+            delete(toDelete)
         }
         val context  = DTOContext(selectedDTOs)
         context.block()

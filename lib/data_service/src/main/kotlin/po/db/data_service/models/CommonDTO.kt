@@ -1,31 +1,76 @@
 package po.db.data_service.models
 
 import org.jetbrains.exposed.dao.LongEntity
+import po.db.data_service.binder.BindingContainer
 import po.db.data_service.binder.BindingKeyBase
-import po.db.data_service.binder.ChildContainer
+import po.db.data_service.binder.MultipleChildContainer
 import po.db.data_service.binder.PropertyBinder
 import po.db.data_service.binder.UpdateMode
 import po.db.data_service.dto.DTOClass
-import po.db.data_service.dto.interfaces.DTOEntity
+import po.db.data_service.dto.components.RepositoryBase
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.OperationsException
 
 
-
-
-abstract class EntityDTO<DATA, ENTITY>(
+class HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
     injectedDataModel: DATA
-): DTOContainerBase<DATA, ENTITY>(injectedDataModel), DTOEntity<DATA, ENTITY>, Cloneable
+): DTOContainerBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(injectedDataModel)
+        where DATA : DataModel, ENTITY: LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY: LongEntity{
+
+    private val repositories = mutableMapOf<BindingKeyBase, RepositoryBase<DATA, ENTITY, *, *>>()
+
+    fun addRepository(key: BindingKeyBase, repository: RepositoryBase<DATA, ENTITY, *, *>){
+        repositories[key] = repository
+    }
+
+    fun subscribeOnInitHostedByEntity(callback:  (entity: ENTITY)-> Unit){
+        onInitHostedByEntity.add(callback)
+    }
+    var onInitHostedByEntity = mutableListOf<(ENTITY)-> Unit>()
+    fun initHosted(entity: ENTITY){
+        onInitHostedByEntity.forEach {
+            it.invoke(entity)
+        }
+    }
+
+    fun subscribeOnInitHostedByData(callback: (CommonDTO<DATA, ENTITY>)-> Unit){
+        onInitHostedByData.add(callback)
+    }
+    var onInitHostedByData = mutableListOf<(CommonDTO<DATA, ENTITY>)-> Unit>()
+    fun initHosted(
+        caller : CommonDTO<DATA, ENTITY>
+    ){
+        sourceModel.daoService.saveNew(caller)?.let {
+            onInitHostedByData.forEach {
+                it.invoke(caller)
+            }
+        }
+    }
+}
+
+abstract class CommonDTO<DATA, ENTITY>(
+    injectedDataModel: DATA
+): DTOContainerBase<DATA, ENTITY, DataModel, LongEntity>(injectedDataModel), Cloneable
         where DATA: DataModel , ENTITY: LongEntity
+{
+    var hostDTO  : HostDTO<DATA, ENTITY, *, *>? = null
 
+    fun initHostedFromDb(){
+        hostDTO?.initHosted(entityDAO)
+    }
 
+    fun initHostedFromData(){
+        hostDTO?.initHosted(this)
+    }
 
-sealed class DTOContainerBase<DATA, ENTITY>(
-    override val injectedDataModel : DATA
-): DTOEntity<DATA, ENTITY>  where DATA : DataModel, ENTITY: LongEntity{
+}
 
-    var onInitializationStatusChange : ((DTOContainerBase<DATA, ENTITY>)-> Unit)? = null
+sealed class DTOContainerBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
+   protected  val injectedDataModel : DATA
+) where DATA : DataModel, ENTITY: LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY: LongEntity{
+
+    var onInitializationStatusChange : ((DTOContainerBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>)-> Unit)? = null
     var initStatus: DTOInitStatus = DTOInitStatus.UNINITIALIZED
         set(value){
             if(value!= field){
@@ -34,19 +79,19 @@ sealed class DTOContainerBase<DATA, ENTITY>(
             }
         }
 
-    override var id : Long
+    var id : Long
         get(){return injectedDataModel.id}
         set(value) {injectedDataModel.id = value}
 
    private  var _sourceModel: DTOClass<DATA, ENTITY>? = null
    var sourceModel : DTOClass<DATA, ENTITY>
         get(){return  _sourceModel?: throw OperationsException(
-            "Trying to access dtoModel property of CommonDTOV2 id :$id while undefined",
+            "Trying to access dtoModel property of DTOContainerBase id :$id while undefined",
             ExceptionCodes.LAZY_NOT_INITIALIZED) }
         set(value){ _sourceModel = value}
 
    private var _entityDAO : ENTITY? = null
-   override var entityDAO : ENTITY
+   var entityDAO : ENTITY
         set(value){  _entityDAO = value }
         get(){return  _entityDAO?:throw OperationsException(
             "Entity uninitialized",
@@ -57,33 +102,58 @@ sealed class DTOContainerBase<DATA, ENTITY>(
             return id == 0L
         }
 
-   val propertyBinder: PropertyBinder<DATA,ENTITY> by lazy { initialize(sourceModel) }
+    val propertyBinder: PropertyBinder<DATA,ENTITY> by lazy { initialize(sourceModel) }
 
-    val bindings = mutableMapOf<BindingKeyBase, ChildContainer<DATA, ENTITY, *, *>>()
+    val bindings = mutableMapOf<BindingKeyBase, BindingContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>>()
 
-   fun toDataModel(): DATA =  this.injectedDataModel
+    fun toDataModel(): DATA =  this.injectedDataModel
 
-   fun initialize(model: DTOClass<DATA, ENTITY>): PropertyBinder<DATA, ENTITY> {
+    fun initialize(model: DTOClass<DATA, ENTITY>): PropertyBinder<DATA, ENTITY> {
        sourceModel = model
        initStatus = DTOInitStatus.PARTIAL_WITH_DATA
        return model.conf.propertyBinder
    }
 
-   fun update(entity :ENTITY, mode: UpdateMode){
+    fun update(entity :ENTITY, mode: UpdateMode){
         propertyBinder.update(injectedDataModel, entity, mode)
         entityDAO = entity
         if(mode == UpdateMode.ENTITY_TO_MODEL || mode == UpdateMode.ENTITY_TO_MODEL_FORCED){
             id =  entity.id.value
         }
-       initStatus = DTOInitStatus.INITIALIZED
+        initStatus = DTOInitStatus.INITIALIZED
     }
 
-    companion object{
+    fun update(dataModel: DATA, mode: UpdateMode){
+        propertyBinder.update(dataModel, entityDAO, mode)
+    }
+
+    /**
+     * Extracts complete dataModel with all sub child records
+     *
+     */
+    fun extractDataModel():DATA{
+        return injectedDataModel
+    }
+
+   companion object{
+
+       fun <DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>  CommonDTO<DATA, ENTITY>.copyAsHostingDTO()
+        : HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>
+            where  DATA: DataModel, ENTITY: LongEntity,  CHILD_DATA: DataModel, CHILD_ENTITY : LongEntity
+       {
+           return HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(this.injectedDataModel).also {
+               it.initialize(this.sourceModel)
+               if(this.initStatus == DTOInitStatus.INITIALIZED){
+                   it.update(this.entityDAO, UpdateMode.ENTITY_TO_MODEL)
+               }
+           }
+       }
+
         fun <DATA: DataModel, ENTITY: LongEntity>copyAsEntityDTO(
             injectedDataModel: DATA,
             dtoClass: DTOClass<DATA,ENTITY>
-        ): EntityDTO<DATA,ENTITY> {
-            return object : EntityDTO<DATA, ENTITY>(injectedDataModel) {}.apply {
+        ): CommonDTO<DATA,ENTITY> {
+            return object : CommonDTO<DATA, ENTITY>(injectedDataModel) {}.apply {
                 initialize(dtoClass)
             }
         }

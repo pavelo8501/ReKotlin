@@ -2,7 +2,7 @@ package po.playground.projects.data_service
 
 import po.db.data_service.DatabaseManager
 import po.db.data_service.controls.ConnectionInfo
-import po.db.data_service.models.EntityDTO
+import po.db.data_service.models.CommonDTO
 import po.db.data_service.scope.service.TableCreateMode
 import po.db.data_service.scope.service.enums.WriteMode
 import po.playground.projects.data_service.data_source.asDataModelDynamically
@@ -12,17 +12,26 @@ import po.playground.projects.data_service.dto.PartnerEntity
 
 fun startDataService(connectionInfo : ConnectionInfo) {
 
-    val selected =  mutableListOf<EntityDTO<PartnerDataModel, PartnerEntity>>()
+    val selected =  mutableListOf<CommonDTO<PartnerDataModel, PartnerEntity>>()
 
-    var toDelete : EntityDTO<PartnerDataModel, PartnerEntity>? = null
+    var toDelete : CommonDTO<PartnerDataModel, PartnerEntity>? = null
+    var toModify : CommonDTO<PartnerDataModel, PartnerEntity>? = null
 
     val dbManager =  DatabaseManager
     val connection = dbManager.openConnection(connectionInfo){
-        service<PartnerDataModel, PartnerEntity>(PartnerDTO, TableCreateMode.CREATE){
+        service<PartnerDataModel, PartnerEntity>(PartnerDTO, TableCreateMode.FORCE_RECREATE){
 
-            PartnerDTO.select{
-                toDelete = result()[0]
-            }
+//            PartnerDTO.select{
+//                toModify = result()[1]
+//            }
+
+//            if(toModify!= null){
+//                val dataModel = toModify.getDataModel()
+//                dataModel.name = "Updated"
+//                PartnerDTO.update(listOf(dataModel)){
+//
+//                }
+//            }
 
 //            if(toDelete!= null){
 //                PartnerDTO.delete(toDelete.injectedDataModel){
@@ -30,9 +39,9 @@ fun startDataService(connectionInfo : ConnectionInfo) {
 //                }
 //            }
 
-//            PartnerDTO.update(asDataModelDynamically(partnerCount = 4, departmentCount = 5), WriteMode.RELAXED){
-//                getStats()
-//            }
+            PartnerDTO.update(asDataModelDynamically(partnerCount = 4, departmentCount = 5)){
+                getStats()
+            }
 
         }
     }

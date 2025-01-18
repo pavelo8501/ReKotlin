@@ -8,7 +8,8 @@ import po.db.data_service.binder.PropertyBinding
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.interfaces.DTOModel
 import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.models.EntityDTO
+import po.db.data_service.models.CommonDTO
+import po.playground.projects.data_service.services.Contacts
 import po.playground.projects.data_service.services.Departments
 import po.playground.projects.data_service.services.Partners
 
@@ -21,6 +22,7 @@ class PartnerEntity  (id: EntityID<Long>) : LongEntity(id){
     var created by Partners.created
     var updated by Partners.updated
     val departments by  DepartmentEntity referrersOn Departments.partner
+    val contact by ContactEntity optionalBackReferencedOn Contacts.partner
 }
 
 data class PartnerDataModel(
@@ -33,11 +35,12 @@ data class PartnerDataModel(
     var updated: LocalDateTime = PartnerDTO.nowTime()
     var created: LocalDateTime = PartnerDTO.nowTime()
     var departments = mutableListOf<DepartmentDataModel>()
+    var contact : ContactDataModel? = null
 }
 
 class PartnerDTO(
     override val dataModel: PartnerDataModel,
-): EntityDTO<PartnerDataModel, PartnerEntity>(dataModel), DTOModel{
+): CommonDTO<PartnerDataModel, PartnerEntity>(dataModel), DTOModel{
 
     companion object: DTOClass<PartnerDataModel, PartnerEntity>(PartnerDTO::class) {
          override fun setup() {
@@ -51,9 +54,21 @@ class PartnerDTO(
                     PropertyBinding( PartnerDataModel::updated, PartnerEntity::updated),
                     PropertyBinding( PartnerDataModel::created, PartnerEntity::created)
                 )
-                childBindings<DepartmentDataModel, DepartmentEntity>(
-                    DepartmentDTO,PartnerEntity::departments,
-                    DepartmentEntity::partner, PartnerDataModel::departments)
+
+                childBindings{
+                    childBinding<ContactDataModel, ContactEntity>(
+                        ContactDTO,
+                        PartnerEntity::contact,
+                        ContactEntity::partner,
+                        PartnerDataModel::contact
+                    )
+                    childBinding<DepartmentDataModel, DepartmentEntity>(
+                        DepartmentDTO,
+                        PartnerEntity::departments,
+                        DepartmentEntity::partner,
+                        PartnerDataModel::departments
+                    )
+                }
             }
         }
     }

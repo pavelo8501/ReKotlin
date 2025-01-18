@@ -3,9 +3,11 @@ package po.db.data_service.dto
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.IdTable
+import po.db.data_service.binder.BindingContainer
 import po.db.data_service.binder.BindingKeyBase
-import po.db.data_service.binder.ChildContainer
+import po.db.data_service.binder.MultipleChildContainer
 import po.db.data_service.binder.OrdinanceType
+import po.db.data_service.binder.SingleChildContainer
 import po.db.data_service.binder.UpdateMode
 import po.db.data_service.components.eventhandler.RootEventHandler
 import po.db.data_service.components.eventhandler.interfaces.CanNotify
@@ -17,11 +19,11 @@ import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.OperationsException
 import po.db.data_service.models.CrudResult
-import po.db.data_service.models.EntityDTO
+import po.db.data_service.models.CommonDTO
 import kotlin.reflect.KClass
 
 abstract class DTOClass<DATA, ENTITY>(
-    val sourceClass: KClass<out EntityDTO<DATA, ENTITY>>
+    val sourceClass: KClass<out CommonDTO<DATA, ENTITY>>
 ): DTOInstance, CanNotify  where DATA : DataModel, ENTITY : LongEntity{
 
     override val qualifiedName  = sourceClass.qualifiedName.toString()
@@ -42,7 +44,7 @@ abstract class DTOClass<DATA, ENTITY>(
 
     val daoService  =  DAOService<DATA, ENTITY>(this)
 
-    val bindings = mutableMapOf<BindingKeyBase, ChildContainer<DATA, ENTITY, *, *>>()
+    val bindings = mutableMapOf<BindingKeyBase, BindingContainer<DATA, ENTITY, *, *>>()
 
     protected abstract fun setup()
 
@@ -71,7 +73,8 @@ abstract class DTOClass<DATA, ENTITY>(
 
     inline fun <reified DATA, reified ENTITY> DTOClass<DATA, ENTITY>.dtoSettings(
         entityModel: LongEntityClass<ENTITY>,
-        block: DTOConfig<DATA,ENTITY>.() -> Unit) where ENTITY: LongEntity, DATA: DataModel{
+        block: DTOConfig<DATA,ENTITY>.() -> Unit) where ENTITY: LongEntity, DATA: DataModel
+    {
         factory.initializeBlueprints(DATA::class, ENTITY::class)
         conf.dataModelClass = DATA::class
         conf.entityClass = ENTITY::class
@@ -90,16 +93,14 @@ abstract class DTOClass<DATA, ENTITY>(
      * @return The initialized DTO or null if the creation process fails.
      * @throws OperationsException if the model is not properly initialized.
      */
-    fun <PARENT_DATA: DataModel, PARENT_ENTITY: LongEntity>initDTO(
-        dataModel : DATA,
-        block: ((ENTITY)-> Unit)? = null): EntityDTO<DATA, ENTITY>?{
+    fun initDTO(
+        dataModel : DATA): CommonDTO<DATA, ENTITY>?
+    {
         notify("Initializing DTO for dataModel: $dataModel with keys: ${bindings.keys}")
         val dto = if(dataModel.id == 0L){
-            factory.createEntityDto(dataModel)?.let {newDto->
-                newDto.initialize(this)
-                daoService.saveNew(newDto, block)
-                bindings.keys.forEach { bindingKey ->
-                    bindings[bindingKey]?.createFromDataModel(newDto)
+            factory.createEntityDto(dataModel)?.let { newDto ->
+                bindings.values.forEach { binding ->
+                    binding.applyBindings(newDto)
                 }
                 newDto
             }
@@ -118,17 +119,16 @@ abstract class DTOClass<DATA, ENTITY>(
      * @return The initialized DTO or null if the creation process fails.
      * @throws OperationsException if the model is not properly initialized.
      */
-    fun initDTO(entity: ENTITY): EntityDTO<DATA, ENTITY>?{
+    fun initDTO(entity: ENTITY): CommonDTO<DATA, ENTITY>?{
         if(initialized == false){
             throw OperationsException(
                 "Calling create(entity.id=${entity.id.value}) on model uninitialized",
                 ExceptionCodes.NOT_INITIALIZED)
         }
         factory.createEntityDto()?.let {newDto->
-            newDto.initialize(this)
-            newDto.update(entity, UpdateMode.ENTITY_TO_MODEL)
-            bindings.keys.forEach {bindingKey->
-                bindings[bindingKey]!!.createFromEntity(newDto)
+            //newDto.update(entity, UpdateMode.ENTITY_TO_MODEL)
+            bindings.values.forEach {binding->
+                binding.applyBindings(newDto)
             }
             return newDto
         }
@@ -141,19 +141,18 @@ abstract class DTOClass<DATA, ENTITY>(
      * @return A [CrudResult] containing a list of initialized DTOs and associated events.
      */
     fun select(): CrudResult<DATA, ENTITY> {
-       val repository = mutableListOf<EntityDTO<DATA, ENTITY>>()
+       val resultList = mutableListOf<CommonDTO<DATA, ENTITY>>()
        notify("select()"){
            val entities = daoService.selectAll()
            entities.forEach {
                val dto = initDTO(it)
                if(dto != null){
-                   repository.add(dto)
-               }else{
-                   TODO("Action on creation failure")
+                  dto.initHostedFromDb()
+                  resultList.add(dto)
                }
            }
        }
-       return CrudResult(repository.toList(), eventHandler.getEvent())
+       return CrudResult(resultList.toList(), eventHandler.getEvent())
     }
 
     /**
@@ -162,11 +161,15 @@ abstract class DTOClass<DATA, ENTITY>(
      * @return A [CrudResult] containing a list of initialized DTOs and associated events.
      */
     fun <PARENT_DATA: DataModel, PARENT_ENTITY: LongEntity>update(dataModels: List<DATA>): CrudResult<DATA, ENTITY>{
-        val resultDTOs = mutableListOf<EntityDTO<DATA, ENTITY>>()
+        val resultDTOs = mutableListOf<CommonDTO<DATA, ENTITY>>()
         notify("create() count=${dataModels.count()}") {
             dataModels.forEach {dataModel->
-                val dto = initDTO<PARENT_DATA, PARENT_ENTITY>(dataModel)
+                val dto = initDTO(dataModel)
                 if(dto!=null){
+                    dto.initHostedFromData()
+//                    if(dataModel.id!= 0L){
+//                        dto.update(dataModel, UpdateMode.MODEL_TO_ENTNTY)
+//                    }
                     resultDTOs.add(dto)
                 }
             }
@@ -180,7 +183,7 @@ abstract class DTOClass<DATA, ENTITY>(
      *
      * @param dto The DTO to delete.
      */
-    fun delete(dto : EntityDTO<DATA, ENTITY>){
+    fun delete(dto : CommonDTO<DATA, ENTITY>){
         bindings.values.forEach{binding->
             when(binding.type){
                 OrdinanceType.ONE_TO_MANY -> {
@@ -201,7 +204,7 @@ abstract class DTOClass<DATA, ENTITY>(
      * @return A [CrudResult] containing a list of successfully deleted DTOs and associated events.
      */
     fun delete(dataModel: DATA): CrudResult<DATA, ENTITY>{
-        val resultDTOs = mutableListOf<EntityDTO<DATA, ENTITY>>()
+        val resultDTOs = mutableListOf<CommonDTO<DATA, ENTITY>>()
         notify("delete(dataModel.id = ${dataModel.id})") {
            val entity = daoService.selectWhere(dataModel.id)
            val dto = initDTO(entity)

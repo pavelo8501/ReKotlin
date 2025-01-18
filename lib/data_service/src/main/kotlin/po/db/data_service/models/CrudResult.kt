@@ -13,13 +13,14 @@ abstract class AbstractOperationResult : OperationResult {
     override fun isSuccess(): Boolean = true
 }
 
-
-data class CrudResultSingle<DATA, ENTITY>(
-    val dto: EntityDTO<DATA, ENTITY>,
+data class CrudHostedResult<DATA, ENTITY>(
+    val rootDTOs: List<HostDTO<DATA, ENTITY, *, *>>,
     val event: Event?
-): AbstractOperationResult() where DATA: DataModel, ENTITY : LongEntity
+) : AbstractOperationResult() where DATA: DataModel, ENTITY : LongEntity
+
+
 
 data class CrudResult<DATA, ENTITY>(
-        val rootDTOs: List<EntityDTO<DATA, ENTITY>>,
-        val event: Event?
+    val rootDTOs: List<CommonDTO<DATA, ENTITY>>,
+    val event: Event?
 ) : AbstractOperationResult() where DATA: DataModel, ENTITY : LongEntity

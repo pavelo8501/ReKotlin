@@ -1,5 +1,6 @@
 package po.playground.projects.data_service.data_source
 
+import po.playground.projects.data_service.dto.ContactDataModel
 import po.playground.projects.data_service.dto.DepartmentDataModel
 import po.playground.projects.data_service.dto.PartnerDTO
 import po.playground.projects.data_service.dto.PartnerDataModel
@@ -45,6 +46,7 @@ fun asDataModelDynamically(
     val result = mutableListOf<PartnerDataModel>()
     for(i in 1..partnerCount){
         val partner = PartnerDataModel("Partner $i", "Partner $i SIA", "400100$i", "LV-400100$i")
+        partner.contact = ContactDataModel(true,"Contact for ${partner.name}", "Some Surname")
         var depCount = departmentCount
         if(randomizeDepartmentCount){
             depCount = Random.nextInt(1, departmentCount)
@@ -54,7 +56,7 @@ fun asDataModelDynamically(
             val department = DepartmentDataModel(
                 isHq,
                 "Department $a of ${partner.name}",
-                12, "Some street $a",
+                 12, "Some street $a",
                 "Riga", "Latvia",
                 "LV-190$a",
                 "26000$i$a",

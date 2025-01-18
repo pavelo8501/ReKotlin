@@ -12,13 +12,13 @@ import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.OperationsException
-import po.db.data_service.models.EntityDTO
+import po.db.data_service.models.CommonDTO
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 
 class Factory<DATA, ENTITY>(
    val parent: DTOClass<DATA,ENTITY>,
-   val entityDTOClass : KClass<out EntityDTO<DATA, ENTITY>>
+   val entityDTOClass : KClass<out CommonDTO<DATA, ENTITY>>
 ): CanNotify where DATA: DataModel,   ENTITY: LongEntity   {
     companion object : ConstructorBuilder()
 
@@ -97,8 +97,20 @@ class Factory<DATA, ENTITY>(
         }
     }
 
+
+    fun <PARENT_DATA: DataModel>extractDataModel(
+        property: KProperty1<PARENT_DATA, DATA?>,
+        owningDataModel:PARENT_DATA): DATA?{
+        try {
+            return  property.get(owningDataModel)
+        }catch (ex: IllegalStateException){
+            println(ex.message)
+            return null
+        }
+    }
+
     /**
-     * Create new instance of DatModel injectable to the specific EntityDTO<DATA, ENTITY> described by generics set
+     * Create new instance of DatModel injectable to the specific CommonDTO<DATA, ENTITY> described by generics set
      * Has an optional parameter with manually defined constructor function
      * @input constructFn : (() -> DATA)? = null
      * @return DATA
@@ -129,16 +141,16 @@ class Factory<DATA, ENTITY>(
     }
 
     /**
-     * Create new instance of  EntityDTO
+     * Create new instance of  CommonDTO
      * if input param dataModel provided use it as an injection into constructor
      * if not then create new DataModel instance with default parameters i.e. no data will be preserved
      * @input dataModel:  DATA?
-     * @return EntityDTO<DATA, ENTITY> or null
+     * @return CommonDTO<DATA, ENTITY> or null
      * */
-    fun createEntityDto(dataModel : DATA? = null): EntityDTO<DATA, ENTITY>?{
+    fun createEntityDto(dataModel : DATA? = null): CommonDTO<DATA, ENTITY>?{
         val model = dataModel?: createDataModel()
         try {
-            val dto = notify<EntityDTO<DATA, ENTITY>>("EntityDTO created from dtoBlueprint [reflection]") {
+            val dto = notify<CommonDTO<DATA, ENTITY>>("CommonDTO created from dtoBlueprint [reflection]") {
                 dtoBlueprint.let { blueprint ->
                     val constructor = blueprint.getConstructor()
                     blueprint.getArgsForConstructor { paramName ->
@@ -153,7 +165,7 @@ class Factory<DATA, ENTITY>(
                         }
                     }.let {
                         val newDto = constructor.callBy(it)
-                        newDto
+                        newDto.apply { initialize(parent) }
                     }
                 }
             }
