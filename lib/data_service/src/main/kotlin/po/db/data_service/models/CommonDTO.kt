@@ -18,57 +18,34 @@ class HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
 ): DTOContainerBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(injectedDataModel)
         where DATA : DataModel, ENTITY: LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY: LongEntity{
 
-    val repositories = mutableMapOf<BindingKeyBase, RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>>()
+    private val repositories = mutableMapOf<BindingKeyBase, RepositoryBase<DATA, ENTITY, *, *>>()
 
-    var onInitHostedRequested: ((entity: ENTITY)-> Unit)? = null
+    fun addRepository(key: BindingKeyBase, repository: RepositoryBase<DATA, ENTITY, *, *>){
+        repositories[key] = repository
+    }
+
+    fun subscribeOnInitHostedByEntity(callback:  (entity: ENTITY)-> Unit){
+        onInitHostedByEntity.add(callback)
+    }
+    var onInitHostedByEntity = mutableListOf<(ENTITY)-> Unit>()
     fun initHosted(entity: ENTITY){
-        onInitHostedRequested?.invoke(entity)
-    }
-
-
-    fun initHosted(
-        dataModel : DATA,
-        block: ((ENTITY)-> Unit)? = null): HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>?{
-            sourceModel.factory.createEntityDto(dataModel)?.let {newDto->
-                val hosted =  newDto.copyAsHostingDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>()
-                hosted.initialize(sourceModel)
-                sourceModel.daoService.saveNew(newDto, block)
-                bindings.values.forEach {binding->
-                    when(binding.thisKey){
-                        is BindingKeyBase.OneToMany<*, *> -> {
-                            binding as MultipleChildContainer
-                            binding.createFromDataModel(newDto)
-                        }
-                        else -> {}
-                    }
-                }
-                return hosted
-            }
-        return null
-    }
-
-
-    fun intiChildByEntity(){
-
-        bindings.values.forEach {
-
+        onInitHostedByEntity.forEach {
+            it.invoke(entity)
         }
+    }
 
-//        childModel.apply {
-//            byProperty.get(parentDto.entityDAO).forEach {
-//                childModel.initHosted(it)
-//                val childDto = initDTO(it)
-//                if(childDto != null){
-//                    repository.add(childDto)
-//                }else{
-//                    TODO("Actions to be taken on child dto creation null")
-//                }
-//            }
-//        }
-//        parentDto.bindings[thisKey] = this
-//        repository.clear()
-//
-//        }
+    fun subscribeOnInitHostedByData(callback: (CommonDTO<DATA, ENTITY>)-> Unit){
+        onInitHostedByData.add(callback)
+    }
+    var onInitHostedByData = mutableListOf<(CommonDTO<DATA, ENTITY>)-> Unit>()
+    fun initHosted(
+        caller : CommonDTO<DATA, ENTITY>
+    ){
+        sourceModel.daoService.saveNew(caller)?.let {
+            onInitHostedByData.forEach {
+                it.invoke(caller)
+            }
+        }
     }
 }
 
@@ -79,8 +56,12 @@ abstract class CommonDTO<DATA, ENTITY>(
 {
     var hostDTO  : HostDTO<DATA, ENTITY, *, *>? = null
 
-    fun initHosted(){
+    fun initHostedFromDb(){
         hostDTO?.initHosted(entityDAO)
+    }
+
+    fun initHostedFromData(){
+        hostDTO?.initHosted(this)
     }
 
 }

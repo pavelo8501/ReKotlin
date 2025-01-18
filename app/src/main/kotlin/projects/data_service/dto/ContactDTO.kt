@@ -26,8 +26,8 @@ class ContactEntity  (id: EntityID<Long>) : LongEntity(id){
 }
 
 data class ContactDataModel(
-    var name: String,
     var dds: Boolean,
+    var name: String,
     var surname: String? = null,
     var position: String? = null,
     var phone: String? = null,

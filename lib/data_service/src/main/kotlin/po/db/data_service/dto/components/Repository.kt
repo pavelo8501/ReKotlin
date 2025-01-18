@@ -43,22 +43,43 @@ sealed class RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
     val dtoList = mutableListOf<HostDTO<CHILD_DATA, CHILD_ENTITY, DATA, ENTITY>>()
 
     init {
-        parent.onInitHostedRequested = {
-            when(binding){
-                is MultipleChildContainer<*, *, *, *> -> {
-                    binding as MultipleChildContainer
-                    binding.byProperty.get(it).forEach {childEntity->
-                        childModel.initDTO(childEntity)?.let{dto->
-                            val hosted =  dto.copyAsHostingDTO<CHILD_DATA, CHILD_ENTITY, DATA, ENTITY>()
+        when(binding){
+            is MultipleChildContainer -> {
+                parent.subscribeOnInitHostedByEntity {
+                    binding.byProperty.get(it).forEach { childEntity ->
+                        childModel.initDTO(childEntity)?.let { dto ->
+                            val hosted = dto.copyAsHostingDTO<CHILD_DATA, CHILD_ENTITY, DATA, ENTITY>()
                             dtoList.add(hosted)
                         }
                     }
                 }
-                is SingleChildContainer<*, *, *, *> -> {
-
+                parent.subscribeOnInitHostedByData {
+                    childModel.factory.extractDataModel(binding.sourceProperty, it.toDataModel())
+                        .forEach { childData ->
+                            childModel.initDTO(childData)?.let { dto ->
+                                childModel.daoService.saveNew(dto) { childEntity ->
+                                    binding.referencedOnProperty.set(childEntity, it.entityDAO)
+                                }
+                                val hosted = dto.copyAsHostingDTO<CHILD_DATA, CHILD_ENTITY, DATA, ENTITY>()
+                                dtoList.add(hosted)
+                            }
+                        }
+                }
+            }
+            is SingleChildContainer -> {
+                parent.subscribeOnInitHostedByData {
+                    childModel.factory.extractDataModel(binding.sourceProperty, it.toDataModel())
+                        ?.let {childData ->
+                            childModel.initDTO(childData)?.let { dto ->
+                                childModel.daoService.saveNew(dto) { childEntity ->
+                                    binding.referencedOnProperty.set(childEntity, it.entityDAO)
+                                }
+                                val hosted = dto.copyAsHostingDTO<CHILD_DATA, CHILD_ENTITY, DATA, ENTITY>()
+                                dtoList.add(hosted)
+                            }
+                        }
                 }
             }
         }
     }
-
 }

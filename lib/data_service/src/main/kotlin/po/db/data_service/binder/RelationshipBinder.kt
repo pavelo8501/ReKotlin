@@ -4,6 +4,7 @@ import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.SizedIterable
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.components.MultipleRepository
+import po.db.data_service.dto.components.RepositoryBase
 import po.db.data_service.dto.components.SingleRepository
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.models.CommonDTO
@@ -72,44 +73,11 @@ class MultipleChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
         this.sourceProperty = sourceProperty
     }
 
-    fun createFromDataModel(parentDto: CommonDTO<DATA, ENTITY>){
-        val parentData = parentDto.extractDataModel()
-        val extractedChildModels = childModel.factory.extractDataModel(sourceProperty, parentData)
-        extractedChildModels.forEach { childDataModel ->
-            val newDto = childModel.initDTO<DATA, ENTITY>(childDataModel) { childEntity ->
-                referencedOnProperty.set(childEntity, parentDto.entityDAO)
-            }
-            if (newDto != null) {
-                //repository.add(newDto)
-            }
-        }
-       // parentDto.bindings[thisKey] = this
-    }
-
-    fun applyBindings(parentDto: CommonDTO<DATA, ENTITY>){
-        if(parentDto.hostDTO == null){
-            parentDto.copyAsHostingDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>().let { host ->
-                host.repositories[thisKey] = createRepository(host)
-                parentDto.hostDTO = host
-            }
-        }
-    }
-
-
-    fun createRepository(
+    override fun createRepository(
         parent : HostDTO<DATA,ENTITY,CHILD_DATA, CHILD_ENTITY>
     ): MultipleRepository<DATA,ENTITY,CHILD_DATA, CHILD_ENTITY>{
         return  MultipleRepository(parent, childModel, thisKey,this)
     }
-
-    fun copy():MultipleChildContainer<DATA,ENTITY,CHILD_DATA, CHILD_ENTITY>{
-        return  MultipleChildContainer<DATA,ENTITY,CHILD_DATA, CHILD_ENTITY>(
-            this.parentModel,
-            this.childModel).also {
-            it.repository.addAll(this.repository.toList())
-        }
-    }
-
 }
 
 class SingleChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
@@ -133,12 +101,11 @@ class SingleChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
         this.sourceProperty = sourceProperty
     }
 
-    fun createRepository(
+    override fun createRepository(
         parent : HostDTO<DATA,ENTITY,CHILD_DATA, CHILD_ENTITY>
     ): SingleRepository<DATA,ENTITY,CHILD_DATA, CHILD_ENTITY>{
         return  SingleRepository(parent,childModel, thisKey, this)
     }
-
 }
 
 
@@ -151,6 +118,24 @@ sealed class BindingContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
 
     val repository = mutableListOf<CommonDTO<CHILD_DATA, CHILD_ENTITY>>()
 
+    abstract fun createRepository(
+        parent : HostDTO<DATA,ENTITY, CHILD_DATA, CHILD_ENTITY>
+    ): RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>
+
+    fun applyBindings(parentDto: CommonDTO<DATA, ENTITY>){
+
+        parentDto.hostDTO?.let {
+            @Suppress("UNCHECKED_CAST")
+            val repo =  createRepository(it as HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>)
+            it.addRepository(thisKey, repo)
+        }?:run {
+            parentDto.copyAsHostingDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>().let { host ->
+                parentDto.hostDTO = host
+                host.addRepository(thisKey, createRepository(host))
+            }
+        }
+    }
+
     fun deleteChildren(parentDto: CommonDTO<DATA, ENTITY>){
         val binding =  parentDto.bindings[thisKey]
         if (binding != null){
@@ -160,8 +145,6 @@ sealed class BindingContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
             }
         }
     }
-
-
 }
 
 class RelationshipBinder<DATA, ENTITY>(

@@ -7,6 +7,7 @@ import po.db.data_service.binder.BindingContainer
 import po.db.data_service.binder.BindingKeyBase
 import po.db.data_service.binder.MultipleChildContainer
 import po.db.data_service.binder.OrdinanceType
+import po.db.data_service.binder.SingleChildContainer
 import po.db.data_service.binder.UpdateMode
 import po.db.data_service.components.eventhandler.RootEventHandler
 import po.db.data_service.components.eventhandler.interfaces.CanNotify
@@ -92,22 +93,14 @@ abstract class DTOClass<DATA, ENTITY>(
      * @return The initialized DTO or null if the creation process fails.
      * @throws OperationsException if the model is not properly initialized.
      */
-    fun <PARENT_DATA: DataModel, PARENT_ENTITY: LongEntity>initDTO(
-        dataModel : DATA,
-        block: ((ENTITY)-> Unit)? = null): CommonDTO<DATA, ENTITY>?
+    fun initDTO(
+        dataModel : DATA): CommonDTO<DATA, ENTITY>?
     {
         notify("Initializing DTO for dataModel: $dataModel with keys: ${bindings.keys}")
         val dto = if(dataModel.id == 0L){
-            factory.createEntityDto(dataModel)?.let {newDto->
-                daoService.saveNew(newDto, block)
-                bindings.values.forEach {binding->
-                    when(binding.thisKey){
-                        is BindingKeyBase.OneToMany<*, *> -> {
-                            binding as MultipleChildContainer
-                            binding.createFromDataModel(newDto)
-                        }
-                        else -> {}
-                    }
+            factory.createEntityDto(dataModel)?.let { newDto ->
+                bindings.values.forEach { binding ->
+                    binding.applyBindings(newDto)
                 }
                 newDto
             }
@@ -133,15 +126,9 @@ abstract class DTOClass<DATA, ENTITY>(
                 ExceptionCodes.NOT_INITIALIZED)
         }
         factory.createEntityDto()?.let {newDto->
-            newDto.update(entity, UpdateMode.ENTITY_TO_MODEL)
+            //newDto.update(entity, UpdateMode.ENTITY_TO_MODEL)
             bindings.values.forEach {binding->
-                when(binding.thisKey){
-                    is BindingKeyBase.OneToMany<*, *> -> {
-                        binding as MultipleChildContainer
-                        binding.applyBindings(newDto)
-                    }
-                    else -> {}
-                }
+                binding.applyBindings(newDto)
             }
             return newDto
         }
@@ -160,7 +147,7 @@ abstract class DTOClass<DATA, ENTITY>(
            entities.forEach {
                val dto = initDTO(it)
                if(dto != null){
-                  dto.initHosted()
+                  dto.initHostedFromDb()
                   resultList.add(dto)
                }
            }
@@ -177,11 +164,12 @@ abstract class DTOClass<DATA, ENTITY>(
         val resultDTOs = mutableListOf<CommonDTO<DATA, ENTITY>>()
         notify("create() count=${dataModels.count()}") {
             dataModels.forEach {dataModel->
-                val dto = initDTO<PARENT_DATA, PARENT_ENTITY>(dataModel)
+                val dto = initDTO(dataModel)
                 if(dto!=null){
-                    if(dataModel.id!= 0L){
-                        dto.update(dataModel, UpdateMode.MODEL_TO_ENTNTY)
-                    }
+                    dto.initHostedFromData()
+//                    if(dataModel.id!= 0L){
+//                        dto.update(dataModel, UpdateMode.MODEL_TO_ENTNTY)
+//                    }
                     resultDTOs.add(dto)
                 }
             }

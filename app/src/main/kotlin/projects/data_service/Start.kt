@@ -19,11 +19,11 @@ fun startDataService(connectionInfo : ConnectionInfo) {
 
     val dbManager =  DatabaseManager
     val connection = dbManager.openConnection(connectionInfo){
-        service<PartnerDataModel, PartnerEntity>(PartnerDTO, TableCreateMode.CREATE){
+        service<PartnerDataModel, PartnerEntity>(PartnerDTO, TableCreateMode.FORCE_RECREATE){
 
-            PartnerDTO.select{
-                toModify = result()[1]
-            }
+//            PartnerDTO.select{
+//                toModify = result()[1]
+//            }
 
 //            if(toModify!= null){
 //                val dataModel = toModify.getDataModel()
@@ -39,9 +39,9 @@ fun startDataService(connectionInfo : ConnectionInfo) {
 //                }
 //            }
 
-//            PartnerDTO.update(asDataModelDynamically(partnerCount = 4, departmentCount = 5), WriteMode.RELAXED){
-//                getStats()
-//            }
+            PartnerDTO.update(asDataModelDynamically(partnerCount = 4, departmentCount = 5)){
+                getStats()
+            }
 
         }
     }

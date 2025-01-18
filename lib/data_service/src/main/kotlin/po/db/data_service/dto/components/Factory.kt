@@ -97,6 +97,18 @@ class Factory<DATA, ENTITY>(
         }
     }
 
+
+    fun <PARENT_DATA: DataModel>extractDataModel(
+        property: KProperty1<PARENT_DATA, DATA?>,
+        owningDataModel:PARENT_DATA): DATA?{
+        try {
+            return  property.get(owningDataModel)
+        }catch (ex: IllegalStateException){
+            println(ex.message)
+            return null
+        }
+    }
+
     /**
      * Create new instance of DatModel injectable to the specific CommonDTO<DATA, ENTITY> described by generics set
      * Has an optional parameter with manually defined constructor function
