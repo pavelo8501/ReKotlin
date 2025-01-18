@@ -153,7 +153,7 @@ class Factory<DATA, ENTITY>(
                         }
                     }.let {
                         val newDto = constructor.callBy(it)
-                        newDto
+                        newDto.apply { initialize(parent) }
                     }
                 }
             }

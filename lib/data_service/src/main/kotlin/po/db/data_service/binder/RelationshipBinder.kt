@@ -3,10 +3,12 @@ package po.db.data_service.binder
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.SizedIterable
 import po.db.data_service.dto.DTOClass
-import po.db.data_service.dto.HostDTOClass
+import po.db.data_service.dto.components.MultipleRepository
+import po.db.data_service.dto.components.SingleRepository
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.models.CommonDTO
-import po.db.data_service.models.HostingDTO
+import po.db.data_service.models.DTOContainerBase.Companion.copyAsHostingDTO
+import po.db.data_service.models.HostDTO
 import kotlin.collections.set
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
@@ -31,7 +33,6 @@ sealed class BindingKeyBase(val ordinance: OrdinanceType) {
     ):BindingKeyBase(OrdinanceType.ONE_TO_ONE)
 
     companion object{
-
         fun <CHILD_DATA: DataModel,CHILD_ENTITY: LongEntity> createKey(
             ordinanceType:OrdinanceType,
             childModel : DTOClass<CHILD_DATA, CHILD_ENTITY>
@@ -53,7 +54,7 @@ sealed class BindingKeyBase(val ordinance: OrdinanceType) {
 
 
 class MultipleChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
-    parentModel: HostDTOClass<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,
+    parentModel: DTOClass<DATA, ENTITY>,
     childModel: DTOClass<CHILD_DATA, CHILD_ENTITY>
 ): BindingContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(parentModel, childModel, OrdinanceType.ONE_TO_MANY)
         where DATA : DataModel, ENTITY : LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity
@@ -72,38 +73,47 @@ class MultipleChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
     }
 
     fun createFromDataModel(parentDto: CommonDTO<DATA, ENTITY>){
-        val parentData = parentDto.getDataModel()
+        val parentData = parentDto.extractDataModel()
         val extractedChildModels = childModel.factory.extractDataModel(sourceProperty, parentData)
         extractedChildModels.forEach { childDataModel ->
             val newDto = childModel.initDTO<DATA, ENTITY>(childDataModel) { childEntity ->
                 referencedOnProperty.set(childEntity, parentDto.entityDAO)
             }
             if (newDto != null) {
-                repository.add(newDto)
+                //repository.add(newDto)
             }
         }
-        parentDto.bindings[thisKey] = this
+       // parentDto.bindings[thisKey] = this
     }
 
-    fun createFromEntity(parentDto: CommonDTO<DATA, ENTITY>){
-        childModel.apply {
-            byProperty.get(parentDto.entityDAO).forEach {
-                val childDto = initDTO(it)
-                if(childDto != null){
-                    repository.add(childDto)
-                }else{
-                    TODO("Actions to be taken on child dto creation null")
-                }
+    fun applyBindings(parentDto: CommonDTO<DATA, ENTITY>){
+        if(parentDto.hostDTO == null){
+            parentDto.copyAsHostingDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>().let { host ->
+                host.repositories[thisKey] = createRepository(host)
+                parentDto.hostDTO = host
             }
         }
-        parentDto.bindings[thisKey] = this
-        repository.clear()
+    }
+
+
+    fun createRepository(
+        parent : HostDTO<DATA,ENTITY,CHILD_DATA, CHILD_ENTITY>
+    ): MultipleRepository<DATA,ENTITY,CHILD_DATA, CHILD_ENTITY>{
+        return  MultipleRepository(parent, childModel, thisKey,this)
+    }
+
+    fun copy():MultipleChildContainer<DATA,ENTITY,CHILD_DATA, CHILD_ENTITY>{
+        return  MultipleChildContainer<DATA,ENTITY,CHILD_DATA, CHILD_ENTITY>(
+            this.parentModel,
+            this.childModel).also {
+            it.repository.addAll(this.repository.toList())
+        }
     }
 
 }
 
 class SingleChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
-    parentModel: HostDTOClass<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,
+    parentModel: DTOClass<DATA, ENTITY>,
     childModel: DTOClass<CHILD_DATA, CHILD_ENTITY>
 ): BindingContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(parentModel, childModel, OrdinanceType.ONE_TO_ONE)
     where DATA : DataModel, ENTITY : LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity
@@ -122,60 +132,15 @@ class SingleChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
         this.referencedOnProperty = referencedOnProperty
         this.sourceProperty = sourceProperty
     }
+
+    fun createRepository(
+        parent : HostDTO<DATA,ENTITY,CHILD_DATA, CHILD_ENTITY>
+    ): SingleRepository<DATA,ENTITY,CHILD_DATA, CHILD_ENTITY>{
+        return  SingleRepository(parent,childModel, thisKey, this)
+    }
+
 }
 
-class ChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
-    parentModel: DTOClass<DATA,ENTITY>,
-    childModel: DTOClass<CHILD_DATA,CHILD_ENTITY>,
-    val byProperty: KProperty1<ENTITY, SizedIterable<CHILD_ENTITY>>,
-    val referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>,
-    val sourceProperty: KProperty1<DATA, Iterable<CHILD_DATA>>,
-    type: OrdinanceType,
-
-): BindingContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(parentModel, childModel, type)
-        where DATA : DataModel, ENTITY : LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity {
-
-    fun createFromDataModel(parentDto: CommonDTO<DATA, ENTITY>){
-        val parentData = parentDto.getDataModel()
-        val extractedChildModels = childModel.factory.extractDataModel(sourceProperty, parentData)
-        extractedChildModels.forEach { childDataModel ->
-            val newDto = childModel.initDTO<DATA, ENTITY>(childDataModel) { childEntity ->
-                referencedOnProperty.set(childEntity, parentDto.entityDAO)
-            }
-            if (newDto != null) {
-                repository.add(newDto)
-            }
-        }
-        parentDto.bindings[thisKey] = this
-    }
-
-    fun createFromEntity(parentDto: CommonDTO<DATA, ENTITY>){
-        childModel.apply {
-            byProperty.get(parentDto.entityDAO).forEach {
-               val childDto = initDTO(it)
-                if(childDto != null){
-                    repository.add(childDto)
-                }else{
-                    TODO("Actions to be taken on child dto creation null")
-                }
-            }
-        }
-        parentDto.bindings[thisKey] = this.copy()
-        repository.clear()
-    }
-
-    fun copy():ChildContainer<DATA,ENTITY,CHILD_DATA, CHILD_ENTITY>{
-        return  ChildContainer<DATA,ENTITY,CHILD_DATA, CHILD_ENTITY>(
-            this.parentModel,
-            this.childModel,
-            this.byProperty,
-            this.referencedOnProperty,
-            this.sourceProperty,
-            this.type).also {
-            it.repository.addAll(this.repository.toList())
-        }
-    }
-}
 
 sealed class BindingContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
    val parentModel: DTOClass<DATA,ENTITY>,
@@ -185,24 +150,23 @@ sealed class BindingContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
     val thisKey: BindingKeyBase = BindingKeyBase.createKey(type, childModel)
 
     val repository = mutableListOf<CommonDTO<CHILD_DATA, CHILD_ENTITY>>()
-    val hostedRepository = mutableListOf<HostingDTO<CHILD_DATA, CHILD_ENTITY,DATA, ENTITY>>()
 
-    fun <DATA: DataModel, ENTITY: LongEntity>deleteChildren(parentDto: CommonDTO<DATA,ENTITY>){
+    fun deleteChildren(parentDto: CommonDTO<DATA, ENTITY>){
         val binding =  parentDto.bindings[thisKey]
         if (binding != null){
             binding.repository.forEach {
-                @Suppress("UNCHECKED_CAST")
-                childModel.delete(it as CommonDTO<CHILD_DATA, CHILD_ENTITY>)
+              //  @Suppress("UNCHECKED_CAST")
+              //  childModel.delete(it as CommonDTO<DATA, ENTITY>)
             }
         }
     }
+
 
 }
 
 class RelationshipBinder<DATA, ENTITY>(
    val parentModel: DTOClass<DATA, ENTITY>
-) where DATA: DataModel, ENTITY : LongEntity
-{
+) where DATA: DataModel, ENTITY : LongEntity {
 
     private var childBindings = mapOf<BindingKeyBase, BindingContainer<DATA, ENTITY, *, *>>()
 
@@ -216,19 +180,20 @@ class RelationshipBinder<DATA, ENTITY>(
     }
 
     private fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity>createOneToOneContainer(
-        parent: HostDTOClass<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,
+        parent: DTOClass<DATA, ENTITY>,
         child: DTOClass<CHILD_DATA, CHILD_ENTITY>
     ): SingleChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>{
        return SingleChildContainer(parent, child)
     }
 
     private fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity>createOneToManyContainer(
-        parent: HostDTOClass<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,
+        parent: DTOClass<DATA, ENTITY>,
         child: DTOClass<CHILD_DATA, CHILD_ENTITY>
     ): MultipleChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>{
         return MultipleChildContainer(parent, child)
     }
 
+    @JvmName("childBindingOneToOne")
     fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity>childBinding(
         childModel: DTOClass<CHILD_DATA, CHILD_ENTITY>,
         byProperty: KProperty1<ENTITY, CHILD_ENTITY?>,
@@ -238,9 +203,9 @@ class RelationshipBinder<DATA, ENTITY>(
        if(!childModel.initialized){
            childModel.initialization()
        }
-       val parentAsHostable = parentModel.asHostable<CHILD_DATA,CHILD_ENTITY>()
-       createOneToOneContainer(parentAsHostable, childModel).let {
+       createOneToOneContainer(parentModel, childModel).let {
            it.initProperties(byProperty, referencedOnProperty, sourceProperty)
+           attachBinding<CHILD_DATA, CHILD_ENTITY>(it.thisKey, it)
        }
     }
 
@@ -253,8 +218,7 @@ class RelationshipBinder<DATA, ENTITY>(
         if(!childModel.initialized){
             childModel.initialization()
         }
-        val parentAsHostable = parentModel.asHostable<CHILD_DATA, CHILD_ENTITY>()
-        createOneToManyContainer(parentAsHostable, childModel).let {
+        createOneToManyContainer(parentModel, childModel).let {
             it.initProperties(byProperty, referencedOnProperty, sourceProperty)
             attachBinding<CHILD_DATA, CHILD_ENTITY>(it.thisKey, it)
         }

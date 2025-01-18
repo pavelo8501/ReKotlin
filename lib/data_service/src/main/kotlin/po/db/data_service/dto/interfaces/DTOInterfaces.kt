@@ -18,10 +18,10 @@ interface DTOInstance{
 
 }
 
-interface DTOEntity<DATA: DataModel,ENTITY:LongEntity>{
-    val id:Long
-    val entityDAO : ENTITY
-}
+//interface DTOEntity<DATA: DataModel,ENTITY:LongEntity>{
+//    val id:Long
+//    val entityDAO : ENTITY
+//}
 
 /**
     Interface  identifying DTO Entity Class

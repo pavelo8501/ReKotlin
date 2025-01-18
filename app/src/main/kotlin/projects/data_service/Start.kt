@@ -25,13 +25,13 @@ fun startDataService(connectionInfo : ConnectionInfo) {
                 toModify = result()[1]
             }
 
-            if(toModify!= null){
-                val dataModel = toModify.getDataModel()
-                dataModel.name = "Updated"
-                PartnerDTO.update(listOf(dataModel)){
-
-                }
-            }
+//            if(toModify!= null){
+//                val dataModel = toModify.getDataModel()
+//                dataModel.name = "Updated"
+//                PartnerDTO.update(listOf(dataModel)){
+//
+//                }
+//            }
 
 //            if(toDelete!= null){
 //                PartnerDTO.delete(toDelete.injectedDataModel){

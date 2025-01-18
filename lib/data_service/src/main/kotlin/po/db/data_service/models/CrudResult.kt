@@ -14,7 +14,7 @@ abstract class AbstractOperationResult : OperationResult {
 }
 
 data class CrudHostedResult<DATA, ENTITY>(
-    val rootDTOs: List<HostingDTO<DATA, ENTITY, *, *>>,
+    val rootDTOs: List<HostDTO<DATA, ENTITY, *, *>>,
     val event: Event?
 ) : AbstractOperationResult() where DATA: DataModel, ENTITY : LongEntity
 
