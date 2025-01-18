@@ -1,6 +1,7 @@
 package po.db.data_service.models
 
 import org.jetbrains.exposed.dao.LongEntity
+import po.db.data_service.binder.BindingContainer
 import po.db.data_service.binder.BindingKeyBase
 import po.db.data_service.binder.ChildContainer
 import po.db.data_service.binder.PropertyBinder
@@ -17,13 +18,14 @@ open class HostingDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
 ): DTOContainerBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(injectedDataModel)
         where DATA : DataModel, ENTITY: LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY: LongEntity
 
+
 abstract class CommonDTO<DATA, ENTITY>(
     injectedDataModel: DATA
 ): DTOContainerBase<DATA, ENTITY, DataModel, LongEntity>(injectedDataModel), DTOEntity<DATA, ENTITY>, Cloneable
         where DATA: DataModel , ENTITY: LongEntity {
 
-    fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity> copyAsHostingDTO()
-    : HostingDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY> {
+    fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity> copyAsHostingDTO(
+    ): HostingDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY> {
         val result = object : HostingDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(injectedDataModel){}
         return result
     }
@@ -31,7 +33,7 @@ abstract class CommonDTO<DATA, ENTITY>(
 
 
 sealed class DTOContainerBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
-    override val injectedDataModel : DATA
+   protected  val injectedDataModel : DATA
 ): DTOEntity<DATA, ENTITY>
         where DATA : DataModel, ENTITY: LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY: LongEntity{
 
@@ -67,28 +69,40 @@ sealed class DTOContainerBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
             return id == 0L
         }
 
-   val propertyBinder: PropertyBinder<DATA,ENTITY> by lazy { initialize(sourceModel) }
+    val propertyBinder: PropertyBinder<DATA,ENTITY> by lazy { initialize(sourceModel) }
 
-   val bindings = mutableMapOf<BindingKeyBase, ChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>>()
+    val bindings = mutableMapOf<BindingKeyBase, BindingContainer<DATA, ENTITY, *, *>>()
 
-   fun toDataModel(): DATA =  this.injectedDataModel
+    fun toDataModel(): DATA =  this.injectedDataModel
 
-   fun initialize(model: DTOClass<DATA, ENTITY>): PropertyBinder<DATA, ENTITY> {
+    fun initialize(model: DTOClass<DATA, ENTITY>): PropertyBinder<DATA, ENTITY> {
        sourceModel = model
        initStatus = DTOInitStatus.PARTIAL_WITH_DATA
        return model.conf.propertyBinder
    }
 
-   fun update(entity :ENTITY, mode: UpdateMode){
+    fun update(entity :ENTITY, mode: UpdateMode){
         propertyBinder.update(injectedDataModel, entity, mode)
         entityDAO = entity
         if(mode == UpdateMode.ENTITY_TO_MODEL || mode == UpdateMode.ENTITY_TO_MODEL_FORCED){
             id =  entity.id.value
         }
-       initStatus = DTOInitStatus.INITIALIZED
+        initStatus = DTOInitStatus.INITIALIZED
     }
 
-    companion object{
+    fun update(dataModel: DATA, mode: UpdateMode){
+        propertyBinder.update(dataModel, entityDAO, mode)
+    }
+
+    /**
+     * Extracts complete dataModel with all sub child records
+     *
+     */
+    fun getDataModel():DATA{
+        return injectedDataModel
+    }
+
+   companion object{
         fun <DATA: DataModel, ENTITY: LongEntity>copyAsEntityDTO(
             injectedDataModel: DATA,
             dtoClass: DTOClass<DATA,ENTITY>

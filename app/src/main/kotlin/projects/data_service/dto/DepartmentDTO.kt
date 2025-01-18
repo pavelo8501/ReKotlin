@@ -45,7 +45,6 @@ data class DepartmentDataModel(
     override var id: Long = 0L
     var updated: LocalDateTime = DepartmentDTO.nowTime()
     var created: LocalDateTime = DepartmentDTO.nowTime()
-
 }
 
 class DepartmentDTO(

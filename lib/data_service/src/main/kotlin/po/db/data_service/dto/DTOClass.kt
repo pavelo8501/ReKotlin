@@ -3,8 +3,9 @@ package po.db.data_service.dto
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.IdTable
+import po.db.data_service.binder.BindingContainer
 import po.db.data_service.binder.BindingKeyBase
-import po.db.data_service.binder.ChildContainer
+import po.db.data_service.binder.MultipleChildContainer
 import po.db.data_service.binder.OrdinanceType
 import po.db.data_service.binder.UpdateMode
 import po.db.data_service.components.eventhandler.RootEventHandler
@@ -19,6 +20,15 @@ import po.db.data_service.exceptions.OperationsException
 import po.db.data_service.models.CrudResult
 import po.db.data_service.models.CommonDTO
 import kotlin.reflect.KClass
+
+
+class HostDTOClass<DATA, ENTITY, DATA_CHILD, ENTITY_CHILD>(
+    sourceClass: KClass<out CommonDTO<DATA, ENTITY>>
+) :DTOClass<DATA, ENTITY>(sourceClass)
+    where DATA : DataModel, ENTITY : LongEntity, DATA_CHILD: DataModel, ENTITY_CHILD: LongEntity {
+    override  fun setup(){}
+}
+
 
 abstract class DTOClass<DATA, ENTITY>(
     val sourceClass: KClass<out CommonDTO<DATA, ENTITY>>
@@ -42,9 +52,16 @@ abstract class DTOClass<DATA, ENTITY>(
 
     val daoService  =  DAOService<DATA, ENTITY>(this)
 
-    val bindings = mutableMapOf<BindingKeyBase, ChildContainer<DATA, ENTITY, *, *>>()
+    val bindings = mutableMapOf<BindingKeyBase, BindingContainer<DATA, ENTITY, *, *>>()
 
     protected abstract fun setup()
+
+    fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity> asHostable(
+    ):HostDTOClass<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>
+    {
+        val result  = HostDTOClass<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(sourceClass)
+        return result
+    }
 
     fun getAssociatedTables():List<IdTable<Long>>{
        val result = mutableListOf<IdTable<Long>>()
@@ -98,8 +115,14 @@ abstract class DTOClass<DATA, ENTITY>(
             factory.createEntityDto(dataModel)?.let {newDto->
                 newDto.initialize(this)
                 daoService.saveNew(newDto, block)
-                bindings.keys.forEach { bindingKey ->
-                    bindings[bindingKey]?.createFromDataModel(newDto)
+                bindings.values.forEach {binding->
+                    when(binding.thisKey){
+                        is BindingKeyBase.OneToMany<*, *> -> {
+                            binding as MultipleChildContainer
+                            binding.createFromDataModel(newDto)
+                        }
+                        else -> {}
+                    }
                 }
                 newDto
             }
@@ -127,8 +150,14 @@ abstract class DTOClass<DATA, ENTITY>(
         factory.createEntityDto()?.let {newDto->
             newDto.initialize(this)
             newDto.update(entity, UpdateMode.ENTITY_TO_MODEL)
-            bindings.keys.forEach {bindingKey->
-                bindings[bindingKey]!!.createFromEntity(newDto)
+            bindings.values.forEach {binding->
+                when(binding.thisKey){
+                    is BindingKeyBase.OneToMany<*, *> -> {
+                        binding as MultipleChildContainer
+                        binding.createFromEntity(newDto)
+                    }
+                    else -> {}
+                }
             }
             return newDto
         }
@@ -167,6 +196,9 @@ abstract class DTOClass<DATA, ENTITY>(
             dataModels.forEach {dataModel->
                 val dto = initDTO<PARENT_DATA, PARENT_ENTITY>(dataModel)
                 if(dto!=null){
+                    if(dataModel.id!= 0L){
+                        dto.update(dataModel, UpdateMode.MODEL_TO_ENTNTY)
+                    }
                     resultDTOs.add(dto)
                 }
             }

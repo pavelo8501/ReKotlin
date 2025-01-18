@@ -20,7 +20,6 @@ interface DTOInstance{
 
 interface DTOEntity<DATA: DataModel,ENTITY:LongEntity>{
     val id:Long
-    val injectedDataModel: DATA
     val entityDAO : ENTITY
 }
 

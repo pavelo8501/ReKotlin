@@ -15,13 +15,22 @@ fun startDataService(connectionInfo : ConnectionInfo) {
     val selected =  mutableListOf<CommonDTO<PartnerDataModel, PartnerEntity>>()
 
     var toDelete : CommonDTO<PartnerDataModel, PartnerEntity>? = null
+    var toModify : CommonDTO<PartnerDataModel, PartnerEntity>? = null
 
     val dbManager =  DatabaseManager
     val connection = dbManager.openConnection(connectionInfo){
         service<PartnerDataModel, PartnerEntity>(PartnerDTO, TableCreateMode.CREATE){
 
             PartnerDTO.select{
-                toDelete = result()[0]
+                toModify = result()[1]
+            }
+
+            if(toModify!= null){
+                val dataModel = toModify.getDataModel()
+                dataModel.name = "Updated"
+                PartnerDTO.update(listOf(dataModel)){
+
+                }
             }
 
 //            if(toDelete!= null){
