@@ -62,7 +62,7 @@ class MultipleChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
 ): BindingContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(parentModel, childModel, OrdinanceType.ONE_TO_MANY)
         where DATA : DataModel, ENTITY : LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity
 {
-    val thisKey  = BindingKeyBase.createOneToManyKey(childModel)
+    override val thisKey  = BindingKeyBase.createOneToManyKey(childModel)
 
     lateinit var byProperty : KProperty1<ENTITY, SizedIterable<CHILD_ENTITY>>
     lateinit var referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>
@@ -90,16 +90,16 @@ class SingleChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
 ): BindingContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(parentModel, childModel, OrdinanceType.ONE_TO_ONE)
     where DATA : DataModel, ENTITY : LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity
 {
-    val thisKey = BindingKeyBase.createOneToOneKey(childModel)
+    override val thisKey = BindingKeyBase.createOneToOneKey(childModel)
 
     lateinit var byProperty: KProperty1<ENTITY, CHILD_ENTITY?>
     lateinit var referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>
-    lateinit var sourceProperty: KProperty1<DATA, CHILD_DATA?>
+    lateinit var sourceProperty: KMutableProperty1<DATA, CHILD_DATA?>
 
     fun initProperties(
         byProperty: KProperty1<ENTITY, CHILD_ENTITY?>,
         referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>,
-        sourceProperty: KProperty1<DATA, CHILD_DATA?>)
+        sourceProperty: KMutableProperty1<DATA, CHILD_DATA?>)
     {
         this.byProperty = byProperty
         this.referencedOnProperty = referencedOnProperty
@@ -120,6 +120,7 @@ sealed class BindingContainer<DATA, ENTITY,  CHILD_DATA,  CHILD_ENTITY>(
    val type  : OrdinanceType,
 ) where DATA : DataModel, ENTITY : LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity{
 
+    abstract val thisKey : BindingKeyBase
 
     abstract fun setRepository(
         parent: HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>
@@ -175,7 +176,7 @@ class RelationshipBinder<DATA, ENTITY>(
         childModel: DTOClass<CHILD_DATA, CHILD_ENTITY>,
         byProperty: KProperty1<ENTITY, CHILD_ENTITY?>,
         referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>,
-        sourceProperty: KProperty1<DATA, CHILD_DATA?>
+        sourceProperty: KMutableProperty1<DATA, CHILD_DATA?>
     ){
        if(!childModel.initialized){
            childModel.initialization()

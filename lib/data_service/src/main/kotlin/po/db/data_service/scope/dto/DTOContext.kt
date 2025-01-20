@@ -39,7 +39,9 @@ class DTOContext<DATA, ENTITY>(
     private val  crudResult : CrudResult<DATA, ENTITY>,
     )  where DATA : DataModel, ENTITY : LongEntity {
 
-    fun result(): List<CommonDTO<DATA, ENTITY>>{
+    fun resultAsDataModel(result: ((List<CommonDTO<DATA, ENTITY>>) -> Unit)? = null): List<CommonDTO<DATA, ENTITY>>{
+        val dataModels =  crudResult.rootDTOs.map { it.compileDataModel() }
+        if(result != null) result(crudResult.rootDTOs)
         return  crudResult.rootDTOs
     }
 

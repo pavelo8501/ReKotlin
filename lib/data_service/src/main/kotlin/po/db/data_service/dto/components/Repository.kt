@@ -46,6 +46,11 @@ class SingleRepository<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
         }?: return emptyList()
     }
 
+    fun submitSingleDataModel(dataModel:DATA){
+        binding.sourceProperty.set(dataModel, dtoList[0].getInjectedModel() )
+        val a = 10
+    }
+
     override fun extractDataModel(dataModel:DATA): List<CHILD_DATA>{
         val result =  childModel.factory.extractDataModel(binding.sourceProperty, dataModel)
         return if(result!=null){
@@ -72,6 +77,21 @@ class MultipleRepository<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
         binding.referencedOnProperty.set(childEntity, parentEntity)
     }
 
+    inline fun <reified DATA : DataModel> submitMultipleDataModels(
+
+        dataModel:DATA
+        )
+    {
+        val childDataClass = DATA::class
+        val dataClass = DATA::class
+        dtoList.forEach {
+            @Suppress("UNCHECKED_CAST")
+            (binding.sourceProperty as MutableList<CHILD_DATA>).add(it.getInjectedModel() as CHILD_DATA)
+            val a = 10
+        }
+    }
+
+
     override fun getReferences(parentEntity: ENTITY): List<CHILD_ENTITY> {
         binding.byProperty.get(parentEntity).let {
             return  it.toList()
@@ -83,13 +103,14 @@ class MultipleRepository<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
 }
 
 sealed class RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
-    protected val parent : HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,
-    protected val childModel : DTOClass<CHILD_DATA, CHILD_ENTITY>,
-    protected val bindingKey : BindingKeyBase,
-    private val binding : BindingContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>
+    public val parent : HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,
+    public val childModel : DTOClass<CHILD_DATA, CHILD_ENTITY>,
+    public val bindingKey : BindingKeyBase,
+    binding : BindingContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>
 ) where DATA : DataModel, ENTITY : LongEntity, CHILD_DATA: DataModel, CHILD_ENTITY: LongEntity{
 
     abstract val repoName : String
+
 
     abstract fun extractDataModel(dataModel:DATA):List<CHILD_DATA>
     abstract fun setReferenced(childEntity:CHILD_ENTITY, parentEntity:ENTITY)
@@ -163,7 +184,7 @@ sealed class RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
             }
         }
         initialized = true
-        println("Repository initialized for ${parent.sourceModel.className} with id ${parent.toDataModel().id}")
+        println("Repository initialized for ${parent.sourceModel.className} with id ${parent.getInjectedModel().id}")
         println("ByData Subscriptions count ${onInitHostedByData.count()}")
         parent.repositories.values.forEach {
             it.subscribeOnInitByEntity(parent) {
@@ -189,7 +210,7 @@ sealed class RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
             }
         }
         initialized = true
-        println("Repository initialized for ${parent.sourceModel.className} with id ${parent.toDataModel().id}")
+        println("Repository initialized for ${parent.sourceModel.className} with id ${parent.getInjectedModel().id}")
         println("ByData Subscriptions count ${onInitHostedByData.count()}")
         parent.repositories.values.forEach {
             it.subscribeOnInitByData(parent){

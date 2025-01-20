@@ -20,7 +20,7 @@ fun startDataService(connectionInfo : ConnectionInfo) {
         service<PartnerDataModel, PartnerEntity>(PartnerDTO, TableCreateMode.CREATE){
 
             PartnerDTO.select{
-                result()
+                resultAsDataModel()
                 val a = 10
             }
 
