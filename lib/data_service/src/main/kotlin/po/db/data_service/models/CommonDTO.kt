@@ -18,6 +18,9 @@ class HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
 
     val repositories = mutableMapOf<BindingKeyBase, RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>>()
 
+    var onUpdate: (()-> Unit)? = null
+
+
     fun subscribeOnInitByEntity(callback:  (entity: ENTITY)-> Unit){
         onInitHostedByEntity.add(callback)
     }
@@ -28,23 +31,18 @@ class HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
         }
     }
 
-    fun subscribeOnInitByData(callback: (HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>)-> Unit){
-        onInitHostedByData.add(callback)
-    }
-    var onInitHostedByData = mutableListOf<(HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>)-> Unit>()
-    fun initHosted(
-        dataModel: DATA,
-    ){
-        sourceModel.daoService.saveNew(this)?.let {
-            onInitHostedByData.forEach {
-                it.invoke(this)
-            }
+    /**
+     *  Entry point for repository initialization in the bound sequence
+     **/
+    fun initializeRepositories(){
+        repositories.values.forEach {
+            it.initialize(extractDataModel())
         }
     }
 
-    fun setChildBindings(){
-        sourceModel.bindings.values.forEach {
-            it.applyBindingToHost(this)
+    fun updateRootRepositories(){
+        sourceModel.daoService.saveNew(this)?.let {
+            onUpdate?.invoke()
         }
     }
 
@@ -73,12 +71,15 @@ abstract class CommonDTO<DATA, ENTITY>(
         hostDTO?.initHosted(entityDAO)
     }
 
-    fun initHostedFromDto(){
-        hostDTO?.initHosted(extractDataModel())
+    fun initializeRepositories(){
+        hostDTO?.initializeRepositories()
+    }
+    fun updateRepositories(){
+        hostDTO?.updateRootRepositories()
     }
 }
 
-sealed class DTOBase<DATA, ENTITY, out CHILD_DATA, out CHILD_ENTITY>(
+sealed class DTOBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
    protected  val injectedDataModel : DATA
 ) where DATA : DataModel, ENTITY: LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY: LongEntity{
 
@@ -124,7 +125,7 @@ sealed class DTOBase<DATA, ENTITY, out CHILD_DATA, out CHILD_ENTITY>(
        return model.conf.propertyBinder
    }
 
-    fun update(entity :ENTITY, mode: UpdateMode){
+    fun update(entity : ENTITY, mode: UpdateMode){
         propertyBinder.update(injectedDataModel, entity, mode)
         entityDAO = entity
         if(mode == UpdateMode.ENTITY_TO_MODEL || mode == UpdateMode.ENTITY_TO_MODEL_FORCED){

@@ -139,7 +139,6 @@ sealed class BindingContainer<DATA, ENTITY,  CHILD_DATA,  CHILD_ENTITY>(
         parentDto as  HostDTO<DATA, ENTITY,  CHILD_DATA, CHILD_ENTITY>
         setRepository(parentDto)
     }
-
 }
 
 class RelationshipBinder<DATA, ENTITY>(

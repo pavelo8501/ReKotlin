@@ -63,7 +63,7 @@ fun asDataModelDynamically(
                 "LV-190$a",
                 "26000$i$a",
                 "Department$a@Partner${i}.lv")
-            for (b in 1..3){
+            for (b in 1..1){
                 department.inspections.add(InspectionDataModel(InspectionDTO.nowTime()))
             }
             partner.departments.add(department)

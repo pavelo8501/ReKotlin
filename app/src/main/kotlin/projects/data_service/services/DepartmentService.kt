@@ -22,5 +22,4 @@ object Departments : LongIdTable("departments", "id") {
     val created = datetime("created").default(nowDateTime)
     val updated = datetime("updated").default(nowDateTime)
     val partner = reference("partner", Partners)
-
 }

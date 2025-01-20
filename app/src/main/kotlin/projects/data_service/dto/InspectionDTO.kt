@@ -16,8 +16,8 @@ import po.playground.projects.data_service.services.Partners
 class InspectionEntity  (id: EntityID<Long>) : LongEntity(id){
     companion object : LongEntityClass<InspectionEntity>(Inspections)
     var time by Inspections.time
-    var created by Partners.created
-    var updated by Partners.updated
+    var created by Inspections.created
+    var updated by Inspections.updated
     var department by DepartmentEntity referencedOn Inspections.department
 }
 

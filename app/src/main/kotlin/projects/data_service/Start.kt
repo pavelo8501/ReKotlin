@@ -39,7 +39,7 @@ fun startDataService(connectionInfo : ConnectionInfo) {
 //                }
 //            }
 
-            PartnerDTO.update(asDataModelDynamically(partnerCount = 4, departmentCount = 5)){
+            PartnerDTO.update(asDataModelDynamically(partnerCount = 1, departmentCount = 1, false)){
                 getStats()
             }
 

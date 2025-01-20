@@ -154,12 +154,16 @@ abstract class DTOClass<DATA, ENTITY>(
     fun <PARENT_DATA: DataModel, PARENT_ENTITY: LongEntity>update(dataModels: List<DATA>): CrudResult<DATA, ENTITY>{
         val resultDTOs = mutableListOf<CommonDTO<DATA, ENTITY>>()
         notify("create() count=${dataModels.count()}") {
-            dataModels.forEach {dataModel->
-                val dto = initDTO(dataModel)
-                if(dto!=null){
-                    dto.initHostedFromDto()
-                    resultDTOs.add(dto)
+
+            dataModels.forEach { dataModel ->
+                factory.createEntityDto(dataModel)?.let { newDto ->
+                    resultDTOs.add(newDto)
                 }
+            }
+            resultDTOs.forEach {
+                conf.relationBinder.applyBindings(it)
+                it.initializeRepositories()
+                it.updateRepositories()
             }
         }
         return CrudResult(resultDTOs.toList(), eventHandler.getEvent())
