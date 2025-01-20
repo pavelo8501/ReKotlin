@@ -2,6 +2,8 @@ package po.playground.projects.data_service.data_source
 
 import po.playground.projects.data_service.dto.ContactDataModel
 import po.playground.projects.data_service.dto.DepartmentDataModel
+import po.playground.projects.data_service.dto.InspectionDTO
+import po.playground.projects.data_service.dto.InspectionDataModel
 import po.playground.projects.data_service.dto.PartnerDTO
 import po.playground.projects.data_service.dto.PartnerDataModel
 import kotlin.random.Random
@@ -61,6 +63,9 @@ fun asDataModelDynamically(
                 "LV-190$a",
                 "26000$i$a",
                 "Department$a@Partner${i}.lv")
+            for (b in 1..3){
+                department.inspections.add(InspectionDataModel(InspectionDTO.nowTime()))
+            }
             partner.departments.add(department)
         }
         result.add(partner)

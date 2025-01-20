@@ -5,10 +5,7 @@ import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.IdTable
 import po.db.data_service.binder.BindingContainer
 import po.db.data_service.binder.BindingKeyBase
-import po.db.data_service.binder.MultipleChildContainer
 import po.db.data_service.binder.OrdinanceType
-import po.db.data_service.binder.SingleChildContainer
-import po.db.data_service.binder.UpdateMode
 import po.db.data_service.components.eventhandler.RootEventHandler
 import po.db.data_service.components.eventhandler.interfaces.CanNotify
 import po.db.data_service.dto.components.DAOService
@@ -48,13 +45,11 @@ abstract class DTOClass<DATA, ENTITY>(
 
     protected abstract fun setup()
 
-    fun getAssociatedTables():List<IdTable<Long>>{
-       val result = mutableListOf<IdTable<Long>>()
-       result.add(this.entityModel.table)
+    fun getAssociatedTables(cumulativeList: MutableList<IdTable<Long>>){
+       cumulativeList.add(this.entityModel.table)
        bindings.values.forEach {
-           result.add(it.childModel.entityModel.table)
+           it.childModel.getAssociatedTables(cumulativeList)
        }
-       return result
     }
 
     fun initialization(
@@ -99,9 +94,7 @@ abstract class DTOClass<DATA, ENTITY>(
         notify("Initializing DTO for dataModel: $dataModel with keys: ${bindings.keys}")
         val dto = if(dataModel.id == 0L){
             factory.createEntityDto(dataModel)?.let { newDto ->
-                bindings.values.forEach { binding ->
-                    binding.applyBindings(newDto)
-                }
+                conf.relationBinder.applyBindings(newDto)
                 newDto
             }
         }else{
@@ -127,9 +120,7 @@ abstract class DTOClass<DATA, ENTITY>(
         }
         factory.createEntityDto()?.let {newDto->
             //newDto.update(entity, UpdateMode.ENTITY_TO_MODEL)
-            bindings.values.forEach {binding->
-                binding.applyBindings(newDto)
-            }
+            conf.relationBinder.applyBindings(newDto)
             return newDto
         }
         return null
@@ -166,10 +157,7 @@ abstract class DTOClass<DATA, ENTITY>(
             dataModels.forEach {dataModel->
                 val dto = initDTO(dataModel)
                 if(dto!=null){
-                    dto.initHostedFromData()
-//                    if(dataModel.id!= 0L){
-//                        dto.update(dataModel, UpdateMode.MODEL_TO_ENTNTY)
-//                    }
+                    dto.initHostedFromDto()
                     resultDTOs.add(dto)
                 }
             }
@@ -187,7 +175,7 @@ abstract class DTOClass<DATA, ENTITY>(
         bindings.values.forEach{binding->
             when(binding.type){
                 OrdinanceType.ONE_TO_MANY -> {
-                    binding.deleteChildren(dto)
+
                 }
                 else -> {
 

@@ -13,6 +13,7 @@ import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.InitializationException
+import kotlin.Long
 
 enum  class TableCreateMode{
     CREATE,
@@ -86,15 +87,16 @@ class ServiceClass<DATA, ENTITY>(
     }
 
     private fun prepareTables(serviceCreateOption : TableCreateMode){
-        val tables = rootDTOModel.getAssociatedTables()
+        val tableList = mutableListOf<IdTable<Long>>()
+        rootDTOModel.getAssociatedTables(tableList)
         when(serviceCreateOption){
             TableCreateMode.CREATE->{
-                tables.forEach {
+                tableList.forEach {
                     createTable(it)
                 }
             }
             TableCreateMode.FORCE_RECREATE->{
-                dropTables(tables)
+                dropTables(tableList)
             }
         }
     }

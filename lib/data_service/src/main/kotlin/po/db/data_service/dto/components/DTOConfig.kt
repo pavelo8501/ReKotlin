@@ -20,47 +20,19 @@ class DTOConfig<DATA, ENTITY>(
     var entityModel:LongEntityClass<ENTITY>? = null
 
     val propertyBinder : PropertyBinder<DATA,ENTITY> = PropertyBinder()
-    var relationBinder : RelationshipBinder<DATA, ENTITY> = RelationshipBinder(parent)
+    var relationBinder  = RelationshipBinder<DATA, ENTITY>(parent)
 
     var dataModelConstructor : (() -> DataModel)? = null
         private set
 
     fun propertyBindings(vararg props: PropertyBinding<DATA, ENTITY, *>) =  propertyBinder.setProperties(props.toList())
 
-    fun childBindings(
+   inline fun childBindings(
        block: RelationshipBinder<DATA, ENTITY>.()-> Unit
     ){
         relationBinder.block()
     }
 
-//    fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity>childBinding(
-//        childModel: DTOClass<CHILD_DATA, CHILD_ENTITY>,
-//        byProperty: KProperty1<ENTITY, SizedIterable<CHILD_ENTITY>>,
-//        referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>,
-//        sourceProperty: KProperty1<DATA, Iterable<CHILD_DATA>>,
-//        body: (ChildContainer<DATA,ENTITY,CHILD_DATA,CHILD_ENTITY>.()-> Unit)? = null
-//    ){
-//
-//
-////       RelationshipBinder<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(parent).let {
-////           it.addChildBinding(childModel, byProperty, referencedOnProperty, sourceProperty, body)
-////           relationBinder = it
-////       }
-//    }
-
-//    fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity>childBinding(
-//        childModel: DTOClass<CHILD_DATA, CHILD_ENTITY>,
-//        byProperty: KProperty1<ENTITY, CHILD_ENTITY?>,
-//        referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>,
-//        sourceProperty: KProperty1<DATA, CHILD_DATA?>,
-//    ){
-//
-//
-////        RelationshipBinder<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(parent).let {
-////            it.addChildBinding(childModel, byProperty, referencedOnProperty, sourceProperty, body)
-////            relationBinder = it
-////        }
-//    }
 
     fun setDataModelConstructor(dataModelConstructor: () -> DataModel){
         this.dataModelConstructor = dataModelConstructor

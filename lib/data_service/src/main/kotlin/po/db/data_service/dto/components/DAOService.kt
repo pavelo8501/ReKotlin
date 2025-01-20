@@ -11,6 +11,7 @@ import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.OperationsException
 import po.db.data_service.models.CommonDTO
+import po.db.data_service.models.DTOBase
 
 class DAOService<DATA, ENTITY>(
   private val parent : DTOClass<DATA, ENTITY>
@@ -21,14 +22,12 @@ class DAOService<DATA, ENTITY>(
    val entityModel : LongEntityClass<ENTITY>
         get(){return  parent.entityModel}
 
-    fun saveNew(dto : CommonDTO<DATA, ENTITY>, block: ((ENTITY)-> Unit)? = null): ENTITY? {
+    fun saveNew(dto : DTOBase<DATA, ENTITY, *, *>, block: ((ENTITY)-> Unit)? = null): ENTITY? {
         try {
             val entity = notify("saveNew() for dto ${dto.sourceModel.className}"){
                 val newEntity = entityModel.new {
                     dto.update(this, UpdateMode.MODEL_TO_ENTNTY)
-                    block?.let {
-                        it(this)
-                    }
+                    block?.invoke(this)
                 }
                 newEntity
             }

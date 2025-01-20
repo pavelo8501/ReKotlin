@@ -7,7 +7,6 @@ import po.db.data_service.constructors.ConstructorBuilder
 import po.db.data_service.constructors.DTOBlueprint
 import po.db.data_service.constructors.DataModelBlueprint
 import po.db.data_service.constructors.EntityBlueprint
-import po.db.data_service.controls.Notificator
 import po.db.data_service.dto.DTOClass
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes

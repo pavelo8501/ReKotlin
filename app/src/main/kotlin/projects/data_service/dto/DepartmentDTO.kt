@@ -12,6 +12,7 @@ import po.db.data_service.models.CommonDTO
 
 
 import po.playground.projects.data_service.services.Departments
+import po.playground.projects.data_service.services.Inspections
 
 class DepartmentEntity(id: EntityID<Long>) : LongEntity(id) {
     companion object : LongEntityClass<DepartmentEntity>(Departments)
@@ -28,6 +29,7 @@ class DepartmentEntity(id: EntityID<Long>) : LongEntity(id) {
     var created by Departments.created
     var updated by Departments.updated
     var partner by PartnerEntity referencedOn Departments.partner
+    val inspections by  InspectionEntity referrersOn Inspections.department
 }
 
 data class DepartmentDataModel(
@@ -45,6 +47,9 @@ data class DepartmentDataModel(
     override var id: Long = 0L
     var updated: LocalDateTime = DepartmentDTO.nowTime()
     var created: LocalDateTime = DepartmentDTO.nowTime()
+
+    val inspections = mutableListOf<InspectionDataModel>()
+
 }
 
 class DepartmentDTO(
@@ -68,6 +73,14 @@ class DepartmentDTO(
                     PropertyBinding(DepartmentDataModel::updated, DepartmentEntity::updated),
                     PropertyBinding(DepartmentDataModel::created, DepartmentEntity::created),
                 )
+                childBindings{
+                    childBinding<InspectionDataModel, InspectionEntity>(
+                        InspectionDTO,
+                        DepartmentEntity::inspections,
+                        InspectionEntity::department,
+                        DepartmentDataModel::inspections
+                    )
+                }
             }
         }
     }
