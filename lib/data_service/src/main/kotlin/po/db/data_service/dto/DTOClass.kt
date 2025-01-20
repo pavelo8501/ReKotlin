@@ -6,6 +6,7 @@ import org.jetbrains.exposed.dao.id.IdTable
 import po.db.data_service.binder.BindingContainer
 import po.db.data_service.binder.BindingKeyBase
 import po.db.data_service.binder.OrdinanceType
+import po.db.data_service.binder.UpdateMode
 import po.db.data_service.components.eventhandler.RootEventHandler
 import po.db.data_service.components.eventhandler.interfaces.CanNotify
 import po.db.data_service.dto.components.DAOService
@@ -78,34 +79,6 @@ abstract class DTOClass<DATA, ENTITY>(
     }
 
     /**
-     * Initializes a DTO (Data Transfer Object) for a given data model.
-     * If the data model has an ID of 0, it creates a new
-     * entity DTO, initializes it, and saves it using the DAO service.
-     * If the data model has an existing ID, it loads the corresponding entity and initializes a DTO for it.
-     *
-     * @param dataModel The data model to initialize the DTO for.
-     * @param block An optional lambda function to perform additional actions on the entity before saving.
-     * @return The initialized DTO or null if the creation process fails.
-     * @throws OperationsException if the model is not properly initialized.
-     */
-    fun initDTO(
-        dataModel : DATA): CommonDTO<DATA, ENTITY>?
-    {
-        notify("Initializing DTO for dataModel: $dataModel with keys: ${bindings.keys}")
-        val dto = if(dataModel.id == 0L){
-            factory.createEntityDto(dataModel)?.let { newDto ->
-                conf.relationBinder.applyBindings(newDto)
-                newDto
-            }
-        }else{
-           val entity = daoService.selectWhere(dataModel.id)
-           val existentDto = initDTO(entity)
-           return existentDto
-        }
-        return dto
-    }
-
-    /**
      * Initializes a DTO for a given entity by creating, initializing, and updating it.
      *
      * @param entity The entity to initialize the DTO for.
@@ -136,11 +109,14 @@ abstract class DTOClass<DATA, ENTITY>(
        notify("select()"){
            val entities = daoService.selectAll()
            entities.forEach {
-               val dto = initDTO(it)
-               if(dto != null){
-                  dto.initHostedFromDb()
-                  resultList.add(dto)
+               factory.createEntityDto()?.let {newDto->
+                   newDto.update(it, UpdateMode.ENTITY_TO_MODEL)
+                   resultList.add(newDto)
                }
+           }
+           resultList.forEach {
+               conf.relationBinder.applyBindings(it)
+               it.initializeRepositories(it.entityDAO)
            }
        }
        return CrudResult(resultList.toList(), eventHandler.getEvent())

@@ -19,27 +19,23 @@ class HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
     val repositories = mutableMapOf<BindingKeyBase, RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>>()
 
     var onUpdate: (()-> Unit)? = null
+    var onUpdateFromEntity: ((ENTITY)-> Unit)? = null
 
-
-    fun subscribeOnInitByEntity(callback:  (entity: ENTITY)-> Unit){
-        onInitHostedByEntity.add(callback)
-    }
-    var onInitHostedByEntity = mutableListOf<(ENTITY)-> Unit>()
-    fun initHosted(entity: ENTITY){
-        onInitHostedByEntity.forEach {
-            it.invoke(entity)
+    fun initializeRepositories(entity: ENTITY){
+        repositories.values.forEach {
+            it.initialize(entity)
         }
     }
 
-    /**
-     *  Entry point for repository initialization in the bound sequence
-     **/
     fun initializeRepositories(){
         repositories.values.forEach {
             it.initialize(extractDataModel())
         }
     }
 
+    /**
+     *  Entry point for repository update
+     **/
     fun updateRootRepositories(){
         sourceModel.daoService.saveNew(this)?.let {
             onUpdate?.invoke()
@@ -67,10 +63,10 @@ abstract class CommonDTO<DATA, ENTITY>(
 {
     var hostDTO  : HostDTO<DATA, ENTITY, *, *>? = null
 
-    fun initHostedFromDb(){
-        hostDTO?.initHosted(entityDAO)
-    }
 
+    fun initializeRepositories(entity:ENTITY){
+        hostDTO?.initializeRepositories(entity)
+    }
     fun initializeRepositories(){
         hostDTO?.initializeRepositories()
     }
