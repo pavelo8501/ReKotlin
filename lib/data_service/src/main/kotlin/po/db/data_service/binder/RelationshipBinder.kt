@@ -2,16 +2,13 @@ package po.db.data_service.binder
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.SizedIterable
-import po.db.data_service.dto.DTOClass
-import po.db.data_service.dto.components.MultipleRepository
-import po.db.data_service.dto.components.RepositoryBase
-import po.db.data_service.dto.components.SingleRepository
-import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.exceptions.ExceptionCodes
-import po.db.data_service.exceptions.OperationsException
-import po.db.data_service.models.CommonDTO
-import po.db.data_service.models.DTOBase.Companion.copyAsHostingDTO
-import po.db.data_service.models.HostDTO
+import po.db.data_service.classes.DTOClass
+import po.db.data_service.classes.components.MultipleRepository
+import po.db.data_service.classes.components.SingleRepository
+import po.db.data_service.classes.interfaces.DataModel
+import po.db.data_service.dto.CommonDTO
+import po.db.data_service.dto.DTOBase.Companion.copyAsHostingDTO
+import po.db.data_service.dto.HostDTO
 import kotlin.collections.set
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
@@ -62,7 +59,7 @@ class MultipleChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
 ): BindingContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(parentModel, childModel, OrdinanceType.ONE_TO_MANY)
         where DATA : DataModel, ENTITY : LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity
 {
-    val thisKey  = BindingKeyBase.createOneToManyKey(childModel)
+    override val thisKey  = BindingKeyBase.createOneToManyKey(childModel)
 
     lateinit var byProperty : KProperty1<ENTITY, SizedIterable<CHILD_ENTITY>>
     lateinit var referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>
@@ -90,16 +87,16 @@ class SingleChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
 ): BindingContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(parentModel, childModel, OrdinanceType.ONE_TO_ONE)
     where DATA : DataModel, ENTITY : LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity
 {
-    val thisKey = BindingKeyBase.createOneToOneKey(childModel)
+    override val thisKey = BindingKeyBase.createOneToOneKey(childModel)
 
     lateinit var byProperty: KProperty1<ENTITY, CHILD_ENTITY?>
     lateinit var referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>
-    lateinit var sourceProperty: KProperty1<DATA, CHILD_DATA?>
+    lateinit var sourceProperty: KMutableProperty1<DATA, CHILD_DATA?>
 
     fun initProperties(
         byProperty: KProperty1<ENTITY, CHILD_ENTITY?>,
         referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>,
-        sourceProperty: KProperty1<DATA, CHILD_DATA?>)
+        sourceProperty: KMutableProperty1<DATA, CHILD_DATA?>)
     {
         this.byProperty = byProperty
         this.referencedOnProperty = referencedOnProperty
@@ -120,6 +117,7 @@ sealed class BindingContainer<DATA, ENTITY,  CHILD_DATA,  CHILD_ENTITY>(
    val type  : OrdinanceType,
 ) where DATA : DataModel, ENTITY : LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity{
 
+    abstract val thisKey : BindingKeyBase
 
     abstract fun setRepository(
         parent: HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>
@@ -139,7 +137,6 @@ sealed class BindingContainer<DATA, ENTITY,  CHILD_DATA,  CHILD_ENTITY>(
         parentDto as  HostDTO<DATA, ENTITY,  CHILD_DATA, CHILD_ENTITY>
         setRepository(parentDto)
     }
-
 }
 
 class RelationshipBinder<DATA, ENTITY>(
@@ -176,7 +173,7 @@ class RelationshipBinder<DATA, ENTITY>(
         childModel: DTOClass<CHILD_DATA, CHILD_ENTITY>,
         byProperty: KProperty1<ENTITY, CHILD_ENTITY?>,
         referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>,
-        sourceProperty: KProperty1<DATA, CHILD_DATA?>
+        sourceProperty: KMutableProperty1<DATA, CHILD_DATA?>
     ){
        if(!childModel.initialized){
            childModel.initialization()
@@ -205,7 +202,7 @@ class RelationshipBinder<DATA, ENTITY>(
 
     fun applyBindings(parentDto: CommonDTO<DATA, ENTITY>){
         val thisKeys = childBindings.keys
-        if(thisKeys.count()>0){
+        if(thisKeys.count() > 0){
             if(parentDto.hostDTO == null){
                 childBindings[thisKeys.first()]!!.applyBinding(parentDto).let {hosted->
                     if(thisKeys.count()>1){

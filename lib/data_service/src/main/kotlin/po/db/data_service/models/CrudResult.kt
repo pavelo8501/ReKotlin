@@ -2,7 +2,9 @@ package po.db.data_service.models
 
 import org.jetbrains.exposed.dao.LongEntity
 import po.db.data_service.components.eventhandler.models.Event
-import po.db.data_service.dto.interfaces.DataModel
+import po.db.data_service.classes.interfaces.DataModel
+import po.db.data_service.dto.CommonDTO
+import po.db.data_service.dto.HostDTO
 
 
 interface OperationResult {

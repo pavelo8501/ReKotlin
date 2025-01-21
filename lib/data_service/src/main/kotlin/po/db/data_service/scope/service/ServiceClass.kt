@@ -9,8 +9,8 @@ import org.jetbrains.exposed.sql.exists
 import org.jetbrains.exposed.sql.transactions.transaction
 import po.db.data_service.components.logger.LoggingService
 import po.db.data_service.components.logger.enums.LogLevel
-import po.db.data_service.dto.DTOClass
-import po.db.data_service.dto.interfaces.DataModel
+import po.db.data_service.classes.DTOClass
+import po.db.data_service.classes.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.InitializationException
 import kotlin.Long

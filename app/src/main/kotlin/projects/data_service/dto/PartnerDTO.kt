@@ -5,10 +5,10 @@ import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import po.db.data_service.binder.PropertyBinding
-import po.db.data_service.dto.DTOClass
-import po.db.data_service.dto.interfaces.DTOModel
-import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.models.CommonDTO
+import po.db.data_service.classes.DTOClass
+import po.db.data_service.classes.interfaces.DTOModel
+import po.db.data_service.classes.interfaces.DataModel
+import po.db.data_service.dto.CommonDTO
 import po.playground.projects.data_service.services.Contacts
 import po.playground.projects.data_service.services.Departments
 import po.playground.projects.data_service.services.Partners
@@ -34,7 +34,7 @@ data class PartnerDataModel(
     override var id: Long = 0L
     var updated: LocalDateTime = PartnerDTO.nowTime()
     var created: LocalDateTime = PartnerDTO.nowTime()
-    var departments = mutableListOf<DepartmentDataModel>()
+    val departments = mutableListOf<DepartmentDataModel>()
     var contact : ContactDataModel? = null
 }
 

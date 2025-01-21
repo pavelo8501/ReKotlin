@@ -1,22 +1,22 @@
-package po.db.data_service.dto
+package po.db.data_service.classes
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.IdTable
 import po.db.data_service.binder.BindingContainer
 import po.db.data_service.binder.BindingKeyBase
-import po.db.data_service.binder.OrdinanceType
+import po.db.data_service.binder.UpdateMode
 import po.db.data_service.components.eventhandler.RootEventHandler
 import po.db.data_service.components.eventhandler.interfaces.CanNotify
-import po.db.data_service.dto.components.DAOService
-import po.db.data_service.dto.components.DTOConfig
-import po.db.data_service.dto.components.Factory
-import po.db.data_service.dto.interfaces.DTOInstance
-import po.db.data_service.dto.interfaces.DataModel
+import po.db.data_service.classes.components.DAOService
+import po.db.data_service.classes.components.DTOConfig
+import po.db.data_service.classes.components.Factory
+import po.db.data_service.classes.interfaces.DTOInstance
+import po.db.data_service.classes.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.OperationsException
 import po.db.data_service.models.CrudResult
-import po.db.data_service.models.CommonDTO
+import po.db.data_service.dto.CommonDTO
 import kotlin.reflect.KClass
 
 abstract class DTOClass<DATA, ENTITY>(
@@ -78,55 +78,6 @@ abstract class DTOClass<DATA, ENTITY>(
     }
 
     /**
-     * Initializes a DTO (Data Transfer Object) for a given data model.
-     * If the data model has an ID of 0, it creates a new
-     * entity DTO, initializes it, and saves it using the DAO service.
-     * If the data model has an existing ID, it loads the corresponding entity and initializes a DTO for it.
-     *
-     * @param dataModel The data model to initialize the DTO for.
-     * @param block An optional lambda function to perform additional actions on the entity before saving.
-     * @return The initialized DTO or null if the creation process fails.
-     * @throws OperationsException if the model is not properly initialized.
-     */
-    fun initDTO(
-        dataModel : DATA): CommonDTO<DATA, ENTITY>?
-    {
-        notify("Initializing DTO for dataModel: $dataModel with keys: ${bindings.keys}")
-        val dto = if(dataModel.id == 0L){
-            factory.createEntityDto(dataModel)?.let { newDto ->
-                conf.relationBinder.applyBindings(newDto)
-                newDto
-            }
-        }else{
-           val entity = daoService.selectWhere(dataModel.id)
-           val existentDto = initDTO(entity)
-           return existentDto
-        }
-        return dto
-    }
-
-    /**
-     * Initializes a DTO for a given entity by creating, initializing, and updating it.
-     *
-     * @param entity The entity to initialize the DTO for.
-     * @return The initialized DTO or null if the creation process fails.
-     * @throws OperationsException if the model is not properly initialized.
-     */
-    fun initDTO(entity: ENTITY): CommonDTO<DATA, ENTITY>?{
-        if(initialized == false){
-            throw OperationsException(
-                "Calling create(entity.id=${entity.id.value}) on model uninitialized",
-                ExceptionCodes.NOT_INITIALIZED)
-        }
-        factory.createEntityDto()?.let {newDto->
-            //newDto.update(entity, UpdateMode.ENTITY_TO_MODEL)
-            conf.relationBinder.applyBindings(newDto)
-            return newDto
-        }
-        return null
-    }
-
-    /**
      * Selects all entities from the database, initializes DTOs for them, and returns a result containing these DTOs.
      *
      * @return A [CrudResult] containing a list of initialized DTOs and associated events.
@@ -136,11 +87,14 @@ abstract class DTOClass<DATA, ENTITY>(
        notify("select()"){
            val entities = daoService.selectAll()
            entities.forEach {
-               val dto = initDTO(it)
-               if(dto != null){
-                  dto.initHostedFromDb()
-                  resultList.add(dto)
+               factory.createEntityDto()?.let {newDto->
+                   newDto.update(it, UpdateMode.ENTITY_TO_MODEL)
+                   resultList.add(newDto)
                }
+           }
+           resultList.forEach {
+               conf.relationBinder.applyBindings(it)
+               it.initializeRepositories(it.entityDAO)
            }
        }
        return CrudResult(resultList.toList(), eventHandler.getEvent())
@@ -154,35 +108,24 @@ abstract class DTOClass<DATA, ENTITY>(
     fun <PARENT_DATA: DataModel, PARENT_ENTITY: LongEntity>update(dataModels: List<DATA>): CrudResult<DATA, ENTITY>{
         val resultDTOs = mutableListOf<CommonDTO<DATA, ENTITY>>()
         notify("create() count=${dataModels.count()}") {
-            dataModels.forEach {dataModel->
-                val dto = initDTO(dataModel)
-                if(dto!=null){
-                    dto.initHostedFromDto()
-                    resultDTOs.add(dto)
+
+            dataModels.forEach { dataModel ->
+                factory.createEntityDto(dataModel)?.let { newDto ->
+                    resultDTOs.add(newDto)
                 }
+            }
+            resultDTOs.filter { !it.isSaved }.forEach {
+                conf.relationBinder.applyBindings(it)
+                it.initializeRepositories()
+                it.updateRepositories()
+            }
+            resultDTOs.filter { it.isSaved }.forEach {
+                conf.relationBinder.applyBindings(it)
+                it.initializeRepositories()
+                it.updateRepositories()
             }
         }
         return CrudResult(resultDTOs.toList(), eventHandler.getEvent())
-    }
-
-    /**
-     * Deletes a given DTO along with its bindings.
-     * If bindings involve one-to-many relationships, it deletes the children before deleting the parent DTO.
-     *
-     * @param dto The DTO to delete.
-     */
-    fun delete(dto : CommonDTO<DATA, ENTITY>){
-        bindings.values.forEach{binding->
-            when(binding.type){
-                OrdinanceType.ONE_TO_MANY -> {
-
-                }
-                else -> {
-
-                }
-            }
-        }
-        daoService.delete(dto)
     }
 
     /**
@@ -194,11 +137,18 @@ abstract class DTOClass<DATA, ENTITY>(
     fun delete(dataModel: DATA): CrudResult<DATA, ENTITY>{
         val resultDTOs = mutableListOf<CommonDTO<DATA, ENTITY>>()
         notify("delete(dataModel.id = ${dataModel.id})") {
-           val entity = daoService.selectWhere(dataModel.id)
-           val dto = initDTO(entity)
-           if(dto != null){
-               delete(dto)
-           }
+            factory.createEntityDto(dataModel)?.let { newDto ->
+                resultDTOs.add(newDto)
+            }
+            resultDTOs.forEach {
+                daoService.selectWhere(it.id).let { entity ->
+                    it.update(entity, UpdateMode.ENTITY_TO_MODEL)
+                    conf.relationBinder.applyBindings(it)
+                    it.initializeRepositories(it.entityDAO)
+                    it.deleteInRepositories()
+                }
+            }
+
         }
         return CrudResult(resultDTOs.toList(), eventHandler.getEvent())
     }

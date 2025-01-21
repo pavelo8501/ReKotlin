@@ -1,13 +1,17 @@
 package po.db.data_service.constructors
 
+import com.mysql.cj.x.protobuf.MysqlxCrud
 import org.jetbrains.exposed.dao.LongEntity
-import po.db.data_service.dto.interfaces.DataModel
+import po.db.data_service.classes.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.OperationsException
-import po.db.data_service.models.CommonDTO
+import po.db.data_service.dto.CommonDTO
+import kotlin.collections.mapOf
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
+import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KParameter
+import kotlin.reflect.KProperty1
 import kotlin.reflect.KType
 
 
@@ -24,11 +28,18 @@ enum class ConstructorType{
 
 
 class DataModelBlueprint<DATA: DataModel>(
-    clazz : KClass<DATA>
+    clazz : KClass<DATA>,
+    constructor: ConstructorBuilder? = null
 ) : ClassBlueprintBase<DATA>(clazz){
 
-    override fun getClass(): KClass<DATA> {
-        return getSourceClass()
+    init {
+        if(constructor!=null){
+            initialize(constructor)
+        }
+    }
+
+    fun getClass(): KClass<DATA> {
+        return clazz
     }
 }
 
@@ -37,45 +48,58 @@ class EntityBlueprint<ENTITY : LongEntity >(
     clazz : KClass<ENTITY>
 ) : ClassBlueprintBase<ENTITY>(clazz){
 
-    override fun getClass(): KClass<ENTITY> {
-       return getSourceClass()
+    fun getClass(): KClass<ENTITY> {
+       return clazz
     }
 
 }
 
 class DTOBlueprint<DATA, ENTITY>(
-    override val clazz  : KClass<out CommonDTO<DATA, ENTITY>>,
-) : CovariantClassBlueprintBase< CommonDTO<DATA,ENTITY>>() where ENTITY : LongEntity, DATA : DataModel
+    clazz  : KClass<out CommonDTO<DATA, ENTITY>>,
+) : ClassBlueprintBase<CommonDTO<DATA,ENTITY>>(
+    clazz as KClass<CommonDTO<DATA, ENTITY>>)
+        where ENTITY : LongEntity, DATA : DataModel
 
 
 
-abstract class CovariantClassBlueprintBase<T: Any>(): ClassBlueprintBase<T>(){
+//abstract class CovariantClassBlueprintBase<T: Any>(val clazz: KClass<out T>){
+//
+//    protected var effectiveConstructor : KFunction<T>? = null
+//    private var effectiveConstructorSize : Number  = 0
+//
+//    lateinit var constructorBuilder : ConstructorBuilder
+//
+//    fun getConstructor(): KFunction<T>{
+//        return effectiveConstructor?: throw OperationsException(
+//            "Effective constructor not set", ExceptionCodes.CONSTRUCTOR_MISSING)
+//    }
+//
+//    fun initialize(builder : ConstructorBuilder){
+//        constructorBuilder = builder
+//        builder.getBlueprint(getClass(), this)
+//    }
+//
+//    fun getClass():KClass<out T>{
+//        return clazz
+//    }
+//}
 
-    abstract val clazz : KClass<out T>
-
-    override fun getConstructor(): KFunction<T>{
-        return effectiveConstructor?: throw OperationsException(
-            "Effective constructor not set", ExceptionCodes.CONSTRUCTOR_MISSING)
-    }
-
-    override fun getClass():KClass<out T>{
-        return clazz
-    }
-
-}
 
 
+abstract class ClassBlueprintBase<T: Any>(protected val clazz: KClass<T>){
 
-abstract class ClassBlueprintBase<T: Any>(inputClazz : KClass<T>? = null){
-
-    private val forClass : KClass<T>? = inputClazz
-
-    var  className: String = ""
-    var  qualifiedName : String = ""
+    var className: String = ""
+    var qualifiedName : String = ""
     var constructorArgs  = mutableListOf<ConstructorArgument>()
 
     var constructorParams  = mutableMapOf<KParameter,  Any?>()
         private set
+
+    var nestedClasses = mapOf<String,  Map<String,ClassData>>()
+    private set
+
+    var propertyMap = mapOf<String, KProperty1<T, *>>()
+    private set
 
     protected var effectiveConstructor : KFunction<T>? = null
     private var effectiveConstructorSize : Number  = 0
@@ -85,14 +109,9 @@ abstract class ClassBlueprintBase<T: Any>(inputClazz : KClass<T>? = null){
 
     fun initialize(builder : ConstructorBuilder){
         constructorBuilder = builder
-        builder.getBlueprint<T>(this)
+        builder.getBlueprint(clazz, this)
     }
 
-    protected fun getSourceClass(): KClass<T>{
-        return forClass!!
-    }
-
-    abstract fun getClass(): KClass<out T>
 
     fun setConstructor(constructor : KFunction<T>){
         effectiveConstructor = constructor
@@ -120,7 +139,8 @@ abstract class ClassBlueprintBase<T: Any>(inputClazz : KClass<T>? = null){
     }
 
     open fun getConstructor(): KFunction<T>{
-        return effectiveConstructor?: throw OperationsException("Effective constructor not set", ExceptionCodes.CONSTRUCTOR_MISSING)
+        return effectiveConstructor?:
+            throw OperationsException("Effective constructor not set", ExceptionCodes.CONSTRUCTOR_MISSING)
     }
 
     fun addAsArg(param : KParameter){
@@ -130,5 +150,13 @@ abstract class ClassBlueprintBase<T: Any>(inputClazz : KClass<T>? = null){
 
     fun setParams(params :  Map<KParameter,  Any?>){
         constructorParams = params.toMutableMap()
+    }
+
+    fun setNestedMap(map : Map<String, Map<String,ClassData>>){
+        nestedClasses = map
+    }
+
+    fun setPropertyMap(map:Map<String, KProperty1<T, *>>){
+        propertyMap = map
     }
 }

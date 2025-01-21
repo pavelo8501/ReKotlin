@@ -1,4 +1,4 @@
-package po.db.data_service.dto.components
+package po.db.data_service.classes.components
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
@@ -6,12 +6,11 @@ import org.jetbrains.exposed.sql.SizedIterable
 import po.db.data_service.binder.UpdateMode
 import po.db.data_service.components.eventhandler.EventHandler
 import po.db.data_service.components.eventhandler.interfaces.CanNotify
-import po.db.data_service.dto.DTOClass
-import po.db.data_service.dto.interfaces.DataModel
+import po.db.data_service.classes.DTOClass
+import po.db.data_service.classes.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.OperationsException
-import po.db.data_service.models.CommonDTO
-import po.db.data_service.models.DTOBase
+import po.db.data_service.dto.DTOBase
 
 class DAOService<DATA, ENTITY>(
   private val parent : DTOClass<DATA, ENTITY>
@@ -22,23 +21,24 @@ class DAOService<DATA, ENTITY>(
    val entityModel : LongEntityClass<ENTITY>
         get(){return  parent.entityModel}
 
-    fun saveNew(dto : DTOBase<DATA, ENTITY, *, *>, block: ((ENTITY)-> Unit)? = null): ENTITY? {
-        try {
-            val entity = notify("saveNew() for dto ${dto.sourceModel.className}"){
+    fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity> saveNew(
+        dto: DTOBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,
+        block: ((ENTITY) -> Unit)? = null
+    ): ENTITY? {
+            // Notify about the operation
+            val entity = notify("saveNew() for dto ${dto.sourceModel.className}") {
+                // Create a new entity and update its properties
                 val newEntity = entityModel.new {
                     dto.update(this, UpdateMode.MODEL_TO_ENTNTY)
                     block?.invoke(this)
                 }
                 newEntity
             }
-            return entity
-        }catch (ex: Exception){
-            notifyError(ex.message?:"Unknown Exception")
-            return null
-        }
+           return entity!!
     }
 
-    fun updateExistent(dto : CommonDTO<DATA, ENTITY>){
+    fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity> updateExistent(
+        dto : DTOBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>){
         try {
             val entity = selectWhere(dto.id)
             dto.update(entity, UpdateMode.MODEL_TO_ENTNTY)
@@ -67,7 +67,10 @@ class DAOService<DATA, ENTITY>(
         return entity!!
     }
 
-    fun delete(dto : CommonDTO<DATA, ENTITY>){
+    fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity>delete(
+        dto : DTOBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>
+    )
+    {
         dto.entityDAO.delete()
     }
 

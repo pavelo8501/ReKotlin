@@ -1,6 +1,7 @@
 package po.playground.projects.data_service.data_source
 
 import po.playground.projects.data_service.dto.ContactDataModel
+import po.playground.projects.data_service.dto.DepartmentDTO
 import po.playground.projects.data_service.dto.DepartmentDataModel
 import po.playground.projects.data_service.dto.InspectionDTO
 import po.playground.projects.data_service.dto.InspectionDataModel
@@ -40,6 +41,18 @@ fun asDTO(): List<PartnerDTO> {
     return asDataModels().map { PartnerDTO(it) }
 }
 
+fun dataModelWithDynamicUpdate():PartnerDataModel{
+    val partnerDataModel =  PartnerDataModel("Partner 1", PartnerDTO.nowTime().toString()).also {
+        it.id = 1
+    }
+    partnerDataModel.departments.add(
+        DepartmentDataModel(false, "Department 2 of Partner 1", 12, DepartmentDTO.nowTime().toString()).also {
+            it.id = 2
+        }
+    )
+    return partnerDataModel
+}
+
 fun asDataModelDynamically(
     partnerCount: Int,
     departmentCount: Int,
@@ -63,7 +76,7 @@ fun asDataModelDynamically(
                 "LV-190$a",
                 "26000$i$a",
                 "Department$a@Partner${i}.lv")
-            for (b in 1..3){
+            for (b in 1..5){
                 department.inspections.add(InspectionDataModel(InspectionDTO.nowTime()))
             }
             partner.departments.add(department)
@@ -71,4 +84,8 @@ fun asDataModelDynamically(
         result.add(partner)
     }
     return result
+}
+
+fun asDataModelToDelete():PartnerDataModel{
+    return PartnerDataModel("Partner 1", "Partner 1 SIA", "4001001", "LV-4001001").also { it.id = 1 }
 }
