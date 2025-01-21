@@ -22,22 +22,6 @@ class DAOService<DATA, ENTITY>(
    val entityModel : LongEntityClass<ENTITY>
         get(){return  parent.entityModel}
 
-//    fun <CHILD_ENTITY: LongEntity>saveNew(dto : DTOBase<*, CHILD_ENTITY, *, ENTITY>, block: ((CHILD_ENTITY)-> Unit)? = null): CHILD_ENTITY? {
-//        try {
-//            val entity = notify("saveNew() for dto ${dto.sourceModel.className}"){
-//                val newEntity = entityModel.new {
-//                    dto.update(this, UpdateMode.MODEL_TO_ENTNTY)
-//                    block?.invoke(this)
-//                }
-//                newEntity
-//            }
-//            return entity
-//        }catch (ex: Exception){
-//            notifyError(ex.message?:"Unknown Exception")
-//            return null
-//        }
-//    }
-
     fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity> saveNew(
         dto: DTOBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,
         block: ((ENTITY) -> Unit)? = null
@@ -54,7 +38,8 @@ class DAOService<DATA, ENTITY>(
            return entity!!
     }
 
-    fun updateExistent(dto : CommonDTO<DATA, ENTITY>){
+    fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity> updateExistent(
+        dto : DTOBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>){
         try {
             val entity = selectWhere(dto.id)
             dto.update(entity, UpdateMode.MODEL_TO_ENTNTY)
@@ -83,7 +68,10 @@ class DAOService<DATA, ENTITY>(
         return entity!!
     }
 
-    fun delete(dto : CommonDTO<DATA, ENTITY>){
+    fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity>delete(
+        dto : DTOBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>
+    )
+    {
         dto.entityDAO.delete()
     }
 

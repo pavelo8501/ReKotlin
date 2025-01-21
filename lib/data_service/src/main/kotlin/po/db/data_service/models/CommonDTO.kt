@@ -2,13 +2,10 @@ package po.db.data_service.models
 
 import org.jetbrains.exposed.dao.LongEntity
 import po.db.data_service.binder.BindingKeyBase
-import po.db.data_service.binder.OrdinanceType
 import po.db.data_service.binder.PropertyBinder
 import po.db.data_service.binder.UpdateMode
 import po.db.data_service.dto.DTOClass
-import po.db.data_service.dto.components.MultipleRepository
 import po.db.data_service.dto.components.RepositoryBase
-import po.db.data_service.dto.components.SingleRepository
 import po.db.data_service.dto.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.OperationsException
@@ -23,8 +20,13 @@ class HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
 
     var onUpdate: (()-> Unit)? = null
     var onUpdateFromEntity: ((ENTITY)-> Unit)? = null
+    var onDelete:(()-> Unit)? = null
+
+    val hasChild: Boolean
+        get(){return repositories.isNotEmpty()}
 
     fun initializeRepositories(entity: ENTITY){
+
         repositories.values.forEach {
             it.initialize(entity)
         }
@@ -37,27 +39,36 @@ class HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
     }
 
     fun updateRootRepositories(){
-        sourceModel.daoService.saveNew(this)?.let {
-            onUpdate?.invoke()
+        if(!isSaved){
+            sourceModel.daoService.saveNew(this)?.let {
+                onUpdate?.invoke()
+            }
+        }else{
+            sourceModel.daoService.updateExistent(this).let{
+                onUpdate?.invoke()
+            }
+        }
+    }
+
+    private val onDeleteFnList = mutableListOf<
+            Pair<HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,() -> Unit>>()
+
+    fun subscribeOnDelete(
+        callback:  ()-> Unit
+    ){
+
+        onDeleteFnList.add(Pair(this, callback))
+    }
+
+    fun deleteInRepositories() {
+        repositories.values.forEach { repository ->
+            repository.deleteAllRecursively()
         }
     }
 
     fun compileDataModel(dataModel:DATA):DATA{
         repositories.values.forEach {
 
-
-            when(it){
-                is SingleRepository->{
-                    it.binding.thisKey.childModel
-                    it.submitSingleDataModel(dataModel)
-
-                }
-
-                is MultipleRepository->{
-
-
-                }
-            }
         }
         return injectedDataModel
     }
@@ -91,6 +102,12 @@ abstract class CommonDTO<DATA, ENTITY>(
     }
     fun updateRepositories(){
         hostDTO?.updateRootRepositories()
+    }
+    fun deleteInRepositories(){
+        hostDTO?.let {
+            it.deleteInRepositories()
+            it.sourceModel.daoService.delete(it)
+        }
     }
 
     fun compileDataModel():DATA{
@@ -132,9 +149,9 @@ sealed class DTOBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
             "Entity uninitialized",
             ExceptionCodes.LAZY_NOT_INITIALIZED) }
 
-    val isUnsaved : Boolean
+    val isSaved : Boolean
         get(){
-            return id == 0L
+            return id != 0L
         }
 
     val propertyBinder: PropertyBinder<DATA,ENTITY> by lazy { initialize(sourceModel) }

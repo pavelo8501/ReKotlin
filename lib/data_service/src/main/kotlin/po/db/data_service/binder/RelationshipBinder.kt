@@ -205,7 +205,7 @@ class RelationshipBinder<DATA, ENTITY>(
 
     fun applyBindings(parentDto: CommonDTO<DATA, ENTITY>){
         val thisKeys = childBindings.keys
-        if(thisKeys.count()>0){
+        if(thisKeys.count() > 0){
             if(parentDto.hostDTO == null){
                 childBindings[thisKeys.first()]!!.applyBinding(parentDto).let {hosted->
                     if(thisKeys.count()>1){

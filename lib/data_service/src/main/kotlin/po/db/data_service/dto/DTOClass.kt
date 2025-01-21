@@ -79,27 +79,6 @@ abstract class DTOClass<DATA, ENTITY>(
     }
 
     /**
-     * Initializes a DTO for a given entity by creating, initializing, and updating it.
-     *
-     * @param entity The entity to initialize the DTO for.
-     * @return The initialized DTO or null if the creation process fails.
-     * @throws OperationsException if the model is not properly initialized.
-     */
-    fun initDTO(entity: ENTITY): CommonDTO<DATA, ENTITY>?{
-        if(initialized == false){
-            throw OperationsException(
-                "Calling create(entity.id=${entity.id.value}) on model uninitialized",
-                ExceptionCodes.NOT_INITIALIZED)
-        }
-        factory.createEntityDto()?.let {newDto->
-            //newDto.update(entity, UpdateMode.ENTITY_TO_MODEL)
-            conf.relationBinder.applyBindings(newDto)
-            return newDto
-        }
-        return null
-    }
-
-    /**
      * Selects all entities from the database, initializes DTOs for them, and returns a result containing these DTOs.
      *
      * @return A [CrudResult] containing a list of initialized DTOs and associated events.
@@ -136,33 +115,18 @@ abstract class DTOClass<DATA, ENTITY>(
                     resultDTOs.add(newDto)
                 }
             }
-            resultDTOs.forEach {
+            resultDTOs.filter { !it.isSaved }.forEach {
+                conf.relationBinder.applyBindings(it)
+                it.initializeRepositories()
+                it.updateRepositories()
+            }
+            resultDTOs.filter { it.isSaved }.forEach {
                 conf.relationBinder.applyBindings(it)
                 it.initializeRepositories()
                 it.updateRepositories()
             }
         }
         return CrudResult(resultDTOs.toList(), eventHandler.getEvent())
-    }
-
-    /**
-     * Deletes a given DTO along with its bindings.
-     * If bindings involve one-to-many relationships, it deletes the children before deleting the parent DTO.
-     *
-     * @param dto The DTO to delete.
-     */
-    fun delete(dto : CommonDTO<DATA, ENTITY>){
-        bindings.values.forEach{binding->
-            when(binding.type){
-                OrdinanceType.ONE_TO_MANY -> {
-
-                }
-                else -> {
-
-                }
-            }
-        }
-        daoService.delete(dto)
     }
 
     /**
@@ -174,11 +138,18 @@ abstract class DTOClass<DATA, ENTITY>(
     fun delete(dataModel: DATA): CrudResult<DATA, ENTITY>{
         val resultDTOs = mutableListOf<CommonDTO<DATA, ENTITY>>()
         notify("delete(dataModel.id = ${dataModel.id})") {
-           val entity = daoService.selectWhere(dataModel.id)
-           val dto = initDTO(entity)
-           if(dto != null){
-               delete(dto)
-           }
+            factory.createEntityDto(dataModel)?.let { newDto ->
+                resultDTOs.add(newDto)
+            }
+            resultDTOs.forEach {
+                daoService.selectWhere(it.id).let { entity ->
+                    it.update(entity, UpdateMode.ENTITY_TO_MODEL)
+                    conf.relationBinder.applyBindings(it)
+                    it.initializeRepositories(it.entityDAO)
+                    it.deleteInRepositories()
+                }
+            }
+
         }
         return CrudResult(resultDTOs.toList(), eventHandler.getEvent())
     }

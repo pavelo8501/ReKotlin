@@ -103,14 +103,13 @@ class MultipleRepository<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
 }
 
 sealed class RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
-    public val parent : HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,
-    public val childModel : DTOClass<CHILD_DATA, CHILD_ENTITY>,
-    public val bindingKey : BindingKeyBase,
+    val parent : HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,
+    val childModel : DTOClass<CHILD_DATA, CHILD_ENTITY>,
+    val bindingKey : BindingKeyBase,
     binding : BindingContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>
 ) where DATA : DataModel, ENTITY : LongEntity, CHILD_DATA: DataModel, CHILD_ENTITY: LongEntity{
 
     abstract val repoName : String
-
 
     abstract fun extractDataModel(dataModel:DATA):List<CHILD_DATA>
     abstract fun setReferenced(childEntity:CHILD_ENTITY, parentEntity:ENTITY)
@@ -121,9 +120,6 @@ sealed class RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
 
     val factory: Factory<CHILD_DATA, CHILD_ENTITY>
         get(){return  childModel.factory }
-
-    val daoService:  DAOService<DATA, ENTITY>
-        get(){return  parent.sourceModel.daoService }
 
     init {
         parent.onUpdate={
@@ -136,6 +132,13 @@ sealed class RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
 
         parent.onUpdateFromEntity={
             println("OnUpdateFromEntity Callback invoked by parent in ${repoName}")
+            onInitHostedByEntity.forEach {
+                println("Invoking stored by ${it.first.sourceModel.className} Fn in ${repoName}")
+            }
+        }
+
+        parent.onDelete={
+            println("OnDelete callback invoked by parent in ${repoName}")
         }
     }
 
@@ -149,7 +152,7 @@ sealed class RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
         onInitHostedByData.add(Pair(subscriber, callback))
     }
 
-    private var onInitHostedByEntity = mutableListOf<
+    private val onInitHostedByEntity = mutableListOf<
             Pair<HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,
                 (ENTITY)-> Unit>>()
 
@@ -159,10 +162,31 @@ sealed class RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
         onInitHostedByEntity.add(Pair(subscriber, callback))
     }
 
-    /**
+
+    fun deleteAll(){
+        println("DeleteAll called in : $repoName")
+        dtoList.forEach {
+            it.sourceModel.daoService.delete(it)
+        }
+    }
+
+
+    fun deleteAllRecursively() {
+        println("DeleteAllRecursively called on : $repoName")
+        // Recursively delete all child repositories first
+        dtoList.forEach { childHostDTO ->
+            childHostDTO.deleteInRepositories()
+        }
+        println("Calling deleteAll from : $repoName")
+        // After all child deletions, delete current repository data
+        deleteAll()
+    }
+
+
+            /**
      * Propagate a call to the parent repository.
      */
-    fun propagateOnInitByDataToChild(
+    fun propagateOnUpdateByData(
         childDTO: HostDTO<CHILD_DATA, CHILD_ENTITY,DATA, ENTITY>){
         childDTO.onUpdate?.invoke()
     }
@@ -173,30 +197,30 @@ sealed class RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
         childDTO.onUpdateFromEntity?.invoke(entity)
     }
 
+    fun propagateOnDelete(childDTO : HostDTO<CHILD_DATA, CHILD_ENTITY,DATA, ENTITY>){
+        childDTO.subscribeOnDelete{
+            childDTO.repositories.values.forEach {
+
+            }
+        }
+    }
+
     fun initialize(entity:ENTITY){
+        println("Initialize  in  $repoName")
         getReferences(entity).forEach { childEntity ->
             factory.createDataModel().let { dataModel ->
                createHosted(dataModel).let { hosted ->
                    hosted.update(childEntity, UpdateMode.ENTITY_TO_MODEL)
                    dtoList.add(hosted)
-                   hosted.initializeRepositories(hosted.entityDAO)
+                   childModel.bindings.values.forEach {
+                       it.applyBindingToHost(hosted)
+                       hosted.initializeRepositories(hosted.entityDAO)
+                   }
                }
             }
         }
         initialized = true
         println("Repository initialized for ${parent.sourceModel.className} with id ${parent.getInjectedModel().id}")
-        println("ByData Subscriptions count ${onInitHostedByData.count()}")
-        parent.repositories.values.forEach {
-            it.subscribeOnInitByEntity(parent) {
-                getReferences(entity).forEach { childEntity ->
-                    factory.createDataModel().let { dataModel ->
-                        createHosted(dataModel).let { hosted ->
-                            propagateOnInitByEntity(childEntity, hosted)
-                        }
-                    }
-                }
-            }
-        }
     }
 
     fun initialize(dataModel:DATA){
@@ -212,14 +236,25 @@ sealed class RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
         initialized = true
         println("Repository initialized for ${parent.sourceModel.className} with id ${parent.getInjectedModel().id}")
         println("ByData Subscriptions count ${onInitHostedByData.count()}")
+        // "This needs to be refactored. Calling to loop through repos inside a repo creates complexity"
         parent.repositories.values.forEach {
             it.subscribeOnInitByData(parent){
                 dtoList.forEach { dto ->
-                    dto.sourceModel.daoService.saveNew(dto){
-                        setReferenced(it, parent.entityDAO)
+                    if(!dto.isSaved) {
+                        dto.sourceModel.daoService.saveNew(dto) {
+                            setReferenced(it, parent.entityDAO)
+                        }
+                        propagateOnUpdateByData(dto)
+                    }else{
+                        dto.sourceModel.daoService.updateExistent(dto)
+                        propagateOnUpdateByData(dto)
                     }
-                    propagateOnInitByDataToChild(dto)
                 }
+            }
+        }
+        parent.subscribeOnDelete {
+            dtoList.forEach { dto ->
+                propagateOnDelete(dto)
             }
         }
     }
@@ -227,6 +262,5 @@ sealed class RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
     protected fun createHosted(childData : CHILD_DATA):HostDTO<CHILD_DATA, CHILD_ENTITY, DATA, ENTITY>{
        return HostDTO.createHosted<CHILD_DATA, CHILD_ENTITY, DATA, ENTITY>(childData, childModel)
     }
-
 
 }
