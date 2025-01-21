@@ -18,7 +18,9 @@ data class ClassData(
     val clazz:KClass<*>
 )
 
-abstract class ConstructorBuilder {
+
+
+open class ConstructorBuilder {
 
     private fun <T: Any>getNestedMap(clazz: KClass<out T>): Map<String, Map<String,ClassData>>{
         val map = mutableMapOf<String, Map<String,ClassData>>()

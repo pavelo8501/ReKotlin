@@ -4,6 +4,7 @@ import po.db.data_service.DatabaseManager
 import po.db.data_service.controls.ConnectionInfo
 import po.db.data_service.dto.CommonDTO
 import po.db.data_service.scope.service.TableCreateMode
+import po.playground.projects.data_service.data_source.asDataModelDynamically
 import po.playground.projects.data_service.data_source.asDataModelToDelete
 import po.playground.projects.data_service.dto.PartnerDTO
 import po.playground.projects.data_service.dto.PartnerDataModel
@@ -41,8 +42,10 @@ fun startDataService(connectionInfo : ConnectionInfo) {
 //                }
 //            }
 
-//            PartnerDTO.update(asDataModelDynamically(partnerCount = 5, departmentCount = 10, false)){
-//                getStats()
+//            PartnerDTO.update(asDataModelDynamically(partnerCount = 50, departmentCount = 20, true)){
+//                resultAsDataModel{
+//                    println(it)
+//                }
 //            }
 
         }

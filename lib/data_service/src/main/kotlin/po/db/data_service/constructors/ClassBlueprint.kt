@@ -28,8 +28,15 @@ enum class ConstructorType{
 
 
 class DataModelBlueprint<DATA: DataModel>(
-    clazz : KClass<DATA>
+    clazz : KClass<DATA>,
+    constructor: ConstructorBuilder? = null
 ) : ClassBlueprintBase<DATA>(clazz){
+
+    init {
+        if(constructor!=null){
+            initialize(constructor)
+        }
+    }
 
     fun getClass(): KClass<DATA> {
         return clazz

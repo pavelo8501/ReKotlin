@@ -9,10 +9,14 @@ import po.db.data_service.classes.components.MultipleRepository
 import po.db.data_service.classes.components.RepositoryBase
 import po.db.data_service.classes.components.SingleRepository
 import po.db.data_service.classes.interfaces.DataModel
+import po.db.data_service.constructors.ConstructorBuilder
+import po.db.data_service.constructors.DataModelBlueprint
 import po.db.data_service.dto.components.DataModelContainer
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.OperationsException
 import po.db.data_service.models.DTOInitStatus
+import kotlin.reflect.KClass
+
 
 
 class HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
@@ -177,6 +181,7 @@ sealed class DTOBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
     val dataModelContainer = DataModelContainer(injectedDataModel)
 
     val propertyBinder: PropertyBinder<DATA,ENTITY> by lazy { initialize(sourceModel) }
+
 
     fun getInjectedModel(): DATA =  this.injectedDataModel
 

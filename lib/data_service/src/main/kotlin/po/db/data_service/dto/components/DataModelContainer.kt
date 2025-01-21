@@ -21,12 +21,33 @@ class DataModelContainer<T: DataModel>(val dataModel: T) {
         disassembleModel()
     }
 
+
     private fun disassembleModel(){
         val dataModelClass = dataModel::class
         dataBlueprint = DataModelBlueprint(dataModelClass).also {
             it.initialize(Companion)
         }
     }
+
+    operator fun getValue(thisRef: Any, property: KProperty<*>): MutableList<T> {
+        property.getter.let { getter ->
+            getter.isAccessible = true
+            return getter.call(thisRef) as MutableList<T>
+        }
+    }
+
+    operator fun <C: Any> setValue(thisRef: Any, property: KProperty<*>, value: C) {
+//        property.getter.let { getter ->
+//            getter.isAccessible = true
+//            getter.call(thisRef)
+//            val list = mutableListOf<C>()
+//            list.add(value)
+//        }
+
+        val a = 10
+
+    }
+
 
     fun <CHILD_DATA: DataModel>addToMutableProperty(name: String, value: CHILD_DATA){
         dataBlueprint.propertyMap[name]?.let {
