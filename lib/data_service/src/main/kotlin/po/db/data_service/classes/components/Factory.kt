@@ -1,4 +1,4 @@
-package po.db.data_service.dto.components
+package po.db.data_service.classes.components
 
 import org.jetbrains.exposed.dao.LongEntity
 import po.db.data_service.components.eventhandler.EventHandler
@@ -7,11 +7,11 @@ import po.db.data_service.constructors.ConstructorBuilder
 import po.db.data_service.constructors.DTOBlueprint
 import po.db.data_service.constructors.DataModelBlueprint
 import po.db.data_service.constructors.EntityBlueprint
-import po.db.data_service.dto.DTOClass
-import po.db.data_service.dto.interfaces.DataModel
+import po.db.data_service.classes.DTOClass
+import po.db.data_service.classes.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.OperationsException
-import po.db.data_service.models.CommonDTO
+import po.db.data_service.dto.CommonDTO
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 

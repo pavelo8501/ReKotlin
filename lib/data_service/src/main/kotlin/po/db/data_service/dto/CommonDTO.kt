@@ -1,14 +1,18 @@
-package po.db.data_service.models
+package po.db.data_service.dto
 
 import org.jetbrains.exposed.dao.LongEntity
 import po.db.data_service.binder.BindingKeyBase
 import po.db.data_service.binder.PropertyBinder
 import po.db.data_service.binder.UpdateMode
-import po.db.data_service.dto.DTOClass
-import po.db.data_service.dto.components.RepositoryBase
-import po.db.data_service.dto.interfaces.DataModel
+import po.db.data_service.classes.DTOClass
+import po.db.data_service.classes.components.MultipleRepository
+import po.db.data_service.classes.components.RepositoryBase
+import po.db.data_service.classes.components.SingleRepository
+import po.db.data_service.classes.interfaces.DataModel
+import po.db.data_service.dto.components.DataModelContainer
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.OperationsException
+import po.db.data_service.models.DTOInitStatus
 
 
 class HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
@@ -66,9 +70,25 @@ class HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
         }
     }
 
-    fun compileDataModel(dataModel:DATA):DATA{
-        repositories.values.forEach {
+    fun compileDataModel():DATA{
 
+        repositories.values.forEach {repo->
+            repo.dtoList.forEach {
+                it.compileDataModel()
+                when (repo){
+                    is MultipleRepository->{
+                        repo.getSourceProperty().let {sourceProperty->
+                              dataModelContainer.addToMutableProperty(sourceProperty.name, it.getInjectedModel())
+                        }
+                    }
+                    is SingleRepository->{
+                        repo.getSourceProperty().let {
+                            sourceProperty->
+                            dataModelContainer.setProperty(sourceProperty.name, it.getInjectedModel())
+                        }
+                    }
+                }
+            }
         }
         return injectedDataModel
     }
@@ -111,7 +131,7 @@ abstract class CommonDTO<DATA, ENTITY>(
     }
 
     fun compileDataModel():DATA{
-        hostDTO?.compileDataModel(getInjectedModel())?.let {
+        hostDTO?.compileDataModel()?.let {
             return it
         }
         throw OperationsException("Data compilation failure", ExceptionCodes.INVALID_DATA)
@@ -154,10 +174,11 @@ sealed class DTOBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
             return id != 0L
         }
 
+    val dataModelContainer = DataModelContainer(injectedDataModel)
+
     val propertyBinder: PropertyBinder<DATA,ENTITY> by lazy { initialize(sourceModel) }
 
     fun getInjectedModel(): DATA =  this.injectedDataModel
-
 
     fun initialize(model: DTOClass<DATA, ENTITY>): PropertyBinder<DATA, ENTITY> {
        sourceModel = model

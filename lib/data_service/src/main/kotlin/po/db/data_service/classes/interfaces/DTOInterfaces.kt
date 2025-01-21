@@ -1,10 +1,9 @@
-package po.db.data_service.dto.interfaces
+package po.db.data_service.classes.interfaces
 
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import org.jetbrains.exposed.dao.LongEntity
 import po.db.data_service.controls.Notificator
 
 

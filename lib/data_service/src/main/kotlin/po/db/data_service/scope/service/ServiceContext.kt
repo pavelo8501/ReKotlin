@@ -3,10 +3,10 @@ package po.db.data_service.scope.service
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction
-import po.db.data_service.dto.DTOClass
+import po.db.data_service.classes.DTOClass
 import po.db.data_service.scope.dto.DTOContext
-import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.models.CommonDTO
+import po.db.data_service.classes.interfaces.DataModel
+import po.db.data_service.dto.CommonDTO
 import po.db.data_service.scope.service.enums.WriteMode
 
 class ServiceContext<DATA,ENTITY>(

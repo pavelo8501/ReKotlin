@@ -1,7 +1,7 @@
 package po.db.data_service.controls
 
-import po.db.data_service.dto.interfaces.CanNotifyDepr
-import po.db.data_service.dto.interfaces.DTOInstance
+import po.db.data_service.classes.interfaces.CanNotifyDepr
+import po.db.data_service.classes.interfaces.DTOInstance
 
 enum class NotificationEvent{
     ON_START,

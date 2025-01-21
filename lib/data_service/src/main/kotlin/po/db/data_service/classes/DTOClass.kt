@@ -1,23 +1,22 @@
-package po.db.data_service.dto
+package po.db.data_service.classes
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.IdTable
 import po.db.data_service.binder.BindingContainer
 import po.db.data_service.binder.BindingKeyBase
-import po.db.data_service.binder.OrdinanceType
 import po.db.data_service.binder.UpdateMode
 import po.db.data_service.components.eventhandler.RootEventHandler
 import po.db.data_service.components.eventhandler.interfaces.CanNotify
-import po.db.data_service.dto.components.DAOService
-import po.db.data_service.dto.components.DTOConfig
-import po.db.data_service.dto.components.Factory
-import po.db.data_service.dto.interfaces.DTOInstance
-import po.db.data_service.dto.interfaces.DataModel
+import po.db.data_service.classes.components.DAOService
+import po.db.data_service.classes.components.DTOConfig
+import po.db.data_service.classes.components.Factory
+import po.db.data_service.classes.interfaces.DTOInstance
+import po.db.data_service.classes.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.OperationsException
 import po.db.data_service.models.CrudResult
-import po.db.data_service.models.CommonDTO
+import po.db.data_service.dto.CommonDTO
 import kotlin.reflect.KClass
 
 abstract class DTOClass<DATA, ENTITY>(

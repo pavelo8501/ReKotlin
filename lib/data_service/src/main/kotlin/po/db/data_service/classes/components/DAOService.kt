@@ -1,4 +1,4 @@
-package po.db.data_service.dto.components
+package po.db.data_service.classes.components
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
@@ -6,12 +6,11 @@ import org.jetbrains.exposed.sql.SizedIterable
 import po.db.data_service.binder.UpdateMode
 import po.db.data_service.components.eventhandler.EventHandler
 import po.db.data_service.components.eventhandler.interfaces.CanNotify
-import po.db.data_service.dto.DTOClass
-import po.db.data_service.dto.interfaces.DataModel
+import po.db.data_service.classes.DTOClass
+import po.db.data_service.classes.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.OperationsException
-import po.db.data_service.models.CommonDTO
-import po.db.data_service.models.DTOBase
+import po.db.data_service.dto.DTOBase
 
 class DAOService<DATA, ENTITY>(
   private val parent : DTOClass<DATA, ENTITY>

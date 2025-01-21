@@ -1,7 +1,7 @@
 package po.db.data_service.test.dto.components
 
 import org.junit.jupiter.api.Test
-import po.db.data_service.dto.components.Factory
+import po.db.data_service.classes.components.Factory
 import po.db.data_service.test.data.TestDepartmentDTO
 import po.db.data_service.test.data.TestDepartmentDataModel
 import po.db.data_service.test.data.TestDepartmentEntity

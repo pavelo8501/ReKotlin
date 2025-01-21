@@ -1,12 +1,12 @@
-package po.db.data_service.dto.components
+package po.db.data_service.classes.components
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import po.db.data_service.binder.PropertyBinder
 import po.db.data_service.binder.PropertyBinding
 import po.db.data_service.binder.RelationshipBinder
-import po.db.data_service.dto.DTOClass
-import po.db.data_service.dto.interfaces.DataModel
+import po.db.data_service.classes.DTOClass
+import po.db.data_service.classes.interfaces.DataModel
 import kotlin.reflect.KClass
 
 

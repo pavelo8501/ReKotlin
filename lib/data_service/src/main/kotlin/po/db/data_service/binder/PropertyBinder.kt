@@ -1,7 +1,7 @@
 package po.db.data_service.binder
 
 import org.jetbrains.exposed.dao.LongEntity
-import po.db.data_service.dto.interfaces.DataModel
+import po.db.data_service.classes.interfaces.DataModel
 import kotlin.reflect.KMutableProperty1
 
 

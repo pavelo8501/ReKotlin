@@ -5,12 +5,11 @@ import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import po.db.data_service.binder.PropertyBinding
-import po.db.data_service.dto.DTOClass
-import po.db.data_service.dto.interfaces.DTOModel
-import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.models.CommonDTO
+import po.db.data_service.classes.DTOClass
+import po.db.data_service.classes.interfaces.DTOModel
+import po.db.data_service.classes.interfaces.DataModel
+import po.db.data_service.dto.CommonDTO
 import po.playground.projects.data_service.services.Inspections
-import po.playground.projects.data_service.services.Partners
 
 
 class InspectionEntity  (id: EntityID<Long>) : LongEntity(id){

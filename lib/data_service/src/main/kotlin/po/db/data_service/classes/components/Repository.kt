@@ -1,4 +1,4 @@
-package po.db.data_service.dto.components
+package po.db.data_service.classes.components
 
 import org.jetbrains.exposed.dao.LongEntity
 import po.db.data_service.binder.BindingContainer
@@ -6,11 +6,10 @@ import po.db.data_service.binder.BindingKeyBase
 import po.db.data_service.binder.MultipleChildContainer
 import po.db.data_service.binder.SingleChildContainer
 import po.db.data_service.binder.UpdateMode
-import po.db.data_service.dto.DTOClass
-import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.models.DTOBase.Companion.copyAsHostingDTO
-import po.db.data_service.models.HostDTO
-import kotlin.collections.set
+import po.db.data_service.classes.DTOClass
+import po.db.data_service.classes.interfaces.DataModel
+import po.db.data_service.dto.HostDTO
+import kotlin.reflect.KProperty1
 
 class SingleRepository<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
     parent :  HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,
@@ -36,7 +35,11 @@ class SingleRepository<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
 //        }
 //    }
 
-    override fun  setReferenced(childEntity:CHILD_ENTITY, parentEntity:ENTITY){
+    fun getSourceProperty(): KProperty1<DATA, CHILD_DATA?>{
+        return binding.sourceProperty
+    }
+
+    override fun setReferenced(childEntity:CHILD_ENTITY, parentEntity:ENTITY){
         binding.referencedOnProperty.set(childEntity, parentEntity)
     }
 
@@ -89,6 +92,10 @@ class MultipleRepository<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
             (binding.sourceProperty as MutableList<CHILD_DATA>).add(it.getInjectedModel() as CHILD_DATA)
             val a = 10
         }
+    }
+
+    fun getSourceProperty(): KProperty1<DATA, Iterable<CHILD_DATA>>{
+        return binding.sourceProperty
     }
 
 
@@ -155,12 +162,6 @@ sealed class RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
     private val onInitHostedByEntity = mutableListOf<
             Pair<HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,
                 (ENTITY)-> Unit>>()
-
-    fun subscribeOnInitByEntity(
-        subscriber: HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,
-        callback:  (entity: ENTITY)-> Unit){
-        onInitHostedByEntity.add(Pair(subscriber, callback))
-    }
 
 
     fun deleteAll(){

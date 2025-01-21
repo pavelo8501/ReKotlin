@@ -2,9 +2,9 @@ package po.db.data_service.scope.dto
 
 import org.jetbrains.exposed.dao.LongEntity
 import po.db.data_service.components.eventhandler.models.Event
-import po.db.data_service.dto.interfaces.DataModel
+import po.db.data_service.classes.interfaces.DataModel
 import po.db.data_service.models.CrudResult
-import po.db.data_service.models.CommonDTO
+import po.db.data_service.dto.CommonDTO
 
 /**
  * A context class used to encapsulate and simplify interaction with `CommonDTO`.
@@ -39,10 +39,10 @@ class DTOContext<DATA, ENTITY>(
     private val  crudResult : CrudResult<DATA, ENTITY>,
     )  where DATA : DataModel, ENTITY : LongEntity {
 
-    fun resultAsDataModel(result: ((List<CommonDTO<DATA, ENTITY>>) -> Unit)? = null): List<CommonDTO<DATA, ENTITY>>{
+    fun resultAsDataModel(result: ((List<DATA>) -> Unit)? = null): List<DATA>{
         val dataModels =  crudResult.rootDTOs.map { it.compileDataModel() }
-        if(result != null) result(crudResult.rootDTOs)
-        return  crudResult.rootDTOs
+        if(result != null) result(dataModels)
+        return  dataModels
     }
 
     fun getStats(): Event?{

@@ -2,8 +2,8 @@ package po.db.data_service.scope.service.controls.service_registry
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
-import po.db.data_service.dto.interfaces.DataModel
-import po.db.data_service.models.CommonDTO
+import po.db.data_service.classes.interfaces.DataModel
+import po.db.data_service.dto.CommonDTO
 import kotlin.reflect.KClass
 
 data class ServiceRegistryItem<DATA_MODEL, ENTITY>(

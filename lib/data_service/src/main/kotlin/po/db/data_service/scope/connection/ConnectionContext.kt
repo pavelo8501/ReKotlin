@@ -2,8 +2,8 @@ package po.db.data_service.scope.connection
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Database
-import po.db.data_service.dto.*
-import po.db.data_service.dto.interfaces.DataModel
+import po.db.data_service.classes.*
+import po.db.data_service.classes.interfaces.DataModel
 import po.db.data_service.scope.service.ServiceClass
 import po.db.data_service.scope.service.ServiceContext
 import po.db.data_service.scope.service.TableCreateMode
