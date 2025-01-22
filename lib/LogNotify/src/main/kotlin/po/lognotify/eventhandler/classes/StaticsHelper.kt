@@ -8,6 +8,7 @@ interface StaticsHelperProvider {
     fun unhandledMsg(exception: Throwable): String
     fun handledMsg(exception: Throwable): String
     fun newInfo(msg: String):Event
+    fun newEvent(msg: String):Event
 }
 
 abstract class StaticsHelper: StaticsHelperProvider{
@@ -19,5 +20,6 @@ abstract class StaticsHelper: StaticsHelperProvider{
         return "Handled exception in $moduleName. Propagated to parent. ${exception.message.toString()}"
     }
     override fun newInfo(msg: String):Event { return  Event(moduleName, msg, SeverityLevel.INFO)}
+    override fun newEvent(msg: String):Event { return  Event(moduleName, msg, SeverityLevel.EVENT)}
 
 }

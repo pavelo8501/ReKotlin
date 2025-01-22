@@ -1,5 +1,6 @@
 package po.test.lognotify.eventhandler
 
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeAll
@@ -10,6 +11,7 @@ import po.test.lognotify.testmodels.ParentHostingObject
 import po.test.lognotify.testmodels.SubHostingObject
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class TestEventHandler {
 
@@ -48,10 +50,8 @@ class TestEventHandler {
     fun `nested event handling logic with no parent event created`(){
         val childObject1 =  parentObject.childObjects[0]
         val childObject2 =  parentObject.childObjects[1]
-
         runBlocking {
            launch {
-
                 childObject1.infoMessage("Something happened")
                 childObject2.infoMessage("Something happened 2")
 
@@ -70,27 +70,40 @@ class TestEventHandler {
 
     @Test
     fun `nested event handling logic with parent event created`() {
-
         runBlocking {
             launch {
-
                 parentObject.eventHandler.info("something happened on parent")
                 parentObject.childObjects[0].apply {
-
                     SubHostingObject("Sub Child Module 1", this).let {
                         subObjects.add(it)
                         it.infoMessage("something happened on last in chain")
                     }
                 }
-
                 assertEquals(2, parentObject.eventHandler.eventQue.count())
-                assertEquals(parentObject.eventHandler.eventQue[1].type, SeverityLevel.INFO)
+                assertEquals(SeverityLevel.INFO, parentObject.eventHandler.eventQue[1].type)
                 assertContains(
                     parentObject.eventHandler.eventQue[1].subEvents[0].msg,
                         "last in chain")
-                assertEquals(parentObject.eventHandler.eventQue[1].subEvents[0].type, SeverityLevel.INFO)
+                assertEquals(SeverityLevel.INFO, parentObject.eventHandler.eventQue[1].subEvents[0].type)
             }
         }
+    }
+
+    @Test
+    fun `measurements taken in action event`(){
+
+        var result = ""
+        runBlocking {
+            launch {
+                parentObject.action("TestPass") {
+                    result =  parentObject.passData("Test")
+                }
+            }
+        }
+        assertEquals("Test", result)
+        assertEquals(SeverityLevel.EVENT, parentObject.eventHandler.eventQue[1].type)
+        assertEquals("TestPass", parentObject.eventHandler.eventQue[1].msg)
+        assertTrue(parentObject.eventHandler.eventQue[1].elapsed > 0)
     }
 
 }

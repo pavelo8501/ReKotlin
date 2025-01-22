@@ -26,6 +26,13 @@ class ParentHostingObject(val moduleName: String
             it.propagateParentTask(delayTime)
         }
     }
+
+    suspend fun passData(msg: String): String{
+        childObjects.forEach {
+            it.passData(msg)
+        }
+        return msg
+    }
 }
 
 class HostingObject(val moduleName: String, parent : ParentHostingObject) : CanNotify {
@@ -35,6 +42,13 @@ class HostingObject(val moduleName: String, parent : ParentHostingObject) : CanN
 
     suspend fun propagateParentTask(delayTime: Long){
         delay(delayTime)
+    }
+
+    suspend fun passData(msg: String): String{
+        subObjects.forEach {
+            it.passData(msg)
+        }
+        return msg
     }
 }
 
@@ -46,4 +60,11 @@ class SubHostingObject(val moduleName: String, parent : HostingObject) : CanNoti
     suspend fun propagateParentTask(delayTime: Long){
         delay(delayTime)
     }
+    suspend fun passData(msg: String): String{
+        subObjects.forEach {
+            it.passData(msg)
+        }
+        return msg
+    }
+
 }

@@ -31,6 +31,7 @@ import po.api.ws_service.services.ConnectionService
 class WebSocketServer (
     private val config: (Application.() -> Unit)?
 ) : RestServer(null) {
+
     companion object {
         val apiConfig: ApiConfig = getDefaultConfig()
 
@@ -44,7 +45,6 @@ class WebSocketServer (
 
         val connectionService =  ConnectionService
         lateinit var  apiLogger:  LoggingService
-
 
         @OptIn(ExperimentalSerializationApi::class)
         private var _jsonDefault: Json = Json {

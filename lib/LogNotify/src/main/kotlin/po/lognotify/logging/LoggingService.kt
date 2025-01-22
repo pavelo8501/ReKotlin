@@ -10,8 +10,11 @@ import java.time.LocalDateTime
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
-
-typealias LogFunction = suspend (message: String, level: SeverityLevel, date: LocalDateTime, throwable: Throwable?) -> Unit
+typealias LogFunction = suspend (
+    message: String,
+    level: SeverityLevel,
+    date: LocalDateTime,
+    throwable: Throwable?) -> Unit
 
 class LoggingService: ReadOnlyProperty<Any?, LoggingService>{
 

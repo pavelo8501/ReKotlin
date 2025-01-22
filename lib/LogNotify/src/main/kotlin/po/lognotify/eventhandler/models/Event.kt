@@ -14,11 +14,14 @@ data class Event(
    var stopTime : Long? = null
    private set
 
+   var elapsed: Float = 0.0F
+       private set
+
    val elapsedTime: String
         get(){
             stopTime?.let {
-                val timeInSeconds : Float  = ((startTime - it) / 1000f)
-                return "Elapsed time $timeInSeconds ms."
+
+                return "Elapsed time $elapsed ms."
             }
             return "Elapsed time - N/A"
         }
@@ -35,7 +38,11 @@ data class Event(
      *
      */
     fun stopTimer(){
-        stopTime = System.nanoTime()
+        System.nanoTime().let {
+            stopTime = it
+            elapsed  = ((it - startTime) / 1000f)
+        }
+
     }
 
     /**

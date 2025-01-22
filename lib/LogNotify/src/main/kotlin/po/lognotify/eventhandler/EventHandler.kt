@@ -1,6 +1,9 @@
 package po.lognotify.eventhandler
 
-import po.lognotify.eventhandler.exceptions.NotificatorServiceException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import po.lognotify.eventhandler.interfaces.HandlerStatics
 import po.lognotify.eventhandler.models.Event
 import po.lognotify.shared.enums.HandleType
@@ -43,13 +46,14 @@ sealed class EventHandlerBase(
     val parent : EventHandlerBase? = null
 ) :  HandlerStatics
 {
-
     var routedName: String = moduleName
     val eventQue = CopyOnWriteArrayList<Event>()
     var currentEvent : Event? = null
         private set
 
     val helper = HandlerStatics
+
+    protected val notifierScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     init {
         if(parent != null){
@@ -63,7 +67,7 @@ sealed class EventHandlerBase(
         currentEvent = event
     }
 
-    private fun  handleException(ex: HandledThrowable){
+    protected fun  handleException(ex: HandledThrowable){
         handleEvent(Event(routedName, helper.handledMsg(ex), SeverityLevel.EXCEPTION))
         throw ex
     }
@@ -73,37 +77,7 @@ sealed class EventHandlerBase(
         if (parent == null) {
             registerEvent(event)
         } else {
-            parent.currentEvent?.let { hostingEvent ->
-                hostingEvent.subEvents.add(event)
-            } ?: parent.handleEvent(event)
-        }
-    }
-
-
-    protected fun <T: Any?>processAndMeasure(event : Event, fn:()-> T?):T?{
-        try {
-            val res =  fn.invoke()
-            event.stopTimer()
-            handleEvent(event)
-            return res
-        }catch (ex: HandledThrowable){
-            when(ex.type){
-                HandleType.SKIP_SELF -> {
-
-                }
-                HandleType.CANCEL_ALL -> {
-
-                }
-                HandleType.PROPAGATE_TO_PARENT -> {
-                    handleException(ex)
-                    throw ex
-                }
-            }
-            return null
-        // Catching generic Exception as a safeguard against unexpected errors
-        }catch(ex: Exception) {
-            helper.unhandledMsg(ex)
-            throw ex
+            parent.currentEvent?.subEvents?.add(event) ?: parent.handleEvent(event)
         }
     }
 
@@ -111,19 +85,55 @@ sealed class EventHandlerBase(
         handleEvent(Event(routedName, message, SeverityLevel.INFO))
     }
 
-    fun <T: Any?>action(message: String, fn:()-> T?):T?{
-        return processAndMeasure(helper.newInfo(message), fn)
-    }
-    fun action(message: String, fn:()-> Unit){
-        processAndMeasure(helper.newInfo(message)){
-            fn()
-            null
+    protected suspend inline fun <T: Any?>processAndMeasure(event : Event, fn: suspend ()-> T?):T?{
+        try {
+            val res = fn.invoke()
+            event.stopTimer()
+            notifierScope.launch {
+                handleEvent(event)
+            }
+            return res
+        } catch (ex: HandledThrowable) {
+            when (ex.type) {
+                HandleType.SKIP_SELF -> {
+
+                }
+
+                HandleType.CANCEL_ALL -> {
+
+                }
+
+                HandleType.PROPAGATE_TO_PARENT -> {
+                    notifierScope.launch {
+                        handleException(ex)
+                    }
+                    throw ex
+                }
+            }
+            return null
+            // Catching generic Exception as a safeguard against unexpected errors
+        } catch (ex: Exception) {
+            notifyError(helper.unhandledMsg(ex))
+            throw ex
         }
     }
 
+    suspend  fun  <T: Any?>action(message: String,  fn: suspend ()-> T?):T?{
+        return processAndMeasure(helper.newEvent(message), fn)
+    }
+
+    @JvmName("eventActionNoReturn")
+    suspend fun action(message: String, fn: suspend ()-> Unit){
+        processAndMeasure(helper.newEvent(message)){
+            fn.invoke()
+        }
+        null
+    }
 
     fun notifyError(message: String){
-        handleEvent(Event(routedName, message, SeverityLevel.EXCEPTION))
+        notifierScope.launch {
+            handleEvent(Event(routedName, message, SeverityLevel.EXCEPTION))
+        }
     }
 
     fun wipeData(){
