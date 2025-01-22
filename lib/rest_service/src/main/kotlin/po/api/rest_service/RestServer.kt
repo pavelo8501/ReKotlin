@@ -58,9 +58,7 @@ open class RestServer(
             return RestServer(configure)
         }
 
-        fun start(host: String, port: Int, configure: (Application.() -> Unit)? = null) {
-            create(configure).configureHost(host, port).start()
-        }
+
     }
 
     private val initialized: Boolean = false

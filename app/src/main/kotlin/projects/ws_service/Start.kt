@@ -84,6 +84,6 @@ fun startWebSocketServer(host: String, port: Int) {
         WsUser("someUsername", listOf("user"))
     }
 
-    wsServer.start(true)
+    wsServer.start(host = "127.0.0.1", port =  8800)
 }
 
