@@ -7,16 +7,17 @@ data class Event(
     val module : String,
     val msg: String,
     val type: SeverityLevel,
-    val timestamp: Long
 ){
+   var startTime: Long =  System.nanoTime()
+   private set
 
-    var elapsedMills : Long? = null
-        private set
+   var stopTime : Long? = null
+   private set
 
-    val elapsedTime: String
+   val elapsedTime: String
         get(){
-            elapsedMills?.let {
-                val timeInSeconds : Float  = (it / 1000f)
+            stopTime?.let {
+                val timeInSeconds : Float  = ((startTime - it) / 1000f)
                 return "Elapsed time $timeInSeconds ms."
             }
             return "Elapsed time - N/A"
@@ -24,12 +25,17 @@ data class Event(
 
     val subEvents = mutableListOf<Event>()
 
+    fun setElapsed(start: Long, end: Long? = 0){
+        startTime =start
+        stopTime = end
+    }
+
     /**
      * Public method for setting end time of the process execution
-     * @param elapsed Long timestamp
+     *
      */
-    fun setElapsed(elapsed: Long?){
-        elapsedMills = elapsed
+    fun stopTimer(){
+        stopTime = System.nanoTime()
     }
 
     /**
