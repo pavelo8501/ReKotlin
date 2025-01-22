@@ -35,6 +35,7 @@ import po.api.rest_service.plugins.RateLimiter
 import po.api.rest_service.security.AuthenticatedModel
 import po.api.rest_service.security.JWTService
 import po.api.rest_service.server.ApiConfig
+import po.api.rest_service.server.ConfigContext
 
 val Application.apiLogger: LoggingService
     get() = attributes[RestServer.loggerKey]
@@ -60,20 +61,12 @@ open class RestServer(
         fun start(host: String, port: Int, configure: (Application.() -> Unit)? = null) {
             create(configure).configureHost(host, port).start()
         }
-
-//        @OptIn(ExperimentalSerializationApi::class)
-//        fun jsonDefault(builderAction: (SerializersModuleBuilder.() -> Unit)? = null): Json{
-//            val json = Json {
-//                if(builderAction != null){
-//                    serializersModule = SerializersModule(builderAction)
-//                }
-//                ignoreUnknownKeys = true
-//                decodeEnumsCaseInsensitive = true
-//                encodeDefaults = true
-//            }
-//            return json
-//        }
     }
+
+    private val initialized: Boolean = false
+
+    private lateinit var app  : Application
+    private lateinit var configuration : ConfigContext
 
     var onLoginRequest: ((LoginRequest) -> SecureUserContext?)? = null
     var onAuthenticated : ((AuthenticatedModel) -> Unit)? = null
@@ -300,10 +293,32 @@ open class RestServer(
         return application
     }
 
-    open fun start(wait: Boolean = true){
-     embeddedServer(Netty, port, host) {
-            configureServer(this)
-            apiLogger.info("Starting Rest API server on $host:$port")
-        }.start(wait)
+    fun config(block: ConfigContext.()-> Unit){
+      configuration.block()
     }
+
+//    open fun start(wait: Boolean = true){
+//        embeddedServer(Netty, port, host){
+//            app = this
+//            configureServer(this)
+//            apiLogger.info("Starting Rest API server on $host:$port")
+//        }.start(wait)
+//    }
+
+    open fun start(host: String, port: Int,  wait: Boolean = true){
+        startServer(host, port, wait)
+    }
+
+    protected fun startServer(host: String, port: Int,  wait: Boolean = true){
+        embeddedServer(Netty, port, host){
+            app = this
+            if(!initialized){
+                configuration = ConfigContext(app)
+            }
+        }
+    }
+
+
 }
+
+

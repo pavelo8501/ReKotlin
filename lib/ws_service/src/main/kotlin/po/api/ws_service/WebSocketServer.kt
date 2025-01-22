@@ -2,7 +2,6 @@ package po.api.ws_service
 
 import api.ws_service.service.security.ActiveUsers
 import api.ws_service.service.security.ApiUser
-import io.ktor.serialization.ContentConverter
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.SerializersModuleBuilder
@@ -18,9 +17,6 @@ import po.api.rest_service.*
 import po.api.rest_service.server.ApiConfig
 import kotlin.time.Duration
 
-import io.ktor.server.engine.embeddedServer
-import io.ktor.server.netty.Netty
-import io.netty.handler.codec.DefaultHeaders
 import po.api.rest_service.logger.LoggingService
 import po.api.ws_service.plugins.ApiHeaderPlugin
 import po.api.ws_service.plugins.WSApiContentConverter
@@ -46,17 +42,12 @@ class WebSocketServer (
             return RestServer(configure)
         }
 
-        fun start(host: String, port: Int, configure: (Application.() -> Unit)? = null) {
-            create(configure).configureHost(host, port).start()
-        }
-
         val connectionService =  ConnectionService
         lateinit var  apiLogger:  LoggingService
 
 
         @OptIn(ExperimentalSerializationApi::class)
         private var _jsonDefault: Json = Json {
-
             classDiscriminator = "type"
             ignoreUnknownKeys = true
             decodeEnumsCaseInsensitive = true
@@ -96,7 +87,7 @@ class WebSocketServer (
         super.configureHost(host, port)
     }
 
-   private fun configureDefaultHeaders(application: Application):Application{
+    private fun configureDefaultHeaders(application: Application):Application{
        apiLogger.info("Configuring Api Headers")
        application.apply {
            if (this.pluginOrNull(ApiHeaderPlugin) != null) {
@@ -108,14 +99,16 @@ class WebSocketServer (
        return application
    }
 
-    private fun  configureCallLogging(application: Application):Application{
+    private fun configureCallLogging(application: Application):Application{
         application.apply {
 
         }
         return application
     }
 
-    private fun configureContentNegotiation(application: Application,  polymorphicConverter : PolymorphicJsonConverter): Application {
+    private fun configureContentNegotiation(
+        application: Application,
+        polymorphicConverter : PolymorphicJsonConverter): Application {
         application.apply {
 
           val contentConverter = WSApiContentConverter().create()
@@ -128,7 +121,6 @@ class WebSocketServer (
                     register(polymorphicConverter)
                 }
             }
-
         }
         return application
     }
@@ -146,11 +138,9 @@ class WebSocketServer (
 
            Companion.apiLogger = apiLogger
 
-            //configureSecurity(this)
-         //   configureDefaultHeaders(this)
-          //  configureCallLogging(this)
-
-            val polymorphicConverter =   PolymorphicJsonConverter(connectionService,null)
+            configureSecurity(this)
+            configureDefaultHeaders(this)
+            configureCallLogging(this)
 
             if (this.pluginOrNull(WebSockets) != null) {
                 apiLogger.info("Custom socket installation present")
@@ -162,7 +152,7 @@ class WebSocketServer (
                     timeout = Duration.parse("15s")
                     maxFrameSize = Long.MAX_VALUE
                     masking = false
-                    contentConverter = polymorphicConverter
+                    contentConverter = PolymorphicJsonConverter(connectionService,null)
                       extensions {
                           install(TrafficController){
 
@@ -175,24 +165,21 @@ class WebSocketServer (
             apiLogger.info("Installing default ContentNegotiation")
           //  configureContentNegotiation(this,polymorphicConverter)
             apiLogger.info("Default ContentNegotiation installed")
-
             config?.invoke(this)
-
-
-
-
             apiLogger.info("Websocket routing configured")
         }
         return application
     }
 
-    override fun start(wait: Boolean){
-        embeddedServer(Netty, port, host) {
-            super.configureServer(this)
-            configureWebSocketServer(this)
-            apiLogger.info("Starting Rest API server on $host:$port")
+    override fun start(host: String, port: Int,  wait: Boolean){
+        super.start(host, port, wait)
 
-        }.start(wait)
+//        embeddedServer(Netty, port, host) {
+////            super.configureServer(this)
+////            configureWebSocketServer(this)
+////            apiLogger.info("Starting Rest API server on $host:$port")
+//
+//        }
     }
 
 }

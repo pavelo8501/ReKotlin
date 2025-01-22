@@ -1,8 +1,9 @@
 package po.playground
 
 import io.github.cdimascio.dotenv.dotenv
-import po.db.data_service.controls.ConnectionInfo
-import po.playground.projects.data_service.startDataService
+import po.api.ws_service.WebSocketServer
+import po.playground.projects.routes.routes
+
 
 fun main() {
     val dotenv = dotenv()
@@ -12,7 +13,14 @@ fun main() {
     val dbUsername = dotenv["MYSQL_USER"]
     val dbPassword = dotenv["MYSQL_PASSWORD"]
 
-    startDataService(ConnectionInfo(dbHost, dbName, dbUsername, dbPassword, dbPort))
+  //  startDataService(ConnectionInfo(dbHost, dbName, dbUsername, dbPassword, dbPort))
 
+    val wsServer = WebSocketServer{
+        routes()
+    }
+   // wsServer.configureWSHost("127.0.0.1", 8080)
+
+    wsServer.start(host =  "127.0.0.1", port =  8080)
 
 }
+

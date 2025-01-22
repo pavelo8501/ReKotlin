@@ -10,6 +10,7 @@ plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
     id("com.google.devtools.ksp")
+    id("io.ktor.plugin") version "3.0.0"
     application
 }
 

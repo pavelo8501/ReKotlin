@@ -14,7 +14,6 @@ val daoServiceVersion: String by project
 plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
-
    `maven-publish`
 }
 
@@ -32,12 +31,10 @@ detekt {
             txt.required.set(false)
         }
     }
-
 }
 
 repositories {
     mavenCentral()
-
     maven {
         name = "PublicGitHubPackages"
         url = uri("https://maven.pkg.github.com/pavelo8501/ReKotlin")
