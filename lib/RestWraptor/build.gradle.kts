@@ -31,6 +31,7 @@ dependencies {
     implementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinSerializationVersion")
+    implementation("io.ktor:ktor-server-cors:$ktorVersion")
 
     implementation(project(":lib:LogNotify"))
 

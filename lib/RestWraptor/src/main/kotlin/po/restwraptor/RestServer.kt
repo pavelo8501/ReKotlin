@@ -29,6 +29,7 @@ open class RestServer(
             app = this
             if(!initialized){
                 configuration = ConfigContext(app)
+                config?.invoke(app)
             }
         }
     }

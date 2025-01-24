@@ -4,7 +4,9 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
+import po.restwraptor.interfaces.EntityInterface
 import po.restwraptor.interfaces.LoginRequestInterface
+import po.restwraptor.interfaces.UpdateEntityInterface
 
 
 @Serializable
@@ -20,12 +22,12 @@ sealed class RequestData
 
 @Serializable
 @SerialName("create")
-data class CreateRequestData(val value: ApiEntity) : RequestData()
+data class CreateRequestData(val value: EntityInterface) : RequestData()
 
 
 
 @Serializable
-data class UpdateRequestData(val value: ApiUpdateEntity) : RequestData()
+data class UpdateRequestData(val value: UpdateEntityInterface) : RequestData()
 
 
 @Serializable

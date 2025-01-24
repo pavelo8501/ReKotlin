@@ -7,7 +7,7 @@ import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.interfaces.DecodedJWT
 import po.restwraptor.exceptions.AuthErrorCodes
 import po.restwraptor.exceptions.AuthException
-import po.restwraptor.interfaces.SecuredUser
+import po.restwraptor.interfaces.SecuredUserInterface
 import java.security.KeyFactory
 import java.security.interfaces.RSAPrivateKey
 import java.security.interfaces.RSAPublicKey
@@ -128,7 +128,7 @@ class JWTService {
         return verifier
     }
 
-    fun generateToken(user: SecuredUser): String? {
+    fun generateToken(user: SecuredUserInterface): String? {
         return JWT.create()
             .withAudience(audience)
             .withIssuer(issuer)

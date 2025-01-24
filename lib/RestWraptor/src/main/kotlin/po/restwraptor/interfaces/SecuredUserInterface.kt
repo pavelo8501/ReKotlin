@@ -1,6 +1,6 @@
 package po.restwraptor.interfaces
 
-interface SecuredUser {
+interface SecuredUserInterface {
     val username: String
     val roles: List<String>
 
