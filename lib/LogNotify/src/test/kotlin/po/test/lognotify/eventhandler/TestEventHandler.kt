@@ -8,6 +8,7 @@ import org.junit.jupiter.api.assertThrows
 import po.lognotify.eventhandler.exceptions.CancelException
 import po.lognotify.eventhandler.exceptions.PropagateException
 import po.lognotify.eventhandler.exceptions.SkipException
+import po.lognotify.shared.enums.HandleType
 import po.lognotify.shared.enums.SeverityLevel
 import po.test.lognotify.testmodels.HostingObject
 import po.test.lognotify.testmodels.ParentHostingObject
@@ -110,28 +111,35 @@ class TestEventHandler {
 
     @Test
     fun `check can throw appropriate exceptions`(){
-
         parentObject.eventHandler.apply {
             registerSkipException {
-                SkipException("DefaultMessage")
+                SkipException("Skip Default Message")
             }
             registerCancelException {
-                CancelException("DefaultMessage")
+                CancelException("Cancel Default Message")
             }
             registerPropagateException {
-                PropagateException("DefaultMessage")
+                PropagateException("Propagate Default Message")
             }
         }
 
-        assertThrows<SkipException>(){
+        val skipException =  assertThrows<SkipException>(){
             parentObject.eventHandler.raiseSkipException("Skip Message")
         }
-        assertThrows<CancelException>() {
+        assertEquals("Skip Message", skipException.message)
+        assertEquals(HandleType.SKIP_SELF, skipException.handleType)
+
+        val cancelException = assertThrows<CancelException>() {
             parentObject.eventHandler.raiseCancelException("Cancel Message")
         }
-        assertThrows<PropagateException> {
+        assertEquals("Cancel Message", cancelException.message)
+        assertEquals(HandleType.CANCEL_ALL, cancelException.handleType)
+
+        val propagateException = assertThrows<PropagateException> {
             parentObject.eventHandler.raisePropagateException("Propagate Message")
         }
+        assertEquals("Propagate Message", propagateException.message)
+        assertEquals(HandleType.PROPAGATE_TO_PARENT, propagateException.handleType)
 
     }
 
