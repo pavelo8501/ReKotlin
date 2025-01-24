@@ -1,10 +1,13 @@
 package po.test.lognotify.eventhandler
 
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+import po.lognotify.eventhandler.exceptions.CancelException
+import po.lognotify.eventhandler.exceptions.PropagateException
+import po.lognotify.eventhandler.exceptions.SkipException
 import po.lognotify.shared.enums.SeverityLevel
 import po.test.lognotify.testmodels.HostingObject
 import po.test.lognotify.testmodels.ParentHostingObject
@@ -91,7 +94,6 @@ class TestEventHandler {
 
     @Test
     fun `measurements taken in action event`(){
-
         var result = ""
         runBlocking {
             launch {
@@ -104,6 +106,33 @@ class TestEventHandler {
         assertEquals(SeverityLevel.EVENT, parentObject.eventHandler.eventQue[1].type)
         assertEquals("TestPass", parentObject.eventHandler.eventQue[1].msg)
         assertTrue(parentObject.eventHandler.eventQue[1].elapsed > 0)
+    }
+
+    @Test
+    fun `check can throw appropriate exceptions`(){
+
+        parentObject.eventHandler.apply {
+            registerSkipException {
+                SkipException("DefaultMessage")
+            }
+            registerCancelException {
+                CancelException("DefaultMessage")
+            }
+            registerPropagateException {
+                PropagateException("DefaultMessage")
+            }
+        }
+
+        assertThrows<SkipException>(){
+            parentObject.eventHandler.raiseSkipException("Skip Message")
+        }
+        assertThrows<CancelException>() {
+            parentObject.eventHandler.raiseCancelException("Cancel Message")
+        }
+        assertThrows<PropagateException> {
+            parentObject.eventHandler.raisePropagateException("Propagate Message")
+        }
+
     }
 
 }

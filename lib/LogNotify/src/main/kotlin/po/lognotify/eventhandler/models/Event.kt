@@ -1,13 +1,21 @@
 package po.lognotify.eventhandler.models
 
+import po.lognotify.eventhandler.exceptions.ProcessableException
 import po.lognotify.logging.LoggingService
 import po.lognotify.shared.enums.SeverityLevel
 
 data class Event(
     val module : String,
-    val msg: String,
-    val type: SeverityLevel,
+    var msg: String = "",
+    var type: SeverityLevel = SeverityLevel.INFO,
 ){
+
+   var exception: ProcessableException? = null
+       set(value){
+           msg = value?.message.toString()
+           type = SeverityLevel.EXCEPTION
+       }
+
    var startTime: Long =  System.nanoTime()
    private set
 
@@ -33,6 +41,10 @@ data class Event(
         stopTime = end
     }
 
+    fun setException(ex: ProcessableException): Event {
+        exception = ex
+        return this
+    }
     /**
      * Public method for setting end time of the process execution
      *

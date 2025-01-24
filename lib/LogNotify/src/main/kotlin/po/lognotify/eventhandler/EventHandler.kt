@@ -4,20 +4,25 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import po.lognotify.eventhandler.exceptions.CancelException
+import po.lognotify.eventhandler.exceptions.NotificatorUnhandledException
+import po.lognotify.eventhandler.exceptions.ProcessableException
+import po.lognotify.eventhandler.exceptions.PropagateException
+import po.lognotify.eventhandler.exceptions.SkipException
 import po.lognotify.eventhandler.interfaces.HandlerStatics
 import po.lognotify.eventhandler.models.Event
 import po.lognotify.shared.enums.HandleType
 import po.lognotify.shared.enums.SeverityLevel
-import po.lognotify.shared.exceptions.HandledThrowable
 import java.util.concurrent.CopyOnWriteArrayList
 
 
-class RootEventHandler(moduleName: String): EventHandlerBase(moduleName){
-
+class RootEventHandler(
+    moduleName: String
+): EventHandlerBase(moduleName)
+{
     init {
         handleEvent(helper.newInfo("$moduleName Notify Service Started"))
     }
-
     fun getEvent(wipeData: Boolean = true): Event?{
         val currentEventCopy = currentEvent?.let { event ->
             Event(
@@ -46,6 +51,16 @@ sealed class EventHandlerBase(
     val parent : EventHandlerBase? = null
 ) :  HandlerStatics
 {
+
+    private var skipExceptionConstructorFn : (()->ProcessableException) =
+        { SkipException("Default skip message").apply { handleType = HandleType.SKIP_SELF } }
+
+    private var cancelExceptionConstructorFn : (()->ProcessableException) =
+        { CancelException("Default skip message").apply { handleType = HandleType.SKIP_SELF } }
+
+    private var propagateExceptionConstructorFn : (()->ProcessableException) =
+        { PropagateException("Default skip message").apply { handleType = HandleType.PROPAGATE_TO_PARENT} }
+
     var routedName: String = moduleName
     val eventQue = CopyOnWriteArrayList<Event>()
     var currentEvent : Event? = null
@@ -67,9 +82,24 @@ sealed class EventHandlerBase(
         currentEvent = event
     }
 
-    protected fun  handleException(ex: HandledThrowable){
-        handleEvent(Event(routedName, helper.handledMsg(ex), SeverityLevel.EXCEPTION))
+    protected fun handleException(ex: ProcessableException, handleType: HandleType? = null ){
+        if(handleType!= null){
+            ex.handleType =  handleType
+        }
+        handleEvent(Event(routedName).setException(ex))
         throw ex
+    }
+
+    fun <E: ProcessableException> registerSkipException(exConstructFn : ()->E){
+        skipExceptionConstructorFn = exConstructFn
+    }
+
+    fun <E: ProcessableException> registerCancelException(exConstructFn : ()->E){
+        cancelExceptionConstructorFn = exConstructFn
+    }
+
+    fun <E: ProcessableException> registerPropagateException(exConstructFn : ()->E){
+        propagateExceptionConstructorFn = exConstructFn
     }
 
     @Synchronized
@@ -80,11 +110,6 @@ sealed class EventHandlerBase(
             parent.currentEvent?.subEvents?.add(event) ?: parent.handleEvent(event)
         }
     }
-
-    fun info(message: String){
-        handleEvent(Event(routedName, message, SeverityLevel.INFO))
-    }
-
     protected suspend inline fun <T: Any?>processAndMeasure(event : Event, fn: suspend ()-> T?):T?{
         try {
             val res = fn.invoke()
@@ -93,36 +118,35 @@ sealed class EventHandlerBase(
                 handleEvent(event)
             }
             return res
-        } catch (ex: HandledThrowable) {
-            when (ex.type) {
+        } catch (ex: ProcessableException) {
+            when (ex.handleType) {
                 HandleType.SKIP_SELF -> {
-
+                    TODO("Logic for skip exceptions")
                 }
-
                 HandleType.CANCEL_ALL -> {
-
+                    TODO("Logic for cancel exceptions")
                 }
-
                 HandleType.PROPAGATE_TO_PARENT -> {
-                    notifierScope.launch {
-                        handleException(ex)
-                    }
-                    throw ex
+                    TODO("Logic for propagate exceptions")
                 }
             }
             return null
             // Catching generic Exception as a safeguard against unexpected errors
         } catch (ex: Exception) {
-            notifyError(helper.unhandledMsg(ex))
-            throw ex
+            error(helper.unhandledMsg(ex))
+            throw NotificatorUnhandledException(helper.unhandledMsg(ex), ex)
         }
     }
 
-    suspend  fun  <T: Any?>action(message: String,  fn: suspend ()-> T?):T?{
-        return processAndMeasure(helper.newEvent(message), fn)
+    fun info(message: String){
+        handleEvent(Event(routedName, message, SeverityLevel.INFO))
     }
 
+    suspend fun <T: Any?> action(message: String,  fn: suspend ()-> T?):T?{
+        return processAndMeasure(helper.newEvent(message), fn)
+    }
     @JvmName("eventActionNoReturn")
+
     suspend fun action(message: String, fn: suspend ()-> Unit){
         processAndMeasure(helper.newEvent(message)){
             fn.invoke()
@@ -130,10 +154,31 @@ sealed class EventHandlerBase(
         null
     }
 
-    fun notifyError(message: String){
+    fun error(message: String){
         notifierScope.launch {
             handleEvent(Event(routedName, message, SeverityLevel.EXCEPTION))
         }
+    }
+
+    fun raiseSkipException(msg: String? = null){
+        val skipException = skipExceptionConstructorFn.invoke()
+        skipException.handleType = HandleType.SKIP_SELF
+        skipException.message = msg?:skipException.message
+        throw skipException
+    }
+
+    fun raiseCancelException(msg: String? = null){
+        val cancelException = cancelExceptionConstructorFn.invoke()
+        cancelException.handleType = HandleType.CANCEL_ALL
+        cancelException.message = msg?:cancelException.message
+        throw cancelException
+    }
+
+    fun raisePropagateException(msg: String? = null){
+        val propagateException = propagateExceptionConstructorFn.invoke()
+        propagateException.handleType = HandleType.PROPAGATE_TO_PARENT
+        propagateException.message = msg?:propagateException.message
+        throw propagateException
     }
 
     fun wipeData(){
@@ -141,7 +186,6 @@ sealed class EventHandlerBase(
         currentEvent?.subEvents?.clear()
         currentEvent = null
     }
-
 }
 
 
