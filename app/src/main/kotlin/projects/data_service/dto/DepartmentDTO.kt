@@ -73,6 +73,9 @@ class DepartmentDTO(
                     PropertyBinding(DepartmentDataModel::updated, DepartmentEntity::updated),
                     PropertyBinding(DepartmentDataModel::created, DepartmentEntity::created),
                 )
+                setDataModelConstructor {
+                    DepartmentDataModel(false, "", 12)
+                }
                 childBindings{
                     childBinding<InspectionDataModel, InspectionEntity>(
                         InspectionDTO,

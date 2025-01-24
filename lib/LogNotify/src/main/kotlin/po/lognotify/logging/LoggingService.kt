@@ -1,26 +1,29 @@
-package po.db.data_service.components.logger
+package po.lognotify.logging
 
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import po.db.data_service.components.logger.enums.LogLevel
+import po.lognotify.shared.enums.SeverityLevel
 import java.time.LocalDateTime
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
-
-typealias LogFunction = suspend (message: String, level: LogLevel, date: LocalDateTime, throwable: Throwable?) -> Unit
+typealias LogFunction = suspend (
+    message: String,
+    level: SeverityLevel,
+    date: LocalDateTime,
+    throwable: Throwable?) -> Unit
 
 class LoggingService: ReadOnlyProperty<Any?, LoggingService>{
 
-    private val logFunctions = mutableMapOf<LogLevel, LogFunction>()
+    private val logFunctions = mutableMapOf<SeverityLevel, LogFunction>()
     private val loggingServiceScope  = CoroutineScope(
         Job() + Dispatchers.IO + CoroutineName("DataService LoggingService Coroutine")
     )
 
-    private fun log(level: LogLevel, message: String, throwable: Throwable? = null) {
+    private fun log(level: SeverityLevel, message: String, throwable: Throwable? = null) {
         loggingServiceScope.launch {
             val timestamp = LocalDateTime.now()
             try {
@@ -40,7 +43,7 @@ class LoggingService: ReadOnlyProperty<Any?, LoggingService>{
         }
     }
 
-    fun registerLogFunction(minimalLevel: LogLevel, logFunction: LogFunction){
+    fun registerLogFunction(minimalLevel: SeverityLevel, logFunction: LogFunction){
         logFunctions[minimalLevel] = logFunction
     }
 
@@ -48,10 +51,10 @@ class LoggingService: ReadOnlyProperty<Any?, LoggingService>{
         logFunctions.clear()
     }
 
-    fun info(message: String, throwable: Throwable? = null) = log(LogLevel.MESSAGE, message, throwable)
-    fun action(message: String, throwable: Throwable? = null) = log(LogLevel.ACTION, message, throwable)
-    fun warn(message: String, throwable: Throwable? = null) = log(LogLevel.WARNING, message, throwable)
-    fun error(message: String, throwable: Throwable? = null) = log(LogLevel.EXCEPTION, message, throwable)
+    fun info(message: String, throwable: Throwable? = null) = log(SeverityLevel.INFO, message, throwable)
+    fun action(message: String, throwable: Throwable? = null) = log(SeverityLevel.EVENT, message, throwable)
+    fun warn(message: String, throwable: Throwable? = null) = log(SeverityLevel.WARNING, message, throwable)
+    fun error(message: String, throwable: Throwable? = null) = log(SeverityLevel.EXCEPTION, message, throwable)
 
     override fun getValue(thisRef: Any?, property: KProperty<*>): LoggingService = this
 

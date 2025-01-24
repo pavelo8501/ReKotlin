@@ -10,5 +10,6 @@ gradle/
 .kotlin/
 dev_data/
 buildSrc/
+app/
 
 build-logic

@@ -9,8 +9,6 @@ interface CanNotify{
     fun <T: Any>notify(message: String, fn:()-> T?) = eventHandler.notify(message,fn)
     fun notifyError(message: String) =  eventHandler.notifyError(message)
 
-
     val eventHandler: EventHandlerBase
-
 
 }

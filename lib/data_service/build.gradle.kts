@@ -5,7 +5,7 @@ val exposedVersion: String by project
 val hikaricpVersion: String by project
 val mysqlVersion: String by project
 val logbackClassicVersion: String by project
-val testCoroutinesVersion: String by project
+val coroutinesVersion: String by project
 val junitVersion: String by project
 val kotlinSerializationVersion : String by project
 
@@ -14,7 +14,6 @@ val daoServiceVersion: String by project
 plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
-
    `maven-publish`
 }
 
@@ -32,12 +31,10 @@ detekt {
             txt.required.set(false)
         }
     }
-
 }
 
 repositories {
     mavenCentral()
-
     maven {
         name = "PublicGitHubPackages"
         url = uri("https://maven.pkg.github.com/pavelo8501/ReKotlin")
@@ -61,7 +58,7 @@ dependencies {
 
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
     testImplementation("org.jetbrains.kotlin:kotlin-test:$kotlinVersion")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$testCoroutinesVersion")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion")
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
     testImplementation("ch.qos.logback:logback-classic:$logbackClassicVersion")
     testImplementation("io.mockk:mockk:1.13.13")

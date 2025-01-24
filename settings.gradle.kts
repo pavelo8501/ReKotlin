@@ -27,6 +27,7 @@ include(
     "lib:ws_service",
     "lib:data_service",
     "lib:tg_components",
+    "lib:LogNotify",
     "lib:function_processor",
     "lib:binder")
 
@@ -53,3 +54,8 @@ project(":lib:binder").also {
 project(":lib:function_processor").also {
     it.name = "functionProcessorPlugin"
 }
+
+project(":lib:LogNotify").also {
+    it.name = "LogNotify"
+}
+

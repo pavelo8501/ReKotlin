@@ -86,5 +86,5 @@ fun startApiServer(host: String, port: Int) {
     }.apply {
         configureHost(host, port)
     }
-    apiServer.start()
+    apiServer.start(host = "127.0.0.1", port = 8080, wait = true)
 }
