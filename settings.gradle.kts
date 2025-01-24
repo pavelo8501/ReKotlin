@@ -17,10 +17,10 @@ pluginManagement {
         google()
     }
 }
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
+}
 
-
-
-//includeBuild("build-logic")
 include(
     "app",
     "lib:rest_service",
@@ -28,6 +28,7 @@ include(
     "lib:data_service",
     "lib:tg_components",
     "lib:LogNotify",
+    "lib:RestWraptor",
     "lib:function_processor",
     "lib:binder")
 
@@ -55,7 +56,10 @@ project(":lib:function_processor").also {
     it.name = "functionProcessorPlugin"
 }
 
+project(":lib:RestWraptor").also {
+    it.name = "RestWraptor"
+}
+
 project(":lib:LogNotify").also {
     it.name = "LogNotify"
 }
-
