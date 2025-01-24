@@ -24,7 +24,9 @@ data class NotificatorUnhandledException(
 abstract class ProcessableException(
     override var message: String,
     var handleType: HandleType
-) : Exception(message), SelfThrowableException
+) : Exception(message), SelfThrowableException{
+    var cancellationFn: (() -> Unit)? = null
+}
 
 
 

@@ -15,6 +15,8 @@ import po.test.lognotify.testmodels.ParentHostingObject
 import po.test.lognotify.testmodels.SubHostingObject
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class TestEventHandler {
@@ -99,7 +101,7 @@ class TestEventHandler {
         runBlocking {
             launch {
                 parentObject.action("TestPass") {
-                    result =  parentObject.passData("Test")
+                    result = "Test"
                 }
             }
         }
@@ -123,14 +125,16 @@ class TestEventHandler {
             }
         }
 
-        val skipException =  assertThrows<SkipException>(){
+        val skipException =  assertThrows<SkipException>{
             parentObject.eventHandler.raiseSkipException("Skip Message")
         }
         assertEquals("Skip Message", skipException.message)
         assertEquals(HandleType.SKIP_SELF, skipException.handleType)
 
         val cancelException = assertThrows<CancelException>() {
-            parentObject.eventHandler.raiseCancelException("Cancel Message")
+            parentObject.eventHandler.raiseCancelException("Cancel Message"){
+
+            }
         }
         assertEquals("Cancel Message", cancelException.message)
         assertEquals(HandleType.CANCEL_ALL, cancelException.handleType)
@@ -140,7 +144,100 @@ class TestEventHandler {
         }
         assertEquals("Propagate Message", propagateException.message)
         assertEquals(HandleType.PROPAGATE_TO_PARENT, propagateException.handleType)
-
     }
 
+    @Test
+    fun `test skip exception logic`(){
+        parentObject.eventHandler.apply {
+            registerSkipException {
+                SkipException("Skip Default Message")
+            }
+        }
+        val child1 = parentObject.childObjects[0]
+        child1.eventHandler.registerSkipException {
+            SkipException("Skip Message1")
+        }
+
+        runBlocking {
+            launch {
+                var effectiveI = 0
+                var effectiveA = 0
+                var processedA = mutableListOf<Int>()
+                parentObject.mockTaskRun(0) {
+                    for (i in 0..1) {
+                        effectiveI = i
+                        for (a in 0..4) {
+                            child1.mockTaskRun(0, i) {
+                                child1.eventHandler.action("TestAction") {
+                                    if (a == 1) {
+                                        eventHandler.raiseSkipException("Skip Message")
+                                    }
+                                    effectiveA = a
+                                    processedA.add(a)
+                                }
+                            }
+                        }
+                    }
+                }
+                assertEquals(4, effectiveA)
+                assertFalse(processedA.contains(1))
+                parentObject.eventHandler.currentEvent!!.subEvents[1].let {
+                    assertNotNull(it)
+                    assertEquals(SeverityLevel.EXCEPTION, it.type)
+                    assertEquals("Skip Message", it.msg)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `test propagate exception logic`(){
+        parentObject.eventHandler.apply {
+            registerSkipException {
+                SkipException("Skip Default Message")
+            }
+        }
+        val child1 = parentObject.childObjects[0]
+        child1.eventHandler.registerCancelException {
+            CancelException("Cancel Message1")
+        }
+
+        runBlocking {
+            launch {
+                var effectiveI = 0
+                var effectiveA = 0
+                var processedA = mutableListOf<Int>()
+
+                parentObject.mockTaskRun(0) {
+                    for (i in 0..1) {
+                        effectiveI = i
+                        var continueLoop = true
+                        for (a in 0..4) {
+                            if(continueLoop == false){
+                                break
+                            }
+                            child1.mockTaskRun(0, i) {
+                                child1.eventHandler.action("TestAction") {
+                                    if (a == 2) {
+                                        eventHandler.raiseCancelException("Cancel Message"){
+                                            continueLoop = false
+                                        }
+                                    }
+                                    effectiveA = a
+                                    processedA.add(a)
+                                }
+                            }
+                        }
+                    }
+                }
+                assertEquals(1, effectiveA)
+                assertEquals(4,processedA.count())
+                parentObject.eventHandler.currentEvent!!.subEvents[2].let {
+                    assertNotNull(it)
+                    assertEquals(SeverityLevel.EXCEPTION, it.type)
+                    assertEquals("Cancel Message", it.msg)
+                }
+            }
+        }
+    }
 }

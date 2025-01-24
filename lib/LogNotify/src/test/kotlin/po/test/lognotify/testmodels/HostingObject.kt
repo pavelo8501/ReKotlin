@@ -19,7 +19,7 @@ class ParentHostingObject(val moduleName: String
 
     val childObjects = mutableListOf<HostingObject>()
 
-    suspend fun mockTaskRun(delayTime: Long, block: ParentHostingObject.()->Unit){
+    suspend fun mockTaskRun(delayTime: Long, block: suspend  ParentHostingObject.()->Unit){
         block(this@ParentHostingObject)
         delay(delayTime)
         childObjects.forEach {
@@ -27,44 +27,43 @@ class ParentHostingObject(val moduleName: String
         }
     }
 
-    suspend fun passData(msg: String): String{
-        childObjects.forEach {
-            it.passData(msg)
-        }
-        return msg
+    fun returnAsResult(param: Any): Any{
+        return param
     }
+
 }
 
 class HostingObject(val moduleName: String, parent : ParentHostingObject) : CanNotify {
 
     override val eventHandler = EventHandler(moduleName, parent.eventHandler)
+    var currentParentParam :Any? = null
+    var currentParam : Any? = null
     val subObjects = mutableListOf<SubHostingObject>()
 
-    suspend fun propagateParentTask(delayTime: Long){
+    suspend fun propagateParentTask(delayTime: Long, block: (HostingObject.()->Unit)? = null){
         delay(delayTime)
+        if(block != null){
+            this.block()
+        }
     }
 
-    suspend fun passData(msg: String): String{
-        subObjects.forEach {
-            it.passData(msg)
-        }
-        return msg
+    suspend fun mockTaskRun(delayTime: Long, parentParam: Any? = null, block : suspend  HostingObject.()->Unit){
+        this.block()
+        delay(delayTime)
+        currentParentParam = parentParam
     }
 }
 
 class SubHostingObject(val moduleName: String, parent : HostingObject) : CanNotify {
 
     override val eventHandler = EventHandler(moduleName, parent.eventHandler)
-    val subObjects = mutableListOf<HostingObject>()
+    var currentParentParam :Any? = null
+    val subObjects = mutableListOf<SubHostingObject>()
 
-    suspend fun propagateParentTask(delayTime: Long){
+
+    suspend fun mockTaskRun(delayTime: Long, parentParam: Any? = null, block : SubHostingObject.()->Unit){
+        this.block()
         delay(delayTime)
+        currentParentParam = parentParam
     }
-    suspend fun passData(msg: String): String{
-        subObjects.forEach {
-            it.passData(msg)
-        }
-        return msg
-    }
-
 }

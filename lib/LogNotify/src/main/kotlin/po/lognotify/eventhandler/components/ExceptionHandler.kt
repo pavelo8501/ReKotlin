@@ -11,7 +11,7 @@ interface ExceptionHandlerInterface{
     fun <E : ProcessableException> registerCancelException(exConstructFn: () -> E)
     fun <E : ProcessableException> registerPropagateException(exConstructFn: () -> E)
     fun raiseSkipException(msg: String? = null)
-    fun raiseCancelException(msg: String? = null)
+    fun raiseCancelException(msg: String? = null, cancelFn: () -> Unit)
     fun raisePropagateException(msg: String? = null)
 }
 
@@ -91,16 +91,27 @@ class ExceptionHandler : ExceptionHandlerInterface{
     }
 
     /**
-     * Raises a `CancelException` with the provided message.
+     * Raises a `CancelException` with the provided message and invokes a custom cancellation function.
      *
      * @param msg An optional message to override the default or registered exception's message.
      *            If null, the message from the registered constructor will be used.
+     * @param cancelFn A lambda function to execute custom cancellation logic when the exception is raised.
+     *
      * @throws CancelException The exception to indicate that all related processes should be canceled.
+     *         The exception will also execute the `cancelFn` to perform the specified cancellation actions.
+     *
+     * Example usage:
+     * ```kotlin
+     * raiseCancelException("Cancel operation") {
+     *     println("Custom cancellation logic executed.")
+     * }
+     * ```
      */
-    override fun raiseCancelException(msg: String?){
+    override fun raiseCancelException(msg: String?, cancelFn: ()->Unit){
         val cancelException = cancelExceptionConstructorFn.invoke()
         cancelException.handleType = HandleType.CANCEL_ALL
         cancelException.message = msg?:cancelException.message
+        cancelException.cancellationFn = cancelFn
         throw cancelException
     }
 

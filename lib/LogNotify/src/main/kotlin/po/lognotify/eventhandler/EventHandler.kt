@@ -73,23 +73,21 @@ sealed class EventHandlerBase(
         currentEvent = event
     }
 
-    protected fun handleException(ex: ProcessableException, handleType: HandleType? = null ){
-        if(handleType!= null){
-            ex.handleType =  handleType
-        }
+    @Synchronized
+    internal  fun handleException(ex: ProcessableException){
         handleEvent(Event(routedName).setException(ex))
-        throw ex
     }
 
     @Synchronized
-    protected fun handleEvent(event: Event){
+    internal fun handleEvent(event: Event){
         if (parent == null) {
             registerEvent(event)
         } else {
             parent.currentEvent?.subEvents?.add(event) ?: parent.handleEvent(event)
         }
     }
-    protected suspend inline fun <T: Any?>processAndMeasure(event : Event, fn: suspend ()-> T?):T?{
+
+    internal suspend inline fun <T: Any?>processAndMeasure(event : Event, fn: suspend ()-> T?):T?{
         try {
             val res = fn.invoke()
             event.stopTimer()
@@ -100,13 +98,17 @@ sealed class EventHandlerBase(
         } catch (ex: ProcessableException) {
             when (ex.handleType) {
                 HandleType.SKIP_SELF -> {
-                    TODO("Logic for skip exceptions")
+                    handleException(ex)
                 }
                 HandleType.CANCEL_ALL -> {
-                    TODO("Logic for cancel exceptions")
+                    ex.cancellationFn?.let {
+                        it.invoke()
+                        handleException(ex)
+                    }?: warn(helper.msg("Cancel function not set", ex))
                 }
                 HandleType.PROPAGATE_TO_PARENT -> {
-                    TODO("Logic for propagate exceptions")
+                    handleException(ex)
+                    throw ex
                 }
             }
             return null
@@ -119,6 +121,11 @@ sealed class EventHandlerBase(
 
     fun info(message: String){
         handleEvent(Event(routedName, message, SeverityLevel.INFO))
+    }
+    fun warn(message: String){
+        notifierScope.launch {
+            handleEvent(Event(routedName, message, SeverityLevel.WARNING))
+        }
     }
 
     suspend fun <T: Any?> action(message: String,  fn: suspend ()-> T?):T?{

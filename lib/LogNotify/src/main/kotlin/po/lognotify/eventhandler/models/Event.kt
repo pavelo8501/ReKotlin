@@ -43,6 +43,7 @@ data class Event(
 
     fun setException(ex: ProcessableException): Event {
         exception = ex
+        type = SeverityLevel.EXCEPTION
         return this
     }
     /**
