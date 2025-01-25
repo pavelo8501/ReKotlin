@@ -8,15 +8,16 @@ val mysqlVersion: String by project
 val junitVersion:String by project
 val coroutinesVersion:String by project
 
-val restWraptorVersion:String by project
+val wsWraptorVersion:String by project
+
 
 plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
 }
 
-group = "po.restwraptor"
-version = restWraptorVersion
+group = "po.wswraptor"
+version = wsWraptorVersion
 
 repositories {
     mavenCentral()
@@ -24,17 +25,22 @@ repositories {
 
 dependencies {
 
+
     implementation("io.ktor:ktor-server-core:$ktorVersion")
     implementation("io.ktor:ktor-server-netty:$ktorVersion")
     implementation("io.ktor:ktor-server-status-pages:$ktorVersion")
     implementation("io.ktor:ktor-server-auth-jwt:$ktorVersion")
+    implementation("io.ktor:ktor-server-websockets:$ktorVersion")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinSerializationVersion")
 
     implementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinSerializationVersion")
     implementation("io.ktor:ktor-server-cors:$ktorVersion")
 
+    api(project(":lib:RestWraptor"))
     api(project(":lib:LogNotify"))
+
 
     testImplementation("org.jetbrains.kotlin:kotlin-test:$kotlinVersion")
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")

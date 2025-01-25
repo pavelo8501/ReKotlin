@@ -14,7 +14,6 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.request.contentType
 import io.ktor.server.request.receive
-import io.ktor.server.resources.Resources
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
@@ -37,33 +36,36 @@ import po.restwraptor.models.request.ApiRequest
 import po.restwraptor.models.request.LoginRequest
 import po.restwraptor.models.response.ApiResponse
 import po.restwraptor.models.security.AuthenticatedModel
-import po.restwraptor.plugins.CallInterceptorPlugin
 import po.restwraptor.plugins.JWTPlugin
 import po.restwraptor.plugins.RateLimiterPlugin
 import po.restwraptor.security.JWTService
 
+interface ConfigContextInterface{
+
+    val apiConfig  :ApiConfig
+    var onLoginRequest: ((LoginRequest) -> SecuredUserInterface?)?
+    var onAuthenticated : ((AuthenticatedModel) -> Unit)?
+
+    fun setupApi(configFn : ApiConfig.()-> Unit)
+    fun setupApplication(block: Application.()->Unit)
+    fun initialize(): Application
+
+}
+
+
 class ConfigContext(
     private var app: Application,
     config: ApiConfig? = null
-): CanNotify{
+): ConfigContextInterface,  CanNotify{
 
     override val eventHandler = RootEventHandler("Server config")
-
-    val apiConfig  = config?: ApiConfig()
-
-    var onLoginRequest: ((LoginRequest) -> SecuredUserInterface?)? = null
-    var onAuthenticated : ((AuthenticatedModel) -> Unit)? = null
+    override val apiConfig  = config?: ApiConfig()
+    override var onLoginRequest: ((LoginRequest) -> SecuredUserInterface?)? = null
+    override var onAuthenticated : ((AuthenticatedModel) -> Unit)? = null
 
     init {
         eventHandler.registerPropagateException<ConfigurationException>{
             ConfigurationException("Default Message", HandleType.PROPAGATE_TO_PARENT)
-        }
-    }
-
-    private fun installCallInterceptor(){
-        app.apply {
-            install(Resources)
-            install(CallInterceptorPlugin)
         }
     }
 
@@ -225,14 +227,14 @@ class ConfigContext(
         }
     }
 
-    fun setupApi(configFn : ApiConfig.()-> Unit){
+    override fun setupApi(configFn : ApiConfig.()-> Unit){
         apiConfig.configFn()
     }
-    fun setupApplication(block: Application.()->Unit){
+    override fun setupApplication(block: Application.()->Unit){
         app.block()
     }
 
-    fun initialize(): Application{
+    override fun initialize(): Application{
         configCors()
         configContentNegotiation()
         configRateLimiter()

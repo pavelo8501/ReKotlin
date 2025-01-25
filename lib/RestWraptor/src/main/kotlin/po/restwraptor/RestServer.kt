@@ -12,7 +12,7 @@ import po.restwraptor.models.configuration.ApiConfig
  * @property app The Ktor application instance to initialize with. If null, the server will require manual setup.
  * @property configFn An optional configuration function to set up the server context.
  */
-open class RestServer(
+class RestServer(
     app : Application? = null,
     private val configFn: (ConfigContext.() -> Unit)? = null
 ) {
@@ -21,14 +21,10 @@ open class RestServer(
     private lateinit var application: Application
     private lateinit var configContext : ConfigContext
 
-    var host: String = "0.0.0.0"
-    private set
+    private var host: String = "0.0.0.0"
+    private var port: Int = 0
+    private var wait: Boolean = true
 
-    var port: Int = 0
-    private set
-
-    var wait: Boolean = true
-    private set
 
     init {
         if(app!=null){
@@ -80,7 +76,7 @@ open class RestServer(
         return configContext.apiConfig
     }
 
-    protected fun configRest(wait: Boolean = true): Application {
+    private fun configRest(wait: Boolean = true): Application {
         embeddedServer(Netty, port, host){
             setupConfig(this)
         }.start(wait)

@@ -26,9 +26,9 @@ include(
     "lib:rest_service",
     "lib:ws_service",
     "lib:data_service",
-    "lib:tg_components",
     "lib:LogNotify",
     "lib:RestWraptor",
+    "lib:WebSocketWraptor",
     "lib:function_processor",
     "lib:binder")
 
@@ -44,10 +44,6 @@ project(":lib:data_service").also {
     it.name = "ExposedDAOWrapper"
 }
 
-project(":lib:tg_components").also {
-    it.name = "TelegramComponents"
-}
-
 project(":lib:binder").also {
     it.name = "binderPlugin"
 }
@@ -58,6 +54,10 @@ project(":lib:function_processor").also {
 
 project(":lib:RestWraptor").also {
     it.name = "RestWraptor"
+}
+
+project(":lib:WebSocketWraptor").also {
+    it.name = "WebSocketWraptor"
 }
 
 project(":lib:LogNotify").also {

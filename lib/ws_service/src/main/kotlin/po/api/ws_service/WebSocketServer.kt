@@ -26,7 +26,7 @@ import po.api.ws_service.service.plugins.Authenticator
 import po.api.ws_service.service.plugins.PolymorphicJsonConverter
 import po.api.ws_service.services.ConnectionService
 
-//val webSocketMethodRegistryKey = AttributeKey<MutableList<WebSocketMethodRegistryItem>>("WebSocketMethod")
+
 
 class WebSocketServer (
     private val config: (Application.() -> Unit)?
@@ -88,16 +88,16 @@ class WebSocketServer (
     }
 
     private fun configureDefaultHeaders(application: Application):Application{
-       apiLogger.info("Configuring Api Headers")
-       application.apply {
-           if (this.pluginOrNull(ApiHeaderPlugin) != null) {
-               println("Already installed")
-           }else{
-               install(ApiHeaderPlugin)
-           }
-       }
-       return application
-   }
+        apiLogger.info("Configuring Api Headers")
+        application.apply {
+            if (this.pluginOrNull(ApiHeaderPlugin) != null) {
+                println("Already installed")
+            }else{
+                install(ApiHeaderPlugin)
+            }
+        }
+        return application
+    }
 
     private fun configureCallLogging(application: Application):Application{
         application.apply {
@@ -111,11 +111,10 @@ class WebSocketServer (
         polymorphicConverter : PolymorphicJsonConverter): Application {
         application.apply {
 
-          val contentConverter = WSApiContentConverter().create()
-
+            val contentConverter = WSApiContentConverter().create()
 
             if (this.pluginOrNull(contentConverter) != null) {
-               println("Already installed")
+                println("Already installed")
             }else{
                 install(contentConverter) {
                     register(polymorphicConverter)
@@ -136,7 +135,7 @@ class WebSocketServer (
 
         application.apply {
 
-           Companion.apiLogger = apiLogger
+            Companion.apiLogger = apiLogger
 
             configureSecurity(this)
             configureDefaultHeaders(this)
@@ -145,25 +144,25 @@ class WebSocketServer (
             if (this.pluginOrNull(WebSockets) != null) {
                 apiLogger.info("Custom socket installation present")
             }else{
-               apiLogger.info("Installing default websocket")
+                apiLogger.info("Installing default websocket")
 
-               install(WebSockets){
+                install(WebSockets){
                     pingPeriod =  Duration.parse("60s")
                     timeout = Duration.parse("15s")
                     maxFrameSize = Long.MAX_VALUE
                     masking = false
                     contentConverter = PolymorphicJsonConverter(connectionService,null)
-                      extensions {
-                          install(TrafficController){
+                    extensions {
+                        install(TrafficController){
 
-                          }
-                      }
+                        }
+                    }
                 }
                 apiLogger.info("Default websocket installed")
             }
 
             apiLogger.info("Installing default ContentNegotiation")
-          //  configureContentNegotiation(this,polymorphicConverter)
+            //  configureContentNegotiation(this,polymorphicConverter)
             apiLogger.info("Default ContentNegotiation installed")
             config?.invoke(this)
             apiLogger.info("Websocket routing configured")

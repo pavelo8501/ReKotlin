@@ -1,7 +1,7 @@
 package po.restwraptor.models.configuration
 
 
-data class ApiConfig(
+class ApiConfig(
     var enableRateLimiting: Boolean  = true,
     var enableDefaultSecurity: Boolean = true,
     val enableDefaultCors: Boolean = true,
@@ -9,7 +9,6 @@ data class ApiConfig(
 ) {
 
     var baseApiRoute = "/api"
-
 
     private var _rateLimiterConfig: RateLimiterConfig? = null
     var rateLimiterConfig: RateLimiterConfig = RateLimiterConfig()
@@ -53,8 +52,6 @@ data class ApiConfig(
             enableDefaultSecurity = true
             useWellKnownHost = false
         }
-
-
         if(this._rateLimiterConfig != null) {
             enableRateLimiting = true
         }
