@@ -240,5 +240,4 @@ class ConfigContext(
         configDefaultRouting()
         return app
     }
-
 }
