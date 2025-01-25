@@ -1,7 +1,5 @@
-package po.api.rest_service.server
+package po.restwraptor.models.configuration
 
-import po.api.rest_service.plugins.Jwt
-import po.api.rest_service.plugins.RateLimiterConfig
 
 data class ApiConfig(
     var enableRateLimiting: Boolean  = true,

@@ -1,4 +1,4 @@
-package po.test.lognotify.eventhandler
+package po.lognotify.test.eventhandler
 
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -10,9 +10,9 @@ import po.lognotify.eventhandler.exceptions.PropagateException
 import po.lognotify.eventhandler.exceptions.SkipException
 import po.lognotify.shared.enums.HandleType
 import po.lognotify.shared.enums.SeverityLevel
-import po.test.lognotify.testmodels.HostingObject
-import po.test.lognotify.testmodels.ParentHostingObject
-import po.test.lognotify.testmodels.SubHostingObject
+import po.lognotify.test.testmodels.HostingObject
+import po.lognotify.test.testmodels.ParentHostingObject
+import po.lognotify.test.testmodels.SubHostingObject
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

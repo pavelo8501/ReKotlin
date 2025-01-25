@@ -11,6 +11,7 @@
             <option value="$PROJECT_DIR$/app" />
             <option value="$PROJECT_DIR$/lib" />
             <option value="$PROJECT_DIR$/lib/LogNotify" />
+            <option value="$PROJECT_DIR$/lib/RestWraptor" />
             <option value="$PROJECT_DIR$/lib/binder" />
             <option value="$PROJECT_DIR$/lib/data_service" />
             <option value="$PROJECT_DIR$/lib/function_processor" />

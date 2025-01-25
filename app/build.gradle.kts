@@ -35,8 +35,8 @@ dependencies {
     implementation(kotlin("stdlib-jdk8"))
 
     implementation(project(":lib:ExposedDAOWrapper"))
-    implementation(project(":lib:RestApiServerWrapper"))
-    implementation(project(":lib:WSApiServerWrapper"))
+    implementation(project(":lib:RestWraptor"))
+    implementation(project(":lib:LogNotify"))
 
    // implementation(project(":lib:binderPlugin"))
    // ksp(project(":lib:binderPlugin"))

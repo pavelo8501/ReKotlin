@@ -19,9 +19,28 @@ class RootEventHandler(
     moduleName: String
 ): EventHandlerBase(moduleName)
 {
+    override val isParent : Boolean = true
+
+    var onPropagateExceptionFn: (()->Unit)? = null
+
     init {
         handleEvent(helper.newInfo("$moduleName Notify Service Started"))
     }
+
+    fun onPropagateException(callback:()->Unit){
+        onPropagateExceptionFn = callback
+    }
+
+    fun handlePropagatedException(ex: ProcessableException){
+        if (onPropagateExceptionFn != null) {
+            onPropagateExceptionFn!!.invoke()
+        } else {
+            warn("Propagate to parent Exception handed but no onPropagateException action is set."
+                    +"Rethrowing exception")
+            throw ex
+        }
+    }
+
     fun getEvent(wipeData: Boolean = true): Event?{
         val currentEventCopy = currentEvent?.let { event ->
             Event(
@@ -43,7 +62,9 @@ class RootEventHandler(
 class EventHandler(
     moduleName: String,
     parentHandler: EventHandlerBase
-): EventHandlerBase(moduleName, parentHandler)
+): EventHandlerBase(moduleName, parentHandler){
+     override val isParent : Boolean = false
+}
 
 sealed class EventHandlerBase(
     override val moduleName: String,
@@ -52,6 +73,7 @@ sealed class EventHandlerBase(
 ) :  HandlerStatics,  ExceptionHandlerInterface by exceptionHandler
 {
 
+    protected abstract val isParent : Boolean
     var routedName: String = moduleName
     val eventQue = CopyOnWriteArrayList<Event>()
     var currentEvent : Event? = null
@@ -108,7 +130,11 @@ sealed class EventHandlerBase(
                 }
                 HandleType.PROPAGATE_TO_PARENT -> {
                     handleException(ex)
-                    throw ex
+                    if (isParent) {
+                        (this as RootEventHandler).handlePropagatedException(ex)
+                    }else{
+                        throw ex
+                    }
                 }
             }
             return null

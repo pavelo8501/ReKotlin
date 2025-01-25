@@ -14,7 +14,7 @@ plugins{
     kotlin("jvm")
 }
 
-group = "po.log_notify"
+group = "po.lognotify"
 version = logNotifyVersion
 
 repositories {

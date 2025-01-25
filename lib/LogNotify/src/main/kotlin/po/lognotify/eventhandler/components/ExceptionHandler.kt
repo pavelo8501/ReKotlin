@@ -12,7 +12,7 @@ interface ExceptionHandlerInterface{
     fun <E : ProcessableException> registerPropagateException(exConstructFn: () -> E)
     fun raiseSkipException(msg: String? = null)
     fun raiseCancelException(msg: String? = null, cancelFn: () -> Unit)
-    fun raisePropagateException(msg: String? = null)
+    fun <E : ProcessableException> raisePropagateException(msg: String?, block : (E.()->Unit)? = null )
 }
 
 /**
@@ -122,10 +122,17 @@ class ExceptionHandler : ExceptionHandlerInterface{
      *            If null, the message from the registered constructor will be used.
      * @throws PropagateException The exception to indicate that the exception should be propagated to the parent.
      */
-    override fun raisePropagateException(msg: String?){
+    override fun <E : ProcessableException> raisePropagateException(msg: String?, block : (E.()->Unit)?){
         val propagateException = propagateExceptionConstructorFn.invoke()
         propagateException.handleType = HandleType.PROPAGATE_TO_PARENT
         propagateException.message = msg?:propagateException.message
+        if(block!=null){
+            try {
+                (propagateException as E).block()
+            }catch(ex: Exception){
+                println("Convenience method raisePropagateException thrown an exception ${ex.message.toString()}")
+            }
+        }
         throw propagateException
     }
 
