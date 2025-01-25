@@ -1,6 +1,7 @@
 package po.playground.projects.data_service.dto
 
 import kotlinx.datetime.LocalDateTime
+import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
@@ -32,6 +33,7 @@ class DepartmentEntity(id: EntityID<Long>) : LongEntity(id) {
     val inspections by  InspectionEntity referrersOn Inspections.department
 }
 
+@Serializable
 data class DepartmentDataModel(
     var hq: Boolean,
     var name: String,

@@ -6,7 +6,6 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
-import io.ktor.server.application.plugin
 import io.ktor.server.application.pluginOrNull
 import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.jwt.JWTPrincipal
@@ -15,6 +14,7 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.request.contentType
 import io.ktor.server.request.receive
+import io.ktor.server.resources.Resources
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
@@ -28,19 +28,22 @@ import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
 import po.lognotify.eventhandler.RootEventHandler
 import po.lognotify.eventhandler.interfaces.CanNotify
-import po.restwraptor.exceptions.AuthErrorCodes
+import po.lognotify.shared.enums.HandleType
+import po.restwraptor.exceptions.ConfigurationErrorCodes
+import po.restwraptor.exceptions.ConfigurationException
 import po.restwraptor.interfaces.SecuredUserInterface
 import po.restwraptor.models.configuration.ApiConfig
 import po.restwraptor.models.request.ApiRequest
 import po.restwraptor.models.request.LoginRequest
-import po.restwraptor.models.response.Response
+import po.restwraptor.models.response.ApiResponse
 import po.restwraptor.models.security.AuthenticatedModel
+import po.restwraptor.plugins.CallInterceptorPlugin
 import po.restwraptor.plugins.JWTPlugin
-import po.restwraptor.plugins.RateLimiter
+import po.restwraptor.plugins.RateLimiterPlugin
 import po.restwraptor.security.JWTService
 
 class ConfigContext(
-    private val app: Application,
+    private var app: Application,
     config: ApiConfig? = null
 ): CanNotify{
 
@@ -52,11 +55,16 @@ class ConfigContext(
     var onAuthenticated : ((AuthenticatedModel) -> Unit)? = null
 
     init {
-        configCors()
-        configContentNegotiation()
-        configRateLimiter()
-        configAuthentication()
-        configDefaultRouting()
+        eventHandler.registerPropagateException<ConfigurationException>{
+            ConfigurationException("Default Message", HandleType.PROPAGATE_TO_PARENT)
+        }
+    }
+
+    private fun installCallInterceptor(){
+        app.apply {
+            install(Resources)
+            install(CallInterceptorPlugin)
+        }
     }
 
     private fun configureDefaultSecurityRoute(jwtService: JWTService, routing: Routing) {
@@ -72,20 +80,38 @@ class ConfigContext(
                                 if (apiConfig.useWellKnownHost) {
                                     TODO("Use well known hosts logic not implemented")
                                 } else {
-                                    jwtService.generateToken(user)?.let { token ->
-                                        call.respond(Response(token))
+                                    jwtService.generateToken(user).let { token ->
+                                        call.respond(ApiResponse(token))
                                         onAuthenticated?.invoke(AuthenticatedModel(token, true, 1))
-                                    } ?: propagatedException("Token generation failed")
+                                    } ?: propagatedException<ConfigurationException>("Token generation failed"){
+                                        errorCode = ConfigurationErrorCodes.PLUGIN_SETUP_FAILURE
+                                    }
                                 }
                                 return@post
                             } else {
                                 warn("Login failed for ${loginData.username} with password ${loginData.password}")
                             }
-                        } ?: propagatedException("OnLoginRequest callback not set")
+                        } ?: propagatedException<ConfigurationException>("OnLoginRequest callback not set"){
+                            errorCode = ConfigurationErrorCodes.UNABLE_TO_CALLBACK
+                        }
                     }
                 }
             }
         }
+    }
+
+    private fun configJwt(): JWTService?{
+        app.apply {
+            install(JWTPlugin) {
+                privateKeyString = apiConfig.privateKeyString
+                publicKeyString  = apiConfig.publicKeyString
+            }.let {plugin->
+                plugin.jwtService.let{service->
+                    return service
+                }
+            }
+        }
+        return null
     }
 
     private fun configAuthentication(){
@@ -94,9 +120,8 @@ class ConfigContext(
                 info("Authentication installation skipped. Custom Authentication already installed")
             } else {
                 info("Installing JWT Plugin")
-                install(JWTPlugin)
-                install(Authentication) {
-                    app.plugin(JWTPlugin).jwtService?.let { jwtService ->
+                configJwt()?.let { jwtService->
+                    install(Authentication) {
                         jwt("auth-jwt") {
                             realm = jwtService.realm
                             verifier(jwtService.getVerifier())
@@ -107,12 +132,14 @@ class ConfigContext(
                             }
                         }
                         app.routing {
-                            if(apiConfig.enableDefaultSecurity) {
+                            if (apiConfig.enableDefaultSecurity) {
                                 configureDefaultSecurityRoute(jwtService, this)
                             }
                         }
-                    }?:propagatedException("JWT Plugin not installed. Unable to install Authentication")
-
+                    }
+                }?:propagatedException<ConfigurationException>(
+                    "JWT Plugin not installed. Unable to install Authentication"){
+                    errorCode = ConfigurationErrorCodes.REQUESTING_UNDEFINED_PLUGIN
                 }
             }
         }
@@ -120,7 +147,7 @@ class ConfigContext(
 
     private fun configCors():Application{
         app.apply {
-            if (this.pluginOrNull(CORS) != null) {
+            if (pluginOrNull(CORS) != null) {
                 info("CORS installation skipped. Custom CORS already installed")
             } else {
                 info("Installing CORS Plugin")
@@ -161,11 +188,11 @@ class ConfigContext(
 
     private fun configRateLimiter():Application{
         app.apply {
-            if (this.pluginOrNull(RateLimiter) != null) {
+            if (this.pluginOrNull(RateLimiterPlugin) != null) {
                 info("RateLimiter installation skipped. Custom RateLimiter already installed")
             }else{
                 info("Installing RateLimiter")
-                install(RateLimiter) {
+                install(RateLimiterPlugin) {
                     requestsPerMinute = 60
                     suspendInSeconds = 60
                 }
@@ -190,12 +217,28 @@ class ConfigContext(
                 get("/api/status-json") {
                     info("Status Json endpoint called.")
                     val responseStatus: String = "OK"
-                    call.respond(Response(responseStatus))
+                    call.respond(ApiResponse(responseStatus))
                 }
             }
             info("Default rout initialized")
             return app
         }
+    }
+
+    fun setupApi(configFn : ApiConfig.()-> Unit){
+        apiConfig.configFn()
+    }
+    fun setupApplication(block: Application.()->Unit){
+        app.block()
+    }
+
+    fun initialize(): Application{
+        configCors()
+        configContentNegotiation()
+        configRateLimiter()
+        configAuthentication()
+        configDefaultRouting()
+        return app
     }
 
 }

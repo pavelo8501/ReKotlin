@@ -16,17 +16,17 @@ class RateLimiterConfig {
     var suspendInSeconds: Int = 60
 }
 
-class RateLimiter(private val config: RateLimiterConfig) {
+class RateLimiterPlugin(private val config: RateLimiterConfig) {
 
     private val requestCounts = mutableMapOf<String, MutableList<Long>>()
     private val mutex = Mutex()
 
-    companion object Plugin : BaseApplicationPlugin<Application, RateLimiterConfig, RateLimiter> {
-        override val key = AttributeKey<RateLimiter>("RateLimiter")
+    companion object Plugin : BaseApplicationPlugin<Application, RateLimiterConfig, RateLimiterPlugin> {
+        override val key = AttributeKey<RateLimiterPlugin>("RateLimiter")
 
-        override fun install(pipeline: Application, configure: RateLimiterConfig.() -> Unit): RateLimiter {
+        override fun install(pipeline: Application, configure: RateLimiterConfig.() -> Unit): RateLimiterPlugin {
             val config = RateLimiterConfig().apply(configure)
-            val rateLimiter = RateLimiter(config)
+            val rateLimiter = RateLimiterPlugin(config)
 
             pipeline.intercept(ApplicationCallPipeline.Monitoring) {
                 val clientId = call.request.origin.remoteHost

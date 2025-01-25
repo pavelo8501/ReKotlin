@@ -1,6 +1,7 @@
 package po.playground.projects.data_service.dto
 
 import kotlinx.datetime.LocalDateTime
+import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
@@ -25,6 +26,7 @@ class ContactEntity  (id: EntityID<Long>) : LongEntity(id){
     var partner by PartnerEntity referencedOn Contacts.partner
 }
 
+@Serializable
 data class ContactDataModel(
     var dds: Boolean,
     var name: String,

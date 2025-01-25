@@ -24,31 +24,19 @@ sealed class RequestData
 @SerialName("create")
 data class CreateRequestData(val value: EntityInterface) : RequestData()
 
-
-
 @Serializable
 data class UpdateRequestData(val value: UpdateEntityInterface) : RequestData()
 
+@Serializable
+data class SelectRequestData(val value: Long)
 
 @Serializable
-data class SelectRequestData(
-    val value: Long
-)
-
+data class DeleteRequestData(val id: Long, val includingChild: Boolean)
 
 @Serializable
-data class DeleteRequestData(
-    val id: Long,
-    val includingChild: Boolean
+data class LoginRequest(val username: String, val password: String
 )
 
 @Serializable
-data class LoginRequest(
-    val username: String,
-    val password: String
-)
+data class ApiRequest<R>(val data : R)
 
-@Serializable
-data class ApiRequest<R>(
-    val data : R
-)

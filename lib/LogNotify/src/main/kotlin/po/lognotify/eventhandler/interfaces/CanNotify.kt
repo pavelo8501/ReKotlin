@@ -2,6 +2,7 @@ package po.lognotify.eventhandler.interfaces
 
 import kotlinx.coroutines.coroutineScope
 import po.lognotify.eventhandler.EventHandlerBase
+import po.lognotify.eventhandler.exceptions.ProcessableException
 
 interface CanNotify{
 
@@ -17,6 +18,7 @@ interface CanNotify{
     fun notifyError(message: String) =  eventHandler.error(message)
 
 
-    fun propagatedException(message: String?) = eventHandler.raisePropagateException(message)
+    fun <E: ProcessableException> propagatedException(message: String?, block: (E.()->Unit)? = null)
+        = eventHandler.raisePropagateException(message,block)
 
 }

@@ -1,13 +1,7 @@
-package po.test.lognotify.testmodels
+package po.lognotify.test.testmodels
 
-import kotlinx.coroutines.CoroutineName
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import po.lognotify.eventhandler.EventHandler
-import po.lognotify.eventhandler.EventHandlerBase
 import po.lognotify.eventhandler.RootEventHandler
 import po.lognotify.eventhandler.interfaces.CanNotify
 
