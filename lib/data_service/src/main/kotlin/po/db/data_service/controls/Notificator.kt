@@ -33,6 +33,7 @@ class Notificator(private val owner: CanNotifyDepr) {
 
     fun <T:Any?>trigger(event: NotificationEvent, optionalReceiver: T? = null ) {
         subscriptions[event.name]?.forEach { subscription ->
+            @Suppress("UNCHECKED_CAST")
             (subscription as? NotifySubscription<T>)?.callbackFun?.let { it(optionalReceiver) }
         }
     }

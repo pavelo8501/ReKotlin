@@ -3,8 +3,7 @@ package po.wswraptor.services
 import io.ktor.server.websocket.DefaultWebSocketServerSession
 import io.ktor.server.websocket.WebSocketServerSession
 import kotlinx.coroutines.flow.MutableSharedFlow
-import po.wswraptor.models.request.ApiRequestDataType
-import po.wswraptor.models.request.WsRequest
+import po.wswraptor.models.request.WSRequest
 import po.wswraptor.routing.ApiWebSocketClass
 import po.wswraptor.routing.ApiWebSocketMethodClass
 import java.util.Collections
@@ -17,7 +16,7 @@ data class Connection(
 ){
     var resourceName: String = ""
 
-    var requestSubject : MutableSharedFlow<WsRequest<ApiRequestDataType>>? = null
+    var requestSubject : MutableSharedFlow<WSRequest<Any>>? = null
 
     init {
         val regex = ".*/([^/]+)$".toRegex()
@@ -80,7 +79,7 @@ class ConnectionService {
         return  connection?.getWSMethod(method)
     }
 
-    fun forwardApiRequest(path: String, method: String, request: WsRequest<ApiRequestDataType>){
+    fun forwardApiRequest(path: String, method: String, request: WSRequest<Any>){
         val method = getWSMethod(path, method)
         if(method == null){
             throw Exception("Recepient host not found on path: $path with the method name: $method ")
@@ -94,7 +93,7 @@ class ConnectionService {
 //        }
     }
 
-    fun bindToApiRequestFlow(connection : Connection):MutableSharedFlow<WsRequest<ApiRequestDataType>>{
+    fun bindToApiRequestFlow(connection : Connection):MutableSharedFlow<WSRequest<Any>>{
         connection.requestSubject = apiRequestSubject
         return connection.requestSubject!!
     }
@@ -103,8 +102,8 @@ class ConnectionService {
         return connections.firstOrNull { it.session == session }
     }
 
-    val apiRequestSubject  = MutableSharedFlow<WsRequest<ApiRequestDataType>>()
-    suspend fun sendRequest(request: WsRequest<ApiRequestDataType>){
+    val apiRequestSubject  = MutableSharedFlow<WSRequest<Any>>()
+    suspend fun sendRequest(request: WSRequest<Any>){
         apiRequestSubject.emit(request)
     }
 

@@ -103,6 +103,7 @@ class ConfigContext(
     }
 
     private fun configJwt(): JWTService?{
+
         app.apply {
             install(JWTPlugin) {
                 privateKeyString = apiConfig.privateKeyString
@@ -238,7 +239,9 @@ class ConfigContext(
         configCors()
         configContentNegotiation()
         configRateLimiter()
-        configAuthentication()
+        if(this.apiConfig.enableDefaultSecurity){
+            configAuthentication()
+        }
         configDefaultRouting()
         return app
     }

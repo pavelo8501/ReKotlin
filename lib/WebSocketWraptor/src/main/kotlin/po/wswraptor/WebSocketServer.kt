@@ -1,15 +1,24 @@
 package po.wswraptor
 
 import io.ktor.server.application.Application
+import io.ktor.server.routing.Routing
+import io.ktor.server.websocket.DefaultWebSocketServerSession
 import po.restwraptor.RestServer
 import po.wswraptor.classes.WSConfigContext
 import po.wswraptor.models.configuration.WsApiConfig
 import po.wswraptor.services.ConnectionService
 
+    suspend inline fun Routing.webSocket(
+        path: String,
+        resource: String,
+        handler: suspend DefaultWebSocketServerSession.() -> Unit){
+
+    }
+
+
 class WebSocketServer(
     app : Application? = null,
-    private val configFn: (WSConfigContext.() -> Unit)? = null)
-{
+    private val configFn: (WSConfigContext.() -> Unit)? = null) {
 
     private var initialized: Boolean = false
     private lateinit var application: Application

@@ -1,8 +1,7 @@
 package po.wswraptor.routing
 
 import po.wswraptor.WebSocketServer
-import po.wswraptor.models.request.ApiRequestDataType
-import po.wswraptor.models.response.WsResponse
+import po.wswraptor.models.response.WSResponse
 import po.wswraptor.services.Connection
 import io.ktor.server.routing.Routing
 import io.ktor.server.websocket.DefaultWebSocketServerSession
@@ -18,7 +17,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.launch
 import kotlinx.serialization.KSerializer
-import po.wswraptor.models.request.WsRequest
+import po.wswraptor.models.request.WSRequest
 
 
 fun  Routing.apiWebSocket(
@@ -38,26 +37,27 @@ class ClassContextHolder(
     val serializer: KSerializer<ClassContextHolder>
 )
 
+
 class ApiWebSocketMethodClass(val method: String, val typeInf : TypeInfo) {
 
     var path: String = ""
     var parent: ApiWebSocketClass? = null
     var receiver: (ApiWebSocketMethodClass.() -> Unit)? = null
 
-    var receiveApiRequest : ((WsRequest<ApiRequestDataType>) -> Unit)? = null
+    var receiveApiRequest : ((WSRequest<Any>) -> Unit)? = null
 
-    fun forwardResponse(request: WsRequest<ApiRequestDataType>){
+    fun forwardResponse(request: WSRequest<Any>){
         receiveApiRequest?.invoke(request)
-        println("Forwarding response for ${request.module}")
+        println("Forwarding response for ${request.resource}")
     }
-    fun sendApiResponse(response: WsResponse<*>){
-        println("Sending response for ${response.request}")
+    fun sendApiResponse(response: WSResponse<*>){
+        println("Sending response for ${response.resource}")
         if(parent == null ) throw Exception("Parent not set`for method $method")
         parent?.responseReceived(response,typeInf)
     }
 }
 
-class ApiWebSocketClass(val path: String) {
+class ApiWebSocketClass(val path: String, val server : WebSocketServer? = null) {
     lateinit var  session : DefaultWebSocketServerSession
 
     var active: Boolean = false
@@ -73,18 +73,18 @@ class ApiWebSocketClass(val path: String) {
         return  childApiMethods.toList()
     }
 
-    fun forwardRequest(request: WsRequest<ApiRequestDataType>){
-        childApiMethods.find { it.method == request.module }.let {
+    fun forwardRequest(request: WSRequest<Any>){
+        childApiMethods.find { it.method == request.resource }.let {
             if(it != null){
                 it.receiver?.invoke(it)
                 it.forwardResponse(request)
             }else{
-                WebSocketServer.apiLogger.warn("No method found for ${request.module}, request undelivered")
+               // WebSocketServer.apiLogger.warn("No method found for ${request.module}, request undelivered")
             }
         }
     }
 
-    fun responseReceived(response:  WsResponse<*>, typeInfo: TypeInfo){
+    fun responseReceived(response:  WSResponse<*>, typeInfo: TypeInfo){
         webSocketClassScope.launch {
             session.sendSerialized(response, typeInfo)
         }
@@ -108,7 +108,7 @@ class ApiWebSocketClass(val path: String) {
     }
 
     fun registerConnection(implementation :ApiWebSocketClass){
-        val connection =  WebSocketServer.connectionService.addConnection(
+        val connection =  server!!.connectionService.addConnection(
             Connection(implementation.session, implementation.path, implementation)
         )
     }
@@ -116,15 +116,15 @@ class ApiWebSocketClass(val path: String) {
     suspend fun webSocketHandler(session: DefaultWebSocketServerSession) {
         this.session = session
         active = true
-        WebSocketServer.apiLogger.info("ApiWebSocketClass: New connection established on $path")
+     //   WebSocketServer.apiLogger.info("ApiWebSocketClass: New connection established on $path")
         registerConnection(this)
-        WebSocketServer.apiLogger.info("New connection registered on $path")
+      //  WebSocketServer.apiLogger.info("New connection registered on $path")
 
         try {
-            val request = session.receiveDeserialized<WsRequest<ApiRequestDataType>>()
+            val request = session.receiveDeserialized<WSRequest<Any>>()
             forwardRequest(request)
             while (active) {
-                val request = session.receiveDeserialized<WsRequest<ApiRequestDataType>>()
+                val request = session.receiveDeserialized<WSRequest<Any>>()
                 webSocketClassScope.launch {
                     forwardRequest(request)
                 }

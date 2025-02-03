@@ -11,8 +11,7 @@ import io.ktor.util.reflect.typeInfo
 import io.ktor.websocket.Frame
 import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.launch
-import po.wswraptor.models.request.ApiRequestDataType
-import po.wswraptor.models.request.WsRequest
+import po.wswraptor.models.request.WSRequest
 
 class ContentConverterConfig {
     internal val converters = mutableListOf<WebsocketContentConverter>()
@@ -50,7 +49,7 @@ val ContentConverterPlugin = createApplicationPlugin(
         for (converter in converters) {
             val result = converter.deserialize(
                 charset = Charsets.UTF_8,
-                typeInfo = typeInfo<WsRequest<ApiRequestDataType>>(),
+                typeInfo = typeInfo<WSRequest<Any>>(),
                 content = content
             )
             if (result != null) {

@@ -1,14 +1,13 @@
 
 rootProject.name = "ReKotlin"
 
-
 pluginManagement {
     plugins{
         id("com.google.devtools.ksp") version "2.0.21-1.0.25" apply false
-        id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
+        id("org.gradle.toolchains.foojay-resolver-convention") version "0.9.0"
         id("io.gitlab.arturbosch.detekt") version "1.23.7"
-        kotlin("plugin.serialization")  version "2.0.21" apply false
-        kotlin("jvm") version "2.0.21" apply false
+        kotlin("plugin.serialization")  version "2.1.10" apply false
+        kotlin("jvm") version "2.1.10" apply false
 
     }
     repositories {
