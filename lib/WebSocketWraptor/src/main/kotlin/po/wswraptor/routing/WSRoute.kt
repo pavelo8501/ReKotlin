@@ -9,6 +9,8 @@ class WSResourceRoute(val resource: String, parent: WSRoute)
 
 class WSRoute(
     val path: String,
+    val resource: String,
+    val options : String = "",
     val wsSession : DefaultWebSocketServerSession
 ){
 

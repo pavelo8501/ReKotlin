@@ -62,3 +62,4 @@ project(":lib:WebSocketWraptor").also {
 project(":lib:LogNotify").also {
     it.name = "LogNotify"
 }
+include("MedTest")

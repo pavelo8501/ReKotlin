@@ -4,6 +4,7 @@ package po.restwraptor.models.configuration
 class ApiConfig(
     var enableRateLimiting: Boolean  = true,
     var enableDefaultSecurity: Boolean = true,
+    var enableDefaultSecurityRouts : Boolean = true,
     val enableDefaultCors: Boolean = true,
     val enableDefaultContentNegotiation: Boolean = true,
 ) {

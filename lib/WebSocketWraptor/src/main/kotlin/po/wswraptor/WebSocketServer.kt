@@ -2,16 +2,24 @@ package po.wswraptor
 
 import io.ktor.server.application.Application
 import io.ktor.server.routing.Routing
-import io.ktor.server.websocket.DefaultWebSocketServerSession
+import io.ktor.server.websocket.webSocket
 import po.restwraptor.RestServer
 import po.wswraptor.classes.WSConfigContext
 import po.wswraptor.models.configuration.WsApiConfig
+import po.wswraptor.routing.WSRoute
 import po.wswraptor.services.ConnectionService
+import java.util.Collections
 
-    suspend inline fun Routing.webSocket(
+inline fun Routing.webSocket(
         path: String,
         resource: String,
-        handler: suspend DefaultWebSocketServerSession.() -> Unit){
+       noinline handler: suspend WSRoute.() -> Unit){
+
+        webSocket(path) {
+            val rootRoute =  WSRoute(path, resource, "", this)
+            rootRoute
+            rootRoute.handler()
+        }
 
     }
 
@@ -52,6 +60,10 @@ class WebSocketServer(
         }
     }
 
+    fun configure(block:  WSConfigContext.()-> Unit){
+        configContext.block()
+    }
+
     fun start(host: String, port: Int, wait: Boolean){
         this.host = host.ifBlank { this.host }
         this.port = port
@@ -68,4 +80,12 @@ class WebSocketServer(
         return application
     }
 
+
+    companion object{
+       private val routBuffer =  mutableMapOf<String, WSRoute>()
+
+        fun addRout(path : String, rout : WSRoute){
+            routBuffer.putIfAbsent(path, rout)
+        }
+    }
 }

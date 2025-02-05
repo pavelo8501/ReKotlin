@@ -136,7 +136,9 @@ class ConfigContext(
                         }
                         app.routing {
                             if (apiConfig.enableDefaultSecurity) {
-                                configureDefaultSecurityRoute(jwtService, this)
+                                if(apiConfig.enableDefaultSecurityRouts) {
+                                    configureDefaultSecurityRoute(jwtService, this)
+                                }
                             }
                         }
                     }

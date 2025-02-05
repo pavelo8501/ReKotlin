@@ -8,6 +8,7 @@ import po.db.data_service.scope.dto.DTOContext
 import po.db.data_service.classes.interfaces.DataModel
 import po.db.data_service.dto.CommonDTO
 import po.db.data_service.scope.service.enums.WriteMode
+import kotlin.reflect.KProperty1
 
 class ServiceContext<DATA,ENTITY>(
     private val dbConnection: Database,
@@ -23,6 +24,19 @@ class ServiceContext<DATA,ENTITY>(
     private fun <T> service(statement: ServiceContext<DATA, ENTITY>.() -> T): T = statement.invoke(this)
     fun <T> context(serviceBody: ServiceContext<DATA, ENTITY>.() -> T): T = service{
         serviceBody()
+    }
+
+
+    fun DTOClass<DATA, ENTITY>.pick(
+        vararg conditions: Pair<KProperty1<DATA, *>, Any?>, block: DTOContext<DATA, ENTITY>.() -> Unit
+    ): DTOClass<DATA, ENTITY>?
+    {
+        val selectedDTOs = dbQuery {
+            pick(conditions.toList())
+        }
+        val context  = DTOContext(selectedDTOs)
+        context.block()
+        return null
     }
 
     fun DTOClass<DATA, ENTITY>.select(block: DTOContext<DATA, ENTITY>.() -> Unit){

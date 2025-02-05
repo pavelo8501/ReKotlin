@@ -43,6 +43,7 @@ dependencies {
 
     testImplementation("org.jetbrains.kotlin:kotlin-test:$kotlinVersion")
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
+    testImplementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion")
     testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinSerializationVersion")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

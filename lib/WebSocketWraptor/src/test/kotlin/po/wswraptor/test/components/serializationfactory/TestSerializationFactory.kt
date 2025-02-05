@@ -1,9 +1,10 @@
-package po.wswraptor.test
+package po.wswraptor.test.components.serializationfactory
 
 import io.ktor.util.reflect.typeInfo
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import po.wswraptor.components.serializationfactory.SerializationFactory
 import po.wswraptor.models.request.ApiRequestAction
@@ -12,7 +13,6 @@ import po.wswraptor.models.response.WSResponse
 import po.wswraptor.test.common.Test1
 import po.wswraptor.test.common.Test2
 import po.wswraptor.test.common.Test3
-import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -35,18 +35,17 @@ class TestSerializationFactory {
         @BeforeAll
         @JvmStatic
         fun setup() {
-            inboundFactory = WSRequest.createFactory()
-            outboundFactory = WSResponse.createFactory()
+            inboundFactory = WSRequest.Companion.createFactory()
+            outboundFactory = WSResponse.Companion.createFactory()
 
-            request1 =  WSRequest<Test1>(Test1(1,"Test1Name"),"Test1", ApiRequestAction.CREATE )
-            request2 =  WSRequest<Test2>(Test2(1,12),"Test2", ApiRequestAction.SELECT )
-            request3 =  WSRequest<Test3>(Test3(1, 121, "Test3Name", true),"Test3", ApiRequestAction.SELECT )
+            request1 = WSRequest<Test1>(Test1(1, "Test1Name"), "Test1", ApiRequestAction.CREATE)
+            request2 = WSRequest<Test2>(Test2(1, 12), "Test2", ApiRequestAction.SELECT)
+            request3 = WSRequest<Test3>(Test3(1, 121, "Test3Name", true), "Test3", ApiRequestAction.SELECT)
 
-            response1 = WSResponse<Test1>(Test1(1,"Test1Name"),"Test1", ApiRequestAction.SELECT)
-            response2 = WSResponse<Test2>(Test2(1,12),"Test2", ApiRequestAction.DELETE)
-            response3 = WSResponse<Test3>(Test3(1,12,"Test3Name",true),"Test3", ApiRequestAction.DELETE)
+            response1 = WSResponse<Test1>(Test1(1, "Test1Name"), "Test1", ApiRequestAction.SELECT)
+            response2 = WSResponse<Test2>(Test2(1, 12), "Test2", ApiRequestAction.DELETE)
+            response3 = WSResponse<Test3>(Test3(1, 12, "Test3Name", true), "Test3", ApiRequestAction.DELETE)
         }
-
     }
 
     @OptIn(InternalSerializationApi::class)
@@ -78,8 +77,8 @@ class TestSerializationFactory {
 
         inboundFactory.deserialize<Test3>(serializedString).let {
             assertNotNull(it)
-            assertTrue{ it.action ==  ApiRequestAction.SELECT }
-            assertTrue{ it.resource == "Test3" }
+            assertTrue { it.action == ApiRequestAction.SELECT }
+            assertTrue { it.resource == "Test3" }
             assertEquals(request3.payload, it.payload)
         }
     }

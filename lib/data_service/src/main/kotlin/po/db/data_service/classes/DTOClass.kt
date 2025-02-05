@@ -18,6 +18,7 @@ import po.db.data_service.exceptions.OperationsException
 import po.db.data_service.models.CrudResult
 import po.db.data_service.dto.CommonDTO
 import kotlin.reflect.KClass
+import kotlin.reflect.KProperty1
 
 abstract class DTOClass<DATA, ENTITY>(
     val sourceClass: KClass<out CommonDTO<DATA, ENTITY>>
@@ -75,6 +76,40 @@ abstract class DTOClass<DATA, ENTITY>(
         conf.entityClass = ENTITY::class
         conf.entityModel = entityModel
         conf.block()
+    }
+
+
+    /**
+     * Selects a single entity from the database based on the provided conditions and maps it to a DTO.
+     *
+     * This function performs the following steps:
+     * 1. Calls the `daoService.pick` method to retrieve a single entity that matches the given conditions.
+     * 2. If an entity is found, a new DTO (`CommonDTO<DATA, ENTITY>`) is created using the factory.
+     * 3. The DTO is updated with the entity's data using `UpdateMode.ENTITY_TO_MODEL`.
+     * 4. Relation bindings are applied to the DTO via `conf.relationBinder.applyBindings(it)`.
+     * 5. Repository initialization is performed on the DTO via `it.initializeRepositories(it.entityDAO)`.
+     * 6. Returns a `CrudResult` containing an list of DTO entities and any events recorded during the process.
+     *
+     * @param conditions A list of property-value pairs (`KProperty1<DATA, *>, Any?`)
+     * representing the filtering conditions.
+     * @return A `CrudResult<DATA, ENTITY>` containing the selected DTO (if found) and any triggered events.
+     */
+    fun pick(conditions: List<Pair<KProperty1<DATA, *>, Any?>>): CrudResult<DATA, ENTITY> {
+        val resultList = mutableListOf<CommonDTO<DATA, ENTITY>>()
+        notify("pick()"){
+            val entity =  daoService.pick(conditions, conf.propertyBinder.propertyList)
+            entity?.let {
+                factory.createEntityDto()?.let {newDto->
+                    newDto.update(it, UpdateMode.ENTITY_TO_MODEL)
+                    resultList.add(newDto)
+                }
+            }
+            resultList.forEach {
+                conf.relationBinder.applyBindings(it)
+                it.initializeRepositories(it.entityDAO)
+            }
+        }
+        return CrudResult(resultList, eventHandler.getEvent())
     }
 
     /**
