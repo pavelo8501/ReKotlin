@@ -27,10 +27,10 @@ class ServiceClass<DATA, ENTITY>(
 )  where  DATA: DataModel, ENTITY : LongEntity{
 
    var name : String = "undefined"
+   val logger = LoggingService()
+   var serviceContext : ServiceContext<DATA, ENTITY>? = null
 
-    val logger = LoggingService()
-
-    init {
+   init {
         try {
             runBlocking {
                 logger.registerLogFunction(LogLevel.MESSAGE){msg, level, time, throwable->
@@ -104,16 +104,62 @@ class ServiceClass<DATA, ENTITY>(
     private fun start(){
         initializeDTOs{
             rootDTOModel.initialization()
-            name = " ${rootDTOModel.className}|Service"
+            name =  ("${rootDTOModel.className}|Service").trim()
         }
         if(serviceCreateOption!=null){
             prepareTables(serviceCreateOption)
         }
     }
 
-    fun launch(receiver: ServiceContext<DATA,ENTITY>.()->Unit ){
-        val serviceContext = ServiceContext(connection, rootDTOModel)
-        serviceContext.receiver()
+    fun <DATA: DataModel, ENTITY: LongEntity> relaunchServiceContext(
+        dtoModel : DTOClass<DATA, ENTITY>,
+        context: () -> Unit
+    ) {
+        serviceContext?.let {serviceCtx->
+            when(dtoModel.sourceClass){
+                rootDTOModel->{
+                    serviceCtx.apply {
+                        context()
+                    }
+                }
+            }
+        }
     }
 
+
+    fun <DATA: DataModel, ENTITY: LongEntity> attachToServiceContext(
+        dtoModel : DTOClass<DATA, ENTITY>,
+        context:  ServiceContext<DATA, ENTITY>.() -> Unit
+    ): Boolean {
+        serviceContext?.let {serviceCtx->
+            if (rootDTOModel::class.isInstance(dtoModel)) {
+                serviceCtx.apply{context}
+                return true
+            }
+        }
+        return false
+    }
+
+    fun <DATA: DataModel, ENTITY: LongEntity> attachToServiceContextSuppressed(
+        dtoModel : DTOClass<DATA, ENTITY>,
+        context:  ServiceContext<DATA, ENTITY>.() -> Unit
+    ): Boolean {
+        serviceContext?.let {serviceCtx->
+            if (rootDTOModel::class.isInstance(dtoModel)) {
+                serviceCtx.also {
+                    @Suppress("UNCHECKED_CAST")
+                    context.invoke(serviceCtx as ServiceContext<DATA, ENTITY>)
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    fun launch(receiver: ServiceContext<DATA, ENTITY>.() -> Unit){
+       ServiceContext(connection, rootDTOModel).let {context->
+           context.receiver()
+           serviceContext = context
+       }
+    }
 }

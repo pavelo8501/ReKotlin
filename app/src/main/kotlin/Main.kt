@@ -25,9 +25,6 @@ fun main() {
     val keysPath = Paths.get("").toAbsolutePath().toString()+ File.separator + "keys" + File.separator .toString()
 
     val restServer = RestServer{
-        setupApi() {
-            setAuthKeys(File(keysPath+"ktor.spki").readText(), File(keysPath+"ktor.pk8").readText())
-        }
         setupApplication{
             routing {
                 post("/api/partners") {

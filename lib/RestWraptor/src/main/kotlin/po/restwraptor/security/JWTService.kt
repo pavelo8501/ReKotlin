@@ -5,10 +5,18 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.JWTVerifier
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.interfaces.DecodedJWT
+import io.ktor.server.auth.Credential
+import io.ktor.server.auth.jwt.JWTCredential
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.routing.RoutingContext
+import kotlinx.coroutines.runBlocking
+import po.lognotify.shared.enums.HandleType
 import po.restwraptor.exceptions.AuthErrorCodes
 import po.restwraptor.exceptions.AuthException
+import po.restwraptor.exceptions.ConfigurationException
 import po.restwraptor.interfaces.SecuredUserInterface
 import po.restwraptor.models.security.JwtConfig
+import po.restwraptor.plugins.JWTPlugin.Plugin.service
 import java.security.KeyFactory
 import java.security.interfaces.RSAPrivateKey
 import java.security.interfaces.RSAPublicKey
@@ -16,22 +24,50 @@ import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
 import java.util.Base64
 import java.util.Date
+import javax.print.DocFlavor
 
-class JWTService {
+class JWTService{
 
+    private lateinit var  config : JwtConfig
     var isReady: Boolean = false
         private set
+    var name: String = ""
 
-    lateinit var realm: String
-        private set
-    lateinit var audience: String
-        private set
-    lateinit var issuer: String
-        private set
+    val realm: String
+        get(){return config.realm}
+    val claim: String
+        get(){return config.claimFieldName}
 
     private lateinit var privateKey: RSAPrivateKey
     private lateinit var publicKey: RSAPublicKey
-    private lateinit var verifier: JWTVerifier
+    private lateinit var verifier : JWTVerifier
+
+
+    fun init(serviceName: String, conf: JwtConfig){
+        if(isReady){
+            return
+        }
+        config = conf
+        name = serviceName
+            config.privateKeyString?.let { loadPrivateKey(it) }
+        when {
+            config.publicKeyString != null -> {
+                loadPublicKey(config.publicKeyString!!)
+            }
+            config.jwkProvider != null &&  config.kid != null -> {
+                loadPublicKeyRSA(config.jwkProvider!!, config.kid!!)
+            }
+            config.jwkProvider == null &&  config.kid == null && config.publicKeyString == null ->{
+                throw AuthException(AuthErrorCodes.CONFIGURATION_MISSING, "No public key configuration provided.")
+            }
+        }
+
+        verifier = JWT.require(Algorithm.RSA256(publicKey, null))
+            .withAudience(config.audience)
+            .withIssuer(config.issuer)
+            .build()
+        isReady = true
+    }
 
     private fun parsePemKey(pemKeyStr: String): ByteArray =
         pemKeyStr
@@ -49,9 +85,13 @@ class JWTService {
         }
     }
 
-    private fun loadPublicKey(provider: JwkProvider) {
+    private fun loadPublicKeyRSA(provider: JwkProvider, token: String) {
         try {
-            this.publicKey = provider.get("6f8856ed-9189-488f-9011-0ff4b6c08edc").publicKey as RSAPublicKey
+            val jwt = JWT.decode(token) // Decode JWT to get key ID (kid)
+            val keyId = jwt.keyId ?: throw AuthException(
+                AuthErrorCodes.CONFIGURATION_MISSING, "JWT key ID (kid) missing"
+            )
+            this.publicKey = provider.get(keyId).publicKey as RSAPublicKey
         } catch (e: Exception) {
             throw AuthException(AuthErrorCodes.UNKNOWN_ERROR, "Error while loading public key: ${e.message}")
         }
@@ -66,52 +106,58 @@ class JWTService {
         }
     }
 
-    fun configure(config: JwtConfig): JWTService {
-        realm = config.realm
-        audience = config.audience
-        issuer = config.issuer
-
-        config.privateKeyString?.let { loadPrivateKey(it) }
-
-        when {
-            config.publicKeyString != null -> {
-                loadPublicKey(config.publicKeyString!!)
-            }
-            config.jwkProvider != null -> {
-                loadPublicKey(config.jwkProvider!!)
-            }
-            else -> throw AuthException(AuthErrorCodes.CONFIGURATION_MISSING, "No public key configuration provided.")
-        }
-
-        verifier = JWT.require(Algorithm.RSA256(publicKey, null))
-            .withAudience(audience)
-            .withIssuer(issuer)
-            .build()
-
-        isReady = true
-        return this
-    }
-
-    fun getVerifier(): JWTVerifier =
-        if (::verifier.isInitialized) verifier
-        else throw AuthException(
-            AuthErrorCodes.CONFIGURATION_MISSING,
-            "Verifier not initialized. Call configure() first"
-        )
-
     fun generateToken(user: SecuredUserInterface): String =
         JWT.create()
-            .withAudience(audience)
-            .withIssuer(issuer)
-            .withClaim("username", user.username)
+            .withAudience(config.audience)
+            .withIssuer(config.issuer)
+            .withClaim(config.claimFieldName, user.login)
             .withExpiresAt(Date(System.currentTimeMillis() + 60000))
             .withPayload(user.toPayload())
             .sign(Algorithm.RSA256(null, privateKey))
 
-    fun verifyToken(token: String): DecodedJWT =
+    @JvmName("getServiceVerifier")
+    fun getVerifier(): JWTVerifier{
+        if(!::verifier.isInitialized) throw ConfigurationException("Verifier not initialized. Call configure() first",
+            HandleType.PROPAGATE_TO_PARENT)
+        return verifier
+    }
+
+    //            val login =   credential.payload.getClaim(claim).asString()
+//            val user = requestAuthenticatedUser(login)
+//            if(user!=null){
+//               val newToken =  this.generateToken(user)
+//                onHeaderUpdate?.invoke("Authorization", "Bearer $newToken")
+//            }
+
+    fun decodeToken(token: String): DecodedJWT =
         try {
-            getVerifier().verify(token)
+            verifier.verify(token)
         } catch (e: Exception) {
             throw AuthException(AuthErrorCodes.INVALID_TOKEN, "Error while verifying token: ${e.message}")
         }
+
+    fun checkCredential(credential: JWTCredential): JWTPrincipal?{
+        val claim =  credential.payload.getClaim(service.claim).asString()
+        return if(claim!=null){
+            JWTPrincipal(credential.payload)
+        }else{
+            null
+        }
+    }
+
+    fun checkExpiration(
+        jwtString: String,
+        headerUpdateFn : suspend  (String?)-> Unit
+    ){
+        val decodedJWT = decodeToken(jwtString)
+        val expirationTime = decodedJWT.expiresAt?.time ?: 0
+        val currentTime = System.currentTimeMillis()
+        if (expirationTime - currentTime < 5 * 60 * 1000) {
+            val userInterface =   SecuredUserInterface.fromPayload(decodedJWT.payload.toString())
+            val newToken =  this@JWTService.generateToken(userInterface)
+            runBlocking {
+                headerUpdateFn.invoke(newToken)
+            }
+        }
+    }
 }

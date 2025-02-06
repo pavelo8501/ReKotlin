@@ -3,12 +3,14 @@ package po.restwraptor.models.security
 import com.auth0.jwk.JwkProvider
 
 data class JwtConfig(
-    val realm: String = "Access to secure API",
-    val audience: String = "jwt-audience",
-    val issuer: String = "http://0.0.0.0:8080/",
-    val secret: String = "secret",
-    var privateKeyString: String? = null,
+    var claimFieldName: String = "login",
+    var realm: String = "Access to secure API",
+    var audience: String = "jwt-audience",
+    var issuer: String = "http://0.0.0.0:8080/",
+    var secret: String = "secret",
     var publicKeyString: String? = null,
+    var privateKeyString: String? = null,
+    var kid: String?  = null,
     var jwkProvider: JwkProvider? = null
 ) {
     fun setKeys(publicKeyString: String, privateKeyString: String) {
@@ -16,8 +18,9 @@ data class JwtConfig(
         this.privateKeyString = privateKeyString
     }
 
-    fun setJwkProvider(jwkProvider: JwkProvider, privateKeyString: String) {
+    fun setJwkProvider(jwkProvider: JwkProvider, privateKeyString: String, kid : String ) {
         this.jwkProvider = jwkProvider
         this.privateKeyString = privateKeyString
+        this.kid = kid
     }
 }

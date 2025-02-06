@@ -12,7 +12,7 @@ import kotlin.reflect.KProperty1
 
 class ServiceContext<DATA,ENTITY>(
     private val dbConnection: Database,
-    private val rootDtoModel : DTOClass<DATA,ENTITY>,
+    internal val rootDtoModel : DTOClass<DATA,ENTITY>,
 ) where  ENTITY : LongEntity,DATA: DataModel{
 
     val name : String = "${rootDtoModel.className}|Service"

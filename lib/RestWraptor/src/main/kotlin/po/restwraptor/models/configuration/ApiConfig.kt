@@ -1,12 +1,15 @@
 package po.restwraptor.models.configuration
 
+import po.restwraptor.interfaces.SecuredUserInterface
+import po.restwraptor.models.request.LoginRequest
+import java.io.File
+
 
 class ApiConfig(
-    var enableRateLimiting: Boolean  = true,
-    var enableDefaultSecurity: Boolean = true,
-    var enableDefaultSecurityRouts : Boolean = true,
-    val enableDefaultCors: Boolean = true,
-    val enableDefaultContentNegotiation: Boolean = true,
+    var rateLimiting: Boolean  = true,
+    val cors: Boolean = true,
+    val contentNegotiation: Boolean = true,
+    var defaultRouts: Boolean  = false,
 ) {
 
     var baseApiRoute = "/api"
@@ -22,39 +25,6 @@ class ApiConfig(
         }
         set(value) {
             field = value
-            adjustConfig()
         }
 
-    var privateKeyString: String? = null
-    var publicKeyString: String? = null
-    var useWellKnownHost: Boolean = false
-    var wellKnownPath: String? = null
-    fun setAuthKeys(publicKey: String, privateKey: String) {
-        this.publicKeyString = publicKey
-        this.privateKeyString = privateKey
-        this.wellKnownPath = null
-        adjustConfig()
-    }
-
-    fun setWellKnown(path: String) {
-        this.wellKnownPath = path
-        this.publicKeyString = null
-        this.privateKeyString = null
-        adjustConfig()
-    }
-
-    private fun adjustConfig() {
-        if(wellKnownPath != null) {
-            enableDefaultSecurity = true
-            useWellKnownHost = true
-        }
-
-        if(privateKeyString != null && publicKeyString != null) {
-            enableDefaultSecurity = true
-            useWellKnownHost = false
-        }
-        if(this._rateLimiterConfig != null) {
-            enableRateLimiting = true
-        }
-    }
 }
