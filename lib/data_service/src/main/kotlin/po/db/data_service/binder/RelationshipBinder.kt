@@ -62,13 +62,13 @@ class MultipleChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
     override val thisKey  = BindingKeyBase.createOneToManyKey(childModel)
 
     lateinit var byProperty : KProperty1<ENTITY, SizedIterable<CHILD_ENTITY>>
-    lateinit var referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>
+    var referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>? = null
     lateinit var sourceProperty: KProperty1<DATA, Iterable<CHILD_DATA>>
 
     fun initProperties(
+        sourceProperty: KProperty1<DATA, Iterable<CHILD_DATA>>,
         byProperty : KProperty1<ENTITY, SizedIterable<CHILD_ENTITY>>,
-        referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>,
-        sourceProperty: KProperty1<DATA, Iterable<CHILD_DATA>>){
+        referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>? = null){
         this.byProperty = byProperty
         this.referencedOnProperty = referencedOnProperty
         this.sourceProperty = sourceProperty
@@ -90,13 +90,13 @@ class SingleChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
     override val thisKey = BindingKeyBase.createOneToOneKey(childModel)
 
     lateinit var byProperty: KProperty1<ENTITY, CHILD_ENTITY?>
-    lateinit var referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>
+    var referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>? = null
     lateinit var sourceProperty: KMutableProperty1<DATA, CHILD_DATA?>
 
     fun initProperties(
+        sourceProperty: KMutableProperty1<DATA, CHILD_DATA?>,
         byProperty: KProperty1<ENTITY, CHILD_ENTITY?>,
-        referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>,
-        sourceProperty: KMutableProperty1<DATA, CHILD_DATA?>)
+        referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>? = null)
     {
         this.byProperty = byProperty
         this.referencedOnProperty = referencedOnProperty
@@ -179,7 +179,7 @@ class RelationshipBinder<DATA, ENTITY>(
            childModel.initialization()
        }
        createOneToOneContainer(parentModel, childModel).let {
-           it.initProperties(byProperty, referencedOnProperty, sourceProperty)
+           it.initProperties(sourceProperty, byProperty, referencedOnProperty)
            attachBinding<CHILD_DATA, CHILD_ENTITY>(it.thisKey, it)
        }
     }
@@ -194,7 +194,7 @@ class RelationshipBinder<DATA, ENTITY>(
             childModel.initialization()
         }
         createOneToManyContainer(parentModel, childModel).let {
-            it.initProperties(byProperty, referencedOnProperty, sourceProperty)
+            it.initProperties(sourceProperty, byProperty, referencedOnProperty)
             attachBinding<CHILD_DATA, CHILD_ENTITY>(it.thisKey, it)
         }
     }

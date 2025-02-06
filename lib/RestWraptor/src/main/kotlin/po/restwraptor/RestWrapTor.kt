@@ -5,6 +5,7 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import po.restwraptor.classes.ConfigContext
 import po.restwraptor.models.configuration.ApiConfig
+import po.restwraptor.models.configuration.WraptorConfig
 
 /**
  * A customizable REST server wrapper for Ktor applications, providing
@@ -12,9 +13,9 @@ import po.restwraptor.models.configuration.ApiConfig
  * @property app The Ktor application instance to initialize with. If null, the server will require manual setup.
  * @property configFn An optional configuration function to set up the server context.
  */
-class RestServer(
-    app : Application? = null,
-    private val configFn: (ConfigContext.() -> Unit)? = null
+class RestWrapTor(
+    private val app : Application? = null,
+    private var configFn:  (ConfigContext.() -> Unit)? = null
 ) {
 
     private var initialized: Boolean = false
@@ -26,7 +27,12 @@ class RestServer(
     private var wait: Boolean = true
 
 
+
+    var wrapConfig  = WraptorConfig()
+
+
     init {
+
         if(app!=null){
             setupConfig(app)
         }
@@ -34,10 +40,13 @@ class RestServer(
 
     private fun setupConfig(app: Application){
         if (!initialized) {
-            configContext = ConfigContext(app)
-            if(configFn!= null){
-                configContext.configFn()
+            wrapConfig = WraptorConfig(app)
+            configContext = ConfigContext(wrapConfig)
+
+            configFn?.let {
+                configContext.it()
             }
+
             application = configContext.initialize()
             initialized = true
         }

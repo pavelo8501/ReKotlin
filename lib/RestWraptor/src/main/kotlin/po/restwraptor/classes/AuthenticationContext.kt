@@ -30,22 +30,24 @@ import po.restwraptor.security.JWTService
 import po.lognotify.eventhandler.EventHandlerBase
 import po.lognotify.eventhandler.RootEventHandler
 import po.lognotify.eventhandler.interfaces.CanNotify
+import po.restwraptor.classes.convenience.respondInternal
+import po.restwraptor.classes.convenience.respondUnauthorized
 import po.restwraptor.exceptions.AuthException
+import po.restwraptor.models.configuration.WraptorConfig
 import po.restwraptor.models.security.JwtConfig
 import po.restwraptor.plugins.ReplyInterceptorPlugin
 import java.io.File
 import java.io.IOException
 
 class AuthenticationContext(
-    private val configContext: ConfigContext,
-    val config : AuthenticationConfig? = null
+    private val config : WraptorConfig
 ) : CanNotify {
 
     override val eventHandler: EventHandlerBase = RootEventHandler("AuthenticationContext")
 
-    val authConfig  = config?: AuthenticationConfig()
-    val apiConfig = configContext.apiConfig
-    val app = configContext.app
+    val authConfig  = config.authConfig
+    val apiConfig = config.apiConfig
+    val app = config.application
 
     //    var onLoginRequest: ((LoginRequest) -> SecuredUserInterface?)?
     var onAuthenticated : ((AuthenticatedModel) -> Unit)? = null
@@ -94,7 +96,7 @@ class AuthenticationContext(
         return null
     }
 
-    private fun configureDefaultSecurityRoutes(routing: Routing) {
+    private fun configureRouteLogin(routing: Routing){
         routing.apply {
             route("${apiConfig.baseApiRoute}/login") {
                 post {
@@ -108,31 +110,33 @@ class AuthenticationContext(
                     }
                 }
             }
-
+        }
+    }
+    private fun configureRouteRefresh(routing: Routing){
+        routing.apply {
             route("${apiConfig.baseApiRoute}/refresh") {
                 post {
                     val authHeader = call.request.headers["Authorization"]
                     if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                        call.respond(HttpStatusCode.Unauthorized, "Missing or invalid token")
+                        respondUnauthorized("Missing or invalid token")
                         return@post
                     }
                     try {
                         jwtService?.let { service ->
                             service.checkExpiration(authHeader){token->
                                 if(token == null){
-                                    call.respond(HttpStatusCode.Unauthorized, "Invalid token data")
+                                    respondUnauthorized("Invalid token data")
                                 }else{
                                     call.response.header("Authorization", "Bearer $token")
                                     call.respond(HttpStatusCode.OK, ApiResponse(token))
                                 }
                             }
                         }
-                    } catch (e: AuthException) {
-                        call.respond(HttpStatusCode.Unauthorized, "Token expired or invalid: ${e.message}")
-
+                    } catch (ex: AuthException) {
+                        respondInternal(ex)
+                        respondUnauthorized("Token expired or invalid: ${ex.message}")
                     }
                 }
-
             }
         }
     }
@@ -161,14 +165,11 @@ class AuthenticationContext(
 
     private fun initializeAuthentication(){
         configAuthentication()
-        if (app.pluginOrNull(Authentication) != null) {
-            val a = "nullliz"
-        }
-        if (app.pluginOrNull(JWTPlugin) != null) {
-            val b = "nullliz"
-        }
-        app.routing{
-            configureDefaultSecurityRoutes(this)
+        if(authConfig.defaultSecurityRouts){
+            app.routing{
+                configureRouteLogin(this)
+                configureRouteRefresh(this)
+            }
         }
     }
 
@@ -203,7 +204,5 @@ class AuthenticationContext(
         }
         return this
     }
-
-
 
 }

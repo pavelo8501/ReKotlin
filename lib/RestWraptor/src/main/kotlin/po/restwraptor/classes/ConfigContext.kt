@@ -30,6 +30,7 @@ import po.restwraptor.exceptions.ConfigurationException
 import po.restwraptor.interfaces.SecuredUserInterface
 import po.restwraptor.models.configuration.ApiConfig
 import po.restwraptor.models.configuration.AuthenticationConfig
+import po.restwraptor.models.configuration.WraptorConfig
 import po.restwraptor.models.request.ApiRequest
 import po.restwraptor.models.request.LoginRequest
 import po.restwraptor.models.response.ApiResponse
@@ -39,24 +40,30 @@ import po.restwraptor.plugins.RateLimiterPlugin
 import po.restwraptor.security.JWTService
 
 interface ConfigContextInterface{
-    val apiConfig  :ApiConfig
-    fun setupApi(configFn : ApiConfig.()-> Unit)
+    fun configSettings(configFn : ApiConfig.()-> Unit)
     fun setupApplication(block: Application.()->Unit)
     fun initialize(): Application
 }
 
 
 class ConfigContext(
-    internal var app: Application,
+    internal val wrapConfig : WraptorConfig,
     config: ApiConfig? = null,
     authConfig: AuthenticationConfig? = null
 ): ConfigContextInterface,  CanNotify{
 
     override val eventHandler = RootEventHandler("Server config")
-    override val apiConfig  = config?: ApiConfig()
-    val authContext = AuthenticationContext(this,authConfig)
+
+    val apiConfig  =  wrapConfig.apiConfig
+
+    private val authContext = AuthenticationContext(this,authConfig)
 
     init {
+
+        if(config!=null){
+            wrapConfig.updateApiConfig(config)
+        }
+
         eventHandler.registerPropagateException<ConfigurationException>{
             ConfigurationException("Default Message", HandleType.PROPAGATE_TO_PARENT)
         }
@@ -143,7 +150,7 @@ class ConfigContext(
         }
     }
 
-    override fun setupApi(configFn : ApiConfig.()-> Unit){
+    override fun configSettings(configFn : ApiConfig.()-> Unit){
         apiConfig.configFn()
     }
      fun setupAuthentication(configFn : AuthenticationContext.()-> Unit){

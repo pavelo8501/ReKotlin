@@ -19,9 +19,7 @@ class AuthenticationConfig {
             }
             return false
         }
-
     var jwtServiceName = "auth-jwt"
-
     var credentialsValidatorFn : ((LoginRequest)-> SecuredUserInterface?)? = null
     internal var privateKeyString: String? = null
     internal var publicKeyString: String? = null
