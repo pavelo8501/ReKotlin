@@ -24,7 +24,7 @@ include(
     "app",
     "lib:rest_service",
     "lib:ws_service",
-    "lib:data_service",
+    "lib:Exposify",
     "lib:LogNotify",
     "lib:RestWraptor",
     "lib:WebSocketWraptor",
@@ -39,8 +39,8 @@ project(":lib:ws_service").also {
     it.name = "WSApiServerWrapper"
 }
 
-project(":lib:data_service").also {
-    it.name = "ExposedDAOWrapper"
+project(":lib:Exposify").also {
+    it.name = "Exposify"
 }
 
 project(":lib:binder").also {

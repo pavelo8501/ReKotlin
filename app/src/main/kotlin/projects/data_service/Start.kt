@@ -37,8 +37,14 @@ fun startDataService(connectionInfo : ConnectionInfo) {
 
     PartnerDTO.triggerSequence("update_page")
 
+
    if(connection){
        println("Connection OK")
+
+       println("🔄 Processing... Press Enter to exit.")
+       readLine()
+
+
    }else{
        throw Exception("Connection not established")
    }
