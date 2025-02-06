@@ -198,8 +198,8 @@ class RelationshipBinder<DATA, ENTITY>(
 
 
     fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity>childBinding(
-        sourceProperty: KMutableProperty1<DATA, CHILD_DATA?>,
         childModel: DTOClass<CHILD_DATA, CHILD_ENTITY>,
+        sourceProperty: KMutableProperty1<DATA, CHILD_DATA?>,
         byProperty: KProperty1<ENTITY, CHILD_ENTITY?>,
         referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>
     ){

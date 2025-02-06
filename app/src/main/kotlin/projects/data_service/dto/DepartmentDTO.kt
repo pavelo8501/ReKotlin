@@ -81,9 +81,9 @@ class DepartmentDTO(
                 childBindings{
                     childBinding<InspectionDataModel, InspectionEntity>(
                         InspectionDTO,
+                        DepartmentDataModel::inspections,
                         DepartmentEntity::inspections,
-                        InspectionEntity::department,
-                        DepartmentDataModel::inspections
+                        InspectionEntity::department
                     )
                 }
             }

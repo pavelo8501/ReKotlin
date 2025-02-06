@@ -61,15 +61,15 @@ class PartnerDTO(
                 childBindings{
                     childBinding<ContactDataModel, ContactEntity>(
                         ContactDTO,
+                        PartnerDataModel::contact,
                         PartnerEntity::contact,
                         ContactEntity::partner,
-                        PartnerDataModel::contact
                     )
                     childBinding<DepartmentDataModel, DepartmentEntity>(
                         DepartmentDTO,
+                        PartnerDataModel::departments,
                         PartnerEntity::departments,
-                        DepartmentEntity::partner,
-                        PartnerDataModel::departments
+                        DepartmentEntity::partner
                     )
                 }
             }
