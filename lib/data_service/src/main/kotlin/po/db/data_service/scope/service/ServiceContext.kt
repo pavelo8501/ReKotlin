@@ -7,6 +7,8 @@ import po.db.data_service.classes.DTOClass
 import po.db.data_service.scope.dto.DTOContext
 import po.db.data_service.classes.interfaces.DataModel
 import po.db.data_service.dto.CommonDTO
+import po.db.data_service.scope.sequence.SequenceContext
+import po.db.data_service.scope.sequence.models.SequencePack
 import po.db.data_service.scope.service.enums.WriteMode
 import kotlin.reflect.KProperty1
 
@@ -17,6 +19,10 @@ class ServiceContext<DATA,ENTITY>(
 
     val name : String = "${rootDtoModel.className}|Service"
 
+    internal val sequences = mutableMapOf<String, MutableList<(DATA) -> DATA>>()
+    internal val sequences2 =
+        mutableMapOf<String, SequencePack<DATA, ENTITY>>()
+
     private fun  <T>dbQuery(body : () -> T): T = transaction(dbConnection) {
         body()
     }
@@ -25,7 +31,6 @@ class ServiceContext<DATA,ENTITY>(
     fun <T> context(serviceBody: ServiceContext<DATA, ENTITY>.() -> T): T = service{
         serviceBody()
     }
-
 
     fun DTOClass<DATA, ENTITY>.pick(
         vararg conditions: Pair<KProperty1<DATA, *>, Any?>, block: DTOContext<DATA, ENTITY>.() -> Unit
@@ -67,7 +72,6 @@ class ServiceContext<DATA,ENTITY>(
     }
 
     fun DTOClass<DATA, ENTITY>.delete(toDelete: DATA, block: DTOContext<DATA, ENTITY>.() -> Unit){
-
         val selectedDTOs = dbQuery {
             delete(toDelete)
         }
@@ -75,8 +79,13 @@ class ServiceContext<DATA,ENTITY>(
         context.block()
     }
 
+    fun DTOClass<DATA, ENTITY>.sequence(
+        name:String,
+        block: suspend SequenceContext<DATA, ENTITY>.() -> Unit): DTOClass<DATA, ENTITY>
+    {
+        sequences2[name] = SequencePack(name, SequenceContext<DATA, ENTITY>(dbConnection, rootDtoModel), block)
 
-    fun DTOClass<DATA, ENTITY>.sequence(name:String):DTOClass<DATA, ENTITY>{
         return this
     }
+
 }

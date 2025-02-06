@@ -55,8 +55,9 @@ class ConfigContext(
     override val eventHandler = RootEventHandler("Server config")
 
     val apiConfig  =  wrapConfig.apiConfig
+    val app = wrapConfig.application
 
-    private val authContext = AuthenticationContext(this,authConfig)
+    private val authContext = AuthenticationContext(wrapConfig)
 
     init {
 

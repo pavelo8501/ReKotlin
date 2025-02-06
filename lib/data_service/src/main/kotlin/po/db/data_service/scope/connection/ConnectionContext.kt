@@ -16,13 +16,17 @@ class ConnectionContext(
 
 
 
+    val isOpen : Boolean
+        get(){return  connectionClass.isConnectionOpen }
+
+
     fun <DATA, ENTITY>ConnectionContext.service(
         rootDtoModel : DTOClass<DATA,ENTITY>,
         serviceCreateOption : TableCreateMode? = null,
         context: ServiceContext<DATA,ENTITY>.()->Unit,
     ) where DATA : DataModel,   ENTITY : LongEntity {
         try {
-            ServiceClass(connection, rootDtoModel, serviceCreateOption).let {
+            ServiceClass(connectionClass, rootDtoModel, serviceCreateOption).let {
                 connectionClass.addService(it)
                 it.launch(context)
             }
@@ -32,32 +36,12 @@ class ConnectionContext(
         }
     }
 
-    fun <DATA: DataModel, ENTITY: LongEntity>getServiceContext(
-        dtoModel : DTOClass<DATA, ENTITY>,
-        context: ()->Unit,
-    ): Boolean{
-        connectionClass.getService(dtoModel.sourceClass.toString())?.let { serviceClass->
-            serviceClass.relaunchServiceContext<DATA, ENTITY>(dtoModel, context)
 
-            return true
-        }
-        return false
-    }
-
-    fun <DATA: DataModel, ENTITY: LongEntity> getServiceContextAttached(
+    fun <DATA: DataModel, ENTITY: LongEntity> attachToContext(
         dtoModel : DTOClass<DATA, ENTITY>,
         context: ServiceContext<DATA,ENTITY>.()->Unit ): Boolean{
         connectionClass.getService("${dtoModel.sourceClass.simpleName}|Service")?.let { serviceClass->
-            return serviceClass.attachToServiceContext<DATA, ENTITY>(dtoModel, context)
-        }
-        return false
-    }
-
-    fun <DATA: DataModel, ENTITY: LongEntity> getServiceContextAttachedSuppressed(
-        dtoModel : DTOClass<DATA, ENTITY>,
-        context: ServiceContext<DATA,ENTITY>.()->Unit ): Boolean{
-        connectionClass.getService("${dtoModel.sourceClass.simpleName}|Service")?.let { serviceClass->
-           return serviceClass.attachToServiceContextSuppressed<DATA, ENTITY>(dtoModel, context)
+           return serviceClass.attachToContext<DATA, ENTITY>(dtoModel, context)
         }
         return false
     }

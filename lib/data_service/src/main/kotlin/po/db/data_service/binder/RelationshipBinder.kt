@@ -9,6 +9,7 @@ import po.db.data_service.classes.interfaces.DataModel
 import po.db.data_service.dto.CommonDTO
 import po.db.data_service.dto.DTOBase.Companion.copyAsHostingDTO
 import po.db.data_service.dto.HostDTO
+import po.db.data_service.wrappers.NullablePropertyWrapper
 import kotlin.collections.set
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
@@ -89,18 +90,30 @@ class SingleChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
 {
     override val thisKey = BindingKeyBase.createOneToOneKey(childModel)
 
+    val sourceProperty = NullablePropertyWrapper<DATA, CHILD_DATA>()
     lateinit var byProperty: KProperty1<ENTITY, CHILD_ENTITY?>
     var referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>? = null
-    lateinit var sourceProperty: KMutableProperty1<DATA, CHILD_DATA?>
 
+
+    fun initProperties(
+        sourceProperty: KMutableProperty1<DATA, CHILD_DATA>,
+        byProperty: KProperty1<ENTITY, CHILD_ENTITY?>,
+        referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>? = null)
+    {
+        this.sourceProperty.inject(sourceProperty)
+        this.byProperty = byProperty
+        this.referencedOnProperty = referencedOnProperty
+    }
+
+    @JvmName("initPropertiesNullableChild")
     fun initProperties(
         sourceProperty: KMutableProperty1<DATA, CHILD_DATA?>,
         byProperty: KProperty1<ENTITY, CHILD_ENTITY?>,
         referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>? = null)
     {
+        this.sourceProperty.injectNullable(sourceProperty)
         this.byProperty = byProperty
         this.referencedOnProperty = referencedOnProperty
-        this.sourceProperty = sourceProperty
     }
 
     override fun setRepository(
@@ -168,12 +181,27 @@ class RelationshipBinder<DATA, ENTITY>(
         return MultipleChildContainer(parent, child)
     }
 
-    @JvmName("childBindingOneToOne")
+
     fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity>childBinding(
+        sourceProperty: KMutableProperty1<DATA, CHILD_DATA>,
+        childModel: DTOClass<CHILD_DATA, CHILD_ENTITY>,
+        byProperty: KProperty1<ENTITY, CHILD_ENTITY>
+    ){
+        if(!childModel.initialized){
+            childModel.initialization()
+        }
+        createOneToOneContainer(parentModel, childModel).let {
+            it.initProperties(sourceProperty, byProperty, null)
+            attachBinding<CHILD_DATA, CHILD_ENTITY>(it.thisKey, it)
+        }
+    }
+
+
+    fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity>childBinding(
+        sourceProperty: KMutableProperty1<DATA, CHILD_DATA?>,
         childModel: DTOClass<CHILD_DATA, CHILD_ENTITY>,
         byProperty: KProperty1<ENTITY, CHILD_ENTITY?>,
-        referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>,
-        sourceProperty: KMutableProperty1<DATA, CHILD_DATA?>
+        referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>
     ){
        if(!childModel.initialized){
            childModel.initialization()
@@ -186,9 +214,9 @@ class RelationshipBinder<DATA, ENTITY>(
 
     fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity>childBinding(
         childModel: DTOClass<CHILD_DATA, CHILD_ENTITY>,
+        sourceProperty: KProperty1<DATA, Iterable<CHILD_DATA>>,
         byProperty: KProperty1<ENTITY, SizedIterable<CHILD_ENTITY>>,
         referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>,
-        sourceProperty: KProperty1<DATA, Iterable<CHILD_DATA>>,
     ){
         if(!childModel.initialized){
             childModel.initialization()
@@ -198,7 +226,6 @@ class RelationshipBinder<DATA, ENTITY>(
             attachBinding<CHILD_DATA, CHILD_ENTITY>(it.thisKey, it)
         }
     }
-
 
     fun applyBindings(parentDto: CommonDTO<DATA, ENTITY>){
         val thisKeys = childBindings.keys

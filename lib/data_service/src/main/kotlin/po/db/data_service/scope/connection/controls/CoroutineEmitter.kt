@@ -9,23 +9,19 @@ import kotlin.coroutines.CoroutineContext
 
 class CoroutineEmitter(
     val name: String,
-    val originatorContext : CoroutineContext
-) {
-   fun dispatch(
-        waypoint: String,
-        block: (String) -> Unit
-   ){
+   // val originatorContext : CoroutineContext
+){
+
+   fun dispatch(waypoint: String, block: suspend (String) -> Unit){
         val listenerScope = CoroutineScope(
-            Dispatchers.IO + CoroutineName(name) + originatorContext
+            Dispatchers.IO + CoroutineName(name)
         )
-        Job(
-        ).invokeOnCompletion {
+        Job().invokeOnCompletion {
             val doOnClose: ()->Unit = {
                 println("Dispatcher $name is closing")
             }
             listenerScope.launch {
                 block(waypoint)
-
             }
         }
     }

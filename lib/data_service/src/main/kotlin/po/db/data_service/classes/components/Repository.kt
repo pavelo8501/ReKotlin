@@ -36,11 +36,11 @@ class SingleRepository<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
 //    }
 
     fun getSourceProperty(): KProperty1<DATA, CHILD_DATA?>{
-        return binding.sourceProperty
+        return binding.sourceProperty.extractNullable()
     }
 
     override fun setReferenced(childEntity:CHILD_ENTITY, parentEntity:ENTITY){
-        binding.referencedOnProperty.set(childEntity, parentEntity)
+        binding.referencedOnProperty?.set(childEntity, parentEntity)
     }
 
     override fun getReferences(parentEntity: ENTITY): List<CHILD_ENTITY> {
@@ -55,7 +55,7 @@ class SingleRepository<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
     }
 
     override fun extractDataModel(dataModel:DATA): List<CHILD_DATA>{
-        val result =  childModel.factory.extractDataModel(binding.sourceProperty, dataModel)
+        val result =  childModel.factory.extractDataModel(binding.sourceProperty.extractNullable(), dataModel)
         return if(result!=null){
             listOf<CHILD_DATA>(result)
         }else{
@@ -77,7 +77,7 @@ class MultipleRepository<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
     override val repoName: String =  "Repository ${parent.sourceModel.className}/Multiple"
 
     override fun setReferenced(childEntity:CHILD_ENTITY, parentEntity:ENTITY){
-        binding.referencedOnProperty.set(childEntity, parentEntity)
+        binding.referencedOnProperty?.set(childEntity, parentEntity)
     }
 
     inline fun <reified DATA : DataModel> submitMultipleDataModels(
