@@ -13,6 +13,8 @@ import po.db.data_service.classes.DTOClass
 import po.db.data_service.classes.interfaces.DataModel
 import po.db.data_service.exceptions.ExceptionCodes
 import po.db.data_service.exceptions.InitializationException
+import po.db.data_service.exceptions.OperationsException
+import po.db.data_service.scope.connection.ConnectionClass
 import kotlin.Long
 
 enum  class TableCreateMode{
@@ -21,16 +23,18 @@ enum  class TableCreateMode{
 }
 
 class ServiceClass<DATA, ENTITY>(
-    private val connection :Database,
+    private val connectionClass : ConnectionClass,
     private val rootDTOModel : DTOClass<DATA, ENTITY>,
     private val serviceCreateOption: TableCreateMode? = null
 )  where  DATA: DataModel, ENTITY : LongEntity{
 
+   val connection : Database = connectionClass.connection
+
    var name : String = "undefined"
+   val logger = LoggingService()
+   var serviceContext : ServiceContext<DATA, ENTITY>? = null
 
-    val logger = LoggingService()
-
-    init {
+   init {
         try {
             runBlocking {
                 logger.registerLogFunction(LogLevel.MESSAGE){msg, level, time, throwable->
@@ -47,6 +51,20 @@ class ServiceClass<DATA, ENTITY>(
     private fun  <T>dbQuery(body : () -> T): T = transaction(connection) {
         body()
     }
+
+    private fun launchSequence(name: String){
+
+        println("Launch Sequence on ServiceClass with name :${name}")
+
+        serviceContext?.sequences2?.values?.firstOrNull{ it.name ==  name}?.let{pack->
+            println("Found Pack  :${pack.name}")
+            connectionClass.launchSequence<DATA,ENTITY>(pack)
+
+        }?:run {
+            throw OperationsException("Sequence not found", ExceptionCodes.NOT_INITIALIZED)
+        }
+    }
+
 
     private fun createTable(table : IdTable<Long>): Boolean{
         return try {
@@ -103,17 +121,38 @@ class ServiceClass<DATA, ENTITY>(
 
     private fun start(){
         initializeDTOs{
-            rootDTOModel.initialization()
-            name = " ${rootDTOModel.className}|Service"
+            rootDTOModel.initialization(){
+                emitter.onSequenceLaunch ={
+                    launchSequence(it)
+                }
+            }
+            name =  ("${rootDTOModel.className}|Service").trim()
         }
         if(serviceCreateOption!=null){
             prepareTables(serviceCreateOption)
         }
     }
 
-    fun launch(receiver: ServiceContext<DATA,ENTITY>.()->Unit ){
-        val serviceContext = ServiceContext(connection, rootDTOModel)
-        serviceContext.receiver()
+    fun <DATA: DataModel, ENTITY: LongEntity> attachToContext(
+        dtoModel : DTOClass<DATA, ENTITY>,
+        context:  ServiceContext<DATA, ENTITY>.() -> Unit
+    ): Boolean {
+        serviceContext?.let {serviceCtx->
+            if (rootDTOModel::class.isInstance(dtoModel)) {
+                serviceCtx.also {
+                    @Suppress("UNCHECKED_CAST")
+                    context.invoke(serviceCtx as ServiceContext<DATA, ENTITY>)
+                    return true
+                }
+            }
+        }
+        return false
     }
 
+    fun launch(receiver: ServiceContext<DATA, ENTITY>.() -> Unit){
+       ServiceContext(connection, rootDTOModel).let {context->
+           context.receiver()
+           serviceContext = context
+       }
+    }
 }

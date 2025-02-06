@@ -34,8 +34,7 @@ data class SelectRequestData(val value: Long)
 data class DeleteRequestData(val id: Long, val includingChild: Boolean)
 
 @Serializable
-data class LoginRequest(val username: String, val password: String
-)
+data class LoginRequest(val login: String, val password: String)
 
 @Serializable
 data class ApiRequest<R>(val data : R)

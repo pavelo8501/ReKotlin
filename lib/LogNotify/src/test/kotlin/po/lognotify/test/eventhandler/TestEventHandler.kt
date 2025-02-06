@@ -140,7 +140,9 @@ class TestEventHandler {
         assertEquals(HandleType.CANCEL_ALL, cancelException.handleType)
 
         val propagateException = assertThrows<PropagateException> {
-            parentObject.eventHandler.raisePropagateException("Propagate Message")
+            parentObject.eventHandler.raisePropagateException<PropagateException>("Propagate Message"){
+                throw this
+            }
         }
         assertEquals("Propagate Message", propagateException.message)
         assertEquals(HandleType.PROPAGATE_TO_PARENT, propagateException.handleType)

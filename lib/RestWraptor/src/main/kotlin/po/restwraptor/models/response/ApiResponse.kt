@@ -2,6 +2,15 @@ package po.restwraptor.models.response
 
 import kotlinx.serialization.Serializable
 
+
+
+@Serializable
+data class ServiceResponse(
+    val message : String,
+    val errorCode: Int,
+)
+
+
 @Serializable
 data class ApiResponse<T>(
     val data : T? = null,

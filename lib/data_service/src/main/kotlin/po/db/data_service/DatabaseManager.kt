@@ -9,6 +9,12 @@ import po.db.data_service.controls.ConnectionInfo
 import po.db.data_service.scope.connection.ConnectionClass
 import po.db.data_service.scope.connection.ConnectionContext
 
+fun launchService(connection:ConnectionContext, block: ConnectionContext.()-> Unit ){
+    if(connection.isOpen){
+        connection.block()
+    }
+}
+
 object DatabaseManager {
 
     private val connections  = mutableListOf<ConnectionClass>()
@@ -36,7 +42,7 @@ object DatabaseManager {
         connectionInfo.hikariDataSource = provideDataSource(connectionInfo)
         try{
             val newConnection = Database.connect(connectionInfo.hikariDataSource!!)
-            val connectionClass =  ConnectionClass(connectionInfo)
+            val connectionClass =  ConnectionClass(connectionInfo, newConnection)
             val connectionContext =  ConnectionContext(
                 "Connection ${connectionInfo.dbName}",
                 newConnection, connectionClass).also {
@@ -50,4 +56,7 @@ object DatabaseManager {
             return false
         }
     }
+
+
+
 }

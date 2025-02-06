@@ -5,12 +5,13 @@ import po.lognotify.eventhandler.exceptions.ProcessableException
 import po.lognotify.eventhandler.exceptions.PropagateException
 import po.lognotify.eventhandler.exceptions.SkipException
 import po.lognotify.shared.enums.HandleType
+import java.io.IOException
 
 interface ExceptionHandlerInterface{
     fun <E : ProcessableException> registerSkipException(exConstructFn: () -> E)
     fun <E : ProcessableException> registerCancelException(exConstructFn: () -> E)
     fun <E : ProcessableException> registerPropagateException(exConstructFn: () -> E)
-    fun raiseSkipException(msg: String? = null)
+    fun raiseSkipException(msg: String? = null):ProcessableException
     fun raiseCancelException(msg: String? = null, cancelFn: () -> Unit)
     fun <E : ProcessableException> raisePropagateException(msg: String?, block : (E.()->Unit)? = null )
 }
@@ -83,11 +84,12 @@ class ExceptionHandler : ExceptionHandlerInterface{
      *            If null, the message from the registered constructor will be used.
      * @throws SkipException The exception to indicate that the current process should skip itself.
      */
-    override fun raiseSkipException(msg: String?){
+    override fun raiseSkipException(msg: String?): ProcessableException{
         val skipException = skipExceptionConstructorFn.invoke()
         skipException.handleType = HandleType.SKIP_SELF
         skipException.message = msg?:skipException.message
         throw skipException
+        return skipException
     }
 
     /**
@@ -128,8 +130,9 @@ class ExceptionHandler : ExceptionHandlerInterface{
         propagateException.message = msg?:propagateException.message
         if(block!=null){
             try {
+                @Suppress("UNCHECKED_CAST")
                 (propagateException as E).block()
-            }catch(ex: Exception){
+            }catch(ex: IOException){
                 println("Convenience method raisePropagateException thrown an exception ${ex.message.toString()}")
             }
         }

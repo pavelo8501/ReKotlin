@@ -1,14 +1,8 @@
 package po.playground
 
 import io.github.cdimascio.dotenv.dotenv
-import io.ktor.server.request.receive
-import io.ktor.server.routing.post
-import io.ktor.server.routing.routing
-import po.playground.projects.data_service.dto.PartnerDataModel
-import po.restwraptor.RestServer
-import po.restwraptor.models.request.ApiRequest
-import java.io.File
-import java.nio.file.Paths
+import po.db.data_service.controls.ConnectionInfo
+import po.playground.projects.data_service.startDataService
 
 
 fun main() {
@@ -19,24 +13,7 @@ fun main() {
     val dbUsername = dotenv["MYSQL_USER"]
     val dbPassword = dotenv["MYSQL_PASSWORD"]
 
-  //  startDataService(ConnectionInfo(dbHost, dbName, dbUsername, dbPassword, dbPort))
-   // wsServer.configureWSHost("127.0.0.1", 8080)
+    startDataService(ConnectionInfo(dbHost, dbName, dbUsername, dbPassword, dbPort))
 
-    val keysPath = Paths.get("").toAbsolutePath().toString()+ File.separator + "keys" + File.separator .toString()
-
-    val restServer = RestServer{
-        setupApi() {
-            setAuthKeys(File(keysPath+"ktor.spki").readText(), File(keysPath+"ktor.pk8").readText())
-        }
-        setupApplication{
-            routing {
-                post("/api/partners") {
-                    val partner =  call.receive<ApiRequest<PartnerDataModel>>()
-                    println(partner)
-                }
-            }
-        }
-    }
-    restServer.start(host =  "127.0.0.1", port =  8080, wait = true)
 }
 

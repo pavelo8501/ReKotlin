@@ -135,10 +135,12 @@ abstract class CommonDTO<DATA, ENTITY>(
     }
 
     fun compileDataModel():DATA{
+
         hostDTO?.compileDataModel()?.let {
             return it
+        }?:run {
+            return this.injectedDataModel
         }
-        throw OperationsException("Data compilation failure", ExceptionCodes.INVALID_DATA)
     }
 }
 

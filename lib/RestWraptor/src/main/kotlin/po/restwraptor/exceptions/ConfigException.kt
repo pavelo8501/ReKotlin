@@ -7,7 +7,9 @@ enum class ConfigurationErrorCodes(val code: Int) {
     UNKNOWN_ERROR(0),
     UNABLE_TO_CALLBACK(3001),
     REQUESTING_UNDEFINED_PLUGIN(3002),
-    PLUGIN_SETUP_FAILURE(3003);
+    PLUGIN_SETUP_FAILURE(3003),
+    SERVICE_SETUP_FAILURE(3004),
+    API_CONFIG_FATAL_ERROR(3005);
     companion object {
         fun fromValue(code: Int): ConfigurationErrorCodes? {
             ConfigurationErrorCodes.entries.firstOrNull { it.code == code }?.let {

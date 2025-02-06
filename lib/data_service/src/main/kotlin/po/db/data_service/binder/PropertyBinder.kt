@@ -13,11 +13,10 @@ enum class UpdateMode{
 }
 
 class PropertyBinding<DATA : DataModel, ENT : LongEntity, T>(
-    private val dtoProperty: KMutableProperty1<DATA, T>,
-    private val entityProperty: KMutableProperty1<ENT, T>
-
+    internal val dtoProperty: KMutableProperty1<DATA, T>,
+    internal val entityProperty: KMutableProperty1<ENT, T>
 ){
-     fun update(dtoModel: DATA, entityModel: ENT, mode: UpdateMode): Boolean {
+    fun update(dtoModel: DATA, entityModel: ENT, mode: UpdateMode): Boolean {
 
         val dtoValue = dtoProperty.get(dtoModel)
 
@@ -60,7 +59,8 @@ class PropertyBinding<DATA : DataModel, ENT : LongEntity, T>(
 class PropertyBinder<DATA : DataModel, ENT : LongEntity>  {
 
     var onInitialized: ((PropertyBinder<DATA, ENT>) -> Unit)? = null
-    private var propertyList = emptyList<PropertyBinding<DATA, ENT, *>> ()
+    var propertyList = listOf<PropertyBinding<DATA, ENT, *>> ()
+        private set
 
     fun setProperties(properties: List<PropertyBinding<DATA, ENT, *>> ) {
         propertyList = properties

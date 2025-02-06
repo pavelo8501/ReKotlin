@@ -3,6 +3,8 @@ package po.lognotify.eventhandler.interfaces
 import kotlinx.coroutines.coroutineScope
 import po.lognotify.eventhandler.EventHandlerBase
 import po.lognotify.eventhandler.exceptions.ProcessableException
+import po.lognotify.eventhandler.exceptions.SkipException
+import po.lognotify.shared.enums.HandleType
 
 interface CanNotify{
 
@@ -20,5 +22,9 @@ interface CanNotify{
 
     fun <E: ProcessableException> propagatedException(message: String?, block: (E.()->Unit)? = null)
         = eventHandler.raisePropagateException(message,block)
+
+    fun throwSkip(message: String?): SkipException{
+        return SkipException(message.toString())
+    }
 
 }

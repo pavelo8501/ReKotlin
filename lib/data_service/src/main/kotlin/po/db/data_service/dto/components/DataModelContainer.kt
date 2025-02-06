@@ -32,6 +32,7 @@ class DataModelContainer<T: DataModel>(val dataModel: T) {
     operator fun getValue(thisRef: Any, property: KProperty<*>): MutableList<T> {
         property.getter.let { getter ->
             getter.isAccessible = true
+            @Suppress("UNCHECKED_CAST")
             return getter.call(thisRef) as MutableList<T>
         }
     }
