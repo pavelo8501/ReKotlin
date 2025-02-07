@@ -2,14 +2,13 @@ package po.exposify.binder
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.SizedIterable
-import po.db.data_service.classes.DTOClass
-import po.db.data_service.classes.components.MultipleRepository
-import po.db.data_service.classes.components.SingleRepository
-import po.db.data_service.classes.interfaces.DataModel
-import po.db.data_service.dto.CommonDTO
-import po.db.data_service.dto.DTOBase.Companion.copyAsHostingDTO
-import po.db.data_service.dto.HostDTO
-import po.db.data_service.wrappers.NullablePropertyWrapper
+import po.exposify.classes.DTOClass
+import po.exposify.classes.components.MultipleRepository
+import po.exposify.classes.components.SingleRepository
+import po.exposify.classes.interfaces.DataModel
+import po.exposify.dto.CommonDTO
+import po.exposify.dto.HostDTO
+import po.exposify.wrappers.NullablePropertyWrapper
 import kotlin.collections.set
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
@@ -137,7 +136,7 @@ sealed class BindingContainer<DATA, ENTITY,  CHILD_DATA,  CHILD_ENTITY>(
     )
 
     fun applyBinding(parentDto: CommonDTO<DATA, ENTITY>): HostDTO<DATA, ENTITY, out CHILD_DATA, out CHILD_ENTITY> {
-      val newHost =  parentDto.copyAsHostingDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>().let { host ->
+      val newHost = HostDTO.createHosted<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(parentDto.getInjectedModel(), parentDto.sourceModel).let { host ->
             parentDto.hostDTO = host
             setRepository(host)
             host

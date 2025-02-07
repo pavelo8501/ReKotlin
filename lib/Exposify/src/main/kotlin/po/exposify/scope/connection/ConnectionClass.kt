@@ -4,12 +4,12 @@ import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transactionManager
-import po.db.data_service.classes.DTOClass
-import po.db.data_service.classes.interfaces.DataModel
-import po.db.data_service.controls.ConnectionInfo
-import po.db.data_service.scope.connection.controls.CoroutineEmitter
-import po.db.data_service.scope.sequence.models.SequencePack
-import po.db.data_service.scope.service.ServiceClass
+import po.exposify.classes.DTOClass
+import po.exposify.classes.interfaces.DataModel
+import po.exposify.controls.ConnectionInfo
+import po.exposify.scope.connection.controls.CoroutineEmitter
+import po.exposify.scope.sequence.models.SequencePack
+import po.exposify.scope.service.ServiceClass
 import kotlin.coroutines.CoroutineContext
 
 class ConnectionClass(
@@ -28,8 +28,10 @@ class ConnectionClass(
     val isConnectionOpen: Boolean
         get(){return connectionInfo.connection.transactionManager.currentOrNull()?.connection?.isClosed == false  }
 
-    fun <DATA : DataModel, ENTITY: LongEntity>launchSequence(pack : SequencePack<DATA, ENTITY>){
-        coroutineEmitter.dispatch(pack)
+    fun <DATA : DataModel, ENTITY: LongEntity>launchSequence(
+        pack : SequencePack<DATA, ENTITY>,
+        data : List<DATA>? = null){
+        coroutineEmitter.dispatch(pack, data)
     }
 
     fun addService(service : ServiceClass<*,*>){

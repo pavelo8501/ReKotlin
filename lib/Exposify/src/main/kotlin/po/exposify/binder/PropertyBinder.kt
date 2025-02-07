@@ -1,7 +1,7 @@
 package po.exposify.binder
 
 import org.jetbrains.exposed.dao.LongEntity
-import po.db.data_service.classes.interfaces.DataModel
+import po.exposify.classes.interfaces.DataModel
 import kotlin.reflect.KMutableProperty1
 
 

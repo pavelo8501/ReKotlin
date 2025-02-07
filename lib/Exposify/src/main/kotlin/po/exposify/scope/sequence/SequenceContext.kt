@@ -3,10 +3,11 @@ package po.exposify.scope.sequence
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction
-import po.db.data_service.classes.DTOClass
-import po.db.data_service.classes.interfaces.DataModel
-import po.db.data_service.dto.CommonDTO
-import po.db.data_service.models.CrudResult
+import po.exposify.classes.DTOClass
+import po.exposify.classes.interfaces.DataModel
+import po.exposify.dto.CommonDTO
+import po.exposify.models.CrudResult
+import po.exposify.scope.dto.DTOContext
 
 class SequenceContext<DATA, ENTITY>(
     val connection: Database,
@@ -24,6 +25,19 @@ class SequenceContext<DATA, ENTITY>(
         val result =   mutableListOf<CommonDTO<DATA,ENTITY>>()
         lastResult?.rootDTOs?.forEach{  result.add(it) }
         return result
+    }
+
+    fun List<CommonDTO<DATA, ENTITY>>.checkout(block: DTOContext<DATA, ENTITY>.()-> Unit){
+        DTOContext<DATA, ENTITY>(CrudResult<DATA, ENTITY>(this,null)).block()
+    }
+
+    fun <SWITCH_DATA: DataModel, SWITCH_ENTITY : LongEntity> DTOClass<SWITCH_DATA, SWITCH_ENTITY>.switch(
+        block:  SequenceContext<SWITCH_DATA, SWITCH_ENTITY>.(dtos: List<CommonDTO<SWITCH_DATA, SWITCH_ENTITY>>)->Unit ){
+
+        val list = dtos().map { it.getChildren<SWITCH_DATA, SWITCH_ENTITY>(this) }.flatten()
+        val result =  CrudResult<SWITCH_DATA, SWITCH_ENTITY>(list as List<CommonDTO<SWITCH_DATA, SWITCH_ENTITY>>, null )
+        val newSequenceContext =  SequenceContext<SWITCH_DATA, SWITCH_ENTITY>(connection, this)
+        newSequenceContext.block(list)
     }
 
     fun select(block: SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA,ENTITY>>)-> Unit){

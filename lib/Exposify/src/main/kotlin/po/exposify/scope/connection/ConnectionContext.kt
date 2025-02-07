@@ -2,11 +2,11 @@ package po.exposify.scope.connection
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Database
-import po.db.data_service.classes.DTOClass
-import po.db.data_service.classes.interfaces.DataModel
-import po.db.data_service.scope.service.ServiceClass
-import po.db.data_service.scope.service.ServiceContext
-import po.db.data_service.scope.service.TableCreateMode
+import po.exposify.classes.DTOClass
+import po.exposify.classes.interfaces.DataModel
+import po.exposify.scope.service.ServiceClass
+import po.exposify.scope.service.ServiceContext
+import po.exposify.scope.service.TableCreateMode
 
 class ConnectionContext(
     var connectionName: String,

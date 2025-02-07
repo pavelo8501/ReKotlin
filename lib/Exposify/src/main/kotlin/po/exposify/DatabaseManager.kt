@@ -5,9 +5,9 @@ import com.zaxxer.hikari.HikariDataSource
 import org.jetbrains.exposed.sql.Database
 
 
-import po.db.data_service.controls.ConnectionInfo
-import po.db.data_service.scope.connection.ConnectionClass
-import po.db.data_service.scope.connection.ConnectionContext
+import po.exposify.controls.ConnectionInfo
+import po.exposify.scope.connection.ConnectionClass
+import po.exposify.scope.connection.ConnectionContext
 
 fun launchService(connection:ConnectionContext, block: ConnectionContext.()-> Unit ){
     if(connection.isOpen){

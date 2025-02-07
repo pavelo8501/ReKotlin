@@ -1,6 +1,6 @@
 package po.exposify.components.eventhandler.interfaces
 
-import po.db.data_service.components.eventhandler.EventHandlerBase
+import po.exposify.components.eventhandler.EventHandlerBase
 
 interface CanNotify{
 

@@ -1,10 +1,10 @@
 package po.exposify.scope.service.controls
 
 import org.jetbrains.exposed.dao.LongEntity
-import po.db.data_service.classes.interfaces.DataModel
-import po.db.data_service.scope.service.controls.service_registry.ServiceRegistryItem
-import po.db.data_service.scope.service.controls.service_registry.ServiceRegistryItemBuilder
-import po.db.data_service.scope.service.controls.service_registry.serviceRegistry
+import po.exposify.classes.interfaces.DataModel
+import po.exposify.scope.service.controls.service_registry.ServiceRegistryItem
+import po.exposify.scope.service.controls.service_registry.ServiceRegistryItemBuilder
+import po.exposify.scope.service.controls.service_registry.serviceRegistry
 
 
 class ServiceRegistryBuilder<DATA_MODEL : DataModel, ENTITY : LongEntity>

@@ -1,7 +1,7 @@
 package po.exposify.wrappers
 
-import po.db.data_service.exceptions.ExceptionCodes
-import po.db.data_service.exceptions.OperationsException
+import po.exposify.exceptions.ExceptionCodes
+import po.exposify.exceptions.OperationsException
 import kotlin.reflect.KMutableProperty1
 
 

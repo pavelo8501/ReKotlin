@@ -2,7 +2,7 @@ package po.exposify.controls
 
 import com.zaxxer.hikari.HikariDataSource
 import org.jetbrains.exposed.sql.Database
-import po.db.data_service.scope.connection.ConnectionContext
+import po.exposify.scope.connection.ConnectionContext
 
 
 class ConnectionInfo(

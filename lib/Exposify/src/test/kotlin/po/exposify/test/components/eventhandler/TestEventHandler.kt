@@ -1,9 +1,9 @@
 package po.exposify.test.components.eventhandler
 
 import org.junit.jupiter.api.Test
-import po.db.data_service.components.eventhandler.EventHandler
-import po.db.data_service.components.eventhandler.RootEventHandler
-import po.db.data_service.components.eventhandler.enums.EventType
+import po.exposify.components.eventhandler.EventHandler
+import po.exposify.components.eventhandler.RootEventHandler
+import po.exposify.components.eventhandler.enums.EventType
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 

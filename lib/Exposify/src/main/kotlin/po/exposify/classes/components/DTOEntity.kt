@@ -2,13 +2,13 @@ package po.exposify.classes.components
 
 
 
-//abstract class BaseDTO<DTO : CommonDTO (
+//abstract class BaseDTO<DTO : DTOFunctions (
 //   open val entity: DTO,
 //   open val className: String
 //)
 //
 //class DTOFactory {
-//   fun <DTO : DATA> createDTO(entity: CommonDTO, className: String): BaseDTO<DTO> {
+//   fun <DTO : DATA> createDTO(entity: DTOFunctions, className: String): BaseDTO<DTO> {
 //      return object : BaseDTO<DTO>(entity, className) {}
 //   }
 //}

@@ -18,7 +18,7 @@ import java.io.OutputStream
 
 object Constants {
     const val BIND_PROPERTY_INTERFACE = "BindPropertyInterface"
-    const val ROOT_PACKAGE =  "package po.db.data_service"
+    const val ROOT_PACKAGE =  "package po.exposify"
 }
 
 class BinderProcessor(
@@ -144,7 +144,7 @@ class BinderProcessor(
         propertiesBMap: Map<String, KSPropertyDeclaration>
     ) {
 
-        val packageName = "po.db.data_service"
+        val packageName = "po.exposify"
         val className = "${classA.simpleName.asString()}BinderClass"
 
         val file = codeGenerator.createNewFile(
@@ -157,11 +157,11 @@ class BinderProcessor(
             writer.appendLine("package $packageName")
             writer.newLine()
 
-            writer.appendLine("import po.db.data_service.binder.PartnerDTO")
-            writer.appendLine("import po.db.data_service.binder.PartnerEntity")
-            writer.appendLine("import po.db.data_service.binder.BindPropertyInterface")
-            writer.appendLine("import po.db.data_service.binder.StringPropertyClass")
-            writer.appendLine("import po.db.data_service.binder.DatePropertyClass")
+            writer.appendLine("import po.exposify.binder.PartnerDTO")
+            writer.appendLine("import po.exposify.binder.PartnerEntity")
+            writer.appendLine("import po.exposify.binder.BindPropertyInterface")
+            writer.appendLine("import po.exposify.binder.StringPropertyClass")
+            writer.appendLine("import po.exposify.binder.DatePropertyClass")
             writer.appendLine("import kotlinx.datetime.LocalDateTime")
             writer.newLine()
 

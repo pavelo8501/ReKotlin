@@ -7,14 +7,14 @@ import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.exists
 import org.jetbrains.exposed.sql.transactions.transaction
-import po.db.data_service.components.logger.LoggingService
-import po.db.data_service.components.logger.enums.LogLevel
-import po.db.data_service.classes.DTOClass
-import po.db.data_service.classes.interfaces.DataModel
-import po.db.data_service.exceptions.ExceptionCodes
-import po.db.data_service.exceptions.InitializationException
-import po.db.data_service.exceptions.OperationsException
-import po.db.data_service.scope.connection.ConnectionClass
+import po.exposify.components.logger.LoggingService
+import po.exposify.components.logger.enums.LogLevel
+import po.exposify.classes.DTOClass
+import po.exposify.classes.interfaces.DataModel
+import po.exposify.exceptions.ExceptionCodes
+import po.exposify.exceptions.InitializationException
+import po.exposify.exceptions.OperationsException
+import po.exposify.scope.connection.ConnectionClass
 import kotlin.Long
 
 enum  class TableCreateMode{
@@ -52,13 +52,12 @@ class ServiceClass<DATA, ENTITY>(
         body()
     }
 
-    private fun launchSequence(name: String){
+    private fun launchSequence(name: String, data : List<DATA>? = null){
 
         println("Launch Sequence on ServiceClass with name :${name}")
-
         serviceContext?.sequences2?.values?.firstOrNull{ it.name ==  name}?.let{pack->
             println("Found Pack  :${pack.name}")
-            connectionClass.launchSequence<DATA,ENTITY>(pack)
+            connectionClass.launchSequence<DATA,ENTITY>(pack, data)
 
         }?:run {
             throw OperationsException("Sequence not found", ExceptionCodes.NOT_INITIALIZED)
@@ -121,9 +120,9 @@ class ServiceClass<DATA, ENTITY>(
 
     private fun start(){
         initializeDTOs{
-            rootDTOModel.initialization(){
-                emitter.onSequenceLaunch ={
-                    launchSequence(it)
+            rootDTOModel.initialization(){emitter->
+                emitter.onSequenceLaunch = {name, data ->
+                    launchSequence(name, data as List<DATA>?)
                 }
             }
             name =  ("${rootDTOModel.className}|Service").trim()

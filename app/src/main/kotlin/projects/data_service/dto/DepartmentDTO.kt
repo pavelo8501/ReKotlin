@@ -5,11 +5,11 @@ import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
-import po.db.data_service.binder.PropertyBinding
-import po.db.data_service.classes.DTOClass
-import po.db.data_service.classes.interfaces.DTOModel
-import po.db.data_service.classes.interfaces.DataModel
-import po.db.data_service.dto.CommonDTO
+import po.exposify.binder.PropertyBinding
+import po.exposify.classes.DTOClass
+import po.exposify.classes.interfaces.DTOModel
+import po.exposify.classes.interfaces.DataModel
+import po.exposify.dto.CommonDTO
 
 
 import po.playground.projects.data_service.services.Departments

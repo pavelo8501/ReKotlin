@@ -1,7 +1,7 @@
 package po.exposify.components.eventhandler.models
 
-import po.db.data_service.components.eventhandler.enums.EventType
-import po.db.data_service.components.logger.LoggingService
+import po.exposify.components.eventhandler.enums.EventType
+import po.exposify.components.logger.LoggingService
 
 data class Event(
     val module : String,

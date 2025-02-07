@@ -1,8 +1,8 @@
 package po.exposify.scope.service.controls
 
-import po.db.data_service.scope.service.controls.service_registry.ServiceRegistryItem
-import po.db.data_service.scope.service.controls.service_registry.ServiceRegistryItemBuilder
-import po.db.data_service.scope.service.controls.service_registry.serviceRegistry
+import po.exposify.scope.service.controls.service_registry.ServiceRegistryItem
+import po.exposify.scope.service.controls.service_registry.ServiceRegistryItemBuilder
+import po.exposify.scope.service.controls.service_registry.serviceRegistry
 
 /**
  * Represents a builder for creating immutable lists dynamically.

@@ -1,11 +1,11 @@
 package po.exposify.test.dto.components
 
 import org.junit.jupiter.api.Test
-import po.db.data_service.classes.components.Factory
-import po.db.data_service.test.data.TestDepartmentDTO
-import po.db.data_service.test.data.TestDepartmentDataModel
-import po.db.data_service.test.data.TestDepartmentEntity
-import po.db.data_service.test.data.TestPartnerDataModel
+import po.exposify.classes.components.Factory
+import po.exposify.test.data.TestDepartmentDTO
+import po.exposify.test.data.TestDepartmentDataModel
+import po.exposify.test.data.TestDepartmentEntity
+import po.exposify.test.data.TestPartnerDataModel
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 

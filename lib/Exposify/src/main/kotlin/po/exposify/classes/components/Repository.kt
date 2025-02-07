@@ -1,14 +1,14 @@
 package po.exposify.classes.components
 
 import org.jetbrains.exposed.dao.LongEntity
-import po.db.data_service.binder.BindingContainer
-import po.db.data_service.binder.BindingKeyBase
-import po.db.data_service.binder.MultipleChildContainer
-import po.db.data_service.binder.SingleChildContainer
-import po.db.data_service.binder.UpdateMode
-import po.db.data_service.classes.DTOClass
-import po.db.data_service.classes.interfaces.DataModel
-import po.db.data_service.dto.HostDTO
+import po.exposify.binder.BindingContainer
+import po.exposify.binder.BindingKeyBase
+import po.exposify.binder.MultipleChildContainer
+import po.exposify.binder.SingleChildContainer
+import po.exposify.binder.UpdateMode
+import po.exposify.classes.DTOClass
+import po.exposify.classes.interfaces.DataModel
+import po.exposify.dto.HostDTO
 import kotlin.reflect.KProperty1
 
 class SingleRepository<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(

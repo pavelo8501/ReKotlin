@@ -1,7 +1,7 @@
 package po.exposify.scope.service.controls.service_registry
 
 import org.jetbrains.exposed.dao.LongEntity
-import po.db.data_service.classes.interfaces.DataModel
+import po.exposify.classes.interfaces.DataModel
 
 fun <DATA_MODEL, ENTITY> serviceRegistry(
     init: ServiceRegistryItemBuilder<DATA_MODEL, ENTITY>.() -> Unit

@@ -1,10 +1,10 @@
 package po.exposify.models
 
 import org.jetbrains.exposed.dao.LongEntity
-import po.db.data_service.components.eventhandler.models.Event
-import po.db.data_service.classes.interfaces.DataModel
-import po.db.data_service.dto.CommonDTO
-import po.db.data_service.dto.HostDTO
+import po.exposify.components.eventhandler.models.Event
+import po.exposify.classes.interfaces.DataModel
+import po.exposify.dto.CommonDTO
+import po.exposify.dto.HostDTO
 
 
 interface OperationResult {

@@ -3,13 +3,13 @@ package po.exposify.scope.service
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction
-import po.db.data_service.classes.DTOClass
-import po.db.data_service.scope.dto.DTOContext
-import po.db.data_service.classes.interfaces.DataModel
-import po.db.data_service.dto.CommonDTO
-import po.db.data_service.scope.sequence.SequenceContext
-import po.db.data_service.scope.sequence.models.SequencePack
-import po.db.data_service.scope.service.enums.WriteMode
+import po.exposify.classes.DTOClass
+import po.exposify.scope.dto.DTOContext
+import po.exposify.classes.interfaces.DataModel
+import po.exposify.dto.CommonDTO
+import po.exposify.scope.sequence.SequenceContext
+import po.exposify.scope.sequence.models.SequencePack
+import po.exposify.scope.service.enums.WriteMode
 import kotlin.reflect.KProperty1
 
 class ServiceContext<DATA,ENTITY>(
@@ -68,7 +68,7 @@ class ServiceContext<DATA,ENTITY>(
         dtoList : List<CommonDTO<DATA, ENTITY>>,
         block: DTOClass<DATA, ENTITY>.() -> Unit
     ){
-        TODO("To implement update variance if CommonDTO list is supplied")
+        TODO("To implement update variance if DTOFunctions list is supplied")
     }
 
     fun DTOClass<DATA, ENTITY>.delete(toDelete: DATA, block: DTOContext<DATA, ENTITY>.() -> Unit){
@@ -81,7 +81,7 @@ class ServiceContext<DATA,ENTITY>(
 
     fun DTOClass<DATA, ENTITY>.sequence(
         name:String,
-        block: suspend SequenceContext<DATA, ENTITY>.() -> Unit)
+        block: suspend SequenceContext<DATA, ENTITY>.(List<DATA>?) -> Unit)
     {
         sequences2[name] = SequencePack(name, SequenceContext<DATA, ENTITY>(dbConnection, rootDtoModel), block)
 

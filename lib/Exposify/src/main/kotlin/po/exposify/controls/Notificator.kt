@@ -1,7 +1,7 @@
 package po.exposify.controls
 
-import po.db.data_service.classes.interfaces.CanNotifyDepr
-import po.db.data_service.classes.interfaces.DTOInstance
+import po.exposify.classes.interfaces.CanNotifyDepr
+import po.exposify.classes.interfaces.DTOInstance
 
 enum class NotificationEvent{
     ON_START,

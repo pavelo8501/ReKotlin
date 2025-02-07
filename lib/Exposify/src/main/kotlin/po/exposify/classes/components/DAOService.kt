@@ -8,15 +8,15 @@ import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.SizedIterable
 import org.jetbrains.exposed.sql.SqlExpressionBuilder
-import po.db.data_service.binder.PropertyBinding
-import po.db.data_service.binder.UpdateMode
-import po.db.data_service.components.eventhandler.EventHandler
-import po.db.data_service.components.eventhandler.interfaces.CanNotify
-import po.db.data_service.classes.DTOClass
-import po.db.data_service.classes.interfaces.DataModel
-import po.db.data_service.exceptions.ExceptionCodes
-import po.db.data_service.exceptions.OperationsException
-import po.db.data_service.dto.DTOBase
+import po.exposify.binder.PropertyBinding
+import po.exposify.binder.UpdateMode
+import po.exposify.components.eventhandler.EventHandler
+import po.exposify.components.eventhandler.interfaces.CanNotify
+import po.exposify.classes.DTOClass
+import po.exposify.classes.interfaces.DataModel
+import po.exposify.exceptions.ExceptionCodes
+import po.exposify.exceptions.OperationsException
+import po.exposify.dto.DTOBase
 import kotlin.reflect.KProperty1
 
 class DAOService<DATA, ENTITY>(

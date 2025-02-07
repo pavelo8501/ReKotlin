@@ -1,9 +1,9 @@
 package po.exposify.dto.components
 
-import po.db.data_service.classes.components.Factory
-import po.db.data_service.classes.interfaces.DataModel
-import po.db.data_service.constructors.ConstructorBuilder
-import po.db.data_service.constructors.DataModelBlueprint
+import po.exposify.classes.components.Factory
+import po.exposify.classes.interfaces.DataModel
+import po.exposify.constructors.ConstructorBuilder
+import po.exposify.constructors.DataModelBlueprint
 import kotlin.properties.Delegates
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty

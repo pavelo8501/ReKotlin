@@ -1,14 +1,14 @@
 package po.exposify.test.constructors
 
 import org.junit.jupiter.api.assertThrows
-import po.db.data_service.constructors.ConstructorBuilder
-import po.db.data_service.constructors.CovariantClassBlueprintBase
-import po.db.data_service.constructors.DTOBlueprint
-import po.db.data_service.test.data.TestPartnerDTO
-import po.db.data_service.test.data.TestPartnerDataModel
-import po.db.data_service.test.data.TestPartnerEntity
-import po.db.data_service.exceptions.OperationsException
-import po.db.data_service.models.EntityDTO
+import po.exposify.constructors.ConstructorBuilder
+import po.exposify.constructors.CovariantClassBlueprintBase
+import po.exposify.constructors.DTOBlueprint
+import po.exposify.test.data.TestPartnerDTO
+import po.exposify.test.data.TestPartnerDataModel
+import po.exposify.test.data.TestPartnerEntity
+import po.exposify.exceptions.OperationsException
+import po.exposify.models.EntityDTO
 import kotlin.reflect.KFunction
 import kotlin.reflect.full.primaryConstructor
 import kotlin.test.Test

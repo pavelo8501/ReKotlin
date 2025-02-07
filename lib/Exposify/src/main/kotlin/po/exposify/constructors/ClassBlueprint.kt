@@ -2,10 +2,10 @@ package po.exposify.constructors
 
 import com.mysql.cj.x.protobuf.MysqlxCrud
 import org.jetbrains.exposed.dao.LongEntity
-import po.db.data_service.classes.interfaces.DataModel
-import po.db.data_service.exceptions.ExceptionCodes
-import po.db.data_service.exceptions.OperationsException
-import po.db.data_service.dto.CommonDTO
+import po.exposify.classes.interfaces.DataModel
+import po.exposify.exceptions.ExceptionCodes
+import po.exposify.exceptions.OperationsException
+import po.exposify.dto.CommonDTO
 import kotlin.collections.mapOf
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction

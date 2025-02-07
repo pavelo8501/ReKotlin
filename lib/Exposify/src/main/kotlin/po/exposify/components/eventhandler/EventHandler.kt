@@ -1,7 +1,7 @@
 package po.exposify.components.eventhandler
 
-import po.db.data_service.components.eventhandler.enums.EventType
-import po.db.data_service.components.eventhandler.models.Event
+import po.exposify.components.eventhandler.enums.EventType
+import po.exposify.components.eventhandler.models.Event
 import java.util.concurrent.CopyOnWriteArrayList
 
 class RootEventHandler(moduleName: String): EventHandlerBase(moduleName){

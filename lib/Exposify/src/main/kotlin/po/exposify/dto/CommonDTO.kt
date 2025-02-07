@@ -1,20 +1,21 @@
 package po.exposify.dto
 
 import org.jetbrains.exposed.dao.LongEntity
-import po.db.data_service.binder.BindingKeyBase
-import po.db.data_service.binder.PropertyBinder
-import po.db.data_service.binder.UpdateMode
-import po.db.data_service.classes.DTOClass
-import po.db.data_service.classes.components.MultipleRepository
-import po.db.data_service.classes.components.RepositoryBase
-import po.db.data_service.classes.components.SingleRepository
-import po.db.data_service.classes.interfaces.DataModel
-import po.db.data_service.constructors.ConstructorBuilder
-import po.db.data_service.constructors.DataModelBlueprint
-import po.db.data_service.dto.components.DataModelContainer
-import po.db.data_service.exceptions.ExceptionCodes
-import po.db.data_service.exceptions.OperationsException
-import po.db.data_service.models.DTOInitStatus
+import po.exposify.binder.BindingKeyBase
+import po.exposify.binder.PropertyBinder
+import po.exposify.binder.UpdateMode
+import po.exposify.classes.DTOClass
+import po.exposify.classes.components.MultipleRepository
+import po.exposify.classes.components.RepositoryBase
+import po.exposify.classes.components.SingleRepository
+import po.exposify.classes.interfaces.DataModel
+import po.exposify.constructors.ConstructorBuilder
+import po.exposify.constructors.DataModelBlueprint
+import po.exposify.dto.components.DataModelContainer
+import po.exposify.dto.functions.toCommonDtoList
+import po.exposify.exceptions.ExceptionCodes
+import po.exposify.exceptions.OperationsException
+import po.exposify.models.DTOInitStatus
 import kotlin.reflect.KClass
 
 
@@ -34,7 +35,6 @@ class HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
         get(){return repositories.isNotEmpty()}
 
     fun initializeRepositories(entity: ENTITY){
-
         repositories.values.forEach {
             it.initialize(entity)
         }
@@ -61,10 +61,7 @@ class HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
     private val onDeleteFnList = mutableListOf<
             Pair<HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,() -> Unit>>()
 
-    fun subscribeOnDelete(
-        callback:  ()-> Unit
-    ){
-
+    fun subscribeOnDelete(callback:  ()-> Unit){
         onDeleteFnList.add(Pair(this, callback))
     }
 
@@ -97,6 +94,12 @@ class HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
         return injectedDataModel
     }
 
+    fun getChildren():List<HostDTO<CHILD_DATA, CHILD_ENTITY, DATA, ENTITY>>{
+        val result = mutableListOf<HostDTO<CHILD_DATA, CHILD_ENTITY, DATA, ENTITY>>()
+        repositories.forEach { result.addAll(it.value.dtoList)}
+        return result
+    }
+
     companion object{
         fun <DATA : DataModel , ENTITY : LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity>createHosted(
             dataModel : DATA,
@@ -106,6 +109,16 @@ class HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
             val hosted = HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(dataModel)
             hosted.initialize(dtoModel)
             return hosted
+        }
+
+        fun <DATA: DataModel, ENTITY: LongEntity, CHILD_DATA:DataModel, CHILD_ENTITY:LongEntity> copyAsCommonDTO(
+            hosted: HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,
+        ): CommonDTO<DATA, ENTITY> {
+            return object : CommonDTO<DATA, ENTITY>(hosted.getInjectedModel()) {}.apply {
+                this.sourceModel = hosted.sourceModel
+                this.propertyBinder.setProperties(hosted.propertyBinder.propertyList)
+                this.hostDTO = hosted
+            }
         }
     }
 
@@ -140,6 +153,29 @@ abstract class CommonDTO<DATA, ENTITY>(
             return it
         }?:run {
             return this.injectedDataModel
+        }
+    }
+
+    fun <CHILD_DATA : DataModel, CHILD_ENTITY: LongEntity> getChildren(
+        model: DTOClass<CHILD_DATA, CHILD_ENTITY>): List<CommonDTO<CHILD_DATA, CHILD_ENTITY>>{
+       val  filteredByClass  =  hostDTO?.getChildren()?.filter { it.sourceModel.sourceClass == model.sourceClass }
+        filteredByClass?.let {filtered->
+            return  (filtered as List<HostDTO<CHILD_DATA, CHILD_ENTITY, DATA, ENTITY>>).toCommonDtoList()
+        }?:run{ return emptyList<CommonDTO<CHILD_DATA, CHILD_ENTITY>>()}
+    }
+
+
+
+    companion object{
+
+        fun <DATA: DataModel, ENTITY: LongEntity, CHILD_DATA:DataModel, CHILD_ENTITY:LongEntity> copyAsCommonDTO(
+            hosted: HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,
+        ): CommonDTO<DATA, ENTITY> {
+            return object : CommonDTO<DATA, ENTITY>(hosted.getInjectedModel()) {}.apply {
+                 this.sourceModel = hosted.sourceModel
+                 this.propertyBinder.setProperties(hosted.propertyBinder.propertyList)
+                this.hostDTO = hosted
+            }
         }
     }
 }
@@ -184,7 +220,6 @@ sealed class DTOBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
 
     val propertyBinder: PropertyBinder<DATA,ENTITY> by lazy { initialize(sourceModel) }
 
-
     fun getInjectedModel(): DATA =  this.injectedDataModel
 
     fun initialize(model: DTOClass<DATA, ENTITY>): PropertyBinder<DATA, ENTITY> {
@@ -204,30 +239,5 @@ sealed class DTOBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
 
     fun update(dataModel: DATA, mode: UpdateMode){
         propertyBinder.update(dataModel, entityDAO, mode)
-    }
-
-
-   companion object{
-
-       fun <DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>  CommonDTO<DATA, ENTITY>.copyAsHostingDTO()
-        : HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>
-            where  DATA: DataModel, ENTITY: LongEntity,  CHILD_DATA: DataModel, CHILD_ENTITY : LongEntity
-       {
-           return HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(this.injectedDataModel).also {
-               it.initialize(this.sourceModel)
-               if(this.initStatus == DTOInitStatus.INITIALIZED){
-                   it.update(this.entityDAO, UpdateMode.ENTITY_TO_MODEL)
-               }
-           }
-       }
-
-        fun <DATA: DataModel, ENTITY: LongEntity>copyAsEntityDTO(
-            injectedDataModel: DATA,
-            dtoClass: DTOClass<DATA,ENTITY>
-        ): CommonDTO<DATA,ENTITY> {
-            return object : CommonDTO<DATA, ENTITY>(injectedDataModel) {}.apply {
-                initialize(dtoClass)
-            }
-        }
     }
 }

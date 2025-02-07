@@ -2,11 +2,11 @@ package po.exposify.classes.components
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
-import po.db.data_service.binder.PropertyBinder
-import po.db.data_service.binder.PropertyBinding
-import po.db.data_service.binder.RelationshipBinder
-import po.db.data_service.classes.DTOClass
-import po.db.data_service.classes.interfaces.DataModel
+import po.exposify.binder.PropertyBinder
+import po.exposify.binder.PropertyBinding
+import po.exposify.binder.RelationshipBinder
+import po.exposify.classes.DTOClass
+import po.exposify.classes.interfaces.DataModel
 import kotlin.reflect.KClass
 
 

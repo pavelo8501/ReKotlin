@@ -1,7 +1,7 @@
 package po.exposify.scope.service.controls.service_registry
 
 import org.jetbrains.exposed.dao.LongEntity
-import po.db.data_service.classes.interfaces.DataModel
+import po.exposify.classes.interfaces.DataModel
 
 class ServiceDataBuilder<DATA_MODEL, ENTITY>  where DATA_MODEL: DataModel, ENTITY : LongEntity {
     var rootDTOModelData: DTOData<DATA_MODEL, ENTITY>? = null

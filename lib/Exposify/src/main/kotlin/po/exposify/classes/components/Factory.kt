@@ -1,17 +1,17 @@
 package po.exposify.classes.components
 
 import org.jetbrains.exposed.dao.LongEntity
-import po.db.data_service.components.eventhandler.EventHandler
-import po.db.data_service.components.eventhandler.interfaces.CanNotify
-import po.db.data_service.constructors.ConstructorBuilder
-import po.db.data_service.constructors.DTOBlueprint
-import po.db.data_service.constructors.DataModelBlueprint
-import po.db.data_service.constructors.EntityBlueprint
-import po.db.data_service.classes.DTOClass
-import po.db.data_service.classes.interfaces.DataModel
-import po.db.data_service.exceptions.ExceptionCodes
-import po.db.data_service.exceptions.OperationsException
-import po.db.data_service.dto.CommonDTO
+import po.exposify.components.eventhandler.EventHandler
+import po.exposify.components.eventhandler.interfaces.CanNotify
+import po.exposify.constructors.ConstructorBuilder
+import po.exposify.constructors.DTOBlueprint
+import po.exposify.constructors.DataModelBlueprint
+import po.exposify.constructors.EntityBlueprint
+import po.exposify.classes.DTOClass
+import po.exposify.classes.interfaces.DataModel
+import po.exposify.exceptions.ExceptionCodes
+import po.exposify.exceptions.OperationsException
+import po.exposify.dto.CommonDTO
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 
@@ -109,7 +109,7 @@ class Factory<DATA, ENTITY>(
     }
 
     /**
-     * Create new instance of DatModel injectable to the specific CommonDTO<DATA, ENTITY> described by generics set
+     * Create new instance of DatModel injectable to the specific DTOFunctions<DATA, ENTITY> described by generics set
      * Has an optional parameter with manually defined constructor function
      * @input constructFn : (() -> DATA)? = null
      * @return DATA
@@ -140,16 +140,16 @@ class Factory<DATA, ENTITY>(
     }
 
     /**
-     * Create new instance of  CommonDTO
+     * Create new instance of  DTOFunctions
      * if input param dataModel provided use it as an injection into constructor
      * if not then create new DataModel instance with default parameters i.e. no data will be preserved
      * @input dataModel:  DATA?
-     * @return CommonDTO<DATA, ENTITY> or null
+     * @return DTOFunctions<DATA, ENTITY> or null
      * */
     fun createEntityDto(dataModel : DATA? = null): CommonDTO<DATA, ENTITY>?{
         val model = dataModel?: createDataModel()
         try {
-            val dto = notify<CommonDTO<DATA, ENTITY>>("CommonDTO created from dtoBlueprint [reflection]") {
+            val dto = notify<CommonDTO<DATA, ENTITY>>("DTOFunctions created from dtoBlueprint [reflection]") {
                 dtoBlueprint.let { blueprint ->
                     val constructor = blueprint.getConstructor()
                     blueprint.getArgsForConstructor { paramName ->

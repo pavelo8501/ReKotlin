@@ -2,8 +2,8 @@ package po.exposify.scope.service.controls.service_registry
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
-import po.db.data_service.classes.interfaces.DataModel
-import po.db.data_service.dto.CommonDTO
+import po.exposify.classes.interfaces.DataModel
+import po.exposify.dto.CommonDTO
 import kotlin.reflect.KClass
 
 class ChildDTODataBuilder<CHILD_DATA_MODEL, CHILD_ENTITY>

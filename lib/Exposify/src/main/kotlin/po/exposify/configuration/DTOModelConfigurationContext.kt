@@ -1,4 +1,4 @@
-package po.db.data_service.configuration
+package po.exposify.configuration
 
 
 

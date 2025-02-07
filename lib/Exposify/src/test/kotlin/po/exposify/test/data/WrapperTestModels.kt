@@ -9,11 +9,11 @@ import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.LongIdTable
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
-import po.db.data_service.classes.DTOClass
-import po.db.data_service.test.data.TestPartners.nowDateTime
-import po.db.data_service.classes.interfaces.DTOModel
-import po.db.data_service.classes.interfaces.DataModel
-import po.db.data_service.models.EntityDTO
+import po.exposify.classes.DTOClass
+import po.exposify.test.data.TestPartners.nowDateTime
+import po.exposify.classes.interfaces.DTOModel
+import po.exposify.classes.interfaces.DataModel
+import po.exposify.models.EntityDTO
 
 
 class TestPartnerDataModel(

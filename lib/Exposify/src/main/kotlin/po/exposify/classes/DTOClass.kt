@@ -3,21 +3,21 @@ package po.exposify.classes
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.IdTable
-import po.db.data_service.binder.BindingContainer
-import po.db.data_service.binder.BindingKeyBase
-import po.db.data_service.binder.UpdateMode
-import po.db.data_service.classes.components.CallbackEmiter
-import po.db.data_service.components.eventhandler.RootEventHandler
-import po.db.data_service.components.eventhandler.interfaces.CanNotify
-import po.db.data_service.classes.components.DAOService
-import po.db.data_service.classes.components.DTOConfig
-import po.db.data_service.classes.components.Factory
-import po.db.data_service.classes.interfaces.DTOInstance
-import po.db.data_service.classes.interfaces.DataModel
-import po.db.data_service.exceptions.ExceptionCodes
-import po.db.data_service.exceptions.OperationsException
-import po.db.data_service.models.CrudResult
-import po.db.data_service.dto.CommonDTO
+import po.exposify.binder.BindingContainer
+import po.exposify.binder.BindingKeyBase
+import po.exposify.binder.UpdateMode
+import po.exposify.classes.components.CallbackEmitter
+import po.exposify.components.eventhandler.RootEventHandler
+import po.exposify.components.eventhandler.interfaces.CanNotify
+import po.exposify.classes.components.DAOService
+import po.exposify.classes.components.DTOConfig
+import po.exposify.classes.components.Factory
+import po.exposify.classes.interfaces.DTOInstance
+import po.exposify.classes.interfaces.DataModel
+import po.exposify.exceptions.ExceptionCodes
+import po.exposify.exceptions.OperationsException
+import po.exposify.models.CrudResult
+import po.exposify.dto.CommonDTO
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 
@@ -29,7 +29,7 @@ abstract class DTOClass<DATA, ENTITY>(
     override val className  = sourceClass.simpleName.toString()
     override val eventHandler = RootEventHandler(className)
 
-    internal val emitter = CallbackEmiter()
+    internal val emitter = CallbackEmitter()
 
     var initialized: Boolean = false
     val conf = DTOConfig<DATA, ENTITY>(this)
@@ -56,14 +56,10 @@ abstract class DTOClass<DATA, ENTITY>(
        }
     }
 
-
-    var requestFn : (DTOClass<DATA,ENTITY>.() -> Unit)? = null
-    fun initialization(
-        onRequestFn: (DTOClass<DATA,ENTITY>.() -> Unit)?= null,
-    ) {
+    fun initialization(onRequestFn: ((CallbackEmitter) -> Unit)? = null ) {
         setup()
         initialized = true
-        requestFn = onRequestFn
+        onRequestFn?.invoke(emitter)
     }
 
     inline fun <reified DATA, reified ENTITY> DTOClass<DATA, ENTITY>.dtoSettings(
@@ -83,7 +79,7 @@ abstract class DTOClass<DATA, ENTITY>(
      *
      * This function performs the following steps:
      * 1. Calls the `daoService.pick` method to retrieve a single entity that matches the given conditions.
-     * 2. If an entity is found, a new DTO (`CommonDTO<DATA, ENTITY>`) is created using the factory.
+     * 2. If an entity is found, a new DTO (`DTOFunctions<DATA, ENTITY>`) is created using the factory.
      * 3. The DTO is updated with the entity's data using `UpdateMode.ENTITY_TO_MODEL`.
      * 4. Relation bindings are applied to the DTO via `conf.relationBinder.applyBindings(it)`.
      * 5. Repository initialization is performed on the DTO via `it.initializeRepositories(it.entityDAO)`.
@@ -192,12 +188,7 @@ abstract class DTOClass<DATA, ENTITY>(
 
     fun triggerSequence(name: String, list: List<DATA>? = null): DATA? {
         println("triggerSequence")
-        val a = 10
-        requestFn?.let {
-            this.it()
-            emitter.onSequenceLaunch.invoke(name)
-
-        }
+        emitter.callOnSequenceLaunch(name, list)
         return null
     }
 
