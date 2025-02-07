@@ -1,7 +1,7 @@
 package po.playground
 
 import io.github.cdimascio.dotenv.dotenv
-import po.db.data_service.controls.ConnectionInfo
+import po.exposify.controls.ConnectionInfo
 import po.playground.projects.data_service.startDataService
 
 

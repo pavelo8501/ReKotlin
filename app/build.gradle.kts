@@ -29,13 +29,11 @@ repositories {
     }
 }
 
-
-
 dependencies {
 
     implementation(kotlin("stdlib-jdk8"))
 
-    implementation(project(":lib:ExposedDAOWrapper"))
+    implementation(project(":lib:Exposify"))
     implementation(project(":lib:RestWraptor"))
     implementation(project(":lib:LogNotify"))
 
