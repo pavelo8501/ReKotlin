@@ -40,14 +40,21 @@ import java.io.File
 import java.io.IOException
 
 class AuthenticationContext(
-    private val config : WraptorConfig
+    private val configContext : ConfigContext
 ) : CanNotify {
+
+    init {
+        val authenticationContext  = "LOL"
+    }
+
 
     override val eventHandler: EventHandlerBase = RootEventHandler("AuthenticationContext")
 
-    val authConfig  = config.authConfig
-    val apiConfig = config.apiConfig
-    val app = config.application
+    val authConfig  = AuthenticationConfig()
+    var credentialsValidatorFn: ((LoginRequest)-> SecuredUserInterface?) ? = null
+
+    private val apiConfig = configContext.apiConfig
+    private val app = configContext.app
 
     //    var onLoginRequest: ((LoginRequest) -> SecuredUserInterface?)?
     var onAuthenticated : ((AuthenticatedModel) -> Unit)? = null
@@ -84,7 +91,7 @@ class AuthenticationContext(
 
     private fun onLoginRequest(request : ApiRequest<LoginRequest>): String? {
         request.data.let { loginData ->
-            authConfig.credentialsValidatorFn?.let { validatorFn ->
+            credentialsValidatorFn?.let { validatorFn ->
                 val user = validatorFn.invoke(loginData)
                 if (user != null) {
                    return issueToken(user)
@@ -100,13 +107,17 @@ class AuthenticationContext(
         routing.apply {
             route("${apiConfig.baseApiRoute}/login") {
                 post {
-                    info("Request content type: ${call.request.contentType()}")
-                    val token = onLoginRequest(call.receive<ApiRequest<LoginRequest>>())
-                    if (token != null) {
-                        call.response.header("Authorization", "Bearer $token") // ✅ Set JWT in response header
-                        call.respond(ApiResponse(token))
-                    } else {
-                        call.respond(HttpStatusCode.Unauthorized, "Invalid credentials")
+                    try {
+                        info("Request content type: ${call.request.contentType()}")
+                        val token = onLoginRequest(call.receive<ApiRequest<LoginRequest>>())
+                        if (token != null) {
+                            call.response.header("Authorization", "Bearer $token")
+                            call.respond(ApiResponse(token))
+                        } else {
+                            call.respond(HttpStatusCode.Unauthorized, "Invalid credentials")
+                        }
+                    }catch (ex: Exception){
+                        respondInternal(ex)
                     }
                 }
             }
@@ -185,7 +196,7 @@ class AuthenticationContext(
                 authConfig.privateKeyString = reader.readText()
             }
             authConfig.wellKnownPath = null
-            authConfig.credentialsValidatorFn = validatorFn
+            credentialsValidatorFn = validatorFn
             initializeAuthentication()
         }else{
             throw IOException("Security keys not found")

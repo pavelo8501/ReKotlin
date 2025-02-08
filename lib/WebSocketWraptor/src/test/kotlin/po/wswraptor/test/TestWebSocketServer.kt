@@ -29,9 +29,7 @@ class TestWebSocketServer {
 
             wsServer.configure {
                 routing {
-                    webSocket("/partners", "partner") {
 
-                    }
                 }
             }
         }

@@ -5,9 +5,11 @@ import po.restwraptor.interfaces.SecuredUserInterface
 import po.restwraptor.models.request.LoginRequest
 import java.io.File
 
-class AuthenticationConfig {
-
+data class AuthenticationConfig(
+    var enableSecurity : Boolean = true,
     var defaultSecurityRouts : Boolean = true
+) {
+
 
     val security: Boolean
         get(){
@@ -39,8 +41,5 @@ class AuthenticationConfig {
         this.publicKeyString = null
         this.privateKeyString = null
     }
-
-
-
 
 }

@@ -7,10 +7,11 @@ import java.io.File
 
 class ApiConfig(
     var rateLimiting: Boolean  = true,
-    val cors: Boolean = true,
-    val contentNegotiation: Boolean = true,
-    var defaultRouts: Boolean  = false,
+    var cors: Boolean = true,
+    var contentNegotiation: Boolean = true,
+    var systemRouts : Boolean = true
 ) {
+
 
     var baseApiRoute = "/api"
 

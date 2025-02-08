@@ -25,6 +25,8 @@ import kotlinx.serialization.json.Json
 import po.lognotify.eventhandler.RootEventHandler
 import po.lognotify.eventhandler.interfaces.CanNotify
 import po.lognotify.shared.enums.HandleType
+import po.restwraptor.RestWrapTor
+import po.restwraptor.builders.restWrapTor
 import po.restwraptor.exceptions.ConfigurationErrorCodes
 import po.restwraptor.exceptions.ConfigurationException
 import po.restwraptor.interfaces.SecuredUserInterface
@@ -40,36 +42,28 @@ import po.restwraptor.plugins.RateLimiterPlugin
 import po.restwraptor.security.JWTService
 
 interface ConfigContextInterface{
-    fun configSettings(configFn : ApiConfig.()-> Unit)
+    fun setupAuthentication(configFn : AuthenticationContext.()-> Unit)
+    fun configSettings(configFn : WraptorConfig.()-> Unit)
     fun setupApplication(block: Application.()->Unit)
-    fun initialize(): Application
+    fun initialize()
 }
 
 
 class ConfigContext(
-    internal val wrapConfig : WraptorConfig,
-    config: ApiConfig? = null,
-    authConfig: AuthenticationConfig? = null
+    internal val wraptor : RestWrapTor,
+    private val wrapConfig : WraptorConfig,
 ): ConfigContextInterface,  CanNotify{
 
     override val eventHandler = RootEventHandler("Server config")
-
-    val apiConfig  =  wrapConfig.apiConfig
-    val app = wrapConfig.application
-
-    private val authContext = AuthenticationContext(wrapConfig)
+    internal val apiConfig  =  wrapConfig.apiConfig
+    private val authContext  : AuthenticationContext by lazy { AuthenticationContext(this) }
+    internal val app : Application  by lazy { wraptor.application }
 
     init {
-
-        if(config!=null){
-            wrapConfig.updateApiConfig(config)
-        }
-
         eventHandler.registerPropagateException<ConfigurationException>{
             ConfigurationException("Default Message", HandleType.PROPAGATE_TO_PARENT)
         }
     }
-
 
     private fun configCors():Application{
         app.apply {
@@ -128,19 +122,19 @@ class ConfigContext(
         return app
     }
 
-    private fun configDefaultRouting(): Application {
+    private fun configSystemRoutes(): Application {
         info("Default rout initialization")
         app.apply {
             routing {
-                options("/api/status") {
+                options("${apiConfig.baseApiRoute}/status") {
                     call.response.header("Access-Control-Allow-Origin", "*")
                     call.respond(HttpStatusCode.OK)
                 }
-                get("/api/status") {
+                get("${apiConfig.baseApiRoute}/status") {
                     info("Accessing Application: ${application.hashCode()}")
                     call.respondText("OK")
                 }
-                get("/api/status-json") {
+                get("${apiConfig.baseApiRoute}/status-json") {
                     info("Status Json endpoint called.")
                     val responseStatus: String = "OK"
                     call.respond(ApiResponse(responseStatus))
@@ -151,17 +145,17 @@ class ConfigContext(
         }
     }
 
-    override fun configSettings(configFn : ApiConfig.()-> Unit){
-        apiConfig.configFn()
+    override fun setupAuthentication(configFn : AuthenticationContext.()-> Unit){
+        authContext.configFn()
     }
-     fun setupAuthentication(configFn : AuthenticationContext.()-> Unit){
-         authContext.configFn()
-     }
+    override fun configSettings(configFn : WraptorConfig.()-> Unit){
+        wrapConfig.configFn()
+    }
     override fun setupApplication(block: Application.()->Unit){
         app.block()
     }
 
-    override fun initialize(): Application{
+    override fun initialize(){
         if(apiConfig.cors){
             configCors()
         }
@@ -171,9 +165,8 @@ class ConfigContext(
         if(apiConfig.rateLimiting){
             configRateLimiter()
         }
-        if(apiConfig.defaultRouts){
-            configDefaultRouting()
+        if(apiConfig.systemRouts){
+            configSystemRoutes()
         }
-        return app
     }
 }
