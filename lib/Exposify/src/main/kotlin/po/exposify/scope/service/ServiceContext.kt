@@ -19,8 +19,7 @@ class ServiceContext<DATA,ENTITY>(
 
     val name : String = "${rootDtoModel.className}|Service"
 
-    internal val sequences = mutableMapOf<String, MutableList<(DATA) -> DATA>>()
-    internal val sequences2 =
+    internal val sequences =
         mutableMapOf<String, SequencePack<DATA, ENTITY>>()
 
     private fun  <T>dbQuery(body : () -> T): T = transaction(dbConnection) {
@@ -83,7 +82,7 @@ class ServiceContext<DATA,ENTITY>(
         name:String,
         block: suspend SequenceContext<DATA, ENTITY>.(List<DATA>?) -> Unit)
     {
-        sequences2[name] = SequencePack(name, SequenceContext<DATA, ENTITY>(dbConnection, rootDtoModel), block)
+        sequences[name] = SequencePack(name, SequenceContext<DATA, ENTITY>(dbConnection, rootDtoModel), block)
 
     }
 
