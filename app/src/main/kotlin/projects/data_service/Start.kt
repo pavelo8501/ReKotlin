@@ -1,5 +1,6 @@
 package po.playground.projects.data_service
 
+import kotlinx.coroutines.runBlocking
 import po.exposify.DatabaseManager
 import po.exposify.controls.ConnectionInfo
 import po.exposify.dto.CommonDTO
@@ -20,8 +21,10 @@ object PartnerUpdate :
 
 fun mockOfRestRequest(){
     val someInputData = listOf<PartnerDataModel>()
-    PartnerUpdate.execute(someInputData){
-        println(it)
+    runBlocking {
+        PartnerUpdate.execute(someInputData){
+            println(it)
+        }
     }
 }
 

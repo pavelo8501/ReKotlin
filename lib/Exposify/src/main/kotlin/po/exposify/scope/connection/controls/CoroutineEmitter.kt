@@ -6,6 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.jetbrains.exposed.dao.LongEntity
+import org.jetbrains.exposed.sql.transactions.experimental.suspendedTransactionAsync
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.scope.sequence.models.SequencePack
 import kotlin.coroutines.CoroutineContext
@@ -19,7 +20,15 @@ class CoroutineEmitter(
        val listenerScope = CoroutineScope(Dispatchers.IO + CoroutineName(name))
        val job = listenerScope.launch {
            println("Pre launching Coroutine for pack ${pack.sequenceName()}")
-           pack.start(data)
+
+           val transactionResult = suspendedTransactionAsync(Dispatchers.IO) {
+               pack.start(data)  // ✅ Now runs inside a proper coroutine transaction
+           }
+
+           transactionResult.await() // ✅ Waits for DB operation to complete before continuing
+
+           println("Launch complete for ${pack.sequenceName()}")
+
            println("Launch")
        }
        job.invokeOnCompletion {

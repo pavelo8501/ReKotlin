@@ -20,7 +20,7 @@ sealed interface SequenceHandlerInterface<T: DataModel> {
      * Invokes the result callback function with the provided data.
      * @param listedData The data to be passed to the result callback.
      */
-    fun invokeResultCallback(listedData: List<T>)
+    suspend fun invokeResultCallback(listedData: List<T>)
 }
 
 /**
@@ -34,7 +34,7 @@ sealed interface SequenceHandlerInterface<T: DataModel> {
 abstract class SequenceHandler<T>(
     override val dtoClass: DTOClass<T, *>,
     override val name: String,
-    private var resultCallback: ((List<T>) -> Unit)? = null
+    private var resultCallback: (suspend (List<T>) -> Unit)? = null
 ) : SequenceHandlerInterface<T> where  T: DataModel {
 
     /**
@@ -64,7 +64,7 @@ abstract class SequenceHandler<T>(
 //       // resultCallback?.invoke(listedData)
 //    }
 
-    internal fun getResultCallback():((List<T>) -> Unit)?{
+    internal fun getResultCallback():(suspend (List<T>) -> Unit)?{
         return resultCallback
     }
 
@@ -81,7 +81,7 @@ abstract class SequenceHandler<T>(
      * @param listedData The input data for the sequence execution.
      * @param callback The callback function to invoke when the sequence completes.
      */
-    fun execute(listedData: List<T>, callback:(List<T>)-> Unit){
+    suspend fun execute(listedData: List<T>, callback: suspend (List<T>)-> Unit){
         inputData = listedData
         resultCallback = callback
         dtoClass.triggerSequence(name)
@@ -91,7 +91,7 @@ abstract class SequenceHandler<T>(
      * Assigns a result callback function to be executed when the sequence completes.
      * @param callback The callback function to assign.
      */
-    fun execute(callback:(List<T>)-> Unit){
+    suspend  fun execute(callback:suspend (List<T>)-> Unit){
         resultCallback = callback
         dtoClass.triggerSequence(name)
     }
@@ -100,7 +100,7 @@ abstract class SequenceHandler<T>(
      * Invokes the result callback function with the provided data.
      * @param listedData The data to pass to the result callback.
      */
-    override fun invokeResultCallback(listedData: List<T>) {
+    override suspend fun invokeResultCallback(listedData: List<T>) {
         resultCallback?.invoke(listedData)
     }
 

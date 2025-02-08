@@ -3,6 +3,8 @@ package po.exposify
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.transactions.TransactionManager
+import org.jetbrains.exposed.sql.transactions.transactionManager
 
 
 import po.exposify.controls.ConnectionInfo
@@ -29,7 +31,7 @@ object DatabaseManager {
             jdbcUrl = connectionInfo.getConnectionString()
             maximumPoolSize = 10
             isAutoCommit = false
-            transactionIsolation = "TRANSACTION_REPEATABLE_READ"
+            transactionIsolation = "TRANSACTION_READ_COMMITTED" // Changed from TRANSACTION_REPEATABLE_READ
             validate()
         }
         return HikariDataSource(hikariConfig)
