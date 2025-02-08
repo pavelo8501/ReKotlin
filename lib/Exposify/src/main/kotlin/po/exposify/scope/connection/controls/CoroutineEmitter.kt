@@ -18,7 +18,7 @@ class CoroutineEmitter(
        pack: SequencePack<DATA, ENTITY>, data : List<DATA>?){
        val listenerScope = CoroutineScope(Dispatchers.IO + CoroutineName(name))
        val job = listenerScope.launch {
-           println("Pre launching Coroutine for pack ${pack.name}")
+           println("Pre launching Coroutine for pack ${pack.sequenceName()}")
            pack.start(data)
            println("Launch")
        }

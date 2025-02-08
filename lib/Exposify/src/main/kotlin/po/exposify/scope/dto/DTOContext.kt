@@ -4,7 +4,6 @@ import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.components.eventhandler.models.Event
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.models.CrudResult
-import po.exposify.dto.CommonDTO
 
 /**
  * A context class used to encapsulate and simplify interaction with `DTOFunctions`.
@@ -37,22 +36,24 @@ import po.exposify.dto.CommonDTO
  */
 class DTOContext<DATA, ENTITY>(
     private val  crudResult : CrudResult<DATA, ENTITY>,
+    private val resultCallback: ((List<DATA> )-> Unit)? = null,
     )  where DATA : DataModel, ENTITY : LongEntity {
 
-    fun resultAsDataModel(result: ((List<DATA>) -> Unit)? = null): List<DATA>{
-        val dataModels =  crudResult.rootDTOs.map { it.compileDataModel() }
-        if(result != null) result(dataModels)
-        return  dataModels
-    }
 
-    fun getStats(): Event?{
-        crudResult.event?.print()
-        return crudResult.event
-    }
+        init {
+            resultCallback?.let{callbackOnResult(resultCallback)}
+        }
 
-    fun callbackOnResult(callback : (List<DATA>)->Unit ){
-        val dataModels =  crudResult.rootDTOs.map { it.compileDataModel() }
-        callback.invoke(dataModels)
-    }
+        fun getData(crud: CrudResult<DATA, ENTITY>): List<DATA>{
+            return  crud.rootDTOs.map { it.compileDataModel() }
+        }
 
+        fun getStats(): Event?{
+            crudResult.event?.print()
+            return crudResult.event
+        }
+
+        fun callbackOnResult(callback : (List<DATA>)->Unit ){
+            callback.invoke(getData(crudResult))
+        }
 }

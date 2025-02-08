@@ -8,10 +8,12 @@ import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.models.CrudResult
 import po.exposify.scope.dto.DTOContext
+import po.exposify.scope.sequence.classes.SequenceHandler
 
 class SequenceContext<DATA, ENTITY>(
     val connection: Database,
-    val hostDto : DTOClass<DATA,ENTITY>
+    val hostDto : DTOClass<DATA,ENTITY>,
+    private val handler : SequenceHandler<*>
 ) where  DATA : DataModel, ENTITY : LongEntity
 {
 
@@ -27,20 +29,34 @@ class SequenceContext<DATA, ENTITY>(
         return result
     }
 
-    fun List<CommonDTO<DATA, ENTITY>>.checkout(block: DTOContext<DATA, ENTITY>.()-> Unit){
-        DTOContext<DATA, ENTITY>(CrudResult<DATA, ENTITY>(this,null)).block()
+//    fun List<CommonDTO<DATA, ENTITY>>.checkout(
+//        block: DTOContext<DATA, ENTITY>.()-> Unit
+//    ) {
+//        DTOContext<DATA, ENTITY>(CrudResult<DATA, ENTITY>(this, null)).block()
+//    }
+
+    fun checkout(
+        block: (DTOContext<DATA, ENTITY>.()-> Unit)?  = null
+    ) {
+        val newDtoContext = DTOContext<DATA, ENTITY>(
+            CrudResult<DATA, ENTITY>(dtos(), null),
+            handler.getResultCallback() as (List<DATA>) -> Unit
+        )
+        block?.invoke(newDtoContext)
     }
 
     fun <SWITCH_DATA: DataModel, SWITCH_ENTITY : LongEntity> DTOClass<SWITCH_DATA, SWITCH_ENTITY>.switch(
         block:  SequenceContext<SWITCH_DATA, SWITCH_ENTITY>.(dtos: List<CommonDTO<SWITCH_DATA, SWITCH_ENTITY>>)->Unit ){
 
         val list = dtos().map { it.getChildren<SWITCH_DATA, SWITCH_ENTITY>(this) }.flatten()
-        val result =  CrudResult<SWITCH_DATA, SWITCH_ENTITY>(list as List<CommonDTO<SWITCH_DATA, SWITCH_ENTITY>>, null )
-        val newSequenceContext =  SequenceContext<SWITCH_DATA, SWITCH_ENTITY>(connection, this)
+        val result =  CrudResult<SWITCH_DATA, SWITCH_ENTITY>(list, null )
+        val newSequenceContext =  SequenceContext<SWITCH_DATA, SWITCH_ENTITY>(connection, this, handler)
         newSequenceContext.block(list)
     }
 
-    fun select(block: SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA,ENTITY>>)-> Unit){
+    fun select(
+        block: SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit
+    ) {
         val result by lazy {
             dbQuery { lastResult = hostDto.select() }
             dtos()
@@ -50,8 +66,8 @@ class SequenceContext<DATA, ENTITY>(
 
     fun update(
         dataModels: List<DATA>,
-        block: SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA,ENTITY>>)-> Unit)
-    {
+        block: SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit
+    ) {
         val result by lazy {
             dbQuery { lastResult = hostDto.update<DATA, ENTITY>(dataModels) }
             dtos()
