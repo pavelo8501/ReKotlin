@@ -6,10 +6,8 @@ import com.auth0.jwt.JWTVerifier
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.exceptions.JWTDecodeException
 import com.auth0.jwt.interfaces.DecodedJWT
-import io.ktor.server.auth.Credential
 import io.ktor.server.auth.jwt.JWTCredential
 import io.ktor.server.auth.jwt.JWTPrincipal
-import io.ktor.server.routing.RoutingContext
 import kotlinx.coroutines.runBlocking
 import po.lognotify.shared.enums.HandleType
 import po.restwraptor.exceptions.AuthErrorCodes
@@ -23,9 +21,9 @@ import java.security.interfaces.RSAPrivateKey
 import java.security.interfaces.RSAPublicKey
 import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
+import java.time.Instant
 import java.util.Base64
 import java.util.Date
-import javax.print.DocFlavor
 
 class JWTService{
 
@@ -117,7 +115,7 @@ class JWTService{
             .withIssuer(config.issuer)
             .withClaim(config.claimFieldName, user.login)
             .withClaim("user", user.toPayload())
-            .withExpiresAt(Date(System.currentTimeMillis() + 60000))
+            .withExpiresAt(Date.from(Instant.now().plusSeconds(3600)))
             .sign(Algorithm.RSA256(null, privateKey))
 
     @JvmName("getServiceVerifier")
@@ -137,9 +135,6 @@ class JWTService{
     fun checkCredential(credential: JWTCredential): JWTPrincipal?{
         val claim =  credential.payload.getClaim(service.claim).asString()
         return if(claim != null){
-
-            val payload = credential.payload
-
             JWTPrincipal(credential.payload)
         }else{
             null
@@ -151,9 +146,9 @@ class JWTService{
         headerUpdateFn : suspend  (String?)-> Unit
     ){
         val decodedJWT = decodeToken(jwtString)
-        val expirationTime = decodedJWT.expiresAt?.time ?: 0
-        val currentTime = System.currentTimeMillis()
-        if (expirationTime - currentTime < 5 * 60 * 1000) {
+        val expirationLong = decodedJWT.expiresAt?.time ?: 0
+        val expirationTime =  Instant.ofEpochMilli(expirationLong)
+        if(expirationTime.isBefore(Instant.now())){
             val user = decodedJWT.getClaim("user").asString()
             val userInterface =   SecuredUserInterface.fromPayload(user)
             if(userInterface!= null){

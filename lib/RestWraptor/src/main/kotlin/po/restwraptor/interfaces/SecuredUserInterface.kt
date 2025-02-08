@@ -5,6 +5,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 interface SecuredUserInterface {
     var id : Long
@@ -22,8 +23,7 @@ interface SecuredUserInterface {
 
         fun toJsonElement(jsonStr : String): JsonElement?{
             try {
-
-                val element = json.encodeToJsonElement(jsonStr)
+                val element = json.parseToJsonElement(jsonStr)
                 return element
             }catch (ex: SerializationException){
                 throw ex
@@ -32,7 +32,7 @@ interface SecuredUserInterface {
 
         fun getValueFromJsonElement(element: JsonElement, key: String): String?{
             element.jsonObject.keys.firstOrNull { it == key }?.let {
-               return element.jsonObject[it].toString()
+               return element.jsonObject[it]?.jsonPrimitive?.content
             }?:run {
                 return null
             }
