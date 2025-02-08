@@ -55,7 +55,7 @@ class ServiceClass<DATA, ENTITY>(
     private fun launchSequence(name: String, data : List<DATA>? = null){
 
         println("Launch Sequence on ServiceClass with name :${name}")
-        serviceContext?.sequences2?.values?.firstOrNull{ it.name ==  name}?.let{pack->
+        serviceContext?.sequences?.values?.firstOrNull{ it.name ==  name}?.let{pack->
             println("Found Pack  :${pack.name}")
             connectionClass.launchSequence<DATA,ENTITY>(pack, data)
 

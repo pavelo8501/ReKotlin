@@ -8,6 +8,8 @@ import po.exposify.scope.dto.DTOContext
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.scope.sequence.SequenceContext
+import po.exposify.scope.sequence.classes.DefaultSequenceHandler
+import po.exposify.scope.sequence.classes.SequenceHandler
 import po.exposify.scope.sequence.models.SequencePack
 import po.exposify.scope.service.enums.WriteMode
 import kotlin.reflect.KProperty1
@@ -20,7 +22,7 @@ class ServiceContext<DATA,ENTITY>(
     val name : String = "${rootDtoModel.className}|Service"
 
     internal val sequences =
-        mutableMapOf<String, SequencePack<DATA, ENTITY>>()
+        mutableMapOf<SequenceHandler<List<DATA>>, SequencePack<DATA, ENTITY>>()
 
     private fun  <T>dbQuery(body : () -> T): T = transaction(dbConnection) {
         body()
@@ -80,10 +82,23 @@ class ServiceContext<DATA,ENTITY>(
 
     fun DTOClass<DATA, ENTITY>.sequence(
         name:String,
-        block: suspend SequenceContext<DATA, ENTITY>.(List<DATA>?) -> Unit)
-    {
-        sequences[name] = SequencePack(name, SequenceContext<DATA, ENTITY>(dbConnection, rootDtoModel), block)
+        block: suspend SequenceContext<DATA, ENTITY>.(List<DATA>?) -> Unit
+    ) {
+        val defaultHandler = DefaultSequenceHandler<List<DATA>>(name){}
+        val container = SequencePack(
+            SequenceContext<DATA, ENTITY>(dbConnection, rootDtoModel, defaultHandler), block
+        )
+        sequences[defaultHandler] = container
+    }
 
+    fun DTOClass<DATA, ENTITY>.sequence(
+        handler: SequenceHandler<List<DATA>>,
+        block: suspend SequenceContext<DATA, ENTITY>.(List<DATA>?) -> Unit
+    ) {
+        val container = SequencePack(
+            SequenceContext<DATA, ENTITY>(dbConnection, rootDtoModel, handler), block
+        )
+        sequences[handler] = container
     }
 
 }
