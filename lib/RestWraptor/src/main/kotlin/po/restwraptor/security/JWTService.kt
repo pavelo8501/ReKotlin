@@ -4,6 +4,7 @@ import com.auth0.jwk.JwkProvider
 import com.auth0.jwt.JWT
 import com.auth0.jwt.JWTVerifier
 import com.auth0.jwt.algorithms.Algorithm
+import com.auth0.jwt.exceptions.JWTDecodeException
 import com.auth0.jwt.interfaces.DecodedJWT
 import io.ktor.server.auth.Credential
 import io.ktor.server.auth.jwt.JWTCredential
@@ -106,13 +107,17 @@ class JWTService{
         }
     }
 
+    private fun cleanToken(token: String): String{
+       return token.removePrefix("Bearer").trim()
+    }
+
     fun generateToken(user: SecuredUserInterface): String =
         JWT.create()
             .withAudience(config.audience)
             .withIssuer(config.issuer)
             .withClaim(config.claimFieldName, user.login)
+            .withClaim("user", user.toPayload())
             .withExpiresAt(Date(System.currentTimeMillis() + 60000))
-            .withPayload(user.toPayload())
             .sign(Algorithm.RSA256(null, privateKey))
 
     @JvmName("getServiceVerifier")
@@ -122,23 +127,19 @@ class JWTService{
         return verifier
     }
 
-    //            val login =   credential.payload.getClaim(claim).asString()
-//            val user = requestAuthenticatedUser(login)
-//            if(user!=null){
-//               val newToken =  this.generateToken(user)
-//                onHeaderUpdate?.invoke("Authorization", "Bearer $newToken")
-//            }
-
     fun decodeToken(token: String): DecodedJWT =
         try {
-            verifier.verify(token)
-        } catch (e: Exception) {
-            throw AuthException(AuthErrorCodes.INVALID_TOKEN, "Error while verifying token: ${e.message}")
+            verifier.verify(cleanToken(token))
+        } catch (ex: JWTDecodeException) {
+            throw AuthException(AuthErrorCodes.INVALID_TOKEN, "Error while verifying token: ${ex.message}")
         }
 
     fun checkCredential(credential: JWTCredential): JWTPrincipal?{
         val claim =  credential.payload.getClaim(service.claim).asString()
-        return if(claim!=null){
+        return if(claim != null){
+
+            val payload = credential.payload
+
             JWTPrincipal(credential.payload)
         }else{
             null
@@ -153,10 +154,13 @@ class JWTService{
         val expirationTime = decodedJWT.expiresAt?.time ?: 0
         val currentTime = System.currentTimeMillis()
         if (expirationTime - currentTime < 5 * 60 * 1000) {
-            val userInterface =   SecuredUserInterface.fromPayload(decodedJWT.payload.toString())
-            val newToken =  this@JWTService.generateToken(userInterface)
-            runBlocking {
-                headerUpdateFn.invoke(newToken)
+            val user = decodedJWT.getClaim("user").asString()
+            val userInterface =   SecuredUserInterface.fromPayload(user)
+            if(userInterface!= null){
+                val newToken =  this@JWTService.generateToken(userInterface)
+                runBlocking {
+                    headerUpdateFn.invoke(newToken)
+                }
             }
         }
     }

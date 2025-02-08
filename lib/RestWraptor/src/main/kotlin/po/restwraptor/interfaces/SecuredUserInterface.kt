@@ -22,7 +22,9 @@ interface SecuredUserInterface {
 
         fun toJsonElement(jsonStr : String): JsonElement?{
             try {
-                return  json.encodeToJsonElement(jsonStr)
+
+                val element = json.encodeToJsonElement(jsonStr)
+                return element
             }catch (ex: SerializationException){
                 throw ex
             }
@@ -36,16 +38,22 @@ interface SecuredUserInterface {
             }
         }
 
-        fun fromPayload(payload: String):SecuredUserInterface{
-            val result =  object : SecuredUserInterface{
-                override var id: Long = 0
-                override var login: String = ""
-                override var roles: List<String> = emptyList()
-                override fun toPayload(): String {
-                    return  payload
+        fun fromPayload(payload: String):SecuredUserInterface? {
+            toJsonElement(payload)?.let { element ->
+
+                val result = object : SecuredUserInterface {
+                    override var id: Long = 0
+                    override var login: String = ""
+                    override var roles: List<String> = emptyList()
+                    override fun toPayload(): String {
+                        return payload
+                    }
                 }
+                result.id = getValueFromJsonElement(element, "id")?.toLong() ?: 0
+                result.login = getValueFromJsonElement(element, "login")?:""
+                return result
             }
-            return result
+            return null
         }
     }
 }
