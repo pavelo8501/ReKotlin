@@ -15,7 +15,7 @@ import po.playground.projects.data_service.dto.PartnerDataModel
 import po.playground.projects.data_service.dto.PartnerEntity
 
 object PartnerUpdate :
-    SequenceHandler<List<PartnerDataModel>>("update_partner", {})
+    SequenceHandler<PartnerDataModel>(PartnerDTO, "update_partner")
 
 
 fun mockOfRestRequest(){
@@ -33,20 +33,17 @@ fun startDataService(connectionInfo : ConnectionInfo) {
         service<PartnerDataModel, PartnerEntity>(PartnerDTO, TableCreateMode.CREATE){
             PartnerDTO.sequence(PartnerUpdate){
                 select{
-                    it.checkout{
-
-                    }
+                    checkout()
                 }
             }
         }
     }
-    PartnerDTO.triggerSequence("update_page")
+    mockOfRestRequest()
    if(connection){
        println("Connection OK")
 
        println("🔄 Processing... Press Enter to exit.")
        readLine()
-
 
    }else{
        throw Exception("Connection not established")

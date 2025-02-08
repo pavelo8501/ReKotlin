@@ -29,11 +29,20 @@ class SequenceContext<DATA, ENTITY>(
         return result
     }
 
-    fun List<CommonDTO<DATA, ENTITY>>.checkout(
-        block: DTOContext<DATA, ENTITY>.()-> Unit
+//    fun List<CommonDTO<DATA, ENTITY>>.checkout(
+//        block: DTOContext<DATA, ENTITY>.()-> Unit
+//    ) {
+//        DTOContext<DATA, ENTITY>(CrudResult<DATA, ENTITY>(this, null)).block()
+//    }
+
+    fun checkout(
+        block: (DTOContext<DATA, ENTITY>.()-> Unit)?  = null
     ) {
-        @Suppress("UNCHECKED_CAST")
-        DTOContext<DATA, ENTITY>(CrudResult<DATA, ENTITY>(this,null), handler.callback as ((Any) -> Unit)?).block()
+        val newDtoContext = DTOContext<DATA, ENTITY>(
+            CrudResult<DATA, ENTITY>(dtos(), null),
+            handler.getResultCallback() as (List<DATA>) -> Unit
+        )
+        block?.invoke(newDtoContext)
     }
 
     fun <SWITCH_DATA: DataModel, SWITCH_ENTITY : LongEntity> DTOClass<SWITCH_DATA, SWITCH_ENTITY>.switch(

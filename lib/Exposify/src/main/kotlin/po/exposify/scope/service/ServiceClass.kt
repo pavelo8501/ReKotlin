@@ -55,9 +55,13 @@ class ServiceClass<DATA, ENTITY>(
     private fun launchSequence(name: String, data : List<DATA>? = null){
 
         println("Launch Sequence on ServiceClass with name :${name}")
-        serviceContext?.sequences?.values?.firstOrNull{ it.name ==  name}?.let{pack->
-            println("Found Pack  :${pack.name}")
-            connectionClass.launchSequence<DATA,ENTITY>(pack, data)
+
+        serviceContext?.sequences?.keys?.firstOrNull{ it.name ==  name}?.let{key->
+            val pack = serviceContext?.sequences?.get(key)
+            pack?.let {
+                println("Found Pack  :${key.name}")
+                connectionClass.launchSequence<DATA,ENTITY>(it, data)
+            }
 
         }?:run {
             throw OperationsException("Sequence not found", ExceptionCodes.NOT_INITIALIZED)

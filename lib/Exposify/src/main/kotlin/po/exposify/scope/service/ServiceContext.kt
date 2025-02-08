@@ -22,7 +22,7 @@ class ServiceContext<DATA,ENTITY>(
     val name : String = "${rootDtoModel.className}|Service"
 
     internal val sequences =
-        mutableMapOf<SequenceHandler<List<DATA>>, SequencePack<DATA, ENTITY>>()
+        mutableMapOf<SequenceHandler<DATA>, SequencePack<DATA, ENTITY>>()
 
     private fun  <T>dbQuery(body : () -> T): T = transaction(dbConnection) {
         body()
@@ -84,19 +84,23 @@ class ServiceContext<DATA,ENTITY>(
         name:String,
         block: suspend SequenceContext<DATA, ENTITY>.(List<DATA>?) -> Unit
     ) {
-        val defaultHandler = DefaultSequenceHandler<List<DATA>>(name){}
+        val defaultHandler = DefaultSequenceHandler<DATA>(rootDtoModel, name)
         val container = SequencePack(
-            SequenceContext<DATA, ENTITY>(dbConnection, rootDtoModel, defaultHandler), block
+            SequenceContext<DATA, ENTITY>(dbConnection, rootDtoModel, defaultHandler),
+            block,
+            defaultHandler
         )
         sequences[defaultHandler] = container
     }
 
     fun DTOClass<DATA, ENTITY>.sequence(
-        handler: SequenceHandler<List<DATA>>,
+        handler: SequenceHandler<DATA>,
         block: suspend SequenceContext<DATA, ENTITY>.(List<DATA>?) -> Unit
     ) {
         val container = SequencePack(
-            SequenceContext<DATA, ENTITY>(dbConnection, rootDtoModel, handler), block
+            SequenceContext<DATA, ENTITY>(dbConnection, rootDtoModel, handler),
+            block,
+            handler
         )
         sequences[handler] = container
     }

@@ -36,7 +36,7 @@ import po.exposify.models.CrudResult
  */
 class DTOContext<DATA, ENTITY>(
     private val  crudResult : CrudResult<DATA, ENTITY>,
-    private val resultCallback: ((Any)-> Unit)? = null,
+    private val resultCallback: ((List<DATA> )-> Unit)? = null,
     )  where DATA : DataModel, ENTITY : LongEntity {
 
 
@@ -44,7 +44,7 @@ class DTOContext<DATA, ENTITY>(
             resultCallback?.let{callbackOnResult(resultCallback)}
         }
 
-        private fun extractData(crud: CrudResult<DATA, ENTITY>): List<DATA>{
+        fun getData(crud: CrudResult<DATA, ENTITY>): List<DATA>{
             return  crud.rootDTOs.map { it.compileDataModel() }
         }
 
@@ -54,6 +54,6 @@ class DTOContext<DATA, ENTITY>(
         }
 
         fun callbackOnResult(callback : (List<DATA>)->Unit ){
-            callback.invoke(extractData(crudResult))
+            callback.invoke(getData(crudResult))
         }
 }
