@@ -9,11 +9,12 @@ import po.exposify.dto.CommonDTO
 import po.exposify.models.CrudResult
 import po.exposify.scope.dto.DTOContext
 import po.exposify.scope.sequence.classes.SequenceHandler
+import kotlin.reflect.KProperty1
 
 class SequenceContext<DATA, ENTITY>(
     val connection: Database,
     val hostDto : DTOClass<DATA,ENTITY>,
-    private val handler : SequenceHandler<*>
+    private val handler : SequenceHandler<out DATA>
 ) where  DATA : DataModel, ENTITY : LongEntity
 {
 
@@ -29,18 +30,12 @@ class SequenceContext<DATA, ENTITY>(
         return result
     }
 
-//    fun List<CommonDTO<DATA, ENTITY>>.checkout(
-//        block: DTOContext<DATA, ENTITY>.()-> Unit
-//    ) {
-//        DTOContext<DATA, ENTITY>(CrudResult<DATA, ENTITY>(this, null)).block()
-//    }
 
     fun checkout(
         block: (DTOContext<DATA, ENTITY>.()-> Unit)?  = null
     ) {
         val newDtoContext = DTOContext<DATA, ENTITY>(
             CrudResult<DATA, ENTITY>(dtos(), null),
-            handler.getResultCallback() as (List<DATA>) -> Unit
         )
         block?.invoke(newDtoContext)
     }
@@ -49,8 +44,12 @@ class SequenceContext<DATA, ENTITY>(
         block:  SequenceContext<SWITCH_DATA, SWITCH_ENTITY>.(dtos: List<CommonDTO<SWITCH_DATA, SWITCH_ENTITY>>)->Unit ){
 
         val list = dtos().map { it.getChildren<SWITCH_DATA, SWITCH_ENTITY>(this) }.flatten()
-        val result =  CrudResult<SWITCH_DATA, SWITCH_ENTITY>(list, null )
-        val newSequenceContext =  SequenceContext<SWITCH_DATA, SWITCH_ENTITY>(connection, this, handler)
+        val result =  CrudResult<SWITCH_DATA, SWITCH_ENTITY>(list, null)
+        val newSequenceContext =  SequenceContext<SWITCH_DATA, SWITCH_ENTITY>(
+            connection,
+            this,
+            handler as  SequenceHandler<SWITCH_DATA>
+        )
         newSequenceContext.block(list)
     }
 
@@ -75,15 +74,83 @@ class SequenceContext<DATA, ENTITY>(
         this.block(result)
     }
 
-    @JvmName("UpdateDtos")
     fun update(
-        dtos: List<CommonDTO<DATA,ENTITY>>,
-        block: SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA,ENTITY>>)-> Unit)
+        block: (dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit
+    ) {
+         handler.inputData?.let {
+             val result by lazy {
+                 dbQuery { lastResult = hostDto.update<DATA, ENTITY>(it) }
+                 dtos()
+             }
+             block(result)
+         }
+    }
+
+    @JvmName("UpdateDtos")
+    fun List<CommonDTO<DATA,ENTITY>>.update(
+        block: (dtos: List<CommonDTO<DATA,ENTITY>>)-> Unit)
     {
         val result by lazy {
-            dbQuery { lastResult = hostDto.update<DATA, ENTITY>(dtos.map { it.getInjectedModel() }) }
+            dbQuery { lastResult = hostDto.update<DATA, ENTITY>(this.map { it.getInjectedModel() }) }
             dtos()
         }
-        this.block(result)
+        block(result)
     }
+
+
+    /**
+     * Dynamically fetches a list of DTOs from the database based on the provided conditions
+     * and executes a block of code with the resulting DTOs.
+     *
+     * This function is intended to be used within a `SequenceContext`, allowing sequence handlers
+     * to retrieve and operate on filtered data dynamically.
+     *
+     * @param conditions A list of conditions, where each condition is a [Pair] consisting of:
+     *   - A property of [DATA], defined as [KProperty1], used to filter the data.
+     *   - A value of type [Any?], which represents the expected value for the corresponding property.
+     * @param block A lambda block that is executed with the fetched list of [CommonDTO]s.
+     * The block provides access to the filtered DTOs for further operations.
+     *
+     * ### How It Works
+     * 1. Checks if the sequence handler contains any input data using `handler.inputData`.
+     * 2. If input data exists, fetches the filtered results using the specified conditions.
+     * 3. Lazily initializes the results by querying the database and invoking the block with the fetched DTOs.
+     *
+     * ### Usage Example
+     *
+     * ```kotlin
+     * sequenceContext.pick(
+     *     listOf(
+     *         PartnerDataModel::name to "John Doe",
+     *         PartnerDataModel::isActive to true
+     *     )
+     * ) { dtos ->
+     *     // Perform actions with the fetched DTOs
+     *     println("Fetched DTOs: $dtos")
+     * }
+     * ```
+     *
+     * The above example will:
+     * 1. Build a query to fetch DTOs where `name == "John Doe"` and `isActive == true`.
+     * 2. Execute the block with the resulting DTOs, if any are found.
+     *
+     * ### Notes
+     * - The function uses `dbQuery` internally to query the database.
+     * - The block will only execute if `handler.inputData` contains at least one entry.
+     * - If no data matches the conditions, the block will not be executed.
+     */
+    fun pick(
+        vararg conditions: Pair<KProperty1<DATA, *>, Any?>,
+        block: (dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit
+    ) {
+        handler.inputData?.firstOrNull()?.let {
+            val result by lazy {
+                dbQuery { lastResult = hostDto.pick(conditions.toList()) }
+                dtos()
+            }
+            block(result)
+        }
+    }
+
 }
+

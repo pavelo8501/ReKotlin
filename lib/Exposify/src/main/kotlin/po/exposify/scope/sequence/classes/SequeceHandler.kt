@@ -68,6 +68,14 @@ abstract class SequenceHandler<T>(
         return resultCallback
     }
 
+    fun getData(): List<T>{
+        return this.inputData?:emptyList()
+    }
+
+    fun getFrst(): T?{
+        return this.inputData?.firstOrNull()
+    }
+
     /**
      * Executes the sequence with the given input data and assigns a result callback function.
      * @param listedData The input data for the sequence execution.

@@ -33,6 +33,40 @@ class ServiceContext<DATA,ENTITY>(
         serviceBody()
     }
 
+    /**
+     * Dynamically selects DTOs from the database based on the provided conditions and executes a block
+     * of code within the context of the selected DTOs.
+     *
+     * @param conditions A vararg list of conditions, where each condition is a [Pair] consisting of:
+     *   - A property of [DATA], defined as [KProperty1], to be used in the query.
+     *   - A value of type [Any?], which represents the expected value for the corresponding property.
+     * @param block A lambda block that operates on the selected DTOs, provided in the context of [DTOContext].
+     * The block allows you to work with the fetched DTOs and perform additional actions.
+     *
+     * @return The same [DTOClass] instance or `null` if no DTOs are selected. The return value is primarily
+     * intended for chaining purposes but can be ignored if not needed.
+     *
+     * ### Usage Example
+     *
+     * ```kotlin
+     * PartnerDTO.pick(
+     *     PartnerDataModel::name to "John Doe",
+     *     PartnerDataModel::isActive to true
+     * ) {
+     *     // Code block executed with the selected DTOs
+     *     println("Selected partners: $this")
+     * }
+     * ```
+     *
+     * The above example will:
+     * 1. Dynamically build a query to select `PartnerDTO` entries where `name == "John Doe"` and `isActive == true`.
+     * 2. Provide the selected DTOs in the context of the block.
+     * 3. Allow you to operate on the selected DTOs inside the block (e.g., logging, modifying, etc.).
+     *
+     * ### Notes
+     * - The function uses `dbQuery` internally to fetch the selected DTOs.
+     * - If no DTOs match the conditions, the block will still execute with an empty context.
+     */
     fun DTOClass<DATA, ENTITY>.pick(
         vararg conditions: Pair<KProperty1<DATA, *>, Any?>, block: DTOContext<DATA, ENTITY>.() -> Unit
     ): DTOClass<DATA, ENTITY>?

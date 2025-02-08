@@ -44,8 +44,12 @@ class DTOContext<DATA, ENTITY>(
             resultCallback?.let{callbackOnResult(resultCallback)}
         }
 
-        fun getData(crud: CrudResult<DATA, ENTITY>): List<DATA>{
+        private fun asDataModels(crud: CrudResult<DATA, ENTITY>): List<DATA>{
             return  crud.rootDTOs.map { it.compileDataModel() }
+        }
+
+        fun getData(): List<DATA>{
+            return  asDataModels(crudResult)
         }
 
         fun getStats(): Event?{
@@ -54,6 +58,6 @@ class DTOContext<DATA, ENTITY>(
         }
 
         fun callbackOnResult(callback : (List<DATA>)->Unit ){
-            callback.invoke(getData(crudResult))
+            callback.invoke(asDataModels(crudResult))
         }
 }
