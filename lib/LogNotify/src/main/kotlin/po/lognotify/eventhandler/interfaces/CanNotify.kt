@@ -20,7 +20,7 @@ interface CanNotify{
     fun notifyError(message: String) =  eventHandler.error(message)
 
 
-    fun <E: ProcessableException> propagatedException(message: String?, block: (E.()->Unit)? = null)
+    fun <E: ProcessableException> throwPropagated(message: String?, block: (E.()->Unit)? = null)
         = eventHandler.raisePropagateException(message,block)
 
     fun throwSkip(message: String?): SkipException{

@@ -1,5 +1,8 @@
 package po.exposify.exceptions
 
+import po.lognotify.eventhandler.exceptions.ProcessableException
+import po.lognotify.shared.enums.HandleType
+
 enum class  ExceptionCodes (val errorCode:Int) {
     UNDEFINED(0),
     INITIALIZATION_OUTSIDE_CONTEXT (1001),
@@ -28,4 +31,5 @@ enum class  ExceptionCodes (val errorCode:Int) {
 
 class TypeMismatchException(message: String) : RuntimeException(message)
 class InitializationException(message: String, code : ExceptionCodes) : RuntimeException(message)
-class OperationsException(message: String, code : ExceptionCodes) : RuntimeException(message)
+class OperationsException(message: String, code : ExceptionCodes) :
+    ProcessableException(message, HandleType.PROPAGATE_TO_PARENT)

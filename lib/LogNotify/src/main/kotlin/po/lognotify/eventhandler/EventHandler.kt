@@ -1,9 +1,12 @@
 package po.lognotify.eventhandler
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import po.lognotify.eventhandler.components.ExceptionHandler
 import po.lognotify.eventhandler.components.ExceptionHandlerInterface
 import po.lognotify.eventhandler.exceptions.NotificatorUnhandledException
@@ -109,11 +112,15 @@ sealed class EventHandlerBase(
         }
     }
 
-    internal suspend inline fun <T: Any?>processAndMeasure(event : Event, fn: suspend ()-> T?):T?{
+    internal suspend inline fun <T: Any?>processAndMeasure(
+        asyncMode: Boolean,  event : Event, controlledProcessFn: suspend ()-> T?
+    ):T? {
         try {
-            val res = fn.invoke()
+            val res = controlledProcessFn.invoke()
             event.stopTimer()
-            notifierScope.launch {
+            if(asyncMode){
+                notifierScope.launch { handleEvent(event) }
+            }else{
                 handleEvent(event)
             }
             return res
@@ -145,6 +152,32 @@ sealed class EventHandlerBase(
         }
     }
 
+    fun <T: Any?> actionAsync(message: String, fn: suspend () -> T?): Deferred<T?> {
+        return CoroutineScope(Dispatchers.IO).async {
+            processAndMeasure(true, helper.newEvent(message), fn)
+        }
+    }
+
+    fun <T: Any?> action(message: String, fn: suspend () -> T?): T? {
+        return runBlocking {
+            async { processAndMeasure(false, helper.newEvent(message), fn) }.await()
+        }
+    }
+
+    @JvmName("eventActionAsyncNoReturn")
+    fun actionAsync(message: String, fn: suspend () -> Unit) {
+        CoroutineScope(Dispatchers.IO).launch {
+            processAndMeasure(true, helper.newEvent(message)) { fn.invoke() }
+        }
+    }
+
+    @JvmName("eventActionNoReturn")
+    fun action(message: String, fn: suspend () -> Unit) {
+        runBlocking {
+            processAndMeasure(false, helper.newEvent(message)) { fn.invoke() }
+        }
+    }
+
     fun info(message: String){
         handleEvent(Event(routedName, message, SeverityLevel.INFO))
     }
@@ -154,17 +187,6 @@ sealed class EventHandlerBase(
         }
     }
 
-    suspend fun <T: Any?> action(message: String,  fn: suspend ()-> T?):T?{
-        return processAndMeasure(helper.newEvent(message), fn)
-    }
-    @JvmName("eventActionNoReturn")
-
-    suspend fun action(message: String, fn: suspend ()-> Unit){
-        processAndMeasure(helper.newEvent(message)){
-            fn.invoke()
-        }
-        null
-    }
 
     fun error(message: String){
         notifierScope.launch {

@@ -1,9 +1,9 @@
 package po.exposify.scope.dto
 
 import org.jetbrains.exposed.dao.LongEntity
-import po.exposify.components.eventhandler.models.Event
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.models.CrudResult
+import po.lognotify.eventhandler.models.Event
 
 /**
  * A context class used to encapsulate and simplify interaction with `DTOFunctions`.

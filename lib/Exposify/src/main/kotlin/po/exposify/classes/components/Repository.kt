@@ -149,13 +149,13 @@ sealed class RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
         }
     }
 
-    private val onInitHostedByData = mutableListOf<
+    private  val onInitHostedByData = mutableListOf<
             Pair<HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,
-                        ()-> Unit>>()
+                    suspend ()-> Unit>>()
 
-    private fun subscribeOnInitByData(
+   private suspend fun subscribeOnInitByData(
         subscriber: HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,
-        callback: ()-> Unit){
+        callback: suspend ()-> Unit){
         onInitHostedByData.add(Pair(subscriber, callback))
     }
 
@@ -164,7 +164,7 @@ sealed class RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
                 (ENTITY)-> Unit>>()
 
 
-    fun deleteAll(){
+    suspend fun deleteAll(){
         println("DeleteAll called in : $repoName")
         dtoList.forEach {
             it.sourceModel.daoService.delete(it)
@@ -172,7 +172,7 @@ sealed class RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
     }
 
 
-    fun deleteAllRecursively() {
+    suspend fun deleteAllRecursively() {
         println("DeleteAllRecursively called on : $repoName")
         // Recursively delete all child repositories first
         dtoList.forEach { childHostDTO ->
@@ -184,15 +184,15 @@ sealed class RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
     }
 
 
-            /**
+    /**
      * Propagate a call to the parent repository.
      */
-    fun propagateOnUpdateByData(
+    suspend fun propagateOnUpdateByData(
         childDTO: HostDTO<CHILD_DATA, CHILD_ENTITY,DATA, ENTITY>){
         childDTO.onUpdate?.invoke()
     }
 
-    fun propagateOnInitByEntity(
+    suspend fun propagateOnInitByEntity(
         entity:CHILD_ENTITY,
         childDTO: HostDTO<CHILD_DATA, CHILD_ENTITY,DATA, ENTITY>){
         childDTO.onUpdateFromEntity?.invoke(entity)
@@ -206,7 +206,7 @@ sealed class RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
         }
     }
 
-    fun initialize(entity:ENTITY){
+   suspend  fun initialize(entity:ENTITY){
         println("Initialize  in  $repoName")
         getReferences(entity).forEach { childEntity ->
             factory.createDataModel().let { dataModel ->
@@ -224,7 +224,7 @@ sealed class RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
         println("Repository initialized for ${parent.sourceModel.className} with id ${parent.getInjectedModel().id}")
     }
 
-    fun initialize(dataModel:DATA){
+   suspend fun initialize(dataModel:DATA){
         extractDataModel(dataModel).forEach { childData ->
             createHosted(childData).let { hosted ->
                 dtoList.add(hosted)
@@ -239,14 +239,15 @@ sealed class RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
         println("ByData Subscriptions count ${onInitHostedByData.count()}")
         // "This needs to be refactored. Calling to loop through repos inside a repo creates complexity"
         parent.repositories.values.forEach {
-            it.subscribeOnInitByData(parent){
+
+            it.subscribeOnInitByData(parent) {
                 dtoList.forEach { dto ->
-                    if(!dto.isSaved) {
+                    if (!dto.isSaved) {
                         dto.sourceModel.daoService.saveNew(dto) {
                             setReferenced(it, parent.entityDAO)
                         }
                         propagateOnUpdateByData(dto)
-                    }else{
+                    } else {
                         dto.sourceModel.daoService.updateExistent(dto)
                         propagateOnUpdateByData(dto)
                     }

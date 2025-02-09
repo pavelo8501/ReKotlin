@@ -48,7 +48,7 @@ repositories {
 
 dependencies {
 
-    implementation("io.ktor:ktor-server-core:$ktorVersion")
+
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
@@ -57,13 +57,14 @@ dependencies {
     implementation("mysql:mysql-connector-java:$mysqlVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinSerializationVersion")
 
-    testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
+    api(project(":lib:LogNotify"))
+
+
     testImplementation("org.jetbrains.kotlin:kotlin-test:$kotlinVersion")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion")
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
     testImplementation("ch.qos.logback:logback-classic:$logbackClassicVersion")
     testImplementation("io.mockk:mockk:1.13.13")
-
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
