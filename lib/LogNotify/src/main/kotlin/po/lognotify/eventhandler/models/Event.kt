@@ -26,9 +26,7 @@ data class Event(
        private set
 
    val elapsedTime: String
-        get(){
-            stopTime?.let {
-
+        get(){ stopTime?.let {
                 return "Elapsed time $elapsed ms."
             }
             return "Elapsed time - N/A"
@@ -55,7 +53,6 @@ data class Event(
             stopTime = it
             elapsed  = ((it - startTime) / 1000f)
         }
-
     }
 
     /**

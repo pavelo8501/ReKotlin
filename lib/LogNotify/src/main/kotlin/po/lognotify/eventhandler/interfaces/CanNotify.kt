@@ -14,10 +14,10 @@ interface CanNotify{
     fun info(message: String) = eventHandler.info(message)
 
     suspend fun <T: Any>action(message: String,  fn: suspend ()-> T?) = coroutineScope{
-        eventHandler.action<T>(message, fn) }
+        eventHandler.task<T>(message, fn) }
 
     fun warn(message: String) = eventHandler.warn(message)
-    fun notifyError(message: String) =  eventHandler.error(message)
+    fun notifyError(message: String) =  eventHandler.warn(message)
 
 
     fun <E: ProcessableException> throwPropagated(message: String?, block: (E.()->Unit)? = null)

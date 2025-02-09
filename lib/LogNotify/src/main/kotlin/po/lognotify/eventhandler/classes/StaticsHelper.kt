@@ -9,7 +9,7 @@ interface StaticsHelperProvider {
     fun handledMsg(exception: Throwable): String
     fun msg(msg: String, ex: ProcessableException): String
     fun newInfo(msg: String):Event
-    fun newEvent(msg: String):Event
+    fun newTask(msg: String):Event
 }
 
 abstract class StaticsHelper: StaticsHelperProvider{
@@ -26,6 +26,6 @@ abstract class StaticsHelper: StaticsHelperProvider{
     }
 
     override fun newInfo(msg: String):Event { return  Event(moduleName, msg, SeverityLevel.INFO)}
-    override fun newEvent(msg: String):Event { return  Event(moduleName, msg, SeverityLevel.EVENT)}
+    override fun newTask(msg: String):Event { return  Event(moduleName, msg, SeverityLevel.TASK)}
 
 }

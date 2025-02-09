@@ -2,7 +2,7 @@ package po.lognotify.shared.enums
 
 enum class SeverityLevel (val level: Int) {
     INFO(1),
-    EVENT(2),
+    TASK(2),
     WARNING(3),
     EXCEPTION(4);
 

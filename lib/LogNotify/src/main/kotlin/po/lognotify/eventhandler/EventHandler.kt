@@ -1,16 +1,9 @@
 package po.lognotify.eventhandler
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import po.lognotify.eventhandler.components.ExceptionHandler
 import po.lognotify.eventhandler.components.ExceptionHandlerInterface
-import po.lognotify.eventhandler.exceptions.NotificatorUnhandledException
 import po.lognotify.eventhandler.exceptions.ProcessableException
+import po.lognotify.eventhandler.exceptions.UnmanagedException
 import po.lognotify.eventhandler.interfaces.HandlerStatics
 import po.lognotify.eventhandler.models.Event
 import po.lognotify.shared.enums.HandleType
@@ -18,187 +11,231 @@ import po.lognotify.shared.enums.SeverityLevel
 import java.util.concurrent.CopyOnWriteArrayList
 
 
+/**
+ * The root event handler responsible for managing the top-level event hierarchy.
+ * It serves as the entry point for event processing and ensures that all child events
+ * are properly recorded and managed.
+ *
+ * @param moduleName The name of the module associated with this event handler.
+ */
 class RootEventHandler(
     moduleName: String
-): EventHandlerBase(moduleName)
-{
-    override val isParent : Boolean = true
+): EventHandlerBase(moduleName, null) {
 
+    /** Indicates that this handler is the root of the event hierarchy. */
+    override val isParent: Boolean get() = true
+
+    /** A thread-safe queue storing all completed events. */
+    val eventQue = CopyOnWriteArrayList<Event>()
+
+    /** A callback function invoked when an exception needs to be propagated to the parent handler. */
     var onPropagateExceptionFn: (()->Unit)? = null
 
-    init {
-        handleEvent(helper.newInfo("$moduleName Notify Service Started"))
-    }
-
+    /**
+     * Registers a callback function to be executed when an exception is propagated to the parent.
+     * @param callback The function to be executed on propagation.
+     */
     fun onPropagateException(callback:()->Unit){
         onPropagateExceptionFn = callback
     }
 
+    /**
+    * Handles exceptions that need to be propagated to the parent.
+    * If no callback is set, the exception is logged and rethrown.
+    * @param ex The exception to be propagated.
+    * @throws ProcessableException if no handler is set.
+    */
     fun handlePropagatedException(ex: ProcessableException){
-        if (onPropagateExceptionFn != null) {
-            onPropagateExceptionFn!!.invoke()
-        } else {
-            warn("Propagate to parent Exception handed but no onPropagateException action is set."
-                    +"Rethrowing exception")
+        onPropagateExceptionFn?.invoke() ?: run {
+            warn("Propagate to parent Exception handled but no onPropagateException action is set. " +
+                    "Rethrowing exception")
             throw ex
         }
     }
 
-    fun getEvent(wipeData: Boolean = true): Event?{
-        val currentEventCopy = currentEvent?.let { event ->
-            Event(
-                module = event.module,
-                msg = event.msg,
-                type = event.type
-            ).also {
-                it.setElapsed(event.startTime, event.stopTime)
-                it.subEvents.addAll(event.subEvents)
-            }
-        }
-        if (wipeData) {
-            this.wipeData()
-        }
-        return currentEventCopy
+    /** Clears all stored events. */
+    override fun wipeData(){
+        eventQue.clear()
     }
 }
 
+/**
+ * A child event handler responsible for processing sub-events within the event hierarchy.
+ *
+ * @param moduleName The name of the module associated with this handler.
+ * @param parent The parent event handler that this handler reports to.
+ */
 class EventHandler(
     moduleName: String,
-    parentHandler: EventHandlerBase
-): EventHandlerBase(moduleName, parentHandler){
+    parent: EventHandlerBase
+): EventHandlerBase(moduleName, parent){
      override val isParent : Boolean = false
+
+    /** Clears the active task and its sub-events. */
+    override fun wipeData() {
+        activeTask?.subEvents?.clear()
+        activeTask = null
+    }
 }
 
+/**
+ * The base class for all event handlers, managing event registration, task execution,
+ * and exception handling.
+ *
+ * @param moduleName The name of the module associated with this handler.
+ * @param parent The parent event handler in the hierarchy (null if this is the root).
+ * @param exceptionHandler The exception handler used for processing errors.
+ */
 sealed class EventHandlerBase(
     override val moduleName: String,
-    val parent : EventHandlerBase? = null,
+    val parent: EventHandlerBase?,
     val exceptionHandler : ExceptionHandler = ExceptionHandler()
-) :  HandlerStatics,  ExceptionHandlerInterface by exceptionHandler
-{
+) :  HandlerStatics,  ExceptionHandlerInterface by exceptionHandler {
 
-    protected abstract val isParent : Boolean
+    /** Indicates whether this handler is a parent handler. */
+    open val isParent: Boolean get() = false
+
+    /** The full hierarchical name of the handler, including parent names. */
     var routedName: String = moduleName
-    val eventQue = CopyOnWriteArrayList<Event>()
-    var currentEvent : Event? = null
-        private set
 
+    /** The currently active task being processed. */
+    protected var activeTask : Event? = null
+
+    /** A helper object providing static utilities. */
     val helper = HandlerStatics
 
-    protected val notifierScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-
     init {
+        helper.init(routedName)
         if(parent != null){
             routedName = "${parent.routedName}|$moduleName"
         }
-        helper.init(routedName)
     }
 
-    private fun registerEvent(event: Event){
-        eventQue.add(event)
-        currentEvent = event
+    /**
+     * Registers an event and assigns it to the active task or propagates it to the parent.
+     * @param event The event to be registered.
+     * @return The registered event.
+     * @throws UnmanagedException if there is an issue during event registration.
+     */
+    private fun registerEvent(event: Event): Event{
+
+        //If active task present add to sub events
+        activeTask?.subEvents?.add(event) ?: run {
+            if (event.type == SeverityLevel.TASK) {
+                //If no active tasks and event is a task as active
+                activeTask = event
+            } else {
+                //If not a task propagate to parent
+                parent?.activeTask?.subEvents?.add(event) ?: run {
+                    throw UnmanagedException(
+                        "Parent active task is null when trying to add event: $event",
+                        null
+                    )
+                }
+            }
+        }
+        return event
     }
 
+    /**
+     * Finalizes the processing of a task, stopping the timer and assigning it to the correct handler.
+     * @param event The task event to be finalized.
+     * @throws UnmanagedException if an error occurs during finalization.
+     */
     @Synchronized
-    internal  fun handleException(ex: ProcessableException){
-        handleEvent(Event(routedName).setException(ex))
-    }
-
-    @Synchronized
-    internal fun handleEvent(event: Event){
-        if (parent == null) {
-            registerEvent(event)
-        } else {
-            parent.currentEvent?.subEvents?.add(event) ?: parent.handleEvent(event)
+    protected fun finalizeTask(event: Event){
+        if(event.type == SeverityLevel.TASK) {
+            event.stopTimer()
+            if (this is RootEventHandler) {
+                //If this is hierarchy root than add event to que and wipe ot current active event
+                eventQue.add(event)
+                activeTask = null
+            } else {
+                //if not a hierarchy root add to parent active event
+                parent?.activeTask?.subEvents?.add(event)?:run {
+                    throw UnmanagedException("Parent active task is null when trying to add event: $event")
+                }
+                activeTask = event
+            }
         }
     }
 
-    internal suspend inline fun <T: Any?>processAndMeasure(
-        asyncMode: Boolean,  event : Event, controlledProcessFn: suspend ()-> T?
-    ):T? {
-        try {
-            val res = controlledProcessFn.invoke()
-            event.stopTimer()
-            if(asyncMode){
-                notifierScope.launch { handleEvent(event) }
-            }else{
-                handleEvent(event)
+    /**
+     * Handles processable exceptions and determines the appropriate response.
+     * @param ex The exception to be handled.
+     */
+    private fun handleProcessableException(ex: ProcessableException){
+        when (ex.handleType) {
+            HandleType.SKIP_SELF -> {
+                registerEvent(Event(routedName).setException(ex))
             }
-            return res
-        } catch (ex: ProcessableException) {
-            when (ex.handleType) {
-                HandleType.SKIP_SELF -> {
-                    handleException(ex)
+
+            HandleType.CANCEL_ALL -> {
+                ex.cancellationFn?.let {cancelFn->
+                    cancelFn.invoke()
+                    registerEvent(Event(routedName).setException(ex))
+                }?: run {
+                    registerEvent(Event(routedName, helper.msg("Cancel function not set", ex), SeverityLevel.EXCEPTION))
+                    throw  UnmanagedException(helper.unhandledMsg(ex), ex)
                 }
-                HandleType.CANCEL_ALL -> {
-                    ex.cancellationFn?.let {
-                        it.invoke()
-                        handleException(ex)
-                    }?: warn(helper.msg("Cancel function not set", ex))
+            }
+
+            HandleType.PROPAGATE_TO_PARENT -> {
+                registerEvent(Event(routedName).setException(ex))
+                if (this is RootEventHandler) {
+                    handlePropagatedException(ex)
+                } else {
+                    throw ex
                 }
-                HandleType.PROPAGATE_TO_PARENT -> {
-                    handleException(ex)
-                    if (isParent) {
-                        (this as RootEventHandler).handlePropagatedException(ex)
-                    }else{
-                        throw ex
+            }
+        }
+    }
+
+    /**
+     * Executes a task within the event handler, ensuring proper event tracking and exception handling.
+     * @param message A description of the task.
+     * @param taskFn The suspending function representing the task.
+     * @return The result of the task execution or null if an exception occurred.
+     */
+    suspend fun <T: Any?>task(message : String, taskFn: suspend ()-> T?):T? {
+        val newTask= registerEvent(helper.newTask(message))
+        val result = runCatching {
+            taskFn.invoke()
+            }.onFailure { ex ->
+                when (ex) {
+                    is ProcessableException -> {
+                        val exceptionEvent = Event(routedName, message, SeverityLevel.EXCEPTION).setException(ex)
+                        newTask.subEvents.add(exceptionEvent)
+                        handleProcessableException(ex)
+                    }
+                    else -> {
+                        registerEvent(Event(routedName, message, SeverityLevel.EXCEPTION))
+                        throw  UnmanagedException(helper.unhandledMsg(ex), ex)
                     }
                 }
-            }
-            return null
-            // Catching generic Exception as a safeguard against unexpected errors
-        } catch (ex: Exception) {
-            error(helper.unhandledMsg(ex))
-            throw NotificatorUnhandledException(helper.unhandledMsg(ex), ex)
-        }
+        }.getOrNull()
+        finalizeTask(newTask)
+        return result
     }
 
-    fun <T: Any?> actionAsync(message: String, fn: suspend () -> T?): Deferred<T?> {
-        return CoroutineScope(Dispatchers.IO).async {
-            processAndMeasure(true, helper.newEvent(message), fn)
-        }
-    }
-
-    fun <T: Any?> action(message: String, fn: suspend () -> T?): T? {
-        return runBlocking {
-            async { processAndMeasure(false, helper.newEvent(message), fn) }.await()
-        }
-    }
-
-    @JvmName("eventActionAsyncNoReturn")
-    fun actionAsync(message: String, fn: suspend () -> Unit) {
-        CoroutineScope(Dispatchers.IO).launch {
-            processAndMeasure(true, helper.newEvent(message)) { fn.invoke() }
-        }
-    }
-
-    @JvmName("eventActionNoReturn")
-    fun action(message: String, fn: suspend () -> Unit) {
-        runBlocking {
-            processAndMeasure(false, helper.newEvent(message)) { fn.invoke() }
-        }
-    }
-
+    /**
+     * Logs an informational message as an event.
+     * @param message The message to be logged.
+     */
     fun info(message: String){
-        handleEvent(Event(routedName, message, SeverityLevel.INFO))
+        registerEvent(Event(routedName, message, SeverityLevel.INFO))
     }
+
+    /**
+     * Logs a warning message as an event.
+     * @param message The message to be logged.
+     */
     fun warn(message: String){
-        notifierScope.launch {
-            handleEvent(Event(routedName, message, SeverityLevel.WARNING))
-        }
+        registerEvent(Event(routedName, message, SeverityLevel.WARNING))
     }
 
-
-    fun error(message: String){
-        notifierScope.launch {
-            handleEvent(Event(routedName, message, SeverityLevel.EXCEPTION))
-        }
-    }
-
-    fun wipeData(){
-        eventQue.clear()
-        currentEvent?.subEvents?.clear()
-        currentEvent = null
-    }
+    /** Clears event-related data for this handler. */
+    abstract fun wipeData()
 }
 
 

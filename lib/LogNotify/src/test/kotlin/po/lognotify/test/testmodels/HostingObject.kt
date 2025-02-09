@@ -20,11 +20,9 @@ class ParentHostingObject(val moduleName: String
             it.propagateParentTask(delayTime)
         }
     }
-
     fun returnAsResult(param: Any): Any{
         return param
     }
-
 }
 
 class HostingObject(val moduleName: String, parent : ParentHostingObject) : CanNotify {
@@ -61,3 +59,5 @@ class SubHostingObject(val moduleName: String, parent : HostingObject) : CanNoti
         currentParentParam = parentParam
     }
 }
+
+
