@@ -7,8 +7,6 @@ import po.exposify.binder.BindingContainer
 import po.exposify.binder.BindingKeyBase
 import po.exposify.binder.UpdateMode
 import po.exposify.classes.components.CallbackEmitter
-import po.exposify.components.eventhandler.RootEventHandler
-import po.exposify.components.eventhandler.interfaces.CanNotify
 import po.exposify.classes.components.DAOService
 import po.exposify.classes.components.DTOConfig
 import po.exposify.classes.components.Factory
@@ -18,6 +16,10 @@ import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
 import po.exposify.models.CrudResult
 import po.exposify.dto.CommonDTO
+import po.lognotify.eventhandler.EventHandler
+import po.lognotify.eventhandler.EventHandlerBase
+import po.lognotify.eventhandler.RootEventHandler
+import po.lognotify.eventhandler.interfaces.CanNotify
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 
@@ -27,6 +29,7 @@ abstract class DTOClass<DATA, ENTITY>(
 
     override val qualifiedName  = sourceClass.qualifiedName.toString()
     override val className  = sourceClass.simpleName.toString()
+
     override val eventHandler = RootEventHandler(className)
 
     internal val emitter = CallbackEmitter()
@@ -89,23 +92,23 @@ abstract class DTOClass<DATA, ENTITY>(
      * representing the filtering conditions.
      * @return A `CrudResult<DATA, ENTITY>` containing the selected DTO (if found) and any triggered events.
      */
-    internal fun pick(
+    internal suspend fun pick(
         conditions: List<Pair<KProperty1<DATA, *>, Any?>>): CrudResult<DATA, ENTITY> {
         val resultList = mutableListOf<CommonDTO<DATA, ENTITY>>()
-        notify("pick()"){
-            val entity =  daoService.pick(conditions, conf.propertyBinder.propertyList)
-            entity?.let {
-                factory.createEntityDto()?.let {newDto->
-                    newDto.update(it, UpdateMode.ENTITY_TO_MODEL)
-                    resultList.add(newDto)
-                }
-            }
-            resultList.forEach {
-                conf.relationBinder.applyBindings(it)
-                it.initializeRepositories(it.entityDAO)
+
+        val entity =  daoService.pick(conditions, conf.propertyBinder.propertyList)
+        entity?.let {
+            factory.createEntityDto()?.let {newDto->
+                newDto.update(it, UpdateMode.ENTITY_TO_MODEL)
+                resultList.add(newDto)
             }
         }
-        return CrudResult(resultList, eventHandler.getEvent())
+        resultList.forEach {
+            conf.relationBinder.applyBindings(it)
+            it.initializeRepositories(it.entityDAO)
+        }
+
+        return CrudResult(resultList)
     }
 
     /**
@@ -113,22 +116,21 @@ abstract class DTOClass<DATA, ENTITY>(
      *
      * @return A [CrudResult] containing a list of initialized DTOs and associated events.
      */
-    internal fun select(): CrudResult<DATA, ENTITY> {
+    internal suspend fun select(): CrudResult<DATA, ENTITY> {
        val resultList = mutableListOf<CommonDTO<DATA, ENTITY>>()
-       notify("select()"){
-           val entities = daoService.selectAll()
-           entities.forEach {
-               factory.createEntityDto()?.let {newDto->
-                   newDto.update(it, UpdateMode.ENTITY_TO_MODEL)
-                   resultList.add(newDto)
-               }
-           }
-           resultList.forEach {
-               conf.relationBinder.applyBindings(it)
-               it.initializeRepositories(it.entityDAO)
+       val entities = daoService.selectAll()
+       entities.forEach {
+           factory.createEntityDto()?.let {newDto->
+               newDto.update(it, UpdateMode.ENTITY_TO_MODEL)
+               resultList.add(newDto)
            }
        }
-       return CrudResult(resultList.toList(), eventHandler.getEvent())
+       resultList.forEach {
+           conf.relationBinder.applyBindings(it)
+           it.initializeRepositories(it.entityDAO)
+       }
+
+       return CrudResult(resultList.toList())
     }
 
     /**
@@ -136,29 +138,28 @@ abstract class DTOClass<DATA, ENTITY>(
      *
      * @return A [CrudResult] containing a list of initialized DTOs and associated events.
      */
-    internal fun <PARENT_DATA: DataModel, PARENT_ENTITY: LongEntity>update(
+    internal suspend fun <PARENT_DATA: DataModel, PARENT_ENTITY: LongEntity>update(
         dataModels: List<DATA>): CrudResult<DATA, ENTITY>{
 
         val resultDTOs = mutableListOf<CommonDTO<DATA, ENTITY>>()
-        notify("create() count=${dataModels.count()}") {
 
-            dataModels.forEach { dataModel ->
-                factory.createEntityDto(dataModel)?.let { newDto ->
-                    resultDTOs.add(newDto)
-                }
-            }
-            resultDTOs.filter { !it.isSaved }.forEach {
-                conf.relationBinder.applyBindings(it)
-                it.initializeRepositories()
-                it.updateRepositories()
-            }
-            resultDTOs.filter { it.isSaved }.forEach {
-                conf.relationBinder.applyBindings(it)
-                it.initializeRepositories()
-                it.updateRepositories()
+        dataModels.forEach { dataModel ->
+            factory.createEntityDto(dataModel)?.let { newDto ->
+                resultDTOs.add(newDto)
             }
         }
-        return CrudResult(resultDTOs.toList(), eventHandler.getEvent())
+        resultDTOs.filter { !it.isSaved }.forEach {
+            conf.relationBinder.applyBindings(it)
+            it.initializeRepositories()
+            it.updateRepositories()
+        }
+        resultDTOs.filter { it.isSaved }.forEach {
+            conf.relationBinder.applyBindings(it)
+            it.initializeRepositories()
+            it.updateRepositories()
+        }
+
+        return CrudResult(resultDTOs.toList())
     }
 
     /**
@@ -167,26 +168,23 @@ abstract class DTOClass<DATA, ENTITY>(
      * @param dataModel The data model to delete.
      * @return A [CrudResult] containing a list of successfully deleted DTOs and associated events.
      */
-    internal fun delete(dataModel: DATA): CrudResult<DATA, ENTITY>{
+    internal suspend fun delete(dataModel: DATA): CrudResult<DATA, ENTITY>{
         val resultDTOs = mutableListOf<CommonDTO<DATA, ENTITY>>()
-        notify("delete(dataModel.id = ${dataModel.id})") {
-            factory.createEntityDto(dataModel)?.let { newDto ->
-                resultDTOs.add(newDto)
-            }
-            resultDTOs.forEach {
-                daoService.selectWhere(it.id).let { entity ->
-                    it.update(entity, UpdateMode.ENTITY_TO_MODEL)
-                    conf.relationBinder.applyBindings(it)
-                    it.initializeRepositories(it.entityDAO)
-                    it.deleteInRepositories()
-                }
-            }
-
+        factory.createEntityDto(dataModel)?.let { newDto ->
+            resultDTOs.add(newDto)
         }
-        return CrudResult(resultDTOs.toList(), eventHandler.getEvent())
+        resultDTOs.forEach {
+            daoService.selectWhere(it.id).let { entity ->
+                it.update(entity, UpdateMode.ENTITY_TO_MODEL)
+                conf.relationBinder.applyBindings(it)
+                it.initializeRepositories(it.entityDAO)
+                it.deleteInRepositories()
+            }
+        }
+        return CrudResult(resultDTOs.toList())
     }
 
-    fun triggerSequence(name: String, list: List<DATA>? = null): DATA? {
+    suspend fun triggerSequence(name: String, list: List<DATA>? = null): DATA? {
         println("triggerSequence")
         emitter.callOnSequenceLaunch(name, list)
         return null

@@ -20,9 +20,10 @@ object PartnerUpdate :
 
 
 fun mockOfRestRequest(){
-    val someInputData = listOf<PartnerDataModel>()
+
     runBlocking {
-        PartnerUpdate.execute(someInputData){
+        val partner = PartnerDataModel("SomeName", "SomeName SIA")
+        PartnerUpdate.execute(listOf<PartnerDataModel>(partner)){
             println(it)
         }
     }
@@ -35,9 +36,7 @@ fun startDataService(connectionInfo : ConnectionInfo) {
     val connection = dbManager.openConnection(connectionInfo){
         service<PartnerDataModel, PartnerEntity>(PartnerDTO, TableCreateMode.CREATE){
             PartnerDTO.sequence(PartnerUpdate){
-                select{
-                    checkout()
-                }
+                update{ checkout() }
             }
         }
     }

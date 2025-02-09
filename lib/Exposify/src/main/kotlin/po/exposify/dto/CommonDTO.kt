@@ -27,26 +27,26 @@ class HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
 
     val repositories = mutableMapOf<BindingKeyBase, RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>>()
 
-    var onUpdate: (()-> Unit)? = null
-    var onUpdateFromEntity: ((ENTITY)-> Unit)? = null
-    var onDelete:(()-> Unit)? = null
+    var onUpdate: (suspend ()-> Unit)? = null
+    var onUpdateFromEntity: (suspend (ENTITY)-> Unit)? = null
+    var onDelete:(suspend ()-> Unit)? = null
 
     val hasChild: Boolean
         get(){return repositories.isNotEmpty()}
 
-    fun initializeRepositories(entity: ENTITY){
+  suspend fun initializeRepositories(entity: ENTITY){
         repositories.values.forEach {
             it.initialize(entity)
         }
     }
 
-    fun initializeRepositories(){
+   suspend  fun initializeRepositories(){
         repositories.values.forEach {
             it.initialize(getInjectedModel())
         }
     }
 
-    fun updateRootRepositories(){
+    suspend fun updateRootRepositories(){
         if(!isSaved){
             sourceModel.daoService.saveNew(this)?.let {
                 onUpdate?.invoke()
@@ -65,7 +65,7 @@ class HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
         onDeleteFnList.add(Pair(this, callback))
     }
 
-    fun deleteInRepositories() {
+    suspend fun deleteInRepositories() {
         repositories.values.forEach { repository ->
             repository.deleteAllRecursively()
         }
@@ -131,16 +131,16 @@ abstract class CommonDTO<DATA, ENTITY>(
 {
     var hostDTO  : HostDTO<DATA, ENTITY, *, *>? = null
 
-    fun initializeRepositories(entity:ENTITY){
+    suspend fun initializeRepositories(entity:ENTITY){
         hostDTO?.initializeRepositories(entity)
     }
-    fun initializeRepositories(){
+    suspend fun initializeRepositories(){
         hostDTO?.initializeRepositories()
     }
-    fun updateRepositories(){
+    suspend  fun updateRepositories(){
         hostDTO?.updateRootRepositories()
     }
-    fun deleteInRepositories(){
+    suspend fun deleteInRepositories(){
         hostDTO?.let {
             it.deleteInRepositories()
             it.sourceModel.daoService.delete(it)

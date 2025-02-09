@@ -1,5 +1,6 @@
 package po.exposify.scope.service
 
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -72,16 +73,20 @@ class ServiceContext<DATA,ENTITY>(
     ): DTOClass<DATA, ENTITY>?
     {
         val selectedDTOs = dbQuery {
-            pick(conditions.toList())
+            runBlocking {
+                pick(conditions.toList())
+            }
         }
         val context  = DTOContext(selectedDTOs)
         context.block()
         return null
     }
 
-    fun DTOClass<DATA, ENTITY>.select(block: DTOContext<DATA, ENTITY>.() -> Unit){
+    suspend fun DTOClass<DATA, ENTITY>.select(block: DTOContext<DATA, ENTITY>.() -> Unit){
         val selectedDTOs = dbQuery {
-           select()
+            runBlocking {
+                select()
+            }
         }
         val context  = DTOContext(selectedDTOs)
         context.block()
@@ -93,7 +98,9 @@ class ServiceContext<DATA,ENTITY>(
         writeMode: WriteMode = WriteMode.STRICT,
         block: DTOContext<DATA, ENTITY>.() -> Unit){
         val createdDTOs =  dbQuery {
-            update<DATA, ENTITY>(dataModels)
+            runBlocking {
+                update<DATA, ENTITY>(dataModels)
+            }
         }
         val context = DTOContext(createdDTOs)
         context.block()
@@ -108,7 +115,9 @@ class ServiceContext<DATA,ENTITY>(
 
     fun DTOClass<DATA, ENTITY>.delete(toDelete: DATA, block: DTOContext<DATA, ENTITY>.() -> Unit){
         val selectedDTOs = dbQuery {
-            delete(toDelete)
+            runBlocking {
+                delete(toDelete)
+            }
         }
         val context  = DTOContext(selectedDTOs)
         context.block()

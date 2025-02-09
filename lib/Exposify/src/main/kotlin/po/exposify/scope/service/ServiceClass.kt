@@ -1,20 +1,19 @@
 package po.exposify.scope.service
 
-import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.exists
 import org.jetbrains.exposed.sql.transactions.transaction
-import po.exposify.components.logger.LoggingService
-import po.exposify.components.logger.enums.LogLevel
 import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.InitializationException
 import po.exposify.exceptions.OperationsException
 import po.exposify.scope.connection.ConnectionClass
+import po.lognotify.eventhandler.RootEventHandler
+import po.lognotify.eventhandler.interfaces.CanNotify
 import kotlin.Long
 
 enum  class TableCreateMode{
@@ -25,23 +24,18 @@ enum  class TableCreateMode{
 class ServiceClass<DATA, ENTITY>(
     private val connectionClass : ConnectionClass,
     private val rootDTOModel : DTOClass<DATA, ENTITY>,
-    private val serviceCreateOption: TableCreateMode? = null
-)  where  DATA: DataModel, ENTITY : LongEntity{
+    private val serviceCreateOption: TableCreateMode? = null,
+) : CanNotify  where  DATA: DataModel, ENTITY : LongEntity {
 
    val connection : Database = connectionClass.connection
 
    var name : String = "undefined"
-   val logger = LoggingService()
    var serviceContext : ServiceContext<DATA, ENTITY>? = null
 
-   init {
-        try {
-            runBlocking {
-                logger.registerLogFunction(LogLevel.MESSAGE){msg, level, time, throwable->
-                    println("Service${name} Logger|${msg}|${time}")
-                }
-            }
+   override val eventHandler = RootEventHandler(name)
 
+    init {
+        try {
             start()
         }catch (initException : InitializationException){
             println(initException.message)
@@ -52,19 +46,16 @@ class ServiceClass<DATA, ENTITY>(
         body()
     }
 
-    private fun launchSequence(name: String, data : List<DATA>? = null){
-
-        println("Launch Sequence on ServiceClass with name :${name}")
-
-        serviceContext?.sequences?.keys?.firstOrNull{ it.name ==  name}?.let{key->
-            val pack = serviceContext?.sequences?.get(key)
-            pack?.let {
-                println("Found Pack  :${key.name}")
-                connectionClass.launchSequence<DATA,ENTITY>(it, data)
+    private suspend fun launchSequence(name: String, data : List<DATA>? = null){
+        action("Launch Sequence on ServiceClass with name :${name}"){
+            serviceContext?.sequences?.keys?.firstOrNull{ it.name ==  name}?.let{key->
+                val pack = serviceContext?.sequences?.get(key)
+                pack?.let {
+                    connectionClass.launchSequence<DATA,ENTITY>(it, data, eventHandler)
+                }
+            }?:run {
+                throwPropagated<OperationsException>("Sequence not found")
             }
-
-        }?:run {
-            throw OperationsException("Sequence not found", ExceptionCodes.NOT_INITIALIZED)
         }
     }
 

@@ -28,5 +28,4 @@ abstract class StaticsHelper: StaticsHelperProvider{
     override fun newInfo(msg: String):Event { return  Event(moduleName, msg, SeverityLevel.INFO)}
     override fun newEvent(msg: String):Event { return  Event(moduleName, msg, SeverityLevel.EVENT)}
 
-
 }

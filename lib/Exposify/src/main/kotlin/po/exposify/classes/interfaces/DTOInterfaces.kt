@@ -4,7 +4,6 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import po.exposify.controls.Notificator
 
 
 interface DTOInstance{
@@ -36,13 +35,4 @@ interface DTOModel{
  **/
 interface DataModel {
     var id : Long
-}
-
-/**
-    Interface for common behaviour of classes hosting Notificator Class
- **/
-interface CanNotifyDepr{
-    val name : String
-    val notificator : Notificator
-  //  fun <T>subscribe (subscriber: T, notification : ()-> Unit,  callbackFun: () -> Unit)
 }

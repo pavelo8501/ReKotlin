@@ -53,48 +53,36 @@ class SequenceContext<DATA, ENTITY>(
         newSequenceContext.block(list)
     }
 
-    fun select(
+    suspend fun select(
         block: SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit
     ) {
-        val result by lazy {
-            dbQuery { lastResult = hostDto.select() }
-            dtos()
-        }
-        this.block(result)
+        lastResult = hostDto.select()
+        this.block(dtos())
     }
 
-    fun update(
+    suspend fun update(
         dataModels: List<DATA>,
         block: SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit
     ) {
-        val result by lazy {
-            dbQuery { lastResult = hostDto.update<DATA, ENTITY>(dataModels) }
-            dtos()
-        }
-        this.block(result)
+        lastResult = hostDto.update<DATA, ENTITY>(dataModels)
+        this.block(dtos())
     }
 
-    fun update(
+    suspend fun update(
         block: (dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit
     ) {
          handler.inputData?.let {
-             val result by lazy {
-                 dbQuery { lastResult = hostDto.update<DATA, ENTITY>(it) }
-                 dtos()
-             }
-             block(result)
+                lastResult = hostDto.update<DATA, ENTITY>(it)
+             block(dtos())
          }
     }
 
     @JvmName("UpdateDtos")
-    fun List<CommonDTO<DATA,ENTITY>>.update(
-        block: (dtos: List<CommonDTO<DATA,ENTITY>>)-> Unit)
-    {
-        val result by lazy {
-            dbQuery { lastResult = hostDto.update<DATA, ENTITY>(this.map { it.getInjectedModel() }) }
-            dtos()
-        }
-        block(result)
+    suspend fun List<CommonDTO<DATA,ENTITY>>.update(
+        block: (dtos: List<CommonDTO<DATA,ENTITY>>)-> Unit
+    ) {
+        lastResult = hostDto.update<DATA, ENTITY>(this.map { it.getInjectedModel() })
+        block(dtos())
     }
 
 
@@ -139,16 +127,13 @@ class SequenceContext<DATA, ENTITY>(
      * - The block will only execute if `handler.inputData` contains at least one entry.
      * - If no data matches the conditions, the block will not be executed.
      */
-    fun pick(
+    suspend fun pick(
         vararg conditions: Pair<KProperty1<DATA, *>, Any?>,
         block: (dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit
     ) {
         handler.inputData?.firstOrNull()?.let {
-            val result by lazy {
-                dbQuery { lastResult = hostDto.pick(conditions.toList()) }
-                dtos()
-            }
-            block(result)
+            lastResult = hostDto.pick(conditions.toList())
+            block(dtos())
         }
     }
 

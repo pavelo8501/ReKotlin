@@ -1,8 +1,6 @@
 package po.exposify.classes.components
 
 import org.jetbrains.exposed.dao.LongEntity
-import po.exposify.components.eventhandler.EventHandler
-import po.exposify.components.eventhandler.interfaces.CanNotify
 import po.exposify.constructors.ConstructorBuilder
 import po.exposify.constructors.DTOBlueprint
 import po.exposify.constructors.DataModelBlueprint
@@ -12,6 +10,8 @@ import po.exposify.classes.interfaces.DataModel
 import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
 import po.exposify.dto.CommonDTO
+import po.lognotify.eventhandler.EventHandler
+import po.lognotify.eventhandler.interfaces.CanNotify
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 
@@ -37,7 +37,7 @@ class Factory<DATA, ENTITY>(
 
     private var dataModelConstructor : (() -> DATA)? = null
 
-    override val eventHandler : EventHandler = EventHandler("Factory", parent.eventHandler)
+    override val eventHandler = EventHandler("Factory", parent.eventHandler)
 
     /**
      * Initializes the blueprints for DataModel, Entity, and DTO based on the provided classes.
@@ -114,19 +114,19 @@ class Factory<DATA, ENTITY>(
      * @input constructFn : (() -> DATA)? = null
      * @return DATA
      * */
-    fun createDataModel(constructFn : (() -> DATA)? = null):DATA{
+    suspend fun createDataModel(constructFn : (() -> DATA)? = null):DATA{
         try{
             constructFn?.let {
-                notify("DataModel created from constructor provided in the createDataModel(constructFn)")
+                info("DataModel created from constructor provided in the createDataModel(constructFn)")
                 return  it.invoke()
             }
             dataModelConstructor?.let {
-                notify("DataModel created from constructor provided in the dataModelConstructor")
+                info("DataModel created from constructor provided in the dataModelConstructor")
                 return it.invoke()
             }
 
             dataBlueprint?.let {
-               val dataModel = notify("DataModel created from dataBlueprint [reflection]"){
+               val dataModel = action("DataModel created from dataBlueprint [reflection]"){
                     val constructor =  it.getConstructor()
                     constructor.callBy(it.getArgsForConstructor())
                 }
@@ -146,10 +146,10 @@ class Factory<DATA, ENTITY>(
      * @input dataModel:  DATA?
      * @return DTOFunctions<DATA, ENTITY> or null
      * */
-    fun createEntityDto(dataModel : DATA? = null): CommonDTO<DATA, ENTITY>?{
+    suspend fun createEntityDto(dataModel : DATA? = null): CommonDTO<DATA, ENTITY>?{
         val model = dataModel?: createDataModel()
         try {
-            val dto = notify<CommonDTO<DATA, ENTITY>>("DTOFunctions created from dtoBlueprint [reflection]") {
+            val dto = action<CommonDTO<DATA, ENTITY>>("DTOFunctions created from dtoBlueprint [reflection]") {
                 dtoBlueprint.let { blueprint ->
                     val constructor = blueprint.getConstructor()
                     blueprint.getArgsForConstructor { paramName ->
