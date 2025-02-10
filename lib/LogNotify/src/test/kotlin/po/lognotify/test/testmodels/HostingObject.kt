@@ -6,12 +6,17 @@ import po.lognotify.eventhandler.RootEventHandler
 import po.lognotify.eventhandler.interfaces.CanNotify
 
 
-class ParentHostingObject(val moduleName: String
+class ParentHostingObject(val name: String
 ) : CanNotify {
 
-    override val eventHandler = RootEventHandler(moduleName)
+    override val eventHandler = RootEventHandler(name)
 
     val childObjects = mutableListOf<HostingObject>()
+
+
+    fun exposeSelf(block: ParentHostingObject.()-> Unit ){
+        this.block()
+    }
 
     suspend fun mockTaskRun(delayTime: Long, block: suspend  ParentHostingObject.()->Unit){
         block(this@ParentHostingObject)

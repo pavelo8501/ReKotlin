@@ -4,6 +4,9 @@ import po.lognotify.eventhandler.exceptions.ProcessableException
 import po.lognotify.shared.enums.HandleType
 
 
-class TestException(message: String, type: HandleType) :   ProcessableException(message, type)
+class TestException(message: String, customParam: Int) :   ProcessableException(message, HandleType.UNMANAGABLE)
+class TestCancelException(message: String) :
+    ProcessableException(message, HandleType.UNMANAGABLE)
+
 
 class TestSkipException : ProcessableException("TestSkipException", HandleType.SKIP_SELF)

@@ -7,13 +7,12 @@ import po.lognotify.shared.enums.SeverityLevel
 data class Event(
     val module : String,
     var msg: String = "",
-    var type: SeverityLevel = SeverityLevel.INFO,
+    val type: SeverityLevel = SeverityLevel.INFO,
 ){
 
    var exception: ProcessableException? = null
        set(value){
            msg = value?.message.toString()
-           type = SeverityLevel.EXCEPTION
        }
 
    var startTime: Long =  System.nanoTime()
@@ -41,7 +40,6 @@ data class Event(
 
     fun setException(ex: ProcessableException): Event {
         exception = ex
-        type = SeverityLevel.EXCEPTION
         return this
     }
     /**

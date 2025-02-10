@@ -99,7 +99,7 @@ sealed class EventHandlerBase(
     var routedName: String = moduleName
 
     /** The currently active task being processed. */
-    protected var activeTask : Event? = null
+    internal var activeTask : Event? = null
 
     /** A helper object providing static utilities. */
     val helper = HandlerStatics
@@ -149,15 +149,16 @@ sealed class EventHandlerBase(
             if (this is RootEventHandler) {
                 //If this is hierarchy root than add event to que and wipe ot current active event
                 eventQue.add(event)
-                activeTask = null
             } else {
                 //if not a hierarchy root add to parent active event
                 parent?.activeTask?.subEvents?.add(event)?:run {
                     throw UnmanagedException("Parent active task is null when trying to add event: $event")
                 }
-                activeTask = event
             }
+        }else{
+            throw UnmanagedException("Trying to finalize not a Task type event: $event")
         }
+        activeTask = null
     }
 
     /**
@@ -188,6 +189,7 @@ sealed class EventHandlerBase(
                     throw ex
                 }
             }
+            else -> {throw  ex}
         }
     }
 
