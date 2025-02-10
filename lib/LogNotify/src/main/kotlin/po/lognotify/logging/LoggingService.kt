@@ -52,7 +52,7 @@ class LoggingService: ReadOnlyProperty<Any?, LoggingService>{
     }
 
     fun info(message: String, throwable: Throwable? = null) = log(SeverityLevel.INFO, message, throwable)
-    fun action(message: String, throwable: Throwable? = null) = log(SeverityLevel.EVENT, message, throwable)
+    fun action(message: String, throwable: Throwable? = null) = log(SeverityLevel.TASK, message, throwable)
     fun warn(message: String, throwable: Throwable? = null) = log(SeverityLevel.WARNING, message, throwable)
     fun error(message: String, throwable: Throwable? = null) = log(SeverityLevel.EXCEPTION, message, throwable)
 

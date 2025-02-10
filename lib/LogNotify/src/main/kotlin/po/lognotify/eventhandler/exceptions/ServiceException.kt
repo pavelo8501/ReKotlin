@@ -4,19 +4,21 @@ import po.lognotify.shared.enums.HandleType
 import po.lognotify.shared.exceptions.SelfThrowableException
 
 
-data class SkipException(
+internal data class SkipException(
     val msg: String,
 ) : ProcessableException(msg, HandleType.SKIP_SELF)
 
-data class CancelException(
+internal data class CancelException(
     val msg: String,
-): ProcessableException(msg, HandleType.CANCEL_ALL)
+): ProcessableException(msg, HandleType.CANCEL_ALL){
+    var cancelFn: () -> Unit = {}
+}
 
-data class PropagateException(
+internal data class PropagateException(
     val msg: String,
 ): ProcessableException(msg, HandleType.PROPAGATE_TO_PARENT)
 
-data class NotificatorUnhandledException(
+internal data class UnmanagedException(
     override val message: String,
     override val cause: Throwable? = null
 ) : Exception(message, cause), SelfThrowableException
@@ -25,7 +27,7 @@ abstract class ProcessableException(
     override var message: String,
     var handleType: HandleType
 ) : Exception(message), SelfThrowableException{
-    var cancellationFn: (() -> Unit)? = null
+    var cancellationFn: (() -> Unit) = {}
 }
 
 

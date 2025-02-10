@@ -10,21 +10,17 @@ interface CanNotify{
 
     val eventHandler: EventHandlerBase
 
-    infix  fun infoMessage(message: String) = eventHandler.info(message)
     fun info(message: String) = eventHandler.info(message)
-
-    suspend fun <T: Any>action(message: String,  fn: suspend ()-> T?) = coroutineScope{
-        eventHandler.action<T>(message, fn) }
+    suspend fun <T: Any?>task(message: String,  fn: suspend ()-> T?) =
+        eventHandler.task<T>(message, fn)
 
     fun warn(message: String) = eventHandler.warn(message)
-    fun notifyError(message: String) =  eventHandler.error(message)
 
 
-    fun <E: ProcessableException> throwPropagated(message: String?, block: (E.()->Unit)? = null)
-        = eventHandler.raisePropagateException(message,block)
+    fun throwPropagate(message: String) = eventHandler.throwPropagateException(message)
+    fun throwSkip(message: String)  = eventHandler.throwSkipException(message)
+    fun throwCancel(message: String,  cancelFn: (() -> Unit)? = null)
+        = eventHandler.throwCancelException(message, cancelFn)
 
-    fun throwSkip(message: String?): SkipException{
-        return SkipException(message.toString())
-    }
 
 }

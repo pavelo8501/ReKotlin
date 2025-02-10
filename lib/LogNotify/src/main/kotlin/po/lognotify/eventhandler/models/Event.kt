@@ -7,13 +7,12 @@ import po.lognotify.shared.enums.SeverityLevel
 data class Event(
     val module : String,
     var msg: String = "",
-    var type: SeverityLevel = SeverityLevel.INFO,
+    val type: SeverityLevel = SeverityLevel.INFO,
 ){
 
    var exception: ProcessableException? = null
        set(value){
            msg = value?.message.toString()
-           type = SeverityLevel.EXCEPTION
        }
 
    var startTime: Long =  System.nanoTime()
@@ -26,9 +25,7 @@ data class Event(
        private set
 
    val elapsedTime: String
-        get(){
-            stopTime?.let {
-
+        get(){ stopTime?.let {
                 return "Elapsed time $elapsed ms."
             }
             return "Elapsed time - N/A"
@@ -43,7 +40,6 @@ data class Event(
 
     fun setException(ex: ProcessableException): Event {
         exception = ex
-        type = SeverityLevel.EXCEPTION
         return this
     }
     /**
@@ -55,7 +51,6 @@ data class Event(
             stopTime = it
             elapsed  = ((it - startTime) / 1000f)
         }
-
     }
 
     /**
