@@ -35,6 +35,10 @@ class ServiceClass<DATA, ENTITY>(
    override val eventHandler = RootEventHandler(name)
 
     init {
+        eventHandler.registerPropagateException<OperationsException> {
+            OperationsException("Operations Exception", ExceptionCodes.REFLECTION_ERROR)
+        }
+
         try {
             start()
         }catch (initException : InitializationException){
@@ -47,14 +51,14 @@ class ServiceClass<DATA, ENTITY>(
     }
 
     private suspend fun launchSequence(name: String, data : List<DATA>? = null){
-        action("Launch Sequence on ServiceClass with name :${name}"){
+        task("Launch Sequence on ServiceClass with name :${name}"){
             serviceContext?.sequences?.keys?.firstOrNull{ it.name ==  name}?.let{key->
                 val pack = serviceContext?.sequences?.get(key)
                 pack?.let {
                     connectionClass.launchSequence<DATA,ENTITY>(it, data, eventHandler)
                 }
             }?:run {
-                throwPropagated<OperationsException>("Sequence not found")
+                throwPropagate("Sequence not found")
             }
         }
     }

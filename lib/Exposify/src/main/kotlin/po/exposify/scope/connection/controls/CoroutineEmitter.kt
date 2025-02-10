@@ -7,6 +7,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.transactions.experimental.suspendedTransactionAsync
 import po.exposify.classes.interfaces.DataModel
+import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
 import po.exposify.scope.sequence.models.SequencePack
 import po.lognotify.eventhandler.EventHandler
@@ -20,6 +21,12 @@ class CoroutineEmitter(
 ) : CanNotify {
 
     override val eventHandler = EventHandler(name, parentNotifier)
+
+    init {
+        eventHandler.registerPropagateException<OperationsException>{
+            OperationsException("Operations exception", ExceptionCodes.LAZY_NOT_INITIALIZED)
+        }
+    }
 
    fun <DATA : DataModel, ENTITY : LongEntity>dispatch(
        pack: SequencePack<DATA, ENTITY>, data : List<DATA>?){
@@ -37,7 +44,7 @@ class CoroutineEmitter(
            if(throwable == null){
                info("Dispatcher $name is closing")
            }else{
-               throwPropagated<OperationsException>(throwable.message)
+               throwPropagate(throwable.message.toString())
            }
        }
     }

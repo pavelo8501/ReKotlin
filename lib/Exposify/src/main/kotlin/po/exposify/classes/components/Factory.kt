@@ -126,7 +126,7 @@ class Factory<DATA, ENTITY>(
             }
 
             dataBlueprint?.let {
-               val dataModel = action("DataModel created from dataBlueprint [reflection]"){
+               val dataModel = task("DataModel created from dataBlueprint [reflection]"){
                     val constructor =  it.getConstructor()
                     constructor.callBy(it.getArgsForConstructor())
                 }
@@ -149,7 +149,7 @@ class Factory<DATA, ENTITY>(
     suspend fun createEntityDto(dataModel : DATA? = null): CommonDTO<DATA, ENTITY>?{
         val model = dataModel?: createDataModel()
         try {
-            val dto = action<CommonDTO<DATA, ENTITY>>("DTOFunctions created from dtoBlueprint [reflection]") {
+            val dto = task<CommonDTO<DATA, ENTITY>>("DTOFunctions created from dtoBlueprint [reflection]") {
                 dtoBlueprint.let { blueprint ->
                     val constructor = blueprint.getConstructor()
                     blueprint.getArgsForConstructor { paramName ->
@@ -170,7 +170,7 @@ class Factory<DATA, ENTITY>(
             }
             return dto
         }catch (ex: Exception){
-            notifyError(ex.message?:"Unknown exception")
+            warn(ex.message?:"Unknown exception")
             return null
         }
     }

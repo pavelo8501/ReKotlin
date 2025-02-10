@@ -69,9 +69,9 @@ class TestEventHandlerCoroutines {
     @Test
     fun `wipeData clears events`() = runTest {
         rootHandler.task("First Event") {}
-        assertTrue(rootHandler.eventQue.isNotEmpty(), "Event queue should not be empty before wipe")
+        assertTrue(rootHandler.taskQue.isNotEmpty(), "Event queue should not be empty before wipe")
         rootHandler.wipeData()
-        assertTrue(rootHandler.eventQue.isEmpty(), "Event queue should be empty after wipeData()")
+        assertTrue(rootHandler.taskQue.isEmpty(), "Event queue should be empty after wipeData()")
     }
 
 }

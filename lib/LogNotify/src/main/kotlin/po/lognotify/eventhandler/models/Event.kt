@@ -4,7 +4,19 @@ import po.lognotify.eventhandler.exceptions.ProcessableException
 import po.lognotify.logging.LoggingService
 import po.lognotify.shared.enums.SeverityLevel
 
-data class Event(
+
+class Event(
+    module : String,
+    msg: String = "",
+    type : SeverityLevel = SeverityLevel.INFO
+) : BaseEvent(module, msg, type)
+
+class Task(
+    module : String,
+    msg: String = ""
+) : BaseEvent(module, msg,  SeverityLevel.TASK)
+
+sealed class BaseEvent(
     val module : String,
     var msg: String = "",
     val type: SeverityLevel = SeverityLevel.INFO,
@@ -31,7 +43,7 @@ data class Event(
             return "Elapsed time - N/A"
         }
 
-    val subEvents = mutableListOf<Event>()
+    val subEvents = mutableListOf<BaseEvent>()
 
     fun setElapsed(start: Long, end: Long? = 0){
         startTime =start
@@ -40,7 +52,7 @@ data class Event(
 
     fun setException(ex: ProcessableException): Event {
         exception = ex
-        return this
+        return this as Event
     }
     /**
      * Public method for setting end time of the process execution

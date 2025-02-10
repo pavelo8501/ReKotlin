@@ -4,8 +4,11 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.assertThrows
 import po.lognotify.eventhandler.EventHandler
 import po.lognotify.eventhandler.RootEventHandler
+import po.lognotify.eventhandler.exceptions.PropagateException
+import po.lognotify.eventhandler.exceptions.UnmanagedException
 import po.lognotify.shared.enums.SeverityLevel
 import po.lognotify.test.testmodels.TestSkipException
 import java.util.concurrent.atomic.AtomicInteger
@@ -16,7 +19,6 @@ import kotlin.test.assertTrue
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestEventHandler {
-
 
     private lateinit var rootHandler: RootEventHandler
     private lateinit var childHandler: EventHandler
@@ -33,7 +35,6 @@ class TestEventHandler {
         val result = null
         return result
     }
-
 
     fun runningProcess(): Int? {
         var result: Int? = null
@@ -109,13 +110,13 @@ class TestEventHandler {
                 }
             }
         }
-        val flatArray =  rootHandler.eventQue.flatMap { it.subEvents }.flatMap { it.subEvents }
+        val flatArray =  rootHandler.taskQue.flatMap { it.subEvents }.flatMap { it.subEvents }
         val infos = flatArray.filter { it.type == SeverityLevel.INFO }
         val warnings = flatArray.filter { it.type == SeverityLevel.WARNING }
-        assertEquals(2, rootHandler.eventQue.count(), "Expecting 2 events in the root handler")
+        assertEquals(2, rootHandler.taskQue.count(), "Expecting 2 events in the root handler")
         assertEquals(
             SeverityLevel.TASK ,
-            rootHandler.eventQue[1].type,
+            rootHandler.taskQue[1].type,
             "Expecting second events of type Task in the root handler"
         )
         assertEquals(4, infos.count(), "Expecting 4 events of type INFO")
@@ -141,8 +142,51 @@ class TestEventHandler {
         }
         assertEquals(99, executionCounter.get())
         assertEquals(100, result)
-        assertEquals(1, rootHandler.eventQue.count())
+        assertEquals(1, rootHandler.taskQue.count())
         assertNull(childHandler.activeTask)
+    }
+
+    @Test
+    fun `exception propagated to the top but unhandled`() = runTest {
+        assertThrows<UnmanagedException>{
+            rootHandler.task("parent") {
+                childHandler.task("child") {
+                   subChildHandler.task("subChild") {
+                       throw PropagateException("propagate exception")
+                   }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `generic exception rethrown as unmanaged` () = runTest {
+        assertThrows<UnmanagedException>{
+            rootHandler.task("parent") {
+                childHandler.task("child") {
+                    subChildHandler.task("subChild") {
+                        @Suppress("TooGenericExceptionThrown")
+                        throw RuntimeException("runtimeException exception")
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `if propagated thrown and handler exists` () = runTest {
+        var propagatedHandled = false
+        rootHandler.task("parent") {
+            rootHandler.onPropagateException{
+                propagatedHandled = true
+            }
+            childHandler.task("child") {
+                subChildHandler.task("subChild") {
+                    throw PropagateException("propagate exception")
+                }
+            }
+        }
+        assertTrue(propagatedHandled)
     }
 
 }

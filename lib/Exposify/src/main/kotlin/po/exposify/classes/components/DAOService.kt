@@ -13,6 +13,7 @@ import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.exceptions.OperationsException
 import po.exposify.dto.DTOBase
+import po.exposify.exceptions.ExceptionCodes
 import po.lognotify.eventhandler.EventHandler
 import po.lognotify.eventhandler.interfaces.CanNotify
 import kotlin.reflect.KProperty1
@@ -25,6 +26,12 @@ class DAOService<DATA, ENTITY>(
 
    val entityModel : LongEntityClass<ENTITY>
         get(){return  parent.entityModel}
+
+    init {
+        eventHandler.registerPropagateException<OperationsException> {
+            OperationsException("Operations Exception", ExceptionCodes.INVALID_DATA)
+        }
+    }
 
     private fun <DATA : DataModel, ENT : LongEntity> conditionsToSqlBuilderFn(
         conditions: List<Pair<KProperty1<DATA, *>, Any?>>,
@@ -47,7 +54,7 @@ class DAOService<DATA, ENTITY>(
         dto: DTOBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,
         block: ((ENTITY) -> Unit)? = null): ENTITY? {
             // Notify about the operation
-            val entity = action("saveNew() for dto ${dto.sourceModel.className}") {
+            val entity = task("saveNew() for dto ${dto.sourceModel.className}") {
                 // Create a new entity and update its properties
                 val newEntity = entityModel.new {
                     dto.update(this, UpdateMode.MODEL_TO_ENTNTY)
@@ -73,7 +80,7 @@ class DAOService<DATA, ENTITY>(
         propertyBindings: List<PropertyBinding<DATA, ENTITY, *>>
     ): ENTITY?{
 
-        val entity = action("pick") {
+        val entity = task("pick") {
             val query = conditionsToSqlBuilderFn<DATA, ENTITY>(conditions, propertyBindings, entityModel)
             entityModel.find(query).firstOrNull()
         }
@@ -81,15 +88,15 @@ class DAOService<DATA, ENTITY>(
     }
 
     suspend fun selectAll(): SizedIterable<ENTITY>{
-       val entities = action("selectAll() for dtoModel ${parent.className}") {
+       val entities = task("selectAll() for dtoModel ${parent.className}") {
             entityModel.all()
         }
         return entities!!
     }
 
     suspend fun selectWhere(id: Long): ENTITY{
-        if(id == 0L)  throwPropagated<OperationsException>("Id should be greater than 0")
-        val entity = action("selectWhere for dtoModel ${parent.className}") {
+        if(id == 0L)  throwPropagate("Id should be greater than 0")
+        val entity = task("selectWhere for dtoModel ${parent.className}") {
             entityModel[id]
         }
         return entity!!
@@ -98,7 +105,7 @@ class DAOService<DATA, ENTITY>(
     suspend fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity>delete(
         dto : DTOBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>
     ) {
-        action("selectWhere for dtoModel"){
+        task("selectWhere for dtoModel"){
 
         }
         dto.entityDAO.delete()
