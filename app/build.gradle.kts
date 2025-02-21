@@ -23,8 +23,8 @@ repositories {
         name = "PublicGitHubPackages"
         url = uri("https://maven.pkg.github.com/pavelo8501/ReKotlin")
         credentials {
-            username = project.findProperty("gpr.user") as String? ?: System.getenv("GITHUB_USERNAME")
-            password = project.findProperty("gpr.key") as String? ?: System.getenv("GITHUB_TOKEN")
+            username = System.getenv("GITHUB_USERNAME")
+            password = System.getenv("GITHUB_TOKEN")
         }
     }
 }
@@ -32,14 +32,12 @@ repositories {
 dependencies {
 
     implementation(kotlin("stdlib-jdk8"))
-
     implementation(project(":lib:Exposify"))
     implementation(project(":lib:RestWraptor"))
     implementation(project(":lib:LogNotify"))
 
    // implementation(project(":lib:binderPlugin"))
    // ksp(project(":lib:binderPlugin"))
-
 
     implementation("io.ktor:ktor-server-core:$ktorVersion")
     implementation("io.ktor:ktor-server-netty:$ktorVersion")
@@ -69,7 +67,6 @@ dependencies {
 application {
     mainClass = ("po.playground.MainKt")
 }
-
 
 kotlin {
     jvmToolchain {

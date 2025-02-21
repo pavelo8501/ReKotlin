@@ -3,6 +3,7 @@ package po.restwraptor.classes
 import com.auth0.jwk.JwkProvider
 import com.auth0.jwt.JWT
 import com.auth0.jwt.JWTVerifier
+import com.auth0.jwt.exceptions.JWTDecodeException
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.install
 import io.ktor.server.application.pluginOrNull
@@ -17,6 +18,7 @@ import io.ktor.server.routing.Routing
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
+import po.lognotify.eventhandler.EventHandler
 import po.restwraptor.exceptions.ConfigurationErrorCodes
 import po.restwraptor.exceptions.ConfigurationException
 import po.restwraptor.interfaces.SecuredUserInterface
@@ -34,21 +36,18 @@ import po.restwraptor.classes.convenience.respondInternal
 import po.restwraptor.classes.convenience.respondUnauthorized
 import po.restwraptor.exceptions.AuthException
 import po.restwraptor.models.configuration.WraptorConfig
+import po.restwraptor.models.request.LogoutRequest
 import po.restwraptor.models.security.JwtConfig
 import po.restwraptor.plugins.ReplyInterceptorPlugin
 import java.io.File
 import java.io.IOException
 
 class AuthenticationContext(
+    private val rootHandler : RootEventHandler,
     private val configContext : ConfigContext
 ) : CanNotify {
 
-    init {
-        val authenticationContext  = "LOL"
-    }
-
-
-    override val eventHandler: EventHandlerBase = RootEventHandler("AuthenticationContext")
+    override val eventHandler = EventHandler("AuthenticationContext", rootHandler)
 
     val authConfig  = AuthenticationConfig()
     var credentialsValidatorFn: ((LoginRequest)-> SecuredUserInterface?) ? = null
@@ -62,12 +61,12 @@ class AuthenticationContext(
 
     private var jwtService : JWTService? = null
 
-    private fun generateTokenForUser(user : SecuredUserInterface, service : JWTService): String {
+    private fun generateTokenForUser(user : SecuredUserInterface, service : JWTService): String? {
         val token =  try {
             service.generateToken(user)
-        }catch (ex: Exception) {
-            println(ex.message)
-            throw ex
+        }catch (ex: JWTDecodeException ) {
+            throwSkip("Token generation failed with exception message ${ex.message.toString()}")
+            null
         }
         return token
     }
@@ -79,13 +78,15 @@ class AuthenticationContext(
 //        }
 
 
-    private fun issueToken(user : SecuredUserInterface): String {
+    private fun issueToken(user : SecuredUserInterface): String? {
         this@AuthenticationContext.jwtService?.let { jwtService->
-            val token =  generateTokenForUser(user,jwtService)
-            onAuthenticated?.invoke(AuthenticatedModel(token, true, 1))
-            return token
+            generateTokenForUser(user,jwtService)?.let { token->
+                onAuthenticated?.invoke(AuthenticatedModel(token, true, 1))
+                return token
+            }
         }?:run {
-            throw Exception("jwtService undefined")
+            throwSkip("JWTService undefined")
+            return null
         }
     }
 
@@ -93,7 +94,8 @@ class AuthenticationContext(
         request.data.let { loginData ->
             credentialsValidatorFn?.let { validatorFn ->
                 val user = validatorFn.invoke(loginData)
-                if (user != null) {
+                if (user != null && user.password == request.data.password) {
+
                    return issueToken(user)
                 }else {
                     warn("Login failed for ${loginData.login} with password ${loginData.password}")
@@ -107,7 +109,7 @@ class AuthenticationContext(
         routing.apply {
             route("${apiConfig.baseApiRoute}/login") {
                 post {
-                    try {
+                    task("${apiConfig.baseApiRoute}/login request") {
                         info("Request content type: ${call.request.contentType()}")
                         val token = onLoginRequest(call.receive<ApiRequest<LoginRequest>>())
                         if (token != null) {
@@ -116,8 +118,6 @@ class AuthenticationContext(
                         } else {
                             call.respond(HttpStatusCode.Unauthorized, "Invalid credentials")
                         }
-                    }catch (ex: Exception){
-                        respondInternal(ex)
                     }
                 }
             }
@@ -128,7 +128,7 @@ class AuthenticationContext(
             route("${apiConfig.baseApiRoute}/refresh") {
                 post {
                     val authHeader = call.request.headers["Authorization"]
-                    if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                    if (authHeader == null || !authHeader.startsWith("Bearer")) {
                         respondUnauthorized("Missing or invalid token")
                         return@post
                     }
@@ -147,6 +147,16 @@ class AuthenticationContext(
                         respondInternal(ex)
                         respondUnauthorized("Token expired or invalid: ${ex.message}")
                     }
+                }
+            }
+        }
+    }
+    private fun configRouteLogout(routing: Routing){
+        routing.apply {
+            route("${apiConfig.baseApiRoute}/logout") {
+                post {
+                    val request =  call.receive<ApiRequest<LogoutRequest>>()
+                    call.respond(ApiResponse(true))
                 }
             }
         }
@@ -180,6 +190,7 @@ class AuthenticationContext(
             app.routing{
                 configureRouteLogin(this)
                 configureRouteRefresh(this)
+                configRouteLogout(this)
             }
         }
     }

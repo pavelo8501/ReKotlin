@@ -36,7 +36,16 @@ class ConnectionContext(
         }
     }
 
-
+    /**
+     * Extends the given DTO model's service context within the hosting application.
+     *
+     * This function attempts to retrieve a service instance associated with the provided `dtoModel`.
+     * If found, it invokes the `attachToContext` function on the service, extending its existing context.
+     *
+     * @param DATA The type of the data model.
+     * @param ENTITY The type of the associated database entity, extending [LongEntity].
+     * @param dtoModel The DTO model owning the service context
+     **/
     fun <DATA: DataModel, ENTITY: LongEntity> attachToContext(
         dtoModel : DTOClass<DATA, ENTITY>,
         context: ServiceContext<DATA,ENTITY>.()->Unit ): Boolean{
