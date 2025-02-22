@@ -12,12 +12,14 @@ import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.request.contentType
 import io.ktor.server.request.receive
+import io.ktor.server.request.receiveText
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Routing
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
+import kotlinx.serialization.json.Json
 import po.lognotify.eventhandler.EventHandler
 import po.restwraptor.exceptions.ConfigurationErrorCodes
 import po.restwraptor.exceptions.ConfigurationException
@@ -35,6 +37,7 @@ import po.lognotify.eventhandler.interfaces.CanNotify
 import po.restwraptor.classes.convenience.respondInternal
 import po.restwraptor.classes.convenience.respondUnauthorized
 import po.restwraptor.exceptions.AuthException
+import po.restwraptor.interfaces.StringHelper
 import po.restwraptor.models.configuration.WraptorConfig
 import po.restwraptor.models.request.LogoutRequest
 import po.restwraptor.models.security.JwtConfig
@@ -44,9 +47,11 @@ import java.io.IOException
 
 class AuthenticationContext(
     private val rootHandler : RootEventHandler,
-    private val configContext : ConfigContext
-) : CanNotify {
+    private val configContext : ConfigContext,
+    private val  stringHelper : StringHelper = StringHelper
+) : CanNotify,  StringHelper by stringHelper  {
 
+   // private val stringHelper = StringHelper
     override val eventHandler = EventHandler("AuthenticationContext", rootHandler)
 
     val authConfig  = AuthenticationConfig()
@@ -79,15 +84,16 @@ class AuthenticationContext(
 
 
     private fun issueToken(user : SecuredUserInterface): String? {
+        var newToken : String? = null
         this@AuthenticationContext.jwtService?.let { jwtService->
             generateTokenForUser(user,jwtService)?.let { token->
                 onAuthenticated?.invoke(AuthenticatedModel(token, true, 1))
-                return token
+                newToken =  token
             }
         }?:run {
             throwSkip("JWTService undefined")
-            return null
         }
+        return newToken
     }
 
     private fun onLoginRequest(request : ApiRequest<LoginRequest>): String? {
@@ -95,7 +101,6 @@ class AuthenticationContext(
             credentialsValidatorFn?.let { validatorFn ->
                 val user = validatorFn.invoke(loginData)
                 if (user != null && user.password == request.data.password) {
-
                    return issueToken(user)
                 }else {
                     warn("Login failed for ${loginData.login} with password ${loginData.password}")
@@ -105,13 +110,15 @@ class AuthenticationContext(
         return null
     }
 
-    private fun configureRouteLogin(routing: Routing){
+    private fun configureRouteLogin(routing: Routing, url: String){
         routing.apply {
-            route("${apiConfig.baseApiRoute}/login") {
+            route(url) {
                 post {
-                    task("${apiConfig.baseApiRoute}/login request") {
+                    task("$url request") {
                         info("Request content type: ${call.request.contentType()}")
-                        val token = onLoginRequest(call.receive<ApiRequest<LoginRequest>>())
+                        val requestText = call.receiveText()
+                        val request = Json.decodeFromString<ApiRequest<LoginRequest>>(requestText)
+                        val token = onLoginRequest(request)
                         if (token != null) {
                             call.response.header("Authorization", "Bearer $token")
                             call.respond(ApiResponse(token))
@@ -123,9 +130,9 @@ class AuthenticationContext(
             }
         }
     }
-    private fun configureRouteRefresh(routing: Routing){
+    private fun configureRouteRefresh(routing: Routing, url: String){
         routing.apply {
-            route("${apiConfig.baseApiRoute}/refresh") {
+            route(url) {
                 post {
                     val authHeader = call.request.headers["Authorization"]
                     if (authHeader == null || !authHeader.startsWith("Bearer")) {
@@ -151,9 +158,9 @@ class AuthenticationContext(
             }
         }
     }
-    private fun configRouteLogout(routing: Routing){
+    private fun configRouteLogout(routing: Routing, url: String){
         routing.apply {
-            route("${apiConfig.baseApiRoute}/logout") {
+            route(url) {
                 post {
                     val request =  call.receive<ApiRequest<LogoutRequest>>()
                     call.respond(ApiResponse(true))
@@ -188,9 +195,9 @@ class AuthenticationContext(
         configAuthentication()
         if(authConfig.defaultSecurityRouts){
             app.routing{
-                configureRouteLogin(this)
-                configureRouteRefresh(this)
-                configRouteLogout(this)
+                configureRouteLogin(this, toUrl(authConfig.baseAuthRoute, "login"))
+                configureRouteRefresh(this, toUrl(authConfig.baseAuthRoute, "refresh"))
+                configRouteLogout(this, toUrl(authConfig.baseAuthRoute, "logout"))
             }
         }
     }
@@ -198,7 +205,8 @@ class AuthenticationContext(
     fun applySecurity(
         publicKeyHandler: File,
         privateKeyHandler: File,
-        validatorFn: (LoginRequest)-> SecuredUserInterface?){
+        validatorFn: (LoginRequest)-> SecuredUserInterface?
+    ){
         if(publicKeyHandler.exists() && privateKeyHandler.exists()){
             publicKeyHandler.bufferedReader().use { reader ->
                 authConfig.publicKeyString = reader.readText()

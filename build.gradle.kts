@@ -9,11 +9,10 @@ buildscript {
         mavenCentral()
         gradlePluginPortal()
     }
-    dependencies {
-        classpath("io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.23.7")
-    }
+//    dependencies {
+//        classpath("io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.23.7")
+//    }
 }
-
 
 allprojects {
     repositories {
@@ -23,11 +22,9 @@ allprojects {
 }
 
 subprojects {
-
-    apply(plugin = "io.gitlab.arturbosch.detekt")
+//    apply(plugin = "io.gitlab.arturbosch.detekt")
     apply(plugin = "org.jetbrains.kotlin.jvm")
     apply(plugin = "com.google.devtools.ksp")
-
     plugins.withId("org.jetbrains.kotlin.jvm") {
         kotlin {
             jvmToolchain {

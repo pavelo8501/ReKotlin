@@ -56,7 +56,7 @@ class ConfigContext(
 
     override val eventHandler = RootEventHandler("Server config")
     internal val apiConfig  =  wrapConfig.apiConfig
-    private val authContext  : AuthenticationContext by lazy { AuthenticationContext(this) }
+    private val authContext  : AuthenticationContext by lazy { AuthenticationContext( wraptor.eventHandler, this) }
     internal val app : Application  by lazy { wraptor.application }
 
     init {
@@ -72,14 +72,19 @@ class ConfigContext(
             } else {
                 info("Installing CORS Plugin")
                 install(CORS) {
+                    allowNonSimpleContentTypes
                     allowMethod(HttpMethod.Options)
                     allowMethod(HttpMethod.Get)
                     allowMethod(HttpMethod.Post)
+                    allowMethod(HttpMethod.Put)
+                    allowMethod(HttpMethod.Patch)
+                    allowHeader(HttpHeaders.Authorization)
                     allowHeader(HttpHeaders.ContentType)
                     allowHeader(HttpHeaders.Origin)
                     allowCredentials = true
                     anyHost()
                 }
+                println("Default CORS installed")
                 info("Default CORS installed")
             }
         }
