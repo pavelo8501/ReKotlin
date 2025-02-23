@@ -35,7 +35,7 @@ class SequenceContext<DATA, ENTITY>(
         val newDtoContext = DTOContext<DATA, ENTITY>(
             CrudResult<DATA, ENTITY>(dtos(), null),
         )
-        handler.invokeResultCallback(newDtoContext.getData())
+        handler.submitResult(newDtoContext.getData())
     }
 
     fun <SWITCH_DATA: DataModel, SWITCH_ENTITY : LongEntity> DTOClass<SWITCH_DATA, SWITCH_ENTITY>.switch(
@@ -60,19 +60,10 @@ class SequenceContext<DATA, ENTITY>(
 
     suspend fun update(
         dataModels: List<DATA>,
-        block: SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit
-    ) {
-        lastResult = hostDto.update<DATA, ENTITY>(dataModels)
-        this.block(dtos())
-    }
-
-    suspend fun update(
         block: suspend (dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit
     ) {
-         handler.inputData?.let {
-                lastResult = hostDto.update<DATA, ENTITY>(it)
-             block(dtos())
-         }
+        lastResult = hostDto.update<DATA, ENTITY>(dataModels)
+        block(dtos())
     }
 
     @JvmName("UpdateDtos")

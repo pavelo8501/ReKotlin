@@ -56,14 +56,15 @@ class CoroutineEmitter(
     }
 
     suspend fun <DATA : DataModel, ENTITY : LongEntity>dispatch(
-        pack: SequencePack<DATA, ENTITY>, data : List<DATA>
+        pack: SequencePack<DATA, ENTITY>,
+        data : List<DATA>
     ): Deferred<List<DATA>> {
         val listenerScope = CoroutineScope(Dispatchers.IO + CoroutineName(name))
         return listenerScope.async {
             info("Pre launching Coroutine for pack ${pack.sequenceName()}")
             val transactionResult = suspendedTransactionAsync(Dispatchers.IO) {
                 pack.start(data)
-                pack.onResult().await()
+                pack.onResult()
             }
             transactionResult.await()
         }.also { deferred ->

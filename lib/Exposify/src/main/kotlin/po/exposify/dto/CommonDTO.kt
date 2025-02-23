@@ -138,7 +138,7 @@ abstract class CommonDTO<DATA, ENTITY>(
         hostDTO?.initializeRepositories()
     }
     suspend  fun updateRepositories(){
-        hostDTO?.updateRootRepositories()
+       hostDTO?.updateRootRepositories() ?:run { sourceModel.daoService.updateExistent(this) }
     }
     suspend fun deleteInRepositories(){
         hostDTO?.let {

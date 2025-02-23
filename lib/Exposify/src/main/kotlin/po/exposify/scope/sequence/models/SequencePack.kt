@@ -2,6 +2,7 @@ package po.exposify.scope.sequence.models
 
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Job
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.scope.sequence.SequenceContext
@@ -13,10 +14,11 @@ data class SequencePack<DATA,ENTITY>(
     private val handler: SequenceHandler<DATA>,
 ) where  DATA : DataModel, ENTITY : LongEntity {
 
-   val completed =  CompletableDeferred(emptyList<DATA>())
+    val resultDeferred = CompletableDeferred<List<DATA>>()
+
    init {
        handler.onResultSubmitted {
-           completed.complete(it)
+           resultDeferred.complete(it)
        }
    }
 
@@ -25,10 +27,9 @@ data class SequencePack<DATA,ENTITY>(
        context.sequenceFn(data)
     }
 
-    suspend fun onResult(): Deferred<List<DATA>>{
-        return completed
+    suspend fun onResult(): List<DATA> {
+        return resultDeferred.await()
     }
-
 
     fun sequenceName(): String{
         return handler.name

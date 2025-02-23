@@ -148,30 +148,21 @@ class Factory<DATA, ENTITY>(
      * */
     suspend fun createEntityDto(dataModel : DATA? = null): CommonDTO<DATA, ENTITY>?{
         val model = dataModel?: createDataModel()
-        try {
-            val dto = task<CommonDTO<DATA, ENTITY>>("DTOFunctions created from dtoBlueprint [reflection]") {
-                dtoBlueprint.let { blueprint ->
-                    val constructor = blueprint.getConstructor()
-                    blueprint.getArgsForConstructor { paramName ->
-                        when (paramName) {
-                            "dataModel" -> {
-                                model
-                            }
-
-                            else -> {
-                                null
-                            }
+            val newDto = task<CommonDTO<DATA, ENTITY>>("DTOFunctions created from dtoBlueprint [reflection]") {
+                val args = dtoBlueprint.getArgsForConstructor { paramName ->
+                    when (paramName) {
+                        "dataModel" -> {
+                            model
                         }
-                    }.let {
-                        val newDto = constructor.callBy(it)
-                        newDto.apply { initialize(parent) }
+
+                        else -> {
+                            null
+                        }
                     }
                 }
+                dtoBlueprint.getConstructor().callBy(args)
             }
-            return dto
-        }catch (ex: Exception){
-            warn(ex.message?:"Unknown exception")
-            return null
-        }
+        newDto?.initialize(parent)?: println("Something wrong")
+        return newDto
     }
 }

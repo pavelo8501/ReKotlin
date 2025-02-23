@@ -21,7 +21,7 @@ sealed interface SequenceHandlerInterface<T: DataModel> {
      * Invokes the result callback function with the provided data.
      * @param listedData The data to be passed to the result callback.
      */
-    suspend fun invokeResultCallback(listedData: List<T>)
+    suspend fun submitResult(result: List<T>)
 }
 
 /**
@@ -90,17 +90,17 @@ abstract class SequenceHandler<T>(
         return  dtoClass.triggerSequence(this, data)
     }
 
+    private var onResult :  ((List<T>)-> Unit) ? = null
+    fun onResultSubmitted(callback : (List<T>)-> Unit){
+        onResult =  callback
+    }
+
     /**
      * Invokes the result callback function with the provided data.
      * @param listedData The data to pass to the result callback.
      */
-    override suspend fun invokeResultCallback(listedData: List<T>) {
-        onResult?.invoke(listedData)
-    }
-
-    private var onResult :  ((List<T>)-> Unit) ? = null
-    fun onResultSubmitted(callback : (List<T>)-> Unit){
-        onResult =  callback
+    override suspend fun submitResult(result : List<T> ){
+        onResult?.invoke(result)
     }
 
 }
