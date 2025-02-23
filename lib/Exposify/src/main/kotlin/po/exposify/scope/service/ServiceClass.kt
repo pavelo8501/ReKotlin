@@ -1,5 +1,7 @@
 package po.exposify.scope.service
 
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Deferred
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
@@ -12,6 +14,7 @@ import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.InitializationException
 import po.exposify.exceptions.OperationsException
 import po.exposify.scope.connection.ConnectionClass
+import po.exposify.scope.sequence.models.SequencePack
 import po.lognotify.eventhandler.RootEventHandler
 import po.lognotify.eventhandler.interfaces.CanNotify
 import kotlin.Long
@@ -27,7 +30,7 @@ class ServiceClass<DATA, ENTITY>(
     private val serviceCreateOption: TableCreateMode? = null,
 ) : CanNotify  where  DATA: DataModel, ENTITY : LongEntity {
 
-   val connection : Database = connectionClass.connection
+   internal val connection : Database = connectionClass.connection
 
    var name : String = "undefined"
    var serviceContext : ServiceContext<DATA, ENTITY>? = null
@@ -50,17 +53,11 @@ class ServiceClass<DATA, ENTITY>(
         body()
     }
 
-    private suspend fun launchSequence(name: String, data : List<DATA>? = null){
-        task("Launch Sequence on ServiceClass with name :${name}"){
-            serviceContext?.sequences?.keys?.firstOrNull{ it.name ==  name}?.let{key->
-                val pack = serviceContext?.sequences?.get(key)
-                pack?.let {
-                    connectionClass.launchSequence<DATA,ENTITY>(it, data, eventHandler)
-                }
-            }?:run {
-                throwPropagate("Sequence not found")
-            }
+    internal suspend fun launchSequence(pack : SequencePack<DATA, ENTITY>, data : List<DATA>): Deferred<List<DATA>> {
+       val result = task("Launch Sequence on ServiceClass with name :${name}") {
+            connectionClass.launchSequence<DATA, ENTITY>(pack, data, eventHandler)
         }
+        return result ?: CompletableDeferred(emptyList())
     }
 
 
@@ -119,11 +116,7 @@ class ServiceClass<DATA, ENTITY>(
 
     private fun start(){
         initializeDTOs{
-            rootDTOModel.initialization(){emitter->
-                emitter.onSequenceLaunch = {name, data ->
-                    launchSequence(name, data as List<DATA>?)
-                }
-            }
+            rootDTOModel.initialization()
             name =  ("${rootDTOModel.className}|Service").trim()
         }
         if(serviceCreateOption!=null){
@@ -148,7 +141,7 @@ class ServiceClass<DATA, ENTITY>(
     }
 
     fun launch(receiver: ServiceContext<DATA, ENTITY>.() -> Unit){
-       ServiceContext(connection, rootDTOModel).let {context->
+       ServiceContext(this, rootDTOModel).let {context->
            context.receiver()
            serviceContext = context
        }

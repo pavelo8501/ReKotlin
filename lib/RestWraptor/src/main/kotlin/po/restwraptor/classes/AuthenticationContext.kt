@@ -184,9 +184,9 @@ class AuthenticationContext(
                     privateKeyString = authConfig.privateKeyString)
                   val plugin = install(JWTPlugin) {this.init("jwt-auth", config)}
                   this@AuthenticationContext.jwtService = plugin.getInitializedService()
-                install(ReplyInterceptorPlugin){
-                    injectService(this@AuthenticationContext.jwtService!!)
-                }
+//                install(ReplyInterceptorPlugin){
+//                    injectService(this@AuthenticationContext.jwtService!!)
+//                }
             }
         }
     }

@@ -31,11 +31,3 @@ data class ApiResponse<T>(
         return this
     }
 }
-
-
-@Serializable
-data class PostResponse(
-    var ok: Boolean = false,
-    var msg: String = "",
-    var errorCode: Int = 0,
-)

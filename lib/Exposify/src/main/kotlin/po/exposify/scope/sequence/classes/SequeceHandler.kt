@@ -1,5 +1,6 @@
 package po.exposify.scope.sequence.classes
 
+import kotlinx.coroutines.Deferred
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
@@ -77,23 +78,16 @@ abstract class SequenceHandler<T>(
     }
 
     /**
-     * Executes the sequence with the given input data and assigns a result callback function.
-     * @param listedData The input data for the sequence execution.
-     * @param callback The callback function to invoke when the sequence completes.
-     */
-    suspend fun execute(listedData: List<T>, callback: suspend (List<T>)-> Unit){
-        inputData = listedData
-        resultCallback = callback
-        dtoClass.triggerSequence(name)
-    }
-
-    /**
      * Assigns a result callback function to be executed when the sequence completes.
      * @param callback The callback function to assign.
      */
-    suspend  fun execute(callback:suspend (List<T>)-> Unit){
+    suspend  fun execute(data : List<T> = emptyList<T>(),  callback:suspend (List<T>)-> Unit){
         resultCallback = callback
-        dtoClass.triggerSequence(name)
+        dtoClass.triggerSequence(this, data)
+    }
+
+    suspend  fun execute(data : List<T> = emptyList<T>()): Deferred<List<T>>{
+        return  dtoClass.triggerSequence(this, data)
     }
 
     /**
@@ -101,7 +95,12 @@ abstract class SequenceHandler<T>(
      * @param listedData The data to pass to the result callback.
      */
     override suspend fun invokeResultCallback(listedData: List<T>) {
-        resultCallback?.invoke(listedData)
+        onResult?.invoke(listedData)
+    }
+
+    private var onResult :  ((List<T>)-> Unit) ? = null
+    fun onResultSubmitted(callback : (List<T>)-> Unit){
+        onResult =  callback
     }
 
 }
