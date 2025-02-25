@@ -33,10 +33,11 @@ import kotlin.test.assertNotNull
 @Serializable
 data class TestUser(
     override var id: Long = 0,
-    val name : String = "someName",
-    val password : String = "somePassword",
+    override var name : String = "someName",
     override var login: String = "someLogin",
-    override var roles: List<String>  = listOf<String>()
+    override var password : String = "somePassword",
+    override var email: String = "some@mail.test",
+    override var roles: List<String>  = listOf<String>(),
 ) : SecuredUserInterface{
     override fun toPayload(): String {
         return """{"id":$id, "name":"$name", "login":"$login"}"""

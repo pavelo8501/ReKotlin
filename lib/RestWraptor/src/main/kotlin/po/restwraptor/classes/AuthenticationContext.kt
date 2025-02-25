@@ -202,10 +202,10 @@ class AuthenticationContext(
         }
     }
 
-    fun applySecurity(
+    fun <T:SecuredUserInterface>applySecurity(
         publicKeyHandler: File,
         privateKeyHandler: File,
-        validatorFn: (LoginRequest)-> SecuredUserInterface?
+        validatorFn: (LoginRequest)-> T?
     ){
         if(publicKeyHandler.exists() && privateKeyHandler.exists()){
             publicKeyHandler.bufferedReader().use { reader ->

@@ -10,11 +10,12 @@ import kotlinx.serialization.json.jsonPrimitive
 interface SecuredUserInterface {
     var id : Long
     var login: String
+    var name: String
+    var email: String
     var password: String
     var roles: List<String>
 
     fun toPayload(): String
-
 
     companion object{
         val json = Json{
@@ -45,6 +46,8 @@ interface SecuredUserInterface {
                 val result = object : SecuredUserInterface {
                     override var id: Long = 0
                     override var login: String = ""
+                    override var name: String= ""
+                    override var email: String = ""
                     override var password: String = ""
                     override var roles: List<String> = emptyList()
                     override fun toPayload(): String {
