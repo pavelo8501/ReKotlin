@@ -1,5 +1,6 @@
 package po.exposify.scope.connection
 
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Database
@@ -36,13 +37,13 @@ class ConnectionClass(
     val isConnectionOpen: Boolean
         get(){return connectionInfo.connection.transactionManager.currentOrNull()?.connection?.isClosed == false  }
 
-    fun <DATA : DataModel, ENTITY: LongEntity>launchSequence(
+    suspend fun <DATA : DataModel, ENTITY: LongEntity>launchSequence(
         pack : SequencePack<DATA, ENTITY>,
-        data : List<DATA>? = null,
+        data : List<DATA>,
         parentEventHandler: RootEventHandler //Temporary solution unless sessions will get introduced
-        ){
+        ): Deferred<List<DATA>> {
         eventHandler = parentEventHandler
-        coroutineEmitter.dispatch(pack, data)
+        return coroutineEmitter.dispatch(pack, data)
     }
 
     fun addService(service : ServiceClass<*,*>){

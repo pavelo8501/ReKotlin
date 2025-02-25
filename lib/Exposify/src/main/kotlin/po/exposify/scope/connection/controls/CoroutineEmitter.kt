@@ -1,8 +1,11 @@
 package po.exposify.scope.connection.controls
 
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.transactions.experimental.suspendedTransactionAsync
@@ -28,16 +31,18 @@ class CoroutineEmitter(
         }
     }
 
-   fun <DATA : DataModel, ENTITY : LongEntity>dispatch(
-       pack: SequencePack<DATA, ENTITY>, data : List<DATA>?){
+   fun <DATA : DataModel, ENTITY : LongEntity>dispatch2(
+       pack: SequencePack<DATA, ENTITY>,
+       data : List<DATA>
+   ) : Deferred<List<DATA>>  {
 
        val listenerScope = CoroutineScope(Dispatchers.IO + CoroutineName(name))
        val job = listenerScope.launch {
            info("Pre launching Coroutine for pack ${pack.sequenceName()}")
            val transactionResult = suspendedTransactionAsync(Dispatchers.IO) {
-               pack.start(data)  // ✅ Now runs inside a proper coroutine transaction
+               pack.start(data)
            }
-           transactionResult.await() // ✅ Waits for DB operation to complete before continuing
+           transactionResult.await()
            info("Launch complete for ${pack.sequenceName()}")
        }
        job.invokeOnCompletion {throwable->
@@ -47,5 +52,29 @@ class CoroutineEmitter(
                throwPropagate(throwable.message.toString())
            }
        }
+       return CompletableDeferred(emptyList<DATA>())
+    }
+
+    suspend fun <DATA : DataModel, ENTITY : LongEntity>dispatch(
+        pack: SequencePack<DATA, ENTITY>,
+        data : List<DATA>
+    ): Deferred<List<DATA>> {
+        val listenerScope = CoroutineScope(Dispatchers.IO + CoroutineName(name))
+        return listenerScope.async {
+            info("Pre launching Coroutine for pack ${pack.sequenceName()}")
+            val transactionResult = suspendedTransactionAsync(Dispatchers.IO) {
+                pack.start(data)
+                pack.onResult()
+            }
+            transactionResult.await()
+        }.also { deferred ->
+            deferred.invokeOnCompletion { throwable ->
+                if (throwable == null) {
+                    info("Dispatcher $name is closing")
+                } else {
+                    throwPropagate(throwable.message.toString())
+                }
+            }
+        }
     }
 }

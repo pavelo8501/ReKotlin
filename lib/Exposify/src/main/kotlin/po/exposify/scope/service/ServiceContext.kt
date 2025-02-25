@@ -1,5 +1,6 @@
 package po.exposify.scope.service
 
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Database
@@ -16,14 +17,26 @@ import po.exposify.scope.service.enums.WriteMode
 import kotlin.reflect.KProperty1
 
 class ServiceContext<DATA,ENTITY>(
-    private val dbConnection: Database,
+    private val serviceClass : ServiceClass<DATA,ENTITY>,
     internal val rootDtoModel : DTOClass<DATA,ENTITY>,
 ) where  ENTITY : LongEntity,DATA: DataModel{
 
+    private val dbConnection: Database = serviceClass.connection
     val name : String = "${rootDtoModel.className}|Service"
 
     internal val sequences =
         mutableMapOf<SequenceHandler<DATA>, SequencePack<DATA, ENTITY>>()
+
+    init {
+        rootDtoModel.emitter.subscribeOnSequenceLaunchRequest { handler, data ->
+           val pack = sequences[handler]
+           if(pack!=null){
+               return@subscribeOnSequenceLaunchRequest serviceClass.launchSequence(pack,data)
+           }else{
+               CompletableDeferred(emptyList<DATA>())
+           }
+        }
+    }
 
     private fun  <T>dbQuery(body : () -> T): T = transaction(dbConnection) {
         body()
@@ -125,7 +138,7 @@ class ServiceContext<DATA,ENTITY>(
 
     fun DTOClass<DATA, ENTITY>.sequence(
         name:String,
-        block: suspend SequenceContext<DATA, ENTITY>.(List<DATA>?) -> Unit
+        block: suspend SequenceContext<DATA, ENTITY>.(List<DATA>) -> Unit
     ) {
         val defaultHandler = DefaultSequenceHandler<DATA>(rootDtoModel, name)
         val container = SequencePack(
@@ -138,7 +151,7 @@ class ServiceContext<DATA,ENTITY>(
 
     fun DTOClass<DATA, ENTITY>.sequence(
         handler: SequenceHandler<DATA>,
-        block: suspend SequenceContext<DATA, ENTITY>.(List<DATA>?) -> Unit
+        block: suspend SequenceContext<DATA, ENTITY>.(List<DATA>) -> Unit
     ) {
         val container = SequencePack(
             SequenceContext<DATA, ENTITY>(dbConnection, rootDtoModel, handler),

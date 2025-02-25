@@ -14,7 +14,7 @@ import kotlin.reflect.KProperty1
 class SequenceContext<DATA, ENTITY>(
     val connection: Database,
     val hostDto : DTOClass<DATA,ENTITY>,
-    private val handler : SequenceHandler<out DATA>
+    private val handler : SequenceHandler<DATA>
 ) where  DATA : DataModel, ENTITY : LongEntity
 {
 
@@ -31,13 +31,11 @@ class SequenceContext<DATA, ENTITY>(
     }
 
 
-    fun checkout(
-        block: (DTOContext<DATA, ENTITY>.()-> Unit)?  = null
-    ) {
+    suspend fun checkout() {
         val newDtoContext = DTOContext<DATA, ENTITY>(
             CrudResult<DATA, ENTITY>(dtos(), null),
         )
-        block?.invoke(newDtoContext)
+        handler.submitResult(newDtoContext.getData())
     }
 
     fun <SWITCH_DATA: DataModel, SWITCH_ENTITY : LongEntity> DTOClass<SWITCH_DATA, SWITCH_ENTITY>.switch(
@@ -54,7 +52,7 @@ class SequenceContext<DATA, ENTITY>(
     }
 
     suspend fun select(
-        block: SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit
+        block: suspend SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit
     ) {
         lastResult = hostDto.select()
         this.block(dtos())
@@ -62,19 +60,10 @@ class SequenceContext<DATA, ENTITY>(
 
     suspend fun update(
         dataModels: List<DATA>,
-        block: SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit
+        block: suspend (dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit
     ) {
         lastResult = hostDto.update<DATA, ENTITY>(dataModels)
-        this.block(dtos())
-    }
-
-    suspend fun update(
-        block: (dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit
-    ) {
-         handler.inputData?.let {
-                lastResult = hostDto.update<DATA, ENTITY>(it)
-             block(dtos())
-         }
+        block(dtos())
     }
 
     @JvmName("UpdateDtos")
@@ -129,7 +118,7 @@ class SequenceContext<DATA, ENTITY>(
      */
     suspend fun pick(
         vararg conditions: Pair<KProperty1<DATA, *>, Any?>,
-        block: (dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit
+        block: suspend (dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit
     ) {
         handler.inputData?.firstOrNull()?.let {
             lastResult = hostDto.pick(conditions.toList())

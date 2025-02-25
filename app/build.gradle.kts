@@ -30,15 +30,12 @@ repositories {
 }
 
 dependencies {
-
     implementation(kotlin("stdlib-jdk8"))
     implementation(project(":lib:Exposify"))
     implementation(project(":lib:RestWraptor"))
     implementation(project(":lib:LogNotify"))
-
    // implementation(project(":lib:binderPlugin"))
    // ksp(project(":lib:binderPlugin"))
-
     implementation("io.ktor:ktor-server-core:$ktorVersion")
     implementation("io.ktor:ktor-server-netty:$ktorVersion")
     implementation("io.ktor:ktor-server-websockets:$ktorVersion")

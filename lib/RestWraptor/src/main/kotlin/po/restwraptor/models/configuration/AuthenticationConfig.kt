@@ -6,6 +6,7 @@ import po.restwraptor.models.request.LoginRequest
 import java.io.File
 
 data class AuthenticationConfig(
+    var baseAuthRoute : String = "/auth",
     var enableSecurity : Boolean = true,
     var defaultSecurityRouts : Boolean = true
 ) {

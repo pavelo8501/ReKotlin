@@ -45,12 +45,15 @@ class RootEventHandler(
         when(event){
             is Task -> {
                 taskQue.add(event)
+                return event
             }
             is Event -> {
-                taskQue.add(helper.newTask("Empty task"))
+                val newTask = helper.newTask("Empty task")
+                newTask.subEvents.add(event)
+                taskQue.add(newTask)
+                return newTask
             }
         }
-        return event as Task
     }
 
     /**
@@ -128,7 +131,7 @@ sealed class EventHandlerBase(
         }
     }
 
-    private fun registerTask(task: Task): Task{
+    protected fun registerTask(task: Task): Task{
         activeTask = task
         return task
     }
@@ -167,20 +170,17 @@ sealed class EventHandlerBase(
      * @throws UnmanagedException if an error occurs during finalization.
      */
     @Synchronized
-    protected fun finalizeTask(event: Task){
-        if(event.type == SeverityLevel.TASK) {
-            event.stopTimer()
-            if (this is RootEventHandler) {
-                //If this is hierarchy root than add event to que and wipe ot current active event
-                addToEventQue(event)
-            } else {
-                //if not a hierarchy root add to parent active event
-                parent?.activeTask?.subEvents?.add(event)?:run {
-                    throw UnmanagedException("Parent active task is null when trying to add event: $event")
-                }
+    protected fun finalizeTask(task: Task){
+        task.stopTimer()
+        if (this is RootEventHandler) {
+            //If this is a hierarchy root than add event to que and wipe ot current active event
+            addToEventQue(task)
+        } else {
+            //if not a hierarchy root add to the parent active task
+            parent?.activeTask?.subEvents?.add(task)?:run {
+                //if parent active task is null propagate self task to parent
+                parent?.registerTask(task)
             }
-        }else{
-            throw UnmanagedException("Trying to finalize not a Task type event: $event")
         }
         activeTask = null
     }

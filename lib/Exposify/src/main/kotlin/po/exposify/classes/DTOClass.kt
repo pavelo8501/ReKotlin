@@ -1,5 +1,7 @@
 package po.exposify.classes
 
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.awaitAll
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.IdTable
@@ -16,8 +18,7 @@ import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
 import po.exposify.models.CrudResult
 import po.exposify.dto.CommonDTO
-import po.lognotify.eventhandler.EventHandler
-import po.lognotify.eventhandler.EventHandlerBase
+import po.exposify.scope.sequence.classes.SequenceHandler
 import po.lognotify.eventhandler.RootEventHandler
 import po.lognotify.eventhandler.interfaces.CanNotify
 import kotlin.reflect.KClass
@@ -32,7 +33,7 @@ abstract class DTOClass<DATA, ENTITY>(
 
     override val eventHandler = RootEventHandler(className)
 
-    internal val emitter = CallbackEmitter()
+    internal val emitter = CallbackEmitter<DATA>()
 
     var initialized: Boolean = false
     val conf = DTOConfig<DATA, ENTITY>(this)
@@ -59,7 +60,7 @@ abstract class DTOClass<DATA, ENTITY>(
        }
     }
 
-    fun initialization(onRequestFn: ((CallbackEmitter) -> Unit)? = null ) {
+    fun initialization(onRequestFn: ((CallbackEmitter<DATA>) -> Unit)? = null) {
         setup()
         initialized = true
         onRequestFn?.invoke(emitter)
@@ -184,10 +185,8 @@ abstract class DTOClass<DATA, ENTITY>(
         return CrudResult(resultDTOs.toList())
     }
 
-    suspend fun triggerSequence(name: String, list: List<DATA>? = null): DATA? {
-        println("triggerSequence")
-        emitter.callOnSequenceLaunch(name, list)
-        return null
+    suspend fun triggerSequence(handler: SequenceHandler<DATA>, list: List<DATA>): Deferred<List<DATA>> {
+        return emitter.launchSequence(handler, list)
     }
 
 }

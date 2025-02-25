@@ -8,6 +8,10 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.netty.NettyApplicationEngine
 import io.ktor.util.AttributeKey
+import kotlinx.coroutines.runBlocking
+import po.lognotify.eventhandler.EventHandlerBase
+import po.lognotify.eventhandler.RootEventHandler
+import po.lognotify.eventhandler.interfaces.CanNotify
 import po.restwraptor.classes.ConfigContext
 import po.restwraptor.classes.CoreContext
 import po.restwraptor.models.configuration.ApiConfig
@@ -23,7 +27,7 @@ val RestWrapTorKey = AttributeKey<RestWrapTor>("RestWrapTorInstance")
  */
 class RestWrapTor(
     private val appConfigFn : (ConfigContext.() -> Unit)? = null,
-) {
+): CanNotify {
     /**
      * Stores the **unique hash** of the application instance.
      * Used to verify if the application instance remains the same.
@@ -35,6 +39,8 @@ class RestWrapTor(
 
     /** The embedded Ktor server instance. */
     private lateinit var  embeddedServer : EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>
+
+    override val  eventHandler = RootEventHandler("RestWrapTor")
 
     /**
      * Indicates whether the application has been initialized.
@@ -125,11 +131,6 @@ class RestWrapTor(
         setupConfig(app)
     }
 
-    /** Hook executed after the application starts. */
-    private fun afterApplicationStart(){
-
-    }
-
     /** Hook executed after the server starts successfully. */
     private fun afterServerStart(){
         onServerStartedCallback?.invoke(embeddedServer)
@@ -175,8 +176,11 @@ class RestWrapTor(
     private fun launchRest(wait: Boolean = true){
         embeddedServer =  embeddedServer(Netty, port, host){
             println("Hash before appBuilderFn invoked ${System.identityHashCode(this)}")
-            setupConfig(this)
-            monitor.subscribe(ApplicationStarted) { afterApplicationStart() }
+            runBlocking {
+                task("API Server Configuration") {
+                    setupConfig(this@embeddedServer)
+                }
+            }
             monitor.subscribe(ServerReady) { afterServerStart() }
         }
         embeddedServer.start(wait)
