@@ -51,7 +51,6 @@ class AuthenticationContext(
     private val  stringHelper : StringHelper = StringHelper
 ) : CanNotify,  StringHelper by stringHelper  {
 
-   // private val stringHelper = StringHelper
     override val eventHandler = EventHandler("AuthenticationContext", rootHandler)
 
     val authConfig  = AuthenticationConfig()
@@ -60,7 +59,6 @@ class AuthenticationContext(
     private val apiConfig = configContext.apiConfig
     private val app = configContext.app
 
-    //    var onLoginRequest: ((LoginRequest) -> SecuredUserInterface?)?
     var onAuthenticated : ((AuthenticatedModel) -> Unit)? = null
 
 
@@ -114,7 +112,7 @@ class AuthenticationContext(
         routing.apply {
             route(url) {
                 post {
-                    task("$url request") {
+                    task("$url request"){
                         info("Request content type: ${call.request.contentType()}")
                         val requestText = call.receiveText()
                         val request = Json.decodeFromString<ApiRequest<LoginRequest>>(requestText)

@@ -8,6 +8,7 @@ val logbackClassicVersion: String by project
 val coroutinesVersion: String by project
 val junitVersion: String by project
 val kotlinSerializationVersion : String by project
+val h2DatabaseVersion : String by project
 
 val exposifyVersion: String by project
 
@@ -20,19 +21,19 @@ plugins {
 group = "po.exposify"
 version = exposifyVersion
 
-//detekt {
-//    toolVersion = "1.23.7"
-//    config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
-//    buildUponDefaultConfig = true // Merge with Detekt's default rules
-//
-//    tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
-//        reports {
-//            html.required.set(true)
-//            xml.required.set(true)
-//            txt.required.set(false)
-//        }
-//    }
-//}
+detekt {
+    toolVersion = "1.23.7"
+    config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
+    buildUponDefaultConfig = true // Merge with Detekt's default rules
+
+    tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
+        reports {
+            html.required.set(true)
+            xml.required.set(true)
+            txt.required.set(false)
+        }
+    }
+}
 
 repositories {
     mavenCentral()
@@ -60,6 +61,13 @@ dependencies {
     api(project(":lib:LogNotify"))
 
 
+
+    testImplementation("com.h2database:h2:$h2DatabaseVersion")
+
+    testImplementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
+    testImplementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
+    testImplementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
+
     testImplementation("org.jetbrains.kotlin:kotlin-test:$kotlinVersion")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion")
     testImplementation("ch.qos.logback:logback-classic:$logbackClassicVersion")
@@ -68,7 +76,6 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
-
 
 }
 

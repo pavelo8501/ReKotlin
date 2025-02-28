@@ -114,7 +114,7 @@ class JWTService{
             .withAudience(config.audience)
             .withIssuer(config.issuer)
             .withClaim(config.claimFieldName, user.login)
-            .withClaim("user", user.toPayload())
+            .withClaim("user_json", user.toPayload())
             .withExpiresAt(Date.from(Instant.now().plusSeconds(3600)))
             .sign(Algorithm.RSA256(null, privateKey))
 
@@ -149,7 +149,7 @@ class JWTService{
         val expirationLong = decodedJWT.expiresAt?.time ?: 0
         val expirationTime =  Instant.ofEpochMilli(expirationLong)
         if(expirationTime.isBefore(Instant.now())){
-            val user = decodedJWT.getClaim("user").asString()
+            val user = decodedJWT.getClaim("user_json").asString()
             val userInterface =   SecuredUserInterface.fromPayload(user)
             if(userInterface!= null){
                 val newToken =  this@JWTService.generateToken(userInterface)

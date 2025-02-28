@@ -1,6 +1,6 @@
 
 plugins {
-    kotlin("jvm")  version "2.0.21"
+    kotlin("jvm") version "2.1.0"
     id("com.google.devtools.ksp")
 }
 
@@ -9,9 +9,9 @@ buildscript {
         mavenCentral()
         gradlePluginPortal()
     }
-//    dependencies {
-//        classpath("io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.23.7")
-//    }
+    dependencies {
+        classpath("io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.23.8")
+    }
 }
 
 allprojects {
@@ -22,7 +22,7 @@ allprojects {
 }
 
 subprojects {
-//    apply(plugin = "io.gitlab.arturbosch.detekt")
+    apply(plugin = "io.gitlab.arturbosch.detekt")
     apply(plugin = "org.jetbrains.kotlin.jvm")
     apply(plugin = "com.google.devtools.ksp")
     plugins.withId("org.jetbrains.kotlin.jvm") {
