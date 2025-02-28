@@ -214,6 +214,11 @@ sealed class EventHandlerBase(
         }
     }
 
+    var onUnmanagedBlock : (suspend (Exception)-> Unit)? = null
+    fun handleUnmanagedException(block: suspend (Exception)-> Unit){
+        onUnmanagedBlock = block
+    }
+
     /**
      * Executes a task within the event handler, ensuring proper event tracking and exception handling.
      * @param message A description of the task.
@@ -233,7 +238,11 @@ sealed class EventHandlerBase(
                     }
                     else -> {
                         registerEvent(Event(routedName, message, SeverityLevel.EXCEPTION))
-                        throw  UnmanagedException(helper.unhandledMsg(ex), ex)
+                        this.onUnmanagedBlock?.let {unmanagedBlock->
+                            unmanagedBlock(ex as Exception)
+                        }?:run {
+                            throw  UnmanagedException(helper.unhandledMsg(ex), ex)
+                        }
                     }
                 }
         }.getOrNull()

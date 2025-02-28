@@ -4,9 +4,11 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class ServiceResponse(
-    val message : String,
-    val errorCode: Int,
-)
+    var msg: String,
+    var errorCode: Int
+){
+    val ok: Boolean = false
+}
 
 @Serializable
 data class ApiResponse<T>(

@@ -48,7 +48,6 @@ interface ConfigContextInterface{
     fun initialize()
 }
 
-
 class ConfigContext(
     internal val wraptor : RestWrapTor,
     private val wrapConfig : WraptorConfig,
@@ -59,7 +58,14 @@ class ConfigContext(
     private val authContext  : AuthenticationContext by lazy { AuthenticationContext( wraptor.eventHandler, this) }
     internal val app : Application  by lazy { wraptor.application }
 
+    internal val jsonFormatter : Json = Json {
+        isLenient = true
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+    }
+
     init {
+
         eventHandler.registerPropagateException<ConfigurationException>{
             ConfigurationException("Default Message", HandleType.PROPAGATE_TO_PARENT)
         }
@@ -98,12 +104,7 @@ class ConfigContext(
             } else {
                 info("Installing Default ContentNegotiation")
                 install(ContentNegotiation) {
-                    json(Json {
-                        prettyPrint = true
-                        isLenient = true
-                        ignoreUnknownKeys = true
-                        encodeDefaults = true
-                    })
+                    json(jsonFormatter)
                 }
                 info("Default ContentNegotiation installed")
             }

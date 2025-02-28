@@ -1,15 +1,10 @@
 package po.restwraptor.classes
 
-import com.auth0.jwk.JwkProvider
-import com.auth0.jwt.JWT
-import com.auth0.jwt.JWTVerifier
 import com.auth0.jwt.exceptions.JWTDecodeException
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.install
 import io.ktor.server.application.pluginOrNull
 import io.ktor.server.auth.Authentication
-import io.ktor.server.auth.jwt.JWTPrincipal
-import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.request.contentType
 import io.ktor.server.request.receive
 import io.ktor.server.request.receiveText
@@ -21,8 +16,6 @@ import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
 import po.lognotify.eventhandler.EventHandler
-import po.restwraptor.exceptions.ConfigurationErrorCodes
-import po.restwraptor.exceptions.ConfigurationException
 import po.restwraptor.interfaces.SecuredUserInterface
 import po.restwraptor.models.configuration.AuthenticationConfig
 import po.restwraptor.models.request.ApiRequest
@@ -31,17 +24,14 @@ import po.restwraptor.models.response.ApiResponse
 import po.restwraptor.models.security.AuthenticatedModel
 import po.restwraptor.plugins.JWTPlugin
 import po.restwraptor.security.JWTService
-import po.lognotify.eventhandler.EventHandlerBase
 import po.lognotify.eventhandler.RootEventHandler
 import po.lognotify.eventhandler.interfaces.CanNotify
 import po.restwraptor.classes.convenience.respondInternal
 import po.restwraptor.classes.convenience.respondUnauthorized
 import po.restwraptor.exceptions.AuthException
 import po.restwraptor.interfaces.StringHelper
-import po.restwraptor.models.configuration.WraptorConfig
 import po.restwraptor.models.request.LogoutRequest
 import po.restwraptor.models.security.JwtConfig
-import po.restwraptor.plugins.ReplyInterceptorPlugin
 import java.io.File
 import java.io.IOException
 
@@ -112,10 +102,15 @@ class AuthenticationContext(
         routing.apply {
             route(url) {
                 post {
+                    eventHandler.handleUnmanagedException {
+                        respondInternal(it)
+                    }
                     task("$url request"){
                         info("Request content type: ${call.request.contentType()}")
                         val requestText = call.receiveText()
-                        val request = Json.decodeFromString<ApiRequest<LoginRequest>>(requestText)
+                        val request =  configContext.jsonFormatter.decodeFromString<ApiRequest<LoginRequest>>(
+                            requestText
+                        )
                         val token = onLoginRequest(request)
                         if (token != null) {
                             call.response.header("Authorization", "Bearer $token")

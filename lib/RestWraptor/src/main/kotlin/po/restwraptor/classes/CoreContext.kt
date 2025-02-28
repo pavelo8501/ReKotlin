@@ -6,6 +6,7 @@ import io.ktor.server.auth.AuthenticationRouteSelector
 import io.ktor.server.routing.HttpMethodRouteSelector
 import io.ktor.server.routing.RoutingNode
 import io.ktor.server.routing.RoutingRoot
+import kotlinx.serialization.json.Json
 import po.restwraptor.models.server.WraptorRoute
 
 class CoreContext(private val app : Application) {

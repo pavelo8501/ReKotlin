@@ -10,6 +10,7 @@ import po.lognotify.eventhandler.RootEventHandler
 import po.lognotify.eventhandler.exceptions.PropagateException
 import po.lognotify.eventhandler.exceptions.UnmanagedException
 import po.lognotify.shared.enums.SeverityLevel
+import po.lognotify.test.testmodels.ParentHostingObject
 import po.lognotify.test.testmodels.TestSkipException
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertEquals
@@ -187,6 +188,24 @@ class TestEventHandler {
             }
         }
         assertTrue(propagatedHandled)
+    }
+
+    @Test
+    fun `unmanaged exception handler work`() = runTest{
+
+        var exceptionMsg = ""
+        val rootObject = ParentHostingObject("Parent")
+        rootObject.exposeSelf {
+
+            eventHandler.handleUnmanagedException(){ex->
+                exceptionMsg = ex.message.toString()
+            }
+            eventHandler.task("parentTask") {
+                @Suppress("TooGenericExceptionThrown")
+                throw Exception("TestException")
+            }
+        }
+        assertEquals("TestException", exceptionMsg)
     }
 
 }
