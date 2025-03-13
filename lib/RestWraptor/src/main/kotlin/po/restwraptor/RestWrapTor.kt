@@ -1,21 +1,32 @@
 package po.restwraptor
 
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationEnvironment
 import io.ktor.server.application.ApplicationStarted
 import io.ktor.server.application.ServerReady
+import io.ktor.server.engine.ApplicationEngine
 import io.ktor.server.engine.EmbeddedServer
+
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.netty.NettyApplicationEngine
 import io.ktor.util.AttributeKey
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import po.lognotify.eventhandler.EventHandlerBase
 import po.lognotify.eventhandler.RootEventHandler
 import po.lognotify.eventhandler.interfaces.CanNotify
 import po.restwraptor.classes.ConfigContext
 import po.restwraptor.classes.CoreContext
+import po.restwraptor.classes.ServerContext
+import po.restwraptor.enums.EnvironmentType
 import po.restwraptor.models.configuration.ApiConfig
 import po.restwraptor.models.configuration.WraptorConfig
+import po.restwraptor.models.info.WraptorStatus
 import po.restwraptor.models.server.WraptorRoute
 
 val RestWrapTorKey = AttributeKey<RestWrapTor>("RestWrapTorInstance")
@@ -40,7 +51,9 @@ class RestWrapTor(
     /** The embedded Ktor server instance. */
     private lateinit var  embeddedServer : EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>
 
-    override val  eventHandler = RootEventHandler("RestWrapTor")
+    override val  eventHandler: RootEventHandler = RootEventHandler("RestWrapTor")
+
+    val connectors: MutableList<String> = mutableListOf<String>()
 
     /**
      * Indicates whether the application has been initialized.
@@ -57,7 +70,7 @@ class RestWrapTor(
     private val configContext : ConfigContext = ConfigContext(this, wrapConfig)
 
     /** Core context for managing routes and API structure. */
-    private val coreContext : CoreContext by lazy {  CoreContext(application) }
+    private val coreContext : CoreContext by lazy {  CoreContext(application, this) }
 
     /** The attribute key used to store this instance inside the `Application.attributes`. */
     lateinit var thisKey :  AttributeKey<RestWrapTor>
@@ -66,20 +79,21 @@ class RestWrapTor(
     private var host: String = "0.0.0.0"
 
     /** The port number for the server. Defaults to `8080`. */
-    private var port: Int = 0
+    private var port: Int = 8080
 
     /** Determines if the server should block the main thread. Defaults to `true`. */
     private var wait: Boolean = true
 
     /** Callback function triggered when the server starts successfully. */
-    private var onServerStartedCallback : ((EmbeddedServer<*,*>) -> Unit)? = null
+    private var onServerStartedCallback : (ServerContext.()-> Unit)?  = null
 
-    /**
-     * Registers a callback to be executed when the server successfully starts.
-     * @param callback A function that receives the `EmbeddedServer` instance after startup.
-     */
-    fun onServerStarted(callback : (EmbeddedServer<*,*>)-> Unit ){
-        onServerStartedCallback = callback
+    private val serviceScope = CoroutineScope(Dispatchers.IO + CoroutineName("WrapTor service"))
+
+    private suspend fun engineStarted(engine: ApplicationEngine){
+        engine.resolvedConnectors().forEach {
+            connectors.add("${it.type}|${it.host}:${it.port}")
+        }
+        //afterServerStart(embeddedServer, application)
     }
 
     /**
@@ -100,40 +114,18 @@ class RestWrapTor(
         }
     }
 
-    /**
-     * Sets up the configuration for the Ktor application.
-     *
-     * - If the application is not initialized, it sets up configurations and assigns the instance.
-     * - Applies additional configurations if provided via `appConfigFn`.
-     * - Initializes the `ConfigContext`.
-     *
-     * @param app The `Application` instance to configure.
-     */
-    private fun setupConfig(app: Application){
-        if(!::application.isInitialized){
-            application = app
-            appConfigFn?.let {
-                configContext.it()
-            }
-            configContext.initialize()
-        }
-        appHash = System.identityHashCode(application)
-        println("Hash of the wraptor app ${System.identityHashCode(application)}")
-        registerSelf()
-        initialized = true
-    }
-
-    /**
-     * Allows an **already existing application instance** to be used instead of creating a new one.
-     * @param app The preconfigured `Application` instance.
-     */
-    fun usePreconfiguredApp(app : Application){
-        setupConfig(app)
-    }
-
     /** Hook executed after the server starts successfully. */
-    private fun afterServerStart(){
-        onServerStartedCallback?.invoke(embeddedServer)
+    fun  afterServerStart(){
+         onServerStartedCallback?.let {
+             ServerContext(
+                 configContext.apiConfig,
+                 wrapConfig.authConfig,
+                 wrapConfig,
+                 coreContext,
+                 embeddedServer,
+                 getApp()
+             ).it()
+         }
     }
 
     /**
@@ -142,7 +134,7 @@ class RestWrapTor(
      */
     fun getRoutes():List<WraptorRoute>{
         println("Hash on getRoutes ${System.identityHashCode(application)}")
-       return coreContext.getWraptorRoutes()
+        return coreContext.getWraptorRoutes()
     }
 
     /**
@@ -155,14 +147,34 @@ class RestWrapTor(
 
     /**
      * Retrieves the server's API configuration.
-     * @return An `ApiConfig` object representing the server's configuration, or `null` if uninitialized.
+     * @return An `ApiConfig` object representing the server's configuration, or default if uninitialized.
      */
-    fun getConfig(): ApiConfig?{
-        if(initialized == false){
-            return null
-        }else{
-            return configContext.apiConfig
+    fun getConfig(): ApiConfig{
+        return configContext.apiConfig
+    }
+
+    /**
+     * Sets up the configuration for the Ktor application.
+     *
+     * - If the application is not initialized, it sets up configurations and assigns the instance.
+     * - Applies additional configurations if provided via `appConfigFn`.
+     * - Initializes the `ConfigContext`.
+     *
+     * @param app The `Application` instance to configure.
+     */
+    private  fun setupConfig(app : Application) {
+        application = app
+        println("Hash before appBuilderFn invoked ${System.identityHashCode(this)}")
+        application.monitor.subscribe(ServerReady) { afterServerStart() }
+        registerSelf()
+
+        appConfigFn?.let{fn->
+            configContext.fn()
         }
+        configContext.initialize()
+        appHash = System.identityHashCode(application)
+        println("Hash of the WrapTor configured app ${System.identityHashCode(application)}")
+        initialized = true
     }
 
     /**
@@ -173,15 +185,9 @@ class RestWrapTor(
      *
      * @param wait If `true`, the server will block execution until manually stopped.
      */
-    private fun launchRest(wait: Boolean = true){
-        embeddedServer =  embeddedServer(Netty, port, host){
-            println("Hash before appBuilderFn invoked ${System.identityHashCode(this)}")
-            runBlocking {
-                task("API Server Configuration") {
-                    setupConfig(this@embeddedServer)
-                }
-            }
-            monitor.subscribe(ServerReady) { afterServerStart() }
+    private fun  launchRest(wait: Boolean = true){
+        embeddedServer = embeddedServer(Netty, port, host){
+            setupConfig(this)
         }
         embeddedServer.start(wait)
     }
@@ -195,11 +201,36 @@ class RestWrapTor(
      *
      * @throws IllegalStateException If the server is already initialized or improperly configured.
      */
-    fun start(host: String = "0.0.0.0", port: Int = 8080,  wait: Boolean = true){
+    fun start(host: String = "0.0.0.0", port: Int = 8080,  wait: Boolean = true, onStarted : (ServerContext.()-> Unit) ? = null){
+        this.onServerStartedCallback = onStarted
         this.host = host.ifBlank { this.host }
         this.port = port
         this.wait = wait
         launchRest(wait)
+    }
+
+    fun status(): WraptorStatus {
+        val activeConnectors = mutableListOf<String>()
+        serviceScope.async {
+            val activeConnectors = mutableListOf<String>()
+            embeddedServer.engine.resolvedConnectors().forEach {
+                activeConnectors.add("${it.type}|${it.host}:${it.port}")
+            }
+        }
+        val thisApp = getApp()
+        val isProduction = this.wrapConfig.enviromnent == EnvironmentType.PROD
+        val allRoutes = coreContext.getWraptorRoutes()
+
+        return  WraptorStatus(
+            true,
+            activeConnectors,
+            thisApp.rootPath,
+            isProduction,
+            emptyList(),
+            emptyList(),
+            allRoutes.filter { it.isSecured  == false },
+            allRoutes.filter { it.isSecured  == true },
+            )
     }
 
 }

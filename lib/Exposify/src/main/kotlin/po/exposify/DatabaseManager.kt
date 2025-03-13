@@ -2,14 +2,14 @@ package po.exposify
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import kotlinx.coroutines.delay
 import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.transactions.TransactionManager
-import org.jetbrains.exposed.sql.transactions.transactionManager
 
 
 import po.exposify.controls.ConnectionInfo
 import po.exposify.scope.connection.ConnectionClass
 import po.exposify.scope.connection.ConnectionContext
+import po.exposify.scope.connection.models.ConnectionSettings
 
 fun launchService(connection:ConnectionContext, block: ConnectionContext.()-> Unit ){
     if(connection.isOpen){
@@ -25,6 +25,11 @@ object DatabaseManager {
         connections.add(connection)
     }
 
+    private var  connectionUpdated : ((String, Boolean)-> Unit)? = null
+    fun onConnectionUpdate(fn: (String, Boolean)-> Unit) {
+        connectionUpdated = fn
+    }
+
     private fun provideDataSource(connectionInfo:ConnectionInfo): HikariDataSource {
         val hikariConfig= HikariConfig().apply {
             driverClassName = connectionInfo.driverClassName
@@ -37,28 +42,37 @@ object DatabaseManager {
         return HikariDataSource(hikariConfig)
     }
 
-    fun openConnection(
+    suspend fun openConnection(
         connectionInfo : ConnectionInfo,
+        settings : ConnectionSettings = ConnectionSettings(5),
         context: ConnectionContext.()->Unit
-    ): Boolean  {
-        connectionInfo.hikariDataSource = provideDataSource(connectionInfo)
-        try{
-            val newConnection = Database.connect(connectionInfo.hikariDataSource!!)
-            val connectionClass =  ConnectionClass(connectionInfo, newConnection)
-            val connectionContext =  ConnectionContext(
-                "Connection ${connectionInfo.dbName}",
-                newConnection, connectionClass).also {
+    ): Boolean {
+        var retriesLeft = settings.retries.toInt()
+        while (retriesLeft != 0) {
+            runCatching {
+                connectionInfo.hikariDataSource = provideDataSource(connectionInfo)
+                val newConnection = Database.connect(connectionInfo.hikariDataSource!!)
+                val connectionClass = ConnectionClass(connectionInfo, newConnection)
+                val connectionContext = ConnectionContext(
+                    "Connection ${connectionInfo.dbName}",
+                    newConnection, connectionClass
+                ).also {
                     connectionInfo.connections.add(it)
+                }
+                addConnection(connectionClass)
+                connectionContext.context()
+                connectionUpdated?.invoke("Connected", true)
+                return true
+            }.getOrElse {
+                connectionUpdated?.invoke(it.message.toString(), false)
+                connectionInfo.setError(it as Exception)
+                connectionInfo.lastError = it.message
+                if (retriesLeft > 0) {
+                    retriesLeft--
+                    delay(10000)
+                }
             }
-            addConnection(connectionClass)
-            connectionContext.context()
-            return true
-        }catch (e: Exception){
-            connectionInfo.lastError = e.message
-            return false
         }
+        return false
     }
-
-
-
 }

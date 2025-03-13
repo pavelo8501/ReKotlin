@@ -14,8 +14,6 @@ class ConnectionContext(
     private val connectionClass :  ConnectionClass
 ) {
 
-
-
     val isOpen : Boolean
         get(){return  connectionClass.isConnectionOpen }
 

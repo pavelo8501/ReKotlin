@@ -11,7 +11,6 @@ data class AuthenticationConfig(
     var defaultSecurityRouts : Boolean = true
 ) {
 
-
     val security: Boolean
         get(){
             if(publicKeyString!!.isNotEmpty() && privateKeyString!!.isNotEmpty()){

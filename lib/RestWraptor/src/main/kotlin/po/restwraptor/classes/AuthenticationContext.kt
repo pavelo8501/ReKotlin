@@ -5,6 +5,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.install
 import io.ktor.server.application.pluginOrNull
 import io.ktor.server.auth.Authentication
+import io.ktor.server.auth.authenticate
 import io.ktor.server.request.contentType
 import io.ktor.server.request.receive
 import io.ktor.server.request.receiveText
@@ -27,6 +28,7 @@ import po.restwraptor.security.JWTService
 import po.lognotify.eventhandler.RootEventHandler
 import po.lognotify.eventhandler.interfaces.CanNotify
 import po.restwraptor.classes.convenience.respondInternal
+import po.restwraptor.classes.convenience.respondNotFound
 import po.restwraptor.classes.convenience.respondUnauthorized
 import po.restwraptor.exceptions.AuthException
 import po.restwraptor.interfaces.StringHelper
@@ -64,13 +66,6 @@ class AuthenticationContext(
         return token
     }
 
-//    if (authConfig.useWellKnownHost) {
-//        TODO("Use well known hosts logic not implemented")
-//        propagatedException<ConfigurationException>("Token generation failed") {
-//            errorCode = ConfigurationErrorCodes.PLUGIN_SETUP_FAILURE
-//        }
-
-
     private fun issueToken(user : SecuredUserInterface): String? {
         var newToken : String? = null
         this@AuthenticationContext.jwtService?.let { jwtService->
@@ -84,11 +79,11 @@ class AuthenticationContext(
         return newToken
     }
 
-    private fun onLoginRequest(request : ApiRequest<LoginRequest>): String? {
-        request.data.let { loginData ->
+    private fun onLoginRequest(request : LoginRequest): String? {
+        request.let { loginData ->
             credentialsValidatorFn?.let { validatorFn ->
                 val user = validatorFn.invoke(loginData)
-                if (user != null && user.password == request.data.password) {
+                if (user != null && user.password == loginData.password) {
                    return issueToken(user)
                 }else {
                     warn("Login failed for ${loginData.login} with password ${loginData.password}")
@@ -108,7 +103,7 @@ class AuthenticationContext(
                     task("$url request"){
                         info("Request content type: ${call.request.contentType()}")
                         val requestText = call.receiveText()
-                        val request =  configContext.jsonFormatter.decodeFromString<ApiRequest<LoginRequest>>(
+                        val request =  configContext.jsonFormatter.decodeFromString<LoginRequest>(
                             requestText
                         )
                         val token = onLoginRequest(request)
@@ -152,7 +147,7 @@ class AuthenticationContext(
         }
     }
     private fun configRouteLogout(routing: Routing, url: String){
-        routing.apply {
+            routing.apply {
             route(url) {
                 post {
                     val request =  call.receive<ApiRequest<LogoutRequest>>()
@@ -177,9 +172,6 @@ class AuthenticationContext(
                     privateKeyString = authConfig.privateKeyString)
                   val plugin = install(JWTPlugin) {this.init("jwt-auth", config)}
                   this@AuthenticationContext.jwtService = plugin.getInitializedService()
-//                install(ReplyInterceptorPlugin){
-//                    injectService(this@AuthenticationContext.jwtService!!)
-//                }
             }
         }
     }
@@ -188,11 +180,23 @@ class AuthenticationContext(
         configAuthentication()
         if(authConfig.defaultSecurityRouts){
             app.routing{
+                configureRouteNotFoundSecured(this)
                 configureRouteLogin(this, toUrl(authConfig.baseAuthRoute, "login"))
                 configureRouteRefresh(this, toUrl(authConfig.baseAuthRoute, "refresh"))
                 configRouteLogout(this, toUrl(authConfig.baseAuthRoute, "logout"))
             }
         }
+    }
+
+    private fun configureRouteNotFoundSecured(routing: Routing) {
+
+    }
+
+    fun setRawKeys(publicKeyStr: String, privateKeyStr: String, validatorFn: (LoginRequest)-> SecuredUserInterface?){
+        authConfig.publicKeyString = publicKeyStr
+        authConfig.privateKeyString = privateKeyStr
+        credentialsValidatorFn = validatorFn
+        initializeAuthentication()
     }
 
     fun applySecurity(

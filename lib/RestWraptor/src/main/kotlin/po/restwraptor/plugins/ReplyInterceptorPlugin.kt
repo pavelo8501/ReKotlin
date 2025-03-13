@@ -2,6 +2,8 @@ package po.restwraptor.plugins
 
 import io.ktor.server.application.createApplicationPlugin
 import io.ktor.server.application.hooks.ResponseSent
+import io.ktor.server.request.uri
+import io.ktor.server.response.respondRedirect
 import po.restwraptor.security.JWTService
 
 val ReplyInterceptorPlugin = createApplicationPlugin(
@@ -10,17 +12,18 @@ val ReplyInterceptorPlugin = createApplicationPlugin(
     ) {
 
     pluginConfig.apply {
-        on(ResponseSent) { call ->
-            service?.let {jwtService->
-                call.request.headers["Authorization"]?.let {value->
-                    jwtService.checkExpiration(value) {token->
-                        if(token!=null){
-                            call.response.headers.append("Authorization", "Bearer $token")
-                        }
-                    }
-                }
+
+        onCall { call ->
+            val uri = call.request.uri
+            if (uri.endsWith("/") && uri != "/") {
+                call.respondRedirect(uri.removeSuffix("/"))
+                return@onCall
             }
         }
+
+//        on(ResponseSent) { call ->
+//
+//        }
     }
 }
 

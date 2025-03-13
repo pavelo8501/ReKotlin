@@ -19,6 +19,7 @@ version = logNotifyVersion
 
 repositories {
     mavenCentral()
+    mavenLocal()
 }
 
 dependencies {
@@ -32,6 +33,17 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            from(components["java"]) // This publishes the main Java/Kotlin component
+            groupId = "po.lognotify"
+            artifactId = "lognotify"
+            version = logNotifyVersion
+        }
+    }
 }
 
 

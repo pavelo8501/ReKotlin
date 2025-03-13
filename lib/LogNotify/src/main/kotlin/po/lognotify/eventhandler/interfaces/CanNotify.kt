@@ -11,11 +11,10 @@ interface CanNotify{
     val eventHandler: EventHandlerBase
 
     fun info(message: String) = eventHandler.info(message)
-    suspend fun <T: Any?>task(message: String,  fn: suspend ()-> T?) =
+    suspend fun <T: Any?>task(message: String,  fn: suspend ()-> T?) :T?     =
         eventHandler.task<T>(message, fn)
 
     fun warn(message: String) = eventHandler.warn(message)
-
 
     fun throwPropagate(message: String) = eventHandler.throwPropagateException(message)
     fun throwSkip(message: String)  = eventHandler.throwSkipException(message)

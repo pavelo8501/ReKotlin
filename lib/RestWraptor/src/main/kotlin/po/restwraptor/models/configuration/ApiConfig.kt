@@ -5,27 +5,20 @@ import po.restwraptor.models.request.LoginRequest
 import java.io.File
 
 
-class ApiConfig(
+data class ApiConfig(
     var rateLimiting: Boolean  = true,
     var cors: Boolean = true,
     var contentNegotiation: Boolean = true,
-    var systemRouts : Boolean = true
+    var systemRouts : Boolean = true,
+    var baseApiRoute : String = ""
 ) {
-
-
-    var baseApiRoute = "/api"
-
     private var _rateLimiterConfig: RateLimiterConfig? = null
     var rateLimiterConfig: RateLimiterConfig = RateLimiterConfig()
         get() {
             return if(_rateLimiterConfig == null) {
                 field
-            }else{
-                _rateLimiterConfig!!
-            }
+            }else{ _rateLimiterConfig!! }
         }
-        set(value) {
-            field = value
-        }
+        set(value) { field = value }
 
 }

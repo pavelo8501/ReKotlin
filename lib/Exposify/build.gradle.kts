@@ -9,8 +9,8 @@ val coroutinesVersion: String by project
 val junitVersion: String by project
 val kotlinSerializationVersion : String by project
 val h2DatabaseVersion : String by project
-
 val exposifyVersion: String by project
+val postgresVersion: String by project
 
 plugins {
     kotlin("jvm")
@@ -37,6 +37,7 @@ detekt {
 
 repositories {
     mavenCentral()
+    mavenLocal()
     maven {
         name = "PublicGitHubPackages"
         url = uri("https://maven.pkg.github.com/pavelo8501/ReKotlin")
@@ -48,19 +49,16 @@ repositories {
 }
 
 dependencies {
-
-
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposedVersion")
     implementation("com.zaxxer:HikariCP:$hikaricpVersion")
     implementation("mysql:mysql-connector-java:$mysqlVersion")
+    implementation("org.postgresql:postgresql:$postgresVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinSerializationVersion")
 
     api(project(":lib:LogNotify"))
-
-
 
     testImplementation("com.h2database:h2:$h2DatabaseVersion")
 
@@ -76,31 +74,19 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
-
 }
 
+
 publishing {
-    apply(plugin = "maven-publish")
-    repositories {
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/pavelo8501/ReKotlin")
-            credentials {
-                username = project.findProperty("gpr.user") as String? ?: System.getenv("GITHUB_USERNAME")
-                password = project.findProperty("gpr.key") as String? ?: System.getenv("GITHUB_TOKEN")
-            }
-        }
-    }
     publications {
-        register<MavenPublication>("gpr") {
-            from(components["java"])
-            groupId = "com.github.pavelo8501"
-            artifactId = "exposed-dao-wrapper"
+        create<MavenPublication>("mavenJava") {
+            from(components["java"]) // This publishes the main Java/Kotlin component
+            groupId = "po.exposify"
+            artifactId = "exposify"
             version = exposifyVersion
         }
     }
 }
-
 
 tasks.jar {
     manifest {

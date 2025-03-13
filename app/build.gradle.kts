@@ -53,9 +53,10 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposedVersion")
     implementation("com.zaxxer:HikariCP:$hikaricpVersion")
-    implementation("mysql:mysql-connector-java:$mysqlVersion")
+    implementation("org.postgresql:postgresql:42.2.2")
 
-    implementation("io.github.cdimascio:dotenv-kotlin:6.3.1")
+
+
 
     implementation("org.slf4j:slf4j-api:2.0.7")
     implementation("ch.qos.logback:logback-classic:1.4.12")
@@ -67,7 +68,7 @@ application {
 
 kotlin {
     jvmToolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion = JavaLanguageVersion.of(23)
     }
 }
 
