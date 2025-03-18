@@ -28,10 +28,10 @@ class ServiceContext<DATA,ENTITY>(
         mutableMapOf<SequenceHandler<DATA>, SequencePack<DATA, ENTITY>>()
 
     init {
-        rootDtoModel.emitter.subscribeOnSequenceLaunchRequest { handler, data ->
+        rootDtoModel.emitter.subscribeOnSequenceLaunchRequest { handler, conditions, data ->
            val pack = sequences[handler]
            if(pack!=null){
-               return@subscribeOnSequenceLaunchRequest serviceClass.launchSequence(pack,data)
+               return@subscribeOnSequenceLaunchRequest serviceClass.launchSequence(pack,conditions,  data)
            }else{
                CompletableDeferred(emptyList<DATA>())
            }
@@ -148,22 +148,23 @@ class ServiceContext<DATA,ENTITY>(
         context.block()
     }
 
-    fun DTOClass<DATA, ENTITY>.sequence(
-        name:String,
-        block: suspend SequenceContext<DATA, ENTITY>.(List<DATA>) -> Unit
-    ) {
-        val defaultHandler = DefaultSequenceHandler<DATA>(rootDtoModel, name)
-        val container = SequencePack(
-            SequenceContext<DATA, ENTITY>(dbConnection, rootDtoModel, defaultHandler),
-            block,
-            defaultHandler
-        )
-        sequences[defaultHandler] = container
-    }
+//    fun DTOClass<DATA, ENTITY>.sequence(
+//        name:String,
+//        block: suspend SequenceContext<DATA, ENTITY>.(List<DATA>) -> Unit
+//    ) {
+//        val defaultHandler = DefaultSequenceHandler<DATA>(rootDtoModel, name)
+//        val container = SequencePack(
+//            SequenceContext<DATA, ENTITY>(dbConnection, rootDtoModel, defaultHandler),
+//            block,
+//            defaultHandler
+//        )
+//        sequences[defaultHandler] = container
+//    }
+
 
     fun DTOClass<DATA, ENTITY>.sequence(
         handler: SequenceHandler<DATA>,
-        block: suspend SequenceContext<DATA, ENTITY>.(List<DATA>) -> Unit
+        block: suspend SequenceContext<DATA, ENTITY>.(List<Pair<KProperty1<DATA, *>, Any?>> , List<DATA>) -> Unit
     ) {
         val container = SequencePack(
             SequenceContext<DATA, ENTITY>(dbConnection, rootDtoModel, handler),

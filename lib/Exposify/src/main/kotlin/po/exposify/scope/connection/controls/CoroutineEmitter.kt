@@ -16,6 +16,7 @@ import po.exposify.scope.sequence.models.SequencePack
 import po.lognotify.eventhandler.EventHandler
 import po.lognotify.eventhandler.RootEventHandler
 import po.lognotify.eventhandler.interfaces.CanNotify
+import kotlin.reflect.KProperty1
 
 class CoroutineEmitter(
     val name: String,
@@ -31,30 +32,6 @@ class CoroutineEmitter(
         }
     }
 
-   fun <DATA : DataModel, ENTITY : LongEntity>dispatch2(
-       pack: SequencePack<DATA, ENTITY>,
-       data : List<DATA>
-   ) : Deferred<List<DATA>>  {
-
-       val listenerScope = CoroutineScope(Dispatchers.IO + CoroutineName(name))
-       val job = listenerScope.launch {
-           info("Pre launching Coroutine for pack ${pack.sequenceName()}")
-           val transactionResult = suspendedTransactionAsync(Dispatchers.IO) {
-               pack.start(data)
-           }
-           transactionResult.await()
-           info("Launch complete for ${pack.sequenceName()}")
-       }
-       job.invokeOnCompletion {throwable->
-           if(throwable == null){
-               info("Dispatcher $name is closing")
-           }else{
-               throwPropagate(throwable.message.toString())
-           }
-       }
-       return CompletableDeferred(emptyList<DATA>())
-    }
-
     suspend fun <DATA : DataModel, ENTITY : LongEntity>dispatch(
         pack: SequencePack<DATA, ENTITY>,
         data : List<DATA>
@@ -63,7 +40,31 @@ class CoroutineEmitter(
         return listenerScope.async {
             info("Pre launching Coroutine for pack ${pack.sequenceName()}")
             val transactionResult = suspendedTransactionAsync(Dispatchers.IO) {
-                pack.start(data)
+                pack.start(emptyList(),data)
+                pack.onResult()
+            }
+            transactionResult.await()
+        }.also { deferred ->
+            deferred.invokeOnCompletion { throwable ->
+                if (throwable == null) {
+                    info("Dispatcher $name is closing")
+                } else {
+                    throwPropagate(throwable.message.toString())
+                }
+            }
+        }
+    }
+
+    suspend fun <DATA : DataModel, ENTITY : LongEntity>dispatchWithConditions(
+        pack: SequencePack<DATA, ENTITY>,
+        conditions: List<Pair<KProperty1<DATA, *>, Any?>>,
+        data : List<DATA>
+    ): Deferred<List<DATA>> {
+        val listenerScope = CoroutineScope(Dispatchers.IO + CoroutineName(name))
+        return listenerScope.async {
+            info("Pre launching Coroutine for pack ${pack.sequenceName()}")
+            val transactionResult = suspendedTransactionAsync(Dispatchers.IO) {
+                pack.start(conditions, data)
                 pack.onResult()
             }
             transactionResult.await()

@@ -40,7 +40,6 @@ class SequenceContext<DATA, ENTITY>(
 
     fun <SWITCH_DATA: DataModel, SWITCH_ENTITY : LongEntity> DTOClass<SWITCH_DATA, SWITCH_ENTITY>.switch(
         block:  SequenceContext<SWITCH_DATA, SWITCH_ENTITY>.(dtos: List<CommonDTO<SWITCH_DATA, SWITCH_ENTITY>>)->Unit ){
-
         val list = dtos().map { it.getChildren<SWITCH_DATA, SWITCH_ENTITY>(this) }.flatten()
         val result =  CrudResult<SWITCH_DATA, SWITCH_ENTITY>(list, null)
         val newSequenceContext =  SequenceContext<SWITCH_DATA, SWITCH_ENTITY>(
@@ -58,16 +57,7 @@ class SequenceContext<DATA, ENTITY>(
         this.block(dtos())
     }
 
-    /**
-     * Select with conditions
-     */
-    suspend fun select(
-        vararg conditions: Pair<KProperty1<DATA, *>, Any?>,
-        block: suspend SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit
-    ) {
-        lastResult = hostDto.select()
-        this.block(dtos())
-    }
+
 
     suspend fun update(
         dataModels: List<DATA>,
@@ -134,6 +124,17 @@ class SequenceContext<DATA, ENTITY>(
             lastResult = hostDto.pick(conditions.toList())
             block(dtos())
         }
+    }
+
+    /**
+     * Select with conditions
+     */
+    suspend fun select(
+        conditions: List<Pair<KProperty1<DATA, *>, Any?>>,
+        block: suspend SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit
+    ) {
+        lastResult = hostDto.select(conditions)
+        this.block(dtos())
     }
 
 }

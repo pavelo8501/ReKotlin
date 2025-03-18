@@ -212,8 +212,11 @@ abstract class DTOClass<DATA, ENTITY>(
         return CrudResult(resultDTOs.toList())
     }
 
-    suspend fun triggerSequence(handler: SequenceHandler<DATA>, list: List<DATA>): Deferred<List<DATA>> {
-        return emitter.launchSequence(handler, list)
+    suspend fun triggerSequence(
+        handler: SequenceHandler<DATA>,
+        conditions: List<Pair<KProperty1<DATA, *>, Any?>> = emptyList<Pair<KProperty1<DATA, *>, Any?>>(),
+        list: List<DATA>): Deferred<List<DATA>> {
+        return emitter.launchSequence(handler, conditions,  list)
     }
 
 }

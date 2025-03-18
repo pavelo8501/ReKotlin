@@ -16,6 +16,7 @@ import po.lognotify.eventhandler.EventHandlerBase
 import po.lognotify.eventhandler.RootEventHandler
 import po.lognotify.eventhandler.interfaces.CanNotify
 import kotlin.coroutines.CoroutineContext
+import kotlin.reflect.KProperty1
 
 class ConnectionClass(
     val connectionInfo: ConnectionInfo,
@@ -39,11 +40,16 @@ class ConnectionClass(
 
     suspend fun <DATA : DataModel, ENTITY: LongEntity>launchSequence(
         pack : SequencePack<DATA, ENTITY>,
+        conditions: List<Pair<KProperty1<DATA, *>, Any?>>,
         data : List<DATA>,
         parentEventHandler: RootEventHandler //Temporary solution unless sessions will get introduced
         ): Deferred<List<DATA>> {
         eventHandler = parentEventHandler
-        return coroutineEmitter.dispatch(pack, data)
+        if(conditions.count() > 0){
+            return coroutineEmitter.dispatchWithConditions(pack,conditions, data)
+        }else{
+            return coroutineEmitter.dispatch(pack, data)
+        }
     }
 
     fun addService(service : ServiceClass<*,*>){

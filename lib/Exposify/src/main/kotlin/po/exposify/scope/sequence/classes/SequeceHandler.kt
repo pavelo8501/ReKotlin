@@ -5,6 +5,8 @@ import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
+import po.exposify.scope.dto.DTOContext
+import kotlin.reflect.KProperty1
 
 /**
  * Represents a sealed interface for handling sequence execution and result callbacks.
@@ -57,13 +59,6 @@ abstract class SequenceHandler<T>(
     val hasResultCallback : Boolean
         get() { return resultCallback != null }
 
-//    /**
-//     * Executes the stored result callback function with the provided data.
-//     * @param listedData The data to pass to the result callback.
-//     */
-//    internal fun executeCallback(listedData : T){
-//       // resultCallback?.invoke(listedData)
-//    }
 
     internal fun getResultCallback():(suspend (List<T>) -> Unit)?{
         return resultCallback
@@ -77,21 +72,33 @@ abstract class SequenceHandler<T>(
         return this.inputData?.firstOrNull()
     }
 
-//    fun getWhere():List<T>{
-//
-//    }
 
     /**
      * Assigns a result callback function to be executed when the sequence completes.
      * @param callback The callback function to assign.
      */
-    suspend  fun execute(data : List<T> = emptyList<T>(),  callback:suspend (List<T>)-> Unit){
+    suspend  fun execute(
+        data : List<T> = emptyList<T>(),  callback:suspend (List<T>)-> Unit){
         resultCallback = callback
-        dtoClass.triggerSequence(this, data)
+        dtoClass.triggerSequence(this, emptyList(), data)
     }
 
-    suspend  fun execute(data : List<T> = emptyList<T>()): Deferred<List<T>>{
-        return  dtoClass.triggerSequence(this, data)
+    suspend  fun execute(
+        data : List<T> = emptyList<T>() ): Deferred<List<T>>{
+        return  dtoClass.triggerSequence(this, emptyList(), data)
+    }
+
+
+    suspend  fun execute(
+        vararg conditions : Pair<KProperty1<T, *>, Any?>,
+       callback:suspend (List<T>)-> Unit){
+        resultCallback = callback
+        dtoClass.triggerSequence(this, conditions.toList(), emptyList())
+    }
+
+    suspend  fun execute(
+        vararg conditions : Pair<KProperty1<T, *>, Any?>): Deferred<List<T>>{
+        return  dtoClass.triggerSequence(this, conditions.toList(),  emptyList())
     }
 
     private var onResult :((List<T>)-> Unit) ? = null

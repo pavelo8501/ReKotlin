@@ -1,5 +1,6 @@
 package po.playground.projects.data_service
 
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import po.exposify.DatabaseManager
 import po.exposify.controls.ConnectionInfo
@@ -13,8 +14,10 @@ import po.playground.projects.data_service.dto.PartnerEntity
 
 object PartnerUpdate : SequenceHandler<PartnerDataModel>(PartnerDTO, "update_partner")
 object PartnerSelect : SequenceHandler<PartnerDataModel>(PartnerDTO, "select_partners")
+object PartnerPick : SequenceHandler<PartnerDataModel>(PartnerDTO, "pick_partner")
 
-fun mockOfRestRequest(){
+
+fun mockOfRestUpdateRequest(){
     runBlocking {
         val partner = PartnerDataModel("SomeName", "SomeName SIA")
         PartnerUpdate.execute(asDataModels()) {
@@ -25,14 +28,19 @@ fun mockOfRestRequest(){
 
 fun mockOfRestGetRequest(){
     runBlocking {
+        val name = "Partner 2"
+        val result =   PartnerSelect.execute(PartnerDataModel::name to  name).await()
+        println(result)
+    }
+}
 
-        PartnerUpdate.execute(asDataModels()) {
+fun mockOfRestGetSingleRequest(){
+    runBlocking {
+        PartnerPick.execute(asDataModels()) {
             println(it)
         }
     }
 }
-
-
 
 suspend fun startDataService(connectionInfo : ConnectionInfo) {
 
@@ -40,14 +48,17 @@ suspend fun startDataService(connectionInfo : ConnectionInfo) {
 
     val connection = dbManager.openConnection(connectionInfo) {
         service<PartnerDataModel, PartnerEntity>(PartnerDTO, TableCreateMode.CREATE) {
-            PartnerDTO.sequence(PartnerUpdate) {data->
+            PartnerDTO.sequence(PartnerUpdate) {conditions, data ->
                 update(data) { checkout() }
             }
 
-            PartnerDTO.sequence(PartnerSelect) { data->
-                select(data) { checkout() }
+            PartnerDTO.sequence (PartnerSelect) {conditions, data ->
+                select(conditions) { checkout() }
             }
 
+            PartnerDTO.sequence (PartnerSelect) {conditions, data ->
+                select() { checkout() }
+            }
         }
     }
 

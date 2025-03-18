@@ -18,6 +18,7 @@ import po.exposify.scope.sequence.models.SequencePack
 import po.lognotify.eventhandler.RootEventHandler
 import po.lognotify.eventhandler.interfaces.CanNotify
 import kotlin.Long
+import kotlin.reflect.KProperty1
 
 enum  class TableCreateMode{
     CREATE,
@@ -53,13 +54,15 @@ class ServiceClass<DATA, ENTITY>(
         body()
     }
 
-    internal suspend fun launchSequence(pack : SequencePack<DATA, ENTITY>, data : List<DATA>): Deferred<List<DATA>> {
+    internal suspend fun launchSequence(
+        pack : SequencePack<DATA, ENTITY>,
+        conditions: List<Pair<KProperty1<DATA, *>, Any?>>,
+        data : List<DATA>): Deferred<List<DATA>> {
        val result = task("Launch Sequence on ServiceClass with name :${name}") {
-            connectionClass.launchSequence<DATA, ENTITY>(pack, data, eventHandler)
+            connectionClass.launchSequence<DATA, ENTITY>(pack,conditions,  data, eventHandler)
         }
         return result ?: CompletableDeferred(emptyList())
     }
-
 
     private fun createTable(table : IdTable<Long>): Boolean{
         return try {

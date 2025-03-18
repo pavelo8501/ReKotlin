@@ -4,6 +4,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.scope.sequence.classes.SequenceHandler
+import kotlin.reflect.KProperty1
 
 class CallbackEmitter<DATA : DataModel> {
 
@@ -13,17 +14,17 @@ class CallbackEmitter<DATA : DataModel> {
     }
 
     private var onSequenceLaunchRequest
-        :  (suspend (handler : SequenceHandler<DATA>, data : List<DATA>) -> Deferred<List<DATA>>)?  = null
+        :  (suspend (handler : SequenceHandler<DATA>,conditions: List<Pair<KProperty1<DATA, *>, Any?>>, data : List<DATA>) -> Deferred<List<DATA>>)?  = null
 
     fun subscribeOnSequenceLaunchRequest(
-        callback : suspend (handler : SequenceHandler<DATA>, data : List<DATA>) ->  Deferred<List<DATA>>
+        callback : suspend (handler : SequenceHandler<DATA>, conditions: List<Pair<KProperty1<DATA, *>, Any?>>,  data : List<DATA>) ->  Deferred<List<DATA>>
     ){
         onSequenceLaunchRequest = callback
     }
 
-    suspend fun launchSequence(handler : SequenceHandler<DATA>, data : List<DATA>): Deferred<List<DATA>>{
+    suspend fun launchSequence(handler : SequenceHandler<DATA>, conditions: List<Pair<KProperty1<DATA, *>, Any?>>, data : List<DATA>): Deferred<List<DATA>>{
        onSequenceLaunchRequest?.let { callback->
-          return callback(handler, data)
+          return callback(handler, conditions,  data)
        }?:run {
            return CompletableDeferred(emptyList())
        }
