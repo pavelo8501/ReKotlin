@@ -11,9 +11,9 @@ fun main() {
     runBlocking {
         startDataService(ConnectionInfo(
             "127.0.0.1",
-            "medprof_postgres",
-            "django-api",
-            "django-api_usrPWD12",
+            "playground_postgres",
+            "postgres",
+            "localpassword",
             "5432",
             "org.postgresql.Driver",))
     }

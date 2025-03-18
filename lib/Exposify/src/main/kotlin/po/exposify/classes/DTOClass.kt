@@ -96,7 +96,6 @@ abstract class DTOClass<DATA, ENTITY>(
     internal suspend fun pick(
         conditions: List<Pair<KProperty1<DATA, *>, Any?>>): CrudResult<DATA, ENTITY> {
         val resultList = mutableListOf<CommonDTO<DATA, ENTITY>>()
-
         val entity =  daoService.pick(conditions, conf.propertyBinder.propertyList)
         entity?.let {
             factory.createEntityDto()?.let {newDto->
@@ -108,8 +107,38 @@ abstract class DTOClass<DATA, ENTITY>(
             conf.relationBinder.applyBindings(it)
             it.initializeRepositories(it.entityDAO)
         }
-
         return CrudResult(resultList)
+    }
+
+    /**
+     * Selects multiple entities from the database based on the provided conditions and maps it to a DTO.
+     *
+     * This function performs the following steps:
+     * 1. Calls the `daoService.select` method to retrieve multiple entities that matches the given conditions.
+     * 2. If an entity is found, a new DTO list   (`DTOFunctions<DATA, ENTITY>`) is created using the factory.
+     * 3. Each DTO is updated with the entity's data using `UpdateMode.ENTITY_TO_MODEL`.
+     * 4. Relation bindings are applied to the DTO via `conf.relationBinder.applyBindings(it)`.
+     * 5. Repository initialization is performed on the DTO via `it.initializeRepositories(it.entityDAO)`.
+     * 6. Returns a `CrudResult` containing an list of DTO entities and any events recorded during the process.
+     *
+     * @param conditions A list of property-value pairs (`KProperty1<DATA, *>, Any?`)
+     * representing the filtering conditions.
+     * @return A `CrudResult<DATA, ENTITY>` containing the selected DTO (if found) and any triggered events.
+     */
+    internal suspend fun select(conditions: List<Pair<KProperty1<DATA, *>, Any?>>): CrudResult<DATA, ENTITY>{
+        val resultList = mutableListOf<CommonDTO<DATA, ENTITY>>()
+        val entities =  daoService.select(conditions, conf.propertyBinder.propertyList)
+        entities.forEach {
+            factory.createEntityDto()?.let {newDto->
+                newDto.update(it, UpdateMode.ENTITY_TO_MODEL)
+                resultList.add(newDto)
+            }
+        }
+        resultList.forEach {
+            conf.relationBinder.applyBindings(it)
+            it.initializeRepositories(it.entityDAO)
+        }
+        return CrudResult(resultList.toList())
     }
 
     /**
@@ -130,7 +159,6 @@ abstract class DTOClass<DATA, ENTITY>(
            conf.relationBinder.applyBindings(it)
            it.initializeRepositories(it.entityDAO)
        }
-
        return CrudResult(resultList.toList())
     }
 

@@ -81,9 +81,22 @@ class DAOService<DATA, ENTITY>(
     ): ENTITY?{
         val entity = task("pick") {
             val query = conditionsToSqlBuilderFn<DATA, ENTITY>(conditions, propertyBindings, entityModel)
-            entityModel.find(query).firstOrNull()
+            val queryResult = entityModel.find(query)
+            queryResult.firstOrNull()
         }
         return entity
+    }
+
+    suspend fun select(
+        conditions: List<Pair<KProperty1<DATA, *>, Any?>>,
+        propertyBindings: List<PropertyBinding<DATA, ENTITY, *>>
+    ): List<ENTITY>{
+        val entities = task("select") {
+            val query = conditionsToSqlBuilderFn<DATA, ENTITY>(conditions, propertyBindings, entityModel)
+            val queryResult = entityModel.find(query)
+            queryResult.toList()
+        }
+        return entities?:emptyList()
     }
 
     suspend fun selectAll(): SizedIterable<ENTITY>{

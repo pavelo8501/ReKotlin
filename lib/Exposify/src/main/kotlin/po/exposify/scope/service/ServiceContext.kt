@@ -95,7 +95,19 @@ class ServiceContext<DATA,ENTITY>(
         return null
     }
 
-    suspend fun DTOClass<DATA, ENTITY>.select(block: DTOContext<DATA, ENTITY>.() -> Unit){
+    fun DTOClass<DATA, ENTITY>.select(
+        vararg conditions: Pair<KProperty1<DATA, *>, Any?>,
+        block: DTOContext<DATA, ENTITY>.() -> Unit){
+        val selectedDTOs = dbQuery {
+            runBlocking {
+                select(conditions.toList())
+            }
+        }
+        val context  = DTOContext(selectedDTOs)
+        context.block()
+    }
+
+    fun DTOClass<DATA, ENTITY>.select(block: DTOContext<DATA, ENTITY>.() -> Unit){
         val selectedDTOs = dbQuery {
             runBlocking {
                 select()

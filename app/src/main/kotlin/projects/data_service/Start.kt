@@ -12,11 +12,9 @@ import po.playground.projects.data_service.dto.PartnerDataModel
 import po.playground.projects.data_service.dto.PartnerEntity
 
 object PartnerUpdate : SequenceHandler<PartnerDataModel>(PartnerDTO, "update_partner")
-
-
+object PartnerSelect : SequenceHandler<PartnerDataModel>(PartnerDTO, "select_partners")
 
 fun mockOfRestRequest(){
-
     runBlocking {
         val partner = PartnerDataModel("SomeName", "SomeName SIA")
         PartnerUpdate.execute(asDataModels()) {
@@ -25,24 +23,35 @@ fun mockOfRestRequest(){
     }
 }
 
+fun mockOfRestGetRequest(){
+    runBlocking {
+
+        PartnerUpdate.execute(asDataModels()) {
+            println(it)
+        }
+    }
+}
+
+
 
 suspend fun startDataService(connectionInfo : ConnectionInfo) {
 
     val dbManager = DatabaseManager
 
     val connection = dbManager.openConnection(connectionInfo) {
-        service<PartnerDataModel, PartnerEntity>(PartnerDTO, TableCreateMode.FORCE_RECREATE) {
+        service<PartnerDataModel, PartnerEntity>(PartnerDTO, TableCreateMode.CREATE) {
             PartnerDTO.sequence(PartnerUpdate) {data->
                 update(data) { checkout() }
             }
 
-//            PageDTO.sequence(PageUpdate){inputData->
-//                update(inputData){ checkout() }
-//            }
+            PartnerDTO.sequence(PartnerSelect) { data->
+                select(data) { checkout() }
+            }
+
         }
     }
 
-    mockOfRestRequest()
+    mockOfRestGetRequest()
     if (connection) {
         println("Connection OK")
 
