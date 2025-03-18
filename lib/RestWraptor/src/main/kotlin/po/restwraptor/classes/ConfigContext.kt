@@ -27,6 +27,8 @@ import po.lognotify.eventhandler.interfaces.CanNotify
 import po.lognotify.shared.enums.HandleType
 import po.restwraptor.RestWrapTor
 import po.restwraptor.builders.restWrapTor
+import po.restwraptor.classes.convenience.respondNotFound
+import po.restwraptor.enums.EnvironmentType
 import po.restwraptor.exceptions.ConfigurationErrorCodes
 import po.restwraptor.exceptions.ConfigurationException
 import po.restwraptor.interfaces.SecuredUserInterface
@@ -39,15 +41,15 @@ import po.restwraptor.models.response.ApiResponse
 import po.restwraptor.models.security.AuthenticatedModel
 import po.restwraptor.plugins.JWTPlugin
 import po.restwraptor.plugins.RateLimiterPlugin
+import po.restwraptor.plugins.ReplyInterceptorPlugin
 import po.restwraptor.security.JWTService
 
 interface ConfigContextInterface{
     fun setupAuthentication(configFn : AuthenticationContext.()-> Unit)
-    fun configSettings(configFn : WraptorConfig.()-> Unit)
+    fun setup(configFn : WraptorConfig.()-> Unit)
     fun setupApplication(block: Application.()->Unit)
     fun initialize()
 }
-
 
 class ConfigContext(
     internal val wraptor : RestWrapTor,
@@ -59,9 +61,22 @@ class ConfigContext(
     private val authContext  : AuthenticationContext by lazy { AuthenticationContext( wraptor.eventHandler, this) }
     internal val app : Application  by lazy { wraptor.application }
 
+    internal val jsonFormatter : Json = Json {
+        isLenient = true
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+    }
+
     init {
         eventHandler.registerPropagateException<ConfigurationException>{
             ConfigurationException("Default Message", HandleType.PROPAGATE_TO_PARENT)
+        }
+    }
+
+    private fun configCustomPlugins(app : Application){
+        app.apply {
+            install(ReplyInterceptorPlugin){
+            }
         }
     }
 
@@ -98,12 +113,7 @@ class ConfigContext(
             } else {
                 info("Installing Default ContentNegotiation")
                 install(ContentNegotiation) {
-                    json(Json {
-                        prettyPrint = true
-                        isLenient = true
-                        ignoreUnknownKeys = true
-                        encodeDefaults = true
-                    })
+                    json(jsonFormatter)
                 }
                 info("Default ContentNegotiation installed")
             }
@@ -131,18 +141,30 @@ class ConfigContext(
         info("Default rout initialization")
         app.apply {
             routing {
-                options("${apiConfig.baseApiRoute}/status") {
+                options("/status") {
                     call.response.header("Access-Control-Allow-Origin", "*")
-                    call.respond(HttpStatusCode.OK)
-                }
-                get("${apiConfig.baseApiRoute}/status") {
-                    info("Accessing Application: ${application.hashCode()}")
                     call.respondText("OK")
                 }
-                get("${apiConfig.baseApiRoute}/status-json") {
+                get("/status") {
+                    info("Accessing Application: ${application.hashCode()}")
+                    call.respond(wraptor.status().toString())
+                }
+                get("/status-json") {
                     info("Status Json endpoint called.")
                     val responseStatus: String = "OK"
                     call.respond(ApiResponse(responseStatus))
+                }
+
+                route("{...}") {
+                    handle {
+                       if(wrapConfig.enviromnent != EnvironmentType.PROD)  {
+                           call.respondNotFound(
+                               wraptor.getRoutes().map { ("Path: ${it.path}  Method: ${it.selector} IsSecured: ${it.isSecured} ")}
+                           )
+                       }else{
+                           call.respondNotFound(listOf("Oops! This path does not exist."))
+                       }
+                    }
                 }
             }
             info("Default rout initialized")
@@ -150,17 +172,26 @@ class ConfigContext(
         }
     }
 
+    /**
+     * Configures parameters that must be applied before custom configuration and user defined one.
+     */
+    private fun configAppParams(app: Application){
+        app.rootPath = apiConfig.baseApiRoute
+    }
+
     override fun setupAuthentication(configFn : AuthenticationContext.()-> Unit){
         authContext.configFn()
     }
-    override fun configSettings(configFn : WraptorConfig.()-> Unit){
+    override fun setup(configFn : WraptorConfig.()-> Unit){
         wrapConfig.configFn()
     }
     override fun setupApplication(block: Application.()->Unit){
+        configAppParams(app)
         app.block()
     }
 
     override fun initialize(){
+        configCustomPlugins(app)
         if(apiConfig.cors){
             configCors()
         }

@@ -7,7 +7,7 @@ import po.restwraptor.classes.ConfigContext
 
 fun restWrapTor(app: Application) : RestWrapTor{
     val wraptor = RestWrapTor()
-    wraptor.usePreconfiguredApp(app)
+   // wraptor.usePreconfiguredApp(app)
     return wraptor
 }
 

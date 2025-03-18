@@ -1,5 +1,9 @@
 package po.restwraptor.interfaces
 
+import io.ktor.server.application.Application
+import kotlinx.serialization.descriptors.StructureKind
+
+
 interface StringHelper {
 
     fun toUrl(vararg pathParts: String): String
@@ -12,5 +16,7 @@ interface StringHelper {
                 .filter { it.isNotEmpty() }
                 .joinToString("/")
     }
-
 }
+
+
+

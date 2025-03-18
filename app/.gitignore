@@ -1,4 +1,4 @@
 build/
 certs/
 keys/
-.env
+src/main/resources/.env

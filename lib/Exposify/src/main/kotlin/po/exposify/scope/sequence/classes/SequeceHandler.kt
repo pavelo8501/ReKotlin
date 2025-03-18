@@ -73,9 +73,13 @@ abstract class SequenceHandler<T>(
         return this.inputData?:emptyList()
     }
 
-    fun getFrst(): T?{
+    fun getFirst(): T?{
         return this.inputData?.firstOrNull()
     }
+
+//    fun getWhere():List<T>{
+//
+//    }
 
     /**
      * Assigns a result callback function to be executed when the sequence completes.
@@ -90,7 +94,7 @@ abstract class SequenceHandler<T>(
         return  dtoClass.triggerSequence(this, data)
     }
 
-    private var onResult :  ((List<T>)-> Unit) ? = null
+    private var onResult :((List<T>)-> Unit) ? = null
     fun onResultSubmitted(callback : (List<T>)-> Unit){
         onResult =  callback
     }

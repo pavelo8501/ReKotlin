@@ -21,4 +21,5 @@ class WraptorConfig(
     internal fun updateAuthConfig(config : AuthenticationConfig){
         authConfig = config
     }
+
 }

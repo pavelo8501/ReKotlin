@@ -10,31 +10,32 @@ class ConnectionInfo(
     val dbName: String,
     val user: String,
     val pwd: String,
-    val port: String = "3306"
+    val port: String = "5432",
+    val driver: String = "org.postgresql.Driver"
 ){
 
    val connections : MutableList<ConnectionContext> = mutableListOf()
 
    inner class ConnectorInfo(
-       val driverClassName : String = "com.mysql.cj.jdbc.Driver",
-       val jdbcUrl : String = "jdbc:mysql://$host:$port/$dbName?user=$user&password=$pwd",
+       val driverClassName : String = "org.postgresql.Driver",
+       val jdbcUrl : String = "jdbc:postgresql://$host:$port/$dbName?user=$user&password=$pwd",
        val maximumPoolSize : Int = 10,
        val isAutoCommit: Boolean = false,
        val transactionIsolation: String  = "TRANSACTION_REPEATABLE_READ"
     )
 
+    fun  setError(ex: Exception){
+
+    }
 
     var lastError : String? = null
-
     var connection: Database? = null
+    var hikariDataSource : HikariDataSource? = null
+    val driverClassName = "org.postgresql.Driver"
 
-   var hikariDataSource : HikariDataSource? = null
-
-   val driverClassName = "com.mysql.cj.jdbc.Driver"
-
-   val connectionInfo = ConnectorInfo(driverClassName, "jdbc:mysql://$host:$port/$dbName?user=$user&password=$pwd", 10, false, "TRANSACTION_REPEATABLE_READ")
+    val connectionInfo = ConnectorInfo(driverClassName, "jdbc:postgresql://$host:$port/$dbName?user=$user&password=$pwd", 10, false, "TRANSACTION_REPEATABLE_READ")
 
     fun getConnectionString(): String{
-        return  "jdbc:mysql://$host:$port/$dbName?user=$user&password=$pwd"
+        return  "jdbc:postgresql://$host:$port/$dbName?user=$user&password=$pwd"
     }
 }

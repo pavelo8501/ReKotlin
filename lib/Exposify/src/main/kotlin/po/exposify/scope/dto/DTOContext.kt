@@ -39,7 +39,6 @@ class DTOContext<DATA, ENTITY>(
     private val resultCallback: ((List<DATA> )-> Unit)? = null,
     )  where DATA : DataModel, ENTITY : LongEntity {
 
-
         init {
             resultCallback?.let{callbackOnResult(resultCallback)}
         }

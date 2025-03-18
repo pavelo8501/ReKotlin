@@ -25,7 +25,7 @@ class JWTPlugin(private val service: JWTService) {
                     realm = service.realm
                     verifier(service.getVerifier())
                     validate { credential ->
-                       return@validate  service.checkCredential(credential)
+                        return@validate  service.checkCredential(credential)
                     }
                 }
             }

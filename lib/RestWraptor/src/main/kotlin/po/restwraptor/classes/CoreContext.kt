@@ -6,9 +6,12 @@ import io.ktor.server.auth.AuthenticationRouteSelector
 import io.ktor.server.routing.HttpMethodRouteSelector
 import io.ktor.server.routing.RoutingNode
 import io.ktor.server.routing.RoutingRoot
+import kotlinx.serialization.json.Json
+import po.restwraptor.RestWrapTor
+import po.restwraptor.builders.restWrapTor
 import po.restwraptor.models.server.WraptorRoute
 
-class CoreContext(private val app : Application) {
+class CoreContext(private val app : Application, private val wraptor: RestWrapTor) {
 
     val routes : List<WraptorRoute>  by  lazy { getAllRegisteredRoutes() }
 
@@ -50,6 +53,18 @@ class CoreContext(private val app : Application) {
 
     fun getWraptorRoutes(): List<WraptorRoute>{
        return  getAllRegisteredRoutes()
+    }
+
+    fun List<WraptorRoute>.toList(){
+        val  result = mutableListOf<String>()
+        val unsecured = this.filter { it.isSecured == false }
+        val secured = this.filter { it.isSecured == true }
+
+        result.add("This server defines ${unsecured.count()} public endpoint and ${secured.count()} secure ")
+        wraptor.connectors.forEach {connector->
+            unsecured.forEach {result.add("Endpoint ${connector}${it.path} ${it.selector}  isSecured:${it.isSecured}") }
+        }
+
     }
 
 }

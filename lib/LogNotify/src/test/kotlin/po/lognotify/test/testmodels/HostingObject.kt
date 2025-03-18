@@ -14,7 +14,7 @@ class ParentHostingObject(val name: String
     val childObjects = mutableListOf<HostingObject>()
 
 
-    fun exposeSelf(block: ParentHostingObject.()-> Unit ){
+   inline  fun exposeSelf(block: ParentHostingObject.()-> Unit ){
         this.block()
     }
 

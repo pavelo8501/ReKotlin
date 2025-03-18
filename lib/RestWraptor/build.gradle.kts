@@ -20,6 +20,7 @@ version = restWraptorVersion
 
 repositories {
     mavenCentral()
+    mavenLocal()
 }
 
 dependencies {
@@ -46,7 +47,17 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
 
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            from(components["java"]) // This publishes the main Java/Kotlin component
+            groupId = "po.restwraptor"
+            artifactId = "restwraptor"
+            version = restWraptorVersion
+        }
+    }
 }
 
 tasks.test {
