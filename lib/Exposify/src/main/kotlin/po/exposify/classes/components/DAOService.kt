@@ -79,7 +79,6 @@ class DAOService<DATA, ENTITY>(
         conditions: List<Pair<KProperty1<DATA, *>, Any?>>,
         propertyBindings: List<PropertyBinding<DATA, ENTITY, *>>
     ): ENTITY?{
-
         val entity = task("pick") {
             val query = conditionsToSqlBuilderFn<DATA, ENTITY>(conditions, propertyBindings, entityModel)
             entityModel.find(query).firstOrNull()

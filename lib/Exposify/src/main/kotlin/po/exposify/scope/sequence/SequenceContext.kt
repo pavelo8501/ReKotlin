@@ -46,12 +46,23 @@ class SequenceContext<DATA, ENTITY>(
         val newSequenceContext =  SequenceContext<SWITCH_DATA, SWITCH_ENTITY>(
             connection,
             this,
-            handler as  SequenceHandler<SWITCH_DATA>
+            handler as SequenceHandler<SWITCH_DATA>
         )
         newSequenceContext.block(list)
     }
 
     suspend fun select(
+        block: suspend SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit
+    ) {
+        lastResult = hostDto.select()
+        this.block(dtos())
+    }
+
+    /**
+     * Select with conditions
+     */
+    suspend fun select(
+        vararg conditions: Pair<KProperty1<DATA, *>, Any?>,
         block: suspend SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit
     ) {
         lastResult = hostDto.select()
@@ -73,7 +84,6 @@ class SequenceContext<DATA, ENTITY>(
         lastResult = hostDto.update<DATA, ENTITY>(this.map { it.getInjectedModel() })
         block(dtos())
     }
-
 
     /**
      * Dynamically fetches a list of DTOs from the database based on the provided conditions

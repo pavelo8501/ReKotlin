@@ -147,12 +147,12 @@ class JWTService{
     ){
         val decodedJWT = decodeToken(jwtString)
         val expirationLong = decodedJWT.expiresAt?.time ?: 0
-        val expirationTime =  Instant.ofEpochMilli(expirationLong)
-        if(expirationTime.isBefore(Instant.now())){
+        val expirationTime = Instant.ofEpochMilli(expirationLong)
+        if (expirationTime.isBefore(Instant.now())) {
             val user = decodedJWT.getClaim("user_json").asString()
-            val userInterface =   SecuredUserInterface.fromPayload(user)
-            if(userInterface!= null){
-                val newToken =  this@JWTService.generateToken(userInterface)
+            val userInterface = SecuredUserInterface.fromPayload(user)
+            if (userInterface != null) {
+                val newToken = this@JWTService.generateToken(userInterface)
                 runBlocking {
                     headerUpdateFn.invoke(newToken)
                 }
