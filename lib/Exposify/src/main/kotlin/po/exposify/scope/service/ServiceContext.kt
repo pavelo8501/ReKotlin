@@ -1,6 +1,7 @@
 package po.exposify.scope.service
 
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
@@ -29,19 +30,6 @@ class ServiceContext<DATA,ENTITY>(
     private val dbConnection: Database = serviceClass.connection
     val name : String = "${rootDtoModel.className}|Service"
 
-//    internal val sequences =
-//        mutableMapOf<SequenceHandler<DATA>, SequencePack<DATA, ENTITY>>()
-
-    init {
-//        rootDtoModel.emitter.subscribeOnSequenceLaunch { handler, conditions, data ->
-//           val pack = sequences[handler]
-//           if(pack!=null){
-//               return@subscribeOnSequenceLaunch serviceClass.launchSequence(pack,conditions,  data)
-//           }else{
-//               CompletableDeferred(emptyList<DATA>())
-//           }
-//        }
-    }
 
     internal fun  <T>dbQuery(body : () -> T): T = transaction(dbConnection) {
         body()
@@ -163,14 +151,15 @@ class ServiceContext<DATA,ENTITY>(
 
     fun sequence(
         handler: SequenceHandler<DATA>,
-        block: suspend SequenceContext<DATA, ENTITY>.() -> Unit
+        block: suspend SequenceContext<DATA, ENTITY>.() -> Deferred<List<DATA>>
     ) {
-
-        handler.sequences[handler.name] = SequencePack(
-            SequenceContext<DATA, ENTITY>(dbConnection, rootDtoModel, handler),
-            block,
-            handler
-        )
+       val sequenceContext = SequenceContext<DATA, ENTITY>(dbConnection, rootDtoModel, handler)
+       handler.sequences[handler.name] = SequencePack(sequenceContext, serviceClass, block, handler)
     }
+
+//    private val context : SequenceContext<DATA,ENTITY>,
+//    private val serviceClass: ServiceClass<DATA, ENTITY>,
+//    private val sequenceFn : suspend  SequenceContext<DATA, ENTITY>.() -> Deferred<List<DATA>>,
+//    private val handler: SequenceHandler<DATA>,
 
 }

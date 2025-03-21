@@ -11,7 +11,10 @@ import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
 import po.exposify.scope.dto.DTOContext
 import po.exposify.scope.sequence.models.SequencePack
+import po.exposify.scope.service.ServiceClass
 import kotlin.reflect.KProperty1
+
+
 
 /**
  * Represents a sealed interface for handling sequence execution and result callbacks.
@@ -28,7 +31,7 @@ sealed interface SequenceHandlerInterface<T: DataModel> {
      * Invokes the result callback function with the provided data.
      * @param listedData The data to be passed to the result callback.
      */
-    suspend fun submitResult(result: List<T>)
+   // suspend fun submitResult(result: List<T>)
 }
 
 /**
@@ -41,18 +44,11 @@ sealed interface SequenceHandlerInterface<T: DataModel> {
  */
 abstract class SequenceHandler<T>(
     override val dtoClass: DTOClass<T, *>,
-    override val name: String,
-    private var resultCallback: (suspend (List<T>) -> Unit)? = null
+    override val name: String
 ) : SequenceHandlerInterface<T> where  T: DataModel {
-
-    /**
-     * Stores the input data associated with the current sequence execution.
-     */
-    internal var inputData  : List<T>? = null
 
     internal val sequences =
         mutableMapOf<String, SequencePack<T, *>>()
-
 
     internal fun getStockSequence(): SequencePack<T,*>{
         val sequence = sequences[name]
@@ -67,7 +63,8 @@ abstract class SequenceHandler<T>(
         getStockSequence().let {
             it.saveParams(params)
             it.saveInputList(emptyList())
-            return  dtoClass.emitter.launchSequence(it)
+            return it.serviceClass.launchSequence(it)
+
         }
     }
 
@@ -75,7 +72,7 @@ abstract class SequenceHandler<T>(
         getStockSequence().let {
             it.saveInputList(inputList)
             it.saveParams(emptyMap())
-            return dtoClass.emitter.launchSequence(it)
+            return it.serviceClass.launchSequence(it)
         }
     }
 
@@ -83,28 +80,15 @@ abstract class SequenceHandler<T>(
         getStockSequence().let {
             it.saveParams(params)
             it.saveInputList(inputList)
-            return dtoClass.emitter.launchSequence(it)
+            return it.serviceClass.launchSequence(it)
         }
     }
     suspend fun execute(): Deferred<List<T>>{
         getStockSequence().let {
             it.saveParams(emptyMap())
             it.saveInputList(emptyList())
-            return dtoClass.emitter.launchSequence(it)
+            return it.serviceClass.launchSequence(it)
         }
-    }
-
-    private var onResult :((List<T>)-> Unit) ? = null
-    fun onResultSubmitted(callback : (List<T>)-> Unit){
-        onResult =  callback
-    }
-
-    /**
-     * Invokes the result callback function with the provided data.
-     * @param listedData The data to pass to the result callback.
-     */
-    override suspend fun submitResult(result : List<T> ){
-        onResult?.invoke(result)
     }
 
 }

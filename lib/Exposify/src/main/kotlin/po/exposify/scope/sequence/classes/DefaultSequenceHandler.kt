@@ -3,6 +3,7 @@ package po.exposify.scope.sequence.classes
 import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
+import po.exposify.scope.service.ServiceClass
 
 /**
  * Default implementation of [SequenceHandler] for cases where a sequence is identified by name

@@ -16,6 +16,7 @@ import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.InitializationException
 import po.exposify.exceptions.OperationsException
 import po.exposify.scope.connection.ConnectionClass
+import po.exposify.scope.connection.controls.UserDispatchManager
 import po.exposify.scope.sequence.models.SequencePack
 import po.lognotify.eventhandler.RootEventHandler
 import po.lognotify.eventhandler.interfaces.CanNotify
@@ -38,6 +39,9 @@ class ServiceClass<DATA, ENTITY>(
    var name : String = "undefined"
    var serviceContext : ServiceContext<DATA, ENTITY>? = null
 
+
+
+
    override val eventHandler = RootEventHandler(name)
 
     init {
@@ -58,6 +62,7 @@ class ServiceClass<DATA, ENTITY>(
 
     internal suspend fun launchSequence(
         pack : SequencePack<DATA, *>): Deferred<List<DATA>> {
+
        val result = task("Launch Sequence on ServiceClass with name :${name}") {
             connectionClass.launchSequence<DATA, ENTITY>(pack, eventHandler)
         }

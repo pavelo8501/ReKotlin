@@ -1,5 +1,7 @@
 package po.exposify.scope.sequence
 
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Deferred
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
@@ -44,20 +46,11 @@ class SequenceContext<DATA, ENTITY>(
         return  handler.getStockSequence().getInputList()
     }
 
-    suspend fun checkout() {
-        val newDtoContext = DTOContext<DATA, ENTITY>(
-            hostDto,
-            CrudResult<DATA, ENTITY>(dtos(), null),
-        )
-        handler.submitResult(newDtoContext.getData())
-    }
 
     fun <SWITCH_DATA: DataModel, SWITCH_ENTITY : LongEntity> DTOClass<SWITCH_DATA, SWITCH_ENTITY>.switch(
         block:  SequenceContext<SWITCH_DATA, SWITCH_ENTITY>.(dtos: List<CommonDTO<SWITCH_DATA, SWITCH_ENTITY>>)->Unit ){
         val list = dtos().map { it.getChildren<SWITCH_DATA, SWITCH_ENTITY>(this) }.flatten()
         val result =  CrudResult<SWITCH_DATA, SWITCH_ENTITY>(list, null)
-
-
 
         val newSequenceContext =  SequenceContext<SWITCH_DATA, SWITCH_ENTITY>(
             connection,
@@ -67,85 +60,89 @@ class SequenceContext<DATA, ENTITY>(
         newSequenceContext.block(list)
     }
 
-    suspend fun select(
-        block: suspend SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit
-    ) {
-        lastResult = hostDto.select()
-        this.block(dtos())
-    }
 
-    suspend fun <T: IdTable<Long>> select(
-        conditions: QueryConditions<T>,
-        block: suspend SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit
-    ) {
-        lastResult = hostDto.select(conditions)
-        this.block(dtos())
-    }
-    
-    suspend fun update(
-        dataModels: List<DATA>,
-        block: suspend (dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit
-    ) {
-        lastResult = hostDto.update<DATA, ENTITY>(dataModels)
-        block(dtos())
-    }
-
-    @JvmName("UpdateDtos")
-    suspend fun List<CommonDTO<DATA,ENTITY>>.update(
-        block: (dtos: List<CommonDTO<DATA,ENTITY>>)-> Unit
-    ) {
-        lastResult = hostDto.update<DATA, ENTITY>(this.map { it.getInjectedModel() })
-        block(dtos())
+    /**
+     * Checks out current Sequence operations returning a deferred result
+     *
+     * @param withResult Optional result of the previous CRUD operation. If not provided,
+     * last operation's result is used
+     *
+     * @return A `Deferred` list of `DATA` models.
+     */
+    suspend fun checkout(withResult :  CrudResult<DATA, ENTITY> ? = null): Deferred<List<DATA>> {
+        val context = DTOContext<DATA, ENTITY>(hostDto, withResult ?: lastResult)
+        return CompletableDeferred(context.getData())
     }
 
     /**
-     * Dynamically fetches a single DTO from the database based on the provided conditions
-     * and executes a block of code with the resulting DTOs.
+     * Selects data from the database based on the provided query conditions.
      *
-     * This function is intended to be used within a `SequenceContext`, allowing sequence handlers
-     * to retrieve and operate on filtered data dynamically.
+     * If a lambda function (`block`) is provided, it processes the selected data inside a `SequenceContext`,
+     * allowing further transformations or computations.
+     * If no lambda is provided, the function immediately returns a `Deferred` result.
      *
-     * @param conditions A list of conditions, where each condition is a [Pair] consisting of:
-     *   - A property of [DATA], defined as [KProperty1], used to filter the data.
-     *   - A value of type [Any?], which represents the expected value for the corresponding property.
-     * @param block A lambda block that is executed with the fetched list of [CommonDTO]s.
-     * The block provides access to the filtered DTOs for further operations.
+     * @param T The table type extending `IdTable<Long>`.
+     * @param conditions Optional query conditions to filter the selection. If `null`, all data is selected.
+     * @param block Optional suspend lambda function executed within a `SequenceContext`,
+     *              allowing further processing of the selected DTOs before finalizing execution.
+     */
+    suspend fun <T: IdTable<Long>> select(
+        conditions: QueryConditions<T>? = null ,
+        block: (suspend SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit)? = null
+    ) {
+        lastResult = if (conditions != null) hostDto.select(conditions) else hostDto.select()
+        if (block != null) {
+            this.block(dtos())  // Continue execution if block is provided
+        } else {
+            checkout(lastResult)  // Immediately return result if no block
+        }
+    }
+
+    /**
+     * Updates existing records in the database with the provided data models.
      *
-     * ### How It Works
-     * 1. Checks if the sequence handler contains any input data using `handler.inputData`.
-     * 2. If input data exists, fetches the filtered results using the specified conditions.
-     * 3. Lazily initializes the results by querying the database and invoking the block with the fetched DTOs.
+     * If a lambda function (`block`) is provided, it processes the updated data inside a `SequenceContext`,
+     * enabling further modifications or validations.
+     * If no lambda is provided, the function immediately returns a `Deferred` result.
      *
-     * ### Usage Example
+     * @param dataModels The list of `DATA` models to be updated.
+     * @param block Optional suspend lambda function executed within a `SequenceContext`,
+     *              allowing additional processing of the updated DTOs.
+     */
+    suspend fun update(
+        dataModels: List<DATA>,
+        block: (suspend SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit)? = null
+    ) {
+        lastResult = hostDto.update<DATA, ENTITY>(dataModels)
+        if (block != null) {
+            this.block(dtos())  // Continue execution if block is provided
+        } else {
+            checkout(lastResult)  // Immediately return result if no block
+        }
+    }
+
+    /**
+     * Picks a subset of data from the database based on the specified query conditions.
      *
-     * ```kotlin
-     * sequenceContext.pick(
-     *     listOf(
-     *         PartnerDataModel::name to "John Doe",
-     *         PartnerDataModel::isActive to true
-     *     )
-     * ) { dtos ->
-     *     // Perform actions with the fetched DTOs
-     *     println("Fetched DTOs: $dtos")
-     * }
-     * ```
+     * Similar to `select`, but intended for cases where a refined subset of data is needed.
+     * If a lambda function (`block`) is provided, it processes the selected data inside a `SequenceContext`.
+     * If no lambda is provided, the function immediately returns a `Deferred` result.
      *
-     * The above example will:
-     * 1. Build a query to fetch DTOs where `name == "John Doe"` and `isActive == true`.
-     * 2. Execute the block with the resulting DTOs, if any are found.
-     *
-     * ### Notes
-     * - The function uses `dbQuery` internally to query the database.
-     * - The block will only execute if `handler.inputData` contains at least one entry.
-     * - If no data matches the conditions, the block will not be executed.
+     * @param T The table type extending `IdTable<Long>`.
+     * @param conditions Query conditions specifying which records to pick.
+     * @param block Optional suspend lambda function executed within a `SequenceContext`,
+     *              allowing further processing of the selected DTOs.
      */
     suspend fun <T: IdTable<Long>> pick(
-        conditions: QueryConditions<T> ,
-        block: suspend (dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit
+        conditions: QueryConditions<T>,
+        block: (suspend SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit)? = null
     ) {
-        handler.inputData?.firstOrNull()?.let {
-            lastResult = hostDto.pick(conditions)
-            block(dtos())
+        lastResult = hostDto.pick(conditions)
+
+        if (block != null) {
+            this.block(dtos())
+        } else {
+            checkout(lastResult)
         }
     }
 

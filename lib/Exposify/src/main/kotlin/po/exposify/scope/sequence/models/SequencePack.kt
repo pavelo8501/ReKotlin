@@ -1,6 +1,7 @@
 package po.exposify.scope.sequence.models
 
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Deferred
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Op
 import po.exposify.classes.interfaces.DataModel
@@ -8,19 +9,16 @@ import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
 import po.exposify.scope.sequence.SequenceContext
 import po.exposify.scope.sequence.classes.SequenceHandler
+import po.exposify.scope.service.ServiceClass
 import kotlin.reflect.KProperty1
 
 data class SequencePack<DATA,ENTITY>(
-    val context : SequenceContext<DATA,ENTITY>,
-    val sequenceFn : suspend  SequenceContext<DATA, ENTITY>.() -> Unit,
+    private val context : SequenceContext<DATA,ENTITY>,
+    internal val serviceClass: ServiceClass<DATA, ENTITY>,
+    private val sequenceFn : suspend  SequenceContext<DATA, ENTITY>.() -> Deferred<List<DATA>>,
     private val handler: SequenceHandler<DATA>,
 ) where  DATA : DataModel, ENTITY : LongEntity {
-     val resultDeferred = CompletableDeferred<List<DATA>>()
-   init {
-       handler.onResultSubmitted {
-           resultDeferred.complete(it)
-       }
-   }
+
 
     private var sequenceParams = mapOf<String, String>()
     private var sequenceInputList = listOf<DATA>()
@@ -43,19 +41,14 @@ data class SequencePack<DATA,ENTITY>(
         return sequenceInputList
     }
 
-
     fun saveInputList(inputList : List<DATA>){
         sequenceInputList = inputList
     }
 
-   suspend fun start(){
+   suspend fun start(): Deferred<List<DATA>>{
        println("Calling start in SequencePack")
-       context.sequenceFn()
-    }
-
-   suspend fun onResult(): List<DATA> {
-        return resultDeferred.await()
-    }
+       return context.sequenceFn()
+   }
 
    fun sequenceName(): String{
         return handler.name

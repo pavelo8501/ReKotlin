@@ -14,18 +14,19 @@ import po.exposify.classes.interfaces.DataModel
 import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
 import po.exposify.scope.sequence.models.SequencePack
+import po.exposify.scope.session.CoroutineSessionHolder
 import po.lognotify.eventhandler.EventHandler
 import po.lognotify.eventhandler.RootEventHandler
 import po.lognotify.eventhandler.interfaces.CanNotify
+import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.reflect.KProperty1
 
 class CoroutineEmitter(
     val name: String,
-    // val originatorContext : CoroutineContext
-    var parentNotifier: RootEventHandler //Temporary solution unless sessions will get introduced
+    var parentNotifier: RootEventHandler
 ) : CanNotify {
 
-    override val eventHandler = EventHandler(name, parentNotifier)
+    override val eventHandler: EventHandler = EventHandler(name, parentNotifier)
 
     init {
         eventHandler.registerPropagateException<OperationsException>{
@@ -34,17 +35,20 @@ class CoroutineEmitter(
     }
 
     suspend fun <DATA : DataModel, ENTITY : LongEntity>dispatch(
-        pack: SequencePack<DATA, *>
+        pack: SequencePack<DATA, ENTITY>
     ): Deferred<List<DATA>> {
-        val listenerScope = CoroutineScope(Dispatchers.IO + CoroutineName(name))
+
+        val session = CoroutineSessionHolder.getCurrentContext()
+
+        val listenerScope = CoroutineScope(
+            Dispatchers.IO + CoroutineName(name)  + (session ?: EmptyCoroutineContext)
+        )
+
         return listenerScope.async {
             info("Pre launching Coroutine for pack ${pack.sequenceName()}")
-            val transactionResult = suspendedTransactionAsync(Dispatchers.IO) {
-
-                pack.start()
-                pack.onResult()
-            }
-            transactionResult.await()
+            suspendedTransactionAsync(Dispatchers.IO) {
+                pack.start().await()
+            }.await()
         }.also { deferred ->
             deferred.invokeOnCompletion { throwable ->
                 if (throwable == null) {

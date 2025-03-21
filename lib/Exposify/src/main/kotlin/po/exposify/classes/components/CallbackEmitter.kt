@@ -10,30 +10,14 @@ import kotlin.reflect.KProperty1
 
 class CallbackEmitter<DATA : DataModel> {
 
-
-//    private var onSequenceLaunch
-//        :  (suspend (handler : SequenceHandler<DATA>, conditions: Set<Op<Boolean>>, data : List<DATA>) -> Deferred<List<DATA>>)?  = null
-//
-//    fun subscribeOnSequenceLaunch(
-//        callback : suspend (handler : SequenceHandler<DATA>, conditions: Set<Op<Boolean>>,  data : List<DATA>) ->  Deferred<List<DATA>>
-//    ){
-//        onSequenceLaunch = callback
-//    }
-//
-//    suspend fun launchSequence(handler : SequenceHandler<DATA>, conditions: Set<Op<Boolean>>, data : List<DATA>): Deferred<List<DATA>>{
-//        onSequenceLaunch?.let {
-//          return it(handler, conditions,  data)
-//       }?:run {
-//           return CompletableDeferred(emptyList())
-//       }
-//    }
-
     private var onSequenceExecute
             :  (suspend (sequence : SequencePack<DATA,*>) -> Deferred<List<DATA>>)?  = null
     suspend fun launchSequence(sequence : SequencePack<DATA,*> ): Deferred<List<DATA>>{
-        onSequenceExecute?.let {
-          return  it.invoke(sequence)
-        }?:run { return CompletableDeferred(emptyList()) }
+        onSequenceExecute?.let {callback->
+          return  callback.invoke(sequence)
+        }?:run {
+            return CompletableDeferred(emptyList())
+        }
     }
 
     fun subscribeSequenceExecute(
@@ -41,7 +25,5 @@ class CallbackEmitter<DATA : DataModel> {
     ){
         onSequenceExecute = callback
     }
-
-
 
 }
