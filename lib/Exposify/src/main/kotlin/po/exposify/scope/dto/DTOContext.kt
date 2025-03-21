@@ -1,8 +1,13 @@
 package po.exposify.scope.dto
 
 import org.jetbrains.exposed.dao.LongEntity
+import org.jetbrains.exposed.dao.id.IdTable
+import org.jetbrains.exposed.sql.Op
+import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
+import po.exposify.extensions.WhereCondition
 import po.exposify.models.CrudResult
+import po.exposify.scope.condition.ConditionContext
 import po.lognotify.eventhandler.models.Event
 
 /**
@@ -35,12 +40,34 @@ import po.lognotify.eventhandler.models.Event
  * ```
  */
 class DTOContext<DATA, ENTITY>(
-    private val  crudResult : CrudResult<DATA, ENTITY>,
-    private val resultCallback: ((List<DATA> )-> Unit)? = null,
-    )  where DATA : DataModel, ENTITY : LongEntity {
+    private val rootDTOClass: DTOClass<DATA, ENTITY>,
+    private var  crudResult : CrudResult<DATA, ENTITY>? = null,
+    private val resultCallback: ((List<DATA> )-> Unit)? = null
+    ) where DATA : DataModel, ENTITY : LongEntity {
+
+    public var condition:  WhereCondition<*> ? = null
 
         init {
             resultCallback?.let{callbackOnResult(resultCallback)}
+        }
+
+
+        operator fun invoke(op:  WhereCondition<*>): DTOContext<DATA, ENTITY> {
+            condition = op
+            return this
+        }
+
+        fun <T: IdTable<Long>> withConditions(conditions :  WhereCondition<T>): DTOContext<DATA, ENTITY> {
+            condition = conditions
+            return this
+        }
+
+        suspend fun select() {
+            crudResult =  if (condition != null) {
+                rootDTOClass.select(condition!!)
+            }else{
+                rootDTOClass.select()
+            }
         }
 
         private fun asDataModels(crud: CrudResult<DATA, ENTITY>): List<DATA>{
@@ -48,15 +75,15 @@ class DTOContext<DATA, ENTITY>(
         }
 
         fun getData(): List<DATA>{
-            return  asDataModels(crudResult)
+            return  asDataModels(crudResult!!)
         }
 
         fun getStats(): Event?{
-            crudResult.event?.print()
-            return crudResult.event
+            crudResult!!.event?.print()
+            return crudResult!!.event
         }
 
         fun callbackOnResult(callback : (List<DATA>)->Unit ){
-            callback.invoke(asDataModels(crudResult))
+            callback.invoke(asDataModels(crudResult!!))
         }
 }

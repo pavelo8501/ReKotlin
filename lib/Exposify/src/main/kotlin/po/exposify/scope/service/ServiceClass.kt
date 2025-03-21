@@ -5,10 +5,12 @@ import kotlinx.coroutines.Deferred
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.exists
 import org.jetbrains.exposed.sql.transactions.transaction
 import po.exposify.classes.DTOClass
+import po.exposify.classes.components.CallbackEmitter
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.InitializationException
@@ -55,11 +57,9 @@ class ServiceClass<DATA, ENTITY>(
     }
 
     internal suspend fun launchSequence(
-        pack : SequencePack<DATA, ENTITY>,
-        conditions: List<Pair<KProperty1<DATA, *>, Any?>>,
-        data : List<DATA>): Deferred<List<DATA>> {
+        pack : SequencePack<DATA, *>): Deferred<List<DATA>> {
        val result = task("Launch Sequence on ServiceClass with name :${name}") {
-            connectionClass.launchSequence<DATA, ENTITY>(pack,conditions,  data, eventHandler)
+            connectionClass.launchSequence<DATA, ENTITY>(pack, eventHandler)
         }
         return result ?: CompletableDeferred(emptyList())
     }
@@ -117,9 +117,17 @@ class ServiceClass<DATA, ENTITY>(
         }
     }
 
+
+    private fun  emitterSubscriptions(callbackEmitter : CallbackEmitter<DATA>){
+        callbackEmitter.subscribeSequenceExecute{
+            launchSequence(it)
+        }
+    }
+
+
     private fun start(){
         initializeDTOs{
-            rootDTOModel.initialization()
+            rootDTOModel.initialization(::emitterSubscriptions)
             name =  ("${rootDTOModel.className}|Service").trim()
         }
         if(serviceCreateOption!=null){

@@ -5,6 +5,10 @@ import kotlinx.coroutines.awaitAll
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.IdTable
+import org.jetbrains.exposed.sql.Column
+import org.jetbrains.exposed.sql.Op
+import org.jetbrains.exposed.sql.Query
+import org.jetbrains.exposed.sql.SqlExpressionBuilder
 import po.exposify.binder.BindingContainer
 import po.exposify.binder.BindingKeyBase
 import po.exposify.binder.UpdateMode
@@ -18,9 +22,12 @@ import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
 import po.exposify.models.CrudResult
 import po.exposify.dto.CommonDTO
+import po.exposify.extensions.QueryConditions
 import po.exposify.scope.sequence.classes.SequenceHandler
+import po.exposify.scope.sequence.models.SequencePack
 import po.lognotify.eventhandler.RootEventHandler
 import po.lognotify.eventhandler.interfaces.CanNotify
+import kotlin.Boolean
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 
@@ -47,9 +54,9 @@ abstract class DTOClass<DATA, ENTITY>(
                 ExceptionCodes.LAZY_NOT_INITIALIZED)
         }
 
-    val daoService  =  DAOService<DATA, ENTITY>(this)
+    val daoService: DAOService<DATA, ENTITY> =  DAOService<DATA, ENTITY>(this)
 
-    val bindings = mutableMapOf<BindingKeyBase, BindingContainer<DATA, ENTITY, *, *>>()
+    val bindings: MutableMap<BindingKeyBase, BindingContainer<DATA, ENTITY, *, *>> = mutableMapOf<BindingKeyBase, BindingContainer<DATA, ENTITY, *, *>>()
 
     protected abstract fun setup()
 
@@ -71,6 +78,7 @@ abstract class DTOClass<DATA, ENTITY>(
         block: DTOConfig<DATA,ENTITY>.() -> Unit) where ENTITY: LongEntity, DATA: DataModel
     {
         factory.initializeBlueprints(DATA::class, ENTITY::class)
+        factory.setSerializableTypes(conf.propertyBinder.compositePropertyList.map { it.getSerializer()} )
         conf.dataModelClass = DATA::class
         conf.entityClass = ENTITY::class
         conf.entityModel = entityModel
@@ -93,10 +101,10 @@ abstract class DTOClass<DATA, ENTITY>(
      * representing the filtering conditions.
      * @return A `CrudResult<DATA, ENTITY>` containing the selected DTO (if found) and any triggered events.
      */
-    internal suspend fun pick(
-        conditions: List<Pair<KProperty1<DATA, *>, Any?>>): CrudResult<DATA, ENTITY> {
+    internal suspend fun <T: IdTable<Long>>pick(
+        conditions: QueryConditions<T>): CrudResult<DATA, ENTITY> {
         val resultList = mutableListOf<CommonDTO<DATA, ENTITY>>()
-        val entity =  daoService.pick(conditions, conf.propertyBinder.propertyList)
+        val entity =  daoService.pick(conditions.build())
         entity?.let {
             factory.createEntityDto()?.let {newDto->
                 newDto.update(it, UpdateMode.ENTITY_TO_MODEL)
@@ -108,37 +116,6 @@ abstract class DTOClass<DATA, ENTITY>(
             it.initializeRepositories(it.entityDAO)
         }
         return CrudResult(resultList)
-    }
-
-    /**
-     * Selects multiple entities from the database based on the provided conditions and maps it to a DTO.
-     *
-     * This function performs the following steps:
-     * 1. Calls the `daoService.select` method to retrieve multiple entities that matches the given conditions.
-     * 2. If an entity is found, a new DTO list   (`DTOFunctions<DATA, ENTITY>`) is created using the factory.
-     * 3. Each DTO is updated with the entity's data using `UpdateMode.ENTITY_TO_MODEL`.
-     * 4. Relation bindings are applied to the DTO via `conf.relationBinder.applyBindings(it)`.
-     * 5. Repository initialization is performed on the DTO via `it.initializeRepositories(it.entityDAO)`.
-     * 6. Returns a `CrudResult` containing an list of DTO entities and any events recorded during the process.
-     *
-     * @param conditions A list of property-value pairs (`KProperty1<DATA, *>, Any?`)
-     * representing the filtering conditions.
-     * @return A `CrudResult<DATA, ENTITY>` containing the selected DTO (if found) and any triggered events.
-     */
-    internal suspend fun select(conditions: List<Pair<KProperty1<DATA, *>, Any?>>): CrudResult<DATA, ENTITY>{
-        val resultList = mutableListOf<CommonDTO<DATA, ENTITY>>()
-        val entities =  daoService.select(conditions, conf.propertyBinder.propertyList)
-        entities.forEach {
-            factory.createEntityDto()?.let {newDto->
-                newDto.update(it, UpdateMode.ENTITY_TO_MODEL)
-                resultList.add(newDto)
-            }
-        }
-        resultList.forEach {
-            conf.relationBinder.applyBindings(it)
-            it.initializeRepositories(it.entityDAO)
-        }
-        return CrudResult(resultList.toList())
     }
 
     /**
@@ -161,6 +138,23 @@ abstract class DTOClass<DATA, ENTITY>(
        }
        return CrudResult(resultList.toList())
     }
+
+    internal suspend fun <T: IdTable<Long>> select(conditions: QueryConditions<T>): CrudResult<DATA, ENTITY> {
+        val resultList = mutableListOf<CommonDTO<DATA, ENTITY>>()
+        val entities = daoService.select(conditions.build())
+        entities.forEach {
+            factory.createEntityDto()?.let {newDto->
+                newDto.update(it, UpdateMode.ENTITY_TO_MODEL)
+                resultList.add(newDto)
+            }
+        }
+        resultList.forEach {
+            conf.relationBinder.applyBindings(it)
+            it.initializeRepositories(it.entityDAO)
+        }
+        return CrudResult(resultList.toList())
+    }
+
 
     /**
      * Selects all entities from the database, initializes DTOs for them, and returns a result containing these DTOs.
@@ -213,10 +207,6 @@ abstract class DTOClass<DATA, ENTITY>(
     }
 
     suspend fun triggerSequence(
-        handler: SequenceHandler<DATA>,
-        conditions: List<Pair<KProperty1<DATA, *>, Any?>> = emptyList<Pair<KProperty1<DATA, *>, Any?>>(),
-        list: List<DATA>): Deferred<List<DATA>> {
-        return emitter.launchSequence(handler, conditions,  list)
-    }
+        sequence: SequencePack<DATA, ENTITY>): Deferred<List<DATA>> = emitter.launchSequence(sequence)
 
 }

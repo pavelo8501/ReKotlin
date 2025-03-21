@@ -4,6 +4,7 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.name
 import org.jetbrains.exposed.sql.transactions.transactionManager
 import po.exposify.classes.DTOClass
@@ -39,17 +40,11 @@ class ConnectionClass(
         get(){return connectionInfo.connection.transactionManager.currentOrNull()?.connection?.isClosed == false  }
 
     suspend fun <DATA : DataModel, ENTITY: LongEntity>launchSequence(
-        pack : SequencePack<DATA, ENTITY>,
-        conditions: List<Pair<KProperty1<DATA, *>, Any?>>,
-        data : List<DATA>,
+        pack : SequencePack<DATA, *>,
         parentEventHandler: RootEventHandler //Temporary solution unless sessions will get introduced
         ): Deferred<List<DATA>> {
         eventHandler = parentEventHandler
-        if(conditions.count() > 0){
-            return coroutineEmitter.dispatchWithConditions(pack,conditions, data)
-        }else{
-            return coroutineEmitter.dispatch(pack, data)
-        }
+        return coroutineEmitter.dispatch<DATA, ENTITY>(pack)
     }
 
     fun addService(service : ServiceClass<*,*>){

@@ -3,14 +3,19 @@ package po.exposify.scope.service
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.dao.LongEntity
+import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import po.exposify.classes.DTOClass
 import po.exposify.scope.dto.DTOContext
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
+import po.exposify.extensions.QueryConditions
+import po.exposify.extensions.WhereCondition
 import po.exposify.scope.sequence.SequenceContext
-import po.exposify.scope.sequence.classes.DefaultSequenceHandler
 import po.exposify.scope.sequence.classes.SequenceHandler
 import po.exposify.scope.sequence.models.SequencePack
 import po.exposify.scope.service.enums.WriteMode
@@ -24,21 +29,21 @@ class ServiceContext<DATA,ENTITY>(
     private val dbConnection: Database = serviceClass.connection
     val name : String = "${rootDtoModel.className}|Service"
 
-    internal val sequences =
-        mutableMapOf<SequenceHandler<DATA>, SequencePack<DATA, ENTITY>>()
+//    internal val sequences =
+//        mutableMapOf<SequenceHandler<DATA>, SequencePack<DATA, ENTITY>>()
 
     init {
-        rootDtoModel.emitter.subscribeOnSequenceLaunchRequest { handler, conditions, data ->
-           val pack = sequences[handler]
-           if(pack!=null){
-               return@subscribeOnSequenceLaunchRequest serviceClass.launchSequence(pack,conditions,  data)
-           }else{
-               CompletableDeferred(emptyList<DATA>())
-           }
-        }
+//        rootDtoModel.emitter.subscribeOnSequenceLaunch { handler, conditions, data ->
+//           val pack = sequences[handler]
+//           if(pack!=null){
+//               return@subscribeOnSequenceLaunch serviceClass.launchSequence(pack,conditions,  data)
+//           }else{
+//               CompletableDeferred(emptyList<DATA>())
+//           }
+//        }
     }
 
-    private fun  <T>dbQuery(body : () -> T): T = transaction(dbConnection) {
+    internal fun  <T>dbQuery(body : () -> T): T = transaction(dbConnection) {
         body()
     }
 
@@ -81,39 +86,47 @@ class ServiceContext<DATA,ENTITY>(
      * - The function uses `dbQuery` internally to fetch the selected DTOs.
      * - If no DTOs match the conditions, the block will still execute with an empty context.
      */
-    fun DTOClass<DATA, ENTITY>.pick(
-        vararg conditions: Pair<KProperty1<DATA, *>, Any?>, block: DTOContext<DATA, ENTITY>.() -> Unit
+    fun <T: IdTable<Long>>pick(
+        conditions: QueryConditions<T>, block: DTOContext<DATA, ENTITY>.() -> Unit
     ): DTOClass<DATA, ENTITY>?
     {
         val selectedDTOs = dbQuery {
             runBlocking {
-                pick(conditions.toList())
+                rootDtoModel.pick(conditions)
             }
         }
-        val context  = DTOContext(selectedDTOs)
+        val context  = DTOContext(rootDtoModel, selectedDTOs)
         context.block()
         return null
     }
 
-    fun DTOClass<DATA, ENTITY>.select(
-        vararg conditions: Pair<KProperty1<DATA, *>, Any?>,
-        block: DTOContext<DATA, ENTITY>.() -> Unit){
+    fun select(
+        block: DTOContext<DATA, ENTITY>.() -> Unit
+    ){
         val selectedDTOs = dbQuery {
             runBlocking {
-                select(conditions.toList())
+                rootDtoModel.select()
             }
         }
-        val context  = DTOContext(selectedDTOs)
+        val context =  DTOContext(rootDtoModel, selectedDTOs)
         context.block()
     }
 
-    fun DTOClass<DATA, ENTITY>.select(block: DTOContext<DATA, ENTITY>.() -> Unit){
+    fun <T: IdTable<Long>> select(conditions : WhereCondition<T>,   block: DTOContext<DATA, ENTITY>.() -> Unit) {
+//        val selectedDTOs = dbQuery {
+//            val query = (firstTable innerJoin secondTable)
+//                .selectAll().where { this.block() }
+//
+//            runBlocking {
+//                rootDtoModel.select(query)
+//            }
+//        }
         val selectedDTOs = dbQuery {
             runBlocking {
-                select()
+                rootDtoModel.select(conditions)
             }
         }
-        val context  = DTOContext(selectedDTOs)
+        val context =  DTOContext(rootDtoModel, selectedDTOs)
         context.block()
     }
 
@@ -127,7 +140,7 @@ class ServiceContext<DATA,ENTITY>(
                 update<DATA, ENTITY>(dataModels)
             }
         }
-        val context = DTOContext(createdDTOs)
+        val context = DTOContext(this,createdDTOs)
         context.block()
     }
 
@@ -144,34 +157,20 @@ class ServiceContext<DATA,ENTITY>(
                 delete(toDelete)
             }
         }
-        val context  = DTOContext(selectedDTOs)
+        val context  = DTOContext(this, selectedDTOs)
         context.block()
     }
 
-//    fun DTOClass<DATA, ENTITY>.sequence(
-//        name:String,
-//        block: suspend SequenceContext<DATA, ENTITY>.(List<DATA>) -> Unit
-//    ) {
-//        val defaultHandler = DefaultSequenceHandler<DATA>(rootDtoModel, name)
-//        val container = SequencePack(
-//            SequenceContext<DATA, ENTITY>(dbConnection, rootDtoModel, defaultHandler),
-//            block,
-//            defaultHandler
-//        )
-//        sequences[defaultHandler] = container
-//    }
-
-
-    fun DTOClass<DATA, ENTITY>.sequence(
+    fun sequence(
         handler: SequenceHandler<DATA>,
-        block: suspend SequenceContext<DATA, ENTITY>.(List<Pair<KProperty1<DATA, *>, Any?>> , List<DATA>) -> Unit
+        block: suspend SequenceContext<DATA, ENTITY>.() -> Unit
     ) {
-        val container = SequencePack(
+
+        handler.sequences[handler.name] = SequencePack(
             SequenceContext<DATA, ENTITY>(dbConnection, rootDtoModel, handler),
             block,
             handler
         )
-        sequences[handler] = container
     }
 
 }

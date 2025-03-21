@@ -1,19 +1,23 @@
 package po.exposify.scope.sequence
 
 import org.jetbrains.exposed.dao.LongEntity
+import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.transactions.transaction
 import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
+import po.exposify.extensions.QueryConditions
 import po.exposify.models.CrudResult
 import po.exposify.scope.dto.DTOContext
 import po.exposify.scope.sequence.classes.SequenceHandler
+import po.exposify.scope.sequence.models.SequencePack
 import kotlin.reflect.KProperty1
 
 class SequenceContext<DATA, ENTITY>(
-    val connection: Database,
-    val hostDto : DTOClass<DATA,ENTITY>,
+    private val connection: Database,
+    private val hostDto : DTOClass<DATA,ENTITY>,
     private val handler : SequenceHandler<DATA>
 ) where  DATA : DataModel, ENTITY : LongEntity
 {
@@ -31,8 +35,18 @@ class SequenceContext<DATA, ENTITY>(
     }
 
 
+    fun getParam(key: String): String{
+        val sequence = handler.getStockSequence()
+        return sequence.getParam(key)
+    }
+
+    fun getInputList(): List<DATA>{
+        return  handler.getStockSequence().getInputList()
+    }
+
     suspend fun checkout() {
         val newDtoContext = DTOContext<DATA, ENTITY>(
+            hostDto,
             CrudResult<DATA, ENTITY>(dtos(), null),
         )
         handler.submitResult(newDtoContext.getData())
@@ -42,6 +56,9 @@ class SequenceContext<DATA, ENTITY>(
         block:  SequenceContext<SWITCH_DATA, SWITCH_ENTITY>.(dtos: List<CommonDTO<SWITCH_DATA, SWITCH_ENTITY>>)->Unit ){
         val list = dtos().map { it.getChildren<SWITCH_DATA, SWITCH_ENTITY>(this) }.flatten()
         val result =  CrudResult<SWITCH_DATA, SWITCH_ENTITY>(list, null)
+
+
+
         val newSequenceContext =  SequenceContext<SWITCH_DATA, SWITCH_ENTITY>(
             connection,
             this,
@@ -57,8 +74,14 @@ class SequenceContext<DATA, ENTITY>(
         this.block(dtos())
     }
 
-
-
+    suspend fun <T: IdTable<Long>> select(
+        conditions: QueryConditions<T>,
+        block: suspend SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit
+    ) {
+        lastResult = hostDto.select(conditions)
+        this.block(dtos())
+    }
+    
     suspend fun update(
         dataModels: List<DATA>,
         block: suspend (dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit
@@ -76,7 +99,7 @@ class SequenceContext<DATA, ENTITY>(
     }
 
     /**
-     * Dynamically fetches a list of DTOs from the database based on the provided conditions
+     * Dynamically fetches a single DTO from the database based on the provided conditions
      * and executes a block of code with the resulting DTOs.
      *
      * This function is intended to be used within a `SequenceContext`, allowing sequence handlers
@@ -116,26 +139,16 @@ class SequenceContext<DATA, ENTITY>(
      * - The block will only execute if `handler.inputData` contains at least one entry.
      * - If no data matches the conditions, the block will not be executed.
      */
-    suspend fun pick(
-        vararg conditions: Pair<KProperty1<DATA, *>, Any?>,
+    suspend fun <T: IdTable<Long>> pick(
+        conditions: QueryConditions<T> ,
         block: suspend (dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit
     ) {
         handler.inputData?.firstOrNull()?.let {
-            lastResult = hostDto.pick(conditions.toList())
+            lastResult = hostDto.pick(conditions)
             block(dtos())
         }
     }
 
-    /**
-     * Select with conditions
-     */
-    suspend fun select(
-        conditions: List<Pair<KProperty1<DATA, *>, Any?>>,
-        block: suspend SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit
-    ) {
-        lastResult = hostDto.select(conditions)
-        this.block(dtos())
-    }
 
 }
 

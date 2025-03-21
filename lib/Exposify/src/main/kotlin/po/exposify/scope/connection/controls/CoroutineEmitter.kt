@@ -8,6 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import org.jetbrains.exposed.dao.LongEntity
+import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.transactions.experimental.suspendedTransactionAsync
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.exceptions.ExceptionCodes
@@ -33,38 +34,14 @@ class CoroutineEmitter(
     }
 
     suspend fun <DATA : DataModel, ENTITY : LongEntity>dispatch(
-        pack: SequencePack<DATA, ENTITY>,
-        data : List<DATA>
+        pack: SequencePack<DATA, *>
     ): Deferred<List<DATA>> {
         val listenerScope = CoroutineScope(Dispatchers.IO + CoroutineName(name))
         return listenerScope.async {
             info("Pre launching Coroutine for pack ${pack.sequenceName()}")
             val transactionResult = suspendedTransactionAsync(Dispatchers.IO) {
-                pack.start(emptyList(),data)
-                pack.onResult()
-            }
-            transactionResult.await()
-        }.also { deferred ->
-            deferred.invokeOnCompletion { throwable ->
-                if (throwable == null) {
-                    info("Dispatcher $name is closing")
-                } else {
-                    throwPropagate(throwable.message.toString())
-                }
-            }
-        }
-    }
 
-    suspend fun <DATA : DataModel, ENTITY : LongEntity>dispatchWithConditions(
-        pack: SequencePack<DATA, ENTITY>,
-        conditions: List<Pair<KProperty1<DATA, *>, Any?>>,
-        data : List<DATA>
-    ): Deferred<List<DATA>> {
-        val listenerScope = CoroutineScope(Dispatchers.IO + CoroutineName(name))
-        return listenerScope.async {
-            info("Pre launching Coroutine for pack ${pack.sequenceName()}")
-            val transactionResult = suspendedTransactionAsync(Dispatchers.IO) {
-                pack.start(conditions, data)
+                pack.start()
                 pack.onResult()
             }
             transactionResult.await()

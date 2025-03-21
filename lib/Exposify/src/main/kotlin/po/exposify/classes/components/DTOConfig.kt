@@ -3,7 +3,7 @@ package po.exposify.classes.components
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import po.exposify.binder.PropertyBinder
-import po.exposify.binder.PropertyBinding
+import po.exposify.binder.PropertyBindingOption
 import po.exposify.binder.RelationshipBinder
 import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
@@ -25,7 +25,7 @@ class DTOConfig<DATA, ENTITY>(
     var dataModelConstructor : (() -> DataModel)? = null
         private set
 
-    fun propertyBindings(vararg props: PropertyBinding<DATA, ENTITY, *>) =  propertyBinder.setProperties(props.toList())
+    fun propertyBindings(vararg props: PropertyBindingOption<DATA, ENTITY, *> ): Unit =  propertyBinder.setProperties(props.toList())
 
    inline fun childBindings(
        block: RelationshipBinder<DATA, ENTITY>.()-> Unit
