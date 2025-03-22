@@ -49,7 +49,7 @@ class ConnectionClass(
         parentEventHandler: RootEventHandler //Temporary solution unless sessions will get introduced
         ): Deferred<List<DATA>> {
 
-        val session = CoroutineSessionHolder.getCurrentContext()
+        val session = CoroutineSessionHolder.getCurrentContext(1)
         val userId = session?.userId
 
         return if (userId != null) {

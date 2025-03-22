@@ -20,7 +20,7 @@ import kotlin.reflect.KProperty1
 class SequenceContext<DATA, ENTITY>(
     private val connection: Database,
     private val hostDto : DTOClass<DATA,ENTITY>,
-    private val handler : SequenceHandler<DATA>
+    private val handler : SequenceHandler<DATA, ENTITY>
 ) where  DATA : DataModel, ENTITY : LongEntity
 {
 
@@ -47,18 +47,18 @@ class SequenceContext<DATA, ENTITY>(
     }
 
 
-    fun <SWITCH_DATA: DataModel, SWITCH_ENTITY : LongEntity> DTOClass<SWITCH_DATA, SWITCH_ENTITY>.switch(
-        block:  SequenceContext<SWITCH_DATA, SWITCH_ENTITY>.(dtos: List<CommonDTO<SWITCH_DATA, SWITCH_ENTITY>>)->Unit ){
-        val list = dtos().map { it.getChildren<SWITCH_DATA, SWITCH_ENTITY>(this) }.flatten()
-        val result =  CrudResult<SWITCH_DATA, SWITCH_ENTITY>(list, null)
-
-        val newSequenceContext =  SequenceContext<SWITCH_DATA, SWITCH_ENTITY>(
-            connection,
-            this,
-            handler as SequenceHandler<SWITCH_DATA>
-        )
-        newSequenceContext.block(list)
-    }
+//    fun <SWITCH_DATA: DataModel, SWITCH_ENTITY : LongEntity> DTOClass<SWITCH_DATA, SWITCH_ENTITY>.switch(
+//        block:  SequenceContext<SWITCH_DATA, SWITCH_ENTITY>.(dtos: List<CommonDTO<SWITCH_DATA, SWITCH_ENTITY>>)->Unit ){
+//        val list = dtos().map { it.getChildren<SWITCH_DATA, SWITCH_ENTITY>(this) }.flatten()
+//        val result =  CrudResult<SWITCH_DATA, SWITCH_ENTITY>(list, null)
+//
+//        val newSequenceContext =  SequenceContext<SWITCH_DATA, SWITCH_ENTITY>(
+//            connection,
+//            this,
+//            handler as SequenceHandler<SWITCH_DATA, SWITCH_ENTITY>
+//        )
+//        newSequenceContext.block(list)
+//    }
 
 
     /**
@@ -88,13 +88,13 @@ class SequenceContext<DATA, ENTITY>(
      */
     suspend fun <T: IdTable<Long>> select(
         conditions: QueryConditions<T>? = null ,
-        block: (suspend SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit)? = null
-    ) {
+        block: (suspend SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Deferred<List<DATA>>)? = null
+    ){
         lastResult = if (conditions != null) hostDto.select(conditions) else hostDto.select()
         if (block != null) {
             this.block(dtos())  // Continue execution if block is provided
         } else {
-            checkout(lastResult)  // Immediately return result if no block
+           checkout(lastResult)  // Immediately return result if no block
         }
     }
 
@@ -111,13 +111,13 @@ class SequenceContext<DATA, ENTITY>(
      */
     suspend fun update(
         dataModels: List<DATA>,
-        block: (suspend SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit)? = null
+        block: (suspend SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Deferred<List<DATA>>)? = null
     ) {
         lastResult = hostDto.update<DATA, ENTITY>(dataModels)
         if (block != null) {
             this.block(dtos())  // Continue execution if block is provided
         } else {
-            checkout(lastResult)  // Immediately return result if no block
+           checkout(lastResult)  // Immediately return result if no block
         }
     }
 

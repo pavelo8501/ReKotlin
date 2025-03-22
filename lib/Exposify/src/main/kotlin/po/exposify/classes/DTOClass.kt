@@ -40,7 +40,7 @@ abstract class DTOClass<DATA, ENTITY>(
 
     override val eventHandler = RootEventHandler(className)
 
-    internal val emitter = CallbackEmitter<DATA>()
+    internal val emitter = CallbackEmitter<DATA, ENTITY>()
 
     var initialized: Boolean = false
     val conf = DTOConfig<DATA, ENTITY>(this)
@@ -67,7 +67,7 @@ abstract class DTOClass<DATA, ENTITY>(
        }
     }
 
-    fun initialization(onRequestFn: ((CallbackEmitter<DATA>) -> Unit)? = null) {
+    fun initialization(onRequestFn: ((CallbackEmitter<DATA, ENTITY>) -> Unit)? = null) {
         setup()
         initialized = true
         onRequestFn?.invoke(emitter)

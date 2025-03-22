@@ -12,16 +12,36 @@ import po.exposify.exceptions.OperationsException
 import po.exposify.scope.dto.DTOContext
 import po.exposify.scope.sequence.models.SequencePack
 import po.exposify.scope.service.ServiceClass
+import po.exposify.scope.service.ServiceContext
+import po.exposify.scope.session.CoroutineSessionHolder
+import po.exposify.scope.session.interfaces.UserSession
 import kotlin.reflect.KProperty1
 
+inline fun <reified DATA, reified ENTITY> UserSession.sequenceHandler(
+    dto: DTOClass<DATA, ENTITY>
+): SequenceHandler<DATA, ENTITY> where DATA: DataModel, ENTITY : LongEntity   {
+    val handlerSessionKey = "Handler::${dto.className} ::$sessionId"
 
+    return getAttribute<SequenceHandler<DATA, ENTITY>>(handlerSessionKey)
+        ?: object : SequenceHandler<DATA, ENTITY>(dto,handlerSessionKey) {}
+            .also { setAttribute(handlerSessionKey, it) }
+}
 
+suspend fun <DATA : DataModel, ENTITY : LongEntity> ServiceContext<DATA, ENTITY>.createHandler(dto: DTOClass<DATA, ENTITY>):SequenceHandler<DATA, ENTITY> {
+    CoroutineSessionHolder.createSessionContext(userId = 1)
+     val session = CoroutineSessionHolder.createSessionContext(1)
+    val handlerSessionKey = "Handler::${dto.className} ::${session.sessionId}"
+    val newHandler = object : SequenceHandler<DATA, ENTITY>(dto, handlerSessionKey){}
+    session.setAttribute(handlerSessionKey, newHandler)
+    return  newHandler
+}
 /**
  * Represents a sealed interface for handling sequence execution and result callbacks.
  * @param T The type of data processed by the sequence handler.
  */
-sealed interface SequenceHandlerInterface<T: DataModel> {
-    val dtoClass : DTOClass<T, *>
+sealed interface SequenceHandlerInterface<DATA: DataModel, ENTITY: LongEntity> {
+
+    val dtoClass : DTOClass<DATA, ENTITY>
     /**
      * The unique name of the sequence handler.
      */
@@ -31,7 +51,7 @@ sealed interface SequenceHandlerInterface<T: DataModel> {
      * Invokes the result callback function with the provided data.
      * @param listedData The data to be passed to the result callback.
      */
-   // suspend fun submitResult(result: List<T>)
+   // suspend fun submitResult(result: List<DATA>)
 }
 
 /**
@@ -42,15 +62,16 @@ sealed interface SequenceHandlerInterface<T: DataModel> {
  * @property name The unique name of the sequence handler.
  * @property resultCallback An optional function that is invoked when a sequence result is available.
  */
-abstract class SequenceHandler<T>(
-    override val dtoClass: DTOClass<T, *>,
-    override val name: String
-) : SequenceHandlerInterface<T> where  T: DataModel {
+abstract class SequenceHandler<DATA, ENTITY>(
+    override val dtoClass: DTOClass<DATA, ENTITY>,
+    override val name: String,
+) : SequenceHandlerInterface<DATA, ENTITY> where  DATA : DataModel, ENTITY: LongEntity  {
+
 
     internal val sequences =
-        mutableMapOf<String, SequencePack<T, *>>()
+        mutableMapOf<String, SequencePack<DATA, ENTITY>>()
 
-    internal fun getStockSequence(): SequencePack<T,*>{
+    internal fun getStockSequence(): SequencePack<DATA, ENTITY>{
         val sequence = sequences[name]
         if(sequence != null){
             return  sequence
@@ -59,7 +80,7 @@ abstract class SequenceHandler<T>(
         }
     }
 
-    suspend fun execute(params: Map<String, String> ): Deferred<List<T>>{
+    suspend fun execute(params: Map<String, String> ): Deferred<List<DATA>>{
         getStockSequence().let {
             it.saveParams(params)
             it.saveInputList(emptyList())
@@ -68,7 +89,7 @@ abstract class SequenceHandler<T>(
         }
     }
 
-    suspend fun execute(inputList : List<T>): Deferred<List<T>> {
+    suspend fun execute(inputList : List<DATA>): Deferred<List<DATA>> {
         getStockSequence().let {
             it.saveInputList(inputList)
             it.saveParams(emptyMap())
@@ -76,14 +97,14 @@ abstract class SequenceHandler<T>(
         }
     }
 
-    suspend fun execute(params: Map<String, String>, inputList : List<T>): Deferred<List<T>>{
+    suspend fun execute(params: Map<String, String>, inputList : List<DATA>): Deferred<List<DATA>>{
         getStockSequence().let {
             it.saveParams(params)
             it.saveInputList(inputList)
             return it.serviceClass.launchSequence(it)
         }
     }
-    suspend fun execute(): Deferred<List<T>>{
+    suspend fun execute(): Deferred<List<DATA>>{
         getStockSequence().let {
             it.saveParams(emptyMap())
             it.saveInputList(emptyList())

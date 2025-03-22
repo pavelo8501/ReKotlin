@@ -150,8 +150,8 @@ class ServiceContext<DATA,ENTITY>(
     }
 
     fun sequence(
-        handler: SequenceHandler<DATA>,
-        block: suspend SequenceContext<DATA, ENTITY>.() -> Deferred<List<DATA>>
+        handler: SequenceHandler<DATA, ENTITY>,
+        block: suspend SequenceContext<DATA, ENTITY>.() -> Unit
     ) {
        val sequenceContext = SequenceContext<DATA, ENTITY>(dbConnection, rootDtoModel, handler)
        handler.sequences[handler.name] = SequencePack(sequenceContext, serviceClass, block, handler)

@@ -38,7 +38,7 @@ class CoroutineEmitter(
         pack: SequencePack<DATA, ENTITY>
     ): Deferred<List<DATA>> {
 
-        val session = CoroutineSessionHolder.getCurrentContext()
+        val session = CoroutineSessionHolder.getCurrentContext(1)
 
         val listenerScope = CoroutineScope(
             Dispatchers.IO + CoroutineName(name)  + (session ?: EmptyCoroutineContext)

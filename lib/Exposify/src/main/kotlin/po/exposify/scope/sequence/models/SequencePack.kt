@@ -15,10 +15,9 @@ import kotlin.reflect.KProperty1
 data class SequencePack<DATA,ENTITY>(
     private val context : SequenceContext<DATA,ENTITY>,
     internal val serviceClass: ServiceClass<DATA, ENTITY>,
-    private val sequenceFn : suspend  SequenceContext<DATA, ENTITY>.() -> Deferred<List<DATA>>,
-    private val handler: SequenceHandler<DATA>,
+    private val sequenceFn : suspend  SequenceContext<DATA, ENTITY>.() -> Unit,
+    private val handler: SequenceHandler<DATA, ENTITY>,
 ) where  DATA : DataModel, ENTITY : LongEntity {
-
 
     private var sequenceParams = mapOf<String, String>()
     private var sequenceInputList = listOf<DATA>()
@@ -47,7 +46,10 @@ data class SequencePack<DATA,ENTITY>(
 
    suspend fun start(): Deferred<List<DATA>>{
        println("Calling start in SequencePack")
-       return context.sequenceFn()
+       // sequenceFn.invoke()
+       val deferred =  context.checkout()
+       sequenceFn(context)
+       return  deferred
    }
 
    fun sequenceName(): String{
