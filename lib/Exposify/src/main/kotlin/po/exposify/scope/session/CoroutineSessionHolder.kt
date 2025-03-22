@@ -3,11 +3,8 @@ package po.exposify.scope.session
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.withContext
 import po.exposify.scope.session.interfaces.UserSession
-import kotlin.coroutines.CoroutineContext
 
 import kotlin.coroutines.coroutineContext
-
-
 
 inline suspend fun <T> sessionScope(userId: Long, noinline block: suspend DefaultSessionContext.() -> T): T =
     CoroutineSessionHolder.getContextOrCreate(userId, block)
