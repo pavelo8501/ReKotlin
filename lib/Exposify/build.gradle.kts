@@ -58,6 +58,7 @@ dependencies {
     implementation("org.postgresql:postgresql:$postgresVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinSerializationVersion")
 
+    api(project(":lib:AuthCore"))
     api(project(":lib:LogNotify"))
 
     testImplementation("com.h2database:h2:$h2DatabaseVersion")

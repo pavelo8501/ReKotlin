@@ -7,7 +7,6 @@ val hikaricpVersion: String by project
 val mysqlVersion: String by project
 val junitVersion:String by project
 val coroutinesVersion:String by project
-
 val restWraptorVersion:String by project
 
 plugins {
@@ -35,6 +34,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinSerializationVersion")
     implementation("io.ktor:ktor-server-cors:$ktorVersion")
 
+    api(project(":lib:AuthCore"))
     api(project(":lib:LogNotify"))
 
     testImplementation("org.jetbrains.kotlin:kotlin-test:$kotlinVersion")

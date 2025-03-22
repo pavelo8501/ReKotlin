@@ -29,6 +29,7 @@ include(
     "lib:LogNotify",
     "lib:RestWraptor",
     "lib:WebSocketWraptor",
+    "lib:AuthCore",
     "lib:function_processor",
     "lib:binder")
 
@@ -63,4 +64,11 @@ project(":lib:WebSocketWraptor").also {
 project(":lib:LogNotify").also {
     it.name = "LogNotify"
 }
+
+project(":lib:AuthCore").also {
+    it.name = "AuthCore"
+}
+
 include("MedTest")
+include("lib:AuthCore")
+findProject(":lib:AuthCore")?.name = "AuthCore"
