@@ -5,6 +5,10 @@ import kotlinx.coroutines.awaitAll
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.IdTable
+import org.jetbrains.exposed.sql.Column
+import org.jetbrains.exposed.sql.Op
+import org.jetbrains.exposed.sql.Query
+import org.jetbrains.exposed.sql.SqlExpressionBuilder
 import po.exposify.binder.BindingContainer
 import po.exposify.binder.BindingKeyBase
 import po.exposify.binder.UpdateMode
@@ -18,9 +22,12 @@ import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
 import po.exposify.models.CrudResult
 import po.exposify.dto.CommonDTO
+import po.exposify.extensions.QueryConditions
 import po.exposify.scope.sequence.classes.SequenceHandler
+import po.exposify.scope.sequence.models.SequencePack
 import po.lognotify.eventhandler.RootEventHandler
 import po.lognotify.eventhandler.interfaces.CanNotify
+import kotlin.Boolean
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 
@@ -47,9 +54,9 @@ abstract class DTOClass<DATA, ENTITY>(
                 ExceptionCodes.LAZY_NOT_INITIALIZED)
         }
 
-    val daoService  =  DAOService<DATA, ENTITY>(this)
+    val daoService: DAOService<DATA, ENTITY> =  DAOService<DATA, ENTITY>(this)
 
-    val bindings = mutableMapOf<BindingKeyBase, BindingContainer<DATA, ENTITY, *, *>>()
+    val bindings: MutableMap<BindingKeyBase, BindingContainer<DATA, ENTITY, *, *>> = mutableMapOf<BindingKeyBase, BindingContainer<DATA, ENTITY, *, *>>()
 
     protected abstract fun setup()
 
@@ -71,6 +78,7 @@ abstract class DTOClass<DATA, ENTITY>(
         block: DTOConfig<DATA,ENTITY>.() -> Unit) where ENTITY: LongEntity, DATA: DataModel
     {
         factory.initializeBlueprints(DATA::class, ENTITY::class)
+        factory.setSerializableTypes(conf.propertyBinder.compositePropertyList.map { it.getSerializer()} )
         conf.dataModelClass = DATA::class
         conf.entityClass = ENTITY::class
         conf.entityModel = entityModel
@@ -93,11 +101,10 @@ abstract class DTOClass<DATA, ENTITY>(
      * representing the filtering conditions.
      * @return A `CrudResult<DATA, ENTITY>` containing the selected DTO (if found) and any triggered events.
      */
-    internal suspend fun pick(
-        conditions: List<Pair<KProperty1<DATA, *>, Any?>>): CrudResult<DATA, ENTITY> {
+    internal suspend fun <T: IdTable<Long>>pick(
+        conditions: QueryConditions<T>): CrudResult<DATA, ENTITY> {
         val resultList = mutableListOf<CommonDTO<DATA, ENTITY>>()
-
-        val entity =  daoService.pick(conditions, conf.propertyBinder.propertyList)
+        val entity =  daoService.pick(conditions.build())
         entity?.let {
             factory.createEntityDto()?.let {newDto->
                 newDto.update(it, UpdateMode.ENTITY_TO_MODEL)
@@ -108,7 +115,6 @@ abstract class DTOClass<DATA, ENTITY>(
             conf.relationBinder.applyBindings(it)
             it.initializeRepositories(it.entityDAO)
         }
-
         return CrudResult(resultList)
     }
 
@@ -130,9 +136,25 @@ abstract class DTOClass<DATA, ENTITY>(
            conf.relationBinder.applyBindings(it)
            it.initializeRepositories(it.entityDAO)
        }
-
        return CrudResult(resultList.toList())
     }
+
+    internal suspend fun <T: IdTable<Long>> select(conditions: QueryConditions<T>): CrudResult<DATA, ENTITY> {
+        val resultList = mutableListOf<CommonDTO<DATA, ENTITY>>()
+        val entities = daoService.select(conditions.build())
+        entities.forEach {
+            factory.createEntityDto()?.let {newDto->
+                newDto.update(it, UpdateMode.ENTITY_TO_MODEL)
+                resultList.add(newDto)
+            }
+        }
+        resultList.forEach {
+            conf.relationBinder.applyBindings(it)
+            it.initializeRepositories(it.entityDAO)
+        }
+        return CrudResult(resultList.toList())
+    }
+
 
     /**
      * Selects all entities from the database, initializes DTOs for them, and returns a result containing these DTOs.
@@ -184,8 +206,7 @@ abstract class DTOClass<DATA, ENTITY>(
         return CrudResult(resultDTOs.toList())
     }
 
-    suspend fun triggerSequence(handler: SequenceHandler<DATA>, list: List<DATA>): Deferred<List<DATA>> {
-        return emitter.launchSequence(handler, list)
-    }
+    suspend fun triggerSequence(
+        sequence: SequencePack<DATA, ENTITY>): Deferred<List<DATA>> = emitter.launchSequence(sequence)
 
 }

@@ -37,6 +37,20 @@ suspend fun RoutingContext.respondUnauthorized(message: String) {
     )
 }
 
+private suspend fun badRequest(call : RoutingCall,  message: List<String> = emptyList<String>()){
+    val response =  ServiceResponse(
+        "Data supplied can not be processed",
+        HttpStatusCode.BadRequest.value)
+    message.forEach { response.addLogRecord(it)}
+    call.respond<ServiceResponse>(HttpStatusCode.BadRequest, response)
+}
+
+suspend fun  RoutingContext.respondBadRequest(message: List<String> = emptyList<String>()){
+    badRequest(call, message)
+}
+
+
+
 
 private suspend fun notFoundResponse(call : RoutingCall,  message: List<String> = emptyList<String>()){
     val response =  ServiceResponse(
@@ -46,6 +60,9 @@ private suspend fun notFoundResponse(call : RoutingCall,  message: List<String> 
     call.respond<ServiceResponse>(HttpStatusCode.NotFound, response)
 }
 
+suspend fun  RoutingContext.respondNotFound(message: List<String> = emptyList<String>()){
+    notFoundResponse(call, message)
+}
 
 suspend fun RoutingCall.respondNotFound( message: List<String> = emptyList<String>()) {
    val response =  notFoundResponse(this,message)

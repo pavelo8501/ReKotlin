@@ -55,8 +55,7 @@ dependencies {
     implementation("com.zaxxer:HikariCP:$hikaricpVersion")
     implementation("org.postgresql:postgresql:42.2.2")
 
-
-
+    implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
 
     implementation("org.slf4j:slf4j-api:2.0.7")
     implementation("ch.qos.logback:logback-classic:1.4.12")

@@ -5,6 +5,8 @@ import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
+import org.jetbrains.exposed.dao.id.IdTable
+import org.jetbrains.exposed.dao.id.LongIdTable
 import po.exposify.binder.PropertyBinding
 import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DTOModel
@@ -30,7 +32,17 @@ class DepartmentEntity(id: EntityID<Long>) : LongEntity(id) {
     var created by Departments.created
     var updated by Departments.updated
     var partner by PartnerEntity referencedOn Departments.partner
+    var partnerId
+        get() = partner.id.value
+        set(value) {
+            partner = PartnerEntity.findById(value) ?: throw IllegalArgumentException("Department with ID $value not found")
+        }
     val inspections by  InspectionEntity referrersOn Inspections.department
+
+    fun getTable(): IdTable<Long>{
+        return Departments
+    }
+
 }
 
 @Serializable
@@ -47,6 +59,7 @@ data class DepartmentDataModel(
     var lastInspection: LocalDateTime? = null,
 ): DataModel{
     override var id: Long = 0L
+    var partnerId: Long = 0L
     var updated: LocalDateTime = DepartmentDTO.nowTime()
     var created: LocalDateTime = DepartmentDTO.nowTime()
 
@@ -74,6 +87,7 @@ class DepartmentDTO(
                     PropertyBinding(DepartmentDataModel::lastInspection, DepartmentEntity::lastInspection),
                     PropertyBinding(DepartmentDataModel::updated, DepartmentEntity::updated),
                     PropertyBinding(DepartmentDataModel::created, DepartmentEntity::created),
+                    PropertyBinding(DepartmentDataModel::partnerId, DepartmentEntity::partnerId)
                 )
                 setDataModelConstructor {
                     DepartmentDataModel(false, "", 12)

@@ -116,7 +116,7 @@ class HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
         ): CommonDTO<DATA, ENTITY> {
             return object : CommonDTO<DATA, ENTITY>(hosted.getInjectedModel()) {}.apply {
                 this.sourceModel = hosted.sourceModel
-                this.propertyBinder.setProperties(hosted.propertyBinder.propertyList)
+                this.propertyBinder.setProperties(hosted.propertyBinder.getAllProperties())
                 this.hostDTO = hosted
             }
         }
@@ -173,7 +173,7 @@ abstract class CommonDTO<DATA, ENTITY>(
         ): CommonDTO<DATA, ENTITY> {
             return object : CommonDTO<DATA, ENTITY>(hosted.getInjectedModel()) {}.apply {
                  this.sourceModel = hosted.sourceModel
-                 this.propertyBinder.setProperties(hosted.propertyBinder.propertyList)
+                 this.propertyBinder.setProperties(hosted.propertyBinder.getAllProperties())
                 this.hostDTO = hosted
             }
         }

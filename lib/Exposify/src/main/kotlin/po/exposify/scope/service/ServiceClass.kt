@@ -5,19 +5,23 @@ import kotlinx.coroutines.Deferred
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.exists
 import org.jetbrains.exposed.sql.transactions.transaction
 import po.exposify.classes.DTOClass
+import po.exposify.classes.components.CallbackEmitter
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.InitializationException
 import po.exposify.exceptions.OperationsException
 import po.exposify.scope.connection.ConnectionClass
+import po.exposify.scope.connection.controls.UserDispatchManager
 import po.exposify.scope.sequence.models.SequencePack
 import po.lognotify.eventhandler.RootEventHandler
 import po.lognotify.eventhandler.interfaces.CanNotify
 import kotlin.Long
+import kotlin.reflect.KProperty1
 
 enum  class TableCreateMode{
     CREATE,
@@ -34,6 +38,9 @@ class ServiceClass<DATA, ENTITY>(
 
    var name : String = "undefined"
    var serviceContext : ServiceContext<DATA, ENTITY>? = null
+
+
+
 
    override val eventHandler = RootEventHandler(name)
 
@@ -53,13 +60,14 @@ class ServiceClass<DATA, ENTITY>(
         body()
     }
 
-    internal suspend fun launchSequence(pack : SequencePack<DATA, ENTITY>, data : List<DATA>): Deferred<List<DATA>> {
+    internal suspend fun launchSequence(
+        pack : SequencePack<DATA, *>): Deferred<List<DATA>> {
+
        val result = task("Launch Sequence on ServiceClass with name :${name}") {
-            connectionClass.launchSequence<DATA, ENTITY>(pack, data, eventHandler)
+            connectionClass.launchSequence<DATA, ENTITY>(pack, eventHandler)
         }
         return result ?: CompletableDeferred(emptyList())
     }
-
 
     private fun createTable(table : IdTable<Long>): Boolean{
         return try {
@@ -114,9 +122,17 @@ class ServiceClass<DATA, ENTITY>(
         }
     }
 
+
+    private fun  emitterSubscriptions(callbackEmitter : CallbackEmitter<DATA>){
+        callbackEmitter.subscribeSequenceExecute{
+            launchSequence(it)
+        }
+    }
+
+
     private fun start(){
         initializeDTOs{
-            rootDTOModel.initialization()
+            rootDTOModel.initialization(::emitterSubscriptions)
             name =  ("${rootDTOModel.className}|Service").trim()
         }
         if(serviceCreateOption!=null){

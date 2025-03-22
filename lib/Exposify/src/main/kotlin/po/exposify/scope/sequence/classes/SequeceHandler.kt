@@ -1,10 +1,20 @@
 package po.exposify.scope.sequence.classes
 
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 import org.jetbrains.exposed.dao.LongEntity
+import org.jetbrains.exposed.sql.Op
 import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
+import po.exposify.exceptions.ExceptionCodes
+import po.exposify.exceptions.OperationsException
+import po.exposify.scope.dto.DTOContext
+import po.exposify.scope.sequence.models.SequencePack
+import po.exposify.scope.service.ServiceClass
+import kotlin.reflect.KProperty1
+
+
 
 /**
  * Represents a sealed interface for handling sequence execution and result callbacks.
@@ -21,7 +31,7 @@ sealed interface SequenceHandlerInterface<T: DataModel> {
      * Invokes the result callback function with the provided data.
      * @param listedData The data to be passed to the result callback.
      */
-    suspend fun submitResult(result: List<T>)
+   // suspend fun submitResult(result: List<T>)
 }
 
 /**
@@ -34,77 +44,51 @@ sealed interface SequenceHandlerInterface<T: DataModel> {
  */
 abstract class SequenceHandler<T>(
     override val dtoClass: DTOClass<T, *>,
-    override val name: String,
-    private var resultCallback: (suspend (List<T>) -> Unit)? = null
+    override val name: String
 ) : SequenceHandlerInterface<T> where  T: DataModel {
 
-    /**
-     * Stores the input data associated with the current sequence execution.
-     */
-    internal var inputData  : List<T>? = null
+    internal val sequences =
+        mutableMapOf<String, SequencePack<T, *>>()
 
-    /**
-     * Indicates whether input data has been assigned.
-     * @return `true` if input data is available, `false` otherwise.
-     */
-    val hasInputData : Boolean
-        get() { return inputData != null }
-
-    /**
-     * Indicates whether a result callback function is assigned.
-     * @return `true` if a callback is assigned, `false` otherwise.
-     */
-    val hasResultCallback : Boolean
-        get() { return resultCallback != null }
-
-//    /**
-//     * Executes the stored result callback function with the provided data.
-//     * @param listedData The data to pass to the result callback.
-//     */
-//    internal fun executeCallback(listedData : T){
-//       // resultCallback?.invoke(listedData)
-//    }
-
-    internal fun getResultCallback():(suspend (List<T>) -> Unit)?{
-        return resultCallback
+    internal fun getStockSequence(): SequencePack<T,*>{
+        val sequence = sequences[name]
+        if(sequence != null){
+            return  sequence
+        }else{
+            throw OperationsException("Unable to find sequence for a given handler ${this.name}", ExceptionCodes.KEY_NOT_FOUND )
+        }
     }
 
-    fun getData(): List<T>{
-        return this.inputData?:emptyList()
+    suspend fun execute(params: Map<String, String> ): Deferred<List<T>>{
+        getStockSequence().let {
+            it.saveParams(params)
+            it.saveInputList(emptyList())
+            return it.serviceClass.launchSequence(it)
+
+        }
     }
 
-    fun getFirst(): T?{
-        return this.inputData?.firstOrNull()
+    suspend fun execute(inputList : List<T>): Deferred<List<T>> {
+        getStockSequence().let {
+            it.saveInputList(inputList)
+            it.saveParams(emptyMap())
+            return it.serviceClass.launchSequence(it)
+        }
     }
 
-//    fun getWhere():List<T>{
-//
-//    }
-
-    /**
-     * Assigns a result callback function to be executed when the sequence completes.
-     * @param callback The callback function to assign.
-     */
-    suspend  fun execute(data : List<T> = emptyList<T>(),  callback:suspend (List<T>)-> Unit){
-        resultCallback = callback
-        dtoClass.triggerSequence(this, data)
+    suspend fun execute(params: Map<String, String>, inputList : List<T>): Deferred<List<T>>{
+        getStockSequence().let {
+            it.saveParams(params)
+            it.saveInputList(inputList)
+            return it.serviceClass.launchSequence(it)
+        }
     }
-
-    suspend  fun execute(data : List<T> = emptyList<T>()): Deferred<List<T>>{
-        return  dtoClass.triggerSequence(this, data)
-    }
-
-    private var onResult :((List<T>)-> Unit) ? = null
-    fun onResultSubmitted(callback : (List<T>)-> Unit){
-        onResult =  callback
-    }
-
-    /**
-     * Invokes the result callback function with the provided data.
-     * @param listedData The data to pass to the result callback.
-     */
-    override suspend fun submitResult(result : List<T> ){
-        onResult?.invoke(result)
+    suspend fun execute(): Deferred<List<T>>{
+        getStockSequence().let {
+            it.saveParams(emptyMap())
+            it.saveInputList(emptyList())
+            return it.serviceClass.launchSequence(it)
+        }
     }
 
 }

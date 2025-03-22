@@ -1,4 +1,7 @@
 build/
 certs/
 keys/
-src/main/resources/.env
+compose.yaml
+.env
+database/
+src/main/resources/

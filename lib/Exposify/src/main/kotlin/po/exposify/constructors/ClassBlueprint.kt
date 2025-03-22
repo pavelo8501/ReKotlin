@@ -41,6 +41,13 @@ class DataModelBlueprint<DATA: DataModel>(
     fun getClass(): KClass<DATA> {
         return clazz
     }
+
+    override var  externalParamLookupFn : ( (type: KParameter) -> Any? )? = null
+    @JvmName("externalParamLookupFnDataModelBlueprint")
+    fun setExternalParamLookupFn(fn : (type: KParameter) -> Any? ){
+        externalParamLookupFn = fn
+    }
+
 }
 
 
@@ -51,6 +58,11 @@ class EntityBlueprint<ENTITY : LongEntity >(
     fun getClass(): KClass<ENTITY> {
        return clazz
     }
+    override var  externalParamLookupFn : ( (type: KParameter) -> Any? )? = null
+    @JvmName("externalParamLookupFnEntityBlueprint")
+    fun setExternalParamLookupFn(fn : (type: KParameter) -> Any? ){
+        externalParamLookupFn = fn
+    }
 
 }
 
@@ -58,7 +70,18 @@ class DTOBlueprint<DATA, ENTITY>(
     clazz  : KClass<out CommonDTO<DATA, ENTITY>>,
 ) : ClassBlueprintBase<CommonDTO<DATA,ENTITY>>(
     clazz as KClass<CommonDTO<DATA, ENTITY>>)
-        where ENTITY : LongEntity, DATA : DataModel
+        where ENTITY : LongEntity, DATA : DataModel{
+
+
+    override var  externalParamLookupFn : ( (type: KParameter) -> Any? )? = null
+    @JvmName("externalParamLookupFnDTOBlueprint")
+    fun setExternalParamLookupFn(fn : (type: KParameter) -> Any? ){
+        externalParamLookupFn = fn
+    }
+
+}
+
+
 
 
 
@@ -118,19 +141,20 @@ abstract class ClassBlueprintBase<T: Any>(protected val clazz: KClass<T>){
         effectiveConstructorSize = constructor.parameters.size
     }
 
-    fun getArgsForConstructor(overrideDefault : ((name:String?)->Any?)? = null): Map<KParameter, Any?>{
+
+    abstract var  externalParamLookupFn : ( (type: KParameter) -> Any? )?
+    @JvmName("externalParamLookupFnOfBaseClass")
+    fun getArgsForConstructor(): Map<KParameter, Any?>{
         getConstructor().let { constructor ->
-            val args = constructor.parameters.associateWith { param ->
+            val args =  constructor.parameters.associateWith { param ->
                 constructorBuilder.let { builder->
                     if(param.type.isMarkedNullable) {
                         null
-                    }else{
-                        val result = if(overrideDefault == null) {
-                            builder.getDefaultForType(param.type)
-                        }else{
-                            overrideDefault.invoke(param.name)?:builder.getDefaultForType(param.type)
+                    }else {
+                        builder.getDefaultForType(param.type) ?: run {
+                             externalParamLookupFn?.invoke(param)
+
                         }
-                        result
                     } }
             }
             this.setParams(args)

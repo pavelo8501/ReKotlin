@@ -4,10 +4,10 @@ import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.Op
+import org.jetbrains.exposed.sql.Query
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.SizedIterable
 import org.jetbrains.exposed.sql.SqlExpressionBuilder
-import po.exposify.binder.PropertyBinding
 import po.exposify.binder.UpdateMode
 import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
@@ -33,21 +33,8 @@ class DAOService<DATA, ENTITY>(
         }
     }
 
-    private fun <DATA : DataModel, ENT : LongEntity> conditionsToSqlBuilderFn(
-        conditions: List<Pair<KProperty1<DATA, *>, Any?>>,
-        propertyBindings: List<PropertyBinding<DATA, ENT, *>>,
-        entityModel : LongEntityClass<ENTITY>
-    ): SqlExpressionBuilder.() -> Op<Boolean> {
-        return {
-            conditions.mapNotNull { (dtoProp, value) ->
-                val binding = propertyBindings.find { it.dtoProperty == dtoProp }
-                @Suppress("UNCHECKED_CAST")
-                val column = binding?.let {
-                    entityModel.table.columns.find { col -> col.name == binding.entityProperty.name }
-                }as? Column<Any?>
-                column?.let { it eq value }
-            }.reduceOrNull { acc, op -> acc and op } ?: Op.TRUE
-        }
+    private fun combineConditions(conditions: Set<Op<Boolean>>): Op<Boolean> {
+        return conditions.reduceOrNull { acc, op -> acc and op } ?: Op.TRUE
     }
 
     suspend fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity> saveNew(
@@ -57,7 +44,7 @@ class DAOService<DATA, ENTITY>(
             val entity = task("saveNew() for dto ${dto.sourceModel.className}") {
                 // Create a new entity and update its properties
                 val newEntity = entityModel.new {
-                    dto.update(this, UpdateMode.MODEL_TO_ENTNTY)
+                    dto.update(this, UpdateMode.MODEL_TO_ENTITY)
                     block?.invoke(this)
                 }
                 newEntity
@@ -69,21 +56,44 @@ class DAOService<DATA, ENTITY>(
         dto : DTOBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>) {
         try {
             val entity = selectWhere(dto.id)
-            dto.update(entity, UpdateMode.MODEL_TO_ENTNTY)
+            dto.update(entity, UpdateMode.MODEL_TO_ENTITY)
         }catch (ex: Exception){
             println(ex.message)
         }
     }
 
     suspend fun pick(
-        conditions: List<Pair<KProperty1<DATA, *>, Any?>>,
-        propertyBindings: List<PropertyBinding<DATA, ENTITY, *>>
+        conditions :Op<Boolean>
     ): ENTITY?{
         val entity = task("pick") {
-            val query = conditionsToSqlBuilderFn<DATA, ENTITY>(conditions, propertyBindings, entityModel)
-            entityModel.find(query).firstOrNull()
+            val queryResult = entityModel.find(conditions)
+            queryResult.firstOrNull()
         }
         return entity
+    }
+
+    suspend fun select(
+        conditions: Op<Boolean>,
+    ): List<ENTITY>{
+        val entities = task("select_with_conditions") {
+            entityModel.find(conditions).toList()
+        }
+        return entities?:emptyList()
+    }
+
+    private fun loadAllChildren(entityModel : LongEntityClass<ENTITY>, entity: ENTITY){
+        entityModel.reload(entity)
+    }
+
+    suspend fun selectByQuery(
+        query: Query
+    ): List<ENTITY>{
+        val entities = task("select_with_query") {
+           val result =   entityModel.wrapRows(query).toList()
+           result.forEach { loadAllChildren(entityModel, it) }
+           result
+        }
+        return entities?:emptyList()
     }
 
     suspend fun selectAll(): SizedIterable<ENTITY>{

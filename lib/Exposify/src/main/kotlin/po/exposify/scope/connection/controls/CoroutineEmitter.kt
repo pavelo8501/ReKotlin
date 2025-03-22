@@ -8,22 +8,25 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import org.jetbrains.exposed.dao.LongEntity
+import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.transactions.experimental.suspendedTransactionAsync
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
 import po.exposify.scope.sequence.models.SequencePack
+import po.exposify.scope.session.CoroutineSessionHolder
 import po.lognotify.eventhandler.EventHandler
 import po.lognotify.eventhandler.RootEventHandler
 import po.lognotify.eventhandler.interfaces.CanNotify
+import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.reflect.KProperty1
 
 class CoroutineEmitter(
     val name: String,
-    // val originatorContext : CoroutineContext
-    var parentNotifier: RootEventHandler //Temporary solution unless sessions will get introduced
+    var parentNotifier: RootEventHandler
 ) : CanNotify {
 
-    override val eventHandler = EventHandler(name, parentNotifier)
+    override val eventHandler: EventHandler = EventHandler(name, parentNotifier)
 
     init {
         eventHandler.registerPropagateException<OperationsException>{
@@ -31,42 +34,21 @@ class CoroutineEmitter(
         }
     }
 
-   fun <DATA : DataModel, ENTITY : LongEntity>dispatch2(
-       pack: SequencePack<DATA, ENTITY>,
-       data : List<DATA>
-   ) : Deferred<List<DATA>>  {
-
-       val listenerScope = CoroutineScope(Dispatchers.IO + CoroutineName(name))
-       val job = listenerScope.launch {
-           info("Pre launching Coroutine for pack ${pack.sequenceName()}")
-           val transactionResult = suspendedTransactionAsync(Dispatchers.IO) {
-               pack.start(data)
-           }
-           transactionResult.await()
-           info("Launch complete for ${pack.sequenceName()}")
-       }
-       job.invokeOnCompletion {throwable->
-           if(throwable == null){
-               info("Dispatcher $name is closing")
-           }else{
-               throwPropagate(throwable.message.toString())
-           }
-       }
-       return CompletableDeferred(emptyList<DATA>())
-    }
-
     suspend fun <DATA : DataModel, ENTITY : LongEntity>dispatch(
-        pack: SequencePack<DATA, ENTITY>,
-        data : List<DATA>
+        pack: SequencePack<DATA, ENTITY>
     ): Deferred<List<DATA>> {
-        val listenerScope = CoroutineScope(Dispatchers.IO + CoroutineName(name))
+
+        val session = CoroutineSessionHolder.getCurrentContext()
+
+        val listenerScope = CoroutineScope(
+            Dispatchers.IO + CoroutineName(name)  + (session ?: EmptyCoroutineContext)
+        )
+
         return listenerScope.async {
             info("Pre launching Coroutine for pack ${pack.sequenceName()}")
-            val transactionResult = suspendedTransactionAsync(Dispatchers.IO) {
-                pack.start(data)
-                pack.onResult()
-            }
-            transactionResult.await()
+            suspendedTransactionAsync(Dispatchers.IO) {
+                pack.start().await()
+            }.await()
         }.also { deferred ->
             deferred.invokeOnCompletion { throwable ->
                 if (throwable == null) {
