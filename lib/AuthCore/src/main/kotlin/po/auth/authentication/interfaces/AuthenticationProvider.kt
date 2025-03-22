@@ -1,4 +1,4 @@
-package po.auth.interfaces
+package po.auth.authentication.interfaces
 
 import po.auth.models.AuthenticationContext
 
