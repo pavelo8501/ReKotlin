@@ -2,19 +2,19 @@
 
 ## Overview
 The RestServer wrapper library simplifies the creation and configuration of Ktor RESTful services in Kotlin. 
-It provides a streamlined way to set up a server with common features such as authentication, rate limiting, CORS, content negotiation, and logging, 
+It provides a streamlined way to set up a server with common features such as sessions, rate limiting, CORS, content negotiation, and logging, 
 allowing developers to focus on implementing business logic.
 
 ## Features
 
-- **JWT Authentication**: Easily enable JWT authentication with customizable configurations.
+- **JWT Authentication**: Easily enable JWT sessions with customizable configurations.
 - **Rate Limiting**: Protect your API from abuse with built-in rate limiting.
 - **CORS Support**: Configure Cross-Origin Resource Sharing settings effortlessly.
 - **Content Negotiation**: Automatically handle content negotiation for JSON. Or serialization with customizable serializers.
 - **Logging Service**: Integrated and configurable logging for tracking application events and errors.
 - **Error Handling**: Centralized error handling for easy debugging and maintenance.
 - **Request Validation**: Validate incoming requests with a simple DSL.
-- **Default Endpoints**:  Includes default endpoints for status checks and authentication.
+- **Default Endpoints**:  Includes default endpoints for status checks and sessions.
 - **Customizable Configuration**: Highly customizable to suit various application needs. Easily configure the server with a simple DSL, or use the default settings.
 
 ## Getting Started
@@ -97,7 +97,7 @@ fun main() {
 ### Features in Detail
 
 1. **JWT Authentication**
-1.1 **RestServer supports JWT authentication out of the box. You can configure it with your own keys:**
+1.1 **RestServer supports JWT sessions out of the box. You can configure it with your own keys:**
 
 ```kotlin
 

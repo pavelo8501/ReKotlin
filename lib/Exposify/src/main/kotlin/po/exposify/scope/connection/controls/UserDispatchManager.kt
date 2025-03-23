@@ -33,7 +33,6 @@ class UserDispatchManager {
                 (newJob as Deferred<T>).await()
             }
         }
-
     }
 
     internal val queManager: UserDispatchQueueManager = UserDispatchQueueManager()

@@ -14,7 +14,6 @@ import po.exposify.classes.interfaces.DataModel
 import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
 import po.exposify.scope.sequence.models.SequencePack
-import po.exposify.scope.session.CoroutineSessionHolder
 import po.lognotify.eventhandler.EventHandler
 import po.lognotify.eventhandler.RootEventHandler
 import po.lognotify.eventhandler.interfaces.CanNotify
@@ -35,14 +34,11 @@ class CoroutineEmitter(
     }
 
     suspend fun <DATA : DataModel, ENTITY : LongEntity>dispatch(
-        pack: SequencePack<DATA, ENTITY>
+        pack: SequencePack<DATA, ENTITY>,
+        listenerScope : CoroutineScope
     ): Deferred<List<DATA>> {
 
-        val session = CoroutineSessionHolder.getCurrentContext(1)
-
-        val listenerScope = CoroutineScope(
-            Dispatchers.IO + CoroutineName(name)  + (session ?: EmptyCoroutineContext)
-        )
+   //     val session = CoroutineSessionHolder.getCurrentContext(1)
 
         return listenerScope.async {
             info("Pre launching Coroutine for pack ${pack.sequenceName()}")

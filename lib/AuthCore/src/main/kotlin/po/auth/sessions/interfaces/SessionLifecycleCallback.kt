@@ -1,9 +1,7 @@
 package po.auth.sessions.interfaces
 
-import po.auth.models.DefaultSessionContext
-
 
 interface SessionLifecycleCallback {
-    fun onProcessStart(session: DefaultSessionContext)
-    fun onProcessEnd(session: DefaultSessionContext)
+    fun onProcessStart(session: EmmitableSession)
+    fun onProcessEnd(session: EmmitableSession)
 }

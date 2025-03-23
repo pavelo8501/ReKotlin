@@ -1,21 +1,13 @@
 package po.exposify.scope.sequence.classes
 
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 import org.jetbrains.exposed.dao.LongEntity
-import org.jetbrains.exposed.sql.Op
 import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
-import po.exposify.dto.CommonDTO
 import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
-import po.exposify.scope.dto.DTOContext
 import po.exposify.scope.sequence.models.SequencePack
-import po.exposify.scope.service.ServiceClass
-import po.exposify.scope.service.ServiceContext
-import po.exposify.scope.session.CoroutineSessionHolder
 import po.exposify.scope.session.interfaces.UserSession
-import kotlin.reflect.KProperty1
 
 inline fun <reified DATA, reified ENTITY> UserSession.sequenceHandler(
     dto: DTOClass<DATA, ENTITY>
@@ -27,14 +19,14 @@ inline fun <reified DATA, reified ENTITY> UserSession.sequenceHandler(
             .also { setAttribute(handlerSessionKey, it) }
 }
 
-suspend fun <DATA : DataModel, ENTITY : LongEntity> ServiceContext<DATA, ENTITY>.createHandler(dto: DTOClass<DATA, ENTITY>):SequenceHandler<DATA, ENTITY> {
-    CoroutineSessionHolder.createSessionContext(userId = 1)
-     val session = CoroutineSessionHolder.createSessionContext(1)
-    val handlerSessionKey = "Handler::${dto.className} ::${session.sessionId}"
-    val newHandler = object : SequenceHandler<DATA, ENTITY>(dto, handlerSessionKey){}
-    session.setAttribute(handlerSessionKey, newHandler)
-    return  newHandler
-}
+//suspend fun <DATA : DataModel, ENTITY : LongEntity> ServiceContext<DATA, ENTITY>.createHandler(dto: DTOClass<DATA, ENTITY>):SequenceHandler<DATA, ENTITY> {
+//    CoroutineSessionHolder.createSessionContext(userId = 1)
+//     val session = CoroutineSessionHolder.createSessionContext(1)
+//    val handlerSessionKey = "Handler::${dto.className} ::${session.sessionId}"
+//    val newHandler = object : SequenceHandler<DATA, ENTITY>(dto, handlerSessionKey){}
+//    session.setAttribute(handlerSessionKey, newHandler)
+//    return  newHandler
+//}
 /**
  * Represents a sealed interface for handling sequence execution and result callbacks.
  * @param T The type of data processed by the sequence handler.

@@ -7,6 +7,7 @@ import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.interfaces.DecodedJWT
 import io.ktor.server.auth.jwt.JWTPrincipal
 import po.auth.authentication.interfaces.AuthenticatedPrincipal
+import po.auth.authentication.interfaces.SerializablePrincipal
 import java.security.KeyFactory
 import java.security.interfaces.RSAPrivateKey
 import java.security.interfaces.RSAPublicKey
@@ -84,7 +85,7 @@ class JWTService(
         return Pair(privateKey, publicKey)
     }
 
-    fun generateToken(user: AuthenticatedPrincipal): String =
+    fun generateToken(user: SerializablePrincipal): String =
         JWT.create()
             .withAudience(config.audience)
             .withIssuer(config.issuer)
@@ -101,7 +102,6 @@ class JWTService(
         }else{
             throw Exception("JWTVerifier is undefined")
         }
-
     }
 
     fun decodeToken(token: String): DecodedJWT =  verifier.verify(cleanToken(token))

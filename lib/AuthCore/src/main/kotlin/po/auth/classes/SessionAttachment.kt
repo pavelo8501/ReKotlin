@@ -1,8 +1,8 @@
 package po.auth.classes
 
-import po.auth.interfaces.UserSession
+
 //import kotlinx.coroutines.*
-import kotlin.coroutines.*
+//import kotlin.coroutines.*
 
 /**
  * Utility for manually attaching a session to a Ktor call.
