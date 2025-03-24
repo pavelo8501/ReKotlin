@@ -10,6 +10,9 @@ import po.exposify.scope.connection.ConnectionClass
 import po.exposify.scope.connection.ConnectionContext
 import po.exposify.scope.connection.models.ConnectionSettings
 
+fun echo(ex: Exception, message: String? = null){
+    println("Exception happened in Exposify:  Exception:${ex.message.toString()}. $message")
+}
 
 fun launchService(connection:ConnectionContext, block: ConnectionContext.()-> Unit ){
     if(connection.isOpen){

@@ -1,6 +1,7 @@
 package po.exposify.dto
 
 import org.jetbrains.exposed.dao.LongEntity
+import org.jetbrains.exposed.sql.InternalApi
 import po.exposify.binder.BindingKeyBase
 import po.exposify.binder.PropertyBinder
 import po.exposify.binder.UpdateMode
@@ -17,8 +18,6 @@ import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
 import po.exposify.models.DTOInitStatus
 import kotlin.reflect.KClass
-
-
 
 class HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
     injectedDataModel: DATA
@@ -72,7 +71,6 @@ class HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
     }
 
     fun compileDataModel():DATA{
-
         repositories.values.forEach {repo->
             repo.dtoList.forEach {
                 it.compileDataModel()
@@ -121,15 +119,38 @@ class HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
             }
         }
     }
-
 }
+
+class CommonDTOClassRegistry<DATA, ENTITY>(
+    val dto:  KClass<CommonDTO<DATA, ENTITY>>,
+    val data: KClass<DATA>,
+    val entity: KClass<ENTITY>) where DATA: DataModel , ENTITY: LongEntity
 
 abstract class CommonDTO<DATA, ENTITY>(
     injectedDataModel: DATA
 ): DTOBase<DATA, ENTITY, DataModel, LongEntity>(injectedDataModel), Cloneable
-        where DATA: DataModel , ENTITY: LongEntity
-{
+        where DATA: DataModel , ENTITY: LongEntity {
+
     var hostDTO  : HostDTO<DATA, ENTITY, *, *>? = null
+    internal val typeKeyCombined: String get() = "${dataKClass.qualifiedName}:${entityKClass.qualifiedName}"
+    internal val typeKeyDataModel: String get() = dataKClass.qualifiedName.toString()
+    internal val typeKeyEntity : String get() = entityKClass.qualifiedName.toString()
+    private var _kClassPair : Pair<KClass<DATA>, KClass<ENTITY>>? = null
+    internal val kClassPair : Pair<KClass<DATA>, KClass<ENTITY>>
+        get(){return  _kClassPair?:throw OperationsException(
+            "Data/Entity pair uninitialized",
+            ExceptionCodes.LAZY_NOT_INITIALIZED) }
+
+    val dataKClass: KClass<DATA> by lazy { kClassPair.first }
+    val entityKClass: KClass<ENTITY> by lazy { kClassPair.second }
+
+//    internal inline fun <reified DATA : DataModel, reified ENTITY : LongEntity>
+//            CommonDTO<DATA, ENTITY>.safeCast(): CommonDTO<DATA, ENTITY>? {
+//
+//        return if (this.kClassPair.first  == DATA::class && this.kClassPair.second == ENTITY::class)
+//            this as CommonDTO<DATA, ENTITY>
+//        else null
+//    }
 
     suspend fun initializeRepositories(entity:ENTITY){
         hostDTO?.initializeRepositories(entity)
@@ -147,8 +168,12 @@ abstract class CommonDTO<DATA, ENTITY>(
         }
     }
 
-    fun compileDataModel():DATA{
+    internal constructor(injectedDataModel: DATA, data:  KClass<DATA>,  entity : KClass<ENTITY>): this(injectedDataModel){
+        _kClassPair = Pair(data, entity)
+        selfRegistration(this)
+    }
 
+    fun compileDataModel():DATA{
         hostDTO?.compileDataModel()?.let {
             return it
         }?:run {
@@ -164,9 +189,20 @@ abstract class CommonDTO<DATA, ENTITY>(
         }?:run{ return emptyList<CommonDTO<CHILD_DATA, CHILD_ENTITY>>()}
     }
 
-
-
     companion object{
+
+        var dtoRegistry: Map<KClass<out CommonDTO<*, *>>, CommonDTO<*, *>> = emptyMap()
+
+        inline operator fun <reified DATA : DataModel, reified ENTITY : LongEntity>
+                invoke(injectedDataModel: DATA): CommonDTO<DATA, ENTITY> {
+            return object : CommonDTO<DATA, ENTITY>(
+                injectedDataModel = injectedDataModel, DATA::class, ENTITY::class
+            ) {  }
+        }
+
+        fun <DATA :DataModel, ENTITY: LongEntity> selfRegistration(dto :  CommonDTO<DATA, ENTITY>){
+            dtoRegistry = mapOf(dto::class to dto)
+        }
 
         fun <DATA: DataModel, ENTITY: LongEntity, CHILD_DATA:DataModel, CHILD_ENTITY:LongEntity> copyAsCommonDTO(
             hosted: HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,
@@ -240,4 +276,6 @@ sealed class DTOBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
     fun update(dataModel: DATA, mode: UpdateMode){
         propertyBinder.update(dataModel, entityDAO, mode)
     }
+
+
 }

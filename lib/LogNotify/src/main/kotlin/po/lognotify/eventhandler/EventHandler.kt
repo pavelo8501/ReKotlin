@@ -1,10 +1,10 @@
 package po.lognotify.eventhandler
 
+import po.lognotify.eventhandler.classes.StaticsHelper
 import po.lognotify.eventhandler.components.ExceptionHandler
 import po.lognotify.eventhandler.components.ExceptionHandlerInterface
 import po.lognotify.eventhandler.exceptions.ProcessableException
 import po.lognotify.eventhandler.exceptions.UnmanagedException
-import po.lognotify.eventhandler.interfaces.HandlerStatics
 import po.lognotify.eventhandler.models.BaseEvent
 import po.lognotify.eventhandler.models.Event
 import po.lognotify.eventhandler.models.Task
@@ -21,11 +21,16 @@ import java.util.concurrent.CopyOnWriteArrayList
  * @param moduleName The name of the module associated with this event handler.
  */
 class RootEventHandler(
-    moduleName: String
-): EventHandlerBase(moduleName, null) {
+    override val moduleName: String,
+    val handlePropagated: (ex: Exception)->Unit
+): EventHandlerBase() {
 
     /** Indicates that this handler is the root of the event hierarchy. */
     override val isParent: Boolean get() = true
+
+
+    override val routedName: String = moduleName
+    override val helper: StaticsHelper = StaticsHelper(routedName)
 
     /** A thread-safe queue storing all completed events. */
     internal  val taskQue = CopyOnWriteArrayList<Task>()
@@ -63,13 +68,11 @@ class RootEventHandler(
     * @throws ProcessableException if no handler is set.
     */
     fun handlePropagatedException(ex: ProcessableException){
-        onPropagateExceptionFn?.invoke() ?: run {
-            taskQue.lastOrNull {
-                helper.newWarning(ex)
-                it.subEvents.add(helper.newWarning(ex))
-            }
-           throw UnmanagedException("Propagate to parent Exception handled," +
-                    "but no onPropagateException action is set. Rethrowing exception",ex)
+        echo(ex)
+        handlePropagated.invoke(ex)
+        taskQue.lastOrNull {
+            helper.newWarning(ex)
+            it.subEvents.add(helper.newWarning(ex))
         }
     }
 
@@ -86,10 +89,16 @@ class RootEventHandler(
  * @param parent The parent event handler that this handler reports to.
  */
 class EventHandler(
-    moduleName: String,
-    parent: EventHandlerBase
-): EventHandlerBase(moduleName, parent){
-     override val isParent : Boolean = false
+    override val moduleName: String,
+    val parent: EventHandlerBase,
+    val handlePropagated: ((ex: Exception)->Unit)? = null
+): EventHandlerBase(){
+
+    override val isParent : Boolean = false
+
+    override val  routedName: String = "${parent.routedName}|$moduleName"
+
+    override val helper: StaticsHelper = StaticsHelper(routedName)
 
     /** Clears the active task and its sub-events. */
     override fun wipeData() {
@@ -107,29 +116,23 @@ class EventHandler(
  * @param exceptionHandler The exception handler used for processing errors.
  */
 sealed class EventHandlerBase(
-    override val moduleName: String,
-    val parent: EventHandlerBase?,
     val exceptionHandler : ExceptionHandler = ExceptionHandler()
-) :  HandlerStatics,  ExceptionHandlerInterface by exceptionHandler {
+) :   ExceptionHandlerInterface by exceptionHandler {
 
     /** Indicates whether this handler is a parent handler. */
     open val isParent: Boolean get() = false
 
-    /** The full hierarchical name of the handler, including parent names. */
-    var routedName: String = moduleName
+    abstract val moduleName: String
+    abstract val routedName: String
 
     /** The currently active task being processed. */
     internal var activeTask : Task? = null
 
     /** A helper object providing static utilities. */
-    val helper = HandlerStatics
+    abstract val helper : StaticsHelper
 
-    init {
-        helper.init(routedName)
-        if(parent != null){
-            routedName = "${parent.routedName}|$moduleName"
-        }
-    }
+
+   protected  fun echo(ex: Exception, message: String = "") = helper.echo(ex, message)
 
     protected fun registerTask(task: Task): Task{
         activeTask = task
@@ -143,21 +146,25 @@ sealed class EventHandlerBase(
      * @throws UnmanagedException if there is an issue during event registration.
      */
     private fun registerEvent(event: Event): Event{
-
         activeTask?.subEvents?.add(event) ?: run {
-            when(parent){
+            when(this){
                 is  RootEventHandler ->{
-                    parent.activeTask?.subEvents?.add(event) ?:run {
-                        (parent as RootEventHandler).addToEventQue(event)
+                    activeTask?.subEvents?.add(event) ?:run {
+                        addToEventQue(event)
                     }
                 }
                 is EventHandler ->{
                     parent.activeTask?.subEvents?.add(event)?:run{
-                        UnmanagedException("Abnormal state parent EventHandler does not have active event")
+                        parent.registerTask(
+                            Task(
+                                parent.moduleName,
+                                "Hosting task created by child $routedName")).subEvents.add(event)
                     }
                 }
                 else -> {
-                    UnmanagedException("Abnormal state parent is not identified")
+                  val unmanaged =  UnmanagedException("Abnormal state parent is not identified")
+                  echo(unmanaged)
+                  throw unmanaged
                 }
             }
         }
@@ -172,14 +179,15 @@ sealed class EventHandlerBase(
     @Synchronized
     protected fun finalizeTask(task: Task){
         task.stopTimer()
-        if (this is RootEventHandler) {
-            //If this is a hierarchy root than add event to que and wipe ot current active event
-            addToEventQue(task)
-        } else {
-            //if not a hierarchy root add to the parent active task
-            parent?.activeTask?.subEvents?.add(task)?:run {
-                //if parent active task is null propagate self task to parent
-                parent?.registerTask(task)
+        when(this){
+           is  RootEventHandler->{
+                addToEventQue(task)
+            }
+            is EventHandler ->{
+                parent.activeTask?.subEvents?.add(task)?:run {
+                    //if parent active task is null propagate self task to parent
+                    parent.registerTask(task)
+                }
             }
         }
         activeTask = null
@@ -204,16 +212,28 @@ sealed class EventHandlerBase(
 
             HandleType.PROPAGATE_TO_PARENT -> {
                 registerEvent(Event(routedName).setException(ex))
-                if (this is RootEventHandler) {
-                    handlePropagatedException(ex)
-                } else {
-                    throw ex
+                when(this){
+                    is RootEventHandler->{
+                        echo(ex)
+                        handlePropagatedException(ex)
+                    }
+                    is EventHandler->{
+                        if(handlePropagated != null){
+                            echo(ex)
+                            parent.handleProcessableException(ex)
+                        }else{
+                            echo(ex)
+                            parent.handleProcessableException(ex)
+                        }
+                    }
                 }
             }
-            else -> {throw  ex}
+            else -> {
+                echo(ex)
+                throw  ex
+            }
         }
     }
-
     var onUnmanagedBlock : (suspend (Exception)-> Unit)? = null
     fun handleUnmanagedException(block: suspend (Exception)-> Unit){
         onUnmanagedBlock = block
@@ -227,25 +247,46 @@ sealed class EventHandlerBase(
      */
     suspend fun <T: Any?>task(message : String, taskFn: suspend ()-> T?):T? {
         val newTask = registerTask(helper.newTask(message))
-        val result = runCatching {
-            taskFn.invoke()
-            }.onFailure { ex ->
-                when (ex) {
-                    is ProcessableException -> {
-                        val exceptionEvent = Event(routedName, message, SeverityLevel.EXCEPTION).setException(ex)
-                        newTask.subEvents.add(exceptionEvent)
-                        handleProcessableException(ex)
-                    }
-                    else -> {
-                        registerEvent(Event(routedName, message, SeverityLevel.EXCEPTION))
-                        this.onUnmanagedBlock?.let {unmanagedBlock->
-                            unmanagedBlock(ex as Exception)
-                        }?:run {
-                            throw  UnmanagedException(helper.unhandledMsg(ex), ex)
-                        }
-                    }
+
+        val result: T? =  try {
+             taskFn()
+        } catch (ex: Throwable) {
+            when (ex) {
+                is ProcessableException -> {
+                    val event = Event(routedName, message, SeverityLevel.EXCEPTION).setException(ex)
+                    newTask.subEvents.add(event)
+                    handleProcessableException(ex)
+                    null
                 }
-        }.getOrNull()
+                else -> {
+                    registerEvent(Event(routedName, message, SeverityLevel.EXCEPTION))
+                    onUnmanagedBlock?.let { it(ex as Exception) }
+                        ?: throw UnmanagedException(helper.unhandledMsg(ex), ex)
+                }
+            }
+            null
+        }
+
+
+//        val result = runCatching {
+//            taskFn.invoke()
+//            }.onFailure { ex ->
+//                when (ex) {
+//                    is ProcessableException -> {
+//                        val exceptionEvent = Event(routedName, message, SeverityLevel.EXCEPTION).setException(ex)
+//                        newTask.subEvents.add(exceptionEvent)
+//                        handleProcessableException(ex)
+//                    }
+//                    else -> {
+//                        registerEvent(Event(routedName, message, SeverityLevel.EXCEPTION))
+//                        this.onUnmanagedBlock?.let {unmanagedBlock->
+//                            unmanagedBlock(ex as Exception)
+//                        }?:run {
+//                            throw  UnmanagedException(helper.unhandledMsg(ex), ex)
+//                        }
+//                    }
+//                }
+//        }.getOrNull()
         finalizeTask(newTask)
         return result
     }
@@ -263,6 +304,7 @@ sealed class EventHandlerBase(
      * @param message The message to be logged.
      */
     fun warn(message: String){
+        helper.warn(message)
         registerEvent(Event(routedName, message, SeverityLevel.WARNING))
     }
 

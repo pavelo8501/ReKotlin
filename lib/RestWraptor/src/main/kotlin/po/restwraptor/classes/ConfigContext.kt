@@ -56,7 +56,9 @@ class ConfigContext(
     private val wrapConfig : WraptorConfig,
 ): ConfigContextInterface,  CanNotify{
 
-    override val eventHandler = RootEventHandler("Server config")
+    override val eventHandler = RootEventHandler("Server config"){
+        println("Server config ${it.message}" )
+    }
     internal val apiConfig  =  wrapConfig.apiConfig
     private val authContext  : AuthenticationContext by lazy { AuthenticationContext( wraptor.eventHandler, this) }
     internal val app : Application  by lazy { wraptor.application }

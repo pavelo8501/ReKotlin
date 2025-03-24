@@ -6,7 +6,6 @@ import com.auth0.jwt.JWTVerifier
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.interfaces.DecodedJWT
 import io.ktor.server.auth.jwt.JWTPrincipal
-import po.auth.authentication.interfaces.AuthenticatedPrincipal
 import po.auth.authentication.interfaces.SerializablePrincipal
 import java.security.KeyFactory
 import java.security.interfaces.RSAPrivateKey

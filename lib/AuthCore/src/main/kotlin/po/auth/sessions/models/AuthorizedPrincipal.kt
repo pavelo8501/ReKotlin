@@ -1,29 +1,23 @@
 package po.auth.sessions.models
 
-
-import po.auth.AuthSessionManager
 import po.auth.authentication.interfaces.AuthenticationPrincipal
-import java.util.UUID
-import java.util.concurrent.ConcurrentHashMap
-import kotlin.coroutines.AbstractCoroutineContextElement
 
 
-data class AuthorizedPrincipal(
-    override val userId: Long,
-    override val username: String,
-    override val email: String,
-    override val userGroupId: Long,
-    override val roles: Set<String>,
-    val session: AuthorizedSession,
-    val internalStore: ConcurrentHashMap<String, String>,
-    val sessionId: String,
-) : AuthenticationPrincipal{
+class AuthorizedPrincipal(
+    override val userId: Long = 0L,
+    override val username: String = "no_name",
+    override val email: String = "nomail@undeliverable.void",
+    override val userGroupId: Long = 0L,
+    override val roles: Set<String> = emptySet(),
+) : AuthenticationPrincipal {
 
 
-    companion object {
-        fun generateSessionId(): String = UUID.randomUUID().toString()
+    fun copyReinit(src: AuthenticationPrincipal):AuthorizedPrincipal{
+       return AuthorizedPrincipal(src.userId, src.username, src.email, src.userGroupId, src.roles)
     }
+
 }
+
 
 
 //

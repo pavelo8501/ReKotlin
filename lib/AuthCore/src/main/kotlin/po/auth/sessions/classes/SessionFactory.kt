@@ -1,48 +1,54 @@
 package po.auth.sessions.classes
 
+import po.auth.*
 import po.auth.AuthSessionManager
-import po.auth.authentication.interfaces.AuthenticatedPrincipal
-import po.auth.sessions.interfaces.AuthenticatedSession
-import po.auth.sessions.interfaces.AuthorizedPrincipal
-import po.auth.sessions.interfaces.EmmitableSession
-import po.auth.sessions.interfaces.ManagedSession
-import po.auth.sessions.interfaces.asAuthorized
-import po.auth.sessions.models.AnonymousPrincipal
-import po.auth.sessions.models.BaseSessionAbstraction
-import po.auth.sessions.models.DefaultSession
+import po.auth.authentication.interfaces.AuthenticationPrincipal
+import po.auth.sessions.enumerators.SessionType
+import po.auth.sessions.models.AuthorizedPrincipal
+import po.auth.sessions.models.AuthorizedSession
 import java.util.concurrent.ConcurrentHashMap
 
 class SessionFactory(
     private val manager: AuthSessionManager,
     private  val internalStorage : ConcurrentHashMap<String, String>) {
 
-    private val activeSessions : ConcurrentHashMap<String, DefaultSession> = ConcurrentHashMap<String, DefaultSession>()
-    private var activeAnonSession  : AnonymousSession? = null
+    private val activeSessions : ConcurrentHashMap<String, AuthorizedSession> = ConcurrentHashMap<String, AuthorizedSession>()
+    private var activeAnonSession  : AuthorizedSession? = null
 
-    fun createSession(principal: AuthenticatedPrincipal) : DefaultSession {
-       val newSession = DefaultSession(internalStorage ).apply {
-            setPrincipal(principal.asAuthorized(this))
+    fun createSession(principal: AuthorizedPrincipal) : AuthorizedSession {
+        try {
+            val newSession = AuthorizedSession(principal, SessionType.USER_AUTHENTICATED, internalStorage)
+            activeSessions[newSession.sessionId] = newSession
+            return newSession
+        }catch (ex: Exception){
+            echo(ex)
+            throw (ex)
         }
-        activeSessions[newSession.sessionId] = newSession
-        return newSession
     }
 
-    fun createAnonymousSession(anonymous : AuthenticatedPrincipal? = null) :  AnonymousSession? {
-      val anonymousPrincipal =  if(anonymous != null){
-            AnonymousPrincipal(anonymous) } else { AnonymousPrincipal(null) }
-        activeAnonSession  = AnonymousSession(
-            anonymousPrincipal,
-            internalStorage,
-            BaseSessionAbstraction.generateSessionId(),
-            AuthorizedPrincipal.Key
-        )
-        return activeAnonSession
+    fun createAnonymousSession(anonymous : AuthenticationPrincipal? = null): AuthorizedSession {
+        try {
+            if (activeAnonSession != null) {
+                return activeAnonSession!!
+            }
+            val anonymousPrincipal = if (anonymous != null) {
+                AuthorizedPrincipal().copyReinit(anonymous)
+            } else {
+                    AuthorizedPrincipal()
+            }
+            val anonSession = AuthorizedSession(anonymousPrincipal, SessionType.ANONYMOUS, internalStorage)
+            activeAnonSession = anonSession
+            return anonSession
+        }catch (ex: Exception){
+            echo(ex)
+            throw (ex)
+        }
     }
-    fun getAnonymousSession(): AnonymousSession?{
+    fun getAnonymousSession(): AuthorizedSession?{
         return  activeAnonSession
     }
 
-    fun activeSessions(): List<DefaultSession>{
+    fun activeSessions(): List<AuthorizedSession>{
         return  activeSessions.values.toList()
     }
 

@@ -23,13 +23,10 @@ abstract class BaseSessionAbstraction<PRINCIPAL>(
 
     val createdAt: Long = System.currentTimeMillis()
 
-
     abstract val internalStore : ConcurrentHashMap<String, String>
 
     val sessionStore: ConcurrentHashMap<SessionKey<*>, Any?> =  ConcurrentHashMap<SessionKey<*>, Any?>()
-
     val roundTripStore: ConcurrentHashMap<RoundTripKey<*>, Any?> = ConcurrentHashMap<RoundTripKey<*>, Any?>()
-
     val externalStore :ConcurrentHashMap<ExternalKey<*>, Any?>  = ConcurrentHashMap<ExternalKey<*>, Any?>()
 
     var lifecycleCallback: SessionLifecycleCallback? = null

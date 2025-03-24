@@ -46,13 +46,12 @@ data class SequencePack<DATA,ENTITY>(
 
    suspend fun start(): Deferred<List<DATA>>{
        println("Calling start in SequencePack")
-       // sequenceFn.invoke()
        val deferred =  context.checkout()
        sequenceFn(context)
        return  deferred
    }
 
    fun sequenceName(): String{
-        return handler.name
+        return handler.thisKey
     }
 }

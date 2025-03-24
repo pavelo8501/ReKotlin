@@ -154,7 +154,7 @@ class ServiceContext<DATA,ENTITY>(
         block: suspend SequenceContext<DATA, ENTITY>.() -> Unit
     ) {
        val sequenceContext = SequenceContext<DATA, ENTITY>(dbConnection, rootDtoModel, handler)
-       handler.sequences[handler.name] = SequencePack(sequenceContext, serviceClass, block, handler)
+       handler.addSequence(SequencePack(sequenceContext, serviceClass, block, handler))
     }
 
 //    private val context : SequenceContext<DATA,ENTITY>,

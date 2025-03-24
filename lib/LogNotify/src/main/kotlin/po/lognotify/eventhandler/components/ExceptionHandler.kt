@@ -16,7 +16,6 @@ interface ExceptionHandlerInterface{
 
     fun <E : ProcessableException> registerCancelException(
         cancelFn: () -> Unit, constructFn : (defaultMessage: String) ->E)
-
     fun throwCancelException(msg: String, cancelFn: (()->Unit)?):ProcessableException
 
     fun <E : ProcessableException> registerPropagateException(constructorFn : (defaultMessage: String) -> E)

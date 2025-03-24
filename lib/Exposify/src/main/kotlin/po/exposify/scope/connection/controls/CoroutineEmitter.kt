@@ -22,23 +22,15 @@ import kotlin.reflect.KProperty1
 
 class CoroutineEmitter(
     val name: String,
-    var parentNotifier: RootEventHandler
 ) : CanNotify {
 
-    override val eventHandler: EventHandler = EventHandler(name, parentNotifier)
-
-    init {
-        eventHandler.registerPropagateException<OperationsException>{
-            OperationsException("Operations exception", ExceptionCodes.LAZY_NOT_INITIALIZED)
-        }
+    override val eventHandler: RootEventHandler = RootEventHandler("CoroutineEmitter"){
+        echo(it, name)
     }
-
     suspend fun <DATA : DataModel, ENTITY : LongEntity>dispatch(
         pack: SequencePack<DATA, ENTITY>,
         listenerScope : CoroutineScope
     ): Deferred<List<DATA>> {
-
-   //     val session = CoroutineSessionHolder.getCurrentContext(1)
 
         return listenerScope.async {
             info("Pre launching Coroutine for pack ${pack.sequenceName()}")

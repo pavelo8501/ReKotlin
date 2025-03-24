@@ -12,6 +12,12 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
 
+
+fun echo(ex: Exception, message: String? = null){
+    println("Exception happened in AuthSessionManager: Exception:${ex.message.toString()}. $message")
+}
+
+
 /**
  * Utilities for creating, accessing, and executing within session context.
  */
@@ -27,14 +33,14 @@ object AuthSessionManager : ManagedSession {
         authenticator?.setBuilderFn(builder)
     }
 
+    private fun echo(ex: Exception, message: String? = null){
+        println("Exception happened in AuthSessionManager: Exception:${ex.message.toString()}. $message")
+    }
+
     fun enableCredentialBasedAuthentication(
         validatorFn: (String, String) -> AuthenticationPrincipal?,
         principalBuilder: () -> AuthorizedPrincipal){
         authenticator = UserAuthenticator(validatorFn, principalBuilder, factory)
-    }
-
-    fun sessionManager(): ManagedSession{
-        return  this
     }
 
     suspend fun <T> withSession(session: AuthorizedSession, block: suspend AuthorizedSession.() -> T): T =
@@ -47,24 +53,55 @@ object AuthSessionManager : ManagedSession {
     suspend fun getActiveSessions(): List<AuthorizedSession> = factory.activeSessions()
 
 
-    override suspend fun getAnonymous():EmmitableSession? = getAnonymousSession() as EmmitableSession?
-    suspend fun getAnonymousSession(): AuthorizedSession? =  factory.getAnonymousSession()
+    override suspend fun getAnonymous():EmmitableSession? {
+        try {
+            return getAnonymousSession() as EmmitableSession?
+        }catch (ex: Exception){
+            echo(ex)
+            return null
+        }
+    }
+    suspend fun getAnonymousSession(): AuthorizedSession? {
+        try {
+            val asEmmitable = factory.getAnonymousSession()
+            return asEmmitable
+        }catch (ex: Exception){
+            echo(ex)
+            return null
+        }
+    }
 
 
-    fun createSession(principal : AuthenticationPrincipal): AuthorizedSession = factory.createSession(principal)
+    fun createSession(principal : AuthorizedPrincipal): AuthorizedSession = factory.createSession(principal)
 
-//    suspend fun createAnonymousSession(anonymousUser: AuthenticatedPrincipal?): AnonymousSession? {
-//        return factory.createAnonymousSession(anonymousUser)
-//    }
+    fun createAnonymousSession(anonymousUser: AuthenticationPrincipal? = null): AuthorizedSession {
+        try {
+            return factory.createAnonymousSession(anonymousUser)
+        }catch (ex: Exception){
+            echo(ex)
+            throw ex
+        }
+    }
 
-    override suspend fun getCurrentSession(): AuthorizedSession?{
-        return  coroutineContext[PrincipalKey] as AuthorizedSession?
+    override suspend fun getCurrentSession(): AuthorizedSession{
+       try{
+           val session =  coroutineContext[AuthorizedSessionKey]
+           return session ?: createAnonymousSession(null)
+       }catch (ex: Exception){
+           echo(ex)
+           throw ex
+       }
     }
 
     suspend fun <T> getOrCreateSession(
         principal: AuthorizedPrincipal,
         block: suspend AuthorizedSession.() -> T): T {
-        return getCurrentSession()?.let { withSession(it, block) } ?: withSession(createSession(principal), block)
+        try{
+            return withSession(getCurrentSession(), block) ?: withSession(createSession(principal), block)
+        }catch (ex: Exception){
+            po.auth.echo(ex)
+            throw  ex
+        }
     }
 
     suspend fun <T> createSession(userName: String, password: String, block: suspend AuthorizedSession.() -> T?): T? {
@@ -73,6 +110,6 @@ object AuthSessionManager : ManagedSession {
          }?: return  null
     }
 
-    object PrincipalKey: CoroutineContext.Key<AuthorizedSession>
+    object AuthorizedSessionKey: CoroutineContext.Key<AuthorizedSession>
 
 }
