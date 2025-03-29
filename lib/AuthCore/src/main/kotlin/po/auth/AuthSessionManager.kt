@@ -46,9 +46,6 @@ object AuthSessionManager : ManagedSession {
     suspend fun <T> withSession(session: AuthorizedSession, block: suspend AuthorizedSession.() -> T): T =
         withContext(session) { session.block() }
 
-//    suspend fun <T> withAnonymousSession(session: AnonymousSession, block: suspend AnonymousSession.() -> T): T =
-//        withContext(session) { session.block() }
-
     override suspend fun getSessions(): List<EmmitableSession> = getActiveSessions()
     suspend fun getActiveSessions(): List<AuthorizedSession> = factory.activeSessions()
 
