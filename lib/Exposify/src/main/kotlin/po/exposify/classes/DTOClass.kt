@@ -203,6 +203,7 @@ abstract class DTOClass<DATA, ENTITY>(
             it.initializeRepositories()
             it.updateRepositories()
         }
+
         return CrudResult(resultDTOs.toList())
     }
 

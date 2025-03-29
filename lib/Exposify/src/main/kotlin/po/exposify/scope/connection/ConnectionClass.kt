@@ -1,10 +1,7 @@
 package po.exposify.scope.connection
 
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.name
@@ -12,7 +9,6 @@ import org.jetbrains.exposed.sql.transactions.transactionManager
 import po.auth.sessions.interfaces.ManagedSession
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.controls.ConnectionInfo
-import po.exposify.echo
 import po.exposify.scope.connection.controls.CoroutineEmitter
 import po.exposify.scope.connection.controls.UserDispatchManager
 import po.exposify.scope.sequence.models.SequencePack
@@ -26,11 +22,11 @@ class ConnectionClass(
     val sessionManager: ManagedSession
 ) : CanNotify {
 
-    val name = "ConnectionClas|{${connection.name}"
+    val name: String = "ConnectionClas|{${connection.name}"
 
-    var services = mutableMapOf<String, ServiceClass<*, *>>()
+    var services: MutableMap<String, ServiceClass<*, *>> = mutableMapOf<String, ServiceClass<*, *>>()
 
-    override var eventHandler = RootEventHandler(name){
+    override var eventHandler: RootEventHandler = RootEventHandler(name){
         echo(it, "ConnectionClass: RootEventHandler")
     }
 

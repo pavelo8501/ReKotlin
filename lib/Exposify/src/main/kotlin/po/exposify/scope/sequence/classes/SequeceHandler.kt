@@ -12,7 +12,7 @@ import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
-import po.exposify.scope.sequence.SequenceID
+import po.exposify.scope.sequence.enums.SequenceID
 import po.exposify.scope.sequence.classes.execute
 import po.exposify.scope.sequence.models.SequencePack
 import po.exposify.scope.service.ServiceContext

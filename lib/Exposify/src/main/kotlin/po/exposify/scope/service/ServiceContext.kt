@@ -1,19 +1,13 @@
 package po.exposify.scope.service
 
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.SqlExpressionBuilder
-import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import po.exposify.classes.DTOClass
 import po.exposify.scope.dto.DTOContext
 import po.exposify.classes.interfaces.DataModel
-import po.exposify.dto.CommonDTO
 import po.exposify.extensions.QueryConditions
 import po.exposify.extensions.WhereCondition
 import po.exposify.scope.sequence.SequenceContext
@@ -75,9 +69,7 @@ class ServiceContext<DATA,ENTITY>(
      * - If no DTOs match the conditions, the block will still execute with an empty context.
      */
     fun <T: IdTable<Long>>pick(
-        conditions: QueryConditions<T>, block: DTOContext<DATA, ENTITY>.() -> Unit
-    ): DTOClass<DATA, ENTITY>?
-    {
+        conditions: QueryConditions<T>, block: DTOContext<DATA, ENTITY>.() -> Unit): DTOClass<DATA, ENTITY>? {
         val selectedDTOs = dbQuery {
             runBlocking {
                 rootDtoModel.pick(conditions)
@@ -101,14 +93,7 @@ class ServiceContext<DATA,ENTITY>(
     }
 
     fun <T: IdTable<Long>> select(conditions : WhereCondition<T>,   block: DTOContext<DATA, ENTITY>.() -> Unit) {
-//        val selectedDTOs = dbQuery {
-//            val query = (firstTable innerJoin secondTable)
-//                .selectAll().where { this.block() }
-//
-//            runBlocking {
-//                rootDtoModel.select(query)
-//            }
-//        }
+
         val selectedDTOs = dbQuery {
             runBlocking {
                 rootDtoModel.select(conditions)
@@ -132,12 +117,6 @@ class ServiceContext<DATA,ENTITY>(
         context.block()
     }
 
-    fun DTOClass<DATA, ENTITY>.update(
-        dtoList : List<CommonDTO<DATA, ENTITY>>,
-        block: DTOClass<DATA, ENTITY>.() -> Unit
-    ){
-        TODO("To implement update variance if DTOFunctions list is supplied")
-    }
 
     fun DTOClass<DATA, ENTITY>.delete(toDelete: DATA, block: DTOContext<DATA, ENTITY>.() -> Unit){
         val selectedDTOs = dbQuery {

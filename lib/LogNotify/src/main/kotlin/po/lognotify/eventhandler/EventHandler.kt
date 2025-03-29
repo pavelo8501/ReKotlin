@@ -247,46 +247,25 @@ sealed class EventHandlerBase(
      */
     suspend fun <T: Any?>task(message : String, taskFn: suspend ()-> T?):T? {
         val newTask = registerTask(helper.newTask(message))
-
-        val result: T? =  try {
-             taskFn()
-        } catch (ex: Throwable) {
-            when (ex) {
-                is ProcessableException -> {
-                    val event = Event(routedName, message, SeverityLevel.EXCEPTION).setException(ex)
-                    newTask.subEvents.add(event)
-                    handleProcessableException(ex)
-                    null
+        val result = runCatching {
+            taskFn.invoke()
+            }.onFailure { ex ->
+                when (ex) {
+                    is ProcessableException -> {
+                        val exceptionEvent = Event(routedName, message, SeverityLevel.EXCEPTION).setException(ex)
+                        newTask.subEvents.add(exceptionEvent)
+                        handleProcessableException(ex)
+                    }
+                    else -> {
+                        registerEvent(Event(routedName, message, SeverityLevel.EXCEPTION))
+                        this.onUnmanagedBlock?.let {unmanagedBlock->
+                            unmanagedBlock(ex as Exception)
+                        }?:run {
+                            throw  UnmanagedException(helper.unhandledMsg(ex), ex)
+                        }
+                    }
                 }
-                else -> {
-                    registerEvent(Event(routedName, message, SeverityLevel.EXCEPTION))
-                    onUnmanagedBlock?.let { it(ex as Exception) }
-                        ?: throw UnmanagedException(helper.unhandledMsg(ex), ex)
-                }
-            }
-            null
-        }
-
-
-//        val result = runCatching {
-//            taskFn.invoke()
-//            }.onFailure { ex ->
-//                when (ex) {
-//                    is ProcessableException -> {
-//                        val exceptionEvent = Event(routedName, message, SeverityLevel.EXCEPTION).setException(ex)
-//                        newTask.subEvents.add(exceptionEvent)
-//                        handleProcessableException(ex)
-//                    }
-//                    else -> {
-//                        registerEvent(Event(routedName, message, SeverityLevel.EXCEPTION))
-//                        this.onUnmanagedBlock?.let {unmanagedBlock->
-//                            unmanagedBlock(ex as Exception)
-//                        }?:run {
-//                            throw  UnmanagedException(helper.unhandledMsg(ex), ex)
-//                        }
-//                    }
-//                }
-//        }.getOrNull()
+        }.getOrNull()
         finalizeTask(newTask)
         return result
     }

@@ -6,11 +6,23 @@ import org.jetbrains.exposed.sql.ColumnType
 import org.postgresql.util.PGobject
 
 class JsonColumnType<T>(private val serializer: KSerializer<T>) : ColumnType<T>() {
+
     override fun sqlType(): String = "JSONB"
 
     override fun valueFromDB(value: Any): T = when (value) {
-        is PGobject -> Json.decodeFromString(serializer, value.value!!) // Extract JSON from PGobject
-        is String -> Json.decodeFromString(serializer, value) // Handle case where Exposed gives a String
+        // Extract JSON from PGobject
+        is PGobject -> {
+            val raw = value.value ?: "[]"
+            Json.decodeFromString(serializer, raw)
+        }
+        is List<*> -> {
+            @Suppress("UNCHECKED_CAST")
+            value as T
+        }
+        // Handle case where Exposed gives a String
+        is String -> {
+            Json.decodeFromString(serializer, value)
+        }
         else -> error("Unexpected JSON type: ${value::class}")
     }
 

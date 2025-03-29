@@ -59,10 +59,7 @@ class ServiceClass<DATA, ENTITY>(
 
     internal suspend fun launchSequence(
         pack : SequencePack<DATA, ENTITY>): Deferred<List<DATA>> {
-       val result = task("Launch Sequence on ServiceClass with name :${name}") {
-            connectionClass.launchSequence<DATA, ENTITY>(pack, eventHandler)
-        }
-        return result ?: CompletableDeferred(emptyList())
+        return  connectionClass.launchSequence<DATA, ENTITY>(pack)
     }
 
     private fun createTable(table : IdTable<Long>): Boolean{

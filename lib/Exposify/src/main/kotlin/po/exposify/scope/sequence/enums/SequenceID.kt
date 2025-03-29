@@ -1,4 +1,4 @@
-package po.exposify.scope.sequence
+package po.exposify.scope.sequence.enums
 
 enum class SequenceID(val value: Int) {
     DEFAULT(0),
@@ -7,7 +7,7 @@ enum class SequenceID(val value: Int) {
     PICK(3);
 
     companion object {
-        private val VALUES = SequenceID.entries.toTypedArray()
+        private val VALUES = entries.toTypedArray()
         fun value(value: Int): SequenceID = VALUES.firstOrNull { it.value == value }?: DEFAULT
     }
 }
