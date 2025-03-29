@@ -24,7 +24,7 @@ class SessionFactory(
             echo(ex)
             throw (ex)
         }
-    }
+
 
     fun createAnonymousSession(anonymous : AuthenticationPrincipal? = null): AuthorizedSession {
         try {
