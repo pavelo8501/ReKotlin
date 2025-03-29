@@ -1,66 +1,62 @@
 package po.exposify.scope.connection
 
-import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.name
 import org.jetbrains.exposed.sql.transactions.transactionManager
-import po.exposify.classes.DTOClass
+import po.auth.sessions.interfaces.ManagedSession
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.controls.ConnectionInfo
 import po.exposify.scope.connection.controls.CoroutineEmitter
 import po.exposify.scope.connection.controls.UserDispatchManager
 import po.exposify.scope.sequence.models.SequencePack
 import po.exposify.scope.service.ServiceClass
-import po.exposify.scope.session.CoroutineSessionHolder
-import po.lognotify.eventhandler.EventHandlerBase
 import po.lognotify.eventhandler.RootEventHandler
 import po.lognotify.eventhandler.interfaces.CanNotify
-import kotlin.coroutines.CoroutineContext
-import kotlin.reflect.KProperty1
 
 class ConnectionClass(
     val connectionInfo: ConnectionInfo,
     val connection: Database,
+    val sessionManager: ManagedSession
 ) : CanNotify {
 
-    val name = "ConnectionClas|{$connection.name}"
+    val name: String = "ConnectionClas|{${connection.name}"
 
-    var services = mutableMapOf<String,ServiceClass<*,*>>()
+    var services: MutableMap<String, ServiceClass<*, *>> = mutableMapOf<String, ServiceClass<*, *>>()
 
-    override var eventHandler = RootEventHandler(name)
+    override var eventHandler: RootEventHandler = RootEventHandler(name){
+        echo(it, "ConnectionClass: RootEventHandler")
+    }
 
     init {
         connectionInfo.connection
     }
 
     private val dispatchManager = UserDispatchManager()
-    private val coroutineEmitter = CoroutineEmitter("${connectionInfo.dbName}|CoroutineEmitter",eventHandler)
+    private val coroutineEmitter = CoroutineEmitter("${connectionInfo.dbName}|CoroutineEmitter")
+
 
     val isConnectionOpen: Boolean
-        get(){return connectionInfo.connection.transactionManager.currentOrNull()?.connection?.isClosed == false  }
-
-    suspend fun <DATA : DataModel, ENTITY: LongEntity>launchSequence(
-        pack : SequencePack<DATA, ENTITY>,
-        parentEventHandler: RootEventHandler //Temporary solution unless sessions will get introduced
-        ): Deferred<List<DATA>> {
-
-        val session = CoroutineSessionHolder.getCurrentContext(1)
-        val userId = session?.userId
-
-        return if (userId != null) {
-            CoroutineScope(Dispatchers.IO).async {
-                dispatchManager.queManager.enqueue(userId, this) {
-                    coroutineEmitter.dispatch(pack).await()
-                }
-            }
-        } else {
-            coroutineEmitter.dispatch(pack)
+        get() {
+            return connectionInfo.connection.transactionManager.currentOrNull()?.connection?.isClosed == false
         }
+
+    private fun <T> emptyList(): Deferred<List<T>>{
+        return CompletableDeferred<List<T>>(emptyList<List<T>>())
+    }
+
+    suspend fun <DATA : DataModel, ENTITY : LongEntity> launchSequence(
+        pack: SequencePack<DATA, ENTITY>,
+    ): Deferred<List<DATA>> {
+        val session = sessionManager.getCurrentSession()
+            ?: sessionManager.getAnonymous()
+        return session?.let {
+            dispatchManager.enqueue(it.principal.userId) {
+                coroutineEmitter.dispatch(pack, it.scope)
+            }
+        } ?: emptyList()
     }
 
     fun addService(service : ServiceClass<*,*>){
@@ -68,11 +64,7 @@ class ConnectionClass(
     }
 
     fun getService(name: String): ServiceClass<*,*>?{
-        this.services.keys.firstOrNull{it == name}?.let {
-            return services[it]
-        }
+        this.services.keys.firstOrNull{it == name}?.let { return services[it] }
         return null
     }
-
-
 }

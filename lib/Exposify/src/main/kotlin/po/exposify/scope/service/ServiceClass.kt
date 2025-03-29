@@ -11,6 +11,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import po.exposify.classes.DTOClass
 import po.exposify.classes.components.CallbackEmitter
 import po.exposify.classes.interfaces.DataModel
+import po.exposify.echo
 import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.InitializationException
 import po.exposify.exceptions.OperationsException
@@ -36,7 +37,9 @@ class ServiceClass<DATA, ENTITY>(
    var name : String = "undefined"
    var serviceContext : ServiceContext<DATA, ENTITY>? = null
 
-   override val eventHandler = RootEventHandler(name)
+   override val eventHandler = RootEventHandler(name){
+       echo(it, "ServiceClass: RootEventHandler")
+   }
 
     init {
         eventHandler.registerPropagateException<OperationsException> {
@@ -56,11 +59,7 @@ class ServiceClass<DATA, ENTITY>(
 
     internal suspend fun launchSequence(
         pack : SequencePack<DATA, ENTITY>): Deferred<List<DATA>> {
-
-       val result = task("Launch Sequence on ServiceClass with name :${name}") {
-            connectionClass.launchSequence<DATA, ENTITY>(pack, eventHandler)
-        }
-        return result ?: CompletableDeferred(emptyList())
+        return  connectionClass.launchSequence<DATA, ENTITY>(pack)
     }
 
     private fun createTable(table : IdTable<Long>): Boolean{

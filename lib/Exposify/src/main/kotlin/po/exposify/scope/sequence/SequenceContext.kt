@@ -87,7 +87,7 @@ class SequenceContext<DATA, ENTITY>(
      *              allowing further processing of the selected DTOs before finalizing execution.
      */
     suspend fun <T: IdTable<Long>> select(
-        conditions: QueryConditions<T>? = null ,
+        conditions: QueryConditions<T>? = null,
         block: (suspend SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Deferred<List<DATA>>)? = null
     ){
         lastResult = if (conditions != null) hostDto.select(conditions) else hostDto.select()

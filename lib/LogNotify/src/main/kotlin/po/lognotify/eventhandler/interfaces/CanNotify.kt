@@ -16,6 +16,8 @@ interface CanNotify{
 
     fun warn(message: String) = eventHandler.warn(message)
 
+    fun echo(ex : Throwable, message: String) = eventHandler.helper.echo(ex, message)
+
     fun throwPropagate(message: String) = eventHandler.throwPropagateException(message)
     fun throwSkip(message: String)  = eventHandler.throwSkipException(message)
     fun throwCancel(message: String,  cancelFn: (() -> Unit)? = null)

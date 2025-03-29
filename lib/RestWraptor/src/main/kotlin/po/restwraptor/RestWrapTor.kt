@@ -51,7 +51,9 @@ class RestWrapTor(
     /** The embedded Ktor server instance. */
     private lateinit var  embeddedServer : EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>
 
-    override val  eventHandler: RootEventHandler = RootEventHandler("RestWrapTor")
+    override val  eventHandler: RootEventHandler = RootEventHandler("RestWrapTor"){
+        println("RestWrapTor: Exception: ${it.message}")
+    }
 
     val connectors: MutableList<String> = mutableListOf<String>()
 

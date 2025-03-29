@@ -4,12 +4,15 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import kotlinx.coroutines.delay
 import org.jetbrains.exposed.sql.Database
-
-
+import po.auth.sessions.interfaces.ManagedSession
 import po.exposify.controls.ConnectionInfo
 import po.exposify.scope.connection.ConnectionClass
 import po.exposify.scope.connection.ConnectionContext
 import po.exposify.scope.connection.models.ConnectionSettings
+
+fun echo(ex: Exception, message: String? = null){
+    println("Exception happened in Exposify:  Exception:${ex.message.toString()}. $message")
+}
 
 fun launchService(connection:ConnectionContext, block: ConnectionContext.()-> Unit ){
     if(connection.isOpen){
@@ -44,6 +47,7 @@ object DatabaseManager {
 
     suspend fun openConnection(
         connectionInfo : ConnectionInfo,
+        sessionManager: ManagedSession,
         settings : ConnectionSettings = ConnectionSettings(5),
         context: ConnectionContext.()->Unit
     ): Boolean {
@@ -52,7 +56,7 @@ object DatabaseManager {
             runCatching {
                 connectionInfo.hikariDataSource = provideDataSource(connectionInfo)
                 val newConnection = Database.connect(connectionInfo.hikariDataSource!!)
-                val connectionClass = ConnectionClass(connectionInfo, newConnection)
+                val connectionClass = ConnectionClass(connectionInfo, newConnection, sessionManager)
                 val connectionContext = ConnectionContext(
                     "Connection ${connectionInfo.dbName}",
                     newConnection, connectionClass

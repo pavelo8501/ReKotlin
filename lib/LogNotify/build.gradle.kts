@@ -7,7 +7,6 @@ val hikaricpVersion: String by project
 val mysqlVersion: String by project
 val junitVersion:String by project
 val coroutinesVersion:String by project
-
 val logNotifyVersion:String by project
 
 plugins{

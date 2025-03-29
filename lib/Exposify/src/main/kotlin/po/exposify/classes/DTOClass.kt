@@ -2,6 +2,7 @@ package po.exposify.classes
 
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.IdTable
@@ -9,6 +10,8 @@ import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.Query
 import org.jetbrains.exposed.sql.SqlExpressionBuilder
+import po.auth.AuthSessionManager
+import po.auth.sessions.models.AuthorizedSession
 import po.exposify.binder.BindingContainer
 import po.exposify.binder.BindingKeyBase
 import po.exposify.binder.UpdateMode
@@ -22,7 +25,9 @@ import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
 import po.exposify.models.CrudResult
 import po.exposify.dto.CommonDTO
+import po.exposify.echo
 import po.exposify.extensions.QueryConditions
+import po.exposify.scope.sequence.SequenceContext
 import po.exposify.scope.sequence.classes.SequenceHandler
 import po.exposify.scope.sequence.models.SequencePack
 import po.lognotify.eventhandler.RootEventHandler
@@ -38,7 +43,9 @@ abstract class DTOClass<DATA, ENTITY>(
     override val qualifiedName  = sourceClass.qualifiedName.toString()
     override val className  = sourceClass.simpleName.toString()
 
-    override val eventHandler = RootEventHandler(className)
+    override val eventHandler = RootEventHandler(className){
+        echo(it, "DTOClass RootEventHandler")
+    }
 
     internal val emitter = CallbackEmitter<DATA, ENTITY>()
 
@@ -54,6 +61,13 @@ abstract class DTOClass<DATA, ENTITY>(
                 ExceptionCodes.LAZY_NOT_INITIALIZED)
         }
 
+
+    var modelClass: KClass<DATA>? = null
+    var entityClass: KClass<ENTITY>? = null
+    val dtoRegistry: Map<KClass<out DTOClass<*, *>>, DTOClass<*, *>> = mapOf(
+        this::class to this
+    )
+
     val daoService: DAOService<DATA, ENTITY> =  DAOService<DATA, ENTITY>(this)
 
     val bindings: MutableMap<BindingKeyBase, BindingContainer<DATA, ENTITY, *, *>> = mutableMapOf<BindingKeyBase, BindingContainer<DATA, ENTITY, *, *>>()
@@ -68,15 +82,23 @@ abstract class DTOClass<DATA, ENTITY>(
     }
 
     fun initialization(onRequestFn: ((CallbackEmitter<DATA, ENTITY>) -> Unit)? = null) {
-        setup()
-        initialized = true
-        onRequestFn?.invoke(emitter)
+        try {
+            setup()
+            modelClass = factory.dataModelClass
+            entityClass =  factory.daoEntityClass
+            initialized = true
+            onRequestFn?.invoke(emitter)
+        }catch (ex: Exception){
+            echo(ex, "In DTOClass initialization")
+            throw ex
+        }
     }
 
     inline fun <reified DATA, reified ENTITY> DTOClass<DATA, ENTITY>.dtoSettings(
         entityModel: LongEntityClass<ENTITY>,
-        block: DTOConfig<DATA,ENTITY>.() -> Unit) where ENTITY: LongEntity, DATA: DataModel
-    {
+        block: DTOConfig<DATA,ENTITY>.() -> Unit)
+    where ENTITY: LongEntity, DATA: DataModel {
+
         factory.initializeBlueprints(DATA::class, ENTITY::class)
         factory.setSerializableTypes(conf.propertyBinder.compositePropertyList.map { it.getSerializer()} )
         conf.dataModelClass = DATA::class
@@ -181,6 +203,7 @@ abstract class DTOClass<DATA, ENTITY>(
             it.initializeRepositories()
             it.updateRepositories()
         }
+
         return CrudResult(resultDTOs.toList())
     }
 
@@ -204,6 +227,14 @@ abstract class DTOClass<DATA, ENTITY>(
             }
         }
         return CrudResult(resultDTOs.toList())
+    }
+
+    fun execute(sequenceId:Int, params: Map<String, String>? = null){
+        runBlocking {
+            AuthSessionManager.getCurrentSession().getSessionAttr<SequenceHandler<DATA,ENTITY>>("sequence")?.let { handler ->
+                handler.execute()
+            }
+        }
     }
 
     suspend fun triggerSequence(

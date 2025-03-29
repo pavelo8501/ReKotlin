@@ -1,16 +1,13 @@
 package po.exposify.scope.sequence.models
 
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 import org.jetbrains.exposed.dao.LongEntity
-import org.jetbrains.exposed.sql.Op
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
 import po.exposify.scope.sequence.SequenceContext
 import po.exposify.scope.sequence.classes.SequenceHandler
 import po.exposify.scope.service.ServiceClass
-import kotlin.reflect.KProperty1
 
 data class SequencePack<DATA,ENTITY>(
     private val context : SequenceContext<DATA,ENTITY>,
@@ -45,14 +42,12 @@ data class SequencePack<DATA,ENTITY>(
     }
 
    suspend fun start(): Deferred<List<DATA>>{
-       println("Calling start in SequencePack")
-       // sequenceFn.invoke()
+       context.sequenceFn()
        val deferred =  context.checkout()
-       sequenceFn(context)
        return  deferred
    }
 
    fun sequenceName(): String{
-        return handler.name
+        return handler.thisKey
     }
 }
