@@ -71,7 +71,7 @@ class ConfigContext(
 
     init {
         eventHandler.registerPropagateException<ConfigurationException>{
-            ConfigurationException("Default Message", HandleType.PROPAGATE_TO_PARENT)
+            ConfigurationException(HandleType.PROPAGATE_TO_PARENT, "Default Message")
         }
     }
 

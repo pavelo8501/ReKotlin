@@ -3,8 +3,8 @@ package po.restwraptor.exceptions
 import po.lognotify.eventhandler.exceptions.ProcessableException
 import po.lognotify.shared.enums.HandleType
 
-enum class ConfigurationErrorCodes(val code: Int) {
-    UNKNOWN_ERROR(0),
+enum class ConfigurationErrorCodes(val value: Int) {
+    UNKNOWN(0),
     UNABLE_TO_CALLBACK(3001),
     REQUESTING_UNDEFINED_PLUGIN(3002),
     PLUGIN_SETUP_FAILURE(3003),
@@ -12,16 +12,16 @@ enum class ConfigurationErrorCodes(val code: Int) {
     API_CONFIG_FATAL_ERROR(3005);
     companion object {
         fun fromValue(code: Int): ConfigurationErrorCodes? {
-            ConfigurationErrorCodes.entries.firstOrNull { it.code == code }?.let {
+            ConfigurationErrorCodes.entries.firstOrNull { it.value == code }?.let {
                 return it
             }
-            return UNKNOWN_ERROR
+            return UNKNOWN
         }
     }
 }
 
 class ConfigurationException(
-    override var message: String,
     var type : HandleType,
-    var errorCode: ConfigurationErrorCodes = ConfigurationErrorCodes.UNKNOWN_ERROR,
-) : ProcessableException(message,type)
+    override var message: String,
+    val code: Int = 0
+) : ProcessableException(type, message, code)

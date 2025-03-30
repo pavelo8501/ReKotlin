@@ -3,7 +3,7 @@ package po.exposify.exceptions
 import po.lognotify.eventhandler.exceptions.ProcessableException
 import po.lognotify.shared.enums.HandleType
 
-enum class  ExceptionCodes (val errorCode:Int) {
+enum class  ExceptionCodes (val value:Int) {
     UNDEFINED(0),
     INITIALIZATION_OUTSIDE_CONTEXT (1001),
     NOT_INITIALIZED (1002),
@@ -20,7 +20,7 @@ enum class  ExceptionCodes (val errorCode:Int) {
 
     companion object {
         fun fromValue(errorCode: Int): ExceptionCodes {
-            ExceptionCodes.entries.firstOrNull { it.errorCode == errorCode }?.let {
+            ExceptionCodes.entries.firstOrNull { it.value == errorCode }?.let {
                 return it
             }
             return UNDEFINED
@@ -30,6 +30,7 @@ enum class  ExceptionCodes (val errorCode:Int) {
 
 
 class TypeMismatchException(message: String) : RuntimeException(message)
-class InitializationException(message: String, code : ExceptionCodes) : RuntimeException(message)
-class OperationsException(message: String, code : ExceptionCodes) :
-    ProcessableException(message, HandleType.PROPAGATE_TO_PARENT)
+
+
+class OperationsException(message: String, errCode : ExceptionCodes) :
+    ProcessableException(HandleType.PROPAGATE_TO_PARENT, message, errCode.value)

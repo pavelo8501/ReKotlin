@@ -18,10 +18,9 @@ import po.lognotify.eventhandler.interfaces.CanNotify
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.isSubclassOf
-import kotlin.reflect.full.isSubtypeOf
 
 
-class Factory<DATA, ENTITY>(
+class DTOFactory<DATA, ENTITY>(
    val parent: DTOClass<DATA,ENTITY>,
    val entityDTOClass : KClass<out CommonDTO<DATA, ENTITY>>
 ): CanNotify where DATA: DataModel,   ENTITY: LongEntity   {
@@ -37,7 +36,9 @@ class Factory<DATA, ENTITY>(
         get(){return _daoEntityClass?: throw OperationsException(
             "DataModel Class uninitialized", ExceptionCodes.LAZY_NOT_INITIALIZED) }
 
-    private lateinit var dataBlueprint : DataModelBlueprint<DATA>
+    internal lateinit var dataBlueprint : DataModelBlueprint<DATA>
+        private set
+
     private lateinit var entityBlueprint : EntityBlueprint<ENTITY>
     private val dtoBlueprint = DTOBlueprint(entityDTOClass).also { it.initialize(Companion) }
 
@@ -194,7 +195,7 @@ class Factory<DATA, ENTITY>(
             val args = dtoBlueprint.getArgsForConstructor()
             dtoBlueprint.getConstructor().callBy(args)
         }
-        newDto?.initialize(parent)?: println("Something wrong")
+        newDto?.initialize()?: println("Something wrong")
         return newDto
     }
 }

@@ -1,13 +1,12 @@
 package po.lognotify.test.testmodels
 
 import po.lognotify.eventhandler.exceptions.ProcessableException
-import po.lognotify.eventhandler.exceptions.UnmanagedException
 import po.lognotify.shared.enums.HandleType
 
 
-class TestException(message: String, customParam: Int) :   ProcessableException(message, HandleType.UNMANAGABLE)
+class TestException(message: String, customParam: Int) :   ProcessableException(message, HandleType.UNMANAGEABLE)
 class TestCancelException(message: String) :
-    ProcessableException(message, HandleType.UNMANAGABLE)
+    ProcessableException(message, HandleType.UNMANAGEABLE)
 
 
 
