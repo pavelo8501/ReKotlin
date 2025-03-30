@@ -17,9 +17,9 @@ import po.exposify.classes.interfaces.DTOInstance
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
-import po.exposify.models.CrudResult
 import po.exposify.dto.CommonDTO
 import po.exposify.extensions.QueryConditions
+import po.exposify.models.CrudResult
 import po.exposify.scope.sequence.classes.SequenceHandler
 import po.exposify.scope.sequence.models.SequencePack
 import po.lognotify.eventhandler.RootEventHandler
@@ -29,13 +29,11 @@ import kotlin.reflect.KClass
 
 abstract class DTOClass<DATA, ENTITY>(
     val sourceClass: KClass<out CommonDTO<DATA, ENTITY>>,
-    private val dto : DTOClass<DATA, ENTITY>,
 ): DTOInstance, CanNotify  where DATA : DataModel, ENTITY : LongEntity{
 
-    override val qualifiedName  = sourceClass.qualifiedName.toString()
-    override val className  = sourceClass.simpleName.toString()
+    override val personalName: String = "DTOClass:${sourceClass.simpleName}"
 
-    override val eventHandler = RootEventHandler(className){
+    override val eventHandler = RootEventHandler(personalName){
         echo(it, "DTOClass RootEventHandler")
     }
 
@@ -49,7 +47,7 @@ abstract class DTOClass<DATA, ENTITY>(
     val entityModel: LongEntityClass<ENTITY>
         get(){
             return  conf.entityModel?: throw OperationsException(
-                "Unable read daoModel property on $className",
+                "Unable read daoModel property on $personalName",
                 ExceptionCodes.LAZY_NOT_INITIALIZED)
         }
 
@@ -122,8 +120,8 @@ abstract class DTOClass<DATA, ENTITY>(
             }
         }
         resultList.forEach {
-            conf.relationBinder.applyBindings(it)
-            it.initializeRepositories(it.entityDAO)
+           // conf.relationBinder.applyBindings(it)
+          //  it.initializeRepositories(it.entityDAO)
         }
         return CrudResult(resultList)
     }
@@ -143,8 +141,8 @@ abstract class DTOClass<DATA, ENTITY>(
            }
        }
        resultList.forEach {
-           conf.relationBinder.applyBindings(it)
-           it.initializeRepositories(it.entityDAO)
+         //  conf.relationBinder.applyBindings(it)
+        //   it.initializeRepositories(it.entityDAO)
        }
        return CrudResult(resultList.toList())
     }
@@ -159,8 +157,8 @@ abstract class DTOClass<DATA, ENTITY>(
             }
         }
         resultList.forEach {
-            conf.relationBinder.applyBindings(it)
-            it.initializeRepositories(it.entityDAO)
+          //  conf.relationBinder.applyBindings(it)
+         //   it.initializeRepositories(it.entityDAO)
         }
         return CrudResult(resultList.toList())
     }
@@ -182,14 +180,14 @@ abstract class DTOClass<DATA, ENTITY>(
             }
         }
         resultDTOs.filter { !it.isSaved }.forEach {
-            conf.relationBinder.applyBindings(it)
-            it.initializeRepositories()
-            it.updateRepositories()
+          //  conf.relationBinder.applyBindings(it)
+         //   it.initializeRepositories()
+         //   it.updateRepositories()
         }
         resultDTOs.filter { it.isSaved }.forEach {
-            conf.relationBinder.applyBindings(it)
-            it.initializeRepositories()
-            it.updateRepositories()
+          //  conf.relationBinder.applyBindings(it)
+         //   it.initializeRepositories()
+        //    it.updateRepositories()
         }
 
         return CrudResult(resultDTOs.toList())
@@ -209,9 +207,9 @@ abstract class DTOClass<DATA, ENTITY>(
         resultDTOs.forEach {
             daoService.selectWhere(it.id).let { entity ->
                 it.updateBinding(entity, UpdateMode.ENTITY_TO_MODEL)
-                conf.relationBinder.applyBindings(it)
-                it.initializeRepositories(it.entityDAO)
-                it.deleteInRepositories()
+           //     conf.relationBinder.applyBindings(it)
+         //       it.initializeRepositories(it.entityDAO)
+          //      it.deleteInRepositories()
             }
         }
         return CrudResult(resultDTOs.toList())

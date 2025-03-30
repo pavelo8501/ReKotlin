@@ -2,33 +2,34 @@ package po.exposify.scope.sequence
 
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
-import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction
-import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
-import po.exposify.dto.CommonDTO
+import po.exposify.common.models.CrudResult2
+import po.exposify.dto.CommonDTO2
+import po.exposify.dto.classes.DTOClass2
+import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.extensions.QueryConditions
-import po.exposify.models.CrudResult
-import po.exposify.scope.dto.DTOContext
-import po.exposify.scope.sequence.classes.SequenceHandler
+import po.exposify.scope.dto.DTOContext2
+import po.exposify.scope.sequence.classes.SequenceHandler2
 
-class SequenceContext<DATA, ENTITY>(
+
+class SequenceContext2<DTO>(
     private val connection: Database,
-    private val hostDto : DTOClass<DATA,ENTITY>,
-    private val handler : SequenceHandler<DATA, ENTITY>
-) where  DATA : DataModel, ENTITY : LongEntity
+    private val hostDto : DTOClass2<DTO>,
+    private val handler : SequenceHandler2<DTO>
+) where  DTO : ModelDTO
 {
 
     private fun  <T>dbQuery(body : () -> T): T = transaction(connection) {
         body()
     }
 
-    private var lastResult : CrudResult<DATA, ENTITY>? = null
+    private var lastResult : CrudResult2<DTO>? = null
 
-    private fun dtos(): List<CommonDTO<DATA,ENTITY>>{
-        val result =   mutableListOf<CommonDTO<DATA,ENTITY>>()
+    private fun dtos(): List<CommonDTO2<DTO, * , *>>{
+        val result =   mutableListOf<CommonDTO2<DTO, * , *>>()
         lastResult?.rootDTOs?.forEach{  result.add(it) }
         return result
     }
@@ -39,7 +40,7 @@ class SequenceContext<DATA, ENTITY>(
         return sequence.getParam(key)
     }
 
-    fun getInputList(): List<DATA>{
+    fun getInputList(): List<DataModel>{
         return  handler.getStockSequence().getInputList()
     }
 
@@ -66,8 +67,8 @@ class SequenceContext<DATA, ENTITY>(
      *
      * @return A `Deferred` list of `DATA` models.
      */
-    suspend fun checkout(withResult :  CrudResult<DATA, ENTITY> ? = null): Deferred<List<DATA>> {
-        val context = DTOContext<DATA, ENTITY>(hostDto, withResult ?: lastResult)
+    suspend fun checkout(withResult :  CrudResult2<DTO> ? = null): Deferred<List<DataModel>> {
+        val context = DTOContext2<DTO>(hostDto, withResult ?: lastResult)
         return CompletableDeferred(context.getData())
     }
 
@@ -85,13 +86,13 @@ class SequenceContext<DATA, ENTITY>(
      */
     suspend fun <T: IdTable<Long>> select(
         conditions: QueryConditions<T>? = null,
-        block: (suspend SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Deferred<List<DATA>>)? = null
+        block: (suspend SequenceContext2<DTO>.(dtos: List<CommonDTO2<DTO, *, *>>)-> Deferred<List<DataModel>>)? = null
     ){
         lastResult = if (conditions != null) hostDto.select(conditions) else hostDto.select()
         if (block != null) {
             this.block(dtos())  // Continue execution if block is provided
         } else {
-           checkout(lastResult)  // Immediately return result if no block
+            checkout(lastResult)  // Immediately return result if no block
         }
     }
 
@@ -107,14 +108,14 @@ class SequenceContext<DATA, ENTITY>(
      *              allowing additional processing of the updated DTOs.
      */
     suspend fun update(
-        dataModels: List<DATA>,
-        block: (suspend SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Deferred<List<DATA>>)? = null
+        dataModels: List<DataModel>,
+        block: (suspend SequenceContext2<DTO>.(dtos: List<CommonDTO2<DTO, *, *>>)-> Deferred<List<DataModel>>)? = null
     ) {
         lastResult = hostDto.update<DATA, ENTITY>(dataModels)
         if (block != null) {
             this.block(dtos())  // Continue execution if block is provided
         } else {
-           checkout(lastResult)  // Immediately return result if no block
+            checkout(lastResult)  // Immediately return result if no block
         }
     }
 
@@ -132,7 +133,7 @@ class SequenceContext<DATA, ENTITY>(
      */
     suspend fun <T: IdTable<Long>> pick(
         conditions: QueryConditions<T>,
-        block: (suspend SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit)? = null
+        block: (suspend SequenceContext2<DTO>.(dtos: List<CommonDTO2<DTO, *, *>>)-> Unit)? = null
     ) {
         lastResult = hostDto.pick(conditions)
 

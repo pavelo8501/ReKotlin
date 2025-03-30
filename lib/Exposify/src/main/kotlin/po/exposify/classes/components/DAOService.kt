@@ -41,11 +41,11 @@ class DAOService<DATA, ENTITY>(
         dto: DTOBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,
         block: ((ENTITY) -> Unit)? = null): ENTITY? {
             // Notify about the operation
-            val entity = task("saveNew() for dto ${dto.sourceModel.className}") {
+            val entity = task("saveNew() for dto ${dto.dtoClass.personalName}") {
                 // Create a new entity and update its properties
                 val newEntity = entityModel.new {
-                    dto.update(this, UpdateMode.MODEL_TO_ENTITY)
-                    block?.invoke(this)
+                  //  dto.update(this, UpdateMode.MODEL_TO_ENTITY)
+                 //   block?.invoke(this)
                 }
                 newEntity
             }
@@ -56,7 +56,7 @@ class DAOService<DATA, ENTITY>(
         dto : DTOBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>) {
         try {
             val entity = selectWhere(dto.id)
-            dto.update(entity, UpdateMode.MODEL_TO_ENTITY)
+            dto.updateBinding(entity, UpdateMode.MODEL_TO_ENTITY)
         }catch (ex: Exception){
             println(ex.message)
         }
@@ -97,7 +97,7 @@ class DAOService<DATA, ENTITY>(
     }
 
     suspend fun selectAll(): SizedIterable<ENTITY>{
-       val entities = task("selectAll() for dtoModel ${parent.className}") {
+       val entities = task("selectAll() for dtoModel ${parent.personalName}") {
             entityModel.all()
         }
         return entities!!
@@ -105,7 +105,7 @@ class DAOService<DATA, ENTITY>(
 
     suspend fun selectWhere(id: Long): ENTITY{
         if(id == 0L)  throwPropagate("Id should be greater than 0")
-        val entity = task("selectWhere for dtoModel ${parent.className}") {
+        val entity = task("selectWhere for dtoModel ${parent.personalName}") {
             entityModel[id]
         }
         return entity!!

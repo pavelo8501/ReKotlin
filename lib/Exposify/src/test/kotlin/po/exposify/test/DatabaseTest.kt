@@ -1,13 +1,13 @@
 package po.exposify.test
 
-import org.jetbrains.exposed.dao.id.LongIdTable
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
-import kotlin.test.AfterTest
-import kotlin.test.BeforeTest
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import po.exposify.test.setup.tables
 
 abstract class DatabaseTest {
-    @BeforeTest
+    @BeforeEach
     fun setupDatabase() {
         transaction(TestDatabase.connect()) {
             SchemaUtils.drop(*tables().toTypedArray())
@@ -15,7 +15,7 @@ abstract class DatabaseTest {
         }
     }
 
-    @AfterTest
+    @AfterEach
     fun cleanupDatabase() {
         transaction(TestDatabase.connect()) {
             SchemaUtils.drop(*tables().toTypedArray())

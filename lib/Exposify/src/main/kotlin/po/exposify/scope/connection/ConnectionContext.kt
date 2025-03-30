@@ -7,7 +7,7 @@ import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.scope.service.ServiceClass
 import po.exposify.scope.service.ServiceContext
-import po.exposify.scope.service.TableCreateMode
+import po.exposify.scope.service.enums.TableCreateMode
 
 class ConnectionContext(
     var connectionName: String,

@@ -24,7 +24,7 @@ suspend inline fun <reified DTO> AuthorizedSession.execute(
 ): Unit  where DTO : CommonDTO<*, *>  {
 
     val dtos = sequenceOf(DTO::class).toList()
-    dtos.first { it.companionObjectInstance ==   DTO::class.companionObjectInstance}.objectInstance!!.sourceModel.execute(sequenceId)
+    dtos.first { it.companionObjectInstance ==   DTO::class.companionObjectInstance}.objectInstance!!.dtoClass.execute(sequenceId)
 }
 
 
@@ -35,7 +35,7 @@ private suspend fun <DATA: DataModel,  ENTITY: LongEntity>  runExecute(
     params: Map<String, String>? = null,
     inputList: List<DATA>? = null): Deferred<List<DATA>>{
 
-    val lookupKey = "sequence:${dtoClass.className}::$sequenceId"
+    val lookupKey = "sequence:${dtoClass.personalName}::$sequenceId"
 
     session.getSessionAttr<SequenceHandler<DATA, ENTITY>>(lookupKey)?.let { handler ->
         if (params != null && inputList != null) { return   handler.execute(params, inputList) }
@@ -151,7 +151,7 @@ abstract class SequenceHandlerAbstraction<DATA, ENTITY>(
         mutableMapOf<String, SequencePack<DATA, ENTITY>>()
 
     internal fun getStockSequence(key: String = "0"): SequencePack<DATA, ENTITY>{
-        val lookupKey =   "${dtoClass.className}::$key"
+        val lookupKey =   "${dtoClass.personalName}::$key"
         val sequence = sequences[thisKey]
         if(sequence != null){
             return  sequence
@@ -201,10 +201,9 @@ class SequenceHandler<DATA, ENTITY>(
     val handlerId: Int,
 ): SequenceHandlerAbstraction<DATA, ENTITY>(dtoClass) where  DATA : DataModel, ENTITY: LongEntity{
 
-    override val thisKey: String = "${dtoClass.className}::${handlerId.toString()}"
+    override val thisKey: String = "${dtoClass.personalName}::${handlerId.toString()}"
 
     init {
         val a = thisKey
     }
-
 }

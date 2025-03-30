@@ -1,33 +1,31 @@
-package po.exposify.constructors
+package po.exposify.common.classes
 
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import po.exposify.common.interfaces.BlueprintContainer
 import kotlin.reflect.KClass
-import kotlin.reflect.KClassifier
-import kotlin.reflect.KMutableProperty1
-import kotlin.reflect.KParameter
 import kotlin.reflect.KProperty1
 import kotlin.reflect.KType
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.primaryConstructor
 
-data class ClassData(
+data class ClassData<T>(
     val name: String,
-    val clazz:KClass<*>
-)
-
+    val clazz:KClass<out T>
+) where  T: Any
 
 
 open class ConstructorBuilder {
 
-    private fun <T: Any>getNestedMap(clazz: KClass<out T>): Map<String, Map<String,ClassData>>{
-        val map = mutableMapOf<String, Map<String,ClassData>>()
-        val child = mutableMapOf<String,ClassData>()
-        clazz.nestedClasses.forEach {
-            child[it.simpleName.toString()] = ClassData(it.simpleName.toString(), it)
-            getNestedMap(it)
+    private fun <T: Any>getNestedMap(clazz: KClass<out T>): Map<String, Map<String,ClassData<Any>>>{
+        val map = mutableMapOf<String, Map<String,ClassData<Any>>>()
+        val child = mutableMapOf<String,ClassData<Any>>()
+        clazz.nestedClasses.forEach {nestedClass->
+            nestedClass
+            child[nestedClass.simpleName.toString()] = ClassData<Any>(nestedClass.simpleName.toString(), nestedClass)
+            getNestedMap(nestedClass)
         }
         map[clazz.simpleName.toString()] = child
         return map
@@ -59,24 +57,21 @@ open class ConstructorBuilder {
 
     fun <T: Any>getBlueprint(
             clazz : KClass<T>,
-            container : ClassBlueprintBase<T>
-    ): ClassBlueprintBase<T>
-    {
-        container.apply {
+            container : BlueprintContainer<T>
+    ) { container.apply {
             clazz.primaryConstructor?.let {
                 if(it.parameters.isEmpty()){
                     setConstructor(it)
                 }else{
                     setConstructor(it)
                     it.parameters.forEach { param ->
-                        addAsArg(param)
+                        addParameter(param)
                     }
                 }
             }
             setNestedMap(getNestedMap(clazz))
             setPropertyMap(getProperties<T>(clazz))
         }
-        return container
     }
 
 }

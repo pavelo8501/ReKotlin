@@ -2,22 +2,20 @@ package po.exposify.binder
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.SizedIterable
+import po.exposify.binder.enums.OrdinanceType
 import po.exposify.classes.DTOClass
 import po.exposify.classes.components.MultipleRepository
 import po.exposify.classes.components.RepositoryBase
 import po.exposify.classes.components.SingleRepository
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
+import po.exposify.dto.classes.DTOClass2
+import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.wrappers.NullablePropertyWrapper
 import kotlin.collections.set
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
 
-enum class OrdinanceType{
-    ONE_TO_ONE,
-    ONE_TO_MANY,
-    MANY_TO_MANY,
-}
 
 sealed class BindingKeyBase(val ordinance: OrdinanceType) {
     open class  OneToMany<CHILD_DATA: DataModel,CHILD_ENTITY: LongEntity>(
@@ -35,7 +33,7 @@ sealed class BindingKeyBase(val ordinance: OrdinanceType) {
     companion object{
         fun <CHILD_DATA: DataModel,CHILD_ENTITY: LongEntity> createOneToManyKey(
             childModel : DTOClass<CHILD_DATA, CHILD_ENTITY>
-        ): BindingKeyBase.OneToMany<CHILD_DATA, CHILD_ENTITY>{
+        ): OneToMany<CHILD_DATA, CHILD_ENTITY>{
             return  OneToMany<CHILD_DATA, CHILD_ENTITY>( childModel)
 
         }
@@ -43,7 +41,7 @@ sealed class BindingKeyBase(val ordinance: OrdinanceType) {
 
         fun <CHILD_DATA: DataModel,CHILD_ENTITY: LongEntity> createOneToOneKey(
             childModel : DTOClass<CHILD_DATA, CHILD_ENTITY>
-        ): BindingKeyBase.OneToOne<CHILD_DATA, CHILD_ENTITY>{
+        ): OneToOne<CHILD_DATA, CHILD_ENTITY>{
           return  object : OneToOne<CHILD_DATA, CHILD_ENTITY>(childModel) {}
         }
     }

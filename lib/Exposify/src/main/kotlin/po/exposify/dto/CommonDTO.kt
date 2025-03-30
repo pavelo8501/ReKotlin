@@ -7,8 +7,11 @@ import po.exposify.binder.UpdateMode
 import po.exposify.classes.DTOClass
 import po.exposify.classes.components.RepositoryBase
 import po.exposify.classes.interfaces.DataModel
+import po.exposify.common.classes.ClassBlueprint
+import po.exposify.common.classes.ClassData
 import po.exposify.common.classes.MapBuilder
 import po.exposify.dto.components.DataModelContainer
+import po.exposify.dto.components.DataModelContainer2
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.DtoClassRegistryItem
 import po.exposify.exceptions.ExceptionCodes
@@ -18,19 +21,19 @@ import po.exposify.exceptions.enums.InitErrorCodes
 import po.exposify.models.DTOInitStatus
 import kotlin.reflect.KClass
 
-internal class HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
-    val sourceDtoClass: DTOClass<DATA, ENTITY>,
-    override val registryItem: DtoClassRegistryItem<DATA, ENTITY>,
-    override val dataContainer: DataModelContainer<DATA>,
-    override val dataModel: DATA,
-): DTOBase<DATA, ENTITY,  CHILD_DATA, CHILD_ENTITY>(sourceDtoClass)
-        where DATA : DataModel, ENTITY: LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY: LongEntity{
-
-   // val repositories = mutableMapOf<BindingKeyBase, RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>>()
-
-    var onUpdate: (suspend ()-> Unit)? = null
-    var onUpdateFromEntity: (suspend (ENTITY)-> Unit)? = null
-    var onDelete:(suspend ()-> Unit)? = null
+//internal class HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
+//    val sourceDtoClass: DTOClass<DATA, ENTITY>,
+//    override val registryItem: DtoClassRegistryItem<DATA, ENTITY>,
+//    override val dataContainer: DataModelContainer<DATA>,
+//    override val dataModel: DATA,
+//): DTOBase<DATA, ENTITY,  CHILD_DATA, CHILD_ENTITY>(sourceDtoClass)
+//        where DATA : DataModel, ENTITY: LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY: LongEntity{
+//
+//   // val repositories = mutableMapOf<BindingKeyBase, RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>>()
+//
+//    var onUpdate: (suspend ()-> Unit)? = null
+//    var onUpdateFromEntity: (suspend (ENTITY)-> Unit)? = null
+//    var onDelete:(suspend ()-> Unit)? = null
 
 //    val hasChild: Boolean
 //        get(){return repositories.isNotEmpty()}
@@ -59,12 +62,12 @@ internal class HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
 //        }
 //    }
 
-    private val onDeleteFnList = mutableListOf<
-            Pair<HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,() -> Unit>>()
-
-    fun subscribeOnDelete(callback:  ()-> Unit){
-        onDeleteFnList.add(Pair(this, callback))
-    }
+//    private val onDeleteFnList = mutableListOf<
+//            Pair<HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,() -> Unit>>()
+//
+//    fun subscribeOnDelete(callback:  ()-> Unit){
+//        onDeleteFnList.add(Pair(this, callback))
+//    }
 
 //    suspend fun deleteInRepositories() {
 //        repositories.values.forEach { repository ->
@@ -72,27 +75,7 @@ internal class HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
 //        }
 //    }
 
-//    fun compileDataModel():DATA{
-//        repositories.values.forEach {repo->
-//            repo.dtoList.forEach {
-//                it.compileDataModel()
-//                when (repo){
-//                    is MultipleRepository->{
-//                        repo.getSourceProperty().let {sourceProperty->
-//                            dataContainer.addToMutableProperty(sourceProperty.name, it.dataModel)
-//                        }
-//                    }
-//                    is SingleRepository->{
-//                        repo.getSourceProperty().let {
-//                            sourceProperty->
-//                            dataContainer.setProperty(sourceProperty.name, it.dataModel)
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//        return dataContainer.dataModel
-//    }
+
 
 //    fun getChildren():List<HostDTO<CHILD_DATA, CHILD_ENTITY, DATA, ENTITY>>{
 //        val result = mutableListOf<HostDTO<CHILD_DATA, CHILD_ENTITY, DATA, ENTITY>>()
@@ -100,7 +83,7 @@ internal class HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
 //        return result
 //    }
 
-}
+//}
 
 
 abstract class CommonDTO<DATA, ENTITY>(
@@ -110,18 +93,20 @@ abstract class CommonDTO<DATA, ENTITY>(
 
    abstract override val dataModel: DATA
 
-   internal  var hostDTO  : HostDTO<DATA, ENTITY, *, *>? = null
-
     private var _regItem : DtoClassRegistryItem<DATA, ENTITY>? = null
     private val regItem : DtoClassRegistryItem<DATA, ENTITY>
         get(){
             return _regItem?:throw InitializationException("DtoClassRegistryItem uninitialized", InitErrorCodes.KEY_PARAM_UNINITIALIZED)
         }
     override val registryItem: DtoClassRegistryItem<DATA, ENTITY> by lazy { regItem }
-    override val dataContainer: DataModelContainer<DATA> =  DataModelContainer(dataModel, dtoClass.factory.dataBlueprint)
+    override val dataContainer: DataModelContainer2<DATA> =  DataModelContainer2(dataModel, dtoClass.factory.dataBlueprint as ClassBlueprint<DATA>, propertyBinder)
 
 
     internal var repositories =  MapBuilder<BindingKeyBase,  RepositoryBase<DATA, ENTITY, *, *>> ()
+
+    fun compileDataModel():DATA{
+        return dataContainer.dataModel
+    }
 
 //    suspend fun initializeRepositories(entity:ENTITY){
 //        hostDTO?.initializeRepositories(entity)
@@ -186,7 +171,7 @@ sealed class DTOBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
 ) where DATA : DataModel, ENTITY: LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY: LongEntity{
 
     abstract val dataModel: DATA
-    abstract val dataContainer : DataModelContainer<DATA>
+    abstract val dataContainer : DataModelContainer2<DATA>
 
     val propertyBinder: PropertyBinder<DATA, ENTITY> =  dtoClass.conf.propertyBinder
 

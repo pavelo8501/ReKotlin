@@ -1,8 +1,9 @@
 package po.exposify.dto.interfaces
 
 import po.exposify.classes.interfaces.DataModel
-import po.exposify.dto.components.DataModelContainer
+import po.exposify.dto.components.DataModelContainer2
 
-interface ModelDTO {
-    val dataContainer  : DataModelContainer<*>
+interface ModelDTO : DataModel   {
+    val dataContainer  : DataModelContainer2<*>
+
 }

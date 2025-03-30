@@ -9,7 +9,8 @@ enum class InitErrorCodes(val value:Int)  {
     ALREADY_EXISTS(1002),
     LAZY_NOT_INITIALIZED (1003),
     INVALID_DATA(1004),
-    KEY_NOT_FOUND(1005);
+    KEY_NOT_FOUND(1005),
+    DB_TABLE_CREATION_FAILURE(2001);
 
 
     companion object {

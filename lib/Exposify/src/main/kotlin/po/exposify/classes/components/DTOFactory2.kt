@@ -4,65 +4,34 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.dao.LongEntity
-import po.exposify.common.classes.ConstructorBuilder
-import po.exposify.constructors.DTOBlueprint
-import po.exposify.constructors.DataModelBlueprint
-import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.common.classes.ClassBlueprint
+import po.exposify.common.classes.ConstructorBuilder
+import po.exposify.constructors.DataModelBlueprint
+import po.exposify.dto.CommonDTO2
+import po.exposify.dto.classes.DTOClass2
+import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
-import po.exposify.dto.CommonDTO
-import po.lognotify.eventhandler.EventHandler
-import po.lognotify.eventhandler.interfaces.CanNotify
+import kotlin.collections.get
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.isSubclassOf
 
-
-class DTOFactory<DATA, ENTITY>(
-   val parent: DTOClass<DATA,ENTITY>,
-   val entityDTOClass : KClass<out CommonDTO<DATA, ENTITY>>
-): CanNotify where DATA: DataModel,   ENTITY: LongEntity   {
+class DTOFactory2<DTO, DATA>(
+    private val dtoKClass : KClass<out CommonDTO2<DTO, DATA, LongEntity>>,
+    private val dataModelClass : KClass<DATA>,
+    val parent: DTOClass2<DTO>,
+) where DTO : ModelDTO,  DATA: DataModel {
     companion object : ConstructorBuilder()
 
-    private var _dataModelClass: KClass<DATA>? = null
-    val dataModelClass: KClass<DATA>
-        get(){return _dataModelClass?: throw OperationsException(
-            "DataModel Class uninitialized", ExceptionCodes.LAZY_NOT_INITIALIZED) }
+    internal val dataBlueprint : ClassBlueprint<DATA> =  ClassBlueprint(dataModelClass).also { it.initialize(Companion) }
 
-    private var _daoEntityClass: KClass<ENTITY>? = null
-    val daoEntityClass: KClass<ENTITY>
-        get(){return _daoEntityClass?: throw OperationsException(
-            "DataModel Class uninitialized", ExceptionCodes.LAZY_NOT_INITIALIZED) }
-
-    internal lateinit var dataBlueprint : ClassBlueprint<DATA>
-        private set
-
-    private lateinit var entityBlueprint : ClassBlueprint<ENTITY>
-    private val dtoBlueprint = DTOBlueprint(entityDTOClass).also { it.initialize(Companion) }
+    private val dtoBlueprint = ClassBlueprint(dtoKClass).also { it.initialize(Companion) }
 
     private var dataModelConstructor : (() -> DATA)? = null
 
-    override val eventHandler = EventHandler("Factory", parent.eventHandler)
-
     private var serializers  =  mapOf<String, KSerializer<*>>()
-
-    /**
-     * Initializes the blueprints for DataModel, Entity, and DTO based on the provided classes.
-     *  @input dataClazz: KClass<DATA>
-     *  @input entityClass : KClass<ENTITY>
-     */
-    fun initializeBlueprints(
-        dataClazz : KClass<DATA>,
-        entityClass : KClass<ENTITY>,
-    ){
-        _dataModelClass = dataClazz
-        _daoEntityClass = entityClass
-
-        dataBlueprint =   ClassBlueprint(dataModelClass).also { it.initialize(Companion) }
-        entityBlueprint = ClassBlueprint(daoEntityClass).also { it.initialize(Companion) }
-    }
 
     fun setSerializableTypes(types: List<Pair<String, KSerializer<*> >>){
         serializers =  types.associate {
@@ -132,11 +101,9 @@ class DTOFactory<DATA, ENTITY>(
     suspend fun createDataModel(constructFn : (() -> DATA)? = null):DATA{
         try {
             constructFn?.let {
-                info("DataModel created from constructor provided in the createDataModel(constructFn)")
                 return it.invoke()
             }
             dataModelConstructor?.let {
-                info("DataModel created from constructor provided in the dataModelConstructor")
                 return it.invoke()
             }
 
@@ -146,15 +113,15 @@ class DTOFactory<DATA, ENTITY>(
                 if(foundSerializer != null){
                     val kClassForType =  param.type.classifier as? KClass<*>
                     if(kClassForType != null){
-                       val serializer : KSerializer<*> =   when {
-                           kClassForType.isSubclassOf(List::class)->{
-                               val elementType = param.type.arguments.firstOrNull()?.type?.classifier as? KClass<*>
-                               val elementSerializer = foundSerializer as? KSerializer<Any>
-                                   ?: error("No serializer found for list element type: $elementType")
+                        val serializer : KSerializer<*> =   when {
+                            kClassForType.isSubclassOf(List::class)->{
+                                val elementType = param.type.arguments.firstOrNull()?.type?.classifier as? KClass<*>
+                                val elementSerializer = foundSerializer as? KSerializer<Any>
+                                    ?: error("No serializer found for list element type: $elementType")
 
-                               ListSerializer(elementSerializer)
-                           }
-                           else -> foundSerializer
+                                ListSerializer(elementSerializer)
+                            }
+                            else -> foundSerializer
                         }
                         paramValue = Json.decodeFromString(serializer as KSerializer<Any>, "[]")
                     }
@@ -162,13 +129,11 @@ class DTOFactory<DATA, ENTITY>(
                 paramValue
             }
             val args = dataBlueprint.getArgsForConstructor()
-            val dataModel = task("DataModel created from dataBlueprint [reflection]") {
-                val constructor = dataBlueprint.getConstructor()
-                constructor.callBy(args)
-            }
-            return dataModel!!
+            val constructor = dataBlueprint.getConstructor()
+            val dataModel = constructor.callBy(args)
+            return dataModel
         }catch (ex: Exception) {
-           throw OperationsException("DataModel  creation failed ${ex.message}", ExceptionCodes.REFLECTION_ERROR)
+            throw OperationsException("DataModel  creation failed ${ex.message}", ExceptionCodes.REFLECTION_ERROR)
         }
     }
 
@@ -179,9 +144,9 @@ class DTOFactory<DATA, ENTITY>(
      * @input dataModel:  DATA?
      * @return DTOFunctions<DATA, ENTITY> or null
      * */
-    suspend fun createEntityDto(dataModel : DATA? = null): CommonDTO<DATA, ENTITY>?{
+    suspend fun createEntityDto(dataModel : DATA? = null): CommonDTO2<DTO,  DATA, LongEntity>?{
         val model = dataModel?: createDataModel()
-            val newDto = task<CommonDTO<DATA, ENTITY>>("DTOFunctions created from dtoBlueprint [reflection]") {
+
             dtoBlueprint.setExternalParamLookupFn { param ->
                 when (param.name) {
                     "dataModel" -> {
@@ -192,10 +157,9 @@ class DTOFactory<DATA, ENTITY>(
                     }
                 }
             }
-            val args = dtoBlueprint.getArgsForConstructor()
-            dtoBlueprint.getConstructor().callBy(args)
-        }
-        newDto?.initialize()?: println("Something wrong")
+        val args = dtoBlueprint.getArgsForConstructor()
+        val newDto =  dtoBlueprint.getConstructor().callBy(args)
+        newDto.initialize()
         return newDto
     }
 }

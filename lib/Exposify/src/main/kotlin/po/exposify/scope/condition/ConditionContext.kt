@@ -2,12 +2,9 @@ package po.exposify.scope.condition
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
-import org.jetbrains.exposed.sql.Op
-import org.jetbrains.exposed.sql.Query
 import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.extensions.WhereCondition
-import po.exposify.models.CrudResult
 import po.exposify.scope.dto.DTOContext
 
 

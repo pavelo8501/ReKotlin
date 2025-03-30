@@ -33,7 +33,6 @@ class DTOConfig<DATA, ENTITY>(
         relationBinder.block()
     }
 
-
     fun setDataModelConstructor(dataModelConstructor: () -> DataModel){
         this.dataModelConstructor = dataModelConstructor
     }

@@ -7,9 +7,7 @@ import kotlinx.datetime.toLocalDateTime
 
 
 interface DTOInstance{
-  val className : String
-  val qualifiedName : String
-
+  val personalName : String
     fun nowTime(): LocalDateTime {
         return LocalDateTime.Companion.parse(Clock.System.now().toLocalDateTime(TimeZone.UTC).toString())
     }
