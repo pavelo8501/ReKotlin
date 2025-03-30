@@ -6,14 +6,11 @@ import po.exposify.binder.BindingContainer
 import po.exposify.binder.BindingKeyBase
 import po.exposify.binder.PropertyBinder
 import po.exposify.binder.PropertyBindingOption
-import po.exposify.binder.RelationshipBinder
 import po.exposify.binder.RelationshipBinder2
 import po.exposify.classes.interfaces.DataModel
-import po.exposify.dto.CommonDTO2
 import po.exposify.dto.classes.DTOClass2
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.DTORegistryItem2
-import kotlin.reflect.KClass
 
 
 class DTOConfig2<DTO, DATA, ENTITY>(
@@ -22,6 +19,10 @@ class DTOConfig2<DTO, DATA, ENTITY>(
     private val parent : DTOClass2<DTO>
 ) where DTO: ModelDTO,  ENTITY : LongEntity, DATA: DataModel{
 
+
+    val dtoFactory: DTOFactory2<DTO, DATA, ENTITY> =
+        DTOFactory2<DTO, DATA, ENTITY>(dtoRegItem.dtoKClass , dtoRegItem.dataKClass, parent)
+
     val daoService: DAOService2<DTO, ENTITY> = DAOService2<DTO, ENTITY>(entityModel, parent)
     val propertyBinder : PropertyBinder<DATA,ENTITY> = PropertyBinder()
 
@@ -29,18 +30,17 @@ class DTOConfig2<DTO, DATA, ENTITY>(
         mutableMapOf<BindingKeyBase, BindingContainer<DATA, ENTITY, *,*>>()
 
 
-     val relationBinder  = RelationshipBinder2<DATA, ENTITY>(parent)
+     val relationBinder: RelationshipBinder2<DTO, DATA, ENTITY> = RelationshipBinder2<DTO, DATA, ENTITY>(parent)
 
-    val dtoFactory: DTOFactory2<DTO, DATA> = DTOFactory2<DTO, DATA>(dtoRegItem.dtoKClass as KClass<out CommonDTO2<DTO, DATA, LongEntity>> , dtoRegItem.dataKClass, parent)
     var dataModelConstructor : (() -> DataModel)? = null
         private set
 
     fun propertyBindings(vararg props: PropertyBindingOption<DATA, ENTITY, *> ): Unit =  propertyBinder.setProperties(props.toList())
 
     inline fun childBindings(
-        block: RelationshipBinder<DATA, ENTITY>.()-> Unit
+        block: RelationshipBinder2<DTO, DATA, ENTITY>.()-> Unit
     ){
-       // relationBinder.block()
+        relationBinder.block()
     }
 
     fun setDataModelConstructor(dataModelConstructor: () -> DataModel){

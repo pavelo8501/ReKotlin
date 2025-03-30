@@ -24,7 +24,7 @@ import kotlin.reflect.KClass
 
 abstract class CommonDTO2<DTO, DATA, ENTITY>(
     dtoClass: DTOClass2<DTO>
-): DTOBase2<DTO, DATA, ENTITY, DataModel, LongEntity>(dtoClass), ModelDTO
+): DTOBase2<DTO, DATA, ENTITY>(dtoClass), ModelDTO
         where DTO : ModelDTO,  DATA: DataModel , ENTITY: LongEntity {
 
     abstract override val dataModel: DATA
@@ -53,35 +53,39 @@ abstract class CommonDTO2<DTO, DATA, ENTITY>(
         selfRegistration(regItem)
     }
 
+    override fun updateBinding(entity : ENTITY, updateMode: UpdateMode){
+        propertyBinder.update(dataContainer.dataModel, entity, updateMode)
+        entityDAO = entity
+        id =  entity.id.value
+        initStatus = DTOInitStatus.INITIALIZED
+    }
+
     companion object{
         internal val dtoRegistry: MapBuilder<String, DtoClassRegistryItem2<*,*,*>> = MapBuilder<String, DtoClassRegistryItem2<*,*,*>>()
-
         inline operator fun <DTO: ModelDTO, reified DATA : DataModel, reified ENTITY : LongEntity>
                 invoke(dtoClass: DTOClass2<DTO>): CommonDTO2<DTO, DATA, ENTITY> {
             return object : CommonDTO2<DTO, DATA, ENTITY>(dtoClass =  dtoClass, DATA::class, ENTITY::class){
                     abstract override val dataModel: DATA
             }
         }
-
         internal fun <DTO: ModelDTO, DATA :DataModel, ENTITY: LongEntity> selfRegistration(
             regItem :  DtoClassRegistryItem2<DTO, DATA, ENTITY>
         ){
             dtoRegistry.putIfAbsent(regItem.typeKeyCombined, regItem)
         }
-
     }
 }
 
-sealed class DTOBase2<DTO, DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
+sealed class DTOBase2<DTO, DATA, ENTITY>(
     val dtoClass: DTOClass2<DTO>
-) where DTO : ModelDTO,  DATA : DataModel, ENTITY: LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY: LongEntity{
+) where DTO : ModelDTO,  DATA : DataModel, ENTITY: LongEntity{
 
     abstract val dataModel: DATA
     abstract val dataContainer : DataModelContainer2<DATA>
 
     val propertyBinder: PropertyBinder<DATA, ENTITY> =  dtoClass.config.propertyBinder as  PropertyBinder<DATA, ENTITY>
 
-    var onInitializationStatusChange : ((DTOBase2<DTO, DATA, ENTITY, *, *>)-> Unit)? = null
+    var onInitializationStatusChange : ((DTOBase2<DTO, DATA, ENTITY>)-> Unit)? = null
     var initStatus: DTOInitStatus = DTOInitStatus.UNINITIALIZED
         set(value){
             if(value!= field){
@@ -114,12 +118,7 @@ sealed class DTOBase2<DTO, DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
         return dtoClass
     }
 
-    fun updateBinding(entity : ENTITY, updateMode: UpdateMode){
-        propertyBinder.update(dataContainer.dataModel, entity, updateMode)
-        entityDAO = entity
-        id =  entity.id.value
-        initStatus = DTOInitStatus.INITIALIZED
-    }
+    abstract fun updateBinding(entity : ENTITY, updateMode: UpdateMode)
 
     fun updateBinding(dataModel: DATA, updateMode: UpdateMode){
         propertyBinder.update(dataModel, entityDAO, updateMode)

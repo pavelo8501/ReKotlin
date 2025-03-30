@@ -16,9 +16,14 @@ data class DTORegistryItem2<DTO ,DATA, ENTITY>(
 ) where DTO: ModelDTO, DATA: DataModel , ENTITY: LongEntity{
 
 
+    fun getDataEntityTypePair(): Pair<KClass<DATA>, KClass<ENTITY>>{
+        return Pair(dataKClass, entityKClass)
+    }
+
 
     val typeKeyDto: String get() = dtoClass.personalName
     val typeKeyDataModel: String get() = dataKClass.qualifiedName.toString()
     val typeKeyEntity : String get() = entityKClass.qualifiedName.toString()
+    val typeKeyDataEntity: String get() = "${dataKClass.qualifiedName.toString()}:${entityKClass.qualifiedName.toString()}"
     val typeKeyCombined: String get() = "$typeKeyDto:$typeKeyDataModel:$typeKeyEntity"
 }

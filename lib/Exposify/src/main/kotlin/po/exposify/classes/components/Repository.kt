@@ -34,7 +34,7 @@ class SingleRepository<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
     }
 
     override fun extractDataModel(dataModel:DATA): List<CHILD_DATA>{
-        val result =  childModel.factory.extractDataModel(binding.sourcePropertyWrapper.extractNullable(), dataModel)
+        val result =  childModel.factory.extractDataModel(binding.sourcePropertyWrapper.extract(), dataModel)
         return if(result!=null){
             listOf<CHILD_DATA>(result)
         }else{

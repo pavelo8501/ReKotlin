@@ -71,6 +71,14 @@ class TestPageDTO(
                     SyncedBinding(TestPage::langId,  TestPageEntity::langId),
                     SyncedBinding(TestPage::updated, TestPageEntity::updated)
                )
+               childBindings{
+                   many<TestSectionDTO>(
+                       childModel = TestSectionDTO,
+                       ownDataModel = TestPage::sections,
+                       ownEntities = TestPageEntity ::sections,
+                       foreignEntity = TestSectionEntity::page
+                   )
+               }
            }
         }
 

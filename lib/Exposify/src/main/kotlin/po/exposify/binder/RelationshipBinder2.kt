@@ -3,7 +3,6 @@ package po.exposify.binder
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.SizedIterable
 import po.exposify.binder.enums.OrdinanceType
-import po.exposify.classes.DTOClass
 import po.exposify.classes.components.MultipleRepository2
 import po.exposify.classes.components.RepositoryBase2
 import po.exposify.classes.components.SingleRepository2
@@ -47,171 +46,142 @@ sealed class BindingKeyBase2(val ordinance: OrdinanceType) {
 }
 
 
-class MultipleChildContainer2<DTO, CHILD_DTO,  CHILD_DATA, CHILD_ENTITY>(
+class MultipleChildContainer2<DTO, DATA, ENTITY, CHILD_DTO>(
     parentClass: DTOClass2<DTO>,
-    childClass: DTOClass2<CHILD_DTO>
-): BindingContainer2<DTO, CHILD_DTO,  CHILD_DATA, CHILD_ENTITY>(parentClass, childClass, OrdinanceType.ONE_TO_MANY)
-        where DTO: ModelDTO, CHILD_DTO: ModelDTO, CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity
+    override val  childClass: DTOClass2<CHILD_DTO>
+): BindingContainer2<DTO,DATA, ENTITY, CHILD_DTO>(parentClass, OrdinanceType.ONE_TO_MANY)
+        where DTO: ModelDTO, CHILD_DTO: ModelDTO, DATA: DataModel, ENTITY: LongEntity
 {
-    override val thisKey  = BindingKeyBase2.createOneToManyKey(childModel)
-
-    lateinit var byProperty : KProperty1<LongEntity, SizedIterable<CHILD_ENTITY>>
-    lateinit var referencedOnProperty: KMutableProperty1<CHILD_ENTITY, LongEntity>
-    lateinit var sourceProperty: KProperty1<DataModel, Iterable<CHILD_DATA>>
-
-    fun initProperties(
-        sourceProperty: KProperty1<DataModel, Iterable<CHILD_DATA>>,
-        byProperty : KProperty1<LongEntity, SizedIterable<CHILD_ENTITY>>,
-        referencedOnProperty: KMutableProperty1<CHILD_ENTITY, LongEntity>){
-        this.byProperty = byProperty
-        this.referencedOnProperty = referencedOnProperty
-        this.sourceProperty = sourceProperty
-    }
-
+    override val thisKey  = BindingKeyBase2.createOneToManyKey(childClass)
 
     override fun createRepository(
-        parentModel: CommonDTO2<DTO, *, *>,
-    ): MultipleRepository2<DTO, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>{
-        return MultipleRepository2(parentModel, childModel, this)
+        parentModel: CommonDTO2<DTO, DATA, ENTITY>,
+    ): MultipleRepository2<DTO, DATA, ENTITY, CHILD_DTO>{
+        return MultipleRepository2(parentModel, childClass, this)
     }
-
 }
 
-class SingleChildContainer2<DTO, CHILD_DTO, CHILD_DATA,  CHILD_ENTITY>  (
+class SingleChildContainer2<DTO, DATA, ENTITY, CHILD_DTO>  (
     parentModel: DTOClass2<DTO>,
-    childModel: DTOClass2<CHILD_DTO>
-): BindingContainer2<DTO, CHILD_DTO,  CHILD_DATA,  CHILD_ENTITY>(parentModel, childModel, OrdinanceType.ONE_TO_ONE)
-    where DTO: ModelDTO, CHILD_DTO: ModelDTO, CHILD_DATA :DataModel, CHILD_ENTITY: LongEntity
+    override val childClass: DTOClass2<CHILD_DTO>
+): BindingContainer2<DTO, DATA, ENTITY, CHILD_DTO>(parentModel, OrdinanceType.ONE_TO_ONE)
+    where DTO: ModelDTO, CHILD_DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity
 {
-    override val thisKey = BindingKeyBase2.createOneToOneKey<CHILD_DTO>(childModel)
-
-    val sourcePropertyWrapper: NullablePropertyWrapper<DataModel, CHILD_DATA> = NullablePropertyWrapper<DataModel, CHILD_DATA>()
-    lateinit var byProperty: KProperty1<LongEntity, CHILD_ENTITY?>
-    var referencedOnProperty: KMutableProperty1<CHILD_ENTITY, LongEntity>? = null
-
-
-    fun  initProperties(
-        sourceProperty: KMutableProperty1<DataModel, CHILD_DATA>,
-        byProperty: KProperty1<LongEntity, CHILD_ENTITY?>,
-        referencedOnProperty: KMutableProperty1<CHILD_ENTITY, LongEntity>)
-    {
-        this.sourcePropertyWrapper.inject(sourceProperty)
-        this.byProperty = byProperty
-        this.referencedOnProperty = referencedOnProperty
-    }
-
-    @JvmName("initPropertiesNullableChild")
-    fun initProperties(
-        sourceProperty: KMutableProperty1<DataModel, CHILD_DATA?>,
-        byProperty: KProperty1<LongEntity, CHILD_ENTITY?>,
-        referencedOnProperty: KMutableProperty1<CHILD_ENTITY, LongEntity>)
-    {
-        this.sourcePropertyWrapper.injectNullable(sourceProperty)
-        this.byProperty = byProperty
-        this.referencedOnProperty = referencedOnProperty
-    }
+    override val thisKey = BindingKeyBase2.createOneToOneKey<CHILD_DTO>(childClass)
 
     override fun createRepository(
-        parentModel: CommonDTO2<DTO, *, *>
-    ): SingleRepository2<DTO, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>{
-        return SingleRepository2(parentModel, childModel, this)
+        parentModel: CommonDTO2<DTO, DATA, ENTITY>
+    ): SingleRepository2<DTO, DATA, ENTITY, CHILD_DTO>{
+        return SingleRepository2(parentModel, childClass, this)
     }
 }
 
-sealed class BindingContainer2<DTO, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>(
+sealed class BindingContainer2<DTO, DATA, ENTITY, CHILD_DTO>(
     val parentModel: DTOClass2<DTO>,
-    val childModel : DTOClass2<CHILD_DTO>,
     val type  : OrdinanceType,
-) where DTO : ModelDTO, CHILD_DTO : ModelDTO,  CHILD_DATA : DataModel, CHILD_ENTITY: LongEntity {
+) where DTO : ModelDTO, CHILD_DTO : ModelDTO, DATA : DataModel, ENTITY : LongEntity{
+
+    abstract val childClass : DTOClass2<CHILD_DTO>
 
     abstract val thisKey : BindingKeyBase2
-    companion object {
 
-        fun <DTO: ModelDTO, CHILD_DTO: ModelDTO,  CHILD_DATA : DataModel, CHILD_ENTITY: LongEntity>createOneToOneContainer(
+    val sourcePropertyWrapper: NullablePropertyWrapper<DATA, Any?> = NullablePropertyWrapper<DATA, Any?>()
+    lateinit var ownDataModelsProperty : KProperty1<DATA, Iterable<*>>
+    lateinit var ownEntityProperty: KProperty1<*, *>
+    lateinit var foreignEntityProperty: KMutableProperty1<*, *>
+
+
+    fun initProperties(
+        ownDataModel: KMutableProperty1<DATA, Any?>,
+        ownEntity: KProperty1<ENTITY, *>,
+        foreignEntity: KMutableProperty1<*, ENTITY>
+    ) {
+        sourcePropertyWrapper.inject(ownDataModel)
+        ownEntityProperty = ownEntity
+        foreignEntityProperty = foreignEntity
+    }
+
+    fun  initProperties(
+        ownDataModels: KProperty1<DATA, Iterable<*>>,
+        byProperty: KProperty1<ENTITY, *>,
+        foreignEntity: KMutableProperty1<*, ENTITY>)
+    {
+        ownDataModelsProperty = ownDataModels
+        ownEntityProperty = byProperty
+        foreignEntityProperty = foreignEntity
+    }
+
+    companion object {
+        fun <DTO: ModelDTO, DATA : DataModel, ENTITY: LongEntity, CHILD_DTO: ModelDTO>createOneToOneContainer(
             parent: DTOClass2<DTO>,
-            childDtoClass: DTOClass2<CHILD_DTO>): SingleChildContainer2<DTO, CHILD_DTO,   CHILD_DATA, CHILD_ENTITY>{
-            return SingleChildContainer2(parent, childDtoClass)
+            childClass: DTOClass2<CHILD_DTO>): SingleChildContainer2<DTO,DATA, ENTITY, CHILD_DTO>{
+            return SingleChildContainer2(parent, childClass)
         }
 
 
-        fun <DTO: ModelDTO, CHILD_DTO: ModelDTO, CHILD_DATA : DataModel, CHILD_ENTITY: LongEntity>createOneToManyContainer(
+        fun <DTO: ModelDTO, DATA : DataModel, ENTITY: LongEntity, CHILD_DTO: ModelDTO>createOneToManyContainer(
             parent: DTOClass2<DTO>,
-            child: DTOClass2<CHILD_DTO>
-        ): MultipleChildContainer2<DTO, CHILD_DTO,  CHILD_DATA, CHILD_ENTITY>{
-            return MultipleChildContainer2(parent, child)
+            childClass: DTOClass2<CHILD_DTO>
+        ): MultipleChildContainer2<DTO,DATA, ENTITY, CHILD_DTO>{
+            return MultipleChildContainer2(parent, childClass)
         }
     }
 
     abstract fun createRepository(
-        parentDto: CommonDTO2<DTO, *, *>,
-    ) : RepositoryBase2<DTO, CHILD_DTO,  CHILD_DATA, CHILD_ENTITY>
+        parentDto: CommonDTO2<DTO, DATA, ENTITY>,
+    ) : RepositoryBase2<DTO, DATA, ENTITY, CHILD_DTO>
 }
 
-class RelationshipBinder2<DTO>(
+class RelationshipBinder2<DTO, DATA, ENTITY>(
    val dtoClass:  DTOClass2<DTO>
-) where DTO: ModelDTO {
+) where DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity {
 
-    private var childBindings = mutableMapOf<BindingKeyBase2, BindingContainer2<DTO, *, *, *>>()
+    private var childBindings = mutableMapOf<BindingKeyBase2, BindingContainer2<DTO, DATA, ENTITY, *>>()
 
-    private fun <CHILD_DTO: ModelDTO, CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity> attachBinding(
+    private fun <CHILD_DTO: ModelDTO> attachBinding(
         key : BindingKeyBase2,
-        container: BindingContainer2<DTO, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>
+        container: BindingContainer2<DTO, DATA, ENTITY, CHILD_DTO>
     ){
         if (!childBindings.containsKey(key)) {
             childBindings[key] = container
         }
     }
 
-    fun <CHILD_DTO: ModelDTO,  CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity>childBinding(
-        sourceProperty: KMutableProperty1<DataModel, CHILD_DATA>,
+    fun <CHILD_DTO: ModelDTO>single(
         childModel: DTOClass2<CHILD_DTO>,
-        byProperty: KProperty1<LongEntity, CHILD_ENTITY>,
-        referencedOnProperty: KMutableProperty1<CHILD_ENTITY, LongEntity>
+        ownDataModel: KMutableProperty1<DATA, Any?>,
+        ownEntity: KProperty1<ENTITY, *>,
+        foreignEntity: KMutableProperty1<*, ENTITY>
     ){
         if(!childModel.initialized){
             childModel.initialization()
         }
-        val oneToOneContainer =  BindingContainer2.createOneToOneContainer<DTO, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>(dtoClass, childModel)
-        oneToOneContainer.initProperties(sourceProperty, byProperty, referencedOnProperty)
-        attachBinding(oneToOneContainer.thisKey, oneToOneContainer)
-    }
 
-    fun <CHILD_DTO: ModelDTO, CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity>childBinding(
-        childModel: DTOClass2<CHILD_DTO>,
-        sourceProperty: KMutableProperty1<DataModel, CHILD_DATA?>,
-        byProperty: KProperty1<LongEntity, CHILD_ENTITY?>,
-        referencedOnProperty: KMutableProperty1<CHILD_ENTITY, LongEntity>
-    ){
-       if(!childModel.initialized){
-           childModel.initialization()
-       }
-        val oneToOneContainerNullableData =  BindingContainer2.createOneToOneContainer<DTO, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>(dtoClass, childModel)
-        oneToOneContainerNullableData.initProperties(sourceProperty, byProperty, referencedOnProperty)
+        val oneToOneContainerNullableData = BindingContainer2.createOneToOneContainer<DTO, DATA, ENTITY, CHILD_DTO>(dtoClass, childModel)
+        oneToOneContainerNullableData.initProperties(ownDataModel, ownEntity, foreignEntity)
         attachBinding(oneToOneContainerNullableData.thisKey, oneToOneContainerNullableData)
     }
 
-    fun <CHILD_DTO : ModelDTO, CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity>childBinding(
+
+    fun <CHILD_DTO : ModelDTO>many(
         childModel: DTOClass2<CHILD_DTO>,
-        sourceProperty: KProperty1<DataModel, Iterable<CHILD_DATA>>,
-        byProperty: KProperty1<LongEntity, SizedIterable<CHILD_ENTITY>>,
-        referencedOnProperty: KMutableProperty1<CHILD_ENTITY, LongEntity>,
+        ownDataModel: KProperty1<DATA, Iterable<*>>,
+        ownEntities: KProperty1<ENTITY, SizedIterable<*>>,
+        foreignEntity: KMutableProperty1<*, ENTITY>,
     ){
         if(!childModel.initialized){
             childModel.initialization()
         }
 
-        val oneToMany = BindingContainer2.createOneToManyContainer<DTO, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>(dtoClass, childModel)
-        oneToMany.initProperties(sourceProperty, byProperty, referencedOnProperty)
+        val oneToMany = BindingContainer2.createOneToManyContainer<DTO, DATA, ENTITY, CHILD_DTO>(dtoClass, childModel)
+        oneToMany.initProperties(ownDataModel, ownEntities, foreignEntity)
         attachBinding(oneToMany.thisKey, oneToMany)
     }
 
-
-    fun createRepositories(parentDto: CommonDTO2<DTO, *, *>){
+    fun createRepositories(parentDto: CommonDTO2<DTO, DATA, ENTITY>){
          childBindings.forEach {
             when(it.key){
                 is BindingKeyBase2.OneToOne<*>->{
-                 //   val container = it.value as SingleChildContainer
-                  //  val newSingleRepo = SingleRepository(parentDto, container)
                     val newRepo = it.value.createRepository(parentDto)
                     parentDto.repositories.put(it.key, newRepo)
                 }

@@ -26,10 +26,10 @@ data class ConstructorArgument(
 class ClassBlueprint<T>(
    private val clazz  : KClass<T>
 ): BlueprintContainer<T> where T: Any {
-    var  externalParamLookupFn : ( (type: KParameter) -> Any? )? = null
+    var  paramLookupFn : ( (type: KParameter) -> Any? )? = null
 
     fun setExternalParamLookupFn(fn : (type: KParameter) -> Any? ){
-        externalParamLookupFn = fn
+        paramLookupFn = fn
     }
 
     private var constructorArgs: MutableList<ConstructorArgument> = mutableListOf<ConstructorArgument>()
@@ -90,7 +90,7 @@ class ClassBlueprint<T>(
                         null
                     }else {
                         builder.getDefaultForType(param.type) ?: run {
-                            externalParamLookupFn?.invoke(param)
+                            paramLookupFn?.invoke(param)
 
                         }
                     } }

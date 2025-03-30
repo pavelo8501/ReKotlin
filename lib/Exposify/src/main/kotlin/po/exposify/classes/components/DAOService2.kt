@@ -27,8 +27,8 @@ class DAOService2<DTO, ENTITY>(
         return conditions.reduceOrNull { acc, op -> acc and op } ?: Op.TRUE
     }
 
-    suspend fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity> saveNew(
-        dto: DTOBase2<DTO, *, *, CHILD_DATA, CHILD_ENTITY>,
+    suspend fun saveNew(
+        dto: DTOBase2<DTO, *, *>,
         block: ((ENTITY) -> Unit)? = null): ENTITY? {
         // Notify about the operation
 
@@ -41,7 +41,7 @@ class DAOService2<DTO, ENTITY>(
     }
 
     suspend fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity> updateExistent(
-        dto : DTOBase2<DTO, *, ENTITY, CHILD_DATA, CHILD_ENTITY>) {
+        dto : DTOBase2<DTO, *, ENTITY>) {
         try {
             val entity = selectWhere(dto.id)
           //  dto.update(entity, UpdateMode.MODEL_TO_ENTITY)
@@ -50,14 +50,11 @@ class DAOService2<DTO, ENTITY>(
         }
     }
 
-    suspend fun pick(
+    fun pick(
         conditions :Op<Boolean>
     ): ENTITY?{
-       // val entity = task("pick") {
-            val queryResult = entityModel.find(conditions)
-            return queryResult.firstOrNull()
-       // }
-
+        val queryResult = entityModel.find(conditions)
+        return queryResult.firstOrNull()
     }
 
     suspend fun select(
@@ -100,7 +97,7 @@ class DAOService2<DTO, ENTITY>(
     }
 
     suspend fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity>delete(
-        dto : DTOBase2<DTO, *, ENTITY, CHILD_DATA, CHILD_ENTITY>
+        dto : DTOBase2<DTO, *, ENTITY>
     ) {
        // task("selectWhere for dtoModel"){
 

@@ -1,7 +1,5 @@
 package po.exposify.scope.service
 
-import kotlinx.coroutines.runBlocking
-import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -13,11 +11,8 @@ import po.exposify.extensions.QueryConditions
 import po.exposify.extensions.WhereCondition
 import po.exposify.scope.dto.DTOContext
 import po.exposify.scope.dto.DTOContext2
-import po.exposify.scope.sequence.SequenceContext
 import po.exposify.scope.sequence.SequenceContext2
-import po.exposify.scope.sequence.classes.SequenceHandler
 import po.exposify.scope.sequence.classes.SequenceHandler2
-import po.exposify.scope.sequence.models.SequencePack
 import po.exposify.scope.sequence.models.SequencePack2
 import po.exposify.scope.service.enums.WriteMode
 import kotlin.reflect.KProperty1
@@ -77,37 +72,37 @@ class ServiceContext2<DTO>(
      */
     fun <T: IdTable<Long>>pick(
         conditions: QueryConditions<T>, block: DTOContext2<DTO>.() -> Unit): DTOClass2<DTO>? {
-        val selectedDTOs = dbQuery {
-            runBlocking {
-                rootDtoModel.pick(conditions)
-            }
-        }
-        val context  = DTOContext2(rootDtoModel, selectedDTOs)
-        context.block()
+//        val selectedDTOs = dbQuery {
+//            runBlocking {
+//                rootDtoModel.pick(conditions)
+//            }
+//        }
+       // val context  = DTOContext2(rootDtoModel, selectedDTOs)
+       // context.block()
         return null
     }
 
     fun select(
         block: DTOContext2<DTO>.() -> Unit
     ){
-        val selectedDTOs = dbQuery {
-            runBlocking {
-                rootDtoModel.select()
-            }
-        }
-        val context =  DTOContext2(rootDtoModel, selectedDTOs)
-        context.block()
+//        val selectedDTOs = dbQuery {
+//            runBlocking {
+//                rootDtoModel.select()
+//            }
+//        }
+//        val context =  DTOContext2(rootDtoModel, selectedDTOs)
+//        context.block()
     }
 
     fun <T: IdTable<Long>> select(conditions : WhereCondition<T>,   block: DTOContext2<DTO>.() -> Unit) {
 
-        val selectedDTOs = dbQuery {
-            runBlocking {
-                rootDtoModel.select(conditions)
-            }
-        }
-        val context =  DTOContext2(rootDtoModel, selectedDTOs)
-        context.block()
+//        val selectedDTOs = dbQuery {
+//            runBlocking {
+//                rootDtoModel.select(conditions)
+//            }
+//        }
+//        val context =  DTOContext2(rootDtoModel, selectedDTOs)
+//        context.block()
     }
 
     @JvmName("updateFromDataModels")
@@ -115,24 +110,24 @@ class ServiceContext2<DTO>(
         dataModels : List<DataModel>,
         writeMode: WriteMode = WriteMode.STRICT,
         block: DTOContext2<DTO>.() -> Unit){
-        val createdDTOs =  dbQuery {
-            runBlocking {
-               // update<DATA, ENTITY>(dataModels)
-            }
-        }
-        val context = DTOContext2(this,createdDTOs)
-        context.block()
+//        val createdDTOs =  dbQuery {
+//            runBlocking {
+//               // update<DATA, ENTITY>(dataModels)
+//            }
+//        }
+//        val context = DTOContext2(this, createdDTOs)
+//        context.block()
     }
 
 
     fun DTOClass2<DTO>.delete(toDelete: DataModel, block: DTOContext2<DTO>.() -> Unit){
-        val selectedDTOs = dbQuery {
-            runBlocking {
-                delete(toDelete)
-            }
-        }
-        val context  = DTOContext2(this, selectedDTOs)
-        context.block()
+//        val selectedDTOs = dbQuery {
+//            runBlocking {
+//                delete(toDelete)
+//            }
+//        }
+//        val context  = DTOContext2(this, selectedDTOs)
+//        context.block()
     }
 
     fun sequence(

@@ -88,7 +88,7 @@ class SequenceContext2<DTO>(
         conditions: QueryConditions<T>? = null,
         block: (suspend SequenceContext2<DTO>.(dtos: List<CommonDTO2<DTO, *, *>>)-> Deferred<List<DataModel>>)? = null
     ){
-        lastResult = if (conditions != null) hostDto.select(conditions) else hostDto.select()
+       // lastResult = if (conditions != null) hostDto.select(conditions) else hostDto.select()
         if (block != null) {
             this.block(dtos())  // Continue execution if block is provided
         } else {
@@ -111,7 +111,7 @@ class SequenceContext2<DTO>(
         dataModels: List<DataModel>,
         block: (suspend SequenceContext2<DTO>.(dtos: List<CommonDTO2<DTO, *, *>>)-> Deferred<List<DataModel>>)? = null
     ) {
-        lastResult = hostDto.update<DATA, ENTITY>(dataModels)
+        //lastResult = hostDto.update<DATA, ENTITY>(dataModels)
         if (block != null) {
             this.block(dtos())  // Continue execution if block is provided
         } else {
@@ -135,7 +135,7 @@ class SequenceContext2<DTO>(
         conditions: QueryConditions<T>,
         block: (suspend SequenceContext2<DTO>.(dtos: List<CommonDTO2<DTO, *, *>>)-> Unit)? = null
     ) {
-        lastResult = hostDto.pick(conditions)
+       // lastResult = hostDto.pick(conditions)
 
         if (block != null) {
             this.block(dtos())

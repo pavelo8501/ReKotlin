@@ -9,8 +9,6 @@ import po.exposify.classes.components.RepositoryBase
 import po.exposify.classes.components.SingleRepository
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.classes.DTOClass2
-import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.wrappers.NullablePropertyWrapper
 import kotlin.collections.set
 import kotlin.reflect.KMutableProperty1
@@ -99,16 +97,16 @@ class SingleChildContainer<DATA, ENTITY, CHILD_DATA,  CHILD_ENTITY>  (
         this.referencedOnProperty = referencedOnProperty
     }
 
-    @JvmName("initPropertiesNullableChild")
-    fun initProperties(
-        sourceProperty: KMutableProperty1<DATA, CHILD_DATA?>,
-        byProperty: KProperty1<ENTITY, CHILD_ENTITY?>,
-        referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>)
-    {
-        this.sourcePropertyWrapper.injectNullable(sourceProperty)
-        this.byProperty = byProperty
-        this.referencedOnProperty = referencedOnProperty
-    }
+//    @JvmName("initPropertiesNullableChild")
+//    fun initProperties(
+//        sourceProperty: KMutableProperty1<DATA, CHILD_DATA>,
+//        byProperty: KProperty1<ENTITY, CHILD_ENTITY?>,
+//        referencedOnProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>)
+//    {
+//        this.sourcePropertyWrapper.inject(sourceProperty)
+//        this.byProperty = byProperty
+//        this.referencedOnProperty = referencedOnProperty
+//    }
 
     override fun createRepository(parentModel: CommonDTO<DATA, ENTITY>): SingleRepository<DATA, ENTITY,CHILD_DATA, CHILD_ENTITY>{
         return SingleRepository(parentModel, this)
@@ -181,9 +179,9 @@ class RelationshipBinder<DATA, ENTITY>(
        if(!childModel.initialized){
            childModel.initialization()
        }
-        val oneToOneContainerNullableData =  BindingContainer.createOneToOneContainer(parentDTOClass, childModel)
-        oneToOneContainerNullableData.initProperties(sourceProperty, byProperty, referencedOnProperty)
-        attachBinding(oneToOneContainerNullableData.thisKey, oneToOneContainerNullableData)
+//        val oneToOneContainerNullableData =  BindingContainer.createOneToOneContainer(parentDTOClass, childModel)
+//        oneToOneContainerNullableData.initProperties(sourceProperty, byProperty, referencedOnProperty)
+//        attachBinding(oneToOneContainerNullableData.thisKey, oneToOneContainerNullableData)
     }
 
     fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity>childBinding(

@@ -18,6 +18,7 @@ import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.InitErrorCodes
 import po.exposify.scope.connection.ConnectionClass
 import po.exposify.scope.sequence.models.SequencePack
+import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.eventhandler.RootEventHandler
 import po.lognotify.eventhandler.interfaces.CanNotify
 import kotlin.Long

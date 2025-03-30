@@ -26,7 +26,7 @@ abstract class DTOClass2<DTO>(): DTOInstance where DTO : ModelDTO{
         get() = _regItem?: throw InitializationException(
                 "DTOClass regItem not initialized",
                 InitErrorCodes.KEY_PARAM_UNINITIALIZED)
-    internal val registryItem : DTORegistryItem2<DTO, *, *> by lazy { regItem }
+    val registryItem : DTORegistryItem2<DTO, *, *> by lazy { regItem }
 
     override val personalName: String = "DTOClass:${ _regItem?.dtoKClass?.simpleName?:"not_yet_initialized"}"
 
@@ -35,7 +35,7 @@ abstract class DTOClass2<DTO>(): DTOInstance where DTO : ModelDTO{
     var initialized: Boolean = false
     lateinit var config : DTOConfig2<DTO, *, *>
 
-    val dtoFactory : DTOFactory2<DTO, *>
+    val dtoFactory : DTOFactory2<DTO, *, *>
         get() = config.dtoFactory
 
    init {
@@ -45,7 +45,7 @@ abstract class DTOClass2<DTO>(): DTOInstance where DTO : ModelDTO{
    protected abstract fun setup()
 
    internal fun <DATA : DataModel, ENTITY: LongEntity> applyConfig(
-           initializedConfig   :  DTOConfig2<DTO, DATA, ENTITY>,
+           initializedConfig : DTOConfig2<DTO, DATA, ENTITY>,
        ){
        this@DTOClass2._regItem = initializedConfig.dtoRegItem
        config = initializedConfig
@@ -80,6 +80,14 @@ abstract class DTOClass2<DTO>(): DTOInstance where DTO : ModelDTO{
             }
         }catch (ex: Exception){
             throw ex
+        }
+    }
+
+    suspend fun <DATA: DataModel, ENTITY: LongEntity> withTypedConfig(block: suspend DTOConfig2<DTO, DATA, ENTITY>.() -> Unit) {
+        val cfg = config
+        if (cfg.dtoRegItem.typeKeyDataEntity == registryItem.typeKeyDataEntity) {
+            @Suppress("UNCHECKED_CAST") // Safe cast: typeKeyDataModel match ensures type compatibility
+            (cfg as? DTOConfig2<DTO, DATA, ENTITY>)?.block()
         }
     }
 

@@ -8,6 +8,7 @@ import po.auth.sessions.interfaces.ManagedSession
 import po.exposify.controls.ConnectionInfo
 import po.exposify.scope.connection.ConnectionClass
 import po.exposify.scope.connection.ConnectionContext
+import po.exposify.scope.connection.ConnectionContext2
 import po.exposify.scope.connection.models.ConnectionSettings
 
 fun echo(ex: Exception, message: String? = null){
@@ -43,6 +44,32 @@ object DatabaseManager {
             validate()
         }
         return HikariDataSource(hikariConfig)
+    }
+
+    fun openConnectionSync(
+        connectionInfo : ConnectionInfo,
+        sessionManager: ManagedSession,
+        context: (ConnectionContext2.()->Unit)? = null
+    ): ConnectionContext2? {
+            connectionInfo.hikariDataSource = provideDataSource(connectionInfo)
+
+        try {
+            val newConnection = Database.connect(connectionInfo.hikariDataSource!!)
+            val connectionClass = ConnectionClass(connectionInfo, newConnection, sessionManager)
+            val connectionContext = ConnectionContext(
+                "Connection ${connectionInfo.dbName}",
+                newConnection, connectionClass
+            ).also {
+                connectionInfo.connections.add(it)
+            }
+            addConnection(connectionClass)
+            context?.invoke(connectionContext)
+            connectionUpdated?.invoke("Connected", true)
+            return connectionContext
+        }catch (ex: Exception){
+            println(ex.message)
+            return  null
+        }
     }
 
     suspend fun openConnection(

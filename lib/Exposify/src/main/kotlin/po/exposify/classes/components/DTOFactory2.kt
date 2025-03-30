@@ -7,7 +7,6 @@ import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.common.classes.ClassBlueprint
 import po.exposify.common.classes.ConstructorBuilder
-import po.exposify.constructors.DataModelBlueprint
 import po.exposify.dto.CommonDTO2
 import po.exposify.dto.classes.DTOClass2
 import po.exposify.dto.interfaces.ModelDTO
@@ -18,11 +17,11 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.isSubclassOf
 
-class DTOFactory2<DTO, DATA>(
-    private val dtoKClass : KClass<out CommonDTO2<DTO, DATA, LongEntity>>,
+class DTOFactory2<DTO, DATA, ENTITY>(
+    private val dtoKClass : KClass<out CommonDTO2<DTO, DATA, ENTITY>>,
     private val dataModelClass : KClass<DATA>,
     val parent: DTOClass2<DTO>,
-) where DTO : ModelDTO,  DATA: DataModel {
+) where DTO : ModelDTO,  DATA: DataModel, ENTITY: LongEntity {
     companion object : ConstructorBuilder()
 
     internal val dataBlueprint : ClassBlueprint<DATA> =  ClassBlueprint(dataModelClass).also { it.initialize(Companion) }
@@ -144,7 +143,7 @@ class DTOFactory2<DTO, DATA>(
      * @input dataModel:  DATA?
      * @return DTOFunctions<DATA, ENTITY> or null
      * */
-    suspend fun createEntityDto(dataModel : DATA? = null): CommonDTO2<DTO,  DATA, LongEntity>?{
+    suspend fun createEntityDto(dataModel : DATA? = null): CommonDTO2<DTO,  DATA, ENTITY>?{
         val model = dataModel?: createDataModel()
 
             dtoBlueprint.setExternalParamLookupFn { param ->
