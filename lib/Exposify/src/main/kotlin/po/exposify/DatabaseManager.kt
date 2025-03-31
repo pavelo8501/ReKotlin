@@ -7,6 +7,7 @@ import org.jetbrains.exposed.sql.Database
 import po.auth.sessions.interfaces.ManagedSession
 import po.exposify.controls.ConnectionInfo
 import po.exposify.scope.connection.ConnectionClass
+import po.exposify.scope.connection.ConnectionClass2
 import po.exposify.scope.connection.ConnectionContext
 import po.exposify.scope.connection.ConnectionContext2
 import po.exposify.scope.connection.models.ConnectionSettings
@@ -23,9 +24,9 @@ fun launchService(connection:ConnectionContext, block: ConnectionContext.()-> Un
 
 object DatabaseManager {
 
-    private val connections  = mutableListOf<ConnectionClass>()
+    private val connections  = mutableListOf<ConnectionClass2>()
 
-    private fun addConnection(connection : ConnectionClass){
+    private fun addConnection(connection : ConnectionClass2){
         connections.add(connection)
     }
 
@@ -34,16 +35,27 @@ object DatabaseManager {
         connectionUpdated = fn
     }
 
-    private fun provideDataSource(connectionInfo:ConnectionInfo): HikariDataSource {
-        val hikariConfig= HikariConfig().apply {
-            driverClassName = connectionInfo.driverClassName
-            jdbcUrl = connectionInfo.getConnectionString()
-            maximumPoolSize = 10
-            isAutoCommit = false
-            transactionIsolation = "TRANSACTION_READ_COMMITTED" // Changed from TRANSACTION_REPEATABLE_READ
-            validate()
+    private fun provideDataSource(connectionInfo:ConnectionInfo): HikariDataSource? {
+        try {
+            val hikariConfig= HikariConfig().apply {
+                driverClassName = connectionInfo.driverClassName
+                jdbcUrl = connectionInfo.getConnectionString()
+                username = connectionInfo.user
+                password = connectionInfo.pwd
+                maximumPoolSize = 10
+                isAutoCommit = false
+                transactionIsolation = "TRANSACTION_READ_COMMITTED" // Changed from TRANSACTION_REPEATABLE_READ
+                validate()
+            }
+            val source =  HikariDataSource(hikariConfig)
+            return source
+        }catch (ex: Exception){
+            println(ex.message.toString())
+            return null
+        }catch (th: Throwable){
+            println(th.message.toString())
+            return null
         }
-        return HikariDataSource(hikariConfig)
     }
 
     fun openConnectionSync(
@@ -51,24 +63,28 @@ object DatabaseManager {
         sessionManager: ManagedSession,
         context: (ConnectionContext2.()->Unit)? = null
     ): ConnectionContext2? {
-            connectionInfo.hikariDataSource = provideDataSource(connectionInfo)
 
         try {
+            connectionInfo.hikariDataSource = provideDataSource(connectionInfo)
             val newConnection = Database.connect(connectionInfo.hikariDataSource!!)
-            val connectionClass = ConnectionClass(connectionInfo, newConnection, sessionManager)
-            val connectionContext = ConnectionContext(
+            val connectionClass = ConnectionClass2(connectionInfo, newConnection, sessionManager)
+            val connectionContext = ConnectionContext2(
                 "Connection ${connectionInfo.dbName}",
                 newConnection, connectionClass
             ).also {
                 connectionInfo.connections.add(it)
             }
             addConnection(connectionClass)
+
             context?.invoke(connectionContext)
             connectionUpdated?.invoke("Connected", true)
             return connectionContext
         }catch (ex: Exception){
             println(ex.message)
             return  null
+        }catch (th: Throwable){
+            println(th.message.toString())
+            return null
         }
     }
 
@@ -76,15 +92,15 @@ object DatabaseManager {
         connectionInfo : ConnectionInfo,
         sessionManager: ManagedSession,
         settings : ConnectionSettings = ConnectionSettings(5),
-        context: ConnectionContext.()->Unit
+        context: ConnectionContext2.()->Unit
     ): Boolean {
         var retriesLeft = settings.retries.toInt()
         while (retriesLeft != 0) {
             runCatching {
                 connectionInfo.hikariDataSource = provideDataSource(connectionInfo)
                 val newConnection = Database.connect(connectionInfo.hikariDataSource!!)
-                val connectionClass = ConnectionClass(connectionInfo, newConnection, sessionManager)
-                val connectionContext = ConnectionContext(
+                val connectionClass = ConnectionClass2(connectionInfo, newConnection, sessionManager)
+                val connectionContext = ConnectionContext2(
                     "Connection ${connectionInfo.dbName}",
                     newConnection, connectionClass
                 ).also {
@@ -96,7 +112,7 @@ object DatabaseManager {
                 return true
             }.getOrElse {
                 connectionUpdated?.invoke(it.message.toString(), false)
-                connectionInfo.setError(it as Exception)
+                connectionInfo.registerError(it)
                 connectionInfo.lastError = it.message
                 if (retriesLeft > 0) {
                     retriesLeft--

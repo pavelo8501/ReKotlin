@@ -11,6 +11,7 @@ val kotlinSerializationVersion : String by project
 val h2DatabaseVersion : String by project
 val exposifyVersion: String by project
 val postgresVersion: String by project
+val testContainerVersion: String by project
 
 plugins {
     kotlin("jvm")
@@ -54,14 +55,20 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposedVersion")
     implementation("com.zaxxer:HikariCP:$hikaricpVersion")
-    implementation("mysql:mysql-connector-java:$mysqlVersion")
     implementation("org.postgresql:postgresql:$postgresVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinSerializationVersion")
 
     api(project(":lib:AuthCore"))
     api(project(":lib:LogNotify"))
 
-    testImplementation("com.h2database:h2:$h2DatabaseVersion")
+   // testImplementation("com.h2database:h2:$h2DatabaseVersion")
+   // testImplementation("org.postgresql:postgresql:$postgresVersion")
+
+    testImplementation("org.testcontainers:testcontainers:$testContainerVersion")
+    testImplementation("org.testcontainers:postgresql:$testContainerVersion")
+    testImplementation("org.testcontainers:junit-jupiter:$testContainerVersion")
+    testImplementation("org.postgresql:postgresql:$postgresVersion")
+    testImplementation("com.zaxxer:HikariCP:$hikaricpVersion")
 
     testImplementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
     testImplementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")

@@ -22,7 +22,7 @@ class ConnectionClass2(
 
     val name: String = "ConnectionClas|{${connection.name}"
 
-    var services: MutableMap<String, ServiceClass2<*>> = mutableMapOf<String, ServiceClass2<*>>()
+    var services: MutableMap<String, ServiceClass2<*,*,*>> = mutableMapOf<String, ServiceClass2<*,*,*>>()
 
 //    override var eventHandler: RootEventHandler = RootEventHandler(name){
 //        echo(it, "ConnectionClass: RootEventHandler")
@@ -57,11 +57,11 @@ class ConnectionClass2(
         } ?: emptyList()
     }
 
-    fun addService(service : ServiceClass2<*>){
+    fun addService(service : ServiceClass2<*,*,*>){
         services.putIfAbsent(service.name, service)
     }
 
-    fun getService(name: String): ServiceClass2<*>?{
+    fun getService(name: String): ServiceClass2<*,*,*>?{
         this.services.keys.firstOrNull{it == name}?.let { return services[it] }
         return null
     }

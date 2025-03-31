@@ -10,11 +10,10 @@ import kotlin.reflect.KClass
 
 data class DTORegistryItem2<DTO ,DATA, ENTITY>(
     val dtoKClass: KClass<out CommonDTO2<DTO, DATA, ENTITY>>,
-    val dataKClass:  KClass<DATA>,
+    val dataKClass: KClass<DATA>,
     val entityKClass: KClass<ENTITY>,
     val dtoClass: DTOClass2<DTO>
 ) where DTO: ModelDTO, DATA: DataModel , ENTITY: LongEntity{
-
 
     fun getDataEntityTypePair(): Pair<KClass<DATA>, KClass<ENTITY>>{
         return Pair(dataKClass, entityKClass)

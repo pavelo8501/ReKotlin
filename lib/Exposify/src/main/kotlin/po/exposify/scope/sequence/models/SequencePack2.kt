@@ -12,7 +12,7 @@ import po.exposify.scope.service.ServiceClass2
 
 data class SequencePack2<DTO>(
     private val context : SequenceContext2<DTO>,
-    internal val serviceClass: ServiceClass2<DTO>,
+    internal val serviceClass: ServiceClass2<DTO, *, *>,
     private val sequenceFn : suspend  SequenceContext2<DTO>.() -> Unit,
     private val handler: SequenceHandler2<DTO>,
 ) where  DTO : ModelDTO {

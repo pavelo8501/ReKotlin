@@ -2,6 +2,7 @@ package po.exposify.scope.connection
 
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.dao.LongEntity
+import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.sql.Database
 import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
@@ -22,18 +23,28 @@ class ConnectionContext2(
     val isOpen : Boolean
         get(){return  connectionClass.isConnectionOpen }
 
-    fun <DTO>ConnectionContext2.service(
+    fun <DTO, DATA> service(
         rootDtoModel : DTOClass2<DTO>,
         serviceCreateOption : TableCreateMode? = null,
-        context: suspend ServiceContext2<DTO>.()->Unit,
-    ) where DTO : ModelDTO {
+        context: ServiceContext2<DTO, DATA>.()->Unit,
+    ) where DTO : ModelDTO, DATA : DataModel {
         try {
-            ServiceClass2(connectionClass, rootDtoModel, serviceCreateOption).let {
-                connectionClass.addService(it)
-                runBlocking {
-                    it.launch(context)
+           val serviceClass =  ServiceClass2<DTO, DATA, LongEntity>(
+                connectionClass,
+                rootDtoModel,
+                serviceCreateOption)
+
+            connectionClass.addService(serviceClass)
+            serviceClass.launch(context)
+
+
+
+            serviceClass.let {
+                    connectionClass.addService(it)
+                    runBlocking {
+                        it.launch(context)
+                    }
                 }
-            }
         }catch (exception: Exception){
             println(exception.message)
             throw exception

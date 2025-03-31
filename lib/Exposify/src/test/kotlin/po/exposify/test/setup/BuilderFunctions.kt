@@ -2,9 +2,13 @@ package po.exposify.test.setup
 
 import po.exposify.test.DatabaseTest
 
-class BuilderFunctions {
+
+
+fun pageModel(name: String): TestPage{
+    return  TestPage("TestPage/$name", 1)
 }
 
-fun <T: DatabaseTest>  T.sectionModel(name: String): TestSection{
-    return  TestSection(name, "$name description", "",  1, 1)
+
+fun sectionModel(name: String): TestSection{
+    return  TestSection("TestSection/$name", "TestSection/$name Description", "",  1, 1)
 }

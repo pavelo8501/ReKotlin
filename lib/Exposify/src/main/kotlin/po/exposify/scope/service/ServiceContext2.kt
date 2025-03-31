@@ -1,40 +1,51 @@
 package po.exposify.scope.service
 
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.runBlocking
+import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction
 import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
+import po.exposify.common.interfaces.AsContext
+import po.exposify.common.models.CrudResult2
 import po.exposify.dto.classes.DTOClass2
+import po.exposify.dto.extensions.delete
+import po.exposify.dto.extensions.pick
+import po.exposify.dto.extensions.select
+import po.exposify.dto.extensions.update
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.extensions.QueryConditions
 import po.exposify.extensions.WhereCondition
 import po.exposify.scope.dto.DTOContext
-import po.exposify.scope.dto.DTOContext2
 import po.exposify.scope.sequence.SequenceContext2
 import po.exposify.scope.sequence.classes.SequenceHandler2
 import po.exposify.scope.sequence.models.SequencePack2
-import po.exposify.scope.service.enums.WriteMode
 import kotlin.reflect.KProperty1
 
-
-class ServiceContext2<DTO>(
-    private val serviceClass : ServiceClass2<DTO>,
+class ServiceContext2<DTO, DATA>(
+    private  val serviceClass : ServiceClass2<DTO, DATA, *>,
     internal val rootDtoModel : DTOClass2<DTO>,
-) where DTO : ModelDTO{
+): AsContext<DATA>  where DTO : ModelDTO, DATA: DataModel{
 
     private val dbConnection: Database = serviceClass.connection
     val name : String = "${rootDtoModel.personalName}|Service"
 
+    init {
+        rootDtoModel.associateWithServiceContext(this)
+    }
 
     internal fun  <T>dbQuery(body : () -> T): T = transaction(dbConnection) {
         body()
     }
 
-    private fun <T> service(statement: ServiceContext2<DTO>.() -> T): T = statement.invoke(this)
-    fun <T> context(serviceBody: ServiceContext2<DTO>.() -> T): T = service{
-        serviceBody()
-    }
+    //private fun <T> service(statement: ServiceContext2<DTO, DATA>.() -> T): T = statement.invoke(this)
+
+//    fun <T> context(serviceBody: ServiceContext2<DTO, DATA>.() -> T): T = service{
+//        serviceBody()
+//    }
 
     /**
      * Dynamically selects DTOs from the database based on the provided conditions and executes a block
@@ -70,64 +81,49 @@ class ServiceContext2<DTO>(
      * - The function uses `dbQuery` internally to fetch the selected DTOs.
      * - If no DTOs match the conditions, the block will still execute with an empty context.
      */
-    fun <T: IdTable<Long>>pick(
-        conditions: QueryConditions<T>, block: DTOContext2<DTO>.() -> Unit): DTOClass2<DTO>? {
-//        val selectedDTOs = dbQuery {
-//            runBlocking {
-//                rootDtoModel.pick(conditions)
-//            }
-//        }
-       // val context  = DTOContext2(rootDtoModel, selectedDTOs)
-       // context.block()
-        return null
+    fun <T: IdTable<Long>>pick(conditions: QueryConditions<T>): Deferred<CrudResult2<DTO>>{
+        val crudResult = dbQuery {
+            runBlocking {
+                rootDtoModel.pick<DTO, DATA, LongEntity, T>(conditions)
+            }
+        }
+        return CompletableDeferred<CrudResult2<DTO>>(crudResult)
     }
 
-    fun select(
-        block: DTOContext2<DTO>.() -> Unit
-    ){
-//        val selectedDTOs = dbQuery {
-//            runBlocking {
-//                rootDtoModel.select()
-//            }
-//        }
-//        val context =  DTOContext2(rootDtoModel, selectedDTOs)
-//        context.block()
+    fun select(): Deferred<CrudResult2<DTO>> {
+        val crudResult = dbQuery {
+            runBlocking {
+                rootDtoModel.select<DTO, DATA, LongEntity>()
+            }
+        }
+        return CompletableDeferred<CrudResult2<DTO>>(crudResult)
     }
 
-    fun <T: IdTable<Long>> select(conditions : WhereCondition<T>,   block: DTOContext2<DTO>.() -> Unit) {
-
-//        val selectedDTOs = dbQuery {
-//            runBlocking {
-//                rootDtoModel.select(conditions)
-//            }
-//        }
-//        val context =  DTOContext2(rootDtoModel, selectedDTOs)
-//        context.block()
+    fun <T: IdTable<Long>> select(conditions : WhereCondition<T>): Deferred<CrudResult2<DTO>>{
+        val crudResult = dbQuery {
+            runBlocking {
+                rootDtoModel.select<DTO, DATA, LongEntity, T>(conditions)
+            }
+        }
+        return CompletableDeferred<CrudResult2<DTO>>(crudResult)
     }
 
-    @JvmName("updateFromDataModels")
-    fun DTOClass2<DTO>.update(
-        dataModels : List<DataModel>,
-        writeMode: WriteMode = WriteMode.STRICT,
-        block: DTOContext2<DTO>.() -> Unit){
-//        val createdDTOs =  dbQuery {
-//            runBlocking {
-//               // update<DATA, ENTITY>(dataModels)
-//            }
-//        }
-//        val context = DTOContext2(this, createdDTOs)
-//        context.block()
+    fun update(dataModels : List<DATA>): Deferred<CrudResult2<DTO>>  {
+        val crudResult = dbQuery {
+            runBlocking {
+                rootDtoModel.update<DTO, DATA, LongEntity>(dataModels)
+            }
+        }
+       return  CompletableDeferred<CrudResult2<DTO>>(crudResult)
     }
 
-
-    fun DTOClass2<DTO>.delete(toDelete: DataModel, block: DTOContext2<DTO>.() -> Unit){
-//        val selectedDTOs = dbQuery {
-//            runBlocking {
-//                delete(toDelete)
-//            }
-//        }
-//        val context  = DTOContext2(this, selectedDTOs)
-//        context.block()
+    fun delete(toDelete: DATA): Deferred<CrudResult2<DTO>>{
+        val crudResult = dbQuery {
+            runBlocking {
+                rootDtoModel.delete<DTO, DATA, LongEntity>(toDelete)
+            }
+        }
+        return  CompletableDeferred<CrudResult2<DTO>>(crudResult)
     }
 
     fun sequence(

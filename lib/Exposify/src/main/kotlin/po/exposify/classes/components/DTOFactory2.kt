@@ -145,7 +145,6 @@ class DTOFactory2<DTO, DATA, ENTITY>(
      * */
     suspend fun createEntityDto(dataModel : DATA? = null): CommonDTO2<DTO,  DATA, ENTITY>?{
         val model = dataModel?: createDataModel()
-
             dtoBlueprint.setExternalParamLookupFn { param ->
                 when (param.name) {
                     "dataModel" -> {

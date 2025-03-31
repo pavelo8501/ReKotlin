@@ -2,6 +2,7 @@ package po.exposify.scope.service
 
 import kotlinx.coroutines.Deferred
 import org.jetbrains.exposed.dao.LongEntity
+import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
@@ -9,6 +10,7 @@ import org.jetbrains.exposed.sql.exists
 import org.jetbrains.exposed.sql.transactions.transaction
 import po.exposify.classes.components.CallbackEmitter2
 import po.exposify.classes.interfaces.DataModel
+import po.exposify.common.interfaces.AsClass
 import po.exposify.dto.classes.DTOClass2
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.ExceptionCodes
@@ -22,17 +24,16 @@ import po.lognotify.eventhandler.RootEventHandler
 import po.lognotify.eventhandler.interfaces.CanNotify
 import kotlin.collections.forEach
 
-
-class ServiceClass2<DTO>(
+class ServiceClass2<DTO, DATA, ENTITY>(
     private val connectionClass : ConnectionClass2,
     private val rootDTOModel : DTOClass2<DTO>,
     private val serviceCreateOption: TableCreateMode? = null,
-) : CanNotify  where  DTO: ModelDTO {
+) : CanNotify, AsClass<DATA, ENTITY>  where  DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity {
 
     internal val connection : Database = connectionClass.connection
 
     var name : String = "undefined"
-    var serviceContext : ServiceContext2<DTO>? = null
+    var serviceContext : ServiceContext2<DTO, DATA>? = null
 
     override val eventHandler = RootEventHandler(name){
         echo(it, "ServiceClass: RootEventHandler")
@@ -93,7 +94,7 @@ class ServiceClass2<DTO>(
         }
     }
 
-    private fun initializeDTOs(context: ServiceClass2<DTO>.() -> Unit ) {
+    private fun initializeDTOs(context: ServiceClass2<DTO, DATA, ENTITY>.() -> Unit ) {
         context.invoke(this)
     }
 
@@ -130,23 +131,8 @@ class ServiceClass2<DTO>(
         }
     }
 
-    fun <DATA: DataModel, ENTITY: LongEntity> attachToContext(
-        dtoModel : DTOClass2<DTO>,
-        context:  ServiceContext<DATA, ENTITY>.() -> Unit
-    ): Boolean {
-        serviceContext?.let {serviceCtx->
-            if (rootDTOModel::class.isInstance(dtoModel)) {
-                serviceCtx.also {
-                    @Suppress("UNCHECKED_CAST")
-                    context.invoke(serviceCtx as ServiceContext<DATA, ENTITY>)
-                    return true
-                }
-            }
-        }
-        return false
-    }
 
-    suspend fun launch(receiver: suspend ServiceContext2<DTO>.() -> Unit){
+    fun launch(receiver: ServiceContext2<DTO, DATA>.() -> Unit){
         ServiceContext2(this, rootDTOModel).let {context->
             context.receiver()
             serviceContext = context
