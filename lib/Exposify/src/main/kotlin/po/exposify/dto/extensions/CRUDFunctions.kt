@@ -2,13 +2,12 @@ package po.exposify.dto.extensions
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
-import po.exposify.binder.UpdateMode
+import po.exposify.binders.UpdateMode
 import po.exposify.classes.components.DTOConfig2
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.common.models.CrudResult2
-import po.exposify.dto.CommonDTO2
+import po.exposify.dto.CommonDTO
 import po.exposify.dto.classes.DTOClass2
-import po.exposify.dto.extensions.update
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.extensions.QueryConditions
 import kotlin.Long
@@ -20,17 +19,14 @@ internal suspend fun <DTO, DATA, ENTITY, TB: IdTable<Long>> runPick(
     config :  DTOConfig2<DTO, DATA, ENTITY>,
     conditions: QueryConditions<TB>): CrudResult2<DTO> where DTO : ModelDTO, DATA : DataModel, ENTITY : LongEntity
 {
-
-    val resultList = mutableListOf<CommonDTO2<DTO, DATA, ENTITY>>()
+    val resultList = mutableListOf<CommonDTO<DTO, DATA, ENTITY>>()
     val entity =  config.daoService.pick(conditions.build())
     entity?.let {entity->
-
         config.dtoFactory.createEntityDto()?.let { newDto->
             newDto.updateBinding(entity, UpdateMode.ENTITY_TO_MODEL)
             resultList.add(newDto)
         }
     }
-    resultList.forEach {  }
     return CrudResult2(resultList)
 }
 
@@ -41,7 +37,7 @@ internal suspend fun <DTO, DATA, ENTITY, TB> runSelect(
     conditions: QueryConditions<TB>? = null
 ): CrudResult2<DTO> where DTO : ModelDTO, DATA : DataModel, ENTITY : LongEntity, TB: IdTable<Long>{
 
-    val resultList = mutableListOf<CommonDTO2<DTO, DATA, ENTITY>>()
+    val resultList = mutableListOf<CommonDTO<DTO, DATA, ENTITY>>()
     val entities = if(conditions!= null){
         config.daoService.select(conditions.build()).toList()
     }else{
@@ -56,34 +52,33 @@ internal suspend fun <DTO, DATA, ENTITY, TB> runSelect(
     return CrudResult2(resultList)
 }
 
-
-internal suspend fun <DTO, DATA, ENTITY>runUpdate(
+private suspend fun <DTO>runUpdate(
     dtoClass: DTOClass2<DTO>,
-    config :  DTOConfig2<DTO, DATA, ENTITY>,
-    dataModels: List<DATA>
-): CrudResult2<DTO> where DTO : ModelDTO, DATA : DataModel, ENTITY : LongEntity {
-    val resultList = mutableListOf<CommonDTO2<DTO, DATA, ENTITY>>()
+    dataModels: List<DataModel>
+): CrudResult2<DTO> where DTO : ModelDTO{
+    val resultList = mutableListOf<CommonDTO<DTO, DataModel, LongEntity>>()
 
     dataModels.forEach { dataModel ->
-        config.dtoFactory.createEntityDto(dataModel)?.let { newDto ->
-            config.relationBinder.createRepositories(newDto)
-            resultList.add(newDto)
+        dtoClass.config.dtoFactory.createEntityDto(dataModel)?.let {
+            it.update()
+            resultList.add(it)
         }
     }
     return CrudResult2(resultList)
 }
-
 
 internal suspend fun <DTO, DATA, ENTITY>runDelete(
     dtoClass: DTOClass2<DTO>,
     config :  DTOConfig2<DTO, DATA, ENTITY>,
     dataModel: DATA): CrudResult2<DTO> where DTO : ModelDTO, DATA : DataModel, ENTITY : LongEntity{
 
-    val resultList = mutableListOf<CommonDTO2<DTO, DATA, ENTITY>>()
+    val resultList = mutableListOf<CommonDTO<DTO, DATA, ENTITY>>()
     config.dtoFactory.createEntityDto(dataModel)?.let { newDto ->
-            config.daoService.selectWhere(newDto.id).let { entity ->
-                newDto.updateBinding(entity, UpdateMode.ENTITY_TO_MODEL)
-                resultList.add(newDto)
+            config.daoService.selectById(newDto.id).let { entity ->
+                if(entity != null){
+                    newDto.updateBinding(entity, UpdateMode.ENTITY_TO_MODEL)
+                    resultList.add(newDto)
+                }
             }
         }
     return CrudResult2(resultList)
@@ -108,7 +103,7 @@ internal suspend fun <DTO, DATA, ENTITY>runDelete(
 internal suspend inline fun <DTO: ModelDTO, DATA: DataModel, ENTITY: LongEntity, TB : IdTable<Long>> DTOClass2<DTO>.pick(
     conditions: QueryConditions<TB>
 ): CrudResult2<DTO> {
-    var result = CrudResult2(emptyList<CommonDTO2<DTO,DATA,ENTITY>>())
+    var result = CrudResult2(emptyList<CommonDTO<DTO,DATA,ENTITY>>())
     withTypedConfig<DATA, ENTITY> {
         result = runPick(this@pick, this@withTypedConfig, conditions)
     }
@@ -124,7 +119,7 @@ internal suspend inline fun <DTO, DATA, ENTITY, T>  DTOClass2<DTO>.select(
     conditions: QueryConditions<T>
 ): CrudResult2<DTO> where DTO: ModelDTO, DATA: DataModel, ENTITY: LongEntity, T: IdTable<Long>
 {
-    var result = CrudResult2(emptyList<CommonDTO2<DTO,DATA,ENTITY>>())
+    var result = CrudResult2(emptyList<CommonDTO<DTO,DATA,ENTITY>>())
     withTypedConfig<DATA, ENTITY> {
         result = runSelect(this@select, this@withTypedConfig, conditions)
     }
@@ -136,22 +131,18 @@ internal suspend inline fun <DTO, DATA, ENTITY>  DTOClass2<DTO>.select(
 
 ): CrudResult2<DTO> where DTO: ModelDTO, DATA: DataModel, ENTITY: LongEntity
 {
-    var result = CrudResult2(emptyList<CommonDTO2<DTO,DATA,ENTITY>>())
+    var result = CrudResult2(emptyList<CommonDTO<DTO,DATA,ENTITY>>())
     withTypedConfig<DATA, ENTITY> {
         result = runSelect<DTO, DATA, ENTITY, IdTable<Long>>(this@select, this@withTypedConfig)
     }
     return result
 }
 
-internal suspend inline fun <DTO, DATA, ENTITY>  DTOClass2<DTO>.update(
-    dataModels: List<DATA>
-): CrudResult2<DTO> where DTO: ModelDTO, DATA: DataModel, ENTITY: LongEntity  {
-    var result = CrudResult2(emptyList<CommonDTO2<DTO,DATA,ENTITY>>())
-    withTypedConfig<DATA, ENTITY> {
-        result = runUpdate(this@update, this@withTypedConfig, dataModels)
-    }
-    return result
-}
+internal suspend fun <DTO> DTOClass2<DTO>.update(
+    dataModels: List<DataModel>
+): CrudResult2<DTO> where DTO: ModelDTO = runUpdate(this, dataModels)
+
+
 
 /**
  * Deletes a given data model by first finding and initializing its DTO, then deleting it along with its bindings.
@@ -163,7 +154,7 @@ internal suspend inline fun <DTO, DATA, ENTITY>  DTOClass2<DTO>.delete(
     dataModel: DATA
 ): CrudResult2<DTO>  where DTO: ModelDTO, DATA: DataModel, ENTITY: LongEntity
 {
-    var result = CrudResult2(emptyList<CommonDTO2<DTO,DATA,ENTITY>>())
+    var result = CrudResult2(emptyList<CommonDTO<DTO,DATA,ENTITY>>())
     withTypedConfig<DATA, ENTITY> {
         result = runDelete(this@delete, this@withTypedConfig, dataModel)
     }

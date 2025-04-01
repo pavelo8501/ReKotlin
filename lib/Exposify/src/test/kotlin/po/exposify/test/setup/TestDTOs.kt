@@ -3,14 +3,10 @@ package po.exposify.test.setup
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.builtins.ListSerializer
-import po.exposify.binder.ReadOnly
-import po.exposify.binder.SyncedBinding
-import po.exposify.binder.SyncedSerialized
-import po.exposify.classes.DTOClass
+import po.exposify.binders.ReadOnly
+import po.exposify.binders.SyncedBinding
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.CommonDTO2
 import po.exposify.dto.classes.DTOClass2
 
 @Serializable
@@ -28,18 +24,14 @@ data class TestUser(
 
 class TestUserDTO(
     override var dataModel: TestUser
-): CommonDTO<TestUser, TestUserEntity>(TestUserDTO) {
+): CommonDTO<TestUserDTO,  TestUser, TestUserEntity>(TestUserDTO) {
 
-    companion object: DTOClass<TestUser, TestUserEntity>(TestUserDTO::class){
+    companion object: DTOClass2<TestUserDTO>(){
         override fun setup() {
-            dtoSettings<TestUser, TestUserEntity>(TestUserEntity){
+            configuration<TestUser, TestUserEntity>(TestUserDTO::class, TestUserEntity){
+
                 propertyBindings(
-                    SyncedBinding(TestUser::name, TestUserEntity::name),
-                    SyncedBinding(TestUser::login, TestUserEntity::login),
-                    SyncedBinding(TestUser::password, TestUserEntity::password),
-                    SyncedBinding(TestUser::email, TestUserEntity::email),
-                    SyncedBinding(TestUser::updated, TestUserEntity::updated),
-                    SyncedBinding(TestUser::created, TestUserEntity::created)
+                    SyncedBinding(TestUser::name, TestUserEntity::name)
                 )
             }
         }
@@ -60,11 +52,8 @@ data class TestPage(
 
 class TestPageDTO(
     override var dataModel: TestPage
-): CommonDTO2<TestPageDTO, TestPage, TestPageEntity>(TestPageDTO) {
-
-
+): CommonDTO<TestPageDTO, TestPage, TestPageEntity>(TestPageDTO) {
     companion object: DTOClass2<TestPageDTO>(){
-
         override fun setup() {
            configuration<TestPage, TestPageEntity>(TestPageDTO::class, TestPageEntity){
                propertyBindings(SyncedBinding(TestPage::name, TestPageEntity::name),
@@ -81,17 +70,6 @@ class TestPageDTO(
                }
            }
         }
-
-
-//                childBindings {
-//                    childBinding<TestSection, TestSectionEntity>(
-//                        childModel = TestSectionDTO,
-//                        sourceProperty = TestPage:: sections,
-//                        byProperty =  TestPageEntity::sections,
-//                        referencedOnProperty = TestSectionEntity::page)
-//                }
-//            }
-//        }
     }
 }
 
@@ -116,7 +94,7 @@ data class TestSection(
 
 class TestSectionDTO(
     override var dataModel: TestSection
-): CommonDTO2<TestSectionDTO, TestSection, TestSectionEntity>(TestSectionDTO) {
+): CommonDTO<TestSectionDTO, TestSection, TestSectionEntity>(TestSectionDTO) {
 
     companion object: DTOClass2<TestSectionDTO>(){
 

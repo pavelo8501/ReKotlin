@@ -46,7 +46,7 @@ class DTOContext<DATA, ENTITY>(
     public var condition:  WhereCondition<*> ? = null
 
         init {
-            resultCallback?.let{callbackOnResult(resultCallback)}
+            //resultCallback?.let{callbackOnResult(resultCallback)}
         }
 
 
@@ -60,28 +60,28 @@ class DTOContext<DATA, ENTITY>(
             return this
         }
 
-        suspend fun select() {
-            crudResult =  if (condition != null) {
-                rootDTOClass.select(condition!!)
-            }else{
-                rootDTOClass.select()
-            }
-        }
+//        suspend fun select() {
+//            crudResult =  if (condition != null) {
+//                rootDTOClass.select(condition!!)
+//            }else{
+//                rootDTOClass.select()
+//            }
+//        }
 
-        private fun asDataModels(crud: CrudResult<DATA, ENTITY>): List<DATA>{
-            return  crud.rootDTOs.map { it.compileDataModel() }
-        }
+//        private fun asDataModels(crud: CrudResult<DATA, ENTITY>): List<DATA>{
+//            return  crud.rootDTOs.map { it.compileDataModel() }
+//        }
 
-        fun getData(): List<DATA>{
-            return  asDataModels(crudResult!!)
-        }
+//        fun getData(): List<DATA>{
+//            return  asDataModels(crudResult!!)
+//        }
 
         fun getStats(): Event?{
             crudResult!!.event?.print()
             return crudResult!!.event
         }
 
-        fun callbackOnResult(callback : (List<DATA>)->Unit ){
-            callback.invoke(asDataModels(crudResult!!))
-        }
+//        fun callbackOnResult(callback : (List<DATA>)->Unit ){
+//            callback.invoke(asDataModels(crudResult!!))
+//        }
 }

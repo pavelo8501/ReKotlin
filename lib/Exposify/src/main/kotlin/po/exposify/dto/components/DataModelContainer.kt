@@ -1,9 +1,8 @@
 package po.exposify.dto.components
 
-import po.exposify.binder.PropertyBinder
+import po.exposify.binders.PropertyBinder
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.constructors.DataModelBlueprint
-import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty
 import kotlin.reflect.KProperty1

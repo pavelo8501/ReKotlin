@@ -70,37 +70,37 @@ class ServiceContext<DATA,ENTITY>(
      */
     fun <T: IdTable<Long>>pick(
         conditions: QueryConditions<T>, block: DTOContext<DATA, ENTITY>.() -> Unit): DTOClass<DATA, ENTITY>? {
-        val selectedDTOs = dbQuery {
-            runBlocking {
-                rootDtoModel.pick(conditions)
-            }
-        }
-        val context  = DTOContext(rootDtoModel, selectedDTOs)
-        context.block()
+//        val selectedDTOs = dbQuery {
+//            runBlocking {
+//                rootDtoModel.pick(conditions)
+//            }
+//        }
+//        val context  = DTOContext(rootDtoModel, selectedDTOs)
+//        context.block()
         return null
     }
 
     fun select(
         block: DTOContext<DATA, ENTITY>.() -> Unit
     ){
-        val selectedDTOs = dbQuery {
-            runBlocking {
-                rootDtoModel.select()
-            }
-        }
-        val context =  DTOContext(rootDtoModel, selectedDTOs)
-        context.block()
+//        val selectedDTOs = dbQuery {
+//            runBlocking {
+//                rootDtoModel.select()
+//            }
+//        }
+//        val context =  DTOContext(rootDtoModel, selectedDTOs)
+//        context.block()
     }
 
     fun <T: IdTable<Long>> select(conditions : WhereCondition<T>,   block: DTOContext<DATA, ENTITY>.() -> Unit) {
 
-        val selectedDTOs = dbQuery {
-            runBlocking {
-                rootDtoModel.select(conditions)
-            }
-        }
-        val context =  DTOContext(rootDtoModel, selectedDTOs)
-        context.block()
+//        val selectedDTOs = dbQuery {
+//            runBlocking {
+//                rootDtoModel.select(conditions)
+//            }
+//        }
+//        val context =  DTOContext(rootDtoModel, selectedDTOs)
+//        context.block()
     }
 
     @JvmName("updateFromDataModels")
@@ -108,24 +108,24 @@ class ServiceContext<DATA,ENTITY>(
         dataModels : List<DATA>,
         writeMode: WriteMode = WriteMode.STRICT,
         block: DTOContext<DATA, ENTITY>.() -> Unit){
-        val createdDTOs =  dbQuery {
-            runBlocking {
-                update<DATA, ENTITY>(dataModels)
-            }
-        }
-        val context = DTOContext(this,createdDTOs)
-        context.block()
+//        val createdDTOs =  dbQuery {
+//            runBlocking {
+//                update<DATA, ENTITY>(dataModels)
+//            }
+//        }
+//        val context = DTOContext(this,createdDTOs)
+//        context.block()
     }
 
 
     fun DTOClass<DATA, ENTITY>.delete(toDelete: DATA, block: DTOContext<DATA, ENTITY>.() -> Unit){
-        val selectedDTOs = dbQuery {
-            runBlocking {
-                delete(toDelete)
-            }
-        }
-        val context  = DTOContext(this, selectedDTOs)
-        context.block()
+//        val selectedDTOs = dbQuery {
+//            runBlocking {
+//                delete(toDelete)
+//            }
+//        }
+//        val context  = DTOContext(this, selectedDTOs)
+//        context.block()
     }
 
     fun sequence(

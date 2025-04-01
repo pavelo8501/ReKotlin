@@ -9,7 +9,6 @@ import po.auth.sessions.models.AuthorizedSession
 import po.exposify.classes.DTOClass
 import po.exposify.classes.components.safeCast
 import po.exposify.classes.interfaces.DataModel
-import po.exposify.dto.CommonDTO
 import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
 import po.exposify.scope.sequence.enums.SequenceID
@@ -19,13 +18,13 @@ import po.exposify.scope.service.ServiceContext
 import kotlin.reflect.full.companionObjectInstance
 
 
-suspend inline fun <reified DTO> AuthorizedSession.execute(
-    sequenceId:Int
-): Unit  where DTO : CommonDTO<*, *>  {
-
-    val dtos = sequenceOf(DTO::class).toList()
-    dtos.first { it.companionObjectInstance ==   DTO::class.companionObjectInstance}.objectInstance!!.dtoClass.execute(sequenceId)
-}
+//suspend inline fun <reified DTO> AuthorizedSession.execute(
+//    sequenceId:Int
+//): Unit  where DTO : CommonDTO<*, *>  {
+//
+//    val dtos = sequenceOf(DTO::class).toList()
+//    dtos.first { it.companionObjectInstance ==   DTO::class.companionObjectInstance}.objectInstance!!.dtoClass.execute(sequenceId)
+//}
 
 
 private suspend fun <DATA: DataModel,  ENTITY: LongEntity>  runExecute(
@@ -33,19 +32,19 @@ private suspend fun <DATA: DataModel,  ENTITY: LongEntity>  runExecute(
     dtoClass: DTOClass<DATA, ENTITY>,
     sequenceId: String,
     params: Map<String, String>? = null,
-    inputList: List<DATA>? = null): Deferred<List<DATA>>{
+    inputList: List<DATA>? = null){
 
     val lookupKey = "sequence:${dtoClass.personalName}::$sequenceId"
 
-    session.getSessionAttr<SequenceHandler<DATA, ENTITY>>(lookupKey)?.let { handler ->
-        if (params != null && inputList != null) { return   handler.execute(params, inputList) }
-        if (params != null) { return handler.execute(params) }
-        if (inputList != null) { return handler.execute(inputList) }
-        return handler.execute()
-    }?: run {
-        println("Session attribute with key : $lookupKey not found in registry")
-        return CompletableDeferred<List<DATA>>(emptyList())
-    }
+//    session.getSessionAttr<SequenceHandler<DATA, ENTITY>>(lookupKey)?.let { handler ->
+//        if (params != null && inputList != null) { return   handler.execute(params, inputList) }
+//        if (params != null) { return handler.execute(params) }
+//        if (inputList != null) { return handler.execute(inputList) }
+//        return handler.execute()
+//    }?: run {
+//        println("Session attribute with key : $lookupKey not found in registry")
+//        return CompletableDeferred<List<DATA>>(emptyList())
+//    }
 }
 
 
@@ -53,16 +52,16 @@ suspend fun <DATA: DataModel,  ENTITY: LongEntity>  AuthorizedSession.execute(
     dtoClass: DTOClass<DATA, ENTITY>,
     sequenceID: SequenceID,
     params: Map<String, String>? = null,
-    inputList: List<DATA>? = null): Deferred<List<DATA>> {
-    return runExecute<DATA, ENTITY>(this, dtoClass, sequenceID.value.toString(), params, inputList)
+    inputList: List<DATA>? = null) {
+    runExecute<DATA, ENTITY>(this, dtoClass, sequenceID.value.toString(), params, inputList)
 }
 
 suspend fun <DATA: DataModel,  ENTITY: LongEntity>  AuthorizedSession.execute(
     dtoClass: DTOClass<DATA, ENTITY>,
     sequenceId:Int,
     params: Map<String, String>? = null,
-    inputList: List<DATA>? = null): Deferred<List<DATA>> {
-    return runExecute<DATA, ENTITY>(this, dtoClass, sequenceId.toString(), params, inputList)
+    inputList: List<DATA>? = null) {
+    runExecute<DATA, ENTITY>(this, dtoClass, sequenceId.toString(), params, inputList)
 }
 
 /**
@@ -164,36 +163,36 @@ abstract class SequenceHandlerAbstraction<DATA, ENTITY>(
         sequences[thisKey] = sequence
     }
 
-    suspend fun execute(params: Map<String, String>, key: String = "0"): Deferred<List<DATA>>{
-        getStockSequence(key).let {
-            it.saveParams(params)
-            it.saveInputList(emptyList())
-            return it.serviceClass.launchSequence(it)
-        }
-    }
-
-    suspend fun execute(inputList : List<DATA>, key: String = "0"): Deferred<List<DATA>> {
-        getStockSequence(key).let {
-            it.saveInputList(inputList)
-            it.saveParams(emptyMap())
-            return it.serviceClass.launchSequence(it)
-        }
-    }
-
-    suspend fun execute(params: Map<String, String>, inputList : List<DATA>, key: String = "0"): Deferred<List<DATA>>{
-        getStockSequence(key).let {
-            it.saveParams(params)
-            it.saveInputList(inputList)
-            return it.serviceClass.launchSequence(it)
-        }
-    }
-    suspend fun execute(key: String = "0"): Deferred<List<DATA>>{
-        getStockSequence(key).let {
-            it.saveParams(emptyMap())
-            it.saveInputList(emptyList())
-            return it.serviceClass.launchSequence(it)
-        }
-    }
+//    suspend fun execute(params: Map<String, String>, key: String = "0"): Deferred<List<DATA>>{
+//        getStockSequence(key).let {
+//            it.saveParams(params)
+//            it.saveInputList(emptyList())
+//            return it.serviceClass.launchSequence(it)
+//        }
+//    }
+//
+//    suspend fun execute(inputList : List<DATA>, key: String = "0"): Deferred<List<DATA>> {
+//        getStockSequence(key).let {
+//            it.saveInputList(inputList)
+//            it.saveParams(emptyMap())
+//            return it.serviceClass.launchSequence(it)
+//        }
+//    }
+//
+//    suspend fun execute(params: Map<String, String>, inputList : List<DATA>, key: String = "0"): Deferred<List<DATA>>{
+//        getStockSequence(key).let {
+//            it.saveParams(params)
+//            it.saveInputList(inputList)
+//            return it.serviceClass.launchSequence(it)
+//        }
+//    }
+//    suspend fun execute(key: String = "0"): Deferred<List<DATA>>{
+//        getStockSequence(key).let {
+//            it.saveParams(emptyMap())
+//            it.saveInputList(emptyList())
+//            return it.serviceClass.launchSequence(it)
+//        }
+//    }
 }
 
 class SequenceHandler<DATA, ENTITY>(

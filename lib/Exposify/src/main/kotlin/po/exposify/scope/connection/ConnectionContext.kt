@@ -50,9 +50,9 @@ class ConnectionContext(
     fun <DATA: DataModel, ENTITY: LongEntity> attachToContext(
         dtoModel : DTOClass<DATA, ENTITY>,
         context: ServiceContext<DATA,ENTITY>.()->Unit ): Boolean{
-        connectionClass.getService("${dtoModel.sourceClass.simpleName}|Service")?.let { serviceClass->
-           return serviceClass.attachToContext<DATA, ENTITY>(dtoModel, context)
-        }
+//        connectionClass.getService("${dtoModel.sourceClass.simpleName}|Service")?.let { serviceClass->
+//           return serviceClass.attachToContext<DATA, ENTITY>(dtoModel, context)
+//        }
         return false
     }
 

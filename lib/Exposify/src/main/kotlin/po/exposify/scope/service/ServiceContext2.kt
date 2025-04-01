@@ -34,7 +34,7 @@ class ServiceContext2<DTO, DATA>(
     val name : String = "${rootDtoModel.personalName}|Service"
 
     init {
-        rootDtoModel.associateWithServiceContext(this)
+        rootDtoModel.asHierarchyRoot(this)
     }
 
     internal fun  <T>dbQuery(body : () -> T): T = transaction(dbConnection) {
@@ -111,7 +111,7 @@ class ServiceContext2<DTO, DATA>(
     fun update(dataModels : List<DATA>): Deferred<CrudResult2<DTO>>  {
         val crudResult = dbQuery {
             runBlocking {
-                rootDtoModel.update<DTO, DATA, LongEntity>(dataModels)
+                rootDtoModel.update<DTO>(dataModels)
             }
         }
        return  CompletableDeferred<CrudResult2<DTO>>(crudResult)

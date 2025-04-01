@@ -49,14 +49,14 @@ class ConnectionClass(
 
     suspend fun <DATA : DataModel, ENTITY : LongEntity> launchSequence(
         pack: SequencePack<DATA, ENTITY>,
-    ): Deferred<List<DATA>> {
+    ) {
         val session = sessionManager.getCurrentSession()
             ?: sessionManager.getAnonymous()
-        return session?.let {
-            dispatchManager.enqueue(it.principal.userId) {
-                coroutineEmitter.dispatch(pack, it.scope)
-            }
-        } ?: emptyList()
+//        return session?.let {
+////            dispatchManager.enqueue(it.principal.userId) {
+////                coroutineEmitter.dispatch(pack, it.scope)
+////            }
+//        } ?: emptyList()
     }
 
     fun addService(service : ServiceClass<*,*>){

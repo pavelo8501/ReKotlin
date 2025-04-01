@@ -1,13 +1,9 @@
 package po.exposify.common.classes
 
-import org.jetbrains.exposed.dao.LongEntity
-import po.exposify.classes.interfaces.DataModel
-import po.exposify.common.classes.ClassData
-import po.exposify.common.classes.ConstructorBuilder
+
 import po.exposify.common.interfaces.BlueprintContainer
 import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
-import po.exposify.dto.CommonDTO
 import kotlin.collections.mapOf
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
@@ -28,17 +24,21 @@ class ClassBlueprint<T>(
 ): BlueprintContainer<T> where T: Any {
     var  paramLookupFn : ( (type: KParameter) -> Any? )? = null
 
+    var className: String = ""
+
     fun setExternalParamLookupFn(fn : (type: KParameter) -> Any? ){
         paramLookupFn = fn
     }
 
     private var constructorArgs: MutableList<ConstructorArgument> = mutableListOf<ConstructorArgument>()
 
-
     var nestedClasses: Map<String, Map<String, ClassData<*>>> = mapOf<String,  Map<String, ClassData<*>>>()
         private set
 
     var propertyMap = mapOf<String, KProperty1<T, *>>()
+        private set
+
+    var constructorParams  = mutableMapOf<KParameter,  Any?>()
         private set
 
     protected var effectiveConstructor : KFunction<T>? = null
@@ -51,8 +51,8 @@ class ClassBlueprint<T>(
         throw OperationsException("Effective constructor not set", ExceptionCodes.CONSTRUCTOR_MISSING)
     }
 
-
     override fun initialize(builder : ConstructorBuilder){
+        className = clazz.simpleName.toString()
         constructorBuilder = builder
         builder.getBlueprint(clazz, this)
     }
@@ -72,6 +72,10 @@ class ClassBlueprint<T>(
         constructorArgs.add(ConstructorArgument(paramName, param.type, param.isOptional) )
     }
 
+    fun setParams(params :  Map<KParameter,  Any?>){
+        constructorParams = params.toMutableMap()
+    }
+
     override fun <N:Any>setNestedMap(map: Map<String, Map<String, ClassData<N>>>) {
         nestedClasses = map
     }
@@ -79,8 +83,6 @@ class ClassBlueprint<T>(
     override fun setPropertyMap(map: Map<String, KProperty1<T, *>>) {
         propertyMap = map
     }
-
-
 
     override fun getArgsForConstructor(): Map<KParameter, Any?> {
         getConstructor().let { constructor ->
@@ -94,8 +96,8 @@ class ClassBlueprint<T>(
 
                         }
                     } }
-                addParameter(param)
             }
+            setParams(args)
             return args
         }
     }

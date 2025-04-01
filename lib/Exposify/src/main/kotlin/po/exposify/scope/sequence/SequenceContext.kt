@@ -8,7 +8,6 @@ import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction
 import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
-import po.exposify.dto.CommonDTO
 import po.exposify.extensions.QueryConditions
 import po.exposify.models.CrudResult
 import po.exposify.scope.dto.DTOContext
@@ -27,11 +26,11 @@ class SequenceContext<DATA, ENTITY>(
 
     private var lastResult : CrudResult<DATA, ENTITY>? = null
 
-    private fun dtos(): List<CommonDTO<DATA,ENTITY>>{
-        val result =   mutableListOf<CommonDTO<DATA,ENTITY>>()
-        lastResult?.rootDTOs?.forEach{  result.add(it) }
-        return result
-    }
+//    private fun dtos(): List<CommonDTO<DATA,ENTITY>>{
+//        val result =   mutableListOf<CommonDTO<DATA,ENTITY>>()
+//        lastResult?.rootDTOs?.forEach{  result.add(it) }
+//        return result
+//    }
 
 
     fun getParam(key: String): String{
@@ -66,10 +65,10 @@ class SequenceContext<DATA, ENTITY>(
      *
      * @return A `Deferred` list of `DATA` models.
      */
-    suspend fun checkout(withResult :  CrudResult<DATA, ENTITY> ? = null): Deferred<List<DATA>> {
-        val context = DTOContext<DATA, ENTITY>(hostDto, withResult ?: lastResult)
-        return CompletableDeferred(context.getData())
-    }
+//    suspend fun checkout(withResult :  CrudResult<DATA, ENTITY> ? = null): Deferred<List<DATA>> {
+//        val context = DTOContext<DATA, ENTITY>(hostDto, withResult ?: lastResult)
+//        return CompletableDeferred(context.getData())
+//    }
 
     /**
      * Selects data from the database based on the provided query conditions.
@@ -83,17 +82,17 @@ class SequenceContext<DATA, ENTITY>(
      * @param block Optional suspend lambda function executed within a `SequenceContext`,
      *              allowing further processing of the selected DTOs before finalizing execution.
      */
-    suspend fun <T: IdTable<Long>> select(
-        conditions: QueryConditions<T>? = null,
-        block: (suspend SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Deferred<List<DATA>>)? = null
-    ){
-        lastResult = if (conditions != null) hostDto.select(conditions) else hostDto.select()
-        if (block != null) {
-            this.block(dtos())  // Continue execution if block is provided
-        } else {
-           checkout(lastResult)  // Immediately return result if no block
-        }
-    }
+//    suspend fun <T: IdTable<Long>> select(
+//        conditions: QueryConditions<T>? = null,
+//        block: (suspend SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Deferred<List<DATA>>)? = null
+//    ){
+//        lastResult = if (conditions != null) hostDto.select(conditions) else hostDto.select()
+//        if (block != null) {
+//            this.block(dtos())  // Continue execution if block is provided
+//        } else {
+//           checkout(lastResult)  // Immediately return result if no block
+//        }
+//    }
 
     /**
      * Updates existing records in the database with the provided data models.
@@ -106,17 +105,17 @@ class SequenceContext<DATA, ENTITY>(
      * @param block Optional suspend lambda function executed within a `SequenceContext`,
      *              allowing additional processing of the updated DTOs.
      */
-    suspend fun update(
-        dataModels: List<DATA>,
-        block: (suspend SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Deferred<List<DATA>>)? = null
-    ) {
-        lastResult = hostDto.update<DATA, ENTITY>(dataModels)
-        if (block != null) {
-            this.block(dtos())  // Continue execution if block is provided
-        } else {
-           checkout(lastResult)  // Immediately return result if no block
-        }
-    }
+//    suspend fun update(
+//        dataModels: List<DATA>,
+//        block: (suspend SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Deferred<List<DATA>>)? = null
+//    ) {
+//        lastResult = hostDto.update<DATA, ENTITY>(dataModels)
+//        if (block != null) {
+//            this.block(dtos())  // Continue execution if block is provided
+//        } else {
+//           checkout(lastResult)  // Immediately return result if no block
+//        }
+//    }
 
     /**
      * Picks a subset of data from the database based on the specified query conditions.
@@ -130,18 +129,18 @@ class SequenceContext<DATA, ENTITY>(
      * @param block Optional suspend lambda function executed within a `SequenceContext`,
      *              allowing further processing of the selected DTOs.
      */
-    suspend fun <T: IdTable<Long>> pick(
-        conditions: QueryConditions<T>,
-        block: (suspend SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit)? = null
-    ) {
-        lastResult = hostDto.pick(conditions)
-
-        if (block != null) {
-            this.block(dtos())
-        } else {
-            checkout(lastResult)
-        }
-    }
+//    suspend fun <T: IdTable<Long>> pick(
+//        conditions: QueryConditions<T>,
+//        block: (suspend SequenceContext<DATA, ENTITY>.(dtos: List<CommonDTO<DATA, ENTITY>>)-> Unit)? = null
+//    ) {
+//        lastResult = hostDto.pick(conditions)
+//
+//        if (block != null) {
+//            this.block(dtos())
+//        } else {
+//            checkout(lastResult)
+//        }
+//    }
 
 
 }

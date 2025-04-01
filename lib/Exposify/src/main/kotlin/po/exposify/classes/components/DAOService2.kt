@@ -7,7 +7,7 @@ import org.jetbrains.exposed.sql.Query
 import org.jetbrains.exposed.sql.SizedIterable
 import org.jetbrains.exposed.sql.and
 import po.exposify.classes.interfaces.DataModel
-import po.exposify.dto.DTOBase2
+import po.exposify.dto.CommonDTO
 import po.exposify.dto.classes.DTOClass2
 import po.exposify.dto.interfaces.ModelDTO
 
@@ -28,7 +28,7 @@ class DAOService2<DTO, ENTITY>(
     }
 
     suspend fun saveNew(
-        dto: DTOBase2<DTO, *, *>,
+        dto: CommonDTO<DTO, *, ENTITY>,
         block: ((ENTITY) -> Unit)? = null): ENTITY? {
         // Notify about the operation
 
@@ -41,9 +41,9 @@ class DAOService2<DTO, ENTITY>(
     }
 
     suspend fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity> updateExistent(
-        dto : DTOBase2<DTO, *, ENTITY>) {
+        dto : CommonDTO<DTO, *, ENTITY>) {
         try {
-            val entity = selectWhere(dto.id)
+            val entity = selectById(dto.id)
           //  dto.update(entity, UpdateMode.MODEL_TO_ENTITY)
         }catch (ex: Exception){
             println(ex.message)
@@ -88,16 +88,16 @@ class DAOService2<DTO, ENTITY>(
        // return entities!!
     }
 
-    suspend fun selectWhere(id: Long): ENTITY{
+    suspend fun selectById(id: Long): ENTITY?{
       //  if(id == 0L)  throwPropagate("Id should be greater than 0")
       //  val entity = task("selectWhere for dtoModel ${parent.personalName}") {
-          return  entityModel[id]
+          return  entityModel.findById(id)
       //  }
       //  return entity!!
     }
 
     suspend fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity>delete(
-        dto : DTOBase2<DTO, *, ENTITY>
+        dto : CommonDTO<DTO, *, ENTITY>
     ) {
        // task("selectWhere for dtoModel"){
 

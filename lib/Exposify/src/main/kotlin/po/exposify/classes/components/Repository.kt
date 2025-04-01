@@ -1,180 +1,175 @@
 package po.exposify.classes.components
 
 import org.jetbrains.exposed.dao.LongEntity
-import po.exposify.binder.BindingContainer
-import po.exposify.binder.BindingKeyBase
-import po.exposify.binder.MultipleChildContainer
-import po.exposify.binder.SingleChildContainer
 import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
-import po.exposify.dto.CommonDTO
 
 
 
-class SingleRepository<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
-    parent : CommonDTO<DATA, ENTITY>,
-    private val binding : SingleChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>
-): RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(parent, binding)
-        where  DATA : DataModel, ENTITY : LongEntity, CHILD_DATA: DataModel, CHILD_ENTITY: LongEntity {
-
-    override val repoName: String =  "Repository[${parent.registryItem.typeKeyCombined}/Single]"
-
-    val childModel : DTOClass<CHILD_DATA, CHILD_ENTITY>
-        get() = binding.childModel
-
-
-    override fun setReferenced(childEntity:CHILD_ENTITY, parentEntity:ENTITY){
-        binding.referencedOnProperty?.set(childEntity, parentEntity)
-    }
-
-    override fun getReferences(parentEntity: ENTITY): List<CHILD_ENTITY> {
-        binding.byProperty.get(parentEntity)?.let {
-            return  listOf<CHILD_ENTITY>(it)
-        }?: return emptyList()
-    }
-
-    override fun extractDataModel(dataModel:DATA): List<CHILD_DATA>{
-        val result =  childModel.factory.extractDataModel(binding.sourcePropertyWrapper.extract(), dataModel)
-        return if(result!=null){
-            listOf<CHILD_DATA>(result)
-        }else{
-            emptyList()
-        }
-    }
-}
-
-class MultipleRepository<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
-    parent : CommonDTO<DATA, ENTITY>,
-    private val binding : MultipleChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>
-): RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(parent, binding)
-    where  DATA : DataModel, ENTITY : LongEntity, CHILD_DATA: DataModel, CHILD_ENTITY: LongEntity
-{
-
-    override val repoName: String =  "Repository[${parent.registryItem.typeKeyCombined}/Multiple]"
-
-    override fun setReferenced(childEntity:CHILD_ENTITY, parentEntity:ENTITY){
-        binding.referencedOnProperty?.set(childEntity, parentEntity)
-    }
-
-    override fun getReferences(parentEntity: ENTITY): List<CHILD_ENTITY> {
-        binding.byProperty.get(parentEntity).let {
-            return   it.toList()
-        }
-    }
-
-    override fun extractDataModel(dataModel:DATA): List<CHILD_DATA>
-            = binding.childModel.factory.extractDataModel(binding.sourceProperty, dataModel)
-}
-
-
-
-
-sealed class RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
-    val parent : CommonDTO<DATA, ENTITY>,
-  //  val childDTOClass: DTOClass<CHILD_DATA, CHILD_ENTITY>,
-  //  val bindingKey : BindingKeyBase,
-    private val  bindingContainer : BindingContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>
-) where DATA : DataModel, ENTITY : LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity{
-
-    abstract val repoName : String
-
-    abstract fun extractDataModel(dataModel:DATA):List<CHILD_DATA?>
-    abstract fun setReferenced(childEntity:CHILD_ENTITY, parentEntity:ENTITY)
-    abstract fun getReferences(parentEntity:ENTITY): List<CHILD_ENTITY>
-
-    var initialized: Boolean = false
-    val dtoList = mutableListOf<CommonDTO<CHILD_DATA, CHILD_ENTITY>>()
-
-    val childFactory: DTOFactory<*,*>
-        get(){return  bindingContainer.childModel.factory }
-
-    init {
-//        parent.onUpdate={
-//            println("OnUpdate Callback invoked by parent in ${repoName}")
-//            onInitHostedByData.forEach {
-//                println("Invoking stored by ${it.first.sourceModel.className} Fn in ${repoName}")
-//                it.second()
-//            }
-//        }
-
-//        parent.onUpdateFromEntity={
-//            println("OnUpdateFromEntity Callback invoked by parent in ${repoName}")
-//            onInitHostedByEntity.forEach {
-//                println("Invoking stored by ${it.first.sourceModel.className} Fn in ${repoName}")
-//            }
-//        }
+//class SingleRepository<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
+//  //  parent : CommonDTO<DATA, ENTITY>,
+//    private val binding : SingleChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>
+//): RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(parent, binding)
+//        where  DATA : DataModel, ENTITY : LongEntity, CHILD_DATA: DataModel, CHILD_ENTITY: LongEntity {
 //
-//        parent.onDelete={
-//            println("OnDelete callback invoked by parent in ${repoName}")
-//        }
-    }
-
-    suspend fun <CHILD_ENTITY : LongEntity> select(
-        entity:CHILD_ENTITY){
-       // parent.dtoClass.
-
-    //    childDTO.onUpdateFromEntity?.invoke(entity)
-    }
-
-
-//     suspend fun <CHILD_ENTITY : LongEntity> initByEntity(
-//        entity:CHILD_ENTITY,
-//       // childDTO: HostDTO<CHILD_DATA, CHILD_ENTITY,DATA, ENTITY>){
-//      //  childDTO.onUpdateFromEntity?.invoke(entity)
-//    }
-
-
-//    private  val onInitHostedByData = mutableListOf<
-//            Pair<HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,
-//                    suspend ()-> Unit>>()
+//    override val repoName: String =  "Repository/Single]"
 //
-//    private suspend fun subscribeOnInitByData(
-//        subscriber: HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,
-//        callback: suspend ()-> Unit){
-//        onInitHostedByData.add(Pair(subscriber, callback))
+//    val childModel : DTOClass<CHILD_DATA, CHILD_ENTITY>
+//        get() = binding.childModel
+//
+//
+//    override fun setReferenced(childEntity:CHILD_ENTITY, parentEntity:ENTITY){
+//        binding.referencedOnProperty?.set(childEntity, parentEntity)
 //    }
 //
-//    private val onInitHostedByEntity = mutableListOf<
-//            Pair<HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,
-//                        (ENTITY)-> Unit>>()
+//    override fun getReferences(parentEntity: ENTITY): List<CHILD_ENTITY> {
+//        binding.byProperty.get(parentEntity)?.let {
+//            return  listOf<CHILD_ENTITY>(it)
+//        }?: return emptyList()
+//    }
 //
+//    override fun extractDataModel(dataModel:DATA): List<CHILD_DATA>{
+//        val result =  childModel.factory.extractDataModel(binding.sourcePropertyWrapper.extract(), dataModel)
+//        return if(result!=null){
+//            listOf<CHILD_DATA>(result)
+//        }else{
+//            emptyList()
+//        }
+//    }
+//}
 //
-//    suspend fun deleteAll(){
-//        println("DeleteAll called in : $repoName")
-//        dtoList.forEach {
-//            it.sourceModel.daoService.delete(it)
+//class MultipleRepository<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
+//    parent : CommonDTO<DATA, ENTITY>,
+//    private val binding : MultipleChildContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>
+//): RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(parent, binding)
+//    where  DATA : DataModel, ENTITY : LongEntity, CHILD_DATA: DataModel, CHILD_ENTITY: LongEntity
+//{
+//
+//    override val repoName: String =  "Repository[/Multiple]"
+//
+//    override fun setReferenced(childEntity:CHILD_ENTITY, parentEntity:ENTITY){
+//        binding.referencedOnProperty?.set(childEntity, parentEntity)
+//    }
+//
+//    override fun getReferences(parentEntity: ENTITY): List<CHILD_ENTITY> {
+//        binding.byProperty.get(parentEntity).let {
+//            return   it.toList()
 //        }
 //    }
 //
+//    override fun extractDataModel(dataModel:DATA): List<CHILD_DATA>
+//            = binding.childModel.factory.extractDataModel(binding.sourceProperty, dataModel)
+//}
 //
-//    suspend fun deleteAllRecursively() {
-//        println("DeleteAllRecursively called on : $repoName")
-//        // Recursively delete all child repositories first
-//        dtoList.forEach { childHostDTO ->
-//            childHostDTO.deleteInRepositories()
-//        }
-//        println("Calling deleteAll from : $repoName")
-//        // After all child deletions, delete current repository data
-//        deleteAll()
+//
+//
+//
+//sealed class RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
+//    val parent : CommonDTO<DATA, ENTITY>,
+//  //  val childDTOClass: DTOClass<CHILD_DATA, CHILD_ENTITY>,
+//  //  val bindingKey : BindingKeyBase,
+//    private val  bindingContainer : BindingContainer<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>
+//) where DATA : DataModel, ENTITY : LongEntity, CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity{
+//
+//    abstract val repoName : String
+//
+//    abstract fun extractDataModel(dataModel:DATA):List<CHILD_DATA?>
+//    abstract fun setReferenced(childEntity:CHILD_ENTITY, parentEntity:ENTITY)
+//    abstract fun getReferences(parentEntity:ENTITY): List<CHILD_ENTITY>
+//
+//    var initialized: Boolean = false
+//    val dtoList = mutableListOf<CommonDTO<CHILD_DATA, CHILD_ENTITY>>()
+//
+//    val childFactory: DTOFactory<*,*>
+//        get(){return  bindingContainer.childModel.factory }
+//
+//    init {
+////        parent.onUpdate={
+////            println("OnUpdate Callback invoked by parent in ${repoName}")
+////            onInitHostedByData.forEach {
+////                println("Invoking stored by ${it.first.sourceModel.className} Fn in ${repoName}")
+////                it.second()
+////            }
+////        }
+//
+////        parent.onUpdateFromEntity={
+////            println("OnUpdateFromEntity Callback invoked by parent in ${repoName}")
+////            onInitHostedByEntity.forEach {
+////                println("Invoking stored by ${it.first.sourceModel.className} Fn in ${repoName}")
+////            }
+////        }
+////
+////        parent.onDelete={
+////            println("OnDelete callback invoked by parent in ${repoName}")
+////        }
+//    }
+//
+//    suspend fun <CHILD_ENTITY : LongEntity> select(
+//        entity:CHILD_ENTITY){
+//       // parent.dtoClass.
+//
+//    //    childDTO.onUpdateFromEntity?.invoke(entity)
 //    }
 //
 //
-//    /**
-//     * Propagate a call to the parent repository.
-//     */
-//    suspend fun propagateOnUpdateByData(
-//        childDTO: HostDTO<CHILD_DATA, CHILD_ENTITY,DATA, ENTITY>){
-//        childDTO.onUpdate?.invoke()
-//    }
+////     suspend fun <CHILD_ENTITY : LongEntity> initByEntity(
+////        entity:CHILD_ENTITY,
+////       // childDTO: HostDTO<CHILD_DATA, CHILD_ENTITY,DATA, ENTITY>){
+////      //  childDTO.onUpdateFromEntity?.invoke(entity)
+////    }
 //
-//    suspend fun propagateOnInitByEntity(
-//        entity:CHILD_ENTITY,
-//        childDTO: HostDTO<CHILD_DATA, CHILD_ENTITY,DATA, ENTITY>){
-//        childDTO.onUpdateFromEntity?.invoke(entity)
-//    }
 //
-//    fun propagateOnDelete(childDTO : HostDTO<CHILD_DATA, CHILD_ENTITY,DATA, ENTITY>){
-//        childDTO.subscribeOnDelete{
+////    private  val onInitHostedByData = mutableListOf<
+////            Pair<HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,
+////                    suspend ()-> Unit>>()
+////
+////    private suspend fun subscribeOnInitByData(
+////        subscriber: HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,
+////        callback: suspend ()-> Unit){
+////        onInitHostedByData.add(Pair(subscriber, callback))
+////    }
+////
+////    private val onInitHostedByEntity = mutableListOf<
+////            Pair<HostDTO<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>,
+////                        (ENTITY)-> Unit>>()
+////
+////
+////    suspend fun deleteAll(){
+////        println("DeleteAll called in : $repoName")
+////        dtoList.forEach {
+////            it.sourceModel.daoService.delete(it)
+////        }
+////    }
+////
+////
+////    suspend fun deleteAllRecursively() {
+////        println("DeleteAllRecursively called on : $repoName")
+////        // Recursively delete all child repositories first
+////        dtoList.forEach { childHostDTO ->
+////            childHostDTO.deleteInRepositories()
+////        }
+////        println("Calling deleteAll from : $repoName")
+////        // After all child deletions, delete current repository data
+////        deleteAll()
+////    }
+////
+////
+////    /**
+////     * Propagate a call to the parent repository.
+////     */
+////    suspend fun propagateOnUpdateByData(
+////        childDTO: HostDTO<CHILD_DATA, CHILD_ENTITY,DATA, ENTITY>){
+////        childDTO.onUpdate?.invoke()
+////    }
+////
+////    suspend fun propagateOnInitByEntity(
+////        entity:CHILD_ENTITY,
+////        childDTO: HostDTO<CHILD_DATA, CHILD_ENTITY,DATA, ENTITY>){
+////        childDTO.onUpdateFromEntity?.invoke(entity)
+////    }
+////
+////    fun propagateOnDelete(childDTO : HostDTO<CHILD_DATA, CHILD_ENTITY,DATA, ENTITY>){
+////        childDTO.subscribeOnDelete{
 //            childDTO.repositories.values.forEach {
 //
 //            }
@@ -240,7 +235,7 @@ sealed class RepositoryBase<DATA, ENTITY, CHILD_DATA, CHILD_ENTITY>(
 //        return HostDTO.createHosted<CHILD_DATA, CHILD_ENTITY, DATA, ENTITY>(childData, childModel)
 //    }
 
-}
+//}
 
 
 

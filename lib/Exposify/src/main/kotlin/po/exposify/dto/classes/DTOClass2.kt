@@ -6,37 +6,31 @@ import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.IdTable
 import po.exposify.classes.components.CallbackEmitter2
 import po.exposify.classes.components.DTOConfig2
-import po.exposify.classes.components.DTOFactory2
+import po.exposify.classes.components.safeCast
 import po.exposify.classes.interfaces.DTOInstance
 import po.exposify.classes.interfaces.DataModel
-import po.exposify.common.classes.MapBuilder
-import po.exposify.dto.CommonDTO2
+import po.exposify.dto.CommonDTO
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.dto.models.DTORegistryItem2
+import po.exposify.dto.models.DTORegistryItem
 import po.exposify.exceptions.InitializationException
 import po.exposify.exceptions.enums.InitErrorCodes
 import po.exposify.scope.sequence.models.SequencePack2
 import po.exposify.scope.service.ServiceContext2
 import kotlin.reflect.KClass
-import kotlin.reflect.full.companionObject
-import kotlin.reflect.full.companionObjectInstance
-
 
 abstract class DTOClass2<DTO>(): DTOInstance where DTO : ModelDTO{
 
-    private var _regItem: DTORegistryItem2<DTO, DataModel, LongEntity>? = null
-    private val regItem : DTORegistryItem2<DTO, DataModel, LongEntity>
+    private var _regItem: DTORegistryItem<DTO, DataModel, LongEntity>? = null
+    private val regItem : DTORegistryItem<DTO, DataModel, LongEntity>
         get() = _regItem?: throw InitializationException(
                 "DTOClass regItem not initialized",
                 InitErrorCodes.KEY_PARAM_UNINITIALIZED)
-    val registryItem : DTORegistryItem2<DTO, *, *> by lazy { regItem }
+    val registryItem : DTORegistryItem<DTO, DataModel, LongEntity> by lazy { regItem }
 
-    override val personalName: String = "DTOClass:${ _regItem?.dtoKClass?.simpleName?:"not_yet_initialized"}"
+    override val personalName: String = "DTOClass:${ _regItem?.commonDTOKClass?.simpleName?:"not_yet_initialized"}"
     internal val emitter = CallbackEmitter2<DTO>()
     var initialized: Boolean = false
-    lateinit var config : DTOConfig2<DTO, *, *>
-
-    val dtoFactory : MapBuilder<String, DTOFactory2<DTO, DataModel, LongEntity>> = MapBuilder<String, DTOFactory2<DTO, DataModel, LongEntity>>()
+    lateinit var config : DTOConfig2<DTO, DataModel, LongEntity>
 
     var serviceContextOwned: ServiceContext2<DTO, DataModel>? = null
 
@@ -46,31 +40,33 @@ abstract class DTOClass2<DTO>(): DTOInstance where DTO : ModelDTO{
 
    protected abstract fun setup()
 
-   internal fun <DATA : DataModel, ENTITY: LongEntity> applyConfig(
-           initializedConfig : DTOConfig2<DTO, DATA, ENTITY>,
-       ){
-       config = initializedConfig
-       this@DTOClass2._regItem = initializedConfig.dtoRegItem as DTORegistryItem2<DTO, DataModel, LongEntity>
+   internal fun <DATA : DataModel, ENTITY: LongEntity> applyConfig(initializedConfig : DTOConfig2<DTO, DATA, ENTITY>) {
+        initializedConfig.safeCast<DTOConfig2<DTO, DataModel, LongEntity>>()?.let {
+            config = it
+        }?: throw InitializationException("Safe cast failed for DTOConfig2", InitErrorCodes.CAST_FAILURE)
+
+       initializedConfig.dtoRegItem.safeCast<DTORegistryItem<DTO, DataModel, LongEntity>>()?.let {
+           _regItem = it
+       }?: throw InitializationException("Safe cast failed for DTORegistryItem", InitErrorCodes.CAST_FAILURE)
        initialized = true
    }
 
     internal inline fun <reified DATA, reified ENTITY> configuration(
-        dtoClass: KClass<out CommonDTO2<DTO, DATA, ENTITY>>,
+        dtoClass: KClass<out CommonDTO<DTO, DATA, ENTITY>>,
         entityModel: LongEntityClass<ENTITY>,
         block: DTOConfig2<DTO, DATA, ENTITY>.() -> Unit
    ) where ENTITY: LongEntity, DATA: DataModel {
-        val configuration = DTOConfig2(
-            DTORegistryItem2<DTO, DATA, ENTITY>(
-                dtoClass, DATA::class,  ENTITY::class,
-                this@DTOClass2), entityModel, this)
-        configuration.block()
-        applyConfig(configuration)
+
+       val newRegistryItem = DTORegistryItem<DTO, DATA, ENTITY>(dtoClass, DATA::class,  ENTITY::class, this@DTOClass2)
+       val configuration = DTOConfig2(newRegistryItem, entityModel, this)
+       configuration.block()
+       applyConfig(configuration)
     }
 
     fun getAssociatedTables(cumulativeList: MutableList<IdTable<Long>>){
         cumulativeList.add(config.entityModel.table)
         config.childBindings.values.forEach {
-            it.childModel.getAssociatedTables(cumulativeList)
+            it.childClass.getAssociatedTables(cumulativeList)
         }
     }
 
@@ -85,13 +81,18 @@ abstract class DTOClass2<DTO>(): DTOInstance where DTO : ModelDTO{
         }
     }
 
-    fun <DATA: DataModel>associateWithServiceContext(serviceContext: ServiceContext2<DTO, DATA>){
+
+    fun <DATA: DataModel>asHierarchyRoot(serviceContext: ServiceContext2<DTO, DATA>){
         if(serviceContextOwned == null){
-            serviceContextOwned = serviceContext as  ServiceContext2<DTO, DataModel>
+            serviceContext.safeCast<ServiceContext2<DTO, DataModel>>()?.let {
+                serviceContextOwned = it
+
+            }?: throw InitializationException("Cast for ServiceContext2 failed", InitErrorCodes.CAST_FAILURE)
         }
     }
 
     suspend fun <DATA: DataModel, ENTITY: LongEntity> withTypedConfig(block: suspend DTOConfig2<DTO, DATA, ENTITY>.() -> Unit) {
+
         val cfg = config
         if (cfg.dtoRegItem.typeKeyDataEntity == registryItem.typeKeyDataEntity) {
             @Suppress("UNCHECKED_CAST") // Safe cast: typeKeyDataModel match ensures type compatibility

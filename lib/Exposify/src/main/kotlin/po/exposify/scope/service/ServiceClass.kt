@@ -56,10 +56,10 @@ class ServiceClass<DATA, ENTITY>(
         body()
     }
 
-    internal suspend fun launchSequence(
-        pack : SequencePack<DATA, ENTITY>): Deferred<List<DATA>> {
-        return  connectionClass.launchSequence<DATA, ENTITY>(pack)
-    }
+//    internal suspend fun launchSequence(
+//        pack : SequencePack<DATA, ENTITY>): Deferred<List<DATA>> {
+//        return  connectionClass.launchSequence<DATA, ENTITY>(pack)
+//    }
 
     private fun createTable(table : IdTable<Long>): Boolean{
         return try {
@@ -116,9 +116,9 @@ class ServiceClass<DATA, ENTITY>(
 
 
     private fun  emitterSubscriptions(callbackEmitter : CallbackEmitter<DATA, ENTITY>){
-        callbackEmitter.subscribeSequenceExecute{
-            launchSequence(it)
-        }
+//        callbackEmitter.subscribeSequenceExecute{
+//            //launchSequence(it)
+//        }
     }
 
 

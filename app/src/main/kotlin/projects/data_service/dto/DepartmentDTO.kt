@@ -6,8 +6,7 @@ import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IdTable
-import org.jetbrains.exposed.dao.id.LongIdTable
-import po.exposify.binder.PropertyBinding
+import po.exposify.binders.PropertyBinding
 import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DTOModel
 import po.exposify.classes.interfaces.DataModel

@@ -24,12 +24,12 @@ class ConditionContext<T,  DATA, ENTITY>(
         return this
     }
 
-    suspend fun select(){
-      val result = if (thisCondition != null) {
-           rootDTOClass.select(thisCondition!!)
-        }else{
-           rootDTOClass.select()
-        }
-         DTOContext<DATA,ENTITY>(rootDTOClass, result)
-    }
+//    suspend fun select(){
+//      val result = if (thisCondition != null) {
+//          // rootDTOClass.select(thisCondition!!)
+//        }else{
+//         //  rootDTOClass.select()
+//        }
+//         //DTOContext<DATA,ENTITY>(rootDTOClass, result)
+//    }
 }

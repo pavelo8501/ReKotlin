@@ -5,14 +5,11 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.common.classes.ConstructorBuilder
-import po.exposify.constructors.DTOBlueprint
-import po.exposify.constructors.DataModelBlueprint
 import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.common.classes.ClassBlueprint
 import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
-import po.exposify.dto.CommonDTO
 import po.lognotify.eventhandler.EventHandler
 import po.lognotify.eventhandler.interfaces.CanNotify
 import kotlin.reflect.KClass
@@ -22,7 +19,7 @@ import kotlin.reflect.full.isSubclassOf
 
 class DTOFactory<DATA, ENTITY>(
    val parent: DTOClass<DATA,ENTITY>,
-   val entityDTOClass : KClass<out CommonDTO<DATA, ENTITY>>
+   //val entityDTOClass : KClass<out CommonDTO<DATA, ENTITY>>
 ): CanNotify where DATA: DataModel,   ENTITY: LongEntity   {
     companion object : ConstructorBuilder()
 
@@ -40,7 +37,7 @@ class DTOFactory<DATA, ENTITY>(
         private set
 
     private lateinit var entityBlueprint : ClassBlueprint<ENTITY>
-    private val dtoBlueprint = DTOBlueprint(entityDTOClass).also { it.initialize(Companion) }
+   // private val dtoBlueprint = DTOBlueprint(entityDTOClass).also { it.initialize(Companion) }
 
     private var dataModelConstructor : (() -> DATA)? = null
 
@@ -179,23 +176,23 @@ class DTOFactory<DATA, ENTITY>(
      * @input dataModel:  DATA?
      * @return DTOFunctions<DATA, ENTITY> or null
      * */
-    suspend fun createEntityDto(dataModel : DATA? = null): CommonDTO<DATA, ENTITY>?{
-        val model = dataModel?: createDataModel()
-            val newDto = task<CommonDTO<DATA, ENTITY>>("DTOFunctions created from dtoBlueprint [reflection]") {
-            dtoBlueprint.setExternalParamLookupFn { param ->
-                when (param.name) {
-                    "dataModel" -> {
-                        model
-                    }
-                    else -> {
-                        null
-                    }
-                }
-            }
-            val args = dtoBlueprint.getArgsForConstructor()
-            dtoBlueprint.getConstructor().callBy(args)
-        }
-        newDto?.initialize()?: println("Something wrong")
-        return newDto
-    }
+//    suspend fun createEntityDto(dataModel : DATA? = null): CommonDTO<DATA, ENTITY>?{
+//        val model = dataModel?: createDataModel()
+//            val newDto = task<CommonDTO<DATA, ENTITY>>("DTOFunctions created from dtoBlueprint [reflection]") {
+//            dtoBlueprint.setExternalParamLookupFn { param ->
+//                when (param.name) {
+//                    "dataModel" -> {
+//                        model
+//                    }
+//                    else -> {
+//                        null
+//                    }
+//                }
+//            }
+//            val args = dtoBlueprint.getArgsForConstructor()
+//            dtoBlueprint.getConstructor().callBy(args)
+//        }
+//        newDto?.initialize()?: println("Something wrong")
+//        return newDto
+//    }
 }

@@ -13,21 +13,21 @@ class CoroutineEmitter(
     val name: String,
 ){
 
-    fun <DATA : DataModel, ENTITY : LongEntity>dispatch(
-        pack: SequencePack<DATA, ENTITY>,
-        listenerScope : CoroutineScope
-    ): Deferred<List<DATA>> {
-
-        return listenerScope.async {
-            suspendedTransactionAsync(Dispatchers.IO) {
-                pack.start().await()
-            }.await()
-        }.also { deferred ->
-            deferred.invokeOnCompletion { throwable ->
-                if (throwable != null) {
-                    throw throwable
-                }
-            }
-        }
-    }
+//    fun <DATA : DataModel, ENTITY : LongEntity>dispatch(
+//        pack: SequencePack<DATA, ENTITY>,
+//        listenerScope : CoroutineScope
+//    ): Deferred<List<DATA>> {
+//
+//        return listenerScope.async {
+//            suspendedTransactionAsync(Dispatchers.IO) {
+//                pack.start().await()
+//            }.await()
+//        }.also { deferred ->
+//            deferred.invokeOnCompletion { throwable ->
+//                if (throwable != null) {
+//                    throw throwable
+//                }
+//            }
+//        }
+//    }
 }

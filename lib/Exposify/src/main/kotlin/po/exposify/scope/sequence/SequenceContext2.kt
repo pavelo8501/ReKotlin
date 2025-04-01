@@ -7,7 +7,7 @@ import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.common.models.CrudResult2
-import po.exposify.dto.CommonDTO2
+import po.exposify.dto.CommonDTO
 import po.exposify.dto.classes.DTOClass2
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.extensions.QueryConditions
@@ -28,8 +28,8 @@ class SequenceContext2<DTO>(
 
     private var lastResult : CrudResult2<DTO>? = null
 
-    private fun dtos(): List<CommonDTO2<DTO, * , *>>{
-        val result =   mutableListOf<CommonDTO2<DTO, * , *>>()
+    private fun dtos(): List<CommonDTO<DTO, * , *>>{
+        val result =   mutableListOf<CommonDTO<DTO, * , *>>()
         lastResult?.rootDTOs?.forEach{  result.add(it) }
         return result
     }
@@ -86,7 +86,7 @@ class SequenceContext2<DTO>(
      */
     suspend fun <T: IdTable<Long>> select(
         conditions: QueryConditions<T>? = null,
-        block: (suspend SequenceContext2<DTO>.(dtos: List<CommonDTO2<DTO, *, *>>)-> Deferred<List<DataModel>>)? = null
+        block: (suspend SequenceContext2<DTO>.(dtos: List<CommonDTO<DTO, *, *>>)-> Deferred<List<DataModel>>)? = null
     ){
        // lastResult = if (conditions != null) hostDto.select(conditions) else hostDto.select()
         if (block != null) {
@@ -109,7 +109,7 @@ class SequenceContext2<DTO>(
      */
     suspend fun update(
         dataModels: List<DataModel>,
-        block: (suspend SequenceContext2<DTO>.(dtos: List<CommonDTO2<DTO, *, *>>)-> Deferred<List<DataModel>>)? = null
+        block: (suspend SequenceContext2<DTO>.(dtos: List<CommonDTO<DTO, *, *>>)-> Deferred<List<DataModel>>)? = null
     ) {
         //lastResult = hostDto.update<DATA, ENTITY>(dataModels)
         if (block != null) {
@@ -133,7 +133,7 @@ class SequenceContext2<DTO>(
      */
     suspend fun <T: IdTable<Long>> pick(
         conditions: QueryConditions<T>,
-        block: (suspend SequenceContext2<DTO>.(dtos: List<CommonDTO2<DTO, *, *>>)-> Unit)? = null
+        block: (suspend SequenceContext2<DTO>.(dtos: List<CommonDTO<DTO, *, *>>)-> Unit)? = null
     ) {
        // lastResult = hostDto.pick(conditions)
 

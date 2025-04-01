@@ -7,7 +7,6 @@ import po.auth.AuthSessionManager
 import po.auth.sessions.models.AuthorizedSession
 import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
-import po.exposify.dto.CommonDTO
 import po.exposify.dto.classes.DTOClass2
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.ExceptionCodes

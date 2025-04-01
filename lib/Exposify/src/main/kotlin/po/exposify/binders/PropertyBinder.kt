@@ -1,4 +1,4 @@
-package po.exposify.binder
+package po.exposify.binders
 
 import kotlinx.serialization.KSerializer
 import org.jetbrains.exposed.dao.LongEntity
@@ -24,6 +24,10 @@ interface PropertyBindingOption<DATA : DataModel, ENT : LongEntity, T>{
      val dtoProperty:KProperty1<DATA, T>
      val entityProperty:KProperty1<ENT, T>
      val propertyType: PropertyType
+
+     fun onModelUpdated(callback: (property : PropertyBindingOption<DATA,ENT,T>)-> Unit)
+     fun onPropertyUpdated(callback: (name : String, type:PropertyType, updateMode : UpdateMode)-> Unit)
+     fun updated(name : String,  type:PropertyType, updateMode : UpdateMode)
 }
 
 
@@ -31,15 +35,37 @@ class SyncedSerialized<DATA : DataModel, ENT : LongEntity, C, TYPE: Any >(
     override val dtoProperty:KMutableProperty1<DATA, C>,
     override val entityProperty:KMutableProperty1<ENT, C>,
     internal val serializer:  KSerializer<TYPE>,
-) : PropertyBindingOption<DATA, ENT, C> {
+) : PropertyBindingOption<DATA, ENT, C>
+{
 
     override val propertyType: PropertyType = PropertyType.SERIALIZED
+
+    private var onModelUpdatedCallback: ((PropertyBindingOption<DATA, ENT, C>) -> Unit)? = null
+    override fun onModelUpdated(callback: (PropertyBindingOption<DATA, ENT, C>) -> Unit) {
+        onModelUpdatedCallback = callback
+    }
+
+    private var onPropertyUpdatedCallback: ((String, PropertyType, UpdateMode) -> Unit)? = null
+    override fun onPropertyUpdated(callback: (String, PropertyType, UpdateMode) -> Unit) {
+        onPropertyUpdatedCallback = callback
+    }
+
+    var updated: Boolean = false
+    override fun updated(
+        name: String,
+        type: PropertyType,
+        updateMode: UpdateMode
+    ) {
+        updated = true
+        onPropertyUpdatedCallback?.invoke(name, type, updateMode)
+    }
+
     fun getSerializer(): Pair<String, KSerializer<TYPE> >{
         return Pair(dtoProperty.name, serializer)
     }
 
     fun update(dtoModel: DATA, entityModel: ENT, mode: UpdateMode): Boolean {
-
+        updated = false
         val dtoValue = dtoProperty.get(dtoModel)
 
         val entityValue = try {
@@ -54,9 +80,18 @@ class SyncedSerialized<DATA : DataModel, ENT : LongEntity, C, TYPE: Any >(
                 if (!valuesDiffer) return false
                 if (entityValue != null) {
                     dtoProperty.set(dtoModel, entityValue)
+                    updated(dtoProperty.name, propertyType, UpdateMode.MODEL_TO_ENTITY_FORCED)
                     true
                 }
                 false
+            }
+
+            UpdateMode.ENTITY_TO_MODEL_FORCED -> {
+                if (entityValue != null) {
+                    dtoProperty.set(dtoModel, entityValue)
+                    updated(dtoProperty.name, propertyType, UpdateMode.MODEL_TO_ENTITY_FORCED)
+                }
+                true
             }
 
             UpdateMode.MODEL_TO_ENTITY -> {
@@ -70,17 +105,18 @@ class SyncedSerialized<DATA : DataModel, ENT : LongEntity, C, TYPE: Any >(
 
             UpdateMode.MODEL_TO_ENTITY_FORCED -> {
                 if (entityValue != null) {
-                    dtoProperty.set(dtoModel, entityValue)
+                    entityProperty.set(entityModel, dtoValue)
                     true
                 }
                 false
             }
-
-            UpdateMode.ENTITY_TO_MODEL_FORCED -> {
-                entityProperty.set(entityModel, dtoValue)
-                true
-            }
         }
+
+        if(updated){
+            updated = false
+            onModelUpdatedCallback?.invoke(this)
+        }
+
         return result
     }
 }
@@ -88,11 +124,32 @@ class SyncedSerialized<DATA : DataModel, ENT : LongEntity, C, TYPE: Any >(
 class ReadOnly<DATA : DataModel, ENT : LongEntity, T>(
     override val dtoProperty: KMutableProperty1<DATA, T>,
     override val entityProperty: KProperty1<ENT, T>
-): PropertyBindingOption<DATA, ENT, T>  {
-
+): PropertyBindingOption<DATA, ENT, T>
+{
     override val propertyType: PropertyType = PropertyType.ONE_WAY
 
+    private var onModelUpdatedCallback: ((PropertyBindingOption<DATA, ENT, T>) -> Unit)? = null
+    override fun onModelUpdated(callback: (PropertyBindingOption<DATA, ENT, T>) -> Unit) {
+        onModelUpdatedCallback = callback
+    }
+
+    private var onPropertyUpdatedCallback: ((String, PropertyType, UpdateMode) -> Unit)? = null
+    override fun onPropertyUpdated(callback: (String, PropertyType, UpdateMode) -> Unit) {
+        onPropertyUpdatedCallback = callback
+    }
+
+    var updated: Boolean = false
+    override fun updated(
+        name: String,
+        type: PropertyType,
+        updateMode: UpdateMode
+    ) {
+        updated = true
+        onPropertyUpdatedCallback?.invoke(name, type, updateMode)
+    }
+
     fun update(dtoModel: DATA, entityModel: ENT, mode: UpdateMode): Boolean {
+        updated = false
         val dtoValue = dtoProperty.get(dtoModel)
         val entityValue =  try {
             entityProperty.get(entityModel)
@@ -102,22 +159,29 @@ class ReadOnly<DATA : DataModel, ENT : LongEntity, T>(
         val valuesDiffer = dtoValue != entityValue
 
         return when (mode) {
-            UpdateMode.ENTITY_TO_MODEL -> {
+            UpdateMode.MODEL_TO_ENTITY -> {
                 if (!valuesDiffer) return false
                 if(entityValue != null){
                     dtoProperty.set(dtoModel, entityValue)
+                    updated(dtoProperty.name, propertyType, UpdateMode.MODEL_TO_ENTITY)
                     return true
                 }
                 return false
             }
+
             UpdateMode.MODEL_TO_ENTITY_FORCED -> {
                 if(entityValue != null) {
                     dtoProperty.set(dtoModel, entityValue)
+                    updated(dtoProperty.name, propertyType, UpdateMode.MODEL_TO_ENTITY_FORCED)
                     return true
                 }
                 return false
             }
             else -> { false  }
+        }
+        if(updated){
+            updated = false
+            onModelUpdatedCallback?.invoke(this)
         }
     }
 }
@@ -126,12 +190,33 @@ class ReadOnly<DATA : DataModel, ENT : LongEntity, T>(
 class SyncedBinding<DATA : DataModel, ENT : LongEntity, T>(
     override val dtoProperty:KMutableProperty1<DATA, T>,
     override val entityProperty:KMutableProperty1<ENT, T>
-): PropertyBindingOption<DATA, ENT, T>  {
+): PropertyBindingOption<DATA, ENT, T>
+{
     override val propertyType: PropertyType = PropertyType.TWO_WAY
+
+    private var onModelUpdatedCallback: ((PropertyBindingOption<DATA, ENT, T>) -> Unit)? = null
+    override fun onModelUpdated(callback: (PropertyBindingOption<DATA, ENT, T>) -> Unit) {
+        onModelUpdatedCallback = callback
+    }
+
+    private var onPropertyUpdatedCallback: ((String, PropertyType, UpdateMode) -> Unit)? = null
+    override fun onPropertyUpdated(callback: (String, PropertyType, UpdateMode) -> Unit) {
+        onPropertyUpdatedCallback = callback
+    }
+
+    var updated: Boolean = false
+    override fun updated(
+        name: String,
+        type: PropertyType,
+        updateMode: UpdateMode
+    ) {
+        updated = true
+        onPropertyUpdatedCallback?.invoke(name, type, updateMode)
+    }
+
     fun update(dtoModel: DATA, entityModel: ENT, mode: UpdateMode): Boolean {
-
-        val dtoValue = dtoProperty.get(dtoModel)
-
+       updated = false
+       val dtoValue = dtoProperty.get(dtoModel)
        val entityValue =  try {
             entityProperty.get(entityModel)
         }catch (ex: Exception){
@@ -144,9 +229,19 @@ class SyncedBinding<DATA : DataModel, ENT : LongEntity, T>(
                 if (!valuesDiffer) return false
                 if(entityValue != null){
                     dtoProperty.set(dtoModel, entityValue)
+                    updated(dtoProperty.name, propertyType, UpdateMode.ENTITY_TO_MODEL)
                     return true
                 }
                 return false
+            }
+            UpdateMode.ENTITY_TO_MODEL_FORCED -> {
+                if(entityValue != null){
+                    dtoProperty.set(dtoModel, entityValue)
+                    updated(dtoProperty.name, propertyType, UpdateMode.ENTITY_TO_MODEL)
+                    true
+                }else{
+                    false
+                }
             }
             UpdateMode.MODEL_TO_ENTITY -> {
                 if (!valuesDiffer) return false
@@ -155,24 +250,22 @@ class SyncedBinding<DATA : DataModel, ENT : LongEntity, T>(
             }
             UpdateMode.MODEL_TO_ENTITY_FORCED -> {
                 if(entityValue != null) {
-                    dtoProperty.set(dtoModel, entityValue)
+                    entityProperty.set(entityModel, dtoValue)
                     return true
                 }
                 return false
             }
-            UpdateMode.ENTITY_TO_MODEL_FORCED -> {
-                entityProperty.set(entityModel, dtoValue)
-                true
-            }
+        }
+        if(updated){
+            updated = false
+            onModelUpdatedCallback?.invoke(this)
         }
     }
 }
 
-class PropertyBinder<DATA : DataModel, ENT : LongEntity>  {
-
-
-   private var allBindings: List<PropertyBindingOption<DATA, ENT, *>> = listOf()
-
+class PropertyBinder<DATA : DataModel, ENT : LongEntity>
+{
+    private var allBindings: List<PropertyBindingOption<DATA, ENT, *>> = listOf()
 
     var onInitialized: ((PropertyBinder<DATA, ENT>) -> Unit)? = null
     var syncedList: List<SyncedBinding<DATA, ENT, *>> = listOf<SyncedBinding<DATA, ENT, *>> ()

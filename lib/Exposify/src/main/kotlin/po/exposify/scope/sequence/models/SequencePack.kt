@@ -41,11 +41,12 @@ data class SequencePack<DATA,ENTITY>(
         sequenceInputList = inputList
     }
 
-   suspend fun start(): Deferred<List<DATA>>{
-       context.sequenceFn()
-       val deferred =  context.checkout()
-       return  deferred
-   }
+//   suspend fun start(): Deferred<List<DATA>>{
+//       context.sequenceFn()
+//      // val deferred =  context.checkout()
+//      // return  deferred
+//       emptySequence()
+//   }
 
    fun sequenceName(): String{
         return handler.thisKey

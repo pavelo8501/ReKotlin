@@ -1,13 +1,11 @@
 package po.exposify.constructors
 
-import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.common.classes.ClassData
 import po.exposify.common.classes.ConstructorBuilder
 import po.exposify.common.interfaces.BlueprintContainer
 import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
-import po.exposify.dto.CommonDTO
 import kotlin.collections.mapOf
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
@@ -59,24 +57,7 @@ class DataModelBlueprint<DATA: DataModel>(
 }
 
 
-class DTOBlueprint<DATA, ENTITY>(
-    clazz  : KClass<out CommonDTO<DATA, ENTITY>>,
-) : ClassBlueprintBase<CommonDTO<DATA,ENTITY>>(
-    clazz as KClass<CommonDTO<DATA, ENTITY>>)
-        where ENTITY : LongEntity, DATA : DataModel{
 
-
-    override var  externalParamLookupFn : ( (type: KParameter) -> Any? )? = null
-    @JvmName("externalParamLookupFnDTOBlueprint")
-    fun setExternalParamLookupFn(fn : (type: KParameter) -> Any? ){
-        externalParamLookupFn = fn
-    }
-
-    override fun getClass(): KClass<CommonDTO<DATA, ENTITY>> {
-       return clazz
-    }
-
-}
 
 
 
