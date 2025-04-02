@@ -1,21 +1,14 @@
 package po.exposify.scope.sequence.classes
 
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
-import org.jetbrains.exposed.dao.LongEntity
-import po.auth.AuthSessionManager
 import po.auth.sessions.models.AuthorizedSession
-import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
-import po.exposify.dto.classes.DTOClass2
+import po.exposify.classes.DTOClass
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
 import po.exposify.scope.sequence.enums.SequenceID
-import po.exposify.scope.sequence.models.SequencePack
 import po.exposify.scope.sequence.models.SequencePack2
-import po.exposify.scope.service.ServiceContext
-import kotlin.reflect.full.companionObjectInstance
 
 
 //suspend inline fun <reified DTO> AuthorizedSession.execute(
@@ -119,7 +112,7 @@ import kotlin.reflect.full.companionObjectInstance
  */
 sealed interface SequenceHandlerInterface2<DTO: ModelDTO> {
 
-    val dtoClass : DTOClass2<DTO>
+    val dtoClass : DTOClass<DTO>
     /**
      * The unique name of the sequence handler.
      */
@@ -141,7 +134,7 @@ sealed interface SequenceHandlerInterface2<DTO: ModelDTO> {
  * @property resultCallback An optional function that is invoked when a sequence result is available.
  */
 abstract class SequenceHandlerAbstraction2<DTO>(
-    override val dtoClass: DTOClass2<DTO>,
+    override val dtoClass: DTOClass<DTO>,
 ) : SequenceHandlerInterface2<DTO> where DTO: ModelDTO  {
 
     abstract override val thisKey: String
@@ -196,7 +189,7 @@ abstract class SequenceHandlerAbstraction2<DTO>(
 }
 
 class SequenceHandler2<DTO>(
-    override val dtoClass: DTOClass2<DTO>,
+    override val dtoClass: DTOClass<DTO>,
     val handlerId: Int,
 ): SequenceHandlerAbstraction2<DTO>(dtoClass) where DTO : ModelDTO{
 

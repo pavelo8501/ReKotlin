@@ -1,6 +1,5 @@
 package po.exposify.test.scope.service
 
-
 import po.exposify.scope.service.enums.TableCreateMode
 import po.exposify.test.DatabaseTest
 import po.exposify.test.setup.TestPage

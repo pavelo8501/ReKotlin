@@ -8,7 +8,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.common.models.CrudResult2
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.classes.DTOClass2
+import po.exposify.classes.DTOClass
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.extensions.QueryConditions
 import po.exposify.scope.dto.DTOContext2
@@ -17,7 +17,7 @@ import po.exposify.scope.sequence.classes.SequenceHandler2
 
 class SequenceContext2<DTO>(
     private val connection: Database,
-    private val hostDto : DTOClass2<DTO>,
+    private val hostDto : DTOClass<DTO>,
     private val handler : SequenceHandler2<DTO>
 ) where  DTO : ModelDTO
 {

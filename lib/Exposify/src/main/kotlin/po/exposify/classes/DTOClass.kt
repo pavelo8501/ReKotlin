@@ -1,215 +1,117 @@
 package po.exposify.classes
 
-import org.jetbrains.exposed.dao.LongEntity
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.IdTable
-import po.exposify.classes.components.CallbackEmitter
-import po.exposify.classes.components.DTOConfig
+import po.exposify.binders.relationship.RelationshipBinder2
+import po.exposify.classes.components.CallbackEmitter2
+import po.exposify.classes.components.DAOService2
+import po.exposify.classes.components.DTOConfig2
+import po.exposify.classes.components.DTOFactory
+import po.exposify.dto.components.RootRepository
 import po.exposify.classes.interfaces.DTOInstance
 import po.exposify.classes.interfaces.DataModel
-import po.exposify.exceptions.ExceptionCodes
-import po.exposify.exceptions.OperationsException
-import po.lognotify.eventhandler.RootEventHandler
-import po.lognotify.eventhandler.interfaces.CanNotify
-import kotlin.Boolean
+import po.exposify.dto.CommonDTO
+import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.models.DTORegistryItem
+import po.exposify.entity.classes.ExposifyEntityBase
+import po.exposify.exceptions.InitializationException
+import po.exposify.exceptions.enums.InitErrorCodes
+import po.exposify.extensions.safeCast
+import po.exposify.scope.sequence.models.SequencePack2
+import po.exposify.scope.service.ServiceContext
 import kotlin.reflect.KClass
 
-abstract class DTOClass<DATA, ENTITY>(
-): DTOInstance, CanNotify  where DATA : DataModel, ENTITY : LongEntity{
+abstract class DTOClass<DTO>(): DTOInstance where DTO: ModelDTO {
 
-    override val personalName: String = "DTOClass:"
+    lateinit var registryItem : DTORegistryItem<DTO, DataModel, ExposifyEntityBase>
 
-    override val eventHandler = RootEventHandler(personalName){
-        echo(it, "DTOClass RootEventHandler")
-    }
+    override var personalName: String = "uninitialized[DTOClass]"
+        protected set
 
-    internal val emitter = CallbackEmitter<DATA, ENTITY>()
-
+    internal val emitter = CallbackEmitter2<DTO>()
     var initialized: Boolean = false
-    val conf = DTOConfig<DATA, ENTITY>(this)
 
-   //val factory = DTOFactory(this, sourceClass)
+    private lateinit var configInstance: DTOConfig2<DTO, DataModel, ExposifyEntityBase>
+    internal val config: DTOConfig2<DTO, DataModel, ExposifyEntityBase>
+        get() = configInstance
 
-    val entityModel: LongEntityClass<ENTITY>
-        get(){
-            return  conf.entityModel?: throw OperationsException(
-                "Unable read daoModel property on $personalName",
-                ExceptionCodes.LAZY_NOT_INITIALIZED)
-        }
+    var serviceContextOwned: ServiceContext<DTO, DataModel>? = null
+    var repository : RootRepository<DTO, DataModel, ExposifyEntityBase, DTO>? = null
 
-    var modelClass: KClass<DATA>? = null
-    var entityClass: KClass<ENTITY>? = null
+   init {
+       val stop = 10
+   }
 
-    //val daoService: DAOService<DATA, ENTITY> =  DAOService<DATA, ENTITY>(this)
+   protected abstract fun setup()
 
-    //val childBindings: MutableMap<BindingKeyBase, BindingContainer<DATA, ENTITY, *,*>> = mutableMapOf<BindingKeyBase, BindingContainer<DATA, ENTITY, *,*>>()
+   internal fun <DATA : DataModel, ENTITY: ExposifyEntityBase> applyConfig(initializedConfig : DTOConfig2<DTO, DATA, ENTITY>) {
+        initializedConfig.safeCast<DTOConfig2<DTO, DataModel, ExposifyEntityBase>>()?.let {
+            configInstance = it
+        }?: throw InitializationException("Safe cast failed for DTOConfig2", InitErrorCodes.CAST_FAILURE)
 
-    protected abstract fun setup()
+       initializedConfig.dtoRegItem.safeCast<DTORegistryItem<DTO, DataModel, ExposifyEntityBase>>()?.let {
+           registryItem = it
+       }?: throw InitializationException("Safe cast failed for DTORegistryItem", InitErrorCodes.CAST_FAILURE)
+       personalName = "${registryItem.commonDTOKClass.simpleName.toString()}[DTOClass]"
+       initFactoryRoutines()
+       initialized = true
+   }
+
+   internal inline fun <reified DATA, reified ENTITY> configuration(
+       dtoClass: KClass<out CommonDTO<DTO, DATA, ENTITY>>,
+       entityModel: LongEntityClass<ENTITY>,
+       block: DTOConfig2<DTO, DATA, ENTITY>.() -> Unit
+   ) where ENTITY: ExposifyEntityBase, DATA: DataModel {
+
+       val newRegistryItem = DTORegistryItem<DTO, DATA, ENTITY>(dtoClass, DATA::class, ENTITY::class, this@DTOClass)
+       val configuration = DTOConfig2(newRegistryItem, entityModel, this)
+       configuration.block()
+       applyConfig(configuration)
+    }
 
     fun getAssociatedTables(cumulativeList: MutableList<IdTable<Long>>){
-       cumulativeList.add(this.entityModel.table)
-//        childBindings.values.forEach {
-//           it.childModel.getAssociatedTables(cumulativeList)
-//       }
-    }
-
-    fun initialization(onRequestFn: ((CallbackEmitter<DATA, ENTITY>) -> Unit)? = null) {
-        try {
-            setup()
-//            modelClass = factory.dataModelClass
-//            entityClass =  factory.daoEntityClass
-            initialized = true
-            onRequestFn?.invoke(emitter)
-        }catch (ex: Exception){
-            echo(ex, "In DTOClass initialization")
-            throw ex
+        cumulativeList.add(configInstance.entityModel.table)
+        runBlocking {
+            withRelationshipBinder() {
+                this.childBindings.values.forEach {
+                    it.childClass.getAssociatedTables(cumulativeList)
+                }
+            }
         }
     }
 
-    inline fun <reified DATA, reified ENTITY> DTOClass<DATA, ENTITY>.dtoSettings(
-        entityModel: LongEntityClass<ENTITY>,
-        block: DTOConfig<DATA,ENTITY>.() -> Unit)
-    where ENTITY: LongEntity, DATA: DataModel {
-
-//        factory.initializeBlueprints(DATA::class, ENTITY::class)
-//        factory.setSerializableTypes(conf.propertyBinder.compositePropertyList.map { it.getSerializer()} )
-        conf.dataModelClass = DATA::class
-        conf.entityClass = ENTITY::class
-        conf.entityModel = entityModel
-        conf.block()
+    fun initialization(onRequestFn: ((CallbackEmitter2<DTO>) -> Unit)? = null) {
+        runCatching {
+            if(!initialized){
+                setup()
+                onRequestFn?.invoke(emitter)
+            }
+        }.onFailure {
+            println(it.message)
+        }
     }
 
+    fun <DATA: DataModel>asHierarchyRoot(serviceContext: ServiceContext<DTO, DATA>){
+        if(serviceContextOwned == null){
+            serviceContext.safeCast<ServiceContext<DTO, DataModel>>()?.let {
+                serviceContextOwned = it
+                repository = RootRepository<DTO, DataModel, ExposifyEntityBase, DTO>(this)
+                initFactoryRoutines()
+            }?: throw InitializationException("Cast for ServiceContext2 failed", InitErrorCodes.CAST_FAILURE)
+        }
+    }
 
-    /**
-     * Selects a single entity from the database based on the provided conditions and maps it to a DTO.
-     *
-     * This function performs the following steps:
-     * 1. Calls the `daoService.pick` method to retrieve a single entity that matches the given conditions.
-     * 2. If an entity is found, a new DTO (`DTOFunctions<DATA, ENTITY>`) is created using the factory.
-     * 3. The DTO is updated with the entity's data using `UpdateMode.ENTITY_TO_MODEL`.
-     * 4. Relation bindings are applied to the DTO via `conf.relationBinder.applyBindings(it)`.
-     * 5. Repository initialization is performed on the DTO via `it.initializeRepositories(it.entityDAO)`.
-     * 6. Returns a `CrudResult` containing an list of DTO entities and any events recorded during the process.
-     *
-     * @param conditions A list of property-value pairs (`KProperty1<DATA, *>, Any?`)
-     * representing the filtering conditions.
-     * @return A `CrudResult<DATA, ENTITY>` containing the selected DTO (if found) and any triggered events.
-     */
-//    internal suspend fun <T: IdTable<Long>>pick(
-//        conditions: QueryConditions<T>): CrudResult<DATA, ENTITY> {
-//        val resultList = mutableListOf<CommonDTO<DATA, ENTITY>>()
-//        val entity =  daoService.pick(conditions.build())
-//        entity?.let {
-//            factory.createEntityDto()?.let {newDto->
-//                newDto.updateBinding(it, UpdateMode.ENTITY_TO_MODEL)
-//                resultList.add(newDto)
-//            }
-//        }
-//        resultList.forEach {
-//           // conf.relationBinder.applyBindings(it)
-//          //  it.initializeRepositories(it.entityDAO)
-//        }
-//        return CrudResult(resultList)
-//    }
-//
-//    /**
-//     * Selects all entities from the database, initializes DTOs for them, and returns a result containing these DTOs.
-//     *
-//     * @return A [CrudResult] containing a list of initialized DTOs and associated events.
-//     */
-//    internal suspend fun select(): CrudResult<DATA, ENTITY> {
-//       val resultList = mutableListOf<CommonDTO<DATA, ENTITY>>()
-//       val entities = daoService.selectAll()
-//       entities.forEach {
-//           factory.createEntityDto()?.let {newDto->
-//               newDto.updateBinding(it, UpdateMode.ENTITY_TO_MODEL)
-//               resultList.add(newDto)
-//           }
-//       }
-//       resultList.forEach {
-//         //  conf.relationBinder.applyBindings(it)
-//        //   it.initializeRepositories(it.entityDAO)
-//       }
-//       return CrudResult(resultList.toList())
-//    }
-//
-//    internal suspend fun <T: IdTable<Long>> select(conditions: QueryConditions<T>): CrudResult<DATA, ENTITY> {
-//        val resultList = mutableListOf<CommonDTO<DATA, ENTITY>>()
-//        val entities = daoService.select(conditions.build())
-//        entities.forEach {
-//            factory.createEntityDto()?.let {newDto->
-//                newDto.updateBinding(it, UpdateMode.ENTITY_TO_MODEL)
-//                resultList.add(newDto)
-//            }
-//        }
-//        resultList.forEach {
-//          //  conf.relationBinder.applyBindings(it)
-//         //   it.initializeRepositories(it.entityDAO)
-//        }
-//        return CrudResult(resultList.toList())
-//    }
-//
-//
-//    /**
-//     * Selects all entities from the database, initializes DTOs for them, and returns a result containing these DTOs.
-//     *
-//     * @return A [CrudResult] containing a list of initialized DTOs and associated events.
-//     */
-//    internal suspend fun <PARENT_DATA: DataModel, PARENT_ENTITY: LongEntity>update(
-//        dataModels: List<DATA>): CrudResult<DATA, ENTITY>{
-//
-//        val resultDTOs = mutableListOf<CommonDTO<DATA, ENTITY>>()
-//
-//        dataModels.forEach { dataModel ->
-//            factory.createEntityDto(dataModel)?.let { newDto ->
-//                resultDTOs.add(newDto)
-//            }
-//        }
-//        resultDTOs.filter { !it.isSaved }.forEach {
-//          //  conf.relationBinder.applyBindings(it)
-//         //   it.initializeRepositories()
-//         //   it.updateRepositories()
-//        }
-//        resultDTOs.filter { it.isSaved }.forEach {
-//          //  conf.relationBinder.applyBindings(it)
-//         //   it.initializeRepositories()
-//        //    it.updateRepositories()
-//        }
-//
-//        return CrudResult(resultDTOs.toList())
-//    }
-//
-//    /**
-//     * Deletes a given data model by first finding and initializing its DTO, then deleting it along with its bindings.
-//     *
-//     * @param dataModel The data model to delete.
-//     * @return A [CrudResult] containing a list of successfully deleted DTOs and associated events.
-//     */
-//    internal suspend fun delete(dataModel: DATA): CrudResult<DATA, ENTITY>{
-//        val resultDTOs = mutableListOf<CommonDTO<DATA, ENTITY>>()
-//        factory.createEntityDto(dataModel)?.let { newDto ->
-//            resultDTOs.add(newDto)
-//        }
-//        resultDTOs.forEach {
-//            daoService.selectWhere(it.id).let { entity ->
-//                it.updateBinding(entity, UpdateMode.ENTITY_TO_MODEL)
-//           //     conf.relationBinder.applyBindings(it)
-//         //       it.initializeRepositories(it.entityDAO)
-//          //      it.deleteInRepositories()
-//            }
-//        }
-//        return CrudResult(resultDTOs.toList())
-//    }
-//
-//    fun execute(sequenceId:Int, params: Map<String, String>? = null){
-//        runBlocking {
-//            AuthSessionManager.getCurrentSession().getSessionAttr<SequenceHandler<DATA,ENTITY>>("sequence")?.let { handler ->
-//                handler.execute()
-//            }
-//        }
-//    }
-//
-//    suspend fun triggerSequence(
-//        sequence: SequencePack<DATA, ENTITY>): Deferred<List<DATA>> = emitter.launchSequence(sequence)
-//
+    fun initFactoryRoutines(): Unit = config.initFactoryRoutines()
+    internal suspend fun withFactory(block: suspend (DTOFactory<DTO, DataModel, ExposifyEntityBase>)-> Unit): Unit{
+        return config.withFactory(block)
+    }
+    suspend fun withDaoService(block: suspend (DAOService2<DTO, DataModel, ExposifyEntityBase>)-> Unit): Unit = config.withDaoService(block)
+    suspend fun withRelationshipBinder(block: suspend RelationshipBinder2<DTO, DataModel, ExposifyEntityBase>.()-> Unit): Unit = config.withRelationshipBinder(block)
+
+    suspend fun triggerSequence(
+        sequence: SequencePack2<DTO>
+    ): Deferred<List<DataModel>> = emitter.launchSequence(sequence)
+
 }

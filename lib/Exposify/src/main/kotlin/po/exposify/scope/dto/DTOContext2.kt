@@ -1,18 +1,16 @@
 package po.exposify.scope.dto
 
-import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
 import po.exposify.classes.interfaces.DataModel
-import po.exposify.dto.classes.DTOClass2
+import po.exposify.classes.DTOClass
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.extensions.WhereCondition
 import po.exposify.common.models.CrudResult2
-import po.exposify.dto.extensions.select
 import po.lognotify.eventhandler.models.Event
 
 
 class DTOContext2<DTO>(
-    private val dtoClass: DTOClass2<DTO>,
+    private val dtoClass: DTOClass<DTO>,
     private var crudResult : CrudResult2<DTO>? = null,
     private val resultCallback: ((List<DataModel> )-> Unit)? = null
 ) where DTO : ModelDTO{

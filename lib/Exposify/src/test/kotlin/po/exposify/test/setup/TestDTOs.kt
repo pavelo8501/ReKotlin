@@ -7,7 +7,7 @@ import po.exposify.binders.ReadOnly
 import po.exposify.binders.SyncedBinding
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.classes.DTOClass2
+import po.exposify.classes.DTOClass
 
 @Serializable
 data class TestUser(
@@ -26,7 +26,7 @@ class TestUserDTO(
     override var dataModel: TestUser
 ): CommonDTO<TestUserDTO,  TestUser, TestUserEntity>(TestUserDTO) {
 
-    companion object: DTOClass2<TestUserDTO>(){
+    companion object: DTOClass<TestUserDTO>(){
         override fun setup() {
             configuration<TestUser, TestUserEntity>(TestUserDTO::class, TestUserEntity){
 
@@ -53,7 +53,7 @@ data class TestPage(
 class TestPageDTO(
     override var dataModel: TestPage
 ): CommonDTO<TestPageDTO, TestPage, TestPageEntity>(TestPageDTO) {
-    companion object: DTOClass2<TestPageDTO>(){
+    companion object: DTOClass<TestPageDTO>(){
         override fun setup() {
            configuration<TestPage, TestPageEntity>(TestPageDTO::class, TestPageEntity){
                propertyBindings(SyncedBinding(TestPage::name, TestPageEntity::name),
@@ -96,7 +96,7 @@ class TestSectionDTO(
     override var dataModel: TestSection
 ): CommonDTO<TestSectionDTO, TestSection, TestSectionEntity>(TestSectionDTO) {
 
-    companion object: DTOClass2<TestSectionDTO>(){
+    companion object: DTOClass<TestSectionDTO>(){
 
         override fun setup() {
             configuration<TestSection, TestSectionEntity>(TestSectionDTO::class, TestSectionEntity) {

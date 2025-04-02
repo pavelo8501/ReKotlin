@@ -7,12 +7,12 @@ import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
 import po.exposify.scope.sequence.SequenceContext2
 import po.exposify.scope.sequence.classes.SequenceHandler2
-import po.exposify.scope.service.ServiceClass2
+import po.exposify.scope.service.ServiceClass
 
 
 data class SequencePack2<DTO>(
     private val context : SequenceContext2<DTO>,
-    internal val serviceClass: ServiceClass2<DTO, *, *>,
+    internal val serviceClass: ServiceClass<DTO, *, *>,
     private val sequenceFn : suspend  SequenceContext2<DTO>.() -> Unit,
     private val handler: SequenceHandler2<DTO>,
 ) where  DTO : ModelDTO {

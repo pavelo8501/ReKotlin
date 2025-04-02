@@ -11,7 +11,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
 import po.auth.AuthSessionManager
 import po.exposify.DatabaseManager
 import po.exposify.controls.ConnectionInfo
-import po.exposify.scope.connection.ConnectionContext2
+import po.exposify.scope.connection.ConnectionContext
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -23,9 +23,9 @@ abstract class DatabaseTest {
         @Container
         val postgres = PostgreSQLContainer("postgres:15")
     }
-    var connectionContext : ConnectionContext2? = null
+    var connectionContext : ConnectionContext? = null
 
-    private fun initExposify(): ConnectionContext2{
+    private fun initExposify(): ConnectionContext{
         val connection = DatabaseManager.openConnectionSync(
             ConnectionInfo(
                 jdbcUrl= postgres.jdbcUrl,

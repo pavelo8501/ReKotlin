@@ -7,7 +7,6 @@ import kotlinx.coroutines.async
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.transactions.experimental.suspendedTransactionAsync
 import po.exposify.classes.interfaces.DataModel
-import po.exposify.scope.sequence.models.SequencePack
 
 class CoroutineEmitter(
     val name: String,

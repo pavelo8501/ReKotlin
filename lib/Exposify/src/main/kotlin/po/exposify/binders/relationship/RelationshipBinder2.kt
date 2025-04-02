@@ -4,10 +4,10 @@ import org.jetbrains.exposed.sql.SizedIterable
 import po.exposify.binders.enums.Cardinality
 import po.exposify.binders.relationship.models.DataPropertyInfo
 import po.exposify.binders.relationship.models.EntityPropertyInfo
-import po.exposify.classes.components.RepositoryBase2
+import po.exposify.dto.components.RepositoryBase
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.classes.DTOClass2
+import po.exposify.classes.DTOClass
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.exceptions.ExceptionCodes
@@ -20,11 +20,11 @@ import kotlin.reflect.KProperty1
 
 
 class RelationshipBinder2<DTO, DATA, ENTITY>(
-   val dtoClass:  DTOClass2<DTO>
+   val dtoClass:  DTOClass<DTO>
 ) where DTO: ModelDTO, DATA : DataModel, ENTITY : ExposifyEntityBase
 {
-    private var childBindings = mutableMapOf<BindingKeyBase2, BindingContainer2<DTO, DATA, ENTITY, ModelDTO>>()
-
+    internal var childBindings = mutableMapOf<BindingKeyBase2, BindingContainer2<DTO, DATA, ENTITY, ModelDTO>>()
+        private set
     private fun <CHILD_DTO: ModelDTO> attachBinding(
         key : BindingKeyBase2,
         container: BindingContainer2<DTO, DATA, ENTITY, CHILD_DTO>
@@ -38,7 +38,7 @@ class RelationshipBinder2<DTO, DATA, ENTITY>(
     }
 
     fun <CHILD_DTO: ModelDTO>single(
-        childModel: DTOClass2<CHILD_DTO>,
+        childModel: DTOClass<CHILD_DTO>,
         ownDataModel: KMutableProperty1<DATA, DataModel?>,
         ownEntity: KProperty1<ENTITY, ExposifyEntityBase>,
         foreignEntity: KMutableProperty1<ExposifyEntityBase, ENTITY>
@@ -54,7 +54,7 @@ class RelationshipBinder2<DTO, DATA, ENTITY>(
 
 
     fun <CHILD_DTO : ModelDTO>many(
-        childModel: DTOClass2<CHILD_DTO>,
+        childModel: DTOClass<CHILD_DTO>,
         ownDataModel: KProperty1<DATA, Iterable<DataModel>>,
         ownEntities: KProperty1<ENTITY, SizedIterable<ExposifyEntityBase>>,
         foreignEntity: KMutableProperty1<*, ENTITY>,
@@ -112,7 +112,7 @@ class RelationshipBinder2<DTO, DATA, ENTITY>(
          childBindings.forEach {
             when(it.key){
                 is BindingKeyBase2.OneToOne<*>->{
-                    val newRepo = it.value.createRepository(parentDto).safeCast<RepositoryBase2<DTO, DATA, ENTITY, ModelDTO>>()
+                    val newRepo = it.value.createRepository(parentDto).safeCast<RepositoryBase<DTO, DATA, ENTITY, ModelDTO>>()
                     if(newRepo != null){
                         parentDto.repositories.put(it.key, newRepo)
                     }else{
@@ -122,7 +122,7 @@ class RelationshipBinder2<DTO, DATA, ENTITY>(
                 }
 
                 is BindingKeyBase2.OneToMany<*>->{
-                    val newRepo = it.value.createRepository(parentDto).safeCast<RepositoryBase2<DTO, DATA, ENTITY, ModelDTO>>()
+                    val newRepo = it.value.createRepository(parentDto).safeCast<RepositoryBase<DTO, DATA, ENTITY, ModelDTO>>()
                     if(newRepo != null){
                         parentDto.repositories.put(it.key, newRepo)
                     }else{

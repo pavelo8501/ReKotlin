@@ -1,24 +1,24 @@
 package po.exposify.dto.extensions
 
-import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
 import po.exposify.binders.UpdateMode
 import po.exposify.classes.components.DTOConfig2
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.common.models.CrudResult2
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.classes.DTOClass2
+import po.exposify.classes.DTOClass
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
 import po.exposify.extensions.QueryConditions
+import po.exposify.extensions.getOrThrow
 import kotlin.Long
 import kotlin.collections.toList
 
 
 internal suspend fun <DTO, DATA, ENTITY, TB: IdTable<Long>> runPick(
-    dtoClass: DTOClass2<DTO>,
+    dtoClass: DTOClass<DTO>,
     config :  DTOConfig2<DTO, DATA, ENTITY>,
     conditions: QueryConditions<TB>): CrudResult2<DTO> where DTO : ModelDTO, DATA : DataModel, ENTITY : ExposifyEntityBase
 {
@@ -35,7 +35,7 @@ internal suspend fun <DTO, DATA, ENTITY, TB: IdTable<Long>> runPick(
 
 
 private suspend fun <DTO, TB> runSelect(
-    dtoClass: DTOClass2<DTO>,
+    dtoClass: DTOClass<DTO>,
     conditions: QueryConditions<TB>? = null
 ): CrudResult2<DTO> where DTO : ModelDTO, TB: IdTable<Long>{
 
@@ -47,32 +47,33 @@ private suspend fun <DTO, TB> runSelect(
             it.selectAll().toList()
         }
         dtoClass.repository?.let { rootRepository ->
-           val dtos =  rootRepository.select(entities)
-
+           val dtos =  rootRepository.selectByByEntities(entities)
+           resultList.addAll(dtos)
+           println("Dtos count ${resultList.count()} fully initialized")
         }
     }
     return CrudResult2(resultList)
 }
 
 private suspend fun <DTO>runUpdate(
-    dtoClass: DTOClass2<DTO>,
+    dtoClass: DTOClass<DTO>,
     dataModels: List<DataModel>
 ): CrudResult2<DTO> where DTO : ModelDTO{
     val resultList = mutableListOf<CommonDTO<DTO, DataModel, ExposifyEntityBase>>()
+    val exceptionFn : (String, Int)-> OperationsException = { message, code ->
+        OperationsException("$message for ${dtoClass.personalName}", ExceptionCodes.fromValue(code))
+    }
 
-    dtoClass.repository?.let {rootRepository->
-        dataModels.forEach { dataModel ->
-            dtoClass.config.dtoFactory.createDto(dataModel)?.let {
-                resultList.add(it)
-            }
-        }
-        rootRepository.update(resultList)
-    }?: throw OperationsException("Root repository not initialized for ${dtoClass.personalName}", ExceptionCodes.KEY_NOT_FOUND)
+    dtoClass.repository.getOrThrow("Root repository undefined", ExceptionCodes.REPOSITORY_NOT_FOUND, exceptionFn).updateByDataModels(dataModels).let {dtos->
+        resultList.addAll(dtos)
+        println("Dtos count ${resultList.count()} fully initialized")
+    }
+
     return CrudResult2(resultList)
 }
 
 internal suspend fun <DTO, DATA, ENTITY>runDelete(
-    dtoClass: DTOClass2<DTO>,
+    dtoClass: DTOClass<DTO>,
     config :  DTOConfig2<DTO, DATA, ENTITY>,
     dataModel: DATA): CrudResult2<DTO> where DTO : ModelDTO, DATA : DataModel, ENTITY : ExposifyEntityBase{
 
@@ -104,7 +105,7 @@ internal suspend fun <DTO, DATA, ENTITY>runDelete(
  * representing the filtering conditions.
  * @return A `CrudResult<DATA, ENTITY>` containing the selected DTO (if found) and any triggered events.
  */
-internal suspend inline fun <DTO: ModelDTO, DATA: DataModel, ENTITY: ExposifyEntityBase, TB : IdTable<Long>> DTOClass2<DTO>.pick(
+internal suspend inline fun <DTO: ModelDTO, DATA: DataModel, ENTITY: ExposifyEntityBase, TB : IdTable<Long>> DTOClass<DTO>.pick(
     conditions: QueryConditions<TB>
 ): CrudResult2<DTO> {
     var result = CrudResult2(emptyList<CommonDTO<DTO,DATA,ENTITY>>())
@@ -119,16 +120,16 @@ internal suspend inline fun <DTO: ModelDTO, DATA: DataModel, ENTITY: ExposifyEnt
  *
  * @return A [CrudResult] containing a list of initialized DTOs and associated events.
  */
-internal suspend inline fun <DTO, DATA, ENTITY, T>  DTOClass2<DTO>.select(
+internal suspend inline fun <DTO, DATA, ENTITY, T>  DTOClass<DTO>.select(
     conditions: QueryConditions<T>
 ): CrudResult2<DTO> where DTO: ModelDTO, DATA: DataModel, ENTITY: ExposifyEntityBase, T: IdTable<Long> = runSelect(this, conditions)
 
 
-internal suspend inline fun <DTO, DATA, ENTITY>  DTOClass2<DTO>.select(
+internal suspend inline fun <DTO, DATA, ENTITY>  DTOClass<DTO>.select(
 ): CrudResult2<DTO> where DTO: ModelDTO, DATA: DataModel, ENTITY: ExposifyEntityBase = runSelect<DTO, IdTable<Long>>(this, null)
 
 
-internal suspend fun <DTO> DTOClass2<DTO>.update(
+internal suspend fun <DTO> DTOClass<DTO>.update(
     dataModels: List<DataModel>
 ): CrudResult2<DTO> where DTO: ModelDTO = runUpdate(this, dataModels)
 
@@ -140,7 +141,7 @@ internal suspend fun <DTO> DTOClass2<DTO>.update(
  * @param dataModel The data model to delete.
  * @return A [CrudResult] containing a list of successfully deleted DTOs and associated events.
  */
-internal suspend inline fun <DTO, DATA, ENTITY>  DTOClass2<DTO>.delete(
+internal suspend inline fun <DTO, DATA, ENTITY>  DTOClass<DTO>.delete(
     dataModel: DATA
 ): CrudResult2<DTO>  where DTO: ModelDTO, DATA: DataModel, ENTITY: ExposifyEntityBase
 {

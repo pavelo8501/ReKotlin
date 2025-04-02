@@ -7,7 +7,6 @@ import org.jetbrains.exposed.sql.Query
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.SizedIterable
 import po.exposify.binders.UpdateMode
-import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.ExceptionCodes

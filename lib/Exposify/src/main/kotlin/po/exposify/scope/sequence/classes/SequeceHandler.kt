@@ -3,13 +3,10 @@ package po.exposify.scope.sequence.classes
 import org.jetbrains.exposed.dao.LongEntity
 import po.auth.AuthSessionManager
 import po.auth.sessions.models.AuthorizedSession
-import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
 import po.exposify.scope.sequence.enums.SequenceID
-import po.exposify.scope.sequence.models.SequencePack
-import po.exposify.scope.service.ServiceContext
 
 
 //suspend inline fun <reified DTO> AuthorizedSession.execute(
@@ -23,12 +20,11 @@ import po.exposify.scope.service.ServiceContext
 
 private suspend fun <DATA: DataModel,  ENTITY: LongEntity>  runExecute(
     session: AuthorizedSession,
-    dtoClass: DTOClass<DATA, ENTITY>,
+
     sequenceId: String,
     params: Map<String, String>? = null,
     inputList: List<DATA>? = null){
 
-    val lookupKey = "sequence:${dtoClass.personalName}::$sequenceId"
 
 //    session.getSessionAttr<SequenceHandler<DATA, ENTITY>>(lookupKey)?.let { handler ->
 //        if (params != null && inputList != null) { return   handler.execute(params, inputList) }
@@ -42,21 +38,21 @@ private suspend fun <DATA: DataModel,  ENTITY: LongEntity>  runExecute(
 }
 
 
-suspend fun <DATA: DataModel,  ENTITY: LongEntity>  AuthorizedSession.execute(
-    dtoClass: DTOClass<DATA, ENTITY>,
-    sequenceID: SequenceID,
-    params: Map<String, String>? = null,
-    inputList: List<DATA>? = null) {
-    runExecute<DATA, ENTITY>(this, dtoClass, sequenceID.value.toString(), params, inputList)
-}
+//suspend fun <DATA: DataModel,  ENTITY: LongEntity>  AuthorizedSession.execute(
+//    dtoClass: DTOClass<DATA, ENTITY>,
+//    sequenceID: SequenceID,
+//    params: Map<String, String>? = null,
+//    inputList: List<DATA>? = null) {
+//    runExecute<DATA, ENTITY>(this, dtoClass, sequenceID.value.toString(), params, inputList)
+//}
 
-suspend fun <DATA: DataModel,  ENTITY: LongEntity>  AuthorizedSession.execute(
-    dtoClass: DTOClass<DATA, ENTITY>,
-    sequenceId:Int,
-    params: Map<String, String>? = null,
-    inputList: List<DATA>? = null) {
-    runExecute<DATA, ENTITY>(this, dtoClass, sequenceId.toString(), params, inputList)
-}
+//suspend fun <DATA: DataModel,  ENTITY: LongEntity>  AuthorizedSession.execute(
+//    dtoClass: DTOClass<DATA, ENTITY>,
+//    sequenceId:Int,
+//    params: Map<String, String>? = null,
+//    inputList: List<DATA>? = null) {
+//    runExecute<DATA, ENTITY>(this, dtoClass, sequenceId.toString(), params, inputList)
+//}
 
 /**
 * Creates a new [SequenceHandler] instance using a predefined [SequenceID] type.
@@ -77,10 +73,10 @@ suspend fun <DATA: DataModel,  ENTITY: LongEntity>  AuthorizedSession.execute(
 *
 * @return A newly created and session-scoped [SequenceHandler].
 */
-suspend fun <DATA : DataModel, ENTITY : LongEntity> ServiceContext<DATA, ENTITY>.createHandler(
-    dto: DTOClass<DATA, ENTITY>,
-    sequenceID: SequenceID
-): SequenceHandler<DATA, ENTITY> = this.createHandler(dto, sequenceID.value)
+//suspend fun <DATA : DataModel, ENTITY : LongEntity> ServiceContext<DATA, ENTITY>.createHandler(
+//    dto: DTOClass<DATA, ENTITY>,
+//    sequenceID: SequenceID
+//): SequenceHandler<DATA, ENTITY> = this.createHandler(dto, sequenceID.value)
 
 /**
  * Creates a new [SequenceHandler] instance for the given [dto] class and associates it
@@ -97,34 +93,34 @@ suspend fun <DATA : DataModel, ENTITY : LongEntity> ServiceContext<DATA, ENTITY>
  *
  * @see SequenceID For common predefined handler types.
  */
-suspend fun <DATA : DataModel, ENTITY : LongEntity> ServiceContext<DATA, ENTITY>.createHandler(
-    dto: DTOClass<DATA, ENTITY>,
-    handleId: Int):SequenceHandler<DATA, ENTITY> {
-    val session = AuthSessionManager.getCurrentSession()
-    val newHandler =  SequenceHandler<DATA, ENTITY>(dto, handleId)
-    val handlerKey = "sequence:${newHandler.thisKey}"
-    session.setSessionAttr(handlerKey, newHandler)
-    return  newHandler
-}
+//suspend fun <DATA : DataModel, ENTITY : LongEntity> ServiceContext<DATA, ENTITY>.createHandler(
+//    dto: DTOClass<DATA, ENTITY>,
+//    handleId: Int):SequenceHandler<DATA, ENTITY> {
+//    val session = AuthSessionManager.getCurrentSession()
+//    val newHandler =  SequenceHandler<DATA, ENTITY>(dto, handleId)
+//    val handlerKey = "sequence:${newHandler.thisKey}"
+//    session.setSessionAttr(handlerKey, newHandler)
+//    return  newHandler
+//}
 
 /**
  * Represents a sealed interface for handling sequence execution and result callbacks.
  * @param T The type of data processed by the sequence handler.
  */
-sealed interface SequenceHandlerInterface<DATA: DataModel, ENTITY: LongEntity> {
-
-    val dtoClass : DTOClass<DATA, ENTITY>
-    /**
-     * The unique name of the sequence handler.
-     */
-    val thisKey: String
-
-    /**
-     * Invokes the result callback function with the provided data.
-     * @param listedData The data to be passed to the result callback.
-     */
-   // suspend fun submitResult(result: List<DATA>)
-}
+//sealed interface SequenceHandlerInterface<DATA: DataModel, ENTITY: LongEntity> {
+//
+//    val dtoClass : DTOClass<DATA, ENTITY>
+//    /**
+//     * The unique name of the sequence handler.
+//     */
+//    val thisKey: String
+//
+//    /**
+//     * Invokes the result callback function with the provided data.
+//     * @param listedData The data to be passed to the result callback.
+//     */
+//   // suspend fun submitResult(result: List<DATA>)
+//}
 
 /**
  * An abstract class representing a sequence handler, responsible for managing
@@ -133,29 +129,29 @@ sealed interface SequenceHandlerInterface<DATA: DataModel, ENTITY: LongEntity> {
  * @param T The type of data processed by the sequence handler. Must be a list of [DataModel].
  * @property name The unique name of the sequence handler.
  * @property resultCallback An optional function that is invoked when a sequence result is available.
- */
-abstract class SequenceHandlerAbstraction<DATA, ENTITY>(
-    override val dtoClass: DTOClass<DATA, ENTITY>,
-) : SequenceHandlerInterface<DATA, ENTITY> where  DATA : DataModel, ENTITY: LongEntity  {
-
-    abstract override val thisKey: String
-
-    private val sequences =
-        mutableMapOf<String, SequencePack<DATA, ENTITY>>()
-
-    internal fun getStockSequence(key: String = "0"): SequencePack<DATA, ENTITY>{
-        val lookupKey =   "${dtoClass.personalName}::$key"
-        val sequence = sequences[thisKey]
-        if(sequence != null){
-            return  sequence
-        }else{
-            throw OperationsException("Unable to find sequence for a given handler $lookupKey", ExceptionCodes.KEY_NOT_FOUND )
-        }
-    }
-
-    fun addSequence(sequence: SequencePack<DATA, ENTITY>){
-        sequences[thisKey] = sequence
-    }
+// */
+//abstract class SequenceHandlerAbstraction<DATA, ENTITY>(
+//    override val dtoClass: DTOClass<DATA, ENTITY>,
+//) : SequenceHandlerInterface<DATA, ENTITY> where  DATA : DataModel, ENTITY: LongEntity  {
+//
+//    abstract override val thisKey: String
+//
+//    private val sequences =
+//        mutableMapOf<String, SequencePack<DATA, ENTITY>>()
+//
+//    internal fun getStockSequence(key: String = "0"): SequencePack<DATA, ENTITY>{
+//        val lookupKey =   "${dtoClass.personalName}::$key"
+//        val sequence = sequences[thisKey]
+//        if(sequence != null){
+//            return  sequence
+//        }else{
+//            throw OperationsException("Unable to find sequence for a given handler $lookupKey", ExceptionCodes.KEY_NOT_FOUND )
+//        }
+//    }
+//
+//    fun addSequence(sequence: SequencePack<DATA, ENTITY>){
+//        sequences[thisKey] = sequence
+//    }
 
 //    suspend fun execute(params: Map<String, String>, key: String = "0"): Deferred<List<DATA>>{
 //        getStockSequence(key).let {
@@ -187,16 +183,16 @@ abstract class SequenceHandlerAbstraction<DATA, ENTITY>(
 //            return it.serviceClass.launchSequence(it)
 //        }
 //    }
-}
+//}
 
-class SequenceHandler<DATA, ENTITY>(
-    override val dtoClass: DTOClass<DATA, ENTITY>,
-    val handlerId: Int,
-): SequenceHandlerAbstraction<DATA, ENTITY>(dtoClass) where  DATA : DataModel, ENTITY: LongEntity{
-
-    override val thisKey: String = "${dtoClass.personalName}::${handlerId.toString()}"
-
-    init {
-        val a = thisKey
-    }
-}
+//class SequenceHandler<DATA, ENTITY>(
+//    override val dtoClass: DTOClass<DATA, ENTITY>,
+//    val handlerId: Int,
+//): SequenceHandlerAbstraction<DATA, ENTITY>(dtoClass) where  DATA : DataModel, ENTITY: LongEntity{
+//
+//    override val thisKey: String = "${dtoClass.personalName}::${handlerId.toString()}"
+//
+//    init {
+//        val a = thisKey
+//    }
+//}

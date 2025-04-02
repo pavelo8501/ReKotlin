@@ -1,6 +1,5 @@
 package po.exposify.scope.service
 
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
@@ -8,37 +7,36 @@ import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.exists
 import org.jetbrains.exposed.sql.transactions.transaction
-import po.exposify.classes.DTOClass
-import po.exposify.classes.components.CallbackEmitter
+import po.exposify.classes.components.CallbackEmitter2
 import po.exposify.classes.interfaces.DataModel
-import po.exposify.echo
+import po.exposify.common.interfaces.AsClass
+import po.exposify.classes.DTOClass
+import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.InitializationException
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.InitErrorCodes
 import po.exposify.scope.connection.ConnectionClass
-import po.exposify.scope.sequence.models.SequencePack
+import po.exposify.scope.sequence.models.SequencePack2
 import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.eventhandler.RootEventHandler
 import po.lognotify.eventhandler.interfaces.CanNotify
-import kotlin.Long
+import kotlin.collections.forEach
 
-
-
-class ServiceClass<DATA, ENTITY>(
+class ServiceClass<DTO, DATA, ENTITY>(
     private val connectionClass : ConnectionClass,
-    private val rootDTOModel : DTOClass<DATA, ENTITY>,
-    private val serviceCreateOption: TableCreateMode? = null,
-) : CanNotify  where  DATA: DataModel, ENTITY : LongEntity {
+    private val rootDTOModel : DTOClass<DTO>,
+    private val serviceCreateOption: TableCreateMode = TableCreateMode.CREATE,
+) : CanNotify, AsClass<DATA, ENTITY>  where  DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity {
 
-   internal val connection : Database = connectionClass.connection
+    internal val connection : Database = connectionClass.connection
 
-   var name : String = "undefined"
-   var serviceContext : ServiceContext<DATA, ENTITY>? = null
+    var name : String = "undefined"
+    var serviceContext : ServiceContext<DTO, DATA>? = null
 
-   override val eventHandler = RootEventHandler(name){
-       echo(it, "ServiceClass: RootEventHandler")
-   }
+    override val eventHandler = RootEventHandler(name){
+        echo(it, "ServiceClass: RootEventHandler")
+    }
 
     init {
         eventHandler.registerPropagateException<OperationsException> {
@@ -56,10 +54,10 @@ class ServiceClass<DATA, ENTITY>(
         body()
     }
 
-//    internal suspend fun launchSequence(
-//        pack : SequencePack<DATA, ENTITY>): Deferred<List<DATA>> {
-//        return  connectionClass.launchSequence<DATA, ENTITY>(pack)
-//    }
+    internal suspend fun launchSequence(
+        pack : SequencePack2<DTO>): Deferred<List<DataModel>> {
+        return  connectionClass.launchSequence<DTO>(pack)
+    }
 
     private fun createTable(table : IdTable<Long>): Boolean{
         return try {
@@ -81,11 +79,11 @@ class ServiceClass<DATA, ENTITY>(
             dbQuery {
                 SchemaUtils.drop(*backwards.toTypedArray<IdTable<Long>>(), inBatch = true)
                 tables.forEach {
-                   if(!createTable(it)){
-                       throw InitializationException(
-                           "Table ${it.schemaName} creation after drop failed",
-                           InitErrorCodes.DB_TABLE_CREATION_FAILURE)
-                   }
+                    if(!createTable(it)){
+                        throw InitializationException(
+                            "Table ${it.schemaName} creation after drop failed",
+                            InitErrorCodes.DB_TABLE_CREATION_FAILURE)
+                    }
                 }
             }
             true
@@ -95,7 +93,7 @@ class ServiceClass<DATA, ENTITY>(
         }
     }
 
-    private fun initializeDTOs(context: ServiceClass<DATA,ENTITY>.() -> Unit ) {
+    private fun initializeDTOs(context: ServiceClass<DTO, DATA, ENTITY>.() -> Unit ) {
         context.invoke(this)
     }
 
@@ -115,10 +113,10 @@ class ServiceClass<DATA, ENTITY>(
     }
 
 
-    private fun  emitterSubscriptions(callbackEmitter : CallbackEmitter<DATA, ENTITY>){
-//        callbackEmitter.subscribeSequenceExecute{
-//            //launchSequence(it)
-//        }
+    private fun  emitterSubscriptions(callbackEmitter : CallbackEmitter2<DTO>){
+        callbackEmitter.subscribeSequenceExecute{
+            launchSequence(it)
+        }
     }
 
 
@@ -127,31 +125,14 @@ class ServiceClass<DATA, ENTITY>(
             rootDTOModel.initialization(::emitterSubscriptions)
             name =  ("${rootDTOModel.personalName}|Service").trim()
         }
-        if(serviceCreateOption!=null){
-            prepareTables(serviceCreateOption)
-        }
+        prepareTables(serviceCreateOption)
     }
 
-    fun <DATA: DataModel, ENTITY: LongEntity> attachToContext(
-        dtoModel : DTOClass<DATA, ENTITY>,
-        context:  ServiceContext<DATA, ENTITY>.() -> Unit
-    ): Boolean {
-        serviceContext?.let {serviceCtx->
-            if (rootDTOModel::class.isInstance(dtoModel)) {
-                serviceCtx.also {
-                    @Suppress("UNCHECKED_CAST")
-                    context.invoke(serviceCtx as ServiceContext<DATA, ENTITY>)
-                    return true
-                }
-            }
-        }
-        return false
-    }
 
-   suspend fun launch(receiver: suspend ServiceContext<DATA, ENTITY>.() -> Unit){
-       ServiceContext(this, rootDTOModel).let {context->
-           context.receiver()
-           serviceContext = context
-       }
+    fun launch(receiver: ServiceContext<DTO, DATA>.() -> Unit){
+        ServiceContext(this, rootDTOModel).let { context->
+            context.receiver()
+            serviceContext = context
+        }
     }
 }

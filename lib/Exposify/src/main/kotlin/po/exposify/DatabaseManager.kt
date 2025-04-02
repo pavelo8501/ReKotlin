@@ -7,16 +7,14 @@ import org.jetbrains.exposed.sql.Database
 import po.auth.sessions.interfaces.ManagedSession
 import po.exposify.controls.ConnectionInfo
 import po.exposify.scope.connection.ConnectionClass
-import po.exposify.scope.connection.ConnectionClass2
 import po.exposify.scope.connection.ConnectionContext
-import po.exposify.scope.connection.ConnectionContext2
 import po.exposify.scope.connection.models.ConnectionSettings
 
 fun echo(ex: Exception, message: String? = null){
     println("Exception happened in Exposify:  Exception:${ex.message.toString()}. $message")
 }
 
-fun launchService(connection:ConnectionContext, block: ConnectionContext.()-> Unit ){
+fun launchService(connection: ConnectionContext, block: ConnectionContext.()-> Unit ){
     if(connection.isOpen){
         connection.block()
     }
@@ -24,9 +22,9 @@ fun launchService(connection:ConnectionContext, block: ConnectionContext.()-> Un
 
 object DatabaseManager {
 
-    private val connections  = mutableListOf<ConnectionClass2>()
+    private val connections  = mutableListOf<ConnectionClass>()
 
-    private fun addConnection(connection : ConnectionClass2){
+    private fun addConnection(connection : ConnectionClass){
         connections.add(connection)
     }
 
@@ -61,14 +59,14 @@ object DatabaseManager {
     fun openConnectionSync(
         connectionInfo : ConnectionInfo,
         sessionManager: ManagedSession,
-        context: (ConnectionContext2.()->Unit)? = null
-    ): ConnectionContext2? {
+        context: (ConnectionContext.()->Unit)? = null
+    ): ConnectionContext? {
 
         try {
             connectionInfo.hikariDataSource = provideDataSource(connectionInfo)
             val newConnection = Database.connect(connectionInfo.hikariDataSource!!)
-            val connectionClass = ConnectionClass2(connectionInfo, newConnection, sessionManager)
-            val connectionContext = ConnectionContext2(
+            val connectionClass = ConnectionClass(connectionInfo, newConnection, sessionManager)
+            val connectionContext = ConnectionContext(
                 "Connection ${connectionInfo.dbName}",
                 newConnection, connectionClass
             ).also {
@@ -92,15 +90,15 @@ object DatabaseManager {
         connectionInfo : ConnectionInfo,
         sessionManager: ManagedSession,
         settings : ConnectionSettings = ConnectionSettings(5),
-        context: ConnectionContext2.()->Unit
+        context: ConnectionContext.()->Unit
     ): Boolean {
         var retriesLeft = settings.retries.toInt()
         while (retriesLeft != 0) {
             runCatching {
                 connectionInfo.hikariDataSource = provideDataSource(connectionInfo)
                 val newConnection = Database.connect(connectionInfo.hikariDataSource!!)
-                val connectionClass = ConnectionClass2(connectionInfo, newConnection, sessionManager)
-                val connectionContext = ConnectionContext2(
+                val connectionClass = ConnectionClass(connectionInfo, newConnection, sessionManager)
+                val connectionContext = ConnectionContext(
                     "Connection ${connectionInfo.dbName}",
                     newConnection, connectionClass
                 ).also {

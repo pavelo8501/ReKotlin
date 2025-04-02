@@ -1,15 +1,14 @@
 package po.exposify.dto
 
-import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.binders.relationship.BindingKeyBase2
 import po.exposify.binders.PropertyBinder
 import po.exposify.binders.UpdateMode
 import po.exposify.classes.components.DAOService2
-import po.exposify.classes.components.RepositoryBase2
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.common.classes.MapBuilder
-import po.exposify.dto.classes.DTOClass2
+import po.exposify.classes.DTOClass
 import po.exposify.dto.components.DataModelContainer2
+import po.exposify.dto.components.RepositoryBase
 import po.exposify.dto.enums.CrudType
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.CommonDTORegistryItem
@@ -24,14 +23,19 @@ import po.exposify.models.DTOInitStatus
 
 
 abstract class CommonDTO<DTO, DATA, ENTITY>(
-   val dtoClass: DTOClass2<DTO>
+   val dtoClass: DTOClass<DTO>
 ):ModelDTO where DTO : ModelDTO,  DATA: DataModel , ENTITY: ExposifyEntityBase {
 
     var personalName : String = "unset"
     abstract val dataModel: DATA
 
     lateinit var daoService: DAOService2<DTO, DATA, ENTITY>
-    lateinit var propertyBinder: PropertyBinder<DATA, ENTITY>
+    lateinit var propertyBinderSource: PropertyBinder<DATA, ENTITY>
+    val propertyBinder : PropertyBinder<DATA, ENTITY>
+        get() {
+            return propertyBinderSource
+        }
+
     override lateinit var dataContainer: DataModelContainer2<DTO, DATA>
 
     var onInitializationStatusChange : ((CommonDTO<DTO, DATA, ENTITY>)-> Unit)? = null
@@ -61,7 +65,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
             return _regItem?:throw InitializationException("DtoClassRegistryItem uninitialized", InitErrorCodes.KEY_PARAM_UNINITIALIZED)
         }
     internal val registryItem: CommonDTORegistryItem<DTO, DATA, ENTITY> by lazy { regItem }
-    internal var repositories =  MapBuilder<BindingKeyBase2,  RepositoryBase2<DTO, DATA, ENTITY, ModelDTO>> ()
+    internal var repositories =  MapBuilder<BindingKeyBase2,  RepositoryBase<DTO, DATA, ENTITY, ModelDTO>> ()
 
     init {
         val a = 10
@@ -83,7 +87,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
        binder: PropertyBinder<DATA,ENTITY>,
        dao : DAOService2<DTO, DATA,  ENTITY>){
        _regItem =  CommonDTORegistryItem(dtoClass, regItem.dataKClass, regItem.entityKClass, regItem.commonDTOKClass,this)
-       propertyBinder = binder
+       propertyBinderSource = binder
        dataContainer = container
        daoService = dao
        dataContainer.attachBinder(propertyBinder)

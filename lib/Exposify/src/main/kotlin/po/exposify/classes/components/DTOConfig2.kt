@@ -5,10 +5,8 @@ import po.exposify.binders.PropertyBinder
 import po.exposify.binders.PropertyBindingOption
 import po.exposify.binders.UpdateMode
 import po.exposify.binders.relationship.RelationshipBinder2
-import po.exposify.binders.relationship.BindingContainer2
-import po.exposify.binders.relationship.BindingKeyBase2
 import po.exposify.classes.interfaces.DataModel
-import po.exposify.dto.classes.DTOClass2
+import po.exposify.classes.DTOClass
 import po.exposify.dto.components.DataModelContainer2
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.DTORegistryItem
@@ -27,7 +25,7 @@ internal interface ConfigurableDTO<DTO: ModelDTO, DATA : DataModel, ENTITY: Expo
 internal class DTOConfig2<DTO, DATA, ENTITY>(
     val dtoRegItem : DTORegistryItem<DTO, DATA, ENTITY>,
     val entityModel:LongEntityClass<ENTITY>,
-    private val parent : DTOClass2<DTO>
+    private val parent : DTOClass<DTO>
 ): ConfigurableDTO<DTO, DATA, ENTITY> where DTO: ModelDTO,  ENTITY : ExposifyEntityBase, DATA: DataModel{
 
     val dtoFactory: DTOFactory<DTO, DATA, ENTITY> =
@@ -36,10 +34,7 @@ internal class DTOConfig2<DTO, DATA, ENTITY>(
     val daoService: DAOService2<DTO, DATA,  ENTITY> = DAOService2<DTO, DATA, ENTITY>(false, entityModel)
     val propertyBinder : PropertyBinder<DATA,ENTITY> = PropertyBinder()
 
-     val relationBinder: RelationshipBinder2<DTO, DATA, ENTITY> = RelationshipBinder2<DTO, DATA, ENTITY>(parent)
-
-    val childBindings: MutableMap<BindingKeyBase2, BindingContainer2<DTO, DATA, ENTITY, ModelDTO>> =
-        mutableMapOf<BindingKeyBase2, BindingContainer2<DTO, DATA, ENTITY, ModelDTO>>()
+    val relationBinder: RelationshipBinder2<DTO, DATA, ENTITY> = RelationshipBinder2<DTO, DATA, ENTITY>(parent)
 
     var dataModelConstructor : (() -> DataModel)? = null
         private set
@@ -58,9 +53,11 @@ internal class DTOConfig2<DTO, DATA, ENTITY>(
 
     override fun initFactoryRoutines(){
         dtoFactory.setPostCreationRoutine("dto_initialization") {
-
-            val dataModelContainer = DataModelContainer2<DTO, DATA>(dataModel, dtoFactory.dataBlueprint)
-            initialize(dtoRegItem, dataModelContainer, propertyBinder, daoService)
+            val dataModelContainer = DataModelContainer2<DTO, DATA>(dataModel, this@DTOConfig2.dtoFactory.dataBlueprint)
+            val thisRegItem = this@DTOConfig2.dtoRegItem
+            val thisPropertyBinder = this@DTOConfig2.propertyBinder
+            val thisDaoService = this@DTOConfig2.daoService
+            initialize(thisRegItem, dataModelContainer, thisPropertyBinder, thisDaoService)
         }
 
         dtoFactory.setPostCreationRoutine("entity_initialization_for_root_dto") {entity->
@@ -87,6 +84,7 @@ internal class DTOConfig2<DTO, DATA, ENTITY>(
     inline fun childBindings(
         block: RelationshipBinder2<DTO, DATA, ENTITY>.()-> Unit
     ){
+
         relationBinder.block()
     }
 

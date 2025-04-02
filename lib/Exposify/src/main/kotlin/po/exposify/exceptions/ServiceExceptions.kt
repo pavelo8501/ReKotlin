@@ -24,7 +24,9 @@ enum class  ExceptionCodes (val value:Int) {
     REPOSITORY_NOT_INITIALIZED(4001),
     REPOSITORY_NOT_FOUND(4002),
 
-    BINDING_PROPERTY_MISSING(5001);
+    BINDING_PROPERTY_MISSING(5001),
+
+    FACTORY_CREATE_FAILURE(6001);
 
     companion object {
         fun fromValue(errorCode: Int): ExceptionCodes {
@@ -35,10 +37,6 @@ enum class  ExceptionCodes (val value:Int) {
         }
     }
 }
-
-
-class TypeMismatchException(message: String) : RuntimeException(message)
-
 
 class OperationsException(message: String, errCode : ExceptionCodes) :
     ProcessableException(HandleType.PROPAGATE_TO_PARENT, message, errCode.value)

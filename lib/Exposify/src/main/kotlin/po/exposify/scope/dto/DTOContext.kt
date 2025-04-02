@@ -2,7 +2,6 @@ package po.exposify.scope.dto
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
-import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.extensions.WhereCondition
 import po.exposify.models.CrudResult
@@ -38,7 +37,6 @@ import po.lognotify.eventhandler.models.Event
  * ```
  */
 class DTOContext<DATA, ENTITY>(
-    private val rootDTOClass: DTOClass<DATA, ENTITY>,
     private var  crudResult : CrudResult<DATA, ENTITY>? = null,
     private val resultCallback: ((List<DATA> )-> Unit)? = null
     ) where DATA : DataModel, ENTITY : LongEntity {

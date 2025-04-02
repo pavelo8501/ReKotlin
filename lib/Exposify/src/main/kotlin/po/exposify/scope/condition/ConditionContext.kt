@@ -2,7 +2,6 @@ package po.exposify.scope.condition
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
-import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.extensions.WhereCondition
 import po.exposify.scope.dto.DTOContext
@@ -10,7 +9,7 @@ import po.exposify.scope.dto.DTOContext
 
 
 class ConditionContext<T,  DATA, ENTITY>(
-    private val  rootDTOClass: DTOClass<DATA, ENTITY>
+
 ) where T: IdTable<Long>,  DATA : DataModel, ENTITY : LongEntity {
     public var thisCondition:  WhereCondition<T> ? = null
 
