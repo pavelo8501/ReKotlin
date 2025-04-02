@@ -11,7 +11,7 @@ fun tables(): List<LongIdTable>{
     return  listOf<LongIdTable>(TestPages, TestSections)
 }
 
-object TestUsers : LongIdTable("test_users", "id") {
+object TestUsers : LongIdTable("users", "id") {
     val name = varchar("name",128)
     val login = varchar("login",128)
     val password = varchar("password",128)

@@ -15,6 +15,7 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.CommonDTORegistryItem
 import po.exposify.dto.models.CrudOperation
 import po.exposify.dto.models.DTORegistryItem
+import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.InitializationException
 import po.exposify.exceptions.OperationsException
@@ -24,11 +25,12 @@ import po.exposify.models.DTOInitStatus
 
 abstract class CommonDTO<DTO, DATA, ENTITY>(
    val dtoClass: DTOClass2<DTO>
-):ModelDTO where DTO : ModelDTO,  DATA: DataModel , ENTITY: LongEntity {
+):ModelDTO where DTO : ModelDTO,  DATA: DataModel , ENTITY: ExposifyEntityBase {
 
+    var personalName : String = "unset"
     abstract val dataModel: DATA
 
-    lateinit var daoService: DAOService2<DTO, ENTITY>
+    lateinit var daoService: DAOService2<DTO, DATA, ENTITY>
     lateinit var propertyBinder: PropertyBinder<DATA, ENTITY>
     override lateinit var dataContainer: DataModelContainer2<DTO, DATA>
 
@@ -59,22 +61,10 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
             return _regItem?:throw InitializationException("DtoClassRegistryItem uninitialized", InitErrorCodes.KEY_PARAM_UNINITIALIZED)
         }
     internal val registryItem: CommonDTORegistryItem<DTO, DATA, ENTITY> by lazy { regItem }
-    internal var repositories =  MapBuilder<BindingKeyBase2,  RepositoryBase2<DTO, *>> ()
+    internal var repositories =  MapBuilder<BindingKeyBase2,  RepositoryBase2<DTO, DATA, ENTITY, ModelDTO>> ()
 
     init {
         val a = 10
-    }
-
-   suspend fun update(){
-        crudOperation.setOperation(CrudType.UPDATE)
-        dataContainer.trackedProperties.forEach {
-            runCatching {
-                repositories.map.getValue(it.value.bindingKey).update()
-            }.onFailure {
-                println("CommonDTO2 update ${it.message.toString()}")
-            }
-        }
-        crudOperation.setOperation(CrudType.NONE)
     }
 
     fun compileDataModel():DATA{
@@ -91,19 +81,20 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
        regItem: DTORegistryItem<DTO, DATA, ENTITY>,
        container : DataModelContainer2<DTO, DATA>,
        binder: PropertyBinder<DATA,ENTITY>,
-       dao : DAOService2<DTO, ENTITY>){
+       dao : DAOService2<DTO, DATA,  ENTITY>){
        _regItem =  CommonDTORegistryItem(dtoClass, regItem.dataKClass, regItem.entityKClass, regItem.commonDTOKClass,this)
        propertyBinder = binder
        dataContainer = container
        daoService = dao
        dataContainer.attachBinder(propertyBinder)
        initStatus = DTOInitStatus.PARTIAL_WITH_DATA
+       personalName = "${regItem.commonDTOKClass.simpleName.toString()}[CommonDTO]"
        selfRegistration(registryItem)
     }
 
     companion object{
         internal val dtoRegistry: MapBuilder<String, CommonDTORegistryItem<*,*,*>> = MapBuilder<String, CommonDTORegistryItem<*,*,*>>()
-        internal fun <DTO: ModelDTO, DATA :DataModel, ENTITY: LongEntity> selfRegistration(
+        internal fun <DTO: ModelDTO, DATA :DataModel, ENTITY: ExposifyEntityBase> selfRegistration(
             regItem :  CommonDTORegistryItem<DTO, DATA, ENTITY>
         ){
             dtoRegistry.putIfAbsent(regItem.typeKeyCombined, regItem)

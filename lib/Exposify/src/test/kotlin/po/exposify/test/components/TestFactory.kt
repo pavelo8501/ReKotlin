@@ -1,7 +1,6 @@
 package po.exposify.test.components
 
 import org.junit.jupiter.api.Test
-import po.exposify.classes.components.DTOFactory
 import po.exposify.test.setup.TestPage
 import po.exposify.test.setup.TestPageDTO
 import po.exposify.test.setup.TestPageEntity

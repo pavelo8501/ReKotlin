@@ -1,11 +1,11 @@
 package po.exposify.test.setup
 
-import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
+import po.exposify.entity.classes.ExposifyEntityBase
 
 
-class TestUserEntity  (id: EntityID<Long>) : LongEntity(id){
+class TestUserEntity  (id: EntityID<Long>) : ExposifyEntityBase(id){
     companion object : LongEntityClass<TestUserEntity>(TestUsers)
     var name by TestUsers.name
     var login by TestUsers.login
@@ -16,7 +16,7 @@ class TestUserEntity  (id: EntityID<Long>) : LongEntity(id){
 }
 
 
-class TestPageEntity  (id: EntityID<Long>) : LongEntity(id){
+class TestPageEntity  (id: EntityID<Long>) : ExposifyEntityBase(id){
     companion object : LongEntityClass<TestPageEntity>(TestPages)
     var name by TestPages.name
     var langId by TestPages.langId
@@ -25,7 +25,7 @@ class TestPageEntity  (id: EntityID<Long>) : LongEntity(id){
 }
 
 
-class TestSectionEntity  (id: EntityID<Long>) : LongEntity(id){
+class TestSectionEntity  (id: EntityID<Long>) : ExposifyEntityBase(id){
     companion object : LongEntityClass<TestSectionEntity>(TestSections)
     var name by TestSections.name
     var description by TestSections.description

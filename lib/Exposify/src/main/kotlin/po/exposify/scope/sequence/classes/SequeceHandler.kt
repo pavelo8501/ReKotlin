@@ -1,21 +1,15 @@
 package po.exposify.scope.sequence.classes
 
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Deferred
 import org.jetbrains.exposed.dao.LongEntity
-import org.jetbrains.exposed.dao.LongEntityClass
 import po.auth.AuthSessionManager
 import po.auth.sessions.models.AuthorizedSession
 import po.exposify.classes.DTOClass
-import po.exposify.classes.components.safeCast
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
 import po.exposify.scope.sequence.enums.SequenceID
-import po.exposify.scope.sequence.classes.execute
 import po.exposify.scope.sequence.models.SequencePack
 import po.exposify.scope.service.ServiceContext
-import kotlin.reflect.full.companionObjectInstance
 
 
 //suspend inline fun <reified DTO> AuthorizedSession.execute(

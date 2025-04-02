@@ -5,6 +5,7 @@ import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.classes.DTOClass2
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.entity.classes.ExposifyEntityBase
 import kotlin.reflect.KClass
 
 
@@ -14,7 +15,7 @@ data class DTORegistryItem<DTO ,DATA, ENTITY>(
     val dataKClass: KClass<DATA>,
     val entityKClass: KClass<ENTITY>,
     val dtoClass: DTOClass2<DTO>
-) where DTO: ModelDTO, DATA: DataModel , ENTITY: LongEntity{
+) where DTO: ModelDTO, DATA: DataModel , ENTITY: ExposifyEntityBase{
 
     fun getDataEntityTypePair(): Pair<KClass<DATA>, KClass<ENTITY>>{
         return Pair(dataKClass, entityKClass)

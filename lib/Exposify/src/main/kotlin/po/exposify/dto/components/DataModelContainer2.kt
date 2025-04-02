@@ -3,10 +3,14 @@ package po.exposify.dto.components
 import po.exposify.binders.PropertyBinder
 import po.exposify.binders.PropertyType
 import po.exposify.binders.UpdateMode
-import po.exposify.binders.relationship.models.PropertyInfo
+import po.exposify.binders.enums.Cardinality
+import po.exposify.binders.relationship.models.DataPropertyInfo
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.common.classes.ClassBlueprint
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.entity.classes.ExposifyEntityBase
+import po.exposify.exceptions.ExceptionCodes
+import po.exposify.exceptions.OperationsException
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty
 import kotlin.reflect.KProperty1
@@ -16,10 +20,12 @@ import kotlin.reflect.jvm.isAccessible
 class DataModelContainer2<DTO : ModelDTO, DATA: DataModel>(
     internal val dataModel: DATA,
     val dataBlueprint: ClassBlueprint<DATA>,
-    private var binder: PropertyBinder<DATA, *>? = null
-) {
+    private var binder: PropertyBinder<DATA, *>? = null,
+): DataModel {
 
-    val trackedProperties: MutableMap<String, PropertyInfo<DTO, DATA>> = mutableMapOf()
+    override val id: Long = dataModel.id
+
+    val trackedProperties: MutableMap<String, DataPropertyInfo<DTO, DATA, ExposifyEntityBase, ModelDTO>> = mutableMapOf()
 
     operator fun getValue(thisRef: Any, property: KProperty<*>): MutableList<DATA> {
         property.getter.let { getter ->
@@ -33,7 +39,7 @@ class DataModelContainer2<DTO : ModelDTO, DATA: DataModel>(
         println("BinderUpdatedProperty callback triggered by $name")
     }
 
-    fun setTrackedProperties(list: List<PropertyInfo<DTO, DATA>>){
+    fun setTrackedProperties(list: List<DataPropertyInfo<DTO, DATA, ExposifyEntityBase, ModelDTO>>){
         list.forEach {propertyInfo->
             dataBlueprint.propertyMap[propertyInfo.name]?.let {blueprintProperty->
                 propertyInfo.inBlueprint = blueprintProperty
@@ -49,28 +55,34 @@ class DataModelContainer2<DTO : ModelDTO, DATA: DataModel>(
         }
     }
 
-//    fun <PARENT_DATA: DataModel>extractChildModels(
-//        forPropertyInfo : PropertyInfo<DTO, DATA>
-//    ): List<DATA>{
-//        try {
-//            return  property.get(owningDataModel)
-//        }catch (ex: IllegalStateException){
-//            println(ex.message)
-//            return null
-//        }
-//    }
-
-
-    fun <PARENT_DATA: DataModel>extractChildModels(
-
-        property: KProperty1<PARENT_DATA, DATA?>,
-        owningDataModel:PARENT_DATA): DATA?{
-        try {
-            return  property.get(owningDataModel)
-        }catch (ex: IllegalStateException){
-            println(ex.message)
-            return null
+    fun extractChildModels(
+        forPropertyInfo : DataPropertyInfo<DTO, DATA, ExposifyEntityBase, ModelDTO>
+    ): List<DataModel>{
+        if(forPropertyInfo.cardinality == Cardinality.ONE_TO_MANY){
+            val property = forPropertyInfo.getOwnModelsProperty()
+            if(property != null) {
+                return property.get(dataModel).toList()
+            }else{
+                throw OperationsException(
+                    "Property for name ${forPropertyInfo.name} not found in trackedProperties. Searching ONE_TO_MANY",
+                    ExceptionCodes.BINDING_PROPERTY_MISSING)
+            }
         }
+
+        if(forPropertyInfo.cardinality == Cardinality.ONE_TO_ONE){
+            val property = forPropertyInfo.getOwnModelProperty()
+            if(property != null) {
+                val dataModel = property.get(dataModel)
+                if(dataModel != null){
+                    return  listOf<DataModel>(dataModel)
+                }
+            }else{
+                throw OperationsException(
+                    "Property for name ${forPropertyInfo.name} not found in trackedProperties. Searching ONE_TO_ONE",
+                    ExceptionCodes.BINDING_PROPERTY_MISSING)
+            }
+        }
+        return emptyList()
     }
 
     fun <CHILD_DATA: DataModel>addToMutableProperty(name: String, value: CHILD_DATA){

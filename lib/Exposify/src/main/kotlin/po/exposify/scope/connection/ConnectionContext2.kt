@@ -25,7 +25,7 @@ class ConnectionContext2(
 
     fun <DTO, DATA> service(
         rootDtoModel : DTOClass2<DTO>,
-        serviceCreateOption : TableCreateMode? = null,
+        serviceCreateOption : TableCreateMode? = TableCreateMode.CREATE,
         context: ServiceContext2<DTO, DATA>.()->Unit,
     ) where DTO : ModelDTO, DATA : DataModel {
         try {
@@ -36,8 +36,6 @@ class ConnectionContext2(
 
             connectionClass.addService(serviceClass)
             serviceClass.launch(context)
-
-
 
             serviceClass.let {
                     connectionClass.addService(it)

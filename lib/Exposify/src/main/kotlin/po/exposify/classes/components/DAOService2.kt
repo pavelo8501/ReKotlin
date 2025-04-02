@@ -6,48 +6,100 @@ import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.Query
 import org.jetbrains.exposed.sql.SizedIterable
 import org.jetbrains.exposed.sql.and
+import po.exposify.binders.UpdateMode
+import po.exposify.binders.enums.Cardinality
+import po.exposify.binders.relationship.models.EntityPropertyInfo
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.classes.DTOClass2
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.entity.classes.ExposifyEntityBase
+import po.exposify.exceptions.ExceptionCodes
+import po.exposify.exceptions.OperationsException
 
 
-class DAOService2<DTO, ENTITY>(
+class DAOService2<DTO, DATA, ENTITY>(
+    val isRootDaoService: Boolean,
     private val entityModel: LongEntityClass<ENTITY>,
-    private val parent : DTOClass2<DTO>
-) where DTO: ModelDTO, ENTITY : LongEntity {
+) where DTO: ModelDTO, DATA: DataModel, ENTITY : ExposifyEntityBase {
 
-    init {
-//        eventHandler.registerPropagateException<OperationsException> {
-//            OperationsException("Operations Exception", ExceptionCodes.INVALID_DATA)
-//        }
-    }
+    internal var entity : ENTITY? = null
+
+    val trackedProperties: MutableMap<String, EntityPropertyInfo<DTO, DATA, ENTITY, ModelDTO>> = mutableMapOf()
 
     private fun combineConditions(conditions: Set<Op<Boolean>>): Op<Boolean> {
         return conditions.reduceOrNull { acc, op -> acc and op } ?: Op.TRUE
     }
 
-    suspend fun saveNew(
-        dto: CommonDTO<DTO, *, ENTITY>,
-        block: ((ENTITY) -> Unit)? = null): ENTITY? {
-        // Notify about the operation
-
-            // Create a new entity and update its properties
-            val newEntity = entityModel.new {
-               // dto.update(this, UpdateMode.MODEL_TO_ENTITY)
-              //  block?.invoke(this)
-            }
-          return newEntity
+    fun setTrackedProperties(list: List<EntityPropertyInfo<DTO, DATA, ENTITY, ModelDTO>>){
+        list.forEach {propertyInfo->
+            trackedProperties[propertyInfo.name] = propertyInfo
+        }
     }
 
-    suspend fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity> updateExistent(
-        dto : CommonDTO<DTO, *, ENTITY>) {
-        try {
-            val entity = selectById(dto.id)
-          //  dto.update(entity, UpdateMode.MODEL_TO_ENTITY)
-        }catch (ex: Exception){
-            println(ex.message)
+    fun extractChildEntities(ownEntitiesPropertyInfo : EntityPropertyInfo<DTO, DATA, ENTITY, ModelDTO>): List<ExposifyEntityBase> {
+
+        val parentEntity = entity
+            if (ownEntitiesPropertyInfo.cardinality == Cardinality.ONE_TO_MANY) {
+                val multipleProperty = ownEntitiesPropertyInfo.getOwnEntitiesProperty()
+                if (parentEntity != null && multipleProperty != null) {
+                    return multipleProperty.get(parentEntity).toList()
+                } else {
+                    throw OperationsException(
+                        "Property for name ${ownEntitiesPropertyInfo.name} not found in trackedProperties. Searching ONE_TO_MANY",
+                        ExceptionCodes.BINDING_PROPERTY_MISSING
+                    )
+                }
+                if (ownEntitiesPropertyInfo.cardinality == Cardinality.ONE_TO_ONE) {
+                    val property = ownEntitiesPropertyInfo.getOwnEntityProperty()
+                    if (property != null && parentEntity != null) {
+                        val entity = property.get(parentEntity)
+                        return listOf<ExposifyEntityBase>(entity)
+                    } else {
+                        throw OperationsException(
+                            "Property for name ${ownEntitiesPropertyInfo.name} not found in trackedProperties. Searching ONE_TO_ONE",
+                            ExceptionCodes.BINDING_PROPERTY_MISSING
+                        )
+                    }
+                }
+            }
+        return emptyList()
+    }
+
+
+    suspend fun save(dto: CommonDTO<DTO, DATA, ENTITY>): ENTITY? {
+        runCatching {
+            val newEntity = entityModel.new {
+                dto.updateBinding(this, UpdateMode.MODEL_TO_ENTITY)
+            }
+            entity = newEntity
+            return newEntity
+        }.onFailure {
+            throw OperationsException("Save failed for", ExceptionCodes.DB_CRUD_FAILURE)
         }
+        return null
+    }
+
+    suspend fun saveWithParent(dto: CommonDTO<DTO, DATA, ENTITY>, bindFn: (ENTITY)-> Unit):ENTITY?{
+        runCatching {
+            val newEntity = entityModel.new {
+                dto.updateBinding(this, UpdateMode.MODEL_TO_ENTITY)
+                bindFn.invoke(this)
+            }
+            entity = newEntity
+            return newEntity
+        }.onFailure {
+            throw OperationsException("SaveWithParent failed for", ExceptionCodes.DB_CRUD_FAILURE)
+        }
+        return null
+    }
+
+    suspend fun update(dto : CommonDTO<DTO, DATA, ENTITY>): ENTITY? {
+        val selectedEntity = selectById(dto.id)
+        if(selectedEntity != null){
+            dto.updateBinding(selectedEntity, UpdateMode.MODEL_TO_ENTITY)
+        }
+        entity = selectedEntity
+        return entity
     }
 
     fun pick(
@@ -97,7 +149,7 @@ class DAOService2<DTO, ENTITY>(
     }
 
     suspend fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity>delete(
-        dto : CommonDTO<DTO, *, ENTITY>
+        dto : CommonDTO<DTO, DATA, ENTITY>
     ) {
        // task("selectWhere for dtoModel"){
 

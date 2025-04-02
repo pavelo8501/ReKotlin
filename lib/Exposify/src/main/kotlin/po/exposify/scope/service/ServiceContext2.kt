@@ -17,6 +17,7 @@ import po.exposify.dto.extensions.pick
 import po.exposify.dto.extensions.select
 import po.exposify.dto.extensions.update
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.extensions.QueryConditions
 import po.exposify.extensions.WhereCondition
 import po.exposify.scope.dto.DTOContext
@@ -84,7 +85,7 @@ class ServiceContext2<DTO, DATA>(
     fun <T: IdTable<Long>>pick(conditions: QueryConditions<T>): Deferred<CrudResult2<DTO>>{
         val crudResult = dbQuery {
             runBlocking {
-                rootDtoModel.pick<DTO, DATA, LongEntity, T>(conditions)
+                rootDtoModel.pick<DTO, DATA, ExposifyEntityBase, T>(conditions)
             }
         }
         return CompletableDeferred<CrudResult2<DTO>>(crudResult)
@@ -93,7 +94,7 @@ class ServiceContext2<DTO, DATA>(
     fun select(): Deferred<CrudResult2<DTO>> {
         val crudResult = dbQuery {
             runBlocking {
-                rootDtoModel.select<DTO, DATA, LongEntity>()
+                rootDtoModel.select<DTO, DATA, ExposifyEntityBase>()
             }
         }
         return CompletableDeferred<CrudResult2<DTO>>(crudResult)
@@ -102,7 +103,7 @@ class ServiceContext2<DTO, DATA>(
     fun <T: IdTable<Long>> select(conditions : WhereCondition<T>): Deferred<CrudResult2<DTO>>{
         val crudResult = dbQuery {
             runBlocking {
-                rootDtoModel.select<DTO, DATA, LongEntity, T>(conditions)
+                rootDtoModel.select<DTO, DATA, ExposifyEntityBase, T>(conditions)
             }
         }
         return CompletableDeferred<CrudResult2<DTO>>(crudResult)
@@ -120,7 +121,7 @@ class ServiceContext2<DTO, DATA>(
     fun delete(toDelete: DATA): Deferred<CrudResult2<DTO>>{
         val crudResult = dbQuery {
             runBlocking {
-                rootDtoModel.delete<DTO, DATA, LongEntity>(toDelete)
+                rootDtoModel.delete<DTO, DATA, ExposifyEntityBase>(toDelete)
             }
         }
         return  CompletableDeferred<CrudResult2<DTO>>(crudResult)

@@ -6,9 +6,7 @@ import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IdTable
-import po.exposify.binders.PropertyBinding
 import po.exposify.classes.DTOClass
-import po.exposify.classes.interfaces.DTOModel
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 
@@ -68,7 +66,7 @@ data class DepartmentDataModel(
 
 class DepartmentDTO(
     override val dataModel: DepartmentDataModel,
-): CommonDTO<DepartmentDataModel, DepartmentEntity>(dataModel), DTOModel{
+): CommonDTO<DepartmentDTO, DepartmentDataModel, DepartmentEntity>(DepartmentDTO){
 
     companion object: DTOClass<DepartmentDataModel, DepartmentEntity>(DepartmentDTO::class) {
         override fun setup() {
