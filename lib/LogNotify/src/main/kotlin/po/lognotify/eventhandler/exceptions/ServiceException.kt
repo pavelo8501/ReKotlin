@@ -1,7 +1,6 @@
 package po.lognotify.eventhandler.exceptions
 
 import po.lognotify.shared.enums.HandleType
-import po.lognotify.shared.exceptions.SelfThrowableException
 
 
 internal data class SkipException(
@@ -21,13 +20,13 @@ internal data class PropagateException(
 internal data class UnmanagedException(
     override val message: String,
     override val cause: Throwable? = null
-) : Exception(message, cause), SelfThrowableException
+) : Exception(message, cause)
 
 abstract class ProcessableException(
     var handleType: HandleType,
     override var message: String,
     val errorCode : Int = 0
-) : Exception(message), SelfThrowableException{
+) : Exception(message){
     var cancellationFn: (() -> Unit) = {}
 }
 

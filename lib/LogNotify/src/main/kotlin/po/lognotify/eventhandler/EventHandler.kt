@@ -1,6 +1,6 @@
 package po.lognotify.eventhandler
 
-import po.lognotify.eventhandler.classes.StaticsHelper
+import po.lognotify.eventhandler.classes.StaticsHelperOld
 import po.lognotify.eventhandler.components.ExceptionHandler
 import po.lognotify.eventhandler.components.ExceptionHandlerInterface
 import po.lognotify.eventhandler.exceptions.ProcessableException
@@ -9,7 +9,8 @@ import po.lognotify.eventhandler.models.BaseEvent
 import po.lognotify.eventhandler.models.Event
 import po.lognotify.eventhandler.models.Task
 import po.lognotify.shared.enums.HandleType
-import po.lognotify.shared.enums.SeverityLevel
+import po.managedtask.enums.SeverityLevel
+import po.managedtask.helpers.StaticsHelper
 import java.util.concurrent.CopyOnWriteArrayList
 
 
@@ -30,7 +31,7 @@ class RootEventHandler(
 
 
     override val routedName: String = moduleName
-    override val helper: StaticsHelper = StaticsHelper(routedName)
+    override val helper: StaticsHelperOld = StaticsHelperOld(routedName)
 
     /** A thread-safe queue storing all completed events. */
     internal  val taskQue = CopyOnWriteArrayList<Task>()
@@ -98,7 +99,7 @@ class EventHandler(
 
     override val  routedName: String = "${parent.routedName}|$moduleName"
 
-    override val helper: StaticsHelper = StaticsHelper(routedName)
+    override val helper: StaticsHelperOld = StaticsHelperOld(routedName)
 
     /** Clears the active task and its sub-events. */
     override fun wipeData() {
@@ -129,7 +130,7 @@ sealed class EventHandlerBase(
     internal var activeTask : Task? = null
 
     /** A helper object providing static utilities. */
-    abstract val helper : StaticsHelper
+    abstract val helper : StaticsHelperOld
 
 
    protected  fun echo(ex: Exception, message: String = "") = helper.echo(ex, message)

@@ -5,7 +5,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import po.lognotify.shared.enums.SeverityLevel
+import po.managedtask.enums.SeverityLevel
 import java.time.LocalDateTime
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
@@ -52,7 +52,7 @@ class LoggingService: ReadOnlyProperty<Any?, LoggingService>{
     }
 
     fun info(message: String, throwable: Throwable? = null) = log(SeverityLevel.INFO, message, throwable)
-    fun action(message: String, throwable: Throwable? = null) = log(SeverityLevel.TASK, message, throwable)
+    fun action(message: String, throwable: Throwable? = null) = log(SeverityLevel.INFO, message, throwable)
     fun warn(message: String, throwable: Throwable? = null) = log(SeverityLevel.WARNING, message, throwable)
     fun error(message: String, throwable: Throwable? = null) = log(SeverityLevel.EXCEPTION, message, throwable)
 

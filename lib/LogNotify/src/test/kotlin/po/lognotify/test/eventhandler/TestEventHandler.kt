@@ -9,7 +9,7 @@ import po.lognotify.eventhandler.EventHandler
 import po.lognotify.eventhandler.RootEventHandler
 import po.lognotify.eventhandler.exceptions.PropagateException
 import po.lognotify.eventhandler.exceptions.UnmanagedException
-import po.lognotify.shared.enums.SeverityLevel
+import po.managedtask.enums.SeverityLevel
 import po.lognotify.test.testmodels.ParentHostingObject
 import po.lognotify.test.testmodels.TestSkipException
 import java.util.concurrent.atomic.AtomicInteger
@@ -51,7 +51,9 @@ class TestEventHandler {
 
     @BeforeEach
     fun setup() {
-        rootHandler = RootEventHandler("RootModule")
+        rootHandler = RootEventHandler("RootModule"){
+
+        }
         childHandler = EventHandler("ChildModule", rootHandler)
         subChildHandler = EventHandler("SubChildModule", childHandler)
         taskExecuted = false
@@ -116,7 +118,7 @@ class TestEventHandler {
         val warnings = flatArray.filter { it.type == SeverityLevel.WARNING }
         assertEquals(2, rootHandler.taskQue.count(), "Expecting 2 events in the root handler")
         assertEquals(
-            SeverityLevel.TASK ,
+            SeverityLevel.INFO ,
             rootHandler.taskQue[1].type,
             "Expecting second events of type Task in the root handler"
         )

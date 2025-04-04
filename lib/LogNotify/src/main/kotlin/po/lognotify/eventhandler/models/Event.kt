@@ -2,7 +2,7 @@ package po.lognotify.eventhandler.models
 
 import po.lognotify.eventhandler.exceptions.ProcessableException
 import po.lognotify.logging.LoggingService
-import po.lognotify.shared.enums.SeverityLevel
+import po.managedtask.enums.SeverityLevel
 
 
 class Event(
@@ -14,7 +14,7 @@ class Event(
 class Task(
     module : String,
     msg: String = ""
-) : BaseEvent(module, msg,  SeverityLevel.TASK)
+) : BaseEvent(module, msg,  SeverityLevel.INFO)
 
 sealed class BaseEvent(
     val module : String,

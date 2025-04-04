@@ -4,9 +4,10 @@ import po.lognotify.eventhandler.exceptions.ProcessableException
 import po.lognotify.eventhandler.exceptions.UnmanagedException
 import po.lognotify.eventhandler.models.Event
 import po.lognotify.eventhandler.models.Task
-import po.lognotify.shared.enums.SeverityLevel
+import po.managedtask.enums.SeverityLevel
+import po.managedtask.models.LogRecord
 
-interface StaticsHelperProvider {
+interface StaticsHelperProviderOld {
     fun unhandledMsg(exception: Throwable): String
     fun handledMsg(exception: Throwable): String
     fun msg(msg: String, ex: ProcessableException): String
@@ -17,8 +18,7 @@ interface StaticsHelperProvider {
 }
 
 
-
-class StaticsHelper(val moduleName: String): StaticsHelperProvider{
+class StaticsHelperOld(val moduleName: String): StaticsHelperProviderOld{
 
     val RED = "\u001B[31m"
     val YELLOW = "\u001B[33m"
@@ -54,5 +54,10 @@ class StaticsHelper(val moduleName: String): StaticsHelperProvider{
     override fun newTask(msg: String):Task { return  Task(moduleName, msg)}
     override fun newWarning(msg: String):Task { return  Task(moduleName, msg)}
     override fun newWarning(ex:  ProcessableException):Task { return  Task(moduleName, ex.message)}
+
+    fun logWithIndention(log : List<LogRecord>){
+
+    }
+
 
 }

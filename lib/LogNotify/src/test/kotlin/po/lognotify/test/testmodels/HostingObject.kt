@@ -9,7 +9,9 @@ import po.lognotify.eventhandler.interfaces.CanNotify
 class ParentHostingObject(val name: String
 ) : CanNotify {
 
-    override val eventHandler = RootEventHandler(name)
+    override val eventHandler = RootEventHandler(name){
+
+    }
 
     val childObjects = mutableListOf<HostingObject>()
 

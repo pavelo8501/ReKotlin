@@ -21,7 +21,9 @@ class TestEventHandlerCoroutines {
 
     @BeforeEach
     fun setup() {
-        rootHandler = RootEventHandler("RootModule")
+        rootHandler = RootEventHandler("RootModule"){
+
+        }
         childHandler = EventHandler("ChildModule", rootHandler)
         executionCounter.set(0)
     }
