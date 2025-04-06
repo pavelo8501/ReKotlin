@@ -15,10 +15,9 @@ import po.exposify.dto.models.CommonDTORegistryItem
 import po.exposify.dto.models.CrudOperation
 import po.exposify.dto.models.DTORegistryItem
 import po.exposify.entity.classes.ExposifyEntityBase
-import po.exposify.exceptions.ExceptionCodes
-import po.exposify.exceptions.InitializationException
+import po.exposify.exceptions.InitException
 import po.exposify.exceptions.OperationsException
-import po.exposify.exceptions.enums.InitErrorCodes
+import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.models.DTOInitStatus
 
 
@@ -57,12 +56,12 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         set(value){  _entityDAO = value }
         get(){return  _entityDAO?:throw OperationsException(
             "Entity uninitialized",
-            ExceptionCodes.LAZY_NOT_INITIALIZED) }
+            ExceptionCode.LAZY_NOT_INITIALIZED) }
 
     private var _regItem : CommonDTORegistryItem<DTO, DATA, ENTITY>? = null
     private val regItem : CommonDTORegistryItem<DTO, DATA, ENTITY>
         get(){
-            return _regItem?:throw InitializationException("DtoClassRegistryItem uninitialized", InitErrorCodes.KEY_PARAM_UNINITIALIZED)
+            return _regItem?:throw InitException("DtoClassRegistryItem uninitialized", ExceptionCode.UNDEFINED)
         }
     internal val registryItem: CommonDTORegistryItem<DTO, DATA, ENTITY> by lazy { regItem }
     internal var repositories =  MapBuilder<BindingKeyBase2,  RepositoryBase<DTO, DATA, ENTITY, ModelDTO>> ()

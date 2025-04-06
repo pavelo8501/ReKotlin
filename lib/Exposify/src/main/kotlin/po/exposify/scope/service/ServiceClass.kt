@@ -12,40 +12,31 @@ import po.exposify.classes.interfaces.DataModel
 import po.exposify.common.interfaces.AsClass
 import po.exposify.classes.DTOClass
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.exceptions.ExceptionCodes
-import po.exposify.exceptions.InitializationException
-import po.exposify.exceptions.OperationsException
-import po.exposify.exceptions.enums.InitErrorCodes
+import po.exposify.exceptions.InitException
+import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.scope.connection.ConnectionClass
 import po.exposify.scope.sequence.models.SequencePack2
 import po.exposify.scope.service.enums.TableCreateMode
-import po.lognotify.eventhandler.RootEventHandler
-import po.lognotify.eventhandler.interfaces.CanNotify
 import kotlin.collections.forEach
 
 class ServiceClass<DTO, DATA, ENTITY>(
     private val connectionClass : ConnectionClass,
     private val rootDTOModel : DTOClass<DTO>,
     private val serviceCreateOption: TableCreateMode = TableCreateMode.CREATE,
-) : CanNotify, AsClass<DATA, ENTITY>  where  DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity {
+) :  AsClass<DATA, ENTITY>  where  DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity {
 
     internal val connection : Database = connectionClass.connection
 
-    var name : String = "undefined"
+    val name : String = "ServiceClass"
+    var personalName : String = "[$name|${rootDTOModel.personalName}]"
     var serviceContext : ServiceContext<DTO, DATA>? = null
 
-    override val eventHandler = RootEventHandler(name){
-        echo(it, "ServiceClass: RootEventHandler")
-    }
 
     init {
-        eventHandler.registerPropagateException<OperationsException> {
-            OperationsException("Operations Exception", ExceptionCodes.REFLECTION_ERROR)
-        }
 
         try {
             start()
-        }catch (initException : InitializationException){
+        }catch (initException : InitException){
             println(initException.message)
         }
     }
@@ -80,9 +71,9 @@ class ServiceClass<DTO, DATA, ENTITY>(
                 SchemaUtils.drop(*backwards.toTypedArray<IdTable<Long>>(), inBatch = true)
                 tables.forEach {
                     if(!createTable(it)){
-                        throw InitializationException(
+                        throw InitException(
                             "Table ${it.schemaName} creation after drop failed",
-                            InitErrorCodes.DB_TABLE_CREATION_FAILURE)
+                            ExceptionCode.DB_TABLE_CREATION_FAILURE)
                     }
                 }
             }
@@ -123,7 +114,6 @@ class ServiceClass<DTO, DATA, ENTITY>(
     private fun start(){
         initializeDTOs{
             rootDTOModel.initialization(::emitterSubscriptions)
-            name =  ("${rootDTOModel.personalName}|Service").trim()
         }
         prepareTables(serviceCreateOption)
     }

@@ -4,8 +4,6 @@ import org.jetbrains.exposed.dao.LongEntity
 import po.auth.AuthSessionManager
 import po.auth.sessions.models.AuthorizedSession
 import po.exposify.classes.interfaces.DataModel
-import po.exposify.exceptions.ExceptionCodes
-import po.exposify.exceptions.OperationsException
 import po.exposify.scope.sequence.enums.SequenceID
 
 

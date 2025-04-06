@@ -5,7 +5,6 @@ import org.jetbrains.exposed.dao.id.IdTable
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.extensions.WhereCondition
 import po.exposify.models.CrudResult
-import po.lognotify.eventhandler.models.Event
 
 /**
  * A context class used to encapsulate and simplify interaction with `DTOFunctions`.
@@ -74,10 +73,10 @@ class DTOContext<DATA, ENTITY>(
 //            return  asDataModels(crudResult!!)
 //        }
 
-        fun getStats(): Event?{
-            crudResult!!.event?.print()
-            return crudResult!!.event
-        }
+//        fun getStats(): Event?{
+//            crudResult!!.event?.print()
+//            return crudResult!!.event
+//        }
 
 //        fun callbackOnResult(callback : (List<DATA>)->Unit ){
 //            callback.invoke(asDataModels(crudResult!!))

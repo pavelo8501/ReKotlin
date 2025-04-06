@@ -13,8 +13,8 @@ import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase
-import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
+import po.exposify.exceptions.enums.ExceptionCode
 
 
 class DAOService2<DTO, DATA, ENTITY>(
@@ -46,7 +46,7 @@ class DAOService2<DTO, DATA, ENTITY>(
                 } else {
                     throw OperationsException(
                         "Property for name ${ownEntitiesPropertyInfo.name} not found in trackedProperties. Searching ONE_TO_MANY",
-                        ExceptionCodes.BINDING_PROPERTY_MISSING
+                        ExceptionCode.BINDING_PROPERTY_MISSING
                     )
                 }
                 if (ownEntitiesPropertyInfo.cardinality == Cardinality.ONE_TO_ONE) {
@@ -57,7 +57,7 @@ class DAOService2<DTO, DATA, ENTITY>(
                     } else {
                         throw OperationsException(
                             "Property for name ${ownEntitiesPropertyInfo.name} not found in trackedProperties. Searching ONE_TO_ONE",
-                            ExceptionCodes.BINDING_PROPERTY_MISSING
+                            ExceptionCode.BINDING_PROPERTY_MISSING
                         )
                     }
                 }
@@ -74,7 +74,7 @@ class DAOService2<DTO, DATA, ENTITY>(
             entity = newEntity
             return newEntity
         }.onFailure {
-            throw OperationsException("Save failed for", ExceptionCodes.DB_CRUD_FAILURE)
+            throw OperationsException("Save failed. ${it.message}" , ExceptionCode.DB_CRUD_FAILURE)
         }
         return null
     }
@@ -88,7 +88,7 @@ class DAOService2<DTO, DATA, ENTITY>(
             entity = newEntity
             return newEntity
         }.onFailure {
-            throw OperationsException("SaveWithParent failed for", ExceptionCodes.DB_CRUD_FAILURE)
+            throw OperationsException("SaveWithParent failed for", ExceptionCode.DB_CRUD_FAILURE)
         }
         return null
     }

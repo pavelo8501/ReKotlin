@@ -10,8 +10,8 @@ import po.exposify.dto.CommonDTO
 import po.exposify.classes.DTOClass
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase
-import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
+import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.safeCast
 import kotlin.collections.set
 import kotlin.reflect.KMutableProperty1
@@ -69,7 +69,7 @@ class RelationshipBinder2<DTO, DATA, ENTITY>(
             oneToMany.initProperties(ownDataModel, ownEntities, foreignEntityCast)
             attachBinding(oneToMany.thisKey, oneToMany)
         }else{
-            throw OperationsException("ForeignEntity cast failure for ${dtoClass.personalName}", ExceptionCodes.CAST_FAILURE)
+            throw OperationsException("ForeignEntity cast failure for ${dtoClass.personalName}", ExceptionCode.CAST_FAILURE)
         }
 
     }
@@ -117,7 +117,7 @@ class RelationshipBinder2<DTO, DATA, ENTITY>(
                         parentDto.repositories.put(it.key, newRepo)
                     }else{
                         throw OperationsException("CreateRepository failed for ${parentDto.personalName}",
-                            ExceptionCodes.CAST_FAILURE)
+                            ExceptionCode.CAST_FAILURE)
                     }
                 }
 
@@ -127,7 +127,7 @@ class RelationshipBinder2<DTO, DATA, ENTITY>(
                         parentDto.repositories.put(it.key, newRepo)
                     }else{
                         throw OperationsException("CreateRepository failed for ${parentDto.personalName}",
-                            ExceptionCodes.CAST_FAILURE)
+                            ExceptionCode.CAST_FAILURE)
                     }
                 }
                 else -> {}

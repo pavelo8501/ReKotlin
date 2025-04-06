@@ -10,10 +10,11 @@ import po.exposify.classes.components.DTOFactory
 import po.exposify.dto.enums.CrudType
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase
-import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
+import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.countEqualsOrWithThrow
 import po.exposify.extensions.getOrThrow
+import po.managedtask.exceptions.enums.CancelType
 import kotlin.collections.forEach
 
 typealias ChildDTO<CHILD_DTO> = CommonDTO<CHILD_DTO, DataModel, ExposifyEntityBase>
@@ -46,7 +47,7 @@ class RootRepository<DTO, DATA, ENTITY, CHILD_DTO>(
     suspend fun updateByDataModels(dataModels : List<DATA>): List<CommonDTO<CHILD_DTO, DATA, ENTITY>>{
          val createdDtoList =  sharedUpdateByDataModels(dataModels)
          val castedList =  createdDtoList.filterIsInstance<CommonDTO<CHILD_DTO, DATA, ENTITY>>().countEqualsOrWithThrow(createdDtoList.count()) {
-             OperationsException("UpdateByDataModels Cast dtoList to actual after creation in $personalName failed", ExceptionCodes.CAST_FAILURE)
+             OperationsException("UpdateByDataModels Cast dtoList to actual after creation in $personalName failed", ExceptionCode.CAST_FAILURE)
          }
          return castedList
      }
@@ -54,7 +55,7 @@ class RootRepository<DTO, DATA, ENTITY, CHILD_DTO>(
     suspend fun selectByByEntities(entities: List<ENTITY>): List<CommonDTO<CHILD_DTO,  DATA, ENTITY>>{
         val createdDtoList =  sharedSelectByEntities(entities)
         val castedList =  createdDtoList.filterIsInstance<CommonDTO<CHILD_DTO, DATA, ENTITY>>().countEqualsOrWithThrow(createdDtoList.count()) {
-            OperationsException("SelectByByEntities Cast dtoList to actual after creation in $personalName failed", ExceptionCodes.CAST_FAILURE)
+            OperationsException("SelectByByEntities Cast dtoList to actual after creation in $personalName failed", ExceptionCode.CAST_FAILURE)
         }
         return castedList
     }
@@ -70,7 +71,7 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, CHILD_DTO>(
     var initialized: Boolean = false
 
     private val exceptionFn : (String, Int)-> OperationsException = { message, code ->
-        OperationsException("$message @ $personalName", ExceptionCodes.fromValue(code))
+        OperationsException("$message @ $personalName", ExceptionCode.value(code))
     }
 
     protected val dtoList :  MutableList<CommonDTO<CHILD_DTO, DataModel, ExposifyEntityBase>> = mutableListOf()
@@ -87,7 +88,7 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, CHILD_DTO>(
                     runCatching {
                         val childDataModels = dataContainer.extractChildModels(dataModelProperty)
                         repositories.map[dataModelProperty.getContainer().thisKey].getOrThrow("Child repository not found",
-                            ExceptionCodes.REPOSITORY_NOT_FOUND, exceptionFn).sharedUpdateByDataModels(childDataModels)
+                            ExceptionCode.REPOSITORY_NOT_FOUND, exceptionFn).sharedUpdateByDataModels(childDataModels)
                     }.onFailure {
                         println(it.message.toString())
                         throw it
@@ -124,7 +125,7 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, CHILD_DTO>(
                         val childEntities = daoService.extractChildEntities(entityModelProperty)
                         repositories.map[bindingContainer.thisKey].getOrThrow(
                             "Child repository not found",
-                            ExceptionCodes.REPOSITORY_NOT_FOUND, exceptionFn
+                            ExceptionCode.REPOSITORY_NOT_FOUND, exceptionFn
                         ).sharedSelectByEntities(childEntities)
                     }.onFailure {
                         println(it.message.toString())
@@ -142,7 +143,7 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, CHILD_DTO>(
         entities.forEach { entity ->
             forClass.withFactory { factory ->
                 val newDto = factory.createDto(entity).getOrThrow(OperationsException("Dot creation by entity failed @ $personalName",
-                        ExceptionCodes.FACTORY_CREATE_FAILURE)
+                    ExceptionCode.FACTORY_CREATE_FAILURE, CancelType.SKIP_SELF)
                 )
                 createdDtos.add(newDto)
             }

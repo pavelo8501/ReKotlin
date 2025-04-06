@@ -10,8 +10,8 @@ import po.exposify.common.classes.MapBuilder
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase
-import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
+import po.exposify.exceptions.enums.ExceptionCode
 import kotlin.collections.get
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
@@ -151,7 +151,7 @@ internal class DTOFactory<DTO, DATA, ENTITY>(
             val dataModel = constructor.callBy(args)
             return dataModel
         }catch (ex: Exception) {
-            throw OperationsException("DataModel  creation failed ${ex.message}", ExceptionCodes.REFLECTION_ERROR)
+            throw OperationsException("DataModel  creation failed ${ex.message}", ExceptionCode.REFLECTION_ERROR)
         }
     }
 

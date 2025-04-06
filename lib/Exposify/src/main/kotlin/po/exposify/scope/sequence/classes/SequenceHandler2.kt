@@ -5,8 +5,8 @@ import po.auth.sessions.models.AuthorizedSession
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.classes.DTOClass
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
+import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.scope.sequence.enums.SequenceID
 import po.exposify.scope.sequence.models.SequencePack2
 
@@ -148,7 +148,7 @@ abstract class SequenceHandlerAbstraction2<DTO>(
         if(sequence != null){
             return  sequence
         }else{
-            throw OperationsException("Unable to find sequence for a given handler $lookupKey", ExceptionCodes.KEY_NOT_FOUND )
+            throw OperationsException("Unable to find sequence for a given handler $lookupKey", ExceptionCode.KEY_NOT_FOUND )
         }
     }
 

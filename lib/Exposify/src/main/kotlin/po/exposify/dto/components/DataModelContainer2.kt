@@ -9,8 +9,8 @@ import po.exposify.classes.interfaces.DataModel
 import po.exposify.common.classes.ClassBlueprint
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase
-import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
+import po.exposify.exceptions.enums.ExceptionCode
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty
 import kotlin.reflect.KProperty1
@@ -65,7 +65,7 @@ class DataModelContainer2<DTO : ModelDTO, DATA: DataModel>(
             }else{
                 throw OperationsException(
                     "Property for name ${forPropertyInfo.name} not found in trackedProperties. Searching ONE_TO_MANY",
-                    ExceptionCodes.BINDING_PROPERTY_MISSING)
+                    ExceptionCode.BINDING_PROPERTY_MISSING)
             }
         }
 
@@ -79,7 +79,7 @@ class DataModelContainer2<DTO : ModelDTO, DATA: DataModel>(
             }else{
                 throw OperationsException(
                     "Property for name ${forPropertyInfo.name} not found in trackedProperties. Searching ONE_TO_ONE",
-                    ExceptionCodes.BINDING_PROPERTY_MISSING)
+                    ExceptionCode.BINDING_PROPERTY_MISSING)
             }
         }
         return emptyList()

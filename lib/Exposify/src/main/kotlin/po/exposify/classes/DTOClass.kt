@@ -16,8 +16,8 @@ import po.exposify.dto.CommonDTO
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.DTORegistryItem
 import po.exposify.entity.classes.ExposifyEntityBase
-import po.exposify.exceptions.InitializationException
-import po.exposify.exceptions.enums.InitErrorCodes
+import po.exposify.exceptions.InitException
+import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.safeCast
 import po.exposify.scope.sequence.models.SequencePack2
 import po.exposify.scope.service.ServiceContext
@@ -27,7 +27,8 @@ abstract class DTOClass<DTO>(): DTOInstance where DTO: ModelDTO {
 
     lateinit var registryItem : DTORegistryItem<DTO, DataModel, ExposifyEntityBase>
 
-    override var personalName: String = "uninitialized[DTOClass]"
+    var name: String = "DTOClass"
+    override var personalName: String = "[$name|"
         protected set
 
     internal val emitter = CallbackEmitter2<DTO>()
@@ -49,12 +50,12 @@ abstract class DTOClass<DTO>(): DTOInstance where DTO: ModelDTO {
    internal fun <DATA : DataModel, ENTITY: ExposifyEntityBase> applyConfig(initializedConfig : DTOConfig2<DTO, DATA, ENTITY>) {
         initializedConfig.safeCast<DTOConfig2<DTO, DataModel, ExposifyEntityBase>>()?.let {
             configInstance = it
-        }?: throw InitializationException("Safe cast failed for DTOConfig2", InitErrorCodes.CAST_FAILURE)
+        }?: throw InitException("Safe cast failed for DTOConfig2", ExceptionCode.CAST_FAILURE)
 
        initializedConfig.dtoRegItem.safeCast<DTORegistryItem<DTO, DataModel, ExposifyEntityBase>>()?.let {
            registryItem = it
-       }?: throw InitializationException("Safe cast failed for DTORegistryItem", InitErrorCodes.CAST_FAILURE)
-       personalName = "${registryItem.commonDTOKClass.simpleName.toString()}[DTOClass]"
+       }?: throw InitException("Safe cast failed for DTORegistryItem", ExceptionCode.CAST_FAILURE)
+       personalName = "[$name|${this::class.simpleName.toString()}]"
        initFactoryRoutines()
        initialized = true
    }
@@ -99,7 +100,7 @@ abstract class DTOClass<DTO>(): DTOInstance where DTO: ModelDTO {
                 serviceContextOwned = it
                 repository = RootRepository<DTO, DataModel, ExposifyEntityBase, DTO>(this)
                 initFactoryRoutines()
-            }?: throw InitializationException("Cast for ServiceContext2 failed", InitErrorCodes.CAST_FAILURE)
+            }?: throw InitException("Cast for ServiceContext2 failed", ExceptionCode.CAST_FAILURE)
         }
     }
 

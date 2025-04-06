@@ -1,9 +1,10 @@
 package po.exposify.extensions
 
-import po.exposify.exceptions.ExceptionCodes
+import po.exposify.exceptions.InitException
 import po.exposify.exceptions.OperationsException
-import po.lognotify.eventhandler.exceptions.ProcessableException
-import po.lognotify.shared.enums.HandleType
+import po.exposify.exceptions.enums.ExceptionCode
+import po.managedtask.exceptions.DefaultException
+import po.managedtask.exceptions.ExceptionBase
 import kotlin.reflect.KClass
 
 inline fun <reified T: Any> Any.safeCast(): T? {
@@ -11,11 +12,11 @@ inline fun <reified T: Any> Any.safeCast(): T? {
 }
 
 
-fun <T: Any> T?.getOrThrow(ex : ProcessableException): T{
+fun <T: Any> T?.getOrThrow(ex : ExceptionBase): T{
     return this ?: throw ex
 }
 
-inline fun <T: Any> T?.getOrThrow(message: String, code: ExceptionCodes,  processableBuilderFn: (String, Int) -> ProcessableException): T{
+inline fun <T: Any> T?.getOrThrow(message: String, code: ExceptionCode,  processableBuilderFn: (String, Int) -> ExceptionBase): T{
     return this ?: run {
       throw processableBuilderFn.invoke(message, code.value)
     }
@@ -29,13 +30,13 @@ inline fun <T: Any> T?.letOrThrow(ex : OperationsException, block: (T)-> T): Uni
     }
 }
 
-inline fun <T: Any> T?.letOrThrow(message: String, code: ExceptionCodes,  processableBuilderFn: (String, Int) -> ProcessableException, block: (T)-> T): T{
+inline fun <T: Any> T?.letOrThrow(message: String, code: ExceptionCode,  processableBuilderFn: (String, Int) -> ExceptionBase, block: (T)-> T): T{
     return if (this != null) block(this) else throw processableBuilderFn.invoke(message, code.value)
 }
 
-inline fun <T: Iterable<Any>> T.countEqualsOrWithThrow(equalsTo: Int, block:  (processableBuilderFn: ((message : String, code : ExceptionCodes)->OperationsException))-> OperationsException):T{
+inline fun <T: Iterable<Any>> T.countEqualsOrWithThrow(equalsTo: Int, block:  (processableBuilderFn: ((message : String, code : ExceptionCode)->OperationsException))-> OperationsException):T{
     if(this.count() != equalsTo){
-        val default :  (message : String, code : ExceptionCodes)-> OperationsException = {message, code->  OperationsException(message, code) }
+        val default :  (message : String, code : ExceptionCode)-> OperationsException = {message, code->  OperationsException(message, code) }
         val composedException  =  block(default)
         throw composedException as Throwable
     }else{

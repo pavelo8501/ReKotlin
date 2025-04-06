@@ -2,17 +2,21 @@ package po.lognotify.test.managedtask
 
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
+import po.lognotify.test.setup.ForeignClass
+import po.managedtask.classes.task.TaskHelper
+import po.managedtask.enums.SeverityLevel
 import po.managedtask.exceptions.DefaultException
 import po.managedtask.extensions.startTask
+import po.managedtask.extensions.*
+import po.managedtask.extensions.subTask
 import po.managedtask.interfaces.TasksManaged
 import po.managedtask.models.LogRecord
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class TestTasksManaged() : TasksManaged {
-
-    override val personalName: String  = "Test_Container"
 
     @Test
     fun `tasks nesting creation`() = runTest {
@@ -24,17 +28,20 @@ class TestTasksManaged() : TasksManaged {
         var parentResultTestString: String = ""
 
 
+
         startTask("parent_with_receiver", this.coroutineContext){parentHelper->
-            parentTaskName = parentHelper.moduleName
-            val result = parentHelper.moduleName
-            startTask("child_with_receiver") {childHelper->
-                childTaskName = childHelper.moduleName
-            }
-            result
-        }.onSuccess{parentResult->
-           parentResultTestString = parentResult.extractResult()?:""
-           executionTime = parentResult.executionTime
-       }.onComplete{
+
+            parentTaskName = parentHelper.name
+            val result = parentHelper.name
+            return@startTask result
+//            subTask("child_with_receiver") {childHelper->
+//                childTaskName = childHelper.moduleName
+//            }
+//            result
+        }.onResult{result->
+           parentResultTestString = result
+       }.onComplete{parentResult->
+            executionTime = parentResult.executionTime
             assertEquals("parent_with_receiver", parentTaskName, "Parent name")
             assertEquals("child_with_receiver:parent_with_receiver", childTaskName, "Child name")
             assertNotEquals(executionTime, 0f, "Time calculated and greater than 0")
@@ -48,9 +55,10 @@ class TestTasksManaged() : TasksManaged {
             startTask("parent", this.coroutineContext){
                 info("InfoMessage")
                 warn("Warning Message")
+
                 error(DefaultException("Exceptions Message"))
-            }.onComplete{
-                logRecords.addAll(it)
+            }.onComplete{result->
+                logRecords.addAll(result.getLogRecords(true))
 
                 assertEquals("InfoMessage",logRecords[0].message, "First record message match")
                 assertEquals("Exceptions Message",logRecords[2].message, "Message from exception")
@@ -69,8 +77,8 @@ class TestTasksManaged() : TasksManaged {
                 propagatedHandled = true
                 propagatedExMessage = it.message.toString()
             }
-            startTask("child"){childHelper->
-                throwPropagatedException(childHelper.moduleName)
+            subTask("child") {childHelper->
+                throwPropagatedException(childHelper.name)
             }
         }.onComplete{
             assertTrue(propagatedHandled)
@@ -78,8 +86,9 @@ class TestTasksManaged() : TasksManaged {
         }
     }
 
+
     @Test
-    fun `cancellation work exception work`() = runTest {
+    fun `cancellation exception handled`() = runTest {
 
         var cancellationHandledOnParent = false
         var cancellationHandled = false
@@ -89,22 +98,60 @@ class TestTasksManaged() : TasksManaged {
             setCancellationExHandler{
                 cancellationHandledOnParent = true
             }
-            startTask("child"){childHelper->
+            subTask("child") {childHelper->
                 setCancellationExHandler {
                     cancellationHandled = true
                     exMessage = it.message.toString()
                 }
+
                 throwCancellationException("cancellation")
-            }.onComplete {
-                assertEquals(2, it.count(), "Log has exactly two records")
-                assertEquals("cancellation",it[1].message, "Message from exception")
+            }.onComplete {result->
+                val log =  result.getLogRecords(true)
+                assertEquals(2, log.count(), "Log has exactly two records")
+                assertEquals("cancellation",log[1].message, "Message from exception")
             }
+
         }.onComplete{
             assertTrue(cancellationHandled, "Child cancellation handler triggered")
             assertTrue(!cancellationHandledOnParent, "Parent cancellation handler set but not triggered")
             assertEquals("cancellation", exMessage, "Exception has message")
-        }.onSuccess{result->
-            result.printLog(true)
         }
     }
+
+    suspend fun foreignTransition(taskHelper: TaskHelper){
+        val foreign = ForeignClass("foreign")
+        foreign.transition(taskHelper)
+    }
+
+    suspend fun transition(taskHelper: TaskHelper){
+//        withTask(key) {
+//            info("transited")
+//        }
+    }
+
+    @Test
+    fun `transition to sub task with context retention`()= runTest {
+
+        startTask("parent_task", this.coroutineContext) {
+            echo("In parent context")
+            transition(this)
+            foreignTransition(this)
+        }.onComplete{result->
+            val log = result.getLogRecords(true)
+            assertNotNull(log.firstOrNull{ it.severity == SeverityLevel.INFO && it.message == "transited"})
+            assertNotNull(log.firstOrNull{ it.severity == SeverityLevel.INFO && it.message == "foreign"})
+        }
+    }
+
+    @Test
+    fun `task result as an extension`()= runTest {
+        var res : String = ""
+        startTask("el_tasko", this.coroutineContext) {
+            val testStr  : String = "sss"
+            return@startTask testStr
+        }.onResult {
+           assertEquals("sss", it, "onResult as an extension work")
+        }
+    }
+
 }

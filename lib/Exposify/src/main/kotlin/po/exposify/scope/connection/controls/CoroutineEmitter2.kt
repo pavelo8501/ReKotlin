@@ -13,7 +13,6 @@ import po.exposify.scope.sequence.models.SequencePack2
 class CoroutineEmitter2(
     val name: String,
 ){
-
     fun <DTO: ModelDTO>dispatch(
         pack: SequencePack2<DTO>,
         listenerScope : CoroutineScope

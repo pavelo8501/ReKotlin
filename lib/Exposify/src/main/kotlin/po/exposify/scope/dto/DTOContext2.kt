@@ -6,7 +6,6 @@ import po.exposify.classes.DTOClass
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.extensions.WhereCondition
 import po.exposify.common.models.CrudResult2
-import po.lognotify.eventhandler.models.Event
 
 
 class DTOContext2<DTO>(
@@ -49,10 +48,10 @@ class DTOContext2<DTO>(
         return  asDataModels(crudResult!!)
     }
 
-    fun getStats(): Event?{
-        crudResult!!.event?.print()
-        return crudResult!!.event
-    }
+//    fun getStats(): Event?{
+//        crudResult!!.event?.print()
+//        return crudResult!!.event
+//    }
 
     fun callbackOnResult(callback : (List<DataModel>)->Unit ){
         callback.invoke(asDataModels(crudResult!!))

@@ -4,8 +4,8 @@ import po.exposify.classes.interfaces.DataModel
 import po.exposify.common.classes.ClassData
 import po.exposify.common.classes.ConstructorBuilder
 import po.exposify.common.interfaces.BlueprintContainer
-import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
+import po.exposify.exceptions.enums.ExceptionCode
 import kotlin.collections.mapOf
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
@@ -116,7 +116,7 @@ abstract class ClassBlueprintBase<T: Any>(protected val clazz: KClass<T>) : Blue
 
     override fun getConstructor(): KFunction<T>{
         return effectiveConstructor?:
-            throw OperationsException("Effective constructor not set", ExceptionCodes.CONSTRUCTOR_MISSING)
+            throw OperationsException("Effective constructor not set", ExceptionCode.CONSTRUCTOR_MISSING)
     }
 
     override fun addParameter(param : KParameter){

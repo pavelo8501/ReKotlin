@@ -9,8 +9,8 @@ import po.exposify.dto.CommonDTO
 import po.exposify.classes.DTOClass
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase
-import po.exposify.exceptions.ExceptionCodes
-import po.exposify.exceptions.OperationsException
+import po.exposify.exceptions.InitException
+import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.QueryConditions
 import po.exposify.extensions.getOrThrow
 import kotlin.Long
@@ -60,11 +60,11 @@ private suspend fun <DTO>runUpdate(
     dataModels: List<DataModel>
 ): CrudResult2<DTO> where DTO : ModelDTO{
     val resultList = mutableListOf<CommonDTO<DTO, DataModel, ExposifyEntityBase>>()
-    val exceptionFn : (String, Int)-> OperationsException = { message, code ->
-        OperationsException("$message for ${dtoClass.personalName}", ExceptionCodes.fromValue(code))
+    val exceptionFn : (String, Int)-> InitException = { message, code ->
+        InitException("$message for ${dtoClass.personalName}", ExceptionCode.UNDEFINED)
     }
 
-    dtoClass.repository.getOrThrow("Root repository undefined", ExceptionCodes.REPOSITORY_NOT_FOUND, exceptionFn).updateByDataModels(dataModels).let {dtos->
+    dtoClass.repository.getOrThrow("Root repository undefined", ExceptionCode.REPOSITORY_NOT_FOUND, exceptionFn).updateByDataModels(dataModels).let {dtos->
         resultList.addAll(dtos)
         println("Dtos count ${resultList.count()} fully initialized")
     }

@@ -11,30 +11,37 @@ import java.time.ZoneOffset
 
 interface StaticsHelperProvider {
 
-    val moduleName: String
+    val name: String
     val libPrefix : String
 
-    fun unhandledMsg(exception: Throwable): String
+    val currentTime: String
+    val currentDateTime: String
+    val utcTime: String
+
     fun handledMsg(exception: Throwable): String
     fun formatInfo(msg: String): String
     fun formatWarn(message: String): String
-    fun formatError(ex: Throwable, optMessage: String = ""): String
+    fun formatError(message: String = "", ex: Throwable? = null): String
     fun formatEcho(message: String)
+    fun formatSystemMsg(message: String): String
+    fun formatUnhandled(exception: Throwable): String
     fun formatLogWithIndention(logRecords : List<LogRecord>)
 
+    fun systemPrefix(action: String): String
+    fun makeOfColour(color: ColourEnum, msg: String): String
 }
 
-class StaticsHelper(
-    override val moduleName: String
-) : StaticsHelperProvider {
 
-    val currentTime: String
+
+class StaticsHelper(override val name: String) : StaticsHelperProvider {
+
+    override val currentTime: String
         get() = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))
 
-    val currentDateTime: String
+    override val currentDateTime: String
         get() = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
 
-    val utcTime: String
+    override val utcTime: String
         get() = ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("HH:mm:ss"))
 
     fun withIndention(message: String, depthLevel: Int) {
@@ -43,67 +50,64 @@ class StaticsHelper(
     }
 
     override val libPrefix: String
-        get() = makeOfColour(ColourEnum.BLUE, "[LogNotify:$currentTime in $moduleName]")
+        get() = makeOfColour(ColourEnum.BLUE, "[LogNotify:$currentTime @ $name]")
 
-
-    fun makeOfColour(color: ColourEnum, msg: String): String = "${color.colourStr}$msg${ColourEnum.RESET.colourStr}"
+    override fun makeOfColour(color: ColourEnum, msg: String): String{
+        return "${color.colourStr}$msg${ColourEnum.RESET.colourStr}"
+    }
 
     override fun formatEcho(message: String) {
         val formatted = "$libPrefix message"
-        println(formatted)
     }
 
     override fun formatInfo(message: String): String {
         val formattedString = "$libPrefix📍 $message"
-        println(formattedString)
-
         return formattedString
+    }
+
+    override fun formatSystemMsg(message: String): String {
+        val formattedWarningStr = makeOfColour(ColourEnum.BLUE, message)
+        val formattedString = "$libPrefix $formattedWarningStr"
+        return formattedString
+    }
+
+    override fun systemPrefix(action: String): String{
+        return makeOfColour(ColourEnum.BLUE, "$libPrefix/$action")
     }
 
     override fun formatWarn(message: String): String {
-     //   currentTask.taskResult.addWarning(message)
         val formattedWarningStr = makeOfColour(ColourEnum.YELLOW, "⚠️ $message")
         val formattedString = "$libPrefix $formattedWarningStr"
+        return formattedString
+    }
+
+    override fun formatError(message: String, ex: Throwable?): String {
+
+        var formattedString = makeOfColour(ColourEnum.RED, "⚠️ ${message}  Exception message:  ${ ex?.message.toString()}")
+        formattedString =  "${systemPrefix(libPrefix)} $formattedString"
         println(formattedString)
         return formattedString
     }
 
-    override fun formatError(ex: Throwable, optMessage: String): String {
-        val additionalMessage = if (!optMessage.isBlank()) {
-            ".$optMessage"
-        } else {
-            ""
-        }
-        var formattedString = makeOfColour(ColourEnum.RED, "⚠️ ${ex.message.toString()}. $optMessage")
-        formattedString = "$libPrefix $formattedString"
-        println(formattedString)
-        return formattedString
+    override fun formatUnhandled(exception: Throwable): String {
+        return  makeOfColour(ColourEnum.RED, "❌ Unhandled exception: ${exception.message}")
     }
-
-    override fun unhandledMsg(exception: Throwable): String =
-        "❌ [${moduleName}] Unhandled exception: ${exception.message}"
 
     override fun handledMsg(exception: Throwable): String =
-        makeOfColour(ColourEnum.RED, "⚠️ [${moduleName}] Handled exception, propagated: ${exception.message}")
+        makeOfColour(ColourEnum.RED, "⚠️ [${name}] Handled exception, propagated: ${exception.message}")
 
     override fun formatLogWithIndention(logRecords : List<LogRecord>) {
-
         logRecords.forEach {
             var printStr = "[${it.message}:${it.timestamp}]"
             when (it.severity) {
                 SeverityLevel.INFO -> {
                     printStr += it.message
-                    println(printStr)
                 }
-
                 SeverityLevel.WARNING -> {
                     printStr += makeOfColour(ColourEnum.YELLOW, it.message)
-                    println(printStr)
                 }
-
                 SeverityLevel.EXCEPTION -> {
                     printStr += makeOfColour(ColourEnum.RED, it.message)
-                    println(printStr)
                 }
             }
         }

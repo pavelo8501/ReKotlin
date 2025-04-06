@@ -3,8 +3,8 @@ package po.exposify.scope.sequence.models
 import kotlinx.coroutines.Deferred
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.exceptions.ExceptionCodes
 import po.exposify.exceptions.OperationsException
+import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.scope.sequence.SequenceContext2
 import po.exposify.scope.sequence.classes.SequenceHandler2
 import po.exposify.scope.service.ServiceClass
@@ -30,7 +30,7 @@ data class SequencePack2<DTO>(
             return  value
         }else{
             throw OperationsException("Parameter with key $key not found in sequence ${this.sequenceName()}",
-                ExceptionCodes.KEY_NOT_FOUND)
+                ExceptionCode.KEY_NOT_FOUND)
         }
     }
 
