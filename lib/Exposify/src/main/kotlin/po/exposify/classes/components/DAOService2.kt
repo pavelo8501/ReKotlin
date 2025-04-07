@@ -67,16 +67,15 @@ class DAOService2<DTO, DATA, ENTITY>(
 
 
     suspend fun save(dto: CommonDTO<DTO, DATA, ENTITY>): ENTITY? {
-        runCatching {
-            val newEntity = entityModel.new {
-                dto.updateBinding(this, UpdateMode.MODEL_TO_ENTITY)
-            }
-            entity = newEntity
-            return newEntity
-        }.onFailure {
-            throw OperationsException("Save failed. ${it.message}" , ExceptionCode.DB_CRUD_FAILURE)
+
+        val a = "test"
+        throw Exception("General")
+
+        val newEntity = entityModel.new {
+            dto.updateBinding(this, UpdateMode.MODEL_TO_ENTITY)
         }
-        return null
+        entity = newEntity
+        return newEntity
     }
 
     suspend fun saveWithParent(dto: CommonDTO<DTO, DATA, ENTITY>, bindFn: (ENTITY)-> Unit):ENTITY?{

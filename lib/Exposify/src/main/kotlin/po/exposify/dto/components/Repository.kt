@@ -15,6 +15,8 @@ import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.countEqualsOrWithThrow
 import po.exposify.extensions.getOrThrow
 import po.managedtask.exceptions.enums.CancelType
+import po.managedtask.extensions.subTask
+import po.managedtask.interfaces.TasksManaged
 import kotlin.collections.forEach
 
 typealias ChildDTO<CHILD_DTO> = CommonDTO<CHILD_DTO, DataModel, ExposifyEntityBase>
@@ -40,19 +42,17 @@ class MultipleRepository<DTO, DATA, ENTITY, CHILD_DTO>(
 
 class RootRepository<DTO, DATA, ENTITY, CHILD_DTO>(
     val dtoClass: DTOClass<CHILD_DTO>,
-): RepositoryBase<DTO,DATA, ENTITY, CHILD_DTO>(dtoClass) where DTO : ModelDTO, CHILD_DTO : ModelDTO, DATA: DataModel, ENTITY : ExposifyEntityBase
+): RepositoryBase<DTO,DATA, ENTITY, CHILD_DTO>(dtoClass), TasksManaged
+        where DTO : ModelDTO, CHILD_DTO : ModelDTO, DATA: DataModel, ENTITY : ExposifyEntityBase
 {
     override val personalName: String = "Repository[${dtoClass.registryItem.commonDTOKClass.simpleName}/Root]"
 
     suspend fun updateByDataModels(dataModels : List<DATA>): List<CommonDTO<CHILD_DTO, DATA, ENTITY>>{
-         val createdDtoList =  sharedUpdateByDataModels(dataModels)
-         val castedList =  createdDtoList.filterIsInstance<CommonDTO<CHILD_DTO, DATA, ENTITY>>().countEqualsOrWithThrow(createdDtoList.count()) {
-             OperationsException("UpdateByDataModels Cast dtoList to actual after creation in $personalName failed", ExceptionCode.CAST_FAILURE)
-         }
-         return castedList
+     // return  subTask<List<CommonDTO<CHILD_DTO, DATA, ENTITY>>("RootRepository|UpdateByDataModels")
+           return  sharedUpdateByDataModels(dataModels).filterIsInstance<CommonDTO<CHILD_DTO, DATA, ENTITY>>()
      }
 
-    suspend fun selectByByEntities(entities: List<ENTITY>): List<CommonDTO<CHILD_DTO,  DATA, ENTITY>>{
+    suspend fun selectByByEntities(entities: List<ENTITY>): List<CommonDTO<CHILD_DTO,  DATA, ENTITY>>  {
         val createdDtoList =  sharedSelectByEntities(entities)
         val castedList =  createdDtoList.filterIsInstance<CommonDTO<CHILD_DTO, DATA, ENTITY>>().countEqualsOrWithThrow(createdDtoList.count()) {
             OperationsException("SelectByByEntities Cast dtoList to actual after creation in $personalName failed", ExceptionCode.CAST_FAILURE)
@@ -85,14 +85,10 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, CHILD_DTO>(
             dto.apply {
                 crudOperation.setOperation(CrudType.UPDATE)
                 dataContainer.trackedProperties.values.forEach { dataModelProperty ->
-                    runCatching {
-                        val childDataModels = dataContainer.extractChildModels(dataModelProperty)
-                        repositories.map[dataModelProperty.getContainer().thisKey].getOrThrow("Child repository not found",
-                            ExceptionCode.REPOSITORY_NOT_FOUND, exceptionFn).sharedUpdateByDataModels(childDataModels)
-                    }.onFailure {
-                        println(it.message.toString())
-                        throw it
-                    }
+
+                val childDataModels = dataContainer.extractChildModels(dataModelProperty)
+                repositories.map[dataModelProperty.getContainer().thisKey].getOrThrow("Child repository not found",
+                    ExceptionCode.REPOSITORY_NOT_FOUND, exceptionFn).sharedUpdateByDataModels(childDataModels)
                 }
             }
         }
@@ -103,15 +99,10 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, CHILD_DTO>(
 
     protected suspend fun sharedUpdateByDataModels(dataModels : List<DataModel>):List<ChildDTO<CHILD_DTO>>{
        val createdDtos =  mutableListOf<CommonDTO<CHILD_DTO,  DataModel, ExposifyEntityBase>>()
-        runCatching {
-            dataModels.forEach {dataModel->
-                childFactory.createDto(dataModel)?.let {
-                    createdDtos.add(it)
-                }
+        dataModels.forEach {dataModel->
+            childFactory.createDto(dataModel)?.let {
+                createdDtos.add(it)
             }
-        }.onFailure {
-            println(it.message.toString())
-            throw it
         }
        return updateDtos(createdDtos)
     }
@@ -120,17 +111,12 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, CHILD_DTO>(
         dtoList.forEach {dto->
             dto.apply {
                 daoService.trackedProperties.values.forEach {entityModelProperty->
-                    runCatching {
-                        val bindingContainer = entityModelProperty.getContainer()
-                        val childEntities = daoService.extractChildEntities(entityModelProperty)
-                        repositories.map[bindingContainer.thisKey].getOrThrow(
-                            "Child repository not found",
-                            ExceptionCode.REPOSITORY_NOT_FOUND, exceptionFn
-                        ).sharedSelectByEntities(childEntities)
-                    }.onFailure {
-                        println(it.message.toString())
-                        throw it
-                    }
+                    val bindingContainer = entityModelProperty.getContainer()
+                    val childEntities = daoService.extractChildEntities(entityModelProperty)
+                    repositories.map[bindingContainer.thisKey].getOrThrow(
+                        "Child repository not found",
+                        ExceptionCode.REPOSITORY_NOT_FOUND, exceptionFn
+                    ).sharedSelectByEntities(childEntities)
                 }
             }
         }

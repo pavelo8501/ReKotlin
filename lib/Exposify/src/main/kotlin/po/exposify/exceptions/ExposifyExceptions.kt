@@ -1,7 +1,6 @@
 package po.exposify.exceptions
 
 import po.exposify.exceptions.enums.ExceptionCode
-import po.managedtask.exceptions.CancellationException
 import po.managedtask.exceptions.ExceptionBase
 
 import po.managedtask.exceptions.enums.CancelType

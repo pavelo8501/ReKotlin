@@ -1,0 +1,16 @@
+package po.lognotify.classes.task
+
+import po.lognotify.exceptions.SelfThrownException
+import po.lognotify.models.TaskKey
+
+interface ControlledTask  {
+    val parent: TaskSealedBase<*>
+    val key : TaskKey
+    fun  propagateToParent(th: Throwable)
+
+}
+
+interface ResultantTask : SelfThrownException  {
+    val taskName: String
+    val nestingLevel: Int
+}

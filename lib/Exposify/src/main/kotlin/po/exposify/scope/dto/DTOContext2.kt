@@ -20,7 +20,6 @@ class DTOContext2<DTO>(
         resultCallback?.let{callbackOnResult(resultCallback)}
     }
 
-
     operator fun invoke(op:  WhereCondition<*>): DTOContext2<DTO> {
         condition = op
         return this

@@ -2,9 +2,10 @@ package po.test.lognotify
 
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
-import po.managedtask.extensions.startTask
-import po.managedtask.extensions.subTask
-import po.managedtask.interfaces.TasksManaged
+import po.lognotify.TasksManaged
+import po.lognotify.extensions.startTask
+import po.lognotify.extensions.subTask
+
 
 class TestTasksLifecycle : TasksManaged {
 
@@ -12,41 +13,29 @@ class TestTasksLifecycle : TasksManaged {
 
     }
 
-
     suspend fun childExecutionContext() {
-        subTask("child_execution_context_task") {
-            echo("child_execution_context_task lambda executed")
 
+        subTask("child_execution_context_task") {handler->
+            handler.echo("child_execution_context_task lambda executed")
         }
 
         suspend fun structuralNesting() {
-
             suspend fun structuralNestingLevel3() {
                 lastExecutedContext()
             }
-
             structuralNestingLevel3()
         }
-
         structuralNesting()
     }
-
-
 
     @Test
     fun `parent registred and child attaches to parent`() = runTest {
 
-        startTask("paren_task", this.coroutineContext) {
+        startTask("paren_task", this.coroutineContext) {handler->
             childExecutionContext()
-            info("hierarchy_count ${this.taskHierarchyList.count()}")
-
+            handler.info("hierarchy_count ${handler.taskHierarchyList.count()}")
         }.onComplete {result->
            result.taskName
-//            result. .taskHierarchyList.forEach{
-//                println("task|${it.taskName}")
-//            }
-
-
         }
     }
 

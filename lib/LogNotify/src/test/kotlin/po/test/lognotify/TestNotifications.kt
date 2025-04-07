@@ -2,21 +2,22 @@ package po.test.lognotify
 
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
-import po.managedtask.extensions.startTask
-import po.managedtask.extensions.subTask
-import po.managedtask.interfaces.TasksManaged
+import po.lognotify.TasksManaged
+import po.lognotify.extensions.startTask
+import po.lognotify.extensions.subTask
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class TestNotifications  :TasksManaged {
+class TestNotifications  : TasksManaged {
 
     suspend fun subTask(){
-        subTask("task_2") {
-            setGenericExHandler {
-                echo("Swallowed")
+        subTask("task_2") {handler->
+            handler.apply {
+                setGenericExHandler {
+                    echo("Swallowed")
+                }
             }
-          //  termination()
             throw Exception("General exception")
         }
     }
@@ -33,12 +34,15 @@ class TestNotifications  :TasksManaged {
         var swallowedThrowable : Throwable?  = null
         var onCompleteTriggered : Boolean = false
 
-        startTask("task_1", this.coroutineContext) {
-            setGenericExHandler {
-                swallowedThrowable = it
+        startTask("task_1", this.coroutineContext) {handler->
+            handler.apply {
+                setGenericExHandler {
+                    swallowedThrowable = it
+                }
             }
             termination()
-            throwDefaultException("Default")
+            handler.throwDefaultException("Default")
+
         }.onFail {
             unprocessedThrowable = it
         }.onComplete {

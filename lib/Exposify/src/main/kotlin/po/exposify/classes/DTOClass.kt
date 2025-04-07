@@ -21,9 +21,10 @@ import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.safeCast
 import po.exposify.scope.sequence.models.SequencePack2
 import po.exposify.scope.service.ServiceContext
+import po.managedtask.interfaces.TasksManaged
 import kotlin.reflect.KClass
 
-abstract class DTOClass<DTO>(): DTOInstance where DTO: ModelDTO {
+abstract class DTOClass<DTO>(): TasksManaged,  DTOInstance where DTO: ModelDTO{
 
     lateinit var registryItem : DTORegistryItem<DTO, DataModel, ExposifyEntityBase>
 

@@ -6,6 +6,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.Transaction
 import org.jetbrains.exposed.sql.transactions.experimental.suspendedTransactionAsync
 import org.jetbrains.exposed.sql.transactions.transaction
 import po.exposify.classes.interfaces.DataModel
@@ -27,6 +28,7 @@ import po.exposify.scope.sequence.classes.SequenceHandler2
 import po.exposify.scope.sequence.models.SequencePack2
 import po.managedtask.extensions.startTask
 import po.managedtask.extensions.startTaskAsync
+import po.managedtask.extensions.withTxScope
 import po.managedtask.interfaces.TasksManaged
 import kotlin.reflect.KProperty1
 
@@ -104,18 +106,16 @@ class ServiceContext<DTO, DATA>(
         return CompletableDeferred<CrudResult2<DTO>>(crudResult)
     }
 
-    fun update(dataModels : List<DATA>): CrudResult2<DTO> {
+    fun update(dataModels : List<DATA>): CrudResult2<DTO>{
 
         var crudResult = CrudResult2(emptyList<CommonDTO<DTO, DATA, ExposifyEntityBase>>())
-
-       dbQuery {
-           val result = startTaskAsync("Update") {
-               dtoModel.update(dataModels)
-           }
-           crudResult = result
+        transaction {
+            val result = startTaskAsync("Update") {
+                dtoModel.update(dataModels)
+            }
+            crudResult = result
         }
         return crudResult
-
     }
 
     fun delete(toDelete: DATA): Deferred<CrudResult2<DTO>>{

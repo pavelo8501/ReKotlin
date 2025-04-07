@@ -1,5 +1,6 @@
 package po.exposify.dto.extensions
 
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.dao.id.IdTable
 import po.exposify.binders.UpdateMode
 import po.exposify.classes.components.DTOConfig2
@@ -13,6 +14,9 @@ import po.exposify.exceptions.InitException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.QueryConditions
 import po.exposify.extensions.getOrThrow
+import po.managedtask.extensions.getOrThrowDefault
+import po.managedtask.extensions.subTask
+import po.managedtask.extensions.subTaskWithReceiver
 import kotlin.Long
 import kotlin.collections.toList
 
@@ -39,6 +43,7 @@ private suspend fun <DTO, TB> runSelect(
     conditions: QueryConditions<TB>? = null
 ): CrudResult2<DTO> where DTO : ModelDTO, TB: IdTable<Long>{
 
+
     val resultList = mutableListOf<CommonDTO<DTO, DataModel, ExposifyEntityBase>>()
     dtoClass.withDaoService {
         val entities = if(conditions!= null) {
@@ -55,10 +60,12 @@ private suspend fun <DTO, TB> runSelect(
     return CrudResult2(resultList)
 }
 
-private suspend fun <DTO>runUpdate(
+private suspend fun <DTO>  runUpdate(
     dtoClass: DTOClass<DTO>,
     dataModels: List<DataModel>
 ): CrudResult2<DTO> where DTO : ModelDTO{
+
+
     val resultList = mutableListOf<CommonDTO<DTO, DataModel, ExposifyEntityBase>>()
     val exceptionFn : (String, Int)-> InitException = { message, code ->
         InitException("$message for ${dtoClass.personalName}", ExceptionCode.UNDEFINED)
@@ -129,9 +136,19 @@ internal suspend inline fun <DTO, DATA, ENTITY>  DTOClass<DTO>.select(
 ): CrudResult2<DTO> where DTO: ModelDTO, DATA: DataModel, ENTITY: ExposifyEntityBase = runSelect<DTO, IdTable<Long>>(this, null)
 
 
-internal suspend fun <DTO> DTOClass<DTO>.update(
+suspend fun <DTO> DTOClass<DTO>.update(
     dataModels: List<DataModel>
-): CrudResult2<DTO> where DTO: ModelDTO = runUpdate(this, dataModels)
+): CrudResult2<DTO>? where DTO: ModelDTO = subTaskWithReceiver(this, "Update Repository")  {
+
+    runCatching {
+
+    }.let {result->
+        result
+    }
+
+    CrudResult2<DTO>(emptyList<CommonDTO<DTO, *, *>>()).getOrThrowDefault("checked")
+
+}
 
 
 

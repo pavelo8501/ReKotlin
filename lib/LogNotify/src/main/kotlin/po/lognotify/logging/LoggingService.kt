@@ -5,7 +5,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import po.managedtask.enums.SeverityLevel
+import po.lognotify.enums.SeverityLevel
 import java.time.LocalDateTime
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
@@ -29,7 +29,7 @@ class LoggingService: ReadOnlyProperty<Any?, LoggingService>{
             try {
                 println("[$timestamp] [$level] $message")
                 logFunctions.forEach { logFunction ->
-                    if (level.level >= logFunction.key.level) {
+                    if (level.severityLevelId >= logFunction.key.severityLevelId) {
                         logFunction.value(message, level, timestamp, throwable)
                         throwable?.let {
                             println("Exception: ${it.message}")

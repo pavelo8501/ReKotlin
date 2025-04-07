@@ -33,7 +33,6 @@ class ServiceClass<DTO, DATA, ENTITY>(
 
 
     init {
-
         try {
             start()
         }catch (initException : InitException){
@@ -103,13 +102,11 @@ class ServiceClass<DTO, DATA, ENTITY>(
         }
     }
 
-
     private fun  emitterSubscriptions(callbackEmitter : CallbackEmitter2<DTO>){
         callbackEmitter.subscribeSequenceExecute{
             launchSequence(it)
         }
     }
-
 
     private fun start(){
         initializeDTOs{
