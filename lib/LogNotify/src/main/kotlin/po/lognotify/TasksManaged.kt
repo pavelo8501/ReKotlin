@@ -27,20 +27,20 @@ interface TasksManaged {
             return newRootTask
         }
 
-        internal fun <R> createHierarchyRoot(name: String): RootTask<R>{
-            val newTask = RootTask<R>(TaskKey(name, 0), defaultContext(name))
+        internal fun <R> createHierarchyRoot(name: String, moduleName: String?): RootTask<R>{
+            val newTask = RootTask<R>(TaskKey(name, 0, moduleName), defaultContext(name))
             return hierarchyRootCreation(newTask)
         }
 
-        internal fun <R> createHierarchyRoot(name: String, context: CoroutineContext): RootTask<R> {
-            val newTask = RootTask<R>(TaskKey(name, 0),context)
+        internal fun <R> createHierarchyRoot(name: String, context: CoroutineContext, moduleName: String?): RootTask<R> {
+            val newTask = RootTask<R>(TaskKey(name, 0, moduleName),context)
             return  hierarchyRootCreation(newTask)
         }
 
-        internal fun <R> attachToHierarchy(name : String,): ManagedTask<R>?{
+        internal fun <R> attachToHierarchy(name : String, moduleName: String?): ManagedTask<R>?{
             taskHierarchy.keys.lastOrNull()?.let {
                  taskHierarchy[it]?.let {rootTask->
-                     val childTask =   rootTask.createNewMemberTask<R>(name)
+                     val childTask =   rootTask.createNewMemberTask<R>(name, moduleName)
                      return childTask.safeCast<ManagedTask<R>>().getOrThrowDefault("Cast failed")
                  }
             }

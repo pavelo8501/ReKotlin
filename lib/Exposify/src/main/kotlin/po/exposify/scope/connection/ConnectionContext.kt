@@ -29,16 +29,8 @@ class ConnectionContext(
                 connectionClass,
                 rootDtoModel,
                 serviceCreateOption)
-
             connectionClass.addService(serviceClass)
             serviceClass.launch(context)
-
-            serviceClass.let {
-                    connectionClass.addService(it)
-                    runBlocking {
-                        it.launch(context)
-                    }
-                }
         }catch (exception: Exception){
             println(exception.message)
             throw exception

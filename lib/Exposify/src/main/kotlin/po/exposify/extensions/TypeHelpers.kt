@@ -1,26 +1,15 @@
 package po.exposify.extensions
 
-import po.exposify.exceptions.InitException
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
-import po.managedtask.exceptions.DefaultException
-import po.managedtask.exceptions.ExceptionBase
+import po.lognotify.exceptions.ExceptionBase
 import kotlin.reflect.KClass
+
 
 inline fun <reified T: Any> Any.safeCast(): T? {
     return this as? T
 }
 
-
-fun <T: Any> T?.getOrThrow(ex : ExceptionBase): T{
-    return this ?: throw ex
-}
-
-inline fun <T: Any> T?.getOrThrow(message: String, code: ExceptionCode,  processableBuilderFn: (String, Int) -> ExceptionBase): T{
-    return this ?: run {
-      throw processableBuilderFn.invoke(message, code.value)
-    }
-}
 
 inline fun <T: Any> T?.letOrThrow(ex : OperationsException, block: (T)-> T): Unit{
     if(this != null){
@@ -36,6 +25,7 @@ inline fun <T: Any> T?.letOrThrow(message: String, code: ExceptionCode,  process
 
 inline fun <T: Iterable<Any>> T.countEqualsOrWithThrow(equalsTo: Int, block:  (processableBuilderFn: ((message : String, code : ExceptionCode)->OperationsException))-> OperationsException):T{
     if(this.count() != equalsTo){
+        val prefix = "countEqualsOrThrow"
         val default :  (message : String, code : ExceptionCode)-> OperationsException = {message, code->  OperationsException(message, code) }
         val composedException  =  block(default)
         throw composedException as Throwable

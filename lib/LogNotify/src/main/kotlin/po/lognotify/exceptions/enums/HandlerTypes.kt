@@ -6,11 +6,11 @@ enum class PropagateType(val value: Int) {
     UNMANAGED(0);
 
     companion object {
-        fun fromValue(value: Int): PropagateType? {
+        fun fromValue(value: Int): PropagateType {
             entries.firstOrNull { it.value == value }?.let {
                 return it
             }
-            return UNMANAGED
+            return PROPAGATED
         }
     }
 }
@@ -21,11 +21,11 @@ enum class CancelType(val value: Int) {
     UNMANAGED(0);
 
     companion object {
-        fun fromValue(value: Int): CancelType? {
+        fun fromValue(value: Int): CancelType {
             entries.firstOrNull { it.value == value }?.let {
                 return it
             }
-            return UNMANAGED
+            return SKIP_SELF
         }
     }
 }
@@ -36,11 +36,11 @@ enum class DefaultType(val value: Int) {
     UNMANAGED(0);
 
     companion object {
-        fun fromValue(value: Int): DefaultType? {
+        fun fromValue(value: Int): DefaultType {
             entries.firstOrNull { it.value == value }?.let {
                 return it
             }
-            return UNMANAGED
+            return DEFAULT
         }
     }
 }

@@ -6,10 +6,11 @@ import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction
 import po.exposify.classes.interfaces.DataModel
-import po.exposify.common.models.CrudResult2
+import po.exposify.dto.components.CrudResult
 import po.exposify.dto.CommonDTO
 import po.exposify.classes.DTOClass
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.extensions.QueryConditions
 import po.exposify.scope.dto.DTOContext2
 import po.exposify.scope.sequence.classes.SequenceHandler2
@@ -26,10 +27,10 @@ class SequenceContext2<DTO>(
         body()
     }
 
-    private var lastResult : CrudResult2<DTO>? = null
+    private var lastResult : CrudResult<DTO, DataModel>? = null
 
-    private fun dtos(): List<CommonDTO<DTO, * , *>>{
-        val result =   mutableListOf<CommonDTO<DTO, * , *>>()
+    private fun dtos(): List<CommonDTO<DTO, DataModel , ExposifyEntityBase>>{
+        val result =   mutableListOf<CommonDTO<DTO, DataModel, ExposifyEntityBase>>()
         lastResult?.rootDTOs?.forEach{  result.add(it) }
         return result
     }
@@ -67,8 +68,8 @@ class SequenceContext2<DTO>(
      *
      * @return A `Deferred` list of `DATA` models.
      */
-    suspend fun checkout(withResult :  CrudResult2<DTO> ? = null): Deferred<List<DataModel>> {
-        val context = DTOContext2<DTO>(hostDto, withResult ?: lastResult)
+    suspend fun checkout(withResult :  CrudResult<DTO, DataModel> ? = null): Deferred<List<DataModel>> {
+        val context = DTOContext2<DTO, DataModel>(hostDto, withResult ?: lastResult)
         return CompletableDeferred(context.getData())
     }
 
@@ -133,7 +134,7 @@ class SequenceContext2<DTO>(
      */
     suspend fun <T: IdTable<Long>> pick(
         conditions: QueryConditions<T>,
-        block: (suspend SequenceContext2<DTO>.(dtos: List<CommonDTO<DTO, *, *>>)-> Unit)? = null
+        block: (suspend SequenceContext2<DTO>.(dtos: List<CommonDTO<DTO, DataModel, ExposifyEntityBase>>)-> Unit)? = null
     ) {
        // lastResult = hostDto.pick(conditions)
 

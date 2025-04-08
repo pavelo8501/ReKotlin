@@ -1,8 +1,5 @@
 package po.exposify.exceptions.enums
 
-import po.managedtask.enums.ColourEnum
-import po.managedtask.enums.ColourEnum.RESET
-
 
 enum class ExceptionCode(val value: Int) {
 
@@ -23,6 +20,7 @@ enum class ExceptionCode(val value: Int) {
     // Database Layer
     DB_TABLE_CREATION_FAILURE(2001),
     DB_CRUD_FAILURE(2002),
+    DB_NO_TRANSACTION_IN_CONTEXT(2003),
 
     // Repository & Runtime Execution
     REPOSITORY_RETHROWN(4000),

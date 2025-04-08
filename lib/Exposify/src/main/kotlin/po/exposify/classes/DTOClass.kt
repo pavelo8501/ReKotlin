@@ -4,11 +4,12 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.IdTable
+import org.jetbrains.exposed.sql.transactions.TransactionManager
 import po.exposify.binders.relationship.RelationshipBinder2
 import po.exposify.classes.components.CallbackEmitter2
 import po.exposify.classes.components.DAOService2
 import po.exposify.classes.components.DTOConfig2
-import po.exposify.classes.components.DTOFactory
+import po.exposify.dto.components.DTOFactory
 import po.exposify.dto.components.RootRepository
 import po.exposify.classes.interfaces.DTOInstance
 import po.exposify.classes.interfaces.DataModel
@@ -21,7 +22,7 @@ import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.safeCast
 import po.exposify.scope.sequence.models.SequencePack2
 import po.exposify.scope.service.ServiceContext
-import po.managedtask.interfaces.TasksManaged
+import po.lognotify.TasksManaged
 import kotlin.reflect.KClass
 
 abstract class DTOClass<DTO>(): TasksManaged,  DTOInstance where DTO: ModelDTO{
@@ -111,6 +112,10 @@ abstract class DTOClass<DTO>(): TasksManaged,  DTOInstance where DTO: ModelDTO{
     }
     suspend fun withDaoService(block: suspend (DAOService2<DTO, DataModel, ExposifyEntityBase>)-> Unit): Unit = config.withDaoService(block)
     suspend fun withRelationshipBinder(block: suspend RelationshipBinder2<DTO, DataModel, ExposifyEntityBase>.()-> Unit): Unit = config.withRelationshipBinder(block)
+
+    fun isTransactionReady(): Boolean {
+        return TransactionManager.currentOrNull()?.connection?.isClosed?.not() == true
+    }
 
     suspend fun triggerSequence(
         sequence: SequencePack2<DTO>

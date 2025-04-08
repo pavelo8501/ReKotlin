@@ -39,9 +39,6 @@ abstract class DatabaseTest {
         }?: throw Exception("DatabaseTest initExposify failed")
     }
 
-
-
-
     @BeforeAll
     fun setupExposify(){
         connectionContext = initExposify()

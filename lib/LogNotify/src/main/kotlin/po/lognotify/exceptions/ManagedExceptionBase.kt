@@ -78,10 +78,11 @@ sealed class ExceptionBase(
     }
 
     private var source : Throwable? = null
-    fun setSourceException(th: Throwable){
+    fun setSourceException(th: Throwable): ExceptionBase{
         source = th
+        return this
     }
-    fun rethrowSource(){
+    fun reThrowSource(){
         if(source !=null){
             throw source!!
         }else{

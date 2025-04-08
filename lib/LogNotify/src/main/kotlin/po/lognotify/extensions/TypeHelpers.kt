@@ -7,14 +7,49 @@ import po.lognotify.exceptions.PropagatedException
 import po.lognotify.exceptions.enums.CancelType
 import po.lognotify.exceptions.enums.DefaultType
 import po.lognotify.exceptions.enums.PropagateType
-
+import kotlin.reflect.KClass
 
 inline fun <reified T: Any> Any.safeCast(): T? {
     return this as? T
 }
 
+inline fun <T,  reified E: ExceptionBase> Iterable<T>.countEqualsOrThrow(equalsTo: Int, messageOnException: String = "", handlerValue : Int = 1):Iterable<T>{
+    val actualCount = this.count()
+    if(actualCount != equalsTo){
+        val prefix = "CountEqualsFailed with test value $equalsTo actual is $actualCount"
+        val exMessage = "$prefix. $messageOnException"
+        val ex = when (E::class) {
+            ExceptionBase.Default::class-> DefaultException(exMessage, DefaultType.fromValue(handlerValue))
+            ExceptionBase.Propagate::class  -> PropagatedException(exMessage, PropagateType.fromValue(handlerValue))
+            CancellationException::class -> CancellationException(exMessage, CancelType.fromValue(1))
+            else -> DefaultException(exMessage, DefaultType.fromValue(handlerValue))
+        }
+       throw ex
+    }else{
+        return this
+    }
+}
+
+
+
+fun <E: ExceptionBase>  E.throwCancel(msg: String= "", handler: CancelType = CancelType.CANCEL_ALL){
+    CancellationException("${this.message} $msg", handler)
+}
+
+fun <E: ExceptionBase> E.throwPropagate(msg: String= "", handler: PropagateType = PropagateType.PROPAGATED){
+    PropagatedException("${this.message} $msg", handler)
+}
+
+
 fun <T: Any> T?.getOrThrow(ex : ExceptionBase): T{
     return this ?: throw ex
+}
+
+fun Boolean.trueOrThrow(message: String): Boolean{
+    if(!this){
+       throw DefaultException("Tested value is false $message", DefaultType.DEFAULT)
+    }
+    return true
 }
 
 fun <T: Any> T?.getOrThrowDefault(message: String): T{

@@ -1,8 +1,8 @@
 package po.lognotify.exceptions
 
 import po.lognotify.classes.notification.enums.EventType
-import po.lognotify.classes.notification.enums.InfoProvider
 import po.lognotify.classes.notification.models.Notification
+import po.lognotify.classes.notification.sealed.ProviderThrower
 import po.lognotify.classes.task.TaskSealedBase
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.exceptions.enums.CancelType
@@ -34,24 +34,22 @@ class ExceptionThrower(
 
     private suspend fun notifyOnException(exception: Notification){
         val notification = Notification(
-            task.taskName,
-            task.key.nestingLevel,
+            task,
             EventType.EXCEPTION_UNHANDLED,
             SeverityLevel.EXCEPTION,
             exception.message,
-            InfoProvider.EX_THROWER
+            ProviderThrower(task.taskName)
         )
         onExceptionThrown?.invoke(notification)
     }
 
     private suspend fun notifyOnThrown(th: Throwable){
         val notification = Notification(
-            task.taskName,
-            task.key.nestingLevel,
+            task,
             EventType.EXCEPTION_THROWN,
             SeverityLevel.EXCEPTION,
             th.message.toString()  ,
-            InfoProvider.EX_THROWER,
+            ProviderThrower(task.taskName),
         )
         onExceptionThrown?.invoke(notification)
     }

@@ -7,6 +7,7 @@ import po.exposify.binders.UpdateMode
 import po.exposify.binders.relationship.RelationshipBinder2
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.classes.DTOClass
+import po.exposify.dto.components.DTOFactory
 import po.exposify.dto.components.DataModelContainer2
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.DTORegistryItem
@@ -29,7 +30,7 @@ internal class DTOConfig2<DTO, DATA, ENTITY>(
 ): ConfigurableDTO<DTO, DATA, ENTITY> where DTO: ModelDTO,  ENTITY : ExposifyEntityBase, DATA: DataModel{
 
     val dtoFactory: DTOFactory<DTO, DATA, ENTITY> =
-        DTOFactory<DTO, DATA, ENTITY>(dtoRegItem.commonDTOKClass , dtoRegItem.dataKClass, this)
+        DTOFactory<DTO, DATA, ENTITY>(dtoRegItem.commonDTOKClass, dtoRegItem.dataKClass, this)
 
     val daoService: DAOService2<DTO, DATA,  ENTITY> = DAOService2<DTO, DATA, ENTITY>(false, entityModel)
     val propertyBinder : PropertyBinder<DATA,ENTITY> = PropertyBinder()
@@ -42,15 +43,12 @@ internal class DTOConfig2<DTO, DATA, ENTITY>(
     override  suspend fun withFactory(block: suspend (DTOFactory<DTO, DATA, ENTITY>)-> Unit){
         block.invoke(dtoFactory)
     }
-
     override suspend fun withDaoService(block: suspend (DAOService2<DTO, DATA,  ENTITY>)-> Unit){
         block.invoke(daoService)
     }
-
     override suspend fun withRelationshipBinder(block: suspend (RelationshipBinder2<DTO, DATA, ENTITY>)-> Unit){
         block.invoke(relationBinder)
     }
-
     override fun initFactoryRoutines(){
         dtoFactory.setPostCreationRoutine("dto_initialization") {
             val dataModelContainer = DataModelContainer2<DTO, DATA>(dataModel, this@DTOConfig2.dtoFactory.dataBlueprint)
@@ -82,9 +80,7 @@ internal class DTOConfig2<DTO, DATA, ENTITY>(
     fun propertyBindings(vararg props: PropertyBindingOption<DATA, ENTITY, *> ): Unit =  propertyBinder.setProperties(props.toList())
 
     inline fun childBindings(
-        block: RelationshipBinder2<DTO, DATA, ENTITY>.()-> Unit
-    ){
-
+        block: RelationshipBinder2<DTO, DATA, ENTITY>.()-> Unit){
         relationBinder.block()
     }
 

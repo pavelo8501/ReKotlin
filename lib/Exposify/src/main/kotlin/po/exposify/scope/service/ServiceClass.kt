@@ -31,7 +31,6 @@ class ServiceClass<DTO, DATA, ENTITY>(
     var personalName : String = "[$name|${rootDTOModel.personalName}]"
     var serviceContext : ServiceContext<DTO, DATA>? = null
 
-
     init {
         try {
             start()

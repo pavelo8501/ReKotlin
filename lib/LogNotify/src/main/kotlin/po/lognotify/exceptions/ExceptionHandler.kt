@@ -1,8 +1,8 @@
 package po.lognotify.exceptions
 
 import po.lognotify.classes.notification.enums.EventType
-import po.lognotify.classes.notification.enums.InfoProvider
 import po.lognotify.classes.notification.models.Notification
+import po.lognotify.classes.notification.sealed.ProviderHandler
 import po.lognotify.classes.task.TaskSealedBase
 import po.lognotify.enums.SeverityLevel
 
@@ -33,11 +33,10 @@ class ExceptionHandler(
 
       val message = "$handler handle set"
       val notification = Notification(
-         task.taskName,
-         task.nestingLevel,
+         task,
          EventType.HANDLER_REGISTERED,
          SeverityLevel.INFO,
-         message, InfoProvider.EX_HANDLER)
+         message, ProviderHandler(task.taskName))
       onExceptionThrown?.invoke(notification)
    }
 
@@ -57,12 +56,11 @@ class ExceptionHandler(
       }
 
       val notification = Notification(
-         task.taskName,
-         task.nestingLevel,
+         task,
          eventType,
          severity,
          msg,
-         InfoProvider.EX_HANDLER)
+         ProviderHandler(task.taskName))
       onExceptionThrown?.invoke(notification)
 
 

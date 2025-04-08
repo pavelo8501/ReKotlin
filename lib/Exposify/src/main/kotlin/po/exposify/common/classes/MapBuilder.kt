@@ -12,8 +12,6 @@ open class MapBuilder<K, T>(initial: Map<K, T> = emptyMap()) where K : Any, T: A
     private val _map: MutableMap<K, T> = initial.toMutableMap()
 
     val map: Map<K, T> get() = _map
-
-
     fun add(key: K, element: T): Map<K, T> {
         apply {
             _map[key] = element

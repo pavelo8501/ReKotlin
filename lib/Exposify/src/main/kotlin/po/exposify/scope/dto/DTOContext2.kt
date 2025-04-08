@@ -5,27 +5,23 @@ import po.exposify.classes.interfaces.DataModel
 import po.exposify.classes.DTOClass
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.extensions.WhereCondition
-import po.exposify.common.models.CrudResult2
+import po.exposify.dto.components.CrudResult
 
 
-class DTOContext2<DTO>(
+class DTOContext2<DTO, DATA>(
     private val dtoClass: DTOClass<DTO>,
-    private var crudResult : CrudResult2<DTO>? = null,
+    private var crudResult : CrudResult<DTO, DATA>? = null,
     private val resultCallback: ((List<DataModel> )-> Unit)? = null
-) where DTO : ModelDTO{
-
+) where DTO : ModelDTO, DATA : DataModel{
     public var condition:  WhereCondition<*> ? = null
-
     init {
         resultCallback?.let{callbackOnResult(resultCallback)}
     }
-
-    operator fun invoke(op:  WhereCondition<*>): DTOContext2<DTO> {
+    operator fun invoke(op:  WhereCondition<*>): DTOContext2<DTO, DATA> {
         condition = op
         return this
     }
-
-    fun <T: IdTable<Long>> withConditions(conditions :  WhereCondition<T>): DTOContext2<DTO> {
+    fun <T: IdTable<Long>> withConditions(conditions :  WhereCondition<T>): DTOContext2<DTO, DATA> {
         condition = conditions
         return this
     }
@@ -39,8 +35,9 @@ class DTOContext2<DTO>(
 //        }
     }
 
-    private fun asDataModels(crud: CrudResult2<DTO>): List<DataModel>{
-        return  crud.rootDTOs.map { it.compileDataModel() }
+    private fun asDataModels(crud: CrudResult<DTO, DATA>): List<DataModel>{
+       // return  crud.rootDTOs.map { it.compileDataModel() }
+      return  emptyList<DataModel>()
     }
 
     fun getData(): List<DataModel>{

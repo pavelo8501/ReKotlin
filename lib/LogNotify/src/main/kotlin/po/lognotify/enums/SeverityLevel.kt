@@ -7,7 +7,7 @@ enum class SeverityLevel (val severityLevelId: Int) {
 
     companion object {
 
-         val emojis : Map<Int, String> = mapOf(1 to "S",  2  to "⚠️", 4  to  "❌")
+         val emojis : Map<Int, String> = mapOf(1 to "ℹ️",  2  to "⚠️", 3  to  "❌", 4 to "ℹ️")
 
         fun fromValue(severityLevelId: Int): SeverityLevel? {
             entries.firstOrNull { it.severityLevelId == severityLevelId }?.let {

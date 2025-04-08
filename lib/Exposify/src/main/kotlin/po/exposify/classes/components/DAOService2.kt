@@ -5,6 +5,7 @@ import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.Query
 import org.jetbrains.exposed.sql.SizedIterable
+import org.jetbrains.exposed.sql.Transaction
 import org.jetbrains.exposed.sql.and
 import po.exposify.binders.UpdateMode
 import po.exposify.binders.enums.Cardinality
@@ -15,14 +16,28 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
+import po.lognotify.TasksManaged
+import po.lognotify.extensions.getOrThrowDefault
+import po.lognotify.extensions.onFailureCause
+import po.lognotify.extensions.subTask
 
 
 class DAOService2<DTO, DATA, ENTITY>(
     val isRootDaoService: Boolean,
     private val entityModel: LongEntityClass<ENTITY>,
-) where DTO: ModelDTO, DATA: DataModel, ENTITY : ExposifyEntityBase {
+): TasksManaged where DTO: ModelDTO, DATA: DataModel, ENTITY : ExposifyEntityBase {
 
-    internal var entity : ENTITY? = null
+    private var entity : ENTITY? = null
+
+    private  fun setNewEntity(newEntity:ENTITY?){
+        entity = newEntity
+    }
+
+    internal  fun getLastEntity():ENTITY{
+        return entity.getOrThrowDefault("Entity is null")
+    }
+
+    internal var transaction : Transaction? = null
 
     val trackedProperties: MutableMap<String, EntityPropertyInfo<DTO, DATA, ENTITY, ModelDTO>> = mutableMapOf()
 
@@ -66,17 +81,18 @@ class DAOService2<DTO, DATA, ENTITY>(
     }
 
 
-    suspend fun save(dto: CommonDTO<DTO, DATA, ENTITY>): ENTITY? {
-
-        val a = "test"
-        throw Exception("General")
-
-        val newEntity = entityModel.new {
+    suspend fun save(dto: CommonDTO<DTO, DATA, ENTITY>): ENTITY = subTask("DAOService_Save") {
+       val dtoName = dto.personalName
+      // val closed = transaction?.connection?.isClosed != false
+      // val currentTransaction = transaction.getOrThrowDefault("Dao container current transaction is null. $dtoName")
+       val newEntity = entityModel.new {
             dto.updateBinding(this, UpdateMode.MODEL_TO_ENTITY)
         }
-        entity = newEntity
-        return newEntity
-    }
+        setNewEntity(newEntity)
+        newEntity
+    }.onFailureCause {
+        val throwable = it
+    }.resultOrException()
 
     suspend fun saveWithParent(dto: CommonDTO<DTO, DATA, ENTITY>, bindFn: (ENTITY)-> Unit):ENTITY?{
         runCatching {

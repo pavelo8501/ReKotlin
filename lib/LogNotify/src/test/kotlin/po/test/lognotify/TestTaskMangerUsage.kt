@@ -9,14 +9,12 @@ class LoggedClass(val className: String) : TasksManaged {
 
 }
 
-class TestTaskMangerUsage {
+class TestTaskMangerUsage :  TasksManaged{
     val loggedClass = LoggedClass("LoggedClass")
 
     fun start(param: Int): Int = startTaskAsync("start_task"){
-
         param
     }.resultOrException()
-
 
 
     @Test

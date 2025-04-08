@@ -1,5 +1,6 @@
 package po.lognotify.classes.task
 
+import po.lognotify.classes.notification.NotificationProvider
 import po.lognotify.exceptions.SelfThrownException
 import po.lognotify.models.TaskKey
 
@@ -13,4 +14,10 @@ interface ControlledTask  {
 interface ResultantTask : SelfThrownException  {
     val taskName: String
     val nestingLevel: Int
+    val qualifiedName: String
+    val startTime: Long
+    var endTime : Long
+    val notifier: NotificationProvider
+
+
 }

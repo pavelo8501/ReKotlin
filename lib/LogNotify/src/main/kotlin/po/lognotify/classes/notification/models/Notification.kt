@@ -3,52 +3,68 @@ package po.lognotify.classes.notification.models
 
 import po.lognotify.classes.notification.JasonStringSerializable
 import po.lognotify.classes.notification.enums.EventType
-import po.lognotify.classes.notification.enums.InfoProvider
+import po.lognotify.classes.notification.sealed.InfoProvider
+import po.lognotify.classes.task.ResultantTask
+import po.lognotify.enums.ColourEnum
 import po.lognotify.enums.SeverityLevel
-import po.lognotify.helpers.TrueHelper
+import po.lognotify.helpers.StaticHelper
 import java.time.LocalDateTime
 
 data class Notification(
-    val taskName: String,
-    val taskNestingLevel: Int,
+    val task: ResultantTask,
     val eventType : EventType,
     val severity: SeverityLevel,
     val message: String,
     val provider: InfoProvider,
     val timestamp: LocalDateTime = LocalDateTime.now()
-): JasonStringSerializable, TrueHelper {
+): JasonStringSerializable, StaticHelper {
 
 
-    val taskHeaderTemplate : String
-        get() {
-            return if (taskNestingLevel == 0) {
-                "[${taskName} | Root Task | Start | $currentTime]"
-            } else {
-                 "${taskName}| Nesting Level ${taskName} | Start | $currentTime]"
-            }
-        }
+    private val taskHeader = mapOf<String, String>(
+        "time" to "@$currentDateTime",
+        "task" to "${task.qualifiedName} ",
+        "nesting_level" to "Nesting Level ${task.nestingLevel.toString()}",
+    )
 
-    val taskFooterTemplate : String
-        get() {
-            return if (taskNestingLevel == 0) {
-                "[${taskName} | Root Task | Stop | $currentTime]"
-            } else {
-                "[${taskName}| Nesting Level : ${taskName} | Stop | $currentTime]"
-            }
-        }
-    val taskSystemPrefix: String
-        get(){
+    private val taskFooter = mapOf<String, String>(
+        "time" to "@$currentDateTime",
+        "task" to task.qualifiedName,
+        "elapsed" to "Completed in : ${(task.endTime - task.startTime) / 1_000_000f}"
+    )
 
-            val providerStr  = provider
+    private val taskPrefix = mapOf<String, String>(
+        "task" to task.taskName,
+        "time" to currentTime
+    )
 
-            val severityEmoji : String  = SeverityLevel.emojiByValue(severity)
+    fun getTaskHeader(): String{
 
-            return "[${currentDateTime} | ${providerStr} |  ${severityEmoji}]"
-        }
-
-    fun toFormattedString(): String{
-       val  sysPrefix =   taskSystemPrefix
-       return  formatSystemMsg(sysPrefix, message, severity)
+        var action = "${makeOfColour(ColourEnum.MAGENTA, "Started")} "
+        var resultString = makeOfColour(ColourEnum.BRIGHT_BLUE,taskHeader.map {it.value}.joinToString(" | ","[","]"))
+        return withIndention("$action $resultString", task.nestingLevel)
     }
 
+    fun getTaskFooter(): String{
+        var color = ColourEnum.GREEN
+        if(severity == SeverityLevel.WARNING) {
+            color = ColourEnum.YELLOW
+        }
+        if(severity == SeverityLevel.EXCEPTION){
+            color = ColourEnum.BRIGHT_RED
+        }
+        val action =  makeOfColour(color, "Stopped")
+        var resultString = makeOfColour(ColourEnum.BRIGHT_BLUE, taskFooter.map {" ${it.value} "}.joinToString("|","[","]"))
+        return withIndention("$action $resultString", task.nestingLevel)
+    }
+
+    fun getMessagePrefixed(): String{
+
+        var taskString = taskPrefix.map {" ${it.value} "}.joinToString("|","[","]")
+        taskString =  makeOfColour(ColourEnum.BLUE, taskString)
+        taskString =  "$taskString ${SeverityLevel.emojiByValue(severity)}"
+        var message = makeOfColour(message, severity, null)
+        var resultString = withIndention("$taskString -> $message", task.nestingLevel)
+
+        return resultString
+    }
 }

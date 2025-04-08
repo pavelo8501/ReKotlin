@@ -1,8 +1,7 @@
 package po.lognotify.extensions
 
-import kotlinx.coroutines.runBlocking
 import po.lognotify.TasksManaged
-import po.lognotify.classes.ManagedResult
+import po.lognotify.classes.taskresult.ManagedResult
 import po.lognotify.classes.task.TaskHandler
 import kotlin.coroutines.CoroutineContext
 
@@ -10,10 +9,10 @@ import kotlin.coroutines.CoroutineContext
 suspend  fun <T, R: Any?> T.startTask(
     taskName: String,
     coroutine: CoroutineContext,
-    block: suspend   T.(TaskHandler)-> R,
+    moduleName: String?,
+    block: suspend   T.(TaskHandler<R>)-> R,
 ): ManagedResult<R> {
-    val newTask = TasksManaged.createHierarchyRoot<R>(taskName, coroutine)
-    newTask.initializeComponents()
+    val newTask = TasksManaged.createHierarchyRoot<R>(taskName, coroutine, moduleName)
     val runResult = newTask.runTask(this, block)
     val casted = runResult.safeCast<ManagedResult<R>>().getOrThrowDefault("Cast to ManagedResult<R> failed")
     return casted
@@ -21,18 +20,17 @@ suspend  fun <T, R: Any?> T.startTask(
 
 fun <T, R> T.startTaskAsync(
     taskName: String,
-    block: suspend T.(TaskHandler)-> R,
+    moduleName: String? = null,
+    block: suspend T.(TaskHandler<R>)-> R,
 ): ManagedResult<R> {
-    val newTask = TasksManaged.createHierarchyRoot<R>(taskName)
-    val runResult =  runBlocking {
-        newTask.initializeComponents()
-        newTask.runTaskInDefaultContext(this@startTaskAsync, block)
-    }
+    val newTask = TasksManaged.createHierarchyRoot<R>(taskName, moduleName)
+    val runResult =  newTask.runTaskAsync(this@startTaskAsync, block)
     val casted = runResult.safeCast<ManagedResult<R>>().getOrThrowDefault("Cast to ManagedResult<R> failed")
     return casted
 }
 
-inline fun <T, R> TaskHandler.withTxScope(scope: T, block: T.() -> R): R = block(scope)
+inline fun <T, R> TaskHandler<R>.withTxScope(scope: T, block: T.() -> R): R = block(scope)
+
 
 
 
