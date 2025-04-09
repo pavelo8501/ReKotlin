@@ -1,67 +1,44 @@
 package po.lognotify.exceptions
 
-import po.lognotify.exceptions.enums.CancelType
-import po.lognotify.exceptions.enums.DefaultType
-import po.lognotify.exceptions.enums.PropagateType
+import po.lognotify.exceptions.enums.HandlerType
 
 
 interface SelfThrownException {
 
-    fun throwDefault(message: String, handler : DefaultType = DefaultType.DEFAULT, sourceTh: Throwable? = null): DefaultException{
+    fun throwDefault(message: String, handler : HandlerType = HandlerType.GENERIC, sourceTh: Throwable? = null): DefaultException{
        val newDefault =  DefaultException(message, handler)
         if(sourceTh !=null){
             newDefault.setSourceException(sourceTh)
         }
         throw newDefault
     }
-
-    fun throwCancel(message: String, handler : CancelType = CancelType.SKIP_SELF, sourceTh: Throwable? = null): CancellationException{
+    fun throwCancel(message: String, handler : HandlerType = HandlerType.SKIP_SELF, sourceTh: Throwable? = null): CancellationException{
         val newCancel =  CancellationException(message, handler)
         if(sourceTh !=null){
             newCancel.setSourceException(sourceTh)
         }
         throw newCancel
     }
-
-    fun throwPropagate(message: String, handler : PropagateType = PropagateType.PROPAGATED, sourceTh: Throwable? = null): PropagatedException{
-        val newDefault =  PropagatedException(message, handler)
-        if(sourceTh !=null){
-            newDefault.setSourceException(sourceTh)
-        }
-        throw newDefault
-    }
 }
 
 
-class DefaultException(override var message: String, var handlerType: DefaultType) : ExceptionBase.Default(message, handlerType), SelfThrownException
+class LoggerException(message: String) : ExceptionBase(message, HandlerType.UNMANAGED), SelfThrownException
 
-class CancellationException(
-    override var message: String,
-    var handlerType : CancelType
-) : ExceptionBase.Cancellation(message, handlerType), SelfThrownException
+open class DefaultException(
+    message: String,
+    override var handler: HandlerType,
+    errorCode : Int = 0) :ExceptionBase(message, handler, errorCode)
 
-class PropagatedException(override var message: String, var handlerType : PropagateType) : ExceptionBase.Propagate(message,  handlerType), SelfThrownException
-
-class Terminator(message: String) : ExceptionBase.Default(message, DefaultType.UNMANAGED), SelfThrownException
+open class CancellationException(
+    message: String,
+    override var handler  : HandlerType,
+    errorCode : Int = 0) :ExceptionBase(message, handler, errorCode)
 
 sealed class ExceptionBase(
     override val message: String,
-    open var handler: Int  = 0,
+    open var handler: HandlerType,
     errorCode : Int = 0
 ) : Throwable(message), SelfThrownException{
-
-    abstract class Default(
-        message: String,
-        handlerType: DefaultType,
-        errorCode : Int = 0) :ExceptionBase(message, handlerType.value, errorCode)
-    abstract class Cancellation(
-        message: String,
-        handlerType  : CancelType,
-        errorCode : Int = 0) :ExceptionBase(message, handlerType.value, errorCode)
-    abstract class Propagate(
-        message: String,
-        handlerType: PropagateType,
-        errorCode : Int = 0) :ExceptionBase(message, handlerType.value, errorCode)
 
 
     private var cancellationFn: ((ExceptionBase) -> Unit)? = null

@@ -1,4 +1,4 @@
-package po.exposify.classes.components
+package po.exposify.dto.components
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
@@ -21,11 +21,12 @@ import po.lognotify.extensions.getOrThrowDefault
 import po.lognotify.extensions.onFailureCause
 import po.lognotify.extensions.subTask
 
-
-class DAOService2<DTO, DATA, ENTITY>(
+class DAOService<DTO, DATA, ENTITY>(
     val isRootDaoService: Boolean,
     private val entityModel: LongEntityClass<ENTITY>,
 ): TasksManaged where DTO: ModelDTO, DATA: DataModel, ENTITY : ExposifyEntityBase {
+
+    private val personalName = "DAOService"
 
     private var entity : ENTITY? = null
 
@@ -52,7 +53,6 @@ class DAOService2<DTO, DATA, ENTITY>(
     }
 
     fun extractChildEntities(ownEntitiesPropertyInfo : EntityPropertyInfo<DTO, DATA, ENTITY, ModelDTO>): List<ExposifyEntityBase> {
-
         val parentEntity = entity
             if (ownEntitiesPropertyInfo.cardinality == Cardinality.ONE_TO_MANY) {
                 val multipleProperty = ownEntitiesPropertyInfo.getOwnEntitiesProperty()
@@ -80,18 +80,14 @@ class DAOService2<DTO, DATA, ENTITY>(
         return emptyList()
     }
 
-
-    suspend fun save(dto: CommonDTO<DTO, DATA, ENTITY>): ENTITY = subTask("DAOService_Save") {
-       val dtoName = dto.personalName
-      // val closed = transaction?.connection?.isClosed != false
-      // val currentTransaction = transaction.getOrThrowDefault("Dao container current transaction is null. $dtoName")
+    suspend fun save(dto: CommonDTO<DTO, DATA, ENTITY>): ENTITY =
+        subTask("Save", "DAOService") {handler->
        val newEntity = entityModel.new {
             dto.updateBinding(this, UpdateMode.MODEL_TO_ENTITY)
         }
+        handler.info("Dao entity created with id ${newEntity.id.value} for dto ${dto.personalName}")
         setNewEntity(newEntity)
         newEntity
-    }.onFailureCause {
-        val throwable = it
     }.resultOrException()
 
     suspend fun saveWithParent(dto: CommonDTO<DTO, DATA, ENTITY>, bindFn: (ENTITY)-> Unit):ENTITY?{
@@ -118,7 +114,7 @@ class DAOService2<DTO, DATA, ENTITY>(
     }
 
     fun pick(
-        conditions :Op<Boolean>
+        conditions : Op<Boolean>
     ): ENTITY?{
         val queryResult = entityModel.find(conditions)
         return queryResult.firstOrNull()
@@ -148,7 +144,7 @@ class DAOService2<DTO, DATA, ENTITY>(
        // return entities?:emptyList()
     }
 
-    suspend fun selectAll(): SizedIterable<ENTITY>{
+    suspend fun selectAll(): SizedIterable<ENTITY> {
        // val entities = task("selectAll() for dtoModel ${parent.personalName}") {
            return entityModel.all()
       //  }

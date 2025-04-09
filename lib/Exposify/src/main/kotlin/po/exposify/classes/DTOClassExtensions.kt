@@ -14,43 +14,6 @@ import po.lognotify.extensions.trueOrThrow
 import kotlin.Long
 import kotlin.collections.toList
 
-private suspend fun <DTO, DATA, TB> runSelect(
-    dtoClass: DTOClass<DTO>,
-    conditions: QueryConditions<TB>? = null
-): CrudResult<DTO, DATA> where DTO : ModelDTO, DATA: DataModel, TB: IdTable<Long>{
-
-    val resultList = mutableListOf<CommonDTO<DTO, DATA, ExposifyEntityBase>>()
-    dtoClass.withDaoService {
-        val entities = if(conditions!= null) {
-            it.select(conditions.build()).toList()
-        }else{
-            it.selectAll().toList()
-        }
-        dtoClass.repository?.let { rootRepository ->
-           val dtos =  rootRepository.selectByByEntities(entities).filterIsInstance<CommonDTO<DTO, DATA, ExposifyEntityBase>>()
-           resultList.addAll(dtos)
-           println("Dtos count ${resultList.count()} fully initialized")
-        }
-    }
-    return CrudResult(resultList)
-}
-
-private suspend fun <DTO>  runUpdate(
-    dtoClass: DTOClass<DTO>,
-    dataModels: List<DataModel>
-): CrudResult<DTO, DataModel> where DTO : ModelDTO{
-
-    val resultList = mutableListOf<CommonDTO<DTO, DataModel, ExposifyEntityBase>>()
-    dtoClass.repository.getOrThrowDefault("Root repository undefined").updateByDataModels(dataModels).let {dtos->
-        resultList.addAll(dtos)
-        println("Dtos count ${resultList.count()} fully initialized")
-    }
-
-    return CrudResult(resultList)
-}
-
-
-
 /**
  * Selects a single entity from the database based on the provided conditions and maps it to a DTO.
  *
@@ -71,7 +34,7 @@ internal suspend inline fun <DTO: ModelDTO, DATA: DataModel, ENTITY: ExposifyEnt
 ): CrudResult<DTO, DATA> {
     val entity =  config.daoService.pick(conditions.build())
     val checked = entity.getOrThrowCancellation("Entity not wound")
-    val dtos =  repository.getOrThrowCancellation("Repository uninitialized").selectByByEntities(listOf(checked))
+    val dtos =  repository.getOrThrowCancellation("Repository uninitialized").selectByEntities(listOf(checked))
     val checkedList = dtos.filterIsInstance<CommonDTO<DTO, DATA, ExposifyEntityBase>>()
     return  CrudResult(checkedList)
 }
@@ -83,15 +46,23 @@ internal suspend inline fun <DTO: ModelDTO, DATA: DataModel, ENTITY: ExposifyEnt
  */
 internal suspend inline fun <DTO, DATA, ENTITY, T>  DTOClass<DTO>.select(
     conditions: QueryConditions<T>
-): CrudResult<DTO, DATA> where DTO: ModelDTO, DATA: DataModel, ENTITY: ExposifyEntityBase, T: IdTable<Long> = runSelect(this, conditions)
+): CrudResult<DTO, DATA> where DTO: ModelDTO, DATA: DataModel, ENTITY: ExposifyEntityBase, T: IdTable<Long> =
+    subTask("Select with conditions"){handler->
+    isTransactionReady().trueOrThrow("Transaction should be active")
+        val entities = config.daoService.select(conditions.build())
+        val dtos = repository.getOrThrowCancellation("Repository uninitialized").selectByEntities(entities)
+        val checkedList = dtos.filterIsInstance<CommonDTO<DTO, DATA, ExposifyEntityBase>>()
+        handler.info("Created count ${checkedList.count()} DTOs")
+        CrudResult<DTO, DATA>(checkedList)
+}.resultOrException()
 
 
 internal suspend inline fun <DTO, DATA, ENTITY>  DTOClass<DTO>.select(
-): CrudResult<DTO, DATA> where DTO: ModelDTO, DATA: DataModel, ENTITY: ExposifyEntityBase =
-    subTask("Update Repository") {handler->
+): CrudResult<DTO, DATA> where DTO: ModelDTO, DATA: DataModel, ENTITY: ExposifyEntityBase = subTask("Select") {handler->
+
     isTransactionReady().trueOrThrow("Transaction should be active")
     val entities = config.daoService.selectAll().toList()
-    val dtos = repository.getOrThrowCancellation("Repository uninitialized").selectByByEntities(entities)
+    val dtos = repository.getOrThrowCancellation("Repository uninitialized").selectByEntities(entities)
     val checkedList = dtos.filterIsInstance<CommonDTO<DTO, DATA, ExposifyEntityBase>>()
     handler.info("Created count ${checkedList.count()} DTOs")
     CrudResult<DTO, DATA>(checkedList)

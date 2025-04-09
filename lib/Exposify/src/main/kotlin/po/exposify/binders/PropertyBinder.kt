@@ -30,7 +30,6 @@ interface PropertyBindingOption<DATA : DataModel, ENT : LongEntity, T>{
      fun updated(name : String,  type:PropertyType, updateMode : UpdateMode)
 }
 
-
 class SyncedSerialized<DATA : DataModel, ENT : LongEntity, C, TYPE: Any >(
     override val dtoProperty:KMutableProperty1<DATA, C>,
     override val entityProperty:KMutableProperty1<ENT, C>,

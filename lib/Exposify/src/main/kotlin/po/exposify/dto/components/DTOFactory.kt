@@ -3,7 +3,7 @@ package po.exposify.dto.components
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
-import po.exposify.classes.components.DTOConfig2
+import po.exposify.classes.components.DTOConfig
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.common.classes.ClassBlueprint
 import po.exposify.common.classes.ConstructorBuilder
@@ -23,9 +23,11 @@ import kotlin.reflect.full.isSubclassOf
 internal class DTOFactory<DTO, DATA, ENTITY>(
     private val dtoKClass : KClass<out CommonDTO<DTO, DATA, ENTITY>>,
     private val dataModelClass : KClass<DATA>,
-    private val hostingConfig: DTOConfig2<DTO, DATA, ENTITY>,
+    private val hostingConfig: DTOConfig<DTO, DATA, ENTITY>,
 ): TasksManaged where DTO : ModelDTO, DATA: DataModel, ENTITY: ExposifyEntityBase {
     companion object : ConstructorBuilder()
+
+    private val personalName = "DTOFactory[${dtoKClass.simpleName}]"
 
     internal val dataBlueprint : ClassBlueprint<DATA> =  ClassBlueprint(dataModelClass).also { it.initialize(Companion) }
     private val dtoBlueprint = ClassBlueprint(dtoKClass).also { it.initialize(Companion) }
@@ -159,7 +161,7 @@ internal class DTOFactory<DTO, DATA, ENTITY>(
     }
 
     private suspend fun createDto(withDataModel : DATA?, withEntity : ENTITY?): CommonDTO<DTO, DATA, ENTITY> =
-        subTask("factory_create_dto"){
+        subTask("Create DTO", personalName){
         val model = withDataModel?: createDataModel()
         dtoBlueprint.setExternalParamLookupFn { param ->
             when (param.name) {

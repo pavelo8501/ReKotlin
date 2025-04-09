@@ -5,10 +5,7 @@ import po.lognotify.classes.notification.models.Notification
 import po.lognotify.classes.notification.sealed.ProviderThrower
 import po.lognotify.classes.task.TaskSealedBase
 import po.lognotify.enums.SeverityLevel
-import po.lognotify.exceptions.enums.CancelType
-import po.lognotify.exceptions.enums.DefaultType
-import po.lognotify.exceptions.enums.PropagateType
-
+import po.lognotify.exceptions.enums.HandlerType
 
 
 interface ExceptionsThrown {
@@ -17,7 +14,6 @@ interface ExceptionsThrown {
     suspend fun throwDefaultException(ex : Throwable): Unit?
     suspend fun throwSkipException(message : String): Unit?
     suspend fun throwCancellationException(message : String, cancelHandler: ((ExceptionBase)-> Unit)? = null): Unit?
-    suspend fun throwPropagatedException(message : String): Unit?
     suspend fun subscribeThrowerUpdates(callback: suspend (notification: Notification) -> Unit)
 
 }
@@ -55,20 +51,20 @@ class ExceptionThrower(
     }
 
     override suspend fun throwDefaultException(message : String){
-        val ex = DefaultException(message, DefaultType.DEFAULT)
+        val ex = DefaultException(message, HandlerType.GENERIC)
         notifyOnThrown(ex)
         throw ex
     }
 
     override suspend fun throwDefaultException(th : Throwable){
-        val ex =  DefaultException(th.message.toString(), DefaultType.GENERIC)
+        val ex =  DefaultException(th.message.toString(), HandlerType.GENERIC)
         ex.setSourceException(th)
         notifyOnThrown(ex)
         throw ex
     }
 
     override suspend fun throwSkipException(message : String){
-        val ex = CancellationException(message, CancelType.SKIP_SELF)
+        val ex = CancellationException(message, HandlerType.SKIP_SELF)
         notifyOnThrown(ex)
         throw ex
     }
@@ -77,18 +73,12 @@ class ExceptionThrower(
         message: String,
         cancelHandler: ((ExceptionBase) -> Unit)?
     ) {
-        val ex =  CancellationException(message, CancelType.CANCEL_ALL)
+        val ex =  CancellationException(message, HandlerType.CANCEL_ALL)
         if(cancelHandler!=null){
             ex.setCancellationHandler(cancelHandler)
         }
         notifyOnThrown(ex)
         throw  ex
-    }
-
-    override suspend fun throwPropagatedException(message : String){
-        val ex = PropagatedException(message, PropagateType.PROPAGATED)
-        notifyOnThrown(ex)
-        throw ex
     }
 
 }

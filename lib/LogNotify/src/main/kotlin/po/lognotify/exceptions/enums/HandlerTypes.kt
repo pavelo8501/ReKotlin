@@ -1,46 +1,18 @@
 package po.lognotify.exceptions.enums
 
+enum class HandlerType(val value: Int) {
 
-enum class PropagateType(val value: Int) {
-    PROPAGATED(1),
-    UNMANAGED(0);
-
-    companion object {
-        fun fromValue(value: Int): PropagateType {
-            entries.firstOrNull { it.value == value }?.let {
-                return it
-            }
-            return PROPAGATED
-        }
-    }
-}
-
-enum class CancelType(val value: Int) {
+    GENERIC(0),
     SKIP_SELF(1),
     CANCEL_ALL(2),
-    UNMANAGED(0);
+    UNMANAGED(3);
 
     companion object {
-        fun fromValue(value: Int): CancelType {
+        fun fromValue(value: Int): HandlerType {
             entries.firstOrNull { it.value == value }?.let {
                 return it
             }
-            return SKIP_SELF
-        }
-    }
-}
-
-enum class DefaultType(val value: Int) {
-    DEFAULT(1),
-    GENERIC(2),
-    UNMANAGED(0);
-
-    companion object {
-        fun fromValue(value: Int): DefaultType {
-            entries.firstOrNull { it.value == value }?.let {
-                return it
-            }
-            return DEFAULT
+            return GENERIC
         }
     }
 }

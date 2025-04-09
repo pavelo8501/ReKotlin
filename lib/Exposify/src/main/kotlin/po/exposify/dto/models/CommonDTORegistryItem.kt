@@ -15,8 +15,6 @@ data class CommonDTORegistryItem<DTO, DATA, ENTITY>(
     val owner: CommonDTO<DTO,DATA,ENTITY>
 ) where DTO : ModelDTO, DATA: DataModel , ENTITY: ExposifyEntityBase{
 
-   // lateinit  var commonDTOKClass: KClass<out CommonDTO2<DTO, DATA, ENTITY>>
-
     val typeKeyDto: String get() = commonDTOKClass.qualifiedName.toString()
     val typeKeyDataModel: String get() = dataKClass.qualifiedName.toString()
     val typeKeyEntity : String get() = entityKClass.qualifiedName.toString()

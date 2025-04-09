@@ -7,8 +7,9 @@ import po.exposify.binders.UpdateMode
 import po.exposify.binders.relationship.RelationshipBinder2
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.classes.DTOClass
+import po.exposify.dto.components.DAOService
 import po.exposify.dto.components.DTOFactory
-import po.exposify.dto.components.DataModelContainer2
+import po.exposify.dto.components.DataModelContainer
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.DTORegistryItem
 import po.exposify.entity.classes.ExposifyEntityBase
@@ -18,12 +19,12 @@ internal interface ConfigurableDTO<DTO: ModelDTO, DATA : DataModel, ENTITY: Expo
 
     fun initFactoryRoutines()
     suspend  fun withFactory(block: suspend (DTOFactory<DTO, DATA, ENTITY>)-> Unit)
-    suspend fun withDaoService(block: suspend (DAOService2<DTO, DATA,  ENTITY>)-> Unit)
+    suspend fun withDaoService(block: suspend (DAOService<DTO, DATA, ENTITY>)-> Unit)
     suspend fun withRelationshipBinder(block: suspend (RelationshipBinder2<DTO, DATA, ENTITY>)-> Unit)
 
 }
 
-internal class DTOConfig2<DTO, DATA, ENTITY>(
+internal class DTOConfig<DTO, DATA, ENTITY>(
     val dtoRegItem : DTORegistryItem<DTO, DATA, ENTITY>,
     val entityModel:LongEntityClass<ENTITY>,
     private val parent : DTOClass<DTO>
@@ -32,7 +33,7 @@ internal class DTOConfig2<DTO, DATA, ENTITY>(
     val dtoFactory: DTOFactory<DTO, DATA, ENTITY> =
         DTOFactory<DTO, DATA, ENTITY>(dtoRegItem.commonDTOKClass, dtoRegItem.dataKClass, this)
 
-    val daoService: DAOService2<DTO, DATA,  ENTITY> = DAOService2<DTO, DATA, ENTITY>(false, entityModel)
+    val daoService: DAOService<DTO, DATA, ENTITY> = DAOService<DTO, DATA, ENTITY>(false, entityModel)
     val propertyBinder : PropertyBinder<DATA,ENTITY> = PropertyBinder()
 
     val relationBinder: RelationshipBinder2<DTO, DATA, ENTITY> = RelationshipBinder2<DTO, DATA, ENTITY>(parent)
@@ -43,18 +44,19 @@ internal class DTOConfig2<DTO, DATA, ENTITY>(
     override  suspend fun withFactory(block: suspend (DTOFactory<DTO, DATA, ENTITY>)-> Unit){
         block.invoke(dtoFactory)
     }
-    override suspend fun withDaoService(block: suspend (DAOService2<DTO, DATA,  ENTITY>)-> Unit){
+    override suspend fun withDaoService(block: suspend (DAOService<DTO, DATA, ENTITY>)-> Unit){
         block.invoke(daoService)
     }
     override suspend fun withRelationshipBinder(block: suspend (RelationshipBinder2<DTO, DATA, ENTITY>)-> Unit){
         block.invoke(relationBinder)
     }
     override fun initFactoryRoutines(){
+
         dtoFactory.setPostCreationRoutine("dto_initialization") {
-            val dataModelContainer = DataModelContainer2<DTO, DATA>(dataModel, this@DTOConfig2.dtoFactory.dataBlueprint)
-            val thisRegItem = this@DTOConfig2.dtoRegItem
-            val thisPropertyBinder = this@DTOConfig2.propertyBinder
-            val thisDaoService = this@DTOConfig2.daoService
+            val dataModelContainer = DataModelContainer<DTO, DATA>(dataModel, this@DTOConfig.dtoFactory.dataBlueprint)
+            val thisRegItem = this@DTOConfig.dtoRegItem
+            val thisPropertyBinder = this@DTOConfig.propertyBinder
+            val thisDaoService = this@DTOConfig.daoService
             initialize(thisRegItem, dataModelContainer, thisPropertyBinder, thisDaoService)
         }
 

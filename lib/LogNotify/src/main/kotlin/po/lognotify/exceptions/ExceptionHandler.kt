@@ -7,11 +7,8 @@ import po.lognotify.classes.task.TaskSealedBase
 import po.lognotify.enums.SeverityLevel
 
 interface ExceptionHandled {
-   suspend fun setPropagatedExHandler(handlerFn: suspend (ex: ExceptionBase)-> Unit)
-   suspend fun handlePropagated(ex: ExceptionBase.Propagate) : Boolean
-
    suspend fun setCancellationExHandler(handlerFn: suspend (ex: ExceptionBase)-> Unit)
-   suspend fun handleCancellation(ex: ExceptionBase.Cancellation) : Boolean
+   suspend fun handleCancellation(ex: CancellationException) : Boolean
 
    suspend fun setGenericExHandler(handlerFn: suspend (ex: Throwable)-> Unit)
    suspend fun handleGeneric(th: Throwable) : Boolean
@@ -67,21 +64,6 @@ class ExceptionHandler(
       onExceptionThrown?.invoke(notification)
    }
 
-   private var propagatedHandler: (suspend (ex: ExceptionBase) -> Unit)? = null
-   override suspend fun setPropagatedExHandler(handlerFn: suspend (ex: ExceptionBase) -> Unit) {
-      propagatedHandler = handlerFn
-      notifyOnHandlerSet("PropagatedExHandler")
-   }
-   override suspend fun handlePropagated(ex: ExceptionBase.Propagate): Boolean {
-      if(propagatedHandler != null){
-         notifyOnHandled(ex, true)
-         propagatedHandler!!.invoke(ex)
-         return true
-      }else{
-         notifyOnHandled(ex, false)
-        return false
-      }
-   }
 
    var cancelHandler: (suspend (ex: ExceptionBase) -> Unit)? = null
    override suspend fun setCancellationExHandler(handlerFn: suspend (ex: ExceptionBase) -> Unit) {
@@ -89,11 +71,11 @@ class ExceptionHandler(
       notifyOnHandlerSet("CancellationExHandler")
    }
 
-   override suspend fun handleCancellation(ex: ExceptionBase.Cancellation) : Boolean{
+   override suspend fun handleCancellation(ex: CancellationException) : Boolean{
       if(!ex.invokeCancellation()){
          if(cancelHandler != null){
             notifyOnHandled(ex, true)
-            propagatedHandler!!.invoke(ex)
+            cancelHandler!!.invoke(ex)
             return true
          }else{
             notifyOnHandled(ex, false)

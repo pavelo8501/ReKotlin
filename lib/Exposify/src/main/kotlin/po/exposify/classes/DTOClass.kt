@@ -7,8 +7,8 @@ import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import po.exposify.binders.relationship.RelationshipBinder2
 import po.exposify.classes.components.CallbackEmitter2
-import po.exposify.classes.components.DAOService2
-import po.exposify.classes.components.DTOConfig2
+import po.exposify.dto.components.DAOService
+import po.exposify.classes.components.DTOConfig
 import po.exposify.dto.components.DTOFactory
 import po.exposify.dto.components.RootRepository
 import po.exposify.classes.interfaces.DTOInstance
@@ -36,8 +36,8 @@ abstract class DTOClass<DTO>(): TasksManaged,  DTOInstance where DTO: ModelDTO{
     internal val emitter = CallbackEmitter2<DTO>()
     var initialized: Boolean = false
 
-    private lateinit var configInstance: DTOConfig2<DTO, DataModel, ExposifyEntityBase>
-    internal val config: DTOConfig2<DTO, DataModel, ExposifyEntityBase>
+    private lateinit var configInstance: DTOConfig<DTO, DataModel, ExposifyEntityBase>
+    internal val config: DTOConfig<DTO, DataModel, ExposifyEntityBase>
         get() = configInstance
 
     var serviceContextOwned: ServiceContext<DTO, DataModel>? = null
@@ -49,8 +49,8 @@ abstract class DTOClass<DTO>(): TasksManaged,  DTOInstance where DTO: ModelDTO{
 
    protected abstract fun setup()
 
-   internal fun <DATA : DataModel, ENTITY: ExposifyEntityBase> applyConfig(initializedConfig : DTOConfig2<DTO, DATA, ENTITY>) {
-        initializedConfig.safeCast<DTOConfig2<DTO, DataModel, ExposifyEntityBase>>()?.let {
+   internal fun <DATA : DataModel, ENTITY: ExposifyEntityBase> applyConfig(initializedConfig : DTOConfig<DTO, DATA, ENTITY>) {
+        initializedConfig.safeCast<DTOConfig<DTO, DataModel, ExposifyEntityBase>>()?.let {
             configInstance = it
         }?: throw InitException("Safe cast failed for DTOConfig2", ExceptionCode.CAST_FAILURE)
 
@@ -65,11 +65,11 @@ abstract class DTOClass<DTO>(): TasksManaged,  DTOInstance where DTO: ModelDTO{
    internal inline fun <reified DATA, reified ENTITY> configuration(
        dtoClass: KClass<out CommonDTO<DTO, DATA, ENTITY>>,
        entityModel: LongEntityClass<ENTITY>,
-       block: DTOConfig2<DTO, DATA, ENTITY>.() -> Unit
+       block: DTOConfig<DTO, DATA, ENTITY>.() -> Unit
    ) where ENTITY: ExposifyEntityBase, DATA: DataModel {
 
        val newRegistryItem = DTORegistryItem<DTO, DATA, ENTITY>(dtoClass, DATA::class, ENTITY::class, this@DTOClass)
-       val configuration = DTOConfig2(newRegistryItem, entityModel, this)
+       val configuration = DTOConfig(newRegistryItem, entityModel, this)
        configuration.block()
        applyConfig(configuration)
     }
@@ -110,7 +110,7 @@ abstract class DTOClass<DTO>(): TasksManaged,  DTOInstance where DTO: ModelDTO{
     internal suspend fun withFactory(block: suspend (DTOFactory<DTO, DataModel, ExposifyEntityBase>)-> Unit): Unit{
         return config.withFactory(block)
     }
-    suspend fun withDaoService(block: suspend (DAOService2<DTO, DataModel, ExposifyEntityBase>)-> Unit): Unit = config.withDaoService(block)
+    suspend fun withDaoService(block: suspend (DAOService<DTO, DataModel, ExposifyEntityBase>)-> Unit): Unit = config.withDaoService(block)
     suspend fun withRelationshipBinder(block: suspend RelationshipBinder2<DTO, DataModel, ExposifyEntityBase>.()-> Unit): Unit = config.withRelationshipBinder(block)
 
     fun isTransactionReady(): Boolean {

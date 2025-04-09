@@ -29,7 +29,6 @@ class TestUserDTO(
     companion object: DTOClass<TestUserDTO>(){
         override fun setup() {
             configuration<TestUser, TestUserEntity>(TestUserDTO::class, TestUserEntity){
-
                 propertyBindings(
                     SyncedBinding(TestUser::name, TestUserEntity::name)
                 )

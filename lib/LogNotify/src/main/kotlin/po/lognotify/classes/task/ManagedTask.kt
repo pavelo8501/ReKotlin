@@ -11,11 +11,9 @@ import po.lognotify.enums.SeverityLevel
 import po.lognotify.exceptions.CancellationException
 import po.lognotify.exceptions.DefaultException
 import po.lognotify.exceptions.ExceptionBase
-import po.lognotify.exceptions.PropagatedException
+import po.lognotify.exceptions.LoggerException
 import po.lognotify.exceptions.SelfThrownException
-import po.lognotify.exceptions.Terminator
-import po.lognotify.exceptions.enums.CancelType
-import po.lognotify.exceptions.enums.DefaultType
+import po.lognotify.exceptions.enums.HandlerType
 import po.lognotify.helpers.StaticHelper
 import po.lognotify.models.TaskKey
 import po.lognotify.models.TaskRegistry
@@ -126,7 +124,7 @@ sealed class TaskSealedBase<R>(
 
     suspend fun escalate(ex: Throwable): Throwable{
         notifier.systemInfo("Unhandled exception. Escalating", EventType.START, SeverityLevel.EXCEPTION)
-       val unmanaged = Terminator("Unhandled exception. Escalating")
+       val unmanaged = LoggerException("Unhandled exception. Escalating")
        unmanaged.setSourceException(ex)
        throw unmanaged
     }
@@ -149,44 +147,39 @@ sealed class TaskSealedBase<R>(
         if(throwable is ExceptionBase) {
             val managedException = throwable
             when (managedException) {
-                is PropagatedException -> {
-                    if (!taskHelper.exceptionHandler.handlePropagated(throwable)) {
-                        return throwable
-                    }else{
-                        return null
-                    }
-                }
                 is CancellationException -> {
-                    if (throwable.handlerType == CancelType.SKIP_SELF) {
+                    if (managedException.handler == HandlerType.SKIP_SELF) {
                         notifier.systemInfo("Handled SKIP_SELF exception", EventType.EXCEPTION_HANDLED, SeverityLevel.INFO )
                         return throwable
                     }
-                    if (throwable.handlerType == CancelType.CANCEL_ALL) {
+                    if (throwable.handler == HandlerType.CANCEL_ALL) {
                         if (taskHelper.exceptionHandler.handleCancellation(managedException)) {
                             return null
                         }
                         return throwable
                     }
                 }
-
                 is DefaultException -> {
-                    if (throwable.handlerType == DefaultType.UNMANAGED) {
+                    if (throwable.handler == HandlerType.UNMANAGED) {
                         rootTaskOrNull()?.let {
                             managedException.reThrowSource()
                         }
                     }
-                    if (throwable.handlerType == DefaultType.GENERIC) {
+                    if (throwable.handler == HandlerType.GENERIC) {
                         if (taskHelper.exceptionHandler.handleGeneric(managedException)) {
                            return null
                         }
                     }
                 }
-                else -> {
-                    if (taskHelper.exceptionHandler.handleGeneric(throwable)) {
-                       return null
-                    }
+                is LoggerException -> {
+                    return managedException
                 }
             }
+        }else{
+            if (taskHelper.exceptionHandler.handleGeneric(throwable)) {
+                return null
+            }
+            return throwable
         }
         return throwable
     }

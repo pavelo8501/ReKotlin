@@ -17,13 +17,13 @@ import kotlin.reflect.KProperty1
 import kotlin.reflect.jvm.isAccessible
 
 
-class DataModelContainer2<DTO : ModelDTO, DATA: DataModel>(
+class DataModelContainer<DTO : ModelDTO, DATA: DataModel>(
     internal val dataModel: DATA,
     val dataBlueprint: ClassBlueprint<DATA>,
     private var binder: PropertyBinder<DATA, *>? = null,
 ): DataModel {
 
-    override val id: Long = dataModel.id
+    override var id: Long = dataModel.id
 
     val trackedProperties: MutableMap<String, DataPropertyInfo<DTO, DATA, ExposifyEntityBase, ModelDTO>> = mutableMapOf()
 
@@ -37,6 +37,10 @@ class DataModelContainer2<DTO : ModelDTO, DATA: DataModel>(
 
     fun binderUpdatedProperty(name : String, type : PropertyType, updateMode : UpdateMode){
         println("BinderUpdatedProperty callback triggered by $name")
+    }
+
+    fun setDataModelId(id: Long){
+        dataModel.id = id
     }
 
     fun setTrackedProperties(list: List<DataPropertyInfo<DTO, DATA, ExposifyEntityBase, ModelDTO>>){
@@ -56,8 +60,8 @@ class DataModelContainer2<DTO : ModelDTO, DATA: DataModel>(
     }
 
     fun extractChildModels(
-        forPropertyInfo : DataPropertyInfo<DTO, DATA, ExposifyEntityBase, ModelDTO>
-    ): List<DataModel>{
+        forPropertyInfo : DataPropertyInfo<DTO, DATA, ExposifyEntityBase, ModelDTO>): List<DataModel>
+    {
         if(forPropertyInfo.cardinality == Cardinality.ONE_TO_MANY){
             val property = forPropertyInfo.getOwnModelsProperty()
             if(property != null) {

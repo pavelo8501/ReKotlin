@@ -1,13 +1,11 @@
 package po.lognotify.classes.taskresult
 
 import po.lognotify.classes.notification.enums.EventType
-import po.lognotify.classes.task.ResultantTask
 import po.lognotify.classes.task.TaskSealedBase
 import po.lognotify.enums.SeverityLevel
-import po.lognotify.exceptions.DefaultException
 import po.lognotify.exceptions.ExceptionBase
-import po.lognotify.exceptions.enums.DefaultType
-import po.lognotify.extensions.getOrThrow
+import po.lognotify.exceptions.LoggerException
+import po.lognotify.exceptions.enums.HandlerType
 import po.lognotify.models.LogRecord
 
 
@@ -20,7 +18,7 @@ class TaskResult<R : Any?>(private val task: TaskSealedBase<R>): ManagedResult<R
     private var throwable: Throwable? = null
 
     val resultHandler:R
-        get() = value?:throw DefaultException("Result unavailable", DefaultType.DEFAULT)
+        get() = value?:throw LoggerException("Result unavailable")
 
     override var isSuccess : Boolean = false
 
@@ -81,14 +79,14 @@ class TaskResult<R : Any?>(private val task: TaskSealedBase<R>): ManagedResult<R
                 if(it is ExceptionBase){
                     throw it
                 }else{
-                    throw  DefaultException(it.message.toString(), DefaultType.DEFAULT).setSourceException(it)
+                    throw LoggerException(it.message.toString()).setSourceException(it)
                 }
             }?:run {
                 val defaultMessage = "Requested Value is null in ${task.taskName} TaskResult"
                 if(callback!= null){
                     throw  callback.invoke("message $defaultMessage")
                 }else{
-                    throw DefaultException(defaultMessage, DefaultType.DEFAULT)
+                    throw LoggerException(defaultMessage)
                 }
             }
         }

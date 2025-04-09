@@ -31,5 +31,5 @@ interface DTOInstance{
     Part of the property data handling system
  **/
 interface DataModel {
-    val id : Long
+    var id : Long
 }
