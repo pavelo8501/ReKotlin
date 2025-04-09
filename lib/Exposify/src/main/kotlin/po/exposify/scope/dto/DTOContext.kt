@@ -46,7 +46,6 @@ class DTOContext<DATA, ENTITY>(
             //resultCallback?.let{callbackOnResult(resultCallback)}
         }
 
-
         operator fun invoke(op:  WhereCondition<*>): DTOContext<DATA, ENTITY> {
             condition = op
             return this

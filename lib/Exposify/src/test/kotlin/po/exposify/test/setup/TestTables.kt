@@ -35,9 +35,9 @@ object TestSections : LongIdTable("sections", "id") {
 //        .default(emptyList())
 //    val metaTags =  registerColumn<List<TestMetaTag>>("meta_tags", JsonColumnType(ListSerializer(TestMetaTag.serializer())))
 //        .default(emptyList())
-    val updatedBy = reference("updated_by", TestUsers)
+ //   val updatedBy = reference("updated_by", TestUsers)
     val updated = datetime("updated").clientDefault { TestSectionDTO.Companion.nowTime() }
-    val pageId = reference("page_id", TestPages)
+  //  val pageId = reference("page_id", TestPages)
     val langId = integer("lang_id")
     val page = reference("page", TestPages, onDelete = ReferenceOption.CASCADE)
 }

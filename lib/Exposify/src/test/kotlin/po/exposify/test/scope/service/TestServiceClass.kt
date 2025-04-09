@@ -32,9 +32,11 @@ class TestServiceClass : DatabaseTest() {
 
                 assertAll(
                     { assertEquals(1, updatedPages.count(), "Page count mismatch") },
+                    { assertNotEquals(0, updatedPages[0].id, "Updated page id assignment failure")},
                     { assertEquals(originalPage.name, updatedPage.name, "Page name mismatch") },
                     { assertEquals(originalPage.langId, updatedPage.langId, "Page langId mismatch") },
                     { assertEquals(originalPage.sections.count(), updatedPage.sections.count(), "Section count mismatch") },
+                    { assertNotEquals(0, updatedSection.id, "Updated section id assignment failure") },
                     { assertEquals(originalSection.name, updatedSection.name, "Section name mismatch") },
                     { assertEquals(originalSection.langId, updatedSection.langId, "Section langId mismatch") }
                 )

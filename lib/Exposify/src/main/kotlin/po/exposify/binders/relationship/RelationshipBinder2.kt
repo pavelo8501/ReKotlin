@@ -136,7 +136,7 @@ class RelationshipBinder2<DTO, DATA, ENTITY>(
         val dataPropertiesCast = trackedDataProperties(parentDto).safeCast<List<DataPropertyInfo<DTO, DATA, ExposifyEntityBase, ModelDTO>>>()
         if(dataPropertiesCast != null){
             parentDto.dataContainer.setTrackedProperties(dataPropertiesCast)
-            parentDto.daoService.setTrackedProperties(trackedEntityProperties(parentDto))
+          //  parentDto.daoService.setTrackedProperties(trackedEntityProperties(parentDto))
         }
     }
 }

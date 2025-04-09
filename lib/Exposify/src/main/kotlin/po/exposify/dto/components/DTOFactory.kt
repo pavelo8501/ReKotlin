@@ -186,11 +186,11 @@ internal class DTOFactory<DTO, DATA, ENTITY>(
      * @input dataModel:  DATA?
      * @return DTOFunctions<DATA, ENTITY> or null
      * */
-    suspend fun createDto(dataModel : DATA? = null): CommonDTO<DTO, DATA, ENTITY>?{
+    suspend fun createDto(dataModel : DATA? = null): CommonDTO<DTO, DATA, ENTITY>{
        return this.createDto(dataModel, null)
     }
 
-    suspend fun createDto(withEntity : ENTITY): CommonDTO<DTO, DATA, ENTITY>?{
+    suspend fun createDto(withEntity : ENTITY): CommonDTO<DTO, DATA, ENTITY>{
         return this.createDto(null, withEntity)
     }
 }

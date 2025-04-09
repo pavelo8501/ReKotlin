@@ -191,6 +191,7 @@ sealed class TaskSealedBase<R>(
             resultContainer.provideResult(stopTimer(), result)
         }catch (throwable: Throwable){
             val handledThrowable =   handleException(throwable)
+
             resultContainer.provideThrowable(stopTimer(), handledThrowable)
             return resultContainer
         }

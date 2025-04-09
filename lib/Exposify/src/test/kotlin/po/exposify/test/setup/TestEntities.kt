@@ -33,9 +33,9 @@ class TestSectionEntity  (id: EntityID<Long>) : ExposifyEntityBase(id){
 //    var classList by TestSections.classList
 //    var metaTags by TestSections.metaTags
     var updated by TestSections.updated
-    var updatedBy by TestUserEntity referencedOn TestSections.updatedBy
-    var pageId by TestSections.pageId
-    val pageIdValue get() = pageId.value.toLong()
+  //  var updatedBy by TestUserEntity referencedOn TestSections.updatedBy
+  //  var pageId by TestSections.pageId
     var langId by TestSections.langId
     var page by TestPageEntity referencedOn TestSections.page
+    val pageIdValue get() = page.id.value.toLong()
 }

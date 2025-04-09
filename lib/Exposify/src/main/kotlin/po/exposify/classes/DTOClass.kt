@@ -23,6 +23,7 @@ import po.exposify.extensions.safeCast
 import po.exposify.scope.sequence.models.SequencePack2
 import po.exposify.scope.service.ServiceContext
 import po.lognotify.TasksManaged
+import po.lognotify.extensions.getOrThrowDefault
 import kotlin.reflect.KClass
 
 abstract class DTOClass<DTO>(): TasksManaged,  DTOInstance where DTO: ModelDTO{
@@ -85,6 +86,10 @@ abstract class DTOClass<DTO>(): TasksManaged,  DTOInstance where DTO: ModelDTO{
         }
     }
 
+    fun <ENTITY: ExposifyEntityBase> getEntityModel(): LongEntityClass<ENTITY>{
+        return config.entityModel.safeCast<LongEntityClass<ENTITY>>().getOrThrowDefault("Cast to LongEntityClass<ENTITY> failed")
+    }
+
     fun initialization(onRequestFn: ((CallbackEmitter2<DTO>) -> Unit)? = null) {
         runCatching {
             if(!initialized){
@@ -110,7 +115,6 @@ abstract class DTOClass<DTO>(): TasksManaged,  DTOInstance where DTO: ModelDTO{
     internal suspend fun withFactory(block: suspend (DTOFactory<DTO, DataModel, ExposifyEntityBase>)-> Unit): Unit{
         return config.withFactory(block)
     }
-    suspend fun withDaoService(block: suspend (DAOService<DTO, DataModel, ExposifyEntityBase>)-> Unit): Unit = config.withDaoService(block)
     suspend fun withRelationshipBinder(block: suspend RelationshipBinder2<DTO, DataModel, ExposifyEntityBase>.()-> Unit): Unit = config.withRelationshipBinder(block)
 
     fun isTransactionReady(): Boolean {

@@ -13,7 +13,7 @@ import po.exposify.classes.DTOClass
 import po.exposify.classes.delete
 import po.exposify.classes.pick
 import po.exposify.classes.select
-import po.exposify.classes.updateRootDto
+import po.exposify.classes.update
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.extensions.QueryConditions
@@ -104,8 +104,7 @@ class ServiceContext<DTO, DATA>(
     fun update(dataModels : List<DATA>): CrudResult<DTO,DATA> {
        val result =  startTaskAsync("Update", "ServiceContext") {
             suspendedTransactionAsync {
-                dtoModel.isTransactionReady().trueOrThrow("Transaction should be active")
-                dtoModel.updateRootDto(dataModels)
+                dtoModel.update(dataModels)
             }.await()
         }.resultOrException()
        return result

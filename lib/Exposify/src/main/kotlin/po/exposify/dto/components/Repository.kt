@@ -15,29 +15,75 @@ import po.lognotify.TasksManaged
 import po.lognotify.extensions.countEqualsOrThrow
 import po.lognotify.extensions.getOrThrowDefault
 import po.lognotify.extensions.resultOrDefault
+import po.lognotify.extensions.safeCast
 import po.lognotify.extensions.subTask
 import kotlin.collections.forEach
 
 typealias ChildDTO<CHILD_DTO> = CommonDTO<CHILD_DTO, DataModel, ExposifyEntityBase>
 
 class SingleRepository<DTO, DATA, ENTITY,  CHILD_DTO>(
-    val parent : CommonDTO<DTO, DATA, ENTITY>,
+    val hostingDto : CommonDTO<DTO, DATA, ENTITY>,
     val childClass: DTOClass<CHILD_DTO>,
-    val bindingContainer : SingleChildContainer2<DTO, DATA, ENTITY, CHILD_DTO>
-): RepositoryBase<DTO, DATA, ENTITY, CHILD_DTO>(childClass, bindingContainer)
-        where DTO: ModelDTO, CHILD_DTO: ModelDTO,  DATA: DataModel, ENTITY : ExposifyEntityBase  {
-    override val personalName: String = "Repository[${parent.personalName}/Single]"
+    val binding : SingleChildContainer2<DTO, DATA, ENTITY, CHILD_DTO>
+): RepositoryBase<DTO, DATA, ENTITY, CHILD_DTO>(childClass)
+        where DTO: ModelDTO, CHILD_DTO: ModelDTO,  DATA: DataModel, ENTITY : ExposifyEntityBase {
+    override val personalName: String = "Repository[${hostingDto.personalName}/Single]"
 
+    suspend fun updateSingle() {
+        val dataModel = binding.sourcePropertyWrapper.get(hostingDto.dataModel).getOrThrowDefault("Failed to get data model")
+        val newChildDto = childFactory.createDto(dataModel)
+        if (dataModel.id == 0L) {
+            val parentEntity = hostingDto.daoService.getLastEntity()
+            newChildDto.daoService.saveWithParent {
+                binding.foreignEntityProperty.set(it, parentEntity)
+            }
+        } else {
+            newChildDto.daoService.update()
+        }
+        childDTOList.add(newChildDto)
+        newChildDto.getDtoRepositories().forEach {repository->
+            repository.update()
+        }
+    }
 }
 
 class MultipleRepository<DTO, DATA, ENTITY, CHILD_DTO>(
-    val parent : CommonDTO<DTO, DATA, ENTITY>,
+    val hostingDto : CommonDTO<DTO, DATA, ENTITY>,
     val childClass: DTOClass<CHILD_DTO>,
-    val bindingContainer : MultipleChildContainer2<DTO, DATA, ENTITY, CHILD_DTO>,
-): RepositoryBase<DTO, DATA, ENTITY, CHILD_DTO>(childClass, bindingContainer)
+    val binding : MultipleChildContainer2<DTO, DATA, ENTITY, CHILD_DTO>,
+): RepositoryBase<DTO, DATA, ENTITY, CHILD_DTO>(childClass)
     where DTO: ModelDTO, CHILD_DTO: ModelDTO, DATA: DataModel, ENTITY : ExposifyEntityBase {
+   override val personalName: String = "Repository[${hostingDto.personalName}/Multiple]"
 
-    override val personalName: String = "Repository[${parent.personalName}/Multiple]"
+   suspend fun updateMultiple(){
+        val dataModels = binding.ownDataModelsProperty.get(hostingDto.dataModel)
+        dataModels.forEach {dataModel->
+            val newChildDto =  childFactory.createDto(dataModel)
+            if(dataModel.id == 0L){
+                val parentEntity = hostingDto.daoService.getLastEntity()
+                newChildDto.daoService.saveWithParent{
+                    binding.foreignEntityProperty.set(it, parentEntity)
+                }
+            }else{
+                newChildDto.daoService.update()
+            }
+            childDTOList.add(newChildDto)
+            newChildDto.getDtoRepositories().forEach {repository->
+                repository.update()
+            }
+        }
+    }
+
+   suspend fun selectMultiple(){
+        val entities = binding.ownEntitiesProperty.get(hostingDto.daoService.getLastEntity())
+        entities.forEach { entity ->
+            val newChildDto = childFactory.createDto(entity)
+            childDTOList.add(newChildDto)
+            newChildDto.getDtoRepositories().forEach {repository->
+                repository.select()
+            }
+        }
+   }
 }
 
 class RootRepository<DTO, DATA, ENTITY, CHILD_DTO>(
@@ -47,65 +93,98 @@ class RootRepository<DTO, DATA, ENTITY, CHILD_DTO>(
 {
     override val personalName: String = "Repository[${dtoClass.registryItem.commonDTOKClass.simpleName}/Root]"
 
-    suspend fun updateByDataModels(dataModels : List<DATA>): List<CommonDTO<CHILD_DTO, DATA, ENTITY>>{
-          val result =  sharedUpdateByDataModels(dataModels)
-          val castedList = result.filterIsInstance<CommonDTO<CHILD_DTO, DATA, ENTITY>>()
-          castedList.countEqualsOrThrow<CommonDTO<CHILD_DTO, DATA, ENTITY>, OperationsException>(
-              result.count(),
-              "Cast to CommonDTO<CHILD_DTO, DATA, ENTITY")
-          return castedList
+    suspend fun update(dataModels : List<DATA>): List<CommonDTO<DTO, DATA, ENTITY>>{
+        val result = mutableListOf<CommonDTO<DTO, DATA, ENTITY>>()
+        dataModels.forEach {dataModel->
+           val castedDto = dtoClass.config.dtoFactory.createDto(dataModel).run {
+               safeCast<CommonDTO<DTO, DATA, ENTITY>>().getOrThrowDefault("Cast to CommonDTO<DTO, DATA, ENTITY> failed")
+           }
+           if(dataModel.id == 0L){
+               castedDto.daoService.save()
+           }else{
+               castedDto.daoService.update()
+           }
+           castedDto.getDtoRepositories().forEach {repository->
+                repository.update()
+            }
+            result.add(castedDto)
+        }
+        return result
     }
 
-    suspend fun selectByEntities(entities: List<ENTITY>): List<CommonDTO<CHILD_DTO,  DATA, ENTITY>>  {
-        val createdDtoList =  sharedSelectByEntities(entities)
-        val castedList =  createdDtoList.filterIsInstance<CommonDTO<CHILD_DTO, DATA, ENTITY>>().countEqualsOrWithThrow(createdDtoList.count()) {
-            OperationsException("SelectByByEntities Cast dtoList to actual after creation in $personalName failed", ExceptionCode.CAST_FAILURE)
+    suspend fun select(entities: List<ENTITY>): List<CommonDTO<DTO, DATA, ENTITY>>{
+        val result = mutableListOf<CommonDTO<DTO, DATA, ENTITY>>()
+        entities.forEach { entity ->
+            val castedDto = dtoClass.config.dtoFactory.createDto(entity).run {
+                safeCast<CommonDTO<DTO, DATA, ENTITY>>().getOrThrowDefault("Cast to CommonDTO<DTO, DATA, ENTITY> failed")
+            }
+            castedDto.getDtoRepositories().forEach { repository ->
+                repository.select()
+            }
+            result.add(castedDto)
         }
-        return castedList
+        return result
     }
 }
 
 sealed class RepositoryBase<DTO, DATA, ENTITY, CHILD_DTO>(
-    private val forClass: DTOClass<CHILD_DTO>,
-    private val binding : BindingContainer2<DTO, DATA, ENTITY, CHILD_DTO>? = null
-) where DTO : ModelDTO, CHILD_DTO: ModelDTO, DATA: DataModel, ENTITY : ExposifyEntityBase
-{
+    private val childClass: DTOClass<CHILD_DTO>
+) where DTO : ModelDTO, CHILD_DTO: ModelDTO, DATA: DataModel, ENTITY : ExposifyEntityBase {
     abstract val personalName: String
     var initialized: Boolean = false
 
-    protected val dtoList :  MutableList<CommonDTO<CHILD_DTO, DataModel, ExposifyEntityBase>> = mutableListOf()
+    protected val childDTOList: MutableList<CommonDTO<CHILD_DTO, DataModel, ExposifyEntityBase>> = mutableListOf()
+
     internal val childFactory: DTOFactory<CHILD_DTO, DataModel, ExposifyEntityBase>
-        get() {
-            return forClass.config.dtoFactory
-        }
+        get() { return childClass.config.dtoFactory }
 
-    protected suspend fun updateDtos(uninitializedDtos : List<ChildDTO<CHILD_DTO>>): List<ChildDTO<CHILD_DTO>>
-     = subTask("UpdateInitializing", "Repository ${forClass.personalName}") {
-        uninitializedDtos.forEach {dto->
-            dto.apply {
-                dataContainer.trackedProperties.values.forEach { dataModelProperty ->
-                    val childDataModels = dataContainer.extractChildModels(dataModelProperty)
-                    val childDtoRepository = getRepository(dataModelProperty.getContainer().thisKey)
-                    childDtoRepository.sharedUpdateByDataModels(childDataModels)
-                }
-            }
+    suspend fun update(){
+        when(this){
+            is MultipleRepository-> updateMultiple()
+            is SingleRepository-> updateSingle()
+            else -> getOrThrowDefault("UpdateDTOs should have never reached this branch")
         }
-        dtoList += uninitializedDtos.filterNot { it in dtoList }
-        initialized = true
-        dtoList
-    }.resultOrException()
+    }
 
-    protected suspend fun sharedUpdateByDataModels(dataModels : List<DataModel>):List<ChildDTO<CHILD_DTO>> =
-        subTask("UpdateByDataModels", personalName){handler->
-            handler.info("Creating child DTOs")
-            val createdDtos =  mutableListOf<CommonDTO<CHILD_DTO,  DataModel, ExposifyEntityBase>>()
-            dataModels.forEach {dataModel->
-                val newDto = childFactory.createDto(dataModel).getOrThrowDefault("DTO creation by data failed @ $personalName")
-                createdDtos.add(newDto)
-            }
-            handler.info("Dtos created ${createdDtos.count()}")
-            updateDtos(createdDtos)
-    }.resultOrDefault(emptyList())
+    suspend fun select(){
+        when(this){
+            is MultipleRepository-> selectMultiple()
+            is SingleRepository->updateSingle()
+            else -> getOrThrowDefault("SelectDTOs should have never reached this branch")
+        }
+    }
+
+
+//    protected suspend fun <CHILD_DATA: DataModel> updateChildDtos(
+//        dataModels : List<CHILD_DATA>,
+//        parentDTO: CommonDTO<DTO, DATA, ENTITY>,
+//        binding : BindingContainer2<DTO, DATA, ENTITY, CHILD_DTO>):List<ChildDTO<CHILD_DTO>> =
+//    subTask("UpdateByDataModels", personalName){  handler->
+//        handler.info("Creating child DTOs")
+//        val createdDtos =  mutableListOf<ChildDTO<CHILD_DTO>>()
+//        dataModels.forEach { dataModel ->
+//            val newDto =  childFactory.createDto(dataModel).getOrThrowDefault("DTO creation by data failed @ $personalName")
+//            val parentEntity =  parentDTO.daoService.getLastEntity()
+//            newDto.daoService.saveWithParent{
+//                binding.foreignEntityProperty.set(it, parentEntity)
+//            }
+//
+//            createdDtos.add(newDto)
+//        }
+//        createdDtos.toList()
+//    }.resultOrDefault(emptyList<ChildDTO<CHILD_DTO>>())
+
+//    protected suspend fun sharedUpdateByDataModels(dataModels : List<DataModel>):List<ChildDTO<CHILD_DTO>> =
+//        subTask("UpdateByDataModels", personalName){handler->
+//            handler.info("Creating child DTOs")
+//            val createdDtos =  mutableListOf<CommonDTO<CHILD_DTO,  DataModel, ExposifyEntityBase>>()
+//            dataModels.forEach {dataModel->
+//                val newDto = childFactory.createDto(dataModel).getOrThrowDefault("DTO creation by data failed @ $personalName")
+//                createdDtos.add(newDto)
+//            }
+//            handler.info("Dtos created ${createdDtos.count()}")
+//            updateDtos(createdDtos)
+//    }.resultOrDefault(emptyList())
 
     suspend fun selectDtos(dtoList: List<ChildDTO<CHILD_DTO>>): List<ChildDTO<CHILD_DTO>>{
         dtoList.forEach {dto->
@@ -121,12 +200,11 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, CHILD_DTO>(
         initialized = true
         return dtoList
     }
-
     protected suspend fun sharedSelectByEntities(entities: List<ENTITY>): List<ChildDTO<CHILD_DTO>> =
         subTask("SelectByEntities", personalName){
         val createdDtos =  mutableListOf<CommonDTO<CHILD_DTO,  DataModel, ExposifyEntityBase>>()
         entities.forEach { entity ->
-            val newDto = childFactory.createDto(entity).getOrThrowDefault("DRO creation by entity failed @ $personalName")
+            val newDto = childFactory.createDto(entity).getOrThrowDefault("DTO creation by entity failed @ $personalName")
             createdDtos.add(newDto)
         }
         selectDtos(createdDtos)

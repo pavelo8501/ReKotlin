@@ -21,10 +21,10 @@ import po.lognotify.extensions.getOrThrowDefault
 import po.lognotify.extensions.onFailureCause
 import po.lognotify.extensions.subTask
 
-class DAOService<DTO, DATA, ENTITY>(
-    val isRootDaoService: Boolean,
+class DAOService<DTO, ENTITY>(
+    private val hostingDTO: CommonDTO<DTO, *, ENTITY>,
     private val entityModel: LongEntityClass<ENTITY>,
-): TasksManaged where DTO: ModelDTO, DATA: DataModel, ENTITY : ExposifyEntityBase {
+): TasksManaged where DTO: ModelDTO,  ENTITY : ExposifyEntityBase {
 
     private val personalName = "DAOService"
 
@@ -40,19 +40,19 @@ class DAOService<DTO, DATA, ENTITY>(
 
     internal var transaction : Transaction? = null
 
-    val trackedProperties: MutableMap<String, EntityPropertyInfo<DTO, DATA, ENTITY, ModelDTO>> = mutableMapOf()
+    val trackedProperties: MutableMap<String, EntityPropertyInfo<DTO, DataModel, ENTITY, ModelDTO>> = mutableMapOf()
 
     private fun combineConditions(conditions: Set<Op<Boolean>>): Op<Boolean> {
         return conditions.reduceOrNull { acc, op -> acc and op } ?: Op.TRUE
     }
 
-    fun setTrackedProperties(list: List<EntityPropertyInfo<DTO, DATA, ENTITY, ModelDTO>>){
+    fun setTrackedProperties(list: List<EntityPropertyInfo<DTO, DataModel, ENTITY, ModelDTO>>){
         list.forEach {propertyInfo->
             trackedProperties[propertyInfo.name] = propertyInfo
         }
     }
 
-    fun extractChildEntities(ownEntitiesPropertyInfo : EntityPropertyInfo<DTO, DATA, ENTITY, ModelDTO>): List<ExposifyEntityBase> {
+    fun extractChildEntities(ownEntitiesPropertyInfo : EntityPropertyInfo<DTO, DataModel, ENTITY, ModelDTO>): List<ExposifyEntityBase> {
         val parentEntity = entity
             if (ownEntitiesPropertyInfo.cardinality == Cardinality.ONE_TO_MANY) {
                 val multipleProperty = ownEntitiesPropertyInfo.getOwnEntitiesProperty()
@@ -80,38 +80,36 @@ class DAOService<DTO, DATA, ENTITY>(
         return emptyList()
     }
 
-    suspend fun save(dto: CommonDTO<DTO, DATA, ENTITY>): ENTITY =
+    suspend fun save(): ENTITY =
         subTask("Save", "DAOService") {handler->
-       val newEntity = entityModel.new {
-            dto.updateBinding(this, UpdateMode.MODEL_TO_ENTITY)
+        val newEntity = entityModel.new {
+            hostingDTO.updateBinding(this, UpdateMode.MODEL_TO_ENTITY)
         }
-        handler.info("Dao entity created with id ${newEntity.id.value} for dto ${dto.personalName}")
+        hostingDTO.dataContainer.setDataModelId(newEntity.id.value)
+        handler.info("Dao entity created with id ${newEntity.id.value} for dto ${hostingDTO.personalName}")
         setNewEntity(newEntity)
         newEntity
     }.resultOrException()
 
-    suspend fun saveWithParent(dto: CommonDTO<DTO, DATA, ENTITY>, bindFn: (ENTITY)-> Unit):ENTITY?{
-        runCatching {
+    suspend fun saveWithParent(bindFn: (newEntity:ENTITY)-> Unit):ENTITY =
+        subTask("Save", personalName) {handler->
             val newEntity = entityModel.new {
-                dto.updateBinding(this, UpdateMode.MODEL_TO_ENTITY)
+                hostingDTO.updateBinding(this, UpdateMode.MODEL_TO_ENTITY)
                 bindFn.invoke(this)
             }
-            entity = newEntity
-            return newEntity
-        }.onFailure {
-            throw OperationsException("SaveWithParent failed for", ExceptionCode.DB_CRUD_FAILURE)
-        }
-        return null
-    }
+            hostingDTO.dataContainer.setDataModelId(newEntity.id.value)
+            handler.info("Entity created with id: ${newEntity.id.value} for parent entity id:")
+            setNewEntity(newEntity)
+            newEntity
+    }.resultOrException("SaveWithParent failed for ${hostingDTO.personalName}")
 
-    suspend fun update(dto : CommonDTO<DTO, DATA, ENTITY>): ENTITY? {
-        val selectedEntity = selectById(dto.id)
-        if(selectedEntity != null){
-            dto.updateBinding(selectedEntity, UpdateMode.MODEL_TO_ENTITY)
-        }
-        entity = selectedEntity
-        return entity
-    }
+    suspend fun update(): ENTITY =
+        subTask("Update", "DAOService") {handler->
+        val selectedEntity =  selectById(hostingDTO.id).getOrThrowDefault("Entity with id : ${hostingDTO.id} not found")
+        hostingDTO.updateBinding(selectedEntity, UpdateMode.MODEL_TO_ENTITY)
+        setNewEntity(selectedEntity)
+        selectedEntity
+    }.resultOrException("SaveWithParent failed for ${hostingDTO.personalName}")
 
     fun pick(
         conditions : Op<Boolean>
@@ -160,7 +158,7 @@ class DAOService<DTO, DATA, ENTITY>(
     }
 
     suspend fun <CHILD_DATA : DataModel, CHILD_ENTITY : LongEntity>delete(
-        dto : CommonDTO<DTO, DATA, ENTITY>
+        dto : CommonDTO<DTO, DataModel, ENTITY>
     ) {
        // task("selectWhere for dtoModel"){
 

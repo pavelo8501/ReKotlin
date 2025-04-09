@@ -27,7 +27,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     var personalName : String = "unset"
     abstract val dataModel: DATA
 
-    lateinit var daoService: DAOService<DTO, DATA, ENTITY>
+    val daoService: DAOService<DTO, ENTITY> = DAOService<DTO, ENTITY>(this, dtoClass.getEntityModel())
     lateinit var propertyBinderSource: PropertyBinder<DATA, ENTITY>
     val propertyBinder : PropertyBinder<DATA, ENTITY>
         get() {
@@ -62,22 +62,23 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
        return repositories.map[key].getOrThrowDefault("Child repository not found @ $personalName")
     }
 
+    fun getDtoRepositories():List<RepositoryBase<DTO, DATA, ENTITY, ModelDTO>>{
+        return repositories.map.values.toList()
+    }
+
     fun updateBinding(entity : ENTITY, updateMode: UpdateMode){
         propertyBinder.update(dataContainer.dataModel, entity, updateMode)
-        dataContainer.setDataModelId(entity.id.value)
         initStatus = DTOInitStatus.INITIALIZED
     }
 
    internal fun initialize(
        regItem: DTORegistryItem<DTO, DATA, ENTITY>,
        container : DataModelContainer<DTO, DATA>,
-       binder: PropertyBinder<DATA,ENTITY>,
-       dao : DAOService<DTO, DATA,  ENTITY>)
+       binder: PropertyBinder<DATA,ENTITY>)
    {
        _regItem =  CommonDTORegistryItem(dtoClass, regItem.dataKClass, regItem.entityKClass, regItem.commonDTOKClass,this)
        propertyBinderSource = binder
        dataContainer = container
-       daoService = dao
        dataContainer.attachBinder(propertyBinder)
        initStatus = DTOInitStatus.PARTIAL_WITH_DATA
        personalName = "${regItem.commonDTOKClass.simpleName.toString()}[CommonDTO]"
