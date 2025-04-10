@@ -9,10 +9,8 @@ import po.lognotify.enums.SeverityLevel
 interface ExceptionHandled {
    suspend fun setCancellationExHandler(handlerFn: suspend (ex: ExceptionBase)-> Unit)
    suspend fun handleCancellation(ex: CancellationException) : Boolean
-
    suspend fun setGenericExHandler(handlerFn: suspend (ex: Throwable)-> Unit)
    suspend fun handleGeneric(th: Throwable) : Boolean
-
    suspend fun subscribeHandlerUpdates(callback: suspend (notification: Notification) -> Unit)
 }
 
@@ -21,47 +19,42 @@ class ExceptionHandler(
    private val task : TaskSealedBase<*>
 ) : ExceptionHandled {
 
-   private var onExceptionThrown: (suspend (notification: Notification) -> Unit)? = null
+   private var onHandlerUpdate: (suspend (notification: Notification) -> Unit)? = null
    override suspend fun subscribeHandlerUpdates(callback: suspend (notification: Notification) -> Unit){
-      onExceptionThrown = callback
+      onHandlerUpdate = callback
    }
 
    private suspend fun notifyOnHandlerSet(handler : String){
-
       val message = "$handler handle set"
       val notification = Notification(
          task,
          EventType.HANDLER_REGISTERED,
          SeverityLevel.INFO,
          message, ProviderHandler(task.taskName))
-      onExceptionThrown?.invoke(notification)
+      onHandlerUpdate?.invoke(notification)
    }
-
-   private suspend fun notifyOnHandled(th : Throwable, handled: Boolean){
-      var handlerName = "Generic(Unmanaged)"
-      if(th is ExceptionBase){
-         handlerName = th.handler.toString()
-      }
-      var eventType  =  EventType.EXCEPTION_UNHANDLED
-      var severity = SeverityLevel.WARNING
-      val msg = if(handled){
-         eventType = EventType.EXCEPTION_HANDLED
-         "Exception Handled. Exception Message : ${th.message.toString()}"
-      }else{
-         severity = SeverityLevel.EXCEPTION
-         "Unhandled  : ${th.message.toString()}"
-      }
+   private suspend fun notifyOnHandled(th : Throwable){
+      val message =  "Exception Handled. Exception Message : ${th.message.toString()}"
+      val severity = SeverityLevel.WARNING
 
       val notification = Notification(
          task,
-         eventType,
+         EventType.EXCEPTION_UNHANDLED,
          severity,
-         msg,
+         message,
          ProviderHandler(task.taskName))
-      onExceptionThrown?.invoke(notification)
-
-
-      onExceptionThrown?.invoke(notification)
+       onHandlerUpdate?.invoke(notification)
+   }
+   private suspend fun notifyOnUnHandled(th : Throwable){
+      val severity = SeverityLevel.EXCEPTION
+      val message =  "Unhandled  : ${th.message.toString()}"
+      val notification = Notification(
+         task,
+         EventType.EXCEPTION_UNHANDLED,
+         severity,
+         message,
+         ProviderHandler(task.taskName))
+      onHandlerUpdate?.invoke(notification)
    }
 
 
@@ -72,18 +65,13 @@ class ExceptionHandler(
    }
 
    override suspend fun handleCancellation(ex: CancellationException) : Boolean{
-      if(!ex.invokeCancellation()){
-         if(cancelHandler != null){
-            notifyOnHandled(ex, true)
-            cancelHandler!!.invoke(ex)
-            return true
-         }else{
-            notifyOnHandled(ex, false)
-            return false
-         }
-      }else{
-         notifyOnHandled(ex, true)
+      if(cancelHandler != null){
+         notifyOnHandled(ex)
+         cancelHandler!!.invoke(ex)
          return true
+      }else{
+         notifyOnUnHandled(ex)
+         return false
       }
    }
 
@@ -94,11 +82,11 @@ class ExceptionHandler(
    }
    override suspend fun handleGeneric(th: Throwable) : Boolean {
       if(genericHandler != null){
-         notifyOnHandled(th, true)
+         notifyOnHandled(th)
          genericHandler!!.invoke(th)
          return true
       }else{
-         notifyOnHandled(th, false)
+         notifyOnUnHandled(th)
          return false
       }
    }

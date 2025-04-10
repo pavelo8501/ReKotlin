@@ -35,13 +35,13 @@ fun <T: Any> T?.getOrThrow(ex : ExceptionBase): T{
 
 fun Boolean.trueOrThrow(message: String): Boolean{
     if(!this){
-       throw DefaultException("Tested value is false $message", HandlerType.UNMANAGED)
+       throw DefaultException("Tested value is false $message", HandlerType.SKIP_SELF)
     }
     return true
 }
 
 fun <T: Any> T?.getOrThrowDefault(message: String): T{
-    val defaultException = DefaultException(message, HandlerType.UNMANAGED)
+    val defaultException = DefaultException(message, HandlerType.SKIP_SELF)
     return this ?: throw defaultException
 }
 

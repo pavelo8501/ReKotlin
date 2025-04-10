@@ -22,7 +22,6 @@ interface NotificationProvider{
     suspend fun error(ex: Throwable, optMessage: String)
     suspend fun warn(message: String)
 
-
 }
 
 class Notifier(
@@ -36,7 +35,6 @@ class Notifier(
     }
 
     fun toConsole(notification : Notification){
-
         when(notification.eventType){
             EventType.START -> {
               val header = notification.getTaskHeader()
@@ -46,28 +44,9 @@ class Notifier(
                 val header = notification.getTaskFooter()
                 println(header)
             }
-            EventType.EXCEPTION_THROWN -> {
+            else ->{
                 val formattedString = notification.getMessagePrefixed()
                 println(formattedString)
-            }
-            EventType.EXCEPTION_HANDLED -> {
-
-            }
-            EventType.HANDLER_REGISTERED -> {
-
-            }
-            EventType.EXCEPTION_UNHANDLED -> {
-
-            }
-            EventType.UNKNOWN -> {
-
-            }
-            EventType.MESSAGE -> {
-                val formattedString = notification.getMessagePrefixed()
-                println(formattedString)
-            }
-            EventType.ESCALATION -> {
-
             }
         }
     }
@@ -83,11 +62,6 @@ class Notifier(
         toConsole(notification)
         emit(notification)
     }
-
-//    private suspend fun emitHandlerNotification(notification : Notification){
-//      //  toConsole(notification)
-//        emit(notification)
-//    }
 
     suspend fun subscribeToThrowerUpdates(){
         withContext(task.context) {
@@ -117,9 +91,7 @@ class Notifier(
     }
 
     override fun echo(message: String) {
-        //taskPrefix(task)
-        println(makeOfColour(ColourEnum.YELLOW, message))
-       // println("${taskPrefix(task)} message")
+        println(message)
     }
     override suspend fun info(message: String) {
         createTaskNotification(task, message, EventType.MESSAGE,  SeverityLevel.INFO)

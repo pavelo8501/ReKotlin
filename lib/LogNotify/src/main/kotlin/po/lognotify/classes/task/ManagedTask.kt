@@ -129,20 +129,6 @@ sealed class TaskSealedBase<R>(
        throw unmanaged
     }
 
-//    internal var currentScope : CoroutineScope? = null
-//
-//    var coroutineScopeCallback : (CoroutineScope.()-> R)? = null
-//    fun provideScope(block: CoroutineScope.()-> R){
-//        currentScope?.block()?:run{
-//            coroutineScopeCallback = block
-//        }
-//    }
-//
-//    fun setCurrentScope(scope: CoroutineScope){
-//        currentScope = scope
-//        coroutineScopeCallback?.invoke(scope)
-//    }
-    
     private suspend fun handleException(throwable: Throwable): Throwable? {
         if(throwable is ExceptionBase) {
             val managedException = throwable
@@ -160,16 +146,10 @@ sealed class TaskSealedBase<R>(
                     }
                 }
                 is DefaultException -> {
-                    if (throwable.handler == HandlerType.UNMANAGED) {
-                        rootTaskOrNull()?.let {
-                            managedException.reThrowSource()
-                        }
+                    if (taskHelper.exceptionHandler.handleGeneric(managedException)) {
+                        return null
                     }
-                    if (throwable.handler == HandlerType.GENERIC) {
-                        if (taskHelper.exceptionHandler.handleGeneric(managedException)) {
-                           return null
-                        }
-                    }
+                    return managedException
                 }
                 is LoggerException -> {
                     return managedException
