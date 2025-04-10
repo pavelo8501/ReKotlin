@@ -4,16 +4,16 @@ import po.exposify.binders.enums.Cardinality
 import po.exposify.classes.DTOClass
 import po.exposify.dto.interfaces.ModelDTO
 
-sealed class BindingKeyBase2(val ordinance: Cardinality) {
+sealed class BindingKeyBase(val ordinance: Cardinality) {
     open class  OneToMany<CHILD_DTO: ModelDTO>(
         val childModel :DTOClass<CHILD_DTO>
-    ):BindingKeyBase2(Cardinality.ONE_TO_MANY)
+    ):BindingKeyBase(Cardinality.ONE_TO_MANY)
     open class  OneToOne<CHILD_DTO: ModelDTO>(
         val childModel : DTOClass<CHILD_DTO>
-    ):BindingKeyBase2(Cardinality.ONE_TO_ONE)
+    ):BindingKeyBase(Cardinality.ONE_TO_ONE)
     open class  ManyToMany<CHILD_DTO: ModelDTO>(
         val childModel : DTOClass<CHILD_DTO>
-    ):BindingKeyBase2(Cardinality.MANY_TO_MANY)
+    ):BindingKeyBase(Cardinality.MANY_TO_MANY)
     companion object{
         fun <CHILD_DTO: ModelDTO> createOneToManyKey(
             childModel : DTOClass<CHILD_DTO>

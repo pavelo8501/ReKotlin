@@ -4,7 +4,7 @@ import org.jetbrains.exposed.dao.LongEntityClass
 import po.exposify.binders.PropertyBinder
 import po.exposify.binders.PropertyBindingOption
 import po.exposify.binders.UpdateMode
-import po.exposify.binders.relationship.RelationshipBinder2
+import po.exposify.binders.relationship.RelationshipBinder
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.classes.DTOClass
 import po.exposify.dto.CommonDTO
@@ -22,7 +22,7 @@ internal interface ConfigurableDTO<DTO: ModelDTO, DATA : DataModel, ENTITY: Expo
 
     fun initFactoryRoutines()
     suspend  fun withFactory(block: suspend (DTOFactory<DTO, DATA, ENTITY>)-> Unit)
-    suspend fun withRelationshipBinder(block: suspend (RelationshipBinder2<DTO, DATA, ENTITY>)-> Unit)
+    suspend fun withRelationshipBinder(block: suspend (RelationshipBinder<DTO, DATA, ENTITY>)-> Unit)
    // suspend fun withDaoService(block: suspend (DAOService<DTO, DATA, ENTITY>)-> Unit)
 }
 
@@ -38,7 +38,7 @@ internal class DTOConfig<DTO, DATA, ENTITY>(
 //    val daoService: DAOService<DTO, DATA, ENTITY> = DAOService<DTO, DATA, ENTITY>(false, entityModel)
     val propertyBinder : PropertyBinder<DATA,ENTITY> = PropertyBinder()
 
-    val relationBinder: RelationshipBinder2<DTO, DATA, ENTITY> = RelationshipBinder2<DTO, DATA, ENTITY>(parent)
+    val relationBinder: RelationshipBinder<DTO, DATA, ENTITY> = RelationshipBinder<DTO, DATA, ENTITY>(parent)
 
     var dataModelConstructor : (() -> DataModel)? = null
         private set
@@ -47,7 +47,7 @@ internal class DTOConfig<DTO, DATA, ENTITY>(
         block.invoke(dtoFactory)
     }
 
-    override suspend fun withRelationshipBinder(block: suspend (RelationshipBinder2<DTO, DATA, ENTITY>)-> Unit){
+    override suspend fun withRelationshipBinder(block: suspend (RelationshipBinder<DTO, DATA, ENTITY>)-> Unit){
         block.invoke(relationBinder)
     }
     override fun initFactoryRoutines(){
@@ -65,7 +65,7 @@ internal class DTOConfig<DTO, DATA, ENTITY>(
     fun propertyBindings(vararg props: PropertyBindingOption<DATA, ENTITY, *> ): Unit =  propertyBinder.setProperties(props.toList())
 
     inline fun childBindings(
-        block: RelationshipBinder2<DTO, DATA, ENTITY>.()-> Unit){
+        block: RelationshipBinder<DTO, DATA, ENTITY>.()-> Unit){
         relationBinder.block()
     }
 

@@ -30,7 +30,7 @@ class DAOService<DTO, ENTITY>(
 
     private var entity : ENTITY? = null
 
-    private  fun setNewEntity(newEntity:ENTITY?){
+    fun setLastEntity(newEntity:ENTITY?){
         entity = newEntity
     }
 
@@ -87,7 +87,6 @@ class DAOService<DTO, ENTITY>(
         }
         hostingDTO.dataContainer.setDataModelId(newEntity.id.value)
         handler.info("Dao entity created with id ${newEntity.id.value} for dto ${hostingDTO.personalName}")
-        setNewEntity(newEntity)
         newEntity
     }.resultOrException()
 
@@ -99,7 +98,6 @@ class DAOService<DTO, ENTITY>(
             }
             hostingDTO.dataContainer.setDataModelId(newEntity.id.value)
             handler.info("Entity created with id: ${newEntity.id.value} for parent entity id:")
-            setNewEntity(newEntity)
             newEntity
     }.resultOrException("SaveWithParent failed for ${hostingDTO.personalName}")
 
@@ -107,7 +105,6 @@ class DAOService<DTO, ENTITY>(
         subTask("Update", "DAOService") {handler->
         val selectedEntity =  selectById(hostingDTO.id).getOrThrowDefault("Entity with id : ${hostingDTO.id} not found")
         hostingDTO.updateBinding(selectedEntity, UpdateMode.MODEL_TO_ENTITY)
-        setNewEntity(selectedEntity)
         selectedEntity
     }.resultOrException("SaveWithParent failed for ${hostingDTO.personalName}")
 
@@ -143,10 +140,7 @@ class DAOService<DTO, ENTITY>(
     }
 
     suspend fun selectAll(): SizedIterable<ENTITY> {
-       // val entities = task("selectAll() for dtoModel ${parent.personalName}") {
            return entityModel.all()
-      //  }
-       // return entities!!
     }
 
     suspend fun selectById(id: Long): ENTITY?{

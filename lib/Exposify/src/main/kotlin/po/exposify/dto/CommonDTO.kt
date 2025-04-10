@@ -1,6 +1,6 @@
 package po.exposify.dto
 
-import po.exposify.binders.relationship.BindingKeyBase2
+import po.exposify.binders.relationship.BindingKeyBase
 import po.exposify.binders.PropertyBinder
 import po.exposify.binders.UpdateMode
 import po.exposify.dto.components.DAOService
@@ -14,7 +14,6 @@ import po.exposify.dto.models.CommonDTORegistryItem
 import po.exposify.dto.models.DTORegistryItem
 import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.exceptions.InitException
-import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.models.DTOInitStatus
 import po.lognotify.extensions.getOrThrowDefault
@@ -56,9 +55,9 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
             return _regItem?:throw InitException("DtoClassRegistryItem uninitialized", ExceptionCode.UNDEFINED)
         }
     internal val registryItem: CommonDTORegistryItem<DTO, DATA, ENTITY> by lazy { regItem }
-    internal var repositories =  MapBuilder<BindingKeyBase2,  RepositoryBase<DTO, DATA, ENTITY, ModelDTO>> ()
+    internal var repositories =  MapBuilder<BindingKeyBase,  RepositoryBase<DTO, DATA, ENTITY, ModelDTO>> ()
 
-    internal fun getRepository(key: BindingKeyBase2):RepositoryBase<DTO, DATA, ENTITY, ModelDTO>{
+    internal fun getRepository(key: BindingKeyBase):RepositoryBase<DTO, DATA, ENTITY, ModelDTO>{
        return repositories.map[key].getOrThrowDefault("Child repository not found @ $personalName")
     }
 
@@ -68,6 +67,10 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
 
     fun updateBinding(entity : ENTITY, updateMode: UpdateMode){
         propertyBinder.update(dataContainer.dataModel, entity, updateMode)
+        daoService.setLastEntity(entity)
+        if(updateMode == UpdateMode.ENTITY_TO_MODEL){
+            dataContainer.setDataModelId(entity.id.value)
+        }
         initStatus = DTOInitStatus.INITIALIZED
     }
 

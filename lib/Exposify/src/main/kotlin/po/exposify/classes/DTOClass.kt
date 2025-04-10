@@ -5,7 +5,7 @@ import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.transactions.TransactionManager
-import po.exposify.binders.relationship.RelationshipBinder2
+import po.exposify.binders.relationship.RelationshipBinder
 import po.exposify.classes.components.CallbackEmitter2
 import po.exposify.dto.components.DAOService
 import po.exposify.classes.components.DTOConfig
@@ -115,7 +115,9 @@ abstract class DTOClass<DTO>(): TasksManaged,  DTOInstance where DTO: ModelDTO{
     internal suspend fun withFactory(block: suspend (DTOFactory<DTO, DataModel, ExposifyEntityBase>)-> Unit): Unit{
         return config.withFactory(block)
     }
-    suspend fun withRelationshipBinder(block: suspend RelationshipBinder2<DTO, DataModel, ExposifyEntityBase>.()-> Unit): Unit = config.withRelationshipBinder(block)
+    suspend fun withRelationshipBinder(
+        block: suspend RelationshipBinder<DTO, DataModel, ExposifyEntityBase>.()-> Unit
+    ): Unit = config.withRelationshipBinder(block)
 
     fun isTransactionReady(): Boolean {
         return TransactionManager.currentOrNull()?.connection?.isClosed?.not() == true

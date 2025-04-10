@@ -41,17 +41,19 @@ class TestServiceClass : DatabaseTest() {
                     { assertEquals(originalSection.langId, updatedSection.langId, "Section langId mismatch") }
                 )
 
-                val selectedPages = select().getDataModels()
+                val selectedPageDtos = select()
+                val selectedPages = selectedPageDtos.getDataModels()
                 val selectedPage = selectedPages[0]
 
-                assertNotEquals(selectedPage.sections.count(), 0, "Selected sections > 0")
+                assertNotEquals(selectedPage.sections.count(), 0, "Selected sections  0")
                 val selectedSection = selectedPage.sections[0]
                 assertAll(
                     { assertEquals(updatedPage.name, selectedPage.name, "Selected page name mismatch") },
                     { assertEquals(updatedPage.langId, selectedPage.langId, "Selected page langId mismatch") },
                     { assertEquals(updatedPage.sections.count(), selectedPage.sections.count(), "Selected sections count mismatch") },
                     { assertEquals(updatedSection.name, selectedSection.name, "Selected section name mismatch") },
-                    { assertEquals(updatedSection.langId, selectedSection.langId, "Selected section langId mismatch") }
+                    { assertEquals(updatedSection.langId, selectedSection.langId, "Selected section langId mismatch")},
+                    { assertNotEquals(0, selectedSection.langId, "Selected section id not updated")}
                 )
             }
         }

@@ -86,7 +86,6 @@ internal class DTOFactory<DTO, DATA, ENTITY>(
         }
     }
 
-
     fun <PARENT_DATA: DataModel>extractDataModel(
         property: KProperty1<PARENT_DATA, DATA?>,
         owningDataModel:PARENT_DATA): DATA?{
@@ -98,8 +97,8 @@ internal class DTOFactory<DTO, DATA, ENTITY>(
         }
     }
 
-    internal var postCreationRoutines = MapBuilder<String, suspend CommonDTO<DTO, DATA, ENTITY>.(ENTITY?) -> Unit>()
-    fun setPostCreationRoutine(name : String, fn: suspend CommonDTO<DTO, DATA, ENTITY>.(ENTITY?)-> Unit){
+    internal var postCreationRoutines = MapBuilder<String, suspend CommonDTO<DTO, DATA, ENTITY>.() -> Unit>()
+    fun setPostCreationRoutine(name : String, fn: suspend CommonDTO<DTO, DATA, ENTITY>.()-> Unit){
         postCreationRoutines.put(name, fn)
     }
     fun unsetPostCreationRoutine(){
@@ -107,10 +106,10 @@ internal class DTOFactory<DTO, DATA, ENTITY>(
     }
 
 
-    suspend fun dtoPostCreation(dto : CommonDTO<DTO, DATA, ENTITY>, withEntity:ENTITY?){
+    suspend fun dtoPostCreation(dto : CommonDTO<DTO, DATA, ENTITY>){
         postCreationRoutines.map.forEach {
             println("Executing PostCreationRoutine : ${it.key} on ${dtoBlueprint.className}")
-            it.value.invoke(dto, withEntity)
+            it.value.invoke(dto)
             println("PostCreationRoutine : ${it.key} complete")
         }
     }
@@ -160,7 +159,14 @@ internal class DTOFactory<DTO, DATA, ENTITY>(
         }
     }
 
-    private suspend fun createDto(withDataModel : DATA?, withEntity : ENTITY?): CommonDTO<DTO, DATA, ENTITY> =
+    /**
+     * Create new instance of  DTOFunctions
+     * if input param dataModel provided use it as an injection into constructor
+     * if not then create new DataModel instance with default parameters i.e. no data will be preserved
+     * @input dataModel:  DATA?
+     * @return DTOFunctions<DATA, ENTITY> or null
+     * */
+    suspend fun createDto(withDataModel : DATA? = null): CommonDTO<DTO, DATA, ENTITY> =
         subTask("Create DTO", personalName){
         val model = withDataModel?: createDataModel()
         dtoBlueprint.setExternalParamLookupFn { param ->
@@ -175,22 +181,9 @@ internal class DTOFactory<DTO, DATA, ENTITY>(
         }
         val args = dtoBlueprint.getArgsForConstructor()
         val newDto =  dtoBlueprint.getConstructor().callBy(args)
-        dtoPostCreation(newDto, withEntity)
+        dtoPostCreation(newDto)
         newDto
     }.resultOrException()
 
-    /**
-     * Create new instance of  DTOFunctions
-     * if input param dataModel provided use it as an injection into constructor
-     * if not then create new DataModel instance with default parameters i.e. no data will be preserved
-     * @input dataModel:  DATA?
-     * @return DTOFunctions<DATA, ENTITY> or null
-     * */
-    suspend fun createDto(dataModel : DATA? = null): CommonDTO<DTO, DATA, ENTITY>{
-       return this.createDto(dataModel, null)
-    }
 
-    suspend fun createDto(withEntity : ENTITY): CommonDTO<DTO, DATA, ENTITY>{
-        return this.createDto(null, withEntity)
-    }
 }

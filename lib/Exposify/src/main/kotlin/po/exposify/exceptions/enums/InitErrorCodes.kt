@@ -22,7 +22,7 @@ enum class ExceptionCode(val value: Int) {
     DB_CRUD_FAILURE(2002),
     DB_NO_TRANSACTION_IN_CONTEXT(2003),
 
-    // Repository & Runtime Execution
+    // Repository.kt & Runtime Execution
     REPOSITORY_RETHROWN(4000),
     REPOSITORY_NOT_INITIALIZED(4001),
     REPOSITORY_NOT_FOUND(4002),

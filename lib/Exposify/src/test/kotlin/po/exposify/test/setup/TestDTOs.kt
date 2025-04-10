@@ -46,7 +46,7 @@ data class TestPage(
 ): DataModel{
     override var id: Long = 0
     var updated: LocalDateTime = TestPageDTO.nowTime()
-    var sections: MutableList<TestSection> = mutableListOf<TestSection>()
+    val sections: MutableList<TestSection> = mutableListOf<TestSection>()
 }
 
 class TestPageDTO(
@@ -62,7 +62,7 @@ class TestPageDTO(
                childBindings{
                    many<TestSectionDTO>(
                        childModel = TestSectionDTO,
-                       ownDataModel = TestPage::sections,
+                       ownDataModels = TestPage::sections,
                        ownEntities = TestPageEntity ::sections,
                        foreignEntity = TestSectionEntity::page
                    )
