@@ -5,9 +5,8 @@ import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.transactions.TransactionManager
-import po.exposify.binders.relationship.RelationshipBinder
+import po.exposify.dto.components.relation_binder.RelationshipBinder
 import po.exposify.classes.components.CallbackEmitter2
-import po.exposify.dto.components.DAOService
 import po.exposify.classes.components.DTOConfig
 import po.exposify.dto.components.DTOFactory
 import po.exposify.dto.components.RootRepository

@@ -1,10 +1,7 @@
 package po.exposify.dto.components
 
-import po.exposify.binders.PropertyBinder
-import po.exposify.binders.PropertyType
-import po.exposify.binders.UpdateMode
-import po.exposify.binders.enums.Cardinality
-import po.exposify.binders.relationship.models.DataPropertyInfo
+import po.exposify.dto.enums.Cardinality
+import po.exposify.dto.components.relation_binder.models.DataPropertyInfo
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.common.classes.ClassBlueprint
 import po.exposify.dto.interfaces.ModelDTO
@@ -36,7 +33,7 @@ class DataModelContainer<DTO : ModelDTO, DATA: DataModel>(
     }
 
     fun binderUpdatedProperty(name : String, type : PropertyType, updateMode : UpdateMode){
-        println("BinderUpdatedProperty callback triggered by $name")
+       // println("BinderUpdatedProperty callback triggered by $name")
     }
 
     fun setDataModelId(id: Long){
@@ -54,7 +51,7 @@ class DataModelContainer<DTO : ModelDTO, DATA: DataModel>(
 
     fun attachBinder(propertyBinder: PropertyBinder<DATA, *>){
         binder = propertyBinder
-        propertyBinder.syncedList.forEach {
+        propertyBinder.syncedSerializedPropertyList.forEach {
             it.onPropertyUpdated(::binderUpdatedProperty)
         }
     }

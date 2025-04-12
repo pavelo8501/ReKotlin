@@ -3,8 +3,10 @@ package po.exposify.test.setup
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import po.exposify.binders.ReadOnly
-import po.exposify.binders.SyncedBinding
+import kotlinx.serialization.builtins.ListSerializer
+import po.exposify.dto.components.ReadOnly
+import po.exposify.dto.components.SyncedBinding
+import po.exposify.dto.components.SyncedSerialized
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.classes.DTOClass
@@ -43,6 +45,8 @@ data class TestPage(
     var name: String,
     @SerialName("lang_id")
     var langId: Int,
+    @SerialName("page_classes")
+    var pageClasses: List<TestClassItem>,
 ): DataModel{
     override var id: Long = 0
     var updated: LocalDateTime = TestPageDTO.nowTime()
@@ -57,7 +61,8 @@ class TestPageDTO(
            configuration<TestPage, TestPageEntity>(TestPageDTO::class, TestPageEntity){
                propertyBindings(SyncedBinding(TestPage::name, TestPageEntity::name),
                     SyncedBinding(TestPage::langId,  TestPageEntity::langId),
-                    SyncedBinding(TestPage::updated, TestPageEntity::updated)
+                    SyncedBinding(TestPage::updated, TestPageEntity::updated),
+                    SyncedSerialized(TestPage::pageClasses, TestPageEntity::pageClasses, ListSerializer(TestClassItem.serializer())),
                )
                childBindings{
                    many<TestSectionDTO>(
@@ -78,10 +83,10 @@ data class TestSection(
     var description: String,
     @SerialName("json_ld")
     var jsonLd: String,
-//    @SerialName("class_list")
-//    var classList: List<TestClassItem>,
-//    @SerialName("meta_tags")
-//    var metaTags: List<TestMetaTag>,
+    @SerialName("class_list")
+    var classList: List<TestClassItem>,
+ //   @SerialName("meta_tags")
+ //   var metaTags: List<TestMetaTag>,
     @SerialName("lang_id")
     var langId: Int,
     @SerialName("page_id")
@@ -104,8 +109,10 @@ class TestSectionDTO(
                     SyncedBinding(TestSection::description, TestSectionEntity::description),
                     SyncedBinding(TestSection::jsonLd, TestSectionEntity::jsonLd),
                     SyncedBinding(TestSection::updated, TestSectionEntity::updated),
-                    ReadOnly(TestSection::pageId, TestSectionEntity::pageIdValue),
-                    SyncedBinding(TestSection::langId, TestSectionEntity::langId )
+                    SyncedBinding(TestSection::langId, TestSectionEntity::langId ),
+                    SyncedSerialized(TestSection::classList, TestSectionEntity::classList, ListSerializer(TestClassItem.serializer())),
+                  //  SyncedSerialized(TestSection::metaTags, TestSectionEntity::metaTags, ListSerializer(TestMetaTag.serializer())),
+                    ReadOnly(TestSection::pageId, TestSectionEntity::pageIdValue)
                 )
             }
         }

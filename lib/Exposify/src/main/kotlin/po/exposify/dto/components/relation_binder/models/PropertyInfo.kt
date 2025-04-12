@@ -1,10 +1,10 @@
-package po.exposify.binders.relationship.models
+package po.exposify.dto.components.relation_binder.models
 
-import po.exposify.binders.enums.Cardinality
-import po.exposify.binders.relationship.BindingContainer
-import po.exposify.binders.relationship.BindingKeyBase
-import po.exposify.binders.relationship.MultipleChildContainer
-import po.exposify.binders.relationship.SingleChildContainer
+import po.exposify.dto.enums.Cardinality
+import po.exposify.dto.components.relation_binder.BindingContainer
+import po.exposify.dto.components.relation_binder.BindingKeyBase
+import po.exposify.dto.components.relation_binder.MultipleChildContainer
+import po.exposify.dto.components.relation_binder.SingleChildContainer
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase

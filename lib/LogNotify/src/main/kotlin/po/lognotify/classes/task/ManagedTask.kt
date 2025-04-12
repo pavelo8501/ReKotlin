@@ -104,7 +104,6 @@ sealed class TaskSealedBase<R>(
     }
 
     internal suspend fun preRunConfig(scope: CoroutineScope){
-        
         notifier.start()
     }
 

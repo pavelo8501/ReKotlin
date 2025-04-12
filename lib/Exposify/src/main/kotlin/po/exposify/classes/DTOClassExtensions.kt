@@ -77,7 +77,7 @@ internal suspend fun <DTO, DATA> DTOClass<DTO>.update(
     dataModels: List<DATA>,
 ): CrudResult<DTO, DATA> where DTO: ModelDTO, DATA : DataModel = subTask("Update Repository.kt")  { handler->
     isTransactionReady().trueOrThrow("Transaction should be active")
-    val dtos = repository.getOrThrowCancellation("Repository.kt uninitialized").update(dataModels)
+    val dtos = repository.getOrThrowCancellation("DTORepository uninitialized in DTOClass").update(dataModels)
     val checkedList = dtos.filterIsInstance<CommonDTO<DTO, DATA, ExposifyEntityBase>>()
     handler.info("Created ${checkedList.count()} DTOs")
     CrudResult<DTO, DATA>(checkedList)

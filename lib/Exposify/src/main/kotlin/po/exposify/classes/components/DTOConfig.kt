@@ -1,21 +1,17 @@
 package po.exposify.classes.components
 
+import kotlinx.serialization.KSerializer
 import org.jetbrains.exposed.dao.LongEntityClass
-import po.exposify.binders.PropertyBinder
-import po.exposify.binders.PropertyBindingOption
-import po.exposify.binders.UpdateMode
-import po.exposify.binders.relationship.RelationshipBinder
+import po.exposify.dto.components.PropertyBinder
+import po.exposify.dto.components.PropertyBindingOption
+import po.exposify.dto.components.relation_binder.RelationshipBinder
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.classes.DTOClass
-import po.exposify.dto.CommonDTO
-import po.exposify.dto.components.DAOService
 import po.exposify.dto.components.DTOFactory
 import po.exposify.dto.components.DataModelContainer
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.DTORegistryItem
 import po.exposify.entity.classes.ExposifyEntityBase
-import po.lognotify.extensions.getOrThrowDefault
-import po.lognotify.extensions.safeCast
 
 
 internal interface ConfigurableDTO<DTO: ModelDTO, DATA : DataModel, ENTITY: ExposifyEntityBase>{
@@ -23,7 +19,6 @@ internal interface ConfigurableDTO<DTO: ModelDTO, DATA : DataModel, ENTITY: Expo
     fun initFactoryRoutines()
     suspend  fun withFactory(block: suspend (DTOFactory<DTO, DATA, ENTITY>)-> Unit)
     suspend fun withRelationshipBinder(block: suspend (RelationshipBinder<DTO, DATA, ENTITY>)-> Unit)
-   // suspend fun withDaoService(block: suspend (DAOService<DTO, DATA, ENTITY>)-> Unit)
 }
 
 internal class DTOConfig<DTO, DATA, ENTITY>(
@@ -35,8 +30,13 @@ internal class DTOConfig<DTO, DATA, ENTITY>(
     val dtoFactory: DTOFactory<DTO, DATA, ENTITY> =
         DTOFactory<DTO, DATA, ENTITY>(dtoRegItem.commonDTOKClass, dtoRegItem.dataKClass, this)
 
-//    val daoService: DAOService<DTO, DATA, ENTITY> = DAOService<DTO, DATA, ENTITY>(false, entityModel)
-    val propertyBinder : PropertyBinder<DATA,ENTITY> = PropertyBinder()
+    val propertyBinder : PropertyBinder<DATA, ENTITY> = PropertyBinder(){syncedSerializedList->
+        val namedSerializes = mutableListOf<Pair<String, KSerializer<out Any>>>()
+        syncedSerializedList.forEach {
+            namedSerializes.add(it.getSerializer())
+        }
+        dtoFactory.setSerializableTypes(namedSerializes.toList())
+    }
 
     val relationBinder: RelationshipBinder<DTO, DATA, ENTITY> = RelationshipBinder<DTO, DATA, ENTITY>(parent)
 

@@ -5,7 +5,6 @@ import po.lognotify.classes.task.TaskSealedBase
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.exceptions.ExceptionBase
 import po.lognotify.exceptions.LoggerException
-import po.lognotify.exceptions.enums.HandlerType
 import po.lognotify.models.LogRecord
 
 

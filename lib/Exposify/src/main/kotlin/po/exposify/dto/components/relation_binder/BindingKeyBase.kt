@@ -1,6 +1,6 @@
-package po.exposify.binders.relationship
+package po.exposify.dto.components.relation_binder
 
-import po.exposify.binders.enums.Cardinality
+import po.exposify.dto.enums.Cardinality
 import po.exposify.classes.DTOClass
 import po.exposify.dto.interfaces.ModelDTO
 

@@ -1,4 +1,4 @@
-package po.exposify.binders
+package po.exposify.dto.components
 
 import kotlinx.serialization.KSerializer
 import org.jetbrains.exposed.dao.LongEntity
@@ -36,9 +36,7 @@ class SyncedSerialized<DATA : DataModel, ENT : LongEntity, C, TYPE: Any >(
     internal val serializer:  KSerializer<TYPE>,
 ) : PropertyBindingOption<DATA, ENT, C>
 {
-
     override val propertyType: PropertyType = PropertyType.SERIALIZED
-
     private var onModelUpdatedCallback: ((PropertyBindingOption<DATA, ENT, C>) -> Unit)? = null
     override fun onModelUpdated(callback: (PropertyBindingOption<DATA, ENT, C>) -> Unit) {
         onModelUpdatedCallback = callback
@@ -50,16 +48,12 @@ class SyncedSerialized<DATA : DataModel, ENT : LongEntity, C, TYPE: Any >(
     }
 
     var updated: Boolean = false
-    override fun updated(
-        name: String,
-        type: PropertyType,
-        updateMode: UpdateMode
-    ) {
+    override fun updated(name: String, type: PropertyType, updateMode: UpdateMode) {
         updated = true
         onPropertyUpdatedCallback?.invoke(name, type, updateMode)
     }
 
-    fun getSerializer(): Pair<String, KSerializer<TYPE> >{
+    fun getSerializer(): Pair<String, KSerializer<TYPE>>{
         return Pair(dtoProperty.name, serializer)
     }
 
@@ -262,17 +256,19 @@ class SyncedBinding<DATA : DataModel, ENT : LongEntity, T>(
     }
 }
 
-class PropertyBinder<DATA : DataModel, ENT : LongEntity>
+class PropertyBinder<DATA : DataModel, ENT : LongEntity>(
+    private val onSyncedSerializedAdd : (syncedSerializedProperty:  List<SyncedSerialized<DATA, ENT, *, *>>)-> Unit
+)
 {
     private var allBindings: List<PropertyBindingOption<DATA, ENT, *>> = listOf()
 
     var onInitialized: ((PropertyBinder<DATA, ENT>) -> Unit)? = null
-    var syncedList: List<SyncedBinding<DATA, ENT, *>> = listOf<SyncedBinding<DATA, ENT, *>> ()
+    var syncedPropertyList: List<SyncedBinding<DATA, ENT, *>> = listOf<SyncedBinding<DATA, ENT, *>> ()
         private set
 
     var readOnlyPropertyList: List<ReadOnly<DATA, ENT, *>> =  listOf<ReadOnly<DATA, ENT, *>>()
         private set
-    var compositePropertyList: List<SyncedSerialized<DATA, ENT, *, *>> =  listOf<SyncedSerialized<DATA, ENT, *, *>>()
+    var syncedSerializedPropertyList: List<SyncedSerialized<DATA, ENT, *, *>> =  listOf<SyncedSerialized<DATA, ENT, *, *>>()
         private set
 
     fun getAllProperties():List<PropertyBindingOption<DATA, ENT, *>>{
@@ -281,32 +277,35 @@ class PropertyBinder<DATA : DataModel, ENT : LongEntity>
 
     fun setProperties(properties: List<PropertyBindingOption<DATA, ENT, *>>) {
         allBindings = properties
-        val readOnly = mutableListOf<ReadOnly<DATA, ENT, *>>()
-        val synced = mutableListOf<SyncedBinding<DATA, ENT, *>>()
-        val compositeList = mutableListOf<SyncedSerialized<DATA, ENT, *, *>>()
+        val readOnlyList = mutableListOf<ReadOnly<DATA, ENT, *>>()
+        val syncedList = mutableListOf<SyncedBinding<DATA, ENT, *>>()
+        val syncedSerializedList = mutableListOf<SyncedSerialized<DATA, ENT, *, *>>()
         properties.forEach {
             when(it.propertyType){
                 PropertyType.ONE_WAY -> {
-                    readOnly.add(it as ReadOnly<DATA, ENT, *>)
+                    readOnlyList.add(it as ReadOnly<DATA, ENT, *>)
                 }
                 PropertyType.TWO_WAY -> {
-                  synced.add(it as SyncedBinding<DATA, ENT, *>)
+                    syncedList.add(it as SyncedBinding<DATA, ENT, *>)
                 }
                 PropertyType.SERIALIZED -> {
-                  compositeList.add(it as SyncedSerialized<DATA, ENT, *, *>)
+                    syncedSerializedList.add(it as SyncedSerialized<DATA, ENT, *, *>)
                 }
             }
         }
-        readOnlyPropertyList = readOnly
-        compositePropertyList = compositeList.toList()
-        syncedList = synced.toList()
+        readOnlyPropertyList = readOnlyList
+        syncedSerializedPropertyList = syncedSerializedList.toList()
+        if(syncedSerializedPropertyList.count() > 0){
+            onSyncedSerializedAdd.invoke(syncedSerializedPropertyList)
+        }
+        syncedPropertyList = syncedList.toList()
         onInitialized?.invoke(this)
     }
 
     fun update(dataModel: DATA, daoModel: ENT, updateMode: UpdateMode) {
         try {
-            syncedList.forEach { it.update(dataModel, daoModel, updateMode) }
-            compositePropertyList.forEach { it.update(dataModel, daoModel, updateMode) }
+            syncedPropertyList.forEach { it.update(dataModel, daoModel, updateMode) }
+            syncedSerializedPropertyList.forEach { it.update(dataModel, daoModel, updateMode) }
             readOnlyPropertyList.forEach { it.update(dataModel, daoModel, updateMode) }
         }catch (ex: Exception){
             println("Property Binder: ${ex.message}")

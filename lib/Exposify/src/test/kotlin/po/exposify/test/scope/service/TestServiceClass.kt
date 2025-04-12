@@ -1,24 +1,57 @@
 package po.exposify.test.scope.service
 
-import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.assertAll
 import po.exposify.scope.service.enums.TableCreateMode
 import po.exposify.test.DatabaseTest
+import po.exposify.test.setup.TestClassItem
 import po.exposify.test.setup.TestPage
 import po.exposify.test.setup.TestPageDTO
+import po.exposify.test.setup.pageModels
 import po.exposify.test.setup.pageModelsWithSections
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertIsNot
 import kotlin.test.assertNotEquals
 
 class TestServiceClass : DatabaseTest() {
 
+
     @Test
-    fun `service instantiates root dtos and insert table records`(){
+    fun `postgres serializable classes work`(){
+        val testClassItems = listOf<TestClassItem>(TestClassItem(1,"class_1"), TestClassItem(2,"class_2"))
+        val pages = pageModels(quantity = 1, pageClasses = testClassItems)
+        connectionContext?.let {
+            it.service<TestPageDTO, TestPage>(TestPageDTO, TableCreateMode.FORCE_RECREATE) {
+                val originalPages = pages[0]
+                val updatedPageDtos = update(pages)
+                val updatePagesData = updatedPageDtos.getDataModels()
+                val updatedPageData = updatePagesData[0]
+                var firstPageClassRecord =  updatedPageData.pageClasses[0]
+                assertEquals(originalPages.pageClasses.count(), updatedPageData.pageClasses.count(), "ClassList count mismatch")
+                assertAll(
+                    {assertEquals(1, firstPageClassRecord.key, "Page classList key mismatch in updated")},
+                    {assertEquals("class_1", firstPageClassRecord.value, "Page classList value mismatch in updated")}
+                )
+
+                val selectedPageDtos = select()
+                val selectedPagesData = selectedPageDtos.getDataModels()
+                val selectedPagePageClasses = selectedPagesData[0].pageClasses
+                assertEquals(originalPages.pageClasses.count(), selectedPagePageClasses.count(), "PageClasses  count mismatch")
+                firstPageClassRecord =  selectedPagePageClasses[0]
+
+                assertAll(
+                    {assertEquals(1, firstPageClassRecord.key, "Page classList key mismatch in selection")},
+                    {assertEquals("class_1", firstPageClassRecord.value, "Page classList value mismatch in selection")}
+                )
+
+            }
+        }
+    }
+
+
+    @Test
+    fun `updates and selects DTO relations work`(){
 
         val pages = pageModelsWithSections(pageCount = 1, sectionsCount = 2)
-
         connectionContext?.let {
             it.service<TestPageDTO, TestPage>(TestPageDTO, TableCreateMode.FORCE_RECREATE) {
 
@@ -32,7 +65,7 @@ class TestServiceClass : DatabaseTest() {
 
                 assertAll(
                     { assertEquals(1, updatedPages.count(), "Page count mismatch") },
-                    { assertNotEquals(0, updatedPages[0].id, "Updated page id assignment failure")},
+                    { assertNotEquals(0, updatedPages[0].id, "Updated page id assignment failure") },
                     { assertEquals(originalPage.name, updatedPage.name, "Page name mismatch") },
                     { assertEquals(originalPage.langId, updatedPage.langId, "Page langId mismatch") },
                     { assertEquals(originalPage.sections.count(), updatedPage.sections.count(), "Section count mismatch") },
@@ -57,8 +90,6 @@ class TestServiceClass : DatabaseTest() {
                 )
             }
         }
-
-
-      //  assertTrue(open)
     }
+
 }

@@ -20,6 +20,7 @@ class TestPageEntity  (id: EntityID<Long>) : ExposifyEntityBase(id){
     companion object : LongEntityClass<TestPageEntity>(TestPages)
     var name by TestPages.name
     var langId by TestPages.langId
+    var pageClasses by TestPages.pageClasses
     var updated by TestPages.updated
     val sections by TestSectionEntity.Companion referrersOn TestSections.page
 }
@@ -30,8 +31,8 @@ class TestSectionEntity  (id: EntityID<Long>) : ExposifyEntityBase(id){
     var name by TestSections.name
     var description by TestSections.description
     var jsonLd by TestSections.jsonLd
-//    var classList by TestSections.classList
-//    var metaTags by TestSections.metaTags
+    var classList by TestSections.classList
+  //  var metaTags by TestSections.metaTags
     var updated by TestSections.updated
   //  var updatedBy by TestUserEntity referencedOn TestSections.updatedBy
   //  var pageId by TestSections.pageId

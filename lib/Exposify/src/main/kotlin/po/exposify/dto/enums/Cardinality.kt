@@ -1,4 +1,4 @@
-package po.exposify.binders.enums
+package po.exposify.dto.enums
 
 enum class Cardinality{
     ONE_TO_ONE,

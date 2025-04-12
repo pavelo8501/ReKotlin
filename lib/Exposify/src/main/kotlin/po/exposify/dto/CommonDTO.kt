@@ -1,8 +1,8 @@
 package po.exposify.dto
 
-import po.exposify.binders.relationship.BindingKeyBase
-import po.exposify.binders.PropertyBinder
-import po.exposify.binders.UpdateMode
+import po.exposify.dto.components.relation_binder.BindingKeyBase
+import po.exposify.dto.components.PropertyBinder
+import po.exposify.dto.components.UpdateMode
 import po.exposify.dto.components.DAOService
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.common.classes.MapBuilder
@@ -29,9 +29,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     val daoService: DAOService<DTO, ENTITY> = DAOService<DTO, ENTITY>(this, dtoClass.getEntityModel())
     lateinit var propertyBinderSource: PropertyBinder<DATA, ENTITY>
     val propertyBinder : PropertyBinder<DATA, ENTITY>
-        get() {
-            return propertyBinderSource
-        }
+        get() = propertyBinderSource
 
     override lateinit var dataContainer: DataModelContainer<DTO, DATA>
 
@@ -43,6 +41,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
                 onInitializationStatusChange?.invoke(this)
             }
         }
+
     override var id : Long = 0
         get(){return dataContainer.dataModel.id}
 

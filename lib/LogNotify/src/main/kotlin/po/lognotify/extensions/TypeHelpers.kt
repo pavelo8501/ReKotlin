@@ -50,8 +50,7 @@ fun <T: Any> T?.getOrThrowCancellation(message: String, handlerType : HandlerTyp
     return this ?: throw defaultException
 }
 
-
-inline fun <T: Any> T?.letOrThrow(ex : ExceptionBase, block: (T)-> T): Unit{
+inline fun <T: Any> T?.letOrThrow(ex : ExceptionBase, block: (T)-> T){
     if(this != null){
         block(this)
     } else {
@@ -59,7 +58,11 @@ inline fun <T: Any> T?.letOrThrow(ex : ExceptionBase, block: (T)-> T): Unit{
     }
 }
 
-inline fun <T: Any> T?.letOrThrow(message: String, code: Int,  processableBuilderFn: (String, Int) -> ExceptionBase, block: (T)-> T): T{
+inline fun <T: Any> T?.letOrThrow(
+    message: String,
+    code: Int,
+    processableBuilderFn: (String, Int) -> ExceptionBase, block: (T)-> T): T
+{
     return if (this != null) block(this) else throw processableBuilderFn.invoke(message, code)
 }
 

@@ -1,8 +1,7 @@
 package po.exposify.dto.components
 
-import po.exposify.binders.UpdateMode
-import po.exposify.binders.relationship.MultipleChildContainer
-import po.exposify.binders.relationship.SingleChildContainer
+import po.exposify.dto.components.relation_binder.MultipleChildContainer
+import po.exposify.dto.components.relation_binder.SingleChildContainer
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.classes.DTOClass
