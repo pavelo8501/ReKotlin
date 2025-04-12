@@ -1,6 +1,7 @@
 package po.lognotify.classes.task
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import po.lognotify.classes.notification.Notifier
 import po.lognotify.exceptions.ExceptionHandled
@@ -16,6 +17,7 @@ class TaskHandler<R>(
     val exceptionHandler: ExceptionHandled = ExceptionHandler(task),
 ): ExceptionsThrown by exceptionThrower, ExceptionHandled by exceptionHandler, ResultantTask  {
 
+    val currentTaskContext = task.context
 
     override val startTime: Long = task.startTime
     override var endTime: Long = task.endTime
@@ -35,4 +37,14 @@ class TaskHandler<R>(
     suspend fun warn(message: String){
         notifier.warn(message)
     }
+
+
+    inline fun <T, R2>  withTaskContext(receiver: T,  crossinline block : suspend T.() -> R2):R2{
+        return runBlocking {
+            withContext(currentTaskContext) {
+                block.invoke(receiver)
+            }
+        }
+    }
+
 }

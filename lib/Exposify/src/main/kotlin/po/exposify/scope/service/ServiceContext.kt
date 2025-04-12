@@ -5,7 +5,6 @@ import kotlinx.coroutines.Deferred
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.experimental.suspendedTransactionAsync
-import org.jetbrains.exposed.sql.transactions.transaction
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.common.interfaces.AsContext
 import po.exposify.dto.components.CrudResult
@@ -14,6 +13,7 @@ import po.exposify.classes.delete
 import po.exposify.classes.pick
 import po.exposify.classes.select
 import po.exposify.classes.update
+import po.exposify.dto.components.CrudResultSingle
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.extensions.QueryConditions
@@ -24,7 +24,6 @@ import po.exposify.scope.sequence.classes.SequenceHandler2
 import po.exposify.scope.sequence.models.SequencePack2
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.startTaskAsync
-import po.lognotify.extensions.trueOrThrow
 import kotlin.reflect.KProperty1
 
 class ServiceContext<DTO, DATA>(
@@ -99,6 +98,15 @@ class ServiceContext<DTO, DATA>(
             }.await()
         }.resultOrException()
         return CompletableDeferred<CrudResult<DTO, DATA>>(crudResult)
+    }
+
+    fun update(dataModel : DATA): CrudResultSingle<DTO,DATA> {
+        val result =  startTaskAsync("Update", "ServiceContext") {
+            suspendedTransactionAsync {
+                dtoModel.update(dataModel)
+            }.await()
+        }.resultOrException()
+        return result
     }
 
     fun update(dataModels : List<DATA>): CrudResult<DTO,DATA> {

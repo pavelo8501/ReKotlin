@@ -1,0 +1,63 @@
+package po.exposify.dto.components.property_binder.bindings
+
+import po.exposify.classes.DTOClass
+import po.exposify.classes.interfaces.DataModel
+import po.exposify.classes.pickById
+import po.exposify.dto.components.property_binder.enums.PropertyType
+import po.exposify.dto.components.property_binder.enums.UpdateMode
+import po.exposify.dto.components.property_binder.interfaces.PropertyBindingOption
+import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.entity.classes.ExposifyEntityBase
+import po.exposify.extensions.safeCast
+import po.lognotify.extensions.getOrThrowDefault
+import kotlin.reflect.KMutableProperty1
+import kotlin.reflect.KProperty1
+
+class ReferencedBinding<DATA, ENTITY>(
+    override val dataProperty: KMutableProperty1<DATA, Long>,
+    val entityProperty: KMutableProperty1<ENTITY, out ExposifyEntityBase>,
+    val dtoClass: DTOClass<out ModelDTO>,
+): PropertyBindingOption<DATA, ENTITY, Long> where DATA: DataModel, ENTITY: ExposifyEntityBase
+{
+    override val propertyType: PropertyType = PropertyType.REFERENCED
+
+    val castedEntityProperty =   entityProperty.safeCast<KMutableProperty1<ENTITY,ExposifyEntityBase>>()
+        .getOrThrowDefault("Cast to KMutableProperty1<ENTITY,ExposifyEntityBase> failed")
+
+    override fun onModelUpdated(callback: (PropertyBindingOption<DATA, ENTITY, Long>) -> Unit) {
+
+    }
+
+    override fun onPropertyUpdated(callback: (String, PropertyType, UpdateMode) -> Unit) {
+        TODO("Not yet implemented")
+    }
+
+    override fun updated(name: String, type: PropertyType, updateMode: UpdateMode){
+
+        TODO("Not yet implemented")
+    }
+
+    private fun updateEntityToModel(entity:ENTITY, data :DATA, forced: Boolean){
+
+    }
+
+    private suspend fun updateModelToEntity(data:DATA, entity: ENTITY, forced: Boolean){
+        val castedDtoClass = dtoClass.safeCast<DTOClass<ModelDTO>>().getOrThrowDefault("Cast to DTOClass<ModelDTO> failed")
+        val referencedId = dataProperty.get(data)
+        if(!dtoClass.initialized){
+            dtoClass.initialization()
+        }
+        val dto = castedDtoClass.pickById<DataModel>(referencedId).getDTO()
+        castedEntityProperty.set(entity, dto.entityDAO)
+
+    }
+
+    suspend fun update(data: DATA, entity : ENTITY, mode: UpdateMode){
+        when(mode){
+            UpdateMode.ENTITY_TO_MODEL ->  updateEntityToModel(entity, data, false)
+            UpdateMode.ENTITY_TO_MODEL_FORCED -> updateEntityToModel(entity, data, true)
+            UpdateMode.MODEL_TO_ENTITY -> updateModelToEntity(data, entity,false)
+            UpdateMode.MODEL_TO_ENTITY_FORCED -> updateModelToEntity(data, entity,true)
+        }
+    }
+}

@@ -1,8 +1,8 @@
 package po.exposify.dto
 
 import po.exposify.dto.components.relation_binder.BindingKeyBase
-import po.exposify.dto.components.PropertyBinder
-import po.exposify.dto.components.UpdateMode
+import po.exposify.dto.components.property_binder.PropertyBinder
+import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.components.DAOService
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.common.classes.MapBuilder
@@ -64,7 +64,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         return repositories.map.values.toList()
     }
 
-    fun updateBinding(entity : ENTITY, updateMode: UpdateMode){
+    suspend fun updateBinding(entity : ENTITY, updateMode: UpdateMode){
         propertyBinder.update(dataContainer.dataModel, entity, updateMode)
         daoService.setLastEntity(entity)
         if(updateMode == UpdateMode.ENTITY_TO_MODEL){

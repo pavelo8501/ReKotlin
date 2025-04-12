@@ -4,6 +4,7 @@ import org.jetbrains.exposed.dao.id.IdTable
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.components.CrudResult
 import po.exposify.dto.CommonDTO
+import po.exposify.dto.components.CrudResultSingle
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.extensions.QueryConditions
@@ -13,6 +14,20 @@ import po.lognotify.extensions.subTask
 import po.lognotify.extensions.trueOrThrow
 import kotlin.Long
 import kotlin.collections.toList
+
+
+internal suspend fun <DATA> DTOClass<ModelDTO>.pickById(
+    id: Long
+): CrudResultSingle<ModelDTO, DATA>  where  DATA : DataModel  {
+
+    val freshDto = config.dtoFactory.createDto()
+    val entity = freshDto.daoService.pickById(id)
+    val checked =  entity.getOrThrowCancellation("Entity not found")
+    val dtos = repository.getOrThrowCancellation("Repository.kt uninitialized").select(listOf(checked))
+    val checkedList = dtos.filterIsInstance<CommonDTO<ModelDTO, DATA, ExposifyEntityBase>>()
+    return CrudResultSingle<ModelDTO, DATA>(checkedList[0])
+}
+
 
 /**
  * Selects a single entity from the database based on the provided conditions and maps it to a DTO.
@@ -35,7 +50,7 @@ internal suspend inline fun <DTO: ModelDTO, DATA: DataModel, ENTITY: ExposifyEnt
 
     val freshDto = config.dtoFactory.createDto()
     val entity = freshDto.daoService.pick(conditions.build())
-    val checked = entity.getOrThrowCancellation("Entity not wound")
+    val checked = entity.getOrThrowCancellation("Entity not found")
     val dtos =  repository.getOrThrowCancellation("Repository.kt uninitialized").select(listOf(checked))
     val checkedList = dtos.filterIsInstance<CommonDTO<DTO, DATA, ExposifyEntityBase>>()
     return  CrudResult(checkedList)
@@ -65,13 +80,24 @@ internal suspend inline fun <DTO, DATA, ENTITY>  DTOClass<DTO>.select(
 
     isTransactionReady().trueOrThrow("Transaction should be active")
     val freshDto = config.dtoFactory.createDto()
-    val entities = freshDto.daoService.selectAll().toList()
+    val entities = freshDto.daoService.select().toList()
     val dtos = repository.getOrThrowCancellation("Repository.kt uninitialized").select(entities)
     val checkedList = dtos.filterIsInstance<CommonDTO<DTO, DATA, ExposifyEntityBase>>()
     handler.info("Created count ${checkedList.count()} DTOs")
     CrudResult<DTO, DATA>(checkedList)
 }.resultOrException()
 
+
+
+internal suspend fun <DTO, DATA> DTOClass<DTO>.update(
+    dataModel: DATA,
+): CrudResultSingle<DTO, DATA> where DTO: ModelDTO, DATA : DataModel = subTask("Update Repository.kt")  { handler->
+    isTransactionReady().trueOrThrow("Transaction should be active")
+    val dtos = repository.getOrThrowCancellation("DTORepository uninitialized in DTOClass").update(listOf(dataModel))
+    val checkedList = dtos.filterIsInstance<CommonDTO<DTO, DATA, ExposifyEntityBase>>()
+    handler.info("Created ${checkedList.count()} DTOs")
+    CrudResultSingle<DTO, DATA>(checkedList[0])
+}.resultOrException()
 
 internal suspend fun <DTO, DATA> DTOClass<DTO>.update(
     dataModels: List<DATA>,

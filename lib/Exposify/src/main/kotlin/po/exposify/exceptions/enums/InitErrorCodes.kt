@@ -29,6 +29,7 @@ enum class ExceptionCode(val value: Int) {
 
     // Binding / Data Model Layer
     BINDING_PROPERTY_MISSING(5001),
+    REQUESTED_RESULT_MISMATCH(5002),
 
     // Factory & DTO
     FACTORY_CREATE_FAILURE(6001);

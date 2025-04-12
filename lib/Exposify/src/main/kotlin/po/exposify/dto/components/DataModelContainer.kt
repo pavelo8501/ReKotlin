@@ -4,6 +4,9 @@ import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.components.relation_binder.models.DataPropertyInfo
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.common.classes.ClassBlueprint
+import po.exposify.dto.components.property_binder.PropertyBinder
+import po.exposify.dto.components.property_binder.enums.PropertyType
+import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.exceptions.OperationsException

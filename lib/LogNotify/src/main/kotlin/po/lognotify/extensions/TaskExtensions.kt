@@ -29,7 +29,9 @@ fun <T, R> T.startTaskAsync(
     return casted
 }
 
-inline fun <T, R> TaskHandler<R>.withTxScope(scope: T, block: T.() -> R): R = block(scope)
+
+
+
 
 
 
