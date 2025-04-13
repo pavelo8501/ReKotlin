@@ -1,15 +1,14 @@
 package po.exposify.constructors
 
-import com.mysql.cj.x.protobuf.MysqlxCrud
-import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.classes.interfaces.DataModel
-import po.exposify.exceptions.ExceptionCodes
+import po.exposify.common.classes.ClassData
+import po.exposify.common.classes.ConstructorBuilder
+import po.exposify.common.interfaces.BlueprintContainer
 import po.exposify.exceptions.OperationsException
-import po.exposify.dto.CommonDTO
+import po.exposify.exceptions.enums.ExceptionCode
 import kotlin.collections.mapOf
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
-import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KParameter
 import kotlin.reflect.KProperty1
 import kotlin.reflect.KType
@@ -38,8 +37,16 @@ class DataModelBlueprint<DATA: DataModel>(
         }
     }
 
-    fun getClass(): KClass<DATA> {
+    override fun getClass(): KClass<DATA> {
         return clazz
+    }
+
+    override fun addParameter(param: KParameter) {
+        TODO("Not yet implemented")
+    }
+
+    override fun <N : Any> setNestedMap(map: Map<String, Map<String, ClassData<N>>>) {
+        TODO("Not yet implemented")
     }
 
     override var  externalParamLookupFn : ( (type: KParameter) -> Any? )? = null
@@ -47,69 +54,14 @@ class DataModelBlueprint<DATA: DataModel>(
     fun setExternalParamLookupFn(fn : (type: KParameter) -> Any? ){
         externalParamLookupFn = fn
     }
-
-}
-
-
-class EntityBlueprint<ENTITY : LongEntity >(
-    clazz : KClass<ENTITY>
-) : ClassBlueprintBase<ENTITY>(clazz){
-
-    fun getClass(): KClass<ENTITY> {
-       return clazz
-    }
-    override var  externalParamLookupFn : ( (type: KParameter) -> Any? )? = null
-    @JvmName("externalParamLookupFnEntityBlueprint")
-    fun setExternalParamLookupFn(fn : (type: KParameter) -> Any? ){
-        externalParamLookupFn = fn
-    }
-
-}
-
-class DTOBlueprint<DATA, ENTITY>(
-    clazz  : KClass<out CommonDTO<DATA, ENTITY>>,
-) : ClassBlueprintBase<CommonDTO<DATA,ENTITY>>(
-    clazz as KClass<CommonDTO<DATA, ENTITY>>)
-        where ENTITY : LongEntity, DATA : DataModel{
-
-
-    override var  externalParamLookupFn : ( (type: KParameter) -> Any? )? = null
-    @JvmName("externalParamLookupFnDTOBlueprint")
-    fun setExternalParamLookupFn(fn : (type: KParameter) -> Any? ){
-        externalParamLookupFn = fn
-    }
-
 }
 
 
 
 
 
-//abstract class CovariantClassBlueprintBase<T: Any>(val clazz: KClass<out T>){
-//
-//    protected var effectiveConstructor : KFunction<T>? = null
-//    private var effectiveConstructorSize : Number  = 0
-//
-//    lateinit var constructorBuilder : ConstructorBuilder
-//
-//    fun getConstructor(): KFunction<T>{
-//        return effectiveConstructor?: throw OperationsException(
-//            "Effective constructor not set", ExceptionCodes.CONSTRUCTOR_MISSING)
-//    }
-//
-//    fun initialize(builder : ConstructorBuilder){
-//        constructorBuilder = builder
-//        builder.getBlueprint(getClass(), this)
-//    }
-//
-//    fun getClass():KClass<out T>{
-//        return clazz
-//    }
-//}
 
-
-
-abstract class ClassBlueprintBase<T: Any>(protected val clazz: KClass<T>){
+abstract class ClassBlueprintBase<T: Any>(protected val clazz: KClass<T>) : BlueprintContainer<T> {
 
     var className: String = ""
     var qualifiedName : String = ""
@@ -118,7 +70,7 @@ abstract class ClassBlueprintBase<T: Any>(protected val clazz: KClass<T>){
     var constructorParams  = mutableMapOf<KParameter,  Any?>()
         private set
 
-    var nestedClasses = mapOf<String,  Map<String,ClassData>>()
+    var nestedClasses = mapOf<String,  Map<String, ClassData<*>>>()
     private set
 
     var propertyMap = mapOf<String, KProperty1<T, *>>()
@@ -130,21 +82,21 @@ abstract class ClassBlueprintBase<T: Any>(protected val clazz: KClass<T>){
     lateinit var constructorBuilder : ConstructorBuilder
 
 
-    fun initialize(builder : ConstructorBuilder){
+    override fun initialize(builder : ConstructorBuilder){
         constructorBuilder = builder
         builder.getBlueprint(clazz, this)
     }
 
 
-    fun setConstructor(constructor : KFunction<T>){
+    override fun setConstructor(constructor : KFunction<T>){
         effectiveConstructor = constructor
         effectiveConstructorSize = constructor.parameters.size
     }
 
 
     abstract var  externalParamLookupFn : ( (type: KParameter) -> Any? )?
-    @JvmName("externalParamLookupFnOfBaseClass")
-    fun getArgsForConstructor(): Map<KParameter, Any?>{
+
+    override fun getArgsForConstructor(): Map<KParameter, Any?>{
         getConstructor().let { constructor ->
             val args =  constructor.parameters.associateWith { param ->
                 constructorBuilder.let { builder->
@@ -162,12 +114,12 @@ abstract class ClassBlueprintBase<T: Any>(protected val clazz: KClass<T>){
         }
     }
 
-    open fun getConstructor(): KFunction<T>{
+    override fun getConstructor(): KFunction<T>{
         return effectiveConstructor?:
-            throw OperationsException("Effective constructor not set", ExceptionCodes.CONSTRUCTOR_MISSING)
+            throw OperationsException("Effective constructor not set", ExceptionCode.CONSTRUCTOR_MISSING)
     }
 
-    fun addAsArg(param : KParameter){
+    override fun addParameter(param : KParameter){
         val paramName = param.name ?: "_"
         constructorArgs.add(ConstructorArgument(paramName, param.type, param.isOptional) )
     }
@@ -176,11 +128,11 @@ abstract class ClassBlueprintBase<T: Any>(protected val clazz: KClass<T>){
         constructorParams = params.toMutableMap()
     }
 
-    fun setNestedMap(map : Map<String, Map<String,ClassData>>){
+    override fun <N : Any> setNestedMap(map : Map<String, Map<String, ClassData<N>>>){
         nestedClasses = map
     }
 
-    fun setPropertyMap(map:Map<String, KProperty1<T, *>>){
+    override fun setPropertyMap(map:Map<String, KProperty1<T, *>>){
         propertyMap = map
     }
 }

@@ -120,8 +120,9 @@ class JWTService{
 
     @JvmName("getServiceVerifier")
     fun getVerifier(): JWTVerifier{
-        if(!::verifier.isInitialized) throw ConfigurationException("Verifier not initialized. Call configure() first",
-            HandleType.PROPAGATE_TO_PARENT)
+        if(!::verifier.isInitialized) throw ConfigurationException(
+            HandleType.PROPAGATE_TO_PARENT,
+            "Verifier not initialized. Call configure() first")
         return verifier
     }
 

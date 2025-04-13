@@ -8,6 +8,12 @@ enum class SequenceID(val value: Int) {
 
     companion object {
         private val VALUES = entries.toTypedArray()
-        fun value(value: Int): SequenceID = VALUES.firstOrNull { it.value == value }?: DEFAULT
+
+        fun sequenceID(value: Int): SequenceID = VALUES.firstOrNull { it.value == value }?: DEFAULT
+
+        fun asValue(sequenceId: SequenceID): Int {
+            return sequenceId.value
+        }
+
     }
 }

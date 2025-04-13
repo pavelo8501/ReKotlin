@@ -3,57 +3,48 @@ package po.exposify.scope.connection
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Database
-import po.exposify.classes.DTOClass
+import org.jetbrains.exposed.sql.transactions.experimental.suspendedTransactionAsync
+import org.jetbrains.exposed.sql.transactions.transaction
 import po.exposify.classes.interfaces.DataModel
+import po.exposify.classes.DTOClass
+import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.entity.classes.ExposifyEntityBase
+import po.exposify.extensions.safeCast
 import po.exposify.scope.service.ServiceClass
 import po.exposify.scope.service.ServiceContext
-import po.exposify.scope.service.TableCreateMode
+import po.exposify.scope.service.enums.TableCreateMode
+import po.lognotify.TasksManaged
+import po.lognotify.extensions.getOrThrowDefault
+import po.lognotify.extensions.resultOrDefault
+import po.lognotify.extensions.resultOrNull
+import po.lognotify.extensions.startTask
+import po.lognotify.extensions.startTaskAsync
+import po.lognotify.extensions.subTask
 
 class ConnectionContext(
-    var connectionName: String,
-    val connection: Database,
-    private val connectionClass :  ConnectionClass
-) {
+    internal val connection: Database,
+    private val connClass :  ConnectionClass
+):  TasksManaged {
 
     val isOpen : Boolean
-        get(){return  connectionClass.isConnectionOpen }
+        get(){return  connClass.isConnectionOpen }
 
+    fun <DTO, DATA> service(
+        dtoClass : DTOClass<DTO>,
+        createOptions : TableCreateMode = TableCreateMode.CREATE,
+        context: ServiceContext<DTO, DATA>.()->Unit,
+    ) where DTO : ModelDTO, DATA : DataModel{
+       val serviceClass =  ServiceClass<DTO, DATA, ExposifyEntityBase>(connClass, dtoClass, createOptions)
 
-    fun <DATA, ENTITY>ConnectionContext.service(
-        rootDtoModel : DTOClass<DATA,ENTITY>,
-        serviceCreateOption : TableCreateMode? = null,
-        context: suspend ServiceContext<DATA,ENTITY>.()->Unit,
-    ) where DATA : DataModel,   ENTITY : LongEntity {
-        try {
-            ServiceClass(connectionClass, rootDtoModel, serviceCreateOption).let {
-                connectionClass.addService(it)
-                runBlocking {
-                    it.launch(context)
-                }
-            }
-        }catch (exception: Exception){
-            println(exception.message)
-            throw exception
+        startTaskAsync("Create Service") {
+            serviceClass.launch(context)
+        }.onComplete {
+            connClass.addService(serviceClass)
         }
     }
 
-    /**
-     * Extends the given DTO model's service context within the hosting application.
-     *
-     * This function attempts to retrieve a service instance associated with the provided `dtoModel`.
-     * If found, it invokes the `attachToContext` function on the service, extending its existing context.
-     *
-     * @param DATA The type of the data model.
-     * @param ENTITY The type of the associated database entity, extending [LongEntity].
-     * @param dtoModel The DTO model owning the service context
-     **/
-    fun <DATA: DataModel, ENTITY: LongEntity> attachToContext(
-        dtoModel : DTOClass<DATA, ENTITY>,
-        context: ServiceContext<DATA,ENTITY>.()->Unit ): Boolean{
-        connectionClass.getService("${dtoModel.sourceClass.simpleName}|Service")?.let { serviceClass->
-           return serviceClass.attachToContext<DATA, ENTITY>(dtoModel, context)
-        }
-        return false
+    fun clearServices(){
+        connClass.clearServices()
     }
 
 }

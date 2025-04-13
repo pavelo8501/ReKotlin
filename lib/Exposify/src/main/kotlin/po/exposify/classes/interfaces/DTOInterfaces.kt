@@ -7,13 +7,10 @@ import kotlinx.datetime.toLocalDateTime
 
 
 interface DTOInstance{
-  val className : String
-  val qualifiedName : String
-
+  val personalName : String
     fun nowTime(): LocalDateTime {
         return LocalDateTime.Companion.parse(Clock.System.now().toLocalDateTime(TimeZone.UTC).toString())
     }
-
 }
 
 //interface DTOEntity<DATA: DataModel,ENTITY:LongEntity>{
@@ -25,9 +22,9 @@ interface DTOInstance{
     Interface  identifying DTO Entity Class
     Part of the property data handling system
  */
-interface DTOModel{
-    val dataModel: DataModel
-}
+//interface DTOModel{
+//    val dataModel: DataModel
+//}
 
 /**
     Interface  identifying DataModel Class

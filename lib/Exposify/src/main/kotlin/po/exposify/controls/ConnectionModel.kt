@@ -6,36 +6,34 @@ import po.exposify.scope.connection.ConnectionContext
 
 
 class ConnectionInfo(
-    val host: String,
+    val host: String = "",
     val dbName: String,
     val user: String,
     val pwd: String,
-    val port: String = "5432",
-    val driver: String = "org.postgresql.Driver"
+    val port: String = "",
+    val driver: String = "org.postgresql.Driver",
+    val jdbcUrl: String? = null
 ){
-
    val connections : MutableList<ConnectionContext> = mutableListOf()
-
-   inner class ConnectorInfo(
-       val driverClassName : String = "org.postgresql.Driver",
-       val jdbcUrl : String = "jdbc:postgresql://$host:$port/$dbName?user=$user&password=$pwd",
-       val maximumPoolSize : Int = 10,
-       val isAutoCommit: Boolean = false,
-       val transactionIsolation: String  = "TRANSACTION_REPEATABLE_READ"
-    )
-
-    fun  setError(ex: Exception){
-
-    }
 
     var lastError : String? = null
     var connection: Database? = null
     var hikariDataSource : HikariDataSource? = null
     val driverClassName = "org.postgresql.Driver"
 
-    val connectionInfo = ConnectorInfo(driverClassName, "jdbc:postgresql://$host:$port/$dbName?user=$user&password=$pwd", 10, false, "TRANSACTION_REPEATABLE_READ")
+    val errorList = mutableListOf<String>()
+
+    fun registerError(th: Throwable){
+        errorList.add(th.message.toString())
+    }
 
     fun getConnectionString(): String{
-        return  "jdbc:postgresql://$host:$port/$dbName?user=$user&password=$pwd"
+        if(jdbcUrl != null){
+            return  jdbcUrl
+         //   val separator = if ("?" in jdbcUrl) "&" else "?"
+           // "$jdbcUrl${separator}user=$user&password=$pwd"
+        }else{
+            return  "jdbc:postgresql://$host:$port/$dbName"
+        }
     }
 }

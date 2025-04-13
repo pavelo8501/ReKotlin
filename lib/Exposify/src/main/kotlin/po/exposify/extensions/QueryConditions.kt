@@ -20,32 +20,32 @@ class WhereCondition<T> (private val table: T) : QueryConditions<T>() where T : 
         expression = expression + condition
     }
 
-    fun <V> equalsTo(column: Column<V>, value: V): QueryConditions<T>  {
+    fun <V> equalsTo(column: Column<V>, value: V): WhereCondition<T>  {
         addCondition(column eq value)
         return this
     }
 
-    fun <V : Comparable<V>> greaterThan(column: Column<V>, value: V): QueryConditions<T> {
+    fun <V : Comparable<V>> greaterThan(column: Column<V>, value: V): WhereCondition<T> {
         addCondition(column.greater(value))
         return this
     }
 
-    fun <V : Comparable<V>> greaterOrEquals(column: Column<V>, value: V): QueryConditions<T> {
+    fun <V : Comparable<V>> greaterOrEquals(column: Column<V>, value: V): WhereCondition<T> {
         addCondition(column.greaterEq(value))
         return this
     }
 
-    fun <V : Comparable<V>> lessThan(column: Column<V>, value: V): QueryConditions<T>  {
+    fun <V : Comparable<V>> lessThan(column: Column<V>, value: V): WhereCondition<T>  {
         addCondition( column.less(value))
         return this
     }
 
-    fun <V : Comparable<V>> lessOrEquals(column: Column<V>, value: V): QueryConditions<T>  {
+    fun <V : Comparable<V>> lessOrEquals(column: Column<V>, value: V): WhereCondition<T>  {
         addCondition( column.lessEq(value))
         return this
     }
 
-    fun likeString(column: Column<String>, value: String?): QueryConditions<T> {
+    fun likeString(column: Column<String>, value: String?): WhereCondition<T> {
         if (value != null) {
             addCondition( column like value)
         }
@@ -54,6 +54,7 @@ class WhereCondition<T> (private val table: T) : QueryConditions<T>() where T : 
 }
 
 sealed class QueryConditions<T>()  where T : IdTable<Long> {
+
     abstract val expression: Set<Op<Boolean>>
     private fun combineConditions(conditions: Set<Op<Boolean>>): Op<Boolean> {
         return conditions.reduceOrNull { acc, op -> acc and op } ?: Op.TRUE

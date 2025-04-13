@@ -14,7 +14,7 @@ fun echo(ex: Exception, message: String? = null){
     println("Exception happened in Exposify:  Exception:${ex.message.toString()}. $message")
 }
 
-fun launchService(connection:ConnectionContext, block: ConnectionContext.()-> Unit ){
+fun launchService(connection: ConnectionContext, block: ConnectionContext.()-> Unit ){
     if(connection.isOpen){
         connection.block()
     }
@@ -33,16 +33,56 @@ object DatabaseManager {
         connectionUpdated = fn
     }
 
-    private fun provideDataSource(connectionInfo:ConnectionInfo): HikariDataSource {
-        val hikariConfig= HikariConfig().apply {
-            driverClassName = connectionInfo.driverClassName
-            jdbcUrl = connectionInfo.getConnectionString()
-            maximumPoolSize = 10
-            isAutoCommit = false
-            transactionIsolation = "TRANSACTION_READ_COMMITTED" // Changed from TRANSACTION_REPEATABLE_READ
-            validate()
+    private fun provideDataSource(connectionInfo:ConnectionInfo): HikariDataSource? {
+        try {
+            val hikariConfig= HikariConfig().apply {
+                driverClassName = connectionInfo.driverClassName
+                jdbcUrl = connectionInfo.getConnectionString()
+                username = connectionInfo.user
+                password = connectionInfo.pwd
+                maximumPoolSize = 10
+                isAutoCommit = false
+                transactionIsolation = "TRANSACTION_READ_COMMITTED" // Changed from TRANSACTION_REPEATABLE_READ
+                validate()
+            }
+            val source =  HikariDataSource(hikariConfig)
+            return source
+        }catch (ex: Exception){
+            println(ex.message.toString())
+            return null
+        }catch (th: Throwable){
+            println(th.message.toString())
+            return null
         }
-        return HikariDataSource(hikariConfig)
+    }
+
+    fun openConnectionSync(
+        connectionInfo : ConnectionInfo,
+        sessionManager: ManagedSession,
+        context: (ConnectionContext.()->Unit)? = null
+    ): ConnectionContext? {
+
+        try {
+            connectionInfo.hikariDataSource = provideDataSource(connectionInfo)
+            val newConnection = Database.connect(connectionInfo.hikariDataSource!!)
+            val connectionClass = ConnectionClass(connectionInfo, newConnection, sessionManager)
+            val connectionContext = ConnectionContext(
+                newConnection, connectionClass
+            ).also {
+                connectionInfo.connections.add(it)
+            }
+            addConnection(connectionClass)
+
+            context?.invoke(connectionContext)
+            connectionUpdated?.invoke("Connected", true)
+            return connectionContext
+        }catch (ex: Exception){
+            println(ex.message)
+            return  null
+        }catch (th: Throwable){
+            println(th.message.toString())
+            return null
+        }
     }
 
     suspend fun openConnection(
@@ -58,7 +98,6 @@ object DatabaseManager {
                 val newConnection = Database.connect(connectionInfo.hikariDataSource!!)
                 val connectionClass = ConnectionClass(connectionInfo, newConnection, sessionManager)
                 val connectionContext = ConnectionContext(
-                    "Connection ${connectionInfo.dbName}",
                     newConnection, connectionClass
                 ).also {
                     connectionInfo.connections.add(it)
@@ -69,7 +108,7 @@ object DatabaseManager {
                 return true
             }.getOrElse {
                 connectionUpdated?.invoke(it.message.toString(), false)
-                connectionInfo.setError(it as Exception)
+                connectionInfo.registerError(it)
                 connectionInfo.lastError = it.message
                 if (retriesLeft > 0) {
                     retriesLeft--

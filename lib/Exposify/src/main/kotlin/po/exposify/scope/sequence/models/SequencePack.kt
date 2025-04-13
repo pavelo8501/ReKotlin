@@ -1,53 +1,32 @@
 package po.exposify.scope.sequence.models
 
-import kotlinx.coroutines.Deferred
-import org.jetbrains.exposed.dao.LongEntity
+import org.jetbrains.exposed.dao.id.IdTable
 import po.exposify.classes.interfaces.DataModel
-import po.exposify.exceptions.ExceptionCodes
+import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.exceptions.OperationsException
+import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.extensions.QueryConditions
+import po.exposify.extensions.WhereCondition
 import po.exposify.scope.sequence.SequenceContext
 import po.exposify.scope.sequence.classes.SequenceHandler
 import po.exposify.scope.service.ServiceClass
 
-data class SequencePack<DATA,ENTITY>(
-    private val context : SequenceContext<DATA,ENTITY>,
-    internal val serviceClass: ServiceClass<DATA, ENTITY>,
-    private val sequenceFn : suspend  SequenceContext<DATA, ENTITY>.() -> Unit,
-    private val handler: SequenceHandler<DATA, ENTITY>,
-) where  DATA : DataModel, ENTITY : LongEntity {
 
-    private var sequenceParams = mapOf<String, String>()
-    private var sequenceInputList = listOf<DATA>()
+data class SequencePack<DTO, DATA>(
+    private val context : SequenceContext<DTO, DATA>,
+    internal val serviceClass: ServiceClass<DTO, DATA, ExposifyEntityBase>,
+    private val sequenceFn : suspend  SequenceContext<DTO, DATA>.(inputData: List<DATA>, conditions: WhereCondition<IdTable<Long>>?) -> Unit,
+    private val handler: SequenceHandler<DTO, DATA>,
+) where  DTO : ModelDTO,  DATA : DataModel{
 
-    fun saveParams(params: Map<String, String>){
-        sequenceParams = params
+
+    fun getSequenceHandler():SequenceHandler<DTO, DATA>{
+        return handler
     }
 
-    fun getParam(key: String): String{
-        val value  = sequenceParams[key]
-        if(value != null){
-            return  value
-        }else{
-            throw OperationsException("Parameter with key $key not found in sequence ${this.sequenceName()}",
-                ExceptionCodes.KEY_NOT_FOUND)
-        }
-    }
-
-    fun getInputList(): List<DATA>{
-        return sequenceInputList
-    }
-
-    fun saveInputList(inputList : List<DATA>){
-        sequenceInputList = inputList
-    }
-
-   suspend fun start(): Deferred<List<DATA>>{
-       context.sequenceFn()
-       val deferred =  context.checkout()
-       return  deferred
-   }
-
-   fun sequenceName(): String{
-        return handler.thisKey
+    suspend fun start(): List<DATA>{
+        context.sequenceFn(handler.inputData, handler.whereConditions)
+        return  context.checkout()
     }
 }

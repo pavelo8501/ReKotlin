@@ -10,7 +10,7 @@ class ServiceMetadataBuilder<DATA_MODEL, ENTITY> where DATA_MODEL : DataModel, E
     fun service(init: ServiceDataBuilder<DATA_MODEL, ENTITY>.() -> Unit) {
         val builder = ServiceDataBuilder<DATA_MODEL, ENTITY>()
         builder.init()
-        service = builder.build()
+       // service = builder.build()
     }
 
     fun build(): ServiceMetadata<DATA_MODEL, ENTITY> {
