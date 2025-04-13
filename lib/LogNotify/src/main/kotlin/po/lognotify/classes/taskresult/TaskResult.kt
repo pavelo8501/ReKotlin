@@ -21,11 +21,11 @@ class TaskResult<R : Any?>(private val task: TaskSealedBase<R>): ManagedResult<R
 
     override var isSuccess : Boolean = false
 
-    internal var onCompleteFn: (suspend (ManagedResult<R>) -> Unit)? = null
+    internal var onCompleteFn: ((ManagedResult<R>) -> Unit)? = null
     internal var onResultFn: ((R) -> Unit)? = null
     internal var onFailFn: ((Throwable) -> Unit)? = null
 
-    override suspend fun onComplete(block: suspend (ManagedResult<R>) -> Unit):ManagedResult<R>{
+    override fun onComplete(block: (ManagedResult<R>) -> Unit):ManagedResult<R>{
         onCompleteFn = block
         block.invoke(this)
         return this

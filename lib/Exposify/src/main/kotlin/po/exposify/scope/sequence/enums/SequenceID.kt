@@ -11,7 +11,7 @@ enum class SequenceID(val value: Int) {
 
         fun sequenceID(value: Int): SequenceID = VALUES.firstOrNull { it.value == value }?: DEFAULT
 
-        fun value(sequenceId: SequenceID): Int {
+        fun asValue(sequenceId: SequenceID): Int {
             return sequenceId.value
         }
 

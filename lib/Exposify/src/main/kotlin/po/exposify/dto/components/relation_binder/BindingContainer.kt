@@ -9,7 +9,7 @@ import po.exposify.dto.CommonDTO
 import po.exposify.classes.DTOClass
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase
-import po.exposify.wrappers.NullablePropertyWrapper
+import po.exposify.dto.components.relation_binder.classes.NullablePropertyWrapper
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
 

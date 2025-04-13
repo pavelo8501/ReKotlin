@@ -33,15 +33,18 @@ class ConnectionContext(
         dtoClass : DTOClass<DTO>,
         createOptions : TableCreateMode = TableCreateMode.CREATE,
         context: ServiceContext<DTO, DATA>.()->Unit,
-    ) where DTO : ModelDTO, DATA : DataModel = startTaskAsync("Create Service") {
-        suspendedTransactionAsync {
+    ) where DTO : ModelDTO, DATA : DataModel{
        val serviceClass =  ServiceClass<DTO, DATA, ExposifyEntityBase>(connClass, dtoClass, createOptions)
 
-        val casted = serviceClass.safeCast<ServiceClass<ModelDTO, DataModel, ExposifyEntityBase>>()
-            .getOrThrowDefault("Cast toServiceClass<ModelDTO, DataModel, ExposifyEntityBase> failed")
-        connClass.addService(casted)
+        startTaskAsync("Create Service") {
             serviceClass.launch(context)
-        }.await()
-    }.resultOrDefault(Unit)
+        }.onComplete {
+            connClass.addService(serviceClass)
+        }
+    }
+
+    fun clearServices(){
+        connClass.clearServices()
+    }
 
 }

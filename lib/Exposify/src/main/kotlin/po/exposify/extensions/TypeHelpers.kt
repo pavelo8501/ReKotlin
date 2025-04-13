@@ -34,13 +34,6 @@ inline fun <T: Iterable<Any>> T.countEqualsOrWithThrow(equalsTo: Int, block:  (p
     }
 }
 
-
-
-//inline fun <T: Any, R: Any> T?.getOrThrow(ex : ProcessableException, block: (T) -> R): R{
-//    return if (this != null) block(this) else throw ex
-//}
-
-
 inline fun <T1 : Any, R : Any> safeLet(p1: T1?, block: (T1) -> R?): R? {
     return if (p1 != null) block(p1) else null
 }

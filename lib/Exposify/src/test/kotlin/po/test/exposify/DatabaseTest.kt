@@ -47,7 +47,7 @@ abstract class DatabaseTest {
 
     @BeforeEach
     fun beforeEach() {
-
+          connectionContext?.clearServices()
     }
 
     @AfterEach

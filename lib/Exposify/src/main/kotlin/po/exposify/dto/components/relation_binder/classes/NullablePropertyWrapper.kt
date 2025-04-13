@@ -1,10 +1,8 @@
-package po.exposify.wrappers
-
+package po.exposify.dto.components.relation_binder.classes
 
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import kotlin.reflect.KMutableProperty1
-
 
 class NullablePropertyWrapper<T : Any, V : Any?> {
 

@@ -19,6 +19,7 @@ class CoroutineEmitter2(
     ): Deferred<List<DATA>>  where DTO:ModelDTO, DATA: DataModel  {
 
       val result = listenerScope.async {
+
                suspendedTransactionAsync(Dispatchers.IO) {
                    pack.start()
                }

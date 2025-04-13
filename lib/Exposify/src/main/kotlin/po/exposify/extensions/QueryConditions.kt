@@ -51,8 +51,6 @@ class WhereCondition<T> (private val table: T) : QueryConditions<T>() where T : 
         }
         return this
     }
-
-
 }
 
 sealed class QueryConditions<T>()  where T : IdTable<Long> {

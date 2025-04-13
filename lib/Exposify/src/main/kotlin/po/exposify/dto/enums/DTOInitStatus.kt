@@ -1,4 +1,4 @@
-package po.exposify.models
+package po.exposify.dto.enums
 
 enum class DTOInitStatus {
     UNINITIALIZED,

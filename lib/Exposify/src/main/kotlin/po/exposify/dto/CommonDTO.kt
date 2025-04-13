@@ -15,7 +15,7 @@ import po.exposify.dto.models.DTORegistryItem
 import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.exceptions.InitException
 import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.models.DTOInitStatus
+import po.exposify.dto.enums.DTOInitStatus
 import po.lognotify.extensions.getOrThrowDefault
 
 

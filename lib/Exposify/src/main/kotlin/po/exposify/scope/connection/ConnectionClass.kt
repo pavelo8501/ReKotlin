@@ -22,9 +22,6 @@ class ConnectionClass(
 
     val name: String = "ConnectionClas|{${connection.name}"
 
-    var services: MutableMap<String, ServiceClass<ModelDTO, DataModel, ExposifyEntityBase>>
-        = mutableMapOf<String, ServiceClass<ModelDTO, DataModel, ExposifyEntityBase>>()
-
     init {
         connectionInfo.connection
     }
@@ -32,27 +29,31 @@ class ConnectionClass(
     private val dispatchManager = UserDispatchManager()
     private val coroutineEmitter = CoroutineEmitter2("${connectionInfo.dbName}|CoroutineEmitter")
 
-
     val isConnectionOpen: Boolean
-        get() {
-            return connectionInfo.connection.transactionManager.currentOrNull()?.connection?.isClosed == false
-        }
+        get() { return connectionInfo.connection.transactionManager.currentOrNull()?.connection?.isClosed == false }
 
     suspend fun <DTO : ModelDTO, DATA: DataModel> launchSequence(
         pack: SequencePack<DTO, DATA>,
     ): List<DATA> {
+
         val session = sessionManager.getCurrentSession().getOrDefault(sessionManager.getAnonymous())
-       val result = dispatchManager.enqueue(session.principal.userId) {
+        val result = dispatchManager.enqueue(session.principal.userId) {
              coroutineEmitter.dispatch<DTO, DATA>(pack, session.scope)
         }.await()
         return result
     }
 
-    fun addService(service : ServiceClass<ModelDTO, DataModel, ExposifyEntityBase>){
-        services.putIfAbsent(service.name, service)
+    var services: MutableMap<String, ServiceClass<*, *, *>>
+            = mutableMapOf<String, ServiceClass<*, *, *>>()
+
+    fun addService(serviceClass : ServiceClass<*, *, *>){
+        services[serviceClass.personalName] = serviceClass
+    }
+    fun clearServices(){
+        services.clear()
     }
 
-    fun getService(name: String): ServiceClass<ModelDTO, DataModel, ExposifyEntityBase>?{
+    fun getService(name: String): ServiceClass<*, *, *>?{
         this.services.keys.firstOrNull{it == name}?.let { return services[it] }
         return null
     }

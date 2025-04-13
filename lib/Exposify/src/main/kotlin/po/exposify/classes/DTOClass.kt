@@ -16,6 +16,7 @@ import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.exceptions.InitException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.safeCast
+import po.exposify.extensions.withTransactionIfNone
 import po.exposify.scope.sequence.classes.SequenceHandler
 import po.exposify.scope.sequence.enums.SequenceID
 import po.exposify.scope.service.ServiceContext
@@ -85,12 +86,8 @@ abstract class DTOClass<DTO>(): TasksManaged,  DTOInstance where DTO: ModelDTO{
     }
 
     fun initialization(onRequestFn: (() -> Unit)? = null) {
-        runCatching {
-            if(!initialized){
-                setup()
-            }
-        }.onFailure {
-            println(it.message)
+        if(!initialized){
+            setup()
         }
     }
 
@@ -118,22 +115,22 @@ abstract class DTOClass<DTO>(): TasksManaged,  DTOInstance where DTO: ModelDTO{
     suspend fun <DATA: DataModel>  runSequence(
         sequenceId: Int,
         coroutineContext: CoroutineContext,
-        handlerBlock: SequenceHandler<DTO, DataModel>.()-> Unit):List<DATA>
+        handlerBlock: suspend SequenceHandler<DTO, DataModel>.()-> Unit):List<DATA>
         = startTask("Run Sequence", coroutineContext, personalName) {
-
-        val serviceContext = serviceContextOwned.getOrThrowDefault("Unable to run sequence id: $sequenceId on DTOClass. DTOClass is not a hierarchy root")
-        val sequenceName = "$personalName::$sequenceId"
-        val handler = serviceContext.serviceClass().getSequenceHandler(sequenceName)
-        handlerBlock.invoke(handler)
-        val key =  handler.thisKey
-        val result = serviceContext.serviceClass().runSequence(key).safeCast<List<DATA>>()
-            .getOrThrowDefault("Cast to List<DATA> failed")
-        result
+         withTransactionIfNone {
+             val serviceContext = serviceContextOwned.getOrThrowDefault("Unable to run sequence id: $sequenceId on DTOClass. DTOClass is not a hierarchy root")
+             val handler = serviceContext.serviceClass().getSequenceHandler(sequenceId, this)
+             handlerBlock.invoke(handler)
+             val key =  handler.thisKey
+             val result = serviceContext.serviceClass().runSequence(key).safeCast<List<DATA>>()
+                 .getOrThrowDefault("Cast to List<DATA> failed")
+             result
+         }
     }.resultOrException()
 
     suspend fun <DATA: DataModel> runSequence(
         sequenceID: SequenceID,
         coroutineContext: CoroutineContext,
-        handlerBlock: SequenceHandler<DTO, DataModel>.()-> Unit):List<DATA>
+        handlerBlock: suspend SequenceHandler<DTO, DataModel>.()-> Unit):List<DATA>
         = runSequence(sequenceID.value, coroutineContext,  handlerBlock)
 }

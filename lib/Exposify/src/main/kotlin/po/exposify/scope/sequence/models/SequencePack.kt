@@ -20,24 +20,13 @@ data class SequencePack<DTO, DATA>(
     private val handler: SequenceHandler<DTO, DATA>,
 ) where  DTO : ModelDTO,  DATA : DataModel{
 
-//    private var sequenceConditions :  WhereCondition<IdTable<Long>>? = null
-//    private var sequenceInputList = listOf<DATA>()
 
     fun getSequenceHandler():SequenceHandler<DTO, DATA>{
         return handler
     }
-    
-//    fun saveInputList(inputList : List<DATA>){
-//        sequenceInputList = inputList
-//    }
-
 
     suspend fun start(): List<DATA>{
         context.sequenceFn(handler.inputData, handler.whereConditions)
         return  context.checkout()
-    }
-
-    fun sequenceName(): String{
-        return handler.thisKey
     }
 }

@@ -1,4 +1,4 @@
-package po.exposify.models
+package po.exposify.dto.models
 
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.classes.interfaces.DataModel

@@ -11,7 +11,7 @@ interface ManagedResult<R : Any?>{
     fun isResult(): Boolean
     fun onResult(block: (R) -> Unit):ManagedResult<R>
     fun onFail(block: (Throwable) -> Unit):ManagedResult<R>
-    suspend fun onComplete(block: suspend (ManagedResult<R>) -> Unit):ManagedResult<R>
+    fun onComplete(block: (ManagedResult<R>) -> Unit):ManagedResult<R>
     fun resultOrException(message: String = "", callback:((msg: String)-> ExceptionBase)? = null):R
 
 }
