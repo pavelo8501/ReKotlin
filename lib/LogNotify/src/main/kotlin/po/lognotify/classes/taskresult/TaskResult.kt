@@ -22,28 +22,31 @@ class TaskResult<R : Any?>(private val task: TaskSealedBase<R>): ManagedResult<R
     override var isSuccess : Boolean = false
 
     internal var onCompleteFn: (suspend (ManagedResult<R>) -> Unit)? = null
-    internal var onResultFn: (suspend (R) -> Unit)? = null
-    internal var onFailFn: (suspend (Throwable) -> Unit)? = null
+    internal var onResultFn: ((R) -> Unit)? = null
+    internal var onFailFn: ((Throwable) -> Unit)? = null
 
-    override suspend fun onResult(block: suspend (R) -> Unit):ManagedResult<R>{
+    override suspend fun onComplete(block: suspend (ManagedResult<R>) -> Unit):ManagedResult<R>{
+        onCompleteFn = block
+        block.invoke(this)
+        return this
+    }
+
+    override fun onResult(block: (R) -> Unit): ManagedResult<R> {
         onResultFn = block
         if(value != null){
             block.invoke(resultHandler)
         }
         return this
     }
-    override suspend fun onComplete(block: suspend (ManagedResult<R>) -> Unit):ManagedResult<R>{
-        onCompleteFn = block
-        block.invoke(this)
-        return this
-    }
-    override suspend fun onFail(block: suspend (Throwable) -> Unit):ManagedResult<R>{
+
+    override fun onFail(block: (Throwable) -> Unit): ManagedResult<R> {
         onFailFn = block
         if(throwable != null){
             block.invoke(throwable!!)
         }
         return this
     }
+
 
     internal suspend fun provideResult(time: Float, executionResult: R?){
         isSuccess = true

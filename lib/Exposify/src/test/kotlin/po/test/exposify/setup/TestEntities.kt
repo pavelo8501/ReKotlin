@@ -1,4 +1,4 @@
-package po.exposify.test.setup
+package po.test.exposify.setup
 
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
@@ -23,7 +23,6 @@ class TestPageEntity  (id: EntityID<Long>) : ExposifyEntityBase(id){
     var pageClasses by TestPages.pageClasses
     var updated by TestPages.updated
     var updatedBy by TestUserEntity referencedOn TestPages.updatedBy
-    val pageId get() = updatedBy.id.value.toLong()
     val sections by TestSectionEntity.Companion referrersOn TestSections.page
 }
 
@@ -34,11 +33,8 @@ class TestSectionEntity  (id: EntityID<Long>) : ExposifyEntityBase(id){
     var description by TestSections.description
     var jsonLd by TestSections.jsonLd
     var sectionClasses by TestSections.sectionClasses
-    var sectionMetaTags by TestSections.sectionMetaTags
     var updated by TestSections.updated
     var langId by TestSections.langId
     var updatedBy by TestUserEntity referencedOn TestSections.updatedBy
-    val updatedById get() = updatedBy.id.value.toLong()
     var page by TestPageEntity referencedOn TestSections.page
-    val pageId get() = page.id.value.toLong()
 }

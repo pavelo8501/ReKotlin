@@ -1,4 +1,4 @@
-package po.exposify.test.setup
+package po.test.exposify.setup
 
 import kotlinx.serialization.Serializable
 

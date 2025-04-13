@@ -1,16 +1,6 @@
-package po.exposify.test.components
+package po.test.exposify.components
 
 import org.junit.jupiter.api.Test
-import po.exposify.test.setup.TestPage
-import po.exposify.test.setup.TestPageDTO
-import po.exposify.test.setup.TestPageEntity
-import po.exposify.test.setup.TestSection
-import po.exposify.test.setup.TestSectionDTO
-import po.exposify.test.setup.TestSectionEntity
-import po.exposify.test.setup.TestSections
-import kotlin.collections.get
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 
 class TestFactory {
 

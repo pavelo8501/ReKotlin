@@ -11,22 +11,20 @@ import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.extensions.safeCast
 import po.lognotify.extensions.getOrThrowDefault
 import kotlin.reflect.KMutableProperty1
-import kotlin.reflect.KProperty1
 
 class ReferencedBinding<DATA, ENTITY>(
     override val dataProperty: KMutableProperty1<DATA, Long>,
-    val entityProperty: KMutableProperty1<ENTITY, out ExposifyEntityBase>,
+    override val referencedProperty: KMutableProperty1<ENTITY, out ExposifyEntityBase>,
     val dtoClass: DTOClass<out ModelDTO>,
 ): PropertyBindingOption<DATA, ENTITY, Long> where DATA: DataModel, ENTITY: ExposifyEntityBase
 {
     override val propertyType: PropertyType = PropertyType.REFERENCED
 
-    val castedEntityProperty =   entityProperty.safeCast<KMutableProperty1<ENTITY,ExposifyEntityBase>>()
+    val castedEntityProperty =   referencedProperty.safeCast<KMutableProperty1<ENTITY,ExposifyEntityBase>>()
         .getOrThrowDefault("Cast to KMutableProperty1<ENTITY,ExposifyEntityBase> failed")
 
-    override fun onModelUpdated(callback: (PropertyBindingOption<DATA, ENTITY, Long>) -> Unit) {
+    override var onDataUpdatedCallback: ((PropertyBindingOption<DATA, ENTITY, Long>) -> Unit)? = null
 
-    }
 
     override fun onPropertyUpdated(callback: (String, PropertyType, UpdateMode) -> Unit) {
         TODO("Not yet implemented")
@@ -34,11 +32,11 @@ class ReferencedBinding<DATA, ENTITY>(
 
     override fun updated(name: String, type: PropertyType, updateMode: UpdateMode){
 
-        TODO("Not yet implemented")
     }
 
     private fun updateEntityToModel(entity:ENTITY, data :DATA, forced: Boolean){
-
+        val referencedEntity = castedEntityProperty.get(entity)
+        dataProperty.set(data, referencedEntity.id.value)
     }
 
     private suspend fun updateModelToEntity(data:DATA, entity: ENTITY, forced: Boolean){

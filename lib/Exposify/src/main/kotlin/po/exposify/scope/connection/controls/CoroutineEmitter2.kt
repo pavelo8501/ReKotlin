@@ -4,30 +4,25 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
-import org.jetbrains.exposed.dao.LongEntity
+import kotlinx.coroutines.awaitAll
 import org.jetbrains.exposed.sql.transactions.experimental.suspendedTransactionAsync
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.scope.sequence.models.SequencePack2
+import po.exposify.scope.sequence.models.SequencePack
 
 class CoroutineEmitter2(
     val name: String,
 ){
-    fun <DTO: ModelDTO>dispatch(
-        pack: SequencePack2<DTO>,
+   suspend fun <DTO, DATA>dispatch(
+        pack: SequencePack<DTO, DATA>,
         listenerScope : CoroutineScope
-    ): Deferred<List<DataModel>> {
+    ): Deferred<List<DATA>>  where DTO:ModelDTO, DATA: DataModel  {
 
-        return listenerScope.async {
-            suspendedTransactionAsync(Dispatchers.IO) {
-                pack.start().await()
-            }.await()
-        }.also { deferred ->
-            deferred.invokeOnCompletion { throwable ->
-                if (throwable != null) {
-                    throw throwable
-                }
-            }
-        }
+      val result = listenerScope.async {
+               suspendedTransactionAsync(Dispatchers.IO) {
+                   pack.start()
+               }
+           }.await()
+       return result
     }
 }

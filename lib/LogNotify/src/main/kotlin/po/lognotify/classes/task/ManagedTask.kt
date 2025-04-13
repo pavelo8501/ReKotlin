@@ -1,7 +1,10 @@
 package po.lognotify.classes.task
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import po.lognotify.classes.taskresult.TaskResult
@@ -87,7 +90,6 @@ sealed class TaskSealedBase<R>(
  ) : ResultantTask, SelfThrownException, StaticHelper
 {
 
-
     override var startTime: Long = System.nanoTime()
     override var endTime: Long = 0L
     private var elapsed: Float = 0.0F
@@ -128,7 +130,7 @@ sealed class TaskSealedBase<R>(
        throw unmanaged
     }
 
-    private suspend fun handleException(throwable: Throwable): Throwable? {
+    suspend fun handleException(throwable: Throwable): Throwable? {
         if(throwable is ExceptionBase) {
             val managedException = throwable
             when (managedException) {
@@ -194,13 +196,18 @@ sealed class TaskSealedBase<R>(
     internal suspend fun runTask(block: suspend (TaskHandler<R>) -> R): TaskResult<R> {
           return withContext(context) {
               preRunConfig(this)
-              execute(block)
+              async(start = CoroutineStart.UNDISPATCHED, context = context) {
+                  execute(block)
+              }.await()
           }
     }
+
     internal suspend fun <T> runTask(receiver:T,  block: suspend T.(TaskHandler<R>) -> R): TaskResult<R> {
-        return  withContext(context) {
+        return withContext(context) {
             preRunConfig(this)
-            execute(receiver, block)
+            async(start = CoroutineStart.UNDISPATCHED) {
+                execute(receiver, block)
+            }.await()
         }
     }
 
@@ -213,11 +220,11 @@ sealed class TaskSealedBase<R>(
         }
         return result
     }
+
     internal fun <T> runTaskAsync(receiver : T, block: suspend T.(TaskHandler<R>) -> R): TaskResult<R> {
-       val result =  runBlocking {
-             CoroutineScope(context).async {
-                 preRunConfig(this)
-                 execute(receiver, block)
+        val result = runBlocking {
+            CoroutineScope(context).async(start = CoroutineStart.UNDISPATCHED) {
+                execute(receiver, block)
             }.await()
         }
         return result

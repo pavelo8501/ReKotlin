@@ -38,6 +38,12 @@ class SingleRepository<DTO, DATA, ENTITY,  CHILD_DTO>(
             repository.update()
         }
     }
+
+    override suspend fun clear(): SingleRepository<DTO, DATA, ENTITY, CHILD_DTO>{
+        childDTOList.clear()
+        return this
+    }
+
 }
 
 class MultipleRepository<DTO, DATA, ENTITY, CHILD_DTO>(
@@ -80,6 +86,11 @@ class MultipleRepository<DTO, DATA, ENTITY, CHILD_DTO>(
             }
         }
    }
+
+    override suspend fun clear(): MultipleRepository<DTO, DATA, ENTITY, CHILD_DTO>{
+        childDTOList.clear()
+        return this
+    }
 }
 
 class RootRepository<DTO, DATA, ENTITY, CHILD_DTO>(
@@ -124,6 +135,12 @@ class RootRepository<DTO, DATA, ENTITY, CHILD_DTO>(
         }
         return result
     }
+
+    override suspend fun clear(): RootRepository<DTO, DATA, ENTITY, CHILD_DTO>{
+        childDTOList.clear()
+        return this
+    }
+
 }
 
 sealed class RepositoryBase<DTO, DATA, ENTITY, CHILD_DTO>(
@@ -153,4 +170,7 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, CHILD_DTO>(
         }
         initialized = true
     }
+
+    abstract suspend fun clear():RepositoryBase<DTO, DATA, ENTITY, CHILD_DTO>
+
 }

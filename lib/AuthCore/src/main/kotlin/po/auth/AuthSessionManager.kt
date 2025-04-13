@@ -50,13 +50,8 @@ object AuthSessionManager : ManagedSession {
     suspend fun getActiveSessions(): List<AuthorizedSession> = factory.activeSessions()
 
 
-    override suspend fun getAnonymous():EmmitableSession? {
-        try {
-            return getAnonymousSession() as EmmitableSession?
-        }catch (ex: Exception){
-            echo(ex)
-            return null
-        }
+    override suspend fun getAnonymous():EmmitableSession {
+      return getAnonymousSession() as EmmitableSession
     }
     suspend fun getAnonymousSession(): AuthorizedSession? {
         try {

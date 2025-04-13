@@ -9,13 +9,24 @@ import kotlin.reflect.KProperty1
 
 interface PropertyBindingOption<DATA : DataModel, ENT : ExposifyEntityBase, T>{
     val dataProperty:KProperty1<DATA, T>
-    //  val entityProperty:KProperty1<ENT, T>
+    val referencedProperty:KProperty1<ENT, *>
     val propertyType: PropertyType
 
     val dataPropertyName: String
         get() = dataProperty.name
 
-    fun onModelUpdated(callback: (property : PropertyBindingOption<DATA, ENT, T>)-> Unit)
+    val referencedPropertyName: String
+        get() = referencedProperty.name
+
+
+    var onDataUpdatedCallback: ((PropertyBindingOption<DATA, ENT, T>) -> Unit)?
+    fun  setDataUpdatedUpdated(callback : (PropertyBindingOption<DATA, ENT, T>) -> Unit){
+        onDataUpdatedCallback = callback
+    }
+    fun dataUpdatedUpdated(){
+        onDataUpdatedCallback?.invoke(this)
+    }
+
     fun onPropertyUpdated(callback: (name : String, type:PropertyType, updateMode : UpdateMode)-> Unit)
     fun updated(name : String,  type:PropertyType, updateMode : UpdateMode)
 }

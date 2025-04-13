@@ -2,11 +2,14 @@ package po.exposify.dto.components
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
+import org.jetbrains.exposed.dao.id.IdTable
+import org.jetbrains.exposed.dao.id.LongIdTable
 import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.Query
 import org.jetbrains.exposed.sql.SizedIterable
 import org.jetbrains.exposed.sql.Transaction
 import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.transactions.TransactionManager
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.components.relation_binder.models.EntityPropertyInfo
 import po.exposify.classes.interfaces.DataModel
@@ -16,11 +19,12 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.extensions.WhereCondition
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.getOrThrowDefault
 import po.lognotify.extensions.resultOrNull
 import po.lognotify.extensions.subTask
-import po.lognotify.extensions.withTask
+import po.lognotify.extensions.trueOrThrow
 
 class DAOService<DTO, ENTITY>(
     private val hostingDTO: CommonDTO<DTO, *, ENTITY>,
@@ -44,6 +48,11 @@ class DAOService<DTO, ENTITY>(
 
     private fun combineConditions(conditions: Set<Op<Boolean>>): Op<Boolean> {
         return conditions.reduceOrNull { acc, op -> acc and op } ?: Op.TRUE
+    }
+
+    private  fun  <T:IdTable<Long>> buildConditions(conditions: WhereCondition<T>): Op<Boolean> {
+        val conditions = conditions.build()
+        return conditions
     }
 
     fun setTrackedProperties(list: List<EntityPropertyInfo<DTO, DataModel, ENTITY, ModelDTO>>){
@@ -80,10 +89,14 @@ class DAOService<DTO, ENTITY>(
     }
 
 
+    fun isTransactionReady(): Boolean {
+        return TransactionManager.currentOrNull()?.connection?.isClosed?.not() == true
+    }
 
-   suspend fun pick(conditions : Op<Boolean>): ENTITY? = subTask("Pick", personalName){handler->
-        val queryResult = entityModel.find(conditions).firstOrNull()
 
+   suspend fun  <T:IdTable<Long>> pick(conditions :  WhereCondition<T>): ENTITY? = subTask("Pick", personalName){handler->
+       val opConditions = buildConditions(conditions)
+       val queryResult = entityModel.find(opConditions).firstOrNull()
         if(queryResult == null){
             handler.warn("Entity  not found")
         }
@@ -100,13 +113,18 @@ class DAOService<DTO, ENTITY>(
     }.resultOrNull()
 
 
-    suspend fun select(conditions: Op<Boolean>): List<ENTITY>{
-        return entityModel.find(conditions).toList()
-    }
+    suspend fun select(): List<ENTITY> = subTask("Select All", personalName){
+        entityModel.all().toList()
+    }.resultOrException("Entities selection all failed")
 
-    suspend fun select(): List<ENTITY>{
-        return entityModel.all().toList()
-    }
+    suspend fun <T:IdTable<Long>> select(conditions:  WhereCondition<T>): List<ENTITY> =
+        subTask("Select", personalName) {handler->
+        val opConditions = buildConditions(conditions)
+        isTransactionReady().trueOrThrow("Transaction should be active")
+        val result = entityModel.find(opConditions).toList()
+        handler.info("${result.count()} entities selected")
+        result
+    }.resultOrException("Entities selection by conditions failed")
 
     suspend fun save(): ENTITY =
         subTask("Save", "DAOService") {handler->

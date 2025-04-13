@@ -9,15 +9,12 @@ import kotlin.reflect.KMutableProperty1
 
 class SyncedBinding<DATA : DataModel, ENT : ExposifyEntityBase, T>(
     override val dataProperty:KMutableProperty1<DATA, T>,
-    val entityProperty:KMutableProperty1<ENT, T>
+    override val referencedProperty :KMutableProperty1<ENT, T>
 ): PropertyBindingOption<DATA, ENT, T>
 {
     override val propertyType: PropertyType = PropertyType.TWO_WAY
 
-    private var onModelUpdatedCallback: ((PropertyBindingOption<DATA, ENT, T>) -> Unit)? = null
-    override fun onModelUpdated(callback: (PropertyBindingOption<DATA, ENT, T>) -> Unit) {
-        onModelUpdatedCallback = callback
-    }
+    override var onDataUpdatedCallback: ((PropertyBindingOption<DATA, ENT, T>) -> Unit)? = null
 
     private var onPropertyUpdatedCallback: ((String, PropertyType, UpdateMode) -> Unit)? = null
     override fun onPropertyUpdated(callback: (String, PropertyType, UpdateMode) -> Unit) {
@@ -38,7 +35,7 @@ class SyncedBinding<DATA : DataModel, ENT : ExposifyEntityBase, T>(
         updated = false
         val dtoValue = dataProperty.get(dtoModel)
         val entityValue =  try {
-            entityProperty.get(entityModel)
+            referencedProperty.get(entityModel)
         }catch (ex: Exception){
             null
         }
@@ -65,12 +62,12 @@ class SyncedBinding<DATA : DataModel, ENT : ExposifyEntityBase, T>(
             }
             UpdateMode.MODEL_TO_ENTITY -> {
                 if (!valuesDiffer) return false
-                entityProperty.set(entityModel, dtoValue)
+                referencedProperty.set(entityModel, dtoValue)
                 true
             }
             UpdateMode.MODEL_TO_ENTITY_FORCED -> {
                 if(entityValue != null) {
-                    entityProperty.set(entityModel, dtoValue)
+                    referencedProperty.set(entityModel, dtoValue)
                     return true
                 }
                 return false
@@ -78,7 +75,7 @@ class SyncedBinding<DATA : DataModel, ENT : ExposifyEntityBase, T>(
         }
         if(updated){
             updated = false
-            onModelUpdatedCallback?.invoke(this)
+            onDataUpdatedCallback?.invoke(this)
         }
     }
 }

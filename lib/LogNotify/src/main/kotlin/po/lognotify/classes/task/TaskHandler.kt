@@ -1,6 +1,7 @@
 package po.lognotify.classes.task
 
-import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import po.lognotify.classes.notification.Notifier
@@ -10,14 +11,15 @@ import po.lognotify.exceptions.ExceptionThrower
 import po.lognotify.exceptions.ExceptionsThrown
 import kotlin.coroutines.CoroutineContext
 
-
 class TaskHandler<R>(
     private val task : TaskSealedBase<R>,
     val exceptionThrower:  ExceptionsThrown = ExceptionThrower(task),
     val exceptionHandler: ExceptionHandled = ExceptionHandler(task),
 ): ExceptionsThrown by exceptionThrower, ExceptionHandled by exceptionHandler, ResultantTask  {
 
-    val currentTaskContext = task.context
+    val currentTaskContext: CoroutineContext = task.context
+    val  handleException : suspend (Throwable) -> Throwable? = { task.handleException(it) }
+
 
     override val startTime: Long = task.startTime
     override var endTime: Long = task.endTime
@@ -40,11 +42,29 @@ class TaskHandler<R>(
 
 
     inline fun <T, R2>  withTaskContext(receiver: T,  crossinline block : suspend T.() -> R2):R2{
-        return runBlocking {
-            withContext(currentTaskContext) {
-                block.invoke(receiver)
+//        return runBlocking {
+//            withContext(currentTaskContext) {
+//                block.invoke(receiver)
+//            }
+//        }
+
+        var result: R2? = null
+        var exception: Throwable? = null
+
+        runBlocking {
+            val job = launch(start = CoroutineStart.UNDISPATCHED, context = currentTaskContext) {
+                try {
+                    result = block(receiver)
+                } catch (e: Throwable) {
+                    exception = e
+                }
+            }
+            job.join()
+            if(exception != null){
+                handleException.invoke(exception)
             }
         }
+        return result as R2
     }
 
 }

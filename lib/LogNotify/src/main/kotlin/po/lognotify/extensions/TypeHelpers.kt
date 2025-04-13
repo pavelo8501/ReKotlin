@@ -45,6 +45,10 @@ fun <T: Any> T?.getOrThrowDefault(message: String): T{
     return this ?: throw defaultException
 }
 
+fun <T: Any> T?.getOrDefault(defaultValue: T): T{
+    return this ?: return defaultValue
+}
+
 fun <T: Any> T?.getOrThrowCancellation(message: String, handlerType : HandlerType = HandlerType.SKIP_SELF): T{
     val defaultException = CancellationException(message, handlerType)
     return this ?: throw defaultException

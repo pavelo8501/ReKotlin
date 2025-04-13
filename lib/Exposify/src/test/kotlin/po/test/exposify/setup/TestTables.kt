@@ -1,4 +1,4 @@
-package po.exposify.test.setup
+package po.test.exposify.setup
 
 import kotlinx.serialization.builtins.ListSerializer
 import org.jetbrains.exposed.dao.id.LongIdTable
@@ -35,10 +35,7 @@ object TestSections : LongIdTable("sections", "id") {
     val jsonLd = text("json_ld").default("[]")
     val sectionClasses = registerColumn<List<TestClassItem>>("section_classes", JsonColumnType(ListSerializer(TestClassItem.serializer())))
         .default(emptyList())
-    val sectionMetaTags =  registerColumn<List<TestMetaTag>>("section_meta_tags", JsonColumnType(ListSerializer(TestMetaTag.serializer())))
-        .default(emptyList())
     val updatedBy = reference("updated_by", TestUsers)
-
     val updated = datetime("updated").clientDefault { TestSectionDTO.Companion.nowTime() }
     val langId = integer("lang_id")
     val page = reference("page", TestPages, onDelete = ReferenceOption.CASCADE)

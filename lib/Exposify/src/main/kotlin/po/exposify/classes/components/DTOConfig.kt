@@ -8,27 +8,26 @@ import po.exposify.classes.interfaces.DataModel
 import po.exposify.classes.DTOClass
 import po.exposify.dto.components.DTOFactory
 import po.exposify.dto.components.DataModelContainer
-import po.exposify.dto.components.property_binder.bindings.SyncedSerialized
 import po.exposify.dto.components.property_binder.interfaces.PropertyBindingOption
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.DTORegistryItem
 import po.exposify.entity.classes.ExposifyEntityBase
 
 
-internal interface ConfigurableDTO<DTO: ModelDTO, DATA : DataModel, ENTITY: ExposifyEntityBase>{
+interface ConfigurableDTO<DTO: ModelDTO, DATA : DataModel, ENTITY: ExposifyEntityBase>{
 
     fun initFactoryRoutines()
-    suspend  fun withFactory(block: suspend (DTOFactory<DTO, DATA, ENTITY>)-> Unit)
     suspend fun withRelationshipBinder(block: suspend (RelationshipBinder<DTO, DATA, ENTITY>)-> Unit)
 }
 
-internal class DTOConfig<DTO, DATA, ENTITY>(
+
+class DTOConfig<DTO, DATA, ENTITY>(
     val dtoRegItem : DTORegistryItem<DTO, DATA, ENTITY>,
     val entityModel:LongEntityClass<ENTITY>,
     private val parent : DTOClass<DTO>
 ): ConfigurableDTO<DTO, DATA, ENTITY> where DTO: ModelDTO,  ENTITY : ExposifyEntityBase, DATA: DataModel{
 
-    val dtoFactory: DTOFactory<DTO, DATA, ENTITY> =
+   internal val dtoFactory: DTOFactory<DTO, DATA, ENTITY> =
         DTOFactory<DTO, DATA, ENTITY>(dtoRegItem.commonDTOKClass, dtoRegItem.dataKClass, this)
 
     val propertyBinder : PropertyBinder<DATA, ENTITY> = PropertyBinder(){syncedSerializedList->
@@ -44,9 +43,6 @@ internal class DTOConfig<DTO, DATA, ENTITY>(
     var dataModelConstructor : (() -> DataModel)? = null
         private set
 
-    override  suspend fun withFactory(block: suspend (DTOFactory<DTO, DATA, ENTITY>)-> Unit){
-        block.invoke(dtoFactory)
-    }
 
     override suspend fun withRelationshipBinder(block: suspend (RelationshipBinder<DTO, DATA, ENTITY>)-> Unit){
         block.invoke(relationBinder)

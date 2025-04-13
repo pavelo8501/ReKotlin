@@ -1,4 +1,4 @@
-package po.exposify.test
+package po.test.exposify
 
 
 import org.junit.jupiter.api.AfterEach

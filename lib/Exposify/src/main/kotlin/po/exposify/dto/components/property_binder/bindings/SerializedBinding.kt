@@ -7,19 +7,16 @@ import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.components.property_binder.interfaces.PropertyBindingOption
 import po.exposify.entity.classes.ExposifyEntityBase
 import kotlin.reflect.KMutableProperty1
-import kotlin.reflect.KProperty1
 
-class SyncedSerialized<DATA : DataModel, ENT : ExposifyEntityBase, C, TYPE: Any >(
+class SerializedBinding<DATA : DataModel, ENT : ExposifyEntityBase, C, TYPE: Any >(
     override val dataProperty:KMutableProperty1<DATA, C>,
-    val entityProperty:KMutableProperty1<ENT, C>,
+    override val referencedProperty:KMutableProperty1<ENT, C>,
     internal val serializer:  KSerializer<TYPE>,
 ) : PropertyBindingOption<DATA, ENT, C>
 {
     override val propertyType: PropertyType = PropertyType.SERIALIZED
-    private var onModelUpdatedCallback: ((PropertyBindingOption<DATA, ENT, C>) -> Unit)? = null
-    override fun onModelUpdated(callback: (PropertyBindingOption<DATA, ENT, C>) -> Unit) {
-        onModelUpdatedCallback = callback
-    }
+
+    override var onDataUpdatedCallback: ((PropertyBindingOption<DATA, ENT, C>) -> Unit)?= null
 
     private var onPropertyUpdatedCallback: ((String, PropertyType, UpdateMode) -> Unit)? = null
     override fun onPropertyUpdated(callback: (String, PropertyType, UpdateMode) -> Unit) {
@@ -41,7 +38,7 @@ class SyncedSerialized<DATA : DataModel, ENT : ExposifyEntityBase, C, TYPE: Any 
         val dtoValue = dataProperty.get(dtoModel)
 
         val entityValue = try {
-            entityProperty.get(entityModel)
+            referencedProperty.get(entityModel)
         } catch (ex: Exception) {
             null
         }
@@ -70,14 +67,14 @@ class SyncedSerialized<DATA : DataModel, ENT : ExposifyEntityBase, C, TYPE: Any 
                 if (!valuesDiffer) {
                     false
                 } else {
-                    entityProperty.set(entityModel, dtoValue)
+                    referencedProperty.set(entityModel, dtoValue)
                     true
                 }
             }
 
             UpdateMode.MODEL_TO_ENTITY_FORCED -> {
                 if (entityValue != null) {
-                    entityProperty.set(entityModel, dtoValue)
+                    referencedProperty.set(entityModel, dtoValue)
                     true
                 }
                 false
@@ -86,7 +83,7 @@ class SyncedSerialized<DATA : DataModel, ENT : ExposifyEntityBase, C, TYPE: Any 
 
         if(updated){
             updated = false
-            onModelUpdatedCallback?.invoke(this)
+            onDataUpdatedCallback?.invoke(this)
         }
 
         return result

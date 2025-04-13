@@ -67,7 +67,6 @@ object DatabaseManager {
             val newConnection = Database.connect(connectionInfo.hikariDataSource!!)
             val connectionClass = ConnectionClass(connectionInfo, newConnection, sessionManager)
             val connectionContext = ConnectionContext(
-                "Connection ${connectionInfo.dbName}",
                 newConnection, connectionClass
             ).also {
                 connectionInfo.connections.add(it)
@@ -99,7 +98,6 @@ object DatabaseManager {
                 val newConnection = Database.connect(connectionInfo.hikariDataSource!!)
                 val connectionClass = ConnectionClass(connectionInfo, newConnection, sessionManager)
                 val connectionContext = ConnectionContext(
-                    "Connection ${connectionInfo.dbName}",
                     newConnection, connectionClass
                 ).also {
                     connectionInfo.connections.add(it)

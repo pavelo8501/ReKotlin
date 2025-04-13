@@ -1,10 +1,10 @@
 package po.exposify.dto.components.property_binder
 
 import po.exposify.classes.interfaces.DataModel
-import po.exposify.dto.components.property_binder.bindings.ReadOnly
+import po.exposify.dto.components.property_binder.bindings.ReadOnlyBinding
 import po.exposify.dto.components.property_binder.bindings.ReferencedBinding
+import po.exposify.dto.components.property_binder.bindings.SerializedBinding
 import po.exposify.dto.components.property_binder.bindings.SyncedBinding
-import po.exposify.dto.components.property_binder.bindings.SyncedSerialized
 import po.exposify.dto.components.property_binder.enums.PropertyType
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.components.property_binder.interfaces.PropertyBindingOption
@@ -13,17 +13,17 @@ import po.exposify.entity.classes.ExposifyEntityBase
 
 class PropertyBinder<DATA : DataModel, ENT : ExposifyEntityBase>(
 
-    private val onSyncedSerializedAdd : (syncedSerializedProperty:  List<SyncedSerialized<DATA, ENT, *, *>>)-> Unit)
+    private val onSyncedSerializedAdd : (syncedSerializedProperty:  List<SerializedBinding<DATA, ENT, *, *>>)-> Unit)
 {
     private var allBindings: List<PropertyBindingOption<DATA, ENT, *>> = listOf()
 
     var onInitialized: ((PropertyBinder<DATA, ENT>) -> Unit)? = null
     var syncedPropertyList: List<SyncedBinding<DATA, ENT, *>> = listOf<SyncedBinding<DATA, ENT, *>> ()
         private set
-    var syncedSerializedPropertyList: List<SyncedSerialized<DATA, ENT, *, *>> =  listOf<SyncedSerialized<DATA, ENT, *, *>>()
+    var syncedSerializedPropertyList: List<SerializedBinding<DATA, ENT, *, *>> =  listOf<SerializedBinding<DATA, ENT, *, *>>()
         private set
 
-    var readOnlyPropertyList: List<ReadOnly<DATA, ENT, *>> =  listOf<ReadOnly<DATA, ENT, *>>()
+    var readOnlyPropertyList: List<ReadOnlyBinding<DATA, ENT, *>> =  listOf<ReadOnlyBinding<DATA, ENT, *>>()
         private set
 
     var referencedPropertyList: List<ReferencedBinding<DATA, ENT>> =  listOf<ReferencedBinding<DATA, ENT>>()
@@ -35,20 +35,20 @@ class PropertyBinder<DATA : DataModel, ENT : ExposifyEntityBase>(
 
     fun setProperties(properties: List<PropertyBindingOption<DATA, ENT, *>>) {
         allBindings = properties
-        val readOnlyList = mutableListOf<ReadOnly<DATA, ENT, *>>()
+        val readOnlyList = mutableListOf<ReadOnlyBinding<DATA, ENT, *>>()
         val syncedList = mutableListOf<SyncedBinding<DATA, ENT, *>>()
-        val syncedSerializedList = mutableListOf<SyncedSerialized<DATA, ENT, *, *>>()
+        val syncedSerializedList = mutableListOf<SerializedBinding<DATA, ENT, *, *>>()
         val referencedList = mutableListOf<ReferencedBinding<DATA, ENT>>()
         properties.forEach {
             when(it.propertyType){
                 PropertyType.READONLY -> {
-                    readOnlyList.add(it as ReadOnly<DATA, ENT, *>)
+                    readOnlyList.add(it as ReadOnlyBinding<DATA, ENT, *>)
                 }
                 PropertyType.TWO_WAY -> {
                     syncedList.add(it as SyncedBinding<DATA, ENT, *>)
                 }
                 PropertyType.SERIALIZED -> {
-                    syncedSerializedList.add(it as SyncedSerialized<DATA, ENT, *, *>)
+                    syncedSerializedList.add(it as SerializedBinding<DATA, ENT, *, *>)
                 }
                 PropertyType.REFERENCED -> {
                     referencedList.add(it as ReferencedBinding<DATA, ENT>)

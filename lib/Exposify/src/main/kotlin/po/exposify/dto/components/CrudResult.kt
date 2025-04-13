@@ -6,7 +6,7 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
-
+import po.lognotify.extensions.getOrThrowDefault
 
 
 data class CrudResult<DTO, DATA>(
@@ -25,8 +25,15 @@ data class CrudResult<DTO, DATA>(
 }
 
 data class CrudResultSingle<DTO, DATA>(
-    internal val rootDTO: CommonDTO<DTO, DATA, ExposifyEntityBase>,
+    internal var rootDTO: CommonDTO<DTO, DATA, ExposifyEntityBase>,
 ) where DTO : ModelDTO, DATA: DataModel {
+
+
+    internal fun provideResult(dto: CommonDTO<DTO, DATA, ExposifyEntityBase>): CrudResultSingle<DTO, DATA>{
+        rootDTO = dto
+        return this
+    }
+
 
     fun getData(): DATA {
         val dataModel =  rootDTO.dataModel

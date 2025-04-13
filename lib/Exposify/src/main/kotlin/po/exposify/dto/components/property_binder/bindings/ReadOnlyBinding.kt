@@ -10,17 +10,14 @@ import kotlin.reflect.KProperty1
 
 
 
-class ReadOnly<DATA : DataModel, ENT : ExposifyEntityBase, T>(
+class ReadOnlyBinding<DATA : DataModel, ENT : ExposifyEntityBase, T>(
     override val dataProperty: KMutableProperty1<DATA, T>,
-    val entityProperty: KProperty1<ENT, T>
+    override val referencedProperty: KProperty1<ENT, T>
 ): PropertyBindingOption<DATA, ENT, T>
 {
     override val propertyType: PropertyType = PropertyType.READONLY
 
-    private var onModelUpdatedCallback: ((PropertyBindingOption<DATA, ENT, T>) -> Unit)? = null
-    override fun onModelUpdated(callback: (PropertyBindingOption<DATA, ENT, T>) -> Unit) {
-        onModelUpdatedCallback = callback
-    }
+    override var onDataUpdatedCallback: ((PropertyBindingOption<DATA, ENT, T>) -> Unit)? = null
 
     private var onPropertyUpdatedCallback: ((String, PropertyType, UpdateMode) -> Unit)? = null
     override fun onPropertyUpdated(callback: (String, PropertyType, UpdateMode) -> Unit) {
@@ -41,7 +38,7 @@ class ReadOnly<DATA : DataModel, ENT : ExposifyEntityBase, T>(
         updated = false
         val dtoValue = dataProperty.get(dtoModel)
         val entityValue =  try {
-            entityProperty.get(entityModel)
+            referencedProperty.get(entityModel)
         }catch (ex: Exception){
             null
         }
@@ -70,7 +67,7 @@ class ReadOnly<DATA : DataModel, ENT : ExposifyEntityBase, T>(
         }
         if(updated){
             updated = false
-            onModelUpdatedCallback?.invoke(this)
+            onDataUpdatedCallback?.invoke(this)
         }
     }
 }

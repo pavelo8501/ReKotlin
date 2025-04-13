@@ -9,7 +9,7 @@ import kotlin.coroutines.CoroutineContext
 suspend  fun <T, R: Any?> T.startTask(
     taskName: String,
     coroutine: CoroutineContext,
-    moduleName: String?,
+    moduleName: String? = null,
     block: suspend   T.(TaskHandler<R>)-> R,
 ): ManagedResult<R> {
     val newTask = TasksManaged.createHierarchyRoot<R>(taskName, coroutine, moduleName)

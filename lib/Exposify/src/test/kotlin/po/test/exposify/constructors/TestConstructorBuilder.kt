@@ -1,4 +1,4 @@
-package po.exposify.test.constructors
+package po.test.exposify.constructors
 
 import po.exposify.common.classes.ConstructorBuilder
 
