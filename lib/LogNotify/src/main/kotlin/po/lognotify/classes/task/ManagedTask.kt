@@ -1,5 +1,6 @@
 package po.lognotify.classes.task
 
+import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -10,6 +11,7 @@ import kotlinx.coroutines.withContext
 import po.lognotify.classes.taskresult.TaskResult
 import po.lognotify.classes.notification.Notifier
 import po.lognotify.classes.notification.enums.EventType
+import po.lognotify.classes.task.models.CoroutineInfo
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.exceptions.CancellationException
 import po.lognotify.exceptions.DefaultException
@@ -24,14 +26,14 @@ import kotlin.coroutines.CoroutineContext
 
 
 class RootTask<R>(
-    override val key : TaskKey,
+    val taskKey : TaskKey,
     context: CoroutineContext
-):TaskSealedBase<R>(key.taskName, context)
+):TaskSealedBase<R>(taskKey, context)
 {
 
-    override val qualifiedName: String = key.asString()
-    override val taskName: String = key.taskName
-    override val nestingLevel: Int = key.nestingLevel
+//    override val qualifiedName: String = key.asString()
+//    override val taskName: String = key.taskName
+//    override val nestingLevel: Int = key.nestingLevel
 
     override val notifier: Notifier =  Notifier(this)
     override var taskResult : TaskResult<R> = TaskResult<R>(this)
@@ -59,16 +61,14 @@ class RootTask<R>(
 }
 
 class ManagedTask<R>(
-    override val key : TaskKey,
+    val taskKey : TaskKey,
     context: CoroutineContext,
     override val parent: TaskSealedBase<*>,
     private val hierarchyRoot : RootTask<*>,
-):TaskSealedBase<R>(key.taskName, context), ControlledTask, ResultantTask
+):TaskSealedBase<R>(taskKey, context), ControlledTask, ResultantTask
 {
 
-    override val qualifiedName: String = key.asString()
-    override val taskName: String = key.taskName
-    override val nestingLevel: Int = key.nestingLevel
+   // override val nestingLevel: Int = key.nestingLevel
 
     override val notifier: Notifier =  Notifier(this)
     override var taskResult : TaskResult<R> = TaskResult<R>(this)
@@ -85,27 +85,43 @@ class ManagedTask<R>(
 }
 
 sealed class TaskSealedBase<R>(
-    override val taskName : String,
+    val key: TaskKey,
     val context: CoroutineContext,
- ) : ResultantTask, SelfThrownException, StaticHelper
+ ): ResultantTask, SelfThrownException, StaticHelper
 {
 
     override var startTime: Long = System.nanoTime()
     override var endTime: Long = 0L
     private var elapsed: Float = 0.0F
 
-    abstract  val key : TaskKey
+
+    override val nestingLevel: Int = key.nestingLevel
+    override val qualifiedName: String = key.asString()
+    override val taskName: String = key.taskName
+    override val moduleName: String = key.moduleName?:"N/A"
 
     abstract val taskHelper: TaskHandler<R>
     abstract override val notifier : Notifier
     abstract var taskResult: TaskResult<R>
     abstract val registry: TaskRegistry<*>
+    var isComplete: Boolean = false
+
+    override var coroutineInfo: MutableList<CoroutineInfo> = mutableListOf<CoroutineInfo>()
+
+    fun setCoroutineInfo(info : CoroutineInfo){
+        coroutineInfo.add(info)
+    }
 
     fun rootTaskOrNull(): RootTask<R>?{
         return this as? RootTask
     }
 
     internal suspend fun preRunConfig(scope: CoroutineScope){
+       val info = CoroutineInfo(
+            scope.coroutineContext.hashCode(),
+            scope.coroutineContext[CoroutineName].toString()
+        )
+        this.setCoroutineInfo(info)
         notifier.start()
     }
 
@@ -223,7 +239,8 @@ sealed class TaskSealedBase<R>(
 
     internal fun <T> runTaskAsync(receiver : T, block: suspend T.(TaskHandler<R>) -> R): TaskResult<R> {
         val result = runBlocking {
-            CoroutineScope(context).async(start = CoroutineStart.UNDISPATCHED) {
+            CoroutineScope(context).async{
+                preRunConfig(this)
                 execute(receiver, block)
             }.await()
         }

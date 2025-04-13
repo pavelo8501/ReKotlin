@@ -5,6 +5,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import po.lognotify.classes.task.ManagedTask
 import po.lognotify.classes.task.RootTask
+import po.lognotify.exceptions.LoggerException
+import po.lognotify.extensions.getOrThrow
 import po.lognotify.extensions.getOrThrowDefault
 import po.lognotify.extensions.safeCast
 import po.lognotify.logging.LoggingService
@@ -20,7 +22,7 @@ interface TasksManaged {
         internal val taskHierarchy = ConcurrentHashMap<TaskKey, RootTask<*>>()
 
         internal fun defaultContext(name: String): CoroutineContext =
-            SupervisorJob() + Dispatchers.Default + CoroutineName("<DefaultContext|$name>")
+            SupervisorJob() + Dispatchers.Default + CoroutineName(name)
 
         private fun <R> hierarchyRootCreation(newRootTask :  RootTask<R>): RootTask<R>{
             taskHierarchy[newRootTask.key] = newRootTask
@@ -37,14 +39,11 @@ interface TasksManaged {
             return  hierarchyRootCreation(newTask)
         }
 
-        internal fun <R> attachToHierarchy(name : String, moduleName: String?): ManagedTask<R>?{
-            taskHierarchy.keys.lastOrNull()?.let {
-                 taskHierarchy[it]?.let {rootTask->
-                     val childTask =   rootTask.createNewMemberTask<R>(name, moduleName)
-                     return childTask.safeCast<ManagedTask<R>>().getOrThrowDefault("Cast failed")
-                 }
-            }
-            return null
+        internal fun <R> attachToHierarchy(name : String, moduleName: String?): ManagedTask<R>{
+            val availableRoot = taskHierarchy.values.firstOrNull { it.isComplete == false }
+                .getOrThrow(LoggerException("No available root task for sub task name:${name}|module:$moduleName. Bad setup"))
+            val childTask = availableRoot.createNewMemberTask<R>(name, moduleName)
+            return childTask
         }
 
         internal fun keyLookup(name: String, nestingLevel: Int): TaskKey?{

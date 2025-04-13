@@ -21,15 +21,22 @@ data class Notification(
 
 
     private val taskHeader = mapOf<String, String>(
-        "time" to "@$currentDateTime",
-        "task" to "${task.qualifiedName} ",
-        "nesting_level" to "Nesting Level ${task.nestingLevel.toString()}",
+        "task" to "${task.taskName}@$currentDateTime",
+        "task_info" to "Module: ${task.moduleName}",
+        "nesting_level" to "Nesting: ${task.nestingLevel}",
+        "coroutine_info" to "Coroutine Info: ${
+            task.coroutineInfo.joinToString(
+                ",",
+                "[",
+                "]"
+            ) { "HashCode: ${it.hashCode} Name: ${it.name}" }
+        }"
     )
 
     private val taskFooter = mapOf<String, String>(
         "time" to "@$currentDateTime",
         "task" to task.qualifiedName,
-        "elapsed" to "Completed in : ${(task.endTime - task.startTime) / 1_000_000f}"
+        "elapsed" to "Completed in : ${(task.endTime - task.startTime) / 1_000_000f} ms"
     )
 
     private val taskPrefix = mapOf<String, String>(
@@ -38,10 +45,9 @@ data class Notification(
     )
 
     fun getTaskHeader(): String{
-
         var action = "${makeOfColour(ColourEnum.MAGENTA, "Started")} "
-        var resultString = makeOfColour(ColourEnum.BRIGHT_BLUE,taskHeader.map {it.value}.joinToString(" | ","[","]"))
-        return withIndention("$action $resultString", task.nestingLevel)
+        var resultString = makeOfColour(ColourEnum.BRIGHT_BLUE,taskHeader.map {it.value}.joinToString(" | ","","]"))
+        return withIndention("[$action $resultString", task.nestingLevel)
     }
 
     fun getTaskFooter(): String{
