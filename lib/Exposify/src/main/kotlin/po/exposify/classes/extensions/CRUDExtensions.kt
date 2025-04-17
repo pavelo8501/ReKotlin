@@ -1,19 +1,15 @@
-package po.exposify.classes
+package po.exposify.classes.extensions
 
 import org.jetbrains.exposed.dao.id.IdTable
-import org.jetbrains.exposed.sql.transactions.experimental.suspendedTransactionAsync
+import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.components.CrudResult
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.CrudResultSingle
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase
-import po.exposify.extensions.QueryConditions
 import po.exposify.extensions.WhereCondition
 import po.lognotify.extensions.getOrThrowCancellation
-import po.lognotify.extensions.getOrThrowDefault
-import po.lognotify.extensions.resultOrDefault
-import po.lognotify.extensions.startTask
 import po.lognotify.extensions.subTask
 import po.lognotify.extensions.trueOrThrow
 import kotlin.Long
@@ -65,7 +61,7 @@ internal suspend inline fun <DTO: ModelDTO, DATA: DataModel, ENTITY: ExposifyEnt
  *
  * @return A [CrudResult] containing a list of initialized DTOs and associated events.
  */
-internal suspend fun <T, DTO, DATA>  DTOClass<DTO>.select(
+internal suspend fun <T, DTO, DATA> DTOClass<DTO>.select(
     conditions:  WhereCondition<T>
 ): CrudResult<DTO, DATA> where DTO: ModelDTO, DATA: DataModel, T: IdTable<Long> =
     subTask("Select with conditions"){handler->
@@ -122,7 +118,7 @@ internal suspend fun <DTO, DATA> DTOClass<DTO>.update(
  * @param dataModel The data model to delete.
  * @return A [CrudResult] containing a list of successfully deleted DTOs and associated events.
  */
-internal suspend inline fun <DTO, DATA>  DTOClass<DTO>.delete(
+internal suspend inline fun <DTO, DATA> DTOClass<DTO>.delete(
     dataModel: DATA
 ): CrudResult<DTO, DATA>?  where DTO: ModelDTO, DATA: DataModel
 {

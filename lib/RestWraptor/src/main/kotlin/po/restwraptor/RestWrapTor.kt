@@ -1,12 +1,9 @@
 package po.restwraptor
 
 import io.ktor.server.application.Application
-import io.ktor.server.application.ApplicationEnvironment
-import io.ktor.server.application.ApplicationStarted
 import io.ktor.server.application.ServerReady
 import io.ktor.server.engine.ApplicationEngine
 import io.ktor.server.engine.EmbeddedServer
-
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.netty.NettyApplicationEngine
@@ -15,11 +12,6 @@ import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import po.lognotify.eventhandler.EventHandlerBase
-import po.lognotify.eventhandler.RootEventHandler
-import po.lognotify.eventhandler.interfaces.CanNotify
 import po.restwraptor.classes.ConfigContext
 import po.restwraptor.classes.CoreContext
 import po.restwraptor.classes.ServerContext
@@ -38,7 +30,7 @@ val RestWrapTorKey = AttributeKey<RestWrapTor>("RestWrapTorInstance")
  */
 class RestWrapTor(
     private val appConfigFn : (ConfigContext.() -> Unit)? = null,
-): CanNotify {
+){
     /**
      * Stores the **unique hash** of the application instance.
      * Used to verify if the application instance remains the same.
@@ -50,10 +42,6 @@ class RestWrapTor(
 
     /** The embedded Ktor server instance. */
     private lateinit var  embeddedServer : EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>
-
-    override val  eventHandler: RootEventHandler = RootEventHandler("RestWrapTor"){
-        println("RestWrapTor: Exception: ${it.message}")
-    }
 
     val connectors: MutableList<String> = mutableListOf<String>()
 

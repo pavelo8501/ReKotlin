@@ -3,13 +3,12 @@ package po.exposify.scope.sequence
 import kotlinx.coroutines.Deferred
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.transactions.TransactionManager
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.components.CrudResult
 import po.exposify.dto.CommonDTO
 import po.exposify.classes.DTOClass
-import po.exposify.classes.select
-import po.exposify.classes.update
+import po.exposify.classes.extensions.select
+import po.exposify.classes.extensions.update
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.extensions.WhereCondition
@@ -17,7 +16,6 @@ import po.exposify.extensions.isTransactionReady
 import po.exposify.scope.sequence.classes.SequenceHandler
 import po.exposify.scope.service.ServiceClass
 import po.lognotify.TasksManaged
-import po.lognotify.extensions.resultOrDefault
 import po.lognotify.extensions.subTask
 
 

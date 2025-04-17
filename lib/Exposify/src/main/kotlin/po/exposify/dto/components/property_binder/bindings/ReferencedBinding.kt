@@ -2,7 +2,7 @@ package po.exposify.dto.components.property_binder.bindings
 
 import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
-import po.exposify.classes.pickById
+import po.exposify.classes.extensions.pickById
 import po.exposify.dto.components.property_binder.enums.PropertyType
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.components.property_binder.interfaces.PropertyBindingOption

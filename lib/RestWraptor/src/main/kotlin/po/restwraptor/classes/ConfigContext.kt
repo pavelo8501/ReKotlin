@@ -2,47 +2,30 @@ package po.restwraptor.classes
 
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
-import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.application.pluginOrNull
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.cors.routing.CORS
-import io.ktor.server.request.contentType
-import io.ktor.server.request.receive
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
-import io.ktor.server.routing.Routing
 import io.ktor.server.routing.application
 import io.ktor.server.routing.get
 import io.ktor.server.routing.options
-import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
-import po.lognotify.eventhandler.RootEventHandler
-import po.lognotify.eventhandler.interfaces.CanNotify
-import po.lognotify.shared.enums.HandleType
 import po.restwraptor.RestWrapTor
-import po.restwraptor.builders.restWrapTor
 import po.restwraptor.classes.convenience.respondNotFound
 import po.restwraptor.enums.EnvironmentType
-import po.restwraptor.exceptions.ConfigurationErrorCodes
 import po.restwraptor.exceptions.ConfigurationException
-import po.restwraptor.interfaces.SecuredUserInterface
-import po.restwraptor.models.configuration.ApiConfig
-import po.restwraptor.models.configuration.AuthenticationConfig
 import po.restwraptor.models.configuration.WraptorConfig
-import po.restwraptor.models.request.ApiRequest
-import po.restwraptor.models.request.LoginRequest
 import po.restwraptor.models.response.ApiResponse
-import po.restwraptor.models.security.AuthenticatedModel
-import po.restwraptor.plugins.JWTPlugin
+import po.restwraptor.plugins.FlexibleContentNegotiationPlugin
 import po.restwraptor.plugins.RateLimiterPlugin
 import po.restwraptor.plugins.ReplyInterceptorPlugin
-import po.restwraptor.security.JWTService
 
 interface ConfigContextInterface{
     fun setupAuthentication(configFn : AuthenticationContext.()-> Unit)
@@ -54,25 +37,15 @@ interface ConfigContextInterface{
 class ConfigContext(
     internal val wraptor : RestWrapTor,
     private val wrapConfig : WraptorConfig,
-): ConfigContextInterface,  CanNotify{
+): ConfigContextInterface{
 
-    override val eventHandler = RootEventHandler("Server config"){
-        println("Server config ${it.message}" )
-    }
     internal val apiConfig  =  wrapConfig.apiConfig
-    private val authContext  : AuthenticationContext by lazy { AuthenticationContext( wraptor.eventHandler, this) }
+    private val authContext  : AuthenticationContext by lazy { AuthenticationContext(this) }
     internal val app : Application  by lazy { wraptor.application }
 
     internal val jsonFormatter : Json = Json {
         isLenient = true
-        ignoreUnknownKeys = true
         encodeDefaults = true
-    }
-
-    init {
-        eventHandler.registerPropagateException<ConfigurationException>{
-            ConfigurationException(HandleType.PROPAGATE_TO_PARENT, "Default Message")
-        }
     }
 
     private fun configCustomPlugins(app : Application){
@@ -85,9 +58,9 @@ class ConfigContext(
     private fun configCors():Application{
         app.apply {
             if (pluginOrNull(CORS) != null) {
-                info("CORS installation skipped. Custom CORS already installed")
+               // info("CORS installation skipped. Custom CORS already installed")
             } else {
-                info("Installing CORS Plugin")
+               // info("Installing CORS Plugin")
                 install(CORS) {
                     allowNonSimpleContentTypes
                     allowMethod(HttpMethod.Options)
@@ -102,7 +75,7 @@ class ConfigContext(
                     anyHost()
                 }
                 println("Default CORS installed")
-                info("Default CORS installed")
+               // info("Default CORS installed")
             }
         }
         return app
@@ -111,13 +84,15 @@ class ConfigContext(
     private fun configContentNegotiation():Application{
         app.apply {
             if (this.pluginOrNull(ContentNegotiation) != null) {
-                info("ContentNegotiation installation skipped. Custom ContentNegotiation already installed")
+               // info("ContentNegotiation installation skipped. Custom ContentNegotiation already installed")
             } else {
-                info("Installing Default ContentNegotiation")
-                install(ContentNegotiation) {
+               // info("Installing Default ContentNegotiation")
+               install(ContentNegotiation) {
                     json(jsonFormatter)
                 }
-                info("Default ContentNegotiation installed")
+            //    install(FlexibleContentNegotiationPlugin)
+
+              // info("Default ContentNegotiation installed")
             }
         }
         return app
@@ -126,21 +101,21 @@ class ConfigContext(
     private fun configRateLimiter():Application{
         app.apply {
             if (this.pluginOrNull(RateLimiterPlugin) != null) {
-                info("RateLimiter installation skipped. Custom RateLimiter already installed")
+               // info("RateLimiter installation skipped. Custom RateLimiter already installed")
             }else{
-                info("Installing RateLimiter")
+              //  info("Installing RateLimiter")
                 install(RateLimiterPlugin) {
                     requestsPerMinute = 60
                     suspendInSeconds = 60
                 }
-                info("RateLimiter installed")
+             //   info("RateLimiter installed")
             }
         }
         return app
     }
 
     private fun configSystemRoutes(): Application {
-        info("Default rout initialization")
+      //  info("Default rout initialization")
         app.apply {
             routing {
                 options("/status") {
@@ -148,11 +123,11 @@ class ConfigContext(
                     call.respondText("OK")
                 }
                 get("/status") {
-                    info("Accessing Application: ${application.hashCode()}")
+                  //  info("Accessing Application: ${application.hashCode()}")
                     call.respond(wraptor.status().toString())
                 }
                 get("/status-json") {
-                    info("Status Json endpoint called.")
+                  //  info("Status Json endpoint called.")
                     val responseStatus: String = "OK"
                     call.respond(ApiResponse(responseStatus))
                 }
@@ -169,7 +144,7 @@ class ConfigContext(
                     }
                 }
             }
-            info("Default rout initialized")
+           // info("Default rout initialized")
             return app
         }
     }

@@ -7,10 +7,10 @@ import po.exposify.classes.interfaces.DataModel
 import po.exposify.common.interfaces.AsContext
 import po.exposify.dto.components.CrudResult
 import po.exposify.classes.DTOClass
-import po.exposify.classes.delete
-import po.exposify.classes.pick
-import po.exposify.classes.select
-import po.exposify.classes.update
+import po.exposify.classes.extensions.delete
+import po.exposify.classes.extensions.pick
+import po.exposify.classes.extensions.select
+import po.exposify.classes.extensions.update
 import po.exposify.dto.components.CrudResultSingle
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase

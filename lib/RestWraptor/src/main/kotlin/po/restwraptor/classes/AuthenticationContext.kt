@@ -5,7 +5,6 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.install
 import io.ktor.server.application.pluginOrNull
 import io.ktor.server.auth.Authentication
-import io.ktor.server.auth.authenticate
 import io.ktor.server.request.contentType
 import io.ktor.server.request.receive
 import io.ktor.server.request.receiveText
@@ -15,8 +14,6 @@ import io.ktor.server.routing.Routing
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
-import kotlinx.serialization.json.Json
-import po.lognotify.eventhandler.EventHandler
 import po.restwraptor.interfaces.SecuredUserInterface
 import po.restwraptor.models.configuration.AuthenticationConfig
 import po.restwraptor.models.request.ApiRequest
@@ -25,12 +22,10 @@ import po.restwraptor.models.response.ApiResponse
 import po.restwraptor.models.security.AuthenticatedModel
 import po.restwraptor.plugins.JWTPlugin
 import po.restwraptor.security.JWTService
-import po.lognotify.eventhandler.RootEventHandler
-import po.lognotify.eventhandler.interfaces.CanNotify
 import po.restwraptor.classes.convenience.respondInternal
-import po.restwraptor.classes.convenience.respondNotFound
 import po.restwraptor.classes.convenience.respondUnauthorized
 import po.restwraptor.exceptions.AuthException
+import po.restwraptor.extensions.toUrl
 import po.restwraptor.interfaces.StringHelper
 import po.restwraptor.models.request.LogoutRequest
 import po.restwraptor.models.security.JwtConfig
@@ -38,12 +33,9 @@ import java.io.File
 import java.io.IOException
 
 class AuthenticationContext(
-    private val rootHandler : RootEventHandler,
     private val configContext : ConfigContext,
     private val  stringHelper : StringHelper = StringHelper
-) : CanNotify,  StringHelper by stringHelper  {
-
-    override val eventHandler = EventHandler("AuthenticationContext", rootHandler)
+){
 
     val authConfig  = AuthenticationConfig()
     var credentialsValidatorFn: ((LoginRequest)-> SecuredUserInterface?) ? = null
@@ -60,7 +52,6 @@ class AuthenticationContext(
         val token =  try {
             service.generateToken(user)
         }catch (ex: JWTDecodeException ) {
-            throwSkip("Token generation failed with exception message ${ex.message.toString()}")
             null
         }
         return token
@@ -74,7 +65,7 @@ class AuthenticationContext(
                 newToken =  token
             }
         }?:run {
-            throwSkip("JWTService undefined")
+           // throwSkip("JWTService undefined")
         }
         return newToken
     }
@@ -86,7 +77,7 @@ class AuthenticationContext(
                 if (user != null && user.password == loginData.password) {
                    return issueToken(user)
                 }else {
-                    warn("Login failed for ${loginData.login} with password ${loginData.password}")
+                   // warn("Login failed for ${loginData.login} with password ${loginData.password}")
                 }
             }
         }
@@ -97,23 +88,23 @@ class AuthenticationContext(
         routing.apply {
             route(url) {
                 post {
-                    eventHandler.handleUnmanagedException {
-                        respondInternal(it)
+//                    eventHandler.handleUnmanagedException {
+//                        respondInternal(it)
+//                    }
+
+                   // info("Request content type: ${call.request.contentType()}")
+                    val requestText = call.receiveText()
+                    val request =  configContext.jsonFormatter.decodeFromString<LoginRequest>(
+                        requestText
+                    )
+                    val token = onLoginRequest(request)
+                    if (token != null) {
+                        call.response.header("Authorization", "Bearer $token")
+                        call.respond(ApiResponse(token))
+                    } else {
+                        call.respond(HttpStatusCode.Unauthorized, "Invalid credentials")
                     }
-                    task("$url request"){
-                        info("Request content type: ${call.request.contentType()}")
-                        val requestText = call.receiveText()
-                        val request =  configContext.jsonFormatter.decodeFromString<LoginRequest>(
-                            requestText
-                        )
-                        val token = onLoginRequest(request)
-                        if (token != null) {
-                            call.response.header("Authorization", "Bearer $token")
-                            call.respond(ApiResponse(token))
-                        } else {
-                            call.respond(HttpStatusCode.Unauthorized, "Invalid credentials")
-                        }
-                    }
+
                 }
             }
         }
@@ -160,9 +151,9 @@ class AuthenticationContext(
     private fun configAuthentication() {
         app.apply {
             if (this.pluginOrNull(Authentication) != null) {
-                info("Authentication installation skipped. Custom Authentication already installed")
+              //  info("Authentication installation skipped. Custom Authentication already installed")
             } else {
-                info("Installing JWT Plugin")
+              //  info("Installing JWT Plugin")
                 val config =  JwtConfig(
                     realm = "ktor app",
                     audience = "jwt-audience",

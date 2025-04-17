@@ -18,7 +18,7 @@ data class ServiceResponse(
 
 @Serializable
 data class ApiResponse<T>(
-    val data : T? = null,
+    val data : T,
 ){
     var status: Boolean = false
     var message: String = ""

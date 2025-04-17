@@ -1,12 +1,11 @@
-package po.restwraptor.test.security
+package po.test.restwraptor.security
 
 import com.auth0.jwt.interfaces.DecodedJWT
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import po.restwraptor.models.security.JwtConfig
 import po.restwraptor.security.JWTService
-import po.restwraptor.test.TestRestWraptorSecurity
-import po.restwraptor.test.TestUser
+import po.test.restwraptor.TestRestWraptorSecurity
+import po.test.restwraptor.TestUser
 import java.io.File
 import kotlin.test.assertEquals
 

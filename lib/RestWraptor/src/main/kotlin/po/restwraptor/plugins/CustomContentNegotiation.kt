@@ -27,7 +27,6 @@ class CustomContentNegotiation private constructor(config: Configuration) {
             contentType.match(type)
         }?.second
         if (converter != null) {
-
             println("HTTP Method: $method, Content-Type: $contentType")
         }
         return converter

@@ -1,4 +1,4 @@
-package po.restwraptor.test
+package po.test.restwraptor
 
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation

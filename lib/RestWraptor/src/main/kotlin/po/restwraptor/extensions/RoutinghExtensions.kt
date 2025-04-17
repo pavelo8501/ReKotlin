@@ -3,9 +3,6 @@ package po.restwraptor.extensions
 import io.ktor.server.application.Application
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.application
-import po.lognotify.shared.enums.HandleType
-import po.restwraptor.exceptions.ConfigurationException
-import po.restwraptor.plugins.CustomContentNegotiation
 
 fun partsToUrl(pathParts: List<String>):  String {
    val result =  pathParts

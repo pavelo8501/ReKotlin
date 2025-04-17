@@ -12,7 +12,7 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.like
 import org.jetbrains.exposed.sql.and
 
 
-class WhereCondition<T> (private val table: T) : QueryConditions<T>() where T : IdTable<Long> {
+class WhereCondition<T> () : QueryConditions<T>() where T : IdTable<Long> {
 
     override  var expression: Set<Op<Boolean>> = emptySet()
 

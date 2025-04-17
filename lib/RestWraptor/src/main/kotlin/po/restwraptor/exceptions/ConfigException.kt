@@ -1,7 +1,9 @@
 package po.restwraptor.exceptions
 
-import po.lognotify.eventhandler.exceptions.ProcessableException
-import po.lognotify.shared.enums.HandleType
+import po.lognotify.exceptions.CancellationException
+import po.lognotify.exceptions.ExceptionBase
+import po.lognotify.exceptions.enums.HandlerType
+
 
 enum class ConfigurationErrorCodes(val value: Int) {
     UNKNOWN(0),
@@ -21,7 +23,7 @@ enum class ConfigurationErrorCodes(val value: Int) {
 }
 
 class ConfigurationException(
-    var type : HandleType,
+    var type : HandlerType,
     override var message: String,
     val code: Int = 0
-) : ProcessableException(type, message, code)
+) :  CancellationException (message, type, code)

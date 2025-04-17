@@ -9,7 +9,7 @@ import com.auth0.jwt.interfaces.DecodedJWT
 import io.ktor.server.auth.jwt.JWTCredential
 import io.ktor.server.auth.jwt.JWTPrincipal
 import kotlinx.coroutines.runBlocking
-import po.lognotify.shared.enums.HandleType
+import po.lognotify.exceptions.enums.HandlerType
 import po.restwraptor.exceptions.AuthErrorCodes
 import po.restwraptor.exceptions.AuthException
 import po.restwraptor.exceptions.ConfigurationException
@@ -121,7 +121,7 @@ class JWTService{
     @JvmName("getServiceVerifier")
     fun getVerifier(): JWTVerifier{
         if(!::verifier.isInitialized) throw ConfigurationException(
-            HandleType.PROPAGATE_TO_PARENT,
+            HandlerType.SKIP_SELF,
             "Verifier not initialized. Call configure() first")
         return verifier
     }

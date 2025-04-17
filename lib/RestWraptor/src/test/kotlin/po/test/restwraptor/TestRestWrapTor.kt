@@ -1,4 +1,4 @@
-package po.restwraptor.test
+package po.test.restwraptor
 
 import io.ktor.server.application.install
 import io.ktor.server.application.pluginOrNull

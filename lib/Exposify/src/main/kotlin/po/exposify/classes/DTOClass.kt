@@ -27,9 +27,9 @@ import po.lognotify.extensions.startTaskAsync
 import kotlin.coroutines.CoroutineContext
 import kotlin.reflect.KClass
 
-abstract class DTOClass<DTO>(): TasksManaged,  DTOInstance where DTO: ModelDTO{
+abstract class DTOClass<DTO>(): TasksManaged,  DTOInstance where DTO: ModelDTO {
 
-    lateinit var registryItem : DTORegistryItem<DTO, DataModel, ExposifyEntityBase>
+    lateinit var registryItem: DTORegistryItem<DTO, DataModel, ExposifyEntityBase>
 
     override var personalName: String = "DTOClass[undefined]"
         protected set
@@ -41,36 +41,36 @@ abstract class DTOClass<DTO>(): TasksManaged,  DTOInstance where DTO: ModelDTO{
         get() = configInstance
 
     var serviceContextOwned: ServiceContext<DTO, DataModel>? = null
-    var repository : RootRepository<DTO, DataModel, ExposifyEntityBase, DTO>? = null
+    var repository: RootRepository<DTO, DataModel, ExposifyEntityBase, DTO>? = null
 
-   protected abstract fun setup()
+    protected abstract fun setup()
 
-  fun <DATA : DataModel, ENTITY: ExposifyEntityBase> applyConfig(initializedConfig : DTOConfig<DTO, DATA, ENTITY>) {
+    fun <DATA : DataModel, ENTITY : ExposifyEntityBase> applyConfig(initializedConfig: DTOConfig<DTO, DATA, ENTITY>) {
         initializedConfig.safeCast<DTOConfig<DTO, DataModel, ExposifyEntityBase>>()?.let {
             configInstance = it
-        }?: throw InitException("Safe cast failed for DTOConfig2", ExceptionCode.CAST_FAILURE)
+        } ?: throw InitException("Safe cast failed for DTOConfig2", ExceptionCode.CAST_FAILURE)
 
-       val casted = initializedConfig.dtoRegItem.safeCast<DTORegistryItem<DTO, DataModel, ExposifyEntityBase>>()
-           .getOrThrowDefault("Cast to DTORegistryItem<DTO, DataModel, ExposifyEntityBase> failed")
-       registryItem = casted
-       personalName = "DTOClass[${registryItem.commonDTOKClass.simpleName}]"
-       initFactoryRoutines()
-       initialized = true
-   }
-
-   inline fun <reified DATA, reified ENTITY> configuration(
-       dtoClass: KClass<out CommonDTO<DTO, DATA, ENTITY>>,
-       entityModel: LongEntityClass<ENTITY>,
-       block: DTOConfig<DTO, DATA, ENTITY>.() -> Unit
-   ) where ENTITY: ExposifyEntityBase, DATA: DataModel {
-
-       val newRegistryItem = DTORegistryItem<DTO, DATA, ENTITY>(dtoClass, DATA::class, ENTITY::class, this@DTOClass)
-       val configuration = DTOConfig(newRegistryItem, entityModel, this)
-       configuration.block()
-       applyConfig(configuration)
+        val casted = initializedConfig.dtoRegItem.safeCast<DTORegistryItem<DTO, DataModel, ExposifyEntityBase>>()
+            .getOrThrowDefault("Cast to DTORegistryItem<DTO, DataModel, ExposifyEntityBase> failed")
+        registryItem = casted
+        personalName = "DTOClass[${registryItem.commonDTOKClass.simpleName}]"
+        initFactoryRoutines()
+        initialized = true
     }
 
-    fun getAssociatedTables(cumulativeList: MutableList<IdTable<Long>>){
+    inline fun <reified DATA, reified ENTITY> configuration(
+        dtoClass: KClass<out CommonDTO<DTO, DATA, ENTITY>>,
+        entityModel: LongEntityClass<ENTITY>,
+        block: DTOConfig<DTO, DATA, ENTITY>.() -> Unit
+    ) where ENTITY : ExposifyEntityBase, DATA : DataModel {
+
+        val newRegistryItem = DTORegistryItem<DTO, DATA, ENTITY>(dtoClass, DATA::class, ENTITY::class, this@DTOClass)
+        val configuration = DTOConfig(newRegistryItem, entityModel, this)
+        configuration.block()
+        applyConfig(configuration)
+    }
+
+    fun getAssociatedTables(cumulativeList: MutableList<IdTable<Long>>) {
         cumulativeList.add(configInstance.entityModel.table)
         runBlocking {
             withRelationshipBinder() {
@@ -81,56 +81,35 @@ abstract class DTOClass<DTO>(): TasksManaged,  DTOInstance where DTO: ModelDTO{
         }
     }
 
-    fun <ENTITY: ExposifyEntityBase> getEntityModel(): LongEntityClass<ENTITY>{
-        return config.entityModel.safeCast<LongEntityClass<ENTITY>>().getOrThrowDefault("Cast to LongEntityClass<ENTITY> failed")
+    fun <ENTITY : ExposifyEntityBase> getEntityModel(): LongEntityClass<ENTITY> {
+        return config.entityModel.safeCast<LongEntityClass<ENTITY>>()
+            .getOrThrowDefault("Cast to LongEntityClass<ENTITY> failed")
     }
 
     fun initialization(onRequestFn: (() -> Unit)? = null) {
-        if(!initialized){
+        if (!initialized) {
             setup()
         }
     }
 
-    fun <DATA: DataModel>asHierarchyRoot(serviceContext: ServiceContext<DTO, DATA>){
-        if(serviceContextOwned == null){
+    fun <DATA : DataModel> asHierarchyRoot(serviceContext: ServiceContext<DTO, DATA>) {
+        if (serviceContextOwned == null) {
             serviceContext.safeCast<ServiceContext<DTO, DataModel>>()?.let {
                 serviceContextOwned = it
                 repository = RootRepository<DTO, DataModel, ExposifyEntityBase, DTO>(this)
                 initFactoryRoutines()
-            }?: throw InitException("Cast for ServiceContext2 failed", ExceptionCode.CAST_FAILURE)
+            } ?: throw InitException("Cast for ServiceContext2 failed", ExceptionCode.CAST_FAILURE)
         }
     }
 
     fun initFactoryRoutines(): Unit = config.initFactoryRoutines()
 
     suspend fun withRelationshipBinder(
-        block: suspend RelationshipBinder<DTO, DataModel, ExposifyEntityBase>.()-> Unit
+        block: suspend RelationshipBinder<DTO, DataModel, ExposifyEntityBase>.() -> Unit
     ): Unit = config.withRelationshipBinder(block)
 
     fun isTransactionReady(): Boolean {
         return TransactionManager.currentOrNull()?.connection?.isClosed?.not() == true
     }
 
-
-    suspend fun <DATA: DataModel>  runSequence(
-        sequenceId: Int,
-        coroutineContext: CoroutineContext,
-        handlerBlock: suspend SequenceHandler<DTO, DataModel>.()-> Unit):List<DATA>
-        = startTask("Run Sequence", coroutineContext, personalName) {
-         withTransactionIfNone {
-             val serviceContext = serviceContextOwned.getOrThrowDefault("Unable to run sequence id: $sequenceId on DTOClass. DTOClass is not a hierarchy root")
-             val handler = serviceContext.serviceClass().getSequenceHandler(sequenceId, this)
-             handlerBlock.invoke(handler)
-             val key =  handler.thisKey
-             val result = serviceContext.serviceClass().runSequence(key).safeCast<List<DATA>>()
-                 .getOrThrowDefault("Cast to List<DATA> failed")
-             result
-         }
-    }.resultOrException()
-
-    suspend fun <DATA: DataModel> runSequence(
-        sequenceID: SequenceID,
-        coroutineContext: CoroutineContext,
-        handlerBlock: suspend SequenceHandler<DTO, DataModel>.()-> Unit):List<DATA>
-        = runSequence(sequenceID.value, coroutineContext,  handlerBlock)
 }

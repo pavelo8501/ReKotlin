@@ -7,10 +7,10 @@ import po.exposify.scope.connection.ConnectionContext
 
 class ConnectionInfo(
     val host: String = "",
+    val port: String = "",
     val dbName: String,
     val user: String,
     val pwd: String,
-    val port: String = "",
     val driver: String = "org.postgresql.Driver",
     val jdbcUrl: String? = null
 ){
