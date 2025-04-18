@@ -21,7 +21,7 @@ import po.restwraptor.plugins.RateLimiterPlugin
 import po.restwraptor.routes.configureSystemRoutes
 
 interface ConfigContextInterface{
-    fun setupAuthentication(configFn : AuthConfigContext.()-> Unit)
+    suspend fun setupAuthentication(configFn : suspend AuthConfigContext.()-> Unit)
     fun setup(configFn : WraptorConfig.()-> Unit)
     fun setupApplication(block: Application.()->Unit)
     suspend fun initialize():Application
@@ -113,7 +113,7 @@ class ConfigContext(
         app.rootPath = apiConfig.baseApiRoute
     }
 
-    override fun setupAuthentication(configFn : AuthConfigContext.()-> Unit){
+    override suspend fun setupAuthentication( configFn  : suspend AuthConfigContext.()-> Unit){
         authContext.configFn()
     }
     override fun setup(configFn : WraptorConfig.()-> Unit){

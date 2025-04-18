@@ -2,6 +2,10 @@ package po.auth.authentication.jwt.models
 
 import com.auth0.jwk.JwkProvider
 import po.auth.authentication.jwt.interfaces.JwtConfigInterface
+import java.security.PrivateKey
+import java.security.PublicKey
+import java.security.interfaces.RSAPrivateKey
+import java.security.interfaces.RSAPublicKey
 
 data class JwtConfig(
   //  override var claimFieldName:String,
@@ -10,10 +14,10 @@ data class JwtConfig(
     override var secret: String,
     override var kid: String?  = null,
     override var audience: String = "jwt-audience",
+    override val privateKey: RSAPrivateKey,
+    override val publicKey: RSAPublicKey
 ): JwtConfigInterface {
 
-    val privateKey: String by lazy{ this.keysSet().first }
-    val publicKey: String by lazy{ this.keysSet().second }
 
     private fun keysSet(): Pair<String, String>{
         if(privateKeyValue == null || publicKeyValue == null){

@@ -8,7 +8,7 @@ import po.auth.authentication.interfaces.AuthenticationPrincipal
 @Serializable
 open class AuthorizedPrincipal(
     override val userId: Long = 0L,
-    override val username: String = "no_name",
+    override val login: String = "no_name",
     override val email: String = "nomail@undeliverable.void",
     override val userGroupId: Long = 0L,
     override val roles: Set<String> = emptySet(),

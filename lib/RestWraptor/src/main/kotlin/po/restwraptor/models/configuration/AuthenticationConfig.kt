@@ -4,6 +4,8 @@ import kotlinx.io.IOException
 import po.restwraptor.interfaces.SecuredUserInterface
 import po.restwraptor.models.request.LoginRequest
 import java.io.File
+import java.security.PrivateKey
+import java.security.PublicKey
 
 data class AuthenticationConfig(
     var baseAuthRoute : String = "/auth",
@@ -13,7 +15,7 @@ data class AuthenticationConfig(
 
     val security: Boolean
         get(){
-            if(publicKeyString!!.isNotEmpty() && privateKeyString!!.isNotEmpty()){
+            if(publicKeyString != null && privateKeyString != null){
                 return true
             }
             if(wellKnownPath!= null){
@@ -23,12 +25,12 @@ data class AuthenticationConfig(
         }
     var jwtServiceName = "auth-jwt"
     var credentialsValidatorFn : ((LoginRequest)-> SecuredUserInterface?)? = null
-    internal var privateKeyString: String? = null
-    internal var publicKeyString: String? = null
+    internal var privateKeyString: PrivateKey? = null
+    internal var publicKeyString: PublicKey? = null
     var useWellKnownHost: Boolean = false
     var wellKnownPath: String? = null
 
-    fun setAuthKeys(publicKey: String, privateKey: String) {
+    fun setAuthKeys(privateKey: PrivateKey, publicKey: PublicKey, ) {
         this.publicKeyString = publicKey
         this.privateKeyString = privateKey
         this.wellKnownPath = null
@@ -37,9 +39,6 @@ data class AuthenticationConfig(
 
     fun setWellKnown(path: String) {
         TODO("Not yet implemented")
-        this.wellKnownPath = path
-        this.publicKeyString = null
-        this.privateKeyString = null
     }
 
 }

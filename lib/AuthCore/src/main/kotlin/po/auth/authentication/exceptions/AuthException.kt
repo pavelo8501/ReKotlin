@@ -20,6 +20,7 @@ enum class ErrorCodes(val code: Int) {
     TOKEN_INVALID_ISSUER(1016),
     CONFIGURATION_MISSING(1017);
 
+
     companion object {
         fun fromValue(code: Int): ErrorCodes {
             entries.firstOrNull { it.code == code }?.let {
@@ -32,5 +33,15 @@ enum class ErrorCodes(val code: Int) {
 
 class AuthException(
     override var message: String,
-    val errorCode: ErrorCodes = ErrorCodes.UNKNOWN,
-) : Throwable(message)
+    val code: ErrorCodes
+) : Throwable(message){
+
+    var sourceException : Throwable? = null
+
+    fun setSourceException(th:Throwable):AuthException{
+        sourceException = th
+        message += "$message. Source message ${th.message}"
+        return this
+    }
+
+}

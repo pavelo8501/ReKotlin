@@ -1,50 +1,45 @@
 package po.restwraptor.scope
 
 import com.auth0.jwt.exceptions.JWTDecodeException
-import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.application.pluginOrNull
 import io.ktor.server.auth.Authentication
-import io.ktor.server.request.receiveText
-import io.ktor.server.response.header
-import io.ktor.server.response.respond
-import io.ktor.server.routing.Routing
-import io.ktor.server.routing.post
-import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import po.auth.authentication.interfaces.AuthenticationPrincipal
 import po.auth.authentication.jwt.JWTService
 import po.auth.authentication.jwt.models.JwtConfig
-import po.auth.authentication.jwt.models.RsaKeysPair
+import po.auth.models.CryptoRsaKeys
+import po.auth.sessions.models.AuthorizedPrincipal
+import po.lognotify.TasksManaged
+import po.lognotify.extensions.subTask
+import po.lognotify.extensions.withLastTask
 import po.restwraptor.models.configuration.AuthenticationConfig
 import po.restwraptor.models.request.LoginRequest
-import po.restwraptor.models.response.ApiResponse
 import po.restwraptor.models.security.AuthenticatedModel
-import po.restwraptor.exceptions.ExceptionCodes
-import po.restwraptor.exceptions.throwConfiguration
-import po.restwraptor.extensions.getOrConfigurationEx
 import po.restwraptor.interfaces.StringHelper
 import po.restwraptor.plugins.CoreAuthPlugin
 import po.restwraptor.plugins.JWTPlugin
 import po.restwraptor.routes.configureAuthRoutes
-import java.io.File
-import java.io.IOException
+import java.security.interfaces.RSAPrivateKey
+import java.security.interfaces.RSAPublicKey
 
 class AuthConfigContext(
     private val application : Application,
     private val configContext : ConfigContext,
-): StringHelper{
+): StringHelper, TasksManaged{
+
+    val personalName = "AuthConfigContext"
 
     val authConfig  = AuthenticationConfig()
-    var credentialsValidatorFn: ((LoginRequest)-> AuthenticationPrincipal?) ? = null
+
 
     private val apiConfig = configContext.apiConfig
    // private val app = configContext.a
 
     var onAuthenticated : ((AuthenticatedModel) -> Unit)? = null
 
-    private var jwtService : JWTService? = null
+    internal var jwtService : JWTService? = null
 
     private fun generateTokenForUser(user : AuthenticationPrincipal, service : JWTService): String? {
         val token =  try {
@@ -68,20 +63,20 @@ class AuthConfigContext(
         return newToken
     }
 
-    private fun onLoginRequest(request : LoginRequest): String? {
-        request.let { loginData ->
-            credentialsValidatorFn?.let { validatorFn ->
-                val user = validatorFn.invoke(loginData)
-
-                if (user != null) {
-                   return issueToken(user)
-                }else {
-                   // warn("Login failed for ${loginData.login} with password ${loginData.password}")
-                }
-            }
-        }
-        return null
-    }
+//    private fun onLoginRequest(request : LoginRequest): String? {
+//        request.let { loginData ->
+//            credentialsValidatorFn?.let { validatorFn ->
+//                val user = validatorFn.invoke(loginData)
+//
+//                if (user != null) {
+//                   return issueToken(user)
+//                }else {
+//                   // warn("Login failed for ${loginData.login} with password ${loginData.password}")
+//                }
+//            }
+//        }
+//        return null
+//    }
 
 //    private fun configureRouteLogin(routing: Routing, url: String){
 //        routing.apply {
@@ -167,30 +162,44 @@ class AuthConfigContext(
 //    }
 
 
-    private fun configCoreAuth(app: Application, privateKey: String, publicKey: String){
-
+    private suspend fun configCoreAuth(
+        app: Application,
+        privateKey: RSAPrivateKey,
+        publicKey: RSAPublicKey,
+        authenticatorFn: (suspend (login: String, password: String)-> AuthorizedPrincipal)? = null
+    ):JWTService?{
         app.apply {
-            if (this.pluginOrNull(Authentication) != null) {
-                //  info("Authentication installation skipped. Custom Authentication already installed")
-            } else {
-                //  info("Installing JWT Plugin")
-                val config = JwtConfig(
-                    realm = "ktor app",
-                    audience = "jwt-audience",
-                    issuer = "http://127.0.0.1",
-                    secret = "secret",
-                )
-                val service = JWTService(config)
-                val plugin = install(JWTPlugin) {setup("jwt-auth", service)}
 
-                this@AuthConfigContext.jwtService = service
+            withLastTask {handler->
+                if (this.pluginOrNull(Authentication) != null) {
+                    handler.info("Authentication installation skipped. Custom Authentication already installed")
+                } else {
+                    val config = JwtConfig(
+                        realm = "ktor app",
+                        audience = "jwt-audience",
+                        issuer = "http://127.0.0.1",
+                        secret = "secret",
+                        privateKey = privateKey,
+                        publicKey = publicKey
+                    )
+                    val service = JWTService(config)
+                    service.setAuthenticationFn(authenticatorFn)
+                    val plugin = install(JWTPlugin) {setup("jwt-auth", service)}
+                    this@AuthConfigContext.jwtService = service
+                    handler.info("JWT Plugin installed")
 
-                install(CoreAuthPlugin)
-                app.routing {
-                    configureAuthRoutes(this, authConfig.baseAuthRoute)
+                    install(CoreAuthPlugin)
+                    handler.info("CoreAuth Plugin installed")
+
+                    app.routing {
+                        configureAuthRoutes(authConfig.baseAuthRoute, this@AuthConfigContext)
+                    }
+                    handler.info("AuthRoutes configured")
+                    return@withLastTask jwtService
                 }
             }
         }
+        return null
     }
 
 //    private fun initializeAuthentication(){
@@ -206,32 +215,23 @@ class AuthConfigContext(
 //        }
 //    }
 
-    private fun configureRouteNotFoundSecured(routing: Routing) {
-
-    }
-
-    fun setRawKeys(publicKeyStr: String, privateKeyStr: String, validatorFn: (LoginRequest)-> AuthenticationPrincipal?){
-        authConfig.publicKeyString = publicKeyStr
-        authConfig.privateKeyString = privateKeyStr
-        credentialsValidatorFn = validatorFn
-        configCoreAuth(application,privateKeyStr, publicKeyStr)
-    }
-
-    fun setupJWTTokens(
-        keysPair: RsaKeysPair,
-        validatorFn: (LoginRequest)-> AuthenticationPrincipal?
+    suspend fun jwtConfig(
+        cryptoKeys: CryptoRsaKeys,
+        block: (suspend JWTService.()-> Unit)? = null
     )
     {
-            authConfig.privateKeyString = keysPair.privateKey
-            authConfig.publicKeyString =   keysPair.publicKey
+        var service: JWTService? = null
+        subTask("JWT Token Config", personalName) {
+            authConfig.privateKeyString = cryptoKeys.privateKey
+            authConfig.publicKeyString = cryptoKeys.publicKey
             authConfig.wellKnownPath = null
-            credentialsValidatorFn = validatorFn
-            configCoreAuth(
+            service =  configCoreAuth(
                 application,
-                authConfig.privateKeyString.getOrConfigurationEx("Private key not provided", ExceptionCodes.KEY_REGISTRATION),
-                authConfig.publicKeyString.getOrConfigurationEx("Public key not provided", ExceptionCodes.KEY_REGISTRATION)
+                cryptoKeys.asRSAPrivate(),
+                cryptoKeys.asRSAPublic(),
             )
-
+            block?.invoke(service!!)
+        }
     }
 
 //    fun applySecurity(publicKey: String, privateKey: String, validatorFn: (LoginRequest)-> AuthenticationPrincipal?)

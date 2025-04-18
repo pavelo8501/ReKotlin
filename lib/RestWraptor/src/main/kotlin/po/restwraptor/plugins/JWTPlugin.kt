@@ -34,7 +34,6 @@ val JWTPlugin: ApplicationPlugin<JWTPluginConfig> = createApplicationPlugin(
             verifier(service.getVerifier())
             validate { credential ->
                 service.checkCredential(credential)
-
             }
         }
     }

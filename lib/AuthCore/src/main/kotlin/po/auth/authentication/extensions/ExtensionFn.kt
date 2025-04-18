@@ -8,40 +8,74 @@ import okio.buffer
 import po.auth.authentication.Authenticator
 
 import po.auth.authentication.jwt.models.RsaKeysPair
+import po.auth.models.CryptoRsaKeys
 
-fun validateCredentials(login: String, password: String){
-    Authenticator.validateCredentials(login, password)
+suspend fun authenticate(login: String, password: String){
+    Authenticator.authenticate(login, password)
 }
 
-fun setKeyBasePath(basePath: String): Path {
-    val path  = basePath.toPath()
-    Authenticator.keyBasePath = basePath.toPath()
+fun currentPath(): Path {
+    val currentDir = System.getProperty("user.dir")
+    val path = currentDir.toPath()
     if (FileSystem.SYSTEM.exists(path)) {
         Authenticator.keyBasePath = path
-        return  path
-    }else{
-        throw IllegalArgumentException("Provided path does not exist: $basePath")
+        return path
+    } else {
+        throw IllegalArgumentException("Current path does not exist: $currentDir")
     }
 }
 
-//fun Path.readRsaKeys(privateKeyFileName: String, publicKeyFileName: String):RsaKeysPair{
-//    val basePath = this
-//    val privateKeyPath = basePath.resolve(privateKeyFileName)
-//    val publicKeyPath = basePath.resolve(publicKeyFileName)
-//    val privateKey =  FileSystem.SYSTEM.source(privateKeyPath).buffer().use{ it.readUtf8() }
-//    val publicKey = FileSystem.SYSTEM.source(publicKeyPath).buffer().use{ it.readUtf8() }
-//    return RsaKeysPair(privateKey, publicKey)
-//}
 
-fun readRsaKeys(privateKeyFileName: String, publicKeyFileName: String): RsaKeysPair {
+fun setKeyBasePath(basePath: String): Path {
+    val path = if (basePath.startsWith("/")) {
+        basePath.toPath()
+    } else {
+        currentPath().resolve(basePath)
+    }
+    if (!FileSystem.SYSTEM.exists(path)) {
+        throw IllegalArgumentException("Provided path does not exist: $path")
+    }
+    Authenticator.keyBasePath = path
+    return path
+}
 
-    val basePath = Authenticator.keyBasePath
+fun setKeyBasePath(basePath: Path): Path {
+    if (!FileSystem.SYSTEM.exists(basePath)) {
+        throw IllegalArgumentException("Provided path does not exist: $basePath")
+    }
+    Authenticator.keyBasePath = basePath
+    return basePath
+}
 
-    val privateKeyPath = basePath?.resolve(privateKeyFileName) ?: privateKeyFileName.toPath()
-    val publicKeyPath = basePath?.resolve(publicKeyFileName) ?: publicKeyFileName.toPath()
 
-    val privateKey =  FileSystem.SYSTEM.source(privateKeyPath).buffer().use{ it.readUtf8() }
-    val publicKey = FileSystem.SYSTEM.source(publicKeyPath).buffer().use{ it.readUtf8() }
+private fun readRsaKeys(privateKeyFileName: String, publicKeyFileName: String, basePath: Path): RsaKeysPair {
+    basePath.apply{
+        val privateKey = FileSystem.SYSTEM.source(resolve(privateKeyFileName)).buffer().use { it.readUtf8() }
+        val publicKey = FileSystem.SYSTEM.source(resolve(publicKeyFileName)).buffer().use { it.readUtf8() }
+        return RsaKeysPair(privateKey, publicKey)
+    }
+}
 
-    return RsaKeysPair(privateKey, publicKey)
+private fun readRsaKeys(
+    privateKeyFileName: String,
+    publicKeyFileName: String,
+    basePath: String? = null
+): RsaKeysPair {
+    val base: Path = basePath?.let { setKeyBasePath(it) } ?: setKeyBasePath(currentPath())
+    return readRsaKeys(privateKeyFileName, publicKeyFileName, base)
+}
+
+fun Path.readCryptoRsaKeys(privateKeyFileName: String, publicKeyFileName: String): CryptoRsaKeys {
+    val privateKey = FileSystem.SYSTEM.source(resolve(privateKeyFileName)).buffer().use { it.readUtf8() }
+    val publicKey = FileSystem.SYSTEM.source(resolve(publicKeyFileName)).buffer().use { it.readUtf8() }
+    return CryptoRsaKeys.fromPem(privateKey,publicKey)
+}
+
+fun readCryptoRsaKeys(
+    privateKeyFileName: String,
+    publicKeyFileName: String,
+    basePath: String? = null
+): CryptoRsaKeys {
+    val pair = readRsaKeys(privateKeyFileName, publicKeyFileName, basePath)
+    return CryptoRsaKeys.fromPem(pair.privateKey, pair.publicKey)
 }

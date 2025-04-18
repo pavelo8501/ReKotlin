@@ -5,7 +5,7 @@ package po.auth.authentication.interfaces
  */
 interface AuthenticationPrincipal {
     val userId: Long
-    val username: String
+    val login: String
     val email: String
     val userGroupId: Long
     val roles: Set<String>

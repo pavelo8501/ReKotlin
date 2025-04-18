@@ -8,6 +8,7 @@ val mysqlVersion: String by project
 val junitVersion:String by project
 val coroutinesVersion:String by project
 val restWraptorVersion:String by project
+val okioVersion: String by project
 
 plugins {
     kotlin("jvm")
@@ -23,6 +24,7 @@ repositories {
 }
 
 dependencies {
+
 
     implementation("io.ktor:ktor-server-core:$ktorVersion")
     implementation("io.ktor:ktor-server-netty:$ktorVersion")
@@ -42,9 +44,11 @@ dependencies {
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
     testImplementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion")
+    testImplementation("com.squareup.okio:okio:${okioVersion}")
 
     testImplementation("org.junit.jupiter:junit-jupiter:$junitVersion")
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
+
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 

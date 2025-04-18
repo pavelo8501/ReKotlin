@@ -33,7 +33,7 @@ val RestWrapTorKey = AttributeKey<RestWrapTor>("RestWrapTorInstance")
  * @property appConfigFn (Optional) Function to apply additional configurations to the application.
  */
 class RestWrapTor(
-    private val appConfigFn : (ConfigContext.() -> Unit)? = null,
+    private val appConfigFn : ( suspend ConfigContext.() -> Unit)? = null,
 ): WraptorHandler, TasksManaged
 {
     /**
