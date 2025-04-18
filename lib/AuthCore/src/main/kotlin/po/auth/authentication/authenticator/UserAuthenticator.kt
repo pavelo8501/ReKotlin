@@ -11,7 +11,7 @@ class UserAuthenticator(
     private val factory : SessionFactory
 ) {
 
-    fun  builder (principal : AuthenticationPrincipal) : AuthorizedSession{
+    fun builder (principal : AuthenticationPrincipal) : AuthorizedSession{
        return factory.createSession(principalBuilder())
     }
 

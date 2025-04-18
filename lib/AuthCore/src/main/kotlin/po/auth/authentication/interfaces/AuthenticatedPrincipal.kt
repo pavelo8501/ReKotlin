@@ -11,6 +11,9 @@ interface AuthenticationPrincipal {
     val roles: Set<String>
 }
 
+
+
+
 interface SerializablePrincipal : AuthenticationPrincipal {
 
      fun asJson(): String

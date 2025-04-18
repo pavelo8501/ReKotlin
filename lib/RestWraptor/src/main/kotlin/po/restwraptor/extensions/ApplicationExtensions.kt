@@ -10,7 +10,7 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import po.restwraptor.RestWrapTor
 import po.restwraptor.RestWrapTorKey
-import po.restwraptor.classes.ConfigContext
+import po.restwraptor.scope.ConfigContext
 /**
  * Retrieves the `RestWrapTor` instance from the application's attributes.
  *

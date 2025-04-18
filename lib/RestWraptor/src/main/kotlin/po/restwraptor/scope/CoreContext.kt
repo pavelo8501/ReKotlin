@@ -1,4 +1,4 @@
-package po.restwraptor.classes
+package po.restwraptor.scope
 
 import io.ktor.server.application.Application
 import io.ktor.server.application.pluginOrNull
@@ -6,9 +6,8 @@ import io.ktor.server.auth.AuthenticationRouteSelector
 import io.ktor.server.routing.HttpMethodRouteSelector
 import io.ktor.server.routing.RoutingNode
 import io.ktor.server.routing.RoutingRoot
-import kotlinx.serialization.json.Json
 import po.restwraptor.RestWrapTor
-import po.restwraptor.builders.restWrapTor
+import po.restwraptor.enums.RouteSelector
 import po.restwraptor.models.server.WraptorRoute
 
 class CoreContext(private val app : Application, private val wraptor: RestWrapTor) {
@@ -38,7 +37,7 @@ class CoreContext(private val app : Application, private val wraptor: RestWrapTo
                 isSecured = isRouteSecured(node)
             }
             (node.selector as? HttpMethodRouteSelector)?.let {
-                routes.add(WraptorRoute(node, it.method.value, cleanPathStr(node.parent.toString()), isSecured))
+                routes.add(WraptorRoute(RouteSelector.fromValue(it.method.value), cleanPathStr(node.parent.toString()), isSecured, node))
             }
             node.children.forEach { traverseChildren(it, isSecured) }
         }

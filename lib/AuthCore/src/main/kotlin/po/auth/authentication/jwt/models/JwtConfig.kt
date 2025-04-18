@@ -1,10 +1,10 @@
-package po.auth.authentication.tokens.jwt
+package po.auth.authentication.jwt.models
 
 import com.auth0.jwk.JwkProvider
-import po.auth.authentication.tokens.interfaces.JwtConfigInterface
+import po.auth.authentication.jwt.interfaces.JwtConfigInterface
 
 data class JwtConfig(
-    override var claimFieldName:String,
+  //  override var claimFieldName:String,
     override var realm: String,
     override var issuer: String,
     override var secret: String,
@@ -33,7 +33,7 @@ data class JwtConfig(
     }
 
 
-    var jwkProvider:JwkProvider? = null
+    var jwkProvider: JwkProvider? = null
     private  var privateKeyValue: String? = null
     override fun setJwkProvider(provider: JwkProvider, privateKey: String, kid : String){
         jwkProvider = provider

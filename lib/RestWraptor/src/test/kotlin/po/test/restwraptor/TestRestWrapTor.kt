@@ -38,8 +38,8 @@ class TestRestWrapTor {
     fun `test server initialize application itself`() {
         assertThrows<IllegalStateException>("EmbeddedServer was stopped"){
             val apiServer = RestWrapTor()
-            apiServer.onServerStarted {
-                it.stop()
+            apiServer.start{handler->
+                handler.stop()
             }
             apiServer.start("0.0.0.0",8080, false)
         }
@@ -55,7 +55,8 @@ class TestRestWrapTor {
             routing {
                 get("test/getRoute") { call.respond("Hello, from getRoute!") }
             }
-            apiServer.usePreconfiguredApp(this@application)
+            apiServer.applyConfig {this@application}
+
             val routes = apiServer.getRoutes().map { it.path }
 
             assertEquals(hashOfTestApp, apiServer.appHash)
@@ -76,7 +77,8 @@ class TestRestWrapTor {
             routing {
                 get("test/preConfigRoute") { call.respond("Hello, from preConfigRoute!") }
             }
-            apiServer.usePreconfiguredApp(this)
+            apiServer.applyConfig {this}
+           // apiServer.usePreconfiguredApp(this)
         }
         startApplication()
         val routes = apiServer.getRoutes().map { it.path }
@@ -88,7 +90,7 @@ class TestRestWrapTor {
     fun `test features can be switched off`() = testApplication {
         this@testApplication.application{
             val apiServer =  RestWrapTor{
-                this@RestWrapTor.configSettings {
+                this@RestWrapTor.setup {
                     this@RestWrapTor.apiConfig.also {
                         it.cors = false
                         it.contentNegotiation = false
@@ -96,8 +98,9 @@ class TestRestWrapTor {
                     }
                 }
             }
-            apiServer.usePreconfiguredApp(this)
-
+            apiServer.applyConfig {
+                this
+            }
             val corsPlugin = this@application.pluginOrNull(CORS)
             val contentNegotiationPlugin = this@application.pluginOrNull(ContentNegotiation)
 

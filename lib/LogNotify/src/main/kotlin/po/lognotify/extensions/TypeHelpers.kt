@@ -10,11 +10,7 @@ inline fun <reified T: Any> Any.safeCast(): T? {
 
 inline fun <reified T: Any, E: ManagedException> Any.castOrException(exception:E): T {
     val result =  this as? T
-    if(result != null){
-        return result
-    }else{
-        throw exception
-    }
+    return result?:throw exception
 }
 
 fun <T: Any, E: ManagedException> T?.getOrException(exception : E): T{
@@ -36,8 +32,6 @@ fun <T: Any?, E: ManagedException> T.testOrException( exception : E, predicate: 
         throw exception
     }
 }
-
-
 
 inline fun <reified T> Iterable<T>.countEqualsOrException(equalsTo: Int, exception:ManagedException):Iterable<T>{
 

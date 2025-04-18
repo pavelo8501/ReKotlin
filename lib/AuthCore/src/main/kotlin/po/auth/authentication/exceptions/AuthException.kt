@@ -1,8 +1,8 @@
-package po.restwraptor.exceptions
+package po.auth.authentication.exceptions
 
-enum class AuthErrorCodes(val code: Int) {
+enum class ErrorCodes(val code: Int) {
 
-    UNKNOWN_ERROR(0),
+    UNKNOWN(0),
     INVALID_CREDENTIALS(1001),
     INVALID_KEY_FORMAT(1002),
     INVALID_TOKEN(1003),
@@ -21,17 +21,16 @@ enum class AuthErrorCodes(val code: Int) {
     CONFIGURATION_MISSING(1017);
 
     companion object {
-        fun fromValue(code: Int): AuthErrorCodes? {
-            AuthErrorCodes.entries.firstOrNull { it.code == code }?.let {
+        fun fromValue(code: Int): ErrorCodes {
+            entries.firstOrNull { it.code == code }?.let {
                 return it
             }
-            return UNKNOWN_ERROR
+            return UNKNOWN
         }
     }
 }
 
 class AuthException(
-    val errorCode: AuthErrorCodes = AuthErrorCodes.UNKNOWN_ERROR,
-    override var message: String = "Authentication failed"
-) : Throwable() {
-}
+    override var message: String,
+    val errorCode: ErrorCodes = ErrorCodes.UNKNOWN,
+) : Throwable(message)

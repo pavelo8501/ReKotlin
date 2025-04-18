@@ -1,12 +1,15 @@
-package po.auth.authentication.tokens.jwt
+package po.auth.authentication.jwt
 
 import com.auth0.jwk.JwkProvider
 import com.auth0.jwt.JWT
 import com.auth0.jwt.JWTVerifier
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.interfaces.DecodedJWT
+import io.ktor.server.auth.jwt.JWTCredential
 import io.ktor.server.auth.jwt.JWTPrincipal
+import po.auth.authentication.interfaces.AuthenticationPrincipal
 import po.auth.authentication.interfaces.SerializablePrincipal
+import po.auth.authentication.jwt.models.JwtConfig
 import java.security.KeyFactory
 import java.security.interfaces.RSAPrivateKey
 import java.security.interfaces.RSAPublicKey
@@ -25,8 +28,10 @@ class JWTService(
 
     val realm: String
         get(){return config.realm}
-    val claim: String
-        get(){return config.claimFieldName}
+
+//
+//    val claim: String
+//        get(){return config.claimFieldName}
 
     private lateinit var privateKey: RSAPrivateKey
     private lateinit var publicKey: RSAPublicKey
@@ -60,38 +65,40 @@ class JWTService(
             .replace("\\s+".toRegex(), "")
             .let { Base64.getDecoder().decode(it) }
 
-    fun init(serviceName: String, conf: JwtConfig? = null){
-        if(isReady){
-            return
-        }
-        name = serviceName
-        if(conf != null){
-            config = conf
-        }
-
-       if(config.jwkProvider != null &&  config.kid != null){
-            loadPublicKeyRSA(config.jwkProvider!!, config.kid!!)
-        }
-
-        verifier = JWT.require(Algorithm.RSA256(publicKey, null))
-            .withAudience(config.audience)
-            .withIssuer(config.issuer)
-            .build()
-        isReady = true
-    }
+//    fun init(serviceName: String, conf: JwtConfig? = null){
+//        if(isReady){
+//            return
+//        }
+//        name = serviceName
+//        if(conf != null){
+//            config = conf
+//        }
+//
+//       if(config.jwkProvider != null &&  config.kid != null){
+//            loadPublicKeyRSA(config.jwkProvider!!, config.kid!!)
+//        }
+//
+//        verifier = JWT.require(Algorithm.RSA256(publicKey, null))
+//            .withAudience(config.audience)
+//            .withIssuer(config.issuer)
+//            .build()
+//        isReady = true
+//    }
 
     fun loadKeys(privateKey: String, publicKey: String): Pair<String, String> {
         return Pair(privateKey, publicKey)
     }
 
-    fun generateToken(user: SerializablePrincipal): String =
-        JWT.create()
+    fun generateToken(user: AuthenticationPrincipal): String {
+       val asSerializablePrincipal = user as SerializablePrincipal
+        return JWT.create()
             .withAudience(config.audience)
             .withIssuer(config.issuer)
-            .withClaim(config.claimFieldName, user.username)
-            .withClaim("user_json", user.asJson())
+          //  .withClaim(config.claimFieldName, asSerializablePrincipal.username)
+            .withClaim("user_json", asSerializablePrincipal.asJson())
             .withExpiresAt(Date.from(Instant.now().plusSeconds(3600)))
             .sign(Algorithm.RSA256(null, privateKey))
+    }
 
     @JvmName("getServiceVerifier")
     fun getVerifier(): JWTVerifier{
@@ -106,13 +113,25 @@ class JWTService(
     fun decodeToken(token: String): DecodedJWT =  verifier.verify(cleanToken(token))
 
     fun checkCredential(credential: JWTPrincipal): JWTPrincipal?{
-        val claim =  credential.payload.getClaim(claim).asString()
-        return if(claim != null){
+        val user =  credential.payload.getClaim("user_json").asString()
+        return if(user != null){
             JWTPrincipal(credential.payload)
         }else{
             null
         }
     }
+
+
+    fun checkCredential(credential: JWTCredential): JWTPrincipal?{
+        val user =  credential.payload.getClaim("user_json").asString()
+        return if(user != null){
+            JWTPrincipal(credential.payload)
+        }else{
+            null
+        }
+    }
+
+
 
     fun checkExpiration(
         jwtString: String,

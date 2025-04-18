@@ -34,9 +34,11 @@ class TaskHandler<R>(
     fun echo(message: String){
         notifier.echo(message)
     }
-    suspend fun  info(message: String){
+
+    suspend fun info(message: String){
        notifier.info(message)
     }
+
     suspend fun warn(message: String){
         notifier.warn(message)
     }

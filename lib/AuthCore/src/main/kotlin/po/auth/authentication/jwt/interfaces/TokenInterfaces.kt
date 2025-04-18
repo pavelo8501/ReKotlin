@@ -1,4 +1,4 @@
-package po.auth.authentication.tokens.interfaces
+package po.auth.authentication.jwt.interfaces
 
 import po.auth.authentication.interfaces.AuthenticationPrincipal
 

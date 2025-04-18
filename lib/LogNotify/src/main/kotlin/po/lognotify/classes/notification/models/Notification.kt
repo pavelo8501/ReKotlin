@@ -20,8 +20,8 @@ data class Notification(
 ): JasonStringSerializable, StaticHelper {
 
 
-    private val taskHeader = mapOf<String, String>(
-        "task" to "${task.taskName}@$currentDateTime",
+    private val taskHeader = mapOf(
+        "task" to "${task.taskName} @ $currentDateTime",
         "task_info" to "Module: ${task.moduleName}",
         "nesting_level" to "Nesting: ${task.nestingLevel}",
         "coroutine_info" to "Coroutine Info: ${
@@ -33,9 +33,10 @@ data class Notification(
         }"
     )
 
-    private val taskFooter = mapOf<String, String>(
-        "time" to "@$currentDateTime",
-        "task" to task.qualifiedName,
+    private val taskFooter = mapOf(
+        "task" to "${task.taskName} @ $currentDateTime",
+        "task_info" to "Module: ${task.moduleName}",
+        "nesting_level" to "Nesting: ${task.nestingLevel}",
         "elapsed" to "Completed in : ${(task.endTime - task.startTime) / 1_000_000f} ms"
     )
 
@@ -45,8 +46,8 @@ data class Notification(
     )
 
     fun getTaskHeader(): String{
-        var action = "${makeOfColour(ColourEnum.MAGENTA, "Started")} "
-        var resultString = makeOfColour(ColourEnum.BRIGHT_BLUE,taskHeader.map {it.value}.joinToString(" | ","","]"))
+        val action = "${makeOfColour(ColourEnum.MAGENTA, "Started")} "
+        val resultString = makeOfColour(ColourEnum.BRIGHT_BLUE,taskHeader.map {it.value}.joinToString(" | ","","]"))
         return withIndention("[$action $resultString", task.nestingLevel)
     }
 
@@ -59,8 +60,8 @@ data class Notification(
             color = ColourEnum.BRIGHT_RED
         }
         val action =  makeOfColour(color, "Stopped")
-        var resultString = makeOfColour(ColourEnum.BRIGHT_BLUE, taskFooter.map {" ${it.value} "}.joinToString("|","[","]"))
-        return withIndention("$action $resultString", task.nestingLevel)
+        val resultString = makeOfColour(ColourEnum.BRIGHT_BLUE, taskFooter.map {" ${it.value} "}.joinToString(" | ","","]"))
+        return withIndention("[$action $resultString", task.nestingLevel)
     }
 
     fun getMessagePrefixed(): String{
@@ -68,8 +69,8 @@ data class Notification(
         var taskString = taskPrefix.map {" ${it.value} "}.joinToString("|","[","]")
         taskString =  makeOfColour(ColourEnum.BLUE, taskString)
         taskString =  "$taskString ${SeverityLevel.emojiByValue(severity)}"
-        var message = makeOfColour(message, severity, null)
-        var resultString = withIndention("$taskString -> $message", task.nestingLevel)
+        val message = makeOfColour(message, severity, null)
+        val resultString = withIndention("$taskString -> $message", task.nestingLevel)
 
         return resultString
     }

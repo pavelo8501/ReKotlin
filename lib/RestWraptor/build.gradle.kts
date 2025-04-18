@@ -39,7 +39,6 @@ dependencies {
     api(project(":lib:LogNotify"))
 
     testImplementation("org.jetbrains.kotlin:kotlin-test:$kotlinVersion")
-
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
     testImplementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion")
@@ -48,6 +47,8 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+
 }
 
 publishing {

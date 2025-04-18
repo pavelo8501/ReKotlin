@@ -8,6 +8,6 @@ internal fun <T: Any> T?.getOrThrow(message: String):T{
 }
 
 
-inline fun <reified T: Any> Any.castOrThrow(message: String): T {
+internal inline fun <reified T: Any> Any.castOrThrow(message: String): T {
     return castOrException<T, LoggerException>(LoggerException(message, HandlerType.UNMANAGED))
 }

@@ -1,9 +1,9 @@
-package po.auth.authentication.tokens.interfaces
+package po.auth.authentication.jwt.interfaces
 
 import com.auth0.jwk.JwkProvider
 
 interface JwtConfigInterface {
-    var claimFieldName:String
+   // var claimFieldName:String
     var realm: String
     var issuer: String
     var secret: String

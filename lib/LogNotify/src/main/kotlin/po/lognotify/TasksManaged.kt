@@ -5,6 +5,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import po.lognotify.classes.task.ManagedTask
 import po.lognotify.classes.task.RootTask
+import po.lognotify.classes.task.TaskHandler
+import po.lognotify.extensions.castOrThrow
 import po.lognotify.extensions.getOrThrow
 import po.lognotify.extensions.safeCast
 import po.lognotify.logging.LoggingService
@@ -42,6 +44,19 @@ interface TasksManaged {
                 .getOrThrow("No available root task for sub task name:${name}|module:$moduleName. Bad setup")
             val childTask = availableRoot.createNewMemberTask<R>(name, moduleName)
             return childTask
+        }
+
+        internal fun <R> continueWithLastTask(): ManagedTask<R>{
+            val availableRoot = taskHierarchy.values.firstOrNull {!it.isComplete}
+                .getOrThrow("No available root task to continue on. All root tasks marked complete")
+            val castedLastTask = availableRoot.registry.getLastRegistered().castOrThrow<ManagedTask<R>>("ManagedTask<R> cast failed")
+            return castedLastTask
+        }
+
+        internal fun getLastTaskHandler(): TaskHandler<*>{
+            val availableRoot = taskHierarchy.values.firstOrNull {!it.isComplete}
+                .getOrThrow("No available root task to continue on. All root tasks marked complete")
+            return availableRoot.registry.getLastRegistered().taskHandler
         }
 
         internal fun keyLookup(name: String, nestingLevel: Int): TaskKey?{

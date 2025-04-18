@@ -13,7 +13,6 @@ import po.lognotify.classes.task.models.CoroutineInfo
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.exceptions.LoggerException
 import po.lognotify.exceptions.ManagedException
-import po.lognotify.exceptions.SelfThrownException
 import po.lognotify.exceptions.enums.HandlerType
 import po.lognotify.helpers.StaticHelper
 import po.lognotify.models.TaskKey
@@ -27,9 +26,9 @@ class RootTask<R>(
 ):TaskSealedBase<R>(taskKey, context)
 {
     override val notifier: Notifier =  Notifier(this)
-    override var taskResult : TaskResult<R> = TaskResult<R>(this)
-    override val registry: TaskRegistry<R> = TaskRegistry<R>(this)
-    override val taskHelper: TaskHandler<R> = TaskHandler<R>(this)
+    override var taskResult : TaskResult<R> = TaskResult(this)
+    override val registry: TaskRegistry<R> = TaskRegistry(this)
+    override val taskHandler: TaskHandler<R> = TaskHandler(this)
 
     fun <R> createNewMemberTask(name : String, moduleName: String?): ManagedTask<R>{
         val lasEntry =  registry.getLastRegistered()
@@ -61,7 +60,7 @@ class ManagedTask<R>(
     override val notifier: Notifier =  Notifier(this)
     override var taskResult : TaskResult<R> = TaskResult<R>(this)
     override val registry: TaskRegistry<*> = hierarchyRoot.registry
-    override val taskHelper: TaskHandler<R> = TaskHandler<R>(this)
+    override val taskHandler: TaskHandler<R> = TaskHandler<R>(this)
 
     override fun propagateToParent(th: Throwable) {
         throw th
@@ -70,6 +69,7 @@ class ManagedTask<R>(
     suspend fun onUnhandledException(th: Throwable){
         taskResult.provideThrowable(stopTimer(), th)
     }
+
 }
 
 sealed class TaskSealedBase<R>(
@@ -88,7 +88,7 @@ sealed class TaskSealedBase<R>(
     override val taskName: String = key.taskName
     override val moduleName: String = key.moduleName?:"N/A"
 
-    abstract val taskHelper: TaskHandler<R>
+    abstract val taskHandler: TaskHandler<R>
     abstract override val notifier : Notifier
     abstract var taskResult: TaskResult<R>
     abstract val registry: TaskRegistry<*>
@@ -127,12 +127,6 @@ sealed class TaskSealedBase<R>(
         return newChildTask
     }
 
-    suspend fun escalate(ex: Throwable): Throwable{
-        notifier.systemInfo("Unhandled exception. Escalating", EventType.START, SeverityLevel.EXCEPTION)
-       val unmanaged = LoggerException("Unhandled exception. Escalating")
-       unmanaged.setSourceException(ex)
-       throw unmanaged
-    }
 
     suspend fun handleException(throwable: Throwable): Throwable? {
         if(throwable is ManagedException) {
@@ -140,19 +134,19 @@ sealed class TaskSealedBase<R>(
             when (throwable.handler) {
                 HandlerType.CANCEL_ALL->{
                     if (throwable.handler == HandlerType.CANCEL_ALL) {
-                        if (taskHelper.exceptionHandler.handleCancellation(managedException)) {
+                        if (taskHandler.exceptionHandler.handleCancellation(managedException)) {
                             return null
                         }
                         return throwable
                     }
                 }
                 HandlerType.SKIP_SELF -> {
-                    notifier.systemInfo("Handled SKIP_SELF exception", EventType.EXCEPTION_HANDLED, SeverityLevel.INFO )
+                    notifier.systemInfo(EventType.EXCEPTION_HANDLED, SeverityLevel.INFO, "Handled SKIP_SELF exception")
                     return throwable
                 }
 
                 HandlerType.GENERIC->{
-                    if (taskHelper.exceptionHandler.handleGeneric(managedException)) {
+                    if (taskHandler.exceptionHandler.handleGeneric(managedException)) {
                         return null
                     }
                     return managedException
@@ -163,7 +157,7 @@ sealed class TaskSealedBase<R>(
                 }
             }
         }else{
-            if (taskHelper.exceptionHandler.handleGeneric(throwable)) {
+            if (taskHandler.exceptionHandler.handleGeneric(throwable)) {
                 return null
             }
             return throwable
@@ -174,7 +168,7 @@ sealed class TaskSealedBase<R>(
     private suspend fun execute(block: suspend (TaskHandler<R>) -> R): TaskResult<R> {
         val resultContainer = TaskResult<R>(this)
         try{
-            val result = block.invoke(taskHelper)
+            val result = block.invoke(taskHandler)
             resultContainer.provideResult(stopTimer(), result)
         }catch (throwable: Throwable){
             val handledThrowable =   handleException(throwable)
@@ -188,7 +182,7 @@ sealed class TaskSealedBase<R>(
     private suspend fun <T> execute(receiver:T,  block: suspend T.(TaskHandler<R>) -> R): TaskResult<R> {
         val resultContainer = TaskResult<R>(this)
         try {
-           val result = block.invoke(receiver, taskHelper)
+           val result = block.invoke(receiver, taskHandler)
            resultContainer.provideResult(stopTimer(), result)
         }catch (throwable: Throwable){
            val handledThrowable =   handleException(throwable)

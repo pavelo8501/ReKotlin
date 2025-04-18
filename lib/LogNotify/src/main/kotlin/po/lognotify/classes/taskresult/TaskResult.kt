@@ -5,8 +5,6 @@ import po.lognotify.classes.task.TaskSealedBase
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.exceptions.ManagedException
 import po.lognotify.exceptions.LoggerException
-import po.lognotify.exceptions.enums.HandlerType
-import po.lognotify.models.LogRecord
 
 
 class TaskResult<R : Any?>(private val task: TaskSealedBase<R>): ManagedResult<R> {
@@ -80,18 +78,24 @@ class TaskResult<R : Any?>(private val task: TaskSealedBase<R>): ManagedResult<R
 
     private suspend fun taskCompleted(th: Throwable? = null){
         if(th == null){
-            task.notifier.systemInfo("Stop", EventType.STOP, SeverityLevel.INFO)
+            task.notifier.systemInfo(EventType.STOP, SeverityLevel.INFO)
         }else{
-            task.notifier.systemInfo("Stop", EventType.STOP, SeverityLevel.EXCEPTION)
+            task.notifier.systemInfo(EventType.STOP, SeverityLevel.EXCEPTION)
         }
         task.isComplete = true
     }
+
+    private suspend fun taskCompleted(msg: String, severity : SeverityLevel){
+        task.notifier.systemInfo(EventType.STOP, severity, msg)
+        task.isComplete = true
+    }
+
+
 
     internal suspend fun provideResult(time: Float, executionResult: R?){
         isSuccess = true
         executionTime = time
         value = executionResult
-        task.notifier.systemInfo("Stop", EventType.STOP, SeverityLevel.INFO)
         taskCompleted()
         onResultFn?.invoke(value!!)
         onCompleteFn?.invoke(this as ManagedResult<R>)
@@ -105,7 +109,7 @@ class TaskResult<R : Any?>(private val task: TaskSealedBase<R>): ManagedResult<R
             onFailFn?.invoke(th)
             onCompleteFn?.invoke(this as ManagedResult<R>)
         }else{
-            task.notifier.systemInfo("Execution failed. No throwable provided", EventType.STOP ,SeverityLevel.WARNING)
+            taskCompleted("Execution failed. No throwable provided", SeverityLevel.WARNING)
             onCompleteFn?.invoke(this as ManagedResult<R>)
         }
     }

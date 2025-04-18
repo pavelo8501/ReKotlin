@@ -1,17 +1,11 @@
-package po.restwraptor.classes.convenience
+package po.restwraptor.extensions
 
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.cio.Request
 import io.ktor.server.request.httpMethod
 import io.ktor.server.request.uri
 import io.ktor.server.response.respond
-import io.ktor.server.response.respondText
-import io.ktor.server.routing.Route
 import io.ktor.server.routing.RoutingCall
 import io.ktor.server.routing.RoutingContext
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-import po.restwraptor.models.response.ApiResponse
 import po.restwraptor.models.response.ServiceResponse
 
 
@@ -48,8 +42,6 @@ private suspend fun badRequest(call : RoutingCall,  message: List<String> = empt
 suspend fun  RoutingContext.respondBadRequest(message: List<String> = emptyList<String>()){
     badRequest(call, message)
 }
-
-
 
 
 private suspend fun notFoundResponse(call : RoutingCall,  message: List<String> = emptyList<String>()){
