@@ -12,6 +12,7 @@ import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import po.lognotify.TasksManaged
 import po.restwraptor.classes.ConfigContext
 import po.restwraptor.classes.CoreContext
 import po.restwraptor.classes.ServerContext
@@ -30,7 +31,8 @@ val RestWrapTorKey = AttributeKey<RestWrapTor>("RestWrapTorInstance")
  */
 class RestWrapTor(
     private val appConfigFn : (ConfigContext.() -> Unit)? = null,
-){
+): TasksManaged
+{
     /**
      * Stores the **unique hash** of the application instance.
      * Used to verify if the application instance remains the same.
@@ -177,7 +179,9 @@ class RestWrapTor(
      */
     private fun  launchRest(wait: Boolean = true){
         embeddedServer = embeddedServer(Netty, port, host){
+
             setupConfig(this)
+
         }
         embeddedServer.start(wait)
     }

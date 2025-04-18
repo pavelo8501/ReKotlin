@@ -5,9 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import po.lognotify.classes.task.ManagedTask
 import po.lognotify.classes.task.RootTask
-import po.lognotify.exceptions.LoggerException
 import po.lognotify.extensions.getOrThrow
-import po.lognotify.extensions.getOrThrowDefault
 import po.lognotify.extensions.safeCast
 import po.lognotify.logging.LoggingService
 import po.lognotify.models.TaskKey
@@ -40,8 +38,8 @@ interface TasksManaged {
         }
 
         internal fun <R> attachToHierarchy(name : String, moduleName: String?): ManagedTask<R>{
-            val availableRoot = taskHierarchy.values.firstOrNull { it.isComplete == false }
-                .getOrThrow(LoggerException("No available root task for sub task name:${name}|module:$moduleName. Bad setup"))
+            val availableRoot = taskHierarchy.values.firstOrNull {!it.isComplete}
+                .getOrThrow("No available root task for sub task name:${name}|module:$moduleName. Bad setup")
             val childTask = availableRoot.createNewMemberTask<R>(name, moduleName)
             return childTask
         }
@@ -53,7 +51,7 @@ interface TasksManaged {
        @PublishedApi
        internal fun <R> taskFromRegistry(key: TaskKey):ManagedTask<R>?{
            taskHierarchy.keys.firstOrNull { it.taskId == key.taskId  && it.nestingLevel == key.nestingLevel }?.let {
-               taskHierarchy.values.firstOrNull().getOrThrowDefault("Task with name ${key.taskName} and FoldLevel ${key.nestingLevel} not found").let {
+               taskHierarchy.values.firstOrNull().getOrThrow("Task with name ${key.taskName} and FoldLevel ${key.nestingLevel} not found").let {
                     return it.safeCast<ManagedTask<R>>()
                 }
             }

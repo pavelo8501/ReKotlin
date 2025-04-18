@@ -14,7 +14,7 @@ suspend  fun <T, R: Any?> T.startTask(
 ): ManagedResult<R> {
     val newTask = TasksManaged.createHierarchyRoot<R>(taskName, coroutine, moduleName)
     val runResult = newTask.runTask(this, block)
-    val casted = runResult.safeCast<ManagedResult<R>>().getOrThrowDefault("Cast to ManagedResult<R> failed")
+    val casted = runResult.castOrThrow<ManagedResult<R>>("Cast to ManagedResult<R> failed")
     return casted
 }
 
@@ -25,7 +25,7 @@ fun <T, R> T.startTaskAsync(
 ): ManagedResult<R> {
     val newTask = TasksManaged.createHierarchyRoot<R>(taskName, moduleName)
     val runResult =  newTask.runTaskAsync(this@startTaskAsync, block)
-    val casted = runResult.safeCast<ManagedResult<R>>().getOrThrowDefault("Cast to ManagedResult<R> failed")
+    val casted = runResult.castOrThrow<ManagedResult<R>>("Cast to ManagedResult<R> failed")
     return casted
 }
 

@@ -12,7 +12,7 @@ interface ControlledTask  {
 
 }
 
-interface ResultantTask : SelfThrownException  {
+interface ResultantTask{
     val taskName: String
     val nestingLevel: Int
     val moduleName: String

@@ -3,8 +3,9 @@ package po.lognotify.classes.taskresult
 import po.lognotify.classes.notification.enums.EventType
 import po.lognotify.classes.task.TaskSealedBase
 import po.lognotify.enums.SeverityLevel
-import po.lognotify.exceptions.ExceptionBase
+import po.lognotify.exceptions.ManagedException
 import po.lognotify.exceptions.LoggerException
+import po.lognotify.exceptions.enums.HandlerType
 import po.lognotify.models.LogRecord
 
 
@@ -16,8 +17,8 @@ class TaskResult<R : Any?>(private val task: TaskSealedBase<R>): ManagedResult<R
     private var value: R? = null
     private var throwable: Throwable? = null
 
-    val resultHandler:R
-        get() = value?:throw LoggerException("Result unavailable")
+//    val resultHandler:R
+//        get() = value?:throw LoggerException("Result unavailable")
 
     override var isSuccess : Boolean = false
 
@@ -30,10 +31,11 @@ class TaskResult<R : Any?>(private val task: TaskSealedBase<R>): ManagedResult<R
         block.invoke(this)
         return this
     }
+
     override fun onResult(block: (R) -> Unit): ManagedResult<R> {
         onResultFn = block
         if(value != null){
-            block.invoke(resultHandler)
+            block.invoke(value!!)
         }
         return this
     }
@@ -48,22 +50,31 @@ class TaskResult<R : Any?>(private val task: TaskSealedBase<R>): ManagedResult<R
     override fun isResult(): Boolean{
         return value != null
     }
-    override fun resultOrException(message: String, callback:((msg: String)-> ExceptionBase)?):R{
-        return value?:run {
-            throwable?.let {
-                if(it is ExceptionBase){
-                    throw it
-                }else{
-                    throw LoggerException(it.message.toString()).setSourceException(it)
-                }
-            }?:run {
-                val defaultMessage = "Requested Value is null in ${task.taskName} TaskResult"
-                if(callback!= null){
-                    throw  callback.invoke("message $defaultMessage")
-                }else{
-                    throw LoggerException(defaultMessage)
-                }
+
+
+    override fun <E: ManagedException> resultOrException(
+        message: String,
+        callback:((msg: String)-> E)?
+    ):R
+    {
+        if(value!=null){
+            return value!!
+        }else{
+            val registeredThrowable =  throwable
+
+            if(registeredThrowable is ManagedException){
+                throw registeredThrowable
             }
+
+            val managedException =  if(callback != null){
+                callback.invoke(message)
+            }else{
+                LoggerException("Requested Value is null in ${task.taskName} TaskResult")
+            }
+            if(registeredThrowable != null){
+                managedException.setSourceException(registeredThrowable)
+            }
+            throw managedException
         }
     }
 
@@ -82,7 +93,7 @@ class TaskResult<R : Any?>(private val task: TaskSealedBase<R>): ManagedResult<R
         value = executionResult
         task.notifier.systemInfo("Stop", EventType.STOP, SeverityLevel.INFO)
         taskCompleted()
-        onResultFn?.invoke(resultHandler)
+        onResultFn?.invoke(value!!)
         onCompleteFn?.invoke(this as ManagedResult<R>)
     }
     internal suspend fun provideThrowable(time: Float, th: Throwable?){

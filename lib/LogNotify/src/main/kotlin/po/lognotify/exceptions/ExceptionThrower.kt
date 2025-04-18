@@ -13,7 +13,7 @@ interface ExceptionsThrown {
     suspend fun throwDefaultException(message : String): Unit?
     suspend fun throwDefaultException(ex : Throwable): Unit?
     suspend fun throwSkipException(message : String): Unit?
-    suspend fun throwCancellationException(message : String, cancelHandler: ((ExceptionBase)-> Unit)? = null): Unit?
+    suspend fun throwCancellationException(message : String, cancelHandler: ((ManagedException)-> Unit)? = null): Unit?
     suspend fun subscribeThrowerUpdates(callback: suspend (notification: Notification) -> Unit)
 
 }
@@ -51,32 +51,43 @@ class ExceptionThrower(
     }
 
     override suspend fun throwDefaultException(message : String){
-        val ex = DefaultException(message, HandlerType.GENERIC)
+
+//        val ex = ManagedException(message, HandlerType.GENERIC)
+        val ex = Exception(message)
         notifyOnThrown(ex)
         throw ex
     }
 
     override suspend fun throwDefaultException(th : Throwable){
-        val ex =  DefaultException(th.message.toString(), HandlerType.GENERIC)
-        ex.setSourceException(th)
-        notifyOnThrown(ex)
-        throw ex
+//        val ex =  ManagedException(th.message.toString(), HandlerType.GENERIC)
+//        ex.setSourceException(th)
+//        val ex = Exception(message)
+//        notifyOnThrown(ex)
+//        throw ex
+//         val ex = Exception(message)
+//
+
+        throw th
     }
 
     override suspend fun throwSkipException(message : String){
-        val ex = CancellationException(message, HandlerType.SKIP_SELF)
+       // val ex = CancellationException(message, HandlerType.SKIP_SELF)
+
+        val ex = Exception(message)
         notifyOnThrown(ex)
+
         throw ex
     }
 
     override suspend fun throwCancellationException(
         message: String,
-        cancelHandler: ((ExceptionBase) -> Unit)?
+        cancelHandler: ((ManagedException) -> Unit)?
     ) {
-        val ex =  CancellationException(message, HandlerType.CANCEL_ALL)
-        if(cancelHandler!=null){
-            ex.setCancellationHandler(cancelHandler)
-        }
+        //val ex =  CancellationException(message, HandlerType.CANCEL_ALL)
+        val ex = Exception(message)
+//        if(cancelHandler!=null){
+//            ex.setCancellationHandler(cancelHandler)
+//        }
         notifyOnThrown(ex)
         throw  ex
     }

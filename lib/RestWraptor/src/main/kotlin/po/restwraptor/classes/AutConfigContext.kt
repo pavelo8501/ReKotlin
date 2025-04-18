@@ -2,10 +2,10 @@ package po.restwraptor.classes
 
 import com.auth0.jwt.exceptions.JWTDecodeException
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.application.pluginOrNull
 import io.ktor.server.auth.Authentication
-import io.ktor.server.request.contentType
 import io.ktor.server.request.receive
 import io.ktor.server.request.receiveText
 import io.ktor.server.response.header
@@ -29,10 +29,12 @@ import po.restwraptor.extensions.toUrl
 import po.restwraptor.interfaces.StringHelper
 import po.restwraptor.models.request.LogoutRequest
 import po.restwraptor.models.security.JwtConfig
+import po.restwraptor.plugins.CoreAuthPlugin
+import po.restwraptor.routes.configureAuthRoutes
 import java.io.File
 import java.io.IOException
 
-class AuthenticationContext(
+class AutConfigContext(
     private val configContext : ConfigContext,
     private val  stringHelper : StringHelper = StringHelper
 ){
@@ -59,7 +61,7 @@ class AuthenticationContext(
 
     private fun issueToken(user : SecuredUserInterface): String? {
         var newToken : String? = null
-        this@AuthenticationContext.jwtService?.let { jwtService->
+        this@AutConfigContext.jwtService?.let { jwtService->
             generateTokenForUser(user,jwtService)?.let { token->
                 onAuthenticated?.invoke(AuthenticatedModel(token, true, 1))
                 newToken =  token
@@ -91,7 +93,6 @@ class AuthenticationContext(
 //                    eventHandler.handleUnmanagedException {
 //                        respondInternal(it)
 //                    }
-
                    // info("Request content type: ${call.request.contentType()}")
                     val requestText = call.receiveText()
                     val request =  configContext.jsonFormatter.decodeFromString<LoginRequest>(
@@ -104,7 +105,6 @@ class AuthenticationContext(
                     } else {
                         call.respond(HttpStatusCode.Unauthorized, "Invalid credentials")
                     }
-
                 }
             }
         }
@@ -162,13 +162,38 @@ class AuthenticationContext(
                     publicKeyString = authConfig.publicKeyString,
                     privateKeyString = authConfig.privateKeyString)
                   val plugin = install(JWTPlugin) {this.init("jwt-auth", config)}
-                  this@AuthenticationContext.jwtService = plugin.getInitializedService()
+                  this@AutConfigContext.jwtService = plugin.getInitializedService()
+            }
+        }
+    }
+    private fun configCoreAuth(app: Application){
+
+        app.apply {
+            if (this.pluginOrNull(Authentication) != null) {
+                //  info("Authentication installation skipped. Custom Authentication already installed")
+            } else {
+                //  info("Installing JWT Plugin")
+                val config =  JwtConfig(
+                    realm = "ktor app",
+                    audience = "jwt-audience",
+                    issuer = "http://127.0.0.1",
+                    secret = "secret",
+                    publicKeyString = authConfig.publicKeyString,
+                    privateKeyString = authConfig.privateKeyString)
+                val plugin = install(JWTPlugin) {this.init("jwt-auth", config)}
+                this@AutConfigContext.jwtService = plugin.getInitializedService()
+
+                install(CoreAuthPlugin)
+                app.routing {
+                    configureAuthRoutes(this, authConfig.baseAuthRoute)
+                }
             }
         }
     }
 
     private fun initializeAuthentication(){
-        configAuthentication()
+       // configCoreAuth()
+       // configAuthentication()
         if(authConfig.defaultSecurityRouts){
             app.routing{
                 configureRouteNotFoundSecured(this)
@@ -194,7 +219,8 @@ class AuthenticationContext(
         publicKeyHandler: File,
         privateKeyHandler: File,
         validatorFn: (LoginRequest)-> SecuredUserInterface?
-    ){
+    )
+    {
         if(publicKeyHandler.exists() && privateKeyHandler.exists()){
             publicKeyHandler.bufferedReader().use { reader ->
                 authConfig.publicKeyString = reader.readText()
@@ -204,7 +230,9 @@ class AuthenticationContext(
             }
             authConfig.wellKnownPath = null
             credentialsValidatorFn = validatorFn
-            initializeAuthentication()
+
+            configCoreAuth(app)
+         //   initializeAuthentication()
         }else{
             throw IOException("Security keys not found")
         }
@@ -214,7 +242,7 @@ class AuthenticationContext(
             = applySecurity(File(keyRoot+publicKey), File(keyRoot+privateKey), validatorFn)
 
     private var keyRoot :String = ""
-    fun setKeyPath(path: String?):AuthenticationContext{
+    fun setKeyPath(path: String?):AutConfigContext{
         if(path != null && path.isNotEmpty()){
             keyRoot = path
         }else{

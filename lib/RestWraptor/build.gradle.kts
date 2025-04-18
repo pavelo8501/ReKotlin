@@ -35,6 +35,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinSerializationVersion")
     implementation("io.ktor:ktor-server-cors:$ktorVersion")
 
+    api(project(":lib:AuthCore"))
     api(project(":lib:LogNotify"))
 
     testImplementation("org.jetbrains.kotlin:kotlin-test:$kotlinVersion")

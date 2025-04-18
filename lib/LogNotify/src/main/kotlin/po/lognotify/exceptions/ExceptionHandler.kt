@@ -7,8 +7,8 @@ import po.lognotify.classes.task.TaskSealedBase
 import po.lognotify.enums.SeverityLevel
 
 interface ExceptionHandled {
-   suspend fun setCancellationExHandler(handlerFn: suspend (ex: ExceptionBase)-> Unit)
-   suspend fun handleCancellation(ex: CancellationException) : Boolean
+   suspend fun setCancellationExHandler(handlerFn: suspend (ex: ManagedException)-> Unit)
+   suspend fun handleCancellation(ex: ManagedException) : Boolean
    suspend fun setGenericExHandler(handlerFn: suspend (ex: Throwable)-> Unit)
    suspend fun handleGeneric(th: Throwable) : Boolean
    suspend fun subscribeHandlerUpdates(callback: suspend (notification: Notification) -> Unit)
@@ -58,13 +58,13 @@ class ExceptionHandler(
    }
 
 
-   var cancelHandler: (suspend (ex: ExceptionBase) -> Unit)? = null
-   override suspend fun setCancellationExHandler(handlerFn: suspend (ex: ExceptionBase) -> Unit) {
+   var cancelHandler: (suspend (ex: ManagedException) -> Unit)? = null
+   override suspend fun setCancellationExHandler(handlerFn: suspend (ex: ManagedException) -> Unit) {
       cancelHandler = handlerFn
       notifyOnHandlerSet("CancellationExHandler")
    }
 
-   override suspend fun handleCancellation(ex: CancellationException) : Boolean{
+   override suspend fun handleCancellation(ex: ManagedException) : Boolean{
       if(cancelHandler != null){
          notifyOnHandled(ex)
          cancelHandler!!.invoke(ex)

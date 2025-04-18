@@ -11,7 +11,6 @@ import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
-import io.ktor.server.routing.application
 import io.ktor.server.routing.get
 import io.ktor.server.routing.options
 import io.ktor.server.routing.route
@@ -20,15 +19,13 @@ import kotlinx.serialization.json.Json
 import po.restwraptor.RestWrapTor
 import po.restwraptor.classes.convenience.respondNotFound
 import po.restwraptor.enums.EnvironmentType
-import po.restwraptor.exceptions.ConfigurationException
 import po.restwraptor.models.configuration.WraptorConfig
 import po.restwraptor.models.response.ApiResponse
-import po.restwraptor.plugins.FlexibleContentNegotiationPlugin
 import po.restwraptor.plugins.RateLimiterPlugin
 import po.restwraptor.plugins.ReplyInterceptorPlugin
 
 interface ConfigContextInterface{
-    fun setupAuthentication(configFn : AuthenticationContext.()-> Unit)
+    fun setupAuthentication(configFn : AutConfigContext.()-> Unit)
     fun setup(configFn : WraptorConfig.()-> Unit)
     fun setupApplication(block: Application.()->Unit)
     fun initialize()
@@ -40,7 +37,7 @@ class ConfigContext(
 ): ConfigContextInterface{
 
     internal val apiConfig  =  wrapConfig.apiConfig
-    private val authContext  : AuthenticationContext by lazy { AuthenticationContext(this) }
+    private val authContext  : AutConfigContext by lazy { AutConfigContext(this) }
     internal val app : Application  by lazy { wraptor.application }
 
     internal val jsonFormatter : Json = Json {
@@ -156,7 +153,7 @@ class ConfigContext(
         app.rootPath = apiConfig.baseApiRoute
     }
 
-    override fun setupAuthentication(configFn : AuthenticationContext.()-> Unit){
+    override fun setupAuthentication(configFn : AutConfigContext.()-> Unit){
         authContext.configFn()
     }
     override fun setup(configFn : WraptorConfig.()-> Unit){

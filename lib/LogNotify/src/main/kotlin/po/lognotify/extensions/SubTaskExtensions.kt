@@ -11,8 +11,8 @@ suspend  fun <T, R: Any?> T.subTask(
     moduleName: String? = null,
     block: suspend  T.(TaskHandler<R>)-> R
 ):ManagedResult<R> {
-    val task  = TasksManaged.attachToHierarchy<R>(taskName, moduleName).getOrThrowDefault("Child task creation failed")
+    val task  = TasksManaged.attachToHierarchy<R>(taskName, moduleName).getOrThrow("Child task creation failed")
     val runResult =  task.runTask(this ,block)
-    val casted = runResult.safeCast<ManagedResult<R>>().getOrThrowDefault("Cast to ManagedResult<R> failed")
+    val casted = runResult.castOrThrow<ManagedResult<R>>("Cast to ManagedResult<R> failed")
     return  casted
 }

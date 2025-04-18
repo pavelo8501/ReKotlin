@@ -12,11 +12,9 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
 
-
 fun echo(ex: Exception, message: String? = null){
     println("Exception happened in AuthSessionManager: Exception:${ex.message.toString()}. $message")
 }
-
 
 /**
  * Utilities for creating, accessing, and executing within session context.
@@ -29,7 +27,8 @@ object AuthSessionManager : ManagedSession {
 
     fun <T : Any> registerPrincipalBuilder(
         builder: () -> AuthorizedPrincipal
-    ) {
+    )
+    {
         authenticator?.setBuilderFn(builder)
     }
 
@@ -63,7 +62,6 @@ object AuthSessionManager : ManagedSession {
         }
     }
 
-
     fun createSession(principal : AuthorizedPrincipal): AuthorizedSession = factory.createSession(principal)
 
     fun createAnonymousSession(anonymousUser: AuthenticationPrincipal? = null): AuthorizedSession {
@@ -87,7 +85,8 @@ object AuthSessionManager : ManagedSession {
 
     suspend fun <T> getOrCreateSession(
         principal: AuthorizedPrincipal,
-        block: suspend AuthorizedSession.() -> T): T {
+        block: suspend AuthorizedSession.() -> T): T
+    {
         try{
             return withSession(getCurrentSession(), block) ?: withSession(createSession(principal), block)
         }catch (ex: Exception){
@@ -96,7 +95,10 @@ object AuthSessionManager : ManagedSession {
         }
     }
 
-    suspend fun <T> createSession(userName: String, password: String, block: suspend AuthorizedSession.() -> T?): T? {
+    suspend fun <T> createSession(
+        userName: String, password: String,
+        block: suspend AuthorizedSession.() -> T?):T?
+    {
          authenticator?.authenticateAndConstruct(userName, password)?.let {
              return withSession(it, block)
          }?: return  null

@@ -3,9 +3,7 @@ package po.lognotify.classes.task
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import po.lognotify.classes.taskresult.TaskResult
@@ -13,10 +11,8 @@ import po.lognotify.classes.notification.Notifier
 import po.lognotify.classes.notification.enums.EventType
 import po.lognotify.classes.task.models.CoroutineInfo
 import po.lognotify.enums.SeverityLevel
-import po.lognotify.exceptions.CancellationException
-import po.lognotify.exceptions.DefaultException
-import po.lognotify.exceptions.ExceptionBase
 import po.lognotify.exceptions.LoggerException
+import po.lognotify.exceptions.ManagedException
 import po.lognotify.exceptions.SelfThrownException
 import po.lognotify.exceptions.enums.HandlerType
 import po.lognotify.helpers.StaticHelper
@@ -30,11 +26,6 @@ class RootTask<R>(
     context: CoroutineContext
 ):TaskSealedBase<R>(taskKey, context)
 {
-
-//    override val qualifiedName: String = key.asString()
-//    override val taskName: String = key.taskName
-//    override val nestingLevel: Int = key.nestingLevel
-
     override val notifier: Notifier =  Notifier(this)
     override var taskResult : TaskResult<R> = TaskResult<R>(this)
     override val registry: TaskRegistry<R> = TaskRegistry<R>(this)
@@ -67,9 +58,6 @@ class ManagedTask<R>(
     private val hierarchyRoot : RootTask<*>,
 ):TaskSealedBase<R>(taskKey, context), ControlledTask, ResultantTask
 {
-
-   // override val nestingLevel: Int = key.nestingLevel
-
     override val notifier: Notifier =  Notifier(this)
     override var taskResult : TaskResult<R> = TaskResult<R>(this)
     override val registry: TaskRegistry<*> = hierarchyRoot.registry
@@ -87,7 +75,7 @@ class ManagedTask<R>(
 sealed class TaskSealedBase<R>(
     val key: TaskKey,
     val context: CoroutineContext,
- ): ResultantTask, SelfThrownException, StaticHelper
+ ): ResultantTask, StaticHelper
 {
 
     override var startTime: Long = System.nanoTime()
@@ -133,7 +121,7 @@ sealed class TaskSealedBase<R>(
 
     internal fun <R> createChildTask(name: String, hierarchyRoot:RootTask<*>, moduleName: String?): ManagedTask<R>{
         val lastRegistered = hierarchyRoot.registry.getLastRegistered()
-        var childLevel =  lastRegistered.key.nestingLevel + 1
+        val childLevel =  lastRegistered.key.nestingLevel + 1
         val newChildTask = ManagedTask<R>(TaskKey(name, childLevel, moduleName), hierarchyRoot.context, lastRegistered, hierarchyRoot)
         registry.registerChild(newChildTask)
         return newChildTask
@@ -147,14 +135,10 @@ sealed class TaskSealedBase<R>(
     }
 
     suspend fun handleException(throwable: Throwable): Throwable? {
-        if(throwable is ExceptionBase) {
+        if(throwable is ManagedException) {
             val managedException = throwable
-            when (managedException) {
-                is CancellationException -> {
-                    if (managedException.handler == HandlerType.SKIP_SELF) {
-                        notifier.systemInfo("Handled SKIP_SELF exception", EventType.EXCEPTION_HANDLED, SeverityLevel.INFO )
-                        return throwable
-                    }
+            when (throwable.handler) {
+                HandlerType.CANCEL_ALL->{
                     if (throwable.handler == HandlerType.CANCEL_ALL) {
                         if (taskHelper.exceptionHandler.handleCancellation(managedException)) {
                             return null
@@ -162,14 +146,20 @@ sealed class TaskSealedBase<R>(
                         return throwable
                     }
                 }
-                is DefaultException -> {
+                HandlerType.SKIP_SELF -> {
+                    notifier.systemInfo("Handled SKIP_SELF exception", EventType.EXCEPTION_HANDLED, SeverityLevel.INFO )
+                    return throwable
+                }
+
+                HandlerType.GENERIC->{
                     if (taskHelper.exceptionHandler.handleGeneric(managedException)) {
                         return null
                     }
                     return managedException
                 }
-                is LoggerException -> {
-                    return managedException
+
+                HandlerType.UNMANAGED -> {
+                    return throwable
                 }
             }
         }else{
