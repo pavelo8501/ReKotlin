@@ -15,7 +15,7 @@ open class AuthorizedPrincipal(
 ) : AuthenticationPrincipal {
 
     fun copyReinit(src: AuthenticationPrincipal):AuthorizedPrincipal{
-       return AuthorizedPrincipal(src.userId, src.username, src.email, src.userGroupId, src.roles)
+       return AuthorizedPrincipal(src.userId, src.login, src.email, src.userGroupId, src.roles)
     }
 
 }

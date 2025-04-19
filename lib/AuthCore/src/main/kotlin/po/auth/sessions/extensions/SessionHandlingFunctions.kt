@@ -36,7 +36,7 @@ suspend fun AuthorizedSession.snapshot(label: String = "SESSION SNAPSHOT") {
         $YELLOW
         --- [$label] ---
         🔑 sessionId     = $sessionId
-        🧑 principal      = ${principal.username} (${principal.userId})
+        🧑 principal      = ${principal.login} (${principal.userId})
         🧠 sessionType    = $sessionType
         🗂️  internalStore = ${internalStore.keys.joinToString(", ")}
         🎯 registeredHandlers = ${

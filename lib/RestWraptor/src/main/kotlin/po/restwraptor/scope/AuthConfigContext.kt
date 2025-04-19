@@ -167,7 +167,7 @@ class AuthConfigContext(
         privateKey: RSAPrivateKey,
         publicKey: RSAPublicKey,
         authenticatorFn: (suspend (login: String, password: String)-> AuthorizedPrincipal)? = null
-    ):JWTService?{
+    ){
         app.apply {
 
             withLastTask {handler->
@@ -183,7 +183,9 @@ class AuthConfigContext(
                         publicKey = publicKey
                     )
                     val service = JWTService(config)
-                    service.setAuthenticationFn(authenticatorFn)
+                    if(authenticatorFn != null){
+                        service.setAuthenticationFn(authenticatorFn)
+                    }
                     val plugin = install(JWTPlugin) {setup("jwt-auth", service)}
                     this@AuthConfigContext.jwtService = service
                     handler.info("JWT Plugin installed")
@@ -195,11 +197,10 @@ class AuthConfigContext(
                         configureAuthRoutes(authConfig.baseAuthRoute, this@AuthConfigContext)
                     }
                     handler.info("AuthRoutes configured")
-                    return@withLastTask jwtService
+
                 }
             }
         }
-        return null
     }
 
 //    private fun initializeAuthentication(){
@@ -217,20 +218,19 @@ class AuthConfigContext(
 
     suspend fun jwtConfig(
         cryptoKeys: CryptoRsaKeys,
-        block: (suspend JWTService.()-> Unit)? = null
+        authenticatorFn: (suspend (login: String, password: String)-> AuthorizedPrincipal)? = null
     )
     {
-        var service: JWTService? = null
         subTask("JWT Token Config", personalName) {
             authConfig.privateKeyString = cryptoKeys.privateKey
             authConfig.publicKeyString = cryptoKeys.publicKey
             authConfig.wellKnownPath = null
-            service =  configCoreAuth(
+            configCoreAuth(
                 application,
                 cryptoKeys.asRSAPrivate(),
                 cryptoKeys.asRSAPublic(),
+                authenticatorFn
             )
-            block?.invoke(service!!)
         }
     }
 

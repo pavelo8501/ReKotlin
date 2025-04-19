@@ -17,8 +17,6 @@ import po.restwraptor.models.request.LogoutRequest
 import po.restwraptor.models.response.ApiResponse
 import po.restwraptor.scope.AuthConfigContext
 
-import po.restwraptor.scope.ConfigContext
-
 fun Routing.configureAuthRoutes(baseURL: String,  authConfigContext: AuthConfigContext) {
 
     val jwtService = authConfigContext.jwtService.getOrConfigurationEx("JWTService undefined", ExceptionCodes.AUTH_SERVICE_UNDEFINED)

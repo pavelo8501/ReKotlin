@@ -1,6 +1,7 @@
 package po.restwraptor
 
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationStarted
 import io.ktor.server.application.ServerReady
 import io.ktor.server.engine.ApplicationEngine
 import io.ktor.server.engine.EmbeddedServer
@@ -14,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.startTaskAsync
+import po.lognotify.extensions.subTask
 import po.restwraptor.scope.ConfigContext
 import po.restwraptor.scope.CoreContext
 import po.restwraptor.enums.EnvironmentType
@@ -36,6 +38,11 @@ class RestWrapTor(
     private val appConfigFn : ( suspend ConfigContext.() -> Unit)? = null,
 ): WraptorHandler, TasksManaged
 {
+
+    private val personalName : String = "RestWrapTor"
+
+
+
     /**
      * Stores the **unique hash** of the application instance.
      * Used to verify if the application instance remains the same.
@@ -84,25 +91,29 @@ class RestWrapTor(
 
     private val serviceScope = CoroutineScope(Dispatchers.IO + CoroutineName("WrapTor service"))
 
-    private suspend fun engineStarted(engine: ApplicationEngine){
-        engine.resolvedConnectors().forEach {
-            connectors.add("${it.type}|${it.host}:${it.port}")
+    private fun engineStarted(engine: ApplicationEngine){
+        startTaskAsync("EngineStarted", personalName){
+            engine.resolvedConnectors().forEach {
+                connectors.add("${it.type}|${it.host}:${it.port}")
+            }
         }
-        //afterServerStart(embeddedServer, application)
     }
 
     /**
      * Applies custom configuration to the application.
      * @param configFn The function that applies configuration settings.
      */
-    internal fun  applyConfig(configFn : ConfigContext.()-> Unit){
-        configContext.configFn()
+    internal fun applyConfig(configFn : suspend ConfigContext.()-> Unit){
+        startTaskAsync("Applying Configuration", personalName){
+            configContext.configFn()
+        }
     }
 
     /**
      * Registers this `RestWrapTor` instance in `Application.attributes`.
      */
     private fun registerSelf(): AttributeKey<RestWrapTor>?{
+
         if (!application.attributes.contains(RestWrapTorKey)) {
             application.attributes.put(RestWrapTorKey, this)
             thisKey = RestWrapTorKey
@@ -114,19 +125,7 @@ class RestWrapTor(
 
     /** Hook executed after the server starts successfully. */
     fun  afterServerStart(){
-         onServerStartedCallback?.let {
-
-             it(this)
-
-//             ServerContext(
-//                 configContext.apiConfig,
-//                 wrapConfig.authConfig,
-//                 wrapConfig,
-//                 coreContext,
-//                 embeddedServer,
-//                 getApp()
-//             ).it(this)
-         }
+        onServerStartedCallback?.invoke(this)
     }
 
     /**
@@ -134,7 +133,7 @@ class RestWrapTor(
      * @return A list of `WraptorRoute` objects representing the registered routes.
      */
     override fun getRoutes():List<WraptorRoute>{
-        println("Hash on getRoutes ${System.identityHashCode(application)}")
+       // println("Hash on getRoutes ${System.identityHashCode(application)}")
         return coreContext.getWraptorRoutes()
     }
 
@@ -169,7 +168,12 @@ class RestWrapTor(
         startTaskAsync("Configuration", "RestWrapTor"){handler->
             application = app
             handler.info("App hash before appBuilderFn invoked ${System.identityHashCode(this)}")
-            application.monitor.subscribe(ServerReady) { afterServerStart() }
+            application.monitor.subscribe(ServerReady) {
+                afterServerStart()
+            }
+//            application.monitor.subscribe(ApplicationStarted){
+//                engineStarted(it.engine)
+//            }
             registerSelf().getOrConfigurationEx("RestWrapTor Registration inside Application failed", ExceptionCodes.KEY_REGISTRATION)
             appConfigFn?.let{fn->
                 configContext.fn()
@@ -191,9 +195,7 @@ class RestWrapTor(
      */
     private fun  launchRest(wait: Boolean = true){
         embeddedServer = embeddedServer(Netty, port, host){
-
             setupConfig(this)
-
         }
         embeddedServer.start(wait)
     }

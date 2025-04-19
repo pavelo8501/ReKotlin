@@ -23,7 +23,6 @@ import org.junit.jupiter.api.Test
 import po.auth.authentication.interfaces.AuthenticationPrincipal
 import po.auth.sessions.models.AuthorizedPrincipal
 import po.restwraptor.RestWrapTor
-import po.restwraptor.extensions.configServer
 import po.restwraptor.interfaces.SecuredUserInterface
 import po.restwraptor.models.request.ApiRequest
 import java.io.File

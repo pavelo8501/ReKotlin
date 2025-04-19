@@ -49,16 +49,16 @@ fun Application.getRestWrapTor(): RestWrapTor? {
  * }
  * ```
  */
-fun Application.configServer(configFn: ConfigContext.()-> Unit){
-   attributes.allKeys.firstOrNull { it.name == "RestWrapTorInstance" }.let {
-       getRestWrapTor()?.applyConfig(configFn)
-   }
-}
+//fun Application.configServer(configFn: suspend ConfigContext.()-> Unit){
+//   attributes.allKeys.firstOrNull { it.name == "RestWrapTorInstance" }.let {
+//       getRestWrapTor()?.applyConfig(configFn)
+//   }
+//}
 
 
 fun Routing.baseApi():String{
     application.getRestWrapTor()?.let { wraptor ->
-        wraptor.getConfig()?.baseApiRoute
+        wraptor.getConfig().baseApiRoute
     }
     return ""
 }
