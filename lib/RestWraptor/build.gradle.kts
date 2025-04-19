@@ -44,6 +44,7 @@ dependencies {
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
     testImplementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion")
+    testImplementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
     testImplementation("com.squareup.okio:okio:${okioVersion}")
 
     testImplementation("org.junit.jupiter:junit-jupiter:$junitVersion")

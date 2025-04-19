@@ -3,6 +3,7 @@ package po.auth.sessions.extensions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import po.auth.AuthSessionManager
+import po.auth.authentication.interfaces.AuthenticationPrincipal
 import po.auth.sessions.interfaces.EmmitableSession
 import po.auth.sessions.models.AuthorizedPrincipal
 import po.auth.sessions.models.AuthorizedSession
@@ -16,6 +17,18 @@ suspend fun <T> anonymousSession(
     block : (suspend AuthorizedSession.() ->T)? = null
 ):AuthorizedSession?{
     val default =  AuthSessionManager.createAnonymousSession(principal)
+    if(block != null){
+        default.block()
+    }
+    return default
+}
+
+
+suspend fun <R>  R.authorizedSession(
+    principal:  AuthorizedPrincipal,
+    block : (suspend AuthorizedSession.() ->R?)? = null
+):AuthorizedSession{
+    val default =  AuthSessionManager.createSession(principal)
     if(block != null){
         default.block()
     }

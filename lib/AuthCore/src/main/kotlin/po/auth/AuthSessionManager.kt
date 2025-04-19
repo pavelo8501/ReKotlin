@@ -95,14 +95,14 @@ object AuthSessionManager : ManagedSession {
         }
     }
 
-    suspend fun <T> createSession(
-        userName: String, password: String,
-        block: suspend AuthorizedSession.() -> T?):T?
-    {
-         authenticator?.authenticateAndConstruct(userName, password)?.let {
-             return withSession(it, block)
-         }?: return  null
-    }
+//    suspend fun <T> createSession(
+//        userName: String, password: String,
+//        block: suspend AuthorizedSession.() -> T?):T?
+//    {
+//         authenticator?.authenticateAndConstruct(userName, password)?.let {
+//             return withSession(it, block)
+//         }?: return  null
+//    }
 
     object AuthorizedSessionKey: CoroutineContext.Key<AuthorizedSession>
 

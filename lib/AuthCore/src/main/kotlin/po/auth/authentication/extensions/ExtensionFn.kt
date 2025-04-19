@@ -9,9 +9,10 @@ import po.auth.authentication.Authenticator
 
 import po.auth.authentication.jwt.models.RsaKeysPair
 import po.auth.models.CryptoRsaKeys
+import po.auth.sessions.models.AuthorizedPrincipal
 
-suspend fun authenticate(login: String, password: String){
-    Authenticator.authenticate(login, password)
+suspend fun authenticate(login: String, password: String): AuthorizedPrincipal{
+   return Authenticator.authenticate(login, password)
 }
 
 fun currentPath(): Path {

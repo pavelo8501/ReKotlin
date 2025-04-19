@@ -1,12 +1,10 @@
 package po.restwraptor.scope
 
-import com.auth0.jwt.exceptions.JWTDecodeException
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.application.pluginOrNull
 import io.ktor.server.auth.Authentication
 import io.ktor.server.routing.routing
-import po.auth.authentication.interfaces.AuthenticationPrincipal
 import po.auth.authentication.jwt.JWTService
 import po.auth.authentication.jwt.models.JwtConfig
 import po.auth.models.CryptoRsaKeys
@@ -14,9 +12,8 @@ import po.auth.sessions.models.AuthorizedPrincipal
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.subTask
 import po.lognotify.extensions.withLastTask
-import po.restwraptor.models.configuration.AuthenticationConfig
-import po.restwraptor.models.request.LoginRequest
-import po.restwraptor.models.security.AuthenticatedModel
+import po.restwraptor.extensions.toUrl
+import po.restwraptor.models.configuration.AuthConfig
 import po.restwraptor.interfaces.StringHelper
 import po.restwraptor.plugins.CoreAuthPlugin
 import po.restwraptor.plugins.JWTPlugin
@@ -26,42 +23,28 @@ import java.security.interfaces.RSAPublicKey
 
 class AuthConfigContext(
     private val application : Application,
-    private val configContext : ConfigContext,
+    private val authConfig : AuthConfig
 ): StringHelper, TasksManaged{
 
     val personalName = "AuthConfigContext"
-
-    val authConfig  = AuthenticationConfig()
-
-
-    private val apiConfig = configContext.apiConfig
-   // private val app = configContext.a
-
-    var onAuthenticated : ((AuthenticatedModel) -> Unit)? = null
-
     internal var jwtService : JWTService? = null
 
-    private fun generateTokenForUser(user : AuthenticationPrincipal, service : JWTService): String? {
-        val token =  try {
-            service.generateToken(user)
-        }catch (ex: JWTDecodeException ) {
-            null
-        }
-        return token
-    }
+//    private fun generateToken(user : AuthorizedPrincipal, service : JWTService): JwtToken {
+//       return service.generateToken(user)
+//    }
 
-    private fun issueToken(user : AuthenticationPrincipal): String? {
-        var newToken : String? = null
-        this@AuthConfigContext.jwtService?.let { jwtService->
-            generateTokenForUser(user, jwtService)?.let { token->
-                onAuthenticated?.invoke(AuthenticatedModel(token, true, 1))
-                newToken =  token
-            }
-        }?:run {
-           // throwSkip("JWTService undefined")
-        }
-        return newToken
-    }
+//    private fun issueToken(user : AuthenticationPrincipal): String? {
+//        var newToken : String? = null
+//        this@AuthConfigContext.jwtService?.let { jwtService->
+//            generateTokenForUser(user, jwtService)?.let { token->
+//                onAuthenticated?.invoke(AuthenticatedModel(token, true, 1))
+//                newToken =  token
+//            }
+//        }?:run {
+//           // throwSkip("JWTService undefined")
+//        }
+//        return newToken
+//    }
 
 //    private fun onLoginRequest(request : LoginRequest): String? {
 //        request.let { loginData ->
@@ -78,30 +61,6 @@ class AuthConfigContext(
 //        return null
 //    }
 
-//    private fun configureRouteLogin(routing: Routing, url: String){
-//        routing.apply {
-//            route(url) {
-//                post {
-////                    eventHandler.handleUnmanagedException {
-////                        respondInternal(it)
-////                    }
-//                   // info("Request content type: ${call.request.contentType()}")
-//                    val requestText = call.receiveText()
-//                    val request =  configContext.jsonFormatter.decodeFromString<LoginRequest>(
-//                        requestText
-//                    )
-//                    val token = onLoginRequest(request)
-//                    if (token != null) {
-//                        call.response.header("Authorization", "Bearer $token")
-//                        call.respond(ApiResponse(token))
-//                    } else {
-//                        call.respond(HttpStatusCode.Unauthorized, "Invalid credentials")
-//                    }
-//                }
-//            }
-//        }
-//    }
-//
 
 //    private fun configureRouteRefresh(routing: Routing, url: String){
 //        routing.apply {
@@ -169,8 +128,8 @@ class AuthConfigContext(
         authenticatorFn: (suspend (login: String, password: String)-> AuthorizedPrincipal)? = null
     ){
         app.apply {
-
             withLastTask {handler->
+
                 if (this.pluginOrNull(Authentication) != null) {
                     handler.info("Authentication installation skipped. Custom Authentication already installed")
                 } else {
@@ -186,7 +145,7 @@ class AuthConfigContext(
                     if(authenticatorFn != null){
                         service.setAuthenticationFn(authenticatorFn)
                     }
-                    val plugin = install(JWTPlugin) {setup("jwt-auth", service)}
+                    install(JWTPlugin) {setup(authConfig.jwtServiceName, service)}
                     this@AuthConfigContext.jwtService = service
                     handler.info("JWT Plugin installed")
 
@@ -194,7 +153,7 @@ class AuthConfigContext(
                     handler.info("CoreAuth Plugin installed")
 
                     app.routing {
-                        configureAuthRoutes(authConfig.baseAuthRoute, this@AuthConfigContext)
+                        configureAuthRoutes(authConfig.authRoutePrefix, this@AuthConfigContext)
                     }
                     handler.info("AuthRoutes configured")
 

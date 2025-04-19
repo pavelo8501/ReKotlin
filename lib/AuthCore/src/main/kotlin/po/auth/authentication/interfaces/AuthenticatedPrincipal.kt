@@ -3,7 +3,7 @@ package po.auth.authentication.interfaces
 /**
  * Represents a minimal authenticated user.
  */
-interface AuthenticationPrincipal {
+interface AuthenticationPrincipal : SerializablePrincipal {
     val userId: Long
     val login: String
     val email: String
@@ -14,7 +14,6 @@ interface AuthenticationPrincipal {
 
 
 
-interface SerializablePrincipal : AuthenticationPrincipal {
-
+interface SerializablePrincipal {
      fun asJson(): String
 }

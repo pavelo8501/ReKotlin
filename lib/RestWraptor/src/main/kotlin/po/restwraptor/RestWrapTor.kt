@@ -23,9 +23,11 @@ import po.restwraptor.exceptions.ExceptionCodes
 import po.restwraptor.extensions.getOrConfigurationEx
 import po.restwraptor.interfaces.WraptorHandler
 import po.restwraptor.models.configuration.ApiConfig
+import po.restwraptor.models.configuration.AuthConfig
 import po.restwraptor.models.configuration.WraptorConfig
 import po.restwraptor.models.info.WraptorStatus
 import po.restwraptor.models.server.WraptorRoute
+import po.restwraptor.scope.AuthConfigContext
 
 val RestWrapTorKey = AttributeKey<RestWrapTor>("RestWrapTorInstance")
 
@@ -35,13 +37,11 @@ val RestWrapTorKey = AttributeKey<RestWrapTor>("RestWrapTorInstance")
  * @property appConfigFn (Optional) Function to apply additional configurations to the application.
  */
 class RestWrapTor(
-    private val appConfigFn : ( suspend ConfigContext.() -> Unit)? = null,
+    private var appConfigFn : ( suspend ConfigContext.() -> Unit)? = null,
 ): WraptorHandler, TasksManaged
 {
 
     private val personalName : String = "RestWrapTor"
-
-
 
     /**
      * Stores the **unique hash** of the application instance.
@@ -49,8 +49,10 @@ class RestWrapTor(
      */
     var appHash : Int  =  0
         private set
-    /** The Ktor application instance managed by this wrapper. */
-    internal lateinit var application: Application
+
+    private var _application: Application? = null
+    internal val application: Application
+        get() = _application.getOrConfigurationEx("Reading Application uninitialized", ExceptionCodes.GENERAL_CONFIG_FAILURE)
 
     /** The embedded Ktor server instance. */
     private lateinit var  embeddedServer : EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>
@@ -68,8 +70,11 @@ class RestWrapTor(
     /** Internal configuration settings for `RestWrapTor`. */
     private var wrapConfig  = WraptorConfig()
 
+    internal var authConfig  = AuthConfig()
+        private set
+
     /** Context for handling application configuration. */
-    private val configContext : ConfigContext = ConfigContext(this, wrapConfig)
+    private val configContext : ConfigContext = ConfigContext(this, wrapConfig, authConfig)
 
     /** Core context for managing routes and API structure. */
     private val coreContext : CoreContext by lazy {  CoreContext(application, this) }
@@ -99,21 +104,16 @@ class RestWrapTor(
         }
     }
 
-    /**
-     * Applies custom configuration to the application.
-     * @param configFn The function that applies configuration settings.
-     */
-    internal fun applyConfig(configFn : suspend ConfigContext.()-> Unit){
-        startTaskAsync("Applying Configuration", personalName){
-            configContext.configFn()
-        }
+    fun useApp(app: Application, configFn : suspend ConfigContext.() -> Unit){
+        _application = app
+        appConfigFn = configFn
+        setupConfig(application)
     }
 
     /**
      * Registers this `RestWrapTor` instance in `Application.attributes`.
      */
     private fun registerSelf(): AttributeKey<RestWrapTor>?{
-
         if (!application.attributes.contains(RestWrapTorKey)) {
             application.attributes.put(RestWrapTorKey, this)
             thisKey = RestWrapTorKey
@@ -154,26 +154,15 @@ class RestWrapTor(
         return configContext.apiConfig
     }
 
-    /**
-     * Sets up the configuration for the Ktor application.
-     *
-     * - If the application is not initialized, it sets up configurations and assigns the instance.
-     * - Applies additional configurations if provided via `appConfigFn`.
-     * - Initializes the `ConfigContext`.
-     *
-     * @param app The `Application` instance to configure.
-     */
+
     private  fun setupConfig(app : Application) {
 
         startTaskAsync("Configuration", "RestWrapTor"){handler->
-            application = app
+            _application = app
             handler.info("App hash before appBuilderFn invoked ${System.identityHashCode(this)}")
             application.monitor.subscribe(ServerReady) {
                 afterServerStart()
             }
-//            application.monitor.subscribe(ApplicationStarted){
-//                engineStarted(it.engine)
-//            }
             registerSelf().getOrConfigurationEx("RestWrapTor Registration inside Application failed", ExceptionCodes.KEY_REGISTRATION)
             appConfigFn?.let{fn->
                 configContext.fn()

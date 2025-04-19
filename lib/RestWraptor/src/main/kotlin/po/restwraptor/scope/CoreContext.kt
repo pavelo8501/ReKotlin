@@ -54,16 +54,16 @@ class CoreContext(private val app : Application, private val wraptor: RestWrapTo
        return  getAllRegisteredRoutes()
     }
 
-    fun List<WraptorRoute>.toList(){
-        val  result = mutableListOf<String>()
-        val unsecured = this.filter { it.isSecured == false }
-        val secured = this.filter { it.isSecured == true }
-
-        result.add("This server defines ${unsecured.count()} public endpoint and ${secured.count()} secure ")
-        wraptor.connectors.forEach {connector->
-            unsecured.forEach {result.add("Endpoint ${connector}${it.path} ${it.selector}  isSecured:${it.isSecured}") }
-        }
-
-    }
+//    fun List<WraptorRoute>.toList(){
+//        val  result = mutableListOf<String>()
+//        val unsecured = this.filter { it.isSecured == false }
+//        val secured = this.filter { it.isSecured == true }
+//
+//        result.add("This server defines ${unsecured.count()} public endpoint and ${secured.count()} secure ")
+//        wraptor.connectors.forEach {connector->
+//            unsecured.forEach {result.add("Endpoint ${connector}${it.path} ${it.selector}  isSecured:${it.isSecured}") }
+//        }
+//
+//    }
 
 }

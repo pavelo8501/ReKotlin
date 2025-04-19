@@ -10,72 +10,70 @@ import java.util.concurrent.ConcurrentHashMap
 
 class SessionFactory(
     private val manager: AuthSessionManager,
-    private  val internalStorage : ConcurrentHashMap<String, String>) {
+    private  val internalStorage : ConcurrentHashMap<String, String>)
+{
 
     private val activeSessions : ConcurrentHashMap<String, AuthorizedSession> = ConcurrentHashMap<String, AuthorizedSession>()
     private var activeAnonSession  : AuthorizedSession? = null
 
     fun createSession(principal: AuthorizedPrincipal) : AuthorizedSession {
-        try {
+
+      val result =  runCatching {
             val newSession = AuthorizedSession(principal, SessionType.USER_AUTHENTICATED, internalStorage)
             activeSessions[newSession.sessionId] = newSession
-            return newSession
+            newSession
+        }.onFailure {
+            throw (it)
+        }
+        return result.getOrThrow()
+    }
+
+
+    fun createAnonymousSession(anonymous: AuthenticationPrincipal? = null): AuthorizedSession {
+        try {
+            if (activeAnonSession != null) {
+                return activeAnonSession!!
+            }
+            val anonymousPrincipal = if (anonymous != null) {
+                AuthorizedPrincipal().copyReinit(anonymous)
+            } else {
+                AuthorizedPrincipal()
+            }
+            val anonSession = AuthorizedSession(anonymousPrincipal, SessionType.ANONYMOUS, internalStorage)
+            activeAnonSession = anonSession
+            return anonSession
         } catch (ex: Exception) {
             echo(ex)
             throw (ex)
         }
-
-
-        fun createAnonymousSession(anonymous: AuthenticationPrincipal? = null): AuthorizedSession {
-            try {
-                if (activeAnonSession != null) {
-                    return activeAnonSession!!
-                }
-                val anonymousPrincipal = if (anonymous != null) {
-                    AuthorizedPrincipal().copyReinit(anonymous)
-                } else {
-                    AuthorizedPrincipal()
-                }
-                val anonSession = AuthorizedSession(anonymousPrincipal, SessionType.ANONYMOUS, internalStorage)
-                activeAnonSession = anonSession
-                return anonSession
-            } catch (ex: Exception) {
-                echo(ex)
-                throw (ex)
-            }
-        }
-
-        fun getAnonymousSession(): AuthorizedSession? {
-            return activeAnonSession
-        }
-
-        fun activeSessions(): List<AuthorizedSession> {
-            return activeSessions.values.toList()
-        }
     }
 
-    fun createAnonymousSession(anonymousUser: AuthenticationPrincipal?): AuthorizedSession{
-        if(anonymousUser != null){
-            val principal = AuthorizedPrincipal().copyReinit(anonymousUser)
-            activeAnonSession = AuthorizedSession(principal, SessionType.ANONYMOUS, ConcurrentHashMap<String, String>())
-        }else{
-            activeAnonSession = AuthorizedSession(AuthorizedPrincipal(), SessionType.ANONYMOUS, ConcurrentHashMap<String, String>())
-        }
-        return activeAnonSession!!
+    fun getAnonymousSession(): AuthorizedSession? {
+        return activeAnonSession
     }
 
-    fun activeSessions(): List<AuthorizedSession>{
-        return  activeSessions.values.toList()
+    fun activeSessions(): List<AuthorizedSession> {
+        return activeSessions.values.toList()
     }
 
-    fun getAnonymousSession(): AuthorizedSession?{
-        val anonSession = activeAnonSession
-        if(anonSession?.sessionType == SessionType.ANONYMOUS){
-            return  anonSession
-        }
-        return null
-    }
+//    fun createAnonymousSession(anonymousUser: AuthenticationPrincipal?): AuthorizedSession{
+//        if(anonymousUser != null){
+//            val principal = AuthorizedPrincipal().copyReinit(anonymousUser)
+//            activeAnonSession = AuthorizedSession(principal, SessionType.ANONYMOUS, ConcurrentHashMap<String, String>())
+//        }else{
+//            activeAnonSession = AuthorizedSession(AuthorizedPrincipal(), SessionType.ANONYMOUS, ConcurrentHashMap<String, String>())
+//        }
+//        return activeAnonSession!!
+//    }
 
 
+
+//    fun getAnonymousSession(): AuthorizedSession?{
+//        val anonSession = activeAnonSession
+//        if(anonSession?.sessionType == SessionType.ANONYMOUS){
+//            return  anonSession
+//        }
+//        return null
+//    }
 
 }

@@ -1,48 +1,43 @@
 package po.auth.authentication.jwt
 
-import com.auth0.jwk.JwkProvider
 import com.auth0.jwt.JWT
 import com.auth0.jwt.JWTVerifier
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.interfaces.DecodedJWT
+import com.auth0.jwt.interfaces.Payload
 import io.ktor.server.auth.jwt.JWTCredential
 import io.ktor.server.auth.jwt.JWTPrincipal
+import kotlinx.serialization.json.Json
 import po.auth.authentication.Authenticator
-import po.auth.authentication.interfaces.AuthenticationPrincipal
-import po.auth.authentication.interfaces.SerializablePrincipal
+import po.auth.authentication.exceptions.ErrorCodes
+import po.auth.authentication.extensions.getOrThrow
 import po.auth.authentication.jwt.models.JwtConfig
+import po.auth.authentication.jwt.models.JwtToken
+import po.auth.authentication.jwt.repositories.InMemoryTokenStore
+import po.auth.sessions.extensions.authorizedSession
 import po.auth.sessions.models.AuthorizedPrincipal
-import java.security.KeyFactory
-import java.security.interfaces.RSAPrivateKey
-import java.security.interfaces.RSAPublicKey
-import java.security.spec.PKCS8EncodedKeySpec
-import java.security.spec.X509EncodedKeySpec
+import po.lognotify.TasksManaged
+import po.lognotify.extensions.subTask
 import java.time.Instant
-import java.util.Base64
 import java.util.Date
-import javax.security.auth.callback.Callback
 
 class JWTService(
     private var config : JwtConfig
-) {
-    var isReady: Boolean = false
-        private set
+): TasksManaged {
     var name: String = ""
 
     val realm: String
         get(){return config.realm}
 
+    val tokenRepository = InMemoryTokenStore()
+
+
     private var authenticationFn: (suspend (login: String, password: String)-> AuthorizedPrincipal) ? = null
 
     suspend fun setAuthenticationFn(callback : (suspend (login: String, password: String)-> AuthorizedPrincipal)){
         authenticationFn = callback
-        if(callback!=null){
-            authenticationFn = callback
-            Authenticator.setAuthenticator(callback)
-        }
+        Authenticator.setAuthenticator(callback)
     }
-
-
 
     private val jwtVerifier: JWTVerifier = JWT
         .require(Algorithm.RSA256(config.publicKey, null))
@@ -50,75 +45,20 @@ class JWTService(
         .withIssuer(config.issuer)
         .build()
 
-
-//
-//    val claim: String
-//        get(){return config.claimFieldName}
-
-  //  private lateinit var privateKey: RSAPrivateKey
-  //  private lateinit var publicKey: RSAPublicKey
-
-
-//    private fun loadPrivateKey(privateKeyString: String) {
-//        val privateKeySpec = PKCS8EncodedKeySpec(parsePemKey(privateKeyString))
-//        this.privateKey = KeyFactory.getInstance("RSA").generatePrivate(privateKeySpec) as RSAPrivateKey
-//    }
-
     private fun cleanToken(token: String): String{
         return token.removePrefix("Bearer").trim()
     }
 
-//    private fun loadPublicKeyRSA(provider: JwkProvider, token: String) {
-//        val jwt = JWT.decode(token) // Decode JWT to get key ID (kid)
-//        val keyId = jwt.keyId ?: throw Exception("JWT key ID (kid) missing")
-//        this.publicKey = provider.get(keyId).publicKey as RSAPublicKey
-//    }
-
-//    private fun loadPublicKey(publicKeyString: String) {
-//        val publicKeySpec = X509EncodedKeySpec(parsePemKey(publicKeyString))
-//        this.publicKey = KeyFactory.getInstance("RSA").generatePublic(publicKeySpec) as RSAPublicKey
-//    }
-
-//    private fun parsePemKey(pemKeyStr: String): ByteArray =
-//        pemKeyStr
-//            .replace("(?m)-----BEGIN.*?-----\\s*".toRegex(), "")
-//            .replace("(?m)-----END.*?-----\\s*".toRegex(), "")
-//            .replace("\\s+".toRegex(), "")
-//            .let { Base64.getDecoder().decode(it) }
-
-//    fun init(serviceName: String, conf: JwtConfig? = null){
-//        if(isReady){
-//            return
-//        }
-//        name = serviceName
-//        if(conf != null){
-//            config = conf
-//        }
-//
-//       if(config.jwkProvider != null &&  config.kid != null){
-//            loadPublicKeyRSA(config.jwkProvider!!, config.kid!!)
-//        }
-//
-//        verifier = JWT.require(Algorithm.RSA256(publicKey, null))
-//            .withAudience(config.audience)
-//            .withIssuer(config.issuer)
-//            .build()
-//        isReady = true
-//    }
-
-//    fun loadKeys(privateKey: String, publicKey: String): Pair<String, String> {
-//        return Pair(privateKey, publicKey)
-//    }
-
-    fun generateToken(user: AuthenticationPrincipal): String {
-       val asSerializablePrincipal = user as SerializablePrincipal
-        return JWT.create()
+    suspend fun generateToken(user: AuthorizedPrincipal): JwtToken {
+       val serialized = user.asJson()
+       val token = JWT.create()
             .withAudience(config.audience)
             .withIssuer(config.issuer)
-          //  .withClaim(config.claimFieldName, asSerializablePrincipal.username)
-            .withClaim("user_json", asSerializablePrincipal.asJson())
+            .withClaim("user_json", serialized)
             .withExpiresAt(Date.from(Instant.now().plusSeconds(3600)))
             .sign(Algorithm.RSA256(null, config.privateKey))
+        val sessionId = authorizedSession(user).sessionId
+        return tokenRepository.store(JwtToken(token, sessionId))
     }
 
     fun getVerifier(): JWTVerifier{
@@ -136,7 +76,12 @@ class JWTService(
         }
     }
 
-    fun checkCredential(credential: JWTCredential): JWTPrincipal?{
+    suspend fun checkCredential(credential: JWTCredential): JWTPrincipal?{
+
+        subTask("CheckCredential", "JWTService"){handler->
+            handler.info("Checking credentials for ${credential.payload}")
+        }
+
         val user =  credential.payload.getClaim("user_json").asString()
         return if(user != null){
             JWTPrincipal(credential.payload)
@@ -145,15 +90,37 @@ class JWTService(
         }
     }
 
-    fun checkExpiration(
-        jwtString: String,
-        headerUpdateFn : suspend  (String?)-> Unit
-    ){
-        val decodedJWT = decodeToken(jwtString)
+//    suspend fun checkCredential(sessionId: String, credential : JWTPrincipal): JWTPrincipal?{
+//
+//        val user =  credential.payload.getClaim("user_json").asString()
+//        if(user != null){
+//           return JWTPrincipal(credential.payload)
+//        }
+//
+//        val jwtToken = tokenRepository.resolve(sessionId).getOrThrow("SessionId: $sessionId not found", ErrorCodes.ABNORMAL_STATE)
+//        decodeToken(jwtToken.token).let { decoded ->
+//            runCatching {
+//                val user = Json.decodeFromString<AuthorizedPrincipal>(decoded.payload)
+//                val token = generateToken(user)
+//            }.onFailure {
+//                return null
+//            }
+//        }
+//        return null
+//    }
+
+    suspend fun isValid(
+        jwtString: JwtToken,
+        invalidationFn : suspend  (JwtToken)-> Unit
+    ): Boolean{
+        val decodedJWT = decodeToken(jwtString.token)
         val expirationLong = decodedJWT.expiresAt?.time ?: 0
         val expirationTime = Instant.ofEpochMilli(expirationLong)
         if (!expirationTime.isBefore(Instant.now())) {
-            //Unvalidate
+            return true
+        }else{
+            invalidationFn.invoke(jwtString)
+            return false
         }
     }
 }

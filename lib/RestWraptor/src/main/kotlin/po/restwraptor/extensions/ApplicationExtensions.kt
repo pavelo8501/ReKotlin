@@ -10,7 +10,22 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import po.restwraptor.RestWrapTor
 import po.restwraptor.RestWrapTorKey
+import po.restwraptor.exceptions.ExceptionCodes
+import po.restwraptor.models.server.WraptorRoute
 import po.restwraptor.scope.ConfigContext
+
+
+
+private fun partsToUrl(pathParts: List<String>):  String {
+    val result =  pathParts
+        .asSequence()
+        .map { it.trim().trim('/') }
+        .filter { it.isNotEmpty() }
+        .joinToString("/")
+    return  result
+}
+
+
 /**
  * Retrieves the `RestWrapTor` instance from the application's attributes.
  *
@@ -56,48 +71,19 @@ fun Application.getRestWrapTor(): RestWrapTor? {
 //}
 
 
-fun Routing.baseApi():String{
-    application.getRestWrapTor()?.let { wraptor ->
-        wraptor.getConfig().baseApiRoute
-    }
-    return ""
+fun Application.getWraptorRoutes(): List<WraptorRoute>{
+   val wraptor =  getRestWrapTor().getOrConfigurationEx(
+       "Wraptor not found in Application registry",
+       ExceptionCodes.KEY_REGISTRATION)
+
+   return wraptor.getRoutes()
 }
 
 
-fun Routing.wraptorPost(path: String, context: suspend RoutingContext.()-> Unit ): Route? {
-    application.getRestWrapTor()?.let { wraptor ->
-        wraptor.getConfig()?.let { conf ->
-           this.post(application.toUrl(conf.baseApiRoute, path)){
-               this.context()
-               return@post
-           }
-        }
-    }
-    return null
-}
+fun Application.toUrl(vararg pathParts:String ) = partsToUrl(pathParts.toList())
 
-fun Routing.wraptorPut(path: String, context: suspend RoutingContext.() -> Unit): Route? {
-    application.getRestWrapTor()?.let { wraptor ->
-        wraptor.getConfig()?.let { conf ->
-            this.put(application.toUrl(conf.baseApiRoute, path)) {
-                this.context()
-                return@put
-            }
-        }
-    }
-    return null
-}
-
-
-fun Routing.wraptorGet(path: String, secure: Boolean,  context: suspend RoutingContext.()-> Unit ): Route? {
-
-    application.getRestWrapTor()?.let { wraptor ->
-        wraptor.getConfig()?.let { conf ->
-            this.get(application.toUrl(conf.baseApiRoute, path)){
-                this.context().apply { secure }
-                return@get
-            }
-        }
-    }
-    return null
+fun Application.withBaseUrl(vararg pathParts:String ): String{
+    val list = mutableListOf<String>(rootPath)
+    list.addAll(pathParts)
+    return partsToUrl((list))
 }

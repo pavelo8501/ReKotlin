@@ -16,6 +16,7 @@ import po.lognotify.extensions.lastTaskHandler
 import po.lognotify.extensions.subTask
 import po.lognotify.extensions.withLastTask
 import po.restwraptor.RestWrapTor
+import po.restwraptor.models.configuration.AuthConfig
 import po.restwraptor.models.configuration.WraptorConfig
 import po.restwraptor.plugins.RateLimiterPlugin
 import po.restwraptor.routes.configureSystemRoutes
@@ -23,6 +24,7 @@ import po.restwraptor.routes.configureSystemRoutes
 interface ConfigContextInterface{
     suspend fun setupAuthentication(configFn : suspend AuthConfigContext.()-> Unit)
     fun setup(configFn : WraptorConfig.()-> Unit)
+    fun setup(configuration : WraptorConfig,configFn : WraptorConfig.()-> Unit)
     fun setupApplication(block: Application.()->Unit)
     suspend fun initialize():Application
 }
@@ -30,13 +32,15 @@ interface ConfigContextInterface{
 class ConfigContext(
     internal val wraptor : RestWrapTor,
     internal val wrapConfig : WraptorConfig,
+    internal val authConfig : AuthConfig,
+
 ): ConfigContextInterface, TasksManaged{
 
     val personalName = "ConfigContext"
 
     internal val apiConfig  =  wrapConfig.apiConfig
     private val application : Application  by lazy { wraptor.application }
-    private val authContext  : AuthConfigContext by lazy { AuthConfigContext(application, this) }
+    private val authContext  : AuthConfigContext by lazy { AuthConfigContext(application, authConfig) }
 
     internal val jsonFormatter : Json = Json {
         isLenient = true
@@ -116,9 +120,14 @@ class ConfigContext(
     override suspend fun setupAuthentication( configFn  : suspend AuthConfigContext.()-> Unit){
         authContext.configFn()
     }
+    override fun setup(configuration : WraptorConfig,configFn : WraptorConfig.()-> Unit){
+        wrapConfig.configFn()
+    }
+
     override fun setup(configFn : WraptorConfig.()-> Unit){
         wrapConfig.configFn()
     }
+
     override fun setupApplication(block: Application.()->Unit) {
         configAppParams(application)
         application.block()

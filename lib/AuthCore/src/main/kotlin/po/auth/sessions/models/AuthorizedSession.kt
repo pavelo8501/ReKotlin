@@ -4,8 +4,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import po.auth.AuthSessionManager
+import po.auth.authentication.exceptions.AuthException
+import po.auth.authentication.exceptions.ErrorCodes
+import po.auth.authentication.extensions.castOrThrow
+import po.auth.authentication.extensions.getOrThrow
 import po.auth.sessions.enumerators.SessionType
 import po.auth.sessions.interfaces.EmmitableSession
+import po.lognotify.extensions.castOrException
+import po.lognotify.extensions.getOrException
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.AbstractCoroutineContextElement
@@ -37,39 +43,39 @@ class AuthorizedSession(
         return sessionStore.keys.toList()
     }
     inline  fun <reified T: Any > setSessionAttr(name: String, value: T) {
-        sessionStore[SessionKey<T>(name, T::class)] = value
+        sessionStore[SessionKey(name, T::class)] = value
     }
-    inline fun <reified T: Any?> getSessionAttr(name: String): T? {
-        sessionStore.keys.firstOrNull{ it.name ==  name}?.let {
-            return when(it.clazz.qualifiedName){
-                T::class.qualifiedName ->{ sessionStore[it] as T? }
-                else -> { null }
-            }
-        }?: return null
+    inline fun <reified T: Any> getSessionAttr(name: String): T? {
+
+        sessionStore.keys.firstOrNull{ it.name ==  name}?.let {key->
+            val sessionParam = sessionStore[key].getOrThrow("SessionStore item not found by key", ErrorCodes.ABNORMAL_STATE)
+            return sessionParam.castOrThrow<T>("Cast Failed", ErrorCodes.ABNORMAL_STATE)
+        }
+        return null
     }
 
     inline  fun <reified T: Any > setRoundTripAttr(name: String, value: T) {
-        roundTripStore[RoundTripKey<T>(name, T::class)] = value
+        roundTripStore[RoundTripKey(name, T::class)] = value
     }
-    inline fun <reified T: Any?> getRoundTripAttr(name: String): T? {
-        roundTripStore.keys.firstOrNull{ it.name ==  name}?.let {
-            return when(it.clazz.qualifiedName){
-                T::class.qualifiedName ->{ roundTripStore[it] as T? }
-                else -> { null }
-            }
-        }?: return  null
+
+    inline fun <reified T: Any> getRoundTripAttr(name: String): T? {
+
+        roundTripStore.keys.firstOrNull{ it.name ==  name}?.let { key ->
+            val sessionParam = roundTripStore[key].getOrThrow("SessionStore item not found by key", ErrorCodes.ABNORMAL_STATE)
+            return sessionParam.castOrThrow<T>("Cast Failed", ErrorCodes.ABNORMAL_STATE)
+        }
+        return null
     }
 
     inline  fun <reified T: Any > setExternalRef(name: String, value: T) {
-        externalStore[ExternalKey<T>(name, T::class)] = value
+        externalStore[ExternalKey(name, T::class)] = value
     }
-    inline fun <reified T: Any?> getExternalRef(name: String): T? {
-        externalStore.keys.firstOrNull{ it.name ==  name}?.let {
-            return when(it.clazz.qualifiedName){
-                T::class.qualifiedName ->{ externalStore[it] as T? }
-                else -> { null }
-            }
-        }?: return  null
+    inline fun <reified T: Any> getExternalRef(name: String): T? {
+        externalStore.keys.firstOrNull{ it.name ==  name}?.let { key ->
+            val sessionParam = externalStore[key].getOrThrow("SessionStore item not found by key", ErrorCodes.ABNORMAL_STATE)
+            return sessionParam.castOrThrow<T>("Cast Failed", ErrorCodes.ABNORMAL_STATE)
+        }
+        return null
     }
 
 

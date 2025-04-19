@@ -1,5 +1,8 @@
 package po.auth.authentication.exceptions
 
+import po.lognotify.exceptions.ManagedException
+import po.lognotify.exceptions.enums.HandlerType
+
 enum class ErrorCodes(val code: Int) {
 
     UNKNOWN(0),
@@ -18,7 +21,9 @@ enum class ErrorCodes(val code: Int) {
     TOKEN_INVALID_PERMISSION(1014),
     TOKEN_INVALID_AUDIENCE(1015),
     TOKEN_INVALID_ISSUER(1016),
-    CONFIGURATION_MISSING(1017);
+    CONFIGURATION_MISSING(1017),
+
+    ABNORMAL_STATE(1018);
 
 
     companion object {
@@ -33,15 +38,13 @@ enum class ErrorCodes(val code: Int) {
 
 class AuthException(
     override var message: String,
-    val code: ErrorCodes
-) : Throwable(message){
+    val code: ErrorCodes,
+    override var handler : HandlerType = HandlerType.CANCEL_ALL
+) : ManagedException(message, handler){
 
-    var sourceException : Throwable? = null
-
-    fun setSourceException(th:Throwable):AuthException{
-        sourceException = th
-        message += "$message. Source message ${th.message}"
-        return this
+    override val builderFn: (String) -> AuthException = {msg->
+        AuthException(msg, code)
     }
+
 
 }
