@@ -10,15 +10,15 @@ data class AuthConfig(
     val jwtServiceName : String = "auth-jwt"
 ) {
 
-    internal var privateKeyString: PrivateKey? = null
-    internal var publicKeyString: PublicKey? = null
+    internal var privateKey: PrivateKey? = null
+    internal var publicKey: PublicKey? = null
 
     var useWellKnownHost: Boolean = false
     var wellKnownPath: String? = null
 
     fun setAuthKeys(privateKey: PrivateKey, publicKey: PublicKey, ) {
-        this.publicKeyString = publicKey
-        this.privateKeyString = privateKey
+        this.privateKey = privateKey
+        this.publicKey = publicKey
         this.wellKnownPath = null
 
     }

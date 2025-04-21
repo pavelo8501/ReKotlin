@@ -4,9 +4,6 @@ import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase
-import po.exposify.exceptions.OperationsException
-import po.exposify.exceptions.enums.ExceptionCode
-import po.lognotify.extensions.getOrThrowDefault
 
 
 data class CrudResult<DTO, DATA>(

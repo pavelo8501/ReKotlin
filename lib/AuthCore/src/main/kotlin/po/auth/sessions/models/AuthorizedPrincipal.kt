@@ -5,18 +5,16 @@ import kotlinx.serialization.json.Json
 import po.auth.authentication.interfaces.AuthenticationPrincipal
 
 
-
 @Serializable
 open class AuthorizedPrincipal(
-    override val userId: Long = 0L,
+    override val id: Long = 0L,
     override val login: String = "no_name",
     override val email: String = "nomail@undeliverable.void",
     override val userGroupId: Long = 0L,
-    override val roles: Set<String> = emptySet(),
 ) : AuthenticationPrincipal {
 
     fun copyReinit(src: AuthenticationPrincipal):AuthorizedPrincipal{
-       return AuthorizedPrincipal(src.userId, src.login, src.email, src.userGroupId, src.roles)
+       return AuthorizedPrincipal(src.id, src.login, src.email, src.userGroupId)
     }
 
     override fun asJson(): String {

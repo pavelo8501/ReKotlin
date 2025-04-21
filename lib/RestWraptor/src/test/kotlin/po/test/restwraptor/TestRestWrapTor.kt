@@ -38,7 +38,6 @@ class TestRestWrapTor {
         return TestUser(0, "someName", login, password).asAuthorizedPrincipal()
     }
 
-
     private fun findRoute(routes: List<WraptorRoute>, predicate: (WraptorRoute) -> Boolean): Boolean{
        return routes.any{
            predicate.invoke(it)
@@ -50,8 +49,8 @@ class TestRestWrapTor {
         val keyPath = setKeyBasePath("src/test/demo_keys")
         val securedRoutes: MutableList<WraptorRoute> = mutableListOf()
         val server = RestWrapTor {
-            setupAuthentication {
-                jwtConfig(keyPath.readCryptoRsaKeys("ktor.pk8", "ktor.spki"), ::authenticate)
+            setupAuthentication(keyPath.readCryptoRsaKeys("ktor.pk8", "ktor.spki"), ::authenticate) {
+
             }
         }
         server.start { handler ->

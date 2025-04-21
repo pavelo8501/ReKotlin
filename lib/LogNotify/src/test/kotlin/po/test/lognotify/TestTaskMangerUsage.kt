@@ -15,8 +15,7 @@ class TestTaskMangerUsage :  TasksManaged{
 
     fun start(param: Int): Int = startTaskAsync("start_task"){
         param
-    }.resultOrException<LoggerException>()
-
+    }.resultOrException()
 
     @Test
     fun `startTaskAsync accepts receiver returns properly`(){

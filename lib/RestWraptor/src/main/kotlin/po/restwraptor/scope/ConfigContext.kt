@@ -10,6 +10,9 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
+import po.auth.authentication.jwt.JWTService
+import po.auth.models.CryptoRsaKeys
+import po.auth.sessions.models.AuthorizedPrincipal
 import po.lognotify.TasksManaged
 import po.lognotify.classes.task.TaskHandler
 import po.lognotify.extensions.lastTaskHandler
@@ -18,13 +21,17 @@ import po.lognotify.extensions.withLastTask
 import po.restwraptor.RestWrapTor
 import po.restwraptor.models.configuration.AuthConfig
 import po.restwraptor.models.configuration.WraptorConfig
+import po.restwraptor.plugins.CoreAuthApplicationPlugin
 import po.restwraptor.plugins.RateLimiterPlugin
 import po.restwraptor.routes.configureSystemRoutes
 
 interface ConfigContextInterface{
-    suspend fun setupAuthentication(configFn : suspend AuthConfigContext.()-> Unit)
-    fun setup(configFn : WraptorConfig.()-> Unit)
-    fun setup(configuration : WraptorConfig,configFn : WraptorConfig.()-> Unit)
+    suspend fun setupAuthentication(
+        cryptoKeys: CryptoRsaKeys,
+        authenticatorFn: suspend ((login: String, password: String)-> AuthorizedPrincipal?),
+        configFn  : suspend AuthConfigContext.()-> Unit)
+    suspend fun setup(configFn : suspend WraptorConfig.()-> Unit)
+    suspend fun setup(configuration : WraptorConfig, configFn : suspend WraptorConfig.()-> Unit)
     fun setupApplication(block: Application.()->Unit)
     suspend fun initialize():Application
 }
@@ -117,14 +124,18 @@ class ConfigContext(
         app.rootPath = apiConfig.baseApiRoute
     }
 
-    override suspend fun setupAuthentication( configFn  : suspend AuthConfigContext.()-> Unit){
+    override suspend fun setupAuthentication(
+        cryptoKeys: CryptoRsaKeys,
+        authenticatorFn: suspend ((login: String, password: String)-> AuthorizedPrincipal?),
+        configFn  : suspend AuthConfigContext.()-> Unit){
+        authContext.setupAuthentication(cryptoKeys, authenticatorFn)
         authContext.configFn()
     }
-    override fun setup(configuration : WraptorConfig,configFn : WraptorConfig.()-> Unit){
+    override suspend fun setup(configuration : WraptorConfig, configFn : suspend WraptorConfig.()-> Unit){
         wrapConfig.configFn()
     }
 
-    override fun setup(configFn : WraptorConfig.()-> Unit){
+    override suspend fun setup(configFn : suspend WraptorConfig.()-> Unit){
         wrapConfig.configFn()
     }
 
@@ -133,7 +144,22 @@ class ConfigContext(
         application.block()
     }
 
+    private suspend fun installCoreAuth(app: Application){
+        app.apply {
+            withLastTask { handler ->
+                install(CoreAuthApplicationPlugin) {
+                    headerName = HttpHeaders.Authorization
+                    pluginKey = authConfig.jwtServiceName
+                }
+                handler.info("CoreAuthPlugin Plugin installed")
+            }
+        }
+    }
+
     override suspend fun initialize(): Application{
+
+        installCoreAuth(application)
+
         subTask("Initialization", personalName){
             if(apiConfig.cors){
                 configCors(application)

@@ -33,9 +33,11 @@ dependencies {
 
     implementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
+    implementation("io.ktor:ktor-server-call-logging:${ktorVersion}")
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinSerializationVersion")
     implementation("io.ktor:ktor-server-cors:$ktorVersion")
+    implementation("org.slf4j:slf4j-api:2.0.17")
 
     api(project(":lib:AuthCore"))
     api(project(":lib:LogNotify"))
@@ -46,6 +48,8 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion")
     testImplementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
     testImplementation("com.squareup.okio:okio:${okioVersion}")
+    testImplementation("io.ktor:ktor-server-call-logging:${ktorVersion}")
+    testImplementation("org.slf4j:slf4j-api:2.0.17")
 
     testImplementation("org.junit.jupiter:junit-jupiter:$junitVersion")
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")

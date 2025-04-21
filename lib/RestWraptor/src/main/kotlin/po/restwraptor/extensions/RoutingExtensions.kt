@@ -3,13 +3,10 @@ package po.restwraptor.extensions
 import io.ktor.server.auth.authenticate
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.Routing
-import io.ktor.server.routing.RoutingContext
 import io.ktor.server.routing.application
-import io.ktor.server.routing.get
-import io.ktor.server.routing.post
-import io.ktor.server.routing.put
+import po.auth.authentication.Authenticator
 import po.restwraptor.exceptions.ExceptionCodes
-
+import po.restwraptor.plugins.CoreAuthRoutePlugin
 
 private fun partsToUrl(pathParts: List<String>):  String {
     val result =  pathParts
@@ -42,7 +39,12 @@ fun Routing.jwtSecured(block: Route.() -> Unit){
         ExceptionCodes.KEY_REGISTRATION)
 
     val serviceName = wraptor.authConfig.jwtServiceName
-    authenticate(serviceName) {
-        block.invoke(this)
+    authenticate(serviceName){
+        install(CoreAuthRoutePlugin){
+
+        }
+
+        block()
     }
+
 }

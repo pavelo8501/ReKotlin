@@ -1,48 +1,62 @@
 package po.auth.sessions.models
 
+import io.ktor.server.application.ApplicationCall
+import io.ktor.util.AttributeKey
+import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import po.auth.AuthSessionManager
-import po.auth.authentication.exceptions.AuthException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import po.auth.authentication.authenticator.UserAuthenticator
 import po.auth.authentication.exceptions.ErrorCodes
 import po.auth.authentication.extensions.castOrThrow
 import po.auth.authentication.extensions.getOrThrow
+import po.auth.authentication.interfaces.AuthenticationPrincipal
 import po.auth.sessions.enumerators.SessionType
 import po.auth.sessions.interfaces.EmmitableSession
-import po.lognotify.extensions.castOrException
-import po.lognotify.extensions.getOrException
+import po.auth.sessions.interfaces.SessionIdentified
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
 
 
-class AuthorizedSession(
-    override val principal : AuthorizedPrincipal,
-    val sessionType: SessionType,
-    val internalStore : ConcurrentHashMap<String, String>,
-):  AbstractCoroutineContextElement(AuthSessionManager.AuthorizedSessionKey),  EmmitableSession {
-    override val sessionId: String = generateSessionId()
-    override val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + this)
+class AuthorizedSession internal constructor(
+    override val remoteAddress: String,
+    val authenticator: UserAuthenticator
+):  AbstractCoroutineContextElement(AuthorizedSession),  EmmitableSession, SessionIdentified {
 
+
+    var principal : AuthenticationPrincipal? = null
+    override var sessionType: SessionType = SessionType.ANONYMOUS
+        private set
+
+    override val sessionId: String = UUID.randomUUID().toString()
+    override val scope: CoroutineScope = CoroutineScope(SupervisorJob() + CoroutineName("AuthorizedSession") + this)
 
     override fun onProcessStart(session: EmmitableSession) {
-        TODO("Not yet implemented")
+        println("onProcessStart emitted with sessionId ${session.sessionId}")
     }
     override fun onProcessEnd(session: EmmitableSession) {
-        TODO("Not yet implemented")
+        println("onProcessEnd emitted with sessionId ${session.sessionId}")
     }
+
+    override val key: CoroutineContext.Key<AuthorizedSession>
+        get() {
+            return AuthorizedSessionKey
+        }
 
     val sessionStore: ConcurrentHashMap<SessionKey<*>, Any?> =  ConcurrentHashMap<SessionKey<*>, Any?>()
     val roundTripStore: ConcurrentHashMap<RoundTripKey<*>, Any?> = ConcurrentHashMap<RoundTripKey<*>, Any?>()
     val externalStore :ConcurrentHashMap<ExternalKey<*>, Any?>  = ConcurrentHashMap<ExternalKey<*>, Any?>()
 
-
     fun getAttributeKeys():List<SessionKey<*>>{
         return sessionStore.keys.toList()
     }
-    inline  fun <reified T: Any > setSessionAttr(name: String, value: T) {
+    inline  fun <reified T: Any> setSessionAttr(name: String, value: T) {
         sessionStore[SessionKey(name, T::class)] = value
     }
     inline fun <reified T: Any> getSessionAttr(name: String): T? {
@@ -54,7 +68,7 @@ class AuthorizedSession(
         return null
     }
 
-    inline  fun <reified T: Any > setRoundTripAttr(name: String, value: T) {
+    inline  fun <reified T: Any> setRoundTripAttr(name: String, value: T) {
         roundTripStore[RoundTripKey(name, T::class)] = value
     }
 
@@ -67,7 +81,7 @@ class AuthorizedSession(
         return null
     }
 
-    inline  fun <reified T: Any > setExternalRef(name: String, value: T) {
+    inline  fun <reified T: Any> setExternalRef(name: String, value: T) {
         externalStore[ExternalKey(name, T::class)] = value
     }
     inline fun <reified T: Any> getExternalRef(name: String): T? {
@@ -78,10 +92,34 @@ class AuthorizedSession(
         return null
     }
 
+   inline fun <reified T: CoroutineScope> storeConsumed(value:T){
+       setExternalRef(T::class.simpleName.toString(), value)
+   }
 
-    companion object {
-        fun generateSessionId(): String = UUID.randomUUID().toString()
+    fun providePrincipal(authenticationPrincipal: AuthenticationPrincipal):AuthorizedSession {
+        principal = authenticationPrincipal
+        sessionType  = SessionType.USER_AUTHENTICATED
+        return this
     }
+
+    suspend fun <T,R> useContext(context: CoroutineContext, receiver: T,  block: suspend T.() -> R){
+        withContext(context) {
+            async(start = CoroutineStart.UNDISPATCHED) {
+                block.invoke(receiver)
+            }
+        }
+    }
+
+    suspend fun reLaunch(call: ApplicationCall){
+        withContext(this){
+            launch {
+                call.coroutineContext
+            }
+        }
+    }
+
+    companion object AuthorizedSessionKey : CoroutineContext.Key<AuthorizedSession>
+
 }
 
 

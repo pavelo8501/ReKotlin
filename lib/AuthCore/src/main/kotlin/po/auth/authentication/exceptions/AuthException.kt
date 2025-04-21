@@ -21,7 +21,10 @@ enum class ErrorCodes(val code: Int) {
     TOKEN_INVALID_PERMISSION(1014),
     TOKEN_INVALID_AUDIENCE(1015),
     TOKEN_INVALID_ISSUER(1016),
+    UNINITIALIZED(1018),
     CONFIGURATION_MISSING(1017),
+
+    SESSION_NOT_FOUND(2001),
 
     ABNORMAL_STATE(1018);
 
@@ -42,8 +45,8 @@ class AuthException(
     override var handler : HandlerType = HandlerType.CANCEL_ALL
 ) : ManagedException(message, handler){
 
-    override val builderFn: (String) -> AuthException = {msg->
-        AuthException(msg, code)
+    override val builderFn: (String, HandlerType) -> AuthException = {msg, handler->
+        AuthException(msg, code, handler)
     }
 
 

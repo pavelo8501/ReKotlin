@@ -12,8 +12,8 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.extensions.castOrOperationsEx
 import po.exposify.extensions.safeCast
-import po.lognotify.extensions.getOrThrowDefault
 import kotlin.collections.set
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
@@ -65,11 +65,15 @@ class RelationshipBinder<DTO, DATA, ENTITY>(
         }
 
         val oneToMany = BindingContainer.createOneToManyContainer<DTO, DATA, ENTITY, CHILD_DTO>(dtoClass, childModel)
-        val foreignEntityCast = foreignEntity.safeCast<KMutableProperty1<ExposifyEntityBase, ENTITY>>()
-            .getOrThrowDefault("ForeignEntity Property cast failure for ${dtoClass.personalName}")
+        val foreignEntityCast = foreignEntity.castOrOperationsEx<KMutableProperty1<ExposifyEntityBase, ENTITY>>(
+            "ForeignEntity Property cast failure for ${dtoClass.personalName}",
+            ExceptionCode.CAST_FAILURE)
 
-        val castedOwnModelsProperty =  ownDataModels.safeCast<KProperty1<DATA,  MutableList<DataModel>>>()
-            .getOrThrowDefault("Own DataModels Property cast failure for ${dtoClass.personalName}")
+
+
+        val castedOwnModelsProperty =  ownDataModels.castOrOperationsEx<KProperty1<DATA,  MutableList<DataModel>>>(
+            "Own DataModels Property cast failure for ${dtoClass.personalName}",
+            ExceptionCode.CAST_FAILURE)
 
         oneToMany.initProperties(castedOwnModelsProperty, ownEntities, foreignEntityCast)
         attachBinding(oneToMany.thisKey, oneToMany)

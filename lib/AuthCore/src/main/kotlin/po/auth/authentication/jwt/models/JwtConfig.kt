@@ -9,9 +9,9 @@ import java.security.interfaces.RSAPublicKey
 
 data class JwtConfig(
   //  override var claimFieldName:String,
-    override var realm: String,
-    override var issuer: String,
-    override var secret: String,
+    override var realm: String = "ktor app",
+    override var issuer: String = "http://127.0.0.1",
+    override var secret: String = "secret",
     override var kid: String?  = null,
     override var audience: String = "jwt-audience",
     override val privateKey: RSAPrivateKey,

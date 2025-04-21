@@ -16,11 +16,14 @@ enum class ExceptionCode(val value: Int) {
     NO_EMPTY_CONSTRUCTOR(1008),
     CONSTRUCTOR_MISSING(1009),
     REFLECTION_ERROR(1010),
+    VALUE_NOT_FOUND(1011),
 
     // Database Layer
     DB_TABLE_CREATION_FAILURE(2001),
     DB_CRUD_FAILURE(2002),
     DB_NO_TRANSACTION_IN_CONTEXT(2003),
+
+    ABNORMAL_STATE(3000),
 
     // Repository.kt & Runtime Execution
     REPOSITORY_RETHROWN(4000),

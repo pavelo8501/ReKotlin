@@ -1,7 +1,6 @@
 package po.restwraptor.plugins
 
 import io.ktor.http.Headers
-import io.ktor.http.HttpHeaders
 import io.ktor.server.application.ApplicationPlugin
 import io.ktor.server.application.ApplicationStarted
 import io.ktor.server.application.createApplicationPlugin
@@ -11,9 +10,7 @@ import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.request.path
-import po.auth.authentication.extensions.authenticate
 import po.auth.authentication.jwt.JWTService
-import po.auth.sessions.extensions.authorizedSession
 import po.lognotify.extensions.startTask
 import po.restwraptor.extensions.getWraptorRoutes
 import po.restwraptor.extensions.respondUnauthorized
@@ -41,8 +38,6 @@ val JWTPlugin: ApplicationPlugin<JWTPluginConfig> = createApplicationPlugin(
     val key = pluginConfig.key
 
     val securedRoutes : MutableList<WraptorRoute> = mutableListOf()
-
-
     fun checkDestinationSecured(path: String): Boolean{
        return securedRoutes.any { it.path.lowercase() == path.lowercase() }
     }
@@ -58,7 +53,7 @@ val JWTPlugin: ApplicationPlugin<JWTPluginConfig> = createApplicationPlugin(
             validate { credential ->
                 val call = this
                 val path = call.request.path()
-                service.checkCredential(credential)
+                service.validateToken(credential)
             }
         }
     }
@@ -87,11 +82,11 @@ val JWTPlugin: ApplicationPlugin<JWTPluginConfig> = createApplicationPlugin(
                     return@startTask
                 }
 
-                service.isValid(jwtToken) { token ->
+                service.isNotExpired(jwtToken) { token ->
                     handler.info("Invalidating Token due to expiry")
                     service.tokenRepository.invalidate(token.sessionId)
                     call.respondUnauthorized("Session expired")
-                    return@isValid
+                    return@isNotExpired
                 }
 
                 handler.info("Token is valid, call allowed to proceed")

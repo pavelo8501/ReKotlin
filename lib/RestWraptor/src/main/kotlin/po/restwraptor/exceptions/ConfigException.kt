@@ -10,8 +10,8 @@ class ConfigurationException(
     var handlerType : HandlerType = HandlerType.CANCEL_ALL,
 ) :  ManagedException(message, handlerType){
 
-    override val builderFn: (String) -> ConfigurationException = {msg->
-        ConfigurationException(message, code, handlerType)
+    override val builderFn: (String, HandlerType) -> ConfigurationException = {msg, handler->
+        ConfigurationException(msg, code, handler)
     }
 
 }

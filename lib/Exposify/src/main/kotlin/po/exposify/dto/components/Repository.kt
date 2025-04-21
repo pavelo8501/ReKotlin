@@ -8,8 +8,9 @@ import po.exposify.classes.DTOClass
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase
+import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.extensions.getOrOperationsEx
 import po.lognotify.TasksManaged
-import po.lognotify.extensions.getOrThrowDefault
 import po.lognotify.extensions.safeCast
 import kotlin.collections.forEach
 
@@ -23,7 +24,9 @@ class SingleRepository<DTO, DATA, ENTITY,  CHILD_DTO>(
     override val personalName: String = "Repository[${hostingDto.personalName}/Single]"
 
     suspend fun updateSingle() {
-        val dataModel = binding.sourcePropertyWrapper.get(hostingDto.dataModel).getOrThrowDefault("Failed to get data model")
+        val dataModel = binding.sourcePropertyWrapper.get(hostingDto.dataModel).getOrOperationsEx(
+            "Failed to get data model", ExceptionCode.VALUE_NOT_FOUND)
+
         val newChildDto = childFactory.createDto(dataModel)
         if (dataModel.id == 0L) {
             val parentEntity = hostingDto.daoService.getLastEntity()
@@ -105,7 +108,7 @@ class RootRepository<DTO, DATA, ENTITY, CHILD_DTO>(
         dataModels.forEach {dataModel->
            val castedDto = dtoClass.config.dtoFactory.createDto(dataModel).run {
                safeCast<CommonDTO<DTO, DATA, ENTITY>>()
-                   .getOrThrowDefault("Cast to CommonDTO<DTO, DATA, ENTITY> failed")
+                   .getOrOperationsEx("Cast to CommonDTO<DTO, DATA, ENTITY> failed", ExceptionCode.CAST_FAILURE)
            }
            if(dataModel.id == 0L){
                castedDto.daoService.save()
@@ -125,7 +128,7 @@ class RootRepository<DTO, DATA, ENTITY, CHILD_DTO>(
         entities.forEach { entity ->
             val castedDto = dtoClass.config.dtoFactory.createDto().run {
                 safeCast<CommonDTO<DTO, DATA, ENTITY>>()
-                    .getOrThrowDefault("Cast to CommonDTO<DTO, DATA, ENTITY> failed")
+                    .getOrOperationsEx("Cast to CommonDTO<DTO, DATA, ENTITY> failed", ExceptionCode.CAST_FAILURE)
             }
             castedDto.updateBinding(entity, UpdateMode.ENTITY_TO_MODEL)
             castedDto.getDtoRepositories().forEach { repository ->
@@ -158,7 +161,7 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, CHILD_DTO>(
         when(this){
             is MultipleRepository-> updateMultiple()
             is SingleRepository-> updateSingle()
-            else -> getOrThrowDefault("UpdateDTOs should have never reached this branch")
+            else -> getOrOperationsEx("UpdateDTOs should have never reached this branch", ExceptionCode.ABNORMAL_STATE)
         }
     }
 
@@ -166,7 +169,7 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, CHILD_DTO>(
         when(this){
             is MultipleRepository-> selectMultiple()
             is SingleRepository->updateSingle()
-            else -> getOrThrowDefault("SelectDTOs should have never reached this branch")
+            else -> getOrOperationsEx("UpdateDTOs should have never reached this branch", ExceptionCode.ABNORMAL_STATE)
         }
         initialized = true
     }

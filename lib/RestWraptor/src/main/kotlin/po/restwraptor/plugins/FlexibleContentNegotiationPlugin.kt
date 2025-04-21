@@ -14,7 +14,6 @@ import po.restwraptor.extensions.getOrDataEx
 import kotlin.reflect.jvm.jvmErasure
 
 
-
 private fun trySingle(text: String,  serializer : KSerializer<out Any>, formatter: Json): Any?{
     return try {
         formatter.decodeFromString(serializer, text.trim())

@@ -29,11 +29,13 @@ interface TasksManaged {
             return newRootTask
         }
 
+        @PublishedApi
         internal fun <R> createHierarchyRoot(name: String, moduleName: String?): RootTask<R>{
             val newTask = RootTask<R>(TaskKey(name, 0, moduleName), defaultContext(name))
             return hierarchyRootCreation(newTask)
         }
 
+        @PublishedApi
         internal fun <R> createHierarchyRoot(name: String, context: CoroutineContext, moduleName: String?): RootTask<R> {
             val newTask = RootTask<R>(TaskKey(name, 0, moduleName),context)
             return  hierarchyRootCreation(newTask)

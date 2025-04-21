@@ -21,7 +21,6 @@ interface NotificationProvider{
     suspend fun info(message: String)
     suspend fun error(ex: Throwable, optMessage: String)
     suspend fun warn(message: String)
-
 }
 
 class Notifier(
@@ -63,20 +62,9 @@ class Notifier(
         toConsole(notification)
         emit(notification)
     }
-
-
-    suspend fun subscribeToThrowerUpdates(){
-        withContext(task.context) {
-            task.taskHandler.exceptionThrower.subscribeThrowerUpdates{
-                toConsole(it)
-                emit(it)
-            }
-        }
-    }
-
     suspend fun subscribeToHandlerUpdates(){
         withContext(task.context) {
-            task.taskHandler.exceptionHandler.subscribeHandlerUpdates(){
+            task.taskRunner.exceptionHandler.subscribeHandlerUpdates(){
                 toConsole(it)
                 emit(it)
             }
@@ -85,7 +73,6 @@ class Notifier(
 
     override suspend fun start(){
         createTaskNotification(task, "Start", EventType.START, SeverityLevel.INFO)
-        subscribeToThrowerUpdates()
         subscribeToHandlerUpdates()
     }
     internal suspend  fun systemInfo(type : EventType,  severity: SeverityLevel, message: String = ""){

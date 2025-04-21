@@ -20,11 +20,11 @@ import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.WhereCondition
+import po.exposify.extensions.getOrOperationsEx
+import po.exposify.extensions.testOrOperationsEx
 import po.lognotify.TasksManaged
-import po.lognotify.extensions.getOrThrowDefault
 import po.lognotify.extensions.resultOrNull
 import po.lognotify.extensions.subTask
-import po.lognotify.extensions.trueOrThrow
 
 class DAOService<DTO, ENTITY>(
     private val hostingDTO: CommonDTO<DTO, *, ENTITY>,
@@ -40,7 +40,7 @@ class DAOService<DTO, ENTITY>(
     }
 
     internal  fun getLastEntity():ENTITY{
-        return entity.getOrThrowDefault("Entity is null")
+        return entity.getOrOperationsEx("Entity is null", ExceptionCode.NOT_INITIALIZED)
     }
 
 
@@ -115,16 +115,18 @@ class DAOService<DTO, ENTITY>(
 
     suspend fun select(): List<ENTITY> = subTask("Select All", personalName){
         entityModel.all().toList()
-    }.resultOrException("Entities selection all failed")
+    }.resultOrException(OperationsException("Entities selection all failed", ExceptionCode.DB_CRUD_FAILURE))
 
     suspend fun <T:IdTable<Long>> select(conditions:  WhereCondition<T>): List<ENTITY> =
         subTask("Select", personalName) {handler->
         val opConditions = buildConditions(conditions)
-        isTransactionReady().trueOrThrow("Transaction should be active")
+        isTransactionReady().testOrOperationsEx(OperationsException("Transaction should be active", ExceptionCode.DB_NO_TRANSACTION_IN_CONTEXT)){
+            true
+        }
         val result = entityModel.find(opConditions).toList()
         handler.info("${result.count()} entities selected")
         result
-    }.resultOrException("Entities selection by conditions failed")
+    }.resultOrException(OperationsException("Entities selection by conditions failed", ExceptionCode.DB_CRUD_FAILURE))
 
     suspend fun save(): ENTITY =
         subTask("Save", "DAOService") {handler->
@@ -149,13 +151,13 @@ class DAOService<DTO, ENTITY>(
             hostingDTO.dataContainer.setDataModelId(newEntity.id.value)
             handler.info("Entity created with id: ${newEntity.id.value} for parent entity id:")
             newEntity
-    }.resultOrException("SaveWithParent failed for ${hostingDTO.personalName}")
+    }.resultOrException(OperationsException("SaveWithParent failed for ${hostingDTO.personalName}",  ExceptionCode.DB_CRUD_FAILURE))
 
     suspend fun update(): ENTITY = subTask("Update", "DAOService") {handler->
-        val selectedEntity =  pickById(hostingDTO.id).getOrThrowDefault("Entity with id : ${hostingDTO.id} not found")
+        val selectedEntity =  pickById(hostingDTO.id).getOrOperationsEx("Entity with id : ${hostingDTO.id} not found", ExceptionCode.DB_CRUD_FAILURE)
         hostingDTO.updateBinding(selectedEntity, UpdateMode.MODEL_TO_ENTITY)
         selectedEntity
-    }.resultOrException("SaveWithParent failed for ${hostingDTO.personalName}")
+    }.resultOrException(OperationsException("SaveWithParent failed for ${hostingDTO.personalName}", ExceptionCode.DB_CRUD_FAILURE))
 
 
 

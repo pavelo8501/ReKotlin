@@ -6,24 +6,13 @@ import po.lognotify.exceptions.LoggerException
 
 
 fun <R> ManagedResult<R>.resultOrNull(): R? = try {
-    this.resultOrException<LoggerException>()
+    this.resultOrException()
 } catch (_: Throwable) {
     null
 }
 
-fun <R> ManagedResult<R>.throwIfFailed(): ManagedResult<R> {
-    if (!isSuccess) throw IllegalStateException("Task [${taskName}] failed or no result available.")
-    return this
-}
-
 inline fun <R> ManagedResult<R>.onSuccessResult(block: (R) -> Unit): ManagedResult<R> {
-    val value =  this.resultOrException<LoggerException>()
-    if (isSuccess && value != null) block(value)
-    return this
-}
-
-inline fun <R> ManagedResult<R>.onSuccessValue(block: (R) -> Unit): ManagedResult<R> {
-    val value =  this.resultOrException<LoggerException>()
+    val value =  this.resultOrException()
     if (isSuccess && value != null) block(value)
     return this
 }
@@ -31,17 +20,14 @@ inline fun <R> ManagedResult<R>.onSuccessValue(block: (R) -> Unit): ManagedResul
 inline fun <R> ManagedResult<R>.onFailureCause(block: (Throwable?) -> Unit): ManagedResult<R> {
     if (!isSuccess) block(
         runCatching {
-            this.resultOrException<LoggerException>()
+            this.resultOrException()
         }.exceptionOrNull())
     return this
 }
 
-
-
 fun <R> ManagedResult<R>.resultOrDefault(defaultValue: R):R {
-
    val result = try {
-        this.resultOrException<LoggerException>()
+        this.resultOrException()
     }catch (th: Throwable){
        defaultValue
     }
@@ -49,7 +35,7 @@ fun <R> ManagedResult<R>.resultOrDefault(defaultValue: R):R {
 }
 
 fun <R> ManagedResult<R>.toKotlinResult(): Result<R> =
-    runCatching {  this.resultOrException<LoggerException>() }
+    runCatching {  this.resultOrException() }
 
 
 

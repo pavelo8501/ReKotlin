@@ -2,78 +2,41 @@ package po.auth.sessions.classes
 
 import po.auth.*
 import po.auth.AuthSessionManager
+import po.auth.authentication.authenticator.UserAuthenticator
+import po.auth.authentication.authenticator.models.AuthenticationData
+import po.auth.authentication.exceptions.ErrorCodes
+import po.auth.authentication.extensions.getOrThrow
 import po.auth.authentication.interfaces.AuthenticationPrincipal
 import po.auth.sessions.enumerators.SessionType
 import po.auth.sessions.models.AuthorizedPrincipal
 import po.auth.sessions.models.AuthorizedSession
+import po.lognotify.TasksManaged
+import po.lognotify.extensions.newTask
+import po.lognotify.extensions.startTask
+import po.lognotify.extensions.subTask
 import java.util.concurrent.ConcurrentHashMap
 
 class SessionFactory(
     private val manager: AuthSessionManager,
-    private  val internalStorage : ConcurrentHashMap<String, String>)
+    private  val internalStorage : ConcurrentHashMap<String, String>
+) : TasksManaged
 {
 
-    private val activeSessions : ConcurrentHashMap<String, AuthorizedSession> = ConcurrentHashMap<String, AuthorizedSession>()
-    private var activeAnonSession  : AuthorizedSession? = null
+    internal val activeSessions : ConcurrentHashMap<String, AuthorizedSession> = ConcurrentHashMap<String, AuthorizedSession>()
 
-    fun createSession(principal: AuthorizedPrincipal) : AuthorizedSession {
+    suspend fun createAuthorizedSession(sessionId: String,  principal: AuthorizedPrincipal, authenticator : UserAuthenticator) : AuthorizedSession
+        = subTask("createAuthorizedSession") {
 
-      val result =  runCatching {
-            val newSession = AuthorizedSession(principal, SessionType.USER_AUTHENTICATED, internalStorage)
-            activeSessions[newSession.sessionId] = newSession
-            newSession
-        }.onFailure {
-            throw (it)
-        }
-        return result.getOrThrow()
-    }
+       val anonSession = activeSessions[sessionId].getOrThrow("session with id $sessionId not found", ErrorCodes.SESSION_NOT_FOUND)
+       anonSession.providePrincipal(principal)
 
+    }.resultOrException()
 
-    fun createAnonymousSession(anonymous: AuthenticationPrincipal? = null): AuthorizedSession {
-        try {
-            if (activeAnonSession != null) {
-                return activeAnonSession!!
-            }
-            val anonymousPrincipal = if (anonymous != null) {
-                AuthorizedPrincipal().copyReinit(anonymous)
-            } else {
-                AuthorizedPrincipal()
-            }
-            val anonSession = AuthorizedSession(anonymousPrincipal, SessionType.ANONYMOUS, internalStorage)
-            activeAnonSession = anonSession
-            return anonSession
-        } catch (ex: Exception) {
-            echo(ex)
-            throw (ex)
-        }
-    }
-
-    fun getAnonymousSession(): AuthorizedSession? {
-        return activeAnonSession
-    }
-
-    fun activeSessions(): List<AuthorizedSession> {
-        return activeSessions.values.toList()
-    }
-
-//    fun createAnonymousSession(anonymousUser: AuthenticationPrincipal?): AuthorizedSession{
-//        if(anonymousUser != null){
-//            val principal = AuthorizedPrincipal().copyReinit(anonymousUser)
-//            activeAnonSession = AuthorizedSession(principal, SessionType.ANONYMOUS, ConcurrentHashMap<String, String>())
-//        }else{
-//            activeAnonSession = AuthorizedSession(AuthorizedPrincipal(), SessionType.ANONYMOUS, ConcurrentHashMap<String, String>())
-//        }
-//        return activeAnonSession!!
-//    }
-
-
-
-//    fun getAnonymousSession(): AuthorizedSession?{
-//        val anonSession = activeAnonSession
-//        if(anonSession?.sessionType == SessionType.ANONYMOUS){
-//            return  anonSession
-//        }
-//        return null
-//    }
+    suspend fun createAnonymousSession(authData : AuthenticationData,  authenticator : UserAuthenticator): AuthorizedSession
+        = newTask("createAnonymousSession") {
+            val anonSession = AuthorizedSession(authData.remoteAddress, authenticator)
+            activeSessions[anonSession.sessionId] = anonSession
+            anonSession
+    }.resultOrException()
 
 }

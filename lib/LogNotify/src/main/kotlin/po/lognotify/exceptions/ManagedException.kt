@@ -4,47 +4,31 @@ import po.lognotify.exceptions.enums.HandlerType
 import java.util.Objects
 
 
-sealed interface SelfThrownException<T:ManagedException> {
+sealed interface SelfThrownException {
     val message: String
     var handler  : HandlerType
-    val builderFn: (String) -> T
+    val builderFn: (String, HandlerType) -> SelfThrownException
+
+    fun setSourceException(th: Throwable): ManagedException
+    fun throwSelf(): Nothing
+
 }
 
-
-abstract class ManagedException(
+open class ManagedException(
     override val message: String,
     override var handler  : HandlerType,
-) : Throwable(message), SelfThrownException<ManagedException>{
+) : Throwable(message), SelfThrownException{
+
+    override val builderFn: (String, HandlerType) -> ManagedException={msg, handler->
+        ManagedException(msg, handler)
+    }
 
     private var source : Throwable? = null
-    fun setSourceException(th: Throwable): ManagedException{
+    override fun setSourceException(th: Throwable): ManagedException{
         source = th
         return this
     }
-
+    override fun throwSelf():Nothing {
+       throw this
+    }
 }
-
-
-
-
-
-//sealed class ExceptionBase(
-//    override val message: String,
-//    open var handler: HandlerType,
-//    errorCode : Int = 0
-//) : Throwable(message), SelfThrownException{
-//
-//
-//    private var source : Throwable? = null
-//    fun setSourceException(th: Throwable): ExceptionBase{
-//        source = th
-//        return this
-//    }
-//    fun reThrowSource(){
-//        if(source !=null){
-//            throw source!!
-//        }else{
-//            throw Exception("Rethrow Source exception failed. No source set in containing ${handler.toString()} with message $message")
-//        }
-//    }
-//}

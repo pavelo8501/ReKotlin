@@ -1,6 +1,8 @@
 package po.lognotify.classes.taskresult
 
 import po.lognotify.exceptions.ManagedException
+import po.lognotify.exceptions.SelfThrownException
+import po.lognotify.exceptions.enums.HandlerType
 
 interface ManagedResult<R : Any?>{
     val taskName: String
@@ -11,6 +13,6 @@ interface ManagedResult<R : Any?>{
     fun onResult(block: (R) -> Unit):ManagedResult<R>
     suspend fun onFail(block: suspend (Throwable) -> Unit):ManagedResult<R>
     fun onComplete(block: (ManagedResult<R>) -> Unit):ManagedResult<R>
-    fun <E: ManagedException> resultOrException(message: String = "", callback:((msg: String)-> E)? = null):R
-
+    fun  resultOrException(exception: SelfThrownException? = null):R
+    suspend fun setFallback(handler: HandlerType, fallbackFn: ()->R): ManagedResult<R>
 }

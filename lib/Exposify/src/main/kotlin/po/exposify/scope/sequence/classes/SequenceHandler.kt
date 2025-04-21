@@ -2,12 +2,11 @@ package po.exposify.scope.sequence.classes
 
 import org.jetbrains.exposed.dao.id.IdTable
 import po.exposify.classes.interfaces.DataModel
-import po.exposify.classes.DTOClass
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.WhereCondition
-import po.exposify.extensions.withTransactionIfNone
+import po.exposify.extensions.getOrOperationsEx
 import po.exposify.scope.sequence.models.SequenceKey
-import po.lognotify.extensions.getOrThrowDefault
 import po.lognotify.extensions.safeCast
 import kotlin.Long
 
@@ -36,7 +35,10 @@ class SequenceHandler<DTO, DATA>(
     }
 
     suspend fun <T: IdTable<Long>> withConditions(conditions : WhereCondition<T>) {
-        whereConditions = conditions.safeCast<WhereCondition<IdTable<Long>>>().getOrThrowDefault("Cast to <IdTable<Long>> Failed")
+        whereConditions = conditions.safeCast<WhereCondition<IdTable<Long>>>().getOrOperationsEx(
+            "Cast to <IdTable<Long>> Failed",
+            ExceptionCode.CAST_FAILURE
+        )
     }
 
 }

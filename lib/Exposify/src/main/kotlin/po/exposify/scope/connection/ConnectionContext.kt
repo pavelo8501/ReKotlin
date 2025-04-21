@@ -1,25 +1,15 @@
 package po.exposify.scope.connection
 
-import kotlinx.coroutines.runBlocking
-import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.transactions.experimental.suspendedTransactionAsync
-import org.jetbrains.exposed.sql.transactions.transaction
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.classes.DTOClass
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase
-import po.exposify.extensions.safeCast
 import po.exposify.scope.service.ServiceClass
 import po.exposify.scope.service.ServiceContext
 import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.TasksManaged
-import po.lognotify.extensions.getOrThrowDefault
-import po.lognotify.extensions.resultOrDefault
-import po.lognotify.extensions.resultOrNull
-import po.lognotify.extensions.startTask
 import po.lognotify.extensions.startTaskAsync
-import po.lognotify.extensions.subTask
 
 class ConnectionContext(
     internal val connection: Database,
