@@ -24,7 +24,7 @@ object TestUsers : LongIdTable("users", "id") {
 object  TestPages : LongIdTable("pages", "id") {
     val name = varchar("name",128)
     val langId = integer("lang_id").default(1)
-    val pageClasses = registerColumn<List<TestClassItem>>("page_classes", JsonColumnType(ListSerializer(TestClassItem.serializer())))
+    val pageClasses = registerColumn("page_classes", JsonColumnType(ListSerializer(TestClassItem.serializer())))
     val updatedBy = reference("updated_by", TestUsers)
     val updated = datetime("updated").clientDefault { TestPageDTO.Companion.nowTime() }
 }
@@ -33,7 +33,7 @@ object TestSections : LongIdTable("sections", "id") {
     val name = varchar("name", 128)
     val description = varchar("description", 128).default("")
     val jsonLd = text("json_ld").default("[]")
-    val sectionClasses = registerColumn<List<TestClassItem>>("section_classes", JsonColumnType(ListSerializer(TestClassItem.serializer())))
+    val sectionClasses = registerColumn("section_classes", JsonColumnType(ListSerializer(TestClassItem.serializer())))
         .default(emptyList())
     val updatedBy = reference("updated_by", TestUsers)
     val updated = datetime("updated").clientDefault { TestSectionDTO.Companion.nowTime() }

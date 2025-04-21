@@ -67,7 +67,6 @@ class TestSequenceContext : DatabaseTest() {
             { assertNotEquals(0, selectPages[0].id, "Page Update failure") },
             { assertEquals("this_name", selectPages[0].name, "Selected page 1 name mismatch") }
         )
-
     }
 
 }

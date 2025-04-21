@@ -24,14 +24,14 @@ class TestServiceContext : DatabaseTest() {
         val pages = pageModels(quantity =  1, updatedBy = 1)
         var assignedUserId : Long = 0
         connectionContext?.let {connection->
-            connection.service<TestUserDTO, TestUser>(TestUserDTO, TableCreateMode.FORCE_RECREATE) {
+            connection.service(TestUserDTO, TableCreateMode.FORCE_RECREATE) {
                val userData =  update(user).getData()
                assignedUserId = userData.id
                assertEquals("some_login", userData.login, "User login mismatch after save")
                assertNotEquals(0, assignedUserId, "User id assignment failure")
             }
 
-            connection.service<TestPageDTO, TestPage>(TestPageDTO, TableCreateMode.FORCE_RECREATE) {
+            connection.service(TestPageDTO, TableCreateMode.FORCE_RECREATE) {
                 val pageData =  update(pages[0]).getData()
                 val updatedById =  pageData.updatedById
 
@@ -123,17 +123,17 @@ class TestServiceContext : DatabaseTest() {
         val user = TestUser("some_login", "name", "nomail@void.null", "******")
         var assignedUserId : Long = 0
         connectionContext?.let { connection ->
-            connection.service<TestUserDTO, TestUser>(TestUserDTO, TableCreateMode.CREATE) {
+            connection.service(TestUserDTO, TableCreateMode.CREATE) {
                 val userData = update(user).getData()
                 assignedUserId = userData.id
             }
             val pages = pageModelsWithSections(pageCount = 2, sectionsCount = 2, updatedBy = assignedUserId)
             pages[0].langId = 1
             pages[1].langId = 2
-            connection.service<TestPageDTO, TestPage>(TestPageDTO, TableCreateMode.CREATE) {
+            connection.service(TestPageDTO, TableCreateMode.CREATE) {
                truncate()
                update(pages)
-               val selectedPages =  select<TestPages>(WhereCondition(TestPages).equalsTo(TestPages.langId, 1)).getData()
+               val selectedPages =  select(WhereCondition<TestPages>().equalsTo(TestPages.langId, 1)).getData()
                assertEquals(1, selectedPages.count(), "Page count mismatch")
                val selectedSections = selectedPages[0].sections
                assertAll(

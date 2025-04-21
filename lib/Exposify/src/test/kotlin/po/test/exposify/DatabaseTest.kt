@@ -1,6 +1,5 @@
 package po.test.exposify
 
-
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
@@ -12,7 +11,6 @@ import po.auth.AuthSessionManager
 import po.exposify.DatabaseManager
 import po.exposify.controls.ConnectionInfo
 import po.exposify.scope.connection.ConnectionContext
-
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers
