@@ -3,9 +3,10 @@ package po.lognotify.classes.taskresult
 import po.lognotify.classes.notification.enums.EventType
 import po.lognotify.classes.task.TaskSealedBase
 import po.lognotify.enums.SeverityLevel
-import po.lognotify.exceptions.ExceptionBase
-import po.lognotify.exceptions.LoggerException
-import po.lognotify.models.LogRecord
+import po.lognotify.exceptions.ManagedException
+import po.lognotify.exceptions.SelfThrownException
+import po.lognotify.exceptions.enums.HandlerType
+import po.lognotify.exceptions.getOrThrow
 
 
 class TaskResult<R : Any?>(private val task: TaskSealedBase<R>): ManagedResult<R> {
@@ -14,30 +15,41 @@ class TaskResult<R : Any?>(private val task: TaskSealedBase<R>): ManagedResult<R
     override var executionTime: Float = 0f
 
     private var value: R? = null
-    private var throwable: Throwable? = null
+    private var throwable: ManagedException? = null
 
-    val resultHandler:R
-        get() = value?:throw LoggerException("Result unavailable")
+    private suspend fun taskCompleted(th: Throwable? = null){
+        if(th == null){
+            task.notifier.systemInfo(EventType.STOP, SeverityLevel.INFO)
+        }else{
+            task.notifier.systemInfo(EventType.STOP, SeverityLevel.EXCEPTION)
+        }
+        task.isComplete = true
+    }
+    private suspend fun taskCompleted(msg: String, severity : SeverityLevel){
+        task.notifier.systemInfo(EventType.STOP, severity, msg)
+        task.isComplete = true
+    }
 
     override var isSuccess : Boolean = false
 
     internal var onCompleteFn: ((ManagedResult<R>) -> Unit)? = null
     internal var onResultFn: ((R) -> Unit)? = null
-    internal var onFailFn: ((Throwable) -> Unit)? = null
+    internal var onFailFn: ( suspend (Throwable) -> Unit)? = null
 
     override fun onComplete(block: (ManagedResult<R>) -> Unit):ManagedResult<R>{
         onCompleteFn = block
         block.invoke(this)
         return this
     }
+
     override fun onResult(block: (R) -> Unit): ManagedResult<R> {
         onResultFn = block
         if(value != null){
-            block.invoke(resultHandler)
+            block.invoke(value!!)
         }
         return this
     }
-    override fun onFail(block: (Throwable) -> Unit): ManagedResult<R> {
+    override suspend fun onFail(block: suspend (Throwable) -> Unit): ManagedResult<R> {
         onFailFn = block
         if(throwable != null){
             block.invoke(throwable!!)
@@ -48,44 +60,35 @@ class TaskResult<R : Any?>(private val task: TaskSealedBase<R>): ManagedResult<R
     override fun isResult(): Boolean{
         return value != null
     }
-    override fun resultOrException(message: String, callback:((msg: String)-> ExceptionBase)?):R{
-        return value?:run {
-            throwable?.let {
-                if(it is ExceptionBase){
-                    throw it
-                }else{
-                    throw LoggerException(it.message.toString()).setSourceException(it)
-                }
-            }?:run {
-                val defaultMessage = "Requested Value is null in ${task.taskName} TaskResult"
-                if(callback!= null){
-                    throw  callback.invoke("message $defaultMessage")
-                }else{
-                    throw LoggerException(defaultMessage)
-                }
-            }
-        }
-    }
+    override fun resultOrException(exception: SelfThrownException?):R {
 
-    private suspend fun taskCompleted(th: Throwable? = null){
-        if(th == null){
-            task.notifier.systemInfo("Stop", EventType.STOP, SeverityLevel.INFO)
+        if(value != null){
+            return value!!
         }else{
-            task.notifier.systemInfo("Stop", EventType.STOP, SeverityLevel.EXCEPTION)
+            if(exception != null){
+                if(throwable!=null){
+                    exception.setSourceException(throwable!!)
+                }
+                exception.throwSelf()
+            }
+            val registeredEx = throwable.getOrThrow("value is null", HandlerType.UNMANAGED)
+            throw registeredEx
         }
-        task.isComplete = true
+    }
+    override suspend fun setFallback(handler: HandlerType, fallbackFn: ()->R): ManagedResult<R>{
+        task.taskRunner.exceptionHandler.provideHandlerFn(handler, fallbackFn)
+        return this
     }
 
-    internal suspend fun provideResult(time: Float, executionResult: R?){
+    suspend fun provideResult(time: Float, executionResult: R?){
         isSuccess = true
         executionTime = time
         value = executionResult
-        task.notifier.systemInfo("Stop", EventType.STOP, SeverityLevel.INFO)
         taskCompleted()
-        onResultFn?.invoke(resultHandler)
+        onResultFn?.invoke(value!!)
         onCompleteFn?.invoke(this as ManagedResult<R>)
     }
-    internal suspend fun provideThrowable(time: Float, th: Throwable?){
+    suspend fun provideThrowable(time: Float, th: ManagedException?){
         executionTime = time
         if(th != null) {
             isSuccess = false
@@ -94,7 +97,7 @@ class TaskResult<R : Any?>(private val task: TaskSealedBase<R>): ManagedResult<R
             onFailFn?.invoke(th)
             onCompleteFn?.invoke(this as ManagedResult<R>)
         }else{
-            task.notifier.systemInfo("Execution failed. No throwable provided", EventType.STOP ,SeverityLevel.WARNING)
+            taskCompleted("Execution failed. No throwable provided", SeverityLevel.WARNING)
             onCompleteFn?.invoke(this as ManagedResult<R>)
         }
     }

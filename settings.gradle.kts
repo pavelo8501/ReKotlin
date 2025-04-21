@@ -1,6 +1,5 @@
 rootProject.name = "ReKotlin"
 
-
 pluginManagement {
     plugins{
         id("com.google.devtools.ksp") version(providers.gradleProperty("kspVersion").get()) apply false

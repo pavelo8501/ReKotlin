@@ -16,7 +16,7 @@ import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.exceptions.InitException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.dto.enums.DTOInitStatus
-import po.lognotify.extensions.getOrThrowDefault
+import po.exposify.extensions.getOrOperationsEx
 
 
 abstract class CommonDTO<DTO, DATA, ENTITY>(
@@ -57,7 +57,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     internal var repositories =  MapBuilder<BindingKeyBase,  RepositoryBase<DTO, DATA, ENTITY, ModelDTO>> ()
 
     internal fun getRepository(key: BindingKeyBase):RepositoryBase<DTO, DATA, ENTITY, ModelDTO>{
-       return repositories.map[key].getOrThrowDefault("Child repository not found @ $personalName")
+       return repositories.map[key].getOrOperationsEx("Child repository not found @ $personalName", ExceptionCode.VALUE_NOT_FOUND)
     }
 
     fun getDtoRepositories():List<RepositoryBase<DTO, DATA, ENTITY, ModelDTO>>{

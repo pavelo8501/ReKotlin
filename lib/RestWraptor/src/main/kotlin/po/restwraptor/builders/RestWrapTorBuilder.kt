@@ -2,7 +2,6 @@ package po.restwraptor.builders
 
 import io.ktor.server.application.Application
 import po.restwraptor.RestWrapTor
-import po.restwraptor.classes.ConfigContext
 
 
 fun restWrapTor(app: Application) : RestWrapTor{

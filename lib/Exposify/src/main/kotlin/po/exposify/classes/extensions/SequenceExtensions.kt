@@ -1,14 +1,17 @@
 package po.exposify.classes.extensions
 
-import kotlinx.coroutines.CoroutineScope
+import po.auth.authentication.exceptions.ErrorCodes
 import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.extensions.castOrOperationsEx
+import po.exposify.extensions.getOrOperationsEx
 import po.exposify.extensions.safeCast
 import po.exposify.extensions.withTransactionIfNone
 import po.exposify.scope.sequence.classes.SequenceHandler
 import po.exposify.scope.sequence.enums.SequenceID
-import po.lognotify.extensions.getOrThrowDefault
+import po.lognotify.extensions.castOrException
 import po.lognotify.extensions.startTask
 import po.lognotify.extensions.startTaskAsync
 import kotlin.coroutines.CoroutineContext
@@ -23,12 +26,17 @@ suspend fun <DTO : ModelDTO, DATA: DataModel>  DTOClass<DTO>.runSequence(
         = startTask("Run Sequence", context,  personalName) {
     withTransactionIfNone {
 
-        val serviceContext = serviceContextOwned.getOrThrowDefault("Unable to run sequence id: $sequenceId on DTOClass. DTOClass is not a hierarchy root")
+        val serviceContext = serviceContextOwned.getOrOperationsEx(
+            "Unable to run sequence id: $sequenceId on DTOClass. DTOClass is not a hierarchy root",
+            ExceptionCode.UNDEFINED
+        )
         val handler = serviceContext.serviceClass().getSequenceHandler(sequenceId, this)
         handlerBlock?.invoke(handler)
         val key =  handler.thisKey
-        val result = serviceContext.serviceClass().runSequence(key).safeCast<List<DATA>>()
-            .getOrThrowDefault("Cast to List<DATA> failed")
+        val result = serviceContext.serviceClass().runSequence(key).castOrOperationsEx<List<DATA>>(
+            "Cast to List<DATA> failed", ExceptionCode.CAST_FAILURE
+        )
+
         result
     }
 }.resultOrException()
@@ -48,12 +56,16 @@ fun <DTO : ModelDTO, DATA: DataModel>  DTOClass<DTO>.runSequence(
         = startTaskAsync("Run Sequence",  personalName) {
     withTransactionIfNone {
 
-        val serviceContext = serviceContextOwned.getOrThrowDefault("Unable to run sequence id: $sequenceId on DTOClass. DTOClass is not a hierarchy root")
+        val serviceContext = serviceContextOwned.getOrOperationsEx(
+            "Unable to run sequence id: $sequenceId on DTOClass. DTOClass is not a hierarchy root",
+            ExceptionCode.UNDEFINED
+        )
         val handler = serviceContext.serviceClass().getSequenceHandler(sequenceId, this)
         handlerBlock?.invoke(handler)
         val key =  handler.thisKey
-        val result = serviceContext.serviceClass().runSequence(key).safeCast<List<DATA>>()
-            .getOrThrowDefault("Cast to List<DATA> failed")
+        val result = serviceContext.serviceClass().runSequence(key).castOrOperationsEx<List<DATA>>(
+            "Cast to List<DATA> failed", ExceptionCode.CAST_FAILURE
+        )
         result
     }
 }.resultOrException()

@@ -7,12 +7,10 @@ import po.auth.sessions.interfaces.ManagedSession
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.controls.ConnectionInfo
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.scope.connection.controls.CoroutineEmitter2
 import po.exposify.scope.connection.controls.UserDispatchManager
 import po.exposify.scope.sequence.models.SequencePack
 import po.exposify.scope.service.ServiceClass
-import po.lognotify.extensions.getOrDefault
 
 class ConnectionClass(
     val connectionInfo: ConnectionInfo,
@@ -36,8 +34,9 @@ class ConnectionClass(
         pack: SequencePack<DTO, DATA>,
     ): List<DATA> {
 
-        val session = sessionManager.getCurrentSession().getOrDefault(sessionManager.getAnonymous())
-        val result = dispatchManager.enqueue(session.principal.userId) {
+        val session = sessionManager.getCurrentSession()
+
+        val result = dispatchManager.enqueue(session.sessionId) {
              coroutineEmitter.dispatch<DTO, DATA>(pack, session.scope)
         }.await()
         return result

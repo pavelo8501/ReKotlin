@@ -3,23 +3,16 @@ package po.wswraptor.classes
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.application.pluginOrNull
-import io.ktor.server.application.pluginRegistry
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.routing.Routing
 import io.ktor.server.routing.routing
 import po.lognotify.eventhandler.RootEventHandler
 import po.lognotify.eventhandler.interfaces.CanNotify
-import po.restwraptor.classes.ConfigContext
-import po.restwraptor.classes.ConfigContextInterface
+import po.restwraptor.scope.ConfigContext
+import po.restwraptor.scope.ConfigContextInterface
 import po.restwraptor.models.configuration.ApiConfig
-import po.wswraptor.components.serializationfactory.SerializationFactory
-import po.wswraptor.convertors.JsonConvertor
-import po.wswraptor.convertors.JsonConvertorConfig
 import po.wswraptor.models.configuration.WsApiConfig
-import po.wswraptor.models.request.WSRequest
-import po.wswraptor.models.response.WSResponse
 import po.wswraptor.plugins.HeadersPlugin
-import po.wswraptor.webSocket
 
 class WSConfigContext(
     val app: Application,

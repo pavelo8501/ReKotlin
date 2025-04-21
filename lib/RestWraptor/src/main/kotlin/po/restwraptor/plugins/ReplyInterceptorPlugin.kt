@@ -1,12 +1,9 @@
 package po.restwraptor.plugins
 
 import io.ktor.server.application.createApplicationPlugin
-import io.ktor.server.application.hooks.CallSetup
-import io.ktor.server.application.hooks.MonitoringEvent
-import io.ktor.server.application.hooks.ResponseSent
 import io.ktor.server.request.uri
 import io.ktor.server.response.respondRedirect
-import po.restwraptor.security.JWTService
+import po.auth.authentication.jwt.JWTService
 
 val ReplyInterceptorPlugin = createApplicationPlugin(
     name = "CallInterceptorPlugin",

@@ -13,8 +13,8 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.extensions.getOrOperationsEx
 import po.lognotify.TasksManaged
-import po.lognotify.extensions.getOrThrowDefault
 import po.lognotify.extensions.subTask
 import kotlin.collections.get
 import kotlin.reflect.KClass
@@ -77,7 +77,9 @@ internal class DTOFactory<DTO, DATA, ENTITY>(
 
             dataBlueprint.setExternalParamLookupFn { param ->
                 var paramValue : Any? = null
-                val foundSerializer =  serializers[param.name].getOrThrowDefault("Serializer for name: ${param.name} not found")
+                val foundSerializer =  serializers[param.name].getOrOperationsEx(
+                    "Serializer for name: ${param.name} not found",
+                    ExceptionCode.VALUE_NOT_FOUND)
 
                 val kClassForType =  param.type.classifier as? KClass<*>
                 if(kClassForType != null){

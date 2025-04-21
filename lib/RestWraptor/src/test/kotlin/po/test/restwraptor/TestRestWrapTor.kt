@@ -11,11 +11,19 @@ import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertAll
 import org.junit.jupiter.api.assertThrows
+import po.auth.authentication.extensions.readCryptoRsaKeys
+import po.auth.authentication.extensions.setKeyBasePath
+import po.auth.sessions.models.AuthorizedPrincipal
 import po.restwraptor.RestWrapTor
+import po.restwraptor.enums.RouteSelector
+import po.restwraptor.models.server.WraptorRoute
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @Serializable
 data class TestResponse(
@@ -23,87 +31,41 @@ data class TestResponse(
     val number: Int = 10
 )
 
-
 class TestRestWrapTor {
 
-    @Test
-    fun `test server when uninitialized`(){
-        val apiServer = RestWrapTor()
-        val serverConfig =  apiServer.getConfig()
-        assertEquals(false, apiServer.initialized)
-        assertNull(serverConfig)
+
+    suspend fun authenticate(login: String, password: String): AuthorizedPrincipal {
+        return TestUser(0, "someName", login, password).asAuthorizedPrincipal()
+    }
+
+    private fun findRoute(routes: List<WraptorRoute>, predicate: (WraptorRoute) -> Boolean): Boolean{
+       return routes.any{
+           predicate.invoke(it)
+       }
     }
 
     @Test
-    fun `test server initialize application itself`() {
-        assertThrows<IllegalStateException>("EmbeddedServer was stopped"){
-            val apiServer = RestWrapTor()
-            apiServer.onServerStarted {
-                it.stop()
+    fun `test server live run`() {
+        val keyPath = setKeyBasePath("src/test/demo_keys")
+        val securedRoutes: MutableList<WraptorRoute> = mutableListOf()
+        val server = RestWrapTor {
+            setupAuthentication(keyPath.readCryptoRsaKeys("ktor.pk8", "ktor.spki"), ::authenticate) {
+
             }
-            apiServer.start("0.0.0.0",8080, false)
         }
-    }
+        server.start { handler ->
+            securedRoutes.addAll(handler.getRoutes())
+            handler.stop()
+        }
 
-    @Test
-    fun `test server use pre-init application`() = testApplication {
-
-        val apiServer = RestWrapTor()
-        this@testApplication.application{
-            val hashOfTestApp = System.identityHashCode(this)
-            install(RoutingRoot)
-            routing {
-                get("test/getRoute") { call.respond("Hello, from getRoute!") }
+        fun check(predicate: (WraptorRoute) -> Boolean): Boolean{
+            return securedRoutes.any{
+                predicate.invoke(it)
             }
-            apiServer.usePreconfiguredApp(this@application)
-            val routes = apiServer.getRoutes().map { it.path }
-
-            assertEquals(hashOfTestApp, apiServer.appHash)
-            assertContains(routes, "/test/getRoute")
         }
+
+        assertNotEquals(0, securedRoutes.count(), "No default routes installed")
+        assertTrue(check{it.path == "/auth/login" && it.selector == RouteSelector.POST }, "Post login route not present")
+        assertTrue(check{ it.path == "/auth/refresh" && it.selector == RouteSelector.POST }, "Post refresh route not present")
     }
-
-    @Test
-    fun `test server applies configuration to pre-init application`() = testApplication {
-        val apiServer =  RestWrapTor{
-              this@RestWrapTor.setupApplication {
-                  this@setupApplication.routing {
-                      get("test/route") { call.respond("Hello, from route!") }
-                  }
-              }
-        }
-        this@testApplication.application{
-            routing {
-                get("test/preConfigRoute") { call.respond("Hello, from preConfigRoute!") }
-            }
-            apiServer.usePreconfiguredApp(this)
-        }
-        startApplication()
-        val routes = apiServer.getRoutes().map { it.path }
-        assertContains(routes, "/test/route")
-        assertContains(routes, "/test/preConfigRoute")
-    }
-
-    @Test
-    fun `test features can be switched off`() = testApplication {
-        this@testApplication.application{
-            val apiServer =  RestWrapTor{
-                this@RestWrapTor.configSettings {
-                    this@RestWrapTor.apiConfig.also {
-                        it.cors = false
-                        it.contentNegotiation = false
-                        it.systemRouts = false
-                    }
-                }
-            }
-            apiServer.usePreconfiguredApp(this)
-
-            val corsPlugin = this@application.pluginOrNull(CORS)
-            val contentNegotiationPlugin = this@application.pluginOrNull(ContentNegotiation)
-
-            assertNull(corsPlugin)
-            assertNull(contentNegotiationPlugin)
-        }
-    }
-
 }

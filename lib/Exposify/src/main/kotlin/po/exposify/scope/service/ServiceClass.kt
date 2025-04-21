@@ -13,6 +13,7 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.exceptions.InitException
 import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.extensions.getOrOperationsEx
 import po.exposify.extensions.safeCast
 import po.exposify.scope.connection.ConnectionClass
 import po.exposify.scope.sequence.classes.SequenceHandler
@@ -20,7 +21,6 @@ import po.exposify.scope.sequence.models.SequenceKey
 import po.exposify.scope.sequence.models.SequencePack
 import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.TasksManaged
-import po.lognotify.extensions.getOrThrowDefault
 import po.lognotify.extensions.subTask
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.set
@@ -74,17 +74,20 @@ class ServiceClass<DTO, DATA, ENTITY>(
     }
 
     suspend fun runSequence(sequenceKey: SequenceKey): List<DATA> {
-        val foundSequence = sequences[sequenceKey].getOrThrowDefault("Sequence with key : $sequenceKey not found")
+        val foundSequence = sequences[sequenceKey].getOrOperationsEx(
+            "Sequence with key : $sequenceKey not found",
+            ExceptionCode.VALUE_NOT_FOUND)
+
         return connectionClass.launchSequence(foundSequence)
     }
 
     fun getSequenceHandler(sequenceId: Int, dtoClass: DTOClass<DTO>): SequenceHandler<DTO, DATA> {
         val lookupKey =
             sequences.keys.firstOrNull { it.sequenceId == sequenceId && it.dtoClassName == dtoClass.personalName }
-                .getOrThrowDefault(
+                .getOrOperationsEx(
                     "Sequence key with sequenceId: $sequenceId and className : ${dtoClass.personalName} not found. Available keys: ${
-                    sequences.keys.joinToString(", ") { "${it.hashCode()}" }
-                }")
+                    sequences.keys.joinToString(", ") { "${it.hashCode()}"} }",
+                    ExceptionCode.VALUE_NOT_FOUND)
 
         val handler = sequences[lookupKey]!!.getSequenceHandler()
         return handler
@@ -122,7 +125,10 @@ class ServiceClass<DTO, DATA, ENTITY>(
     suspend fun launch(receiver: ServiceContext<DTO, DATA>.() -> Unit) {
         start()
         val casted = this@ServiceClass.safeCast<ServiceClass<DTO, DATA, ExposifyEntityBase>>()
-            .getOrThrowDefault("Cast to ServiceClass<DTO,DATA, ExposifyEntityBase> failed")
+            .getOrOperationsEx(
+                "Cast to ServiceClass<DTO,DATA, ExposifyEntityBase> failed",
+                ExceptionCode.VALUE_NOT_FOUND)
+
         ServiceContext(casted, rootDTOModel).let { context ->
             context.receiver()
             serviceContext = context

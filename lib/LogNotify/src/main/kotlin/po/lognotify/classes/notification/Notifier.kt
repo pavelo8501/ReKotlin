@@ -21,7 +21,6 @@ interface NotificationProvider{
     suspend fun info(message: String)
     suspend fun error(ex: Throwable, optMessage: String)
     suspend fun warn(message: String)
-
 }
 
 class Notifier(
@@ -30,9 +29,10 @@ class Notifier(
     private val _notification = MutableSharedFlow<Notification>(extraBufferCapacity = 64)
     val notification: SharedFlow<Notification> = _notification.asSharedFlow()
 
-    suspend fun emit(notification : Notification){
+    private suspend fun emit(notification : Notification){
         _notification.emit(notification)
     }
+
 
     fun toConsole(notification : Notification){
         when(notification.eventType){
@@ -51,7 +51,7 @@ class Notifier(
         }
     }
 
-    private suspend fun createTaskNotification(task : ResultantTask, message: String, type : EventType, severity: SeverityLevel){
+    internal suspend fun createTaskNotification(task : ResultantTask, message: String, type : EventType, severity: SeverityLevel){
         val notification = Notification(
             task,
             type,
@@ -62,19 +62,9 @@ class Notifier(
         toConsole(notification)
         emit(notification)
     }
-
-    suspend fun subscribeToThrowerUpdates(){
-        withContext(task.context) {
-            task.taskHelper.exceptionThrower.subscribeThrowerUpdates{
-                toConsole(it)
-                emit(it)
-            }
-        }
-    }
-
     suspend fun subscribeToHandlerUpdates(){
         withContext(task.context) {
-            task.taskHelper.exceptionHandler.subscribeHandlerUpdates(){
+            task.taskRunner.exceptionHandler.subscribeHandlerUpdates(){
                 toConsole(it)
                 emit(it)
             }
@@ -83,10 +73,9 @@ class Notifier(
 
     override suspend fun start(){
         createTaskNotification(task, "Start", EventType.START, SeverityLevel.INFO)
-        subscribeToThrowerUpdates()
         subscribeToHandlerUpdates()
     }
-    internal suspend  fun systemInfo(message: String, type : EventType,  severity: SeverityLevel){
+    internal suspend  fun systemInfo(type : EventType,  severity: SeverityLevel, message: String = ""){
         createTaskNotification(task, message, type,  severity)
     }
 
@@ -96,6 +85,7 @@ class Notifier(
     override suspend fun info(message: String) {
         createTaskNotification(task, message, EventType.MESSAGE,  SeverityLevel.INFO)
     }
+
     override suspend  fun warn(message: String){
         createTaskNotification(task, message,  EventType.MESSAGE, SeverityLevel.WARNING)
     }

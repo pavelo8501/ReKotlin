@@ -4,6 +4,8 @@ import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.transactions.TransactionManager
+import po.auth.authentication.exceptions.ErrorCodes
+import po.auth.authentication.extensions.castOrThrow
 import po.exposify.dto.components.relation_binder.RelationshipBinder
 import po.exposify.classes.components.DTOConfig
 import po.exposify.dto.components.RootRepository
@@ -15,16 +17,10 @@ import po.exposify.dto.models.DTORegistryItem
 import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.exceptions.InitException
 import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.extensions.castOrOperationsEx
 import po.exposify.extensions.safeCast
-import po.exposify.extensions.withTransactionIfNone
-import po.exposify.scope.sequence.classes.SequenceHandler
-import po.exposify.scope.sequence.enums.SequenceID
 import po.exposify.scope.service.ServiceContext
 import po.lognotify.TasksManaged
-import po.lognotify.extensions.getOrThrowDefault
-import po.lognotify.extensions.startTask
-import po.lognotify.extensions.startTaskAsync
-import kotlin.coroutines.CoroutineContext
 import kotlin.reflect.KClass
 
 abstract class DTOClass<DTO>(): TasksManaged,  DTOInstance where DTO: ModelDTO {
@@ -50,8 +46,10 @@ abstract class DTOClass<DTO>(): TasksManaged,  DTOInstance where DTO: ModelDTO {
             configInstance = it
         } ?: throw InitException("Safe cast failed for DTOConfig2", ExceptionCode.CAST_FAILURE)
 
-        val casted = initializedConfig.dtoRegItem.safeCast<DTORegistryItem<DTO, DataModel, ExposifyEntityBase>>()
-            .getOrThrowDefault("Cast to DTORegistryItem<DTO, DataModel, ExposifyEntityBase> failed")
+        val casted = initializedConfig.dtoRegItem
+            .castOrThrow<DTORegistryItem<DTO, DataModel, ExposifyEntityBase>>("Cast to DTORegistryItem failed",
+                ErrorCodes.CONFIGURATION_MISSING)
+
         registryItem = casted
         personalName = "DTOClass[${registryItem.commonDTOKClass.simpleName}]"
         initFactoryRoutines()
@@ -82,8 +80,11 @@ abstract class DTOClass<DTO>(): TasksManaged,  DTOInstance where DTO: ModelDTO {
     }
 
     fun <ENTITY : ExposifyEntityBase> getEntityModel(): LongEntityClass<ENTITY> {
-        return config.entityModel.safeCast<LongEntityClass<ENTITY>>()
-            .getOrThrowDefault("Cast to LongEntityClass<ENTITY> failed")
+        return config.entityModel.castOrOperationsEx<LongEntityClass<ENTITY>>(
+            "Cast to LongEntityClass<ENTITY> failed",
+            ExceptionCode.CAST_FAILURE
+        )
+
     }
 
     fun initialization(onRequestFn: (() -> Unit)? = null) {
