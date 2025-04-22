@@ -3,7 +3,7 @@ package po.lognotify.extensions
 import po.lognotify.exceptions.LoggerException
 import po.lognotify.exceptions.enums.HandlerType
 
-internal fun <T: Any> T?.getOrThrow(message: String):T{
+internal inline fun <reified T: Any> T?.getOrThrow(message: String):T{
    return getOrException(LoggerException(message, HandlerType.UNMANAGED))
 }
 

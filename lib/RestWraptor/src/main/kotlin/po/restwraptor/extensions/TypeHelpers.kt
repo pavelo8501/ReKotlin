@@ -16,14 +16,14 @@ inline fun <reified T: Any> Any.castOrConfigurationEx(
    return  this.castOrException(ConfigurationException(message, code, handlerType))
 }
 
-fun <T: Any> T?.getOrConfigurationEx(
+internal inline fun <reified T: Any> T?.getOrConfigurationEx(
     message: String,
     code: ExceptionCodes,
     handlerType : HandlerType = HandlerType.CANCEL_ALL): T{
     return  this.getOrException(ConfigurationException(message, code, handlerType))
 }
 
-fun <T: Any> T?.getOrDataEx(
+internal inline fun <reified T: Any> T?.getOrDataEx(
     message: String,
     code: ExceptionCodes,
     handlerType : HandlerType = HandlerType.SKIP_SELF): T{

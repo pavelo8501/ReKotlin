@@ -10,6 +10,7 @@ import po.exposify.classes.DTOClass
 import po.exposify.dto.components.property_binder.bindings.ReferencedBinding
 import po.exposify.dto.components.property_binder.bindings.SyncedBinding
 import po.exposify.dto.components.property_binder.bindings.SerializedBinding
+import po.exposify.dto.components.property_binder.delegates.referencing
 
 @Serializable
 data class TestUser(
@@ -66,6 +67,14 @@ data class TestPage(
 class TestPageDTO(
     override var dataModel: TestPage
 ): CommonDTO<TestPageDTO, TestPage, TestPageEntity>(TestPageDTO) {
+
+
+    var name by referencing (dataModel.name)
+
+  //  var name by DataModelPropertyDelegate<TestPageDTO, TestPage, String>(TestPage::name)
+
+
+
     companion object: DTOClass<TestPageDTO>(){
         override fun setup() {
            configuration<TestPage, TestPageEntity>(TestPageDTO::class, TestPageEntity){

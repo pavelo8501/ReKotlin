@@ -14,25 +14,38 @@ inline fun <reified T: Any> Any.safeCast(): T? {
     return this as? T
 }
 
-inline fun <reified T: Any> Any.castOrOperationsEx(
-    message: String,
-    code:  ExceptionCode,
+inline fun <reified T: Any?> Any?.castOrOperationsEx(
+    message: String = "",
+    code:  ExceptionCode = ExceptionCode.CAST_FAILURE,
     handlerType : HandlerType = HandlerType.CANCEL_ALL): T
 {
-    return  this.castOrException(OperationsException(message, code, handlerType))
+    if(this != null){
+        return  this.castOrException(OperationsException(message, code, handlerType))
+    }else{
+        throw IllegalArgumentException("Impossible to cast null to value")
+    }
 }
 
-fun <T: Any> T?.getOrInitEx(
+inline fun <reified T: Any> Any.castOrInitEx(
+    message: String,
+    code:  ExceptionCode = ExceptionCode.REFLECTION_ERROR,
+    handlerType : HandlerType = HandlerType.CANCEL_ALL): T
+{
+    return  this.castOrException(InitException(message, code, handlerType))
+}
+
+internal inline fun <reified T: Any> T?.getOrInitEx(
     message: String,
     code:  ExceptionCode,
     handlerType : HandlerType = HandlerType.CANCEL_ALL): T{
     return  this.getOrException(InitException(message, code, handlerType))
 }
 
-fun <T: Any> T?.getOrOperationsEx(
-    message: String,
-    code:  ExceptionCode,
+internal fun <T: Any> T?.getOrOperationsEx(
+    message: String  = "",
+    code:  ExceptionCode = ExceptionCode.VALUE_IS_NULL,
     handlerType : HandlerType = HandlerType.SKIP_SELF): T{
+   // throw Exception("ss")
     return  this.getOrException(OperationsException(message, code, handlerType))
 }
 

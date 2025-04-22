@@ -15,7 +15,7 @@ sealed interface SelfThrownException {
 }
 
 open class ManagedException(
-    override val message: String,
+    override var message: String,
     override var handler  : HandlerType,
 ) : Throwable(message), SelfThrownException{
 

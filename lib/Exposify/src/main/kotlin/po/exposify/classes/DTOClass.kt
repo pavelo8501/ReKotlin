@@ -80,10 +80,7 @@ abstract class DTOClass<DTO>(): TasksManaged,  DTOInstance where DTO: ModelDTO {
     }
 
     fun <ENTITY : ExposifyEntityBase> getEntityModel(): LongEntityClass<ENTITY> {
-        return config.entityModel.castOrOperationsEx<LongEntityClass<ENTITY>>(
-            "Cast to LongEntityClass<ENTITY> failed",
-            ExceptionCode.CAST_FAILURE
-        )
+        return config.entityModel.castOrOperationsEx<LongEntityClass<ENTITY>>()
 
     }
 

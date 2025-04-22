@@ -24,7 +24,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
 ):ModelDTO where DTO : ModelDTO,  DATA: DataModel , ENTITY: ExposifyEntityBase {
 
     var personalName : String = "unset"
-    abstract val dataModel: DATA
+    abstract override val dataModel: DATA
 
     val daoService: DAOService<DTO, ENTITY> = DAOService<DTO, ENTITY>(this, dtoClass.getEntityModel())
     lateinit var propertyBinderSource: PropertyBinder<DATA, ENTITY>

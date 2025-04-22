@@ -33,9 +33,7 @@ suspend fun <DTO : ModelDTO, DATA: DataModel>  DTOClass<DTO>.runSequence(
         val handler = serviceContext.serviceClass().getSequenceHandler(sequenceId, this)
         handlerBlock?.invoke(handler)
         val key =  handler.thisKey
-        val result = serviceContext.serviceClass().runSequence(key).castOrOperationsEx<List<DATA>>(
-            "Cast to List<DATA> failed", ExceptionCode.CAST_FAILURE
-        )
+        val result = serviceContext.serviceClass().runSequence(key).castOrOperationsEx<List<DATA>>()
 
         result
     }
@@ -63,9 +61,7 @@ fun <DTO : ModelDTO, DATA: DataModel>  DTOClass<DTO>.runSequence(
         val handler = serviceContext.serviceClass().getSequenceHandler(sequenceId, this)
         handlerBlock?.invoke(handler)
         val key =  handler.thisKey
-        val result = serviceContext.serviceClass().runSequence(key).castOrOperationsEx<List<DATA>>(
-            "Cast to List<DATA> failed", ExceptionCode.CAST_FAILURE
-        )
+        val result = serviceContext.serviceClass().runSequence(key).castOrOperationsEx<List<DATA>>()
         result
     }
 }.resultOrException()

@@ -11,11 +11,22 @@ inline fun <reified T: Any> Any.safeCast(): T? {
 
 inline fun <reified T: Any, E: ManagedException> Any.castOrException(exception:E): T {
     val result =  this as? T
-    return result?:throw exception
+    if(result  != null){
+        return result
+    }else{
+        exception.message = "Unable to cast ${this::class.simpleName} to  ${T::class.simpleName}"
+        throw exception
+    }
+
 }
 
 fun <T: Any, E: ManagedException> T?.getOrException(exception : E): T{
-    return this ?: throw exception
+    if(this != null){
+        return this
+    }else{
+        exception.message = "Value  is null"
+        throw exception
+    }
 }
 
 inline fun <T: Any> T?.letOrException(ex : ManagedException, block: (T)-> T){

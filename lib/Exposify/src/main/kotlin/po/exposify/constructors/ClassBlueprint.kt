@@ -131,8 +131,4 @@ abstract class ClassBlueprintBase<T: Any>(protected val clazz: KClass<T>) : Blue
     override fun <N : Any> setNestedMap(map : Map<String, Map<String, ClassData<N>>>){
         nestedClasses = map
     }
-
-    override fun setPropertyMap(map:Map<String, KProperty1<T, *>>){
-        propertyMap = map
-    }
 }

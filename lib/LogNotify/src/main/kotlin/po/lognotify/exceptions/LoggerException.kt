@@ -13,15 +13,15 @@ class LoggerException(
         get() = ::LoggerException
 }
 
-internal fun <T: Any> T?.getOrThrowLogger(message: String):T{
+internal inline fun <reified T: Any> T?.getOrThrowLogger(message: String):T{
    return this.getOrException(LoggerException(message, HandlerType.UNMANAGED))
 }
 
-internal fun <T: Any> T?.getOrThrow(message: String, handler: HandlerType):T{
+internal inline fun <reified T: Any> T?.getOrThrow(message: String, handler: HandlerType):T{
   return  this.getOrException<T, ManagedException>(ManagedException(message, handler))
 }
 
-internal fun <T: Any> T?.getOrThrow(managedException: ManagedException):T{
+internal inline fun <reified T: Any> T?.getOrThrow(managedException: ManagedException):T{
     return  this.getOrException(managedException)
 }
 

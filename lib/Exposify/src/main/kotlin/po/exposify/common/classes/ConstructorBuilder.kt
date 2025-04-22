@@ -70,7 +70,6 @@ open class ConstructorBuilder {
                 }
             }
             setNestedMap(getNestedMap(clazz))
-            setPropertyMap(getProperties<T>(clazz))
         }
     }
 

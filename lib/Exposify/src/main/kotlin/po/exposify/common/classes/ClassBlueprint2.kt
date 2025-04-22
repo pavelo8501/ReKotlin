@@ -4,12 +4,19 @@ package po.exposify.common.classes
 import po.exposify.common.interfaces.BlueprintContainer
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.extensions.castOrInitEx
+import po.exposify.extensions.castOrOperationsEx
+import po.exposify.extensions.getOrOperationsEx
+import po.exposify.extensions.safeCast
 import kotlin.collections.mapOf
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
+import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KParameter
 import kotlin.reflect.KProperty1
 import kotlin.reflect.KType
+import kotlin.reflect.full.memberProperties
+import kotlin.reflect.jvm.isAccessible
 
 
 data class ConstructorArgument(
@@ -20,7 +27,7 @@ data class ConstructorArgument(
 
 
 class ClassBlueprint<T>(
-   private val clazz  : KClass<T>
+   val clazz  : KClass<T>
 ): BlueprintContainer<T> where T: Any {
     var  paramLookupFn : ( (type: KParameter) -> Any? )? = null
 
@@ -33,9 +40,6 @@ class ClassBlueprint<T>(
     private var constructorArgs: MutableList<ConstructorArgument> = mutableListOf<ConstructorArgument>()
 
     var nestedClasses: Map<String, Map<String, ClassData<*>>> = mapOf<String,  Map<String, ClassData<*>>>()
-        private set
-
-    var propertyMap = mapOf<String, KProperty1<T, *>>()
         private set
 
     var constructorParams  = mutableMapOf<KParameter,  Any?>()
@@ -80,9 +84,18 @@ class ClassBlueprint<T>(
         nestedClasses = map
     }
 
-    override fun setPropertyMap(map: Map<String, KProperty1<T, *>>) {
-        propertyMap = map
+   inline fun <reified V : Any> getProperty(instance:T, name: String):V{
+        return clazz.memberProperties.firstOrNull{it.name == name}?.get(instance).castOrOperationsEx<V>()
     }
+
+    fun <V> setProperty(instance:T, name: String, value:V){
+        val property =  clazz.memberProperties.firstOrNull{it.name == name}.getOrOperationsEx()
+        property.isAccessible = true
+        val casted = property.castOrOperationsEx<KMutableProperty1<T,V>>()
+        casted.set(instance, value)
+    }
+
+
 
     override fun getArgsForConstructor(): Map<KParameter, Any?> {
         getConstructor().let { constructor ->
