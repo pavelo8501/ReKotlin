@@ -6,6 +6,7 @@ val ktorVersion: String by project
 val kotlinxIOVersion:String by project
 val okioVersion:String by project
 val kotlinSerializationVersion: String by project
+val bcryptVersion : String by project
 
 val junitVersion: String by project
 
@@ -31,8 +32,10 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-io-core:$kotlinxIOVersion")
     implementation("com.squareup.okio:okio:$okioVersion")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${kotlinSerializationVersion}")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinSerializationVersion")
+    implementation("at.favre.lib:bcrypt:$bcryptVersion")
     api(project(":lib:LogNotify"))
+    api(project(":lib:FunHelpers"))
 
     testImplementation("org.jetbrains.kotlin:kotlin-test:$kotlinVersion")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:${coroutinesVersion}")

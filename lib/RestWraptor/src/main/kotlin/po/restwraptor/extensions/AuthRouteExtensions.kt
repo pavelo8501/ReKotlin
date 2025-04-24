@@ -19,7 +19,6 @@ public fun AuthenticationConfig.authCoreJwt(
     configure: JWTAuthenticationProvider.Config.() -> Unit
 ) {
 
-
     register(object : AuthenticationProvider(config) {
         override suspend fun onAuthenticate(context: AuthenticationContext) {
             TODO("Not yet implemented")

@@ -25,10 +25,10 @@ import org.junit.jupiter.api.assertAll
 import org.junit.jupiter.api.assertNotNull
 import po.auth.authentication.exceptions.AuthException
 import po.auth.authentication.exceptions.ErrorCodes
-import po.auth.authentication.extensions.asBearer
-import po.auth.authentication.extensions.readCryptoRsaKeys
-import po.auth.authentication.extensions.setKeyBasePath
-import po.auth.authentication.extensions.stripBearer
+import po.auth.extensions.asBearer
+import po.auth.extensions.readCryptoRsaKeys
+import po.auth.extensions.setKeyBasePath
+import po.auth.extensions.stripBearer
 import po.auth.authentication.interfaces.AuthenticationPrincipal
 import po.auth.sessions.models.AuthorizedPrincipal
 import po.restwraptor.RestWrapTor

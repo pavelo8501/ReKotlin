@@ -10,8 +10,8 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.getOrOperationsEx
+import po.exposify.extensions.safeCast
 import po.lognotify.TasksManaged
-import po.lognotify.extensions.safeCast
 import kotlin.collections.forEach
 
 
@@ -101,7 +101,7 @@ class RootRepository<DTO, DATA, ENTITY, CHILD_DTO>(
 ): RepositoryBase<DTO,DATA, ENTITY, CHILD_DTO>(dtoClass), TasksManaged
         where DTO : ModelDTO, CHILD_DTO : ModelDTO, DATA: DataModel, ENTITY : ExposifyEntityBase
 {
-    override val personalName: String = "Repository[${dtoClass.registryItem.commonDTOKClass.simpleName}/Root]"
+    override val personalName: String = "Repository[${dtoClass.registryItem.dtoClassName}/Root]"
 
     suspend fun update(dataModels : List<DATA>): List<CommonDTO<DTO, DATA, ENTITY>>{
         val result = mutableListOf<CommonDTO<DTO, DATA, ENTITY>>()

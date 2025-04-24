@@ -17,10 +17,10 @@ import io.ktor.server.testing.testApplication
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertNotNull
-import po.auth.authentication.extensions.asBearer
-import po.auth.authentication.extensions.readCryptoRsaKeys
-import po.auth.authentication.extensions.setKeyBasePath
-import po.auth.authentication.extensions.stripBearer
+import po.auth.extensions.asBearer
+import po.auth.extensions.readCryptoRsaKeys
+import po.auth.extensions.setKeyBasePath
+import po.auth.extensions.stripBearer
 import po.auth.sessions.models.AuthorizedPrincipal
 import po.restwraptor.RestWrapTor
 import po.restwraptor.enums.WraptorHeaders

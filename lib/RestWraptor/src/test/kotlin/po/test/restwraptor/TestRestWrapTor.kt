@@ -1,28 +1,14 @@
 package po.test.restwraptor
 
-import io.ktor.server.application.install
-import io.ktor.server.application.pluginOrNull
-import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.server.plugins.cors.routing.CORS
-import io.ktor.server.response.respond
-import io.ktor.server.routing.RoutingRoot
-import io.ktor.server.routing.get
-import io.ktor.server.routing.routing
-import io.ktor.server.testing.testApplication
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertAll
-import org.junit.jupiter.api.assertThrows
-import po.auth.authentication.extensions.readCryptoRsaKeys
-import po.auth.authentication.extensions.setKeyBasePath
+import po.auth.extensions.readCryptoRsaKeys
+import po.auth.extensions.setKeyBasePath
 import po.auth.sessions.models.AuthorizedPrincipal
 import po.restwraptor.RestWrapTor
 import po.restwraptor.enums.RouteSelector
 import po.restwraptor.models.server.WraptorRoute
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @Serializable

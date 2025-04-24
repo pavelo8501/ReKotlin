@@ -10,14 +10,12 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
-import po.auth.authentication.jwt.JWTService
+import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.auth.models.CryptoRsaKeys
-import po.auth.sessions.models.AuthorizedPrincipal
 import po.lognotify.TasksManaged
 import po.lognotify.classes.task.TaskHandler
 import po.lognotify.extensions.lastTaskHandler
 import po.lognotify.extensions.subTask
-import po.lognotify.extensions.withLastTask
 import po.restwraptor.RestWrapTor
 import po.restwraptor.models.configuration.AuthConfig
 import po.restwraptor.models.configuration.WraptorConfig
@@ -28,7 +26,7 @@ import po.restwraptor.routes.configureSystemRoutes
 interface ConfigContextInterface{
     suspend fun setupAuthentication(
         cryptoKeys: CryptoRsaKeys,
-        authenticatorFn: suspend ((login: String, password: String)-> AuthorizedPrincipal?),
+        userLookupFn: suspend ((login: String)-> AuthenticationPrincipal?),
         configFn  : suspend AuthConfigContext.()-> Unit)
     suspend fun setup(configFn : suspend WraptorConfig.()-> Unit)
     suspend fun setup(configuration : WraptorConfig, configFn : suspend WraptorConfig.()-> Unit)
@@ -55,7 +53,7 @@ class ConfigContext(
     }
 
     private suspend fun configCors(app: Application):Application{
-        withLastTask {handler->
+        subTask("ConfigCors") {handler->
             app.apply {
                 if (pluginOrNull(CORS) != null) {
                     handler.info("CORS installation skipped. Custom CORS already installed")
@@ -81,7 +79,7 @@ class ConfigContext(
         return app
     }
     private suspend fun configContentNegotiation(app: Application):Application{
-        withLastTask { handler ->
+        subTask("ConfigContentNegotiation") { handler ->
             app.apply {
                 if (this.pluginOrNull(ContentNegotiation) != null) {
                     handler.info("ContentNegotiation installation skipped. Custom ContentNegotiation already installed")
@@ -97,7 +95,7 @@ class ConfigContext(
         return app
     }
     private suspend fun configRateLimiter(app: Application):Application{
-        withLastTask { handler ->
+        subTask("ConfigRateLimiter") { handler ->
             app.apply {
                 if (this.pluginOrNull(RateLimiterPlugin) != null) {
                     handler.info("RateLimiter installation skipped. Custom RateLimiter already installed")
@@ -126,9 +124,9 @@ class ConfigContext(
 
     override suspend fun setupAuthentication(
         cryptoKeys: CryptoRsaKeys,
-        authenticatorFn: suspend ((login: String, password: String)-> AuthorizedPrincipal?),
+        userLookupFn: suspend ((login: String)-> AuthenticationPrincipal?),
         configFn  : suspend AuthConfigContext.()-> Unit){
-        authContext.setupAuthentication(cryptoKeys, authenticatorFn)
+        authContext.setupAuthentication(cryptoKeys, userLookupFn)
         authContext.configFn()
     }
     override suspend fun setup(configuration : WraptorConfig, configFn : suspend WraptorConfig.()-> Unit){
@@ -145,8 +143,8 @@ class ConfigContext(
     }
 
     private suspend fun installCoreAuth(app: Application){
-        app.apply {
-            withLastTask { handler ->
+        subTask("InstallCoreAuth"){handler ->
+            app.apply {
                 install(CoreAuthApplicationPlugin) {
                     headerName = HttpHeaders.Authorization
                     pluginKey = authConfig.jwtServiceName

@@ -9,7 +9,7 @@ class TestUserEntity  (id: EntityID<Long>) : ExposifyEntityBase(id){
     companion object : LongEntityClass<TestUserEntity>(TestUsers)
     var name by TestUsers.name
     var login by TestUsers.login
-    var password by TestUsers.password
+    var hashedPassword by TestUsers.hashedPassword
     var email by TestUsers.email
     var created by TestUsers.created
     var updated by TestUsers.updated

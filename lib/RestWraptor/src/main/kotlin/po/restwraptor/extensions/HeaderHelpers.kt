@@ -1,4 +1,4 @@
-package po.auth.authentication.extensions
+package po.restwraptor.extensions
 
 
 fun String?.stripBearer(): String{

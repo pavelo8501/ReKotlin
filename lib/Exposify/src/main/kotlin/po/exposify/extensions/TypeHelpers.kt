@@ -3,57 +3,76 @@ package po.exposify.extensions
 import po.exposify.exceptions.InitException
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
-import po.lognotify.exceptions.ManagedException
-import po.lognotify.exceptions.enums.HandlerType
-import po.lognotify.extensions.castOrException
-import po.lognotify.extensions.getOrException
-import kotlin.reflect.KClass
-
+import po.misc.exceptions.HandlerType
+import po.misc.exceptions.ManagedException
+import po.misc.exceptions.castOrException
+import po.misc.exceptions.getOrException
 
 inline fun <reified T: Any> Any.safeCast(): T? {
     return this as? T
 }
 
-inline fun <reified T: Any?> Any?.castOrOperationsEx(
+inline fun <reified T: Any> Any?.castOrOperationsEx(
     message: String = "",
     code:  ExceptionCode = ExceptionCode.CAST_FAILURE,
     handlerType : HandlerType = HandlerType.CANCEL_ALL): T
 {
-    if(this != null){
-        return  this.castOrException(OperationsException(message, code, handlerType))
-    }else{
-        throw IllegalArgumentException("Impossible to cast null to value")
+    return  this.castOrException{
+        OperationsException(message, code, handlerType)
     }
 }
 
-inline fun <reified T: Any> Any.castOrInitEx(
-    message: String,
-    code:  ExceptionCode = ExceptionCode.REFLECTION_ERROR,
+inline fun <reified T: Any> Any?.castOrInitEx(
+    message: String = "",
+    code:  ExceptionCode = ExceptionCode.CAST_FAILURE,
     handlerType : HandlerType = HandlerType.CANCEL_ALL): T
 {
-    return  this.castOrException(InitException(message, code, handlerType))
+    return  this.castOrException{
+        InitException(message, code, handlerType)
+    }
 }
+
+inline fun <reified T: Any> Any.castLetOrInitEx(
+    message: String = "",
+    code:  ExceptionCode = ExceptionCode.CAST_FAILURE,
+    handlerType : HandlerType = HandlerType.CANCEL_ALL,
+    block: (T)->T): T
+{
+    try {
+       val result =  castOrException<T>{
+           InitException(message, code, handlerType)
+       }
+       return block.invoke(result)
+    }catch (ex: Throwable){
+        throw  ex
+    }
+}
+
+
 
 internal inline fun <reified T: Any> T?.getOrInitEx(
     message: String,
     code:  ExceptionCode,
     handlerType : HandlerType = HandlerType.CANCEL_ALL): T{
-    return  this.getOrException(InitException(message, code, handlerType))
+    return  this.getOrException {
+        InitException(message, code, handlerType)
+    }
 }
 
-internal fun <T: Any> T?.getOrOperationsEx(
-    message: String  = "",
-    code:  ExceptionCode = ExceptionCode.VALUE_IS_NULL,
-    handlerType : HandlerType = HandlerType.SKIP_SELF): T{
-   // throw Exception("ss")
-    return  this.getOrException(OperationsException(message, code, handlerType))
-}
+//fun <T: Any> T?.getOrOperationsEx(
+//    message: String  = "",
+//    code:  ExceptionCode = ExceptionCode.VALUE_IS_NULL,
+//    handlerType : HandlerType = HandlerType.SKIP_SELF): T{
+//    return  this.getOrException(OperationsException(message, code, handlerType))
+//}
 
-inline fun <T: Any> T?.letOrException(ex : ManagedException, block: (T)-> T){
-    if(this != null){
-        block(this)
-    } else {
-        throw ex
+fun <T : Any> T?.getOrOperationsEx(
+    message: String = "Value is null",
+    code: ExceptionCode = ExceptionCode.VALUE_IS_NULL,
+    handlerType: HandlerType = HandlerType.SKIP_SELF
+): T {
+    return this.getOrException {
+        OperationsException(message, code, handlerType)
     }
 }
 

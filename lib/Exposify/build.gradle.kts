@@ -12,6 +12,7 @@ val h2DatabaseVersion : String by project
 val exposifyVersion: String by project
 val postgresVersion: String by project
 val testContainerVersion: String by project
+val bcryptVersion: String by project
 
 plugins {
     kotlin("jvm")
@@ -54,6 +55,7 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposedVersion")
+    implementation("at.favre.lib:bcrypt:$bcryptVersion")
 
     implementation("com.zaxxer:HikariCP:$hikaricpVersion")
     implementation("org.postgresql:postgresql:$postgresVersion")
@@ -61,6 +63,7 @@ dependencies {
 
     api(project(":lib:AuthCore"))
     api(project(":lib:LogNotify"))
+    api(project(":lib:FunHelpers"))
 
    // testImplementation("com.h2database:h2:$h2DatabaseVersion")
    // testImplementation("org.postgresql:postgresql:$postgresVersion")
@@ -81,6 +84,8 @@ dependencies {
     testImplementation("io.mockk:mockk:1.13.13")
     testImplementation("org.junit.jupiter:junit-jupiter:$junitVersion")
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
+    testImplementation("at.favre.lib:bcrypt:${bcryptVersion}")
+
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
 }

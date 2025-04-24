@@ -38,7 +38,7 @@ class RelationshipBinder<DTO, DATA, ENTITY>(
         }
     }
 
-    fun <CHILD_DTO: ModelDTO>single(
+   suspend fun <CHILD_DTO: ModelDTO>single(
         childModel: DTOClass<CHILD_DTO>,
         ownDataModel: KMutableProperty1<DATA, DataModel?>,
         ownEntity: KProperty1<ENTITY, ExposifyEntityBase>,
@@ -54,7 +54,7 @@ class RelationshipBinder<DTO, DATA, ENTITY>(
     }
 
 
-    fun <CHILD_DTO : ModelDTO>many(
+    suspend  fun <CHILD_DTO : ModelDTO>many(
         childModel: DTOClass<CHILD_DTO>,
         ownDataModels: KProperty1<DATA,  MutableList<out DataModel>>,
         ownEntities: KProperty1<ENTITY, SizedIterable<ExposifyEntityBase>>,

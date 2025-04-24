@@ -5,6 +5,7 @@ import io.ktor.server.application.ApplicationStarted
 import io.ktor.server.application.ServerReady
 import io.ktor.server.engine.ApplicationEngine
 import io.ktor.server.engine.EmbeddedServer
+import io.ktor.server.engine.EngineConnectorConfig
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.netty.NettyApplicationEngine
@@ -108,6 +109,7 @@ class RestWrapTor(
         _application = app
         appConfigFn = configFn
         setupConfig(application)
+
     }
 
     /**
@@ -124,7 +126,7 @@ class RestWrapTor(
     }
 
     /** Hook executed after the server starts successfully. */
-    fun  afterServerStart(){
+   suspend fun  afterServerStart(){
         onServerStartedCallback?.invoke(this)
     }
 
@@ -135,6 +137,10 @@ class RestWrapTor(
     override fun getRoutes():List<WraptorRoute>{
        // println("Hash on getRoutes ${System.identityHashCode(application)}")
         return coreContext.getWraptorRoutes()
+    }
+
+    override fun getConnectors(callback : (List<EngineConnectorConfig>)-> Unit ){
+        callback.invoke(embeddedServer.engineConfig.connectors.toList())
     }
 
 
@@ -150,7 +156,7 @@ class RestWrapTor(
      * Retrieves the server's API configuration.
      * @return An `ApiConfig` object representing the server's configuration, or default if uninitialized.
      */
-    fun getConfig(): ApiConfig{
+    override fun getConfig(): ApiConfig{
         return configContext.apiConfig
     }
 
@@ -161,7 +167,8 @@ class RestWrapTor(
             _application = app
             handler.info("App hash before appBuilderFn invoked ${System.identityHashCode(this)}")
             application.monitor.subscribe(ServerReady) {
-                afterServerStart()
+
+                onServerStartedCallback?.invoke(this)
             }
             registerSelf().getOrConfigurationEx("RestWrapTor Registration inside Application failed", ExceptionCodes.KEY_REGISTRATION)
             appConfigFn?.let{fn->

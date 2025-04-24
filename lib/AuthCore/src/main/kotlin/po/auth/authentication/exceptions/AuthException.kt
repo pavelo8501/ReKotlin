@@ -1,11 +1,11 @@
 package po.auth.authentication.exceptions
 
-import po.lognotify.exceptions.ManagedException
-import po.lognotify.exceptions.enums.HandlerType
+import po.misc.exceptions.HandlerType
+import po.misc.exceptions.ManagedException
 
 enum class ErrorCodes(val code: Int) {
 
-    UNKNOWN(0),
+    ABNORMAL_STATE(0),
     INVALID_CREDENTIALS(1001),
     INVALID_KEY_FORMAT(1002),
     INVALID_TOKEN(1003),
@@ -26,7 +26,8 @@ enum class ErrorCodes(val code: Int) {
 
     SESSION_NOT_FOUND(2001),
 
-    ABNORMAL_STATE(1018);
+    AUTH_PRINCIPAL_NOT_FOUND(3000),
+    AUTH_PASSWORD_MISMATCH(3001);
 
 
     companion object {
@@ -34,7 +35,7 @@ enum class ErrorCodes(val code: Int) {
             entries.firstOrNull { it.code == code }?.let {
                 return it
             }
-            return UNKNOWN
+            return ABNORMAL_STATE
         }
     }
 }

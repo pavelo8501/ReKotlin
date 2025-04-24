@@ -7,9 +7,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 import kotlinx.serialization.*
 import kotlinx.serialization.builtins.ListSerializer
-import po.lognotify.exceptions.enums.HandlerType
 import po.restwraptor.exceptions.ExceptionCodes
-import po.restwraptor.extensions.getOrConfigurationEx
 import po.restwraptor.extensions.getOrDataEx
 import kotlin.reflect.jvm.jvmErasure
 

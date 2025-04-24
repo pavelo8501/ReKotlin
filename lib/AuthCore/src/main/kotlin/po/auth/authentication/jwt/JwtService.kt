@@ -8,11 +8,11 @@ import com.auth0.jwt.interfaces.DecodedJWT
 import io.ktor.server.auth.jwt.JWTCredential
 import io.ktor.server.auth.jwt.JWTPrincipal
 import po.auth.AuthSessionManager
-import po.auth.authentication.Authenticator
+import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.auth.authentication.jwt.models.JwtConfig
 import po.auth.authentication.jwt.models.JwtToken
 import po.auth.authentication.jwt.repositories.InMemoryTokenStore
-import po.auth.sessions.models.AuthorizedPrincipal
+import po.auth.sessions.models.AuthorizedSession
 import po.lognotify.TasksManaged
 import java.time.Instant
 import java.util.Date
@@ -27,11 +27,8 @@ class JWTService(
 
     val tokenRepository = InMemoryTokenStore()
 
-    private var authenticationFn: (suspend (login: String, password: String)-> AuthorizedPrincipal?) ? = null
-
-    suspend fun setAuthenticationFn(callback : (suspend (login: String, password: String)-> AuthorizedPrincipal?)){
-        authenticationFn = callback
-        AuthSessionManager.authenticator.setAuthenticator(callback)
+    suspend fun setAuthenticationFn(userLookupFn : (suspend (login: String)-> AuthenticationPrincipal?)){
+        AuthSessionManager.registerAuthenticator(userLookupFn)
     }
 
     private val jwtVerifier: JWTVerifier = JWT
@@ -44,19 +41,19 @@ class JWTService(
         return token.removePrefix("Bearer").trim()
     }
 
-    suspend fun generateToken(user: AuthorizedPrincipal, sessionId: String): JwtToken {
-       val serialized = user.asJson()
+    suspend fun generateToken(principal: AuthenticationPrincipal,  session : AuthorizedSession): JwtToken {
+       val serialized = principal.asJson()
        val token = JWT.create()
             .withAudience(config.audience)
             .withIssuer(config.issuer)
-            .withSubject(user.id.toString())
-            .withClaim("session_id", sessionId)
+            .withSubject(principal.id.toString())
+            .withClaim("session_id", session.sessionId)
             .withClaim("user_json", serialized)
             .withIssuedAt(Date.from(Instant.now()))
             .withExpiresAt(Date.from(Instant.now().plusSeconds(3600)))
             .sign(Algorithm.RSA256(null, config.privateKey))
 
-        return tokenRepository.store(JwtToken(token, sessionId))
+        return tokenRepository.store(JwtToken(token, session.sessionId))
     }
 
     fun getVerifier(): JWTVerifier{

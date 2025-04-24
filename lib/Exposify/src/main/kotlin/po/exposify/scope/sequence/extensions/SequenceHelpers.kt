@@ -10,9 +10,6 @@ import po.exposify.scope.sequence.enums.SequenceID
 fun <DTO : ModelDTO, DATA: DataModel> ServiceContext<DTO, DATA>.createHandler(
     sequenceID: SequenceID
 ): SequenceHandler<DTO, DATA>{
-
     val id = SequenceID.asValue(sequenceID)
-
-  return  SequenceHandler(dtoClass.personalName, id)
-
+    return  SequenceHandler(dtoClass.personalName, id)
 }

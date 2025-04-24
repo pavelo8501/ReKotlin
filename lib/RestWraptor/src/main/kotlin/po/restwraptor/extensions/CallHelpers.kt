@@ -9,9 +9,10 @@ import kotlinx.coroutines.withContext
 import po.auth.AuthSessionManager
 import po.auth.authentication.authenticator.models.AuthenticationData
 import po.auth.authentication.exceptions.ErrorCodes
-import po.auth.authentication.extensions.getOrThrow
 import po.auth.sessions.models.AuthorizedSession
+import po.misc.exceptions.getOrException
 import po.restwraptor.enums.WraptorHeaders
+import po.restwraptor.exceptions.ExceptionCodes
 
 
 fun ApplicationCall.authData(): AuthenticationData{
@@ -49,10 +50,7 @@ fun <T :ApplicationCall>  T.authSessionOrNull():AuthorizedSession?{
 suspend fun <T :ApplicationCall, R>  T.withSession(block : suspend AuthorizedSession.()-> R):R{
    val authorizedSessionKey = AttributeKey<AuthorizedSession>("AuthSession")
    val session =  attributes.takeOrNull(authorizedSessionKey)
-    if(session == null){
-        println("Propal sejchas")
-    }
-   val checked = session.getOrThrow("session missing", ErrorCodes.CONFIGURATION_MISSING)
+   val checked = session.getOrConfigurationEx("session missing", ExceptionCodes.GENERAL_AUTH_CONFIG_FAILURE )
    return withContext(this.coroutineContext){
         block(checked)
     }

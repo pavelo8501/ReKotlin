@@ -1,4 +1,4 @@
-package po.test.exposify
+package po.test.exposify.setup
 
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
@@ -23,15 +23,17 @@ abstract class DatabaseTest {
     }
     var connectionContext : ConnectionContext? = null
 
-    private fun initExposify(): ConnectionContext{
+    private fun initExposify(): ConnectionContext {
         val connection = DatabaseManager.openConnectionSync(
             ConnectionInfo(
-                jdbcUrl= postgres.jdbcUrl,
-                dbName= postgres.databaseName,
+                jdbcUrl = postgres.jdbcUrl,
+                dbName = postgres.databaseName,
                 user = postgres.username,
                 pwd = postgres.password,
-                driver= postgres.driverClassName),
-            sessionManager = AuthSessionManager)
+                driver = postgres.driverClassName
+            ),
+            sessionManager = AuthSessionManager
+        )
         connection?.let {
             return it
         }?: throw Exception("DatabaseTest initExposify failed")

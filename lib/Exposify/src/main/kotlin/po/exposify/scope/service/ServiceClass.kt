@@ -31,10 +31,11 @@ class ServiceClass<DTO, DATA, ENTITY>(
     private val serviceCreateOption: TableCreateMode = TableCreateMode.CREATE,
 ):  AsClass<DATA, ENTITY>, TasksManaged  where  DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity {
 
-    internal val connection: Database = connectionClass.connection
-
     var personalName: String = "ServiceClass[${rootDTOModel.personalName}]"
-    var serviceContext: ServiceContext<DTO, DATA>? = null
+
+    internal val connection: Database = connectionClass.connection
+    internal var serviceContext: ServiceContext<DTO, DATA>? = null
+    private val sequences = ConcurrentHashMap<SequenceKey, SequencePack<DTO, DATA>>()
 
     private fun createTable(table: IdTable<Long>): Boolean {
         return try {
@@ -66,37 +67,6 @@ class ServiceClass<DTO, DATA, ENTITY>(
             throw ex
         }
     }
-
-    private val sequences = ConcurrentHashMap<SequenceKey, SequencePack<DTO, DATA>>()
-
-    fun addSequencePack(pack: SequencePack<DTO, DATA>) {
-        sequences[pack.getSequenceHandler().thisKey] = pack
-    }
-
-    suspend fun runSequence(sequenceKey: SequenceKey): List<DATA> {
-        val foundSequence = sequences[sequenceKey].getOrOperationsEx(
-            "Sequence with key : $sequenceKey not found",
-            ExceptionCode.VALUE_NOT_FOUND)
-
-        return connectionClass.launchSequence(foundSequence)
-    }
-
-    fun getSequenceHandler(sequenceId: Int, dtoClass: DTOClass<DTO>): SequenceHandler<DTO, DATA> {
-        val lookupKey =
-            sequences.keys.firstOrNull { it.sequenceId == sequenceId && it.dtoClassName == dtoClass.personalName }
-                .getOrOperationsEx(
-                    "Sequence key with sequenceId: $sequenceId and className : ${dtoClass.personalName} not found. Available keys: ${
-                    sequences.keys.joinToString(", ") { "${it.hashCode()}"} }",
-                    ExceptionCode.VALUE_NOT_FOUND)
-
-        val handler = sequences[lookupKey]!!.getSequenceHandler()
-        return handler
-    }
-
-    private fun initializeDTOs(context: ServiceClass<DTO, DATA, ENTITY>.() -> Unit) {
-        context.invoke(this)
-    }
-
     private fun prepareTables(serviceCreateOption: TableCreateMode) {
         val tableList = mutableListOf<IdTable<Long>>()
         rootDTOModel.getAssociatedTables(tableList)
@@ -113,6 +83,10 @@ class ServiceClass<DTO, DATA, ENTITY>(
         }
     }
 
+    private suspend fun initializeDTOs(context: suspend ServiceClass<DTO, DATA, ENTITY>.() -> Unit) {
+        context.invoke(this)
+    }
+
     private suspend fun start() = subTask("Initializing", "ServiceClass") {
         suspendedTransactionAsync {
             initializeDTOs {
@@ -122,7 +96,7 @@ class ServiceClass<DTO, DATA, ENTITY>(
         }.await()
     }.resultOrException()
 
-    suspend fun launch(receiver: ServiceContext<DTO, DATA>.() -> Unit) {
+    internal suspend fun launch(receiver: ServiceContext<DTO, DATA>.() -> Unit) {
         start()
         val casted = this@ServiceClass.safeCast<ServiceClass<DTO, DATA, ExposifyEntityBase>>()
             .getOrOperationsEx(
@@ -134,4 +108,29 @@ class ServiceClass<DTO, DATA, ENTITY>(
             serviceContext = context
         }
     }
+
+    internal fun addSequencePack(pack: SequencePack<DTO, DATA>) {
+        sequences[pack.getSequenceHandler().thisKey] = pack
+    }
+
+    internal suspend fun runSequence(sequenceKey: SequenceKey): List<DATA> {
+        val foundSequence = sequences[sequenceKey].getOrOperationsEx(
+            "Sequence with key : $sequenceKey not found",
+            ExceptionCode.VALUE_NOT_FOUND)
+        return connectionClass.launchSequence(foundSequence)
+    }
+
+    fun getSequenceHandler(sequenceId: Int, dtoClass: DTOClass<DTO>): SequenceHandler<DTO, DATA> {
+        val lookupKey =
+            sequences.keys.firstOrNull { it.sequenceId == sequenceId && it.dtoClassName == dtoClass.personalName }
+                .getOrOperationsEx(
+                    "Sequence key with sequenceId: $sequenceId and className : ${dtoClass.personalName} not found. Available keys: ${
+                    sequences.keys.joinToString(", ") { "${it.hashCode()}"} }",
+                    ExceptionCode.VALUE_NOT_FOUND)
+
+        val handler = sequences[lookupKey]!!.getSequenceHandler()
+        return handler
+    }
+
+
 }

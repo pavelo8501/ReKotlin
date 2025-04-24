@@ -1,4 +1,4 @@
-package po.test.exposify.scope.sequence
+package po.test.exposify.scope
 
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
@@ -7,7 +7,7 @@ import po.exposify.extensions.WhereCondition
 import po.exposify.scope.sequence.enums.SequenceID
 import po.exposify.scope.sequence.extensions.createHandler
 import po.exposify.scope.service.enums.TableCreateMode
-import po.test.exposify.DatabaseTest
+import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.TestClassItem
 import po.test.exposify.setup.TestPage
 import po.test.exposify.setup.TestPageDTO
@@ -25,19 +25,19 @@ class TestSequenceContext : DatabaseTest() {
     }
 
     @Test
-    fun `sequence launched with conditions and input work`() = runTest{
-        val user = TestUser("some_login", "name", "nomail@void.null", "******")
-        val pageClasses = listOf<TestClassItem>(TestClassItem(1,"class_1"), TestClassItem(2, "class_2"))
+    fun `sequence launched with conditions and input work`() = runTest {
+        val user = TestUser("some_login", "name", "******", "nomail@void.null", 0)
+        val pageClasses = listOf<TestClassItem>(TestClassItem(1, "class_1"), TestClassItem(2, "class_2"))
         connectionContext?.let { connection ->
-            connection.service<TestUserDTO, TestUser>(TestUserDTO, TableCreateMode.FORCE_RECREATE) {
-                updatedById =  update(user).getData().id
+            connection.service<TestUserDTO, TestUser>(TestUserDTO.Companion, TableCreateMode.FORCE_RECREATE) {
+                updatedById = update(user).getData().id
             }
-            connection.service<TestPageDTO, TestPage>(TestPageDTO, TableCreateMode.CREATE) {
+            connection.service<TestPageDTO, TestPage>(TestPageDTO.Companion, TableCreateMode.CREATE) {
                 truncate()
-                sequence(createHandler(SequenceID.UPDATE)){inputList, conditions->
+                sequence(createHandler(SequenceID.UPDATE)) { inputList, conditions ->
                     update(inputList)
                 }
-                sequence(createHandler(SequenceID.SELECT)){inputList, conditions->
+                sequence(createHandler(SequenceID.SELECT)) { inputList, conditions ->
                     select(conditions)
                 }
             }
@@ -48,7 +48,7 @@ class TestSequenceContext : DatabaseTest() {
         pages[2].langId = 2
         pages[3].langId = 2
 
-        val updatedPages = TestPageDTO.runSequence<TestPage>(SequenceID.UPDATE, this@runTest.coroutineContext){
+        val updatedPages = TestPageDTO.Companion.runSequence(SequenceID.UPDATE.value) {
             withInputData(pages)
         }
 
@@ -58,8 +58,8 @@ class TestSequenceContext : DatabaseTest() {
             { assertEquals("this_name", updatedPages[1].name, "Updated page name mismatch") }
         )
 
-        val selectPages = TestPageDTO.runSequence<TestPage>(SequenceID.SELECT, this@runTest.coroutineContext){
-            withConditions(WhereCondition<TestPages>(TestPages).equalsTo(TestPages.langId, 2))
+        val selectPages = TestPageDTO.Companion.runSequence<TestPage>(SequenceID.SELECT.value) {
+            withConditions(WhereCondition<TestPages>().equalsTo(TestPages.langId, 2))
         }
 
         assertAll(

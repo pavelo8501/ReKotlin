@@ -1,41 +1,52 @@
 package po.auth.sessions.models
 
 import io.ktor.server.application.ApplicationCall
-import io.ktor.util.AttributeKey
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import po.auth.authentication.authenticator.UserAuthenticator
+import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.auth.authentication.exceptions.ErrorCodes
-import po.auth.authentication.extensions.castOrThrow
-import po.auth.authentication.extensions.getOrThrow
-import po.auth.authentication.interfaces.AuthenticationPrincipal
+import po.auth.extensions.castOrThrow
+import po.auth.extensions.getOrThrow
 import po.auth.sessions.enumerators.SessionType
 import po.auth.sessions.interfaces.EmmitableSession
 import po.auth.sessions.interfaces.SessionIdentified
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
 
 
 class AuthorizedSession internal constructor(
     override val remoteAddress: String,
-    val authenticator: UserAuthenticator
-):  AbstractCoroutineContextElement(AuthorizedSession),  EmmitableSession, SessionIdentified {
-
+    val authenticator: UserAuthenticator,
+):  CoroutineContext.Element,  EmmitableSession, SessionIdentified {
 
     var principal : AuthenticationPrincipal? = null
     override var sessionType: SessionType = SessionType.ANONYMOUS
         private set
 
+    val coroutineName : String get() {
+        return if(sessionType == SessionType.ANONYMOUS){
+            "AnonymousSession"
+        }else{
+            "AuthenticatedSession"
+        }
+    }
+
     override val sessionId: String = UUID.randomUUID().toString()
-    override val scope: CoroutineScope = CoroutineScope(SupervisorJob() + CoroutineName("AuthorizedSession") + this)
+    override val sessionContext: CoroutineContext
+        get() = scope.coroutineContext
+
+    private val scope: CoroutineScope = CoroutineScope(CoroutineName(coroutineName) + this)
+
+    override fun sessionScope(): CoroutineScope{
+        println("Redispatched session $sessionId")
+        return scope
+    }
 
     override fun onProcessStart(session: EmmitableSession) {
         println("onProcessStart emitted with sessionId ${session.sessionId}")
@@ -59,8 +70,8 @@ class AuthorizedSession internal constructor(
     inline  fun <reified T: Any> setSessionAttr(name: String, value: T) {
         sessionStore[SessionKey(name, T::class)] = value
     }
-    inline fun <reified T: Any> getSessionAttr(name: String): T? {
 
+    internal inline fun <reified T: Any> getSessionAttr(name: String): T? {
         sessionStore.keys.firstOrNull{ it.name ==  name}?.let {key->
             val sessionParam = sessionStore[key].getOrThrow("SessionStore item not found by key", ErrorCodes.ABNORMAL_STATE)
             return sessionParam.castOrThrow<T>("Cast Failed", ErrorCodes.ABNORMAL_STATE)
@@ -72,8 +83,7 @@ class AuthorizedSession internal constructor(
         roundTripStore[RoundTripKey(name, T::class)] = value
     }
 
-    inline fun <reified T: Any> getRoundTripAttr(name: String): T? {
-
+    internal inline fun <reified T: Any> getRoundTripAttr(name: String): T? {
         roundTripStore.keys.firstOrNull{ it.name ==  name}?.let { key ->
             val sessionParam = roundTripStore[key].getOrThrow("SessionStore item not found by key", ErrorCodes.ABNORMAL_STATE)
             return sessionParam.castOrThrow<T>("Cast Failed", ErrorCodes.ABNORMAL_STATE)
@@ -84,7 +94,8 @@ class AuthorizedSession internal constructor(
     inline  fun <reified T: Any> setExternalRef(name: String, value: T) {
         externalStore[ExternalKey(name, T::class)] = value
     }
-    inline fun <reified T: Any> getExternalRef(name: String): T? {
+
+    internal inline fun <reified T: Any> getExternalRef(name: String): T? {
         externalStore.keys.firstOrNull{ it.name ==  name}?.let { key ->
             val sessionParam = externalStore[key].getOrThrow("SessionStore item not found by key", ErrorCodes.ABNORMAL_STATE)
             return sessionParam.castOrThrow<T>("Cast Failed", ErrorCodes.ABNORMAL_STATE)
@@ -117,6 +128,7 @@ class AuthorizedSession internal constructor(
             }
         }
     }
+
 
     companion object AuthorizedSessionKey : CoroutineContext.Key<AuthorizedSession>
 

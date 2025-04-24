@@ -28,12 +28,13 @@ import po.lognotify.extensions.subTask
 
 class DAOService<DTO, ENTITY>(
     private val hostingDTO: CommonDTO<DTO, *, ENTITY>,
-    private val entityModel: LongEntityClass<ENTITY>,
+    @PublishedApi internal val entityModel: LongEntityClass<ENTITY>,
 ): TasksManaged where DTO: ModelDTO,  ENTITY : ExposifyEntityBase {
 
     private val personalName = "DAOService[${hostingDTO.personalName}]"
 
-    private var entity : ENTITY? = null
+    var entity : ENTITY? = null
+        private set
 
     fun setLastEntity(newEntity:ENTITY?){
         entity = newEntity

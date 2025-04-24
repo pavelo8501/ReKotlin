@@ -41,6 +41,7 @@ dependencies {
 
     api(project(":lib:AuthCore"))
     api(project(":lib:LogNotify"))
+    api(project(":lib:FunHelpers"))
 
     testImplementation("org.jetbrains.kotlin:kotlin-test:$kotlinVersion")
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")

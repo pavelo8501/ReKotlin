@@ -63,7 +63,7 @@ class Notifier(
         emit(notification)
     }
     suspend fun subscribeToHandlerUpdates(){
-        withContext(task.context) {
+        withContext(task.coroutineContext) {
             task.taskRunner.exceptionHandler.subscribeHandlerUpdates(){
                 toConsole(it)
                 emit(it)
