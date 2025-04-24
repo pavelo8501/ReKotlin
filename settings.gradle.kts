@@ -29,6 +29,7 @@ include(
     "lib:RestWraptor",
     "lib:WebSocketWraptor",
     "lib:AuthCore",
+    "lib:FunHelpers",
     "lib:function_processor",
     "lib:binder")
 
@@ -68,6 +69,10 @@ project(":lib:AuthCore").also {
     it.name = "AuthCore"
 }
 
+project(":lib:FunHelpers").also {
+    it.name = "FunHelpers"
+}
+
 include("MedTest")
-include("lib:AuthCore")
-findProject(":lib:AuthCore")?.name = "AuthCore"
+//include("lib:AuthCore")
+//findProject(":lib:AuthCore")?.name = "AuthCore"

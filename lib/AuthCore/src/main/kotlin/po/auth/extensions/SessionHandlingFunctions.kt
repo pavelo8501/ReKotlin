@@ -1,24 +1,12 @@
-package po.auth.sessions.extensions
+package po.auth.extensions
 
 import io.ktor.server.application.ApplicationCall
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.coroutineScope
-import po.auth.AuthSessionManager
-import po.auth.authentication.interfaces.AuthenticationPrincipal
-import po.auth.sessions.interfaces.EmmitableSession
-import po.auth.sessions.models.AuthorizedPrincipal
 import po.auth.sessions.models.AuthorizedSession
 import kotlin.coroutines.CoroutineContext
-
-
-
-
 
 fun ApplicationCall.withCoroutineContext(session: AuthorizedSession): CoroutineContext {
     return coroutineContext + session
 }
-
 
 fun ApplicationCall.withCoroutineContext2(session: AuthorizedSession): ApplicationCall {
     return object : ApplicationCall by this {

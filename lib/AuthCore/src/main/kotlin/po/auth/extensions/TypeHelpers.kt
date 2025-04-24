@@ -1,23 +1,30 @@
 package po.auth.extensions
 
+import po.auth.authentication.exceptions.AuthException
+import po.auth.authentication.exceptions.ErrorCodes
+import po.misc.exceptions.castOrException
+import po.misc.exceptions.getOrException
 
 
-
-fun <T>  T.ifTestPass(predicate: (T)-> Boolean, block:()-> Unit){
-    if(predicate(this)){
-        block()
+internal fun <T> T?.getOrThrow(message: String, code: ErrorCodes):T{
+    return this.getOrException(){
+        throw AuthException(message, code)
     }
 }
 
-fun <T, R>  T.ifNotNull (block:()-> R){
-    if(this != null){
-        block()
+inline fun <reified T: Any> Any.castOrThrow(message: String, code: ErrorCodes): T {
+    return this.castOrException {
+        val exception = AuthException(message, code)
+        exception.addMessage("$message. Cast to ${T::class.simpleName } failed")
     }
 }
 
-suspend fun <T>  T.ifNull (block: suspend  ()-> T): T{
-    if(this == null){
-        return block()
+
+inline fun <T>  T.ifTestPass(predicate: (T)-> Boolean):T?{
+
+    return if(predicate(this)){
+        this
+    }else{
+        null
     }
-    return this
 }

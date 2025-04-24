@@ -5,19 +5,17 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import po.lognotify.classes.jobs.ManagedJob
 import po.lognotify.classes.notification.Notifier
-import po.lognotify.classes.task.models.CoroutineInfo
 import po.lognotify.classes.task.runner.TaskRunner
-import po.lognotify.exceptions.LoggerException
-import po.lognotify.exceptions.ManagedException
-import po.lognotify.exceptions.enums.HandlerType
-import po.lognotify.extensions.castOrException
+import po.lognotify.extensions.castOrLoggerException
+import po.misc.exceptions.CoroutineInfo
+import po.misc.exceptions.HandlerType
 import kotlin.coroutines.CoroutineContext
 
 class TaskHandler<R>(
     val task : ControlledTask,
 ):ResultantTask  {
 
-    val currentTaskContext: CoroutineContext = task.context
+    val currentTaskContext: CoroutineContext = task.coroutineContext
     override val coroutineInfo: List<CoroutineInfo> = task.coroutineInfo
 
     override val startTime: Long = task.startTime
@@ -42,7 +40,7 @@ class TaskHandler<R>(
     }
 
     suspend fun setFallback(handler: HandlerType, fallbackFn: ()->R): TaskHandler<R>{
-        val casted =  task.taskRunner.castOrException<TaskRunner<R>, ManagedException>(LoggerException("Cast TaskRunner<R> failed"))
+        val casted =  task.taskRunner.castOrLoggerException<TaskRunner<R>>()
         casted.exceptionHandler.provideHandlerFn(handler, fallbackFn)
         return this
     }

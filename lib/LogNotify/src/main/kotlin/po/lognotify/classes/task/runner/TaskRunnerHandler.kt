@@ -1,11 +1,11 @@
 package po.lognotify.classes.task.runner
 
-import po.lognotify.exceptions.ManagedException
+import po.misc.exceptions.ManagedException
 
 
 interface TaskRunnerHandler<R: Any?>{
     suspend fun onResult(onResultCallback: suspend (result:R, time:Float)->Unit)
-    suspend fun onUnhandled(onUnhandledCallback: suspend (ex:ManagedException, time:Float)->Unit)
+    suspend fun onUnhandled(onUnhandledCallback: suspend (ex: ManagedException, time:Float)->Unit)
 }
 
 class  TaskRunnerCallbacks<R: Any?>(

@@ -1,21 +1,17 @@
 package po.restwraptor.routes
 
 import io.ktor.http.HttpHeaders
-import po.auth.authentication.extensions.authenticate
 import io.ktor.server.request.receive
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Routing
 import io.ktor.server.routing.post
 import kotlinx.serialization.SerializationException
-import po.auth.AuthSessionManager
-import po.auth.authentication.Authenticator
 import po.auth.authentication.exceptions.AuthException
-import po.auth.authentication.extensions.asBearer
+import po.auth.extensions.authenticate
 import po.lognotify.extensions.startTask
 import po.restwraptor.enums.WraptorHeaders
-import po.restwraptor.exceptions.ExceptionCodes
-import po.restwraptor.extensions.getOrConfigurationEx
+import po.restwraptor.extensions.asBearer
 import po.restwraptor.extensions.respondBadRequest
 import po.restwraptor.extensions.respondInternal
 import po.restwraptor.extensions.respondUnauthorized
@@ -39,7 +35,7 @@ fun Routing.configureAuthRoutes(authPrefix: String,  authConfigContext: AuthConf
                 val credentials = call.receive<LoginRequest>()
 
                 val principal = authenticate(credentials.login, credentials.password)
-                val jwtToken =  authenticator.jwtService.generateToken(principal, sessionId)
+                val jwtToken =  authenticator.jwtService.generateToken(principal, this)
 
                 call.response.header(HttpHeaders.Authorization, jwtToken.token.asBearer())
                 call.response.header(WraptorHeaders.XAuthToken.value, sessionId)

@@ -11,22 +11,25 @@ import po.exposify.dto.components.DataModelContainer
 import po.exposify.dto.components.RepositoryBase
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.CommonDTORegistryItem
-import po.exposify.dto.models.DTORegistryItem
 import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.exceptions.InitException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.dto.enums.DTOInitStatus
+import po.exposify.dto.models.DTORegistry
+import po.exposify.dto.models.DTORegistryItem
 import po.exposify.extensions.getOrOperationsEx
+
+
 
 
 abstract class CommonDTO<DTO, DATA, ENTITY>(
    val dtoClass: DTOClass<DTO>
 ):ModelDTO where DTO : ModelDTO,  DATA: DataModel , ENTITY: ExposifyEntityBase {
 
-    var personalName : String = "unset"
-    abstract val dataModel: DATA
+    override var personalName : String = "unset"
+    abstract override val dataModel: DATA
 
-    val daoService: DAOService<DTO, ENTITY> = DAOService<DTO, ENTITY>(this, dtoClass.getEntityModel())
+    override val daoService: DAOService<DTO, ENTITY> = DAOService<DTO, ENTITY>(this, dtoClass.getEntityModel())
     lateinit var propertyBinderSource: PropertyBinder<DATA, ENTITY>
     val propertyBinder : PropertyBinder<DATA, ENTITY>
         get() = propertyBinderSource
@@ -78,7 +81,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
        container : DataModelContainer<DTO, DATA>,
        binder: PropertyBinder<DATA,ENTITY>)
    {
-       _regItem =  CommonDTORegistryItem(dtoClass, regItem.dataKClass, regItem.entityKClass, regItem.commonDTOKClass,this)
+       _regItem =  CommonDTORegistryItem(dtoClass,  regItem.dataKClass, regItem.entityKClass, regItem.commonDTOKClass, this)
        propertyBinderSource = binder
        dataContainer = container
        dataContainer.attachBinder(propertyBinder)

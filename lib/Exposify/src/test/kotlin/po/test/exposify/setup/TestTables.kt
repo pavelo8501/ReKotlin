@@ -14,7 +14,7 @@ fun tables(): List<LongIdTable>{
 object TestUsers : LongIdTable("users", "id") {
     val name = varchar("name",128)
     val login = varchar("login",128)
-    val password = varchar("password",128)
+    val hashedPassword = varchar("hashedPassword",128)
     val email = varchar("email",128)
     val updated = datetime("updated").clientDefault{ TestUserDTO.Companion.nowTime()}
     val created = datetime("created").clientDefault{ TestUserDTO.Companion.nowTime()}

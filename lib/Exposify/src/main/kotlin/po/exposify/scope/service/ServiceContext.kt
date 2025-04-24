@@ -26,19 +26,14 @@ class ServiceContext<DTO, DATA>(
     internal val dtoClass: DTOClass<DTO>,
 ): TasksManaged,  AsContext<DATA>  where DTO : ModelDTO, DATA: DataModel{
 
-    val personalName: String = "ServiceContext[${dtoClass.registryItem.commonDTOKClass.simpleName}]"
+    val personalName: String = "ServiceContext[${dtoClass.registryItem.dtoName}]"
 
     private val dbConnection: Database = serviceClass.connection
     init { dtoClass.asHierarchyRoot(this) }
 
-//    internal suspend fun <T>dbQuery(body : suspend () -> T): T = suspendedTransactionAsync(dbConnection) {
-//        body()
-//    }
-
     internal fun serviceClass():ServiceClass<DTO, DATA, ExposifyEntityBase>{
         return serviceClass
     }
-
 
     fun truncate(){
         startTaskAsync("Truncate", personalName) {

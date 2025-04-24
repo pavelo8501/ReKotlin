@@ -3,10 +3,10 @@ package po.lognotify.classes.taskresult
 import po.lognotify.classes.notification.enums.EventType
 import po.lognotify.classes.task.TaskSealedBase
 import po.lognotify.enums.SeverityLevel
-import po.lognotify.exceptions.ManagedException
-import po.lognotify.exceptions.SelfThrownException
-import po.lognotify.exceptions.enums.HandlerType
 import po.lognotify.exceptions.getOrThrow
+import po.misc.exceptions.HandlerType
+import po.misc.exceptions.ManagedException
+import po.misc.exceptions.SelfThrownException
 
 
 class TaskResult<R : Any?>(private val task: TaskSealedBase<R>): ManagedResult<R> {
@@ -60,7 +60,7 @@ class TaskResult<R : Any?>(private val task: TaskSealedBase<R>): ManagedResult<R
     override fun isResult(): Boolean{
         return value != null
     }
-    override fun resultOrException(exception: SelfThrownException?):R {
+    override fun resultOrException(exception: SelfThrownException<*>?):R {
 
         if(value != null){
             return value!!
@@ -88,6 +88,8 @@ class TaskResult<R : Any?>(private val task: TaskSealedBase<R>): ManagedResult<R
         onResultFn?.invoke(value!!)
         onCompleteFn?.invoke(this as ManagedResult<R>)
     }
+
+
     suspend fun provideThrowable(time: Float, th: ManagedException?){
         executionTime = time
         if(th != null) {

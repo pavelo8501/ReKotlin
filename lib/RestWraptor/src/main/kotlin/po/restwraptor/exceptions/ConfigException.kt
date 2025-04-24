@@ -1,7 +1,7 @@
 package po.restwraptor.exceptions
 
-import po.lognotify.exceptions.ManagedException
-import po.lognotify.exceptions.enums.HandlerType
+import po.misc.exceptions.HandlerType
+import po.misc.exceptions.ManagedException
 
 
 class ConfigurationException(

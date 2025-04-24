@@ -3,6 +3,9 @@ package po.exposify.scope.sequence
 import kotlinx.coroutines.Deferred
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
+import po.auth.sessions.enumerators.SessionType
+import po.auth.sessions.interfaces.SessionIdentified
+import po.auth.sessions.models.AuthorizedSession
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.components.CrudResult
 import po.exposify.dto.CommonDTO
@@ -17,19 +20,49 @@ import po.exposify.scope.sequence.classes.SequenceHandler
 import po.exposify.scope.service.ServiceClass
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.subTask
+import kotlin.coroutines.coroutineContext
+
+
+
+
+interface RunnableContext: SessionIdentified{
+    val method: String
+    val sessionType: SessionType
+
+    companion object{
+
+        data class RunInfo (
+            override val method: String,
+            override val sessionType: SessionType,
+            override val sessionId: String = "N/A",
+            override val remoteAddress: String = "N/A"
+        ) : RunnableContext{
+
+        }
+
+        fun createRunInfo(method: String, session: AuthorizedSession?):RunnableContext{
+            if(session!=null){
+                return RunInfo(method, session.sessionType, session.sessionId, session.remoteAddress)
+            }else{
+                return RunInfo(method, SessionType.ANONYMOUS)
+            }
+
+        }
+    }
+}
 
 
 class SequenceContext<DTO, DATA>(
     private  val serviceClass : ServiceClass<DTO, DATA, ExposifyEntityBase>,
     private val dtoClass : DTOClass<DTO>,
-    private val handler : SequenceHandler<DTO, DATA>
+    private val handler : SequenceHandler<DTO, DATA>,
 ): TasksManaged where  DTO : ModelDTO, DATA : DataModel
 {
 
-    private val  personalName : String = "SequenceContext[${dtoClass.registryItem.commonDTOKClass.simpleName}]"
+    private val personalName : String = "SequenceContext[${dtoClass.registryItem.dtoName}]"
     private val connection: Database = serviceClass.connection
 
-    private lateinit var lastResult : CrudResult<DTO, DATA>
+    private var lastResult : CrudResult<DTO, DATA> = CrudResult(emptyList())
 
     private fun dtos(): List<CommonDTO<DTO, DATA , ExposifyEntityBase>>{
         val result =   mutableListOf<CommonDTO<DTO, DATA, ExposifyEntityBase>>()
@@ -37,9 +70,19 @@ class SequenceContext<DTO, DATA>(
         return result
     }
 
+    private suspend fun notifyOnStart(method: String){
+        val session =  coroutineContext[AuthorizedSession]
+        handler.onStartCallback?.invoke( RunnableContext.createRunInfo(method, session))
+    }
+
+    private suspend fun notifyOnComplete(method: String){
+        val session =  coroutineContext[AuthorizedSession]
+        handler.onCompleteCallback?.invoke(RunnableContext.createRunInfo(method, session))
+    }
 
     suspend fun checkout(withResult :  CrudResult<DTO, DATA>? = null): List<DATA> {
         return lastResult.getData()
+
     }
 
 
@@ -82,11 +125,13 @@ class SequenceContext<DTO, DATA>(
             if (!isTransactionReady()) {
                 handler.warn("Transaction lost context")
             }
+           notifyOnStart("select")
             lastResult = dtoClass.select()
             if (block != null) {
                 this.block(dtos())
             } else {
                 checkout(lastResult)
+                notifyOnComplete("select")
             }
         }
     }
@@ -94,16 +139,18 @@ class SequenceContext<DTO, DATA>(
     suspend fun update(
         dataModels: List<DATA>,
         block: (suspend SequenceContext<DTO, DATA>.(dtos: List<CommonDTO<DTO, DATA, ExposifyEntityBase>>)-> Deferred<List<DATA>>)? = null
-    ) {
+    ){
         subTask("Update", personalName) { handler ->
             if (!isTransactionReady()) {
                 handler.warn("Transaction lost context")
             }
+            notifyOnStart("update")
             lastResult = dtoClass.update(dataModels)
             if (block != null) {
                 this.block(dtos())
             } else {
                 checkout(lastResult)
+                notifyOnComplete("update")
             }
         }
     }

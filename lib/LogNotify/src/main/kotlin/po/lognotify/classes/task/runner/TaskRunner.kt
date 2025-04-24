@@ -6,8 +6,8 @@ import po.lognotify.classes.task.ControlledTask
 import po.lognotify.classes.task.TaskHandler
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.exceptions.ExceptionHandler
-import po.lognotify.exceptions.ManagedException
-import po.lognotify.exceptions.enums.HandlerType
+import po.misc.exceptions.HandlerType
+import po.misc.exceptions.ManagedException
 
 
 class TaskRunner<R: Any?>(
@@ -30,6 +30,7 @@ class TaskRunner<R: Any?>(
         startTime = System.nanoTime()
     }
 
+
     suspend fun executedWithResult(value:R, handlerBlock: suspend TaskRunnerCallbacks<R>.()->Unit){
         stopTimer()
         val callbacks = TaskRunnerCallbacks<R>()
@@ -44,7 +45,7 @@ class TaskRunner<R: Any?>(
     }
 
     suspend fun handleException(throwable: Throwable): ExceptionHandler.HandlerResult<R> {
-        notifier.systemInfo(EventType.EXCEPTION_THROWN, SeverityLevel.WARNING, "Handling exception in ${task.taskName}")
+        notifier.systemInfo(EventType.EXCEPTION_THROWN, SeverityLevel.WARNING, "Handling exception in ${task.taskName}. Message: ${throwable.message}")
 
         val managedException =
             throwable as? ManagedException ?: ManagedException(
@@ -66,15 +67,14 @@ class TaskRunner<R: Any?>(
             }
 
             HandlerType.UNMANAGED -> {
+                notifier.systemInfo(EventType.EXCEPTION_UNHANDLED, SeverityLevel.EXCEPTION, "Exception handling failure in ${task.taskName}")
                 return ExceptionHandler.HandlerResult<R>(null, managedException)
             }
-
             else -> {
                 return exceptionHandler.handleManaged(managedException)
             }
         }
     }
-
 
     suspend fun <T> execute(receiver:T,  block: suspend T.() -> R, handlerBlock: suspend TaskRunnerCallbacks<R>.()->Unit) {
         try{
@@ -109,7 +109,7 @@ class TaskRunner<R: Any?>(
 
    suspend inline fun <T, R2> executeJob(receiver:T, crossinline  block: suspend T.()->R2) {
         try {
-            withContext(task.context){
+            withContext(task.coroutineContext){
                 val result = block.invoke(receiver)
             }
         }catch (throwable: Throwable){

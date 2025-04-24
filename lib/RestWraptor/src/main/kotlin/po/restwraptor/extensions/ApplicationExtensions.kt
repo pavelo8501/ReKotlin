@@ -14,8 +14,6 @@ import po.restwraptor.exceptions.ExceptionCodes
 import po.restwraptor.models.server.WraptorRoute
 import po.restwraptor.scope.ConfigContext
 
-
-
 private fun partsToUrl(pathParts: List<String>):  String {
     val result =  pathParts
         .asSequence()

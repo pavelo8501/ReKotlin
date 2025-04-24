@@ -17,6 +17,7 @@ enum class ExceptionCode(val value: Int) {
     CONSTRUCTOR_MISSING(1009),
     REFLECTION_ERROR(1010),
     VALUE_NOT_FOUND(1011),
+    VALUE_IS_NULL(1012),
 
     // Database Layer
     DB_TABLE_CREATION_FAILURE(2001),

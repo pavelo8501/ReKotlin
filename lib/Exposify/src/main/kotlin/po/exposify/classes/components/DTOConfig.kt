@@ -22,20 +22,20 @@ interface ConfigurableDTO<DTO: ModelDTO, DATA : DataModel, ENTITY: ExposifyEntit
 
 
 class DTOConfig<DTO, DATA, ENTITY>(
-    val dtoRegItem : DTORegistryItem<DTO, DATA, ENTITY>,
+    val registry : DTORegistryItem<DTO, DATA, ENTITY>,
     val entityModel:LongEntityClass<ENTITY>,
     private val parent : DTOClass<DTO>
 ): ConfigurableDTO<DTO, DATA, ENTITY> where DTO: ModelDTO,  ENTITY : ExposifyEntityBase, DATA: DataModel{
 
-   internal val dtoFactory: DTOFactory<DTO, DATA, ENTITY> =
-        DTOFactory<DTO, DATA, ENTITY>(dtoRegItem.commonDTOKClass, dtoRegItem.dataKClass, this)
 
+   internal var dtoFactory: DTOFactory<DTO, DATA, ENTITY> = DTOFactory(registry.commonDTOKClass, registry.dataKClass, this)
+
+    val namedSerializes = mutableListOf<Pair<String, KSerializer<out Any>>>()
     val propertyBinder : PropertyBinder<DATA, ENTITY> = PropertyBinder(){syncedSerializedList->
-        val namedSerializes = mutableListOf<Pair<String, KSerializer<out Any>>>()
         syncedSerializedList.forEach {
             namedSerializes.add(it.getSerializer())
         }
-        dtoFactory.setSerializableTypes(namedSerializes.toList())
+        dtoFactory.setSerializableTypes(namedSerializes)
     }
 
     val relationBinder: RelationshipBinder<DTO, DATA, ENTITY> = RelationshipBinder<DTO, DATA, ENTITY>(parent)
@@ -48,13 +48,12 @@ class DTOConfig<DTO, DATA, ENTITY>(
         block.invoke(relationBinder)
     }
     override fun initFactoryRoutines(){
-        dtoFactory.setPostCreationRoutine("dto_initialization") {
-            val dataModelContainer = DataModelContainer<DTO, DATA>(dataModel, this@DTOConfig.dtoFactory.dataBlueprint)
-            val thisRegItem = this@DTOConfig.dtoRegItem
-            val thisPropertyBinder = this@DTOConfig.propertyBinder
-            initialize(thisRegItem, dataModelContainer, thisPropertyBinder)
+        val factory = dtoFactory
+        factory.setPostCreationRoutine("dto_initialization") {
+            val dataModelContainer = DataModelContainer<DTO, DATA>(dataModel, factory.dataBlueprint)
+            initialize(registry, dataModelContainer, this@DTOConfig.propertyBinder)
         }
-        dtoFactory.setPostCreationRoutine("repository_bindings") {
+        factory.setPostCreationRoutine("repository_bindings") {
             relationBinder.createRepositories(this)
         }
     }

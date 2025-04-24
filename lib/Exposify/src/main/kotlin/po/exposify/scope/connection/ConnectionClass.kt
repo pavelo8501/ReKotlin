@@ -11,6 +11,10 @@ import po.exposify.scope.connection.controls.CoroutineEmitter2
 import po.exposify.scope.connection.controls.UserDispatchManager
 import po.exposify.scope.sequence.models.SequencePack
 import po.exposify.scope.service.ServiceClass
+import po.lognotify.extensions.newTask
+import po.lognotify.extensions.startTask
+import po.lognotify.extensions.subTask
+import kotlin.coroutines.coroutineContext
 
 class ConnectionClass(
     val connectionInfo: ConnectionInfo,
@@ -30,20 +34,18 @@ class ConnectionClass(
     val isConnectionOpen: Boolean
         get() { return connectionInfo.connection.transactionManager.currentOrNull()?.connection?.isClosed == false }
 
-    suspend fun <DTO : ModelDTO, DATA: DataModel> launchSequence(
+    suspend fun <DTO:ModelDTO, DATA: DataModel> launchSequence(
         pack: SequencePack<DTO, DATA>,
     ): List<DATA> {
-
         val session = sessionManager.getCurrentSession()
-
         val result = dispatchManager.enqueue(session.sessionId) {
-             coroutineEmitter.dispatch<DTO, DATA>(pack, session.scope)
-        }.await()
+            coroutineEmitter.dispatch(pack, session)
+        }
         return result
     }
 
     var services: MutableMap<String, ServiceClass<*, *, *>>
-            = mutableMapOf<String, ServiceClass<*, *, *>>()
+            = mutableMapOf()
 
     fun addService(serviceClass : ServiceClass<*, *, *>){
         services[serviceClass.personalName] = serviceClass

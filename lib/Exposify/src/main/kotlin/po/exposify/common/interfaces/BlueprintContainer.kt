@@ -15,7 +15,6 @@ interface BlueprintContainer<T: Any> {
     fun setConstructor(constructor : KFunction<T>)
     fun addParameter(param : KParameter)
     fun <N: Any> setNestedMap(map : Map<String, Map<String, ClassData<N>>>)
-    fun setPropertyMap(map:Map<String, KProperty1<T, *>>)
 
     fun getArgsForConstructor(): Map<KParameter, Any?>
 }

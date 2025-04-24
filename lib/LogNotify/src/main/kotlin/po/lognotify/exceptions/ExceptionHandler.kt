@@ -4,11 +4,10 @@ import po.lognotify.classes.notification.enums.EventType
 import po.lognotify.classes.notification.models.Notification
 import po.lognotify.classes.notification.sealed.ProviderHandler
 import po.lognotify.classes.task.ControlledTask
-import po.lognotify.classes.task.ManagedTask
-import po.lognotify.classes.task.TaskSealedBase
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.exceptions.ExceptionHandler.HandlerResult
-import po.lognotify.exceptions.enums.HandlerType
+import po.misc.exceptions.HandlerType
+import po.misc.exceptions.ManagedException
 
 interface ExceptionHandled<R: Any?> {
 
@@ -17,7 +16,6 @@ interface ExceptionHandled<R: Any?> {
    suspend fun provideHandlerFn(handler : HandlerType, handlerFn:()->R)
 
 }
-
 
 class ExceptionHandler<R: Any?>(
    private val task : ControlledTask

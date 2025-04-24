@@ -9,12 +9,11 @@ class TestUserEntity  (id: EntityID<Long>) : ExposifyEntityBase(id){
     companion object : LongEntityClass<TestUserEntity>(TestUsers)
     var name by TestUsers.name
     var login by TestUsers.login
-    var password by TestUsers.password
+    var hashedPassword by TestUsers.hashedPassword
     var email by TestUsers.email
     var created by TestUsers.created
     var updated by TestUsers.updated
 }
-
 
 class TestPageEntity  (id: EntityID<Long>) : ExposifyEntityBase(id){
     companion object : LongEntityClass<TestPageEntity>(TestPages)
@@ -23,7 +22,7 @@ class TestPageEntity  (id: EntityID<Long>) : ExposifyEntityBase(id){
     var pageClasses by TestPages.pageClasses
     var updated by TestPages.updated
     var updatedBy by TestUserEntity referencedOn TestPages.updatedBy
-    val sections by TestSectionEntity.Companion referrersOn TestSections.page
+    val sections by TestSectionEntity referrersOn TestSections.page
 }
 
 

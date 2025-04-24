@@ -4,24 +4,35 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.Json
+import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.classes.DTOClass
 import po.exposify.dto.components.property_binder.bindings.ReferencedBinding
 import po.exposify.dto.components.property_binder.bindings.SyncedBinding
 import po.exposify.dto.components.property_binder.bindings.SerializedBinding
+import po.exposify.dto.components.property_binder.delegates.propertyBindings
+import po.exposify.dto.components.property_binder.delegates.synced
+import po.exposify.dto.components.property_binder.delegates.synced2
+import kotlin.properties.ReadWriteProperty
 
 @Serializable
 data class TestUser(
-    var login: String,
+    override var login: String,
     var name: String,
-    var email: String,
-    var password: String,
-): DataModel{
+    override var hashedPassword: String,
+    override var email: String,
+    override val userGroupId: Long,
+): DataModel, AuthenticationPrincipal{
     override var id: Long = 0
 
     var created: LocalDateTime = TestUserDTO.nowTime()
     var updated: LocalDateTime = TestUserDTO.nowTime()
+
+    override fun asJson(): String {
+      return  Json.encodeToString(this)
+    }
 }
 
 
@@ -30,13 +41,13 @@ class TestUserDTO(
 ): CommonDTO<TestUserDTO,  TestUser, TestUserEntity>(TestUserDTO) {
 
     companion object: DTOClass<TestUserDTO>(){
-        override fun setup() {
-            configuration<TestUser, TestUserEntity>(TestUserDTO::class, TestUserEntity){
+        override suspend fun setup() {
+            configuration<TestUserDTO, TestUser, TestUserEntity>(TestUserEntity){
                 propertyBindings(
                     SyncedBinding(TestUser::login, TestUserEntity::login),
                     SyncedBinding(TestUser::name, TestUserEntity::name),
                     SyncedBinding(TestUser::email, TestUserEntity::email),
-                    SyncedBinding(TestUser::password, TestUserEntity::password),
+                    SyncedBinding(TestUser::hashedPassword, TestUserEntity::hashedPassword),
                     SyncedBinding(TestUser::created, TestUserEntity::created),
                     SyncedBinding(TestUser::updated, TestUserEntity::updated),
                 )
@@ -66,9 +77,10 @@ data class TestPage(
 class TestPageDTO(
     override var dataModel: TestPage
 ): CommonDTO<TestPageDTO, TestPage, TestPageEntity>(TestPageDTO) {
+
     companion object: DTOClass<TestPageDTO>(){
-        override fun setup() {
-           configuration<TestPage, TestPageEntity>(TestPageDTO::class, TestPageEntity){
+        override suspend fun setup() {
+           configuration<TestPageDTO, TestPage, TestPageEntity>(TestPageEntity){
                propertyBindings(SyncedBinding(TestPage::name, TestPageEntity::name),
                    SyncedBinding(TestPage::langId,  TestPageEntity::langId),
                    SyncedBinding(TestPage::updated, TestPageEntity::updated),
@@ -115,8 +127,8 @@ class TestSectionDTO(
 
     companion object: DTOClass<TestSectionDTO>(){
 
-        override fun setup() {
-            configuration<TestSection, TestSectionEntity>(TestSectionDTO::class, TestSectionEntity) {
+        override suspend fun setup() {
+            configuration<TestSectionDTO, TestSection, TestSectionEntity>(TestSectionEntity) {
                 propertyBindings(
                     SyncedBinding(TestSection::name, TestSectionEntity::name),
                     SyncedBinding(TestSection::description, TestSectionEntity::description),

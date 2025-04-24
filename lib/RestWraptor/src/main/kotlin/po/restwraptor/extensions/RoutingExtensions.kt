@@ -4,7 +4,6 @@ import io.ktor.server.auth.authenticate
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.Routing
 import io.ktor.server.routing.application
-import po.auth.authentication.Authenticator
 import po.restwraptor.exceptions.ExceptionCodes
 import po.restwraptor.plugins.CoreAuthRoutePlugin
 

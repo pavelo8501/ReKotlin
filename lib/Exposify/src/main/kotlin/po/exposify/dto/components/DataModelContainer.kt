@@ -1,5 +1,6 @@
 package po.exposify.dto.components
 
+import com.sun.jdi.Value
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.components.relation_binder.models.DataPropertyInfo
 import po.exposify.classes.interfaces.DataModel
@@ -14,6 +15,7 @@ import po.exposify.exceptions.enums.ExceptionCode
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty
 import kotlin.reflect.KProperty1
+import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.isAccessible
 
 
@@ -27,12 +29,12 @@ class DataModelContainer<DTO : ModelDTO, DATA: DataModel>(
 
     val trackedProperties: MutableMap<String, DataPropertyInfo<DTO, DATA, ExposifyEntityBase, ModelDTO>> = mutableMapOf()
 
-    operator fun getValue(thisRef: Any, property: KProperty<*>): MutableList<DATA> {
-        property.getter.let { getter ->
-            getter.isAccessible = true
-            @Suppress("UNCHECKED_CAST")
-            return getter.call(thisRef) as MutableList<DATA>
-        }
+    operator fun <V: Any?>  getValue(name: String,  property: KProperty<*>): V {
+        return  dataBlueprint.getProperty(dataModel,  name)
+    }
+
+    operator fun <V>  setValue(name: String,  property: KProperty<*>, value: V){
+        dataBlueprint.setProperty(dataModel, name,  value)
     }
 
     fun binderUpdatedProperty(name : String, type : PropertyType, updateMode : UpdateMode){
@@ -45,9 +47,9 @@ class DataModelContainer<DTO : ModelDTO, DATA: DataModel>(
 
     fun setTrackedProperties(list: List<DataPropertyInfo<DTO, DATA, ExposifyEntityBase, ModelDTO>>){
         list.forEach {propertyInfo->
-            dataBlueprint.propertyMap[propertyInfo.name]?.let {blueprintProperty->
-                propertyInfo.inBlueprint = blueprintProperty
-            }
+//            dataBlueprint.propertyMap[propertyInfo.name]?.let {blueprintProperty->
+//                propertyInfo.inBlueprint = blueprintProperty
+//            }
             trackedProperties[propertyInfo.name] = propertyInfo
         }
     }
@@ -88,24 +90,4 @@ class DataModelContainer<DTO : ModelDTO, DATA: DataModel>(
         }
         return emptyList()
     }
-
-    fun <CHILD_DATA: DataModel>addToMutableProperty(name: String, value: CHILD_DATA){
-        dataBlueprint.propertyMap[name]?.let {
-            @Suppress("UNCHECKED_CAST")
-            it as KProperty1<DATA, MutableList<CHILD_DATA>>
-            it.isAccessible = true
-            it.get(dataModel).add(value)
-        }
-    }
-
-    fun <CHILD_DATA: DataModel>setProperty(name: String, value: CHILD_DATA){
-
-        dataBlueprint.propertyMap[name]?.let {
-            @Suppress("UNCHECKED_CAST")
-            it as KMutableProperty1<DATA, CHILD_DATA>
-            it.isAccessible = true
-            it.set(dataModel, value)
-        }
-    }
-
 }
