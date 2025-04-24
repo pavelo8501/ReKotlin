@@ -3,12 +3,10 @@ val kotlinVersion: String by project
 val ktorVersion: String by project
 val exposedVersion: String by project
 val hikaricpVersion: String by project
-val mysqlVersion: String by project
 val logbackClassicVersion: String by project
 val coroutinesVersion: String by project
 val junitVersion: String by project
 val kotlinSerializationVersion : String by project
-val h2DatabaseVersion : String by project
 val exposifyVersion: String by project
 val postgresVersion: String by project
 val testContainerVersion: String by project
@@ -64,9 +62,6 @@ dependencies {
     api(project(":lib:AuthCore"))
     api(project(":lib:LogNotify"))
     api(project(":lib:FunHelpers"))
-
-   // testImplementation("com.h2database:h2:$h2DatabaseVersion")
-   // testImplementation("org.postgresql:postgresql:$postgresVersion")
 
     testImplementation("org.testcontainers:testcontainers:$testContainerVersion")
     testImplementation("org.testcontainers:postgresql:$testContainerVersion")

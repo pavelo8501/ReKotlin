@@ -8,10 +8,10 @@ import io.ktor.server.routing.Routing
 import io.ktor.server.routing.post
 import kotlinx.serialization.SerializationException
 import po.auth.authentication.exceptions.AuthException
-import po.auth.extensions.asBearer
 import po.auth.extensions.authenticate
 import po.lognotify.extensions.startTask
 import po.restwraptor.enums.WraptorHeaders
+import po.restwraptor.extensions.asBearer
 import po.restwraptor.extensions.respondBadRequest
 import po.restwraptor.extensions.respondInternal
 import po.restwraptor.extensions.respondUnauthorized

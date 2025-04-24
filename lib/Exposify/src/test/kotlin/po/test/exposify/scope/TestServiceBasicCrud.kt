@@ -16,7 +16,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 
-class TestServiceContext : DatabaseTest() {
+class TestServiceBasicCrud : DatabaseTest() {
 
     @Test
     fun `referenced property binding`(){

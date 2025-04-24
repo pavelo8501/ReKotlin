@@ -23,9 +23,12 @@ import po.lognotify.extensions.subTask
 import kotlin.coroutines.coroutineContext
 
 
+
+
 interface RunnableContext: SessionIdentified{
     val method: String
     val sessionType: SessionType
+
     companion object{
 
         data class RunInfo (
@@ -36,9 +39,6 @@ interface RunnableContext: SessionIdentified{
         ) : RunnableContext{
 
         }
-
-
-
 
         fun createRunInfo(method: String, session: AuthorizedSession?):RunnableContext{
             if(session!=null){
@@ -55,7 +55,7 @@ interface RunnableContext: SessionIdentified{
 class SequenceContext<DTO, DATA>(
     private  val serviceClass : ServiceClass<DTO, DATA, ExposifyEntityBase>,
     private val dtoClass : DTOClass<DTO>,
-    private val handler : SequenceHandler<DTO, DATA>
+    private val handler : SequenceHandler<DTO, DATA>,
 ): TasksManaged where  DTO : ModelDTO, DATA : DataModel
 {
 

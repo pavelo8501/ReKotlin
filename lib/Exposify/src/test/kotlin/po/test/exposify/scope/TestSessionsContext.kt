@@ -18,6 +18,7 @@ import po.test.exposify.setup.pageModels
 import kotlin.test.Test
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertAll
 import po.auth.extensions.authenticate
 import po.auth.extensions.currentSession
@@ -29,7 +30,7 @@ import po.test.exposify.setup.TestUserDTO
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
-
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestSessionsContext : DatabaseTest()  {
     class SessionIdentity(override val sessionId: String, override val remoteAddress: String): SessionIdentified
 
