@@ -2,9 +2,9 @@ package po.test.restwraptor
 
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
+import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.auth.extensions.readCryptoRsaKeys
 import po.auth.extensions.setKeyBasePath
-import po.auth.sessions.models.AuthorizedPrincipal
 import po.restwraptor.RestWrapTor
 import po.restwraptor.enums.RouteSelector
 import po.restwraptor.models.server.WraptorRoute
@@ -20,8 +20,8 @@ data class TestResponse(
 class TestRestWrapTor {
 
 
-    suspend fun authenticate(login: String, password: String): AuthorizedPrincipal {
-        return TestUser(0, "someName", login, password).asAuthorizedPrincipal()
+    suspend fun userLookUp(login: String): AuthenticationPrincipal {
+        return TestUser(0, "someName", login)
     }
 
     private fun findRoute(routes: List<WraptorRoute>, predicate: (WraptorRoute) -> Boolean): Boolean{
@@ -35,7 +35,7 @@ class TestRestWrapTor {
         val keyPath = setKeyBasePath("src/test/demo_keys")
         val securedRoutes: MutableList<WraptorRoute> = mutableListOf()
         val server = RestWrapTor {
-            setupAuthentication(keyPath.readCryptoRsaKeys("ktor.pk8", "ktor.spki"), ::authenticate) {
+            setupAuthentication(keyPath.readCryptoRsaKeys("ktor.pk8", "ktor.spki"), ::userLookUp) {
 
             }
         }

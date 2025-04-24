@@ -9,24 +9,31 @@ import po.lognotify.classes.task.runner.TaskRunner
 import po.lognotify.extensions.castOrLoggerException
 import po.misc.exceptions.CoroutineInfo
 import po.misc.exceptions.HandlerType
+import po.misc.exceptions.ManagedException
 import kotlin.coroutines.CoroutineContext
 
-class TaskHandler<R>(
-    val task : ControlledTask,
-):ResultantTask  {
+class TaskHandler<R: Any?>(
+    val task : HandledTask<R>,
+):ResultantTask{
 
     val currentTaskContext: CoroutineContext = task.coroutineContext
-    override val coroutineInfo: List<CoroutineInfo> = task.coroutineInfo
 
-    override val startTime: Long = task.startTime
-    override var endTime: Long = task.endTime
-    override val qualifiedName: String = task.qualifiedName
-    override val taskName: String = task.taskName
-    override val moduleName: String = task.moduleName
-    override val nestingLevel: Int = task.nestingLevel
+
+//    override val startTime: Long = task.startTime
+//    override var endTime: Long = task.endTime
+//
+//
+    override suspend fun notifyRootCancellation(exception: ManagedException?) {
+        task.notifyRootCancellation(exception)
+    }
+
+//    override val qualifiedName: String = task.qualifiedName
+//    override val taskName: String = task.taskName
+//    override val moduleName: String = task.moduleName
+//    override val nestingLevel: Int = task.nestingLevel
 
     val notifier: Notifier = task.notifier
-    val taskHierarchyList : List<ResultantTask> = task.registry.getAsResultantTaskList()
+   // val taskHierarchyList : List<ResultantTask> = task.registry.getAsResultantTaskList()
 
 
     fun echo(message: String){
@@ -39,9 +46,9 @@ class TaskHandler<R>(
         notifier.warn(message)
     }
 
-    suspend fun setFallback(handler: HandlerType, fallbackFn: ()->R): TaskHandler<R>{
+    suspend fun setFallback(handlers: Set<HandlerType>, fallbackFn: (exception: ManagedException)->R): TaskHandler<R>{
         val casted =  task.taskRunner.castOrLoggerException<TaskRunner<R>>()
-        casted.exceptionHandler.provideHandlerFn(handler, fallbackFn)
+        casted.exceptionHandler.provideHandlerFn(handlers, fallbackFn)
         return this
     }
 
@@ -63,8 +70,8 @@ class TaskHandler<R>(
     }
 
     suspend inline fun <T, R2> T.runManagedJob(crossinline  block: suspend T.()->R2){
-        val managedJob = ManagedJob(task)
-        managedJob.startJob(this@TaskHandler, this@runManagedJob, block)
+      // val managedJob = ManagedJob(task)
+       // managedJob.startJob(this@TaskHandler, this@runManagedJob, block)
     }
 
 }

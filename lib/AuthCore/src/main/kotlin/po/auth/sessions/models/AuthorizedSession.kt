@@ -15,10 +15,11 @@ import po.auth.extensions.getOrThrow
 import po.auth.sessions.enumerators.SessionType
 import po.auth.sessions.interfaces.EmmitableSession
 import po.auth.sessions.interfaces.SessionIdentified
+import java.sql.Ref
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.CoroutineContext
-
+import kotlin.reflect.KProperty
 
 class AuthorizedSession internal constructor(
     override val remoteAddress: String,
@@ -37,22 +38,22 @@ class AuthorizedSession internal constructor(
         }
     }
 
-    override val sessionId: String = UUID.randomUUID().toString()
+    override val sessionID: String = UUID.randomUUID().toString()
     override val sessionContext: CoroutineContext
         get() = scope.coroutineContext
 
     private val scope: CoroutineScope = CoroutineScope(CoroutineName(coroutineName) + this)
 
     override fun sessionScope(): CoroutineScope{
-        println("Redispatched session $sessionId")
+        println("Redispatched session $sessionID")
         return scope
     }
 
     override fun onProcessStart(session: EmmitableSession) {
-        println("onProcessStart emitted with sessionId ${session.sessionId}")
+        println("onProcessStart emitted with sessionId ${session.sessionID}")
     }
     override fun onProcessEnd(session: EmmitableSession) {
-        println("onProcessEnd emitted with sessionId ${session.sessionId}")
+        println("onProcessEnd emitted with sessionId ${session.sessionID}")
     }
 
     override val key: CoroutineContext.Key<AuthorizedSession>
@@ -73,8 +74,8 @@ class AuthorizedSession internal constructor(
 
     internal inline fun <reified T: Any> getSessionAttr(name: String): T? {
         sessionStore.keys.firstOrNull{ it.name ==  name}?.let {key->
-            val sessionParam = sessionStore[key].getOrThrow("SessionStore item not found by key", ErrorCodes.ABNORMAL_STATE)
-            return sessionParam.castOrThrow<T>("Cast Failed", ErrorCodes.ABNORMAL_STATE)
+            val sessionParam = sessionStore[key].getOrThrow("SessionStore item not found by key", ErrorCodes.SESSION_PARAM_FAILURE)
+            return sessionParam.castOrThrow<T>("Cast Failed", ErrorCodes.INTERNAL_ERROR)
         }
         return null
     }
@@ -85,8 +86,8 @@ class AuthorizedSession internal constructor(
 
     internal inline fun <reified T: Any> getRoundTripAttr(name: String): T? {
         roundTripStore.keys.firstOrNull{ it.name ==  name}?.let { key ->
-            val sessionParam = roundTripStore[key].getOrThrow("SessionStore item not found by key", ErrorCodes.ABNORMAL_STATE)
-            return sessionParam.castOrThrow<T>("Cast Failed", ErrorCodes.ABNORMAL_STATE)
+            val sessionParam = roundTripStore[key].getOrThrow("SessionStore item not found by key", ErrorCodes.SESSION_PARAM_FAILURE)
+            return sessionParam.castOrThrow<T>("Cast Failed", ErrorCodes.INTERNAL_ERROR)
         }
         return null
     }
@@ -97,8 +98,8 @@ class AuthorizedSession internal constructor(
 
     internal inline fun <reified T: Any> getExternalRef(name: String): T? {
         externalStore.keys.firstOrNull{ it.name ==  name}?.let { key ->
-            val sessionParam = externalStore[key].getOrThrow("SessionStore item not found by key", ErrorCodes.ABNORMAL_STATE)
-            return sessionParam.castOrThrow<T>("Cast Failed", ErrorCodes.ABNORMAL_STATE)
+            val sessionParam = externalStore[key].getOrThrow("SessionStore item not found by key", ErrorCodes.SESSION_PARAM_FAILURE)
+            return sessionParam.castOrThrow<T>("Cast Failed", ErrorCodes.INTERNAL_ERROR)
         }
         return null
     }

@@ -1,6 +1,8 @@
 package po.restwraptor.plugins
 
+import io.ktor.client.statement.HttpResponse
 import io.ktor.http.Headers
+import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationPlugin
 import io.ktor.server.application.ApplicationStarted
 import io.ktor.server.application.createApplicationPlugin
@@ -10,8 +12,13 @@ import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.request.path
+import po.auth.authentication.exceptions.AuthException
 import po.auth.authentication.jwt.JWTService
+import po.auth.authentication.jwt.models.JwtToken
 import po.lognotify.extensions.startTask
+import po.misc.exceptions.getOrException
+import po.misc.exceptions.getOrThrow
+import po.restwraptor.enums.WraptorHeaders
 import po.restwraptor.extensions.getWraptorRoutes
 import po.restwraptor.extensions.respondUnauthorized
 import po.restwraptor.models.server.WraptorRoute
@@ -43,7 +50,7 @@ val JWTPlugin: ApplicationPlugin<JWTPluginConfig> = createApplicationPlugin(
     }
 
     fun readSessionId(headers: Headers): String?{
-        return headers[headerName]
+        return headers[WraptorHeaders.XAuthToken.value]
     }
 
     application.install(Authentication) {
@@ -68,30 +75,17 @@ val JWTPlugin: ApplicationPlugin<JWTPluginConfig> = createApplicationPlugin(
             handler.info("Processing call to $path")
 
             if (checkDestinationSecured(path)) {
-                val sessionId = readSessionId(call.request.headers)
-                if (sessionId == null) {
-                    handler.info("Header missing")
-                    call.respondUnauthorized("Header: $headerName is absent")
-                    return@startTask
-                }
-
+                val sessionId = readSessionId(call.request.headers).getOrThrow<String, AuthException>()
                 val jwtToken = service.tokenRepository.resolve(sessionId)
-                if (jwtToken == null) {
-                    handler.info("Token not found in repository")
-                    call.respondUnauthorized("Session expired")
-                    return@startTask
-                }
-
-                service.isNotExpired(jwtToken) { token ->
+                    .getOrThrow<JwtToken, AuthException>("Token not found in repository")
+                val validatedToken = service.isNotExpired(jwtToken) {
                     handler.info("Invalidating Token due to expiry")
-                    service.tokenRepository.invalidate(token.sessionId)
-                    call.respondUnauthorized("Session expired")
+                    service.tokenRepository.invalidate(jwtToken.sessionId)
+                    call.respondUnauthorized("Session expired", HttpStatusCode.Unauthorized.value)
                     return@isNotExpired
                 }
-
                 handler.info("Token is valid, call allowed to proceed")
-            } else {
-                handler.info("Call to $path passed through (not secured)")
+                validatedToken
             }
         }
     }

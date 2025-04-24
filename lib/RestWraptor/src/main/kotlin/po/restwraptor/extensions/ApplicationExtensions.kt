@@ -8,8 +8,10 @@ import io.ktor.server.routing.application
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
+import po.misc.exceptions.getOrThrow
 import po.restwraptor.RestWrapTor
 import po.restwraptor.RestWrapTorKey
+import po.restwraptor.exceptions.ConfigurationException
 import po.restwraptor.exceptions.ExceptionCodes
 import po.restwraptor.models.server.WraptorRoute
 import po.restwraptor.scope.ConfigContext
@@ -70,9 +72,9 @@ fun Application.getRestWrapTor(): RestWrapTor? {
 
 
 fun Application.getWraptorRoutes(): List<WraptorRoute>{
-   val wraptor =  getRestWrapTor().getOrConfigurationEx(
+   val wraptor =  getRestWrapTor().getOrThrow<RestWrapTor, ConfigurationException>(
        "Wraptor not found in Application registry",
-       ExceptionCodes.KEY_REGISTRATION)
+       ExceptionCodes.KEY_REGISTRATION.value)
 
    return wraptor.getRoutes()
 }

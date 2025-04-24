@@ -5,7 +5,7 @@ import po.auth.sessions.enumerators.SessionType
 import kotlin.coroutines.CoroutineContext
 
 interface  EmmitableSession  :  SessionLifecycleCallback {
-    val sessionId: String
+    val sessionID: String
     val sessionType: SessionType
 
     val sessionContext: CoroutineContext

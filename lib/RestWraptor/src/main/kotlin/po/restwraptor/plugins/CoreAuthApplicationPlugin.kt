@@ -34,7 +34,7 @@ val CoreAuthApplicationPlugin = createApplicationPlugin(
     onCall{call->
         startTask("Processing incoming call", call.coroutineContext, "CoreAuthApplicationPlugin"){handler->
             val session = resolveSessionFromHeader(call)
-            handler.info("Session created ${session.sessionId}")
+            handler.info("Session created ${session.sessionID}")
             call.sessionToAttributes(session)
         }
     }

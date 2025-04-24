@@ -16,19 +16,18 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.startTaskAsync
-import po.lognotify.extensions.subTask
+import po.misc.exceptions.getOrThrow
 import po.restwraptor.scope.ConfigContext
 import po.restwraptor.scope.CoreContext
 import po.restwraptor.enums.EnvironmentType
+import po.restwraptor.exceptions.ConfigurationException
 import po.restwraptor.exceptions.ExceptionCodes
-import po.restwraptor.extensions.getOrConfigurationEx
 import po.restwraptor.interfaces.WraptorHandler
 import po.restwraptor.models.configuration.ApiConfig
 import po.restwraptor.models.configuration.AuthConfig
 import po.restwraptor.models.configuration.WraptorConfig
 import po.restwraptor.models.info.WraptorStatus
 import po.restwraptor.models.server.WraptorRoute
-import po.restwraptor.scope.AuthConfigContext
 
 val RestWrapTorKey = AttributeKey<RestWrapTor>("RestWrapTorInstance")
 
@@ -53,7 +52,7 @@ class RestWrapTor(
 
     private var _application: Application? = null
     internal val application: Application
-        get() = _application.getOrConfigurationEx("Reading Application uninitialized", ExceptionCodes.GENERAL_CONFIG_FAILURE)
+        get() = _application.getOrThrow<Application, ConfigurationException>(null, ExceptionCodes.GENERAL_CONFIG_FAILURE.value)
 
     /** The embedded Ktor server instance. */
     private lateinit var  embeddedServer : EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>
@@ -170,7 +169,7 @@ class RestWrapTor(
 
                 onServerStartedCallback?.invoke(this)
             }
-            registerSelf().getOrConfigurationEx("RestWrapTor Registration inside Application failed", ExceptionCodes.KEY_REGISTRATION)
+            registerSelf().getOrThrow<AttributeKey<RestWrapTor>, ConfigurationException>("RestWrapTor Registration inside Application failed", ExceptionCodes.KEY_REGISTRATION.value)
             appConfigFn?.let{fn->
                 configContext.fn()
             }

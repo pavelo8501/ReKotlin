@@ -47,7 +47,6 @@ publishing {
     }
 }
 
-
 tasks.withType<Test> {
     useJUnitPlatform()
 }

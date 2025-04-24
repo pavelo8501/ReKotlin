@@ -1,8 +1,12 @@
 package po.auth.sessions.interfaces
 
-import po.auth.sessions.enumerators.SessionType
+import po.auth.sessions.models.AuthorizedSession
+
+
 
 interface SessionIdentified {
-    val sessionId: String
+    val sessionID: String
     val remoteAddress: String
+
 }
+

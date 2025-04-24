@@ -5,10 +5,10 @@ import po.auth.authentication.authenticator.UserAuthenticator
 import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.auth.authentication.exceptions.ErrorCodes
 import po.auth.extensions.getOrThrow
+import po.auth.sessions.enumerators.SessionType
 import po.auth.sessions.interfaces.SessionIdentified
 import po.auth.sessions.models.AuthorizedSession
 import po.lognotify.TasksManaged
-import po.lognotify.extensions.newTask
 import po.lognotify.extensions.subTask
 import java.util.concurrent.ConcurrentHashMap
 
@@ -18,19 +18,21 @@ class SessionFactory(
 ) : TasksManaged
 {
 
-    internal val activeSessions : ConcurrentHashMap<String, AuthorizedSession> = ConcurrentHashMap<String, AuthorizedSession>()
+    private val activeSessions : ConcurrentHashMap<String, AuthorizedSession> = ConcurrentHashMap<String, AuthorizedSession>()
 
-    suspend fun createAuthorizedSession(sessionId: String,  principal: AuthenticationPrincipal) : AuthorizedSession
-        = subTask("createAuthorizedSession") {
+    fun sessionLookUp(sessionId: String):AuthorizedSession?{
+        return activeSessions[sessionId]
+    }
 
-       val anonSession = activeSessions[sessionId].getOrThrow("session with id $sessionId not found", ErrorCodes.SESSION_NOT_FOUND)
-       anonSession.providePrincipal(principal)
+    fun listAnonymous(): List<AuthorizedSession>{
+        return activeSessions.values.filter { it.sessionType == SessionType.ANONYMOUS}
+    }
 
-    }.resultOrException()
+
 
     suspend fun createAnonymousSession(authData : SessionIdentified,  authenticator : UserAuthenticator): AuthorizedSession{
        val anonSession = AuthorizedSession(authData.remoteAddress, authenticator)
-       activeSessions[anonSession.sessionId] = anonSession
+       activeSessions[anonSession.sessionID] = anonSession
        return anonSession
     }
 

@@ -50,20 +50,33 @@ class TaskRunner<R: Any?>(
         val managedException =
             throwable as? ManagedException ?: ManagedException(
                 throwable.message.toString(),
-                HandlerType.GENERIC
-            ).setSourceException(throwable)
+            ).setSourceException(throwable).setHandler(HandlerType.GENERIC)
 
         when (managedException.handler) {
             HandlerType.CANCEL_ALL -> {
-                //Cancel Root tasks Job
-                return ExceptionHandler.HandlerResult<R>(
-                    null,
-                    ManagedException("CancelAll", HandlerType.UNMANAGED).setSourceException(managedException)
-                )
+
+               if(exceptionHandler.isHandlerPresent(managedException.handler)){
+                   val result = exceptionHandler.handleManaged(managedException)
+                   return result
+               }else{
+                   notifier.systemInfo(EventType.EXCEPTION_HANDLED, SeverityLevel.WARNING, "Exception handled in ${task.taskName}")
+                   task.notifyRootCancellation(managedException)
+                   throw managedException
+               }
+
+                return exceptionHandler.handleManaged(managedException)
+//                notifier.systemInfo(EventType.EXCEPTION_HANDLED, SeverityLevel.WARNING, "Exception handled in ${task.taskName}")
+//                task.notifyRootCancellation(managedException)
+//                return ExceptionHandler.HandlerResult<R>(null, managedException)
             }
 
             HandlerType.SKIP_SELF -> {
-                return exceptionHandler.handleManaged(managedException)
+                if(exceptionHandler.isHandlerPresent(managedException.handler)){
+                    val result = exceptionHandler.handleManaged(managedException)
+                    return result
+                }else{
+                    return  ExceptionHandler.HandlerResult<R>(null, managedException)
+                }
             }
 
             HandlerType.UNMANAGED -> {
@@ -75,7 +88,6 @@ class TaskRunner<R: Any?>(
             }
         }
     }
-
     suspend fun <T> execute(receiver:T,  block: suspend T.() -> R, handlerBlock: suspend TaskRunnerCallbacks<R>.()->Unit) {
         try{
             startTimer()
@@ -90,7 +102,6 @@ class TaskRunner<R: Any?>(
            }
         }
     }
-
     @PublishedApi
     internal suspend fun <T> execute(receiver:T,  block: suspend T.(TaskHandler<R>) -> R, handlerBlock: suspend TaskRunnerCallbacks<R>.()->Unit) {
         try {
@@ -107,7 +118,7 @@ class TaskRunner<R: Any?>(
         }
     }
 
-   suspend inline fun <T, R2> executeJob(receiver:T, crossinline  block: suspend T.()->R2) {
+    suspend inline fun <T, R2> executeJob(receiver:T, crossinline  block: suspend T.()->R2) {
         try {
             withContext(task.coroutineContext){
                 val result = block.invoke(receiver)

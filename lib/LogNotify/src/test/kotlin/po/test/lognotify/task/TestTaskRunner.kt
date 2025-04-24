@@ -3,9 +3,9 @@ package po.test.lognotify.task
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
-import po.lognotify.exceptions.enums.HandlerType
 import po.lognotify.extensions.startTask
 import po.lognotify.extensions.subTask
+import po.misc.exceptions.HandlerType
 import kotlin.test.assertEquals
 
 class TestTaskRunner {

@@ -8,22 +8,27 @@ import po.misc.exceptions.getOrException
 
 class LoggerException(
     message: String,
-    handler: HandlerType = HandlerType.UNMANAGED
-) : ManagedException(message, handler) {
+) : ManagedException(message) {
 
-    override val builderFn: (String, HandlerType) -> LoggerException
-        get() = ::LoggerException
+    override var handler: HandlerType = HandlerType.UNMANAGED
+
+    override val builderFn: (String, Int?) -> LoggerException ={message,_ ->
+        LoggerException(message)
+    }
+
+
+
 }
 
 internal inline fun <reified T: Any> T?.getOrThrowLogger(message: String):T{
     return this.getOrException {
-       throw LoggerException(message, HandlerType.UNMANAGED)
+       throw LoggerException(message)
     }
 }
 
-internal inline fun <reified T: Any> T?.getOrThrow(message: String, handler: HandlerType):T{
+internal inline fun <reified T: Any> T?.getOrThrow(message: String):T{
     return this.getOrException {
-        throw ManagedException(message, handler)
+        throw ManagedException(message)
     }
 }
 

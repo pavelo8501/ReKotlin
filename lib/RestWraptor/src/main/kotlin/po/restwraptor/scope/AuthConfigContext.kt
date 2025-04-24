@@ -1,5 +1,6 @@
 package po.restwraptor.scope
 
+import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.application.pluginOrNull
@@ -37,10 +38,10 @@ class AuthConfigContext(
                             verifier(jwtService.getVerifier())
                             validate { credential ->
                               val principal = withSession {
-                                    val jwtToken = jwtService.tokenRepository.resolve(sessionId)
+                                    val jwtToken = jwtService.tokenRepository.resolve(sessionID)
                                     jwtService.isNotExpired(jwtToken){
                                         handler.info("Token not found in repository")
-                                        respondUnauthorized("Session expired")
+                                        respondUnauthorized("Session expired", HttpStatusCode.Unauthorized.value)
                                     }
                                     jwtService.validateToken(jwtToken)
                                 }

@@ -27,7 +27,7 @@ interface ConfigContextInterface{
     suspend fun setupAuthentication(
         cryptoKeys: CryptoRsaKeys,
         userLookupFn: suspend ((login: String)-> AuthenticationPrincipal?),
-        configFn  : suspend AuthConfigContext.()-> Unit)
+        configFn  : (suspend AuthConfigContext.()-> Unit)? = null)
     suspend fun setup(configFn : suspend WraptorConfig.()-> Unit)
     suspend fun setup(configuration : WraptorConfig, configFn : suspend WraptorConfig.()-> Unit)
     fun setupApplication(block: Application.()->Unit)
@@ -125,9 +125,9 @@ class ConfigContext(
     override suspend fun setupAuthentication(
         cryptoKeys: CryptoRsaKeys,
         userLookupFn: suspend ((login: String)-> AuthenticationPrincipal?),
-        configFn  : suspend AuthConfigContext.()-> Unit){
+        configFn  : (suspend AuthConfigContext.()-> Unit)?){
         authContext.setupAuthentication(cryptoKeys, userLookupFn)
-        authContext.configFn()
+        configFn?.invoke(authContext)
     }
     override suspend fun setup(configuration : WraptorConfig, configFn : suspend WraptorConfig.()-> Unit){
         wrapConfig.configFn()

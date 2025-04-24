@@ -1,12 +1,14 @@
 package po.auth.authentication.exceptions
 
+import po.auth.authentication.exceptions.AuthException
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
+import po.misc.exceptions.SelfThrownException
+import po.misc.safeCast
+import kotlin.reflect.full.companionObjectInstance
 
-enum class ErrorCodes(val code: Int) {
+enum class ErrorCodes(val value: Int) {
 
-    ABNORMAL_STATE(0),
-    INVALID_CREDENTIALS(1001),
     INVALID_KEY_FORMAT(1002),
     INVALID_TOKEN(1003),
     TOKEN_EXPIRED(104),
@@ -22,20 +24,22 @@ enum class ErrorCodes(val code: Int) {
     TOKEN_INVALID_AUDIENCE(1015),
     TOKEN_INVALID_ISSUER(1016),
     UNINITIALIZED(1018),
-    CONFIGURATION_MISSING(1017),
 
-    SESSION_NOT_FOUND(2001),
+    INVALID_CREDENTIALS(4001),
+    PASSWORD_MISMATCH(4002),
 
-    AUTH_PRINCIPAL_NOT_FOUND(3000),
-    AUTH_PASSWORD_MISMATCH(3001);
+    INTERNAL_ERROR(5000),
+    CONFIGURATION_MISSING(5002),
+    SESSION_NOT_FOUND(5001),
+    SESSION_PARAM_FAILURE(5002);
 
 
     companion object {
-        fun fromValue(code: Int): ErrorCodes {
-            entries.firstOrNull { it.code == code }?.let {
+        fun fromValue(value: Int): ErrorCodes {
+            entries.firstOrNull { it.value == value }?.let {
                 return it
             }
-            return ABNORMAL_STATE
+            return INTERNAL_ERROR
         }
     }
 }
@@ -43,11 +47,26 @@ enum class ErrorCodes(val code: Int) {
 class AuthException(
     override var message: String,
     val code: ErrorCodes,
-    override var handler : HandlerType = HandlerType.CANCEL_ALL
-) : ManagedException(message, handler){
+) : ManagedException(message){
 
-    override val builderFn: (String, HandlerType) -> AuthException = {msg, handler->
-        AuthException(msg, code, handler)
+
+    override var handler : HandlerType = HandlerType.CANCEL_ALL
+
+    override val builderFn: (String, Int?) -> AuthException = {msg, code ->
+        val newCode = code?:5000
+        AuthException(msg,  ErrorCodes.fromValue(newCode))
+    }
+
+    companion object {
+        inline fun <reified E : ManagedException> build(message: String, optionalCode: Int?): E {
+            return E::class.companionObjectInstance?.safeCast<Builder<E>>()
+                ?.build(message, optionalCode)
+                ?: throw IllegalStateException("Companion object must implement Builder<E>")
+        }
+
+        interface Builder<E> {
+            fun build(message: String, optionalCode: Int?): E
+        }
     }
 
 

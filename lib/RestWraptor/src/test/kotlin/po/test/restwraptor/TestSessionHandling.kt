@@ -15,26 +15,31 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
 import kotlinx.serialization.json.Json
+import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertNotNull
-import po.auth.extensions.asBearer
+import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.auth.extensions.readCryptoRsaKeys
 import po.auth.extensions.setKeyBasePath
-import po.auth.extensions.stripBearer
-import po.auth.sessions.models.AuthorizedPrincipal
 import po.restwraptor.RestWrapTor
 import po.restwraptor.enums.WraptorHeaders
+import po.restwraptor.extensions.asBearer
 import po.restwraptor.extensions.jwtSecured
+import po.restwraptor.extensions.stripBearer
 import po.restwraptor.extensions.withBaseUrl
 import po.restwraptor.extensions.withSession
 import po.restwraptor.models.request.LoginRequest
 import po.restwraptor.models.response.ApiResponse
 import kotlin.test.assertEquals
 
+
+@DisplayName("Asserting security handling")
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestSessionHandling {
 
-    fun authenticate(login: String, password: String): AuthorizedPrincipal{
-        return TestUser(0, "someName", login, password).asAuthorizedPrincipal()
+    fun userLookup(login: String): AuthenticationPrincipal?{
+        return TestUser(0, "someName", login)
     }
 
     @Test
@@ -52,17 +57,15 @@ class TestSessionHandling {
 
         application {
             server.useApp(this) {
-                setupAuthentication(keyPath.readCryptoRsaKeys("ktor.pk8", "ktor.spki"), ::authenticate) {
-
-                }
+                setupAuthentication(keyPath.readCryptoRsaKeys("ktor.pk8", "ktor.spki"), ::userLookup)
             }
             routing {
                jwtSecured {
                    post(withBaseUrl("protected")){
                        try {
                            call.withSession {
-                               protectedCallSessionId = sessionId
-                               call.response.header(WraptorHeaders.XAuthToken.value, sessionId)
+                               protectedCallSessionId = sessionID
+                               call.response.header(WraptorHeaders.XAuthToken.value, sessionID)
                                call.respond(ApiResponse("Response"))
                            }
                        }catch (th: Throwable){

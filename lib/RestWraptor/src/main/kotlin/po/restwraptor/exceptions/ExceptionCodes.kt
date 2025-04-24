@@ -20,7 +20,7 @@ enum class ExceptionCodes(val value: Int) {
     LOGNOTIFY_ERROR(3007),
 
     GENERAL_AUTH_CONFIG_FAILURE(4001),
-    AUTH_SERVICE_UNDEFINED(4002);
+    AUTH_SERVICE_EXCEPTION(4002);
 
 
     companion object {
@@ -34,11 +34,11 @@ enum class ExceptionCodes(val value: Int) {
         }
 
 
-        fun fromValue(code: Int): ExceptionCodes? {
-            ExceptionCodes.entries.firstOrNull { it.value == code }?.let {
+        fun fromValue(value: Int): ExceptionCodes {
+            ExceptionCodes.entries.firstOrNull { it.value == value }?.let {
                 return it
             }
-            return ExceptionCodes.UNKNOWN
+            return UNKNOWN
         }
     }
 

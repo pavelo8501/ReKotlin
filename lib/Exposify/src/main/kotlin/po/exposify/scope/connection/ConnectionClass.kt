@@ -7,14 +7,10 @@ import po.auth.sessions.interfaces.ManagedSession
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.controls.ConnectionInfo
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.scope.connection.controls.CoroutineEmitter2
+import po.exposify.scope.connection.controls.CoroutineEmitter
 import po.exposify.scope.connection.controls.UserDispatchManager
 import po.exposify.scope.sequence.models.SequencePack
 import po.exposify.scope.service.ServiceClass
-import po.lognotify.extensions.newTask
-import po.lognotify.extensions.startTask
-import po.lognotify.extensions.subTask
-import kotlin.coroutines.coroutineContext
 
 class ConnectionClass(
     val connectionInfo: ConnectionInfo,
@@ -29,7 +25,7 @@ class ConnectionClass(
     }
 
     private val dispatchManager = UserDispatchManager()
-    private val coroutineEmitter = CoroutineEmitter2("${connectionInfo.dbName}|CoroutineEmitter")
+    private val coroutineEmitter = CoroutineEmitter("${connectionInfo.dbName}|CoroutineEmitter")
 
     val isConnectionOpen: Boolean
         get() { return connectionInfo.connection.transactionManager.currentOrNull()?.connection?.isClosed == false }

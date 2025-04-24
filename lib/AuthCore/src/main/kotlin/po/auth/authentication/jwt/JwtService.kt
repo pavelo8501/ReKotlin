@@ -47,13 +47,13 @@ class JWTService(
             .withAudience(config.audience)
             .withIssuer(config.issuer)
             .withSubject(principal.id.toString())
-            .withClaim("session_id", session.sessionId)
-            .withClaim("user_json", serialized)
+            .withClaim("session_id", session.sessionID)
+                .withClaim("user_json", serialized)
             .withIssuedAt(Date.from(Instant.now()))
             .withExpiresAt(Date.from(Instant.now().plusSeconds(3600)))
             .sign(Algorithm.RSA256(null, config.privateKey))
 
-        return tokenRepository.store(JwtToken(token, session.sessionId))
+        return tokenRepository.store(session.sessionID, token, 0L)
     }
 
     fun getVerifier(): JWTVerifier{

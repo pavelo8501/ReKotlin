@@ -1,14 +1,16 @@
 package po.restwraptor.plugins
 
 import io.ktor.server.application.createApplicationPlugin
+import io.ktor.util.reflect.TypeInfo
 import io.ktor.utils.io.toByteArray
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 import kotlinx.serialization.*
 import kotlinx.serialization.builtins.ListSerializer
+import po.misc.exceptions.getOrThrow
+import po.restwraptor.exceptions.ConfigurationException
 import po.restwraptor.exceptions.ExceptionCodes
-import po.restwraptor.extensions.getOrDataEx
 import kotlin.reflect.jvm.jvmErasure
 
 
@@ -46,7 +48,7 @@ val FlexibleContentNegotiationPlugin = createApplicationPlugin("FlexibleContentN
         transformBody {
            val transformBodyContext = this
            val byteReadChannel = it
-           val type = transformBodyContext.requestedType.getOrDataEx("RequestedType undefined", ExceptionCodes.VALUE_IS_NULL)
+           val type = transformBodyContext.requestedType.getOrThrow<TypeInfo, ConfigurationException>("RequestedType undefined", ExceptionCodes.VALUE_IS_NULL.value)
 
            val byteChannel = it.toString()
            if (type == String::class) return@transformBody it.toString() // skip plain text

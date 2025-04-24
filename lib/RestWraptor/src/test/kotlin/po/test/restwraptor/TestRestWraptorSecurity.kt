@@ -20,45 +20,40 @@ import io.ktor.server.testing.testApplication
 import io.ktor.utils.io.InternalAPI
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertAll
 import org.junit.jupiter.api.assertNotNull
+import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.auth.authentication.exceptions.AuthException
 import po.auth.authentication.exceptions.ErrorCodes
-import po.auth.extensions.asBearer
 import po.auth.extensions.readCryptoRsaKeys
 import po.auth.extensions.setKeyBasePath
-import po.auth.extensions.stripBearer
-import po.auth.authentication.interfaces.AuthenticationPrincipal
-import po.auth.sessions.models.AuthorizedPrincipal
 import po.restwraptor.RestWrapTor
+import po.restwraptor.enums.WraptorHeaders
+import po.restwraptor.extensions.asBearer
 import po.restwraptor.extensions.jwtSecured
 import po.restwraptor.extensions.respondBadRequest
+import po.restwraptor.extensions.stripBearer
 import po.restwraptor.extensions.withBaseUrl
 import po.restwraptor.models.request.LoginRequest
 import po.restwraptor.models.response.ApiResponse
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 
 @Serializable
 data class TestUser(
     override var id: Long,
     var name : String,
     override var login: String = "someLogin",
-    var password : String = "somePassword",
+    override val hashedPassword: String = "somepassword",
     override var email: String = "some@mail.test",
     var roles: Set<String> = setOf(),
 ) : AuthenticationPrincipal {
 
     override val userGroupId: Long = 0
-
-    fun initBy(authorized : AuthorizedPrincipal){
-        login = authorized.login
-
-    }
-    fun asAuthorizedPrincipal():AuthorizedPrincipal{
-      return  AuthorizedPrincipal(id, login, email, userGroupId)
-    }
-
     override fun asJson(): String {
         return Json.encodeToString(this)
     }
@@ -67,24 +62,9 @@ data class TestUser(
 
 class TestRestWraptorSecurity {
 
-    @Test
-    fun `RSA key generation`(){
-        // val keys = generateRsaKeys()
-        // keys.writeToDisk("keys/")
-    }
-
-    suspend fun authenticate(login: String, password: String): AuthorizedPrincipal{
-        return TestUser(0, "someName", login, password).asAuthorizedPrincipal()
-    }
-
-    suspend fun authenticateFailed(login: String, password: String): AuthorizedPrincipal{
-      throw AuthException("Authentication failed", ErrorCodes.INVALID_CREDENTIALS)
-    }
-
     private fun  Routing.publicRoutes(){
         post(withBaseUrl("public")) {
             val receivedBody =  call.receive<String>()
-
             if(receivedBody == "HELO"){
                 call.respond(ApiResponse("EHLO"))
             }else{
@@ -92,11 +72,10 @@ class TestRestWraptorSecurity {
             }
         }
     }
-
     private fun  Routing.protectedRoutes(){
-
         jwtSecured {
             post(withBaseUrl("protected")) {
+                println("Call hit /protected")
                 val receivedBody =  call.receive<String>()
                 if(receivedBody == "HELO"){
                     call.respond(ApiResponse("EHLO"))
@@ -107,34 +86,44 @@ class TestRestWraptorSecurity {
         }
     }
 
+
+    companion object{
+        @JvmStatic
+        val keyPath = setKeyBasePath("src/test/demo_keys")
+
+        @JvmStatic
+        val jsonFormatter = Json{
+            ignoreUnknownKeys = true
+            isLenient = true
+        }
+
+        @JvmStatic
+        fun userLookUp(login: String): AuthenticationPrincipal?{
+            if(login == "login"){
+                return TestUser(0, "someName", "login")
+            }else{
+                return null
+            }
+        }
+    }
+
+
     @OptIn(InternalAPI::class)
     @Test
     fun `Jwt token & session created`()  = testApplication {
 
         val keyPath = setKeyBasePath("src/test/demo_keys")
         val server = RestWrapTor()
-
-        val jsonFormatter = Json{
-            ignoreUnknownKeys = true
-            isLenient = true
-        }
-
         application {
             server.useApp(this){
-                setupAuthentication(keyPath.readCryptoRsaKeys("ktor.pk8", "ktor.spki"), ::authenticate){
-
-                }
+                setupAuthentication(keyPath.readCryptoRsaKeys("ktor.pk8", "ktor.spki"), ::userLookUp)
             }
-            routing {
-                publicRoutes()
-                protectedRoutes()
-            }
+            routing { publicRoutes(); protectedRoutes() }
         }
 
         this@testApplication.startApplication()
-
         val httpClient = this@testApplication.createClient {
-            install(ContentNegotiation) { json() }
+            install(ContentNegotiation) { json(jsonFormatter) }
         }
 
         val publicResponse = httpClient.post("/public") {
@@ -142,7 +131,6 @@ class TestRestWraptorSecurity {
             contentType(ContentType.Application.Json)
         }
 
-        val asText = publicResponse.bodyAsText()
         val publicResponseMessage =  publicResponse.body<ApiResponse<String>>().data
         assertEquals(HttpStatusCode.OK, publicResponse.status, "Call did not pass through")
         assertEquals("EHLO", publicResponseMessage, "Wrong response")
@@ -155,31 +143,61 @@ class TestRestWraptorSecurity {
 
 
         val loginResponse = httpClient.post("/auth/login") {
-            setBody<LoginRequest>(LoginRequest("user", "password"))
+            setBody<LoginRequest>(LoginRequest("login", "password"))
             contentType(ContentType.Application.Json)
         }
 
-        val token =  loginResponse.body<ApiResponse<String>>()
-        val sessionId = loginResponse.headers[HttpHeaders.Authorization].stripBearer()
+        val sessionId = loginResponse.headers[WraptorHeaders.XAuthToken.value]
+        val token =  loginResponse.body<ApiResponse<String>>().data.stripBearer()
 
         assertAll(
             {assertEquals(HttpStatusCode.OK, loginResponse.status, "Reply status code not 200")},
             {assertNotNull(sessionId, "Session id not provided")},
-            {assertNotNull(token, "JWT token not received")}
+            {assertNotNull(token, "JWT token not received")},
+            { assertNotEquals(sessionId, token,"Token and sessionId received are the same session :$sessionId token: $token")}
         )
 
         val protectedSuccess = httpClient.post("/protected") {
-            val bearerStr = sessionId.asBearer()
-            println("Bearer str $bearerStr")
+            val bearerStr = token.asBearer()
             header(HttpHeaders.Authorization, bearerStr)
+            header(WraptorHeaders.XAuthToken.value, sessionId)
             setBody<String>("HELO")
             contentType(ContentType.Application.Json)
         }
 
+        val responseAsString  = protectedSuccess.bodyAsText()
         val responseMessage =  protectedSuccess.body<ApiResponse<String>>().data
 
         assertEquals(HttpStatusCode.OK, protectedSuccess.status, "Reply status code not 200")
         assertEquals("EHLO", responseMessage,  "Wrong reply message")
+    }
+
+    @Test
+    fun `correct authentication exceptions are thrown and processed`()=testApplication {
+
+        val server = RestWrapTor()
+        application {
+            server.useApp(this){
+                setupAuthentication(keyPath.readCryptoRsaKeys("ktor.pk8", "ktor.spki"), ::userLookUp)
+            }
+            routing { publicRoutes(); protectedRoutes() }
+        }
+        this@testApplication.startApplication()
+        val httpClient = this@testApplication.createClient {
+            install(ContentNegotiation) { json(jsonFormatter) }
+        }
+        val wrongLoginResponse = httpClient.post("/auth/login") {
+            setBody<LoginRequest>(LoginRequest("user2", "password"))
+            contentType(ContentType.Application.Json)
+        }
+
+        val body = wrongLoginResponse.body<ApiResponse<JsonElement>>()
+        assertAll(
+            "Wrong login sent",
+            {assertEquals(HttpStatusCode.Unauthorized, wrongLoginResponse.status, "wrong reply status code")},
+            { assertTrue(body.data.toString().contains("login"), "wrong reply message")}
+            )
+
     }
 
 }

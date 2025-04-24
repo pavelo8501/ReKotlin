@@ -23,36 +23,44 @@ enum class HandlerType(val value: Int) {
 sealed interface SelfThrownException<E:ManagedException>  {
     val message: String
     var handler  : HandlerType
-    val builderFn: (String, HandlerType) -> E
+    val builderFn: (String, Int?) -> E
 
     fun setSourceException(th: Throwable): E
+    fun getSourceException(returnSelfIfNull: Boolean): Throwable?
+    fun setHandler(handlerType: HandlerType): E
     fun throwSelf(): Nothing
 
 
     companion object {
-        inline fun <reified E : ManagedException> build(message: String, handler: HandlerType): E {
+        inline fun <reified E : ManagedException> build(message: String, optionalCode: Int?): E {
             return E::class.companionObjectInstance?.safeCast<Builder<E>>()
-                ?.build(message, handler)
+                ?.build(message, optionalCode)
                 ?: throw IllegalStateException("Companion object must implement Builder<E>")
         }
 
         interface Builder<E> {
-            fun build(message: String, handler: HandlerType): E
+            fun build(message: String, optionalCode: Int?): E
         }
     }
 }
 
 open class ManagedException(
     override var message: String,
-    override var handler  : HandlerType,
 ) : Throwable(message), SelfThrownException<ManagedException>{
 
-    override val builderFn: (String, HandlerType) -> ManagedException={msg, handler->
-        ManagedException(msg, handler)
+    override var handler  : HandlerType = HandlerType.CANCEL_ALL
+
+    override val builderFn: (String, Int?) -> ManagedException={msg,_->
+        ManagedException(msg)
     }
 
     fun addMessage(newMessage: String): ManagedException{
         message = "$message. $newMessage"
+        return this
+    }
+
+    override fun setHandler(handlerType: HandlerType): ManagedException{
+        handler = handlerType
         return this
     }
 
@@ -61,6 +69,14 @@ open class ManagedException(
         source = th
         return this
     }
+    override fun getSourceException(returnSelfIfNull: Boolean): Throwable?{
+        if(returnSelfIfNull){
+            return source?:this
+        }
+        return source
+    }
+
+
     override fun throwSelf():Nothing {
         throw this
     }

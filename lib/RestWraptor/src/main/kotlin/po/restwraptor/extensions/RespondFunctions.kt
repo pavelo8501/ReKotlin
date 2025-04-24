@@ -28,13 +28,12 @@ suspend fun RoutingContext.respondInternal(throwable : Throwable) {
     )
 }
 
-suspend fun RoutingContext.respondUnauthorized(message: String, code: Int = 0) {
+suspend fun RoutingContext.respondUnauthorized(message: String, code: Int) {
     call.apply {
         respondUnauthorized(message, code)
     }
 }
-
-suspend fun ApplicationCall.respondUnauthorized(message: String, code: Int = 0) {
+suspend fun ApplicationCall.respondUnauthorized(message: String, code: Int) {
     respond(HttpStatusCode.Unauthorized, ApiResponse.withErrorMessage(message, code))
 }
 

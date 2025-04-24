@@ -9,7 +9,8 @@ internal inline fun <reified T: Any> T?.getOrLoggerException(message: String):T{
     if(this != null){
         return this
     }else{
-        throw LoggerException(message, HandlerType.UNMANAGED)
+        val ex  = LoggerException(message)
+        throw ex.setHandler(HandlerType.UNMANAGED)
     }
 }
 
@@ -17,6 +18,6 @@ internal inline fun <reified T: Any> T?.getOrLoggerException(message: String):T{
 internal inline fun <reified T: Any> Any?.castOrLoggerException(): T {
 
    return this.castOrException<T> {
-       LoggerException("", HandlerType.UNMANAGED)
+       LoggerException("")
     }
 }

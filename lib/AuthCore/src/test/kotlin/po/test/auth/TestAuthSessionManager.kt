@@ -14,7 +14,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
 
-class  authData(override val sessionId: String, override val remoteAddress: String) : SessionIdentified
+class  authData2(override val sessionID: String, override val remoteAddress: String) : SessionIdentified
 
 
 class TestAuthSessionManager {
@@ -22,23 +22,23 @@ class TestAuthSessionManager {
     @Test
     fun testSession()= runTest {
 
-        withContext(AuthSessionManager.getOrCreateSession(authData("id", "127.0.0.1")).sessionContext()) {
+        withContext(AuthSessionManager.getOrCreateSession(authData2("id", "127.0.0.1")).sessionContext) {
             val retrieved = coroutineContext[AuthorizedSession]
             assertNotNull(retrieved)
-            assertNotNull(retrieved.sessionId)
-            println("Inside context -> ${retrieved.sessionId}")
+            assertNotNull(retrieved.sessionID)
+            println("Inside context -> ${retrieved.sessionID}")
         }
     }
 
     @Test
     fun `withExtension executes correctly` () = runTest {
-        val session = AuthSessionManager.getOrCreateSession(authData("id", "127.0.0.1"))
+        val session = AuthSessionManager.getOrCreateSession(authData2("id", "127.0.0.1"))
         withSession(session){
             val retrieved = coroutineContext[AuthorizedSession]
             val coroutineInfo = getCoroutineInfo()
 
             assertNotNull(retrieved, "in testSessionWithExtension")
-            assertNotNull(retrieved.sessionId)
+            assertNotNull(retrieved.sessionID)
             assertEquals("AnonymousSession", coroutineInfo.name)
         }
     }
@@ -46,11 +46,11 @@ class TestAuthSessionManager {
     @Test
     fun `current session can be retrieved from the contex` () = runTest {
 
-        val session = AuthSessionManager.getOrCreateSession(authData("id", "127.0.0.1"))
+        val session = AuthSessionManager.getOrCreateSession(authData2("id", "127.0.0.1"))
         withSession(session){
             val retrieved = currentSession()
             assertNotNull(retrieved, "in testSessionWithExtension")
-            assertNotNull(retrieved.sessionId)
+            assertNotNull(retrieved.sessionID)
             assertEquals("AnonymousSession", retrieved.coroutineName)
         }
     }

@@ -48,6 +48,17 @@ dependencies {
 
 }
 
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            from(components["java"]) // This publishes the main Java/Kotlin component
+            groupId = "po.auth"
+            artifactId = "authcore"
+            version = authCoreVersion
+        }
+    }
+}
+
 tasks.test {
     useJUnitPlatform()
 }

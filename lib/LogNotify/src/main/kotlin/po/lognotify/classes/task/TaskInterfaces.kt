@@ -5,7 +5,21 @@ import po.lognotify.classes.task.runner.TaskRunner
 import po.lognotify.models.TaskKey
 import po.lognotify.models.TaskRegistry
 import po.misc.exceptions.CoroutineInfo
+import po.misc.exceptions.ManagedException
 import kotlin.coroutines.CoroutineContext
+
+
+interface TaskIdentification {
+
+    val taskName: String
+    val nestingLevel: Int
+    val moduleName: String
+    val qualifiedName: String
+    val startTime: Long
+    var endTime : Long
+
+}
+
 
 interface ControlledTask : ResultantTask {
     val key : TaskKey
@@ -13,7 +27,6 @@ interface ControlledTask : ResultantTask {
     val notifier: Notifier
     val registry: TaskRegistry<*>
     val taskRunner: TaskRunner<*>
-    val taskHandler: TaskHandler<*>
 }
 
 interface ResultantTask{
@@ -24,9 +37,19 @@ interface ResultantTask{
     val qualifiedName: String
     val startTime: Long
     var endTime : Long
-   // val notifier: NotificationProvider
+
+
+   suspend fun notifyRootCancellation(exception: ManagedException?)
 
     val coroutineInfo : List<CoroutineInfo>
 
+}
 
+interface HandledTask<R: Any?>{
+    val key: TaskKey
+    val coroutineContext : CoroutineContext
+    val notifier: Notifier
+    val taskRunner: TaskRunner<R>
+
+    suspend fun notifyRootCancellation(exception: ManagedException?)
 }

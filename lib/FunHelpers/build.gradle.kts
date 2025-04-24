@@ -8,13 +8,15 @@ val mysqlVersion: String by project
 val junitVersion:String by project
 val coroutinesVersion:String by project
 val logNotifyVersion:String by project
+val funHelpersVersion: String by project
+
 
 plugins {
     kotlin("jvm")
 }
 
 group = "po.misc"
-version = "0.0.0"
+version = funHelpersVersion
 
 repositories {
     mavenCentral()
@@ -34,7 +36,16 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
-
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            from(components["java"]) // This publishes the main Java/Kotlin component
+            groupId = "po.misc"
+            artifactId = "funhelpers"
+            version = funHelpersVersion
+        }
+    }
+}
 
 tasks.withType<Test> {
     useJUnitPlatform()

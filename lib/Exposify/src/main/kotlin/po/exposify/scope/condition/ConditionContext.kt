@@ -4,7 +4,7 @@ import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.extensions.WhereCondition
-import po.exposify.scope.dto.DTOContext
+
 
 
 

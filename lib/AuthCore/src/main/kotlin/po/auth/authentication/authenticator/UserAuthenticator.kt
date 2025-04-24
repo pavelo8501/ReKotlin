@@ -12,6 +12,8 @@ import po.auth.extensions.getOrThrow
 import po.auth.sessions.classes.SessionFactory
 import po.auth.sessions.interfaces.SessionIdentified
 import po.auth.sessions.models.AuthorizedSession
+import po.lognotify.extensions.subTask
+import po.misc.exceptions.HandlerType
 
 class UserAuthenticator(
     private val factory : SessionFactory
@@ -33,17 +35,16 @@ class UserAuthenticator(
     }
 
     suspend fun authenticate(login: String, password: String, anonymous: AuthorizedSession): AuthenticationPrincipal{
-       return lookupFn?.let {principalValidatorFn->
-           val hashedPassword = BCrypt.withDefaults().hashToString(12, password.toCharArray())
-           principalValidatorFn(login)?.let {
-              if( BCrypt.verifyer().verify(password.toCharArray(), it.hashedPassword) == null){
-                  throw AuthException("Password mismatch", ErrorCodes.AUTH_PASSWORD_MISMATCH )
-              }
-               factory.createAuthorizedSession(anonymous.sessionId, it)
-               it
-           }
-
-        }?:throw AuthException("Authenticate function not set", ErrorCodes.CONFIGURATION_MISSING)
+        val principalLookupFn = lookupFn.getOrThrow("Authenticate function not set", ErrorCodes.CONFIGURATION_MISSING)
+        val principal =  principalLookupFn.invoke(login)
+        if(principal == null){
+           throw AuthException("Wrong login", ErrorCodes.INVALID_CREDENTIALS).setHandler(HandlerType.SKIP_SELF)
+        }
+        if( BCrypt.verifyer().verify(password.toCharArray(), principal.hashedPassword) == null){
+            throw AuthException("Password mismatch", ErrorCodes.PASSWORD_MISMATCH).setHandler(HandlerType.SKIP_SELF)
+        }
+        anonymous.providePrincipal(principal)
+        return principal
     }
 
     fun provideJwtService(service : JWTService){
@@ -51,7 +52,7 @@ class UserAuthenticator(
     }
 
     override suspend fun authorize(authData: SessionIdentified): AuthorizedSession {
-        val existentSession = factory.activeSessions[authData.sessionId]
+        val existentSession = factory.sessionLookUp(authData.sessionID)
         return existentSession ?: factory.createAnonymousSession(authData, this)
     }
 

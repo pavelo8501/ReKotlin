@@ -13,7 +13,7 @@ interface ExceptionHandled<R: Any?> {
 
    suspend fun subscribeHandlerUpdates(callback: suspend (notification: Notification) -> Unit)
    suspend fun handleManaged(managedEx: ManagedException): HandlerResult<R>
-   suspend fun provideHandlerFn(handler : HandlerType, handlerFn:()->R)
+   suspend fun provideHandlerFn(handlers : Set<HandlerType>, handlerFn: suspend (exception: ManagedException)->R)
 
 }
 
@@ -25,9 +25,7 @@ class ExceptionHandler<R: Any?>(
       val value:R? = null,
       val exception: ManagedException? = null,
    ){
-
       val success: Boolean = exception!=null
-
    }
 
    private var onHandlerUpdate: (suspend (notification: Notification) -> Unit)? = null
@@ -70,18 +68,24 @@ class ExceptionHandler<R: Any?>(
       onHandlerUpdate?.invoke(notification)
    }
 
-   val handlers : MutableMap<HandlerType, ()->R> = mutableMapOf()
+   val registeredHandlers : MutableMap<HandlerType, suspend ( exception: ManagedException)->R> = mutableMapOf()
 
-   override suspend fun provideHandlerFn(handler : HandlerType, handlerFn:()->R){
-      handlers[handler] = handlerFn
-      notifyHandlerSet(handler)
+   override suspend fun provideHandlerFn(handlers : Set<HandlerType>, handlerFn: suspend (exception: ManagedException)->R){
+      handlers.forEach {
+         registeredHandlers[it] = handlerFn
+         notifyHandlerSet(it)
+      }
+   }
+
+   suspend fun isHandlerPresent(handler: HandlerType): Boolean{
+       return  registeredHandlers[handler]?.let { true }?:false
    }
 
    override suspend fun handleManaged(managedEx: ManagedException): HandlerResult<R> {
-      val handlerFn = handlers[managedEx.handler]
+      val handlerFn = registeredHandlers[managedEx.handler]
       val handlingResult = handlerFn?.let {
            notifyHandled(managedEx)
-           HandlerResult<R>(handlerFn.invoke())
+           HandlerResult<R>(handlerFn.invoke(managedEx))
         } ?:run {
             notifyUnhandled(managedEx)
             HandlerResult<R>(null, managedEx)
