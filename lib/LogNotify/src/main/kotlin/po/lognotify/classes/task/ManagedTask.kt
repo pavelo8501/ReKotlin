@@ -10,19 +10,19 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import po.lognotify.classes.jobs.ManagedJob
-import po.lognotify.classes.task.TaskResult
 import po.lognotify.classes.notification.Notifier
 import po.lognotify.classes.notification.enums.EventType
+import po.lognotify.classes.process.LoggProcess
 import po.lognotify.classes.task.models.TaskData
 import po.lognotify.classes.task.runner.TaskRunner
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.exceptions.ExceptionHandler
+import po.lognotify.extensions.process
 import po.lognotify.helpers.StaticHelper
 import po.lognotify.models.TaskDispatcher
 import po.lognotify.models.TaskKey
 import po.lognotify.models.TaskRegistry
 import po.misc.exceptions.CoroutineInfo
-import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.getCoroutineInfo
 import kotlin.coroutines.CoroutineContext
@@ -72,9 +72,6 @@ class RootTask<R: Any?>(
     fun subTasksCount(): Int{
         return  registry.childTasks.count()
     }
-
-
-
 }
 
 class ManagedTask<R: Any?>(
@@ -118,20 +115,23 @@ sealed class TaskSealedBase<R: Any?>(
 
     fun notifyComplete(){
         hasCompleted = true
-        if(this is RootTask ){
+        if(this is RootTask){
             dispatcher.removeRootTask(this)
         }
     }
 
-    fun setCoroutineInfo(info : CoroutineInfo){
-        coroutineInfo.add(info)
-    }
-
-
-    suspend fun preRunConfig(scope: CoroutineScope){
-        this.setCoroutineInfo(scope.getCoroutineInfo())
+    suspend fun onTaskStart(scope: CoroutineScope){
+        coroutineInfo.add(scope.getCoroutineInfo())
         notifier.start()
+        coroutineContext.process?.observeTask(this)
+        notifier.systemInfo(EventType.MESSAGE, SeverityLevel.INFO, "New listener")
     }
+
+    suspend fun onTaskComplete(){
+
+        coroutineContext[LoggProcess]?.stopTaskObservation(this)
+    }
+
     internal fun <R> createChildTask(name: String, hierarchyRoot:RootTask<*>, moduleName: String?): ManagedTask<R>{
         val lastRegistered = hierarchyRoot.registry.getLastRegistered()
         val childLevel =  lastRegistered.key.nestingLevel + 1
@@ -140,12 +140,12 @@ sealed class TaskSealedBase<R: Any?>(
         return newChildTask
     }
 
-
     suspend fun <T> runTaskInlined(receiver:T, block: suspend T.(TaskHandler<R>) -> R): TaskResult<R> {
         taskResult = TaskResult<R>(this)
+
         return withContext(coroutineContext){
             async(start = CoroutineStart.DEFAULT) {
-                preRunConfig(this)
+                onTaskStart(this)
                 taskRunner.execute(receiver, block) {
                     onResult { value, time ->
                         taskResult.provideResult(time, value)
@@ -154,6 +154,7 @@ sealed class TaskSealedBase<R: Any?>(
                         taskResult.provideThrowable(time, exception)
                     }
                 }
+                onTaskComplete()
                 taskResult
             }
         }.await()
@@ -162,7 +163,7 @@ sealed class TaskSealedBase<R: Any?>(
     internal suspend fun <T> runTask(receiver:T,  block: suspend T.(TaskHandler<R>) -> R): TaskResult<R> {
         taskResult = TaskResult<R>(this)
         return withContext(coroutineContext) {
-            preRunConfig(this)
+            onTaskStart(this)
             async(start = CoroutineStart.UNDISPATCHED) {
                 taskRunner.execute(receiver, block){
                     onResult {value, time->
@@ -172,6 +173,7 @@ sealed class TaskSealedBase<R: Any?>(
                         taskResult.provideThrowable(time, exception)
                     }
                 }
+                onTaskComplete()
                 taskResult
             }.await()
         }
@@ -180,8 +182,9 @@ sealed class TaskSealedBase<R: Any?>(
     internal fun <T> runTaskAsync(receiver : T, block: suspend T.(TaskHandler<R>) -> R): TaskResult<R> {
         taskResult = TaskResult<R>(this)
         val result = runBlocking {
+
             CoroutineScope(coroutineContext).async{
-                preRunConfig(this)
+                onTaskStart(this)
                 taskRunner.execute(receiver, block){
                     onResult {value, time->
                         taskResult.provideResult(time, value)
@@ -190,6 +193,7 @@ sealed class TaskSealedBase<R: Any?>(
                         taskResult.provideThrowable(time, exception)
                     }
                 }
+                onTaskComplete()
                 taskResult
             }.await()
         }

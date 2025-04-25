@@ -2,6 +2,7 @@ package po.lognotify.extensions
 
 import kotlinx.coroutines.CoroutineScope
 import po.lognotify.TasksManaged
+import po.lognotify.classes.process.LoggProcess
 import po.lognotify.classes.task.TaskHandler
 import po.lognotify.classes.task.TaskResult
 import po.lognotify.classes.task.TaskSealedBase
@@ -58,6 +59,10 @@ suspend inline fun <reified T: CoroutineScope, R>  T.newTask(
     noinline block: suspend T.(TaskHandler<R>)-> R,
 ): TaskResult<R> {
     val moduleName: String = this::class.simpleName.toString()
+    val exist =  coroutineContext[LoggProcess]
+    println("Process")
+    println(exist)
+
     val newTask = TasksManaged.createHierarchyRoot<R>(taskName, this.coroutineContext, moduleName)
     val runResult = newTask.runTaskInlined(this, block)
     return runResult

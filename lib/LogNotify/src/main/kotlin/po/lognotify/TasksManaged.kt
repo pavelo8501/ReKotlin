@@ -6,7 +6,6 @@ import kotlinx.coroutines.SupervisorJob
 import po.lognotify.classes.task.ManagedTask
 import po.lognotify.classes.task.RootTask
 import po.lognotify.classes.task.TaskHandler
-import po.lognotify.classes.task.UpdatableTasks
 import po.lognotify.classes.task.UpdateType
 import po.lognotify.extensions.getOrLoggerException
 import po.lognotify.logging.LoggingService

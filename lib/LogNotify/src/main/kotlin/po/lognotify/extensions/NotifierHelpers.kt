@@ -1,13 +1,18 @@
 package po.lognotify.extensions
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import po.lognotify.classes.notification.Notifier
+import po.lognotify.classes.notification.models.Notification
 
-fun CoroutineScope.subscribeTo(notifier: Notifier) {
+
+suspend fun CoroutineScope.subscribeTo(notifier: Notifier, notificationFn: (suspend (Notification)-> Unit)? =null) {
+
     launch {
-        notifier.notification.collect { notification ->
+            notifier.notification.collect { notification ->
             println("Received notification: $notification")
+            notificationFn?.invoke(notification)
         }
     }
 }
