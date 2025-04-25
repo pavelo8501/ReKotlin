@@ -3,7 +3,10 @@ package po.lognotify.exceptions
 import po.lognotify.classes.notification.enums.EventType
 import po.lognotify.classes.notification.models.Notification
 import po.lognotify.classes.notification.sealed.ProviderHandler
+import po.lognotify.classes.notification.sealed.ProviderTask
 import po.lognotify.classes.task.ControlledTask
+import po.lognotify.classes.task.TaskSealedBase
+import po.lognotify.classes.task.models.TaskData
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.exceptions.ExceptionHandler.HandlerResult
 import po.misc.exceptions.HandlerType
@@ -18,7 +21,7 @@ interface ExceptionHandled<R: Any?> {
 }
 
 class ExceptionHandler<R: Any?>(
-   private val task : ControlledTask
+   private val task : TaskSealedBase<R>,
 ) : ExceptionHandled<R> {
 
    class HandlerResult<R: Any?>(
@@ -36,12 +39,10 @@ class ExceptionHandler<R: Any?>(
    private suspend fun notifyHandlerSet(handler : HandlerType){
       val message = "$handler handle set"
       val notification = Notification(
-         task,
+         ProviderTask(task.taskData),
          EventType.HANDLER_REGISTERED,
          SeverityLevel.INFO,
-         message,
-         ProviderHandler(task.key.taskName
-         ))
+         message)
       onHandlerUpdate?.invoke(notification)
    }
    private suspend fun notifyHandled(managedEx : ManagedException){
@@ -49,22 +50,20 @@ class ExceptionHandler<R: Any?>(
       val severity = SeverityLevel.WARNING
 
       val notification = Notification(
-         task,
+         ProviderTask(task.taskData),
          EventType.EXCEPTION_UNHANDLED,
          severity,
-         message,
-         ProviderHandler(task.taskName))
+         message)
        onHandlerUpdate?.invoke(notification)
    }
    private suspend fun notifyUnhandled(managedEx : ManagedException){
       val severity = SeverityLevel.EXCEPTION
       val message =  "Unhandled  : ${managedEx.message}"
       val notification = Notification(
-         task,
+         ProviderTask(task.taskData),
          EventType.EXCEPTION_UNHANDLED,
          severity,
-         message,
-         ProviderHandler(task.taskName))
+         message)
       onHandlerUpdate?.invoke(notification)
    }
 

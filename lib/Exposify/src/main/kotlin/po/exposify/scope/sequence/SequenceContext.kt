@@ -34,7 +34,7 @@ interface RunnableContext: SessionIdentified{
         data class RunInfo (
             override val method: String,
             override val sessionType: SessionType,
-            override val sessionId: String = "N/A",
+            override val sessionID: String = "N/A",
             override val remoteAddress: String = "N/A"
         ) : RunnableContext{
 
@@ -42,7 +42,7 @@ interface RunnableContext: SessionIdentified{
 
         fun createRunInfo(method: String, session: AuthorizedSession?):RunnableContext{
             if(session!=null){
-                return RunInfo(method, session.sessionType, session.sessionId, session.remoteAddress)
+                return RunInfo(method, session.sessionType, session.sessionID, session.remoteAddress)
             }else{
                 return RunInfo(method, SessionType.ANONYMOUS)
             }

@@ -32,7 +32,7 @@ import kotlin.test.assertNotNull
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestSessionsContext : DatabaseTest()  {
-    class SessionIdentity(override val sessionId: String, override val remoteAddress: String): SessionIdentified
+    class SessionIdentity(override val sessionID: String, override val remoteAddress: String): SessionIdentified
 
     companion object{
         var userId : Long = 1
@@ -79,11 +79,11 @@ class TestSessionsContext : DatabaseTest()  {
             val result = TestPageDTO.runSequence(SequenceID.UPDATE){
                 withInputData(pages)
                 onStart {
-                    sessionIdBeforeStart = it.sessionId
+                    sessionIdBeforeStart = it.sessionID
                 }
 
                 onComplete {
-                    sessionIdOnComplete = it.sessionId
+                    sessionIdOnComplete = it.sessionID
                 }
             }
             val coroutineInfo = getCoroutineInfo()
@@ -95,15 +95,15 @@ class TestSessionsContext : DatabaseTest()  {
             assertEquals(pages.count(), result.count(), "Input and output count mismatch")
             assertAll(
                 {assertEquals(
-                    session.sessionId,
+                    session.sessionID,
                     sessionIdBeforeStart,
                     "Sequence started with different SessionId: ${sessionIdBeforeStart}")},
                 {assertEquals(sessionIdBeforeStart,
                     sessionIdOnComplete,
                     "Sequence completed with different SessionId: ${sessionIdOnComplete}")},
                 {assertEquals(sessionIdOnComplete,
-                    sessionAfter.sessionId,
-                    "Process exits with different SessionId ${sessionAfter.sessionId}")}
+                    sessionAfter.sessionID,
+                    "Process exits with different SessionId ${sessionAfter.sessionID}")}
             )
         }
     }

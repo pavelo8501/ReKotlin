@@ -33,7 +33,7 @@ class TestTasksLifecycle : TasksManaged {
 
         startTask("paren_task", this.coroutineContext) {handler->
             childExecutionContext()
-            handler.info("hierarchy_count ${handler.taskHierarchyList.count()}")
+            handler.info("hierarchy_count ${handler.hierarchyRoot().subTasksCount()}")
         }.onComplete {result->
            result.taskName
         }

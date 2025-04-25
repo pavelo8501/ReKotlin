@@ -44,6 +44,23 @@ fun Routing.configureAuthRoutes(authPrefix: String,  authConfigContext: AuthConf
             call.authSessionOrNull().getOrException {
                 AuthException("Session can not be located", ErrorCodes.SESSION_NOT_FOUND,)
             }.let { session ->
+                handler.handleFailure(HandlerType.SKIP_SELF){ throwable ->
+                    println("Error reached")
+                    when (throwable) {
+                        is AuthException -> {
+                            if (throwable.code.value >= 4000 && throwable.code.value < 5000) {
+                                respondUnauthorized(throwable.message, throwable.code.value)
+                            } else {
+                                respondInternal(throwable.message, throwable.code.value)
+                            }
+                        }
+                        is SerializationException -> respondBadRequest(throwable.message.toString())
+                        else -> {
+                            respondInternal(throwable)
+                        }
+                    }
+                    throw Exception("ddd")
+                }
 
                 val credentials = call.receive<LoginRequest>()
                 val principal = session.authenticate(credentials.login, credentials.password)
@@ -54,29 +71,10 @@ fun Routing.configureAuthRoutes(authPrefix: String,  authConfigContext: AuthConf
                 handler.info("Header ${HttpHeaders.Authorization} set value: ${jwtToken.token.asBearer()}")
                 handler.info("Header ${WraptorHeaders.XAuthToken.value} set value: ${session.sessionID}")
                 call.respond(ApiResponse(jwtToken.token))
-
-                handler.setFallback( HandlerType.SKIP_SELF) { throwable ->
-                    println("Error reached")
-                    when (throwable) {
-                        is AuthException -> {
-                            if (throwable.code.value >= 4000 && throwable.code.value < 5000) {
-                                respondUnauthorized(throwable.message, throwable.code.value)
-                            } else {
-                                respondInternal(throwable.message, throwable.code.value)
-                            }
-                        }
-
-                        is SerializationException -> respondBadRequest(throwable.message.toString())
-                        else -> {
-                            respondInternal(throwable)
-                        }
-                    }
-                }
-                throw Exception("ddd")
             }
-
         }.resultOrException()
     }
+
     post(withBaseUrl(authPrefix, "refresh")) {
 //        val authHeader = call.request.headers["Authorization"]
 //        if (authHeader == null || !authHeader.startsWith("Bearer")) {

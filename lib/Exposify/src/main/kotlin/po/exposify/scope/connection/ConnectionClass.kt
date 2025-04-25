@@ -34,7 +34,7 @@ class ConnectionClass(
         pack: SequencePack<DTO, DATA>,
     ): List<DATA> {
         val session = sessionManager.getCurrentSession()
-        val result = dispatchManager.enqueue(session.sessionId) {
+        val result = dispatchManager.enqueue(session.sessionID) {
             coroutineEmitter.dispatch(pack, session)
         }
         return result

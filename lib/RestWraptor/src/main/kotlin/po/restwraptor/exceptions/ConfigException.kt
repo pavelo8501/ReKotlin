@@ -12,7 +12,7 @@ class ConfigurationException(
 ) :  ManagedException(message){
 
 
-    var handlerType : HandlerType = HandlerType.CANCEL_ALL
+    var handlerType : HandlerType = HandlerType.SKIP_SELF
 
     override val builderFn: (String, Int?) -> ConfigurationException = {msg, code->
         val exCode = ExceptionCodes.fromValue(code?:0)

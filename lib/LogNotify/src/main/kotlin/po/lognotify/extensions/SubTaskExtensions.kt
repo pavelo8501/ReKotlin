@@ -1,24 +1,18 @@
 package po.lognotify.extensions
 
 import po.lognotify.TasksManaged
-import po.lognotify.classes.task.ManagedTask
-import po.lognotify.classes.taskresult.ManagedResult
 import po.lognotify.classes.task.TaskHandler
-import po.lognotify.classes.task.TaskSealedBase
-import po.lognotify.models.TaskKey
-import po.misc.exceptions.CoroutineInfo
-import kotlin.coroutines.CoroutineContext
+import po.lognotify.classes.task.TaskResult
 
 suspend  fun <T, R> T.subTask(
     taskName: String,
     moduleName: String? = null,
     block: suspend  T.(TaskHandler<R>)-> R
-):ManagedResult<R> {
+): TaskResult<R> {
 
     return TasksManaged.attachToHierarchy<R>(taskName, moduleName)?.let {
-        val runResult = it.runTask(this ,block)
-        val casted = runResult.castOrLoggerException<ManagedResult<R>>()
-        casted
+        val TaskResult = it.runTask(this ,block)
+        TaskResult
     }?:run {
        return this.startTaskAsync(taskName, moduleName, block)
     }

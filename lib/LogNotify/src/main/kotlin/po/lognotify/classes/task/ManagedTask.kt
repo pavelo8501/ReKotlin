@@ -10,32 +10,36 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import po.lognotify.classes.jobs.ManagedJob
-import po.lognotify.classes.taskresult.TaskResult
+import po.lognotify.classes.task.TaskResult
 import po.lognotify.classes.notification.Notifier
 import po.lognotify.classes.notification.enums.EventType
 import po.lognotify.classes.task.models.TaskData
 import po.lognotify.classes.task.runner.TaskRunner
 import po.lognotify.enums.SeverityLevel
+import po.lognotify.exceptions.ExceptionHandler
 import po.lognotify.helpers.StaticHelper
+import po.lognotify.models.TaskDispatcher
 import po.lognotify.models.TaskKey
 import po.lognotify.models.TaskRegistry
 import po.misc.exceptions.CoroutineInfo
+import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.getCoroutineInfo
 import kotlin.coroutines.CoroutineContext
 
 
 class RootTask<R: Any?>(
-    val taskKey : TaskKey,
-    coroutineContext: CoroutineContext
-):TaskSealedBase<R>(taskKey, coroutineContext), ResultantTask, ControlledTask
+    taskKey : TaskKey,
+    coroutineContext: CoroutineContext,
+    val dispatcher: TaskDispatcher,
+    override val taskData : TaskData = TaskData(taskKey,"", 0, 0, coroutineContext),
+) :TaskSealedBase<R>(taskKey, coroutineContext, taskData), ResultantTask, ControlledTask
 {
     override val notifier: Notifier =  Notifier(this)
     override var taskResult : TaskResult<R> = TaskResult(this)
     override val registry: TaskRegistry<R> = TaskRegistry(this)
-    override val taskHandler: TaskHandler<R> = TaskHandler(this as HandledTask<R>)
-
-    override val taskRunner: TaskRunner<R> = TaskRunner(this as ControlledTask, taskHandler)
+    override val taskHandler: TaskHandler<R> = TaskHandler(this, taskData, exceptionHandler)
+    override val taskRunner: TaskRunner<R> = TaskRunner(this, taskHandler, exceptionHandler)
 
     fun <R> createNewMemberTask(name : String, moduleName: String?): ManagedTask<R>{
         val lasEntry =  registry.getLastRegistered()
@@ -50,7 +54,6 @@ class RootTask<R: Any?>(
             }
         }
     }
-
     override suspend fun notifyRootCancellation(exception: ManagedException?){
        val cancellation =  exception?.let {
             CancellationException(it.message,  exception.getSourceException(true))
@@ -66,63 +69,64 @@ class RootTask<R: Any?>(
             coroutineContext.cancel(cancellation)
         }
     }
+    fun subTasksCount(): Int{
+        return  registry.childTasks.count()
+    }
+
+
+
 }
 
 class ManagedTask<R: Any?>(
-    val taskKey : TaskKey,
+    taskKey : TaskKey,
     coroutineContext: CoroutineContext,
     val parent: TaskSealedBase<*>,
-    protected val hierarchyRoot : RootTask<*>,
-):TaskSealedBase<R>(taskKey, coroutineContext), ControlledTask, ResultantTask
+    val hierarchyRoot: RootTask<*>,
+    override val taskData : TaskData = TaskData(taskKey,"", 0, 0, coroutineContext)
+):TaskSealedBase<R>(taskKey, coroutineContext, taskData), ControlledTask, ResultantTask
 {
     override val notifier: Notifier =  Notifier(this)
     override var taskResult : TaskResult<R> = TaskResult<R>(this)
     override val registry: TaskRegistry<*> = hierarchyRoot.registry
-    override val taskHandler: TaskHandler<R> = TaskHandler<R>(this)
-    override val taskRunner: TaskRunner<R> = TaskRunner(this as ControlledTask, taskHandler)
+    override val taskHandler: TaskHandler<R> = TaskHandler<R>(this, taskData, exceptionHandler)
+    override val taskRunner: TaskRunner<R> = TaskRunner(this as ControlledTask, taskHandler, exceptionHandler)
 
     override suspend fun notifyRootCancellation(exception: ManagedException?){
         hierarchyRoot.notifyRootCancellation(exception)
     }
-
 }
 
 sealed class TaskSealedBase<R: Any?>(
-    override val key: TaskKey,
-    override val coroutineContext: CoroutineContext,
- ): ResultantTask, StaticHelper, HandledTask<R>
+    val key: TaskKey,
+    val coroutineContext: CoroutineContext,
+    override val taskData: TaskData,
+ ): ResultantTask, StaticHelper
 {
 
-
-    val data : TaskData = TaskData(key,"",0,0)
-
     abstract val taskHandler: TaskHandler<R>
-    abstract override val notifier : Notifier
+    abstract val notifier : Notifier
     abstract var taskResult: TaskResult<R>
     abstract val registry: TaskRegistry<*>
-    abstract override val taskRunner: TaskRunner<R>
+    abstract val taskRunner: TaskRunner<R>
+    val exceptionHandler = ExceptionHandler<R>(this)
 
-
-    var isComplete: Boolean = false
-
-    override val startTime: Long
-        get() { return taskRunner?.startTime?:0 }
-    override var endTime : Long = 0
-        get() { return taskRunner?.endTime?:0 }
-
-    override val nestingLevel: Int = key.nestingLevel
-    override val qualifiedName: String = key.asString()
-    override val taskName: String = key.taskName
-    override val moduleName: String = key.moduleName?:"N/A"
-
-    override var coroutineInfo: MutableList<CoroutineInfo> = mutableListOf<CoroutineInfo>()
+     protected var hasCompleted: Boolean = false
+     val isComplete: Boolean  get() = hasCompleted
+     var coroutineInfo: MutableList<CoroutineInfo> = mutableListOf<CoroutineInfo>()
 
     val jobList = mutableListOf<ManagedJob>()
 
+    fun notifyComplete(){
+        hasCompleted = true
+        if(this is RootTask ){
+            dispatcher.removeRootTask(this)
+        }
+    }
 
     fun setCoroutineInfo(info : CoroutineInfo){
         coroutineInfo.add(info)
     }
+
 
     suspend fun preRunConfig(scope: CoroutineScope){
         this.setCoroutineInfo(scope.getCoroutineInfo())
@@ -136,7 +140,8 @@ sealed class TaskSealedBase<R: Any?>(
         return newChildTask
     }
 
-    suspend fun <T> runTaskInlined(receiver:T, block: suspend T.() -> R): TaskResult<R> {
+
+    suspend fun <T> runTaskInlined(receiver:T, block: suspend T.(TaskHandler<R>) -> R): TaskResult<R> {
         taskResult = TaskResult<R>(this)
         return withContext(coroutineContext){
             async(start = CoroutineStart.DEFAULT) {

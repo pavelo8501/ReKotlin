@@ -12,7 +12,7 @@ import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.WhereCondition
 import po.exposify.extensions.getOrOperationsEx
-import po.exposify.extensions.testOrOperationsEx
+import po.exposify.extensions.testOrThrow
 import po.lognotify.extensions.subTask
 import po.misc.exceptions.HandlerType
 import kotlin.Long
@@ -24,7 +24,7 @@ internal suspend fun <DATA> DTOClass<ModelDTO>.pickById(
 ): CrudResultSingle<ModelDTO, DATA>  where  DATA : DataModel{
     val freshDto = config.dtoFactory.createDto()
     val entity = freshDto.daoService.pickById(id)
-    val checked = entity.getOrOperationsEx("Entity not found", ExceptionCode.VALUE_NOT_FOUND, HandlerType.CANCEL_ALL)
+    val checked = entity.getOrOperationsEx("Entity not found", ExceptionCode.VALUE_NOT_FOUND)
     val dtos = repository.getOrOperationsEx("Repository uninitialized", ExceptionCode.REPOSITORY_NOT_FOUND).select(listOf(checked))
     val checkedList = dtos.filterIsInstance<CommonDTO<ModelDTO, DATA, ExposifyEntityBase>>().toList()
 
@@ -53,7 +53,7 @@ internal suspend inline fun <DTO: ModelDTO, DATA: DataModel, ENTITY: ExposifyEnt
 
     val freshDto = config.dtoFactory.createDto()
     val entity = freshDto.daoService.pick(conditions)
-    val checked = entity.getOrOperationsEx("Entity not found", ExceptionCode.VALUE_NOT_FOUND, HandlerType.CANCEL_ALL)
+    val checked = entity.getOrOperationsEx("Entity not found", ExceptionCode.VALUE_NOT_FOUND)
     val dtos =  repository.getOrOperationsEx("Repository uninitialized", ExceptionCode.REPOSITORY_NOT_FOUND).select(listOf(checked))
     val checkedList = dtos.filterIsInstance<CommonDTO<DTO, DATA, ExposifyEntityBase>>()
     return  CrudResult(checkedList)
@@ -69,15 +69,14 @@ internal suspend fun <T, DTO, DATA> DTOClass<DTO>.select(
 ): CrudResult<DTO, DATA> where DTO: ModelDTO, DATA: DataModel, T: IdTable<Long> =
     subTask("Select with conditions"){handler->
 
-    isTransactionReady().testOrOperationsEx(OperationsException("Transaction Lost Context", ExceptionCode.DB_NO_TRANSACTION_IN_CONTEXT)){
+    isTransactionReady().testOrThrow(OperationsException("Transaction Lost Context", ExceptionCode.DB_NO_TRANSACTION_IN_CONTEXT)){
         true
     }
     val freshDto = config.dtoFactory.createDto()
     val entities = freshDto.daoService.select<T>(conditions)
     val dtos = repository.getOrOperationsEx(
         "Repository uninitialized in DTOClass",
-        ExceptionCode.REPOSITORY_NOT_FOUND,
-        HandlerType.CANCEL_ALL).clear().select(entities)
+        ExceptionCode.REPOSITORY_NOT_FOUND).clear().select(entities)
 
     val checkedList = dtos.filterIsInstance<CommonDTO<DTO, DATA, ExposifyEntityBase>>()
 
@@ -89,7 +88,7 @@ internal suspend fun <T, DTO, DATA> DTOClass<DTO>.select(
 internal suspend fun <DTO, DATA> DTOClass<DTO>.select(
 ): CrudResult<DTO, DATA> where DTO: ModelDTO, DATA: DataModel = subTask("Select") {handler->
 
-    isTransactionReady().testOrOperationsEx(OperationsException("Transaction Lost Context", ExceptionCode.DB_NO_TRANSACTION_IN_CONTEXT)){
+    isTransactionReady().testOrThrow(OperationsException("Transaction Lost Context", ExceptionCode.DB_NO_TRANSACTION_IN_CONTEXT)){
         true
     }
     val freshDto = config.dtoFactory.createDto()
@@ -105,7 +104,7 @@ internal suspend fun <DTO, DATA> DTOClass<DTO>.select(
 internal suspend fun <DTO, DATA> DTOClass<DTO>.update(
     dataModel: DATA,
 ): CrudResultSingle<DTO, DATA> where DTO: ModelDTO, DATA : DataModel = subTask("Update Repository.kt")  { handler->
-    isTransactionReady().testOrOperationsEx(OperationsException("Transaction Lost Context", ExceptionCode.DB_NO_TRANSACTION_IN_CONTEXT)){
+    isTransactionReady().testOrThrow(OperationsException("Transaction Lost Context", ExceptionCode.DB_NO_TRANSACTION_IN_CONTEXT)){
         true
     }
     val dtos = repository.getOrOperationsEx("Repository uninitialized", ExceptionCode.REPOSITORY_NOT_FOUND).update(listOf(dataModel))
@@ -117,7 +116,7 @@ internal suspend fun <DTO, DATA> DTOClass<DTO>.update(
 internal suspend fun <DTO, DATA> DTOClass<DTO>.update(
     dataModels: List<DATA>,
 ): CrudResult<DTO, DATA> where DTO: ModelDTO, DATA : DataModel = subTask("Update Repository.kt")  { handler->
-    isTransactionReady().testOrOperationsEx(OperationsException("Transaction Lost Context", ExceptionCode.DB_NO_TRANSACTION_IN_CONTEXT)){
+    isTransactionReady().testOrThrow(OperationsException("Transaction Lost Context", ExceptionCode.DB_NO_TRANSACTION_IN_CONTEXT)){
         true
     }
     val dtos = repository.getOrOperationsEx("Repository uninitialized", ExceptionCode.REPOSITORY_NOT_FOUND).update(dataModels)

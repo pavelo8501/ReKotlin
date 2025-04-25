@@ -18,7 +18,7 @@ class TestTaskRunner {
     }.resultOrException()
 
     suspend fun rootTask(testScope : TestScope): String = startTask("task", testScope.coroutineContext){handler->
-        handler.setFallback(HandlerType.GENERIC){
+        handler.handleFailure(HandlerType.GENERIC){
             "result"
         }
         task2()

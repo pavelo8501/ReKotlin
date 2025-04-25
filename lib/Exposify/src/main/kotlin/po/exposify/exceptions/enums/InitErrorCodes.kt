@@ -39,7 +39,7 @@ enum class ExceptionCode(val value: Int) {
     FACTORY_CREATE_FAILURE(6001);
 
     companion object {
-        fun value(value: Int): ExceptionCode {
+        fun getByValue(value: Int): ExceptionCode {
             ExceptionCode.entries.firstOrNull { it.value == value }?.let {
                 return it
             }

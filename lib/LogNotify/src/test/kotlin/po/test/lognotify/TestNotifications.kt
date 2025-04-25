@@ -3,10 +3,11 @@ package po.test.lognotify
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import po.lognotify.TasksManaged
-import po.lognotify.exceptions.ManagedException
-import po.lognotify.exceptions.enums.HandlerType
+import po.lognotify.extensions.onFailureCause
 import po.lognotify.extensions.startTask
 import po.lognotify.extensions.subTask
+import po.misc.exceptions.HandlerType
+import po.misc.exceptions.ManagedException
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -16,7 +17,7 @@ class TestNotifications  : TasksManaged {
     suspend fun subTask(){
         subTask("task_2") {handler->
             handler.apply {
-                setFallback(HandlerType.GENERIC){
+                handleFailure(HandlerType.GENERIC){
                     echo("Swallowed")
                 }
             }
@@ -39,15 +40,15 @@ class TestNotifications  : TasksManaged {
         startTask("task_1", this.coroutineContext) {handler->
             handler.apply {
 
-                setFallback(HandlerType.GENERIC){
+                handleFailure(HandlerType.GENERIC){
 
                 }
 
             }
             termination()
-            ManagedException("Default", HandlerType.GENERIC)
+            ManagedException("Default")
 
-        }.onFail {
+        }.onFailureCause {
             unprocessedThrowable = it
         }.onComplete {
             onCompleteTriggered = true

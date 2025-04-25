@@ -14,33 +14,30 @@ inline fun <reified T: Any> Any.safeCast(): T? {
 
 inline fun <reified T: Any> Any?.castOrOperationsEx(
     message: String = "",
-    code:  ExceptionCode = ExceptionCode.CAST_FAILURE,
-    handlerType : HandlerType = HandlerType.CANCEL_ALL): T
+    code:  ExceptionCode = ExceptionCode.CAST_FAILURE): T
 {
     return  this.castOrException{
-        OperationsException(message, code, handlerType)
+        OperationsException(message, code)
     }
 }
 
 inline fun <reified T: Any> Any?.castOrInitEx(
     message: String = "",
-    code:  ExceptionCode = ExceptionCode.CAST_FAILURE,
-    handlerType : HandlerType = HandlerType.CANCEL_ALL): T
+    code:  ExceptionCode = ExceptionCode.CAST_FAILURE): T
 {
     return  this.castOrException{
-        InitException(message, code, handlerType)
+        InitException(message, code)
     }
 }
 
 inline fun <reified T: Any> Any.castLetOrInitEx(
     message: String = "",
     code:  ExceptionCode = ExceptionCode.CAST_FAILURE,
-    handlerType : HandlerType = HandlerType.CANCEL_ALL,
     block: (T)->T): T
 {
     try {
        val result =  castOrException<T>{
-           InitException(message, code, handlerType)
+           InitException(message, code)
        }
        return block.invoke(result)
     }catch (ex: Throwable){
@@ -52,10 +49,10 @@ inline fun <reified T: Any> Any.castLetOrInitEx(
 
 internal inline fun <reified T: Any> T?.getOrInitEx(
     message: String,
-    code:  ExceptionCode,
-    handlerType : HandlerType = HandlerType.CANCEL_ALL): T{
+    code:  ExceptionCode): T{
     return  this.getOrException {
-        InitException(message, code, handlerType)
+
+        InitException(message, code)
     }
 }
 
@@ -68,16 +65,15 @@ internal inline fun <reified T: Any> T?.getOrInitEx(
 
 fun <T : Any> T?.getOrOperationsEx(
     message: String = "Value is null",
-    code: ExceptionCode = ExceptionCode.VALUE_IS_NULL,
-    handlerType: HandlerType = HandlerType.SKIP_SELF
+    code: ExceptionCode = ExceptionCode.VALUE_IS_NULL
 ): T {
     return this.getOrException {
-        OperationsException(message, code, handlerType)
+        OperationsException(message, code)
     }
 }
 
 
-fun <T: Any?, E: ManagedException> T.testOrOperationsEx(exception : E, predicate: (T) -> Boolean): T{
+fun <T: Any?, E: ManagedException> T.testOrThrow(exception : E, predicate: (T) -> Boolean): T{
     if (predicate(this)){
         return this
     }else{

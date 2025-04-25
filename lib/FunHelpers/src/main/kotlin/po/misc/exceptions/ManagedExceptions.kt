@@ -3,7 +3,6 @@ package po.misc.exceptions
 import po.misc.safeCast
 import kotlin.reflect.full.companionObjectInstance
 
-
 enum class HandlerType(val value: Int) {
 
     GENERIC(0),
@@ -76,9 +75,7 @@ open class ManagedException(
         return source
     }
 
-
     override fun throwSelf():Nothing {
         throw this
     }
-
 }

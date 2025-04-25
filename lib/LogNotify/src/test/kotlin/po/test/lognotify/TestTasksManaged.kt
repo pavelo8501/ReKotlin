@@ -3,11 +3,11 @@ package po.test.lognotify
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import po.lognotify.TasksManaged
-import po.lognotify.exceptions.ManagedException
-import po.lognotify.exceptions.enums.HandlerType
 import po.lognotify.extensions.startTask
 import po.lognotify.extensions.subTask
 import po.lognotify.models.LogRecord
+import po.misc.exceptions.HandlerType
+import po.misc.exceptions.ManagedException
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
@@ -24,8 +24,8 @@ class TestTasksManaged() : TasksManaged{
         var parentResultTestString: String = ""
 
         startTask("parent_with_receiver", this.coroutineContext) { parentHelper ->
-            parentTaskName = parentHelper.taskName
-            val result = parentHelper.taskName
+            parentTaskName = parentHelper.task.taskData.taskName
+            val result = parentHelper.task.taskData.taskName
             return@startTask result
         }.onResult { result ->
             parentResultTestString = result
@@ -69,23 +69,21 @@ class TestTasksManaged() : TasksManaged{
 
         startTask("parent", this.coroutineContext) { handler ->
 
-            handler.setFallback(HandlerType.CANCEL_ALL){
+            handler.handleFailure(HandlerType.CANCEL_ALL){
                 cancellationHandledOnParent = true
             }
 
 
             subTask("child") { childHelper ->
 
-                handler.setFallback(HandlerType.CANCEL_ALL){
+                handler.handleFailure(HandlerType.CANCEL_ALL){
                     cancellationHandled = true
 
                 }
-                ManagedException("cancellation", HandlerType.CANCEL_ALL)
+                ManagedException("cancellation")
 
             }.onComplete { result ->
-//                val log = result.getLogRecords(true)
-//                assertEquals(2, log.count(), "Log has exactly two records")
-//                assertEquals("cancellation", log[1].message, "Message from exception")
+
             }
 
         }.onComplete {

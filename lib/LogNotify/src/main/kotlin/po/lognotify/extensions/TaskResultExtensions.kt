@@ -1,23 +1,20 @@
 package po.lognotify.extensions
 
-import po.lognotify.classes.taskresult.ManagedResult
-import po.lognotify.classes.taskresult.TaskResult
-import po.lognotify.exceptions.LoggerException
+import po.lognotify.classes.task.TaskResult
 
-
-fun <R> ManagedResult<R>.resultOrNull(): R? = try {
+fun <R> TaskResult<R>.resultOrNull(): R? = try {
     this.resultOrException()
 } catch (_: Throwable) {
     null
 }
 
-inline fun <R> ManagedResult<R>.onSuccessResult(block: (R) -> Unit): ManagedResult<R> {
+inline fun <R> TaskResult<R>.onSuccessResult(block: (R) -> Unit): TaskResult<R> {
     val value =  this.resultOrException()
     if (isSuccess && value != null) block(value)
     return this
 }
 
-inline fun <R> ManagedResult<R>.onFailureCause(block: (Throwable?) -> Unit): ManagedResult<R> {
+inline fun <R> TaskResult<R>.onFailureCause(block: (Throwable?) -> Unit): TaskResult<R> {
     if (!isSuccess) block(
         runCatching {
             this.resultOrException()
@@ -25,7 +22,7 @@ inline fun <R> ManagedResult<R>.onFailureCause(block: (Throwable?) -> Unit): Man
     return this
 }
 
-fun <R> ManagedResult<R>.resultOrDefault(defaultValue: R):R {
+fun <R> TaskResult<R>.resultOrDefault(defaultValue: R):R {
    val result = try {
         this.resultOrException()
     }catch (th: Throwable){
@@ -34,7 +31,7 @@ fun <R> ManagedResult<R>.resultOrDefault(defaultValue: R):R {
     return result
 }
 
-fun <R> ManagedResult<R>.toKotlinResult(): Result<R> =
+fun <R> TaskResult<R>.toKotlinResult(): Result<R> =
     runCatching {  this.resultOrException() }
 
 

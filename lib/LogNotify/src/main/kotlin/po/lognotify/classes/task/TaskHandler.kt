@@ -3,38 +3,22 @@ package po.lognotify.classes.task
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import po.lognotify.classes.jobs.ManagedJob
 import po.lognotify.classes.notification.Notifier
-import po.lognotify.classes.task.runner.TaskRunner
-import po.lognotify.extensions.castOrLoggerException
-import po.misc.exceptions.CoroutineInfo
+import po.lognotify.classes.task.models.TaskData
+import po.lognotify.exceptions.ExceptionHandler
+import po.lognotify.models.TaskKey
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
-import kotlin.coroutines.CoroutineContext
 
 class TaskHandler<R: Any?>(
-    val task : HandledTask<R>,
-):ResultantTask{
+    val task : TaskSealedBase<R>,
+    val taskData: TaskData,
+    val exceptionHandler: ExceptionHandler<R>
+):HandledTask<R>{
 
-    val currentTaskContext: CoroutineContext = task.coroutineContext
 
-
-//    override val startTime: Long = task.startTime
-//    override var endTime: Long = task.endTime
-//
-//
-    override suspend fun notifyRootCancellation(exception: ManagedException?) {
-        task.notifyRootCancellation(exception)
-    }
-
-//    override val qualifiedName: String = task.qualifiedName
-//    override val taskName: String = task.taskName
-//    override val moduleName: String = task.moduleName
-//    override val nestingLevel: Int = task.nestingLevel
-
-    val notifier: Notifier = task.notifier
-   // val taskHierarchyList : List<ResultantTask> = task.registry.getAsResultantTaskList()
-
+    override val key: TaskKey = taskData.taskKey
+    override val notifier: Notifier get() = task.notifier
 
     fun echo(message: String){
         notifier.echo(message)
@@ -46,10 +30,16 @@ class TaskHandler<R: Any?>(
         notifier.warn(message)
     }
 
-    suspend fun setFallback(handlers: Set<HandlerType>, fallbackFn: (exception: ManagedException)->R): TaskHandler<R>{
-        val casted =  task.taskRunner.castOrLoggerException<TaskRunner<R>>()
-        casted.exceptionHandler.provideHandlerFn(handlers, fallbackFn)
-        return this
+    suspend fun hierarchyRoot(): RootTask<*>{
+        return if(task is ManagedTask<*>){
+            task.hierarchyRoot
+        }else{
+            task as RootTask
+        }
+    }
+
+    override suspend fun handleFailure(vararg  handlers: HandlerType, fallbackFn: suspend (exception: ManagedException)->R){
+        exceptionHandler.provideHandlerFn(handlers.toSet() , fallbackFn)
     }
 
     inline fun <T, R2>  withTaskContext(receiver: T,  crossinline block : suspend T.() -> R2):R2{
@@ -57,7 +47,7 @@ class TaskHandler<R: Any?>(
         var exception: Throwable? = null
 
         runBlocking {
-            val job = launch(start = CoroutineStart.UNDISPATCHED, context = currentTaskContext) {
+            val job = launch(start = CoroutineStart.UNDISPATCHED, context = task.coroutineContext) {
                 try {
                     result = block(receiver)
                 } catch (e: Throwable) {
@@ -69,9 +59,11 @@ class TaskHandler<R: Any?>(
         return result as R2
     }
 
-    suspend inline fun <T, R2> T.runManagedJob(crossinline  block: suspend T.()->R2){
-      // val managedJob = ManagedJob(task)
-       // managedJob.startJob(this@TaskHandler, this@runManagedJob, block)
-    }
+//    suspend inline fun <T, R2> T.runManagedJob(crossinline  block: suspend T.()->R2){
+//       val managedJob = ManagedJob(task)
+//       managedJob.startJob(this@TaskHandler, this@runManagedJob, block)
+//    }
+//
+//
 
 }

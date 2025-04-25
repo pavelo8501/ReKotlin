@@ -5,7 +5,6 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
-import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -21,13 +20,10 @@ import io.ktor.utils.io.InternalAPI
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertAll
 import org.junit.jupiter.api.assertNotNull
 import po.auth.authentication.authenticator.models.AuthenticationPrincipal
-import po.auth.authentication.exceptions.AuthException
-import po.auth.authentication.exceptions.ErrorCodes
 import po.auth.extensions.readCryptoRsaKeys
 import po.auth.extensions.setKeyBasePath
 import po.restwraptor.RestWrapTor
@@ -59,7 +55,6 @@ data class TestUser(
     }
 }
 
-
 class TestRestWraptorSecurity {
 
     private fun  Routing.publicRoutes(){
@@ -86,7 +81,6 @@ class TestRestWraptorSecurity {
         }
     }
 
-
     companion object{
         @JvmStatic
         val keyPath = setKeyBasePath("src/test/demo_keys")
@@ -106,7 +100,6 @@ class TestRestWraptorSecurity {
             }
         }
     }
-
 
     @OptIn(InternalAPI::class)
     @Test
@@ -141,7 +134,6 @@ class TestRestWraptorSecurity {
         }
         assertEquals(HttpStatusCode.Unauthorized, protectedFailure.status, "JwtSecured route pass with no authentication")
 
-
         val loginResponse = httpClient.post("/auth/login") {
             setBody<LoginRequest>(LoginRequest("login", "password"))
             contentType(ContentType.Application.Json)
@@ -164,10 +156,7 @@ class TestRestWraptorSecurity {
             setBody<String>("HELO")
             contentType(ContentType.Application.Json)
         }
-
-        val responseAsString  = protectedSuccess.bodyAsText()
         val responseMessage =  protectedSuccess.body<ApiResponse<String>>().data
-
         assertEquals(HttpStatusCode.OK, protectedSuccess.status, "Reply status code not 200")
         assertEquals("EHLO", responseMessage,  "Wrong reply message")
     }
@@ -195,9 +184,8 @@ class TestRestWraptorSecurity {
         assertAll(
             "Wrong login sent",
             {assertEquals(HttpStatusCode.Unauthorized, wrongLoginResponse.status, "wrong reply status code")},
-            { assertTrue(body.data.toString().contains("login"), "wrong reply message")}
-            )
-
+            { assertTrue(body.message.contains("Wrong login"), "wrong error message")}
+        )
     }
 
 }

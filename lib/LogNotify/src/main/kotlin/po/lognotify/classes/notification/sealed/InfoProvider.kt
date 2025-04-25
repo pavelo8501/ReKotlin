@@ -1,9 +1,16 @@
 package po.lognotify.classes.notification.sealed
 
-data class ProviderTask(val taskName: String) :InfoProvider(taskName)
-data class ProviderThrower(val taskName: String) :InfoProvider(taskName)
-data class ProviderHandler(val taskName: String) :InfoProvider(taskName)
+import po.lognotify.classes.task.TaskIdentification
 
-sealed class InfoProvider(var name: String) {
+data class ProviderTask(val task: TaskIdentification) :InfoProvider(task)
+data class ProviderThrower(val task: TaskIdentification) :InfoProvider(task)
+data class ProviderHandler(val task: TaskIdentification) :InfoProvider(task)
+
+sealed class InfoProvider(
+    task: TaskIdentification
+){
+
+    val coroutineContext = task.coroutineContext
+
 
 }

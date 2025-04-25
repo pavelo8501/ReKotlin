@@ -4,33 +4,32 @@ package po.lognotify.classes.notification.models
 import po.lognotify.classes.notification.JasonStringSerializable
 import po.lognotify.classes.notification.enums.EventType
 import po.lognotify.classes.notification.sealed.InfoProvider
+import po.lognotify.classes.notification.sealed.ProviderTask
 import po.lognotify.classes.task.ResultantTask
+import po.lognotify.classes.task.TaskIdentification
 import po.lognotify.enums.ColourEnum
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.helpers.StaticHelper
+import po.misc.exceptions.CoroutineInfo
 import java.time.LocalDateTime
 
 data class Notification(
-    val task: ResultantTask,
+    val provider: ProviderTask,
     val eventType : EventType,
     val severity: SeverityLevel,
     val message: String,
-    val provider: InfoProvider,
     val timestamp: LocalDateTime = LocalDateTime.now()
 ): JasonStringSerializable, StaticHelper {
 
+
+    private val coroutineInfo = CoroutineInfo.createInfo(provider.task .coroutineContext)
+    private val task = provider.task
 
     private val taskHeader = mapOf(
         "task" to "${task.taskName} @ $currentDateTime",
         "task_info" to "Module: ${task.moduleName}",
         "nesting_level" to "Nesting: ${task.nestingLevel}",
-        "coroutine_info" to "Coroutine Info: ${
-            task.coroutineInfo.joinToString(
-                ",",
-                "[",
-                "]"
-            ) { "HashCode: ${it.hashCode} Name: ${it.name}" }
-        }"
+        "coroutine_info" to "Coroutine Info: [HashCode: ${coroutineInfo.hashCode} Name: ${coroutineInfo.name}]",
     )
 
     private val taskFooter = mapOf(

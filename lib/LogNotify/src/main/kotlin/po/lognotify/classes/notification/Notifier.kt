@@ -8,6 +8,7 @@ import po.lognotify.classes.notification.enums.EventType
 import po.lognotify.classes.notification.models.Notification
 import po.lognotify.classes.notification.sealed.ProviderTask
 import po.lognotify.classes.task.ResultantTask
+import po.lognotify.classes.task.TaskIdentification
 import po.lognotify.classes.task.TaskSealedBase
 import po.lognotify.enums.ColourEnum
 import po.lognotify.enums.SeverityLevel
@@ -33,7 +34,6 @@ class Notifier(
         _notification.emit(notification)
     }
 
-
     fun toConsole(notification : Notification){
         when(notification.eventType){
             EventType.START -> {
@@ -51,24 +51,23 @@ class Notifier(
         }
     }
 
-    internal suspend fun createTaskNotification(task : ResultantTask, message: String, type : EventType, severity: SeverityLevel){
+    internal suspend fun createTaskNotification(task : TaskSealedBase<*>, message: String, type : EventType, severity: SeverityLevel){
         val notification = Notification(
-            task,
+            ProviderTask(task.taskData),
             type,
             severity,
-            message,
-            ProviderTask(task.taskName)
+            message
         )
         toConsole(notification)
         emit(notification)
     }
     suspend fun subscribeToHandlerUpdates(){
-        withContext(task.coroutineContext) {
-            task.taskRunner.exceptionHandler.subscribeHandlerUpdates(){
-                toConsole(it)
-                emit(it)
-            }
-        }
+//        withContext(task.coroutineContext) {
+//            task.taskRunner.exceptionHandler.subscribeHandlerUpdates(){
+//                toConsole(it)
+//                emit(it)
+//            }
+//        }
     }
 
     override suspend fun start(){

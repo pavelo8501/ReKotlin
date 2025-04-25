@@ -2,35 +2,47 @@ package po.test.lognotify.exceptions
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import po.lognotify.exceptions.ManagedException
-import po.lognotify.exceptions.enums.HandlerType
-import po.lognotify.extensions.getOrException
-import po.lognotify.extensions.testOrException
+import po.lognotify.exceptions.getOrThrow
+import po.misc.exceptions.HandlerType
+import po.misc.exceptions.ManagedException
+import po.misc.exceptions.getOrException
+import po.misc.exceptions.testOrException
 import kotlin.test.assertEquals
+import kotlin.time.measureTime
 
 
 class CancelException(
     message: String,
-    handler: HandlerType = HandlerType.CANCEL_ALL
-) : ManagedException(message, handler) {
-    override val builderFn: (String) -> CancelException
-        get() = ::CancelException
+
+) : ManagedException(message) {
+    override var handler: HandlerType = HandlerType.SKIP_SELF
+    override val builderFn: (String, Int?) -> CancelException = { msg, _ ->
+        CancelException(msg)
+    }
 }
 
 class SkipException(
     message: String,
-    handler: HandlerType = HandlerType.SKIP_SELF
-) : ManagedException(message, handler) {
-    override val builderFn: (String) -> SkipException
-        get() = ::SkipException
+) : ManagedException(message) {
+
+    override  var handler: HandlerType = HandlerType.SKIP_SELF
+
+    override val builderFn: (String, Int?) -> SkipException = {msg, _->
+         SkipException(msg)
+    }
+
 }
 
 fun <T: Any> T?.getOrThrowSkip(message: String, handler: HandlerType): T{
-   return  this.getOrException(SkipException(message, handler))
+   return  this.getOrException {
+       (SkipException(message))
+   }
 }
 
 fun <T: Any> T?.getOrThrowCancel(message: String): T{
-    return  this.getOrException(CancelException(message, HandlerType.CANCEL_ALL))
+    return  this.getOrException{
+        (CancelException(message))
+    }
 }
 
 class TestManagedException {
@@ -38,12 +50,15 @@ class TestManagedException {
     @Test
     fun `derived SkipException can be thrown`(){
         var testVal : String? = "value"
-        val resulting = testVal.getOrThrowSkip("skip", HandlerType.SKIP_SELF)
+        val resulting = testVal.getOrThrow("skip",)
+       val res =  assertThrows<SkipException> {
+            val resulting = testVal.getOrThrow("skip")
+        }
         assertEquals("value", resulting, "GetOrThrowSkip failed")
 
         testVal = null
         val thrown =  assertThrows<SkipException> {
-            testVal.getOrThrowSkip("skip", HandlerType.SKIP_SELF)
+            testVal.getOrThrow("skip")
         }
         assertEquals("skip", thrown.message, "Message mismatch in skip exception")
         assertEquals(HandlerType.SKIP_SELF, thrown.handler, "Skip exception handler mismatch")
@@ -52,12 +67,12 @@ class TestManagedException {
     @Test
     fun `derived CancelException can be thrown`(){
         var testVal : String? = "value"
-        val resulting = testVal.getOrThrowCancel("cancel")
+        val resulting = testVal.getOrThrow("cancel")
         assertEquals("value", resulting, "GetOrThrowSkip failed")
 
         testVal = null
         val thrown =  assertThrows<CancelException> {
-            testVal.getOrThrowCancel("cancel")
+            testVal.getOrThrow("cancel")
         }
         assertEquals("cancel", thrown.message, "Message mismatch in cancel exception")
         assertEquals(HandlerType.CANCEL_ALL, thrown.handler, "Cancel exception handler mismatch")
@@ -67,21 +82,21 @@ class TestManagedException {
     fun `testOrException throws correctly`(){
 
         val testVal : String? = "value"
-        val resulting = testVal.testOrException(CancelException("cancel", HandlerType.CANCEL_ALL)){
+        val resulting = testVal.testOrException(CancelException("cancel")){
             it == "value"
         }
         assertEquals("value", resulting, "TestOrException failed")
 
         val thrown =  assertThrows<CancelException> {
-            testVal.testOrException(CancelException("cancel", HandlerType.CANCEL_ALL)){
-                it == "something else"
+            testVal.testOrException(CancelException("cancel")){
+              it ==  "something else"
             }
         }
         assertEquals("cancel", thrown.message, "Message mismatch in cancel exception")
         assertEquals(HandlerType.CANCEL_ALL, thrown.handler, "Cancel exception handler mismatch")
 
         val thrownSkip =  assertThrows<SkipException> {
-            testVal.testOrException(SkipException("skip", HandlerType.SKIP_SELF)){
+            testVal.testOrException(SkipException("skip")){
                 false
             }
         }
