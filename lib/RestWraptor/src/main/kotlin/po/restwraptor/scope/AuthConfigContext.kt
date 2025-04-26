@@ -18,14 +18,16 @@ import po.restwraptor.extensions.respondUnauthorized
 import po.restwraptor.extensions.withSession
 import po.restwraptor.models.configuration.AuthConfig
 import po.restwraptor.interfaces.StringHelper
+import po.restwraptor.models.configuration.WraptorConfig
 import po.restwraptor.routes.configureAuthRoutes
 
 class AuthConfigContext(
     private val application : Application,
-    private val authConfig : AuthConfig
+    private val wraptorConfig: WraptorConfig,
 ): StringHelper, TasksManaged{
 
     val personalName = "AuthConfigContext"
+    private val authConfig get() = wraptorConfig.authConfig
 
     private suspend fun installJWTAuthentication(jwtService: JWTService,  app: Application){
         app.apply {
@@ -55,7 +57,7 @@ class AuthConfigContext(
         }
     }
 
-    suspend fun setupAuthentication(
+    internal suspend fun setupAuthentication(
         cryptoKeys: CryptoRsaKeys,
         userLookupFn: (suspend (login: String)-> AuthenticationPrincipal?)? = null
     ){
@@ -80,7 +82,7 @@ class AuthConfigContext(
             installJWTAuthentication(service, application)
             if(authConfig.defaultSecurityRouts) {
                 application.routing {
-                    configureAuthRoutes(authConfig.authRoutePrefix, this@AuthConfigContext)
+                    configureAuthRoutes(toUrl(wraptorConfig.apiConfig.baseApiRoute, authConfig.authRoutePrefix), this@AuthConfigContext)
                 }
                 handler.info("AuthRoutes configured")
             }

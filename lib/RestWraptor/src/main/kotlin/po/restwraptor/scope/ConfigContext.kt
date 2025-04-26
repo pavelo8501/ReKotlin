@@ -6,6 +6,7 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.application.pluginOrNull
+import io.ktor.server.auth.AuthenticationContext
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.routing.routing
@@ -17,6 +18,7 @@ import po.lognotify.classes.task.TaskHandler
 import po.lognotify.extensions.lastTaskHandler
 import po.lognotify.extensions.subTask
 import po.restwraptor.RestWrapTor
+import po.restwraptor.models.configuration.ApiConfig
 import po.restwraptor.models.configuration.AuthConfig
 import po.restwraptor.models.configuration.WraptorConfig
 import po.restwraptor.plugins.CoreAuthApplicationPlugin
@@ -28,24 +30,35 @@ interface ConfigContextInterface{
         cryptoKeys: CryptoRsaKeys,
         userLookupFn: suspend ((login: String)-> AuthenticationPrincipal?),
         configFn  : (suspend AuthConfigContext.()-> Unit)? = null)
-    suspend fun setup(configFn : suspend WraptorConfig.()-> Unit)
-    suspend fun setup(configuration : WraptorConfig, configFn : suspend WraptorConfig.()-> Unit)
-    fun setupApplication(block: Application.()->Unit)
-    suspend fun initialize():Application
+   // suspend fun setup(configFn : suspend WraptorConfig.()-> Unit)
+   // suspend fun setup(configuration : WraptorConfig, configFn : suspend WraptorConfig.()-> Unit)
+   // fun setupApplication(block: Application.()->Unit)
+    //suspend fun initialize():Application
 }
 
 class ConfigContext(
     internal val wraptor : RestWrapTor,
-    internal val wrapConfig : WraptorConfig,
-    internal val authConfig : AuthConfig,
+    private val wrapConfig : WraptorConfig,
 
 ): ConfigContextInterface, TasksManaged{
 
     val personalName = "ConfigContext"
 
-    internal val apiConfig  =  wrapConfig.apiConfig
+
+    var apiConfig : ApiConfig
+        get()  {return  wrapConfig.apiConfig}
+        set(value){
+            wrapConfig.apiConfig = value
+        }
+
+    var authConfig : AuthConfig
+        get()  {return  wrapConfig.authConfig}
+        set(value){
+            wrapConfig.authConfig = value
+        }
+
     private val application : Application  by lazy { wraptor.application }
-    private val authContext  : AuthConfigContext by lazy { AuthConfigContext(application, authConfig) }
+    private val authContext  : AuthConfigContext  by lazy { AuthConfigContext(application, wrapConfig) }
 
     internal val jsonFormatter : Json = Json {
         isLenient = true
@@ -115,31 +128,23 @@ class ConfigContext(
         return lastTaskHandler()
     }
 
-    /**
-     * Configures parameters that must be applied before custom configuration and user defined one.
-     */
-    private fun configAppParams(app: Application){
-        app.rootPath = apiConfig.baseApiRoute
+    private var userLookupFn: (suspend(login: String)-> AuthenticationPrincipal?)? = null
+    private var authConfigFn:  (suspend AuthConfigContext.()-> Unit)? = null
+
+    fun applyApiConfig(config: ApiConfig){
+        wrapConfig.apiConfig = config
     }
+    fun applyAuthConfig(config: AuthConfig){
+        wrapConfig.authConfig = config
+    }
+
 
     override suspend fun setupAuthentication(
         cryptoKeys: CryptoRsaKeys,
         userLookupFn: suspend ((login: String)-> AuthenticationPrincipal?),
         configFn  : (suspend AuthConfigContext.()-> Unit)?){
-        authContext.setupAuthentication(cryptoKeys, userLookupFn)
-        configFn?.invoke(authContext)
-    }
-    override suspend fun setup(configuration : WraptorConfig, configFn : suspend WraptorConfig.()-> Unit){
-        wrapConfig.configFn()
-    }
-
-    override suspend fun setup(configFn : suspend WraptorConfig.()-> Unit){
-        wrapConfig.configFn()
-    }
-
-    override fun setupApplication(block: Application.()->Unit) {
-        configAppParams(application)
-        application.block()
+        authContext.setupAuthentication(cryptoKeys,userLookupFn)
+        authConfigFn = configFn
     }
 
     private suspend fun installCoreAuth(app: Application){
@@ -147,17 +152,17 @@ class ConfigContext(
             app.apply {
                 install(CoreAuthApplicationPlugin) {
                     headerName = HttpHeaders.Authorization
-                    pluginKey = authConfig.jwtServiceName
+                    pluginKey =  wrapConfig.authConfig.jwtServiceName
                 }
                 handler.info("CoreAuthPlugin Plugin installed")
             }
         }
     }
 
-    override suspend fun initialize(): Application{
-
+    internal suspend fun initialize(builderFn: (suspend  ConfigContext.()-> Unit)?): Application{
+        builderFn?.invoke(this)
+        application.rootPath = apiConfig.baseApiRoute
         installCoreAuth(application)
-
         subTask("Initialization", personalName){
             if(apiConfig.cors){
                 configCors(application)
@@ -175,6 +180,7 @@ class ConfigContext(
                 }
             }
         }
+        authConfigFn?.invoke(authContext)
         return application
     }
 }

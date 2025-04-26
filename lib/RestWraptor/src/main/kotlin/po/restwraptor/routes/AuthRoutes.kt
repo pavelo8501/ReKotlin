@@ -6,26 +6,20 @@ import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Routing
 import io.ktor.server.routing.post
-import io.ktor.server.sessions.sessionId
 import kotlinx.serialization.SerializationException
-import po.auth.AuthSessionManager
 import po.auth.authentication.exceptions.AuthException
 import po.auth.authentication.exceptions.ErrorCodes
 import po.auth.extensions.authenticate
 import po.lognotify.extensions.startTask
 import po.misc.exceptions.HandlerType
-import po.misc.exceptions.ManagedException
 import po.misc.exceptions.getOrException
 import po.restwraptor.enums.WraptorHeaders
-import po.restwraptor.exceptions.ExceptionCodes
 import po.restwraptor.extensions.asBearer
 import po.restwraptor.extensions.authSessionOrNull
 import po.restwraptor.extensions.respondBadRequest
 import po.restwraptor.extensions.respondInternal
-import po.restwraptor.extensions.respondNotFound
 import po.restwraptor.extensions.respondUnauthorized
 import po.restwraptor.extensions.withBaseUrl
-import po.restwraptor.extensions.withSession
 import po.restwraptor.models.request.ApiRequest
 import po.restwraptor.models.request.LoginRequest
 import po.restwraptor.models.request.LogoutRequest
@@ -35,6 +29,7 @@ import java.lang.Exception
 
 fun Routing.configureAuthRoutes(authPrefix: String,  authConfigContext: AuthConfigContext) {
     val personalName = "AuthRoutes"
+
     val loginRoute = "login"
 
     post(withBaseUrl(authPrefix, loginRoute)) {

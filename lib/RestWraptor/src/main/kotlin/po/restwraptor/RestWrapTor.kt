@@ -1,7 +1,6 @@
 package po.restwraptor
 
 import io.ktor.server.application.Application
-import io.ktor.server.application.ApplicationStarted
 import io.ktor.server.application.ServerReady
 import io.ktor.server.engine.ApplicationEngine
 import io.ktor.server.engine.EmbeddedServer
@@ -68,16 +67,20 @@ class RestWrapTor(
         private set
 
     /** Internal configuration settings for `RestWrapTor`. */
-    private var wrapConfig  = WraptorConfig()
+    internal var wrapConfig  = WraptorConfig()
 
-    internal var authConfig  = AuthConfig()
-        private set
+    private val authConfig  get() = wrapConfig.authConfig
+    private val apiConfig  get() = wrapConfig.apiConfig
+
 
     /** Context for handling application configuration. */
-    private val configContext : ConfigContext = ConfigContext(this, wrapConfig, authConfig)
+    private val configContext : ConfigContext = ConfigContext(this, wrapConfig)
 
-    /** Core context for managing routes and API structure. */
-    private val coreContext : CoreContext by lazy {  CoreContext(application, this) }
+
+    private var hasCoreContext : CoreContext? = null
+    private val coreContext : CoreContext
+        get(){ return hasCoreContext?:throw ConfigurationException("Core context accessed before init", ExceptionCodes.VALUE_IS_NULL)}
+
 
     /** The attribute key used to store this instance inside the `Application.attributes`. */
     lateinit var thisKey :  AttributeKey<RestWrapTor>
@@ -111,6 +114,11 @@ class RestWrapTor(
 
     }
 
+    suspend fun setup(configFn : suspend ConfigContext.()-> Unit){
+        appConfigFn = configFn
+    }
+
+
     /**
      * Registers this `RestWrapTor` instance in `Application.attributes`.
      */
@@ -133,15 +141,23 @@ class RestWrapTor(
      * Retrieves a list of all registered routes in the application.
      * @return A list of `WraptorRoute` objects representing the registered routes.
      */
-    override fun getRoutes():List<WraptorRoute>{
-       // println("Hash on getRoutes ${System.identityHashCode(application)}")
-        return coreContext.getWraptorRoutes()
+
+    private var getRoutesCallback : (((List<WraptorRoute>)-> Unit)?) = null
+    override fun getRoutes(callback : ((List<WraptorRoute>)-> Unit)?):List<WraptorRoute>{
+        getRoutesCallback  = callback
+        if(hasCoreContext != null){
+            val routes = coreContext.getWraptorRoutes()
+            callback?.invoke(routes)
+
+            return coreContext.getWraptorRoutes()
+        }else{
+            return emptyList()
+        }
     }
 
     override fun getConnectors(callback : (List<EngineConnectorConfig>)-> Unit ){
         callback.invoke(embeddedServer.engineConfig.connectors.toList())
     }
-
 
     /**
      * Retrieves the current `Application` instance.
@@ -160,23 +176,22 @@ class RestWrapTor(
     }
 
 
-    private  fun setupConfig(app : Application) {
+    private fun setupConfig(app : Application) {
 
         startTaskAsync("Configuration", "RestWrapTor"){handler->
             _application = app
+            hasCoreContext  = CoreContext(app, this)
+
             handler.info("App hash before appBuilderFn invoked ${System.identityHashCode(this)}")
             application.monitor.subscribe(ServerReady) {
-
                 onServerStartedCallback?.invoke(this)
             }
             registerSelf().getOrThrow<AttributeKey<RestWrapTor>, ConfigurationException>("RestWrapTor Registration inside Application failed", ExceptionCodes.KEY_REGISTRATION.value)
-            appConfigFn?.let{fn->
-                configContext.fn()
-            }
-            configContext.initialize()
+            configContext.initialize(appConfigFn)
             appHash = System.identityHashCode(application)
             handler.info("App hash of the WrapTor configured app $appHash")
             initialized = true
+            getRoutesCallback?.invoke(coreContext.getWraptorRoutes())
         }
     }
 
@@ -225,7 +240,7 @@ class RestWrapTor(
             }
         }
         val thisApp = getApp()
-        val isProduction = this.wrapConfig.enviromnent == EnvironmentType.PROD
+        val isProduction = this.wrapConfig.apiConfig.environment == EnvironmentType.PROD
         val allRoutes = coreContext.getWraptorRoutes()
 
         return  WraptorStatus(

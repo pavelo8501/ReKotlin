@@ -35,7 +35,7 @@ fun Routing.configureSystemRoutes(baseURL: String, configContext: ConfigContext)
     }
     route("{...}") {
         handle {
-            if (configContext.wrapConfig.enviromnent != EnvironmentType.PROD) {
+            if (configContext.apiConfig.environment != EnvironmentType.PROD) {
                 call.respondNotFound(
                     wraptor.getRoutes().map { ("Path: ${it.path}  Method: ${it.selector} IsSecured: ${it.isSecured} ") }
                 )

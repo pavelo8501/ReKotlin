@@ -40,7 +40,8 @@ fun Routing.jwtSecured(block: Route.() -> Unit){
         "Wraptor not found in Application registry",
         ExceptionCodes.KEY_REGISTRATION.value)
 
-    val serviceName = wraptor.authConfig.jwtServiceName
+    val serviceName : String =  wraptor.wrapConfig.authConfig.jwtServiceName
+
     authenticate(serviceName){
         install(CoreAuthRoutePlugin){
 

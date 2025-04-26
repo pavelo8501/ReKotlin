@@ -65,9 +65,7 @@ class SequenceContext<DTO, DATA>(
     private var lastResult : CrudResult<DTO, DATA> = CrudResult(emptyList())
 
     private fun dtos(): List<CommonDTO<DTO, DATA , ExposifyEntityBase>>{
-        val result =   mutableListOf<CommonDTO<DTO, DATA, ExposifyEntityBase>>()
-        lastResult.rootDTOs.forEach{ result.add(it) }
-        return result
+      return  lastResult.rootDTOs
     }
 
     private suspend fun notifyOnStart(method: String){
@@ -88,12 +86,16 @@ class SequenceContext<DTO, DATA>(
 
     suspend fun <T: IdTable<Long>> pick(
         conditions: WhereCondition<T>,
-        block: (suspend SequenceContext<DTO, DATA>.(dtos: List<CommonDTO<DTO, DATA, ExposifyEntityBase>>)-> Unit)? = null
+        block: (suspend SequenceContext<DTO, DATA>.(dto: CommonDTO<DTO, DATA, ExposifyEntityBase>?)-> Unit)? = null
     ) {
+        notifyOnStart("pick")
+        lastResult =  dtoClass.select<T, DTO, DATA>(conditions)
+
         if (block != null) {
-            this.block(dtos())
+            this.block(dtos().firstOrNull())
         } else {
             checkout(lastResult)
+            notifyOnComplete("pick")
         }
     }
 
@@ -105,6 +107,7 @@ class SequenceContext<DTO, DATA>(
             if (!isTransactionReady()) {
                 handler.warn("Transaction lost context")
             }
+            notifyOnStart("select(With conditions)")
             lastResult = if (conditions != null) {
                 dtoClass.select<T, DTO, DATA>(conditions)
             } else {
@@ -112,8 +115,10 @@ class SequenceContext<DTO, DATA>(
             }
             if (block != null) {
                 this.block(dtos())
+                notifyOnComplete("select")
             } else {
                 checkout(lastResult)
+                notifyOnComplete("select")
             }
         }
     }
@@ -129,6 +134,7 @@ class SequenceContext<DTO, DATA>(
             lastResult = dtoClass.select()
             if (block != null) {
                 this.block(dtos())
+                notifyOnComplete("select")
             } else {
                 checkout(lastResult)
                 notifyOnComplete("select")
@@ -148,6 +154,7 @@ class SequenceContext<DTO, DATA>(
             lastResult = dtoClass.update(dataModels)
             if (block != null) {
                 this.block(dtos())
+                notifyOnComplete("update")
             } else {
                 checkout(lastResult)
                 notifyOnComplete("update")

@@ -66,7 +66,9 @@ val JWTPlugin: ApplicationPlugin<JWTPluginConfig> = createApplicationPlugin(
     }
 
     on(MonitoringEvent(ApplicationStarted)) { application ->
-        securedRoutes.addAll(application.getWraptorRoutes().filter { it.isSecured })
+        application.getWraptorRoutes(){list->
+            securedRoutes.addAll(list.filter { it.isSecured })
+        }
     }
 
     on(CallSetup) { call ->
