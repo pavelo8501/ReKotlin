@@ -1,5 +1,7 @@
 package po.test.exposify.setup
 
+import po.test.exposify.setup.dtos.TestPage
+import po.test.exposify.setup.dtos.TestSection
 
 
 private fun sectionModel(
@@ -9,7 +11,7 @@ private fun sectionModel(
     sectionClasses : List<TestClassItem> = listOf<TestClassItem>(TestClassItem(1,"class_1"), TestClassItem(2,"class_2"))): TestSection
 {
 
-    return  TestSection(
+    return TestSection(
         "TestSection/$name",
         "TestSection/$name Description",
         "",
@@ -20,7 +22,7 @@ private fun sectionModel(
 }
 
 private fun pageModel(name: String, pageClasses: List<TestClassItem>, updatedBy: Long): TestPage{
-    return  TestPage("TestPage/$name", 1, pageClasses, updatedBy)
+    return  TestPage("TestPage/$name", 1)
 }
 
 

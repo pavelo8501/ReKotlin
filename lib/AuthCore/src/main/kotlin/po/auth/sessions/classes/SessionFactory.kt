@@ -2,14 +2,10 @@ package po.auth.sessions.classes
 
 import po.auth.AuthSessionManager
 import po.auth.authentication.authenticator.UserAuthenticator
-import po.auth.authentication.authenticator.models.AuthenticationPrincipal
-import po.auth.authentication.exceptions.ErrorCodes
-import po.auth.extensions.getOrThrow
 import po.auth.sessions.enumerators.SessionType
 import po.auth.sessions.interfaces.SessionIdentified
 import po.auth.sessions.models.AuthorizedSession
 import po.lognotify.TasksManaged
-import po.lognotify.extensions.subTask
 import java.util.concurrent.ConcurrentHashMap
 
 class SessionFactory(
@@ -27,8 +23,6 @@ class SessionFactory(
     fun listAnonymous(): List<AuthorizedSession>{
         return activeSessions.values.filter { it.sessionType == SessionType.ANONYMOUS}
     }
-
-
 
     suspend fun createAnonymousSession(authData : SessionIdentified,  authenticator : UserAuthenticator): AuthorizedSession{
        val anonSession = AuthorizedSession(authData.remoteAddress, authenticator)

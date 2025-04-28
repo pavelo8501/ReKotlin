@@ -37,7 +37,7 @@ data class CrudResultSingle<DTO, DATA>(
         return dataModel
     }
 
-    fun getDTO(): CommonDTO<DTO, DATA, ExposifyEntityBase> {
+    fun getDTO(): CommonDTO<DTO, DATA, *> {
         return rootDTO
     }
 

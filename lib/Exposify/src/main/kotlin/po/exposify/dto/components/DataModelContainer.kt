@@ -47,17 +47,15 @@ class DataModelContainer<DTO : ModelDTO, DATA: DataModel>(
 
     fun setTrackedProperties(list: List<DataPropertyInfo<DTO, DATA, ExposifyEntityBase, ModelDTO>>){
         list.forEach {propertyInfo->
-//            dataBlueprint.propertyMap[propertyInfo.name]?.let {blueprintProperty->
-//                propertyInfo.inBlueprint = blueprintProperty
-//            }
             trackedProperties[propertyInfo.name] = propertyInfo
         }
     }
 
     fun attachBinder(propertyBinder: PropertyBinder<DATA, *>){
         binder = propertyBinder
+        propertyBinder.onPropertyUpdate
         propertyBinder.syncedSerializedPropertyList.forEach {
-            it.onPropertyUpdated(::binderUpdatedProperty)
+            it.dataProperty
         }
     }
 

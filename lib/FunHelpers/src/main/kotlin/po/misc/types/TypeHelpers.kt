@@ -1,16 +1,28 @@
-package po.misc
+package po.misc.types
 
+import po.misc.exceptions.ManagedException
+import po.misc.exceptions.SelfThrownException
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlin.reflect.typeOf
 
 
-inline fun <reified T: Any> Any.safeCast(): T? {
-    return this as? T
-}
 
 inline fun <T1 : Any, R : Any> safeLet(p1: T1?, block: (T1) -> R?): R? {
     return if (p1 != null) block(p1) else null
+}
+
+
+inline fun <T : Any, reified E: ManagedException> T?.getOrThrow(
+    message: String? = "",
+    code: Int = 0
+): T {
+    if(this == null){
+        val msg = message?:"Value is null"
+        throw SelfThrownException.build<E>(msg, code)
+    }else{
+        return this
+    }
 }
 
 

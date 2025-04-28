@@ -15,6 +15,7 @@ import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.getOrOperationsEx
 import po.lognotify.TasksManaged
+import po.lognotify.extensions.onFailureCause
 import po.lognotify.extensions.subTask
 import kotlin.collections.get
 import kotlin.reflect.KClass
@@ -127,10 +128,18 @@ internal class DTOFactory<DTO, DATA, ENTITY>(
                 }
             }
         }
+
+  val res =  try {
         val args = dtoBlueprint.getArgsForConstructor()
         val newDto =  dtoBlueprint.getConstructor().callBy(args)
         dtoPostCreation(newDto)
         newDto
+    }catch (th: Throwable){
+        println(th.toString().prependIndent("Exception"))
+
+         throw  th
+    }
+            res
     }.resultOrException()
 
 }

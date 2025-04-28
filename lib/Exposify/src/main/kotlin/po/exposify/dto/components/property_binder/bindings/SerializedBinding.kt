@@ -16,24 +16,13 @@ class SerializedBinding<DATA : DataModel, ENT : ExposifyEntityBase, C, TYPE: Any
 {
     override val propertyType: PropertyType = PropertyType.SERIALIZED
 
-    override var onDataUpdatedCallback: ((PropertyBindingOption<DATA, ENT, C>) -> Unit)?= null
-
-    private var onPropertyUpdatedCallback: ((String, PropertyType, UpdateMode) -> Unit)? = null
-    override fun onPropertyUpdated(callback: (String, PropertyType, UpdateMode) -> Unit) {
-        onPropertyUpdatedCallback = callback
-    }
-
     var updated: Boolean = false
-    override fun updated(name: String, type: PropertyType, updateMode: UpdateMode) {
-        updated = true
-        onPropertyUpdatedCallback?.invoke(name, type, updateMode)
-    }
 
     fun getSerializer(): Pair<String, KSerializer<TYPE>>{
         return Pair(dataProperty.name, serializer)
     }
 
-    fun update(dtoModel: DATA, entityModel: ENT, mode: UpdateMode): Boolean {
+   suspend fun update(dtoModel: DATA, entityModel: ENT, mode: UpdateMode, callback:  (suspend (String, PropertyType, UpdateMode) -> Unit)?): Boolean {
         updated = false
         val dtoValue = dataProperty.get(dtoModel)
 
@@ -49,7 +38,7 @@ class SerializedBinding<DATA : DataModel, ENT : ExposifyEntityBase, C, TYPE: Any
                 if (!valuesDiffer) return false
                 if (entityValue != null) {
                     dataProperty.set(dtoModel, entityValue)
-                    updated(dataProperty.name, propertyType, UpdateMode.MODEL_TO_ENTITY_FORCED)
+                    callback?.invoke(dataProperty.name, propertyType, UpdateMode.MODEL_TO_ENTITY_FORCED)
                     true
                 }
                 false
@@ -58,7 +47,7 @@ class SerializedBinding<DATA : DataModel, ENT : ExposifyEntityBase, C, TYPE: Any
             UpdateMode.ENTITY_TO_MODEL_FORCED -> {
                 if (entityValue != null) {
                     dataProperty.set(dtoModel, entityValue)
-                    updated(dataProperty.name, propertyType, UpdateMode.MODEL_TO_ENTITY_FORCED)
+                    callback?.invoke(dataProperty.name, propertyType, UpdateMode.MODEL_TO_ENTITY_FORCED)
                 }
                 true
             }
@@ -80,12 +69,6 @@ class SerializedBinding<DATA : DataModel, ENT : ExposifyEntityBase, C, TYPE: Any
                 false
             }
         }
-
-        if(updated){
-            updated = false
-            onDataUpdatedCallback?.invoke(this)
-        }
-
         return result
     }
 }

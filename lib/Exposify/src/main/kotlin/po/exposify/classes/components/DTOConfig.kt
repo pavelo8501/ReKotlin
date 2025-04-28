@@ -8,6 +8,8 @@ import po.exposify.classes.interfaces.DataModel
 import po.exposify.classes.DTOClass
 import po.exposify.dto.components.DTOFactory
 import po.exposify.dto.components.DataModelContainer
+import po.exposify.dto.components.property_binder.enums.PropertyType
+import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.components.property_binder.interfaces.PropertyBindingOption
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.DTORegistryItem
@@ -30,8 +32,10 @@ class DTOConfig<DTO, DATA, ENTITY>(
 
    internal var dtoFactory: DTOFactory<DTO, DATA, ENTITY> = DTOFactory(registry.commonDTOKClass, registry.dataKClass, this)
 
+    var binderPropertyUpdate  : (suspend (String, PropertyType, UpdateMode) -> Unit)? = null
+
     val namedSerializes = mutableListOf<Pair<String, KSerializer<out Any>>>()
-    val propertyBinder : PropertyBinder<DATA, ENTITY> = PropertyBinder(){syncedSerializedList->
+    val propertyBinder : PropertyBinder<DATA, ENTITY> = PropertyBinder(binderPropertyUpdate   ){syncedSerializedList->
         syncedSerializedList.forEach {
             namedSerializes.add(it.getSerializer())
         }

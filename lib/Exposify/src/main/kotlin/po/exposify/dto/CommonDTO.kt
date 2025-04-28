@@ -7,6 +7,7 @@ import po.exposify.dto.components.DAOService
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.common.classes.MapBuilder
 import po.exposify.classes.DTOClass
+import po.exposify.common.classes.ClassBlueprint
 import po.exposify.dto.components.DataModelContainer
 import po.exposify.dto.components.RepositoryBase
 import po.exposify.dto.interfaces.ModelDTO
@@ -15,12 +16,9 @@ import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.exceptions.InitException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.dto.enums.DTOInitStatus
-import po.exposify.dto.models.DTORegistry
 import po.exposify.dto.models.DTORegistryItem
 import po.exposify.extensions.getOrOperationsEx
-
-
-
+import po.misc.types.castOrThrow
 
 abstract class CommonDTO<DTO, DATA, ENTITY>(
    val dtoClass: DTOClass<DTO>
@@ -30,11 +28,20 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     abstract override val dataModel: DATA
 
     override val daoService: DAOService<DTO, ENTITY> = DAOService<DTO, ENTITY>(this, dtoClass.getEntityModel())
-    lateinit var propertyBinderSource: PropertyBinder<DATA, ENTITY>
-    val propertyBinder : PropertyBinder<DATA, ENTITY>
-        get() = propertyBinderSource
 
-    override lateinit var dataContainer: DataModelContainer<DTO, DATA>
+    private var propertyBinderSource: PropertyBinder<DATA, ENTITY>? = null
+    override val propertyBinder : PropertyBinder<DATA, ENTITY>
+        get() = propertyBinderSource?:dtoClass.config.propertyBinder.castOrThrow<PropertyBinder<DATA, ENTITY>, InitException>()
+
+    var hasContainer: DataModelContainer<DTO, DATA>? = null
+    override val dataContainer: DataModelContainer<DTO, DATA>
+        get() {
+           return hasContainer ?:run {
+               return DataModelContainer( dataModel,
+                   dtoClass.config.dtoFactory.dataBlueprint.castOrThrow<ClassBlueprint<DATA>, InitException>(),
+                   dtoClass.config.propertyBinder.castOrThrow<PropertyBinder<DATA, ENTITY>, InitException>())
+           }
+        }
 
     var onInitializationStatusChange : ((CommonDTO<DTO, DATA, ENTITY>)-> Unit)? = null
     var initStatus: DTOInitStatus = DTOInitStatus.UNINITIALIZED
@@ -67,13 +74,14 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         return repositories.map.values.toList()
     }
 
-    suspend fun updateBinding(entity : ENTITY, updateMode: UpdateMode){
+    suspend fun updateBinding(entity : ENTITY, updateMode: UpdateMode): CommonDTO<DTO ,DATA, ENTITY>{
         propertyBinder.update(dataContainer.dataModel, entity, updateMode)
         daoService.setLastEntity(entity)
         if(updateMode == UpdateMode.ENTITY_TO_MODEL){
             dataContainer.setDataModelId(entity.id.value)
         }
         initStatus = DTOInitStatus.INITIALIZED
+        return this
     }
 
    internal fun initialize(
@@ -83,7 +91,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
    {
        _regItem =  CommonDTORegistryItem(dtoClass,  regItem.dataKClass, regItem.entityKClass, regItem.commonDTOKClass, this)
        propertyBinderSource = binder
-       dataContainer = container
+       hasContainer = container
        dataContainer.attachBinder(propertyBinder)
        initStatus = DTOInitStatus.PARTIAL_WITH_DATA
        personalName = "${regItem.commonDTOKClass.simpleName.toString()}[CommonDTO]"
@@ -91,7 +99,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     }
 
     companion object{
-        internal val dtoRegistry: MapBuilder<String, CommonDTORegistryItem<*,*,*>> = MapBuilder<String, CommonDTORegistryItem<*,*,*>>()
+        val dtoRegistry: MapBuilder<String, CommonDTORegistryItem<*,*,*>> = MapBuilder<String, CommonDTORegistryItem<*,*,*>>()
         internal fun <DTO: ModelDTO, DATA :DataModel, ENTITY: ExposifyEntityBase> selfRegistration(
             regItem :  CommonDTORegistryItem<DTO, DATA, ENTITY>
         ){

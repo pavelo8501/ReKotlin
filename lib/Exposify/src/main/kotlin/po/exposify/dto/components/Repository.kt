@@ -8,10 +8,12 @@ import po.exposify.classes.DTOClass
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase
+import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.getOrOperationsEx
 import po.exposify.extensions.safeCast
 import po.lognotify.TasksManaged
+import po.misc.types.castOrThrow
 import kotlin.collections.forEach
 
 
@@ -137,6 +139,14 @@ class RootRepository<DTO, DATA, ENTITY, CHILD_DTO>(
             result.add(castedDto)
         }
         return result
+    }
+
+    suspend fun pick(uninitializedDto: CommonDTO<DTO, DATA, ENTITY>,  entity: ENTITY):CommonDTO<DTO, DATA, ENTITY>?{
+        val initializedDto =  uninitializedDto.updateBinding(entity, UpdateMode.ENTITY_TO_MODEL)
+        initializedDto.getDtoRepositories().forEach { repository ->
+            repository.select()
+        }
+        return initializedDto
     }
 
     override suspend fun clear(): RootRepository<DTO, DATA, ENTITY, CHILD_DTO>{

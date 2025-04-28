@@ -19,7 +19,6 @@ class TestPageEntity  (id: EntityID<Long>) : ExposifyEntityBase(id){
     companion object : LongEntityClass<TestPageEntity>(TestPages)
     var name by TestPages.name
     var langId by TestPages.langId
-    var pageClasses by TestPages.pageClasses
     var updated by TestPages.updated
     var updatedBy by TestUserEntity referencedOn TestPages.updatedBy
     val sections by TestSectionEntity referrersOn TestSections.page

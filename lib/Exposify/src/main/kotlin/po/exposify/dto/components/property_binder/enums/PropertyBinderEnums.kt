@@ -9,7 +9,6 @@ enum class UpdateMode{
 
 enum class PropertyType{
     READONLY,
-    REFERENCED,
     TWO_WAY,
     SERIALIZED
 }

@@ -32,6 +32,16 @@ fun <T, R> T.startTaskAsync(
 }
 
 
+fun <T, R> T.newTaskAsync(
+    taskName: String,
+    moduleName: String? = null,
+    block: suspend T.(TaskHandler<R>)-> R,
+): TaskResult<R> {
+    val newTask = TasksManaged.createHierarchyRoot<R>(taskName, moduleName)
+    val runResult =  newTask.runTaskAsync(this, block)
+    return runResult
+}
+
 suspend inline fun <reified T, R> T.newTask(
     taskName: String,
     noinline block: suspend T.(TaskHandler<R>)-> R,

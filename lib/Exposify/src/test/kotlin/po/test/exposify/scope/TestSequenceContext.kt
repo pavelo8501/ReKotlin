@@ -3,17 +3,18 @@ package po.test.exposify.scope
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertAll
+import po.auth.extensions.generatePassword
 import po.exposify.extensions.WhereCondition
 import po.exposify.scope.sequence.enums.SequenceID
 import po.exposify.scope.sequence.extensions.createHandler
 import po.exposify.scope.service.enums.TableCreateMode
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.TestClassItem
-import po.test.exposify.setup.TestPage
-import po.test.exposify.setup.TestPageDTO
 import po.test.exposify.setup.TestPages
-import po.test.exposify.setup.TestUser
-import po.test.exposify.setup.TestUserDTO
+import po.test.exposify.setup.dtos.TestPage
+import po.test.exposify.setup.dtos.TestPageDTO
+import po.test.exposify.setup.dtos.TestUser
+import po.test.exposify.setup.dtos.TestUserDTO
 import po.test.exposify.setup.pageModels
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -26,8 +27,15 @@ class TestSequenceContext : DatabaseTest() {
 
     @Test
     fun `sequence launched with conditions and input work`() = runTest {
-        val user = TestUser("some_login", "name", "******", "nomail@void.null", 0)
+        val user = TestUser(
+            id = 0,
+            login = "some_login",
+            hashedPassword = generatePassword("password"),
+            name = "name",
+            email = "nomail@void.null")
+
         val pageClasses = listOf<TestClassItem>(TestClassItem(1, "class_1"), TestClassItem(2, "class_2"))
+        val  connectionContext = startTestConnection()
         connectionContext?.let { connection ->
             connection.service<TestUserDTO, TestUser>(TestUserDTO.Companion, TableCreateMode.FORCE_RECREATE) {
                 updatedById = update(user).getData().id

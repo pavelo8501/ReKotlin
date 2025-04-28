@@ -6,7 +6,7 @@ import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.getOrOperationsEx
 import po.exposify.extensions.getPropertyByValue
-import po.misc.getKType
+import po.misc.types.getKType
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 import kotlin.reflect.KProperty1
@@ -16,55 +16,21 @@ interface SyncedProperty<DATA : DataModel, V> : ReadWriteProperty<ModelDTO, V>{
 
 }
 
-class SyncedContainer<DATA: DataModel, ENTITY: ExposifyEntityBase, Any>(private val dataModel: DATA, private val entity: ENTITY){
+class PropertyContainer<DATA: DataModel, ENTITY: ExposifyEntityBase, V>(private val dataModel: DATA, private val entity: ENTITY){
+
 
     @PublishedApi
-    internal var dataModelResult: Int? = null
-    fun dataModel(block: DATA.()-> Int) {
+    internal var dataModelResult: V? = null
+    fun dataModel(block: DATA.()-> V) {
         dataModelResult = block.invoke(dataModel)
     }
 
     @PublishedApi
-    internal var  entityModelResult: Int? = null
-    fun entityModel(block: ENTITY.()-> Int) {
+    internal var  entityModelResult: V? = null
+    fun entityModel(block: ENTITY.()-> V) {
         entityModelResult = block.invoke(entity)
     }
 }
-
-inline fun  <DTO: ModelDTO> DTO.propertyBindings(block: DTO.()-> Unit){
-
-
-   return this.block()
-
-}
-
-
-inline fun <reified DATA : DataModel, reified ENTITY: ExposifyEntityBase, V>  ModelDTO.synced2(block : SyncedContainer<DATA, ENTITY, V>.()-> Unit): ReadWriteProperty<ModelDTO, V> {
-
-    val castedDataModel = dataModel.castOrInitEx<DATA>()
-    val entityDataModel =  daoService.entity.castOrInitEx<ENTITY>()
-
-    val container = SyncedContainer<DATA, ENTITY, V>(castedDataModel, entityDataModel)
-    container.block()
-
-    val dataModelResult = container.dataModelResult.castOrInitEx<DATA>()
-    val kType = dataModel.getKType().getOrOperationsEx()
-    val propRef = castedDataModel.getPropertyByValue(kType, dataModelResult)
-
-    val result =  when (kType) {
-        String::class -> DataModelStringDelegate(this, propRef as  KProperty1<DATA, String>)
-        Int::class -> DataModelIntDelegate(this, propRef as KProperty1<DATA, Int>)
-        Long::class -> DataModelLongDelegate(this,  propRef as KProperty1<DATA, Long>)
-//        Boolean::class -> DataModelBooleanDelegate(this, propName)
-//        Float::class -> DataModelFloatDelegate(this, propName)
-//        Double::class -> DataModelDoubleDelegate(this, propName)
-//        LocalDateTime::class -> DataModelDateTimeDelegate(this, propName)
-        else -> throw IllegalArgumentException("Unsupported type")
-    }
-    return result.castOrInitEx<ReadWriteProperty<ModelDTO,  V>>("ReadWriteProperty<DTO, V> cast failed")
-
-}
-
 
 
 inline fun <reified DATA : DataModel, V>  ModelDTO.synced(block :  DATA.()->V): ReadWriteProperty<ModelDTO, V> {

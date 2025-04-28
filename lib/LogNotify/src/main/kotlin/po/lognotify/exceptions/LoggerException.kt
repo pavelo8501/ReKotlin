@@ -4,7 +4,7 @@ package po.lognotify.exceptions
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.getOrException
-import po.misc.safeCast
+import po.misc.types.safeCast
 import kotlin.reflect.full.companionObjectInstance
 
 

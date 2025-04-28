@@ -49,14 +49,12 @@ fun Routing.configureAuthRoutes(authPrefix: String,  authConfigContext: AuthConf
                                 respondInternal(throwable.message, throwable.code.value)
                             }
                         }
-                        is SerializationException -> respondBadRequest(throwable.message.toString())
                         else -> {
                             respondInternal(throwable)
                         }
                     }
-                    throw Exception("ddd")
+                    respondInternal(throwable)
                 }
-
                 val credentials = call.receive<LoginRequest>()
                 val principal = session.authenticate(credentials.login, credentials.password)
                 val jwtToken = session.authenticator.jwtService.generateToken(principal, session)

@@ -12,29 +12,25 @@ import kotlin.reflect.KProperty1
 
 class ReadOnlyBinding<DATA : DataModel, ENT : ExposifyEntityBase, T>(
     override val dataProperty: KMutableProperty1<DATA, T>,
-    override val referencedProperty: KProperty1<ENT, T>
+    override val referencedProperty: KProperty1<ENT, T>,
 ): PropertyBindingOption<DATA, ENT, T>
 {
     override val propertyType: PropertyType = PropertyType.READONLY
 
-    override var onDataUpdatedCallback: ((PropertyBindingOption<DATA, ENT, T>) -> Unit)? = null
 
-    private var onPropertyUpdatedCallback: ((String, PropertyType, UpdateMode) -> Unit)? = null
-    override fun onPropertyUpdated(callback: (String, PropertyType, UpdateMode) -> Unit) {
-        onPropertyUpdatedCallback = callback
-    }
 
     var updated: Boolean = false
-    override fun updated(
+   suspend fun updated(
         name: String,
         type: PropertyType,
-        updateMode: UpdateMode
+        updateMode: UpdateMode,
+        onDataUpdatedCallback :  (suspend (String, PropertyType, UpdateMode) -> Unit)??
     ) {
         updated = true
-        onPropertyUpdatedCallback?.invoke(name, type, updateMode)
+        onDataUpdatedCallback?.invoke(name, type, updateMode)
     }
 
-    fun update(dtoModel: DATA, entityModel: ENT, mode: UpdateMode): Boolean {
+   suspend fun update(dtoModel: DATA, entityModel: ENT, mode: UpdateMode, onUpdate :  (suspend (String, PropertyType, UpdateMode) -> Unit)?): Boolean {
         updated = false
         val dtoValue = dataProperty.get(dtoModel)
         val entityValue =  try {
@@ -49,7 +45,7 @@ class ReadOnlyBinding<DATA : DataModel, ENT : ExposifyEntityBase, T>(
                 if (!valuesDiffer) return false
                 if(entityValue != null){
                     dataProperty.set(dtoModel, entityValue)
-                    updated(dataProperty.name, propertyType, UpdateMode.MODEL_TO_ENTITY)
+                    updated(dataProperty.name, propertyType, UpdateMode.MODEL_TO_ENTITY, null)
                     return true
                 }
                 return false
@@ -58,16 +54,13 @@ class ReadOnlyBinding<DATA : DataModel, ENT : ExposifyEntityBase, T>(
             UpdateMode.MODEL_TO_ENTITY_FORCED -> {
                 if(entityValue != null) {
                     dataProperty.set(dtoModel, entityValue)
-                    updated(dataProperty.name, propertyType, UpdateMode.MODEL_TO_ENTITY_FORCED)
+                    updated(dataProperty.name, propertyType, UpdateMode.MODEL_TO_ENTITY_FORCED, null)
                     return true
                 }
                 return false
             }
             else -> { false  }
         }
-        if(updated){
-            updated = false
-            onDataUpdatedCallback?.invoke(this)
-        }
+
     }
 }

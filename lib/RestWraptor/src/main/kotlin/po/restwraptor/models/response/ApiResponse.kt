@@ -5,8 +5,8 @@ import kotlinx.serialization.Serializable
 
 
 @Serializable
-data class ApiResponse<T: Any?>(
-    val data : T? = null,
+data class ApiResponse<T: Any>(
+    val data : T,
 ){
     var status: Boolean = true
     var message: String = "ok"
@@ -21,8 +21,8 @@ data class ApiResponse<T: Any?>(
     }
 
     companion object{
-        fun withErrorMessage(msg: String, errorCode:Int):ApiResponse<Nothing>{
-            return  ApiResponse<Nothing>().setErrorMessage(msg, errorCode)
+        fun withErrorMessage(msg: String, errorCode:Int):ApiResponse<String>{
+            return  ApiResponse(msg).setErrorMessage(msg, errorCode)
         }
     }
 }

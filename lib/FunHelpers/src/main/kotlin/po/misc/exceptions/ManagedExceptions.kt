@@ -1,6 +1,6 @@
 package po.misc.exceptions
 
-import po.misc.safeCast
+import po.misc.types.safeCast
 import kotlin.reflect.full.companionObjectInstance
 
 enum class HandlerType(val value: Int) {

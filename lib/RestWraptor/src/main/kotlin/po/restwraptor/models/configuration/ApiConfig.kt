@@ -1,9 +1,6 @@
 package po.restwraptor.models.configuration
 
 import po.restwraptor.enums.EnvironmentType
-import po.restwraptor.interfaces.SecuredUserInterface
-import po.restwraptor.models.request.LoginRequest
-import java.io.File
 
 
 data class ApiConfig(

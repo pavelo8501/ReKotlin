@@ -9,6 +9,7 @@ import po.exposify.dto.components.CrudResult
 import po.exposify.classes.DTOClass
 import po.exposify.classes.extensions.delete
 import po.exposify.classes.extensions.pick
+import po.exposify.classes.extensions.pickById
 import po.exposify.classes.extensions.select
 import po.exposify.classes.extensions.update
 import po.exposify.dto.components.CrudResultSingle
@@ -45,10 +46,19 @@ class ServiceContext<DTO, DATA>(
         }
     }
 
-    fun <T: IdTable<Long>>pick(conditions: WhereCondition<T>): CrudResult<DTO, DATA>{
-        val result =  startTaskAsync("Pick", personalName) {
+    fun <T: IdTable<Long>>pick(conditions: WhereCondition<T>): CrudResultSingle<DTO, DATA>{
+        val result =  startTaskAsync("Pick by conditions", personalName) {
             suspendedTransactionAsync {
-                dtoClass.pick<DTO, DATA, ExposifyEntityBase, T>(conditions)
+                dtoClass.pick<DTO, DATA, T>(conditions)
+            }.await()
+        }.resultOrException()
+        return result
+    }
+
+    fun pick(id: Long): CrudResultSingle<DTO, DATA>{
+        val result =  startTaskAsync("Pick by ID", personalName) {
+            suspendedTransactionAsync {
+                dtoClass.pickById<DTO, DATA>(id)
             }.await()
         }.resultOrException()
         return result

@@ -72,7 +72,6 @@ class RestWrapTor(
     private val authConfig  get() = wrapConfig.authConfig
     private val apiConfig  get() = wrapConfig.apiConfig
 
-
     /** Context for handling application configuration. */
     private val configContext : ConfigContext = ConfigContext(this, wrapConfig)
 
@@ -111,13 +110,7 @@ class RestWrapTor(
         _application = app
         appConfigFn = configFn
         setupConfig(application)
-
     }
-
-    suspend fun setup(configFn : suspend ConfigContext.()-> Unit){
-        appConfigFn = configFn
-    }
-
 
     /**
      * Registers this `RestWrapTor` instance in `Application.attributes`.

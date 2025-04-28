@@ -38,37 +38,6 @@ fun Application.getRestWrapTor(): RestWrapTor? {
     return attributes.getOrNull(RestWrapTorKey)
 }
 
-/**
- * Applies configuration to the `RestWrapTor` instance dynamically.
- *
- * This function provides a **clean and fluent API** for modifying `RestWrapTor` settings
- * **after it has been created**. It is useful for applying configurations such as:
- * - Enabling/disabling CORS
- * - Modifying authentication settings
- * - Custom API behavior
- *
- * @param configFn The function that applies additional configuration settings to `RestWrapTor`.
- *
- * **Usage Example:**
- * ```kotlin
- * application {
- *     install(Routing)
- *     val apiServer = RestWrapTor()
- *     apiServer.usePreconfiguredApp(this)
- *
- *     // Dynamically configure RestWrapTor using Application context
- *     this@application.configServer {
- *         enableCORS()
- *         enableAuthentication()
- *     }
- * }
- * ```
- */
-//fun Application.configServer(configFn: suspend ConfigContext.()-> Unit){
-//   attributes.allKeys.firstOrNull { it.name == "RestWrapTorInstance" }.let {
-//       getRestWrapTor()?.applyConfig(configFn)
-//   }
-//}
 
 
 fun Application.getWraptorRoutes(callback: (List<WraptorRoute>)-> Unit ){
@@ -79,11 +48,3 @@ fun Application.getWraptorRoutes(callback: (List<WraptorRoute>)-> Unit ){
    wraptor.getRoutes(callback)
 }
 
-
-fun Application.toUrl(vararg pathParts:String ) = partsToUrl(pathParts.toList())
-
-fun Application.withBaseUrl(vararg pathParts:String ): String{
-    val list = mutableListOf<String>(rootPath)
-    list.addAll(pathParts)
-    return partsToUrl((list))
-}

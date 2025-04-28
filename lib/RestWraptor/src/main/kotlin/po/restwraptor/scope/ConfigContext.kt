@@ -128,7 +128,7 @@ class ConfigContext(
         return lastTaskHandler()
     }
 
-    private var userLookupFn: (suspend(login: String)-> AuthenticationPrincipal?)? = null
+   // private var userLookupFn: (suspend(login: String)-> AuthenticationPrincipal?)? = null
     private var authConfigFn:  (suspend AuthConfigContext.()-> Unit)? = null
 
     fun applyApiConfig(config: ApiConfig){
@@ -138,7 +138,10 @@ class ConfigContext(
         wrapConfig.authConfig = config
     }
 
-
+    var applicationConfigFn : (Application.()-> Unit)? = null
+    fun setupApplication(appConfigFn : Application.()-> Unit){
+        applicationConfigFn  = appConfigFn
+    }
     override suspend fun setupAuthentication(
         cryptoKeys: CryptoRsaKeys,
         userLookupFn: suspend ((login: String)-> AuthenticationPrincipal?),
@@ -163,6 +166,7 @@ class ConfigContext(
         builderFn?.invoke(this)
         application.rootPath = apiConfig.baseApiRoute
         installCoreAuth(application)
+        applicationConfigFn?.invoke(application)
         subTask("Initialization", personalName){
             if(apiConfig.cors){
                 configCors(application)

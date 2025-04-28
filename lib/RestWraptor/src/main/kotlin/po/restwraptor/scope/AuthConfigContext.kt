@@ -59,7 +59,7 @@ class AuthConfigContext(
 
     internal suspend fun setupAuthentication(
         cryptoKeys: CryptoRsaKeys,
-        userLookupFn: (suspend (login: String)-> AuthenticationPrincipal?)? = null
+        userLookupFn: (suspend (login: String)-> AuthenticationPrincipal?)
     ){
         subTask("JWT Token Config", personalName) {handler->
             authConfig.privateKey = cryptoKeys.privateKey
@@ -75,9 +75,7 @@ class AuthConfigContext(
                 publicKey =  cryptoKeys.asRSAPublic()
             )
             val service = AuthSessionManager.initJwtService(config)
-            if (userLookupFn != null) {
-                service.setAuthenticationFn(userLookupFn)
-            }
+            service.setAuthenticationFn(userLookupFn)
 
             installJWTAuthentication(service, application)
             if(authConfig.defaultSecurityRouts) {

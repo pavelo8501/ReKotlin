@@ -11,9 +11,6 @@ import po.exposify.scope.service.enums.TableCreateMode
 import po.misc.exceptions.getCoroutineInfo
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.TestClassItem
-import po.test.exposify.setup.TestPage
-import po.test.exposify.setup.TestPageDTO
-import po.test.exposify.setup.TestUser
 import po.test.exposify.setup.pageModels
 import kotlin.test.Test
 import org.junit.jupiter.api.BeforeAll
@@ -26,7 +23,10 @@ import po.auth.extensions.generatePassword
 import po.auth.extensions.registerAuthenticator
 import po.auth.sessions.enumerators.SessionType
 import po.auth.sessions.models.AuthorizedSession
-import po.test.exposify.setup.TestUserDTO
+import po.test.exposify.setup.dtos.TestPage
+import po.test.exposify.setup.dtos.TestPageDTO
+import po.test.exposify.setup.dtos.TestUser
+import po.test.exposify.setup.dtos.TestUserDTO
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
@@ -40,9 +40,15 @@ class TestSessionsContext : DatabaseTest()  {
 
     @BeforeAll
     fun setup(){
-        val user = TestUser("some_login", "name","******",  "nomail@void.null", 0)
+        val user = TestUser(
+            id = 0,
+            login = "some_login",
+            hashedPassword = generatePassword("password"),
+            name = "name",
+            email = "nomail@void.null")
+
         user.hashedPassword = generatePassword("password")
-        connectionContext?.let { connection ->
+        startTestConnection()?.let { connection ->
             connection.service(TestUserDTO, TableCreateMode.CREATE) {
                 userId =  update(user).getData().id
             }
@@ -64,7 +70,13 @@ class TestSessionsContext : DatabaseTest()  {
     @Test
     fun `test anonymous sessions`() = runTest{
 
-        val user = TestUser("some_login", "name","******",  "nomail@void.null", 0)
+        val user = TestUser(
+            id = 0,
+            login = "some_login",
+            hashedPassword = generatePassword("password"),
+            name = "name",
+            email = "nomail@void.null")
+
         user.id = userId
 
         val pageClasses = listOf(TestClassItem(1, "class_1"), TestClassItem(2, "class_2"))
@@ -112,7 +124,13 @@ class TestSessionsContext : DatabaseTest()  {
     @Test
     fun `test authenticated session`()= runTest{
 
-        val user = TestUser("some_login", "name","******",  "nomail@void.null", 0)
+        val user = TestUser(
+            id = 0,
+            login = "some_login",
+            hashedPassword = generatePassword("password"),
+            name = "name",
+            email = "nomail@void.null")
+
         user.id = userId
         fun userLookUp(login: String): AuthenticationPrincipal?{
             return user

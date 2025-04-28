@@ -1,50 +1,45 @@
 package po.exposify.dto.components
 
-import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.IdTable
-import org.jetbrains.exposed.dao.id.LongIdTable
 import org.jetbrains.exposed.sql.Op
-import org.jetbrains.exposed.sql.Query
-import org.jetbrains.exposed.sql.SizedIterable
-import org.jetbrains.exposed.sql.Transaction
 import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.transactions.TransactionManager
-import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.components.relation_binder.models.EntityPropertyInfo
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase
-import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.WhereCondition
 import po.exposify.extensions.getOrOperationsEx
-import po.exposify.extensions.testOrThrow
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.resultOrNull
 import po.lognotify.extensions.subTask
 
 class DAOService<DTO, ENTITY>(
     private val hostingDTO: CommonDTO<DTO, *, ENTITY>,
-    @PublishedApi internal val entityModel: LongEntityClass<ENTITY>,
-): TasksManaged where DTO: ModelDTO,  ENTITY : ExposifyEntityBase {
+    val entityModel: LongEntityClass<ENTITY>,
+): TasksManaged where DTO: ModelDTO, ENTITY : ExposifyEntityBase {
 
     private val personalName = "DAOService[${hostingDTO.personalName}]"
-
     var entity : ENTITY? = null
         private set
 
+    var entityCallback: ((ENTITY)-> Unit)? = null
+    fun onSourceEntity(callback: (ENTITY)-> Unit ){
+        entityCallback = callback
+        entity?.let { callback.invoke(it) }
+    }
     fun setLastEntity(newEntity:ENTITY?){
         entity = newEntity
+        if(newEntity != null){
+            entityCallback?.invoke(newEntity)
+        }
     }
-
-    internal  fun getLastEntity():ENTITY{
+    internal fun getLastEntity():ENTITY{
         return entity.getOrOperationsEx("Entity is null", ExceptionCode.NOT_INITIALIZED)
     }
-
-
     val trackedProperties: MutableMap<String, EntityPropertyInfo<DTO, DataModel, ENTITY, ModelDTO>> = mutableMapOf()
 
     private fun combineConditions(conditions: Set<Op<Boolean>>): Op<Boolean> {
@@ -61,10 +56,6 @@ class DAOService<DTO, ENTITY>(
             trackedProperties[propertyInfo.name] = propertyInfo
         }
     }
-    fun isTransactionReady(): Boolean {
-        return TransactionManager.currentOrNull()?.connection?.isClosed?.not() == true
-    }
-
 
    suspend fun  <T:IdTable<Long>> pick(conditions :  WhereCondition<T>): ENTITY? = subTask("Pick", personalName){handler->
        val opConditions = buildConditions(conditions)
