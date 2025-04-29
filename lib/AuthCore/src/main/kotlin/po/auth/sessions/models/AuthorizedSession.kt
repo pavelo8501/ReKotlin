@@ -14,6 +14,9 @@ import po.auth.authentication.exceptions.ErrorCodes
 import po.auth.sessions.enumerators.SessionType
 import po.auth.sessions.interfaces.EmmitableSession
 import po.auth.sessions.interfaces.SessionIdentified
+import po.lognotify.classes.notification.models.Notification
+import po.lognotify.classes.process.LoggProcess
+import po.lognotify.classes.process.ProcessableContext
 import po.misc.types.castOrThrow
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -22,7 +25,7 @@ import kotlin.coroutines.CoroutineContext
 class AuthorizedSession internal constructor(
     override val remoteAddress: String,
     val authenticator: UserAuthenticator,
-):  CoroutineContext.Element,  EmmitableSession, SessionIdentified {
+):  CoroutineContext.Element,  EmmitableSession, SessionIdentified, ProcessableContext<AuthorizedSession> {
 
     var principal : AuthenticationPrincipal? = null
     override var sessionType: SessionType = SessionType.ANONYMOUS
@@ -36,11 +39,34 @@ class AuthorizedSession internal constructor(
         }
     }
 
+    override var getLoggerProcess: (() -> LoggProcess<*> )? = null
+
+
+
     override val sessionID: String = UUID.randomUUID().toString()
     override val sessionContext: CoroutineContext
         get() = scope.coroutineContext
 
+
+    override val identifiedAs: String get() = sessionID
+
+
+    override val name: String get() =  coroutineName
+
     private val scope: CoroutineScope = CoroutineScope(CoroutineName(coroutineName) + this)
+
+
+    override fun onNotification(notification: Notification) {
+        TODO("Not yet implemented")
+    }
+
+    override fun onProcessStart(session: LoggProcess<*>) {
+        println("onProcessStart emitted with sessionId ${session.identifiedAs}")
+    }
+
+    override fun onProcessEnd(session: LoggProcess<*>) {
+        println("onProcessEnd emitted with sessionId ${session.identifiedAs}")
+    }
 
     override fun sessionScope(): CoroutineScope{
         println("Redispatched session $sessionID")
@@ -48,10 +74,10 @@ class AuthorizedSession internal constructor(
     }
 
     override fun onProcessStart(session: EmmitableSession) {
-        println("onProcessStart emitted with sessionId ${session.sessionID}")
+
     }
     override fun onProcessEnd(session: EmmitableSession) {
-        println("onProcessEnd emitted with sessionId ${session.sessionID}")
+
     }
 
     override val key: CoroutineContext.Key<AuthorizedSession>

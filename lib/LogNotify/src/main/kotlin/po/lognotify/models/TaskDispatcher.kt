@@ -1,5 +1,6 @@
 package po.lognotify.models
 
+import po.lognotify.classes.notification.models.NotifyConfig
 import po.lognotify.classes.task.RootTask
 import po.lognotify.classes.task.UpdatableTasks
 import po.lognotify.classes.task.UpdateType
@@ -30,7 +31,8 @@ class TaskDispatcher() : UpdatableTasks{
         )
         callbackRegistry.filter { it.key == handler} .forEach { (_, cb) -> cb(stats) }
     }
-    fun addRootTask(key: TaskKey, task: RootTask<*>) {
+    fun addRootTask(key: TaskKey, task: RootTask<*>, notifyConfig : NotifyConfig) {
+        task.notifier.setNotifierConfig(notifyConfig)
         taskHierarchy[key] = task
         notifyUpdate(UpdateType.OnStart)
     }

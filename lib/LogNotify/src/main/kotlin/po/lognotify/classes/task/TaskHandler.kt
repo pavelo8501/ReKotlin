@@ -4,7 +4,6 @@ import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import po.lognotify.classes.notification.Notifier
-import po.lognotify.classes.task.models.TaskData
 import po.lognotify.exceptions.ExceptionHandler
 import po.lognotify.models.TaskKey
 import po.misc.exceptions.HandlerType
@@ -12,12 +11,11 @@ import po.misc.exceptions.ManagedException
 
 class TaskHandler<R: Any?>(
     val task : TaskSealedBase<R>,
-    val taskData: TaskData,
     val exceptionHandler: ExceptionHandler<R>
 ):HandledTask<R>{
 
 
-    override val key: TaskKey = taskData.taskKey
+    override val key: TaskKey = task.key
     override val notifier: Notifier get() = task.notifier
 
     fun echo(message: String){

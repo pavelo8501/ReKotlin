@@ -1,10 +1,5 @@
 package po.test.lognotify
 
-import kotlinx.coroutines.CoroutineName
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -24,20 +19,23 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-
 class AuthorizedSessionMock internal constructor(
-    var name : String =  "AnonymousSession",
+    override var name : String =  "AnonymousSession"
 ): ProcessableContext<AuthorizedSessionMock>, CoroutineContext.Element {
 
     val sessionID: String = UUID.randomUUID().toString()
+    override val identifiedAs: String get() = sessionID
+
+
+    override var getLoggerProcess: (() -> LoggProcess<*>)? = null
+
+
     var receivedNotification : Boolean  = false
     var receivedOnProcessStart : Boolean  = false
     var receivedOnProcessEnd : Boolean  = false
 
-
     override fun onNotification(notification: Notification){
         receivedNotification = true
-        println("ReceivedNotification true")
     }
 
     override fun onProcessStart(session: LoggProcess<*>) {
@@ -54,8 +52,6 @@ class AuthorizedSessionMock internal constructor(
     companion object AuthorizedSessionMocKey : CoroutineContext.Key<AuthorizedSessionMock>
 }
 
-
-
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestLoggableProcess : TasksManaged {
 
@@ -71,43 +67,13 @@ class TestLoggableProcess : TasksManaged {
         }
     }
 
-    suspend fun doSomething(): Boolean = newTask("Some Task"){
-      coroutineContext[LoggProcess] != null
+    suspend fun doSomething(): Boolean = subTask("Some Task"){
+      coroutineContext[LoggProcess] == null
     }.resultOrException()
 
-    @Test
-    fun `test tasks lifecycle call #1`() = runTest {
-
-        for (i in 1..5) {
-            launch(CoroutineName("Task $i")) {
-                newTask("Task $i") { topHandler ->
-                    for (a in 1..2) {
-                        subTask("Sub Task $a") { subHandler ->
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     @Test
-    fun `test tasks lifecycle call #2`() = runTest{
-        for (i in 1..5) {
-            launch(CoroutineName("Task $i")) {
-                newTask("Task $i") {topHandler->
-                    println("Task $i")
-                    for (a in 1..2) {
-                        subTask("Sub Task $a") {
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-
-    @Test
-    fun `process receive updates`() =runTest {
+    fun `process receive updates`() = runTest {
 
         val mockedSession = AuthorizedSessionMock("MockedSession")
         var sessionInContext : AuthorizedSessionMock? = null
@@ -132,6 +98,7 @@ class TestLoggableProcess : TasksManaged {
         assertTrue(notificationFromTaskDispatcher)
         assertTrue(mockedSession.receivedOnProcessStart, "receivedOnProcessStart")
         assertTrue(mockedSession.receivedOnProcessEnd, "receivedOnProcessEnd")
+        assertTrue(mockedSession.receivedNotification, "AuthorizedSessionMock failed to receive notification")
     }
 
 }

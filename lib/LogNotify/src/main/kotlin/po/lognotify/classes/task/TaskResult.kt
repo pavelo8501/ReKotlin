@@ -6,7 +6,7 @@ import po.misc.exceptions.ManagedException
 
 class TaskResult<R : Any?>(private val task: TaskSealedBase<R>){
 
-    val taskName: String = task.taskData.taskName
+    val taskName: String = task.key.taskName
     var executionTime: Float = 0f
 
     private var value: R? = null
@@ -78,8 +78,6 @@ class TaskResult<R : Any?>(private val task: TaskSealedBase<R>){
         if(th != null) {
             isSuccess = false
             throwable = th
-            println("Ustanavlivaju oshibku")
-           // task.taskHandler.
             taskCompleted(th)
             if(safeReturnCallback == null){
                 onFailFn?.invoke(th)

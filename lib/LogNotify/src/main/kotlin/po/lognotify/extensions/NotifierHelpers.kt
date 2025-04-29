@@ -11,7 +11,6 @@ suspend fun CoroutineScope.subscribeTo(notifier: Notifier, notificationFn: (susp
 
     launch {
             notifier.notification.collect { notification ->
-            println("Received notification: $notification")
             notificationFn?.invoke(notification)
         }
     }
