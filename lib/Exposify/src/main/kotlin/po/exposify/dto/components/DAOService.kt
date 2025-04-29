@@ -4,8 +4,6 @@ import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.and
-import po.exposify.dto.components.relation_binder.models.EntityPropertyInfo
-import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.interfaces.ModelDTO
@@ -26,21 +24,9 @@ class DAOService<DTO, ENTITY>(
     var entity : ENTITY? = null
         private set
 
-    var entityCallback: ((ENTITY)-> Unit)? = null
-    fun onSourceEntity(callback: (ENTITY)-> Unit ){
-        entityCallback = callback
-        entity?.let { callback.invoke(it) }
-    }
-    fun setLastEntity(newEntity:ENTITY?){
-        entity = newEntity
-        if(newEntity != null){
-            entityCallback?.invoke(newEntity)
-        }
-    }
     internal fun getLastEntity():ENTITY{
         return entity.getOrOperationsEx("Entity is null", ExceptionCode.NOT_INITIALIZED)
     }
-    val trackedProperties: MutableMap<String, EntityPropertyInfo<DTO, DataModel, ENTITY, ModelDTO>> = mutableMapOf()
 
     private fun combineConditions(conditions: Set<Op<Boolean>>): Op<Boolean> {
         return conditions.reduceOrNull { acc, op -> acc and op } ?: Op.TRUE
@@ -51,10 +37,20 @@ class DAOService<DTO, ENTITY>(
         return conditions
     }
 
-    fun setTrackedProperties(list: List<EntityPropertyInfo<DTO, DataModel, ENTITY, ModelDTO>>){
-        list.forEach {propertyInfo->
-            trackedProperties[propertyInfo.name] = propertyInfo
-        }
+    private var beforeEntityInsertedHook :  ((ENTITY)-> Unit)? = null
+    fun  setBeforeInsertedHook(hook :(ENTITY)-> Unit){
+        beforeEntityInsertedHook = hook
+    }
+
+    private var afterEntityInsertedUpdateHook :  ((ENTITY)-> Unit)? = null
+    fun setAfterInsertedHook(hook :(ENTITY)-> Unit){
+        afterEntityInsertedUpdateHook = hook
+    }
+
+    internal fun setActiveEntity(processedEntity:ENTITY){
+        entity = processedEntity
+        afterEntityInsertedUpdateHook?.invoke(processedEntity)
+
     }
 
    suspend fun  <T:IdTable<Long>> pick(conditions :  WhereCondition<T>): ENTITY? = subTask("Pick", personalName){handler->
@@ -67,7 +63,6 @@ class DAOService<DTO, ENTITY>(
     }.resultOrNull()
 
     suspend fun pickById(id: Long): ENTITY? =  subTask("PickById", personalName) {handler->
-
       val entity =  entityModel.findById(id)
       if(entity == null){
           handler.warn("Entity with id: $id not found")
@@ -91,11 +86,11 @@ class DAOService<DTO, ENTITY>(
     suspend fun save(): ENTITY =
         subTask("Save", "DAOService") {handler->
         val newEntity = entityModel.new {
-            handler.withTaskContext(this) {
-               hostingDTO.updateBinding(this, UpdateMode.MODEL_TO_ENTITY)
-            }
+            beforeEntityInsertedHook?.invoke(this)
+            hostingDTO.updateBinding(this, UpdateMode.MODEL_TO_ENTITY)
         }
         hostingDTO.dataContainer.setDataModelId(newEntity.id.value)
+        setActiveEntity(newEntity)
         handler.info("Dao entity created with id ${newEntity.id.value} for dto ${hostingDTO.personalName}")
         newEntity
     }.resultOrException()
@@ -103,19 +98,21 @@ class DAOService<DTO, ENTITY>(
     suspend fun saveWithParent(bindFn: (newEntity:ENTITY)-> Unit):ENTITY =
         subTask("Save", personalName) {handler->
             val newEntity = entityModel.new {
-                handler.withTaskContext(this){
-                    hostingDTO.updateBinding(this, UpdateMode.MODEL_TO_ENTITY)
-                    bindFn.invoke(this)
-                }
+                beforeEntityInsertedHook?.invoke(this)
+                hostingDTO.updateBinding(this, UpdateMode.MODEL_TO_ENTITY)
+                bindFn.invoke(this)
             }
             hostingDTO.dataContainer.setDataModelId(newEntity.id.value)
+            setActiveEntity(newEntity)
             handler.info("Entity created with id: ${newEntity.id.value} for parent entity id:")
             newEntity
     }.resultOrException()
 
     suspend fun update(): ENTITY = subTask("Update", "DAOService") {handler->
         val selectedEntity =  pickById(hostingDTO.id).getOrOperationsEx("Entity with id : ${hostingDTO.id} not found", ExceptionCode.DB_CRUD_FAILURE)
+        beforeEntityInsertedHook?.invoke(selectedEntity)
         hostingDTO.updateBinding(selectedEntity, UpdateMode.MODEL_TO_ENTITY)
+        setActiveEntity(selectedEntity)
         selectedEntity
     }.resultOrException()
 

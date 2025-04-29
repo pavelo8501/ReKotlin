@@ -8,34 +8,36 @@ private fun sectionModel(
     parent : TestPage,
     name: String,
     updatedBy: Long,
-    sectionClasses : List<TestClassItem> = listOf<TestClassItem>(TestClassItem(1,"class_1"), TestClassItem(2,"class_2"))): TestSection
+    sectionClasses : List<TestClassItem> = listOf(TestClassItem(1,"class_1"), TestClassItem(2,"class_2"))): TestSection
 {
 
     return TestSection(
-        "TestSection/$name",
-        "TestSection/$name Description",
-        "",
-        sectionClasses,
-        updatedBy,
-        1,
-        parent.id)
+        id = 0,
+        name = "TestSection/$name",
+        description =  "TestSection/$name Description",
+        jsonLd =  "",
+        classList = sectionClasses,
+        langId =  1,
+        updatedBy =  updatedBy,
+        pageId =  parent.id)
 }
 
-private fun pageModel(name: String, pageClasses: List<TestClassItem>, updatedBy: Long): TestPage{
-    return  TestPage("TestPage/$name", 1)
+private fun pageModel(name: String, updatedBy: Long): TestPage{
+    val page = TestPage(0, "TestPage/$name", 1, updatedBy)
+    return page
 }
 
 
-fun pageModels(quantity: Int, updatedBy : Long,  pageClasses : List<TestClassItem> = emptyList<TestClassItem>()): List<TestPage>{
+fun pageModels(pageCount: Int, updatedBy : Long): List<TestPage>{
     val result =  mutableListOf<TestPage>()
-    for(index  in 1 .. quantity){
-        result.add(pageModel(index.toString(), pageClasses, updatedBy))
+    for(index  in 1 .. pageCount){
+        result.add(pageModel(index.toString(), updatedBy))
     }
     return  result
 }
 
 
-fun pageModelsWithSections(pageCount: Int, updatedBy : Long, sectionsCount: Int,  pageClasses : List<TestClassItem> = emptyList<TestClassItem>()): List<TestPage>{
+fun pageModelsWithSections(pageCount: Int, sectionsCount: Int, updatedBy : Long): List<TestPage>{
     val pages =  pageModels(pageCount, updatedBy)
     pages.forEach {
         for(index  in 1 .. sectionsCount){

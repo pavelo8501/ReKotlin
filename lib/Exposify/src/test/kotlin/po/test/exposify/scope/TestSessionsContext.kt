@@ -78,9 +78,7 @@ class TestSessionsContext : DatabaseTest()  {
             email = "nomail@void.null")
 
         user.id = userId
-
-        val pageClasses = listOf(TestClassItem(1, "class_1"), TestClassItem(2, "class_2"))
-        val pages = pageModels(quantity = 4, updatedBy = userId, pageClasses = pageClasses)
+        val pages = pageModels(pageCount = 4, updatedBy = userId)
 
         val session = session(SessionIdentity("0", "192.169.1.1"))
         withSession(session){

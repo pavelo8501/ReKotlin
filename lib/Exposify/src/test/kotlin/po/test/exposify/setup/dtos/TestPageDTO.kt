@@ -7,33 +7,31 @@ import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.property_binder.bindings.SyncedBinding
-import po.exposify.dto.components.property_binder.delegates.parentReference
+import po.exposify.dto.components.property_binder.delegates.idReferenced
 import po.test.exposify.setup.TestPageEntity
 import po.test.exposify.setup.TestSectionEntity
 
 
 @Serializable
 data class TestPage(
+    override var id: Long = 0,
     var name: String,
     @SerialName("lang_id")
     var langId: Int,
-
-    ): DataModel{
-    override var id: Long = 0
-    var updated: LocalDateTime = TestPageDTO.nowTime()
-    var sections: MutableList<TestSection> = mutableListOf<TestSection>()
     @SerialName("updated_by")
-    var updatedById: Long = 1
+    var updatedBy: Long): DataModel
+{
+
+    var updated: LocalDateTime = TestPageDTO.nowTime()
+    var sections: MutableList<TestSection> = mutableListOf()
 }
 
 class TestPageDTO(
     override var dataModel: TestPage
 ): CommonDTO<TestPageDTO, TestPage, TestPageEntity>(TestPageDTO) {
 
-    var updatedById : Long by parentReference{
-        dataModelProperty(TestPage::updatedById)
-        referencedEntityModel(TestPageEntity)
-    }
+
+    val updatedById : Long by idReferenced(TestPage::updatedBy, TestPageEntity::updatedBy, TestUserDTO)
 
     companion object: DTOClass<TestPageDTO>(){
         override suspend fun setup() {

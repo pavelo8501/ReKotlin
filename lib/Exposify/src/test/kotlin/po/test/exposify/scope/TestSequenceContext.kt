@@ -50,7 +50,7 @@ class TestSequenceContext : DatabaseTest() {
                 }
             }
         }
-        val pages = pageModels(quantity = 4, updatedBy = updatedById, pageClasses = pageClasses)
+        val pages = pageModels(pageCount = 4, updatedBy = updatedById)
         pages[1].name = "this_name"
         pages[1].langId = 2
         pages[2].langId = 2

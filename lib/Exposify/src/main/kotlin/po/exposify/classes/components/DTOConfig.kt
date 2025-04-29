@@ -32,7 +32,7 @@ class DTOConfig<DTO, DATA, ENTITY>(
 
    internal var dtoFactory: DTOFactory<DTO, DATA, ENTITY> = DTOFactory(registry.commonDTOKClass, registry.dataKClass, this)
 
-    var binderPropertyUpdate  : (suspend (String, PropertyType, UpdateMode) -> Unit)? = null
+    var binderPropertyUpdate  : ((String, PropertyType, UpdateMode) -> Unit)? = null
 
     val namedSerializes = mutableListOf<Pair<String, KSerializer<out Any>>>()
     val propertyBinder : PropertyBinder<DATA, ENTITY> = PropertyBinder(binderPropertyUpdate   ){syncedSerializedList->

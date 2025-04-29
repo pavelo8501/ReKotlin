@@ -8,10 +8,10 @@ import po.exposify.classes.DTOClass
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase
+import po.exposify.exceptions.InitException
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.getOrOperationsEx
-import po.exposify.extensions.safeCast
 import po.lognotify.TasksManaged
 import po.misc.types.castOrThrow
 import kotlin.collections.forEach
@@ -38,7 +38,8 @@ class SingleRepository<DTO, DATA, ENTITY,  CHILD_DTO>(
         } else {
             newChildDto.daoService.update()
         }
-        childDTOList.add(newChildDto)
+        //childDTOList.add(newChildDto)
+        addChild(newChildDto)
         newChildDto.getDtoRepositories().forEach {repository->
             repository.update()
         }
@@ -71,7 +72,8 @@ class MultipleRepository<DTO, DATA, ENTITY, CHILD_DTO>(
             }else{
                 newChildDto.daoService.update()
             }
-            childDTOList.add(newChildDto)
+            addChild(newChildDto)
+           // childDTOList.add(newChildDto)
             newChildDto.getDtoRepositories().forEach {repository->
                 repository.update()
             }
@@ -104,49 +106,54 @@ class RootRepository<DTO, DATA, ENTITY, CHILD_DTO>(
         where DTO : ModelDTO, CHILD_DTO : ModelDTO, DATA: DataModel, ENTITY : ExposifyEntityBase
 {
     override val personalName: String = "Repository[${dtoClass.registryItem.dtoClassName}/Root]"
+    private val cumulativeDTOList : MutableList<CommonDTO<CHILD_DTO, DataModel, ExposifyEntityBase>> = mutableListOf()
 
     suspend fun update(dataModels : List<DATA>): List<CommonDTO<DTO, DATA, ENTITY>>{
         val result = mutableListOf<CommonDTO<DTO, DATA, ENTITY>>()
         dataModels.forEach {dataModel->
-           val castedDto = dtoClass.config.dtoFactory.createDto(dataModel).run {
-               safeCast<CommonDTO<DTO, DATA, ENTITY>>()
-                   .getOrOperationsEx("Cast to CommonDTO<DTO, DATA, ENTITY> failed", ExceptionCode.CAST_FAILURE)
-           }
-           if(dataModel.id == 0L){
-               castedDto.daoService.save()
-           }else{
-               castedDto.daoService.update()
-           }
-           castedDto.getDtoRepositories().forEach {repository->
-                repository.update()
-            }
-            result.add(castedDto)
+           val dto =  updateSingle(dataModel)
+           result.add(dto)
         }
         return result
+    }
+
+    suspend fun updateSingle(dataModel : DATA): CommonDTO<DTO, DATA, ENTITY>{
+        val castedDto = dtoClass.config.dtoFactory.createDto(dataModel).run {
+            castOrThrow<CommonDTO<DTO, DATA, ENTITY>, OperationsException>()
+        }
+        if(dataModel.id == 0L){
+            castedDto.daoService.save()
+        }else{
+            castedDto.daoService.update()
+        }
+        castedDto.getDtoRepositories().forEach {repository->
+            repository.update()
+        }
+        return castedDto
     }
 
     suspend fun select(entities: List<ENTITY>): List<CommonDTO<DTO, DATA, ENTITY>>{
         val result = mutableListOf<CommonDTO<DTO, DATA, ENTITY>>()
         entities.forEach { entity ->
-            val castedDto = dtoClass.config.dtoFactory.createDto().run {
-                safeCast<CommonDTO<DTO, DATA, ENTITY>>()
-                    .getOrOperationsEx("Cast to CommonDTO<DTO, DATA, ENTITY> failed", ExceptionCode.CAST_FAILURE)
-            }
-            castedDto.updateBinding(entity, UpdateMode.ENTITY_TO_MODEL)
-            castedDto.getDtoRepositories().forEach { repository ->
-                repository.select()
-            }
-            result.add(castedDto)
+           val dto = selectSingle(entity)
+           result.add(dto)
         }
         return result
     }
 
-    suspend fun pick(uninitializedDto: CommonDTO<DTO, DATA, ENTITY>,  entity: ENTITY):CommonDTO<DTO, DATA, ENTITY>?{
-        val initializedDto =  uninitializedDto.updateBinding(entity, UpdateMode.ENTITY_TO_MODEL)
+    suspend fun selectSingle(entity: ENTITY):CommonDTO<DTO, DATA, ENTITY>{
+        val castedDto =  dtoClass.config.dtoFactory.createDto().run {
+            castOrThrow<CommonDTO<DTO, DATA, ENTITY>, OperationsException>()
+        }
+        val initializedDto =  castedDto.updateBinding(entity, UpdateMode.ENTITY_TO_MODEL)
         initializedDto.getDtoRepositories().forEach { repository ->
             repository.select()
         }
         return initializedDto
+    }
+
+    fun addDto(dto : CommonDTO<CHILD_DTO, DataModel, ExposifyEntityBase>){
+        cumulativeDTOList.add(dto)
     }
 
     override suspend fun clear(): RootRepository<DTO, DATA, ENTITY, CHILD_DTO>{
@@ -163,6 +170,11 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, CHILD_DTO>(
     var initialized: Boolean = false
 
     protected val childDTOList: MutableList<CommonDTO<CHILD_DTO, DataModel, ExposifyEntityBase>> = mutableListOf()
+
+    protected fun addChild(dto: CommonDTO<CHILD_DTO, DataModel, ExposifyEntityBase>){
+        childDTOList.add(dto)
+        childClass.repository!!.addDto(dto)
+    }
 
     internal val childFactory: DTOFactory<CHILD_DTO, DataModel, ExposifyEntityBase>
         get() { return childClass.config.dtoFactory }
@@ -182,6 +194,18 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, CHILD_DTO>(
             else -> getOrOperationsEx("UpdateDTOs should have never reached this branch", ExceptionCode.ABNORMAL_STATE)
         }
         initialized = true
+    }
+
+    fun findChild(
+        id: Long,
+        lookUpClass: DTOClass<CHILD_DTO>): CommonDTO<CHILD_DTO, DataModel, ExposifyEntityBase>?
+    {
+        if(childClass == lookUpClass ){
+            throw InitException("Looking in wrong DTO Class", ExceptionCode.ABNORMAL_STATE)
+        }
+
+        return  childDTOList.firstOrNull{it.id == id}
+
     }
 
     abstract suspend fun clear():RepositoryBase<DTO, DATA, ENTITY, CHILD_DTO>

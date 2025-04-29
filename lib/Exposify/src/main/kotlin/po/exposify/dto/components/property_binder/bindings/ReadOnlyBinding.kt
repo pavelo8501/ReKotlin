@@ -20,17 +20,17 @@ class ReadOnlyBinding<DATA : DataModel, ENT : ExposifyEntityBase, T>(
 
 
     var updated: Boolean = false
-   suspend fun updated(
+    fun updated(
         name: String,
         type: PropertyType,
         updateMode: UpdateMode,
-        onDataUpdatedCallback :  (suspend (String, PropertyType, UpdateMode) -> Unit)??
+        onDataUpdatedCallback :  ((String, PropertyType, UpdateMode) -> Unit)??
     ) {
         updated = true
         onDataUpdatedCallback?.invoke(name, type, updateMode)
     }
 
-   suspend fun update(dtoModel: DATA, entityModel: ENT, mode: UpdateMode, onUpdate :  (suspend (String, PropertyType, UpdateMode) -> Unit)?): Boolean {
+   fun update(dtoModel: DATA, entityModel: ENT, mode: UpdateMode, onUpdate :  ((String, PropertyType, UpdateMode) -> Unit)?): Boolean {
         updated = false
         val dtoValue = dataProperty.get(dtoModel)
         val entityValue =  try {

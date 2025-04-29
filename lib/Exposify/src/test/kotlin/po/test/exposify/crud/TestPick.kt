@@ -9,6 +9,7 @@ import po.test.exposify.setup.dtos.TestUser
 import po.test.exposify.setup.dtos.TestUserDTO
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 
 class TestPick : DatabaseTest(){
@@ -27,14 +28,15 @@ class TestPick : DatabaseTest(){
 
         startTestConnection()?.run {
             service(TestUserDTO, TableCreateMode.CREATE) {
-            val userDataModel =  update(user).getData()
-            pickedDTO = pick(userDataModel.id).getDTO() as TestUserDTO
-        }
-
+                val userDataModel =  update(user).getData()
+                 pickedDTO = pick(userDataModel.id).getDTO() as TestUserDTO
+            }
         }?:throw Exception("Connection not available")
 
         val userDTO =  assertNotNull(pickedDTO, "Picked DTO is null")
-        assertAll("Asserting picked used data model",
+        assertNotEquals(0,  userDTO.id, "UserDTO failed to update")
+        assertAll("Asserting picked data model",
+            { assertNotEquals(0, userDTO.dataModel.id, "Failed to update") },
             { assertEquals(user.login, userDTO.dataModel.login, "Input model/picked model login mismatch. Expecting ${user.login}") }
         )
     }

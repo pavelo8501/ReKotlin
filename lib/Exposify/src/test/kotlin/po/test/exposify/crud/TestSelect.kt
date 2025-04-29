@@ -27,7 +27,7 @@ class TestSelect : DatabaseTest() {
             name = "name",
             email = "nomail@void.null")
 
-        val pages = pageModels(quantity = 1, updatedBy = 1)
+        val pages = pageModels(pageCount = 1, updatedBy = 1)
         var assignedUserId : Long = 0
         startTestConnection()?.let {connection->
             connection.service(TestUserDTO, TableCreateMode.FORCE_RECREATE) {
@@ -39,7 +39,7 @@ class TestSelect : DatabaseTest() {
 
             connection.service(TestPageDTO, TableCreateMode.FORCE_RECREATE) {
                 val pageData =  update(pages[0]).getData()
-                val updatedById =  pageData.updatedById
+                val updatedById =  pageData.updatedBy
 
                 assertEquals(assignedUserId, updatedById, "Failed to update DTOs referenced property")
             }
@@ -49,10 +49,9 @@ class TestSelect : DatabaseTest() {
     @Test
     fun `postgres serializable classes`(){
         val pages = pageModels(
-            quantity = 1,
-            updatedBy = 1,
-            pageClasses = listOf(TestClassItem(1, "class_1"), TestClassItem(2, "class_2"))
-        )
+            pageCount = 1,
+            updatedBy = 1)
+
         startTestConnection()?.let {connection->
 
             connection.service(TestPageDTO, TableCreateMode.FORCE_RECREATE) {
@@ -160,7 +159,7 @@ class TestSelect : DatabaseTest() {
                     {
                         assertEquals(
                             assignedUserId,
-                            selectedSections[0].updatedById,
+                            selectedSections[0].updatedBy,
                             "Selected Section updated with wrong updatedBy"
                         )
                     }

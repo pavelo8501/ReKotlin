@@ -8,9 +8,10 @@ import po.exposify.dto.components.property_binder.enums.PropertyType
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.components.property_binder.interfaces.PropertyBindingOption
 import po.exposify.entity.classes.ExposifyEntityBase
+import po.lognotify.extensions.subTask
 
 class PropertyBinder<DATA : DataModel, ENT : ExposifyEntityBase>(
-    var  onPropertyUpdate : (suspend (String, PropertyType, UpdateMode) -> Unit)?,
+    var  onPropertyUpdate : ((String, PropertyType, UpdateMode) -> Unit)?,
     private val onSyncedSerializedAdd : (syncedSerializedProperty:  List<SerializedBinding<DATA, ENT, *, *>>)-> Unit)
 {
     private var allBindings: List<PropertyBindingOption<DATA, ENT, *>> = listOf()
@@ -23,9 +24,6 @@ class PropertyBinder<DATA : DataModel, ENT : ExposifyEntityBase>(
     var readOnlyPropertyList: List<ReadOnlyBinding<DATA, ENT, *>> =  listOf<ReadOnlyBinding<DATA, ENT, *>>()
         private set
 
-//    var referencedPropertyList: List<ReferencedBindingDepr<DATA, ENT>> =  listOf<ReferencedBindingDepr<DATA, ENT>>()
-//        private set
-
     fun getAllProperties():List<PropertyBindingOption<DATA, ENT, *>>{
         return  allBindings
     }
@@ -35,7 +33,7 @@ class PropertyBinder<DATA : DataModel, ENT : ExposifyEntityBase>(
         val readOnlyList = mutableListOf<ReadOnlyBinding<DATA, ENT, *>>()
         val syncedList = mutableListOf<SyncedBinding<DATA, ENT, *>>()
         val syncedSerializedList = mutableListOf<SerializedBinding<DATA, ENT, *, *>>()
-      //  val referencedList = mutableListOf<ReferencedBindingDepr<DATA, ENT>>()
+
         properties.forEach {
             when(it.propertyType){
                 PropertyType.READONLY -> {
@@ -47,9 +45,6 @@ class PropertyBinder<DATA : DataModel, ENT : ExposifyEntityBase>(
                 PropertyType.SERIALIZED -> {
                     syncedSerializedList.add(it as SerializedBinding<DATA, ENT, *, *>)
                 }
-//                PropertyType.REFERENCED -> {
-//                    referencedList.add(it as ReferencedBindingDepr<DATA, ENT>)
-//                }
             }
         }
         readOnlyPropertyList = readOnlyList
@@ -58,29 +53,26 @@ class PropertyBinder<DATA : DataModel, ENT : ExposifyEntityBase>(
             onSyncedSerializedAdd.invoke(syncedSerializedPropertyList)
         }
 
-     //   referencedPropertyList = referencedList.toList()
-
         syncedPropertyList = syncedList.toList()
         onInitialized?.invoke(this)
     }
 
-    private var hookFn :  (suspend (DATA, ENT, UpdateMode)-> Unit)? = null
-    fun  onUpdate(hook :  suspend (DATA, ENT, UpdateMode)-> Unit){
-        hookFn = hook
+    private var beforeUpdateHook :  (suspend (DATA, ENT, UpdateMode)-> Unit)? = null
+    fun  setBeforeUpdateHook(hook :  suspend (DATA, ENT, UpdateMode)-> Unit){
+         beforeUpdateHook = hook
     }
 
-
-   suspend fun update(dataModel: DATA, daoModel: ENT, updateMode: UpdateMode) {
-       hookFn?.invoke(dataModel, daoModel, updateMode)
-
-            syncedPropertyList.forEach { it.update(dataModel, daoModel, updateMode, onPropertyUpdate) }
-
-            syncedSerializedPropertyList.forEach { it.update(dataModel, daoModel, updateMode, onPropertyUpdate) }
-            readOnlyPropertyList.forEach { it.update(dataModel, daoModel, updateMode, onPropertyUpdate) }
-//            referencedPropertyList.forEach {
-//                if(updateMode == UpdateMode.ENTITY_TO_MODEL){
-//                    it.update(dataModel, daoModel, updateMode, onPropertyUpdate)
-//                }
-//            }
+    private var afterUpdateHook :  (suspend (DATA, ENT, UpdateMode)-> Unit)? = null
+    fun setAfterUpdateHook(hook :  suspend (DATA, ENT, UpdateMode)-> Unit){
+        afterUpdateHook = hook
     }
+
+   fun update(dataModel: DATA, daoModel: ENT, updateMode: UpdateMode){
+
+       syncedPropertyList.forEach { it.update(dataModel, daoModel, updateMode, onPropertyUpdate) }
+       syncedSerializedPropertyList.forEach { it.update(dataModel, daoModel, updateMode, onPropertyUpdate) }
+       readOnlyPropertyList.forEach { it.update(dataModel, daoModel, updateMode, onPropertyUpdate) }
+
+
+   }
 }

@@ -10,10 +10,12 @@ import po.exposify.dto.CommonDTO
 import po.exposify.classes.DTOClass
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntityBase
+import po.exposify.exceptions.InitException
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.castOrOperationsEx
 import po.exposify.extensions.safeCast
+import po.misc.types.castOrThrow
 import kotlin.collections.set
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
@@ -46,6 +48,8 @@ class RelationshipBinder<DTO, DATA, ENTITY>(
     ){
         if(!childModel.initialized){
             childModel.initialization()
+            val castedDtoClass = dtoClass.castOrThrow<DTOClass<ModelDTO>, InitException>()
+            childModel.setParentDTO(castedDtoClass)
         }
 
         val oneToOneContainerNullableData = BindingContainer.createOneToOneContainer<DTO, DATA, ENTITY, CHILD_DTO>(dtoClass, childModel)
@@ -62,6 +66,8 @@ class RelationshipBinder<DTO, DATA, ENTITY>(
     ){
         if(!childModel.initialized){
             childModel.initialization()
+            val castedDtoClass = dtoClass.castOrThrow<DTOClass<ModelDTO>, InitException>()
+            childModel.setParentDTO(castedDtoClass)
         }
 
         val oneToMany = BindingContainer.createOneToManyContainer<DTO, DATA, ENTITY, CHILD_DTO>(dtoClass, childModel)

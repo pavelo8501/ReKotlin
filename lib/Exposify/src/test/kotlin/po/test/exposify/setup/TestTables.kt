@@ -35,7 +35,7 @@ object TestSections : LongIdTable("sections", "id") {
     val name = varchar("name", 128)
     val description = varchar("description", 128).default("")
     val jsonLd = text("json_ld").default("[]")
-    val sectionClasses = registerColumn("section_classes", JsonColumnType(ListSerializer(TestClassItem.serializer())))
+    val classList = registerColumn("class_list", JsonColumnType(ListSerializer(TestClassItem.serializer())))
         .default(emptyList())
     val updatedBy = reference("updated_by", TestUsers)
     val updated = datetime("updated").clientDefault { TestSectionDTO.nowTime() }

@@ -18,6 +18,7 @@ abstract class ExposifyEntityBase(id: EntityID<Long>) : LongEntity(id) , Exposif
 
    var subscription : (DAOService<ModelDTO, ExposifyEntityBase>.(ExposifyEntityBase)-> Unit) ?= null
 
+
    inline  fun <reified ENTITY: ExposifyEntityBase> onEntityCreated(
        entity: ENTITY,
        block: DAOService<ModelDTO, ENTITY>.(ENTITY)-> Unit

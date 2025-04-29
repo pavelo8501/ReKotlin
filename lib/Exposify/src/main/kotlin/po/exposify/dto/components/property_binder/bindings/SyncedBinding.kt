@@ -14,7 +14,7 @@ class SyncedBinding<DATA : DataModel, ENT : ExposifyEntityBase, T>(
 {
     override val propertyType: PropertyType = PropertyType.TWO_WAY
 
-    suspend fun update(dtoModel: DATA, entityModel: ENT, mode: UpdateMode,  callback: (suspend (String, PropertyType, UpdateMode) -> Unit)?): Boolean {
+    fun update(dtoModel: DATA, entityModel: ENT, mode: UpdateMode,  callback: ((String, PropertyType, UpdateMode) -> Unit)?): Boolean {
         val dtoValue = dataProperty.get(dtoModel)
         val entityValue =  try {
             referencedProperty.get(entityModel)

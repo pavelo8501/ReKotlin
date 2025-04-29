@@ -30,7 +30,7 @@ class TestSectionEntity  (id: EntityID<Long>) : ExposifyEntityBase(id){
     var name by TestSections.name
     var description by TestSections.description
     var jsonLd by TestSections.jsonLd
-    var sectionClasses by TestSections.sectionClasses
+    var classList by TestSections.classList
     var updated by TestSections.updated
     var langId by TestSections.langId
     var updatedBy by TestUserEntity referencedOn TestSections.updatedBy

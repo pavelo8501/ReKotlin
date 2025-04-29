@@ -22,7 +22,7 @@ import po.misc.types.castOrThrow
 
 abstract class CommonDTO<DTO, DATA, ENTITY>(
    val dtoClass: DTOClass<DTO>
-):ModelDTO where DTO : ModelDTO,  DATA: DataModel , ENTITY: ExposifyEntityBase {
+): ModelDTO where DTO : ModelDTO,  DATA: DataModel , ENTITY: ExposifyEntityBase {
 
     override var personalName : String = "unset"
     abstract override val dataModel: DATA
@@ -55,9 +55,6 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     override var id : Long = 0
         get(){return dataContainer.dataModel.id}
 
-    val entityDAO : ENTITY
-        get(){return daoService.getLastEntity()}
-
     private var _regItem : CommonDTORegistryItem<DTO, DATA, ENTITY>? = null
     private val regItem : CommonDTORegistryItem<DTO, DATA, ENTITY>
         get(){
@@ -74,11 +71,11 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         return repositories.map.values.toList()
     }
 
-    suspend fun updateBinding(entity : ENTITY, updateMode: UpdateMode): CommonDTO<DTO ,DATA, ENTITY>{
+    fun updateBinding(entity : ENTITY, updateMode: UpdateMode): CommonDTO<DTO ,DATA, ENTITY>{
         propertyBinder.update(dataContainer.dataModel, entity, updateMode)
-        daoService.setLastEntity(entity)
         if(updateMode == UpdateMode.ENTITY_TO_MODEL){
             dataContainer.setDataModelId(entity.id.value)
+            daoService.setActiveEntity(entity)
         }
         initStatus = DTOInitStatus.INITIALIZED
         return this

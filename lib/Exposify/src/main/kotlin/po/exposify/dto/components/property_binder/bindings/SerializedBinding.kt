@@ -22,7 +22,7 @@ class SerializedBinding<DATA : DataModel, ENT : ExposifyEntityBase, C, TYPE: Any
         return Pair(dataProperty.name, serializer)
     }
 
-   suspend fun update(dtoModel: DATA, entityModel: ENT, mode: UpdateMode, callback:  (suspend (String, PropertyType, UpdateMode) -> Unit)?): Boolean {
+   fun update(dtoModel: DATA, entityModel: ENT, mode: UpdateMode, callback:  ((String, PropertyType, UpdateMode) -> Unit)?): Boolean {
         updated = false
         val dtoValue = dataProperty.get(dtoModel)
 
