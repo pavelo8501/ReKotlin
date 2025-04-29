@@ -10,6 +10,7 @@ import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.property_binder.bindings.SerializedBinding
 import po.exposify.dto.components.property_binder.bindings.SyncedBinding
 import po.exposify.dto.components.property_binder.delegates.idReferenced
+import po.exposify.dto.components.property_binder.delegates.parentReference
 import po.test.exposify.setup.TestClassItem
 import po.test.exposify.setup.TestPageEntity
 import po.test.exposify.setup.TestSectionEntity
@@ -37,9 +38,8 @@ class TestSectionDTO(
     override var dataModel: TestSection
 ): CommonDTO<TestSectionDTO, TestSection, TestSectionEntity>(TestSectionDTO) {
 
-    val updatedById : Long by idReferenced(TestSection::updatedBy, TestSectionEntity::updatedBy, TestUserDTO)
-
-   // val pageDto by parentReference(TestSection::pageId, TestSectionEntity::page, TestSectionDTO)
+    val updatedBy : Long by idReferenced(TestSection::updatedBy, TestSectionEntity::updatedBy, TestUserDTO)
+    val pageDto by parentReference(TestSection::pageId, TestSectionEntity::page, TestSectionDTO)
 
     companion object: DTOClass<TestSectionDTO>(){
         override suspend fun setup() {

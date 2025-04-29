@@ -34,12 +34,13 @@ class SingleRepository<DTO, DATA, ENTITY,  CHILD_DTO>(
             val parentEntity = hostingDto.daoService.getLastEntity()
             newChildDto.daoService.saveWithParent {
                 binding.foreignEntityProperty.set(it, parentEntity)
+                hostingDto.castOrThrow<CommonDTO<ModelDTO, DataModel, ExposifyEntityBase>, OperationsException>()
             }
         } else {
             newChildDto.daoService.update()
         }
-        //childDTOList.add(newChildDto)
-        addChild(newChildDto)
+        childDTOList.add(newChildDto)
+        //addChild(newChildDto)
         newChildDto.getDtoRepositories().forEach {repository->
             repository.update()
         }
@@ -68,12 +69,13 @@ class MultipleRepository<DTO, DATA, ENTITY, CHILD_DTO>(
                 val parentEntity = hostingDto.daoService.getLastEntity()
                 newChildDto.daoService.saveWithParent{
                     binding.foreignEntityProperty.set(it, parentEntity)
+                    hostingDto.castOrThrow<CommonDTO<ModelDTO, DataModel, ExposifyEntityBase>, OperationsException>()
                 }
             }else{
                 newChildDto.daoService.update()
             }
-            addChild(newChildDto)
-           // childDTOList.add(newChildDto)
+          //  addChild(newChildDto)
+           childDTOList.add(newChildDto)
             newChildDto.getDtoRepositories().forEach {repository->
                 repository.update()
             }
@@ -81,6 +83,7 @@ class MultipleRepository<DTO, DATA, ENTITY, CHILD_DTO>(
     }
 
    suspend fun selectMultiple(){
+        val entity =  hostingDto.daoService.getLastEntity()
         val entities = binding.ownEntitiesProperty.get(hostingDto.daoService.getLastEntity())
         entities.forEach { entity ->
             val newChildDto = childFactory.createDto()
@@ -156,6 +159,9 @@ class RootRepository<DTO, DATA, ENTITY, CHILD_DTO>(
         cumulativeDTOList.add(dto)
     }
 
+    fun getDtos():List<CommonDTO<CHILD_DTO, DataModel, ExposifyEntityBase>>{
+        return cumulativeDTOList
+    }
     override suspend fun clear(): RootRepository<DTO, DATA, ENTITY, CHILD_DTO>{
         childDTOList.clear()
         return this

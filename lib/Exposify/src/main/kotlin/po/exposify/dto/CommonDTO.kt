@@ -75,7 +75,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         propertyBinder.update(dataContainer.dataModel, entity, updateMode)
         if(updateMode == UpdateMode.ENTITY_TO_MODEL){
             dataContainer.setDataModelId(entity.id.value)
-            daoService.setActiveEntity(entity)
+            daoService.setActiveEntity(UpdateMode.ENTITY_TO_MODEL, entity)
         }
         initStatus = DTOInitStatus.INITIALIZED
         return this

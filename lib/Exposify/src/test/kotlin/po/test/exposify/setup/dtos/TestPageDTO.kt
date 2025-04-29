@@ -30,8 +30,7 @@ class TestPageDTO(
     override var dataModel: TestPage
 ): CommonDTO<TestPageDTO, TestPage, TestPageEntity>(TestPageDTO) {
 
-
-    val updatedById : Long by idReferenced(TestPage::updatedBy, TestPageEntity::updatedBy, TestUserDTO)
+    val updatedBy : Long by idReferenced(TestPage::updatedBy, TestPageEntity::updatedBy, TestUserDTO)
 
     companion object: DTOClass<TestPageDTO>(){
         override suspend fun setup() {

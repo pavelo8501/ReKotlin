@@ -20,13 +20,13 @@ inline fun <reified DATA, reified ENTITY, reified FOREIGN_ENTITY, DTO> ModelDTO.
     return ModelEntityIDDelegate(castedThis, dataProperty, entityProperty, foreignDtoCals)
 }
 
-//inline fun <reified DATA, reified ENTITY, reified FOREIGN_ENTITY, DTO> ModelDTO.parentReference(
-//    dataProperty : KMutableProperty1<DATA, Long>,
-//    entityProperty: KMutableProperty1<ENTITY, FOREIGN_ENTITY>,
-//    parentDtoClass :  DTOClass<DTO>
-//): ModelEntityDelegate<DATA, ENTITY, FOREIGN_ENTITY,  DTO>
-//    where DATA:DataModel, ENTITY: ExposifyEntityBase, FOREIGN_ENTITY:ExposifyEntityBase,  DTO: ModelDTO
-//{
-//    val castedThis = this.castOrThrow<CommonDTO<ModelDTO, DATA, ExposifyEntityBase>, InitException>()
-//    return  ModelEntityDelegate(castedThis, dataProperty, entityProperty, parentDtoClass)
-//}
+inline fun <reified DATA, reified ENTITY, reified FOREIGN_ENTITY, DTO> ModelDTO.parentReference(
+    dataProperty : KMutableProperty1<DATA, Long>,
+    entityProperty: KMutableProperty1<ENTITY, FOREIGN_ENTITY>,
+    parentDtoClass :  DTOClass<DTO>
+): ModelEntityDTODelegate<DATA, ENTITY, FOREIGN_ENTITY,  DTO>
+    where DATA:DataModel, ENTITY: ExposifyEntityBase, FOREIGN_ENTITY:ExposifyEntityBase,  DTO: ModelDTO
+{
+    val castedThis = this.castOrThrow<CommonDTO<ModelDTO, DATA, ENTITY>, InitException>()
+    return  ModelEntityDTODelegate(castedThis, dataProperty, entityProperty, parentDtoClass)
+}

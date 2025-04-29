@@ -15,6 +15,7 @@ import po.exposify.dto.models.DTORegistry
 import po.exposify.dto.models.DTORegistryItem
 import po.exposify.entity.classes.ExposifyEntityBase
 import po.exposify.exceptions.InitException
+import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.castOrOperationsEx
@@ -105,15 +106,32 @@ abstract class DTOClass<DTO>(): TasksManaged,  ClassDTO where DTO: ModelDTO {
         return null
     }
 
-    internal fun lookupDTO(id: Long): CommonDTO<DTO, DataModel, ExposifyEntityBase>?{
-       return repository!!.findChild(id, this)
+    internal fun <CHILD_DTO: ModelDTO>  lookupDTO(
+        id: Long,
+        childDtoClass: DTOClass<CHILD_DTO>
+    ): CommonDTO<CHILD_DTO, DataModel, ExposifyEntityBase>?
+    {
+      val result =  repository?.let {
+           val foundDto = it.findChild(id, this)
+            foundDto
+        }?:run {
+            var foundDto : CommonDTO<CHILD_DTO, DataModel, ExposifyEntityBase>?  = null
+            val tempInlinedRepo = RootRepository<CHILD_DTO, DataModel, ExposifyEntityBase, CHILD_DTO>(childDtoClass)
+            parentDtoClass!!.repository!!.getDtos().forEach {dtoFromParentRepo->
+                val castedDto = dtoFromParentRepo.castOrThrow<CommonDTO<CHILD_DTO, DataModel, ExposifyEntityBase>, OperationsException>()
+                tempInlinedRepo.addDto(castedDto)
+                foundDto = tempInlinedRepo.getDtos().firstOrNull{ it.id == id}
+            }
+          foundDto
+        }
+        return result.castOrThrow<CommonDTO<CHILD_DTO, DataModel, ExposifyEntityBase>, OperationsException>()
     }
 
     fun <DATA : DataModel> asHierarchyRoot(serviceContext: ServiceContext<DTO, DATA>) {
         if (serviceContextOwned == null) {
             serviceContext.safeCast<ServiceContext<DTO, DataModel>>()?.let {
                 serviceContextOwned = it
-                repository = RootRepository<DTO, DataModel, ExposifyEntityBase, DTO>(this)
+                repository = RootRepository(this)
                 hierarchyRoot = true
             } ?: throw InitException("Cast for ServiceContext2 failed", ExceptionCode.CAST_FAILURE)
         }
