@@ -8,8 +8,8 @@ import po.exposify.extensions.WhereCondition
 import po.exposify.scope.sequence.enums.SequenceID
 import po.exposify.scope.sequence.extensions.createHandler
 import po.exposify.scope.service.enums.TableCreateMode
+import po.test.exposify.setup.ClassItem
 import po.test.exposify.setup.DatabaseTest
-import po.test.exposify.setup.TestClassItem
 import po.test.exposify.setup.TestPages
 import po.test.exposify.setup.dtos.TestPage
 import po.test.exposify.setup.dtos.TestPageDTO
@@ -34,7 +34,7 @@ class TestSequenceContext : DatabaseTest() {
             name = "name",
             email = "nomail@void.null")
 
-        val pageClasses = listOf<TestClassItem>(TestClassItem(1, "class_1"), TestClassItem(2, "class_2"))
+        val pageClasses = listOf<ClassItem>(ClassItem(1, "class_1"), ClassItem(2, "class_2"))
         val  connectionContext = startTestConnection()
         connectionContext?.let { connection ->
             connection.service<TestUserDTO, TestUser>(TestUserDTO.Companion, TableCreateMode.FORCE_RECREATE) {

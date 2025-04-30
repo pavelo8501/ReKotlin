@@ -4,6 +4,7 @@ import kotlinx.serialization.builtins.ListSerializer
 import org.jetbrains.exposed.dao.id.LongIdTable
 import org.jetbrains.exposed.sql.ReferenceOption
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
+import org.junit.runners.model.TestClass
 import po.exposify.extensions.JsonColumnType
 import po.test.exposify.setup.dtos.TestPageDTO
 import po.test.exposify.setup.dtos.TestSectionDTO
@@ -35,10 +36,25 @@ object TestSections : LongIdTable("sections", "id") {
     val name = varchar("name", 128)
     val description = varchar("description", 128).default("")
     val jsonLd = text("json_ld").default("[]")
-    val classList = registerColumn("class_list", JsonColumnType(ListSerializer(TestClassItem.serializer())))
+    val classList = registerColumn("class_list", JsonColumnType(ListSerializer(ClassItem.serializer())))
         .default(emptyList())
+    val metaTags = registerColumn("meta_tags", JsonColumnType(ListSerializer(MetaTag.serializer())))
     val updatedBy = reference("updated_by", TestUsers)
     val updated = datetime("updated").clientDefault { TestSectionDTO.nowTime() }
     val langId = integer("lang_id")
     val page = reference("page", TestPages, onDelete = ReferenceOption.CASCADE)
+}
+
+object TestSectionItems : LongIdTable("section_items", "id") {
+    val name = varchar("name", 128)
+    val content = text("content")
+    val tag = varchar("tag", 64)
+    val jsonLd = text("json_ld").default("")
+    val classList = registerColumn("class_list", JsonColumnType(ListSerializer(ClassItem.serializer())))
+        .default(emptyList())
+    val metaTags =  registerColumn("meta_tags", JsonColumnType(ListSerializer(MetaTag.serializer())))
+        .default(emptyList())
+    val langId = integer("lang_id")
+    val updated = datetime("updated").clientDefault { TestUserDTO.nowTime() }
+    val section = reference("section", TestSections, onDelete = ReferenceOption.CASCADE)
 }

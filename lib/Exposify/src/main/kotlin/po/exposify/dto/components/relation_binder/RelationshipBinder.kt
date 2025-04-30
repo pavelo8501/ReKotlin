@@ -9,7 +9,7 @@ import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.classes.DTOClass
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.entity.classes.ExposifyEntityBase
+import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.InitException
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
@@ -24,7 +24,7 @@ import kotlin.reflect.KProperty1
 
 class RelationshipBinder<DTO, DATA, ENTITY>(
    val dtoClass:  DTOClass<DTO>
-) where DTO: ModelDTO, DATA : DataModel, ENTITY : ExposifyEntityBase
+) where DTO: ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity
 {
     internal var childBindings = mutableMapOf<BindingKeyBase, BindingContainer<DTO, DATA, ENTITY, ModelDTO>>()
         private set
@@ -43,8 +43,8 @@ class RelationshipBinder<DTO, DATA, ENTITY>(
    suspend fun <CHILD_DTO: ModelDTO>single(
         childModel: DTOClass<CHILD_DTO>,
         ownDataModel: KMutableProperty1<DATA, DataModel?>,
-        ownEntity: KProperty1<ENTITY, ExposifyEntityBase>,
-        foreignEntity: KMutableProperty1<ExposifyEntityBase, ENTITY>
+        ownEntity: KProperty1<ENTITY, ExposifyEntity>,
+        foreignEntity: KMutableProperty1<ExposifyEntity, ENTITY>
     ){
         if(!childModel.initialized){
             childModel.initialization()
@@ -61,8 +61,8 @@ class RelationshipBinder<DTO, DATA, ENTITY>(
     suspend  fun <CHILD_DTO : ModelDTO>many(
         childModel: DTOClass<CHILD_DTO>,
         ownDataModels: KProperty1<DATA,  MutableList<out DataModel>>,
-        ownEntities: KProperty1<ENTITY, SizedIterable<ExposifyEntityBase>>,
-        foreignEntity: KMutableProperty1<out ExposifyEntityBase, ENTITY>,
+        ownEntities: KProperty1<ENTITY, SizedIterable<ExposifyEntity>>,
+        foreignEntity: KMutableProperty1<out ExposifyEntity, ENTITY>,
     ){
         if(!childModel.initialized){
             childModel.initialization()
@@ -71,7 +71,7 @@ class RelationshipBinder<DTO, DATA, ENTITY>(
         }
 
         val oneToMany = BindingContainer.createOneToManyContainer<DTO, DATA, ENTITY, CHILD_DTO>(dtoClass, childModel)
-        val foreignEntityCast = foreignEntity.castOrOperationsEx<KMutableProperty1<ExposifyEntityBase, ENTITY>>(
+        val foreignEntityCast = foreignEntity.castOrOperationsEx<KMutableProperty1<ExposifyEntity, ENTITY>>(
             "ForeignEntity Property cast failure for ${dtoClass.personalName}",
             ExceptionCode.CAST_FAILURE)
 
@@ -144,7 +144,7 @@ class RelationshipBinder<DTO, DATA, ENTITY>(
                 else -> {}
             }
         }
-        val dataPropertiesCast = trackedDataProperties(parentDto).safeCast<List<DataPropertyInfo<DTO, DATA, ExposifyEntityBase, ModelDTO>>>()
+        val dataPropertiesCast = trackedDataProperties(parentDto).safeCast<List<DataPropertyInfo<DTO, DATA, ExposifyEntity, ModelDTO>>>()
         if(dataPropertiesCast != null){
             parentDto.dataContainer.setTrackedProperties(dataPropertiesCast)
           //  parentDto.daoService.setTrackedProperties(trackedEntityProperties(parentDto))

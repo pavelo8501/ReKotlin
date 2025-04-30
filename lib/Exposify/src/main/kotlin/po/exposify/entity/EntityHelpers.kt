@@ -1,8 +1,8 @@
 package po.exposify.entity
 
-import po.exposify.entity.classes.ExposifyEntityBase
+import po.exposify.entity.classes.ExposifyEntity
 
 
-fun <T: ExposifyEntityBase>  T.exposifyEntity(): ExposifyEntityBase{
+fun <T: ExposifyEntity>  T.exposifyEntity(): ExposifyEntity{
     return this
 }

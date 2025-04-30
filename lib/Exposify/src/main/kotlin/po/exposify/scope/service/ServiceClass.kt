@@ -10,7 +10,7 @@ import po.exposify.classes.interfaces.DataModel
 import po.exposify.common.interfaces.AsClass
 import po.exposify.classes.DTOClass
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.entity.classes.ExposifyEntityBase
+import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.InitException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.getOrOperationsEx
@@ -98,9 +98,9 @@ class ServiceClass<DTO, DATA, ENTITY>(
 
     internal suspend fun launch(receiver: ServiceContext<DTO, DATA>.() -> Unit) {
         start()
-        val casted = this@ServiceClass.safeCast<ServiceClass<DTO, DATA, ExposifyEntityBase>>()
+        val casted = this@ServiceClass.safeCast<ServiceClass<DTO, DATA, ExposifyEntity>>()
             .getOrOperationsEx(
-                "Cast to ServiceClass<DTO,DATA, ExposifyEntityBase> failed",
+                "Cast to ServiceClass<DTO,DATA, ExposifyEntity> failed",
                 ExceptionCode.VALUE_NOT_FOUND)
 
         ServiceContext(casted, rootDTOModel).let { context ->

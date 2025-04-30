@@ -10,7 +10,7 @@ import po.exposify.common.classes.ConstructorBuilder
 import po.exposify.common.classes.MapBuilder
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.entity.classes.ExposifyEntityBase
+import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.getOrOperationsEx
@@ -25,7 +25,7 @@ internal class DTOFactory<DTO, DATA, ENTITY>(
     private val dtoKClass : KClass<out CommonDTO<DTO, DATA, ENTITY>>,
     private val dataModelClass : KClass<DATA>,
     private val hostingConfig: DTOConfig<DTO, DATA, ENTITY>,
-): TasksManaged where DTO : ModelDTO, DATA: DataModel, ENTITY: ExposifyEntityBase {
+): TasksManaged where DTO : ModelDTO, DATA: DataModel, ENTITY: ExposifyEntity {
     companion object : ConstructorBuilder()
 
     private val personalName = "DTOFactory[${dtoKClass.simpleName}]"

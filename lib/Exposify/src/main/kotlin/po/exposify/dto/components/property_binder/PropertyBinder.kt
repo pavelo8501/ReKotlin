@@ -7,10 +7,16 @@ import po.exposify.dto.components.property_binder.bindings.SyncedBinding
 import po.exposify.dto.components.property_binder.enums.PropertyType
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.components.property_binder.interfaces.PropertyBindingOption
-import po.exposify.entity.classes.ExposifyEntityBase
+import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.entity.classes.ExposifyEntity
 import po.lognotify.extensions.subTask
 
-class PropertyBinder<DATA : DataModel, ENT : ExposifyEntityBase>(
+
+//ComplexDelegate<DTO, DATA, ENTITY, FOREIGN_ENTITY, DATA_VAL, RES_VAL>
+
+
+
+class PropertyBinder<DATA : DataModel, ENT : ExposifyEntity>(
     var  onPropertyUpdate : ((String, PropertyType, UpdateMode) -> Unit)?,
     private val onSyncedSerializedAdd : (syncedSerializedProperty:  List<SerializedBinding<DATA, ENT, *, *>>)-> Unit)
 {
@@ -72,7 +78,6 @@ class PropertyBinder<DATA : DataModel, ENT : ExposifyEntityBase>(
        syncedPropertyList.forEach { it.update(dataModel, daoModel, updateMode, onPropertyUpdate) }
        syncedSerializedPropertyList.forEach { it.update(dataModel, daoModel, updateMode, onPropertyUpdate) }
        readOnlyPropertyList.forEach { it.update(dataModel, daoModel, updateMode, onPropertyUpdate) }
-
 
    }
 }

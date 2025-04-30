@@ -3,7 +3,7 @@ package po.test.exposify.setup
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class TestClassItem(val key: Int, val value: String)
+data class ClassItem(val key: Int, val value: String)
 
 @Serializable
-data class TestMetaTag(val type: Int, val key: String, val value: String)
+data class MetaTag(val type: Int, val key: String, val value: String)

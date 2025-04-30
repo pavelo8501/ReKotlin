@@ -7,7 +7,7 @@ import po.exposify.dto.components.relation_binder.MultipleChildContainer
 import po.exposify.dto.components.relation_binder.SingleChildContainer
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.entity.classes.ExposifyEntityBase
+import po.exposify.entity.classes.ExposifyEntity
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
 
@@ -20,10 +20,10 @@ class EntityPropertyInfo<DTO, DATA, ENTITY, CHILD_DTO>(
     bindingKey: BindingKeyBase,
     hostingContainer : BindingContainer<DTO, DATA, ENTITY, CHILD_DTO>
 ) : PropertyInfoBase<DTO, DATA, ENTITY, CHILD_DTO>(name, cardinality, isNullable, bindingKey, hostingContainer)
-        where DTO : ModelDTO, CHILD_DTO: ModelDTO,  DATA: DataModel, ENTITY: ExposifyEntityBase
+        where DTO : ModelDTO, CHILD_DTO: ModelDTO,  DATA: DataModel, ENTITY: ExposifyEntity
 {
 
-    fun getOwnEntitiesProperty(): KProperty1<ENTITY, Iterable<ExposifyEntityBase>>?{
+    fun getOwnEntitiesProperty(): KProperty1<ENTITY, Iterable<ExposifyEntity>>?{
         if(hostingContainer is MultipleChildContainer){
             return hostingContainer.ownEntitiesProperty
         }else{
@@ -31,7 +31,7 @@ class EntityPropertyInfo<DTO, DATA, ENTITY, CHILD_DTO>(
         }
     }
 
-    fun getOwnEntityProperty(): KProperty1<ENTITY, ExposifyEntityBase>?{
+    fun getOwnEntityProperty(): KProperty1<ENTITY, ExposifyEntity>?{
         if(hostingContainer is SingleChildContainer){
             return hostingContainer.ownEntityProperty
         }else{
@@ -49,7 +49,7 @@ class DataPropertyInfo<DTO, DATA, ENTITY, CHILD_DTO>(
     bindingKey: BindingKeyBase,
     hostingContainer : BindingContainer<DTO, DATA, ENTITY, CHILD_DTO>
 ) : PropertyInfoBase<DTO, DATA, ENTITY, CHILD_DTO>(name, cardinality, isNullable, bindingKey, hostingContainer)
-        where DTO : ModelDTO, CHILD_DTO: ModelDTO,  DATA: DataModel, ENTITY: ExposifyEntityBase
+        where DTO : ModelDTO, CHILD_DTO: ModelDTO,  DATA: DataModel, ENTITY: ExposifyEntity
 {
 
     fun getOwnModelsProperty(): KProperty1<DATA, Iterable<DataModel>>?{
@@ -75,7 +75,7 @@ sealed class PropertyInfoBase<DTO, DATA, ENTITY, CHILD_DTO>(
     val isNullable: Boolean = false,
     val bindingKey: BindingKeyBase,
     protected val hostingContainer : BindingContainer<DTO, DATA, ENTITY, CHILD_DTO>
-) where DTO : ModelDTO, CHILD_DTO: ModelDTO,  DATA: DataModel, ENTITY: ExposifyEntityBase{
+) where DTO : ModelDTO, CHILD_DTO: ModelDTO,  DATA: DataModel, ENTITY: ExposifyEntity{
 
     var processed : Boolean = false
     var inBlueprint: KProperty1<DATA, *>?  = null

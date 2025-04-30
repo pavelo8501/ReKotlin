@@ -4,7 +4,7 @@ import org.jetbrains.exposed.sql.Database
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.classes.DTOClass
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.entity.classes.ExposifyEntityBase
+import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.scope.service.ServiceClass
 import po.exposify.scope.service.ServiceContext
 import po.exposify.scope.service.enums.TableCreateMode
@@ -24,7 +24,7 @@ class ConnectionContext(
         createOptions : TableCreateMode = TableCreateMode.CREATE,
         context: ServiceContext<DTO, DATA>.()->Unit,
     ) where DTO : ModelDTO, DATA : DataModel{
-       val serviceClass =  ServiceClass<DTO, DATA, ExposifyEntityBase>(connClass, dtoClass, createOptions)
+       val serviceClass =  ServiceClass<DTO, DATA, ExposifyEntity>(connClass, dtoClass, createOptions)
 
         startTaskAsync("Create Service") {
             serviceClass.launch(context)

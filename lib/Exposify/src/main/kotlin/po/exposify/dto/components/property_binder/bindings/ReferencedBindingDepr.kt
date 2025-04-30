@@ -7,7 +7,7 @@ import po.exposify.dto.components.property_binder.enums.PropertyType
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.components.property_binder.interfaces.PropertyBindingOption
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.entity.classes.ExposifyEntityBase
+import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.castOrOperationsEx
 import po.exposify.extensions.getOrOperationsEx
@@ -16,14 +16,14 @@ import kotlin.reflect.KMutableProperty1
 //
 //class ReferencedBindingDepr<DATA, ENTITY>(
 //    override val dataProperty: KMutableProperty1<DATA, Long>,
-//    override val referencedProperty: KMutableProperty1<ENTITY, out ExposifyEntityBase>,
+//    override val referencedProperty: KMutableProperty1<ENTITY, out ExposifyEntity>,
 //    val dtoClass: DTOClass<out ModelDTO>,
-//): PropertyBindingOption<DATA, ENTITY, Long> where DATA: DataModel, ENTITY: ExposifyEntityBase
+//): PropertyBindingOption<DATA, ENTITY, Long> where DATA: DataModel, ENTITY: ExposifyEntity
 //{
 //    override val propertyType: PropertyType = PropertyType.REFERENCED
 //
-//    val castedEntityProperty = referencedProperty.castOrOperationsEx<KMutableProperty1<ENTITY,ExposifyEntityBase>>(
-//        "Cast to KMutableProperty1<ENTITY,ExposifyEntityBase> failed",
+//    val castedEntityProperty = referencedProperty.castOrOperationsEx<KMutableProperty1<ENTITY,ExposifyEntity>>(
+//        "Cast to KMutableProperty1<ENTITY,ExposifyEntity> failed",
 //        ExceptionCode.CAST_FAILURE)
 //
 //    private fun updateEntityToModel(entity:ENTITY, data :DATA, forced: Boolean){

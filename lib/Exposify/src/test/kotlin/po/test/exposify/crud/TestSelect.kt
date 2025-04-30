@@ -5,7 +5,6 @@ import po.auth.extensions.generatePassword
 import po.exposify.extensions.WhereCondition
 import po.exposify.scope.service.enums.TableCreateMode
 import po.test.exposify.setup.DatabaseTest
-import po.test.exposify.setup.TestClassItem
 import po.test.exposify.setup.TestPages
 import po.test.exposify.setup.dtos.TestPageDTO
 import po.test.exposify.setup.dtos.TestUser
@@ -39,7 +38,7 @@ class TestSelect : DatabaseTest() {
 
             connection.service(TestPageDTO, TableCreateMode.FORCE_RECREATE) {
                 val pageData =  update(pages[0]).getData()
-                val updatedById =  pageData.updatedBy
+                val updatedById =  pageData.updatedById
 
                 assertEquals(assignedUserId, updatedById, "Failed to update DTOs referenced property")
             }

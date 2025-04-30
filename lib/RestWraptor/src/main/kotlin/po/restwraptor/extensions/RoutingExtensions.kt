@@ -4,7 +4,7 @@ import io.ktor.server.auth.authenticate
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.Routing
 import io.ktor.server.routing.application
-import po.misc.exceptions.getOrThrow
+import po.misc.types.getOrThrow
 import po.restwraptor.RestWrapTor
 import po.restwraptor.exceptions.ConfigurationException
 import po.restwraptor.exceptions.ExceptionCodes

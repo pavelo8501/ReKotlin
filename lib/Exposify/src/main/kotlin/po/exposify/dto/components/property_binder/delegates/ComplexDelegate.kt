@@ -1,33 +1,44 @@
 package po.exposify.dto.components.property_binder.delegates
 
+import org.jetbrains.exposed.dao.LongEntityClass
 import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
+import po.exposify.dto.components.property_binder.EntityUpdateContainer
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.entity.classes.ExposifyEntityBase
-import po.exposify.exceptions.InitException
+import po.exposify.entity.classes.ExposifyEntity
+import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.getOrOperationsEx
+import po.lognotify.TasksManaged
+import po.lognotify.extensions.subTask
 import po.misc.types.castOrThrow
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty
 
-class ModelEntityIDDelegate<DATA, ENTITY, FOREIGN_ENTITY, FOREIGN_DTO>(
-    dto: CommonDTO<ModelDTO, DATA, ENTITY>,
+fun <T, R> KMutableProperty1<T, R>.name(): String = this.name
+
+class ForeignIDClassDelegate<DTO, DATA, ENTITY, FOREIGN_ENTITY>(
+    dto: CommonDTO<DTO, DATA, ENTITY>,
     dataProperty : KMutableProperty1<DATA, Long>,
-    entityProperty : KMutableProperty1<ENTITY, FOREIGN_ENTITY>,
-    val foreignDtoClass: DTOClass<FOREIGN_DTO>
-): ComplexDelegate<DATA, ENTITY, FOREIGN_ENTITY, Long, Long>(dto, dataProperty, entityProperty)
-    where DATA: DataModel, ENTITY: ExposifyEntityBase, FOREIGN_ENTITY: ExposifyEntityBase, FOREIGN_DTO: ModelDTO
+    val entityProperty : KMutableProperty1<ENTITY, FOREIGN_ENTITY>,
+    val foreignEntityModel: LongEntityClass<FOREIGN_ENTITY>,
+): ComplexDelegate<DTO, DATA, ENTITY, FOREIGN_ENTITY, Long, Long>(dto, dataProperty, entityProperty.name)
+    where DATA: DataModel, ENTITY: ExposifyEntity, DTO: ModelDTO, FOREIGN_ENTITY: ExposifyEntity
 {
     override fun updateByEntity(
-        entity: ENTITY,
-        foreignDTO: CommonDTO<ModelDTO, DataModel, ExposifyEntityBase>?
+        updateMode: UpdateMode,
+        container: EntityUpdateContainer<ENTITY, FOREIGN_ENTITY>
     ) {
-        val foreign = foreignDtoClass.getEntityModel<FOREIGN_ENTITY>()[getEffectiveValue()]
-        entityProperty.set(entity, foreign)
+        val value = getEffectiveValue()
+        val foreignEntity = foreignEntityModel.get(value)
+        println("foreignEntity ${foreignEntity::class.simpleName}")
+        val ownEntity = container.ownEntity
+        println("ownEntity ${ownEntity::class.simpleName}")
+
+        entityProperty.set(ownEntity, foreignEntity)
     }
 
     override fun updateDataModel(entity: ENTITY){
@@ -40,92 +51,110 @@ class ModelEntityIDDelegate<DATA, ENTITY, FOREIGN_ENTITY, FOREIGN_DTO>(
     }
 }
 
-class ModelEntityDTODelegate<DATA, ENTITY, FOREIGN_ENTITY,  FOREIGN_DTO>(
-    dto: CommonDTO<ModelDTO, DATA, ENTITY>,
+class ParentIDDelegate<DTO, DATA, ENTITY, FOREIGN_ENTITY>(
+    dto: CommonDTO<DTO, DATA, ENTITY>,
     dataProperty : KMutableProperty1<DATA, Long>,
-    entityProperty : KMutableProperty1<ENTITY, FOREIGN_ENTITY>,
-    val foreignDtoClass: DTOClass<FOREIGN_DTO>
-): ComplexDelegate<DATA, ENTITY, FOREIGN_ENTITY, Long, CommonDTO<FOREIGN_DTO, DataModel, ExposifyEntityBase>>(dto, dataProperty, entityProperty)
-
-     where DATA: DataModel, ENTITY: ExposifyEntityBase, FOREIGN_ENTITY: ExposifyEntityBase, FOREIGN_DTO : ModelDTO
+    val entityProperty : KMutableProperty1<ENTITY, FOREIGN_ENTITY>,
+): ComplexDelegate<DTO, DATA, ENTITY, FOREIGN_ENTITY, Long, Long>(dto, dataProperty, entityProperty.name)
+        where DATA: DataModel, ENTITY: ExposifyEntity, DTO : ModelDTO, FOREIGN_ENTITY: ExposifyEntity
 {
 
-    private var acquiredForeignDTO : CommonDTO<FOREIGN_DTO, DataModel, ExposifyEntityBase>? = null
-    override fun getEffectiveValue(): CommonDTO<FOREIGN_DTO, DataModel, ExposifyEntityBase>{
-         return acquiredForeignDTO?:run {
-             val id = dataProperty.get(dto.dataModel)
-             val dto = foreignDtoClass.lookupDTO(id, foreignDtoClass)
-             dto.getOrOperationsEx("Dto for given id: $id can not be located")
-         }
-    }
-
     override fun updateByEntity(
-        entity: ENTITY,
-        foreignDTO: CommonDTO<ModelDTO, DataModel, ExposifyEntityBase>?
-    ) {
-        if(foreignDTO != null){
-            acquiredForeignDTO =  foreignDTO.castOrThrow<CommonDTO<FOREIGN_DTO, DataModel, ExposifyEntityBase>, InitException>()
-            dataProperty.set(dto.dataModel, acquiredForeignDTO!!.id)
-        }else{
-            throw InitException("ForeignDTO should have been provided", ExceptionCode.ABNORMAL_STATE)
+        updateMode: UpdateMode,
+        container: EntityUpdateContainer<ENTITY, FOREIGN_ENTITY>
+    ){
+        if(container.parentDataSet){
+            val parentEntity = container.hasParentEntity
+            println("parentEntity ${parentEntity::class.simpleName}")
+            val ownEntity = container.ownEntity
+            println("ownEntity ${ownEntity::class.simpleName}")
+            entityProperty.set(ownEntity, parentEntity)
         }
     }
 
-    override fun updateDataModel(entity: ENTITY) {
-        val foreignEntity = entityProperty.get(entity)
+    override fun updateDataModel(entity: ENTITY){
+        val foreignEntity =  entityProperty.get(entity)
         val id = foreignEntity.id.value
         dataProperty.set(dto.dataModel, id)
     }
+    override fun getEffectiveValue(): Long{
+        return dataProperty.get(dto.dataModel)
+    }
 }
 
-
-sealed class ComplexDelegate<DATA, ENTITY, FOREIGN_ENTITY, DV, RV>(
-    protected val dto: CommonDTO<ModelDTO, DATA, ENTITY>,
-    protected val dataProperty : KMutableProperty1<DATA, DV>,
-    protected val entityProperty : KMutableProperty1<ENTITY, FOREIGN_ENTITY>,
-): ReadOnlyProperty<ModelDTO, RV>
-    where DATA: DataModel, ENTITY: ExposifyEntityBase, FOREIGN_ENTITY: ExposifyEntityBase
+class ParentDelegate<DTO, DATA, ENTITY, PARENT_DTO, PARENT_DATA, PARENT_ENTITY>(
+    dto: CommonDTO<DTO, DATA, ENTITY>,
+    dataProperty : KMutableProperty1<DATA, PARENT_DATA>,
+    private val parentDtoModel: DTOClass<PARENT_DTO>,
+    private val entityModel: LongEntityClass<PARENT_ENTITY>
+): ComplexDelegate<DTO, DATA, ENTITY, PARENT_ENTITY, PARENT_DATA, CommonDTO<PARENT_DTO, PARENT_DATA, PARENT_ENTITY>>
+    (dto, dataProperty, dataProperty.name)
+        where DATA: DataModel, ENTITY: ExposifyEntity, DTO : ModelDTO, PARENT_DTO: ModelDTO,
+              PARENT_DATA : DataModel, PARENT_ENTITY: ExposifyEntity
 {
 
-    protected val entityPropertyName : String  get() = entityProperty.name
+    var parentDto : CommonDTO<PARENT_DTO, PARENT_DATA, PARENT_ENTITY>? = null
 
-    init {
-        setEntityUpdateCallback()
-    }
-
-    protected var ownEntity: ENTITY? = null
-
-    abstract fun getEffectiveValue():RV
-    abstract fun updateByEntity(entity: ENTITY, foreignDTO: CommonDTO<ModelDTO, DataModel, ExposifyEntityBase>?)
-    abstract fun updateDataModel(entity: ENTITY)
-
-    private fun setEntityUpdateCallback() {
-        dto.daoService.apply {
-            setBeforeInsertedHook(entityPropertyName) {updateMode, entity, foreignDTO ->
-                val  dtoName = dto.personalName
-                if(updateMode == UpdateMode.MODEL_TO_ENTITY || updateMode == UpdateMode.MODEL_TO_ENTITY_FORCED){
-                    if(foreignDTO != null){
-                        updateByEntity(entity, foreignDTO)
-                    }else{
-                        updateByEntity(entity, null)
-                    }
-                }else{
-
-                }
-            }
-            setAfterInsertedHook(entityPropertyName) {updateMode, entity ->
-                ownEntity = entity
-                updateDataModel(entity)
-            }
+    override fun updateByEntity(
+        updateMode: UpdateMode,
+        container: EntityUpdateContainer<ENTITY, PARENT_ENTITY>
+    ) {
+        if(container.parentDataSet){
+            val foreignDto = container.hasParentDto.castOrThrow<CommonDTO<PARENT_DTO, PARENT_DATA, PARENT_ENTITY>, OperationsException>()
+            dataProperty.set(dto.dataModel, foreignDto.dataModel)
+            parentDto = foreignDto
         }
     }
 
-    var dTOProperty: KProperty<*>? = null
-    var dTOPropertyName: String = ""
-    override fun getValue(thisRef: ModelDTO, property: KProperty<*>):RV{
-        dTOPropertyName = property.name
-        dTOProperty = property
+    override fun updateDataModel(entity: ENTITY){
+       val foreignDto = parentDtoModel.lookupDTO(entity.id.value, dto.dtoClass)
+        foreignDto?.let {
+            val castedParentDto = it.castOrThrow<CommonDTO<PARENT_DTO, PARENT_DATA, PARENT_ENTITY>, OperationsException>()
+            dataProperty.set(dto.dataModel, castedParentDto.dataModel)
+        }
+    }
+
+    override fun getEffectiveValue():  CommonDTO<PARENT_DTO, PARENT_DATA, PARENT_ENTITY>{
+        return parentDto.getOrOperationsEx("Parent dto should have been initialized", ExceptionCode.ABNORMAL_STATE)
+    }
+
+}
+
+sealed class ComplexDelegate<DTO, DATA, ENTITY, PARENT_ENTITY, DATA_VAL, RES_VAL>(
+    protected val dto: CommonDTO<DTO, DATA, ENTITY>,
+    protected val dataProperty : KMutableProperty1<DATA, DATA_VAL>,
+    protected val entityPropertyName : String
+): ReadOnlyProperty<DTO, RES_VAL>, TasksManaged
+    where DATA: DataModel, ENTITY: ExposifyEntity, DTO : ModelDTO, PARENT_ENTITY: ExposifyEntity
+{
+
+
+    var delegateProperty: KProperty<*>? = null
+    var delegatePropertyName: String = ""
+
+    override fun getValue(thisRef: DTO, property: KProperty<*>):RES_VAL{
+        delegatePropertyName = property.name
+        delegateProperty = property
         return getEffectiveValue()
     }
+
+    abstract fun getEffectiveValue():RES_VAL
+    abstract fun updateByEntity(updateMode: UpdateMode, container:  EntityUpdateContainer<ENTITY, PARENT_ENTITY>)
+    abstract fun updateDataModel(entity: ENTITY)
+
+    suspend fun entityBeforeInsertedUpdate(updateMode: UpdateMode, updateContainer: EntityUpdateContainer<ENTITY, ExposifyEntity>): Unit
+        = subTask("BeforeInsertedUpdate"){handler->
+        if(updateMode == UpdateMode.MODEL_TO_ENTITY || updateMode == UpdateMode.MODEL_TO_ENTITY_FORCED){
+            val castedContainer =  updateContainer.castOrThrow<EntityUpdateContainer<ENTITY, PARENT_ENTITY>, OperationsException>()
+            updateByEntity(updateMode, castedContainer)
+        }else{
+            updateDataModel(updateContainer.ownEntity)
+        }
+    }.resultOrException()
+
+    suspend fun entityAfterInsertedUpdate(updateMode: UpdateMode, updateContainer: EntityUpdateContainer<ENTITY, ExposifyEntity>)
+        = subTask("AfterInserted"){handler->
+      //  updateDataModel(updateContainer.ownEntity)
+    }.resultOrException()
 
 }

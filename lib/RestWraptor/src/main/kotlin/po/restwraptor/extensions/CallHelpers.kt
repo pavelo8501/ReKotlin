@@ -9,7 +9,7 @@ import kotlinx.coroutines.withContext
 import po.auth.AuthSessionManager
 import po.auth.authentication.authenticator.models.AuthenticationData
 import po.auth.sessions.models.AuthorizedSession
-import po.misc.exceptions.getOrThrow
+import po.misc.types.getOrThrow
 import po.restwraptor.enums.WraptorHeaders
 import po.restwraptor.exceptions.ConfigurationException
 import po.restwraptor.exceptions.ExceptionCodes

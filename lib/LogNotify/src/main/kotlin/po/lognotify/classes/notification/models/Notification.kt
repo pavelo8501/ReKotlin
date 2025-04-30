@@ -76,16 +76,20 @@ data class Notification(
 
     fun getMessagePrefixed(): String{
 
+
+        val result = """"
+           ${makeOfColour(
+                ColourEnum.BRIGHT_BLUE,
+                "${SeverityLevel.emojiByValue(severity)}[${provider.name} @ ${currentTime}]")}->${makeOfColour(message,severity,null) }
+        """.trimIndent()
+
+
+
 //        var taskString = taskPrefix.map {" ${it.value} "}.joinToString("|","[","]")
 //        taskString =  makeOfColour(ColourEnum.BLUE, taskString)
 //        taskString =  "$taskString ${SeverityLevel.emojiByValue(severity)}"
 //        val message = makeOfColour(message, severity, null)
 //        val resultString = withIndention("$taskString -> $message", task.nestingLevel)
-
-        val result = """"
-            $message | $severity
-        """.trimIndent()
-
 
         return result
     }

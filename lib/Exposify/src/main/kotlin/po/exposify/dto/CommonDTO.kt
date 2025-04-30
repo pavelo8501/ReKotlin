@@ -10,9 +10,11 @@ import po.exposify.classes.DTOClass
 import po.exposify.common.classes.ClassBlueprint
 import po.exposify.dto.components.DataModelContainer
 import po.exposify.dto.components.RepositoryBase
+import po.exposify.dto.components.property_binder.DTOPropertyBinder
+import po.exposify.dto.components.property_binder.EntityUpdateContainer
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.CommonDTORegistryItem
-import po.exposify.entity.classes.ExposifyEntityBase
+import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.InitException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.dto.enums.DTOInitStatus
@@ -22,12 +24,14 @@ import po.misc.types.castOrThrow
 
 abstract class CommonDTO<DTO, DATA, ENTITY>(
    val dtoClass: DTOClass<DTO>
-): ModelDTO where DTO : ModelDTO,  DATA: DataModel , ENTITY: ExposifyEntityBase {
+): ModelDTO where DTO : ModelDTO,  DATA: DataModel , ENTITY: ExposifyEntity {
 
     override var personalName : String = "unset"
     abstract override val dataModel: DATA
 
     override val daoService: DAOService<DTO, ENTITY> = DAOService<DTO, ENTITY>(this, dtoClass.getEntityModel())
+
+    internal val dtoPropertyBinder : DTOPropertyBinder<DTO, DATA, ENTITY> = DTOPropertyBinder(this)
 
     private var propertyBinderSource: PropertyBinder<DATA, ENTITY>? = null
     override val propertyBinder : PropertyBinder<DATA, ENTITY>
@@ -71,14 +75,28 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         return repositories.map.values.toList()
     }
 
-    fun updateBinding(entity : ENTITY, updateMode: UpdateMode): CommonDTO<DTO ,DATA, ENTITY>{
+    suspend fun <PARENT_ENTITY: ExposifyEntity> updateBinding(
+        entity : ENTITY,
+        updateMode: UpdateMode,
+        container: EntityUpdateContainer<ENTITY, PARENT_ENTITY>)
+    : CommonDTO<DTO ,DATA, ENTITY>
+    {
         propertyBinder.update(dataContainer.dataModel, entity, updateMode)
+        dtoPropertyBinder.beforeInsertUpdate(dataContainer.dataModel, container, updateMode)
+
         if(updateMode == UpdateMode.ENTITY_TO_MODEL){
             dataContainer.setDataModelId(entity.id.value)
             daoService.setActiveEntity(UpdateMode.ENTITY_TO_MODEL, entity)
         }
         initStatus = DTOInitStatus.INITIALIZED
         return this
+    }
+
+    suspend fun updateBindingAfterInserted(
+        updateMode: UpdateMode,
+        container: EntityUpdateContainer<ENTITY, ExposifyEntity>){
+        dataModel.id = container.ownEntity.id.value
+        dtoPropertyBinder.afterInsertUpdate(dataContainer.dataModel, container, updateMode)
     }
 
    internal fun initialize(
@@ -97,7 +115,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
 
     companion object{
         val dtoRegistry: MapBuilder<String, CommonDTORegistryItem<*,*,*>> = MapBuilder<String, CommonDTORegistryItem<*,*,*>>()
-        internal fun <DTO: ModelDTO, DATA :DataModel, ENTITY: ExposifyEntityBase> selfRegistration(
+        internal fun <DTO: ModelDTO, DATA :DataModel, ENTITY: ExposifyEntity> selfRegistration(
             regItem :  CommonDTORegistryItem<DTO, DATA, ENTITY>
         ){
             dtoRegistry.putIfAbsent(regItem.typeKeyCombined, regItem)

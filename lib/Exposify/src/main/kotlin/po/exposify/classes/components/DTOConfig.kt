@@ -13,10 +13,10 @@ import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.components.property_binder.interfaces.PropertyBindingOption
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.DTORegistryItem
-import po.exposify.entity.classes.ExposifyEntityBase
+import po.exposify.entity.classes.ExposifyEntity
 
 
-interface ConfigurableDTO<DTO: ModelDTO, DATA : DataModel, ENTITY: ExposifyEntityBase>{
+interface ConfigurableDTO<DTO: ModelDTO, DATA : DataModel, ENTITY: ExposifyEntity>{
 
     fun initFactoryRoutines()
     suspend fun withRelationshipBinder(block: suspend (RelationshipBinder<DTO, DATA, ENTITY>)-> Unit)
@@ -27,7 +27,7 @@ class DTOConfig<DTO, DATA, ENTITY>(
     val registry : DTORegistryItem<DTO, DATA, ENTITY>,
     val entityModel:LongEntityClass<ENTITY>,
     private val parent : DTOClass<DTO>
-): ConfigurableDTO<DTO, DATA, ENTITY> where DTO: ModelDTO,  ENTITY : ExposifyEntityBase, DATA: DataModel{
+): ConfigurableDTO<DTO, DATA, ENTITY> where DTO: ModelDTO,  ENTITY : ExposifyEntity, DATA: DataModel{
 
 
    internal var dtoFactory: DTOFactory<DTO, DATA, ENTITY> = DTOFactory(registry.commonDTOKClass, registry.dataKClass, this)

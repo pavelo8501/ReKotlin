@@ -13,7 +13,7 @@ import po.exposify.classes.DTOClass
 import po.exposify.classes.extensions.select
 import po.exposify.classes.extensions.update
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.entity.classes.ExposifyEntityBase
+import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.extensions.WhereCondition
 import po.exposify.extensions.isTransactionReady
 import po.exposify.scope.sequence.classes.SequenceHandler
@@ -53,7 +53,7 @@ interface RunnableContext: SessionIdentified{
 
 
 class SequenceContext<DTO, DATA>(
-    private  val serviceClass : ServiceClass<DTO, DATA, ExposifyEntityBase>,
+    private  val serviceClass : ServiceClass<DTO, DATA, ExposifyEntity>,
     private val dtoClass : DTOClass<DTO>,
     private val handler : SequenceHandler<DTO, DATA>,
 ): TasksManaged where  DTO : ModelDTO, DATA : DataModel
@@ -64,7 +64,7 @@ class SequenceContext<DTO, DATA>(
 
     private var lastResult : CrudResult<DTO, DATA> = CrudResult(emptyList())
 
-    private fun dtos(): List<CommonDTO<DTO, DATA , ExposifyEntityBase>>{
+    private fun dtos(): List<CommonDTO<DTO, DATA , ExposifyEntity>>{
       return  lastResult.rootDTOs
     }
 
@@ -86,7 +86,7 @@ class SequenceContext<DTO, DATA>(
 
     suspend fun <T: IdTable<Long>> pick(
         conditions: WhereCondition<T>,
-        block: (suspend SequenceContext<DTO, DATA>.(dto: CommonDTO<DTO, DATA, ExposifyEntityBase>?)-> Unit)? = null
+        block: (suspend SequenceContext<DTO, DATA>.(dto: CommonDTO<DTO, DATA, ExposifyEntity>?)-> Unit)? = null
     ) {
         notifyOnStart("pick")
         lastResult =  dtoClass.select<T, DTO, DATA>(conditions)
@@ -101,7 +101,7 @@ class SequenceContext<DTO, DATA>(
 
     suspend fun <T: IdTable<Long>> select(
         conditions: WhereCondition<T>?,
-        block: (suspend SequenceContext<DTO, DATA>.(dtos: List<CommonDTO<DTO, DATA, ExposifyEntityBase>>)-> Deferred<List<DATA>>)? = null
+        block: (suspend SequenceContext<DTO, DATA>.(dtos: List<CommonDTO<DTO, DATA, ExposifyEntity>>)-> Deferred<List<DATA>>)? = null
     ) {
         subTask("Select", personalName) { handler ->
             if (!isTransactionReady()) {
@@ -124,7 +124,7 @@ class SequenceContext<DTO, DATA>(
     }
 
     suspend fun select(
-        block: (suspend SequenceContext<DTO, DATA>.(dtos: List<CommonDTO<DTO, DATA, ExposifyEntityBase>>)-> Deferred<List<DATA>>)? = null
+        block: (suspend SequenceContext<DTO, DATA>.(dtos: List<CommonDTO<DTO, DATA, ExposifyEntity>>)-> Deferred<List<DATA>>)? = null
     ){
        subTask("Select", personalName) {handler->
             if (!isTransactionReady()) {
@@ -144,7 +144,7 @@ class SequenceContext<DTO, DATA>(
 
     suspend fun update(
         dataModels: List<DATA>,
-        block: (suspend SequenceContext<DTO, DATA>.(dtos: List<CommonDTO<DTO, DATA, ExposifyEntityBase>>)-> Deferred<List<DATA>>)? = null
+        block: (suspend SequenceContext<DTO, DATA>.(dtos: List<CommonDTO<DTO, DATA, ExposifyEntity>>)-> Deferred<List<DATA>>)? = null
     ){
         subTask("Update", personalName) { handler ->
             if (!isTransactionReady()) {

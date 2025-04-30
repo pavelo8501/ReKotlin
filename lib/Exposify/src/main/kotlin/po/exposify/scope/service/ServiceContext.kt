@@ -14,7 +14,7 @@ import po.exposify.classes.extensions.select
 import po.exposify.classes.extensions.update
 import po.exposify.dto.components.CrudResultSingle
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.entity.classes.ExposifyEntityBase
+import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.extensions.WhereCondition
 import po.exposify.scope.sequence.SequenceContext
 import po.exposify.scope.sequence.classes.SequenceHandler
@@ -23,7 +23,7 @@ import po.lognotify.TasksManaged
 import po.lognotify.extensions.startTaskAsync
 
 class ServiceContext<DTO, DATA>(
-    private  val serviceClass : ServiceClass<DTO, DATA, ExposifyEntityBase>,
+    private  val serviceClass : ServiceClass<DTO, DATA, ExposifyEntity>,
     internal val dtoClass: DTOClass<DTO>,
 ): TasksManaged,  AsContext<DATA>  where DTO : ModelDTO, DATA: DataModel{
 
@@ -32,13 +32,13 @@ class ServiceContext<DTO, DATA>(
     private val dbConnection: Database = serviceClass.connection
     init { dtoClass.asHierarchyRoot(this) }
 
-    internal fun serviceClass():ServiceClass<DTO, DATA, ExposifyEntityBase>{
+    internal fun serviceClass():ServiceClass<DTO, DATA, ExposifyEntity>{
         return serviceClass
     }
 
     fun truncate(){
         startTaskAsync("Truncate", personalName) {
-            val entityModel = dtoClass.getEntityModel<ExposifyEntityBase>()
+            val entityModel = dtoClass.getEntityModel<ExposifyEntity>()
             val table = entityModel.table
             suspendedTransactionAsync {
                 exec("TRUNCATE TABLE ${table.tableName} RESTART IDENTITY CASCADE")

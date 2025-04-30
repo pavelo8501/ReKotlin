@@ -7,7 +7,7 @@ import po.exposify.dto.components.CrudResult
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.CrudResultSingle
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.entity.classes.ExposifyEntityBase
+import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.WhereCondition
@@ -28,7 +28,7 @@ internal suspend inline fun <DTO, DATA> DTOClass<DTO>.pickById(
     val checkedEntity = entity.getOrOperationsEx("Entity not found for id $id", ExceptionCode.VALUE_NOT_FOUND)
     val hierarchyRootRepository = repository.getOrOperationsEx("Repository uninitialized", ExceptionCode.REPOSITORY_NOT_FOUND)
     val dto =  hierarchyRootRepository.selectSingle(checkedEntity)
-    val checkedDTO = dto.castOrThrow<CommonDTO<DTO, DATA, ExposifyEntityBase>, OperationsException>()
+    val checkedDTO = dto.castOrThrow<CommonDTO<DTO, DATA, ExposifyEntity>, OperationsException>()
     return CrudResultSingle(checkedDTO)
 }
 
@@ -56,7 +56,7 @@ internal suspend inline fun <DTO: ModelDTO, DATA: DataModel,TB : IdTable<Long>> 
     val checkedEntity = entity.getOrOperationsEx("Entity not found", ExceptionCode.VALUE_NOT_FOUND)
     val hierarchyRootRepository = repository.getOrOperationsEx("Repository uninitialized", ExceptionCode.REPOSITORY_NOT_FOUND)
     val dto =  hierarchyRootRepository.selectSingle(checkedEntity)
-    val checkedDTO = dto.castOrThrow<CommonDTO<DTO, DATA, ExposifyEntityBase>, OperationsException>()
+    val checkedDTO = dto.castOrThrow<CommonDTO<DTO, DATA, ExposifyEntity>, OperationsException>()
     return CrudResultSingle(checkedDTO)
 }
 
@@ -79,7 +79,7 @@ internal suspend fun <T, DTO, DATA> DTOClass<DTO>.select(
         "Repository uninitialized in DTOClass",
         ExceptionCode.REPOSITORY_NOT_FOUND).clear().select(entities)
 
-    val checkedList = dtos.filterIsInstance<CommonDTO<DTO, DATA, ExposifyEntityBase>>()
+    val checkedList = dtos.filterIsInstance<CommonDTO<DTO, DATA, ExposifyEntity>>()
 
     handler.info("Created count ${checkedList.count()} DTOs")
     CrudResult(checkedList)
@@ -95,7 +95,7 @@ internal suspend fun <DTO, DATA> DTOClass<DTO>.select(
     val freshDto = config.dtoFactory.createDto()
     val entities = freshDto.daoService.select().toList()
     val dtos = repository.getOrOperationsEx("Repository uninitialized", ExceptionCode.REPOSITORY_NOT_FOUND).select(entities)
-    val checkedList = dtos.filterIsInstance<CommonDTO<DTO, DATA, ExposifyEntityBase>>()
+    val checkedList = dtos.filterIsInstance<CommonDTO<DTO, DATA, ExposifyEntity>>()
     handler.info("Created count ${checkedList.count()} DTOs")
     CrudResult(checkedList)
 }.resultOrException()
@@ -110,7 +110,7 @@ internal suspend fun <DTO, DATA> DTOClass<DTO>.update(
     }
     val hierarchyRootRepository = repository.getOrOperationsEx("Repository uninitialized", ExceptionCode.REPOSITORY_NOT_FOUND)
     val dto = hierarchyRootRepository.updateSingle(dataModel)
-    val checkedDto = dto.castOrThrow<CommonDTO<DTO, DATA, ExposifyEntityBase>, OperationsException>()
+    val checkedDto = dto.castOrThrow<CommonDTO<DTO, DATA, ExposifyEntity>, OperationsException>()
     handler.info("Created single DTO ${checkedDto.personalName}")
     CrudResultSingle(checkedDto)
 }.resultOrException()
@@ -128,7 +128,7 @@ internal suspend fun <DTO, DATA> DTOClass<DTO>.update(
         throw th
     }
     println("update point hit")
-    val checkedList = dtos.filterIsInstance<CommonDTO<DTO, DATA, ExposifyEntityBase>>()
+    val checkedList = dtos.filterIsInstance<CommonDTO<DTO, DATA, ExposifyEntity>>()
     handler.info("Created DTOs ${checkedList.count()}")
     CrudResult(checkedList)
 }.resultOrException()

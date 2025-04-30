@@ -16,8 +16,7 @@ import po.auth.authentication.exceptions.AuthException
 import po.auth.authentication.jwt.JWTService
 import po.auth.authentication.jwt.models.JwtToken
 import po.lognotify.extensions.startTask
-import po.misc.exceptions.getOrException
-import po.misc.exceptions.getOrThrow
+import po.misc.types.getOrThrow
 import po.restwraptor.enums.WraptorHeaders
 import po.restwraptor.extensions.getWraptorRoutes
 import po.restwraptor.extensions.respondUnauthorized

@@ -1,20 +1,12 @@
 package po.restwraptor.extensions
 
 import io.ktor.server.application.Application
-import io.ktor.server.routing.Route
-import io.ktor.server.routing.Routing
-import io.ktor.server.routing.RoutingContext
-import io.ktor.server.routing.application
-import io.ktor.server.routing.get
-import io.ktor.server.routing.post
-import io.ktor.server.routing.put
-import po.misc.exceptions.getOrThrow
+import po.misc.types.getOrThrow
 import po.restwraptor.RestWrapTor
 import po.restwraptor.RestWrapTorKey
 import po.restwraptor.exceptions.ConfigurationException
 import po.restwraptor.exceptions.ExceptionCodes
 import po.restwraptor.models.server.WraptorRoute
-import po.restwraptor.scope.ConfigContext
 
 private fun partsToUrl(pathParts: List<String>):  String {
     val result =  pathParts

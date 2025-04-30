@@ -13,7 +13,7 @@ import po.exposify.dto.CommonDTO
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.DTORegistry
 import po.exposify.dto.models.DTORegistryItem
-import po.exposify.entity.classes.ExposifyEntityBase
+import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.InitException
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
@@ -34,8 +34,8 @@ import kotlin.reflect.KClass
 
 abstract class DTOClass<DTO>(): TasksManaged,  ClassDTO where DTO: ModelDTO {
 
-    var _registryItem: DTORegistry<DTO, DataModel, ExposifyEntityBase>? = null
-    val registryItem: DTORegistry<DTO, DataModel, ExposifyEntityBase>
+    var _registryItem: DTORegistry<DTO, DataModel, ExposifyEntity>? = null
+    val registryItem: DTORegistry<DTO, DataModel, ExposifyEntity>
         get() {return  _registryItem.getOrInitEx("RegistryItem uninitialized", ExceptionCode.LAZY_NOT_INITIALIZED)}
 
     override val personalName: String get() {return _registryItem?.dtoClassName?:"Undefined"}
@@ -44,27 +44,27 @@ abstract class DTOClass<DTO>(): TasksManaged,  ClassDTO where DTO: ModelDTO {
     var hierarchyRoot : Boolean = false
 
     @PublishedApi
-    internal var _config: DTOConfig<DTO, DataModel, ExposifyEntityBase>? = null
-    internal val config: DTOConfig<DTO, DataModel, ExposifyEntityBase>
+    internal var _config: DTOConfig<DTO, DataModel, ExposifyEntity>? = null
+    internal val config: DTOConfig<DTO, DataModel, ExposifyEntity>
         get() = _config.getOrInitEx("RegistryItem uninitialized", ExceptionCode.LAZY_NOT_INITIALIZED)
 
     var serviceContextOwned: ServiceContext<DTO, DataModel>? = null
-    var repository: RootRepository<DTO, DataModel, ExposifyEntityBase, DTO>? = null
+    var repository: RootRepository<DTO, DataModel, ExposifyEntity, DTO>? = null
 
      protected abstract suspend fun  setup()
 
     inline fun <reified COMMON,  reified DATA, reified ENTITY> configuration(
         entityModel: LongEntityClass<ENTITY>,
         noinline block: suspend DTOConfig<DTO, DATA, ENTITY>.() -> Unit
-    ): Unit where COMMON : ModelDTO,  ENTITY : ExposifyEntityBase, DATA : DataModel = startTaskAsync("DTO Configuration") {
+    ): Unit where COMMON : ModelDTO,  ENTITY : ExposifyEntity, DATA : DataModel = startTaskAsync("DTO Configuration") {
 
         val commonDTOClass =  COMMON::class.castOrInitEx<KClass<out CommonDTO<DTO, DATA, ENTITY>>>(
             "KClass<out CommonDTO<DTO, DATA, ENTITY> cast failed")
 
          val newRegistryItem = DTORegistryItem(this, DATA::class, ENTITY::class, commonDTOClass)
          val newConfiguration = DTOConfig(newRegistryItem, entityModel, this)
-         _registryItem  = newRegistryItem.castOrInitEx<DTORegistry<DTO, DataModel, ExposifyEntityBase>>()
-         _config =  newConfiguration.castOrInitEx<DTOConfig<DTO, DataModel, ExposifyEntityBase>>()
+         _registryItem  = newRegistryItem.castOrInitEx<DTORegistry<DTO, DataModel, ExposifyEntity>>()
+         _config =  newConfiguration.castOrInitEx<DTOConfig<DTO, DataModel, ExposifyEntity>>()
 
          newConfiguration.block()
          newConfiguration.initFactoryRoutines()
@@ -82,7 +82,7 @@ abstract class DTOClass<DTO>(): TasksManaged,  ClassDTO where DTO: ModelDTO {
         }
     }
 
-    fun <ENTITY : ExposifyEntityBase> getEntityModel(): LongEntityClass<ENTITY> {
+    fun <ENTITY : ExposifyEntity> getEntityModel(): LongEntityClass<ENTITY> {
         return config.entityModel.castOrOperationsEx<LongEntityClass<ENTITY>>()
     }
 
@@ -109,22 +109,22 @@ abstract class DTOClass<DTO>(): TasksManaged,  ClassDTO where DTO: ModelDTO {
     internal fun <CHILD_DTO: ModelDTO>  lookupDTO(
         id: Long,
         childDtoClass: DTOClass<CHILD_DTO>
-    ): CommonDTO<CHILD_DTO, DataModel, ExposifyEntityBase>?
+    ): CommonDTO<CHILD_DTO, DataModel, ExposifyEntity>?
     {
       val result =  repository?.let {
            val foundDto = it.findChild(id, this)
             foundDto
         }?:run {
-            var foundDto : CommonDTO<CHILD_DTO, DataModel, ExposifyEntityBase>?  = null
-            val tempInlinedRepo = RootRepository<CHILD_DTO, DataModel, ExposifyEntityBase, CHILD_DTO>(childDtoClass)
+            var foundDto : CommonDTO<CHILD_DTO, DataModel, ExposifyEntity>?  = null
+            val tempInlinedRepo = RootRepository<CHILD_DTO, DataModel, ExposifyEntity, CHILD_DTO>(childDtoClass)
             parentDtoClass!!.repository!!.getDtos().forEach {dtoFromParentRepo->
-                val castedDto = dtoFromParentRepo.castOrThrow<CommonDTO<CHILD_DTO, DataModel, ExposifyEntityBase>, OperationsException>()
+                val castedDto = dtoFromParentRepo.castOrThrow<CommonDTO<CHILD_DTO, DataModel, ExposifyEntity>, OperationsException>()
                 tempInlinedRepo.addDto(castedDto)
                 foundDto = tempInlinedRepo.getDtos().firstOrNull{ it.id == id}
             }
           foundDto
         }
-        return result.castOrThrow<CommonDTO<CHILD_DTO, DataModel, ExposifyEntityBase>, OperationsException>()
+        return result.castOrThrow<CommonDTO<CHILD_DTO, DataModel, ExposifyEntity>, OperationsException>()
     }
 
     fun <DATA : DataModel> asHierarchyRoot(serviceContext: ServiceContext<DTO, DATA>) {
@@ -138,7 +138,7 @@ abstract class DTOClass<DTO>(): TasksManaged,  ClassDTO where DTO: ModelDTO {
     }
 
     suspend fun withRelationshipBinder(
-        block: suspend RelationshipBinder<DTO, DataModel, ExposifyEntityBase>.() -> Unit
+        block: suspend RelationshipBinder<DTO, DataModel, ExposifyEntity>.() -> Unit
     ): Unit = config.withRelationshipBinder(block)
 
     fun isTransactionReady(): Boolean {
@@ -181,8 +181,8 @@ abstract class DTOClass<DTO>(): TasksManaged,  ClassDTO where DTO: ModelDTO {
 //
 //sealed class  BaseDTO<DTO>(): TasksManaged,  ClassDTO where DTO : ModelDTO{
 //
-//    var _registryItem: DTORegistry<DTO, DataModel, ExposifyEntityBase>? = null
-//    val registryItem: DTORegistry<DTO, DataModel, ExposifyEntityBase>
+//    var _registryItem: DTORegistry<DTO, DataModel, r>? = null
+//    val registryItem: DTORegistry<DTO, DataModel, r>
 //        get() {return  _registryItem.getOrInitEx("RegistryItem uninitialized", ExceptionCode.LAZY_NOT_INITIALIZED)}
 //
 //    override val personalName: String get() {return _registryItem?.dtoClassName?:"Undefined"}
@@ -191,27 +191,27 @@ abstract class DTOClass<DTO>(): TasksManaged,  ClassDTO where DTO: ModelDTO {
 //    var hierarchyRoot : Boolean = false
 //
 //    @PublishedApi
-//    internal var _config: DTOConfig<DTO, DataModel, ExposifyEntityBase>? = null
-//    internal val config: DTOConfig<DTO, DataModel, ExposifyEntityBase>
+//    internal var _config: DTOConfig<DTO, DataModel, r>? = null
+//    internal val config: DTOConfig<DTO, DataModel, r>
 //        get() = _config.getOrInitEx("RegistryItem uninitialized", ExceptionCode.LAZY_NOT_INITIALIZED)
 //
 //    var serviceContextOwned: ServiceContext<DTO, DataModel>? = null
-//    var repository: RootRepository<DTO, DataModel, ExposifyEntityBase, DTO>? = null
+//    var repository: RootRepository<DTO, DataModel, r, DTO>? = null
 //
 //    protected abstract suspend fun  setup()
 //
 //    inline fun <reified COMMON,  reified DATA, reified ENTITY> configuration(
 //        entityModel: LongEntityClass<ENTITY>,
 //        noinline block: suspend DTOConfig<DTO, DATA, ENTITY>.() -> Unit
-//    ): Unit where COMMON : ModelDTO,  ENTITY : ExposifyEntityBase, DATA : DataModel = startTaskAsync("DTO Configuration") {
+//    ): Unit where COMMON : ModelDTO,  ENTITY : r, DATA : DataModel = startTaskAsync("DTO Configuration") {
 //
 //        val commonDTOClass =  COMMON::class.castOrInitEx<KClass<out CommonDTO<DTO, DATA, ENTITY>>>(
 //            "KClass<out CommonDTO<DTO, DATA, ENTITY> cast failed")
 //
 //        val newRegistryItem = DTORegistryItem(this, DATA::class, ENTITY::class, commonDTOClass)
 //        val newConfiguration = DTOConfig(newRegistryItem, entityModel, this)
-//        _registryItem  = newRegistryItem.castOrInitEx<DTORegistry<DTO, DataModel, ExposifyEntityBase>>()
-//        _config =  newConfiguration.castOrInitEx<DTOConfig<DTO, DataModel, ExposifyEntityBase>>()
+//        _registryItem  = newRegistryItem.castOrInitEx<DTORegistry<DTO, DataModel, r>>()
+//        _config =  newConfiguration.castOrInitEx<DTOConfig<DTO, DataModel, r>>()
 //
 //        newConfiguration.block()
 //        newConfiguration.initFactoryRoutines()
@@ -229,7 +229,7 @@ abstract class DTOClass<DTO>(): TasksManaged,  ClassDTO where DTO: ModelDTO {
 //        }
 //    }
 //
-//    fun <ENTITY : ExposifyEntityBase> getEntityModel(): LongEntityClass<ENTITY> {
+//    fun <ENTITY : r> getEntityModel(): LongEntityClass<ENTITY> {
 //        return config.entityModel.castOrOperationsEx<LongEntityClass<ENTITY>>()
 //    }
 //
@@ -249,11 +249,11 @@ abstract class DTOClass<DTO>(): TasksManaged,  ClassDTO where DTO: ModelDTO {
 //            return this.castOrThrow<DTOClass<ModelDTO>, InitException>()
 //        }else{
 //            parentDtoClass.getOrOperationsEx("parentDtoClass not initialized").findHierarchyRoot()
-//        }
+//        }r
 //        return null
 //    }
 //
-//    internal fun <CHILD_DTO: ModelDTO> lookupDTO(id: Long, dtoClass: DTOClass<CHILD_DTO>): CommonDTO<CHILD_DTO, DataModel, ExposifyEntityBase>?{
+//    internal fun <CHILD_DTO: ModelDTO> lookupDTO(id: Long, dtoClass: DTOClass<CHILD_DTO>): CommonDTO<CHILD_DTO, DataModel, r>?{
 //        TODO("Not yet implemented")
 //    }
 //
@@ -261,14 +261,14 @@ abstract class DTOClass<DTO>(): TasksManaged,  ClassDTO where DTO: ModelDTO {
 //        if (serviceContextOwned == null) {
 //            serviceContext.safeCast<ServiceContext<DTO, DataModel>>()?.let {
 //                serviceContextOwned = it
-//                repository = RootRepository<DTO, DataModel, ExposifyEntityBase, DTO>(this)
+//                repository = RootRepository<DTO, DataModel, r, DTO>(this)
 //                hierarchyRoot = true
 //            } ?: throw InitException("Cast for ServiceContext2 failed", ExceptionCode.CAST_FAILURE)
 //        }
 //    }
 //
 //    suspend fun withRelationshipBinder(
-//        block: suspend RelationshipBinder<DTO, DataModel, ExposifyEntityBase>.() -> Unit
+//        block: suspend RelationshipBinder<DTO, DataModel, r>.() -> Unit
 //    ): Unit = config.withRelationshipBinder(block)
 //
 //    fun isTransactionReady(): Boolean {

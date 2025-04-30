@@ -15,7 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.startTaskAsync
-import po.misc.exceptions.getOrThrow
+import po.misc.types.getOrThrow
 import po.restwraptor.scope.ConfigContext
 import po.restwraptor.scope.CoreContext
 import po.restwraptor.enums.EnvironmentType

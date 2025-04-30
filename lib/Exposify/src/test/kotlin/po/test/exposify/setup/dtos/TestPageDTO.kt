@@ -7,9 +7,10 @@ import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.property_binder.bindings.SyncedBinding
-import po.exposify.dto.components.property_binder.delegates.idReferenced
+import po.exposify.dto.components.property_binder.delegates.foreign2IdReference
 import po.test.exposify.setup.TestPageEntity
 import po.test.exposify.setup.TestSectionEntity
+import po.test.exposify.setup.TestUserEntity
 
 
 @Serializable
@@ -19,9 +20,9 @@ data class TestPage(
     @SerialName("lang_id")
     var langId: Int,
     @SerialName("updated_by")
-    var updatedBy: Long): DataModel
+    var updatedById: Long
+): DataModel
 {
-
     var updated: LocalDateTime = TestPageDTO.nowTime()
     var sections: MutableList<TestSection> = mutableListOf()
 }
@@ -30,7 +31,7 @@ class TestPageDTO(
     override var dataModel: TestPage
 ): CommonDTO<TestPageDTO, TestPage, TestPageEntity>(TestPageDTO) {
 
-    val updatedBy : Long by idReferenced(TestPage::updatedBy, TestPageEntity::updatedBy, TestUserDTO)
+    val updatedById by foreign2IdReference(TestPage::updatedById, TestPageEntity::updatedBy, TestUserEntity)
 
     companion object: DTOClass<TestPageDTO>(){
         override suspend fun setup() {

@@ -8,7 +8,9 @@ private fun sectionModel(
     parent : TestPage,
     name: String,
     updatedBy: Long,
-    sectionClasses : List<TestClassItem> = listOf(TestClassItem(1,"class_1"), TestClassItem(2,"class_2"))): TestSection
+    sectionClasses : List<ClassItem> = listOf(ClassItem(1,"class_1"), ClassItem(2,"class_2")),
+    metaTags : List<MetaTag> = listOf(MetaTag(1,"key", "value"))
+): TestSection
 {
 
     return TestSection(
@@ -17,9 +19,12 @@ private fun sectionModel(
         description =  "TestSection/$name Description",
         jsonLd =  "",
         classList = sectionClasses,
+        metaTags = metaTags,
         langId =  1,
         updatedBy =  updatedBy,
-        pageId =  parent.id)
+        pageId =  parent.id,
+      //  page = TestPage(id =  0, name =  "TestPage", langId =  1, updatedById =  updatedBy)
+        )
 }
 
 private fun pageModel(name: String, updatedBy: Long): TestPage{

@@ -4,7 +4,7 @@ import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.components.DAOService
 import po.exposify.dto.components.DataModelContainer
 import po.exposify.dto.components.property_binder.PropertyBinder
-import po.exposify.entity.classes.ExposifyEntityBase
+import po.exposify.entity.classes.ExposifyEntity
 
 interface ModelDTO : DataModel {
 
@@ -16,7 +16,7 @@ interface ModelDTO : DataModel {
 }
 
 
-interface ModelDTO2<DATA: DataModel, ENTITY: ExposifyEntityBase>{
+interface ModelDTO2<DATA: DataModel, ENTITY: ExposifyEntity>{
 
     val personalName: String
     val dataModel: DATA

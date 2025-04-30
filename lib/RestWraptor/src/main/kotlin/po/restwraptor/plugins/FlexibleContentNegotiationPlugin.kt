@@ -8,7 +8,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 import kotlinx.serialization.*
 import kotlinx.serialization.builtins.ListSerializer
-import po.misc.exceptions.getOrThrow
+import po.misc.types.getOrThrow
 import po.restwraptor.exceptions.ConfigurationException
 import po.restwraptor.exceptions.ExceptionCodes
 import kotlin.reflect.jvm.jvmErasure

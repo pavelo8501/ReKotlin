@@ -10,7 +10,6 @@ import po.exposify.scope.sequence.extensions.createHandler
 import po.exposify.scope.service.enums.TableCreateMode
 import po.misc.exceptions.getCoroutineInfo
 import po.test.exposify.setup.DatabaseTest
-import po.test.exposify.setup.TestClassItem
 import po.test.exposify.setup.pageModels
 import kotlin.test.Test
 import org.junit.jupiter.api.BeforeAll

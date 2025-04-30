@@ -10,6 +10,8 @@ import kotlinx.serialization.SerializationException
 import po.auth.authentication.exceptions.AuthException
 import po.auth.authentication.exceptions.ErrorCodes
 import po.auth.extensions.authenticate
+import po.lognotify.extensions.launchProcess
+import po.lognotify.extensions.newTask
 import po.lognotify.extensions.startTask
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.getOrException
@@ -34,8 +36,7 @@ fun Routing.configureAuthRoutes(authPrefix: String,  authConfigContext: AuthConf
 
     post(withBaseUrl(authPrefix, loginRoute)) {
 
-        // call.withSession {
-        startTask("Process Post login", call.coroutineContext, "$personalName $loginRoute") { handler ->
+        newTask("Process Post login",this.call.coroutineContext,"$personalName $loginRoute") { handler ->
             call.authSessionOrNull().getOrException {
                 AuthException("Session can not be located", ErrorCodes.SESSION_NOT_FOUND,)
             }.let { session ->
@@ -45,6 +46,7 @@ fun Routing.configureAuthRoutes(authPrefix: String,  authConfigContext: AuthConf
                         is AuthException -> {
                             if (throwable.code.value >= 4000 && throwable.code.value < 5000) {
                                 respondUnauthorized(throwable.message, throwable.code.value)
+                                return@handleFailure
                             } else {
                                 respondInternal(throwable.message, throwable.code.value)
                             }
@@ -53,7 +55,6 @@ fun Routing.configureAuthRoutes(authPrefix: String,  authConfigContext: AuthConf
                             respondInternal(throwable)
                         }
                     }
-                    respondInternal(throwable)
                 }
                 val credentials = call.receive<LoginRequest>()
                 val principal = session.authenticate(credentials.login, credentials.password)

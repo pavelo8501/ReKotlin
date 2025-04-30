@@ -9,11 +9,15 @@ import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.property_binder.bindings.SerializedBinding
 import po.exposify.dto.components.property_binder.bindings.SyncedBinding
-import po.exposify.dto.components.property_binder.delegates.idReferenced
+import po.exposify.dto.components.property_binder.delegates.foreign2IdReference
+import po.exposify.dto.components.property_binder.delegates.parent2IdReference
 import po.exposify.dto.components.property_binder.delegates.parentReference
-import po.test.exposify.setup.TestClassItem
+import po.test.exposify.setup.ClassItem
+import po.test.exposify.setup.MetaTag
 import po.test.exposify.setup.TestPageEntity
 import po.test.exposify.setup.TestSectionEntity
+import po.test.exposify.setup.TestSectionItemEntity
+import po.test.exposify.setup.TestUserEntity
 
 @Serializable
 data class TestSection(
@@ -23,14 +27,20 @@ data class TestSection(
     @SerialName("json_ld")
     var jsonLd: String,
     @SerialName("class_list")
-    var classList: List<TestClassItem>,
+    var classList: List<ClassItem>,
+    @SerialName("meta_tags")
+    var metaTags: List<MetaTag>,
     @SerialName("lang_id")
     var langId: Int,
     @SerialName("updated_by")
     var updatedBy: Long,
     @SerialName("page_id")
-    var pageId : Long  ): DataModel
+    var pageId : Long,
+   // var page: TestPage
+): DataModel
 {
+    @SerialName("section_items")
+    var sectionItems : MutableList<TestSectionItem> = mutableListOf()
     var updated: LocalDateTime = TestUserDTO.nowTime()
 }
 
@@ -38,8 +48,11 @@ class TestSectionDTO(
     override var dataModel: TestSection
 ): CommonDTO<TestSectionDTO, TestSection, TestSectionEntity>(TestSectionDTO) {
 
-    val updatedBy : Long by idReferenced(TestSection::updatedBy, TestSectionEntity::updatedBy, TestUserDTO)
-    val pageDto by parentReference(TestSection::pageId, TestSectionEntity::page, TestSectionDTO)
+    val updatedBy : Long by foreign2IdReference(TestSection::updatedBy, TestSectionEntity::updatedBy, TestUserEntity)
+
+   // val pageId : Long by parent2IdReference(TestSection::pageId, TestSectionEntity::page)
+
+   // val page  by parentReference(TestSection::page, TestPageDTO, TestPageEntity)
 
     companion object: DTOClass<TestSectionDTO>(){
         override suspend fun setup() {
@@ -50,9 +63,16 @@ class TestSectionDTO(
                     SyncedBinding(TestSection::jsonLd, TestSectionEntity::jsonLd),
                     SyncedBinding(TestSection::langId, TestSectionEntity::langId ),
                     SyncedBinding(TestSection::updated, TestSectionEntity::updated),
-                    SerializedBinding(TestSection::classList, TestSectionEntity::classList, ListSerializer(TestClassItem.serializer())),
+                    SerializedBinding(TestSection::classList, TestSectionEntity::classList, ListSerializer(ClassItem.serializer())),
+                    SerializedBinding(TestSection::metaTags, TestSectionEntity::metaTags, ListSerializer(MetaTag.serializer())),
                 )
-                childBindings {
+                childBindings{
+                    many<TestSectionItemDTO>(
+                        childModel = TestSectionItemDTO,
+                        ownDataModels = TestSection::sectionItems,
+                        ownEntities = TestSectionEntity::sectionItems,
+                        foreignEntity = TestSectionItemEntity::section
+                    )
                 }
             }
         }

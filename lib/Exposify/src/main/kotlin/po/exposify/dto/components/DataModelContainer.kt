@@ -9,7 +9,7 @@ import po.exposify.dto.components.property_binder.PropertyBinder
 import po.exposify.dto.components.property_binder.enums.PropertyType
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.entity.classes.ExposifyEntityBase
+import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import kotlin.reflect.KMutableProperty1
@@ -27,7 +27,7 @@ class DataModelContainer<DTO : ModelDTO, DATA: DataModel>(
 
     override var id: Long = dataModel.id
 
-    val trackedProperties: MutableMap<String, DataPropertyInfo<DTO, DATA, ExposifyEntityBase, ModelDTO>> = mutableMapOf()
+    val trackedProperties: MutableMap<String, DataPropertyInfo<DTO, DATA, ExposifyEntity, ModelDTO>> = mutableMapOf()
 
     operator fun <V: Any?>  getValue(name: String,  property: KProperty<*>): V {
         return  dataBlueprint.getProperty(dataModel,  name)
@@ -45,7 +45,7 @@ class DataModelContainer<DTO : ModelDTO, DATA: DataModel>(
         dataModel.id = id
     }
 
-    fun setTrackedProperties(list: List<DataPropertyInfo<DTO, DATA, ExposifyEntityBase, ModelDTO>>){
+    fun setTrackedProperties(list: List<DataPropertyInfo<DTO, DATA, ExposifyEntity, ModelDTO>>){
         list.forEach {propertyInfo->
             trackedProperties[propertyInfo.name] = propertyInfo
         }
@@ -60,7 +60,7 @@ class DataModelContainer<DTO : ModelDTO, DATA: DataModel>(
     }
 
     fun extractChildModels(
-        forPropertyInfo : DataPropertyInfo<DTO, DATA, ExposifyEntityBase, ModelDTO>): List<DataModel>
+        forPropertyInfo : DataPropertyInfo<DTO, DATA, ExposifyEntity, ModelDTO>): List<DataModel>
     {
         if(forPropertyInfo.cardinality == Cardinality.ONE_TO_MANY){
             val property = forPropertyInfo.getOwnModelsProperty()

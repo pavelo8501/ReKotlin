@@ -44,10 +44,12 @@ fun <T, R> T.newTaskAsync(
 
 suspend inline fun <reified T, R> T.newTask(
     taskName: String,
+    coroutine: CoroutineContext,
+    moduleName: String? = null,
     noinline block: suspend T.(TaskHandler<R>)-> R,
 ): TaskResult<R> {
-    val moduleName: String = this::class.simpleName.toString()
-    val newTask = TasksManaged.createHierarchyRoot<R>(taskName,  moduleName)
+    val moduleName: String  =  moduleName?:this::class.simpleName.toString()
+    val newTask = TasksManaged.createHierarchyRoot<R>(taskName, coroutine, moduleName)
     val runResult = newTask.runTaskInlined(this, block)
     return runResult
 }
@@ -66,9 +68,10 @@ suspend inline fun <T: CoroutineContext, R> T.newTask(
 @JvmName("newTaskOnCoroutineScope")
 suspend inline fun <reified T: CoroutineScope, R>  T.newTask(
     taskName: String,
+    moduleName: String? = null,
     noinline block: suspend T.(TaskHandler<R>)-> R,
 ): TaskResult<R> {
-    val moduleName: String = this::class.simpleName.toString()
+    val moduleName: String = moduleName?: this::class.simpleName.toString()
     val exist =  coroutineContext[LoggProcess]
     println("Process")
     println(exist)
