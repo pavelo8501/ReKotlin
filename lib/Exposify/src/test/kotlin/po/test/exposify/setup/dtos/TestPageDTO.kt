@@ -8,6 +8,7 @@ import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.property_binder.bindings.SyncedBinding
 import po.exposify.dto.components.property_binder.delegates.foreign2IdReference
+import po.exposify.dto.components.relation_binder.delegates.oneToManyOf
 import po.test.exposify.setup.TestPageEntity
 import po.test.exposify.setup.TestSectionEntity
 import po.test.exposify.setup.TestUserEntity
@@ -32,6 +33,12 @@ class TestPageDTO(
 ): CommonDTO<TestPageDTO, TestPage, TestPageEntity>(TestPageDTO) {
 
     val updatedById by foreign2IdReference(TestPage::updatedById, TestPageEntity::updatedBy, TestUserEntity)
+    val sections by oneToManyOf(
+        childClass = TestSectionDTO,
+        ownDataModels =  TestPage::sections,
+        ownEntities =  TestPageEntity::sections,
+        foreignEntity = TestSectionEntity::page)
+
 
     companion object: DTOClass<TestPageDTO>(){
         override suspend fun setup() {
@@ -41,14 +48,6 @@ class TestPageDTO(
                     SyncedBinding(TestPage::langId,  TestPageEntity::langId),
                     SyncedBinding(TestPage::updated, TestPageEntity::updated),
                 )
-                childBindings{
-                    many<TestSectionDTO>(
-                        childModel = TestSectionDTO,
-                        ownDataModels = TestPage::sections,
-                        ownEntities = TestPageEntity ::sections,
-                        foreignEntity = TestSectionEntity::page
-                    )
-                }
             }
         }
     }

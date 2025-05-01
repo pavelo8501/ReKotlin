@@ -10,6 +10,7 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.extensions.castOrOperationsEx
 import po.exposify.extensions.getOrOperationsEx
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.subTask
@@ -30,7 +31,7 @@ class ForeignIDClassDelegate<DTO, DATA, ENTITY, FOREIGN_ENTITY>(
 {
     override fun updateByEntity(
         updateMode: UpdateMode,
-        container: EntityUpdateContainer<ENTITY, FOREIGN_ENTITY>
+        container: EntityUpdateContainer<ENTITY, *, *, FOREIGN_ENTITY>
     ) {
         val value = getEffectiveValue()
         val foreignEntity = foreignEntityModel.get(value)
@@ -61,7 +62,7 @@ class ParentIDDelegate<DTO, DATA, ENTITY, FOREIGN_ENTITY>(
 
     override fun updateByEntity(
         updateMode: UpdateMode,
-        container: EntityUpdateContainer<ENTITY, FOREIGN_ENTITY>
+        container: EntityUpdateContainer<ENTITY, *, *, FOREIGN_ENTITY>
     ){
         if(container.parentDataSet){
             val parentEntity = container.hasParentEntity
@@ -97,7 +98,7 @@ class ParentDelegate<DTO, DATA, ENTITY, PARENT_DTO, PARENT_DATA, PARENT_ENTITY>(
 
     override fun updateByEntity(
         updateMode: UpdateMode,
-        container: EntityUpdateContainer<ENTITY, PARENT_ENTITY>
+        container: EntityUpdateContainer<ENTITY, *, *, PARENT_ENTITY>
     ) {
         if(container.parentDataSet){
             val foreignDto = container.hasParentDto.castOrThrow<CommonDTO<PARENT_DTO, PARENT_DATA, PARENT_ENTITY>, OperationsException>()
@@ -139,20 +140,28 @@ sealed class ComplexDelegate<DTO, DATA, ENTITY, PARENT_ENTITY, DATA_VAL, RES_VAL
     }
 
     abstract fun getEffectiveValue():RES_VAL
-    abstract fun updateByEntity(updateMode: UpdateMode, container:  EntityUpdateContainer<ENTITY, PARENT_ENTITY>)
+    abstract fun updateByEntity(
+        updateMode: UpdateMode,
+        container:  EntityUpdateContainer<ENTITY, *, *, PARENT_ENTITY>)
     abstract fun updateDataModel(entity: ENTITY)
 
-    suspend fun entityBeforeInsertedUpdate(updateMode: UpdateMode, updateContainer: EntityUpdateContainer<ENTITY, ExposifyEntity>): Unit
+    suspend fun entityBeforeInsertedUpdate(
+        updateMode: UpdateMode,
+        updateContainer: EntityUpdateContainer<ENTITY, *, *, ExposifyEntity>
+    ): Unit
         = subTask("BeforeInsertedUpdate"){handler->
         if(updateMode == UpdateMode.MODEL_TO_ENTITY || updateMode == UpdateMode.MODEL_TO_ENTITY_FORCED){
-            val castedContainer =  updateContainer.castOrThrow<EntityUpdateContainer<ENTITY, PARENT_ENTITY>, OperationsException>()
+            val castedContainer = updateContainer.castOrOperationsEx<EntityUpdateContainer<ENTITY, *, *, PARENT_ENTITY>>()
             updateByEntity(updateMode, castedContainer)
         }else{
             updateDataModel(updateContainer.ownEntity)
         }
     }.resultOrException()
 
-    suspend fun entityAfterInsertedUpdate(updateMode: UpdateMode, updateContainer: EntityUpdateContainer<ENTITY, ExposifyEntity>)
+    suspend fun <P_DTO : ModelDTO, PD : DataModel, PE : ExposifyEntity> entityAfterInsertedUpdate(
+        updateMode: UpdateMode,
+        updateContainer: EntityUpdateContainer<ENTITY, P_DTO, PD, PE>
+    ): Unit
         = subTask("AfterInserted"){handler->
       //  updateDataModel(updateContainer.ownEntity)
     }.resultOrException()

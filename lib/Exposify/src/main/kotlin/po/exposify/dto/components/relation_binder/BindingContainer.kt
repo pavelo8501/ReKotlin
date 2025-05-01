@@ -1,5 +1,6 @@
 package po.exposify.dto.components.relation_binder
 
+import org.jetbrains.exposed.sql.SizedIterable
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.components.MultipleRepository
 import po.exposify.dto.components.RepositoryBase
@@ -7,6 +8,7 @@ import po.exposify.dto.components.SingleRepository
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.classes.DTOClass
+import po.exposify.classes.components.DTOConfig
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.dto.components.relation_binder.classes.NullablePropertyWrapper
@@ -14,93 +16,94 @@ import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
 
 
-class SingleChildContainer<DTO, DATA, ENTITY, CHILD_DTO>  (
-    parentModel: DTOClass<DTO>,
-    override val childClass: DTOClass<CHILD_DTO>
-): BindingContainer<DTO, DATA, ENTITY, CHILD_DTO>(parentModel, Cardinality.ONE_TO_ONE)
-        where DTO: ModelDTO, CHILD_DTO: ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity
-{
-    override val thisKey = BindingKeyBase.createOneToOneKey<CHILD_DTO>(childClass)
+fun <DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY> createOneToOneContainer(
+    dto: CommonDTO<DTO, DATA, ENTITY>,
+    childConfig: DTOConfig<CHILD_DTO, CHILD_DATA, CHILD_ENTITY>,
+    childClass: DTOClass<CHILD_DTO>
+): SingleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>
 
-    val sourcePropertyWrapper: NullablePropertyWrapper<DATA, DataModel?> = NullablePropertyWrapper<DATA, DataModel?>()
-    lateinit var ownEntityProperty: KProperty1<ENTITY, ExposifyEntity>
-    override lateinit var foreignEntityProperty: KMutableProperty1<ExposifyEntity, ENTITY>
+where DTO: ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity,
+       CHILD_DTO : ModelDTO,  CHILD_DATA: DataModel, CHILD_ENTITY : ExposifyEntity
+{
+   return  SingleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>(dto,  childConfig,childClass)
+}
+
+
+fun <DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY> createOneToManyContainer(
+    dto: CommonDTO<DTO, DATA, ENTITY>,
+    childConfig: DTOConfig<CHILD_DTO, CHILD_DATA, CHILD_ENTITY>,
+    childClass: DTOClass<CHILD_DTO>
+): MultipleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>
+
+        where DTO: ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity,
+              CHILD_DTO : ModelDTO,  CHILD_DATA: DataModel, CHILD_ENTITY : ExposifyEntity
+{
+    return  MultipleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>(dto,  childConfig,childClass)
+}
+
+
+
+class SingleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>  (
+    private  val dto: CommonDTO<DTO, DATA, ENTITY>,
+    childConfig: DTOConfig<CHILD_DTO, CHILD_DATA, CHILD_ENTITY>,
+    childClass: DTOClass<CHILD_DTO>
+): BindingContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>(childConfig, childClass)
+        where DTO: ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity,
+            CHILD_DTO : ModelDTO,  CHILD_DATA: DataModel, CHILD_ENTITY : ExposifyEntity
+{
+    override val thisKey = BindingKeyBase.createOneToOneKey<DTO>(dto.dtoClass)
+    override val cardinality: Cardinality = Cardinality.ONE_TO_MANY
+
+    val sourcePropertyWrapper: NullablePropertyWrapper<DATA, CHILD_DATA?> = NullablePropertyWrapper<DATA, CHILD_DATA?>()
+    lateinit var ownEntityProperty: KProperty1<ENTITY, CHILD_ENTITY>
+    override lateinit var foreignEntityProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>
 
     fun initProperties(
-        ownDataModel: KMutableProperty1<DATA, DataModel?>,
-        ownEntity: KProperty1<ENTITY, ExposifyEntity>,
-        foreignEntity: KMutableProperty1<ExposifyEntity, ENTITY>
+        ownDataModel: KMutableProperty1<DATA, CHILD_DATA?>,
+        ownEntity: KProperty1<ENTITY, CHILD_ENTITY>,
+        foreignEntity: KMutableProperty1<CHILD_ENTITY, ENTITY>
     ) {
         sourcePropertyWrapper.inject(ownDataModel)
         ownEntityProperty = ownEntity
         foreignEntityProperty = foreignEntity
     }
 
-    override fun createRepository(
-        parentModel: CommonDTO<DTO, DATA, ENTITY>
-    ): SingleRepository<DTO, DATA, ENTITY, CHILD_DTO>{
-        return SingleRepository(parentModel, childClass, this)
-    }
 }
 
 
-class MultipleChildContainer<DTO, DATA, ENTITY, CHILD_DTO>(
-    parentClass: DTOClass<DTO>,
-    override val  childClass: DTOClass<CHILD_DTO>
-): BindingContainer<DTO,DATA, ENTITY, CHILD_DTO>(parentClass, Cardinality.ONE_TO_MANY)
-        where DTO: ModelDTO, CHILD_DTO: ModelDTO, DATA: DataModel, ENTITY: ExposifyEntity
+class MultipleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>(
+    private  val dto: CommonDTO<DTO, DATA, ENTITY>,
+    childConfig: DTOConfig<CHILD_DTO, CHILD_DATA, CHILD_ENTITY>,
+    childClass: DTOClass<CHILD_DTO>,
+): BindingContainer<DTO,DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>(childConfig, childClass)
+        where DTO: ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity,
+              CHILD_DTO : ModelDTO,  CHILD_DATA: DataModel, CHILD_ENTITY : ExposifyEntity
 {
-    override val thisKey  = BindingKeyBase.createOneToManyKey(childClass)
-    lateinit var ownDataModelsProperty : KProperty1<DATA, MutableList<DataModel>>
-    lateinit var ownEntitiesProperty : KProperty1<ENTITY, Iterable<ExposifyEntity>>
-    override lateinit var foreignEntityProperty: KMutableProperty1<ExposifyEntity, ENTITY>
+    override val thisKey  = BindingKeyBase.createOneToManyKey(dto.dtoClass)
+    override val cardinality: Cardinality = Cardinality.ONE_TO_MANY
+    lateinit var ownDataModelsProperty : KProperty1<DATA, MutableList<CHILD_DATA>>
+    lateinit var ownEntitiesProperty : KProperty1<ENTITY, SizedIterable<CHILD_ENTITY>>
+    override lateinit var foreignEntityProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>
 
     fun  initProperties(
-        ownDataModels: KProperty1<DATA, MutableList<DataModel>>,
-        ownEntities: KProperty1<ENTITY, Iterable<ExposifyEntity>>,
-        foreignEntity: KMutableProperty1<ExposifyEntity, ENTITY>)
+        ownDataModels: KProperty1<DATA, MutableList<CHILD_DATA>>,
+        ownEntities: KProperty1<ENTITY, SizedIterable<CHILD_ENTITY>>,
+        foreignEntity: KMutableProperty1<CHILD_ENTITY, ENTITY>
+    )
     {
         ownDataModelsProperty = ownDataModels
         ownEntitiesProperty = ownEntities
         foreignEntityProperty = foreignEntity
     }
-
-    override fun createRepository(
-        parentModel: CommonDTO<DTO, DATA, ENTITY>,
-    ): MultipleRepository<DTO, DATA, ENTITY, CHILD_DTO>{
-        return MultipleRepository(parentModel, childClass, this)
-    }
 }
 
 
-sealed class BindingContainer<DTO, DATA, ENTITY, CHILD_DTO>(
-    val parentModel: DTOClass<DTO>,
-    val type  : Cardinality,
-) where DTO : ModelDTO, CHILD_DTO : ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity
+sealed class BindingContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>(
+    val childConfig: DTOConfig<CHILD_DTO, CHILD_DATA, CHILD_ENTITY>,
+    val childClass: DTOClass<CHILD_DTO>,
+) where DTO : ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity, CHILD_DTO : ModelDTO,  CHILD_DATA: DataModel, CHILD_ENTITY : ExposifyEntity
 {
-
-    abstract val childClass : DTOClass<CHILD_DTO>
+    abstract val cardinality  : Cardinality
     abstract val thisKey : BindingKeyBase
-
-    abstract val foreignEntityProperty: KMutableProperty1<ExposifyEntity, ENTITY>
-
-    companion object {
-        fun <DTO: ModelDTO, DATA : DataModel, ENTITY: ExposifyEntity, CHILD_DTO: ModelDTO>createOneToOneContainer(
-            parent: DTOClass<DTO>,
-            childClass: DTOClass<CHILD_DTO>): SingleChildContainer<DTO,DATA, ENTITY, CHILD_DTO>{
-            return SingleChildContainer(parent, childClass)
-        }
-
-
-        fun <DTO: ModelDTO, DATA : DataModel, ENTITY: ExposifyEntity, CHILD_DTO: ModelDTO>createOneToManyContainer(
-            parent: DTOClass<DTO>,
-            childClass: DTOClass<CHILD_DTO>
-        ): MultipleChildContainer<DTO, DATA, ENTITY, CHILD_DTO>{
-            return MultipleChildContainer(parent, childClass)
-        }
-    }
-
-    abstract fun createRepository(
-        parentDto: CommonDTO<DTO, DATA, ENTITY>,
-    ) : RepositoryBase<DTO, DATA, ENTITY, CHILD_DTO>
+    abstract var foreignEntityProperty: KMutableProperty1<CHILD_ENTITY, ENTITY>
 }

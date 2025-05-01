@@ -43,6 +43,7 @@ class DAOService<DTO, ENTITY>(
 
     internal suspend fun setActiveEntity(updateMode : UpdateMode, insertedEntity:ENTITY){
         entity = insertedEntity
+        hostingDTO.dataModel.id = insertedEntity.id.value
         hostingDTO.updateBindingAfterInserted(updateMode, insertedEntity.containerize())
     }
 
@@ -90,9 +91,9 @@ class DAOService<DTO, ENTITY>(
         newEntity
     }.resultOrException()
 
-    suspend fun <PARENT_ENTITY: ExposifyEntity> saveWithParent(
-        parent: PARENT_ENTITY,
-        parentDto: CommonDTO<ModelDTO, DataModel, PARENT_ENTITY>,
+    suspend fun <P_DTO: ModelDTO, PD: DataModel, PE: ExposifyEntity> saveWithParent(
+        parent: PE,
+        parentDto: CommonDTO<P_DTO, PD, PE>,
         bindFn: (newEntity:ENTITY)-> Unit):ENTITY
             = subTask("Save", personalName) {handler->
 
@@ -100,8 +101,7 @@ class DAOService<DTO, ENTITY>(
             val newEntity = entityModel.new {
                 handler.withTaskContext(this){
                     bindFn.invoke(this)
-
-                    val container =  EntityUpdateContainer<ENTITY, PARENT_ENTITY>(this).setParentData(parent, parentDto)
+                    val container =  EntityUpdateContainer<ENTITY, P_DTO, PD, PE>(this).setParentData(parent, parentDto)
                     hostingDTO.updateBinding(this, updateMode,  container)
                 }
             }

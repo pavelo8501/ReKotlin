@@ -6,11 +6,14 @@ import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.components.CrudResult
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.CrudResultSingle
+import po.exposify.dto.components.selectDto
+import po.exposify.dto.components.updateDto
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.WhereCondition
+import po.exposify.extensions.castOrOperationsEx
 import po.exposify.extensions.getOrOperationsEx
 import po.exposify.extensions.testOrThrow
 import po.lognotify.extensions.subTask
@@ -20,16 +23,14 @@ import kotlin.collections.toList
 
 
 
-internal suspend inline fun <DTO, DATA> DTOClass<DTO>.pickById(
+internal suspend inline fun <DTO, DATA, ENTITY> DTOClass<DTO>.pickById(
     id: Long
-): CrudResultSingle<DTO, DATA>  where DTO: ModelDTO,  DATA : DataModel{
+): CrudResultSingle<DTO, DATA>  where DTO: ModelDTO,  DATA : DataModel, ENTITY: ExposifyEntity{
     val freshDto = config.dtoFactory.createDto()
     val entity = freshDto.daoService.pickById(id)
     val checkedEntity = entity.getOrOperationsEx("Entity not found for id $id", ExceptionCode.VALUE_NOT_FOUND)
-    val hierarchyRootRepository = repository.getOrOperationsEx("Repository uninitialized", ExceptionCode.REPOSITORY_NOT_FOUND)
-    val dto =  hierarchyRootRepository.selectSingle(checkedEntity)
-    val checkedDTO = dto.castOrThrow<CommonDTO<DTO, DATA, ExposifyEntity>, OperationsException>()
-    return CrudResultSingle(checkedDTO)
+    val dto = selectDto(freshDto, checkedEntity).castOrOperationsEx<CommonDTO<DTO, DATA, ExposifyEntity>>()
+    return CrudResultSingle(dto)
 }
 
 
@@ -53,11 +54,9 @@ internal suspend inline fun <DTO: ModelDTO, DATA: DataModel,TB : IdTable<Long>> 
 ): CrudResultSingle<DTO, DATA> {
     val freshDto = config.dtoFactory.createDto()
     val entity = freshDto.daoService.pick(conditions)
-    val checkedEntity = entity.getOrOperationsEx("Entity not found", ExceptionCode.VALUE_NOT_FOUND)
-    val hierarchyRootRepository = repository.getOrOperationsEx("Repository uninitialized", ExceptionCode.REPOSITORY_NOT_FOUND)
-    val dto =  hierarchyRootRepository.selectSingle(checkedEntity)
-    val checkedDTO = dto.castOrThrow<CommonDTO<DTO, DATA, ExposifyEntity>, OperationsException>()
-    return CrudResultSingle(checkedDTO)
+    val checkedEntity = entity.getOrOperationsEx("Entity not found for conditions ${conditions.toString()}", ExceptionCode.VALUE_NOT_FOUND)
+    val dto = selectDto(freshDto, checkedEntity).castOrOperationsEx<CommonDTO<DTO, DATA, ExposifyEntity>>()
+    return CrudResultSingle(dto)
 }
 
 /**
@@ -75,64 +74,64 @@ internal suspend fun <T, DTO, DATA> DTOClass<DTO>.select(
     }
     val freshDto = config.dtoFactory.createDto()
     val entities = freshDto.daoService.select<T>(conditions)
-    val dtos = repository.getOrOperationsEx(
-        "Repository uninitialized in DTOClass",
-        ExceptionCode.REPOSITORY_NOT_FOUND).clear().select(entities)
+    val result =  CrudResult(mutableListOf<CommonDTO<DTO, DATA, ExposifyEntity>>())
+    entities.forEach {
+        val newDto = selectDto(config.dtoFactory.createDto(), it)
+        result.appendDto(newDto.castOrOperationsEx<CommonDTO<DTO, DATA, ExposifyEntity>>())
+    }
 
-    val checkedList = dtos.filterIsInstance<CommonDTO<DTO, DATA, ExposifyEntity>>()
-
-    handler.info("Created count ${checkedList.count()} DTOs")
-    CrudResult(checkedList)
+    handler.info("Created count ${result.rootDTOs.count()} DTOs")
+        result
 }.resultOrException()
 
 
 internal suspend fun <DTO, DATA> DTOClass<DTO>.select(
 ): CrudResult<DTO, DATA> where DTO: ModelDTO, DATA: DataModel = subTask("Select") {handler->
-
     isTransactionReady().testOrThrow(OperationsException("Transaction Lost Context", ExceptionCode.DB_NO_TRANSACTION_IN_CONTEXT)){
         true
     }
     val freshDto = config.dtoFactory.createDto()
     val entities = freshDto.daoService.select().toList()
-    val dtos = repository.getOrOperationsEx("Repository uninitialized", ExceptionCode.REPOSITORY_NOT_FOUND).select(entities)
-    val checkedList = dtos.filterIsInstance<CommonDTO<DTO, DATA, ExposifyEntity>>()
-    handler.info("Created count ${checkedList.count()} DTOs")
-    CrudResult(checkedList)
+    val result =  CrudResult(mutableListOf<CommonDTO<DTO, DATA, ExposifyEntity>>())
+    entities.forEach {
+        val newDto = selectDto(config.dtoFactory.createDto(), it)
+        result.appendDto(newDto.castOrOperationsEx<CommonDTO<DTO, DATA, ExposifyEntity>>())
+    }
+    handler.info("Created count ${result.rootDTOs.count()} DTOs")
+    result
 }.resultOrException()
 
 
 
-internal suspend fun <DTO, DATA> DTOClass<DTO>.update(
+internal suspend fun <DTO, DATA, ENTITY> DTOClass<DTO>.update(
     dataModel: DATA,
-): CrudResultSingle<DTO, DATA> where DTO: ModelDTO, DATA : DataModel = subTask("Update Repository.kt")  { handler->
+): CrudResultSingle<DTO, DATA> where DTO: ModelDTO, DATA : DataModel, ENTITY: ExposifyEntity
+        = subTask("Update Repository.kt")  { handler->
     isTransactionReady().testOrThrow(OperationsException("Transaction Lost Context", ExceptionCode.DB_NO_TRANSACTION_IN_CONTEXT)){
         true
     }
-    val hierarchyRootRepository = repository.getOrOperationsEx("Repository uninitialized", ExceptionCode.REPOSITORY_NOT_FOUND)
-    val dto = hierarchyRootRepository.updateSingle(dataModel)
+    val dto = updateDto<DTO, DATA, ENTITY>(this, dataModel)
     val checkedDto = dto.castOrThrow<CommonDTO<DTO, DATA, ExposifyEntity>, OperationsException>()
+
     handler.info("Created single DTO ${checkedDto.personalName}")
     CrudResultSingle(checkedDto)
 }.resultOrException()
 
-internal suspend fun <DTO, DATA> DTOClass<DTO>.update(
+internal suspend fun <DTO, DATA, ENTITY> DTOClass<DTO>.update(
     dataModels: List<DATA>,
-): CrudResult<DTO, DATA> where DTO: ModelDTO, DATA : DataModel = subTask("Update Repository.kt")  { handler->
+): CrudResult<DTO, DATA> where DTO: ModelDTO, DATA : DataModel, ENTITY: ExposifyEntity
+        = subTask("Update Repository.kt")  { handler->
     isTransactionReady().testOrThrow(OperationsException("Transaction Lost Context", ExceptionCode.DB_NO_TRANSACTION_IN_CONTEXT)){
         true
     }
-    val dtos = try{
-        repository.getOrOperationsEx("Repository uninitialized", ExceptionCode.REPOSITORY_NOT_FOUND).update(dataModels)
-    }catch (th: Throwable){
-        println(th.message.toString())
-        throw th
+    val result =  CrudResult(mutableListOf<CommonDTO<DTO, DATA, ExposifyEntity>>())
+    dataModels.forEach {
+        val dto = updateDto<DTO, DATA, ENTITY>(this, it).castOrOperationsEx<CommonDTO<DTO, DATA, ExposifyEntity>>()
+        result.appendDto(dto)
     }
-    println("update point hit")
-    val checkedList = dtos.filterIsInstance<CommonDTO<DTO, DATA, ExposifyEntity>>()
-    handler.info("Created DTOs ${checkedList.count()}")
-    CrudResult(checkedList)
+    handler.info("Created DTOs ${result.rootDTOs.count()}")
+    result
 }.resultOrException()
-
 
 
 /**

@@ -29,8 +29,8 @@ data class TestSectionItem(
     var metaTags : List<MetaTag>,
     @SerialName("lang_id")
     var langId : Int,
-    @SerialName("section_item_id")
-    var sectionItemId : Long,
+    @SerialName("section_id")
+    var sectionId : Long,
 ): DataModel
 {
 
@@ -42,7 +42,7 @@ class TestSectionItemDTO(
     override var dataModel: TestSectionItem
 ): CommonDTO<TestSectionItemDTO, TestSectionItem, TestSectionItemEntity>(TestSectionItemDTO) {
 
-    val sectionItemId by parent2IdReference(TestSectionItem::sectionItemId, TestSectionItemEntity::section)
+    val sectionId by parent2IdReference(TestSectionItem::sectionId, TestSectionItemEntity::section)
 
     companion object: DTOClass<TestSectionItemDTO>(){
         override suspend  fun setup() {

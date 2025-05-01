@@ -42,6 +42,7 @@ class TestComplexDelegate : DatabaseTest() {
         var updatedDataModel: TestPage? = null
         connection?.service(TestPageDTO, TableCreateMode.CREATE) {
             page.sections.addAll(sourceSections)
+
             updatedDataModel = update(page).getData()
         }
 
@@ -51,8 +52,8 @@ class TestComplexDelegate : DatabaseTest() {
         val firstSelected = sections[0]
         assertEquals(user.id, firstSelected.updatedBy, "User id and updated mismatch")
         assertEquals(2, firstSelected.sectionItems.count(), "SectionItems cont mismatch")
-        assertNull(firstSelected.sectionItems.firstOrNull{  it.id == 0L }, "Ids not updated")
-        assertNotEquals(0, firstSelected.sectionItems[0].sectionItemId, "SectionItemId did not updated")
+        assertNull(firstSelected.sectionItems.firstOrNull{  it.id == 0L }, "SectionItems not updated")
+        assertNotEquals(0, firstSelected.sectionItems[0].sectionId, "SectionItemId did not updated")
     }
 //
 //    @Test

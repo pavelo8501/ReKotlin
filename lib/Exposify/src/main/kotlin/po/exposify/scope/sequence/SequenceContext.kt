@@ -62,7 +62,7 @@ class SequenceContext<DTO, DATA>(
     private val personalName : String = "SequenceContext[${dtoClass.registryItem.dtoName}]"
     private val connection: Database = serviceClass.connection
 
-    private var lastResult : CrudResult<DTO, DATA> = CrudResult(emptyList())
+    private var lastResult : CrudResult<DTO, DATA> = CrudResult()
 
     private fun dtos(): List<CommonDTO<DTO, DATA , ExposifyEntity>>{
       return  lastResult.rootDTOs
@@ -144,14 +144,14 @@ class SequenceContext<DTO, DATA>(
 
     suspend fun update(
         dataModels: List<DATA>,
-        block: (suspend SequenceContext<DTO, DATA>.(dtos: List<CommonDTO<DTO, DATA, ExposifyEntity>>)-> Deferred<List<DATA>>)? = null
-    ){
+        block: (suspend SequenceContext<DTO, DATA>.(dtos: List<CommonDTO<DTO, DATA, ExposifyEntity>>)-> Deferred<List<DATA>>)? = null)
+    {
         subTask("Update", personalName) { handler ->
             if (!isTransactionReady()) {
                 handler.warn("Transaction lost context")
             }
             notifyOnStart("update")
-            lastResult = dtoClass.update(dataModels)
+            lastResult = dtoClass.update<DTO, DATA, ExposifyEntity>(dataModels)
             if (block != null) {
                 this.block(dtos())
                 notifyOnComplete("update")

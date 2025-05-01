@@ -1,153 +1,71 @@
 package po.exposify.dto.components.relation_binder
 
-import org.jetbrains.exposed.sql.SizedIterable
-import po.exposify.dto.enums.Cardinality
-import po.exposify.dto.components.relation_binder.models.DataPropertyInfo
-import po.exposify.dto.components.relation_binder.models.EntityPropertyInfo
-import po.exposify.dto.components.RepositoryBase
 import po.exposify.classes.interfaces.DataModel
-import po.exposify.dto.CommonDTO
 import po.exposify.classes.DTOClass
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntity
-import po.exposify.exceptions.InitException
-import po.exposify.exceptions.OperationsException
-import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.extensions.castOrOperationsEx
-import po.exposify.extensions.safeCast
-import po.misc.types.castOrThrow
 import kotlin.collections.set
-import kotlin.reflect.KMutableProperty1
-import kotlin.reflect.KProperty1
 
 
 
-class RelationshipBinder<DTO, DATA, ENTITY>(
+class RelationshipBinder<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>(
    val dtoClass:  DTOClass<DTO>
-) where DTO: ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity
-{
-    internal var childBindings = mutableMapOf<BindingKeyBase, BindingContainer<DTO, DATA, ENTITY, ModelDTO>>()
+) where DTO: ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity, CHILD_DTO: ModelDTO, CHILD_DATA: DataModel, CHILD_ENTITY: ExposifyEntity {
+    internal var manyBindings =
+        mutableMapOf<BindingKeyBase.OneToMany<DTO>, MultipleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>>()
         private set
-    private fun <CHILD_DTO: ModelDTO> attachBinding(
-        key : BindingKeyBase,
-        container: BindingContainer<DTO, DATA, ENTITY, CHILD_DTO>
-    ){
-        if (!childBindings.containsKey(key)) {
-            val containerCast = container.safeCast<BindingContainer<DTO, DATA, ENTITY, ModelDTO>>()
-            if(containerCast != null){
-                childBindings[key] = containerCast
-            }
-        }
+
+    internal var singeBindings =
+        mutableMapOf<BindingKeyBase.OneToOne<DTO>, SingleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>>()
+        private set
+
+    fun attachBinding(
+        key: BindingKeyBase.OneToOne<DTO>,
+        container: SingleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>
+    ) {
+        singeBindings[key] = container
     }
 
-   suspend fun <CHILD_DTO: ModelDTO>single(
-        childModel: DTOClass<CHILD_DTO>,
-        ownDataModel: KMutableProperty1<DATA, DataModel?>,
-        ownEntity: KProperty1<ENTITY, ExposifyEntity>,
-        foreignEntity: KMutableProperty1<ExposifyEntity, ENTITY>
-    ){
-        if(!childModel.initialized){
-            childModel.initialization()
-            val castedDtoClass = dtoClass.castOrThrow<DTOClass<ModelDTO>, InitException>()
-            childModel.setParentDTO(castedDtoClass)
-        }
-
-        val oneToOneContainerNullableData = BindingContainer.createOneToOneContainer<DTO, DATA, ENTITY, CHILD_DTO>(dtoClass, childModel)
-        oneToOneContainerNullableData.initProperties(ownDataModel, ownEntity, foreignEntity)
-        attachBinding(oneToOneContainerNullableData.thisKey, oneToOneContainerNullableData)
-    }
-
-
-    suspend  fun <CHILD_DTO : ModelDTO>many(
-        childModel: DTOClass<CHILD_DTO>,
-        ownDataModels: KProperty1<DATA,  MutableList<out DataModel>>,
-        ownEntities: KProperty1<ENTITY, SizedIterable<ExposifyEntity>>,
-        foreignEntity: KMutableProperty1<out ExposifyEntity, ENTITY>,
-    ){
-        if(!childModel.initialized){
-            childModel.initialization()
-            val castedDtoClass = dtoClass.castOrThrow<DTOClass<ModelDTO>, InitException>()
-            childModel.setParentDTO(castedDtoClass)
-        }
-
-        val oneToMany = BindingContainer.createOneToManyContainer<DTO, DATA, ENTITY, CHILD_DTO>(dtoClass, childModel)
-        val foreignEntityCast = foreignEntity.castOrOperationsEx<KMutableProperty1<ExposifyEntity, ENTITY>>(
-            "ForeignEntity Property cast failure for ${dtoClass.personalName}",
-            ExceptionCode.CAST_FAILURE)
-
-
-
-        val castedOwnModelsProperty =  ownDataModels.castOrOperationsEx<KProperty1<DATA,  MutableList<DataModel>>>(
-            "Own DataModels Property cast failure for ${dtoClass.personalName}",
-            ExceptionCode.CAST_FAILURE)
-
-        oneToMany.initProperties(castedOwnModelsProperty, ownEntities, foreignEntityCast)
-        attachBinding(oneToMany.thisKey, oneToMany)
-    }
-
-    fun trackedDataProperties(forDto : CommonDTO<DTO, DATA, ENTITY>): List<DataPropertyInfo<DTO,DATA, ENTITY, ModelDTO>>{
-        val result = mutableListOf<DataPropertyInfo<DTO, DATA, ENTITY,  ModelDTO>>()
-        childBindings.values.forEach {
-            when(it){
-                is SingleChildContainer ->{
-                    val property = it.sourcePropertyWrapper
-                    result.add(DataPropertyInfo(property.extract().name, Cardinality.ONE_TO_ONE, property.nullable, it.thisKey, it))
-                }
-                is MultipleChildContainer->{
-                    val property = it.ownDataModelsProperty
-                    result.add(DataPropertyInfo(property.name, Cardinality.ONE_TO_MANY, false, it.thisKey, it))
-                }
-            }
-        }
-        return result
-    }
-
-    fun trackedEntityProperties(forDto : CommonDTO<DTO, DATA, ENTITY>): List<EntityPropertyInfo<DTO,DATA, ENTITY, ModelDTO>>{
-        val result = mutableListOf<EntityPropertyInfo<DTO, DATA, ENTITY,  ModelDTO>>()
-        childBindings.values.forEach {
-            when(it){
-                is SingleChildContainer ->{
-                    val property = it.ownEntityProperty
-                    result.add(EntityPropertyInfo(property.name, Cardinality.ONE_TO_ONE, false, it.thisKey, it))
-                }
-                is MultipleChildContainer->{
-                    val property = it.ownEntitiesProperty
-                    result.add(EntityPropertyInfo(property.name, Cardinality.ONE_TO_MANY, false, it.thisKey, it))
-                }
-            }
-        }
-        return result
-    }
-
-    fun createRepositories(parentDto: CommonDTO<DTO, DATA, ENTITY>){
-         childBindings.forEach {
-            when(it.key){
-                is BindingKeyBase.OneToOne<*>->{
-                    val newRepo = it.value.createRepository(parentDto).safeCast<RepositoryBase<DTO, DATA, ENTITY, ModelDTO>>()
-                    if(newRepo != null){
-                        parentDto.repositories.put(it.key, newRepo)
-                    }else{
-                        throw OperationsException("CreateRepository failed for ${parentDto.personalName}",
-                            ExceptionCode.CAST_FAILURE)
-                    }
-                }
-
-                is BindingKeyBase.OneToMany<*>->{
-                    val newRepo = it.value.createRepository(parentDto).safeCast<RepositoryBase<DTO, DATA, ENTITY, ModelDTO>>()
-                    if(newRepo != null){
-                        parentDto.repositories.put(it.key, newRepo)
-                    }else{
-                        throw OperationsException("CreateRepository failed for ${parentDto.personalName}",
-                            ExceptionCode.CAST_FAILURE)
-                    }
-                }
-                else -> {}
-            }
-        }
-        val dataPropertiesCast = trackedDataProperties(parentDto).safeCast<List<DataPropertyInfo<DTO, DATA, ExposifyEntity, ModelDTO>>>()
-        if(dataPropertiesCast != null){
-            parentDto.dataContainer.setTrackedProperties(dataPropertiesCast)
-          //  parentDto.daoService.setTrackedProperties(trackedEntityProperties(parentDto))
-        }
+    fun attachBinding(
+        key: BindingKeyBase.OneToMany<DTO>,
+        container: MultipleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>
+    ) {
+        manyBindings[key] = container
     }
 }
+
+ //   fun trackedDataProperties(forDto : CommonDTO<DTO, DATA, ENTITY>)
+ //   :List<DataPropertyInfo<DTO,DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>>{
+//        val result = mutableListOf<DataPropertyInfo<DTO, DATA, ENTITY,  CHILD_DTO, CHILD_DATA, CHILD_ENTITY>>()
+//        childBindings.values.forEach {
+//            when(it){
+//                is SingleChildContainer ->{
+//                    val property = it.sourcePropertyWrapper
+//                    result.add(DataPropertyInfo(property.extract().name, Cardinality.ONE_TO_ONE, property.nullable, it.thisKey, it))
+//                }
+//                is MultipleChildContainer->{
+//                    val property = it.ownDataModelsProperty
+//                    result.add(DataPropertyInfo(property.name, Cardinality.ONE_TO_MANY, false, it.thisKey, it))
+//                }
+//            }
+//        }
+    //    return result
+   // }
+//
+//    fun trackedEntityProperties(forDto : CommonDTO<DTO, DATA, ENTITY>)
+//    : List<EntityPropertyInfo<DTO,DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>>{
+//        val result = mutableListOf<EntityPropertyInfo<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>>()
+//        childBindings.values.forEach {
+//            when(it){
+//                is SingleChildContainer ->{
+//                    val property = it.ownEntityProperty
+//                    result.add(EntityPropertyInfo(property.name, Cardinality.ONE_TO_ONE, false, it.thisKey, it))
+//                }
+//                is MultipleChildContainer->{
+//                    val property = it.ownEntitiesProperty
+//                    result.add(EntityPropertyInfo(property.name, Cardinality.ONE_TO_MANY, false, it.thisKey, it))
+//                }
+//            }
+//        }
+     //   return result
+    //}

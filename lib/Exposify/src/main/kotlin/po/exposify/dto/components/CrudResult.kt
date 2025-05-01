@@ -7,8 +7,13 @@ import po.exposify.entity.classes.ExposifyEntity
 
 
 data class CrudResult<DTO, DATA>(
-   internal val rootDTOs: List<CommonDTO<DTO, DATA, ExposifyEntity>>,
+   internal val rootDTOs: MutableList<CommonDTO<DTO, DATA, ExposifyEntity>> = mutableListOf<CommonDTO<DTO, DATA, ExposifyEntity>>()
 ) where DTO : ModelDTO, DATA: DataModel {
+
+
+    internal fun appendDto(dto:CommonDTO<DTO, DATA, ExposifyEntity>) {
+        rootDTOs.add(dto)
+    }
 
     fun getData(): List<DATA> {
         val dataModels =  rootDTOs.map { it.dataModel }
@@ -18,6 +23,8 @@ data class CrudResult<DTO, DATA>(
     fun getDTO(): List<CommonDTO<DTO, DATA, ExposifyEntity>> {
         return rootDTOs
     }
+
+
 
 }
 

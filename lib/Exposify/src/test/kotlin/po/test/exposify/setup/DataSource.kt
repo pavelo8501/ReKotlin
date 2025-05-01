@@ -19,7 +19,7 @@ fun sectionsPreSaved(pageId: Long): MutableList<TestSection>{
     "section_items": [
       {
         "id": 0,
-        "section_item_id": 0,
+        "section_id": 0,
         "name": "about_text",
         "content": "Some Text About Medprof",
         "tag": "p",
@@ -30,7 +30,7 @@ fun sectionsPreSaved(pageId: Long): MutableList<TestSection>{
       },
       {
         "id": 0,
-        "section_item_id": 0,
+        "section_id": 0,
         "name": "about_header",
         "content": "About Medprof",
         "tag": "h2",

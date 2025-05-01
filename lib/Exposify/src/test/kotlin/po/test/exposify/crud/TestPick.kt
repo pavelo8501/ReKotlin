@@ -5,6 +5,7 @@ import org.junit.jupiter.api.assertAll
 import po.auth.extensions.generatePassword
 import po.exposify.scope.service.enums.TableCreateMode
 import po.test.exposify.setup.DatabaseTest
+import po.test.exposify.setup.TestUserEntity
 import po.test.exposify.setup.dtos.TestUser
 import po.test.exposify.setup.dtos.TestUserDTO
 import kotlin.test.Test
@@ -29,7 +30,7 @@ class TestPick : DatabaseTest(){
         startTestConnection()?.run {
             service(TestUserDTO, TableCreateMode.CREATE) {
                 val userDataModel =  update(user).getData()
-                 pickedDTO = pick(userDataModel.id).getDTO() as TestUserDTO
+                 pickedDTO = pick<TestUserEntity>(userDataModel.id).getDTO() as TestUserDTO
             }
         }?:throw Exception("Connection not available")
 

@@ -26,18 +26,18 @@ class DTOPropertyBinder<DTO, DATA, ENTITY>(
         return binding
     }
 
-    suspend fun <PARENT_ENTITY: ExposifyEntity> beforeInsertUpdate(
+    suspend fun <PE: ExposifyEntity> beforeInsertUpdate(
         dataModel: DATA,
-        entityContainer : EntityUpdateContainer<ENTITY, PARENT_ENTITY>,
+        entityContainer : EntityUpdateContainer<ENTITY, *, *, PE>,
         updateMode: UpdateMode)
     {
-        val container =  entityContainer.castOrOperationsEx<EntityUpdateContainer<ENTITY, ExposifyEntity>>()
+        val container =  entityContainer.castOrOperationsEx<EntityUpdateContainer<ENTITY, *, *, ExposifyEntity>>()
         bindingMap.values.forEach { it.entityBeforeInsertedUpdate(updateMode, container) }
     }
 
-    suspend fun afterInsertUpdate(
+    suspend fun <P_DTO: ModelDTO, PD: DataModel, PE: ExposifyEntity> afterInsertUpdate(
         dataModel: DATA,
-        entityContainer : EntityUpdateContainer<ENTITY, ExposifyEntity>,
+        entityContainer : EntityUpdateContainer<ENTITY, P_DTO, PD, PE>,
         updateMode: UpdateMode)
     {
         bindingMap.values.forEach { it.entityAfterInsertedUpdate(updateMode, entityContainer) }

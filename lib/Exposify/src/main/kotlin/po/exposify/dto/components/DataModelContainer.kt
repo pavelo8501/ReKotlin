@@ -22,12 +22,19 @@ import kotlin.reflect.jvm.isAccessible
 class DataModelContainer<DTO : ModelDTO, DATA: DataModel>(
     internal val dataModel: DATA,
     val dataBlueprint: ClassBlueprint<DATA>,
-    private var binder: PropertyBinder<DATA, *>? = null,
+    private var propertyBinder: PropertyBinder<DATA, *>
 ): DataModel {
 
     override var id: Long = dataModel.id
 
-    val trackedProperties: MutableMap<String, DataPropertyInfo<DTO, DATA, ExposifyEntity, ModelDTO>> = mutableMapOf()
+    val trackedProperties: MutableMap<String, DataPropertyInfo<DTO, DATA, ExposifyEntity, ModelDTO, DataModel, ExposifyEntity>> = mutableMapOf()
+
+    init {
+        propertyBinder.onPropertyUpdate
+        propertyBinder.syncedSerializedPropertyList.forEach {
+            it.dataProperty
+        }
+    }
 
     operator fun <V: Any?>  getValue(name: String,  property: KProperty<*>): V {
         return  dataBlueprint.getProperty(dataModel,  name)
@@ -45,22 +52,14 @@ class DataModelContainer<DTO : ModelDTO, DATA: DataModel>(
         dataModel.id = id
     }
 
-    fun setTrackedProperties(list: List<DataPropertyInfo<DTO, DATA, ExposifyEntity, ModelDTO>>){
+    fun setTrackedProperties(list: List<DataPropertyInfo<DTO, DATA, ExposifyEntity, ModelDTO, DataModel, ExposifyEntity>>){
         list.forEach {propertyInfo->
             trackedProperties[propertyInfo.name] = propertyInfo
         }
     }
 
-    fun attachBinder(propertyBinder: PropertyBinder<DATA, *>){
-        binder = propertyBinder
-        propertyBinder.onPropertyUpdate
-        propertyBinder.syncedSerializedPropertyList.forEach {
-            it.dataProperty
-        }
-    }
-
     fun extractChildModels(
-        forPropertyInfo : DataPropertyInfo<DTO, DATA, ExposifyEntity, ModelDTO>): List<DataModel>
+        forPropertyInfo : DataPropertyInfo<DTO, DATA, ExposifyEntity, ModelDTO, DataModel, ExposifyEntity>): List<DataModel>
     {
         if(forPropertyInfo.cardinality == Cardinality.ONE_TO_MANY){
             val property = forPropertyInfo.getOwnModelsProperty()

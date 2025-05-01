@@ -1,13 +1,10 @@
 package po.exposify.classes
 
-import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.transactions.TransactionManager
-import po.exposify.dto.components.relation_binder.RelationshipBinder
 import po.exposify.classes.components.DTOConfig
 import po.exposify.classes.interfaces.ClassDTO
-import po.exposify.dto.components.RootRepository
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.interfaces.ModelDTO
@@ -15,7 +12,6 @@ import po.exposify.dto.models.DTORegistry
 import po.exposify.dto.models.DTORegistryItem
 import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.InitException
-import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.castOrOperationsEx
@@ -49,7 +45,7 @@ abstract class DTOClass<DTO>(): TasksManaged,  ClassDTO where DTO: ModelDTO {
         get() = _config.getOrInitEx("RegistryItem uninitialized", ExceptionCode.LAZY_NOT_INITIALIZED)
 
     var serviceContextOwned: ServiceContext<DTO, DataModel>? = null
-    var repository: RootRepository<DTO, DataModel, ExposifyEntity, DTO>? = null
+    //var repository: RootRepository<DTO, DataModel, ExposifyEntity, DTO, DataModel, ExposifyEntity>? = null
 
      protected abstract suspend fun  setup()
 
@@ -65,30 +61,29 @@ abstract class DTOClass<DTO>(): TasksManaged,  ClassDTO where DTO: ModelDTO {
          val newConfiguration = DTOConfig(newRegistryItem, entityModel, this)
          _registryItem  = newRegistryItem.castOrInitEx<DTORegistry<DTO, DataModel, ExposifyEntity>>()
          _config =  newConfiguration.castOrInitEx<DTOConfig<DTO, DataModel, ExposifyEntity>>()
-
          newConfiguration.block()
-         newConfiguration.initFactoryRoutines()
          initialized = true
     }.resultOrException()
 
     fun getAssociatedTables(cumulativeList: MutableList<IdTable<Long>>) {
         cumulativeList.add(config.entityModel.table)
-        runBlocking {
-            withRelationshipBinder() {
-                this.childBindings.values.forEach {
-                    it.childClass.getAssociatedTables(cumulativeList)
-                }
-            }
-        }
+
+//            withRelationshipBinder() {
+//                this.childBindings.values.forEach {
+//                    it.childClass.getAssociatedTables(cumulativeList)
+//                }
+//            }
+
     }
 
     fun <ENTITY : ExposifyEntity> getEntityModel(): LongEntityClass<ENTITY> {
         return config.entityModel.castOrOperationsEx<LongEntityClass<ENTITY>>()
     }
 
-    suspend fun initialization(onRequestFn: (() -> Unit)? = null) {
+    suspend fun initialization() {
         if (!initialized) {
             setup()
+
         }
     }
 
@@ -111,35 +106,20 @@ abstract class DTOClass<DTO>(): TasksManaged,  ClassDTO where DTO: ModelDTO {
         childDtoClass: DTOClass<CHILD_DTO>
     ): CommonDTO<CHILD_DTO, DataModel, ExposifyEntity>?
     {
-      val result =  repository?.let {
-           val foundDto = it.findChild(id, this)
-            foundDto
-        }?:run {
-            var foundDto : CommonDTO<CHILD_DTO, DataModel, ExposifyEntity>?  = null
-            val tempInlinedRepo = RootRepository<CHILD_DTO, DataModel, ExposifyEntity, CHILD_DTO>(childDtoClass)
-            parentDtoClass!!.repository!!.getDtos().forEach {dtoFromParentRepo->
-                val castedDto = dtoFromParentRepo.castOrThrow<CommonDTO<CHILD_DTO, DataModel, ExposifyEntity>, OperationsException>()
-                tempInlinedRepo.addDto(castedDto)
-                foundDto = tempInlinedRepo.getDtos().firstOrNull{ it.id == id}
-            }
-          foundDto
-        }
-        return result.castOrThrow<CommonDTO<CHILD_DTO, DataModel, ExposifyEntity>, OperationsException>()
+      val dtos =  serviceContextOwned?.dtoMap?.values
+        return dtos?.firstOrNull{ it.id == id }?.safeCast()
     }
 
     fun <DATA : DataModel> asHierarchyRoot(serviceContext: ServiceContext<DTO, DATA>) {
         if (serviceContextOwned == null) {
             serviceContext.safeCast<ServiceContext<DTO, DataModel>>()?.let {
                 serviceContextOwned = it
-                repository = RootRepository(this)
+//                repository = RootRepository(this)
                 hierarchyRoot = true
             } ?: throw InitException("Cast for ServiceContext2 failed", ExceptionCode.CAST_FAILURE)
         }
     }
 
-    suspend fun withRelationshipBinder(
-        block: suspend RelationshipBinder<DTO, DataModel, ExposifyEntity>.() -> Unit
-    ): Unit = config.withRelationshipBinder(block)
 
     fun isTransactionReady(): Boolean {
         return TransactionManager.currentOrNull()?.connection?.isClosed?.not() == true
@@ -168,134 +148,3 @@ abstract class DTOClass<DTO>(): TasksManaged,  ClassDTO where DTO: ModelDTO {
         sequenceID: SequenceID,
         handlerBlock: (suspend SequenceHandler<DTO, DATA>.()-> Unit)? = null) = runSequence(sequenceID.value, handlerBlock)
 }
-
-
-//
-//abstract class ChildDTO<DTO>(val parent : ModelDTO) : BaseDTO<DTO>() where DTO : ModelDTO{
-//
-//}
-//
-//abstract class RootDTO<DTO>() : BaseDTO<DTO>() where DTO : ModelDTO{
-//
-//}
-//
-//sealed class  BaseDTO<DTO>(): TasksManaged,  ClassDTO where DTO : ModelDTO{
-//
-//    var _registryItem: DTORegistry<DTO, DataModel, r>? = null
-//    val registryItem: DTORegistry<DTO, DataModel, r>
-//        get() {return  _registryItem.getOrInitEx("RegistryItem uninitialized", ExceptionCode.LAZY_NOT_INITIALIZED)}
-//
-//    override val personalName: String get() {return _registryItem?.dtoClassName?:"Undefined"}
-//    var initialized: Boolean = false
-//
-//    var hierarchyRoot : Boolean = false
-//
-//    @PublishedApi
-//    internal var _config: DTOConfig<DTO, DataModel, r>? = null
-//    internal val config: DTOConfig<DTO, DataModel, r>
-//        get() = _config.getOrInitEx("RegistryItem uninitialized", ExceptionCode.LAZY_NOT_INITIALIZED)
-//
-//    var serviceContextOwned: ServiceContext<DTO, DataModel>? = null
-//    var repository: RootRepository<DTO, DataModel, r, DTO>? = null
-//
-//    protected abstract suspend fun  setup()
-//
-//    inline fun <reified COMMON,  reified DATA, reified ENTITY> configuration(
-//        entityModel: LongEntityClass<ENTITY>,
-//        noinline block: suspend DTOConfig<DTO, DATA, ENTITY>.() -> Unit
-//    ): Unit where COMMON : ModelDTO,  ENTITY : r, DATA : DataModel = startTaskAsync("DTO Configuration") {
-//
-//        val commonDTOClass =  COMMON::class.castOrInitEx<KClass<out CommonDTO<DTO, DATA, ENTITY>>>(
-//            "KClass<out CommonDTO<DTO, DATA, ENTITY> cast failed")
-//
-//        val newRegistryItem = DTORegistryItem(this, DATA::class, ENTITY::class, commonDTOClass)
-//        val newConfiguration = DTOConfig(newRegistryItem, entityModel, this)
-//        _registryItem  = newRegistryItem.castOrInitEx<DTORegistry<DTO, DataModel, r>>()
-//        _config =  newConfiguration.castOrInitEx<DTOConfig<DTO, DataModel, r>>()
-//
-//        newConfiguration.block()
-//        newConfiguration.initFactoryRoutines()
-//        initialized = true
-//    }.resultOrException()
-//
-//    fun getAssociatedTables(cumulativeList: MutableList<IdTable<Long>>) {
-//        cumulativeList.add(config.entityModel.table)
-//        runBlocking {
-//            withRelationshipBinder() {
-//                this.childBindings.values.forEach {
-//                    it.childClass.getAssociatedTables(cumulativeList)
-//                }
-//            }
-//        }
-//    }
-//
-//    fun <ENTITY : r> getEntityModel(): LongEntityClass<ENTITY> {
-//        return config.entityModel.castOrOperationsEx<LongEntityClass<ENTITY>>()
-//    }
-//
-//    suspend fun initialization(onRequestFn: (() -> Unit)? = null) {
-//        if (!initialized) {
-//            setup()
-//        }
-//    }
-//
-//    var parentDtoClass: DTOClass<ModelDTO>? = null
-//        private set
-//    internal fun setParentDTO(dtoClass: DTOClass<ModelDTO>){
-//        parentDtoClass = dtoClass
-//    }
-//    internal fun findHierarchyRoot():DTOClass<ModelDTO>?{
-//        if(hierarchyRoot){
-//            return this.castOrThrow<DTOClass<ModelDTO>, InitException>()
-//        }else{
-//            parentDtoClass.getOrOperationsEx("parentDtoClass not initialized").findHierarchyRoot()
-//        }r
-//        return null
-//    }
-//
-//    internal fun <CHILD_DTO: ModelDTO> lookupDTO(id: Long, dtoClass: DTOClass<CHILD_DTO>): CommonDTO<CHILD_DTO, DataModel, r>?{
-//        TODO("Not yet implemented")
-//    }
-//
-//    fun <DATA : DataModel> asHierarchyRoot(serviceContext: ServiceContext<DTO, DATA>) {
-//        if (serviceContextOwned == null) {
-//            serviceContext.safeCast<ServiceContext<DTO, DataModel>>()?.let {
-//                serviceContextOwned = it
-//                repository = RootRepository<DTO, DataModel, r, DTO>(this)
-//                hierarchyRoot = true
-//            } ?: throw InitException("Cast for ServiceContext2 failed", ExceptionCode.CAST_FAILURE)
-//        }
-//    }
-//
-//    suspend fun withRelationshipBinder(
-//        block: suspend RelationshipBinder<DTO, DataModel, r>.() -> Unit
-//    ): Unit = config.withRelationshipBinder(block)
-//
-//    fun isTransactionReady(): Boolean {
-//        return TransactionManager.currentOrNull()?.connection?.isClosed?.not() == true
-//    }
-//
-//    suspend fun <DATA: DataModel> runSequence(
-//        sequenceId: Int,
-//        handlerBlock: (suspend SequenceHandler<DTO, DATA>.()-> Unit)? = null):List<DATA> {
-//
-//        return  withTransactionIfNone {
-//            val serviceContext = serviceContextOwned.getOrOperationsEx(
-//                "Unable to run sequence id: $sequenceId on DTOClass. DTOClass is not a hierarchy root",
-//                ExceptionCode.UNDEFINED
-//            )
-//            val handler = serviceContext.serviceClass().getSequenceHandler(sequenceId, this)
-//                .castOrOperationsEx<SequenceHandler<DTO, DATA>>()
-//
-//            handlerBlock?.invoke(handler)
-//            val key =  handler.thisKey
-//            val result = serviceContext.serviceClass().runSequence(key).castOrOperationsEx<List<DATA>>()
-//
-//            result
-//        }
-//    }
-//    suspend fun <DATA: DataModel> runSequence(
-//        sequenceID: SequenceID,
-//        handlerBlock: (suspend SequenceHandler<DTO, DATA>.()-> Unit)? = null) = runSequence(sequenceID.value, handlerBlock)
-//
-//}

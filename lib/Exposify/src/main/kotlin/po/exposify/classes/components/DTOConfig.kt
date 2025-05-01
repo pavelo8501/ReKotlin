@@ -18,17 +18,15 @@ import po.exposify.entity.classes.ExposifyEntity
 
 interface ConfigurableDTO<DTO: ModelDTO, DATA : DataModel, ENTITY: ExposifyEntity>{
 
-    fun initFactoryRoutines()
-    suspend fun withRelationshipBinder(block: suspend (RelationshipBinder<DTO, DATA, ENTITY>)-> Unit)
+    suspend fun withRelationshipBinderAsync(block: suspend (RelationshipBinder<DTO, DATA, ENTITY, ModelDTO, DataModel, ExposifyEntity>)-> Unit)
+    fun withRelationshipBinder(block:  (RelationshipBinder<DTO, DATA, ENTITY, ModelDTO, DataModel, ExposifyEntity>)-> Unit)
 }
-
 
 class DTOConfig<DTO, DATA, ENTITY>(
     val registry : DTORegistryItem<DTO, DATA, ENTITY>,
     val entityModel:LongEntityClass<ENTITY>,
-    private val parent : DTOClass<DTO>
+    val parent : DTOClass<DTO>
 ): ConfigurableDTO<DTO, DATA, ENTITY> where DTO: ModelDTO,  ENTITY : ExposifyEntity, DATA: DataModel{
-
 
    internal var dtoFactory: DTOFactory<DTO, DATA, ENTITY> = DTOFactory(registry.commonDTOKClass, registry.dataKClass, this)
 
@@ -42,30 +40,23 @@ class DTOConfig<DTO, DATA, ENTITY>(
         dtoFactory.setSerializableTypes(namedSerializes)
     }
 
-    val relationBinder: RelationshipBinder<DTO, DATA, ENTITY> = RelationshipBinder<DTO, DATA, ENTITY>(parent)
+    val relationBinder: RelationshipBinder<DTO, DATA, ENTITY, ModelDTO, DataModel, ExposifyEntity>
+            = RelationshipBinder(parent)
 
     var dataModelConstructor : (() -> DataModel)? = null
         private set
 
-
-    override suspend fun withRelationshipBinder(block: suspend (RelationshipBinder<DTO, DATA, ENTITY>)-> Unit){
+    override suspend fun withRelationshipBinderAsync(block: suspend (RelationshipBinder<DTO, DATA, ENTITY, ModelDTO, DataModel, ExposifyEntity>)-> Unit){
         block.invoke(relationBinder)
     }
-    override fun initFactoryRoutines(){
-        val factory = dtoFactory
-        factory.setPostCreationRoutine("dto_initialization") {
-            val dataModelContainer = DataModelContainer<DTO, DATA>(dataModel, factory.dataBlueprint)
-            initialize(registry, dataModelContainer, this@DTOConfig.propertyBinder)
-        }
-        factory.setPostCreationRoutine("repository_bindings") {
-            relationBinder.createRepositories(this)
-        }
+    override fun withRelationshipBinder(block: (RelationshipBinder<DTO, DATA, ENTITY, ModelDTO, DataModel, ExposifyEntity>)-> Unit){
+        block.invoke(relationBinder)
     }
 
     fun propertyBindings(vararg props: PropertyBindingOption<DATA, ENTITY, *> ): Unit =  propertyBinder.setProperties(props.toList())
 
     inline fun childBindings(
-        block: RelationshipBinder<DTO, DATA, ENTITY>.()-> Unit){
+        block: RelationshipBinder<DTO, DATA, ENTITY, ModelDTO, DataModel, ExposifyEntity>.()-> Unit){
         relationBinder.block()
     }
 

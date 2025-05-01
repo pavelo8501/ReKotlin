@@ -5,27 +5,29 @@ import po.exposify.classes.DTOClass
 import po.exposify.dto.interfaces.ModelDTO
 
 sealed class BindingKeyBase(val ordinance: Cardinality) {
-    open class  OneToMany<CHILD_DTO: ModelDTO>(
-        val childModel :DTOClass<CHILD_DTO>
+
+    open class  OneToMany<DTO: ModelDTO>(
+        val dtoClass :DTOClass<DTO>
     ):BindingKeyBase(Cardinality.ONE_TO_MANY)
-    open class  OneToOne<CHILD_DTO: ModelDTO>(
-        val childModel : DTOClass<CHILD_DTO>
+    open class  OneToOne<DTO: ModelDTO>(
+        val dtoClass : DTOClass<DTO>
     ):BindingKeyBase(Cardinality.ONE_TO_ONE)
-    open class  ManyToMany<CHILD_DTO: ModelDTO>(
-        val childModel : DTOClass<CHILD_DTO>
+    open class  ManyToMany<DTO: ModelDTO>(
+        val dtoClass : DTOClass<DTO>
     ):BindingKeyBase(Cardinality.MANY_TO_MANY)
+
     companion object{
-        fun <CHILD_DTO: ModelDTO> createOneToManyKey(
-            childModel : DTOClass<CHILD_DTO>
-        ): OneToMany<CHILD_DTO>{
-            return  OneToMany<CHILD_DTO>( childModel)
+        fun <DTO: ModelDTO> createOneToManyKey(
+            dtoClass : DTOClass<DTO>
+        ): OneToMany<DTO>{
+            return  OneToMany(dtoClass)
 
         }
 
-        fun <CHILD_DTO: ModelDTO> createOneToOneKey(
-            childModel : DTOClass<CHILD_DTO>
-        ): OneToOne<CHILD_DTO>{
-            return  object : OneToOne<CHILD_DTO>(childModel) {}
+        fun <DTO: ModelDTO> createOneToOneKey(
+            dtoClass : DTOClass<DTO>
+        ): OneToOne<DTO>{
+            return  object : OneToOne<DTO>(dtoClass) {}
         }
     }
 }

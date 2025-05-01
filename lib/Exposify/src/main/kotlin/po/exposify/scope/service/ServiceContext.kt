@@ -12,6 +12,7 @@ import po.exposify.classes.extensions.pick
 import po.exposify.classes.extensions.pickById
 import po.exposify.classes.extensions.select
 import po.exposify.classes.extensions.update
+import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.CrudResultSingle
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntity
@@ -30,6 +31,8 @@ class ServiceContext<DTO, DATA>(
     val personalName: String = "ServiceContext[${dtoClass.registryItem.dtoName}]"
 
     private val dbConnection: Database = serviceClass.connection
+    internal val dtoMap : MutableMap<Long, CommonDTO<DTO, DATA, ExposifyEntity>> = mutableMapOf()
+
     init { dtoClass.asHierarchyRoot(this) }
 
     internal fun serviceClass():ServiceClass<DTO, DATA, ExposifyEntity>{
@@ -55,10 +58,10 @@ class ServiceContext<DTO, DATA>(
         return result
     }
 
-    fun pick(id: Long): CrudResultSingle<DTO, DATA>{
+    fun <ENTITY: ExposifyEntity> pick(id: Long): CrudResultSingle<DTO, DATA>{
         val result =  startTaskAsync("Pick by ID", personalName) {
             suspendedTransactionAsync {
-                dtoClass.pickById<DTO, DATA>(id)
+                dtoClass.pickById<DTO, DATA, ExposifyEntity>(id)
             }.await()
         }.resultOrException()
         return result
@@ -85,7 +88,7 @@ class ServiceContext<DTO, DATA>(
     fun update(dataModel : DATA): CrudResultSingle<DTO,DATA> {
         val result =  startTaskAsync("Update", personalName) {
             suspendedTransactionAsync {
-                dtoClass.update(dataModel)
+                dtoClass.update<DTO, DATA, ExposifyEntity>(dataModel)
             }.await()
         }.resultOrException()
         return result
@@ -94,7 +97,7 @@ class ServiceContext<DTO, DATA>(
     fun update(dataModels : List<DATA>): CrudResult<DTO,DATA> {
        val result =  startTaskAsync("Update", personalName) {
             suspendedTransactionAsync {
-                dtoClass.update(dataModels)
+                dtoClass.update<DTO, DATA, ExposifyEntity>(dataModels)
             }.await()
         }.resultOrException()
        return result
