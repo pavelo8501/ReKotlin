@@ -5,10 +5,10 @@ import po.auth.extensions.generatePassword
 import po.exposify.extensions.WhereCondition
 import po.exposify.scope.service.enums.TableCreateMode
 import po.test.exposify.setup.DatabaseTest
-import po.test.exposify.setup.TestPages
-import po.test.exposify.setup.dtos.TestPageDTO
-import po.test.exposify.setup.dtos.TestUser
-import po.test.exposify.setup.dtos.TestUserDTO
+import po.test.exposify.setup.Pages
+import po.test.exposify.setup.dtos.PageDTO
+import po.test.exposify.setup.dtos.User
+import po.test.exposify.setup.dtos.UserDTO
 import po.test.exposify.setup.pageModels
 import po.test.exposify.setup.pageModelsWithSections
 import kotlin.test.Test
@@ -19,7 +19,7 @@ class TestSelect : DatabaseTest() {
 
     @Test
     fun `referenced property binding`(){
-        val user = TestUser(
+        val user = User(
             id = 0,
             login = "some_login",
             hashedPassword = generatePassword("password"),
@@ -29,14 +29,14 @@ class TestSelect : DatabaseTest() {
         val pages = pageModels(pageCount = 1, updatedBy = 1)
         var assignedUserId : Long = 0
         startTestConnection()?.let {connection->
-            connection.service(TestUserDTO, TableCreateMode.FORCE_RECREATE) {
+            connection.service(UserDTO, TableCreateMode.FORCE_RECREATE) {
                 val userData =  update(user).getData()
                 assignedUserId = userData.id
                 assertEquals("some_login", userData.login, "User login mismatch after save")
                 assertNotEquals(0, assignedUserId, "User id assignment failure")
             }
 
-            connection.service(TestPageDTO, TableCreateMode.FORCE_RECREATE) {
+            connection.service(PageDTO, TableCreateMode.FORCE_RECREATE) {
                 val pageData =  update(pages[0]).getData()
                 val updatedById =  pageData.updatedById
 
@@ -53,7 +53,7 @@ class TestSelect : DatabaseTest() {
 
         startTestConnection()?.let {connection->
 
-            connection.service(TestPageDTO, TableCreateMode.FORCE_RECREATE) {
+            connection.service(PageDTO, TableCreateMode.FORCE_RECREATE) {
                 val originalPages = pages[0]
                 val updatedPageDtos = update(pages)
                 val updatePagesData = updatedPageDtos.getData()
@@ -65,7 +65,7 @@ class TestSelect : DatabaseTest() {
 
     @Test
     fun `updates and selects DTO relations`(){
-        val user = TestUser(
+        val user = User(
             id = 0,
             login = "some_login",
             hashedPassword = generatePassword("password"),
@@ -74,12 +74,12 @@ class TestSelect : DatabaseTest() {
 
         var assignedUserId : Long = 0
         startTestConnection()?.let {connection->
-            connection.service(TestUserDTO, TableCreateMode.CREATE) {
+            connection.service(UserDTO, TableCreateMode.CREATE) {
                 val userData =  update(user).getData()
                 assignedUserId = userData.id
             }
             val pages = pageModelsWithSections(pageCount = 1, sectionsCount = 2, updatedBy = assignedUserId)
-            connection.service(TestPageDTO.Companion, TableCreateMode.CREATE) {
+            connection.service(PageDTO.Companion, TableCreateMode.CREATE) {
 
                 val originalPage = pages[0]
                 val originalSection = originalPage.sections[0]
@@ -130,7 +130,7 @@ class TestSelect : DatabaseTest() {
 
     @Test
     fun `updates and selects with conditions`(){
-        val user = TestUser(
+        val user = User(
             id = 0,
             login = "some_login",
             hashedPassword = generatePassword("password"),
@@ -139,17 +139,17 @@ class TestSelect : DatabaseTest() {
 
         var assignedUserId : Long = 0
         startTestConnection()?.let { connection ->
-            connection.service(TestUserDTO, TableCreateMode.CREATE) {
+            connection.service(UserDTO, TableCreateMode.CREATE) {
                 val userData = update(user).getData()
                 assignedUserId = userData.id
             }
             val pages = pageModelsWithSections(pageCount = 2, sectionsCount = 2, updatedBy = assignedUserId)
             pages[0].langId = 1
             pages[1].langId = 2
-            connection.service(TestPageDTO.Companion, TableCreateMode.CREATE) {
+            connection.service(PageDTO.Companion, TableCreateMode.CREATE) {
                 truncate()
                 update(pages)
-                val selectedPages =  select(WhereCondition<TestPages>().equalsTo(TestPages.langId, 1)).getData()
+                val selectedPages =  select(WhereCondition<Pages>().equalsTo(Pages.langId, 1)).getData()
                 assertEquals(1, selectedPages.count(), "Page count mismatch")
                 val selectedSections = selectedPages[0].sections
                 assertAll(

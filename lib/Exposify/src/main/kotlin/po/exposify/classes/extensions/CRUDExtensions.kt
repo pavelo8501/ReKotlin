@@ -1,7 +1,7 @@
 package po.exposify.classes.extensions
 
 import org.jetbrains.exposed.dao.id.IdTable
-import po.exposify.classes.DTOClass
+import po.exposify.classes.RootDTO
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.components.CrudResult
 import po.exposify.dto.CommonDTO
@@ -15,15 +15,14 @@ import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.WhereCondition
 import po.exposify.extensions.castOrOperationsEx
 import po.exposify.extensions.getOrOperationsEx
+import po.exposify.extensions.isTransactionReady
 import po.exposify.extensions.testOrThrow
 import po.lognotify.extensions.subTask
 import po.misc.types.castOrThrow
 import kotlin.Long
 import kotlin.collections.toList
 
-
-
-internal suspend inline fun <DTO, DATA, ENTITY> DTOClass<DTO>.pickById(
+internal suspend inline fun <DTO, DATA, ENTITY> RootDTO<DTO, DATA>.pickById(
     id: Long
 ): CrudResultSingle<DTO, DATA>  where DTO: ModelDTO,  DATA : DataModel, ENTITY: ExposifyEntity{
     val freshDto = config.dtoFactory.createDto()
@@ -49,7 +48,7 @@ internal suspend inline fun <DTO, DATA, ENTITY> DTOClass<DTO>.pickById(
  * representing the filtering conditions.
  * @return A `CrudResult<DATA, ENTITY>` containing the selected DTO (if found) and any triggered events.
  */
-internal suspend inline fun <DTO: ModelDTO, DATA: DataModel,TB : IdTable<Long>> DTOClass<DTO>.pick(
+internal suspend inline fun <DTO: ModelDTO, DATA: DataModel,TB : IdTable<Long>> RootDTO<DTO, DATA>.pick(
     conditions: WhereCondition<TB>
 ): CrudResultSingle<DTO, DATA> {
     val freshDto = config.dtoFactory.createDto()
@@ -64,7 +63,7 @@ internal suspend inline fun <DTO: ModelDTO, DATA: DataModel,TB : IdTable<Long>> 
  *
  * @return A [CrudResult] containing a list of initialized DTOs and associated events.
  */
-internal suspend fun <T, DTO, DATA> DTOClass<DTO>.select(
+internal suspend fun <T, DTO, DATA> RootDTO<DTO, DATA>.select(
     conditions:  WhereCondition<T>
 ): CrudResult<DTO, DATA> where DTO: ModelDTO, DATA: DataModel, T: IdTable<Long> =
     subTask("Select with conditions"){handler->
@@ -85,7 +84,7 @@ internal suspend fun <T, DTO, DATA> DTOClass<DTO>.select(
 }.resultOrException()
 
 
-internal suspend fun <DTO, DATA> DTOClass<DTO>.select(
+internal suspend fun <DTO, DATA> RootDTO<DTO, DATA>.select(
 ): CrudResult<DTO, DATA> where DTO: ModelDTO, DATA: DataModel = subTask("Select") {handler->
     isTransactionReady().testOrThrow(OperationsException("Transaction Lost Context", ExceptionCode.DB_NO_TRANSACTION_IN_CONTEXT)){
         true
@@ -103,7 +102,7 @@ internal suspend fun <DTO, DATA> DTOClass<DTO>.select(
 
 
 
-internal suspend fun <DTO, DATA, ENTITY> DTOClass<DTO>.update(
+internal suspend fun <DTO, DATA, ENTITY> RootDTO<DTO, DATA>.update(
     dataModel: DATA,
 ): CrudResultSingle<DTO, DATA> where DTO: ModelDTO, DATA : DataModel, ENTITY: ExposifyEntity
         = subTask("Update Repository.kt")  { handler->
@@ -117,7 +116,7 @@ internal suspend fun <DTO, DATA, ENTITY> DTOClass<DTO>.update(
     CrudResultSingle(checkedDto)
 }.resultOrException()
 
-internal suspend fun <DTO, DATA, ENTITY> DTOClass<DTO>.update(
+internal suspend fun <DTO, DATA, ENTITY> RootDTO<DTO, DATA>.update(
     dataModels: List<DATA>,
 ): CrudResult<DTO, DATA> where DTO: ModelDTO, DATA : DataModel, ENTITY: ExposifyEntity
         = subTask("Update Repository.kt")  { handler->
@@ -140,7 +139,7 @@ internal suspend fun <DTO, DATA, ENTITY> DTOClass<DTO>.update(
  * @param dataModel The data model to delete.
  * @return A [CrudResult] containing a list of successfully deleted DTOs and associated events.
  */
-internal suspend inline fun <DTO, DATA> DTOClass<DTO>.delete(
+internal suspend inline fun <DTO, DATA> RootDTO<DTO, DATA>.delete(
     dataModel: DATA
 ): CrudResult<DTO, DATA>?  where DTO: ModelDTO, DATA: DataModel
 {

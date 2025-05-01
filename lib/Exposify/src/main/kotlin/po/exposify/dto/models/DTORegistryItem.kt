@@ -1,5 +1,6 @@
 package po.exposify.dto.models
 
+import po.exposify.classes.DTOBase
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.classes.DTOClass
@@ -13,7 +14,6 @@ import kotlin.reflect.KClass
 
 
 interface DTORegistry<DTO : ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity> {
-    val dtoClass : DTOClass<DTO>
     val dataKClass:  KClass<DATA>?
     val entityKClass: KClass<ENTITY>?
 
@@ -29,7 +29,6 @@ interface DTORegistry<DTO : ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity>
 
 
 data class DTORegistryItem<DTO, DATA, ENTITY>(
-    override val dtoClass : DTOClass<DTO>,
     override val dataKClass:  KClass<DATA>,
     override val entityKClass: KClass<ENTITY>,
     val commonDTOKClass: KClass<out CommonDTO<DTO, DATA, ENTITY>>,
@@ -43,7 +42,6 @@ data class DTORegistryItem<DTO, DATA, ENTITY>(
 
 
 data class CommonDTORegistryItem<DTO, DATA, ENTITY>(
-    override val dtoClass : DTOClass<DTO>,
     override val dataKClass:  KClass<DATA>,
     override val entityKClass: KClass<ENTITY>,
     val commonDTOKClass: KClass<out CommonDTO<DTO, DATA, ENTITY>>,

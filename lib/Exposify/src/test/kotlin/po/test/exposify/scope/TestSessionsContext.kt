@@ -22,10 +22,10 @@ import po.auth.extensions.generatePassword
 import po.auth.extensions.registerAuthenticator
 import po.auth.sessions.enumerators.SessionType
 import po.auth.sessions.models.AuthorizedSession
-import po.test.exposify.setup.dtos.TestPage
-import po.test.exposify.setup.dtos.TestPageDTO
-import po.test.exposify.setup.dtos.TestUser
-import po.test.exposify.setup.dtos.TestUserDTO
+import po.test.exposify.setup.dtos.Page
+import po.test.exposify.setup.dtos.PageDTO
+import po.test.exposify.setup.dtos.User
+import po.test.exposify.setup.dtos.UserDTO
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
@@ -39,7 +39,7 @@ class TestSessionsContext : DatabaseTest()  {
 
     @BeforeAll
     fun setup(){
-        val user = TestUser(
+        val user = User(
             id = 0,
             login = "some_login",
             hashedPassword = generatePassword("password"),
@@ -48,11 +48,11 @@ class TestSessionsContext : DatabaseTest()  {
 
         user.hashedPassword = generatePassword("password")
         startTestConnection()?.let { connection ->
-            connection.service(TestUserDTO, TableCreateMode.CREATE) {
+            connection.service(UserDTO, TableCreateMode.CREATE) {
                 userId =  update(user).getData().id
             }
 
-            connection.service<TestPageDTO, TestPage>(TestPageDTO.Companion, TableCreateMode.FORCE_RECREATE) {
+            connection.service<PageDTO, Page>(PageDTO.Companion, TableCreateMode.FORCE_RECREATE) {
                 truncate()
                 sequence(createHandler(SequenceID.UPDATE)) { inputList, conditions ->
                     update(inputList)
@@ -69,7 +69,7 @@ class TestSessionsContext : DatabaseTest()  {
     @Test
     fun `test anonymous sessions`() = runTest{
 
-        val user = TestUser(
+        val user = User(
             id = 0,
             login = "some_login",
             hashedPassword = generatePassword("password"),
@@ -85,7 +85,7 @@ class TestSessionsContext : DatabaseTest()  {
 
             var sessionIdBeforeStart = ""
             var sessionIdOnComplete = ""
-            val result = TestPageDTO.runSequence(SequenceID.UPDATE){
+            val result = PageDTO.runSequence(SequenceID.UPDATE){
                 withInputData(pages)
                 onStart {
                     sessionIdBeforeStart = it.sessionID
@@ -121,7 +121,7 @@ class TestSessionsContext : DatabaseTest()  {
     @Test
     fun `test authenticated session`()= runTest{
 
-        val user = TestUser(
+        val user = User(
             id = 0,
             login = "some_login",
             hashedPassword = generatePassword("password"),
@@ -138,7 +138,7 @@ class TestSessionsContext : DatabaseTest()  {
 
             registerAuthenticator(::userLookUp)
             val principal = session.authenticate("some_login", "password")
-            val pages = TestPageDTO.runSequence<TestPage>(SequenceID.SELECT){
+            val pages = PageDTO.runSequence<Page>(SequenceID.SELECT){
                 onStart {
                     sessionType = it.sessionType
                 }

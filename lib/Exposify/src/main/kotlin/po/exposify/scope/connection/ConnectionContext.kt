@@ -3,6 +3,7 @@ package po.exposify.scope.connection
 import org.jetbrains.exposed.sql.Database
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.classes.DTOClass
+import po.exposify.classes.RootDTO
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.scope.service.ServiceClass
@@ -20,14 +21,14 @@ class ConnectionContext(
         get(){return  connClass.isConnectionOpen }
 
     fun <DTO, DATA> service(
-        dtoClass : DTOClass<DTO>,
+        dtoClass : RootDTO<DTO, DATA>,
         createOptions : TableCreateMode = TableCreateMode.CREATE,
-        context: ServiceContext<DTO, DATA>.()->Unit,
+        block: ServiceContext<DTO, DATA, ExposifyEntity>.()->Unit,
     ) where DTO : ModelDTO, DATA : DataModel{
-       val serviceClass =  ServiceClass<DTO, DATA, ExposifyEntity>(connClass, dtoClass, createOptions)
 
+        val serviceClass =  ServiceClass<DTO, DATA, ExposifyEntity>(connClass, createOptions)
         startTaskAsync("Create Service") {
-            serviceClass.launch(context)
+            serviceClass.startService(dtoClass, block)
         }.onComplete {
             connClass.addService(serviceClass)
         }

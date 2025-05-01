@@ -1,19 +1,18 @@
 package po.test.exposify.setup
 
-import po.test.exposify.setup.dtos.TestPage
-import po.test.exposify.setup.dtos.TestSection
-
+import po.test.exposify.setup.dtos.Page
+import po.test.exposify.setup.dtos.Section
 
 private fun sectionModel(
-    parent : TestPage,
+    parent : Page,
     name: String,
     updatedBy: Long,
     sectionClasses : List<ClassItem> = listOf(ClassItem(1,"class_1"), ClassItem(2,"class_2")),
     metaTags : List<MetaTag> = listOf(MetaTag(1,"key", "value"))
-): TestSection
+): Section
 {
 
-    return TestSection(
+    return Section(
         id = 0,
         name = "TestSection/$name",
         description =  "TestSection/$name Description",
@@ -27,14 +26,14 @@ private fun sectionModel(
         )
 }
 
-private fun pageModel(name: String, updatedBy: Long): TestPage{
-    val page = TestPage(0, "TestPage/$name", 1, updatedBy)
+private fun pageModel(name: String, updatedBy: Long): Page{
+    val page = Page(0, "TestPage/$name", 1, updatedBy)
     return page
 }
 
 
-fun pageModels(pageCount: Int, updatedBy : Long): List<TestPage>{
-    val result =  mutableListOf<TestPage>()
+fun pageModels(pageCount: Int, updatedBy : Long): List<Page>{
+    val result =  mutableListOf<Page>()
     for(index  in 1 .. pageCount){
         result.add(pageModel(index.toString(), updatedBy))
     }
@@ -42,7 +41,7 @@ fun pageModels(pageCount: Int, updatedBy : Long): List<TestPage>{
 }
 
 
-fun pageModelsWithSections(pageCount: Int, sectionsCount: Int, updatedBy : Long): List<TestPage>{
+fun pageModelsWithSections(pageCount: Int, sectionsCount: Int, updatedBy : Long): List<Page>{
     val pages =  pageModels(pageCount, updatedBy)
     pages.forEach {
         for(index  in 1 .. sectionsCount){

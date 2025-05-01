@@ -20,10 +20,10 @@ import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.NotifyConfig
 import po.lognotify.extensions.launchProcess
 import po.test.exposify.setup.DatabaseTest
-import po.test.exposify.setup.dtos.TestPage
-import po.test.exposify.setup.dtos.TestPageDTO
-import po.test.exposify.setup.dtos.TestUser
-import po.test.exposify.setup.dtos.TestUserDTO
+import po.test.exposify.setup.dtos.Page
+import po.test.exposify.setup.dtos.PageDTO
+import po.test.exposify.setup.dtos.User
+import po.test.exposify.setup.dtos.UserDTO
 import po.test.exposify.setup.pageModelsWithSections
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -32,7 +32,7 @@ import kotlin.test.assertNotNull
 class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
 
     companion object {
-        lateinit var authenticatedUser: TestUser
+        lateinit var authenticatedUser: User
 
         @JvmStatic
         fun validateUser(login: String): AuthenticationPrincipal? {
@@ -56,7 +56,7 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
             authHeaderValue = ""
         )
 
-        val user = TestUser(
+        val user = User(
             id = 0,
             login = "some_login",
             hashedPassword = generatePassword("password"),
@@ -76,12 +76,12 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
 
 
         startTestConnection()?.run {
-            service(TestUserDTO, TableCreateMode.FORCE_RECREATE) {
+            service(UserDTO, TableCreateMode.FORCE_RECREATE) {
                 authenticatedUser = update(user).getData()
                 AuthSessionManager.authenticator.setAuthenticator(::validateUser)
             }
 
-            service(TestPageDTO, TableCreateMode.CREATE) {
+            service(PageDTO, TableCreateMode.CREATE) {
                 sequence(createHandler(SequenceID.UPDATE)) { inputData, _ ->
 
                     update(inputData)
@@ -111,7 +111,7 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
                 authSession.launchProcess {
                     val inputData =
                         pageModelsWithSections(pageCount = 1000, sectionsCount = 10, authSession.principal!!.id)
-                    TestPageDTO.runSequence(SequenceID.UPDATE) {
+                    PageDTO.runSequence(SequenceID.UPDATE) {
                         onStart {
                             println("Running update with session ${it.sessionID}")
                         }
@@ -122,7 +122,7 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
             launch {
                 anonSession.launchProcess {
                     delay(200)
-                    val selectionResult = TestPageDTO.runSequence<TestPage>(SequenceID.SELECT) {
+                    val selectionResult = PageDTO.runSequence<Page>(SequenceID.SELECT) {
                         onStart {
                             println("Running update with session ${it.sessionID}")
                         }

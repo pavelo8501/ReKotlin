@@ -1,5 +1,6 @@
 package po.exposify.dto
 
+import po.exposify.classes.DTOBase
 import po.exposify.dto.components.relation_binder.BindingKeyBase
 import po.exposify.dto.components.property_binder.PropertyBinder
 import po.exposify.dto.components.property_binder.enums.UpdateMode
@@ -26,13 +27,11 @@ import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.InitException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.dto.enums.DTOInitStatus
-import po.exposify.dto.models.DTORegistryItem
 import po.exposify.extensions.castOrOperationsEx
 import po.exposify.extensions.getOrOperationsEx
-import po.misc.types.castOrThrow
 
 abstract class CommonDTO<DTO, DATA, ENTITY>(
-   val dtoClass: DTOClass<DTO>
+   val dtoClass: DTOBase<DTO, *>
 ): ModelDTO where DTO : ModelDTO,  DATA: DataModel , ENTITY: ExposifyEntity {
 
 
@@ -73,7 +72,6 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
 
     private val registryItem : CommonDTORegistryItem<DTO, DATA, ENTITY> by lazy {
         val regItem =  CommonDTORegistryItem(
-            dtoClass,
             dtoClassConfig.registry.dataKClass,
             dtoClassConfig.registry.entityKClass,
             dtoClassConfig.registry.commonDTOKClass,

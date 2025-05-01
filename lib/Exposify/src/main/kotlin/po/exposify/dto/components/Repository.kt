@@ -1,10 +1,12 @@
 package po.exposify.dto.components
 
+import po.exposify.classes.DTOBase
 import po.exposify.dto.components.relation_binder.MultipleChildContainer
 import po.exposify.dto.components.relation_binder.SingleChildContainer
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.classes.DTOClass
+import po.exposify.classes.RootDTO
 import po.exposify.classes.components.DTOConfig
 import po.exposify.dto.components.property_binder.containerize
 import po.exposify.dto.components.property_binder.enums.UpdateMode
@@ -17,6 +19,7 @@ import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.castOrOperationsEx
 import po.exposify.extensions.getOrOperationsEx
 import po.lognotify.TasksManaged
+import po.lognotify.extensions.subTask
 import po.misc.types.castOrThrow
 import kotlin.collections.forEach
 
@@ -32,7 +35,7 @@ suspend fun<DTO : ModelDTO, DATA: DataModel, ENTITY: ExposifyEntity> selectDto(
 }
 
 suspend fun <DTO : ModelDTO, DATA: DataModel, ENTITY: ExposifyEntity> updateDto(
-   dtoClass: DTOClass<DTO>, dataModel: DATA
+   dtoClass: RootDTO<DTO, DATA>, dataModel: DATA
 ):CommonDTO<DTO, DATA, ENTITY>{
     val castedDto = dtoClass.config.dtoFactory.createDto(dataModel).run {
             castOrThrow<CommonDTO<DTO, DATA, ENTITY>, OperationsException>()
@@ -53,12 +56,12 @@ class SingleRepository<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>(
     val binding : SingleChildContainer<DTO, DATA, ENTITY, CHILD_DTO,  CHILD_DATA, CHILD_ENTITY>,
     val hostingDto : CommonDTO<DTO, DATA, ENTITY>,
     val childClassConfig: DTOConfig<CHILD_DTO, CHILD_DATA, CHILD_ENTITY>,
-    val childClass: DTOClass<CHILD_DTO>
+    val childClass: DTOBase<CHILD_DTO, *>,
 ): RepositoryBase<DTO,DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>(childClassConfig, childClass), TasksManaged
         where DTO : ModelDTO, DATA: DataModel, ENTITY : ExposifyEntity,
               CHILD_DTO : ModelDTO, CHILD_DATA: DataModel, CHILD_ENTITY: ExposifyEntity
 {
-    override val personalName: String = "ExperimentalRepository"
+    override val personalName: String  get() = "SingleRepository[${hostingDto.personalName}]"
 
     suspend fun updateSingle() {
         val dataModel = binding.sourcePropertyWrapper.get(hostingDto.dataModel).getOrOperationsEx(
@@ -91,15 +94,17 @@ class MultipleRepository<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>
     val binding : MultipleChildContainer<DTO, DATA, ENTITY, CHILD_DTO,  CHILD_DATA, CHILD_ENTITY>,
     val hostingDto : CommonDTO<DTO, DATA, ENTITY>,
     val childClassConfig: DTOConfig<CHILD_DTO, CHILD_DATA, CHILD_ENTITY>,
-    val childClass: DTOClass<CHILD_DTO>
+    val childClass: DTOBase<CHILD_DTO, *>,
 ): RepositoryBase<DTO,DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>(childClassConfig, childClass), TasksManaged
         where DTO : ModelDTO, DATA: DataModel, ENTITY : ExposifyEntity,
               CHILD_DTO : ModelDTO, CHILD_DATA: DataModel, CHILD_ENTITY: ExposifyEntity
 {
-    override val personalName: String = "ExperimentalRepository"
+    override val personalName: String  get() = "MultipleRepository[${hostingDto.personalName}]"
 
-    suspend fun updateMultiple(){
+    suspend fun updateMultiple() = subTask("Update", personalName){handler->
         val dataModels = binding.ownDataModelsProperty.get(hostingDto.dataModel)
+        handler.info("Update for parent dto ${hostingDto.personalName} and id ${hostingDto.id} ")
+        handler.info("Data Models count :${dataModels.count()} received from property ${binding.ownDataModelsProperty.name}")
         dataModels.forEach {dataModel->
             val newChildDto =  childFactory.createDto(dataModel)
             if(dataModel.id == 0L){
@@ -208,7 +213,7 @@ class MultipleRepository<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>
 
 sealed class RepositoryBase<DTO, DATA, ENTITY, CHILD_DTO,  CHILD_DATA, CHILD_ENTITY>(
     private val childClassConfig: DTOConfig<CHILD_DTO, CHILD_DATA, CHILD_ENTITY>,
-    private val childClass: DTOClass<CHILD_DTO>
+    private val childClass: DTOBase<CHILD_DTO, *>,
 ) where DTO : ModelDTO, DATA: DataModel, ENTITY : ExposifyEntity,
         CHILD_DTO : ModelDTO, CHILD_DATA: DataModel, CHILD_ENTITY: ExposifyEntity
 {

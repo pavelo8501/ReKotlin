@@ -1,6 +1,6 @@
 package po.exposify.dto.components.relation_binder.delegates
 
-import po.exposify.classes.DTOClass
+import po.exposify.classes.DTOBase
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.SingleRepository
@@ -13,7 +13,7 @@ import kotlin.reflect.KProperty1
 
 class OneToOneDelegate<DTO, DATA, ENTITY, C_DTO,  CD,  CF>(
     private val dto : CommonDTO<DTO, DATA, ENTITY>,
-    private val childModel: DTOClass<C_DTO>,
+    private val childModel:DTOBase<C_DTO, *>,
 
     private val bindingContainer :  SingleChildContainer<DTO, DATA, ENTITY, C_DTO, CD, CF>,
     private val singleRepository: SingleRepository<DTO, DATA, ENTITY, C_DTO, CD, CF>

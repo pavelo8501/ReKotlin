@@ -1,6 +1,7 @@
 package po.exposify.dto.components.relation_binder
 
 import org.jetbrains.exposed.sql.SizedIterable
+import po.exposify.classes.DTOBase
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.components.MultipleRepository
 import po.exposify.dto.components.RepositoryBase
@@ -19,7 +20,7 @@ import kotlin.reflect.KProperty1
 fun <DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY> createOneToOneContainer(
     dto: CommonDTO<DTO, DATA, ENTITY>,
     childConfig: DTOConfig<CHILD_DTO, CHILD_DATA, CHILD_ENTITY>,
-    childClass: DTOClass<CHILD_DTO>
+    childClass: DTOBase<CHILD_DTO, *>
 ): SingleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>
 
 where DTO: ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity,
@@ -32,7 +33,7 @@ where DTO: ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity,
 fun <DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY> createOneToManyContainer(
     dto: CommonDTO<DTO, DATA, ENTITY>,
     childConfig: DTOConfig<CHILD_DTO, CHILD_DATA, CHILD_ENTITY>,
-    childClass: DTOClass<CHILD_DTO>
+    childClass: DTOBase<CHILD_DTO, *, >
 ): MultipleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>
 
         where DTO: ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity,
@@ -46,7 +47,7 @@ fun <DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY> createOneToManyCont
 class SingleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>  (
     private  val dto: CommonDTO<DTO, DATA, ENTITY>,
     childConfig: DTOConfig<CHILD_DTO, CHILD_DATA, CHILD_ENTITY>,
-    childClass: DTOClass<CHILD_DTO>
+    childClass: DTOBase<CHILD_DTO, *>
 ): BindingContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>(childConfig, childClass)
         where DTO: ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity,
             CHILD_DTO : ModelDTO,  CHILD_DATA: DataModel, CHILD_ENTITY : ExposifyEntity
@@ -74,7 +75,7 @@ class SingleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTIT
 class MultipleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>(
     private  val dto: CommonDTO<DTO, DATA, ENTITY>,
     childConfig: DTOConfig<CHILD_DTO, CHILD_DATA, CHILD_ENTITY>,
-    childClass: DTOClass<CHILD_DTO>,
+    childClass: DTOBase<CHILD_DTO, *>,
 ): BindingContainer<DTO,DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>(childConfig, childClass)
         where DTO: ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity,
               CHILD_DTO : ModelDTO,  CHILD_DATA: DataModel, CHILD_ENTITY : ExposifyEntity
@@ -100,7 +101,7 @@ class MultipleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENT
 
 sealed class BindingContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>(
     val childConfig: DTOConfig<CHILD_DTO, CHILD_DATA, CHILD_ENTITY>,
-    val childClass: DTOClass<CHILD_DTO>,
+    val childClass: DTOBase<CHILD_DTO, *>,
 ) where DTO : ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity, CHILD_DTO : ModelDTO,  CHILD_DATA: DataModel, CHILD_ENTITY : ExposifyEntity
 {
     abstract val cardinality  : Cardinality

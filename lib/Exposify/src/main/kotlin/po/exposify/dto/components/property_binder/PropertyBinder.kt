@@ -11,11 +11,6 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntity
 import po.lognotify.extensions.subTask
 
-
-//ComplexDelegate<DTO, DATA, ENTITY, FOREIGN_ENTITY, DATA_VAL, RES_VAL>
-
-
-
 class PropertyBinder<DATA : DataModel, ENT : ExposifyEntity>(
     var  onPropertyUpdate : ((String, PropertyType, UpdateMode) -> Unit)?,
     private val onSyncedSerializedAdd : (syncedSerializedProperty:  List<SerializedBinding<DATA, ENT, *, *>>)-> Unit)

@@ -6,13 +6,16 @@ import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.exists
 import org.jetbrains.exposed.sql.transactions.experimental.suspendedTransactionAsync
+import po.exposify.classes.DTOBase
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.common.interfaces.AsClass
 import po.exposify.classes.DTOClass
+import po.exposify.classes.RootDTO
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.InitException
 import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.getOrOperationsEx
 import po.exposify.extensions.safeCast
 import po.exposify.scope.connection.ConnectionClass
@@ -27,14 +30,15 @@ import kotlin.collections.set
 
 class ServiceClass<DTO, DATA, ENTITY>(
     private val connectionClass : ConnectionClass,
-    private val rootDTOModel : DTOClass<DTO>,
     private val serviceCreateOption: TableCreateMode = TableCreateMode.CREATE,
-):  AsClass<DATA, ENTITY>, TasksManaged  where  DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity {
+):  AsClass<DATA, ENTITY>, TasksManaged  where  DTO: ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity {
 
-    var personalName: String = "ServiceClass[${rootDTOModel.personalName}]"
+    private lateinit var serviceContext: ServiceContext<DTO, DATA, ENTITY>
+
+    var personalName: String = "ServiceClass[Uninitialized]"
+        private set
 
     internal val connection: Database = connectionClass.connection
-    internal var serviceContext: ServiceContext<DTO, DATA>? = null
     private val sequences = ConcurrentHashMap<SequenceKey, SequencePack<DTO, DATA>>()
 
     private fun createTable(table: IdTable<Long>): Boolean {
@@ -67,7 +71,7 @@ class ServiceClass<DTO, DATA, ENTITY>(
             throw ex
         }
     }
-    private fun prepareTables(serviceCreateOption: TableCreateMode) {
+    private fun prepareTables(serviceCreateOption: TableCreateMode, rootDTOModel: RootDTO<DTO, DATA>) {
         val tableList = mutableListOf<IdTable<Long>>()
         rootDTOModel.getAssociatedTables(tableList)
         when (serviceCreateOption) {
@@ -76,38 +80,27 @@ class ServiceClass<DTO, DATA, ENTITY>(
                     createTable(it)
                 }
             }
-
             TableCreateMode.FORCE_RECREATE -> {
                 dropTables(tableList)
             }
         }
     }
 
-    private suspend fun initializeDTOs(context: suspend ServiceClass<DTO, DATA, ENTITY>.() -> Unit) {
-        context.invoke(this)
-    }
+    internal suspend fun startService(
+        rootDTOModel: RootDTO<DTO, DATA>,
+        block:  ServiceContext<DTO, DATA, ExposifyEntity>.()->Unit)
+            = subTask("Initializing", "ServiceClass") {
 
-    private suspend fun start() = subTask("Initializing", "ServiceClass") {
+        rootDTOModel.initialization()
         suspendedTransactionAsync {
-            initializeDTOs {
-                rootDTOModel.initialization()
-            }
-            prepareTables(serviceCreateOption)
+            prepareTables(serviceCreateOption, rootDTOModel)
         }.await()
+
+        serviceContext = ServiceContext(this, rootDTOModel)
+        val castedContext = serviceContext.castOrInitEx<ServiceContext<DTO, DATA, ExposifyEntity>>("StartService. Cast failed")
+        rootDTOModel.setContextOwned(castedContext)
+        castedContext.block()
     }.resultOrException()
-
-    internal suspend fun launch(receiver: ServiceContext<DTO, DATA>.() -> Unit) {
-        start()
-        val casted = this@ServiceClass.safeCast<ServiceClass<DTO, DATA, ExposifyEntity>>()
-            .getOrOperationsEx(
-                "Cast to ServiceClass<DTO,DATA, ExposifyEntity> failed",
-                ExceptionCode.VALUE_NOT_FOUND)
-
-        ServiceContext(casted, rootDTOModel).let { context ->
-            context.receiver()
-            serviceContext = context
-        }
-    }
 
     internal fun addSequencePack(pack: SequencePack<DTO, DATA>) {
         sequences[pack.getSequenceHandler().thisKey] = pack
@@ -120,7 +113,7 @@ class ServiceClass<DTO, DATA, ENTITY>(
         return connectionClass.launchSequence(foundSequence)
     }
 
-    fun getSequenceHandler(sequenceId: Int, dtoClass: DTOClass<DTO>): SequenceHandler<DTO, DATA> {
+    fun getSequenceHandler(sequenceId: Int, dtoClass: DTOBase<DTO, *>): SequenceHandler<DTO, DATA> {
         val lookupKey =
             sequences.keys.firstOrNull { it.sequenceId == sequenceId && it.dtoClassName == dtoClass.personalName }
                 .getOrOperationsEx(
@@ -131,6 +124,5 @@ class ServiceClass<DTO, DATA, ENTITY>(
         val handler = sequences[lookupKey]!!.getSequenceHandler()
         return handler
     }
-
 
 }

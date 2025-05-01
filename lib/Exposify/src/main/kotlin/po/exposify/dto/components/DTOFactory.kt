@@ -145,11 +145,15 @@ internal class DTOFactory<DTO, DATA, ENTITY>(
      * */
     suspend fun createDto(withDataModel : DATA? = null): CommonDTO<DTO, DATA, ENTITY> =
         subTask("Create DTO", personalName){handler->
-        val model = withDataModel?: createDataModel()
+        val dataModel = withDataModel?: createDataModel()
         dtoBlueprint.setExternalParamLookupFn { param ->
             when (param.name) {
                 "dataModel" -> {
-                    model
+                    if (param.type.classifier == dataModel::class) {
+                        dataModel
+                    } else {
+                        throw IllegalArgumentException("Mismatched dataModel type for ${dtoBlueprint.clazz.simpleName}. Expected ${param.type}, got ${dataModel::class}")
+                    }
                 }
                 else -> {
                     null
@@ -158,10 +162,16 @@ internal class DTOFactory<DTO, DATA, ENTITY>(
         }
 
        try {
-            val newDto =  dtoBlueprint.getConstructor().callBy(dtoBlueprint.getConstructorArgs())
+            val args = dtoBlueprint.getConstructorArgs()
+            val newDto =  dtoBlueprint.getConstructor().callBy(args)
             dtoPostCreation(newDto)
+
             newDto
         }catch (th: Throwable){
+           val argsUsed = dtoBlueprint.getConstructorArgs()
+           val argsStr =  argsUsed.keys.joinToString { it.name.toString() }
+           handler.warn("While creating dto for ${argsStr}")
+           handler.warn("Arguments used ${argsUsed.values.map { toString() }}")
           handler.warn(th.toString().prependIndent("Exception"))
           throw  th
         }

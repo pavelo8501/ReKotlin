@@ -6,10 +6,12 @@ import org.jetbrains.exposed.sql.Database
 import po.auth.sessions.enumerators.SessionType
 import po.auth.sessions.interfaces.SessionIdentified
 import po.auth.sessions.models.AuthorizedSession
+import po.exposify.classes.DTOBase
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.components.CrudResult
 import po.exposify.dto.CommonDTO
 import po.exposify.classes.DTOClass
+import po.exposify.classes.RootDTO
 import po.exposify.classes.extensions.select
 import po.exposify.classes.extensions.update
 import po.exposify.dto.interfaces.ModelDTO
@@ -21,9 +23,6 @@ import po.exposify.scope.service.ServiceClass
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.subTask
 import kotlin.coroutines.coroutineContext
-
-
-
 
 interface RunnableContext: SessionIdentified{
     val method: String
@@ -54,12 +53,12 @@ interface RunnableContext: SessionIdentified{
 
 class SequenceContext<DTO, DATA>(
     private  val serviceClass : ServiceClass<DTO, DATA, ExposifyEntity>,
-    private val dtoClass : DTOClass<DTO>,
+    private val dtoClass : RootDTO<DTO, DATA>,
     private val handler : SequenceHandler<DTO, DATA>,
 ): TasksManaged where  DTO : ModelDTO, DATA : DataModel
 {
 
-    private val personalName : String = "SequenceContext[${dtoClass.registryItem.dtoName}]"
+    private val personalName : String = "SequenceContext[${dtoClass.config.registry.dtoName}]"
     private val connection: Database = serviceClass.connection
 
     private var lastResult : CrudResult<DTO, DATA> = CrudResult()
@@ -82,7 +81,6 @@ class SequenceContext<DTO, DATA>(
         return lastResult.getData()
 
     }
-
 
     suspend fun <T: IdTable<Long>> pick(
         conditions: WhereCondition<T>,

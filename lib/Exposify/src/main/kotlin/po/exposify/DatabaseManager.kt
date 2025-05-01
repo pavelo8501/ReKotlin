@@ -12,10 +12,6 @@ import po.exposify.scope.connection.models.ConnectionSettings
 import po.lognotify.extensions.newTask
 import po.lognotify.extensions.newTaskAsync
 
-fun echo(ex: Exception, message: String? = null){
-    println("Exception happened in Exposify:  Exception:${ex.message.toString()}. $message")
-}
-
 fun launchService(connection: ConnectionContext, block: ConnectionContext.()-> Unit ){
     if(connection.isOpen){
         connection.block()

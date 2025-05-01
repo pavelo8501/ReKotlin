@@ -10,11 +10,11 @@ import po.exposify.scope.sequence.extensions.createHandler
 import po.exposify.scope.service.enums.TableCreateMode
 import po.test.exposify.setup.ClassItem
 import po.test.exposify.setup.DatabaseTest
-import po.test.exposify.setup.TestPages
-import po.test.exposify.setup.dtos.TestPage
-import po.test.exposify.setup.dtos.TestPageDTO
-import po.test.exposify.setup.dtos.TestUser
-import po.test.exposify.setup.dtos.TestUserDTO
+import po.test.exposify.setup.Pages
+import po.test.exposify.setup.dtos.Page
+import po.test.exposify.setup.dtos.PageDTO
+import po.test.exposify.setup.dtos.User
+import po.test.exposify.setup.dtos.UserDTO
 import po.test.exposify.setup.pageModels
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -27,7 +27,7 @@ class TestSequenceContext : DatabaseTest() {
 
     @Test
     fun `sequence launched with conditions and input work`() = runTest {
-        val user = TestUser(
+        val user = User(
             id = 0,
             login = "some_login",
             hashedPassword = generatePassword("password"),
@@ -37,10 +37,10 @@ class TestSequenceContext : DatabaseTest() {
         val pageClasses = listOf<ClassItem>(ClassItem(1, "class_1"), ClassItem(2, "class_2"))
         val  connectionContext = startTestConnection()
         connectionContext?.let { connection ->
-            connection.service<TestUserDTO, TestUser>(TestUserDTO.Companion, TableCreateMode.FORCE_RECREATE) {
+            connection.service(UserDTO, TableCreateMode.FORCE_RECREATE) {
                 updatedById = update(user).getData().id
             }
-            connection.service<TestPageDTO, TestPage>(TestPageDTO.Companion, TableCreateMode.CREATE) {
+            connection.service<PageDTO, Page>(PageDTO, TableCreateMode.CREATE) {
                 truncate()
                 sequence(createHandler(SequenceID.UPDATE)) { inputList, conditions ->
                     update(inputList)
@@ -56,7 +56,7 @@ class TestSequenceContext : DatabaseTest() {
         pages[2].langId = 2
         pages[3].langId = 2
 
-        val updatedPages = TestPageDTO.Companion.runSequence(SequenceID.UPDATE.value) {
+        val updatedPages = PageDTO.Companion.runSequence(SequenceID.UPDATE.value) {
             withInputData(pages)
         }
 
@@ -66,8 +66,8 @@ class TestSequenceContext : DatabaseTest() {
             { assertEquals("this_name", updatedPages[1].name, "Updated page name mismatch") }
         )
 
-        val selectPages = TestPageDTO.Companion.runSequence<TestPage>(SequenceID.SELECT.value) {
-            withConditions(WhereCondition<TestPages>().equalsTo(TestPages.langId, 2))
+        val selectPages = PageDTO.Companion.runSequence<Page>(SequenceID.SELECT.value) {
+            withConditions(WhereCondition<Pages>().equalsTo(Pages.langId, 2))
         }
 
         assertAll(

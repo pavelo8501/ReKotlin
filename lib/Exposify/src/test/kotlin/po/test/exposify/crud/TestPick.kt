@@ -5,9 +5,8 @@ import org.junit.jupiter.api.assertAll
 import po.auth.extensions.generatePassword
 import po.exposify.scope.service.enums.TableCreateMode
 import po.test.exposify.setup.DatabaseTest
-import po.test.exposify.setup.TestUserEntity
-import po.test.exposify.setup.dtos.TestUser
-import po.test.exposify.setup.dtos.TestUserDTO
+import po.test.exposify.setup.dtos.User
+import po.test.exposify.setup.dtos.UserDTO
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -17,7 +16,7 @@ class TestPick : DatabaseTest(){
 
     @Test
     fun `user updates and pick`() = runTest {
-        val user = TestUser(
+        val user = User(
             id = 0,
             login = "some_login",
             hashedPassword = generatePassword("password"),
@@ -25,12 +24,12 @@ class TestPick : DatabaseTest(){
             email = "nomail@void.null"
         )
 
-        var pickedDTO : TestUserDTO? = null
+        var pickedDTO : UserDTO? = null
 
         startTestConnection()?.run {
-            service(TestUserDTO, TableCreateMode.CREATE) {
+            service(UserDTO, TableCreateMode.CREATE) {
                 val userDataModel =  update(user).getData()
-                 pickedDTO = pick<TestUserEntity>(userDataModel.id).getDTO() as TestUserDTO
+                 pickedDTO = pick(userDataModel.id).getDTO() as UserDTO
             }
         }?:throw Exception("Connection not available")
 

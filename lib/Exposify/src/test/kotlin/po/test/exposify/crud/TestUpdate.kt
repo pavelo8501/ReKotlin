@@ -6,8 +6,8 @@ import org.junit.jupiter.api.assertAll
 import po.auth.extensions.generatePassword
 import po.exposify.scope.service.enums.TableCreateMode
 import po.test.exposify.setup.DatabaseTest
-import po.test.exposify.setup.dtos.TestUser
-import po.test.exposify.setup.dtos.TestUserDTO
+import po.test.exposify.setup.dtos.User
+import po.test.exposify.setup.dtos.UserDTO
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
@@ -16,16 +16,16 @@ class TestUpdate : DatabaseTest() {
 
     @Test
     fun `user updates`() = runTest {
-        val user = TestUser(
+        val user = User(
             id = 0,
             login = "some_login",
             hashedPassword = generatePassword("password"),
             name = "name",
             email = "nomail@void.null"
         )
-        var userDataModel: TestUser? = null
+        var userDataModel: User? = null
         startTestConnection()?.run {
-            service(TestUserDTO, TableCreateMode.CREATE){
+            service(UserDTO, TableCreateMode.CREATE){
                userDataModel = update(user).getData()
             }
         }?:throw Exception("Connection not available")

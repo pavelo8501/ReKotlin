@@ -108,7 +108,7 @@ class ParentDelegate<DTO, DATA, ENTITY, PARENT_DTO, PARENT_DATA, PARENT_ENTITY>(
     }
 
     override fun updateDataModel(entity: ENTITY){
-       val foreignDto = parentDtoModel.lookupDTO(entity.id.value, dto.dtoClass)
+       val foreignDto = parentDtoModel.lookupDTO<DTO>(entity.id.value, dto.dtoClass)
         foreignDto?.let {
             val castedParentDto = it.castOrThrow<CommonDTO<PARENT_DTO, PARENT_DATA, PARENT_ENTITY>, OperationsException>()
             dataProperty.set(dto.dataModel, castedParentDto.dataModel)

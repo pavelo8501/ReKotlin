@@ -1,14 +1,10 @@
 package po.exposify.common.classes
 
-
-
 inline fun <reified K, reified T> repoBuilder(key:K, item : T, initial :  Map<K, T> = emptyMap<K,T>()):Map<K, T>{
     val map: MutableMap<K, T> = initial.toMutableMap()
     map[key] = item
     return map
 }
-
-
 
 /**
  * Represents a builder for creating immutable lists dynamically.

@@ -30,8 +30,6 @@ class ConnectionInfo(
     fun getConnectionString(): String{
         if(jdbcUrl != null){
             return  jdbcUrl
-         //   val separator = if ("?" in jdbcUrl) "&" else "?"
-           // "$jdbcUrl${separator}user=$user&password=$pwd"
         }else{
             return  "jdbc:postgresql://$host:$port/$dbName"
         }

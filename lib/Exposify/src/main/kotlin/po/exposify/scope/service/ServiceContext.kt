@@ -7,6 +7,7 @@ import po.exposify.classes.interfaces.DataModel
 import po.exposify.common.interfaces.AsContext
 import po.exposify.dto.components.CrudResult
 import po.exposify.classes.DTOClass
+import po.exposify.classes.RootDTO
 import po.exposify.classes.extensions.delete
 import po.exposify.classes.extensions.pick
 import po.exposify.classes.extensions.pickById
@@ -17,27 +18,22 @@ import po.exposify.dto.components.CrudResultSingle
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.extensions.WhereCondition
+import po.exposify.extensions.castOrInitEx
 import po.exposify.scope.sequence.SequenceContext
 import po.exposify.scope.sequence.classes.SequenceHandler
 import po.exposify.scope.sequence.models.SequencePack
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.startTaskAsync
 
-class ServiceContext<DTO, DATA>(
-    private  val serviceClass : ServiceClass<DTO, DATA, ExposifyEntity>,
-    internal val dtoClass: DTOClass<DTO>,
+class ServiceContext<DTO, DATA, ENTITY: ExposifyEntity>(
+    internal  val serviceClass : ServiceClass<DTO, DATA, ENTITY>,
+    internal val dtoClass: RootDTO<DTO, DATA>,
 ): TasksManaged,  AsContext<DATA>  where DTO : ModelDTO, DATA: DataModel{
 
-    val personalName: String = "ServiceContext[${dtoClass.registryItem.dtoName}]"
+    val personalName: String = "ServiceContext[${dtoClass.config.registry.dtoName}]"
 
     private val dbConnection: Database = serviceClass.connection
-    internal val dtoMap : MutableMap<Long, CommonDTO<DTO, DATA, ExposifyEntity>> = mutableMapOf()
-
-    init { dtoClass.asHierarchyRoot(this) }
-
-    internal fun serviceClass():ServiceClass<DTO, DATA, ExposifyEntity>{
-        return serviceClass
-    }
+    internal val dtoMap : MutableMap<Long, CommonDTO<DTO, DATA, ENTITY>> = mutableMapOf()
 
     fun truncate(){
         startTaskAsync("Truncate", personalName) {
@@ -58,10 +54,10 @@ class ServiceContext<DTO, DATA>(
         return result
     }
 
-    fun <ENTITY: ExposifyEntity> pick(id: Long): CrudResultSingle<DTO, DATA>{
+    fun  pick(id: Long): CrudResultSingle<DTO, DATA>{
         val result =  startTaskAsync("Pick by ID", personalName) {
             suspendedTransactionAsync {
-                dtoClass.pickById<DTO, DATA, ExposifyEntity>(id)
+                dtoClass.pickById<DTO, DATA, ENTITY>(id)
             }.await()
         }.resultOrException()
         return result
@@ -88,7 +84,7 @@ class ServiceContext<DTO, DATA>(
     fun update(dataModel : DATA): CrudResultSingle<DTO,DATA> {
         val result =  startTaskAsync("Update", personalName) {
             suspendedTransactionAsync {
-                dtoClass.update<DTO, DATA, ExposifyEntity>(dataModel)
+                dtoClass.update<DTO, DATA, ENTITY>(dataModel)
             }.await()
         }.resultOrException()
         return result
@@ -97,7 +93,7 @@ class ServiceContext<DTO, DATA>(
     fun update(dataModels : List<DATA>): CrudResult<DTO,DATA> {
        val result =  startTaskAsync("Update", personalName) {
             suspendedTransactionAsync {
-                dtoClass.update<DTO, DATA, ExposifyEntity>(dataModels)
+                dtoClass.update<DTO, DATA, ENTITY>(dataModels)
             }.await()
         }.resultOrException()
        return result
@@ -116,8 +112,9 @@ class ServiceContext<DTO, DATA>(
         handler: SequenceHandler<DTO, DATA>,
         block: suspend SequenceContext<DTO, DATA>.(inputData: List<DATA>, conditions: WhereCondition<IdTable<Long>>?) -> Unit
     ) {
-        val sequenceContext = SequenceContext<DTO, DATA>(serviceClass, dtoClass, handler)
-        val pack = SequencePack(sequenceContext, serviceClass, block, handler)
+        val casted = serviceClass.castOrInitEx<ServiceClass<DTO, DATA, ExposifyEntity>>()
+        val sequenceContext = SequenceContext<DTO, DATA>(casted, dtoClass, handler)
+        val pack = SequencePack(sequenceContext, casted, block, handler)
         serviceClass.addSequencePack(pack)
     }
 

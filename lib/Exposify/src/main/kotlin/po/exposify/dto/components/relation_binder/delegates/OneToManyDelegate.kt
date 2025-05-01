@@ -3,6 +3,7 @@ package po.exposify.dto.components.relation_binder.delegates
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.sql.SizedIterable
+import po.exposify.classes.DTOBase
 import po.exposify.classes.DTOClass
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.dto.CommonDTO
@@ -17,7 +18,7 @@ import kotlin.reflect.KProperty1
 
 class OneToManyDelegate<DTO, DATA, ENTITY, C_DTO, CD, CF>(
     private val dto : CommonDTO<DTO, DATA, ENTITY>,
-    private val childModel: DTOClass<C_DTO>,
+    private val childModel: DTOBase<C_DTO, CD>,
     private val bindingContainer :  MultipleChildContainer<DTO, DATA, ENTITY, C_DTO, CD, CF>,
     private val multipleRepository: MultipleRepository<DTO, DATA, ENTITY, C_DTO, CD, CF>,
 ) : ReadOnlyProperty<DTO, List<CommonDTO<C_DTO, CD, CF>>>

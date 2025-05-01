@@ -2,10 +2,12 @@ package po.exposify.classes.components
 
 import kotlinx.serialization.KSerializer
 import org.jetbrains.exposed.dao.LongEntityClass
+import po.exposify.classes.DTOBase
 import po.exposify.dto.components.property_binder.PropertyBinder
 import po.exposify.dto.components.relation_binder.RelationshipBinder
 import po.exposify.classes.interfaces.DataModel
 import po.exposify.classes.DTOClass
+import po.exposify.classes.interfaces.ClassDTO
 import po.exposify.dto.components.DTOFactory
 import po.exposify.dto.components.DataModelContainer
 import po.exposify.dto.components.property_binder.enums.PropertyType
@@ -25,7 +27,7 @@ interface ConfigurableDTO<DTO: ModelDTO, DATA : DataModel, ENTITY: ExposifyEntit
 class DTOConfig<DTO, DATA, ENTITY>(
     val registry : DTORegistryItem<DTO, DATA, ENTITY>,
     val entityModel:LongEntityClass<ENTITY>,
-    val parent : DTOClass<DTO>
+    val dtoClass : DTOBase<DTO, *>
 ): ConfigurableDTO<DTO, DATA, ENTITY> where DTO: ModelDTO,  ENTITY : ExposifyEntity, DATA: DataModel{
 
    internal var dtoFactory: DTOFactory<DTO, DATA, ENTITY> = DTOFactory(registry.commonDTOKClass, registry.dataKClass, this)
@@ -41,7 +43,7 @@ class DTOConfig<DTO, DATA, ENTITY>(
     }
 
     val relationBinder: RelationshipBinder<DTO, DATA, ENTITY, ModelDTO, DataModel, ExposifyEntity>
-            = RelationshipBinder(parent)
+            = RelationshipBinder(dtoClass)
 
     var dataModelConstructor : (() -> DataModel)? = null
         private set
@@ -58,6 +60,12 @@ class DTOConfig<DTO, DATA, ENTITY>(
     inline fun childBindings(
         block: RelationshipBinder<DTO, DATA, ENTITY, ModelDTO, DataModel, ExposifyEntity>.()-> Unit){
         relationBinder.block()
+    }
+
+    suspend fun hierarchyMembers(vararg childDTO : DTOClass<*>){
+        childDTO.toList().forEach {
+            relationBinder.addChildClass(it)
+        }
     }
 
     fun setDataModelConstructor(dataModelConstructor: () -> DataModel){

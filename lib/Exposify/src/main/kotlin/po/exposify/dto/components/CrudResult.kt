@@ -23,21 +23,16 @@ data class CrudResult<DTO, DATA>(
     fun getDTO(): List<CommonDTO<DTO, DATA, ExposifyEntity>> {
         return rootDTOs
     }
-
-
-
 }
 
 data class CrudResultSingle<DTO, DATA>(
     internal var rootDTO: CommonDTO<DTO, DATA, ExposifyEntity>,
 ) where DTO : ModelDTO, DATA: DataModel {
 
-
     internal fun provideResult(dto: CommonDTO<DTO, DATA, ExposifyEntity>): CrudResultSingle<DTO, DATA>{
         rootDTO = dto
         return this
     }
-
 
     fun getData(): DATA {
         val dataModel =  rootDTO.dataModel

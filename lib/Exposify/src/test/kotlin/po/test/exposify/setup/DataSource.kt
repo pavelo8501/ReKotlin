@@ -1,10 +1,10 @@
 package po.test.exposify.setup
 
 import kotlinx.serialization.json.Json
-import po.test.exposify.setup.dtos.TestSection
+import po.test.exposify.setup.dtos.Section
 
 
-fun sectionsPreSaved(pageId: Long): MutableList<TestSection>{
+fun sectionsPreSaved(pageId: Long): MutableList<Section>{
     val sections = """[
   {
     "id": 0,
@@ -16,7 +16,7 @@ fun sectionsPreSaved(pageId: Long): MutableList<TestSection>{
     "lang_id": 1,
     "page_id": $pageId,
     "updated_by": 1,
-    "section_items": [
+    "content_blocks": [
       {
         "id": 0,
         "section_id": 0,
@@ -42,6 +42,6 @@ fun sectionsPreSaved(pageId: Long): MutableList<TestSection>{
     ]
   }] """
 
-    val parsed = Json.decodeFromString<MutableList<TestSection>>(sections)
+    val parsed = Json.decodeFromString<MutableList<Section>>(sections)
     return parsed
 }
