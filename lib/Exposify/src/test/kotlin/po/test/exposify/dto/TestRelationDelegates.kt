@@ -64,7 +64,7 @@ class TestRelationDelegates : DatabaseTest() {
 
 
     @Test
-    fun `oneToManyOf relation delegate`(){
+    fun `oneToManyOf relation delegate when updating`(){
         var user = User(
             id = 0,
             login = "some_login",

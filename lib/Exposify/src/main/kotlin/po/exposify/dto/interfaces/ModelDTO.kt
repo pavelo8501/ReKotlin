@@ -7,7 +7,7 @@ import po.exposify.entity.classes.ExposifyEntity
 
 interface ModelDTO : DataModel {
 
-    val personalName: String
+    val dtoName : String
     val dataModel: DataModel
     val dataContainer  : DataModelContainer<*, *>
     val daoService : DAOService<*, *, *>

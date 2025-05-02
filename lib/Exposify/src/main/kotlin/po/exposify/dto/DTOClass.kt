@@ -21,6 +21,7 @@ import po.exposify.scope.sequence.enums.SequenceID
 import po.exposify.scope.service.ServiceContext
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.startTaskAsync
+import po.misc.collections.Identifiable
 import po.misc.types.castOrThrow
 import kotlin.reflect.KClass
 
@@ -35,6 +36,8 @@ abstract class RootDTO<DTO, DATA>()
     internal var initialConfig: DTOConfig<DTO, DataModel, ExposifyEntity>? = null
     override val config: DTOConfig<DTO, DataModel, ExposifyEntity>
         get() = initialConfig.getOrInitEx("RegistryItem uninitialized", ExceptionCode.LAZY_NOT_INITIALIZED)
+
+    override val qualifiedName: String get() = "DTOClass[${config.registry.dtoRootName}]"
 
     suspend fun initialization() {
         if (!initialized) setup()
@@ -82,18 +85,21 @@ abstract class RootDTO<DTO, DATA>()
 
     suspend fun <DATA: DataModel> runSequence(
         sequenceID: SequenceID,
-        handlerBlock: (suspend SequenceHandler<DTO, DATA>.()-> Unit)? = null) = runSequence(sequenceID.value, handlerBlock)
+        handlerBlock: (suspend SequenceHandler<DTO, DATA>.()-> Unit)? = null): List<DATA>
+            = runSequence(sequenceID.value, handlerBlock)
 }
 
 abstract class DTOClass<DTO>(
     val  parentClass: DTOBase<*, *>,
-): DTOBase<DTO, DataModel>(),  TasksManaged,  ClassDTO where DTO: ModelDTO {
+): DTOBase<DTO, DataModel>(), ClassDTO, TasksManaged where DTO: ModelDTO {
 
     @PublishedApi
     internal var initialConfig: DTOConfig<DTO, DataModel, ExposifyEntity>? = null
 
     override val config: DTOConfig<DTO, DataModel, ExposifyEntity>
         get() = initialConfig.getOrInitEx("RegistryItem uninitialized", ExceptionCode.LAZY_NOT_INITIALIZED)
+
+    override val qualifiedName: String get() = "DTOClass[${config.registry.dtoClassName}]"
 
     suspend fun initialization() {
         if (!initialized) setup()
@@ -117,13 +123,14 @@ abstract class DTOClass<DTO>(
 }
 
 
-sealed class DTOBase<DTO, DATA>(): TasksManaged,  ClassDTO
+sealed class DTOBase<DTO, DATA>(): TasksManaged,  ClassDTO, Identifiable
         where DTO: ModelDTO, DATA : DataModel{
+
+    abstract val config: DTOConfig<DTO, DataModel, ExposifyEntity>
 
     override var personalName: String = "DTO[Uninitialized]"
     override var initialized: Boolean = false
-
-    abstract val config: DTOConfig<DTO, DataModel, ExposifyEntity>
+    abstract override val qualifiedName: String
 
     protected abstract suspend fun  setup()
 

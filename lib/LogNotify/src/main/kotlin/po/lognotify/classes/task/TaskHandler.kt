@@ -42,15 +42,9 @@ class TaskHandler<R: Any?>(
 
     inline fun <T, R2>  withTaskContext(receiver: T,  crossinline block : suspend T.() -> R2):R2{
         var result: R2? = null
-        var exception: Throwable? = null
-
         runBlocking {
             val job = launch(start = CoroutineStart.UNDISPATCHED, context = task.coroutineContext) {
-                try {
-                    result = block(receiver)
-                } catch (e: Throwable) {
-                    exception = e
-                }
+                result = block(receiver)
             }
             job.join()
         }

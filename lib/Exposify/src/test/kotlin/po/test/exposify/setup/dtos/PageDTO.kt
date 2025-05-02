@@ -36,7 +36,7 @@ class PageDTO(
 
     val sections by oneToManyOf(
         childClass = SectionDTO,
-        ownDataModels =  Page::sections,
+        ownDataModels = Page::sections,
         ownEntities =  PageEntity::sections,
         foreignEntity = SectionEntity::page)
 

@@ -25,7 +25,7 @@ class DTOConfig<DTO, DATA, ENTITY>(
     val registry : DTORegistryItem<DTO, DATA, ENTITY>,
     val entityModel:LongEntityClass<ENTITY>,
     val dtoClass : DTOBase<DTO, *>
-): ConfigurableDTO<DTO, DATA, ENTITY> where DTO: ModelDTO,  ENTITY : ExposifyEntity, DATA: DataModel{
+): ConfigurableDTO<DTO, DATA, ENTITY> where DTO: ModelDTO, DATA: DataModel,  ENTITY : ExposifyEntity{
 
    internal var dtoFactory: DTOFactory<DTO, DATA, ENTITY> = DTOFactory(registry.commonDTOKClass, registry.dataKClass, this)
    internal var daoService :  DAOService<DTO, DATA, ENTITY> = DAOService(entityModel, registry)

@@ -6,8 +6,8 @@ import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.and
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.components.property_binder.EntityUpdateContainer
-import po.exposify.dto.components.property_binder.containerize
+import po.exposify.dto.components.proFErty_binder.EntityUpdateContainer
+import po.exposify.dto.components.proFErty_binder.containerize
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.DTORegistryItem
@@ -80,22 +80,22 @@ class DAOService<DTO, DATA, ENTITY>(
             }
         }
         setActiveEntity(dto, newEntity.containerize(updateMode))
-        handler.info("Dao entity created with id ${newEntity.id.value} for dto ${dto.personalName}")
+        handler.info("Dao entity created with id ${newEntity.id.value} for dto ${dto.dtoName}")
         newEntity
     }.resultOrException()
 
     suspend fun <P_DTO: ModelDTO, PD: DataModel, PE: ExposifyEntity> saveWithParent(
         dto: CommonDTO<DTO, DATA, ENTITY>,
         parentDto: CommonDTO<P_DTO, PD, PE>,
-        bindFn: (newEntity:ENTITY)-> Unit):ENTITY
+        bindFn: (container: EntityUpdateContainer<ENTITY, P_DTO, PD, PE>)-> Unit)
+
             = subTask("Save", personalName) {handler->
             val updateMode = UpdateMode.MODEL_TO_ENTITY
             val newEntity = entityModel.new {
                 handler.withTaskContext(this){
-                    bindFn.invoke(this)
-
-                    val container =  EntityUpdateContainer<ENTITY, P_DTO, PD, PE>(this, updateMode).setParentData(parentDto)
-                    dto.updatePropertyBinding(this, updateMode,  container)
+                    val container = this.containerize(updateMode, parentDto)
+                    dto.updatePropertyBinding(this, updateMode, container)
+                    bindFn.invoke(container)
                 }
             }
             setActiveEntity(dto, newEntity.containerize(updateMode))

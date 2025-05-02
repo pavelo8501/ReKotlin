@@ -106,86 +106,60 @@ class TestComplexDelegate : DatabaseTest() {
                 persistedDtoSection.pageId,
                 "PageId in DTO not updated. Expected ${selectedPageData.id}") },
         )
-
     }
 
-//
-//    @Test
-//    fun `parent2IdReference property binding`() = runTest {
-//        var user = TestUser(
-//            id = 0,
-//            login = "some_login",
-//            hashedPassword = generatePassword("password"),
-//            name = "name",
-//            email = "nomail@void.null")
-//
-//        var updatedDTO : TestPageDTO? = null
-//        var pickedDTO : TestPageDTO? = null
-//        startTestConnection()?.run {
-//            service(TestUserDTO, TableCreateMode.CREATE) {
-//                user =  update(user).getData()
-//            }
-//            service(TestPageDTO, TableCreateMode.FORCE_RECREATE) {
-//                val page = pageModels(pageCount = 1, updatedBy = user.id,).firstOrNull()
-//                updatedDTO = update(page!!).getDTO() as TestPageDTO
-//                pickedDTO = pick(updatedDTO.id).getDTO() as TestPageDTO
-//            }
-//        }
-//        val updatedPageDTO =  assertNotNull(updatedDTO, "Page DTO update failure")
-//        assertAll("idReferenced updated on update",
-//            { assertNotEquals(0, updatedPageDTO.updatedBy, "idReferenced property update failure") },
-//            { assertEquals(user.id, updatedPageDTO.updatedBy, "In DTO. Expected ${user.id}") },
-//            { assertEquals(user.id, updatedPageDTO.dataModel.updatedBy, "In DataModel. Expected ${user.id}") }
-//          )
-//
-//        val pickedPageDTO =  assertNotNull(pickedDTO, "Page DTO pick failure")
-//        assertAll("idReferenced updated on pick",
-//            { assertNotEquals(0, pickedPageDTO.updatedBy, "idReferenced property update failure") },
-//            { assertEquals(user.id, pickedPageDTO.updatedBy, "In DTO. Expected ${user.id}") },
-//            { assertEquals(user.id, pickedPageDTO.dataModel.updatedBy, "In DataModel. Expected ${user.id}") }
-//        )
-//    }
-//
-//    @Test
-//    fun `parentReference property binding`() = runTest {
-//
-//        var user = TestUser(
-//            id = 0,
-//            login = "some_login",
-//            hashedPassword = generatePassword("password"),
-//            name = "name",
-//            email = "nomail@void.null")
-//
-//        var updatedDTO : TestPageDTO? = null
-//        var pickedDTO : TestPageDTO? = null
-//
-//        startTestConnection()?.run {
-//            service(TestUserDTO, TableCreateMode.CREATE) {
-//                user =  update(user).getData()
-//            }
-//            service(TestPageDTO, TableCreateMode.FORCE_RECREATE) {
-//                val page = pageModelsWithSections(pageCount = 1, sectionsCount = 1,  updatedBy = user.id).first()
-//                updatedDTO = update(page).getDTO() as TestPageDTO
-//                pickedDTO = pick(updatedDTO.id).getDTO() as TestPageDTO
-//            }
-//        }
-//
-//        val updatedDataModel =  assertNotNull(updatedDTO!!.dataModel, "Page DataModel update failed")
-//        assertEquals(1, updatedDataModel.sections.count(), "Section count does not meet expected 1")
-//        val firstSection = updatedDataModel.sections.first()
-//        assertAll("parentReference updated on update",
-//            { assertNotEquals(0, firstSection.pageId, "parentReference property update failure") },
-//            { assertEquals(updatedDataModel.id, firstSection.pageId, "In DataModel. Expected ${updatedDataModel.id}") },
-//        )
-//
-//        val pickedDataModel =  assertNotNull(pickedDTO!!.dataModel, "Page DataModel update failed")
-//        val pickedPageDataModel =  assertNotNull(pickedDataModel, "Page Data Model pick failure")
-//        assertEquals(1, pickedPageDataModel.sections.count(), "Section count does not meet expected 1")
-//        val firstPickedSection = pickedPageDataModel.sections.first()
-//        assertAll("idReferenced updated on pick",
-//            { assertNotEquals(0, firstPickedSection.pageId, "idReferenced property update failure") },
-//            { assertEquals(user.id, firstPickedSection.pageId, "In DTO. Expected ${user.id}") },
-//        )
-//    }
-//
+
+    @Test
+    fun `foreign2IdReference property binding un update&pick`(){
+
+        var user = User(
+            id = 0,
+            login = "some_login",
+            hashedPassword = generatePassword("password"),
+            name = "name",
+            email = "nomail@void.null"
+        )
+        val connection = startTestConnection()
+        connection?.service(UserDTO) {
+            user = update(user).getData()
+        }
+        val sourceSections = sectionsPreSaved(0)
+        val page = Page(id = 0, name = "home", langId = 1, updatedById = user.id)
+        var updatedPageData: Page? = null
+        var updatedPageDTO : PageDTO? = null
+        var pickedData: Page? = null
+        var pickedDTO : PageDTO? = null
+        connection?.service(PageDTO, TableCreateMode.CREATE) {
+            page.sections.addAll(sourceSections)
+            val updateResult = update(page)
+            updatedPageData = updateResult.getData()
+            updatedPageDTO = updateResult.getDTO() as PageDTO
+            val selectionResult = pick(updatedPageData.id)
+            pickedData = selectionResult.getData()
+            pickedDTO = selectionResult.getDTO() as PageDTO
+        }
+
+        assertNotNull(updatedPageData, "Failed to update PageData")
+        assertNotNull(updatedPageDTO, "Failed  to update PageDTO")
+
+        assertAll("foreign2IdReference updated",
+            { assertNotEquals(0, user.id, "updatedPageData id failed to update") },
+            { assertEquals(user.id, updatedPageData.updatedById, "UpdatedById in data model not updated. Expected ${user.id}") },
+            { assertEquals(user.id, updatedPageDTO.updatedById, "UpdatedById in DTO not updated.. Expected ${user.id}") },
+        )
+
+        assertNotNull(pickedData, "Failed to pick PageData")
+        assertNotNull(pickedDTO, "Failed  to pick PageDTO")
+
+        assertAll("foreign2IdReference picked",
+            { assertEquals(
+                updatedPageData.updatedById,
+                pickedData.updatedById,
+                "UpdatedById in data model not updated. Expected ${updatedPageData.updatedById}") },
+            { assertEquals(
+                updatedPageData.updatedById,
+                pickedData.updatedById,
+                "UpdatedById in DTO not updated.. Expected $updatedPageData.updatedById}") },
+        )
+    }
 }

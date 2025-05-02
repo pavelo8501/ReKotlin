@@ -46,9 +46,9 @@ fun <DTO, DATA, ENTITY, C_DTO, CD,  CF> CommonDTO<DTO, DATA, ENTITY>.oneToOnOf(
         val castedOwnDataModel = ownDataModel.castOrInitEx<KMutableProperty1<DATA, CD>>()
         val bindingDelegate =  OneToOneDelegate(this,childClass, castedOwnDataModel, ownEntity, foreignEntity)
         val container =  childClass.createOneToOneContainer(this, bindingDelegate)
-        val repository = createRepository(Cardinality.ONE_TO_ONE, container)
+        val repository = createRepository(container)
         val binder  =  dtoClassConfig.relationBinder.castOrOperationsEx<RelationshipBinder<DTO, DATA, ENTITY, C_DTO, CD, CF>>()
-        binder.attachBinding(container.thisKey, container)
+        binder.attachBinding(Cardinality.ONE_TO_ONE, container)
         bindingDelegate
 
     }.resultOrException()
@@ -82,9 +82,9 @@ fun <DTO, DATA, ENTITY, C_DTO, CD,  CF> CommonDTO<DTO, DATA, ENTITY>.oneToManyOf
         val castedOwnDataModels = ownDataModels.castOrInitEx<KProperty1<DATA, MutableList<CD>>>()
         val bindingDelegate = OneToManyDelegate(this,childClass,  castedOwnDataModels, ownEntities, foreignEntity)
         val container =  childClass.createOneToManyContainer(this, bindingDelegate)
-        val repository = createRepository(Cardinality.ONE_TO_MANY, container)
+        val repository = createRepository(container)
         val binder = dtoClassConfig.relationBinder.castOrOperationsEx<RelationshipBinder<DTO, DATA, ENTITY, C_DTO, CD, CF>>()
-        binder.attachBinding(container.thisKey, container)
+        binder.attachBinding(Cardinality.ONE_TO_MANY, container)
         bindingDelegate
 
    }.resultOrException()

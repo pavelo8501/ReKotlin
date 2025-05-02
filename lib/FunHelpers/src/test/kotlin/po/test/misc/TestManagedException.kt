@@ -5,21 +5,23 @@ import org.junit.jupiter.api.assertThrows
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.SelfThrownException
-import po.misc.exceptions.castOrThrow
+import po.misc.types.castOrThrow
 import kotlin.test.assertTrue
 
 class CustomException(
     override var message: String,
     override var handler: HandlerType,
     val optionalParam : Boolean,
-) : ManagedException(message, handler){
-    override val builderFn: (String, HandlerType) -> CustomException = {message, handler->
-        CustomException(message, handler, optionalParam)
-    }
+) : ManagedException(message){
+
 
     companion object : SelfThrownException.Companion.Builder<CustomException> {
-        override fun build(message: String, handler: HandlerType): CustomException =
-            CustomException(message, handler, true)
+
+
+        override fun build(message: String, optionalCode: Int?): CustomException {
+            val handlerType = HandlerType.fromValue(optionalCode!!)
+           return CustomException(message, handlerType, true)
+        }
     }
 }
 

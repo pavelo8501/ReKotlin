@@ -48,10 +48,8 @@ class SectionDTO(
     override var dataModel: Section
 ): CommonDTO<SectionDTO, Section, SectionEntity>(SectionDTO) {
 
-    val pageId : Long by parent2IdReference(Section::pageId, SectionEntity::page)
-
     val updatedBy : Long by foreign2IdReference(Section::updatedBy, SectionEntity::updatedBy, UserEntity)
-
+    val pageId : Long by parent2IdReference(Section::pageId, SectionEntity::page)
     val contentBlocks by oneToManyOf(
            childClass = ContentBlockDTO,
            ownDataModels = Section::contentBlocks,

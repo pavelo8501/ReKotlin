@@ -16,8 +16,9 @@ interface DTORegistry<DTO : ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity>
     val entityKClassQualifiedName get() = entityKClass?.qualifiedName?:"ENTITY[Uninitialized]"
 
     val dataModelName  get() =  dataKClassName
-    val dtoName  get() =  "DTO[${dataKClassName}]"
-    val dtoClassName  get() =  "DTOClass[${dataKClassName}]"
+    val dtoName  get() =  "CommonDTO[${dataKClassName}]"
+    val dtoClassName  get() = "DTOClass[${dataKClassName}]"
+    val dtoRootName  get() = "DTORoot[${dataKClassName}]"
 }
 
 data class DTORegistryItem<DTO, DATA, ENTITY>(
@@ -25,6 +26,8 @@ data class DTORegistryItem<DTO, DATA, ENTITY>(
     override val entityKClass: KClass<ENTITY>,
     val commonDTOKClass: KClass<out CommonDTO<DTO, DATA, ENTITY>>,
 ): DTORegistry<DTO, DATA, ENTITY> where DTO : ModelDTO, DATA: DataModel , ENTITY: ExposifyEntity{
+
+
 
     val typeKeyDto: String get() = commonDTOKClass.qualifiedName.toString()
     val typeKeyDataModel: String get() = dataKClass.qualifiedName.toString()

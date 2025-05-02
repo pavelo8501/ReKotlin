@@ -6,99 +6,100 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.MultipleRepository
 import po.exposify.dto.components.SingleRepository
-import po.exposify.dto.components.property_binder.EntityUpdateContainer
-import po.exposify.dto.components.property_binder.enums.UpdateMode
-import po.exposify.dto.components.relation_binder.BindingKeyBase
-import po.exposify.dto.components.relation_binder.MultipleChildContainer
-import po.exposify.dto.components.relation_binder.SingleChildContainer
+import po.exposify.dto.components.proFErty_binder.EntityUpdateContainer
+import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.extensions.castOrOperationsEx
 import po.lognotify.TasksManaged
-import po.lognotify.extensions.subTask
+import po.misc.collections.generateKey
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty
 import kotlin.reflect.KProperty1
 
-class OneToOneDelegate<DTO, DATA, ENTITY, C_DTO,  CD,  CE>(
+class OneToOneDelegate<DTO, DATA, ENTITY, C_DTO,  CD,  FE>(
     private val dto : CommonDTO<DTO, DATA, ENTITY>,
     private val childModel:DTOBase<C_DTO, CD>,
-    private val ownDataModel: KProperty1<DATA, CD>,
-    private val ownEntities: KProperty1<ENTITY, CE>,
-    private val foreignEntity: KMutableProperty1<CE, ENTITY>,
-) : RelationBindingDelegates<DTO, ENTITY, C_DTO,  CD, CE, CommonDTO<C_DTO, CD, CE>>()
+    private val dataProperty: KMutableProperty1<DATA, CD>,
+    private val ownEntities: KProperty1<ENTITY, FE>,
+    private val foreignEntity: KMutableProperty1<FE, ENTITY>,
+) : RelationBindingDelegates<DTO, ENTITY, C_DTO,  CD, FE, CommonDTO<C_DTO, CD, FE>>()
         where DTO : ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity,
-              C_DTO: ModelDTO,  CD : DataModel, CE : ExposifyEntity
+              C_DTO: ModelDTO,  CD : DataModel, FE : ExposifyEntity
 {
-    override val qualifiedName : String  get() = "OneToOneDelegate[${ownDataModel.name}]"
+    override val qualifiedName : String  get() = "OneToOneDelegate[${dto.dtoName}::${dataProperty.name}]"
 
-    val singleRepository : SingleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE> by lazy {
-        dto.getRepository<C_DTO, CD, CE>(BindingKeyBase.createOneToOneKey(childModel)) as SingleRepository
+    val singleRepository : SingleRepository<DTO, DATA, ENTITY, C_DTO, CD, FE> by lazy {
+        dto.getRepository<C_DTO, CD, FE>(dto.dtoClass.generateKey(Cardinality.ONE_TO_ONE)) as SingleRepository
     }
 
-    override fun getEffectiveValue():CommonDTO<C_DTO, CD, CE>{
+    override fun getEffectiveValue():CommonDTO<C_DTO, CD, FE>{
         return singleRepository.getDTO()
     }
 
     fun getDataModel(dataModel: DATA): CD{
-       return ownDataModel.get(dataModel)
+       return dataProperty.get(dataModel)
+    }
+    fun saveDataModel(dataModel:CD){
+        dataProperty.set(dto.dataModel, dataModel)
     }
 
-    fun setForeignEntity(container: EntityUpdateContainer<ENTITY, C_DTO, CD, CE>){
-        container.parentDto?.let {
-            foreignEntity.set(it.daoEntity, container.ownEntity)
-        }?:run {
-            throw OperationsException("setForeignEntity,  container.parentDto is null", ExceptionCode.VALUE_NOT_FOUND)
-        }
+    fun attachForeignEntity(container: EntityUpdateContainer<FE, DTO, DATA, ENTITY>){
+        foreignEntity.set(container.ownEntity, dto.daoEntity)
     }
 
-    fun getChildEntity(entity: ENTITY): CE{
+    fun getChildEntity(entity: ENTITY): FE{
         return ownEntities.get(entity)
     }
 }
 
-class OneToManyDelegate<DTO, DATA, ENTITY, C_DTO, CD, CE>(
+class OneToManyDelegate<DTO, DATA, ENTITY, C_DTO, FD, FE>(
     private val dto : CommonDTO<DTO, DATA, ENTITY>,
-    private val childModel: DTOBase<C_DTO, CD>,
-    private val ownDataModels: KProperty1<DATA, MutableList<CD>>,
-    private val ownEntities: KProperty1<ENTITY, SizedIterable<CE>>,
-    private val foreignEntity: KMutableProperty1<CE, ENTITY>,
-) : RelationBindingDelegates<DTO, ENTITY, C_DTO, CD, CE, List<CommonDTO<C_DTO, CD, CE>>>()
+    private val childModel: DTOBase<C_DTO, FD>,
+    private val dataProperty: KProperty1<DATA, MutableList<FD>>,
+    private val foreignEntities: KProperty1<ENTITY, SizedIterable<FE>>,
+    private val foreignEntity: KMutableProperty1<FE, ENTITY>,
+) : RelationBindingDelegates<DTO, ENTITY, C_DTO, FD, FE, List<CommonDTO<C_DTO, FD, FE>>>()
         where DTO : ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity,
-              C_DTO: ModelDTO,  CD : DataModel, CE : ExposifyEntity {
+              C_DTO: ModelDTO,  FD : DataModel, FE : ExposifyEntity {
 
-    override val qualifiedName : String  get() = "OneToManyDelegate[${ownDataModels.name}]"
+    override val qualifiedName : String  get() = "OneToManyDelegate[${dto.dtoName}::${dataProperty.name}]"
 
-    val multipleRepository : MultipleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE> by lazy {
-        dto.getRepository<C_DTO, CD, CE>(BindingKeyBase.createOneToOneKey(childModel)) as MultipleRepository
+    val multipleRepository : MultipleRepository<DTO, DATA, ENTITY, C_DTO, FD, FE> by lazy {
+        dto.getRepository<C_DTO, FD, FE>(dto.dtoClass.generateKey(Cardinality.ONE_TO_MANY)) as MultipleRepository
     }
 
-    override fun getEffectiveValue(): List<CommonDTO<C_DTO, CD, CE>> {
+    override fun getEffectiveValue(): List<CommonDTO<C_DTO, FD, FE>> {
         return multipleRepository.getDTO()
     }
 
-    fun getDataModels(dataModel: DATA): List<CD>{
-        return ownDataModels.get(dataModel).toList()
+    fun saveDataModels(foreignDataModels: List<FD>){
+        dataProperty.get(dto.dataModel).addAll(foreignDataModels)
     }
 
-    fun getChildEntities(entity: ENTITY): List<CE>{
-        return ownEntities.get(entity).toList()
+    fun getDataModels(dataModel: DATA): List<FD>{
+        return dataProperty.get(dataModel).toList()
     }
 
-    fun setForeignEntity(container: EntityUpdateContainer<ENTITY, C_DTO, CD, CE>){
-        container.parentDto?.let {
-            foreignEntity.set(it.daoEntity, container.ownEntity)
-        }?:run { 
-            throw OperationsException("setForeignEntity,  container.parentDto is null", ExceptionCode.VALUE_NOT_FOUND)
+    fun getForeignEntities(entity: ENTITY): List<FE>{
+       return foreignEntities.get(entity).toList()
+    }
+
+   suspend fun processForeignEntities(entity: ENTITY, processFn:suspend (List<FE>)-> List<CommonDTO<C_DTO, FD, FE>>){
+        val foreignEntities = foreignEntities.get(entity).toList()
+        val foreignDtos =  processFn.invoke(foreignEntities)
+        val mutableListOfForeignDataModels =   dataProperty.get(dto.dataModel)
+        foreignDtos.forEach {
+            mutableListOfForeignDataModels.add(it.dataModel)
         }
     }
+
+    fun attachForeignEntity(container: EntityUpdateContainer<FE, DTO, DATA, ENTITY>){
+        foreignEntity.set(container.ownEntity, dto.daoEntity)
+    }
 }
-
-
-
 
 sealed class RelationBindingDelegates<DTO,ENTITY,C_DTO, CD,  CE,  R>(
 

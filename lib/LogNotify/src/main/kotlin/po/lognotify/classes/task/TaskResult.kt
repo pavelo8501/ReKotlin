@@ -50,7 +50,6 @@ class TaskResult<R : Any?>(private val task: TaskSealedBase<R>){
 
     fun resultOrException():R {
         if(throwable != null && value == null){
-            println("Prishel za rezultatom a tut takoe")
             throw throwable!!
         }else{
             return value!!

@@ -1,4 +1,4 @@
-package po.exposify.dto.components.property_binder
+package po.exposify.dto.components.proFErty_binder
 
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
@@ -9,36 +9,33 @@ import po.exposify.exceptions.OperationsException
 import po.misc.types.getOrThrow
 
 
-
-fun <ENTITY : ExposifyEntity, P_DTO: ModelDTO, PD: DataModel, PE: ExposifyEntity> ENTITY.containerize(
+fun <TE : ExposifyEntity, F_DTO: ModelDTO, FD: DataModel, FE: ExposifyEntity> TE.containerize(
     updateMode : UpdateMode,
-    parentDTO: CommonDTO<P_DTO, PD, PE>? = null
-):EntityUpdateContainer<ENTITY, P_DTO, PD, PE> {
-    val container = EntityUpdateContainer<ENTITY, P_DTO, PD, PE>(this, updateMode)
+    parentDTO: CommonDTO<F_DTO, FD, FE>? = null
+):EntityUpdateContainer<TE, F_DTO, FD, FE> {
+    val container = EntityUpdateContainer<TE, F_DTO, FD, FE>(this, updateMode)
     parentDTO?.let {
         container.setParentData(parentDTO)
     }
     return container
 }
 
-data class EntityUpdateContainer<ENTITY : ExposifyEntity, P_DTO: ModelDTO, PD: DataModel, PE: ExposifyEntity>(
-    val ownEntity: ENTITY,
+data class EntityUpdateContainer<TE : ExposifyEntity, F_DTO: ModelDTO, FD: DataModel, FE: ExposifyEntity>(
+    val ownEntity: TE,
     val updateMode : UpdateMode
 ){
 
     val isParentDtoSet : Boolean get() = parentDto!=null
 
-    var parentDto: CommonDTO<P_DTO, PD, PE>? = null
-    val hasParentDto : CommonDTO<P_DTO, PD, PE>
-        get()= parentDto.getOrThrow<CommonDTO<P_DTO, PD, PE>, OperationsException>()
+    var parentDto: CommonDTO<F_DTO, FD, FE>? = null
+    val hasParentDto : CommonDTO<F_DTO, FD, FE>
+        get()= parentDto.getOrThrow<CommonDTO<F_DTO, FD, FE>, OperationsException>()
 
-    fun extractParentEntity():PE?{
+    fun extractParentEntity():FE?{
         return parentDto?.daoEntity
     }
 
-
-
-    fun setParentData(dto: CommonDTO<P_DTO, PD, PE>):EntityUpdateContainer<ENTITY, P_DTO, PD, PE> {
+    fun setParentData(dto: CommonDTO<F_DTO, FD, FE>):EntityUpdateContainer<TE, F_DTO, FD, FE> {
         parentDto = dto
         return this
     }

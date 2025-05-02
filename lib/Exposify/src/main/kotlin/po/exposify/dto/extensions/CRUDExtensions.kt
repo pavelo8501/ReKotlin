@@ -6,8 +6,9 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.components.CrudResult
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.CrudResultSingle
-import po.exposify.dto.components.property_binder.containerize
 import po.exposify.dto.components.property_binder.enums.UpdateMode
+import po.exposify.dto.components.selectDto
+import po.exposify.dto.components.updateDto
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.OperationsException
@@ -18,38 +19,8 @@ import po.exposify.extensions.getOrOperationsEx
 import po.exposify.extensions.isTransactionReady
 import po.exposify.extensions.testOrThrow
 import po.lognotify.extensions.subTask
-import po.misc.types.castOrThrow
 import kotlin.Long
-import kotlin.collections.toList
 
-
-private suspend fun<DTO : ModelDTO, DATA: DataModel, ENTITY: ExposifyEntity> selectDto(
-     dtoClass: RootDTO<DTO, DATA>,
-     entity: ENTITY
-):CommonDTO<DTO, DATA, ENTITY>{
-
-    val dto = dtoClass.config.dtoFactory.createDto()
-    dtoClass.config.propertyBinder.update(dto.dataModel, entity, UpdateMode.ENTITY_TO_MODEL)
-    dto.getDtoRepositories().forEach { it.select(entity) }
-    return dto.castOrOperationsEx("selectDto. Cast failed.")
-}
-
-private suspend fun <DTO : ModelDTO, DATA: DataModel, ENTITY: ExposifyEntity> updateDto(
-    dtoClass: RootDTO<DTO, DATA>,
-    dataModel: DATA
-):CommonDTO<DTO, DATA, ENTITY>
-{
-    val dto = dtoClass.config.dtoFactory.createDto(dataModel)
-    if(dataModel.id == 0L){
-        dto.daoService.save(dto.castOrOperationsEx("updateDto(save). Cast failed."))
-    }else{
-        dto.daoService.update(dto.castOrOperationsEx("updateDto(update). Cast failed."))
-    }
-    dto.getDtoRepositories().forEach {repository->
-        repository.update()
-    }
-    return dto.castOrOperationsEx("updateDto(Return). Cast failed.")
-}
 
 
 internal suspend inline fun <DTO, DATA, ENTITY> RootDTO<DTO, DATA>.pickById(
@@ -135,8 +106,8 @@ internal suspend fun <DTO, DATA> RootDTO<DTO, DATA>.update(
     isTransactionReady().testOrThrow(OperationsException("Transaction Lost Context", ExceptionCode.DB_NO_TRANSACTION_IN_CONTEXT)){
         true
     }
-    val dto = updateDto <DTO, DATA, ExposifyEntity>(this, dataModel)
-    handler.info("Created single DTO ${dto.personalName}")
+    val dto = updateDto<DTO, DATA, ExposifyEntity>(this, dataModel)
+    handler.info("Created single DTO ${dto.dtoName}")
     CrudResultSingle(dto)
 }.resultOrException()
 

@@ -1,105 +1,112 @@
 package po.exposify.dto.components.relation_binder
 
-import org.jetbrains.exposed.sql.SizedIterable
 import po.exposify.dto.DTOBase
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.DTOConfig
-import po.exposify.dto.components.property_binder.EntityUpdateContainer
-import po.exposify.dto.components.property_binder.enums.UpdateMode
+import po.exposify.dto.components.proFErty_binder.EntityUpdateContainer
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntity
-import po.exposify.dto.components.relation_binder.classes.NullablePropertyWrapper
 import po.exposify.dto.components.relation_binder.delegates.OneToManyDelegate
 import po.exposify.dto.components.relation_binder.delegates.OneToOneDelegate
-import po.exposify.dto.enums.DTOInitStatus
 import po.exposify.extensions.castOrOperationsEx
-import kotlin.reflect.KMutableProperty1
-import kotlin.reflect.KProperty1
+import po.misc.collections.CompositeKey
+import po.misc.collections.generateKey
 
 
-fun <DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY> DTOBase<CHILD_DTO, CHILD_DATA>.createOneToOneContainer(
+fun <DTO, DATA, ENTITY, F_DTO, FD, FE> DTOBase<F_DTO, FD>.createOneToOneContainer(
     dto: CommonDTO<DTO, DATA, ENTITY>,
-    bindingDelegate : OneToOneDelegate<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>
-): SingleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>
+    bindingDelegate : OneToOneDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>
+): SingleChildContainer<DTO, DATA, ENTITY, F_DTO, FD, FE>
 
 where DTO: ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity,
-       CHILD_DTO : ModelDTO,  CHILD_DATA: DataModel, CHILD_ENTITY : ExposifyEntity
+       F_DTO : ModelDTO,  FD: DataModel, FE : ExposifyEntity
 {
    return  SingleChildContainer(dto, this, bindingDelegate)
 }
 
 
-fun <DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY> DTOBase<CHILD_DTO, CHILD_DATA>.createOneToManyContainer(
+fun <DTO, DATA, ENTITY, F_DTO, FD, FE> DTOBase<F_DTO, FD>.createOneToManyContainer(
     dto: CommonDTO<DTO, DATA, ENTITY>,
-    bindingDelegate : OneToManyDelegate<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>
-): MultipleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>
+    bindingDelegate : OneToManyDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>
+): MultipleChildContainer<DTO, DATA, ENTITY, F_DTO, FD, FE>
         where DTO: ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity,
-              CHILD_DTO : ModelDTO,  CHILD_DATA: DataModel, CHILD_ENTITY : ExposifyEntity
+              F_DTO : ModelDTO,  FD: DataModel, FE : ExposifyEntity
 {
     return  MultipleChildContainer(dto, this, bindingDelegate)
 }
 
 
 
-class SingleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>  (
+class SingleChildContainer<DTO, DATA, ENTITY, F_DTO, FD, FE>  (
     private  val dto: CommonDTO<DTO, DATA, ENTITY>,
-    childClass: DTOBase<CHILD_DTO, CHILD_DATA>,
-    private val bindingDelegate : OneToOneDelegate<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>
-): BindingContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>(childClass)
+    childClass: DTOBase<F_DTO, FD>,
+    private val bindingDelegate : OneToOneDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>
+): BindingContainer<DTO, DATA, ENTITY, F_DTO, FD, FE>(childClass)
         where DTO: ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity,
-            CHILD_DTO : ModelDTO,  CHILD_DATA: DataModel, CHILD_ENTITY : ExposifyEntity
+            F_DTO : ModelDTO,  FD: DataModel, FE : ExposifyEntity
 {
-    override val thisKey = BindingKeyBase.createOneToOneKey<DTO>(dto.dtoClass)
+    override val thisKey = dto.dtoClass.generateKey(Cardinality.ONE_TO_ONE)
     override val cardinality: Cardinality = Cardinality.ONE_TO_MANY
 
-    fun getDataModel(dataModel: DATA): CHILD_DATA
+    fun getDataModel(dataModel: DATA): FD
             = bindingDelegate.getDataModel(dataModel)
 
-    fun setForeignEntity(container: EntityUpdateContainer<ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>): Unit
-            = bindingDelegate.setForeignEntity(container)
+    fun saveDataModel(dataModel:FD)
+            = bindingDelegate.saveDataModel(dataModel)
 
-    fun getChildEntity(entity: ENTITY): CHILD_ENTITY
+    fun attachForeignEntity(container: EntityUpdateContainer<FE, DTO, DATA, ENTITY>): Unit
+            = bindingDelegate.attachForeignEntity(container)
+
+    fun getChildEntity(entity: ENTITY): FE
             = bindingDelegate.getChildEntity(entity)
 
 }
 
 
-class MultipleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>(
+class MultipleChildContainer<DTO, DATA, ENTITY, F_DTO, FD, FE>(
     private  val dto: CommonDTO<DTO, DATA, ENTITY>,
-    childClass: DTOBase<CHILD_DTO, CHILD_DATA>,
-    private val bindingDelegate : OneToManyDelegate<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>
-): BindingContainer<DTO,DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>(childClass)
+    childClass: DTOBase<F_DTO, FD>,
+    private val bindingDelegate : OneToManyDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>
+): BindingContainer<DTO,DATA, ENTITY, F_DTO, FD, FE>(childClass)
         where DTO: ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity,
-              CHILD_DTO : ModelDTO,  CHILD_DATA: DataModel, CHILD_ENTITY : ExposifyEntity
+              F_DTO : ModelDTO,  FD: DataModel, FE : ExposifyEntity
 {
     val delegateName get() = bindingDelegate.qualifiedName
 
-    override val thisKey  = BindingKeyBase.createOneToManyKey(dto.dtoClass)
+    override val thisKey  = dto.dtoClass.generateKey(Cardinality.ONE_TO_MANY)
     override val cardinality: Cardinality = Cardinality.ONE_TO_MANY
 
 
-    fun getDataModels(dataModel: DATA): List<CHILD_DATA>
+    fun getDataModels(dataModel: DATA): List<FD>
         = bindingDelegate.getDataModels(dataModel)
 
-    fun setForeignEntity(container: EntityUpdateContainer<ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>): Unit
-        = bindingDelegate.setForeignEntity(container)
+    fun saveDataModels(dataModels:List<FD>)
+            = bindingDelegate.saveDataModels(dataModels)
 
-    fun getChildEntities(entity: ENTITY): List<CHILD_ENTITY>
-        = bindingDelegate.getChildEntities(entity)
+    fun attachForeignEntity(container: EntityUpdateContainer<FE, DTO, DATA, ENTITY>): Unit
+        = bindingDelegate.attachForeignEntity(container)
 
+    suspend fun processChildEntities(entity: ENTITY, processFn: suspend (List<FE>)-> List<CommonDTO<F_DTO, FD, FE>>)
+     =   bindingDelegate.processForeignEntities(entity, processFn)
+
+    fun getForeignEntities(entity: ENTITY):List<FE>
+        = bindingDelegate.getForeignEntities(entity)
+
+//    fun getChildEntities(entity: ENTITY): List<FE>
+//        = bindingDelegate.getChildEntities(entity)
 }
 
 
-sealed class BindingContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>(
-    val childClass: DTOBase<CHILD_DTO, CHILD_DATA>,
-) where DTO : ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity, CHILD_DTO : ModelDTO,  CHILD_DATA: DataModel, CHILD_ENTITY : ExposifyEntity
+sealed class BindingContainer<DTO, DATA, ENTITY, F_DTO, FD, FE>(
+    val childClass: DTOBase<F_DTO, FD>,
+) where DTO : ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity, F_DTO : ModelDTO,  FD: DataModel, FE : ExposifyEntity
 {
-    val  childConfig: DTOConfig<CHILD_DTO, CHILD_DATA, CHILD_ENTITY>
-        get() = childClass.config.castOrOperationsEx<DTOConfig<CHILD_DTO, CHILD_DATA, CHILD_ENTITY>>()
+    val  childConfig: DTOConfig<F_DTO, FD, FE>
+        get() = childClass.config.castOrOperationsEx<DTOConfig<F_DTO, FD, FE>>()
 
     abstract val cardinality  : Cardinality
-    abstract val thisKey : BindingKeyBase
+    abstract val thisKey : CompositeKey<DTOBase<DTO,*>, Cardinality>
 
 }

@@ -77,7 +77,6 @@ fun <DTO, DATA,  ENTITY, PARENT_DTO,  PARENT_DATA,  PARENT_ENTITY>  CommonDTO<DT
 ): ParentDelegate<DTO, DATA, ENTITY, PARENT_DTO,  PARENT_DATA,  PARENT_ENTITY>
         where  DTO: ModelDTO, DATA:DataModel, ENTITY : ExposifyEntity, PARENT_DTO: ModelDTO, PARENT_DATA : DataModel, PARENT_ENTITY: ExposifyEntity
 {
-
     val container = ParentDelegate<DTO, DATA, ENTITY, PARENT_DTO,  PARENT_DATA,  PARENT_ENTITY>(this, dataProperty, parentDtoClass, parentEntityModel)
     dtoPropertyBinder.setBinding(container)
     return container
