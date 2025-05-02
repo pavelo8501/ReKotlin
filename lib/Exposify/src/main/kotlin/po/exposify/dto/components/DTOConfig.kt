@@ -1,15 +1,12 @@
-package po.exposify.classes.components
+package po.exposify.dto.components
 
 import kotlinx.serialization.KSerializer
 import org.jetbrains.exposed.dao.LongEntityClass
-import po.exposify.classes.DTOBase
+import po.exposify.dto.DTOBase
 import po.exposify.dto.components.property_binder.PropertyBinder
 import po.exposify.dto.components.relation_binder.RelationshipBinder
-import po.exposify.classes.interfaces.DataModel
-import po.exposify.classes.DTOClass
-import po.exposify.classes.interfaces.ClassDTO
-import po.exposify.dto.components.DTOFactory
-import po.exposify.dto.components.DataModelContainer
+import po.exposify.dto.interfaces.DataModel
+import po.exposify.dto.DTOClass
 import po.exposify.dto.components.property_binder.enums.PropertyType
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.components.property_binder.interfaces.PropertyBindingOption
@@ -31,6 +28,7 @@ class DTOConfig<DTO, DATA, ENTITY>(
 ): ConfigurableDTO<DTO, DATA, ENTITY> where DTO: ModelDTO,  ENTITY : ExposifyEntity, DATA: DataModel{
 
    internal var dtoFactory: DTOFactory<DTO, DATA, ENTITY> = DTOFactory(registry.commonDTOKClass, registry.dataKClass, this)
+   internal var daoService :  DAOService<DTO, DATA, ENTITY> = DAOService(entityModel, registry)
 
     var binderPropertyUpdate  : ((String, PropertyType, UpdateMode) -> Unit)? = null
 

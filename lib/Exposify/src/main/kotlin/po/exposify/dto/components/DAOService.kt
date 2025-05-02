@@ -4,12 +4,13 @@ import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.and
-import po.exposify.classes.interfaces.DataModel
+import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.property_binder.EntityUpdateContainer
 import po.exposify.dto.components.property_binder.containerize
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.models.DTORegistryItem
 import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.WhereCondition
@@ -19,18 +20,12 @@ import po.lognotify.extensions.resultOrNull
 import po.lognotify.extensions.subTask
 
 
-class DAOService<DTO, ENTITY>(
-    private val hostingDTO: CommonDTO<DTO, *, ENTITY>,
+class DAOService<DTO, DATA, ENTITY>(
     val entityModel: LongEntityClass<ENTITY>,
-): TasksManaged where DTO: ModelDTO, ENTITY : ExposifyEntity{
+    private val registryRecord: DTORegistryItem<DTO, DATA, ENTITY>,
+): TasksManaged where DTO: ModelDTO, DATA: DataModel, ENTITY : ExposifyEntity{
 
-    private val personalName = "DAOService[${hostingDTO.personalName}]"
-    var entity : ENTITY? = null
-        private set
-
-    internal fun getLastEntity():ENTITY{
-        return entity.getOrOperationsEx("Entity is null", ExceptionCode.NOT_INITIALIZED)
-    }
+    private val personalName : String  get() = "DAOService[${registryRecord.dtoName}]"
 
     private fun combineConditions(conditions: Set<Op<Boolean>>): Op<Boolean> {
         return conditions.reduceOrNull { acc, op -> acc and op } ?: Op.TRUE
@@ -41,10 +36,8 @@ class DAOService<DTO, ENTITY>(
         return conditions
     }
 
-    internal suspend fun setActiveEntity(updateMode : UpdateMode, insertedEntity:ENTITY){
-        entity = insertedEntity
-        hostingDTO.dataModel.id = insertedEntity.id.value
-        hostingDTO.updateBindingAfterInserted(updateMode, insertedEntity.containerize())
+    internal suspend fun setActiveEntity(dto: CommonDTO<DTO, DATA, ENTITY>,  container : EntityUpdateContainer<ENTITY, ModelDTO, DataModel, ExposifyEntity>){
+        dto.updateBindingsAfterInserted(container)
     }
 
    suspend fun  <T:IdTable<Long>> pick(conditions :  WhereCondition<T>): ENTITY? = subTask("Pick", personalName){handler->
@@ -77,44 +70,44 @@ class DAOService<DTO, ENTITY>(
         result
     }.resultOrException()
 
-    suspend fun save(): ENTITY =
+    suspend fun save(dto: CommonDTO<DTO, DATA, ENTITY>): ENTITY =
         subTask("Save", "DAOService") {handler->
             val updateMode = UpdateMode.MODEL_TO_ENTITY
 
         val newEntity = entityModel.new {
             handler.withTaskContext(this){
-                hostingDTO.updateBinding(this, updateMode, this.containerize())
+                dto.updatePropertyBinding(this, updateMode, this.containerize(updateMode))
             }
         }
-        setActiveEntity(updateMode, newEntity)
-        handler.info("Dao entity created with id ${newEntity.id.value} for dto ${hostingDTO.personalName}")
+        setActiveEntity(dto, newEntity.containerize(updateMode))
+        handler.info("Dao entity created with id ${newEntity.id.value} for dto ${dto.personalName}")
         newEntity
     }.resultOrException()
 
     suspend fun <P_DTO: ModelDTO, PD: DataModel, PE: ExposifyEntity> saveWithParent(
-        parent: PE,
+        dto: CommonDTO<DTO, DATA, ENTITY>,
         parentDto: CommonDTO<P_DTO, PD, PE>,
         bindFn: (newEntity:ENTITY)-> Unit):ENTITY
             = subTask("Save", personalName) {handler->
-
             val updateMode = UpdateMode.MODEL_TO_ENTITY
             val newEntity = entityModel.new {
                 handler.withTaskContext(this){
                     bindFn.invoke(this)
-                    val container =  EntityUpdateContainer<ENTITY, P_DTO, PD, PE>(this).setParentData(parent, parentDto)
-                    hostingDTO.updateBinding(this, updateMode,  container)
+
+                    val container =  EntityUpdateContainer<ENTITY, P_DTO, PD, PE>(this, updateMode).setParentData(parentDto)
+                    dto.updatePropertyBinding(this, updateMode,  container)
                 }
             }
-            setActiveEntity(updateMode, newEntity)
+            setActiveEntity(dto, newEntity.containerize(updateMode))
             handler.info("Entity created with id: ${newEntity.id.value} for parent entity id:")
             newEntity
     }.resultOrException()
 
-    suspend fun update(): ENTITY = subTask("Update", "DAOService") {handler->
-        val selectedEntity =  pickById(hostingDTO.id).getOrOperationsEx("Entity with id : ${hostingDTO.id} not found", ExceptionCode.DB_CRUD_FAILURE)
+    suspend fun update(dto: CommonDTO<DTO, DATA, ENTITY>): ENTITY = subTask("Update", "DAOService") {handler->
+        val selectedEntity =  pickById(dto.id).getOrOperationsEx("Entity with id : ${dto.id} not found", ExceptionCode.DB_CRUD_FAILURE)
         val updateMode = UpdateMode.MODEL_TO_ENTITY
-        hostingDTO.updateBinding(selectedEntity, updateMode, selectedEntity.containerize())
-        setActiveEntity(updateMode, selectedEntity)
+        dto.updatePropertyBinding(selectedEntity, updateMode, selectedEntity.containerize(updateMode))
+        setActiveEntity(dto, selectedEntity.containerize(updateMode))
         selectedEntity
     }.resultOrException()
 

@@ -1,14 +1,11 @@
 package po.exposify.dto.components.relation_binder.delegates
 
-import kotlinx.coroutines.CompletableDeferred
 import org.jetbrains.exposed.sql.SizedIterable
-import po.exposify.classes.DTOBase
-import po.exposify.classes.DTOClass
-import po.exposify.classes.components.DTOConfig
-import po.exposify.classes.interfaces.DataModel
+import po.exposify.dto.DTOBase
+import po.exposify.dto.DTOClass
+import po.exposify.dto.components.DTOConfig
+import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.components.MultipleRepository
-import po.exposify.dto.components.RepositoryBase
 import po.exposify.dto.components.relation_binder.RelationshipBinder
 import po.exposify.dto.components.relation_binder.createOneToManyContainer
 import po.exposify.dto.components.relation_binder.createOneToOneContainer
@@ -20,7 +17,6 @@ import po.exposify.extensions.castOrOperationsEx
 import po.lognotify.extensions.newTaskAsync
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
-
 
 
 /**
@@ -47,14 +43,14 @@ fun <DTO, DATA, ENTITY, C_DTO, CD,  CF> CommonDTO<DTO, DATA, ENTITY>.oneToOnOf(
 {
     val result =  newTaskAsync("Hierarchy Initialization. Child dto ${childClass.personalName}") {
 
-        val castedOwnDataModel = ownDataModel.castOrInitEx<KMutableProperty1<DATA, CD?>>()
-        val childClasConfig =  childClass.config.castOrOperationsEx<DTOConfig<C_DTO, CD, CF>>()
-        val container =  createOneToOneContainer<DTO, DATA, ENTITY, C_DTO, CD,  CF>(this,childClasConfig, childClass)
-        container.initProperties(castedOwnDataModel, ownEntity, foreignEntity)
-        val binder  =  this.dtoClassConfig!!.relationBinder.castOrOperationsEx<RelationshipBinder<DTO, DATA, ENTITY, C_DTO, CD, CF>>()
-        binder.attachBinding(container.thisKey, container)
+        val castedOwnDataModel = ownDataModel.castOrInitEx<KMutableProperty1<DATA, CD>>()
+        val bindingDelegate =  OneToOneDelegate(this,childClass, castedOwnDataModel, ownEntity, foreignEntity)
+        val container =  childClass.createOneToOneContainer(this, bindingDelegate)
         val repository = createRepository(Cardinality.ONE_TO_ONE, container)
-        OneToOneDelegate(this,childClass, container, repository)
+        val binder  =  dtoClassConfig.relationBinder.castOrOperationsEx<RelationshipBinder<DTO, DATA, ENTITY, C_DTO, CD, CF>>()
+        binder.attachBinding(container.thisKey, container)
+        bindingDelegate
+
     }.resultOrException()
 
     return result
@@ -83,14 +79,13 @@ fun <DTO, DATA, ENTITY, C_DTO, CD,  CF> CommonDTO<DTO, DATA, ENTITY>.oneToManyOf
 {
     return newTaskAsync("Hierarchy Initialization. Child dto ${childClass.personalName}") {
 
-       val castedOwnDataModels = ownDataModels.castOrInitEx<KProperty1<DATA, MutableList<CD>>>()
-       val childClasConfig =  childClass.config.castOrOperationsEx<DTOConfig<C_DTO, CD, CF>>()
-       val container =  createOneToManyContainer<DTO, DATA, ENTITY, C_DTO, CD,  CF>(this,childClasConfig, childClass)
-       container.initProperties(castedOwnDataModels, ownEntities, foreignEntity)
+        val castedOwnDataModels = ownDataModels.castOrInitEx<KProperty1<DATA, MutableList<CD>>>()
+        val bindingDelegate = OneToManyDelegate(this,childClass,  castedOwnDataModels, ownEntities, foreignEntity)
+        val container =  childClass.createOneToManyContainer(this, bindingDelegate)
+        val repository = createRepository(Cardinality.ONE_TO_MANY, container)
         val binder = dtoClassConfig.relationBinder.castOrOperationsEx<RelationshipBinder<DTO, DATA, ENTITY, C_DTO, CD, CF>>()
         binder.attachBinding(container.thisKey, container)
-        val repo = createRepository(Cardinality.ONE_TO_MANY, container)
+        bindingDelegate
 
-       OneToManyDelegate(this,childClass, container, repo)
    }.resultOrException()
 }

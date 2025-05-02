@@ -1,11 +1,10 @@
-package po.exposify.classes
+package po.exposify.dto
 
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.IdTable
-import po.exposify.classes.components.DTOConfig
-import po.exposify.classes.interfaces.ClassDTO
-import po.exposify.classes.interfaces.DataModel
-import po.exposify.dto.CommonDTO
+import po.exposify.dto.components.DTOConfig
+import po.exposify.dto.interfaces.ClassDTO
+import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.DTORegistryItem
 import po.exposify.entity.classes.ExposifyEntity
@@ -36,7 +35,7 @@ abstract class RootDTO<DTO, DATA>()
     internal var initialConfig: DTOConfig<DTO, DataModel, ExposifyEntity>? = null
     override val config: DTOConfig<DTO, DataModel, ExposifyEntity>
         get() = initialConfig.getOrInitEx("RegistryItem uninitialized", ExceptionCode.LAZY_NOT_INITIALIZED)
-    
+
     suspend fun initialization() {
         if (!initialized) setup()
     }

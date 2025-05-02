@@ -1,23 +1,20 @@
 package po.exposify.scope.service
 
-import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.exists
 import org.jetbrains.exposed.sql.transactions.experimental.suspendedTransactionAsync
-import po.exposify.classes.DTOBase
-import po.exposify.classes.interfaces.DataModel
+import po.exposify.dto.DTOBase
+import po.exposify.dto.interfaces.DataModel
 import po.exposify.common.interfaces.AsClass
-import po.exposify.classes.DTOClass
-import po.exposify.classes.RootDTO
+import po.exposify.dto.RootDTO
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.InitException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.getOrOperationsEx
-import po.exposify.extensions.safeCast
 import po.exposify.scope.connection.ConnectionClass
 import po.exposify.scope.sequence.classes.SequenceHandler
 import po.exposify.scope.sequence.models.SequenceKey

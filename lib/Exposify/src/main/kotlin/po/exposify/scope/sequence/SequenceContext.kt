@@ -6,14 +6,12 @@ import org.jetbrains.exposed.sql.Database
 import po.auth.sessions.enumerators.SessionType
 import po.auth.sessions.interfaces.SessionIdentified
 import po.auth.sessions.models.AuthorizedSession
-import po.exposify.classes.DTOBase
-import po.exposify.classes.interfaces.DataModel
+import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.components.CrudResult
 import po.exposify.dto.CommonDTO
-import po.exposify.classes.DTOClass
-import po.exposify.classes.RootDTO
-import po.exposify.classes.extensions.select
-import po.exposify.classes.extensions.update
+import po.exposify.dto.RootDTO
+import po.exposify.dto.extensions.select
+import po.exposify.dto.extensions.update
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.extensions.WhereCondition
@@ -87,7 +85,7 @@ class SequenceContext<DTO, DATA>(
         block: (suspend SequenceContext<DTO, DATA>.(dto: CommonDTO<DTO, DATA, ExposifyEntity>?)-> Unit)? = null
     ) {
         notifyOnStart("pick")
-        lastResult =  dtoClass.select<T, DTO, DATA>(conditions)
+        lastResult =  dtoClass.select(conditions)
 
         if (block != null) {
             this.block(dtos().firstOrNull())
@@ -107,9 +105,9 @@ class SequenceContext<DTO, DATA>(
             }
             notifyOnStart("select(With conditions)")
             lastResult = if (conditions != null) {
-                dtoClass.select<T, DTO, DATA>(conditions)
+                dtoClass.select(conditions)
             } else {
-                dtoClass.select<DTO, DATA>()
+                dtoClass.select()
             }
             if (block != null) {
                 this.block(dtos())
@@ -149,7 +147,7 @@ class SequenceContext<DTO, DATA>(
                 handler.warn("Transaction lost context")
             }
             notifyOnStart("update")
-            lastResult = dtoClass.update<DTO, DATA, ExposifyEntity>(dataModels)
+            lastResult = dtoClass.update(dataModels)
             if (block != null) {
                 this.block(dtos())
                 notifyOnComplete("update")

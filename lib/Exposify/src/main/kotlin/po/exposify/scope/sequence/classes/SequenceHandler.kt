@@ -1,8 +1,7 @@
 package po.exposify.scope.sequence.classes
 
 import org.jetbrains.exposed.dao.id.IdTable
-import po.auth.sessions.interfaces.SessionIdentified
-import po.exposify.classes.interfaces.DataModel
+import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.WhereCondition

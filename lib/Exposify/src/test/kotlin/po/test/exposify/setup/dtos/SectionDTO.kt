@@ -4,8 +4,8 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
-import po.exposify.classes.DTOClass
-import po.exposify.classes.interfaces.DataModel
+import po.exposify.dto.DTOClass
+import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.property_binder.bindings.SerializedBinding
 import po.exposify.dto.components.property_binder.bindings.SyncedBinding
@@ -48,11 +48,11 @@ class SectionDTO(
     override var dataModel: Section
 ): CommonDTO<SectionDTO, Section, SectionEntity>(SectionDTO) {
 
-    val pageId by parent2IdReference(Section::pageId, SectionEntity::page)
+    val pageId : Long by parent2IdReference(Section::pageId, SectionEntity::page)
 
     val updatedBy : Long by foreign2IdReference(Section::updatedBy, SectionEntity::updatedBy, UserEntity)
 
-    val sections by oneToManyOf(
+    val contentBlocks by oneToManyOf(
            childClass = ContentBlockDTO,
            ownDataModels = Section::contentBlocks,
            ownEntities =   SectionEntity::contentBlocks,

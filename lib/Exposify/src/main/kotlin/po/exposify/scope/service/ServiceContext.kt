@@ -3,16 +3,15 @@ package po.exposify.scope.service
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.experimental.suspendedTransactionAsync
-import po.exposify.classes.interfaces.DataModel
+import po.exposify.dto.interfaces.DataModel
 import po.exposify.common.interfaces.AsContext
 import po.exposify.dto.components.CrudResult
-import po.exposify.classes.DTOClass
-import po.exposify.classes.RootDTO
-import po.exposify.classes.extensions.delete
-import po.exposify.classes.extensions.pick
-import po.exposify.classes.extensions.pickById
-import po.exposify.classes.extensions.select
-import po.exposify.classes.extensions.update
+import po.exposify.dto.RootDTO
+import po.exposify.dto.extensions.delete
+import po.exposify.dto.extensions.pick
+import po.exposify.dto.extensions.pickById
+import po.exposify.dto.extensions.select
+import po.exposify.dto.extensions.update
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.CrudResultSingle
 import po.exposify.dto.interfaces.ModelDTO
@@ -66,7 +65,7 @@ class ServiceContext<DTO, DATA, ENTITY: ExposifyEntity>(
     fun select(): CrudResult<DTO, DATA> {
         val result =  startTaskAsync("Select", personalName) {
             suspendedTransactionAsync {
-                dtoClass.select<DTO, DATA>()
+                dtoClass.select()
             }.await()
         }.resultOrException()
         return result
@@ -84,7 +83,7 @@ class ServiceContext<DTO, DATA, ENTITY: ExposifyEntity>(
     fun update(dataModel : DATA): CrudResultSingle<DTO,DATA> {
         val result =  startTaskAsync("Update", personalName) {
             suspendedTransactionAsync {
-                dtoClass.update<DTO, DATA, ENTITY>(dataModel)
+                dtoClass.update<DTO, DATA>(dataModel)
             }.await()
         }.resultOrException()
         return result
@@ -93,7 +92,7 @@ class ServiceContext<DTO, DATA, ENTITY: ExposifyEntity>(
     fun update(dataModels : List<DATA>): CrudResult<DTO,DATA> {
        val result =  startTaskAsync("Update", personalName) {
             suspendedTransactionAsync {
-                dtoClass.update<DTO, DATA, ENTITY>(dataModels)
+                dtoClass.update<DTO, DATA>(dataModels)
             }.await()
         }.resultOrException()
        return result

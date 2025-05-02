@@ -1,7 +1,7 @@
 package po.exposify.dto.components.property_binder.bindings
 
 import kotlinx.serialization.KSerializer
-import po.exposify.classes.interfaces.DataModel
+import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.components.property_binder.enums.PropertyType
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.components.property_binder.interfaces.PropertyBindingOption

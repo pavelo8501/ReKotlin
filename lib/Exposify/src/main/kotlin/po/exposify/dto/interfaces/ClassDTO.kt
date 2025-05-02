@@ -1,4 +1,4 @@
-package po.exposify.classes.interfaces
+package po.exposify.dto.interfaces
 
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime

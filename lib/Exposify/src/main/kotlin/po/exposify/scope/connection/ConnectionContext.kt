@@ -1,9 +1,8 @@
 package po.exposify.scope.connection
 
 import org.jetbrains.exposed.sql.Database
-import po.exposify.classes.interfaces.DataModel
-import po.exposify.classes.DTOClass
-import po.exposify.classes.RootDTO
+import po.exposify.dto.interfaces.DataModel
+import po.exposify.dto.RootDTO
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.scope.service.ServiceClass

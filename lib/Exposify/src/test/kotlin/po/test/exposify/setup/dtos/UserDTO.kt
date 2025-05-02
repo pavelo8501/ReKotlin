@@ -4,8 +4,8 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import po.auth.authentication.authenticator.models.AuthenticationPrincipal
-import po.exposify.classes.RootDTO
-import po.exposify.classes.interfaces.DataModel
+import po.exposify.dto.RootDTO
+import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.property_binder.bindings.SyncedBinding
 import po.test.exposify.setup.UserEntity

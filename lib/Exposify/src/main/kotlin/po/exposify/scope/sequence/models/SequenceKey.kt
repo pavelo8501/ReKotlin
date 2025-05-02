@@ -1,9 +1,5 @@
 package po.exposify.scope.sequence.models
 
-import po.exposify.classes.DTOClass
-import po.exposify.dto.interfaces.ModelDTO
-import kotlin.reflect.KClass
-
 data class SequenceKey(
     val dtoClassName: String,
     val sequenceId : Int

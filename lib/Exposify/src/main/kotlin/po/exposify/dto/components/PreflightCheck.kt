@@ -1,8 +1,4 @@
-package po.exposify.classes.components
-
-import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.exceptions.InitException
-import po.exposify.exceptions.enums.ExceptionCode
+package po.exposify.dto.components
 
 object DTOPreflightValidator {
 

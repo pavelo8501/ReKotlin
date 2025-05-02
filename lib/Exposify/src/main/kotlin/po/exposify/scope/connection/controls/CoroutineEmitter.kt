@@ -3,7 +3,7 @@ package po.exposify.scope.connection.controls
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.transactions.experimental.suspendedTransactionAsync
 import po.auth.sessions.interfaces.EmmitableSession
-import po.exposify.classes.interfaces.DataModel
+import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.scope.sequence.models.SequencePack
 import po.lognotify.extensions.newTask

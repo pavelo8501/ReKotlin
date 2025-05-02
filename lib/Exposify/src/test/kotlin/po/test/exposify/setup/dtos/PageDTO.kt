@@ -3,8 +3,8 @@ package po.test.exposify.setup.dtos
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import po.exposify.classes.RootDTO
-import po.exposify.classes.interfaces.DataModel
+import po.exposify.dto.RootDTO
+import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.property_binder.bindings.SyncedBinding
 import po.exposify.dto.components.property_binder.delegates.foreign2IdReference

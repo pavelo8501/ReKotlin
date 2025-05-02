@@ -1,13 +1,9 @@
 package po.exposify.scope.sequence.models
 
 import org.jetbrains.exposed.dao.id.IdTable
-import po.exposify.classes.DTOClass
-import po.exposify.classes.interfaces.DataModel
+import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntity
-import po.exposify.exceptions.OperationsException
-import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.extensions.QueryConditions
 import po.exposify.extensions.WhereCondition
 import po.exposify.scope.sequence.SequenceContext
 import po.exposify.scope.sequence.classes.SequenceHandler

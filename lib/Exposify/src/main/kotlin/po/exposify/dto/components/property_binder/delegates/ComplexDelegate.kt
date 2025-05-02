@@ -1,8 +1,8 @@
 package po.exposify.dto.components.property_binder.delegates
 
 import org.jetbrains.exposed.dao.LongEntityClass
-import po.exposify.classes.DTOClass
-import po.exposify.classes.interfaces.DataModel
+import po.exposify.dto.DTOClass
+import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.property_binder.EntityUpdateContainer
 import po.exposify.dto.components.property_binder.enums.UpdateMode
@@ -29,6 +29,9 @@ class ForeignIDClassDelegate<DTO, DATA, ENTITY, FOREIGN_ENTITY>(
 ): ComplexDelegate<DTO, DATA, ENTITY, FOREIGN_ENTITY, Long, Long>(dto, dataProperty, entityProperty.name)
     where DATA: DataModel, ENTITY: ExposifyEntity, DTO: ModelDTO, FOREIGN_ENTITY: ExposifyEntity
 {
+
+    override val  qualifiedName : String = "ForeignIDClassDelegate[${dataProperty.name}]"
+
     override fun updateByEntity(
         updateMode: UpdateMode,
         container: EntityUpdateContainer<ENTITY, *, *, FOREIGN_ENTITY>
@@ -60,16 +63,14 @@ class ParentIDDelegate<DTO, DATA, ENTITY, FOREIGN_ENTITY>(
         where DATA: DataModel, ENTITY: ExposifyEntity, DTO : ModelDTO, FOREIGN_ENTITY: ExposifyEntity
 {
 
+    override val  qualifiedName : String = "ParentIDDelegate[${dataProperty.name}]"
+
     override fun updateByEntity(
         updateMode: UpdateMode,
         container: EntityUpdateContainer<ENTITY, *, *, FOREIGN_ENTITY>
     ){
-        if(container.parentDataSet){
-            val parentEntity = container.hasParentEntity
-            println("parentEntity ${parentEntity::class.simpleName}")
-            val ownEntity = container.ownEntity
-            println("ownEntity ${ownEntity::class.simpleName}")
-            entityProperty.set(ownEntity, parentEntity)
+        container.parentDto?.let {
+            dataProperty.set(dto.dataModel, it.daoEntity.id.value)
         }
     }
 
@@ -94,13 +95,14 @@ class ParentDelegate<DTO, DATA, ENTITY, PARENT_DTO, PARENT_DATA, PARENT_ENTITY>(
               PARENT_DATA : DataModel, PARENT_ENTITY: ExposifyEntity
 {
 
+    override val  qualifiedName : String = "ParentDelegate[${dataProperty.name}]"
     var parentDto : CommonDTO<PARENT_DTO, PARENT_DATA, PARENT_ENTITY>? = null
 
     override fun updateByEntity(
         updateMode: UpdateMode,
         container: EntityUpdateContainer<ENTITY, *, *, PARENT_ENTITY>
     ) {
-        if(container.parentDataSet){
+        if(container.isParentDtoSet){
             val foreignDto = container.hasParentDto.castOrThrow<CommonDTO<PARENT_DTO, PARENT_DATA, PARENT_ENTITY>, OperationsException>()
             dataProperty.set(dto.dataModel, foreignDto.dataModel)
             parentDto = foreignDto
@@ -128,10 +130,11 @@ sealed class ComplexDelegate<DTO, DATA, ENTITY, PARENT_ENTITY, DATA_VAL, RES_VAL
 ): ReadOnlyProperty<DTO, RES_VAL>, TasksManaged
     where DATA: DataModel, ENTITY: ExposifyEntity, DTO : ModelDTO, PARENT_ENTITY: ExposifyEntity
 {
+   private var delegateProperty: KProperty<*>? = null
+   private var delegatePropertyName: String = ""
 
+   abstract val qualifiedName : String
 
-    var delegateProperty: KProperty<*>? = null
-    var delegatePropertyName: String = ""
 
     override fun getValue(thisRef: DTO, property: KProperty<*>):RES_VAL{
         delegatePropertyName = property.name
@@ -149,7 +152,7 @@ sealed class ComplexDelegate<DTO, DATA, ENTITY, PARENT_ENTITY, DATA_VAL, RES_VAL
         updateMode: UpdateMode,
         updateContainer: EntityUpdateContainer<ENTITY, *, *, ExposifyEntity>
     ): Unit
-        = subTask("BeforeInsertedUpdate"){handler->
+        = subTask("BeforeInsertedUpdate", "ComplexDelegate"){handler->
         if(updateMode == UpdateMode.MODEL_TO_ENTITY || updateMode == UpdateMode.MODEL_TO_ENTITY_FORCED){
             val castedContainer = updateContainer.castOrOperationsEx<EntityUpdateContainer<ENTITY, *, *, PARENT_ENTITY>>()
             updateByEntity(updateMode, castedContainer)

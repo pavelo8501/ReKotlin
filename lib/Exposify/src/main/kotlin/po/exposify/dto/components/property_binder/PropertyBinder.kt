@@ -1,15 +1,13 @@
 package po.exposify.dto.components.property_binder
 
-import po.exposify.classes.interfaces.DataModel
+import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.components.property_binder.bindings.ReadOnlyBinding
 import po.exposify.dto.components.property_binder.bindings.SerializedBinding
 import po.exposify.dto.components.property_binder.bindings.SyncedBinding
 import po.exposify.dto.components.property_binder.enums.PropertyType
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.components.property_binder.interfaces.PropertyBindingOption
-import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntity
-import po.lognotify.extensions.subTask
 
 class PropertyBinder<DATA : DataModel, ENT : ExposifyEntity>(
     var  onPropertyUpdate : ((String, PropertyType, UpdateMode) -> Unit)?,

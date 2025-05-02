@@ -4,8 +4,8 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
-import po.exposify.classes.DTOClass
-import po.exposify.classes.interfaces.DataModel
+import po.exposify.dto.DTOClass
+import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.property_binder.bindings.SerializedBinding
 import po.exposify.dto.components.property_binder.bindings.SyncedBinding

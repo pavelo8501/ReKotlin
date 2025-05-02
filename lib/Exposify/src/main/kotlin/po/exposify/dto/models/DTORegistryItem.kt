@@ -1,22 +1,15 @@
 package po.exposify.dto.models
 
-import po.exposify.classes.DTOBase
-import po.exposify.classes.interfaces.DataModel
+import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
-import po.exposify.classes.DTOClass
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntity
 import kotlin.reflect.KClass
 
 
-
-
-
-
 interface DTORegistry<DTO : ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity> {
     val dataKClass:  KClass<DATA>?
     val entityKClass: KClass<ENTITY>?
-
 
     val dataKClassName get() =   dataKClass?.simpleName?:"DATA"
     val dataKClassQualifiedName get() = dataKClass?.qualifiedName?:"DATA[Uninitialized]"
@@ -26,7 +19,6 @@ interface DTORegistry<DTO : ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity>
     val dtoName  get() =  "DTO[${dataKClassName}]"
     val dtoClassName  get() =  "DTOClass[${dataKClassName}]"
 }
-
 
 data class DTORegistryItem<DTO, DATA, ENTITY>(
     override val dataKClass:  KClass<DATA>,

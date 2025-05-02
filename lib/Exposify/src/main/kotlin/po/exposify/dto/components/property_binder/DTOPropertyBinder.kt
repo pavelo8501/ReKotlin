@@ -1,15 +1,12 @@
 package po.exposify.dto.components.property_binder
 
-import po.exposify.classes.interfaces.DataModel
+import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.property_binder.delegates.ComplexDelegate
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntity
-import po.exposify.exceptions.OperationsException
 import po.exposify.extensions.castOrOperationsEx
-import po.misc.types.castOrThrow
-import po.misc.types.getOrThrow
 
 class DTOPropertyBinder<DTO, DATA, ENTITY>(
     val dto : CommonDTO<DTO, DATA, ENTITY>
@@ -22,7 +19,7 @@ class DTOPropertyBinder<DTO, DATA, ENTITY>(
         binding: ComplexDelegate<DTO, DATA, ENTITY, PARENT_ENTITY, DATA_VAL, RES_VAL>)
     : ComplexDelegate<DTO, DATA, ENTITY, PARENT_ENTITY, DATA_VAL, RES_VAL>
     {
-        bindingMap[binding.delegatePropertyName] = binding
+        bindingMap[binding.qualifiedName] = binding
         return binding
     }
 

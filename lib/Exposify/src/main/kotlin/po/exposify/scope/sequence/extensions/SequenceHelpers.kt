@@ -1,6 +1,6 @@
 package po.exposify.scope.sequence.extensions
 
-import po.exposify.classes.interfaces.DataModel
+import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.scope.service.ServiceContext
