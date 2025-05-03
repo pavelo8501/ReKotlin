@@ -21,6 +21,8 @@ import po.exposify.dto.models.CommonDTORegistryItem
 import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.dto.enums.DTOInitStatus
+import po.exposify.dto.models.CrudOperation
+import po.exposify.dto.models.DTOTracker
 import po.exposify.exceptions.OperationsException
 import po.exposify.extensions.castOrOperationsEx
 import po.misc.collections.CompositeKey
@@ -63,11 +65,9 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
             return dtoClassConfig.propertyBinder
         }
 
-
     override val dataContainer: DataModelContainer<DTO, DATA> by lazy {
         DataModelContainer(dataModel, dtoClassConfig.dtoFactory.dataBlueprint, propertyBinder)
     }
-
 
     var onInitializationStatusChange : ((CommonDTO<DTO, DATA, ENTITY>)-> Unit)? = null
     var initStatus: DTOInitStatus = DTOInitStatus.UNINITIALIZED
@@ -84,6 +84,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     internal var repositories
         : Map<CompositeKey<DTOBase<*,*>, Cardinality>, RepositoryBase<DTO, DATA, ENTITY, ModelDTO, DataModel, ExposifyEntity>> = emptyMap()
 
+    override val dtoTracker: DTOTracker<DTO, DATA> by lazy { DTOTracker(this) }
 
     internal fun <C_DTO:ModelDTO, CD : DataModel, CE : ExposifyEntity> getRepository(
         key: CompositeKey<DTOBase<*,*>, Cardinality>
@@ -98,7 +99,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         binding : MultipleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>,
     ): MultipleRepository<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>
     {
-        val newRepo =  MultipleRepository(binding, this, binding.childConfig, binding.childClass)
+        val newRepo =  MultipleRepository(binding, this, binding.childConfig)
         repositories = repoBuilder(
             dtoClass.generateKey(Cardinality.ONE_TO_MANY),
             newRepo.castOrOperationsEx<MultipleRepository<DTO, DATA, ENTITY, ModelDTO, DataModel, ExposifyEntity>>(),
@@ -106,13 +107,12 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         return newRepo
     }
 
-
     @JvmName("createRepositorySingle")
     fun <CHILD_DTO: ModelDTO, CHILD_DATA: DataModel, CHILD_ENTITY: ExposifyEntity> createRepository(
         binding : SingleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>,
     ): SingleRepository<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>
     {
-        val newRepo = SingleRepository(binding, this, binding.childConfig, binding.childClass)
+        val newRepo = SingleRepository(binding, this, binding.childConfig)
         repositories = repoBuilder(
             dtoClass.generateKey(Cardinality.ONE_TO_ONE),
             newRepo.castOrOperationsEx<MultipleRepository<DTO, DATA, ENTITY, ModelDTO, DataModel, ExposifyEntity>>(),

@@ -8,7 +8,10 @@ import po.exposify.dto.CommonDTO
 import po.exposify.dto.RootDTO
 import po.exposify.dto.components.proFErty_binder.containerize
 import po.exposify.dto.components.property_binder.enums.UpdateMode
+import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.models.CrudOperation
+import po.exposify.dto.models.trackSave
 import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
@@ -18,8 +21,6 @@ import po.lognotify.TasksManaged
 import po.lognotify.extensions.subTask
 import po.misc.types.getOrThrow
 import kotlin.collections.forEach
-
-
 
 internal suspend fun<DTO : ModelDTO, DATA: DataModel, ENTITY: ExposifyEntity> selectDto(
     dtoClass: RootDTO<DTO, DATA>,
@@ -38,9 +39,15 @@ internal suspend fun <DTO : ModelDTO, DATA: DataModel, ENTITY: ExposifyEntity> u
 {
     val dto = dtoClass.config.dtoFactory.createDto(dataModel)
     if(dataModel.id == 0L){
-        dto.daoService.save(dto.castOrOperationsEx("updateDto(save). Cast failed."))
+        dto.trackSave(CrudOperation.Save, dto.daoService).let {
+            dto.daoService.save(dto.castOrOperationsEx("updateDto(save). Cast failed."))
+            it.addTrackInfoResult(1)
+        }
     }else{
-        dto.daoService.update(dto.castOrOperationsEx("updateDto(update). Cast failed."))
+        dto.trackSave(CrudOperation.Update, dto.daoService).let {
+            dto.daoService.update(dto.castOrOperationsEx("updateDto(update). Cast failed."))
+            it.addTrackInfoResult(1)
+        }
     }
     dto.getDtoRepositories().forEach {repository->
         repository.update()
@@ -51,19 +58,20 @@ internal suspend fun <DTO : ModelDTO, DATA: DataModel, ENTITY: ExposifyEntity> u
 
 class SingleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
     val binding : SingleChildContainer<DTO, DATA, ENTITY, C_DTO,  CD, CE>,
-    val hostingDto : CommonDTO<DTO, DATA, ENTITY>,
+    hostingDto : CommonDTO<DTO, DATA, ENTITY>,
     childClassConfig: DTOConfig<C_DTO, CD, CE>,
-    val childClass: DTOBase<C_DTO, CD>,
-): RepositoryBase<DTO,DATA, ENTITY, C_DTO, CD, CE>(childClassConfig), TasksManaged
+): RepositoryBase<DTO,DATA, ENTITY, C_DTO, CD, CE>(hostingDto, childClassConfig), TasksManaged
         where DTO : ModelDTO, DATA: DataModel, ENTITY : ExposifyEntity,
               C_DTO : ModelDTO, CD: DataModel, CE: ExposifyEntity
 {
-    override val personalName: String  get() = "SingleRepository[${hostingDto.dtoName}]"
+
+    override val qualifiedName: String get() = "SingleRepository[${hostingDto.dtoName}]"
+    override val name: String  get() = "SingleRepository"
 
     fun getDTO(): CommonDTO<C_DTO, CD, CE>{
         return childDTOList.firstOrNull()
             .getOrThrow<CommonDTO<C_DTO, CD, CE>, OperationsException>(
-                "Unable to get dto in $personalName",
+                "Unable to get dto in $qualifiedName",
                 ExceptionCode.ABNORMAL_STATE.value)
     }
 
@@ -103,16 +111,17 @@ class SingleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
 
 class MultipleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
     val binding : MultipleChildContainer<DTO, DATA, ENTITY, C_DTO,  CD, CE>,
-    val hostingDto : CommonDTO<DTO, DATA, ENTITY>,
+    hostingDto : CommonDTO<DTO, DATA, ENTITY>,
     childClassConfig: DTOConfig<C_DTO, CD, CE>,
-    val  childClass: DTOBase<C_DTO, CD>,
-): RepositoryBase<DTO,DATA, ENTITY, C_DTO, CD, CE>(childClassConfig), TasksManaged
+): RepositoryBase<DTO,DATA, ENTITY, C_DTO, CD, CE>(hostingDto, childClassConfig), TasksManaged
         where DTO : ModelDTO, DATA: DataModel, ENTITY : ExposifyEntity,
               C_DTO : ModelDTO, CD: DataModel, CE: ExposifyEntity
 {
-    override val personalName: String  get() = "MultipleRepository[${hostingDto.dtoName}]"
 
-    suspend fun updateMultiple(): Unit = subTask("Update", personalName){ handler->
+    override val qualifiedName: String get() = "MultipleRepository[${hostingDto.dtoName}]"
+    override val name: String  get() = "MultipleRepository"
+
+    suspend fun updateMultiple(): Unit = subTask("Update", qualifiedName){ handler->
 
         val dataModels = binding.getDataModels(hostingDto.dataModel)
         handler.info("Update for parent dto ${hostingDto.dtoName} and id ${hostingDto.id} ")
@@ -147,7 +156,7 @@ class MultipleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
     fun getDTO(): List<CommonDTO<C_DTO, CD, CE>>{
         return childDTOList.toList().testOrThrow(
             OperationsException(
-                "Dto list empty in $personalName",
+                "Dto list empty in $qualifiedName",
                 ExceptionCode.ABNORMAL_STATE)){
                 it.count() != 0
         }
@@ -161,12 +170,14 @@ class MultipleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
 
 
 sealed class RepositoryBase<DTO, DATA, ENTITY, C_DTO,  CD, CE>(
+    protected val hostingDto : CommonDTO<DTO, DATA, ENTITY>,
     protected val childClassConfig: DTOConfig<C_DTO, CD, CE>,
-) where DTO : ModelDTO, DATA: DataModel, ENTITY : ExposifyEntity,
+): IdentifiableComponent where DTO : ModelDTO, DATA: DataModel, ENTITY : ExposifyEntity,
         C_DTO : ModelDTO, CD: DataModel, CE: ExposifyEntity
 {
+    abstract override val qualifiedName: String
+    abstract  override val name: String
 
-    abstract val personalName: String
     var initialized: Boolean = false
 
     protected val childDTOList: MutableList<CommonDTO<C_DTO, CD, CE>> = mutableListOf()
@@ -179,15 +190,35 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, C_DTO,  CD, CE>(
 
     suspend fun update(){
         when(this){
-            is MultipleRepository-> updateMultiple()
-            is SingleRepository-> updateSingle()
+            is MultipleRepository-> {
+                hostingDto.trackSave(CrudOperation.Update, this).let {
+                    updateMultiple()
+                    it.addTrackInfoResult(childDTOList.count())
+                }
+            }
+            is SingleRepository-> {
+                hostingDto.trackSave(CrudOperation.Update, this).let {
+                    updateSingle()
+                    it.addTrackInfoResult(childDTOList.count())
+                }
+            }
         }
     }
 
     suspend fun select(entity: ENTITY){
         when(this){
-            is MultipleRepository-> selectMultiple(entity)
-            is SingleRepository->selectSingle(entity)
+            is MultipleRepository->{
+                hostingDto.trackSave(CrudOperation.Update, this).let {
+                    selectMultiple(entity)
+                    it.addTrackInfoResult(childDTOList.count())
+                }
+            }
+            is SingleRepository->{
+                hostingDto.trackSave(CrudOperation.Update, this).let {
+                    selectSingle(entity)
+                    it.addTrackInfoResult(childDTOList.count())
+                }
+            }
         }
         initialized = true
     }

@@ -8,6 +8,7 @@ import kotlinx.serialization.json.Json
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.common.classes.ClassBlueprint
 import po.exposify.dto.CommonDTO
+import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.OperationsException
@@ -30,15 +31,17 @@ internal class PostCreationRoutine<DTO, DATA, ENTITY, R>(
    suspend fun invokeRoutineBlock(receiver: CommonDTO<DTO, DATA, ENTITY>){
       resultDeferred.complete(routineBlock.invoke(receiver))
     }
-
 }
 
 internal class DTOFactory<DTO, DATA, ENTITY>(
     private val dtoKClass : KClass<out CommonDTO<DTO, DATA, ENTITY>>,
     private val dataModelClass : KClass<DATA>,
     private val hostingConfig: DTOConfig<DTO, DATA, ENTITY>,
-): TasksManaged where DTO : ModelDTO, DATA: DataModel, ENTITY: ExposifyEntity {
+): IdentifiableComponent,  TasksManaged where DTO : ModelDTO, DATA: DataModel, ENTITY: ExposifyEntity {
 
+
+    override val qualifiedName: String = "DTOFactory[${hostingConfig.registry.dtoName}]"
+    override val name: String = "DTOFactory"
 
     private val personalName = "DTOFactory[${dtoKClass.simpleName}]"
 

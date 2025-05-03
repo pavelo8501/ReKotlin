@@ -1,9 +1,10 @@
 package po.misc.time
 
-fun MeasuredContext.start(){
+fun <T:MeasuredContext> T.start():T{
     executionTimeStamp.startTimer()
+    return this
 }
 
-fun MeasuredContext.stop(): ExecutionTimeStamp{
+fun <T:MeasuredContext> T.stop(): ExecutionTimeStamp{
    return executionTimeStamp.stopTimer()
 }

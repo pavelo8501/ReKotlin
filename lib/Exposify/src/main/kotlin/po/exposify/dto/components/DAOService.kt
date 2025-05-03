@@ -9,6 +9,7 @@ import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.proFErty_binder.EntityUpdateContainer
 import po.exposify.dto.components.proFErty_binder.containerize
 import po.exposify.dto.components.property_binder.enums.UpdateMode
+import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.DTORegistryItem
 import po.exposify.entity.classes.ExposifyEntity
@@ -23,9 +24,11 @@ import po.lognotify.extensions.subTask
 class DAOService<DTO, DATA, ENTITY>(
     val entityModel: LongEntityClass<ENTITY>,
     private val registryRecord: DTORegistryItem<DTO, DATA, ENTITY>,
-): TasksManaged where DTO: ModelDTO, DATA: DataModel, ENTITY : ExposifyEntity{
+): TasksManaged, IdentifiableComponent where DTO: ModelDTO, DATA: DataModel, ENTITY : ExposifyEntity{
 
-    private val personalName : String  get() = "DAOService[${registryRecord.dtoName}]"
+    override val qualifiedName: String = "DAOService[${registryRecord.dtoName}]"
+    override val name: String = "DAOService"
+
 
     private fun combineConditions(conditions: Set<Op<Boolean>>): Op<Boolean> {
         return conditions.reduceOrNull { acc, op -> acc and op } ?: Op.TRUE
@@ -40,7 +43,7 @@ class DAOService<DTO, DATA, ENTITY>(
         dto.updateBindingsAfterInserted(container)
     }
 
-   suspend fun  <T:IdTable<Long>> pick(conditions :  WhereCondition<T>): ENTITY? = subTask("Pick", personalName){handler->
+   suspend fun  <T:IdTable<Long>> pick(conditions :  WhereCondition<T>): ENTITY? = subTask("Pick", qualifiedName){handler->
        val opConditions = buildConditions(conditions)
        val queryResult = entityModel.find(opConditions).firstOrNull()
         if(queryResult == null){
@@ -49,7 +52,7 @@ class DAOService<DTO, DATA, ENTITY>(
         queryResult
     }.resultOrNull()
 
-    suspend fun pickById(id: Long): ENTITY? =  subTask("PickById", personalName) {handler->
+    suspend fun pickById(id: Long): ENTITY? =  subTask("PickById", qualifiedName) {handler->
       val entity =  entityModel.findById(id)
       if(entity == null){
           handler.warn("Entity with id: $id not found")
@@ -58,12 +61,12 @@ class DAOService<DTO, DATA, ENTITY>(
     }.resultOrNull()
 
 
-    suspend fun select(): List<ENTITY> = subTask("Select All", personalName){
+    suspend fun select(): List<ENTITY> = subTask("Select All", qualifiedName){
         entityModel.all().toList()
     }.resultOrException()
 
     suspend fun <T:IdTable<Long>> select(conditions:  WhereCondition<T>): List<ENTITY> =
-        subTask("Select", personalName) {handler->
+        subTask("Select", qualifiedName) {handler->
         val opConditions = buildConditions(conditions)
         val result = entityModel.find(opConditions).toList()
         handler.info("${result.count()} entities selected")
@@ -73,7 +76,6 @@ class DAOService<DTO, DATA, ENTITY>(
     suspend fun save(dto: CommonDTO<DTO, DATA, ENTITY>): ENTITY =
         subTask("Save", "DAOService") {handler->
             val updateMode = UpdateMode.MODEL_TO_ENTITY
-
         val newEntity = entityModel.new {
             handler.withTaskContext(this){
                 dto.updatePropertyBinding(this, updateMode, this.containerize(updateMode))
@@ -89,7 +91,7 @@ class DAOService<DTO, DATA, ENTITY>(
         parentDto: CommonDTO<P_DTO, PD, PE>,
         bindFn: (container: EntityUpdateContainer<ENTITY, P_DTO, PD, PE>)-> Unit)
 
-            = subTask("Save", personalName) {handler->
+            = subTask("Save", qualifiedName) {handler->
             val updateMode = UpdateMode.MODEL_TO_ENTITY
             val newEntity = entityModel.new {
                 handler.withTaskContext(this){

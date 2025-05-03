@@ -27,9 +27,4 @@ data class ExecutionTimeStamp(val name: String, val id: String) {
     fun onStop(onStopFn : (ExecutionTimeStamp)-> Unit){
         this.onStopFn = onStopFn
     }
-
-
-
-
-
 }
