@@ -1,5 +1,10 @@
 package po.exposify.common.classes
 
+inline fun <reified K, reified T> repoBuilder(key:K, item : T, initial :  Map<K, T> = emptyMap<K,T>()):Map<K, T>{
+    val map: MutableMap<K, T> = initial.toMutableMap()
+    map[key] = item
+    return map
+}
 
 /**
  * Represents a builder for creating immutable lists dynamically.
@@ -44,8 +49,6 @@ open class MapBuilder<K, T>(initial: Map<K, T> = emptyMap()) where K : Any, T: A
     fun addAll(vararg keyValuePairs : Pair<K, T>){
         addAll(keyValuePairs.toList())
     }
-
-
 
     fun addIf(key: K,  element: T, predicate: (T, List<T>) -> Boolean) = apply {
         if (predicate(element, _map.values.toList())) _map[key] = element

@@ -17,7 +17,7 @@ data class ClassData<T>(
 ) where  T: Any
 
 
-open class ConstructorBuilder {
+class ConstructorBuilder {
 
     private fun <T: Any>getNestedMap(clazz: KClass<out T>): Map<String, Map<String,ClassData<Any>>>{
         val map = mutableMapOf<String, Map<String,ClassData<Any>>>()
@@ -55,21 +55,34 @@ open class ConstructorBuilder {
         }
     }
 
-    fun <T: Any>getBlueprint(
-            clazz : KClass<T>,
-            container : BlueprintContainer<T>
-    ) { container.apply {
-            clazz.primaryConstructor?.let {
-                if(it.parameters.isEmpty()){
-                    setConstructor(it)
-                }else{
-                    setConstructor(it)
-                    it.parameters.forEach { param ->
-                        addParameter(param)
+    fun <T: Any>getBlueprint(clazz : KClass<T>, container : BlueprintContainer<T>, constructorParams: ConstructorParams)
+    {
+        if(constructorParams == ConstructorParams.UsePrimary){
+            container.apply {
+                clazz.primaryConstructor?.let {
+                    if(it.parameters.isEmpty()){
+                        setConstructor(it)
+                    }else{
+                        setConstructor(it)
+                        it.parameters.forEach { param ->
+                            addParameter(param)
+                        }
                     }
                 }
+                setNestedMap(getNestedMap(clazz))
             }
-            setNestedMap(getNestedMap(clazz))
+        }else{
+            val altConstructor = clazz.constructors
+                .firstOrNull { it != clazz.primaryConstructor}
+            altConstructor?.let { constructor ->
+                container.apply {
+                    setConstructor(constructor)
+                    constructor.parameters.forEach { param ->
+                        addParameter(param)
+                    }
+                    setNestedMap(getNestedMap(clazz))
+                }
+            } ?: error("No suitable alternative constructor found for ${clazz.simpleName}")
         }
     }
 

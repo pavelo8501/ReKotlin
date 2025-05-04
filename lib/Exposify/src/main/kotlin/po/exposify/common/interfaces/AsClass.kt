@@ -1,9 +1,7 @@
 package po.exposify.common.interfaces
 
 import org.jetbrains.exposed.dao.LongEntity
-import org.jetbrains.exposed.dao.LongEntityClass
-import po.exposify.classes.interfaces.DataModel
-import kotlin.reflect.KClass
+import po.exposify.dto.interfaces.DataModel
 
 
 interface AsClass<DATA: DataModel, ENTITY: LongEntity> {

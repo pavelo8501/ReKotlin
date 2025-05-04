@@ -1,38 +1,20 @@
 package po.exposify.dto.components.property_binder.bindings
 
-import po.exposify.classes.interfaces.DataModel
+import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.components.property_binder.enums.PropertyType
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.components.property_binder.interfaces.PropertyBindingOption
-import po.exposify.entity.classes.ExposifyEntityBase
+import po.exposify.entity.classes.ExposifyEntity
 import kotlin.reflect.KMutableProperty1
 
-class SyncedBinding<DATA : DataModel, ENT : ExposifyEntityBase, T>(
+class SyncedBinding<DATA : DataModel, ENT : ExposifyEntity, T>(
     override val dataProperty:KMutableProperty1<DATA, T>,
     override val referencedProperty :KMutableProperty1<ENT, T>
 ): PropertyBindingOption<DATA, ENT, T>
 {
     override val propertyType: PropertyType = PropertyType.TWO_WAY
 
-    override var onDataUpdatedCallback: ((PropertyBindingOption<DATA, ENT, T>) -> Unit)? = null
-
-    private var onPropertyUpdatedCallback: ((String, PropertyType, UpdateMode) -> Unit)? = null
-    override fun onPropertyUpdated(callback: (String, PropertyType, UpdateMode) -> Unit) {
-        onPropertyUpdatedCallback = callback
-    }
-
-    var updated: Boolean = false
-    override fun updated(
-        name: String,
-        type: PropertyType,
-        updateMode: UpdateMode
-    ) {
-        updated = true
-        onPropertyUpdatedCallback?.invoke(name, type, updateMode)
-    }
-
-    fun update(dtoModel: DATA, entityModel: ENT, mode: UpdateMode): Boolean {
-        updated = false
+    fun update(dtoModel: DATA, entityModel: ENT, mode: UpdateMode,  callback: ((String, PropertyType, UpdateMode) -> Unit)?): Boolean {
         val dtoValue = dataProperty.get(dtoModel)
         val entityValue =  try {
             referencedProperty.get(entityModel)
@@ -46,7 +28,8 @@ class SyncedBinding<DATA : DataModel, ENT : ExposifyEntityBase, T>(
                 if (!valuesDiffer) return false
                 if(entityValue != null){
                     dataProperty.set(dtoModel, entityValue)
-                    updated(dataProperty.name, propertyType, UpdateMode.ENTITY_TO_MODEL)
+                    callback?.invoke(dataProperty.name, propertyType, UpdateMode.ENTITY_TO_MODEL)
+
                     return true
                 }
                 return false
@@ -54,7 +37,7 @@ class SyncedBinding<DATA : DataModel, ENT : ExposifyEntityBase, T>(
             UpdateMode.ENTITY_TO_MODEL_FORCED -> {
                 if(entityValue != null){
                     dataProperty.set(dtoModel, entityValue)
-                    updated(dataProperty.name, propertyType, UpdateMode.ENTITY_TO_MODEL)
+                    callback?.invoke(dataProperty.name, propertyType, UpdateMode.ENTITY_TO_MODEL)
                     true
                 }else{
                     false
@@ -72,10 +55,6 @@ class SyncedBinding<DATA : DataModel, ENT : ExposifyEntityBase, T>(
                 }
                 return false
             }
-        }
-        if(updated){
-            updated = false
-            onDataUpdatedCallback?.invoke(this)
         }
     }
 }

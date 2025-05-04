@@ -21,6 +21,8 @@ suspend fun RoutingContext.respondInternal(throwable : Throwable) {
     var code = 0
     if(throwable is DataException){
         code = throwable.code.value
+    }else{
+        code =   HttpStatusCode.InternalServerError.value
     }
     call.respond(
         HttpStatusCode.InternalServerError,
@@ -29,9 +31,7 @@ suspend fun RoutingContext.respondInternal(throwable : Throwable) {
 }
 
 suspend fun RoutingContext.respondUnauthorized(message: String, code: Int) {
-    call.apply {
-        respondUnauthorized(message, code)
-    }
+    call.respondUnauthorized(message, code)
 }
 suspend fun ApplicationCall.respondUnauthorized(message: String, code: Int) {
     respond(HttpStatusCode.Unauthorized, ApiResponse.withErrorMessage(message, code))

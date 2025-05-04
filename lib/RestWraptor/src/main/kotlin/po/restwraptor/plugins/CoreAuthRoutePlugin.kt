@@ -38,7 +38,9 @@ val CoreAuthRoutePlugin = createRouteScopedPlugin(
     }
 
     on(MonitoringEvent(ApplicationStarted)) { application ->
-        securedRoutes.addAll(application.getWraptorRoutes().filter { it.isSecured })
+        application.getWraptorRoutes(){
+            securedRoutes.addAll(it.filter {it.isSecured })
+        }
     }
 
 }

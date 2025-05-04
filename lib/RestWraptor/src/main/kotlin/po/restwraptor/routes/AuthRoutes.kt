@@ -6,26 +6,22 @@ import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Routing
 import io.ktor.server.routing.post
-import io.ktor.server.sessions.sessionId
 import kotlinx.serialization.SerializationException
-import po.auth.AuthSessionManager
 import po.auth.authentication.exceptions.AuthException
 import po.auth.authentication.exceptions.ErrorCodes
 import po.auth.extensions.authenticate
+import po.lognotify.extensions.launchProcess
+import po.lognotify.extensions.newTask
 import po.lognotify.extensions.startTask
 import po.misc.exceptions.HandlerType
-import po.misc.exceptions.ManagedException
 import po.misc.exceptions.getOrException
 import po.restwraptor.enums.WraptorHeaders
-import po.restwraptor.exceptions.ExceptionCodes
 import po.restwraptor.extensions.asBearer
 import po.restwraptor.extensions.authSessionOrNull
 import po.restwraptor.extensions.respondBadRequest
 import po.restwraptor.extensions.respondInternal
-import po.restwraptor.extensions.respondNotFound
 import po.restwraptor.extensions.respondUnauthorized
 import po.restwraptor.extensions.withBaseUrl
-import po.restwraptor.extensions.withSession
 import po.restwraptor.models.request.ApiRequest
 import po.restwraptor.models.request.LoginRequest
 import po.restwraptor.models.request.LogoutRequest
@@ -35,12 +31,12 @@ import java.lang.Exception
 
 fun Routing.configureAuthRoutes(authPrefix: String,  authConfigContext: AuthConfigContext) {
     val personalName = "AuthRoutes"
+
     val loginRoute = "login"
 
     post(withBaseUrl(authPrefix, loginRoute)) {
 
-        // call.withSession {
-        startTask("Process Post login", call.coroutineContext, "$personalName $loginRoute") { handler ->
+        newTask("Process Post login",this.call.coroutineContext,"$personalName $loginRoute") { handler ->
             call.authSessionOrNull().getOrException {
                 AuthException("Session can not be located", ErrorCodes.SESSION_NOT_FOUND,)
             }.let { session ->
@@ -50,18 +46,16 @@ fun Routing.configureAuthRoutes(authPrefix: String,  authConfigContext: AuthConf
                         is AuthException -> {
                             if (throwable.code.value >= 4000 && throwable.code.value < 5000) {
                                 respondUnauthorized(throwable.message, throwable.code.value)
+                                return@handleFailure
                             } else {
                                 respondInternal(throwable.message, throwable.code.value)
                             }
                         }
-                        is SerializationException -> respondBadRequest(throwable.message.toString())
                         else -> {
                             respondInternal(throwable)
                         }
                     }
-                    throw Exception("ddd")
                 }
-
                 val credentials = call.receive<LoginRequest>()
                 val principal = session.authenticate(credentials.login, credentials.password)
                 val jwtToken = session.authenticator.jwtService.generateToken(principal, session)

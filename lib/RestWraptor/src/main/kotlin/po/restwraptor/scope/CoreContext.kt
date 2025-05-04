@@ -12,7 +12,7 @@ import po.restwraptor.models.server.WraptorRoute
 
 class CoreContext(private val app : Application, private val wraptor: RestWrapTor) {
 
-    val routes : List<WraptorRoute>  by  lazy { getAllRegisteredRoutes() }
+    private var existentWraptorRoutes : List<WraptorRoute>  = emptyList()
 
     private fun cleanPathStr(path: String):String{
         return path.replace(Regex("\\(authenticate .*?\\)"), "").replace("//", "/").trimEnd('/')
@@ -51,7 +51,10 @@ class CoreContext(private val app : Application, private val wraptor: RestWrapTo
     }
 
     fun getWraptorRoutes(): List<WraptorRoute>{
-       return  getAllRegisteredRoutes()
+        if(existentWraptorRoutes.count() == 0){
+            existentWraptorRoutes = getAllRegisteredRoutes()
+        }
+        return  existentWraptorRoutes
     }
 
 //    fun List<WraptorRoute>.toList(){

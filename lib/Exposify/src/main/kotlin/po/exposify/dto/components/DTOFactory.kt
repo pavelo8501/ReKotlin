@@ -1,16 +1,16 @@
 package po.exposify.dto.components
 
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Deferred
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
-import po.exposify.classes.components.DTOConfig
-import po.exposify.classes.interfaces.DataModel
+import po.exposify.dto.interfaces.DataModel
 import po.exposify.common.classes.ClassBlueprint
-import po.exposify.common.classes.ConstructorBuilder
-import po.exposify.common.classes.MapBuilder
 import po.exposify.dto.CommonDTO
+import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.entity.classes.ExposifyEntityBase
+import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.getOrOperationsEx
@@ -20,17 +20,33 @@ import kotlin.collections.get
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
 
+
+internal class PostCreationRoutine<DTO, DATA, ENTITY, R>(
+    val name: String,
+   private val routineBlock: suspend CommonDTO<DTO, DATA, ENTITY>.()->R,
+) where DTO : ModelDTO, DATA: DataModel, ENTITY: ExposifyEntity{
+
+   val resultDeferred: CompletableDeferred<R> = CompletableDeferred()
+
+   suspend fun invokeRoutineBlock(receiver: CommonDTO<DTO, DATA, ENTITY>){
+      resultDeferred.complete(routineBlock.invoke(receiver))
+    }
+}
+
 internal class DTOFactory<DTO, DATA, ENTITY>(
     private val dtoKClass : KClass<out CommonDTO<DTO, DATA, ENTITY>>,
     private val dataModelClass : KClass<DATA>,
     private val hostingConfig: DTOConfig<DTO, DATA, ENTITY>,
-): TasksManaged where DTO : ModelDTO, DATA: DataModel, ENTITY: ExposifyEntityBase {
-    companion object : ConstructorBuilder()
+): IdentifiableComponent,  TasksManaged where DTO : ModelDTO, DATA: DataModel, ENTITY: ExposifyEntity {
+
+
+    override val qualifiedName: String = "DTOFactory[${hostingConfig.registry.dtoName}]"
+    override val name: String = "DTOFactory"
 
     private val personalName = "DTOFactory[${dtoKClass.simpleName}]"
 
-    internal val dataBlueprint : ClassBlueprint<DATA> =  ClassBlueprint(dataModelClass).also { it.initialize(Companion) }
-    private val dtoBlueprint = ClassBlueprint(dtoKClass).also { it.initialize(Companion) }
+    internal val dataBlueprint : ClassBlueprint<DATA> =  ClassBlueprint(dataModelClass)
+    private val dtoBlueprint : ClassBlueprint<out CommonDTO<DTO, DATA, ENTITY>> = ClassBlueprint(dtoKClass)
 
     private var dataModelConstructor : (() -> DATA)? = null
 
@@ -46,17 +62,28 @@ internal class DTOFactory<DTO, DATA, ENTITY>(
         this.dataModelConstructor = dataModelConstructor
     }
 
-    internal var postCreationRoutines = MapBuilder<String, suspend CommonDTO<DTO, DATA, ENTITY>.() -> Unit>()
-    fun setPostCreationRoutine(name : String, fn: suspend CommonDTO<DTO, DATA, ENTITY>.()-> Unit){
-        postCreationRoutines.put(name, fn)
+    internal var postCreationRoutines : MutableMap<String, PostCreationRoutine<DTO, DATA, ENTITY, *>> = mutableMapOf()
+    suspend fun <R> setPostCreationRoutine(
+        name : String,
+        block: suspend CommonDTO<DTO, DATA, ENTITY>.()-> R
+    ): Deferred<R>{
+        val routine = PostCreationRoutine(name, block)
+        postCreationRoutines.put(name,  routine)
+        return routine.resultDeferred
     }
+
     fun unsetPostCreationRoutine(){
         postCreationRoutines.clear()
     }
 
-    suspend fun dtoPostCreation(dto : CommonDTO<DTO, DATA, ENTITY>){
-        postCreationRoutines.map.forEach {
-            it.value.invoke(dto)
+    private suspend fun dtoPostCreation(dto : CommonDTO<DTO, DATA, ENTITY>)
+        = subTask("dtoPostCreation"){handler->
+
+        dto.initialize()
+
+        postCreationRoutines.values.forEach {
+            handler.info("Executing ${it.name}")
+            it.invokeRoutineBlock(dto)
         }
     }
 
@@ -98,7 +125,7 @@ internal class DTOFactory<DTO, DATA, ENTITY>(
 
                 paramValue
             }
-            val args = dataBlueprint.getArgsForConstructor()
+            val args = dataBlueprint.getConstructorArgs()
             val constructor = dataBlueprint.getConstructor()
             val dataModel = constructor.callBy(args)
             return dataModel
@@ -115,22 +142,37 @@ internal class DTOFactory<DTO, DATA, ENTITY>(
      * @return DTOFunctions<DATA, ENTITY> or null
      * */
     suspend fun createDto(withDataModel : DATA? = null): CommonDTO<DTO, DATA, ENTITY> =
-        subTask("Create DTO", personalName){
-        val model = withDataModel?: createDataModel()
+        subTask("Create DTO", personalName){handler->
+        val dataModel = withDataModel?: createDataModel()
         dtoBlueprint.setExternalParamLookupFn { param ->
             when (param.name) {
                 "dataModel" -> {
-                    model
+                    if (param.type.classifier == dataModel::class) {
+                        dataModel
+                    } else {
+                        throw IllegalArgumentException("Mismatched dataModel type for ${dtoBlueprint.clazz.simpleName}. Expected ${param.type}, got ${dataModel::class}")
+                    }
                 }
                 else -> {
                     null
                 }
             }
         }
-        val args = dtoBlueprint.getArgsForConstructor()
-        val newDto =  dtoBlueprint.getConstructor().callBy(args)
-        dtoPostCreation(newDto)
-        newDto
+
+       try {
+            val args = dtoBlueprint.getConstructorArgs()
+            val newDto =  dtoBlueprint.getConstructor().callBy(args)
+            dtoPostCreation(newDto)
+
+            newDto
+        }catch (th: Throwable){
+           val argsUsed = dtoBlueprint.getConstructorArgs()
+           val argsStr =  argsUsed.keys.joinToString { it.name.toString() }
+           handler.warn("While creating dto for ${argsStr}")
+           handler.warn("Arguments used ${argsUsed.values.map { toString() }}")
+          handler.warn(th.toString().prependIndent("Exception"))
+          throw  th
+        }
     }.resultOrException()
 
 }

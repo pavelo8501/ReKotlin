@@ -7,6 +7,10 @@ import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.testing.testApplication
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertAll
+import org.junit.jupiter.api.assertNotNull
+import po.auth.authentication.authenticator.models.AuthenticationPrincipal
+import po.auth.extensions.readCryptoRsaKeys
+import po.auth.extensions.setKeyBasePath
 import po.restwraptor.RestWrapTor
 import po.restwraptor.enums.EnvironmentType
 import po.restwraptor.enums.RouteSelector
@@ -14,6 +18,7 @@ import po.restwraptor.extensions.getWraptorRoutes
 import po.restwraptor.models.configuration.ApiConfig
 import po.restwraptor.models.configuration.WraptorConfig
 import po.restwraptor.models.server.WraptorRoute
+import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -23,20 +28,23 @@ class TestRestWraptorGeneralConfig {
     @Test
     fun `default configuration installs and configures all plugins`() = testApplication {
 
-        val routes : MutableList<WraptorRoute> = mutableListOf()
         val server = RestWrapTor()
-
         application {
             server.useApp(this){
 
             }
         }
         startApplication()
-        routes.addAll(server.getRoutes())
+        val routes = server.getRoutes()
+        val firsRoute = routes[0]
         assertAll(
             { assertNotEquals(0, routes.count(), "No default routes installed") },
-            { assertTrue(routes.any { it.path == "/status" && it.selector == RouteSelector.OPTIONS }, "Options status route not present") },
-            { assertTrue(routes.any { it.path == "/status" && it.selector == RouteSelector.GET }, "Get status route not present") }
+            { assertEquals("/status", firsRoute.path, "Route path incorrect") },
+            { assertEquals(RouteSelector.OPTIONS, firsRoute.selector, "Route path incorrect")},
+            { assertNotNull(routes.firstOrNull { it.path.contains("status") && it.selector == RouteSelector.OPTIONS }, "Options status route not present") },
+            { assertNotNull(routes.firstOrNull { it.path.contains("status") && it.selector == RouteSelector.GET }, "Get status route not present") },
+            { assertNotNull(routes,"Routes not loaded")},
+            { assertNotNull(routes.firstOrNull {it.path == "/backend/auth/login" && it.selector == RouteSelector.POST }, "backend/auth/login status route not present") }
         )
     }
 
@@ -45,7 +53,7 @@ class TestRestWraptorGeneralConfig {
 
         var corsPlugin :  PluginInstance? = null
         var contentNegotiationPlugin  :  PluginInstance? = null
-        val routes :  MutableList<WraptorRoute> = mutableListOf()
+        var routes :  List<WraptorRoute>? = null
         var configHit : Boolean = false
 
         val server =  RestWrapTor()
@@ -55,15 +63,18 @@ class TestRestWraptorGeneralConfig {
             contentNegotiation = false,
             systemRouts = false
         )
-
+        val keyPath = setKeyBasePath("src/test/demo_keys")
         application{
             server.useApp(this){
-                setup(WraptorConfig(EnvironmentType.BUILD, apiConfig)) {
-
-                }
+                apiConfig.baseApiRoute = "backend/"
+                apiConfig.environment = EnvironmentType.BUILD
+                applyApiConfig(apiConfig)
             }
+
             configHit = true
-            routes.addAll(getWraptorRoutes())
+            getWraptorRoutes(){
+                routes = it
+            }
             corsPlugin = this.pluginOrNull(CORS)
             contentNegotiationPlugin = this.pluginOrNull(ContentNegotiation)
         }
@@ -72,7 +83,8 @@ class TestRestWraptorGeneralConfig {
         assertAll(
             {assertTrue(configHit, "Configuration never reached")},
             {assertNull(corsPlugin, "Cors plugin switched off but installed")},
-            {assertNull(contentNegotiationPlugin, "ContentNegotiation plugin switched off but installed")}
+            {assertNull(contentNegotiationPlugin, "ContentNegotiation plugin switched off but installed")},
+            {assertNotNull(routes, "Route list not loaded")}
         )
 
     }

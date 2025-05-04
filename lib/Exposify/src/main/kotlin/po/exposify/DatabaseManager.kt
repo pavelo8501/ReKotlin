@@ -9,10 +9,8 @@ import po.exposify.controls.ConnectionInfo
 import po.exposify.scope.connection.ConnectionClass
 import po.exposify.scope.connection.ConnectionContext
 import po.exposify.scope.connection.models.ConnectionSettings
-
-fun echo(ex: Exception, message: String? = null){
-    println("Exception happened in Exposify:  Exception:${ex.message.toString()}. $message")
-}
+import po.lognotify.extensions.newTask
+import po.lognotify.extensions.newTaskAsync
 
 fun launchService(connection: ConnectionContext, block: ConnectionContext.()-> Unit ){
     if(connection.isOpen){
@@ -62,7 +60,7 @@ object DatabaseManager {
         context: (ConnectionContext.()->Unit)? = null
     ): ConnectionContext? {
 
-        try {
+       return newTaskAsync("openConnectionSync") {
             connectionInfo.hikariDataSource = provideDataSource(connectionInfo)
             val newConnection = Database.connect(connectionInfo.hikariDataSource!!)
             val connectionClass = ConnectionClass(connectionInfo, newConnection, sessionManager)
@@ -75,14 +73,8 @@ object DatabaseManager {
 
             context?.invoke(connectionContext)
             connectionUpdated?.invoke("Connected", true)
-            return connectionContext
-        }catch (ex: Exception){
-            println(ex.message)
-            return  null
-        }catch (th: Throwable){
-            println(th.message.toString())
-            return null
-        }
+            connectionContext
+        }.resultOrException()
     }
 
     suspend fun openConnection(

@@ -6,14 +6,14 @@ import org.jetbrains.exposed.sql.Database
 import po.auth.sessions.enumerators.SessionType
 import po.auth.sessions.interfaces.SessionIdentified
 import po.auth.sessions.models.AuthorizedSession
-import po.exposify.classes.interfaces.DataModel
+import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.components.CrudResult
 import po.exposify.dto.CommonDTO
-import po.exposify.classes.DTOClass
-import po.exposify.classes.extensions.select
-import po.exposify.classes.extensions.update
+import po.exposify.dto.RootDTO
+import po.exposify.dto.extensions.select
+import po.exposify.dto.extensions.update
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.entity.classes.ExposifyEntityBase
+import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.extensions.WhereCondition
 import po.exposify.extensions.isTransactionReady
 import po.exposify.scope.sequence.classes.SequenceHandler
@@ -21,9 +21,6 @@ import po.exposify.scope.service.ServiceClass
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.subTask
 import kotlin.coroutines.coroutineContext
-
-
-
 
 interface RunnableContext: SessionIdentified{
     val method: String
@@ -53,21 +50,19 @@ interface RunnableContext: SessionIdentified{
 
 
 class SequenceContext<DTO, DATA>(
-    private  val serviceClass : ServiceClass<DTO, DATA, ExposifyEntityBase>,
-    private val dtoClass : DTOClass<DTO>,
+    private  val serviceClass : ServiceClass<DTO, DATA, ExposifyEntity>,
+    private val dtoClass : RootDTO<DTO, DATA>,
     private val handler : SequenceHandler<DTO, DATA>,
 ): TasksManaged where  DTO : ModelDTO, DATA : DataModel
 {
 
-    private val personalName : String = "SequenceContext[${dtoClass.registryItem.dtoName}]"
+    private val personalName : String = "SequenceContext[${dtoClass.config.registry.dtoName}]"
     private val connection: Database = serviceClass.connection
 
-    private var lastResult : CrudResult<DTO, DATA> = CrudResult(emptyList())
+    private var lastResult : CrudResult<DTO, DATA> = CrudResult()
 
-    private fun dtos(): List<CommonDTO<DTO, DATA , ExposifyEntityBase>>{
-        val result =   mutableListOf<CommonDTO<DTO, DATA, ExposifyEntityBase>>()
-        lastResult.rootDTOs.forEach{ result.add(it) }
-        return result
+    private fun dtos(): List<CommonDTO<DTO, DATA , ExposifyEntity>>{
+      return  lastResult.rootDTOs
     }
 
     private suspend fun notifyOnStart(method: String){
@@ -85,41 +80,47 @@ class SequenceContext<DTO, DATA>(
 
     }
 
-
     suspend fun <T: IdTable<Long>> pick(
         conditions: WhereCondition<T>,
-        block: (suspend SequenceContext<DTO, DATA>.(dtos: List<CommonDTO<DTO, DATA, ExposifyEntityBase>>)-> Unit)? = null
+        block: (suspend SequenceContext<DTO, DATA>.(dto: CommonDTO<DTO, DATA, ExposifyEntity>?)-> Unit)? = null
     ) {
+        notifyOnStart("pick")
+        lastResult =  dtoClass.select(conditions)
+
         if (block != null) {
-            this.block(dtos())
+            this.block(dtos().firstOrNull())
         } else {
             checkout(lastResult)
+            notifyOnComplete("pick")
         }
     }
 
     suspend fun <T: IdTable<Long>> select(
         conditions: WhereCondition<T>?,
-        block: (suspend SequenceContext<DTO, DATA>.(dtos: List<CommonDTO<DTO, DATA, ExposifyEntityBase>>)-> Deferred<List<DATA>>)? = null
+        block: (suspend SequenceContext<DTO, DATA>.(dtos: List<CommonDTO<DTO, DATA, ExposifyEntity>>)-> Deferred<List<DATA>>)? = null
     ) {
         subTask("Select", personalName) { handler ->
             if (!isTransactionReady()) {
                 handler.warn("Transaction lost context")
             }
+            notifyOnStart("select(With conditions)")
             lastResult = if (conditions != null) {
-                dtoClass.select<T, DTO, DATA>(conditions)
+                dtoClass.select(conditions)
             } else {
-                dtoClass.select<DTO, DATA>()
+                dtoClass.select()
             }
             if (block != null) {
                 this.block(dtos())
+                notifyOnComplete("select")
             } else {
                 checkout(lastResult)
+                notifyOnComplete("select")
             }
         }
     }
 
     suspend fun select(
-        block: (suspend SequenceContext<DTO, DATA>.(dtos: List<CommonDTO<DTO, DATA, ExposifyEntityBase>>)-> Deferred<List<DATA>>)? = null
+        block: (suspend SequenceContext<DTO, DATA>.(dtos: List<CommonDTO<DTO, DATA, ExposifyEntity>>)-> Deferred<List<DATA>>)? = null
     ){
        subTask("Select", personalName) {handler->
             if (!isTransactionReady()) {
@@ -129,6 +130,7 @@ class SequenceContext<DTO, DATA>(
             lastResult = dtoClass.select()
             if (block != null) {
                 this.block(dtos())
+                notifyOnComplete("select")
             } else {
                 checkout(lastResult)
                 notifyOnComplete("select")
@@ -138,8 +140,8 @@ class SequenceContext<DTO, DATA>(
 
     suspend fun update(
         dataModels: List<DATA>,
-        block: (suspend SequenceContext<DTO, DATA>.(dtos: List<CommonDTO<DTO, DATA, ExposifyEntityBase>>)-> Deferred<List<DATA>>)? = null
-    ){
+        block: (suspend SequenceContext<DTO, DATA>.(dtos: List<CommonDTO<DTO, DATA, ExposifyEntity>>)-> Deferred<List<DATA>>)? = null)
+    {
         subTask("Update", personalName) { handler ->
             if (!isTransactionReady()) {
                 handler.warn("Transaction lost context")
@@ -148,6 +150,7 @@ class SequenceContext<DTO, DATA>(
             lastResult = dtoClass.update(dataModels)
             if (block != null) {
                 this.block(dtos())
+                notifyOnComplete("update")
             } else {
                 checkout(lastResult)
                 notifyOnComplete("update")

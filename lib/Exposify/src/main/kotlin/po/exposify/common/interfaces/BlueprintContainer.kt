@@ -10,11 +10,11 @@ import kotlin.reflect.KProperty1
 interface BlueprintContainer<T: Any> {
 
     fun getConstructor(): KFunction<T>
-    fun initialize(builder : ConstructorBuilder)
+    fun initialize()
     fun getClass(): KClass<T>
     fun setConstructor(constructor : KFunction<T>)
     fun addParameter(param : KParameter)
     fun <N: Any> setNestedMap(map : Map<String, Map<String, ClassData<N>>>)
 
-    fun getArgsForConstructor(): Map<KParameter, Any?>
+    fun getConstructorArgs(): Map<KParameter, Any?>
 }

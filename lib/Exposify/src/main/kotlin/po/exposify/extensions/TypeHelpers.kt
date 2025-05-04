@@ -46,16 +46,6 @@ inline fun <reified T: Any> Any.castLetOrInitEx(
 }
 
 
-
-internal inline fun <reified T: Any> T?.getOrInitEx(
-    message: String,
-    code:  ExceptionCode): T{
-    return  this.getOrException {
-
-        InitException(message, code)
-    }
-}
-
 //fun <T: Any> T?.getOrOperationsEx(
 //    message: String  = "",
 //    code:  ExceptionCode = ExceptionCode.VALUE_IS_NULL,
@@ -63,12 +53,23 @@ internal inline fun <reified T: Any> T?.getOrInitEx(
 //    return  this.getOrException(OperationsException(message, code, handlerType))
 //}
 
-fun <T : Any> T?.getOrOperationsEx(
+
+@PublishedApi
+internal fun <T : Any> T?.getOrOperationsEx(
     message: String = "Value is null",
     code: ExceptionCode = ExceptionCode.VALUE_IS_NULL
 ): T {
     return this.getOrException {
         OperationsException(message, code)
+    }
+}
+
+internal fun <T : Any> T?.getOrInitEx(
+    message: String = "Value is null",
+    code: ExceptionCode = ExceptionCode.VALUE_IS_NULL
+): T {
+    return this.getOrException {
+        InitException(message, code)
     }
 }
 

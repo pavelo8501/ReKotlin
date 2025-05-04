@@ -3,16 +3,19 @@ package po.lognotify
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import po.lognotify.classes.notification.Notifier
+import po.lognotify.classes.notification.RootNotifier
 import po.lognotify.classes.task.ManagedTask
 import po.lognotify.classes.task.RootTask
 import po.lognotify.classes.task.TaskHandler
-import po.lognotify.classes.task.UpdatableTasks
 import po.lognotify.classes.task.UpdateType
 import po.lognotify.extensions.getOrLoggerException
 import po.lognotify.logging.LoggingService
 import po.lognotify.models.TaskDispatcher
 import po.lognotify.models.TaskKey
+import po.misc.exceptions.CoroutineInfo
 import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.coroutineContext
 
 
 interface TasksManaged  {
@@ -21,6 +24,7 @@ interface TasksManaged  {
 
         val logger : LoggingService = LoggingService()
         val taskManager: TaskDispatcher = TaskDispatcher()
+        val notifier : RootNotifier = RootNotifier(taskManager, null)
 
         internal fun defaultContext(name: String): CoroutineContext =
             SupervisorJob() + Dispatchers.Default + CoroutineName(name)
@@ -31,7 +35,7 @@ interface TasksManaged  {
             = taskManager.onTaskComplete(handler, callback)
 
         private fun <R> hierarchyRootCreation(newRootTask :  RootTask<R>): RootTask<R>{
-            taskManager.addRootTask(newRootTask.key, newRootTask)
+            taskManager.addRootTask(newRootTask.key, newRootTask, notifier.getNotifierConfig())
             return newRootTask
         }
 

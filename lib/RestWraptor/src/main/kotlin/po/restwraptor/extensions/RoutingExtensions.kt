@@ -4,7 +4,7 @@ import io.ktor.server.auth.authenticate
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.Routing
 import io.ktor.server.routing.application
-import po.misc.exceptions.getOrThrow
+import po.misc.types.getOrThrow
 import po.restwraptor.RestWrapTor
 import po.restwraptor.exceptions.ConfigurationException
 import po.restwraptor.exceptions.ExceptionCodes
@@ -40,7 +40,8 @@ fun Routing.jwtSecured(block: Route.() -> Unit){
         "Wraptor not found in Application registry",
         ExceptionCodes.KEY_REGISTRATION.value)
 
-    val serviceName = wraptor.authConfig.jwtServiceName
+    val serviceName : String =  wraptor.wrapConfig.authConfig.jwtServiceName
+
     authenticate(serviceName){
         install(CoreAuthRoutePlugin){
 

@@ -10,10 +10,6 @@ import po.exposify.scope.sequence.extensions.createHandler
 import po.exposify.scope.service.enums.TableCreateMode
 import po.misc.exceptions.getCoroutineInfo
 import po.test.exposify.setup.DatabaseTest
-import po.test.exposify.setup.TestClassItem
-import po.test.exposify.setup.TestPage
-import po.test.exposify.setup.TestPageDTO
-import po.test.exposify.setup.TestUser
 import po.test.exposify.setup.pageModels
 import kotlin.test.Test
 import org.junit.jupiter.api.BeforeAll
@@ -26,7 +22,10 @@ import po.auth.extensions.generatePassword
 import po.auth.extensions.registerAuthenticator
 import po.auth.sessions.enumerators.SessionType
 import po.auth.sessions.models.AuthorizedSession
-import po.test.exposify.setup.TestUserDTO
+import po.test.exposify.setup.dtos.Page
+import po.test.exposify.setup.dtos.PageDTO
+import po.test.exposify.setup.dtos.User
+import po.test.exposify.setup.dtos.UserDTO
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
@@ -40,14 +39,20 @@ class TestSessionsContext : DatabaseTest()  {
 
     @BeforeAll
     fun setup(){
-        val user = TestUser("some_login", "name","******",  "nomail@void.null", 0)
+        val user = User(
+            id = 0,
+            login = "some_login",
+            hashedPassword = generatePassword("password"),
+            name = "name",
+            email = "nomail@void.null")
+
         user.hashedPassword = generatePassword("password")
-        connectionContext?.let { connection ->
-            connection.service(TestUserDTO, TableCreateMode.CREATE) {
+        startTestConnection()?.let { connection ->
+            connection.service(UserDTO, TableCreateMode.CREATE) {
                 userId =  update(user).getData().id
             }
 
-            connection.service<TestPageDTO, TestPage>(TestPageDTO.Companion, TableCreateMode.FORCE_RECREATE) {
+            connection.service<PageDTO, Page>(PageDTO.Companion, TableCreateMode.FORCE_RECREATE) {
                 truncate()
                 sequence(createHandler(SequenceID.UPDATE)) { inputList, conditions ->
                     update(inputList)
@@ -64,11 +69,15 @@ class TestSessionsContext : DatabaseTest()  {
     @Test
     fun `test anonymous sessions`() = runTest{
 
-        val user = TestUser("some_login", "name","******",  "nomail@void.null", 0)
-        user.id = userId
+        val user = User(
+            id = 0,
+            login = "some_login",
+            hashedPassword = generatePassword("password"),
+            name = "name",
+            email = "nomail@void.null")
 
-        val pageClasses = listOf(TestClassItem(1, "class_1"), TestClassItem(2, "class_2"))
-        val pages = pageModels(quantity = 4, updatedBy = userId, pageClasses = pageClasses)
+        user.id = userId
+        val pages = pageModels(pageCount = 4, updatedBy = userId)
 
         val session = session(SessionIdentity("0", "192.169.1.1"))
         withSession(session){
@@ -76,7 +85,7 @@ class TestSessionsContext : DatabaseTest()  {
 
             var sessionIdBeforeStart = ""
             var sessionIdOnComplete = ""
-            val result = TestPageDTO.runSequence(SequenceID.UPDATE){
+            val result = PageDTO.runSequence(SequenceID.UPDATE){
                 withInputData(pages)
                 onStart {
                     sessionIdBeforeStart = it.sessionID
@@ -112,7 +121,13 @@ class TestSessionsContext : DatabaseTest()  {
     @Test
     fun `test authenticated session`()= runTest{
 
-        val user = TestUser("some_login", "name","******",  "nomail@void.null", 0)
+        val user = User(
+            id = 0,
+            login = "some_login",
+            hashedPassword = generatePassword("password"),
+            name = "name",
+            email = "nomail@void.null")
+
         user.id = userId
         fun userLookUp(login: String): AuthenticationPrincipal?{
             return user
@@ -123,7 +138,7 @@ class TestSessionsContext : DatabaseTest()  {
 
             registerAuthenticator(::userLookUp)
             val principal = session.authenticate("some_login", "password")
-            val pages = TestPageDTO.runSequence<TestPage>(SequenceID.SELECT){
+            val pages = PageDTO.runSequence<Page>(SequenceID.SELECT){
                 onStart {
                     sessionType = it.sessionType
                 }

@@ -2,7 +2,7 @@ package po.restwraptor.exceptions
 
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
-import po.misc.safeCast
+import po.misc.types.safeCast
 import kotlin.reflect.full.companionObjectInstance
 
 class DataException(

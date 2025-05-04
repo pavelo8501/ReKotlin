@@ -16,8 +16,7 @@ import po.auth.authentication.exceptions.AuthException
 import po.auth.authentication.jwt.JWTService
 import po.auth.authentication.jwt.models.JwtToken
 import po.lognotify.extensions.startTask
-import po.misc.exceptions.getOrException
-import po.misc.exceptions.getOrThrow
+import po.misc.types.getOrThrow
 import po.restwraptor.enums.WraptorHeaders
 import po.restwraptor.extensions.getWraptorRoutes
 import po.restwraptor.extensions.respondUnauthorized
@@ -66,7 +65,9 @@ val JWTPlugin: ApplicationPlugin<JWTPluginConfig> = createApplicationPlugin(
     }
 
     on(MonitoringEvent(ApplicationStarted)) { application ->
-        securedRoutes.addAll(application.getWraptorRoutes().filter { it.isSecured })
+        application.getWraptorRoutes(){list->
+            securedRoutes.addAll(list.filter { it.isSecured })
+        }
     }
 
     on(CallSetup) { call ->
