@@ -2,7 +2,7 @@ package po.test.exposify.crud
 
 import org.junit.jupiter.api.assertAll
 import po.auth.extensions.generatePassword
-import po.exposify.extensions.WhereCondition
+import po.exposify.dto.components.WhereCondition
 import po.exposify.scope.service.enums.TableCreateMode
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.Pages

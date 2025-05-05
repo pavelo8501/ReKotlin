@@ -14,7 +14,7 @@ import po.exposify.dto.extensions.select
 import po.exposify.dto.extensions.update
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntity
-import po.exposify.extensions.WhereCondition
+import po.exposify.dto.components.WhereCondition
 import po.exposify.extensions.isTransactionReady
 import po.exposify.scope.sequence.classes.SequenceHandler
 import po.exposify.scope.service.ServiceClass

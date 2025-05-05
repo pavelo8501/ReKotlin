@@ -16,7 +16,7 @@ import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.CrudResultSingle
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntity
-import po.exposify.extensions.WhereCondition
+import po.exposify.dto.components.WhereCondition
 import po.exposify.extensions.castOrInitEx
 import po.exposify.scope.sequence.SequenceContext
 import po.exposify.scope.sequence.classes.SequenceHandler

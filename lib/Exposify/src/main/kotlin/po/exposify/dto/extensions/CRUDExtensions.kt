@@ -6,15 +6,13 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.components.CrudResult
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.CrudResultSingle
-import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.components.selectDto
 import po.exposify.dto.components.updateDto
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.extensions.WhereCondition
-import po.exposify.extensions.castOrOperationsEx
+import po.exposify.dto.components.WhereCondition
 import po.exposify.extensions.getOrOperationsEx
 import po.exposify.extensions.isTransactionReady
 import po.exposify.extensions.testOrThrow

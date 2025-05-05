@@ -4,7 +4,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertAll
 import po.auth.extensions.generatePassword
-import po.exposify.extensions.WhereCondition
+import po.exposify.dto.components.WhereCondition
 import po.exposify.scope.sequence.enums.SequenceID
 import po.exposify.scope.sequence.extensions.createHandler
 import po.exposify.scope.service.enums.TableCreateMode

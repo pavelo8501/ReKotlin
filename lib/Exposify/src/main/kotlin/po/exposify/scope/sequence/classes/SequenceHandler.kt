@@ -4,7 +4,7 @@ import org.jetbrains.exposed.dao.id.IdTable
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.extensions.WhereCondition
+import po.exposify.dto.components.WhereCondition
 import po.exposify.extensions.getOrOperationsEx
 import po.exposify.extensions.safeCast
 import po.exposify.scope.sequence.RunnableContext

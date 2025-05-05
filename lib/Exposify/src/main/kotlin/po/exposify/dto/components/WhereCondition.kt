@@ -1,4 +1,4 @@
-package po.exposify.extensions
+package po.exposify.dto.components
 
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Column

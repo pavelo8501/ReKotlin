@@ -14,7 +14,6 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.DTORegistryItem
 import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.extensions.WhereCondition
 import po.exposify.extensions.getOrOperationsEx
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.resultOrNull
