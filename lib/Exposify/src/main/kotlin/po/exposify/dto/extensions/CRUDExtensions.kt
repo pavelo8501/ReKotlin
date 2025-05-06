@@ -67,13 +67,13 @@ internal suspend fun <T, DTO, DATA> RootDTO<DTO, DATA>.select(
     isTransactionReady().testOrThrow(OperationsException("Transaction Lost Context", ExceptionCode.DB_NO_TRANSACTION_IN_CONTEXT)){
         true
     }
-    val entities = config.daoService.select<T>(conditions)
+    val entities = config.daoService.select(conditions)
     val result = ResultList<DTO, DATA>()
     entities.forEach {
         val newDto = selectDto(this, it)
         result.appendDto(newDto)
     }
-    handler.info("Created count ${result.rootDTOs.count()} DTOs")
+    handler.info("Created count ${result.dtoList.count()} DTOs")
     result
 }.resultOrException()
 
@@ -90,7 +90,7 @@ internal suspend fun <DTO, DATA> RootDTO<DTO, DATA>.select()
         val newDto = selectDto(this, it)
         result.appendDto(newDto)
     }
-    handler.info("Created count ${result.rootDTOs.count()} DTOs ")
+    handler.info("Created count ${result.dtoList.count()} DTOs ")
     result
 }.resultOrException()
 
@@ -120,7 +120,7 @@ internal suspend fun <DTO, DATA> RootDTO<DTO, DATA>.update(
         val dto = updateDto<DTO, DATA, LongEntity>(this, it)
         result.appendDto(dto)
     }
-    handler.info("Created DTOs ${result.rootDTOs.count()}")
+    handler.info("Created DTOs ${result.dtoList.count()}")
     result
 }.resultOrException()
 

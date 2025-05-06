@@ -8,7 +8,6 @@ import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.LongIdTable
 import po.exposify.dto.interfaces.DataModel
-import po.exposify.entity.classes.ExposifyEntity
 import kotlinx.serialization.Serializable
 import po.exposify.dto.components.DAOService
 import po.exposify.dto.components.DTOConfig

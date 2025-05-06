@@ -11,6 +11,10 @@ class CompositeKey<SO : Identifiable, E: Enum<E>>(
     private val parameter: E,
 ): Comparable<CompositeKey<SO, E>> {
 
+    fun getEnumParameter():E{
+        return parameter
+    }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is CompositeKey<*, *>) return false

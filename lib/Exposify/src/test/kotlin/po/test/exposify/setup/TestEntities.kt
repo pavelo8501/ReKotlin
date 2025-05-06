@@ -3,7 +3,6 @@ package po.test.exposify.setup
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.EntityID
-import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.entity.classes.ExposifyEntityClass
 
 
@@ -43,9 +42,9 @@ class SectionEntity(id: EntityID<Long>) : LongEntity(id) {
     var metaTags by Sections.metaTags
     var updated by Sections.updated
     var langId by Sections.langId
-    var updatedBy by UserEntity referencedOn Sections.updatedBy  // ✅ read-only
-    var page by PageEntity referencedOn Sections.page            // ✅ read-only
-    val contentBlocks by ContentBlockEntity referrersOn ContentBlocks.section  // ✅ correct type
+    var updatedBy by UserEntity referencedOn Sections.updatedBy
+    var page by PageEntity referencedOn Sections.page
+    val contentBlocks by ContentBlockEntity referrersOn ContentBlocks.section
 }
 
 class ContentBlockEntity(id: EntityID<Long>) : LongEntity(id) {
@@ -59,5 +58,5 @@ class ContentBlockEntity(id: EntityID<Long>) : LongEntity(id) {
     var metaTags by ContentBlocks.metaTags
     var updated by ContentBlocks.updated
     var langId by ContentBlocks.langId
-    var section by SectionEntity referencedOn ContentBlocks.section  // ✅ fixed from `var` to `val`
+    var section by SectionEntity referencedOn ContentBlocks.section
 }

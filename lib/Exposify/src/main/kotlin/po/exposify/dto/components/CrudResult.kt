@@ -9,32 +9,44 @@ class ResultList<DTO, DATA>  (
    private val initialList : List<CommonDTO<DTO, DATA, LongEntity>>? = null
 )  where DTO : ModelDTO, DATA: DataModel{
 
-    internal val rootDTOs: MutableList<CommonDTO<DTO, DATA, LongEntity>> = mutableListOf()
+    internal val dtoList: MutableList<CommonDTO<DTO, DATA, LongEntity>> = mutableListOf()
 
     init {
         initialList?.let {
-            rootDTOs.addAll(it)
+            dtoList.addAll(it)
         }
     }
 
 
     fun addList(list: List<CommonDTO<DTO, DATA, LongEntity>>):ResultList<DTO, DATA>{
-        rootDTOs.addAll(list)
+        dtoList.addAll(list)
         return  this
     }
 
     internal fun appendDto(dto:CommonDTO<DTO, DATA, LongEntity>):ResultList<DTO, DATA>{
-        rootDTOs.add(dto)
+        dtoList.add(dto)
         return  this
     }
 
     fun getData(): List<DATA> {
-        val dataModels =  rootDTOs.map { it.dataModel }
+        val dataModels =  dtoList.map { it.dataModel }
         return dataModels
     }
 
     fun getDTO(): List<CommonDTO<DTO, DATA, LongEntity>> {
-        return rootDTOs
+        return dtoList
+    }
+
+    internal fun fromListResult(result: ResultList<DTO, DATA>): ResultList<DTO, DATA>{
+        dtoList.clear()
+        dtoList.addAll(result.dtoList)
+        return this
+    }
+
+   internal fun fromSingleResult(result: ResultSingle<DTO, DATA>):ResultSingle<DTO, DATA> {
+        dtoList.clear()
+        dtoList.add(result.rootDTO)
+        return  result
     }
 
 

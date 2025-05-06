@@ -11,16 +11,13 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.common.interfaces.AsClass
 import po.exposify.dto.RootDTO
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.InitException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.getOrOperationsEx
 import po.exposify.scope.connection.ConnectionClass
 import po.exposify.scope.connection.controls.CoroutineEmitter
-import po.exposify.scope.sequence.classes.SequenceHandler
 import po.exposify.scope.sequence.enums.SequenceID
-import po.exposify.scope.sequence.models.SequenceKey
 import po.exposify.scope.sequence.models.SequencePack
 import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.TasksManaged
@@ -40,7 +37,7 @@ class ServiceClass<DTO, DATA, ENTITY>(
         private set
 
     internal val connection: Database = connectionClass.connection
-    private val sequences = ConcurrentHashMap<CompositeKey<DTOBase<*,*>, SequenceID>, SequencePack<DTO, DATA>>()
+    private val sequences = ConcurrentHashMap<CompositeKey<DTOBase<*,*>, SequenceID>, SequencePack<*, *>>()
 
     private fun createTable(table: IdTable<Long>): Boolean {
         return try {
@@ -89,7 +86,7 @@ class ServiceClass<DTO, DATA, ENTITY>(
 
     internal suspend fun startService(
         rootDTOModel: RootDTO<DTO, DATA>,
-        block: suspend  ServiceContext<DTO, DATA, ExposifyEntity>.()->Unit)
+        block: suspend  ServiceContext<DTO, DATA, LongEntity>.()->Unit)
             = subTask("Initializing", "ServiceClass") {
 
         rootDTOModel.initialization()
@@ -98,19 +95,19 @@ class ServiceClass<DTO, DATA, ENTITY>(
         }.await()
 
         serviceContext = ServiceContext(this, rootDTOModel)
-        val castedContext = serviceContext.castOrInitEx<ServiceContext<DTO, DATA, ExposifyEntity>>("StartService. Cast failed")
+        val castedContext = serviceContext.castOrInitEx<ServiceContext<DTO, DATA, LongEntity>>("StartService. Cast failed")
         rootDTOModel.setContextOwned(castedContext)
         castedContext.block()
     }.resultOrException()
 
-    internal fun addSequencePack(key: CompositeKey<DTOBase<*,*>,SequenceID>, pack: SequencePack<DTO, DATA>) {
-        sequences[key] = pack
+    internal fun addSequencePack(pack: SequencePack<*, *>) {
+        sequences[pack.key] = pack
     }
 
     internal suspend fun requestEmitter(): CoroutineEmitter = connectionClass.requestEmitter()
 
 
-    internal fun getSequencePack(key: CompositeKey<DTOBase<*,*>,SequenceID>):SequencePack<DTO, DATA> {
+    internal fun getSequencePack(key: CompositeKey<DTOBase<*,*>,SequenceID>):SequencePack<*, *> {
         return sequences[key].getOrOperationsEx(
             "Sequence with key : $key not found",
             ExceptionCode.VALUE_NOT_FOUND)

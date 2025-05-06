@@ -9,7 +9,7 @@ import po.exposify.controls.ConnectionInfo
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.scope.connection.controls.CoroutineEmitter
 import po.exposify.scope.connection.controls.UserDispatchManager
-import po.exposify.scope.sequence.models.SequencePack
+import po.exposify.scope.sequence.models.RootSequencePack
 import po.exposify.scope.service.ServiceClass
 import po.misc.exceptions.CoroutineInfo
 import kotlin.coroutines.coroutineContext
@@ -28,12 +28,11 @@ class ConnectionClass(
 
     private val dispatchManager = UserDispatchManager()
 
-
     val isConnectionOpen: Boolean
         get() { return connectionInfo.connection.transactionManager.currentOrNull()?.connection?.isClosed == false }
 
     suspend fun <DTO:ModelDTO, DATA: DataModel> launchSequence(
-        pack: SequencePack<DTO, DATA>,
+        pack: RootSequencePack<DTO, DATA>,
     ) {
         val session = sessionManager.getCurrentSession()
         val result = dispatchManager.enqueue(session.sessionID) {

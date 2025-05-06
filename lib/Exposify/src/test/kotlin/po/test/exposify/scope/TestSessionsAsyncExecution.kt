@@ -19,6 +19,7 @@ import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.NotifyConfig
 import po.lognotify.extensions.launchProcess
+import po.misc.collections.generateKey
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.dtos.PageDTO
 import po.test.exposify.setup.dtos.User
@@ -81,11 +82,10 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
             }
 
             service(PageDTO, TableCreateMode.CREATE) {
-                sequence(PageDTO.createHandler(SequenceID.UPDATE)) {handler->
-
+                sequence(SequenceID.UPDATE) {handler->
                     update(handler.inputData)
                 }
-                sequence(PageDTO.createHandler(SequenceID.SELECT)) {handler->
+                sequence(SequenceID.SELECT) {handler->
                     select()
                 }
             }

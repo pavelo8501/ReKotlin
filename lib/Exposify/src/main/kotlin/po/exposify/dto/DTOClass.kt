@@ -17,9 +17,12 @@ import po.exposify.extensions.getOrInitEx
 import po.exposify.extensions.getOrOperationsEx
 import po.exposify.extensions.safeCast
 import po.exposify.extensions.withTransactionIfNone
-import po.exposify.scope.sequence.classes.SequenceHandler
+import po.exposify.scope.sequence.classes.RootSequenceHandler
+import po.exposify.scope.sequence.classes.SequenceHandlerBase
+import po.exposify.scope.sequence.classes.createHandler
 import po.exposify.scope.sequence.enums.SequenceID
-import po.exposify.scope.sequence.models.SequencePack
+import po.exposify.scope.sequence.models.RootSequencePack
+import po.exposify.scope.service.ServiceClass
 import po.exposify.scope.service.ServiceContext
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.startTaskAsync
@@ -50,6 +53,10 @@ abstract class RootDTO<DTO, DATA>()
         serviceContextOwned = contextOwned
     }
 
+    fun getServiceClass(): ServiceClass<DTO, DATA, LongEntity>{
+       return   serviceContextOwned?.serviceClass.getOrInitEx("ServiceClass not assigned for ${qualifiedName}")
+    }
+
     inline fun <reified COMMON,  reified DATA, reified ENTITY> configuration(
         entityModel: ExposifyEntityClass<ENTITY>,
         noinline block: suspend DTOConfig<DTO, DATA, ENTITY>.() -> Unit
@@ -68,17 +75,14 @@ abstract class RootDTO<DTO, DATA>()
 
     suspend fun runSequence(
         sequenceID : SequenceID,
-        handlerBlock :  SequenceHandler<DTO, DATA>
-    ) {
+        handlerBlock : suspend RootSequenceHandler<DTO, DATA>.()-> Unit
+    ): List<DATA>{
         return withTransactionIfNone {
-            val serviceContext = serviceContextOwned.getOrOperationsEx(
-                "Unable to run sequence id: ${sequenceID.name} on DTOClass.",
-                ExceptionCode.UNDEFINED
-            )
-
-            val pack = serviceContext.serviceClass.getSequencePack(generateKey(sequenceID)).castOrThrow<SequencePack<DTO, DATA>, OperationsException>()
-            val emitter = serviceContext.serviceClass.requestEmitter()
-            emitter.dispatch(handlerBlock, pack)
+            val serviceClass = getServiceClass()
+            val pack = serviceClass.getSequencePack(generateKey(sequenceID))
+                .castOrThrow<RootSequencePack<DTO, DATA>, OperationsException>()
+            val emitter = serviceClass.requestEmitter()
+            emitter.dispatch<DTO, DATA, List<DATA>>(pack, handlerBlock)
         }
     }
 

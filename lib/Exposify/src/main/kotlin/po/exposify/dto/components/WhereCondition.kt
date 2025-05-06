@@ -13,7 +13,7 @@ import org.jetbrains.exposed.sql.and
 
 
 
-class WhereQuery<T> () : Query<T>() where T : IdTable<Long> {
+class WhereQuery<T> () : Query() where T : IdTable<Long> {
 
     override  var expression: Set<Op<Boolean>> = emptySet()
 
@@ -54,7 +54,7 @@ class WhereQuery<T> () : Query<T>() where T : IdTable<Long> {
     }
 }
 
-class SwitchQuery<T> () :  Query<T>()  where T : IdTable<Long> {
+class SwitchQuery<T> () :  Query()  where T : IdTable<Long> {
     override  var expression: Set<Op<Boolean>> = emptySet()
     private fun addCondition(condition: Op<Boolean>) {
         expression = expression + condition
@@ -66,7 +66,7 @@ class SwitchQuery<T> () :  Query<T>()  where T : IdTable<Long> {
 
 }
 
-sealed class Query<T>() {
+sealed class Query() {
 
     abstract val expression: Set<Op<Boolean>>
     private fun combineConditions(conditions: Set<Op<Boolean>>): Op<Boolean> {

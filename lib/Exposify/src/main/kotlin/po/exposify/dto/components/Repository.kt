@@ -201,8 +201,6 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, C_DTO,  CD, CE>(
             found
         }else{
             val childEntity = bindingBase.getForeignEntity(id).getOrOperationsEx("Foreign entity with id ${id} not found")
-
-
             val newChildDto = childFactory.createDto()
             newChildDto.updatePropertyBinding(childEntity, UpdateMode.ENTITY_TO_MODEL, childEntity.containerize(UpdateMode.ENTITY_TO_MODEL))
             childDTO[newChildDto.id] = newChildDto
@@ -213,6 +211,27 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, C_DTO,  CD, CE>(
         }
     }
 
+    suspend fun pick(conditions: Query): CommonDTO<C_DTO, CD, CE>{
+       val result =  childClassConfig.daoService.pick(conditions)
+           .getOrOperationsEx("Foreign entity not found for given query:${conditions}")
+        val found = childDTO[result.id.value]
+        return found ?: pickById(result.id.value)
+    }
+
+    suspend fun select(conditions: Query): List<CommonDTO<C_DTO, CD, CE>>{
+        val resultingList = mutableListOf<CommonDTO<C_DTO, CD, CE>>()
+        val result =  childClassConfig.daoService.select(conditions)
+        result.forEach { selectedEntity->
+            val existingDto = childDTO[selectedEntity.id.value]
+            if(existingDto != null){
+                resultingList.add(existingDto)
+            }else{
+                val newDto =  pickById(selectedEntity.id.value)
+                resultingList.add(newDto)
+            }
+        }
+        return resultingList
+    }
 
     suspend fun update(){
         when(this){

@@ -106,8 +106,8 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         }
     }
 
-    internal fun <C_DTO:ModelDTO, CD : DataModel, CE : LongEntity> getOneToManyRepository(
-        childClass: DTOClass<C_DTO, CD>
+    internal fun <C_DTO: ModelDTO, CD: DataModel, CE: LongEntity> getOneToManyRepository(
+        childClass: DTOClass<*, *>
     ): MultipleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>{
 
         val foundRepository = repositories[childClass.generateKey(Cardinality.ONE_TO_MANY)]

@@ -13,18 +13,20 @@ import po.exposify.dto.extensions.pickById
 import po.exposify.dto.extensions.select
 import po.exposify.dto.extensions.update
 import po.exposify.dto.CommonDTO
+import po.exposify.dto.DTOBase
 import po.exposify.dto.components.ResultList
 import po.exposify.dto.components.ResultSingle
 import po.exposify.dto.components.WhereQuery
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.entity.classes.ExposifyEntity
-import po.exposify.extensions.castOrInitEx
 import po.exposify.scope.sequence.SequenceContext
-import po.exposify.scope.sequence.classes.SequenceHandler
+import po.exposify.scope.sequence.classes.RootSequenceHandler
+import po.exposify.scope.sequence.enums.SequenceID
+import po.exposify.scope.sequence.models.RootSequencePack
 
 import po.exposify.scope.sequence.models.SequencePack
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.startTaskAsync
+import po.misc.collections.CompositeKey
 import po.misc.collections.generateKey
 
 class ServiceContext<DTO, DATA, ENTITY: LongEntity>(
@@ -39,7 +41,7 @@ class ServiceContext<DTO, DATA, ENTITY: LongEntity>(
 
     fun truncate(){
         startTaskAsync("Truncate", personalName) {
-            val entityModel = dtoClass.getEntityModel<ExposifyEntity>()
+            val entityModel = dtoClass.getEntityModel<LongEntity>()
             val table = entityModel.table
             suspendedTransactionAsync {
                 exec("TRUNCATE TABLE ${table.tableName} RESTART IDENTITY CASCADE")
@@ -110,22 +112,11 @@ class ServiceContext<DTO, DATA, ENTITY: LongEntity>(
         return  result
     }
 
-//    fun <R_DTO: ModelDTO, R_DATA: DataModel> sequence(
-//        handler: SequenceHandler<DTO, DATA>,
-//        block: suspend SequenceContext<DTO, DATA, ExposifyEntity>.(inputData: List<DATA>?, conditions: WhereCondition<IdTable<Long>>?) -> CrudResult<R_DTO, R_DATA>
-//    ) {
-//
-//        val casted = serviceClass.castOrInitEx<ServiceClass<DTO, DATA, ExposifyEntity>>()
-//        val sequenceContext = SequenceContext<DTO, DATA, ExposifyEntity>(dtoClass, handler)
-//        val pack = SequencePack(sequenceContext, casted, block, handler)
-//        serviceClass.addSequencePack(pack)
-//    }
-
-    suspend fun sequence(
-        handler: SequenceHandler<DTO, DATA>,
-        block: suspend SequenceContext<DTO, DATA, ExposifyEntity>.(SequenceHandler<DTO, DATA>) -> Unit
+    fun sequence(
+        sequenceID : SequenceID,
+        block: suspend SequenceContext<DTO, DATA, LongEntity>.(RootSequenceHandler<DTO, DATA>) -> Unit
     ){
-        val pack = SequencePack(block, handler)
+        val pack = RootSequencePack(dtoClass.generateKey(sequenceID), dtoClass, block)
         serviceClass.addSequencePack(pack)
 
     }

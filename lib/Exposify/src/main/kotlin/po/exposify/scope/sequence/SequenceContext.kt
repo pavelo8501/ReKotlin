@@ -2,250 +2,99 @@ package po.exposify.scope.sequence
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
-import po.auth.sessions.models.AuthorizedSession
 import po.exposify.dto.interfaces.DataModel
-import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOClass
-import po.exposify.dto.components.ExecutionProvider
+import po.exposify.dto.RootDTO
+import po.exposify.dto.components.ClassExecutionProvider
+import po.exposify.dto.components.Query
 import po.exposify.dto.components.ResultList
 import po.exposify.dto.components.ResultSingle
 import po.exposify.dto.components.WhereQuery
-import po.exposify.dto.interfaces.ExecutionContext
+import po.exposify.dto.interfaces.ExecutionContext2
 import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.extensions.getOrOperationsEx
-import po.exposify.extensions.isTransactionReady
-import po.exposify.scope.sequence.classes.SequenceHandler
+import po.exposify.exceptions.OperationsException
+import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.scope.sequence.classes.ClassSequenceHandler
 import po.exposify.scope.sequence.classes.createHandler
 import po.exposify.scope.sequence.enums.SequenceID
+import po.exposify.scope.sequence.models.ClassSequencePack
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.subTask
-import kotlin.coroutines.coroutineContext
+import po.misc.collections.generateKey
 
 
 class SequenceContext<DTO, DATA, ENTITY>(
-    val executionContext: ExecutionContext<DTO, DATA, ENTITY>
+    val executionContext: ExecutionContext2<DTO, DATA, ENTITY>
 ): TasksManaged, IdentifiableComponent where  DTO : ModelDTO, DATA : DataModel, ENTITY: LongEntity
 {
 
-    override val qualifiedName: String get() = "SequenceContext[${executionContext.hostingDTO.dtoName}]"
+    override val qualifiedName: String get() = "SequenceContext[${executionContext.providerName}]"
     override val name: String  get() = "SequenceContext"
-
-    private fun dtos(): List<CommonDTO<DTO, DATA, LongEntity>>{
-      return  lastResult.rootDTOs
-    }
-
-    private suspend fun notifyOnStart(method: String){
-        val session =  coroutineContext[AuthorizedSession]
-       // handler.onStartCallback?.invoke(RunnableContext.createRunInfo(method, session))
-    }
-
-    private suspend fun notifyOnComplete(method: String){
-        val session =  coroutineContext[AuthorizedSession]
-        //handler.onCompleteCallback?.invoke(RunnableContext.createRunInfo(method, session))
-    }
-
-    private fun lastResultSingleToMultiple(dto : CommonDTO<DTO, DATA, LongEntity>): ResultList<DTO, DATA>{
-      return  ResultList(listOf(dto))
-    }
-
-    private var resultCallback: ((ResultList<DTO, DATA>) -> Unit)? = null
-    var lastResult: ResultList<DTO, DATA> = ResultList()
-
-    fun onResult(callback: (ResultList<DTO, DATA>) -> Unit) {
-        resultCallback = callback
-    }
-
-    fun checkout(result: ResultList<DTO, DATA>) {
-        lastResult = result
-        resultCallback?.invoke(result)
-    }
-    fun getResult(): ResultList<DTO, DATA> = lastResult
-
-
-    suspend fun checkout(withResult :  ResultList<DTO, DATA>? = null): ResultList<DTO, DATA> {
-        return lastResult
-    }
-
-    suspend fun checkout(dtos :  List<CommonDTO<DTO, DATA, LongEntity>>): ResultList<DTO, DATA> {
-        return ResultList(dtos.toList())
-    }
-
-    suspend fun checkout(dto :  CommonDTO<DTO, DATA, LongEntity>): ResultSingle<DTO, DATA> {
-        return ResultSingle(dto)
-    }
 
     suspend fun <C_DTO: ModelDTO, CD: DataModel> switch(
         childDtoClass: DTOClass<C_DTO, CD>,
-        sequenceID: SequenceID,
-        id: Long,
-        block: suspend SequenceContext<C_DTO, CD, LongEntity>.(SequenceHandler<C_DTO, CD>)-> Unit
+        sequenceId : SequenceID,
+        block: suspend SequenceContext<C_DTO, CD, LongEntity>.(ClassSequenceHandler<C_DTO, CD>)-> Unit
     ){
-      //  val switchCondition = SwitchQuery<IdTable<Long>>().equalsTo(column,  childDtoClass.config.entityModel[id].id )
-        val dto = executionContext.pickById(childDtoClass, id).getDTO().getOrOperationsEx("Dto not found for id :${id}")
-        val newExecutionContext = ExecutionProvider<C_DTO, CD, LongEntity>(dto)
-        val newSequenceContext = SequenceContext<C_DTO, CD, LongEntity>(newExecutionContext)
-        val handler = childDtoClass.createHandler(sequenceID)
-        block.invoke(newSequenceContext, handler)
+        val pack = ClassSequencePack(childDtoClass.generateKey(sequenceId), childDtoClass, block)
+        if(childDtoClass.parentClass is RootDTO){
+            childDtoClass.parentClass.getServiceClass().addSequencePack(pack)
+            val newExecutionContext = ClassExecutionProvider<C_DTO, CD, LongEntity>(childDtoClass)
+            val newSequenceContext = SequenceContext(newExecutionContext as ExecutionContext2<C_DTO, CD, LongEntity>)
+            val classHandler = childDtoClass.createHandler(sequenceId)
+            block.invoke(newSequenceContext, classHandler)
+        }else{
+            throw OperationsException("Switch. parent class is no RootDTO", ExceptionCode.INVALID_DATA)
+        }
+    }
+
+    internal var onResultUpdated : ((ResultList<DTO,DATA>)-> Unit)?  = null
+    private val latestResult : ResultList<DTO,DATA> = ResultList()
+    internal fun submitLatestResult(result :  ResultList<DTO,DATA>):ResultList<DTO,DATA>{
+       latestResult.fromListResult(result)
+       onResultUpdated?.invoke(result)
+       return latestResult
+    }
+    internal fun submitLatestResult(result :  ResultSingle<DTO,DATA>): ResultSingle<DTO,DATA>{
+        latestResult.fromSingleResult(result)
+        onResultUpdated?.invoke(latestResult)
+        return result
     }
 
     suspend fun <T: IdTable<Long>> pick(
         conditions: WhereQuery<T>,
-        block: (suspend SequenceContext<DTO, DATA, ENTITY>.(dto: CommonDTO<DTO, DATA, LongEntity>?)-> Unit)? = null
-    ): ResultSingle<DTO, DATA> {
-        notifyOnStart("pick")
-        val result =  executionContext.pick(conditions)
-        lastResult =  lastResultSingleToMultiple(result.rootDTO!!)
+    ): ResultSingle<DTO, DATA> = subTask("Pick", qualifiedName) { handler ->
+        val result = executionContext.pick(conditions)
+        submitLatestResult(result)
+    }.resultOrException()
 
-        if (block != null) {
-            this.block(result.rootDTO!!)
-        } else {
-            checkout(lastResult)
-            notifyOnComplete("pick")
-        }
-       return ResultSingle(result.rootDTO!!)
-    }
-
-    suspend fun <T: IdTable<Long>> select(
-        conditions: WhereQuery<T>?,
-        block: (suspend SequenceContext<DTO, DATA, ENTITY>.(dtos: List<CommonDTO<DTO, DATA, LongEntity>>)-> Unit)? = null
-    ):ResultList<DTO, DATA> = subTask("Select", qualifiedName) { handler ->
-            if (!isTransactionReady()) {
-                handler.warn("Transaction lost context")
-            }
-            notifyOnStart("select(With conditions)")
-            lastResult = if (conditions != null) {
-                executionContext.select(conditions)
-            } else {
-                executionContext.select()
-            }
-            if (block != null) {
-                this.block(dtos())
-                notifyOnComplete("select")
-            } else {
-                checkout(lastResult)
-                notifyOnComplete("select")
-            }
-            ResultList(lastResult.rootDTOs)
-        }.resultOrException()
+    suspend fun <T: IdTable<Long>> pickById(
+        id: Long
+    ): ResultSingle<DTO, DATA> = subTask("PickById", qualifiedName) { handler ->
+        val result = executionContext.pickById(id)
+        submitLatestResult(result)
+    }.resultOrException()
 
     suspend fun select(
-        block: (suspend SequenceContext<DTO, DATA, ENTITY>.(dtos: List<CommonDTO<DTO, DATA, LongEntity>>)->Unit)? = null
-    ): ResultList<DTO, DATA> = subTask("Select", qualifiedName) { handler->
-            if (!isTransactionReady()) {
-                handler.warn("Transaction lost context")
-            }
-             notifyOnStart("select")
-              lastResult = executionContext.select()
-            val a  = 10
-            if (block != null) {
-                this.block(dtos())
-                notifyOnComplete("select")
-            } else {
-                checkout(lastResult)
-                notifyOnComplete("select")
-            }
-            lastResult
-        }.resultOrException()
+        conditions: Query,
+    ):ResultList<DTO, DATA> = subTask("Select", qualifiedName) { handler ->
+       val result = executionContext.select(conditions)
+        submitLatestResult(result)
+    }.resultOrException()
 
+    suspend fun select(
+    ):ResultList<DTO, DATA> = subTask("Select", qualifiedName) { handler ->
+        val result = executionContext.select()
+        submitLatestResult(result)
+    }.resultOrException()
 
     suspend fun update(
-        dto: CommonDTO<DTO, DATA, LongEntity>,
-        block: (suspend SequenceContext<DTO, DATA, ENTITY>.(dto: CommonDTO<DTO, DATA, LongEntity>)-> Unit)? = null)
-    {
-        subTask("Update", qualifiedName) { handler ->
-            if (!isTransactionReady()) {
-                handler.warn("Transaction lost context")
-            }
-            notifyOnStart("update")
-            val result = executionContext.update(dto.dataModel)
-            println("update completed with result ${result.getData()}")
-
-            val dto =  result.rootDTO
-            if(dto != null){
-                lastResult =  lastResultSingleToMultiple(result.getDTO()!!)
-                if (block != null) {
-                    this.block(dto)
-                    notifyOnComplete("update")
-                } else {
-                    checkout(lastResult)
-                    notifyOnComplete("update")
-                }
-            }
-        }
-    }
-
-    @JvmName("updateDtos")
-    suspend fun update(
-        dtos: List<CommonDTO<DTO, DATA, LongEntity>>,
-        block: (suspend SequenceContext<DTO, DATA, ENTITY>.(dtos: List<CommonDTO<DTO, DATA, LongEntity>>)-> Unit)? = null)
-    {
-        subTask("Update", qualifiedName) { handler ->
-            if (!isTransactionReady()) {
-                handler.warn("Transaction lost context")
-            }
-            notifyOnStart("update")
-            val result =  executionContext.update(dtos.map { it.dataModel })
-            println("update completed with result ${result.getDTO().count()}")
-            lastResult  = result
-            if (block != null) {
-                this.block(dtos())
-                notifyOnComplete("update")
-            } else {
-                checkout(lastResult)
-                notifyOnComplete("update")
-            }
-        }
-    }
-
-    suspend fun update(
-        dataModels: DATA,
-        block: (suspend SequenceContext<DTO, DATA, ENTITY>.(dto: CommonDTO<DTO, DATA, LongEntity>)-> Unit)? = null
-    ): ResultList<DTO, DATA>  =  subTask("Update", qualifiedName) { handler ->
-            if (!isTransactionReady()) {
-                handler.warn("Transaction lost context")
-            }
-            notifyOnStart("update")
-            val result = executionContext.update(dataModels)
-            println("update completed with result ${result.getData()}")
-            val dto =  result.rootDTO
-            if(dto != null){
-
-                lastResult = lastResultSingleToMultiple(result.getDTO()!!)
-
-                if (block != null) {
-                    this.block(dto)
-                    notifyOnComplete("update")
-                } else {
-                    checkout(lastResult)
-                    notifyOnComplete("update")
-                }
-            }
-
-            lastResult
-        }.resultOrException()
-
-    @JvmName("updateDataModels")
-    suspend fun update(
-        dataModels: List<DATA>,
-        block: (suspend SequenceContext<DTO, DATA, ENTITY>.(dtos: List<CommonDTO<DTO, DATA, LongEntity>>)-> ResultList<DTO, DATA>)? = null
-    ): ResultList<DTO, DATA>
-        = subTask("Update", qualifiedName) { handler ->
-            if (!isTransactionReady()) {
-                handler.warn("Transaction lost context")
-            }
-            notifyOnStart("update")
-
-            lastResult =  executionContext.update(dataModels)
-            if (block != null) {
-                this.block(dtos())
-                notifyOnComplete("update")
-            } else {
-                checkout(lastResult)
-                notifyOnComplete("update")
-            }
-            lastResult
-        }.resultOrException()
+        dataModels: List<DATA>
+    ):ResultList<DTO, DATA> = subTask("Update", qualifiedName) { handler ->
+        val result = executionContext.update(dataModels)
+        submitLatestResult(result)
+    }.resultOrException()
 
 }
 

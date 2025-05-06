@@ -8,9 +8,8 @@ import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.LongIdTable
 import po.exposify.dto.interfaces.DataModel
-import po.exposify.entity.classes.ExposifyEntity
 import kotlinx.serialization.Serializable
-import po.exposify.dto.DTOClass
+import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.components.DAOService
 import po.exposify.dto.components.DataModelContainer
 import po.exposify.dto.components.property_binder.DTOPropertyBinder
@@ -21,7 +20,6 @@ import po.exposify.dto.models.DTOTracker
 import po.exposify.entity.classes.ExposifyEntityClass
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.startTaskAsync
-
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty
@@ -53,14 +51,14 @@ import kotlin.reflect.KProperty
         val root = reference("root_id", TopEntities)
     }
 
-    class RootEntity(id: EntityID<Long>) : ExposifyEntity(id) {
+    class RootEntity(id: EntityID<Long>) : LongEntity(id) {
         companion object : ExposifyEntityClass<RootEntity>(TopEntities)
 
         var name by TopEntities.name
         val children by ChildEntity referrersOn ChildEntities.root
     }
 
-    class ChildEntity(id: EntityID<Long>) : ExposifyEntity(id) {
+    class ChildEntity(id: EntityID<Long>) : LongEntity(id) {
         companion object : LongEntityClass<ChildEntity>(ChildEntities)
 
         var value by ChildEntities.value
@@ -70,7 +68,7 @@ import kotlin.reflect.KProperty
 
     abstract class CommonDTOTest<DTO, DATA, ENTITY>(
         val dtoClass: BaseDTO<DATA, ENTITY>,
-        val dtoClass2: () -> BaseDTO<DATA, ENTITY>) : ModelDTO where  DATA : DataModel, ENTITY : ExposifyEntity, DTO: ModelDTO
+        val dtoClass2: () -> BaseDTO<DATA, ENTITY>) : ModelDTO where  DATA : DataModel, ENTITY : LongEntity, DTO: ModelDTO
     {
 
         lateinit var dtoClassConfig: DTOConfigTest<DATA, ENTITY>
@@ -94,7 +92,7 @@ import kotlin.reflect.KProperty
     class DTOConfigTest<DATA, ENTITY>(
         val entityModel: LongEntityClass<ENTITY>,
         val dtoClass: RootDTOTest<DATA, ENTITY>
-    ) where  DATA : DataModel, ENTITY : ExposifyEntity {
+    ) where  DATA : DataModel, ENTITY : LongEntity {
     }
 
     interface ClassDTOTest {
@@ -105,7 +103,7 @@ import kotlin.reflect.KProperty
     }
 
     abstract class RootDTOTest<DATA, ENTITY>() :BaseDTO<DATA, ENTITY>(), ClassDTOTest, TasksManaged
-            where DATA : DataModel, ENTITY : ExposifyEntity{
+            where DATA : DataModel, ENTITY : LongEntity{
 
         lateinit var config: DTOConfigTest<DATA, ENTITY>
 
@@ -115,35 +113,35 @@ import kotlin.reflect.KProperty
         inline fun <reified COMMON, reified DATA, reified ENTITY> configuration(
             entityModel: LongEntityClass<ENTITY>,
             noinline block: suspend DTOConfigTest<DATA, ENTITY>.() -> Unit
-        ): Unit where COMMON : CommonDTOTest<COMMON, DATA, ENTITY>, ENTITY : ExposifyEntity, DATA : DataModel =
+        ): Unit where COMMON : CommonDTOTest<COMMON, DATA, ENTITY>, ENTITY : LongEntity, DATA : DataModel =
             startTaskAsync("DTO Configuration") {
 
             }.resultOrException()
     }
 
     sealed class BaseDTO<DATA, ENTITY>()
-            where DATA : DataModel, ENTITY : ExposifyEntity
+            where DATA : DataModel, ENTITY : LongEntity
 
 
     fun <DTO, DATA,  ENTITY,F_DTO, FD, FE>  CommonDTOTest<DTO, DATA, ENTITY>.parentReference(
         parentDtoClass: BaseDTO<FD, FE>,
         dataProperty : KMutableProperty1<DATA, FD>,
-        parentEntityModel: LongEntityClass<FE>
+        parentEntityModel: ExposifyEntityClass<FE>
     ): ParentDelegate<DTO, DATA, ENTITY,F_DTO, FD, FE>
-            where  DTO: ModelDTO, DATA:DataModel, ENTITY : ExposifyEntity,
-                   FD: DataModel, FE: ExposifyEntity, F_DTO: ModelDTO
+            where  DTO: ModelDTO, DATA:DataModel, ENTITY : LongEntity,
+                   FD: DataModel, FE: LongEntity, F_DTO: ModelDTO
     {
-        val container = ParentDelegate<DTO, DATA, ENTITY,F_DTO,  FD, FE>(this, parentEntityModel)
+        val container = ParentDelegate<DTO, DATA, ENTITY ,F_DTO,  FD, FE>(this, parentEntityModel)
 
         return container
     }
 
     class ParentDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>(
         dto: CommonDTOTest<DTO, DATA, ENTITY>,
-        private val entityModel: LongEntityClass<FE>
+        private val entityModel: ExposifyEntityClass<FE>
     ): ReadOnlyProperty<DTO,  BaseDTO<FD, FE> >
-            where DATA: DataModel, ENTITY: ExposifyEntity, DTO : ModelDTO,
-                  FD : DataModel, FE: ExposifyEntity, F_DTO: ModelDTO
+            where DATA: DataModel, ENTITY: LongEntity, DTO : ModelDTO,
+                  FD : DataModel, FE: LongEntity, F_DTO: ModelDTO
     {
         override fun getValue(
             thisRef: DTO,

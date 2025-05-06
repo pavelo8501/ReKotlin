@@ -41,5 +41,4 @@ class TestNotifier : TasksManaged {
         }
         assertTrue(muteConsoleNoEvents, "Configuration did not propagated")
     }
-
 }
