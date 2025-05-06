@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import po.lognotify.classes.notification.Notifier
 import po.lognotify.classes.notification.RootNotifier
+import po.lognotify.classes.notification.models.NotifyConfig
 import po.lognotify.classes.task.ManagedTask
 import po.lognotify.classes.task.RootTask
 import po.lognotify.classes.task.TaskHandler
@@ -18,13 +19,23 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
 
 
-interface TasksManaged  {
+fun  TasksManaged.logNotify(): LogNotifyHandler{
 
-    companion object {
+    return  LogNotifyHandler(TasksManaged.notifier)
+
+}
+
+interface TasksManaged {
+
+    companion object{
 
         val logger : LoggingService = LoggingService()
         val taskManager: TaskDispatcher = TaskDispatcher()
+
+        private val notifyConfig = NotifyConfig()
         val notifier : RootNotifier = RootNotifier(taskManager, null)
+
+
 
         internal fun defaultContext(name: String): CoroutineContext =
             SupervisorJob() + Dispatchers.Default + CoroutineName(name)

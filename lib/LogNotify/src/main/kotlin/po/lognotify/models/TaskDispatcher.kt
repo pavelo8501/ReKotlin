@@ -47,7 +47,7 @@ class TaskDispatcher() : UpdatableTasks{
         notifyUpdate(UpdateType.OnStart)
     }
     fun lastRootTask(): RootTask<*>?{
-        return  taskHierarchy.values.firstOrNull {!it.isComplete}
+        return taskHierarchy.values.firstOrNull {!it.isComplete}
     }
     fun keyLookup(name: String, nestingLevel: Int): TaskKey?{
         return taskHierarchy.keys.firstOrNull { it.taskName == name  && it.nestingLevel == nestingLevel}

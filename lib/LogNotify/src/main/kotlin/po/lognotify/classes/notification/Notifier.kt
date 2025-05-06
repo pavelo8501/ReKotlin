@@ -4,6 +4,8 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.count
+import kotlinx.coroutines.flow.filter
 import po.lognotify.classes.notification.enums.EventType
 import po.lognotify.classes.notification.models.Notification
 import po.lognotify.classes.notification.models.NotifyConfig
@@ -32,42 +34,46 @@ class RootNotifier(
     dispatcher: TaskDispatcher,
     coroutineInfo: CoroutineInfo?,
     config : NotifyConfig = NotifyConfig(),
-): NotifierBase(config, ProviderLogNotify(dispatcher, coroutineInfo)){
+): NotifierBase(ProviderLogNotify(dispatcher, coroutineInfo)){
 
 }
 
 class ProcessNotifier(
     config : NotifyConfig = NotifyConfig(),
     private val process: LoggProcess<*>,
-) : NotifierBase(config, ProviderProcess(process)), NotificationProvider,  StaticHelper{
+) : NotifierBase(ProviderProcess(process)), NotificationProvider,  StaticHelper{
 
 }
 
 class Notifier(
     private val task: TaskSealedBase<*>,
-    config : NotifyConfig = NotifyConfig(),
-) : NotifierBase(config, ProviderTask(task)), NotificationProvider, StaticHelper{
+) : NotifierBase(ProviderTask(task)), NotificationProvider, StaticHelper{
+
 
 
 }
 
-
 sealed class NotifierBase(
-    protected var config : NotifyConfig = NotifyConfig(),
     private val provider: DataProvider
 ): StaticHelper, NotificationProvider
 {
 
+    var config : NotifyConfig = NotifyConfig()
+
+    private var hasRealEvents = false
+    private val bufferedNotifications = mutableListOf<Notification>()
     private val _notification = MutableSharedFlow<Notification>(
         replay = 10,
         extraBufferCapacity = 64,
         onBufferOverflow = BufferOverflow.SUSPEND
     )
-    val notification: SharedFlow<Notification> = _notification.asSharedFlow()
+    val notifications: SharedFlow<Notification> = _notification.asSharedFlow()
 
     private fun toConsole(notification: Notification) {
         if(config.muteInfo && notification.severity == SeverityLevel.INFO){ return }
         if(config.muteWarning && notification.severity == SeverityLevel.WARNING){ return }
+
+
 
         when (notification.eventType) {
             EventType.START -> {
@@ -88,6 +94,26 @@ sealed class NotifierBase(
     }
 
     protected suspend fun emit(notification: Notification) {
+
+        when(notification.eventType){
+            EventType.START, EventType.STOP -> {
+                if(config.muteConsoleNoEvents){
+                    bufferedNotifications.add(notification)
+                }
+            }else -> {
+                hasRealEvents = true
+                if(config.muteConsoleNoEvents){
+                    bufferedNotifications.forEach {
+                        toConsole(it)
+                    }
+                    toConsole(notification)
+                    bufferedNotifications.clear()
+                }
+            }
+        }
+
+
+        bufferedNotifications.add(notification)
         _notification.emit(notification)
     }
 
@@ -105,7 +131,6 @@ sealed class NotifierBase(
         if(config.muteConsole || config.muteException){
             emit(notification)
         }else{
-            toConsole(notification)
             emit(notification)
         }
     }

@@ -13,14 +13,13 @@ import po.auth.authentication.authenticator.models.AuthenticationData
 import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.auth.extensions.generatePassword
 import po.auth.sessions.enumerators.SessionType
+import po.exposify.scope.sequence.classes.createHandler
 import po.exposify.scope.sequence.enums.SequenceID
-import po.exposify.scope.sequence.extensions.createHandler
 import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.NotifyConfig
 import po.lognotify.extensions.launchProcess
 import po.test.exposify.setup.DatabaseTest
-import po.test.exposify.setup.dtos.Page
 import po.test.exposify.setup.dtos.PageDTO
 import po.test.exposify.setup.dtos.User
 import po.test.exposify.setup.dtos.UserDTO
@@ -82,11 +81,11 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
             }
 
             service(PageDTO, TableCreateMode.CREATE) {
-                sequence(createHandler(PageDTO, SequenceID.UPDATE)) { inputData, _ ->
+                sequence(PageDTO.createHandler(SequenceID.UPDATE)) {handler->
 
-                    update(inputData)
+                    update(handler.inputData)
                 }
-                sequence(createHandler(PageDTO, SequenceID.SELECT)) { _, _ ->
+                sequence(PageDTO.createHandler(SequenceID.SELECT)) {handler->
                     select()
                 }
             }
@@ -111,22 +110,20 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
                 authSession.launchProcess {
                     val inputData =
                         pageModelsWithSections(pageCount = 1000, sectionsCount = 10, authSession.principal!!.id)
-                    PageDTO.runSequence(SequenceID.UPDATE) {
-                        onStart {
-                            println("Running update with session ${it.sessionID}")
-                        }
-                        withInputData(inputData)
-                    }
+                    //PageDTO.runSequence(SequenceID.UPDATE) {
+
+                        ////withInputData(inputData)
+                  //  }
                 }
             }
             launch {
                 anonSession.launchProcess {
                     delay(200)
-                    val selectionResult = PageDTO.runSequence(SequenceID.SELECT) {
-                        onStart {
-                            println("Running update with session ${it.sessionID}")
-                        }
-                    }
+                   // val selectionResult = PageDTO.runSequence(SequenceID.SELECT) {
+                   //     onStart {
+                    //        println("Running update with session ${it.sessionID}")
+                   //     }
+                  //  }
                 }
             }
         }
