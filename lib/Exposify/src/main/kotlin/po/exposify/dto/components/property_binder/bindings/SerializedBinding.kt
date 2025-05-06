@@ -1,14 +1,14 @@
 package po.exposify.dto.components.property_binder.bindings
 
 import kotlinx.serialization.KSerializer
+import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.components.property_binder.enums.PropertyType
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.components.property_binder.interfaces.PropertyBindingOption
-import po.exposify.entity.classes.ExposifyEntity
 import kotlin.reflect.KMutableProperty1
 
-class SerializedBinding<DATA : DataModel, ENT : ExposifyEntity, C, TYPE: Any >(
+class SerializedBinding<DATA : DataModel, ENT : LongEntity, C, TYPE: Any >(
     override val dataProperty:KMutableProperty1<DATA, C>,
     override val referencedProperty:KMutableProperty1<ENT, C>,
     internal val serializer:  KSerializer<TYPE>,

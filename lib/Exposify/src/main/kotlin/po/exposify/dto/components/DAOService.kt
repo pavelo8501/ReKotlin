@@ -1,5 +1,6 @@
 package po.exposify.dto.components
 
+import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Op
@@ -12,7 +13,7 @@ import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.DTORegistryItem
-import po.exposify.entity.classes.ExposifyEntity
+import po.exposify.entity.classes.ExposifyEntityClass
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.getOrOperationsEx
 import po.lognotify.TasksManaged
@@ -21,9 +22,9 @@ import po.lognotify.extensions.subTask
 
 
 class DAOService<DTO, DATA, ENTITY>(
-    val entityModel: LongEntityClass<ENTITY>,
+    val entityModel: ExposifyEntityClass<ENTITY>,
     private val registryRecord: DTORegistryItem<DTO, DATA, ENTITY>,
-): TasksManaged, IdentifiableComponent where DTO: ModelDTO, DATA: DataModel, ENTITY : ExposifyEntity{
+): TasksManaged, IdentifiableComponent where DTO: ModelDTO, DATA: DataModel, ENTITY : LongEntity{
 
     override val qualifiedName: String = "DAOService[${registryRecord.dtoName}]"
     override val name: String = "DAOService"
@@ -33,16 +34,16 @@ class DAOService<DTO, DATA, ENTITY>(
         return conditions.reduceOrNull { acc, op -> acc and op } ?: Op.TRUE
     }
 
-    private  fun  <T:IdTable<Long>> buildConditions(conditions: WhereCondition<T>): Op<Boolean> {
+    private  fun  <T:IdTable<Long>> buildConditions(conditions: Query<T>): Op<Boolean> {
         val conditions = conditions.build()
         return conditions
     }
 
-    internal suspend fun setActiveEntity(dto: CommonDTO<DTO, DATA, ENTITY>,  container : EntityUpdateContainer<ENTITY, ModelDTO, DataModel, ExposifyEntity>){
+    internal suspend fun setActiveEntity(dto: CommonDTO<DTO, DATA, ENTITY>,  container : EntityUpdateContainer<ENTITY, ModelDTO, DataModel, LongEntity>){
         dto.updateBindingsAfterInserted(container)
     }
 
-   suspend fun  <T:IdTable<Long>> pick(conditions :  WhereCondition<T>): ENTITY? = subTask("Pick", qualifiedName){handler->
+   suspend fun  <T:IdTable<Long>> pick(conditions :  Query<T>): ENTITY? = subTask("Pick", qualifiedName){handler->
        val opConditions = buildConditions(conditions)
        val queryResult = entityModel.find(opConditions).firstOrNull()
         if(queryResult == null){
@@ -64,7 +65,7 @@ class DAOService<DTO, DATA, ENTITY>(
         entityModel.all().toList()
     }.resultOrException()
 
-    suspend fun <T:IdTable<Long>> select(conditions:  WhereCondition<T>): List<ENTITY> =
+    suspend fun <T:IdTable<Long>> select(conditions:  Query<T>): List<ENTITY> =
         subTask("Select", qualifiedName) {handler->
         val opConditions = buildConditions(conditions)
         val result = entityModel.find(opConditions).toList()
@@ -85,7 +86,7 @@ class DAOService<DTO, DATA, ENTITY>(
         newEntity
     }.resultOrException()
 
-    suspend fun <P_DTO: ModelDTO, PD: DataModel, PE: ExposifyEntity> saveWithParent(
+    suspend fun <P_DTO: ModelDTO, PD: DataModel, PE: LongEntity> saveWithParent(
         dto: CommonDTO<DTO, DATA, ENTITY>,
         parentDto: CommonDTO<P_DTO, PD, PE>,
         bindFn: (container: EntityUpdateContainer<ENTITY, P_DTO, PD, PE>)-> Unit)

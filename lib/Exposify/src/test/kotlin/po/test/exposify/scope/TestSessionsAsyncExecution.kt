@@ -75,18 +75,18 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
         }
 
 
-        startTestConnection()?.run {
+        startTestConnection().run {
             service(UserDTO, TableCreateMode.FORCE_RECREATE) {
                 authenticatedUser = update(user).getData()
                 AuthSessionManager.authenticator.setAuthenticator(::validateUser)
             }
 
             service(PageDTO, TableCreateMode.CREATE) {
-                sequence(createHandler(SequenceID.UPDATE)) { inputData, _ ->
+                sequence(createHandler(PageDTO, SequenceID.UPDATE)) { inputData, _ ->
 
                     update(inputData)
                 }
-                sequence(createHandler(SequenceID.SELECT)) { _, _ ->
+                sequence(createHandler(PageDTO, SequenceID.SELECT)) { _, _ ->
                     select()
                 }
             }
@@ -122,7 +122,7 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
             launch {
                 anonSession.launchProcess {
                     delay(200)
-                    val selectionResult = PageDTO.runSequence<Page>(SequenceID.SELECT) {
+                    val selectionResult = PageDTO.runSequence(SequenceID.SELECT) {
                         onStart {
                             println("Running update with session ${it.sessionID}")
                         }

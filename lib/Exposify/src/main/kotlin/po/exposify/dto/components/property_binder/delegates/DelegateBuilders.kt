@@ -1,11 +1,11 @@
 package po.exposify.dto.components.property_binder.delegates
 
+import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import po.exposify.dto.DTOClass
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.entity.classes.ExposifyEntity
 import kotlin.reflect.KMutableProperty1
 
 
@@ -22,12 +22,12 @@ import kotlin.reflect.KMutableProperty1
  * @param foreignEntityModel The DAO class (e.g., `TestUserEntity`) used to look up the foreign entity by ID.
  */
 
-fun <DTO,  DATA, ENTITY, FOREIGN_ENTITY> CommonDTO<DTO, DATA, ENTITY>.foreign2IdReference(
+fun <DTO,  DATA, ENTITY, FE> CommonDTO<DTO, DATA, ENTITY>.foreign2IdReference(
     dataProperty : KMutableProperty1<DATA, Long>,
-    entityProperty: KMutableProperty1<ENTITY, FOREIGN_ENTITY>,
-    foreignEntityModel: LongEntityClass<FOREIGN_ENTITY>,
-): ForeignIDClassDelegate<DTO, DATA, ENTITY, FOREIGN_ENTITY>
-    where DATA:DataModel, ENTITY : ExposifyEntity, DTO : ModelDTO, FOREIGN_ENTITY: ExposifyEntity
+    entityProperty: KMutableProperty1<ENTITY, FE>,
+    foreignEntityModel: LongEntityClass<FE>,
+): ForeignIDClassDelegate<DTO, DATA, ENTITY, FE>
+    where DATA:DataModel, ENTITY : LongEntity, DTO : ModelDTO, FE: LongEntity
 {
     val container = ForeignIDClassDelegate(this, dataProperty, entityProperty, foreignEntityModel)
     dtoPropertyBinder.setBinding(container)
@@ -46,11 +46,11 @@ fun <DTO,  DATA, ENTITY, FOREIGN_ENTITY> CommonDTO<DTO, DATA, ENTITY>.foreign2Id
  * @param entityProperty The DAO property referencing the parent entity.
  */
 
-fun <DTO, DATA, ENTITY, FOREIGN_ENTITY> CommonDTO<DTO, DATA, ENTITY>.parent2IdReference(
+fun <DTO, DATA, ENTITY, FE> CommonDTO<DTO, DATA, ENTITY>.parent2IdReference(
     dataProperty : KMutableProperty1<DATA, Long>,
-    entityProperty: KMutableProperty1<ENTITY, FOREIGN_ENTITY>
-): ParentIDDelegate<DTO, DATA, ENTITY, FOREIGN_ENTITY>
-        where DATA:DataModel, ENTITY : ExposifyEntity, DTO : ModelDTO, FOREIGN_ENTITY: ExposifyEntity
+    entityProperty: KMutableProperty1<ENTITY, FE>
+): ParentIDDelegate<DTO, DATA, ENTITY, FE>
+        where DATA:DataModel, ENTITY : LongEntity, DTO : ModelDTO, FE: LongEntity
 {
     val container = ParentIDDelegate(this, dataProperty, entityProperty)
     dtoPropertyBinder.setBinding(container)
@@ -70,14 +70,15 @@ fun <DTO, DATA, ENTITY, FOREIGN_ENTITY> CommonDTO<DTO, DATA, ENTITY>.parent2IdRe
  * @param parentEntityModel The DAO class of the parent entity (e.g., `TestPageEntity`).
  */
 
-fun <DTO, DATA,  ENTITY, PARENT_DTO,  PARENT_DATA,  PARENT_ENTITY>  CommonDTO<DTO, DATA, ENTITY>.parentReference(
-    dataProperty : KMutableProperty1<DATA, PARENT_DATA>,
-    parentDtoClass: DTOClass<PARENT_DTO>,
-    parentEntityModel: LongEntityClass<PARENT_ENTITY>
-): ParentDelegate<DTO, DATA, ENTITY, PARENT_DTO,  PARENT_DATA,  PARENT_ENTITY>
-        where  DTO: ModelDTO, DATA:DataModel, ENTITY : ExposifyEntity, PARENT_DTO: ModelDTO, PARENT_DATA : DataModel, PARENT_ENTITY: ExposifyEntity
+fun <DTO, DATA,  ENTITY, F_DTO,  FD,  FE>  CommonDTO<DTO, DATA, ENTITY>.parentReference(
+    dataProperty : KMutableProperty1<DATA, FD>,
+    parentDtoClass: DTOClass<F_DTO, FD>,
+    parentEntityModel: LongEntityClass<FE>
+): ParentDelegate<DTO, DATA, ENTITY, F_DTO,  FD,  FE>
+        where  DTO: ModelDTO, DATA:DataModel, ENTITY : LongEntity,
+               F_DTO: ModelDTO, FD : DataModel, FE: LongEntity
 {
-    val container = ParentDelegate<DTO, DATA, ENTITY, PARENT_DTO,  PARENT_DATA,  PARENT_ENTITY>(this, dataProperty, parentDtoClass, parentEntityModel)
+    val container = ParentDelegate<DTO, DATA, ENTITY, F_DTO,  FD,  FE>(this, dataProperty, parentDtoClass, parentEntityModel)
     dtoPropertyBinder.setBinding(container)
     return container
 }

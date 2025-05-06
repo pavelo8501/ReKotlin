@@ -1,18 +1,31 @@
 package po.exposify.dto.components
 
+import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.entity.classes.ExposifyEntity
+
+class ResultList<DTO, DATA>  (
+   private val initialList : List<CommonDTO<DTO, DATA, LongEntity>>? = null
+)  where DTO : ModelDTO, DATA: DataModel{
+
+    internal val rootDTOs: MutableList<CommonDTO<DTO, DATA, LongEntity>> = mutableListOf()
+
+    init {
+        initialList?.let {
+            rootDTOs.addAll(it)
+        }
+    }
 
 
-data class CrudResult<DTO, DATA>(
-   internal val rootDTOs: MutableList<CommonDTO<DTO, DATA, ExposifyEntity>> = mutableListOf<CommonDTO<DTO, DATA, ExposifyEntity>>()
-) where DTO : ModelDTO, DATA: DataModel {
+    fun addList(list: List<CommonDTO<DTO, DATA, LongEntity>>):ResultList<DTO, DATA>{
+        rootDTOs.addAll(list)
+        return  this
+    }
 
-
-    internal fun appendDto(dto:CommonDTO<DTO, DATA, ExposifyEntity>) {
+    internal fun appendDto(dto:CommonDTO<DTO, DATA, LongEntity>):ResultList<DTO, DATA>{
         rootDTOs.add(dto)
+        return  this
     }
 
     fun getData(): List<DATA> {
@@ -20,27 +33,24 @@ data class CrudResult<DTO, DATA>(
         return dataModels
     }
 
-    fun getDTO(): List<CommonDTO<DTO, DATA, ExposifyEntity>> {
+    fun getDTO(): List<CommonDTO<DTO, DATA, LongEntity>> {
         return rootDTOs
     }
+
+
 }
 
-data class CrudResultSingle<DTO, DATA>(
-    internal var rootDTO: CommonDTO<DTO, DATA, ExposifyEntity>,
+class ResultSingle<DTO, DATA>(
+    internal var rootDTO: CommonDTO<DTO, DATA, LongEntity>
 ) where DTO : ModelDTO, DATA: DataModel {
-
-    internal fun provideResult(dto: CommonDTO<DTO, DATA, ExposifyEntity>): CrudResultSingle<DTO, DATA>{
-        rootDTO = dto
-        return this
-    }
 
     fun getData(): DATA {
         val dataModel =  rootDTO.dataModel
         return dataModel
     }
-
-    fun getDTO(): CommonDTO<DTO, DATA, *> {
+    fun getDTO(): CommonDTO<DTO, DATA, LongEntity>? {
         return rootDTO
     }
+
 
 }

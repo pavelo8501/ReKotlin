@@ -1,10 +1,10 @@
 package po.exposify.dto.interfaces
 
+import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.components.DAOService
 import po.exposify.dto.components.DataModelContainer
 import po.exposify.dto.components.property_binder.PropertyBinder
 import po.exposify.dto.models.DTOTracker
-import po.exposify.entity.classes.ExposifyEntity
 
 interface ModelDTO : DataModel {
 
@@ -17,7 +17,7 @@ interface ModelDTO : DataModel {
 }
 
 
-interface ModelDTO2<DATA: DataModel, ENTITY: ExposifyEntity>{
+interface ModelDTO2<DATA: DataModel, ENTITY: LongEntity>{
 
     val personalName: String
     val dataModel: DATA

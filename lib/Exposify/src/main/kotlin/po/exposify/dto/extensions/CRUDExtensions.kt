@@ -1,18 +1,17 @@
 package po.exposify.dto.extensions
 
+import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
 import po.exposify.dto.RootDTO
 import po.exposify.dto.interfaces.DataModel
-import po.exposify.dto.components.CrudResult
-import po.exposify.dto.CommonDTO
-import po.exposify.dto.components.CrudResultSingle
+import po.exposify.dto.components.ResultList
+import po.exposify.dto.components.ResultSingle
+import po.exposify.dto.components.WhereQuery
 import po.exposify.dto.components.selectDto
 import po.exposify.dto.components.updateDto
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.dto.components.WhereCondition
 import po.exposify.extensions.getOrOperationsEx
 import po.exposify.extensions.isTransactionReady
 import po.exposify.extensions.testOrThrow
@@ -21,13 +20,13 @@ import kotlin.Long
 
 
 
-internal suspend inline fun <DTO, DATA, ENTITY> RootDTO<DTO, DATA>.pickById(
+internal suspend inline fun <DTO, DATA> RootDTO<DTO, DATA>.pickById(
     id: Long
-): CrudResultSingle<DTO, DATA>  where DTO: ModelDTO,  DATA : DataModel, ENTITY: ExposifyEntity{
+): ResultSingle<DTO, DATA>  where DTO: ModelDTO,  DATA : DataModel{
     val entity =  config.daoService.pickById(id)
     val checkedEntity = entity.getOrOperationsEx("Entity not found for id $id", ExceptionCode.VALUE_NOT_FOUND)
     val dto = selectDto(this, checkedEntity)
-    return CrudResultSingle(dto)
+    return ResultSingle(dto)
 }
 
 
@@ -47,12 +46,12 @@ internal suspend inline fun <DTO, DATA, ENTITY> RootDTO<DTO, DATA>.pickById(
  * @return A `CrudResult<DATA, ENTITY>` containing the selected DTO (if found) and any triggered events.
  */
 internal suspend inline fun <DTO: ModelDTO, DATA: DataModel,TB : IdTable<Long>> RootDTO<DTO, DATA>.pick(
-    conditions: WhereCondition<TB>
-): CrudResultSingle<DTO, DATA> {
+    conditions: WhereQuery<TB>
+): ResultSingle<DTO, DATA> {
     val entity = config.daoService.pick(conditions)
     val checkedEntity = entity.getOrOperationsEx("Entity not found for conditions ${conditions.toString()}", ExceptionCode.VALUE_NOT_FOUND)
     val dto = selectDto(this, checkedEntity)
-    return CrudResultSingle(dto)
+    return ResultSingle(dto)
 }
 
 /**
@@ -61,15 +60,15 @@ internal suspend inline fun <DTO: ModelDTO, DATA: DataModel,TB : IdTable<Long>> 
  * @return A [CrudResult] containing a list of initialized DTOs and associated events.
  */
 internal suspend fun <T, DTO, DATA> RootDTO<DTO, DATA>.select(
-    conditions:  WhereCondition<T>
-): CrudResult<DTO, DATA> where DTO: ModelDTO, DATA: DataModel, T: IdTable<Long> =
+    conditions:  WhereQuery<T>
+): ResultList<DTO, DATA> where DTO: ModelDTO, DATA: DataModel, T: IdTable<Long> =
     subTask("Select with conditions"){handler->
 
     isTransactionReady().testOrThrow(OperationsException("Transaction Lost Context", ExceptionCode.DB_NO_TRANSACTION_IN_CONTEXT)){
         true
     }
     val entities = config.daoService.select<T>(conditions)
-    val result =  CrudResult(mutableListOf<CommonDTO<DTO, DATA, ExposifyEntity>>())
+    val result = ResultList<DTO, DATA>()
     entities.forEach {
         val newDto = selectDto(this, it)
         result.appendDto(newDto)
@@ -80,13 +79,13 @@ internal suspend fun <T, DTO, DATA> RootDTO<DTO, DATA>.select(
 
 
 internal suspend fun <DTO, DATA> RootDTO<DTO, DATA>.select()
-: CrudResult<DTO, DATA> where DTO: ModelDTO, DATA: DataModel
+: ResultList<DTO, DATA> where DTO: ModelDTO, DATA: DataModel
         = subTask("Select") {handler->
     isTransactionReady().testOrThrow(OperationsException("Transaction Lost Context", ExceptionCode.DB_NO_TRANSACTION_IN_CONTEXT)){
         true
     }
     val entities = config.daoService.select()
-    val result =  CrudResult(mutableListOf<CommonDTO<DTO, DATA, ExposifyEntity>>())
+    val result =  ResultList<DTO, DATA>()
     entities.forEach {
         val newDto = selectDto(this, it)
         result.appendDto(newDto)
@@ -99,26 +98,26 @@ internal suspend fun <DTO, DATA> RootDTO<DTO, DATA>.select()
 
 internal suspend fun <DTO, DATA> RootDTO<DTO, DATA>.update(
     dataModel: DATA,
-): CrudResultSingle<DTO, DATA> where DTO: ModelDTO, DATA : DataModel
+): ResultSingle<DTO, DATA> where DTO: ModelDTO, DATA : DataModel
         = subTask("Update Repository.kt")  { handler->
     isTransactionReady().testOrThrow(OperationsException("Transaction Lost Context", ExceptionCode.DB_NO_TRANSACTION_IN_CONTEXT)){
         true
     }
-    val dto = updateDto<DTO, DATA, ExposifyEntity>(this, dataModel)
+    val dto = updateDto<DTO, DATA, LongEntity>(this, dataModel)
     handler.info("Created single DTO ${dto.dtoName}")
-    CrudResultSingle(dto)
+    ResultSingle(dto)
 }.resultOrException()
 
 internal suspend fun <DTO, DATA> RootDTO<DTO, DATA>.update(
     dataModels: List<DATA>,
-): CrudResult<DTO, DATA> where DTO: ModelDTO, DATA : DataModel
+): ResultList<DTO, DATA> where DTO: ModelDTO, DATA : DataModel
         = subTask("Update Repository.kt")  { handler->
     isTransactionReady().testOrThrow(OperationsException("Transaction Lost Context", ExceptionCode.DB_NO_TRANSACTION_IN_CONTEXT)){
         true
     }
-    val result =  CrudResult(mutableListOf<CommonDTO<DTO, DATA, ExposifyEntity>>())
+    val result =  ResultList<DTO, DATA>()
     dataModels.forEach {
-        val dto = updateDto<DTO, DATA, ExposifyEntity>(this, it)
+        val dto = updateDto<DTO, DATA, LongEntity>(this, it)
         result.appendDto(dto)
     }
     handler.info("Created DTOs ${result.rootDTOs.count()}")
@@ -134,7 +133,7 @@ internal suspend fun <DTO, DATA> RootDTO<DTO, DATA>.update(
  */
 internal suspend inline fun <DTO, DATA> RootDTO<DTO, DATA>.delete(
     dataModel: DATA
-): CrudResult<DTO, DATA>?  where DTO: ModelDTO, DATA: DataModel
+): ResultList<DTO, DATA>?  where DTO: ModelDTO, DATA: DataModel
 {
     return null
 }

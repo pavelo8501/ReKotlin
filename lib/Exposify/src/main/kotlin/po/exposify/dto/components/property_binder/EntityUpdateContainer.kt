@@ -1,15 +1,15 @@
 package po.exposify.dto.components.proFErty_binder
 
+import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.OperationsException
 import po.misc.types.getOrThrow
 
 
-fun <TE : ExposifyEntity, F_DTO: ModelDTO, FD: DataModel, FE: ExposifyEntity> TE.containerize(
+fun <TE : LongEntity, F_DTO: ModelDTO, FD: DataModel, FE: LongEntity> TE.containerize(
     updateMode : UpdateMode,
     parentDTO: CommonDTO<F_DTO, FD, FE>? = null
 ):EntityUpdateContainer<TE, F_DTO, FD, FE> {
@@ -20,7 +20,7 @@ fun <TE : ExposifyEntity, F_DTO: ModelDTO, FD: DataModel, FE: ExposifyEntity> TE
     return container
 }
 
-data class EntityUpdateContainer<TE : ExposifyEntity, F_DTO: ModelDTO, FD: DataModel, FE: ExposifyEntity>(
+data class EntityUpdateContainer<TE : LongEntity, F_DTO: ModelDTO, FD: DataModel, FE: LongEntity>(
     val ownEntity: TE,
     val updateMode : UpdateMode
 ){

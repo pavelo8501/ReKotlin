@@ -1,37 +1,43 @@
 package po.exposify.scope.sequence.classes
 
 import org.jetbrains.exposed.dao.id.IdTable
+import po.exposify.dto.DTOBase
+import po.exposify.dto.components.WhereQuery
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.dto.components.WhereCondition
+import po.exposify.dto.interfaces.RunnableContext
+import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.extensions.getOrOperationsEx
 import po.exposify.extensions.safeCast
-import po.exposify.scope.sequence.RunnableContext
-import po.exposify.scope.sequence.models.SequenceKey
+import po.exposify.scope.sequence.enums.SequenceID
+import po.exposify.scope.service.ServiceContext
+import po.misc.collections.generateKey
 import kotlin.Long
 
-sealed interface SequenceHandlerInterface {
-    val thisKey: SequenceKey
+
+fun <DTO : ModelDTO, DATA: DataModel> DTOBase<DTO, DATA>.createHandler(
+    sequenceID: SequenceID
+): SequenceHandler<DTO, DATA>{
+    return  SequenceHandler(this)
 }
 
-class SequenceHandler<DTO, DATA>(
-    private  val dtoClassName: String,
-    private  val sequenceId: Int,
-): SequenceHandlerInterface where DTO : ModelDTO, DATA: DataModel{
 
-    override val thisKey: SequenceKey = SequenceKey(dtoClassName, sequenceId)
+class SequenceHandler<DTO, DATA>(
+    val dtoClass: DTOBase<DTO, DATA>,
+)where DTO: ModelDTO, DATA: DataModel{
     internal val inputData : MutableList<DATA> = mutableListOf()
-    internal var whereConditions: WhereCondition<IdTable<Long>>? = null
+    internal var whereConditions: WhereQuery<IdTable<Long>>? = null
         private set
+
 
     fun withInputData(data: List<DATA>) {
         inputData.clear()
         inputData.addAll(data)
     }
 
-    suspend fun <T: IdTable<Long>> withConditions(conditions : WhereCondition<T>) {
-        whereConditions = conditions.safeCast<WhereCondition<IdTable<Long>>>().getOrOperationsEx(
+    suspend fun <T: IdTable<Long>> withConditions(conditions : WhereQuery<T>) {
+        whereConditions = conditions.safeCast<WhereQuery<IdTable<Long>>>().getOrOperationsEx(
             "Cast to <IdTable<Long>> Failed",
             ExceptionCode.CAST_FAILURE
         )

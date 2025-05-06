@@ -1,8 +1,9 @@
 package po.exposify.entity
 
-import po.exposify.entity.classes.ExposifyEntity
+import org.jetbrains.exposed.dao.LongEntity
+import org.jetbrains.exposed.sql.Column
+import po.exposify.entity.classes.ExposifyEntityClass
 
-
-fun <T: ExposifyEntity>  T.exposifyEntity(): ExposifyEntity{
-    return this
+fun <E: LongEntity> ExposifyEntityClass<E>.columns(): List<Column<*>>{
+  return  this.sourceTable.columns
 }

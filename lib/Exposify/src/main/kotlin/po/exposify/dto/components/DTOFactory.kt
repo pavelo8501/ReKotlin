@@ -5,12 +5,12 @@ import kotlinx.coroutines.Deferred
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
+import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.common.classes.ClassBlueprint
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.getOrOperationsEx
@@ -24,7 +24,7 @@ import kotlin.reflect.full.isSubclassOf
 internal class PostCreationRoutine<DTO, DATA, ENTITY, R>(
     val name: String,
    private val routineBlock: suspend CommonDTO<DTO, DATA, ENTITY>.()->R,
-) where DTO : ModelDTO, DATA: DataModel, ENTITY: ExposifyEntity{
+) where DTO : ModelDTO, DATA: DataModel, ENTITY: LongEntity{
 
    val resultDeferred: CompletableDeferred<R> = CompletableDeferred()
 
@@ -37,7 +37,7 @@ internal class DTOFactory<DTO, DATA, ENTITY>(
     private val dtoKClass : KClass<out CommonDTO<DTO, DATA, ENTITY>>,
     private val dataModelClass : KClass<DATA>,
     private val hostingConfig: DTOConfig<DTO, DATA, ENTITY>,
-): IdentifiableComponent,  TasksManaged where DTO : ModelDTO, DATA: DataModel, ENTITY: ExposifyEntity {
+): IdentifiableComponent,  TasksManaged where DTO : ModelDTO, DATA: DataModel, ENTITY: LongEntity {
 
 
     override val qualifiedName: String = "DTOFactory[${hostingConfig.registry.dtoName}]"

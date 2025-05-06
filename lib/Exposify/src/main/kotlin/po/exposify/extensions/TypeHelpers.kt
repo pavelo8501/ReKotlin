@@ -17,7 +17,7 @@ inline fun <reified T: Any> Any?.castOrOperationsEx(
     code:  ExceptionCode = ExceptionCode.CAST_FAILURE): T
 {
     return  this.castOrException{
-        OperationsException(message, code)
+       throw OperationsException(message, code)
     }
 }
 
@@ -60,7 +60,7 @@ internal fun <T : Any> T?.getOrOperationsEx(
     code: ExceptionCode = ExceptionCode.VALUE_IS_NULL
 ): T {
     return this.getOrException {
-        OperationsException(message, code)
+      throw  OperationsException(message, code)
     }
 }
 

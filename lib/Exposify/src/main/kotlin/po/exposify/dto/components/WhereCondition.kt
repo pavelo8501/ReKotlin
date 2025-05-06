@@ -12,7 +12,8 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.like
 import org.jetbrains.exposed.sql.and
 
 
-class WhereCondition<T> () : QueryConditions<T>() where T : IdTable<Long> {
+
+class WhereQuery<T> () : Query<T>() where T : IdTable<Long> {
 
     override  var expression: Set<Op<Boolean>> = emptySet()
 
@@ -20,32 +21,32 @@ class WhereCondition<T> () : QueryConditions<T>() where T : IdTable<Long> {
         expression = expression + condition
     }
 
-    fun <V> equalsTo(column: Column<V>, value: V): WhereCondition<T>  {
+    fun <V> equalsTo(column: Column<V>, value: V): WhereQuery<T>  {
         addCondition(column eq value)
         return this
     }
 
-    fun <V : Comparable<V>> greaterThan(column: Column<V>, value: V): WhereCondition<T> {
+    fun <V : Comparable<V>> greaterThan(column: Column<V>, value: V): WhereQuery<T> {
         addCondition(column.greater(value))
         return this
     }
 
-    fun <V : Comparable<V>> greaterOrEquals(column: Column<V>, value: V): WhereCondition<T> {
+    fun <V : Comparable<V>> greaterOrEquals(column: Column<V>, value: V): WhereQuery<T> {
         addCondition(column.greaterEq(value))
         return this
     }
 
-    fun <V : Comparable<V>> lessThan(column: Column<V>, value: V): WhereCondition<T>  {
+    fun <V : Comparable<V>> lessThan(column: Column<V>, value: V): WhereQuery<T>  {
         addCondition( column.less(value))
         return this
     }
 
-    fun <V : Comparable<V>> lessOrEquals(column: Column<V>, value: V): WhereCondition<T>  {
+    fun <V : Comparable<V>> lessOrEquals(column: Column<V>, value: V): WhereQuery<T>  {
         addCondition( column.lessEq(value))
         return this
     }
 
-    fun likeString(column: Column<String>, value: String?): WhereCondition<T> {
+    fun likeString(column: Column<String>, value: String?): WhereQuery<T> {
         if (value != null) {
             addCondition( column like value)
         }
@@ -53,7 +54,19 @@ class WhereCondition<T> () : QueryConditions<T>() where T : IdTable<Long> {
     }
 }
 
-sealed class QueryConditions<T>()  where T : IdTable<Long> {
+class SwitchQuery<T> () :  Query<T>()  where T : IdTable<Long> {
+    override  var expression: Set<Op<Boolean>> = emptySet()
+    private fun addCondition(condition: Op<Boolean>) {
+        expression = expression + condition
+    }
+    fun<C> equalsTo(column: Column<C>, value: C): SwitchQuery<T>  {
+        addCondition(column eq value)
+        return this
+    }
+
+}
+
+sealed class Query<T>() {
 
     abstract val expression: Set<Op<Boolean>>
     private fun combineConditions(conditions: Set<Op<Boolean>>): Op<Boolean> {

@@ -1,9 +1,9 @@
 package po.exposify.dto.components.relation_binder.delegates
 
+import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.SizedIterable
 import po.exposify.dto.DTOBase
 import po.exposify.dto.DTOClass
-import po.exposify.dto.components.DTOConfig
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.relation_binder.RelationshipBinder
@@ -11,7 +11,6 @@ import po.exposify.dto.components.relation_binder.createOneToManyContainer
 import po.exposify.dto.components.relation_binder.createOneToOneContainer
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.castOrOperationsEx
 import po.lognotify.extensions.newTaskAsync
@@ -39,7 +38,7 @@ fun <DTO, DATA, ENTITY, C_DTO, CD,  CF> CommonDTO<DTO, DATA, ENTITY>.oneToOnOf(
     ownEntity: KProperty1<ENTITY, CF>,
     foreignEntity: KMutableProperty1<CF, ENTITY>
 ): OneToOneDelegate<DTO, DATA, ENTITY, C_DTO, CD,  CF>
-        where DATA:DataModel, ENTITY : ExposifyEntity, DTO : ModelDTO, C_DTO: ModelDTO,  CD: DataModel, CF: ExposifyEntity
+        where DATA:DataModel, ENTITY : LongEntity, DTO : ModelDTO, C_DTO: ModelDTO,  CD: DataModel, CF: LongEntity
 {
     val result =  newTaskAsync("Hierarchy Initialization. Child dto ${childClass.personalName}") {
 
@@ -75,7 +74,7 @@ fun <DTO, DATA, ENTITY, C_DTO, CD,  CF> CommonDTO<DTO, DATA, ENTITY>.oneToManyOf
     ownEntities: KProperty1<ENTITY, SizedIterable<CF>>,
     foreignEntity: KMutableProperty1<CF, ENTITY>
 ): OneToManyDelegate<DTO, DATA, ENTITY, C_DTO, CD, CF>
-        where DATA:DataModel, ENTITY : ExposifyEntity, DTO : ModelDTO, C_DTO: ModelDTO,  CD: DataModel, CF: ExposifyEntity
+        where DATA:DataModel, ENTITY : LongEntity, DTO : ModelDTO, C_DTO: ModelDTO,  CD: DataModel, CF: LongEntity
 {
     return newTaskAsync("Hierarchy Initialization. Child dto ${childClass.personalName}") {
 

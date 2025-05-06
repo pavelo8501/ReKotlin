@@ -56,7 +56,7 @@ class SectionDTO(
            ownEntities =   SectionEntity::contentBlocks,
            foreignEntity = ContentBlockEntity::section)
 
-    companion object: DTOClass<SectionDTO>(PageDTO){
+    companion object: DTOClass<SectionDTO, Section>(PageDTO){
         override suspend fun setup() {
             configuration<SectionDTO, Section, SectionEntity>(SectionEntity) {
                 propertyBindings(

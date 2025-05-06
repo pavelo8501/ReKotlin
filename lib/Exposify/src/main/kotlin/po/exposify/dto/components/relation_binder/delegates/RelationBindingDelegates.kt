@@ -1,5 +1,6 @@
 package po.exposify.dto.components.relation_binder.delegates
 
+import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.SizedIterable
 import po.exposify.dto.DTOBase
 import po.exposify.dto.interfaces.DataModel
@@ -9,9 +10,6 @@ import po.exposify.dto.components.SingleRepository
 import po.exposify.dto.components.proFErty_binder.EntityUpdateContainer
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.entity.classes.ExposifyEntity
-import po.exposify.exceptions.OperationsException
-import po.exposify.exceptions.enums.ExceptionCode
 import po.lognotify.TasksManaged
 import po.misc.collections.generateKey
 import kotlin.properties.ReadOnlyProperty
@@ -25,9 +23,9 @@ class OneToOneDelegate<DTO, DATA, ENTITY, C_DTO,  CD,  FE>(
     private val dataProperty: KMutableProperty1<DATA, CD>,
     private val ownEntities: KProperty1<ENTITY, FE>,
     private val foreignEntity: KMutableProperty1<FE, ENTITY>,
-) : RelationBindingDelegates<DTO, ENTITY, C_DTO,  CD, FE, CommonDTO<C_DTO, CD, FE>>()
-        where DTO : ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity,
-              C_DTO: ModelDTO,  CD : DataModel, FE : ExposifyEntity
+) : RelationBindingDelegate<DTO, DATA, ENTITY, C_DTO,  CD, FE, CommonDTO<C_DTO, CD, FE>>()
+        where DTO : ModelDTO, DATA : DataModel, ENTITY : LongEntity,
+              C_DTO: ModelDTO,  CD : DataModel, FE : LongEntity
 {
     override val qualifiedName : String  get() = "OneToOneDelegate[${dto.dtoName}::${dataProperty.name}]"
 
@@ -53,25 +51,34 @@ class OneToOneDelegate<DTO, DATA, ENTITY, C_DTO,  CD,  FE>(
     fun getChildEntity(entity: ENTITY): FE{
         return ownEntities.get(entity)
     }
+
+    override fun getForeignEntity(id: Long): FE?{
+       val childEntity =  ownEntities.get(dto.daoEntity)
+       return if(childEntity.id.value == id){
+             childEntity
+        }else{
+            null
+       }
+    }
 }
 
-class OneToManyDelegate<DTO, DATA, ENTITY, C_DTO, FD, FE>(
+class OneToManyDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>(
     private val dto : CommonDTO<DTO, DATA, ENTITY>,
-    private val childModel: DTOBase<C_DTO, FD>,
+    private val childModel: DTOBase<F_DTO, FD>,
     private val dataProperty: KProperty1<DATA, MutableList<FD>>,
     private val foreignEntities: KProperty1<ENTITY, SizedIterable<FE>>,
     private val foreignEntity: KMutableProperty1<FE, ENTITY>,
-) : RelationBindingDelegates<DTO, ENTITY, C_DTO, FD, FE, List<CommonDTO<C_DTO, FD, FE>>>()
-        where DTO : ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity,
-              C_DTO: ModelDTO,  FD : DataModel, FE : ExposifyEntity {
+) : RelationBindingDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, List<CommonDTO<F_DTO, FD, FE>>>()
+        where DTO : ModelDTO, DATA : DataModel, ENTITY : LongEntity,
+              F_DTO: ModelDTO,  FD : DataModel, FE : LongEntity {
 
     override val qualifiedName : String  get() = "OneToManyDelegate[${dto.dtoName}::${dataProperty.name}]"
 
-    val multipleRepository : MultipleRepository<DTO, DATA, ENTITY, C_DTO, FD, FE> by lazy {
-        dto.getRepository<C_DTO, FD, FE>(dto.dtoClass.generateKey(Cardinality.ONE_TO_MANY)) as MultipleRepository
+    val multipleRepository : MultipleRepository<DTO, DATA, ENTITY, F_DTO, FD, FE> by lazy {
+        dto.getRepository<F_DTO, FD, FE>(dto.dtoClass.generateKey(Cardinality.ONE_TO_MANY)) as MultipleRepository
     }
 
-    override fun getEffectiveValue(): List<CommonDTO<C_DTO, FD, FE>> {
+    override fun getEffectiveValue(): List<CommonDTO<F_DTO, FD, FE>> {
         return multipleRepository.getDTO()
     }
 
@@ -87,7 +94,11 @@ class OneToManyDelegate<DTO, DATA, ENTITY, C_DTO, FD, FE>(
        return foreignEntities.get(entity).toList()
     }
 
-   suspend fun processForeignEntities(entity: ENTITY, processFn:suspend (List<FE>)-> List<CommonDTO<C_DTO, FD, FE>>){
+    override fun getForeignEntity(id: Long): FE?{
+       return foreignEntities.get(dto.daoEntity).firstOrNull { it.id.value == id }
+    }
+
+   suspend fun processForeignEntities(entity: ENTITY, processFn:suspend (List<FE>)-> List<CommonDTO<F_DTO, FD, FE>>){
         val foreignEntities = foreignEntities.get(entity).toList()
         val foreignDtos =  processFn.invoke(foreignEntities)
         val mutableListOfForeignDataModels =   dataProperty.get(dto.dataModel)
@@ -101,12 +112,18 @@ class OneToManyDelegate<DTO, DATA, ENTITY, C_DTO, FD, FE>(
     }
 }
 
-sealed class RelationBindingDelegates<DTO,ENTITY,C_DTO, CD,  CE,  R>(
+sealed class RelationBindingDelegate<DTO, DATA, ENTITY, C_DTO, FD, FE, R>(
 
 ): ReadOnlyProperty<DTO, R>, TasksManaged
-        where DTO: ModelDTO, ENTITY : ExposifyEntity,C_DTO: ModelDTO,  CD: DataModel, CE : ExposifyEntity{
+        where DTO: ModelDTO, DATA: DataModel,  ENTITY : LongEntity,
+              C_DTO: ModelDTO,  FD: DataModel, FE : LongEntity{
+
+
 
     abstract val qualifiedName : String
+
+    abstract fun getForeignEntity(id: Long):FE?
+
     abstract fun getEffectiveValue():R
     override fun getValue(thisRef: DTO, property: KProperty<*>): R{
         return getEffectiveValue()

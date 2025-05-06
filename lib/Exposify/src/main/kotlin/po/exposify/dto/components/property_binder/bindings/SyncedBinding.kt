@@ -1,13 +1,13 @@
 package po.exposify.dto.components.property_binder.bindings
 
+import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.components.property_binder.enums.PropertyType
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.components.property_binder.interfaces.PropertyBindingOption
-import po.exposify.entity.classes.ExposifyEntity
 import kotlin.reflect.KMutableProperty1
 
-class SyncedBinding<DATA : DataModel, ENT : ExposifyEntity, T>(
+class SyncedBinding<DATA : DataModel, ENT : LongEntity, T>(
     override val dataProperty:KMutableProperty1<DATA, T>,
     override val referencedProperty :KMutableProperty1<ENT, T>
 ): PropertyBindingOption<DATA, ENT, T>

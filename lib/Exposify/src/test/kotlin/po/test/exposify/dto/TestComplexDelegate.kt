@@ -110,7 +110,7 @@ class TestComplexDelegate : DatabaseTest() {
 
 
     @Test
-    fun `foreign2IdReference property binding un update&pick`(){
+    fun `foreign2IdReference property binding un update&pick`() = runTest{
 
         var user = User(
             id = 0,

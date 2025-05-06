@@ -1,7 +1,9 @@
 package po.exposify.dto.components
 
 import kotlinx.serialization.KSerializer
+import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
+import org.jetbrains.exposed.dao.id.IdTable
 import po.exposify.dto.DTOBase
 import po.exposify.dto.components.property_binder.PropertyBinder
 import po.exposify.dto.components.relation_binder.RelationshipBinder
@@ -12,20 +14,20 @@ import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.components.property_binder.interfaces.PropertyBindingOption
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.DTORegistryItem
-import po.exposify.entity.classes.ExposifyEntity
+import po.exposify.entity.classes.ExposifyEntityClass
 
 
-interface ConfigurableDTO<DTO: ModelDTO, DATA : DataModel, ENTITY: ExposifyEntity>{
+interface ConfigurableDTO<DTO: ModelDTO, DATA : DataModel, ENTITY: LongEntity>{
 
-    suspend fun withRelationshipBinderAsync(block: suspend (RelationshipBinder<DTO, DATA, ENTITY, ModelDTO, DataModel, ExposifyEntity>)-> Unit)
-    fun withRelationshipBinder(block:  (RelationshipBinder<DTO, DATA, ENTITY, ModelDTO, DataModel, ExposifyEntity>)-> Unit)
+    suspend fun withRelationshipBinderAsync(block: suspend (RelationshipBinder<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>)-> Unit)
+    fun withRelationshipBinder(block:  (RelationshipBinder<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>)-> Unit)
 }
 
 class DTOConfig<DTO, DATA, ENTITY>(
     val registry : DTORegistryItem<DTO, DATA, ENTITY>,
-    val entityModel:LongEntityClass<ENTITY>,
+    val entityModel: ExposifyEntityClass<ENTITY>,
     val dtoClass : DTOBase<DTO, *>
-): ConfigurableDTO<DTO, DATA, ENTITY> where DTO: ModelDTO, DATA: DataModel,  ENTITY : ExposifyEntity{
+): ConfigurableDTO<DTO, DATA, ENTITY> where DTO: ModelDTO, DATA: DataModel,  ENTITY : LongEntity{
 
    internal var dtoFactory: DTOFactory<DTO, DATA, ENTITY> = DTOFactory(registry.commonDTOKClass, registry.dataKClass, this)
    internal var daoService :  DAOService<DTO, DATA, ENTITY> = DAOService(entityModel, registry)
@@ -40,27 +42,27 @@ class DTOConfig<DTO, DATA, ENTITY>(
         dtoFactory.setSerializableTypes(namedSerializes)
     }
 
-    val relationBinder: RelationshipBinder<DTO, DATA, ENTITY, ModelDTO, DataModel, ExposifyEntity>
+    val relationBinder: RelationshipBinder<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>
             = RelationshipBinder(dtoClass)
 
     var dataModelConstructor : (() -> DataModel)? = null
         private set
 
-    override suspend fun withRelationshipBinderAsync(block: suspend (RelationshipBinder<DTO, DATA, ENTITY, ModelDTO, DataModel, ExposifyEntity>)-> Unit){
+    override suspend fun withRelationshipBinderAsync(block: suspend (RelationshipBinder<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>)-> Unit){
         block.invoke(relationBinder)
     }
-    override fun withRelationshipBinder(block: (RelationshipBinder<DTO, DATA, ENTITY, ModelDTO, DataModel, ExposifyEntity>)-> Unit){
+    override fun withRelationshipBinder(block: (RelationshipBinder<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>)-> Unit){
         block.invoke(relationBinder)
     }
 
     fun propertyBindings(vararg props: PropertyBindingOption<DATA, ENTITY, *> ): Unit =  propertyBinder.setProperties(props.toList())
 
     inline fun childBindings(
-        block: RelationshipBinder<DTO, DATA, ENTITY, ModelDTO, DataModel, ExposifyEntity>.()-> Unit){
+        block: RelationshipBinder<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>.()-> Unit){
         relationBinder.block()
     }
 
-    suspend fun hierarchyMembers(vararg childDTO : DTOClass<*>){
+    suspend fun hierarchyMembers(vararg childDTO : DTOClass<*, *>){
         childDTO.toList().forEach {
             relationBinder.addChildClass(it)
         }

@@ -1,5 +1,6 @@
 package po.exposify.dto.components.property_binder.delegates
 
+import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import po.exposify.dto.DTOClass
 import po.exposify.dto.interfaces.DataModel
@@ -7,7 +8,6 @@ import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.proFErty_binder.EntityUpdateContainer
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.castOrOperationsEx
@@ -27,7 +27,7 @@ class ForeignIDClassDelegate<DTO, DATA, ENTITY, FE>(
     val entityProperty : KMutableProperty1<ENTITY, FE>,
     val foreignEntityModel: LongEntityClass<FE>,
 ): ComplexDelegate<DTO, DATA, ENTITY, FE, Long, Long>(dto, dataProperty, entityProperty.name)
-    where DATA: DataModel, ENTITY: ExposifyEntity, DTO: ModelDTO, FE: ExposifyEntity
+    where DATA: DataModel, ENTITY: LongEntity, DTO: ModelDTO, FE: LongEntity
 {
     override val  qualifiedName : String = "ForeignIDClassDelegate[${dto.dtoName}::${dataProperty.name}]"
 
@@ -57,7 +57,7 @@ class ParentIDDelegate<DTO, DATA, ENTITY, FE>(
     dataProperty : KMutableProperty1<DATA, Long>,
     val entityProperty : KMutableProperty1<ENTITY, FE>,
 ): ComplexDelegate<DTO, DATA, ENTITY, FE, Long, Long>(dto, dataProperty, entityProperty.name)
-        where DATA: DataModel, ENTITY: ExposifyEntity, DTO : ModelDTO, FE: ExposifyEntity
+        where DATA: DataModel, ENTITY: LongEntity, DTO : ModelDTO, FE: LongEntity
 {
     override val qualifiedName : String = "ParentIDDelegate[${dto.dtoName}::${dataProperty.name}]"
 
@@ -83,12 +83,12 @@ class ParentIDDelegate<DTO, DATA, ENTITY, FE>(
 class ParentDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>(
     dto: CommonDTO<DTO, DATA, ENTITY>,
     dataProperty : KMutableProperty1<DATA, FD>,
-    private val parentDtoModel: DTOClass<F_DTO>,
+    private val parentDtoModel: DTOClass<F_DTO, FD>,
     private val entityModel: LongEntityClass<FE>
 ): ComplexDelegate<DTO, DATA, ENTITY, FE, FD, CommonDTO<F_DTO, FD, FE>>
     (dto, dataProperty, dataProperty.name)
-        where DATA: DataModel, ENTITY: ExposifyEntity, DTO : ModelDTO, F_DTO: ModelDTO,
-              FD : DataModel, FE: ExposifyEntity
+        where DATA: DataModel, ENTITY: LongEntity, DTO : ModelDTO, F_DTO: ModelDTO,
+              FD : DataModel, FE: LongEntity
 {
 
     override val  qualifiedName : String = "ParentDelegate[${dto.dtoName}::${dataProperty.name}]"
@@ -123,7 +123,7 @@ sealed class ComplexDelegate<DTO, DATA, ENTITY, FE, DATA_VAL, RES_VAL>(
     protected val dataProperty : KMutableProperty1<DATA, DATA_VAL>,
     protected val entityPropertyName : String
 ): ReadOnlyProperty<DTO, RES_VAL>, TasksManaged
-    where DATA: DataModel, ENTITY: ExposifyEntity, DTO : ModelDTO, FE: ExposifyEntity
+    where DATA: DataModel, ENTITY: LongEntity, DTO : ModelDTO, FE: LongEntity
 {
    private var delegateProperty: KProperty<*>? = null
    private var delegatePropertyName: String = ""
@@ -141,14 +141,14 @@ sealed class ComplexDelegate<DTO, DATA, ENTITY, FE, DATA_VAL, RES_VAL>(
         isBeforeInserted:  Boolean,
         container:  EntityUpdateContainer<ENTITY, *, *, FE>)
     
-    suspend fun <F_DTO : ModelDTO, FD : DataModel, FFE: ExposifyEntity>  beforeInsertedUpdate(
+    suspend fun <F_DTO : ModelDTO, FD : DataModel, FFE: LongEntity>  beforeInsertedUpdate(
         updateContainer: EntityUpdateContainer<ENTITY, F_DTO, FD, FFE>
     ): Unit = subTask("BeforeInsertedUpdate", qualifiedName){
         val castedContainer = updateContainer.castOrOperationsEx<EntityUpdateContainer<ENTITY, F_DTO, FD, FE>>()
         update(true, castedContainer)
     }.resultOrException()
 
-    suspend fun <F_DTO : ModelDTO, FD : DataModel, FFE: ExposifyEntity> afterInsertedUpdate(
+    suspend fun <F_DTO : ModelDTO, FD : DataModel, FFE: LongEntity> afterInsertedUpdate(
         updateContainer: EntityUpdateContainer<ENTITY, F_DTO, FD, FFE>
     ): Unit = subTask("AfterInsertedUpdate", qualifiedName){
         val castedContainer = updateContainer.castOrOperationsEx<EntityUpdateContainer<ENTITY, F_DTO, FD, FE>>()

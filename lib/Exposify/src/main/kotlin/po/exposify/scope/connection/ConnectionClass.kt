@@ -11,6 +11,8 @@ import po.exposify.scope.connection.controls.CoroutineEmitter
 import po.exposify.scope.connection.controls.UserDispatchManager
 import po.exposify.scope.sequence.models.SequencePack
 import po.exposify.scope.service.ServiceClass
+import po.misc.exceptions.CoroutineInfo
+import kotlin.coroutines.coroutineContext
 
 class ConnectionClass(
     val connectionInfo: ConnectionInfo,
@@ -25,20 +27,32 @@ class ConnectionClass(
     }
 
     private val dispatchManager = UserDispatchManager()
-    private val coroutineEmitter = CoroutineEmitter("${connectionInfo.dbName}|CoroutineEmitter")
+
 
     val isConnectionOpen: Boolean
         get() { return connectionInfo.connection.transactionManager.currentOrNull()?.connection?.isClosed == false }
 
     suspend fun <DTO:ModelDTO, DATA: DataModel> launchSequence(
         pack: SequencePack<DTO, DATA>,
-    ): List<DATA> {
+    ) {
         val session = sessionManager.getCurrentSession()
         val result = dispatchManager.enqueue(session.sessionID) {
-            coroutineEmitter.dispatch(pack, session)
+        val coroutineEmitter =   CoroutineEmitter("CoroutineEmitter", session)
+          //  coroutineEmitter.dispatch<DTO, DATA, R>( pack, session)
         }
         return result
     }
+
+
+    suspend fun requestEmitter(): CoroutineEmitter {
+        val session = sessionManager.getCurrentSession()
+        val result = dispatchManager.enqueue(session.sessionID) {
+
+            CoroutineEmitter("CoroutineEmitter${CoroutineInfo.createInfo(coroutineContext).name}", session)
+        }
+        return result
+    }
+
 
     var services: MutableMap<String, ServiceClass<*, *, *>>
             = mutableMapOf()

@@ -1,10 +1,10 @@
 package po.exposify.scope.connection
 
+import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Database
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.RootDTO
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.scope.service.ServiceClass
 import po.exposify.scope.service.ServiceContext
 import po.exposify.scope.service.enums.TableCreateMode
@@ -19,13 +19,13 @@ class ConnectionContext(
     val isOpen : Boolean
         get(){return  connClass.isConnectionOpen }
 
-    fun <DTO, DATA> service(
+    suspend fun <DTO, DATA> service(
         dtoClass : RootDTO<DTO, DATA>,
         createOptions : TableCreateMode = TableCreateMode.CREATE,
-        block: ServiceContext<DTO, DATA, ExposifyEntity>.()->Unit,
+        block: suspend ServiceContext<DTO, DATA, LongEntity>.()->Unit,
     ) where DTO : ModelDTO, DATA : DataModel{
 
-        val serviceClass =  ServiceClass<DTO, DATA, ExposifyEntity>(connClass, createOptions)
+        val serviceClass =  ServiceClass<DTO, DATA, LongEntity>(connClass, createOptions)
         startTaskAsync("Create Service") {
             serviceClass.startService(dtoClass, block)
         }.onComplete {

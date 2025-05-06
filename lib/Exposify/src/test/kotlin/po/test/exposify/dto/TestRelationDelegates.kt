@@ -64,7 +64,7 @@ class TestRelationDelegates : DatabaseTest() {
 
 
     @Test
-    fun `oneToManyOf relation delegate when updating`(){
+    fun `oneToManyOf relation delegate when updating`() = runTest{
         var user = User(
             id = 0,
             login = "some_login",
@@ -73,7 +73,7 @@ class TestRelationDelegates : DatabaseTest() {
             email = "nomail@void.null"
         )
         val connection = startTestConnection()
-        connection?.service(UserDTO) {
+        connection.service(UserDTO) {
             user = update(user).getData()
         }
         val sourceSections = sectionsPreSaved(0)

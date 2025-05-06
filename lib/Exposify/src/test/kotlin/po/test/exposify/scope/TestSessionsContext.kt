@@ -38,7 +38,8 @@ class TestSessionsContext : DatabaseTest()  {
     }
 
     @BeforeAll
-    fun setup(){
+    fun setup() = runTest{
+
         val user = User(
             id = 0,
             login = "some_login",
@@ -47,18 +48,19 @@ class TestSessionsContext : DatabaseTest()  {
             email = "nomail@void.null")
 
         user.hashedPassword = generatePassword("password")
-        startTestConnection()?.let { connection ->
+        startTestConnection().let { connection ->
+
             connection.service(UserDTO, TableCreateMode.CREATE) {
                 userId =  update(user).getData().id
             }
 
-            connection.service<PageDTO, Page>(PageDTO.Companion, TableCreateMode.FORCE_RECREATE) {
+            connection.service<PageDTO, Page>(PageDTO, TableCreateMode.FORCE_RECREATE) {
                 truncate()
-                sequence(createHandler(SequenceID.UPDATE)) { inputList, conditions ->
+                sequence(createHandler(PageDTO, SequenceID.UPDATE)) { inputList, conditions ->
                     update(inputList)
                 }
 
-                sequence(createHandler(SequenceID.SELECT)) { inputList, conditions ->
+                sequence(createHandler(PageDTO, SequenceID.SELECT)) { inputList, conditions ->
                    select()
                 }
             }
@@ -94,7 +96,7 @@ class TestSessionsContext : DatabaseTest()  {
                 onComplete {
                     sessionIdOnComplete = it.sessionID
                 }
-            }
+            }.getData()
             val coroutineInfo = getCoroutineInfo()
             val sessionAfter =  currentSession()
 
@@ -138,7 +140,7 @@ class TestSessionsContext : DatabaseTest()  {
 
             registerAuthenticator(::userLookUp)
             val principal = session.authenticate("some_login", "password")
-            val pages = PageDTO.runSequence<Page>(SequenceID.SELECT){
+            val pages = PageDTO.runSequence(SequenceID.SELECT){
                 onStart {
                     sessionType = it.sessionType
                 }

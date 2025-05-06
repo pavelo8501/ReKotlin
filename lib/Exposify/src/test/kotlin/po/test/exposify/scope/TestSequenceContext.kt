@@ -1,28 +1,114 @@
 package po.test.exposify.scope
 
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertAll
 import po.auth.extensions.generatePassword
-import po.exposify.dto.components.WhereCondition
+import po.exposify.dto.components.WhereQuery
+import po.exposify.scope.connection.ConnectionContext
 import po.exposify.scope.sequence.enums.SequenceID
 import po.exposify.scope.sequence.extensions.createHandler
 import po.exposify.scope.service.enums.TableCreateMode
 import po.test.exposify.setup.ClassItem
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.Pages
+import po.test.exposify.setup.Sections
 import po.test.exposify.setup.dtos.Page
 import po.test.exposify.setup.dtos.PageDTO
+import po.test.exposify.setup.dtos.Section
+import po.test.exposify.setup.dtos.SectionDTO
 import po.test.exposify.setup.dtos.User
 import po.test.exposify.setup.dtos.UserDTO
 import po.test.exposify.setup.pageModels
+import po.test.exposify.setup.pageModelsWithSections
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
 
+
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestSequenceContext : DatabaseTest() {
 
+
     companion object{
+        @JvmStatic
         var updatedById : Long = 0
+
+        @JvmStatic
+        lateinit var  connectionContext : ConnectionContext
+    }
+
+    @BeforeAll
+    fun setup() = runTest {
+
+        val user = User(
+            id = 0,
+            login = "some_login",
+            hashedPassword = generatePassword("password"),
+            name = "name",
+            email = "nomail@void.null"
+        )
+
+        connectionContext = startTestConnection()
+        connectionContext.service(UserDTO, TableCreateMode.FORCE_RECREATE) {
+            updatedById = update(user).getData()!!.id
+        }
+    }
+
+    @Test
+    fun `Sequence switch statement select appropriate dto, update not breaking relations`() = runTest {
+
+        var onSwitchSelection : String = ""
+        var selectResult: List<Section>? = null
+        connectionContext.let {connection->
+            connection.service(PageDTO, TableCreateMode.CREATE) {
+                val pages = pageModelsWithSections(pageCount = 1, sectionsCount = 10, updatedBy = updatedById)
+                update(pages)
+
+                sequence(createHandler(PageDTO, SequenceID.SELECT)) {
+
+                    switch(SectionDTO.switchParam(Sections.id, 10)) {
+                        println("PART NEVER HIT")
+                        println("Count ${it.count()}")
+                        val dataModel = it.first().dataModel
+                        onSwitchSelection = Json.encodeToString(dataModel)
+                        dataModel.name = "NewName"
+                        update(dataModel){
+                            println("Entered Update Lambda")
+                            val crud = select()
+                            selectResult = crud.getData()
+                            println("selectResult ${selectResult.count()}")
+                            checkout(crud)
+                            selectResult
+                        }
+                    }
+                }
+            }
+        }
+
+
+        var sections : List<SectionDTO> = emptyList()
+
+         PageDTO.runSequence(SequenceID.SELECT){
+             sections = withResult{
+
+            }.getDTO() as List<SectionDTO>
+        }
+
+        val updatedSectionModel = sections.firstOrNull{it.id == 10L}
+
+        assertAll("End Session selection valid",
+            { assertEquals(10, sections.count(), "Received records count mismatch")  },
+            { assertNotNull(updatedSectionModel) },
+            { assertEquals("NewName", updatedSectionModel!!.name, "Updated model name mismatch") }
+        )
+
+        val deserializedSection  =  Json.decodeFromString<Section>(onSwitchSelection)
+        assertNotEquals(deserializedSection.name, updatedSectionModel!!.name, "Before update and after, same name")
+
     }
 
     @Test
@@ -35,18 +121,15 @@ class TestSequenceContext : DatabaseTest() {
             email = "nomail@void.null")
 
         val pageClasses = listOf<ClassItem>(ClassItem(1, "class_1"), ClassItem(2, "class_2"))
-        val  connectionContext = startTestConnection()
-        connectionContext?.let { connection ->
-            connection.service(UserDTO, TableCreateMode.FORCE_RECREATE) {
-                updatedById = update(user).getData().id
-            }
+
+        connectionContext.let { connection ->
             connection.service<PageDTO, Page>(PageDTO, TableCreateMode.CREATE) {
                 truncate()
-                sequence(createHandler(SequenceID.UPDATE)) { inputList, conditions ->
-                    update(inputList)
+                sequence(createHandler(PageDTO, SequenceID.UPDATE)) { params ->
+                    update(params.inputData)
                 }
-                sequence(createHandler(SequenceID.SELECT)) { inputList, conditions ->
-                    select(conditions)
+                sequence(createHandler(PageDTO, SequenceID.SELECT)) {params ->
+                    select(params.conditions)
                 }
             }
         }
@@ -56,8 +139,14 @@ class TestSequenceContext : DatabaseTest() {
         pages[2].langId = 2
         pages[3].langId = 2
 
-        val updatedPages = PageDTO.Companion.runSequence(SequenceID.UPDATE.value) {
+
+        var updatedPages : List<PageDTO> = emptyList()
+
+            PageDTO.runSequence(SequenceID.UPDATE) {
             withInputData(pages)
+                updatedPages =  withResult {
+
+                }.getDTO() as List<PageDTO>
         }
 
         assertAll(
@@ -66,8 +155,14 @@ class TestSequenceContext : DatabaseTest() {
             { assertEquals("this_name", updatedPages[1].name, "Updated page name mismatch") }
         )
 
-        val selectPages = PageDTO.Companion.runSequence<Page>(SequenceID.SELECT.value) {
-            withConditions(WhereCondition<Pages>().equalsTo(Pages.langId, 2))
+        var selectPages  : List<Page> = emptyList()
+
+         PageDTO.runSequence(SequenceID.SELECT) {
+            withConditions(WhereQuery<Pages>().equalsTo(Pages.langId, 2))
+
+             selectPages =  withResult {
+
+            }.getData()
         }
 
         assertAll(

@@ -43,7 +43,7 @@ class ContentBlockDTO(
 
     val sectionId by parent2IdReference(ContentBlock::sectionId, ContentBlockEntity::section)
 
-    companion object: DTOClass<ContentBlockDTO>(SectionDTO){
+    companion object: DTOClass<ContentBlockDTO, ContentBlock>(SectionDTO){
         override suspend  fun setup() {
 
             configuration<ContentBlockDTO, ContentBlock, ContentBlockEntity>(ContentBlockEntity){

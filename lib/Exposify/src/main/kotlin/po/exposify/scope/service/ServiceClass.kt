@@ -1,5 +1,6 @@
 package po.exposify.scope.service
 
+import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
@@ -16,19 +17,22 @@ import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.getOrOperationsEx
 import po.exposify.scope.connection.ConnectionClass
+import po.exposify.scope.connection.controls.CoroutineEmitter
 import po.exposify.scope.sequence.classes.SequenceHandler
+import po.exposify.scope.sequence.enums.SequenceID
 import po.exposify.scope.sequence.models.SequenceKey
 import po.exposify.scope.sequence.models.SequencePack
 import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.subTask
+import po.misc.collections.CompositeKey
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.set
 
 class ServiceClass<DTO, DATA, ENTITY>(
     private val connectionClass : ConnectionClass,
     private val serviceCreateOption: TableCreateMode = TableCreateMode.CREATE,
-):  AsClass<DATA, ENTITY>, TasksManaged  where  DTO: ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity {
+):  AsClass<DATA, ENTITY>, TasksManaged  where  DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity {
 
     private lateinit var serviceContext: ServiceContext<DTO, DATA, ENTITY>
 
@@ -36,7 +40,7 @@ class ServiceClass<DTO, DATA, ENTITY>(
         private set
 
     internal val connection: Database = connectionClass.connection
-    private val sequences = ConcurrentHashMap<SequenceKey, SequencePack<DTO, DATA>>()
+    private val sequences = ConcurrentHashMap<CompositeKey<DTOBase<*,*>, SequenceID>, SequencePack<DTO, DATA>>()
 
     private fun createTable(table: IdTable<Long>): Boolean {
         return try {
@@ -85,7 +89,7 @@ class ServiceClass<DTO, DATA, ENTITY>(
 
     internal suspend fun startService(
         rootDTOModel: RootDTO<DTO, DATA>,
-        block:  ServiceContext<DTO, DATA, ExposifyEntity>.()->Unit)
+        block: suspend  ServiceContext<DTO, DATA, ExposifyEntity>.()->Unit)
             = subTask("Initializing", "ServiceClass") {
 
         rootDTOModel.initialization()
@@ -99,27 +103,29 @@ class ServiceClass<DTO, DATA, ENTITY>(
         castedContext.block()
     }.resultOrException()
 
-    internal fun addSequencePack(pack: SequencePack<DTO, DATA>) {
-        sequences[pack.getSequenceHandler().thisKey] = pack
+    internal fun addSequencePack(key: CompositeKey<DTOBase<*,*>,SequenceID>, pack: SequencePack<DTO, DATA>) {
+        sequences[key] = pack
     }
 
-    internal suspend fun runSequence(sequenceKey: SequenceKey): List<DATA> {
-        val foundSequence = sequences[sequenceKey].getOrOperationsEx(
-            "Sequence with key : $sequenceKey not found",
+    internal suspend fun requestEmitter(): CoroutineEmitter = connectionClass.requestEmitter()
+
+
+    internal fun getSequencePack(key: CompositeKey<DTOBase<*,*>,SequenceID>):SequencePack<DTO, DATA> {
+        return sequences[key].getOrOperationsEx(
+            "Sequence with key : $key not found",
             ExceptionCode.VALUE_NOT_FOUND)
-        return connectionClass.launchSequence(foundSequence)
     }
 
-    fun getSequenceHandler(sequenceId: Int, dtoClass: DTOBase<DTO, *>): SequenceHandler<DTO, DATA> {
-        val lookupKey =
-            sequences.keys.firstOrNull { it.sequenceId == sequenceId && it.dtoClassName == dtoClass.personalName }
-                .getOrOperationsEx(
-                    "Sequence key with sequenceId: $sequenceId and className : ${dtoClass.personalName} not found. Available keys: ${
-                    sequences.keys.joinToString(", ") { "${it.hashCode()}"} }",
-                    ExceptionCode.VALUE_NOT_FOUND)
-
-        val handler = sequences[lookupKey]!!.getSequenceHandler()
-        return handler
-    }
+//    fun getSequenceHandler(sequenceId: Int, dtoClass: DTOBase<DTO, *>): SequenceHandler<DTO, DATA> {
+//        val lookupKey =
+//            sequences.keys.firstOrNull { it.sequenceId == sequenceId && it.dtoClassName == dtoClass.personalName }
+//                .getOrOperationsEx(
+//                    "Sequence key with sequenceId: $sequenceId and className : ${dtoClass.personalName} not found. Available keys: ${
+//                    sequences.keys.joinToString(", ") { "${it.hashCode()}"} }",
+//                    ExceptionCode.VALUE_NOT_FOUND)
+//
+//        val handler = sequences[lookupKey]!!.getSequenceHandler()
+//        return handler
+//    }
 
 }
