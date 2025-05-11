@@ -8,6 +8,7 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.common.classes.MapBuilder
 import po.exposify.dto.components.DTOConfig
 import po.exposify.common.classes.repoBuilder
+import po.exposify.dto.components.ClassExecutionProvider
 import po.exposify.dto.components.DataModelContainer
 import po.exposify.dto.components.MultipleRepository
 import po.exposify.dto.components.RepositoryBase
@@ -27,9 +28,10 @@ import po.exposify.extensions.castOrOperationsEx
 import po.misc.collections.CompositeKey
 import po.misc.collections.generateKey
 import po.misc.types.castOrThrow
+import po.misc.types.safeCast
 
 abstract class CommonDTO<DTO, DATA, ENTITY>(
-   val dtoClass: DTOBase<DTO, DATA>
+   val dtoClass: DTOBase<DTO, DATA, ENTITY>
 ): ModelDTO where DTO : ModelDTO,  DATA: DataModel , ENTITY: LongEntity {
 
     val dtoClassConfig: DTOConfig<DTO, DATA, ENTITY>
@@ -81,12 +83,12 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         get(){return dataContainer.dataModel.id}
 
     internal var repositories
-        : Map<CompositeKey<DTOBase<*,*>, Cardinality>, RepositoryBase<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>> = emptyMap()
+        : Map<CompositeKey<DTOBase<*, *, *>, Cardinality>, RepositoryBase<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>> = emptyMap()
 
     override val dtoTracker: DTOTracker<DTO, DATA> by lazy { DTOTracker(this) }
 
     internal fun <C_DTO:ModelDTO, CD : DataModel, CE : LongEntity> getRepository(
-        key: CompositeKey<DTOBase<*,*>, Cardinality>
+        key: CompositeKey<DTOBase<*, *, *>, Cardinality>
     ):RepositoryBase<DTO, DATA, ENTITY, C_DTO, CD, CE>{
         return repositories[key].castOrThrow<RepositoryBase<DTO, DATA, ENTITY, C_DTO, CD, CE>, OperationsException>(
             "Child repository not found @ $dtoName",
@@ -95,7 +97,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     }
 
     internal fun <C_DTO:ModelDTO, CD : DataModel, CE : LongEntity> getOneToOneRepository(
-        childClass: DTOClass<C_DTO, CD>
+        childClass: DTOClass<C_DTO, CD, CE>
     ): SingleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>{
 
         val foundRepository = repositories[childClass.generateKey(Cardinality.ONE_TO_ONE)]
@@ -107,7 +109,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     }
 
     internal fun <C_DTO: ModelDTO, CD: DataModel, CE: LongEntity> getOneToManyRepository(
-        childClass: DTOClass<*, *>
+        childClass: DTOClass<C_DTO, CD, CE>
     ): MultipleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>{
 
         val foundRepository = repositories[childClass.generateKey(Cardinality.ONE_TO_MANY)]
@@ -122,7 +124,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         binding : MultipleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>,
     ): MultipleRepository<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>
     {
-        val newRepo =  MultipleRepository(binding, this, binding.childConfig)
+        val newRepo =  MultipleRepository(binding, this, binding.childClass)
         repositories = repoBuilder(
             dtoClass.generateKey(Cardinality.ONE_TO_MANY),
             newRepo.castOrOperationsEx<MultipleRepository<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>>(),
@@ -135,7 +137,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         binding : SingleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>,
     ): SingleRepository<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>
     {
-        val newRepo = SingleRepository(binding, this, binding.childConfig)
+        val newRepo = SingleRepository(binding, this, binding.childClass)
         repositories = repoBuilder(
             dtoClass.generateKey(Cardinality.ONE_TO_ONE),
             newRepo.castOrOperationsEx<MultipleRepository<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>>(),
@@ -147,6 +149,21 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         return repositories.values.toList()
     }
 
+    fun <F_DTO: ModelDTO, FD: DataModel, FE: LongEntity> getDtoRepositories(
+        childClass: DTOClass<F_DTO, FD, FE>
+    ):List<RepositoryBase<DTO, DATA, ENTITY, F_DTO, FD, FE>>{
+        return repositories.values.filter { it.childClass == childClass }
+            .mapNotNull{ it.safeCast<RepositoryBase<DTO, DATA, ENTITY, F_DTO, FD, FE>>() }
+    }
+
+    internal fun <F_DTO: ModelDTO, FD: DataModel, FE: LongEntity> executionProvider(
+        childClass: DTOClass<F_DTO, FD, FE>
+    ) :ClassExecutionProvider<DTO, DATA, ENTITY, F_DTO, FD, FE>{
+        return ClassExecutionProvider(this, childClass)
+    }
+
+
+
     suspend fun <P_DTO: ModelDTO, PD: DataModel, PE: LongEntity>updateBindingsAfterInserted(
         container: EntityUpdateContainer<ENTITY, P_DTO, PD, PE>
     ){
@@ -157,14 +174,12 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     }
 
     suspend fun <P_DTO: ModelDTO, PD: DataModel, PE: LongEntity> updatePropertyBinding(
-        entity : ENTITY,
-        updateMode: UpdateMode,
         container: EntityUpdateContainer<ENTITY, P_DTO, PD, PE>)
     : CommonDTO<DTO ,DATA, ENTITY>
     {
-        propertyBinder.update(dataContainer.dataModel, entity, updateMode)
-        dtoPropertyBinder.beforeInsertUpdate(container, updateMode)
-        if(updateMode == UpdateMode.ENTITY_TO_MODEL || updateMode == UpdateMode.ENTITY_TO_MODEL_FORCED){
+        propertyBinder.update(dataContainer.dataModel, container.ownEntity, container.updateMode)
+        dtoPropertyBinder.beforeInsertUpdate(container, container.updateMode)
+        if(container.updateMode == UpdateMode.ENTITY_TO_MODEL || container.updateMode == UpdateMode.ENTITY_TO_MODEL_FORCED){
             updateBindingsAfterInserted(container)
         }
         initStatus = DTOInitStatus.INITIALIZED

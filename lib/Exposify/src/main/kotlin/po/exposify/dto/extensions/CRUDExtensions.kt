@@ -6,9 +6,8 @@ import po.exposify.dto.RootDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.components.ResultList
 import po.exposify.dto.components.ResultSingle
+import po.exposify.dto.components.RootExecutionProvider
 import po.exposify.dto.components.WhereQuery
-import po.exposify.dto.components.selectDto
-import po.exposify.dto.components.updateDto
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
@@ -20,14 +19,16 @@ import kotlin.Long
 
 
 
-internal suspend inline fun <DTO, DATA> RootDTO<DTO, DATA>.pickById(
-    id: Long
-): ResultSingle<DTO, DATA>  where DTO: ModelDTO,  DATA : DataModel{
-    val entity =  config.daoService.pickById(id)
-    val checkedEntity = entity.getOrOperationsEx("Entity not found for id $id", ExceptionCode.VALUE_NOT_FOUND)
-    val dto = selectDto(this, checkedEntity)
-    return ResultSingle(dto)
-}
+//internal suspend inline fun <DTO, DATA, E> RootDTO<DTO, DATA, E>.pickById(
+//    id: Long
+//): ResultSingle<DTO, DATA, E>  where DTO: ModelDTO,  DATA : DataModel, E:LongEntity{
+//    val entity =  config.daoService.pickById(id)
+//    val checkedEntity = entity.getOrOperationsEx("Entity not found for id $id", ExceptionCode.VALUE_NOT_FOUND)
+//    val executionProvider = RootExecutionProvider(this)
+//    executionProvider.pick()p
+//    val dto =   selectDto(this, checkedEntity)
+//    return ResultSingle(dto)
+//}
 
 
 /**
@@ -45,85 +46,85 @@ internal suspend inline fun <DTO, DATA> RootDTO<DTO, DATA>.pickById(
  * representing the filtering conditions.
  * @return A `CrudResult<DATA, ENTITY>` containing the selected DTO (if found) and any triggered events.
  */
-internal suspend inline fun <DTO: ModelDTO, DATA: DataModel,TB : IdTable<Long>> RootDTO<DTO, DATA>.pick(
-    conditions: WhereQuery<TB>
-): ResultSingle<DTO, DATA> {
-    val entity = config.daoService.pick(conditions)
-    val checkedEntity = entity.getOrOperationsEx("Entity not found for conditions ${conditions.toString()}", ExceptionCode.VALUE_NOT_FOUND)
-    val dto = selectDto(this, checkedEntity)
-    return ResultSingle(dto)
-}
+//internal suspend inline fun <DTO: ModelDTO, DATA: DataModel, ENTITY: LongEntity, TB : IdTable<Long>> RootDTO<DTO, DATA, ENTITY>.pick(
+//    conditions: WhereQuery<TB>
+//): ResultSingle<DTO, DATA, ENTITY> {
+//    val entity = config.daoService.pick(conditions)
+//    val checkedEntity = entity.getOrOperationsEx("Entity not found for conditions ${conditions.toString()}", ExceptionCode.VALUE_NOT_FOUND)
+//    val dto = selectDto(this, checkedEntity)
+//    return ResultSingle(dto)
+//}
 
 /**
  * Selects all entities from the database, initializes DTOs for them, and returns a result containing these DTOs.
  *
  * @return A [CrudResult] containing a list of initialized DTOs and associated events.
  */
-internal suspend fun <T, DTO, DATA> RootDTO<DTO, DATA>.select(
-    conditions:  WhereQuery<T>
-): ResultList<DTO, DATA> where DTO: ModelDTO, DATA: DataModel, T: IdTable<Long> =
-    subTask("Select with conditions"){handler->
+//internal suspend fun <T, DTO, DATA, E> RootDTO<DTO, DATA, E>.select(
+//    conditions:  WhereQuery<T>
+//): ResultList<DTO, DATA, E> where DTO: ModelDTO, DATA: DataModel, E: LongEntity, T: IdTable<Long> =
+//    subTask("Select with conditions"){handler->
+//
+//    isTransactionReady().testOrThrow(OperationsException("Transaction Lost Context", ExceptionCode.DB_NO_TRANSACTION_IN_CONTEXT)){
+//        true
+//    }
+//    val entities = config.daoService.select(conditions)
+//    val result = ResultList<DTO, DATA, E>()
+//    entities.forEach {
+//        val newDto = selectDto(this, it)
+//        result.appendDto(newDto)
+//    }
+//    handler.info("Created count ${result.dtoList.count()} DTOs")
+//    result
+//}.resultOrException()
 
-    isTransactionReady().testOrThrow(OperationsException("Transaction Lost Context", ExceptionCode.DB_NO_TRANSACTION_IN_CONTEXT)){
-        true
-    }
-    val entities = config.daoService.select(conditions)
-    val result = ResultList<DTO, DATA>()
-    entities.forEach {
-        val newDto = selectDto(this, it)
-        result.appendDto(newDto)
-    }
-    handler.info("Created count ${result.dtoList.count()} DTOs")
-    result
-}.resultOrException()
+//
+//internal suspend fun <DTO, DATA, E> RootDTO<DTO, DATA, E>.select()
+//: ResultList<DTO, DATA, E> where DTO: ModelDTO, DATA: DataModel, E: LongEntity
+//        = subTask("Select") {handler->
+//    isTransactionReady().testOrThrow(OperationsException("Transaction Lost Context", ExceptionCode.DB_NO_TRANSACTION_IN_CONTEXT)){
+//        true
+//    }
+//    val entities = config.daoService.select()
+//    val result =  ResultList<DTO, DATA, E>()
+//    entities.forEach {
+//        val newDto = selectDto(this, it)
+//        result.appendDto(newDto)
+//    }
+//    handler.info("Created count ${result.dtoList.count()} DTOs ")
+//    result
+//}.resultOrException()
+//
 
-
-internal suspend fun <DTO, DATA> RootDTO<DTO, DATA>.select()
-: ResultList<DTO, DATA> where DTO: ModelDTO, DATA: DataModel
-        = subTask("Select") {handler->
-    isTransactionReady().testOrThrow(OperationsException("Transaction Lost Context", ExceptionCode.DB_NO_TRANSACTION_IN_CONTEXT)){
-        true
-    }
-    val entities = config.daoService.select()
-    val result =  ResultList<DTO, DATA>()
-    entities.forEach {
-        val newDto = selectDto(this, it)
-        result.appendDto(newDto)
-    }
-    handler.info("Created count ${result.dtoList.count()} DTOs ")
-    result
-}.resultOrException()
-
-
-
-internal suspend fun <DTO, DATA> RootDTO<DTO, DATA>.update(
-    dataModel: DATA,
-): ResultSingle<DTO, DATA> where DTO: ModelDTO, DATA : DataModel
-        = subTask("Update Repository.kt")  { handler->
-    isTransactionReady().testOrThrow(OperationsException("Transaction Lost Context", ExceptionCode.DB_NO_TRANSACTION_IN_CONTEXT)){
-        true
-    }
-    val dto = updateDto<DTO, DATA, LongEntity>(this, dataModel)
-    handler.info("Created single DTO ${dto.dtoName}")
-    ResultSingle(dto)
-}.resultOrException()
-
-internal suspend fun <DTO, DATA> RootDTO<DTO, DATA>.update(
-    dataModels: List<DATA>,
-): ResultList<DTO, DATA> where DTO: ModelDTO, DATA : DataModel
-        = subTask("Update Repository.kt")  { handler->
-    isTransactionReady().testOrThrow(OperationsException("Transaction Lost Context", ExceptionCode.DB_NO_TRANSACTION_IN_CONTEXT)){
-        true
-    }
-    val result =  ResultList<DTO, DATA>()
-    dataModels.forEach {
-        val dto = updateDto<DTO, DATA, LongEntity>(this, it)
-        result.appendDto(dto)
-    }
-    handler.info("Created DTOs ${result.dtoList.count()}")
-    result
-}.resultOrException()
-
+//
+//internal suspend fun <DTO, DATA, E> RootDTO<DTO, DATA, E>.update(
+//    dataModel: DATA,
+//): ResultSingle<DTO, DATA, E> where DTO: ModelDTO, DATA : DataModel, E : LongEntity
+//        = subTask("Update Repository.kt")  { handler->
+//    isTransactionReady().testOrThrow(OperationsException("Transaction Lost Context", ExceptionCode.DB_NO_TRANSACTION_IN_CONTEXT)){
+//        true
+//    }
+//    val dto = updateDto<DTO, DATA, E>(this, dataModel)
+//    handler.info("Created single DTO ${dto.dtoName}")
+//    ResultSingle(dto)
+//}.resultOrException()
+//
+//internal suspend fun <DTO, DATA, E> RootDTO<DTO, DATA, E>.update(
+//    dataModels: List<DATA>,
+//): ResultList<DTO, DATA, E> where DTO: ModelDTO, DATA : DataModel, E: LongEntity
+//        = subTask("Update Repository.kt")  { handler->
+//    isTransactionReady().testOrThrow(OperationsException("Transaction Lost Context", ExceptionCode.DB_NO_TRANSACTION_IN_CONTEXT)){
+//        true
+//    }
+//    val result =  ResultList<DTO, DATA, E>()
+//    dataModels.forEach {
+//        val dto = updateDto<DTO, DATA, E>(this, it)
+//        result.appendDto(dto)
+//    }
+//    handler.info("Created DTOs ${result.dtoList.count()}")
+//    result
+//}.resultOrException()
+//
 
 /**
  * Deletes a given data model by first finding and initializing its DTO, then deleting it along with its bindings.
@@ -131,9 +132,9 @@ internal suspend fun <DTO, DATA> RootDTO<DTO, DATA>.update(
  * @param dataModel The data model to delete.
  * @return A [CrudResult] containing a list of successfully deleted DTOs and associated events.
  */
-internal suspend inline fun <DTO, DATA> RootDTO<DTO, DATA>.delete(
-    dataModel: DATA
-): ResultList<DTO, DATA>?  where DTO: ModelDTO, DATA: DataModel
-{
-    return null
-}
+//internal suspend inline fun <DTO, DATA, E> RootDTO<DTO, DATA, E>.delete(
+//    dataModel: DATA
+//): ResultList<DTO, DATA, E>?  where DTO: ModelDTO, DATA: DataModel, E: LongEntity
+//{
+//    return null
+//}

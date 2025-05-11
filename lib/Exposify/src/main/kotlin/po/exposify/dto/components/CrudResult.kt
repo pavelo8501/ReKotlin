@@ -4,12 +4,13 @@ import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.extensions.getOrOperationsEx
 
-class ResultList<DTO, DATA>  (
-   private val initialList : List<CommonDTO<DTO, DATA, LongEntity>>? = null
-)  where DTO : ModelDTO, DATA: DataModel{
+class ResultList<DTO, DATA, ENTITY>  (
+   private val initialList : List<CommonDTO<DTO, DATA, ENTITY>>? = null
+)  where DTO : ModelDTO, DATA: DataModel, ENTITY : LongEntity {
 
-    internal val dtoList: MutableList<CommonDTO<DTO, DATA, LongEntity>> = mutableListOf()
+    internal val dtoList: MutableList<CommonDTO<DTO, DATA, ENTITY>> = mutableListOf()
 
     init {
         initialList?.let {
@@ -18,50 +19,53 @@ class ResultList<DTO, DATA>  (
     }
 
 
-    fun addList(list: List<CommonDTO<DTO, DATA, LongEntity>>):ResultList<DTO, DATA>{
+    fun addList(list: List<CommonDTO<DTO, DATA, ENTITY>>): ResultList<DTO, DATA, ENTITY> {
         dtoList.addAll(list)
-        return  this
-    }
-
-    internal fun appendDto(dto:CommonDTO<DTO, DATA, LongEntity>):ResultList<DTO, DATA>{
-        dtoList.add(dto)
-        return  this
-    }
-
-    fun getData(): List<DATA> {
-        val dataModels =  dtoList.map { it.dataModel }
-        return dataModels
-    }
-
-    fun getDTO(): List<CommonDTO<DTO, DATA, LongEntity>> {
-        return dtoList
-    }
-
-    internal fun fromListResult(result: ResultList<DTO, DATA>): ResultList<DTO, DATA>{
-        dtoList.clear()
-        dtoList.addAll(result.dtoList)
         return this
     }
 
-   internal fun fromSingleResult(result: ResultSingle<DTO, DATA>):ResultSingle<DTO, DATA> {
-        dtoList.clear()
-        dtoList.add(result.rootDTO)
-        return  result
+    internal fun appendDto(dto: CommonDTO<DTO, DATA, ENTITY>): ResultList<DTO, DATA, ENTITY> {
+        dtoList.add(dto)
+        return this
     }
 
+    internal fun appendDto(single: ResultSingle<DTO, DATA, ENTITY>): ResultList<DTO, DATA, ENTITY> {
+        single.getDTO()?.let {
+            dtoList.add(it)
+        }
+        return this
+    }
 
+    fun getData(): List<DATA> {
+        val dataModels = dtoList.map { it.dataModel }
+        return dataModels
+    }
+
+    fun getDTO(): List<CommonDTO<DTO, DATA, ENTITY>> {
+        return dtoList
+    }
 }
 
-class ResultSingle<DTO, DATA>(
-    internal var rootDTO: CommonDTO<DTO, DATA, LongEntity>
-) where DTO : ModelDTO, DATA: DataModel {
+class ResultSingle<DTO, DATA, ENTITY>(
+    private var rootDTO: CommonDTO<DTO, DATA, ENTITY>? = null
+) where DTO : ModelDTO, DATA: DataModel, ENTITY : LongEntity {
 
-    fun getData(): DATA {
-        val dataModel =  rootDTO.dataModel
+    fun getData(): DATA? {
+        val dataModel =  rootDTO?.dataModel
         return dataModel
     }
-    fun getDTO(): CommonDTO<DTO, DATA, LongEntity>? {
+
+    fun getDataForced(): DATA {
+        val dataModel = getDTOForced().dataModel
+        return dataModel
+    }
+
+    fun getDTO(): CommonDTO<DTO, DATA, ENTITY>? {
         return rootDTO
+    }
+
+    fun getDTOForced(): CommonDTO<DTO, DATA, ENTITY> {
+        return rootDTO.getOrOperationsEx("No result")
     }
 
 

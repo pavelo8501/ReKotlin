@@ -34,7 +34,7 @@ class UserDTO(
     override var dataModel: User
 ): CommonDTO<UserDTO,  User, UserEntity>(UserDTO) {
 
-    companion object: RootDTO<UserDTO, User>(){
+    companion object: RootDTO<UserDTO, User, UserEntity>(){
 
         override suspend fun setup() {
 

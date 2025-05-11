@@ -6,6 +6,7 @@ import po.exposify.dto.components.relation_binder.MultipleChildContainer
 import po.exposify.dto.components.relation_binder.SingleChildContainer
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
+import po.exposify.dto.DTOClass
 import po.exposify.dto.components.proFErty_binder.containerize
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.components.relation_binder.BindingContainer
@@ -22,46 +23,46 @@ import po.lognotify.TasksManaged
 import po.lognotify.extensions.subTask
 import po.misc.types.getOrThrow
 import kotlin.collections.forEach
-
-internal suspend fun<DTO : ModelDTO, DATA: DataModel, ENTITY: LongEntity> selectDto(
-    dtoClass: DTOBase<DTO, DATA>,
-    entity: ENTITY
-):CommonDTO<DTO, DATA, ENTITY>{
-    val dto = dtoClass.config.dtoFactory.createDto()
-    dto.updatePropertyBinding(entity, UpdateMode.ENTITY_TO_MODEL, entity.containerize(UpdateMode.ENTITY_TO_MODEL))
-    dto.getDtoRepositories().forEach { it.loadHierarchy() }
-    return dto.castOrOperationsEx("selectDto. Cast failed.")
-}
-
-internal suspend fun <DTO : ModelDTO, DATA: DataModel, ENTITY: LongEntity> updateDto(
-    dtoClass: DTOBase<DTO, DATA>,
-    dataModel: DATA
-):CommonDTO<DTO, DATA, ENTITY>
-{
-    val dto = dtoClass.config.dtoFactory.createDto(dataModel)
-    if(dataModel.id == 0L){
-        dto.trackSave(CrudOperation.Save, dto.daoService).let {
-            dto.daoService.save(dto.castOrOperationsEx("updateDto(save). Cast failed."))
-            it.addTrackInfoResult(1)
-        }
-    }else{
-        dto.trackSave(CrudOperation.Update, dto.daoService).let {
-            dto.daoService.update(dto.castOrOperationsEx("updateDto(update). Cast failed."))
-            it.addTrackInfoResult(1)
-        }
-    }
-    dto.getDtoRepositories().forEach {repository->
-        repository.update()
-    }
-    return dto.castOrOperationsEx("updateDto(Return). Cast failed.")
-}
+//
+//internal suspend fun<DTO : ModelDTO, DATA: DataModel, ENTITY: LongEntity> selectDto(
+//    dtoClass: DTOBase<DTO, DATA, ENTITY>,
+//    entity: ENTITY
+//):CommonDTO<DTO, DATA, ENTITY>{
+//    val dto = dtoClass.config.dtoFactory.createDto()
+//    dto.updatePropertyBinding(entity.containerize(UpdateMode.ENTITY_TO_MODEL))
+//    dto.getDtoRepositories().forEach { it.loadHierarchyByEntity() }
+//    return dto.castOrOperationsEx("selectDto. Cast failed.")
+//}
+//
+//internal suspend fun <DTO : ModelDTO, DATA: DataModel, ENTITY: LongEntity> updateDto(
+//    dtoClass: DTOBase<DTO, DATA, ENTITY>,
+//    dataModel: DATA
+//):CommonDTO<DTO, DATA, ENTITY>
+//{
+//    val dto = dtoClass.config.dtoFactory.createDto(dataModel)
+//    if(dataModel.id == 0L){
+//        dto.trackSave(CrudOperation.Save, dto.daoService).let {
+//            dto.daoService.save(dto.castOrOperationsEx("updateDto(save). Cast failed."))
+//            it.addTrackInfoResult(1)
+//        }
+//    }else{
+//        dto.trackSave(CrudOperation.Update, dto.daoService).let {
+//            dto.daoService.update(dto.castOrOperationsEx("updateDto(update). Cast failed."))
+//            it.addTrackInfoResult(1)
+//        }
+//    }
+//    dto.getDtoRepositories().forEach {repository->
+//        repository.loadHierarchyByModel()
+//    }
+//    return dto.castOrOperationsEx("updateDto(Return). Cast failed.")
+//}
 
 
 class SingleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
     val binding : SingleChildContainer<DTO, DATA, ENTITY, C_DTO,  CD, CE>,
     hostingDto : CommonDTO<DTO, DATA, ENTITY>,
-    childClassConfig: DTOConfig<C_DTO, CD, CE>,
-): RepositoryBase<DTO,DATA, ENTITY, C_DTO, CD, CE>(hostingDto,binding,  childClassConfig), TasksManaged
+    childClass: DTOClass<C_DTO, CD, CE>,
+): RepositoryBase<DTO,DATA, ENTITY, C_DTO, CD, CE>(hostingDto,binding,  childClass), TasksManaged
         where DTO : ModelDTO, DATA: DataModel, ENTITY : LongEntity,
               C_DTO : ModelDTO, CD: DataModel, CE: LongEntity
 {
@@ -75,7 +76,31 @@ class SingleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
                 ExceptionCode.ABNORMAL_STATE.value)
     }
 
-    suspend fun updateSingle() {
+
+    override suspend fun update(dataModel:CD): CommonDTO<C_DTO, CD, CE>?{
+        if(dataModel.id != 0L){
+            val existingDto = childDTO[dataModel.id]
+            if(existingDto != null) {
+                existingDto.updatePropertyBinding(existingDto.daoEntity.containerize(UpdateMode.MODEL_TO_ENTITY))
+                return existingDto
+            }else{
+                return null
+            }
+        }else {
+            val newChildDto = childFactory.createDto(dataModel)
+            childDaoService.saveWithParent(newChildDto, hostingDTO) { containerized ->
+                binding.attachForeignEntity(containerized)
+            }
+            childDTO[newChildDto.id] = newChildDto
+            newChildDto.getDtoRepositories().forEach { repository ->
+                repository.loadHierarchyByEntity()
+            }
+            return newChildDto
+        }
+    }
+
+
+    override suspend fun loadHierarchyByModel() {
         val dataModel = binding.getDataModel(hostingDTO.dataModel)
         val newChildDto = childFactory.createDto(dataModel)
         if (dataModel.id == 0L) {
@@ -87,21 +112,21 @@ class SingleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
         }
         childDTO[newChildDto.id] = newChildDto
         newChildDto.getDtoRepositories().forEach {repository->
-            repository.update()
+            repository.loadHierarchyByModel()
         }
     }
 
 
-    suspend fun loadHierarchySingle() {
+    override suspend fun loadHierarchyByEntity() {
 
         val childEntity = binding.getChildEntity(hostingDTO.daoEntity)
         val newChildDto = childFactory.createDto()
-        newChildDto.updatePropertyBinding(childEntity, UpdateMode.ENTITY_TO_MODEL, childEntity.containerize(UpdateMode.ENTITY_TO_MODEL))
+        newChildDto.updatePropertyBinding(childEntity.containerize(UpdateMode.ENTITY_TO_MODEL))
 
         binding.saveDataModel(newChildDto.dataModel)
         childDTO[newChildDto.id] = newChildDto
         newChildDto.getDtoRepositories().forEach {repository->
-             repository.loadHierarchy()
+             repository.loadHierarchyByEntity()
        }
     }
 
@@ -114,8 +139,8 @@ class SingleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
 class MultipleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
     val binding : MultipleChildContainer<DTO, DATA, ENTITY, C_DTO,  CD, CE>,
     hostingDto : CommonDTO<DTO, DATA, ENTITY>,
-    childClassConfig: DTOConfig<C_DTO, CD, CE>,
-): RepositoryBase<DTO,DATA, ENTITY, C_DTO, CD, CE>(hostingDto,binding,  childClassConfig), TasksManaged
+    childClass: DTOClass<C_DTO, CD, CE>,
+): RepositoryBase<DTO,DATA, ENTITY, C_DTO, CD, CE>(hostingDto,binding,  childClass), TasksManaged
         where DTO : ModelDTO, DATA: DataModel, ENTITY : LongEntity,
               C_DTO : ModelDTO, CD: DataModel, CE: LongEntity
 {
@@ -123,7 +148,42 @@ class MultipleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
     override val qualifiedName: String get() = "MultipleRepository[${hostingDTO.dtoName}]"
     override val name: String  get() = "MultipleRepository"
 
-    suspend fun updateMultiple(): Unit = subTask("Update", qualifiedName){ handler->
+
+    override suspend fun update(dataModel:CD): CommonDTO<C_DTO, CD, CE>?{
+        if(dataModel.id != 0L){
+            val existingDto = childDTO[dataModel.id]
+            if(existingDto != null) {
+                existingDto.updatePropertyBinding(existingDto.daoEntity.containerize(UpdateMode.MODEL_TO_ENTITY))
+                return existingDto
+            }else{
+                return null
+            }
+        }else {
+            val newChildDto = childFactory.createDto(dataModel)
+            childDaoService.saveWithParent(newChildDto, hostingDTO) { containerized ->
+                binding.attachForeignEntity(containerized)
+            }
+            childDTO[newChildDto.id] = newChildDto
+            newChildDto.getDtoRepositories().forEach { repository ->
+                repository.loadHierarchyByEntity()
+            }
+            return newChildDto
+        }
+    }
+
+    suspend fun update(dataModels: List<CD>): List<CommonDTO<C_DTO, CD, CE>> {
+       val resultList : MutableList<CommonDTO<C_DTO, CD, CE>> = mutableListOf()
+        dataModels.forEach {
+           val dto = update(it)
+            if(dto != null){
+                resultList.add(dto)
+            }
+        }
+        return resultList
+    }
+
+
+    override suspend fun loadHierarchyByModel(): Unit = subTask("Update", qualifiedName){ handler->
 
         val dataModels = binding.getDataModels(hostingDTO.dataModel)
         handler.info("Update for parent dto ${hostingDTO.dtoName} and id ${hostingDTO.id} ")
@@ -139,17 +199,17 @@ class MultipleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
             }
             childDTO[newChildDto.id] = newChildDto
             newChildDto.getDtoRepositories().forEach {repository->
-                repository.update()
+                repository.loadHierarchyByModel()
             }
         }
     }.resultOrException()
 
-    suspend fun loadHierarchyMultiple(){
+    override suspend fun loadHierarchyByEntity(){
 
         val dtos = binding.getForeignEntities(hostingDTO.daoEntity).map { entity ->
             childFactory.createDto().also { dto ->
-                dto.updatePropertyBinding(entity, UpdateMode.ENTITY_TO_MODEL, entity.containerize(UpdateMode.ENTITY_TO_MODEL))
-                dto.getDtoRepositories().forEach { it.loadHierarchy() }
+                dto.updatePropertyBinding(entity.containerize(UpdateMode.ENTITY_TO_MODEL))
+                dto.getDtoRepositories().forEach { it.loadHierarchyByEntity() }
             }
         }
         binding.saveDataModels(dtos.map { it.dataModel })
@@ -177,7 +237,7 @@ class MultipleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
 sealed class RepositoryBase<DTO, DATA, ENTITY, C_DTO,  CD, CE>(
     val hostingDTO: CommonDTO<DTO, DATA, ENTITY>,
     val bindingBase : BindingContainer<DTO, DATA, ENTITY, C_DTO,  CD, CE>,
-    protected val childClassConfig: DTOConfig<C_DTO, CD, CE>,
+    val childClass: DTOClass<C_DTO, CD, CE>,
 ): IdentifiableComponent
         where DTO : ModelDTO, DATA: DataModel, ENTITY : LongEntity,
             C_DTO : ModelDTO, CD: DataModel, CE: LongEntity
@@ -190,10 +250,10 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, C_DTO,  CD, CE>(
     protected val childDTO: MutableMap<Long, CommonDTO<C_DTO, CD, CE>> = mutableMapOf()
 
     internal val childFactory: DTOFactory<C_DTO, CD, CE>
-        get() { return childClassConfig.dtoFactory }
+        get() { return childClass.config.dtoFactory }
 
     internal val childDaoService: DAOService<C_DTO, CD, CE>
-        get() { return childClassConfig.daoService }
+        get() { return childClass.config.daoService }
 
     suspend fun pickById(id: Long): CommonDTO<C_DTO, CD, CE>{
         val found = childDTO[id]
@@ -202,17 +262,17 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, C_DTO,  CD, CE>(
         }else{
             val childEntity = bindingBase.getForeignEntity(id).getOrOperationsEx("Foreign entity with id ${id} not found")
             val newChildDto = childFactory.createDto()
-            newChildDto.updatePropertyBinding(childEntity, UpdateMode.ENTITY_TO_MODEL, childEntity.containerize(UpdateMode.ENTITY_TO_MODEL))
+            newChildDto.updatePropertyBinding(childEntity.containerize(UpdateMode.ENTITY_TO_MODEL))
             childDTO[newChildDto.id] = newChildDto
             newChildDto.getDtoRepositories().forEach {repository->
-                repository.loadHierarchy()
+                repository.loadHierarchyByEntity()
             }
             newChildDto
         }
     }
 
     suspend fun pick(conditions: Query): CommonDTO<C_DTO, CD, CE>{
-       val result =  childClassConfig.daoService.pick(conditions)
+       val result =  childClass.config.daoService.pick(conditions)
            .getOrOperationsEx("Foreign entity not found for given query:${conditions}")
         val found = childDTO[result.id.value]
         return found ?: pickById(result.id.value)
@@ -220,7 +280,7 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, C_DTO,  CD, CE>(
 
     suspend fun select(conditions: Query): List<CommonDTO<C_DTO, CD, CE>>{
         val resultingList = mutableListOf<CommonDTO<C_DTO, CD, CE>>()
-        val result =  childClassConfig.daoService.select(conditions)
+        val result =  childClass.config.daoService.select(conditions)
         result.forEach { selectedEntity->
             val existingDto = childDTO[selectedEntity.id.value]
             if(existingDto != null){
@@ -233,39 +293,46 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, C_DTO,  CD, CE>(
         return resultingList
     }
 
-    suspend fun update(){
-        when(this){
-            is MultipleRepository-> {
-                hostingDTO.trackSave(CrudOperation.Update, this).let {
-                    updateMultiple()
-                    it.addTrackInfoResult(childDTO.count())
-                }
-            }
-            is SingleRepository-> {
-                hostingDTO.trackSave(CrudOperation.Update, this).let {
-                    updateSingle()
-                    it.addTrackInfoResult(childDTO.count())
-                }
-            }
-        }
-    }
-    suspend fun loadHierarchy(){
-        when(this){
-            is MultipleRepository->{
-                hostingDTO.trackSave(CrudOperation.Update, this).let {
-                    loadHierarchyMultiple()
-                    it.addTrackInfoResult(childDTO.count())
-                }
-            }
-            is SingleRepository->{
-                hostingDTO.trackSave(CrudOperation.Update, this).let {
-                    loadHierarchySingle()
-                    it.addTrackInfoResult(childDTO.count())
-                }
-            }
-        }
-        initialized = true
-    }
+
+   abstract suspend fun  update(dataModel:CD): CommonDTO<C_DTO, CD, CE>?
+
+
+//    suspend fun update(){
+//        when(this){
+//            is MultipleRepository-> {
+//                hostingDTO.trackSave(CrudOperation.Update, this).let {
+//                    updateMultiple()
+//                    it.addTrackInfoResult(childDTO.count())
+//                }
+//            }
+//            is SingleRepository-> {
+//                hostingDTO.trackSave(CrudOperation.Update, this).let {
+//                    updateSingle()
+//                    it.addTrackInfoResult(childDTO.count())
+//                }
+//            }
+//        }
+//    }
+
+    internal abstract suspend fun  loadHierarchyByEntity()
+    internal abstract suspend fun  loadHierarchyByModel()
+//    internal suspend fun loadHierarchyByEntity(){
+//        when(this){
+//            is MultipleRepository->{
+//                hostingDTO.trackSave(CrudOperation.Update, this).let {
+//                    loadHierarchyMultiple()
+//                    it.addTrackInfoResult(childDTO.count())
+//                }
+//            }
+//            is SingleRepository->{
+//                hostingDTO.trackSave(CrudOperation.Update, this).let {
+//                    loadHierarchySingle()
+//                    it.addTrackInfoResult(childDTO.count())
+//                }
+//            }
+//        }
+//        initialized = true
+//    }
     abstract suspend fun clear():RepositoryBase<DTO, DATA, ENTITY, C_DTO,  CD, CE>
 
 }

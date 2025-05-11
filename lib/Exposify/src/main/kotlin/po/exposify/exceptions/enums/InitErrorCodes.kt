@@ -25,6 +25,7 @@ enum class ExceptionCode(val value: Int) {
     DB_NO_TRANSACTION_IN_CONTEXT(2003),
 
     ABNORMAL_STATE(3000),
+    BAD_DTO_SETUP(3001),
 
     // Repository.kt & Runtime Execution
     REPOSITORY_RETHROWN(4000),

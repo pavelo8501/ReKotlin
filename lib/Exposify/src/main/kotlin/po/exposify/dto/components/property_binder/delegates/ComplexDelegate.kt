@@ -83,7 +83,7 @@ class ParentIDDelegate<DTO, DATA, ENTITY, FE>(
 class ParentDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>(
     dto: CommonDTO<DTO, DATA, ENTITY>,
     dataProperty : KMutableProperty1<DATA, FD>,
-    private val parentDtoModel: DTOClass<F_DTO, FD>,
+    private val parentDtoModel: DTOClass<F_DTO, FD, FE>,
     private val entityModel: LongEntityClass<FE>
 ): ComplexDelegate<DTO, DATA, ENTITY, FE, FD, CommonDTO<F_DTO, FD, FE>>
     (dto, dataProperty, dataProperty.name)

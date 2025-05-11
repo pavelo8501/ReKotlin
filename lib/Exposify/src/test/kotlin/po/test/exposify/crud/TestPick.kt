@@ -26,12 +26,12 @@ class TestPick : DatabaseTest(){
 
         var pickedDTO : UserDTO? = null
 
-        startTestConnection()?.run {
+        startTestConnection().run {
             service(UserDTO, TableCreateMode.CREATE) {
-                val userDataModel =  update(user).getData()
+                val userDataModel =  update(user).getDataForced()
                  pickedDTO = pick(userDataModel.id).getDTO() as UserDTO
             }
-        }?:throw Exception("Connection not available")
+        }
 
         val userDTO =  assertNotNull(pickedDTO, "Picked DTO is null")
         assertNotEquals(0,  userDTO.id, "UserDTO failed to update")

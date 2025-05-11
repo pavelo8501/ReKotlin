@@ -37,7 +37,7 @@ class ServiceClass<DTO, DATA, ENTITY>(
         private set
 
     internal val connection: Database = connectionClass.connection
-    private val sequences = ConcurrentHashMap<CompositeKey<DTOBase<*,*>, SequenceID>, SequencePack<*, *>>()
+    private val sequences = ConcurrentHashMap<CompositeKey<RootDTO<*, *, *>, SequenceID>, SequencePack<*, *, *>>()
 
     private fun createTable(table: IdTable<Long>): Boolean {
         return try {
@@ -69,7 +69,7 @@ class ServiceClass<DTO, DATA, ENTITY>(
             throw ex
         }
     }
-    private fun prepareTables(serviceCreateOption: TableCreateMode, rootDTOModel: RootDTO<DTO, DATA>) {
+    private fun prepareTables(serviceCreateOption: TableCreateMode, rootDTOModel: RootDTO<DTO, DATA, ENTITY>) {
         val tableList = mutableListOf<IdTable<Long>>()
         rootDTOModel.getAssociatedTables(tableList)
         when (serviceCreateOption) {
@@ -85,8 +85,8 @@ class ServiceClass<DTO, DATA, ENTITY>(
     }
 
     internal suspend fun startService(
-        rootDTOModel: RootDTO<DTO, DATA>,
-        block: suspend  ServiceContext<DTO, DATA, LongEntity>.()->Unit)
+        rootDTOModel: RootDTO<DTO, DATA, ENTITY>,
+        block: suspend  ServiceContext<DTO, DATA, ENTITY>.()->Unit)
             = subTask("Initializing", "ServiceClass") {
 
         rootDTOModel.initialization()
@@ -95,19 +95,19 @@ class ServiceClass<DTO, DATA, ENTITY>(
         }.await()
 
         serviceContext = ServiceContext(this, rootDTOModel)
-        val castedContext = serviceContext.castOrInitEx<ServiceContext<DTO, DATA, LongEntity>>("StartService. Cast failed")
+        val castedContext = serviceContext.castOrInitEx<ServiceContext<DTO, DATA, ENTITY>>("StartService. Cast failed")
         rootDTOModel.setContextOwned(castedContext)
         castedContext.block()
     }.resultOrException()
 
-    internal fun addSequencePack(pack: SequencePack<*, *>) {
-        sequences[pack.key] = pack
+    internal fun addSequencePack(key: CompositeKey<RootDTO<*, *, *>, SequenceID>,  pack: SequencePack<*, *, *>) {
+        sequences[key] = pack
     }
 
     internal suspend fun requestEmitter(): CoroutineEmitter = connectionClass.requestEmitter()
 
 
-    internal fun getSequencePack(key: CompositeKey<DTOBase<*,*>,SequenceID>):SequencePack<*, *> {
+    internal fun getSequencePack(key: CompositeKey<RootDTO<*, *, *>,SequenceID>):SequencePack<*, *, *> {
         return sequences[key].getOrOperationsEx(
             "Sequence with key : $key not found",
             ExceptionCode.VALUE_NOT_FOUND)

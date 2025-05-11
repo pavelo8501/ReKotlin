@@ -19,13 +19,13 @@ class ConnectionContext(
     val isOpen : Boolean
         get(){return  connClass.isConnectionOpen }
 
-    suspend fun <DTO, DATA> service(
-        dtoClass : RootDTO<DTO, DATA>,
+    suspend fun <DTO, DATA, E> service(
+        dtoClass : RootDTO<DTO, DATA, E>,
         createOptions : TableCreateMode = TableCreateMode.CREATE,
-        block: suspend ServiceContext<DTO, DATA, LongEntity>.()->Unit,
-    ) where DTO : ModelDTO, DATA : DataModel{
+        block: suspend ServiceContext<DTO, DATA, E>.()->Unit,
+    ) where DTO : ModelDTO, DATA : DataModel, E: LongEntity {
 
-        val serviceClass =  ServiceClass<DTO, DATA, LongEntity>(connClass, createOptions)
+        val serviceClass =  ServiceClass<DTO, DATA, E>(connClass, createOptions)
         startTaskAsync("Create Service") {
             serviceClass.startService(dtoClass, block)
         }.onComplete {

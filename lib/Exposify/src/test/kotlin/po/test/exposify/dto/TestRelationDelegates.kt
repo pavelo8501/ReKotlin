@@ -30,8 +30,8 @@ class TestRelationDelegates : DatabaseTest() {
             email = "nomail@void.null"
         )
         val connection = startTestConnection()
-        connection?.service(UserDTO) {
-            user = update(user).getData()
+        connection.service(UserDTO) {
+            user = update(user).getDataForced()
         }
 
         val sourceSections = sectionsPreSaved(0)
@@ -42,9 +42,9 @@ class TestRelationDelegates : DatabaseTest() {
         var selectedDTO : PageDTO? = null
         var updatedSectionsCount = 0
 
-        connection?.service(PageDTO, TableCreateMode.CREATE) {
+        connection.service(PageDTO, TableCreateMode.CREATE) {
             page.sections.addAll(sourceSections)
-            updatedSectionsCount = update(page).getData().sections.count()
+            updatedSectionsCount = update(page).getDataForced().sections.count()
             val selectionResult = select()
             selectedData = selectionResult.getData().firstOrNull()
             selectedDTO = selectionResult.getDTO().firstOrNull() as? PageDTO
@@ -74,16 +74,16 @@ class TestRelationDelegates : DatabaseTest() {
         )
         val connection = startTestConnection()
         connection.service(UserDTO) {
-            user = update(user).getData()
+            user = update(user).getDataForced()
         }
         val sourceSections = sectionsPreSaved(0)
         val page = Page(id = 0, name = "home", langId = 1, updatedById = user.id)
         var updatedPageData: Page? = null
         var updatedPageDTO : PageDTO? = null
-        connection?.service(PageDTO, TableCreateMode.CREATE) {
+        connection.service(PageDTO, TableCreateMode.CREATE) {
             page.sections.addAll(sourceSections)
             val updateResult = update(page)
-            updatedPageData = updateResult.getData()
+            updatedPageData = updateResult.getDataForced()
             updatedPageDTO = updateResult.getDTO() as PageDTO
         }
 

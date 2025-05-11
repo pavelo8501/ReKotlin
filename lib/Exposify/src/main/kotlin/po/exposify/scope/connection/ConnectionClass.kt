@@ -1,5 +1,6 @@
 package po.exposify.scope.connection
 
+import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.name
 import org.jetbrains.exposed.sql.transactions.transactionManager
@@ -31,8 +32,8 @@ class ConnectionClass(
     val isConnectionOpen: Boolean
         get() { return connectionInfo.connection.transactionManager.currentOrNull()?.connection?.isClosed == false }
 
-    suspend fun <DTO:ModelDTO, DATA: DataModel> launchSequence(
-        pack: RootSequencePack<DTO, DATA>,
+    suspend fun <DTO: ModelDTO, DATA: DataModel, E: LongEntity> launchSequence(
+        pack: RootSequencePack<DTO, DATA, E>,
     ) {
         val session = sessionManager.getCurrentSession()
         val result = dispatchManager.enqueue(session.sessionID) {

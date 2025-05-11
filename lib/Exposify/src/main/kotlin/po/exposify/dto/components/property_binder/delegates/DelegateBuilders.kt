@@ -72,7 +72,7 @@ fun <DTO, DATA, ENTITY, FE> CommonDTO<DTO, DATA, ENTITY>.parent2IdReference(
 
 fun <DTO, DATA,  ENTITY, F_DTO,  FD,  FE>  CommonDTO<DTO, DATA, ENTITY>.parentReference(
     dataProperty : KMutableProperty1<DATA, FD>,
-    parentDtoClass: DTOClass<F_DTO, FD>,
+    parentDtoClass: DTOClass<F_DTO, FD, FE>,
     parentEntityModel: LongEntityClass<FE>
 ): ParentDelegate<DTO, DATA, ENTITY, F_DTO,  FD,  FE>
         where  DTO: ModelDTO, DATA:DataModel, ENTITY : LongEntity,

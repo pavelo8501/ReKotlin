@@ -77,7 +77,7 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
 
         startTestConnection().run {
             service(UserDTO, TableCreateMode.FORCE_RECREATE) {
-                authenticatedUser = update(user).getData()
+                authenticatedUser = update(user).getDataForced()
                 AuthSessionManager.authenticator.setAuthenticator(::validateUser)
             }
 

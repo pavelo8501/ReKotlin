@@ -26,7 +26,7 @@ interface ConfigurableDTO<DTO: ModelDTO, DATA : DataModel, ENTITY: LongEntity>{
 class DTOConfig<DTO, DATA, ENTITY>(
     val registry : DTORegistryItem<DTO, DATA, ENTITY>,
     val entityModel: ExposifyEntityClass<ENTITY>,
-    val dtoClass : DTOBase<DTO, *>
+    val dtoClass : DTOBase<DTO, DATA , ENTITY>
 ): ConfigurableDTO<DTO, DATA, ENTITY> where DTO: ModelDTO, DATA: DataModel,  ENTITY : LongEntity{
 
    internal var dtoFactory: DTOFactory<DTO, DATA, ENTITY> = DTOFactory(registry.commonDTOKClass, registry.dataKClass, this)
@@ -62,7 +62,7 @@ class DTOConfig<DTO, DATA, ENTITY>(
         relationBinder.block()
     }
 
-    suspend fun hierarchyMembers(vararg childDTO : DTOClass<*, *>){
+    suspend fun hierarchyMembers(vararg childDTO : DTOClass<*, *, *>){
         childDTO.toList().forEach {
             relationBinder.addChildClass(it)
         }

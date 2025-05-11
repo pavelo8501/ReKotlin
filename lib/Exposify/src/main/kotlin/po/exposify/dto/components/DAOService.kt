@@ -78,7 +78,7 @@ class DAOService<DTO, DATA, ENTITY>(
             val updateMode = UpdateMode.MODEL_TO_ENTITY
         val newEntity = entityModel.new {
             handler.withTaskContext(this){
-                dto.updatePropertyBinding(this, updateMode, this.containerize(updateMode))
+                dto.updatePropertyBinding(this.containerize(updateMode))
             }
         }
         setActiveEntity(dto, newEntity.containerize(updateMode))
@@ -96,7 +96,7 @@ class DAOService<DTO, DATA, ENTITY>(
             val newEntity = entityModel.new {
                 handler.withTaskContext(this){
                     val container = this.containerize(updateMode, parentDto)
-                    dto.updatePropertyBinding(this, updateMode, container)
+                    dto.updatePropertyBinding(container)
                     bindFn.invoke(container)
                 }
             }
@@ -108,7 +108,7 @@ class DAOService<DTO, DATA, ENTITY>(
     suspend fun update(dto: CommonDTO<DTO, DATA, ENTITY>): ENTITY = subTask("Update", "DAOService") {handler->
         val selectedEntity =  pickById(dto.id).getOrOperationsEx("Entity with id : ${dto.id} not found", ExceptionCode.DB_CRUD_FAILURE)
         val updateMode = UpdateMode.MODEL_TO_ENTITY
-        dto.updatePropertyBinding(selectedEntity, updateMode, selectedEntity.containerize(updateMode))
+        dto.updatePropertyBinding(selectedEntity.containerize(updateMode))
         setActiveEntity(dto, selectedEntity.containerize(updateMode))
         selectedEntity
     }.resultOrException()

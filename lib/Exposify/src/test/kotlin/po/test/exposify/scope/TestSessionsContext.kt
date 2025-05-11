@@ -51,10 +51,10 @@ class TestSessionsContext : DatabaseTest()  {
         startTestConnection().let { connection ->
 
             connection.service(UserDTO, TableCreateMode.CREATE) {
-                userId =  update(user).getData().id
+                userId =  update(user).getDataForced().id
             }
 
-            connection.service<PageDTO, Page>(PageDTO, TableCreateMode.FORCE_RECREATE) {
+            connection.service(PageDTO, TableCreateMode.FORCE_RECREATE) {
                 truncate()
                 sequence(SequenceID.UPDATE) { handler->
                     update(handler.inputData)

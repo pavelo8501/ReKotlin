@@ -11,7 +11,7 @@ import kotlin.collections.set
 
 
 class RelationshipBinder<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>(
-   val dtoClass: DTOBase<DTO, *>
+   val dtoClass: DTOBase<DTO, *, *>
 ) where DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity, CHILD_DTO: ModelDTO, CHILD_DATA: DataModel, CHILD_ENTITY: LongEntity {
 
     private var childClassRegistry : MutableMap<String, ClassDTO> = mutableMapOf()
@@ -24,7 +24,7 @@ class RelationshipBinder<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>
         mutableMapOf<Cardinality, SingleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>>()
         private set
 
-    suspend fun addChildClass(childClass: DTOClass<*, *>){
+    suspend fun addChildClass(childClass: DTOClass<*, *, *>){
         if(!childClass.initialized){
             childClass.initialization()
         }

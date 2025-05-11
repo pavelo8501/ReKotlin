@@ -1,5 +1,6 @@
 package po.exposify.dto.components
 
+import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.Op
@@ -10,7 +11,10 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.greater
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.like
 import org.jetbrains.exposed.sql.and
-
+import po.exposify.dto.CommonDTO
+import po.exposify.dto.RootDTO
+import po.exposify.dto.interfaces.DataModel
+import po.exposify.dto.interfaces.ModelDTO
 
 
 class WhereQuery<T> () : Query() where T : IdTable<Long> {
@@ -54,15 +58,23 @@ class WhereQuery<T> () : Query() where T : IdTable<Long> {
     }
 }
 
-class SwitchQuery<T> () :  Query()  where T : IdTable<Long> {
+class SwitchQuery<DTO: ModelDTO, D: DataModel, E: LongEntity> (val dtoClass: RootDTO<DTO, D, E>, val id: Long) :  Query() {
+
     override  var expression: Set<Op<Boolean>> = emptySet()
-    private fun addCondition(condition: Op<Boolean>) {
-        expression = expression + condition
+
+   // var selectedDTO : CommonDTO<DTO, D, E>? = null
+      //  private set
+
+
+    internal suspend fun resolveQuery():CommonDTO<DTO, D, E>?{
+        return dtoClass.serviceContext.pick(id).getDTO()
     }
-    fun<C> equalsTo(column: Column<C>, value: C): SwitchQuery<T>  {
-        addCondition(column eq value)
-        return this
-    }
+
+//    suspend fun idEqualsTo(id: Long):SwitchQuery<DTO, D, E>{
+//        val dto = dtoClass.pickById(id).getDTO()
+//        selectedDTO = dto
+//        return this
+//    }
 
 }
 

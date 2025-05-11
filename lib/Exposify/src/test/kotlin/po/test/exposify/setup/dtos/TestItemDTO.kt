@@ -18,7 +18,7 @@ class TestItemDTO(
     override var dataModel: TestItem
 ): CommonDTO<TestItemDTO, TestItem, TestsItemEntity>(TestItemDTO) {
 
-    companion object: RootDTO<TestItemDTO, TestItem>(){
+    companion object: RootDTO<TestItemDTO, TestItem, TestsItemEntity>(){
         override suspend fun setup() {
             configuration<TestItemDTO, TestItem, TestsItemEntity>(TestsItemEntity){
                 propertyBindings(

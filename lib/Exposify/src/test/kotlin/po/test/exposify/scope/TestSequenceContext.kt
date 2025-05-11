@@ -6,9 +6,12 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertAll
 import po.auth.extensions.generatePassword
+import po.exposify.dto.components.SwitchQuery
 import po.exposify.dto.components.WhereQuery
 import po.exposify.scope.connection.ConnectionContext
+import po.exposify.scope.sequence.classes.createHandler
 import po.exposify.scope.sequence.enums.SequenceID
+import po.exposify.scope.sequence.extensions.switch
 import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
@@ -16,6 +19,7 @@ import po.lognotify.logNotify
 import po.misc.exceptions.CoroutineInfo
 import po.test.exposify.setup.ClassItem
 import po.test.exposify.setup.DatabaseTest
+import po.test.exposify.setup.MetaTag
 import po.test.exposify.setup.Pages
 import po.test.exposify.setup.dtos.Page
 import po.test.exposify.setup.dtos.PageDTO
@@ -57,7 +61,7 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
         )
         connectionContext = startTestConnection()
         connectionContext.service(UserDTO, TableCreateMode.FORCE_RECREATE) {
-            updatedById = update(user).getData().id
+            updatedById = update(user).getDataForced().id
         }
     }
 
@@ -67,19 +71,28 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
 
         var onSwitchSelection : String = ""
         var selectResult: List<Section>? = null
+
         connectionContext.let {connection->
             connection.service(PageDTO, TableCreateMode.CREATE) {
-                val pages = pageModelsWithSections(pageCount = 1, sectionsCount = 10, updatedBy = updatedById)
-                update(pages)
 
-                sequence(SequenceID.SELECT) {
-
-                    switch(SectionDTO, SequenceID.UPDATE){
-
+                sequence(SequenceID.UPDATE) {topHandler->
+                    update(topHandler.inputData)
+                    switch(SectionDTO){switchHandler->
+                        update(switchHandler.inputData)
                     }
                 }
             }
         }
+
+        val sectionData = Section(0, "NewName", "NewDescription", "", emptyList<ClassItem>(), emptyList<MetaTag>(), 1, 1, 0)
+
+        PageDTO.runSequence(PageDTO.createHandler(SequenceID.UPDATE)){
+            withData(pageModelsWithSections(pageCount = 1, sectionsCount = 10, updatedBy = updatedById))
+            withQuery(SectionDTO, SwitchQuery(PageDTO, 1L), sectionData)
+        }
+
+
+
 //
 //
 //        var sections : List<SectionDTO> = emptyList()
@@ -117,7 +130,7 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
 
         var updatedPages : List<Page> = emptyList()
         connectionContext.let { connection ->
-            connection.service<PageDTO, Page>(PageDTO, TableCreateMode.CREATE) {
+            connection.service(PageDTO, TableCreateMode.CREATE) {
                 sequence(SequenceID.UPDATE) { handler ->
                    val result = update(handler.inputData)
                    handler.submitData(result)
@@ -134,10 +147,10 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
         pages[3].langId = 2
 
 
-        updatedPages = PageDTO.runSequence(SequenceID.UPDATE){
+        updatedPages = PageDTO.runSequence(PageDTO.createHandler(SequenceID.UPDATE)){
             println("Coroutine on init")
             println(CoroutineInfo.createInfo(kotlin.coroutines.coroutineContext))
-            launchWithData(pages)
+            withData(pages)
         }
 
         assertAll(
@@ -146,7 +159,7 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
             { assertEquals("this_name", updatedPages[1].name, "Updated page name mismatch") }
         )
 
-        val selectPages =  PageDTO.runSequence(SequenceID.SELECT) {
+        val selectPages =  PageDTO.runSequence(PageDTO.createHandler(SequenceID.SELECT)) {
             launchWithQuery(WhereQuery<Pages>().equalsTo(Pages.langId, 2))
         }
 

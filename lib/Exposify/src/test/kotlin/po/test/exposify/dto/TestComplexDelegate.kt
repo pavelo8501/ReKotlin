@@ -30,8 +30,8 @@ class TestComplexDelegate : DatabaseTest() {
             email = "nomail@void.null"
         )
         val connection = startTestConnection()
-        connection?.service(UserDTO) {
-            user = update(user).getData()
+        connection.service(UserDTO) {
+            user = update(user).getDataForced()
         }
         val sourceSections = sectionsPreSaved(0)
         val page = Page(id = 0, name = "home", langId = 1, updatedById = user.id)
@@ -40,7 +40,7 @@ class TestComplexDelegate : DatabaseTest() {
         connection?.service(PageDTO, TableCreateMode.CREATE) {
             page.sections.addAll(sourceSections)
             val updateResult = update(page)
-            updatedPageData = updateResult.getData()
+            updatedPageData = updateResult.getDataForced()
             updatedPageDTO = updateResult.getDTO() as PageDTO
         }
         val persistedDataSection  = updatedPageData?.sections?.first()
@@ -67,8 +67,8 @@ class TestComplexDelegate : DatabaseTest() {
             email = "nomail@void.null"
         )
         val connection = startTestConnection()
-        connection?.service(UserDTO) {
-            user = update(user).getData()
+        connection.service(UserDTO) {
+            user = update(user).getDataForced()
         }
         val sourceSections = sectionsPreSaved(0)
         val page = Page(id = 0, name = "home", langId = 1, updatedById = user.id)
@@ -77,7 +77,7 @@ class TestComplexDelegate : DatabaseTest() {
         var updatedSectionsCount = 0
         connection?.service(PageDTO, TableCreateMode.CREATE) {
             page.sections.addAll(sourceSections)
-            updatedSectionsCount = update(page).getData().sections.count()
+            updatedSectionsCount = update(page).getDataForced().sections.count()
 
             val selectionResult = select()
 
@@ -120,8 +120,8 @@ class TestComplexDelegate : DatabaseTest() {
             email = "nomail@void.null"
         )
         val connection = startTestConnection()
-        connection?.service(UserDTO) {
-            user = update(user).getData()
+        connection.service(UserDTO) {
+            user = update(user).getDataForced()
         }
         val sourceSections = sectionsPreSaved(0)
         val page = Page(id = 0, name = "home", langId = 1, updatedById = user.id)
@@ -132,10 +132,10 @@ class TestComplexDelegate : DatabaseTest() {
         connection?.service(PageDTO, TableCreateMode.CREATE) {
             page.sections.addAll(sourceSections)
             val updateResult = update(page)
-            updatedPageData = updateResult.getData()
+            updatedPageData = updateResult.getDataForced()
             updatedPageDTO = updateResult.getDTO() as PageDTO
             val selectionResult = pick(updatedPageData.id)
-            pickedData = selectionResult.getData()
+            pickedData = selectionResult.getDataForced()
             pickedDTO = selectionResult.getDTO() as PageDTO
         }
 

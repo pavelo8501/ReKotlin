@@ -19,7 +19,7 @@ import kotlin.reflect.KProperty1
 
 class OneToOneDelegate<DTO, DATA, ENTITY, C_DTO,  CD,  FE>(
     private val dto : CommonDTO<DTO, DATA, ENTITY>,
-    private val childModel:DTOBase<C_DTO, CD>,
+    private val childModel:DTOBase<C_DTO, CD, FE>,
     private val dataProperty: KMutableProperty1<DATA, CD>,
     private val ownEntities: KProperty1<ENTITY, FE>,
     private val foreignEntity: KMutableProperty1<FE, ENTITY>,
@@ -64,7 +64,7 @@ class OneToOneDelegate<DTO, DATA, ENTITY, C_DTO,  CD,  FE>(
 
 class OneToManyDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>(
     private val dto : CommonDTO<DTO, DATA, ENTITY>,
-    private val childModel: DTOBase<F_DTO, FD>,
+    private val childModel: DTOBase<F_DTO, FD, FE>,
     private val dataProperty: KProperty1<DATA, MutableList<FD>>,
     private val foreignEntities: KProperty1<ENTITY, SizedIterable<FE>>,
     private val foreignEntity: KMutableProperty1<FE, ENTITY>,

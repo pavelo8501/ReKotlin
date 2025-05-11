@@ -41,7 +41,7 @@ class PageDTO(
         foreignEntity = SectionEntity::page)
 
 
-    companion object: RootDTO<PageDTO, Page>(){
+    companion object: RootDTO<PageDTO, Page, PageEntity>(){
         override suspend fun setup() {
             configuration<PageDTO, Page, PageEntity>(PageEntity){
                 propertyBindings(

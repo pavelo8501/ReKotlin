@@ -31,14 +31,14 @@ class TestSelect : DatabaseTest() {
         var assignedUserId : Long = 0
         startTestConnection().let {connection->
             connection.service(UserDTO, TableCreateMode.FORCE_RECREATE) {
-                val userData =  update(user).getData()
+                val userData =  update(user).getDataForced()
                 assignedUserId = userData.id
                 assertEquals("some_login", userData.login, "User login mismatch after save")
                 assertNotEquals(0, assignedUserId, "User id assignment failure")
             }
 
             connection.service(PageDTO, TableCreateMode.FORCE_RECREATE) {
-                val pageData =  update(pages[0]).getData()
+                val pageData =  update(pages[0]).getDataForced()
                 val updatedById =  pageData.updatedById
 
                 assertEquals(assignedUserId, updatedById, "Failed to update DTOs referenced property")
@@ -76,7 +76,7 @@ class TestSelect : DatabaseTest() {
         var assignedUserId : Long = 0
         startTestConnection()?.let {connection->
             connection.service(UserDTO, TableCreateMode.CREATE) {
-                val userData =  update(user).getData()
+                val userData =  update(user).getDataForced()
                 assignedUserId = userData.id
             }
             val pages = pageModelsWithSections(pageCount = 1, sectionsCount = 2, updatedBy = assignedUserId)
@@ -141,7 +141,7 @@ class TestSelect : DatabaseTest() {
         var assignedUserId : Long = 0
         startTestConnection()?.let { connection ->
             connection.service(UserDTO, TableCreateMode.CREATE) {
-                val userData = update(user).getData()
+                val userData = update(user).getDataForced()
                 assignedUserId = userData.id
             }
             val pages = pageModelsWithSections(pageCount = 2, sectionsCount = 2, updatedBy = assignedUserId)
