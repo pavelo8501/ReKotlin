@@ -89,8 +89,6 @@ sealed class NotifierBase(
     }
 
     protected suspend fun emitNotification(notification: Notification) {
-
-
         when(config.console){
             ConsoleBehaviour.Mute->{ }
             ConsoleBehaviour.MuteInfo -> {
@@ -135,6 +133,10 @@ sealed class NotifierBase(
             severity,
             message)
 
+        emitNotification(notification)
+    }
+
+    internal suspend fun submitNotification(notification : Notification){
         emitNotification(notification)
     }
 

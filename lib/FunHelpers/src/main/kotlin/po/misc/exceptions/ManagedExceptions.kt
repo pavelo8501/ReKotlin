@@ -24,11 +24,12 @@ sealed interface SelfThrownException<E:ManagedException>  {
     var handler  : HandlerType
     val builderFn: (String, Int?) -> E
 
+    var snapshot :  Map<String, Any?>?
+
     fun setSourceException(th: Throwable): E
     fun getSourceException(returnSelfIfNull: Boolean): Throwable?
     fun setHandler(handlerType: HandlerType): E
     fun throwSelf(): Nothing
-
 
     companion object {
         inline fun <reified E : ManagedException> build(message: String, optionalCode: Int?): E {
@@ -48,16 +49,15 @@ open class ManagedException(
 ) : Throwable(message), SelfThrownException<ManagedException>{
 
     override var handler  : HandlerType = HandlerType.CANCEL_ALL
-
     override val builderFn: (String, Int?) -> ManagedException={msg,_->
         ManagedException(msg)
     }
+    override var snapshot :  Map<String, Any?>? = null
 
     fun addMessage(newMessage: String): ManagedException{
         message = "$message. $newMessage"
         return this
     }
-
     override fun setHandler(handlerType: HandlerType): ManagedException{
         handler = handlerType
         return this
@@ -74,7 +74,6 @@ open class ManagedException(
         }
         return source
     }
-
     override fun throwSelf():Nothing {
         throw this
     }

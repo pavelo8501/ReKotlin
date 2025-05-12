@@ -40,18 +40,24 @@ class TaskRunner<R: Any?>(
         startTime = System.nanoTime()
     }
 
-    private fun <T> takePropertySnapshot(receiver:T): Map<String, Any?>{
-        val snapshot : MutableMap<String, Any?> = mutableMapOf()
+    private fun <T> takePropertySnapshot(receiver:T): Map<String, Any?>? {
+        val snapshot: MutableMap<String, Any?> = mutableMapOf()
         receiver?.let {
-            it::class.memberProperties.filter {prop-> prop.findAnnotation<LogOnFault>() != null }.forEach {annotated->
-                val casted = annotated.castOrThrow<KProperty1<T, Any?>, LoggerException>()
-                snapshot[annotated.name] = casted.get(receiver)
-            }
-            it::class.staticProperties.filter { prop-> prop.findAnnotation<LogOnFault>() != null }.forEach { annotated->
-                snapshot[annotated.name] = annotated.get()
-            }
+            it::class.memberProperties.filter { prop -> prop.findAnnotation<LogOnFault>() != null }
+                .forEach { annotated ->
+                    val casted = annotated.castOrThrow<KProperty1<T, Any?>, LoggerException>()
+                    snapshot[annotated.name] = casted.get(receiver)
+                }
+            it::class.staticProperties.filter { prop -> prop.findAnnotation<LogOnFault>() != null }
+                .forEach { annotated ->
+                    snapshot[annotated.name] = annotated.get()
+                }
         }
-        return snapshot
+        return if (snapshot.values.count() > 0) {
+            snapshot
+        } else {
+            null
+        }
     }
 
 
@@ -68,35 +74,30 @@ class TaskRunner<R: Any?>(
         callbacks.onUnhandledFn?.invoke(exception, elapsed)
     }
 
-    suspend fun handleException(throwable: Throwable): ExceptionHandler.HandlerResult<R> {
-        notifier.systemInfo(EventType.EXCEPTION_THROWN, SeverityLevel.WARNING, "Handling exception in ${taskName}. Message: ${throwable.message}")
+    suspend fun handleException(throwable: Throwable, snapshot : Map<String, Any?>? = null): ExceptionHandler.HandlerResult<R> {
+        notifier.systemInfo(EventType.EXCEPTION_THROWN, SeverityLevel.WARNING, "Handling exception in $taskName. Message: ${throwable.message}")
 
         val managedException =
             throwable as? ManagedException ?: ManagedException(
                 throwable.message.toString(),
             ).setSourceException(throwable).setHandler(HandlerType.GENERIC)
+        managedException.snapshot = snapshot
 
         when (managedException.handler) {
             HandlerType.CANCEL_ALL -> {
-               if(exceptionHandler.isHandlerPresent(managedException.handler)){
-                   val result = exceptionHandler.handleManaged(managedException)
-                   return result
-               }else{
-                   notifier.systemInfo(EventType.EXCEPTION_HANDLED, SeverityLevel.WARNING, "Exception handled in ${taskName}")
-                   task.notifyRootCancellation(managedException)
-                   return exceptionHandler.handleManaged(managedException)
-               }
-            }
-            HandlerType.SKIP_SELF -> {
-                if(exceptionHandler.isHandlerPresent(managedException.handler)){
-                    val result = exceptionHandler.handleManaged(managedException)
-                    return result
-                }else{
-                    return  ExceptionHandler.HandlerResult<R>(null, managedException)
+                val result = exceptionHandler.handleManaged(managedException)
+                if(result.exception != null){
+                    task.notifyRootCancellation(managedException)
                 }
+                return result
             }
+
+            HandlerType.SKIP_SELF -> {
+                return exceptionHandler.handleManaged(managedException)
+            }
+
             HandlerType.UNMANAGED -> {
-                notifier.systemInfo(EventType.EXCEPTION_UNHANDLED, SeverityLevel.EXCEPTION, "Exception handling failure in ${taskName}")
+                notifier.systemInfo(EventType.EXCEPTION_UNHANDLED, SeverityLevel.EXCEPTION, "Exception handling failure in $taskName")
                 return ExceptionHandler.HandlerResult<R>(null, managedException)
             }
             else -> {
@@ -115,8 +116,7 @@ class TaskRunner<R: Any?>(
             val result =  block.invoke(receiver, taskHandler)
             executedWithResult(result, handlerBlock)
         }catch (throwable: Throwable){
-            val snapshot = takePropertySnapshot<T>(receiver)
-            val result =  handleException(throwable)
+            val result =  handleException(throwable, takePropertySnapshot<T>(receiver))
             if(result.value != null){
                 executedWithResult(result.value, handlerBlock)
             }else{

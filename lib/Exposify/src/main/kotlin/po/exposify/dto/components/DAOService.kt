@@ -1,8 +1,6 @@
 package po.exposify.dto.components
 
 import org.jetbrains.exposed.dao.LongEntity
-import org.jetbrains.exposed.dao.LongEntityClass
-import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.and
 import po.exposify.dto.interfaces.DataModel
@@ -66,7 +64,6 @@ class DAOService<DTO, DATA, ENTITY>(
       entity
     }.resultOrNull()
 
-
     suspend fun select(): List<ENTITY> = subTask("Select All", qualifiedName){
         entityModel.all().toList()
     }.resultOrException()
@@ -96,7 +93,6 @@ class DAOService<DTO, DATA, ENTITY>(
         dto: CommonDTO<DTO, DATA, ENTITY>,
         parentDto: CommonDTO<P_DTO, PD, PE>,
         bindFn: (container: EntityUpdateContainer<ENTITY, P_DTO, PD, PE>)-> Unit)
-
             = subTask("Save", qualifiedName) {handler->
             val updateMode = UpdateMode.MODEL_TO_ENTITY
             val newEntity = entityModel.new {
