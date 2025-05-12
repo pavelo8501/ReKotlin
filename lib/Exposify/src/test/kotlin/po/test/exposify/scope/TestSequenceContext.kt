@@ -15,6 +15,7 @@ import po.exposify.scope.sequence.extensions.switch
 import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
+import po.lognotify.classes.notification.models.ConsoleBehaviour
 import po.lognotify.logNotify
 import po.misc.exceptions.CoroutineInfo
 import po.test.exposify.setup.ClassItem
@@ -50,7 +51,7 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
 
         val loggerHandler: LogNotifyHandler  = logNotify()
         loggerHandler.notifierConfig {
-            muteConsoleNoEvents = true
+            console = ConsoleBehaviour.FullPrint
         }
         val user = User(
             id = 0,

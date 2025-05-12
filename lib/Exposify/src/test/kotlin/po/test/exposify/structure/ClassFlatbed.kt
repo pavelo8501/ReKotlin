@@ -21,7 +21,6 @@ import po.exposify.entity.classes.ExposifyEntityClass
 import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.castOrOperationsEx
 import po.lognotify.TasksManaged
-import po.lognotify.extensions.startTaskAsync
 import po.test.exposify.structure.ClassDTOTest
 import kotlin.reflect.KClass
 

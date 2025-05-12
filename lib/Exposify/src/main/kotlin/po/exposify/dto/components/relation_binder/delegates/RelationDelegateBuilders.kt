@@ -32,7 +32,7 @@ import kotlin.reflect.KProperty1
  *
  * @return A [OneToOneDelegate] that can be used as a delegated property in the DTO class.
  */
-fun <DTO, DATA, ENTITY, C_DTO, CD,  FE> CommonDTO<DTO, DATA, ENTITY>.oneToOnOf(
+fun <DTO, DATA, ENTITY, C_DTO, CD,  FE> CommonDTO<DTO, DATA, ENTITY>.oneToOneOf(
     childClass: DTOClass<C_DTO, CD, FE>,
     ownDataModel: KMutableProperty1<DATA, out CD?>,
     ownEntity: KProperty1<ENTITY, FE>,
@@ -40,19 +40,14 @@ fun <DTO, DATA, ENTITY, C_DTO, CD,  FE> CommonDTO<DTO, DATA, ENTITY>.oneToOnOf(
 ): OneToOneDelegate<DTO, DATA, ENTITY, C_DTO, CD,  FE>
         where DATA:DataModel, ENTITY : LongEntity, DTO : ModelDTO, C_DTO: ModelDTO,  CD: DataModel, FE: LongEntity
 {
-    val result =  newTaskAsync("Hierarchy Initialization. Child dto ${childClass.personalName}") {
 
-        val castedOwnDataModel = ownDataModel.castOrInitEx<KMutableProperty1<DATA, CD>>()
-        val bindingDelegate =  OneToOneDelegate(this,childClass, castedOwnDataModel, ownEntity, foreignEntity)
-        val container =  childClass.createOneToOneContainer(this, bindingDelegate)
-        val repository = createRepository(container)
-        val binder  =  dtoClassConfig.relationBinder.castOrOperationsEx<RelationshipBinder<DTO, DATA, ENTITY, C_DTO, CD, FE>>()
-        binder.attachBinding(Cardinality.ONE_TO_ONE, container)
-        bindingDelegate
-
-    }.resultOrException()
-
-    return result
+    val castedOwnDataModel = ownDataModel.castOrInitEx<KMutableProperty1<DATA, CD>>()
+    val bindingDelegate =  OneToOneDelegate(this,childClass, castedOwnDataModel, ownEntity, foreignEntity)
+    val container =  childClass.createOneToOneContainer(this, bindingDelegate)
+    val repository = createRepository(container)
+    val binder  =  dtoClassConfig.relationBinder.castOrOperationsEx<RelationshipBinder<DTO, DATA, ENTITY, C_DTO, CD, FE>>()
+    binder.attachBinding(Cardinality.ONE_TO_ONE, container)
+    return bindingDelegate
 }
 
 /**
@@ -76,15 +71,12 @@ fun <DTO, DATA, ENTITY, C_DTO, CD,  FE> CommonDTO<DTO, DATA, ENTITY>.oneToManyOf
 ): OneToManyDelegate<DTO, DATA, ENTITY, C_DTO, CD, FE>
         where DATA:DataModel, ENTITY : LongEntity, DTO : ModelDTO, C_DTO: ModelDTO,  CD: DataModel, FE: LongEntity
 {
-    return newTaskAsync("Hierarchy Initialization. Child dto ${childClass.personalName}") {
+    val castedOwnDataModels = ownDataModels.castOrInitEx<KProperty1<DATA, MutableList<CD>>>()
+    val bindingDelegate = OneToManyDelegate(this,childClass,  castedOwnDataModels, ownEntities, foreignEntity)
+    val container =  childClass.createOneToManyContainer(this, bindingDelegate)
+    val repository = createRepository(container)
+    val binder = dtoClassConfig.relationBinder.castOrOperationsEx<RelationshipBinder<DTO, DATA, ENTITY, C_DTO, CD, FE>>()
+    binder.attachBinding(Cardinality.ONE_TO_MANY, container)
+    return bindingDelegate
 
-        val castedOwnDataModels = ownDataModels.castOrInitEx<KProperty1<DATA, MutableList<CD>>>()
-        val bindingDelegate = OneToManyDelegate(this,childClass,  castedOwnDataModels, ownEntities, foreignEntity)
-        val container =  childClass.createOneToManyContainer(this, bindingDelegate)
-        val repository = createRepository(container)
-        val binder = dtoClassConfig.relationBinder.castOrOperationsEx<RelationshipBinder<DTO, DATA, ENTITY, C_DTO, CD, FE>>()
-        binder.attachBinding(Cardinality.ONE_TO_MANY, container)
-        bindingDelegate
-
-   }.resultOrException()
 }

@@ -17,6 +17,7 @@ import po.exposify.scope.sequence.classes.createHandler
 import po.exposify.scope.sequence.enums.SequenceID
 import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.TasksManaged
+import po.lognotify.classes.notification.models.ConsoleBehaviour
 import po.lognotify.classes.notification.models.NotifyConfig
 import po.lognotify.extensions.launchProcess
 import po.misc.collections.generateKey
@@ -68,10 +69,10 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
         val authSession = AuthSessionManager.getOrCreateSession(authData)
 
         anonSession.getLoggerProcess?.invoke()?.run {
-            notifier.setNotifierConfig(NotifyConfig(muteInfo = true))
+            notifier.setNotifierConfig(NotifyConfig(console = ConsoleBehaviour.MuteInfo))
         }
         authSession.getLoggerProcess?.invoke()?.run {
-            notifier.setNotifierConfig(NotifyConfig(muteInfo = true))
+            notifier.setNotifierConfig(NotifyConfig(console = ConsoleBehaviour.MuteInfo))
         }
 
 
@@ -102,7 +103,7 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
             { assertEquals(user.login, authSession.principal?.login, "Login mismatch") }
         )
 
-        TasksManaged.notifier.setNotifierConfig(NotifyConfig(muteConsole = true))
+        TasksManaged.notifier.setNotifierConfig(NotifyConfig(console = ConsoleBehaviour.Mute))
 
 
         runBlocking {

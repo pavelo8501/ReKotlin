@@ -1,14 +1,22 @@
 package po.lognotify.classes.task.runner
 
 import kotlinx.coroutines.withContext
+import po.lognotify.anotations.LogOnFault
 import po.lognotify.classes.notification.Notifier
 import po.lognotify.classes.notification.enums.EventType
 import po.lognotify.classes.task.ControlledTask
 import po.lognotify.classes.task.TaskHandler
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.exceptions.ExceptionHandler
+import po.lognotify.exceptions.LoggerException
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
+import po.misc.types.castOrThrow
+import kotlin.reflect.KProperty1
+import kotlin.reflect.full.declaredMembers
+import kotlin.reflect.full.findAnnotation
+import kotlin.reflect.full.memberProperties
+import kotlin.reflect.full.staticProperties
 
 
 class TaskRunner<R: Any?>(
@@ -31,6 +39,22 @@ class TaskRunner<R: Any?>(
     fun startTimer() {
         startTime = System.nanoTime()
     }
+
+    private fun <T> takePropertySnapshot(receiver:T): Map<String, Any?>{
+        val snapshot : MutableMap<String, Any?> = mutableMapOf()
+        receiver?.let {
+            it::class.memberProperties.filter {prop-> prop.findAnnotation<LogOnFault>() != null }.forEach {annotated->
+                val casted = annotated.castOrThrow<KProperty1<T, Any?>, LoggerException>()
+                snapshot[annotated.name] = casted.get(receiver)
+            }
+            it::class.staticProperties.filter { prop-> prop.findAnnotation<LogOnFault>() != null }.forEach { annotated->
+                snapshot[annotated.name] = annotated.get()
+            }
+        }
+        return snapshot
+    }
+
+
     suspend fun executedWithResult(value:R, handlerBlock: suspend TaskRunnerCallbacks<R>.()->Unit){
         stopTimer()
         val callbacks = TaskRunnerCallbacks<R>()
@@ -81,27 +105,17 @@ class TaskRunner<R: Any?>(
         }
     }
 
-    suspend fun <T> execute(receiver:T,  block: suspend T.() -> R, handlerBlock: suspend TaskRunnerCallbacks<R>.()->Unit) {
-        try{
-            startTimer()
-           val result = block.invoke(receiver)
-            executedWithResult(result, handlerBlock)
-        }catch (throwable: Throwable){
-           val result = handleException(throwable)
-           if(result.value != null){
-               executedWithResult(result.value, handlerBlock)
-           }else{
-               executedWithException(result.exception!!, handlerBlock)
-           }
-        }
-    }
+
     @PublishedApi
     internal suspend fun <T> execute(receiver:T,  block: suspend T.(TaskHandler<R>) -> R, handlerBlock: suspend TaskRunnerCallbacks<R>.()->Unit) {
+
+        val receiver = receiver
         try {
             startTimer()
             val result =  block.invoke(receiver, taskHandler)
             executedWithResult(result, handlerBlock)
         }catch (throwable: Throwable){
+            val snapshot = takePropertySnapshot<T>(receiver)
             val result =  handleException(throwable)
             if(result.value != null){
                 executedWithResult(result.value, handlerBlock)
@@ -124,5 +138,7 @@ class TaskRunner<R: Any?>(
             }
         }
     }
+
+
 
 }

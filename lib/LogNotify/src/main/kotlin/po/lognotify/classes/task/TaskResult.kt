@@ -4,7 +4,7 @@ import po.lognotify.classes.notification.enums.EventType
 import po.lognotify.enums.SeverityLevel
 import po.misc.exceptions.ManagedException
 
-class TaskResult<R : Any?>(private val task: TaskSealedBase<R>){
+class TaskResult<R : Any?>(internal val task: TaskSealedBase<R>){
 
     val taskName: String = task.key.taskName
     var executionTime: Float = 0f
@@ -16,9 +16,7 @@ class TaskResult<R : Any?>(private val task: TaskSealedBase<R>){
         get(){ return value != null }
 
     private suspend fun taskCompleted(th: Throwable? = null){
-        if(th == null){
-            task.notifier.systemInfo(EventType.STOP, SeverityLevel.INFO)
-        }else{
+        if(th != null){
             task.notifier.systemInfo(EventType.STOP, SeverityLevel.EXCEPTION)
         }
         task.notifyComplete()

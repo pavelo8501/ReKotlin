@@ -12,6 +12,8 @@ import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.castOrOperationsEx
 import po.exposify.extensions.getOrOperationsEx
+import po.exposify.extensions.isTransactionReady
+import po.exposify.extensions.withTransactionIfNone
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.subTask
 import po.misc.types.castOrThrow
@@ -35,6 +37,7 @@ class ForeignIDClassDelegate<DTO, DATA, ENTITY, FE>(
         isBeforeInserted:  Boolean,
         container:  EntityUpdateContainer<ENTITY, *, *, FE>)
     {
+
         //MODEL_TO_ENTITY effectively on Update/Save
         if(container.updateMode == UpdateMode.MODEL_TO_ENTITY || container.updateMode == UpdateMode.MODEL_TO_ENTITY_FORCED){
             val value = getEffectiveValue()
@@ -140,19 +143,24 @@ sealed class ComplexDelegate<DTO, DATA, ENTITY, FE, DATA_VAL, RES_VAL>(
     protected abstract fun update(
         isBeforeInserted:  Boolean,
         container:  EntityUpdateContainer<ENTITY, *, *, FE>)
-    
     suspend fun <F_DTO : ModelDTO, FD : DataModel, FFE: LongEntity>  beforeInsertedUpdate(
         updateContainer: EntityUpdateContainer<ENTITY, F_DTO, FD, FFE>
     ): Unit = subTask("BeforeInsertedUpdate", qualifiedName){
+
         val castedContainer = updateContainer.castOrOperationsEx<EntityUpdateContainer<ENTITY, F_DTO, FD, FE>>()
         update(true, castedContainer)
+
     }.resultOrException()
 
     suspend fun <F_DTO : ModelDTO, FD : DataModel, FFE: LongEntity> afterInsertedUpdate(
         updateContainer: EntityUpdateContainer<ENTITY, F_DTO, FD, FFE>
-    ): Unit = subTask("AfterInsertedUpdate", qualifiedName){
+    ): Unit = subTask("AfterInsertedUpdate", qualifiedName){handler->
         val castedContainer = updateContainer.castOrOperationsEx<EntityUpdateContainer<ENTITY, F_DTO, FD, FE>>()
-        update(false, castedContainer)
+        withTransactionIfNone(handler) {
+            update(false, castedContainer)
+        }
+
+
     }.resultOrException()
 
 }

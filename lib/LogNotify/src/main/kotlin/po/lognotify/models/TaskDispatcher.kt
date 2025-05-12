@@ -42,6 +42,10 @@ class TaskDispatcher() : UpdatableTasks{
         notifyUpdate(UpdateType.OnStart)
     }
 
+    fun finalizeAllTasks(){
+        //taskHierarchy.values.forEach { it.isComplete = true }
+    }
+
     fun removeRootTask(key: TaskKey) {
         taskHierarchy.remove(key)
         notifyUpdate(UpdateType.OnStart)

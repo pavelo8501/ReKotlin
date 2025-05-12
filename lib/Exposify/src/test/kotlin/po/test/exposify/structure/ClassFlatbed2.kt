@@ -19,7 +19,7 @@ import po.exposify.dto.models.CommonDTORegistryItem
 import po.exposify.dto.models.DTOTracker
 import po.exposify.entity.classes.ExposifyEntityClass
 import po.lognotify.TasksManaged
-import po.lognotify.extensions.startTaskAsync
+import po.lognotify.extensions.newTaskAsync
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty
@@ -114,7 +114,7 @@ import kotlin.reflect.KProperty
             entityModel: LongEntityClass<ENTITY>,
             noinline block: suspend DTOConfigTest<DATA, ENTITY>.() -> Unit
         ): Unit where COMMON : CommonDTOTest<COMMON, DATA, ENTITY>, ENTITY : LongEntity, DATA : DataModel =
-            startTaskAsync("DTO Configuration") {
+            newTaskAsync("DTO Configuration", "RootDTOTest") {
 
             }.resultOrException()
     }

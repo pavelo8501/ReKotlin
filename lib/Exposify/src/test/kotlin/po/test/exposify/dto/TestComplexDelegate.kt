@@ -129,12 +129,12 @@ class TestComplexDelegate : DatabaseTest() {
         var updatedPageDTO : PageDTO? = null
         var pickedData: Page? = null
         var pickedDTO : PageDTO? = null
-        connection?.service(PageDTO, TableCreateMode.CREATE) {
+        connection.service(PageDTO, TableCreateMode.CREATE) {
             page.sections.addAll(sourceSections)
             val updateResult = update(page)
             updatedPageData = updateResult.getDataForced()
             updatedPageDTO = updateResult.getDTO() as PageDTO
-            val selectionResult = pick(updatedPageData.id)
+            val selectionResult = pickById(updatedPageData.id)
             pickedData = selectionResult.getDataForced()
             pickedDTO = selectionResult.getDTO() as PageDTO
         }

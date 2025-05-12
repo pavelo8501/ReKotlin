@@ -60,7 +60,7 @@ object DatabaseManager {
         context: (ConnectionContext.()->Unit)? = null
     ): ConnectionContext? {
 
-       return newTaskAsync("openConnectionSync") {
+       return newTaskAsync("openConnectionSync", "DatabaseManager") {
             connectionInfo.hikariDataSource = provideDataSource(connectionInfo)
             val newConnection = Database.connect(connectionInfo.hikariDataSource!!)
             val connectionClass = ConnectionClass(connectionInfo, newConnection, sessionManager)

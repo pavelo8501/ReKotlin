@@ -67,7 +67,7 @@ class SwitchQuery<DTO: ModelDTO, D: DataModel, E: LongEntity> (val dtoClass: Roo
 
 
     internal suspend fun resolveQuery():CommonDTO<DTO, D, E>?{
-        return dtoClass.serviceContext.pick(id).getDTO()
+        return dtoClass.serviceContext.pickById(id).getDTO()
     }
 
 //    suspend fun idEqualsTo(id: Long):SwitchQuery<DTO, D, E>{

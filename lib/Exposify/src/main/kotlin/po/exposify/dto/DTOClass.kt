@@ -21,7 +21,7 @@ import po.exposify.scope.sequence.models.RootSequencePack
 import po.exposify.scope.service.ServiceClass
 import po.exposify.scope.service.ServiceContext
 import po.lognotify.TasksManaged
-import po.lognotify.extensions.startTaskAsync
+import po.lognotify.extensions.newTaskAsync
 import po.misc.collections.Identifiable
 import po.misc.collections.generateKey
 import po.misc.types.castOrThrow
@@ -33,17 +33,17 @@ abstract class RootDTO<DTO, DATA, ENTITY>()
         where DTO: ModelDTO, DATA: DataModel, ENTITY: LongEntity
 {
 
-
     private var serviceContextOwned: ServiceContext<DTO, DATA, ENTITY>? = null
     val  serviceContext : ServiceContext<DTO, DATA, ENTITY> get()= serviceContextOwned.getOrInitEx("ServiceContext uninitialized",
         ExceptionCode.ABNORMAL_STATE)
 
-    @PublishedApi
-    internal var initialConfig: DTOConfig<DTO, DATA, ENTITY>? = null
-    override val config: DTOConfig<DTO, DATA, ENTITY>
-        get() = initialConfig.getOrInitEx("RegistryItem uninitialized", ExceptionCode.LAZY_NOT_INITIALIZED)
-
-    override val qualifiedName: String get() = "DTOClass[${config.registry.dtoRootName}]"
+    override val qualifiedName: String get() {
+        return if(initialConfig != null){
+            "RootDTO[${config.registry.dtoRootName}]"
+        }else{
+            "RootDTO[Uninitialized]"
+        }
+    }
 
     suspend fun initialization() {
         if (!initialized) setup()
@@ -54,13 +54,13 @@ abstract class RootDTO<DTO, DATA, ENTITY>()
     }
 
     fun getServiceClass(): ServiceClass<DTO, DATA, ENTITY>{
-       return   serviceContextOwned?.serviceClass.getOrInitEx("ServiceClass not assigned for ${qualifiedName}")
+       return   serviceContextOwned?.serviceClass.getOrInitEx("ServiceClass not assigned for $qualifiedName")
     }
 
     inline fun <reified COMMON,  reified RD, reified RE> configuration(
         entityModel: ExposifyEntityClass<RE>,
         noinline block: suspend DTOConfig<COMMON, RD, RE>.() -> Unit
-    ): Unit where COMMON : ModelDTO, RD : DataModel,   RE : LongEntity = startTaskAsync("DTO Configuration") {
+    ): Unit where COMMON : ModelDTO, RD : DataModel,   RE : LongEntity = newTaskAsync("DTO Configuration", qualifiedName) {
 
         val commonDTOClass =  COMMON::class.castOrInitEx<KClass<out CommonDTO<COMMON, RD, RE>>>(
             "KClass<out CommonDTO<DTO, DATA, ENTITY> cast failed")
@@ -70,7 +70,7 @@ abstract class RootDTO<DTO, DATA, ENTITY>()
         val newConfiguration = DTOConfig(newRegistryItem, entityModel, this as DTOBase<COMMON, RD, RE>)
         newConfiguration.block()
 
-        initialConfig = newConfiguration.castOrInitEx<DTOConfig<DTO, DATA, ENTITY>>()
+        initialConfig = newConfiguration.castOrInitEx<DTOConfig<COMMON, RD, RE>>()
         initialized = true
     }.resultOrException()
 
@@ -85,7 +85,7 @@ abstract class RootDTO<DTO, DATA, ENTITY>()
                 .castOrThrow<RootSequencePack<DTO, DATA, ENTITY>, OperationsException>()
 
             val emitter = serviceClass.requestEmitter()
-            emitter.dispatch<DTO, DATA, ENTITY, List<DATA>>(pack, handlerBlock)
+            emitter.dispatch(pack, handlerBlock)
         }
     }
 }
@@ -94,13 +94,13 @@ abstract class DTOClass<DTO, DATA, ENTITY>(
     val  parentClass: DTOBase<*, *, *>,
 ): DTOBase<DTO, DATA, ENTITY>(), ClassDTO, TasksManaged where DTO: ModelDTO, DATA : DataModel, ENTITY: LongEntity {
 
-    @PublishedApi
-    internal var initialConfig: DTOConfig<DTO, DATA, ENTITY>? = null
-
-    override val config: DTOConfig<DTO, DATA, ENTITY>
-        get() = initialConfig.getOrInitEx("RegistryItem uninitialized", ExceptionCode.LAZY_NOT_INITIALIZED)
-
-    override val qualifiedName: String get() = "DTOClass[${config.registry.dtoClassName}]"
+    override val qualifiedName: String get() {
+        return if(initialConfig != null){
+            "DTOClass[${config.registry.dtoRootName}]"
+        }else{
+            "DTOClass[Uninitialized]"
+        }
+    }
 
     suspend fun initialization() {
         if (!initialized) setup()
@@ -108,7 +108,7 @@ abstract class DTOClass<DTO, DATA, ENTITY>(
     inline fun <reified COMMON,  reified RD, reified RE> configuration(
         entityModel: ExposifyEntityClass<RE>,
         noinline block: suspend DTOConfig<COMMON, RD, RE>.() -> Unit
-    ): Unit where COMMON : ModelDTO,  RE : LongEntity, RD : DataModel = startTaskAsync("DTO Configuration") {
+    ): Unit where COMMON : ModelDTO,  RE : LongEntity, RD : DataModel = newTaskAsync("DTO Configuration", qualifiedName) {
 
         val commonDTOClass =  COMMON::class.castOrInitEx<KClass<out CommonDTO<COMMON, RD, RE>>>(
             "KClass<out CommonDTO<DTO, DATA, ENTITY> cast failed")
@@ -117,7 +117,7 @@ abstract class DTOClass<DTO, DATA, ENTITY>(
         @Suppress("UNCHECKED_CAST") // Safe cast, to obtain reified class info
         val newConfiguration = DTOConfig(newRegistryItem, entityModel, this as DTOBase<COMMON, RD, RE>)
         newConfiguration.block()
-        initialConfig =  newConfiguration.castOrInitEx<DTOConfig<DTO, DATA, ENTITY>>()
+        initialConfig =  newConfiguration.castOrInitEx<DTOConfig<COMMON, RD, RE>>()
         initialized = true
     }.resultOrException()
 
@@ -127,7 +127,14 @@ abstract class DTOClass<DTO, DATA, ENTITY>(
 sealed class DTOBase<DTO, DATA, ENTITY>(): TasksManaged,  ClassDTO, Identifiable
         where DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity{
 
-    abstract val config: DTOConfig<DTO, DATA, ENTITY>
+   // abstract val config: DTOConfig<DTO, DATA, ENTITY>
+
+    @PublishedApi
+    internal var initialConfig: DTOConfig<DTO, DATA, ENTITY>? = null
+    val config: DTOConfig<DTO, DATA, ENTITY>
+        get() = initialConfig.getOrInitEx("DTOConfig uninitialized", ExceptionCode.LAZY_NOT_INITIALIZED)
+
+
     override var personalName: String = "DTO[Uninitialized]"
     override var initialized: Boolean = false
     abstract override val qualifiedName: String

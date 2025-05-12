@@ -9,7 +9,7 @@ import po.exposify.scope.service.ServiceClass
 import po.exposify.scope.service.ServiceContext
 import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.TasksManaged
-import po.lognotify.extensions.startTaskAsync
+import po.lognotify.extensions.newTaskAsync
 
 class ConnectionContext(
     internal val connection: Database,
@@ -26,7 +26,7 @@ class ConnectionContext(
     ) where DTO : ModelDTO, DATA : DataModel, E: LongEntity {
 
         val serviceClass =  ServiceClass<DTO, DATA, E>(connClass, createOptions)
-        startTaskAsync("Create Service") {
+        newTaskAsync("Create Service", "ConnectionContext") {
             serviceClass.startService(dtoClass, block)
         }.onComplete {
             connClass.addService(serviceClass)

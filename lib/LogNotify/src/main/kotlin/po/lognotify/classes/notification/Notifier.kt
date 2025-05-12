@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.count
 import kotlinx.coroutines.flow.filter
 import po.lognotify.classes.notification.enums.EventType
+import po.lognotify.classes.notification.models.ConsoleBehaviour
 import po.lognotify.classes.notification.models.Notification
 import po.lognotify.classes.notification.models.NotifyConfig
 import po.lognotify.classes.notification.sealed.DataProvider
@@ -21,8 +22,6 @@ import po.lognotify.models.TaskDispatcher
 import po.misc.exceptions.CoroutineInfo
 
 interface NotificationProvider{
-
-    suspend fun start()
 
     fun echo(message: String)
     suspend fun info(message: String)
@@ -62,18 +61,14 @@ sealed class NotifierBase(
 
     private var hasRealEvents = false
     private val bufferedNotifications = mutableListOf<Notification>()
-    private val _notification = MutableSharedFlow<Notification>(
+    private val notificationFlow = MutableSharedFlow<Notification>(
         replay = 10,
         extraBufferCapacity = 64,
         onBufferOverflow = BufferOverflow.SUSPEND
     )
-    val notifications: SharedFlow<Notification> = _notification.asSharedFlow()
+    val notifications: SharedFlow<Notification> = notificationFlow.asSharedFlow()
 
     private fun toConsole(notification: Notification) {
-        if(config.muteInfo && notification.severity == SeverityLevel.INFO){ return }
-        if(config.muteWarning && notification.severity == SeverityLevel.WARNING){ return }
-
-
 
         when (notification.eventType) {
             EventType.START -> {
@@ -93,31 +88,42 @@ sealed class NotifierBase(
         }
     }
 
-    protected suspend fun emit(notification: Notification) {
+    protected suspend fun emitNotification(notification: Notification) {
 
-        when(notification.eventType){
-            EventType.START, EventType.STOP -> {
-                if(config.muteConsoleNoEvents){
-                    bufferedNotifications.add(notification)
+
+        when(config.console){
+            ConsoleBehaviour.Mute->{ }
+            ConsoleBehaviour.MuteInfo -> {
+                if(notification.severity != SeverityLevel.INFO){
+                   toConsole(notification)
                 }
-            }else -> {
-                hasRealEvents = true
-                if(config.muteConsoleNoEvents){
+            }
+            ConsoleBehaviour.MuteNoEvents -> {
+                if(notification.provider is ProviderTask && notification.provider.nestingLevel == 0){
+                    toConsole(notification) //If root task print header footer anyway
+                }else{
+                    if(hasRealEvents){
+                        toConsole(notification)
+                    }else{
+                        bufferedNotifications.add(notification)
+                    }
+                }
+                if(notification.severity != SeverityLevel.SYS_INFO){
+                    hasRealEvents = true
                     bufferedNotifications.forEach {
                         toConsole(it)
                     }
-                    toConsole(notification)
                     bufferedNotifications.clear()
                 }
             }
+            ConsoleBehaviour.FullPrint -> {
+                 toConsole(notification)
+            }
         }
-
-
-        bufferedNotifications.add(notification)
-        _notification.emit(notification)
+        notificationFlow.emit(notification)
     }
 
-    suspend fun createTaskNotification(
+    private suspend fun createTaskNotification(
         provider: DataProvider,
         message: String,
         type: EventType,
@@ -128,11 +134,8 @@ sealed class NotifierBase(
             type,
             severity,
             message)
-        if(config.muteConsole || config.muteException){
-            emit(notification)
-        }else{
-            emit(notification)
-        }
+
+        emitNotification(notification)
     }
 
     fun setNotifierConfig(configuration : NotifyConfig){
@@ -143,9 +146,6 @@ sealed class NotifierBase(
         return config
     }
 
-    override suspend fun start(){
-        createTaskNotification(provider, "Start", EventType.START, SeverityLevel.INFO)
-    }
     internal suspend  fun systemInfo(type : EventType,  severity: SeverityLevel, message: String = ""){
         createTaskNotification(provider, message, type,  severity)
     }

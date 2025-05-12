@@ -18,7 +18,8 @@ import po.exposify.scope.sequence.classes.RootSequenceHandler
 import po.exposify.scope.sequence.enums.SequenceID
 import po.exposify.scope.sequence.models.RootSequencePack
 import po.lognotify.TasksManaged
-import po.lognotify.extensions.startTaskAsync
+import po.lognotify.anotations.LogOnFault
+import po.lognotify.extensions.newTaskAsync
 import po.misc.collections.generateKey
 
 class ServiceContext<DTO, DATA, ENTITY: LongEntity>(
@@ -26,6 +27,7 @@ class ServiceContext<DTO, DATA, ENTITY: LongEntity>(
     internal val dtoClass: RootDTO<DTO, DATA, ENTITY>,
 ): TasksManaged,  AsContext<DATA>  where DTO : ModelDTO, DATA: DataModel{
 
+    @LogOnFault
     val personalName: String = "ServiceContext[${dtoClass.config.registry.dtoName}]"
 
     private val dbConnection: Database = serviceClass.connection
@@ -33,84 +35,66 @@ class ServiceContext<DTO, DATA, ENTITY: LongEntity>(
 
     private  val executionProvider = RootExecutionProvider(dtoClass)
 
-    fun truncate(){
-        startTaskAsync("Truncate", personalName) {
+    fun truncate(): Unit?
+        = newTaskAsync("Truncate", personalName) {
             val entityModel = dtoClass.getEntityModel()
             val table = entityModel.table
             suspendedTransactionAsync {
                 exec("TRUNCATE TABLE ${table.tableName} RESTART IDENTITY CASCADE")
             }.await()
-        }
-    }
+        }.resultOrException()
 
-    fun <T: IdTable<Long>>pick(conditions: WhereQuery<T>): ResultSingle<DTO, DATA, ENTITY>{
-        val result =  startTaskAsync("Pick by conditions", personalName) {
+    fun <T: IdTable<Long>>pick(conditions: WhereQuery<T>): ResultSingle<DTO, DATA, ENTITY>
+         = newTaskAsync("Pick by conditions", personalName) {
             suspendedTransactionAsync {
-                //dtoClass.pick<DTO, DATA, ENTITY, T>(conditions)
                 executionProvider.pick(conditions)
             }.await()
         }.resultOrException()
-        return result
-    }
 
-    fun  pick(id: Long): ResultSingle<DTO, DATA, ENTITY>{
-        val result =  startTaskAsync("Pick by ID", personalName) {
+    fun pickById(id: Long): ResultSingle<DTO, DATA, ENTITY>
+        = newTaskAsync("Pick by ID", personalName) {
+
             suspendedTransactionAsync {
-                //dtoClass.pickById<DTO, DATA, ENTITY>(id)
                 executionProvider.pickById(id)
             }.await()
         }.resultOrException()
-        return result
-    }
 
-    fun select(): ResultList<DTO, DATA, ENTITY> {
-        val result =  startTaskAsync("Select", personalName) {
+
+    fun select(): ResultList<DTO, DATA, ENTITY>
+         =  newTaskAsync("Select", personalName) {
             suspendedTransactionAsync {
                 executionProvider.select()
             }.await()
         }.resultOrException()
-        return result
-    }
 
-    fun <T: IdTable<Long>> select(conditions:  WhereQuery<T>): ResultList<DTO, DATA, ENTITY>{
-        val crudResult =  startTaskAsync("Select With Conditions", personalName) {
+    fun <T: IdTable<Long>> select(conditions:  WhereQuery<T>): ResultList<DTO, DATA, ENTITY>
+         = newTaskAsync("Select With Conditions", personalName) {
             suspendedTransactionAsync {
-                //dtoClass.select<T, DTO, DATA, ENTITY>(conditions)
                 executionProvider.select(conditions)
             }.await()
         }.resultOrException()
-        return crudResult
-    }
 
-    fun update(dataModel : DATA): ResultSingle<DTO,DATA, ENTITY> {
-        val result =  startTaskAsync("Update", personalName) {
+    fun update(dataModel : DATA): ResultSingle<DTO,DATA, ENTITY>
+      = newTaskAsync("Update", personalName) {
             suspendedTransactionAsync {
-              //  dtoClass.update<DTO, DATA, ENTITY>(dataModel)
                 executionProvider.update(dataModel)
             }.await()
         }.resultOrException()
-        return result
-    }
 
-    fun update(dataModels : List<DATA>): ResultList<DTO,DATA, ENTITY> {
-       val result =  startTaskAsync("Update", personalName) {
-            suspendedTransactionAsync {
-               // dtoClass.update<DTO, DATA, ENTITY>(dataModels)
-                executionProvider.update(dataModels)
-            }.await()
-        }.resultOrException()
-       return result
-    }
+    fun update(dataModels : List<DATA>): ResultList<DTO,DATA, ENTITY>
+       =  newTaskAsync("Update", personalName) {
+        suspendedTransactionAsync {
+            executionProvider.update(dataModels)
+        }.await()
+    }.resultOrException()
 
-    fun delete(toDelete: DATA): ResultList<DTO, DATA, ENTITY>?{
-        val result =  startTaskAsync("Delete", personalName) {
+    fun delete(toDelete: DATA): ResultList<DTO, DATA, ENTITY>?
+       =  newTaskAsync("Delete", personalName) {
             suspendedTransactionAsync {
-               // dtoClass.delete(toDelete)
                 executionProvider.update(toDelete)
             }.await()
+        null
         }.resultOrException()
-        return  null
-    }
 
     fun sequence(
         sequenceID : SequenceID,

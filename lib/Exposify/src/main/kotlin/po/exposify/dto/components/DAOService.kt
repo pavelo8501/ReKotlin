@@ -17,6 +17,7 @@ import po.exposify.entity.classes.ExposifyEntityClass
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.getOrOperationsEx
 import po.lognotify.TasksManaged
+import po.lognotify.anotations.LogOnFault
 import po.lognotify.extensions.resultOrNull
 import po.lognotify.extensions.subTask
 
@@ -26,7 +27,10 @@ class DAOService<DTO, DATA, ENTITY>(
     private val registryRecord: DTORegistryItem<DTO, DATA, ENTITY>,
 ): TasksManaged, IdentifiableComponent where DTO: ModelDTO, DATA: DataModel, ENTITY : LongEntity{
 
+    @LogOnFault()
     override val qualifiedName: String = "DAOService[${registryRecord.dtoName}]"
+
+    @LogOnFault()
     override val name: String = "DAOService"
 
 
@@ -52,10 +56,12 @@ class DAOService<DTO, DATA, ENTITY>(
         queryResult
     }.resultOrNull()
 
-    suspend fun pickById(id: Long): ENTITY? =  subTask("PickById", qualifiedName) {handler->
+    suspend fun pickById(id: Long): ENTITY?
+        = subTask("PickById", qualifiedName) {handler->
+      @LogOnFault()
       val entity =  entityModel.findById(id)
       if(entity == null){
-          handler.warn("Entity with id: $id not found")
+          handler.info("Entity with id: $id not found")
       }
       entity
     }.resultOrNull()
