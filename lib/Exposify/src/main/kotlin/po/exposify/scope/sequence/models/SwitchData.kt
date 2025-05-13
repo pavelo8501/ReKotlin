@@ -14,7 +14,6 @@ internal data class SwitchData<F_DTO: ModelDTO, FD: DataModel, FE: LongEntity>(
     var sequenceContext :  SequenceContext<F_DTO, FD, FE>? = null
         private set
 
-
     fun setSourceContext(context: SequenceContext<F_DTO, FD, FE>){
         sequenceContext = context
     }

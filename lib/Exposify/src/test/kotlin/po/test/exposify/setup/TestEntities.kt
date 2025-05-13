@@ -28,8 +28,8 @@ class PageEntity(id: EntityID<Long>) : LongEntity(id) {
     var name by Pages.name
     var langId by Pages.langId
     var updated by Pages.updated
-    var updatedBy by UserEntity referencedOn Pages.updatedBy  // ✅ now `val` (not mutated manually)
-    val sections by SectionEntity referrersOn Sections.page   // ✅ read-only
+    var updatedBy by UserEntity referencedOn Pages.updatedBy
+    val sections by SectionEntity referrersOn Sections.page
 }
 
 class SectionEntity(id: EntityID<Long>) : LongEntity(id) {

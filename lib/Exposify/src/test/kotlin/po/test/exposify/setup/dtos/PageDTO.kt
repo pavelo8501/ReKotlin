@@ -40,7 +40,9 @@ class PageDTO(
     val sections : List<SectionDTO> by oneToManyOf(SectionDTO, Page::sections, PageEntity::sections, SectionEntity::page)
 
     companion object: RootDTO<PageDTO, Page, PageEntity>(){
+
         override suspend fun setup() {
+
             configuration<PageDTO, Page, PageEntity>(PageEntity){
                 hierarchyMembers(SectionDTO, ContentBlockDTO)
                 useDataModelBuilder { Page() }
