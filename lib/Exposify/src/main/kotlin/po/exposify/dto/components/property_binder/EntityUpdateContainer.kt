@@ -9,13 +9,14 @@ import po.exposify.exceptions.OperationsException
 import po.misc.types.getOrThrow
 
 
-fun <TE : LongEntity, F_DTO: ModelDTO, FD: DataModel, FE: LongEntity> TE.containerize(
+fun <E : LongEntity, F_DTO: ModelDTO, FD: DataModel, FE: LongEntity> E.containerize(
     updateMode : UpdateMode,
-    parentDTO: CommonDTO<F_DTO, FD, FE>? = null
-):EntityUpdateContainer<TE, F_DTO, FD, FE> {
-    val container = EntityUpdateContainer<TE, F_DTO, FD, FE>(this, updateMode)
-    parentDTO?.let {
-        container.setParentData(parentDTO)
+    foreignDTO: CommonDTO<F_DTO, FD, FE>? = null,
+    inserted: Boolean = false
+):EntityUpdateContainer<E, F_DTO, FD, FE> {
+    val container = EntityUpdateContainer<E, F_DTO, FD, FE>(this, updateMode, inserted)
+    foreignDTO?.let {
+        container.setParentData(foreignDTO)
     }
     return container
 }
@@ -32,8 +33,9 @@ data class EntityUpdateContainer<TE : LongEntity, F_DTO: ModelDTO, FD: DataModel
         get()= parentDto.getOrThrow<CommonDTO<F_DTO, FD, FE>, OperationsException>()
 
 
-    fun insertedEntity(value : Boolean){
+    fun insertedEntity(value : Boolean): EntityUpdateContainer<TE, F_DTO, FD, FE>{
         isEntityInserted = value
+        return this
     }
 
     val inserted: Boolean get() = isEntityInserted

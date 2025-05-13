@@ -1,7 +1,22 @@
 package po.test.exposify.setup
 
+import po.test.exposify.setup.dtos.ContentBlock
 import po.test.exposify.setup.dtos.Page
 import po.test.exposify.setup.dtos.Section
+
+
+private fun contentBlockModel(section : Section): ContentBlock{
+  return  ContentBlock(
+        id =  0,
+        name =  "undefined",
+        content =  "undefined",
+        tag =  "no_tag",
+        jsonLd =  "undefined",
+        classList =  emptyList(),
+        metaTags =  emptyList(),
+        langId =  section.langId,
+        sectionId =  section.id)
+}
 
 private fun sectionModel(
     parent : Page,
@@ -46,6 +61,20 @@ fun pageModelsWithSections(pageCount: Int, sectionsCount: Int, updatedBy : Long)
     pages.forEach {
         for(index  in 1 .. sectionsCount){
             it.sections.add(sectionModel(it,index.toString(), updatedBy))
+        }
+    }
+    return  pages
+}
+
+fun pagesSectionsContentBlocks(pageCount: Int, sectionsCount: Int, contentBlocksCount: Int, updatedBy : Long): List<Page>{
+
+    val pages = pageModelsWithSections(pageCount, sectionsCount, updatedBy)
+
+    pages.forEach {page->
+        page.sections.forEach { section->
+            for(index  in 1 .. contentBlocksCount) {
+                section.contentBlocks.add(contentBlockModel(section))
+            }
         }
     }
     return  pages

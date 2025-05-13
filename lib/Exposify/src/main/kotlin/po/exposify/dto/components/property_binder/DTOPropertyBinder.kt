@@ -41,11 +41,18 @@ class DTOPropertyBinder<DTO, DATA, ENTITY>(
     }
 
     suspend fun <P_DTO: ModelDTO, PD: DataModel, PE: LongEntity> update(
-        entityContainer : EntityUpdateContainer<ENTITY, P_DTO, PD, PE>)
-    {
-        responsiveDelegates.forEach { it.update(entityContainer) }
-        complexDelegateMap.values.forEach { it.beforeInsertedUpdate(entityContainer) }
-        foreignIDClassDelegates.forEach { it.beforeInsertedUpdate(entityContainer) }
+        container : EntityUpdateContainer<ENTITY, P_DTO, PD, PE>
+    ){
+
+        if(container.updateMode == UpdateMode.ENTITY_TO_MODEL && container.inserted){
+            val id = container.ownEntity.id.value
+            dto.id =  id
+            dto.dataModel.id = id
+        }
+
+        responsiveDelegates.forEach { it.update(container) }
+        complexDelegateMap.values.forEach { it.beforeInsertedUpdate(container) }
+        foreignIDClassDelegates.forEach { it.beforeInsertedUpdate(container) }
     }
 
     suspend fun <P_DTO: ModelDTO, PD: DataModel, FE: LongEntity> afterInsertUpdate(

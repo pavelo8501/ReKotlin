@@ -41,6 +41,8 @@ class RootTask<R: Any?>(
     override val taskHandler: TaskHandler<R> = TaskHandler(this, exceptionHandler)
     override val taskRunner: TaskRunner<R> = TaskRunner(this, taskHandler, exceptionHandler)
 
+    val subTasksCount : Int get() = registry.childTasks.count()
+
     fun <R> createNewMemberTask(name : String, moduleName: String?): ManagedTask<R>{
         val lasEntry =  registry.getLastRegistered()
         when(lasEntry){
@@ -66,9 +68,10 @@ class RootTask<R: Any?>(
             coroutineContext.cancel(cancellation)
         }
     }
-    fun subTasksCount(): Int{
-        return  registry.childTasks.count()
+    fun lastTask(): TaskSealedBase<*>{
+       return registry.getLastRegistered()
     }
+
 }
 
 class ManagedTask<R: Any?>(

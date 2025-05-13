@@ -10,6 +10,7 @@ import po.lognotify.classes.task.ManagedTask
 import po.lognotify.classes.task.RootTask
 import po.lognotify.classes.task.TaskHandler
 import po.lognotify.classes.task.UpdateType
+import po.lognotify.exceptions.LoggerException
 import po.lognotify.extensions.getOrLoggerException
 import po.lognotify.logging.LoggingService
 import po.lognotify.models.TaskDispatcher
@@ -20,12 +21,19 @@ import kotlin.coroutines.coroutineContext
 
 
 fun  TasksManaged.logNotify(): LogNotifyHandler{
-
     return  LogNotifyHandler(TasksManaged.notifier)
-
 }
 
+
+
 interface TasksManaged {
+
+    fun lastTaskHandler(): TaskHandler<*>{
+       return taskDispatcher.lastRootTask()?.run {
+           lastTask().taskHandler
+        }?:throw LoggerException("No active tasks found")
+    }
+
 
     companion object{
 
@@ -34,8 +42,6 @@ interface TasksManaged {
 
         private val notifyConfig = NotifyConfig()
         val notifier : RootNotifier = RootNotifier(taskDispatcher, null)
-
-
 
         internal fun defaultContext(name: String): CoroutineContext =
             SupervisorJob() + Dispatchers.Default + CoroutineName(name)

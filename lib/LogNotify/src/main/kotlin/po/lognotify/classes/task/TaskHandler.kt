@@ -21,14 +21,14 @@ class TaskHandler<R: Any?>(
     fun echo(message: String){
         notifier.echo(message)
     }
-    suspend fun info(message: String){
+    fun info(message: String){
        notifier.info(message)
     }
-    suspend fun warn(message: String){
+    fun warn(message: String){
         notifier.warn(message)
     }
 
-    suspend fun hierarchyRoot(): RootTask<*>{
+    fun hierarchyRoot(): RootTask<*>{
         return if(task is ManagedTask<*>){
             task.hierarchyRoot
         }else{

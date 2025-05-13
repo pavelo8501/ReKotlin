@@ -13,11 +13,10 @@ import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.components.DAOService
 import po.exposify.dto.components.DataModelContainer
 import po.exposify.dto.components.property_binder.DTOPropertyBinder
-import po.exposify.dto.components.property_binder.PropertyBinder
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.dto.models.CommonDTORegistryItem
 import po.exposify.dto.models.DTOTracker
 import po.exposify.dao.classes.ExposifyEntityClass
+import po.exposify.dto.models.DTORegistryItem
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.newTaskAsync
 import kotlin.properties.ReadOnlyProperty
@@ -72,8 +71,8 @@ import kotlin.reflect.KProperty
     {
 
         lateinit var dtoClassConfig: DTOConfigTest<DATA, ENTITY>
-        private lateinit var registryItem: CommonDTORegistryItem<ModelDTO, DATA, ENTITY>
-        override val dtoName: String get() = "[CommonDTO ${registryItem.commonDTOKClass.simpleName.toString()}]"
+        private lateinit var registryItem: DTORegistryItem<DTO, DATA, ENTITY>
+        override val dtoName: String get() = registryItem.dtoClassQualifiedName
         abstract override val dataModel: DATA
         override lateinit var daoService: DAOService<ModelDTO, DATA, ENTITY>
         private var insertedEntity: ENTITY? = null
@@ -82,8 +81,6 @@ import kotlin.reflect.KProperty
                 return insertedEntity ?: daoService.entityModel[id]
             }
         internal lateinit var dtoPropertyBinder: DTOPropertyBinder<DTO, DATA, ENTITY>
-
-      //  override lateinit var propertyBinder: PropertyBinder<DATA, ENTITY>
 
         override lateinit var dataContainer: DataModelContainer<*, *>
         override lateinit var dtoTracker: DTOTracker<*, *>

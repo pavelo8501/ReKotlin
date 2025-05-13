@@ -31,6 +31,7 @@ enum class ExceptionCode(val value: Int) {
     REPOSITORY_RETHROWN(4000),
     REPOSITORY_NOT_INITIALIZED(4001),
     REPOSITORY_NOT_FOUND(4002),
+    DTO_LOOKUP_FAILURE(4003),
 
     // Binding / Data Model Layer
     BINDING_PROPERTY_MISSING(5001),

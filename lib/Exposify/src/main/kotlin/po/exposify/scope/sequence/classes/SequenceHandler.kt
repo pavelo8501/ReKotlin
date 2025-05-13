@@ -93,16 +93,14 @@ sealed class SequenceHandlerBase<DTO, DATA, ENTITY>(
         return dataResult
     }
 
-    suspend fun withData(inputData : List<DATA>){
+    fun withData(inputData : List<DATA>){
         inputDataSource.clear()
         inputDataSource.addAll(inputData)
-        println(CoroutineInfo.createInfo(coroutineContext))
     }
 
-    suspend fun withData(inputData : DATA){
+    fun withData(inputData : DATA){
         inputDataSource.clear()
         inputDataSource.add(inputData)
-        println(CoroutineInfo.createInfo(coroutineContext))
     }
 
     fun <T: IdTable<Long>> withQuery(where: WhereQuery<T>){

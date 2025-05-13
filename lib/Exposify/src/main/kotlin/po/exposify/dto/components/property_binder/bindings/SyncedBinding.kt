@@ -34,26 +34,10 @@ class SyncedBinding<DATA : DataModel, ENT : LongEntity, T>(
                 }
                 return false
             }
-            UpdateMode.ENTITY_TO_MODEL_FORCED -> {
-                if(entityValue != null){
-                    dataProperty.set(dtoModel, entityValue)
-                    callback?.invoke(dataProperty.name, propertyType, UpdateMode.ENTITY_TO_MODEL)
-                    true
-                }else{
-                    false
-                }
-            }
             UpdateMode.MODEL_TO_ENTITY -> {
                 if (!valuesDiffer) return false
                 referencedProperty.set(entityModel, dtoValue)
                 true
-            }
-            UpdateMode.MODEL_TO_ENTITY_FORCED -> {
-                if(entityValue != null) {
-                    referencedProperty.set(entityModel, dtoValue)
-                    return true
-                }
-                return false
             }
         }
     }

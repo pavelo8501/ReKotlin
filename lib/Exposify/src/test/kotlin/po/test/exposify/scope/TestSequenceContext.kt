@@ -79,7 +79,6 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
             }
         }
 
-
         val result =  PageDTO.runSequence(SequenceID.UPDATE, SectionDTO){
             withData(pageModelsWithSections(pageCount = 1, sectionsCount = 1, updatedBy = updatedById))
             withQuery(WhereQuery(Pages).byId(1))

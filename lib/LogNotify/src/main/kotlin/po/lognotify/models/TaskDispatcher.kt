@@ -27,7 +27,7 @@ class TaskDispatcher() : UpdatableTasks{
     override fun notifyUpdate(handler: UpdateType) {
         val stats = LoggerStats(
             topTasksCount = taskHierarchy.size,
-            totalTasksCount = taskHierarchy.values.sumOf { it.subTasksCount() }
+            totalTasksCount = taskHierarchy.values.sumOf { it.subTasksCount}
         )
         callbackRegistry.filter { it.key == handler} .forEach { (_, cb) -> cb(stats) }
     }

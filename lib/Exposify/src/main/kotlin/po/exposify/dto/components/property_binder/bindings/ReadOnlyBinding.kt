@@ -50,15 +50,6 @@ class ReadOnlyBinding<DATA : DataModel, ENT : LongEntity, T>(
                 }
                 return false
             }
-
-            UpdateMode.MODEL_TO_ENTITY_FORCED -> {
-                if(entityValue != null) {
-                    dataProperty.set(dtoModel, entityValue)
-                    updated(dataProperty.name, propertyType, UpdateMode.MODEL_TO_ENTITY_FORCED, null)
-                    return true
-                }
-                return false
-            }
             else -> { false  }
         }
 

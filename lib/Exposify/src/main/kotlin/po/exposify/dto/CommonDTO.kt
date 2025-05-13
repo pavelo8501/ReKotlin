@@ -1,14 +1,11 @@
 package po.exposify.dto
 
 import org.jetbrains.exposed.dao.LongEntity
-import po.exposify.dto.components.property_binder.PropertyBinder
-import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.components.DAOService
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.common.classes.MapBuilder
 import po.exposify.dto.components.DTOConfig
 import po.exposify.common.classes.repoBuilder
-import po.exposify.dto.components.ClassExecutionProvider
 import po.exposify.dto.components.DTOFactory
 import po.exposify.dto.components.DataModelContainer
 import po.exposify.dto.components.MultipleRepository
@@ -20,9 +17,9 @@ import po.exposify.dto.components.relation_binder.MultipleChildContainer
 import po.exposify.dto.components.relation_binder.SingleChildContainer
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.dto.models.CommonDTORegistryItem
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.dto.enums.DTOInitStatus
+import po.exposify.dto.models.DTORegistryItem
 import po.exposify.dto.models.DTOTracker
 import po.exposify.exceptions.OperationsException
 import po.exposify.extensions.castOrOperationsEx
@@ -38,16 +35,9 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     val dtoClassConfig: DTOConfig<DTO, DATA, ENTITY>
         get() = dtoClass.config.castOrOperationsEx<DTOConfig<DTO, DATA, ENTITY>>("dtoClassConfig uninitialized")
 
-    private val registryItem : CommonDTORegistryItem<DTO, DATA, ENTITY> by lazy {
-        val regItem =  CommonDTORegistryItem(
-            dtoClassConfig.registry.dataKClass,
-            dtoClassConfig.registry.entityKClass,
-            dtoClassConfig.registry.commonDTOKClass,
-            this)
-        regItem
-    }
+    private val registryRecord : DTORegistryItem<DTO, DATA, ENTITY> get() = dtoClass.config.registryRecord
 
-    override val dtoName : String get() = "[CommonDTO ${registryItem.commonDTOKClass.simpleName.toString()}]"
+    override val dtoName : String get() = "[CommonDTO ${registryRecord.derivedDTOClazz.simpleName.toString()}]"
 
     abstract override var dataModel: DATA
 
@@ -63,13 +53,6 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
 
     @PublishedApi
     internal val dtoPropertyBinder : DTOPropertyBinder<DTO, DATA, ENTITY> = DTOPropertyBinder(this)
-
-//    override val propertyBinder : PropertyBinder<DATA, ENTITY>
-//        get()  {
-//            initStatus = DTOInitStatus.PARTIAL_WITH_DATA
-//            return dtoClassConfig.propertyBinder
-//        }
-
 
     override val dataContainer: DataModelContainer<DTO, DATA> by lazy {
        val dataContainer = DataModelContainer<DTO, DATA>(dataModel, dtoClassConfig.dtoFactory.dataBlueprint)
@@ -168,11 +151,11 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
             .mapNotNull{ it.safeCast<RepositoryBase<DTO, DATA, ENTITY, F_DTO, FD, FE>>() }
     }
 
-    internal fun <F_DTO: ModelDTO, FD: DataModel, FE: LongEntity> executionProvider(
-        childClass: DTOClass<F_DTO, FD, FE>
-    ) :ClassExecutionProvider<DTO, DATA, ENTITY, F_DTO, FD, FE>{
-        return ClassExecutionProvider(this, childClass)
-    }
+//    internal fun <F_DTO: ModelDTO, FD: DataModel, FE: LongEntity> executionProvider(
+//        childClass: DTOClass<F_DTO, FD, FE>
+//    ) :ClassExecutionProvider<DTO, DATA, ENTITY, F_DTO, FD, FE>{
+//        return ClassExecutionProvider(this, childClass)
+//    }
 
 
 //    suspend fun <P_DTO: ModelDTO, PD: DataModel, PE: LongEntity>updateBindingsBeforeInserted(
@@ -208,12 +191,12 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
 //        return this
 //    }
 
-   internal fun initialize() { selfRegistration(registryItem) }
+   internal fun initialize() { selfRegistration(registryRecord) }
 
     companion object{
-        val dtoRegistry: MapBuilder<String, CommonDTORegistryItem<*,*,*>> = MapBuilder<String, CommonDTORegistryItem<*,*,*>>()
+        val dtoRegistry: MapBuilder<String, DTORegistryItem<*,*,*>> = MapBuilder<String, DTORegistryItem<*,*,*>>()
         internal fun <DTO: ModelDTO, DATA :DataModel, ENTITY: LongEntity> selfRegistration(
-            regItem :  CommonDTORegistryItem<DTO, DATA, ENTITY>
+            regItem :  DTORegistryItem<DTO, DATA, ENTITY>
         ){
             dtoRegistry.putIfAbsent(regItem.typeKeyCombined, regItem)
         }

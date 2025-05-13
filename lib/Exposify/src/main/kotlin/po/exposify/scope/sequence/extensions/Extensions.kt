@@ -3,6 +3,7 @@ package po.exposify.scope.sequence.extensions
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOClass
+import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ExecutionContext
 import po.exposify.dto.interfaces.ModelDTO
@@ -13,6 +14,7 @@ import po.exposify.scope.sequence.SequenceContext
 import po.exposify.scope.sequence.classes.ClassSequenceHandler
 import po.exposify.scope.sequence.classes.createHandler
 import po.exposify.scope.sequence.models.SwitchData
+import po.misc.collections.generateKey
 
 suspend fun <DTO, D, E, F_DTO, FD, FE>  SequenceContext<DTO, D, E>.switch(
     dto: CommonDTO<DTO, D, E>,
@@ -24,11 +26,12 @@ suspend fun <DTO, D, E, F_DTO, FD, FE>  SequenceContext<DTO, D, E>.switch(
 
     val switchParameter =  this.handler.switchParameters.firstOrNull {  it.childClass == dtoClass }
     switchParameter?.let {
-        val newExecutionContext =  dto.executionProvider(dtoClass)
+
+        val repo = dto.getRepository<F_DTO, FD, FE>(dtoClass.generateKey(Cardinality.MANY_TO_MANY))
         val newHandler =  dtoClass.createHandler(this.handler.sequenceId)
         val casted = it.castOrOperationsEx<SwitchData<F_DTO, FD, FE>>()
         casted.handlerBlock.invoke(newHandler)
-        val newSequenceContext = SequenceContext(newHandler, newExecutionContext as ExecutionContext<F_DTO, FD, FE>)
+        val newSequenceContext = SequenceContext(newHandler, repo as ExecutionContext<F_DTO, FD, FE>)
         casted.setSourceContext(newSequenceContext)
         newHandler.provideContext(newSequenceContext)
         block.invoke(newSequenceContext, newHandler)

@@ -86,7 +86,7 @@ class SerializedDelegate<DTO, D, E, S, V>(
     }
 
     override fun update(container: EntityUpdateContainer<E, *, *, *>) {
-        if(container.updateMode == UpdateMode.MODEL_TO_ENTITY || container.updateMode == UpdateMode.MODEL_TO_ENTITY_FORCED){
+        if(container.updateMode == UpdateMode.MODEL_TO_ENTITY){
             val value =  dataProperty.get(dto.dataModel)
             entityProperty.set(container.ownEntity, value)
             onValueSet(value)
@@ -112,7 +112,7 @@ class PropertyDelegate<DTO, D, E, V>(
     }
 
     override fun update(container: EntityUpdateContainer<E, *,*,*>){
-        if(container.updateMode == UpdateMode.MODEL_TO_ENTITY || container.updateMode == UpdateMode.MODEL_TO_ENTITY_FORCED){
+        if(container.updateMode == UpdateMode.MODEL_TO_ENTITY){
             val value =  dataProperty.get(dto.dataModel)
             entityProperty.set(container.ownEntity, value)
             onValueSet(value)

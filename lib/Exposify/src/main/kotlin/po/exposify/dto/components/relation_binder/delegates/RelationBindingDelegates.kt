@@ -23,7 +23,7 @@ class OneToOneDelegate<DTO, DATA, ENTITY, C_DTO,  CD,  FE>(
     private val dto : CommonDTO<DTO, DATA, ENTITY>,
     private val childModel:DTOBase<C_DTO, CD, FE>,
     private val dataProperty: KMutableProperty1<DATA, CD>,
-    private val ownEntities: KProperty1<ENTITY, FE>,
+    private val entityProperty: KProperty1<ENTITY, FE>,
     private val foreignEntity: KMutableProperty1<FE, ENTITY>,
 ) : RelationBindingDelegate<DTO, DATA, ENTITY, C_DTO,  CD, FE, CommonDTO<C_DTO, CD, FE>>()
         where DTO : ModelDTO, DATA : DataModel, ENTITY : LongEntity,
@@ -50,12 +50,12 @@ class OneToOneDelegate<DTO, DATA, ENTITY, C_DTO,  CD,  FE>(
         foreignEntity.set(container.ownEntity, dto.daoEntity)
     }
 
-    fun getChildEntity(entity: ENTITY): FE{
-        return ownEntities.get(entity)
+    fun getForeignEntity(entity: ENTITY): FE{
+        return entityProperty.get(entity)
     }
 
     override fun getForeignEntity(id: Long): FE?{
-       val childEntity =  ownEntities.get(dto.daoEntity)
+       val childEntity = entityProperty.get(dto.daoEntity)
        return if(childEntity.id.value == id){
              childEntity
         }else{
@@ -68,7 +68,7 @@ class OneToManyDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>(
     private val dto : CommonDTO<DTO, DATA, ENTITY>,
     private val childModel: DTOBase<F_DTO, FD, FE>,
     private val dataProperty: KProperty1<DATA, MutableList<FD>>,
-    private val foreignEntities: KProperty1<ENTITY, SizedIterable<FE>>,
+    private val entitiesProperty: KProperty1<ENTITY, SizedIterable<FE>>,
     private val foreignEntity: KMutableProperty1<FE, ENTITY>,
 ) : RelationBindingDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, List<F_DTO>>()
         where DTO : ModelDTO, DATA : DataModel, ENTITY : LongEntity,
@@ -81,7 +81,7 @@ class OneToManyDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>(
     }
 
     override fun getEffectiveValue(): List<F_DTO> {
-        return multipleRepository.getDTO().castListOrThrow<F_DTO, OperationsException>(childModel.config.registry.derivedDTOClazz, null, 0)
+        return multipleRepository.getDTO().castListOrThrow<F_DTO, OperationsException>(childModel.config.registryRecord.derivedDTOClazz, null, 0)
     }
 
     fun saveDataModels(foreignDataModels: List<FD>){
@@ -93,15 +93,15 @@ class OneToManyDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>(
     }
 
     fun getForeignEntities(entity: ENTITY): List<FE>{
-       return foreignEntities.get(entity).toList()
+       return entitiesProperty.get(entity).toList()
     }
 
     override fun getForeignEntity(id: Long): FE?{
-       return foreignEntities.get(dto.daoEntity).firstOrNull { it.id.value == id }
+       return entitiesProperty.get(dto.daoEntity).firstOrNull { it.id.value == id }
     }
 
    suspend fun processForeignEntities(entity: ENTITY, processFn:suspend (List<FE>)-> List<CommonDTO<F_DTO, FD, FE>>){
-        val foreignEntities = foreignEntities.get(entity).toList()
+        val foreignEntities = entitiesProperty.get(entity).toList()
         val foreignDtos =  processFn.invoke(foreignEntities)
         val mutableListOfForeignDataModels =   dataProperty.get(dto.dataModel)
         foreignDtos.forEach {
@@ -120,11 +120,10 @@ sealed class RelationBindingDelegate<DTO, DATA, ENTITY, C_DTO, FD, FE, R>(
         where DTO: ModelDTO, DATA: DataModel,  ENTITY : LongEntity,
               C_DTO: ModelDTO,  FD: DataModel, FE : LongEntity{
 
-
-
     abstract val qualifiedName : String
 
     abstract fun getForeignEntity(id: Long):FE?
+
 
     abstract fun getEffectiveValue():R
     override fun getValue(thisRef: DTO, property: KProperty<*>): R{

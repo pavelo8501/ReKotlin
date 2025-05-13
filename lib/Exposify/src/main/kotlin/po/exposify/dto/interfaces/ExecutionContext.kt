@@ -20,5 +20,6 @@ interface ExecutionContext<DTO: ModelDTO, DATA: DataModel, ENTITY: LongEntity>{
     suspend fun  pick(conditions: Query): ResultSingle<DTO, DATA, ENTITY>
 
     suspend fun update(dataModels: List<DATA>): ResultList<DTO, DATA, ENTITY>
+    suspend fun update(dataModel: DATA): ResultSingle<DTO, DATA, ENTITY>
 
 }

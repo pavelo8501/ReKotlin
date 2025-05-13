@@ -34,7 +34,7 @@ class ForeignIDClassDelegate<DTO, DATA, ENTITY, FE>(
 
     override fun update(isBeforeInserted:  Boolean, container:  EntityUpdateContainer<ENTITY, *, *, FE>){
         //MODEL_TO_ENTITY effectively on Update/Save
-        if(container.updateMode == UpdateMode.MODEL_TO_ENTITY || container.updateMode == UpdateMode.MODEL_TO_ENTITY_FORCED){
+        if(container.updateMode == UpdateMode.MODEL_TO_ENTITY){
             val value = getEffectiveValue()
             val foreignEntity = foreignEntityModel[value]
             val ownEntity = container.ownEntity
@@ -59,7 +59,7 @@ class ParentIDDelegate<DTO, DATA, ENTITY, FE>(
     override val qualifiedName : String = "ParentIDDelegate[${dto.dtoName}::${dataProperty.name}]"
 
     override fun update(isBeforeInserted: Boolean, container: EntityUpdateContainer<ENTITY, *, *, FE>){
-        if(container.updateMode == UpdateMode.MODEL_TO_ENTITY || container.updateMode == UpdateMode.MODEL_TO_ENTITY_FORCED){
+        if(container.updateMode == UpdateMode.MODEL_TO_ENTITY){
             container.parentDto?.let {
                 val foreignEntity = it.daoEntity
                 entityProperty.set(container.ownEntity, foreignEntity)
@@ -90,14 +90,14 @@ class ParentDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>(
         isBeforeInserted:  Boolean,
         container:  EntityUpdateContainer<ENTITY, *, *, FE>
     ){
-        if(container.updateMode == UpdateMode.ENTITY_TO_MODEL || container.updateMode == UpdateMode.ENTITY_TO_MODEL_FORCED){
+        if(container.updateMode == UpdateMode.ENTITY_TO_MODEL){
             if(container.isParentDtoSet){
                 val foreignDto = container.hasParentDto.castOrThrow<CommonDTO<F_DTO, FD, FE>, OperationsException>()
                 dataProperty.set(dto.dataModel, foreignDto.dataModel)
                 parentDto = foreignDto
             }
         }else{
-            val foreignDto = parentDtoModel.lookupDTO(dto.daoEntity.id.value, dto.dtoClass)
+            val foreignDto = parentDtoModel.lookupDTO(dto.daoEntity.id.value)
             foreignDto?.let {
                 val castedParentDto = it.castOrThrow<CommonDTO<F_DTO, FD, FE>, OperationsException>()
                 dataProperty.set(dto.dataModel, castedParentDto.dataModel)

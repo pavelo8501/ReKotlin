@@ -30,7 +30,7 @@ class ResultList<DTO, DATA, ENTITY>  (
     }
 
     internal fun appendDto(single: ResultSingle<DTO, DATA, ENTITY>): ResultList<DTO, DATA, ENTITY> {
-        single.getDTO()?.let {
+        single.getAsCommonDTO()?.let {
             dtoList.add(it)
         }
         return this
@@ -50,6 +50,12 @@ class ResultSingle<DTO, DATA, ENTITY>(
     private var rootDTO: CommonDTO<DTO, DATA, ENTITY>? = null
 ) where DTO : ModelDTO, DATA: DataModel, ENTITY : LongEntity {
 
+
+    internal fun appendDto(dto: CommonDTO<DTO, DATA, ENTITY>): ResultSingle<DTO, DATA, ENTITY> {
+        rootDTO = dto
+        return this
+    }
+
     fun getData(): DATA? {
         val dataModel =  rootDTO?.dataModel
         return dataModel
@@ -60,8 +66,13 @@ class ResultSingle<DTO, DATA, ENTITY>(
         return dataModel
     }
 
-    fun getDTO(): CommonDTO<DTO, DATA, ENTITY>? {
+    internal fun getAsCommonDTO(): CommonDTO<DTO, DATA, ENTITY>? {
         return rootDTO
+    }
+
+    fun getDTO(): DTO? {
+        @Suppress("UNCHECKED_CAST")
+        return rootDTO as? DTO
     }
 
     fun getDTOForced(): CommonDTO<DTO, DATA, ENTITY> {

@@ -1,11 +1,14 @@
 package po.lognotify.classes.notification
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.count
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.launch
 import po.lognotify.classes.notification.enums.EventType
 import po.lognotify.classes.notification.models.ConsoleBehaviour
 import po.lognotify.classes.notification.models.Notification
@@ -24,9 +27,9 @@ import po.misc.exceptions.CoroutineInfo
 interface NotificationProvider{
 
     fun echo(message: String)
-    suspend fun info(message: String)
-    suspend fun error(ex: Throwable, optMessage: String)
-    suspend fun warn(message: String)
+    fun info(message: String)
+    fun error(ex: Throwable, optMessage: String)
+    fun warn(message: String)
 }
 
 class RootNotifier(
@@ -54,9 +57,9 @@ class Notifier(
 
 sealed class NotifierBase(
     private val provider: DataProvider
-): StaticHelper, NotificationProvider
-{
+): StaticHelper, NotificationProvider {
 
+    
     var config : NotifyConfig = NotifyConfig()
 
     private var hasRealEvents = false
@@ -88,7 +91,7 @@ sealed class NotifierBase(
         }
     }
 
-    protected suspend fun emitNotification(notification: Notification) {
+    protected fun emitNotification(notification: Notification) {
         when(config.console){
             ConsoleBehaviour.Mute->{ }
             ConsoleBehaviour.MuteInfo -> {
@@ -118,10 +121,12 @@ sealed class NotifierBase(
                  toConsole(notification)
             }
         }
-        notificationFlow.emit(notification)
+        CoroutineScope(Dispatchers.Default).launch {
+            notificationFlow.emit(notification)
+        }
     }
 
-    private suspend fun createTaskNotification(
+    private fun createTaskNotification(
         provider: DataProvider,
         message: String,
         type: EventType,
@@ -136,7 +141,7 @@ sealed class NotifierBase(
         emitNotification(notification)
     }
 
-    internal suspend fun submitNotification(notification : Notification){
+    internal fun submitNotification(notification : Notification){
         emitNotification(notification)
     }
 
@@ -148,11 +153,11 @@ sealed class NotifierBase(
         return config
     }
 
-    internal suspend  fun systemInfo(type : EventType,  severity: SeverityLevel, message: String = ""){
+    internal fun systemInfo(type : EventType,  severity: SeverityLevel, message: String = ""){
         createTaskNotification(provider, message, type,  severity)
     }
 
-    internal suspend  fun systemInfo(eventType : EventType,  severity: SeverityLevel, process: LoggProcess<*>){
+    internal fun systemInfo(eventType : EventType,  severity: SeverityLevel, process: LoggProcess<*>){
         when(eventType){
             EventType.START->{
                 val message = "Process [${process.name}] id: ${process.identifiedAs} entered Task ${provider.name}"
@@ -171,18 +176,17 @@ sealed class NotifierBase(
         }
     }
 
-
     override fun echo(message: String) {
         println(message)
     }
-    override suspend fun info(message: String) {
+    override fun info(message: String) {
         createTaskNotification(provider, message, EventType.MESSAGE,  SeverityLevel.INFO)
     }
 
-    override suspend  fun warn(message: String){
+    override fun warn(message: String){
         createTaskNotification(provider, message,  EventType.MESSAGE, SeverityLevel.WARNING)
     }
-    override suspend fun error(ex: Throwable, optMessage: String) {
+    override fun error(ex: Throwable, optMessage: String) {
         val str = "${ex.message.toString()} $optMessage"
         createTaskNotification(provider, str,  EventType.MESSAGE, SeverityLevel.EXCEPTION)
     }

@@ -29,10 +29,9 @@ class ServiceContext<DTO, DATA, ENTITY: LongEntity>(
 ): TasksManaged,  AsContext<DATA>  where DTO : ModelDTO, DATA: DataModel{
 
     @LogOnFault
-    val personalName: String = "ServiceContext[${dtoClass.config.registry.dtoName}]"
+    val personalName: String = "ServiceContext[${dtoClass.config.registryRecord.dtoName}]"
 
     private val dbConnection: Database = serviceClass.connection
-    internal val dtoMap : MutableMap<Long, CommonDTO<DTO, DATA, ENTITY>> = mutableMapOf()
 
     private  val executionProvider = RootExecutionProvider(dtoClass)
 

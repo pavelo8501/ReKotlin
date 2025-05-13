@@ -59,8 +59,9 @@ class SingleChildContainer<DTO, DATA, ENTITY, F_DTO, FD, FE>  (
     fun attachForeignEntity(container: EntityUpdateContainer<FE, DTO, DATA, ENTITY>): Unit
             = bindingDelegate.attachForeignEntity(container)
 
-    fun getChildEntity(entity: ENTITY): FE
-            = bindingDelegate.getChildEntity(entity)
+
+    fun getForeignEntity(entity: ENTITY): FE
+            = bindingDelegate.getForeignEntity(entity)
 
 }
 
@@ -106,6 +107,8 @@ sealed class BindingContainer<DTO, DATA, ENTITY, F_DTO, FD, FE>(
 
     fun getForeignEntity(id: Long): FE?
             = bindingDelegateBase.getForeignEntity(id)
+
+
 
     abstract val cardinality  : Cardinality
     abstract val thisKey : CompositeKey<DTOBase<DTO,DATA, ENTITY>, Cardinality>

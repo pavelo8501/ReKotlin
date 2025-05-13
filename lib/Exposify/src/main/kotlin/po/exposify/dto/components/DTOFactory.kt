@@ -13,6 +13,7 @@ import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.extensions.castOrOperationsEx
 import po.exposify.extensions.getOrOperationsEx
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.subTask
@@ -34,19 +35,19 @@ internal class PostCreationRoutine<DTO, DATA, ENTITY, R>(
 }
 
 class DTOFactory<DTO, DATA, ENTITY>(
-    private val dtoKClass : KClass<out CommonDTO<DTO, DATA, ENTITY>>,
+    private val dtoKClass : KClass<DTO>,
     private val dataModelClass : KClass<DATA>,
     private val hostingConfig: DTOConfig<DTO, DATA, ENTITY>,
 ): IdentifiableComponent,  TasksManaged where DTO : ModelDTO, DATA: DataModel, ENTITY: LongEntity {
 
 
-    override val qualifiedName: String = "DTOFactory[${hostingConfig.registry.dtoName}]"
+    override val qualifiedName: String = "DTOFactory[${hostingConfig.registryRecord.entityName}]"
     override val name: String = "DTOFactory"
 
     private val personalName = "DTOFactory[${dtoKClass.simpleName}]"
 
     internal val dataBlueprint : ClassBlueprint<DATA> =  ClassBlueprint(dataModelClass)
-    private val dtoBlueprint : ClassBlueprint<out CommonDTO<DTO, DATA, ENTITY>> = ClassBlueprint(dtoKClass)
+    private val dtoBlueprint : ClassBlueprint<DTO> = ClassBlueprint(dtoKClass)
 
     private var dataModelBuilderFn : (() -> DATA)? = null
 
@@ -155,17 +156,15 @@ class DTOFactory<DTO, DATA, ENTITY>(
                 }
             }
         }
-
        try {
             val args = dtoBlueprint.getConstructorArgs()
-            val newDto =  dtoBlueprint.getConstructor().callBy(args)
+            val newDto =  dtoBlueprint.getConstructor().callBy(args).castOrOperationsEx<CommonDTO<DTO, DATA, ENTITY>>()
             dtoPostCreation(newDto)
-
             newDto
         }catch (th: Throwable){
            val argsUsed = dtoBlueprint.getConstructorArgs()
            val argsStr =  argsUsed.keys.joinToString { it.name.toString() }
-           handler.warn("While creating dto for ${argsStr}")
+           handler.warn("While creating dto for $argsStr")
            handler.warn("Arguments used ${argsUsed.values.map { toString() }}")
           handler.warn(th.toString().prependIndent("Exception"))
           throw  th
