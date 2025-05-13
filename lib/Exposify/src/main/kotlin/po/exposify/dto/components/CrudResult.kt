@@ -62,7 +62,7 @@ class ResultSingle<DTO, DATA, ENTITY>(
     }
 
     fun getDataForced(): DATA {
-        val dataModel = getDTOForced().dataModel
+        val dataModel = getAsCommonDTOForced().dataModel
         return dataModel
     }
 
@@ -70,13 +70,18 @@ class ResultSingle<DTO, DATA, ENTITY>(
         return rootDTO
     }
 
+    internal fun getAsCommonDTOForced(): CommonDTO<DTO, DATA, ENTITY> {
+        return rootDTO.getOrOperationsEx("No result")
+    }
+
     fun getDTO(): DTO? {
         @Suppress("UNCHECKED_CAST")
         return rootDTO as? DTO
     }
 
-    fun getDTOForced(): CommonDTO<DTO, DATA, ENTITY> {
-        return rootDTO.getOrOperationsEx("No result")
+    fun getDTOForced(): DTO {
+        @Suppress("UNCHECKED_CAST")
+        return rootDTO as DTO
     }
 
 

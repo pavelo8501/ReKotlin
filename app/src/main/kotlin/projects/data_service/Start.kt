@@ -2,12 +2,11 @@ package po.playground.projects.data_service
 
 import kotlinx.coroutines.runBlocking
 import po.exposify.DatabaseManager
-import po.exposify.controls.ConnectionInfo
+import po.exposify.scope.connection.models.ConnectionInfo
 
 
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.selectAll
 
 
 import po.exposify.scope.sequence.classes.SequenceHandler

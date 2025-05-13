@@ -4,6 +4,7 @@ import po.misc.exceptions.ManagedException
 import po.misc.exceptions.SelfThrownException
 import kotlin.reflect.KClass
 import kotlin.reflect.cast
+import kotlin.reflect.full.companionObjectInstance
 
 
 inline fun <reified T: Any> Any.safeCast(): T? {
@@ -14,7 +15,6 @@ inline fun <reified T: Any, reified E: ManagedException> Any?.castOrThrow(
     message: String? = null,
     code: Int = 0
 ): T {
-
     if(this == null){
         throw SelfThrownException.build<E>("Unable to cast null to ${T::class.simpleName}", code)
     }else{

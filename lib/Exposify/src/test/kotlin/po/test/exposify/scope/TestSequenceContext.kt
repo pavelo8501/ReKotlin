@@ -7,6 +7,7 @@ import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertAll
 import org.junit.jupiter.api.assertInstanceOf
 import po.auth.extensions.generatePassword
+import po.exposify.dto.components.ResultSingle
 import po.exposify.dto.components.WhereQuery
 import po.exposify.scope.connection.ConnectionContext
 import po.exposify.scope.sequence.enums.SequenceID
@@ -16,9 +17,9 @@ import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.ConsoleBehaviour
 import po.lognotify.logNotify
-import po.misc.exceptions.CoroutineInfo
 import po.test.exposify.setup.ClassItem
 import po.test.exposify.setup.DatabaseTest
+import po.test.exposify.setup.PageEntity
 import po.test.exposify.setup.Pages
 import po.test.exposify.setup.dtos.Page
 import po.test.exposify.setup.dtos.PageDTO
@@ -67,20 +68,27 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
     @Test
     fun `Sequence switch statement select appropriate dto, update not breaking relations`() = runTest {
 
+        fun testUpdated(result : ResultSingle<PageDTO, Page, PageEntity>){
+            val pageDto = result.getDTOForced()
+            assertTrue(pageDto.sections.size == 1, "Sections not updated")
+        }
+
         connectionContext.run {
             service(PageDTO, TableCreateMode.CREATE) {
                 sequence(SequenceID.UPDATE) {topHandler->
-                    update(topHandler.inputData)
+                    topHandler.collectResult(update(topHandler.inputData))
                     val pageDto = pick(topHandler.inputQuery).getDTOForced()
                     switch(pageDto, SectionDTO){switchHandler->
-                        update(switchHandler.inputData)
+                        update(switchHandler.inputList)
                     }
                 }
             }
         }
 
+        val inputData = pageModelsWithSections(pageCount = 1, sectionsCount = 1, updatedBy = updatedById)
         val result =  PageDTO.runSequence(SequenceID.UPDATE, SectionDTO){
-            withData(pageModelsWithSections(pageCount = 1, sectionsCount = 1, updatedBy = updatedById))
+            onResultCollected(::testUpdated)
+            withData(inputData.first())
             withQuery(WhereQuery(Pages).byId(1))
             switchParameters(SectionDTO){
                 val sectionData = Section(1, "NewName", "NewDescription", "", emptyList(), emptyList(), 1, 1, 0)
@@ -96,12 +104,10 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
             { assertEquals("NewName", section.name, "Section properties update failed") },
             { assertEquals(1, section.id, "Updated section Section record") }
         )
-
     }
 
-
-
-    fun `sequence launched with conditions and input work`() = runTest {
+    @Test
+    fun `Sequence launched with conditions and input work`() = runTest {
         val user = User(
             id = 0,
             login = "some_login",
@@ -115,8 +121,7 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
         connectionContext.let { connection ->
             connection.service(PageDTO, TableCreateMode.CREATE) {
                 sequence(SequenceID.UPDATE) { handler ->
-                   val result = update(handler.inputData)
-                   handler.submitData(result)
+                   handler.collectResult(update(handler.inputList))
                 }
                 sequence(SequenceID.SELECT) {handler ->
                     select(handler.inputQuery)
@@ -129,12 +134,7 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
         pages[2].langId = 2
         pages[3].langId = 2
 
-
-        updatedPages = PageDTO.runSequence(SequenceID.UPDATE){
-            println("Coroutine on init")
-            println(CoroutineInfo.createInfo(kotlin.coroutines.coroutineContext))
-            withData(pages)
-        }
+        updatedPages = PageDTO.runSequence(SequenceID.UPDATE){ withData(pages) }
 
         assertAll(
             { assertEquals(4, updatedPages.count(), "Updated page count mismatch") },

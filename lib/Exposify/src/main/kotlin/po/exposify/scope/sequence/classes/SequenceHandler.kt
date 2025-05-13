@@ -8,10 +8,13 @@ import po.exposify.dto.DTOClass
 import po.exposify.dto.RootDTO
 import po.exposify.dto.components.Query
 import po.exposify.dto.components.ResultList
+import po.exposify.dto.components.ResultSingle
 import po.exposify.dto.components.WhereQuery
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.interfaces.RunnableContext
+import po.exposify.exceptions.OperationsException
+import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.getOrOperationsEx
 import po.exposify.scope.sequence.SequenceContext
 import po.exposify.scope.sequence.enums.SequenceID
@@ -70,17 +73,44 @@ sealed class SequenceHandlerBase<DTO, DATA, ENTITY>(
 
     internal abstract val switchParameters: MutableList<SwitchData<*, *, *>>
 
-    protected val inputDataSource : MutableList<DATA> = mutableListOf()
-    val inputData : List<DATA>  get () = inputDataSource.toList()
+
+    protected val inputListSource : MutableList<DATA> = mutableListOf()
+    val inputList : List<DATA>  get () = inputListSource.toList()
+
+    protected var inputDataSource : DATA ?  =null
+    val inputData: DATA  get() = inputDataSource?:throw OperationsException(
+        "Input data used but not provided",
+        ExceptionCode.VALUE_NOT_FOUND)
+
 
     protected var whereQueryParameter: Query? = null
     val inputQuery: Query get() = whereQueryParameter.getOrOperationsEx("Query parameter requested but uninitialized")
+
+    protected var sequenceContext : SequenceContext<DTO, DATA, ENTITY>? = null
+
+    private var collectListResultFn: ((ResultList<DTO, DATA, ENTITY>)-> Unit)? = null
+    fun onResultCollected(resultCallback: (ResultList<DTO, DATA, ENTITY>)-> Unit){
+        collectListResultFn = resultCallback
+    }
+    private var collectSingleResultFn: ((ResultSingle<DTO, DATA, ENTITY>)-> Unit)? = null
+    @JvmName("onResultCollectedSingle")
+    fun onResultCollected(resultCallback: (ResultSingle<DTO, DATA, ENTITY>)-> Unit){
+        collectSingleResultFn = resultCallback
+    }
+
+    fun collectResult(result : ResultList<DTO, DATA, ENTITY>){
+        collectListResultFn?.invoke(result)
+    }
+    fun collectResult(result : ResultSingle<DTO, DATA, ENTITY>){
+        collectSingleResultFn?.invoke(result)
+    }
+
 
 //    private var switchQueryParameter : SwitchQuery<DATA, ENTITY>? = null
 //    val switchQuery : SwitchQuery<DATA, ENTITY>
 //        get() = switchQueryParameter.getOrOperationsEx("SwitchQuery not set")
 
-    protected var sequenceContext : SequenceContext<DTO, DATA, ENTITY>? = null
+
 
     private var dataResult : List<DATA> = emptyList()
     internal fun provideContext(context : SequenceContext<DTO, DATA, ENTITY>){
@@ -94,13 +124,14 @@ sealed class SequenceHandlerBase<DTO, DATA, ENTITY>(
     }
 
     fun withData(inputData : List<DATA>){
-        inputDataSource.clear()
-        inputDataSource.addAll(inputData)
+        inputListSource.clear()
+        inputListSource.addAll(inputData)
     }
 
-    fun withData(inputData : DATA){
-        inputDataSource.clear()
-        inputDataSource.add(inputData)
+    fun withData(data : DATA){
+        inputDataSource = data
+        inputListSource.clear()
+        inputListSource.add(data)
     }
 
     fun <T: IdTable<Long>> withQuery(where: WhereQuery<T>){
@@ -126,9 +157,5 @@ sealed class SequenceHandlerBase<DTO, DATA, ENTITY>(
         switchParameters.add(switchData)
     }
 
-    private val deferredResult = CompletableDeferred<List<DATA>>()
-    fun submitData(result: ResultList<DTO, DATA, ENTITY>){
-        deferredResult.complete(result.getData())
-    }
 }
 

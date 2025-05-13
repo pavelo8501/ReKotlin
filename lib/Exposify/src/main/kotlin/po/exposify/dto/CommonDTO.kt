@@ -72,8 +72,11 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     override var id : Long = 0
         get(){return dataContainer.dataModel.id}
 
-    internal var repositories
-        : Map<CompositeKey<DTOBase<*, *, *>, Cardinality>, RepositoryBase<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>> = emptyMap()
+//    internal var repositories
+//        : Map<CompositeKey<DTOBase<*, *, *>, Cardinality>, RepositoryBase<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>> = emptyMap()
+
+    val repositories: MutableMap<CompositeKey<DTOClass<*,*,*>, Cardinality>, RepositoryBase<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>>
+        = mutableMapOf()
 
     override val dtoTracker: DTOTracker<DTO, DATA> by lazy { DTOTracker(this) }
 
@@ -83,9 +86,13 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     }
 
     internal fun <C_DTO:ModelDTO, CD : DataModel, CE : LongEntity> getRepository(
-        key: CompositeKey<DTOBase<*, *, *>, Cardinality>
+        childClass: DTOClass<C_DTO, CD, CE>,
+        cardinality: Cardinality,
     ):RepositoryBase<DTO, DATA, ENTITY, C_DTO, CD, CE>{
-        return repositories[key].castOrThrow<RepositoryBase<DTO, DATA, ENTITY, C_DTO, CD, CE>, OperationsException>(
+
+        val repo = repositories[childClass.generateKey(cardinality)]
+
+        return repo.castOrThrow<RepositoryBase<DTO, DATA, ENTITY, C_DTO, CD, CE>, OperationsException>(
             "Child repository not found @ $dtoName",
             ExceptionCode.VALUE_NOT_FOUND.value
         )
@@ -120,10 +127,8 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     ): MultipleRepository<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>
     {
         val newRepo =  MultipleRepository(binding, this, binding.childClass)
-        repositories = repoBuilder(
-            dtoClass.generateKey(Cardinality.ONE_TO_MANY),
-            newRepo.castOrOperationsEx<MultipleRepository<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>>(),
-            repositories )
+        val casted =  newRepo.castOrOperationsEx<MultipleRepository<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>>()
+        repositories[binding.childClass.generateKey(Cardinality.ONE_TO_MANY)] = casted
         return newRepo
     }
 
@@ -133,10 +138,8 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     ): SingleRepository<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>
     {
         val newRepo = SingleRepository(binding, this, binding.childClass)
-        repositories = repoBuilder(
-            dtoClass.generateKey(Cardinality.ONE_TO_ONE),
-            newRepo.castOrOperationsEx<MultipleRepository<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>>(),
-            repositories )
+        val casted =  newRepo.castOrOperationsEx<MultipleRepository<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>>()
+        repositories[binding.childClass.generateKey(Cardinality.ONE_TO_ONE)] = casted
         return newRepo
     }
 

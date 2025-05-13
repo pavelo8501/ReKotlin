@@ -1,20 +1,14 @@
 package po.test.exposify.setup
 
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.TestInstance
-import org.junit.platform.commons.logging.LoggerFactory
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import po.auth.AuthSessionManager
 import po.exposify.DatabaseManager
-import po.exposify.controls.ConnectionInfo
+import po.exposify.scope.connection.models.ConnectionInfo
 import po.exposify.exceptions.InitException
 import po.exposify.scope.connection.ConnectionContext
-import po.lognotify.extensions.newTask
-import po.lognotify.extensions.newTaskAsync
 import po.misc.types.getOrThrow
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

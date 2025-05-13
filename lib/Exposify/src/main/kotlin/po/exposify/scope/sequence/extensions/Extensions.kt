@@ -24,11 +24,11 @@ suspend fun <DTO, D, E, F_DTO, FD, FE>  SequenceContext<DTO, D, E>.switch(
          F_DTO: ModelDTO, FD: DataModel, FE: LongEntity
 {
 
-    val switchParameter =  this.handler.switchParameters.firstOrNull {  it.childClass == dtoClass }
+    val switchParameter =  this.sequenceHandler.switchParameters.firstOrNull {  it.childClass == dtoClass }
     switchParameter?.let {
 
-        val repo = dto.getRepository<F_DTO, FD, FE>(dtoClass.generateKey(Cardinality.MANY_TO_MANY))
-        val newHandler =  dtoClass.createHandler(this.handler.sequenceId)
+        val repo = dto.getRepository(dtoClass,  Cardinality.ONE_TO_MANY)
+        val newHandler = dtoClass.createHandler(this.sequenceHandler.sequenceId)
         val casted = it.castOrOperationsEx<SwitchData<F_DTO, FD, FE>>()
         casted.handlerBlock.invoke(newHandler)
         val newSequenceContext = SequenceContext(newHandler, repo as ExecutionContext<F_DTO, FD, FE>)

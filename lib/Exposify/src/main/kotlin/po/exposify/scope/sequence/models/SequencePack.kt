@@ -41,15 +41,12 @@ data class RootSequencePack<DTO, DATA, ENTITY>(
         val execProvider = RootExecutionProvider(dtoClass)
         val context = SequenceContext(handler, execProvider)
         handler.provideContext(context)
-
         block(context, handler)
-
         val switchParam =   handler.switchParameters.firstOrNull { it.childClass ==  childClass}
             .getOrOperationsEx("Switch parameters for class ${childClass.qualifiedName} not found", ExceptionCode.VALUE_IS_NULL)
 
         val  switchContext =  switchParam.sequenceContext.getOrOperationsEx()
-
-        return switchContext.handler.getDataResult() as R
+        return switchContext.sequenceHandler.getDataResult() as R
     }
 
 }

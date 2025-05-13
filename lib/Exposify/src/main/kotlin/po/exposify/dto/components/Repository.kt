@@ -177,39 +177,54 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, C_DTO,  CD, CE>(
        return childClass.lookupDTO(id)
     }
 
-    override suspend fun pickById(id: Long): ResultSingle<C_DTO, CD, CE>{
-        val found = takeStored(id)
-        return if (found != null) {
-            ResultSingle(found)
-        } else {
-            val childEntity =
-                bindingBase.getForeignEntity(id).getOrOperationsEx<CE>("Foreign entity with id $id not found")
-            val newChildDto = childFactory.createDto()
-            newChildDto.dtoPropertyBinder.update(childEntity.containerize(UpdateMode.ENTITY_TO_MODEL))
-            store(newChildDto)
+    private suspend fun createDto(entity: CE):CommonDTO<C_DTO, CD, CE>{
+        val dto = childClass.config.dtoFactory.createDto()
+        dto.dtoPropertyBinder.update(entity.containerize(UpdateMode.ENTITY_TO_MODEL, null, true))
+        store(dto)
+        dto.getDtoRepositories().forEach { it.loadHierarchyByEntity() }
+        return dto
+    }
 
-            newChildDto.getDtoRepositories().forEach { repository ->
-                repository.loadHierarchyByEntity()
+    private suspend fun insert(dataModel:CD): ResultSingle<C_DTO, CD, CE>{
+        val newChildDto = childClass.config.dtoFactory.createDto(dataModel)
+        childClass.config.daoService.saveWithParent(newChildDto, hostingDTO){containerized->
+            when(this){
+                is SingleRepository->{
+                    binding.attachForeignEntity(containerized)
+                }
+                is MultipleRepository->{
+                    binding.attachForeignEntity(containerized)
+                }
             }
-            ResultSingle(newChildDto)
+        }
+        store(newChildDto)
+        newChildDto.getDtoRepositories().forEach { it.loadHierarchyByModel() }
+        return ResultSingle(newChildDto)
+    }
+
+    override suspend fun pickById(id: Long): ResultSingle<C_DTO, CD, CE>{
+        val existent = childClass.lookupDTO(id)
+        return if(existent != null){
+            ResultSingle(existent)
+        }else{
+            val entity = childClass.config.daoService.pickById(id).getOrOperationsEx("Entity with provided id :${id} not found")
+            ResultSingle(createDto(entity))
         }
     }
 
     override suspend fun pick(conditions: Query): ResultSingle<C_DTO, CD, CE> {
-        val result = childClass.config.daoService.pick(conditions)
-            .getOrOperationsEx("Foreign entity not found for given query:${conditions}")
-        val  existent =  takeStored(result.id.value)
+        val entity = childClass.config.daoService.pick(conditions).getOrOperationsEx("Entity with provided query :${conditions} not found")
+        val existent = childClass.lookupDTO(entity.id.value)
         return if(existent != null){
             ResultSingle(existent)
         }else{
-            pickById(result.id.value)
+            ResultSingle(createDto(entity))
         }
     }
 
     override suspend fun <T : IdTable<Long>> select(
         conditions: WhereQuery<T>
     ): ResultList<C_DTO, CD, CE> = select(conditions)
-
 
     override suspend fun select(): ResultList<C_DTO, CD, CE>{
         val resultingList = ResultList<C_DTO, CD, CE>()
@@ -242,22 +257,7 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, C_DTO,  CD, CE>(
     }
     override suspend fun update(dataModel:CD): ResultSingle<C_DTO, CD, CE>{
         if(dataModel.id == 0L){
-            val newChildDto = childFactory.createDto(dataModel)
-            childDaoService.saveWithParent(newChildDto, hostingDTO) { containerized ->
-                when(this){
-                    is SingleRepository->{
-                        binding.attachForeignEntity(containerized)
-                    }
-                    is MultipleRepository->{
-                        binding.attachForeignEntity(containerized)
-                    }
-                }
-            }
-            store(newChildDto)
-            newChildDto.getDtoRepositories().forEach { repository ->
-                repository.loadHierarchyByModel()
-            }
-            return ResultSingle(newChildDto)
+            return insert(dataModel)
         }else {
             val existingDto = takeStored(dataModel.id)
             if(existingDto != null){

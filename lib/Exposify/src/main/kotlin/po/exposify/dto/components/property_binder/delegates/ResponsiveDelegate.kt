@@ -108,6 +108,8 @@ class PropertyDelegate<DTO, D, E, V>(
 
     override fun update(dataModel:D){
         val value = dataProperty.get(dataModel)
+        dataProperty.set(dto.dataModel, value)
+        entityProperty.set(dto.daoEntity, value)
         onValueSet(value)
     }
 

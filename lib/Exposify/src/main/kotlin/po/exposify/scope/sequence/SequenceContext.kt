@@ -16,7 +16,7 @@ import po.lognotify.extensions.subTask
 
 
 class SequenceContext<DTO, DATA, ENTITY>(
-   internal val handler: SequenceHandlerBase<DTO, DATA, ENTITY>,
+   internal val sequenceHandler: SequenceHandlerBase<DTO, DATA, ENTITY>,
    private val executionContext: ExecutionContext<DTO, DATA, ENTITY>
 ): TasksManaged, IdentifiableComponent where  DTO : ModelDTO, DATA : DataModel, ENTITY: LongEntity
 {
@@ -43,7 +43,7 @@ class SequenceContext<DTO, DATA, ENTITY>(
         submitLatestResult(result)
     }.resultOrException()
 
-    suspend fun <T: IdTable<Long>> pickById(id: Long): ResultSingle<DTO, DATA, ENTITY>
+    suspend fun pickById(id: Long): ResultSingle<DTO, DATA, ENTITY>
     = subTask("PickById", qualifiedName) { handler ->
         val result = executionContext.pickById(id)
         submitLatestResult(result)
@@ -65,8 +65,16 @@ class SequenceContext<DTO, DATA, ENTITY>(
     suspend fun update(
         dataModels: List<DATA>
     ):ResultList<DTO, DATA, ENTITY>
-    = subTask("Update", qualifiedName) { handler ->
+    = subTask("Update(List)", qualifiedName) { handler ->
         val result = executionContext.update(dataModels)
+        submitLatestResult(result)
+    }.resultOrException()
+
+    suspend fun update(
+        dataModel: DATA
+    ): ResultSingle<DTO, DATA, ENTITY>
+            = subTask("Update(Single)", qualifiedName) { handler ->
+        val result = executionContext.update(dataModel)
         submitLatestResult(result)
     }.resultOrException()
 

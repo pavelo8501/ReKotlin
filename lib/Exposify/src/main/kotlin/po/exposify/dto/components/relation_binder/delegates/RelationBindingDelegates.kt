@@ -5,6 +5,7 @@ import org.jetbrains.exposed.sql.SizedIterable
 import po.exposify.dto.DTOBase
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
+import po.exposify.dto.DTOClass
 import po.exposify.dto.components.MultipleRepository
 import po.exposify.dto.components.SingleRepository
 import po.exposify.dto.components.proFErty_binder.EntityUpdateContainer
@@ -21,7 +22,7 @@ import kotlin.reflect.KProperty1
 
 class OneToOneDelegate<DTO, DATA, ENTITY, C_DTO,  CD,  FE>(
     private val dto : CommonDTO<DTO, DATA, ENTITY>,
-    private val childModel:DTOBase<C_DTO, CD, FE>,
+    private val childModel: DTOClass<C_DTO, CD, FE>,
     private val dataProperty: KMutableProperty1<DATA, CD>,
     private val entityProperty: KProperty1<ENTITY, FE>,
     private val foreignEntity: KMutableProperty1<FE, ENTITY>,
@@ -32,7 +33,7 @@ class OneToOneDelegate<DTO, DATA, ENTITY, C_DTO,  CD,  FE>(
     override val qualifiedName : String  get() = "OneToOneDelegate[${dto.dtoName}::${dataProperty.name}]"
 
     val singleRepository : SingleRepository<DTO, DATA, ENTITY, C_DTO, CD, FE> by lazy {
-        dto.getRepository<C_DTO, CD, FE>(dto.dtoClass.generateKey(Cardinality.ONE_TO_ONE)) as SingleRepository
+        dto.getOneToOneRepository(childModel)
     }
 
     override fun getEffectiveValue():CommonDTO<C_DTO, CD, FE>{
@@ -66,7 +67,7 @@ class OneToOneDelegate<DTO, DATA, ENTITY, C_DTO,  CD,  FE>(
 
 class OneToManyDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>(
     private val dto : CommonDTO<DTO, DATA, ENTITY>,
-    private val childModel: DTOBase<F_DTO, FD, FE>,
+    private val childModel: DTOClass<F_DTO, FD, FE>,
     private val dataProperty: KProperty1<DATA, MutableList<FD>>,
     private val entitiesProperty: KProperty1<ENTITY, SizedIterable<FE>>,
     private val foreignEntity: KMutableProperty1<FE, ENTITY>,
@@ -77,7 +78,7 @@ class OneToManyDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>(
     override val qualifiedName : String  get() = "OneToManyDelegate[${dto.dtoName}::${dataProperty.name}]"
 
     val multipleRepository : MultipleRepository<DTO, DATA, ENTITY, F_DTO, FD, FE> by lazy {
-        dto.getRepository<F_DTO, FD, FE>(dto.dtoClass.generateKey(Cardinality.ONE_TO_MANY)) as MultipleRepository
+        dto.getOneToManyRepository(childModel)
     }
 
     override fun getEffectiveValue(): List<F_DTO> {

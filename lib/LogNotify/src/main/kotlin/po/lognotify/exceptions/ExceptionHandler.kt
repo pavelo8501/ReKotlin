@@ -52,13 +52,15 @@ class ExceptionHandler<R: Any?>(
       val severity = SeverityLevel.EXCEPTION
 
       var message = """ 
-          Unhandled : ${managedEx.message}
+          Unhandled in Task:${task.key.taskName}| Module: ${task.key.moduleName}| Nesting: ${task.key.nestingLevel}
+          Message: ${managedEx.message}
       """.trimIndent()
 
       if(managedEx.snapshot != null){
          val snapshotStr = managedEx.snapshot!!.map { "${it.key} = ${it.value}" }.joinToString(";")
          message = """  
-             Unhandled: ${managedEx.message}   
+             Unhandled in Task:${task.key.taskName}| Module: ${task.key.moduleName}| Nesting: ${task.key.nestingLevel}
+             Message: ${managedEx.message}
              Snapshot: $snapshotStr
          """.trimIndent()
       }

@@ -1,10 +1,6 @@
 package po.misc.exceptions
 
-inline fun <T : Any> T?.getOrException(
-    exceptionProvider: () -> ManagedException
-): T {
-    return this ?: throw exceptionProvider()
-}
+
 
 inline fun <T: Any> T?.letOrException(ex : ManagedException, block: (T)-> T){
     if(this != null){
