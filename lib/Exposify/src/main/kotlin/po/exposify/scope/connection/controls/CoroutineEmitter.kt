@@ -2,8 +2,10 @@ package po.exposify.scope.connection.controls
 
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.dao.LongEntity
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.experimental.suspendedTransactionAsync
 import po.auth.sessions.models.AuthorizedSession
+import po.exposify.dto.DTOClass
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.InitException
@@ -20,33 +22,26 @@ class CoroutineEmitter(
     val name: String,
     val session : AuthorizedSession
 ){
-   suspend fun <DTO, DATA, ENTITY, R>dispatch(
+   suspend fun <DTO, DATA, ENTITY, F_DTO, FD, FE, R>dispatch(
        pack: SequencePack<DTO, DATA, ENTITY>,
-       rootHandlerBlock: (suspend RootSequenceHandler<DTO, DATA, ENTITY>.() -> Unit)? = null,
-      // classHandlerBlock: (suspend ClassSequenceHandler<DTO, DATA, ENTITY>.() -> Unit)? = null
-    ): R  where DTO : ModelDTO,  DATA: DataModel, ENTITY : LongEntity {
+       rootHandlerBlock: (suspend RootSequenceHandler<DTO, DATA, ENTITY>.() -> Unit),
+       childDtoClass: DTOClass<F_DTO, FD, FE>? = null,
+    ): R  where DTO : ModelDTO,  DATA: DataModel, ENTITY : LongEntity,
+            F_DTO: ModelDTO, FD: DataModel, FE : LongEntity{
 
        return session.launchProcess {
            session.sessionContext.newTask("Sequence launch as startTask", "CoroutineEmitter2") {
-               suspendedTransactionAsync(Dispatchers.IO) {
+               newSuspendedTransaction(Dispatchers.IO) {
                    when(pack){
                        is RootSequencePack<DTO, DATA, ENTITY> ->{
-                           rootHandlerBlock?.let {
-                               pack.start<R>(it)
-                           }?:run {
-                               throw InitException("RootHandler configuration lambda is undefined", ExceptionCode.UNDEFINED)
+                           if(childDtoClass != null){
+                               pack.start(childDtoClass, rootHandlerBlock)
+                           }else{
+                               pack.start<R>(rootHandlerBlock)
                            }
-
                        }
-//                       is ClassSequencePack<DTO, DATA, ENTITY> -> {
-//                           classHandlerBlock?.let {
-//                               pack.start<R>(it)
-//                           }?:run {
-//                               throw InitException("ClassHandler configuration lambda is undefined", ExceptionCode.UNDEFINED)
-//                           }
-//                       }
                    }
-               }.await()
+               }
            }.resultOrException()
        }
    }

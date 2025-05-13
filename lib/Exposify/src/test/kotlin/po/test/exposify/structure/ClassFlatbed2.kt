@@ -17,7 +17,7 @@ import po.exposify.dto.components.property_binder.PropertyBinder
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.CommonDTORegistryItem
 import po.exposify.dto.models.DTOTracker
-import po.exposify.entity.classes.ExposifyEntityClass
+import po.exposify.dao.classes.ExposifyEntityClass
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.newTaskAsync
 import kotlin.properties.ReadOnlyProperty
@@ -82,7 +82,8 @@ import kotlin.reflect.KProperty
                 return insertedEntity ?: daoService.entityModel[id]
             }
         internal lateinit var dtoPropertyBinder: DTOPropertyBinder<DTO, DATA, ENTITY>
-        override lateinit var propertyBinder: PropertyBinder<DATA, ENTITY>
+
+      //  override lateinit var propertyBinder: PropertyBinder<DATA, ENTITY>
 
         override lateinit var dataContainer: DataModelContainer<*, *>
         override lateinit var dtoTracker: DTOTracker<*, *>
@@ -148,25 +149,5 @@ import kotlin.reflect.KProperty
             property: KProperty<*>
         ):  BaseDTO<FD, FE> {
             TODO("Not yet implemented")
-        }
-    }
-
-
-class ChildDTO(override var dataModel: ChildData) : CommonDTOTest<ChildDTO ,ChildData, ChildEntity>(ChildDTO, {ChildDTO}) {
-
-   // val parentDTO  by parentReference(TopDTO, ChildData::parent, RootEntity)
-
-    companion object : RootDTOTest<ChildData, ChildEntity>() {
-        override suspend fun setup() {
-
-        }
-    }
-}
-
-    class TopDTO(override var dataModel: TopData) : CommonDTOTest<TopDTO, TopData, RootEntity>(TopDTO, {TopDTO}) {
-        companion object : RootDTOTest<TopData, RootEntity>() {
-            override suspend fun setup() {
-
-            }
         }
     }

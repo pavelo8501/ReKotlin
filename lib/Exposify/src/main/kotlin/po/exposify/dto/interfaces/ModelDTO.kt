@@ -2,6 +2,7 @@ package po.exposify.dto.interfaces
 
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.components.DAOService
+import po.exposify.dto.components.DTOFactory
 import po.exposify.dto.components.DataModelContainer
 import po.exposify.dto.components.property_binder.PropertyBinder
 import po.exposify.dto.models.DTOTracker
@@ -12,7 +13,8 @@ interface ModelDTO : DataModel {
     val dataModel: DataModel
     val dataContainer  : DataModelContainer<*, *>
     val daoService : DAOService<*, *, *>
-    val propertyBinder : PropertyBinder<*, *>
+    val dtoFactory: DTOFactory<*, *, *>
+   // val propertyBinder : PropertyBinder<*, *>
     val dtoTracker: DTOTracker<*,*>
 }
 

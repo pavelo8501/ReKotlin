@@ -11,6 +11,7 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KParameter
+import kotlin.reflect.KProperty1
 import kotlin.reflect.KType
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.isAccessible
@@ -44,8 +45,7 @@ class ClassBlueprint<T>(
 
     protected var effectiveConstructor : KFunction<T>? = null
     private var effectiveConstructorSize : Number  = 0
-
-
+    private val properties: MutableMap<String, KProperty1<T, *>> = mutableMapOf()
 
     init {
         initialize()
@@ -61,6 +61,9 @@ class ClassBlueprint<T>(
     override fun initialize(){
         className = clazz.simpleName.toString()
         builder.getBlueprint(clazz, this, params)
+        clazz.memberProperties.forEach {
+            properties[it.name] = it
+        }
     }
     override fun getClass(): KClass<T> {
         return clazz
@@ -79,14 +82,15 @@ class ClassBlueprint<T>(
     override fun <N:Any>setNestedMap(map: Map<String, Map<String, ClassData<N>>>) {
         nestedClasses = map
     }
-   inline fun <reified V : Any> getProperty(instance:T, name: String):V{
-        return clazz.memberProperties.firstOrNull{it.name == name}?.get(instance).castOrOperationsEx<V>()
+
+   fun getValue(instance:T, name: String): Any?{
+        val property = properties[name].getOrOperationsEx("Property with name: $name not found in ${clazz.simpleName}")
+        return property.get(instance)
    }
-    fun <V> setProperty(instance:T, name: String, value:V){
-        val property =  clazz.memberProperties.firstOrNull{it.name == name}.getOrOperationsEx()
-        property.isAccessible = true
-        val casted = property.castOrOperationsEx<KMutableProperty1<T,V>>()
-        casted.set(instance, value)
+
+    fun getValueCheckType(instance:T, name: String): Any?{
+        val property = properties[name].getOrOperationsEx("Property with name: $name not found in ${clazz.simpleName}")
+        return property.get(instance)
     }
 
     override fun getConstructorArgs(): Map<KParameter, Any?> {

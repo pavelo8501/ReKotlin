@@ -9,6 +9,7 @@ import po.exposify.common.classes.MapBuilder
 import po.exposify.dto.components.DTOConfig
 import po.exposify.common.classes.repoBuilder
 import po.exposify.dto.components.ClassExecutionProvider
+import po.exposify.dto.components.DTOFactory
 import po.exposify.dto.components.DataModelContainer
 import po.exposify.dto.components.MultipleRepository
 import po.exposify.dto.components.RepositoryBase
@@ -48,9 +49,11 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
 
     override val dtoName : String get() = "[CommonDTO ${registryItem.commonDTOKClass.simpleName.toString()}]"
 
-    abstract override val dataModel: DATA
+    abstract override var dataModel: DATA
+
 
     override val daoService: DAOService<DTO, DATA, ENTITY>  get() = dtoClassConfig.daoService
+    override val dtoFactory: DTOFactory<DTO, DATA, ENTITY>  get() = dtoClassConfig.dtoFactory
 
     private var insertedEntity : ENTITY? = null
     val daoEntity : ENTITY
@@ -58,16 +61,20 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
             return  insertedEntity?:daoService.entityModel[id]
         }
 
+    @PublishedApi
     internal val dtoPropertyBinder : DTOPropertyBinder<DTO, DATA, ENTITY> = DTOPropertyBinder(this)
 
-    override val propertyBinder : PropertyBinder<DATA, ENTITY>
-        get()  {
-            initStatus = DTOInitStatus.PARTIAL_WITH_DATA
-            return dtoClassConfig.propertyBinder
-        }
+//    override val propertyBinder : PropertyBinder<DATA, ENTITY>
+//        get()  {
+//            initStatus = DTOInitStatus.PARTIAL_WITH_DATA
+//            return dtoClassConfig.propertyBinder
+//        }
+
 
     override val dataContainer: DataModelContainer<DTO, DATA> by lazy {
-        DataModelContainer(dataModel, dtoClassConfig.dtoFactory.dataBlueprint, propertyBinder)
+       val dataContainer = DataModelContainer<DTO, DATA>(dataModel, dtoClassConfig.dtoFactory.dataBlueprint)
+       dataContainer.onDataModelUpdated = ::dataModelContainerUpdated
+       dataContainer
     }
 
     var onInitializationStatusChange : ((CommonDTO<DTO, DATA, ENTITY>)-> Unit)? = null
@@ -86,6 +93,11 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         : Map<CompositeKey<DTOBase<*, *, *>, Cardinality>, RepositoryBase<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>> = emptyMap()
 
     override val dtoTracker: DTOTracker<DTO, DATA> by lazy { DTOTracker(this) }
+
+
+    private fun dataModelContainerUpdated(model : DATA){
+        dataModel = model
+    }
 
     internal fun <C_DTO:ModelDTO, CD : DataModel, CE : LongEntity> getRepository(
         key: CompositeKey<DTOBase<*, *, *>, Cardinality>
@@ -163,6 +175,15 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     }
 
 
+//    suspend fun <P_DTO: ModelDTO, PD: DataModel, PE: LongEntity>updateBindingsBeforeInserted(
+//        container: EntityUpdateContainer<ENTITY, P_DTO, PD, PE>,
+//    ){
+////        if(container.updateMode == UpdateMode.ENTITY_TO_MODEL || container.updateMode == UpdateMode.ENTITY_TO_MODEL_FORCED){
+////            updateBindingsAfterInserted(container)
+////        }
+//        dtoPropertyBinder.update(container)
+//        initStatus = DTOInitStatus.PARTIAL_WITH_DATA
+//    }
 
     suspend fun <P_DTO: ModelDTO, PD: DataModel, PE: LongEntity>updateBindingsAfterInserted(
         container: EntityUpdateContainer<ENTITY, P_DTO, PD, PE>
@@ -173,18 +194,19 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         initStatus = DTOInitStatus.INITIALIZED
     }
 
-    suspend fun <P_DTO: ModelDTO, PD: DataModel, PE: LongEntity> updatePropertyBinding(
-        container: EntityUpdateContainer<ENTITY, P_DTO, PD, PE>)
-    : CommonDTO<DTO ,DATA, ENTITY>
-    {
-        propertyBinder.update(dataContainer.dataModel, container.ownEntity, container.updateMode)
-        dtoPropertyBinder.beforeInsertUpdate(container, container.updateMode)
-        if(container.updateMode == UpdateMode.ENTITY_TO_MODEL || container.updateMode == UpdateMode.ENTITY_TO_MODEL_FORCED){
-            updateBindingsAfterInserted(container)
-        }
-        initStatus = DTOInitStatus.INITIALIZED
-        return this
-    }
+//    suspend fun  updatePropertyBinding(
+//        updateMode: UpdateMode,
+//        entity:ENTITY,
+//        dataModel:DATA? = null,
+//    ): CommonDTO<DTO ,DATA, ENTITY>
+//    {
+//        if(dataModel != null){
+//            dataContainer.updateDataModel(dataModel)
+//        }
+//        propertyBinder.update(dataContainer.dataModel, entity, updateMode)
+//        initStatus = DTOInitStatus.INITIALIZED
+//        return this
+//    }
 
    internal fun initialize() { selfRegistration(registryItem) }
 

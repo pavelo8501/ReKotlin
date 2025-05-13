@@ -5,13 +5,14 @@ import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.and
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
+import po.exposify.dto.DTOBase
 import po.exposify.dto.components.proFErty_binder.EntityUpdateContainer
 import po.exposify.dto.components.proFErty_binder.containerize
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.DTORegistryItem
-import po.exposify.entity.classes.ExposifyEntityClass
+import po.exposify.dao.classes.ExposifyEntityClass
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.getOrOperationsEx
 import po.lognotify.TasksManaged
@@ -21,16 +22,17 @@ import po.lognotify.extensions.subTask
 
 
 class DAOService<DTO, DATA, ENTITY>(
-    val entityModel: ExposifyEntityClass<ENTITY>,
+    val dtoClass: DTOBase<DTO, DATA, ENTITY>,
     private val registryRecord: DTORegistryItem<DTO, DATA, ENTITY>,
 ): TasksManaged, IdentifiableComponent where DTO: ModelDTO, DATA: DataModel, ENTITY : LongEntity{
+
+    val entityModel: ExposifyEntityClass<ENTITY> get() = dtoClass.config.entityModel
 
     @LogOnFault()
     override val qualifiedName: String = "DAOService[${registryRecord.dtoName}]"
 
     @LogOnFault()
     override val name: String = "DAOService"
-
 
     private fun combineConditions(conditions: Set<Op<Boolean>>): Op<Boolean> {
         return conditions.reduceOrNull { acc, op -> acc and op } ?: Op.TRUE
@@ -42,6 +44,7 @@ class DAOService<DTO, DATA, ENTITY>(
     }
 
     internal suspend fun setActiveEntity(dto: CommonDTO<DTO, DATA, ENTITY>,  container : EntityUpdateContainer<ENTITY, ModelDTO, DataModel, LongEntity>){
+        container.insertedEntity(true)
         dto.updateBindingsAfterInserted(container)
     }
 
@@ -56,7 +59,6 @@ class DAOService<DTO, DATA, ENTITY>(
 
     suspend fun pickById(id: Long): ENTITY?
         = subTask("PickById", qualifiedName) {handler->
-      @LogOnFault()
       val entity =  entityModel.findById(id)
       if(entity == null){
           handler.info("Entity with id: $id not found")
@@ -79,12 +81,12 @@ class DAOService<DTO, DATA, ENTITY>(
     suspend fun save(dto: CommonDTO<DTO, DATA, ENTITY>): ENTITY =
         subTask("Save", "DAOService") {handler->
             val updateMode = UpdateMode.MODEL_TO_ENTITY
-        val newEntity = entityModel.new {
+            val newEntity = entityModel.new {
             handler.withTaskContext(this){
-                dto.updatePropertyBinding(this.containerize(updateMode))
+                dto.dtoPropertyBinder.update(this.containerize(updateMode))
             }
         }
-        setActiveEntity(dto, newEntity.containerize(updateMode))
+        setActiveEntity(dto, newEntity.containerize(updateMode) )
         handler.info("Dao entity created with id ${newEntity.id.value} for dto ${dto.dtoName}")
         newEntity
     }.resultOrException()
@@ -98,7 +100,7 @@ class DAOService<DTO, DATA, ENTITY>(
             val newEntity = entityModel.new {
                 handler.withTaskContext(this){
                     val container = this.containerize(updateMode, parentDto)
-                    dto.updatePropertyBinding(container)
+                    dto.dtoPropertyBinder.update(container)
                     bindFn.invoke(container)
                 }
             }
@@ -110,7 +112,7 @@ class DAOService<DTO, DATA, ENTITY>(
     suspend fun update(dto: CommonDTO<DTO, DATA, ENTITY>): ENTITY = subTask("Update", "DAOService") {handler->
         val selectedEntity =  pickById(dto.id).getOrOperationsEx("Entity with id : ${dto.id} not found", ExceptionCode.DB_CRUD_FAILURE)
         val updateMode = UpdateMode.MODEL_TO_ENTITY
-        dto.updatePropertyBinding(selectedEntity.containerize(updateMode))
+        dto.dtoPropertyBinder.update(selectedEntity.containerize(updateMode))
         setActiveEntity(dto, selectedEntity.containerize(updateMode))
         selectedEntity
     }.resultOrException()

@@ -22,7 +22,7 @@ suspend fun <T> withTransactionIfNone(
 
 suspend fun <T> withTransactionIfNone(block: suspend () -> T): T {
     return if (TransactionManager.currentOrNull() == null || TransactionManager.current().connection.isClosed) {
-        newSuspendedTransaction { block() }
+        newSuspendedTransaction(Dispatchers.IO) { block() }
     } else {
         block()
     }
@@ -32,7 +32,7 @@ suspend fun <T> withTransactionIfNone(block: suspend () -> T): T {
 suspend fun <T> withTransactionIfNone(taskHandler : TaskHandler<*>, block: suspend () -> T): T {
     return if (TransactionManager.currentOrNull() == null || TransactionManager.current().connection.isClosed) {
         taskHandler.warn("Transaction lost context. Restoring")
-        newSuspendedTransaction { block() }
+        newSuspendedTransaction(Dispatchers.IO) { block() }
     } else {
         block()
     }

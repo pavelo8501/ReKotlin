@@ -5,11 +5,10 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertAll
+import org.junit.jupiter.api.assertInstanceOf
 import po.auth.extensions.generatePassword
-import po.exposify.dto.components.SwitchQuery
 import po.exposify.dto.components.WhereQuery
 import po.exposify.scope.connection.ConnectionContext
-import po.exposify.scope.sequence.classes.createHandler
 import po.exposify.scope.sequence.enums.SequenceID
 import po.exposify.scope.sequence.extensions.switch
 import po.exposify.scope.service.enums.TableCreateMode
@@ -20,7 +19,6 @@ import po.lognotify.logNotify
 import po.misc.exceptions.CoroutineInfo
 import po.test.exposify.setup.ClassItem
 import po.test.exposify.setup.DatabaseTest
-import po.test.exposify.setup.MetaTag
 import po.test.exposify.setup.Pages
 import po.test.exposify.setup.dtos.Page
 import po.test.exposify.setup.dtos.PageDTO
@@ -32,11 +30,11 @@ import po.test.exposify.setup.pageModels
 import po.test.exposify.setup.pageModelsWithSections
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestSequenceContext : DatabaseTest(), TasksManaged {
-
 
     companion object{
         @JvmStatic
@@ -51,7 +49,7 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
 
         val loggerHandler: LogNotifyHandler  = logNotify()
         loggerHandler.notifierConfig {
-            console = ConsoleBehaviour.FullPrint
+            console = ConsoleBehaviour.MuteNoEvents
         }
         val user = User(
             id = 0,
@@ -66,59 +64,44 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
         }
     }
 
-
     @Test
     fun `Sequence switch statement select appropriate dto, update not breaking relations`() = runTest {
 
-        var onSwitchSelection : String = ""
-        var selectResult: List<Section>? = null
-
-        connectionContext.let {connection->
-            connection.service(PageDTO, TableCreateMode.CREATE) {
-
+        connectionContext.run {
+            service(PageDTO, TableCreateMode.CREATE) {
                 sequence(SequenceID.UPDATE) {topHandler->
                     update(topHandler.inputData)
-                    switch(SectionDTO){switchHandler->
+                    val pageDto = pick(topHandler.inputQuery).getDTOForced()
+                    switch(pageDto, SectionDTO){switchHandler->
                         update(switchHandler.inputData)
                     }
                 }
             }
         }
 
-        val sectionData = Section(0, "NewName", "NewDescription", "", emptyList<ClassItem>(), emptyList<MetaTag>(), 1, 1, 0)
 
-        PageDTO.runSequence(PageDTO.createHandler(SequenceID.UPDATE)){
-            withData(pageModelsWithSections(pageCount = 1, sectionsCount = 10, updatedBy = updatedById))
-            withQuery(SectionDTO, SwitchQuery(PageDTO, 1L), sectionData)
+        val result =  PageDTO.runSequence(SequenceID.UPDATE, SectionDTO){
+            withData(pageModelsWithSections(pageCount = 1, sectionsCount = 1, updatedBy = updatedById))
+            withQuery(WhereQuery(Pages).byId(1))
+            switchParameters(SectionDTO){
+                val sectionData = Section(1, "NewName", "NewDescription", "", emptyList(), emptyList(), 1, 1, 0)
+                withData(sectionData)
+            }
         }
 
+        assertTrue(result.count() == 1, "Section update did not return value")
+        val section = result.first()
 
-
-//
-//
-//        var sections : List<SectionDTO> = emptyList()
-//
-//         PageDTO.runSequence(SequenceID.SELECT){
-//             sections = withResult{
-//
-//            }.getDTO() as List<SectionDTO>
-//        }
-//
-//        val updatedSectionModel = sections.firstOrNull{it.id == 10L}
-//
-//        assertAll("End Session selection valid",
-//            { assertEquals(10, sections.count(), "Received records count mismatch")  },
-//            { assertNotNull(updatedSectionModel) },
-//            { assertEquals("NewName", updatedSectionModel!!.name, "Updated model name mismatch") }
-//        )
-//
-//        val deserializedSection  =  Json.decodeFromString<Section>(onSwitchSelection)
-//        assertNotEquals(deserializedSection.name, updatedSectionModel!!.name, "Before update and after, same name")
+        assertAll("Section update statement succeed",
+            { assertInstanceOf<Section>(section, "Returned value is not of type Section") },
+            { assertEquals("NewName", section.name, "Section properties update failed") },
+            { assertEquals(1, section.id, "Updated section Section record") }
+        )
 
     }
 
 
-    @Test
+
     fun `sequence launched with conditions and input work`() = runTest {
         val user = User(
             id = 0,
@@ -148,7 +131,7 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
         pages[3].langId = 2
 
 
-        updatedPages = PageDTO.runSequence(PageDTO.createHandler(SequenceID.UPDATE)){
+        updatedPages = PageDTO.runSequence(SequenceID.UPDATE){
             println("Coroutine on init")
             println(CoroutineInfo.createInfo(kotlin.coroutines.coroutineContext))
             withData(pages)
@@ -160,8 +143,8 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
             { assertEquals("this_name", updatedPages[1].name, "Updated page name mismatch") }
         )
 
-        val selectPages =  PageDTO.runSequence(PageDTO.createHandler(SequenceID.SELECT)) {
-            launchWithQuery(WhereQuery<Pages>().equalsTo(Pages.langId, 2))
+        val selectPages =  PageDTO.runSequence(SequenceID.SELECT) {
+            withQuery(WhereQuery(Pages).equalsTo({langId}, 2))
         }
 
         assertAll(

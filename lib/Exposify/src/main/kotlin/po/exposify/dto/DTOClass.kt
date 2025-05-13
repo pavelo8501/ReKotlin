@@ -7,16 +7,16 @@ import po.exposify.dto.interfaces.ClassDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.DTORegistryItem
-import po.exposify.entity.classes.ExposifyEntityClass
-import po.exposify.exceptions.InitException
+import po.exposify.dao.classes.ExposifyEntityClass
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.castOrOperationsEx
 import po.exposify.extensions.getOrInitEx
-import po.exposify.extensions.safeCast
 import po.exposify.extensions.withTransactionIfNone
 import po.exposify.scope.sequence.classes.RootSequenceHandler
+import po.exposify.scope.sequence.classes.createHandler
+import po.exposify.scope.sequence.enums.SequenceID
 import po.exposify.scope.sequence.models.RootSequencePack
 import po.exposify.scope.service.ServiceClass
 import po.exposify.scope.service.ServiceContext
@@ -25,6 +25,7 @@ import po.lognotify.extensions.newTaskAsync
 import po.misc.collections.Identifiable
 import po.misc.collections.generateKey
 import po.misc.types.castOrThrow
+import po.misc.types.safeCast
 import kotlin.reflect.KClass
 
 
@@ -65,7 +66,10 @@ abstract class RootDTO<DTO, DATA, ENTITY>()
         val commonDTOClass =  COMMON::class.castOrInitEx<KClass<out CommonDTO<COMMON, RD, RE>>>(
             "KClass<out CommonDTO<DTO, DATA, ENTITY> cast failed")
 
-        val newRegistryItem = DTORegistryItem(RD::class, RE::class, commonDTOClass)
+        val derivedClass =  COMMON::class
+
+        val newRegistryItem = DTORegistryItem(RD::class, RE::class, commonDTOClass, derivedClass)
+
         @Suppress("UNCHECKED_CAST") // Safe cast, to obtain reified class info
         val newConfiguration = DTOConfig(newRegistryItem, entityModel, this as DTOBase<COMMON, RD, RE>)
         newConfiguration.block()
@@ -76,18 +80,36 @@ abstract class RootDTO<DTO, DATA, ENTITY>()
 
 
     suspend fun runSequence(
-        handler : RootSequenceHandler<DTO, DATA, ENTITY>,
+        sequenceId: SequenceID,
         handlerBlock : suspend RootSequenceHandler<DTO, DATA, ENTITY>.()-> Unit
     ): List<DATA>{
         return withTransactionIfNone {
+            val handler = createHandler(sequenceId)
             val serviceClass = getServiceClass()
             val pack = serviceClass.getSequencePack(generateKey(handler.sequenceId))
                 .castOrThrow<RootSequencePack<DTO, DATA, ENTITY>, OperationsException>()
 
             val emitter = serviceClass.requestEmitter()
-            emitter.dispatch(pack, handlerBlock)
+            emitter.dispatch<DTO, DATA, ENTITY, DTO, DATA, ENTITY, List<DATA>>(pack, handlerBlock, null)
         }
     }
+
+
+    suspend fun <F_DTO: ModelDTO, FD : DataModel, FE: LongEntity> runSequence(
+        sequenceId: SequenceID,
+        childDtoClass: DTOClass<F_DTO, FD, FE>,
+        handlerBlock : suspend RootSequenceHandler<DTO, DATA, ENTITY>.()-> Unit
+    ): List<FD>{
+        return withTransactionIfNone {
+            val handler = createHandler(sequenceId)
+            val serviceClass = getServiceClass()
+            val pack = serviceClass.getSequencePack(generateKey(handler.sequenceId))
+                .castOrThrow<RootSequencePack<DTO, DATA, ENTITY>, OperationsException>()
+            val emitter = serviceClass.requestEmitter()
+            emitter.dispatch<DTO, DATA, ENTITY, F_DTO, FD, FE, List<FD>>(pack, handlerBlock, childDtoClass)
+        }
+    }
+
 }
 
 abstract class DTOClass<DTO, DATA, ENTITY>(
@@ -105,6 +127,8 @@ abstract class DTOClass<DTO, DATA, ENTITY>(
     suspend fun initialization() {
         if (!initialized) setup()
     }
+
+
     inline fun <reified COMMON,  reified RD, reified RE> configuration(
         entityModel: ExposifyEntityClass<RE>,
         noinline block: suspend DTOConfig<COMMON, RD, RE>.() -> Unit
@@ -113,7 +137,9 @@ abstract class DTOClass<DTO, DATA, ENTITY>(
         val commonDTOClass =  COMMON::class.castOrInitEx<KClass<out CommonDTO<COMMON, RD, RE>>>(
             "KClass<out CommonDTO<DTO, DATA, ENTITY> cast failed")
 
-        val newRegistryItem = DTORegistryItem(RD::class, RE::class, commonDTOClass)
+        val derivedClass =  COMMON::class
+
+        val newRegistryItem = DTORegistryItem(RD::class, RE::class, commonDTOClass, derivedClass)
         @Suppress("UNCHECKED_CAST") // Safe cast, to obtain reified class info
         val newConfiguration = DTOConfig(newRegistryItem, entityModel, this as DTOBase<COMMON, RD, RE>)
         newConfiguration.block()
@@ -134,35 +160,25 @@ sealed class DTOBase<DTO, DATA, ENTITY>(): TasksManaged,  ClassDTO, Identifiable
     val config: DTOConfig<DTO, DATA, ENTITY>
         get() = initialConfig.getOrInitEx("DTOConfig uninitialized", ExceptionCode.LAZY_NOT_INITIALIZED)
 
-
-    override var personalName: String = "DTO[Uninitialized]"
     override var initialized: Boolean = false
     abstract override val qualifiedName: String
 
     protected abstract suspend fun  setup()
 
-
-//    abstract suspend fun runSequence(
-//        sequenceID : SequenceID,
-//        parentSequence: SequenceID? = null,
-//        handlerBlock : suspend RootSequenceHandler<DTO, DATA, ENTITY>.()-> Unit
-//    ): List<DATA>
-
     fun getEntityModel(): ExposifyEntityClass<ENTITY> {
         return config.entityModel.castOrOperationsEx<ExposifyEntityClass<ENTITY>>()
     }
 
-    override fun findHierarchyRoot(): RootDTO<ModelDTO, DataModel, LongEntity>{
+    fun <DTO: ModelDTO, D: DataModel, E: LongEntity> findHierarchyRoot(): RootDTO<DTO, D, E>{
         return when(this){
             is RootDTO<*, *, *>->{
-                this.castOrThrow<RootDTO<ModelDTO, DataModel, LongEntity>, InitException>()
+                this.castOrInitEx()
             }
 
             is DTOClass<*, *, *>->{
                 parentClass.findHierarchyRoot()
             }
         }
-      // throw InitException("Unable to find Hierarchy root", ExceptionCode.ABNORMAL_STATE)
     }
 
     override fun getAssociatedTables(cumulativeList: MutableList<IdTable<Long>>) {
@@ -184,31 +200,5 @@ sealed class DTOBase<DTO, DATA, ENTITY>(): TasksManaged,  ClassDTO, Identifiable
         }
         return dtos.firstOrNull{ it.id == id }?.safeCast()
     }
-
-//    suspend fun <F_DTO: ModelDTO, FD: DataModel,  FE: LongEntity  > runSequence(
-//        sequenceID : SequenceID,
-//        childClass: DTOClass<F_DTO, FD, FE>,
-//        classHandlerBlock : suspend ClassSequenceHandler<F_DTO, FD, FE>.()-> Unit
-//    ): List<FD>{
-//        return withTransactionIfNone {
-//
-//            val hierarchyRoot = childClass.findHierarchyRoot()
-//            val serviceClass  = hierarchyRoot.getServiceClass()
-//            val emitter = serviceClass.requestEmitter()
-//
-//
-//            val rootPack = serviceClass.getSequencePack(hierarchyRoot.generateKey(sequenceID))
-//                .castOrThrow<RootSequencePack<DTO, DATA, ENTITY>, OperationsException>()
-//
-//            emitter.dispatch(rootPack, )
-//
-//
-//            val foundChildPack =  rootPack.switchPacks.lastOrNull { it.dtoClass == childClass}
-//
-//            val casted = foundChildPack.castOrOperationsEx<ClassSequencePack<F_DTO, FD, FE>>()
-//            emitter.dispatch(casted, null, classHandlerBlock)
-//        }
-//    }
-
 
 }

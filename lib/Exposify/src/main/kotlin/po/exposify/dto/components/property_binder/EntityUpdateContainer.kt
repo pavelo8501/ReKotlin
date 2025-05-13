@@ -22,14 +22,21 @@ fun <TE : LongEntity, F_DTO: ModelDTO, FD: DataModel, FE: LongEntity> TE.contain
 
 data class EntityUpdateContainer<TE : LongEntity, F_DTO: ModelDTO, FD: DataModel, FE: LongEntity>(
     val ownEntity: TE,
-    val updateMode : UpdateMode
+    val updateMode : UpdateMode,
+    private var isEntityInserted: Boolean = false
 ){
 
     val isParentDtoSet : Boolean get() = parentDto!=null
-
     var parentDto: CommonDTO<F_DTO, FD, FE>? = null
     val hasParentDto : CommonDTO<F_DTO, FD, FE>
         get()= parentDto.getOrThrow<CommonDTO<F_DTO, FD, FE>, OperationsException>()
+
+
+    fun insertedEntity(value : Boolean){
+        isEntityInserted = value
+    }
+
+    val inserted: Boolean get() = isEntityInserted
 
     fun extractParentEntity():FE?{
         return parentDto?.daoEntity

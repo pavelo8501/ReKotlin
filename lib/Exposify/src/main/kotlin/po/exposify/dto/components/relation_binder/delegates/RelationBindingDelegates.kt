@@ -10,8 +10,10 @@ import po.exposify.dto.components.SingleRepository
 import po.exposify.dto.components.proFErty_binder.EntityUpdateContainer
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.exceptions.OperationsException
 import po.lognotify.TasksManaged
 import po.misc.collections.generateKey
+import po.misc.types.castListOrThrow
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty
@@ -68,7 +70,7 @@ class OneToManyDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>(
     private val dataProperty: KProperty1<DATA, MutableList<FD>>,
     private val foreignEntities: KProperty1<ENTITY, SizedIterable<FE>>,
     private val foreignEntity: KMutableProperty1<FE, ENTITY>,
-) : RelationBindingDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, List<CommonDTO<F_DTO, FD, FE>>>()
+) : RelationBindingDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, List<F_DTO>>()
         where DTO : ModelDTO, DATA : DataModel, ENTITY : LongEntity,
               F_DTO: ModelDTO,  FD : DataModel, FE : LongEntity {
 
@@ -78,8 +80,8 @@ class OneToManyDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>(
         dto.getRepository<F_DTO, FD, FE>(dto.dtoClass.generateKey(Cardinality.ONE_TO_MANY)) as MultipleRepository
     }
 
-    override fun getEffectiveValue(): List<CommonDTO<F_DTO, FD, FE>> {
-        return multipleRepository.getDTO()
+    override fun getEffectiveValue(): List<F_DTO> {
+        return multipleRepository.getDTO().castListOrThrow<F_DTO, OperationsException>(childModel.config.registry.derivedDTOClazz, null, 0)
     }
 
     fun saveDataModels(foreignDataModels: List<FD>){

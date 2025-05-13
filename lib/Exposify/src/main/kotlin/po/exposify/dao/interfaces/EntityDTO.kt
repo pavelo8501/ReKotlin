@@ -1,4 +1,4 @@
-package po.exposify.entity.interfaces
+package po.exposify.dao.interfaces
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.EntityID

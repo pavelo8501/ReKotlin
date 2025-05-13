@@ -37,7 +37,7 @@ class SequenceContext<DTO, DATA, ENTITY>(
         return result
     }
 
-    suspend fun <T: IdTable<Long>> pick(conditions: WhereQuery<T>): ResultSingle<DTO, DATA, ENTITY>
+    suspend fun pick(conditions: Query): ResultSingle<DTO, DATA, ENTITY>
     = subTask("Pick", qualifiedName) { handler ->
         val result = executionContext.pick(conditions)
         submitLatestResult(result)

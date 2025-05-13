@@ -1,11 +1,16 @@
 package po.exposify.dto.components.property_binder.delegates
 
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.builtins.ListSerializer
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
+import po.exposify.dao.classes.JSONBType
 import po.exposify.dto.DTOClass
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
+import po.exposify.dto.components.property_binder.bindings.SerializedBinding
 import po.exposify.dto.interfaces.ModelDTO
+import po.misc.types.getKType
 import kotlin.reflect.KMutableProperty1
 
 
@@ -82,3 +87,28 @@ fun <DTO, DATA,  ENTITY, F_DTO,  FD,  FE>  CommonDTO<DTO, DATA, ENTITY>.parentRe
     dtoPropertyBinder.setBinding(container)
     return container
 }
+
+inline fun <DTO, D, E, reified R>  CommonDTO<DTO, D, E>.binding(
+    dataProperty:KMutableProperty1<D, R>,
+    entityProperty :KMutableProperty1<E, R>
+): PropertyDelegate<DTO, D, E, R>
+        where  DTO: ModelDTO, D:DataModel, E : LongEntity
+{
+    val propertyDelegate = PropertyDelegate(this, dataProperty, entityProperty)
+    dtoPropertyBinder.setBinding(propertyDelegate)
+    return propertyDelegate
+}
+
+fun <DTO, D, E, S, V>  CommonDTO<DTO, D, E>.serializedBinding(
+    dataProperty:KMutableProperty1<D, V>,
+    entityProperty:KMutableProperty1<E, V>,
+    serializableClass:  JSONBType<S>
+): SerializedDelegate<DTO, D, E, List<S>, V>
+    where DTO: ModelDTO, D: DataModel, E: LongEntity, S: Any
+{
+    val serializedDelegate = SerializedDelegate(this, dataProperty, entityProperty, serializableClass.listSerializer)
+    dtoPropertyBinder.setBinding(serializedDelegate)
+    dtoFactory.setSerializableType(dataProperty.name, serializableClass.serializer)
+    return serializedDelegate
+}
+

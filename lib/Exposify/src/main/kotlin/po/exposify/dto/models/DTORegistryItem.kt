@@ -25,9 +25,8 @@ data class DTORegistryItem<DTO, DATA, ENTITY>(
     override val dataKClass:  KClass<DATA>,
     override val entityKClass: KClass<ENTITY>,
     val commonDTOKClass: KClass<out CommonDTO<DTO, DATA, ENTITY>>,
+    val derivedDTOClazz: KClass<DTO>,
 ): DTORegistry<DTO, DATA, ENTITY> where DTO : ModelDTO, DATA: DataModel , ENTITY: LongEntity{
-
-
 
     val typeKeyDto: String get() = commonDTOKClass.qualifiedName.toString()
     val typeKeyDataModel: String get() = dataKClass.qualifiedName.toString()

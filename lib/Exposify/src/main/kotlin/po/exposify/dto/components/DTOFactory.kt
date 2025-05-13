@@ -33,7 +33,7 @@ internal class PostCreationRoutine<DTO, DATA, ENTITY, R>(
     }
 }
 
-internal class DTOFactory<DTO, DATA, ENTITY>(
+class DTOFactory<DTO, DATA, ENTITY>(
     private val dtoKClass : KClass<out CommonDTO<DTO, DATA, ENTITY>>,
     private val dataModelClass : KClass<DATA>,
     private val hostingConfig: DTOConfig<DTO, DATA, ENTITY>,
@@ -48,18 +48,17 @@ internal class DTOFactory<DTO, DATA, ENTITY>(
     internal val dataBlueprint : ClassBlueprint<DATA> =  ClassBlueprint(dataModelClass)
     private val dtoBlueprint : ClassBlueprint<out CommonDTO<DTO, DATA, ENTITY>> = ClassBlueprint(dtoKClass)
 
-    private var dataModelConstructor : (() -> DATA)? = null
+    private var dataModelBuilderFn : (() -> DATA)? = null
 
-    private var serializers = mapOf<String, KSerializer<out Any>>()
+    private var serializers = mutableMapOf<String, KSerializer<*>>()
 
-    fun setSerializableTypes(types: List<Pair<String, KSerializer<out Any>>>){
-        serializers =  types.associate {
-            it.first to  it.second
-        }
+
+    fun <T> setSerializableType(name: String, serializer : KSerializer<T>){
+        serializers[name] = serializer
     }
 
-    fun setDataModelConstructor(dataModelConstructor : (() -> DATA)){
-        this.dataModelConstructor = dataModelConstructor
+    fun setDataModelConstructor(dataModelBuilder : (() -> DATA)){
+        dataModelBuilderFn = dataModelBuilder
     }
 
     internal var postCreationRoutines : MutableMap<String, PostCreationRoutine<DTO, DATA, ENTITY, *>> = mutableMapOf()
@@ -78,9 +77,7 @@ internal class DTOFactory<DTO, DATA, ENTITY>(
 
     private suspend fun dtoPostCreation(dto : CommonDTO<DTO, DATA, ENTITY>)
         = subTask("dtoPostCreation"){handler->
-
         dto.initialize()
-
         postCreationRoutines.values.forEach {
             handler.info("Executing ${it.name}")
             it.invokeRoutineBlock(dto)
@@ -98,7 +95,7 @@ internal class DTOFactory<DTO, DATA, ENTITY>(
             constructFn?.let {
                 return it.invoke()
             }
-            dataModelConstructor?.let {
+            dataModelBuilderFn?.let {
                 return it.invoke()
             }
 

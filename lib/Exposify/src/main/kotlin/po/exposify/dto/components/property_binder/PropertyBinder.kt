@@ -67,10 +67,6 @@ class PropertyBinder<DATA : DataModel, ENT : LongEntity>(
     }
 
    fun update(dataModel: DATA, daoModel: ENT, updateMode: UpdateMode){
-
-       syncedPropertyList.forEach { it.update(dataModel, daoModel, updateMode, onPropertyUpdate) }
        syncedSerializedPropertyList.forEach { it.update(dataModel, daoModel, updateMode, onPropertyUpdate) }
-       readOnlyPropertyList.forEach { it.update(dataModel, daoModel, updateMode, onPropertyUpdate) }
-
    }
 }

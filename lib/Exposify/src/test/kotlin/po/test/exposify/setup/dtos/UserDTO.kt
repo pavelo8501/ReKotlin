@@ -8,6 +8,8 @@ import po.exposify.dto.RootDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.property_binder.bindings.SyncedBinding
+import po.exposify.dto.components.property_binder.delegates.binding
+import po.test.exposify.setup.SectionEntity
 import po.test.exposify.setup.UserEntity
 
 
@@ -34,19 +36,16 @@ class UserDTO(
     override var dataModel: User
 ): CommonDTO<UserDTO,  User, UserEntity>(UserDTO) {
 
+    var login : String by binding(User::login, UserEntity::login)
+    var name : String by binding(User::name, UserEntity::name)
+    var email : String by binding(User::email, UserEntity::email)
+    var hashedPassword : String by binding(User::hashedPassword, UserEntity::hashedPassword)
+    var updated : LocalDateTime by binding(User::updated, UserEntity::updated)
+    var created : LocalDateTime by binding(User::created, UserEntity::created)
+
     companion object: RootDTO<UserDTO, User, UserEntity>(){
-
         override suspend fun setup() {
-
             configuration<UserDTO, User, UserEntity>(UserEntity){
-                propertyBindings(
-                    SyncedBinding(User::login, UserEntity::login),
-                    SyncedBinding(User::name, UserEntity::name),
-                    SyncedBinding(User::email, UserEntity::email),
-                    SyncedBinding(User::hashedPassword, UserEntity::hashedPassword),
-                    SyncedBinding(User::created, UserEntity::created),
-                    SyncedBinding(User::updated, UserEntity::updated),
-                )
 
             }
         }

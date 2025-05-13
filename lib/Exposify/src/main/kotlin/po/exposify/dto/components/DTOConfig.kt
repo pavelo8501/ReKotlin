@@ -2,8 +2,6 @@ package po.exposify.dto.components
 
 import kotlinx.serialization.KSerializer
 import org.jetbrains.exposed.dao.LongEntity
-import org.jetbrains.exposed.dao.LongEntityClass
-import org.jetbrains.exposed.dao.id.IdTable
 import po.exposify.dto.DTOBase
 import po.exposify.dto.components.property_binder.PropertyBinder
 import po.exposify.dto.components.relation_binder.RelationshipBinder
@@ -14,7 +12,7 @@ import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.components.property_binder.interfaces.PropertyBindingOption
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.DTORegistryItem
-import po.exposify.entity.classes.ExposifyEntityClass
+import po.exposify.dao.classes.ExposifyEntityClass
 
 
 interface ConfigurableDTO<DTO: ModelDTO, DATA : DataModel, ENTITY: LongEntity>{
@@ -30,23 +28,20 @@ class DTOConfig<DTO, DATA, ENTITY>(
 ): ConfigurableDTO<DTO, DATA, ENTITY> where DTO: ModelDTO, DATA: DataModel,  ENTITY : LongEntity{
 
    internal var dtoFactory: DTOFactory<DTO, DATA, ENTITY> = DTOFactory(registry.commonDTOKClass, registry.dataKClass, this)
-   internal var daoService :  DAOService<DTO, DATA, ENTITY> = DAOService(entityModel, registry)
+   internal var daoService :  DAOService<DTO, DATA, ENTITY> =  DAOService(dtoClass, registry)
 
-    var binderPropertyUpdate  : ((String, PropertyType, UpdateMode) -> Unit)? = null
+   // var binderPropertyUpdate  : ((String, PropertyType, UpdateMode) -> Unit)? = null
 
-    val namedSerializes = mutableListOf<Pair<String, KSerializer<out Any>>>()
-    val propertyBinder : PropertyBinder<DATA, ENTITY> = PropertyBinder(binderPropertyUpdate   ){syncedSerializedList->
-        syncedSerializedList.forEach {
-            namedSerializes.add(it.getSerializer())
-        }
-        dtoFactory.setSerializableTypes(namedSerializes)
-    }
+   // val namedSerializes = mutableListOf<Pair<String, KSerializer<out Any>>>()
+//    val propertyBinder : PropertyBinder<DATA, ENTITY> = PropertyBinder(binderPropertyUpdate   ){syncedSerializedList->
+//        syncedSerializedList.forEach {
+//            namedSerializes.add(it.getSerializer())
+//        }
+//        dtoFactory.setSerializableTypes(namedSerializes)
+//    }
 
     val relationBinder: RelationshipBinder<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>
             = RelationshipBinder(dtoClass)
-
-    var dataModelConstructor : (() -> DataModel)? = null
-        private set
 
     override suspend fun withRelationshipBinderAsync(block: suspend (RelationshipBinder<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>)-> Unit){
         block.invoke(relationBinder)
@@ -55,7 +50,7 @@ class DTOConfig<DTO, DATA, ENTITY>(
         block.invoke(relationBinder)
     }
 
-    fun propertyBindings(vararg props: PropertyBindingOption<DATA, ENTITY, *> ): Unit =  propertyBinder.setProperties(props.toList())
+   // fun propertyBindings(vararg props: PropertyBindingOption<DATA, ENTITY, *> ): Unit =  propertyBinder.setProperties(props.toList())
 
     inline fun childBindings(
         block: RelationshipBinder<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>.()-> Unit){
@@ -68,8 +63,7 @@ class DTOConfig<DTO, DATA, ENTITY>(
         }
     }
 
-    fun setDataModelConstructor(dataModelConstructor: () -> DataModel){
-        this.dataModelConstructor = dataModelConstructor
-    }
+    fun useDataModelBuilder(builderFn: () -> DATA)
+        = dtoFactory.setDataModelConstructor(builderFn)
 
 }

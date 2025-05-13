@@ -36,7 +36,6 @@ class RootExecutionProvider<DTO, DATA, ENTITY>(
         entity: ENTITY
     ):CommonDTO<DTO, DATA, ENTITY>{
         val dto = dtoClass.config.dtoFactory.createDto()
-        dto.updatePropertyBinding(entity.containerize(UpdateMode.ENTITY_TO_MODEL))
         dto.getDtoRepositories().forEach { it.loadHierarchyByEntity() }
         return dto.castOrOperationsEx("selectDto. Cast failed.")
     }
@@ -48,7 +47,10 @@ class RootExecutionProvider<DTO, DATA, ENTITY>(
         val dto = dtoClass.config.dtoFactory.createDto(dataModel)
         if(dataModel.id == 0L){
             dto.trackSave(CrudOperation.Save, dto.daoService).let {
-                dto.daoService.save(dto.castOrOperationsEx("updateDto(save). Cast failed."))
+                dto.daoService.save(dto)
+                dto.repositories.forEach {
+                    it.value.update(dataModel)
+                }
                 it.addTrackInfoResult(1)
             }
         }else{
@@ -106,7 +108,6 @@ class RootExecutionProvider<DTO, DATA, ENTITY>(
     override suspend fun update(dataModels: List<DATA>): ResultList<DTO, DATA, ENTITY> {
         val result =  ResultList<DTO, DATA, ENTITY>()
         dataModels.forEach {
-            val dto = createDto(it)
             val resultSingle = update(it)
             result.appendDto(resultSingle)
         }

@@ -150,7 +150,7 @@ class TestSelect : DatabaseTest() {
             connection.service(PageDTO.Companion, TableCreateMode.CREATE) {
                 truncate()
                 update(pages)
-                val selectedPages =  select(WhereQuery<Pages>().equalsTo(Pages.langId, 1)).getData()
+                val selectedPages =  select(WhereQuery(Pages).equalsTo({ langId }, 1)).getData()
                 assertEquals(1, selectedPages.count(), "Page count mismatch")
                 val selectedSections = selectedPages[0].sections
                 assertAll(

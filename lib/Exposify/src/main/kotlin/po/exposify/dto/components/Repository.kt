@@ -23,40 +23,6 @@ import po.lognotify.TasksManaged
 import po.lognotify.extensions.subTask
 import po.misc.types.getOrThrow
 import kotlin.collections.forEach
-//
-//internal suspend fun<DTO : ModelDTO, DATA: DataModel, ENTITY: LongEntity> selectDto(
-//    dtoClass: DTOBase<DTO, DATA, ENTITY>,
-//    entity: ENTITY
-//):CommonDTO<DTO, DATA, ENTITY>{
-//    val dto = dtoClass.config.dtoFactory.createDto()
-//    dto.updatePropertyBinding(entity.containerize(UpdateMode.ENTITY_TO_MODEL))
-//    dto.getDtoRepositories().forEach { it.loadHierarchyByEntity() }
-//    return dto.castOrOperationsEx("selectDto. Cast failed.")
-//}
-//
-//internal suspend fun <DTO : ModelDTO, DATA: DataModel, ENTITY: LongEntity> updateDto(
-//    dtoClass: DTOBase<DTO, DATA, ENTITY>,
-//    dataModel: DATA
-//):CommonDTO<DTO, DATA, ENTITY>
-//{
-//    val dto = dtoClass.config.dtoFactory.createDto(dataModel)
-//    if(dataModel.id == 0L){
-//        dto.trackSave(CrudOperation.Save, dto.daoService).let {
-//            dto.daoService.save(dto.castOrOperationsEx("updateDto(save). Cast failed."))
-//            it.addTrackInfoResult(1)
-//        }
-//    }else{
-//        dto.trackSave(CrudOperation.Update, dto.daoService).let {
-//            dto.daoService.update(dto.castOrOperationsEx("updateDto(update). Cast failed."))
-//            it.addTrackInfoResult(1)
-//        }
-//    }
-//    dto.getDtoRepositories().forEach {repository->
-//        repository.loadHierarchyByModel()
-//    }
-//    return dto.castOrOperationsEx("updateDto(Return). Cast failed.")
-//}
-
 
 class SingleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
     val binding : SingleChildContainer<DTO, DATA, ENTITY, C_DTO,  CD, CE>,
@@ -78,15 +44,7 @@ class SingleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
 
 
     override suspend fun update(dataModel:CD): CommonDTO<C_DTO, CD, CE>?{
-        if(dataModel.id != 0L){
-            val existingDto = childDTO[dataModel.id]
-            if(existingDto != null) {
-                existingDto.updatePropertyBinding(existingDto.daoEntity.containerize(UpdateMode.MODEL_TO_ENTITY))
-                return existingDto
-            }else{
-                return null
-            }
-        }else {
+        if(dataModel.id == 0L){
             val newChildDto = childFactory.createDto(dataModel)
             childDaoService.saveWithParent(newChildDto, hostingDTO) { containerized ->
                 binding.attachForeignEntity(containerized)
@@ -96,6 +54,14 @@ class SingleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
                 repository.loadHierarchyByEntity()
             }
             return newChildDto
+        }else {
+            val existingDto = childDTO[dataModel.id]
+            if(existingDto != null) {
+                existingDto.dtoPropertyBinder.update(dataModel)
+                return existingDto
+            }else{
+                return null
+            }
         }
     }
 
@@ -121,7 +87,7 @@ class SingleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
 
         val childEntity = binding.getChildEntity(hostingDTO.daoEntity)
         val newChildDto = childFactory.createDto()
-        newChildDto.updatePropertyBinding(childEntity.containerize(UpdateMode.ENTITY_TO_MODEL))
+        newChildDto.updateBindingsAfterInserted(childEntity.containerize(UpdateMode.ENTITY_TO_MODEL))
 
         binding.saveDataModel(newChildDto.dataModel)
         childDTO[newChildDto.id] = newChildDto
@@ -150,15 +116,7 @@ class MultipleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
 
 
     override suspend fun update(dataModel:CD): CommonDTO<C_DTO, CD, CE>?{
-        if(dataModel.id != 0L){
-            val existingDto = childDTO[dataModel.id]
-            if(existingDto != null) {
-                existingDto.updatePropertyBinding(existingDto.daoEntity.containerize(UpdateMode.MODEL_TO_ENTITY))
-                return existingDto
-            }else{
-                return null
-            }
-        }else {
+        if(dataModel.id == 0L){
             val newChildDto = childFactory.createDto(dataModel)
             childDaoService.saveWithParent(newChildDto, hostingDTO) { containerized ->
                 binding.attachForeignEntity(containerized)
@@ -168,6 +126,14 @@ class MultipleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
                 repository.loadHierarchyByEntity()
             }
             return newChildDto
+        }else {
+            val existingDto = childDTO[dataModel.id]
+            if(existingDto != null) {
+                existingDto.dtoPropertyBinder.update(dataModel)
+                return existingDto
+            }else{
+                return null
+            }
         }
     }
 
@@ -208,7 +174,7 @@ class MultipleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
 
         val dtos = binding.getForeignEntities(hostingDTO.daoEntity).map { entity ->
             childFactory.createDto().also { dto ->
-                dto.updatePropertyBinding(entity.containerize(UpdateMode.ENTITY_TO_MODEL))
+                dto.dtoPropertyBinder.afterInsertUpdate(entity.containerize(UpdateMode.ENTITY_TO_MODEL))
                 dto.getDtoRepositories().forEach { it.loadHierarchyByEntity() }
             }
         }
@@ -260,9 +226,9 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, C_DTO,  CD, CE>(
         return  if(found != null){
             found
         }else{
-            val childEntity = bindingBase.getForeignEntity(id).getOrOperationsEx("Foreign entity with id ${id} not found")
+            val childEntity = bindingBase.getForeignEntity(id).getOrOperationsEx<CE>("Foreign entity with id ${id} not found")
             val newChildDto = childFactory.createDto()
-            newChildDto.updatePropertyBinding(childEntity.containerize(UpdateMode.ENTITY_TO_MODEL))
+            newChildDto.dtoPropertyBinder.update(childEntity.containerize(UpdateMode.ENTITY_TO_MODEL))
             childDTO[newChildDto.id] = newChildDto
             newChildDto.getDtoRepositories().forEach {repository->
                 repository.loadHierarchyByEntity()

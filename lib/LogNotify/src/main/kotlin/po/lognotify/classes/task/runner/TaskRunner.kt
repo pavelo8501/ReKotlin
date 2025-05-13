@@ -18,7 +18,6 @@ import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.staticProperties
 
-
 class TaskRunner<R: Any?>(
     val task: ControlledTask,
     val taskHandler: TaskHandler<R>,
@@ -60,7 +59,6 @@ class TaskRunner<R: Any?>(
         }
     }
 
-
     suspend fun executedWithResult(value:R, handlerBlock: suspend TaskRunnerCallbacks<R>.()->Unit){
         stopTimer()
         val callbacks = TaskRunnerCallbacks<R>()
@@ -91,11 +89,9 @@ class TaskRunner<R: Any?>(
                 }
                 return result
             }
-
             HandlerType.SKIP_SELF -> {
                 return exceptionHandler.handleManaged(managedException)
             }
-
             HandlerType.UNMANAGED -> {
                 notifier.systemInfo(EventType.EXCEPTION_UNHANDLED, SeverityLevel.EXCEPTION, "Exception handling failure in $taskName")
                 return ExceptionHandler.HandlerResult<R>(null, managedException)
@@ -105,7 +101,6 @@ class TaskRunner<R: Any?>(
             }
         }
     }
-
 
     @PublishedApi
     internal suspend fun <T> execute(receiver:T,  block: suspend T.(TaskHandler<R>) -> R, handlerBlock: suspend TaskRunnerCallbacks<R>.()->Unit) {
@@ -138,7 +133,5 @@ class TaskRunner<R: Any?>(
             }
         }
     }
-
-
 
 }

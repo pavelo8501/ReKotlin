@@ -1,29 +1,5 @@
 package po.test.exposify.structure
 
-import kotlinx.datetime.Clock
-import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
-import org.jetbrains.exposed.dao.LongEntityClass
-import org.jetbrains.exposed.dao.id.EntityID
-import org.jetbrains.exposed.dao.id.LongIdTable
-import po.exposify.dto.interfaces.DataModel
-import kotlinx.serialization.Serializable
-import po.exposify.dto.components.DAOService
-import po.exposify.dto.components.DTOConfig
-import po.exposify.dto.components.DataModelContainer
-import po.exposify.dto.components.property_binder.DTOPropertyBinder
-import po.exposify.dto.components.property_binder.PropertyBinder
-import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.dto.models.CommonDTORegistryItem
-import po.exposify.dto.models.DTOTracker
-import po.exposify.entity.classes.ExposifyEntityClass
-import po.exposify.extensions.castOrInitEx
-import po.exposify.extensions.castOrOperationsEx
-import po.lognotify.TasksManaged
-import po.test.exposify.structure.ClassDTOTest
-import kotlin.reflect.KClass
-
 //
 //@Serializable
 //data class TopData(override var id: Long = 0, var name: String = "", var children: MutableList<ChildData> = mutableListOf()) : DataModel

@@ -6,27 +6,6 @@ inline fun <T : Any> T?.getOrException(
     return this ?: throw exceptionProvider()
 }
 
-
-inline fun <reified T: Any> Any?.castOrException(
-    exceptionProvider: () -> ManagedException
-): T {
-
-    if(this == null){
-       val exception =  exceptionProvider()
-       throw exception.addMessage("Unable to cast null to ${T::class.simpleName}")
-
-    }else{
-        val result =  this as? T
-        if(result != null){
-            return result
-        }else{
-            val exception =  exceptionProvider()
-            throw exception.addMessage("Unable to cast ${this::class.simpleName} to  ${T::class.simpleName}")
-        }
-    }
-}
-
-
 inline fun <T: Any> T?.letOrException(ex : ManagedException, block: (T)-> T){
     if(this != null){
         block(this)

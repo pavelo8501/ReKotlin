@@ -3,7 +3,7 @@ package po.test.exposify.setup
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.EntityID
-import po.exposify.entity.classes.ExposifyEntityClass
+import po.exposify.dao.classes.ExposifyEntityClass
 
 
 class TestsItemEntity (id: EntityID<Long>) : LongEntity(id){

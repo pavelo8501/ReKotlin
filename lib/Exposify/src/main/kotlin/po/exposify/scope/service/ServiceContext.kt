@@ -13,6 +13,7 @@ import po.exposify.dto.components.ResultSingle
 import po.exposify.dto.components.RootExecutionProvider
 import po.exposify.dto.components.WhereQuery
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.extensions.withTransactionIfNone
 import po.exposify.scope.sequence.SequenceContext
 import po.exposify.scope.sequence.classes.RootSequenceHandler
 import po.exposify.scope.sequence.enums.SequenceID
@@ -46,53 +47,52 @@ class ServiceContext<DTO, DATA, ENTITY: LongEntity>(
 
     fun <T: IdTable<Long>>pick(conditions: WhereQuery<T>): ResultSingle<DTO, DATA, ENTITY>
          = newTaskAsync("Pick by conditions", personalName) {
-            suspendedTransactionAsync {
+            withTransactionIfNone {
                 executionProvider.pick(conditions)
-            }.await()
+            }
         }.resultOrException()
 
     fun pickById(id: Long): ResultSingle<DTO, DATA, ENTITY>
-        = newTaskAsync("Pick by ID", personalName) {
-
-            suspendedTransactionAsync {
+        = newTaskAsync("Pick by ID", personalName) {handler->
+            withTransactionIfNone(handler) {
                 executionProvider.pickById(id)
-            }.await()
+            }
         }.resultOrException()
 
 
     fun select(): ResultList<DTO, DATA, ENTITY>
          =  newTaskAsync("Select", personalName) {
-            suspendedTransactionAsync {
+            withTransactionIfNone {
                 executionProvider.select()
-            }.await()
+            }
         }.resultOrException()
 
     fun <T: IdTable<Long>> select(conditions:  WhereQuery<T>): ResultList<DTO, DATA, ENTITY>
          = newTaskAsync("Select With Conditions", personalName) {
-            suspendedTransactionAsync {
+            withTransactionIfNone {
                 executionProvider.select(conditions)
-            }.await()
+            }
         }.resultOrException()
 
     fun update(dataModel : DATA): ResultSingle<DTO,DATA, ENTITY>
-      = newTaskAsync("Update", personalName) {
-            suspendedTransactionAsync {
+      = newTaskAsync("Update", personalName) {handler->
+            withTransactionIfNone {
                 executionProvider.update(dataModel)
-            }.await()
+            }
         }.resultOrException()
 
     fun update(dataModels : List<DATA>): ResultList<DTO,DATA, ENTITY>
-       =  newTaskAsync("Update", personalName) {
-        suspendedTransactionAsync {
-            executionProvider.update(dataModels)
-        }.await()
+       =  newTaskAsync("Update", personalName) {handler->
+            withTransactionIfNone(handler) {
+                executionProvider.update(dataModels)
+            }
     }.resultOrException()
 
     fun delete(toDelete: DATA): ResultList<DTO, DATA, ENTITY>?
        =  newTaskAsync("Delete", personalName) {
-            suspendedTransactionAsync {
+            withTransactionIfNone{
                 executionProvider.update(toDelete)
-            }.await()
+            }
         null
         }.resultOrException()
 
