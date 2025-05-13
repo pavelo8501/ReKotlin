@@ -1,12 +1,18 @@
 package po.test.exposify.setup
 
-import org.jetbrains.exposed.dao.LongEntityClass
+
+import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.EntityID
-import po.exposify.entity.classes.ExposifyEntity
+import po.exposify.dao.classes.ExposifyEntityClass
 
 
-class UserEntity  (id: EntityID<Long>) : ExposifyEntity(id){
-    companion object : LongEntityClass<UserEntity>(Users)
+class TestsItemEntity (id: EntityID<Long>) : LongEntity(id){
+    companion object : ExposifyEntityClass<TestsItemEntity>(TestsItems)
+    var name by Users.name
+}
+
+class UserEntity  (id: EntityID<Long>) : LongEntity(id){
+    companion object : ExposifyEntityClass<UserEntity>(Users)
     var name by Users.name
     var login by Users.login
     var hashedPassword by Users.hashedPassword
@@ -16,8 +22,8 @@ class UserEntity  (id: EntityID<Long>) : ExposifyEntity(id){
 }
 
 
-class PageEntity(id: EntityID<Long>) : ExposifyEntity(id) {
-    companion object : LongEntityClass<PageEntity>(Pages)
+class PageEntity(id: EntityID<Long>) : LongEntity(id) {
+    companion object : ExposifyEntityClass<PageEntity>(Pages)
 
     var name by Pages.name
     var langId by Pages.langId
@@ -26,8 +32,8 @@ class PageEntity(id: EntityID<Long>) : ExposifyEntity(id) {
     val sections by SectionEntity referrersOn Sections.page   // ✅ read-only
 }
 
-class SectionEntity(id: EntityID<Long>) : ExposifyEntity(id) {
-    companion object : LongEntityClass<SectionEntity>(Sections)
+class SectionEntity(id: EntityID<Long>) : LongEntity(id) {
+    companion object : ExposifyEntityClass<SectionEntity>(Sections)
 
     var name by Sections.name
     var description by Sections.description
@@ -36,13 +42,13 @@ class SectionEntity(id: EntityID<Long>) : ExposifyEntity(id) {
     var metaTags by Sections.metaTags
     var updated by Sections.updated
     var langId by Sections.langId
-    var updatedBy by UserEntity referencedOn Sections.updatedBy  // ✅ read-only
-    var page by PageEntity referencedOn Sections.page            // ✅ read-only
-    val contentBlocks by ContentBlockEntity referrersOn ContentBlocks.section  // ✅ correct type
+    var updatedBy by UserEntity referencedOn Sections.updatedBy
+    var page by PageEntity referencedOn Sections.page
+    val contentBlocks by ContentBlockEntity referrersOn ContentBlocks.section
 }
 
-class ContentBlockEntity(id: EntityID<Long>) : ExposifyEntity(id) {
-    companion object : LongEntityClass<ContentBlockEntity>(ContentBlocks)
+class ContentBlockEntity(id: EntityID<Long>) : LongEntity(id) {
+    companion object : ExposifyEntityClass<ContentBlockEntity>(ContentBlocks)
 
     var name by ContentBlocks.name
     var content by ContentBlocks.content
@@ -52,5 +58,5 @@ class ContentBlockEntity(id: EntityID<Long>) : ExposifyEntity(id) {
     var metaTags by ContentBlocks.metaTags
     var updated by ContentBlocks.updated
     var langId by ContentBlocks.langId
-    var section by SectionEntity referencedOn ContentBlocks.section  // ✅ fixed from `var` to `val`
+    var section by SectionEntity referencedOn ContentBlocks.section
 }

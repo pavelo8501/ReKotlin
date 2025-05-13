@@ -1,46 +1,88 @@
 package po.exposify.dto.components
 
+import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.entity.classes.ExposifyEntity
+import po.exposify.extensions.getOrOperationsEx
+
+class ResultList<DTO, DATA, ENTITY>  (
+   private val initialList : List<CommonDTO<DTO, DATA, ENTITY>>? = null
+)  where DTO : ModelDTO, DATA: DataModel, ENTITY : LongEntity {
+
+    internal val dtoList: MutableList<CommonDTO<DTO, DATA, ENTITY>> = mutableListOf()
+
+    init {
+        initialList?.let {
+            dtoList.addAll(it)
+        }
+    }
 
 
-data class CrudResult<DTO, DATA>(
-   internal val rootDTOs: MutableList<CommonDTO<DTO, DATA, ExposifyEntity>> = mutableListOf<CommonDTO<DTO, DATA, ExposifyEntity>>()
-) where DTO : ModelDTO, DATA: DataModel {
+    fun addList(list: List<CommonDTO<DTO, DATA, ENTITY>>): ResultList<DTO, DATA, ENTITY> {
+        dtoList.addAll(list)
+        return this
+    }
 
+    internal fun appendDto(dto: CommonDTO<DTO, DATA, ENTITY>): ResultList<DTO, DATA, ENTITY> {
+        dtoList.add(dto)
+        return this
+    }
 
-    internal fun appendDto(dto:CommonDTO<DTO, DATA, ExposifyEntity>) {
-        rootDTOs.add(dto)
+    internal fun appendDto(single: ResultSingle<DTO, DATA, ENTITY>): ResultList<DTO, DATA, ENTITY> {
+        single.getAsCommonDTO()?.let {
+            dtoList.add(it)
+        }
+        return this
     }
 
     fun getData(): List<DATA> {
-        val dataModels =  rootDTOs.map { it.dataModel }
+        val dataModels = dtoList.map { it.dataModel }
         return dataModels
     }
 
-    fun getDTO(): List<CommonDTO<DTO, DATA, ExposifyEntity>> {
-        return rootDTOs
+    fun getDTO(): List<CommonDTO<DTO, DATA, ENTITY>> {
+        return dtoList
     }
 }
 
-data class CrudResultSingle<DTO, DATA>(
-    internal var rootDTO: CommonDTO<DTO, DATA, ExposifyEntity>,
-) where DTO : ModelDTO, DATA: DataModel {
+class ResultSingle<DTO, DATA, ENTITY>(
+    private var rootDTO: CommonDTO<DTO, DATA, ENTITY>? = null
+) where DTO : ModelDTO, DATA: DataModel, ENTITY : LongEntity {
 
-    internal fun provideResult(dto: CommonDTO<DTO, DATA, ExposifyEntity>): CrudResultSingle<DTO, DATA>{
+
+    internal fun appendDto(dto: CommonDTO<DTO, DATA, ENTITY>): ResultSingle<DTO, DATA, ENTITY> {
         rootDTO = dto
         return this
     }
 
-    fun getData(): DATA {
-        val dataModel =  rootDTO.dataModel
+    fun getData(): DATA? {
+        val dataModel =  rootDTO?.dataModel
         return dataModel
     }
 
-    fun getDTO(): CommonDTO<DTO, DATA, *> {
+    fun getDataForced(): DATA {
+        val dataModel = getAsCommonDTOForced().dataModel
+        return dataModel
+    }
+
+    internal fun getAsCommonDTO(): CommonDTO<DTO, DATA, ENTITY>? {
         return rootDTO
     }
+
+    internal fun getAsCommonDTOForced(): CommonDTO<DTO, DATA, ENTITY> {
+        return rootDTO.getOrOperationsEx("No result")
+    }
+
+    fun getDTO(): DTO? {
+        @Suppress("UNCHECKED_CAST")
+        return rootDTO as? DTO
+    }
+
+    fun getDTOForced(): DTO {
+        @Suppress("UNCHECKED_CAST")
+        return rootDTO as DTO
+    }
+
 
 }

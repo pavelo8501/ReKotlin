@@ -11,7 +11,6 @@ import po.misc.exceptions.ManagedException
 
 interface ExceptionHandled<R: Any?> {
 
-   suspend fun subscribeHandlerUpdates(callback: suspend (notification: Notification) -> Unit)
    suspend fun handleManaged(managedEx: ManagedException): HandlerResult<R>
    suspend fun provideHandlerFn(handlers : Set<HandlerType>, handlerFn: suspend (exception: ManagedException)->R)
 
@@ -28,11 +27,6 @@ class ExceptionHandler<R: Any?>(
       val success: Boolean = exception!=null
    }
 
-   private var onHandlerUpdate: (suspend (notification: Notification) -> Unit)? = null
-   override suspend fun subscribeHandlerUpdates(callback: suspend (notification: Notification) -> Unit){
-      onHandlerUpdate = callback
-   }
-
    private suspend fun notifyHandlerSet(handler : HandlerType){
       val message = "$handler handle set"
       val notification = Notification(
@@ -40,7 +34,7 @@ class ExceptionHandler<R: Any?>(
          EventType.HANDLER_REGISTERED,
          SeverityLevel.INFO,
          message)
-      onHandlerUpdate?.invoke(notification)
+      task.notifier.submitNotification(notification)
    }
    private suspend fun notifyHandled(managedEx : ManagedException){
       val message =  "Exception Handled. Exception Message : ${managedEx.message}"
@@ -51,17 +45,33 @@ class ExceptionHandler<R: Any?>(
          EventType.EXCEPTION_UNHANDLED,
          severity,
          message)
-       onHandlerUpdate?.invoke(notification)
+
+      task.notifier.submitNotification(notification)
    }
    private suspend fun notifyUnhandled(managedEx : ManagedException){
       val severity = SeverityLevel.EXCEPTION
-      val message =  "Unhandled  : ${managedEx.message}"
+
+      var message = """ 
+          Unhandled in Task:${task.key.taskName}| Module: ${task.key.moduleName}| Nesting: ${task.key.nestingLevel}
+          Message: ${managedEx.message}
+      """.trimIndent()
+
+      if(managedEx.snapshot != null){
+         val snapshotStr = managedEx.snapshot!!.map { "${it.key} = ${it.value}" }.joinToString(";")
+         message = """  
+             Unhandled in Task:${task.key.taskName}| Module: ${task.key.moduleName}| Nesting: ${task.key.nestingLevel}
+             Message: ${managedEx.message}
+             Snapshot: $snapshotStr
+         """.trimIndent()
+      }
+
       val notification = Notification(
          ProviderTask(task),
          EventType.EXCEPTION_UNHANDLED,
          severity,
          message)
-      onHandlerUpdate?.invoke(notification)
+
+      task.notifier.submitNotification(notification)
    }
 
    val registeredHandlers : MutableMap<HandlerType, suspend ( exception: ManagedException)->R> = mutableMapOf()

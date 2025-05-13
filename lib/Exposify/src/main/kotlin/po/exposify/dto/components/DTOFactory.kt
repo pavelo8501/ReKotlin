@@ -5,14 +5,15 @@ import kotlinx.coroutines.Deferred
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
+import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.common.classes.ClassBlueprint
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.extensions.castOrOperationsEx
 import po.exposify.extensions.getOrOperationsEx
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.subTask
@@ -24,7 +25,7 @@ import kotlin.reflect.full.isSubclassOf
 internal class PostCreationRoutine<DTO, DATA, ENTITY, R>(
     val name: String,
    private val routineBlock: suspend CommonDTO<DTO, DATA, ENTITY>.()->R,
-) where DTO : ModelDTO, DATA: DataModel, ENTITY: ExposifyEntity{
+) where DTO : ModelDTO, DATA: DataModel, ENTITY: LongEntity{
 
    val resultDeferred: CompletableDeferred<R> = CompletableDeferred()
 
@@ -33,33 +34,32 @@ internal class PostCreationRoutine<DTO, DATA, ENTITY, R>(
     }
 }
 
-internal class DTOFactory<DTO, DATA, ENTITY>(
-    private val dtoKClass : KClass<out CommonDTO<DTO, DATA, ENTITY>>,
+class DTOFactory<DTO, DATA, ENTITY>(
+    private val dtoKClass : KClass<DTO>,
     private val dataModelClass : KClass<DATA>,
     private val hostingConfig: DTOConfig<DTO, DATA, ENTITY>,
-): IdentifiableComponent,  TasksManaged where DTO : ModelDTO, DATA: DataModel, ENTITY: ExposifyEntity {
+): IdentifiableComponent,  TasksManaged where DTO : ModelDTO, DATA: DataModel, ENTITY: LongEntity {
 
 
-    override val qualifiedName: String = "DTOFactory[${hostingConfig.registry.dtoName}]"
+    override val qualifiedName: String = "DTOFactory[${hostingConfig.registryRecord.entityName}]"
     override val name: String = "DTOFactory"
 
     private val personalName = "DTOFactory[${dtoKClass.simpleName}]"
 
     internal val dataBlueprint : ClassBlueprint<DATA> =  ClassBlueprint(dataModelClass)
-    private val dtoBlueprint : ClassBlueprint<out CommonDTO<DTO, DATA, ENTITY>> = ClassBlueprint(dtoKClass)
+    private val dtoBlueprint : ClassBlueprint<DTO> = ClassBlueprint(dtoKClass)
 
-    private var dataModelConstructor : (() -> DATA)? = null
+    private var dataModelBuilderFn : (() -> DATA)? = null
 
-    private var serializers = mapOf<String, KSerializer<out Any>>()
+    private var serializers = mutableMapOf<String, KSerializer<*>>()
 
-    fun setSerializableTypes(types: List<Pair<String, KSerializer<out Any>>>){
-        serializers =  types.associate {
-            it.first to  it.second
-        }
+
+    fun <T> setSerializableType(name: String, serializer : KSerializer<T>){
+        serializers[name] = serializer
     }
 
-    fun setDataModelConstructor(dataModelConstructor : (() -> DATA)){
-        this.dataModelConstructor = dataModelConstructor
+    fun setDataModelConstructor(dataModelBuilder : (() -> DATA)){
+        dataModelBuilderFn = dataModelBuilder
     }
 
     internal var postCreationRoutines : MutableMap<String, PostCreationRoutine<DTO, DATA, ENTITY, *>> = mutableMapOf()
@@ -78,9 +78,7 @@ internal class DTOFactory<DTO, DATA, ENTITY>(
 
     private suspend fun dtoPostCreation(dto : CommonDTO<DTO, DATA, ENTITY>)
         = subTask("dtoPostCreation"){handler->
-
         dto.initialize()
-
         postCreationRoutines.values.forEach {
             handler.info("Executing ${it.name}")
             it.invokeRoutineBlock(dto)
@@ -98,7 +96,7 @@ internal class DTOFactory<DTO, DATA, ENTITY>(
             constructFn?.let {
                 return it.invoke()
             }
-            dataModelConstructor?.let {
+            dataModelBuilderFn?.let {
                 return it.invoke()
             }
 
@@ -158,17 +156,15 @@ internal class DTOFactory<DTO, DATA, ENTITY>(
                 }
             }
         }
-
        try {
             val args = dtoBlueprint.getConstructorArgs()
-            val newDto =  dtoBlueprint.getConstructor().callBy(args)
+            val newDto =  dtoBlueprint.getConstructor().callBy(args).castOrOperationsEx<CommonDTO<DTO, DATA, ENTITY>>()
             dtoPostCreation(newDto)
-
             newDto
         }catch (th: Throwable){
            val argsUsed = dtoBlueprint.getConstructorArgs()
            val argsStr =  argsUsed.keys.joinToString { it.name.toString() }
-           handler.warn("While creating dto for ${argsStr}")
+           handler.warn("While creating dto for $argsStr")
            handler.warn("Arguments used ${argsUsed.values.map { toString() }}")
           handler.warn(th.toString().prependIndent("Exception"))
           throw  th

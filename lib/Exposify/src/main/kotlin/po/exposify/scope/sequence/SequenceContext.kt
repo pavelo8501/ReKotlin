@@ -1,162 +1,82 @@
 package po.exposify.scope.sequence
 
-import kotlinx.coroutines.Deferred
+import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
-import org.jetbrains.exposed.sql.Database
-import po.auth.sessions.enumerators.SessionType
-import po.auth.sessions.interfaces.SessionIdentified
-import po.auth.sessions.models.AuthorizedSession
 import po.exposify.dto.interfaces.DataModel
-import po.exposify.dto.components.CrudResult
-import po.exposify.dto.CommonDTO
-import po.exposify.dto.RootDTO
-import po.exposify.dto.extensions.select
-import po.exposify.dto.extensions.update
+import po.exposify.dto.components.Query
+import po.exposify.dto.components.ResultList
+import po.exposify.dto.components.ResultSingle
+import po.exposify.dto.components.WhereQuery
+import po.exposify.dto.interfaces.ExecutionContext
+import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.entity.classes.ExposifyEntity
-import po.exposify.dto.components.WhereCondition
-import po.exposify.extensions.isTransactionReady
-import po.exposify.scope.sequence.classes.SequenceHandler
-import po.exposify.scope.service.ServiceClass
+import po.exposify.scope.sequence.classes.SequenceHandlerBase
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.subTask
-import kotlin.coroutines.coroutineContext
-
-interface RunnableContext: SessionIdentified{
-    val method: String
-    val sessionType: SessionType
-
-    companion object{
-
-        data class RunInfo (
-            override val method: String,
-            override val sessionType: SessionType,
-            override val sessionID: String = "N/A",
-            override val remoteAddress: String = "N/A"
-        ) : RunnableContext{
-
-        }
-
-        fun createRunInfo(method: String, session: AuthorizedSession?):RunnableContext{
-            if(session!=null){
-                return RunInfo(method, session.sessionType, session.sessionID, session.remoteAddress)
-            }else{
-                return RunInfo(method, SessionType.ANONYMOUS)
-            }
-
-        }
-    }
-}
 
 
-class SequenceContext<DTO, DATA>(
-    private  val serviceClass : ServiceClass<DTO, DATA, ExposifyEntity>,
-    private val dtoClass : RootDTO<DTO, DATA>,
-    private val handler : SequenceHandler<DTO, DATA>,
-): TasksManaged where  DTO : ModelDTO, DATA : DataModel
+class SequenceContext<DTO, DATA, ENTITY>(
+   internal val sequenceHandler: SequenceHandlerBase<DTO, DATA, ENTITY>,
+   private val executionContext: ExecutionContext<DTO, DATA, ENTITY>
+): TasksManaged, IdentifiableComponent where  DTO : ModelDTO, DATA : DataModel, ENTITY: LongEntity
 {
 
-    private val personalName : String = "SequenceContext[${dtoClass.config.registry.dtoName}]"
-    private val connection: Database = serviceClass.connection
+    override val qualifiedName: String get() = "SequenceContext[${executionContext.providerName}]"
+    override val name: String  get() = "SequenceContext"
 
-    private var lastResult : CrudResult<DTO, DATA> = CrudResult()
-
-    private fun dtos(): List<CommonDTO<DTO, DATA , ExposifyEntity>>{
-      return  lastResult.rootDTOs
+    internal var onResultUpdated : ((ResultList<DTO, DATA, ENTITY>)-> Unit)?  = null
+    private var latestResult : ResultList<DTO,DATA, ENTITY> = ResultList()
+    internal fun submitLatestResult(result :  ResultList<DTO, DATA, ENTITY>):ResultList<DTO, DATA, ENTITY>{
+       latestResult = result
+       onResultUpdated?.invoke(result)
+       return latestResult
+    }
+    internal fun submitLatestResult(result :  ResultSingle<DTO, DATA, ENTITY>): ResultSingle<DTO, DATA, ENTITY>{
+        latestResult = ResultList<DTO, DATA, ENTITY>().appendDto(result)
+        onResultUpdated?.invoke(latestResult)
+        return result
     }
 
-    private suspend fun notifyOnStart(method: String){
-        val session =  coroutineContext[AuthorizedSession]
-        handler.onStartCallback?.invoke( RunnableContext.createRunInfo(method, session))
-    }
+    suspend fun pick(conditions: Query): ResultSingle<DTO, DATA, ENTITY>
+    = subTask("Pick", qualifiedName) { handler ->
+        val result = executionContext.pick(conditions)
+        submitLatestResult(result)
+    }.resultOrException()
 
-    private suspend fun notifyOnComplete(method: String){
-        val session =  coroutineContext[AuthorizedSession]
-        handler.onCompleteCallback?.invoke(RunnableContext.createRunInfo(method, session))
-    }
+    suspend fun pickById(id: Long): ResultSingle<DTO, DATA, ENTITY>
+    = subTask("PickById", qualifiedName) { handler ->
+        val result = executionContext.pickById(id)
+        submitLatestResult(result)
+    }.resultOrException()
 
-    suspend fun checkout(withResult :  CrudResult<DTO, DATA>? = null): List<DATA> {
-        return lastResult.getData()
-
-    }
-
-    suspend fun <T: IdTable<Long>> pick(
-        conditions: WhereCondition<T>,
-        block: (suspend SequenceContext<DTO, DATA>.(dto: CommonDTO<DTO, DATA, ExposifyEntity>?)-> Unit)? = null
-    ) {
-        notifyOnStart("pick")
-        lastResult =  dtoClass.select(conditions)
-
-        if (block != null) {
-            this.block(dtos().firstOrNull())
-        } else {
-            checkout(lastResult)
-            notifyOnComplete("pick")
-        }
-    }
-
-    suspend fun <T: IdTable<Long>> select(
-        conditions: WhereCondition<T>?,
-        block: (suspend SequenceContext<DTO, DATA>.(dtos: List<CommonDTO<DTO, DATA, ExposifyEntity>>)-> Deferred<List<DATA>>)? = null
-    ) {
-        subTask("Select", personalName) { handler ->
-            if (!isTransactionReady()) {
-                handler.warn("Transaction lost context")
-            }
-            notifyOnStart("select(With conditions)")
-            lastResult = if (conditions != null) {
-                dtoClass.select(conditions)
-            } else {
-                dtoClass.select()
-            }
-            if (block != null) {
-                this.block(dtos())
-                notifyOnComplete("select")
-            } else {
-                checkout(lastResult)
-                notifyOnComplete("select")
-            }
-        }
-    }
+    suspend fun select(conditions: Query):ResultList<DTO, DATA, ENTITY>
+    = subTask("Select", qualifiedName) { handler ->
+       val result = executionContext.select(conditions)
+        submitLatestResult(result)
+    }.resultOrException()
 
     suspend fun select(
-        block: (suspend SequenceContext<DTO, DATA>.(dtos: List<CommonDTO<DTO, DATA, ExposifyEntity>>)-> Deferred<List<DATA>>)? = null
-    ){
-       subTask("Select", personalName) {handler->
-            if (!isTransactionReady()) {
-                handler.warn("Transaction lost context")
-            }
-           notifyOnStart("select")
-            lastResult = dtoClass.select()
-            if (block != null) {
-                this.block(dtos())
-                notifyOnComplete("select")
-            } else {
-                checkout(lastResult)
-                notifyOnComplete("select")
-            }
-        }
-    }
+    ):ResultList<DTO, DATA, ENTITY>
+    = subTask("Select", qualifiedName) { handler ->
+        val result = executionContext.select()
+        submitLatestResult(result)
+    }.resultOrException()
 
     suspend fun update(
-        dataModels: List<DATA>,
-        block: (suspend SequenceContext<DTO, DATA>.(dtos: List<CommonDTO<DTO, DATA, ExposifyEntity>>)-> Deferred<List<DATA>>)? = null)
-    {
-        subTask("Update", personalName) { handler ->
-            if (!isTransactionReady()) {
-                handler.warn("Transaction lost context")
-            }
-            notifyOnStart("update")
-            lastResult = dtoClass.update(dataModels)
-            if (block != null) {
-                this.block(dtos())
-                notifyOnComplete("update")
-            } else {
-                checkout(lastResult)
-                notifyOnComplete("update")
-            }
-        }
-    }
+        dataModels: List<DATA>
+    ):ResultList<DTO, DATA, ENTITY>
+    = subTask("Update(List)", qualifiedName) { handler ->
+        val result = executionContext.update(dataModels)
+        submitLatestResult(result)
+    }.resultOrException()
+
+    suspend fun update(
+        dataModel: DATA
+    ): ResultSingle<DTO, DATA, ENTITY>
+            = subTask("Update(Single)", qualifiedName) { handler ->
+        val result = executionContext.update(dataModel)
+        submitLatestResult(result)
+    }.resultOrException()
 
 }
 

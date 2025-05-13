@@ -39,7 +39,10 @@ interface StaticHelper{
             SeverityLevel.WARNING -> {
                 makeOfColour(ColourEnum.YELLOW, message)
             }
-            else -> {
+            SeverityLevel.SYS_INFO ->{
+                makeOfColour(ColourEnum.GREEN, message)
+            }
+            SeverityLevel.INFO -> {
                 message
             }
         }
@@ -48,26 +51,6 @@ interface StaticHelper{
     fun makeOfColour(color: ColourEnum, message: String): String{
         return "${color.colourStr}$message${ColourEnum.RESET.colourStr}"
     }
-
-    fun formatLogWithIndention(logRecords : List<LogRecord>) {
-        logRecords.forEach {
-            var printStr = "[${it.message}:${it.timestamp}]"
-            when (it.severity) {
-                SeverityLevel.INFO -> {
-                    printStr += it.message
-                }
-
-                SeverityLevel.WARNING -> {
-                    printStr += makeOfColour(ColourEnum.YELLOW, it.message)
-                }
-
-                SeverityLevel.EXCEPTION -> {
-                    printStr += makeOfColour(ColourEnum.RED, it.message)
-                }
-            }
-        }
-    }
-
 }
 
 //interface StaticsHelperProvider {

@@ -2,7 +2,7 @@ package po.lognotify.extensions
 
 import po.lognotify.exceptions.LoggerException
 import po.misc.exceptions.HandlerType
-import po.misc.exceptions.castOrException
+import po.misc.types.castOrThrow
 
 internal inline fun <reified T: Any> T?.getOrLoggerException(message: String):T{
 
@@ -15,9 +15,6 @@ internal inline fun <reified T: Any> T?.getOrLoggerException(message: String):T{
 }
 
 @PublishedApi
-internal inline fun <reified T: Any> Any?.castOrLoggerException(): T {
-
-   return this.castOrException<T> {
-       LoggerException("")
-    }
+internal inline fun <reified T: Any> Any?.castOrLoggerException(message: String? = null): T {
+  return  this.castOrThrow<T, LoggerException>(message)
 }

@@ -2,7 +2,7 @@ package po.playground
 
 
 import kotlinx.coroutines.runBlocking
-import po.exposify.controls.ConnectionInfo
+import po.exposify.scope.connection.models.ConnectionInfo
 import po.playground.projects.data_service.startDataService
 
 

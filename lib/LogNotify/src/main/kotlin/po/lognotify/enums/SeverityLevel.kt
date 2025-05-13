@@ -1,9 +1,10 @@
 package po.lognotify.enums
 
 enum class SeverityLevel (val severityLevelId: Int) {
-    INFO(1),
-    WARNING(2),
-    EXCEPTION(3);
+    SYS_INFO(1), // Task header/footer
+    INFO(1), // Messages
+    WARNING(2), // Yet non-critical exception occurrences, other code anomalies
+    EXCEPTION(3); //Final exception throwing point, with thread being terminated
 
     companion object {
 

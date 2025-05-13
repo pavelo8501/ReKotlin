@@ -10,7 +10,7 @@ import po.lognotify.classes.notification.models.Notification
 suspend fun CoroutineScope.subscribeTo(notifier: Notifier, notificationFn: (suspend (Notification)-> Unit)? =null) {
 
     launch {
-            notifier.notification.collect { notification ->
+            notifier.notifications.collect { notification ->
             notificationFn?.invoke(notification)
         }
     }

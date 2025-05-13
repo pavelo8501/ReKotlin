@@ -7,7 +7,7 @@ import po.exposify.scope.service.enums.TableCreateMode
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.dtos.User
 import po.test.exposify.setup.dtos.UserDTO
-import kotlin.test.Test
+import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
@@ -26,12 +26,12 @@ class TestPick : DatabaseTest(){
 
         var pickedDTO : UserDTO? = null
 
-        startTestConnection()?.run {
+        startTestConnection().run {
             service(UserDTO, TableCreateMode.CREATE) {
-                val userDataModel =  update(user).getData()
-                 pickedDTO = pick(userDataModel.id).getDTO() as UserDTO
+                val userDataModel =  update(user).getDataForced()
+                 pickedDTO = pickById(userDataModel.id).getDTO() as UserDTO
             }
-        }?:throw Exception("Connection not available")
+        }
 
         val userDTO =  assertNotNull(pickedDTO, "Picked DTO is null")
         assertNotEquals(0,  userDTO.id, "UserDTO failed to update")

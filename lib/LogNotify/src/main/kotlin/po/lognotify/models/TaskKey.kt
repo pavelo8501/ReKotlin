@@ -1,16 +1,26 @@
 package po.lognotify.models
 
+import po.misc.collections.CompositeKey
+
 class TaskKey(
     val taskName: String,
     val nestingLevel: Int,
-    val moduleName: String?= null
-) {
-   internal val taskId : Long = System.currentTimeMillis()
+    val moduleName: String
+): Comparable<TaskKey> {
+   internal val taskId : Int =  System.currentTimeMillis().toInt()
 
-    fun asString(): String{
-        if(moduleName != null){
-            return "Task ${taskName} In $moduleName|NestingLevel $nestingLevel"
-        }
-        return "Task ${taskName} |NestingLevel $nestingLevel"
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is TaskKey) return false
+        return taskId == other.taskId
     }
+    override fun hashCode(): Int {
+        return taskId
+    }
+    override fun compareTo(other: TaskKey): Int {
+        val nameComparison = taskId.compareTo(other.taskId)
+        return if (nameComparison != 0) nameComparison else taskId.compareTo(other.taskId)
+    }
+    override fun toString(): String = "TaskKey(${taskId}, $moduleName)"
+
 }

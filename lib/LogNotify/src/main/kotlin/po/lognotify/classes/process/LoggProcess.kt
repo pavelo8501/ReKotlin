@@ -69,7 +69,7 @@ class LoggProcess<E: ProcessableContext<*>>(
             println("Process Started")
             holder.onProcessStart(this)
             CoroutineScope(CoroutineName("Listener")).launch {
-                task.notifier.notification.collect { notification ->
+                task.notifier.notifications.collect { notification ->
                     holder.onNotification(notification)
                 }
             }

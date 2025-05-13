@@ -9,12 +9,15 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.property_binder.bindings.SerializedBinding
 import po.exposify.dto.components.property_binder.bindings.SyncedBinding
+import po.exposify.dto.components.property_binder.delegates.binding
 import po.exposify.dto.components.property_binder.delegates.foreign2IdReference
 import po.exposify.dto.components.property_binder.delegates.parent2IdReference
+import po.exposify.dto.components.property_binder.delegates.serializedBinding
 import po.exposify.dto.components.relation_binder.delegates.oneToManyOf
 import po.test.exposify.setup.ClassItem
 import po.test.exposify.setup.ContentBlockEntity
 import po.test.exposify.setup.MetaTag
+import po.test.exposify.setup.PageEntity
 import po.test.exposify.setup.SectionEntity
 import po.test.exposify.setup.UserEntity
 
@@ -48,26 +51,28 @@ class SectionDTO(
     override var dataModel: Section
 ): CommonDTO<SectionDTO, Section, SectionEntity>(SectionDTO) {
 
+    var name : String by binding(Section::name, SectionEntity::name)
+    var description : String by binding(Section::description, SectionEntity::description)
+    var jsonLd : String by binding(Section::jsonLd, SectionEntity::jsonLd)
+    var langId : Int by binding(Section::langId, SectionEntity::langId)
+    var updated : LocalDateTime by binding(Section::updated, SectionEntity::updated)
+
+    var classList:  List<ClassItem> by serializedBinding(Section::classList, SectionEntity::classList, ClassItem)
+    var metaTags :  List<MetaTag> by serializedBinding(Section::metaTags, SectionEntity::metaTags, MetaTag)
+
     val updatedBy : Long by foreign2IdReference(Section::updatedBy, SectionEntity::updatedBy, UserEntity)
     val pageId : Long by parent2IdReference(Section::pageId, SectionEntity::page)
-    val contentBlocks by oneToManyOf(
-           childClass = ContentBlockDTO,
-           ownDataModels = Section::contentBlocks,
-           ownEntities =   SectionEntity::contentBlocks,
-           foreignEntity = ContentBlockEntity::section)
 
-    companion object: DTOClass<SectionDTO>(PageDTO){
+    val contentBlocks : List<ContentBlockDTO> by oneToManyOf(
+        ContentBlockDTO,
+        Section::contentBlocks,
+        SectionEntity::contentBlocks,
+        ContentBlockEntity::section)
+
+    companion object: DTOClass<SectionDTO, Section, SectionEntity>(PageDTO){
         override suspend fun setup() {
             configuration<SectionDTO, Section, SectionEntity>(SectionEntity) {
-                propertyBindings(
-                    SyncedBinding(Section::name, SectionEntity::name),
-                    SyncedBinding(Section::description, SectionEntity::description),
-                    SyncedBinding(Section::jsonLd, SectionEntity::jsonLd),
-                    SyncedBinding(Section::langId, SectionEntity::langId ),
-                    SyncedBinding(Section::updated, SectionEntity::updated),
-                    SerializedBinding(Section::classList, SectionEntity::classList, ListSerializer(ClassItem.serializer())),
-                    SerializedBinding(Section::metaTags, SectionEntity::metaTags, ListSerializer(MetaTag.serializer())),
-                )
+
             }
         }
     }

@@ -1,8 +1,9 @@
 package po.test.exposify.crud
 
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.assertAll
 import po.auth.extensions.generatePassword
-import po.exposify.dto.components.WhereCondition
+import po.exposify.dto.components.WhereQuery
 import po.exposify.scope.service.enums.TableCreateMode
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.Pages
@@ -11,14 +12,14 @@ import po.test.exposify.setup.dtos.User
 import po.test.exposify.setup.dtos.UserDTO
 import po.test.exposify.setup.pageModels
 import po.test.exposify.setup.pageModelsWithSections
-import kotlin.test.Test
+import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 
 class TestSelect : DatabaseTest() {
 
     @Test
-    fun `referenced property binding`(){
+    fun `referenced property binding`() =runTest{
         val user = User(
             id = 0,
             login = "some_login",
@@ -28,16 +29,16 @@ class TestSelect : DatabaseTest() {
 
         val pages = pageModels(pageCount = 1, updatedBy = 1)
         var assignedUserId : Long = 0
-        startTestConnection()?.let {connection->
+        startTestConnection().let {connection->
             connection.service(UserDTO, TableCreateMode.FORCE_RECREATE) {
-                val userData =  update(user).getData()
+                val userData =  update(user).getDataForced()
                 assignedUserId = userData.id
                 assertEquals("some_login", userData.login, "User login mismatch after save")
                 assertNotEquals(0, assignedUserId, "User id assignment failure")
             }
 
             connection.service(PageDTO, TableCreateMode.FORCE_RECREATE) {
-                val pageData =  update(pages[0]).getData()
+                val pageData =  update(pages[0]).getDataForced()
                 val updatedById =  pageData.updatedById
 
                 assertEquals(assignedUserId, updatedById, "Failed to update DTOs referenced property")
@@ -46,12 +47,12 @@ class TestSelect : DatabaseTest() {
     }
 
     @Test
-    fun `postgres serializable classes`(){
+    fun `postgres serializable classes`() = runTest{
         val pages = pageModels(
             pageCount = 1,
             updatedBy = 1)
 
-        startTestConnection()?.let {connection->
+        startTestConnection().let {connection->
 
             connection.service(PageDTO, TableCreateMode.FORCE_RECREATE) {
                 val originalPages = pages[0]
@@ -64,7 +65,7 @@ class TestSelect : DatabaseTest() {
     }
 
     @Test
-    fun `updates and selects DTO relations`(){
+    fun `updates and selects DTO relations`() = runTest{
         val user = User(
             id = 0,
             login = "some_login",
@@ -75,7 +76,7 @@ class TestSelect : DatabaseTest() {
         var assignedUserId : Long = 0
         startTestConnection()?.let {connection->
             connection.service(UserDTO, TableCreateMode.CREATE) {
-                val userData =  update(user).getData()
+                val userData =  update(user).getDataForced()
                 assignedUserId = userData.id
             }
             val pages = pageModelsWithSections(pageCount = 1, sectionsCount = 2, updatedBy = assignedUserId)
@@ -129,7 +130,7 @@ class TestSelect : DatabaseTest() {
     }
 
     @Test
-    fun `updates and selects with conditions`(){
+    fun `updates and selects with conditions`() = runTest{
         val user = User(
             id = 0,
             login = "some_login",
@@ -140,7 +141,7 @@ class TestSelect : DatabaseTest() {
         var assignedUserId : Long = 0
         startTestConnection()?.let { connection ->
             connection.service(UserDTO, TableCreateMode.CREATE) {
-                val userData = update(user).getData()
+                val userData = update(user).getDataForced()
                 assignedUserId = userData.id
             }
             val pages = pageModelsWithSections(pageCount = 2, sectionsCount = 2, updatedBy = assignedUserId)
@@ -149,7 +150,7 @@ class TestSelect : DatabaseTest() {
             connection.service(PageDTO.Companion, TableCreateMode.CREATE) {
                 truncate()
                 update(pages)
-                val selectedPages =  select(WhereCondition<Pages>().equalsTo(Pages.langId, 1)).getData()
+                val selectedPages =  select(WhereQuery(Pages).equalsTo({ langId }, 1)).getData()
                 assertEquals(1, selectedPages.count(), "Page count mismatch")
                 val selectedSections = selectedPages[0].sections
                 assertAll(

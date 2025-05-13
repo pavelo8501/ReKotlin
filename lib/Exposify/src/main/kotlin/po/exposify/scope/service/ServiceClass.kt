@@ -1,5 +1,6 @@
 package po.exposify.scope.service
 
+import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
@@ -10,25 +11,25 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.common.interfaces.AsClass
 import po.exposify.dto.RootDTO
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.entity.classes.ExposifyEntity
 import po.exposify.exceptions.InitException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.getOrOperationsEx
 import po.exposify.scope.connection.ConnectionClass
-import po.exposify.scope.sequence.classes.SequenceHandler
-import po.exposify.scope.sequence.models.SequenceKey
+import po.exposify.scope.connection.controls.CoroutineEmitter
+import po.exposify.scope.sequence.enums.SequenceID
 import po.exposify.scope.sequence.models.SequencePack
 import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.subTask
+import po.misc.collections.CompositeKey
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.set
 
 class ServiceClass<DTO, DATA, ENTITY>(
     private val connectionClass : ConnectionClass,
     private val serviceCreateOption: TableCreateMode = TableCreateMode.CREATE,
-):  AsClass<DATA, ENTITY>, TasksManaged  where  DTO: ModelDTO, DATA : DataModel, ENTITY : ExposifyEntity {
+):  AsClass<DATA, ENTITY>, TasksManaged  where  DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity {
 
     private lateinit var serviceContext: ServiceContext<DTO, DATA, ENTITY>
 
@@ -36,7 +37,7 @@ class ServiceClass<DTO, DATA, ENTITY>(
         private set
 
     internal val connection: Database = connectionClass.connection
-    private val sequences = ConcurrentHashMap<SequenceKey, SequencePack<DTO, DATA>>()
+    private val sequences = ConcurrentHashMap<CompositeKey<RootDTO<*, *, *>, SequenceID>, SequencePack<*, *, *>>()
 
     private fun createTable(table: IdTable<Long>): Boolean {
         return try {
@@ -68,7 +69,7 @@ class ServiceClass<DTO, DATA, ENTITY>(
             throw ex
         }
     }
-    private fun prepareTables(serviceCreateOption: TableCreateMode, rootDTOModel: RootDTO<DTO, DATA>) {
+    private fun prepareTables(serviceCreateOption: TableCreateMode, rootDTOModel: RootDTO<DTO, DATA, ENTITY>) {
         val tableList = mutableListOf<IdTable<Long>>()
         rootDTOModel.getAssociatedTables(tableList)
         when (serviceCreateOption) {
@@ -84,8 +85,8 @@ class ServiceClass<DTO, DATA, ENTITY>(
     }
 
     internal suspend fun startService(
-        rootDTOModel: RootDTO<DTO, DATA>,
-        block:  ServiceContext<DTO, DATA, ExposifyEntity>.()->Unit)
+        rootDTOModel: RootDTO<DTO, DATA, ENTITY>,
+        block: suspend  ServiceContext<DTO, DATA, ENTITY>.()->Unit)
             = subTask("Initializing", "ServiceClass") {
 
         rootDTOModel.initialization()
@@ -94,32 +95,34 @@ class ServiceClass<DTO, DATA, ENTITY>(
         }.await()
 
         serviceContext = ServiceContext(this, rootDTOModel)
-        val castedContext = serviceContext.castOrInitEx<ServiceContext<DTO, DATA, ExposifyEntity>>("StartService. Cast failed")
+        val castedContext = serviceContext.castOrInitEx<ServiceContext<DTO, DATA, ENTITY>>("StartService. Cast failed")
         rootDTOModel.setContextOwned(castedContext)
         castedContext.block()
     }.resultOrException()
 
-    internal fun addSequencePack(pack: SequencePack<DTO, DATA>) {
-        sequences[pack.getSequenceHandler().thisKey] = pack
+    internal fun addSequencePack(key: CompositeKey<RootDTO<*, *, *>, SequenceID>,  pack: SequencePack<*, *, *>) {
+        sequences[key] = pack
     }
 
-    internal suspend fun runSequence(sequenceKey: SequenceKey): List<DATA> {
-        val foundSequence = sequences[sequenceKey].getOrOperationsEx(
-            "Sequence with key : $sequenceKey not found",
+    internal suspend fun requestEmitter(): CoroutineEmitter = connectionClass.requestEmitter()
+
+
+    internal fun getSequencePack(key: CompositeKey<RootDTO<*, *, *>,SequenceID>):SequencePack<*, *, *> {
+        return sequences[key].getOrOperationsEx(
+            "Sequence with key : $key not found",
             ExceptionCode.VALUE_NOT_FOUND)
-        return connectionClass.launchSequence(foundSequence)
     }
 
-    fun getSequenceHandler(sequenceId: Int, dtoClass: DTOBase<DTO, *>): SequenceHandler<DTO, DATA> {
-        val lookupKey =
-            sequences.keys.firstOrNull { it.sequenceId == sequenceId && it.dtoClassName == dtoClass.personalName }
-                .getOrOperationsEx(
-                    "Sequence key with sequenceId: $sequenceId and className : ${dtoClass.personalName} not found. Available keys: ${
-                    sequences.keys.joinToString(", ") { "${it.hashCode()}"} }",
-                    ExceptionCode.VALUE_NOT_FOUND)
-
-        val handler = sequences[lookupKey]!!.getSequenceHandler()
-        return handler
-    }
+//    fun getSequenceHandler(sequenceId: Int, dtoClass: DTOBase<DTO, *>): SequenceHandler<DTO, DATA> {
+//        val lookupKey =
+//            sequences.keys.firstOrNull { it.sequenceId == sequenceId && it.dtoClassName == dtoClass.personalName }
+//                .getOrOperationsEx(
+//                    "Sequence key with sequenceId: $sequenceId and className : ${dtoClass.personalName} not found. Available keys: ${
+//                    sequences.keys.joinToString(", ") { "${it.hashCode()}"} }",
+//                    ExceptionCode.VALUE_NOT_FOUND)
+//
+//        val handler = sequences[lookupKey]!!.getSequenceHandler()
+//        return handler
+//    }
 
 }

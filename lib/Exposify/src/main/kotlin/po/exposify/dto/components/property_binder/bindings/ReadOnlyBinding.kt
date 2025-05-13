@@ -1,16 +1,16 @@
 package po.exposify.dto.components.property_binder.bindings
 
+import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.components.property_binder.enums.PropertyType
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.components.property_binder.interfaces.PropertyBindingOption
-import po.exposify.entity.classes.ExposifyEntity
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
 
 
 
-class ReadOnlyBinding<DATA : DataModel, ENT : ExposifyEntity, T>(
+class ReadOnlyBinding<DATA : DataModel, ENT : LongEntity, T>(
     override val dataProperty: KMutableProperty1<DATA, T>,
     override val referencedProperty: KProperty1<ENT, T>,
 ): PropertyBindingOption<DATA, ENT, T>
@@ -46,15 +46,6 @@ class ReadOnlyBinding<DATA : DataModel, ENT : ExposifyEntity, T>(
                 if(entityValue != null){
                     dataProperty.set(dtoModel, entityValue)
                     updated(dataProperty.name, propertyType, UpdateMode.MODEL_TO_ENTITY, null)
-                    return true
-                }
-                return false
-            }
-
-            UpdateMode.MODEL_TO_ENTITY_FORCED -> {
-                if(entityValue != null) {
-                    dataProperty.set(dtoModel, entityValue)
-                    updated(dataProperty.name, propertyType, UpdateMode.MODEL_TO_ENTITY_FORCED, null)
                     return true
                 }
                 return false

@@ -41,6 +41,8 @@ class RootTask<R: Any?>(
     override val taskHandler: TaskHandler<R> = TaskHandler(this, exceptionHandler)
     override val taskRunner: TaskRunner<R> = TaskRunner(this, taskHandler, exceptionHandler)
 
+    val subTasksCount : Int get() = registry.childTasks.count()
+
     fun <R> createNewMemberTask(name : String, moduleName: String?): ManagedTask<R>{
         val lasEntry =  registry.getLastRegistered()
         when(lasEntry){
@@ -59,18 +61,17 @@ class RootTask<R: Any?>(
         }
         val job = coroutineContext[Job]
         if(job != null){
-            notifier.createTaskNotification(ProviderTask(this), "Cancelling Job ${job.toString()}", EventType.TASK_CANCELLATION,
-                SeverityLevel.WARNING)
+            notifier.systemInfo(EventType.TASK_CANCELLATION, SeverityLevel.EXCEPTION, "Cancelling Job $job")
             job.cancel(cancellation)
         }else{
-            notifier.createTaskNotification(ProviderTask(this), "Cancelling Context ${coroutineContext[CoroutineName]?.name?:"Unknown"}", EventType.TASK_CANCELLATION,
-                SeverityLevel.WARNING)
+            notifier.systemInfo(EventType.TASK_CANCELLATION, SeverityLevel.EXCEPTION, "Cancelling Context ${coroutineContext[CoroutineName]?.name?:"Unknown"}")
             coroutineContext.cancel(cancellation)
         }
     }
-    fun subTasksCount(): Int{
-        return  registry.childTasks.count()
+    fun lastTask(): TaskSealedBase<*>{
+       return registry.getLastRegistered()
     }
+
 }
 
 class ManagedTask<R: Any?>(
@@ -119,22 +120,22 @@ sealed class TaskSealedBase<R: Any?>(
     }
 
     suspend fun onBeforeTaskStart(){
-        coroutineContext.currentProcess()?.let {
-            it.observeTask(this)
-        }
+        coroutineContext.currentProcess()?.observeTask(this)
     }
 
     suspend fun onTaskStart(scope: CoroutineScope){
         coroutineInfo.add(scope.getCoroutineInfo())
-        notifier.start()
+        notifier.systemInfo(EventType.START, SeverityLevel.SYS_INFO)
+
         coroutineContext.currentProcess()?.let {
             notifier.systemInfo(EventType.START, SeverityLevel.INFO, it)
-        }?:run {
-            notifier.start()
         }
     }
 
     suspend fun onTaskComplete(){
+
+        notifier.systemInfo(EventType.STOP, SeverityLevel.SYS_INFO)
+
         coroutineContext.currentProcess()?.let {
             notifier.systemInfo(EventType.STOP, SeverityLevel.INFO, it)
             it.stopTaskObservation(this)
@@ -144,7 +145,8 @@ sealed class TaskSealedBase<R: Any?>(
     internal fun <R> createChildTask(name: String, hierarchyRoot:RootTask<*>, moduleName: String?): ManagedTask<R>{
         val lastRegistered = hierarchyRoot.registry.getLastRegistered()
         val childLevel =  lastRegistered.key.nestingLevel + 1
-        val newChildTask = ManagedTask<R>(TaskKey(name, childLevel, moduleName), coroutineContext, lastRegistered, hierarchyRoot)
+        val effectiveModuleName = moduleName?:hierarchyRoot.key.moduleName
+        val newChildTask = ManagedTask<R>(TaskKey(name, childLevel, effectiveModuleName), coroutineContext, lastRegistered, hierarchyRoot)
         newChildTask.notifier.setNotifierConfig(hierarchyRoot.notifier.getNotifierConfig())
         registry.registerChild(newChildTask)
         return newChildTask

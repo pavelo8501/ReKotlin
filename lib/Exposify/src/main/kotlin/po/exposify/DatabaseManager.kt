@@ -5,11 +5,10 @@ import com.zaxxer.hikari.HikariDataSource
 import kotlinx.coroutines.delay
 import org.jetbrains.exposed.sql.Database
 import po.auth.sessions.interfaces.ManagedSession
-import po.exposify.controls.ConnectionInfo
+import po.exposify.scope.connection.models.ConnectionInfo
 import po.exposify.scope.connection.ConnectionClass
 import po.exposify.scope.connection.ConnectionContext
 import po.exposify.scope.connection.models.ConnectionSettings
-import po.lognotify.extensions.newTask
 import po.lognotify.extensions.newTaskAsync
 
 fun launchService(connection: ConnectionContext, block: ConnectionContext.()-> Unit ){
@@ -60,7 +59,7 @@ object DatabaseManager {
         context: (ConnectionContext.()->Unit)? = null
     ): ConnectionContext? {
 
-       return newTaskAsync("openConnectionSync") {
+       return newTaskAsync("openConnectionSync", "DatabaseManager") {
             connectionInfo.hikariDataSource = provideDataSource(connectionInfo)
             val newConnection = Database.connect(connectionInfo.hikariDataSource!!)
             val connectionClass = ConnectionClass(connectionInfo, newConnection, sessionManager)

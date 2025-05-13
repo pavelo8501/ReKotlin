@@ -1,5 +1,6 @@
 package po.exposify.dto.components.property_binder
 
+import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.components.property_binder.bindings.ReadOnlyBinding
 import po.exposify.dto.components.property_binder.bindings.SerializedBinding
@@ -7,9 +8,8 @@ import po.exposify.dto.components.property_binder.bindings.SyncedBinding
 import po.exposify.dto.components.property_binder.enums.PropertyType
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.components.property_binder.interfaces.PropertyBindingOption
-import po.exposify.entity.classes.ExposifyEntity
 
-class PropertyBinder<DATA : DataModel, ENT : ExposifyEntity>(
+class PropertyBinder<DATA : DataModel, ENT : LongEntity>(
     var  onPropertyUpdate : ((String, PropertyType, UpdateMode) -> Unit)?,
     private val onSyncedSerializedAdd : (syncedSerializedProperty:  List<SerializedBinding<DATA, ENT, *, *>>)-> Unit)
 {
@@ -67,10 +67,6 @@ class PropertyBinder<DATA : DataModel, ENT : ExposifyEntity>(
     }
 
    fun update(dataModel: DATA, daoModel: ENT, updateMode: UpdateMode){
-
-       syncedPropertyList.forEach { it.update(dataModel, daoModel, updateMode, onPropertyUpdate) }
        syncedSerializedPropertyList.forEach { it.update(dataModel, daoModel, updateMode, onPropertyUpdate) }
-       readOnlyPropertyList.forEach { it.update(dataModel, daoModel, updateMode, onPropertyUpdate) }
-
    }
 }

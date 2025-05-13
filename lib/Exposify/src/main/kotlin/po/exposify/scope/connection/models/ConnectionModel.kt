@@ -1,4 +1,4 @@
-package po.exposify.controls
+package po.exposify.scope.connection.models
 
 import com.zaxxer.hikari.HikariDataSource
 import org.jetbrains.exposed.sql.Database

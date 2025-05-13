@@ -11,10 +11,12 @@ suspend  fun <T, R> T.subTask(
 ): TaskResult<R> {
 
     return TasksManaged.attachToHierarchy<R>(taskName, moduleName)?.let {
-        val TaskResult = it.runTask(this ,block)
-        TaskResult
+        val taskResult = it.runTask(this ,block)
+        taskResult
     }?:run {
-       return this.startTaskAsync(taskName, moduleName, block)
+       val rootTaskResult  = this.newTaskAsync(taskName, moduleName?:"N/A", block)
+       rootTaskResult.task.notifier.warn("Task created as substitution for SubTask. Consider restructure")
+       return rootTaskResult
     }
 }
 

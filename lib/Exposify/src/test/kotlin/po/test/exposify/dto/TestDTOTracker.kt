@@ -1,5 +1,6 @@
 package po.test.exposify.dto
 
+import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import po.auth.extensions.generatePassword
 import po.test.exposify.setup.DatabaseTest
@@ -11,7 +12,7 @@ import kotlin.test.assertTrue
 class TestDTOTracker: DatabaseTest() {
 
     @Test
-    fun `information updated and stored`(){
+    fun `information updated and stored`() = runTest{
 
         var user = User(
             id = 0,
@@ -22,7 +23,7 @@ class TestDTOTracker: DatabaseTest() {
         )
         val connection = startTestConnection()
         var userDTO : UserDTO? = null
-        connection?.service(UserDTO) {
+        connection.service(UserDTO) {
             userDTO = update(user).getDTO() as UserDTO
         }
 

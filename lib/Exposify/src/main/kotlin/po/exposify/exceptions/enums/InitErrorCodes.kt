@@ -25,11 +25,13 @@ enum class ExceptionCode(val value: Int) {
     DB_NO_TRANSACTION_IN_CONTEXT(2003),
 
     ABNORMAL_STATE(3000),
+    BAD_DTO_SETUP(3001),
 
     // Repository.kt & Runtime Execution
     REPOSITORY_RETHROWN(4000),
     REPOSITORY_NOT_INITIALIZED(4001),
     REPOSITORY_NOT_FOUND(4002),
+    DTO_LOOKUP_FAILURE(4003),
 
     // Binding / Data Model Layer
     BINDING_PROPERTY_MISSING(5001),
