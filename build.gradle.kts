@@ -1,6 +1,6 @@
 
 plugins {
-    kotlin("jvm") version "2.1.0"
+    kotlin("jvm") version "2.2.0-Beta2"
     id("com.google.devtools.ksp")
     id("maven-publish")
 }
@@ -35,7 +35,7 @@ subprojects {
                 languageVersion.set(JavaLanguageVersion.of(23))
             }
             compilerOptions {
-                freeCompilerArgs.add("-Xcontext-receivers")
+                freeCompilerArgs.add("-Xcontext-parameters")
             }
         }
     }

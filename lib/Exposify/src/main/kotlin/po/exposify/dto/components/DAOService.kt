@@ -38,7 +38,7 @@ class DAOService<DTO, DATA, ENTITY>(
         return conditions.reduceOrNull { acc, op -> acc and op } ?: Op.TRUE
     }
 
-    private  fun buildConditions(conditions: Query): Op<Boolean> {
+    private  fun buildConditions(conditions: SimpleQuery): Op<Boolean> {
         val conditions = conditions.build()
         return conditions
     }
@@ -48,7 +48,7 @@ class DAOService<DTO, DATA, ENTITY>(
         dto.updateBindingsAfterInserted(container)
     }
 
-   suspend fun  pick(conditions :  Query): ENTITY? = subTask("Pick", qualifiedName){handler->
+   suspend fun  pick(conditions :  SimpleQuery): ENTITY? = subTask("Pick", qualifiedName){handler->
        val opConditions = buildConditions(conditions)
        val queryResult = entityModel.find(opConditions).firstOrNull()
         if(queryResult == null){
@@ -70,7 +70,7 @@ class DAOService<DTO, DATA, ENTITY>(
         entityModel.all().toList()
     }.resultOrException()
 
-    suspend fun select(conditions:  Query): List<ENTITY> =
+    suspend fun select(conditions:  SimpleQuery): List<ENTITY> =
         subTask("Select", qualifiedName) {handler->
         val opConditions = buildConditions(conditions)
         val result = entityModel.find(opConditions).toList()

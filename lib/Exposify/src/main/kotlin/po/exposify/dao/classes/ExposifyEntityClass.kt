@@ -13,4 +13,9 @@ abstract class ExposifyEntityClass<out E : LongEntity>(
     private val  entityCtorE: ((EntityID<Long>) -> E)? = null
 ) : LongEntityClass<E>(sourceTable, entityTypeE, entityCtorE), EntityDTO{
 
+
+
+    val <E : LongEntity> ExposifyEntityClass<E>.entityTable: IdTable<Long>
+        get() = this.sourceTable
+
 }

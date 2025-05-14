@@ -7,21 +7,16 @@ import org.jetbrains.exposed.sql.transactions.experimental.suspendedTransactionA
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.common.interfaces.AsContext
 import po.exposify.dto.RootDTO
-import po.exposify.dto.CommonDTO
+import po.exposify.dto.components.SimpleQuery
 import po.exposify.dto.components.ResultList
 import po.exposify.dto.components.ResultSingle
 import po.exposify.dto.components.RootExecutionProvider
 import po.exposify.dto.components.WhereQuery
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.extensions.withTransactionIfNone
-import po.exposify.scope.sequence.SequenceContext
-import po.exposify.scope.sequence.classes.RootSequenceHandler
-import po.exposify.scope.sequence.enums.SequenceID
-import po.exposify.scope.sequence.models.RootSequencePack
 import po.lognotify.TasksManaged
 import po.lognotify.anotations.LogOnFault
 import po.lognotify.extensions.newTaskAsync
-import po.misc.collections.generateKey
 
 class ServiceContext<DTO, DATA, ENTITY: LongEntity>(
     internal  val serviceClass : ServiceClass<DTO, DATA, ENTITY>,
@@ -43,6 +38,13 @@ class ServiceContext<DTO, DATA, ENTITY: LongEntity>(
                 exec("TRUNCATE TABLE ${table.tableName} RESTART IDENTITY CASCADE")
             }.await()
         }.resultOrException()
+
+    fun pick(conditions: SimpleQuery): ResultSingle<DTO, DATA, ENTITY>
+            = newTaskAsync("Pick by conditions", personalName) {
+        withTransactionIfNone {
+            executionProvider.pick(conditions)
+        }
+    }.resultOrException()
 
     fun <T: IdTable<Long>>pick(conditions: WhereQuery<T>): ResultSingle<DTO, DATA, ENTITY>
          = newTaskAsync("Pick by conditions", personalName) {
@@ -95,12 +97,12 @@ class ServiceContext<DTO, DATA, ENTITY: LongEntity>(
         null
         }.resultOrException()
 
-    fun sequence(
-        sequenceID : SequenceID,
-        block: suspend SequenceContext<DTO, DATA, ENTITY>.(RootSequenceHandler<DTO, DATA, ENTITY>) -> Unit
-    ){
-        val pack = RootSequencePack(dtoClass.generateKey(sequenceID), dtoClass, block)
-        serviceClass.addSequencePack(pack.key, pack)
-    }
+//    fun sequence(
+//        sequenceID : SequenceID,
+//        block: suspend SequenceContext<DTO, DATA, ENTITY>.(RootSequenceHandler<DTO, DATA, ENTITY>) -> Unit
+//    ){
+//        val pack = RootSequencePack(dtoClass.generateKey(sequenceID), dtoClass, block)
+//        serviceClass.addSequencePack(pack.key, pack)
+//    }
 
 }

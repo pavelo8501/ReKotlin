@@ -6,9 +6,9 @@ import org.jetbrains.exposed.dao.id.IdTable
 import po.exposify.dto.DTOBase
 import po.exposify.dto.DTOClass
 import po.exposify.dto.RootDTO
-import po.exposify.dto.components.Query
 import po.exposify.dto.components.ResultList
 import po.exposify.dto.components.ResultSingle
+import po.exposify.dto.components.SimpleQuery
 import po.exposify.dto.components.WhereQuery
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
@@ -38,6 +38,16 @@ fun <DTO : ModelDTO, DATA: DataModel, ENTITY: LongEntity> DTOClass<DTO, DATA, EN
     return  ClassSequenceHandler(sequenceID, this)
 }
 
+
+
+class SequenceHandler<DTO, DATA, ENTITY>(
+    val dtoClass: DTOClass<DTO, DATA, ENTITY>,
+
+) where DTO: ModelDTO, DATA: DataModel, ENTITY: LongEntity {
+
+
+
+}
 
 
 class RootSequenceHandler<DTO, DATA, ENTITY>(
@@ -83,8 +93,8 @@ sealed class SequenceHandlerBase<DTO, DATA, ENTITY>(
         ExceptionCode.VALUE_NOT_FOUND)
 
 
-    protected var whereQueryParameter: Query? = null
-    val inputQuery: Query get() = whereQueryParameter.getOrOperationsEx("Query parameter requested but uninitialized")
+    protected var whereQueryParameter: SimpleQuery? = null
+    val inputQuery: SimpleQuery get() = whereQueryParameter.getOrOperationsEx("Query parameter requested but uninitialized")
 
     protected var sequenceContext : SequenceContext<DTO, DATA, ENTITY>? = null
 

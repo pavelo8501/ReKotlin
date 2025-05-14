@@ -199,26 +199,26 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, C_DTO,  CD, CE>(
         }
         store(newChildDto)
         newChildDto.getDtoRepositories().forEach { it.loadHierarchyByModel() }
-        return ResultSingle(newChildDto)
+        return childClass.createSingleResult(newChildDto)
     }
 
     override suspend fun pickById(id: Long): ResultSingle<C_DTO, CD, CE>{
         val existent = childClass.lookupDTO(id)
         return if(existent != null){
-            ResultSingle(existent)
+            childClass.createSingleResult(existent)
         }else{
             val entity = childClass.config.daoService.pickById(id).getOrOperationsEx("Entity with provided id :${id} not found")
-            ResultSingle(createDto(entity))
+            childClass.createSingleResult(createDto(entity))
         }
     }
 
-    override suspend fun pick(conditions: Query): ResultSingle<C_DTO, CD, CE> {
+    override suspend fun pick(conditions: SimpleQuery): ResultSingle<C_DTO, CD, CE> {
         val entity = childClass.config.daoService.pick(conditions).getOrOperationsEx("Entity with provided query :${conditions} not found")
         val existent = childClass.lookupDTO(entity.id.value)
         return if(existent != null){
-            ResultSingle(existent)
+            childClass.createSingleResult(existent)
         }else{
-            ResultSingle(createDto(entity))
+            childClass.createSingleResult(createDto(entity))
         }
     }
 
@@ -227,7 +227,7 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, C_DTO,  CD, CE>(
     ): ResultList<C_DTO, CD, CE> = select(conditions)
 
     override suspend fun select(): ResultList<C_DTO, CD, CE>{
-        val resultingList = ResultList<C_DTO, CD, CE>()
+        val resultingList = ResultList<C_DTO, CD, CE>(childClass)
         val result = childClass.config.daoService.select()
         result.forEach { selectedEntity ->
             val existingDto = takeStored(selectedEntity.id.value)
@@ -241,8 +241,8 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, C_DTO,  CD, CE>(
         return resultingList
     }
 
-    override suspend fun select(conditions: Query): ResultList<C_DTO, CD, CE> {
-        val resultingList = ResultList<C_DTO, CD, CE>()
+    override suspend fun select(conditions: SimpleQuery): ResultList<C_DTO, CD, CE> {
+        val resultingList = ResultList<C_DTO, CD, CE>(childClass)
         val result = childClass.config.daoService.select(conditions)
         result.forEach { selectedEntity ->
             val existingDto = takeStored(selectedEntity.id.value)
@@ -262,7 +262,7 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, C_DTO,  CD, CE>(
             val existingDto = takeStored(dataModel.id)
             if(existingDto != null){
                 existingDto.dtoPropertyBinder.update(dataModel)
-                return ResultSingle(existingDto)
+                return childClass.createSingleResult(existingDto)
             }else{
                 val pickedDTO =  pickById(dataModel.id)
                 return pickedDTO
@@ -271,7 +271,7 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, C_DTO,  CD, CE>(
     }
 
     override suspend fun update(dataModels: List<CD>): ResultList<C_DTO, CD, CE>{
-        val result =  ResultList<C_DTO, CD, CE>()
+        val result =  ResultList<C_DTO, CD, CE>(childClass)
         dataModels.forEach {
             result.appendDto(update(it))
         }

@@ -9,6 +9,7 @@ import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.property_binder.delegates.binding
 import po.exposify.dto.components.property_binder.delegates.foreign2IdReference
 import po.exposify.dto.components.relation_binder.delegates.oneToManyOf
+import po.exposify.scope.sequence.classes.Handler
 import po.test.exposify.setup.PageEntity
 import po.test.exposify.setup.SectionEntity
 import po.test.exposify.setup.UserEntity
@@ -30,7 +31,7 @@ data class Page(
 
 class PageDTO(
     override var dataModel: Page
-): CommonDTO<PageDTO, Page, PageEntity>(PageDTO) {
+): CommonDTO<PageDTO, Page, PageEntity>(this) {
 
     var name : String by binding(Page::name, PageEntity::name)
     var langId : Int by binding(Page::langId, PageEntity::langId)
@@ -41,9 +42,12 @@ class PageDTO(
 
     companion object: RootDTO<PageDTO, Page, PageEntity>(){
 
-        override suspend fun setup() {
+        val UPDATE = Handler(this)
+        val SELECT = Handler(this)
 
+        override suspend fun setup() {
             configuration<PageDTO, Page, PageEntity>(PageEntity){
+
                 hierarchyMembers(SectionDTO, ContentBlockDTO)
                 useDataModelBuilder { Page() }
             }

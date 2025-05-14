@@ -8,24 +8,16 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.DTORegistryItem
 import po.exposify.dao.classes.ExposifyEntityClass
-import po.exposify.exceptions.OperationsException
+import po.exposify.dto.components.SwitchQuery
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.castOrOperationsEx
 import po.exposify.extensions.getOrInitEx
-import po.exposify.extensions.withTransactionIfNone
-import po.exposify.scope.sequence.classes.RootSequenceHandler
-import po.exposify.scope.sequence.classes.createHandler
-import po.exposify.scope.sequence.enums.SequenceID
-import po.exposify.scope.sequence.models.RootSequencePack
 import po.exposify.scope.service.ServiceClass
 import po.exposify.scope.service.ServiceContext
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.newTaskAsync
 import po.misc.collections.Identifiable
-import po.misc.collections.generateKey
-import po.misc.types.castOrThrow
-
 abstract class RootDTO<DTO, DATA, ENTITY>()
     : DTOBase<DTO, DATA, ENTITY>(),  TasksManaged,  ClassDTO
         where DTO: ModelDTO, DATA: DataModel, ENTITY: LongEntity
@@ -67,36 +59,40 @@ abstract class RootDTO<DTO, DATA, ENTITY>()
         initialized = true
     }.resultOrException()
 
-
-    suspend fun runSequence(
-        sequenceId: SequenceID,
-        handlerBlock : suspend RootSequenceHandler<DTO, DATA, ENTITY>.()-> Unit
-    ): List<DATA>{
-        return withTransactionIfNone {
-            val handler = createHandler(sequenceId)
-            val serviceClass = getServiceClass()
-            val pack = serviceClass.getSequencePack(generateKey(handler.sequenceId))
-                .castOrThrow<RootSequencePack<DTO, DATA, ENTITY>, OperationsException>()
-
-            val emitter = serviceClass.requestEmitter()
-            emitter.dispatch<DTO, DATA, ENTITY, DTO, DATA, ENTITY, List<DATA>>(pack, handlerBlock, null)
-        }
+    fun newQuery(): SwitchQuery<DTO, DATA, ENTITY> {
+        return SwitchQuery(this)
     }
 
-    suspend fun <F_DTO: ModelDTO, FD : DataModel, FE: LongEntity> runSequence(
-        sequenceId: SequenceID,
-        childDtoClass: DTOClass<F_DTO, FD, FE>,
-        handlerBlock : suspend RootSequenceHandler<DTO, DATA, ENTITY>.()-> Unit
-    ): List<FD>{
-        return withTransactionIfNone {
-            val handler = createHandler(sequenceId)
-            val serviceClass = getServiceClass()
-            val pack = serviceClass.getSequencePack(generateKey(handler.sequenceId))
-                .castOrThrow<RootSequencePack<DTO, DATA, ENTITY>, OperationsException>()
-            val emitter = serviceClass.requestEmitter()
-            emitter.dispatch<DTO, DATA, ENTITY, F_DTO, FD, FE, List<FD>>(pack, handlerBlock, childDtoClass)
-        }
-    }
+
+//    suspend fun runSequence(
+//        sequenceId: SequenceID,
+//        handlerBlock : suspend RootSequenceHandler<DTO, DATA, ENTITY>.()-> Unit
+//    ): List<DATA>{
+////        return withTransactionIfNone {
+////            val handler = createHandler(sequenceId)
+////            val serviceClass = getServiceClass()
+////            val pack = serviceClass.getSequencePack(generateKey(handler.sequenceId))
+////                .castOrThrow<RootSequencePack<DTO, DATA, ENTITY>, OperationsException>()
+////
+////          //  val emitter = serviceClass.requestEmitter()
+////           // emitter.dispatch<DTO, DATA, ENTITY, DTO, DATA, ENTITY, List<DATA>>(pack, handlerBlock, null)
+////        }
+//    }
+
+//    suspend fun <F_DTO: ModelDTO, FD : DataModel, FE: LongEntity> runSequence(
+//        sequenceId: SequenceID,
+//        childDtoClass: DTOClass<F_DTO, FD, FE>,
+//        handlerBlock : suspend RootSequenceHandler<DTO, DATA, ENTITY>.()-> Unit
+//    ): List<FD>{
+////        return withTransactionIfNone {
+////            val handler = createHandler(sequenceId)
+////            val serviceClass = getServiceClass()
+////            val pack = serviceClass.getSequencePack(generateKey(handler.sequenceId))
+////                .castOrThrow<RootSequencePack<DTO, DATA, ENTITY>, OperationsException>()
+////            val emitter = serviceClass.requestEmitter()
+////            emitter.dispatch<DTO, DATA, ENTITY, F_DTO, FD, FE, List<FD>>(pack, handlerBlock, childDtoClass)
+////        }
+//    }
 
 }
 

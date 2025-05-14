@@ -3,10 +3,28 @@ package po.exposify.dto.components
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
+import po.exposify.dto.DTOBase
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.exceptions.OperationsException
 import po.exposify.extensions.getOrOperationsEx
+import po.exposify.scope.sequence.SequenceContext
+import po.misc.types.castListOrThrow
 
-class ResultList<DTO, DATA, ENTITY>  (
+
+
+fun <DTO, D, E>  DTOBase<DTO, D, E>.createResultList(
+    initial: List<CommonDTO<DTO, D, E>>? = null
+): ResultList<DTO, D, E> where  DTO: ModelDTO, D : DataModel, E : LongEntity{
+    return ResultList(this, initial)
+}
+
+fun <DTO, D, E>  DTOBase<DTO, D, E>.createSingleResult(initial : CommonDTO<DTO, D, E>? = null): ResultSingle<DTO, D, E> where  DTO: ModelDTO, D : DataModel, E : LongEntity{
+    return ResultSingle(this, initial)
+}
+
+
+class ResultList<DTO, DATA, ENTITY>(
+   internal val dataClass: DTOBase<DTO, DATA, ENTITY>,
    private val initialList : List<CommonDTO<DTO, DATA, ENTITY>>? = null
 )  where DTO : ModelDTO, DATA: DataModel, ENTITY : LongEntity {
 
@@ -41,12 +59,19 @@ class ResultList<DTO, DATA, ENTITY>  (
         return dataModels
     }
 
-    fun getDTO(): List<CommonDTO<DTO, DATA, ENTITY>> {
+    fun getDTO(): List<DTO> {
+        return dtoList.castListOrThrow<DTO, OperationsException>(dataClass.config.registryRecord.derivedDTOClazz)
+    }
+
+    internal fun getAsCommonDTO():  List<CommonDTO<DTO, DATA, ENTITY>> {
         return dtoList
     }
+
+
 }
 
 class ResultSingle<DTO, DATA, ENTITY>(
+    internal val dtoClass: DTOBase<DTO, DATA, ENTITY>,
     private var rootDTO: CommonDTO<DTO, DATA, ENTITY>? = null
 ) where DTO : ModelDTO, DATA: DataModel, ENTITY : LongEntity {
 

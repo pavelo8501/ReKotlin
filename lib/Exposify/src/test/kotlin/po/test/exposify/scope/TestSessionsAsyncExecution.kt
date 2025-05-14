@@ -15,6 +15,8 @@ import po.auth.extensions.generatePassword
 import po.auth.sessions.enumerators.SessionType
 import po.exposify.scope.sequence.classes.createHandler
 import po.exposify.scope.sequence.enums.SequenceID
+import po.exposify.scope.sequence.extensions.runSequence
+import po.exposify.scope.sequence.extensions.sequence
 import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.ConsoleBehaviour
@@ -83,10 +85,11 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
             }
 
             service(PageDTO, TableCreateMode.CREATE) {
-                sequence(SequenceID.UPDATE) {handler->
-                    update(handler.inputData)
+
+                sequence(PageDTO.UPDATE) { handler->
+                 update(handler.inputList)
                 }
-                sequence(SequenceID.SELECT) {handler->
+                sequence(PageDTO.SELECT) {handler->
                     select()
                 }
             }
@@ -111,15 +114,20 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
                 authSession.launchProcess {
                     val inputData =
                         pageModelsWithSections(pageCount = 1000, sectionsCount = 10, authSession.principal!!.id)
-                    //PageDTO.runSequence(SequenceID.UPDATE) {
 
-                        ////withInputData(inputData)
-                  //  }
+                    runSequence(PageDTO.UPDATE){
+                        withData(inputData)
+                    }
+
                 }
             }
             launch {
                 anonSession.launchProcess {
                     delay(200)
+                    runSequence(PageDTO.SELECT){
+
+                    }
+
                    // val selectionResult = PageDTO.runSequence(SequenceID.SELECT) {
                    //     onStart {
                     //        println("Running update with session ${it.sessionID}")

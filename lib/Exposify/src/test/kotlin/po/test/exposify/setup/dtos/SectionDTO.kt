@@ -14,6 +14,9 @@ import po.exposify.dto.components.property_binder.delegates.foreign2IdReference
 import po.exposify.dto.components.property_binder.delegates.parent2IdReference
 import po.exposify.dto.components.property_binder.delegates.serializedBinding
 import po.exposify.dto.components.relation_binder.delegates.oneToManyOf
+import po.exposify.dto.enums.Cardinality
+import po.exposify.scope.sequence.classes.Handler
+import po.exposify.scope.sequence.classes.SwitchHandler
 import po.test.exposify.setup.ClassItem
 import po.test.exposify.setup.ContentBlockEntity
 import po.test.exposify.setup.MetaTag
@@ -70,6 +73,9 @@ class SectionDTO(
         ContentBlockEntity::section)
 
     companion object: DTOClass<SectionDTO, Section, SectionEntity>(PageDTO){
+
+        val UPDATE = SwitchHandler(this, PageDTO.UPDATE, Cardinality.ONE_TO_MANY)
+
         override suspend fun setup() {
             configuration<SectionDTO, Section, SectionEntity>(SectionEntity) {
 
