@@ -11,7 +11,6 @@ import po.exposify.scope.sequence.SequenceContext
 import po.misc.types.castListOrThrow
 
 
-
 fun <DTO, D, E>  DTOBase<DTO, D, E>.createResultList(
     initial: List<CommonDTO<DTO, D, E>>? = null
 ): ResultList<DTO, D, E> where  DTO: ModelDTO, D : DataModel, E : LongEntity{
@@ -21,6 +20,11 @@ fun <DTO, D, E>  DTOBase<DTO, D, E>.createResultList(
 fun <DTO, D, E>  DTOBase<DTO, D, E>.createSingleResult(initial : CommonDTO<DTO, D, E>? = null): ResultSingle<DTO, D, E> where  DTO: ModelDTO, D : DataModel, E : LongEntity{
     return ResultSingle(this, initial)
 }
+
+fun <DTO, D, E>  ResultSingle<DTO, D, E>.toResultList(): ResultList<DTO, D, E> where  DTO: ModelDTO, D : DataModel, E : LongEntity{
+    return ResultList(this.dtoClass).appendDto(this)
+}
+
 
 
 class ResultList<DTO, DATA, ENTITY>(
@@ -66,8 +70,6 @@ class ResultList<DTO, DATA, ENTITY>(
     internal fun getAsCommonDTO():  List<CommonDTO<DTO, DATA, ENTITY>> {
         return dtoList
     }
-
-
 }
 
 class ResultSingle<DTO, DATA, ENTITY>(

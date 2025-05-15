@@ -9,7 +9,7 @@ import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.property_binder.delegates.binding
 import po.exposify.dto.components.property_binder.delegates.foreign2IdReference
 import po.exposify.dto.components.relation_binder.delegates.oneToManyOf
-import po.exposify.scope.sequence.classes.Handler
+import po.exposify.scope.sequence.classes.RootHandlerProvider
 import po.test.exposify.setup.PageEntity
 import po.test.exposify.setup.SectionEntity
 import po.test.exposify.setup.UserEntity
@@ -42,8 +42,8 @@ class PageDTO(
 
     companion object: RootDTO<PageDTO, Page, PageEntity>(){
 
-        val UPDATE = Handler(this)
-        val SELECT = Handler(this)
+        val UPDATE by RootHandlerProvider(this)
+        val SELECT by RootHandlerProvider(this)
 
         override suspend fun setup() {
             configuration<PageDTO, Page, PageEntity>(PageEntity){

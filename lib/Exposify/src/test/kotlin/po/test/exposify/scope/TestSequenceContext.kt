@@ -7,15 +7,13 @@ import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertAll
 import org.junit.jupiter.api.assertInstanceOf
 import po.auth.extensions.generatePassword
-import po.exposify.dto.components.ResultList
 import po.exposify.dto.components.ResultSingle
 import po.exposify.dto.components.WhereQuery
+import po.exposify.dto.components.toResultList
 import po.exposify.scope.connection.ConnectionContext
-import po.exposify.scope.sequence.enums.SequenceID
 import po.exposify.scope.sequence.extensions.runSequence
 import po.exposify.scope.sequence.extensions.sequence
 import po.exposify.scope.sequence.extensions.switchContext
-import po.exposify.scope.sequence.extensions.toResultList
 import po.exposify.scope.sequence.extensions.usingConfig
 import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.LogNotifyHandler
@@ -26,7 +24,6 @@ import po.test.exposify.setup.ClassItem
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.PageEntity
 import po.test.exposify.setup.Pages
-import po.test.exposify.setup.SectionEntity
 import po.test.exposify.setup.dtos.Page
 import po.test.exposify.setup.dtos.PageDTO
 import po.test.exposify.setup.dtos.Section
@@ -38,7 +35,6 @@ import po.test.exposify.setup.pageModelsWithSections
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
@@ -77,17 +73,13 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
     @Test
     fun `Sequence switch statement select appropriate dto, update not breaking relations`() = runTest {
 
-
-
-        var pageDtoByOnResultCollected: PageDTO? =null
+        var pageDtoByOnResultCollected: PageDTO? = null
         fun testUpdated(result : ResultSingle<PageDTO, Page, PageEntity>){
             pageDtoByOnResultCollected = result.getDTOForced()
             assertTrue(pageDtoByOnResultCollected.sections.size == 1, "Sections not updated")
         }
 
         connectionContext.run {
-
-
             service(PageDTO, TableCreateMode.CREATE){
 
                 sequence(PageDTO.UPDATE){ handler->
@@ -98,26 +90,26 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
                     }
                     insert.toResultList()
                 }
+
             }
         }
 
         val inputData = pageModelsWithSections(pageCount = 1, sectionsCount = 1, updatedBy = updatedById)
-        val sectionData = Section(1, "NewName", "NewDescription", "", emptyList(), emptyList(), 1, 1, 0)
-
+        val inputSectionUpdate = Section(1, "NewName", "NewDescription", "", emptyList(), emptyList(), 1, 1, 0)
         var updateResult : List<PageDTO>? = null
-        val result =  runSequence(SectionDTO.UPDATE, PageDTO.newQuery().byId(1L)){
-            withData(sectionData)
-            updateResult =  usingConfig(PageDTO.UPDATE){
-                onResultCollected(::testUpdated)
+
+        val result =  runSequence(SectionDTO.UPDATE, {PageDTO.newQuery().byId(1L)} ){
+            withData(inputSectionUpdate)
+            updateResult = usingConfig(PageDTO.UPDATE){
                 withData(inputData)
+                onResultCollected(::testUpdated)
             }.getDTO()
         }.getData()
 
         val firstOfPageDtoInsert = assertNotNull(updateResult?.first())
+
         assertNotNull(pageDtoByOnResultCollected)
-
         assertSame(pageDtoByOnResultCollected, firstOfPageDtoInsert)
-
         assertTrue(result.count() == 1, "Section update did not return value")
         val section = result.first()
 
@@ -128,7 +120,7 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
         )
     }
 
-    @Test
+
     fun `Sequence launched with conditions and input work`() = runTest {
         val user = User(
             id = 0,

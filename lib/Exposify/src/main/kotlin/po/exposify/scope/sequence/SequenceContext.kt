@@ -8,13 +8,13 @@ import po.exposify.dto.components.SimpleQuery
 import po.exposify.dto.interfaces.ExecutionContext
 import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.scope.sequence.classes.HandlerBase
+import po.exposify.scope.sequence.classes.SequenceHandlerBase
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.subTask
 
 
 class SequenceContext<DTO, DATA, ENTITY>(
-   internal val sequenceHandler: HandlerBase<DTO, DATA, ENTITY>,
+   internal val sequenceHandler: SequenceHandlerBase<DTO, DATA, ENTITY>,
    private val executionContext: ExecutionContext<DTO, DATA, ENTITY>
 ): TasksManaged, IdentifiableComponent where  DTO : ModelDTO, DATA : DataModel, ENTITY: LongEntity
 {

@@ -3,24 +3,19 @@ package po.test.exposify.setup.dtos
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.builtins.ListSerializer
 import po.exposify.dto.DTOClass
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.components.property_binder.bindings.SerializedBinding
-import po.exposify.dto.components.property_binder.bindings.SyncedBinding
 import po.exposify.dto.components.property_binder.delegates.binding
 import po.exposify.dto.components.property_binder.delegates.foreign2IdReference
 import po.exposify.dto.components.property_binder.delegates.parent2IdReference
 import po.exposify.dto.components.property_binder.delegates.serializedBinding
 import po.exposify.dto.components.relation_binder.delegates.oneToManyOf
 import po.exposify.dto.enums.Cardinality
-import po.exposify.scope.sequence.classes.Handler
-import po.exposify.scope.sequence.classes.SwitchHandler
+import po.exposify.scope.sequence.classes.SwitchHandlerProvider
 import po.test.exposify.setup.ClassItem
 import po.test.exposify.setup.ContentBlockEntity
 import po.test.exposify.setup.MetaTag
-import po.test.exposify.setup.PageEntity
 import po.test.exposify.setup.SectionEntity
 import po.test.exposify.setup.UserEntity
 
@@ -74,7 +69,7 @@ class SectionDTO(
 
     companion object: DTOClass<SectionDTO, Section, SectionEntity>(PageDTO){
 
-        val UPDATE = SwitchHandler(this, PageDTO.UPDATE, Cardinality.ONE_TO_MANY)
+        val UPDATE by SwitchHandlerProvider(this, Cardinality.ONE_TO_MANY, PageDTO.UPDATE)
 
         override suspend fun setup() {
             configuration<SectionDTO, Section, SectionEntity>(SectionEntity) {

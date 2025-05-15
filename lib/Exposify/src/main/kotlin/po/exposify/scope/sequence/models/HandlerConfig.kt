@@ -6,16 +6,11 @@ import po.exposify.dto.components.ResultSingle
 import po.exposify.dto.components.SimpleQuery
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.exceptions.OperationsException
-import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.extensions.getOrOperationsEx
-import po.exposify.scope.sequence.classes.HandlerBase
+import po.exposify.scope.sequence.classes.SequenceHandlerBase
 
 
-class HandlerConfig<DTO, D, E>(private val owningHandler : HandlerBase<DTO, D, E>)
+class HandlerConfig<DTO, D, E>(private val owningHandler : SequenceHandlerBase<DTO, D, E>)
         where DTO: ModelDTO, D: DataModel, E: LongEntity{
-
-
 
     fun withData(inputList : List<D>){
         owningHandler.inputListSource.clear()
@@ -29,7 +24,7 @@ class HandlerConfig<DTO, D, E>(private val owningHandler : HandlerBase<DTO, D, E
         owningHandler.inputListSource.add(data)
     }
 
-    fun withQuery(query: SimpleQuery){
+    fun withQuery(query : SimpleQuery){
         owningHandler.whereQueryParameter =  query
     }
 
@@ -40,7 +35,6 @@ class HandlerConfig<DTO, D, E>(private val owningHandler : HandlerBase<DTO, D, E
     @JvmName("onResultCollectedSingle")
     fun onResultCollected(resultCallback: (ResultSingle<DTO, D, E>)-> Unit){
         owningHandler.collectSingleResultFn = resultCallback
-
     }
 
 }
