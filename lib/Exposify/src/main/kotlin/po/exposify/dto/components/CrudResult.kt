@@ -17,13 +17,22 @@ fun <DTO, D, E>  DTOBase<DTO, D, E>.createResultList(
     return ResultList(this, initial)
 }
 
-fun <DTO, D, E>  DTOBase<DTO, D, E>.createSingleResult(initial : CommonDTO<DTO, D, E>? = null): ResultSingle<DTO, D, E> where  DTO: ModelDTO, D : DataModel, E : LongEntity{
+fun <DTO, D, E>  DTOBase<DTO, D, E>.createSingleResult(initial : CommonDTO<DTO, D, E>? = null): ResultSingle<DTO, D, E>
+where  DTO: ModelDTO, D : DataModel, E : LongEntity{
     return ResultSingle(this, initial)
 }
 
-fun <DTO, D, E>  ResultSingle<DTO, D, E>.toResultList(): ResultList<DTO, D, E> where  DTO: ModelDTO, D : DataModel, E : LongEntity{
+fun <DTO, D, E>  ResultSingle<DTO, D, E>.toResultList(): ResultList<DTO, D, E>
+where  DTO: ModelDTO, D : DataModel, E : LongEntity{
     return ResultList(this.dtoClass).appendDto(this)
 }
+
+fun <DTO, D, E>  ResultList<DTO, D, E>.toResultSingle(): ResultSingle<DTO, D, E>
+where  DTO: ModelDTO, D : DataModel, E : LongEntity{
+    val dtoList = this.getAsCommonDTO()
+    return  ResultSingle(this.dataClass, dtoList.firstOrNull())
+}
+
 
 
 

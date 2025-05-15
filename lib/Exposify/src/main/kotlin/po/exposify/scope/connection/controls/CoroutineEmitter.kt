@@ -21,7 +21,7 @@ class CoroutineEmitter(
             where DTO : ModelDTO,  D: DataModel, E: LongEntity
     {
         return session.launchProcess {
-            session.sessionContext.newTask("Sequence launch as startTask", "CoroutineEmitter2") {
+            session.sessionContext.newTask("Sequence launch(dispatchRoot)", "CoroutineEmitter") {
                 newSuspendedTransaction(Dispatchers.IO) {
                     rootDispatcher.launch(session)
                 }
@@ -29,16 +29,17 @@ class CoroutineEmitter(
         }
     }
 
-    suspend fun <DTO, D, E, F_DTO, FD, FE>dispatchChild(classDispatcher : ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE>): ResultList<F_DTO, FD, FE>
+    suspend fun <DTO, D, E, F_DTO, FD, FE>dispatchChild(
+        classHandler : ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE>,
+    ): ResultList<DTO, D, E>
     where DTO : ModelDTO,  D: DataModel, E: LongEntity,
                 F_DTO: ModelDTO,FD : DataModel, FE : LongEntity {
 
         return session.launchProcess {
-            session.sessionContext.newTask("Sequence launch as startTask", "CoroutineEmitter2") {
+            session.sessionContext.newTask("Sequence launch(dispatchChild)", "CoroutineEmitter") {
                 newSuspendedTransaction(Dispatchers.IO) {
-                 val sequenceResult = classDispatcher.parentHandler.launch(session)
-                    classDispatcher.launch(session)
-                    sequenceResult
+                    classHandler.handlerConfig.rootHandler.launch(session)
+                    classHandler.launch(session)
                 }
             }.resultOrException()
         }

@@ -16,9 +16,21 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 
 
+sealed class SimpleQuery() {
+    abstract val expression: Set<Op<Boolean>>
+    private fun combineConditions(conditions: Set<Op<Boolean>>): Op<Boolean> {
+        return conditions.reduceOrNull { acc, op -> acc and op } ?: Op.TRUE
+    }
+    fun build(): Op<Boolean> {
+        return combineConditions(expression)
+    }
+}
+
+
 class WhereQuery<T> (
     private val table: T
-) : SimpleQuery() where T : IdTable<Long> {
+) : SimpleQuery() where T : IdTable<Long>
+{
 
     override  var expression: Set<Op<Boolean>> = emptySet()
 
@@ -67,28 +79,28 @@ class WhereQuery<T> (
 }
 
 class SwitchQuery<DTO: ModelDTO, D : DataModel, E: LongEntity>(
-    private val dtoClass: RootDTO<DTO,D,E>):SimpleQuery()
-{
+    private val lookUpId: Long,
+    private val dtoClass: RootDTO<DTO,D,E>,
+):SimpleQuery() {
 
-    override  var expression: Set<Op<Boolean>> = emptySet()
+    override var expression: Set<Op<Boolean>> = emptySet()
+
+    init {
+        addCondition(dtoClass.config.entityModel.sourceTable.id eq lookUpId)
+    }
 
     private fun addCondition(condition: Op<Boolean>) {
         expression = expression + condition
     }
 
-    fun byId(id: Long):SwitchQuery<DTO, D, E>{
-        addCondition(dtoClass.config.entityModel.sourceTable.id eq id)
-        return this
+    suspend fun resolve(): ResultSingle<DTO, D, E> {
+        val existent = dtoClass.lookupDTO(lookUpId)
+        return if (existent != null) {
+            dtoClass.createSingleResult(existent)
+        } else {
+            dtoClass.createExecutionProvider().pick(this)
+        }
     }
 
 }
 
-sealed class SimpleQuery() {
-    abstract val expression: Set<Op<Boolean>>
-    private fun combineConditions(conditions: Set<Op<Boolean>>): Op<Boolean> {
-        return conditions.reduceOrNull { acc, op -> acc and op } ?: Op.TRUE
-    }
-    fun build(): Op<Boolean> {
-        return combineConditions(expression)
-    }
-}

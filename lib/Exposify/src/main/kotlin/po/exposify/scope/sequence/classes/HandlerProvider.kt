@@ -7,9 +7,12 @@ import po.exposify.dto.DTOClass
 import po.exposify.dto.RootDTO
 import po.exposify.dto.components.ResultList
 import po.exposify.dto.components.ResultSingle
+import po.exposify.dto.components.SwitchQuery
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.extensions.getOrInitEx
+import po.exposify.extensions.getOrOperationsEx
 import po.exposify.scope.sequence.SequenceContext
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
@@ -17,10 +20,10 @@ import kotlin.reflect.KProperty
 
 sealed interface HandlerProvider<DTO:ModelDTO, D: DataModel, E:LongEntity>{
     val dtoBase: DTOBase<DTO, D, E>
-    var propertyName : String?
+    val name : String
     val cardinality: Cardinality
-    val rootHandler: Boolean
-    var initialized: Boolean
+    val isRootHandler: Boolean
+    var isInitialized: Boolean
 }
 
 
@@ -29,10 +32,11 @@ sealed class HandlerProviderBase<DTO, D, E, V>(
 ): ReadOnlyProperty<DTOBase<DTO, D, E>, V>,  HandlerProvider<DTO, D, E>
         where DTO: ModelDTO, D: DataModel, E: LongEntity, V : HandlerProvider<DTO, D, E>{
 
-    override var propertyName : String? = null
+    private var propertyName : String? = null
+    override val name : String get() = propertyName.getOrInitEx()
 
-    abstract override var initialized: Boolean
-    abstract override var rootHandler : Boolean
+    abstract override var isInitialized: Boolean
+    abstract override var isRootHandler : Boolean
     abstract override val cardinality: Cardinality
     abstract val nameUpdated: (String)-> Unit
 
@@ -49,18 +53,27 @@ class RootHandlerProvider<DTO, D, E>(
 ):HandlerProviderBase<DTO, D, E, RootHandlerProvider<DTO, D, E>>(dtoRoot)
         where DTO: ModelDTO, D: DataModel, E: LongEntity{
 
-    override var initialized: Boolean = false
-    override var rootHandler : Boolean = true
+    override var isInitialized: Boolean = false
+    override var isRootHandler : Boolean = true
     override val cardinality: Cardinality = Cardinality.ONE_TO_MANY
-    override val nameUpdated: (String) -> Unit = { initialized = true }
+    override val nameUpdated: (String) -> Unit = { isInitialized = true }
 
-    var sequenceLambda: (suspend context(AuthorizedSession)  SequenceContext<DTO, D, E>.(RootSequenceHandler<DTO, D, E>) -> ResultList<DTO, D, E>)? = null
+    private var sequenceLambdaParameter:
+            (suspend context(AuthorizedSession)
+        SequenceContext<DTO, D, E>.(RootSequenceHandler<DTO, D, E>) -> ResultList<DTO, D, E>)? = null
+
+    val sequenceLambda :
+            (suspend context(AuthorizedSession)
+            SequenceContext<DTO, D, E>.(RootSequenceHandler<DTO, D, E>) -> ResultList<DTO, D, E>)
+        get() = sequenceLambdaParameter.getOrInitEx()
+
     internal fun storeSequenceLambda(block: suspend context(AuthorizedSession)  SequenceContext<DTO, D, E>.(RootSequenceHandler<DTO, D, E>) -> ResultList<DTO, D, E>){
-        sequenceLambda = block
+        sequenceLambdaParameter = block
     }
 
+
     internal fun createHandler(): RootSequenceHandler<DTO, D, E> {
-        return RootSequenceHandler(this, dtoRoot, propertyName!!, sequenceLambda!!)
+        return RootSequenceHandler(this, dtoRoot, name, sequenceLambda)
     }
 
 }
@@ -73,22 +86,27 @@ class SwitchHandlerProvider<DTO, D, E, F_DTO, FD, FE>(
         where DTO: ModelDTO, D: DataModel, E: LongEntity,
               F_DTO : ModelDTO,FD : DataModel, FE: LongEntity
 {
-    override var initialized: Boolean = false
-    override var rootHandler : Boolean = false
-    override val nameUpdated: (String) -> Unit = { initialized = true }
+    override var isInitialized: Boolean = false
+    override var isRootHandler : Boolean = false
+    override val nameUpdated: (String) -> Unit = { isInitialized = true }
 
-    var switchQueryBuilder : (()-> ResultSingle<F_DTO, FD, FE>)? = null
-    var switchLambda: (suspend  SequenceContext<DTO, D, E>.(ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE>)-> ResultList<DTO, D, E>)? = null
+    private var switchQueryProviderParameter : (()-> SwitchQuery<F_DTO, FD, FE>)? = null
+    val  switchQueryProvider : ()-> SwitchQuery<F_DTO, FD, FE>
+        get() = switchQueryProviderParameter.getOrOperationsEx()
+
+    var switchLambdaParameter: (suspend  SequenceContext<DTO, D, E>.(ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE>)-> ResultList<DTO, D, E>)? = null
+    val switchLambda: (suspend  SequenceContext<DTO, D, E>.(ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE>)-> ResultList<DTO, D, E>)
+        get() =  switchLambdaParameter.getOrInitEx("SwitchLambda was not provided")
 
     internal fun storeSwitchLambda(
         block: suspend  SequenceContext<DTO, D, E>.(ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE>)-> ResultList<DTO, D, E>
     ){
-        switchLambda = block
+        switchLambdaParameter = block
     }
 
-    internal fun createHandler():ClassSequenceHandler<DTO, D, E,  F_DTO, FD, FE> {
-        val parentHandler = rootHandlerDelegate.createHandler()
-        return ClassSequenceHandler(this, dtoClass,parentHandler, cardinality, propertyName!!, rootHandlerDelegate.sequenceLambda!!, switchLambda!!)
+    internal fun createHandler(switchQueryProvider:  ()-> SwitchQuery<F_DTO, FD, FE>):ClassSequenceHandler<DTO, D, E,  F_DTO, FD, FE> {
+        this.switchQueryProviderParameter = switchQueryProvider
+        return ClassSequenceHandler(this, dtoClass, cardinality, name)
     }
 
 }

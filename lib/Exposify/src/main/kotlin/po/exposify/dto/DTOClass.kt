@@ -59,40 +59,9 @@ abstract class RootDTO<DTO, DATA, ENTITY>()
         initialized = true
     }.resultOrException()
 
-    fun newQuery(): SwitchQuery<DTO, DATA, ENTITY> {
-        return SwitchQuery(this)
+    fun switchQuery(id: Long): SwitchQuery<DTO, DATA, ENTITY> {
+        return SwitchQuery(id, this)
     }
-
-
-//    suspend fun runSequence(
-//        sequenceId: SequenceID,
-//        handlerBlock : suspend RootSequenceHandler<DTO, DATA, ENTITY>.()-> Unit
-//    ): List<DATA>{
-////        return withTransactionIfNone {
-////            val handler = createHandler(sequenceId)
-////            val serviceClass = getServiceClass()
-////            val pack = serviceClass.getSequencePack(generateKey(handler.sequenceId))
-////                .castOrThrow<RootSequencePack<DTO, DATA, ENTITY>, OperationsException>()
-////
-////          //  val emitter = serviceClass.requestEmitter()
-////           // emitter.dispatch<DTO, DATA, ENTITY, DTO, DATA, ENTITY, List<DATA>>(pack, handlerBlock, null)
-////        }
-//    }
-
-//    suspend fun <F_DTO: ModelDTO, FD : DataModel, FE: LongEntity> runSequence(
-//        sequenceId: SequenceID,
-//        childDtoClass: DTOClass<F_DTO, FD, FE>,
-//        handlerBlock : suspend RootSequenceHandler<DTO, DATA, ENTITY>.()-> Unit
-//    ): List<FD>{
-////        return withTransactionIfNone {
-////            val handler = createHandler(sequenceId)
-////            val serviceClass = getServiceClass()
-////            val pack = serviceClass.getSequencePack(generateKey(handler.sequenceId))
-////                .castOrThrow<RootSequencePack<DTO, DATA, ENTITY>, OperationsException>()
-////            val emitter = serviceClass.requestEmitter()
-////            emitter.dispatch<DTO, DATA, ENTITY, F_DTO, FD, FE, List<FD>>(pack, handlerBlock, childDtoClass)
-////        }
-//    }
 
 }
 

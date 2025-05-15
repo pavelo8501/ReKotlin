@@ -19,7 +19,6 @@ class RootExecutionProvider<DTO, DATA, ENTITY>(
     override val providerName: String
         get() = dtoClass.qualifiedName
 
-
     private suspend fun createDto(entity: ENTITY):CommonDTO<DTO, DATA, ENTITY>{
         val dto = dtoClass.config.dtoFactory.createDto()
         dto.dtoPropertyBinder.update(entity.containerize(UpdateMode.ENTITY_TO_MODEL, null, true))
@@ -107,4 +106,10 @@ class RootExecutionProvider<DTO, DATA, ENTITY>(
         }
         return result
     }
+}
+
+fun <DTO, DATA, ENTITY> RootDTO<DTO, DATA, ENTITY>.createExecutionProvider()
+: RootExecutionProvider<DTO, DATA, ENTITY>
+    where  DTO  : ModelDTO , DATA : DataModel, ENTITY: LongEntity{
+   return RootExecutionProvider(this)
 }

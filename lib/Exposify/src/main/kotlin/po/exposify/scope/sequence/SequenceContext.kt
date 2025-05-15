@@ -8,6 +8,7 @@ import po.exposify.dto.components.SimpleQuery
 import po.exposify.dto.interfaces.ExecutionContext
 import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.extensions.checkDataListNotEmpty
 import po.exposify.scope.sequence.classes.SequenceHandlerBase
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.subTask
@@ -23,21 +24,18 @@ class SequenceContext<DTO, DATA, ENTITY>(
     override val name: String  get() = "SequenceContext"
 
     private var latestSingleResult : ResultSingle<DTO,DATA, ENTITY> = ResultSingle(sequenceHandler.dtoBase)
-    internal val lastResultProvider : ()-> ResultSingle<DTO, DATA, ENTITY> = {
-        latestSingleResult
-    }
 
-    internal var onResultUpdated : ((ResultList<DTO, DATA, ENTITY>)-> Unit)?  = null
+   // internal var onResultUpdated : ((ResultList<DTO, DATA, ENTITY>)-> Unit)?  = null
 
-    internal fun submitLatestResult(result :  ResultList<DTO, DATA, ENTITY>):ResultList<DTO, DATA, ENTITY>{
+    private fun submitLatestResult(result :  ResultList<DTO, DATA, ENTITY>):ResultList<DTO, DATA, ENTITY>{
        sequenceHandler.provideFinalResult(result)
-       onResultUpdated?.invoke(result)
+      // onResultUpdated?.invoke(result)
        return result
     }
-    internal fun submitLatestResult(result :  ResultSingle<DTO, DATA, ENTITY>): ResultSingle<DTO, DATA, ENTITY>{
+    private fun submitLatestResult(result :  ResultSingle<DTO, DATA, ENTITY>): ResultSingle<DTO, DATA, ENTITY>{
         latestSingleResult = result
-        sequenceHandler.provideFinalResult(ResultList<DTO, DATA, ENTITY>(sequenceHandler.dtoBase).appendDto(result))
-        onResultUpdated?.invoke(sequenceHandler.finalResult)
+        sequenceHandler.provideFinalResult(ResultList(sequenceHandler.dtoBase).appendDto(result))
+       // onResultUpdated?.invoke(sequenceHandler.finalResult)
         return result
     }
 
@@ -67,6 +65,7 @@ class SequenceContext<DTO, DATA, ENTITY>(
 
     suspend fun update(dataModels: List<DATA>):ResultList<DTO, DATA, ENTITY>
     = subTask("Update(List)", qualifiedName) { handler ->
+        checkDataListNotEmpty(dataModels)
         val result = executionContext.update(dataModels)
         submitLatestResult(result)
     }.resultOrException()
