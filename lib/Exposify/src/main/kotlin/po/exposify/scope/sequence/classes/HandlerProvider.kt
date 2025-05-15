@@ -6,7 +6,6 @@ import po.exposify.dto.DTOBase
 import po.exposify.dto.DTOClass
 import po.exposify.dto.RootDTO
 import po.exposify.dto.components.ResultList
-import po.exposify.dto.components.ResultSingle
 import po.exposify.dto.components.SwitchQuery
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.DataModel
@@ -104,7 +103,9 @@ class SwitchHandlerProvider<DTO, D, E, F_DTO, FD, FE>(
         switchLambdaParameter = block
     }
 
-    internal fun createHandler(switchQueryProvider:  ()-> SwitchQuery<F_DTO, FD, FE>):ClassSequenceHandler<DTO, D, E,  F_DTO, FD, FE> {
+    internal fun createHandler(
+        switchQueryProvider:  ()-> SwitchQuery<F_DTO, FD, FE>
+    ):ClassSequenceHandler<DTO, D, E,  F_DTO, FD, FE> {
         this.switchQueryProviderParameter = switchQueryProvider
         return ClassSequenceHandler(this, dtoClass, cardinality, name)
     }

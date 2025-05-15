@@ -43,6 +43,10 @@ class WhereQuery<T> (
         return this
     }
 
+    fun <V> equalsTo(column: Column<V> , value: V): WhereQuery<T> {
+        addCondition(column eq value)
+        return this
+    }
 
     fun <V> equalsTo(column: T.() -> Column<V>, value: V): WhereQuery<T> {
         addCondition(table.column() eq value)

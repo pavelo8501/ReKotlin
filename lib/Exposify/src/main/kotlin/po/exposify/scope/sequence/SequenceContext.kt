@@ -25,17 +25,13 @@ class SequenceContext<DTO, DATA, ENTITY>(
 
     private var latestSingleResult : ResultSingle<DTO,DATA, ENTITY> = ResultSingle(sequenceHandler.dtoBase)
 
-   // internal var onResultUpdated : ((ResultList<DTO, DATA, ENTITY>)-> Unit)?  = null
-
     private fun submitLatestResult(result :  ResultList<DTO, DATA, ENTITY>):ResultList<DTO, DATA, ENTITY>{
        sequenceHandler.provideFinalResult(result)
-      // onResultUpdated?.invoke(result)
        return result
     }
     private fun submitLatestResult(result :  ResultSingle<DTO, DATA, ENTITY>): ResultSingle<DTO, DATA, ENTITY>{
         latestSingleResult = result
         sequenceHandler.provideFinalResult(ResultList(sequenceHandler.dtoBase).appendDto(result))
-       // onResultUpdated?.invoke(sequenceHandler.finalResult)
         return result
     }
 

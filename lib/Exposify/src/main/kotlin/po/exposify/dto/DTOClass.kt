@@ -9,6 +9,7 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.DTORegistryItem
 import po.exposify.dao.classes.ExposifyEntityClass
 import po.exposify.dto.components.SwitchQuery
+import po.exposify.dto.components.WhereQuery
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.castOrOperationsEx
@@ -149,5 +150,8 @@ sealed class DTOBase<DTO, DATA, ENTITY>(): ClassDTO, TasksManaged, Identifiable
         }
     }
 
+    fun whereQuery(): WhereQuery<IdTable<Long>> {
+      return  WhereQuery(config.entityModel.sourceTable)
+    }
 
 }

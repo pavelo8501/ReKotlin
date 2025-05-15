@@ -19,6 +19,7 @@ suspend fun <DTO: ModelDTO, D: DataModel, E : LongEntity> runSequence(
 
     val newHandler = handlerDelegate.createHandler()
     configBuilder.invoke(newHandler.handlerConfig)
+
     val emitter = newHandler.dtoRoot.getServiceClass().requestEmitter()
     return emitter.dispatchRoot(newHandler)
 }
@@ -32,6 +33,7 @@ suspend fun <DTO: ModelDTO, D: DataModel, E : LongEntity, F_DTO: ModelDTO, FD : 
 
     val classHandler = handlerDelegate.createHandler(switchQueryProvider)
     configBuilder.invoke(classHandler.handlerConfig)
+    classHandler.handlerConfig.rootHandler.handlerConfig.registerSwitchHandler(handlerDelegate.name, classHandler)
     val emitter = classHandler.handlerConfig.rootHandler.dtoRoot.getServiceClass().requestEmitter()
     return emitter.dispatchChild(classHandler)
 }
@@ -57,5 +59,5 @@ fun <DTO, D, E, F_DTO, FD, FE>  RootHandlerConfig<DTO, D, E>.usingSwitch(
 {
     val newSwitchHandler = switchHandlerProvider.createHandler(switchQueryProvider)
     configBuilder.invoke(newSwitchHandler.handlerConfig)
-    registerSubHandler(switchHandlerProvider.name, newSwitchHandler)
+    registerSwitchHandler(switchHandlerProvider.name, newSwitchHandler)
 }

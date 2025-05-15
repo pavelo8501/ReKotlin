@@ -23,7 +23,6 @@ data class User(
 ): DataModel, AuthenticationPrincipal{
 
     override var userGroupId: Long = 0L
-
     var created: LocalDateTime  = UserDTO.nowTime()
     var updated: LocalDateTime = UserDTO.nowTime()
 

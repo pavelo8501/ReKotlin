@@ -39,7 +39,7 @@ class CoroutineEmitter(
             session.sessionContext.newTask("Sequence launch(dispatchChild)", "CoroutineEmitter") {
                 newSuspendedTransaction(Dispatchers.IO) {
                     classHandler.handlerConfig.rootHandler.launch(session)
-                    classHandler.launch(session)
+                    classHandler.finalResult
                 }
             }.resultOrException()
         }

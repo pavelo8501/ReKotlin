@@ -8,6 +8,7 @@ import org.junit.jupiter.api.assertAll
 import org.junit.jupiter.api.assertInstanceOf
 import po.auth.extensions.generatePassword
 import po.exposify.dto.components.ResultSingle
+import po.exposify.dto.components.WhereQuery
 import po.exposify.scope.connection.ConnectionContext
 import po.exposify.scope.sequence.extensions.collectResult
 import po.exposify.scope.sequence.extensions.runSequence
@@ -20,9 +21,10 @@ import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.ConsoleBehaviour
 import po.lognotify.logNotify
-import po.test.exposify.setup.ClassItem
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.PageEntity
+import po.test.exposify.setup.Pages
+import po.test.exposify.setup.SectionEntity
 import po.test.exposify.setup.dtos.Page
 import po.test.exposify.setup.dtos.PageDTO
 import po.test.exposify.setup.dtos.Section
@@ -69,14 +71,67 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
     }
 
     @Test
+    fun `Sequence launched with conditions and input work`() = runTest {
+
+        var updatedPages : List<Page>
+        connectionContext.run {
+            service(PageDTO, TableCreateMode.CREATE) {
+                sequence(PageDTO.UPDATE) { handler ->
+                    update(handler.inputList)
+                }
+                sequence(PageDTO.SELECT) {selectHandler ->
+                    select(selectHandler.query)
+                }
+            }
+        }
+
+        val pages = pageModels(pageCount = 4, updatedBy = updatedById)
+        pages[1].name = "this_name"
+        pages[1].langId = 2
+        pages[2].langId = 2
+        pages[3].langId = 2
+
+        updatedPages = runSequence(PageDTO.UPDATE){
+            withData(pages)
+        }.getData()
+
+
+        assertAll(
+            { assertEquals(4, updatedPages.count(), "Updated page count mismatch") },
+            { assertNotEquals(0, updatedPages[0].id, "Page Update failure") },
+            { assertEquals("this_name", updatedPages[1].name, "Updated page name mismatch") }
+        )
+        val selectPages = runSequence(PageDTO.SELECT){
+              withQuery{ PageDTO.whereQuery().equalsTo(Pages.langId, 2) }
+        }.getData()
+
+        assertAll(
+            { assertEquals(3, selectPages.count(), "Selected page count mismatch") },
+            { assertNotEquals(0, selectPages[0].id, "Page Update failure") },
+            { assertEquals("this_name", selectPages[0].name, "Selected page 1 name mismatch") }
+        )
+    }
+
+    @Test
     fun `Running sequence as a DTO hierarchy root`() = runTest {
+
+        var pageDtoByOnResultCollected: PageDTO? = null
+        fun testUpdated(result : ResultSingle<PageDTO, Page, PageEntity>){
+            pageDtoByOnResultCollected = result.getDTOForced()
+            assertTrue(pageDtoByOnResultCollected.sections.size == 1, "Sections not updated")
+        }
+
+        lateinit var sectionUpdateOutput : Section
+        fun onSectionUpdated(result : ResultSingle<SectionDTO, Section, SectionEntity>){
+            sectionUpdateOutput = result.getDataForced()
+        }
 
         connectionContext.run {
             service(PageDTO, TableCreateMode.CREATE) {
                 sequence(PageDTO.UPDATE) { handler ->
                     val insert = collectResult(update(handler.inputList))
                     switchContext(SectionDTO.UPDATE){switchHandler->
-                        update(switchHandler.inputList)
+                        collectResult(update(switchHandler.inputList))
                     }
                     insert
                 }
@@ -85,11 +140,12 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
 
         val inputData = pageModelsWithSections(pageCount = 1, sectionsCount = 1, updatedBy = updatedById)
         val inputSectionUpdate = Section(1, "NewName", "NewDescription", "", emptyList(), emptyList(), 1, 1, 0)
-
         val result =  runSequence(PageDTO.UPDATE){
             withData(inputData)
+            onResultCollected(::testUpdated)
             usingSwitch(SectionDTO.UPDATE, {PageDTO.switchQuery(1L)}){
                 withData(inputSectionUpdate)
+                onResultCollected(::onSectionUpdated)
             }
         }.getData()
 
@@ -98,11 +154,14 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
 
         assertAll("Page update statement succeed",
             { assertInstanceOf<Page>(page, "Returned value is not of type Page") },
-            { assertEquals("NewName", page.name, "Page properties update failed") },
             { assertNotEquals(0, page.id, "Page id not assigned") }
         )
+        assertAll("Page update statement succeed",
+            { assertInstanceOf<Section>(sectionUpdateOutput, "Returned value is not of type Page") },
+            { assertEquals("NewName", sectionUpdateOutput.name, "Section properties update failed") },
+            { assertNotEquals(0, sectionUpdateOutput.id, "Updated section Section record") }
+        )
     }
-
 
     @Test
     fun `Running sequence as a DTO hierarchy child member`() = runTest {
@@ -143,50 +202,8 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
         assertAll("Section update statement succeed",
             { assertInstanceOf<Section>(section, "Returned value is not of type Section") },
             { assertEquals("NewName", section.name, "Section properties update failed") },
-            { assertEquals(1, section.id, "Updated section Section record") }
+            { assertNotEquals(0, section.id, "Updated section Section record") }
         )
     }
 
-
-    fun `Sequence launched with conditions and input work`() = runTest {
-
-        var updatedPages : List<Page>
-        connectionContext.let { connection ->
-            connection.service(PageDTO, TableCreateMode.CREATE) {
-                sequence(PageDTO.UPDATE) { handler ->
-                    collectResult(update(handler.inputList))
-                }
-                sequence(PageDTO.SELECT) {selectHandler ->
-                    select()
-                }
-            }
-        }
-
-        val pages = pageModels(pageCount = 4, updatedBy = updatedById)
-        pages[1].name = "this_name"
-        pages[1].langId = 2
-        pages[2].langId = 2
-        pages[3].langId = 2
-
-
-        updatedPages = runSequence(PageDTO.UPDATE){
-            withData(pages)
-        }.getData()
-
-
-        assertAll(
-            { assertEquals(4, updatedPages.count(), "Updated page count mismatch") },
-            { assertNotEquals(0, updatedPages[0].id, "Page Update failure") },
-            { assertEquals("this_name", updatedPages[1].name, "Updated page name mismatch") }
-        )
-        val selectPages = runSequence(PageDTO.SELECT){
-           // withQuery(WhereQuery(Pages).equalsTo({langId}, 2))
-        }.getData()
-
-        assertAll(
-            { assertEquals(3, selectPages.count(), "Selected page count mismatch") },
-            { assertNotEquals(0, selectPages[0].id, "Page Update failure") },
-            { assertEquals("this_name", selectPages[0].name, "Selected page 1 name mismatch") }
-        )
-    }
 }

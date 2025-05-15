@@ -14,7 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import po.lognotify.TasksManaged
-import po.lognotify.extensions.startTaskAsync
+import po.lognotify.extensions.newTaskAsync
 import po.misc.types.getOrThrow
 import po.restwraptor.scope.ConfigContext
 import po.restwraptor.scope.CoreContext
@@ -23,7 +23,6 @@ import po.restwraptor.exceptions.ConfigurationException
 import po.restwraptor.exceptions.ExceptionCodes
 import po.restwraptor.interfaces.WraptorHandler
 import po.restwraptor.models.configuration.ApiConfig
-import po.restwraptor.models.configuration.AuthConfig
 import po.restwraptor.models.configuration.WraptorConfig
 import po.restwraptor.models.info.WraptorStatus
 import po.restwraptor.models.server.WraptorRoute
@@ -99,7 +98,7 @@ class RestWrapTor(
     private val serviceScope = CoroutineScope(Dispatchers.IO + CoroutineName("WrapTor service"))
 
     private fun engineStarted(engine: ApplicationEngine){
-        startTaskAsync("EngineStarted", personalName){
+        newTaskAsync("EngineStarted", personalName){
             engine.resolvedConnectors().forEach {
                 connectors.add("${it.type}|${it.host}:${it.port}")
             }
@@ -171,7 +170,7 @@ class RestWrapTor(
 
     private fun setupConfig(app : Application) {
 
-        startTaskAsync("Configuration", "RestWrapTor"){handler->
+        newTaskAsync("Configuration", "RestWrapTor"){handler->
             _application = app
             hasCoreContext  = CoreContext(app, this)
 
