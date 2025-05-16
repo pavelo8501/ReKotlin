@@ -7,7 +7,6 @@ import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.exposify.dto.RootDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.components.property_binder.bindings.SyncedBinding
 import po.exposify.dto.components.property_binder.delegates.binding
 import po.test.exposify.setup.SectionEntity
 import po.test.exposify.setup.UserEntity

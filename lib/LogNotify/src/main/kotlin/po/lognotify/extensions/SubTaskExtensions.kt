@@ -19,16 +19,3 @@ suspend  fun <T, R> T.subTask(
        return rootTaskResult
     }
 }
-
-//suspend  fun <T, R> T.withLastTask(
-//    block: suspend  T.(TaskHandler<R>)-> R
-//):R? {
-//    val lastTask  = TasksManaged.continueWithLastTask<R>()
-//    block.invoke(this, lastTask.taskHandler)
-//    return lastTask.taskResult.resultOrNull()
-//}
-
-fun lastTaskHandler():TaskHandler<*> {
-    val lastTaskHandler  = TasksManaged.getLastTaskHandler()
-    return lastTaskHandler
-}

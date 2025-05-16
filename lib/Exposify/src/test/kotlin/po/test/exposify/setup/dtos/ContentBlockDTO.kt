@@ -7,8 +7,6 @@ import kotlinx.serialization.builtins.ListSerializer
 import po.exposify.dto.DTOClass
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.components.property_binder.bindings.SerializedBinding
-import po.exposify.dto.components.property_binder.bindings.SyncedBinding
 import po.exposify.dto.components.property_binder.delegates.binding
 import po.exposify.dto.components.property_binder.delegates.parent2IdReference
 import po.exposify.dto.components.property_binder.delegates.serializedBinding

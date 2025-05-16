@@ -14,7 +14,7 @@ import po.exposify.dto.components.DAOService
 import po.exposify.dto.components.DataModelContainer
 import po.exposify.dto.components.property_binder.DTOPropertyBinder
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.dto.models.DTOTracker
+import po.exposify.dto.components.tracker.DTOTracker
 import po.exposify.dao.classes.ExposifyEntityClass
 import po.exposify.dto.models.DTORegistryItem
 import po.lognotify.TasksManaged
@@ -83,7 +83,7 @@ import kotlin.reflect.KProperty
         internal lateinit var dtoPropertyBinder: DTOPropertyBinder<DTO, DATA, ENTITY>
 
         override lateinit var dataContainer: DataModelContainer<*, *>
-        override lateinit var dtoTracker: DTOTracker<*, *>
+        override lateinit var tracker: DTOTracker<*, *>
         override var id: Long = 0L
     }
 

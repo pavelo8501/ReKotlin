@@ -98,9 +98,6 @@ class TestSessionsContext : DatabaseTest()  {
             }.getData()
         }
 
-
-
-
        // assertNotNull(sessionOnStart, "Session not in the registry")
         assertNotNull(coroutineInfo, "Coroutine info not available on sequence start")
         assertEquals(session.coroutineName, coroutineInfo.name, "Session's coroutine name do not match current")

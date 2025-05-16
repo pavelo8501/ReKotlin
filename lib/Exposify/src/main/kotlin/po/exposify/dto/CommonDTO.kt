@@ -5,7 +5,6 @@ import po.exposify.dto.components.DAOService
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.common.classes.MapBuilder
 import po.exposify.dto.components.DTOConfig
-import po.exposify.common.classes.repoBuilder
 import po.exposify.dto.components.DTOFactory
 import po.exposify.dto.components.DataModelContainer
 import po.exposify.dto.components.MultipleRepository
@@ -20,7 +19,7 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.dto.enums.DTOInitStatus
 import po.exposify.dto.models.DTORegistryItem
-import po.exposify.dto.models.DTOTracker
+import po.exposify.dto.components.tracker.DTOTracker
 import po.exposify.exceptions.OperationsException
 import po.exposify.extensions.castOrOperationsEx
 import po.misc.collections.CompositeKey
@@ -78,8 +77,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     val repositories: MutableMap<CompositeKey<DTOClass<*,*,*>, Cardinality>, RepositoryBase<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>>
         = mutableMapOf()
 
-    override val dtoTracker: DTOTracker<DTO, DATA> by lazy { DTOTracker(this) }
-
+    override val tracker: DTOTracker<DTO, DATA> by lazy { DTOTracker(this) }
 
     private fun dataModelContainerUpdated(model : DATA){
         dataModel = model

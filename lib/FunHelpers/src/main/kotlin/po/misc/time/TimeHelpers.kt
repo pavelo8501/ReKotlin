@@ -5,6 +5,6 @@ fun <T:MeasuredContext> T.start():T{
     return this
 }
 
-fun <T:MeasuredContext> T.stop(): ExecutionTimeStamp{
-   return executionTimeStamp.stopTimer()
+fun <T:MeasuredContext> T.stop(id: String? = null): ExecutionTimeStamp{
+   return executionTimeStamp.stopTimer(id)
 }

@@ -8,7 +8,6 @@ import po.exposify.dao.classes.JSONBType
 import po.exposify.dto.DTOClass
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.components.property_binder.bindings.SerializedBinding
 import po.exposify.dto.interfaces.ModelDTO
 import po.misc.types.getKType
 import kotlin.reflect.KMutableProperty1
@@ -88,18 +87,21 @@ fun <DTO, DATA,  ENTITY, F_DTO,  FD,  FE>  CommonDTO<DTO, DATA, ENTITY>.parentRe
     return container
 }
 
-inline fun <DTO, D, E, reified R>  CommonDTO<DTO, D, E>.binding(
-    dataProperty:KMutableProperty1<D, R>,
-    entityProperty :KMutableProperty1<E, R>
-): PropertyDelegate<DTO, D, E, R>
+inline fun <DTO, D, E, reified V: Any>  CommonDTO<DTO, D, E>.binding(
+    dataProperty:KMutableProperty1<D, V>,
+    entityProperty :KMutableProperty1<E, V>
+): PropertyDelegate<DTO, D, E, V>
         where  DTO: ModelDTO, D:DataModel, E : LongEntity
 {
     val propertyDelegate = PropertyDelegate(this, dataProperty, entityProperty)
+    if(tracker.config.observeProperties){
+        propertyDelegate.subscribeUpdates(tracker::propertyUpdated)
+    }
     dtoPropertyBinder.setBinding(propertyDelegate)
     return propertyDelegate
 }
 
-fun <DTO, D, E, S, V>  CommonDTO<DTO, D, E>.serializedBinding(
+fun <DTO, D, E, S, V: Any>  CommonDTO<DTO, D, E>.serializedBinding(
     dataProperty:KMutableProperty1<D, V>,
     entityProperty:KMutableProperty1<E, V>,
     serializableClass:  JSONBType<S>
@@ -107,6 +109,9 @@ fun <DTO, D, E, S, V>  CommonDTO<DTO, D, E>.serializedBinding(
     where DTO: ModelDTO, D: DataModel, E: LongEntity, S: Any
 {
     val serializedDelegate = SerializedDelegate(this, dataProperty, entityProperty, serializableClass.listSerializer)
+    if(tracker.config.observeProperties){
+        serializedDelegate.subscribeUpdates(tracker::propertyUpdated)
+    }
     dtoPropertyBinder.setBinding(serializedDelegate)
     dtoFactory.setSerializableType(dataProperty.name, serializableClass.serializer)
     return serializedDelegate

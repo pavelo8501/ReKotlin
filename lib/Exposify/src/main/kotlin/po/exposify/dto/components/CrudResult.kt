@@ -4,36 +4,15 @@ import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
+import po.exposify.dto.DTOClass
+import po.exposify.dto.components.tracker.CrudOperation
+import po.exposify.dto.components.tracker.addTrackerResult
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.OperationsException
 import po.exposify.extensions.getOrOperationsEx
 import po.exposify.scope.sequence.SequenceContext
+import po.lognotify.classes.task.TaskHandler
 import po.misc.types.castListOrThrow
-
-
-fun <DTO, D, E>  DTOBase<DTO, D, E>.createResultList(
-    initial: List<CommonDTO<DTO, D, E>>? = null
-): ResultList<DTO, D, E> where  DTO: ModelDTO, D : DataModel, E : LongEntity{
-    return ResultList(this, initial)
-}
-
-fun <DTO, D, E>  DTOBase<DTO, D, E>.createSingleResult(initial : CommonDTO<DTO, D, E>? = null): ResultSingle<DTO, D, E>
-where  DTO: ModelDTO, D : DataModel, E : LongEntity{
-    return ResultSingle(this, initial)
-}
-
-fun <DTO, D, E>  ResultSingle<DTO, D, E>.toResultList(): ResultList<DTO, D, E>
-where  DTO: ModelDTO, D : DataModel, E : LongEntity{
-    return ResultList(this.dtoClass).appendDto(this)
-}
-
-fun <DTO, D, E>  ResultList<DTO, D, E>.toResultSingle(): ResultSingle<DTO, D, E>
-where  DTO: ModelDTO, D : DataModel, E : LongEntity{
-    val dtoList = this.getAsCommonDTO()
-    return  ResultSingle(this.dataClass, dtoList.firstOrNull())
-}
-
-
 
 
 class ResultList<DTO, DATA, ENTITY>(
@@ -86,7 +65,6 @@ class ResultSingle<DTO, DATA, ENTITY>(
     private var rootDTO: CommonDTO<DTO, DATA, ENTITY>? = null
 ) where DTO : ModelDTO, DATA: DataModel, ENTITY : LongEntity {
 
-
     internal fun appendDto(dto: CommonDTO<DTO, DATA, ENTITY>): ResultSingle<DTO, DATA, ENTITY> {
         rootDTO = dto
         return this
@@ -119,6 +97,45 @@ class ResultSingle<DTO, DATA, ENTITY>(
         @Suppress("UNCHECKED_CAST")
         return rootDTO as DTO
     }
+}
 
 
+fun <DTO, D, E>  DTOBase<DTO, D, E>.createResultList(
+    initial: List<CommonDTO<DTO, D, E>>? = null
+): ResultList<DTO, D, E> where  DTO: ModelDTO, D : DataModel, E : LongEntity{
+    return ResultList(this, initial)
+}
+
+context(dtoClass: DTOBase<DTO, D, E>)
+fun <DTO, D, E>  List<CommonDTO<DTO, D, E>>.createResultList(operation : CrudOperation): ResultList<DTO, D, E>
+        where  DTO: ModelDTO, D : DataModel, E : LongEntity{
+            this.forEach {
+                it.addTrackerResult(operation)
+            }
+   return ResultList(dtoClass, this)
+}
+
+
+fun <DTO, D, E>  DTOBase<DTO, D, E>.createSingleResult(initial : CommonDTO<DTO, D, E>? = null): ResultSingle<DTO, D, E>
+        where  DTO: ModelDTO, D : DataModel, E : LongEntity{
+    return ResultSingle(this, initial)
+}
+
+context(dtoClass: DTOBase<DTO, D, E>)
+fun <DTO, D, E>  CommonDTO<DTO, D, E>.createSingleResult(operation : CrudOperation): ResultSingle<DTO, D, E>
+        where  DTO: ModelDTO, D : DataModel, E : LongEntity{
+            this.addTrackerResult(operation)
+    return ResultSingle(dtoClass, this)
+}
+
+
+fun <DTO, D, E>  ResultSingle<DTO, D, E>.toResultList(): ResultList<DTO, D, E>
+        where  DTO: ModelDTO, D : DataModel, E : LongEntity{
+    return ResultList(this.dtoClass).appendDto(this)
+}
+
+fun <DTO, D, E>  ResultList<DTO, D, E>.toResultSingle(): ResultSingle<DTO, D, E>
+        where  DTO: ModelDTO, D : DataModel, E : LongEntity{
+    val dtoList = this.getAsCommonDTO()
+    return  ResultSingle(this.dataClass, dtoList.firstOrNull())
 }

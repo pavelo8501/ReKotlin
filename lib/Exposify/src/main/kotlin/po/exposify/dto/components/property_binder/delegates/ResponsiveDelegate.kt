@@ -5,29 +5,27 @@ import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.proFErty_binder.EntityUpdateContainer
 import po.exposify.dto.components.property_binder.enums.UpdateMode
+import po.exposify.dto.components.property_binder.interfaces.ObservableData
+import po.exposify.dto.components.property_binder.interfaces.UpdateParams
+import po.exposify.dto.interfaces.ComponentType
 import po.exposify.dto.interfaces.DataModel
+import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
 import kotlin.Any
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty
 
-
-
-sealed class ResponsiveDelegate<DTO, D, E, V>(
+sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
     protected val dto: CommonDTO<DTO, D, E>,
     protected val dataProperty:KMutableProperty1<D, V>,
     protected val entityProperty:KMutableProperty1<E, V>,
-): ReadWriteProperty<DTO, V>
+): ReadWriteProperty<DTO, V>, IdentifiableComponent
       where DTO: ModelDTO, D: DataModel, E: LongEntity
 {
 
-    data class UpdateParams<DTO : ModelDTO, D: DataModel, E: LongEntity, V>(
-        val name: String,
-        val dto: CommonDTO<DTO, D, E>,
-        val oldValue: V?,
-        val newValue: V
-    )
+    abstract override val qualifiedName: String
+    override val type: ComponentType = ComponentType.ResponsiveDelegate
 
     private var initName: String? = null
     var name: String
@@ -46,13 +44,19 @@ sealed class ResponsiveDelegate<DTO, D, E, V>(
 
     var lastValue : V? = null
 
+    var valueUpdated : Boolean = false
+    protected var onValueChanged: ((ObservableData)-> Unit)? = null
+    fun subscribeUpdates(valueChanged: (ObservableData)-> Unit){
+        onValueChanged = valueChanged
+    }
+
     abstract fun update(dataModel:D)
     abstract fun update(container: EntityUpdateContainer<E, *,*,*>)
 
     protected fun onValueSet(value : V){
         if(lastValue != value){
             valueUpdated = true
-            onValueChanged?.invoke(UpdateParams(name, dto, lastValue, value))
+            onValueChanged?.invoke(UpdateParams(name, dto, lastValue, value, this))
             lastValue = value
         }
     }
@@ -62,8 +66,6 @@ sealed class ResponsiveDelegate<DTO, D, E, V>(
         return dataProperty.get(dto.dataModel)
     }
 
-    var valueUpdated : Boolean = false
-    var onValueChanged: ((UpdateParams<DTO, D, E, V>)-> Unit)? = null
     override fun setValue(thisRef: DTO, property: KProperty<*>, value: V) {
         name = property.name
         onValueSet(value)
@@ -71,7 +73,7 @@ sealed class ResponsiveDelegate<DTO, D, E, V>(
 }
 
 
-class SerializedDelegate<DTO, D, E, S, V>(
+class SerializedDelegate<DTO, D, E, S, V: Any> internal constructor(
     dto: CommonDTO<DTO, D, E>,
     dataProperty:KMutableProperty1<D, V>,
     entityProperty:KMutableProperty1<E, V>,
@@ -79,6 +81,9 @@ class SerializedDelegate<DTO, D, E, S, V>(
 ) : ResponsiveDelegate<DTO, D, E, V>(dto, dataProperty, entityProperty)
         where DTO: ModelDTO, D: DataModel, E: LongEntity, S: Any
 {
+
+    override val qualifiedName: String
+        get() = "SerializedDelegate[${dto.dtoName}]"
 
     override fun update(dataModel: D) {
         val value = dataProperty.get(dataModel)
@@ -98,13 +103,17 @@ class SerializedDelegate<DTO, D, E, S, V>(
     }
 }
 
-class PropertyDelegate<DTO, D, E, V>(
+
+class PropertyDelegate<DTO, D, E, V: Any> @PublishedApi internal constructor (
     dto: CommonDTO<DTO, D, E>,
     dataProperty:KMutableProperty1<D, V>,
     entityProperty :KMutableProperty1<E, V>
 ): ResponsiveDelegate <DTO, D, E, V>(dto, dataProperty, entityProperty)
         where DTO: ModelDTO, D: DataModel, E: LongEntity
 {
+
+    override val qualifiedName: String
+        get() = "PropertyDelegate[${dto.dtoName}]"
 
     override fun update(dataModel:D){
         val value = dataProperty.get(dataModel)

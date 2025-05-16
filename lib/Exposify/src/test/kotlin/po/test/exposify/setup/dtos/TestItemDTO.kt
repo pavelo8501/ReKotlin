@@ -3,7 +3,6 @@ package po.test.exposify.setup.dtos
 import kotlinx.serialization.Serializable
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.RootDTO
-import po.exposify.dto.components.property_binder.bindings.SyncedBinding
 import po.exposify.dto.components.property_binder.delegates.binding
 import po.exposify.dto.interfaces.DataModel
 import po.test.exposify.setup.TestsItemEntity

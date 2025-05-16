@@ -22,8 +22,8 @@ private fun sectionModel(
     parent : Page,
     name: String,
     updatedBy: Long,
-    sectionClasses : List<ClassItem> = listOf(ClassItem(1,"class_1"), ClassItem(2,"class_2")),
-    metaTags : List<MetaTag> = listOf(MetaTag(1,"key", "value"))
+    sectionClasses : List<ClassItem> = emptyList(),
+    metaTags : List<MetaTag> = emptyList()
 ): Section
 {
 
@@ -56,11 +56,19 @@ fun pageModels(pageCount: Int, updatedBy : Long): List<Page>{
 }
 
 
-fun pageModelsWithSections(pageCount: Int, sectionsCount: Int, updatedBy : Long): List<Page>{
+fun pageModelsWithSections(
+    pageCount: Int,
+    sectionsCount: Int,
+    updatedBy : Long,
+    classes: List<ClassItem>? = null,
+    metaTags: List<MetaTag>? = null
+): List<Page>{
+
     val pages =  pageModels(pageCount, updatedBy)
     pages.forEach {
         for(index  in 1 .. sectionsCount){
-            it.sections.add(sectionModel(it,index.toString(), updatedBy))
+            val section =  sectionModel(it,index.toString(), updatedBy, classes?:emptyList() , metaTags?:emptyList())
+            it.sections.add(section)
         }
     }
     return  pages

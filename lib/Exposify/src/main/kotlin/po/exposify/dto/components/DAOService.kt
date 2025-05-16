@@ -13,6 +13,7 @@ import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.DTORegistryItem
 import po.exposify.dao.classes.ExposifyEntityClass
+import po.exposify.dto.interfaces.ComponentType
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.getOrOperationsEx
 import po.lognotify.TasksManaged
@@ -30,9 +31,7 @@ class DAOService<DTO, DATA, ENTITY>(
 
     @LogOnFault()
     override val qualifiedName: String = "DAOService[${registryRecord.dtoName}]"
-
-    @LogOnFault()
-    override val name: String = "DAOService"
+    override val type: ComponentType = ComponentType.DaoService
 
     private fun combineConditions(conditions: Set<Op<Boolean>>): Op<Boolean> {
         return conditions.reduceOrNull { acc, op -> acc and op } ?: Op.TRUE

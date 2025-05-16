@@ -6,6 +6,7 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.components.ResultList
 import po.exposify.dto.components.ResultSingle
 import po.exposify.dto.components.SimpleQuery
+import po.exposify.dto.interfaces.ComponentType
 import po.exposify.dto.interfaces.ExecutionContext
 import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
@@ -24,8 +25,8 @@ class SequenceContext<DTO, DATA, ENTITY>(
 ): TasksManaged, IdentifiableComponent where  DTO : ModelDTO, DATA : DataModel, ENTITY: LongEntity
 {
 
-    override val qualifiedName: String get() = "SequenceContext[${executionContext.providerName}]"
-    override val name: String  get() = "SequenceContext"
+    override val qualifiedName: String get() = "SequenceContext[${executionContext.qualifiedName}]"
+    override val type: ComponentType = ComponentType.SequenceContext
     private var latestSingleResult : ResultSingle<DTO,DATA, ENTITY> = ResultSingle(sequenceHandler.dtoBase)
 
     private var firstRun = true

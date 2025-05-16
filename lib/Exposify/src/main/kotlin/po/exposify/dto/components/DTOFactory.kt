@@ -9,6 +9,9 @@ import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.common.classes.ClassBlueprint
 import po.exposify.dto.CommonDTO
+import po.exposify.dto.components.tracker.CrudOperation
+import po.exposify.dto.components.tracker.addTrackerInfo
+import po.exposify.dto.interfaces.ComponentType
 import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.OperationsException
@@ -42,7 +45,7 @@ class DTOFactory<DTO, DATA, ENTITY>(
 
 
     override val qualifiedName: String = "DTOFactory[${hostingConfig.registryRecord.entityName}]"
-    override val name: String = "DTOFactory"
+    override val type: ComponentType = ComponentType.Factory
 
     private val personalName = "DTOFactory[${dtoKClass.simpleName}]"
 
@@ -78,6 +81,7 @@ class DTOFactory<DTO, DATA, ENTITY>(
 
     private suspend fun dtoPostCreation(dto : CommonDTO<DTO, DATA, ENTITY>)
         = subTask("dtoPostCreation"){handler->
+        dto.addTrackerInfo(CrudOperation.Initialize, this)
         dto.initialize()
         postCreationRoutines.values.forEach {
             handler.info("Executing ${it.name}")

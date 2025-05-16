@@ -18,6 +18,7 @@ import po.exposify.scope.service.ServiceClass
 import po.exposify.scope.service.ServiceContext
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.newTaskAsync
+import po.lognotify.lastTaskHandler
 import po.misc.collections.Identifiable
 abstract class RootDTO<DTO, DATA, ENTITY>()
     : DTOBase<DTO, DATA, ENTITY>(),  TasksManaged,  ClassDTO
