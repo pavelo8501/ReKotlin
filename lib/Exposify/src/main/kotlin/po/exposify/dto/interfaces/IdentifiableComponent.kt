@@ -13,6 +13,7 @@ enum class ComponentType{
     MultipleRepository,
     RootExecutionProvider,
     SequenceContext,
-    ResponsiveDelegate
+    ResponsiveDelegate,
+    RelationBindingDelegate
 
 }

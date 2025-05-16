@@ -107,7 +107,7 @@ class MultipleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
             if(dataModel.id == 0L){
                 newChildDto.addTrackerInfo(CrudOperation.Insert, this)
                 childDaoService.saveWithParent(newChildDto, hostingDTO){containerized->
-                    binding.attachForeignEntity(containerized)
+                    binding.attachToForeignEntity(containerized)
                 }
             }else{
                 newChildDto.addTrackerInfo(CrudOperation.Update, this)
@@ -201,7 +201,7 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, C_DTO,  CD, CE>(
         childClass.config.daoService.saveWithParent(newChildDto, hostingDTO) { containerized ->
             when (this) {
                 is SingleRepository -> binding.attachForeignEntity(containerized)
-                is MultipleRepository -> binding.attachForeignEntity(containerized)
+                is MultipleRepository -> binding.attachToForeignEntity(containerized)
             }
         }
         store(newChildDto)

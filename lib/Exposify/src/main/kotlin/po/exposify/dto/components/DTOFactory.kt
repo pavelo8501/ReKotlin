@@ -9,7 +9,9 @@ import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.common.classes.ClassBlueprint
 import po.exposify.dto.CommonDTO
+import po.exposify.dto.DTOBase
 import po.exposify.dto.components.tracker.CrudOperation
+import po.exposify.dto.components.tracker.DTOTracker
 import po.exposify.dto.components.tracker.addTrackerInfo
 import po.exposify.dto.interfaces.ComponentType
 import po.exposify.dto.interfaces.IdentifiableComponent
@@ -38,16 +40,19 @@ internal class PostCreationRoutine<DTO, DATA, ENTITY, R>(
 }
 
 class DTOFactory<DTO, DATA, ENTITY>(
+    private val dtoClass: DTOBase<DTO, DATA, ENTITY>,
     private val dtoKClass : KClass<DTO>,
     private val dataModelClass : KClass<DATA>,
-    private val hostingConfig: DTOConfig<DTO, DATA, ENTITY>,
 ): IdentifiableComponent,  TasksManaged where DTO : ModelDTO, DATA: DataModel, ENTITY: LongEntity {
 
+    private val config: DTOConfig<DTO, DATA, ENTITY>
+        get() = dtoClass.config
+    override val qualifiedName: String by lazy {
+        "DTOFactory[${config.registryRecord.dtoName}]"
+    }
 
-    override val qualifiedName: String = "DTOFactory[${hostingConfig.registryRecord.entityName}]"
     override val type: ComponentType = ComponentType.Factory
 
-    private val personalName = "DTOFactory[${dtoKClass.simpleName}]"
 
     internal val dataBlueprint : ClassBlueprint<DATA> =  ClassBlueprint(dataModelClass)
     private val dtoBlueprint : ClassBlueprint<DTO> = ClassBlueprint(dtoKClass)
@@ -65,28 +70,17 @@ class DTOFactory<DTO, DATA, ENTITY>(
         dataModelBuilderFn = dataModelBuilder
     }
 
-    internal var postCreationRoutines : MutableMap<String, PostCreationRoutine<DTO, DATA, ENTITY, *>> = mutableMapOf()
-    suspend fun <R> setPostCreationRoutine(
-        name : String,
-        block: suspend CommonDTO<DTO, DATA, ENTITY>.()-> R
-    ): Deferred<R>{
-        val routine = PostCreationRoutine(name, block)
-        postCreationRoutines.put(name,  routine)
-        return routine.resultDeferred
-    }
-
-    fun unsetPostCreationRoutine(){
-        postCreationRoutines.clear()
-    }
-
     private suspend fun dtoPostCreation(dto : CommonDTO<DTO, DATA, ENTITY>)
         = subTask("dtoPostCreation"){handler->
-        dto.addTrackerInfo(CrudOperation.Initialize, this)
-        dto.initialize()
-        postCreationRoutines.values.forEach {
-            handler.info("Executing ${it.name}")
-            it.invokeRoutineBlock(dto)
+
+        if(config.trackerConfigModified){
+            dto.initialize(DTOTracker(dto, config.trackerConfig))
+            dto.addTrackerInfo(CrudOperation.Initialize, this)
+        }else{
+            dto.addTrackerInfo(CrudOperation.Initialize, this)
+            dto.initialize()
         }
+
     }
 
     /**
@@ -144,7 +138,7 @@ class DTOFactory<DTO, DATA, ENTITY>(
      * @return DTOFunctions<DATA, ENTITY> or null
      * */
     suspend fun createDto(withDataModel : DATA? = null): CommonDTO<DTO, DATA, ENTITY> =
-        subTask("Create DTO", personalName){handler->
+        subTask("Create DTO", qualifiedName){handler->
         val dataModel = withDataModel?: createDataModel()
         dtoBlueprint.setExternalParamLookupFn { param ->
             when (param.name) {

@@ -19,24 +19,26 @@ class DTOTracker<DTO: ModelDTO, DATA: DataModel>(
     val name : String get() = config.name?:dto.dtoName
 
     override val executionTimeStamp: ExecutionTimeStamp = ExecutionTimeStamp(dto.dtoName, dto.id.toString())
-    private var lastTrackRecord : TrackerRecord = TrackerRecord(dto.id, CrudOperation.Create, name)
+    private var activeRecord : TrackerRecord = TrackerRecord(dto.id, CrudOperation.Create, name)
     private val trackRecords : MutableList<TrackerRecord> = mutableListOf()
     val records : List<TrackerRecord> get() = trackRecords.toList()
 
     private fun finalizeLast(){
-        lastTrackRecord.finalize(dto,stop(dto.id.toString()))
+        activeRecord.finalize(dto,stop(dto.id.toString()))
     }
 
     fun propertyUpdated(update: ObservableData){
-        lastTrackRecord.addAction(update)
+        activeRecord.addAction(update)
     }
-
+    fun relationPropertyUpdated(update: ObservableData){
+        activeRecord.addAction(update)
+    }
     fun addTrackInfo(operation:CrudOperation, module: IdentifiableComponent? = null):DTOTracker<DTO, DATA>{
-        if(lastTrackRecord.crudOperation == CrudOperation.Initialize){
+        if(activeRecord.crudOperation == CrudOperation.Initialize){
             addTrackResult(CrudOperation.Initialize)
         }
-        lastTrackRecord = TrackerRecord(dto.id, operation, module?.qualifiedName?:"")
-        trackRecords.add(lastTrackRecord)
+        activeRecord = TrackerRecord(dto.id, operation, module?.qualifiedName?:"")
+        trackRecords.add(activeRecord)
         return start()
     }
 
@@ -73,6 +75,29 @@ fun <DTO: ModelDTO, D: DataModel> CommonDTO<DTO, D, *>.addTrackerResult(
     operation:CrudOperation? = null
 ){
     return tracker.addTrackResult(operation)
+}
+
+fun CommonDTO<*, *, *>.collectTrackers(): List<DTOTracker<*, *>> {
+    val result = mutableListOf<DTOTracker<*, *>>()
+    collectTrackersInto(result)
+    return result
+}
+
+@Suppress("UNCHECKED_CAST")
+private fun CommonDTO<*, *, *>.collectTrackersInto(result: MutableList<DTOTracker<*, *>>) {
+    val trackerField = this::class.members.find { it.name == "tracker" }
+    val tracker = trackerField?.call(this) as? DTOTracker<*, *>
+    if (tracker != null) {
+        result.add(tracker)
+    }
+
+    this::class.members.forEach { member ->
+        val value = runCatching { member.call(this) }.getOrNull()
+        when (value) {
+            is CommonDTO<*, *, *> -> value.collectTrackersInto(result)
+            is List<*> -> value.filterIsInstance<CommonDTO<*, *, *>>().forEach { it.collectTrackersInto(result) }
+        }
+    }
 }
 
 

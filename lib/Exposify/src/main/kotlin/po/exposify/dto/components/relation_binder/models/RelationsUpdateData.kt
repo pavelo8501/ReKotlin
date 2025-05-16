@@ -1,24 +1,16 @@
-package po.exposify.dto.components.property_binder.interfaces
+package po.exposify.dto.components.relation_binder.models
 
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.CommonDTO
+import po.exposify.dto.components.property_binder.interfaces.ObservableData
 import po.exposify.dto.interfaces.ComponentType
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
 
-
-interface ObservableData : IdentifiableComponent{
-    val id: Long
-    val methodName: String
-    val propertyName: String
-    val oldValue: Any?
-    val newValue: Any
-}
-
-data class UpdateParams<DTO : ModelDTO, D: DataModel, E: LongEntity, V: Any>(
+data class RelationsUpdateParams<DTO : ModelDTO, D: DataModel, E: LongEntity, V: Any>(
     val dto: CommonDTO<DTO, D, E>,
-    override val methodName : String,
+    override val methodName: String,
     override val propertyName: String,
     override val oldValue: V?,
     override val newValue: V,

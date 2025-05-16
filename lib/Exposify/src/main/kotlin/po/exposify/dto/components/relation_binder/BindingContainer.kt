@@ -86,11 +86,11 @@ class MultipleChildContainer<DTO, DATA, ENTITY, F_DTO, FD, FE>(
     fun saveDataModels(dataModels:List<FD>)
             = bindingDelegate.saveDataModels(dataModels)
 
-    fun attachForeignEntity(container: EntityUpdateContainer<FE, DTO, DATA, ENTITY>): Unit
-        = bindingDelegate.attachForeignEntity(container)
+    fun attachToForeignEntity(container: EntityUpdateContainer<FE, DTO, DATA, ENTITY>): Unit
+        = bindingDelegate.attachToForeignEntity(container)
 
-    suspend fun processChildEntities(entity: ENTITY, processFn: suspend (List<FE>)-> List<CommonDTO<F_DTO, FD, FE>>)
-     =   bindingDelegate.processForeignEntities(entity, processFn)
+//    suspend fun processChildEntities(entity: ENTITY, processFn: suspend (List<FE>)-> List<CommonDTO<F_DTO, FD, FE>>)
+//     =   bindingDelegate.processForeignEntities(entity, processFn)
 
     fun getForeignEntities(entity: ENTITY):List<FE>
         = bindingDelegate.getForeignEntities(entity)

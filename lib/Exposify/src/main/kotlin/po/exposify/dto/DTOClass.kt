@@ -20,27 +20,21 @@ import po.lognotify.TasksManaged
 import po.lognotify.extensions.newTaskAsync
 import po.lognotify.lastTaskHandler
 import po.misc.collections.Identifiable
+
+
 abstract class RootDTO<DTO, DATA, ENTITY>()
     : DTOBase<DTO, DATA, ENTITY>(),  TasksManaged,  ClassDTO
         where DTO: ModelDTO, DATA: DataModel, ENTITY: LongEntity
 {
 
-    private var serviceContextOwned: ServiceContext<DTO, DATA, ENTITY>? = null
-    val  serviceContext : ServiceContext<DTO, DATA, ENTITY> get()= serviceContextOwned.getOrInitEx("ServiceContext uninitialized",
-        ExceptionCode.ABNORMAL_STATE)
-
-    override val qualifiedName: String get() {
-        return if(initialConfig != null){
-            config.registryRecord.rootDTOQualifiedName
-        }else{
-            "RootDTO[Uninitialized]"
-        }
-    }
+    override val qualifiedName: String
+        get() = configParameter?.registryRecord?.dtoClassQualifiedName?:"RootDTO[Uninitialized]"
 
     suspend fun initialization() {
         if (!initialized) setup()
     }
 
+    private var serviceContextOwned: ServiceContext<DTO, DATA, ENTITY>? = null
     fun setContextOwned(contextOwned: ServiceContext<DTO, DATA, ENTITY>){
         serviceContextOwned = contextOwned
     }
@@ -51,14 +45,15 @@ abstract class RootDTO<DTO, DATA, ENTITY>()
 
     inline fun <reified COMMON,  reified RD, reified RE> configuration(
         entityModel: ExposifyEntityClass<RE>,
-        noinline block: suspend DTOConfig<COMMON, RD, RE>.() -> Unit
+        noinline block: suspend DTOConfig<DTO, DATA, ENTITY>.() -> Unit
     ): Unit where COMMON: ModelDTO, RD: DataModel, RE: LongEntity
             = newTaskAsync("DTO Configuration", qualifiedName) {
-
         val newConfiguration = DTOConfig(DTORegistryItem(RD::class, RE::class, COMMON::class), entityModel, this.castOrInitEx())
-        newConfiguration.block()
-        initialConfig = newConfiguration.castOrInitEx()
+        configParameter = newConfiguration.castOrInitEx()
+        block.invoke(config)
         initialized = true
+        println("Configuration Fn call $qualifiedName")
+        println(config.trackerConfig.observeRelationBindings)
     }.resultOrException()
 
     fun switchQuery(id: Long): SwitchQuery<DTO, DATA, ENTITY> {
@@ -71,13 +66,8 @@ abstract class DTOClass<DTO, DATA, ENTITY>(
     val  parentClass: DTOBase<*, *, *>,
 ): DTOBase<DTO, DATA, ENTITY>(), ClassDTO, TasksManaged where DTO: ModelDTO, DATA : DataModel, ENTITY: LongEntity {
 
-    override val qualifiedName: String get() {
-        return if(initialConfig != null){
-            config.registryRecord.dtoClassQualifiedName
-        }else{
-            "DTOClass[Uninitialized]"
-        }
-    }
+    override val qualifiedName: String
+        get() = configParameter?.registryRecord?.dtoClassQualifiedName?:"DTOClass[Uninitialized]"
 
     suspend fun initialization() {
         if (!initialized){
@@ -87,26 +77,29 @@ abstract class DTOClass<DTO, DATA, ENTITY>(
 
     inline fun <reified COMMON,  reified RD, reified RE> configuration(
         entityModel: ExposifyEntityClass<RE>,
-        noinline block: suspend DTOConfig<COMMON, RD, RE>.() -> Unit
+        noinline block: suspend DTOConfig<DTO, DATA, ENTITY>.() -> Unit
     ): Unit where COMMON : ModelDTO,  RE : LongEntity, RD : DataModel
             = newTaskAsync("DTO Configuration", qualifiedName){
-
         val newConfiguration = DTOConfig(DTORegistryItem(RD::class, RE::class, COMMON::class), entityModel, this.castOrInitEx())
-        newConfiguration.block()
-        initialConfig =  newConfiguration.castOrInitEx()
+        configParameter = newConfiguration.castOrInitEx()
+        block.invoke(config)
         initialized = true
+        println(config.trackerConfig.observeRelationBindings)
+        println("Configuration Fn call $qualifiedName")
     }.resultOrException()
 
 }
 
 
 sealed class DTOBase<DTO, DATA, ENTITY>(): ClassDTO, TasksManaged, Identifiable
-        where DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity{
+        where DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity
+{
 
     @PublishedApi
-    internal var initialConfig: DTOConfig<DTO, DATA, ENTITY>? = null
-    val config: DTOConfig<DTO, DATA, ENTITY>
-        get() = initialConfig.getOrInitEx("DTOConfig uninitialized", ExceptionCode.LAZY_NOT_INITIALIZED)
+    internal var configParameter: DTOConfig<DTO, DATA, ENTITY>? = null
+    val config:  DTOConfig<DTO, DATA, ENTITY>
+        get() = configParameter.getOrInitEx("DTOConfig uninitialized", ExceptionCode.LAZY_NOT_INITIALIZED)
+
 
     override var initialized: Boolean = false
     abstract override val qualifiedName: String

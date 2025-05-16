@@ -58,7 +58,7 @@ class SectionDTO(
     var classList:  List<ClassItem> by serializedBinding(Section::classList, SectionEntity::classList, ClassItem)
     var metaTags :  List<MetaTag> by serializedBinding(Section::metaTags, SectionEntity::metaTags, MetaTag)
 
-    val updatedBy : Long by foreign2IdReference(Section::updatedBy, SectionEntity::updatedBy, UserEntity)
+    val updatedBy : Long by foreign2IdReference(Section::updatedBy, SectionEntity::updatedBy, UserDTO)
     val pageId : Long by parent2IdReference(Section::pageId, SectionEntity::page)
 
     val contentBlocks : List<ContentBlockDTO> by oneToManyOf(
@@ -73,7 +73,11 @@ class SectionDTO(
 
         override suspend fun setup() {
             configuration<SectionDTO, Section, SectionEntity>(SectionEntity) {
-
+                applyTrackerConfig {
+                    name = "AlternativeSection"
+                    observeProperties = true
+                    observeRelationBindings = true
+                }
             }
         }
     }

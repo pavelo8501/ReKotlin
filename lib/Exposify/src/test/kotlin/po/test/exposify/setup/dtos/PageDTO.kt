@@ -37,7 +37,7 @@ class PageDTO(
     var langId : Int by binding(Page::langId, PageEntity::langId)
     var updated : LocalDateTime by binding(Page::updated, PageEntity::updated)
 
-    val updatedById : Long by foreign2IdReference(Page::updatedById, PageEntity::updatedBy, UserEntity)
+    val updatedById : Long by foreign2IdReference(Page::updatedById, PageEntity::updatedBy, UserDTO)
     val sections : List<SectionDTO> by oneToManyOf(SectionDTO, Page::sections, PageEntity::sections, SectionEntity::page)
 
     companion object: RootDTO<PageDTO, Page, PageEntity>(){
@@ -45,9 +45,14 @@ class PageDTO(
         val UPDATE by RootHandlerProvider(this)
         val SELECT by RootHandlerProvider(this)
 
+
         override suspend fun setup() {
             configuration<PageDTO, Page, PageEntity>(PageEntity){
-
+                applyTrackerConfig {
+                    name = "FunkyName"
+                    observeProperties = true
+                    observeRelationBindings = true
+                }
                 hierarchyMembers(SectionDTO, ContentBlockDTO)
                 useDataModelBuilder { Page() }
             }

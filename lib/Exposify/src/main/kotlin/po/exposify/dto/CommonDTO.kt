@@ -40,7 +40,6 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
 
     abstract override var dataModel: DATA
 
-
     override val daoService: DAOService<DTO, DATA, ENTITY>  get() = dtoClassConfig.daoService
     override val dtoFactory: DTOFactory<DTO, DATA, ENTITY>  get() = dtoClassConfig.dtoFactory
 
@@ -71,13 +70,18 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     override var id : Long = 0
         get(){return dataContainer.dataModel.id}
 
-//    internal var repositories
-//        : Map<CompositeKey<DTOBase<*, *, *>, Cardinality>, RepositoryBase<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>> = emptyMap()
-
     val repositories: MutableMap<CompositeKey<DTOClass<*,*,*>, Cardinality>, RepositoryBase<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>>
         = mutableMapOf()
 
-    override val tracker: DTOTracker<DTO, DATA> by lazy { DTOTracker(this) }
+    internal var trackerParameter: DTOTracker<DTO, DATA>? = null
+    override val tracker: DTOTracker<DTO, DATA>
+        get(){
+           return trackerParameter?: DTOTracker(this)
+        }
+
+    init {
+        println("Initializing Common DTO")
+    }
 
     private fun dataModelContainerUpdated(model : DATA){
         dataModel = model
@@ -152,22 +156,6 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
             .mapNotNull{ it.safeCast<RepositoryBase<DTO, DATA, ENTITY, F_DTO, FD, FE>>() }
     }
 
-//    internal fun <F_DTO: ModelDTO, FD: DataModel, FE: LongEntity> executionProvider(
-//        childClass: DTOClass<F_DTO, FD, FE>
-//    ) :ClassExecutionProvider<DTO, DATA, ENTITY, F_DTO, FD, FE>{
-//        return ClassExecutionProvider(this, childClass)
-//    }
-
-
-//    suspend fun <P_DTO: ModelDTO, PD: DataModel, PE: LongEntity>updateBindingsBeforeInserted(
-//        container: EntityUpdateContainer<ENTITY, P_DTO, PD, PE>,
-//    ){
-////        if(container.updateMode == UpdateMode.ENTITY_TO_MODEL || container.updateMode == UpdateMode.ENTITY_TO_MODEL_FORCED){
-////            updateBindingsAfterInserted(container)
-////        }
-//        dtoPropertyBinder.update(container)
-//        initStatus = DTOInitStatus.PARTIAL_WITH_DATA
-//    }
 
     suspend fun <P_DTO: ModelDTO, PD: DataModel, PE: LongEntity>updateBindingsAfterInserted(
         container: EntityUpdateContainer<ENTITY, P_DTO, PD, PE>
@@ -192,7 +180,12 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
 //        return this
 //    }
 
-   internal fun initialize() { selfRegistration(registryRecord) }
+   internal fun initialize(tracker: DTOTracker<DTO, DATA>? = null) {
+       selfRegistration(registryRecord)
+       if(tracker != null){
+           trackerParameter = tracker
+       }
+   }
 
     companion object{
         val dtoRegistry: MapBuilder<String, DTORegistryItem<*,*,*>> = MapBuilder<String, DTORegistryItem<*,*,*>>()

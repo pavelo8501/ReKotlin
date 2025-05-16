@@ -58,6 +58,7 @@ class TestDTOTracker: DatabaseTest(), TasksManaged {
             }
         }
         val tracker = assertNotNull(pageDTO?.tracker, "Tracker is missing on DTO")
+        val sectionDtoTracker = assertNotNull(pageDTO?.sections[0]?.tracker)
         assertTrue(tracker.records.isNotEmpty() ,"No records present")
 
     }
