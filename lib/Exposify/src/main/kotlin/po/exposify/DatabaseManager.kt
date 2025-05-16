@@ -53,12 +53,11 @@ object DatabaseManager {
         }
     }
 
-    fun openConnectionSync(
+    fun openConnectionAsync(
         connectionInfo : ConnectionInfo,
         sessionManager: ManagedSession,
-        context: (ConnectionContext.()->Unit)? = null
+        context: (suspend  ConnectionContext.()->Unit)
     ): ConnectionContext? {
-
        return newTaskAsync("openConnectionSync", "DatabaseManager") {
             connectionInfo.hikariDataSource = provideDataSource(connectionInfo)
             val newConnection = Database.connect(connectionInfo.hikariDataSource!!)
@@ -69,8 +68,7 @@ object DatabaseManager {
                 connectionInfo.connections.add(it)
             }
             addConnection(connectionClass)
-
-            context?.invoke(connectionContext)
+            context.invoke(connectionContext)
             connectionUpdated?.invoke("Connected", true)
             connectionContext
         }.resultOrException()

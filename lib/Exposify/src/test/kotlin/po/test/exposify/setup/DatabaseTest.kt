@@ -9,6 +9,7 @@ import po.exposify.DatabaseManager
 import po.exposify.scope.connection.models.ConnectionInfo
 import po.exposify.exceptions.InitException
 import po.exposify.scope.connection.ConnectionContext
+import po.exposify.scope.connection.models.ConnectionSettings
 import po.misc.types.getOrThrow
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -21,15 +22,15 @@ abstract class DatabaseTest {
         val postgres = PostgreSQLContainer("postgres:15")
     }
 
-    fun startTestConnection(muteContainer: Boolean = true): ConnectionContext {
+    fun startTestConnection(muteContainer: Boolean = true, context: (suspend  ConnectionContext.()->Unit)){
         System.setProperty("org.testcontainers.reuse.enable", "true")
 
         if (muteContainer) {
             System.setProperty("org.slf4j.simpleLogger.log.org.testcontainers", "ERROR")
         }
         postgres.start()
-        val connection = try {
-            DatabaseManager.openConnectionSync(
+        try {
+            DatabaseManager.openConnectionAsync(
                 ConnectionInfo(
                     jdbcUrl = postgres.jdbcUrl,
                     dbName = postgres.databaseName,
@@ -37,11 +38,11 @@ abstract class DatabaseTest {
                     pwd = postgres.password,
                     driver = postgres.driverClassName
                 ),
-                sessionManager = AuthSessionManager
+                sessionManager = AuthSessionManager,
+                context
             ).getOrThrow<ConnectionContext, InitException>("Failed to open connection")
         } catch (th: Throwable) {
             throw th
         }
-        return connection
     }
 }

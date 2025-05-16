@@ -7,24 +7,30 @@ import po.auth.sessions.models.AuthorizedSession
 import po.exposify.dto.components.ResultList
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.interfaces.RunnableContext
 import po.exposify.scope.sequence.classes.ClassSequenceHandler
 import po.exposify.scope.sequence.classes.RootSequenceHandler
 import po.lognotify.extensions.launchProcess
 import po.lognotify.extensions.newTask
+import po.misc.exceptions.getCoroutineInfo
 
 
 class CoroutineEmitter(
     val name: String,
     val session : AuthorizedSession
 ){
-    suspend fun <DTO, D, E>dispatchRoot(rootDispatcher : RootSequenceHandler<DTO, D, E>): ResultList<DTO, D, E>
+    suspend fun <DTO, D, E>dispatchRoot(rootHandler : RootSequenceHandler<DTO, D, E>): ResultList<DTO, D, E>
             where DTO : ModelDTO,  D: DataModel, E: LongEntity
     {
         return session.launchProcess {
             session.sessionContext.newTask("Sequence launch(dispatchRoot)", "CoroutineEmitter") {
+               var result =  ResultList(rootHandler.dtoRoot)
                 newSuspendedTransaction(Dispatchers.IO) {
-                    rootDispatcher.launch(session)
+                    result = rootHandler.launch(session)
                 }
+                val runnableContext = RunnableContext.createRunInfo(coroutineContext[AuthorizedSession], getCoroutineInfo())
+                rootHandler.handlerConfig.onCompleteCallback?.invoke(runnableContext)
+                result
             }.resultOrException()
         }
     }
@@ -37,10 +43,14 @@ class CoroutineEmitter(
 
         return session.launchProcess {
             session.sessionContext.newTask("Sequence launch(dispatchChild)", "CoroutineEmitter") {
+                var result =  ResultList(classHandler.dtoClass)
                 newSuspendedTransaction(Dispatchers.IO) {
                     classHandler.handlerConfig.rootHandler.launch(session)
-                    classHandler.finalResult
+                    result = classHandler.finalResult
                 }
+                val runnableContext = RunnableContext.createRunInfo(coroutineContext[AuthorizedSession], getCoroutineInfo())
+                classHandler.handlerConfig.onCompleteCallback?.invoke(runnableContext)
+                result
             }.resultOrException()
         }
     }

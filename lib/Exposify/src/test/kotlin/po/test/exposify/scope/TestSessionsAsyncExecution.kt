@@ -12,6 +12,7 @@ import po.auth.AuthSessionManager
 import po.auth.authentication.authenticator.models.AuthenticationData
 import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.auth.extensions.generatePassword
+import po.auth.extensions.withSession2
 import po.auth.sessions.enumerators.SessionType
 import po.exposify.scope.sequence.extensions.runSequence
 import po.exposify.scope.sequence.extensions.sequence
@@ -19,7 +20,6 @@ import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.ConsoleBehaviour
 import po.lognotify.classes.notification.models.NotifyConfig
-import po.lognotify.extensions.launchProcess
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.dtos.PageDTO
 import po.test.exposify.setup.dtos.User
@@ -74,8 +74,7 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
             notifier.setNotifierConfig(NotifyConfig(console = ConsoleBehaviour.MuteInfo))
         }
 
-
-        startTestConnection().run {
+        startTestConnection{
             service(UserDTO, TableCreateMode.FORCE_RECREATE) {
                 authenticatedUser = update(user).getDataForced()
                 AuthSessionManager.authenticator.setAuthenticator(::validateUser)
@@ -84,14 +83,14 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
             service(PageDTO, TableCreateMode.CREATE) {
 
                 sequence(PageDTO.UPDATE) { handler->
-                 update(handler.inputList)
+                    update(handler.inputList)
                 }
                 sequence(PageDTO.SELECT) {handler->
                     select()
                 }
             }
-
         }
+
         AuthSessionManager.authenticator.authenticate("some_login", "password", authSession)
 
         assertAll(
@@ -108,18 +107,17 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
 
         runBlocking {
             launch {
-                authSession.launchProcess {
+                withSession2(authSession){
                     val inputData =
                         pageModelsWithSections(pageCount = 1000, sectionsCount = 10, authSession.principal!!.id)
 
                     runSequence(PageDTO.UPDATE){
                         withData(inputData)
                     }
-
                 }
             }
             launch {
-                anonSession.launchProcess {
+                withSession2(anonSession){
                     delay(200)
                     runSequence(PageDTO.SELECT){
 

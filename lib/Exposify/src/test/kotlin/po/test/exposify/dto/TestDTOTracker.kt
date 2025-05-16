@@ -21,12 +21,12 @@ class TestDTOTracker: DatabaseTest() {
             name = "name",
             email = "nomail@void.null"
         )
-        val connection = startTestConnection()
         var userDTO : UserDTO? = null
-        connection.service(UserDTO) {
-            userDTO = update(user).getDTO() as UserDTO
+        startTestConnection{
+            service(UserDTO) {
+                userDTO = update(user).getDTO() as UserDTO
+            }
         }
-
         assertNotNull(userDTO)
         val tracker = userDTO.dtoTracker
         tracker.printTrace()

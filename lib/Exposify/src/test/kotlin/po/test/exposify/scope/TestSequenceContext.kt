@@ -7,6 +7,7 @@ import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertAll
 import org.junit.jupiter.api.assertInstanceOf
 import po.auth.extensions.generatePassword
+import po.auth.extensions.withSession2
 import po.exposify.dto.components.ResultSingle
 import po.exposify.dto.components.WhereQuery
 import po.exposify.scope.connection.ConnectionContext
@@ -46,8 +47,6 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
         @JvmStatic
         var updatedById : Long = 0
 
-        @JvmStatic
-        lateinit var  connectionContext : ConnectionContext
     }
 
     @BeforeAll
@@ -64,17 +63,19 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
             name = "name",
             email = "nomail@void.null"
         )
-        connectionContext = startTestConnection()
-        connectionContext.service(UserDTO, TableCreateMode.FORCE_RECREATE) {
-            updatedById = update(user).getDataForced().id
+        startTestConnection{
+            service(UserDTO, TableCreateMode.FORCE_RECREATE) {
+                updatedById = update(user).getDataForced().id
+            }
         }
     }
 
     @Test
     fun `Sequence launched with conditions and input work`() = runTest {
 
-        var updatedPages : List<Page>
-        connectionContext.run {
+        var updatedPages : List<Page> = emptyList()
+
+        startTestConnection{
             service(PageDTO, TableCreateMode.CREATE) {
                 sequence(PageDTO.UPDATE) { handler ->
                     update(handler.inputList)
@@ -91,9 +92,12 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
         pages[2].langId = 2
         pages[3].langId = 2
 
-        updatedPages = runSequence(PageDTO.UPDATE){
-            withData(pages)
-        }.getData()
+        withSession2{
+            updatedPages = runSequence(PageDTO.UPDATE){
+                withData(pages)
+            }.getData()
+        }
+
 
 
         assertAll(
@@ -101,9 +105,14 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
             { assertNotEquals(0, updatedPages[0].id, "Page Update failure") },
             { assertEquals("this_name", updatedPages[1].name, "Updated page name mismatch") }
         )
-        val selectPages = runSequence(PageDTO.SELECT){
-              withQuery{ PageDTO.whereQuery().equalsTo(Pages.langId, 2) }
-        }.getData()
+
+        var selectPages : List<Page> = emptyList()
+        withSession2 {
+            selectPages = runSequence(PageDTO.SELECT){
+                withQuery{ PageDTO.whereQuery().equalsTo(Pages.langId, 2) }
+            }.getData()
+        }
+
 
         assertAll(
             { assertEquals(3, selectPages.count(), "Selected page count mismatch") },
@@ -125,8 +134,7 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
         fun onSectionUpdated(result : ResultSingle<SectionDTO, Section, SectionEntity>){
             sectionUpdateOutput = result.getDataForced()
         }
-
-        connectionContext.run {
+        startTestConnection{
             service(PageDTO, TableCreateMode.CREATE) {
                 sequence(PageDTO.UPDATE) { handler ->
                     val insert = collectResult(update(handler.inputList))
@@ -140,14 +148,18 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
 
         val inputData = pageModelsWithSections(pageCount = 1, sectionsCount = 1, updatedBy = updatedById)
         val inputSectionUpdate = Section(1, "NewName", "NewDescription", "", emptyList(), emptyList(), 1, 1, 0)
-        val result =  runSequence(PageDTO.UPDATE){
-            withData(inputData)
-            onResultCollected(::testUpdated)
-            usingSwitch(SectionDTO.UPDATE, {PageDTO.switchQuery(1L)}){
-                withData(inputSectionUpdate)
-                onResultCollected(::onSectionUpdated)
-            }
-        }.getData()
+
+        var result : List<Page> = emptyList()
+        withSession2 {
+            result =  runSequence(PageDTO.UPDATE){
+                withData(inputData)
+                onResultCollected(::testUpdated)
+                usingSwitch(SectionDTO.UPDATE, {PageDTO.switchQuery(1L)}){
+                    withData(inputSectionUpdate)
+                    onResultCollected(::onSectionUpdated)
+                }
+            }.getData()
+        }
 
         assertTrue(result.count() == 1, "Page update did not return value")
         val page = result.first()
@@ -172,7 +184,7 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
             assertTrue(pageDtoByOnResultCollected.sections.size == 1, "Sections not updated")
         }
 
-        connectionContext.run {
+        startTestConnection {
             service(PageDTO, TableCreateMode.CREATE){
                 sequence(PageDTO.UPDATE){ handler->
                     val insert = collectResult(update(handler.inputList))
@@ -186,14 +198,16 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
 
         val inputData = pageModelsWithSections(pageCount = 1, sectionsCount = 1, updatedBy = updatedById)
         val inputSectionUpdate = Section(1, "NewName", "NewDescription", "", emptyList(), emptyList(), 1, 1, 0)
-
-        val result =  runSequence(SectionDTO.UPDATE, {PageDTO.switchQuery(1L)} ){
-            withData(inputSectionUpdate)
-            usingRoot(PageDTO.UPDATE){
-                withData(inputData)
-                onResultCollected(::testUpdated)
-            }
-        }.getData()
+        var result : List<Section> = emptyList()
+        withSession2 {
+            result = runSequence(SectionDTO.UPDATE, { PageDTO.switchQuery(1L) }) {
+                withData(inputSectionUpdate)
+                usingRoot(PageDTO.UPDATE) {
+                    withData(inputData)
+                    onResultCollected(::testUpdated)
+                }
+            }.getData()
+        }
 
         assertNotNull(pageDtoByOnResultCollected)
         assertTrue(result.count() == 1, "Section update did not return value")

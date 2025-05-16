@@ -6,7 +6,9 @@ import po.auth.AuthSessionManager
 import po.auth.sessions.interfaces.SessionIdentified
 import po.auth.sessions.models.AuthorizedSession
 import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.coroutineContext
 
+internal class SessionIdentity(override val sessionID: String, override val remoteAddress: String): SessionIdentified
 
 suspend fun session(identifyData: SessionIdentified): AuthorizedSession
     = AuthSessionManager.authenticator.authorize(identifyData)
@@ -15,6 +17,25 @@ suspend fun withSession(
     session: AuthorizedSession,
     block: suspend CoroutineScope.() -> Unit
 ) = withContext(session.sessionContext, block)
+
+
+suspend fun withSession2(
+    session: AuthorizedSession,
+    block: suspend AuthorizedSession.() -> Unit
+){
+    block.invoke(session)
+}
+
+suspend fun <R> withSession2(
+    block: suspend AuthorizedSession.() -> R
+):R{
+    var currentSession = coroutineContext[AuthorizedSession]
+    if(currentSession == null){
+        currentSession = AuthSessionManager.getOrCreateSession(SessionIdentity("", "127.0.0.1"))
+    }
+   return block.invoke(currentSession)
+}
+
 
 
 suspend fun CoroutineScope.currentSession(): AuthorizedSession?{

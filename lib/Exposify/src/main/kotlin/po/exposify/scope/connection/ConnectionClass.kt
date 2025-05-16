@@ -5,6 +5,7 @@ import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.name
 import org.jetbrains.exposed.sql.transactions.transactionManager
 import po.auth.sessions.interfaces.ManagedSession
+import po.auth.sessions.models.AuthorizedSession
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.scope.connection.models.ConnectionInfo
 import po.exposify.dto.interfaces.ModelDTO
@@ -32,22 +33,8 @@ class ConnectionClass(
     val isConnectionOpen: Boolean
         get() { return connectionInfo.connection.transactionManager.currentOrNull()?.connection?.isClosed == false }
 
-    suspend fun <DTO: ModelDTO, DATA: DataModel, E: LongEntity> launchSequence(
-        pack: RootSequencePack<DTO, DATA, E>,
-    ) {
-        val session = sessionManager.getCurrentSession()
+    suspend fun requestEmitter(session: AuthorizedSession): CoroutineEmitter {
         val result = dispatchManager.enqueue(session.sessionID) {
-        val coroutineEmitter =   CoroutineEmitter("CoroutineEmitter", session)
-          //  coroutineEmitter.dispatch<DTO, DATA, R>( pack, session)
-        }
-        return result
-    }
-
-
-    suspend fun requestEmitter(): CoroutineEmitter {
-        val session = sessionManager.getCurrentSession()
-        val result = dispatchManager.enqueue(session.sessionID) {
-
             CoroutineEmitter("CoroutineEmitter${CoroutineInfo.createInfo(coroutineContext).name}", session)
         }
         return result

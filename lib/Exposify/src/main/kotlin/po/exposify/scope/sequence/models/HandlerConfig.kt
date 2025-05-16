@@ -8,6 +8,7 @@ import po.exposify.dto.components.SimpleQuery
 import po.exposify.dto.components.WhereQuery
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.interfaces.RunnableContext
 import po.exposify.exceptions.InitException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.getOrInitEx
@@ -70,6 +71,16 @@ sealed class HandlerConfigBase<DTO, D, E>() where DTO: ModelDTO, D: DataModel, E
 
     internal fun getSwitchHandler(name: String): ClassSequenceHandler<*,*,*, DTO, D, E>?{
         return switchHandlers[name]
+    }
+
+    internal var onStartCallback :  ((contextInfo : RunnableContext)->Unit)? = null
+    fun onStart(callback :  (contextInfo : RunnableContext)->Unit){
+        onStartCallback = callback
+    }
+
+    internal var onCompleteCallback : ((contextInfo : RunnableContext)->Unit)? = null
+    fun onComplete(callback :  (contextInfo : RunnableContext)->Unit){
+        onCompleteCallback = callback
     }
 
 }

@@ -29,15 +29,15 @@ class TestSelect : DatabaseTest() {
 
         val pages = pageModels(pageCount = 1, updatedBy = 1)
         var assignedUserId : Long = 0
-        startTestConnection().let {connection->
-            connection.service(UserDTO, TableCreateMode.FORCE_RECREATE) {
+        startTestConnection{
+            service(UserDTO, TableCreateMode.FORCE_RECREATE) {
                 val userData =  update(user).getDataForced()
                 assignedUserId = userData.id
                 assertEquals("some_login", userData.login, "User login mismatch after save")
                 assertNotEquals(0, assignedUserId, "User id assignment failure")
             }
 
-            connection.service(PageDTO, TableCreateMode.FORCE_RECREATE) {
+            service(PageDTO, TableCreateMode.FORCE_RECREATE) {
                 val pageData =  update(pages[0]).getDataForced()
                 val updatedById =  pageData.updatedById
 
@@ -52,9 +52,9 @@ class TestSelect : DatabaseTest() {
             pageCount = 1,
             updatedBy = 1)
 
-        startTestConnection().let {connection->
+        startTestConnection{
 
-            connection.service(PageDTO, TableCreateMode.FORCE_RECREATE) {
+            service(PageDTO, TableCreateMode.FORCE_RECREATE) {
                 val originalPages = pages[0]
                 val updatedPageDtos = update(pages)
                 val updatePagesData = updatedPageDtos.getData()
@@ -74,13 +74,13 @@ class TestSelect : DatabaseTest() {
             email = "nomail@void.null")
 
         var assignedUserId : Long = 0
-        startTestConnection()?.let {connection->
-            connection.service(UserDTO, TableCreateMode.CREATE) {
+        startTestConnection{
+            service(UserDTO, TableCreateMode.CREATE) {
                 val userData =  update(user).getDataForced()
                 assignedUserId = userData.id
             }
             val pages = pageModelsWithSections(pageCount = 1, sectionsCount = 2, updatedBy = assignedUserId)
-            connection.service(PageDTO.Companion, TableCreateMode.CREATE) {
+            service(PageDTO.Companion, TableCreateMode.CREATE) {
 
                 val originalPage = pages[0]
                 val originalSection = originalPage.sections[0]
@@ -139,15 +139,15 @@ class TestSelect : DatabaseTest() {
             email = "nomail@void.null")
 
         var assignedUserId : Long = 0
-        startTestConnection()?.let { connection ->
-            connection.service(UserDTO, TableCreateMode.CREATE) {
+        startTestConnection{
+            service(UserDTO, TableCreateMode.CREATE) {
                 val userData = update(user).getDataForced()
                 assignedUserId = userData.id
             }
             val pages = pageModelsWithSections(pageCount = 2, sectionsCount = 2, updatedBy = assignedUserId)
             pages[0].langId = 1
             pages[1].langId = 2
-            connection.service(PageDTO.Companion, TableCreateMode.CREATE) {
+            service(PageDTO.Companion, TableCreateMode.CREATE) {
                 truncate()
                 update(pages)
                 val selectedPages =  select(WhereQuery(Pages).equalsTo({ langId }, 1)).getData()

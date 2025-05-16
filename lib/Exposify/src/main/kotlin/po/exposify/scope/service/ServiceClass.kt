@@ -6,6 +6,7 @@ import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.exists
 import org.jetbrains.exposed.sql.transactions.experimental.suspendedTransactionAsync
+import po.auth.sessions.models.AuthorizedSession
 import po.exposify.dto.DTOBase
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.common.interfaces.AsClass
@@ -104,8 +105,7 @@ class ServiceClass<DTO, DATA, ENTITY>(
         sequences[key] = pack
     }
 
-    internal suspend fun requestEmitter(): CoroutineEmitter = connectionClass.requestEmitter()
-
+    internal suspend fun requestEmitter(session: AuthorizedSession): CoroutineEmitter = connectionClass.requestEmitter(session)
 
     internal fun getSequencePack(key: CompositeKey<RootDTO<*, *, *>,SequenceID>):SequencePack<*, *, *> {
         return sequences[key].getOrOperationsEx(
