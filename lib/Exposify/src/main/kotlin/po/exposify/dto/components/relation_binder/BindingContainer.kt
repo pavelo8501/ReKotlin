@@ -63,6 +63,10 @@ class SingleChildContainer<DTO, DATA, ENTITY, F_DTO, FD, FE>  (
     fun getForeignEntity(entity: ENTITY): FE
             = bindingDelegate.getForeignEntity(entity)
 
+    fun getDto(){
+        bindingDelegate.getEffectiveValue()
+    }
+
 }
 
 

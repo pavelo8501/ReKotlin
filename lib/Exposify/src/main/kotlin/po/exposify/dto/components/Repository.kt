@@ -11,8 +11,8 @@ import po.exposify.dto.components.proFErty_binder.containerize
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.components.relation_binder.BindingContainer
 import po.exposify.dto.components.tracker.CrudOperation
-import po.exposify.dto.components.tracker.addTrackerInfo
-import po.exposify.dto.components.tracker.addTrackerResult
+import po.exposify.dto.components.tracker.extensions.addTrackerInfo
+import po.exposify.dto.components.tracker.extensions.addTrackerResult
 import po.exposify.dto.interfaces.ComponentType
 import po.exposify.dto.interfaces.ExecutionContext
 import po.exposify.dto.interfaces.IdentifiableComponent
@@ -41,11 +41,8 @@ class SingleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
 
     internal var childDTO :  CommonDTO<C_DTO, CD, CE>? = null
 
-    fun getDTO(): CommonDTO<C_DTO, CD, CE>{
-        return childDTO
-            .getOrThrow<CommonDTO<C_DTO, CD, CE>, OperationsException>(
-                "Unable to get dto in $qualifiedName",
-                ExceptionCode.ABNORMAL_STATE.value)
+    fun getDTO(): CommonDTO<C_DTO, CD, CE> {
+        return childDTO.getOrOperationsEx()
     }
 
     override suspend fun loadHierarchyByModel() {

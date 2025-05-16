@@ -7,6 +7,7 @@ import po.exposify.dto.components.proFErty_binder.EntityUpdateContainer
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.components.property_binder.interfaces.ObservableData
 import po.exposify.dto.components.property_binder.interfaces.UpdateParams
+import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.interfaces.ComponentType
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.IdentifiableComponent
@@ -54,7 +55,7 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
     protected fun onValueSet(methodName: String,  value : V){
         if(lastValue != value){
             valueUpdated = true
-            onValueChanged?.invoke(UpdateParams(thisDto, methodName, propertyName, lastValue, value, this))
+            onValueChanged?.invoke(UpdateParams(thisDto, CrudOperation.Initialize,  methodName, propertyName, lastValue, value, this))
             lastValue = value
         }
     }

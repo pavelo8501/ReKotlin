@@ -10,6 +10,7 @@ import po.exposify.dto.components.SingleRepository
 import po.exposify.dto.components.proFErty_binder.EntityUpdateContainer
 import po.exposify.dto.components.property_binder.interfaces.ObservableData
 import po.exposify.dto.components.relation_binder.models.RelationsUpdateParams
+import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.interfaces.ComponentType
 import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
@@ -39,13 +40,12 @@ class OneToOneDelegate<DTO, DATA, ENTITY, C_DTO,  CD,  FE>(
     override var onValueChanged: ((ObservableData)-> Unit)? = null
 
     fun <V: Any> onValueUpdated(methodName: String, value: V){
-        val updateData =  RelationsUpdateParams(thisDto, methodName, propertyName, null, value, this)
+        val updateData =  RelationsUpdateParams(thisDto, crudOperation, methodName, propertyName, null, value, this)
         onValueChanged?.invoke(updateData)
     }
 
     override fun getEffectiveValue():CommonDTO<C_DTO, CD, FE>{
         val dto = singleRepository.getDTO()
-        onValueUpdated("getEffectiveValue", dto)
         return dto
     }
 
@@ -99,7 +99,7 @@ class OneToManyDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>(
 
 
     fun <V: Any> onValueUpdated(methodName: String, value: V){
-        val updateData =  RelationsUpdateParams(thisDto, methodName, propertyName, null, value, this)
+        val updateData =  RelationsUpdateParams(thisDto, crudOperation, methodName,  propertyName, null, value, this)
         onValueChanged?.invoke(updateData)
     }
 
@@ -152,6 +152,8 @@ sealed class RelationBindingDelegate<DTO, DATA, ENTITY, C_DTO, FD, FE, R>(
               C_DTO: ModelDTO,  FD: DataModel, FE : LongEntity
 {
 
+    var crudOperation : CrudOperation = CrudOperation.Update
+
     override val type: ComponentType = ComponentType.RelationBindingDelegate
     override val qualifiedName : String  get() = "$componentName[]"
     private var propertyNameParameter: String = dataPropertyName
@@ -165,8 +167,6 @@ sealed class RelationBindingDelegate<DTO, DATA, ENTITY, C_DTO, FD, FE, R>(
         dto
     }
 
-
-
     var valueUpdated : Boolean = false
     abstract var onValueChanged: ((ObservableData)-> Unit)?
     fun subscribeRelationUpdates(valueChanged: (ObservableData)-> Unit){
@@ -176,6 +176,7 @@ sealed class RelationBindingDelegate<DTO, DATA, ENTITY, C_DTO, FD, FE, R>(
     abstract fun getForeignEntity(id: Long):FE?
 
     abstract fun getEffectiveValue():R
+
     override fun getValue(thisRef: DTO, property: KProperty<*>): R{
         propertyNameParameter  = property.name
         return getEffectiveValue()

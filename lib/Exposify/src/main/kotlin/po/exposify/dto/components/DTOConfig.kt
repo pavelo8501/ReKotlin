@@ -25,7 +25,7 @@ class DTOConfig<DTO, DATA, ENTITY>(
     internal var trackerConfigModified : Boolean = false
     val trackerConfig : TrackerConfig = TrackerConfig()
 
-    suspend fun hierarchyMembers(vararg childDTO : DTOClass<*, *, *>){
+    suspend fun  hierarchyMembers(vararg childDTO : DTOClass<*, *, *>){
         childDTO.toList().forEach {
             relationBinder.addChildClass(it)
         }

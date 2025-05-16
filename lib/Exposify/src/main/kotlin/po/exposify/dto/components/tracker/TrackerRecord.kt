@@ -7,7 +7,7 @@ import po.misc.time.ExecutionTimeStamp
 
 data class TrackerRecord(
     override var id : Long,
-    val crudOperation : CrudOperation = CrudOperation.Create,
+    override val operation: CrudOperation = CrudOperation.Create,
     override val qualifiedName: String,
     override val type: ComponentType = ComponentType.Factory,
     override val methodName: String = "",

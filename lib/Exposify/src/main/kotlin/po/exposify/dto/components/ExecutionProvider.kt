@@ -7,8 +7,7 @@ import po.exposify.dto.RootDTO
 import po.exposify.dto.components.proFErty_binder.containerize
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.components.tracker.CrudOperation
-import po.exposify.dto.components.tracker.addTrackerInfo
-import po.exposify.dto.components.tracker.addTrackerResult
+import po.exposify.dto.components.tracker.extensions.addTrackerInfo
 import po.exposify.dto.interfaces.ComponentType
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ExecutionContext

@@ -4,11 +4,14 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import po.auth.extensions.generatePassword
+import po.exposify.dto.components.ResultSingle
 import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.ConsoleBehaviour
 import po.lognotify.logNotify
 import po.test.exposify.setup.DatabaseTest
+import po.test.exposify.setup.PageEntity
+import po.test.exposify.setup.dtos.Page
 import po.test.exposify.setup.dtos.PageDTO
 import po.test.exposify.setup.dtos.User
 import po.test.exposify.setup.dtos.UserDTO
@@ -45,7 +48,7 @@ class TestDTOTracker: DatabaseTest(), TasksManaged {
     @Test
     fun `Information updated and stored`() = runTest{
 
-        var pageDTO : PageDTO? = null
+        var updateResult : ResultSingle<PageDTO, Page, PageEntity>? = null
         val page = pagesSectionsContentBlocks(
             pageCount = 1,
             sectionsCount = 1,
@@ -54,13 +57,17 @@ class TestDTOTracker: DatabaseTest(), TasksManaged {
 
         startTestConnection{
             service(PageDTO) {
-                pageDTO = update(page).getDTO()
+                updateResult = update(page)
             }
         }
-        val tracker = assertNotNull(pageDTO?.tracker, "Tracker is missing on DTO")
-        val sectionDtoTracker = assertNotNull(pageDTO?.sections[0]?.tracker)
-        assertTrue(tracker.records.isNotEmpty() ,"No records present")
+        val pageDTOResult = assertNotNull(updateResult)
 
+        val tracker = assertNotNull(pageDTOResult.getDTO()?.tracker, "Tracker is missing on DTO")
+        assertTrue(tracker.records.isNotEmpty() ,"No records present")
+        val trackers =  pageDTOResult.getTrackerInfo()
+        assertTrue(trackers.records.isNotEmpty(), "Tracker returned empty list")
+        assertTrue(trackers.childTrackers.isNotEmpty(), "Tracker has no child records")
+        tracker.printTrace()
     }
 
 }

@@ -12,7 +12,7 @@ import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
 import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.components.tracker.DTOTracker
-import po.exposify.dto.components.tracker.addTrackerInfo
+import po.exposify.dto.components.tracker.extensions.addTrackerInfo
 import po.exposify.dto.interfaces.ComponentType
 import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
