@@ -4,7 +4,10 @@ import po.lognotify.classes.notification.enums.EventType
 import po.lognotify.enums.SeverityLevel
 import po.misc.exceptions.ManagedException
 
-class TaskResult<R : Any?>(internal val task: TaskSealedBase<R>){
+
+
+
+class TaskResult<R : Any?>(internal val task: TaskAsyncBase<R>){
 
     val taskName: String = task.key.taskName
     var executionTime: Float = 0f

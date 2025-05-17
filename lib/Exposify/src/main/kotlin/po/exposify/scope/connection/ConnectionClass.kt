@@ -6,23 +6,27 @@ import org.jetbrains.exposed.sql.name
 import org.jetbrains.exposed.sql.transactions.transactionManager
 import po.auth.sessions.interfaces.ManagedSession
 import po.auth.sessions.models.AuthorizedSession
+import po.exposify.DatabaseManager
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.scope.connection.models.ConnectionInfo
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.extensions.castOrOperationsEx
 import po.exposify.scope.connection.controls.CoroutineEmitter
 import po.exposify.scope.connection.controls.UserDispatchManager
 import po.exposify.scope.sequence.models.RootSequencePack
 import po.exposify.scope.service.ServiceClass
+import po.lognotify.TasksManaged
 import po.misc.exceptions.CoroutineInfo
 import kotlin.coroutines.coroutineContext
 
 class ConnectionClass(
+    private val databaseManager : DatabaseManager,
     val connectionInfo: ConnectionInfo,
     val connection: Database,
-    val sessionManager: ManagedSession
-) {
+): TasksManaged {
 
-    val name: String = "ConnectionClas|{${connection.name}"
+    val sourceName: String = connection.name
+    val name: String = "ConnectionClass[${sourceName}]"
 
     init {
         connectionInfo.connection
@@ -40,19 +44,21 @@ class ConnectionClass(
         return result
     }
 
+    fun connectionContext():ConnectionContext{
+      return  ConnectionContext(connection, this)
+    }
 
     var services: MutableMap<String, ServiceClass<*, *, *>>
             = mutableMapOf()
 
     fun addService(serviceClass : ServiceClass<*, *, *>){
-        services[serviceClass.personalName] = serviceClass
+        services[serviceClass.qualifiedName] = serviceClass
     }
     fun clearServices(){
         services.clear()
     }
 
-    fun getService(name: String): ServiceClass<*, *, *>?{
-        this.services.keys.firstOrNull{it == name}?.let { return services[it] }
-        return null
+    fun <DTO: ModelDTO, D: DataModel, E: LongEntity> getService(name: String): ServiceClass<DTO, D, E>?{
+       return services[name]?.castOrOperationsEx<ServiceClass<DTO, D, E>>()
     }
 }

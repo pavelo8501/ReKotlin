@@ -3,7 +3,7 @@ package po.test.lognotify.task
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
-import po.lognotify.extensions.startTask
+import po.lognotify.extensions.newTask
 import po.lognotify.extensions.subTask
 import po.misc.exceptions.HandlerType
 import kotlin.test.assertEquals
@@ -17,7 +17,7 @@ class TestTaskRunner {
         result
     }.resultOrException()
 
-    suspend fun rootTask(testScope : TestScope): String = startTask("task", testScope.coroutineContext){handler->
+    suspend fun rootTask(testScope : TestScope): String = newTask("task", testScope.coroutineContext){handler->
         handler.handleFailure(HandlerType.GENERIC){
             "result"
         }

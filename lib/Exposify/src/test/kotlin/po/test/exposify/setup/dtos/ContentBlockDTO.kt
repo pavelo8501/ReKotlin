@@ -18,7 +18,7 @@ import po.test.exposify.setup.SectionEntity
 
 @Serializable
 data class ContentBlock(
-    override var id: Long,
+    override var id: Long = 0L,
     var name: String,
     var content: String,
     var tag: String,
@@ -55,7 +55,7 @@ class ContentBlockDTO(
     val sectionId by parent2IdReference(ContentBlock::sectionId, ContentBlockEntity::section)
 
     companion object: DTOClass<ContentBlockDTO, ContentBlock, ContentBlockEntity>(SectionDTO){
-        override suspend  fun setup() {
+        override fun setup() {
             configuration<ContentBlockDTO, ContentBlock, ContentBlockEntity>(ContentBlockEntity){
 
             }

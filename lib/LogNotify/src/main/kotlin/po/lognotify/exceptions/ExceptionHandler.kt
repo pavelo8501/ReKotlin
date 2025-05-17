@@ -3,7 +3,8 @@ package po.lognotify.exceptions
 import po.lognotify.classes.notification.enums.EventType
 import po.lognotify.classes.notification.models.Notification
 import po.lognotify.classes.notification.sealed.ProviderTask
-import po.lognotify.classes.task.TaskSealedBase
+import po.lognotify.classes.task.TaskAsyncBase
+import po.lognotify.classes.task.TaskBaseSync
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.exceptions.ExceptionHandler.HandlerResult
 import po.misc.exceptions.HandlerType
@@ -17,7 +18,7 @@ interface ExceptionHandled<R: Any?> {
 }
 
 class ExceptionHandler<R: Any?>(
-   private val task : TaskSealedBase<R>,
+   private val task : TaskAsyncBase<R>,
 ) : ExceptionHandled<R> {
 
    class HandlerResult<R: Any?>(
@@ -27,7 +28,7 @@ class ExceptionHandler<R: Any?>(
       val success: Boolean = exception!=null
    }
 
-   private suspend fun notifyHandlerSet(handler : HandlerType){
+   private fun notifyHandlerSet(handler : HandlerType){
       val message = "$handler handle set"
       val notification = Notification(
          ProviderTask(task),
@@ -36,7 +37,7 @@ class ExceptionHandler<R: Any?>(
          message)
       task.notifier.submitNotification(notification)
    }
-   private suspend fun notifyHandled(managedEx : ManagedException){
+   private fun notifyHandled(managedEx : ManagedException){
       val message =  "Exception Handled. Exception Message : ${managedEx.message}"
       val severity = SeverityLevel.WARNING
 
@@ -48,7 +49,7 @@ class ExceptionHandler<R: Any?>(
 
       task.notifier.submitNotification(notification)
    }
-   private suspend fun notifyUnhandled(managedEx : ManagedException){
+   private fun notifyUnhandled(managedEx : ManagedException){
       val severity = SeverityLevel.EXCEPTION
 
       var message = """ 

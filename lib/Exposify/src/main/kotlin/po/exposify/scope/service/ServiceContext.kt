@@ -3,6 +3,8 @@ package po.exposify.scope.service
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.name
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.experimental.suspendedTransactionAsync
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.common.interfaces.AsContext
@@ -17,27 +19,33 @@ import po.exposify.extensions.withTransactionIfNone
 import po.lognotify.TasksManaged
 import po.lognotify.anotations.LogOnFault
 import po.lognotify.extensions.newTaskAsync
+import po.lognotify.extensions.onFailureCause
 
-class ServiceContext<DTO, DATA, ENTITY: LongEntity>(
+class ServiceContext<DTO, DATA, ENTITY>(
     internal  val serviceClass : ServiceClass<DTO, DATA, ENTITY>,
     internal val dtoClass: RootDTO<DTO, DATA, ENTITY>,
-): TasksManaged,  AsContext<DATA>  where DTO : ModelDTO, DATA: DataModel{
+): TasksManaged,  AsContext<DATA>  where DTO : ModelDTO, DATA: DataModel,  ENTITY: LongEntity{
 
+    private val dbConnection: Database get()= serviceClass.connection
     @LogOnFault
-    val personalName: String = "ServiceContext[${dtoClass.config.registryRecord.dtoName}]"
+    val personalName: String = "ServiceContext[${dbConnection.name}]"
 
-    private val dbConnection: Database = serviceClass.connection
+    private val executionProvider: RootExecutionProvider<DTO, DATA, ENTITY> by lazy { RootExecutionProvider(dtoClass)}
 
-    private  val executionProvider = RootExecutionProvider(dtoClass)
-
-    fun truncate(): Unit?
-        = newTaskAsync("Truncate", personalName) {
-            val entityModel = dtoClass.getEntityModel()
-            val table = entityModel.table
-            suspendedTransactionAsync {
+    fun truncate()
+        = newTaskAsync("Truncate", personalName) {handler->
+        newSuspendedTransaction {
+            val table = dtoClass.getEntityModel().table
+            try {
                 exec("TRUNCATE TABLE ${table.tableName} RESTART IDENTITY CASCADE")
-            }.await()
-        }.resultOrException()
+                handler.info("TRUNCATE TABLE ${table.tableName} RESTART IDENTITY CASCADE Executed")
+            }catch (th: Throwable){
+                handler.warn(th, "Running TRUNCATE TABLE ${table.tableName} RESTART IDENTITY CASCADE")
+            }
+        }
+    }.onFailureCause {
+        val a = it
+    }.resultOrException()
 
     fun pick(conditions: SimpleQuery): ResultSingle<DTO, DATA, ENTITY>
             = newTaskAsync("Pick by conditions", personalName) {

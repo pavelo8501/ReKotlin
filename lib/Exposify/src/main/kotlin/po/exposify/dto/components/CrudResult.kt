@@ -25,7 +25,7 @@ sealed class ResultBase<DTO, DATA, ENTITY>(
 
 class ResultList<DTO, DATA, ENTITY>(
    dtoClass: DTOBase<DTO, DATA, ENTITY>,
-   internal var resultList : MutableList<CommonDTO<DTO, DATA, ENTITY>>? = null
+   internal var resultList : MutableList<CommonDTO<DTO, DATA, ENTITY>> = mutableListOf()
 ) : ResultBase<DTO, DATA, ENTITY>(dtoClass) where DTO : ModelDTO, DATA: DataModel, ENTITY : LongEntity {
 
   //  internal val dtoList: MutableList<CommonDTO<DTO, DATA, ENTITY>> = mutableListOf()
@@ -53,8 +53,7 @@ class ResultList<DTO, DATA, ENTITY>(
     }
 
     fun getDTO(): List<DTO> {
-        return resultList.getOrOperationsEx("Result is null")
-            .castListOrThrow<DTO, OperationsException>(dtoClass.config.registryRecord.derivedDTOClazz)
+        return resultList.castListOrThrow<DTO, OperationsException>(dtoClass.config.registryRecord.derivedDTOClazz)
     }
 
     internal fun getAsCommonDTO():  List<CommonDTO<DTO, DATA, ENTITY>> {

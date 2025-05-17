@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
+import po.lognotify.classes.notification.models.ConsoleBehaviour
 import po.lognotify.extensions.newTask
 import po.lognotify.extensions.subTask
 import po.lognotify.logNotify
@@ -28,14 +29,13 @@ class TestNotifier : TasksManaged {
     fun `configurable logger noise level`()= runTest{
 
         loggerHandler.notifierConfig {
-            muteConsoleNoEvents = true
+            ConsoleBehaviour.MuteNoEvents
         }
 
         var muteConsoleNoEvents: Boolean = false
 
         newTask("Task1"){
             subTask("Task2"){handler->
-                muteConsoleNoEvents = handler.notifier.config.muteConsoleNoEvents
                 handler.info("Some message")
             }
         }

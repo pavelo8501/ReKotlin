@@ -6,6 +6,7 @@ import po.exposify.dto.DTOClass
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
+import po.exposify.dto.components.serializerInfo
 import po.exposify.dto.interfaces.ModelDTO
 import kotlin.reflect.KMutableProperty1
 
@@ -108,7 +109,11 @@ fun <DTO, D, E, S, V: Any>  CommonDTO<DTO, D, E>.serializedBinding(
 {
     val serializedDelegate = SerializedDelegate({this}, dataProperty, entityProperty, serializableClass.listSerializer)
     dtoPropertyBinder.setBinding(serializedDelegate)
-    dtoFactory.setSerializableType(dataProperty.name, serializableClass.serializer)
+    if(dtoFactory.hasListSerializer(dataProperty.name) == null){
+        dtoFactory.provideListSerializer<List<S>>(dataProperty.name, serializableClass.listSerializer.serializerInfo(dataProperty.name))
+    }
+    dtoFactory.setSerializableType(dataProperty.name, serializableClass.listSerializer)
+
     return serializedDelegate
 }
 

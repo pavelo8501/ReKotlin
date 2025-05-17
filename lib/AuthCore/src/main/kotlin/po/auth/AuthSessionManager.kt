@@ -46,6 +46,10 @@ object AuthSessionManager : ManagedSession, TasksManaged {
         return authenticator.authorize(authData)
     }
 
+    fun getOrCreateSessionSync(authData: SessionIdentified): AuthorizedSession{
+        return authenticator.authorizeSync(authData)
+    }
+
     override suspend fun getCurrentSession(): AuthorizedSession{
         val session  = coroutineContext[AuthorizedSession]?:
                factory.createAnonymousSession(AuthenticationData("Undefined", "localhost", emptyMap(),"",""), authenticator)

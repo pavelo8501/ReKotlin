@@ -14,6 +14,7 @@ enum class ComponentType{
     RootExecutionProvider,
     SequenceContext,
     ResponsiveDelegate,
-    RelationBindingDelegate
+    RelationBindingDelegate,
+    ServiceClass,
 
 }

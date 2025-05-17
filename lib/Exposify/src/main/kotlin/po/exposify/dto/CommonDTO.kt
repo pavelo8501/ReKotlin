@@ -166,19 +166,6 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         initStatus = DTOInitStatus.INITIALIZED
     }
 
-//    suspend fun  updatePropertyBinding(
-//        updateMode: UpdateMode,
-//        entity:ENTITY,
-//        dataModel:DATA? = null,
-//    ): CommonDTO<DTO ,DATA, ENTITY>
-//    {
-//        if(dataModel != null){
-//            dataContainer.updateDataModel(dataModel)
-//        }
-//        propertyBinder.update(dataContainer.dataModel, entity, updateMode)
-//        initStatus = DTOInitStatus.INITIALIZED
-//        return this
-//    }
 
    internal fun initialize(tracker: DTOTracker<DTO, DATA>? = null) {
        selfRegistration(registryRecord)
@@ -193,6 +180,17 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
             regItem :  DTORegistryItem<DTO, DATA, ENTITY>
         ){
             dtoRegistry.putIfAbsent(regItem.typeKeyCombined, regItem)
+        }
+
+        fun sayCommonCompanion(){
+            println("Common dto Companion companion")
+        }
+    }
+
+    object sayCommonObject{
+
+        fun sayRootObject(){
+            println("Common dto Object")
         }
     }
 }

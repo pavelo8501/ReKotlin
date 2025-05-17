@@ -3,8 +3,8 @@ package po.test.lognotify
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import po.lognotify.TasksManaged
+import po.lognotify.extensions.newTask
 import po.lognotify.extensions.onFailureCause
-import po.lognotify.extensions.startTask
 import po.lognotify.extensions.subTask
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
@@ -37,7 +37,7 @@ class TestNotifications  : TasksManaged {
         var swallowedThrowable : Throwable?  = null
         var onCompleteTriggered : Boolean = false
 
-        startTask("task_1", this.coroutineContext) {handler->
+        newTask("task_1", this.coroutineContext) {handler->
             handler.apply {
 
                 handleFailure(HandlerType.GENERIC){

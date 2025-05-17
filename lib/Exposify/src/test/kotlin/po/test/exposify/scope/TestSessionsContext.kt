@@ -3,11 +3,8 @@ package po.test.exposify.scope
 import kotlinx.coroutines.test.runTest
 import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.auth.extensions.session
-import po.auth.extensions.withSession
 import po.auth.sessions.interfaces.SessionIdentified
-import po.exposify.scope.sequence.enums.SequenceID
 import po.exposify.scope.service.enums.TableCreateMode
-import po.misc.exceptions.getCoroutineInfo
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.pageModels
 import kotlin.test.Test
@@ -16,15 +13,14 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertAll
 import po.auth.extensions.authenticate
-import po.auth.extensions.currentSession
 import po.auth.extensions.generatePassword
 import po.auth.extensions.registerAuthenticator
-import po.auth.extensions.withSession2
+import po.auth.extensions.withSession
+import po.auth.extensions.withSessionSync
 import po.auth.sessions.enumerators.SessionType
 import po.auth.sessions.models.AuthorizedSession
 import po.exposify.scope.sequence.extensions.runSequence
 import po.exposify.scope.sequence.extensions.sequence
-import po.misc.collections.generateKey
 import po.misc.exceptions.CoroutineInfo
 import po.test.exposify.setup.dtos.Page
 import po.test.exposify.setup.dtos.PageDTO
@@ -83,7 +79,7 @@ class TestSessionsContext : DatabaseTest()  {
         var sessionAfter : AuthorizedSession? = null
         var result : List<Page> = emptyList()
 
-        withSession2(session) {
+        withSession(session) {
             result = runSequence(PageDTO.UPDATE) {
                 onStart {
                    // sessionOnStart = coroutineContext[AuthorizedSession]
@@ -134,7 +130,7 @@ class TestSessionsContext : DatabaseTest()  {
         val session = session(SessionIdentity("1", "192.169.1.2"))
         var sessionType : SessionType = SessionType.ANONYMOUS
 
-        withSession2(session) {
+        withSession(session) {
 
             registerAuthenticator(::userLookUp)
             val principal = session.authenticate("some_login", "password")

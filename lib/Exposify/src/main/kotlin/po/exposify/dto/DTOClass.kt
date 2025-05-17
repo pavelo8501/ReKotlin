@@ -27,25 +27,38 @@ abstract class RootDTO<DTO, DATA, ENTITY>()
         where DTO: ModelDTO, DATA: DataModel, ENTITY: LongEntity
 {
 
+    companion object {
+        fun sayRootCompanion(){
+            println("RootDTO companion")
+        }
+    }
+
+    object RootDTOObject{
+        fun sayRootObject(){
+            println("RootDTOObject companion")
+        }
+    }
+
     override val qualifiedName: String
         get() = configParameter?.registryRecord?.dtoClassQualifiedName?:"RootDTO[Uninitialized]"
 
-    suspend fun initialization() {
+    private var serviceContextParameter: ServiceContext<DTO, DATA, ENTITY>? = null
+    val serviceContext: ServiceContext<DTO, DATA, ENTITY>
+        get() = serviceContextParameter.getOrInitEx()
+
+    fun initialization(serviceContext: ServiceContext<DTO, DATA, ENTITY>) {
+        serviceContextParameter = serviceContext
         if (!initialized) setup()
     }
 
-    private var serviceContextOwned: ServiceContext<DTO, DATA, ENTITY>? = null
-    fun setContextOwned(contextOwned: ServiceContext<DTO, DATA, ENTITY>){
-        serviceContextOwned = contextOwned
-    }
 
     fun getServiceClass(): ServiceClass<DTO, DATA, ENTITY>{
-       return   serviceContextOwned?.serviceClass.getOrInitEx("ServiceClass not assigned for $qualifiedName")
+       return serviceContext.serviceClass.getOrInitEx("ServiceClass not assigned for $qualifiedName")
     }
 
     inline fun <reified COMMON,  reified RD, reified RE> configuration(
         entityModel: ExposifyEntityClass<RE>,
-        noinline block: suspend DTOConfig<DTO, DATA, ENTITY>.() -> Unit
+        noinline block:  DTOConfig<DTO, DATA, ENTITY>.() -> Unit
     ): Unit where COMMON: ModelDTO, RD: DataModel, RE: LongEntity
             = newTaskAsync("DTO Configuration", qualifiedName) {
         val newConfiguration = DTOConfig(DTORegistryItem(RD::class, RE::class, COMMON::class), entityModel, this.castOrInitEx())
@@ -69,7 +82,7 @@ abstract class DTOClass<DTO, DATA, ENTITY>(
     override val qualifiedName: String
         get() = configParameter?.registryRecord?.dtoClassQualifiedName?:"DTOClass[Uninitialized]"
 
-    suspend fun initialization() {
+    fun initialization() {
         if (!initialized){
             setup()
         }
@@ -77,7 +90,7 @@ abstract class DTOClass<DTO, DATA, ENTITY>(
 
     inline fun <reified COMMON,  reified RD, reified RE> configuration(
         entityModel: ExposifyEntityClass<RE>,
-        noinline block: suspend DTOConfig<DTO, DATA, ENTITY>.() -> Unit
+        noinline block: DTOConfig<DTO, DATA, ENTITY>.() -> Unit
     ): Unit where COMMON : ModelDTO,  RE : LongEntity, RD : DataModel
             = newTaskAsync("DTO Configuration", qualifiedName){
         val newConfiguration = DTOConfig(DTORegistryItem(RD::class, RE::class, COMMON::class), entityModel, this.castOrInitEx())
@@ -106,7 +119,7 @@ sealed class DTOBase<DTO, DATA, ENTITY>(): ClassDTO, TasksManaged, Identifiable
 
     internal val dtoMap : MutableMap<Long, CommonDTO<DTO, DATA, ENTITY>> = mutableMapOf()
 
-    protected abstract suspend fun  setup()
+    protected abstract fun  setup()
 
     internal fun registerDTO(dto: CommonDTO<DTO, DATA, ENTITY>){
         val existed = dtoMap.containsKey(dto.id)

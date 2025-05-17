@@ -12,7 +12,8 @@ import po.auth.AuthSessionManager
 import po.auth.authentication.authenticator.models.AuthenticationData
 import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.auth.extensions.generatePassword
-import po.auth.extensions.withSession2
+import po.auth.extensions.session
+import po.auth.extensions.withSession
 import po.auth.sessions.enumerators.SessionType
 import po.exposify.scope.sequence.extensions.runSequence
 import po.exposify.scope.sequence.extensions.sequence
@@ -20,6 +21,7 @@ import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.ConsoleBehaviour
 import po.lognotify.classes.notification.models.NotifyConfig
+import po.test.exposify.scope.TestSessionsContext.SessionIdentity
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.dtos.PageDTO
 import po.test.exposify.setup.dtos.User
@@ -32,6 +34,8 @@ import kotlin.test.assertNotNull
 class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
 
     companion object {
+
+        @JvmStatic
         lateinit var authenticatedUser: User
 
         @JvmStatic
@@ -42,6 +46,11 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
                 null
             }
         }
+
+
+        @JvmStatic
+        val session = SessionIdentity("0", "192.169.1.1")
+
     }
 
     @DisplayName("Test anonymous session flow")
@@ -107,7 +116,7 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
 
         runBlocking {
             launch {
-                withSession2(authSession){
+                withSession(authSession){
                     val inputData =
                         pageModelsWithSections(pageCount = 1000, sectionsCount = 10, authSession.principal!!.id)
 
@@ -117,7 +126,7 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
                 }
             }
             launch {
-                withSession2(anonSession){
+                withSession(anonSession){
                     delay(200)
                     runSequence(PageDTO.SELECT){
 

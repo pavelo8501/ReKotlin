@@ -4,6 +4,7 @@ import po.lognotify.classes.notification.models.NotifyConfig
 import po.lognotify.classes.task.RootTask
 import po.lognotify.classes.task.UpdatableTasks
 import po.lognotify.classes.task.UpdateType
+import po.lognotify.classes.task.interfaces.TopTask
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.component1
 import kotlin.collections.component2
@@ -15,7 +16,7 @@ class TaskDispatcher() : UpdatableTasks{
 
     data class LoggerStats (val topTasksCount: Int, val totalTasksCount: Int)
 
-    internal val taskHierarchy = ConcurrentHashMap<TaskKey, RootTask<*>>()
+    internal val taskHierarchy = ConcurrentHashMap<TaskKey, TopTask<*>>()
     internal val callbackRegistry : MutableMap<UpdateType, (LoggerStats)-> Unit> = mutableMapOf()
 
     override fun onTaskCreated(handler: UpdateType, callback: (LoggerStats) -> Unit) {
@@ -31,7 +32,7 @@ class TaskDispatcher() : UpdatableTasks{
         )
         callbackRegistry.filter { it.key == handler} .forEach { (_, cb) -> cb(stats) }
     }
-    fun addRootTask(key: TaskKey, task: RootTask<*>, notifyConfig : NotifyConfig) {
+    fun addRootTask(key: TaskKey, task: TopTask<*>, notifyConfig : NotifyConfig) {
         task.notifier.setNotifierConfig(notifyConfig)
         taskHierarchy[key] = task
         notifyUpdate(UpdateType.OnStart)
@@ -50,7 +51,7 @@ class TaskDispatcher() : UpdatableTasks{
         taskHierarchy.remove(key)
         notifyUpdate(UpdateType.OnStart)
     }
-    fun lastRootTask(): RootTask<*>?{
+    fun lastRootTask(): TopTask<*>?{
         return taskHierarchy.values.firstOrNull {!it.isComplete}
     }
     fun keyLookup(name: String, nestingLevel: Int): TaskKey?{

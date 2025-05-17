@@ -10,6 +10,8 @@ import po.exposify.scope.service.ServiceContext
 import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.newTaskAsync
+import po.lognotify.extensions.newTaskSync
+import po.lognotify.lastTaskHandler
 
 class ConnectionContext(
     internal val connection: Database,
@@ -19,18 +21,32 @@ class ConnectionContext(
     val isOpen : Boolean
         get(){return  connClass.isConnectionOpen }
 
-    suspend fun <DTO, DATA, E> service(
-        dtoClass : RootDTO<DTO, DATA, E>,
-        createOptions : TableCreateMode = TableCreateMode.CREATE,
-        block: suspend ServiceContext<DTO, DATA, E>.()->Unit,
-    ) where DTO : ModelDTO, DATA : DataModel, E: LongEntity {
+    init {
+        lastTaskHandler().info("Initialized")
+    }
 
-        val serviceClass =  ServiceClass<DTO, DATA, E>(connClass, createOptions)
-        newTaskAsync("Create Service", "ConnectionContext") {
-            serviceClass.startService(dtoClass, block)
-        }.onComplete {
-            connClass.addService(serviceClass)
+    fun <DTO, D, E> service(
+        dtoClass : RootDTO<DTO, D, E>,
+        createOptions : TableCreateMode = TableCreateMode.CREATE,
+        block: suspend ServiceContext<DTO, D, E>.()->Unit,
+    ) where DTO : ModelDTO, D: DataModel, E: LongEntity {
+
+        val serviceClass =  ServiceClass(dtoClass, connClass, createOptions)
+         with(lastTaskHandler()){
+             newTaskSync("Create Service", "ConnectionContext"){
+                 info("Creating ServiceClass")
+                 serviceClass.qualifiedName
+                 connClass.addService(serviceClass)
+                 serviceClass.initService(dtoClass)
+
+             }
+         }
+
+        newTaskAsync("Launch ServiceContext", "ConnectionContext"){handler->
+            handler.info("Launching ServiceContext")
+            connClass.getService<DTO, D, E>(serviceClass.qualifiedName)?.runServiceContext(block)
         }
+
     }
 
     fun clearServices(){

@@ -41,3 +41,10 @@ inline fun <reified T: Any> T.getType(): KClass<T> {
 inline fun <reified T: Any> T.getKType(): KType {
     return typeOf<T>()
 }
+
+fun KType.asStableString(): String {
+    val qualifiedTypeName = classifier?.let {
+        (it as? KClass<*>)?.qualifiedName
+    } + (if (isMarkedNullable) "?" else "")
+    return qualifiedTypeName
+}

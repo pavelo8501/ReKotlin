@@ -22,27 +22,45 @@ abstract class DatabaseTest {
         val postgres = PostgreSQLContainer("postgres:15")
     }
 
-    fun startTestConnection(muteContainer: Boolean = true, context: (suspend  ConnectionContext.()->Unit)){
+    fun startTestConnection(muteContainer: Boolean = true, context: suspend (ConnectionContext.() -> Unit)) {
         System.setProperty("org.testcontainers.reuse.enable", "true")
 
         if (muteContainer) {
             System.setProperty("org.slf4j.simpleLogger.log.org.testcontainers", "ERROR")
         }
         postgres.start()
-        try {
-            DatabaseManager.openConnectionAsync(
-                ConnectionInfo(
-                    jdbcUrl = postgres.jdbcUrl,
-                    dbName = postgres.databaseName,
-                    user = postgres.username,
-                    pwd = postgres.password,
-                    driver = postgres.driverClassName
-                ),
-                sessionManager = AuthSessionManager,
-                context
-            ).getOrThrow<ConnectionContext, InitException>("Failed to open connection")
-        } catch (th: Throwable) {
-            throw th
-        }
+        DatabaseManager.openConnectionAsync(
+            ConnectionInfo(
+                jdbcUrl = postgres.jdbcUrl,
+                dbName = postgres.databaseName,
+                user = postgres.username,
+                pwd = postgres.password,
+                driver = postgres.driverClassName
+            ),
+            ConnectionSettings(),
+            context
+        )
     }
+
+
+    fun startTestConnectionSync(muteContainer: Boolean = true, context: (ConnectionContext.() -> Unit)) {
+        System.setProperty("org.testcontainers.reuse.enable", "true")
+
+        if (muteContainer) {
+            System.setProperty("org.slf4j.simpleLogger.log.org.testcontainers", "ERROR")
+        }
+        postgres.start()
+        DatabaseManager.openConnectionBlocking(
+            ConnectionInfo(
+                jdbcUrl = postgres.jdbcUrl,
+                dbName = postgres.databaseName,
+                user = postgres.username,
+                pwd = postgres.password,
+                driver = postgres.driverClassName
+            ),
+            ConnectionSettings(),
+            context
+        )
+    }
+
 }

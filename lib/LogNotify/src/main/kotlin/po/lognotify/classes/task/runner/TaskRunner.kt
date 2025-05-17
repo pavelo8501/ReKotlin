@@ -2,9 +2,12 @@ package po.lognotify.classes.task.runner
 
 import kotlinx.coroutines.withContext
 import po.lognotify.anotations.LogOnFault
-import po.lognotify.classes.notification.Notifier
+import po.lognotify.classes.notification.NotifierBase
 import po.lognotify.classes.notification.enums.EventType
-import po.lognotify.classes.task.ControlledTask
+import po.lognotify.classes.task.RootTask
+import po.lognotify.classes.task.SubTask
+import po.lognotify.classes.task.SyncTaskHandler
+import po.lognotify.classes.task.TaskAsyncBase
 import po.lognotify.classes.task.TaskHandler
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.exceptions.ExceptionHandler
@@ -13,17 +16,16 @@ import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
 import po.misc.types.castOrThrow
 import kotlin.reflect.KProperty1
-import kotlin.reflect.full.declaredMembers
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.staticProperties
 
 class TaskRunner<R: Any?>(
-    val task: ControlledTask,
+    val task: TaskAsyncBase<*>,
     val taskHandler: TaskHandler<R>,
     val exceptionHandler: ExceptionHandler<R>,
 ) {
-    val notifier: Notifier get() = task.notifier
+    val notifier: NotifierBase get() = task.notifier
     val taskName: String get()= task.key.taskName
 
     var startTime: Long = System.nanoTime()
@@ -85,7 +87,10 @@ class TaskRunner<R: Any?>(
             HandlerType.CANCEL_ALL -> {
                 val result = exceptionHandler.handleManaged(managedException)
                 if(result.exception != null){
-                    task.notifyRootCancellation(managedException)
+                    when(task){
+                        is RootTask<*> -> task.commitCancellation(managedException)
+                        is SubTask<*>-> task.notifyRootCancellation(managedException)
+                    }
                 }
                 return result
             }
@@ -134,4 +139,16 @@ class TaskRunner<R: Any?>(
         }
     }
 
+
+
 }
+
+fun <T, R: Any?> executeInManagedContext(receiver: T, handler:  SyncTaskHandler<R>,block: context(T, SyncTaskHandler<R>) ()-> R){
+    try {
+        block.invoke(receiver, handler)
+    }catch (throwable: Throwable){
+
+    }
+}
+
+

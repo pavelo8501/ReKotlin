@@ -3,42 +3,55 @@ package po.lognotify.extensions
 import kotlinx.coroutines.CoroutineScope
 import po.lognotify.TasksManaged
 import po.lognotify.classes.process.LoggProcess
+import po.lognotify.classes.task.RootSyncTaskHandler
+import po.lognotify.classes.task.RootTaskSync
 import po.lognotify.classes.task.TaskHandler
+import po.lognotify.classes.task.TaskHandlerBase
 import po.lognotify.classes.task.TaskResult
-import po.lognotify.classes.task.TaskSealedBase
+import po.lognotify.classes.task.TaskResultSync
+import po.lognotify.classes.task.createTaskKey
 import kotlin.coroutines.CoroutineContext
 
 
-//suspend  fun <T, R: Any?> T.startTask(
-//    taskName: String,
-//    coroutine: CoroutineContext,
-//    moduleName: String? = null,
-//    block: suspend T.(TaskHandler<R>)-> R,
-//): TaskResult<R> {
-//    val newTask = TasksManaged.createHierarchyRoot<R>(taskName, coroutine, moduleName)
-//    val runResult = newTask.runTask(this, block)
-//    val casted = runResult.castOrLoggerException<TaskResult<R>>()
-//    return casted
-//}
-//
-//fun <T, R> T.startTaskAsync(
-//    taskName: String,
-//    moduleName: String? = null,
-//    block: suspend T.(TaskHandler<R>)-> R,
-//): TaskResult<R> {
-//    val newTask = TasksManaged.createHierarchyRoot<R>(taskName, moduleName)
-//    val runResult =  newTask.runTaskAsync(this@startTaskAsync, block)
-//    return runResult
-//}
+data class TaskSettings(
+    val attempts: Int = 1,
+    val delayMs: Long = 2000
+)
 
+
+fun <T, R> T.newTaskSync(
+    taskName: String,
+    moduleName: String,
+    settings:TaskSettings = TaskSettings(),
+    block: context(T, TaskHandlerBase<R>) ()-> R,
+): TaskResultSync<R> {
+
+    val newTask = TasksManaged.createHierarchyRootSynced<R>(RootTaskSync(createTaskKey(taskName, moduleName)))
+    var result : TaskResultSync<R>? = null
+
+    repeat(settings.attempts) { attempt ->
+        try {
+            result = block.invoke(this, newTask.taskHandler).toResult(newTask)
+            if(result.isSuccess){ return@repeat }
+        }catch (th: Throwable){
+            result = th.handleException(newTask).toResult()
+            newTask.taskHandler.warn("Task resulted in failure. Attempt $attempt of ${settings.attempts}")
+        }
+        if (attempt < settings.attempts - 1) {
+            Thread.sleep(settings.delayMs)
+        }
+    }
+  return result.getOrLoggerException("Maximum retries exceeded")
+}
 
 fun <T, R> T.newTaskAsync(
     taskName: String,
     moduleName: String,
+    settings:TaskSettings = TaskSettings(),
     block: suspend T.(TaskHandler<R>)-> R,
 ): TaskResult<R> {
     val newTask = TasksManaged.createHierarchyRoot<R>(taskName, moduleName)
-    val runResult =  newTask.runTaskAsync(this@newTaskAsync, block)
+    val runResult = newTask.runTaskAsync(this@newTaskAsync, block)
     return runResult
 }
 

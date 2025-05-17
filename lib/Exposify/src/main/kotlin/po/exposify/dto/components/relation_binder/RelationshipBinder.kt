@@ -24,7 +24,7 @@ class RelationshipBinder<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>
         mutableMapOf<Cardinality, SingleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>>()
         private set
 
-    suspend fun addChildClass(childClass: DTOClass<out CHILD_DTO, out CHILD_DATA, out CHILD_ENTITY>){
+    fun addChildClass(childClass: DTOClass<out CHILD_DTO, out CHILD_DATA, out CHILD_ENTITY>){
         if(!childClass.initialized){
             childClass.initialization()
         }

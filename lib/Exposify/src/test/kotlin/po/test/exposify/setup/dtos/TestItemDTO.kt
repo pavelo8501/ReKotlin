@@ -21,7 +21,7 @@ class TestItemDTO(
     val name : String by binding(TestItem::name, TestsItemEntity::name)
 
     companion object: RootDTO<TestItemDTO, TestItem, TestsItemEntity>(){
-        override suspend fun setup() {
+        override fun setup() {
             configuration<TestItemDTO, TestItem, TestsItemEntity>(TestsItemEntity){
 
             }

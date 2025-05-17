@@ -7,8 +7,8 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.serializer
-import po.lognotify.eventhandler.RootEventHandler
-import po.lognotify.eventhandler.interfaces.CanNotify
+import po.lognotify.TasksManaged
+import po.misc.types.safeCast
 import po.wswraptor.components.serializationfactory.interfaces.SerializeFactoryInterface
 import po.wswraptor.components.serializationfactory.models.SerializerContainer
 import po.wswraptor.models.request.WSMessage
@@ -20,9 +20,9 @@ import kotlin.reflect.KClass
 
 class SerializationFactory<T: WSMessage<*>>(
     private val baseClass: KClass<T>,
-) : CanNotify, SerializeFactoryInterface {
+) : TasksManaged, SerializeFactoryInterface {
 
-    override val eventHandler = RootEventHandler("SerializationFactory")
+
     val repository =  mutableMapOf<String, SerializerContainer<*>>()
     @OptIn(ExperimentalSerializationApi::class)
     val jsonConf = Json{
@@ -33,14 +33,14 @@ class SerializationFactory<T: WSMessage<*>>(
     }
 
     private fun <P: Any> getContainer(resourceName: String): SerializerContainer<P>{
-        repository[resourceName]?.let{
-            return it as SerializerContainer<P>
-        }?:throwSkip("Repository does not contain any items for key : $resourceName").let { throw it }
+
+          return  repository[resourceName] as SerializerContainer<P>
+
     }
     private fun <P: Any>getContainer(type: TypeInfo): SerializerContainer<P> {
         repository.values.firstOrNull { it.typeInfo == type }?.let {
             return it as SerializerContainer<P>
-        } ?: throwSkip("Repository does not contain any items with type : ${type.type}").let { throw it }
+        }?: throw Exception("sss")
     }
 
     override fun  <C: Any>register(resourceName: String) = registerPayload<Any>(resourceName)
@@ -72,9 +72,10 @@ class SerializationFactory<T: WSMessage<*>>(
                     }
                 }
                 WSResponse::class ->{
-                    val wsResponse = value as?  WSResponse<T>
+                    val wsResponse = value
                     val  baseSerializer = WSResponse.getSerializer<T>(serializer)
-                    val serialized = jsonConf.encodeToString(baseSerializer, wsResponse )
+                    val casted = wsResponse.safeCast<WSResponse<T>>()
+                    val serialized = jsonConf.encodeToString<WSResponse<T>>(casted!!)
                     serialized
                 }
                 else -> {

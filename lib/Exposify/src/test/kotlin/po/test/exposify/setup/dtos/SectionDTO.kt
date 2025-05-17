@@ -21,7 +21,7 @@ import po.test.exposify.setup.UserEntity
 
 @Serializable
 data class Section(
-    override var id: Long,
+    override var id: Long = 0L,
     var name: String,
     var description: String,
     @SerialName("json_ld")
@@ -41,7 +41,6 @@ data class Section(
 {
     @SerialName("content_blocks")
     val contentBlocks : MutableList<ContentBlock> = mutableListOf()
-
     var updated: LocalDateTime = UserDTO.nowTime()
 }
 
@@ -71,10 +70,10 @@ class SectionDTO(
 
         val UPDATE by SwitchHandlerProvider(this, Cardinality.ONE_TO_MANY, PageDTO.UPDATE)
 
-        override suspend fun setup() {
+        override fun setup() {
             configuration<SectionDTO, Section, SectionEntity>(SectionEntity) {
                 applyTrackerConfig {
-                    name = "AlternativeSection"
+                    name = "AltSection"
                     observeProperties = true
                     observeRelationBindings = true
                 }

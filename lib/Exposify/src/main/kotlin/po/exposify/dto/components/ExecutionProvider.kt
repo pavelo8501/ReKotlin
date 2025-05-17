@@ -14,6 +14,7 @@ import po.exposify.dto.interfaces.ExecutionContext
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.extensions.getOrOperationsEx
 import po.lognotify.classes.task.TaskHandler
+import po.lognotify.classes.task.TaskHandlerBase
 import po.lognotify.lastTaskHandler
 
 
@@ -25,7 +26,7 @@ class RootExecutionProvider<DTO, DATA, ENTITY>(
         get() = dtoClass.qualifiedName
     override val type: ComponentType = ComponentType.RootExecutionProvider
 
-    override val logger : TaskHandler<*> get() = lastTaskHandler()
+    override val logger : TaskHandlerBase<*> get() = lastTaskHandler()
 
     private suspend fun createDto(entity: ENTITY):CommonDTO<DTO, DATA, ENTITY>{
         val dto = dtoClass.config.dtoFactory.createDto()

@@ -18,17 +18,16 @@ class DTOPropertyBinder<DTO, DATA, ENTITY>(
 {
 
     private val complexDelegateMap : MutableMap<String,  ComplexDelegate<DTO, DATA, ENTITY, *, *, *, *, *>> = mutableMapOf()
-    private val foreignIDClassDelegates : MutableList<ForeignIDClassDelegate<DTO, DATA, ENTITY, *, *, *>> = mutableListOf()
     private val responsiveDelegates : MutableList<ResponsiveDelegate<DTO, DATA, ENTITY, *>>  = mutableListOf()
+
+
 
     fun <FE : LongEntity> setBinding(
         binding: ComplexDelegate<DTO, DATA, ENTITY,* , *, FE, *, *>)
     : ComplexDelegate<DTO, DATA, ENTITY, *, *, FE, *, *>
     {
-        when(binding){
-            is ForeignIDClassDelegate -> foreignIDClassDelegates.add(binding)
-            else -> complexDelegateMap[binding.qualifiedName] = binding
-        }
+        complexDelegateMap[binding.qualifiedName] = binding
+
         return binding
     }
 
@@ -52,14 +51,12 @@ class DTOPropertyBinder<DTO, DATA, ENTITY>(
 
         responsiveDelegates.forEach { it.update(container) }
         complexDelegateMap.values.forEach { it.beforeInsertedUpdate(container) }
-        foreignIDClassDelegates.forEach { it.beforeInsertedUpdate(container) }
     }
 
     suspend fun <P_DTO: ModelDTO, PD: DataModel, FE: LongEntity> afterInsertUpdate(
         entityContainer : EntityUpdateContainer<ENTITY, P_DTO, PD, FE>)
     {
         complexDelegateMap.values.forEach { it.afterInsertedUpdate(entityContainer) }
-        foreignIDClassDelegates.forEach { it.afterInsertedUpdate(entityContainer) }
     }
 
 }

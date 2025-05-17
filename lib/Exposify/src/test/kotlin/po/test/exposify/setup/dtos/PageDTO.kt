@@ -12,7 +12,6 @@ import po.exposify.dto.components.relation_binder.delegates.oneToManyOf
 import po.exposify.scope.sequence.classes.RootHandlerProvider
 import po.test.exposify.setup.PageEntity
 import po.test.exposify.setup.SectionEntity
-import po.test.exposify.setup.UserEntity
 
 
 @Serializable
@@ -41,15 +40,13 @@ class PageDTO(
     val sections : List<SectionDTO> by oneToManyOf(SectionDTO, Page::sections, PageEntity::sections, SectionEntity::page)
 
     companion object: RootDTO<PageDTO, Page, PageEntity>(){
-
         val UPDATE by RootHandlerProvider(this)
         val SELECT by RootHandlerProvider(this)
-
-
-        override suspend fun setup() {
+        override fun setup() {
             configuration<PageDTO, Page, PageEntity>(PageEntity){
+                println("Configuration lambda invoked RootDTO")
                 applyTrackerConfig {
-                    name = "FunkyName"
+                    name = "page"
                     observeProperties = true
                     observeRelationBindings = true
                 }

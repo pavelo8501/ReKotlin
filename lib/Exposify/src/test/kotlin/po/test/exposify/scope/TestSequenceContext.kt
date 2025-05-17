@@ -7,10 +7,9 @@ import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertAll
 import org.junit.jupiter.api.assertInstanceOf
 import po.auth.extensions.generatePassword
-import po.auth.extensions.withSession2
+import po.auth.extensions.session
+import po.auth.extensions.withSession
 import po.exposify.dto.components.ResultSingle
-import po.exposify.dto.components.WhereQuery
-import po.exposify.scope.connection.ConnectionContext
 import po.exposify.scope.sequence.extensions.collectResult
 import po.exposify.scope.sequence.extensions.runSequence
 import po.exposify.scope.sequence.extensions.sequence
@@ -22,6 +21,7 @@ import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.ConsoleBehaviour
 import po.lognotify.logNotify
+import po.test.exposify.scope.TestSessionsContext.SessionIdentity
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.PageEntity
 import po.test.exposify.setup.Pages
@@ -46,6 +46,9 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
     companion object{
         @JvmStatic
         var updatedById : Long = 0
+
+        @JvmStatic
+        val session = SessionIdentity("0", "192.169.1.1")
 
     }
 
@@ -92,7 +95,7 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
         pages[2].langId = 2
         pages[3].langId = 2
 
-        withSession2{
+        withSession(session){
             updatedPages = runSequence(PageDTO.UPDATE){
                 withData(pages)
             }.getData()
@@ -107,7 +110,7 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
         )
 
         var selectPages : List<Page> = emptyList()
-        withSession2 {
+        withSession(session) {
             selectPages = runSequence(PageDTO.SELECT){
                 withQuery{ PageDTO.whereQuery().equalsTo(Pages.langId, 2) }
             }.getData()
@@ -150,7 +153,7 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
         val inputSectionUpdate = Section(1, "NewName", "NewDescription", "", emptyList(), emptyList(), 1, 1, 0)
 
         var result : List<Page> = emptyList()
-        withSession2 {
+        withSession(session) {
             result =  runSequence(PageDTO.UPDATE){
                 withData(inputData)
                 onResultCollected(::testUpdated)
@@ -199,7 +202,7 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
         val inputData = pageModelsWithSections(pageCount = 1, sectionsCount = 1, updatedBy = updatedById)
         val inputSectionUpdate = Section(1, "NewName", "NewDescription", "", emptyList(), emptyList(), 1, 1, 0)
         var result : List<Section> = emptyList()
-        withSession2 {
+        withSession(session) {
             result = runSequence(SectionDTO.UPDATE, { PageDTO.switchQuery(1L) }) {
                 withData(inputSectionUpdate)
                 usingRoot(PageDTO.UPDATE) {

@@ -6,8 +6,6 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.count
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import po.lognotify.classes.notification.enums.EventType
 import po.lognotify.classes.notification.models.ConsoleBehaviour
@@ -18,7 +16,12 @@ import po.lognotify.classes.notification.sealed.ProviderLogNotify
 import po.lognotify.classes.notification.sealed.ProviderProcess
 import po.lognotify.classes.notification.sealed.ProviderTask
 import po.lognotify.classes.process.LoggProcess
-import po.lognotify.classes.task.TaskSealedBase
+import po.lognotify.classes.task.RootTaskSync
+import po.lognotify.classes.task.SubTask
+import po.lognotify.classes.task.SubTaskSync
+import po.lognotify.classes.task.TaskBaseSync
+import po.lognotify.classes.task.interfaces.ResultantTask
+import po.lognotify.classes.task.interfaces.TopTask
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.helpers.StaticHelper
 import po.lognotify.models.TaskDispatcher
@@ -32,12 +35,15 @@ interface NotificationProvider{
     fun warn(message: String)
 }
 
-class RootNotifier(
+class ClassLevelNotifier(
     dispatcher: TaskDispatcher,
     coroutineInfo: CoroutineInfo?,
     config : NotifyConfig = NotifyConfig(),
 ): NotifierBase(ProviderLogNotify(dispatcher, coroutineInfo)){
 
+    override fun emitNotification(notification: Notification) {
+
+    }
 }
 
 class ProcessNotifier(
@@ -45,22 +51,14 @@ class ProcessNotifier(
     private val process: LoggProcess<*>,
 ) : NotifierBase(ProviderProcess(process)), NotificationProvider,  StaticHelper{
 
+    override fun emitNotification(notification: Notification) {
+
+    }
 }
 
-class Notifier(
-    private val task: TaskSealedBase<*>,
+class RootNotifier(
+    private val task: TopTask<*>,
 ) : NotifierBase(ProviderTask(task)), NotificationProvider, StaticHelper{
-
-
-
-}
-
-sealed class NotifierBase(
-    private val provider: DataProvider
-): StaticHelper, NotificationProvider {
-
-    
-    var config : NotifyConfig = NotifyConfig()
 
     private var hasRealEvents = false
     private val bufferedNotifications = mutableListOf<Notification>()
@@ -70,6 +68,64 @@ sealed class NotifierBase(
         onBufferOverflow = BufferOverflow.SUSPEND
     )
     val notifications: SharedFlow<Notification> = notificationFlow.asSharedFlow()
+
+    override fun emitNotification(notification: Notification) {
+        CoroutineScope(Dispatchers.Default).launch {
+            notificationFlow.emit(notification)
+        }
+    }
+
+    fun reEmmit(notification: Notification){
+        emitNotification(notification)
+    }
+}
+
+
+
+//class RootNotifierSync(
+//    private val task: RootTaskSync<*>,
+//) : NotifierBase(ProviderTask(task)), NotificationProvider, StaticHelper{
+//
+//
+//    private var hasRealEvents = false
+//    private val bufferedNotifications = mutableListOf<Notification>()
+//    private val notificationFlow = MutableSharedFlow<Notification>(
+//        replay = 10,
+//        extraBufferCapacity = 64,
+//        onBufferOverflow = BufferOverflow.SUSPEND
+//    )
+//    val notifications: SharedFlow<Notification> = notificationFlow.asSharedFlow()
+//
+//    override fun emitNotification(notification: Notification) {
+//        CoroutineScope(Dispatchers.Default).launch {
+//            notificationFlow.emit(notification)
+//        }
+//    }
+//
+//    fun reEmmit(notification: Notification){
+//        emitNotification(notification)
+//    }
+//}
+
+class SubNotifier(
+    private val task: ResultantTask,
+    private val rootNotifier: RootNotifier
+): NotifierBase(ProviderTask(task)), NotificationProvider, StaticHelper{
+
+    override fun emitNotification(notification: Notification) {
+        rootNotifier.reEmmit(notification)
+    }
+}
+
+sealed class NotifierBase(
+    private val provider: DataProvider
+): StaticHelper, NotificationProvider {
+
+    var config : NotifyConfig = NotifyConfig()
+
+    private var hasRealEvents = false
+    private val bufferedNotifications = mutableListOf<Notification>()
+
 
     private fun toConsole(notification: Notification) {
 
@@ -91,12 +147,12 @@ sealed class NotifierBase(
         }
     }
 
-    protected fun emitNotification(notification: Notification) {
+    protected fun processNotification(notification: Notification){
         when(config.console){
             ConsoleBehaviour.Mute->{ }
             ConsoleBehaviour.MuteInfo -> {
                 if(notification.severity != SeverityLevel.INFO){
-                   toConsole(notification)
+                    toConsole(notification)
                 }
             }
             ConsoleBehaviour.MuteNoEvents -> {
@@ -118,13 +174,13 @@ sealed class NotifierBase(
                 }
             }
             ConsoleBehaviour.FullPrint -> {
-                 toConsole(notification)
+                toConsole(notification)
             }
         }
-        CoroutineScope(Dispatchers.Default).launch {
-            notificationFlow.emit(notification)
-        }
+        emitNotification(notification)
     }
+
+    abstract fun emitNotification(notification: Notification)
 
     private fun createTaskNotification(
         provider: DataProvider,
@@ -137,12 +193,11 @@ sealed class NotifierBase(
             type,
             severity,
             message)
-
-        emitNotification(notification)
+        processNotification(notification)
     }
 
     internal fun submitNotification(notification : Notification){
-        emitNotification(notification)
+        processNotification(notification)
     }
 
     fun setNotifierConfig(configuration : NotifyConfig){
@@ -153,11 +208,11 @@ sealed class NotifierBase(
         return config
     }
 
-    internal fun systemInfo(type : EventType,  severity: SeverityLevel, message: String = ""){
+    fun systemInfo(type : EventType,  severity: SeverityLevel, message: String = ""){
         createTaskNotification(provider, message, type,  severity)
     }
 
-    internal fun systemInfo(eventType : EventType,  severity: SeverityLevel, process: LoggProcess<*>){
+    fun systemInfo(eventType : EventType,  severity: SeverityLevel, process: LoggProcess<*>){
         when(eventType){
             EventType.START->{
                 val message = "Process [${process.name}] id: ${process.identifiedAs} entered Task ${provider.name}"
@@ -186,6 +241,12 @@ sealed class NotifierBase(
     override fun warn(message: String){
         createTaskNotification(provider, message,  EventType.MESSAGE, SeverityLevel.WARNING)
     }
+    fun warn(th: Throwable, message: String){
+        val str = "$message With Exception :${th.message.toString()}"
+        createTaskNotification(provider, str,  EventType.MESSAGE, SeverityLevel.WARNING)
+    }
+
+
     override fun error(ex: Throwable, optMessage: String) {
         val str = "${ex.message.toString()} $optMessage"
         createTaskNotification(provider, str,  EventType.MESSAGE, SeverityLevel.EXCEPTION)

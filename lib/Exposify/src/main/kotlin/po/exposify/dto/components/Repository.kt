@@ -22,10 +22,9 @@ import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.getOrOperationsEx
 import po.exposify.extensions.testOrThrow
 import po.lognotify.TasksManaged
-import po.lognotify.classes.task.TaskHandler
+import po.lognotify.classes.task.TaskHandlerBase
 import po.lognotify.extensions.subTask
 import po.lognotify.lastTaskHandler
-import po.misc.types.getOrThrow
 import kotlin.collections.forEach
 
 class SingleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
@@ -119,10 +118,12 @@ class MultipleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
     }.resultOrException()
 
     override suspend fun loadHierarchyByEntity(){
-
         binding.getForeignEntities(hostingDTO.daoEntity).map { entity ->
             childFactory.createDto().also { dto ->
+                binding.saveDataModel(dto.dataModel)
                 dto.dtoPropertyBinder.update(entity.containerize(UpdateMode.ENTITY_TO_MODEL, null, true))
+                dto.dtoClass.config.dtoFactory.createDataModel()
+
                 store(dto)
                 dto.getDtoRepositories().forEach { it.loadHierarchyByEntity() }
             }
@@ -156,7 +157,7 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, C_DTO,  CD, CE>(
 
     abstract override val qualifiedName: String
     override val dtoClass : DTOClass<C_DTO, CD, CE> get() = childClass
-    override val logger : TaskHandler<*> get() = lastTaskHandler()
+    override val logger : TaskHandlerBase<*> get() = lastTaskHandler()
 
     var initialized: Boolean = false
 

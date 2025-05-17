@@ -90,6 +90,9 @@ class MultipleChildContainer<DTO, DATA, ENTITY, F_DTO, FD, FE>(
     fun saveDataModels(dataModels:List<FD>)
             = bindingDelegate.saveDataModels(dataModels)
 
+    fun saveDataModel(dataModel:FD)
+            = bindingDelegate.saveDataModels(listOf(dataModel))
+
     fun attachToForeignEntity(container: EntityUpdateContainer<FE, DTO, DATA, ENTITY>): Unit
         = bindingDelegate.attachToForeignEntity(container)
 

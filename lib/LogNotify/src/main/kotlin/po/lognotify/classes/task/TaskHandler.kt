@@ -3,38 +3,40 @@ package po.lognotify.classes.task
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import po.lognotify.classes.notification.Notifier
+import po.lognotify.classes.notification.NotifierBase
+import po.lognotify.classes.notification.RootNotifier
+import po.lognotify.classes.notification.SubNotifier
 import po.lognotify.exceptions.ExceptionHandler
+import po.lognotify.exceptions.ExceptionHandlerSync
 import po.lognotify.models.TaskKey
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
 
-class TaskHandler<R: Any?>(
-    val task : TaskSealedBase<R>,
-    val exceptionHandler: ExceptionHandler<R>
-):HandledTask<R>{
 
+sealed class TaskHandlerBase<R: Any?>(){
 
-    override val key: TaskKey = task.key
-    override val notifier: Notifier get() = task.notifier
+    abstract val key: TaskKey
+    abstract val notifier: NotifierBase
 
     fun echo(message: String){
         notifier.echo(message)
     }
     fun info(message: String){
-       notifier.info(message)
+        notifier.info(message)
     }
     fun warn(message: String){
         notifier.warn(message)
     }
+    fun warn(th : Throwable, message: String) = notifier.warn(th, message)
+}
 
-    fun hierarchyRoot(): RootTask<*>{
-        return if(task is ManagedTask<*>){
-            task.hierarchyRoot
-        }else{
-            task as RootTask
-        }
-    }
+class TaskHandler<R: Any?>(
+    val task : TaskAsyncBase<R>,
+    val exceptionHandler: ExceptionHandler<R>,
+):TaskHandlerBase<R>(), HandledTask<R>{
+
+    override val key: TaskKey get() = task.key
+    override val notifier: NotifierBase get() = task.notifier
 
     override suspend fun handleFailure(vararg  handlers: HandlerType, fallbackFn: suspend (exception: ManagedException)->R){
         exceptionHandler.provideHandlerFn(handlers.toSet() , fallbackFn)
@@ -50,12 +52,26 @@ class TaskHandler<R: Any?>(
         }
         return result as R2
     }
+}
 
-//    suspend inline fun <T, R2> T.runManagedJob(crossinline  block: suspend T.()->R2){
-//       val managedJob = ManagedJob(task)
-//       managedJob.startJob(this@TaskHandler, this@runManagedJob, block)
-//    }
-//
-//
+
+class RootSyncTaskHandler<R: Any?>(
+    val task : RootTaskSync<R>,
+    val exceptionHandler : ExceptionHandlerSync<R>
+): TaskHandlerBase<R>(){
+
+    override val notifier: RootNotifier = RootNotifier(task)
+    override val key: TaskKey get() = task.key
+}
+
+class SyncTaskHandler<R: Any?>(
+    val task : SubTaskSync<R>,
+    val exceptionHandler : ExceptionHandlerSync<R>
+): TaskHandlerBase<R>(){
+
+    override val notifier: SubNotifier = SubNotifier(task, task.rootTask.notifier)
+    override val key: TaskKey get() = task.key
 
 }
+
+

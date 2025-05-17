@@ -15,8 +15,9 @@ import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.auth.models.CryptoRsaKeys
 import po.lognotify.TasksManaged
 import po.lognotify.classes.task.TaskHandler
-import po.lognotify.extensions.lastTaskHandler
+import po.lognotify.classes.task.TaskHandlerBase
 import po.lognotify.extensions.subTask
+import po.lognotify.lastTaskHandler
 import po.restwraptor.RestWrapTor
 import po.restwraptor.models.configuration.ApiConfig
 import po.restwraptor.models.configuration.AuthConfig
@@ -30,10 +31,6 @@ interface ConfigContextInterface{
         cryptoKeys: CryptoRsaKeys,
         userLookupFn: suspend ((login: String)-> AuthenticationPrincipal?),
         configFn  : (suspend AuthConfigContext.()-> Unit)? = null)
-   // suspend fun setup(configFn : suspend WraptorConfig.()-> Unit)
-   // suspend fun setup(configuration : WraptorConfig, configFn : suspend WraptorConfig.()-> Unit)
-   // fun setupApplication(block: Application.()->Unit)
-    //suspend fun initialize():Application
 }
 
 class ConfigContext(
@@ -124,7 +121,7 @@ class ConfigContext(
         return app
     }
 
-    internal fun getThisTaskHandler(): TaskHandler<*>{
+    internal fun getThisTaskHandler(): TaskHandlerBase<*>{
         return lastTaskHandler()
     }
 
