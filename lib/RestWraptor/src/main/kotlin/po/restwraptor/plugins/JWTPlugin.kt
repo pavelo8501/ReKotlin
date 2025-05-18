@@ -71,7 +71,7 @@ val JWTPlugin: ApplicationPlugin<JWTPluginConfig> = createApplicationPlugin(
     }
 
     on(CallSetup) { call ->
-        newTask("Processing incoming call", call.coroutineContext, "JWTPlugin") { handler ->
+        newTask("Processing incoming call") { handler ->
             val path = call.request.path()
             handler.info("Processing call to $path")
 

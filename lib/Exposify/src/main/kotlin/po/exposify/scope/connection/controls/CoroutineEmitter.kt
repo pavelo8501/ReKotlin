@@ -23,7 +23,7 @@ class CoroutineEmitter(
             where DTO : ModelDTO,  D: DataModel, E: LongEntity
     {
         return session.launchProcess {
-            session.sessionContext.newTask("Sequence launch(dispatchRoot)", "CoroutineEmitter") {
+            session.sessionContext.newTask("Sequence launch(dispatchRoot)") {
                var result =  ResultList(rootHandler.dtoRoot)
                 newSuspendedTransaction(Dispatchers.IO) {
                     result = rootHandler.launch(session)
@@ -42,7 +42,7 @@ class CoroutineEmitter(
                 F_DTO: ModelDTO,FD : DataModel, FE : LongEntity {
 
         return session.launchProcess {
-            session.sessionContext.newTask("Sequence launch(dispatchChild)", "CoroutineEmitter") {
+            session.sessionContext.newTask("Sequence launch(dispatchChild)") {
                 var result =  ResultList(classHandler.dtoClass)
                 newSuspendedTransaction(Dispatchers.IO) {
                     classHandler.handlerConfig.rootHandler.launch(session)

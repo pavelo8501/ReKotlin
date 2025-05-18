@@ -1,30 +1,40 @@
 package po.lognotify.classes.task.interfaces
 
+import po.lognotify.classes.notification.NotifierBase
 import po.lognotify.classes.notification.RootNotifier
 import po.lognotify.classes.task.TaskHandler
-import po.lognotify.classes.task.TaskHandlerBase
-import po.lognotify.models.CommonTaskRegistry
+import po.lognotify.exceptions.ExceptionHandler
 import po.lognotify.models.TaskKey
 import po.lognotify.models.TaskRegistry
-import po.misc.exceptions.ManagedException
-import po.misc.time.ExecutionTimeStamp
 import po.misc.time.MeasuredContext
-import kotlin.coroutines.CoroutineContext
+import po.misc.types.UpdateType
 
 
-interface TopTask<R: Any?>: MeasuredContext, ResultantTask {
-    override val key : TaskKey
-    val notifier : RootNotifier
+interface TopTask<R: Any?>: MeasuredContext, ResultantTask<R> {
+    override val notifier : RootNotifier<R>
     val subTasksCount: Int
     val isComplete: Boolean
-    val registry: CommonTaskRegistry
+    val registry: TaskRegistry<R>
 }
 
-interface ChildTask{
+
+interface ResultantTask<R:Any?> : MeasuredContext{
     val key : TaskKey
+    val handler: TaskHandler<R>
+    val notifier : NotifierBase
+    val exceptionHandler: ExceptionHandler<R>
 }
 
-interface ResultantTask : MeasuredContext{
-    val key : TaskKey
-    val taskHandler: TaskHandlerBase<*>
+
+interface UpdatableTasks{
+
+    // fun onTaskCreated(handler: UpdateType, callback: (TaskDispatcher.LoggerStats)-> Unit)
+    // fun onTaskComplete(handler: UpdateType, callback: (TaskDispatcher.LoggerStats)-> Unit)
+
+    fun notifyUpdate(handler: UpdateType)
+}
+
+interface HandledTask<R: Any?>{
+    val notifier: NotifierBase
+    //fun handleFailure(vararg  handlers: HandlerType, fallbackFn: (exception: ManagedException)->R)
 }

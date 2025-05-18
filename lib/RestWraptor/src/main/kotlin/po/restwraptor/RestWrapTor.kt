@@ -98,7 +98,7 @@ class RestWrapTor(
     private val serviceScope = CoroutineScope(Dispatchers.IO + CoroutineName("WrapTor service"))
 
     private fun engineStarted(engine: ApplicationEngine){
-        newTaskAsync("EngineStarted", personalName){
+        newTaskAsync("EngineStarted"){
             engine.resolvedConnectors().forEach {
                 connectors.add("${it.type}|${it.host}:${it.port}")
             }
@@ -170,7 +170,7 @@ class RestWrapTor(
 
     private fun setupConfig(app : Application) {
 
-        newTaskAsync("Configuration", "RestWrapTor"){handler->
+        newTaskAsync("Configuration"){handler->
             _application = app
             hasCoreContext  = CoreContext(app, this)
 

@@ -1,7 +1,6 @@
-package po.lognotify.classes.task
+package po.misc.types
 
 import po.misc.callbacks.ValueBasedEnum
-
 
 sealed class UpdateType(override val value: Int): ValueBasedEnum {
    override fun byValue(intValue:Int):UpdateType {

@@ -3,30 +3,23 @@ package po.lognotify.exceptions
 import po.lognotify.classes.notification.enums.EventType
 import po.lognotify.classes.notification.models.Notification
 import po.lognotify.classes.notification.sealed.ProviderTask
-import po.lognotify.classes.task.TaskAsyncBase
-import po.lognotify.classes.task.TaskBaseSync
+import po.lognotify.classes.task.interfaces.ResultantTask
+import po.lognotify.classes.task.result.TaskResult
+import po.lognotify.classes.task.result.toTaskResult
 import po.lognotify.enums.SeverityLevel
-import po.lognotify.exceptions.ExceptionHandler.HandlerResult
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
 
 interface ExceptionHandled<R: Any?> {
 
-   suspend fun handleManaged(managedEx: ManagedException): HandlerResult<R>
-   suspend fun provideHandlerFn(handlers : Set<HandlerType>, handlerFn: suspend (exception: ManagedException)->R)
+   fun handleManaged(managedEx: ManagedException): TaskResult<R>
+  // fun provideHandlerFn(handlers : Set<HandlerType>, handlerFn: (exception: ManagedException)->R)
 
 }
 
 class ExceptionHandler<R: Any?>(
-   private val task : TaskAsyncBase<R>,
+   private val task : ResultantTask<R>,
 ) : ExceptionHandled<R> {
-
-   class HandlerResult<R: Any?>(
-      val value:R? = null,
-      val exception: ManagedException? = null,
-   ){
-      val success: Boolean = exception!=null
-   }
 
    private fun notifyHandlerSet(handler : HandlerType){
       val message = "$handler handle set"
@@ -57,14 +50,12 @@ class ExceptionHandler<R: Any?>(
           Message: ${managedEx.message}
       """.trimIndent()
 
-      if(managedEx.snapshot != null){
-         val snapshotStr = managedEx.snapshot!!.map { "${it.key} = ${it.value}" }.joinToString(";")
+         val snapshotStr = managedEx.propertySnapshot.map { "${it.key} = ${it.value}" }.joinToString(";")
          message = """  
              Unhandled in Task:${task.key.taskName}| Module: ${task.key.moduleName}| Nesting: ${task.key.nestingLevel}
              Message: ${managedEx.message}
              Snapshot: $snapshotStr
          """.trimIndent()
-      }
 
       val notification = Notification(
          ProviderTask(task),
@@ -75,28 +66,32 @@ class ExceptionHandler<R: Any?>(
       task.notifier.submitNotification(notification)
    }
 
-   val registeredHandlers : MutableMap<HandlerType, suspend ( exception: ManagedException)->R> = mutableMapOf()
+   val registeredAsyncHandlers : MutableMap<HandlerType, suspend (exception:  ManagedException)->R> = mutableMapOf()
+   val registeredHandlers : MutableMap<HandlerType, (exception:  ManagedException)->R> = mutableMapOf()
 
-   override suspend fun provideHandlerFn(handlers : Set<HandlerType>, handlerFn: suspend (exception: ManagedException)->R){
+   suspend fun provideAsyncHandlerFn(handlers : Set<HandlerType>, handlerFn: suspend (exception: ManagedException)->R){
+      handlers.forEach {
+         registeredAsyncHandlers[it] = handlerFn
+         notifyHandlerSet(it)
+      }
+   }
+
+   fun provideHandlerFn(handlers : Set<HandlerType>, handlerFn: (exception: ManagedException)->R){
       handlers.forEach {
          registeredHandlers[it] = handlerFn
          notifyHandlerSet(it)
       }
    }
 
-   suspend fun isHandlerPresent(handler: HandlerType): Boolean{
-       return  registeredHandlers[handler]?.let { true }?:false
-   }
-
-   override suspend fun handleManaged(managedEx: ManagedException): HandlerResult<R> {
+   override fun handleManaged(managedEx: ManagedException): TaskResult<R> {
       val handlerFn = registeredHandlers[managedEx.handler]
-      val handlingResult = handlerFn?.let {
-           notifyHandled(managedEx)
-           HandlerResult<R>(handlerFn.invoke(managedEx))
-        } ?:run {
-            notifyUnhandled(managedEx)
-            HandlerResult<R>(null, managedEx)
-         }
-         return handlingResult
+      return if (handlerFn != null) {
+         notifyHandled(managedEx)
+         val result =  handlerFn.invoke(managedEx)
+         result.toTaskResult(task)
+      } else {
+         notifyUnhandled(managedEx)
+         managedEx.toTaskResult(task)
+      }
    }
 }

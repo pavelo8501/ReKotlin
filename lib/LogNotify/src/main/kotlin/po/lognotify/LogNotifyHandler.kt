@@ -1,10 +1,9 @@
 package po.lognotify
 
-import po.lognotify.classes.notification.ClassLevelNotifier
-import po.lognotify.classes.notification.RootNotifier
+import po.lognotify.classes.notification.NotifierHub
 import po.lognotify.classes.notification.models.NotifyConfig
 
-class LogNotifyHandler internal constructor(private val notifier: ClassLevelNotifier) {
+class LogNotifyHandler internal constructor(val notifier: NotifierHub) {
 
     fun notifierConfig(block: NotifyConfig.()-> Unit){
         notifier.config.block()

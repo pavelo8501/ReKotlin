@@ -1,10 +1,10 @@
 package po.lognotify.classes.jobs
 
 import po.lognotify.classes.task.TaskHandler
-import po.lognotify.classes.task.TaskAsyncBase
+import po.lognotify.classes.task.TaskBase
 
 class ManagedJob(
-    val task : TaskAsyncBase<*>,
+    val task : TaskBase<*>,
 ) {
     suspend inline fun <T, R, R2> startJob(
         taskHandler: TaskHandler<R2>,

@@ -1,21 +1,17 @@
 package po.lognotify.classes.notification.sealed
 
 import po.lognotify.classes.process.LoggProcess
-import po.lognotify.classes.task.TaskAsyncBase
-import po.lognotify.classes.task.TaskBaseSync
 import po.lognotify.classes.task.interfaces.ResultantTask
-import po.lognotify.classes.task.interfaces.TopTask
-
 import po.lognotify.models.TaskDispatcher
 import po.misc.exceptions.CoroutineInfo
 import po.misc.time.ExecutionTimeStamp
 
 
 
-data class ProviderTask(val task: ResultantTask) :DataProvider(){
+data class ProviderTask(val task: ResultantTask<*>) :DataProvider(){
     override val name: String = task.key.taskName
     override val id: String = task.key.taskId.toString()
-    override val module: String = task.key.moduleName?:"N/A"
+    override val module: String = task.key.moduleName
     override val nestingLevel: Int = task.key.nestingLevel
     override val coroutineInfo: CoroutineInfo? = null
     override var executionTime : ExecutionTimeStamp? = task.executionTimeStamp
@@ -31,7 +27,7 @@ data class ProviderProcess(val process: LoggProcess<*>) :DataProvider(){
 }
 
 data class ProviderLogNotify(
-    val dispatcher: TaskDispatcher,
+  //  val dispatcher: TaskDispatcher,
     override val  coroutineInfo: CoroutineInfo? = null
 ) :DataProvider()
 {

@@ -137,14 +137,14 @@ sealed class ComplexDelegate<DTO, D, E, F_DTO, FD,  FE, DATA_VAL, RES_VAL>(
 
     suspend fun  beforeInsertedUpdate(
         updateContainer: EntityUpdateContainer<E, *, *, *>
-    ): Unit = subTask("BeforeInsertedUpdate", qualifiedName){
+    ): Unit = subTask("BeforeInsertedUpdate"){
         update(true, updateContainer.castOrOperationsEx())
 
     }.resultOrException()
 
     suspend fun  afterInsertedUpdate(
         updateContainer: EntityUpdateContainer<E, *, *, *>
-    ): Unit = subTask("AfterInsertedUpdate", qualifiedName){handler->
+    ): Unit = subTask("AfterInsertedUpdate"){handler->
         withTransactionIfNone(handler) {
             update(false, updateContainer.castOrOperationsEx())
         }

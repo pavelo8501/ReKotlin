@@ -10,7 +10,7 @@ import po.exposify.scope.service.ServiceContext
 import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.newTaskAsync
-import po.lognotify.extensions.newTaskSync
+import po.lognotify.extensions.newTaskBlocking
 import po.lognotify.lastTaskHandler
 
 class ConnectionContext(
@@ -33,7 +33,7 @@ class ConnectionContext(
 
         val serviceClass =  ServiceClass(dtoClass, connClass, createOptions)
          with(lastTaskHandler()){
-             newTaskSync("Create Service", "ConnectionContext"){
+             newTaskBlocking("Create Service"){
                  info("Creating ServiceClass")
                  serviceClass.qualifiedName
                  connClass.addService(serviceClass)
@@ -42,7 +42,7 @@ class ConnectionContext(
              }
          }
 
-        newTaskAsync("Launch ServiceContext", "ConnectionContext"){handler->
+        newTaskAsync("Launch ServiceContext"){handler->
             handler.info("Launching ServiceContext")
             connClass.getService<DTO, D, E>(serviceClass.qualifiedName)?.runServiceContext(block)
         }

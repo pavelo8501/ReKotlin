@@ -6,7 +6,7 @@ import po.lognotify.classes.notification.RootNotifier
 import po.lognotify.classes.notification.models.Notification
 
 
-suspend fun CoroutineScope.subscribeTo(notifier: RootNotifier, notificationFn: (suspend (Notification)-> Unit)? =null) {
+suspend fun CoroutineScope.subscribeTo(notifier: RootNotifier<*>, notificationFn: (suspend (Notification)-> Unit)? =null) {
 
     launch {
             notifier.notifications.collect { notification ->

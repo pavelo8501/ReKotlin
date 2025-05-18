@@ -13,15 +13,12 @@ import po.exposify.dto.components.tracker.extensions.addTrackerInfo
 import po.exposify.dto.interfaces.ComponentType
 import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.exceptions.OperationsException
-import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.castOrOperationsEx
 import po.exposify.extensions.getOrOperationsEx
 import po.lognotify.TasksManaged
 import po.lognotify.anotations.LogOnFault
-import po.lognotify.extensions.onFailureCause
+import po.lognotify.classes.task.result.onFailureCause
 import po.lognotify.extensions.subTask
-import po.lognotify.lastTaskHandler
 import po.misc.types.getKType
 import kotlin.collections.get
 import kotlin.reflect.KClass
@@ -110,7 +107,7 @@ class DTOFactory<DTO, DATA, ENTITY>(
      * @return DATA
      * */
     suspend fun createDataModel():DATA
-      = subTask("Create DataModel", qualifiedName) {
+      = subTask("Create DataModel") {
         val constructFn = dataModelBuilderFn
         val dataModel = if (constructFn != null) {
             constructFn.invoke()
@@ -147,7 +144,7 @@ class DTOFactory<DTO, DATA, ENTITY>(
      * @return DTOFunctions<DATA, ENTITY> or null
      * */
     suspend fun createDto(withDataModel : DATA? = null): CommonDTO<DTO, DATA, ENTITY> =
-        subTask("Create DTO", qualifiedName){handler->
+        subTask("Create DTO"){handler->
         val dataModel = withDataModel?: createDataModel()
         dtoBlueprint.setExternalParamLookupFn { param ->
             when (param.name) {

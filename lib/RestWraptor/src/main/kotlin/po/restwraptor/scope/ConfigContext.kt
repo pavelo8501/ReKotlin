@@ -164,7 +164,7 @@ class ConfigContext(
         application.rootPath = apiConfig.baseApiRoute
         installCoreAuth(application)
         applicationConfigFn?.invoke(application)
-        subTask("Initialization", personalName){
+        subTask("Initialization"){
             if(apiConfig.cors){
                 configCors(application)
             }

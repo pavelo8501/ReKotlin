@@ -50,35 +50,35 @@ class SequenceContext<DTO, DATA, ENTITY>(
     }
 
     suspend fun SequenceContext<DTO, DATA, ENTITY>.pick(conditions: SimpleQuery): ResultSingle<DTO, DATA, ENTITY>
-    = subTask("Pick", qualifiedName) { handler ->
+    = subTask("Pick") { handler ->
         onFirsRun()
         val result = executionContext.pick(conditions)
         submitLatestResult(result)
     }.resultOrException()
 
     suspend fun SequenceContext<DTO, DATA, ENTITY>.pickById(id: Long): ResultSingle<DTO, DATA, ENTITY>
-    = subTask("PickById", qualifiedName) { handler ->
+    = subTask("PickById") { handler ->
         onFirsRun()
         val result = executionContext.pickById(id)
         submitLatestResult(result)
     }.resultOrException()
 
     suspend fun select(conditions: SimpleQuery):ResultList<DTO, DATA, ENTITY>
-    = subTask("Select", qualifiedName) { handler ->
+    = subTask("Select") { handler ->
         onFirsRun()
         val result = executionContext.select(conditions)
         submitLatestResult(result)
     }.resultOrException()
 
     suspend fun select():ResultList<DTO, DATA, ENTITY>
-    = subTask("Select", qualifiedName) { handler ->
+    = subTask("Select") { handler ->
         onFirsRun()
         val result = executionContext.select()
         submitLatestResult(result)
     }.resultOrException()
 
     suspend fun update(dataModels: List<DATA>):ResultList<DTO, DATA, ENTITY>
-    = subTask("Update(List)", qualifiedName) { handler ->
+    = subTask("Update(List)") { handler ->
         checkDataListNotEmpty(dataModels)
         onFirsRun()
         val result = executionContext.update(dataModels)
@@ -86,7 +86,7 @@ class SequenceContext<DTO, DATA, ENTITY>(
     }.resultOrException()
 
     suspend fun update(dataModel: DATA): ResultSingle<DTO, DATA, ENTITY>
-            = subTask("Update(Single)", qualifiedName) { handler ->
+            = subTask("Update(Single)") { handler ->
         onFirsRun()
         val result = executionContext.update(dataModel)
         submitLatestResult(result)

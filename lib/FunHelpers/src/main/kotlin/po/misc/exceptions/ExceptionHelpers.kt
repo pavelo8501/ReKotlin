@@ -1,7 +1,5 @@
 package po.misc.exceptions
 
-
-
 inline fun <T: Any> T?.letOrException(ex : ManagedException, block: (T)-> T){
     if(this != null){
         block(this)
@@ -26,4 +24,11 @@ inline fun <reified T> Iterable<T>.countEqualsOrException(equalsTo: Int, excepti
     }else{
         return this
     }
+}
+
+fun Throwable.toInfoString(): String{
+    val base = this.javaClass.simpleName
+    val msg = message ?: ""
+    val cause = cause?.let { " | Cause: ${it.javaClass.simpleName} - ${it.message ?: "No message"}" } ?: ""
+    return "$base: $msg$cause"
 }

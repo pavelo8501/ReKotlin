@@ -9,9 +9,9 @@ import po.exposify.scope.connection.models.ConnectionInfo
 import po.exposify.scope.connection.ConnectionClass
 import po.exposify.scope.connection.ConnectionContext
 import po.exposify.scope.connection.models.ConnectionSettings
-import po.lognotify.extensions.TaskSettings
+import po.lognotify.classes.task.models.TaskSettings
 import po.lognotify.extensions.newTaskAsync
-import po.lognotify.extensions.newTaskSync
+import po.lognotify.extensions.newTaskBlocking
 
 fun launchService(connection: ConnectionContext, block: ConnectionContext.()-> Unit ){
     if(connection.isOpen){
@@ -58,7 +58,7 @@ object DatabaseManager {
         settings : ConnectionSettings = ConnectionSettings(5),
         context: (ConnectionContext.()->Unit)? = null
     ): ConnectionContext {
-      return  newTaskSync("openConnectionBlocking", "DatabaseManager", TaskSettings(attempts = settings.retries)) {
+      return  newTaskBlocking("openConnectionBlocking", TaskSettings(attempts = settings.retries)) {
             val connectionClass = tryConnect(connectionInfo)
             val connectionContext = connectionClass.connectionContext()
             if (context != null) {
@@ -73,7 +73,7 @@ object DatabaseManager {
         connectionInfo : ConnectionInfo,
         settings : ConnectionSettings = ConnectionSettings(5),
         context: suspend ConnectionContext.()->Unit
-    ) = newTaskAsync("openConnectionBlocking", "DatabaseManager") {
+    ) = newTaskAsync("openConnectionBlocking",TaskSettings(attempts =  settings.retries) ) {
 
         val connectionClass =  tryConnect(connectionInfo)
         val connectionContext =  connectionClass.connectionContext()

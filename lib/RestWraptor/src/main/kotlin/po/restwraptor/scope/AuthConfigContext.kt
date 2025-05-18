@@ -61,7 +61,7 @@ class AuthConfigContext(
         cryptoKeys: CryptoRsaKeys,
         userLookupFn: (suspend (login: String)-> AuthenticationPrincipal?)
     ){
-        subTask("JWT Token Config", personalName) {handler->
+        subTask("JWT Token Config") {handler->
             authConfig.privateKey = cryptoKeys.privateKey
             authConfig.publicKey = cryptoKeys.publicKey
             authConfig.wellKnownPath = null

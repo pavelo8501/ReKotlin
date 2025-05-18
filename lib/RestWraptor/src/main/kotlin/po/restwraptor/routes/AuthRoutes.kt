@@ -32,8 +32,9 @@ fun Routing.configureAuthRoutes(authPrefix: String,  authConfigContext: AuthConf
 
     post(withBaseUrl(authPrefix, loginRoute)) {
 
-        newTask("Process Post login",this.call.coroutineContext,"$personalName $loginRoute") { handler ->
+        newTask("Process Post login $personalName $loginRoute") { handler ->
           val session =  call.authSessionOrNull().getOrThrow<AuthorizedSession, AuthException>("Session can not be located", ErrorCodes.SESSION_NOT_FOUND.value)
+
                 handler.handleFailure(HandlerType.SKIP_SELF){ throwable ->
                     println("Error reached")
                     when (throwable) {
@@ -50,6 +51,7 @@ fun Routing.configureAuthRoutes(authPrefix: String,  authConfigContext: AuthConf
                         }
                     }
                 }
+
                 val credentials = call.receive<LoginRequest>()
                 val principal = session.authenticate(credentials.login, credentials.password)
                 val jwtToken = session.authenticator.jwtService.generateToken(principal, session)

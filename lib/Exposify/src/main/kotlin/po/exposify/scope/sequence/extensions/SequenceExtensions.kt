@@ -25,8 +25,8 @@ suspend fun <DTO, D, E> sequence(
 
 
 //Should execute block lambda immediately. The process is already ongoing no need to store it.
-suspend context(sequenceContext: SequenceContext<F_DTO,FD, FE>)
-fun <DTO, D, E, F_DTO, FD, FE> switchContext(
+context(sequenceContext: SequenceContext<F_DTO,FD, FE>)
+suspend fun <DTO, D, E, F_DTO, FD, FE> switchContext(
     handlerDelegate : SwitchHandlerProvider<DTO, D, E, F_DTO,FD, FE>,
     switchLambda :  suspend  SequenceContext<DTO, D, E>.(ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE>)-> ResultList<DTO, D, E>
 ) where  DTO: ModelDTO, D : DataModel, E : LongEntity,

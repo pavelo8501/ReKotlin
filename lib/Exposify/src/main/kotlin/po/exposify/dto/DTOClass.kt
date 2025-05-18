@@ -60,7 +60,7 @@ abstract class RootDTO<DTO, DATA, ENTITY>()
         entityModel: ExposifyEntityClass<RE>,
         noinline block:  DTOConfig<DTO, DATA, ENTITY>.() -> Unit
     ): Unit where COMMON: ModelDTO, RD: DataModel, RE: LongEntity
-            = newTaskAsync("DTO Configuration", qualifiedName) {
+            = newTaskAsync("DTO Configuration  ${qualifiedName}") {
         val newConfiguration = DTOConfig(DTORegistryItem(RD::class, RE::class, COMMON::class), entityModel, this.castOrInitEx())
         configParameter = newConfiguration.castOrInitEx()
         block.invoke(config)
@@ -92,7 +92,7 @@ abstract class DTOClass<DTO, DATA, ENTITY>(
         entityModel: ExposifyEntityClass<RE>,
         noinline block: DTOConfig<DTO, DATA, ENTITY>.() -> Unit
     ): Unit where COMMON : ModelDTO,  RE : LongEntity, RD : DataModel
-            = newTaskAsync("DTO Configuration", qualifiedName){
+            = newTaskAsync("DTO Configuration ${qualifiedName}"){
         val newConfiguration = DTOConfig(DTORegistryItem(RD::class, RE::class, COMMON::class), entityModel, this.castOrInitEx())
         configParameter = newConfiguration.castOrInitEx()
         block.invoke(config)

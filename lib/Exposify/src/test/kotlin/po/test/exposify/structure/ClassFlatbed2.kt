@@ -112,7 +112,7 @@ import kotlin.reflect.KProperty
             entityModel: LongEntityClass<ENTITY>,
             noinline block: suspend DTOConfigTest<DATA, ENTITY>.() -> Unit
         ): Unit where COMMON : CommonDTOTest<COMMON, DATA, ENTITY>, ENTITY : LongEntity, DATA : DataModel =
-            newTaskAsync("DTO Configuration", "RootDTOTest") {
+            newTaskAsync("DTO Configuration") {
 
             }.resultOrException()
     }

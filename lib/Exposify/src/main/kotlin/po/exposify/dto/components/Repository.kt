@@ -94,7 +94,7 @@ class MultipleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
     internal val childDTO: MutableMap<Long,  CommonDTO<C_DTO, CD, CE>> = mutableMapOf()
 
     override suspend fun loadHierarchyByModel(): Unit
-    = subTask("Update", qualifiedName){ handler->
+    = subTask("Update"){ handler->
         val dataModels = binding.getDataModels(hostingDTO.dataModel)
         handler.info("Update for parent dto ${hostingDTO.dtoName} and id ${hostingDTO.id} ")
         handler.info("Data Models count :${dataModels.count()} received from property ${binding.delegateName}")
