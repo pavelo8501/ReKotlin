@@ -45,6 +45,7 @@ class UserDTO(
     companion object: RootDTO<UserDTO, User, UserEntity>(){
 
         val SELECT by RootHandlerProvider(this)
+        val PICK by RootHandlerProvider(this)
 
         override fun setup() {
             configuration<UserDTO, User, UserEntity>(UserEntity){

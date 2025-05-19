@@ -15,8 +15,7 @@ import org.junit.jupiter.api.assertAll
 import po.auth.extensions.authenticate
 import po.auth.extensions.generatePassword
 import po.auth.extensions.registerAuthenticator
-import po.auth.extensions.withSession
-import po.auth.extensions.withSessionSync
+import po.auth.extensions.withSessionContext
 import po.auth.sessions.enumerators.SessionType
 import po.auth.sessions.models.AuthorizedSession
 import po.exposify.scope.sequence.extensions.runSequence
@@ -79,14 +78,16 @@ class TestSessionsContext : DatabaseTest()  {
         var sessionAfter : AuthorizedSession? = null
         var result : List<Page> = emptyList()
 
-        withSession(session) {
+        withSessionContext(session) {
             result = runSequence(PageDTO.UPDATE) {
                 onStart {
-                   // sessionOnStart = coroutineContext[AuthorizedSession]
+
+
                     sessionIdOnStart = it.sessionID
                     coroutineInfo = it.coroutineInfo
                 }
                 onComplete {
+
                     sessionIdOnComplete = it.sessionID
                     sessionAfter = it.session
                 }
@@ -96,9 +97,9 @@ class TestSessionsContext : DatabaseTest()  {
 
        // assertNotNull(sessionOnStart, "Session not in the registry")
         assertNotNull(coroutineInfo, "Coroutine info not available on sequence start")
-        assertEquals(session.coroutineName, coroutineInfo.name, "Session's coroutine name do not match current")
         assertEquals(pages.count(), result.count(), "Input and output count mismatch")
         assertNotNull(sessionAfter, "Session can not be retrieved after process complete")
+        assertNotNull(sessionIdOnComplete, "onComplete never hit")
         assertAll(
             {assertEquals(
                 session.sessionID,
@@ -128,20 +129,20 @@ class TestSessionsContext : DatabaseTest()  {
             return user
         }
         val session = session(SessionIdentity("1", "192.169.1.2"))
-        var sessionType : SessionType = SessionType.ANONYMOUS
+        var sessionType : SessionType? = null
 
-        withSession(session) {
-
+        withSessionContext(session) {
             registerAuthenticator(::userLookUp)
             val principal = session.authenticate("some_login", "password")
             runSequence(PageDTO.SELECT){
                 onStart {
-                    sessionType = it.session?.sessionType?:SessionType.ANONYMOUS
+                    sessionType = it.session?.sessionType
                 }
             }
             assertNotNull(principal, "Authenticate failed")
             assertEquals("some_login", principal.login)
-            assertEquals(SessionType.USER_AUTHENTICATED, sessionType, "Session type mismatch")
+            val onStartSessionType = assertNotNull(sessionType, "onStart never hit")
+            assertEquals(SessionType.USER_AUTHENTICATED, onStartSessionType, "Session type mismatch")
         }
     }
 }

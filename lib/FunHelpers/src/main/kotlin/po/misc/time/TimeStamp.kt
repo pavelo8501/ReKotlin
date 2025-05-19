@@ -8,10 +8,7 @@ data class ExecutionTimeStamp(val name: String, var id: String) {
     var elapsed: Float = 0.0F
         private set
 
-    fun stopTimer(id: String? = null): ExecutionTimeStamp {
-        if(id != null){
-            this.id = id
-        }
+    fun stopTimer(): ExecutionTimeStamp {
         endTime = System.nanoTime()
         elapsed = (endTime - startTime) / 1_000_000f
         return this

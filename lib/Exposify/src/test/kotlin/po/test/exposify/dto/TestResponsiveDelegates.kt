@@ -11,9 +11,9 @@ import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.ConsoleBehaviour
 import po.lognotify.logNotify
-import po.test.exposify.setup.ClassItem
+import po.test.exposify.setup.ClassData
 import po.test.exposify.setup.DatabaseTest
-import po.test.exposify.setup.MetaTag
+import po.test.exposify.setup.MetaData
 import po.test.exposify.setup.dtos.PageDTO
 import po.test.exposify.setup.dtos.User
 import po.test.exposify.setup.dtos.UserDTO
@@ -55,8 +55,8 @@ class TestResponsiveDelegates : DatabaseTest(), TasksManaged {
 
     @Test
     fun `Serializable delegates`(){
-        val classes : List<ClassItem> = listOf(ClassItem(1,"class_1"), ClassItem(2,"class_2"), ClassItem(3,"class_3"))
-        val metaTags : List<MetaTag> = listOf(MetaTag(1,"key1", "value1"), MetaTag(2,"key2", "value2"))
+        val classes : List<ClassData> = listOf(ClassData(1,"class_1"), ClassData(2,"class_2"), ClassData(3,"class_3"))
+        val metaTags : List<MetaData> = listOf(MetaData(1,"key1", "value1"), MetaData(2,"key2", "value2"))
         val inputPages = pageModelsWithSections(
             pageCount = 1,
             sectionsCount = 1,

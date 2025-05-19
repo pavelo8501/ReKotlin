@@ -10,7 +10,7 @@ import po.auth.authentication.exceptions.AuthException
 import po.auth.authentication.exceptions.ErrorCodes
 import po.auth.extensions.authenticate
 import po.auth.sessions.models.AuthorizedSession
-import po.lognotify.extensions.newTask
+import po.lognotify.extensions.runTask
 import po.misc.exceptions.HandlerType
 import po.misc.types.getOrThrow
 import po.restwraptor.enums.WraptorHeaders
@@ -27,14 +27,10 @@ import po.restwraptor.scope.AuthConfigContext
 
 fun Routing.configureAuthRoutes(authPrefix: String,  authConfigContext: AuthConfigContext) {
     val personalName = "AuthRoutes"
-
     val loginRoute = "login"
-
     post(withBaseUrl(authPrefix, loginRoute)) {
-
-        newTask("Process Post login $personalName $loginRoute") { handler ->
+        runTask("Process Post login $personalName $loginRoute") { handler ->
           val session =  call.authSessionOrNull().getOrThrow<AuthorizedSession, AuthException>("Session can not be located", ErrorCodes.SESSION_NOT_FOUND.value)
-
                 handler.handleFailure(HandlerType.SKIP_SELF){ throwable ->
                     println("Error reached")
                     when (throwable) {

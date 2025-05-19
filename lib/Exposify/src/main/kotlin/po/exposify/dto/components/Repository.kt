@@ -22,7 +22,7 @@ import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.getOrOperationsEx
 import po.exposify.extensions.testOrThrow
 import po.lognotify.TasksManaged
-import po.lognotify.classes.task.TaskHandlerBase
+import po.lognotify.classes.task.TaskHandler
 import po.lognotify.extensions.subTask
 import po.lognotify.lastTaskHandler
 import kotlin.collections.forEach
@@ -157,7 +157,7 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, C_DTO,  CD, CE>(
 
     abstract override val qualifiedName: String
     override val dtoClass : DTOClass<C_DTO, CD, CE> get() = childClass
-    override val logger : TaskHandlerBase<*> get() = lastTaskHandler()
+    override val logger : TaskHandler<*> get() = lastTaskHandler()
 
     var initialized: Boolean = false
 

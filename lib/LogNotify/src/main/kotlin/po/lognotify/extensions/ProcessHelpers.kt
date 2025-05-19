@@ -13,7 +13,9 @@ internal fun   CoroutineContext.currentProcess():LoggProcess<*>?{
 }
 
 
-suspend inline fun<T: ProcessableContext<T>, R>  T.launchProcess(crossinline block: suspend CoroutineScope.()-> R):R{
+suspend inline fun<T: ProcessableContext<T>, R>  T.launchProcess(
+    crossinline block: suspend CoroutineScope.()-> R
+):R{
     try {
         val logProcess = LoggProcess(this, coroutineContext)
         return CoroutineScope(logProcess + this).async{

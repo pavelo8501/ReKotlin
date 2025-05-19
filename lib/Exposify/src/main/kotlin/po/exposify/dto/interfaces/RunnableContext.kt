@@ -11,6 +11,13 @@ import kotlin.coroutines.coroutineContext
 interface RunnableContext: SessionIdentified{
     val session: AuthorizedSession?
     val coroutineInfo: CoroutineInfo
+
+    override val sessionID: String
+        get() = session?.sessionID?:"N/A"
+
+    override val remoteAddress: String
+        get() = session?.remoteAddress?:"N/A"
+
     companion object{
 
         data class RunInfo (

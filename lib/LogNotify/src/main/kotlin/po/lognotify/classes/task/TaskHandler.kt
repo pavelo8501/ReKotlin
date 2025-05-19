@@ -6,8 +6,10 @@ import kotlinx.coroutines.runBlocking
 import po.lognotify.classes.notification.NotifierBase
 import po.lognotify.classes.task.interfaces.HandledTask
 import po.lognotify.exceptions.ExceptionHandler
+import po.lognotify.models.TaskDispatcher.LoggerStats
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
+import po.misc.types.UpdateType
 
 
 class TaskHandler<R: Any?>(
@@ -16,6 +18,7 @@ class TaskHandler<R: Any?>(
 ): HandledTask<R>{
 
     override val notifier: NotifierBase get() = task.notifier
+
 
     fun echo(message: String){
         notifier.echo(message)
@@ -28,6 +31,10 @@ class TaskHandler<R: Any?>(
     }
     fun warn(th : Throwable, message: String) = notifier.warn(th, message)
 
+
+    fun subscribeTaskEvents(handler: UpdateType, callback: (LoggerStats) -> Unit) {
+        task.callbackRegistry[handler] = callback
+    }
 
     suspend fun handleFailure( vararg  handlers: HandlerType, fallbackFn: suspend (exception: ManagedException)->R){
         exceptionHandler.provideAsyncHandlerFn(handlers.toSet() , fallbackFn)

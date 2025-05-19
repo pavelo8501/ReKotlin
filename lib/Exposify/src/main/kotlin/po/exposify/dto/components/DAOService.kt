@@ -16,8 +16,10 @@ import po.exposify.dao.classes.ExposifyEntityClass
 import po.exposify.dto.interfaces.ComponentType
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.getOrOperationsEx
+import po.exposify.scope.sequence.SequenceContext
 import po.lognotify.TasksManaged
 import po.lognotify.anotations.LogOnFault
+import po.lognotify.classes.task.TaskHandler
 import po.lognotify.classes.task.result.resultOrNull
 import po.lognotify.extensions.subTask
 
@@ -56,6 +58,7 @@ class DAOService<DTO, DATA, ENTITY>(
         queryResult
     }.resultOrNull()
 
+
     suspend fun pickById(id: Long): ENTITY?
         = subTask("PickById") {handler->
       val entity =  entityModel.findById(id)
@@ -69,6 +72,7 @@ class DAOService<DTO, DATA, ENTITY>(
         entityModel.all().toList()
     }.resultOrException()
 
+
     suspend fun select(conditions:  SimpleQuery): List<ENTITY> =
         subTask("Select") {handler->
         val opConditions = buildConditions(conditions)
@@ -76,6 +80,7 @@ class DAOService<DTO, DATA, ENTITY>(
         handler.info("${result.count()} entities selected")
         result
     }.resultOrException()
+
 
     suspend fun save(dto: CommonDTO<DTO, DATA, ENTITY>): ENTITY =
         subTask("Save") {handler->
@@ -89,6 +94,7 @@ class DAOService<DTO, DATA, ENTITY>(
         handler.info("Dao entity created with id ${newEntity.id.value} for dto ${dto.dtoName}")
         newEntity
     }.resultOrException()
+
 
     suspend fun <P_DTO: ModelDTO, PD: DataModel, PE: LongEntity> saveWithParent(
         dto: CommonDTO<DTO, DATA, ENTITY>,
@@ -108,7 +114,8 @@ class DAOService<DTO, DATA, ENTITY>(
             newEntity
     }.resultOrException()
 
-    suspend fun update(dto: CommonDTO<DTO, DATA, ENTITY>): ENTITY = subTask("Update") {handler->
+    suspend fun update(dto: CommonDTO<DTO, DATA, ENTITY>): ENTITY
+        = subTask("Update") {
         val selectedEntity =  pickById(dto.id).getOrOperationsEx("Entity with id : ${dto.id} not found", ExceptionCode.DB_CRUD_FAILURE)
         val updateMode = UpdateMode.MODEL_TO_ENTITY
         dto.dtoPropertyBinder.update(selectedEntity.containerize(updateMode))

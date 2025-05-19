@@ -42,7 +42,7 @@ interface TasksManaged {
 }
 
 fun  TasksManaged.logNotify(): LogNotifyHandler{
-    return  LogNotifyHandler(taskDispatcher.notifier)
+    return  LogNotifyHandler(taskDispatcher)
 }
 
 fun  TasksManaged.lastTaskHandler(): TaskHandler<*>{

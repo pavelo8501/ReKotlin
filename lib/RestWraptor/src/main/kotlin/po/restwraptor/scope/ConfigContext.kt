@@ -15,7 +15,6 @@ import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.auth.models.CryptoRsaKeys
 import po.lognotify.TasksManaged
 import po.lognotify.classes.task.TaskHandler
-import po.lognotify.classes.task.TaskHandlerBase
 import po.lognotify.extensions.subTask
 import po.lognotify.lastTaskHandler
 import po.restwraptor.RestWrapTor
@@ -121,7 +120,7 @@ class ConfigContext(
         return app
     }
 
-    internal fun getThisTaskHandler(): TaskHandlerBase<*>{
+    internal fun getThisTaskHandler(): TaskHandler<*>{
         return lastTaskHandler()
     }
 
@@ -161,20 +160,12 @@ class ConfigContext(
 
     internal suspend fun initialize(builderFn: (suspend  ConfigContext.()-> Unit)?): Application{
         builderFn?.invoke(this)
-        application.rootPath = apiConfig.baseApiRoute
         installCoreAuth(application)
         applicationConfigFn?.invoke(application)
         subTask("Initialization"){
-            if(apiConfig.cors){
-                configCors(application)
-            }
-            if(apiConfig.contentNegotiation){
-                configContentNegotiation(application)
-            }
-            if(apiConfig.rateLimiting){
-                configRateLimiter(application)
-            }
-
+            if(apiConfig.cors){ configCors(application) }
+            if(apiConfig.contentNegotiation){ configContentNegotiation(application) }
+            if(apiConfig.rateLimiting){ configRateLimiter(application) }
             if (apiConfig.systemRouts) {
                 application.routing {
                     configureSystemRoutes(apiConfig.baseApiRoute, this@ConfigContext)

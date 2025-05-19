@@ -1,4 +1,4 @@
-package po.test.exposify.scope
+package po.test.exposify.scope.sequence
 
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeAll
@@ -7,8 +7,7 @@ import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertAll
 import org.junit.jupiter.api.assertInstanceOf
 import po.auth.extensions.generatePassword
-import po.auth.extensions.session
-import po.auth.extensions.withSession
+import po.auth.extensions.withSessionContext
 import po.exposify.dto.components.ResultSingle
 import po.exposify.scope.sequence.extensions.collectResult
 import po.exposify.scope.sequence.extensions.runSequence
@@ -21,7 +20,7 @@ import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.ConsoleBehaviour
 import po.lognotify.logNotify
-import po.test.exposify.scope.TestSessionsContext.SessionIdentity
+import po.test.exposify.scope.TestSessionsContext
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.PageEntity
 import po.test.exposify.setup.Pages
@@ -39,7 +38,6 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestSequenceContext : DatabaseTest(), TasksManaged {
 
@@ -48,14 +46,14 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
         var updatedById : Long = 0
 
         @JvmStatic
-        val session = SessionIdentity("0", "192.169.1.1")
+        val session = TestSessionsContext.SessionIdentity("0", "192.169.1.1")
 
     }
 
     @BeforeAll
     fun setup() = runTest {
 
-        val loggerHandler: LogNotifyHandler  = logNotify()
+        val loggerHandler: LogNotifyHandler = logNotify()
         loggerHandler.notifierConfig {
             console = ConsoleBehaviour.MuteNoEvents
         }
@@ -66,8 +64,8 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
             name = "name",
             email = "nomail@void.null"
         )
-        startTestConnection{
-            service(UserDTO, TableCreateMode.FORCE_RECREATE) {
+        startTestConnection {
+            service(UserDTO.Companion, TableCreateMode.FORCE_RECREATE) {
                 updatedById = update(user).getDataForced().id
             }
         }
@@ -75,15 +73,13 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
 
     @Test
     fun `Sequence launched with conditions and input work`() = runTest {
-
-        var updatedPages : List<Page> = emptyList()
-
-        startTestConnection{
-            service(PageDTO, TableCreateMode.CREATE) {
-                sequence(PageDTO.UPDATE) { handler ->
+        var updatedPages: List<Page> = emptyList()
+        startTestConnection {
+            service(PageDTO.Companion, TableCreateMode.CREATE) {
+                sequence(PageDTO.Companion.UPDATE) { handler ->
                     update(handler.inputList)
                 }
-                sequence(PageDTO.SELECT) {selectHandler ->
+                sequence(PageDTO.Companion.SELECT) { selectHandler ->
                     select(selectHandler.query)
                 }
             }
@@ -95,8 +91,8 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
         pages[2].langId = 2
         pages[3].langId = 2
 
-        withSession(session){
-            updatedPages = runSequence(PageDTO.UPDATE){
+        withSessionContext(session) {
+            updatedPages = runSequence(PageDTO.Companion.UPDATE) {
                 withData(pages)
             }.getData()
         }
@@ -109,10 +105,10 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
             { assertEquals("this_name", updatedPages[1].name, "Updated page name mismatch") }
         )
 
-        var selectPages : List<Page> = emptyList()
-        withSession(session) {
-            selectPages = runSequence(PageDTO.SELECT){
-                withQuery{ PageDTO.whereQuery().equalsTo(Pages.langId, 2) }
+        var selectPages: List<Page> = emptyList()
+        withSessionContext(session) {
+            selectPages = runSequence(PageDTO.Companion.SELECT) {
+                withQuery { PageDTO.Companion.whereQuery().equals(Pages.langId, 2) }
             }.getData()
         }
 
@@ -128,20 +124,20 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
     fun `Running sequence as a DTO hierarchy root`() = runTest {
 
         var pageDtoByOnResultCollected: PageDTO? = null
-        fun testUpdated(result : ResultSingle<PageDTO, Page, PageEntity>){
+        fun testUpdated(result: ResultSingle<PageDTO, Page, PageEntity>) {
             pageDtoByOnResultCollected = result.getDTOForced()
             assertTrue(pageDtoByOnResultCollected.sections.size == 1, "Sections not updated")
         }
 
-        lateinit var sectionUpdateOutput : Section
-        fun onSectionUpdated(result : ResultSingle<SectionDTO, Section, SectionEntity>){
+        lateinit var sectionUpdateOutput: Section
+        fun onSectionUpdated(result: ResultSingle<SectionDTO, Section, SectionEntity>) {
             sectionUpdateOutput = result.getDataForced()
         }
-        startTestConnection{
-            service(PageDTO, TableCreateMode.CREATE) {
-                sequence(PageDTO.UPDATE) { handler ->
+        startTestConnection {
+            service(PageDTO.Companion, TableCreateMode.CREATE) {
+                sequence(PageDTO.Companion.UPDATE) { handler ->
                     val insert = collectResult(update(handler.inputList))
-                    switchContext(SectionDTO.UPDATE){switchHandler->
+                    switchContext(SectionDTO.Companion.UPDATE) { switchHandler ->
                         collectResult(update(switchHandler.inputList))
                     }
                     insert
@@ -152,12 +148,12 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
         val inputData = pageModelsWithSections(pageCount = 1, sectionsCount = 1, updatedBy = updatedById)
         val inputSectionUpdate = Section(1, "NewName", "NewDescription", "", emptyList(), emptyList(), 1, 1, 0)
 
-        var result : List<Page> = emptyList()
-        withSession(session) {
-            result =  runSequence(PageDTO.UPDATE){
+        var result: List<Page> = emptyList()
+        withSessionContext(session) {
+            result = runSequence(PageDTO.Companion.UPDATE) {
                 withData(inputData)
                 onResultCollected(::testUpdated)
-                usingSwitch(SectionDTO.UPDATE, {PageDTO.switchQuery(1L)}){
+                usingSwitch(SectionDTO.Companion.UPDATE, { PageDTO.Companion.switchQuery(1L) }) {
                     withData(inputSectionUpdate)
                     onResultCollected(::onSectionUpdated)
                 }
@@ -167,11 +163,13 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
         assertTrue(result.count() == 1, "Page update did not return value")
         val page = result.first()
 
-        assertAll("Page update statement succeed",
+        assertAll(
+            "Page update statement succeed",
             { assertInstanceOf<Page>(page, "Returned value is not of type Page") },
             { assertNotEquals(0, page.id, "Page id not assigned") }
         )
-        assertAll("Page update statement succeed",
+        assertAll(
+            "Page update statement succeed",
             { assertInstanceOf<Section>(sectionUpdateOutput, "Returned value is not of type Page") },
             { assertEquals("NewName", sectionUpdateOutput.name, "Section properties update failed") },
             { assertNotEquals(0, sectionUpdateOutput.id, "Updated section Section record") }
@@ -182,16 +180,16 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
     fun `Running sequence as a DTO hierarchy child member`() = runTest {
 
         var pageDtoByOnResultCollected: PageDTO? = null
-        fun testUpdated(result : ResultSingle<PageDTO, Page, PageEntity>){
+        fun testUpdated(result: ResultSingle<PageDTO, Page, PageEntity>) {
             pageDtoByOnResultCollected = result.getDTOForced()
             assertTrue(pageDtoByOnResultCollected.sections.size == 1, "Sections not updated")
         }
 
         startTestConnection {
-            service(PageDTO, TableCreateMode.CREATE){
-                sequence(PageDTO.UPDATE){ handler->
+            service(PageDTO.Companion, TableCreateMode.CREATE) {
+                sequence(PageDTO.Companion.UPDATE) { handler ->
                     val insert = collectResult(update(handler.inputList))
-                    switchContext(SectionDTO.UPDATE){switchHandler->
+                    switchContext(SectionDTO.Companion.UPDATE) { switchHandler ->
                         update(switchHandler.inputList)
                     }
                     insert
@@ -201,11 +199,11 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
 
         val inputData = pageModelsWithSections(pageCount = 1, sectionsCount = 1, updatedBy = updatedById)
         val inputSectionUpdate = Section(1, "NewName", "NewDescription", "", emptyList(), emptyList(), 1, 1, 0)
-        var result : List<Section> = emptyList()
-        withSession(session) {
-            result = runSequence(SectionDTO.UPDATE, { PageDTO.switchQuery(1L) }) {
+        var result: List<Section> = emptyList()
+        withSessionContext(session) {
+            result = runSequence(SectionDTO.Companion.UPDATE, { PageDTO.Companion.switchQuery(1L) }) {
                 withData(inputSectionUpdate)
-                usingRoot(PageDTO.UPDATE) {
+                usingRoot(PageDTO.Companion.UPDATE) {
                     withData(inputData)
                     onResultCollected(::testUpdated)
                 }
@@ -216,7 +214,8 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
         assertTrue(result.count() == 1, "Section update did not return value")
         val section = result.first()
 
-        assertAll("Section update statement succeed",
+        assertAll(
+            "Section update statement succeed",
             { assertInstanceOf<Section>(section, "Returned value is not of type Section") },
             { assertEquals("NewName", section.name, "Section properties update failed") },
             { assertNotEquals(0, section.id, "Updated section Section record") }

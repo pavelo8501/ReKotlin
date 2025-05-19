@@ -2,6 +2,7 @@ package po.lognotify.exceptions
 
 import po.lognotify.anotations.LogOnFault
 import po.lognotify.classes.notification.enums.EventType
+import po.lognotify.classes.task.TaskBase
 import po.lognotify.classes.task.interfaces.ResultantTask
 import po.lognotify.classes.task.result.TaskResult
 import po.lognotify.classes.task.result.toTaskResult
@@ -18,13 +19,12 @@ import kotlin.reflect.full.staticProperties
 
 fun <T, R> Throwable.handleException(
     receiver: T,
-    task: ResultantTask<R>,
+    task: TaskBase<R>,
 ): TaskResult<R> {
 
     val handler: ExceptionHandler<R> = task.exceptionHandler
-    val snapshot = with(task) {
-        takePropertySnapshot(receiver)
-    }
+    val snapshot = takePropertySnapshot(task, receiver)
+
 
     if (this is ManagedException) {
         setPropertySnapshot(snapshot)
@@ -39,7 +39,7 @@ fun <T, R> Throwable.handleException(
                     SeverityLevel.EXCEPTION,
                     "Exception handling failure in ${task.key.taskName}"
                 )
-                return this.toTaskResult(task)
+                return task.toTaskResult(this)
             }
             else -> return handler.handleManaged(this)
         }
@@ -52,8 +52,7 @@ fun <T, R> Throwable.handleException(
 }
 
 
-context(task: ResultantTask<R>)
-fun <T, R> takePropertySnapshot(receiver:T): MutableMap<String, Any?>? {
+fun <T, R> takePropertySnapshot(task: TaskBase<R>,  receiver:T): MutableMap<String, Any?>? {
     val snapshot: MutableMap<String, Any?> = mutableMapOf()
     receiver?.let {
         it::class.memberProperties.filter { prop -> prop.findAnnotation<LogOnFault>() != null }

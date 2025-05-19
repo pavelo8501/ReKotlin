@@ -29,11 +29,8 @@ sealed class SimpleQuery() {
 
 class WhereQuery<T> (
     private val table: T
-) : SimpleQuery() where T : IdTable<Long>
-{
-
+) : SimpleQuery() where T : IdTable<Long> {
     override  var expression: Set<Op<Boolean>> = emptySet()
-
     private fun addCondition(condition: Op<Boolean>) {
         expression = expression + condition
     }
@@ -43,7 +40,7 @@ class WhereQuery<T> (
         return this
     }
 
-    fun <V> equalsTo(column: Column<V> , value: V): WhereQuery<T> {
+    fun <V> equals(column: Column<V> , value: V): WhereQuery<T> {
         addCondition(column eq value)
         return this
     }

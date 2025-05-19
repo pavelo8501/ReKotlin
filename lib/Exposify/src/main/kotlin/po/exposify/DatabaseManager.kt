@@ -2,22 +2,22 @@ package po.exposify
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import kotlinx.coroutines.delay
 import org.jetbrains.exposed.sql.Database
-import po.auth.sessions.interfaces.ManagedSession
 import po.exposify.scope.connection.models.ConnectionInfo
 import po.exposify.scope.connection.ConnectionClass
 import po.exposify.scope.connection.ConnectionContext
 import po.exposify.scope.connection.models.ConnectionSettings
-import po.lognotify.classes.task.models.TaskSettings
-import po.lognotify.extensions.newTaskAsync
-import po.lognotify.extensions.newTaskBlocking
+import po.lognotify.classes.task.models.TaskConfig
+import po.lognotify.extensions.runTask
+import po.lognotify.extensions.runTaskAsync
+import po.lognotify.extensions.runTaskBlocking
 
-fun launchService(connection: ConnectionContext, block: ConnectionContext.()-> Unit ){
-    if(connection.isOpen){
-        connection.block()
-    }
-}
+
+//fun launchService(connection: ConnectionContext, block: ConnectionContext.()-> Unit ){
+//    if(connection.isOpen){
+//        connection.block()
+//    }
+//}
 
 object DatabaseManager {
 
@@ -46,19 +46,22 @@ object DatabaseManager {
             }
             val hikariDataSource =  HikariDataSource(hikariConfig)
             val newConnection = Database.connect(hikariDataSource)
+            val connectionClass =  ConnectionClass(this, connectionInfo, newConnection)
+            addConnection(connectionClass)
             return  ConnectionClass(this, connectionInfo, newConnection)
         }catch (th: Throwable){
+            connectionUpdated?.invoke(th.message.toString(), false)
             println(th.message.toString())
             throw th
         }
     }
 
-    fun openConnectionBlocking(
+    fun openConnection(
         connectionInfo : ConnectionInfo,
         settings : ConnectionSettings = ConnectionSettings(5),
         context: (ConnectionContext.()->Unit)? = null
     ): ConnectionContext {
-      return  newTaskBlocking("openConnectionBlocking", TaskSettings(attempts = settings.retries)) {
+      return runTask("openConnection", TaskConfig(attempts = settings.retries, moduleName = "DatabaseManager")) {
             val connectionClass = tryConnect(connectionInfo)
             val connectionContext = connectionClass.connectionContext()
             if (context != null) {
@@ -73,12 +76,11 @@ object DatabaseManager {
         connectionInfo : ConnectionInfo,
         settings : ConnectionSettings = ConnectionSettings(5),
         context: suspend ConnectionContext.()->Unit
-    ) = newTaskAsync("openConnectionBlocking",TaskSettings(attempts =  settings.retries) ) {
+    ) = runTaskBlocking("openConnectionAsync",TaskConfig(attempts =  settings.retries, moduleName = "DatabaseManager") ) {
 
         val connectionClass =  tryConnect(connectionInfo)
         val connectionContext =  connectionClass.connectionContext()
         connectionContext.context()
         connectionUpdated?.invoke("Connected", true)
-
     }
 }

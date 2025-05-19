@@ -105,6 +105,8 @@ sealed class NotifierBase(
             type,
             severity,
             message)
+
+        println(notification)
         processNotification(notification)
     }
 
@@ -194,7 +196,6 @@ class NotifierHub(
         activeNotifiers.remove(notifier)
         collectorJobs.remove(notifier)?.cancel()
     }
-
 }
 
 class ProcessNotifier(

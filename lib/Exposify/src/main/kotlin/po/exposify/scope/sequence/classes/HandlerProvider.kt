@@ -58,15 +58,13 @@ class RootHandlerProvider<DTO, D, E>(
     override val nameUpdated: (String) -> Unit = { isInitialized = true }
 
     private var sequenceLambdaParameter:
-            (suspend context(AuthorizedSession)
-        SequenceContext<DTO, D, E>.(RootSequenceHandler<DTO, D, E>) -> ResultList<DTO, D, E>)? = null
+            (suspend SequenceContext<DTO, D, E>.(RootSequenceHandler<DTO, D, E>) -> ResultList<DTO, D, E>)? = null
 
     val sequenceLambda :
-            (suspend context(AuthorizedSession)
-            SequenceContext<DTO, D, E>.(RootSequenceHandler<DTO, D, E>) -> ResultList<DTO, D, E>)
+            suspend SequenceContext<DTO, D, E>.(RootSequenceHandler<DTO, D, E>) -> ResultList<DTO, D, E>
         get() = sequenceLambdaParameter.getOrInitEx()
 
-    internal fun storeSequenceLambda(block: suspend context(AuthorizedSession)  SequenceContext<DTO, D, E>.(RootSequenceHandler<DTO, D, E>) -> ResultList<DTO, D, E>){
+    internal fun storeSequenceLambda(block: suspend  SequenceContext<DTO, D, E>.(RootSequenceHandler<DTO, D, E> ) -> ResultList<DTO, D, E>){
         sequenceLambdaParameter = block
     }
 

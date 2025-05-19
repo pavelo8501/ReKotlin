@@ -6,8 +6,7 @@ import io.ktor.server.application.pluginOrNull
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.routing.Routing
 import io.ktor.server.routing.routing
-import po.lognotify.eventhandler.RootEventHandler
-import po.lognotify.eventhandler.interfaces.CanNotify
+import po.lognotify.TasksManaged
 import po.restwraptor.scope.ConfigContext
 import po.restwraptor.scope.ConfigContextInterface
 import po.restwraptor.models.configuration.ApiConfig
@@ -16,11 +15,8 @@ import po.wswraptor.plugins.HeadersPlugin
 
 class WSConfigContext(
     val app: Application,
-    val wsConfig: WsApiConfig? = null,
-    apiConfigContext: ConfigContext = ConfigContext(app)
-): ConfigContextInterface by apiConfigContext, CanNotify{
-
-    override val eventHandler = RootEventHandler("WSConfigContext")
+    val wsConfig: WsApiConfig? = null
+):TasksManaged{
 
     val wsApiConfig  = wsConfig?: WsApiConfig()
 
@@ -39,7 +35,6 @@ class WSConfigContext(
             if (pluginOrNull(HeadersPlugin) != null) {
                 println("HeadersPlugin installation skipped. Custom ContentNegotiation already installed")
             }else{
-                info("Installing Default HeadersPlugin")
                 install(HeadersPlugin)
             }
         }
@@ -63,16 +58,15 @@ class WSConfigContext(
     }
 
     fun initializeWs(): Application{
-        initialize()
         configHeadersPlugin()
         configContentNegotiations()
         return app
     }
 
-    override fun setupApi(configFn : ApiConfig.()-> Unit){
-        apiConfig.configFn()
+    fun setupApi(configFn : ApiConfig.()-> Unit){
+
     }
-    override fun setupApplication(block: Application.()->Unit){
+    fun setupApplication(block: Application.()->Unit){
         app.block()
     }
 }

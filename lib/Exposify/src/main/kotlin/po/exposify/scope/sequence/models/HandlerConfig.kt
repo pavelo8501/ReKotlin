@@ -33,7 +33,7 @@ sealed class HandlerConfigBase<DTO, D, E>() where DTO: ModelDTO, D: DataModel, E
             ?: inputListParameter?.firstOrNull()
             ?: throw InitException("InputData used but not provided", ExceptionCode.VALUE_IS_NULL)
 
-    private var queryParameterProvider: (() -> WhereQuery<IdTable<Long>>)? = null
+    private var queryParameterProvider: (() -> SimpleQuery)? = null
     internal val query : SimpleQuery
         get() {
           val provider =  queryParameterProvider.getOrInitEx("Query used but not provided", ExceptionCode.VALUE_IS_NULL)
@@ -49,7 +49,7 @@ sealed class HandlerConfigBase<DTO, D, E>() where DTO: ModelDTO, D: DataModel, E
         inputListParameter = listOf(data)
     }
 
-    fun withQuery(queryProvider : () -> WhereQuery<IdTable<Long>>){
+    fun withQuery(queryProvider : () -> SimpleQuery){
         queryParameterProvider = queryProvider
     }
 
@@ -82,7 +82,6 @@ sealed class HandlerConfigBase<DTO, D, E>() where DTO: ModelDTO, D: DataModel, E
     fun onComplete(callback :  (contextInfo : RunnableContext)->Unit){
         onCompleteCallback = callback
     }
-
 }
 
 class RootHandlerConfig<DTO, D, E>() : HandlerConfigBase<DTO, D, E>()

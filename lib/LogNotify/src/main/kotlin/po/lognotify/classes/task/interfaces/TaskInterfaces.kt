@@ -6,6 +6,7 @@ import po.lognotify.classes.task.TaskHandler
 import po.lognotify.exceptions.ExceptionHandler
 import po.lognotify.models.TaskKey
 import po.lognotify.models.TaskRegistry
+import po.misc.exceptions.CoroutineInfo
 import po.misc.time.MeasuredContext
 import po.misc.types.UpdateType
 
@@ -23,6 +24,7 @@ interface ResultantTask<R:Any?> : MeasuredContext{
     val handler: TaskHandler<R>
     val notifier : NotifierBase
     val exceptionHandler: ExceptionHandler<R>
+    val coroutineInfo : CoroutineInfo
 }
 
 
@@ -30,8 +32,7 @@ interface UpdatableTasks{
 
     // fun onTaskCreated(handler: UpdateType, callback: (TaskDispatcher.LoggerStats)-> Unit)
     // fun onTaskComplete(handler: UpdateType, callback: (TaskDispatcher.LoggerStats)-> Unit)
-
-    fun notifyUpdate(handler: UpdateType)
+    fun notifyUpdate(handler: UpdateType, task: ResultantTask<*>)
 }
 
 interface HandledTask<R: Any?>{

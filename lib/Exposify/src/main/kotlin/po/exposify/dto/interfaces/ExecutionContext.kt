@@ -8,13 +8,13 @@ import po.exposify.dto.components.ResultSingle
 import po.exposify.dto.components.SimpleQuery
 import po.exposify.dto.components.WhereQuery
 import po.lognotify.TasksManaged
-import po.lognotify.classes.task.TaskHandlerBase
+import po.lognotify.classes.task.TaskHandler
 
 
 interface ExecutionContext<DTO: ModelDTO, DATA: DataModel, ENTITY: LongEntity>: IdentifiableComponent, TasksManaged{
 
     val dtoClass : DTOBase<DTO, DATA, ENTITY>
-    val logger : TaskHandlerBase<*>
+    val logger : TaskHandler<*>
 
     suspend fun  select(): ResultList<DTO, DATA, ENTITY>
     suspend fun <T: IdTable<Long>> select(conditions: WhereQuery<T>): ResultList<DTO, DATA, ENTITY>

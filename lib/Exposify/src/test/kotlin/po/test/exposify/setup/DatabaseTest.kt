@@ -50,7 +50,7 @@ abstract class DatabaseTest {
             System.setProperty("org.slf4j.simpleLogger.log.org.testcontainers", "ERROR")
         }
         postgres.start()
-        DatabaseManager.openConnectionBlocking(
+        DatabaseManager.openConnection(
             ConnectionInfo(
                 jdbcUrl = postgres.jdbcUrl,
                 dbName = postgres.databaseName,

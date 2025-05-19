@@ -13,7 +13,6 @@ import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.castOrOperationsEx
-import po.lognotify.extensions.newTaskAsync
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
 

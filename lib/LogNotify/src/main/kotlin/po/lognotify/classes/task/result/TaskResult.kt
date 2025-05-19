@@ -6,27 +6,25 @@ import po.lognotify.enums.SeverityLevel
 import po.lognotify.exceptions.LoggerException
 import po.misc.exceptions.ManagedException
 
-class TaskResult<R : Any?>(internal val task: ResultantTask<R>){
+class TaskResult<R : Any?>(
+    internal val task: ResultantTask<R>,
 
-    val taskName: String = task.key.taskName
-    var executionTime: Float = 0f
 
-    @PublishedApi  internal var result: R? = null
-        private set
+    var result: R,
+    var throwable: Throwable? = null){
 
-    @PublishedApi   internal var throwable: ManagedException? = null
-        private set
+    val taskName: String get () = task.key.taskName
+
+    @Suppress("UNCHECKED_CAST")
+    constructor(task: ResultantTask<R>, throwable: Throwable): this(task, null as R, throwable)
 
     var isSuccess : Boolean = false
+
     val isResult: Boolean
         get(){ return result != null }
+
     val hasThrowable: Boolean get(){
         return throwable!=null
-    }
-
-
-    private fun taskCompleted(msg: String, severity : SeverityLevel){
-        task.notifier.systemInfo(EventType.STOP, severity, msg)
     }
 
     private fun taskCompleted(th: Throwable){
@@ -34,7 +32,11 @@ class TaskResult<R : Any?>(internal val task: ResultantTask<R>){
     }
 
     private fun escalate(th: ManagedException): Nothing {
-        task.notifier.systemInfo(EventType.STOP, SeverityLevel.EXCEPTION)
+        task.notifier.systemInfo(
+            EventType.STOP,
+            SeverityLevel.EXCEPTION,
+            "Exception Escalated"
+        )
         throw th
     }
 
@@ -49,27 +51,20 @@ class TaskResult<R : Any?>(internal val task: ResultantTask<R>){
     fun onResult(block: (R)->Unit): TaskResult<R> {
         onResultFn = block
         if(result != null){
-            block.invoke(result!!)
+            block.invoke(result)
         }
         return this
     }
 
     private var onFailFn: ((Throwable) -> Unit)? = null
     fun onFail(callback: (Throwable)->Unit): TaskResult<R> {
-        if(throwable != null){
-            callback.invoke(throwable!!)
-        }
+        throwable?.let {  callback.invoke(it) }
         return this
     }
 
     fun resultOrException():R {
-        if(isSuccess && result != null){
-            return result!!
-        }
-        if(throwable != null){
-            throw throwable!!
-        }
-        throw LoggerException("Abnormal state. Both result and exception missing")
+        throwable?.let { throw it }
+        return result
     }
 
     private var exHandlingCallback: (suspend ()-> R)? = null
@@ -81,16 +76,13 @@ class TaskResult<R : Any?>(internal val task: ResultantTask<R>){
         }
     }
 
-    internal fun provideResult(executionResult: R?): TaskResult<R>{
+    internal fun onResultProvided(): TaskResult<R>{
         isSuccess = true
-        result = executionResult
-        if(executionResult != null){
-            onResultFn?.invoke(executionResult)
-        }
+        onResultFn?.invoke(result)
         onCompleteFn?.invoke(this)
-        taskCompleted("Task complete", SeverityLevel.SYS_INFO)
         return this
     }
+
 
     internal fun provideThrowable(th: ManagedException): TaskResult<R>{
         exHandlingCallback?.let {

@@ -30,8 +30,15 @@ fun Routing.baseApi():String{
 fun Route.toUrl(vararg pathParts:String ):  String = partsToUrl(pathParts.toList())
 fun Route.withBaseUrl(vararg pathParts:String ): String{
 
-    val list = mutableListOf<String>(application.rootPath)
-    list.addAll(pathParts)
+    val wraptor =  application.getRestWrapTor().getOrThrow<RestWrapTor, ConfigurationException>(
+        "Wraptor not found in Application registry",
+        ExceptionCodes.KEY_REGISTRATION.value)
+
+    var baseRouteToUse = wraptor.wrapConfig.apiConfig.baseApiRoute
+    if(baseRouteToUse.isEmpty()){ baseRouteToUse =  application.rootPath }
+
+    val list = mutableListOf<String>(baseRouteToUse)
+    list.addAll(pathParts.toList())
     return partsToUrl((list))
 }
 

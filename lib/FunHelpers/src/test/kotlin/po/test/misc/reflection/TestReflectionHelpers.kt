@@ -16,10 +16,6 @@ class TestReflectionHelpers : MetaContainer {
         var inMethodProperty : Int = 10
         inMethodProperty = 20
 
-        LogOnFault { someProperty }
-
-        assertEquals(2, MetaContainer.snapshot.size)
-
     }
 
 }

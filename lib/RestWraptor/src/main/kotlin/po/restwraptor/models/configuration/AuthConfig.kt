@@ -4,10 +4,10 @@ import java.security.PrivateKey
 import java.security.PublicKey
 
 data class AuthConfig(
-    val authRoutePrefix : String = "auth",
-    val enableSecurity : Boolean = true,
-    val defaultSecurityRouts : Boolean = true,
-    val jwtServiceName : String = "auth-jwt"
+    var authRoutePrefix : String = "auth",
+    var enableSecurity : Boolean = true,
+    var defaultSecurityRouts : Boolean = true,
+    var jwtServiceName : String = "auth-jwt"
 ) {
 
     internal var privateKey: PrivateKey? = null

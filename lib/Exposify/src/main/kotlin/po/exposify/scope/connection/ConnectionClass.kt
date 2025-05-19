@@ -27,11 +27,6 @@ class ConnectionClass(
 
     val sourceName: String = connection.name
     val name: String = "ConnectionClass[${sourceName}]"
-
-    init {
-        connectionInfo.connection
-    }
-
     private val dispatchManager = UserDispatchManager()
 
     val isConnectionOpen: Boolean

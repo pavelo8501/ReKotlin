@@ -7,6 +7,7 @@ import io.ktor.server.routing.Routing
 import io.ktor.server.routing.get
 import io.ktor.server.routing.options
 import io.ktor.server.routing.route
+import po.lognotify.extensions.runTask
 import po.restwraptor.enums.EnvironmentType
 import po.restwraptor.extensions.toUrl
 import po.restwraptor.models.response.ApiResponse
@@ -24,14 +25,19 @@ fun Routing.configureSystemRoutes(baseURL: String, configContext: ConfigContext)
         call.respondText("OK")
     }
     get(statusUrl) {
-        taskHandler.info("Accessing Application: ${configContext.hashCode()}")
-        call.respond(wraptor.status().toString())
+        runTask("Accessing Application: ${configContext.hashCode()}"){taskHandler->
+            taskHandler.info("Accessing Application: ${configContext.hashCode()}")
+            call.respond(wraptor.status().toString())
+        }
+
     }
     val statusJsonUrl = toUrl(baseURL, "status-json")
     get(statusJsonUrl) {
-        taskHandler.info("Status Json endpoint called")
-        val responseStatus: String = "OK"
-        call.respond(ApiResponse(responseStatus))
+        runTask("Accessing Application: ${configContext.hashCode()}") { taskHandler ->
+            taskHandler.info("Status Json endpoint called")
+            val responseStatus: String = "OK"
+            call.respond(ApiResponse(responseStatus))
+        }
     }
     route("{...}") {
         handle {

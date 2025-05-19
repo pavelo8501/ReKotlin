@@ -4,6 +4,7 @@ import io.ktor.server.application.Application
 import io.ktor.server.routing.Routing
 import io.ktor.server.websocket.webSocket
 import po.restwraptor.RestServer
+import po.restwraptor.RestWrapTor
 import po.wswraptor.classes.WSConfigContext
 import po.wswraptor.models.configuration.WsApiConfig
 import po.wswraptor.routing.WSRoute
@@ -23,7 +24,6 @@ inline fun Routing.webSocket(
 
     }
 
-
 class WebSocketServer(
     app : Application? = null,
     private val configFn: (WSConfigContext.() -> Unit)? = null) {
@@ -32,7 +32,7 @@ class WebSocketServer(
     private lateinit var application: Application
     private lateinit var configContext : WSConfigContext
 
-    private lateinit var server : RestServer
+    private lateinit var server : RestWrapTor
 
     var host: String = "0.0.0.0"
         private set
@@ -75,7 +75,7 @@ class WebSocketServer(
     }
 
     private fun configWS(): Application {
-        server = RestServer(application)
+      //  server = RestWrapTor(application)
         server.start(host, port, wait)
         return application
     }

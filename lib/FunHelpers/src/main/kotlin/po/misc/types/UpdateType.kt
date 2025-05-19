@@ -8,7 +8,8 @@ sealed class UpdateType(override val value: Int): ValueBasedEnum {
    }
     data object OnStart : UpdateType(1)
     data object OnComplete : UpdateType(2)
-
+    data object OnCreated : UpdateType(3)
+    data object OnUpdated : UpdateType(4)
 
     companion object{
         inline fun <reified T> fromValue(value: Int): T where T : ValueBasedEnum, T : UpdateType {

@@ -11,8 +11,8 @@ import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
 import po.misc.time.ExecutionTimeStamp
 import po.misc.time.MeasuredContext
-import po.misc.time.start
-import po.misc.time.stop
+import po.misc.time.startTimer
+import po.misc.time.stopTimer
 
 
 class DTOTracker<DTO: ModelDTO, DATA: DataModel>(
@@ -30,7 +30,7 @@ class DTOTracker<DTO: ModelDTO, DATA: DataModel>(
 
 
     private fun finalizeLast(){
-        activeRecord.finalize(dto,stop(dto.id.toString()))
+        activeRecord.finalize(dto,stopTimer())
     }
 
     fun propertyUpdated(update: ObservableData){
@@ -45,12 +45,12 @@ class DTOTracker<DTO: ModelDTO, DATA: DataModel>(
         }
         activeRecord = TrackerRecord(dto.id, operation, module?.qualifiedName?:"")
         trackRecords.add(activeRecord)
-        return start()
+        return startTimer()
     }
 
     fun addTrackResult(operation:CrudOperation? = null) {
 
-        trackRecords.firstOrNull { it.operation == operation }?.finalize(dto, stop(dto.id.toString()))?:finalizeLast()
+        trackRecords.firstOrNull { it.operation == operation }?.finalize(dto, stopTimer())?:finalizeLast()
     }
 
 

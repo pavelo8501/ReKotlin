@@ -17,7 +17,8 @@ import po.exposify.extensions.getOrInitEx
 import po.exposify.scope.service.ServiceClass
 import po.exposify.scope.service.ServiceContext
 import po.lognotify.TasksManaged
-import po.lognotify.extensions.newTaskAsync
+import po.lognotify.classes.task.models.TaskConfig
+import po.lognotify.extensions.runTask
 import po.lognotify.lastTaskHandler
 import po.misc.collections.Identifiable
 
@@ -26,19 +27,6 @@ abstract class RootDTO<DTO, DATA, ENTITY>()
     : DTOBase<DTO, DATA, ENTITY>(),  TasksManaged,  ClassDTO
         where DTO: ModelDTO, DATA: DataModel, ENTITY: LongEntity
 {
-
-    companion object {
-        fun sayRootCompanion(){
-            println("RootDTO companion")
-        }
-    }
-
-    object RootDTOObject{
-        fun sayRootObject(){
-            println("RootDTOObject companion")
-        }
-    }
-
     override val qualifiedName: String
         get() = configParameter?.registryRecord?.dtoClassQualifiedName?:"RootDTO[Uninitialized]"
 
@@ -51,23 +39,9 @@ abstract class RootDTO<DTO, DATA, ENTITY>()
         if (!initialized) setup()
     }
 
-
     fun getServiceClass(): ServiceClass<DTO, DATA, ENTITY>{
        return serviceContext.serviceClass.getOrInitEx("ServiceClass not assigned for $qualifiedName")
     }
-
-    inline fun <reified COMMON,  reified RD, reified RE> configuration(
-        entityModel: ExposifyEntityClass<RE>,
-        noinline block:  DTOConfig<DTO, DATA, ENTITY>.() -> Unit
-    ): Unit where COMMON: ModelDTO, RD: DataModel, RE: LongEntity
-            = newTaskAsync("DTO Configuration  ${qualifiedName}") {
-        val newConfiguration = DTOConfig(DTORegistryItem(RD::class, RE::class, COMMON::class), entityModel, this.castOrInitEx())
-        configParameter = newConfiguration.castOrInitEx()
-        block.invoke(config)
-        initialized = true
-        println("Configuration Fn call $qualifiedName")
-        println(config.trackerConfig.observeRelationBindings)
-    }.resultOrException()
 
     fun switchQuery(id: Long): SwitchQuery<DTO, DATA, ENTITY> {
         return SwitchQuery(id, this)
@@ -83,23 +57,8 @@ abstract class DTOClass<DTO, DATA, ENTITY>(
         get() = configParameter?.registryRecord?.dtoClassQualifiedName?:"DTOClass[Uninitialized]"
 
     fun initialization() {
-        if (!initialized){
-            setup()
-        }
+        if (!initialized){ setup() }
     }
-
-    inline fun <reified COMMON,  reified RD, reified RE> configuration(
-        entityModel: ExposifyEntityClass<RE>,
-        noinline block: DTOConfig<DTO, DATA, ENTITY>.() -> Unit
-    ): Unit where COMMON : ModelDTO,  RE : LongEntity, RD : DataModel
-            = newTaskAsync("DTO Configuration ${qualifiedName}"){
-        val newConfiguration = DTOConfig(DTORegistryItem(RD::class, RE::class, COMMON::class), entityModel, this.castOrInitEx())
-        configParameter = newConfiguration.castOrInitEx()
-        block.invoke(config)
-        initialized = true
-        println(config.trackerConfig.observeRelationBindings)
-        println("Configuration Fn call $qualifiedName")
-    }.resultOrException()
 
 }
 
@@ -120,6 +79,19 @@ sealed class DTOBase<DTO, DATA, ENTITY>(): ClassDTO, TasksManaged, Identifiable
     internal val dtoMap : MutableMap<Long, CommonDTO<DTO, DATA, ENTITY>> = mutableMapOf()
 
     protected abstract fun  setup()
+
+    inline fun <reified COMMON,  reified RD, reified RE> configuration(
+        entityModel: ExposifyEntityClass<RE>,
+        noinline block:  DTOConfig<DTO, DATA, ENTITY>.() -> Unit
+    ): Unit where COMMON: ModelDTO, RD: DataModel, RE: LongEntity
+            = runTask("DTO Configuration", TaskConfig(moduleName = qualifiedName)){
+        val newConfiguration = DTOConfig(DTORegistryItem(RD::class, RE::class, COMMON::class), entityModel, this.castOrInitEx())
+        configParameter = newConfiguration.castOrInitEx()
+        block.invoke(config)
+        initialized = true
+        println("Configuration Fn call $qualifiedName")
+        println(config.trackerConfig.observeRelationBindings)
+    }.resultOrException()
 
     internal fun registerDTO(dto: CommonDTO<DTO, DATA, ENTITY>){
         val existed = dtoMap.containsKey(dto.id)

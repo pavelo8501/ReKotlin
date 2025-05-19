@@ -18,20 +18,12 @@ import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty
 
 sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
-    protected val dtoProvider: () -> CommonDTO<DTO, D, E>,
+    protected val dto: CommonDTO<DTO, D, E>,
     protected val dataProperty:KMutableProperty1<D, V>,
     protected val entityProperty:KMutableProperty1<E, V>,
 ): ReadWriteProperty<DTO, V>, IdentifiableComponent
       where DTO: ModelDTO, D: DataModel, E: LongEntity
 {
-
-    val thisDto : CommonDTO<DTO, D, E> by lazy {
-       val dto =  dtoProvider()
-       if(dto.tracker.config.observeProperties){
-           subscribeUpdates(dto.tracker::propertyUpdated)
-       }
-       dto
-    }
 
     abstract override val qualifiedName: String
     override val type: ComponentType = ComponentType.ResponsiveDelegate
@@ -55,14 +47,14 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
     protected fun onValueSet(methodName: String,  value : V){
         if(lastValue != value){
             valueUpdated = true
-            onValueChanged?.invoke(UpdateParams(thisDto, CrudOperation.Initialize,  methodName, propertyName, lastValue, value, this))
+            onValueChanged?.invoke(UpdateParams(dto, CrudOperation.Initialize,  methodName, propertyName, lastValue, value, this))
             lastValue = value
         }
     }
 
     override fun getValue(thisRef: DTO, property: KProperty<*>): V {
         propertyNameParameter = property.name
-        return dataProperty.get(thisDto.dataModel)
+        return dataProperty.get(dto.dataModel)
     }
 
     override fun setValue(thisRef: DTO, property: KProperty<*>, value: V) {
@@ -73,16 +65,16 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
 
 
 class SerializedDelegate<DTO, D, E, S, V: Any> internal constructor(
-    dtoProvider: () -> CommonDTO<DTO, D, E>,
+    dto : CommonDTO<DTO, D, E>,
     dataProperty:KMutableProperty1<D, V>,
     entityProperty:KMutableProperty1<E, V>,
     val serializer:  KSerializer<S>,
-) : ResponsiveDelegate<DTO, D, E, V>(dtoProvider, dataProperty, entityProperty)
+) : ResponsiveDelegate<DTO, D, E, V>(dto, dataProperty, entityProperty)
         where DTO: ModelDTO, D: DataModel, E: LongEntity, S: Any
 {
 
     override val qualifiedName: String
-        get() = "SerializedDelegate[${thisDto.dtoName}]"
+        get() = "SerializedDelegate[${dto.dtoName}]"
 
     override fun update(dataModel: D) {
         val value = dataProperty.get(dataModel)
@@ -91,12 +83,12 @@ class SerializedDelegate<DTO, D, E, S, V: Any> internal constructor(
 
     override fun update(container: EntityUpdateContainer<E, *, *, *>) {
         if(container.updateMode == UpdateMode.MODEL_TO_ENTITY){
-            val value =  dataProperty.get(thisDto.dataModel)
+            val value =  dataProperty.get(dto.dataModel)
             entityProperty.set(container.ownEntity, value)
             onValueSet("update", value)
         }else{
             val value = entityProperty.get(container.ownEntity)
-            dataProperty.set(thisDto.dataModel, value)
+            dataProperty.set(dto.dataModel, value)
             onValueSet("update", value)
         }
     }
@@ -104,31 +96,31 @@ class SerializedDelegate<DTO, D, E, S, V: Any> internal constructor(
 
 
 class PropertyDelegate<DTO, D, E, V: Any> @PublishedApi internal constructor (
-    dtoProvider: () -> CommonDTO<DTO, D, E>,
+    dto:  CommonDTO<DTO, D, E>,
     dataProperty:KMutableProperty1<D, V>,
     entityProperty :KMutableProperty1<E, V>
-): ResponsiveDelegate <DTO, D, E, V>(dtoProvider, dataProperty, entityProperty)
+): ResponsiveDelegate <DTO, D, E, V>(dto, dataProperty, entityProperty)
         where DTO: ModelDTO, D: DataModel, E: LongEntity
 {
 
     override val qualifiedName: String
-        get() = "PropertyDelegate[${thisDto.dtoName}]"
+        get() = "PropertyDelegate[${dto.dtoName}]"
 
     override fun update(dataModel:D){
         val value = dataProperty.get(dataModel)
-        dataProperty.set(thisDto.dataModel, value)
-        entityProperty.set(thisDto.daoEntity, value)
+        dataProperty.set(dto.dataModel, value)
+        entityProperty.set(dto.daoEntity, value)
         onValueSet("update", value)
     }
 
     override fun update(container: EntityUpdateContainer<E, *,*,*>){
         if(container.updateMode == UpdateMode.MODEL_TO_ENTITY){
-            val value =  dataProperty.get(thisDto.dataModel)
+            val value =  dataProperty.get(dto.dataModel)
             entityProperty.set(container.ownEntity, value)
             onValueSet("update", value)
         }else{
             val value = entityProperty.get(container.ownEntity)
-            dataProperty.set(thisDto.dataModel, value)
+            dataProperty.set(dto.dataModel, value)
             onValueSet("update", value)
         }
     }

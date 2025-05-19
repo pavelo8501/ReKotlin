@@ -9,8 +9,9 @@ import po.exposify.scope.service.ServiceClass
 import po.exposify.scope.service.ServiceContext
 import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.TasksManaged
-import po.lognotify.extensions.newTaskAsync
-import po.lognotify.extensions.newTaskBlocking
+import po.lognotify.extensions.runTask
+import po.lognotify.extensions.runTaskAsync
+import po.lognotify.extensions.runTaskBlocking
 import po.lognotify.lastTaskHandler
 
 class ConnectionContext(
@@ -31,22 +32,18 @@ class ConnectionContext(
         block: suspend ServiceContext<DTO, D, E>.()->Unit,
     ) where DTO : ModelDTO, D: DataModel, E: LongEntity {
 
-        val serviceClass =  ServiceClass(dtoClass, connClass, createOptions)
-         with(lastTaskHandler()){
-             newTaskBlocking("Create Service"){
-                 info("Creating ServiceClass")
-                 serviceClass.qualifiedName
-                 connClass.addService(serviceClass)
-                 serviceClass.initService(dtoClass)
+        val serviceClass = ServiceClass(dtoClass, connClass, createOptions)
+        runTask("Create Service") { handler ->
+            handler.info("Creating ServiceClass")
+            serviceClass.qualifiedName
+            connClass.addService(serviceClass)
+            serviceClass.initService(dtoClass)
 
-             }
-         }
-
-        newTaskAsync("Launch ServiceContext"){handler->
+        }
+        runTaskBlocking("Launch ServiceContext") { handler ->
             handler.info("Launching ServiceContext")
             connClass.getService<DTO, D, E>(serviceClass.qualifiedName)?.runServiceContext(block)
         }
-
     }
 
     fun clearServices(){

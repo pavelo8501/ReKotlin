@@ -14,6 +14,8 @@ import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.auth.extensions.generatePassword
 import po.auth.extensions.session
 import po.auth.extensions.withSession
+import po.auth.extensions.withSessionContext
+import po.auth.extensions.withSessionSuspended
 import po.auth.sessions.enumerators.SessionType
 import po.exposify.scope.sequence.extensions.runSequence
 import po.exposify.scope.sequence.extensions.sequence
@@ -21,6 +23,7 @@ import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.ConsoleBehaviour
 import po.lognotify.classes.notification.models.NotifyConfig
+import po.lognotify.logNotify
 import po.test.exposify.scope.TestSessionsContext.SessionIdentity
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.dtos.PageDTO
@@ -111,12 +114,12 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
             { assertEquals(user.login, authSession.principal?.login, "Login mismatch") }
         )
 
-        TasksManaged.notifier.setNotifierConfig(NotifyConfig(console = ConsoleBehaviour.Mute))
-
-
+        logNotify().notifierConfig{
+            console = ConsoleBehaviour.Mute
+        }
         runBlocking {
             launch {
-                withSession(authSession){
+                withSessionSuspended(authSession){
                     val inputData =
                         pageModelsWithSections(pageCount = 1000, sectionsCount = 10, authSession.principal!!.id)
 
@@ -126,17 +129,11 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
                 }
             }
             launch {
-                withSession(anonSession){
+                withSessionContext(anonSession){
                     delay(200)
                     runSequence(PageDTO.SELECT){
 
                     }
-
-                   // val selectionResult = PageDTO.runSequence(SequenceID.SELECT) {
-                   //     onStart {
-                    //        println("Running update with session ${it.sessionID}")
-                   //     }
-                  //  }
                 }
             }
         }

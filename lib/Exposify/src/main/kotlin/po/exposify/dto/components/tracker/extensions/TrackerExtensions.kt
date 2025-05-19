@@ -1,5 +1,6 @@
 package po.exposify.dto.components.tracker.extensions
 
+import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.components.tracker.DTOTracker
@@ -28,15 +29,17 @@ data class TrackableDTONode(
 )
 
 
-fun <DTO: ModelDTO, D: DataModel> CommonDTO<DTO, D, *>.addTrackerInfo(
+fun <DTO: ModelDTO, D: DataModel, E: LongEntity> CommonDTO<DTO, D, E>.addTrackerInfo(
     operation:CrudOperation,
     moduleName: IdentifiableComponent
-):DTOTracker<DTO, D>{
-    return tracker.addTrackInfo(operation, moduleName)
+):CommonDTO<DTO, D, E>{
+    tracker.addTrackInfo(operation, moduleName)
+    return this
 }
 
-fun <DTO: ModelDTO, D: DataModel> CommonDTO<DTO, D, *>.addTrackerResult(
+fun <DTO: ModelDTO, D: DataModel, E : LongEntity> CommonDTO<DTO, D, E>.addTrackerResult(
     operation:CrudOperation? = null
-){
-    return tracker.addTrackResult(operation)
+):CommonDTO<DTO, D, E>{
+    tracker.addTrackResult(operation)
+    return this
 }

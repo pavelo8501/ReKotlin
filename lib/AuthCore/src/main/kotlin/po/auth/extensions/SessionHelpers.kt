@@ -15,24 +15,33 @@ suspend fun session(identifyData: SessionIdentified): AuthorizedSession
 suspend fun withSessionContext(
     session: AuthorizedSession,
     block: suspend CoroutineScope.() -> Unit
-) = withContext(session.sessionContext, block)
+) = withContext(session.sessionScope().coroutineContext, block)
+
+suspend fun withSessionContext(
+    sessionIdentity: SessionIdentified,
+    block: suspend CoroutineScope.() -> Unit
+) {
+    val session =  coroutineContext[AuthorizedSession]?: AuthSessionManager.getOrCreateSession(sessionIdentity)
+
+    withContext(session.sessionScope().coroutineContext, block)
+}
 
 
-fun<R> withSessionSync(
+fun<R> withSession(
     session: AuthorizedSession,
     block: AuthorizedSession.() -> R
 ):R{
     return block.invoke(session)
 }
 
-fun <R> withSessionSync(
+fun <R> withSession(
     sessionIdentity : SessionIdentified,
     block:  AuthorizedSession.() -> R
 ):R {
    return block.invoke(AuthSessionManager.getOrCreateSessionSync(sessionIdentity))
 }
 
-suspend fun <R> withSession(
+suspend fun <R> withSessionSuspended(
     sessionIdentity : SessionIdentified,
     block: suspend AuthorizedSession.() -> R
 ):R {

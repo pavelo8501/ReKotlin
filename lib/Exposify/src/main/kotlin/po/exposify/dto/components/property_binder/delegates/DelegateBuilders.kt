@@ -1,5 +1,6 @@
 package po.exposify.dto.components.property_binder.delegates
 
+import kotlinx.serialization.KSerializer
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dao.classes.JSONBType
 import po.exposify.dto.DTOClass
@@ -8,6 +9,9 @@ import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
 import po.exposify.dto.components.serializerInfo
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.extensions.getOrOperationsEx
+import po.lognotify.classes.task.result.onFailureCause
+import po.lognotify.extensions.subTask
 import kotlin.reflect.KMutableProperty1
 
 
@@ -92,7 +96,7 @@ inline fun <DTO, D, E, reified V: Any>  CommonDTO<DTO, D, E>.binding(
 ): PropertyDelegate<DTO, D, E, V>
         where  DTO: ModelDTO, D:DataModel, E : LongEntity
 {
-    val propertyDelegate = PropertyDelegate({this}, dataProperty, entityProperty)
+    val propertyDelegate = PropertyDelegate(this, dataProperty, entityProperty)
     if(tracker.config.observeProperties){
         propertyDelegate.subscribeUpdates(tracker::propertyUpdated)
     }
@@ -107,13 +111,29 @@ fun <DTO, D, E, S, V: Any>  CommonDTO<DTO, D, E>.serializedBinding(
 ): SerializedDelegate<DTO, D, E, List<S>, V>
     where DTO: ModelDTO, D: DataModel, E: LongEntity, S: Any
 {
-    val serializedDelegate = SerializedDelegate({this}, dataProperty, entityProperty, serializableClass.listSerializer)
+  val result =   subTask("serializedBinding") {
+        val  serializedDelegate = SerializedDelegate(this, dataProperty, entityProperty, serializableClass.listSerializer)
+        println("SerializedDelegate initialized ${this::class.qualifiedName}")
+        dtoPropertyBinder.setBinding(serializedDelegate)
+        dtoFactory.provideListSerializer(dataProperty.name, serializableClass.listSerializer.serializerInfo(dataProperty.name))
+         serializedDelegate
+    }.onFailureCause {
+         val a = it
+     }
+  return  result.resultOrException()
+}
+
+fun <DTO, D, E, S, V: Any>  CommonDTO<DTO, D, E>.serializedBinding(
+    dataProperty:KMutableProperty1<D, V>,
+    entityProperty:KMutableProperty1<E, V>,
+    serializer: KSerializer<List<S>>
+): SerializedDelegate<DTO, D, E, List<S>, V>
+        where DTO: ModelDTO, D: DataModel, E: LongEntity, S: Any
+{
+    val serializedDelegate = SerializedDelegate(this, dataProperty, entityProperty, serializer)
     dtoPropertyBinder.setBinding(serializedDelegate)
-    if(dtoFactory.hasListSerializer(dataProperty.name) == null){
-        dtoFactory.provideListSerializer<List<S>>(dataProperty.name, serializableClass.listSerializer.serializerInfo(dataProperty.name))
-    }
-    dtoFactory.setSerializableType(dataProperty.name, serializableClass.listSerializer)
+    println("SerializedDelegate initialized ${this::class.qualifiedName}")
+    dtoFactory.provideListSerializer(dataProperty.name, serializer.serializerInfo(dataProperty.name))
 
     return serializedDelegate
 }
-

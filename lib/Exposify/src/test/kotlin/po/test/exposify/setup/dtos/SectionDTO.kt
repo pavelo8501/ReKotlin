@@ -13,11 +13,10 @@ import po.exposify.dto.components.property_binder.delegates.serializedBinding
 import po.exposify.dto.components.relation_binder.delegates.oneToManyOf
 import po.exposify.dto.enums.Cardinality
 import po.exposify.scope.sequence.classes.SwitchHandlerProvider
-import po.test.exposify.setup.ClassItem
+import po.test.exposify.setup.ClassData
 import po.test.exposify.setup.ContentBlockEntity
-import po.test.exposify.setup.MetaTag
+import po.test.exposify.setup.MetaData
 import po.test.exposify.setup.SectionEntity
-import po.test.exposify.setup.UserEntity
 
 @Serializable
 data class Section(
@@ -27,9 +26,9 @@ data class Section(
     @SerialName("json_ld")
     var jsonLd: String,
     @SerialName("class_list")
-    var classList: List<ClassItem>,
+    var classList: List<ClassData>,
     @SerialName("meta_tags")
-    var metaTags: List<MetaTag>,
+    var metaTags: List<MetaData>,
     @SerialName("lang_id")
     var langId: Int,
     @SerialName("updated_by")
@@ -54,8 +53,8 @@ class SectionDTO(
     var langId : Int by binding(Section::langId, SectionEntity::langId)
     var updated : LocalDateTime by binding(Section::updated, SectionEntity::updated)
 
-    var classList:  List<ClassItem> by serializedBinding(Section::classList, SectionEntity::classList, ClassItem)
-    var metaTags :  List<MetaTag> by serializedBinding(Section::metaTags, SectionEntity::metaTags, MetaTag)
+    var classList:  List<ClassData> by serializedBinding(Section::classList, SectionEntity::classList, ClassData)
+    var metaTags :  List<MetaData> by serializedBinding(Section::metaTags, SectionEntity::metaTags, MetaData)
 
     val updatedBy : Long by foreign2IdReference(Section::updatedBy, SectionEntity::updatedBy, UserDTO)
     val pageId : Long by parent2IdReference(Section::pageId, SectionEntity::page)

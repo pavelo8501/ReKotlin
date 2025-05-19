@@ -21,6 +21,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertAll
 import org.junit.jupiter.api.assertNotNull
 import po.auth.authentication.authenticator.models.AuthenticationPrincipal
@@ -55,6 +56,7 @@ data class TestUser(
     }
 }
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestRestWraptorSecurity {
 
     private fun  Routing.publicRoutes(){
@@ -162,7 +164,7 @@ class TestRestWraptorSecurity {
     }
 
     @Test
-    fun `correct authentication exceptions are thrown and processed`()=testApplication {
+    fun `Correct authentication exceptions are thrown and processed`()=testApplication {
 
         val server = RestWrapTor()
         application {

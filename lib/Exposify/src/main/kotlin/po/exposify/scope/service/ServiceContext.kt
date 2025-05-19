@@ -19,27 +19,27 @@ import po.exposify.extensions.withTransactionIfNone
 import po.lognotify.TasksManaged
 import po.lognotify.anotations.LogOnFault
 import po.lognotify.classes.task.result.onFailureCause
-import po.lognotify.extensions.newTaskAsync
+import po.lognotify.extensions.runTaskBlocking
 
 class ServiceContext<DTO, DATA, ENTITY>(
     internal  val serviceClass : ServiceClass<DTO, DATA, ENTITY>,
     internal val dtoClass: RootDTO<DTO, DATA, ENTITY>,
-): TasksManaged,  AsContext<DATA>  where DTO : ModelDTO, DATA: DataModel,  ENTITY: LongEntity{
+): TasksManaged,  AsContext<DATA>  where DTO : ModelDTO, DATA: DataModel,  ENTITY: LongEntity {
 
-    private val dbConnection: Database get()= serviceClass.connection
+    private val dbConnection: Database get() = serviceClass.connection
+
     @LogOnFault
     val personalName: String = "ServiceContext[${dbConnection.name}]"
 
-    private val executionProvider: RootExecutionProvider<DTO, DATA, ENTITY> by lazy { RootExecutionProvider(dtoClass)}
+    private val executionProvider: RootExecutionProvider<DTO, DATA, ENTITY> by lazy { RootExecutionProvider(dtoClass) }
 
-    fun truncate()
-        = newTaskAsync("Truncate") {handler->
+    fun truncate() = runTaskBlocking("Truncate") { handler ->
         newSuspendedTransaction {
             val table = dtoClass.getEntityModel().table
             try {
                 exec("TRUNCATE TABLE ${table.tableName} RESTART IDENTITY CASCADE")
                 handler.info("TRUNCATE TABLE ${table.tableName} RESTART IDENTITY CASCADE Executed")
-            }catch (th: Throwable){
+            } catch (th: Throwable) {
                 handler.warn(th, "Running TRUNCATE TABLE ${table.tableName} RESTART IDENTITY CASCADE")
             }
         }
@@ -47,70 +47,56 @@ class ServiceContext<DTO, DATA, ENTITY>(
         val a = it
     }.resultOrException()
 
-    fun pick(conditions: SimpleQuery): ResultSingle<DTO, DATA, ENTITY>
-            = newTaskAsync("Pick by conditions") {
+    fun pick(conditions: SimpleQuery): ResultSingle<DTO, DATA, ENTITY> = runTaskBlocking("Pick by conditions") {
         withTransactionIfNone {
             executionProvider.pick(conditions)
         }
     }.resultOrException()
 
-    fun <T: IdTable<Long>>pick(conditions: WhereQuery<T>): ResultSingle<DTO, DATA, ENTITY>
-         = newTaskAsync("Pick by conditions") {
+    fun <T : IdTable<Long>> pick(conditions: WhereQuery<T>): ResultSingle<DTO, DATA, ENTITY> =
+        runTaskBlocking("Pick by conditions") {
             withTransactionIfNone {
                 executionProvider.pick(conditions)
             }
         }.resultOrException()
 
-    fun pickById(id: Long): ResultSingle<DTO, DATA, ENTITY>
-        = newTaskAsync("Pick by ID") {handler->
-            withTransactionIfNone(handler) {
-                executionProvider.pickById(id)
-            }
-        }.resultOrException()
+    fun pickById(id: Long): ResultSingle<DTO, DATA, ENTITY> = runTaskBlocking("Pick by ID") { handler ->
+        withTransactionIfNone(handler) {
+            executionProvider.pickById(id)
+        }
+    }.resultOrException()
 
 
-    fun select(): ResultList<DTO, DATA, ENTITY>
-         =  newTaskAsync("Select") {
-            withTransactionIfNone {
-                executionProvider.select()
-            }
-        }.resultOrException()
+    fun select(): ResultList<DTO, DATA, ENTITY> = runTaskBlocking("Select") {
+        withTransactionIfNone {
+            executionProvider.select()
+        }
+    }.resultOrException()
 
-    fun <T: IdTable<Long>> select(conditions:  WhereQuery<T>): ResultList<DTO, DATA, ENTITY>
-         = newTaskAsync("Select With Conditions") {
+    fun <T : IdTable<Long>> select(conditions: WhereQuery<T>): ResultList<DTO, DATA, ENTITY> =
+        runTaskBlocking("Select With Conditions") {
             withTransactionIfNone {
                 executionProvider.select(conditions)
             }
         }.resultOrException()
 
-    fun update(dataModel : DATA): ResultSingle<DTO,DATA, ENTITY>
-      = newTaskAsync("Update") {handler->
-            withTransactionIfNone {
-                executionProvider.update(dataModel)
-            }
-        }.resultOrException()
-
-    fun update(dataModels : List<DATA>): ResultList<DTO,DATA, ENTITY>
-       =  newTaskAsync("Update") {handler->
-            withTransactionIfNone(handler) {
-                executionProvider.update(dataModels)
-            }
+    fun update(dataModel: DATA): ResultSingle<DTO, DATA, ENTITY> = runTaskBlocking("Update") { handler ->
+        withTransactionIfNone {
+            executionProvider.update(dataModel)
+        }
     }.resultOrException()
 
-    fun delete(toDelete: DATA): ResultList<DTO, DATA, ENTITY>?
-       =  newTaskAsync("Delete") {
-            withTransactionIfNone{
-                executionProvider.update(toDelete)
-            }
-        null
-        }.resultOrException()
+    fun update(dataModels: List<DATA>): ResultList<DTO, DATA, ENTITY> = runTaskBlocking("Update") { handler ->
+        withTransactionIfNone(handler) {
+            executionProvider.update(dataModels)
+        }
+    }.resultOrException()
 
-//    fun sequence(
-//        sequenceID : SequenceID,
-//        block: suspend SequenceContext<DTO, DATA, ENTITY>.(RootSequenceHandler<DTO, DATA, ENTITY>) -> Unit
-//    ){
-//        val pack = RootSequencePack(dtoClass.generateKey(sequenceID), dtoClass, block)
-//        serviceClass.addSequencePack(pack.key, pack)
-//    }
+    fun delete(toDelete: DATA): ResultList<DTO, DATA, ENTITY>? = runTaskBlocking("Delete") {
+        withTransactionIfNone {
+            executionProvider.update(toDelete)
+        }
+        null
+    }.resultOrException()
 
 }

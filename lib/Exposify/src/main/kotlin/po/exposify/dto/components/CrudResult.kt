@@ -124,8 +124,8 @@ fun <DTO, D, E>  DTOBase<DTO, D, E>.createResultList(
     return ResultList(this, initial.toMutableList())
 }
 
-context(dtoClass: DTOBase<DTO, D, E>)
-fun <DTO, D, E>  List<CommonDTO<DTO, D, E>>.createResultList(operation : CrudOperation): ResultList<DTO, D, E>
+
+fun <DTO, D, E>  List<CommonDTO<DTO, D, E>>.createResultList(dtoClass: DTOBase<DTO, D, E>, operation : CrudOperation): ResultList<DTO, D, E>
         where  DTO: ModelDTO, D : DataModel, E : LongEntity{
             this.forEach {
                 it.addTrackerResult(operation)
@@ -139,7 +139,7 @@ fun <DTO, D, E>  DTOBase<DTO, D, E>.createSingleResult(initial : CommonDTO<DTO, 
     return ResultSingle(this, initial)
 }
 
-context(dtoClass: DTOBase<DTO, D, E>)
+
 fun <DTO, D, E>  CommonDTO<DTO, D, E>.createSingleResult(operation : CrudOperation): ResultSingle<DTO, D, E>
         where  DTO: ModelDTO, D : DataModel, E : LongEntity{
             this.addTrackerResult(operation)

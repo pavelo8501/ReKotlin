@@ -41,9 +41,9 @@ object Sections : LongIdTable("sections", "id") {
     val name = varchar("name", 128)
     val description = varchar("description", 128).default("")
     val jsonLd = text("json_ld").default("[]")
-    val classList = registerColumn("class_list", JsonColumnType(ListSerializer(ClassItem.serializer())))
+    val classList = registerColumn("class_list", JsonColumnType(ListSerializer(ClassData.serializer())))
         .default(emptyList())
-    val metaTags = registerColumn("meta_tags", JsonColumnType(ListSerializer(MetaTag.serializer())))
+    val metaTags = registerColumn("meta_tags", JsonColumnType(ListSerializer(MetaData.serializer())))
     val updatedBy = reference("updated_by", Users)
     val updated = datetime("updated").clientDefault { SectionDTO.nowTime() }
     val langId = integer("lang_id")
@@ -55,9 +55,9 @@ object ContentBlocks : LongIdTable("content_blocks", "id") {
     val content = text("content")
     val tag = varchar("tag", 64)
     val jsonLd = text("json_ld").default("")
-    val classList = registerColumn("class_list", JsonColumnType(ListSerializer(ClassItem.serializer())))
+    val classList = registerColumn("class_list", JsonColumnType(ListSerializer(ClassData.serializer())))
         .default(emptyList())
-    val metaTags =  registerColumn("meta_tags", JsonColumnType(ListSerializer(MetaTag.serializer())))
+    val metaTags =  registerColumn("meta_tags", JsonColumnType(ListSerializer(MetaData.serializer())))
         .default(emptyList())
     val langId = integer("lang_id")
     val updated = datetime("updated").clientDefault { ContentBlockDTO.nowTime() }

@@ -64,9 +64,7 @@ class RootSequenceHandler<DTO, D, E> (
     private val  handlerDelegate : RootHandlerProvider<DTO, D, E>,
     val dtoRoot: RootDTO<DTO, D, E>,
     name : String,
-    val sequenceLambda:
-        suspend context(AuthorizedSession)
-            SequenceContext<DTO, D, E>.(RootSequenceHandler<DTO, D, E>) -> ResultList<DTO, D, E>
+    val sequenceLambda: suspend SequenceContext<DTO, D, E>.(RootSequenceHandler<DTO, D, E>) -> ResultList<DTO, D, E>
 
 ):SequenceHandlerBase<DTO, D, E>(dtoRoot, Cardinality.ONE_TO_MANY, name)
         where DTO: ModelDTO, D: DataModel, E: LongEntity
@@ -79,10 +77,15 @@ class RootSequenceHandler<DTO, D, E> (
     ){
         classSequenceConfigurators[handlerName] = configurator.castOrOperationsEx<ClassHandlerConfig<*, *, *, DTO, D, E>.()-> Unit>()
     }
+
+    var lastActiveSequenceContext : SequenceContext<DTO, D, E>? = null
     suspend fun launch(session: AuthorizedSession): ResultList<DTO, D, E>{
        val execProvider = RootExecutionProvider(dtoRoot)
-       val newContext = SequenceContext(this, execProvider)
-       return  sequenceLambda.invoke(session, newContext, this)
+       lastActiveSequenceContext = SequenceContext(this, execProvider, session)
+       return lastActiveSequenceContext.getOrOperationsEx().let {
+            handlerConfig.onStartCallback?.invoke(it)
+            sequenceLambda.invoke(it, this)
+        }
     }
 }
 

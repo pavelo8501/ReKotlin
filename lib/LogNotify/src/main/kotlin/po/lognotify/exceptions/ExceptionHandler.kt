@@ -3,6 +3,7 @@ package po.lognotify.exceptions
 import po.lognotify.classes.notification.enums.EventType
 import po.lognotify.classes.notification.models.Notification
 import po.lognotify.classes.notification.sealed.ProviderTask
+import po.lognotify.classes.task.TaskBase
 import po.lognotify.classes.task.interfaces.ResultantTask
 import po.lognotify.classes.task.result.TaskResult
 import po.lognotify.classes.task.result.toTaskResult
@@ -18,7 +19,7 @@ interface ExceptionHandled<R: Any?> {
 }
 
 class ExceptionHandler<R: Any?>(
-   private val task : ResultantTask<R>,
+   private val task : TaskBase<R>,
 ) : ExceptionHandled<R> {
 
    private fun notifyHandlerSet(handler : HandlerType){
@@ -88,10 +89,10 @@ class ExceptionHandler<R: Any?>(
       return if (handlerFn != null) {
          notifyHandled(managedEx)
          val result =  handlerFn.invoke(managedEx)
-         result.toTaskResult(task)
+         task.toTaskResult(result)
       } else {
          notifyUnhandled(managedEx)
-         managedEx.toTaskResult(task)
+         task.toTaskResult(managedEx)
       }
    }
 }

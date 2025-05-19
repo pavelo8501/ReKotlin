@@ -80,7 +80,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         }
 
     init {
-        println("Initializing Common DTO")
+        println("Initializing Common DTO. ${dtoName}")
     }
 
     private fun dataModelContainerUpdated(model : DATA){
@@ -167,11 +167,12 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     }
 
 
-   internal fun initialize(tracker: DTOTracker<DTO, DATA>? = null) {
+   internal fun initialize(tracker: DTOTracker<DTO, DATA>? = null): CommonDTO<DTO,DATA, ENTITY> {
        selfRegistration(registryRecord)
        if(tracker != null){
            trackerParameter = tracker
        }
+       return this
    }
 
     companion object{
