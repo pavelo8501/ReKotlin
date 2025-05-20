@@ -151,18 +151,17 @@ inline fun <reified T, R: Any?> T.runTask(
     repeat(config.attempts) { attempt ->
         try {
             newTask.onStart()
-           val value = block.invoke(this, newTask.handler)
-            result  = TaskResult(newTask, value)
-            if(result.isSuccess){ return@repeat }
+            val value = block.invoke(this, newTask.handler)
+            newTask.onComplete()
+            return newTask.toTaskResult(value)
         }catch (throwable: Throwable){
             result = throwable.handleException(this, newTask)
             newTask.handler.warn("Task resulted in failure. Attempt $attempt of ${config.attempts}")
-        }
-        if (attempt < config.attempts - 1) {
-            Thread.sleep(config.delayMs)
+            if (attempt < config.attempts - 1) {
+                Thread.sleep(config.delayMs)
+            }
         }
     }
-  newTask.onComplete()
   return result.getOrLoggerException("Maximum retries exceeded")
 }
 

@@ -1,6 +1,5 @@
 package po.exposify.dto.components
 
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.interfaces.DataModel
@@ -19,26 +18,14 @@ import po.exposify.extensions.castOrOperationsEx
 import po.exposify.extensions.getOrOperationsEx
 import po.lognotify.TasksManaged
 import po.lognotify.anotations.LogOnFault
-import po.lognotify.classes.task.TaskBase
-import po.lognotify.classes.task.TaskHandler
-import po.lognotify.classes.task.result.onFailureCause
 import po.lognotify.extensions.subTask
-import po.lognotify.lastTaskHandler
-import po.misc.types.getKType
-import kotlin.collections.get
+import po.misc.serialization.SerializerInfo
+import po.misc.types.toSimpleNormalizedKey
 import kotlin.reflect.KClass
-import kotlin.reflect.KParameter
 import kotlin.reflect.KType
 
 
 
-
-data class SerializerInfo(
-    val dataClassPropertyName: String,
-    val serializer : KSerializer<*>,
-    val type: KType,
-    val isListSerializer: Boolean = true
-)
 
 class DTOFactory<DTO, DATA, ENTITY>(
     private val dtoClass: DTOBase<DTO, DATA, ENTITY>,
@@ -61,17 +48,21 @@ class DTOFactory<DTO, DATA, ENTITY>(
 
 
     @LogOnFault
-    private val typedSerializers: MutableMap<String, SerializerInfo> = mutableMapOf()
-    fun hasListSerializer(name: String): SerializerInfo? {
-        return typedSerializers[name]
-    }
-
-    fun provideListSerializer(propertyName: String, serializerInfo: SerializerInfo) {
-        typedSerializers[propertyName] = serializerInfo
-    }
+    private val typedSerializers: MutableMap<String, SerializerInfo<*>> = mutableMapOf()
 
     fun setDataModelConstructor(dataModelBuilder: (() -> DATA)) {
         dataModelBuilderFn = dataModelBuilder
+    }
+
+    private fun serializerLookup(propertyName: String, type: KType):SerializerInfo<*>?{
+        return if(typedSerializers.containsKey(propertyName)){
+            typedSerializers[propertyName]
+        }else{
+            dtoClass.serializerLookup(type)?.let {
+                typedSerializers[propertyName] = it
+                it
+            }
+        }
     }
 
     private fun dtoPostCreation(dto: CommonDTO<DTO, DATA, ENTITY>): CommonDTO<DTO, DATA, ENTITY> =
@@ -98,9 +89,9 @@ class DTOFactory<DTO, DATA, ENTITY>(
             constructFn.invoke()
         } else {
             dataBlueprint.setExternalParamLookupFn { param ->
-                val keysRegistered = typedSerializers.keys.joinToString(", ", "[", "]") { it }
-                val serializerInfo = typedSerializers[param.name.toString()].getOrOperationsEx(
-                    """Requested parameter name: ${param.name}. Registered keys : $keysRegistered
+                val serializerInfo =  serializerLookup(param.name.toString(),  param.type)
+                    .getOrOperationsEx(
+                    """Requested parameter name: ${param.name}.
                     ${qualifiedName}    
                     """.trimMargin()
                 )
@@ -139,12 +130,4 @@ class DTOFactory<DTO, DATA, ENTITY>(
                 .castOrOperationsEx<CommonDTO<DTO, DATA, ENTITY>>("Unable to cast DTO to CommonDTO<DTO, DATA, ENTITY")
             dtoPostCreation(newDto)
         }.resultOrException()
-}
-
-
-inline fun <reified S: KSerializer<T>, T>  S.serializerInfo(
-    propertyName: String,
-    isListSerializer: Boolean = true
-):SerializerInfo{
-    return SerializerInfo(propertyName, this, this.getKType(), isListSerializer)
 }

@@ -21,6 +21,9 @@ import po.lognotify.classes.task.models.TaskConfig
 import po.lognotify.extensions.runTask
 import po.lognotify.lastTaskHandler
 import po.misc.collections.Identifiable
+import po.misc.serialization.SerializerInfo
+import po.misc.types.toSimpleNormalizedKey
+import kotlin.reflect.KType
 
 
 abstract class RootDTO<DTO, DATA, ENTITY>()
@@ -37,6 +40,13 @@ abstract class RootDTO<DTO, DATA, ENTITY>()
     fun initialization(serviceContext: ServiceContext<DTO, DATA, ENTITY>) {
         serviceContextParameter = serviceContext
         if (!initialized) setup()
+    }
+    fun reinitChild(){
+        config.relationBinder.getChildClassList().forEach {
+            if(!it.initialized){
+                it.initialization()
+            }
+        }
     }
 
     fun getServiceClass(): ServiceClass<DTO, DATA, ENTITY>{
@@ -133,4 +143,19 @@ sealed class DTOBase<DTO, DATA, ENTITY>(): ClassDTO, TasksManaged, Identifiable
       return  WhereQuery(config.entityModel.sourceTable)
     }
 
+    fun serializerLookup(type: KType): SerializerInfo<*>?{
+        val normalizedKey  = type.toSimpleNormalizedKey()
+        when(this){
+            is RootDTO->{
+                val serializersMap = serviceContext.serviceClass.connectionClass.serializerMap
+                return serializersMap[normalizedKey]
+            }
+            is DTOClass ->{
+                findHierarchyRoot<ModelDTO, DataModel, LongEntity>().let {hierarchyRoot->
+                    val serializersMap =  hierarchyRoot.serviceContext.serviceClass.connectionClass.serializerMap
+                    return serializersMap[normalizedKey]
+                }
+            }
+        }
+    }
 }

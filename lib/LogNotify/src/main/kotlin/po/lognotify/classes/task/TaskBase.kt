@@ -100,9 +100,9 @@ class RootTask<R: Any?>(
     }
 
     fun onChildCreated(childTask: Task<*>){
-        notifier.submitNotification(
-            Notification(ProviderTask(this), EventType.CHILD_TASK_CREATED, SeverityLevel.SYS_INFO,childTask.toString())
-        )
+//        notifier.submitNotification(
+//            Notification(ProviderTask(this), EventType.CHILD_TASK_CREATED, SeverityLevel.SYS_INFO,childTask.toString())
+//        )
         notifyUpdate(UpdateType.OnUpdated)
         dispatcher.notifyUpdate(UpdateType.OnUpdated, this)
     }

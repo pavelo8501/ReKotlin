@@ -1,10 +1,10 @@
 package po.test.exposify.setup
 
-import kotlinx.serialization.builtins.ListSerializer
 import org.jetbrains.exposed.dao.id.LongIdTable
 import org.jetbrains.exposed.sql.ReferenceOption
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
-import po.exposify.extensions.JsonColumnType
+import po.exposify.dao.classes.JsonColumnList
+import po.exposify.dao.classes.jsonColumnList
 import po.test.exposify.setup.dtos.ContentBlockDTO
 import po.test.exposify.setup.dtos.PageDTO
 import po.test.exposify.setup.dtos.SectionDTO
@@ -20,10 +20,10 @@ object TestsItems : LongIdTable("tests_items", "id") {
     val name = varchar("name",128)
 }
 
-object Users : LongIdTable("users", "id") {
+object Users : LongIdTable("api_users", "id") {
     val name = varchar("name",128)
     val login = varchar("login",128)
-    val hashedPassword = varchar("hashedPassword",128)
+    val hashedPassword = varchar("password",128)
     val email = varchar("email",128)
     val updated = datetime("updated").clientDefault{ UserDTO.nowTime()}
     val created = datetime("created").clientDefault{ UserDTO.nowTime()}
@@ -41,9 +41,10 @@ object Sections : LongIdTable("sections", "id") {
     val name = varchar("name", 128)
     val description = varchar("description", 128).default("")
     val jsonLd = text("json_ld").default("[]")
-    val classList = registerColumn("class_list", JsonColumnType(ListSerializer(ClassData.serializer())))
+    val classList = registerColumn("class_list",  jsonColumnList(ClassData.serializer()))
         .default(emptyList())
-    val metaTags = registerColumn("meta_tags", JsonColumnType(ListSerializer(MetaData.serializer())))
+    val metaTags = registerColumn("meta_tags", jsonColumnList(MetaData.serializer()))
+        .default(emptyList())
     val updatedBy = reference("updated_by", Users)
     val updated = datetime("updated").clientDefault { SectionDTO.nowTime() }
     val langId = integer("lang_id")
@@ -55,9 +56,9 @@ object ContentBlocks : LongIdTable("content_blocks", "id") {
     val content = text("content")
     val tag = varchar("tag", 64)
     val jsonLd = text("json_ld").default("")
-    val classList = registerColumn("class_list", JsonColumnType(ListSerializer(ClassData.serializer())))
+    val classList = registerColumn("class_list", jsonColumnList(ClassData.serializer()))
         .default(emptyList())
-    val metaTags =  registerColumn("meta_tags", JsonColumnType(ListSerializer(MetaData.serializer())))
+    val metaTags =  registerColumn("meta_tags", jsonColumnList(MetaData.serializer()))
         .default(emptyList())
     val langId = integer("lang_id")
     val updated = datetime("updated").clientDefault { ContentBlockDTO.nowTime() }

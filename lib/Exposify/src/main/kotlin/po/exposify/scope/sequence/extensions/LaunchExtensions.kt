@@ -8,7 +8,6 @@ import po.exposify.dto.components.ResultList
 import po.exposify.dto.components.SwitchQuery
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.extensions.getOrOperationsEx
 import po.exposify.scope.sequence.classes.RootHandlerProvider
 import po.exposify.scope.sequence.classes.SwitchHandlerProvider
 import po.exposify.scope.sequence.models.ClassHandlerConfig
@@ -19,10 +18,10 @@ import kotlin.coroutines.coroutineContext
 //This executed for root dto object. Parent/Owner runs query
 suspend fun <DTO: ModelDTO, D: DataModel, E : LongEntity> runSequence(
     handlerDelegate: RootHandlerProvider<DTO, D, E>,
-    configBuilder: suspend RootHandlerConfig<DTO, D, E>.()-> Unit
+    configBuilder: (suspend RootHandlerConfig<DTO, D, E>.()-> Unit)? = null
 ): ResultList<DTO, D, E>{
     val newHandler = handlerDelegate.createHandler()
-    configBuilder.invoke(newHandler.handlerConfig)
+    configBuilder?.invoke(newHandler.handlerConfig)
     val session = coroutineContext[AuthorizedSession]?: AuthSessionManager.getOrCreateSession(createDefaultIdentifier())
     val emitter = newHandler.dtoRoot.getServiceClass().requestEmitter(session)
     return emitter.dispatchRoot(newHandler)

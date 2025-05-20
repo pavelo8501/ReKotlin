@@ -2,7 +2,7 @@ package po.exposify.scope.connection.models
 
 import com.zaxxer.hikari.HikariDataSource
 import org.jetbrains.exposed.sql.Database
-import po.exposify.scope.connection.ConnectionContext
+import po.exposify.scope.connection.ConnectionClass
 
 
 class ConnectionInfo(
@@ -14,7 +14,7 @@ class ConnectionInfo(
     val driver: String = "org.postgresql.Driver",
     val jdbcUrl: String? = null
 ){
-   val connections : MutableList<ConnectionContext> = mutableListOf()
+   val connections : MutableList<ConnectionClass> = mutableListOf()
 
     var lastError : String? = null
     var connection: Database? = null
@@ -31,7 +31,7 @@ class ConnectionInfo(
         if(jdbcUrl != null){
             return  jdbcUrl
         }else{
-            return  "jdbc:postgresql://$host:$port/$dbName"
+            return "jdbc:postgresql://$host:$port/$dbName"
         }
     }
 }

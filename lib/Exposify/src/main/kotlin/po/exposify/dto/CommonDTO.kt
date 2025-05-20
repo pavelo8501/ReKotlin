@@ -79,10 +79,6 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
            return trackerParameter?: DTOTracker(this)
         }
 
-    init {
-        println("Initializing Common DTO. ${dtoName}")
-    }
-
     private fun dataModelContainerUpdated(model : DATA){
         dataModel = model
     }
@@ -181,17 +177,6 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
             regItem :  DTORegistryItem<DTO, DATA, ENTITY>
         ){
             dtoRegistry.putIfAbsent(regItem.typeKeyCombined, regItem)
-        }
-
-        fun sayCommonCompanion(){
-            println("Common dto Companion companion")
-        }
-    }
-
-    object sayCommonObject{
-
-        fun sayRootObject(){
-            println("Common dto Object")
         }
     }
 }

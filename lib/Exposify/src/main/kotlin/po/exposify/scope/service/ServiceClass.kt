@@ -22,7 +22,7 @@ import po.lognotify.TasksManaged
 
 class ServiceClass<DTO, DATA, ENTITY>(
     private val rootDTOModel: RootDTO<DTO, DATA, ENTITY>,
-    private val connectionClass : ConnectionClass,
+    internal val connectionClass : ConnectionClass,
     private val serviceCreateOption: TableCreateMode = TableCreateMode.CREATE,
 ): IdentifiableComponent,  AsClass<DATA, ENTITY>, TasksManaged  where  DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity {
 
@@ -80,14 +80,13 @@ class ServiceClass<DTO, DATA, ENTITY>(
     }
 
     internal fun initService(rootDTOModel: RootDTO<DTO, DATA, ENTITY>){
-
         transaction {
             rootDTOModel.initialization(serviceContext)
             prepareTables(serviceCreateOption)
         }
     }
 
-    internal suspend fun runServiceContext(block: suspend ServiceContext<DTO, DATA, ENTITY>.()->Unit){
+    internal fun runServiceContext(block:  ServiceContext<DTO, DATA, ENTITY>.()->Unit){
         println("Before   ServiceContext invoked (runServiceContext)")
         serviceContext.block()
     }

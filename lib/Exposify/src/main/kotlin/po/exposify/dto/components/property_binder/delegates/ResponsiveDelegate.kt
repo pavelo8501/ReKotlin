@@ -1,6 +1,5 @@
 package po.exposify.dto.components.property_binder.delegates
 
-import kotlinx.serialization.KSerializer
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.proFErty_binder.EntityUpdateContainer
@@ -12,6 +11,7 @@ import po.exposify.dto.interfaces.ComponentType
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
+import po.misc.serialization.SerializerInfo
 import kotlin.Any
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KMutableProperty1
@@ -64,13 +64,12 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
 }
 
 
-class SerializedDelegate<DTO, D, E, S, V: Any> internal constructor(
+class SerializedDelegate<DTO, D, E, V: Any> internal constructor(
     dto : CommonDTO<DTO, D, E>,
     dataProperty:KMutableProperty1<D, V>,
     entityProperty:KMutableProperty1<E, V>,
-    val serializer:  KSerializer<S>,
 ) : ResponsiveDelegate<DTO, D, E, V>(dto, dataProperty, entityProperty)
-        where DTO: ModelDTO, D: DataModel, E: LongEntity, S: Any
+        where DTO: ModelDTO, D: DataModel, E: LongEntity
 {
 
     override val qualifiedName: String

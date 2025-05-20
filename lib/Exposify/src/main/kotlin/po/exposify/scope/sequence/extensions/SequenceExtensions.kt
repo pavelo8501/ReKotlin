@@ -12,17 +12,18 @@ import po.exposify.scope.sequence.classes.ClassSequenceHandler
 import po.exposify.scope.sequence.classes.RootHandlerProvider
 import po.exposify.scope.sequence.classes.RootSequenceHandler
 import po.exposify.scope.sequence.classes.SwitchHandlerProvider
+import po.exposify.scope.service.ServiceContext
 import po.lognotify.lastTaskHandler
 
 
-suspend fun <DTO, D, E> sequence(
+fun <DTO, D, E>  ServiceContext<DTO, D, E>.sequence(
     handlerDelegate : RootHandlerProvider<DTO, D, E>,
     block: suspend  SequenceContext<DTO, D, E>.(RootSequenceHandler<DTO, D, E>) -> ResultList<DTO, D, E>
 ) where DTO: ModelDTO, D:DataModel, E:LongEntity
 {
+    this.dtoClass.reinitChild()
     handlerDelegate.storeSequenceLambda(block)
 }
-
 
 //Should execute block lambda immediately. The process is already ongoing no need to store it.
 suspend fun <DTO, D, E, F_DTO, FD, FE> SequenceContext<F_DTO,FD, FE>.switchContext(

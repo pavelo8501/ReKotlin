@@ -53,8 +53,8 @@ class SectionDTO(
     var langId : Int by binding(Section::langId, SectionEntity::langId)
     var updated : LocalDateTime by binding(Section::updated, SectionEntity::updated)
 
-    var classList:  List<ClassData> by serializedBinding(Section::classList, SectionEntity::classList, ClassData)
-    var metaTags :  List<MetaData> by serializedBinding(Section::metaTags, SectionEntity::metaTags, MetaData)
+    var classList:  List<ClassData> by serializedBinding(Section::classList, SectionEntity::classList)
+    var metaTags :  List<MetaData> by serializedBinding(Section::metaTags, SectionEntity::metaTags)
 
     val updatedBy : Long by foreign2IdReference(Section::updatedBy, SectionEntity::updatedBy, UserDTO)
     val pageId : Long by parent2IdReference(Section::pageId, SectionEntity::page)
@@ -70,6 +70,7 @@ class SectionDTO(
         val UPDATE by SwitchHandlerProvider(this, Cardinality.ONE_TO_MANY, PageDTO.UPDATE)
 
         override fun setup() {
+            val ser = ClassData.serializer()
             configuration<SectionDTO, Section, SectionEntity>(SectionEntity) {
                 applyTrackerConfig {
                     name = "AltSection"

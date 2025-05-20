@@ -66,7 +66,6 @@ class ServiceContext<DTO, DATA, ENTITY>(
         }
     }.resultOrException()
 
-
     fun select(): ResultList<DTO, DATA, ENTITY> = runTaskBlocking("Select") {
         withTransactionIfNone {
             executionProvider.select()

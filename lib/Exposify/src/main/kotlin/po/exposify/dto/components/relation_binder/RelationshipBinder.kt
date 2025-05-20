@@ -5,7 +5,6 @@ import po.exposify.dto.DTOBase
 import po.exposify.dto.DTOClass
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.DataModel
-import po.exposify.dto.interfaces.ClassDTO
 import po.exposify.dto.interfaces.ModelDTO
 import kotlin.collections.set
 
@@ -14,7 +13,7 @@ class RelationshipBinder<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>
    val dtoClass: DTOBase<DTO, DATA, ENTITY>
 ) where DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity, CHILD_DTO: ModelDTO, CHILD_DATA: DataModel, CHILD_ENTITY: LongEntity {
 
-    private var childClassRegistry : MutableMap<String, ClassDTO> = mutableMapOf()
+    private var childClassRegistry : MutableMap<String, DTOClass<*,*,*>> = mutableMapOf()
 
     internal var manyBindings =
         mutableMapOf<Cardinality, MultipleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>>()
@@ -32,7 +31,7 @@ class RelationshipBinder<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>
         childClassRegistry[className] = childClass
     }
 
-    fun getChildClassList(): List<ClassDTO>{
+    fun getChildClassList(): List<DTOClass<*,*,*>>{
        return childClassRegistry.values.toList()
     }
 

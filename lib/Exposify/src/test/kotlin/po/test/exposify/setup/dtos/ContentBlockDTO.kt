@@ -48,8 +48,8 @@ class ContentBlockDTO(
     var langId : Int by binding(ContentBlock::langId, ContentBlockEntity::langId)
     var updated : LocalDateTime by binding(ContentBlock::updated, ContentBlockEntity::updated)
 
-    var classList: List<ClassData> by serializedBinding(ContentBlock::classList, ContentBlockEntity::classList, ClassData)
-    var metaTags:  List<MetaData> by serializedBinding(ContentBlock::metaTags, ContentBlockEntity::metaTags, MetaData)
+    var classList: List<ClassData> by serializedBinding(ContentBlock::classList, ContentBlockEntity::classList)
+    var metaTags:  List<MetaData> by serializedBinding(ContentBlock::metaTags, ContentBlockEntity::metaTags)
 
     val sectionId by parent2IdReference(ContentBlock::sectionId, ContentBlockEntity::section)
 
