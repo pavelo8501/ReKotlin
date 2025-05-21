@@ -52,10 +52,6 @@ object DatabaseManager {
         }
     }
 
-    fun onConnectionUpdate(fn: (String, Boolean)-> Unit) {
-        connectionUpdated = fn
-    }
-
     fun openConnection(
         connectionInfo : ConnectionInfo,
         settings : ConnectionSettings = ConnectionSettings(5),

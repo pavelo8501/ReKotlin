@@ -101,10 +101,11 @@ class ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE> (
 {
     override val handlerConfig : ClassHandlerConfig<DTO, D, E, F_DTO, FD, FE> = ClassHandlerConfig()
 
+
+
     suspend fun launch(
         switchLambda :  suspend  SequenceContext<DTO, D, E>.(ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE>)-> ResultList<DTO, D, E>
-        ): ResultList<DTO, D, E> {
-
+    ): ResultList<DTO, D, E> {
         val switchQuery = handlerDelegate.switchQueryProvider.invoke()
         val hostingDTO = switchQuery.resolve().getAsCommonDTOForced()
         val repo = hostingDTO.getRepository(dtoClass, cardinality)

@@ -20,10 +20,18 @@ abstract class DatabaseTest(val connectionInfo: ConnectionInfo?= null) {
         @JvmStatic
         @Container
         val postgres = PostgreSQLContainer("postgres:15")
+
+        @JvmStatic
+        val connection: ConnectionClass? = null
     }
 
     fun startTestConnection(muteContainer: Boolean = true, context:  (ConnectionClass.() -> Unit)) {
         System.setProperty("org.testcontainers.reuse.enable", "true")
+
+        connection?.let {
+            it.context()
+            return
+        }
 
        val connection = if(connectionInfo == null){
             if (muteContainer) {
@@ -43,6 +51,7 @@ abstract class DatabaseTest(val connectionInfo: ConnectionInfo?= null) {
         }else{
             DatabaseManager.openConnection(connectionInfo, ConnectionSettings(5))
         }
+
         connection.context()
     }
 

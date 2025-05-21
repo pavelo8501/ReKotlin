@@ -12,6 +12,8 @@ import po.exposify.dto.interfaces.ComponentType
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ExecutionContext
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.exceptions.OperationsException
+import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.getOrOperationsEx
 import po.lognotify.classes.task.TaskHandler
 import po.lognotify.lastTaskHandler
@@ -79,12 +81,13 @@ class RootExecutionProvider<DTO, DATA, ENTITY>(
     }
 
     override suspend fun pick(conditions: SimpleQuery): ResultSingle<DTO, DATA, ENTITY>{
-        with(dtoClass) {
-            val entity = dtoClass.config.daoService.pick(conditions)
-                .getOrOperationsEx("Entity with provided query :${conditions} not found")
+        val entity = dtoClass.config.daoService.pick(conditions)
+        if(entity == null){
+          return dtoClass.createSingleResult().setWarningMessage("Entity with provided query :${conditions} not found")
+        }else{
             val existent = dtoClass.lookupDTO(entity.id.value)
             return if (existent != null) {
-                existent.addTrackerInfo(CrudOperation.Pick, this@RootExecutionProvider)
+                existent.addTrackerInfo(CrudOperation.Pick, this)
                 existent.createSingleResult(CrudOperation.Pick)
             } else {
                 createDto(entity).createSingleResult(CrudOperation.Initialize)

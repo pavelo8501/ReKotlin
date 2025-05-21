@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertAll
+import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertInstanceOf
 import po.auth.extensions.generatePassword
 import po.auth.extensions.withSessionContext
@@ -71,6 +72,68 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
         }
     }
 
+
+    @Test
+    fun `Running sequence as a DTO hierarchy child member`() = runTest {
+
+        var pageDtoByOnResultCollected: PageDTO? = null
+        fun testUpdated(result: ResultSingle<PageDTO, Page, PageEntity>) {
+            pageDtoByOnResultCollected = result.getDTOForced()
+            assertTrue(pageDtoByOnResultCollected.sections.size == 1, "Sections not updated")
+        }
+
+        startTestConnection {
+            service(PageDTO, TableCreateMode.CREATE) {
+                update(pageModelsWithSections(pageCount = 1, sectionsCount = 1, updatedBy = updatedById))
+                sequence(PageDTO.SELECT) {
+                    switchContext(SectionDTO.UPDATE) { switchHandler ->
+                        update(switchHandler.inputList)
+                    }
+                    select()
+                }
+
+                sequence(PageDTO.Companion.UPDATE) { handler ->
+                    val insert = collectResult(update(handler.inputList))
+                    switchContext(SectionDTO.SELECT_UPDATE) { switchHandler ->
+                        update(switchHandler.inputList)
+                    }
+                    insert
+                }
+            }
+        }
+
+        var result: List<Section> = emptyList()
+        assertDoesNotThrow {
+            result = runSequence(SectionDTO.UPDATE, { PageDTO.switchQuery(1L) }) {
+                withData(Section(1, "NewName", "NewDescription", "", emptyList(), emptyList(), 1, 1, 0))
+            }.getData()
+            assertTrue(result.count() == 1, "Section update did not succeed without explicit usingRoot")
+        }
+
+        val inputData = pageModelsWithSections(pageCount = 1, sectionsCount = 1, updatedBy = updatedById)
+        val inputSectionUpdate = Section(1, "NewName", "NewDescription", "", emptyList(), emptyList(), 1, 1, 0)
+        withSessionContext(session) {
+            result = runSequence(SectionDTO.SELECT_UPDATE, { PageDTO.switchQuery(1L) }) {
+                withData(inputSectionUpdate)
+                usingRoot(PageDTO.UPDATE) {
+                    withData(inputData)
+                    onResultCollected(::testUpdated)
+                }
+            }.getData()
+        }
+
+        assertNotNull(pageDtoByOnResultCollected)
+        assertTrue(result.count() == 1, "Section update did not return value")
+        val section = result.first()
+
+        assertAll(
+            "Section update statement succeed",
+            { assertInstanceOf<Section>(section, "Returned value is not of type Section") },
+            { assertEquals("NewName", section.name, "Section properties update failed") },
+            { assertNotEquals(0, section.id, "Updated section Section record") }
+        )
+    }
+
     @Test
     fun `Sequence launched with conditions and input work`() = runTest {
         var updatedPages: List<Page> = emptyList()
@@ -135,9 +198,9 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
         }
         startTestConnection {
             service(PageDTO.Companion, TableCreateMode.CREATE) {
-                sequence(PageDTO.Companion.UPDATE) { handler ->
+                sequence(PageDTO.UPDATE) { handler ->
                     val insert = collectResult(update(handler.inputList))
-                    switchContext(SectionDTO.Companion.UPDATE) { switchHandler ->
+                    switchContext(SectionDTO.UPDATE) { switchHandler ->
                         collectResult(update(switchHandler.inputList))
                     }
                     insert
@@ -173,52 +236,6 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
             { assertInstanceOf<Section>(sectionUpdateOutput, "Returned value is not of type Page") },
             { assertEquals("NewName", sectionUpdateOutput.name, "Section properties update failed") },
             { assertNotEquals(0, sectionUpdateOutput.id, "Updated section Section record") }
-        )
-    }
-
-    @Test
-    fun `Running sequence as a DTO hierarchy child member`() = runTest {
-
-        var pageDtoByOnResultCollected: PageDTO? = null
-        fun testUpdated(result: ResultSingle<PageDTO, Page, PageEntity>) {
-            pageDtoByOnResultCollected = result.getDTOForced()
-            assertTrue(pageDtoByOnResultCollected.sections.size == 1, "Sections not updated")
-        }
-
-        startTestConnection {
-            service(PageDTO.Companion, TableCreateMode.CREATE) {
-                sequence(PageDTO.Companion.UPDATE) { handler ->
-                    val insert = collectResult(update(handler.inputList))
-                    switchContext(SectionDTO.Companion.UPDATE) { switchHandler ->
-                        update(switchHandler.inputList)
-                    }
-                    insert
-                }
-            }
-        }
-
-        val inputData = pageModelsWithSections(pageCount = 1, sectionsCount = 1, updatedBy = updatedById)
-        val inputSectionUpdate = Section(1, "NewName", "NewDescription", "", emptyList(), emptyList(), 1, 1, 0)
-        var result: List<Section> = emptyList()
-        withSessionContext(session) {
-            result = runSequence(SectionDTO.Companion.UPDATE, { PageDTO.Companion.switchQuery(1L) }) {
-                withData(inputSectionUpdate)
-                usingRoot(PageDTO.Companion.UPDATE) {
-                    withData(inputData)
-                    onResultCollected(::testUpdated)
-                }
-            }.getData()
-        }
-
-        assertNotNull(pageDtoByOnResultCollected)
-        assertTrue(result.count() == 1, "Section update did not return value")
-        val section = result.first()
-
-        assertAll(
-            "Section update statement succeed",
-            { assertInstanceOf<Section>(section, "Returned value is not of type Section") },
-            { assertEquals("NewName", section.name, "Section properties update failed") },
-            { assertNotEquals(0, section.id, "Updated section Section record") }
         )
     }
 

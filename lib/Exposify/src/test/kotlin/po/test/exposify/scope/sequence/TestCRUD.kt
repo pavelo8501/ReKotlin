@@ -1,17 +1,17 @@
 package po.test.exposify.scope.sequence
 
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import po.auth.extensions.createDefaultIdentifier
 import po.auth.extensions.generatePassword
+import po.auth.extensions.withSessionContext
 import po.exposify.DatabaseManager
 import po.exposify.dto.components.WhereQuery
 import po.exposify.dto.components.toResultList
 import po.exposify.scope.connection.models.ConnectionInfo
 import po.exposify.scope.sequence.extensions.runSequence
 import po.exposify.scope.sequence.extensions.sequence
-import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.ConsoleBehaviour
@@ -19,13 +19,12 @@ import po.lognotify.logNotify
 import po.test.exposify.scope.TestSessionsContext
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.Users
-import po.test.exposify.setup.dtos.Page
 import po.test.exposify.setup.dtos.PageDTO
 import po.test.exposify.setup.dtos.User
 import po.test.exposify.setup.dtos.UserDTO
-import po.test.exposify.setup.sectionsPreSaved
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -39,7 +38,7 @@ class TestCRUD : DatabaseTest(),  TasksManaged {
         val session = TestSessionsContext.SessionIdentity("0", "192.169.1.1")
     }
 
-
+    @Test
     fun `Pick statement is processed in Sequence context`() = runTest {
 
         val loggerHandler: LogNotifyHandler = logNotify()
@@ -47,7 +46,7 @@ class TestCRUD : DatabaseTest(),  TasksManaged {
             console = ConsoleBehaviour.MuteNoEvents
         }
 
-        val user = User(
+        val inputUser = User(
             id = 0,
             login = "some_login",
             hashedPassword = generatePassword("password"),
@@ -57,42 +56,35 @@ class TestCRUD : DatabaseTest(),  TasksManaged {
 
         startTestConnection{
             service(UserDTO){
-                updatedById = update(user).getDataForced().id
-                sequence(UserDTO.PICK){handler->
+                update(inputUser)
+                sequence(UserDTO.PICK) { handler ->
                     pick(handler.query).toResultList()
                 }
             }
         }
 
-        startTestConnection {
-            service(UserDTO, TableCreateMode.FORCE_RECREATE) {
-
-            }
-            service(PageDTO){
-                for(i in 1..3) {
-                    val page = Page()
-                    page.updatedById = user.id
-                    page.sections.addAll(sectionsPreSaved(0L))
-                    update(page)
+        var userFail: User? = null
+        var userSuccess: User? = null
+        withSessionContext(createDefaultIdentifier()) {
+            userFail = runSequence(UserDTO.PICK) {
+                withQuery {
+                    WhereQuery(Users).equalsTo({ login }, "wrong")
                 }
-                select()
-            }
+            }.getData().firstOrNull()
+            userSuccess = runSequence(UserDTO.PICK) {
+                withQuery {
+                    WhereQuery(Users).equalsTo({ login }, inputUser.login)
+                }
+            }.getData().firstOrNull()
         }
-       val selected = runSequence(UserDTO.PICK){
-            withQuery{
-                WhereQuery(Users).equalsTo({login}, "some_login")
-            }
-        }.getData().firstOrNull()
 
-        val selectedUser = assertNotNull(selected)
-        assertEquals(selectedUser.name, user.name)
-        assertEquals(selectedUser.login, user.login)
+        assertNull(userFail)
+        val selectedUser = assertNotNull(userSuccess)
+        assertEquals(selectedUser.name, inputUser.name)
+        assertEquals(selectedUser.login, inputUser.login)
     }
-
-    @Test
     fun `test run n a real db with sequence select`() = runTest{
 
-        val a = 10
         val connectionInfo = ConnectionInfo(host ="0.0.0.0", port ="5432", dbName = "medprof_postgres", user = "django-api", pwd = "django-api_usrPWD12")
         DatabaseManager.openConnection(connectionInfo).service(PageDTO){
             sequence(PageDTO.SELECT) {

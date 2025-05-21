@@ -20,6 +20,9 @@ sealed class ResultBase<DTO, DATA, ENTITY>(
     internal val dtoClass: DTOBase<DTO, DATA, ENTITY>,
 ) where DTO : ModelDTO, DATA: DataModel, ENTITY : LongEntity{
 
+    var resultMessage : String = ""
+
+
 
 }
 
@@ -27,8 +30,6 @@ class ResultList<DTO, DATA, ENTITY>(
    dtoClass: DTOBase<DTO, DATA, ENTITY>,
    internal var resultList : MutableList<CommonDTO<DTO, DATA, ENTITY>> = mutableListOf()
 ) : ResultBase<DTO, DATA, ENTITY>(dtoClass) where DTO : ModelDTO, DATA: DataModel, ENTITY : LongEntity {
-
-  //  internal val dtoList: MutableList<CommonDTO<DTO, DATA, ENTITY>> = mutableListOf()
 
 
     fun addResult(list: List<CommonDTO<DTO, DATA, ENTITY>>): ResultList<DTO, DATA, ENTITY> {
@@ -66,6 +67,11 @@ class ResultList<DTO, DATA, ENTITY>(
             result.add(it.tracker.collectTrackers())
         }
         return result
+    }
+
+    fun setWarningMessage(message: String): ResultList<DTO, DATA, ENTITY>{
+        resultMessage = message
+        return this
     }
 }
 
@@ -115,6 +121,11 @@ class ResultSingle<DTO, DATA, ENTITY>(
        return dto.getOrOperationsEx().tracker.collectTrackerTree()
     }
 
+    fun setWarningMessage(message: String): ResultSingle<DTO, DATA, ENTITY>{
+        resultMessage = message
+        return this
+    }
+
 }
 
 
@@ -138,7 +149,6 @@ fun <DTO, D, E>  DTOBase<DTO, D, E>.createSingleResult(initial : CommonDTO<DTO, 
         where  DTO: ModelDTO, D : DataModel, E : LongEntity{
     return ResultSingle(this, initial)
 }
-
 
 fun <DTO, D, E>  CommonDTO<DTO, D, E>.createSingleResult(operation : CrudOperation): ResultSingle<DTO, D, E>
         where  DTO: ModelDTO, D : DataModel, E : LongEntity{

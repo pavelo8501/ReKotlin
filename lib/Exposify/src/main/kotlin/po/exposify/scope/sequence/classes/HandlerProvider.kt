@@ -34,7 +34,7 @@ sealed class HandlerProviderBase<DTO, D, E, V>(
     private var propertyName : String? = null
     override val name : String get() = propertyName.getOrInitEx()
 
-    abstract override var isInitialized: Boolean
+    override var isInitialized: Boolean = false
     abstract override var isRootHandler : Boolean
     abstract override val cardinality: Cardinality
     abstract val nameUpdated: (String)-> Unit
@@ -52,7 +52,6 @@ class RootHandlerProvider<DTO, D, E>(
 ):HandlerProviderBase<DTO, D, E, RootHandlerProvider<DTO, D, E>>(dtoRoot)
         where DTO: ModelDTO, D: DataModel, E: LongEntity{
 
-    override var isInitialized: Boolean = false
     override var isRootHandler : Boolean = true
     override val cardinality: Cardinality = Cardinality.ONE_TO_MANY
     override val nameUpdated: (String) -> Unit = { isInitialized = true }
@@ -68,22 +67,23 @@ class RootHandlerProvider<DTO, D, E>(
         sequenceLambdaParameter = block
     }
 
-
     internal fun createHandler(): RootSequenceHandler<DTO, D, E> {
         return RootSequenceHandler(this, dtoRoot, name, sequenceLambda)
     }
+
+
 
 }
 
 class SwitchHandlerProvider<DTO, D, E, F_DTO, FD, FE>(
     val dtoClass: DTOClass<DTO, D, E>,
     override val cardinality: Cardinality,
-    val rootHandlerDelegate: RootHandlerProvider<F_DTO, FD, FE> ,
+    val rootSequenceHandler: RootHandlerProvider<F_DTO, FD, FE> ,
 ):HandlerProviderBase<DTO, D, E, SwitchHandlerProvider<DTO, D, E, F_DTO, FD, FE>>(dtoClass)
         where DTO: ModelDTO, D: DataModel, E: LongEntity,
               F_DTO : ModelDTO,FD : DataModel, FE: LongEntity
 {
-    override var isInitialized: Boolean = false
+
     override var isRootHandler : Boolean = false
     override val nameUpdated: (String) -> Unit = { isInitialized = true }
 
@@ -106,6 +106,10 @@ class SwitchHandlerProvider<DTO, D, E, F_DTO, FD, FE>(
     ):ClassSequenceHandler<DTO, D, E,  F_DTO, FD, FE> {
         this.switchQueryProviderParameter = switchQueryProvider
         return ClassSequenceHandler(this, dtoClass, cardinality, name)
+    }
+
+    internal fun createParentHandler(): RootSequenceHandler<F_DTO, FD, FE> {
+       return   rootSequenceHandler.createHandler()
     }
 
 }

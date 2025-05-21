@@ -4,6 +4,7 @@ import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.Op
+import org.jetbrains.exposed.sql.QueryBuilder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.less
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.lessEq
@@ -16,6 +17,12 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 
 
+fun Op<Boolean>.toSqlString(): String {
+    val builder = QueryBuilder(prepared = false)
+    this.toQueryBuilder(builder)
+    return builder.toString()
+}
+
 sealed class SimpleQuery() {
     abstract val expression: Set<Op<Boolean>>
     private fun combineConditions(conditions: Set<Op<Boolean>>): Op<Boolean> {
@@ -23,6 +30,9 @@ sealed class SimpleQuery() {
     }
     fun build(): Op<Boolean> {
         return combineConditions(expression)
+    }
+    override fun toString(): String {
+       return build().toSqlString()
     }
 }
 

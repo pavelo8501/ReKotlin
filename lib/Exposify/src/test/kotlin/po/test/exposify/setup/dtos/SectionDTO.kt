@@ -67,10 +67,10 @@ class SectionDTO(
 
     companion object: DTOClass<SectionDTO, Section, SectionEntity>(PageDTO){
 
-        val UPDATE by SwitchHandlerProvider(this, Cardinality.ONE_TO_MANY, PageDTO.UPDATE)
+       val UPDATE by SwitchHandlerProvider(this, Cardinality.ONE_TO_MANY, PageDTO.SELECT)
+       val SELECT_UPDATE by SwitchHandlerProvider(this, Cardinality.ONE_TO_MANY, PageDTO.UPDATE)
 
         override fun setup() {
-            val ser = ClassData.serializer()
             configuration<SectionDTO, Section, SectionEntity>(SectionEntity) {
                 applyTrackerConfig {
                     name = "AltSection"

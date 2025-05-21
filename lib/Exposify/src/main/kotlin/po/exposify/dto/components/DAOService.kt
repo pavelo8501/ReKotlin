@@ -52,9 +52,6 @@ class DAOService<DTO, DATA, ENTITY>(
    suspend fun  pick(conditions :  SimpleQuery): ENTITY? = subTask("Pick"){handler->
        val opConditions = buildConditions(conditions)
        val queryResult = entityModel.find(opConditions).firstOrNull()
-        if(queryResult == null){
-            handler.warn("Entity  not found")
-        }
         queryResult
     }.resultOrNull()
 
