@@ -1,4 +1,4 @@
-package po.exposify.dto.components.relation_binder
+package po.exposify.dto.components.relation_binder.components
 
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.DTOBase
@@ -10,10 +10,11 @@ import po.exposify.dto.components.DTOConfig
 import po.exposify.dto.components.proFErty_binder.EntityUpdateContainer
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.components.relation_binder.delegates.OneToManyDelegate
+import po.exposify.dto.components.relation_binder.delegates.OneToManyDelegateAdv
 import po.exposify.dto.components.relation_binder.delegates.OneToOneDelegate
 import po.exposify.dto.components.relation_binder.delegates.RelationBindingDelegate
 import po.exposify.extensions.castOrOperationsEx
-import po.misc.collections.CompositeKey
+import po.misc.collections.CompositeEnumKey
 import po.misc.collections.generateKey
 
 
@@ -38,6 +39,7 @@ fun <DTO, DATA, ENTITY, F_DTO, FD, FE> DTOClass<F_DTO, FD, FE>.createOneToManyCo
 {
     return  MultipleChildContainer(dto, this, bindingDelegate)
 }
+
 
 class SingleChildContainer<DTO, DATA, ENTITY, F_DTO, FD, FE>  (
     private  val dto: CommonDTO<DTO, DATA, ENTITY>,
@@ -66,7 +68,6 @@ class SingleChildContainer<DTO, DATA, ENTITY, F_DTO, FD, FE>  (
     fun getDto(){
         bindingDelegate.getEffectiveValue()
     }
-
 }
 
 
@@ -115,9 +116,7 @@ sealed class BindingContainer<DTO, DATA, ENTITY, F_DTO, FD, FE>(
     fun getForeignEntity(id: Long): FE?
             = bindingDelegateBase.getForeignEntity(id)
 
-
-
     abstract val cardinality  : Cardinality
-    abstract val thisKey : CompositeKey<DTOBase<DTO,DATA, ENTITY>, Cardinality>
+    abstract val thisKey : CompositeEnumKey<DTOBase<DTO,DATA, ENTITY>, Cardinality>
 
 }

@@ -2,13 +2,12 @@ package po.exposify.dto.components.relation_binder.delegates
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.SizedIterable
-import po.exposify.dto.DTOBase
 import po.exposify.dto.DTOClass
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.relation_binder.RelationshipBinder
-import po.exposify.dto.components.relation_binder.createOneToManyContainer
-import po.exposify.dto.components.relation_binder.createOneToOneContainer
+import po.exposify.dto.components.relation_binder.components.createOneToManyContainer
+import po.exposify.dto.components.relation_binder.components.createOneToOneContainer
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.extensions.castOrInitEx
@@ -77,5 +76,5 @@ fun <DTO, DATA, ENTITY, C_DTO, CD,  FE> CommonDTO<DTO, DATA, ENTITY>.oneToManyOf
     val binder = dtoClassConfig.relationBinder.castOrOperationsEx<RelationshipBinder<DTO, DATA, ENTITY, C_DTO, CD, FE>>()
     binder.attachBinding(Cardinality.ONE_TO_MANY, container)
     return bindingDelegate
-
 }
+

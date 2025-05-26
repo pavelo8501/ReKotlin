@@ -12,6 +12,7 @@ class TypeRegistry {
     internal val registry = mutableMapOf<String, TypeRecord<*>>()
 
     inline fun <reified T: Any> addRecord(name: String){
+
         registry[T::class.qualifiedName.toString()] =  TypeRecord(name, T::class, typeOf<T>())
     }
 
@@ -41,7 +42,6 @@ class TypeRegistry {
         val casted =  consRecord.castOrThrow<TypeRecord<T>, E>("Record name: $name can not be casted to type ${T::class.simpleName}")
         return casted
     }
-
 
     inline fun <reified T : Any> contains(): Boolean =
         T::class.qualifiedName?.let { registry.containsKey(it) } == true

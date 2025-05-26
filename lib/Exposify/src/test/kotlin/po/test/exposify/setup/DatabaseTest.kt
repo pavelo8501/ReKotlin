@@ -29,47 +29,53 @@ abstract class DatabaseTest() {
 
     fun startTestConnection(muteContainer: Boolean = true, context:  (ConnectionClass.() -> Unit)) {
         System.setProperty("org.testcontainers.reuse.enable", "true")
-        val connectionInfo =  ConnectionInfo(
-            jdbcUrl = postgres.jdbcUrl,
-            dbName = postgres.databaseName,
-            user = postgres.username,
-            pwd = postgres.password,
-            driver = postgres.driverClassName
-        )
+
         if (muteContainer) {
             System.setProperty("org.slf4j.simpleLogger.log.org.testcontainers", "ERROR")
         }
         val connectionHooks  = dbHooks {
-            beforeConnection { println("Trying to connect...") }
-            newConnection {
+            beforeConnection {
                 postgres.start()
+                println("Trying to connect...")
+                ConnectionInfo(
+                    jdbcUrl = postgres.jdbcUrl,
+                    dbName = postgres.databaseName,
+                    user = postgres.username,
+                    pwd = postgres.password,
+                    driver = postgres.driverClassName
+                )
+            }
+            newConnection {
+
             }
             existentConnection { println("Reusing: ${it.name}") }
         }
-        val connection = DatabaseManager.openConnection(connectionInfo, ConnectionSettings(retries = 5), hooks = connectionHooks )
+
+        val connection = DatabaseManager.openConnection(null, ConnectionSettings(retries = 5), hooks = connectionHooks )
         connection.context()
     }
 
     suspend fun startTestConnectionAsync(muteContainer: Boolean = true, context:  (ConnectionClass.() -> Unit)) {
         System.setProperty("org.testcontainers.reuse.enable", "true")
-        val connectionInfo =  ConnectionInfo(
-            jdbcUrl = postgres.jdbcUrl,
-            dbName = postgres.databaseName,
-            user = postgres.username,
-            pwd = postgres.password,
-            driver = postgres.driverClassName
-        )
         if (muteContainer) {
             System.setProperty("org.slf4j.simpleLogger.log.org.testcontainers", "ERROR")
         }
         val connectionHooks  = dbHooks {
-            beforeConnection { println("Trying to connect...") }
+            beforeConnection {
+                postgres.start()
+                ConnectionInfo(
+                    jdbcUrl = postgres.jdbcUrl,
+                    dbName = postgres.databaseName,
+                    user = postgres.username,
+                    pwd = postgres.password,
+                    driver = postgres.driverClassName)
+            }
             newConnection {
                 postgres.start()
             }
             existentConnection { println("Reusing: ${it.name}") }
         }
-        val connection = DatabaseManager.openConnectionAsync(connectionInfo, ConnectionSettings(retries = 5), hooks = connectionHooks )
+        val connection = DatabaseManager.openConnectionAsync(null, ConnectionSettings(retries = 5), hooks = connectionHooks )
         connection.context()
     }
 }

@@ -11,7 +11,9 @@ import po.exposify.dto.interfaces.ComponentType
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
-import po.misc.serialization.SerializerInfo
+import po.misc.interfaces.Identifiable
+import po.misc.interfaces.ValueBased
+import po.misc.registries.callback.TypedCallbackRegistry
 import kotlin.Any
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KMutableProperty1
@@ -25,6 +27,10 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
       where DTO: ModelDTO, D: DataModel, E: LongEntity
 {
 
+    enum class SubscriptionType(override val value : Int): ValueBased{
+        ON_CHANGE(1)
+    }
+
     abstract override val qualifiedName: String
     override val type: ComponentType = ComponentType.ResponsiveDelegate
 
@@ -36,9 +42,11 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
     var lastValue : V? = null
 
     var valueUpdated : Boolean = false
-    protected var onValueChanged: ((ObservableData)-> Unit)? = null
-    fun subscribeUpdates(valueChanged: (ObservableData)-> Unit){
-        onValueChanged = valueChanged
+   // protected var onValueChanged: ((ObservableData)-> Unit)? = null
+    protected val subscriptions = TypedCallbackRegistry<ObservableData>()
+
+    fun subscribeUpdates(subscriber: Identifiable, callback: (ObservableData)-> Unit){
+        subscriptions.subscribe(subscriber, SubscriptionType.ON_CHANGE, callback)
     }
 
     abstract fun update(dataModel:D)
@@ -47,7 +55,8 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
     protected fun onValueSet(methodName: String,  value : V){
         if(lastValue != value){
             valueUpdated = true
-            onValueChanged?.invoke(UpdateParams(dto, CrudOperation.Initialize,  methodName, propertyName, lastValue, value, this))
+            subscriptions.trigger(SubscriptionType.ON_CHANGE, UpdateParams(dto, CrudOperation.Initialize,  methodName, propertyName, lastValue, value, this))
+           // onValueChanged?.invoke(UpdateParams(dto, CrudOperation.Initialize,  methodName, propertyName, lastValue, value, this))
             lastValue = value
         }
     }

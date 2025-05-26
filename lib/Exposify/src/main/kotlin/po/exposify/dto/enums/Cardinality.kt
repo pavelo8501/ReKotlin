@@ -1,6 +1,8 @@
 package po.exposify.dto.enums
 
-enum class Cardinality{
-    ONE_TO_ONE,
-    ONE_TO_MANY,
+import po.misc.interfaces.ValueBased
+
+enum class Cardinality(override val value : Int) : ValueBased{
+    ONE_TO_ONE(1),
+    ONE_TO_MANY(2),
 }

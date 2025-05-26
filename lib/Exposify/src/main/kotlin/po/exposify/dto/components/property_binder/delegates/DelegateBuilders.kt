@@ -93,7 +93,7 @@ inline fun <DTO, D, E, reified V: Any>  CommonDTO<DTO, D, E>.binding(
 {
     val propertyDelegate = PropertyDelegate(this, dataProperty, entityProperty)
     if(tracker.config.observeProperties){
-        propertyDelegate.subscribeUpdates(tracker::propertyUpdated)
+        propertyDelegate.subscribeUpdates(tracker,  tracker::propertyUpdated)
     }
     dtoPropertyBinder.setBinding(propertyDelegate)
     return propertyDelegate

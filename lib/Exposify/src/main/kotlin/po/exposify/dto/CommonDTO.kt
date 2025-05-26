@@ -8,12 +8,15 @@ import po.exposify.dto.components.DTOConfig
 import po.exposify.dto.components.DTOFactory
 import po.exposify.dto.components.DataModelContainer
 import po.exposify.dto.components.MultipleRepository
+import po.exposify.dto.components.MultipleRepositoryAdv
 import po.exposify.dto.components.RepositoryBase
+import po.exposify.dto.components.RepositoryBaseAdv
 import po.exposify.dto.components.SingleRepository
 import po.exposify.dto.components.proFErty_binder.EntityUpdateContainer
 import po.exposify.dto.components.property_binder.DTOPropertyBinder
-import po.exposify.dto.components.relation_binder.MultipleChildContainer
-import po.exposify.dto.components.relation_binder.SingleChildContainer
+import po.exposify.dto.components.relation_binder.components.MultipleChildContainer
+import po.exposify.dto.components.relation_binder.components.MultipleChildContainerAdv
+import po.exposify.dto.components.relation_binder.components.SingleChildContainer
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.enums.ExceptionCode
@@ -22,7 +25,7 @@ import po.exposify.dto.models.DTORegistryItem
 import po.exposify.dto.components.tracker.DTOTracker
 import po.exposify.exceptions.OperationsException
 import po.exposify.extensions.castOrOperationsEx
-import po.misc.collections.CompositeKey
+import po.misc.collections.CompositeEnumKey
 import po.misc.collections.generateKey
 import po.misc.types.castOrThrow
 import po.misc.types.safeCast
@@ -70,8 +73,11 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     override var id : Long = 0
         get(){return dataContainer.dataModel.id}
 
-    val repositories: MutableMap<CompositeKey<DTOClass<*,*,*>, Cardinality>, RepositoryBase<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>>
+    val repositories: MutableMap<CompositeEnumKey<DTOClass<*,*,*>, Cardinality>, RepositoryBase<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>>
         = mutableMapOf()
+
+    val repositoriesAdv: MutableMap<CompositeEnumKey<DTOClass<*,*,*>, Cardinality>, RepositoryBaseAdv<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>>
+            = mutableMapOf()
 
     internal var trackerParameter: DTOTracker<DTO, DATA>? = null
     override val tracker: DTOTracker<DTO, DATA>
@@ -128,6 +134,15 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         val casted =  newRepo.castOrOperationsEx<MultipleRepository<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>>()
         repositories[binding.childClass.generateKey(Cardinality.ONE_TO_MANY)] = casted
         return newRepo
+    }
+
+    fun createRepository(
+        bindingContainer : MultipleChildContainerAdv<DTO, DATA, ENTITY, *, *, *>,
+    ) {
+        val newRepo = MultipleRepositoryAdv(bindingContainer, this)
+        val casted =  newRepo.castOrOperationsEx<MultipleRepositoryAdv<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>>()
+        val key = bindingContainer.thisKey as CompositeEnumKey<DTOClass<*, *, *>, Cardinality>
+        repositoriesAdv[key] = casted
     }
 
     @JvmName("createRepositorySingle")

@@ -4,6 +4,7 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import org.jetbrains.exposed.sql.Database
 import po.exposify.common.classes.DBManagerHooks
+import po.exposify.extensions.getOrInitEx
 import po.exposify.scope.connection.models.ConnectionInfo
 import po.exposify.scope.connection.ConnectionClass
 import po.exposify.scope.connection.models.ConnectionSettings
@@ -52,42 +53,52 @@ object DatabaseManager {
     }
 
     fun openConnection(
-        connectionInfo : ConnectionInfo,
+        connectionInfo : ConnectionInfo?,
         settings : ConnectionSettings = ConnectionSettings(5),
         hooks: DBManagerHooks? = null
     ): ConnectionClass {
       return runTask("openConnection", TaskConfig(attempts = settings.retries, moduleName = "DatabaseManager")) {
-          hooks?.onBeforeConnection?.invoke()
-          val existentConnection = connections.firstOrNull { it.connectionInfo.key == connectionInfo.key }
-          existentConnection?.let {
-              hooks?.onExistentConnection?.invoke(it)
-              it
-          } ?: run {
-              val connectionClass = tryConnect(connectionInfo)
-              hooks?.onNewConnection?.invoke(connectionClass)
-              connectionUpdated?.invoke("Connected", true)
-              connectionClass
+         val effectiveConnectionInfo = connectionInfo?:hooks?.onBeforeConnection?.invoke()
+         val connection = if(effectiveConnectionInfo == null){
+             connections.firstOrNull().getOrInitEx("No connection info was provided nor opened connections exist")
+          }else{
+             val existentConnection =  connections.firstOrNull { it.connectionInfo.key == effectiveConnectionInfo.key }
+               existentConnection?.let {
+                  hooks?.onExistentConnection?.invoke(it)
+                  it
+              } ?: run {
+                  val newConnection = tryConnect(effectiveConnectionInfo)
+                  hooks?.onNewConnection?.invoke(newConnection)
+                  connectionUpdated?.invoke("Connected", true)
+                 newConnection
+              }
           }
+          connection
         }.resultOrException()
     }
 
     fun openConnectionAsync(
-        connectionInfo : ConnectionInfo,
+        connectionInfo : ConnectionInfo?,
         settings : ConnectionSettings = ConnectionSettings(5),
         hooks: DBManagerHooks? = null
     ):ConnectionClass {
         return runTaskBlocking("openConnectionAsync", TaskConfig(attempts = settings.retries, moduleName = "DatabaseManager")) {
-            hooks?.onBeforeConnection?.invoke()
-            val existentConnection = connections.firstOrNull { it.connectionInfo.key == connectionInfo.key }
-            existentConnection?.let {
-                hooks?.onExistentConnection?.invoke(it)
-                it
-            } ?: run {
-                val connectionClass = tryConnect(connectionInfo)
-                hooks?.onNewConnection?.invoke(connectionClass)
-                connectionUpdated?.invoke("Connected", true)
-                connectionClass
+            val effectiveConnectionInfo = connectionInfo?:hooks?.onBeforeConnection?.invoke()
+            val connection = if(effectiveConnectionInfo == null){
+                connections.firstOrNull().getOrInitEx("No connection info was provided nor opened connections exist")
+            }else{
+                val existentConnection =  connections.firstOrNull { it.connectionInfo.key == effectiveConnectionInfo.key }
+                existentConnection?.let {
+                    hooks?.onExistentConnection?.invoke(it)
+                    it
+                } ?: run {
+                    val newConnection = tryConnect(effectiveConnectionInfo)
+                    hooks?.onNewConnection?.invoke(newConnection)
+                    connectionUpdated?.invoke("Connected", true)
+                    newConnection
+                }
             }
+            connection
         }.resultOrException()
     }
 

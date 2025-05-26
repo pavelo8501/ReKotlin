@@ -25,6 +25,17 @@ class DTOConfig<DTO, DATA, ENTITY>(
     internal var trackerConfigModified : Boolean = false
     val trackerConfig : TrackerConfig = TrackerConfig()
 
+
+   internal fun  addHierarchMemberIfAbsent(childDTO : DTOClass<*, *, *>) {
+
+       if (!childDTO.initialized) {
+           childDTO.initialization()
+       }
+       if (!relationBinder.isDtoClassInHierarchy(childDTO)) {
+           relationBinder.addChildClass(childDTO)
+       }
+   }
+
     fun  hierarchyMembers(vararg childDTO : DTOClass<*, *, *>){
         childDTO.toList().forEach {
             relationBinder.addChildClass(it)

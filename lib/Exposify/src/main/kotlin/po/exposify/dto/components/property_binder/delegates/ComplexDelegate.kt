@@ -51,8 +51,6 @@ class ForeignIDClassDelegate<DTO, D, E, F_DTO, FD, FE>(
     }
 }
 
-
-
 class ParentIDDelegate<DTO, D, E, FE>(
     dto: CommonDTO<DTO, D, E>,
     dataProperty : KMutableProperty1<D, Long>,

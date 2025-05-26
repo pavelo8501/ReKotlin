@@ -10,6 +10,9 @@ import po.exposify.dto.DTOClass
 import po.exposify.dto.components.proFErty_binder.containerize
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.components.relation_binder.components.BindingContainer
+import po.exposify.dto.components.relation_binder.components.BindingContainerAdv
+import po.exposify.dto.components.relation_binder.components.MultipleChildContainerAdv
+import po.exposify.dto.components.relation_binder.components.SingleChildContainerAdv
 import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.components.result.createResultList
@@ -31,11 +34,10 @@ import po.lognotify.extensions.subTask
 import po.lognotify.lastTaskHandler
 import kotlin.collections.forEach
 
-class SingleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
-    val binding : SingleChildContainer<DTO, DATA, ENTITY, C_DTO,  CD, CE>,
+class SingleRepositoryAdv<DTO, DATA, ENTITY, C_DTO, CD, CE>(
+    val binding : SingleChildContainerAdv<DTO, DATA, ENTITY, C_DTO,  CD, CE>,
     hostingDto : CommonDTO<DTO, DATA, ENTITY>,
-    childClass: DTOClass<C_DTO, CD, CE>,
-): RepositoryBase<DTO,DATA, ENTITY, C_DTO, CD, CE>(hostingDto,binding,  childClass)
+): RepositoryBaseAdv<DTO,DATA, ENTITY, C_DTO, CD, CE>(hostingDto,  binding)
         where DTO : ModelDTO, DATA: DataModel, ENTITY : LongEntity,
               C_DTO : ModelDTO, CD: DataModel, CE: LongEntity
 {
@@ -77,20 +79,21 @@ class SingleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
         }
     }
 
-    override suspend fun clear(): SingleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>{
+    override suspend fun clear(): SingleRepositoryAdv<DTO, DATA, ENTITY, C_DTO, CD, CE>{
         childDTO = null
         return this
     }
 }
 
-class MultipleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
-    val binding : MultipleChildContainer<DTO, DATA, ENTITY, C_DTO,  CD, CE>,
-    hostingDto : CommonDTO<DTO, DATA, ENTITY>,
-    childClass: DTOClass<C_DTO, CD, CE>,
-): RepositoryBase<DTO,DATA, ENTITY, C_DTO, CD, CE>(hostingDto,binding,  childClass)
+class MultipleRepositoryAdv<DTO, DATA, ENTITY, C_DTO, CD, CE>(
+    val binding : MultipleChildContainerAdv<DTO, DATA, ENTITY, C_DTO,  CD, CE>,
+    hostingDto : CommonDTO<DTO, DATA, ENTITY>
+): RepositoryBaseAdv<DTO,DATA, ENTITY, C_DTO, CD, CE>(hostingDto,binding)
         where DTO : ModelDTO, DATA: DataModel, ENTITY : LongEntity,
               C_DTO : ModelDTO, CD: DataModel, CE: LongEntity
 {
+
+
 
     override val qualifiedName: String get() = "MultipleRepository[${hostingDTO.dtoName}]"
     override val type: ComponentType = ComponentType.MultipleRepository
@@ -143,21 +146,22 @@ class MultipleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
         }
     }
 
-    override suspend fun clear(): MultipleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>{
+    override suspend fun clear(): MultipleRepositoryAdv<DTO, DATA, ENTITY, C_DTO, CD, CE>{
         childDTO.clear()
         return this
     }
 }
 
 
-sealed class RepositoryBase<DTO, DATA, ENTITY, C_DTO,  CD, CE>(
+sealed class RepositoryBaseAdv<DTO, DATA, ENTITY, C_DTO,  CD, CE>(
     val hostingDTO: CommonDTO<DTO, DATA, ENTITY>,
-    val bindingBase : BindingContainer<DTO, DATA, ENTITY, C_DTO,  CD, CE>,
-    val childClass: DTOClass<C_DTO, CD, CE>,
+    val bindingBase : BindingContainerAdv<DTO, DATA, ENTITY, C_DTO,  CD, CE>,
 ): ExecutionContext<C_DTO, CD, CE>,  IdentifiableComponent, TasksManaged
         where DTO : ModelDTO, DATA: DataModel, ENTITY : LongEntity,
             C_DTO : ModelDTO, CD: DataModel, CE: LongEntity
 {
+
+    protected val childClass: DTOClass<C_DTO, CD, CE> get() = bindingBase.childClass
 
     abstract override val qualifiedName: String
     override val dtoClass : DTOClass<C_DTO, CD, CE> get() = childClass
@@ -177,8 +181,8 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, C_DTO,  CD, CE>(
 
     fun store(dto : CommonDTO<C_DTO, CD, CE>): CommonDTO<C_DTO, CD, CE>{
         when(this){
-            is SingleRepository -> { childDTO = dto }
-            is MultipleRepository->{ childDTO[dto.id] = dto }
+            is SingleRepositoryAdv -> { childDTO = dto }
+            is MultipleRepositoryAdv->{ childDTO[dto.id] = dto }
         }
         childClass.registerDTO(dto)
         return dto
@@ -202,8 +206,8 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, C_DTO,  CD, CE>(
         newChildDto.addTrackerInfo(CrudOperation.Insert, this)
         childClass.config.daoService.saveWithParent(newChildDto, hostingDTO) { containerized ->
             when (this) {
-                is SingleRepository -> binding.attachForeignEntity(containerized)
-                is MultipleRepository -> binding.attachToForeignEntity(containerized)
+                is SingleRepositoryAdv -> binding.attachForeignEntity(containerized)
+                is MultipleRepositoryAdv -> binding.attachToForeignEntity(containerized)
             }
         }
         store(newChildDto)
@@ -295,6 +299,6 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, C_DTO,  CD, CE>(
     internal abstract suspend fun loadHierarchyByEntity()
     internal abstract suspend fun loadHierarchyByModel()
 
-    abstract suspend fun clear(): RepositoryBase<DTO, DATA, ENTITY, C_DTO, CD, CE>
+    abstract suspend fun clear(): RepositoryBaseAdv<DTO, DATA, ENTITY, C_DTO, CD, CE>
 
 }
