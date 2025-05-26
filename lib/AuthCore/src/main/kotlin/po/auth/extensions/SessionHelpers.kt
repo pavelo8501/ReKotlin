@@ -22,7 +22,6 @@ suspend fun withSessionContext(
     block: suspend CoroutineScope.() -> Unit
 ) {
     val session =  coroutineContext[AuthorizedSession]?: AuthSessionManager.getOrCreateSession(sessionIdentity)
-
     withContext(session.sessionScope().coroutineContext, block)
 }
 

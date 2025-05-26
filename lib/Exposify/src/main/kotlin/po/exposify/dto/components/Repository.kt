@@ -10,6 +10,10 @@ import po.exposify.dto.DTOClass
 import po.exposify.dto.components.proFErty_binder.containerize
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.components.relation_binder.BindingContainer
+import po.exposify.dto.components.result.ResultList
+import po.exposify.dto.components.result.ResultSingle
+import po.exposify.dto.components.result.createResultList
+import po.exposify.dto.components.result.createSingleResult
 import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.components.tracker.extensions.addTrackerInfo
 import po.exposify.dto.components.tracker.extensions.addTrackerResult
@@ -236,55 +240,56 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, C_DTO,  CD, CE>(
     ): ResultList<C_DTO, CD, CE> = select(conditions)
 
     override suspend fun select(): ResultList<C_DTO, CD, CE>{
-        val resultingList = ResultList(childClass)
+        val dtos = mutableListOf<CommonDTO<C_DTO, CD, CE>>()
         val result = childClass.config.daoService.select()
         result.forEach { selectedEntity ->
             val existingDto = takeStored(selectedEntity.id.value)
             if (existingDto != null) {
-                resultingList.appendDto(existingDto)
+                dtos.add(existingDto)
             } else {
                 val newDto = pickById(selectedEntity.id.value)
-                resultingList.appendDto(newDto)
+                dtos.add(newDto.getAsCommonDTOForced())
             }
         }
-        return resultingList
+        return dtos.createResultList(childClass, CrudOperation.Select)
     }
 
     override suspend fun select(conditions: SimpleQuery): ResultList<C_DTO, CD, CE> {
-        val resultingList = ResultList(childClass)
+        val dtos = mutableListOf<CommonDTO<C_DTO, CD, CE>>()
         val result = childClass.config.daoService.select(conditions)
         result.forEach { selectedEntity ->
             val existingDto = takeStored(selectedEntity.id.value)
             if (existingDto != null) {
-                resultingList.appendDto(existingDto)
+
+                dtos.add(existingDto)
             } else {
                 val newDto = pickById(selectedEntity.id.value)
-                resultingList.appendDto(newDto)
+                dtos.add(newDto.getAsCommonDTOForced())
             }
         }
-        return resultingList
+        return dtos.createResultList(childClass, CrudOperation.Select)
     }
-    override suspend fun update(dataModel:CD): ResultSingle<C_DTO, CD, CE>{
+    override suspend fun update(dataModel:CD): CommonDTO<C_DTO, CD, CE>{
         if(dataModel.id == 0L){
-            return insert(dataModel)
+            return insert(dataModel).getAsCommonDTOForced()
         }else {
             val existingDto = takeStored(dataModel.id)
             if(existingDto != null){
                 existingDto.dtoPropertyBinder.update(dataModel)
-                return childClass.createSingleResult(existingDto)
+                return existingDto
             }else{
                 val pickedDTO =  pickById(dataModel.id)
-                return pickedDTO
+                return pickedDTO.getAsCommonDTOForced()
             }
         }
     }
 
     override suspend fun update(dataModels: List<CD>): ResultList<C_DTO, CD, CE>{
-        val result =  ResultList(childClass)
+        val dtos = mutableListOf<CommonDTO<C_DTO, CD, CE>>()
         dataModels.forEach {
-            result.appendDto(update(it))
+            dtos.add(update(it))
         }
-        return result
+        return dtos.createResultList(childClass, CrudOperation.Update)
     }
 
     internal abstract suspend fun loadHierarchyByEntity()

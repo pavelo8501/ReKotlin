@@ -4,8 +4,8 @@ import org.jetbrains.exposed.dao.LongEntity
 import po.auth.AuthSessionManager
 import po.auth.extensions.createDefaultIdentifier
 import po.auth.sessions.models.AuthorizedSession
-import po.exposify.dto.components.ResultList
 import po.exposify.dto.components.SwitchQuery
+import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.scope.sequence.classes.RootHandlerProvider

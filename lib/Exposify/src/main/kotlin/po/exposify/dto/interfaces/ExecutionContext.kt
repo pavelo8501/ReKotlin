@@ -2,11 +2,12 @@ package po.exposify.dto.interfaces
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
+import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
-import po.exposify.dto.components.ResultList
-import po.exposify.dto.components.ResultSingle
 import po.exposify.dto.components.SimpleQuery
 import po.exposify.dto.components.WhereQuery
+import po.exposify.dto.components.result.ResultList
+import po.exposify.dto.components.result.ResultSingle
 import po.lognotify.TasksManaged
 import po.lognotify.classes.task.TaskHandler
 
@@ -25,6 +26,6 @@ interface ExecutionContext<DTO: ModelDTO, DATA: DataModel, ENTITY: LongEntity>: 
 
     suspend fun update(dataModels: List<DATA>): ResultList<DTO, DATA, ENTITY>
 
-    suspend fun update(dataModel: DATA): ResultSingle<DTO, DATA, ENTITY>
+    suspend fun update(dataModel: DATA): CommonDTO<DTO, DATA, ENTITY>
 
 }

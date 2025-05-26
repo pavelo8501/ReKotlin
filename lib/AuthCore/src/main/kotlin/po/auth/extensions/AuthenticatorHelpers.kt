@@ -18,5 +18,3 @@ fun registerAuthenticator(userLookupFn:  (login: String)-> AuthenticationPrincip
 fun createDefaultIdentifier():SessionDefaultIdentity{
    return SessionDefaultIdentity()
 }
-
-

@@ -4,8 +4,11 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.jupiter.api.assertAll
 import po.auth.extensions.generatePassword
+import po.exposify.dto.components.result.ResultList
+import po.exposify.dto.components.result.ResultSingle
 import po.exposify.scope.service.enums.TableCreateMode
 import po.test.exposify.setup.DatabaseTest
+import po.test.exposify.setup.PageEntity
 import po.test.exposify.setup.dtos.Page
 import po.test.exposify.setup.dtos.PageDTO
 import po.test.exposify.setup.dtos.SectionDTO
@@ -17,6 +20,49 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 
 class TestRelationDelegates : DatabaseTest() {
+
+
+    @Test
+    fun `OneToManyOf property binding`() = runTest {
+
+        var user = User(
+            id = 0,
+            login = "some_login",
+            hashedPassword = generatePassword("password"),
+            name = "name",
+            email = "nomail@void.null"
+        )
+        startTestConnection(){
+            service(UserDTO) {
+                user = update(user).getDataForced()
+            }
+        }
+
+        val sourceSections = sectionsPreSaved(pageId = 0 )
+        val page = Page(id = 0, name = "home", langId = 1, updatedById = user.id)
+        var updatedPageResult : ResultSingle<PageDTO, Page, PageEntity>? = null
+        var selectedPageResult : ResultList<PageDTO, Page, PageEntity>? = null
+
+        startTestConnection{
+            service(PageDTO, TableCreateMode.CREATE) {
+                page.sections.addAll(sourceSections)
+                updatedPageResult = update(page)
+                selectedPageResult = select()
+            }
+        }
+
+        val updatedPageDTO = assertNotNull(updatedPageResult?.getDTO())
+        val updatedPage = assertNotNull(updatedPageResult.getData())
+
+        val selectedPageDTO = assertNotNull(selectedPageResult?.getDTO()?.firstOrNull())
+        val selectedPage = assertNotNull(selectedPageResult.getData().firstOrNull())
+
+        assertEquals(sourceSections.size, updatedPageDTO.sections.size, "Sections size mismatch in updated DTO. Expecting${sourceSections.size}")
+        assertEquals(sourceSections.size, updatedPage.sections.size, "Sections size mismatch in updated DataModel. Expecting${sourceSections.size}")
+
+        assertEquals(sourceSections.size, selectedPageDTO.sections.size, "Sections size mismatch in selected DTO. Expecting${sourceSections.size}")
+        assertEquals(sourceSections.size, selectedPage.sections.size, "Sections size mismatch in selected DataModel. Expecting${sourceSections.size}")
+    }
 
 
     @Test

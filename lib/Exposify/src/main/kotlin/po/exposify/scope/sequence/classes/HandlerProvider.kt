@@ -1,12 +1,11 @@
 package po.exposify.scope.sequence.classes
 
 import org.jetbrains.exposed.dao.LongEntity
-import po.auth.sessions.models.AuthorizedSession
 import po.exposify.dto.DTOBase
 import po.exposify.dto.DTOClass
 import po.exposify.dto.RootDTO
-import po.exposify.dto.components.ResultList
 import po.exposify.dto.components.SwitchQuery
+import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
@@ -42,12 +41,11 @@ sealed class HandlerProviderBase<DTO, D, E, V>(
     override fun getValue(thisRef: DTOBase<DTO, D, E>, property: KProperty<*>): V{
         val name = property.name
         propertyName = name
-
         return this as V
     }
 }
 
-class RootHandlerProvider<DTO, D, E>(
+class RootHandlerProvider<DTO, D, E> internal constructor(
     val dtoRoot: RootDTO<DTO, D, E>,
 ):HandlerProviderBase<DTO, D, E, RootHandlerProvider<DTO, D, E>>(dtoRoot)
         where DTO: ModelDTO, D: DataModel, E: LongEntity{
@@ -70,12 +68,9 @@ class RootHandlerProvider<DTO, D, E>(
     internal fun createHandler(): RootSequenceHandler<DTO, D, E> {
         return RootSequenceHandler(this, dtoRoot, name, sequenceLambda)
     }
-
-
-
 }
 
-class SwitchHandlerProvider<DTO, D, E, F_DTO, FD, FE>(
+class SwitchHandlerProvider<DTO, D, E, F_DTO, FD, FE> internal constructor(
     val dtoClass: DTOClass<DTO, D, E>,
     override val cardinality: Cardinality,
     val rootSequenceHandler: RootHandlerProvider<F_DTO, FD, FE> ,

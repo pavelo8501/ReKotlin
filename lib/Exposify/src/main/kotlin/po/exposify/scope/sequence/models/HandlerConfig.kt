@@ -1,11 +1,9 @@
 package po.exposify.scope.sequence.models
 
 import org.jetbrains.exposed.dao.LongEntity
-import org.jetbrains.exposed.dao.id.IdTable
-import po.exposify.dto.components.ResultList
-import po.exposify.dto.components.ResultSingle
 import po.exposify.dto.components.SimpleQuery
-import po.exposify.dto.components.WhereQuery
+import po.exposify.dto.components.result.ResultList
+import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.interfaces.RunnableContext
@@ -94,6 +92,8 @@ class ClassHandlerConfig<DTO, D, E, F_DTO, FD, FE>() : HandlerConfigBase<DTO, D,
         where DTO: ModelDTO, D: DataModel, E: LongEntity,
             F_DTO: ModelDTO, FD: DataModel, FE: LongEntity
 {
+
+
 
     internal var rootHandlerParameter : RootSequenceHandler<F_DTO, FD, FE>? = null
     val rootHandler  : RootSequenceHandler<F_DTO, FD, FE>

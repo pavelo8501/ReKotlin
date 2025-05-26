@@ -12,9 +12,14 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.greater
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.like
 import org.jetbrains.exposed.sql.and
+import po.exposify.dto.CommonDTO
 import po.exposify.dto.RootDTO
+import po.exposify.dto.components.result.ResultSingle
+import po.exposify.dto.components.result.createSingleResult
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.exceptions.OperationsException
+import po.exposify.exceptions.enums.ExceptionCode
 
 
 fun Op<Boolean>.toSqlString(): String {
@@ -104,13 +109,13 @@ class SwitchQuery<DTO: ModelDTO, D : DataModel, E: LongEntity>(
         expression = expression + condition
     }
 
-    suspend fun resolve(): ResultSingle<DTO, D, E> {
+    fun resolve(): CommonDTO<DTO, D, E> {
         val existent = dtoClass.lookupDTO(lookUpId)
-        return if (existent != null) {
-            dtoClass.createSingleResult(existent)
-        } else {
-            dtoClass.createExecutionProvider().pick(this)
+        if (existent == null) {
+            throw OperationsException("Unable to find ${dtoClass.config.registryRecord.dtoName} with id $lookUpId",
+                ExceptionCode.VALUE_NOT_FOUND)
         }
+        return existent
     }
 
 }

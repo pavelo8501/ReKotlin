@@ -9,7 +9,7 @@ import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertInstanceOf
 import po.auth.extensions.generatePassword
 import po.auth.extensions.withSessionContext
-import po.exposify.dto.components.ResultSingle
+import po.exposify.dto.components.result.ResultSingle
 import po.exposify.scope.sequence.extensions.collectResult
 import po.exposify.scope.sequence.extensions.runSequence
 import po.exposify.scope.sequence.extensions.sequence
@@ -71,7 +71,6 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
             }
         }
     }
-
 
     @Test
     fun `Running sequence as a DTO hierarchy child member`() = runTest {

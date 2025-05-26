@@ -5,15 +5,16 @@ import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.name
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.jetbrains.exposed.sql.transactions.experimental.suspendedTransactionAsync
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.common.interfaces.AsContext
 import po.exposify.dto.RootDTO
 import po.exposify.dto.components.SimpleQuery
-import po.exposify.dto.components.ResultList
-import po.exposify.dto.components.ResultSingle
 import po.exposify.dto.components.RootExecutionProvider
 import po.exposify.dto.components.WhereQuery
+import po.exposify.dto.components.result.ResultList
+import po.exposify.dto.components.result.ResultSingle
+import po.exposify.dto.components.result.createSingleResult
+import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.extensions.withTransactionIfNone
 import po.lognotify.TasksManaged
@@ -81,7 +82,7 @@ class ServiceContext<DTO, DATA, ENTITY>(
 
     fun update(dataModel: DATA): ResultSingle<DTO, DATA, ENTITY> = runTaskBlocking("Update") { handler ->
         withTransactionIfNone {
-            executionProvider.update(dataModel)
+            executionProvider.update(dataModel).createSingleResult(CrudOperation.Update)
         }
     }.resultOrException()
 

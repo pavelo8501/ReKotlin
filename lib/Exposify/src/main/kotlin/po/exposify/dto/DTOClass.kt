@@ -14,6 +14,7 @@ import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.castOrOperationsEx
 import po.exposify.extensions.getOrInitEx
+import po.exposify.scope.sequence.classes.forceHandlerProviderResolution
 import po.exposify.scope.service.ServiceClass
 import po.exposify.scope.service.ServiceContext
 import po.lognotify.TasksManaged
@@ -98,9 +99,8 @@ sealed class DTOBase<DTO, DATA, ENTITY>(): ClassDTO, TasksManaged, Identifiable
         val newConfiguration = DTOConfig(DTORegistryItem(RD::class, RE::class, COMMON::class), entityModel, this.castOrInitEx())
         configParameter = newConfiguration.castOrInitEx()
         block.invoke(config)
+      //  forceHandlerProviderResolution(this)
         initialized = true
-        println("Configuration Fn call $qualifiedName")
-        println(config.trackerConfig.observeRelationBindings)
     }.resultOrException()
 
     internal fun registerDTO(dto: CommonDTO<DTO, DATA, ENTITY>){

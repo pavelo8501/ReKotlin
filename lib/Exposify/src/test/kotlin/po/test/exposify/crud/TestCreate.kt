@@ -1,10 +1,9 @@
 package po.test.exposify.crud
 
-import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import po.auth.extensions.generatePassword
-import po.exposify.dto.components.toResultList
+import po.exposify.dto.components.result.toResultList
 import po.exposify.scope.sequence.extensions.sequence
 import po.exposify.scope.service.enums.TableCreateMode
 import po.test.exposify.setup.DatabaseTest
@@ -28,7 +27,6 @@ class TestCreate: DatabaseTest() {
                     update(admin)
                 }
                 sequence(UserDTO.SELECT) { handler ->
-
                     pick(handler.query).toResultList()
                 }
             }

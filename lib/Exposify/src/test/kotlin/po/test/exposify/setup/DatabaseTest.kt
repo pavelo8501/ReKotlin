@@ -6,6 +6,8 @@ import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import po.auth.AuthSessionManager
 import po.exposify.DatabaseManager
+import po.exposify.common.classes.DBManagerHooks
+import po.exposify.common.classes.dbHooks
 import po.exposify.scope.connection.models.ConnectionInfo
 import po.exposify.exceptions.InitException
 import po.exposify.scope.connection.ConnectionClass
@@ -14,7 +16,7 @@ import po.misc.types.getOrThrow
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers
-abstract class DatabaseTest(val connectionInfo: ConnectionInfo?= null) {
+abstract class DatabaseTest() {
 
     companion object {
         @JvmStatic
@@ -27,52 +29,47 @@ abstract class DatabaseTest(val connectionInfo: ConnectionInfo?= null) {
 
     fun startTestConnection(muteContainer: Boolean = true, context:  (ConnectionClass.() -> Unit)) {
         System.setProperty("org.testcontainers.reuse.enable", "true")
-
-        connection?.let {
-            it.context()
-            return
-        }
-
-       val connection = if(connectionInfo == null){
-            if (muteContainer) {
-                System.setProperty("org.slf4j.simpleLogger.log.org.testcontainers", "ERROR")
-            }
-            postgres.start()
-            DatabaseManager.openConnection(
-                ConnectionInfo(
-                    jdbcUrl = postgres.jdbcUrl,
-                    dbName = postgres.databaseName,
-                    user = postgres.username,
-                    pwd = postgres.password,
-                    driver = postgres.driverClassName
-                ),
-                ConnectionSettings()
-            )
-        }else{
-            DatabaseManager.openConnection(connectionInfo, ConnectionSettings(5))
-        }
-
-        connection.context()
-    }
-
-
-    fun startTestConnectionSync(muteContainer: Boolean = true, context: (ConnectionClass.() -> Unit)) {
-        System.setProperty("org.testcontainers.reuse.enable", "true")
-
+        val connectionInfo =  ConnectionInfo(
+            jdbcUrl = postgres.jdbcUrl,
+            dbName = postgres.databaseName,
+            user = postgres.username,
+            pwd = postgres.password,
+            driver = postgres.driverClassName
+        )
         if (muteContainer) {
             System.setProperty("org.slf4j.simpleLogger.log.org.testcontainers", "ERROR")
         }
-        postgres.start()
-       val connection =  DatabaseManager.openConnection(
-            ConnectionInfo(
-                jdbcUrl = postgres.jdbcUrl,
-                dbName = postgres.databaseName,
-                user = postgres.username,
-                pwd = postgres.password,
-                driver = postgres.driverClassName
-            ),
-            ConnectionSettings()
+        val connectionHooks  = dbHooks {
+            beforeConnection { println("Trying to connect...") }
+            newConnection {
+                postgres.start()
+            }
+            existentConnection { println("Reusing: ${it.name}") }
+        }
+        val connection = DatabaseManager.openConnection(connectionInfo, ConnectionSettings(retries = 5), hooks = connectionHooks )
+        connection.context()
+    }
+
+    suspend fun startTestConnectionAsync(muteContainer: Boolean = true, context:  (ConnectionClass.() -> Unit)) {
+        System.setProperty("org.testcontainers.reuse.enable", "true")
+        val connectionInfo =  ConnectionInfo(
+            jdbcUrl = postgres.jdbcUrl,
+            dbName = postgres.databaseName,
+            user = postgres.username,
+            pwd = postgres.password,
+            driver = postgres.driverClassName
         )
+        if (muteContainer) {
+            System.setProperty("org.slf4j.simpleLogger.log.org.testcontainers", "ERROR")
+        }
+        val connectionHooks  = dbHooks {
+            beforeConnection { println("Trying to connect...") }
+            newConnection {
+                postgres.start()
+            }
+            existentConnection { println("Reusing: ${it.name}") }
+        }
+        val connection = DatabaseManager.openConnectionAsync(connectionInfo, ConnectionSettings(retries = 5), hooks = connectionHooks )
         connection.context()
     }
 }

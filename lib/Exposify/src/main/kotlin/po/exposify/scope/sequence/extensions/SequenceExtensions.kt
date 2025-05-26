@@ -1,9 +1,8 @@
 package po.exposify.scope.sequence.extensions
 
 import org.jetbrains.exposed.dao.LongEntity
-import po.auth.sessions.models.AuthorizedSession
-import po.exposify.dto.components.ResultList
-import po.exposify.dto.components.ResultSingle
+import po.exposify.dto.components.result.ResultList
+import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.extensions.castOrOperationsEx

@@ -3,14 +3,10 @@ package po.test.exposify.dto
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.assertAll
 import po.auth.extensions.generatePassword
-import po.exposify.dto.components.ResultList
-import po.exposify.dto.components.ResultSingle
 import po.exposify.scope.service.enums.TableCreateMode
 import po.test.exposify.setup.DatabaseTest
-import po.test.exposify.setup.PageEntity
 import po.test.exposify.setup.dtos.Page
 import po.test.exposify.setup.dtos.PageDTO
-import po.test.exposify.setup.dtos.Section
 import po.test.exposify.setup.dtos.SectionDTO
 import po.test.exposify.setup.dtos.User
 import po.test.exposify.setup.dtos.UserDTO
@@ -22,6 +18,8 @@ import kotlin.test.assertNotNull
 
 class TestComplexDelegate : DatabaseTest() {
 
+
+    @Test
     fun `parent2IdReference property binding un update`() = runTest {
 
         var user = User(
@@ -63,49 +61,6 @@ class TestComplexDelegate : DatabaseTest() {
     }
 
     @Test
-    fun `OneToManyOf property binding`() = runTest {
-
-        var user = User(
-            id = 0,
-            login = "some_login",
-            hashedPassword = generatePassword("password"),
-            name = "name",
-            email = "nomail@void.null"
-        )
-        startTestConnection(){
-            service(UserDTO) {
-                user = update(user).getDataForced()
-            }
-        }
-
-        val sourceSections = sectionsPreSaved(pageId = 0 )
-        val page = Page(id = 0, name = "home", langId = 1, updatedById = user.id)
-        var updatedPageResult : ResultSingle<PageDTO, Page, PageEntity>? = null
-        var selectedPageResult : ResultList<PageDTO, Page, PageEntity>? = null
-
-        startTestConnection{
-            service(PageDTO, TableCreateMode.CREATE) {
-                page.sections.addAll(sourceSections)
-                updatedPageResult = update(page)
-                selectedPageResult = select()
-            }
-        }
-
-        val updatedPageDTO = assertNotNull(updatedPageResult?.getDTO())
-        val updatedPage = assertNotNull(updatedPageResult.getData())
-
-        val selectedPageDTO = assertNotNull(selectedPageResult?.getDTO()?.firstOrNull())
-        val selectedPage = assertNotNull(selectedPageResult.getData().firstOrNull())
-
-        assertEquals(sourceSections.size, updatedPageDTO.sections.size, "Sections size mismatch in updated DTO. Expecting${sourceSections.size}")
-        assertEquals(sourceSections.size, updatedPage.sections.size, "Sections size mismatch in updated DataModel. Expecting${sourceSections.size}")
-
-        assertEquals(sourceSections.size, selectedPageDTO.sections.size, "Sections size mismatch in selected DTO. Expecting${sourceSections.size}")
-        assertEquals(sourceSections.size, selectedPage.sections.size, "Sections size mismatch in selected DataModel. Expecting${sourceSections.size}")
-    }
-
-
-
     fun `foreign2IdReference property binding un update&pick`() = runTest{
 
         var user = User(

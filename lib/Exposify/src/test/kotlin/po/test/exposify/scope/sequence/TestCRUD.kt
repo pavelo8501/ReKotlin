@@ -8,7 +8,7 @@ import po.auth.extensions.generatePassword
 import po.auth.extensions.withSessionContext
 import po.exposify.DatabaseManager
 import po.exposify.dto.components.WhereQuery
-import po.exposify.dto.components.toResultList
+import po.exposify.dto.components.result.toResultList
 import po.exposify.scope.connection.models.ConnectionInfo
 import po.exposify.scope.sequence.extensions.runSequence
 import po.exposify.scope.sequence.extensions.sequence

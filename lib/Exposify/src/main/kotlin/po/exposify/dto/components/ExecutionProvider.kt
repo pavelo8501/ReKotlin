@@ -6,6 +6,10 @@ import po.exposify.dto.CommonDTO
 import po.exposify.dto.RootDTO
 import po.exposify.dto.components.proFErty_binder.containerize
 import po.exposify.dto.components.property_binder.enums.UpdateMode
+import po.exposify.dto.components.result.ResultList
+import po.exposify.dto.components.result.ResultSingle
+import po.exposify.dto.components.result.createResultList
+import po.exposify.dto.components.result.createSingleResult
 import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.components.tracker.extensions.addTrackerInfo
 import po.exposify.dto.interfaces.ComponentType
@@ -49,22 +53,22 @@ class RootExecutionProvider<DTO, DATA, ENTITY>(
     }
 
     override suspend fun select(): ResultList<DTO, DATA, ENTITY> {
-        val result = ResultList<DTO, DATA, ENTITY>(dtoClass)
+        val dtos = mutableListOf<CommonDTO<DTO, DATA, ENTITY>>()
         val entities =    dtoClass.config.daoService.select()
         entities.forEach {
             val newDto =  createDto(it)
-            result.appendDto(newDto)
+            dtos.add(newDto)
         }
-        return result
+        return dtos.createResultList(dtoClass, CrudOperation.Select)
     }
     override suspend fun select(conditions: SimpleQuery): ResultList<DTO, DATA, ENTITY> {
-        val result = ResultList<DTO, DATA, ENTITY>(dtoClass)
+        val dtos = mutableListOf<CommonDTO<DTO, DATA, ENTITY>>()
         val entities =  dtoClass.config.daoService.select(conditions)
         entities.forEach {
             val newDto =  createDto(it)
-            result.appendDto(newDto)
+            dtos.add(newDto)
         }
-        return result
+        return dtos.createResultList(dtoClass, CrudOperation.Select)
     }
 
     override suspend fun <T : IdTable<Long>> select(conditions: WhereQuery<T>): ResultList<DTO, DATA, ENTITY>
@@ -83,7 +87,9 @@ class RootExecutionProvider<DTO, DATA, ENTITY>(
     override suspend fun pick(conditions: SimpleQuery): ResultSingle<DTO, DATA, ENTITY>{
         val entity = dtoClass.config.daoService.pick(conditions)
         if(entity == null){
-          return dtoClass.createSingleResult().setWarningMessage("Entity with provided query :${conditions} not found")
+            val queryStr = conditions.build().toSqlString()
+            throw OperationsException("Unable to find ${dtoClass.config.registryRecord.dtoName} for query $queryStr",
+                ExceptionCode.VALUE_NOT_FOUND)
         }else{
             val existent = dtoClass.lookupDTO(entity.id.value)
             return if (existent != null) {
@@ -95,39 +101,36 @@ class RootExecutionProvider<DTO, DATA, ENTITY>(
         }
     }
 
-    override suspend fun update(dataModel: DATA): ResultSingle<DTO, DATA, ENTITY>{
-        with(dtoClass) {
-            if (dataModel.id == 0L) {
-                return insert(dataModel)
-            } else {
-
-                val existent = dtoClass.lookupDTO(dataModel.id)
-                if (existent != null) {
-                    existent.addTrackerInfo(CrudOperation.Update, this@RootExecutionProvider)
-                    existent.dtoPropertyBinder.update(dataModel)
-                    existent.getDtoRepositories().forEach { repo ->
-                        repo.loadHierarchyByModel()
-                    }
-                    return  existent.createSingleResult(CrudOperation.Update)
-                } else {
-                    val entity = dtoClass.config.daoService.pickById(dataModel.id)
-                        .getOrOperationsEx("Unable to update. DTO with id:${dataModel.id} not found.")
-                    val newDto = createDto(entity)
-                    newDto.addTrackerInfo(CrudOperation.Update, this@RootExecutionProvider)
-                    dtoClass.registerDTO(newDto)
-                    newDto.dtoPropertyBinder.update(dataModel)
-                    return newDto.createSingleResult(CrudOperation.Update)
+    override suspend fun update(dataModel: DATA): CommonDTO<DTO, DATA, ENTITY>{
+        if (dataModel.id == 0L) {
+            return insert(dataModel).getAsCommonDTOForced()
+        } else {
+            val existent = dtoClass.lookupDTO(dataModel.id)
+            if (existent != null) {
+                existent.addTrackerInfo(CrudOperation.Update, this)
+                existent.dtoPropertyBinder.update(dataModel)
+                existent.getDtoRepositories().forEach { repo ->
+                    repo.loadHierarchyByModel()
                 }
+                return  existent
+            } else {
+                val entity = dtoClass.config.daoService.pickById(dataModel.id)
+                    .getOrOperationsEx("Unable to update. DTO with id:${dataModel.id} not found.")
+                val newDto = createDto(entity)
+                newDto.addTrackerInfo(CrudOperation.Update, this)
+                dtoClass.registerDTO(newDto)
+                newDto.dtoPropertyBinder.update(dataModel)
+                return newDto
             }
         }
     }
 
     override suspend fun update(dataModels: List<DATA>): ResultList<DTO, DATA, ENTITY>{
-        val result =  ResultList(dtoClass)
+        val dtos = mutableListOf<CommonDTO<DTO, DATA, ENTITY>>()
         dataModels.forEach {
-            result.appendDto(update(it))
+            dtos.add(update(it))
         }
-        return result
+        return dtos.createResultList(dtoClass, CrudOperation.Update)
     }
 }
 

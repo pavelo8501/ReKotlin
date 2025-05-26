@@ -21,11 +21,17 @@ class ConnectionInfo(
     var hikariDataSource : HikariDataSource? = null
     val driverClassName = "org.postgresql.Driver"
 
+
+    val key: String get(){
+        return "${dbName}@${host}"
+    }
+
     val errorList = mutableListOf<String>()
 
     fun registerError(th: Throwable){
         errorList.add(th.message.toString())
     }
+
 
     fun getConnectionString(): String{
         if(jdbcUrl != null){

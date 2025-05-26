@@ -4,7 +4,7 @@ import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import po.auth.sessions.models.AuthorizedSession
-import po.exposify.dto.components.ResultList
+import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.interfaces.RunnableContext

@@ -51,6 +51,8 @@ class ForeignIDClassDelegate<DTO, D, E, F_DTO, FD, FE>(
     }
 }
 
+
+
 class ParentIDDelegate<DTO, D, E, FE>(
     dto: CommonDTO<DTO, D, E>,
     dataProperty : KMutableProperty1<D, Long>,
@@ -64,7 +66,8 @@ class ParentIDDelegate<DTO, D, E, FE>(
         if(container.updateMode == UpdateMode.MODEL_TO_ENTITY){
             container.parentDto?.let {
                 val foreignEntity = it.daoEntity
-                entityProperty.set(container.ownEntity, foreignEntity)
+
+               // entityProperty.set(container.ownEntity, foreignEntity)
                 dataProperty.set(dto.dataModel, foreignEntity.id.value)
             }
         }else{

@@ -6,7 +6,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertAll
 import po.auth.extensions.generatePassword
-import po.exposify.dto.components.ResultSingle
+import po.exposify.dto.components.result.ResultSingle
 import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged

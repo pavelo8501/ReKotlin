@@ -44,14 +44,12 @@ inline fun <reified T, R: Any?> T.subTask(
     val moduleName = this::class.simpleName?:config.moduleName
     return if(rootTask != null){
         val childTask = rootTask.createChild<R>(taskName, moduleName)
-        with(childTask) {
-            try {
-               val value = block.invoke(this@subTask, childTask.handler)
-                TaskResult(childTask, value)
+        try {
+           val value = block.invoke(this, childTask.handler)
+            TaskResult(childTask, value)
 
-            }catch (throwable: Throwable){
-                throwable.handleException(this, childTask)
-            }
+        }catch (throwable: Throwable){
+            throwable.handleException(this, childTask)
         }
     }else{
         this.runTask(taskName, config, block)

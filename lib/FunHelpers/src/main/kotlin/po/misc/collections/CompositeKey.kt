@@ -1,32 +1,34 @@
 package po.misc.collections
 
+import po.misc.interfaces.Identifiable
+import po.misc.interfaces.ValueBased
 
-interface Identifiable{
-    val qualifiedName: String
-}
+class CompositeKey (
+    val component: Identifiable,
+    val type: ValueBased
+):Comparable<CompositeKey> {
 
 
-class CompositeKey<SO : Identifiable, E: Enum<E>>(
-    private val sourceObject: SO,
-    private val parameter: E,
-): Comparable<CompositeKey<SO, E>> {
+    val key: String
+        get() = "CompositeKey(${component.qualifiedName}:${type.value})"
 
-    fun getEnumParameter():E{
-        return parameter
-    }
+    override fun toString(): String = key
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other !is CompositeKey<*, *>) return false
-        return sourceObject.qualifiedName == other.sourceObject.qualifiedName &&
-                parameter == other.parameter
+        if (other !is CompositeKey) return false
+        return component.qualifiedName == other.component.qualifiedName &&
+                type.value == other.type.value
     }
+
     override fun hashCode(): Int {
-        return 31 * sourceObject.qualifiedName.hashCode() + parameter.hashCode()
+        return 31 * component.qualifiedName.hashCode() + type.value.hashCode()
     }
-    override fun compareTo(other: CompositeKey<SO, E>): Int {
-        val nameComparison = sourceObject.qualifiedName.compareTo(other.sourceObject.qualifiedName)
-        return if (nameComparison != 0) nameComparison else parameter.compareTo(other.parameter)
+
+    override fun compareTo(other: CompositeKey): Int {
+        val componentComparison = component.qualifiedName.compareTo(other.component.qualifiedName)
+        return if (componentComparison != 0) componentComparison
+        else type.value.compareTo(other.type.value)
     }
-    override fun toString(): String = "CompositeKey(${sourceObject.qualifiedName}, $parameter)"
 }
+

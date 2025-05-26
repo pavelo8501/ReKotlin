@@ -6,7 +6,6 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.application.pluginOrNull
-import io.ktor.server.auth.AuthenticationContext
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.routing.routing
@@ -39,7 +38,6 @@ class ConfigContext(
 ): ConfigContextInterface, TasksManaged{
 
     val personalName = "ConfigContext"
-
 
     var apiConfig : ApiConfig
         get()  {return  wrapConfig.apiConfig}
