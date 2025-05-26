@@ -17,18 +17,17 @@ class DTOPropertyBinder<DTO, DATA, ENTITY>(
 ) where  DTO : ModelDTO, DATA: DataModel, ENTITY: LongEntity
 {
 
-    private val complexDelegateMap : MutableMap<String,  ComplexDelegate<DTO, DATA, ENTITY, *, *, *>> = mutableMapOf()
-    private val foreignIDClassDelegates : MutableList<ForeignIDClassDelegate<DTO, DATA, ENTITY, *>> = mutableListOf()
+    private val complexDelegateMap : MutableMap<String,  ComplexDelegate<DTO, DATA, ENTITY, *, *, *, *, *>> = mutableMapOf()
     private val responsiveDelegates : MutableList<ResponsiveDelegate<DTO, DATA, ENTITY, *>>  = mutableListOf()
 
-    fun <PARENT_ENTITY : LongEntity, DATA_VAL, RES_VAL> setBinding(
-        binding: ComplexDelegate<DTO, DATA, ENTITY, PARENT_ENTITY, DATA_VAL, RES_VAL>)
-    : ComplexDelegate<DTO, DATA, ENTITY, PARENT_ENTITY, DATA_VAL, RES_VAL>
+
+
+    fun <FE : LongEntity> setBinding(
+        binding: ComplexDelegate<DTO, DATA, ENTITY,* , *, FE, *, *>)
+    : ComplexDelegate<DTO, DATA, ENTITY, *, *, FE, *, *>
     {
-        when(binding){
-            is ForeignIDClassDelegate -> foreignIDClassDelegates.add(binding)
-            else -> complexDelegateMap[binding.qualifiedName] = binding
-        }
+        complexDelegateMap[binding.qualifiedName] = binding
+
         return binding
     }
 
@@ -40,8 +39,8 @@ class DTOPropertyBinder<DTO, DATA, ENTITY>(
         responsiveDelegates.forEach { it.update(model) }
     }
 
-    suspend fun <P_DTO: ModelDTO, PD: DataModel, PE: LongEntity> update(
-        container : EntityUpdateContainer<ENTITY, P_DTO, PD, PE>
+    suspend fun <F_DTO: ModelDTO, FD: DataModel, FE: LongEntity> update(
+        container : EntityUpdateContainer<ENTITY, F_DTO, FD, FE>
     ){
 
         if(container.updateMode == UpdateMode.ENTITY_TO_MODEL && container.inserted){
@@ -52,14 +51,12 @@ class DTOPropertyBinder<DTO, DATA, ENTITY>(
 
         responsiveDelegates.forEach { it.update(container) }
         complexDelegateMap.values.forEach { it.beforeInsertedUpdate(container) }
-        foreignIDClassDelegates.forEach { it.beforeInsertedUpdate(container) }
     }
 
     suspend fun <P_DTO: ModelDTO, PD: DataModel, FE: LongEntity> afterInsertUpdate(
         entityContainer : EntityUpdateContainer<ENTITY, P_DTO, PD, FE>)
     {
         complexDelegateMap.values.forEach { it.afterInsertedUpdate(entityContainer) }
-        foreignIDClassDelegates.forEach { it.afterInsertedUpdate(entityContainer) }
     }
 
 }

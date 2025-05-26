@@ -37,7 +37,3 @@ inline fun <reified T, reified U> initializeContexts(
 inline fun <reified T: Any> T.getType(): KClass<T> {
     return T::class
 }
-
-inline fun <reified T: Any> T.getKType(): KType {
-    return typeOf<T>()
-}

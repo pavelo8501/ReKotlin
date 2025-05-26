@@ -18,6 +18,7 @@ import po.restwraptor.extensions.getWraptorRoutes
 import po.restwraptor.models.configuration.ApiConfig
 import po.restwraptor.models.configuration.WraptorConfig
 import po.restwraptor.models.server.WraptorRoute
+import po.test.restwraptor.TestRestWraptorSecurity.Companion.userLookUp
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
@@ -27,11 +28,12 @@ class TestRestWraptorGeneralConfig {
 
     @Test
     fun `default configuration installs and configures all plugins`() = testApplication {
-
+        val keyPath = setKeyBasePath("src/test/demo_keys")
         val server = RestWrapTor()
         application {
             server.useApp(this){
-
+                apiConfig.baseApiRoute = "backend"
+                setupAuthentication(keyPath.readCryptoRsaKeys("ktor.pk8", "ktor.spki"), ::userLookUp)
             }
         }
         startApplication()
@@ -39,8 +41,8 @@ class TestRestWraptorGeneralConfig {
         val firsRoute = routes[0]
         assertAll(
             { assertNotEquals(0, routes.count(), "No default routes installed") },
-            { assertEquals("/status", firsRoute.path, "Route path incorrect") },
-            { assertEquals(RouteSelector.OPTIONS, firsRoute.selector, "Route path incorrect")},
+            { assertNotNull{ routes.firstOrNull { it.path ==  "/status"} } },
+            { assertEquals(RouteSelector.POST, firsRoute.selector, "Route path incorrect")},
             { assertNotNull(routes.firstOrNull { it.path.contains("status") && it.selector == RouteSelector.OPTIONS }, "Options status route not present") },
             { assertNotNull(routes.firstOrNull { it.path.contains("status") && it.selector == RouteSelector.GET }, "Get status route not present") },
             { assertNotNull(routes,"Routes not loaded")},

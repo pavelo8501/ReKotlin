@@ -3,31 +3,26 @@ package po.lognotify.exceptions
 import po.lognotify.classes.notification.enums.EventType
 import po.lognotify.classes.notification.models.Notification
 import po.lognotify.classes.notification.sealed.ProviderTask
-import po.lognotify.classes.task.TaskSealedBase
+import po.lognotify.classes.task.TaskBase
+import po.lognotify.classes.task.interfaces.ResultantTask
+import po.lognotify.classes.task.result.TaskResult
+import po.lognotify.classes.task.result.toTaskResult
 import po.lognotify.enums.SeverityLevel
-import po.lognotify.exceptions.ExceptionHandler.HandlerResult
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
 
 interface ExceptionHandled<R: Any?> {
 
-   suspend fun handleManaged(managedEx: ManagedException): HandlerResult<R>
-   suspend fun provideHandlerFn(handlers : Set<HandlerType>, handlerFn: suspend (exception: ManagedException)->R)
+   fun handleManaged(managedEx: ManagedException): TaskResult<R>
+  // fun provideHandlerFn(handlers : Set<HandlerType>, handlerFn: (exception: ManagedException)->R)
 
 }
 
 class ExceptionHandler<R: Any?>(
-   private val task : TaskSealedBase<R>,
+   private val task : TaskBase<R>,
 ) : ExceptionHandled<R> {
 
-   class HandlerResult<R: Any?>(
-      val value:R? = null,
-      val exception: ManagedException? = null,
-   ){
-      val success: Boolean = exception!=null
-   }
-
-   private suspend fun notifyHandlerSet(handler : HandlerType){
+   private fun notifyHandlerSet(handler : HandlerType){
       val message = "$handler handle set"
       val notification = Notification(
          ProviderTask(task),
@@ -36,7 +31,7 @@ class ExceptionHandler<R: Any?>(
          message)
       task.notifier.submitNotification(notification)
    }
-   private suspend fun notifyHandled(managedEx : ManagedException){
+   private fun notifyHandled(managedEx : ManagedException){
       val message =  "Exception Handled. Exception Message : ${managedEx.message}"
       val severity = SeverityLevel.WARNING
 
@@ -48,7 +43,7 @@ class ExceptionHandler<R: Any?>(
 
       task.notifier.submitNotification(notification)
    }
-   private suspend fun notifyUnhandled(managedEx : ManagedException){
+   private fun notifyUnhandled(managedEx : ManagedException){
       val severity = SeverityLevel.EXCEPTION
 
       var message = """ 
@@ -56,14 +51,12 @@ class ExceptionHandler<R: Any?>(
           Message: ${managedEx.message}
       """.trimIndent()
 
-      if(managedEx.snapshot != null){
-         val snapshotStr = managedEx.snapshot!!.map { "${it.key} = ${it.value}" }.joinToString(";")
+         val snapshotStr = managedEx.propertySnapshot.map { "${it.key} = ${it.value}" }.joinToString(";")
          message = """  
              Unhandled in Task:${task.key.taskName}| Module: ${task.key.moduleName}| Nesting: ${task.key.nestingLevel}
              Message: ${managedEx.message}
              Snapshot: $snapshotStr
          """.trimIndent()
-      }
 
       val notification = Notification(
          ProviderTask(task),
@@ -74,28 +67,32 @@ class ExceptionHandler<R: Any?>(
       task.notifier.submitNotification(notification)
    }
 
-   val registeredHandlers : MutableMap<HandlerType, suspend ( exception: ManagedException)->R> = mutableMapOf()
+   val registeredAsyncHandlers : MutableMap<HandlerType, suspend (exception:  ManagedException)->R> = mutableMapOf()
+   val registeredHandlers : MutableMap<HandlerType, (exception:  ManagedException)->R> = mutableMapOf()
 
-   override suspend fun provideHandlerFn(handlers : Set<HandlerType>, handlerFn: suspend (exception: ManagedException)->R){
+   suspend fun provideAsyncHandlerFn(handlers : Set<HandlerType>, handlerFn: suspend (exception: ManagedException)->R){
+      handlers.forEach {
+         registeredAsyncHandlers[it] = handlerFn
+         notifyHandlerSet(it)
+      }
+   }
+
+   fun provideHandlerFn(handlers : Set<HandlerType>, handlerFn: (exception: ManagedException)->R){
       handlers.forEach {
          registeredHandlers[it] = handlerFn
          notifyHandlerSet(it)
       }
    }
 
-   suspend fun isHandlerPresent(handler: HandlerType): Boolean{
-       return  registeredHandlers[handler]?.let { true }?:false
-   }
-
-   override suspend fun handleManaged(managedEx: ManagedException): HandlerResult<R> {
+   override fun handleManaged(managedEx: ManagedException): TaskResult<R> {
       val handlerFn = registeredHandlers[managedEx.handler]
-      val handlingResult = handlerFn?.let {
-           notifyHandled(managedEx)
-           HandlerResult<R>(handlerFn.invoke(managedEx))
-        } ?:run {
-            notifyUnhandled(managedEx)
-            HandlerResult<R>(null, managedEx)
-         }
-         return handlingResult
+      return if (handlerFn != null) {
+         notifyHandled(managedEx)
+         val result =  handlerFn.invoke(managedEx)
+         task.toTaskResult(result)
+      } else {
+         notifyUnhandled(managedEx)
+         task.toTaskResult(managedEx)
+      }
    }
 }

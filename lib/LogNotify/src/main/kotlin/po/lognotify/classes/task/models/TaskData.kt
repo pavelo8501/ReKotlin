@@ -1,17 +1,16 @@
 package po.lognotify.classes.task.models
 
-import po.lognotify.models.TaskKey
-import po.misc.exceptions.CoroutineInfo
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import po.misc.coroutines.LauncherType
 
 
 
-//
-//data class TaskData(
-//    val taskKey: TaskKey,
-//    val coroutineInfo: CoroutineInfo,
-//){
-//    val taskName: String  get() = taskKey.taskName
-//    val nestingLevel: Int get() = taskKey.nestingLevel
-//    val moduleName: String get() = taskKey.moduleName?:"N/A"
-//
-//}
+
+data class TaskConfig (
+    var attempts: Int = 1,
+    var delayMs: Long = 2000,
+    var moduleName: String = "",
+    var dispatcher: CoroutineDispatcher = Dispatchers.Default,
+    var launcherType: LauncherType = LauncherType.AsyncLauncher
+)

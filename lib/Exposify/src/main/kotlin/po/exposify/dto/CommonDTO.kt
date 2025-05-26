@@ -5,25 +5,27 @@ import po.exposify.dto.components.DAOService
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.common.classes.MapBuilder
 import po.exposify.dto.components.DTOConfig
-import po.exposify.common.classes.repoBuilder
 import po.exposify.dto.components.DTOFactory
 import po.exposify.dto.components.DataModelContainer
 import po.exposify.dto.components.MultipleRepository
+import po.exposify.dto.components.MultipleRepositoryAdv
 import po.exposify.dto.components.RepositoryBase
+import po.exposify.dto.components.RepositoryBaseAdv
 import po.exposify.dto.components.SingleRepository
 import po.exposify.dto.components.proFErty_binder.EntityUpdateContainer
 import po.exposify.dto.components.property_binder.DTOPropertyBinder
-import po.exposify.dto.components.relation_binder.MultipleChildContainer
-import po.exposify.dto.components.relation_binder.SingleChildContainer
+import po.exposify.dto.components.relation_binder.components.MultipleChildContainer
+import po.exposify.dto.components.relation_binder.components.MultipleChildContainerAdv
+import po.exposify.dto.components.relation_binder.components.SingleChildContainer
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.dto.enums.DTOInitStatus
 import po.exposify.dto.models.DTORegistryItem
-import po.exposify.dto.models.DTOTracker
+import po.exposify.dto.components.tracker.DTOTracker
 import po.exposify.exceptions.OperationsException
 import po.exposify.extensions.castOrOperationsEx
-import po.misc.collections.CompositeKey
+import po.misc.collections.CompositeEnumKey
 import po.misc.collections.generateKey
 import po.misc.types.castOrThrow
 import po.misc.types.safeCast
@@ -40,7 +42,6 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     override val dtoName : String get() = "[CommonDTO ${registryRecord.derivedDTOClazz.simpleName.toString()}]"
 
     abstract override var dataModel: DATA
-
 
     override val daoService: DAOService<DTO, DATA, ENTITY>  get() = dtoClassConfig.daoService
     override val dtoFactory: DTOFactory<DTO, DATA, ENTITY>  get() = dtoClassConfig.dtoFactory
@@ -72,14 +73,17 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     override var id : Long = 0
         get(){return dataContainer.dataModel.id}
 
-//    internal var repositories
-//        : Map<CompositeKey<DTOBase<*, *, *>, Cardinality>, RepositoryBase<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>> = emptyMap()
-
-    val repositories: MutableMap<CompositeKey<DTOClass<*,*,*>, Cardinality>, RepositoryBase<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>>
+    val repositories: MutableMap<CompositeEnumKey<DTOClass<*,*,*>, Cardinality>, RepositoryBase<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>>
         = mutableMapOf()
 
-    override val dtoTracker: DTOTracker<DTO, DATA> by lazy { DTOTracker(this) }
+    val repositoriesAdv: MutableMap<CompositeEnumKey<DTOClass<*,*,*>, Cardinality>, RepositoryBaseAdv<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>>
+            = mutableMapOf()
 
+    internal var trackerParameter: DTOTracker<DTO, DATA>? = null
+    override val tracker: DTOTracker<DTO, DATA>
+        get(){
+           return trackerParameter?: DTOTracker(this)
+        }
 
     private fun dataModelContainerUpdated(model : DATA){
         dataModel = model
@@ -132,6 +136,15 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         return newRepo
     }
 
+    fun createRepository(
+        bindingContainer : MultipleChildContainerAdv<DTO, DATA, ENTITY, *, *, *>,
+    ) {
+        val newRepo = MultipleRepositoryAdv(bindingContainer, this)
+        val casted =  newRepo.castOrOperationsEx<MultipleRepositoryAdv<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>>()
+        val key = bindingContainer.thisKey as CompositeEnumKey<DTOClass<*, *, *>, Cardinality>
+        repositoriesAdv[key] = casted
+    }
+
     @JvmName("createRepositorySingle")
     fun <CHILD_DTO: ModelDTO, CHILD_DATA: DataModel, CHILD_ENTITY: LongEntity> createRepository(
         binding : SingleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>,
@@ -154,22 +167,6 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
             .mapNotNull{ it.safeCast<RepositoryBase<DTO, DATA, ENTITY, F_DTO, FD, FE>>() }
     }
 
-//    internal fun <F_DTO: ModelDTO, FD: DataModel, FE: LongEntity> executionProvider(
-//        childClass: DTOClass<F_DTO, FD, FE>
-//    ) :ClassExecutionProvider<DTO, DATA, ENTITY, F_DTO, FD, FE>{
-//        return ClassExecutionProvider(this, childClass)
-//    }
-
-
-//    suspend fun <P_DTO: ModelDTO, PD: DataModel, PE: LongEntity>updateBindingsBeforeInserted(
-//        container: EntityUpdateContainer<ENTITY, P_DTO, PD, PE>,
-//    ){
-////        if(container.updateMode == UpdateMode.ENTITY_TO_MODEL || container.updateMode == UpdateMode.ENTITY_TO_MODEL_FORCED){
-////            updateBindingsAfterInserted(container)
-////        }
-//        dtoPropertyBinder.update(container)
-//        initStatus = DTOInitStatus.PARTIAL_WITH_DATA
-//    }
 
     suspend fun <P_DTO: ModelDTO, PD: DataModel, PE: LongEntity>updateBindingsAfterInserted(
         container: EntityUpdateContainer<ENTITY, P_DTO, PD, PE>
@@ -180,21 +177,14 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         initStatus = DTOInitStatus.INITIALIZED
     }
 
-//    suspend fun  updatePropertyBinding(
-//        updateMode: UpdateMode,
-//        entity:ENTITY,
-//        dataModel:DATA? = null,
-//    ): CommonDTO<DTO ,DATA, ENTITY>
-//    {
-//        if(dataModel != null){
-//            dataContainer.updateDataModel(dataModel)
-//        }
-//        propertyBinder.update(dataContainer.dataModel, entity, updateMode)
-//        initStatus = DTOInitStatus.INITIALIZED
-//        return this
-//    }
 
-   internal fun initialize() { selfRegistration(registryRecord) }
+   internal fun initialize(tracker: DTOTracker<DTO, DATA>? = null): CommonDTO<DTO,DATA, ENTITY> {
+       selfRegistration(registryRecord)
+       if(tracker != null){
+           trackerParameter = tracker
+       }
+       return this
+   }
 
     companion object{
         val dtoRegistry: MapBuilder<String, DTORegistryItem<*,*,*>> = MapBuilder<String, DTORegistryItem<*,*,*>>()

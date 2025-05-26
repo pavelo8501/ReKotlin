@@ -1,9 +1,7 @@
 package po.lognotify.helpers
 
-import po.lognotify.classes.task.ResultantTask
 import po.lognotify.enums.ColourEnum
 import po.lognotify.enums.SeverityLevel
-import po.lognotify.models.LogRecord
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter

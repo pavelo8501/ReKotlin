@@ -1,34 +1,59 @@
 package po.lognotify.extensions
 
+import kotlinx.coroutines.withContext
 import po.lognotify.TasksManaged
 import po.lognotify.classes.task.TaskHandler
-import po.lognotify.classes.task.TaskResult
+import po.lognotify.classes.task.createChild
+import po.lognotify.classes.task.models.TaskConfig
+import po.lognotify.classes.task.result.TaskResult
+import po.lognotify.exceptions.handleException
 
-suspend  fun <T, R> T.subTask(
+
+suspend inline fun <reified T, R: Any?> T.subTaskAsync(
     taskName: String,
-    moduleName: String? = null,
-    block: suspend  T.(TaskHandler<R>)-> R
+    config: TaskConfig = TaskConfig(),
+    noinline block: suspend  T.(TaskHandler<R>)-> R
 ): TaskResult<R> {
+    val rootTask = TasksManaged.taskDispatcher.activeRootTask()
+    val moduleName: String =  this::class.simpleName?:config.moduleName
+    val result = if(rootTask != null){
+        val childTask = rootTask.createChild<R>(taskName, moduleName)
+        withContext(childTask.coroutineContext){
+            try {
+                childTask.onStart()
+                val value =  block.invoke(this@subTaskAsync, childTask.handler)
+                childTask.onComplete()
+                TaskResult(childTask, value)
+            }catch (throwable: Throwable){
+                throwable.handleException(this, childTask)
+            }
+        }
+    }else{
+        runTaskAsync(taskName, config, block)
+    }
+    return result
+}
 
-    return TasksManaged.attachToHierarchy<R>(taskName, moduleName)?.let {
-        val taskResult = it.runTask(this ,block)
-        taskResult
-    }?:run {
-       val rootTaskResult  = this.newTaskAsync(taskName, moduleName?:"N/A", block)
-       rootTaskResult.task.notifier.warn("Task created as substitution for SubTask. Consider restructure")
-       return rootTaskResult
+
+inline fun <reified T, R: Any?> T.subTask(
+    taskName: String,
+    config: TaskConfig = TaskConfig(),
+    block: T.(TaskHandler<R>) -> R
+): TaskResult<R>{
+    val rootTask = TasksManaged.taskDispatcher.activeRootTask()
+    val moduleName = this::class.simpleName?:config.moduleName
+    return if(rootTask != null){
+        val childTask = rootTask.createChild<R>(taskName, moduleName)
+        try {
+           val value = block.invoke(this, childTask.handler)
+            TaskResult(childTask, value)
+
+        }catch (throwable: Throwable){
+            throwable.handleException(this, childTask)
+        }
+    }else{
+        this.runTask(taskName, config, block)
     }
 }
 
-//suspend  fun <T, R> T.withLastTask(
-//    block: suspend  T.(TaskHandler<R>)-> R
-//):R? {
-//    val lastTask  = TasksManaged.continueWithLastTask<R>()
-//    block.invoke(this, lastTask.taskHandler)
-//    return lastTask.taskResult.resultOrNull()
-//}
 
-fun lastTaskHandler():TaskHandler<*> {
-    val lastTaskHandler  = TasksManaged.getLastTaskHandler()
-    return lastTaskHandler
-}

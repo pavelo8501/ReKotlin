@@ -2,18 +2,16 @@ package po.exposify.dto.components.relation_binder.delegates
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.SizedIterable
-import po.exposify.dto.DTOBase
 import po.exposify.dto.DTOClass
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.relation_binder.RelationshipBinder
-import po.exposify.dto.components.relation_binder.createOneToManyContainer
-import po.exposify.dto.components.relation_binder.createOneToOneContainer
+import po.exposify.dto.components.relation_binder.components.createOneToManyContainer
+import po.exposify.dto.components.relation_binder.components.createOneToOneContainer
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.castOrOperationsEx
-import po.lognotify.extensions.newTaskAsync
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
 
@@ -42,7 +40,7 @@ fun <DTO, DATA, ENTITY, C_DTO, CD,  FE> CommonDTO<DTO, DATA, ENTITY>.oneToOneOf(
 {
 
     val castedOwnDataModel = ownDataModel.castOrInitEx<KMutableProperty1<DATA, CD>>()
-    val bindingDelegate =  OneToOneDelegate(this,childClass, castedOwnDataModel, ownEntity, foreignEntity)
+    val bindingDelegate =  OneToOneDelegate({this}, childClass, castedOwnDataModel, ownEntity, foreignEntity)
     val container =  childClass.createOneToOneContainer(this, bindingDelegate)
     val repository = createRepository(container)
     val binder  =  dtoClassConfig.relationBinder.castOrOperationsEx<RelationshipBinder<DTO, DATA, ENTITY, C_DTO, CD, FE>>()
@@ -72,11 +70,11 @@ fun <DTO, DATA, ENTITY, C_DTO, CD,  FE> CommonDTO<DTO, DATA, ENTITY>.oneToManyOf
         where DATA:DataModel, ENTITY : LongEntity, DTO : ModelDTO, C_DTO: ModelDTO,  CD: DataModel, FE: LongEntity
 {
     val castedOwnDataModels = ownDataModels.castOrInitEx<KProperty1<DATA, MutableList<CD>>>()
-    val bindingDelegate = OneToManyDelegate(this,childClass,  castedOwnDataModels, ownEntities, foreignEntity)
+    val bindingDelegate = OneToManyDelegate({this} ,childClass,  castedOwnDataModels, ownEntities, foreignEntity)
     val container =  childClass.createOneToManyContainer(this, bindingDelegate)
     val repository = createRepository(container)
     val binder = dtoClassConfig.relationBinder.castOrOperationsEx<RelationshipBinder<DTO, DATA, ENTITY, C_DTO, CD, FE>>()
     binder.attachBinding(Cardinality.ONE_TO_MANY, container)
     return bindingDelegate
-
 }
+

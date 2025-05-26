@@ -26,7 +26,7 @@ class TestPick : DatabaseTest(){
 
         var pickedDTO : UserDTO? = null
 
-        startTestConnection().run {
+        startTestConnection{
             service(UserDTO, TableCreateMode.CREATE) {
                 val userDataModel =  update(user).getDataForced()
                  pickedDTO = pickById(userDataModel.id).getDTO() as UserDTO

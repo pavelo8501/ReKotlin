@@ -2,35 +2,26 @@ package po.exposify
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import kotlinx.coroutines.delay
 import org.jetbrains.exposed.sql.Database
-import po.auth.sessions.interfaces.ManagedSession
+import po.exposify.common.classes.DBManagerHooks
+import po.exposify.extensions.getOrInitEx
 import po.exposify.scope.connection.models.ConnectionInfo
 import po.exposify.scope.connection.ConnectionClass
-import po.exposify.scope.connection.ConnectionContext
 import po.exposify.scope.connection.models.ConnectionSettings
-import po.lognotify.extensions.newTaskAsync
-
-fun launchService(connection: ConnectionContext, block: ConnectionContext.()-> Unit ){
-    if(connection.isOpen){
-        connection.block()
-    }
-}
+import po.lognotify.classes.task.models.TaskConfig
+import po.lognotify.extensions.runTask
+import po.lognotify.extensions.runTaskBlocking
+import po.misc.serialization.SerializerInfo
 
 object DatabaseManager {
 
-    private val connections  = mutableListOf<ConnectionClass>()
-
-    private fun addConnection(connection : ConnectionClass){
+    private var  connectionUpdated : ((String, Boolean)-> Unit)? = null
+    internal val connections  = mutableListOf<ConnectionClass>()
+    internal fun addConnection(connection : ConnectionClass){
         connections.add(connection)
     }
 
-    private var  connectionUpdated : ((String, Boolean)-> Unit)? = null
-    fun onConnectionUpdate(fn: (String, Boolean)-> Unit) {
-        connectionUpdated = fn
-    }
-
-    private fun provideDataSource(connectionInfo:ConnectionInfo): HikariDataSource? {
+    private fun tryConnect(connectionInfo:ConnectionInfo): ConnectionClass {
         try {
             val hikariConfig= HikariConfig().apply {
                 driverClassName = connectionInfo.driverClassName
@@ -42,71 +33,83 @@ object DatabaseManager {
                 transactionIsolation = "TRANSACTION_READ_COMMITTED" // Changed from TRANSACTION_REPEATABLE_READ
                 validate()
             }
-            val source =  HikariDataSource(hikariConfig)
-            return source
-        }catch (ex: Exception){
-            println(ex.message.toString())
-            return null
+            val hikariDataSource =  HikariDataSource(hikariConfig)
+            val newConnection = Database.connect(hikariDataSource)
+            val connectionClass =  ConnectionClass(this, connectionInfo, newConnection)
+            addConnection(connectionClass)
+            return  connectionClass
         }catch (th: Throwable){
+            connectionUpdated?.invoke(th.message.toString(), false)
             println(th.message.toString())
-            return null
+            throw th
         }
     }
 
-    fun openConnectionSync(
-        connectionInfo : ConnectionInfo,
-        sessionManager: ManagedSession,
-        context: (ConnectionContext.()->Unit)? = null
-    ): ConnectionContext? {
+    @PublishedApi
+    internal fun <T> provideSerializer(serializer: SerializerInfo<T>){
+        connections.forEach {
+            it.registerSerializer(serializer)
+        }
+    }
 
-       return newTaskAsync("openConnectionSync", "DatabaseManager") {
-            connectionInfo.hikariDataSource = provideDataSource(connectionInfo)
-            val newConnection = Database.connect(connectionInfo.hikariDataSource!!)
-            val connectionClass = ConnectionClass(connectionInfo, newConnection, sessionManager)
-            val connectionContext = ConnectionContext(
-                newConnection, connectionClass
-            ).also {
-                connectionInfo.connections.add(it)
-            }
-            addConnection(connectionClass)
-
-            context?.invoke(connectionContext)
-            connectionUpdated?.invoke("Connected", true)
-            connectionContext
+    fun openConnection(
+        connectionInfo : ConnectionInfo?,
+        settings : ConnectionSettings = ConnectionSettings(5),
+        hooks: DBManagerHooks? = null
+    ): ConnectionClass {
+      return runTask("openConnection", TaskConfig(attempts = settings.retries, moduleName = "DatabaseManager")) {
+         val effectiveConnectionInfo = connectionInfo?:hooks?.onBeforeConnection?.invoke()
+         val connection = if(effectiveConnectionInfo == null){
+             connections.firstOrNull().getOrInitEx("No connection info was provided nor opened connections exist")
+          }else{
+             val existentConnection =  connections.firstOrNull { it.connectionInfo.key == effectiveConnectionInfo.key }
+               existentConnection?.let {
+                  hooks?.onExistentConnection?.invoke(it)
+                  it
+              } ?: run {
+                  val newConnection = tryConnect(effectiveConnectionInfo)
+                  hooks?.onNewConnection?.invoke(newConnection)
+                  connectionUpdated?.invoke("Connected", true)
+                 newConnection
+              }
+          }
+          connection
         }.resultOrException()
     }
 
-    suspend fun openConnection(
-        connectionInfo : ConnectionInfo,
-        sessionManager: ManagedSession,
+    fun openConnectionAsync(
+        connectionInfo : ConnectionInfo?,
         settings : ConnectionSettings = ConnectionSettings(5),
-        context: ConnectionContext.()->Unit
-    ): Boolean {
-        var retriesLeft = settings.retries.toInt()
-        while (retriesLeft != 0) {
-            runCatching {
-                connectionInfo.hikariDataSource = provideDataSource(connectionInfo)
-                val newConnection = Database.connect(connectionInfo.hikariDataSource!!)
-                val connectionClass = ConnectionClass(connectionInfo, newConnection, sessionManager)
-                val connectionContext = ConnectionContext(
-                    newConnection, connectionClass
-                ).also {
-                    connectionInfo.connections.add(it)
-                }
-                addConnection(connectionClass)
-                connectionContext.context()
-                connectionUpdated?.invoke("Connected", true)
-                return true
-            }.getOrElse {
-                connectionUpdated?.invoke(it.message.toString(), false)
-                connectionInfo.registerError(it)
-                connectionInfo.lastError = it.message
-                if (retriesLeft > 0) {
-                    retriesLeft--
-                    delay(10000)
+        hooks: DBManagerHooks? = null
+    ):ConnectionClass {
+        return runTaskBlocking("openConnectionAsync", TaskConfig(attempts = settings.retries, moduleName = "DatabaseManager")) {
+            val effectiveConnectionInfo = connectionInfo?:hooks?.onBeforeConnection?.invoke()
+            val connection = if(effectiveConnectionInfo == null){
+                connections.firstOrNull().getOrInitEx("No connection info was provided nor opened connections exist")
+            }else{
+                val existentConnection =  connections.firstOrNull { it.connectionInfo.key == effectiveConnectionInfo.key }
+                existentConnection?.let {
+                    hooks?.onExistentConnection?.invoke(it)
+                    it
+                } ?: run {
+                    val newConnection = tryConnect(effectiveConnectionInfo)
+                    hooks?.onNewConnection?.invoke(newConnection)
+                    connectionUpdated?.invoke("Connected", true)
+                    newConnection
                 }
             }
-        }
-        return false
+            connection
+        }.resultOrException()
     }
+
 }
+
+//fun withConnection(
+//    connectionInfo: ConnectionInfo
+//): ConnectionClass {
+//    val connectionString =  connectionInfo.getConnectionString()
+//    val connection = DatabaseManager.connections.first { it.connectionInfo.getConnectionString() == connectionString }
+//    val effectiveConnection = connection.getOrOperationsEx("Connection $connectionString not found")
+//    return connection
+//}
+

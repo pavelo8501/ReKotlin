@@ -4,7 +4,7 @@ import io.ktor.http.HttpHeaders
 import io.ktor.server.application.ApplicationStarted
 import io.ktor.server.application.createApplicationPlugin
 import io.ktor.server.application.hooks.MonitoringEvent
-import po.lognotify.extensions.startTask
+import po.lognotify.extensions.runTask
 import po.restwraptor.extensions.getWraptorRoutes
 import po.restwraptor.extensions.resolveSessionFromHeader
 import po.restwraptor.extensions.sessionToAttributes
@@ -32,7 +32,7 @@ val CoreAuthApplicationPlugin = createApplicationPlugin(
     }
 
     onCall{call->
-        startTask("Processing incoming call", call.coroutineContext, "CoreAuthApplicationPlugin"){handler->
+        runTask("Processing incoming call"){handler->
             val session = resolveSessionFromHeader(call)
             handler.info("Session created ${session.sessionID}")
             call.sessionToAttributes(session)

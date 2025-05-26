@@ -22,9 +22,7 @@ enum class HandlerType(val value: Int) {
 sealed interface SelfThrownException<E:ManagedException>  {
     val message: String
     var handler  : HandlerType
-   // val builderFn: (String, Int?) -> E
-
-    var snapshot :  Map<String, Any?>?
+    var propertySnapshot :  Map<String, Any?>
 
     fun setSourceException(th: Throwable): E
     fun getSourceException(returnSelfIfNull: Boolean): Throwable?
@@ -42,18 +40,6 @@ sealed interface SelfThrownException<E:ManagedException>  {
                 ?: throw IllegalStateException("Companion object must implement Builder<E> @ SelfThrownException")
         }
     }
-
-//    companion object {
-//        inline fun <reified E : ManagedException> build(message: String, optionalCode: Int?): E {
-//            return E::class.companionObjectInstance?.safeCast<Builder<E>>()
-//                ?.build(message, optionalCode)
-//                ?: throw IllegalStateException("Companion object must implement Builder<E> @ SelfThrownException")
-//        }
-//
-//        interface Builder<E> {
-//            fun build(message: String, optionalCode: Int?): E
-//        }
-//    }
 }
 
 open class ManagedException(
@@ -61,10 +47,7 @@ open class ManagedException(
 ) : Throwable(message), SelfThrownException<ManagedException>{
 
     override var handler  : HandlerType = HandlerType.CANCEL_ALL
-//    override val builderFn: (String, Int?) -> ManagedException={msg,_->
-//        ManagedException(msg)
-//    }
-    override var snapshot :  Map<String, Any?>? = null
+    override var propertySnapshot :  Map<String, Any?> = emptyMap()
 
     fun addMessage(newMessage: String): ManagedException{
         message = "$message. $newMessage"
@@ -72,6 +55,12 @@ open class ManagedException(
     }
     override fun setHandler(handlerType: HandlerType): ManagedException{
         handler = handlerType
+        return this
+    }
+    fun setPropertySnapshot(snapshot: Map<String, Any?>?):ManagedException{
+        if(snapshot != null){
+            propertySnapshot = snapshot
+        }
         return this
     }
 

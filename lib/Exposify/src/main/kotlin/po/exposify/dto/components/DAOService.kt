@@ -13,11 +13,14 @@ import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.DTORegistryItem
 import po.exposify.dao.classes.ExposifyEntityClass
+import po.exposify.dto.interfaces.ComponentType
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.getOrOperationsEx
+import po.exposify.scope.sequence.SequenceContext
 import po.lognotify.TasksManaged
 import po.lognotify.anotations.LogOnFault
-import po.lognotify.extensions.resultOrNull
+import po.lognotify.classes.task.TaskHandler
+import po.lognotify.classes.task.result.resultOrNull
 import po.lognotify.extensions.subTask
 
 
@@ -30,15 +33,13 @@ class DAOService<DTO, DATA, ENTITY>(
 
     @LogOnFault()
     override val qualifiedName: String = "DAOService[${registryRecord.dtoName}]"
-
-    @LogOnFault()
-    override val name: String = "DAOService"
+    override val type: ComponentType = ComponentType.DaoService
 
     private fun combineConditions(conditions: Set<Op<Boolean>>): Op<Boolean> {
         return conditions.reduceOrNull { acc, op -> acc and op } ?: Op.TRUE
     }
 
-    private  fun buildConditions(conditions: Query): Op<Boolean> {
+    private  fun buildConditions(conditions: SimpleQuery): Op<Boolean> {
         val conditions = conditions.build()
         return conditions
     }
@@ -48,17 +49,15 @@ class DAOService<DTO, DATA, ENTITY>(
         dto.updateBindingsAfterInserted(container)
     }
 
-   suspend fun  pick(conditions :  Query): ENTITY? = subTask("Pick", qualifiedName){handler->
+   suspend fun  pick(conditions :  SimpleQuery): ENTITY? = subTask("Pick"){handler->
        val opConditions = buildConditions(conditions)
        val queryResult = entityModel.find(opConditions).firstOrNull()
-        if(queryResult == null){
-            handler.warn("Entity  not found")
-        }
         queryResult
     }.resultOrNull()
 
+
     suspend fun pickById(id: Long): ENTITY?
-        = subTask("PickById", qualifiedName) {handler->
+        = subTask("PickById") {handler->
       val entity =  entityModel.findById(id)
       if(entity == null){
           handler.info("Entity with id: $id not found")
@@ -66,20 +65,22 @@ class DAOService<DTO, DATA, ENTITY>(
       entity
     }.resultOrNull()
 
-    suspend fun select(): List<ENTITY> = subTask("Select All", qualifiedName){
+    suspend fun select(): List<ENTITY> = subTask("Select All"){
         entityModel.all().toList()
     }.resultOrException()
 
-    suspend fun select(conditions:  Query): List<ENTITY> =
-        subTask("Select", qualifiedName) {handler->
+
+    suspend fun select(conditions:  SimpleQuery): List<ENTITY> =
+        subTask("Select") {handler->
         val opConditions = buildConditions(conditions)
         val result = entityModel.find(opConditions).toList()
         handler.info("${result.count()} entities selected")
         result
     }.resultOrException()
 
+
     suspend fun save(dto: CommonDTO<DTO, DATA, ENTITY>): ENTITY =
-        subTask("Save", "DAOService") {handler->
+        subTask("Save") {handler->
             val updateMode = UpdateMode.MODEL_TO_ENTITY
             val newEntity = entityModel.new {
             handler.withTaskContext(this){
@@ -91,11 +92,12 @@ class DAOService<DTO, DATA, ENTITY>(
         newEntity
     }.resultOrException()
 
+
     suspend fun <P_DTO: ModelDTO, PD: DataModel, PE: LongEntity> saveWithParent(
         dto: CommonDTO<DTO, DATA, ENTITY>,
         parentDto: CommonDTO<P_DTO, PD, PE>,
         bindFn: (container: EntityUpdateContainer<ENTITY, P_DTO, PD, PE>)-> Unit)
-            = subTask("Save", qualifiedName) {handler->
+            = subTask("Save") {handler->
             val updateMode = UpdateMode.MODEL_TO_ENTITY
             val newEntity = entityModel.new {
                 handler.withTaskContext(this){
@@ -109,7 +111,8 @@ class DAOService<DTO, DATA, ENTITY>(
             newEntity
     }.resultOrException()
 
-    suspend fun update(dto: CommonDTO<DTO, DATA, ENTITY>): ENTITY = subTask("Update", "DAOService") {handler->
+    suspend fun update(dto: CommonDTO<DTO, DATA, ENTITY>): ENTITY
+        = subTask("Update") {
         val selectedEntity =  pickById(dto.id).getOrOperationsEx("Entity with id : ${dto.id} not found", ExceptionCode.DB_CRUD_FAILURE)
         val updateMode = UpdateMode.MODEL_TO_ENTITY
         dto.dtoPropertyBinder.update(selectedEntity.containerize(updateMode))

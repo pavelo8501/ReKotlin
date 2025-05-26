@@ -1,6 +1,6 @@
 package po.misc.time
 
-data class ExecutionTimeStamp(val name: String, val id: String) {
+data class ExecutionTimeStamp(val name: String, var id: String) {
 
     var startTime: Long = System.nanoTime()
     var endTime: Long = 0L
@@ -25,6 +25,7 @@ data class ExecutionTimeStamp(val name: String, val id: String) {
 
     private var onStopFn : ((ExecutionTimeStamp)-> Unit)? = null
     fun onStop(onStopFn : (ExecutionTimeStamp)-> Unit){
+
         this.onStopFn = onStopFn
     }
 }

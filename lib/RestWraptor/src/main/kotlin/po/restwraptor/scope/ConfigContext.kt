@@ -6,7 +6,6 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.application.pluginOrNull
-import io.ktor.server.auth.AuthenticationContext
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.routing.routing
@@ -15,8 +14,8 @@ import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.auth.models.CryptoRsaKeys
 import po.lognotify.TasksManaged
 import po.lognotify.classes.task.TaskHandler
-import po.lognotify.extensions.lastTaskHandler
 import po.lognotify.extensions.subTask
+import po.lognotify.lastTaskHandler
 import po.restwraptor.RestWrapTor
 import po.restwraptor.models.configuration.ApiConfig
 import po.restwraptor.models.configuration.AuthConfig
@@ -30,10 +29,6 @@ interface ConfigContextInterface{
         cryptoKeys: CryptoRsaKeys,
         userLookupFn: suspend ((login: String)-> AuthenticationPrincipal?),
         configFn  : (suspend AuthConfigContext.()-> Unit)? = null)
-   // suspend fun setup(configFn : suspend WraptorConfig.()-> Unit)
-   // suspend fun setup(configuration : WraptorConfig, configFn : suspend WraptorConfig.()-> Unit)
-   // fun setupApplication(block: Application.()->Unit)
-    //suspend fun initialize():Application
 }
 
 class ConfigContext(
@@ -43,7 +38,6 @@ class ConfigContext(
 ): ConfigContextInterface, TasksManaged{
 
     val personalName = "ConfigContext"
-
 
     var apiConfig : ApiConfig
         get()  {return  wrapConfig.apiConfig}
@@ -164,20 +158,12 @@ class ConfigContext(
 
     internal suspend fun initialize(builderFn: (suspend  ConfigContext.()-> Unit)?): Application{
         builderFn?.invoke(this)
-        application.rootPath = apiConfig.baseApiRoute
         installCoreAuth(application)
         applicationConfigFn?.invoke(application)
-        subTask("Initialization", personalName){
-            if(apiConfig.cors){
-                configCors(application)
-            }
-            if(apiConfig.contentNegotiation){
-                configContentNegotiation(application)
-            }
-            if(apiConfig.rateLimiting){
-                configRateLimiter(application)
-            }
-
+        subTask("Initialization"){
+            if(apiConfig.cors){ configCors(application) }
+            if(apiConfig.contentNegotiation){ configContentNegotiation(application) }
+            if(apiConfig.rateLimiting){ configRateLimiter(application) }
             if (apiConfig.systemRouts) {
                 application.routing {
                     configureSystemRoutes(apiConfig.baseApiRoute, this@ConfigContext)

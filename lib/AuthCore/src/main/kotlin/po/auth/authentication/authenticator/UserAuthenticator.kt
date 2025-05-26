@@ -58,4 +58,9 @@ class UserAuthenticator(
         return existentSession ?: factory.createAnonymousSession(authData, this)
     }
 
+    fun authorizeSync(authData: SessionIdentified): AuthorizedSession {
+        val existentSession = factory.sessionLookUp(authData.sessionID)
+        return existentSession ?: factory.createAnonymousSession(authData, this)
+    }
+
 }

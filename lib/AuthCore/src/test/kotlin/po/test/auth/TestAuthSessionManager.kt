@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test
 import po.auth.AuthSessionManager
 import po.auth.extensions.currentSession
 import po.auth.extensions.withSession
+import po.auth.extensions.withSessionContext
 import po.auth.sessions.interfaces.SessionIdentified
 import po.auth.sessions.models.AuthorizedSession
 import po.misc.exceptions.getCoroutineInfo
@@ -33,7 +34,7 @@ class TestAuthSessionManager {
     @Test
     fun `withExtension executes correctly` () = runTest {
         val session = AuthSessionManager.getOrCreateSession(authData2("id", "127.0.0.1"))
-        withSession(session){
+        withSessionContext(session){
             val retrieved = coroutineContext[AuthorizedSession]
             val coroutineInfo = getCoroutineInfo()
 
@@ -47,7 +48,7 @@ class TestAuthSessionManager {
     fun `current session can be retrieved from the contex` () = runTest {
 
         val session = AuthSessionManager.getOrCreateSession(authData2("id", "127.0.0.1"))
-        withSession(session){
+        withSessionContext(session){
             val retrieved = currentSession()
             assertNotNull(retrieved, "in testSessionWithExtension")
             assertNotNull(retrieved.sessionID)

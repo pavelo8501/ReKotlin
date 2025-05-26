@@ -1,24 +1,44 @@
 package po.lognotify.classes.process
 
+import kotlinx.coroutines.AbstractCoroutine
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import po.lognotify.classes.notification.ProcessNotifier
 import po.lognotify.classes.notification.models.NotifyConfig
-import po.lognotify.classes.notification.sealed.DataProvider
 import po.lognotify.classes.notification.sealed.ProviderProcess
 import po.lognotify.classes.task.RootTask
-import po.lognotify.classes.task.TaskSealedBase
-import po.lognotify.extensions.subscribeTo
 import po.lognotify.models.TaskKey
 import po.misc.exceptions.CoroutineInfo
 import po.misc.time.ExecutionTimeStamp
 import po.misc.time.MeasuredContext
 import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.coroutines.coroutineContext
 
+
+interface ProcessScope: CoroutineScope{
+
+}
+
+@OptIn(InternalCoroutinesApi::class)
+class  ProcessScopeImpl<T: ProcessableContext<E>, E: CoroutineContext.Element>(
+    context: CoroutineContext,
+    coroutineElement : T
+): AbstractCoroutine<Unit>(context, initParentJob = true, active = true), ProcessScope {
+
+}
+
+public fun <T: ProcessableContext<E>, E: CoroutineContext.Element> processScope(
+    context: CoroutineContext = EmptyCoroutineContext,
+    coroutineElement : T
+): ProcessScope
+{
+    var scope: ProcessScopeImpl<T, E>? = null
+    return ProcessScopeImpl<T, E>(context, coroutineElement).also { scope = it }
+}
 
 class LoggProcess<E: ProcessableContext<*>>(
     private val holder: ProcessableContext<E>,
@@ -64,26 +84,21 @@ class LoggProcess<E: ProcessableContext<*>>(
         }
     }
 
-    suspend fun observeTask(task: TaskSealedBase<*>) {
-        if (task is RootTask<*>) {
-            println("Process Started")
-            holder.onProcessStart(this)
-            CoroutineScope(CoroutineName("Listener")).launch {
-                task.notifier.notifications.collect { notification ->
-                    holder.onNotification(notification)
-                }
+    suspend fun observeTask(task: RootTask<*>) {
+        holder.onProcessStart(this)
+        CoroutineScope(CoroutineName("Listener")).launch {
+            task.notifier.notifications.collect { notification ->
+                holder.onNotification(notification)
             }
         }
     }
 
-    fun stopTaskObservation(task: TaskSealedBase<*>) {
-        if (task is RootTask<*>) {
-            val job = listenerJobs[task.key]
-            job?.invokeOnCompletion {
-                listenerJobs.remove(task.key)
-            }
-            holder.onProcessEnd(this)
+    fun stopTaskObservation(task: RootTask<*>) {
+        val job = listenerJobs[task.key]
+        job?.invokeOnCompletion {
+            listenerJobs.remove(task.key)
         }
+        holder.onProcessEnd(this)
     }
 
     override val key: CoroutineContext.Key<LoggProcess<*>> = Key

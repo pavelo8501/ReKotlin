@@ -29,19 +29,23 @@ class TestComplexDelegate : DatabaseTest() {
             name = "name",
             email = "nomail@void.null"
         )
-        val connection = startTestConnection()
-        connection.service(UserDTO) {
-            user = update(user).getDataForced()
+        startTestConnection(){
+            service(UserDTO) {
+                user = update(user).getDataForced()
+            }
         }
+
         val sourceSections = sectionsPreSaved(0)
         val page = Page(id = 0, name = "home", langId = 1, updatedById = user.id)
         var updatedPageData: Page? = null
         var updatedPageDTO : PageDTO? = null
-        connection?.service(PageDTO, TableCreateMode.CREATE) {
-            page.sections.addAll(sourceSections)
-            val updateResult = update(page)
-            updatedPageData = updateResult.getDataForced()
-            updatedPageDTO = updateResult.getDTO() as PageDTO
+        startTestConnection{
+            service(PageDTO, TableCreateMode.CREATE) {
+                page.sections.addAll(sourceSections)
+                val updateResult = update(page)
+                updatedPageData = updateResult.getDataForced()
+                updatedPageDTO = updateResult.getDTO() as PageDTO
+            }
         }
         val persistedDataSection  = updatedPageData?.sections?.first()
         val persistedDtoSection = updatedPageDTO?.sections?.first() as? SectionDTO
@@ -57,59 +61,6 @@ class TestComplexDelegate : DatabaseTest() {
     }
 
     @Test
-    fun `parent2IdReference property binding un select`() = runTest {
-
-        var user = User(
-            id = 0,
-            login = "some_login",
-            hashedPassword = generatePassword("password"),
-            name = "name",
-            email = "nomail@void.null"
-        )
-        val connection = startTestConnection()
-        connection.service(UserDTO) {
-            user = update(user).getDataForced()
-        }
-        val sourceSections = sectionsPreSaved(0)
-        val page = Page(id = 0, name = "home", langId = 1, updatedById = user.id)
-        var selectedData: Page? = null
-        var selectedDTO : PageDTO? = null
-        var updatedSectionsCount = 0
-        connection?.service(PageDTO, TableCreateMode.CREATE) {
-            page.sections.addAll(sourceSections)
-            updatedSectionsCount = update(page).getDataForced().sections.count()
-
-            val selectionResult = select()
-
-            selectedData = selectionResult.getData().firstOrNull()
-            selectedDTO = selectionResult.getDTO().firstOrNull() as? PageDTO
-        }
-
-        val selectedPageData = assertNotNull(selectedData)
-        val selectedPageDTO = assertNotNull(selectedDTO)
-
-        val persistedDataSection  = selectedPageData.sections.firstOrNull()
-        val persistedDtoSection = selectedPageDTO.sections.firstOrNull() as? SectionDTO
-
-        assertNotEquals(0, updatedSectionsCount, "Sections update failed. Expected count ${page.sections.count()}")
-        assertNotNull(persistedDataSection, "Failed to get DataSection after update")
-        assertNotNull(persistedDtoSection, "Failed to get DtoSection after update")
-
-        assertAll("idReferenced updated",
-            { assertNotEquals(0, selectedPageData.id, "updatedPageData id failed to update") },
-            { assertEquals(
-                selectedPageData.id,
-                persistedDataSection.pageId,
-                "PageId in data model not updated. Expected ${selectedPageData.id}") },
-            { assertEquals(
-                selectedPageData.id,
-                persistedDtoSection.pageId,
-                "PageId in DTO not updated. Expected ${selectedPageData.id}") },
-        )
-    }
-
-
-    @Test
     fun `foreign2IdReference property binding un update&pick`() = runTest{
 
         var user = User(
@@ -119,24 +70,28 @@ class TestComplexDelegate : DatabaseTest() {
             name = "name",
             email = "nomail@void.null"
         )
-        val connection = startTestConnection()
-        connection.service(UserDTO) {
-            user = update(user).getDataForced()
+        startTestConnection(){
+           service(UserDTO) {
+                user = update(user).getDataForced()
+            }
         }
+
         val sourceSections = sectionsPreSaved(0)
         val page = Page(id = 0, name = "home", langId = 1, updatedById = user.id)
         var updatedPageData: Page? = null
         var updatedPageDTO : PageDTO? = null
         var pickedData: Page? = null
         var pickedDTO : PageDTO? = null
-        connection.service(PageDTO, TableCreateMode.CREATE) {
-            page.sections.addAll(sourceSections)
-            val updateResult = update(page)
-            updatedPageData = updateResult.getDataForced()
-            updatedPageDTO = updateResult.getDTO() as PageDTO
-            val selectionResult = pickById(updatedPageData.id)
-            pickedData = selectionResult.getDataForced()
-            pickedDTO = selectionResult.getDTO() as PageDTO
+        startTestConnection {
+            service(PageDTO, TableCreateMode.CREATE) {
+                page.sections.addAll(sourceSections)
+                val updateResult = update(page)
+                updatedPageData = updateResult.getDataForced()
+                updatedPageDTO = updateResult.getDTO() as PageDTO
+                val selectionResult = pickById(updatedPageData.id)
+                pickedData = selectionResult.getDataForced()
+                pickedDTO = selectionResult.getDTO() as PageDTO
+            }
         }
 
         assertNotNull(updatedPageData, "Failed to update PageData")

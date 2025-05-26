@@ -5,6 +5,7 @@ import org.jetbrains.exposed.dao.LongEntityClass
 import po.exposify.dto.DTOClass
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
+import po.exposify.dto.DTOBase
 import po.exposify.dto.components.proFErty_binder.EntityUpdateContainer
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.interfaces.ModelDTO
@@ -22,21 +23,22 @@ import kotlin.reflect.KProperty
 
 fun <T, R> KMutableProperty1<T, R>.name(): String = this.name
 
-class ForeignIDClassDelegate<DTO, DATA, ENTITY, FE>(
-    dto: CommonDTO<DTO, DATA, ENTITY>,
-    dataProperty : KMutableProperty1<DATA, Long>,
-    val entityProperty : KMutableProperty1<ENTITY, FE>,
-    val foreignEntityModel: LongEntityClass<FE>,
-): ComplexDelegate<DTO, DATA, ENTITY, FE, Long, Long>(dto, dataProperty, entityProperty.name)
-    where DATA: DataModel, ENTITY: LongEntity, DTO: ModelDTO, FE: LongEntity
+class ForeignIDClassDelegate<DTO, D, E, F_DTO, FD, FE>(
+    dto: CommonDTO<DTO, D, E>,
+    dataProperty : KMutableProperty1<D, Long>,
+    val entityProperty : KMutableProperty1<E, FE>,
+    val foreignDTOClass:  DTOBase<F_DTO, FD, FE>,
+): ComplexDelegate<DTO, D, E, F_DTO, FD, FE, Long, Long>(dto, dataProperty, entityProperty.name)
+    where D: DataModel, E: LongEntity, DTO: ModelDTO,
+          F_DTO: ModelDTO, FD: DataModel, FE: LongEntity
 {
     override val  qualifiedName : String = "ForeignIDClassDelegate[${dto.dtoName}::${dataProperty.name}]"
 
-    override fun update(isBeforeInserted:  Boolean, container:  EntityUpdateContainer<ENTITY, *, *, FE>){
+    override fun update(isBeforeInserted:  Boolean, container:  EntityUpdateContainer<E, F_DTO, FD, FE>){
         //MODEL_TO_ENTITY effectively on Update/Save
         if(container.updateMode == UpdateMode.MODEL_TO_ENTITY){
             val value = getEffectiveValue()
-            val foreignEntity = foreignEntityModel[value]
+            val foreignEntity = foreignDTOClass.config.entityModel[value]
             val ownEntity = container.ownEntity
             entityProperty.set(ownEntity, foreignEntity)
         }else{
@@ -49,20 +51,21 @@ class ForeignIDClassDelegate<DTO, DATA, ENTITY, FE>(
     }
 }
 
-class ParentIDDelegate<DTO, DATA, ENTITY, FE>(
-    dto: CommonDTO<DTO, DATA, ENTITY>,
-    dataProperty : KMutableProperty1<DATA, Long>,
-    val entityProperty : KMutableProperty1<ENTITY, FE>,
-): ComplexDelegate<DTO, DATA, ENTITY, FE, Long, Long>(dto, dataProperty, entityProperty.name)
-        where DATA: DataModel, ENTITY: LongEntity, DTO : ModelDTO, FE: LongEntity
+class ParentIDDelegate<DTO, D, E, FE>(
+    dto: CommonDTO<DTO, D, E>,
+    dataProperty : KMutableProperty1<D, Long>,
+    val entityProperty : KMutableProperty1<E, FE>,
+): ComplexDelegate<DTO, D, E, ModelDTO, DataModel, FE, Long, Long>(dto, dataProperty, entityProperty.name)
+        where DTO : ModelDTO, D: DataModel, E: LongEntity, FE: LongEntity
 {
     override val qualifiedName : String = "ParentIDDelegate[${dto.dtoName}::${dataProperty.name}]"
 
-    override fun update(isBeforeInserted: Boolean, container: EntityUpdateContainer<ENTITY, *, *, FE>){
+    override fun update(isBeforeInserted: Boolean, container: EntityUpdateContainer<E, ModelDTO, DataModel, FE>){
         if(container.updateMode == UpdateMode.MODEL_TO_ENTITY){
             container.parentDto?.let {
                 val foreignEntity = it.daoEntity
-                entityProperty.set(container.ownEntity, foreignEntity)
+
+               // entityProperty.set(container.ownEntity, foreignEntity)
                 dataProperty.set(dto.dataModel, foreignEntity.id.value)
             }
         }else{
@@ -75,20 +78,20 @@ class ParentIDDelegate<DTO, DATA, ENTITY, FE>(
     }
 }
 
-class ParentDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>(
-    dto: CommonDTO<DTO, DATA, ENTITY>,
-    dataProperty : KMutableProperty1<DATA, FD>,
+class ParentDelegate<DTO, D, ENTITY, F_DTO, FD, FE>(
+    dto: CommonDTO<DTO, D, ENTITY>,
+    dataProperty : KMutableProperty1<D, FD>,
     private val parentDtoModel: DTOClass<F_DTO, FD, FE>,
-    private val entityModel: LongEntityClass<FE>
-): ComplexDelegate<DTO, DATA, ENTITY, FE, FD, CommonDTO<F_DTO, FD, FE>>(dto, dataProperty, dataProperty.name)
-        where DATA: DataModel, ENTITY: LongEntity, DTO : ModelDTO, F_DTO: ModelDTO, FD : DataModel, FE: LongEntity
+    private val foreignDTOClass:  DTOClass<F_DTO, FD, FE>,
+): ComplexDelegate<DTO, D, ENTITY,F_DTO, FD, FE, FD, CommonDTO<F_DTO, FD, FE>>(dto, dataProperty, dataProperty.name)
+        where D: DataModel, ENTITY: LongEntity, DTO : ModelDTO, F_DTO: ModelDTO, FD : DataModel, FE: LongEntity
 {
     override val  qualifiedName : String = "ParentDelegate[${dto.dtoName}::${dataProperty.name}]"
     var parentDto : CommonDTO<F_DTO, FD, FE>? = null
 
     override fun update(
         isBeforeInserted:  Boolean,
-        container:  EntityUpdateContainer<ENTITY, *, *, FE>
+        container:  EntityUpdateContainer<ENTITY, F_DTO, FD, FE>
     ){
         if(container.updateMode == UpdateMode.ENTITY_TO_MODEL){
             if(container.isParentDtoSet){
@@ -110,12 +113,13 @@ class ParentDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>(
     }
 }
 
-sealed class ComplexDelegate<DTO, DATA, ENTITY, FE, DATA_VAL, RES_VAL>(
-    protected val dto: CommonDTO<DTO, DATA, ENTITY>,
-    protected val dataProperty : KMutableProperty1<DATA, DATA_VAL>,
+sealed class ComplexDelegate<DTO, D, E, F_DTO, FD,  FE, DATA_VAL, RES_VAL>(
+    protected val dto: CommonDTO<DTO, D, E>,
+    protected val dataProperty : KMutableProperty1<D, DATA_VAL>,
     protected val entityPropertyName : String
 ): ReadOnlyProperty<DTO, RES_VAL>, TasksManaged
-    where DATA: DataModel, ENTITY: LongEntity, DTO : ModelDTO, FE: LongEntity
+    where D: DataModel, E: LongEntity, DTO : ModelDTO,
+          F_DTO: ModelDTO, FD : DataModel,  FE: LongEntity
 {
    private var delegateProperty: KProperty<*>? = null
    private var delegatePropertyName: String = ""
@@ -129,22 +133,21 @@ sealed class ComplexDelegate<DTO, DATA, ENTITY, FE, DATA_VAL, RES_VAL>(
    }
 
     abstract fun getEffectiveValue():RES_VAL
-    protected abstract fun update(isBeforeInserted: Boolean, container: EntityUpdateContainer<ENTITY, *, *, FE>)
-    suspend fun <F_DTO: ModelDTO, FD: DataModel, FFE: LongEntity>  beforeInsertedUpdate(
-        updateContainer: EntityUpdateContainer<ENTITY, F_DTO, FD, FFE>
-    ): Unit = subTask("BeforeInsertedUpdate", qualifiedName){
 
-        val castedContainer = updateContainer.castOrOperationsEx<EntityUpdateContainer<ENTITY, F_DTO, FD, FE>>()
-        update(true, castedContainer)
+    protected abstract fun update(isBeforeInserted: Boolean, container: EntityUpdateContainer<E, F_DTO, FD, FE>)
+
+    suspend fun  beforeInsertedUpdate(
+        updateContainer: EntityUpdateContainer<E, *, *, *>
+    ): Unit = subTask("BeforeInsertedUpdate"){
+        update(true, updateContainer.castOrOperationsEx())
 
     }.resultOrException()
 
-    suspend fun <F_DTO: ModelDTO, FD: DataModel, FFE: LongEntity> afterInsertedUpdate(
-        updateContainer: EntityUpdateContainer<ENTITY, F_DTO, FD, FFE>
-    ): Unit = subTask("AfterInsertedUpdate", qualifiedName){handler->
-        val castedContainer = updateContainer.castOrOperationsEx<EntityUpdateContainer<ENTITY, F_DTO, FD, FE>>()
+    suspend fun  afterInsertedUpdate(
+        updateContainer: EntityUpdateContainer<E, *, *, *>
+    ): Unit = subTask("AfterInsertedUpdate"){handler->
         withTransactionIfNone(handler) {
-            update(false, castedContainer)
+            update(false, updateContainer.castOrOperationsEx())
         }
     }.resultOrException()
 

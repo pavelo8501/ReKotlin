@@ -3,35 +3,32 @@ package po.test.exposify.setup.dtos
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.builtins.ListSerializer
 import po.exposify.dto.DTOClass
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.components.property_binder.bindings.SerializedBinding
-import po.exposify.dto.components.property_binder.bindings.SyncedBinding
 import po.exposify.dto.components.property_binder.delegates.binding
 import po.exposify.dto.components.property_binder.delegates.foreign2IdReference
 import po.exposify.dto.components.property_binder.delegates.parent2IdReference
 import po.exposify.dto.components.property_binder.delegates.serializedBinding
 import po.exposify.dto.components.relation_binder.delegates.oneToManyOf
-import po.test.exposify.setup.ClassItem
+import po.exposify.dto.enums.Cardinality
+import po.exposify.scope.sequence.classes.SwitchHandlerProvider
+import po.test.exposify.setup.ClassData
 import po.test.exposify.setup.ContentBlockEntity
-import po.test.exposify.setup.MetaTag
-import po.test.exposify.setup.PageEntity
+import po.test.exposify.setup.MetaData
 import po.test.exposify.setup.SectionEntity
-import po.test.exposify.setup.UserEntity
 
 @Serializable
 data class Section(
-    override var id: Long,
+    override var id: Long = 0L,
     var name: String,
     var description: String,
     @SerialName("json_ld")
     var jsonLd: String,
     @SerialName("class_list")
-    var classList: List<ClassItem>,
+    var classList: List<ClassData>,
     @SerialName("meta_tags")
-    var metaTags: List<MetaTag>,
+    var metaTags: List<MetaData>,
     @SerialName("lang_id")
     var langId: Int,
     @SerialName("updated_by")
@@ -43,7 +40,6 @@ data class Section(
 {
     @SerialName("content_blocks")
     val contentBlocks : MutableList<ContentBlock> = mutableListOf()
-
     var updated: LocalDateTime = UserDTO.nowTime()
 }
 
@@ -57,10 +53,10 @@ class SectionDTO(
     var langId : Int by binding(Section::langId, SectionEntity::langId)
     var updated : LocalDateTime by binding(Section::updated, SectionEntity::updated)
 
-    var classList:  List<ClassItem> by serializedBinding(Section::classList, SectionEntity::classList, ClassItem)
-    var metaTags :  List<MetaTag> by serializedBinding(Section::metaTags, SectionEntity::metaTags, MetaTag)
+    var classList:  List<ClassData> by serializedBinding(Section::classList, SectionEntity::classList)
+    var metaTags :  List<MetaData> by serializedBinding(Section::metaTags, SectionEntity::metaTags)
 
-    val updatedBy : Long by foreign2IdReference(Section::updatedBy, SectionEntity::updatedBy, UserEntity)
+    val updatedBy : Long by foreign2IdReference(Section::updatedBy, SectionEntity::updatedBy, UserDTO)
     val pageId : Long by parent2IdReference(Section::pageId, SectionEntity::page)
 
     val contentBlocks : List<ContentBlockDTO> by oneToManyOf(
@@ -70,9 +66,17 @@ class SectionDTO(
         ContentBlockEntity::section)
 
     companion object: DTOClass<SectionDTO, Section, SectionEntity>(PageDTO){
-        override suspend fun setup() {
-            configuration<SectionDTO, Section, SectionEntity>(SectionEntity) {
 
+       val UPDATE by SwitchHandlerProvider(this, Cardinality.ONE_TO_MANY, PageDTO.SELECT)
+       val SELECT_UPDATE by SwitchHandlerProvider(this, Cardinality.ONE_TO_MANY, PageDTO.UPDATE)
+
+        override fun setup() {
+            configuration<SectionDTO, Section, SectionEntity>(SectionEntity) {
+                applyTrackerConfig {
+                    name = "AltSection"
+                    observeProperties = true
+                    observeRelationBindings = true
+                }
             }
         }
     }

@@ -6,8 +6,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertAll
 import po.auth.extensions.generatePassword
-import po.exposify.dto.components.ResultSingle
-import po.exposify.scope.connection.ConnectionContext
+import po.exposify.dto.components.result.ResultSingle
 import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
@@ -32,9 +31,6 @@ class TestUpdate : DatabaseTest(), TasksManaged {
     companion object{
         @JvmStatic
         var updatedById : Long = 0
-
-        @JvmStatic
-        lateinit var  connectionContext : ConnectionContext
     }
 
     @BeforeAll
@@ -51,9 +47,10 @@ class TestUpdate : DatabaseTest(), TasksManaged {
             name = "name",
             email = "nomail@void.null"
         )
-        connectionContext = startTestConnection()
-        connectionContext.service(UserDTO, TableCreateMode.FORCE_RECREATE) {
-            updatedById = update(user).getDataForced().id
+        startTestConnection {
+            service(UserDTO, TableCreateMode.FORCE_RECREATE) {
+                updatedById = update(user).getDataForced().id
+            }
         }
     }
 
@@ -64,7 +61,7 @@ class TestUpdate : DatabaseTest(), TasksManaged {
         val expectedContentBlock = inputPages[0].sections[0].contentBlocks[0]
         var updateResult : ResultSingle<PageDTO, Page, PageEntity>? = null
 
-        connectionContext.run {
+        startTestConnection{
             service(PageDTO, TableCreateMode.CREATE) {
                 updateResult =  update(inputPages[0])
             }
@@ -122,7 +119,7 @@ class TestUpdate : DatabaseTest(), TasksManaged {
         val updatedSectionName = "other_section_name"
         val updatedContentBlockName = "other_content_block_name"
 
-        connectionContext.run {
+        startTestConnection {
             service(PageDTO, TableCreateMode.CREATE) {
                 persistedPage =  update(initialPages[0]).getDataForced()
                 persistedPage.name = updatedPageName
@@ -183,7 +180,9 @@ class TestUpdate : DatabaseTest(), TasksManaged {
             email = "nomail@void.null"
         )
         var userDataModel: User? = null
-        startTestConnection().run {
+
+
+        startTestConnection{
             service(UserDTO, TableCreateMode.CREATE){
                userDataModel = update(user).getData()
             }

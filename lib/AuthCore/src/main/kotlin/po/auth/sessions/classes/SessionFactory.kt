@@ -24,7 +24,7 @@ class SessionFactory(
         return activeSessions.values.filter { it.sessionType == SessionType.ANONYMOUS}
     }
 
-    suspend fun createAnonymousSession(authData : SessionIdentified,  authenticator : UserAuthenticator): AuthorizedSession{
+    fun createAnonymousSession(authData : SessionIdentified,  authenticator : UserAuthenticator): AuthorizedSession{
        val anonSession = AuthorizedSession(authData.remoteAddress, authenticator)
        activeSessions[anonSession.sessionID] = anonSession
        return anonSession

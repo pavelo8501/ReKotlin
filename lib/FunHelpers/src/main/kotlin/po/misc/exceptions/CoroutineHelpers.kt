@@ -20,21 +20,24 @@ data class CoroutineInfo(
 
     companion object{
 
-        fun createInfo(coroutineContext: CoroutineContext):CoroutineInfo{
-            val hashCode = coroutineContext.hashCode()
-            val coroutineName = coroutineContext[CoroutineName]?.name ?: "N/A"
-            val dispatcher = coroutineContext[ContinuationInterceptor]?.javaClass?.simpleName ?: "UnknownDispatcher"
+        fun createInfo(coroutineContext: CoroutineContext?):CoroutineInfo{
+            return  if(coroutineContext != null){
+                val hashCode = coroutineContext.hashCode()
+                val coroutineName = coroutineContext[CoroutineName]?.name ?: "N/A"
+                val dispatcher = coroutineContext[ContinuationInterceptor]?.javaClass?.simpleName ?: "UnknownDispatcher"
+                val job = coroutineContext[Job]
+                val jobStatus = if (job?.isActive == true) "Active" else "Inactive or Completed"
+                val childJobs = job?.children?.toList()?.size ?: 0
 
-            val job = coroutineContext[Job]
-            val jobStatus = if (job?.isActive == true) "Active" else "Inactive or Completed"
-            val childJobs = job?.children?.toList()?.size ?: 0
-
-            val elementsDump = coroutineContext.fold(mutableListOf<String>()) { acc, element ->
-                val valueType = element::class.simpleName.toString()
-                acc.add(valueType)
-                acc
+                val elementsDump = coroutineContext.fold(mutableListOf<String>()) { acc, element ->
+                    val valueType = element::class.simpleName.toString()
+                    acc.add(valueType)
+                    acc
+                }
+                 CoroutineInfo(coroutineName, hashCode, dispatcher, jobStatus, childJobs, elementsDump)
+            }else{
+                 CoroutineInfo("Context Unavailable", 0, "Context Unavailable", "Context Unavailable", 0, emptyList())
             }
-            return CoroutineInfo(coroutineName, hashCode, dispatcher, jobStatus, childJobs, elementsDump)
         }
     }
 }

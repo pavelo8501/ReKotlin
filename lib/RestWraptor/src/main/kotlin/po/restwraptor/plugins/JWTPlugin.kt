@@ -15,7 +15,7 @@ import io.ktor.server.request.path
 import po.auth.authentication.exceptions.AuthException
 import po.auth.authentication.jwt.JWTService
 import po.auth.authentication.jwt.models.JwtToken
-import po.lognotify.extensions.startTask
+import po.lognotify.extensions.runTask
 import po.misc.types.getOrThrow
 import po.restwraptor.enums.WraptorHeaders
 import po.restwraptor.extensions.getWraptorRoutes
@@ -71,7 +71,7 @@ val JWTPlugin: ApplicationPlugin<JWTPluginConfig> = createApplicationPlugin(
     }
 
     on(CallSetup) { call ->
-        startTask("Processing incoming call", call.coroutineContext, "JWTPlugin") { handler ->
+        runTask("Processing incoming call") { handler ->
             val path = call.request.path()
             handler.info("Processing call to $path")
 

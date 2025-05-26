@@ -1,16 +1,12 @@
 package po.exposify.dto.components.property_binder.delegates
 
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.builtins.ListSerializer
 import org.jetbrains.exposed.dao.LongEntity
-import org.jetbrains.exposed.dao.LongEntityClass
-import po.exposify.dao.classes.JSONBType
+
 import po.exposify.dto.DTOClass
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.components.property_binder.bindings.SerializedBinding
+import po.exposify.dto.DTOBase
 import po.exposify.dto.interfaces.ModelDTO
-import po.misc.types.getKType
 import kotlin.reflect.KMutableProperty1
 
 
@@ -27,14 +23,15 @@ import kotlin.reflect.KMutableProperty1
  * @param foreignEntityModel The DAO class (e.g., `TestUserEntity`) used to look up the foreign entity by ID.
  */
 
-fun <DTO,  DATA, ENTITY, FE> CommonDTO<DTO, DATA, ENTITY>.foreign2IdReference(
+fun <DTO,  DATA, ENTITY, F_DTO, FD, FE> CommonDTO<DTO, DATA, ENTITY>.foreign2IdReference(
     dataProperty : KMutableProperty1<DATA, Long>,
     entityProperty: KMutableProperty1<ENTITY, FE>,
-    foreignEntityModel: LongEntityClass<FE>,
-): ForeignIDClassDelegate<DTO, DATA, ENTITY, FE>
-    where DATA:DataModel, ENTITY : LongEntity, DTO : ModelDTO, FE: LongEntity
+    foreignDTOClass:  DTOBase<F_DTO, FD, FE>,
+): ForeignIDClassDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>
+    where DATA:DataModel, ENTITY : LongEntity, DTO : ModelDTO,
+          F_DTO: ModelDTO, FD: DataModel,  FE: LongEntity
 {
-    val container = ForeignIDClassDelegate(this, dataProperty, entityProperty, foreignEntityModel)
+    val container = ForeignIDClassDelegate(this, dataProperty, entityProperty, foreignDTOClass)
     dtoPropertyBinder.setBinding(container)
     return container
 }
@@ -78,37 +75,36 @@ fun <DTO, DATA, ENTITY, FE> CommonDTO<DTO, DATA, ENTITY>.parent2IdReference(
 fun <DTO, DATA,  ENTITY, F_DTO,  FD,  FE>  CommonDTO<DTO, DATA, ENTITY>.parentReference(
     dataProperty : KMutableProperty1<DATA, FD>,
     parentDtoClass: DTOClass<F_DTO, FD, FE>,
-    parentEntityModel: LongEntityClass<FE>
+   foreignDTOClas: DTOClass<F_DTO, FD, FE>
 ): ParentDelegate<DTO, DATA, ENTITY, F_DTO,  FD,  FE>
         where  DTO: ModelDTO, DATA:DataModel, ENTITY : LongEntity,
                F_DTO: ModelDTO, FD : DataModel, FE: LongEntity
 {
-    val container = ParentDelegate<DTO, DATA, ENTITY, F_DTO,  FD,  FE>(this, dataProperty, parentDtoClass, parentEntityModel)
+    val container = ParentDelegate<DTO, DATA, ENTITY, F_DTO,  FD,  FE>(this, dataProperty, parentDtoClass, foreignDTOClas)
     dtoPropertyBinder.setBinding(container)
     return container
 }
 
-inline fun <DTO, D, E, reified R>  CommonDTO<DTO, D, E>.binding(
-    dataProperty:KMutableProperty1<D, R>,
-    entityProperty :KMutableProperty1<E, R>
-): PropertyDelegate<DTO, D, E, R>
+inline fun <DTO, D, E, reified V: Any>  CommonDTO<DTO, D, E>.binding(
+    dataProperty:KMutableProperty1<D, V>,
+    entityProperty :KMutableProperty1<E, V>
+): PropertyDelegate<DTO, D, E, V>
         where  DTO: ModelDTO, D:DataModel, E : LongEntity
 {
     val propertyDelegate = PropertyDelegate(this, dataProperty, entityProperty)
+    if(tracker.config.observeProperties){
+        propertyDelegate.subscribeUpdates(tracker,  tracker::propertyUpdated)
+    }
     dtoPropertyBinder.setBinding(propertyDelegate)
     return propertyDelegate
 }
 
-fun <DTO, D, E, S, V>  CommonDTO<DTO, D, E>.serializedBinding(
+fun <DTO, D, E, V: Any>  CommonDTO<DTO, D, E>.serializedBinding(
     dataProperty:KMutableProperty1<D, V>,
     entityProperty:KMutableProperty1<E, V>,
-    serializableClass:  JSONBType<S>
-): SerializedDelegate<DTO, D, E, List<S>, V>
-    where DTO: ModelDTO, D: DataModel, E: LongEntity, S: Any
-{
-    val serializedDelegate = SerializedDelegate(this, dataProperty, entityProperty, serializableClass.listSerializer)
-    dtoPropertyBinder.setBinding(serializedDelegate)
-    dtoFactory.setSerializableType(dataProperty.name, serializableClass.serializer)
-    return serializedDelegate
+): SerializedDelegate<DTO, D, E, V>
+    where DTO: ModelDTO, D: DataModel, E: LongEntity{
+    val delegate = SerializedDelegate(this, dataProperty, entityProperty)
+    dtoPropertyBinder.setBinding(delegate)
+    return delegate
 }
-

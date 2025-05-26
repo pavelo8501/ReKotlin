@@ -12,15 +12,19 @@ import po.auth.AuthSessionManager
 import po.auth.authentication.authenticator.models.AuthenticationData
 import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.auth.extensions.generatePassword
+import po.auth.extensions.session
+import po.auth.extensions.withSession
+import po.auth.extensions.withSessionContext
+import po.auth.extensions.withSessionSuspended
 import po.auth.sessions.enumerators.SessionType
-import po.exposify.scope.sequence.classes.createHandler
-import po.exposify.scope.sequence.enums.SequenceID
+import po.exposify.scope.sequence.extensions.runSequence
+import po.exposify.scope.sequence.extensions.sequence
 import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.ConsoleBehaviour
 import po.lognotify.classes.notification.models.NotifyConfig
-import po.lognotify.extensions.launchProcess
-import po.misc.collections.generateKey
+import po.lognotify.logNotify
+import po.test.exposify.scope.TestSessionsContext.SessionIdentity
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.dtos.PageDTO
 import po.test.exposify.setup.dtos.User
@@ -33,6 +37,8 @@ import kotlin.test.assertNotNull
 class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
 
     companion object {
+
+        @JvmStatic
         lateinit var authenticatedUser: User
 
         @JvmStatic
@@ -43,6 +49,11 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
                 null
             }
         }
+
+
+        @JvmStatic
+        val session = SessionIdentity("0", "192.169.1.1")
+
     }
 
     @DisplayName("Test anonymous session flow")
@@ -75,23 +86,23 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
             notifier.setNotifierConfig(NotifyConfig(console = ConsoleBehaviour.MuteInfo))
         }
 
-
-        startTestConnection().run {
+        startTestConnection{
             service(UserDTO, TableCreateMode.FORCE_RECREATE) {
                 authenticatedUser = update(user).getDataForced()
                 AuthSessionManager.authenticator.setAuthenticator(::validateUser)
             }
 
             service(PageDTO, TableCreateMode.CREATE) {
-                sequence(SequenceID.UPDATE) {handler->
-                    update(handler.inputData)
+
+                sequence(PageDTO.UPDATE) { handler->
+                    update(handler.inputList)
                 }
-                sequence(SequenceID.SELECT) {handler->
+                sequence(PageDTO.SELECT) {handler->
                     select()
                 }
             }
-
         }
+
         AuthSessionManager.authenticator.authenticate("some_login", "password", authSession)
 
         assertAll(
@@ -103,28 +114,26 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
             { assertEquals(user.login, authSession.principal?.login, "Login mismatch") }
         )
 
-        TasksManaged.notifier.setNotifierConfig(NotifyConfig(console = ConsoleBehaviour.Mute))
-
-
+        logNotify().notifierConfig{
+            console = ConsoleBehaviour.Mute
+        }
         runBlocking {
             launch {
-                authSession.launchProcess {
+                withSessionSuspended(authSession){
                     val inputData =
                         pageModelsWithSections(pageCount = 1000, sectionsCount = 10, authSession.principal!!.id)
-                    //PageDTO.runSequence(SequenceID.UPDATE) {
 
-                        ////withInputData(inputData)
-                  //  }
+                    runSequence(PageDTO.UPDATE){
+                        withData(inputData)
+                    }
                 }
             }
             launch {
-                anonSession.launchProcess {
+                withSessionContext(anonSession){
                     delay(200)
-                   // val selectionResult = PageDTO.runSequence(SequenceID.SELECT) {
-                   //     onStart {
-                    //        println("Running update with session ${it.sessionID}")
-                   //     }
-                  //  }
+                    runSequence(PageDTO.SELECT){
+
+                    }
                 }
             }
         }

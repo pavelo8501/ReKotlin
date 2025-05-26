@@ -7,15 +7,15 @@ import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.exposify.dto.RootDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.components.property_binder.bindings.SyncedBinding
 import po.exposify.dto.components.property_binder.delegates.binding
+import po.exposify.scope.sequence.classes.RootHandlerProvider
 import po.test.exposify.setup.SectionEntity
 import po.test.exposify.setup.UserEntity
 
 
 @Serializable
 data class User(
-    override var id: Long,
+    override var id: Long = 0L,
     override var login: String,
     override var hashedPassword: String,
     var name: String,
@@ -23,7 +23,6 @@ data class User(
 ): DataModel, AuthenticationPrincipal{
 
     override var userGroupId: Long = 0L
-
     var created: LocalDateTime  = UserDTO.nowTime()
     var updated: LocalDateTime = UserDTO.nowTime()
 
@@ -44,7 +43,11 @@ class UserDTO(
     var created : LocalDateTime by binding(User::created, UserEntity::created)
 
     companion object: RootDTO<UserDTO, User, UserEntity>(){
-        override suspend fun setup() {
+
+        val SELECT by RootHandlerProvider(this)
+        val PICK by RootHandlerProvider(this)
+
+        override fun setup() {
             configuration<UserDTO, User, UserEntity>(UserEntity){
 
             }

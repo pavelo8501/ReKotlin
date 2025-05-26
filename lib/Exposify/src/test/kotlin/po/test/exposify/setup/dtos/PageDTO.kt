@@ -9,9 +9,10 @@ import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.property_binder.delegates.binding
 import po.exposify.dto.components.property_binder.delegates.foreign2IdReference
 import po.exposify.dto.components.relation_binder.delegates.oneToManyOf
+import po.exposify.dto.components.relation_binder.delegates.oneToManyOfAdv
+import po.exposify.scope.sequence.classes.RootHandlerProvider
 import po.test.exposify.setup.PageEntity
 import po.test.exposify.setup.SectionEntity
-import po.test.exposify.setup.UserEntity
 
 
 @Serializable
@@ -30,21 +31,29 @@ data class Page(
 
 class PageDTO(
     override var dataModel: Page
-): CommonDTO<PageDTO, Page, PageEntity>(PageDTO) {
+): CommonDTO<PageDTO, Page, PageEntity>(this) {
 
     var name : String by binding(Page::name, PageEntity::name)
     var langId : Int by binding(Page::langId, PageEntity::langId)
     var updated : LocalDateTime by binding(Page::updated, PageEntity::updated)
 
-    val updatedById : Long by foreign2IdReference(Page::updatedById, PageEntity::updatedBy, UserEntity)
-    val sections : List<SectionDTO> by oneToManyOf(SectionDTO, Page::sections, PageEntity::sections, SectionEntity::page)
+    val updatedById : Long by foreign2IdReference(Page::updatedById, PageEntity::updatedBy, UserDTO)
+    //val sections : List<SectionDTO> by oneToManyOf(SectionDTO, Page::sections, PageEntity::sections, SectionEntity::page)
+
+    val sections: List<SectionDTO> by oneToManyOfAdv(SectionDTO, Page::sections, PageEntity::sections)
 
     companion object: RootDTO<PageDTO, Page, PageEntity>(){
-
-        override suspend fun setup() {
-
+        val UPDATE by RootHandlerProvider(this)
+        val SELECT by RootHandlerProvider(this)
+        override fun setup() {
             configuration<PageDTO, Page, PageEntity>(PageEntity){
-                hierarchyMembers(SectionDTO, ContentBlockDTO)
+                println("Configuration lambda invoked RootDTO")
+                applyTrackerConfig {
+                    name = "page"
+                    observeProperties = true
+                    observeRelationBindings = true
+                }
+               // hierarchyMembers(SectionDTO, ContentBlockDTO)
                 useDataModelBuilder { Page() }
             }
         }

@@ -15,8 +15,7 @@ class CustomException(
 ) : ManagedException(message){
 
 
-    companion object : SelfThrownException.Companion.Builder<CustomException> {
-
+    companion object : SelfThrownException.Builder<CustomException> {
 
         override fun build(message: String, optionalCode: Int?): CustomException {
             val handlerType = HandlerType.fromValue(optionalCode!!)

@@ -4,7 +4,7 @@ import po.lognotify.exceptions.LoggerException
 import po.misc.exceptions.HandlerType
 import po.misc.types.castOrThrow
 
-internal inline fun <reified T: Any> T?.getOrLoggerException(message: String):T{
+inline fun <reified T: Any> T?.getOrLoggerException(message: String):T{
 
     if(this != null){
         return this

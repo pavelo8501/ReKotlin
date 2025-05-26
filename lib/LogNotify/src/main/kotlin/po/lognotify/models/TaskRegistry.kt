@@ -1,30 +1,34 @@
 package po.lognotify.models
 
-import po.lognotify.classes.task.ResultantTask
+
 import po.lognotify.classes.task.RootTask
-import po.lognotify.classes.task.TaskSealedBase
+import po.lognotify.classes.task.Task
+import po.lognotify.classes.task.interfaces.ResultantTask
+import po.misc.types.UpdateType
 
 class TaskRegistry<R>(
+    val dispatcher: TaskDispatcher,
     val hierarchyRoot: RootTask<R>
 ) {
-    val childTasks: MutableList<TaskSealedBase<*>> = mutableListOf<TaskSealedBase<*>>()
+    val tasks: MutableList<Task<*>> = mutableListOf<Task<*>>()
 
-    fun registerChild(task: TaskSealedBase<*>) {
-        childTasks.add(task)
+    fun registerChild(task: Task<*>) {
+        tasks.add(task)
+        dispatcher.notifyUpdate(UpdateType.OnCreated, task)
     }
 
-    fun getLastRegistered(): TaskSealedBase<*>{
-        return if(childTasks.count() == 0){
-            hierarchyRoot
-        }else{
-            childTasks.last()
-        }
+    fun getLastChild(): Task<*>?{
+        return tasks.lastOrNull()
     }
 
-    fun getAsResultantTaskList (): List<ResultantTask>{
-        val list = mutableListOf<ResultantTask>()
+    fun getAsResultantTaskList (): List<ResultantTask<*>>{
+        val list = mutableListOf<ResultantTask<*>>()
         list.add(hierarchyRoot)
-        list.addAll(childTasks)
+        list.addAll(tasks)
         return  list
+    }
+
+    fun taskCount(): Int {
+       return tasks.count()
     }
 }

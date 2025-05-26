@@ -1,9 +1,12 @@
 package po.lognotify.models
 
+import po.lognotify.classes.notification.NotifierHub
 import po.lognotify.classes.notification.models.NotifyConfig
 import po.lognotify.classes.task.RootTask
-import po.lognotify.classes.task.UpdatableTasks
-import po.lognotify.classes.task.UpdateType
+import po.lognotify.classes.task.interfaces.ResultantTask
+import po.misc.types.UpdateType
+import po.lognotify.classes.task.interfaces.UpdatableTasks
+import po.misc.exceptions.CoroutineInfo
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.component1
 import kotlin.collections.component2
@@ -11,48 +14,59 @@ import kotlin.collections.forEach
 import kotlin.collections.set
 
 
-class TaskDispatcher() : UpdatableTasks{
+class TaskDispatcher(val notifier: NotifierHub) : UpdatableTasks{
 
-    data class LoggerStats (val topTasksCount: Int, val totalTasksCount: Int)
+    data class LoggerStats (
+        val activeTask : ResultantTask<*>,
+        val activeTaskName: String,
+        val activeTaskNestingLevel: Int,
+        val topTasksCount: Int,
+        val totalTasksCount: Int,
+        val coroutineInfo: CoroutineInfo,
+
+    )
 
     internal val taskHierarchy = ConcurrentHashMap<TaskKey, RootTask<*>>()
     internal val callbackRegistry : MutableMap<UpdateType, (LoggerStats)-> Unit> = mutableMapOf()
 
-    override fun onTaskCreated(handler: UpdateType, callback: (LoggerStats) -> Unit) {
+    fun onTaskCreated(handler: UpdateType, callback: (LoggerStats) -> Unit) {
         callbackRegistry[handler] = callback
     }
-    override fun onTaskComplete(handler: UpdateType, callback: (LoggerStats) -> Unit) {
+
+    fun onTaskComplete(handler: UpdateType, callback: (LoggerStats) -> Unit) {
         callbackRegistry[handler] = callback
     }
-    override fun notifyUpdate(handler: UpdateType) {
+
+    override fun notifyUpdate(handler: UpdateType, task: ResultantTask<*>) {
         val stats = LoggerStats(
+            activeTask = task,
+            activeTaskName = task.key.taskName,
+            activeTaskNestingLevel = task.key.nestingLevel,
             topTasksCount = taskHierarchy.size,
-            totalTasksCount = taskHierarchy.values.sumOf { it.subTasksCount}
+            totalTasksCount = taskHierarchy.values.sumOf { it.subTasksCount},
+            coroutineInfo = task.coroutineInfo
         )
         callbackRegistry.filter { it.key == handler} .forEach { (_, cb) -> cb(stats) }
     }
-    fun addRootTask(key: TaskKey, task: RootTask<*>, notifyConfig : NotifyConfig) {
+    fun addRootTask(task: RootTask<*>, notifyConfig : NotifyConfig) {
         task.notifier.setNotifierConfig(notifyConfig)
-        taskHierarchy[key] = task
-        notifyUpdate(UpdateType.OnStart)
+        taskHierarchy[task.key] = task
+        notifier.register(task.notifier)
+
+        notifyUpdate(UpdateType.OnCreated, task)
+        notifyUpdate(UpdateType.OnStart, task)
     }
 
     fun removeRootTask(task: RootTask<*>) {
         taskHierarchy.remove(task.key)
-        notifyUpdate(UpdateType.OnStart)
+        notifier.unregister(task.notifier)
+        notifyUpdate(UpdateType.OnComplete, task)
     }
 
-    fun finalizeAllTasks(){
-        //taskHierarchy.values.forEach { it.isComplete = true }
+    fun activeRootTask(): RootTask<*>?{
+      return taskHierarchy.values.firstOrNull { !it.isComplete }
     }
 
-    fun removeRootTask(key: TaskKey) {
-        taskHierarchy.remove(key)
-        notifyUpdate(UpdateType.OnStart)
-    }
-    fun lastRootTask(): RootTask<*>?{
-        return taskHierarchy.values.firstOrNull {!it.isComplete}
-    }
     fun keyLookup(name: String, nestingLevel: Int): TaskKey?{
         return taskHierarchy.keys.firstOrNull { it.taskName == name  && it.nestingLevel == nestingLevel}
     }

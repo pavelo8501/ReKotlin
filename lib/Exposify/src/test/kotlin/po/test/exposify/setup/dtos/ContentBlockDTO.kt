@@ -7,29 +7,26 @@ import kotlinx.serialization.builtins.ListSerializer
 import po.exposify.dto.DTOClass
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.components.property_binder.bindings.SerializedBinding
-import po.exposify.dto.components.property_binder.bindings.SyncedBinding
 import po.exposify.dto.components.property_binder.delegates.binding
 import po.exposify.dto.components.property_binder.delegates.parent2IdReference
 import po.exposify.dto.components.property_binder.delegates.serializedBinding
-import po.test.exposify.setup.ClassItem
+import po.test.exposify.setup.ClassData
 import po.test.exposify.setup.ContentBlockEntity
-import po.test.exposify.setup.MetaTag
-import po.test.exposify.setup.SectionEntity
+import po.test.exposify.setup.MetaData
 
 
 @Serializable
 data class ContentBlock(
-    override var id: Long,
+    override var id: Long = 0L,
     var name: String,
     var content: String,
     var tag: String,
     @SerialName("json_ld")
     var jsonLd : String,
     @SerialName("class_list")
-    var classList: List<ClassItem>,
+    var classList: List<ClassData>,
     @SerialName("meta_tags")
-    var metaTags : List<MetaTag>,
+    var metaTags : List<MetaData>,
     @SerialName("lang_id")
     var langId : Int,
     @SerialName("section_id")
@@ -51,13 +48,13 @@ class ContentBlockDTO(
     var langId : Int by binding(ContentBlock::langId, ContentBlockEntity::langId)
     var updated : LocalDateTime by binding(ContentBlock::updated, ContentBlockEntity::updated)
 
-    var classList: List<ClassItem> by serializedBinding(ContentBlock::classList, ContentBlockEntity::classList, ClassItem)
-    var metaTags:  List<MetaTag> by serializedBinding(ContentBlock::metaTags, ContentBlockEntity::metaTags, MetaTag)
+    var classList: List<ClassData> by serializedBinding(ContentBlock::classList, ContentBlockEntity::classList)
+    var metaTags:  List<MetaData> by serializedBinding(ContentBlock::metaTags, ContentBlockEntity::metaTags)
 
     val sectionId by parent2IdReference(ContentBlock::sectionId, ContentBlockEntity::section)
 
     companion object: DTOClass<ContentBlockDTO, ContentBlock, ContentBlockEntity>(SectionDTO){
-        override suspend  fun setup() {
+        override fun setup() {
             configuration<ContentBlockDTO, ContentBlock, ContentBlockEntity>(ContentBlockEntity){
 
             }

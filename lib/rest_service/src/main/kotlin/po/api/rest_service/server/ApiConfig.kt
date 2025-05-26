@@ -6,11 +6,12 @@ import po.api.rest_service.plugins.RateLimiterConfig
 data class ApiConfig(
     var enableRateLimiting: Boolean  = true,
     var enableDefaultSecurity: Boolean = true,
-    val enableDefaultCors: Boolean = true,
-    val enableDefaultContentNegotiation: Boolean = true,
+    var enableDefaultCors: Boolean = true,
+    var enableDefaultContentNegotiation: Boolean = true,
+    var baseApiRoute : String = "/api"
 ) {
 
-    var baseApiRoute = "/api"
+
 
 
     private var _rateLimiterConfig: RateLimiterConfig? = null

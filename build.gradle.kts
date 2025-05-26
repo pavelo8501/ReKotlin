@@ -35,7 +35,7 @@ subprojects {
                 languageVersion.set(JavaLanguageVersion.of(23))
             }
             compilerOptions {
-                freeCompilerArgs.add("-Xcontext-receivers")
+                freeCompilerArgs.add("-Xcontext-parameters")
             }
         }
     }

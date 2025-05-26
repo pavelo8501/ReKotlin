@@ -14,7 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import po.lognotify.TasksManaged
-import po.lognotify.extensions.startTaskAsync
+import po.lognotify.extensions.runTaskBlocking
 import po.misc.types.getOrThrow
 import po.restwraptor.scope.ConfigContext
 import po.restwraptor.scope.CoreContext
@@ -23,7 +23,6 @@ import po.restwraptor.exceptions.ConfigurationException
 import po.restwraptor.exceptions.ExceptionCodes
 import po.restwraptor.interfaces.WraptorHandler
 import po.restwraptor.models.configuration.ApiConfig
-import po.restwraptor.models.configuration.AuthConfig
 import po.restwraptor.models.configuration.WraptorConfig
 import po.restwraptor.models.info.WraptorStatus
 import po.restwraptor.models.server.WraptorRoute
@@ -99,7 +98,7 @@ class RestWrapTor(
     private val serviceScope = CoroutineScope(Dispatchers.IO + CoroutineName("WrapTor service"))
 
     private fun engineStarted(engine: ApplicationEngine){
-        startTaskAsync("EngineStarted", personalName){
+        runTaskBlocking("EngineStarted"){
             engine.resolvedConnectors().forEach {
                 connectors.add("${it.type}|${it.host}:${it.port}")
             }
@@ -141,7 +140,6 @@ class RestWrapTor(
         if(hasCoreContext != null){
             val routes = coreContext.getWraptorRoutes()
             callback?.invoke(routes)
-
             return coreContext.getWraptorRoutes()
         }else{
             return emptyList()
@@ -170,11 +168,9 @@ class RestWrapTor(
 
 
     private fun setupConfig(app : Application) {
-
-        startTaskAsync("Configuration", "RestWrapTor"){handler->
+        runTaskBlocking("Configuration"){handler->
             _application = app
             hasCoreContext  = CoreContext(app, this)
-
             handler.info("App hash before appBuilderFn invoked ${System.identityHashCode(this)}")
             application.monitor.subscribe(ServerReady) {
                 onServerStartedCallback?.invoke(this)

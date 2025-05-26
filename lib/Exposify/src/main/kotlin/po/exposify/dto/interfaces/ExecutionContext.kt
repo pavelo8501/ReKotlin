@@ -2,24 +2,30 @@ package po.exposify.dto.interfaces
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
-import po.exposify.dto.components.Query
-import po.exposify.dto.components.ResultList
-import po.exposify.dto.components.ResultSingle
+import po.exposify.dto.CommonDTO
+import po.exposify.dto.DTOBase
+import po.exposify.dto.components.SimpleQuery
 import po.exposify.dto.components.WhereQuery
+import po.exposify.dto.components.result.ResultList
+import po.exposify.dto.components.result.ResultSingle
+import po.lognotify.TasksManaged
+import po.lognotify.classes.task.TaskHandler
 
 
-interface ExecutionContext<DTO: ModelDTO, DATA: DataModel, ENTITY: LongEntity>{
+interface ExecutionContext<DTO: ModelDTO, DATA: DataModel, ENTITY: LongEntity>: IdentifiableComponent, TasksManaged{
 
-    val providerName : String
+    val dtoClass : DTOBase<DTO, DATA, ENTITY>
+    val logger : TaskHandler<*>
 
     suspend fun  select(): ResultList<DTO, DATA, ENTITY>
     suspend fun <T: IdTable<Long>> select(conditions: WhereQuery<T>): ResultList<DTO, DATA, ENTITY>
-    suspend fun  select(conditions: Query): ResultList<DTO, DATA, ENTITY>
+    suspend fun  select(conditions: SimpleQuery): ResultList<DTO, DATA, ENTITY>
 
     suspend fun  pickById(id: Long): ResultSingle<DTO, DATA, ENTITY>
-    suspend fun  pick(conditions: Query): ResultSingle<DTO, DATA, ENTITY>
+    suspend fun  pick(conditions: SimpleQuery): ResultSingle<DTO, DATA, ENTITY>
 
     suspend fun update(dataModels: List<DATA>): ResultList<DTO, DATA, ENTITY>
-    suspend fun update(dataModel: DATA): ResultSingle<DTO, DATA, ENTITY>
+
+    suspend fun update(dataModel: DATA): CommonDTO<DTO, DATA, ENTITY>
 
 }

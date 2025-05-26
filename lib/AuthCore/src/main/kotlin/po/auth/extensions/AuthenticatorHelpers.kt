@@ -2,6 +2,7 @@ package po.auth.extensions
 
 import po.auth.AuthSessionManager
 import po.auth.authentication.authenticator.models.AuthenticationPrincipal
+import po.auth.models.SessionDefaultIdentity
 import po.auth.sessions.models.AuthorizedSession
 
 suspend fun AuthorizedSession.authenticate(login: String, password: String): AuthenticationPrincipal
@@ -14,5 +15,6 @@ fun registerAuthenticator(userLookupFn:  (login: String)-> AuthenticationPrincip
     AuthSessionManager.registerAuthenticator(userLookupFn)
 
 
-
-
+fun createDefaultIdentifier():SessionDefaultIdentity{
+   return SessionDefaultIdentity()
+}

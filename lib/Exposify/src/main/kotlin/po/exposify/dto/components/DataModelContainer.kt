@@ -3,7 +3,6 @@ package po.exposify.dto.components
 
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.common.classes.ClassBlueprint
-import po.exposify.dto.components.property_binder.PropertyBinder
 import po.exposify.dto.components.property_binder.enums.PropertyType
 import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.interfaces.ModelDTO

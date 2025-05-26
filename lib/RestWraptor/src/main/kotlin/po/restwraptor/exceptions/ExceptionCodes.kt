@@ -33,8 +33,7 @@ enum class ExceptionCodes(val value: Int) {
             }
         }
 
-
-        fun fromValue(value: Int): ExceptionCodes {
+        fun getByValue(value: Int): ExceptionCodes {
             ExceptionCodes.entries.firstOrNull { it.value == value }?.let {
                 return it
             }
