@@ -32,7 +32,7 @@ fun <DTO,  DATA, ENTITY, F_DTO, FD, FE> CommonDTO<DTO, DATA, ENTITY>.foreign2IdR
           F_DTO: ModelDTO, FD: DataModel,  FE: LongEntity
 {
     val container = ForeignIDClassDelegate(this, dataProperty, entityProperty, foreignDTOClass)
-    dtoPropertyBinder.setBinding(container)
+    bindingHub.setBinding(container)
     return container
 }
 
@@ -55,7 +55,7 @@ fun <DTO, DATA, ENTITY, FE> CommonDTO<DTO, DATA, ENTITY>.parent2IdReference(
         where DATA:DataModel, ENTITY : LongEntity, DTO : ModelDTO, FE: LongEntity
 {
     val container = ParentIDDelegate(this, dataProperty, entityProperty)
-    dtoPropertyBinder.setBinding(container)
+    bindingHub.setBinding(container)
     return container
 }
 
@@ -81,7 +81,7 @@ fun <DTO, DATA,  ENTITY, F_DTO,  FD,  FE>  CommonDTO<DTO, DATA, ENTITY>.parentRe
                F_DTO: ModelDTO, FD : DataModel, FE: LongEntity
 {
     val container = ParentDelegate<DTO, DATA, ENTITY, F_DTO,  FD,  FE>(this, dataProperty, parentDtoClass, foreignDTOClas)
-    dtoPropertyBinder.setBinding(container)
+    bindingHub.setBinding(container)
     return container
 }
 
@@ -95,7 +95,7 @@ inline fun <DTO, D, E, reified V: Any>  CommonDTO<DTO, D, E>.binding(
     if(tracker.config.observeProperties){
         propertyDelegate.subscribeUpdates(tracker,  tracker::propertyUpdated)
     }
-    dtoPropertyBinder.setBinding(propertyDelegate)
+    bindingHub.setBinding(propertyDelegate)
     return propertyDelegate
 }
 
@@ -105,6 +105,6 @@ fun <DTO, D, E, V: Any>  CommonDTO<DTO, D, E>.serializedBinding(
 ): SerializedDelegate<DTO, D, E, V>
     where DTO: ModelDTO, D: DataModel, E: LongEntity{
     val delegate = SerializedDelegate(this, dataProperty, entityProperty)
-    dtoPropertyBinder.setBinding(delegate)
+    bindingHub.setBinding(delegate)
     return delegate
 }

@@ -4,10 +4,11 @@ import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.sql.transactions.transaction
 import po.lognotify.classes.task.TaskHandler
 import kotlin.coroutines.CoroutineContext
 
-suspend fun <T> withTransactionIfNone(
+suspend fun <T> withSuspendedTransactionIfNone(
     db: Database,
     context: CoroutineContext = Dispatchers.IO,
     block: suspend () -> T
@@ -20,7 +21,7 @@ suspend fun <T> withTransactionIfNone(
 }
 
 
-suspend fun <T> withTransactionIfNone(block: suspend () -> T): T {
+suspend fun <T> withSuspendedTransactionIfNone(block: suspend () -> T): T {
     return if (TransactionManager.currentOrNull() == null || TransactionManager.current().connection.isClosed) {
         newSuspendedTransaction(Dispatchers.IO) { block() }
     } else {
@@ -29,10 +30,21 @@ suspend fun <T> withTransactionIfNone(block: suspend () -> T): T {
 }
 
 
-suspend fun <T> withTransactionIfNone(taskHandler : TaskHandler<*>, block: suspend () -> T): T {
+suspend fun <T> withSuspendedTransactionIfNone(taskHandler : TaskHandler<*>, block: suspend () -> T): T {
     return if (TransactionManager.currentOrNull() == null || TransactionManager.current().connection.isClosed) {
         taskHandler.warn("Transaction lost context. Restoring")
         newSuspendedTransaction(Dispatchers.IO) { block() }
+    } else {
+        block()
+    }
+}
+
+fun <T> withTransactionIfNone(taskHandler : TaskHandler<*>, block: () -> T): T {
+    return if (TransactionManager.currentOrNull() == null || TransactionManager.current().connection.isClosed) {
+        taskHandler.warn("Transaction lost context. Restoring")
+        transaction {
+            block()
+        }
     } else {
         block()
     }

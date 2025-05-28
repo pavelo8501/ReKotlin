@@ -50,7 +50,6 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
             }
         }
 
-
         @JvmStatic
         val session = SessionIdentity("0", "192.169.1.1")
 

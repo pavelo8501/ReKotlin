@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.RootDTO
 import po.exposify.dto.components.property_binder.delegates.binding
+import po.exposify.dto.configuration
 import po.exposify.dto.interfaces.DataModel
 import po.test.exposify.setup.TestsItemEntity
 
@@ -22,7 +23,7 @@ class TestItemDTO(
 
     companion object: RootDTO<TestItemDTO, TestItem, TestsItemEntity>(){
         override fun setup() {
-            configuration<TestItemDTO, TestItem, TestsItemEntity>(TestsItemEntity){
+            configuration(){
 
             }
         }

@@ -7,7 +7,7 @@ import po.exposify.dto.DTOClass
 import po.exposify.dto.RootDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.misc.reflection.findPropertiesOfType
+import po.misc.reflection.properties.findPropertiesOfType
 
 @PublishedApi
 internal fun<DTO: ModelDTO, D: DataModel, E: LongEntity>  forceHandlerProviderResolution(companion: DTOBase<DTO, D, E>) {

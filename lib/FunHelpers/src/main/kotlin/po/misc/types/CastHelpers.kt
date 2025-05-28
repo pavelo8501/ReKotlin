@@ -11,6 +11,14 @@ inline fun <reified T: Any> Any.safeCast(): T? {
     return this as? T
 }
 
+inline fun <reified BASE : Any> Any?.safeBaseCast(): BASE? {
+    return when {
+        this == null -> null
+        BASE::class.java.isAssignableFrom(this::class.java) -> this as BASE
+        else -> null
+    }
+}
+
 inline fun <reified T: Any, reified E: ManagedException> Any?.castOrThrow(
     message: String? = null,
     code: Int = 0
@@ -50,3 +58,16 @@ inline fun <T : Any, reified E: ManagedException> List<*>.castListOrThrow(
     return this.mapNotNull { it.castOrThrow<T, E>(kClass, message, code) }
 }
 
+inline fun <reified BASE : Any, reified E : ManagedException> Any?.castBaseOrThrow(
+    message: String? = null,
+    code: Int = 0
+): BASE {
+    if (this == null) {
+        throw SelfThrownException.build<E>("Cannot cast null to ${BASE::class.simpleName}", code)
+    }
+    if (!BASE::class.java.isAssignableFrom(this::class.java)) {
+        val effectiveMessage = message ?: "Cannot cast ${this::class.simpleName} to ${BASE::class.simpleName}"
+        throw SelfThrownException.build<E>(effectiveMessage, code)
+    }
+    return this as BASE
+}

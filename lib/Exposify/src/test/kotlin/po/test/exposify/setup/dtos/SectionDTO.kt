@@ -11,10 +11,10 @@ import po.exposify.dto.components.property_binder.delegates.foreign2IdReference
 import po.exposify.dto.components.property_binder.delegates.parent2IdReference
 import po.exposify.dto.components.property_binder.delegates.serializedBinding
 import po.exposify.dto.components.relation_binder.delegates.oneToManyOf
+import po.exposify.dto.configuration
 import po.exposify.dto.enums.Cardinality
 import po.exposify.scope.sequence.classes.SwitchHandlerProvider
 import po.test.exposify.setup.ClassData
-import po.test.exposify.setup.ContentBlockEntity
 import po.test.exposify.setup.MetaData
 import po.test.exposify.setup.SectionEntity
 
@@ -62,8 +62,7 @@ class SectionDTO(
     val contentBlocks : List<ContentBlockDTO> by oneToManyOf(
         ContentBlockDTO,
         Section::contentBlocks,
-        SectionEntity::contentBlocks,
-        ContentBlockEntity::section)
+        SectionEntity::contentBlocks)
 
     companion object: DTOClass<SectionDTO, Section, SectionEntity>(PageDTO){
 
@@ -71,7 +70,7 @@ class SectionDTO(
        val SELECT_UPDATE by SwitchHandlerProvider(this, Cardinality.ONE_TO_MANY, PageDTO.UPDATE)
 
         override fun setup() {
-            configuration<SectionDTO, Section, SectionEntity>(SectionEntity) {
+            configuration{
                 applyTrackerConfig {
                     name = "AltSection"
                     observeProperties = true

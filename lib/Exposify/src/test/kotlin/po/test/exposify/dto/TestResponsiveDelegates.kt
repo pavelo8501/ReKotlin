@@ -6,6 +6,10 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertAll
 import po.auth.extensions.generatePassword
+import po.exposify.dto.components.result.toResultList
+import po.exposify.scope.sequence.extensions.runSequence
+import po.exposify.scope.sequence.extensions.sequence
+import po.exposify.scope.sequence.extensions.switchContext
 import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
@@ -14,10 +18,13 @@ import po.lognotify.logNotify
 import po.test.exposify.setup.ClassData
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.MetaData
+import po.test.exposify.setup.dtos.Page
 import po.test.exposify.setup.dtos.PageDTO
+import po.test.exposify.setup.dtos.SectionDTO
 import po.test.exposify.setup.dtos.User
 import po.test.exposify.setup.dtos.UserDTO
 import po.test.exposify.setup.pageModelsWithSections
+import po.test.exposify.setup.pagesSectionsContentBlocks
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -53,6 +60,55 @@ class TestResponsiveDelegates : DatabaseTest(), TasksManaged {
         }
     }
 
+
+    @Test
+    fun `Serializable delegates on update`() = runTest{
+
+        val classes : List<ClassData> = listOf(ClassData(1,"class_1"))
+        val page = pagesSectionsContentBlocks(
+            pageCount = 1,
+            sectionsCount = 1,
+            contentBlocksCount = 1,
+            updatedBy =  updatedById).first()
+        page.sections[0].classList = classes
+        page.sections[0].contentBlocks[0].classList = classes
+
+        lateinit var updatedPage : Page
+        startTestConnection {
+            service(PageDTO){
+                updatedPage = update(page).getDataForced()
+                sequence(PageDTO.SELECT){
+                    switchContext(SectionDTO.UPDATE){handler->
+                        update(handler.inputData).toResultList()
+                    }
+                    select()
+                }
+            }
+        }
+
+
+        val updatedClasses =   updatedPage.sections[0].classList.toMutableList()
+        assertTrue(updatedClasses.size == 1, "updated classes count mismatch")
+        updatedClasses.add(ClassData(2,"class_2"))
+        val sectionToUpdate =  updatedPage.sections[0]
+        sectionToUpdate.classList =  updatedClasses.toList()
+        val newContentBlockClasses = mutableListOf<ClassData>(ClassData(5,"new_value"))
+        newContentBlockClasses.addAll(classes)
+        sectionToUpdate.contentBlocks[0].classList = newContentBlockClasses.toList()
+
+        assertTrue(sectionToUpdate.classList.size == 2, "Before class_list update size mismatch")
+        assertTrue(sectionToUpdate.contentBlocks[0].classList.size == 2, "Before class_list update (on ContentBlock) size mismatch")
+
+        val section =  runSequence(SectionDTO.UPDATE, { PageDTO.switchQuery(updatedPage.id) }){
+          withData(sectionToUpdate)
+        }.getData().firstOrNull()
+
+        val updatedSection = assertNotNull(section, "Returned as a result section is null")
+        assertTrue(updatedSection.classList.size == 2, "Updated section class_list size mismatch")
+        assertTrue(updatedSection.contentBlocks[0].classList.size == 2, "Updated contentBlock class_list size mismatch")
+    }
+
+
     @Test
     fun `Serializable delegates`(){
         val classes : List<ClassData> = listOf(ClassData(1,"class_1"), ClassData(2,"class_2"), ClassData(3,"class_3"))
@@ -67,7 +123,7 @@ class TestResponsiveDelegates : DatabaseTest(), TasksManaged {
         var updatedDto : PageDTO? = null
         var selectedDTOs: List<PageDTO>? = null
         startTestConnection {
-            service(PageDTO){
+            service(PageDTO, TableCreateMode.FORCE_RECREATE){
                 updatedDto = update(inputPages).getDTO().firstOrNull()
                 selectedDTOs = select().getDTO()
             }
@@ -115,6 +171,5 @@ class TestResponsiveDelegates : DatabaseTest(), TasksManaged {
             { assertEquals(metaTags[1].value, selectedSection.metaTags[1].value, "Value property mismatch. Expecting ${metaTags[1].value}") },
             { assertEquals(metaTags[1].type, selectedSection.metaTags[1].type, "Type property mismatch. Expecting ${metaTags[1].type}") }
         )
-
     }
 }

@@ -6,6 +6,7 @@ import po.exposify.dto.DTOBase
 import po.exposify.dto.components.tracker.extensions.TrackableDTONode
 import po.exposify.dto.components.tracker.extensions.collectTrackerTree
 import po.exposify.dto.components.tracker.interfaces.TrackableDTO
+import po.exposify.dto.interfaces.ComponentType
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.OperationsException
@@ -48,7 +49,8 @@ class ResultList<DTO, D, E> internal constructor(
     }
 
     fun getDTO(): List<DTO> {
-        return result.castListOrThrow<DTO, OperationsException>(dtoClass.config.registryRecord.derivedDTOClazz)
+        val clazz = dtoClass.config.registry.getRecord<DTO, OperationsException>(ComponentType.DTO).clazz
+        return result.castListOrThrow<DTO, OperationsException>(clazz)
     }
 
     internal fun getAsCommonDTO(): List<CommonDTO<DTO, D, E>> {

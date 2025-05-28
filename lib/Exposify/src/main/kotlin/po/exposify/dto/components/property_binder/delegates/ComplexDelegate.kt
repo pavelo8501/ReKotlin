@@ -61,15 +61,15 @@ class ParentIDDelegate<DTO, D, E, FE>(
     override val qualifiedName : String = "ParentIDDelegate[${dto.dtoName}::${dataProperty.name}]"
 
     override fun update(isBeforeInserted: Boolean, container: EntityUpdateContainer<E, ModelDTO, DataModel, FE>){
+
         if(container.updateMode == UpdateMode.MODEL_TO_ENTITY){
             container.parentDto?.let {
                 val foreignEntity = it.daoEntity
-
-               // entityProperty.set(container.ownEntity, foreignEntity)
                 dataProperty.set(dto.dataModel, foreignEntity.id.value)
             }
         }else{
-            dataProperty.set(dto.dataModel, container.ownEntity.id.value)
+            val foreignId =  entityProperty.get(container.ownEntity).id.value
+            dataProperty.set(dto.dataModel, foreignId)
         }
     }
 
@@ -93,17 +93,17 @@ class ParentDelegate<DTO, D, ENTITY, F_DTO, FD, FE>(
         isBeforeInserted:  Boolean,
         container:  EntityUpdateContainer<ENTITY, F_DTO, FD, FE>
     ){
-        if(container.updateMode == UpdateMode.ENTITY_TO_MODEL){
-            if(container.isParentDtoSet){
-                val foreignDto = container.hasParentDto.castOrThrow<CommonDTO<F_DTO, FD, FE>, OperationsException>()
-                dataProperty.set(dto.dataModel, foreignDto.dataModel)
-                parentDto = foreignDto
-            }
-        }else{
+        if(container.updateMode == UpdateMode.MODEL_TO_ENTITY){
             val foreignDto = parentDtoModel.lookupDTO(dto.daoEntity.id.value)
             foreignDto?.let {
                 val castedParentDto = it.castOrThrow<CommonDTO<F_DTO, FD, FE>, OperationsException>()
                 dataProperty.set(dto.dataModel, castedParentDto.dataModel)
+            }
+        }else{
+            if(container.isParentDtoSet){
+                val foreignDto = container.hasParentDto.castOrThrow<CommonDTO<F_DTO, FD, FE>, OperationsException>()
+                dataProperty.set(dto.dataModel, foreignDto.dataModel)
+                parentDto = foreignDto
             }
         }
     }
@@ -136,14 +136,14 @@ sealed class ComplexDelegate<DTO, D, E, F_DTO, FD,  FE, DATA_VAL, RES_VAL>(
 
     protected abstract fun update(isBeforeInserted: Boolean, container: EntityUpdateContainer<E, F_DTO, FD, FE>)
 
-    suspend fun  beforeInsertedUpdate(
+    fun  beforeInsertedUpdate(
         updateContainer: EntityUpdateContainer<E, *, *, *>
     ): Unit = subTask("BeforeInsertedUpdate"){
         update(true, updateContainer.castOrOperationsEx())
 
     }.resultOrException()
 
-    suspend fun  afterInsertedUpdate(
+    fun  afterInsertedUpdate(
         updateContainer: EntityUpdateContainer<E, *, *, *>
     ): Unit = subTask("AfterInsertedUpdate"){handler->
         withTransactionIfNone(handler) {

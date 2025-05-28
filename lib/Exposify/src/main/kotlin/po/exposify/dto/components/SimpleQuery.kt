@@ -16,6 +16,7 @@ import po.exposify.dto.CommonDTO
 import po.exposify.dto.RootDTO
 import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.components.result.createSingleResult
+import po.exposify.dto.interfaces.ComponentType
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.OperationsException
@@ -112,7 +113,7 @@ class SwitchQuery<DTO: ModelDTO, D : DataModel, E: LongEntity>(
     fun resolve(): CommonDTO<DTO, D, E> {
         val existent = dtoClass.lookupDTO(lookUpId)
         if (existent == null) {
-            throw OperationsException("Unable to find ${dtoClass.config.registryRecord.dtoName} with id $lookUpId",
+            throw OperationsException("Unable to find ${dtoClass.config.registry.getSimpleName(ComponentType.DTO)} with id $lookUpId",
                 ExceptionCode.VALUE_NOT_FOUND)
         }
         return existent

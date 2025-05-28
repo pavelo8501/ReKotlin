@@ -10,6 +10,7 @@ import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.property_binder.delegates.binding
 import po.exposify.dto.components.property_binder.delegates.parent2IdReference
 import po.exposify.dto.components.property_binder.delegates.serializedBinding
+import po.exposify.dto.configuration
 import po.test.exposify.setup.ClassData
 import po.test.exposify.setup.ContentBlockEntity
 import po.test.exposify.setup.MetaData
@@ -55,7 +56,7 @@ class ContentBlockDTO(
 
     companion object: DTOClass<ContentBlockDTO, ContentBlock, ContentBlockEntity>(SectionDTO){
         override fun setup() {
-            configuration<ContentBlockDTO, ContentBlock, ContentBlockEntity>(ContentBlockEntity){
+            configuration(){
 
             }
         }

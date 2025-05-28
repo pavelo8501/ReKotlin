@@ -20,6 +20,7 @@ import po.exposify.extensions.withTransactionIfNone
 import po.lognotify.TasksManaged
 import po.lognotify.anotations.LogOnFault
 import po.lognotify.classes.task.result.onFailureCause
+import po.lognotify.extensions.runTask
 import po.lognotify.extensions.runTaskBlocking
 
 class ServiceContext<DTO, DATA, ENTITY>(
@@ -48,15 +49,16 @@ class ServiceContext<DTO, DATA, ENTITY>(
         val a = it
     }.resultOrException()
 
-    fun pick(conditions: SimpleQuery): ResultSingle<DTO, DATA, ENTITY> = runTaskBlocking("Pick by conditions") {
-        withTransactionIfNone {
+    fun pick(conditions: SimpleQuery): ResultSingle<DTO, DATA, ENTITY>
+        = runTask("Pick by conditions") {handler->
+        withTransactionIfNone(handler){
             executionProvider.pick(conditions)
         }
     }.resultOrException()
 
     fun <T : IdTable<Long>> pick(conditions: WhereQuery<T>): ResultSingle<DTO, DATA, ENTITY> =
-        runTaskBlocking("Pick by conditions") {
-            withTransactionIfNone {
+        runTask("Pick by conditions") {handler->
+            withTransactionIfNone(handler) {
                 executionProvider.pick(conditions)
             }
         }.resultOrException()
@@ -67,21 +69,21 @@ class ServiceContext<DTO, DATA, ENTITY>(
         }
     }.resultOrException()
 
-    fun select(): ResultList<DTO, DATA, ENTITY> = runTaskBlocking("Select") {
-        withTransactionIfNone {
+    fun select(): ResultList<DTO, DATA, ENTITY> = runTask("Select") {handler->
+        withTransactionIfNone(handler) {
             executionProvider.select()
         }
     }.resultOrException()
 
     fun <T : IdTable<Long>> select(conditions: WhereQuery<T>): ResultList<DTO, DATA, ENTITY> =
-        runTaskBlocking("Select With Conditions") {
-            withTransactionIfNone {
+        runTaskBlocking("Select With Conditions") {handler->
+            withTransactionIfNone(handler) {
                 executionProvider.select(conditions)
             }
         }.resultOrException()
 
     fun update(dataModel: DATA): ResultSingle<DTO, DATA, ENTITY> = runTaskBlocking("Update") { handler ->
-        withTransactionIfNone {
+        withTransactionIfNone(handler) {
             executionProvider.update(dataModel).createSingleResult(CrudOperation.Update)
         }
     }.resultOrException()
@@ -92,8 +94,8 @@ class ServiceContext<DTO, DATA, ENTITY>(
         }
     }.resultOrException()
 
-    fun delete(toDelete: DATA): ResultList<DTO, DATA, ENTITY>? = runTaskBlocking("Delete") {
-        withTransactionIfNone {
+    fun delete(toDelete: DATA): ResultList<DTO, DATA, ENTITY>? = runTaskBlocking("Delete") {handler->
+        withTransactionIfNone(handler) {
             executionProvider.update(toDelete)
         }
         null
