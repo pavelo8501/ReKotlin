@@ -8,19 +8,16 @@ import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
 import po.exposify.dto.components.proFErty_binder.EntityUpdateContainer
 import po.exposify.dto.components.proFErty_binder.containerize
-import po.exposify.dto.components.property_binder.enums.UpdateMode
+import po.exposify.dto.components.bindings.property_binder.enums.UpdateMode
 import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.dto.models.DTORegistryItem
 import po.exposify.dao.classes.ExposifyEntityClass
 import po.exposify.dto.interfaces.ComponentType
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.getOrOperationsEx
-import po.exposify.scope.sequence.SequenceContext
 import po.lognotify.TasksManaged
 import po.lognotify.anotations.LogOnFault
-import po.lognotify.classes.task.TaskHandler
 import po.lognotify.classes.task.result.resultOrNull
 import po.lognotify.extensions.subTask
 import po.misc.registries.type.TypeRegistry
@@ -84,30 +81,23 @@ class DAOService<DTO, DATA, ENTITY>(
         subTask("Save") {handler->
             val updateMode = UpdateMode.MODEL_TO_ENTITY
             val newEntity = entityModel.new {
-            handler.withTaskContext(this){
-                dto.bindingHub.update(this.containerize(updateMode))
-            }
+                dto.bindingHub.updateEntity(this)
         }
-        setActiveEntity(dto, newEntity.containerize(updateMode) )
         handler.info("Dao entity created with id ${newEntity.id.value} for dto ${dto.dtoName}")
         newEntity
     }.resultOrException()
 
 
-    fun <P_DTO: ModelDTO, PD: DataModel, PE: LongEntity> saveWithParent(
+    fun saveWithParent(
         dto: CommonDTO<DTO, DATA, ENTITY>,
-        parentDto: CommonDTO<P_DTO, PD, PE>,
-        bindFn: (container: EntityUpdateContainer<ENTITY, P_DTO, PD, PE>)-> Unit)
+        bindFn: (newEntity:ENTITY)-> Unit)
             = subTask("Save") {handler->
             val updateMode = UpdateMode.MODEL_TO_ENTITY
             val newEntity = entityModel.new {
-                handler.withTaskContext(this){
-                    val container = this.containerize(updateMode, parentDto)
-                    dto.bindingHub.update(container)
-                    bindFn.invoke(container)
-                }
+                dto.bindingHub.updateEntity(this)
+                bindFn(this)
             }
-            setActiveEntity(dto, newEntity.containerize(updateMode))
+            dto.provideInsertedEntity(newEntity)
             handler.info("Entity created with id: ${newEntity.id.value} for parent entity id:")
             newEntity
     }.resultOrException()
@@ -116,8 +106,7 @@ class DAOService<DTO, DATA, ENTITY>(
         = subTask("Update") {
         val selectedEntity =  pickById(dto.id).getOrOperationsEx("Entity with id : ${dto.id} not found", ExceptionCode.DB_CRUD_FAILURE)
         val updateMode = UpdateMode.MODEL_TO_ENTITY
-        dto.bindingHub.update(selectedEntity.containerize(updateMode))
-        setActiveEntity(dto, selectedEntity.containerize(updateMode))
+        dto.bindingHub.updateEntity(selectedEntity)
         selectedEntity
     }.resultOrException()
 

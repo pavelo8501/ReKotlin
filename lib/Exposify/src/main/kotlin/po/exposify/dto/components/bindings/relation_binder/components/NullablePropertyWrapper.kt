@@ -1,4 +1,4 @@
-package po.exposify.dto.components.relation_binder.components
+package po.exposify.dto.components.bindings.relation_binder.components
 
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode

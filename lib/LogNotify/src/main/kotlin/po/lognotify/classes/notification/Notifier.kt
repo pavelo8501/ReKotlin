@@ -21,7 +21,6 @@ import po.lognotify.classes.task.RootTask
 import po.lognotify.classes.task.interfaces.ResultantTask
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.helpers.StaticHelper
-import po.lognotify.models.TaskDispatcher
 import po.misc.exceptions.CoroutineInfo
 
 interface NotificationProvider{
@@ -43,18 +42,15 @@ sealed class NotifierBase(
     private val bufferedNotifications = mutableListOf<Notification>()
 
     private fun toConsole(notification: Notification) {
-
         when (notification.eventType) {
             EventType.START -> {
                 val header = notification.header
                 println(header)
             }
-
             EventType.STOP -> {
                 val header = notification.footer
                 println(header)
             }
-
             else -> {
                 val formattedString = notification.getMessagePrefixed()
                 println(formattedString)

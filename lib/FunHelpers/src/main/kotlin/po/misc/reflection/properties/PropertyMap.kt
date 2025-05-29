@@ -58,6 +58,13 @@ class PropertyMap {
             mappedProperties[component] = propertyMap
         }
     }
+
+    fun  getPropertyRecord(component: ValueBased, propertyName: String): PropertyRecord<*, Any?>?{
+       return mappedProperties[component]?.let {
+           it[propertyName]
+       }
+    }
+
 }
 
 data class PropertyRecord<T: Any, V>(val propertyName: String, val property: KProperty<V>, val typeRecord : TypeRecord<T>)

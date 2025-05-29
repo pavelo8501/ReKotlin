@@ -6,12 +6,13 @@ import kotlinx.serialization.Serializable
 import po.exposify.dto.RootDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.components.property_binder.delegates.binding
-import po.exposify.dto.components.property_binder.delegates.foreign2IdReference
-import po.exposify.dto.components.relation_binder.delegates.oneToManyOf
-import po.exposify.dto.configuration
+import po.exposify.dto.components.bindings.property_binder.delegates.binding
+import po.exposify.dto.components.bindings.property_binder.delegates.foreign2IdReference
+import po.exposify.dto.components.bindings.relation_binder.delegates.oneToManyOf
+import po.exposify.dto.helpers.configuration
 import po.exposify.scope.sequence.classes.RootHandlerProvider
 import po.test.exposify.setup.PageEntity
+import po.test.exposify.setup.SectionEntity
 
 
 @Serializable
@@ -21,7 +22,7 @@ data class Page(
     @SerialName("lang_id")
     var langId: Int = 1,
     @SerialName("updated_by")
-    var updatedById: Long = 0
+    var updatedBy: Long = 0
 ): DataModel
 {
     var updated: LocalDateTime = PageDTO.nowTime()
@@ -35,9 +36,9 @@ class PageDTO(
     var name : String by binding(Page::name, PageEntity::name)
     var langId : Int by binding(Page::langId, PageEntity::langId)
     var updated : LocalDateTime by binding(Page::updated, PageEntity::updated)
+    var updatedBy : Long by binding(Page::updatedBy, PageEntity::updatedBy)
 
-    val updatedById : Long by foreign2IdReference(Page::updatedById, PageEntity::updatedBy, UserDTO)
-    val sections : List<SectionDTO> by oneToManyOf(SectionDTO, Page::sections, PageEntity::sections)
+    val sections : List<SectionDTO> by oneToManyOf(SectionDTO, Page::sections, PageEntity::sections, SectionEntity::page)
 
     //val sections: List<SectionDTO> by oneToManyOfAdv(SectionDTO, Page::sections, PageEntity::sections)
 
@@ -54,8 +55,6 @@ class PageDTO(
                     observeProperties = true
                     observeRelationBindings = true
                 }
-                hierarchyMembers(SectionDTO, ContentBlockDTO)
-                useDataModelBuilder { Page() }
             }
         }
 

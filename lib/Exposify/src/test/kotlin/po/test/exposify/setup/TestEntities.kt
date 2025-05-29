@@ -28,7 +28,8 @@ class PageEntity(id: EntityID<Long>) : LongEntity(id) {
     var name by Pages.name
     var langId by Pages.langId
     var updated by Pages.updated
-    var updatedBy by UserEntity referencedOn Pages.updatedBy
+    var updatedBy by Pages.updatedBy
+    //var updatedBy by UserEntity referencedOn Pages.updatedBy
     val sections by SectionEntity referrersOn Sections.page
 }
 
@@ -42,7 +43,9 @@ class SectionEntity(id: EntityID<Long>) : LongEntity(id) {
     var metaTags by Sections.metaTags
     var updated by Sections.updated
     var langId by Sections.langId
-    var updatedBy by UserEntity referencedOn Sections.updatedBy
+    var updatedBy by Sections.updatedBy
+
+   // var updatedBy by UserEntity referencedOn Sections.updatedBy
     var page by PageEntity referencedOn Sections.page
     val contentBlocks by ContentBlockEntity referrersOn ContentBlocks.section
 }

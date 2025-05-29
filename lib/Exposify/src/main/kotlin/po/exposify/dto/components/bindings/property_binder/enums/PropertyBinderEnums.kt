@@ -1,4 +1,4 @@
-package po.exposify.dto.components.property_binder.enums
+package po.exposify.dto.components.bindings.property_binder.enums
 
 enum class UpdateMode{
     ENTITY_TO_MODEL,

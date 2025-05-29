@@ -31,7 +31,7 @@ inline fun <reified P : Any> KClass<*>.findPropertiesOfType(): List<KProperty1<A
         }
 }
 
-fun <T: Any> List<KProperty<*>>.toPropertyRecordMap(typeRecord: TypeRecord<T>):Map<String, PropertyRecord<T, *>>{
+fun <T: Any> List<KProperty<Any?>>.toPropertyRecordMap(typeRecord: TypeRecord<T>):Map<String, PropertyRecord<T, Any?>>{
    return associate {
         it.name to PropertyRecord(it.name, it , typeRecord)
     }

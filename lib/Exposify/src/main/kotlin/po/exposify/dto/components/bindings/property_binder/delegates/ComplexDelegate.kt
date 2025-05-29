@@ -1,13 +1,12 @@
-package po.exposify.dto.components.property_binder.delegates
+package po.exposify.dto.components.bindings.property_binder.delegates
 
 import org.jetbrains.exposed.dao.LongEntity
-import org.jetbrains.exposed.dao.LongEntityClass
 import po.exposify.dto.DTOClass
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
 import po.exposify.dto.components.proFErty_binder.EntityUpdateContainer
-import po.exposify.dto.components.property_binder.enums.UpdateMode
+import po.exposify.dto.components.bindings.property_binder.enums.UpdateMode
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
@@ -64,7 +63,7 @@ class ParentIDDelegate<DTO, D, E, FE>(
 
         if(container.updateMode == UpdateMode.MODEL_TO_ENTITY){
             container.parentDto?.let {
-                val foreignEntity = it.daoEntity
+                val foreignEntity = it.entity
                 dataProperty.set(dto.dataModel, foreignEntity.id.value)
             }
         }else{
@@ -94,7 +93,7 @@ class ParentDelegate<DTO, D, ENTITY, F_DTO, FD, FE>(
         container:  EntityUpdateContainer<ENTITY, F_DTO, FD, FE>
     ){
         if(container.updateMode == UpdateMode.MODEL_TO_ENTITY){
-            val foreignDto = parentDtoModel.lookupDTO(dto.daoEntity.id.value)
+            val foreignDto = parentDtoModel.lookupDTO(dto.entity.id.value)
             foreignDto?.let {
                 val castedParentDto = it.castOrThrow<CommonDTO<F_DTO, FD, FE>, OperationsException>()
                 dataProperty.set(dto.dataModel, castedParentDto.dataModel)

@@ -2,7 +2,6 @@ package po.exposify.dto.components
 
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.DTOBase
-import po.exposify.dto.components.relation_binder.RelationshipBinder
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.DTOClass
 import po.exposify.dto.interfaces.ModelDTO
@@ -22,26 +21,21 @@ class DTOConfig<DTO, DATA, ENTITY>(
    internal var dtoFactory: DTOFactory<DTO, DATA, ENTITY> = DTOFactory(dtoClass, registry)
    internal var daoService :  DAOService<DTO, DATA, ENTITY> =  DAOService(dtoClass, registry)
 
-    val relationBinder: RelationshipBinder<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>
-            = RelationshipBinder(dtoClass)
-
     internal var trackerConfigModified : Boolean = false
     val trackerConfig : TrackerConfig = TrackerConfig()
 
+    val childClasses : MutableList<DTOClass<*,*,*>> = mutableListOf()
 
    internal fun  addHierarchMemberIfAbsent(childDTO : DTOClass<*, *, *>) {
-
        if (!childDTO.initialized) {
            childDTO.initialization()
        }
-       if (!relationBinder.isDtoClassInHierarchy(childDTO)) {
-           relationBinder.addChildClass(childDTO)
-       }
+       childClasses.add(childDTO)
    }
 
     fun  hierarchyMembers(vararg childDTO : DTOClass<*, *, *>){
         childDTO.toList().forEach {
-            relationBinder.addChildClass(it)
+            childClasses.add(it)
         }
     }
 

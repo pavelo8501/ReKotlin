@@ -88,7 +88,7 @@ class ServiceContext<DTO, DATA, ENTITY>(
         }
     }.resultOrException()
 
-    fun update(dataModels: List<DATA>): ResultList<DTO, DATA, ENTITY> = runTaskBlocking("Update") { handler ->
+    fun update(dataModels: List<DATA>): ResultList<DTO, DATA, ENTITY> = runTask("Update") { handler ->
         withTransactionIfNone(handler) {
             executionProvider.update(dataModels)
         }

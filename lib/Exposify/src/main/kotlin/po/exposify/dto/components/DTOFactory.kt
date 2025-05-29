@@ -43,7 +43,7 @@ class DTOFactory<DTO, DATA, ENTITY>(
     val  dataModelClass : KClass<DATA> get() = typeRegistry.getRecord<DATA, OperationsException>(ComponentType.DATA_MODEL).clazz
     val  dtoKClass: KClass<DTO> get() = typeRegistry.getRecord<DTO, OperationsException>(ComponentType.DTO).clazz
 
-    private val config: DTOConfig<DTO, DATA, ENTITY>
+    val config: DTOConfig<DTO, DATA, ENTITY>
         get() = dtoClass.config
     override val qualifiedName: String by lazy {
         "DTOFactory[${typeRegistry.getRecord<DATA, OperationsException>(ComponentType.DTO)?.simpleName}]"
@@ -53,22 +53,21 @@ class DTOFactory<DTO, DATA, ENTITY>(
 
     val notificator = CallbackRegistry()
 
-
     internal val dataBlueprint: ClassBlueprint<DATA> = ClassBlueprint(dataModelClass)
-    private val dtoBlueprint: ClassBlueprint<DTO> = ClassBlueprint(dtoKClass)
+    val dtoBlueprint: ClassBlueprint<DTO> = ClassBlueprint(dtoKClass)
 
     @LogOnFault
     var dataModelBuilderFn: (() -> DATA)? = null
 
 
     @LogOnFault
-    private val typedSerializers: MutableMap<String, SerializerInfo<*>> = mutableMapOf()
+    val typedSerializers: MutableMap<String, SerializerInfo<*>> = mutableMapOf()
 
     fun setDataModelConstructor(dataModelBuilder: (() -> DATA)) {
         dataModelBuilderFn = dataModelBuilder
     }
 
-    private fun serializerLookup(propertyName: String, type: KType):SerializerInfo<*>?{
+    fun serializerLookup(propertyName: String, type: KType):SerializerInfo<*>?{
         return if(typedSerializers.containsKey(propertyName)){
             typedSerializers[propertyName]
         }else{
@@ -79,7 +78,7 @@ class DTOFactory<DTO, DATA, ENTITY>(
         }
     }
 
-    private fun dtoPostCreation(dto: CommonDTO<DTO, DATA, ENTITY>): CommonDTO<DTO, DATA, ENTITY> =
+    fun dtoPostCreation(dto: CommonDTO<DTO, DATA, ENTITY>): CommonDTO<DTO, DATA, ENTITY> =
         subTask("dtoPostCreation") { handler ->
             val result = if (config.trackerConfigModified) {
                 dto.initialize(DTOTracker(dto, config.trackerConfig))
@@ -105,15 +104,21 @@ class DTOFactory<DTO, DATA, ENTITY>(
             constructFn.invoke()
         } else {
             dataBlueprint.setExternalParamLookupFn { param ->
-                val serializerInfo =  serializerLookup(param.name.toString(),  param.type)
-                    .getOrOperationsEx(
-                    """Requested parameter name: ${param.name}.
-                    ${qualifiedName}    
-                    """.trimMargin()
-                )
-                Json.Default.decodeFromString(serializerInfo.serializer, "[]")
+                serializerLookup(param.name.toString(),  param.type)?.let {
+                    Json.Default.decodeFromString(it.serializer, "[]")
+                }?:run {
+                   throw OperationsException("Requested parameter name: ${param.name} ${qualifiedName}", ExceptionCode.FACTORY_CREATE_FAILURE)
+                }
+//                val serializerInfo =  serializerLookup(param.name.toString(),  param.type)
+//                    .getOrOperationsEx(
+//                    """Requested parameter name: ${param.name}.
+//                    ${qualifiedName}
+//                    """.trimMargin()
+//                )
+               // Json.Default.decodeFromString(serializerInfo.serializer, "[]")
             }
-            dataBlueprint.getConstructor().callBy(dataBlueprint.getConstructorArgs())
+            val result = dataBlueprint.getConstructor().callBy(dataBlueprint.getConstructorArgs())
+            result
         }
         dataModel
     }.resultOrException()
@@ -127,13 +132,16 @@ class DTOFactory<DTO, DATA, ENTITY>(
      * */
     fun createDto(withDataModel: DATA? = null): CommonDTO<DTO, DATA, ENTITY> =
         subTask("Create DTO") { handler ->
-            val dataModel = withDataModel ?: createDataModel()
             dtoBlueprint.setExternalParamLookupFn { param ->
                 when (param.name) {
                     "dataModel" -> {
-                        dataModel
+                        if(withDataModel != null){
+                            withDataModel
+                        }else{
+                            val result = createDataModel()
+                            result
+                        }
                     }
-
                     else -> {
                         throw OperationsException(
                             "Parameter ${param.name} unavailable when creating dataModel",

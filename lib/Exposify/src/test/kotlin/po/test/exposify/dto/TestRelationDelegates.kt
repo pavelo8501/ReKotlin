@@ -39,7 +39,7 @@ class TestRelationDelegates : DatabaseTest() {
         }
 
         val sourceSections = sectionsPreSaved(pageId = 0 )
-        val page = Page(id = 0, name = "home", langId = 1, updatedById = user.id)
+        val page = Page(id = 0, name = "home", langId = 1)
         var updatedPageResult : ResultSingle<PageDTO, Page, PageEntity>? = null
         var selectedPageResult : ResultList<PageDTO, Page, PageEntity>? = null
 
@@ -82,7 +82,7 @@ class TestRelationDelegates : DatabaseTest() {
         }
 
         val sourceSections = sectionsPreSaved(0)
-        val page = Page(id = 0, name = "home", langId = 1, updatedById = user.id)
+        val page = Page(id = 0, name = "home", langId = 1)
 
 
         var selectedData: Page? = null
@@ -128,7 +128,7 @@ class TestRelationDelegates : DatabaseTest() {
         }
 
         val sourceSections = sectionsPreSaved(0)
-        val page = Page(id = 0, name = "home", langId = 1, updatedById = user.id)
+        val page = Page(id = 0, name = "home", langId = 1)
         var updatedPageData: Page? = null
         var updatedPageDTO : PageDTO? = null
 

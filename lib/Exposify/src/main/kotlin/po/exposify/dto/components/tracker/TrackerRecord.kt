@@ -1,6 +1,6 @@
 package po.exposify.dto.components.tracker
 
-import po.exposify.dto.components.property_binder.interfaces.ObservableData
+import po.exposify.dto.components.bindings.property_binder.interfaces.ObservableData
 import po.exposify.dto.interfaces.ComponentType
 import po.exposify.dto.interfaces.ModelDTO
 import po.misc.time.ExecutionTimeStamp

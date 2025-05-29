@@ -1,4 +1,4 @@
-package po.exposify.dto.components.relation_binder.delegates
+package po.exposify.dto.components.bindings.relation_binder.delegates
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.SizedIterable
@@ -7,24 +7,25 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.RootDTO
 import po.exposify.dto.components.SingleRepository
-import po.exposify.dto.components.relation_binder.RelationshipBinder
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.exceptions.InitException
 import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.castOrOperationsEx
+import po.lognotify.classes.task.models.TaskConfig
+import po.lognotify.extensions.subTask
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
 
 
-fun <DTO, DATA, ENTITY, C_DTO, CD,  FE> CommonDTO<DTO, DATA, ENTITY>.oneToOneOf(
-    childClass: DTOClass<C_DTO, CD, FE>,
+fun <DTO, DATA, ENTITY, F_DTO, CD,  FE> CommonDTO<DTO, DATA, ENTITY>.oneToOneOf(
+    childClass: DTOClass<F_DTO, CD, FE>,
     ownDataModel: KMutableProperty1<DATA, out CD?>,
     ownEntity: KMutableProperty1<ENTITY, FE>,
     foreignEntity: KMutableProperty1<FE, ENTITY>
-): OneToOneDelegate<DTO, DATA, ENTITY, C_DTO, CD,  FE>
-        where DATA:DataModel, ENTITY : LongEntity, DTO : ModelDTO, C_DTO: ModelDTO,  CD: DataModel, FE: LongEntity
-{
-
+): OneToOneDelegate<DTO, DATA, ENTITY, F_DTO, CD, FE>
+        where DATA:DataModel, ENTITY : LongEntity, DTO : ModelDTO, F_DTO: ModelDTO,  CD: DataModel, FE: LongEntity
+        = subTask("oneToOneOf", TaskConfig(actor = this.dtoName)){
     val thisDtoClass = this.dtoClass
     when(thisDtoClass){
         is RootDTO<DTO, DATA, ENTITY>->{
@@ -33,20 +34,19 @@ fun <DTO, DATA, ENTITY, C_DTO, CD,  FE> CommonDTO<DTO, DATA, ENTITY>.oneToOneOf(
                 thisDtoClass.config.addHierarchMemberIfAbsent(childClass)
             }
         }
-        else -> {}
+        is DTOClass -> {
+            if(!childClass.initialized){
+                childClass.initialization()
+                thisDtoClass.findHierarchyRoot().config.addHierarchMemberIfAbsent(childClass)
+            }
+        }
     }
 
     val castedOwnDataModel = ownDataModel.castOrInitEx<KMutableProperty1<DATA, CD>>()
-    val bindingDelegate = OneToOneDelegate(this, childClass,  castedOwnDataModel, ownEntity)
-
-    bindingHub.setBinding(bindingDelegate as RelationBindingDelegate<DTO, DATA, ENTITY, C_DTO, CD,  FE, *>)
-    val singleRepo = SingleRepository(this, childClass, bindingHub.castOrOperationsEx())
-    this.applyRepository(Cardinality.ONE_TO_ONE, singleRepo.castOrOperationsEx())
+    val bindingDelegate = OneToOneDelegate(this, childClass, castedOwnDataModel, ownEntity, foreignEntity)
     //this.createRepository(container)
-    return bindingDelegate
-
-
-}
+    bindingDelegate
+}.resultOrException()
 
 
 /**
@@ -62,13 +62,14 @@ fun <DTO, DATA, ENTITY, C_DTO, CD,  FE> CommonDTO<DTO, DATA, ENTITY>.oneToOneOf(
  *
  * @return A [OneToManyDelegate] that exposes the bound child DTOs as a read-only list.
  */
-fun <DTO, DATA, ENTITY, C_DTO, CD,  FE> CommonDTO<DTO, DATA, ENTITY>.oneToManyOf(
-    childClass: DTOClass<C_DTO, CD, FE>,
-    ownDataModels: KProperty1<DATA, MutableList<out CD>>,
+fun <DTO, DATA, ENTITY, F_DTO, FD,  FE> CommonDTO<DTO, DATA, ENTITY>.oneToManyOf(
+    childClass: DTOClass<F_DTO, FD, FE>,
+    ownDataModels: KProperty1<DATA, MutableList<out FD>>,
     ownEntities: KProperty1<ENTITY, SizedIterable<FE>>,
-): OneToManyDelegate<DTO, DATA, ENTITY, C_DTO, CD, FE>
-        where DATA:DataModel, ENTITY : LongEntity, DTO : ModelDTO, C_DTO: ModelDTO,  CD: DataModel, FE: LongEntity
-{
+    foreignEntity: KMutableProperty1<FE, ENTITY>
+): OneToManyDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>
+        where  DTO : ModelDTO, DATA:DataModel, ENTITY : LongEntity, F_DTO: ModelDTO,  FD: DataModel, FE: LongEntity
+ = subTask("oneToManyOf", TaskConfig(actor = this.dtoName)) {
     val thisDtoClass = this.dtoClass
     when(thisDtoClass){
         is RootDTO<DTO, DATA, ENTITY>->{
@@ -77,15 +78,16 @@ fun <DTO, DATA, ENTITY, C_DTO, CD,  FE> CommonDTO<DTO, DATA, ENTITY>.oneToManyOf
                 thisDtoClass.config.addHierarchMemberIfAbsent(childClass)
             }
         }
-        else -> {}
+        is DTOClass -> {
+            if(!childClass.initialized){
+                childClass.initialization()
+                val root = thisDtoClass.findHierarchyRoot()
+                root.config.addHierarchMemberIfAbsent(childClass)
+            }
+        }
     }
-
-    val castedOwnDataModels = ownDataModels.castOrInitEx<KMutableProperty1<DATA, MutableList<CD>>>()
-    val bindingDelegate = OneToManyDelegate(this, childClass,  castedOwnDataModels, ownEntities)
-
-    bindingHub.setBinding(bindingDelegate)
-
-
-    return bindingDelegate
-}
+    val castedOwnDataModels = ownDataModels.castOrInitEx<KProperty1<DATA, MutableList<FD>>>()
+    val bindingDelegate = OneToManyDelegate(this, childClass, castedOwnDataModels, ownEntities, foreignEntity)
+    bindingDelegate
+}.resultOrException()
 

@@ -1,5 +1,4 @@
-package po.lognotify.classes.notification
-
+package po.lognotify.classes.notification.interfaces
 
 interface JasonStringSerializable {
 
@@ -22,4 +21,3 @@ interface JasonStringSerializable {
         }
     }
 }
-

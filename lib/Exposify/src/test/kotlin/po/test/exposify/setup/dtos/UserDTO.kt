@@ -7,10 +7,9 @@ import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.exposify.dto.RootDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.components.property_binder.delegates.binding
-import po.exposify.dto.configuration
+import po.exposify.dto.components.bindings.property_binder.delegates.binding
+import po.exposify.dto.helpers.configuration
 import po.exposify.scope.sequence.classes.RootHandlerProvider
-import po.test.exposify.setup.SectionEntity
 import po.test.exposify.setup.UserEntity
 
 
@@ -49,9 +48,7 @@ class UserDTO(
         val PICK by RootHandlerProvider(this)
 
         override fun setup() {
-            configuration{
-
-            }
+            configuration{ }
         }
     }
 }

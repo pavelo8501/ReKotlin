@@ -6,14 +6,12 @@ import po.exposify.dto.components.DTOConfig
 import po.exposify.dto.interfaces.ClassDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.dto.models.DTORegistryItem
 import po.exposify.dao.classes.ExposifyEntityClass
 import po.exposify.dto.components.SwitchQuery
 import po.exposify.dto.components.WhereQuery
-import po.exposify.dto.components.property_binder.delegates.ResponsiveDelegate
-import po.exposify.dto.components.relation_binder.delegates.RelationBindingDelegate
+import po.exposify.dto.helpers.createMappingCheck
 import po.exposify.dto.interfaces.ComponentType
-import po.exposify.exceptions.InitException
+import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.castOrOperationsEx
@@ -22,47 +20,14 @@ import po.exposify.scope.service.ServiceClass
 import po.exposify.scope.service.ServiceContext
 import po.lognotify.TasksManaged
 import po.lognotify.lastTaskHandler
-import po.misc.exceptions.ManagedException
-import po.misc.exceptions.SelfThrownException
 import po.misc.interfaces.Identifiable
 import po.misc.reflection.properties.PropertyMap
+import po.misc.reflection.properties.PropertyRecord
+import po.misc.reflection.properties.toPropertyRecordMap
 import po.misc.registries.type.TypeRegistry
 import po.misc.serialization.SerializerInfo
-import po.misc.types.castBaseOrThrow
-import po.misc.types.castOrThrow
 import po.misc.types.toSimpleNormalizedKey
 import kotlin.reflect.KType
-import kotlin.reflect.full.companionObjectInstance
-
-
-inline fun <reified E : LongEntity, reified EX : ManagedException> getExposifyEntityCompanion(): ExposifyEntityClass<E> {
-    val companion = E::class.companionObjectInstance
-        ?: throw SelfThrownException.build<EX>("Missing companion object for ${E::class.simpleName}", 0)
-    val base = companion.castBaseOrThrow<ExposifyEntityClass<*>, EX>()
-    return base.castOrThrow<ExposifyEntityClass<E>, InitException>()
-}
-
-
-inline fun <reified DTO,  reified D, reified E> DTOBase<DTO, D, E>.configuration(
-    noinline block:  DTOConfig<DTO, D, E>.() -> Unit
-): Unit where DTO: ModelDTO, D: DataModel, E: LongEntity {
-
-    val registry = TypeRegistry()
-    val dtoTypeRec = registry.addRecord<DTO>(ComponentType.DTO)
-    val dataTypeRec = registry.addRecord<D>(ComponentType.DATA_MODEL)
-    val entityTypeRec = registry.addRecord<E>(ComponentType.ENTITY)
-
-    val propertyMap = PropertyMap()
-    propertyMap.applyClass(ComponentType.DATA_MODEL, dataTypeRec.clazz, dataTypeRec)
-    propertyMap.applyClass(ComponentType.ENTITY, entityTypeRec.clazz, entityTypeRec)
-
-    val entityModel =  getExposifyEntityCompanion<E, InitException>()
-    val newConfiguration = DTOConfig(registry, propertyMap, entityModel, this)
-    configParameter = newConfiguration
-    block.invoke(config)
-    initialized = true
-}
-
 
 
 sealed class DTOBase<DTO, DATA, ENTITY>(): ClassDTO, TasksManaged, Identifiable
@@ -80,18 +45,24 @@ sealed class DTOBase<DTO, DATA, ENTITY>(): ClassDTO, TasksManaged, Identifiable
 
     protected abstract fun  setup()
 
-//    inline fun <reified COMMON,  reified RD, reified RE> configuration(
-//
-//        entityModel: ExposifyEntityClass<RE>,
-//        noinline block:  DTOConfig<DTO, DATA, ENTITY>.() -> Unit
-//    ): Unit where COMMON: ModelDTO, RD: DataModel, RE: LongEntity
-//            = runTask("DTO Configuration", TaskConfig(moduleName = qualifiedName)){
-//        val newConfiguration = DTOConfig(DTORegistryItem(RD::class, RE::class, COMMON::class), entityModel, this.castOrInitEx())
-//        configParameter = newConfiguration.castOrInitEx()
-//        block.invoke(config)
-//        //  forceHandlerProviderResolution(this)
-//        initialized = true
-//    }.resultOrException()
+    @PublishedApi
+    internal fun setupValidation(propertyMap : PropertyMap, typeRegistry: TypeRegistry){
+
+        val shallowDto = config.dtoFactory.createDto()
+        val typeRecord = typeRegistry.getRecord<DTO, OperationsException>(ComponentType.DTO)
+
+        val responsivePropertyMap = shallowDto.bindingHub.getResponsiveDelegates().map { it.property }
+            .toPropertyRecordMap(typeRecord)
+        val relationPropertyMap = shallowDto.bindingHub.getRelationDelegates().map { it.property }
+            .toPropertyRecordMap(typeRecord)
+
+        propertyMap.provideMap(ComponentType.DTO, responsivePropertyMap)
+        propertyMap.provideMap(ComponentType.DTO, relationPropertyMap)
+        val report =  propertyMap.validator.checkMapping(createMappingCheck(ComponentType.DTO, ComponentType.DATA_MODEL))
+
+        val last = report.overallResult
+        val a = 10
+    }
 
     internal fun registerDTO(dto: CommonDTO<DTO, DATA, ENTITY>){
         val existed = dtoMap.containsKey(dto.id)
@@ -108,7 +79,7 @@ sealed class DTOBase<DTO, DATA, ENTITY>(): ClassDTO, TasksManaged, Identifiable
 
     override fun getAssociatedTables(cumulativeList: MutableList<IdTable<Long>>) {
         cumulativeList.add(config.entityModel.table)
-        config.relationBinder.getChildClassList().forEach {
+        config.childClasses.forEach {
             it.getAssociatedTables(cumulativeList)
         }
     }
@@ -117,15 +88,10 @@ sealed class DTOBase<DTO, DATA, ENTITY>(): ClassDTO, TasksManaged, Identifiable
         return config.entityModel.castOrOperationsEx<ExposifyEntityClass<ENTITY>>()
     }
 
-    fun <DTO: ModelDTO, D: DataModel, E: LongEntity> findHierarchyRoot(): RootDTO<DTO, D, E>{
+    fun findHierarchyRoot(): RootDTO<*, *, *>{
         return when(this){
-            is RootDTO->{
-                this.castOrInitEx()
-            }
-
-            is DTOClass->{
-                parentClass.findHierarchyRoot()
-            }
+            is RootDTO-> this
+            is DTOClass-> parentClass.findHierarchyRoot()
         }
     }
 
@@ -141,7 +107,7 @@ sealed class DTOBase<DTO, DATA, ENTITY>(): ClassDTO, TasksManaged, Identifiable
                 return serializersMap[normalizedKey]
             }
             is DTOClass ->{
-                findHierarchyRoot<ModelDTO, DataModel, LongEntity>().let {hierarchyRoot->
+                findHierarchyRoot().let {hierarchyRoot->
                     val serializersMap =  hierarchyRoot.serviceContext.serviceClass.connectionClass.serializerMap
                     return serializersMap[normalizedKey]
                 }
@@ -166,7 +132,7 @@ abstract class RootDTO<DTO, DATA, ENTITY>()
         if (!initialized) setup()
     }
     fun reinitChild(){
-        config.relationBinder.getChildClassList().forEach {
+        config.childClasses.forEach {
             if(!it.initialized){
                 it.initialization()
             }

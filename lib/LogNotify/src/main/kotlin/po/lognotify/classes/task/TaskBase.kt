@@ -4,15 +4,12 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
-import po.lognotify.classes.jobs.ManagedJob
 import po.lognotify.classes.notification.NotifierBase
 import po.lognotify.classes.notification.RootNotifier
 import po.lognotify.classes.notification.SubNotifier
 import po.lognotify.classes.notification.enums.EventType
-import po.lognotify.classes.notification.models.Notification
-import po.lognotify.classes.notification.sealed.ProviderTask
 import po.lognotify.classes.task.interfaces.ResultantTask
-import po.lognotify.classes.task.result.TaskResult
+import po.lognotify.classes.task.models.TaskConfig
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.exceptions.ExceptionHandler
 import po.lognotify.extensions.currentProcess
@@ -33,6 +30,7 @@ import kotlin.coroutines.CoroutineContext
 
 sealed class TaskBase<R: Any?>(
     override val key: TaskKey,
+    override val config: TaskConfig,
     dispatcher: TaskDispatcher,
 ): StaticHelper, MeasuredContext, ResultantTask<R> {
 
@@ -62,9 +60,10 @@ sealed class TaskBase<R: Any?>(
 
 class RootTask<R: Any?>(
     key : TaskKey,
+    config: TaskConfig,
     override val coroutineContext: CoroutineContext,
     val dispatcher: TaskDispatcher,
-) :TaskBase<R>(key, dispatcher), CoroutineHolder
+) :TaskBase<R>(key, config, dispatcher), CoroutineHolder
 {
     override val notifier: RootNotifier<R> =  RootNotifier(this)
     //override var taskResult : TaskResult<R>?  =  null
@@ -118,9 +117,10 @@ class RootTask<R: Any?>(
 
 class Task<R: Any?>(
     key : TaskKey,
+    config: TaskConfig,
     val parentTask: TaskBase<*>,
     val hierarchyRoot: RootTask<*>,
-):TaskBase<R>(key, hierarchyRoot.dispatcher), ResultantTask<R>{
+):TaskBase<R>(key, config, hierarchyRoot.dispatcher), ResultantTask<R>{
 
     override val coroutineContext: CoroutineContext get() = hierarchyRoot.coroutineContext
     override val notifier: SubNotifier = SubNotifier(this, hierarchyRoot.notifier)

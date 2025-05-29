@@ -60,7 +60,7 @@ inline fun <reified T, R: Any?> T.runTaskBlocking(
    val receiver = this
    val result = runBlocking {
        val moduleName: String = this::class.simpleName?:config.moduleName
-       val newTask = TasksManaged.createHierarchyRoot<R>(taskName, moduleName)
+       val newTask = TasksManaged.createHierarchyRoot<R>(taskName, moduleName, config)
        when(config.launcherType){
            is LauncherType.AsyncLauncher -> {
                (config.launcherType as LauncherType.AsyncLauncher).RunCoroutineHolder(newTask, config.dispatcher){
@@ -112,7 +112,7 @@ suspend inline fun <reified T, R: Any?> T.runTaskAsync(
 
     val receiver = this
     val moduleName: String = this::class.simpleName ?: config.moduleName
-    val newTask = TasksManaged.createHierarchyRoot<R>(taskName, moduleName)
+    val newTask = TasksManaged.createHierarchyRoot<R>(taskName, moduleName, config)
     return when (config.launcherType) {
         is LauncherType.AsyncLauncher -> {
             (config.launcherType as LauncherType.AsyncLauncher).RunCoroutineHolder(newTask, config.dispatcher) {
@@ -145,7 +145,7 @@ inline fun <reified T, R: Any?> T.runTask(
 ): TaskResult<R> {
 
     val moduleName: String = this::class.simpleName?:config.moduleName
-    val newTask = TasksManaged.createHierarchyRoot<R>(taskName, moduleName)
+    val newTask = TasksManaged.createHierarchyRoot<R>(taskName, moduleName, config)
     var result : TaskResult<R>? = null
 
     repeat(config.attempts) { attempt ->

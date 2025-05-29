@@ -1,6 +1,5 @@
 package po.misc.reflection.properties
 
-import po.misc.collections.CompositeKey
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.ValueBased
 
@@ -10,6 +9,14 @@ data class ClassMappingReport(
     val to: ValueBased,
     val results: List<MappingCheckResult>
 ) {
+    val overallResult : CheckStatus get(){
+        val isFailed  = results.any { it.status == CheckStatus.FAILED }
+        if(isFailed){
+            return CheckStatus.FAILED
+        }
+        return CheckStatus.PASSED
+    }
+
     fun hasFailures(): Boolean = results.any { it.status == CheckStatus.FAILED }
     fun printReport(): String = buildString {
         appendLine("Mapping Report [${component.qualifiedName}] $from → $to")

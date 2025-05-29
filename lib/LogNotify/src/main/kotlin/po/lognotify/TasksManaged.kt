@@ -9,6 +9,7 @@ import po.lognotify.classes.notification.NotifierHub
 import po.lognotify.classes.notification.models.NotifyConfig
 import po.lognotify.classes.task.RootTask
 import po.lognotify.classes.task.TaskHandler
+import po.lognotify.classes.task.models.TaskConfig
 import po.misc.types.UpdateType
 import po.lognotify.extensions.getOrLoggerException
 import po.lognotify.logging.LoggingService
@@ -33,8 +34,8 @@ interface TasksManaged {
             = taskDispatcher.onTaskComplete(handler, callback)
 
         @PublishedApi
-        internal fun <R> createHierarchyRoot(name: String, moduleName: String): RootTask<R>{
-            val newTask = RootTask<R>(TaskKey(name, 0, moduleName), defaultContext(name), taskDispatcher)
+        internal fun <R> createHierarchyRoot(name: String, moduleName: String, config: TaskConfig): RootTask<R>{
+            val newTask = RootTask<R>(TaskKey(name, 0, moduleName), config, defaultContext(name), taskDispatcher)
             taskDispatcher.addRootTask(newTask, notifyConfig)
             return newTask
         }

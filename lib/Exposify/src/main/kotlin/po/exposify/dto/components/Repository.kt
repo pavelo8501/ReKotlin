@@ -6,8 +6,8 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOClass
 import po.exposify.dto.components.proFErty_binder.containerize
-import po.exposify.dto.components.property_binder.BindingHub
-import po.exposify.dto.components.property_binder.enums.UpdateMode
+import po.exposify.dto.components.bindings.BindingHub
+import po.exposify.dto.components.bindings.property_binder.enums.UpdateMode
 import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.components.result.createResultList
@@ -74,7 +74,7 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, C_DTO,  CD, CE>(
 
     private fun createDto(entity: CE):CommonDTO<C_DTO, CD, CE>{
         val dto = childClass.config.dtoFactory.createDto()
-        dto.bindingHub.update(entity.containerize(UpdateMode.ENTITY_TO_MODEL, null, true))
+        dto.bindingHub.updateEntity(entity)
         store(dto)
         dto.getDtoRepositories().forEach { it.loadHierarchyByEntity() }
         return dto
@@ -83,12 +83,12 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, C_DTO,  CD, CE>(
     private fun insert(dataModel:CD): ResultSingle<C_DTO, CD, CE> {
         val newChildDto = childClass.config.dtoFactory.createDto(dataModel)
         newChildDto.addTrackerInfo(CrudOperation.Insert, this)
-        childClass.config.daoService.saveWithParent(newChildDto, hostingDTO) { containerized ->
-//            when (this) {
-//                is SingleRepositoryAdv -> binding.attachForeignEntity(containerized)
-//                is MultipleRepositoryAdv -> binding.attachToForeignEntity(containerized)
-//            }
-        }
+//        childClass.config.daoService.saveWithParent(newChildDto, hostingDTO) { containerized ->
+////            when (this) {
+////                is SingleRepositoryAdv -> binding.attachForeignEntity(containerized)
+////                is MultipleRepositoryAdv -> binding.attachToForeignEntity(containerized)
+////            }
+//        }
         store(newChildDto)
         newChildDto.getDtoRepositories().forEach { it.loadHierarchyByModel() }
         with(childClass) {
@@ -158,7 +158,7 @@ sealed class RepositoryBase<DTO, DATA, ENTITY, C_DTO,  CD, CE>(
         }else {
             val existingDto = takeStored(dataModel.id)
             if(existingDto != null){
-                existingDto.bindingHub.update(dataModel)
+             //   existingDto.bindingHub.update(dataModel)
                 return existingDto
             }else{
                 val pickedDTO =  pickById(dataModel.id)
@@ -253,40 +253,40 @@ class MultipleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>(
     override val cardinality : Cardinality = Cardinality.ONE_TO_MANY
 
     override fun loadHierarchyByModel(): Unit
-    = subTask("Update"){ handler->
-        val dataModels = bindingHub.getForeignDataModels(cardinality, hostingDTO.dataModel)
-        handler.info("Update for parent dto ${hostingDTO.dtoName} and id ${hostingDTO.id} ")
-        handler.info("Data Models count :${dataModels.count()} received from property ")
-        dataModels.forEach {dataModel->
-            val newChildDto = childFactory.createDto(dataModel)
-            if(dataModel.id == 0L){
-                newChildDto.addTrackerInfo(CrudOperation.Insert, this)
-                childDaoService.saveWithParent(newChildDto, hostingDTO){containerized->
-                    bindingHub.attachToForeignEntity(cardinality,  containerized)
-                }
-            }else{
-                newChildDto.addTrackerInfo(CrudOperation.Update, this)
-                childDaoService.update(newChildDto)
-            }
-            store(newChildDto)
-            newChildDto.getDtoRepositories().forEach {repository->
-                repository.loadHierarchyByModel()
-            }
-            newChildDto.addTrackerResult()
-        }
-    }.resultOrException()
+    {
+//        val dataModels = bindingHub.getForeignDataModels(cardinality, hostingDTO.dataModel)
+//        handler.info("Update for parent dto ${hostingDTO.dtoName} and id ${hostingDTO.id} ")
+//        handler.info("Data Models count :${dataModels.count()} received from property ")
+//        dataModels.forEach {dataModel->
+//            val newChildDto = childFactory.createDto(dataModel)
+//            if(dataModel.id == 0L){
+//                newChildDto.addTrackerInfo(CrudOperation.Insert, this)
+////                childDaoService.saveWithParent(newChildDto, hostingDTO){hostingDTO->
+////                    //bindingHub.attachToForeignEntity(cardinality,  hostingDTO)
+////                }
+//            }else{
+//                newChildDto.addTrackerInfo(CrudOperation.Update, this)
+//                childDaoService.update(newChildDto)
+//            }
+//            store(newChildDto)
+//            newChildDto.getDtoRepositories().forEach {repository->
+//                repository.loadHierarchyByModel()
+//            }
+//            newChildDto.addTrackerResult()
+//        }
+    }
 
     override fun loadHierarchyByEntity(){
-        bindingHub.getForeignEntities(cardinality,  hostingDTO.daoEntity).map { entity ->
-            childFactory.createDto().also { dto ->
-                dto.bindingHub.saveDataModel(dto.dataModel)
-                dto.bindingHub.update(entity.containerize(UpdateMode.ENTITY_TO_MODEL, null, true))
-                dto.dtoClass.config.dtoFactory.createDataModel()
-
-                store(dto)
-                dto.getDtoRepositories().forEach { it.loadHierarchyByEntity() }
-            }
-        }
+//        bindingHub.getForeignEntities(cardinality,  hostingDTO.entity).map { entity ->
+//            childFactory.createDto().also { dto ->
+//                dto.bindingHub.saveDataModel(dto.dataModel)
+//                dto.bindingHub.updateEntity(entity)
+//                dto.dtoClass.config.dtoFactory.createDataModel()
+//
+//                store(dto)
+//                dto.getDtoRepositories().forEach { it.loadHierarchyByEntity() }
+//            }
+//        }
     }
 
     fun getDTO(): List<CommonDTO<C_DTO, CD, CE>>{

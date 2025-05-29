@@ -35,7 +35,7 @@ class TestCreate: DatabaseTest() {
                 val count = select().getDTO().count()
                 if (count != 3) {
                    // truncate()
-                    val defaultPages = listOf(Page(0, "home", 1, 1), Page(0, "home", 2, 1), Page(0, "home", 3, 1))
+                    val defaultPages = listOf(Page(0, "home", 1), Page(0, "home", 2), Page(0, "home", 3))
                     defaultPages.forEach { it.sections.addAll(sectionsPreSaved(it.id)) }
                     update(defaultPages)
                 }

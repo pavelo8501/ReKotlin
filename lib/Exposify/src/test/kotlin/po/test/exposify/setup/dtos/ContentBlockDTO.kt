@@ -3,14 +3,13 @@ package po.test.exposify.setup.dtos
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.builtins.ListSerializer
 import po.exposify.dto.DTOClass
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.components.property_binder.delegates.binding
-import po.exposify.dto.components.property_binder.delegates.parent2IdReference
-import po.exposify.dto.components.property_binder.delegates.serializedBinding
-import po.exposify.dto.configuration
+import po.exposify.dto.components.bindings.property_binder.delegates.binding
+import po.exposify.dto.components.bindings.property_binder.delegates.parent2IdReference
+import po.exposify.dto.components.bindings.property_binder.delegates.serializedBinding
+import po.exposify.dto.helpers.configuration
 import po.test.exposify.setup.ClassData
 import po.test.exposify.setup.ContentBlockEntity
 import po.test.exposify.setup.MetaData
@@ -56,9 +55,7 @@ class ContentBlockDTO(
 
     companion object: DTOClass<ContentBlockDTO, ContentBlock, ContentBlockEntity>(SectionDTO){
         override fun setup() {
-            configuration(){
-
-            }
+            configuration {  }
         }
     }
 }

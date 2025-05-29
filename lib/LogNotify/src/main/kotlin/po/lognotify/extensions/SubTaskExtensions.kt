@@ -17,7 +17,7 @@ suspend inline fun <reified T, R: Any?> T.subTaskAsync(
     val rootTask = TasksManaged.taskDispatcher.activeRootTask()
     val moduleName: String =  this::class.simpleName?:config.moduleName
     val result = if(rootTask != null){
-        val childTask = rootTask.createChild<R>(taskName, moduleName)
+        val childTask = rootTask.createChild<R>(taskName, moduleName, config)
         withContext(childTask.coroutineContext){
             try {
                 childTask.onStart()
@@ -43,7 +43,7 @@ inline fun <reified T, R: Any?> T.subTask(
     val rootTask = TasksManaged.taskDispatcher.activeRootTask()
     val moduleName = this::class.simpleName?:config.moduleName
     return if(rootTask != null){
-        val childTask = rootTask.createChild<R>(taskName, moduleName)
+        val childTask = rootTask.createChild<R>(taskName, moduleName, config)
         try {
            val value = block.invoke(this, childTask.handler)
             TaskResult(childTask, value)

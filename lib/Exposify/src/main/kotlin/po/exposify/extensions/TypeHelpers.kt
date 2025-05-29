@@ -8,14 +8,14 @@ import po.misc.types.castOrThrow
 import po.misc.types.getOrThrow
 
 inline fun <reified T: Any> Any?.castOrOperationsEx(
-    message: String = "",
+    message: String? = null,
     code:  ExceptionCode = ExceptionCode.CAST_FAILURE): T
 {
    return this.castOrThrow<T, OperationsException>(message, code.value)
 }
 
 inline fun <reified T: Any> Any?.castOrInitEx(
-    message: String = "",
+    message: String? = null,
     code:  ExceptionCode = ExceptionCode.CAST_FAILURE): T
 {
     return this.castOrThrow<T, InitException>(message, code.value)

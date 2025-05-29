@@ -1,10 +1,9 @@
 package po.exposify.dto.components.tracker
 
-import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.MultipleRepository
 import po.exposify.dto.components.SingleRepository
-import po.exposify.dto.components.property_binder.interfaces.ObservableData
+import po.exposify.dto.components.bindings.property_binder.interfaces.ObservableData
 import po.exposify.dto.components.tracker.interfaces.TrackableDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.IdentifiableComponent

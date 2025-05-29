@@ -125,7 +125,7 @@ class TestComplexDelegate : DatabaseTest() {
 
 
         val sourceSections = sectionsPreSaved(0)
-        val page = Page(id = 0, name = "home", langId = 1, updatedById = userId)
+        val page = Page(id = 0, name = "home", langId = 1)
         var updatedPageData: Page? = null
         var updatedPageDTO : PageDTO? = null
         var pickedData: Page? = null
@@ -145,24 +145,24 @@ class TestComplexDelegate : DatabaseTest() {
         assertNotNull(updatedPageData, "Failed to update PageData")
         assertNotNull(updatedPageDTO, "Failed  to update PageDTO")
 
-        assertAll("foreign2IdReference updated",
-            { assertNotEquals(0, userId, "updatedPageData id failed to update") },
-            { assertEquals(userId, updatedPageData.updatedById, "UpdatedById in data model not updated. Expected ${userId}") },
-            { assertEquals(userId, updatedPageDTO.updatedById, "UpdatedById in DTO not updated.. Expected ${userId}") },
-        )
+//        assertAll("foreign2IdReference updated",
+//            { assertNotEquals(0, userId, "updatedPageData id failed to update") },
+//            { assertEquals(userId, updatedPageData.updatedById, "UpdatedById in data model not updated. Expected ${userId}") },
+//            { assertEquals(userId, updatedPageDTO.updatedById, "UpdatedById in DTO not updated.. Expected ${userId}") },
+//        )
 
         assertNotNull(pickedData, "Failed to pick PageData")
         assertNotNull(pickedDTO, "Failed  to pick PageDTO")
 
-        assertAll("foreign2IdReference picked",
-            { assertEquals(
-                updatedPageData.updatedById,
-                pickedData.updatedById,
-                "UpdatedById in data model not updated. Expected ${updatedPageData.updatedById}") },
-            { assertEquals(
-                updatedPageData.updatedById,
-                pickedData.updatedById,
-                "UpdatedById in DTO not updated.. Expected $updatedPageData.updatedById}") },
-        )
+//        assertAll("foreign2IdReference picked",
+//            { assertEquals(
+//                updatedPageData.updatedById,
+//                pickedData.updatedById,
+//                "UpdatedById in data model not updated. Expected ${updatedPageData.updatedById}") },
+//            { assertEquals(
+//                updatedPageData.updatedById,
+//                pickedData.updatedById,
+//                "UpdatedById in DTO not updated.. Expected $updatedPageData.updatedById}") },
+//        )
     }
 }

@@ -3,6 +3,7 @@ package po.lognotify.classes.task.interfaces
 import po.lognotify.classes.notification.NotifierBase
 import po.lognotify.classes.notification.RootNotifier
 import po.lognotify.classes.task.TaskHandler
+import po.lognotify.classes.task.models.TaskConfig
 import po.lognotify.exceptions.ExceptionHandler
 import po.lognotify.models.TaskKey
 import po.lognotify.models.TaskRegistry
@@ -25,6 +26,7 @@ interface ResultantTask<R:Any?> : MeasuredContext{
     val notifier : NotifierBase
     val exceptionHandler: ExceptionHandler<R>
     val coroutineInfo : CoroutineInfo
+    val config: TaskConfig
 }
 
 

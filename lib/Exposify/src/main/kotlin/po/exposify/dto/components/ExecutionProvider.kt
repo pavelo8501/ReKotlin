@@ -4,8 +4,9 @@ import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.RootDTO
+import po.exposify.dto.components.bindings.helpers.createByEntity
 import po.exposify.dto.components.proFErty_binder.containerize
-import po.exposify.dto.components.property_binder.enums.UpdateMode
+import po.exposify.dto.components.bindings.property_binder.enums.UpdateMode
 import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.components.result.createResultList
@@ -35,31 +36,25 @@ class RootExecutionProvider<DTO, DATA, ENTITY>(
 
     private fun createDto(entity: ENTITY):CommonDTO<DTO, DATA, ENTITY>{
         val dto = dtoClass.config.dtoFactory.createDto()
-        dto.bindingHub.update(entity.containerize(UpdateMode.ENTITY_TO_MODEL, null, true))
+        dto.bindingHub.updateEntity(entity)
         dtoClass.registerDTO(dto)
         dto.getDtoRepositories().forEach { it.loadHierarchyByEntity() }
         return dto
     }
 
-    private fun insert(dataModel: DATA): ResultSingle<DTO, DATA, ENTITY> {
-        val dto = dtoClass.config.dtoFactory.createDto(dataModel)
+    private fun insert(data: DATA): ResultSingle<DTO, DATA, ENTITY> {
+        val dto = dtoClass.config.dtoFactory.createDto(data)
         dto.addTrackerInfo(CrudOperation.Insert, this)
-        dtoClass.config.daoService.save(dto)
+        dto.createFromData()
+
         dtoClass.registerDTO(dto)
-        dto.getDtoRepositories().forEach { it.loadHierarchyByModel() }
-        with(dtoClass) {
-            return dto.createSingleResult(CrudOperation.Insert)
-        }
+        return dto.createSingleResult(CrudOperation.Insert)
     }
 
     override fun select(): ResultList<DTO, DATA, ENTITY> {
         val dtos = mutableListOf<CommonDTO<DTO, DATA, ENTITY>>()
-        val entities =    dtoClass.config.daoService.select()
-        entities.forEach {
-            val newDto =  createDto(it)
-            dtos.add(newDto)
-        }
-        return dtos.createResultList(dtoClass, CrudOperation.Select)
+        val entities =  dtoClass.config.daoService.select()
+        return  entities.createByEntity(dtoClass).createResultList(dtoClass, CrudOperation.Select)
     }
     override fun select(conditions: SimpleQuery): ResultList<DTO, DATA, ENTITY> {
         val dtos = mutableListOf<CommonDTO<DTO, DATA, ENTITY>>()
@@ -108,7 +103,7 @@ class RootExecutionProvider<DTO, DATA, ENTITY>(
             val existent = dtoClass.lookupDTO(dataModel.id)
             if (existent != null) {
                 existent.addTrackerInfo(CrudOperation.Update, this)
-                existent.bindingHub.update(dataModel)
+               // existent.bindingHub.update(dataModel)
                 existent.getDtoRepositories().forEach { repo ->
                     repo.loadHierarchyByModel()
                 }
@@ -119,7 +114,7 @@ class RootExecutionProvider<DTO, DATA, ENTITY>(
                 val newDto = createDto(entity)
                 newDto.addTrackerInfo(CrudOperation.Update, this)
                 dtoClass.registerDTO(newDto)
-                newDto.bindingHub.update(dataModel)
+              //  newDto.bindingHub.update(dataModel)
                 return newDto
             }
         }

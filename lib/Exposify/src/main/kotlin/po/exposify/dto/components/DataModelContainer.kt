@@ -3,12 +3,9 @@ package po.exposify.dto.components
 
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.common.classes.ClassBlueprint
-import po.exposify.dto.components.property_binder.enums.PropertyType
-import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
-import kotlin.reflect.KProperty
 
 
 class DataModelContainer<DTO : ModelDTO, DATA: DataModel>(

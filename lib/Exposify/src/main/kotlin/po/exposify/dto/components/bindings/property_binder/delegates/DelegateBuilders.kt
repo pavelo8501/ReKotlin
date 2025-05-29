@@ -1,4 +1,4 @@
-package po.exposify.dto.components.property_binder.delegates
+package po.exposify.dto.components.bindings.property_binder.delegates
 
 import org.jetbrains.exposed.dao.LongEntity
 
@@ -6,22 +6,12 @@ import po.exposify.dto.DTOClass
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
+import po.exposify.dto.interfaces.ComponentType
 import po.exposify.dto.interfaces.ModelDTO
+import po.misc.reflection.properties.models.MappingCheck
 import kotlin.reflect.KMutableProperty1
 
 
-/**
- * Creates a reference to a foreign entity **outside the current DTO hierarchy** using its ID.
- *
- * Use this when referencing static or external entities (e.g., users, roles, logs)
- * that aren't managed as nested DTOs but are stored as foreign keys.
- *
- * Example: `val updatedBy by foreign2IdReference(TestSection::updatedBy, TestSectionEntity::updatedBy, TestUserEntity)`
- *
- * @param dataProperty The property in your data model that holds the foreign entity's ID.
- * @param entityProperty The DAO property referencing the foreign entity.
- * @param foreignEntityModel The DAO class (e.g., `TestUserEntity`) used to look up the foreign entity by ID.
- */
 
 fun <DTO,  DATA, ENTITY, F_DTO, FD, FE> CommonDTO<DTO, DATA, ENTITY>.foreign2IdReference(
     dataProperty : KMutableProperty1<DATA, Long>,
@@ -91,20 +81,46 @@ inline fun <DTO, D, E, reified V: Any>  CommonDTO<DTO, D, E>.binding(
 ): PropertyDelegate<DTO, D, E, V>
         where  DTO: ModelDTO, D:DataModel, E : LongEntity
 {
-    val propertyDelegate = PropertyDelegate(this, dataProperty, entityProperty)
+    val propertyDelegate = PropertyDelegate<DTO, D, E, V>(this, dataProperty, entityProperty)
     if(tracker.config.observeProperties){
         propertyDelegate.subscribeUpdates(tracker,  tracker::propertyUpdated)
+    }
+    return propertyDelegate
+}
+
+
+inline fun <DTO, D, E, reified V: Any>  CommonDTO<DTO, D, E>.binding(
+    dataProperty:KMutableProperty1<D, V>,
+): PropertyDelegate<DTO, D, E, V>
+        where  DTO: ModelDTO, D:DataModel, E : LongEntity
+{
+    val propertyDelegate = PropertyDelegate(this, dataProperty, null)
+    if(tracker.config.observeProperties){
+        propertyDelegate.subscribeUpdates(tracker, tracker::propertyUpdated)
+    }
+    return propertyDelegate
+}
+
+inline fun <DTO, D, E, reified V: Any>  CommonDTO<DTO, D, E>.binding(
+): PropertyDelegate<DTO, D, E, V>
+        where  DTO: ModelDTO, D:DataModel, E : LongEntity
+{
+    val propertyDelegate = PropertyDelegate<DTO, D, E, V>(this, null, null)
+    if(tracker.config.observeProperties){
+        propertyDelegate.subscribeUpdates(tracker, tracker::propertyUpdated)
     }
     bindingHub.setBinding(propertyDelegate)
     return propertyDelegate
 }
+
+
 
 fun <DTO, D, E, V: Any>  CommonDTO<DTO, D, E>.serializedBinding(
     dataProperty:KMutableProperty1<D, V>,
     entityProperty:KMutableProperty1<E, V>,
 ): SerializedDelegate<DTO, D, E, V>
     where DTO: ModelDTO, D: DataModel, E: LongEntity{
-    val delegate = SerializedDelegate(this, dataProperty, entityProperty)
+    val delegate = SerializedDelegate(this, dataProperty, entityProperty, emptyList())
     bindingHub.setBinding(delegate)
     return delegate
 }

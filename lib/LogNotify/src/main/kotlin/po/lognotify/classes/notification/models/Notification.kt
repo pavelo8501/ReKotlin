@@ -1,7 +1,7 @@
 package po.lognotify.classes.notification.models
 
 
-import po.lognotify.classes.notification.JasonStringSerializable
+import po.lognotify.classes.notification.interfaces.JasonStringSerializable
 import po.lognotify.classes.notification.NotificationProvider
 import po.lognotify.classes.notification.enums.EventType
 import po.lognotify.classes.notification.sealed.DataProvider
@@ -58,10 +58,16 @@ data class Notification(
         """.trimIndent()
 
     fun getMessagePrefixed(): String{
+
+        var byActor : String = ""
+        if(provider.actor != null){
+            byActor = "by ${provider.actor}"
+        }
+
         val result = """
            ${makeOfColour(
                 ColourEnum.BRIGHT_BLUE,
-                "${SeverityLevel.emojiByValue(severity)}[${provider.name} @ ${currentTime}]")}->${makeOfColour(message,severity,null) }
+                "${SeverityLevel.emojiByValue(severity)}[${provider.name} in ${provider.module} $byActor @ ${currentTime}]")}->${makeOfColour(message,severity,null) }
         """.trimIndent()
         return result
     }
