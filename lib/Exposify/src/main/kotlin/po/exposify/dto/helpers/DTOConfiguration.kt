@@ -42,5 +42,5 @@ inline fun <reified DTO,  reified D, reified E> DTOBase<DTO, D, E>.configuration
     configParameter = newConfiguration
     block.invoke(config)
     setupValidation(propertyMap, registry)
-    initialized = true
+    initializationComplete()
 }

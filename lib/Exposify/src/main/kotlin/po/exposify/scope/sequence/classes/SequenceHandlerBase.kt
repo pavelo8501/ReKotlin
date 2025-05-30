@@ -5,8 +5,8 @@ import po.auth.sessions.models.AuthorizedSession
 import po.exposify.dto.DTOBase
 import po.exposify.dto.DTOClass
 import po.exposify.dto.RootDTO
-import po.exposify.dto.components.RootExecutionProvider
 import po.exposify.dto.components.SimpleQuery
+import po.exposify.dto.components.createExecutionProvider
 import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.components.result.toResultList
@@ -83,7 +83,7 @@ class RootSequenceHandler<DTO, D, E> (
 
     var lastActiveSequenceContext : SequenceContext<DTO, D, E>? = null
     suspend fun launch(session: AuthorizedSession): ResultList<DTO, D, E>{
-       val execProvider = RootExecutionProvider(dtoRoot)
+       val execProvider =  dtoRoot.createExecutionProvider()
        lastActiveSequenceContext = SequenceContext(this, execProvider, session)
        return lastActiveSequenceContext.getOrOperationsEx().let {
             handlerConfig.onStartCallback?.invoke(it)
@@ -112,10 +112,8 @@ class ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE> (
         val switchQuery = handlerDelegate.switchQueryProvider.invoke()
         val hostingDTO = switchQuery.resolve()
 
-      //  val hostingDTO = switchQuery.resolve().getAsCommonDTOForced()
-
-        val repo = hostingDTO.getRepository(dtoClass, cardinality)
-        val newSequenceContext = SequenceContext(this, repo)
+        val provider =  dtoClass.createExecutionProvider()
+        val newSequenceContext = SequenceContext(this, provider)
         return switchLambda.invoke(newSequenceContext, this)
     }
 }

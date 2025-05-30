@@ -8,7 +8,7 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.bindings.property_binder.delegates.binding
 import po.exposify.dto.components.bindings.property_binder.delegates.foreign2IdReference
-import po.exposify.dto.components.bindings.property_binder.delegates.parent2IdReference
+import po.exposify.dto.components.bindings.property_binder.delegates.parentReference
 import po.exposify.dto.components.bindings.property_binder.delegates.serializedBinding
 import po.exposify.dto.components.bindings.relation_binder.delegates.oneToManyOf
 import po.exposify.dto.enums.Cardinality
@@ -47,20 +47,19 @@ class SectionDTO(
     override var dataModel: Section
 ): CommonDTO<SectionDTO, Section, SectionEntity>(SectionDTO) {
 
-    var name : String by binding(Section::name, SectionEntity::name)
-    var description : String by binding(Section::description, SectionEntity::description)
-    var jsonLd : String by binding(Section::jsonLd, SectionEntity::jsonLd)
-    var langId : Int by binding(Section::langId, SectionEntity::langId)
-    var updated : LocalDateTime by binding(Section::updated, SectionEntity::updated)
+    var name: String by binding(Section::name, SectionEntity::name)
+    var description: String by binding(Section::description, SectionEntity::description)
+    var jsonLd: String by binding(Section::jsonLd, SectionEntity::jsonLd)
+    var langId: Int by binding(Section::langId, SectionEntity::langId)
+    var updated: LocalDateTime by binding(Section::updated, SectionEntity::updated)
+    val updatedBy by foreign2IdReference(UserDTO, Section::updatedBy)
 
+    val page by parentReference(PageDTO){page->
+        dataModel.pageId = page.id
+    }
 
-    var updatedBy : Long by binding(Section::updatedBy, SectionEntity::updatedBy)
-
-    var classList:  List<ClassData> by serializedBinding(Section::classList, SectionEntity::classList)
-    var metaTags :  List<MetaData> by serializedBinding(Section::metaTags, SectionEntity::metaTags)
-
-   // val updatedBy : Long by foreign2IdReference(Section::updatedBy, SectionEntity::updatedBy, UserDTO)
-    val pageId : Long by parent2IdReference(Section::pageId, SectionEntity::page)
+    var classList: List<ClassData> by serializedBinding(Section::classList, SectionEntity::classList)
+    var metaTags: List<MetaData> by serializedBinding(Section::metaTags, SectionEntity::metaTags)
 
     val contentBlocks : List<ContentBlockDTO> by oneToManyOf(
         ContentBlockDTO,
@@ -69,7 +68,6 @@ class SectionDTO(
         ContentBlockEntity::section)
 
     companion object: DTOClass<SectionDTO, Section, SectionEntity>(PageDTO){
-
        val UPDATE by SwitchHandlerProvider(this, Cardinality.ONE_TO_MANY, PageDTO.SELECT)
        val SELECT_UPDATE by SwitchHandlerProvider(this, Cardinality.ONE_TO_MANY, PageDTO.UPDATE)
 

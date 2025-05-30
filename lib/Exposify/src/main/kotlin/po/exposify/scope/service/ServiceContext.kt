@@ -8,13 +8,11 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.common.interfaces.AsContext
 import po.exposify.dto.RootDTO
+import po.exposify.dto.components.ExecutionProvider
 import po.exposify.dto.components.SimpleQuery
-import po.exposify.dto.components.RootExecutionProvider
 import po.exposify.dto.components.WhereQuery
 import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
-import po.exposify.dto.components.result.createSingleResult
-import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.extensions.withTransactionIfNone
 import po.lognotify.TasksManaged
@@ -33,7 +31,7 @@ class ServiceContext<DTO, DATA, ENTITY>(
     @LogOnFault
     val personalName: String = "ServiceContext[${dbConnection.name}]"
 
-    private val executionProvider: RootExecutionProvider<DTO, DATA, ENTITY> by lazy { RootExecutionProvider(dtoClass) }
+    private val executionProvider: ExecutionProvider<DTO, DATA, ENTITY> by lazy { ExecutionProvider(dtoClass) }
 
     fun truncate() = runTaskBlocking("Truncate") { handler ->
         newSuspendedTransaction {
@@ -63,15 +61,15 @@ class ServiceContext<DTO, DATA, ENTITY>(
             }
         }.resultOrException()
 
-    fun pickById(id: Long): ResultSingle<DTO, DATA, ENTITY> = runTaskBlocking("Pick by ID") { handler ->
+    fun pickById(id: Long): ResultSingle<DTO, DATA, ENTITY> = runTask("Pick by ID") { handler ->
         withTransactionIfNone(handler) {
             executionProvider.pickById(id)
         }
     }.resultOrException()
 
-    fun select(): ResultList<DTO, DATA, ENTITY> = runTask("Select") {handler->
+    fun select(invalidateCache: Boolean = false): ResultList<DTO, DATA, ENTITY> = runTask("Select") {handler->
         withTransactionIfNone(handler) {
-            executionProvider.select()
+            executionProvider.select(invalidateCache)
         }
     }.resultOrException()
 
@@ -82,9 +80,9 @@ class ServiceContext<DTO, DATA, ENTITY>(
             }
         }.resultOrException()
 
-    fun update(dataModel: DATA): ResultSingle<DTO, DATA, ENTITY> = runTaskBlocking("Update") { handler ->
+    fun update(dataModel: DATA): ResultSingle<DTO, DATA, ENTITY> = runTask("Update") { handler ->
         withTransactionIfNone(handler) {
-            executionProvider.update(dataModel).createSingleResult(CrudOperation.Update)
+            executionProvider.update(dataModel)
         }
     }.resultOrException()
 

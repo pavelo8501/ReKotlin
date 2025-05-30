@@ -27,14 +27,19 @@ import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty
 
 sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
-    protected val dto: CommonDTO<DTO, D, E>,
+    protected val hostingDTO: CommonDTO<DTO, D, E>,
 ): ReadWriteProperty<DTO, V>, IdentifiableComponent
       where DTO: ModelDTO, D: DataModel, E: LongEntity
 {
 
-    enum class SubscriptionType(override val value : Int): ValueBased{
-        ON_CHANGE(1)
+    enum class UpdateType(override val value : Int): ValueBased{
+        DATA_UPDATE(1),
+        ENTITY_UPDATE(2),
+        DTO_UPDATE(3),
+        CHANGE(4)
     }
+
+    private var thisAsDTO: DTO? = null
 
     var dataPropertyParameter:KMutableProperty1<D, V>? = null
     val dataProperty:KMutableProperty1<D, V>
@@ -55,19 +60,49 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
         }
     val property: KProperty<Any?> get() = propertyParameter.getOrOperationsEx()
     val propertyName : String get() = propertyParameter?.name?:""
-
-
     var activeValue : V? = null
     var valueUpdated : Boolean = false
 
     protected val subscriptions = TypedCallbackRegistry<ObservableData>()
-
     abstract val propertyChecks : List<MappingCheck>
 
+    private fun asDTO():DTO{
+        return thisAsDTO?:run {
+            val casted =  hostingDTO.castOrThrow<DTO, OperationsException>(hostingDTO.dtoClass.getTypeRecord<DTO,D,E, DTO>(ComponentType.DTO).clazz)
+            thisAsDTO = casted
+            casted
+        }
+    }
+
+    private fun notifyUpdate(type: UpdateType, value: V){
+        subscriptions.trigger(
+            type,
+            UpdateParams(hostingDTO, CrudOperation.Initialize, "update", propertyName, activeValue, value, this)
+        )
+    }
     private fun propertyProvided(property: KProperty<Any?>){
         if(propertyParameter == null){
             propertyParameter = property
-            dto.bindingHub.setBinding(this)
+            hostingDTO.bindingHub.setBinding(this)
+        }
+    }
+
+    private fun valueChanged(updateType : UpdateType, value : V){
+        if(activeValue != value){
+            valueUpdated = true
+            notifyUpdate(updateType, value)
+            notifyUpdate(UpdateType.CHANGE, value)
+            activeValue = value
+        }
+    }
+
+    private fun updateEntityProperty(value:V, entity:E?){
+        entity?.let { entityProperty.set(it, value) }?:run {
+            if(hostingDTO.isEntityInserted){
+                entityProperty.set(hostingDTO.entity, value)
+            }else{
+                hostingDTO.logger.warn("${hostingDTO.dtoName} attempted to update entity not inserted")
+            }
         }
     }
 
@@ -77,119 +112,63 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
     }
     override fun getValue(thisRef: DTO, property: KProperty<*>): V {
         propertyProvided(property)
-        return dataProperty.get(dto.dataModel)
+        return activeValue?: dataProperty.get(hostingDTO.dataModel)
     }
     override fun setValue(thisRef: DTO, property: KProperty<*>, value: V) {
         propertyProvided(property)
-        valueChanged("setValue", value)
+        updateEntityProperty(value, null)
+        valueChanged(UpdateType.DTO_UPDATE, value)
     }
 
-    fun subscribeUpdates(subscriber: Identifiable, callback: (ObservableData)-> Unit){
-        subscriptions.subscribe(subscriber, SubscriptionType.ON_CHANGE, callback)
-    }
-
-    private var thisAsDTO: DTO? = null
-    private fun asDTO():DTO{
-      return thisAsDTO?:run {
-          val casted =  dto.castOrThrow<DTO, OperationsException>(dto.dtoClass.getTypeRecord<DTO,D,E, DTO>(ComponentType.DTO).clazz)
-          thisAsDTO = casted
-          casted
-      }
-    }
-
-    //abstract fun insert(dataModel:D)
-   // abstract fun updateProperties(container: EntityUpdateContainer<E, *,*,*>)
-    protected fun valueChanged(methodName: String,  value : V){
-        if(activeValue != value){
-            valueUpdated = true
-            subscriptions.trigger(
-                SubscriptionType.ON_CHANGE,
-                UpdateParams(dto, CrudOperation.Initialize,  methodName, propertyName, activeValue, value, this)
-            )
-            activeValue = value
-        }
-    }
-
-    internal fun updateDTOProperty(data : D){
+    internal fun updateDTOProperty(data : D, entity:E?){
         val value = dataProperty.get(data)
-        setValue(asDTO(), property, value)
-        valueChanged("update", value)
+        updateEntityProperty(value, entity)
+        valueChanged(UpdateType.DATA_UPDATE, value)
     }
 
     internal fun updateDTOProperty(entity:E){
         val value = entityProperty.get(entity)
-        setValue(asDTO(), property, value)
-        dataProperty.set(dto.dataModel, value)
-        valueChanged("update", value)
+        dataProperty.set(hostingDTO.dataModel, value)
+        valueChanged(UpdateType.ENTITY_UPDATE, value)
     }
 
-    internal fun updateEntityProperty(entity:E){
-        val value = getValue(asDTO(), property)
-        entityProperty.set(entity, value)
+    fun subscribeUpdates(subscriber: Identifiable, callback: (ObservableData)-> Unit){
+        subscriptions.subscribe(subscriber, UpdateType.CHANGE, callback)
     }
-
 }
 
 
 class SerializedDelegate<DTO, D, E, V: Any> internal constructor(
     dto : CommonDTO<DTO, D, E>,
-    var serializedDataProperty:KMutableProperty1<D, V>,
-    var serializedEntityProperty:KMutableProperty1<E, V>,
+    serializedDataProperty:KMutableProperty1<D, V>,
+    serializedEntityProperty:KMutableProperty1<E, V>,
     override val  propertyChecks : List<MappingCheck>
 ) : ResponsiveDelegate<DTO, D, E, V>(dto)
         where DTO: ModelDTO, D: DataModel, E: LongEntity
 {
 
     override val qualifiedName: String
-        get() = "SerializedDelegate[${dto.dtoName}]"
+        get() = "SerializedDelegate[${hostingDTO.dtoName}]"
 
     init {
         dataPropertyParameter = serializedDataProperty
         entityPropertyParameter = serializedEntityProperty
     }
-
-//    internal fun updateDTOProperty(data : D){
-//        val value = dataProperty.get(data)
-//        setValue(asDTO(), property, value)
-//        valueChanged("update", value)
-//    }
-//
-//    override fun insert(dataModel: D) {
-//        val value = dataProperty.get(dataModel)
-//        if(activeValue != value){
-//            entityProperty.set(dto.entity, value)
-//            dataProperty.set(dto.dataModel, value)
-//            valueChanged("update", value)
-//        }
-//    }
-//
-//    override fun updateProperties(container: EntityUpdateContainer<E, *, *, *>) {
-//        if(container.updateMode == UpdateMode.MODEL_TO_ENTITY){
-//            val value =  dataProperty.get(dto.dataModel)
-//            entityProperty.set(container.ownEntity, value)
-//            valueChanged("update", value)
-//        }else{
-//            val value = entityProperty.get(container.ownEntity)
-//            dataProperty.set(dto.dataModel, value)
-//            valueChanged("update", value)
-//        }
-//    }
 }
 
 
 class PropertyDelegate<DTO, D, E, V: Any> @PublishedApi internal constructor (
     dto:  CommonDTO<DTO, D, E>,
-    val datProperty:KMutableProperty1<D, V>?,
-    val entProperty :KMutableProperty1<E, V>?,
+    datProperty:KMutableProperty1<D, V>?,
+    entProperty :KMutableProperty1<E, V>?,
     override var  propertyChecks : MutableList<MappingCheck> = mutableListOf<MappingCheck>()
 ): ResponsiveDelegate <DTO, D, E, V>(dto)
         where DTO: ModelDTO, D: DataModel, E: LongEntity
 {
     override val qualifiedName: String
-        get() = "PropertyDelegate[${dto.dtoName}]"
+        get() = "PropertyDelegate[${hostingDTO.dtoName}]"
 
     init {
-
         datProperty?.let {
             dataPropertyParameter = it
         }?:run {
@@ -210,6 +189,5 @@ class PropertyDelegate<DTO, D, E, V: Any> @PublishedApi internal constructor (
             }
         }
     }
-
 }
 

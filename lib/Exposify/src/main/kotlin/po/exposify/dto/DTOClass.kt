@@ -2,6 +2,7 @@ package po.exposify.dto
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
+import org.jetbrains.exposed.sql.exposedLogger
 import po.exposify.dto.components.DTOConfig
 import po.exposify.dto.interfaces.ClassDTO
 import po.exposify.dto.interfaces.DataModel
@@ -9,8 +10,11 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dao.classes.ExposifyEntityClass
 import po.exposify.dto.components.SwitchQuery
 import po.exposify.dto.components.WhereQuery
+import po.exposify.dto.components.tracker.CrudOperation
+import po.exposify.dto.components.tracker.extensions.addTrackerInfo
 import po.exposify.dto.helpers.createMappingCheck
 import po.exposify.dto.interfaces.ComponentType
+import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.castOrInitEx
@@ -19,6 +23,7 @@ import po.exposify.extensions.getOrInitEx
 import po.exposify.scope.service.ServiceClass
 import po.exposify.scope.service.ServiceContext
 import po.lognotify.TasksManaged
+import po.lognotify.classes.task.TaskHandler
 import po.lognotify.lastTaskHandler
 import po.misc.interfaces.Identifiable
 import po.misc.reflection.properties.PropertyMap
@@ -30,7 +35,7 @@ import po.misc.types.toSimpleNormalizedKey
 import kotlin.reflect.KType
 
 
-sealed class DTOBase<DTO, DATA, ENTITY>(): ClassDTO, TasksManaged, Identifiable
+sealed class DTOBase<DTO, DATA, ENTITY>(): ClassDTO, TasksManaged, IdentifiableComponent
         where DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity
 {
     @PublishedApi
@@ -40,10 +45,19 @@ sealed class DTOBase<DTO, DATA, ENTITY>(): ClassDTO, TasksManaged, Identifiable
 
     override var initialized: Boolean = false
     abstract override val qualifiedName: String
+    override val type : ComponentType = ComponentType.DTO_Class
 
-    internal val dtoMap : MutableMap<Long, CommonDTO<DTO, DATA, ENTITY>> = mutableMapOf()
+    protected val dtoMap : MutableMap<Long, CommonDTO<DTO, DATA, ENTITY>> = mutableMapOf()
+    internal val logger : TaskHandler<*> get() = lastTaskHandler()
+    internal var onInitComplete: (()-> Unit)? = null
 
     protected abstract fun  setup()
+
+    @PublishedApi
+    internal fun initializationComplete(){
+        initialized = true
+        onInitComplete?.invoke()
+    }
 
     @PublishedApi
     internal fun setupValidation(propertyMap : PropertyMap, typeRegistry: TypeRegistry){
@@ -60,8 +74,6 @@ sealed class DTOBase<DTO, DATA, ENTITY>(): ClassDTO, TasksManaged, Identifiable
         propertyMap.provideMap(ComponentType.DTO, relationPropertyMap)
         val report =  propertyMap.validator.checkMapping(createMappingCheck(ComponentType.DTO, ComponentType.DATA_MODEL))
 
-        val last = report.overallResult
-        val a = 10
     }
 
     internal fun registerDTO(dto: CommonDTO<DTO, DATA, ENTITY>){
@@ -73,8 +85,14 @@ sealed class DTOBase<DTO, DATA, ENTITY>(): ClassDTO, TasksManaged, Identifiable
         }
     }
 
-    internal fun lookupDTO(id: Long): CommonDTO<DTO, DATA, ENTITY>?{
-        return dtoMap[id]
+    internal fun clearCachedDTOs(){
+        dtoMap.clear()
+    }
+    internal fun lookupDTO(id: Long, operation: CrudOperation): CommonDTO<DTO, DATA, ENTITY>?{
+        return dtoMap[id]?.addTrackerInfo(operation, this)
+    }
+    internal fun lookupDTO(): List<CommonDTO<DTO, DATA, ENTITY>>{
+       return dtoMap.values.toList()
     }
 
     override fun getAssociatedTables(cumulativeList: MutableList<IdTable<Long>>) {

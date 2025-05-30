@@ -6,8 +6,6 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.components.SimpleQuery
 import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
-import po.exposify.dto.components.result.createSingleResult
-import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.interfaces.ComponentType
 import po.exposify.dto.interfaces.ExecutionContext
 import po.exposify.dto.interfaces.IdentifiableComponent
@@ -93,7 +91,7 @@ class SequenceContext<DTO, D, E>(
     suspend fun update(dataModel: D): ResultSingle<DTO, D, E>
             = subTask("Update(Single)") {
         onFirsRun()
-        val result = executionContext.update(dataModel).createSingleResult(CrudOperation.Update)
+        val result = executionContext.update(dataModel)
         submitLatestResult(result)
     }.resultOrException()
 

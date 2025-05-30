@@ -17,7 +17,7 @@ interface ExecutionContext<DTO: ModelDTO, DATA: DataModel, ENTITY: LongEntity>: 
     val dtoClass : DTOBase<DTO, DATA, ENTITY>
     val logger : TaskHandler<*>
 
-    fun  select(): ResultList<DTO, DATA, ENTITY>
+    fun  select(invalidateCache: Boolean = false): ResultList<DTO, DATA, ENTITY>
     fun <T: IdTable<Long>> select(conditions: WhereQuery<T>): ResultList<DTO, DATA, ENTITY>
     fun  select(conditions: SimpleQuery): ResultList<DTO, DATA, ENTITY>
 
@@ -26,6 +26,6 @@ interface ExecutionContext<DTO: ModelDTO, DATA: DataModel, ENTITY: LongEntity>: 
 
     fun update(dataModels: List<DATA>): ResultList<DTO, DATA, ENTITY>
 
-    fun update(dataModel: DATA): CommonDTO<DTO, DATA, ENTITY>
+    fun update(dataModel: DATA): ResultSingle<DTO, DATA, ENTITY>
 
 }

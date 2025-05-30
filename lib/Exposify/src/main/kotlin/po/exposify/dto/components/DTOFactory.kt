@@ -21,24 +21,23 @@ import po.lognotify.anotations.LogOnFault
 import po.lognotify.extensions.subTask
 import po.misc.interfaces.ValueBased
 import po.misc.registries.callback.CallbackRegistry
+import po.misc.registries.callback.TypedCallbackRegistry
 import po.misc.registries.type.TypeRegistry
 import po.misc.serialization.SerializerInfo
 import po.misc.types.toSimpleNormalizedKey
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 
-
-
-
 class DTOFactory<DTO, DATA, ENTITY>(
     private val dtoClass: DTOBase<DTO, DATA, ENTITY>,
     private val typeRegistry : TypeRegistry
 ): IdentifiableComponent,  TasksManaged where DTO : ModelDTO, DATA: DataModel, ENTITY: LongEntity {
 
-    enum class FactorySubscriptions(override val value: Int) : ValueBased{
+    enum class FactoryEvents(override val value: Int) : ValueBased{
         ON_CREATED(1),
         ON_INITIALIZED(2)
     }
+    val notificator = TypedCallbackRegistry<CommonDTO<DTO, DATA, ENTITY>>()
 
     val  dataModelClass : KClass<DATA> get() = typeRegistry.getRecord<DATA, OperationsException>(ComponentType.DATA_MODEL).clazz
     val  dtoKClass: KClass<DTO> get() = typeRegistry.getRecord<DTO, OperationsException>(ComponentType.DTO).clazz
@@ -49,9 +48,6 @@ class DTOFactory<DTO, DATA, ENTITY>(
         "DTOFactory[${typeRegistry.getRecord<DATA, OperationsException>(ComponentType.DTO)?.simpleName}]"
     }
     override val type: ComponentType = ComponentType.Factory
-
-
-    val notificator = CallbackRegistry()
 
     internal val dataBlueprint: ClassBlueprint<DATA> = ClassBlueprint(dataModelClass)
     val dtoBlueprint: ClassBlueprint<DTO> = ClassBlueprint(dtoKClass)
@@ -86,7 +82,7 @@ class DTOFactory<DTO, DATA, ENTITY>(
             } else {
                 dto.addTrackerInfo(CrudOperation.Initialize, this)
                 dto.initialize()
-                notificator.trigger(FactorySubscriptions.ON_INITIALIZED)
+                notificator.trigger(FactoryEvents.ON_INITIALIZED, dto)
                 dto
             }
             result
@@ -109,13 +105,6 @@ class DTOFactory<DTO, DATA, ENTITY>(
                 }?:run {
                    throw OperationsException("Requested parameter name: ${param.name} ${qualifiedName}", ExceptionCode.FACTORY_CREATE_FAILURE)
                 }
-//                val serializerInfo =  serializerLookup(param.name.toString(),  param.type)
-//                    .getOrOperationsEx(
-//                    """Requested parameter name: ${param.name}.
-//                    ${qualifiedName}
-//                    """.trimMargin()
-//                )
-               // Json.Default.decodeFromString(serializerInfo.serializer, "[]")
             }
             val result = dataBlueprint.getConstructor().callBy(dataBlueprint.getConstructorArgs())
             result
@@ -152,7 +141,7 @@ class DTOFactory<DTO, DATA, ENTITY>(
             }
             val newDto = dtoBlueprint.getConstructor().callBy(dtoBlueprint.getConstructorArgs())
                 .castOrOperationsEx<CommonDTO<DTO, DATA, ENTITY>>("Unable to cast DTO to CommonDTO<DTO, DATA, ENTITY")
-            notificator.trigger(FactorySubscriptions.ON_CREATED)
+            notificator.trigger(FactoryEvents.ON_CREATED, newDto)
             dtoPostCreation(newDto)
         }.resultOrException()
 }

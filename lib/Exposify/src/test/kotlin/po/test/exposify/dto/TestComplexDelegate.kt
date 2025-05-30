@@ -23,10 +23,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 
-
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestComplexDelegate : DatabaseTest() {
-
 
     companion object{
         @JvmStatic()
@@ -50,7 +48,7 @@ class TestComplexDelegate : DatabaseTest() {
     }
 
     @Test
-    fun `parent2IdReference property binding on update`() = runTest {
+    fun `parent2IdReference property binding`(){
 
         val sourceSections = sectionsPreSaved(0)
         val page = pagesSectionsContentBlocks(pageCount = 1, sectionsCount = 3, contentBlocksCount = 1, updatedBy = userId).first()
@@ -76,8 +74,8 @@ class TestComplexDelegate : DatabaseTest() {
         assertAll("idReferenced updated in dto",
             { assertNotEquals(0, updatedPageData.id, "updatedPageData id failed to update") },
             { assertEquals(updatedPageData.id, persistedDataSection.pageId, "PageId in data model not updated. Expected ${updatedPageData.id}") },
-            { assertEquals(updatedPageData.id, persistedFirstDtoSection.pageId, "PageId in DTO not updated.. Expected ${updatedPageData.id}") },
-            { assertEquals(updatedPageData.id, persistedLastDtoSection.pageId, "PageId in last picked section. Expected ${updatedPageData.id}") }
+            { assertEquals(updatedPageData.id, persistedFirstDtoSection.page.id, "PageId in DTO not updated.. Expected ${updatedPageData.id}") },
+            { assertEquals(updatedPageData.id, persistedLastDtoSection.page.id, "PageId in last picked section. Expected ${updatedPageData.id}") }
           )
 
         val persistedFirstSection = updatedPageData.sections.first()
@@ -92,7 +90,7 @@ class TestComplexDelegate : DatabaseTest() {
         )
     }
 
-    @Test
+
     fun `foreign2IdReference property binding on select`() = runTest{
 
         val page = pagesSectionsContentBlocks(pageCount = 1, sectionsCount = 3, contentBlocksCount = 1, updatedBy = userId).first()
@@ -114,15 +112,14 @@ class TestComplexDelegate : DatabaseTest() {
 
         assertAll("page_id selected appropriately",
             { assertNotEquals(0, persistedPageDto.id, "id updated on select in PageDTO")},
-            { assertEquals(persistedPageDto.id, persistedFirstDtoSection.pageId, "PageId mismatch in first selected Section(DTO)")},
-            { assertEquals(persistedPageDto.id, persistedLastDtoSection.pageId, "PageId mismatch in last selected Section(DTO)")}
+            { assertEquals(persistedPageDto.id, persistedFirstDtoSection.page.id, "PageId mismatch in first selected Section(DTO)")},
+            { assertEquals(persistedPageDto.id, persistedLastDtoSection.page.id, "PageId mismatch in last selected Section(DTO)")}
         )
     }
 
 
-    @Test
-    fun `foreign2IdReference property binding on update&pick`() = runTest{
 
+    fun `foreign2IdReference property binding on update&pick`() = runTest{
 
         val sourceSections = sectionsPreSaved(0)
         val page = Page(id = 0, name = "home", langId = 1)

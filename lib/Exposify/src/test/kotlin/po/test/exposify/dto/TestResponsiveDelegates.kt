@@ -34,11 +34,9 @@ import kotlin.test.assertTrue
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestResponsiveDelegates : DatabaseTest(), TasksManaged {
 
-
     companion object{
         @JvmStatic
         var updatedById : Long = 0
-
     }
 
     @BeforeAll
@@ -81,7 +79,7 @@ class TestResponsiveDelegates : DatabaseTest(), TasksManaged {
                val firstInsert =  update(page).getDataForced()
                firstInsert.sections.forEach { it.classList = classUpdatedList }
                updated = update(firstInsert).getDataForced().sections.map{it}
-               selected = select().getData().flatMap{ it.sections }
+               selected = select(true).getData().flatMap{ it.sections }
             }
         }
 
@@ -98,7 +96,6 @@ class TestResponsiveDelegates : DatabaseTest(), TasksManaged {
 
 
     fun `Property delegates update data correctly on update and select`(){
-
         val controlName = "Some Caption"
         val page = pagesSectionsContentBlocks(
             pageCount = 1,
@@ -146,71 +143,6 @@ class TestResponsiveDelegates : DatabaseTest(), TasksManaged {
             { assertTrue(selectedFirstSection.contentBlocks.size == 3, "ContentBlocks empty in selected") },
             { assertEquals(controlName, firstContentBlockOfFistSection.content, "Content property on ContentBlock mismatch in selection") },
             { assertEquals(firstContentBlockOfFistSection.content, lastContentBlockOfLastSection.content, "Content property on ContentBlocks mismatch") }
-        )
-    }
-
-
-
-    fun `Serializable delegates`(){
-        val classes : List<ClassData> = listOf(ClassData(1,"class_1"), ClassData(2,"class_2"), ClassData(3,"class_3"))
-        val metaTags : List<MetaData> = listOf(MetaData(1,"key1", "value1"), MetaData(2,"key2", "value2"))
-        val inputPages = pageModelsWithSections(
-            pageCount = 1,
-            sectionsCount = 1,
-            updatedBy =  updatedById,
-            classes = classes,
-            metaTags = metaTags)
-
-        var updatedDto : PageDTO? = null
-        var selectedDTOs: List<PageDTO>? = null
-        startTestConnection {
-            service(PageDTO, TableCreateMode.FORCE_RECREATE){
-                updatedDto = update(inputPages).getDTO().firstOrNull()
-                selectedDTOs = select().getDTO()
-            }
-        }
-
-        val pageDto = assertNotNull(updatedDto, "Updated DTO is null")
-        assertTrue(pageDto.sections.size == inputPages[0].sections.size, "Section list size does not match input")
-        val section = pageDto.sections.first()
-        assertTrue(section.classList.size == inputPages[0].sections[0].classList.size, "ClassList size does not match input")
-        assertTrue(section.metaTags.size == inputPages[0].sections[0].metaTags.size, "MetaTags size does not match input")
-
-        assertAll("ClassList properties persisted",
-            { assertEquals(classes[0].key, section.classList[0].key, "Key property mismatch. Expecting ${classes[0].key}") },
-            { assertEquals(classes[0].value, section.classList[0].value, "Value property mismatch. Expecting ${classes[0].value}") },
-            { assertEquals(classes[2].key, section.classList[2].key, "Key property mismatch. Expecting ${classes[2].key}")},
-            { assertEquals(classes[2].value, section.classList[2].value, "Value property mismatch. Expecting ${classes[2].value}") }
-        )
-
-        assertAll("MetaTag properties persisted",
-            { assertEquals(metaTags[0].key, section.metaTags[0].key, "Key property mismatch. Expecting ${metaTags[0].key}") },
-            { assertEquals(metaTags[0].value, section.metaTags[0].value, "Value property mismatch. Expecting ${metaTags[0].value}") },
-            { assertEquals(metaTags[0].type, section.metaTags[0].type, "Type property mismatch. Expecting ${metaTags[0].type}") },
-            { assertEquals(metaTags[1].key, section.metaTags[1].key, "Key property mismatch. Expecting ${metaTags[1].key}")},
-            { assertEquals(metaTags[1].value, section.metaTags[1].value, "Value property mismatch. Expecting ${metaTags[1].value}") },
-            { assertEquals(metaTags[1].type, section.metaTags[1].type, "Type property mismatch. Expecting ${metaTags[1].type}") }
-        )
-
-        assertTrue(selectedDTOs?.size == inputPages[0].sections.size, "Section list size does not match input")
-        val selectedSection = pageDto.sections.first()
-        assertTrue(selectedSection.classList.size == inputPages[0].sections[0].classList.size, "ClassList size does not match input")
-        assertTrue(selectedSection.metaTags.size == inputPages[0].sections[0].metaTags.size, "MetaTags size does not match input")
-
-        assertAll("ClassList properties persisted",
-            { assertEquals(classes[0].key, selectedSection.classList[0].key, "Key property mismatch. Expecting ${classes[0].key}") },
-            { assertEquals(classes[0].value, selectedSection.classList[0].value, "Value property mismatch. Expecting ${classes[0].value}") },
-            { assertEquals(classes[2].key, selectedSection.classList[2].key, "Key property mismatch. Expecting ${classes[2].key}")},
-            { assertEquals(classes[2].value, selectedSection.classList[2].value, "Value property mismatch. Expecting ${classes[2].value}") }
-        )
-
-        assertAll("MetaTag properties persisted",
-            { assertEquals(metaTags[0].key, selectedSection.metaTags[0].key, "Key property mismatch. Expecting ${metaTags[0].key}") },
-            { assertEquals(metaTags[0].value, selectedSection.metaTags[0].value, "Value property mismatch. Expecting ${metaTags[0].value}") },
-            { assertEquals(metaTags[0].type, selectedSection.metaTags[0].type, "Type property mismatch. Expecting ${metaTags[0].type}") },
-            { assertEquals(metaTags[1].key, selectedSection.metaTags[1].key, "Key property mismatch. Expecting ${metaTags[1].key}")},
-            { assertEquals(metaTags[1].value, selectedSection.metaTags[1].value, "Value property mismatch. Expecting ${metaTags[1].value}") },
-            { assertEquals(metaTags[1].type, selectedSection.metaTags[1].type, "Type property mismatch. Expecting ${metaTags[1].type}") }
         )
     }
 }

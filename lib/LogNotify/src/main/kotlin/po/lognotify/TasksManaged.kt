@@ -47,6 +47,10 @@ fun  TasksManaged.logNotify(): LogNotifyHandler{
 }
 
 fun  TasksManaged.lastTaskHandler(): TaskHandler<*>{
-    val availableRoot =  taskDispatcher.activeRootTask().getOrLoggerException("No available root task to continue on. All root tasks marked complete")
+    val message = """lastTaskHandler() resulted in failure. Unable to get task handler. No active tasks in context.
+        Make sure that logger tasks were started before calling this method.
+    """.trimMargin()
+
+    val availableRoot =  taskDispatcher.activeRootTask().getOrLoggerException(message)
     return availableRoot.registry.getLastChild()?.handler?:availableRoot.handler
 }

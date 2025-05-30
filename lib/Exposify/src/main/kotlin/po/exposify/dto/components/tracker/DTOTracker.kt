@@ -1,8 +1,6 @@
 package po.exposify.dto.components.tracker
 
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.components.MultipleRepository
-import po.exposify.dto.components.SingleRepository
 import po.exposify.dto.components.bindings.property_binder.interfaces.ObservableData
 import po.exposify.dto.components.tracker.interfaces.TrackableDTO
 import po.exposify.dto.interfaces.DataModel
@@ -54,29 +52,31 @@ class DTOTracker<DTO: ModelDTO, DATA: DataModel>(
 
 
     private fun collectTrackersInto(parentDto : CommonDTO<*, *, *>) {
-        parentDto.getDtoRepositories().forEach {repo->
-            when(repo){
-                is SingleRepository->{
-                    repo.getDTO().let {
-                        parentDto.tracker.childTrackers.add(it.tracker)
-                        collectTrackersInto(it)
-                    }
-                }
-                is MultipleRepository->{
-                    val list =  repo.getDTO()
-                    if(list.isNotEmpty()){
-                        list.forEach {
-                            parentDto.tracker.childTrackers.add(it.tracker)
-                            collectTrackersInto(it)
-                        }
-                    }
-                }
-            }
-        }
+//        parentDto.getDtoRepositories().forEach {repo->
+//            when(repo){
+//                is SingleRepository->{
+//                    repo.getDTO().let {
+//                        parentDto.tracker.childTrackers.add(it.tracker)
+//                        collectTrackersInto(it)
+//                    }
+//                }
+//                is MultipleRepository->{
+//                    val list =  repo.getDTO()
+//                    if(list.isNotEmpty()){
+//                        list.forEach {
+//                            parentDto.tracker.childTrackers.add(it.tracker)
+//                            collectTrackersInto(it)
+//                        }
+//                    }
+//                }
+//            }
+//        }
+
+        TODO("Awaiting refactor")
     }
 
     fun collectTrackers(): TrackableDTO {
-        collectTrackersInto(this.dto)
+       // collectTrackersInto(this.dto)
         return this
     }
 

@@ -36,11 +36,9 @@ class PageDTO(
     var name : String by binding(Page::name, PageEntity::name)
     var langId : Int by binding(Page::langId, PageEntity::langId)
     var updated : LocalDateTime by binding(Page::updated, PageEntity::updated)
-    var updatedBy : Long by binding(Page::updatedBy, PageEntity::updatedBy)
+    val updatedBy by foreign2IdReference(UserDTO, Page::updatedBy)
 
     val sections : List<SectionDTO> by oneToManyOf(SectionDTO, Page::sections, PageEntity::sections, SectionEntity::page)
-
-    //val sections: List<SectionDTO> by oneToManyOfAdv(SectionDTO, Page::sections, PageEntity::sections)
 
     companion object: RootDTO<PageDTO, Page, PageEntity>(){
 

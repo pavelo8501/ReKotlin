@@ -3,6 +3,7 @@ package po.exposify.dto.components.result
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
+import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.components.tracker.extensions.TrackableDTONode
 import po.exposify.dto.components.tracker.extensions.collectTrackerTree
 import po.exposify.dto.components.tracker.interfaces.TrackableDTO
@@ -11,6 +12,7 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.OperationsException
 import po.exposify.extensions.getOrOperationsEx
+import po.misc.exceptions.ManagedException
 import po.misc.types.castListOrThrow
 
 sealed class ResultBase<DTO, D, E>(
@@ -18,12 +20,13 @@ sealed class ResultBase<DTO, D, E>(
 ) where DTO : ModelDTO, D: DataModel, E : LongEntity{
 
     var resultMessage : String = ""
-
+    internal var failureCause : ManagedException? = null
+    internal var activeOperation : CrudOperation = CrudOperation.Create
 }
 
 class ResultList<DTO, D, E> internal constructor(
     dtoClass: DTOBase<DTO, D, E>,
-    private var result : MutableList<CommonDTO<DTO, D, E>>
+    private var result : List<CommonDTO<DTO, D, E>> = emptyList()
 ) : ResultBase<DTO, D, E>(dtoClass) where DTO : ModelDTO, D: DataModel, E : LongEntity {
 
 
@@ -33,14 +36,14 @@ class ResultList<DTO, D, E> internal constructor(
     }
 
     internal fun appendDto(dto: CommonDTO<DTO, D, E>): ResultList<DTO, D, E> {
-        result.add(dto)
+        val mutable = result.toMutableList()
+        mutable.add(dto)
+        result = mutable.toList()
         return this
     }
 
     internal fun appendDto(single: ResultSingle<DTO, D, E>): ResultList<DTO, D, E> {
-        single.getAsCommonDTO()?.let {
-            result.add(it)
-        }
+        appendDto(single.getAsCommonDTOForced())
         return this
     }
 

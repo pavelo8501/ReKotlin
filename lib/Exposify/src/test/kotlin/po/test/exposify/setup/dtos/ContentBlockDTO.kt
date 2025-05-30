@@ -7,7 +7,7 @@ import po.exposify.dto.DTOClass
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.bindings.property_binder.delegates.binding
-import po.exposify.dto.components.bindings.property_binder.delegates.parent2IdReference
+import po.exposify.dto.components.bindings.property_binder.delegates.parentReference
 import po.exposify.dto.components.bindings.property_binder.delegates.serializedBinding
 import po.exposify.dto.helpers.configuration
 import po.test.exposify.setup.ClassData
@@ -36,7 +36,6 @@ data class ContentBlock(
     var updated: LocalDateTime = ContentBlockDTO.nowTime()
 }
 
-
 class ContentBlockDTO(
     override var dataModel: ContentBlock
 ): CommonDTO<ContentBlockDTO, ContentBlock, ContentBlockEntity>(ContentBlockDTO) {
@@ -51,7 +50,9 @@ class ContentBlockDTO(
     var classList: List<ClassData> by serializedBinding(ContentBlock::classList, ContentBlockEntity::classList)
     var metaTags:  List<MetaData> by serializedBinding(ContentBlock::metaTags, ContentBlockEntity::metaTags)
 
-    val sectionId by parent2IdReference(ContentBlock::sectionId, ContentBlockEntity::section)
+    val section by parentReference(SectionDTO){section->
+        dataModel.sectionId = section.id
+    }
 
     companion object: DTOClass<ContentBlockDTO, ContentBlock, ContentBlockEntity>(SectionDTO){
         override fun setup() {
