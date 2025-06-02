@@ -6,8 +6,8 @@ import kotlinx.serialization.Serializable
 import po.exposify.dto.DTOClass
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
+import po.exposify.dto.components.bindings.property_binder.delegates.attachedReference
 import po.exposify.dto.components.bindings.property_binder.delegates.binding
-import po.exposify.dto.components.bindings.property_binder.delegates.foreign2IdReference
 import po.exposify.dto.components.bindings.property_binder.delegates.parentReference
 import po.exposify.dto.components.bindings.property_binder.delegates.serializedBinding
 import po.exposify.dto.components.bindings.relation_binder.delegates.oneToManyOf
@@ -52,10 +52,13 @@ class SectionDTO(
     var jsonLd: String by binding(Section::jsonLd, SectionEntity::jsonLd)
     var langId: Int by binding(Section::langId, SectionEntity::langId)
     var updated: LocalDateTime by binding(Section::updated, SectionEntity::updated)
-    val updatedBy by foreign2IdReference(UserDTO, Section::updatedBy)
+
+    val user by attachedReference(UserDTO){user->
+        updatedBy = user.id
+    }
 
     val page by parentReference(PageDTO){page->
-        dataModel.pageId = page.id
+        pageId = page.id
     }
 
     var classList: List<ClassData> by serializedBinding(Section::classList, SectionEntity::classList)

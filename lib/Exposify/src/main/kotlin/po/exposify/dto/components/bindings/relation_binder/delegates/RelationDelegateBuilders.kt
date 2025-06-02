@@ -7,22 +7,26 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.RootDTO
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.models.SourceObject
 import po.exposify.extensions.castOrInitEx
 import po.lognotify.classes.task.models.TaskConfig
 import po.lognotify.extensions.subTask
+import po.misc.types.TypeRecord
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
 
 
-fun <DTO, DATA, ENTITY, F_DTO, CD,  FE> CommonDTO<DTO, DATA, ENTITY>.oneToOneOf(
+inline fun <DTO, DATA, ENTITY, reified F_DTO, CD,  FE> CommonDTO<DTO, DATA, ENTITY>.oneToOneOf(
     childClass: DTOClass<F_DTO, CD, FE>,
     ownDataModel: KMutableProperty1<DATA, out CD?>,
     ownEntity: KMutableProperty1<ENTITY, FE>,
     foreignEntity: KMutableProperty1<FE, ENTITY>
 ): OneToOneDelegate<DTO, DATA, ENTITY, F_DTO, CD, FE>
         where DATA:DataModel, ENTITY : LongEntity, DTO : ModelDTO, F_DTO: ModelDTO,  CD: DataModel, FE: LongEntity
-        = subTask("oneToOneOf", TaskConfig(actor = this.dtoName)){
-    val thisDtoClass = this.dtoClass
+        = subTask("oneToOneOf", TaskConfig(actor = this.completeName)){
+
+            val typeRecord = TypeRecord.createRecord<F_DTO>(SourceObject.DTO)
+            val thisDtoClass = this.dtoClass
     when(thisDtoClass){
         is RootDTO<DTO, DATA, ENTITY>->{
             if(!childClass.initialized){
@@ -37,10 +41,8 @@ fun <DTO, DATA, ENTITY, F_DTO, CD,  FE> CommonDTO<DTO, DATA, ENTITY>.oneToOneOf(
             }
         }
     }
-
     val castedOwnDataModel = ownDataModel.castOrInitEx<KMutableProperty1<DATA, CD>>()
-    val bindingDelegate = OneToOneDelegate(this, childClass, castedOwnDataModel, ownEntity, foreignEntity)
-    //this.createRepository(container)
+    val bindingDelegate = OneToOneDelegate(this, childClass, castedOwnDataModel, ownEntity, foreignEntity, typeRecord)
     bindingDelegate
 }.resultOrException()
 
@@ -65,8 +67,9 @@ fun <DTO, DATA, ENTITY, F_DTO, FD,  FE> CommonDTO<DTO, DATA, ENTITY>.oneToManyOf
     foreignEntity: KMutableProperty1<FE, ENTITY>
 ): OneToManyDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>
         where  DTO : ModelDTO, DATA:DataModel, ENTITY : LongEntity, F_DTO: ModelDTO,  FD: DataModel, FE: LongEntity
- = subTask("oneToManyOf", TaskConfig(actor = this.dtoName)) {
+ = subTask("oneToManyOf", TaskConfig(actor = this.completeName)) {
     val thisDtoClass = this.dtoClass
+    val typeRecord = TypeRecord.createRecord<List<F_DTO>>(SourceObject.DTO)
     when(thisDtoClass){
         is RootDTO<DTO, DATA, ENTITY>->{
             if(!childClass.initialized){
@@ -83,7 +86,7 @@ fun <DTO, DATA, ENTITY, F_DTO, FD,  FE> CommonDTO<DTO, DATA, ENTITY>.oneToManyOf
         }
     }
     val castedOwnDataModels = ownDataModels.castOrInitEx<KProperty1<DATA, MutableList<FD>>>()
-    val bindingDelegate = OneToManyDelegate(this, childClass, castedOwnDataModels, ownEntities, foreignEntity)
+    val bindingDelegate = OneToManyDelegate(this, childClass, castedOwnDataModels, ownEntities, foreignEntity, typeRecord)
     bindingDelegate
 }.resultOrException()
 

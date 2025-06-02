@@ -5,11 +5,9 @@ import po.misc.interfaces.Identifiable
 import po.misc.time.ExecutionTimeStamp
 
 interface TrackableDTO :  Identifiable {
-    val name: String
+    override val componentName: String
     val executionTimeStamp: ExecutionTimeStamp
     val records : List<ObservableData>
     val childTrackers : MutableList<TrackableDTO>
 
-    override val qualifiedName: String
-        get() = name
 }

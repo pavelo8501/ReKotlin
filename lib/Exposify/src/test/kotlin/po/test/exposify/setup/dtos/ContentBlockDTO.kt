@@ -51,7 +51,7 @@ class ContentBlockDTO(
     var metaTags:  List<MetaData> by serializedBinding(ContentBlock::metaTags, ContentBlockEntity::metaTags)
 
     val section by parentReference(SectionDTO){section->
-        dataModel.sectionId = section.id
+        sectionId = section.id
     }
 
     companion object: DTOClass<ContentBlockDTO, ContentBlock, ContentBlockEntity>(SectionDTO){

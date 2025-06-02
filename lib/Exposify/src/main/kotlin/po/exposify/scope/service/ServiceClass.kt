@@ -10,27 +10,24 @@ import po.auth.sessions.models.AuthorizedSession
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.common.interfaces.AsClass
 import po.exposify.dto.RootDTO
-import po.exposify.dto.interfaces.ComponentType
-import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.models.ModuleType
 import po.exposify.exceptions.InitException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.scope.connection.ConnectionClass
 import po.exposify.scope.connection.controls.CoroutineEmitter
 import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.TasksManaged
+import po.misc.interfaces.IdentifiableModule
 
 class ServiceClass<DTO, DATA, ENTITY>(
     private val rootDTOModel: RootDTO<DTO, DATA, ENTITY>,
     internal val connectionClass : ConnectionClass,
     private val serviceCreateOption: TableCreateMode = TableCreateMode.CREATE,
-): IdentifiableComponent,  AsClass<DATA, ENTITY>, TasksManaged  where  DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity {
+    val moduleType: ModuleType = ModuleType.ServiceClass
+): IdentifiableModule by moduleType,  AsClass<DATA, ENTITY>, TasksManaged  where  DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity {
 
     private val serviceContext: ServiceContext<DTO, DATA, ENTITY> = ServiceContext(this, rootDTOModel)
-
-    override val qualifiedName: String = "ServiceClass[${connectionClass.sourceName}]"
-    override val type: ComponentType = ComponentType.ServiceClass
-
     internal val connection: Database get() = connectionClass.connection
 
     private fun createTable(table: IdTable<Long>): Boolean {

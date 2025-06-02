@@ -10,23 +10,22 @@ import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.components.result.toResult
 import po.exposify.dto.components.tracker.CrudOperation
-import po.exposify.dto.interfaces.ComponentType
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ExecutionContext
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.models.ModuleType
+import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.lognotify.classes.task.TaskHandler
 import po.lognotify.lastTaskHandler
-
+import po.misc.interfaces.IdentifiableModule
 
 class ExecutionProvider<DTO, DATA, ENTITY>(
     override val dtoClass: DTOBase<DTO, DATA, ENTITY>,
-): ExecutionContext<DTO, DATA, ENTITY> where  DTO  : ModelDTO , DATA : DataModel, ENTITY: LongEntity{
+    val moduleType : ModuleType.ExecutionProvider = ModuleType.ExecutionProvider
+): IdentifiableModule by moduleType, ExecutionContext<DTO, DATA, ENTITY> where  DTO  : ModelDTO , DATA : DataModel, ENTITY: LongEntity{
 
-    override val qualifiedName: String
-        get() = dtoClass.qualifiedName
-    override val type: ComponentType = ComponentType.RootExecutionProvider
 
     override val logger : TaskHandler<*> get() = lastTaskHandler()
 
@@ -60,7 +59,7 @@ class ExecutionProvider<DTO, DATA, ENTITY>(
             }
         }?:run {
             val queryStr = conditions.build().toSqlString()
-            val message = "Unable to find ${dtoClass.config.registry.getSimpleName(ComponentType.DTO)} for query $queryStr"
+            val message = "Unable to find ${dtoClass.config.registry.getRecord<DTO>(SourceObject.DTO)} for query $queryStr"
             dtoClass.newDTO().toResult(OperationsException(message, ExceptionCode.DB_CRUD_FAILURE), operation)
         }
     }

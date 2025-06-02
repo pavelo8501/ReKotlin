@@ -6,28 +6,26 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.components.SimpleQuery
 import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
-import po.exposify.dto.interfaces.ComponentType
 import po.exposify.dto.interfaces.ExecutionContext
-import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.interfaces.RunnableContext
+import po.exposify.dto.models.ModuleType
 import po.exposify.extensions.checkDataListNotEmpty
 import po.exposify.scope.sequence.classes.SequenceHandlerBase
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.subTask
 import po.misc.exceptions.CoroutineInfo
+import po.misc.interfaces.IdentifiableModule
 import kotlin.coroutines.coroutineContext
 
 
 class SequenceContext<DTO, D, E>(
     internal val sequenceHandler: SequenceHandlerBase<DTO, D, E>,
     private val executionContext: ExecutionContext<DTO, D, E>,
-    override val session : AuthorizedSession? = null
-): TasksManaged, IdentifiableComponent, RunnableContext where  DTO : ModelDTO, D : DataModel, E: LongEntity
+    override val session : AuthorizedSession? = null,
+    val moduleType: ModuleType = ModuleType.SequenceContext
+):IdentifiableModule by moduleType ,  TasksManaged,  RunnableContext where  DTO : ModelDTO, D : DataModel, E: LongEntity
 {
-
-    override val qualifiedName: String get() = "SequenceContext[${executionContext.qualifiedName}]"
-    override val type: ComponentType = ComponentType.SequenceContext
     override val coroutineInfo: CoroutineInfo
         get() =  CoroutineInfo.createInfo(session?.sessionScope()?.coroutineContext)
     private var latestSingleResult : ResultSingle<DTO,D, E> = ResultSingle(sequenceHandler.dtoBase)

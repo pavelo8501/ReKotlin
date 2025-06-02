@@ -9,48 +9,44 @@ import po.exposify.dto.DTOBase
 import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.components.tracker.DTOTracker
 import po.exposify.dto.components.tracker.extensions.addTrackerInfo
-import po.exposify.dto.interfaces.ComponentType
-import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.models.ModuleType
+import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.castOrOperationsEx
-import po.exposify.extensions.getOrOperationsEx
 import po.lognotify.TasksManaged
 import po.lognotify.anotations.LogOnFault
 import po.lognotify.extensions.subTask
+import po.misc.interfaces.IdentifiableModule
 import po.misc.interfaces.ValueBased
-import po.misc.registries.callback.CallbackRegistry
 import po.misc.registries.callback.TypedCallbackRegistry
+import po.misc.types.TypeRecord
 import po.misc.registries.type.TypeRegistry
 import po.misc.serialization.SerializerInfo
-import po.misc.types.toSimpleNormalizedKey
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 
 class DTOFactory<DTO, DATA, ENTITY>(
     private val dtoClass: DTOBase<DTO, DATA, ENTITY>,
-    private val typeRegistry : TypeRegistry
-): IdentifiableComponent,  TasksManaged where DTO : ModelDTO, DATA: DataModel, ENTITY: LongEntity {
+    private val typeRegistry : TypeRegistry,
+    val moduleType : ModuleType.DTOFactory = ModuleType.DTOFactory
+): IdentifiableModule by moduleType,  TasksManaged where DTO : ModelDTO, DATA: DataModel, ENTITY: LongEntity {
 
     enum class FactoryEvents(override val value: Int) : ValueBased{
         ON_CREATED(1),
         ON_INITIALIZED(2)
     }
-    val notificator = TypedCallbackRegistry<CommonDTO<DTO, DATA, ENTITY>>()
+    val notificator = TypedCallbackRegistry<CommonDTO<DTO, DATA, ENTITY>, Unit>()
 
-    val  dataModelClass : KClass<DATA> get() = typeRegistry.getRecord<DATA, OperationsException>(ComponentType.DATA_MODEL).clazz
-    val  dtoKClass: KClass<DTO> get() = typeRegistry.getRecord<DTO, OperationsException>(ComponentType.DTO).clazz
+    val  dataType : TypeRecord<DATA> get() = typeRegistry.getRecord<DATA, OperationsException>(SourceObject.Data)
+    val  dtoType: TypeRecord<DTO> get() = typeRegistry.getRecord<DTO, OperationsException>(SourceObject.DTO)
 
     val config: DTOConfig<DTO, DATA, ENTITY>
         get() = dtoClass.config
-    override val qualifiedName: String by lazy {
-        "DTOFactory[${typeRegistry.getRecord<DATA, OperationsException>(ComponentType.DTO)?.simpleName}]"
-    }
-    override val type: ComponentType = ComponentType.Factory
 
-    internal val dataBlueprint: ClassBlueprint<DATA> = ClassBlueprint(dataModelClass)
-    val dtoBlueprint: ClassBlueprint<DTO> = ClassBlueprint(dtoKClass)
+    internal val dataBlueprint: ClassBlueprint<DATA> = ClassBlueprint(dataType.clazz)
+    val dtoBlueprint: ClassBlueprint<DTO> = ClassBlueprint(dtoType.clazz)
 
     @LogOnFault
     var dataModelBuilderFn: (() -> DATA)? = null
@@ -103,7 +99,7 @@ class DTOFactory<DTO, DATA, ENTITY>(
                 serializerLookup(param.name.toString(),  param.type)?.let {
                     Json.Default.decodeFromString(it.serializer, "[]")
                 }?:run {
-                   throw OperationsException("Requested parameter name: ${param.name} ${qualifiedName}", ExceptionCode.FACTORY_CREATE_FAILURE)
+                   throw OperationsException("Requested parameter name: ${param.name} ${completeName}", ExceptionCode.FACTORY_CREATE_FAILURE)
                 }
             }
             val result = dataBlueprint.getConstructor().callBy(dataBlueprint.getConstructorArgs())

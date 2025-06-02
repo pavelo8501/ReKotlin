@@ -11,28 +11,47 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.dto.enums.DTOInitStatus
 import po.exposify.dto.components.tracker.DTOTracker
-import po.exposify.dto.interfaces.ComponentType
+import po.exposify.dto.models.ComponentType
+import po.exposify.dto.models.SourceObject
+import po.exposify.exceptions.InitException
+import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.castOrOperationsEx
 import po.exposify.extensions.getOrOperationsEx
 import po.lognotify.classes.task.TaskHandler
+import po.misc.interfaces.Identifiable
 import po.misc.registries.type.TypeRegistry
+import po.misc.types.TypeRecord
+import java.util.UUID
 
 abstract class CommonDTO<DTO, DATA, ENTITY>(
    val dtoClass: DTOBase<DTO, DATA, ENTITY>
-): ModelDTO where DTO : ModelDTO,  DATA: DataModel , ENTITY: LongEntity {
+): Identifiable,  ModelDTO where DTO : ModelDTO,  DATA: DataModel , ENTITY: LongEntity {
 
     val dtoClassConfig: DTOConfig<DTO, DATA, ENTITY>
         get() {
             return dtoClass.config.castOrOperationsEx<DTOConfig<DTO, DATA, ENTITY>>("dtoClassConfig uninitialized")
         }
 
-    val registryRecord: TypeRegistry get() = dtoClass.config.registry
+    val registry: TypeRegistry get() = dtoClass.config.registry
+    abstract override val dataModel: DATA
+    val dtoType: TypeRecord<DTO>
+        get() = registry.getRecord<DTO, InitException>(SourceObject.DTO).castOrInitEx()
+
+    val entityType: TypeRecord<ENTITY>
+        get() = registry.getRecord<ENTITY, InitException>(SourceObject.Entity).castOrInitEx()
+    val dataType:  TypeRecord<DATA>
+        get() = registry.getRecord<DATA, InitException>(SourceObject.Data).castOrInitEx()
+
+    val type: ComponentType get() = ComponentType.CommonDTO
+    override val componentName: String get()= type.componentName
+    override val completeName: String get()= type.completeName
+
+
+    val dtoId : Int get() = UUID.randomUUID().hashCode()
     val logger : TaskHandler<*> get()= dtoClass.logger
 
-    override val dtoName: String get() = "CommonDTO[${registryRecord.getSimpleName(ComponentType.DTO)}]"
-    override val cardinality: Cardinality = Cardinality.ONE_TO_MANY
+    override var cardinality: Cardinality = Cardinality.ONE_TO_MANY
 
-    abstract override var dataModel: DATA
 
     override val daoService: DAOService<DTO, DATA, ENTITY> get() = dtoClassConfig.daoService
     override val dtoFactory: DTOFactory<DTO, DATA, ENTITY> get() = dtoClassConfig.dtoFactory

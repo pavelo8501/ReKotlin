@@ -69,9 +69,9 @@ class ConnectionClass(
 
         handler.info("Creating ServiceClass")
         val serviceClass = ServiceClass(dtoClass, this, createOptions)
-        services[serviceClass.qualifiedName] = serviceClass
+        services[serviceClass.completeName] = serviceClass
         serviceClass.initService(dtoClass)
-        getService<DTO, D, E>(serviceClass.qualifiedName)?.runServiceContext(block)
+        getService<DTO, D, E>(serviceClass.completeName)?.runServiceContext(block)
     }
 
     fun clearServices(){

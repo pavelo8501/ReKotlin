@@ -3,11 +3,10 @@ package po.exposify.dto.components.tracker.extensions
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.tracker.CrudOperation
-import po.exposify.dto.components.tracker.DTOTracker
 import po.exposify.dto.components.tracker.interfaces.TrackableDTO
 import po.exposify.dto.interfaces.DataModel
-import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
+import po.misc.interfaces.Identifiable
 
 fun TrackableDTO.collectTrackerTree(): TrackableDTONode {
     val rootNode = TrackableDTONode(this)
@@ -31,7 +30,7 @@ data class TrackableDTONode(
 
 fun <DTO: ModelDTO, D: DataModel, E: LongEntity> CommonDTO<DTO, D, E>.addTrackerInfo(
     operation:CrudOperation,
-    moduleName: IdentifiableComponent
+    moduleName: Identifiable
 ):CommonDTO<DTO, D, E>{
     tracker.addTrackInfo(operation, moduleName)
     return this

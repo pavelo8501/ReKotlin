@@ -6,8 +6,8 @@ import kotlinx.serialization.Serializable
 import po.exposify.dto.RootDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
+import po.exposify.dto.components.bindings.property_binder.delegates.attachedReference
 import po.exposify.dto.components.bindings.property_binder.delegates.binding
-import po.exposify.dto.components.bindings.property_binder.delegates.foreign2IdReference
 import po.exposify.dto.components.bindings.relation_binder.delegates.oneToManyOf
 import po.exposify.dto.helpers.configuration
 import po.exposify.scope.sequence.classes.RootHandlerProvider
@@ -36,7 +36,10 @@ class PageDTO(
     var name : String by binding(Page::name, PageEntity::name)
     var langId : Int by binding(Page::langId, PageEntity::langId)
     var updated : LocalDateTime by binding(Page::updated, PageEntity::updated)
-    val updatedBy by foreign2IdReference(UserDTO, Page::updatedBy)
+
+    val user by attachedReference(UserDTO){user->
+        updatedBy = user.id
+    }
 
     val sections : List<SectionDTO> by oneToManyOf(SectionDTO, Page::sections, PageEntity::sections, SectionEntity::page)
 

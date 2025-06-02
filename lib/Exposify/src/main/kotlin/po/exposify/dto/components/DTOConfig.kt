@@ -5,19 +5,19 @@ import po.exposify.dto.DTOBase
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.DTOClass
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.dto.models.DTORegistryItem
 import po.exposify.dao.classes.ExposifyEntityClass
 import po.exposify.dto.components.tracker.TrackerConfig
-import po.misc.reflection.properties.PropertyMap
+import po.misc.reflection.properties.PropertyMapper
 import po.misc.registries.type.TypeRegistry
 
 class DTOConfig<DTO, DATA, ENTITY>(
     val registry: TypeRegistry,
-    val propertyMap : PropertyMap,
+    val propertyMap : PropertyMapper,
     val entityModel: ExposifyEntityClass<ENTITY>,
     val dtoClass : DTOBase<DTO, DATA , ENTITY>,
 ) where DTO: ModelDTO, DATA: DataModel,  ENTITY : LongEntity{
 
+   @PublishedApi
    internal var dtoFactory: DTOFactory<DTO, DATA, ENTITY> = DTOFactory(dtoClass, registry)
    internal var daoService :  DAOService<DTO, DATA, ENTITY> =  DAOService(dtoClass, registry)
 
@@ -26,7 +26,8 @@ class DTOConfig<DTO, DATA, ENTITY>(
 
     val childClasses : MutableList<DTOClass<*,*,*>> = mutableListOf()
 
-   internal fun  addHierarchMemberIfAbsent(childDTO : DTOClass<*, *, *>) {
+    @PublishedApi
+   internal fun addHierarchMemberIfAbsent(childDTO : DTOClass<*, *, *>) {
        if (!childDTO.initialized) {
            childDTO.initialization()
        }

@@ -11,7 +11,6 @@ inline fun <T1 : Any, R : Any> safeLet(p1: T1?, block: (T1) -> R?): R? {
     return if (p1 != null) block(p1) else null
 }
 
-
 inline fun <reified T : Any, reified E: ManagedException> T?.getOrThrow(
     message: String? = null,
     code: Int = 0
@@ -24,7 +23,6 @@ inline fun <reified T : Any, reified E: ManagedException> T?.getOrThrow(
     }
 }
 
-
 inline fun <reified T, reified U> initializeContexts(
     receiverInstance: T,
     paramInstance: U,
@@ -33,7 +31,14 @@ inline fun <reified T, reified U> initializeContexts(
     receiverInstance.block(paramInstance)
 }
 
-
 inline fun <reified T: Any> T.getType(): KClass<T> {
     return T::class
+}
+
+fun Any?.isNull(): Boolean{
+    return this == null
+}
+
+fun Any?.isNotNull(): Boolean{
+    return this != null
 }

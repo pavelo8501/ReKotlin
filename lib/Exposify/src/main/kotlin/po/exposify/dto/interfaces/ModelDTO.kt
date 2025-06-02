@@ -7,7 +7,6 @@ import po.exposify.dto.components.tracker.DTOTracker
 import po.exposify.dto.enums.Cardinality
 
 interface ModelDTO : DataModel {
-    val dtoName : String
     val cardinality: Cardinality
     val dataModel: DataModel
     //val dataContainer  : DataModelContainer<*, *>

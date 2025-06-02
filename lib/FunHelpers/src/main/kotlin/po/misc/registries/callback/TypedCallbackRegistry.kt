@@ -5,21 +5,31 @@ import po.misc.interfaces.Identifiable
 import po.misc.interfaces.ValueBased
 
 
-class TypedCallbackRegistry<T: Any> {
+abstract class TypedCallback<T, R>(){
+    abstract val callback : (T)-> R
+}
 
-    class TypedCallback<T>(
-        val callback : (T)-> Unit
-    )
+open class TypedCallbackRegistry<T, R>(){
 
-    private val subscriptions = mutableMapOf<CompositeKey, TypedCallback<T>>()
+    class Callback<T, R>(override val callback : (T)-> R):TypedCallback<T, R>()
 
-    fun subscribe(component: Identifiable, type: ValueBased, callback: (T) -> Unit) {
+    private val subscriptions = mutableMapOf<CompositeKey, TypedCallback<T, R>>()
+
+    val triggeredHistrory = mutableMapOf<ValueBased, T>()
+
+    fun subscribe(component: Identifiable, type: ValueBased,  callback : (T)-> R) {
         val key = CompositeKey(component, type)
-        subscriptions[key] = TypedCallback(callback)
+        subscriptions[key] = Callback(callback)
+        val missedEvent = triggeredHistrory[type]
+        if(missedEvent != null){
+            callback.invoke(missedEvent)
+            triggeredHistrory.remove(type)
+        }
     }
 
     fun trigger(type: ValueBased, value:T) {
         val toCall  = subscriptions.filter { it.key.type.value == type.value }
+        triggeredHistrory[type] = value
         toCall.values.forEach {typedCallback->
             typedCallback.callback.invoke(value)
         }

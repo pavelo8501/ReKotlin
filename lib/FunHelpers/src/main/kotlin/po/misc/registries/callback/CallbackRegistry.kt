@@ -9,9 +9,6 @@ import po.misc.interfaces.ValueBased
 class CallbackRegistry {
 
     private val subscriptions = mutableMapOf<CompositeKey, () -> Unit>()
-
-
-
     fun subscribe(component: Identifiable, type: ValueBased, callback: () -> Unit) {
         val key = CompositeKey(component, type)
         subscriptions[key] = callback

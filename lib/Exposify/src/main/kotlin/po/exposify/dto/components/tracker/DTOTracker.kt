@@ -4,8 +4,9 @@ import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.bindings.property_binder.interfaces.ObservableData
 import po.exposify.dto.components.tracker.interfaces.TrackableDTO
 import po.exposify.dto.interfaces.DataModel
-import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.models.ComponentType
+import po.misc.interfaces.Identifiable
 import po.misc.time.ExecutionTimeStamp
 import po.misc.time.MeasuredContext
 import po.misc.time.startTimer
@@ -14,17 +15,17 @@ import po.misc.time.stopTimer
 
 class DTOTracker<DTO: ModelDTO, DATA: DataModel>(
     internal val dto : CommonDTO<DTO, DATA, *>,
-   @PublishedApi internal val config : TrackerConfig = TrackerConfig()
-): MeasuredContext, TrackableDTO {
+   @PublishedApi internal val config : TrackerConfig = TrackerConfig(),
+    val componentType : ComponentType = ComponentType.Tracker
+): MeasuredContext, TrackableDTO, Identifiable by componentType {
 
-    override val name : String get() = config.name?:dto.dtoName
-    override val executionTimeStamp: ExecutionTimeStamp = ExecutionTimeStamp(dto.dtoName, dto.id.toString())
-    private var activeRecord : TrackerRecord = TrackerRecord(dto.id, CrudOperation.Create, name)
+    override val componentName : String get() = config.name?:dto.componentName
+    override val executionTimeStamp: ExecutionTimeStamp = ExecutionTimeStamp(dto.componentName, dto.id.toString())
+    private var activeRecord : TrackerRecord = TrackerRecord(dto.id, CrudOperation.Create, componentName)
     private val trackRecords : MutableList<TrackerRecord> = mutableListOf()
 
     override val records : List<ObservableData> get() = trackRecords.toList()
     override val childTrackers : MutableList<TrackableDTO> = mutableListOf()
-
 
     private fun finalizeLast(){
         activeRecord.finalize(dto,stopTimer())
@@ -36,11 +37,11 @@ class DTOTracker<DTO: ModelDTO, DATA: DataModel>(
     fun relationPropertyUpdated(update: ObservableData){
         activeRecord.addAction(update)
     }
-    fun addTrackInfo(operation:CrudOperation, module: IdentifiableComponent? = null):DTOTracker<DTO, DATA>{
+    fun addTrackInfo(operation:CrudOperation, module: Identifiable? = null):DTOTracker<DTO, DATA>{
         if(activeRecord.operation == CrudOperation.Initialize){
             addTrackResult(CrudOperation.Initialize)
         }
-        activeRecord = TrackerRecord(dto.id, operation, module?.qualifiedName?:"")
+        activeRecord = TrackerRecord(dto.id, operation, module?.completeName?:"")
         trackRecords.add(activeRecord)
         return startTimer()
     }
@@ -82,7 +83,7 @@ class DTOTracker<DTO: ModelDTO, DATA: DataModel>(
 
     fun TrackableDTO.getTrace(indent: String = "", isLast: Boolean = true): String {
         val connector = if (indent.isEmpty()) "" else if (isLast) "└── " else "├── "
-        val line = "$indent$connector[$name] (${records.size} changes)"
+        val line = "$indent$connector[$componentName] (${records.size} changes)"
         val nextIndent = indent + if (isLast) "    " else "│   "
         val childLines = childTrackers.mapIndexed { index, child ->
             child.getTrace(nextIndent, index == childTrackers.lastIndex)

@@ -10,47 +10,51 @@ import po.exposify.dto.components.bindings.helpers.newDTO
 import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.components.tracker.extensions.addTrackerInfo
 import po.exposify.dto.enums.Cardinality
-import po.exposify.dto.helpers.getTypeRecord
-import po.exposify.dto.interfaces.ComponentType
-import po.exposify.dto.interfaces.IdentifiableComponent
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.models.ComponentType
+import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.InitException
 import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.getOrOperationsEx
 import po.lognotify.TasksManaged
-import po.misc.registries.type.TypeRecord
+import po.misc.interfaces.Identifiable
+import po.misc.types.TypeRecord
 import po.misc.types.castOrThrow
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty
 import kotlin.reflect.KProperty1
 
 
-sealed class RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V>(
+sealed class RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V: Any>(
     val hostingDTO : CommonDTO<DTO, DATA, ENTITY>,
     val childModel: DTOClass<F_DTO, FD, FE>,
     val foreignEntityProperty: KMutableProperty1<FE, ENTITY>,
-): TasksManaged, IdentifiableComponent
+    val typeRecord : TypeRecord<V>,
+    val componentType: ComponentType = ComponentType.RelationDelegate
+): TasksManaged, Identifiable by componentType
         where DTO: ModelDTO, DATA: DataModel,  ENTITY : LongEntity,
               F_DTO: ModelDTO,  FD: DataModel, FE : LongEntity
 {
 
-    abstract val componentName : String
     abstract val cardinality : Cardinality
 
-    override val type: ComponentType = ComponentType.RelationBindingDelegate
-    override val qualifiedName : String  get() = "$componentName[$]"
-
     protected var onPropertyInitialized: ((KProperty<*>)-> Unit)? = null
-    private var propertyParameter : KProperty<*>? = null
+    private var propertyParameter : KProperty<V>? = null
         set(value) {
             field = value
             onPropertyInitialized?.invoke(property)
         }
-    val property: KProperty<Any?> get() = propertyParameter.getOrOperationsEx()
+    val property: KProperty<V> get() = propertyParameter.getOrOperationsEx()
     val propertyName : String get() = propertyParameter?.name?:""
+   // val pappedProperties : PropertyMapperRecord<V> = PropertyMapperRecord.createPropertyMap(typeRecord)
 
-    protected val dtoTypeRecord : TypeRecord<F_DTO> = childModel.getTypeRecord(ComponentType.DTO)
-    protected val entityTypeRecord : TypeRecord<FE> = childModel.getTypeRecord(ComponentType.ENTITY)
+
+    protected val dtoType : TypeRecord<DTO>
+        get() =  hostingDTO.dtoType
+
+    protected val childType : TypeRecord<F_DTO>
+        get() = childModel.config.registry.getRecord<F_DTO, InitException>(SourceObject.DTO)
+
 
     abstract fun getEffectiveValue():V
     protected abstract fun getChildDTOs(): List<CommonDTO<F_DTO, FD, FE>>
@@ -66,9 +70,9 @@ sealed class RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V>(
         propertyProvided(property)
         return this
     }
-    private fun propertyProvided(property: KProperty<Any?>){
+    private fun propertyProvided(property: KProperty<*>){
         if(propertyParameter == null){
-            propertyParameter = property
+            propertyParameter = property.castOrInitEx("Unable to cast KProperty<*> to KProperty<V>")
             hostingDTO.bindingHub.setRelationBinding(this.castOrInitEx())
         }
     }
@@ -117,17 +121,17 @@ class OneToManyDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>(
     val dataProperty: KProperty1<DATA, MutableList<FD>>,
     val entitiesProperty: KProperty1<ENTITY, SizedIterable<FE>>,
     foreignEntityProperty: KMutableProperty1<FE, ENTITY>,
-) : RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, List<F_DTO>>(dto, childModel, foreignEntityProperty)
+    typeRecord: TypeRecord<List<F_DTO>>
+) : RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, List<F_DTO>>(dto, childModel, foreignEntityProperty, typeRecord)
         where DTO : ModelDTO, DATA : DataModel, ENTITY : LongEntity,
               F_DTO: ModelDTO,  FD : DataModel, FE : LongEntity
 {
 
-    override val componentName: String =  "OneToManyDelegate"
     override val cardinality : Cardinality = Cardinality.ONE_TO_MANY
 
     private val dtos : MutableList<CommonDTO<F_DTO, FD, FE>> = mutableListOf()
     override fun getEffectiveValue(): List<F_DTO> {
-        return dtos.map { it.castOrThrow<F_DTO, InitException>(dtoTypeRecord.clazz) }
+        return dtos.map { it.castOrThrow<F_DTO, InitException>(childType.clazz) }
     }
 
     override fun getChildDTOs(): List<CommonDTO<F_DTO, FD, FE>> {
@@ -160,20 +164,20 @@ class OneToOneDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>(
     val dataProperty: KMutableProperty1<DATA, FD>,
     val entityProperty: KMutableProperty1<ENTITY, FE>,
     foreignEntityProperty: KMutableProperty1<FE, ENTITY>,
-) : RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, F_DTO>(dto, childModel, foreignEntityProperty)
+    typeRecord : TypeRecord<F_DTO>
+) : RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, F_DTO>(dto, childModel, foreignEntityProperty, typeRecord)
         where DTO : ModelDTO, DATA : DataModel, ENTITY : LongEntity,
               F_DTO: ModelDTO,  FD : DataModel, FE : LongEntity {
 
-    override val componentName: String =  "OneToManyDelegate"
     override val cardinality : Cardinality = Cardinality.ONE_TO_ONE
 
-    private var dto : CommonDTO<F_DTO, FD, FE>? = null
+    private var childDTO : CommonDTO<F_DTO, FD, FE>? = null
     override fun getEffectiveValue(): F_DTO {
-        return dto.castOrThrow<F_DTO, InitException>(dtoTypeRecord.clazz, "dto uninitialized in getEffectiveValue")
+        return childDTO.castOrThrow<F_DTO, InitException>(childType.clazz, "dto uninitialized in getEffectiveValue")
     }
 
     override fun getChildDTOs(): List<CommonDTO<F_DTO, FD, FE>> {
-       return dto?.let { listOf(it) }?:emptyList()
+       return childDTO?.let { listOf(it) }?:emptyList()
     }
     override fun getData(): List<FD> {
         return listOf(dataProperty.get(hostingDTO.dataModel))
@@ -186,7 +190,7 @@ class OneToOneDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>(
     }
 
     override fun saveDto(dto: CommonDTO<F_DTO, FD, FE>, updateData: Boolean) {
-        this.dto = dto
+        childDTO = dto
         if(updateData){
             dataProperty.set(hostingDTO.dataModel, dto.dataModel)
         }

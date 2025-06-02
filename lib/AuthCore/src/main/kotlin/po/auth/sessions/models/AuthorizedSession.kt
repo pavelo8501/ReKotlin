@@ -41,8 +41,6 @@ class AuthorizedSession internal constructor(
 
     override var getLoggerProcess: (() -> LoggProcess<*> )? = null
 
-
-
     override val sessionID: String = UUID.randomUUID().toString()
     override val sessionContext: CoroutineContext
         get() = scope.coroutineContext

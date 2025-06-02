@@ -2,7 +2,6 @@ package po.exposify.dto.interfaces
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
-import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
 import po.exposify.dto.components.SimpleQuery
 import po.exposify.dto.components.WhereQuery
@@ -12,7 +11,7 @@ import po.lognotify.TasksManaged
 import po.lognotify.classes.task.TaskHandler
 
 
-interface ExecutionContext<DTO: ModelDTO, DATA: DataModel, ENTITY: LongEntity>: IdentifiableComponent, TasksManaged{
+interface ExecutionContext<DTO: ModelDTO, DATA: DataModel, ENTITY: LongEntity> : TasksManaged{
 
     val dtoClass : DTOBase<DTO, DATA, ENTITY>
     val logger : TaskHandler<*>

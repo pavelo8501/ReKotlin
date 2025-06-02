@@ -12,7 +12,7 @@ object CompositeKeyRegistry {
 
     @Suppress("UNCHECKED_CAST")
     fun <SO : Identifiable, E : Enum<E>> getKey(sourceObject: SO, parameter: E): CompositeEnumKey<SO, E> {
-        val key = Pair(sourceObject.qualifiedName, parameter)
+        val key = Pair(sourceObject.completeName, parameter)
         return registry.getOrPut(key) {
             CompositeEnumKey(sourceObject, parameter)
         } as CompositeEnumKey<SO, E>

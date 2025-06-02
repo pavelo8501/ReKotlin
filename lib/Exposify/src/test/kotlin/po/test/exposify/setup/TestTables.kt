@@ -15,7 +15,6 @@ fun tables(): List<LongIdTable>{
     return  listOf(Pages, Sections)
 }
 
-
 object TestsItems : LongIdTable("tests_items", "id") {
     val name = varchar("name",128)
 }
@@ -33,8 +32,8 @@ object Users : LongIdTable("api_users", "id") {
 object  Pages : LongIdTable("pages", "id") {
     val name = varchar("name",128)
     val langId = integer("lang_id").default(1)
-   // val updatedBy = long("updated_by").default(1)
-    val updatedBy = reference("updated_by", Users)
+    val updatedBy = long("updated_by").default(1)
+   // val updatedBy = reference("updated_by", Users)
     val updated = datetime("updated").clientDefault { PageDTO.nowTime() }
 }
 
@@ -46,8 +45,8 @@ object Sections : LongIdTable("sections", "id") {
         .default(emptyList())
     val metaTags = registerColumn("meta_tags", jsonColumnList(MetaData.serializer()))
         .default(emptyList())
-    val updatedBy = reference("updated_by", Users)
-   // val updatedBy = long("updated_by").default(1)
+    //val updatedBy = reference("updated_by", Users)
+    val updatedBy = long("updated_by").default(1)
     val updated = datetime("updated").clientDefault { SectionDTO.nowTime() }
     val langId = integer("lang_id")
     val page = reference("page", Pages, onDelete = ReferenceOption.CASCADE)
