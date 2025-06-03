@@ -34,7 +34,6 @@ inline fun <reified T: Any> Any.castLetOrInitEx(
     }
 }
 
-
 inline fun <reified T : Any> T?.getOrOperationsEx(
     message: String? = null,
     code: ExceptionCode = ExceptionCode.VALUE_IS_NULL

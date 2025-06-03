@@ -6,7 +6,7 @@ import po.lognotify.classes.notification.NotificationProvider
 import po.lognotify.classes.notification.enums.EventType
 import po.lognotify.classes.notification.sealed.DataProvider
 import po.lognotify.classes.notification.sealed.ProviderTask
-import po.lognotify.enums.ColourEnum
+import po.misc.data.console.ColourEnum
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.helpers.StaticHelper
 import po.misc.time.ExecutionTimeStamp

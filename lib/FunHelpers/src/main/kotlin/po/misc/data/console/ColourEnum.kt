@@ -1,7 +1,6 @@
-package po.lognotify.enums
+package po.misc.data.console
 
-
-enum class ColourEnum(val colourStr: String) {
+enum class Colour(val colourStr: String) {
     RED("\u001B[31m"),
     YELLOW("\u001B[33m"),
     GREEN("\u001B[32m"),
@@ -29,7 +28,7 @@ enum class ColourEnum(val colourStr: String) {
 
 
     companion object {
-        fun fromValue(colourStr: String): ColourEnum? {
+        fun fromValue(colourStr: String): Colour? {
             entries.firstOrNull { it.colourStr == colourStr }?.let {
                 return it
             }

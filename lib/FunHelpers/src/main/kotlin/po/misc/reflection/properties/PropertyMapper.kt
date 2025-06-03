@@ -3,8 +3,6 @@ package po.misc.reflection.properties
 import po.misc.exceptions.ManagedException
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.ValueBased
-import po.misc.interfaces.ValueBasedClass
-import po.misc.reflection.properties.mappers.helpers.createPropertyMap
 import po.misc.reflection.properties.mappers.helpers.toMappingCheckRecords
 import po.misc.reflection.properties.mappers.models.PropertyMapperRecord
 import po.misc.reflection.properties.mappers.models.PropertyRecord
@@ -21,8 +19,6 @@ import po.misc.validators.models.MappingCheckV2
 import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.collections.set
-import kotlin.reflect.KProperty
-import kotlin.reflect.full.memberProperties
 
 
 class PropertyMapper {

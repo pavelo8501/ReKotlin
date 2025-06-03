@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test
 import po.misc.collections.CompositeKey
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.ValueBased
-import po.misc.reflection.properties.PropertyMap
+import po.misc.reflection.properties.PropertyMapper
 
 class TestPropertyMap {
 
@@ -17,15 +17,16 @@ class TestPropertyMap {
         val property2 : Int = 10,
         val property3: Boolean = false
     ): Identifiable{
-        override val qualifiedName: String = "sourceClass"
+        override val componentName: String = "SourceClass1"
+        override val completeName: String = "SourceClass1[Complete]"
     }
 
     @Test
     fun `Property map`(){
 
         val sourceClass = SourceClass()
-        val propertyMap = PropertyMap()
-        propertyMap.applyClass(ID.CLASS_1, SourceClass::class)
+        val propertyMap = PropertyMapper()
+        propertyMap.applyClass<ID>(ID.CLASS_1)
         propertyMap.mappedProperties
         val a = propertyMap.mappedProperties
     }

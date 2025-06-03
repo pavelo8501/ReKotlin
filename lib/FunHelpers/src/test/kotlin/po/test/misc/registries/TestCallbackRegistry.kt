@@ -14,7 +14,11 @@ class TestCallbackRegistry {
         ON_START(1),
         ON_FINISH(2);
     }
-    class Component(override val qualifiedName: String) : Identifiable
+    class Component(override val componentName: String
+    ) : Identifiable{
+
+          override val completeName: String = componentName
+    }
 
    data class ValueRecord(
         val newValue : Int,
@@ -27,7 +31,7 @@ class TestCallbackRegistry {
         val component1 = Component("Component1")
         val component2 = Component("Component2")
 
-        val registry = TypedCallbackRegistry<ValueRecord>()
+        val registry = TypedCallbackRegistry<ValueRecord, Unit>()
 
         var subscription1StartNewValue: Int = 0
         var subscription1StartOldValue: Int = 0

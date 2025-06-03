@@ -7,7 +7,7 @@ interface ValueBased{
     val value: Int
 }
 
-abstract class ValueBasedClass(val value: Int){
+abstract class ValueBasedClass(override val value: Int): ValueBased{
 
 
 //

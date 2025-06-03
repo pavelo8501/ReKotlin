@@ -15,21 +15,21 @@ class TestCompositeKey {
         Value1,
         Value2
     }
-    class SourceObject() : Identifiable{
-        override val qualifiedName: String = "SomeName1"
+    class SourceObject(override val completeName: String) : Identifiable{
+        override val componentName: String = "SomeName1"
     }
 
-    class SameAsSourceObject() : Identifiable{
-        override val qualifiedName: String = "SomeName1"
+    class SameAsSourceObject(override val completeName: String) : Identifiable{
+        override val componentName: String = "SomeName1"
     }
 
-    class SourceObject2(): Identifiable{
-        override val qualifiedName: String = "SomeName2"
+    class SourceObject2(override val completeName: String): Identifiable{
+        override val componentName: String = "SomeName2"
     }
 
-    val sourceObject : SourceObject = SourceObject()
-    val sameAsSourceObject : SameAsSourceObject = SameAsSourceObject()
-    val sourceObject2 : SourceObject2 = SourceObject2()
+    val sourceObject : SourceObject = SourceObject("SomeName1Complete")
+    val sameAsSourceObject : SameAsSourceObject = SameAsSourceObject("SomeName1Complete2")
+    val sourceObject2 : SourceObject2 = SourceObject2("SomeName2Complete")
 
     @Test
     fun `composite keys  pass equality checks`(){

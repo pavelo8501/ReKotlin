@@ -14,10 +14,23 @@ inline fun <T1 : Any, R : Any> safeLet(p1: T1?, block: (T1) -> R?): R? {
 inline fun <reified T : Any, reified E: ManagedException> T?.getOrThrow(
     message: String? = null,
     code: Int = 0
-): T {
+):T {
     if(this == null){
         val effectiveMessage  = message?:"Expected class ${T::class.simpleName} is null"
         throw SelfThrownException.build<E>(effectiveMessage, code)
+    }else{
+        return this
+    }
+}
+
+@JvmName("getOrThrowNonReifiedT")
+inline fun <T : Any, reified E: ManagedException> T?.getOrManaged(
+    message: String,
+    code: Int = 0
+):T {
+    if(this == null){
+        val baseMessage = "Unable to return non null. Object is null."
+        throw SelfThrownException.build<E>("$baseMessage. $message", code)
     }else{
         return this
     }
