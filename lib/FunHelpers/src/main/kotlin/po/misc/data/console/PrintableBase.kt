@@ -4,14 +4,22 @@ import po.misc.interfaces.ValueBased
 import po.misc.registries.basic.BasicRegistry
 
 
-abstract class PrintableBase<T : PrintableBase<T>>(val printHelper: PrintHelper = PrintHelper.Companion): PrintHelper by printHelper {
-    abstract val self:T
-    protected val templateRegistry : BasicRegistry<()-> String> = BasicRegistry()
 
-    protected var mute: Boolean = false
-    private var muteCondition: ((T) -> Boolean)? = null
+abstract class PrintableBase<T>():PrintHelper where T: PrintableBase<T> {
+
+    abstract val self:T
+    protected val templateRegistry : BasicRegistry<T.()-> String> = BasicRegistry()
+
+    @PublishedApi
+    internal var mute: Boolean = false
+    @PublishedApi
+    internal var muteCondition: ((T) -> Boolean)? = null
 
     private val templateNotFound : (Any) -> String = { key-> "[template for key: $key not defined]"}
+
+    private fun formatString(stringProvider: T.()-> String): String{
+       return stringProvider.invoke(self)
+    }
 
     open fun print(message: String){
         if(mute) return
@@ -27,13 +35,18 @@ abstract class PrintableBase<T : PrintableBase<T>>(val printHelper: PrintHelper 
 
     fun print(key: ValueBased){
         if(mute) return
-        muteCondition?.let {
-            val shouldMute = it.invoke(self)
-            if(!shouldMute){
-                println(templateRegistry.getRecord(key)?.invoke()?:templateNotFound(key))
-            }
-        }?:run {
-            println(templateRegistry.getRecord(key)?.invoke()?:templateNotFound(key))
+        val shouldMute = muteCondition?.invoke(self)?:false
+        if(!shouldMute){
+            val message = formatString(templateRegistry.getRecord(key)?:templateNotFound)
+            println(message)
+        }
+    }
+
+    fun print(template: PrintableTemplate<T>){
+        if(mute) return
+        val shouldMute = muteCondition?.invoke(self)?:false
+        if(!shouldMute){
+            println(formatString(template.template))
         }
     }
 
@@ -53,7 +66,7 @@ abstract class PrintableBase<T : PrintableBase<T>>(val printHelper: PrintHelper 
         rows.forEach { println(rowToString(it)) }
     }
 
-    fun setTemplate(key: ValueBased, templateProvider:()-> String){
+    fun setTemplate(key: ValueBased, templateProvider:T.()-> String){
         templateRegistry.addRecord(key, templateProvider)
     }
 

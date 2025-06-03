@@ -36,7 +36,7 @@ class BindingHub<DTO, D, E, F_DTO, FD, FE>(
         binding: RelationDelegate<DTO, D, E,  F_DTO,  FD,  FE, *>
     ): RelationDelegate<DTO, D, E,  F_DTO,  FD,  FE, *>
     {
-        relationDelegates[binding.componentType.completeName] = binding
+        relationDelegates[binding.completeName] = binding
         return binding
     }
 
@@ -45,7 +45,7 @@ class BindingHub<DTO, D, E, F_DTO, FD, FE>(
     )
     : ComplexDelegate<DTO, D, E, F_DTO,  FD,  FE>
     {
-        complexDelegateMap[binding.componentType.completeName] = binding
+        complexDelegateMap[binding.completeName] = binding
         return binding
     }
 

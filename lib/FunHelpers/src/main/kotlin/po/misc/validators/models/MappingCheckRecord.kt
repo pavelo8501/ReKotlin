@@ -20,6 +20,9 @@ data class MappingCheckRecord(
     var message: String = "Check never run"
         private set
 
+    override fun toString(): String {
+       return columnName
+    }
 
 }
 

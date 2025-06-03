@@ -1,21 +1,18 @@
 package po.misc.validators.helpers
 
 import po.misc.validators.models.InstanceRecord
-import po.misc.validators.models.InstancedCheckV2
+import po.misc.validators.models.InstancedCheck
 import po.misc.validators.models.MappingCheckRecord
-import po.misc.validators.models.MappingCheckV2
-import po.misc.validators.models.ReportRecord
-import po.misc.validators.models.ValidationInstance
+import po.misc.validators.reports.ReportRecord
 
 
-
-fun <T: Any> InstancedCheckV2<T>.conditionTrue(
+fun <T: Any> InstancedCheck<T>.conditionTrue(
     validatable: InstanceRecord<T>,
     failureMessage: String,
     predicate: (T)-> Boolean
 ): ReportRecord {
     val result = predicate.invoke(validatable.instance)
-    val reportRecord = ReportRecord(validatable.propertyRecord, "N/A", null)
+    val reportRecord = ReportRecord(validatable.propertyRecord?.propertyName?:"N/A", "N/A")
     return if (result) {
         reportRecord.setSuccess()
     } else {
@@ -23,20 +20,20 @@ fun <T: Any> InstancedCheckV2<T>.conditionTrue(
     }
 }
 
-fun InstancedCheckV2<*>.reportWarning(
+fun InstancedCheck<*>.reportWarning(
     message: String,
     mappingRecord: MappingCheckRecord
 ): ReportRecord {
 
     val mappingPropertyRecord = mappingRecord.propertyRecord
     return if (mappingPropertyRecord != null) {
-        ReportRecord(mappingPropertyRecord, mappingRecord.columnName, null).setWarning(message)
+        ReportRecord(mappingPropertyRecord.propertyName, mappingRecord.columnName).setWarning(message)
     } else {
         reportWarning("Mapping between column: ${mappingRecord.columnName} and its property failed, skipping", mappingRecord)
     }
 }
 
-fun InstancedCheckV2<*>.reportWarning(
+fun InstancedCheck<*>.reportWarning(
     message: String,
     mappingRecords: List<MappingCheckRecord>
 ): List<ReportRecord> {

@@ -5,6 +5,7 @@ import po.exposify.dto.components.bindings.property_binder.interfaces.Observable
 import po.exposify.dto.components.tracker.interfaces.TrackableDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.models.Component
 import po.exposify.dto.models.ComponentType
 import po.misc.interfaces.Identifiable
 import po.misc.time.ExecutionTimeStamp
@@ -17,11 +18,10 @@ class DTOTracker<DTO: ModelDTO, DATA: DataModel>(
     internal val dto : CommonDTO<DTO, DATA, *>,
    @PublishedApi internal val config : TrackerConfig = TrackerConfig(),
     val componentType : ComponentType = ComponentType.Tracker
-): MeasuredContext, TrackableDTO, Identifiable by componentType {
+): Component(ComponentType.Tracker), MeasuredContext, TrackableDTO{
 
-    override val componentName : String get() = config.name?:dto.componentName
     override val executionTimeStamp: ExecutionTimeStamp = ExecutionTimeStamp(dto.componentName, dto.id.toString())
-    private var activeRecord : TrackerRecord = TrackerRecord(dto.id, CrudOperation.Create, componentName)
+    private var activeRecord : TrackerRecord = TrackerRecord(this, dto.id, CrudOperation.Create, dto.componentName)
     private val trackRecords : MutableList<TrackerRecord> = mutableListOf()
 
     override val records : List<ObservableData> get() = trackRecords.toList()
@@ -41,7 +41,7 @@ class DTOTracker<DTO: ModelDTO, DATA: DataModel>(
         if(activeRecord.operation == CrudOperation.Initialize){
             addTrackResult(CrudOperation.Initialize)
         }
-        activeRecord = TrackerRecord(dto.id, operation, module?.completeName?:"")
+        activeRecord = TrackerRecord(this, dto.id, operation, module?.completeName?:"")
         trackRecords.add(activeRecord)
         return startTimer()
     }

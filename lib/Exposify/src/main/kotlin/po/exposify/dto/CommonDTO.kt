@@ -11,8 +11,10 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.dto.enums.DTOInitStatus
 import po.exposify.dto.components.tracker.DTOTracker
+import po.exposify.dto.models.Component
 import po.exposify.dto.models.ComponentType
 import po.exposify.dto.models.SourceObject
+import po.exposify.dto.models.provideType
 import po.exposify.exceptions.InitException
 import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.castOrOperationsEx
@@ -25,7 +27,7 @@ import java.util.UUID
 
 abstract class CommonDTO<DTO, DATA, ENTITY>(
    val dtoClass: DTOBase<DTO, DATA, ENTITY>
-): Identifiable,  ModelDTO where DTO : ModelDTO,  DATA: DataModel , ENTITY: LongEntity {
+): Component(ComponentType.CommonDTO),  Identifiable,  ModelDTO where DTO : ModelDTO,  DATA: DataModel , ENTITY: LongEntity {
 
     val dtoClassConfig: DTOConfig<DTO, DATA, ENTITY>
         get() {
@@ -42,9 +44,11 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     val dataType:  TypeRecord<DATA>
         get() = registry.getRecord<DATA, InitException>(SourceObject.Data).castOrInitEx()
 
-    val type: ComponentType get() = ComponentType.CommonDTO
-    override val componentName: String get()= type.componentName
-    override val completeName: String get()= type.completeName
+
+//    override val componentName: String get()= type.componentName
+//    override val completeName: String get() {
+//        return completeName
+//    }
 
 
     val dtoId : Int get() = UUID.randomUUID().hashCode()
@@ -81,6 +85,10 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         get() {
             return trackerParameter ?: DTOTracker(this)
         }
+
+    init {
+        provideType(dtoType)
+    }
 
     fun provideInsertedEntity(entity: ENTITY): ENTITY {
         entityParameter = entity

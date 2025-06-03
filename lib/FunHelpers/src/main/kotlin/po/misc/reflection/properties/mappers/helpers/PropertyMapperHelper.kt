@@ -11,9 +11,9 @@ import po.misc.types.TypeRecord
 import po.misc.types.castOrThrow
 import po.misc.types.safeCast
 import po.misc.validators.MappingValidator
-import po.misc.validators.models.InstancedCheckV2
+import po.misc.validators.models.InstancedCheck
 import po.misc.validators.models.MappingCheckRecord
-import po.misc.validators.models.MappingCheckV2
+import po.misc.validators.models.MappingCheck
 import po.misc.validators.models.ValidationClass
 import po.misc.validators.models.ValidationInstance
 import kotlin.reflect.KProperty
@@ -44,19 +44,20 @@ inline fun <reified T : Any> createPropertyMap(
 }
 
 fun <T: Any>  PropertyMapper.mapperCheck(
+    checkName: String,
     mapperItem:  MappablePropertyRecord<*>,
     validationObject: ValidationClass<T>
-): MappingCheckV2<T>{
-    val validator = this.propertyValidator
-    return MappingCheckV2<T>(validationObject.component, mapperItem.classTypeRecord.component1(), validationObject, validator)
+): MappingCheck<T>{
+    return MappingCheck(checkName, validationObject.component,  mapperItem.classTypeRecord.component1(), validationObject)
 }
 
-fun <T: Any>  PropertyMapper.mapperInstancedCheck(
+fun <T: Any>  PropertyMapper.mapperCheck(
+    checkName: String,
     mapperItem:  MappablePropertyRecord<*>,
     validationInstance: ValidationInstance<T>
-): InstancedCheckV2<T>{
-    val validator = this.propertyValidator
-    return InstancedCheckV2(validationInstance.component, mapperItem.classTypeRecord.component1(), validationInstance.records, validator)
+): InstancedCheck<T>{
+
+    return InstancedCheck(checkName, validationInstance.component, mapperItem.classTypeRecord.component1(), validationInstance)
 }
 
 fun List<ColumnMetadata>.toMappingCheckRecords(

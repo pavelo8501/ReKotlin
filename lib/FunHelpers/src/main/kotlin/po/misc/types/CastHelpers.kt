@@ -11,6 +11,19 @@ inline fun <reified T: Any> Any.safeCast(): T? {
     return this as? T
 }
 
+fun <T: Any> Any.safeCast(
+    kClass: KClass<T>
+):T? {
+    return try {
+        kClass.cast(this)
+    } catch (e: ClassCastException) {
+       null
+    }
+}
+
+
+
+
 inline fun <reified BASE : Any> Any?.safeBaseCast(): BASE? {
     return when {
         this == null -> null

@@ -6,7 +6,7 @@ import po.lognotify.classes.notification.NotificationProvider
 import po.lognotify.classes.notification.enums.EventType
 import po.lognotify.classes.notification.sealed.DataProvider
 import po.lognotify.classes.notification.sealed.ProviderTask
-import po.misc.data.console.ColourEnum
+import po.misc.data.console.Colour
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.helpers.StaticHelper
 import po.misc.time.ExecutionTimeStamp
@@ -48,7 +48,7 @@ data class Notification(
 
     val header : String
         get() = """
-           ${makeOfColour(ColourEnum.BRIGHT_BLUE,"[${nestingLevel} Start")} ${provider.name} @ $timestamp | Module: ${provider.module}]
+           ${makeOfColour(Colour.BRIGHT_BLUE,"[${nestingLevel} Start")} ${provider.name} @ $timestamp | Module: ${provider.module}]
            $coroutineInfo
         """.trimIndent()
 
@@ -66,7 +66,7 @@ data class Notification(
 
         val result = """
            ${makeOfColour(
-                ColourEnum.BRIGHT_BLUE,
+                Colour.BRIGHT_BLUE,
                 "${SeverityLevel.emojiByValue(severity)}[${provider.name} in ${provider.module} $byActor @ ${currentTime}]")}->${makeOfColour(message,severity,null) }
         """.trimIndent()
         return result

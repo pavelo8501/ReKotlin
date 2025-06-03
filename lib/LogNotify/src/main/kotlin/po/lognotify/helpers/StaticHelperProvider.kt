@@ -1,6 +1,6 @@
 package po.lognotify.helpers
 
-import po.misc.data.console.ColourEnum
+import po.misc.data.console.Colour
 import po.lognotify.enums.SeverityLevel
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -28,17 +28,17 @@ interface StaticHelper{
             return "$indent $message"
         }
 
-    fun makeOfColour(message: String, severity : SeverityLevel, overloadColor: ColourEnum? = null): String{
+    fun makeOfColour(message: String, severity : SeverityLevel, overloadColor: Colour? = null): String{
         return when(severity){
 
             SeverityLevel.EXCEPTION -> {
-                makeOfColour(ColourEnum.RED, message)
+                makeOfColour(Colour.RED, message)
             }
             SeverityLevel.WARNING -> {
-                makeOfColour(ColourEnum.YELLOW, message)
+                makeOfColour(Colour.YELLOW, message)
             }
             SeverityLevel.SYS_INFO ->{
-                makeOfColour(ColourEnum.GREEN, message)
+                makeOfColour(Colour.GREEN, message)
             }
             SeverityLevel.INFO -> {
                 message
@@ -46,7 +46,7 @@ interface StaticHelper{
         }
     }
 
-    fun makeOfColour(color: ColourEnum, message: String): String{
-        return "${color.colourStr}$message${ColourEnum.RESET.colourStr}"
+    fun makeOfColour(color: Colour, message: String): String{
+        return "${color.colourStr}$message${Colour.RESET.colourStr}"
     }
 }

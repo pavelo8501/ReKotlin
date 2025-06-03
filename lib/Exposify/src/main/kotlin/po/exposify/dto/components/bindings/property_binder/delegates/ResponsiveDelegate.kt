@@ -8,24 +8,26 @@ import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.helpers.getPropertyRecord
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.models.Component
 import po.exposify.dto.models.ComponentType
 import po.exposify.dto.models.SourceObject
+import po.exposify.dto.models.componentInstance
+import po.exposify.dto.models.provideType
 import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.getOrOperationsEx
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.ValueBased
 import po.misc.reflection.properties.mappers.models.PropertyRecord
 import po.misc.registries.callback.TypedCallbackRegistry
-import po.misc.validators.models.MappingCheckV2
+import po.misc.validators.models.MappingCheck
 import kotlin.Any
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty
 
 sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
-    protected val hostingDTO: CommonDTO<DTO, D, E>,
-    val componentType: ComponentType = ComponentType.ResponsiveDelegate
-): ReadWriteProperty<DTO, V>, Identifiable by componentType
+    protected val hostingDTO: CommonDTO<DTO, D, E>
+): ReadWriteProperty<DTO, V>, Identifiable
       where DTO: ModelDTO, D: DataModel, E: LongEntity
 {
     enum class UpdateType(override val value : Int): ValueBased{
@@ -35,6 +37,11 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
         CHANGE(4)
     }
 
+    val componentType: Component get() = componentInstance(ComponentType.ResponsiveDelegate, hostingDTO.dtoType)
+
+    override val componentName: String get() = componentType.componentName
+    override val completeName: String get() = componentType.completeName
+
     var dataPropertyParameter:KMutableProperty1<D, V>? = null
     val dataProperty:KMutableProperty1<D, V>
         get() = dataPropertyParameter.getOrOperationsEx()
@@ -42,8 +49,6 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
     var entityPropertyParameter:KMutableProperty1<E, V>? = null
     val entityProperty:KMutableProperty1<E, V>
         get() = entityPropertyParameter.getOrOperationsEx()
-
-    val type: ComponentType = ComponentType.ResponsiveDelegate
 
     protected var onPropertyInitialized: ((KProperty<*>)-> Unit)? = null
     private var propertyParameter : KProperty<*>? = null
@@ -60,8 +65,8 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
     var activeValue : V? = null
     var valueUpdated : Boolean = false
 
-    protected val subscriptions = TypedCallbackRegistry<ObservableData, Unit>()
-    abstract val propertyChecks : List<MappingCheckV2<V>>
+    protected val subscriptions : TypedCallbackRegistry<ObservableData, Unit> = TypedCallbackRegistry()
+    abstract val propertyChecks : List<MappingCheck<V>>
 
     private fun notifyUpdate(type: UpdateType, value: V){
         subscriptions.trigger(
@@ -130,7 +135,7 @@ class SerializedDelegate<DTO, D, E, V: Any> @PublishedApi internal constructor(
     dto : CommonDTO<DTO, D, E>,
     serializedDataProperty:KMutableProperty1<D, V>,
     serializedEntityProperty:KMutableProperty1<E, V>,
-    override val  propertyChecks : List<MappingCheckV2<V>>
+    override val  propertyChecks : List<MappingCheck<V>>
 ) : ResponsiveDelegate<DTO, D, E, V>(dto)
         where DTO: ModelDTO, D: DataModel, E: LongEntity
 {
@@ -145,7 +150,7 @@ class PropertyDelegate<DTO, D, E, V: Any> @PublishedApi internal constructor (
     dto:  CommonDTO<DTO, D, E>,
     datProperty:KMutableProperty1<D, V>?,
     entProperty :KMutableProperty1<E, V>?,
-    override var  propertyChecks : MutableList<MappingCheckV2<V>> = mutableListOf()
+    override var  propertyChecks : MutableList<MappingCheck<V>> = mutableListOf()
 ): ResponsiveDelegate <DTO, D, E, V>(dto)
         where DTO: ModelDTO, D: DataModel, E: LongEntity
 {

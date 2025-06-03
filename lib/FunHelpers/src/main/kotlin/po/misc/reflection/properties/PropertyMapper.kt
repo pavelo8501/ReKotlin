@@ -12,10 +12,10 @@ import po.misc.types.castBaseOrThrow
 import po.misc.types.castOrThrow
 import po.misc.types.getOrThrow
 import po.misc.types.safeCast
-import po.misc.validators.models.ClassMappingReport
-import po.misc.validators.models.InstancedCheckV2
+import po.misc.validators.reports.MappingReport
+import po.misc.validators.models.InstancedCheck
 import po.misc.validators.models.MappingCheckRecord
-import po.misc.validators.models.MappingCheckV2
+import po.misc.validators.models.MappingCheck
 import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.collections.set
@@ -27,7 +27,7 @@ class PropertyMapper {
     val mappedProperties : MutableMap<ValueBased, PropertyMapperRecord<*>> = mutableMapOf()
     val propertyValidator :MappingValidator = MappingValidator()
 
-    private fun <T: Any> requestSourceData(
+    fun <T: Any> requestSourceData(
         key: ValueBased,
         component: Identifiable,
         requestType: MappingValidator.MappedPropertyValidator
@@ -37,7 +37,7 @@ class PropertyMapper {
 
         return  when(requestType){
             MappingValidator.MappedPropertyValidator.NON_NULLABLE->{
-                mapperRecord.columnMetadata.filter { !it.isNullable && !it.hasDefault }.toMappingCheckRecords(mapperRecord)
+                mapperRecord.columnMetadata.filter { !it.isNullable && !it.hasDefault && !it.isForeignKey }.toMappingCheckRecords(mapperRecord)
             }
             MappingValidator.MappedPropertyValidator.PARENT_SET->{
                 mapperRecord.columnMetadata.filter { it.isForeignKey }.toMappingCheckRecords(mapperRecord)
@@ -49,19 +49,21 @@ class PropertyMapper {
     }
 
     fun <T: Any> executeCheck(
-        check : MappingCheckV2<T>,
+        check : MappingCheck<T>,
         validatorType: MappingValidator.MappedPropertyValidator
-    ):ClassMappingReport {
-        val sourceRecords = requestSourceData<T>(check.fromKey, check.component, validatorType)
+    ):MappingReport {
+        val sourceRecords = requestSourceData<T>(check.sourceKey, check.component, validatorType)
+        check.setMappings(sourceRecords)
         check.validatorType = validatorType
         return propertyValidator.executeCheck(check, sourceRecords)
     }
 
     fun <T: Any> executeCheck(
-        check : InstancedCheckV2<T>,
+        check : InstancedCheck<T>,
         validatorType: MappingValidator.MappedPropertyValidator
-    ):ClassMappingReport {
-        val sourceRecords = requestSourceData<T>(check.fromKey, check.component, validatorType)
+    ):MappingReport {
+        val sourceRecords = requestSourceData<T>(check.sourceKey, check.component, validatorType)
+        check.setMappings(sourceRecords)
         check.validatorType = validatorType
         return propertyValidator.executeCheck(check, sourceRecords)
     }

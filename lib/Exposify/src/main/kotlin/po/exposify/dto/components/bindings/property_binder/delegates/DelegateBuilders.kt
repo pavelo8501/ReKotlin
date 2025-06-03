@@ -6,7 +6,7 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
 import po.exposify.dto.interfaces.ModelDTO
-import po.misc.validators.models.MappingCheckV2
+import po.misc.validators.models.MappingCheck
 import kotlin.reflect.KMutableProperty1
 
 

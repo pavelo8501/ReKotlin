@@ -2,21 +2,22 @@ package po.exposify.dto.components.tracker
 
 import po.exposify.dto.components.bindings.property_binder.interfaces.ObservableData
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.models.Component
 import po.exposify.dto.models.ComponentType
 import po.misc.time.ExecutionTimeStamp
 
 data class TrackerRecord(
+    val component: DTOTracker<*,*>,
     override var id : Long,
     override val operation: CrudOperation = CrudOperation.Create,
     override val methodName: String = "",
     override val propertyName: String = "",
     override val oldValue : Any? = null,
     override val newValue: Any = "",
-    val componentType: ComponentType = ComponentType.Tracker
 ) : ObservableData {
 
-    override val componentName: String get()= componentType.componentName
-    override val completeName: String get()= componentType.completeName
+    override val componentName: String get()= component.componentName
+    override val completeName: String get()= component.completeName
 
     var executionTimestamp: ExecutionTimeStamp? = null
     var trackResult : Int = 0

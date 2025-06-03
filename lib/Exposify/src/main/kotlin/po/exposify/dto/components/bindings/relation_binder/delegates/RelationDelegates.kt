@@ -11,6 +11,7 @@ import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.components.tracker.extensions.addTrackerInfo
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.models.Component
 import po.exposify.dto.models.ComponentType
 import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.InitException
@@ -30,11 +31,11 @@ sealed class RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V: Any>(
     val childModel: DTOClass<F_DTO, FD, FE>,
     val foreignEntityProperty: KMutableProperty1<FE, ENTITY>,
     val typeRecord : TypeRecord<V>,
-    val componentType: ComponentType = ComponentType.RelationDelegate
-): TasksManaged, Identifiable by componentType
+): Component(ComponentType.RelationDelegate),  TasksManaged, Identifiable
         where DTO: ModelDTO, DATA: DataModel,  ENTITY : LongEntity,
               F_DTO: ModelDTO,  FD: DataModel, FE : LongEntity
 {
+
 
     abstract val cardinality : Cardinality
 

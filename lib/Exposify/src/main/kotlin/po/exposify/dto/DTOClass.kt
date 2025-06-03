@@ -11,6 +11,7 @@ import po.exposify.dto.components.SwitchQuery
 import po.exposify.dto.components.WhereQuery
 import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.components.tracker.extensions.addTrackerInfo
+import po.exposify.dto.models.Component
 import po.exposify.dto.models.ComponentType
 import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.InitException
@@ -25,22 +26,14 @@ import po.lognotify.classes.task.TaskHandler
 import po.lognotify.lastTaskHandler
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.ValueBased
-import po.misc.validators.models.CheckStatus
-import po.misc.reflection.properties.PropertyMapper
 import po.misc.reflection.properties.mappers.models.PropertyMapperRecord
-import po.misc.registries.callback.CallbackRegistry
 import po.misc.registries.callback.TypedCallbackRegistry
-import po.misc.types.TypeRecord
-import po.misc.registries.type.TypeRegistry
 import po.misc.serialization.SerializerInfo
 import po.misc.types.toSimpleNormalizedKey
-import po.misc.validators.helpers.result
 import kotlin.reflect.KType
 
 
-sealed class DTOBase<DTO, DATA, ENTITY>(
-    val componentType: ComponentType.DTOClass = ComponentType.DTOClass
-): ClassDTO, Identifiable by componentType, TasksManaged
+sealed class DTOBase<DTO, DATA, ENTITY>(): Component(ComponentType.DTOClass),  ClassDTO, Identifiable, TasksManaged
         where DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity
 {
     enum class DTOClassEvents(override val value: Int) : ValueBased{
