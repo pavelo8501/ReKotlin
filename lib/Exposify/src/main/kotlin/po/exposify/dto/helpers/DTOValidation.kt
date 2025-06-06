@@ -13,8 +13,10 @@ import po.misc.registries.type.TypeRegistry
 import po.misc.validators.MappingValidator
 import po.misc.validators.helpers.conditionTrue
 import po.misc.validators.helpers.containsSame
+import po.misc.validators.helpers.finalCheckStatus
 import po.misc.validators.helpers.sequentialByInstance
 import po.misc.validators.helpers.sequentialBySource
+import po.misc.validators.models.CheckStatus
 
 inline fun <reified DTO,  reified D, reified E> DTOBase<DTO, D, E>.setupValidation(
     propertyMapper : PropertyMapper,
@@ -53,11 +55,12 @@ inline fun <reified DTO,  reified D, reified E> DTOBase<DTO, D, E>.setupValidati
             entityRecord,
             attachedValidation).sequentialByInstance { validatable, sourceRecord ->
             conditionTrue(validatable,"${validatable.instance.componentName} not initialized. Instantiate service before this call"){
-                initialized == true
+                initialized
             }
         }
         propertyMapper.executeCheck(attachedBindingsSet, MappingValidator.MappedPropertyValidator.FOREIGN_SET)
     }
-    return true
+    val finalStatus = propertyMapper.propertyValidator.reportList.finalCheckStatus()
+    return finalStatus != CheckStatus.FAILED
 }
 

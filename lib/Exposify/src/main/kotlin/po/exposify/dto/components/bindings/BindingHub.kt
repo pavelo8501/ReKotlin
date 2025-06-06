@@ -13,6 +13,7 @@ import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.ModuleType
+import po.exposify.dto.models.SourceObject
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.IdentifiableModule
 
@@ -23,7 +24,7 @@ class BindingHub<DTO, D, E, F_DTO, FD, FE>(
 ): IdentifiableModule by moduleType
         where  DTO : ModelDTO, D: DataModel, E: LongEntity, F_DTO: ModelDTO, FD: DataModel, FE: LongEntity
 {
-    val qualifiedName: String = "BindingHub[${hostingDTO.type.componentName}]"
+    val qualifiedName: String = "BindingHub[${hostingDTO.componentName}]"
     val dtoClass : DTOBase<DTO, D, E>  get() = hostingDTO.dtoClass
     val daoService: DAOService<DTO, D, E> get() = hostingDTO.daoService
 
@@ -73,56 +74,47 @@ class BindingHub<DTO, D, E, F_DTO, FD, FE>(
     }
 
     /***
-        INSERT Statement
-        1) Updating DTO properties from data
-        2) Creating Entity (entity in this case should be complete)
-        3) Creating DTO without data
-        4) Launching update on child binding hub together with its data
-    ***/
-//    internal fun createFromData(data: D){
-//        if(dtoClass is RootDTO){
-//           val insertedEntity = daoService.save { entity->
-//                responsiveDelegates.values.forEach { it.updateDTOProperty(data, entity) }
-//            }
-//            hostingDTO.provideInsertedEntity(insertedEntity)
-//        }else{
-//            responsiveDelegates.values.forEach { it.updateDTOProperty(data, null) }
-//        }
-//        relationDelegates.values.forEach { it.createFromData(data) }
-//    }
-
-
-    internal fun createByData(){
-        val insertedEntity = daoService.save { entity ->
-            responsiveDelegates.values.forEach {responsiveDelegate->
-                responsiveDelegate.updateDTOProperty(hostingDTO.dataModel, entity)
-            }
+     * updateEntity update entity properties
+     * relations are not yet assigned
+     */
+    internal fun updateEntity(entity: E) {
+        responsiveDelegates.values.forEach { responsiveDelegate ->
+            responsiveDelegate.updateDTOProperty(hostingDTO.dataModel, entity)
         }
-        hostingDTO.provideInsertedEntity(insertedEntity)
+    }
+
+    /***
+     * createChildByData child DTO creation with parent finalized
+     */
+    internal fun createChildByData(){
         getRelationDelegates(hostingDTO.cardinality).forEach {relationDelegate->
             relationDelegate.createByData()
         }
     }
 
-    internal fun <F_DTO2: ModelDTO, FD2: DataModel, FE2: LongEntity> createByData(
-        childDTO: CommonDTO<F_DTO2, FD2, FE2>,
-        bindFn: (FE2) -> Unit
-    ){
-        val insertedEntity = childDTO.daoService.saveWithParent { entity->
-            childDTO.bindingHub.responsiveDelegates.values.forEach {responsiveDelegate->
-                responsiveDelegate.updateDTOProperty(childDTO.dataModel, entity)
-            }
-            bindFn.invoke(entity)
-            childDTO.bindingHub.getRelationDelegates().forEach { relationDelegate ->
-                relationDelegate.createByData()
-            }
-        }
-        childDTO.provideInsertedEntity(insertedEntity)
-    }
+
+
+
+//    internal fun <F_DTO2: ModelDTO, FD2: DataModel, FE2: LongEntity> createByData(
+//        childDTO: CommonDTO<F_DTO2, FD2, FE2>,
+//        bindFn: (FE2) -> Unit
+//    ){
+//        val insertedEntity = childDTO.daoService.saveWithParent { entity->
+//            childDTO.bindingHub.responsiveDelegates.values.forEach {responsiveDelegate->
+//                responsiveDelegate.updateDTOProperty(childDTO.dataModel, entity)
+//            }
+//            childDTO.bindingHub.getRelationDelegates().forEach { relationDelegate ->
+//                relationDelegate.createByData()
+//            }
+//            bindFn.invoke(entity)
+//        }
+//        childDTO.provideInsertedEntity(insertedEntity)
+//      //  childDTO.provideInsertedEntity(insertedEntity)
+//    }
 
     fun createByEntity(){
         responsiveDelegates.values.forEach {responsiveDelegate->
-            responsiveDelegate.updateDTOProperty(hostingDTO.entity)
+            responsiveDelegate.updateDTOProperty(hostingDTO.getEntity(hostingDTO))
         }
         getRelationDelegates(hostingDTO.cardinality).forEach {relationDelegate->
             relationDelegate.createByEntity()
@@ -131,18 +123,10 @@ class BindingHub<DTO, D, E, F_DTO, FD, FE>(
 
     fun updateFromData(data:D){
         responsiveDelegates.values.forEach {
-            it.updateDTOProperty(data, hostingDTO.entity)
+            it.updateDTOProperty(data, hostingDTO.getEntity(hostingDTO))
         }
         getRelationDelegates(hostingDTO.cardinality).forEach {relationDelegate->
             relationDelegate.updateFromData(data)
         }
     }
-
-    fun updateEntity2(entity: E):E{
-        responsiveDelegates.values.forEach {
-            it.updateDTOProperty(entity)
-        }
-        return entity
-    }
-
 }

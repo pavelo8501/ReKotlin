@@ -9,10 +9,10 @@ import po.misc.validators.reports.ReportRecord
 fun <T: Any> InstancedCheck<T>.conditionTrue(
     validatable: InstanceRecord<T>,
     failureMessage: String,
-    predicate: (T)-> Boolean
+    predicate: T.()-> Boolean
 ): ReportRecord {
     val result = predicate.invoke(validatable.instance)
-    val reportRecord = ReportRecord(validatable.propertyRecord?.propertyName?:"N/A", "N/A")
+    val reportRecord = ReportRecord(validatable.propertyRecord.propertyName, "N/A")
     return if (result) {
         reportRecord.setSuccess()
     } else {

@@ -1,26 +1,45 @@
 package po.exposify.dto.models
 
+import org.jetbrains.exposed.dao.LongEntity
+import po.exposify.dto.CommonDTO
+import po.exposify.dto.interfaces.DataModel
+import po.exposify.dto.interfaces.ModelDTO
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.IdentifiableModule
 import po.misc.interfaces.ValueBased
 import po.misc.interfaces.ValueBasedClass
 import po.misc.types.TypeRecord
 
-fun <T:Component> T.provideType(source: TypeRecord<*>):T{
-    sourceType = source
-    return this
+//fun <DTO: ModelDTO> DTO.provideType(source: TypeRecord<*>, dtoId: DTOId<DTO>):DTO{
+//    component.sourceType = source
+//    component.componentId = dtoId.id
+//    return this
+//}
+
+
+fun <DTO: ModelDTO, D: DataModel, E: LongEntity> componentInstance(type: ComponentType, dto: CommonDTO<DTO, D, E>):Component<DTO>{
+    return object : Component<DTO>(type,dto) {}
 }
 
-
-fun componentInstance(type: ComponentType, sourceType: TypeRecord<*>? = null):Component{
-    return object : Component(type, sourceType) {}
-}
-
-abstract class Component(val type: ComponentType, var sourceType: TypeRecord<*>? = null): ValueBased{
+abstract class Component<DTO: ModelDTO>(val type: ComponentType, val source: CommonDTO<DTO, *, *>): ValueBased{
     val componentName: String get() = type.componentName
-    val sourceName: String get() = sourceType?.simpleName?:"N/A"
-    val completeName: String  get() = "${componentName}[${sourceName}]"
-    override val value: Int = type.value
+    val sourceName: String get() = source.completeName
+    val completeName: String  get() = "${componentName}[${sourceName}"
+    override val value: Int =  type.value
+}
+
+class ComponentClass<DTO: ModelDTO>(val type: ComponentType): ValueBased{
+
+    var componentType: String = "Uninitialized"
+
+    val componentName: String get() = type.componentName
+    val completeName: String  get() = "${componentName}[$componentType"
+    override val value: Int =  type.value
+
+    fun setSourceName(typeName: String){
+        componentType = typeName
+    }
+
 }
 
 
@@ -36,13 +55,16 @@ sealed class ComponentType(override val value: Int): ValueBased{
         override val componentName: String = "DTOClass"
     }
 
-    object ResponsiveDelegate:  ComponentType(3){
-        override val componentName: String = "ResponsiveDelegate"
-
+    object RootClass: ComponentType(8){
+        override val componentName: String = "RootClass"
     }
 
-    object AttachedDelegate:  ComponentType(4){
-        override val componentName: String = "AttachedDelegate"
+    object ResponsiveDelegate:  ComponentType(3){
+        override val componentName: String = "ResponsiveDelegate"
+    }
+
+    object AttachedForeignDelegate:  ComponentType(4){
+        override val componentName: String = "AttachedForeignDelegate"
     }
 
     object ParentDelegate:  ComponentType(5){

@@ -31,12 +31,10 @@ sealed class RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V: Any>(
     val childModel: DTOClass<F_DTO, FD, FE>,
     val foreignEntityProperty: KMutableProperty1<FE, ENTITY>,
     val typeRecord : TypeRecord<V>,
-): Component(ComponentType.RelationDelegate),  TasksManaged, Identifiable
+): Component<DTO>(ComponentType.RelationDelegate, hostingDTO),  TasksManaged, Identifiable
         where DTO: ModelDTO, DATA: DataModel,  ENTITY : LongEntity,
               F_DTO: ModelDTO,  FD: DataModel, FE : LongEntity
 {
-
-
     abstract val cardinality : Cardinality
 
     protected var onPropertyInitialized: ((KProperty<*>)-> Unit)? = null
@@ -63,6 +61,7 @@ sealed class RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V: Any>(
     abstract fun getData(data:DATA):List<FD>
     abstract fun getEntities(entity:ENTITY):List<FE>
     protected abstract fun saveDto(dto:CommonDTO<F_DTO, FD, FE>, updateData: Boolean = false)
+    protected abstract fun saveDto(dto: CommonDTO<F_DTO, FD, FE>, entity:FE)
 
     operator fun getValue(thisRef: DTO, property: KProperty<*>): V {
         return getEffectiveValue()
@@ -78,15 +77,24 @@ sealed class RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V: Any>(
         }
     }
 
-    fun createByData(){
+    protected fun setParentDTO(childDTO: CommonDTO<F_DTO, FD, FE>){
+        childDTO.setForeignDTO(hostingDTO)
+    }
+
+    fun createByData() {
+        val hostingDtoEntity = hostingDTO.getEntity(this)
         val dataList = getData()
-        dataList.forEach {data->
-            val newDto =  childModel.newDTO(data)
+        dataList.forEach { data ->
+            val newDto = childModel.newDTO(data)
             newDto.addTrackerInfo(CrudOperation.Insert, this)
-            hostingDTO.bindingHub.createByData(newDto){newEntity->
-                foreignEntityProperty.set(newEntity, hostingDTO.entity)
-                saveDto(newDto)
+            val insertedEntity = newDto.daoService.save {
+                newDto.bindingHub.updateEntity(it)
+                foreignEntityProperty.set(it, hostingDtoEntity)
             }
+            saveDto(newDto, insertedEntity)
+        }
+        getChildDTOs().forEach { savedDto ->
+            savedDto.bindingHub.createChildByData()
         }
     }
 
@@ -97,18 +105,13 @@ sealed class RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V: Any>(
             if (found != null) {
                 found.bindingHub.updateFromData(data)
             } else {
-                val newDto = childModel.newDTO(data)
-                newDto.addTrackerInfo(CrudOperation.Insert, this)
-                hostingDTO.bindingHub.createByData(newDto) { newEntity ->
-                    foreignEntityProperty.set(newEntity, hostingDTO.entity)
-                    saveDto(newDto)
-                }
+                TODO("This branch not yet tested")
             }
         }
     }
 
     fun createByEntity(){
-        getEntities(hostingDTO.entity).forEach { entity->
+        getEntities(hostingDTO.getEntity(this@RelationDelegate)).forEach { entity->
            val newDto = childModel.createDTO(entity, CrudOperation.Select)
             saveDto(newDto, true)
         }
@@ -149,7 +152,14 @@ class OneToManyDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>(
         return entitiesProperty.get(entity).toList()
     }
 
+    override fun saveDto(dto: CommonDTO<F_DTO, FD, FE>, entity:FE){
+        setParentDTO(dto)
+        dto.finalizeCreation(entity, cardinality)
+        dtos.add(dto)
+    }
+
     override fun saveDto(dto: CommonDTO<F_DTO, FD, FE>, updateData: Boolean) {
+        setParentDTO(dto)
         dtos.add(dto)
         if(updateData){
            val mutable = dataProperty.get(hostingDTO.dataModel)
@@ -190,7 +200,14 @@ class OneToOneDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>(
       return listOf(entityProperty.get(entity))
     }
 
+    override fun saveDto(dto: CommonDTO<F_DTO, FD, FE>, entity:FE) {
+        setParentDTO(dto)
+        dto.finalizeCreation(entity, cardinality)
+        childDTO = dto
+    }
+
     override fun saveDto(dto: CommonDTO<F_DTO, FD, FE>, updateData: Boolean) {
+        setParentDTO(dto)
         childDTO = dto
         if(updateData){
             dataProperty.set(hostingDTO.dataModel, dto.dataModel)

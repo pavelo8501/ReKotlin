@@ -17,7 +17,7 @@ class MappingValidator() {
         FOREIGN_SET(3)
     }
 
-    private val reportList: MutableList<MappingReport> = mutableListOf()
+    val reportList: MutableList<MappingReport> = mutableListOf()
 
     private val ignoreProperties : MutableList<(PropertyRecord<*>)-> Boolean> = mutableListOf()
 
@@ -46,14 +46,6 @@ class MappingValidator() {
                 if (mappingCheck.validatable.validatableRecords.isEmpty()) {
                     mappingCheck.reportWarning("Validatable list is empty", sourceRecord)
                 } else {
-//                    mappingCheck.validatable.validatableRecords.forEach {record->
-//                        ignoreProperties.forEach {condition->
-//                            val shouldIgnore = condition.invoke(record.propertyRecord)
-//                            if(shouldIgnore){
-//                                mappingCheck.setIgnoredMappingRecord(record)
-//                            }
-//                        }
-//                    }
                     mappingCheck.runCheck()
                 }
             }
@@ -61,16 +53,6 @@ class MappingValidator() {
                 if (mappingCheck.validatable.validatableRecords.isEmpty()) {
                     mappingCheck.reportWarning("Validatable list is empty", sourceRecord)
                 } else {
-//                    mappingCheck.validatable.validatableRecords.forEach { record ->
-//                        ignoreProperties.forEach { condition ->
-//                            record.propertyRecord?.let {
-//                                val shouldIgnore = condition.invoke(it)
-//                                if(shouldIgnore){
-//                                    mappingCheck.setIgnoredValidationRecord(record)
-//                                }
-//                            }
-//                        }
-//                    }
                     mappingCheck.runCheck()
                 }
             }
@@ -85,21 +67,4 @@ class MappingValidator() {
         ignoreProperties.add(ignoreCondition)
         return this
     }
-
-//    fun <T : Any> executeCheck(
-//        mappingCheck: InstancedCheck<T>,
-//        sourceRecord: List<MappingCheckRecord>
-//    ): MappingReport {
-//
-//
-//
-//        val checked = if (mappingCheck.validatable. .isEmpty()) {
-//            mappingCheck.reportWarning("Validatable list is empty", sourceRecord)
-//        } else {
-//            mappingCheck.runCheck(sourceRecord)
-//        }
-//        val report = MappingReport.Companion.createReport(mappingCheck, checked)
-//        reportList.add(report)
-//        return report
-//    }
 }

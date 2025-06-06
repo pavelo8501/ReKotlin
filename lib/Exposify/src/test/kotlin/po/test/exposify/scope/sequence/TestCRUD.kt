@@ -38,9 +38,6 @@ class TestCRUD : DatabaseTest(),  TasksManaged {
         val session = TestSessionsContext.SessionIdentity("0", "192.169.1.1")
     }
 
-
-
-
     @Test
     fun `Pick statement is processed in Sequence context`() = runTest {
 
@@ -86,6 +83,8 @@ class TestCRUD : DatabaseTest(),  TasksManaged {
         assertEquals(selectedUser.name, inputUser.name)
         assertEquals(selectedUser.login, inputUser.login)
     }
+
+
     fun `test run n a real db with sequence select`() = runTest{
 
         val connectionInfo = ConnectionInfo(host ="0.0.0.0", port ="5432", dbName = "medprof_postgres", user = "django-api", pwd = "django-api_usrPWD12")

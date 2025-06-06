@@ -78,7 +78,7 @@ class DTOFactory<DTO, DATA, ENTITY>(
             } else {
                 dto.addTrackerInfo(CrudOperation.Initialize, this)
                 dto.initialize()
-                notificator.trigger(FactoryEvents.ON_INITIALIZED, dto)
+                notificator.triggerForAll(FactoryEvents.ON_INITIALIZED, dto)
                 dto
             }
             result
@@ -137,7 +137,7 @@ class DTOFactory<DTO, DATA, ENTITY>(
             }
             val newDto = dtoBlueprint.getConstructor().callBy(dtoBlueprint.getConstructorArgs())
                 .castOrOperationsEx<CommonDTO<DTO, DATA, ENTITY>>("Unable to cast DTO to CommonDTO<DTO, DATA, ENTITY")
-            notificator.trigger(FactoryEvents.ON_CREATED, newDto)
+            notificator.triggerForAll(FactoryEvents.ON_CREATED, newDto)
             dtoPostCreation(newDto)
         }.resultOrException()
 }

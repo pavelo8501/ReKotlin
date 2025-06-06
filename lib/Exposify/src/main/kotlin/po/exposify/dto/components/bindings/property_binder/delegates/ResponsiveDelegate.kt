@@ -12,7 +12,6 @@ import po.exposify.dto.models.Component
 import po.exposify.dto.models.ComponentType
 import po.exposify.dto.models.SourceObject
 import po.exposify.dto.models.componentInstance
-import po.exposify.dto.models.provideType
 import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.getOrOperationsEx
 import po.misc.interfaces.Identifiable
@@ -37,7 +36,7 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
         CHANGE(4)
     }
 
-    val componentType: Component get() = componentInstance(ComponentType.ResponsiveDelegate, hostingDTO.dtoType)
+    val componentType: Component<DTO> get() = componentInstance(ComponentType.ResponsiveDelegate, hostingDTO)
 
     override val componentName: String get() = componentType.componentName
     override val completeName: String get() = componentType.completeName
@@ -69,7 +68,7 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
     abstract val propertyChecks : List<MappingCheck<V>>
 
     private fun notifyUpdate(type: UpdateType, value: V){
-        subscriptions.trigger(
+        subscriptions.triggerForAll(
             type,
             UpdateParams(hostingDTO, CrudOperation.Initialize, "update", propertyName, activeValue, value, this)
         )
@@ -92,7 +91,7 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
     private fun updateEntityProperty(value:V, entity:E?){
         entity?.let { entityProperty.set(it, value) }?:run {
             if(hostingDTO.isEntityInserted){
-                entityProperty.set(hostingDTO.entity, value)
+                entityProperty.set(hostingDTO.getEntity(this@ResponsiveDelegate), value)
             }else{
                 hostingDTO.logger.warn("${hostingDTO.completeName} attempted to update entity not inserted")
             }

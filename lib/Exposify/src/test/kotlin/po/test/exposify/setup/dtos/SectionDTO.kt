@@ -52,17 +52,16 @@ class SectionDTO(
     var jsonLd: String by binding(Section::jsonLd, SectionEntity::jsonLd)
     var langId: Int by binding(Section::langId, SectionEntity::langId)
     var updated: LocalDateTime by binding(Section::updated, SectionEntity::updated)
-
-    val user by attachedReference(UserDTO){user->
-        updatedBy = user.id
-    }
-
-    val page by parentReference(PageDTO){page->
-        pageId = page.id
-    }
-
     var classList: List<ClassData> by serializedBinding(Section::classList, SectionEntity::classList)
     var metaTags: List<MetaData> by serializedBinding(Section::metaTags, SectionEntity::metaTags)
+
+    val user : UserDTO by attachedReference(UserDTO, Section::updatedBy){user->
+
+    }
+
+    val page : PageDTO by parentReference(PageDTO){page->
+        pageId = page.id
+    }
 
     val contentBlocks : List<ContentBlockDTO> by oneToManyOf(
         ContentBlockDTO,

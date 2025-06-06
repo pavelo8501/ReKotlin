@@ -84,7 +84,7 @@ class LoggProcess<E: ProcessableContext<*>>(
         }
     }
 
-    suspend fun observeTask(task: RootTask<*>) {
+    suspend fun observeTask(task: RootTask<*, *>) {
         holder.onProcessStart(this)
         CoroutineScope(CoroutineName("Listener")).launch {
             task.notifier.notifications.collect { notification ->
@@ -93,7 +93,7 @@ class LoggProcess<E: ProcessableContext<*>>(
         }
     }
 
-    fun stopTaskObservation(task: RootTask<*>) {
+    fun stopTaskObservation(task: RootTask<*, *>) {
         val job = listenerJobs[task.key]
         job?.invokeOnCompletion {
             listenerJobs.remove(task.key)

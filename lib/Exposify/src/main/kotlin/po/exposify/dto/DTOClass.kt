@@ -11,11 +11,11 @@ import po.exposify.dto.components.SwitchQuery
 import po.exposify.dto.components.WhereQuery
 import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.components.tracker.extensions.addTrackerInfo
-import po.exposify.dto.models.Component
+import po.exposify.dto.enums.DTOClassStatus
+import po.exposify.dto.models.ComponentClass
 import po.exposify.dto.models.ComponentType
 import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.InitException
-import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.castOrOperationsEx
 import po.exposify.extensions.getOrInitEx
@@ -26,46 +26,69 @@ import po.lognotify.classes.task.TaskHandler
 import po.lognotify.lastTaskHandler
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.ValueBased
-import po.misc.reflection.properties.mappers.models.PropertyMapperRecord
 import po.misc.registries.callback.TypedCallbackRegistry
+import po.misc.registries.type.TypeRegistry
 import po.misc.serialization.SerializerInfo
+import po.misc.types.TypeRecord
 import po.misc.types.toSimpleNormalizedKey
 import kotlin.reflect.KType
 
 
-sealed class DTOBase<DTO, DATA, ENTITY>(): Component(ComponentType.DTOClass),  ClassDTO, Identifiable, TasksManaged
+sealed class DTOBase<DTO, DATA, ENTITY>(): ClassDTO, Identifiable, TasksManaged
         where DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity
 {
     enum class DTOClassEvents(override val value: Int) : ValueBased{
         ON_INITIALIZED(1)
     }
 
+    var status : DTOClassStatus = DTOClassStatus.Undefined
 
     @PublishedApi
     internal var configParameter: DTOConfig<DTO, DATA, ENTITY>? = null
     val config:  DTOConfig<DTO, DATA, ENTITY>
         get() = configParameter.getOrInitEx("DTOConfig uninitialized", ExceptionCode.LAZY_NOT_INITIALIZED)
 
+    abstract val componentClass: ComponentClass<DTO>
+
+    override val componentName: String
+        get() = componentClass.componentName
+
+    override val completeName: String
+        get() = componentClass.completeName
+
+
     override var initialized: Boolean = false
     protected val dtoMap : MutableMap<Long, CommonDTO<DTO, DATA, ENTITY>> = mutableMapOf()
+    protected val notifier : TypedCallbackRegistry<DTOBase<DTO, DATA, ENTITY>, Unit> = TypedCallbackRegistry()
 
     internal val logger : TaskHandler<*> get() = lastTaskHandler()
 
-    internal val notifier : TypedCallbackRegistry<DTOBase<DTO, DATA, ENTITY>, Unit> = TypedCallbackRegistry()
+    private val registryExceptionMessage = "Can not find type record in DTOClass"
+    private val registry:  TypeRegistry get()= config.registry
+    internal val dtoType : TypeRecord<DTO>
+        get() = registry.getRecord<DTO, InitException>(SourceObject.DTO, registryExceptionMessage)
+    internal val dataType : TypeRecord<DATA>
+        get() = registry.getRecord<DATA, InitException>(SourceObject.Data, registryExceptionMessage)
+    internal val entityType : TypeRecord<ENTITY>
+        get() = registry.getRecord<ENTITY, InitException>(SourceObject.Entity, registryExceptionMessage)
 
-
-    internal val dtoType : PropertyMapperRecord<DTO> get() {
-       return config.propertyMap.getMapperRecord<DTO, InitException>(SourceObject.DTO)
+    init {
+        notifier.onKeyOverwrite = { overwrittenKey, _->
+            logger.warn("typedCallbackRegistry notify subscription key: $overwrittenKey overwritten")
+        }
     }
-    internal val entityType : PropertyMapperRecord<ENTITY> get() {
-      return  config.propertyMap.getMapperRecord<ENTITY, InitException>(SourceObject.Entity)
+
+    fun subscribe(component: Identifiable, type: ValueBased, callback: (DTOBase<DTO, DATA, ENTITY>)-> Unit) {
+        notifier.subscribe(component, type, callback)
     }
 
     protected abstract fun  setup()
     @PublishedApi
     internal fun initializationComplete(){
+        componentClass.setSourceName(dtoType.simpleName)
+
         initialized = true
-        notifier.trigger(DTOClassEvents.ON_INITIALIZED, this)
+        notifier.triggerForAll(DTOClassEvents.ON_INITIALIZED, this)
     }
 
     internal fun registerDTO(dto: CommonDTO<DTO, DATA, ENTITY>){
@@ -79,6 +102,10 @@ sealed class DTOBase<DTO, DATA, ENTITY>(): Component(ComponentType.DTOClass),  C
 
     internal fun clearCachedDTOs(){
         dtoMap.clear()
+    }
+
+    internal fun lookupDTO(id: Long): CommonDTO<DTO, DATA, ENTITY>?{
+        return dtoMap[id]
     }
     internal fun lookupDTO(id: Long, operation: CrudOperation): CommonDTO<DTO, DATA, ENTITY>?{
         return dtoMap[id]?.addTrackerInfo(operation, this)
@@ -131,6 +158,10 @@ abstract class RootDTO<DTO, DATA, ENTITY>()
         where DTO: ModelDTO, DATA: DataModel, ENTITY: LongEntity
 {
 
+    override val componentClass: ComponentClass<DTO>
+        get() =  ComponentClass<DTO>(ComponentType.RootClass)
+
+
     private var serviceContextParameter: ServiceContext<DTO, DATA, ENTITY>? = null
     val serviceContext: ServiceContext<DTO, DATA, ENTITY>
         get() = serviceContextParameter.getOrInitEx()
@@ -160,6 +191,9 @@ abstract class DTOClass<DTO, DATA, ENTITY>(
     val parentClass: DTOBase<*, *, *>,
 ): DTOBase<DTO, DATA, ENTITY>(), ClassDTO, TasksManaged
         where DTO: ModelDTO, DATA : DataModel, ENTITY: LongEntity {
+
+    override val componentClass: ComponentClass<DTO>
+        get() =  ComponentClass<DTO>(ComponentType.DTOClass)
 
     fun initialization() {
         if (!initialized){ setup() }

@@ -4,11 +4,8 @@ import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
 import po.exposify.dto.components.bindings.property_binder.delegates.AttachedForeign
-import po.exposify.dto.components.bindings.property_binder.delegates.ParentDelegate
-import po.exposify.dto.components.bindings.property_binder.delegates.ResponsiveDelegate
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.dto.models.ComponentType
 import po.exposify.dto.components.bindings.BindingHub
 import po.misc.validators.models.InstanceRecord
 import po.misc.validators.models.ValidationClass
@@ -41,7 +38,7 @@ fun <DTO, D, E, F_DTO, FD, FE> createValidation(attachedForeignDelegate : Attach
         : ValidationInstance<DTOBase<F_DTO, FD, FE>> where DTO: ModelDTO, D: DataModel, E: LongEntity, F_DTO: ModelDTO,  FD: DataModel, FE: LongEntity
 {
     val attachedValidation = ValidationInstance<DTOBase<F_DTO, FD, FE>>(attachedForeignDelegate.hostingDTO)
-    val record = InstanceRecord(attachedForeignDelegate.attachedClass, attachedForeignDelegate.propertyRecord)
+    val record = InstanceRecord(attachedForeignDelegate.foreignClass, attachedForeignDelegate.propertyRecord)
     attachedValidation.addRecord(record)
     return attachedValidation
 }

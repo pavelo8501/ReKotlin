@@ -2,14 +2,12 @@ package po.lognotify.classes.notification.models
 
 
 import po.lognotify.classes.notification.interfaces.JasonStringSerializable
-import po.lognotify.classes.notification.NotificationProvider
 import po.lognotify.classes.notification.enums.EventType
 import po.lognotify.classes.notification.sealed.DataProvider
 import po.lognotify.classes.notification.sealed.ProviderTask
-import po.misc.data.console.Colour
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.helpers.StaticHelper
-import po.misc.time.ExecutionTimeStamp
+import po.misc.data.styles.Colour
 import java.time.LocalTime
 
 data class Notification(

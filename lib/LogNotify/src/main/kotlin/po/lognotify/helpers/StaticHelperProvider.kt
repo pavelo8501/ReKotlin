@@ -1,7 +1,7 @@
 package po.lognotify.helpers
 
-import po.misc.data.console.Colour
 import po.lognotify.enums.SeverityLevel
+import po.misc.data.styles.Colour
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -30,7 +30,6 @@ interface StaticHelper{
 
     fun makeOfColour(message: String, severity : SeverityLevel, overloadColor: Colour? = null): String{
         return when(severity){
-
             SeverityLevel.EXCEPTION -> {
                 makeOfColour(Colour.RED, message)
             }

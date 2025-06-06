@@ -1,6 +1,7 @@
 package po.exposify.dto.models
 
 import org.jetbrains.exposed.dao.LongEntity
+import po.exposify.dto.CommonDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.extensions.getOrOperationsEx
@@ -38,12 +39,23 @@ sealed class SourceObject<T: Any>(override val value: Int): ValueBased{
 
     object Entity : SourceObject<LongEntity>(3){
         override var name: String = "entity"
-
         fun <T: LongEntity> provideType(record : TypeRecord<T>): Entity {
             typeRecord = record.safeCast()
             name = record.simpleName
             return this
         }
+    }
 
+    object CommonDTOType : SourceObject<CommonDTO<*, *, *>>(4){
+        override var name: String = "commonDTO"
+
+        fun <DTO, D, E> provideType(
+            record : TypeRecord<CommonDTO<DTO, D, E>>
+        ): CommonDTOType where DTO:ModelDTO, D:DataModel, E: LongEntity
+        {
+            typeRecord = record.safeCast()
+            name = record.simpleName
+            return this
+        }
     }
 }

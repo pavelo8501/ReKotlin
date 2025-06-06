@@ -21,10 +21,10 @@ class TypeRegistry {
         return record
     }
 
-    inline fun <T : Any, reified E : ManagedException> getRecord(key: ValueBased): TypeRecord<T> {
+    inline fun <T : Any, reified E : ManagedException> getRecord(key: ValueBased, message: String? = null): TypeRecord<T> {
         val consRecord = registry[key]
             .getOrThrow<TypeRecord<*>, E>("Record for value ${key} does not exist in registry")
-        val casted = consRecord.castOrThrow<TypeRecord<T>, E>()
+        val casted = consRecord.castOrThrow<TypeRecord<T>, E>(message)
         return casted
     }
 

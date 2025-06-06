@@ -6,6 +6,8 @@ import po.lognotify.classes.task.TaskHandler
 import po.lognotify.classes.task.createChild
 import po.lognotify.classes.task.models.TaskConfig
 import po.lognotify.classes.task.result.TaskResult
+import po.lognotify.classes.task.result.createFaultyResult
+import po.lognotify.classes.task.result.onTaskResult
 import po.lognotify.exceptions.handleException
 
 
@@ -17,15 +19,18 @@ suspend inline fun <reified T, R: Any?> T.subTaskAsync(
     val rootTask = TasksManaged.taskDispatcher.activeRootTask()
     val moduleName: String =  this::class.simpleName?:config.moduleName
     val result = if(rootTask != null){
-        val childTask = rootTask.createChild<R>(taskName, moduleName, config)
-        withContext(childTask.coroutineContext){
+        val subTask = rootTask.createChild<T, R>(taskName, moduleName, config, this)
+        withContext(subTask.coroutineContext){
             try {
-                childTask.onStart()
-                val value =  block.invoke(this@subTaskAsync, childTask.handler)
-                childTask.onComplete()
-                TaskResult(childTask, value)
+                subTask.start()
+                val value =  block.invoke(this@subTaskAsync, subTask.handler)
+                onTaskResult<T, R>(subTask, value)
+                TaskResult(subTask, value)
             }catch (throwable: Throwable){
-                throwable.handleException(this, childTask)
+              val managed =  handleException(throwable, subTask)
+              createFaultyResult(managed, subTask)
+            }finally {
+                subTask.complete()
             }
         }
     }else{
@@ -38,22 +43,25 @@ suspend inline fun <reified T, R: Any?> T.subTaskAsync(
 inline fun <reified T, R: Any?> T.subTask(
     taskName: String,
     config: TaskConfig = TaskConfig(),
-    block: T.(TaskHandler<R>) -> R
+   crossinline block: T.(TaskHandler<R>) -> R
 ): TaskResult<R>{
     val rootTask = TasksManaged.taskDispatcher.activeRootTask()
     val moduleName = this::class.simpleName?:config.moduleName
-    return if(rootTask != null){
-        val childTask = rootTask.createChild<R>(taskName, moduleName, config)
-        try {
-           val value = block.invoke(this, childTask.handler)
-            TaskResult(childTask, value)
-
-        }catch (throwable: Throwable){
-            throwable.handleException(this, childTask)
+    val result =  rootTask?.let {
+       val subTask = it.createChild<T, R>(taskName, moduleName, config, this)
+        subTask.start()
+       val subTaskResult = try {
+            val value = block.invoke(this, subTask.handler)
+            onTaskResult<T,R>(subTask, value)
+        }catch (throwable: Throwable) {
+           val managed = handleException(throwable, subTask)
+           createFaultyResult(managed, subTask)
+        } finally {
+            subTask.complete()
         }
-    }else{
-        this.runTask(taskName, config, block)
-    }
+        subTaskResult
+    }?:this.runTask(taskName, config, block)
+    return result
 }
 
 

@@ -18,7 +18,7 @@ class DTOTracker<DTO: ModelDTO, DATA: DataModel>(
     internal val dto : CommonDTO<DTO, DATA, *>,
    @PublishedApi internal val config : TrackerConfig = TrackerConfig(),
     val componentType : ComponentType = ComponentType.Tracker
-): Component(ComponentType.Tracker), MeasuredContext, TrackableDTO{
+): Component<DTO>(ComponentType.Tracker, dto), MeasuredContext, TrackableDTO{
 
     override val executionTimeStamp: ExecutionTimeStamp = ExecutionTimeStamp(dto.componentName, dto.id.toString())
     private var activeRecord : TrackerRecord = TrackerRecord(this, dto.id, CrudOperation.Create, dto.componentName)

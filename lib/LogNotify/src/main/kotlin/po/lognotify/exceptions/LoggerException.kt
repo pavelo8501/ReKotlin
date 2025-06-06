@@ -8,13 +8,14 @@ import po.misc.exceptions.SelfThrownException
 
 class LoggerException(
     message: String,
-) : ManagedException(message) {
+    original: Throwable? = null
+) : ManagedException(message, original) {
 
     override var handler: HandlerType = HandlerType.UNMANAGED
 
     companion object : SelfThrownException.Builder<LoggerException> {
-        override fun build(message: String, optionalCode: Int?): LoggerException {
-            return LoggerException(message)
+        override fun build(message: String, optionalCode: Int?, original: Throwable?): LoggerException {
+            return LoggerException(message, original)
         }
     }
 

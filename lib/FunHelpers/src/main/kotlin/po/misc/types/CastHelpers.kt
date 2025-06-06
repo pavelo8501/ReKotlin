@@ -57,8 +57,7 @@ inline fun <T: Any, reified E: ManagedException> Any?.castOrThrow(
     return try {
         kClass.cast(this)
     } catch (e: ClassCastException) {
-        val exception = SelfThrownException.build<E>(message ?: "Unable to cast to ${kClass.simpleName}", code)
-        exception.setSourceException(e)
+        val exception = SelfThrownException.build<E>(message ?: "Unable to cast to ${kClass.simpleName}", code, e)
         throw exception
     }
 }

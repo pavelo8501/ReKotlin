@@ -56,7 +56,6 @@ fun <T: Any>  PropertyMapper.mapperCheck(
     mapperItem:  MappablePropertyRecord<*>,
     validationInstance: ValidationInstance<T>
 ): InstancedCheck<T>{
-
     return InstancedCheck(checkName, validationInstance.component, mapperItem.classTypeRecord.component1(), validationInstance)
 }
 

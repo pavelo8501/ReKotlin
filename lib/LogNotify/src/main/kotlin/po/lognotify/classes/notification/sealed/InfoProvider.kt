@@ -8,7 +8,7 @@ import po.misc.time.ExecutionTimeStamp
 
 
 
-data class ProviderTask(val task: ResultantTask<*>) :DataProvider(){
+data class ProviderTask(val task: ResultantTask<*, *>) :DataProvider(){
     override val name: String = task.key.taskName
     override val id: String = task.key.taskId.toString()
     override val module: String = task.key.moduleName

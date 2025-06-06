@@ -1,4 +1,4 @@
-package po.misc.data.console
+package po.misc.data.styles
 
 enum class Colour(val colourStr: String) {
     RED("\u001B[31m"),
@@ -28,11 +28,18 @@ enum class Colour(val colourStr: String) {
 
 
     companion object {
-        fun fromValue(colourStr: String): Colour? {
+        fun fromValue(colourStr: String): Colour {
             entries.firstOrNull { it.colourStr == colourStr }?.let {
                 return it
             }
             return RESET
+        }
+        fun makeOfColour(color: Colour,  text: String): String {
+            return if (text.contains("\u001B[")) {
+                text
+            } else {
+                "${color.colourStr}$text${RESET.colourStr}"
+            }
         }
     }
 }

@@ -5,11 +5,8 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertAll
 import po.auth.extensions.generatePassword
-import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.result.ResultList
-import po.exposify.scope.sequence.extensions.sequence
 import po.exposify.scope.service.enums.TableCreateMode
-import po.test.exposify.scope.TestSessionsContext
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.PageEntity
 import po.test.exposify.setup.dtos.Page
@@ -48,15 +45,15 @@ class TestComplexDelegate : DatabaseTest() {
     }
 
     @Test
-    fun `parent2IdReference property binding`(){
+    fun `attachedReference property binding`(){
 
         val sourceSections = sectionsPreSaved(0)
         val page = pagesSectionsContentBlocks(pageCount = 1, sectionsCount = 3, contentBlocksCount = 1, updatedBy = userId).first()
+        page.sections.addAll(sourceSections)
         var updatedPageData: Page? = null
         var updatedPageDTO : PageDTO? = null
         startTestConnection{
-            service(PageDTO, TableCreateMode.CREATE) {
-                page.sections.addAll(sourceSections)
+            service(PageDTO, TableCreateMode.CREATE){
                 val updateResult = update(page)
                 updatedPageData = updateResult.getDataForced()
                 updatedPageDTO = updateResult.getDTOForced()
@@ -90,20 +87,17 @@ class TestComplexDelegate : DatabaseTest() {
         )
     }
 
-
-    fun `foreign2IdReference property binding on select`() = runTest{
+    @Test
+    fun `attachedReference property binding on select`() = runTest{
 
         val page = pagesSectionsContentBlocks(pageCount = 1, sectionsCount = 3, contentBlocksCount = 1, updatedBy = userId).first()
-
         lateinit var selectedResult : ResultList<PageDTO, Page, PageEntity>
-
         startTestConnection{
             service(PageDTO, TableCreateMode.CREATE) {
                 update(page)
                 selectedResult = select()
             }
         }
-
 
         val persistedPageDto = assertNotNull(selectedResult.getDTO().firstOrNull(), "Page(DTO) is null")
         val persistedFirstDtoSection = assertNotNull(persistedPageDto.sections.firstOrNull(), "Section(DTO) is null")
@@ -117,22 +111,21 @@ class TestComplexDelegate : DatabaseTest() {
         )
     }
 
-
-
-    fun `foreign2IdReference property binding on update&pick`() = runTest{
+    @Test
+    fun `attachedReference property binding on update&pick`() = runTest{
 
         val sourceSections = sectionsPreSaved(0)
-        val page = Page(id = 0, name = "home", langId = 1)
+        val page = Page(id = 0, name = "home", langId = 1, updatedBy = userId)
+        page.sections.addAll(sourceSections)
         var updatedPageData: Page? = null
-        var updatedPageDTO : PageDTO? = null
+        lateinit var updatedPageDTO : PageDTO
         var pickedData: Page? = null
         var pickedDTO : PageDTO? = null
         startTestConnection {
             service(PageDTO, TableCreateMode.CREATE) {
-                page.sections.addAll(sourceSections)
                 val updateResult = update(page)
                 updatedPageData = updateResult.getDataForced()
-                updatedPageDTO = updateResult.getDTO() as PageDTO
+                updatedPageDTO = updateResult.getDTOForced()
                 val selectionResult = pickById(updatedPageData.id)
                 pickedData = selectionResult.getDataForced()
                 pickedDTO = selectionResult.getDTO() as PageDTO
@@ -142,24 +135,24 @@ class TestComplexDelegate : DatabaseTest() {
         assertNotNull(updatedPageData, "Failed to update PageData")
         assertNotNull(updatedPageDTO, "Failed  to update PageDTO")
 
-//        assertAll("foreign2IdReference updated",
-//            { assertNotEquals(0, userId, "updatedPageData id failed to update") },
-//            { assertEquals(userId, updatedPageData.updatedById, "UpdatedById in data model not updated. Expected ${userId}") },
-//            { assertEquals(userId, updatedPageDTO.updatedById, "UpdatedById in DTO not updated.. Expected ${userId}") },
-//        )
+        assertAll("attachedReference updated",
+            { assertNotEquals(0, userId, "updatedPageData id failed to update") },
+            { assertEquals(userId, updatedPageData.updatedBy, "UpdatedById in Page not updated. Expected $userId") },
+          //  { assertEquals(userId, updatedPageDTO.updatedBy, "UpdatedById in PageDTO not updated.. Expected $userId") },
+        )
 
         assertNotNull(pickedData, "Failed to pick PageData")
         assertNotNull(pickedDTO, "Failed  to pick PageDTO")
 
-//        assertAll("foreign2IdReference picked",
-//            { assertEquals(
-//                updatedPageData.updatedById,
-//                pickedData.updatedById,
-//                "UpdatedById in data model not updated. Expected ${updatedPageData.updatedById}") },
-//            { assertEquals(
-//                updatedPageData.updatedById,
-//                pickedData.updatedById,
-//                "UpdatedById in DTO not updated.. Expected $updatedPageData.updatedById}") },
-//        )
+        assertAll("foreign2IdReference picked",
+            { assertEquals(
+                updatedPageData.updatedBy,
+                pickedData.updatedBy,
+                "UpdatedById in data model not updated. Expected ${updatedPageData.updatedBy}") },
+            { assertEquals(
+                updatedPageData.updatedBy,
+                pickedData.updatedBy,
+                "UpdatedById in DTO not updated.. Expected $updatedPageData.updatedById}") },
+        )
     }
 }

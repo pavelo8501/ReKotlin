@@ -3,17 +3,23 @@ package po.exposify.dto.components.bindings.helpers
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
+import po.exposify.dto.RootDTO
 import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.components.result.toResult
 import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.components.tracker.extensions.addTrackerInfo
+import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 
 
+fun <DTO: ModelDTO, D: DataModel, E: LongEntity> DTOBase<DTO, D, E>.shallowDTO():CommonDTO<DTO, D, E>
+{
+    return config.dtoFactory.createDto()
+}
 
 fun  <DTO: ModelDTO, D: DataModel, E: LongEntity> DTOBase<DTO, D, E>.newDTO(
-    data: D? = null,
+    data: D
 ):CommonDTO<DTO, D, E>{
     return config.dtoFactory.createDto(data)
 }
@@ -25,20 +31,39 @@ fun  <DTO: ModelDTO, D: DataModel, E: LongEntity> DTOBase<DTO, D, E>.newDTO(
 fun <DTO: ModelDTO, D: DataModel,  E: LongEntity>  DTOBase<DTO, D, E>.newDTO(
     entity:E
 ): CommonDTO<DTO,D,E>{
-    val created =  newDTO()
-    created.provideInsertedEntity(entity)
-    return  created
+   val dto = config.dtoFactory.createDto()
+    dto.provideEntity(entity)
+    return  dto
 }
 
 
-fun  <DTO: ModelDTO, D: DataModel, E: LongEntity> DTOBase<DTO, D, E>.createDTO(
-    data: D,
+/***
+ * createByData Entry point for DTO hierarchy creation
+ */
+ internal fun  <DTO: ModelDTO, D: DataModel, E: LongEntity> RootDTO<DTO, D, E>.createDTO(
+    data:D,
     operation: CrudOperation
-):CommonDTO<DTO, D, E>{
+ ):CommonDTO<DTO, D, E>
+ {
     val newDto = config.dtoFactory.createDto(data)
-    newDto.addTrackerInfo(operation, this)
-    return newDto.createByData()
+    val insertedEntity = config.daoService.save { entity ->
+        newDto.bindingHub.updateEntity(entity)
+    }
+    newDto.finalizeCreation(insertedEntity, Cardinality.ONE_TO_MANY)
+    registerDTO(newDto)
+    newDto.bindingHub.createChildByData()
+    return newDto
 }
+
+
+//fun  <DTO: ModelDTO, D: DataModel, E: LongEntity> DTOBase<DTO, D, E>.createDTO(
+//    data: D,
+//    operation: CrudOperation
+//):CommonDTO<DTO, D, E>{
+//    val newDto = config.dtoFactory.createDto(data)
+//    newDto.addTrackerInfo(operation, this)
+//    return newDto.createByData()
+//}
 
 fun <DTO: ModelDTO, D: DataModel,  E: LongEntity>  DTOBase<DTO, D, E>.createDTO(
     entities : List<E>,
@@ -52,14 +77,16 @@ fun <DTO: ModelDTO, D: DataModel,  E: LongEntity>  DTOBase<DTO, D, E>.createDTO(
     return result.toList()
 }
 
+
 fun <DTO: ModelDTO, D: DataModel,  E: LongEntity>  DTOBase<DTO, D, E>.createDTO(
     entity : E,
     operation: CrudOperation,
 ): CommonDTO<DTO,D,E>{
-    val created =  newDTO()
+    val created =  newDTO(entity)
+
     created.addTrackerInfo(operation, this)
-    created.provideInsertedEntity(entity)
     created.bindingHub.createByEntity()
+    created.finalizeCreation(entity, Cardinality.ONE_TO_MANY)
     return created
 }
 

@@ -5,7 +5,6 @@ import po.misc.exceptions.HandlerType
 import po.misc.types.castOrThrow
 
 inline fun <reified T: Any> T?.getOrLoggerException(message: String):T{
-
     if(this != null){
         return this
     }else{

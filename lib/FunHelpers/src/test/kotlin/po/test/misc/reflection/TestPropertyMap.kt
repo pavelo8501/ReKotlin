@@ -15,7 +15,7 @@ class TestPropertyMap {
     data class SourceClass(
         val property1: String = "Property1",
         val property2 : Int = 10,
-        val property3: Boolean = false
+        val property3: Boolean = false, override val personalName: String = ""
     ): Identifiable{
         override val componentName: String = "SourceClass1"
         override val completeName: String = "SourceClass1[Complete]"

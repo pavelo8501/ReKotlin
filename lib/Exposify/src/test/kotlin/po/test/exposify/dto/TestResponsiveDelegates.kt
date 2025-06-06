@@ -53,11 +53,11 @@ class TestResponsiveDelegates : DatabaseTest(), TasksManaged {
             name = "name",
             email = "nomail@void.null"
         )
-//        startTestConnection{
-//            service(UserDTO, TableCreateMode.FORCE_RECREATE) {
-//                updatedById = update(user).getDataForced().id
-//            }
-//        }
+        startTestConnection{
+            service(UserDTO, TableCreateMode.FORCE_RECREATE) {
+                updatedById = update(user).getDataForced().id
+            }
+        }
     }
 
     @Test
@@ -94,7 +94,7 @@ class TestResponsiveDelegates : DatabaseTest(), TasksManaged {
         assertEquals(classListInSelection[2].value, classListInSelection.last().value, "Value parameter mismatch across selection")
     }
 
-
+    @Test
     fun `Property delegates update data correctly on update and select`(){
         val controlName = "Some Caption"
         val page = pagesSectionsContentBlocks(

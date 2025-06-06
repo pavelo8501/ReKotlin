@@ -14,10 +14,10 @@ class TestCallbackRegistry {
         ON_START(1),
         ON_FINISH(2);
     }
-    class Component(override val componentName: String
+    class Component(override val personalName: String
     ) : Identifiable{
 
-          override val completeName: String = componentName
+          override val componentName: String = "ssss"
     }
 
    data class ValueRecord(
@@ -83,8 +83,8 @@ class TestCallbackRegistry {
             { assertEquals(20, subscription2FinishOldValue, "Component2 ON_FINISH OldValue mismatch") }
         )
 
-        registry.trigger(CallbackType.ON_START, ValueRecord(200, 100))
-        registry.trigger(CallbackType.ON_FINISH, ValueRecord(300, 200))
+        registry.triggerForAll(CallbackType.ON_START, ValueRecord(200, 100))
+        registry.triggerForAll(CallbackType.ON_FINISH, ValueRecord(300, 200))
 
 
         assertAll("Callbacks triggered by key",

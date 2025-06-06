@@ -34,8 +34,14 @@ interface TasksManaged {
             = taskDispatcher.onTaskComplete(handler, callback)
 
         @PublishedApi
-        internal fun <R> createHierarchyRoot(name: String, moduleName: String, config: TaskConfig): RootTask<R>{
-            val newTask = RootTask<R>(TaskKey(name, 0, moduleName), config, defaultContext(name), taskDispatcher)
+        internal fun <T, R> createHierarchyRoot(
+            name: String,
+            moduleName: String,
+            config: TaskConfig,
+            receiver:T
+        ): RootTask<T, R>
+        {
+            val newTask = RootTask<T, R>(TaskKey(name, 0, moduleName), config, defaultContext(name), taskDispatcher, receiver)
             taskDispatcher.addRootTask(newTask, notifyConfig)
             return newTask
         }
@@ -52,5 +58,5 @@ fun  TasksManaged.lastTaskHandler(): TaskHandler<*>{
     """.trimMargin()
 
     val availableRoot =  taskDispatcher.activeRootTask().getOrLoggerException(message)
-    return availableRoot.registry.getLastChild()?.handler?:availableRoot.handler
+    return availableRoot.registry.getLastSubTask()?.handler?:availableRoot.handler
 }

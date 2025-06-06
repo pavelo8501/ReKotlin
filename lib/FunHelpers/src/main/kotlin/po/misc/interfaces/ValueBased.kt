@@ -7,10 +7,10 @@ interface ValueBased{
     val value: Int
 }
 
+
+
 abstract class ValueBasedClass(override val value: Int): ValueBased{
 
-
-//
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is ValueBased) return false
@@ -27,4 +27,8 @@ abstract class ValueBasedClass(override val value: Int): ValueBased{
 //        else type.value.compareTo(other.type.value)
 //    }
 
+}
+
+fun toValueBased(value: Int):ValueBasedClass{
+   return object : ValueBasedClass(value){}
 }

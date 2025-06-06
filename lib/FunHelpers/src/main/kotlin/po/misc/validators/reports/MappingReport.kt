@@ -1,9 +1,15 @@
 package po.misc.validators.reports
 
-import po.misc.data.console.Colour
-import po.misc.data.console.PrintableBase
+import po.misc.data.PrintableBase
 import po.misc.data.console.PrintableTemplate
+import po.misc.data.styles.Colour
+import po.misc.data.styles.colorize
+import po.misc.data.templates.matchTemplate
+import po.misc.data.templates.templateRule
+import po.misc.interfaces.Identifiable
 import po.misc.interfaces.ValueBased
+import po.misc.interfaces.asIdentifiable
+import po.misc.interfaces.toValueBased
 import po.misc.validators.models.CheckBase
 import po.misc.validators.models.CheckStatus
 import po.misc.validators.models.ValidationSubject
@@ -13,6 +19,9 @@ data class MappingReport(
     val dataSourceKey: ValueBased,
     val tester: ValidationSubject<*>?,
 ): PrintableBase<MappingReport>() {
+
+    override val itemId : ValueBased = dataSourceKey
+    override val emitter: Identifiable = checkType.component
 
     override val self: MappingReport = this
 
@@ -29,7 +38,7 @@ data class MappingReport(
 
     fun printReport(): String = buildString {
         print(Header)
-        results.forEach { records-> records.print(ReportRecord.GeneralTemplate) }
+        results.forEach { records-> records.printTemplate(ReportRecord.GeneralTemplate) }
         print(Footer)
     }
 
@@ -40,17 +49,17 @@ data class MappingReport(
 
     companion object{
 
-        val Header : PrintableTemplate<MappingReport> = PrintableTemplate(1){
-            "Validating ${checkType.checkName} [${checkType.component.completeName}]" colourOf Colour.BLUE
+        val Header : PrintableTemplate<MappingReport> = PrintableTemplate(){
+            "Validating ${checkType.checkName} [${checkType.component.completeName}]".colorize(Colour.BLUE)
         }
 
-        val Footer : PrintableTemplate<MappingReport> = PrintableTemplate(2){
-            """Overall Result: ${overallResult.toString().makeOfColour(
-                colourRule(Colour.GREEN){ overallResult == CheckStatus.PASSED },
-                colourRule(Colour.RED){ overallResult == CheckStatus.FAILED },
-                colourRule(Colour.YELLOW){ overallResult == CheckStatus.WARNING }
+        val Footer : PrintableTemplate<MappingReport> = PrintableTemplate{
+            """Overall Result: ${overallResult.matchTemplate(
+                templateRule(toString().colorize(Colour.GREEN)){overallResult == CheckStatus.PASSED},
+                templateRule(toString().colorize(Colour.RED)){overallResult == CheckStatus.FAILED},
+                templateRule(toString().colorize(Colour.YELLOW)){overallResult == CheckStatus.WARNING}
             )}
-            """.trimMargin() colourOf Colour.BLUE
+            """.trimMargin().colorize(Colour.BLUE)
         }
 
         fun createReport(checkItem : CheckBase<*>, records: List<ReportRecord>):MappingReport{

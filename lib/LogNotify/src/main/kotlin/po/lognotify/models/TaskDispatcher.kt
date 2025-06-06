@@ -17,7 +17,7 @@ import kotlin.collections.set
 class TaskDispatcher(val notifier: NotifierHub) : UpdatableTasks{
 
     data class LoggerStats (
-        val activeTask : ResultantTask<*>,
+        val activeTask : ResultantTask<*, *>,
         val activeTaskName: String,
         val activeTaskNestingLevel: Int,
         val topTasksCount: Int,
@@ -26,7 +26,7 @@ class TaskDispatcher(val notifier: NotifierHub) : UpdatableTasks{
 
     )
 
-    internal val taskHierarchy = ConcurrentHashMap<TaskKey, RootTask<*>>()
+    internal val taskHierarchy = ConcurrentHashMap<TaskKey, RootTask<*, *>>()
     internal val callbackRegistry : MutableMap<UpdateType, (LoggerStats)-> Unit> = mutableMapOf()
 
     fun onTaskCreated(handler: UpdateType, callback: (LoggerStats) -> Unit) {
@@ -37,7 +37,7 @@ class TaskDispatcher(val notifier: NotifierHub) : UpdatableTasks{
         callbackRegistry[handler] = callback
     }
 
-    override fun notifyUpdate(handler: UpdateType, task: ResultantTask<*>) {
+    override fun notifyUpdate(handler: UpdateType, task: ResultantTask<*, *>) {
         val stats = LoggerStats(
             activeTask = task,
             activeTaskName = task.key.taskName,
@@ -48,7 +48,7 @@ class TaskDispatcher(val notifier: NotifierHub) : UpdatableTasks{
         )
         callbackRegistry.filter { it.key == handler} .forEach { (_, cb) -> cb(stats) }
     }
-    fun addRootTask(task: RootTask<*>, notifyConfig : NotifyConfig) {
+    fun addRootTask(task: RootTask<*, *>, notifyConfig : NotifyConfig) {
         task.notifier.setNotifierConfig(notifyConfig)
         taskHierarchy[task.key] = task
         notifier.register(task.notifier)
@@ -57,13 +57,13 @@ class TaskDispatcher(val notifier: NotifierHub) : UpdatableTasks{
         notifyUpdate(UpdateType.OnStart, task)
     }
 
-    fun removeRootTask(task: RootTask<*>) {
+    fun removeRootTask(task: RootTask<*, *>) {
         taskHierarchy.remove(task.key)
         notifier.unregister(task.notifier)
         notifyUpdate(UpdateType.OnComplete, task)
     }
 
-    fun activeRootTask(): RootTask<*>?{
+    fun activeRootTask(): RootTask<*, *>?{
       return taskHierarchy.values.firstOrNull { !it.isComplete }
     }
 

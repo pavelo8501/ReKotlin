@@ -14,7 +14,6 @@ import po.exposify.scope.sequence.classes.RootHandlerProvider
 import po.test.exposify.setup.PageEntity
 import po.test.exposify.setup.SectionEntity
 
-
 @Serializable
 data class Page(
     override var id: Long = 0L,
@@ -37,8 +36,11 @@ class PageDTO(
     var langId : Int by binding(Page::langId, PageEntity::langId)
     var updated : LocalDateTime by binding(Page::updated, PageEntity::updated)
 
-    val user by attachedReference(UserDTO){user->
+    var updatedBy: Long = 0
+
+    val user by attachedReference(UserDTO, Page::updatedBy){user->
         updatedBy = user.id
+        dataModel.updatedBy = user.id
     }
 
     val sections : List<SectionDTO> by oneToManyOf(SectionDTO, Page::sections, PageEntity::sections, SectionEntity::page)

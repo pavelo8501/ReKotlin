@@ -33,7 +33,7 @@ abstract class DatabaseTest() {
         if (muteContainer) {
             System.setProperty("org.slf4j.simpleLogger.log.org.testcontainers", "ERROR")
         }
-        val connectionHooks  = dbHooks {
+        val connectionHooks  = dbHooks{
             beforeConnection {
                 postgres.start()
                 println("Trying to connect...")

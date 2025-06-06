@@ -101,8 +101,6 @@ sealed class NotifierBase(
             type,
             severity,
             message)
-
-        println(notification)
         processNotification(notification)
     }
 
@@ -167,9 +165,9 @@ class NotifierHub(
     config : NotifyConfig = NotifyConfig(),
 ): NotifierBase(ProviderLogNotify(coroutineInfo)){
 
-    val activeNotifiers = mutableSetOf<RootNotifier<*>>()
+    val activeNotifiers = mutableSetOf<RootNotifier<*, *>>()
     private val subscribers = mutableListOf<(Notification) -> Unit>()
-    private val collectorJobs = mutableMapOf<RootNotifier<*>, Job>()
+    private val collectorJobs = mutableMapOf<RootNotifier<*, *>, Job>()
 
     override fun emitNotification(notification: Notification) {
         subscribers.forEach { it(notification) }
@@ -179,7 +177,7 @@ class NotifierHub(
        subscribers.add(provider)
     }
 
-    fun register(notifier: RootNotifier<*>) {
+    fun register(notifier: RootNotifier<*, *>) {
         if (activeNotifiers.add(notifier)) {
             val job = CoroutineScope(Dispatchers.Default).launch {
                 notifier.notifications.collect { emitNotification(it) }
@@ -188,7 +186,7 @@ class NotifierHub(
         }
     }
 
-    fun unregister(notifier: RootNotifier<*>) {
+    fun unregister(notifier: RootNotifier<*, *>) {
         activeNotifiers.remove(notifier)
         collectorJobs.remove(notifier)?.cancel()
     }
@@ -204,8 +202,8 @@ class ProcessNotifier(
     }
 }
 
-class RootNotifier<R>(
-    private val task: RootTask<R>,
+class RootNotifier<T, R>(
+    private val task: RootTask<*,*>,
 ) : NotifierBase(ProviderTask(task)), NotificationProvider, StaticHelper{
 
     private var hasRealEvents = false
@@ -229,8 +227,8 @@ class RootNotifier<R>(
 }
 
 class SubNotifier(
-    private val task: ResultantTask<*>,
-    private val rootNotifier: RootNotifier<*>
+    private val task: ResultantTask<*, *>,
+    private val rootNotifier: RootNotifier<*, *>
 ): NotifierBase(ProviderTask(task)), NotificationProvider, StaticHelper{
 
     override fun emitNotification(notification: Notification) {

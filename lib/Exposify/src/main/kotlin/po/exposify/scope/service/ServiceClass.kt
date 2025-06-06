@@ -18,6 +18,9 @@ import po.exposify.scope.connection.ConnectionClass
 import po.exposify.scope.connection.controls.CoroutineEmitter
 import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.TasksManaged
+import po.lognotify.classes.task.TaskHandler
+import po.lognotify.lastTaskHandler
+import po.lognotify.logNotify
 import po.misc.interfaces.IdentifiableModule
 
 class ServiceClass<DTO, DATA, ENTITY>(
@@ -29,49 +32,36 @@ class ServiceClass<DTO, DATA, ENTITY>(
 
     private val serviceContext: ServiceContext<DTO, DATA, ENTITY> = ServiceContext(this, rootDTOModel)
     internal val connection: Database get() = connectionClass.connection
+    val logger : TaskHandler<*> get()= lastTaskHandler()
 
-    private fun createTable(table: IdTable<Long>): Boolean {
-        return try {
-            if (!table.exists()) {
-                SchemaUtils.create(table)
-                return true
-            }
-            return false
-        } catch (e: Exception) {
-            false
-        }
-    }
 
-    private fun dropTables(tables: List<IdTable<Long>>): Boolean {
-        val backwards = tables.reversed()
-        return try {
-            SchemaUtils.drop(*backwards.toTypedArray<IdTable<Long>>(), inBatch = true)
-            tables.forEach {
-                if (!createTable(it)) {
-                    throw InitException(
-                        "Table ${it.schemaName} creation after drop failed",
-                        ExceptionCode.DB_TABLE_CREATION_FAILURE
-                    )
-                }
-            }
-            true
-        } catch (ex: Exception) {
-            println(ex.message)
-            throw ex
-        }
-    }
     private fun prepareTables(serviceCreateOption: TableCreateMode) {
         val tableList = mutableListOf<IdTable<Long>>()
         rootDTOModel.getAssociatedTables(tableList)
         val dropStatement =  rootDTOModel.config.entityModel.sourceTable.dropStatement()
         when (serviceCreateOption) {
             TableCreateMode.CREATE -> {
-                tableList.forEach {
-                    createTable(it)
+                logger.info("Creating tables TableCreateMode.CREATE")
+                tableList.forEach {table->
+                    if (!table.exists()) {
+                        logger.info("Creating table ${table.tableName}")
+                        SchemaUtils.create(table)
+                        logger.info("${table.tableName} created")
+                    }else{
+                        logger.info("Table ${table.tableName} skip. Already exists")
+                    }
                 }
             }
             TableCreateMode.FORCE_RECREATE -> {
-                dropTables(tableList)
+                val backwards = tableList.reversed()
+                logger.info("Dropping tables  TableCreateMode.FORCE_RECREATE  ${backwards.onEach { "${it.tableName}, " }}")
+                SchemaUtils.drop(*backwards.toTypedArray<IdTable<Long>>(), inBatch = true)
+                logger.info("Dropped. Recreating")
+                tableList.forEach {table->
+                    logger.info("Creating table ${table.tableName}")
+                    SchemaUtils.create(table)
+                    logger.info("${table.tableName} created")
+                }
             }
         }
     }

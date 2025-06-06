@@ -24,7 +24,9 @@ class DAOService<DTO, DATA, ENTITY>(
 
     val entityModel: ExposifyEntityClass<ENTITY> get() = dtoClass.config.entityModel
 
-    val taskConfig = TaskConfig(actor = dtoClass.completeName)
+    val taskConfig : TaskConfig get() {
+       return TaskConfig(actor = dtoClass.componentClass.componentName)
+    }
 
     private fun combineConditions(conditions: Set<Op<Boolean>>): Op<Boolean> {
         return conditions.reduceOrNull { acc, op -> acc and op } ?: Op.TRUE
@@ -72,16 +74,21 @@ class DAOService<DTO, DATA, ENTITY>(
         }
         handler.info("Dao entity created with id ${newEntity.id.value} for ${dtoClass.completeName}")
         newEntity
+    }.onFail {
+        val a = it
     }.resultOrException()
 
 
     fun saveWithParent(bindFn: (newEntity:ENTITY)-> Unit)
-            = subTask("Save", taskConfig) {handler->
+            = subTask("SaveWithParent", taskConfig) {handler->
             val newEntity = entityModel.new {
                 bindFn(this)
             }
             handler.info("Entity created with id: ${newEntity.id.value} for ${dtoClass.completeName}")
             newEntity
+    }.onFail{
+        val dtoClass = dtoClass
+        val a = it
     }.resultOrException()
 
     fun update(entityId: Long, updateFn: (newEntity:ENTITY)-> Unit): ENTITY?
