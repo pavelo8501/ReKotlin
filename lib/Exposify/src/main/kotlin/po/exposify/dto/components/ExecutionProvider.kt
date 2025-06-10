@@ -15,17 +15,19 @@ import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ExecutionContext
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.models.ExposifyModule
 import po.exposify.dto.models.ModuleType
 import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.exceptions.throwOperations
 import po.lognotify.classes.task.TaskHandler
 import po.lognotify.lastTaskHandler
 import po.misc.interfaces.IdentifiableModule
 
 class ExecutionProvider<DTO, DATA, ENTITY>(
     override val dtoClass: DTOBase<DTO, DATA, ENTITY>,
-    val moduleType : ModuleType.ExecutionProvider = ModuleType.ExecutionProvider
+    val moduleType : ExposifyModule = ExposifyModule(ModuleType.ExecutionProvider, dtoClass.component)
 ): IdentifiableModule by moduleType, ExecutionContext<DTO, DATA, ENTITY> where  DTO  : ModelDTO , DATA : DataModel, ENTITY: LongEntity {
 
 
@@ -36,7 +38,7 @@ class ExecutionProvider<DTO, DATA, ENTITY>(
         if (dtoClass is RootDTO) {
             return dtoClass.createDTO(data, operation).toResult(operation)
         } else {
-            throw OperationsException("Setup misconfiguration", ExceptionCode.ABNORMAL_STATE)
+            throwOperations("Setup misconfiguration", ExceptionCode.ABNORMAL_STATE)
         }
     }
 
@@ -50,7 +52,7 @@ class ExecutionProvider<DTO, DATA, ENTITY>(
                 dtoClass.createDTO(entity, operation).toResult(operation)
             } ?: run {
                 val message = "Entity with provided id :${id} not found"
-                dtoClass.shallowDTO().toResult(OperationsException(message, ExceptionCode.DB_CRUD_FAILURE), operation)
+                dtoClass.shallowDTO().toResult(OperationsException(message, ExceptionCode.DB_CRUD_FAILURE, null), operation)
             }
         }
     }
@@ -68,7 +70,7 @@ class ExecutionProvider<DTO, DATA, ENTITY>(
             val queryStr = conditions.build().toSqlString()
             val message =
                 "Unable to find ${dtoClass.config.registry.getRecord<DTO>(SourceObject.DTO)} for query $queryStr"
-            dtoClass.shallowDTO().toResult(OperationsException(message, ExceptionCode.DB_CRUD_FAILURE), operation)
+            dtoClass.shallowDTO().toResult(OperationsException(message, ExceptionCode.DB_CRUD_FAILURE, null), operation)
         }
     }
 
@@ -114,7 +116,7 @@ class ExecutionProvider<DTO, DATA, ENTITY>(
         // 4. Final fallback: return error
         val message = "Unable to update. DTO with id: ${dataModel.id} not found."
         return dtoClass.newDTO(dataModel)
-            .toResult(OperationsException(message, ExceptionCode.DB_CRUD_FAILURE), operation)
+            .toResult(OperationsException(message, ExceptionCode.DB_CRUD_FAILURE, null), operation)
     }
 
     override fun update(dataModels: List<DATA>): ResultList<DTO, DATA, ENTITY> {

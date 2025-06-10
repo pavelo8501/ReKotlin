@@ -37,13 +37,13 @@ class UserAuthenticator(
     }
 
     suspend fun authenticate(login: String, password: String, anonymous: AuthorizedSession): AuthenticationPrincipal{
-        val principalLookupFn = lookupFn.getOrThrow<AuthFunction, AuthException>("Authenticate function not set", ErrorCodes.CONFIGURATION_MISSING.value)
+        val principalLookupFn = lookupFn.getOrThrow<AuthFunction, AuthException>("Authenticate function not set", ErrorCodes.CONFIGURATION_MISSING)
         val principal =  principalLookupFn.invoke(login)
         if(principal == null){
-           throw AuthException("Wrong login", ErrorCodes.INVALID_CREDENTIALS).setHandler(HandlerType.SKIP_SELF)
+           throw AuthException("Wrong login", ErrorCodes.INVALID_CREDENTIALS, null)
         }
         if( BCrypt.verifyer().verify(password.toCharArray(), principal.hashedPassword) == null){
-            throw AuthException("Password mismatch", ErrorCodes.PASSWORD_MISMATCH).setHandler(HandlerType.SKIP_SELF)
+            throw AuthException("Password mismatch", ErrorCodes.PASSWORD_MISMATCH, null)
         }
         anonymous.providePrincipal(principal)
         return principal

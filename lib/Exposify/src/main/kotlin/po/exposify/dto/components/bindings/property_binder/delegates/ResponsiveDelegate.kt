@@ -16,9 +16,9 @@ import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.getOrOperationsEx
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.ValueBased
-import po.misc.reflection.properties.mappers.models.PropertyRecord
+import po.misc.reflection.mappers.models.PropertyRecord
 import po.misc.registries.callback.TypedCallbackRegistry
-import po.misc.validators.models.MappingCheck
+import po.misc.validators.mapping.models.MappingCheck
 import kotlin.Any
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KMutableProperty1
@@ -39,7 +39,7 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
     val componentType: Component<DTO> get() = componentInstance(ComponentType.ResponsiveDelegate, hostingDTO)
 
     override val componentName: String get() = componentType.componentName
-    override val completeName: String get() = componentType.completeName
+    override val sourceName: String get() = componentType.source.sourceName
 
     var dataPropertyParameter:KMutableProperty1<D, V>? = null
     val dataProperty:KMutableProperty1<D, V>

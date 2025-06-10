@@ -4,8 +4,8 @@ import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import po.lognotify.TasksManaged.Companion.taskDispatcher
+import po.lognotify.classes.notification.LoggerDataProcessor
 import po.lognotify.classes.notification.NotifierHub
-
 import po.lognotify.classes.notification.models.NotifyConfig
 import po.lognotify.classes.task.RootTask
 import po.lognotify.classes.task.TaskHandler
@@ -21,9 +21,8 @@ interface TasksManaged {
 
     companion object{
 
-        private val notifyConfig = NotifyConfig()
         val logger : LoggingService = LoggingService()
-        val taskDispatcher: TaskDispatcher = TaskDispatcher(NotifierHub(null, notifyConfig))
+        val taskDispatcher: TaskDispatcher = TaskDispatcher(NotifierHub())
 
         internal fun defaultContext(name: String): CoroutineContext =
             SupervisorJob() + Dispatchers.Default + CoroutineName(name)
@@ -42,10 +41,21 @@ interface TasksManaged {
         ): RootTask<T, R>
         {
             val newTask = RootTask<T, R>(TaskKey(name, 0, moduleName), config, defaultContext(name), taskDispatcher, receiver)
-            taskDispatcher.addRootTask(newTask, notifyConfig)
+            taskDispatcher.addRootTask(newTask)
             return newTask
         }
     }
+
+
+   fun activeTaskHandler(): TaskHandler<*>{
+        val message = """lastTaskHandler() resulted in failure. Unable to get task handler. No active tasks in context.
+        Make sure that logger tasks were started before calling this method.
+    """.trimMargin()
+
+        val availableRoot =  taskDispatcher.activeRootTask().getOrLoggerException(message)
+        return availableRoot.registry.getLastSubTask()?.handler?:availableRoot.handler
+    }
+
 }
 
 fun  TasksManaged.logNotify(): LogNotifyHandler{

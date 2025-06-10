@@ -15,10 +15,12 @@ import po.exposify.dto.models.Component
 import po.exposify.dto.models.ComponentType
 import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.InitException
+import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.getOrOperationsEx
 import po.lognotify.TasksManaged
 import po.misc.interfaces.Identifiable
+import po.misc.interfaces.asIdentifiable
 import po.misc.types.TypeRecord
 import po.misc.types.castOrThrow
 import kotlin.reflect.KMutableProperty1
@@ -31,7 +33,7 @@ sealed class RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V: Any>(
     val childModel: DTOClass<F_DTO, FD, FE>,
     val foreignEntityProperty: KMutableProperty1<FE, ENTITY>,
     val typeRecord : TypeRecord<V>,
-): Component<DTO>(ComponentType.RelationDelegate, hostingDTO),  TasksManaged, Identifiable
+): Component<DTO>(ComponentType.RelationDelegate, hostingDTO),  TasksManaged
         where DTO: ModelDTO, DATA: DataModel,  ENTITY : LongEntity,
               F_DTO: ModelDTO,  FD: DataModel, FE : LongEntity
 {
@@ -46,7 +48,7 @@ sealed class RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V: Any>(
     val property: KProperty<V> get() = propertyParameter.getOrOperationsEx()
     val propertyName : String get() = propertyParameter?.name?:""
    // val pappedProperties : PropertyMapperRecord<V> = PropertyMapperRecord.createPropertyMap(typeRecord)
-
+   // val component: Identifiable = asIdentifiable(this.personalName, this.componentName)
 
     protected val dtoType : TypeRecord<DTO>
         get() =  hostingDTO.dtoType
@@ -111,7 +113,7 @@ sealed class RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V: Any>(
     }
 
     fun createByEntity(){
-        getEntities(hostingDTO.getEntity(this@RelationDelegate)).forEach { entity->
+        getEntities(hostingDTO.getEntity(this)).forEach { entity->
            val newDto = childModel.createDTO(entity, CrudOperation.Select)
             saveDto(newDto, true)
         }
@@ -135,7 +137,8 @@ class OneToManyDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>(
 
     private val dtos : MutableList<CommonDTO<F_DTO, FD, FE>> = mutableListOf()
     override fun getEffectiveValue(): List<F_DTO> {
-        return dtos.map { it.castOrThrow<F_DTO, InitException>(childType.clazz) }
+        return dtos.map { it.castOrThrow<F_DTO, InitException>(childType.clazz, "getEffectiveValue cast failed",
+            ExceptionCode.CAST_FAILURE) }
     }
 
     override fun getChildDTOs(): List<CommonDTO<F_DTO, FD, FE>> {
@@ -184,7 +187,9 @@ class OneToOneDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>(
 
     private var childDTO : CommonDTO<F_DTO, FD, FE>? = null
     override fun getEffectiveValue(): F_DTO {
-        return childDTO.castOrThrow<F_DTO, InitException>(childType.clazz, "dto uninitialized in getEffectiveValue")
+        return childDTO.castOrThrow<F_DTO, InitException>(
+            childType.clazz, "dto uninitialized in getEffectiveValue",
+            ExceptionCode.CAST_FAILURE)
     }
 
     override fun getChildDTOs(): List<CommonDTO<F_DTO, FD, FE>> {

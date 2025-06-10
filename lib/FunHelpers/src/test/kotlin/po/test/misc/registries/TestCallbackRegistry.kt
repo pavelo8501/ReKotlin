@@ -14,7 +14,7 @@ class TestCallbackRegistry {
         ON_START(1),
         ON_FINISH(2);
     }
-    class Component(override val personalName: String
+    class Component(override val sourceName: String
     ) : Identifiable{
 
           override val componentName: String = "ssss"

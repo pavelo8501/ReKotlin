@@ -27,6 +27,6 @@ data class UpdateParams<DTO : ModelDTO, D: DataModel, E: LongEntity, V: Any>(
     override val newValue: V,
     val component : Identifiable,
     override val componentName: String = component.componentName,
-    override val completeName: String = component.completeName,
+    override val sourceName: String = component.sourceName,
     override val id: Long = dto.id
 ) : ObservableData

@@ -48,16 +48,17 @@ enum class ErrorCodes(val value: Int) {
 class AuthException(
     override var message: String,
     val code: ErrorCodes,
-) : ManagedException(message){
+    original : Throwable?
+) : ManagedException(message, code, original){
 
 
     override var handler : HandlerType = HandlerType.CANCEL_ALL
 
 
     companion object : SelfThrownException.Builder<AuthException> {
-        override fun build(message: String, optionalCode: Int?): AuthException {
-            val exCode = ErrorCodes.getByValue(optionalCode ?: 0)
-            return AuthException(message, exCode)
+        override fun build(message: String, source: Enum<*>?, original : Throwable?): AuthException {
+            val exCode = ErrorCodes.getByValue(source?.ordinal?:0)
+            return AuthException(message, exCode, original)
         }
     }
 

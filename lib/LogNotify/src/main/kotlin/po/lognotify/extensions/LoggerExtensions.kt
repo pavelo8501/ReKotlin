@@ -9,7 +9,7 @@ inline fun <reified T: Any> T?.getOrLoggerException(message: String):T{
         return this
     }else{
         val ex  = LoggerException(message)
-        throw ex.setHandler(HandlerType.UNMANAGED)
+        throw ex
     }
 }
 

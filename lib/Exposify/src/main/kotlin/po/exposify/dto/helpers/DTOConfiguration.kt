@@ -11,8 +11,8 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.InitException
 import po.exposify.exceptions.trueOrInitException
-import po.misc.reflection.properties.PropertyMapper
-import po.misc.reflection.properties.mappers.helpers.createPropertyMap
+import po.misc.reflection.mappers.PropertyMapper
+import po.misc.reflection.mappers.helpers.createPropertyMap
 import po.misc.registries.type.TypeRegistry
 import po.misc.types.TypeRecord
 
@@ -20,9 +20,7 @@ import po.misc.types.TypeRecord
 inline fun <reified DTO,  reified D, reified E> DTOBase<DTO, D, E>.configuration(
     noinline block:  DTOConfig<DTO, D, E>.() -> Unit
 ): Unit where DTO: ModelDTO, D: DataModel, E: LongEntity {
-
     status = DTOClassStatus.PreFlightCheck
-
     val registry = TypeRegistry()
 
     val dtoType = registry.addRecord<DTO>(SourceObject.DTO.provideType(TypeRecord.createRecord(SourceObject.DTO)))
@@ -42,10 +40,11 @@ inline fun <reified DTO,  reified D, reified E> DTOBase<DTO, D, E>.configuration
     propertyMapper.addMapperRecord(SourceObject.Data,  createPropertyMap(dataType))
     propertyMapper.addMapperRecord(SourceObject.DTO,  createPropertyMap(dtoType))
 
-    val newConfiguration = DTOConfig(registry, propertyMapper, entityModel, this)
-    configParameter = newConfiguration
+    configParameter = DTOConfig(registry, propertyMapper, entityModel, this)
     block.invoke(config)
     initializationComplete()
-    setupValidation(propertyMapper, registry).trueOrInitException()
+
+
+    setupValidation(propertyMapper).trueOrInitException()
     status = DTOClassStatus.Live
 }

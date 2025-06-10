@@ -43,7 +43,7 @@ suspend inline fun <reified T, R: Any?> T.subTaskAsync(
 inline fun <reified T, R: Any?> T.subTask(
     taskName: String,
     config: TaskConfig = TaskConfig(),
-   crossinline block: T.(TaskHandler<R>) -> R
+    block: T.(TaskHandler<R>) -> R
 ): TaskResult<R>{
     val rootTask = TasksManaged.taskDispatcher.activeRootTask()
     val moduleName = this::class.simpleName?:config.moduleName

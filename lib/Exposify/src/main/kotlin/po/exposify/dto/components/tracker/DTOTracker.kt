@@ -21,8 +21,17 @@ class DTOTracker<DTO: ModelDTO, DATA: DataModel>(
 ): Component<DTO>(ComponentType.Tracker, dto), MeasuredContext, TrackableDTO{
 
     override val executionTimeStamp: ExecutionTimeStamp = ExecutionTimeStamp(dto.componentName, dto.id.toString())
+    override val sourceName: String
+        get() = dto.sourceName
+
+
+//    override val completeName: String
+//        get() = super<Component>.completeName
+
     private var activeRecord : TrackerRecord = TrackerRecord(this, dto.id, CrudOperation.Create, dto.componentName)
     private val trackRecords : MutableList<TrackerRecord> = mutableListOf()
+
+
 
     override val records : List<ObservableData> get() = trackRecords.toList()
     override val childTrackers : MutableList<TrackableDTO> = mutableListOf()
@@ -94,6 +103,10 @@ class DTOTracker<DTO: ModelDTO, DATA: DataModel>(
     fun printTrace(){
         println(getTrace())
     }
+
+    override val completeName: String
+        get() = componentName
+
 }
 
 

@@ -3,16 +3,11 @@ package po.lognotify.classes.task.result
 import po.lognotify.classes.task.RootTask
 import po.lognotify.classes.task.Task
 import po.lognotify.classes.task.TaskBase
-import po.lognotify.classes.task.interfaces.ResultantTask
-import po.lognotify.exceptions.LoggerException
-import po.lognotify.exceptions.handleException
 import po.misc.data.console.helpers.emptyOnNull
 import po.misc.data.console.helpers.wrapByDelimiter
 import po.misc.exceptions.ManagedException
-import po.misc.exceptions.exceptionName
-import po.misc.types.castOrThrow
+import po.misc.exceptions.name
 import kotlin.collections.joinToString
-
 
 private fun <T, R> resultContainerCreation(task: TaskBase<T, R>, result: R): TaskResult<R>{
     task.registry.getFirstSubTask(task)?.let {subTask->
@@ -44,7 +39,7 @@ fun <T, R> onTaskResult(task: TaskBase<T, R>, result: R): TaskResult<R>{
                    val childException = task.checkChildResult(result)
                    if(childException != null){
                        val subTask = task.registry.getFirstSubTask(task)
-                       task.dataProcessor.warn("Exception ${childException.exceptionName()} swallowed by $subTask}", task)
+                       task.dataProcessor.warn("Exception ${childException.name()} swallowed by $subTask}", task)
                        createFaultyResult(childException, task)
                    }else{
                        task.dataProcessor.debug("SubTask has no faults. Why this branch called I don't know","ResultHelpers|onTaskResult",task)
@@ -55,7 +50,7 @@ fun <T, R> onTaskResult(task: TaskBase<T, R>, result: R): TaskResult<R>{
                     val childException = task.checkChildResult(result)
                     if(childException != null){
                         val subTask = task.registry.getFirstSubTask(task)
-                        task.dataProcessor.warn("Exception ${childException.exceptionName()} swallowed by $subTask}", task)
+                        task.dataProcessor.warn("Exception ${childException.name()} swallowed by $subTask}", task)
                         createFaultyResult(childException, task)
                     }else{
                         task.dataProcessor.debug("SubTask has no faults. Why this branch called I don't know","ResultHelpers|onTaskResult",task)
@@ -82,5 +77,4 @@ fun <R: Any?> TaskResult<R>.toKotlinResult(): Result<R?> =
 
 fun <R: Any?> TaskResult<R>.resultOrNull():R?{
    return this.result
-
 }

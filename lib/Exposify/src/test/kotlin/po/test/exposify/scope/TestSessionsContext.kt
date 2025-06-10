@@ -20,7 +20,7 @@ import po.auth.sessions.enumerators.SessionType
 import po.auth.sessions.models.AuthorizedSession
 import po.exposify.scope.sequence.extensions.runSequence
 import po.exposify.scope.sequence.extensions.sequence
-import po.misc.exceptions.CoroutineInfo
+import po.misc.coroutines.CoroutineInfo
 import po.test.exposify.setup.dtos.Page
 import po.test.exposify.setup.dtos.PageDTO
 import po.test.exposify.setup.dtos.User

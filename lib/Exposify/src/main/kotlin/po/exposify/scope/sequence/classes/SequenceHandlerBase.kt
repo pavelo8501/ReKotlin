@@ -16,6 +16,7 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.exceptions.throwOperations
 import po.exposify.extensions.castOrOperationsEx
 import po.exposify.extensions.getOrOperationsEx
 import po.exposify.scope.sequence.SequenceContext
@@ -50,14 +51,16 @@ sealed class SequenceHandlerBase<DTO, D, E>(
     internal fun provideCollectedResultSingle(result : ResultSingle<DTO,D,E>){
         handlerConfig.collectSingleResultFn?.invoke(result)
             ?:handlerConfig.collectListResultFn?.invoke(result.toResultList())
-            ?: throw OperationsException("Result collection is required but onResultCollected lambda is not provided",
+            ?: throwOperations(
+                "Result collection is required but onResultCollected lambda is not provided",
                 ExceptionCode.VALUE_IS_NULL)
     }
 
     internal fun provideCollectedResultList(result : ResultList<DTO,D,E>){
         handlerConfig.collectListResultFn?.invoke(result)
             ?:handlerConfig.collectSingleResultFn?.invoke(result.toResultSingle())
-            ?:throw OperationsException("Result collection is required but onResultCollected lambda is not provided",
+            ?: throwOperations(
+                "Result collection is required but onResultCollected lambda is not provided",
                 ExceptionCode.VALUE_IS_NULL)
     }
 

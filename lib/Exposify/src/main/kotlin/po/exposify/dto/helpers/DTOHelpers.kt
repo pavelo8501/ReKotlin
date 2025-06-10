@@ -2,15 +2,11 @@ package po.exposify.dto.helpers
 
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.DTOBase
-import po.exposify.dto.components.bindings.property_binder.delegates.AttachedForeign
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.components.bindings.BindingHub
-import po.misc.validators.models.InstanceRecord
-import po.misc.validators.models.ValidationClass
-import po.misc.validators.models.ValidationInstance
-import po.misc.validators.models.ValidationRecord
+import po.misc.validators.mapping.models.ValidationClass
+import po.misc.validators.mapping.models.ValidationRecord
 import kotlin.collections.map
 
 
@@ -34,11 +30,11 @@ fun <DTO, D, E, F_DTO, FD, FE> parentValidation(hostingDTO : CommonDTO<DTO, D,E>
 }
 
 
-fun <DTO, D, E, F_DTO, FD, FE> createValidation(attachedForeignDelegate : AttachedForeign<DTO, D, E, F_DTO, FD, FE>)
-        : ValidationInstance<DTOBase<F_DTO, FD, FE>> where DTO: ModelDTO, D: DataModel, E: LongEntity, F_DTO: ModelDTO,  FD: DataModel, FE: LongEntity
-{
-    val attachedValidation = ValidationInstance<DTOBase<F_DTO, FD, FE>>(attachedForeignDelegate.hostingDTO)
-    val record = InstanceRecord(attachedForeignDelegate.foreignClass, attachedForeignDelegate.propertyRecord)
-    attachedValidation.addRecord(record)
-    return attachedValidation
-}
+//fun <DTO, D, E, F_DTO, FD, FE> createValidation(attachedForeignDelegate : AttachedForeign<DTO, D, E, F_DTO, FD, FE>)
+//        : ValidationInstance<DTOBase<F_DTO, FD, FE>> where DTO: ModelDTO, D: DataModel, E: LongEntity, F_DTO: ModelDTO,  FD: DataModel, FE: LongEntity
+//{
+//    val attachedValidation = ValidationInstance<DTOBase<F_DTO, FD, FE>>(attachedForeignDelegate.hostingDTO)
+//    val record = InstanceRecord(attachedForeignDelegate.foreignClass, attachedForeignDelegate.propertyRecord)
+//    attachedValidation.addRecord(record)
+//    return attachedValidation
+//}

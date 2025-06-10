@@ -34,19 +34,19 @@ class CryptoRsaKeys(
                 val privateSpec = PKCS8EncodedKeySpec(privateBytes)
                 keyFactory.generatePrivate(privateSpec)
             }.onFailure {
-                throw AuthException("Decoding privateKey", ErrorCodes.INVALID_KEY_FORMAT).setSourceException(it)
+                throw AuthException("Decoding privateKey", ErrorCodes.INVALID_KEY_FORMAT, it)
             }.onSuccess {privateKey->
                 runCatching {
                     val publicBytes = decodePem(publicPem)
                     val publicSpec = X509EncodedKeySpec(publicBytes)
                     keyFactory.generatePublic(publicSpec)
                 }.onFailure {
-                    throw AuthException("Decoding publicKey", ErrorCodes.INVALID_KEY_FORMAT).setSourceException(it)
+                    throw AuthException("Decoding publicKey", ErrorCodes.INVALID_KEY_FORMAT, it)
                 }.onSuccess {publicKey->
                     return CryptoRsaKeys(privateKey, publicKey)
                 }
             }
-            throw AuthException("CryptoRsaKeys FromPem failed", ErrorCodes.INVALID_KEY_FORMAT)
+            throw AuthException("CryptoRsaKeys FromPem failed", ErrorCodes.INVALID_KEY_FORMAT, null)
         }
 
         private fun decodePem(pem: String): ByteArray {

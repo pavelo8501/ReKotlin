@@ -9,8 +9,7 @@ import org.jetbrains.exposed.sql.isAutoInc
 import po.exposify.dao.interfaces.EntityDTO
 import po.exposify.extensions.castOrInitEx
 import po.misc.data.ColumnMetadata
-import po.misc.reflection.properties.mappers.models.PropertyRecord
-import po.misc.types.TypeRecord
+import po.misc.reflection.mappers.models.PropertyRecord
 import kotlin.reflect.KProperty
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.memberProperties

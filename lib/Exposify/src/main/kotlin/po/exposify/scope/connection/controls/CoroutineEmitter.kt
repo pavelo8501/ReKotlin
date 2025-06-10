@@ -12,7 +12,7 @@ import po.exposify.scope.sequence.classes.ClassSequenceHandler
 import po.exposify.scope.sequence.classes.RootSequenceHandler
 import po.lognotify.extensions.launchProcess
 import po.lognotify.extensions.runTaskAsync
-import po.misc.exceptions.getCoroutineInfo
+import po.misc.coroutines.getCoroutineInfo
 
 
 class CoroutineEmitter(

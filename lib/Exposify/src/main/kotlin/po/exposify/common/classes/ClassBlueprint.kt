@@ -56,7 +56,7 @@ class ClassBlueprint<T>(
     }
     override fun getConstructor(): KFunction<T> {
         return effectiveConstructor?:
-        throw OperationsException("Effective constructor not set", ExceptionCode.CONSTRUCTOR_MISSING)
+        throw OperationsException("Effective constructor not set", ExceptionCode.CONSTRUCTOR_MISSING, null)
     }
     override fun initialize(){
         className = clazz.simpleName.toString()

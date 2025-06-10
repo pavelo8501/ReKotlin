@@ -9,12 +9,13 @@ import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.interfaces.ExecutionContext
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.interfaces.RunnableContext
+import po.exposify.dto.models.ExposifyModule
 import po.exposify.dto.models.ModuleType
 import po.exposify.extensions.checkDataListNotEmpty
 import po.exposify.scope.sequence.classes.SequenceHandlerBase
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.subTask
-import po.misc.exceptions.CoroutineInfo
+import po.misc.coroutines.CoroutineInfo
 import po.misc.interfaces.IdentifiableModule
 import kotlin.coroutines.coroutineContext
 
@@ -23,7 +24,7 @@ class SequenceContext<DTO, D, E>(
     internal val sequenceHandler: SequenceHandlerBase<DTO, D, E>,
     private val executionContext: ExecutionContext<DTO, D, E>,
     override val session : AuthorizedSession? = null,
-    val moduleType: ModuleType = ModuleType.SequenceContext
+    val moduleType: ExposifyModule = ExposifyModule(ModuleType.SequenceContext, executionContext.dtoClass.component)
 ):IdentifiableModule by moduleType ,  TasksManaged,  RunnableContext where  DTO : ModelDTO, D : DataModel, E: LongEntity
 {
     override val coroutineInfo: CoroutineInfo

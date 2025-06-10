@@ -11,14 +11,14 @@ inline fun <reified T: Any> Any?.castOrOperationsEx(
     message: String? = null,
     code:  ExceptionCode = ExceptionCode.CAST_FAILURE): T
 {
-   return this.castOrThrow<T, OperationsException>(message, code.value)
+   return this.castOrThrow<T, OperationsException>(message, code)
 }
 
 inline fun <reified T: Any> Any?.castOrInitEx(
     message: String? = null,
     code:  ExceptionCode = ExceptionCode.CAST_FAILURE): T
 {
-    return this.castOrThrow<T, InitException>(message, code.value)
+    return this.castOrThrow<T, InitException>(message, code)
 }
 
 inline fun <reified T: Any> Any.castLetOrInitEx(
@@ -27,7 +27,7 @@ inline fun <reified T: Any> Any.castLetOrInitEx(
     block: (T)->T): T
 {
     try {
-       val result =  this.castOrThrow<T, InitException>(message, code.value)
+       val result =  this.castOrThrow<T, InitException>(message, code)
        return block.invoke(result)
     }catch (ex: Throwable){
         throw  ex
@@ -38,7 +38,7 @@ inline fun <reified T : Any> T?.getOrOperationsEx(
     message: String? = null,
     code: ExceptionCode = ExceptionCode.VALUE_IS_NULL
 ): T {
-   return this.getOrThrow<T, OperationsException>(message, code.value)
+   return this.getOrThrow<T, OperationsException>(message, code)
 }
 
 
@@ -49,7 +49,8 @@ fun <T : Any> T?.getOrOperationsEx(
 ): T {
 
     if(this == null){
-        throw OperationsException(message, code)
+
+        throw OperationsException(message, code, null)
     }else{
         return this
     }
@@ -59,7 +60,7 @@ inline fun <reified T : Any> T?.getOrInitEx(
     message: String? = null,
     code: ExceptionCode = ExceptionCode.VALUE_IS_NULL
 ): T {
-    return this.getOrThrow<T, InitException>(message, code.value)
+    return this.getOrThrow<T, InitException>(message, code)
 }
 
 @JvmName("getOrInitExNonReified")
@@ -68,7 +69,7 @@ fun <T : Any> T?.getOrInitEx(
     code: ExceptionCode = ExceptionCode.VALUE_IS_NULL
 ): T {
     if(this == null){
-        throw InitException(message, code)
+        throw InitException(message, code, null)
     }else{
         return this
     }

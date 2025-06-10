@@ -21,7 +21,7 @@ data class RelationsUpdateParams<DTO : ModelDTO, D: DataModel, E: LongEntity, V:
 
 
     override val componentName: String get()= component.componentName
-    override val completeName:  String get()= component.completeName
+    override val sourceName:  String get()= component.sourceName
     override val id: Long get()= dto.id
 
 }

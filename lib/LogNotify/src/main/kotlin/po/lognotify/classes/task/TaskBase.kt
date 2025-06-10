@@ -4,16 +4,12 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import po.lognotify.classes.action.ActionSpan
 import po.lognotify.classes.notification.LoggerDataProcessor
-import po.lognotify.classes.notification.NotifierBase
-import po.lognotify.classes.notification.RootNotifier
-import po.lognotify.classes.notification.SubNotifier
 import po.lognotify.classes.notification.enums.EventType
 import po.lognotify.classes.task.interfaces.ResultantTask
 import po.lognotify.classes.task.models.TaskConfig
 import po.lognotify.classes.task.result.TaskResult
-import po.lognotify.enums.SeverityLevel
-import po.lognotify.exceptions.ExceptionHandler
 import po.lognotify.extensions.currentProcess
 import po.lognotify.helpers.StaticHelper
 import po.lognotify.models.TaskDispatcher
@@ -22,8 +18,7 @@ import po.lognotify.models.TaskKey
 import po.lognotify.models.TaskRegistry
 import po.misc.coroutines.CoroutineHolder
 import po.misc.data.console.helpers.emptyOnNull
-import po.misc.exceptions.CoroutineInfo
-import po.misc.exceptions.HandlerType
+import po.misc.coroutines.CoroutineInfo
 import po.misc.exceptions.ManagedException
 import po.misc.time.ExecutionTimeStamp
 import po.misc.time.MeasuredContext
@@ -48,14 +43,14 @@ sealed class TaskBase<T, R: Any?>(
 
     abstract var taskResult: TaskResult<R>?
     abstract val coroutineContext: CoroutineContext
-    abstract override val notifier : NotifierBase
+   // abstract override val notifier : NotifierBase
     abstract val registry: TaskRegistry<*, *>
     abstract val callbackRegistry : MutableMap<UpdateType, (LoggerStats)-> Unit>
     abstract override val dataProcessor: LoggerDataProcessor
-
-    override val exceptionHandler: ExceptionHandler<T, R> = ExceptionHandler(this)
     override val executionTimeStamp: ExecutionTimeStamp = ExecutionTimeStamp(key.taskName, key.taskId.toString())
     abstract override val handler: TaskHandler<R>
+
+    internal val  actionSpans : MutableList<ActionSpan<*,*>> = mutableListOf()
 
     var taskStatus : TaskStatus = TaskStatus.New
         internal set
@@ -86,6 +81,11 @@ sealed class TaskBase<T, R: Any?>(
         }
     }
 
+    fun addActionSpan(actionSpan: ActionSpan<*,*> ):ActionSpan<*,*>{
+        actionSpans.add(actionSpan)
+        return actionSpan
+    }
+
 }
 
 class RootTask<T, R: Any?>(
@@ -98,11 +98,10 @@ class RootTask<T, R: Any?>(
 {
 
     override val dataProcessor: LoggerDataProcessor = LoggerDataProcessor(this, null)
-    override val notifier: RootNotifier<T, R> =  RootNotifier(this)
     override var taskResult : TaskResult<R>?  =  null
     override val registry: TaskRegistry<T, R> = TaskRegistry(dispatcher, this)
     override val callbackRegistry: MutableMap<UpdateType, (LoggerStats) -> Unit> = mutableMapOf()
-    override val handler: TaskHandler<R> = TaskHandler(this, exceptionHandler, dataProcessor)
+    override val handler: TaskHandler<R> = TaskHandler(this, dataProcessor)
     val subTasksCount : Int get() = registry.taskCount()
     var isComplete: Boolean = false
     override val coroutineInfo : CoroutineInfo = CoroutineInfo.createInfo(coroutineContext)
@@ -115,10 +114,10 @@ class RootTask<T, R: Any?>(
         }
         val job = coroutineContext[Job]
         if(job != null){
-            notifier.systemInfo(EventType.TASK_CANCELLATION, SeverityLevel.EXCEPTION, "Cancelling Job $job")
+            dataProcessor.debug("Cancelling Job $job", "RootTask(commitSuicide)", this)
             job.cancel(cancellation)
         }else{
-            notifier.systemInfo(EventType.TASK_CANCELLATION, SeverityLevel.EXCEPTION, "Cancelling Context ${coroutineContext[CoroutineName]?.name?:"Unknown"}")
+            dataProcessor.debug("Cancelling Context ${coroutineContext[CoroutineName]?.name?:"Unknown"}", "RootTask(commitSuicide)", this)
             coroutineContext.cancel(cancellation)
         }
     }
@@ -128,7 +127,6 @@ class RootTask<T, R: Any?>(
         startTimer()
         dataProcessor.systemEvent(EventType.START)
         coroutineContext.currentProcess()?.let {
-            notifier.systemInfo(EventType.START, SeverityLevel.INFO, it)
             it.stopTaskObservation(this)
         }
         return this
@@ -161,11 +159,11 @@ class Task<T,  R: Any?>(
 
     override val dataProcessor: LoggerDataProcessor = LoggerDataProcessor(this, hierarchyRoot.dataProcessor)
     override val coroutineContext: CoroutineContext get() = hierarchyRoot.coroutineContext
-    override val notifier: SubNotifier = SubNotifier(this, hierarchyRoot.notifier)
+  //  override val notifier: SubNotifier = SubNotifier(this, hierarchyRoot.notifier)
     override var taskResult : TaskResult<R>?  =  null
     override val registry: TaskRegistry<*, *> get() = hierarchyRoot.registry
     override val callbackRegistry: MutableMap<UpdateType, (LoggerStats) -> Unit> = mutableMapOf()
-    override val handler: TaskHandler<R> = TaskHandler<R>(this, exceptionHandler, dataProcessor)
+    override val handler: TaskHandler<R> = TaskHandler<R>(this, dataProcessor)
     override val coroutineInfo : CoroutineInfo = CoroutineInfo.createInfo(coroutineContext)
 
     fun notifyRootCancellation(exception: ManagedException?) {

@@ -7,7 +7,7 @@ import po.exposify.dto.DTOClass
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dao.classes.ExposifyEntityClass
 import po.exposify.dto.components.tracker.TrackerConfig
-import po.misc.reflection.properties.PropertyMapper
+import po.misc.reflection.mappers.PropertyMapper
 import po.misc.registries.type.TypeRegistry
 
 class DTOConfig<DTO, DATA, ENTITY>(

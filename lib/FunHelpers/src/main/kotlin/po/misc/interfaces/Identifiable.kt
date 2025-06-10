@@ -4,31 +4,42 @@ import po.misc.types.TypeRecord
 
 
 interface Identifiable{
-    val personalName: String
-    val componentName: String
 
-    val completeName: String get()= "$componentName[$personalName]"
+    val sourceName: String
+    val componentName: String
+    val completeName: String get()= "$componentName[$sourceName]"
 
     fun withIdentification(string: String): String{
         return "$string@$completeName"
     }
-
 }
 
 
-interface IdentifiableModule : Identifiable {
+interface IdentifiableModule: Identifiable {
     val moduleName: String
-    override val componentName: String get()= moduleName
+    val identifiable : Identifiable
 
+    override val sourceName: String get()= identifiable.sourceName
+    override val componentName: String get()= identifiable.componentName
+
+    override val completeName: String get()= "$moduleName[${identifiable.completeName}]"
+
+    override fun withIdentification(string: String): String {
+        return "$string@$moduleName(${identifiable.completeName})"
+    }
 }
 
 
-fun asIdentifiable(personalName: String, componentName: String):Identifiable{
-    return IdentifiableImplementation(personalName, componentName)
+fun asIdentifiable(sourceName: String, componentName: String):Identifiable{
+    return IdentifiableImplementation(sourceName, componentName)
 
 }
 
 data class IdentifiableImplementation(
-    override val personalName: String,
-    override val componentName: String,
-): Identifiable
+    override val sourceName: String,
+    override val componentName: String
+): Identifiable{
+    override fun toString(): String {
+        return componentName
+    }
+}

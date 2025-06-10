@@ -79,10 +79,10 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
         val authSession = AuthSessionManager.getOrCreateSession(authData)
 
         anonSession.getLoggerProcess?.invoke()?.run {
-            notifier.setNotifierConfig(NotifyConfig(console = ConsoleBehaviour.MuteInfo))
+
         }
         authSession.getLoggerProcess?.invoke()?.run {
-            notifier.setNotifierConfig(NotifyConfig(console = ConsoleBehaviour.MuteInfo))
+          //  notifier.setNotifierConfig(NotifyConfig(console = ConsoleBehaviour.MuteInfo))
         }
 
         startTestConnection{

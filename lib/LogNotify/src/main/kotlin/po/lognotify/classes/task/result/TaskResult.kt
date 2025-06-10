@@ -1,12 +1,8 @@
 package po.lognotify.classes.task.result
 
-import po.lognotify.classes.notification.enums.EventType
 import po.lognotify.classes.task.TaskBase
-import po.lognotify.classes.task.interfaces.ResultantTask
-import po.lognotify.enums.SeverityLevel
-import po.lognotify.exceptions.LoggerException
 import po.misc.exceptions.ManagedException
-import po.misc.exceptions.exceptionName
+import po.misc.exceptions.name
 
 class TaskResult<R : Any?>(
     internal val task: TaskBase<*, R>,
@@ -30,9 +26,6 @@ class TaskResult<R : Any?>(
 
     val hasThrowable: Boolean get(){
         return throwable!=null
-    }
-    private fun taskCompleted(th: Throwable){
-        task.notifier.systemInfo(EventType.STOP, SeverityLevel.EXCEPTION)
     }
 
     private fun provideResult(newResult:R):R{
@@ -61,7 +54,7 @@ class TaskResult<R : Any?>(
         task.dataProcessor.debug("Handled onFail registered","${personalName}|onFail",task)
         throwable?.let {
             task.taskStatus = TaskBase.TaskStatus.Faulty
-            task.dataProcessor.info("Handled ${it.exceptionName()} by onFail", task)
+            task.dataProcessor.info("Handled ${it.name()} by onFail", task)
             callback.invoke(it)
         }
         return this
@@ -69,7 +62,7 @@ class TaskResult<R : Any?>(
 
     fun resultOrException():R {
         throwable?.let {
-            task.dataProcessor.error("ResultOrException triggered. Escalating ${it.exceptionName()}", task)
+            task.dataProcessor.error("ResultOrException triggered. Escalating ${it.name()}", task)
             throw it
         }
         return result
@@ -80,7 +73,7 @@ class TaskResult<R : Any?>(
         exHandlingCallback = resultCallback
         throwable?.let {
             result = resultCallback()
-            task.notifier.warn("Faulty result handled silently")
+            task.dataProcessor.debug("Faulty result handled silently", "${personalName}|handleException",task)
         }
     }
 
@@ -88,7 +81,7 @@ class TaskResult<R : Any?>(
     fun handleFailure(handleFailureCallback: (ManagedException?)-> R):R {
         onHandleFailure = handleFailureCallback
         return throwable?.let { managed ->
-            val message = "Handled ${managed.exceptionName()} by onHandleFailure. Fallback result provided"
+            val message = "Handled ${managed.name()} by onHandleFailure. Fallback result provided"
             task.dataProcessor.warn(message, task)
             provideResult(handleFailureCallback.invoke(managed))
         } ?: result
@@ -105,13 +98,12 @@ class TaskResult<R : Any?>(
         isSuccess = false
         task.taskStatus = TaskBase.TaskStatus.Failing
         exHandlingCallback?.let {
-            task.notifier.warn("Faulty result handled silently")
+            task.dataProcessor.debug("Faulty result handled silently", "${personalName}|handleException",task)
             onCompleteFn?.invoke(this)
         }?:run {
             throwable = th
             if(onFailFn != null){
                 onFailFn?.invoke(th)
-                taskCompleted(th)
             }
         }
         return  this

@@ -21,7 +21,7 @@ class BasicRegistry<T: Any> {
 
     @JvmName("getRecordReified")
    inline fun <reified E: ManagedException> getRecord(key: ValueBased):T {
-      return registry[key].getOrManaged<T, E>("$key is not in the registry")
+      return registry[key].getOrManaged<T, E>("$key is not in the registry", null)
     }
 
     inline fun <reified T : Any> contains(key: ValueBased): Boolean =

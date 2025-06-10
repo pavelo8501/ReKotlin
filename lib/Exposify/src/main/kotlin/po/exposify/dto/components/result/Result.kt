@@ -11,6 +11,7 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.OperationsException
+import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.getOrOperationsEx
 import po.misc.exceptions.ManagedException
 import po.misc.types.castListOrThrow
@@ -53,7 +54,7 @@ class ResultList<DTO, D, E> internal constructor(
 
     fun getDTO(): List<DTO> {
         val typeRecord = dtoClass.config.registry.getRecord<DTO, OperationsException>(SourceObject.DTO)
-        return result.castListOrThrow<DTO, OperationsException>(typeRecord.clazz)
+        return result.castListOrThrow<DTO, OperationsException>(typeRecord.clazz, "getDTO", ExceptionCode.CAST_FAILURE)
     }
 
     internal fun getAsCommonDTO(): List<CommonDTO<DTO, D, E>> {

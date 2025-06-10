@@ -2,6 +2,7 @@ package po.misc.data
 
 import po.misc.data.console.PrintHelper
 import po.misc.data.console.PrintableTemplate
+import po.misc.data.console.PrintableTemplateBase
 import po.misc.data.interfaces.ComposableData
 import po.misc.data.interfaces.Printable
 import po.misc.interfaces.Identifiable
@@ -18,7 +19,7 @@ abstract class PrintableBase<T>()
     override var parentRecord: T? = null
 
     protected val templateRegistry : BasicRegistry<T.() -> String> = BasicRegistry()
-    override var children: List<ComposableData> = listOf()
+    override var children: List<PrintableBase<*>> = listOf()
 
 
     @PublishedApi
@@ -48,10 +49,16 @@ abstract class PrintableBase<T>()
         }
     }
 
-    fun addChildren(records:List<ComposableData>){
+    fun addChild(record: PrintableBase<*>){
+        record.setParent(self)
+        children = children.toMutableList().apply { add(record) }
+    }
+
+    fun addChildren(records:List<PrintableBase<*>>){
         records.map { it.setParent(self)}
         children = records
     }
+
     override fun setParent(parent: Printable) {
        parentRecord = parent as T
     }
@@ -84,7 +91,7 @@ abstract class PrintableBase<T>()
         return null
     }
 
-    fun printTemplate(template: PrintableTemplate<T>): String?{
+    fun printTemplate(template: PrintableTemplateBase<T>): String?{
         if(!shouldMute()){
             val result =formatString(template.template)
             outputData(result)

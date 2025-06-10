@@ -11,12 +11,15 @@ import po.exposify.dto.models.Component
 import po.exposify.dto.models.ComponentType
 import po.exposify.dto.models.SourceObject
 import po.exposify.dto.models.componentInstance
+import po.exposify.exceptions.OperationsException
 import po.exposify.extensions.castOrInitEx
+import po.exposify.extensions.castOrOperationsEx
 import po.exposify.extensions.getOrOperationsEx
 import po.lognotify.TasksManaged
 import po.misc.interfaces.Identifiable
-import po.misc.reflection.properties.mappers.models.PropertyRecord
+import po.misc.reflection.mappers.models.PropertyRecord
 import po.misc.types.TypeRecord
+import po.misc.types.castOrThrow
 import po.misc.types.safeCast
 import kotlin.reflect.KProperty
 import kotlin.reflect.KProperty1
@@ -33,25 +36,29 @@ sealed class ComplexDelegate<DTO, D, E, F_DTO, FD,  FE>(
 
     protected val ownDTOClass: DTOBase<DTO, D, E> get() = hostingDTO.dtoClass
     override val componentName: String get()= component.componentName
-    override val completeName: String  get()= component.completeName
 
     protected val typeRecord: TypeRecord<CommonDTO<F_DTO, FD, FE>>?
             = foreignClass.config.registry.getRecord<CommonDTO<F_DTO, FD, FE>>(SourceObject.CommonDTOType)
 
-    private var propertyParameter : KProperty<*>? = null
-    val property: KProperty<*> get() = propertyParameter.getOrOperationsEx("Property not yet initialized")
+    private var propertyParameter : KProperty<F_DTO>? = null
+    val property: KProperty<F_DTO> get() = propertyParameter.getOrOperationsEx("Property not yet initialized")
     val propertyRecord: PropertyRecord<F_DTO> get() = PropertyRecord.create(property.castOrInitEx<KProperty<F_DTO>>())
 
     protected var foreignDTOParameter: CommonDTO<F_DTO, FD, FE>? = null
     val foreignDTO: CommonDTO<F_DTO, FD, FE>
         get() = foreignDTOParameter.getOrOperationsEx("Foreign dto is not yet assigned")
 
+    protected abstract fun propertyResolved(property: KProperty<F_DTO>)
+
    internal abstract fun resolveForeign():CommonDTO<F_DTO, FD, FE>?
 
     private fun propertyProvided(property: KProperty<*>){
         if(propertyParameter == null){
-            propertyParameter = property
-            hostingDTO.bindingHub.setComplexBinding(this.castOrInitEx())
+            val castedProperty :KProperty<F_DTO>? = property.safeCast<KProperty<F_DTO>>()
+            castedProperty?.let {
+                propertyParameter = it
+
+            }?:println("Unable to cast KProperty<*> to KProperty<F_DTO>")
         }
     }
     operator fun provideDelegate(thisRef: DTO, property: KProperty<*>): ComplexDelegate<DTO, D, E, F_DTO, FD, FE> {
@@ -65,20 +72,26 @@ sealed class ComplexDelegate<DTO, D, E, F_DTO, FD,  FE>(
 }
 
 
-class AttachedForeign<DTO, D, E, F_DTO, FD, FE>(
+class AttachedForeignDelegate<DTO, D, E, F_DTO, FD, FE>(
     hostingDTO: CommonDTO<DTO, D, E>,
     foreignClass: DTOBase<F_DTO, FD, FE>,
     val dataIdProperty: KProperty1<D, Long>,
     val foreignDTOProvider: D.(F_DTO)-> Unit,
 ): ComplexDelegate<DTO, D, E, F_DTO, FD, FE>(hostingDTO, foreignClass, componentInstance(ComponentType.AttachedForeignDelegate, hostingDTO))
-
     where D: DataModel, E: LongEntity, DTO: ModelDTO,
           F_DTO: ModelDTO, FD: DataModel, FE: LongEntity
 {
+    override val sourceName: String
+        get() = component.source.sourceName
+
     init {
         if(ownDTOClass.status == DTOClassStatus.Live){
             resolveForeign()
         }
+    }
+
+    override fun propertyResolved(property: KProperty<F_DTO>){
+        hostingDTO.bindingHub.setAttachedForeignDelegate(this.castOrOperationsEx())
     }
 
    override fun resolveForeign():CommonDTO<F_DTO, FD, FE>?{
@@ -103,6 +116,9 @@ class ParentDelegate<DTO, D, ENTITY, F_DTO, FD, FE>(
         where D: DataModel, ENTITY: LongEntity, DTO : ModelDTO, F_DTO: ModelDTO, FD : DataModel, FE: LongEntity
 {
 
+    override val sourceName: String
+        get() = component.source.sourceName
+
     init {
         hostingDTO.subscribe(this, CommonDTO.Events.OnParentAttached){dto->
             if(typeRecord != null){
@@ -114,6 +130,11 @@ class ParentDelegate<DTO, D, ENTITY, F_DTO, FD, FE>(
                 hostingDTO.logger.warn("TypeRecord not received. Won't cast ${dto.completeName}")
             }
         }
+    }
+
+
+    override fun propertyResolved(property: KProperty<F_DTO>){
+        hostingDTO.bindingHub.setParentDelegate(this.castOrOperationsEx())
     }
 
     override fun resolveForeign():CommonDTO<F_DTO, FD, FE>?{

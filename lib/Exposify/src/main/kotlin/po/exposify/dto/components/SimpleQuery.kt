@@ -20,6 +20,7 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.exceptions.throwOperations
 
 
 fun Op<Boolean>.toSqlString(): String {
@@ -110,8 +111,8 @@ class SwitchQuery<DTO: ModelDTO, D : DataModel, E: LongEntity>(
     fun resolve(): CommonDTO<DTO, D, E> {
         val existent = dtoClass.lookupDTO(lookUpId, CrudOperation.Pick)
         if (existent == null) {
-            throw OperationsException("Unable to find ${dtoClass.config.registry.getRecord<DTO>(SourceObject.DTO)} with id $lookUpId",
-                ExceptionCode.VALUE_NOT_FOUND)
+            val message = "Unable to find ${dtoClass.config.registry.getRecord<DTO>(SourceObject.DTO)} with id $lookUpId"
+            throwOperations(message, ExceptionCode.VALUE_NOT_FOUND )
         }
         return existent
     }

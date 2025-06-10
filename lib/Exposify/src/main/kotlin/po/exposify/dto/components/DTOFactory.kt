@@ -10,6 +10,7 @@ import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.components.tracker.DTOTracker
 import po.exposify.dto.components.tracker.extensions.addTrackerInfo
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.models.ExposifyModule
 import po.exposify.dto.models.ModuleType
 import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.OperationsException
@@ -30,14 +31,14 @@ import kotlin.reflect.KType
 class DTOFactory<DTO, DATA, ENTITY>(
     private val dtoClass: DTOBase<DTO, DATA, ENTITY>,
     private val typeRegistry : TypeRegistry,
-    val moduleType : ModuleType.DTOFactory = ModuleType.DTOFactory
+    val moduleType : ExposifyModule = ExposifyModule(ModuleType.DTOFactory, dtoClass.component)
 ): IdentifiableModule by moduleType,  TasksManaged where DTO : ModelDTO, DATA: DataModel, ENTITY: LongEntity {
 
     enum class FactoryEvents(override val value: Int) : ValueBased{
         ON_CREATED(1),
         ON_INITIALIZED(2)
     }
-    val notificator = TypedCallbackRegistry<CommonDTO<DTO, DATA, ENTITY>, Unit>()
+    val notificator : TypedCallbackRegistry<CommonDTO<DTO, DATA, ENTITY>, Unit> = TypedCallbackRegistry()
 
     val  dataType : TypeRecord<DATA> get() = typeRegistry.getRecord<DATA, OperationsException>(SourceObject.Data)
     val  dtoType: TypeRecord<DTO> get() = typeRegistry.getRecord<DTO, OperationsException>(SourceObject.DTO)
@@ -48,9 +49,7 @@ class DTOFactory<DTO, DATA, ENTITY>(
     internal val dataBlueprint: ClassBlueprint<DATA> = ClassBlueprint(dataType.clazz)
     val dtoBlueprint: ClassBlueprint<DTO> = ClassBlueprint(dtoType.clazz)
 
-    @LogOnFault
     var dataModelBuilderFn: (() -> DATA)? = null
-
 
     @LogOnFault
     val typedSerializers: MutableMap<String, SerializerInfo<*>> = mutableMapOf()
@@ -82,7 +81,9 @@ class DTOFactory<DTO, DATA, ENTITY>(
                 dto
             }
             result
-        }.resultOrException()
+        }.onFail {
+            val a = 10
+        } .resultOrException()
 
     /**
      * Create new instance of DatModel injectable to the specific DTOFunctions<DATA, ENTITY> described by generics set
@@ -99,7 +100,7 @@ class DTOFactory<DTO, DATA, ENTITY>(
                 serializerLookup(param.name.toString(),  param.type)?.let {
                     Json.Default.decodeFromString(it.serializer, "[]")
                 }?:run {
-                   throw OperationsException("Requested parameter name: ${param.name} ${completeName}", ExceptionCode.FACTORY_CREATE_FAILURE)
+                   throw OperationsException("Requested parameter name: ${param.name} $completeName", ExceptionCode.FACTORY_CREATE_FAILURE, null)
                 }
             }
             val result = dataBlueprint.getConstructor().callBy(dataBlueprint.getConstructorArgs())
@@ -130,7 +131,7 @@ class DTOFactory<DTO, DATA, ENTITY>(
                     else -> {
                         throw OperationsException(
                             "Parameter ${param.name} unavailable when creating dataModel",
-                            ExceptionCode.VALUE_NOT_FOUND
+                            ExceptionCode.VALUE_NOT_FOUND, null
                         )
                     }
                 }

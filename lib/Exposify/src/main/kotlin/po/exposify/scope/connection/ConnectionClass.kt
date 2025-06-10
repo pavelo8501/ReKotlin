@@ -10,7 +10,6 @@ import po.exposify.dto.RootDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.scope.connection.models.ConnectionInfo
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.exceptions.InitException
 import po.exposify.scope.connection.controls.CoroutineEmitter
 import po.exposify.scope.connection.controls.UserDispatchManager
 import po.exposify.scope.service.ServiceClass
@@ -20,7 +19,7 @@ import po.lognotify.TasksManaged
 import po.lognotify.classes.task.TaskHandler
 import po.lognotify.extensions.runTask
 import po.lognotify.lastTaskHandler
-import po.misc.exceptions.CoroutineInfo
+import po.misc.coroutines.CoroutineInfo
 import po.misc.serialization.SerializerInfo
 import po.misc.types.safeCast
 import kotlin.coroutines.coroutineContext

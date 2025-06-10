@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import po.misc.data.PrintableBase
-import po.misc.data.console.PrintableTemplate
+import po.misc.data.console.PrintableTemplateBase
 import po.misc.data.interfaces.ComposableData
 import po.misc.data.interfaces.Printable
 import po.misc.interfaces.Identifiable
@@ -20,15 +20,14 @@ import po.misc.types.safeCast
 abstract class DataProcessorBase(){
 
     abstract val topEmitter: DataProcessorBase?
-
     private val selfAsIdentifiable: Identifiable = asIdentifiable("DataProcessorBase", "DataProcessorBase")
-
     private val builders : TypedCallbackRegistry<PrintableBase<*>, Unit> = TypedCallbackRegistry()
 
     var dataProvider: (()->PrintableBase<*>)? = null
 
     @PublishedApi
     internal val recordList: MutableList<PrintableBase<*>> = mutableListOf()
+    private val activeRecord: PrintableBase<*>? get() = recordList.lastOrNull()
     val recordsCount : Int get() = recordList.size
 
     var globalMuteCondition:  ((ComposableData)-> Boolean)? = null
@@ -37,18 +36,44 @@ abstract class DataProcessorBase(){
     internal var outputSource: ((String)-> Unit)? = null
 
 
+    @PublishedApi
+    internal fun addToProcessorList(record: PrintableBase<*>){
+        recordList.add(record)
+        onRecordAttachedCallback?.invoke(record)
+    }
+
+    private var onChildAddCallback : ((childRecord:PrintableBase<*>,parentRecord:PrintableBase<*>) -> Unit)? = null
+    fun onChildAttached(callback: (childRecord:PrintableBase<*>,parentRecord:PrintableBase<*>) -> Unit){
+        onChildAddCallback = callback
+    }
+
+    private var onRecordAttachedCallback: ((PrintableBase<*>) -> Unit)? = null
+    fun onRecordAttached(callback: (PrintableBase<*>) -> Unit){
+        onRecordAttachedCallback = callback
+    }
+
+    fun addData(record: PrintableBase<*>){
+        activeRecord?.let {
+            it.addChild(record)
+            onChildAddCallback?.invoke(record, it)
+        }?:run {
+            addToProcessorList(record)
+        }
+    }
+
     fun provideOutputSource(source: (String)-> Unit){
         outputSource = source
     }
+
     inline fun <reified T: Printable> checkIfConditionApply(record: PrintableBase<T>){
         val casted = globalMuteCondition?.safeCast<(T)-> Boolean>()
         casted?.let {
             record.setMute(casted)
         }
     }
-    inline fun <reified T: Printable> processRecord(record: PrintableBase<T>, template: PrintableTemplate<T>?): String? {
+    inline fun <reified T: Printable> processRecord(record: PrintableBase<T>, template: PrintableTemplateBase<T>?): String? {
         record.outputSource = outputSource
-        recordList.add(record)
+        addToProcessorList(record)
         checkIfConditionApply<T>(record)
         globalMuteCondition?.let {
             record.setGenericMute(it)
@@ -58,6 +83,10 @@ abstract class DataProcessorBase(){
         } ?: run {
             record.print()
         }
+    }
+
+    fun forwardTop(data: PrintableBase<*>){
+        topEmitter?.addData(data)
     }
 
     fun provideMuteCondition(muteCondition: (ComposableData)-> Boolean) {

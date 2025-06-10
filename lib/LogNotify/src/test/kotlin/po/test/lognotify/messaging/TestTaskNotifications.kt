@@ -1,21 +1,54 @@
 package po.test.lognotify.messaging
 
+
 import org.junit.jupiter.api.Test
 import po.lognotify.TasksManaged
+import po.lognotify.classes.notification.NotifierHub
 import po.lognotify.classes.notification.enums.EventType
 import po.lognotify.classes.notification.models.TaskData
 import po.lognotify.classes.task.models.TaskConfig
-import po.lognotify.classes.task.result.resultOrNull
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.extensions.runTask
 import po.lognotify.extensions.subTask
+import po.lognotify.logNotify
+import po.misc.data.PrintableBase
 import po.misc.exceptions.ManagedException
+import po.misc.interfaces.Identifiable
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
-class TestTaskNotifications: TasksManaged {
+class TestTaskNotifications : TasksManaged, Identifiable {
 
+
+    override val sourceName: String = "TestTaskNotifications"
+    override val componentName: String = "TestTaskNotifications"
 
     @Test
+    fun `Debug information can be switched on&off for specific data type`(){
+
+        val handler = logNotify()
+        val notifications: MutableList<PrintableBase<*>> = mutableListOf()
+
+        handler.notifierHub.subscribe(this, NotifierHub.EventType.NewEvent){
+            notifications.add(it)
+        }
+        runTask("RootTaskNoDebug"){
+
+        }
+        assertFalse(notifications.any { (it as TaskData).severity == SeverityLevel.DEBUG }, "Some of notifications are of type DEBUG")
+        notifications.clear()
+
+        handler.notifierConfig {
+            showDebugInfo(TaskData.Debug)
+        }
+        runTask("RootTaskWithDebug"){
+
+        }
+        assertTrue(notifications.any { (it as TaskData).severity == SeverityLevel.DEBUG }, "None of the notifications are of type DEBUG")
+    }
+
+
     fun `Exception info displayed correctly lambdas expect NonNullable`() {
 
         fun subTask1(): Int = subTask("Sub task 1"){
@@ -49,9 +82,9 @@ class TestTaskNotifications: TasksManaged {
 
             val startEvent = handler.dataProcessor.systemEvent(EventType.START)
             val stopEvent =  handler.dataProcessor.systemEvent(EventType.STOP)
-            val info = handler.infoV2("Info message")
-            val warning = handler.warnV2("Info message")
-            val warning2 = handler.warnV2(ManagedException("Exception Message"), "Additional message")
+            val info = handler.info("Info message")
+            val warning = handler.warn("Info message")
+            val warning2 = handler.warn(ManagedException("Exception Message"), "Additional message")
 
             assertEquals(SeverityLevel.INFO, info.severity, "Severity mismatch")
             assertEquals(SeverityLevel.WARNING, warning.severity, "Severity mismatch")

@@ -37,18 +37,20 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     }
 
     override val dtoType :TypeRecord<DTO> = registry.getRecord<DTO, InitException>(SourceObject.DTO)
-    val dtoName: String = dtoType.simpleName
     val dtoId : DTOId<DTO> = DTOId(UUID.randomUUID().hashCode().toLong())
-    override val completeName: String
-        get() = "CommonDTO[${dtoName}#${dtoId.id}]"
-    override val componentName: String get() = "CommonDTO"
+    override val componentName: String
+        get() = "CommonDTO[${sourceName}#${dtoId.id}]"
+    override val sourceName: String
+        get() = dtoType.simpleName
 
     val dtoClassConfig: DTOConfig<DTO, DATA, ENTITY>
         get() {
             return dtoClass.config.castOrOperationsEx<DTOConfig<DTO, DATA, ENTITY>>("dtoClassConfig uninitialized")
         }
 
-    val registry: TypeRegistry get() = dtoClass.config.registry
+    val registry: TypeRegistry get() {
+        return dtoClass.config.registry
+    }
     abstract override val dataModel: DATA
 
     val entityType: TypeRecord<ENTITY>
@@ -109,7 +111,6 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
             logger.info("Triggers count: $it")
         }
     }
-
 
     internal fun <F_DTO, FD, FE> setForeignDTO(
         foreign: CommonDTO<F_DTO, FD, FE>

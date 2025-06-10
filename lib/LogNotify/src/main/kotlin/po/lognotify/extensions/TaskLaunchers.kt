@@ -142,7 +142,7 @@ suspend inline fun <reified T, R: Any?> T.runTaskAsync(
 inline fun <reified T, R: Any?> T.runTask(
     taskName: String,
     config: TaskConfig = TaskConfig(),
-   crossinline block: T.(TaskHandler<R>)-> R,
+    block: T.(TaskHandler<R>)-> R,
 ): TaskResult<R> {
 
     val moduleName: String = this::class.simpleName?:config.moduleName
@@ -154,7 +154,7 @@ inline fun <reified T, R: Any?> T.runTask(
         try {
             val lambdaResult = block.invoke(this, task.handler)
             val result = onTaskResult(task, lambdaResult)
-            task.dataProcessor.info("Created result  by onTaskResult", task)
+            task.dataProcessor.debug("Created result  by onTaskResult", "TaskLauncher|runTask", task)
             return result
         }catch (throwable: Throwable){
             val managed = handleException(throwable, task)
@@ -170,6 +170,8 @@ inline fun <reified T, R: Any?> T.runTask(
             task.complete()
         }
     }
+
+  val testResult = result?.resultOrException()
   return result.getOrLoggerException("Maximum retries exceeded")
 }
 

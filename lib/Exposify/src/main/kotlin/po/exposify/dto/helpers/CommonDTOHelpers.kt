@@ -6,18 +6,16 @@ import po.exposify.dto.DTOBase
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.SourceObject
-import po.exposify.exceptions.InitException
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.exceptions.throwOperations
 import po.exposify.extensions.getOrInitEx
 import po.exposify.extensions.getOrOperationsEx
 import po.misc.interfaces.ValueBased
-import po.misc.reflection.properties.mappers.models.PropertyRecord
+import po.misc.reflection.mappers.models.PropertyRecord
 
 import po.misc.types.TypeRecord
 import po.misc.types.castOrThrow
-import po.misc.types.safeCast
-import kotlin.reflect.KClass
 
 fun <DTO : ModelDTO, D : DataModel, E : LongEntity>  CommonDTO<DTO, D, E>.getPropertyRecord(
     key : ValueBased,
@@ -41,8 +39,9 @@ fun <DTO : ModelDTO, D: DataModel, E: LongEntity> CommonDTO<DTO, D, E>.toDto(
     val commonDtoKey =    dtoType.typeKey
 
     if(fromClassKey != commonDtoKey){
-        throw OperationsException("typeKeys do not match. CommonDtoKey = $commonDtoKey. Key obtained from class = $fromClassKey",
-            ExceptionCode.REFLECTION_ERROR)
+        val message = "typeKeys do not match. CommonDtoKey = $commonDtoKey. Key obtained from class = $fromClassKey"
+        throwOperations(message, ExceptionCode.REFLECTION_ERROR)
     }
-   return castOrThrow<DTO, OperationsException>(typeRecord.clazz, "CommonDTO<DTO, D, E> to DTO cast failure")
+   return castOrThrow<DTO, OperationsException>(typeRecord.clazz, "CommonDTO<DTO, D, E> to DTO cast failure",
+       ExceptionCode.CAST_FAILURE)
 }

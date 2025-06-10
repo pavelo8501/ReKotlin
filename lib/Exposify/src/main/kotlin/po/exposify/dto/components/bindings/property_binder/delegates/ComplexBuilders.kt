@@ -11,11 +11,11 @@ fun <DTO,  DATA, ENTITY, F_DTO, FD, FE> CommonDTO<DTO, DATA, ENTITY>.attachedRef
     foreignDTOClass:  DTOBase<F_DTO, FD, FE>,
     dataIdProperty: KProperty1<DATA, Long>,
     foreignDTOProvider: DATA.(F_DTO)-> Unit
-): AttachedForeign<DTO, DATA, ENTITY, F_DTO, FD, FE>
+): AttachedForeignDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>
         where DATA:DataModel, ENTITY : LongEntity, DTO : ModelDTO,
               F_DTO: ModelDTO, FD: DataModel,  FE: LongEntity
 {
-    val container = AttachedForeign(this, foreignDTOClass, dataIdProperty, foreignDTOProvider)
+    val container = AttachedForeignDelegate(this, foreignDTOClass, dataIdProperty, foreignDTOProvider)
     return container
 }
 

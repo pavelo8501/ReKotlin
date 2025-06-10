@@ -4,10 +4,12 @@ import po.lognotify.classes.task.models.TaskConfig
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.models.TaskKey
 import po.misc.data.PrintableBase
+import po.misc.data.console.DebugTemplate
 import po.misc.data.console.PrintableTemplate
 import po.misc.data.console.helpers.emptyOnNull
 import po.misc.data.styles.colorize
 import po.misc.data.styles.Colour
+import po.misc.data.styles.SpecialChars
 import po.misc.data.templates.matchTemplate
 import po.misc.data.templates.templateRule
 import po.misc.interfaces.Identifiable
@@ -52,8 +54,7 @@ data class TaskData(
         }
 
         val Header: PrintableTemplate<TaskData> = PrintableTemplate {
-            prefix.invoke(this, "Start") +
-                    "${config.actor.emptyOnNull("by ")} ]".colorize(Colour.BLUE)
+            SpecialChars.NewLine.char + prefix.invoke(this, "Start") + "${config.actor.emptyOnNull("by ")}]".colorize(Colour.BLUE)
         }
 
         val Footer: PrintableTemplate<TaskData> = PrintableTemplate {
@@ -65,8 +66,8 @@ data class TaskData(
             "${prefix.invoke(this, "")} ${messageFormatter.invoke(this)}"
         }
 
-        val Debug: PrintableTemplate<TaskData> = PrintableTemplate {
-            "${prefix.invoke(this, "")} ${messageFormatter.invoke(this).colorize(Colour.GREEN) }"
+        val Debug: DebugTemplate<TaskData> = DebugTemplate {
+            "${prefix.invoke(this, "")} ${message.colorize(Colour.GREEN)}"
         }
     }
 }

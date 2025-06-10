@@ -21,9 +21,6 @@ fun <T: Any> Any.safeCast(
     }
 }
 
-
-
-
 inline fun <reified BASE : Any> Any?.safeBaseCast(): BASE? {
     return when {
         this == null -> null
@@ -34,7 +31,7 @@ inline fun <reified BASE : Any> Any?.safeBaseCast(): BASE? {
 
 inline fun <reified T: Any, reified E: ManagedException> Any?.castOrThrow(
     message: String? = null,
-    code: Int = 0
+    code: Enum<*>? = null
 ): T {
     if(this == null){
         throw SelfThrownException.build<E>("Unable to cast null to ${T::class.simpleName}", code)
@@ -52,7 +49,7 @@ inline fun <reified T: Any, reified E: ManagedException> Any?.castOrThrow(
 inline fun <T: Any, reified E: ManagedException> Any?.castOrThrow(
     kClass: KClass<T>,
     message: String? = null,
-    code: Int = 0
+    code: Enum<*>
 ): T {
     return try {
         kClass.cast(this)
@@ -65,14 +62,14 @@ inline fun <T: Any, reified E: ManagedException> Any?.castOrThrow(
 inline fun <T : Any, reified E: ManagedException> List<*>.castListOrThrow(
     kClass: KClass<T>,
     message: String? = null,
-    code: Int = 0
+    code: Enum<*>
 ): List<T> {
     return this.mapNotNull { it.castOrThrow<T, E>(kClass, message, code) }
 }
 
 inline fun <reified BASE : Any, reified E : ManagedException> Any?.castBaseOrThrow(
     message: String? = null,
-    code: Int = 0
+    code: Enum<*> ?  = null
 ): BASE {
     if (this == null) {
         throw SelfThrownException.build<E>("Cannot cast null to ${BASE::class.simpleName}", code)

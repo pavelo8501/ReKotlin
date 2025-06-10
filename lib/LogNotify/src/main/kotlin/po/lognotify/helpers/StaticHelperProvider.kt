@@ -23,29 +23,29 @@ interface StaticHelper{
      val utcTime: String
         get() = ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("HH:mm:ss"))
 
-    fun withIndention(message: String, depthLevel: Int, indentionSymbol: String = " "): String {
+     fun withIndention(message: String, depthLevel: Int, indentionSymbol: String = " "): String {
             val indent = indentionSymbol.repeat(depthLevel)
             return "$indent $message"
         }
 
-    fun makeOfColour(message: String, severity : SeverityLevel, overloadColor: Colour? = null): String{
-        return when(severity){
-            SeverityLevel.EXCEPTION -> {
-                makeOfColour(Colour.RED, message)
-            }
-            SeverityLevel.WARNING -> {
-                makeOfColour(Colour.YELLOW, message)
-            }
-            SeverityLevel.SYS_INFO ->{
-                makeOfColour(Colour.GREEN, message)
-            }
-            SeverityLevel.INFO -> {
-                message
-            }
-        }
-    }
+//    fun makeOfColour(message: String, severity : SeverityLevel, overloadColor: Colour? = null): String{
+//        return when(severity){
+//            SeverityLevel.EXCEPTION -> {
+//                makeOfColour(Colour.RED, message)
+//            }
+//            SeverityLevel.WARNING -> {
+//                makeOfColour(Colour.YELLOW, message)
+//            }
+//            SeverityLevel.SYS_INFO ->{
+//                makeOfColour(Colour.GREEN, message)
+//            }
+//            SeverityLevel.INFO -> {
+//                message
+//            }
+//        }
+//    }
 
-    fun makeOfColour(color: Colour, message: String): String{
-        return "${color.colourStr}$message${Colour.RESET.colourStr}"
-    }
+//    fun makeOfColour(color: Colour, message: String): String{
+//        return "${color.colourStr}$message${Colour.RESET.colourStr}"
+//    }
 }

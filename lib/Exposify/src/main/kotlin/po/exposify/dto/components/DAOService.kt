@@ -7,6 +7,7 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.DTOBase
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dao.classes.ExposifyEntityClass
+import po.exposify.dto.models.ExposifyModule
 import po.exposify.dto.models.ModuleType
 import po.lognotify.TasksManaged
 import po.lognotify.classes.task.models.TaskConfig
@@ -19,13 +20,13 @@ import po.misc.registries.type.TypeRegistry
 class DAOService<DTO, DATA, ENTITY>(
     val dtoClass: DTOBase<DTO, DATA, ENTITY>,
     private val registry: TypeRegistry,
-    private val moduleType : ModuleType.ServiceClass = ModuleType.ServiceClass
+    private val moduleType : ExposifyModule = ExposifyModule(ModuleType.ServiceClass, dtoClass.component)
 ): IdentifiableModule by moduleType, TasksManaged   where DTO: ModelDTO, DATA: DataModel, ENTITY : LongEntity{
 
     val entityModel: ExposifyEntityClass<ENTITY> get() = dtoClass.config.entityModel
 
     val taskConfig : TaskConfig get() {
-       return TaskConfig(actor = dtoClass.componentClass.componentName)
+       return TaskConfig(actor = dtoClass.component.componentName)
     }
 
     private fun combineConditions(conditions: Set<Op<Boolean>>): Op<Boolean> {
@@ -72,7 +73,7 @@ class DAOService<DTO, DATA, ENTITY>(
             val newEntity = entityModel.new {
                 block.invoke(this)
         }
-        handler.info("Dao entity created with id ${newEntity.id.value} for ${dtoClass.completeName}")
+        handler.info("Dao entity created with id ${newEntity.id.value} for ${dtoClass.component.completeName}")
         newEntity
     }.onFail {
         val a = it
@@ -84,7 +85,7 @@ class DAOService<DTO, DATA, ENTITY>(
             val newEntity = entityModel.new {
                 bindFn(this)
             }
-            handler.info("Entity created with id: ${newEntity.id.value} for ${dtoClass.completeName}")
+            handler.info("Entity created with id: ${newEntity.id.value} for ${dtoClass.component.completeName}")
             newEntity
     }.onFail{
         val dtoClass = dtoClass
@@ -96,9 +97,9 @@ class DAOService<DTO, DATA, ENTITY>(
         val selectedEntity =  pickById(entityId)
         if(selectedEntity != null){
             updateFn.invoke(selectedEntity)
-            handler.info("Updated entity with id: ${selectedEntity.id.value} for ${dtoClass.completeName}")
+            handler.info("Updated entity with id: ${selectedEntity.id.value} for ${dtoClass.component.completeName}")
         }else{
-            handler.warn("Update failed. Entity with id: ${entityId} for ${dtoClass.completeName} can not be found")
+            handler.warn("Update failed. Entity with id: ${entityId} for ${dtoClass.component.completeName} can not be found")
         }
         selectedEntity
     }.resultOrException()

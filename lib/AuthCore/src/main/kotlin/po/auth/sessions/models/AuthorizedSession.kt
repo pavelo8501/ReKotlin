@@ -14,7 +14,6 @@ import po.auth.authentication.exceptions.ErrorCodes
 import po.auth.sessions.enumerators.SessionType
 import po.auth.sessions.interfaces.EmmitableSession
 import po.auth.sessions.interfaces.SessionIdentified
-import po.lognotify.classes.notification.models.Notification
 import po.lognotify.classes.process.LoggProcess
 import po.lognotify.classes.process.ProcessableContext
 import po.misc.types.castOrThrow
@@ -54,9 +53,6 @@ class AuthorizedSession internal constructor(
     private val scope: CoroutineScope = CoroutineScope(CoroutineName(coroutineName) + this)
 
 
-    override fun onNotification(notification: Notification) {
-        TODO("Not yet implemented")
-    }
 
     override fun onProcessStart(session: LoggProcess<*>) {
         println("onProcessStart emitted with sessionId ${session.identifiedAs}")
@@ -98,7 +94,7 @@ class AuthorizedSession internal constructor(
         sessionStore.keys.firstOrNull{ it.name ==  name}?.let {key->
             val sessionParam = sessionStore[key].castOrThrow<T, AuthException>(
                 "SessionStore item not found by key",
-                ErrorCodes.SESSION_PARAM_FAILURE.value)
+                ErrorCodes.SESSION_PARAM_FAILURE)
 
             return sessionParam
         }
@@ -113,7 +109,7 @@ class AuthorizedSession internal constructor(
         roundTripStore.keys.firstOrNull{ it.name ==  name}?.let { key ->
             val sessionParam = roundTripStore[key].castOrThrow<T, AuthException>(
                 "SessionStore item not found by key",
-                ErrorCodes.SESSION_PARAM_FAILURE.value)
+                ErrorCodes.SESSION_PARAM_FAILURE)
 
             return sessionParam
         }
@@ -128,7 +124,7 @@ class AuthorizedSession internal constructor(
         externalStore.keys.firstOrNull{ it.name ==  name}?.let { key ->
             val sessionParam = externalStore[key].castOrThrow<T, AuthException>(
                 "SessionStore item not found by key",
-                ErrorCodes.SESSION_PARAM_FAILURE.value)
+                ErrorCodes.SESSION_PARAM_FAILURE)
 
             return sessionParam
         }

@@ -25,6 +25,7 @@ class TestDTOConfiguration : DatabaseTest() {
                 }
             }
         }
+        throw exception
 
     }
 

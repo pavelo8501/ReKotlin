@@ -1,12 +1,11 @@
 package po.lognotify.models
 
 import po.lognotify.classes.notification.NotifierHub
-import po.lognotify.classes.notification.models.NotifyConfig
 import po.lognotify.classes.task.RootTask
 import po.lognotify.classes.task.interfaces.ResultantTask
 import po.misc.types.UpdateType
 import po.lognotify.classes.task.interfaces.UpdatableTasks
-import po.misc.exceptions.CoroutineInfo
+import po.misc.coroutines.CoroutineInfo
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.component1
 import kotlin.collections.component2
@@ -14,7 +13,7 @@ import kotlin.collections.forEach
 import kotlin.collections.set
 
 
-class TaskDispatcher(val notifier: NotifierHub) : UpdatableTasks{
+class TaskDispatcher(val notifierHub: NotifierHub) : UpdatableTasks{
 
     data class LoggerStats (
         val activeTask : ResultantTask<*, *>,
@@ -23,7 +22,6 @@ class TaskDispatcher(val notifier: NotifierHub) : UpdatableTasks{
         val topTasksCount: Int,
         val totalTasksCount: Int,
         val coroutineInfo: CoroutineInfo,
-
     )
 
     internal val taskHierarchy = ConcurrentHashMap<TaskKey, RootTask<*, *>>()
@@ -48,10 +46,10 @@ class TaskDispatcher(val notifier: NotifierHub) : UpdatableTasks{
         )
         callbackRegistry.filter { it.key == handler} .forEach { (_, cb) -> cb(stats) }
     }
-    fun addRootTask(task: RootTask<*, *>, notifyConfig : NotifyConfig) {
-        task.notifier.setNotifierConfig(notifyConfig)
+    fun addRootTask(task: RootTask<*, *>) {
+        task.dataProcessor.config = notifierHub.config
         taskHierarchy[task.key] = task
-        notifier.register(task.notifier)
+        notifierHub.register(task)
 
         notifyUpdate(UpdateType.OnCreated, task)
         notifyUpdate(UpdateType.OnStart, task)
@@ -59,7 +57,7 @@ class TaskDispatcher(val notifier: NotifierHub) : UpdatableTasks{
 
     fun removeRootTask(task: RootTask<*, *>) {
         taskHierarchy.remove(task.key)
-        notifier.unregister(task.notifier)
+        notifierHub.unregister(task)
         notifyUpdate(UpdateType.OnComplete, task)
     }
 

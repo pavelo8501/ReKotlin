@@ -17,7 +17,7 @@ data class TrackerRecord(
 ) : ObservableData {
 
     override val componentName: String get()= component.componentName
-    override val completeName: String get()= component.completeName
+    override val sourceName: String get()= component.sourceName
 
     var executionTimestamp: ExecutionTimeStamp? = null
     var trackResult : Int = 0

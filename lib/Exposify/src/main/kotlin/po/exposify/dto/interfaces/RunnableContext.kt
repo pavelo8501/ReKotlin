@@ -1,11 +1,8 @@
 package po.exposify.dto.interfaces
 
-import po.auth.sessions.enumerators.SessionType
 import po.auth.sessions.interfaces.SessionIdentified
 import po.auth.sessions.models.AuthorizedSession
-import po.misc.exceptions.CoroutineInfo
-import po.misc.exceptions.getCoroutineInfo
-import kotlin.coroutines.coroutineContext
+import po.misc.coroutines.CoroutineInfo
 
 
 interface RunnableContext: SessionIdentified{

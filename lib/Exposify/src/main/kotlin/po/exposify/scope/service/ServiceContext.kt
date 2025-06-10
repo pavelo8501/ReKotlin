@@ -14,12 +14,15 @@ import po.exposify.dto.components.WhereQuery
 import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.exceptions.InitException
+import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.withTransactionIfNone
 import po.lognotify.TasksManaged
 import po.lognotify.anotations.LogOnFault
 import po.lognotify.classes.task.result.onFailureCause
 import po.lognotify.extensions.runTask
 import po.lognotify.extensions.runTaskBlocking
+import po.misc.exceptions.toManaged
 
 class ServiceContext<DTO, DATA, ENTITY>(
     internal  val serviceClass : ServiceClass<DTO, DATA, ENTITY>,
@@ -40,7 +43,8 @@ class ServiceContext<DTO, DATA, ENTITY>(
                 exec("TRUNCATE TABLE ${table.tableName} RESTART IDENTITY CASCADE")
                 handler.info("TRUNCATE TABLE ${table.tableName} RESTART IDENTITY CASCADE Executed")
             } catch (th: Throwable) {
-                handler.warn(th, "Running TRUNCATE TABLE ${table.tableName} RESTART IDENTITY CASCADE")
+                handler.warn(th.toManaged<InitException>("Running TRUNCATE TABLE ${table.tableName} RESTART IDENTITY CASCADE",
+                    ExceptionCode.DB_TABLE_CREATION_FAILURE),"")
             }
         }
     }.onFailureCause {

@@ -1,9 +1,6 @@
 package po.misc.data
 
-import po.misc.reflection.properties.mappers.models.PropertyRecord
-import kotlin.reflect.KProperty
-import kotlin.reflect.KProperty1
-
+import po.misc.reflection.mappers.models.PropertyRecord
 
 
 data class ColumnMetadata(
