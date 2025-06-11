@@ -7,26 +7,28 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.DTOBase
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dao.classes.ExposifyEntityClass
-import po.exposify.dto.models.ExposifyModule
-import po.exposify.dto.models.ModuleType
+import po.exposify.dto.enums.Components
 import po.lognotify.TasksManaged
 import po.lognotify.classes.task.models.TaskConfig
 import po.lognotify.classes.task.result.resultOrNull
 import po.lognotify.extensions.subTask
 import po.misc.interfaces.IdentifiableModule
+import po.misc.interfaces.asIdentifiableModule
 import po.misc.registries.type.TypeRegistry
 
 
 class DAOService<DTO, DATA, ENTITY>(
     val dtoClass: DTOBase<DTO, DATA, ENTITY>,
     private val registry: TypeRegistry,
-    private val moduleType : ExposifyModule = ExposifyModule(ModuleType.ServiceClass, dtoClass.component)
+    private val moduleType : IdentifiableModule = asIdentifiableModule(dtoClass.component.sourceName, "DAOService",
+        Components.DaoService
+    )
 ): IdentifiableModule by moduleType, TasksManaged   where DTO: ModelDTO, DATA: DataModel, ENTITY : LongEntity{
 
     val entityModel: ExposifyEntityClass<ENTITY> get() = dtoClass.config.entityModel
 
     val taskConfig : TaskConfig get() {
-       return TaskConfig(actor = dtoClass.component.componentName)
+       return TaskConfig(actor = dtoClass.component.componentName.toString())
     }
 
     private fun combineConditions(conditions: Set<Op<Boolean>>): Op<Boolean> {

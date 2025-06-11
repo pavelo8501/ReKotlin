@@ -46,7 +46,7 @@ class CallbackPayload<T: Any>(
          * @param callback The callback function accepting a single argument.
          * @return A new instance of [CallbackPayload].
          */
-        fun <T: Any> createPayload(
+        fun <T: Any> create(
         event: ValueBased,
         callback: (T) -> Unit
         ): CallbackPayload<T> = CallbackPayload(callback, event)
@@ -81,7 +81,7 @@ class DoubleCallbackPayload<T1, T2>(
          * @param callback A function accepting two arguments.
          * @return A new instance of [DoubleCallbackPayload].
          */
-        fun <T1: Any, T2: Any> createPayload(
+        fun <T1: Any, T2: Any> create(
             event: ValueBased,
             callback: (T1, T2) -> Unit
         ): DoubleCallbackPayload<T1, T2> =
@@ -117,7 +117,7 @@ class ResultCallbackPayload<T: Any, R: Any>(
      * @return A new instance of [ResultCallbackPayload].
      */
     companion object {
-        fun <T: Any, R: Any> createPayload(
+        fun <T: Any, R: Any> create(
             event: ValueBased,
             callback: (T) -> R
         ): ResultCallbackPayload<T, R> = ResultCallbackPayload(callback, event)
@@ -153,7 +153,7 @@ class ResultDoubleCallbackPayload<T1, T2, R>(
          * @param callback A function accepting two arguments and returning a result.
          * @return A new instance of [ResultDoubleCallbackPayload].
          */
-        fun <T1: Any, T2: Any, R: Any> createPayload(
+        fun <T1: Any, T2: Any, R: Any> create(
             event: ValueBased,
             callback: (T1, T2) -> R
         ): ResultDoubleCallbackPayload<T1, T2, R> =

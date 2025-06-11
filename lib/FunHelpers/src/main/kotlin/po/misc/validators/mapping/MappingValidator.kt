@@ -7,7 +7,7 @@ import po.misc.validators.mapping.models.CheckBase
 import po.misc.validators.mapping.models.InstancedCheck
 import po.misc.validators.mapping.models.MappingCheck
 import po.misc.validators.mapping.models.MappingCheckRecord
-import po.misc.validators.mapping.reports.MappingReport
+import po.misc.validators.mapping.reports.MappingReportDepr
 
 class MappingValidator() {
     enum class MappedPropertyValidator(override val value: Int) : ValueBased {
@@ -16,7 +16,7 @@ class MappingValidator() {
         FOREIGN_SET(3)
     }
 
-    val reportList: MutableList<MappingReport> = mutableListOf()
+    val reportList: MutableList<MappingReportDepr> = mutableListOf()
 
     private val ignoreProperties : MutableList<(PropertyRecord<*>)-> Boolean> = mutableListOf()
 
@@ -36,7 +36,7 @@ class MappingValidator() {
     fun <T : Any> executeCheck(
         mappingCheck: CheckBase<T>,
         sourceRecord: List<MappingCheckRecord>
-    ): MappingReport {
+    ): MappingReportDepr {
 
         assignIgnoredMapping(mappingCheck, sourceRecord)
 
@@ -56,7 +56,7 @@ class MappingValidator() {
                 }
             }
         }
-        val report = MappingReport.Companion.createReport(mappingCheck, checked)
+        val report = MappingReportDepr.Companion.createReport(mappingCheck, checked)
         report.printReport()
         reportList.add(report)
         return report

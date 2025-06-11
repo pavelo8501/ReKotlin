@@ -11,6 +11,6 @@ class ActionSpan<T,R>(
     val result:R
 ) {
 
- val executionTime: ExecutionTimeStamp = ExecutionTimeStamp(identifiable.componentName, identifiable.sourceName)
+ val executionTime: ExecutionTimeStamp = ExecutionTimeStamp(identifiable.componentName.toString(), identifiable.sourceName)
 
 }

@@ -3,8 +3,8 @@ package po.lognotify.classes.task.result
 import po.lognotify.classes.task.RootTask
 import po.lognotify.classes.task.Task
 import po.lognotify.classes.task.TaskBase
-import po.misc.data.console.helpers.emptyOnNull
-import po.misc.data.console.helpers.wrapByDelimiter
+import po.misc.data.helpers.emptyOnNull
+import po.misc.data.helpers.wrapByDelimiter
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.name
 import kotlin.collections.joinToString

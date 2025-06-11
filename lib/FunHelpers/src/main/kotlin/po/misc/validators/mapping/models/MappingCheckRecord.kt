@@ -1,6 +1,7 @@
 package po.misc.validators.mapping.models
 
 import po.misc.reflection.mappers.models.PropertyRecord
+import po.misc.validators.general.models.CheckStatus
 
 data class MappingCheckRecord(
     val propertyRecord: PropertyRecord<*>?,
@@ -14,7 +15,7 @@ data class MappingCheckRecord(
     val referencedTable: String?,
 ){
 
-    var status: CheckStatus = CheckStatus.IDLE
+    var status: CheckStatus = CheckStatus.WARNING
         private set
     var message: String = "Check never run"
         private set
@@ -23,8 +24,4 @@ data class MappingCheckRecord(
        return columnName
     }
 
-}
-
-enum class CheckStatus {
-    PASSED, WARNING, FAILED, IDLE
 }

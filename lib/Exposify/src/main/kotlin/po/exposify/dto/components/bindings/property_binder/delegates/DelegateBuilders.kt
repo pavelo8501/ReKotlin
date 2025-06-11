@@ -40,7 +40,6 @@ fun <DTO, D, E, V: Any>  CommonDTO<DTO, D, E>.binding(
     if(tracker.config.observeProperties){
         propertyDelegate.subscribeUpdates(tracker, tracker::propertyUpdated)
     }
-    bindingHub.setBinding(propertyDelegate)
     return propertyDelegate
 }
 
@@ -50,7 +49,5 @@ fun <DTO, D, E, V: Any>  CommonDTO<DTO, D, E>.serializedBinding(
 ): SerializedDelegate<DTO, D, E, V>
     where DTO: ModelDTO, D: DataModel, E: LongEntity{
 
-    val delegate = SerializedDelegate(this, dataProperty, entityProperty, emptyList())
-    bindingHub.setBinding(delegate)
-    return delegate
+    return SerializedDelegate(this, dataProperty, entityProperty, emptyList())
 }

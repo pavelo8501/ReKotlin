@@ -15,7 +15,7 @@ inline fun <reified DTO,  reified D, reified E> BindingHub<DTO, D, E, *, *, *>.c
 {
     val delegates =  getResponsiveDelegates()
     val validation = ValidationClass<DTO>(hostingDTO)
-    validation.validatableRecords = delegates.map { ValidationRecord(it.propertyRecord) }
+    //validation.validatableRecords = delegates.map { ValidationRecord(it.property) }
     return validation
 }
 

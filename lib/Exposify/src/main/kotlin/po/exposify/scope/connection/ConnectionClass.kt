@@ -69,9 +69,9 @@ class ConnectionClass(
 
         handler.info("Creating ServiceClass")
         val serviceClass = ServiceClass(dtoClass, this, createOptions)
-        services[serviceClass.completeName] = serviceClass
+        services[serviceClass.module.completeName] = serviceClass
         serviceClass.initService(dtoClass)
-        getService<DTO, D, E>(serviceClass.completeName)?.runServiceContext(block)
+        getService<DTO, D, E>(serviceClass.module.completeName)?.runServiceContext(block)
     }.onFail{
         throw it
     }

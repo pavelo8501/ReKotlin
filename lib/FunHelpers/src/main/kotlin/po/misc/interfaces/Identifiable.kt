@@ -9,37 +9,27 @@ interface Identifiable{
     val componentName: String
     val completeName: String get()= "$componentName[$sourceName]"
 
+
     fun withIdentification(string: String): String{
         return "$string@$completeName"
     }
 }
 
 
-interface IdentifiableModule: Identifiable {
-    val moduleName: String
-    val identifiable : Identifiable
-
-    override val sourceName: String get()= identifiable.sourceName
-    override val componentName: String get()= identifiable.componentName
-
-    override val completeName: String get()= "$moduleName[${identifiable.completeName}]"
-
-    override fun withIdentification(string: String): String {
-        return "$string@$moduleName(${identifiable.completeName})"
-    }
-}
-
-
-fun asIdentifiable(sourceName: String, componentName: String):Identifiable{
-    return IdentifiableImplementation(sourceName, componentName)
-
-}
-
 data class IdentifiableImplementation(
-    override val sourceName: String,
+    override var sourceName: String,
     override val componentName: String
 ): Identifiable{
-    override fun toString(): String {
-        return componentName
+
+    fun updateName(name: String){
+        sourceName = name
     }
+
+    override fun toString(): String {
+        return completeName
+    }
+}
+
+fun asIdentifiable(sourceName: String, componentName: String):IdentifiableImplementation{
+    return IdentifiableImplementation(sourceName, componentName)
 }

@@ -15,20 +15,17 @@ import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ExecutionContext
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.dto.models.ExposifyModule
-import po.exposify.dto.models.ModuleType
 import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.throwOperations
 import po.lognotify.classes.task.TaskHandler
 import po.lognotify.lastTaskHandler
-import po.misc.interfaces.IdentifiableModule
+
 
 class ExecutionProvider<DTO, DATA, ENTITY>(
     override val dtoClass: DTOBase<DTO, DATA, ENTITY>,
-    val moduleType : ExposifyModule = ExposifyModule(ModuleType.ExecutionProvider, dtoClass.component)
-): IdentifiableModule by moduleType, ExecutionContext<DTO, DATA, ENTITY> where  DTO  : ModelDTO , DATA : DataModel, ENTITY: LongEntity {
+):  ExecutionContext<DTO, DATA, ENTITY> where  DTO  : ModelDTO , DATA : DataModel, ENTITY: LongEntity {
 
 
     override val logger: TaskHandler<*> get() = lastTaskHandler()

@@ -4,7 +4,7 @@ import po.misc.exceptions.ManagedException
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.ValueBased
 import po.misc.validators.mapping.MappingValidator
-import po.misc.validators.mapping.reports.ReportRecord
+import po.misc.validators.mapping.reports.ReportRecordDepr
 import kotlin.collections.List
 
 
@@ -56,18 +56,18 @@ class MappingCheck<T: Any>(
     var initialized: Boolean = false
 
 
-    internal var sequentialBySource: (MappingCheck<T>.(sourceRecord: MappingCheckRecord, testableData: ValidationClass<T>) -> ReportRecord)? =
+    internal var sequentialBySource: (MappingCheck<T>.(sourceRecord: MappingCheckRecord, testableData: ValidationClass<T>) -> ReportRecordDepr)? =
         null
-    internal var bulkPredicate: (MappingCheck<T>.(testable: List<MappingCheckRecord>, toMapping: ValidationClass<T>) -> ReportRecord)? =
+    internal var bulkPredicate: (MappingCheck<T>.(testable: List<MappingCheckRecord>, toMapping: ValidationClass<T>) -> ReportRecordDepr)? =
         null
-    internal var sequentialByValidatable: (MappingCheck<T>.(validatable: ValidationRecord, sourceRecord: List<MappingCheckRecord>) -> ReportRecord)? =
+    internal var sequentialByValidatable: (MappingCheck<T>.(validatable: ValidationRecord, sourceRecord: List<MappingCheckRecord>) -> ReportRecordDepr)? =
         null
 
     private fun processSequentialBySource(
         failureMessage: String = "",
-        predicate: MappingCheck<T>.(sourceRecord: MappingCheckRecord, testableData: ValidationClass<T>) -> ReportRecord
-    ): List<ReportRecord> {
-        val report: MutableList<ReportRecord> = mutableListOf()
+        predicate: MappingCheck<T>.(sourceRecord: MappingCheckRecord, testableData: ValidationClass<T>) -> ReportRecordDepr
+    ): List<ReportRecordDepr> {
+        val report: MutableList<ReportRecordDepr> = mutableListOf()
         processableMappings.forEach { record ->
             val result = predicate.invoke(this, record, validatable as ValidationClass<T>)
             report.add(result)
@@ -77,9 +77,9 @@ class MappingCheck<T: Any>(
 
     private fun processSequentialByValidatable(
         failureMessage: String = "",
-        predicate: MappingCheck<T>.(testableData: ValidationRecord, sourceRecord: List<MappingCheckRecord>) -> ReportRecord
-    ): List<ReportRecord> {
-        val report: MutableList<ReportRecord> = mutableListOf()
+        predicate: MappingCheck<T>.(testableData: ValidationRecord, sourceRecord: List<MappingCheckRecord>) -> ReportRecordDepr
+    ): List<ReportRecordDepr> {
+        val report: MutableList<ReportRecordDepr> = mutableListOf()
         (validatable as ValidationClass<T>).validatableRecords.forEach {validatableRecord->
             val result = predicate.invoke(this, validatableRecord, processableMappings)
             report.add(result)
@@ -91,9 +91,9 @@ class MappingCheck<T: Any>(
     private fun processBulkValidator(
         failureMessage: String = "",
         sourceList: List<MappingCheckRecord>,
-        predicate: MappingCheck<T>.(testable: List<MappingCheckRecord>, toMapping: ValidationClass<T>) -> ReportRecord
-    ): List<ReportRecord> {
-        val report: MutableList<ReportRecord> = mutableListOf()
+        predicate: MappingCheck<T>.(testable: List<MappingCheckRecord>, toMapping: ValidationClass<T>) -> ReportRecordDepr
+    ): List<ReportRecordDepr> {
+        val report: MutableList<ReportRecordDepr> = mutableListOf()
         val result = predicate.invoke(this, sourceList, validatable as ValidationClass<T>)
         report.add(result)
         return report
@@ -102,7 +102,7 @@ class MappingCheck<T: Any>(
 
 
    fun runCheck(
-    ): List<ReportRecord> {
+    ): List<ReportRecordDepr> {
         return when (validatorType) {
             MappingValidator.MappedPropertyValidator.NON_NULLABLE,
             MappingValidator.MappedPropertyValidator.PARENT_SET -> {
@@ -124,13 +124,13 @@ class InstancedCheck<T: Any>(
 
 
     private val ignoreList: MutableList<InstanceRecord<T>> = mutableListOf()
-    internal var sequentialByInstance : (InstancedCheck<T>.(validatable: InstanceRecord<T>,  sourceRecord: List<MappingCheckRecord>)-> ReportRecord)? = null
+    internal var sequentialByInstance : (InstancedCheck<T>.(validatable: InstanceRecord<T>,  sourceRecord: List<MappingCheckRecord>)-> ReportRecordDepr)? = null
 
     private fun processSequentialByInstance(
         failureMessage: String = "",
-        predicate: InstancedCheck<T>.(testableData: InstanceRecord<T>, sourceRecord: List<MappingCheckRecord>) -> ReportRecord
-    ): List<ReportRecord> {
-        val report: MutableList<ReportRecord> = mutableListOf()
+        predicate: InstancedCheck<T>.(testableData: InstanceRecord<T>, sourceRecord: List<MappingCheckRecord>) -> ReportRecordDepr
+    ): List<ReportRecordDepr> {
+        val report: MutableList<ReportRecordDepr> = mutableListOf()
         (validatable as ValidationInstance<T>).validatableRecords.forEach {record->
             val result = predicate.invoke(this, record, processableMappings)
             report.add(result)
@@ -138,7 +138,7 @@ class InstancedCheck<T: Any>(
         return report
     }
 
-    fun runCheck(): List<ReportRecord> {
+    fun runCheck(): List<ReportRecordDepr> {
         return when (validatorType) {
             MappingValidator.MappedPropertyValidator.FOREIGN_SET -> {
                 processSequentialByInstance(errorMessage, sequentialByInstance!!)

@@ -2,8 +2,6 @@ package po.exposify.dto.components.tracker
 
 import po.exposify.dto.components.bindings.property_binder.interfaces.ObservableData
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.dto.models.Component
-import po.exposify.dto.models.ComponentType
 import po.misc.time.ExecutionTimeStamp
 
 data class TrackerRecord(

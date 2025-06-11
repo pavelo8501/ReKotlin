@@ -2,7 +2,7 @@ package po.misc.validators.mapping.reports
 
 import po.misc.data.PrintableBase
 import po.misc.data.console.PrintableTemplate
-import po.misc.data.console.helpers.withIndention
+import po.misc.data.helpers.withIndention
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.data.templates.matchTemplate
@@ -11,43 +11,43 @@ import po.misc.interfaces.Identifiable
 import po.misc.interfaces.ValueBased
 import po.misc.interfaces.asIdentifiable
 import po.misc.interfaces.toValueBased
-import po.misc.validators.mapping.models.CheckStatus
+import po.misc.validators.general.models.CheckStatus
 
 
-class ReportRecord internal constructor(
+class ReportRecordDepr internal constructor(
     val sourceName: String,
     val targetName: String,
-): PrintableBase<ReportRecord>(){
+): PrintableBase<ReportRecordDepr>(){
 
 
     override val itemId : ValueBased = toValueBased(0)
     override val emitter: Identifiable = asIdentifiable(sourceName,targetName)
 
-    override val self: ReportRecord = this
+    override val self: ReportRecordDepr = this
 
-    var status : CheckStatus = CheckStatus.IDLE
+    var status : CheckStatus = CheckStatus.WARNING
     var message: String? = null
 
-    fun setSuccess(message: String? = null):ReportRecord{
+    fun setSuccess(message: String? = null):ReportRecordDepr{
         message?.let { this.message = it }
         status = CheckStatus.PASSED
         return this
     }
 
-    fun setFailure(message: String):ReportRecord{
+    fun setFailure(message: String):ReportRecordDepr{
         this.message = message
         status = CheckStatus.FAILED
         return this
     }
 
-    fun setWarning(message: String):ReportRecord{
+    fun setWarning(message: String):ReportRecordDepr{
         this.message = message
         status = CheckStatus.WARNING
         return this
     }
 
     companion object{
-       val GeneralTemplate : PrintableTemplate<ReportRecord> = PrintableTemplate(){
+       val GeneralTemplate : PrintableTemplate<ReportRecordDepr> = PrintableTemplate(){
            "Check Source:$sourceName Target:$targetName Status:${status.matchTemplate(
                templateRule(toString().colorize(Colour.GREEN)){ status == CheckStatus.PASSED },
                templateRule(toString().colorize(Colour.RED)){ status == CheckStatus.FAILED },

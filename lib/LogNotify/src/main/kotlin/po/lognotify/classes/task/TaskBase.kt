@@ -17,7 +17,7 @@ import po.lognotify.models.TaskDispatcher.LoggerStats
 import po.lognotify.models.TaskKey
 import po.lognotify.models.TaskRegistry
 import po.misc.coroutines.CoroutineHolder
-import po.misc.data.console.helpers.emptyOnNull
+import po.misc.data.helpers.emptyOnNull
 import po.misc.coroutines.CoroutineInfo
 import po.misc.exceptions.ManagedException
 import po.misc.time.ExecutionTimeStamp

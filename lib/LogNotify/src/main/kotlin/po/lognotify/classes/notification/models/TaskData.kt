@@ -6,7 +6,7 @@ import po.lognotify.models.TaskKey
 import po.misc.data.PrintableBase
 import po.misc.data.console.DebugTemplate
 import po.misc.data.console.PrintableTemplate
-import po.misc.data.console.helpers.emptyOnNull
+import po.misc.data.helpers.emptyOnNull
 import po.misc.data.styles.colorize
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars

@@ -8,22 +8,22 @@ import po.misc.data.templates.matchTemplate
 import po.misc.data.templates.templateRule
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.ValueBased
+import po.misc.validators.general.models.CheckStatus
 import po.misc.validators.mapping.models.CheckBase
-import po.misc.validators.mapping.models.CheckStatus
 import po.misc.validators.mapping.models.ValidationSubject
 
-data class MappingReport(
+data class MappingReportDepr(
     val checkType: CheckBase<*>,
     val dataSourceKey: ValueBased,
     val tester: ValidationSubject<*>?,
-): PrintableBase<MappingReport>() {
+): PrintableBase<MappingReportDepr>() {
 
     override val itemId : ValueBased = dataSourceKey
     override val emitter: Identifiable = checkType.component
 
-    override val self: MappingReport = this
+    override val self: MappingReportDepr = this
 
-    var results: List<ReportRecord> = listOf()
+    var results: List<ReportRecordDepr> = listOf()
     val overallResult : CheckStatus
         get(){
         val isFailed  = results.any { it.status == CheckStatus.FAILED }
@@ -36,22 +36,22 @@ data class MappingReport(
 
     fun printReport(): String = buildString {
         print(Header)
-        results.forEach { records-> records.printTemplate(ReportRecord.GeneralTemplate) }
+        results.forEach { records-> records.printTemplate(ReportRecordDepr.GeneralTemplate) }
         print(Footer)
     }
 
-    fun provideResult(records: List<ReportRecord>):MappingReport{
+    fun provideResult(records: List<ReportRecordDepr>):MappingReportDepr{
         results = records
         return this
     }
 
     companion object{
 
-        val Header : PrintableTemplate<MappingReport> = PrintableTemplate(){
+        val Header : PrintableTemplate<MappingReportDepr> = PrintableTemplate(){
             "Validating ${checkType.checkName} [${checkType.component.completeName}]".colorize(Colour.BLUE)
         }
 
-        val Footer : PrintableTemplate<MappingReport> = PrintableTemplate{
+        val Footer : PrintableTemplate<MappingReportDepr> = PrintableTemplate{
             """Overall Result: ${overallResult.matchTemplate(
                 templateRule(toString().colorize(Colour.GREEN)){overallResult == CheckStatus.PASSED},
                 templateRule(toString().colorize(Colour.RED)){overallResult == CheckStatus.FAILED},
@@ -60,8 +60,8 @@ data class MappingReport(
             """.trimMargin().colorize(Colour.BLUE)
         }
 
-        fun createReport(checkItem : CheckBase<*>, records: List<ReportRecord>):MappingReport{
-           return MappingReport(checkItem, checkItem.sourceKey, checkItem.validatable).provideResult(records)
+        fun createReport(checkItem : CheckBase<*>, records: List<ReportRecordDepr>):MappingReportDepr{
+           return MappingReportDepr(checkItem, checkItem.sourceKey, checkItem.validatable).provideResult(records)
         }
     }
 }

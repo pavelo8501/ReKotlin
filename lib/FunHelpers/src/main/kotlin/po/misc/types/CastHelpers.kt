@@ -1,10 +1,10 @@
 package po.misc.types
 
+import po.misc.data.helpers.emptyOnNull
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.SelfThrownException
 import kotlin.reflect.KClass
 import kotlin.reflect.cast
-import kotlin.reflect.full.companionObjectInstance
 
 
 inline fun <reified T: Any> Any.safeCast(): T? {
@@ -34,13 +34,13 @@ inline fun <reified T: Any, reified E: ManagedException> Any?.castOrThrow(
     code: Enum<*>? = null
 ): T {
     if(this == null){
-        throw SelfThrownException.build<E>("Unable to cast null to ${T::class.simpleName}", code)
+        throw SelfThrownException.build<E>("${message.emptyOnNull()}. Unable to cast null to ${T::class.simpleName}", code)
     }else{
         val result =  this as? T
         if(result != null){
             return result
         }else{
-            val effectiveMessage = message?:"Unable to cast ${this::class.simpleName} to  ${T::class.simpleName}"
+            val effectiveMessage = "${message.emptyOnNull()}. Unable to cast ${this::class.simpleName} to  ${T::class.simpleName}"
             throw SelfThrownException.build<E>(effectiveMessage, code)
         }
     }

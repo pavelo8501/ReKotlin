@@ -16,7 +16,7 @@ import po.misc.validators.mapping.MappingValidator
 import po.misc.validators.mapping.models.InstancedCheck
 import po.misc.validators.mapping.models.MappingCheck
 import po.misc.validators.mapping.models.MappingCheckRecord
-import po.misc.validators.mapping.reports.MappingReport
+import po.misc.validators.mapping.reports.MappingReportDepr
 
 class PropertyMapper {
 
@@ -48,7 +48,7 @@ class PropertyMapper {
     fun <T: Any> executeCheck(
         check : MappingCheck<T>,
         validatorType: MappingValidator.MappedPropertyValidator
-    ): MappingReport {
+    ): MappingReportDepr {
         val sourceRecords = requestSourceData<T>(check.sourceKey, check.component, validatorType)
         check.setMappings(sourceRecords)
         check.validatorType = validatorType
@@ -58,7 +58,7 @@ class PropertyMapper {
     fun <T: Any> executeCheck(
         check : InstancedCheck<T>,
         validatorType: MappingValidator.MappedPropertyValidator
-    ): MappingReport {
+    ): MappingReportDepr {
         val sourceRecords = requestSourceData<T>(check.sourceKey, check.component, validatorType)
         check.setMappings(sourceRecords)
         check.validatorType = validatorType

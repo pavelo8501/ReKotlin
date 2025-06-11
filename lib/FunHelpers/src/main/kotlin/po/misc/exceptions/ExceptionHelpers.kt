@@ -1,7 +1,7 @@
 package po.misc.exceptions
 
-import po.misc.data.console.helpers.emptyOnNull
-import po.misc.data.console.helpers.wrapByDelimiter
+import po.misc.data.helpers.emptyOnNull
+import po.misc.data.helpers.wrapByDelimiter
 
 inline fun <T: Any> T?.letOrException(ex : ManagedException, block: (T)-> T){
     if(this != null){

@@ -6,7 +6,7 @@ import org.junit.jupiter.api.assertAll
 import po.misc.callbacks.CallbackPayload
 import po.misc.callbacks.ResultCallbackPayload
 import po.misc.callbacks.callbackManager
-import po.misc.callbacks.returnCallbackManager
+import po.misc.callbacks.resultCallbackManager
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.ValueBased
 import po.misc.interfaces.asIdentifiable
@@ -26,7 +26,7 @@ class TestCallbackManager {
     val thisIdentifiable : Identifiable = asIdentifiable("SomeName", "TestCallbackManager")
     val callbackManager =  callbackManager<String>()
     val callbackManager2 =  callbackManager<String>()
-    val callbackManagerWithReturn =  returnCallbackManager<String, Boolean>()
+    val callbackManagerWithReturn =  resultCallbackManager<String, Boolean>()
 
 
     @Test

@@ -3,11 +3,11 @@ package po.exposify.dto.components.tracker
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.bindings.property_binder.interfaces.ObservableData
 import po.exposify.dto.components.tracker.interfaces.TrackableDTO
+import po.exposify.dto.enums.Components
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.dto.models.Component
-import po.exposify.dto.models.ComponentType
 import po.misc.interfaces.Identifiable
+import po.misc.interfaces.asIdentifiable
 import po.misc.time.ExecutionTimeStamp
 import po.misc.time.MeasuredContext
 import po.misc.time.startTimer
@@ -17,8 +17,8 @@ import po.misc.time.stopTimer
 class DTOTracker<DTO: ModelDTO, DATA: DataModel>(
     internal val dto : CommonDTO<DTO, DATA, *>,
    @PublishedApi internal val config : TrackerConfig = TrackerConfig(),
-    val componentType : ComponentType = ComponentType.Tracker
-): Component<DTO>(ComponentType.Tracker, dto), MeasuredContext, TrackableDTO{
+    val identifiable : Identifiable = asIdentifiable(dto.sourceName, "${Components.Tracker}")
+):  Identifiable by identifiable, MeasuredContext, TrackableDTO{
 
     override val executionTimeStamp: ExecutionTimeStamp = ExecutionTimeStamp(dto.componentName, dto.id.toString())
     override val sourceName: String

@@ -1,6 +1,4 @@
-package po.misc.data.console.helpers
-
-import java.util.Spliterator
+package po.misc.data.helpers
 
 fun makeIndention(message: String, indentionCount: Int, indentionSymbol: String = " "): String {
     val indent = indentionSymbol.repeat(indentionCount)
@@ -16,6 +14,14 @@ fun String?.emptyOnNull(prefix: String = ""): String{
         return "$prefix${this}"
     }
     return ""
+}
+
+fun String.ifNotEmpty(string: String):String{
+    return if (this.isNotEmpty()){
+        string
+    }else{
+        ""
+    }
 }
 
 fun <T> T?.toTemplate(transform: T.() -> String): String =
@@ -53,9 +59,10 @@ fun String.wrapByDelimiter(
     if (currentLine.isNotEmpty()) {
         result.appendLine(currentLine.toString().trim())
     }
-
     return result.toString()
 }
+
+
 
 
 

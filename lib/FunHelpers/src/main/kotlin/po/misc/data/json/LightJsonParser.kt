@@ -1,4 +1,5 @@
-package po.lognotify.classes.notification.interfaces
+package po.misc.data.json
+
 
 interface JasonStringSerializable {
 

@@ -4,23 +4,26 @@ import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.SizedIterable
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
+import po.exposify.dto.DTOBase
 import po.exposify.dto.DTOClass
+import po.exposify.dto.RootDTO
+import po.exposify.dto.components.bindings.DelegateStatus
 import po.exposify.dto.components.bindings.helpers.createDTO
 import po.exposify.dto.components.bindings.helpers.newDTO
+import po.exposify.dto.components.bindings.interfaces.DelegateInterface
 import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.components.tracker.extensions.addTrackerInfo
 import po.exposify.dto.enums.Cardinality
+import po.exposify.dto.enums.Delegates
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.dto.models.Component
-import po.exposify.dto.models.ComponentType
 import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.InitException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.getOrOperationsEx
 import po.lognotify.TasksManaged
-import po.misc.interfaces.Identifiable
-import po.misc.interfaces.asIdentifiable
+import po.misc.interfaces.IdentifiableModule
+import po.misc.interfaces.asIdentifiableModule
 import po.misc.types.TypeRecord
 import po.misc.types.castOrThrow
 import kotlin.reflect.KMutableProperty1
@@ -30,14 +33,22 @@ import kotlin.reflect.KProperty1
 
 sealed class RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V: Any>(
     val hostingDTO : CommonDTO<DTO, DATA, ENTITY>,
-    val childModel: DTOClass<F_DTO, FD, FE>,
-    val foreignEntityProperty: KMutableProperty1<FE, ENTITY>,
-    val typeRecord : TypeRecord<V>,
-): Component<DTO>(ComponentType.RelationDelegate, hostingDTO),  TasksManaged
+    override val foreignClass: DTOClass<F_DTO, FD, FE>,
+    val foreignEntityProperty: KMutableProperty1<FE, ENTITY>
+):TasksManaged, DelegateInterface<DTO, F_DTO>
         where DTO: ModelDTO, DATA: DataModel,  ENTITY : LongEntity,
               F_DTO: ModelDTO,  FD: DataModel, FE : LongEntity
 {
+
+    override var status: DelegateStatus = DelegateStatus.Created
     abstract val cardinality : Cardinality
+
+    override val hostingClass: DTOBase<DTO, *, *>
+        get() = hostingDTO.dtoClass
+
+    override val module: IdentifiableModule = asIdentifiableModule(hostingDTO.sourceName, "RelationDelegate",
+        Delegates.RelationDelegate)
+
 
     protected var onPropertyInitialized: ((KProperty<*>)-> Unit)? = null
     private var propertyParameter : KProperty<V>? = null
@@ -54,7 +65,7 @@ sealed class RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V: Any>(
         get() =  hostingDTO.dtoType
 
     protected val childType : TypeRecord<F_DTO>
-        get() = childModel.config.registry.getRecord<F_DTO, InitException>(SourceObject.DTO)
+        get() = foreignClass.config.registry.getRecord<F_DTO, InitException>(SourceObject.DTO)
 
 
     abstract fun getEffectiveValue():V
@@ -83,12 +94,29 @@ sealed class RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V: Any>(
         childDTO.setForeignDTO(hostingDTO)
     }
 
+    protected fun initializeChildClasses(){
+        when(hostingClass){
+            is RootDTO->{
+                if(!foreignClass.initialized){
+                    foreignClass.initialization()
+                    hostingClass.config.addHierarchMemberIfAbsent(foreignClass)
+                }
+            }
+            is DTOClass -> {
+                if(!foreignClass.initialized){
+                    foreignClass.initialization()
+                    hostingClass.findHierarchyRoot().config.addHierarchMemberIfAbsent(foreignClass)
+                }
+            }
+        }
+    }
+
     fun createByData() {
-        val hostingDtoEntity = hostingDTO.getEntity(this)
+        val hostingDtoEntity = hostingDTO.getEntity(module)
         val dataList = getData()
         dataList.forEach { data ->
-            val newDto = childModel.newDTO(data)
-            newDto.addTrackerInfo(CrudOperation.Insert, this)
+            val newDto = foreignClass.newDTO(data)
+            newDto.addTrackerInfo(CrudOperation.Insert, module)
             val insertedEntity = newDto.daoService.save {
                 newDto.bindingHub.updateEntity(it)
                 foreignEntityProperty.set(it, hostingDtoEntity)
@@ -113,8 +141,8 @@ sealed class RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V: Any>(
     }
 
     fun createByEntity(){
-        getEntities(hostingDTO.getEntity(this)).forEach { entity->
-           val newDto = childModel.createDTO(entity, CrudOperation.Select)
+        getEntities(hostingDTO.getEntity(module)).forEach { entity->
+           val newDto = foreignClass.createDTO(entity, CrudOperation.Select)
             saveDto(newDto, true)
         }
     }
@@ -127,8 +155,7 @@ class OneToManyDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>(
     val dataProperty: KProperty1<DATA, MutableList<FD>>,
     val entitiesProperty: KProperty1<ENTITY, SizedIterable<FE>>,
     foreignEntityProperty: KMutableProperty1<FE, ENTITY>,
-    typeRecord: TypeRecord<List<F_DTO>>
-) : RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, List<F_DTO>>(dto, childModel, foreignEntityProperty, typeRecord)
+) : RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, List<F_DTO>>(dto, childModel, foreignEntityProperty)
         where DTO : ModelDTO, DATA : DataModel, ENTITY : LongEntity,
               F_DTO: ModelDTO,  FD : DataModel, FE : LongEntity
 {
@@ -178,8 +205,7 @@ class OneToOneDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>(
     val dataProperty: KMutableProperty1<DATA, FD>,
     val entityProperty: KMutableProperty1<ENTITY, FE>,
     foreignEntityProperty: KMutableProperty1<FE, ENTITY>,
-    typeRecord : TypeRecord<F_DTO>
-) : RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, F_DTO>(dto, childModel, foreignEntityProperty, typeRecord)
+) : RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, F_DTO>(dto, childModel, foreignEntityProperty)
         where DTO : ModelDTO, DATA : DataModel, ENTITY : LongEntity,
               F_DTO: ModelDTO,  FD : DataModel, FE : LongEntity {
 

@@ -6,21 +6,18 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.components.DTOConfig
 import po.exposify.dto.components.DTOFactory
 import po.exposify.dto.components.bindings.BindingHub
+import po.exposify.dto.components.tracker.DTOTracker
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.dto.enums.DTOInitStatus
-import po.exposify.dto.components.tracker.DTOTracker
-import po.exposify.dto.models.Component
-import po.exposify.dto.models.ComponentType
 import po.exposify.dto.models.DTOId
 import po.exposify.dto.models.SourceObject
-import po.exposify.dto.models.componentInstance
 import po.exposify.exceptions.InitException
-import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.castOrOperationsEx
 import po.exposify.extensions.getOrOperationsEx
 import po.lognotify.classes.task.TaskHandler
+import po.misc.callbacks.CallbackPayload
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.ValueBased
 import po.misc.registries.callback.TypedCallbackRegistry
@@ -94,6 +91,11 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
 
 
     init {
+
+        dtoClass.callbackForwarder.transferTo(bindingHub.listNotifier, listOf(BindingHub.Event.DelegateRegistrationComplete)){input->
+            println("Callbacks forwarder")
+            CallbackPayload.create(input.event, input.callback)
+        }
         notificator.onNewSubscription = { key, subscriber->
             logger.info("New subscription for key: $key  by: ${subscriber.completeName}")
         }
@@ -110,6 +112,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         notificator.onAfterTriggered = {
             logger.info("Triggers count: $it")
         }
+        println("CommonDTO init block complete")
     }
 
     internal fun <F_DTO, FD, FE> setForeignDTO(

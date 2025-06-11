@@ -20,7 +20,7 @@ enum class HandlerType(val value: Int) {
 
 open class ManagedException(
     message: String,
-    val source:  Enum<*>? = null,
+    val  source: Enum<*>? = null,
     original : Throwable? = null,
 ) : Throwable(message, original), SelfThrownException<ManagedException>{
 
@@ -70,6 +70,14 @@ open class ManagedException(
         addHandlingData(wayPoint, ExceptionEvent.Thrown)
         throw this
     }
+
+
+    companion object : SelfThrownException.Builder<ManagedException> {
+        override fun build(message: String, source: Enum<*>?,  original: Throwable?): ManagedException {
+            return ManagedException(message, null, original)
+        }
+    }
+
 }
 
 

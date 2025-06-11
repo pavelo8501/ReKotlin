@@ -8,13 +8,9 @@ import org.jetbrains.exposed.sql.exists
 import org.jetbrains.exposed.sql.transactions.transaction
 import po.auth.sessions.models.AuthorizedSession
 import po.exposify.dto.interfaces.DataModel
-import po.exposify.common.interfaces.AsClass
 import po.exposify.dto.RootDTO
+import po.exposify.dto.enums.Components
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.dto.models.ExposifyModule
-import po.exposify.dto.models.ModuleType
-import po.exposify.exceptions.InitException
-import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.scope.connection.ConnectionClass
 import po.exposify.scope.connection.controls.CoroutineEmitter
 import po.exposify.scope.service.enums.TableCreateMode
@@ -23,13 +19,14 @@ import po.lognotify.classes.task.TaskHandler
 import po.lognotify.lastTaskHandler
 import po.lognotify.logNotify
 import po.misc.interfaces.IdentifiableModule
+import po.misc.interfaces.asIdentifiableModule
 
 class ServiceClass<DTO, DATA, ENTITY>(
     private val rootDTOModel: RootDTO<DTO, DATA, ENTITY>,
     internal val connectionClass : ConnectionClass,
     private val serviceCreateOption: TableCreateMode = TableCreateMode.CREATE,
-    val moduleType: ExposifyModule = ExposifyModule(ModuleType.ServiceClass, rootDTOModel.component)
-): IdentifiableModule by moduleType,  AsClass<DATA, ENTITY>, TasksManaged  where  DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity {
+    val module: IdentifiableModule = asIdentifiableModule(rootDTOModel.component.sourceName, "ServiceClass", Components.Service)
+):  TasksManaged  where  DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity {
 
     private val serviceContext: ServiceContext<DTO, DATA, ENTITY> = ServiceContext(this, rootDTOModel)
     internal val connection: Database get() = connectionClass.connection

@@ -29,6 +29,7 @@ class ValidationInstance<T: Any>(
     override val component: Identifiable,
     override var validatableRecords: List<InstanceRecord<T>> = emptyList()
 ): ValidationSubject<T>{
+
     fun addRecord(record : InstanceRecord<T>):ValidationInstance<T>{
         validatableRecords = validatableRecords.toMutableList().also { it.add(record) }
         return this

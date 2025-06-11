@@ -14,15 +14,20 @@ class CompositeKey (
 
     override fun toString(): String = key
 
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is CompositeKey) return false
-        return component.completeName == other.component.completeName &&
+        return component.sourceName == other.component.sourceName &&
+                component.componentName == other.component.componentName &&
                 type.value == other.type.value
     }
 
     override fun hashCode(): Int {
-        return 31 * component.completeName.hashCode() + type.value.hashCode()
+        var result = component.sourceName.hashCode()
+        result = 31 * result + component.componentName.hashCode()
+        result = 31 * result + type.value.hashCode()
+        return result
     }
 
     override fun compareTo(other: CompositeKey): Int {

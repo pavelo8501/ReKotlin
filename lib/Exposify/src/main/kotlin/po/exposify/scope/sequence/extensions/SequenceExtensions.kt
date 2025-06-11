@@ -20,7 +20,7 @@ fun <DTO, D, E>  ServiceContext<DTO, D, E>.sequence(
     block: suspend  SequenceContext<DTO, D, E>.(RootSequenceHandler<DTO, D, E>) -> ResultList<DTO, D, E>
 ) where DTO: ModelDTO, D:DataModel, E:LongEntity
 {
-    this.dtoClass.reinitChild()
+    this.dtoClass.reinitChil()
     handlerDelegate.storeSequenceLambda(block)
 }
 

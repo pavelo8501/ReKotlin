@@ -25,24 +25,9 @@ inline fun <DTO, DATA, ENTITY, reified F_DTO, CD,  FE> CommonDTO<DTO, DATA, ENTI
         where DATA:DataModel, ENTITY : LongEntity, DTO : ModelDTO, F_DTO: ModelDTO,  CD: DataModel, FE: LongEntity
         = subTask("oneToOneOf", TaskConfig(actor = this.completeName)){
 
-            val typeRecord = TypeRecord.createRecord<F_DTO>(SourceObject.DTO)
-            val thisDtoClass = this.dtoClass
-    when(thisDtoClass){
-        is RootDTO<DTO, DATA, ENTITY>->{
-            if(!childClass.initialized){
-                childClass.initialization()
-                thisDtoClass.config.addHierarchMemberIfAbsent(childClass)
-            }
-        }
-        is DTOClass -> {
-            if(!childClass.initialized){
-                childClass.initialization()
-                thisDtoClass.findHierarchyRoot().config.addHierarchMemberIfAbsent(childClass)
-            }
-        }
-    }
+
     val castedOwnDataModel = ownDataModel.castOrInitEx<KMutableProperty1<DATA, CD>>()
-    val bindingDelegate = OneToOneDelegate(this, childClass, castedOwnDataModel, ownEntity, foreignEntity, typeRecord)
+    val bindingDelegate = OneToOneDelegate(this, childClass, castedOwnDataModel, ownEntity, foreignEntity)
     bindingDelegate
 }.resultOrException()
 
@@ -68,25 +53,9 @@ fun <DTO, DATA, ENTITY, F_DTO, FD,  FE> CommonDTO<DTO, DATA, ENTITY>.oneToManyOf
 ): OneToManyDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>
         where  DTO : ModelDTO, DATA:DataModel, ENTITY : LongEntity, F_DTO: ModelDTO,  FD: DataModel, FE: LongEntity
  = subTask("oneToManyOf", TaskConfig(actor = this.completeName)) {
-    val thisDtoClass = this.dtoClass
-    val typeRecord = TypeRecord.createRecord<List<F_DTO>>(SourceObject.DTO)
-    when(thisDtoClass){
-        is RootDTO<DTO, DATA, ENTITY>->{
-            if(!childClass.initialized){
-                childClass.initialization()
-                thisDtoClass.config.addHierarchMemberIfAbsent(childClass)
-            }
-        }
-        is DTOClass -> {
-            if(!childClass.initialized){
-                childClass.initialization()
-                val root = thisDtoClass.findHierarchyRoot()
-                root.config.addHierarchMemberIfAbsent(childClass)
-            }
-        }
-    }
+
     val castedOwnDataModels = ownDataModels.castOrInitEx<KProperty1<DATA, MutableList<FD>>>()
-    val bindingDelegate = OneToManyDelegate(this, childClass, castedOwnDataModels, ownEntities, foreignEntity, typeRecord)
+    val bindingDelegate = OneToManyDelegate(this, childClass, castedOwnDataModels, ownEntities, foreignEntity)
     bindingDelegate
 }.resultOrException()
 

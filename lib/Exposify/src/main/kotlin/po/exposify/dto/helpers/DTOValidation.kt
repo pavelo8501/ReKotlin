@@ -1,100 +1,98 @@
 package po.exposify.dto.helpers
 
+
 import org.jetbrains.exposed.dao.LongEntity
-import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
 import po.exposify.dto.components.bindings.BindingHub
+import po.exposify.dto.components.bindings.property_binder.delegates.AttachedForeignDelegate
+import po.exposify.dto.components.bindings.property_binder.delegates.ParentDelegate
+import po.exposify.dto.components.bindings.property_binder.delegates.ResponsiveDelegate
+import po.exposify.dto.components.bindings.relation_binder.delegates.RelationDelegate
+import po.exposify.dto.enums.Delegates
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.dto.models.CheckedProperty
 import po.exposify.dto.models.SourceObject
-import po.exposify.exceptions.InitException
 import po.exposify.exceptions.OperationsException
-import po.lognotify.classes.task.models.TaskConfig
-import po.lognotify.extensions.subTask
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.asIdentifiable
 import po.misc.reflection.mappers.PropertyMapper
-import po.misc.reflection.mappers.helpers.mapperCheck
-import po.misc.validators.general.ValidatableContainer
 import po.misc.validators.general.Validator
-import po.misc.validators.mapping.MappingValidator
-import po.misc.validators.mapping.helpers.bulkValidator
-import po.misc.validators.mapping.helpers.conditionTrue
-import po.misc.validators.mapping.helpers.containsSame
-import po.misc.validators.mapping.helpers.finalCheckStatus
-import po.misc.validators.mapping.helpers.sequentialByInstance
-import po.misc.validators.mapping.helpers.sequentialBySource
-import po.misc.validators.mapping.models.CheckStatus
-import po.misc.validators.mapping.models.ValidationClass
+import po.misc.validators.general.models.CheckStatus
+import po.misc.validators.general.reports.ValidationReport
+import po.misc.validators.general.reports.finalCheckStatus
+import po.misc.validators.general.validation
+import po.misc.validators.general.validators.conditionTrue
 
-inline fun <reified DTO,  reified D, reified E> DTOBase<DTO, D, E>.setupValidation(
+
+fun <DTO, D, E> DTOBase<DTO, D, E>.setupValidation(
     propertyMapper : PropertyMapper
 ): Boolean  where DTO: ModelDTO, D: DataModel, E: LongEntity {
 
-    subTask("Setup validation", TaskConfig(actor = component.completeName)) {handler->
+    var result: Boolean = false
 
+    fun onDelegatesRegistered(container: BindingHub.ListData<DTO, D, E>): Boolean {
+
+        var relationDelegates: List<RelationDelegate<DTO, D, E, *, *, *, *>>
         val validator = Validator()
-        val entityContainer = ValidatableContainer<CommonDTO<DTO, D, E>>(component , {config.dtoFactory.createDto()})
-        val identifyed: Identifiable = asIdentifiable(component.sourceName, "Validator")
-        validator.executeCheck(entityContainer){
-            try {
-                val dto = it()
-                dto.bindingHub.subscribe(identifyed, BindingHub.Event.DelegateInitialized){
-                    val notification = it
+        val entityRecord = propertyMapper.getMapperRecord<E, OperationsException>(SourceObject.Entity)
+
+        val reports = validator.validate(this.component.completeName, component) {
+            val categorize = container.delegates.groupBy { it.module.moduleName }
+            categorize.forEach { (key, value) ->
+                val enum = key as Delegates
+                when (enum) {
+                    Delegates.AttachedForeignDelegate -> {
+                        val attachedForeignDelegates = value.filterIsInstance<AttachedForeignDelegate<DTO, D, E, *, *, *, >>()
+
+                        validation("AttachedForeign initialized", attachedForeignDelegates) {
+                            attachedForeignDelegates.forEach { attachedDelegate ->
+                                conditionTrue("Service initialized") {
+                                    attachedDelegate.foreignClass.initialized
+                                }
+                            }
+                        }
+                    }
+
+                    Delegates.RelationDelegate -> {
+                        relationDelegates = value.filterIsInstance<RelationDelegate<DTO, D, E, *, *, *, *>>()
+                    }
+
+                    Delegates.ResponsiveDelegate -> {
+                        val responsiveDelegates = value.filterIsInstance<ResponsiveDelegate<DTO, D, E, *, >>()
+                        val mandatory =  entityRecord.columnMetadata.filter { !it.isNullable && !it.hasDefault && !it.isPrimaryKey }
+                       validation("Mandatory properties set", mandatory){
+                           mandatory.forEach { mandatoryProperty->
+                               conditionTrue(mandatoryProperty.columnName){
+                                   responsiveInitialized(mandatoryProperty, responsiveDelegates)
+                               }
+                           }
+                        }
+                    }
+
+                    Delegates.ParentDelegate -> {
+                        val parentDelegates = value.filterIsInstance<ParentDelegate<DTO, D, E, *, *, *>>()
+                        val foreignKeys =  entityRecord.columnMetadata.filter { it.isForeignKey }
+                        validation("Parent(Foreign properties assigned)", parentDelegates){
+                            foreignKeys.forEach { foreignKey ->
+                                parentInitialized(foreignKey, parentDelegates)
+                            }
+                        }
+                    }
                 }
-            }catch (ex: InitException){
-             val a = ex
             }
         }
-
-
-        val shallowDto = config.dtoFactory.createDto()
-        val entityRecord = propertyMapper.getMapperRecord<E, OperationsException>(SourceObject.Entity)
-        val typeRecord = propertyMapper.getMapperRecord<DTO, OperationsException>(SourceObject.DTO)
-        propertyMapper.propertyValidator.ignoreProperty {
-            it.propertyName == "id"
+        reports.forEach {
+            it.printReport()
         }
-        val responsiveValidation = shallowDto.bindingHub.createValidation()
-        val nonNullProperties = propertyMapper.mapperCheck(
-            "Property bindings",
-            entityRecord,
-            responsiveValidation
-        ).sequentialBySource { sourceRecord, validatable ->
-            containsSame(sourceRecord, validatable)
-        }
-        propertyMapper.executeCheck(nonNullProperties, MappingValidator.MappedPropertyValidator.NON_NULLABLE)
+        return reports.finalCheckStatus() != CheckStatus.FAILED
+    }
 
-        val parentValidation = parentValidation<DTO, D, E, ModelDTO, DataModel, LongEntity>(shallowDto)
-        val parenBindingsSet = propertyMapper.mapperCheck(
-            "Parent bindings",
-            entityRecord,
-            parentValidation
-        ).sequentialBySource { sourceRecord, validatable ->
-            containsSame(sourceRecord, validatable)
-        }
-        propertyMapper.executeCheck(parenBindingsSet, MappingValidator.MappedPropertyValidator.PARENT_SET)
+    val identifiable: Identifiable = asIdentifiable("setupValidation", component.completeName)
+    callbackForwarder.subscribe(identifiable, DTOBase.Events.DelegateRegistrationComplete) {
+        result = onDelegatesRegistered(it)
+    }
+    val shallowDTO = config.dtoFactory.createDto()
 
-//        shallowDto.bindingHub.getAttachedForeignDelegates().forEach {
-//            val attachedValidation = createValidation(it)
-//            val attachedBindingsSet = propertyMapper.mapperCheck(
-//                "Attached parent configured",
-//                entityRecord,
-//                attachedValidation
-//            ).sequentialByInstance { validatable, sourceRecord ->
-//                conditionTrue(
-//                    validatable,
-//                    "${validatable.instance.component} not initialized. Instantiate service before this call"
-//                ) {
-//                    initialized
-//                }
-//            }
-//            propertyMapper.executeCheck(attachedBindingsSet, MappingValidator.MappedPropertyValidator.FOREIGN_SET)
-//        }
-        val finalStatus = propertyMapper.propertyValidator.reportList.finalCheckStatus()
-        return finalStatus != CheckStatus.FAILED
-    }.onFail {
-
-    }.resultOrException()
+    return result
 }
 

@@ -2,20 +2,26 @@ package po.exposify.dto.components.bindings.property_binder.delegates
 
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.CommonDTO
+import po.exposify.dto.DTOBase
+import po.exposify.dto.DTOClass
+import po.exposify.dto.components.bindings.DelegateStatus
+import po.exposify.dto.components.bindings.interfaces.DelegateInterface
 import po.exposify.dto.components.bindings.property_binder.interfaces.ObservableData
 import po.exposify.dto.components.bindings.property_binder.interfaces.UpdateParams
 import po.exposify.dto.components.tracker.CrudOperation
+import po.exposify.dto.enums.Delegates
 import po.exposify.dto.helpers.getPropertyRecord
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.dto.models.Component
-import po.exposify.dto.models.ComponentType
 import po.exposify.dto.models.SourceObject
-import po.exposify.dto.models.componentInstance
 import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.getOrOperationsEx
+import po.misc.data.SmartLazy
+import po.misc.data.smartLazy
 import po.misc.interfaces.Identifiable
+import po.misc.interfaces.IdentifiableModule
 import po.misc.interfaces.ValueBased
+import po.misc.interfaces.asIdentifiableModule
 import po.misc.reflection.mappers.models.PropertyRecord
 import po.misc.registries.callback.TypedCallbackRegistry
 import po.misc.validators.mapping.models.MappingCheck
@@ -26,9 +32,11 @@ import kotlin.reflect.KProperty
 
 sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
     protected val hostingDTO: CommonDTO<DTO, D, E>
-): ReadWriteProperty<DTO, V>, Identifiable
+): ReadWriteProperty<DTO, V>, DelegateInterface<DTO, DTO>
       where DTO: ModelDTO, D: DataModel, E: LongEntity
 {
+    override var status: DelegateStatus = DelegateStatus.Created
+
     enum class UpdateType(override val value : Int): ValueBased{
         DATA_UPDATE(1),
         ENTITY_UPDATE(2),
@@ -36,10 +44,24 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
         CHANGE(4)
     }
 
-    val componentType: Component<DTO> get() = componentInstance(ComponentType.ResponsiveDelegate, hostingDTO)
 
-    override val componentName: String get() = componentType.componentName
-    override val sourceName: String get() = componentType.source.sourceName
+    override val hostingClass: DTOBase<DTO, *, *>
+        get() = hostingDTO.dtoClass
+    override val foreignClass: DTOBase<DTO, *, *>
+        get() = hostingDTO.dtoClass
+
+    private var propertyParameter : KProperty<*>? = null
+    val property: KProperty<V> get() = propertyParameter.castOrInitEx<KProperty<V>>()
+
+
+    val name: String by SmartLazy("Uninitialized"){
+        propertyParameter?.name
+    }
+
+
+
+    override val module: IdentifiableModule = asIdentifiableModule(name, hostingDTO.sourceName,
+        Delegates.ResponsiveDelegate)
 
     var dataPropertyParameter:KMutableProperty1<D, V>? = null
     val dataProperty:KMutableProperty1<D, V>
@@ -50,33 +72,29 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
         get() = entityPropertyParameter.getOrOperationsEx()
 
     protected var onPropertyInitialized: ((KProperty<*>)-> Unit)? = null
-    private var propertyParameter : KProperty<*>? = null
-        set(value) {
-            field = value
-            onPropertyInitialized?.invoke(property)
-        }
 
-    val property: KProperty<*> get() = propertyParameter.getOrOperationsEx()
-    val propertyRecord: PropertyRecord<V>
-        get() = PropertyRecord.create(property.castOrInitEx<KProperty<V>>())
 
-    val propertyName : String get() = propertyParameter?.name?:""
+
+
     var activeValue : V? = null
     var valueUpdated : Boolean = false
 
     protected val subscriptions : TypedCallbackRegistry<ObservableData, Unit> = TypedCallbackRegistry()
     abstract val propertyChecks : List<MappingCheck<V>>
 
+
     private fun notifyUpdate(type: UpdateType, value: V){
         subscriptions.triggerForAll(
             type,
-            UpdateParams(hostingDTO, CrudOperation.Initialize, "update", propertyName, activeValue, value, this)
+            UpdateParams(hostingDTO, CrudOperation.Initialize, "update", name, activeValue, value, module)
         )
     }
-    private fun propertyProvided(property: KProperty<*>){
+    private fun propertyResolved(property: KProperty<*>){
         if(propertyParameter == null){
             propertyParameter = property
-            hostingDTO.bindingHub.setBinding(this)
+            module.updateName(property.name)
+            hostingDTO.bindingHub.setResponsiveDelegate(this)
+            onPropertyInitialized?.invoke(property)
         }
     }
 
@@ -91,7 +109,7 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
     private fun updateEntityProperty(value:V, entity:E?){
         entity?.let { entityProperty.set(it, value) }?:run {
             if(hostingDTO.isEntityInserted){
-                entityProperty.set(hostingDTO.getEntity(this@ResponsiveDelegate), value)
+                entityProperty.set(hostingDTO.getEntity(module), value)
             }else{
                 hostingDTO.logger.warn("${hostingDTO.completeName} attempted to update entity not inserted")
             }
@@ -99,15 +117,15 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
     }
 
     operator fun provideDelegate(thisRef: DTO, property: KProperty<*>): ResponsiveDelegate<DTO, D, E, V> {
-        propertyProvided(property)
+        propertyResolved(property)
         return this
     }
     override fun getValue(thisRef: DTO, property: KProperty<*>): V {
-        propertyProvided(property)
+        propertyResolved(property)
         return activeValue?: dataProperty.get(hostingDTO.dataModel)
     }
     override fun setValue(thisRef: DTO, property: KProperty<*>, value: V) {
-        propertyProvided(property)
+        propertyResolved(property)
         updateEntityProperty(value, null)
         valueChanged(UpdateType.DTO_UPDATE, value)
     }
@@ -158,7 +176,7 @@ class PropertyDelegate<DTO, D, E, V: Any> @PublishedApi internal constructor (
             dataPropertyParameter = it
         }?:run {
             onPropertyInitialized = {
-                dataPropertyParameter =  dto.getPropertyRecord(ComponentType.DTOClass, it.name)
+                dataPropertyParameter =  dto.getPropertyRecord(DTOClass, it.name)
                     .castOrInitEx("cast to MutableProperty failed")
             }
         }
