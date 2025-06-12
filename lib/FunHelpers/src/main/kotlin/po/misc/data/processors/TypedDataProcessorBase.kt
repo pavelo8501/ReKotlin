@@ -65,9 +65,7 @@ abstract class TypedDataProcessorBase<T:PrintableBase<T>>(){
     fun processRecord(record: T, template: PrintableTemplateBase<T>?): String? {
         record.outputSource = outputSource
         addToProcessorList(record)
-
         checkIfConditionApply(record)
-
         globalMuteCondition?.let {
             record.setGenericMute(it)
         }
@@ -78,9 +76,19 @@ abstract class TypedDataProcessorBase<T:PrintableBase<T>>(){
         }
     }
 
+    @JvmName("processRecordPrintableBase")
+    fun processRecord(record: PrintableBase<*>, template: PrintableTemplateBase<*>?): String? {
+        record.outputSource = outputSource
+        globalMuteCondition?.let {
+            record.setGenericMute(it)
+        }
+        return record.print()
+    }
+
     fun forwardTop(data: PrintableBase<*>){
         topEmitter?.addData(data)
     }
+
 
     fun provideMuteCondition(muteCondition: (ComposableData)-> Boolean) {
         globalMuteCondition = muteCondition
@@ -92,14 +100,14 @@ abstract class TypedDataProcessorBase<T:PrintableBase<T>>(){
     }
 
 
-    private val notificationFlow = MutableSharedFlow<PrintableBase<*>>(
+    private val notificationFlow = MutableSharedFlow<T>(
         replay = 10,
         extraBufferCapacity = 64,
         onBufferOverflow = BufferOverflow.SUSPEND
     )
-    val notifications: SharedFlow<PrintableBase<*>> = notificationFlow.asSharedFlow()
+    val notifications: SharedFlow<T> = notificationFlow.asSharedFlow()
 
-    fun emitData(notification: PrintableBase<*>) {
+    fun emitData(notification: T) {
         CoroutineScope(Dispatchers.Default).launch {
             notificationFlow.emit(notification)
         }

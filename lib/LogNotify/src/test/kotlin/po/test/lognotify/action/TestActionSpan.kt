@@ -8,14 +8,14 @@ import po.lognotify.extensions.runTask
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.IdentifiableModule
 import po.misc.interfaces.asIdentifiable
+import po.misc.interfaces.asIdentifiableModule
 import kotlin.test.assertEquals
 
 class TestActionSpan: TasksManaged {
 
-    class FactoryClass() : InlineAction, IdentifiableModule{
+    class FactoryClass() : InlineAction{
 
-       override val moduleName: String = "FactoryClass"
-       override val identifiable: Identifiable = asIdentifiable("Page", "DTOClass")
+       val module: Identifiable = asIdentifiable("Page", "DTOClass")
 
        private var counter:Int = 0
 
@@ -24,7 +24,7 @@ class TestActionSpan: TasksManaged {
           return "Produced:${counter}"
        }
 
-        fun method1() : String = runInlineAction(this){
+        fun method1() : String = runInlineAction(module){
             privateMethod()
         }
     }

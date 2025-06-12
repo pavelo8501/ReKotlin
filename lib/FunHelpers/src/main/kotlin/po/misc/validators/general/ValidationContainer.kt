@@ -4,7 +4,7 @@ import po.misc.exceptions.ManagedException
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.asIdentifiable
 import po.misc.types.castOrThrow
-import po.misc.types.safeCast
+import po.misc.validators.general.models.CheckStatus
 import po.misc.validators.general.reports.ReportRecord
 import po.misc.validators.general.reports.ValidationReport
 
@@ -12,34 +12,23 @@ sealed class ValidationContainerBase<T>(
     val identifiable: Identifiable,
     var validatable: T,
     internal val validator: Validator
-){
+) {
     var validationName: String = ""
-
     internal val validationReport: ValidationReport = ValidationReport(this.validationName)
+    internal var initializerFn: (ValidationContainer<T>.(T) -> Unit)? = null
 
-    internal var initializerFn:(ValidationContainer<T>.(T) -> Unit)? = null
-    internal var validationPredicates :MutableMap<String, (ValidationContainer<T>.(validatable:(T))-> Unit)> = mutableMapOf()
-
-    var validatorBlocks : MutableMap<String,ValidationContainer<T>.(validatable:(T))-> Unit> = mutableMapOf()
-
-    internal fun setValidationName(name:String): ValidationContainerBase<T>{
+    internal fun setValidationName(name: String): ValidationContainerBase<T> {
         validationName = name
+        validationReport.setName(name)
         return this
     }
 
-    fun <T2: Any> reassignValidatable(validatable: T2){
-
+    internal fun <T2 : Any> reassignValidatable(validatable: T2) {
         this.validatable = validatable as T
     }
 
-    internal fun dropInitializer(){
-        initializerFn = null
-    }
+    val overallStatus: CheckStatus get() = validationReport.overallResult
 
-    fun initializer(initHook: ValidationContainer<T>.(T) -> Unit): ValidationReport{
-        initializerFn = initHook
-        return validationReport
-    }
 }
 
 class ValidationContainer<T>(
@@ -47,16 +36,8 @@ class ValidationContainer<T>(
     validatable: T,
     validator: Validator
 ):ValidationContainerBase<T>(identifiable, validatable, validator) {
-    var stop: Boolean = false
-    fun stopSignal(stop: Boolean){
-        this.stop  = stop
-    }
 
-    fun getReport(): ValidationReport{
-        return validationReport
-    }
 }
-
 
 /***
  * Creates new validation container i.e. ValidationReport
@@ -68,10 +49,10 @@ fun <T: Any> Validator.validation(
     validatorBlock: ValidationContainer<T>.(validatable:(T))-> Unit
 ): ValidationContainer<T> {
 
-
   return  identifiable?.let {
         val validationContainer = ValidationContainer(it, validatable, this).also {container->
-            container.validationName = validationName
+
+            container.setValidationName("$validationPrefix | $validationName")
         }
         validatorBlock.invoke(validationContainer, validatable)
         validations.add(validationContainer)

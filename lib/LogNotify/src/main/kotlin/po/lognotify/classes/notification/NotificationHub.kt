@@ -7,6 +7,8 @@ import kotlinx.coroutines.launch
 import po.lognotify.classes.notification.models.NotifyConfig
 import po.lognotify.classes.notification.models.TaskData
 import po.lognotify.classes.task.RootTask
+import po.misc.callbacks.CallbackManager
+import po.misc.callbacks.callbackManager
 import po.misc.data.PrintableBase
 import po.misc.data.processors.TypedDataProcessorBase
 import po.misc.interfaces.Identifiable
@@ -18,8 +20,8 @@ class NotifierHub(
     val config : NotifyConfig = NotifyConfig()
 ) : TypedDataProcessorBase<TaskData>() {
 
-    enum class EventType(override val value: Int): ValueBased{
-        NewEvent(1)
+    enum class Event(override val value: Int): ValueBased{
+        DataReceived(1)
     }
 
     override val topEmitter: LoggerDataProcessor? = null
@@ -28,19 +30,22 @@ class NotifierHub(
 
     private val notificator: TypedCallbackRegistry<PrintableBase<*>, Unit> = TypedCallbackRegistry()
 
-    fun subscribe(subscriber: Identifiable, eventType:EventType, callback: (PrintableBase<*>)-> Unit){
+    private val notifier = callbackManager<TaskData>()
+
+    fun subscribe(subscriber: Identifiable, eventType:Event, callback: (PrintableBase<*>)-> Unit){
         notificator.subscribe(subscriber, eventType, callback)
     }
 
     internal fun register(rootTask: RootTask<*,*>){
-        val rootTaskDataProcessor = rootTask.dataProcessor
-        subNotifiers.add(rootTaskDataProcessor)
+
+        subNotifiers.add( rootTask.dataProcessor)
         val job = CoroutineScope(Dispatchers.Default).launch {
-            rootTaskDataProcessor.notifications.collect {
-                notificator.triggerForAll(EventType.NewEvent, it)
+            rootTask.dataProcessor.notifications.collect {
+                notifier.triggerForAll(Event.DataReceived, it)
+                notificator.triggerForAll(Event.DataReceived, it)
             }
         }
-        collectorJobs[rootTaskDataProcessor] = job
+        collectorJobs[ rootTask.dataProcessor] = job
     }
 
     internal fun unregister(rootTask: RootTask<*, *>) {

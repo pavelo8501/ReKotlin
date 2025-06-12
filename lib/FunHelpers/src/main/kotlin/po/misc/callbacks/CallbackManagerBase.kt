@@ -21,7 +21,7 @@ abstract class CallbackManagerBase<T: Any, R: Any> {
 
     abstract val ownName: String
 
-    protected  val subscriptions : MutableMap<CompositeKey, CallbackPayloadBase<T, R>> = mutableMapOf()
+     protected open val subscriptions : MutableMap<CompositeKey, CallbackPayloadBase<T, R>> = mutableMapOf()
 
     var onNewSubscription: ((ManagerStats)-> Unit)? = null
     var onBeforeTrigger: ((TriggerEvent<T>)-> Unit)? = null
@@ -66,7 +66,7 @@ abstract class CallbackManagerBase<T: Any, R: Any> {
 }
 
 
-class CallbackManager<T : Any, R: Any>(): CallbackManagerBase<T, R>(){
+class CallbackManager<T: Any, R: Any>(): CallbackManagerBase<T, R>(){
 
     override val ownName: String
         get() = this::class.simpleName.toString()
@@ -113,3 +113,4 @@ class CallbackManager<T : Any, R: Any>(): CallbackManagerBase<T, R>(){
         onAfterTriggered?.invoke(PostTriggerEvent(triggersCount, subscriptions.size, ownName))
     }
 }
+

@@ -27,61 +27,51 @@ class BindingHub<DTO, D, E, F_DTO, FD, FE>(
     val hostingDTO: CommonDTO<DTO, D, E>,
     val identifiable: Identifiable = asIdentifiable(hostingDTO.sourceName, "BindingHub")
 ): Identifiable by identifiable
-        where  DTO : ModelDTO, D: DataModel, E: LongEntity, F_DTO: ModelDTO, FD: DataModel, FE: LongEntity
-{
-    data class NotificationData<DTO: ModelDTO, F_DTO: ModelDTO>(
+        where  DTO : ModelDTO, D: DataModel, E: LongEntity, F_DTO: ModelDTO, FD: DataModel, FE: LongEntity {
+    internal data class NotificationData<DTO : ModelDTO, F_DTO : ModelDTO>(
         val delegateName: String,
         val propertyRecord: PropertyContainer<Any>,
         val identifiable: Identifiable,
-        val delegate : DelegateInterface<DTO, F_DTO>
+        val delegate: DelegateInterface<DTO, F_DTO>
     )
 
-    data class ListData<DTO, D, E>(
+    internal data class ListData<DTO, D, E>(
         val hostingDTO: CommonDTO<DTO, D, E>,
-        val delegates: List<DelegateInterface<DTO,*>>
-    )  where  DTO : ModelDTO, D: DataModel, E: LongEntity
+        val delegates: List<DelegateInterface<DTO, *>>
+    ) where  DTO : ModelDTO, D : DataModel, E : LongEntity
 
-    enum class Event(override val value: Int): ValueBased{
+    enum class Event(override val value: Int) : ValueBased {
         DelegateRegistered(10),
         DelegateRegistrationComplete(11)
     }
 
-    val dtoClass : DTOBase<DTO, D, E>  get() = hostingDTO.dtoClass
+    val dtoClass: DTOBase<DTO, D, E> get() = hostingDTO.dtoClass
     val daoService: DAOService<DTO, D, E> get() = hostingDTO.daoService
     val dtoFactory: DTOFactory<DTO, D, E> get() = hostingDTO.dtoFactory
 
     internal val notifier = callbackManager<NotificationData<DTO, *>>()
-    internal val listNotifier = callbackManager<ListData<DTO,D, E>>()
+    internal val listNotifier = callbackManager<ListData<DTO, D, E>>()
 
-    private val responsiveDelegates : MutableMap<String, ResponsiveDelegate<DTO, D, E, *>>  = mutableMapOf()
-    private val attachedForeignDelegates : MutableMap<String, AttachedForeignDelegate<DTO, D, E,  ModelDTO, *, *>>  = mutableMapOf()
-    private val parentDelegates : MutableMap<String, ParentDelegate<DTO, D, E,  ModelDTO, *, *>>  = mutableMapOf()
-    private val relationDelegates : MutableMap<String, RelationDelegate<DTO, D, E,  F_DTO,  FD,  FE, *>> = mutableMapOf()
+    private val responsiveDelegates: MutableMap<String, ResponsiveDelegate<DTO, D, E, *>> = mutableMapOf()
+    private val attachedForeignDelegates: MutableMap<String, AttachedForeignDelegate<DTO, D, E, *, *, *>> =
+        mutableMapOf()
+    private val parentDelegates: MutableMap<String, ParentDelegate<DTO, D, E, *, *, *>> = mutableMapOf()
+    private val relationDelegates: MutableMap<String, RelationDelegate<DTO, D, E, F_DTO, FD, FE, *>> = mutableMapOf()
 
     init {
-        dtoFactory.notifier.subscribe(this, CallbackPayload.create(DTOFactory.Events.OnCreated,::onDtoInitialized))
-        listNotifier.onNewSubscription = {
-            println("BindingHub Subscribed to factory create")
-        }
-
-        listNotifier.onBeforeTrigger = {triggerEvent->
-            println(triggerEvent)
-        }
-
+        dtoFactory.notifier.subscribe(this, CallbackPayload.create(DTOFactory.Events.OnCreated, ::onDtoInitialized))
     }
 
-    private fun setId(delegate: DelegateInterface<DTO, *>, mapSize: Int){
+    private fun setId(delegate: DelegateInterface<DTO, *>, mapSize: Int) {
         delegate.module.setId(mapSize + 1)
     }
 
-    fun onDtoInitialized(dto: CommonDTO<DTO, D, E>){
-        println("Factory DTO Reported created")
-
+    fun onDtoInitialized(dto: CommonDTO<DTO, D, E>) {
         listNotifier.triggerForAll(Event.DelegateRegistrationComplete, ListData(dto, combinedList()))
     }
 
-    fun combinedList(): List<DelegateInterface<DTO,*>>{
-        val result : MutableList<DelegateInterface<DTO, *>> = mutableListOf()
+    private fun combinedList(): List<DelegateInterface<DTO, *>> {
+        val result: MutableList<DelegateInterface<DTO, *>> = mutableListOf()
         result.addAll(responsiveDelegates.values)
         result.addAll(attachedForeignDelegates.values)
         result.addAll(parentDelegates.values)
@@ -90,65 +80,69 @@ class BindingHub<DTO, D, E, F_DTO, FD, FE>(
     }
 
     fun setRelationBinding(
-        delegate: RelationDelegate<DTO, D, E,  F_DTO,  FD,  FE, *>
-    ): RelationDelegate<DTO, D, E,  F_DTO,  FD,  FE, *>
-    {
+        delegate: RelationDelegate<DTO, D, E, F_DTO, FD, FE, *>
+    ): RelationDelegate<DTO, D, E, F_DTO, FD, FE, *> {
         setId(delegate, relationDelegates.size)
         relationDelegates[delegate.module.completeName] = delegate
-        val notificationData = NotificationData(delegate.module.completeName, delegate.property.toRecord(), delegate.module, delegate)
+        delegate.updateStatus(DelegateStatus.Registered)
+        val notificationData =
+            NotificationData(delegate.module.completeName, delegate.property.toRecord(), delegate.module, delegate)
         notifier.triggerForAll(Event.DelegateRegistered, notificationData)
         return delegate
     }
 
 
     fun setParentDelegate(
-        delegate: ParentDelegate<DTO, D, E,  ModelDTO,  *, *>
-    ): ParentDelegate<DTO, D, E,  ModelDTO,  *,  *> {
+        delegate: ParentDelegate<DTO, D, E, *, *, *>
+    ): ParentDelegate<DTO, D, E, *, *, *> {
         setId(delegate, parentDelegates.size)
         parentDelegates[delegate.module.completeName] = delegate
-        val notificationData = NotificationData(delegate.module.completeName, delegate.property.toRecord(), delegate.module, delegate)
+        delegate.updateStatus(DelegateStatus.Registered)
+        val notificationData =
+            NotificationData(delegate.module.completeName, delegate.property.toRecord(), delegate.module, delegate)
         notifier.triggerForAll(Event.DelegateRegistered, notificationData)
         return delegate
     }
 
     fun setAttachedForeignDelegate(
-        delegate: AttachedForeignDelegate<DTO, D, E,  ModelDTO,  *, *>
-    ): AttachedForeignDelegate<DTO, D, E,  ModelDTO,  *,  *> {
+        delegate: AttachedForeignDelegate<DTO, D, E, *, *, *>
+    ): AttachedForeignDelegate<DTO, D, E, *, *, *> {
         setId(delegate, parentDelegates.size)
         attachedForeignDelegates[delegate.module.completeName] = delegate
-        val notificationData = NotificationData(delegate.module.completeName, delegate.property.toRecord(), delegate.module, delegate)
+        delegate.updateStatus(DelegateStatus.Registered)
+        val notificationData =
+            NotificationData(delegate.module.completeName, delegate.property.toRecord(), delegate.module, delegate)
         notifier.triggerForAll(Event.DelegateRegistered, notificationData)
         return delegate
     }
 
 
-
     fun setResponsiveDelegate(
-        delegate : ResponsiveDelegate<DTO, D, E, *>
+        delegate: ResponsiveDelegate<DTO, D, E, *>
     ): ResponsiveDelegate<DTO, D, E, *> {
-        setId(delegate as DelegateInterface<DTO,*>, responsiveDelegates.size)
-        hostingDTO.logger.warn(delegate.module.completeName)
-        responsiveDelegates[delegate.module.completeName] =  delegate
-        return  delegate
+        setId(delegate as DelegateInterface<DTO, *>, responsiveDelegates.size)
+        responsiveDelegates[delegate.module.completeName] = delegate
+        delegate.updateStatus(DelegateStatus.Registered)
+        return delegate
     }
 
-    fun getResponsiveDelegates(): List<ResponsiveDelegate<DTO, D, E, *>>{
+    fun getResponsiveDelegates(): List<ResponsiveDelegate<DTO, D, E, *>> {
         return this.responsiveDelegates.values.toList()
     }
 
-    fun getRelationDelegates(cardinality: Cardinality = Cardinality.ONE_TO_MANY): List<RelationDelegate<DTO, D, E,  F_DTO,  FD,  FE, *>>{
+    fun getRelationDelegates(cardinality: Cardinality = Cardinality.ONE_TO_MANY): List<RelationDelegate<DTO, D, E, F_DTO, FD, FE, *>> {
         return this.relationDelegates.values.filter { it.cardinality == cardinality }.toList()
     }
 
-    fun getAttachedForeignDelegates():List<AttachedForeignDelegate<DTO, D, E, *, *, *>>{
+    fun getAttachedForeignDelegates(): List<AttachedForeignDelegate<DTO, D, E, *, *, *>> {
         return attachedForeignDelegates.values.toList()
     }
 
-    fun getParentDelegates():List<ParentDelegate<DTO, D, E, *, *, *>>{
+    fun getParentDelegates(): List<ParentDelegate<DTO, D, E, *, *, *>> {
         return parentDelegates.values.toList()
     }
 
-    fun getDelegateByComponent(){
+    fun getDelegateByComponent() {
 
     }
 
@@ -165,13 +159,11 @@ class BindingHub<DTO, D, E, F_DTO, FD, FE>(
     /***
      * createChildByData child DTO creation with parent finalized
      */
-    internal fun createChildByData(){
-        getRelationDelegates(hostingDTO.cardinality).forEach {relationDelegate->
+    internal fun createChildByData() {
+        getRelationDelegates(hostingDTO.cardinality).forEach { relationDelegate ->
             relationDelegate.createByData()
         }
     }
-
-
 
 
 //    internal fun <F_DTO2: ModelDTO, FD2: DataModel, FE2: LongEntity> createByData(
@@ -191,20 +183,20 @@ class BindingHub<DTO, D, E, F_DTO, FD, FE>(
 //      //  childDTO.provideInsertedEntity(insertedEntity)
 //    }
 
-    fun createByEntity(){
-        responsiveDelegates.values.forEach {responsiveDelegate->
+    fun createByEntity() {
+        responsiveDelegates.values.forEach { responsiveDelegate ->
             responsiveDelegate.updateDTOProperty(hostingDTO.getEntity(hostingDTO))
         }
-        getRelationDelegates(hostingDTO.cardinality).forEach {relationDelegate->
+        getRelationDelegates(hostingDTO.cardinality).forEach { relationDelegate ->
             relationDelegate.createByEntity()
         }
     }
 
-    fun updateFromData(data:D){
+    fun updateFromData(data: D) {
         responsiveDelegates.values.forEach {
             it.updateDTOProperty(data, hostingDTO.getEntity(hostingDTO))
         }
-        getRelationDelegates(hostingDTO.cardinality).forEach {relationDelegate->
+        getRelationDelegates(hostingDTO.cardinality).forEach { relationDelegate ->
             relationDelegate.updateFromData(data)
         }
     }

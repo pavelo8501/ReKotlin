@@ -22,6 +22,7 @@ import po.exposify.extensions.getOrInitEx
 import po.exposify.scope.service.ServiceClass
 import po.exposify.scope.service.ServiceContext
 import po.lognotify.TasksManaged
+import po.lognotify.classes.action.InlineAction
 import po.lognotify.classes.task.TaskHandler
 import po.lognotify.lastTaskHandler
 import po.misc.callbacks.CallbackPayload
@@ -36,7 +37,7 @@ import po.misc.types.toSimpleNormalizedKey
 import kotlin.reflect.KType
 
 
-sealed class DTOBase<DTO, DATA, ENTITY>(): ClassDTO,  TasksManaged, ValueBased
+sealed class DTOBase<DTO, DATA, ENTITY>(): ClassDTO,  TasksManaged, ValueBased, InlineAction
         where DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity
 {
     enum class Events(override val value: Int) : ValueBased{

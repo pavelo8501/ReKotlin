@@ -2,6 +2,7 @@ package po.test.misc.interfaces
 
 import org.junit.jupiter.api.Test
 import po.misc.interfaces.Identifiable
+import po.misc.interfaces.IdentifiableImplementation
 import po.misc.interfaces.IdentifiableModule
 import po.misc.interfaces.Named
 import po.misc.interfaces.asIdentifiable
@@ -22,7 +23,7 @@ class TestIdentifiable {
     @Test
     fun `Test usage`(){
 
-        val identifiable: Identifiable = asIdentifiable("SourceName", "ComponentName")
+        val identifiable: IdentifiableImplementation = asIdentifiable("SourceName", "ComponentName")
         val module: IdentifiableModule = asIdentifiableModule(identifiable,  Module.TestIdent)
         val module2: IdentifiableModule = asIdentifiableModule("SourceName", "ComponentName",  Module.TestIdent)
 

@@ -20,16 +20,15 @@ class TestValidator {
         val str = "aaaa"
 
         val validator = Validator()
-         validator.validate("Hopless casts", identifiable, str){
+        val report = validator.validate("Hopless casts", identifiable){
 
-            validation(str){
+            validation("validation1", str){
 
             }
 
         }
-        assertEquals(2, validator.getReports().count())
-        assertEquals(CheckStatus.FAILED, validator.getReports().first().overallResult)
-        validator.getReports().first().printReport()
+        assertEquals(2, report.count())
+        assertEquals(CheckStatus.FAILED,report.first().overallResult)
     }
 
 }

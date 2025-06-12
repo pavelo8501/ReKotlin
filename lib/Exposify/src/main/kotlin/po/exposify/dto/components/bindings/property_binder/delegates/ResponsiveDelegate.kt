@@ -15,14 +15,13 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.SourceObject
 import po.exposify.extensions.castOrInitEx
+import po.exposify.extensions.getOrInitEx
 import po.exposify.extensions.getOrOperationsEx
 import po.misc.data.SmartLazy
-import po.misc.data.smartLazy
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.IdentifiableModule
 import po.misc.interfaces.ValueBased
 import po.misc.interfaces.asIdentifiableModule
-import po.misc.reflection.mappers.models.PropertyRecord
 import po.misc.registries.callback.TypedCallbackRegistry
 import po.misc.validators.mapping.models.MappingCheck
 import kotlin.Any
@@ -50,15 +49,13 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
     override val foreignClass: DTOBase<DTO, *, *>
         get() = hostingDTO.dtoClass
 
-    private var propertyParameter : KProperty<*>? = null
-    val property: KProperty<V> get() = propertyParameter.castOrInitEx<KProperty<V>>()
+    private var propertyParameter : KProperty<V>? = null
+    val property: KProperty<V> get() = propertyParameter.getOrInitEx()
 
 
     val name: String by SmartLazy("Uninitialized"){
         propertyParameter?.name
     }
-
-
 
     override val module: IdentifiableModule = asIdentifiableModule(name, hostingDTO.sourceName,
         Delegates.ResponsiveDelegate)
@@ -73,9 +70,6 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
 
     protected var onPropertyInitialized: ((KProperty<*>)-> Unit)? = null
 
-
-
-
     var activeValue : V? = null
     var valueUpdated : Boolean = false
 
@@ -89,14 +83,19 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
             UpdateParams(hostingDTO, CrudOperation.Initialize, "update", name, activeValue, value, module)
         )
     }
-    private fun propertyResolved(property: KProperty<*>){
+    override fun resolveProperty(property: KProperty<*>){
         if(propertyParameter == null){
-            propertyParameter = property
+            propertyParameter = property.castOrInitEx()
             module.updateName(property.name)
             hostingDTO.bindingHub.setResponsiveDelegate(this)
             onPropertyInitialized?.invoke(property)
         }
     }
+
+    override fun updateStatus(status: DelegateStatus) {
+        this.status = status
+    }
+
 
     private fun valueChanged(updateType : UpdateType, value : V){
         if(activeValue != value){
@@ -117,15 +116,15 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
     }
 
     operator fun provideDelegate(thisRef: DTO, property: KProperty<*>): ResponsiveDelegate<DTO, D, E, V> {
-        propertyResolved(property)
+        resolveProperty(property)
         return this
     }
     override fun getValue(thisRef: DTO, property: KProperty<*>): V {
-        propertyResolved(property)
+        resolveProperty(property)
         return activeValue?: dataProperty.get(hostingDTO.dataModel)
     }
     override fun setValue(thisRef: DTO, property: KProperty<*>, value: V) {
-        propertyResolved(property)
+        resolveProperty(property)
         updateEntityProperty(value, null)
         valueChanged(UpdateType.DTO_UPDATE, value)
     }

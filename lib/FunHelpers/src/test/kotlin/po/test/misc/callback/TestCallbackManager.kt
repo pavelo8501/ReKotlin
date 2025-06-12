@@ -2,10 +2,17 @@ package po.test.misc.callback
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertAll
+import po.misc.callbacks.CallbackManager
 
 import po.misc.callbacks.CallbackPayload
 import po.misc.callbacks.ResultCallbackPayload
 import po.misc.callbacks.callbackManager
+import po.misc.callbacks.experimental.CallableContainer
+import po.misc.callbacks.experimental.ExpEvent
+import po.misc.callbacks.experimental.ExperimentalCallbackManager
+import po.misc.callbacks.experimental.ExperimentalPayload
+import po.misc.callbacks.experimental.ExperimentalPayloadBase
+import po.misc.callbacks.experimental.ExperimentalResultPayload
 import po.misc.callbacks.resultCallbackManager
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.ValueBased
@@ -33,7 +40,7 @@ class TestCallbackManager {
     fun `One parameter callback manager usage`(){
         var updatedStr: String = ""
         val newValue = "New Value"
-        callbackManager.subscribe(thisIdentifiable, CallbackPayload.createPayload(Event.Event1){
+        callbackManager.subscribe(thisIdentifiable, CallbackPayload.create(Event.Event1){
             updatedStr = it
         })
         callbackManager.trigger(thisIdentifiable, Event.Event1, newValue)
@@ -46,7 +53,7 @@ class TestCallbackManager {
     fun `One parameter callback manager with result usage`(){
         var updatedStr  = ""
         val newValue = "New Value"
-        callbackManagerWithReturn.subscribe(thisIdentifiable, ResultCallbackPayload.createPayload(Event.Event1){
+        callbackManagerWithReturn.subscribe(thisIdentifiable, ResultCallbackPayload.create(Event.Event1){
             updatedStr = it
             true
         })
@@ -66,10 +73,10 @@ class TestCallbackManager {
         callbackManager.clear()
         callbackManager2.clear()
 
-        callbackManager.subscribe(thisIdentifiable, CallbackPayload.createPayload(Event.Event1) { updatedStr1 = it })
-        callbackManager.subscribe(thisIdentifiable, CallbackPayload.createPayload(Event.Event2) { updatedStr2 = it })
+        callbackManager.subscribe(thisIdentifiable, CallbackPayload.create(Event.Event1) { updatedStr1 = it })
+        callbackManager.subscribe(thisIdentifiable, CallbackPayload.create(Event.Event2) { updatedStr2 = it })
 
-        callbackManager2.subscribe(thisIdentifiable, CallbackPayload.createPayload(Event.Event4) { updatedStr2_4 = it })
+        callbackManager2.subscribe(thisIdentifiable, CallbackPayload.create(Event.Event4) { updatedStr2_4 = it })
 
         var mnr1TriggerCount = 0
         callbackManager.onAfterTriggered = { postTrigger -> mnr1TriggerCount = postTrigger.triggeredCount }
@@ -81,7 +88,7 @@ class TestCallbackManager {
         callbackManager2.onAfterTriggered = { postTrigger -> mnr2TrigCount += postTrigger.triggeredCount }
 
         callbackManager.transferTo(callbackManager2, listOf(Event.Event1, Event.Event2)) { input ->
-            CallbackPayload.createPayload(input.event, input.callback)
+            CallbackPayload.create(input.event, input.callback)
         }
 
         callbackManager2.triggerForAll(Event.Event1, "${newValue}_callbackManager2")
@@ -101,6 +108,17 @@ class TestCallbackManager {
         )
     }
 
+    @Test
+    fun `Callback transfer algorithms `() {
+
+        val pay = ExperimentalPayload<String, ExpEvent>(ExpEvent.OnInit, CallableContainer())
+        val payRes = ExperimentalResultPayload<String, Boolean, ExpEvent>(ExpEvent.OnComplete, CallableContainer())
+
+        val experimental = ExperimentalCallbackManager(ExpEvent::class.java, pay, pay, payRes)
+        val payload = experimental.getPayload<String, Boolean>(ExpEvent.OnComplete)
+
+
+    }
 
 
 }

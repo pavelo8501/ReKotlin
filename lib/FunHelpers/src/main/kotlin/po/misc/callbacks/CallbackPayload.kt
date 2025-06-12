@@ -53,6 +53,13 @@ class CallbackPayload<T: Any>(
     }
 }
 
+
+enum class Test(override val value: Int): ValueBased{
+    A(1)
+}
+
+
+
 /**
  * A payload for two-argument callbacks that return Unit.
  *

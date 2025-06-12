@@ -4,21 +4,25 @@ package po.exposify.dto.helpers
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.DTOBase
 import po.exposify.dto.components.bindings.BindingHub
-import po.exposify.dto.components.bindings.property_binder.delegates.AttachedForeignDelegate
-import po.exposify.dto.components.bindings.property_binder.delegates.ParentDelegate
-import po.exposify.dto.components.bindings.property_binder.delegates.ResponsiveDelegate
+import po.exposify.dto.components.bindings.DelegateStatus
 import po.exposify.dto.components.bindings.relation_binder.delegates.RelationDelegate
 import po.exposify.dto.enums.Delegates
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.OperationsException
+import po.lognotify.classes.action.runInlineAction
+import po.lognotify.classes.notification.NotifierHub
+import po.misc.data.PrintableBase
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.asIdentifiable
 import po.misc.reflection.mappers.PropertyMapper
 import po.misc.validators.general.Validator
 import po.misc.validators.general.models.CheckStatus
+import po.misc.validators.general.reports.ReportRecord
 import po.misc.validators.general.reports.ValidationReport
+import po.misc.validators.general.reports.ValidationReport.Companion.Footer
+import po.misc.validators.general.reports.ValidationReport.Companion.Header
 import po.misc.validators.general.reports.finalCheckStatus
 import po.misc.validators.general.validation
 import po.misc.validators.general.validators.conditionTrue
@@ -26,64 +30,86 @@ import po.misc.validators.general.validators.conditionTrue
 
 fun <DTO, D, E> DTOBase<DTO, D, E>.setupValidation(
     propertyMapper : PropertyMapper
-): Boolean  where DTO: ModelDTO, D: DataModel, E: LongEntity {
+): Boolean  where DTO: ModelDTO, D: DataModel, E: LongEntity
+        = runInlineAction(this.component, "setupValidation") {handler->
 
     var result: Boolean = false
+    var relationDelegates: List<RelationDelegate<DTO, D, E, *, *, *, *>> = listOf()
 
     fun onDelegatesRegistered(container: BindingHub.ListData<DTO, D, E>): Boolean {
 
-        var relationDelegates: List<RelationDelegate<DTO, D, E, *, *, *, *>>
+        val bindingHub = container.hostingDTO.bindingHub
         val validator = Validator()
         val entityRecord = propertyMapper.getMapperRecord<E, OperationsException>(SourceObject.Entity)
 
         val reports = validator.validate(this.component.completeName, component) {
+
             val categorize = container.delegates.groupBy { it.module.moduleName }
             categorize.forEach { (key, value) ->
                 val enum = key as Delegates
                 when (enum) {
                     Delegates.AttachedForeignDelegate -> {
-                        val attachedForeignDelegates = value.filterIsInstance<AttachedForeignDelegate<DTO, D, E, *, *, *, >>()
 
-                        validation("AttachedForeign initialized", attachedForeignDelegates) {
-                            attachedForeignDelegates.forEach { attachedDelegate ->
+                        validation("AttachedForeign initialized", bindingHub.getAttachedForeignDelegates() ) {delegates->
+                            delegates.forEach { attachedDelegate ->
                                 conditionTrue("Service initialized") {
                                     attachedDelegate.foreignClass.initialized
                                 }
+                            }
+                            if(overallStatus == CheckStatus.PASSED){
+                                delegates.forEach { it.updateStatus(DelegateStatus.Initialized) }
                             }
                         }
                     }
 
                     Delegates.RelationDelegate -> {
-                        relationDelegates = value.filterIsInstance<RelationDelegate<DTO, D, E, *, *, *, *>>()
+                        relationDelegates = bindingHub.getRelationDelegates()
                     }
 
                     Delegates.ResponsiveDelegate -> {
-                        val responsiveDelegates = value.filterIsInstance<ResponsiveDelegate<DTO, D, E, *, >>()
-                        val mandatory =  entityRecord.columnMetadata.filter { !it.isNullable && !it.hasDefault && !it.isPrimaryKey }
-                       validation("Mandatory properties set", mandatory){
+
+                       val mandatory =  entityRecord.columnMetadata.filter { !it.isNullable && !it.hasDefault && !it.isPrimaryKey && !it.isForeignKey }
+                       validation("Mandatory properties set", bindingHub.getResponsiveDelegates()){delegates->
                            mandatory.forEach { mandatoryProperty->
-                               conditionTrue(mandatoryProperty.columnName){
-                                   responsiveInitialized(mandatoryProperty, responsiveDelegates)
+                               conditionTrue(mandatoryProperty.columnName, "Entity non nullable, no defaults. But missing"){
+                                   responsiveInitialized(mandatoryProperty, delegates)
                                }
+                           }
+                           if(overallStatus == CheckStatus.PASSED){
+                               delegates.forEach { it.updateStatus(DelegateStatus.Initialized) }
                            }
                         }
                     }
 
                     Delegates.ParentDelegate -> {
-                        val parentDelegates = value.filterIsInstance<ParentDelegate<DTO, D, E, *, *, *>>()
                         val foreignKeys =  entityRecord.columnMetadata.filter { it.isForeignKey }
-                        validation("Parent(Foreign properties assigned)", parentDelegates){
+                        validation("Parent(Foreign properties assigned)", bindingHub.getParentDelegates()){delegates->
                             foreignKeys.forEach { foreignKey ->
-                                parentInitialized(foreignKey, parentDelegates)
+                                parentInitialized(foreignKey, delegates)
+                            }
+                            if(overallStatus == CheckStatus.PASSED){
+                                delegates.forEach { it.updateStatus(DelegateStatus.Initialized) }
                             }
                         }
                     }
                 }
             }
         }
-        reports.forEach {
-            it.printReport()
+
+
+        val receivedList: MutableList<PrintableBase<*>> = mutableListOf()
+        handler.subscribeHubEvents(NotifierHub.Event.DataReceived){
+            receivedList.add(it)
         }
+        handler.log<ValidationReport>(reports.first()) {
+            printTemplate(Header)
+            getRecords().forEach {record-> record.printTemplate(ReportRecord.GeneralTemplate)}
+            printTemplate(Footer)
+        }
+
+        val result = receivedList.toList()
+
+
         return reports.finalCheckStatus() != CheckStatus.FAILED
     }
 
@@ -92,6 +118,12 @@ fun <DTO, D, E> DTOBase<DTO, D, E>.setupValidation(
         result = onDelegatesRegistered(it)
     }
     val shallowDTO = config.dtoFactory.createDto()
+
+    if(result){
+        relationDelegates.forEach {
+            it.resolveForeign()
+        }
+    }
 
     return result
 }

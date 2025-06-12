@@ -5,9 +5,17 @@ import po.misc.data.console.PrintableTemplate
 import po.misc.data.console.PrintableTemplateBase
 import po.misc.data.interfaces.ComposableData
 import po.misc.data.interfaces.Printable
+import po.misc.data.json.JasonStringSerializable
+import po.misc.data.json.JsonDescriptor
+import po.misc.data.json.formatJsonSafe
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.ValueBased
+import po.misc.reflection.mappers.PropertyMapper
+import po.misc.reflection.mappers.models.PropertyMapperRecord
+import po.misc.reflection.mappers.models.PropertyRecord
+import po.misc.reflection.properties.toPropertyMap
 import po.misc.registries.basic.BasicRegistry
+import kotlin.collections.listOf
 
 abstract class PrintableBase<T>()
     : ComposableData, Printable, PrintHelper where T: Printable
@@ -20,7 +28,6 @@ abstract class PrintableBase<T>()
 
     protected val templateRegistry : BasicRegistry<T.() -> String> = BasicRegistry()
     override var children: List<PrintableBase<*>> = listOf()
-
 
     @PublishedApi
     internal var mute: Boolean = false
@@ -132,5 +139,52 @@ abstract class PrintableBase<T>()
         }
     }
 
+    fun toJson(): String {
+
+
+
+
+
+
+//        fun Any.toJsonSafe(): String {
+//            return when (this) {
+//                is JasonStringSerializable -> this.toJsonLike()
+//                is PrintableBase<*> -> {
+//                    val fallback = this.print() ?: ""
+//                    """{ "text": ${formatJsonSafe(fallback)} }"""
+//                }
+//                else -> {
+//                    """{ "text": ${formatJsonSafe(this.toString())} }"""
+//                }
+//            }
+//        }
+
+
+//        return when (this) {
+//            is JasonStringSerializable -> this.toJsonLike()
+//
+//            else -> {
+//                val fallback = this.print() ?: ""
+//                """{ "text": ${formatJsonSafe(fallback)} }"""
+//            }
+//        }
+//
+       return ""
+    }
+
+    companion object{
+
+
+
+       val isPropertyMapReady : Boolean get() = propertyMap!= null
+
+       var propertyMap :  Map<String, PropertyRecord<*>>?  = null
+       inline fun <reified T: Printable> firstRun(): Map<String, PropertyRecord<T>>{
+           val  map = toPropertyMap<T>()
+           propertyMap = map
+           return map
+        }
+
+    }
 
 }

@@ -5,23 +5,34 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import po.lognotify.classes.action.ActionSpan
 import po.lognotify.classes.notification.LoggerDataProcessor
+import po.lognotify.classes.notification.NotifierHub
 import po.lognotify.classes.notification.models.TaskData
 import po.lognotify.classes.task.interfaces.HandledTask
 import po.lognotify.models.TaskDispatcher.LoggerStats
+import po.misc.data.PrintableBase
+import po.misc.data.console.PrintableTemplateBase
+import po.misc.data.interfaces.Printable
 import po.misc.exceptions.ManagedException
+import po.misc.interfaces.Identifiable
+import po.misc.interfaces.asIdentifiable
 import po.misc.types.UpdateType
 
+//typealias PrintTemplate<T> = PrintableBase<T>.(StringBuilder) -> Unit
 
 class TaskHandler<R: Any?>(
     val task : TaskBase<*, R>,
-    internal val dataProcessor: LoggerDataProcessor
-): HandledTask<R>{
+    internal val dataProcessor: LoggerDataProcessor,
+    val identifiable: Identifiable = asIdentifiable(task.key.taskName, "TaskHandler")
+): HandledTask<R>, Identifiable by identifiable{
 
     val actions : List<ActionSpan<*,*>> get()= task.actionSpans
 
     fun echo(message: String){
         dataProcessor.info(message)
     }
+    fun log(data: PrintableBase<*>) = dataProcessor.log(data)
+    fun <T: Printable> log(data: T,   printFn: T.(StringBuilder)-> Unit)
+        = dataProcessor.log(data, printFn)
 
     fun info(message: String): TaskData{
        return dataProcessor.info(message)
@@ -33,10 +44,13 @@ class TaskHandler<R: Any?>(
         return dataProcessor.warn(ex, message)
     }
 
+    fun subscribeHubEvents(
+        eventType: NotifierHub.Event,
+        callback: (PrintableBase<*>) -> Unit) = task.lookUpRoot().dispatcher.notifierHub.subscribe(this, eventType, callback)
+
     fun subscribeTaskEvents(handler: UpdateType, callback: (LoggerStats) -> Unit) {
         task.callbackRegistry[handler] = callback
     }
-
 
     inline fun <T, R2>  withTaskContext(receiver: T,  crossinline block : suspend T.() -> R2):R2{
         var result: R2? = null

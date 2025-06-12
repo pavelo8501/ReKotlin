@@ -15,11 +15,10 @@ data class PropertyRecord<T: Any>(
     override val property: KProperty<T>
 ):PropertyContainer<T>{
 
-    fun asKProperty1():KProperty1<T, *>{
+    fun <R: Any> asKProperty1():KProperty1<T, R>{
         val message = "Unable to cast KProperty<T> to <KProperty1<T, *> in PropertyHelpers.kt"
-        return property.castOrThrow<KProperty1<T, *>, ManagedException>()
+        return property.castOrThrow<KProperty1<T, R>, ManagedException>()
     }
-
 
     companion object{
 
@@ -32,5 +31,5 @@ data class PropertyRecord<T: Any>(
             return PropertyRecord(property.name, property)
         }
     }
-
 }
+

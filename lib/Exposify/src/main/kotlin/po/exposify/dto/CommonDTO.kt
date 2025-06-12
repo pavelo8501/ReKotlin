@@ -112,7 +112,6 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         notificator.onAfterTriggered = {
             logger.info("Triggers count: $it")
         }
-        println("CommonDTO init block complete")
     }
 
     internal fun <F_DTO, FD, FE> setForeignDTO(

@@ -30,7 +30,7 @@ class TestTaskNotifications : TasksManaged, Identifiable {
         val handler = logNotify()
         val notifications: MutableList<PrintableBase<*>> = mutableListOf()
 
-        handler.notifierHub.subscribe(this, NotifierHub.EventType.NewEvent){
+        handler.notifierHub.subscribe(this, NotifierHub.Event.DataReceived){
             notifications.add(it)
         }
         runTask("RootTaskNoDebug"){

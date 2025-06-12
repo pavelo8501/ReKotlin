@@ -1,5 +1,6 @@
 package po.misc.time
 
+
 data class ExecutionTimeStamp(val name: String, var id: String) {
 
     var startTime: Long = System.nanoTime()
@@ -17,6 +18,7 @@ data class ExecutionTimeStamp(val name: String, var id: String) {
     fun startTimer() {
         startTime = System.nanoTime()
     }
+
 
     private var onStartFn : ((ExecutionTimeStamp)-> Unit)? = null
     fun onStart(onStartFn : (ExecutionTimeStamp)-> Unit){

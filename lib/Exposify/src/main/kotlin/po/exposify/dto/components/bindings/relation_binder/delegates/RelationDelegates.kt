@@ -11,6 +11,7 @@ import po.exposify.dto.components.bindings.DelegateStatus
 import po.exposify.dto.components.bindings.helpers.createDTO
 import po.exposify.dto.components.bindings.helpers.newDTO
 import po.exposify.dto.components.bindings.interfaces.DelegateInterface
+import po.exposify.dto.components.bindings.interfaces.ForeignDelegateInterface
 import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.components.tracker.extensions.addTrackerInfo
 import po.exposify.dto.enums.Cardinality
@@ -22,7 +23,9 @@ import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.getOrOperationsEx
 import po.lognotify.TasksManaged
+import po.misc.data.SmartLazy
 import po.misc.interfaces.IdentifiableModule
+import po.misc.interfaces.IdentifiableModuleInstance
 import po.misc.interfaces.asIdentifiableModule
 import po.misc.types.TypeRecord
 import po.misc.types.castOrThrow
@@ -35,7 +38,7 @@ sealed class RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V: Any>(
     val hostingDTO : CommonDTO<DTO, DATA, ENTITY>,
     override val foreignClass: DTOClass<F_DTO, FD, FE>,
     val foreignEntityProperty: KMutableProperty1<FE, ENTITY>
-):TasksManaged, DelegateInterface<DTO, F_DTO>
+):TasksManaged, DelegateInterface<DTO, F_DTO>, ForeignDelegateInterface
         where DTO: ModelDTO, DATA: DataModel,  ENTITY : LongEntity,
               F_DTO: ModelDTO,  FD: DataModel, FE : LongEntity
 {
@@ -46,20 +49,14 @@ sealed class RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V: Any>(
     override val hostingClass: DTOBase<DTO, *, *>
         get() = hostingDTO.dtoClass
 
-    override val module: IdentifiableModule = asIdentifiableModule(hostingDTO.sourceName, "RelationDelegate",
+    override val module: IdentifiableModuleInstance = asIdentifiableModule(hostingDTO.sourceName, "RelationDelegate",
         Delegates.RelationDelegate)
 
 
     protected var onPropertyInitialized: ((KProperty<*>)-> Unit)? = null
     private var propertyParameter : KProperty<V>? = null
-        set(value) {
-            field = value
-            onPropertyInitialized?.invoke(property)
-        }
     val property: KProperty<V> get() = propertyParameter.getOrOperationsEx()
-    val propertyName : String get() = propertyParameter?.name?:""
-   // val pappedProperties : PropertyMapperRecord<V> = PropertyMapperRecord.createPropertyMap(typeRecord)
-   // val component: Identifiable = asIdentifiable(this.personalName, this.componentName)
+    val name : String by SmartLazy("Uninitialized"){ propertyParameter?.name }
 
     protected val dtoType : TypeRecord<DTO>
         get() =  hostingDTO.dtoType
@@ -77,16 +74,19 @@ sealed class RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V: Any>(
     protected abstract fun saveDto(dto: CommonDTO<F_DTO, FD, FE>, entity:FE)
 
     operator fun getValue(thisRef: DTO, property: KProperty<*>): V {
+        resolveProperty(property)
         return getEffectiveValue()
     }
     operator fun provideDelegate(thisRef: DTO, property: KProperty<*>): RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V> {
-        propertyProvided(property)
+        resolveProperty(property)
         return this
     }
-    private fun propertyProvided(property: KProperty<*>){
+    override fun resolveProperty(property: KProperty<*>){
         if(propertyParameter == null){
             propertyParameter = property.castOrInitEx("Unable to cast KProperty<*> to KProperty<V>")
+            module.updateName(property.name)
             hostingDTO.bindingHub.setRelationBinding(this.castOrInitEx())
+            onPropertyInitialized?.invoke(property)
         }
     }
 
@@ -94,7 +94,7 @@ sealed class RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V: Any>(
         childDTO.setForeignDTO(hostingDTO)
     }
 
-    protected fun initializeChildClasses(){
+    override fun resolveForeign(){
         when(hostingClass){
             is RootDTO->{
                 if(!foreignClass.initialized){
@@ -109,6 +109,9 @@ sealed class RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V: Any>(
                 }
             }
         }
+    }
+    override fun updateStatus(status: DelegateStatus) {
+        this.status = status
     }
 
     fun createByData() {

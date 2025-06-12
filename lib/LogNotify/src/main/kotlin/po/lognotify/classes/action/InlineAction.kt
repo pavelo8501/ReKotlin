@@ -17,11 +17,10 @@ interface InlineAction : TasksManaged {
     }
 }
 
-inline fun <T:InlineAction,R>  T.runInlineAction(identifiable: Identifiable, block: T.()->R):R{
-
+inline fun <T:InlineAction,R>  T.runInlineAction(identifiable: Identifiable, actionName: String,  block: T.(TaskHandler<*>)->R):R{
     return try {
         val activeTask  = this.activeTaskHandler()
-        activeTask.task.actionSpan(identifiable, this, block.invoke(this))
+        activeTask.task.actionSpan(identifiable,actionName,  this, block.invoke(this, activeTask))
     }catch (ex: Throwable){
         throw ex
     }

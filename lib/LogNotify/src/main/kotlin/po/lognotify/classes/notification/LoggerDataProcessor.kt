@@ -8,7 +8,9 @@ import po.lognotify.classes.task.RootTask
 import po.lognotify.classes.task.Task
 import po.lognotify.classes.task.TaskBase
 import po.lognotify.enums.SeverityLevel
+import po.misc.data.PrintableBase
 import po.misc.data.console.PrintableTemplateBase
+import po.misc.data.interfaces.Printable
 import po.misc.data.processors.TypedDataProcessorBase
 
 class LoggerDataProcessor(
@@ -69,6 +71,28 @@ class LoggerDataProcessor(
         return data
     }
 
+    private fun forwardOrEmmit(data:TaskData){
+        if(task is RootTask){
+            emitData(data)
+        }else{
+            forwardTop(data)
+        }
+    }
+
+    private fun createData(message: String, severity: SeverityLevel, arbitraryData: PrintableBase<*>?):TaskData{
+        val data =  TaskData(
+            taskKey = task.key,
+            config = task.config,
+            timeStamp = task.executionTimeStamp,
+            message = message,
+            severity = severity
+        )
+        if(arbitraryData != null){
+            data.addChild(arbitraryData)
+        }
+        return data
+    }
+
     fun systemEvent(eventType : EventType, message: String? = null):TaskData{
        return when(eventType){
             EventType.START->{
@@ -86,6 +110,17 @@ class LoggerDataProcessor(
                 TODO("Not yet implemented.")
             }
         }
+    }
+
+    fun log(data: PrintableBase<*>){
+        processRecord(data, null)
+        createData("Forwarding", SeverityLevel.LOG, data)
+        forwardOrEmmit(createData("Forwarding", SeverityLevel.LOG, data))
+    }
+
+    fun <T: Printable> log(data: T, printFn: T.(StringBuilder)-> Unit){
+        buildString{ data.printFn(this) }
+        forwardOrEmmit(createData("Forwarding", SeverityLevel.LOG, data as PrintableBase<*>))
     }
 
     fun info(message: String): TaskData {

@@ -44,7 +44,6 @@ inline fun <reified DTO,  reified D, reified E> DTOBase<DTO, D, E>.configuration
     block.invoke(config)
     initializationComplete()
 
-
     setupValidation(propertyMapper).trueOrInitException()
     status = DTOClassStatus.Live
 }
