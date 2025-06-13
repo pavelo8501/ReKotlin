@@ -1,19 +1,15 @@
 package po.misc.data
 
 import po.misc.data.console.PrintHelper
-import po.misc.data.console.PrintableTemplate
 import po.misc.data.console.PrintableTemplateBase
 import po.misc.data.interfaces.ComposableData
 import po.misc.data.interfaces.Printable
-import po.misc.data.json.JasonStringSerializable
-import po.misc.data.json.JsonDescriptor
+import po.misc.data.json.JObject
+import po.misc.data.json.JRecord
+import po.misc.data.json.JsonHolder
 import po.misc.data.json.formatJsonSafe
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.ValueBased
-import po.misc.reflection.mappers.PropertyMapper
-import po.misc.reflection.mappers.models.PropertyMapperRecord
-import po.misc.reflection.mappers.models.PropertyRecord
-import po.misc.reflection.properties.toPropertyMap
 import po.misc.registries.basic.BasicRegistry
 import kotlin.collections.listOf
 
@@ -24,10 +20,18 @@ abstract class PrintableBase<T>()
     abstract override val itemId :ValueBased
     abstract override val emitter: Identifiable
     abstract val self:T
-    override var parentRecord: T? = null
-
+    override var parentRecord: PrintableBase<*>? = null
     protected val templateRegistry : BasicRegistry<T.() -> String> = BasicRegistry()
     override var children: List<PrintableBase<*>> = listOf()
+
+
+    internal var jsonHolder : JsonHolder? = null
+    internal val jsonObject : JObject get() {
+        val itemIdRecord = JRecord("itemId", itemId.value)
+        val emitterRecord = JRecord("emitter", emitter.completeName)
+        val hostingClassName =  self::class.simpleName.toString()
+        return JObject(hostingClassName).addRecord(itemIdRecord).addRecord(emitterRecord)
+    }
 
     @PublishedApi
     internal var mute: Boolean = false
@@ -57,17 +61,17 @@ abstract class PrintableBase<T>()
     }
 
     fun addChild(record: PrintableBase<*>){
-        record.setParent(self)
+        record.setParent(self as PrintableBase<*>)
         children = children.toMutableList().apply { add(record) }
     }
 
     fun addChildren(records:List<PrintableBase<*>>){
-        records.map { it.setParent(self)}
+        records.map { it.setParent(self as PrintableBase<*>)}
         children = records
     }
 
-    override fun setParent(parent: Printable) {
-       parentRecord = parent as T
+    override fun setParent(parent: PrintableBase<*>) {
+       parentRecord = parent
     }
 
     fun print(): String?{
@@ -132,59 +136,17 @@ abstract class PrintableBase<T>()
     fun printTree(level: Int = 0, template: T.() -> String) {
         println("  ".repeat(level) + template(self))
         children.forEach {
-            if (it is PrintableBase<*>) {
-                @Suppress("UNCHECKED_CAST")
-                (it as? PrintableBase<T>)?.printTree(level + 1, template)
-            }
+            @Suppress("UNCHECKED_CAST")
+            (it as? PrintableBase<T>)?.printTree(level + 1, template)
         }
     }
 
-    fun toJson(): String {
-
-
-
-
-
-
-//        fun Any.toJsonSafe(): String {
-//            return when (this) {
-//                is JasonStringSerializable -> this.toJsonLike()
-//                is PrintableBase<*> -> {
-//                    val fallback = this.print() ?: ""
-//                    """{ "text": ${formatJsonSafe(fallback)} }"""
-//                }
-//                else -> {
-//                    """{ "text": ${formatJsonSafe(this.toString())} }"""
-//                }
-//            }
-//        }
-
-
-//        return when (this) {
-//            is JasonStringSerializable -> this.toJsonLike()
-//
-//            else -> {
-//                val fallback = this.print() ?: ""
-//                """{ "text": ${formatJsonSafe(fallback)} }"""
-//            }
-//        }
-//
-       return ""
-    }
-
-    companion object{
-
-
-
-       val isPropertyMapReady : Boolean get() = propertyMap!= null
-
-       var propertyMap :  Map<String, PropertyRecord<*>>?  = null
-       inline fun <reified T: Printable> firstRun(): Map<String, PropertyRecord<T>>{
-           val  map = toPropertyMap<T>()
-           propertyMap = map
-           return map
+    override fun defaultsToJson(): JsonHolder? {
+        if(parentRecord?.jsonHolder == null){
+            val holder = JsonHolder()
+            holder.addJsonObject(jsonObject)
+            jsonHolder = holder
         }
-
+        return jsonHolder
     }
-
 }

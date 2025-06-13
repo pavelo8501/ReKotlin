@@ -106,7 +106,10 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
         }
     }
     private fun updateEntityProperty(value:V, entity:E?){
-        entity?.let { entityProperty.set(it, value) }?:run {
+        entity?.let {
+            entityProperty.set(it, value)
+            dataProperty.set(hostingDTO.dataModel, value)
+        }?:run {
             if(hostingDTO.isEntityInserted){
                 entityProperty.set(hostingDTO.getEntity(module), value)
             }else{
@@ -114,6 +117,7 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
             }
         }
     }
+
 
     operator fun provideDelegate(thisRef: DTO, property: KProperty<*>): ResponsiveDelegate<DTO, D, E, V> {
         resolveProperty(property)
@@ -129,7 +133,7 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
         valueChanged(UpdateType.DTO_UPDATE, value)
     }
 
-    internal fun updateDTOProperty(data : D, entity:E?){
+    internal fun updateDataProperty(data : D, entity:E?){
         val value = dataProperty.get(data)
         updateEntityProperty(value, entity)
         valueChanged(UpdateType.DATA_UPDATE, value)

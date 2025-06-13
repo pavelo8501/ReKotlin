@@ -65,7 +65,6 @@ abstract class CallbackManagerBase<T: Any, R: Any> {
     }
 }
 
-
 class CallbackManager<T: Any, R: Any>(): CallbackManagerBase<T, R>(){
 
     override val ownName: String

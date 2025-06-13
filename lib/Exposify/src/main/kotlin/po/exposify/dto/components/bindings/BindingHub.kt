@@ -152,7 +152,7 @@ class BindingHub<DTO, D, E, F_DTO, FD, FE>(
      */
     internal fun updateEntity(entity: E) {
         responsiveDelegates.values.forEach { responsiveDelegate ->
-            responsiveDelegate.updateDTOProperty(hostingDTO.dataModel, entity)
+            responsiveDelegate.updateDataProperty(hostingDTO.dataModel, entity)
         }
     }
 
@@ -194,7 +194,7 @@ class BindingHub<DTO, D, E, F_DTO, FD, FE>(
 
     fun updateFromData(data: D) {
         responsiveDelegates.values.forEach {
-            it.updateDTOProperty(data, hostingDTO.getEntity(hostingDTO))
+            it.updateDataProperty(data, hostingDTO.getEntity(hostingDTO))
         }
         getRelationDelegates(hostingDTO.cardinality).forEach { relationDelegate ->
             relationDelegate.updateFromData(data)

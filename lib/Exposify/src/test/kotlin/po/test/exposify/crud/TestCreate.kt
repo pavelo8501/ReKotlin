@@ -3,7 +3,6 @@ package po.test.exposify.crud
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import po.auth.extensions.generatePassword
-import po.exposify.dto.components.result.toResultList
 import po.exposify.scope.sequence.extensions.sequence
 import po.exposify.scope.service.enums.TableCreateMode
 import po.test.exposify.setup.DatabaseTest

@@ -1,5 +1,6 @@
 package po.misc.data.json
 
+import po.misc.data.PrintableBase
 import po.misc.exceptions.ManagedException
 import po.misc.time.ExecutionTimeStamp
 import po.misc.types.castOrThrow
@@ -10,14 +11,14 @@ import kotlin.reflect.KProperty1
 
 
 interface SerializationProvider<R: Any?>{
-    fun serialize(value: R): String
+    fun serialize(name: String,  value: R): String
 }
 
 
 abstract class JsonDelegateBase<T: Any, R: Any>(
     val kProperty: KProperty1<T, R>,
     val provider: SerializationProvider<R> = object : SerializationProvider<R>{
-        override fun serialize(value: R): String = value.toString()
+        override fun serialize(name: String,  value: R): String = value.toString()
     }
 ) {
 
@@ -54,24 +55,12 @@ abstract class JsonDelegateBase<T: Any, R: Any>(
         return this
     }
 
-    fun toJson(receiver: T): String {
+    open fun toJson(receiver: T): JRecord {
         val rawValue = kProperty.get(receiver)
-
-    //  return  toJsonLike(rawValue)
-
-        return "\"$propertyName\": ${provider.serialize(rawValue)}"
+        val result = provider.serialize(propertyName, rawValue)
+        return JRecord(propertyName, rawValue)
     }
-
-    fun serialize(value: T, jsonDelegates: List<JsonDelegateBase<T,*>>): String {
-
-        val entries = jsonDelegates.map { it.toJson(value) }
-        val json = entries.joinToString(prefix = "{", separator = ", ", postfix = "}")
-
-        return json
-    }
-
 }
-
 
 class JsonDelegate<T: Any, V: Any>(
     kProperty: KProperty1<T, V>,
@@ -80,14 +69,5 @@ class JsonDelegate<T: Any, V: Any>(
 
 }
 
-class JsonObjectDelegate<T: Any, V: Any>(
-   val kCallable: KCallable<String>,
-    provider:  SerializationProvider<V>
-){
 
-    operator fun getValue(thisRef: Any?, property: KProperty<*>): String {
-        return kCallable.call()
-    }
-
-}
 

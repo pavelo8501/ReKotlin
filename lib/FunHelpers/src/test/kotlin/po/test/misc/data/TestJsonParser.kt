@@ -10,10 +10,9 @@ import po.misc.data.json.IntDefaultProvider
 import po.misc.data.json.JasonStringSerializable
 import po.misc.data.json.JsonDelegate
 import po.misc.data.json.JsonDescriptor
-import po.misc.data.json.JsonObjectDelegate
-import po.misc.data.json.NanoTimeProvider
 import po.misc.data.json.StringDefaultProvider
 import po.misc.data.json.TrimmedQuotedStringProvider
+import po.misc.data.json.jsonDelegatePart
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
@@ -24,40 +23,41 @@ import po.misc.interfaces.ValueBased
 import po.misc.interfaces.asIdentifiable
 import po.misc.interfaces.toValueBased
 import po.misc.time.ExecutionTimeStamp
+
+
 import kotlin.test.assertTrue
 
 class TestJsonParser {
 
+
     data class TaskDataLocal(
         val nestingLevel: Int,
         val taskName: String,
-        val timeStamp : ExecutionTimeStamp,
+        val timeStamp: ExecutionTimeStamp,
         val message: String,
         val severity: Int,
-    ): PrintableBase<TaskDataLocal>(), JasonStringSerializable{
+    ) : PrintableBase<TaskDataLocal>(), JasonStringSerializable {
 
         override val self: TaskDataLocal = this
 
-        override val itemId: ValueBased= toValueBased(0)
-        override val emitter : Identifiable = asIdentifiable(taskName, "TestJsonParser")
+        override val itemId: ValueBased = toValueBased(0)
+        override val emitter: Identifiable = asIdentifiable(taskName, "TestJsonParser")
+        override fun toJson(): String {
+            return  serialize(this)
+        }
 
-        companion object {
+        companion object : JsonDescriptor<TaskDataLocal>() {
 
-            object TimeStampJson : JsonDescriptor<ExecutionTimeStamp>(){
-                val nestingLevel :  Long  by JsonDelegate(ExecutionTimeStamp::startTime, NanoTimeProvider)
-                val endTime :  Long  by JsonDelegate(ExecutionTimeStamp::endTime, NanoTimeProvider)
-                val elapsed :  Float  by JsonDelegate( ExecutionTimeStamp::elapsed, ElapsedTimeProvider)
-            }
-
-            object TaskDataJson : JsonDescriptor<TaskDataLocal>(){
-               val nestingLevel : Int by JsonDelegate(TaskDataLocal::nestingLevel, IntDefaultProvider)
-               val taskName : String by JsonDelegate(TaskDataLocal::taskName,  TrimmedQuotedStringProvider)
-               val timeStamp: String by JsonObjectDelegate<TimeStampJson, String>(TimeStampJson::jsonString,
-                   StringDefaultProvider)
-               val message : String by JsonDelegate( TaskDataLocal::message, StringDefaultProvider)
-               val severity : Int by JsonDelegate(TaskDataLocal::severity, IntDefaultProvider)
-            }
-
+            val nestingLevel: Int by JsonDelegate(TaskDataLocal::nestingLevel, IntDefaultProvider)
+            val taskName: String by JsonDelegate(TaskDataLocal::taskName, TrimmedQuotedStringProvider)
+            val timeStamp : String  by  jsonDelegatePart<JsonDescriptor<TaskDataLocal>,  ExecutionTimeStamp, TaskDataLocal>(
+                TaskDataLocal::timeStamp,
+                ExecutionTimeStamp::startTime,
+                ExecutionTimeStamp::endTime,
+                ExecutionTimeStamp::elapsed,
+            )
+            val message: String by JsonDelegate(TaskDataLocal::message, StringDefaultProvider)
+            val severity: Int by JsonDelegate(TaskDataLocal::severity, IntDefaultProvider)
 
             val nestingFormatter: TaskDataLocal.() -> String = {
                 matchTemplate(
@@ -80,7 +80,10 @@ class TestJsonParser {
             }
 
             val Header: PrintableTemplate<TaskDataLocal> = PrintableTemplate {
-                SpecialChars.NewLine.char + prefix.invoke(this, "Start") + "${emitter.componentName.emptyOnNull("by ")}]".colorize(Colour.BLUE)
+                SpecialChars.NewLine.char + prefix.invoke(
+                    this,
+                    "Start"
+                ) + "${emitter.componentName.emptyOnNull("by ")}]".colorize(Colour.BLUE)
             }
 
             val Footer: PrintableTemplate<TaskDataLocal> = PrintableTemplate {
@@ -98,23 +101,21 @@ class TestJsonParser {
         }
     }
 
-    data class ValidationRep(
-        private  var validationName: String,
-    ): PrintableBase<ValidationRep>(), JasonStringSerializable
-    {
-
-        override val itemId : ValueBased = toValueBased(0)
+    data class ValidationRep(var validationName: String): PrintableBase<ValidationRep>(), JasonStringSerializable {
+        override val itemId: ValueBased = toValueBased(0)
         override val emitter: Identifiable = asIdentifiable("ValidationReport", "ValidationReport")
-
         override val self: ValidationRep = this
+        override fun toJson(): String {
+            return serialize(this)
+        }
 
-
+        companion object :JsonDescriptor<ValidationRep>() {
+            val validationName: String by JsonDelegate<ValidationRep, String>(ValidationRep::validationName, StringDefaultProvider)
+        }
     }
 
 
-    @OptIn(ExperimentalStdlibApi::class)
-    @Test
-    fun `To json conversion`(){
+    fun `To json conversion`() {
 
         val task = TaskDataLocal(
             nestingLevel = 0,
@@ -135,15 +136,38 @@ class TestJsonParser {
         task.addChild(report3)
         task.addChild(report4)
 
-
-        val output = TaskDataLocal.Companion.TaskDataJson.serialize(task)
+        val output = TaskDataLocal.serialize(task)
 
         println(output)
-        assertTrue (output.contains("TestTask"), "Output does not contain TestTask")
-        assertTrue(output.contains("UserValidation"), "Output does not contain UserValidation")
-        assertTrue(output.contains("FAILED"), "Output does not contain FAILED")
+        assertTrue(output.contains("TestTask"), "Output does not contain TestTask")
+        assertTrue(output.contains("All systems go"), "Output does not contain message")
 
     }
 
+    @Test
+    fun `To json conversion as as array`() {
 
+        val rootTask = TaskDataLocal(
+            nestingLevel = 0,
+            taskName = "RootTask",
+            timeStamp = ExecutionTimeStamp("task", 1.toString()),
+            message = "Thought I was born on the roof",
+            severity = 0
+        )
+
+        val tasks: MutableList<TaskDataLocal> = mutableListOf()
+        for (i in 1..10) {
+            val task = TaskDataLocal(
+                nestingLevel = i,
+                taskName = "TestTask",
+                timeStamp = ExecutionTimeStamp("task_${i}", i.toString()),
+                message = "All systems go",
+                severity = 0
+            )
+            tasks.add(task)
+        }
+
+        rootTask.addChildren(tasks)
+        rootTask.toJson()
+    }
 }

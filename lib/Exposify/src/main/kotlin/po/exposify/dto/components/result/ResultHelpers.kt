@@ -55,10 +55,11 @@ fun <DTO, D, E>  ResultList<DTO, D, E>.toResultSingle(): ResultSingle<DTO, D, E>
     return  ResultSingle(this.dtoClass, dtoList.firstOrNull())
 }
 
-fun <DTO, D, E>  ResultSingle<DTO, D, E>.toResultList(): ResultList<DTO, D, E>
-        where  DTO: ModelDTO, D : DataModel, E : LongEntity{
-    return ResultList(dtoClass, mutableListOf(this.getAsCommonDTOForced()))
-}
+//fun <DTO, D, E>  ResultSingle<DTO, D, E>.toResultList(): ResultList<DTO, D, E>
+//        where  DTO: ModelDTO, D : DataModel, E : LongEntity{
+//
+//    return ResultList(dtoClass, mutableListOf(this.getAsCommonDTOForced()))
+//}
 
 fun <DTO, D, E>  List<ResultSingle<DTO, D, E>>.toResult(
    dtoClass: DTOBase<DTO, D, E>

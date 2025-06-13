@@ -63,12 +63,11 @@ class TestSessionsContext : DatabaseTest()  {
         }
     }
 
-    @DisplayName("Test anonymous session flow")
+
     @Test
-    fun `Anonymous sessions`() = runTest{
+    fun `Test anonymous session flow`() = runTest{
 
         val pages = pageModels(pageCount = 4, updatedBy = userId)
-
         val session = session(SessionIdentity("0", "192.169.1.1"))
 
         var sessionIdOnStart : String? = null

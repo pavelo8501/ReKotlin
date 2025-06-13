@@ -24,7 +24,7 @@ class TestDTOConfiguration : DatabaseTest() {
         var userId: Long = 0
     }
 
-
+    @Test
     fun `Validator reports fails when missing init`() {
         val pages = pageModelsWithSections(pageCount = 1, sectionsCount = 1, updatedBy = 0)
         val exception = assertThrows<InitException> {

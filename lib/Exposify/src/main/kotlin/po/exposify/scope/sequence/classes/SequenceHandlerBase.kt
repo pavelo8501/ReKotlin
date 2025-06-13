@@ -9,12 +9,10 @@ import po.exposify.dto.components.SimpleQuery
 import po.exposify.dto.components.createExecutionProvider
 import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
-import po.exposify.dto.components.result.toResultList
 import po.exposify.dto.components.result.toResultSingle
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.throwOperations
 import po.exposify.extensions.castOrOperationsEx

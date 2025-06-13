@@ -79,7 +79,7 @@ class ResultSingle<DTO, D, E> internal constructor(
     }
 
     fun getData(): D? {
-        val dataModel =  result?.dataModel
+        val dataModel = result?.dataModel
         return dataModel
     }
 
@@ -106,16 +106,26 @@ class ResultSingle<DTO, D, E> internal constructor(
         return result as DTO
     }
 
-    fun getTrackerInfo(): TrackableDTO{
+    fun getTrackerInfo(): TrackableDTO {
         return result.getOrOperationsEx().tracker.collectTrackers()
     }
 
-    fun getTrackerTree():TrackableDTONode{
+    fun getTrackerTree(): TrackableDTONode {
         return result.getOrOperationsEx().tracker.collectTrackerTree()
     }
 
-    fun setWarningMessage(message: String): ResultSingle<DTO, D, E>{
+    fun setWarningMessage(message: String): ResultSingle<DTO, D, E> {
         resultMessage = message
         return this
+    }
+
+    fun toResultList(): ResultList<DTO, D, E> {
+        val transform = ResultList(dtoClass)
+        result?.let {
+            transform.addResult(listOf(it))
+        } ?: run {
+            transform.setWarningMessage(resultMessage)
+        }
+        return transform
     }
 }

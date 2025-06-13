@@ -234,6 +234,7 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
             "Page update statement succeed",
             { assertInstanceOf<Section>(sectionUpdateOutput, "Returned value is not of type Page") },
             { assertEquals("NewName", sectionUpdateOutput.name, "Section properties update failed") },
+            { assertEquals("NewDescription", sectionUpdateOutput.description, "Section properties update failed") },
             { assertNotEquals(0, sectionUpdateOutput.id, "Updated section Section record") }
         )
     }
