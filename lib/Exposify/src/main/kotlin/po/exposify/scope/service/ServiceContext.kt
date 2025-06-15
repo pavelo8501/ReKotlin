@@ -22,12 +22,13 @@ import po.lognotify.anotations.LogOnFault
 import po.lognotify.classes.task.result.onFailureCause
 import po.lognotify.extensions.runTask
 import po.lognotify.extensions.runTaskBlocking
-import po.misc.exceptions.toManaged
+import po.misc.exceptions.toManageable
+import po.misc.interfaces.IdentifiableContext
 
 class ServiceContext<DTO, DATA, ENTITY>(
     internal  val serviceClass : ServiceClass<DTO, DATA, ENTITY>,
     internal val dtoClass: RootDTO<DTO, DATA, ENTITY>,
-): TasksManaged,  AsContext<DATA>  where DTO : ModelDTO, DATA: DataModel,  ENTITY: LongEntity {
+): TasksManaged, IdentifiableContext,  AsContext<DATA>  where DTO : ModelDTO, DATA: DataModel,  ENTITY: LongEntity {
 
     private val dbConnection: Database get() = serviceClass.connection
 
@@ -43,8 +44,8 @@ class ServiceContext<DTO, DATA, ENTITY>(
                 exec("TRUNCATE TABLE ${table.tableName} RESTART IDENTITY CASCADE")
                 handler.info("TRUNCATE TABLE ${table.tableName} RESTART IDENTITY CASCADE Executed")
             } catch (th: Throwable) {
-                handler.warn(th.toManaged<InitException>("Running TRUNCATE TABLE ${table.tableName} RESTART IDENTITY CASCADE",
-                    ExceptionCode.DB_TABLE_CREATION_FAILURE),"")
+               val managed =  th.toManageable<InitException>(this@ServiceContext, ExceptionCode.DB_TABLE_CREATION_FAILURE)
+                handler.warn(managed)
             }
         }
     }.onFailureCause {

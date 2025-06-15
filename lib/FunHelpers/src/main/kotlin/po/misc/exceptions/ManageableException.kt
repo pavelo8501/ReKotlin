@@ -6,7 +6,7 @@ import po.misc.types.safeCast
 import kotlin.reflect.full.companionObjectInstance
 
 
-sealed interface SelfThrownException<E:ManagedException>  {
+sealed interface ManageableException<E:ManagedException>  {
     var propertySnapshot :  Map<String, Any?>
     fun setHandler(handlerType: HandlerType,  wayPoint: Identifiable): E
     fun throwSelf(wayPoint: Identifiable): Nothing
@@ -20,7 +20,13 @@ sealed interface SelfThrownException<E:ManagedException>  {
     companion object {
         inline fun <reified E : ManagedException> build(message: String, source:  Enum<*>?, original : Throwable? = null): E {
             val newManaged = E::class.companionObjectInstance?.safeCast<Builder<E>>()?.build(message, source, original)
-            return newManaged?:throw IllegalStateException("Companion object must implement Builder<E> @ SelfThrownException")
+          return  newManaged?:run {
+              val exceptionMessage =
+                  "$message. Default ManagedException. Reason: ${E::class.simpleName.toString()} companion "+
+                        "does not implement implement Builder<E> @ SelfThrownException"
+              return ManagedException(exceptionMessage, source, original) as E
+            }
+
         }
     }
 }

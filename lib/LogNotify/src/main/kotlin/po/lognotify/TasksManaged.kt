@@ -10,16 +10,23 @@ import po.lognotify.classes.notification.models.NotifyConfig
 import po.lognotify.classes.task.RootTask
 import po.lognotify.classes.task.TaskHandler
 import po.lognotify.classes.task.models.TaskConfig
-import po.misc.types.UpdateType
 import po.lognotify.extensions.getOrLoggerException
 import po.lognotify.logging.LoggingService
 import po.lognotify.models.TaskDispatcher
+import po.lognotify.models.TaskDispatcher.UpdateType
 import po.lognotify.models.TaskKey
+import po.misc.callbacks.manager.wrapRawCallback
+import po.misc.interfaces.IdentifiableContext
 import kotlin.coroutines.CoroutineContext
 
-interface TasksManaged {
+interface TasksManaged: IdentifiableContext {
+
+    override val contextName: String
+        get() = "TasksManaged"
 
     companion object{
+
+       // override val componentName: String = "TasksManaged Companion"
 
         val logger : LoggingService = LoggingService()
         val taskDispatcher: TaskDispatcher = TaskDispatcher(NotifierHub())
@@ -28,9 +35,9 @@ interface TasksManaged {
             SupervisorJob() + Dispatchers.Default + CoroutineName(name)
 
         fun onTaskCreated(handler: UpdateType, callback: (TaskDispatcher.LoggerStats) -> Unit): Unit
-            = taskDispatcher.onTaskCreated(handler,callback)
+            = taskDispatcher.onTaskCreated(handler, wrapRawCallback(callback))
         fun onTaskComplete(handler: UpdateType, callback: (TaskDispatcher.LoggerStats) -> Unit): Unit
-            = taskDispatcher.onTaskComplete(handler, callback)
+            = taskDispatcher.onTaskComplete(handler, wrapRawCallback(callback))
 
         @PublishedApi
         internal fun <T, R> createHierarchyRoot(

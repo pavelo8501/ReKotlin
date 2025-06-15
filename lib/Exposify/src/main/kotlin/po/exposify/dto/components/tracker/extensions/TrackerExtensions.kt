@@ -7,6 +7,7 @@ import po.exposify.dto.components.tracker.interfaces.TrackableDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.misc.interfaces.Identifiable
+import po.misc.interfaces.IdentifiableContext
 
 fun TrackableDTO.collectTrackerTree(): TrackableDTONode {
     val rootNode = TrackableDTONode(this)
@@ -30,7 +31,7 @@ data class TrackableDTONode(
 
 fun <DTO: ModelDTO, D: DataModel, E: LongEntity> CommonDTO<DTO, D, E>.addTrackerInfo(
     operation:CrudOperation,
-    moduleName: Identifiable
+    moduleName: IdentifiableContext
 ):CommonDTO<DTO, D, E>{
     tracker.addTrackInfo(operation, moduleName)
     return this

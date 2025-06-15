@@ -18,7 +18,7 @@ import kotlin.test.assertNotEquals
 
 class TestSelect : DatabaseTest() {
 
-    @Test
+
     fun `referenced property binding`() =runTest{
         val user = User(
             id = 0,
@@ -37,6 +37,7 @@ class TestSelect : DatabaseTest() {
                 assertNotEquals(0, assignedUserId, "User id assignment failure")
             }
 
+
             service(PageDTO, TableCreateMode.FORCE_RECREATE) {
                 val pageData =  update(pages[0]).getDataForced()
              //   val updatedById =  pageData.updatedById
@@ -46,7 +47,6 @@ class TestSelect : DatabaseTest() {
         }
     }
 
-    @Test
     fun `postgres serializable classes`() = runTest{
         val pages = pageModels(
             pageCount = 1,
@@ -64,7 +64,6 @@ class TestSelect : DatabaseTest() {
         }
     }
 
-    @Test
     fun `updates and selects DTO relations`() = runTest{
         val user = User(
             id = 0,

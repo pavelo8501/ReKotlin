@@ -18,31 +18,32 @@ import po.exposify.extensions.castOrOperationsEx
 import po.lognotify.TasksManaged
 import po.lognotify.anotations.LogOnFault
 import po.lognotify.extensions.subTask
-import po.misc.callbacks.callbackManager
+import po.misc.callbacks.manager.callbackManager
+import po.misc.interfaces.IdentifiableClass
 import po.misc.interfaces.IdentifiableModule
 import po.misc.interfaces.ValueBased
+import po.misc.interfaces.asIdentifiableClass
 import po.misc.interfaces.asIdentifiableModule
 import po.misc.types.TypeRecord
 import po.misc.registries.type.TypeRegistry
 import po.misc.serialization.SerializerInfo
-import kotlin.reflect.KClass
 import kotlin.reflect.KType
 
 class DTOFactory<DTO, DATA, ENTITY>(
     private val dtoClass: DTOBase<DTO, DATA, ENTITY>,
     private val typeRegistry : TypeRegistry,
-    private val moduleType : IdentifiableModule = asIdentifiableModule(dtoClass.component.sourceName, "DTOFactory",
-        Components.DTOFactory
-    )
-): IdentifiableModule by moduleType,  TasksManaged where DTO : ModelDTO, DATA: DataModel, ENTITY: LongEntity {
+): IdentifiableClass, TasksManaged where DTO : ModelDTO, DATA: DataModel, ENTITY: LongEntity {
 
     enum class Events(override val value: Int) : ValueBased{
         OnCreated(1),
         OnInitialized(2)
     }
     //val notificator : TypedCallbackRegistry<CommonDTO<DTO, DATA, ENTITY>, Unit> = TypedCallbackRegistry()
-    val notifier = callbackManager<CommonDTO<DTO, DATA, ENTITY>>()
+    //val notifier = callbackManager<CommonDTO<DTO, DATA, ENTITY>>()
 
+    override val identity = asIdentifiableClass(dtoClass.sourceName)
+    override val contextName : String get()= identity.componentName
+    val notifier = callbackManager<Events>()
 
     val  dataType : TypeRecord<DATA> get() = typeRegistry.getRecord<DATA, OperationsException>(SourceObject.Data)
     val  dtoType: TypeRecord<DTO> get() = typeRegistry.getRecord<DTO, OperationsException>(SourceObject.DTO)
@@ -81,7 +82,7 @@ class DTOFactory<DTO, DATA, ENTITY>(
             } else {
                 dto.addTrackerInfo(CrudOperation.Initialize, this)
                 dto.initialize()
-                notifier.triggerForAll(Events.OnInitialized, dto)
+                notifier.trigger(Events.OnInitialized, dto)
                 dto
             }
             result
@@ -142,7 +143,7 @@ class DTOFactory<DTO, DATA, ENTITY>(
             }
             val newDto = dtoBlueprint.getConstructor().callBy(dtoBlueprint.getConstructorArgs())
                 .castOrOperationsEx<CommonDTO<DTO, DATA, ENTITY>>("Unable to cast DTO to CommonDTO<DTO, DATA, ENTITY")
-            notifier.triggerForAll(Events.OnCreated, newDto)
+            notifier.trigger(Events.OnCreated, newDto)
             dtoPostCreation(newDto)
         }.resultOrException()
 }

@@ -2,33 +2,26 @@ package po.exposify.dto.interfaces
 
 import po.auth.sessions.interfaces.SessionIdentified
 import po.auth.sessions.models.AuthorizedSession
+import po.exposify.dto.models.SequenceRunInfo
 import po.misc.coroutines.CoroutineInfo
+import kotlin.coroutines.coroutineContext
 
 
 interface RunnableContext: SessionIdentified{
-    val session: AuthorizedSession?
+    val session: AuthorizedSession
     val coroutineInfo: CoroutineInfo
 
     override val sessionID: String
-        get() = session?.sessionID?:"N/A"
+        get() = session.sessionID
 
     override val remoteAddress: String
-        get() = session?.remoteAddress?:"N/A"
+        get() = session.remoteAddress
 
     companion object{
 
-        data class RunInfo (
-            override val session: AuthorizedSession?,
-            override val coroutineInfo : CoroutineInfo
-        ) : RunnableContext{
-            override val remoteAddress: String
-                get() = session?.remoteAddress?:"N/A"
-            override val sessionID: String
-                get() = session?.sessionID?:"N/A"
-        }
-
-        fun createRunInfo(session: AuthorizedSession?, coroutineInfo : CoroutineInfo):RunnableContext{
-            return RunInfo(session, coroutineInfo)
+       suspend fun runInfo(session: AuthorizedSession):SequenceRunInfo{
+            val coroutineInfo = CoroutineInfo.createInfo(coroutineContext)
+            return SequenceRunInfo(session, coroutineInfo)
         }
     }
 }

@@ -20,7 +20,7 @@ fun <DTO, D, E>  ServiceContext<DTO, D, E>.sequence(
     block: suspend  SequenceContext<DTO, D, E>.(RootSequenceHandler<DTO, D, E>) -> ResultList<DTO, D, E>
 ) where DTO: ModelDTO, D:DataModel, E:LongEntity
 {
-    this.dtoClass.reinitChil()
+    //this.dtoClass.reinitChil()
     handlerDelegate.storeSequenceLambda(block)
 }
 
@@ -34,7 +34,7 @@ suspend fun <DTO, D, E, F_DTO, FD, FE> SequenceContext<F_DTO,FD, FE>.switchConte
     val switchHandler = sequenceHandler.handlerConfig.getSwitchHandler(handlerDelegate.name)
     switchHandler?.let {
         val casted = it.castOrOperationsEx<ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE>>()
-        casted.launch(switchLambda)
+        casted.launch(runInfo, switchLambda)
     }?:run {
         lastTaskHandler().warn("Switch statement name: ${handlerDelegate.name} will not be executed. No handler being provided")
     }

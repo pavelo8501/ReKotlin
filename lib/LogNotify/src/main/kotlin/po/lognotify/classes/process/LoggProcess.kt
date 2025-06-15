@@ -6,6 +6,7 @@ import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.Job
 import po.lognotify.classes.task.RootTask
 import po.lognotify.models.TaskKey
+import po.lognotify.process.ProcessableContext
 import po.misc.coroutines.CoroutineInfo
 import po.misc.time.ExecutionTimeStamp
 import po.misc.time.MeasuredContext
@@ -33,73 +34,6 @@ fun <T: ProcessableContext<E>, E: CoroutineContext.Element> processScope(
 {
     var scope: ProcessScopeImpl<T, E>? = null
     return ProcessScopeImpl<T, E>(context, coroutineElement).also { scope = it }
-}
-
-class LoggProcess<E: ProcessableContext<*>>(
-    private val holder: ProcessableContext<E>,
-    private val context: CoroutineContext
-) : CoroutineContext.Element, MeasuredContext {
-
-    val identifiedAs : String get() = holder.identifiedAs
-    val name : String get() = holder.name
-
-    var coroutineInfo : CoroutineInfo = CoroutineInfo.createInfo(context)
-    private val listenerJobs = mutableMapOf<TaskKey, Job>()
-
-    override val executionTimeStamp: ExecutionTimeStamp = ExecutionTimeStamp(name, identifiedAs)
-
-    init {
-        initialize()
-    }
-
-    suspend fun getCoroutineInfo(): CoroutineInfo{
-      return CoroutineInfo.createInfo(coroutineContext)
-    }
-
-   suspend fun startRun(context: CoroutineContext){
-       coroutineInfo = CoroutineInfo.createInfo(context)
-    }
-
-    fun stopRun(): LoggProcess<E>{
-        return this
-    }
-
-    fun initialize(){
-        executionTimeStamp.onStart {
-
-        }
-
-        executionTimeStamp.onStop {
-
-        }
-        holder.getLoggerProcess = {
-            this
-        }
-    }
-
-    suspend fun observeTask(task: RootTask<*, *>) {
-
-        TODO("Not yet refactored")
-
-//        holder.onProcessStart(this)
-//        CoroutineScope(CoroutineName("Listener")).launch {
-//            task.notifier.collect { notification ->
-//                holder.onNotification(notification)
-//            }
-//        }
-    }
-
-    fun stopTaskObservation(task: RootTask<*, *>) {
-        val job = listenerJobs[task.key]
-        job?.invokeOnCompletion {
-            listenerJobs.remove(task.key)
-        }
-        holder.onProcessEnd(this)
-    }
-
-    override val key: CoroutineContext.Key<LoggProcess<*>> = Key
-
-    companion object Key : CoroutineContext.Key<LoggProcess<*>>
 }
 
 

@@ -7,6 +7,7 @@ import po.exposify.dto.enums.Components
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.misc.interfaces.Identifiable
+import po.misc.interfaces.IdentifiableContext
 import po.misc.interfaces.asIdentifiable
 import po.misc.time.ExecutionTimeStamp
 import po.misc.time.MeasuredContext
@@ -46,11 +47,11 @@ class DTOTracker<DTO: ModelDTO, DATA: DataModel>(
     fun relationPropertyUpdated(update: ObservableData){
         activeRecord.addAction(update)
     }
-    fun addTrackInfo(operation:CrudOperation, module: Identifiable? = null):DTOTracker<DTO, DATA>{
+    fun addTrackInfo(operation:CrudOperation, module: IdentifiableContext? = null):DTOTracker<DTO, DATA>{
         if(activeRecord.operation == CrudOperation.Initialize){
             addTrackResult(CrudOperation.Initialize)
         }
-        activeRecord = TrackerRecord(this, dto.id, operation, module?.completeName?:"")
+        activeRecord = TrackerRecord(this, dto.id, operation, module?.contextName?:"")
         trackRecords.add(activeRecord)
         return startTimer()
     }

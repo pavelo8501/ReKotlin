@@ -1,20 +1,20 @@
 package po.misc.interfaces
 
-import po.misc.types.TypeRecord
 
 
-interface Identifiable{
 
+
+interface Identifiable: IdentifiableContext{
     val sourceName: String
     val componentName: String
-    val completeName: String get()= "$componentName[$sourceName]"
+    override val contextName get()= componentName
 
+    val completeName: String get()= "$componentName[$sourceName]"
 
     fun withIdentification(string: String): String{
         return "$string@$completeName"
     }
 }
-
 
 data class IdentifiableImplementation(
     override var sourceName: String,

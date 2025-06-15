@@ -9,6 +9,7 @@ import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.interfaces.ExecutionContext
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.interfaces.RunnableContext
+import po.exposify.dto.models.SequenceRunInfo
 import po.exposify.extensions.checkDataListNotEmpty
 import po.exposify.scope.sequence.classes.SequenceHandlerBase
 import po.lognotify.TasksManaged
@@ -20,20 +21,17 @@ import kotlin.coroutines.coroutineContext
 class SequenceContext<DTO, D, E>(
     internal val sequenceHandler: SequenceHandlerBase<DTO, D, E>,
     private val executionContext: ExecutionContext<DTO, D, E>,
-    override val session : AuthorizedSession? = null,
+    val runInfo : SequenceRunInfo
 
-):TasksManaged,  RunnableContext where  DTO : ModelDTO, D : DataModel, E: LongEntity
+):TasksManaged where  DTO : ModelDTO, D : DataModel, E: LongEntity
 {
-    override val coroutineInfo: CoroutineInfo
-        get() =  CoroutineInfo.createInfo(session?.sessionScope()?.coroutineContext)
+
     private var latestSingleResult : ResultSingle<DTO,D, E> = ResultSingle(sequenceHandler.dtoBase)
 
     private var firstRun = true
     private suspend fun onFirsRun(){
         if(firstRun){
-            val coroutineInfo = CoroutineInfo.createInfo(coroutineContext)
-            val runnableContext =  RunnableContext.createRunInfo(coroutineContext[AuthorizedSession],coroutineInfo)
-            sequenceHandler.handlerConfig.onStartCallback?.invoke(runnableContext)
+            sequenceHandler.handlerConfig.onStartCallback?.invoke(runInfo)
             firstRun = false
         }
     }

@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
-import po.misc.exceptions.SelfThrownException
+import po.misc.exceptions.ManageableException
 import po.misc.exceptions.name
 import po.misc.exceptions.shortName
 import kotlin.test.assertEquals
@@ -24,7 +24,7 @@ class TestManagedException {
     ) : ManagedException(message, source, original){
         override var handler: HandlerType = HandlerType.SKIP_SELF
 
-        companion object : SelfThrownException.Builder<CustomException> {
+        companion object : ManageableException.Builder<CustomException> {
             override fun build(message: String,  source: Enum<*>?, original: Throwable?): CustomException {
                 val sourceEnum = source as CustomExceptionCode
                 return CustomException(message, source, original)
@@ -33,7 +33,7 @@ class TestManagedException {
     }
 
     fun throwCustomException(message: String, code:CustomExceptionCode): Nothing{
-       throw SelfThrownException.build<CustomException>(message, code)
+       throw ManageableException.build<CustomException>(message, code)
     }
 
     @Test

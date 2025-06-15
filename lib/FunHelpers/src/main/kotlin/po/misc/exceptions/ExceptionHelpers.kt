@@ -2,6 +2,7 @@ package po.misc.exceptions
 
 import po.misc.data.helpers.emptyOnNull
 import po.misc.data.helpers.wrapByDelimiter
+import po.misc.interfaces.IdentifiableContext
 
 inline fun <T: Any> T?.letOrException(ex : ManagedException, block: (T)-> T){
     if(this != null){
@@ -29,8 +30,51 @@ inline fun <reified T> Iterable<T>.countEqualsOrException(equalsTo: Int, excepti
 }
 
 
-inline fun <reified EX: ManagedException> Throwable.toManaged(message: String, source: Enum<*>): EX{
-    return SelfThrownException.build<EX>(message, source, this)
+inline fun <reified EX: ManagedException>  IdentifiableContext.manageableException(
+    message: String,
+    source: Enum<*>,
+    original: Throwable? = null
+):EX{
+    val exceptionMessage = "$message @ $contextName"
+    return ManageableException.build<EX>(exceptionMessage, source, original)
+}
+
+fun IdentifiableContext.managedException(message: String, source: Enum<*>, original: Throwable?): ManagedException{
+    val exceptionMessage = "$message @ $contextName"
+    return  ManagedException(exceptionMessage, source, original)
+}
+
+fun IdentifiableContext.managedWithHandler(message: String, handler: HandlerType,  source: Enum<*>): ManagedException{
+    val exception = ManagedException(message, source, null)
+    exception.handler  = handler
+    return exception
+}
+
+
+fun throwManaged(message: String, handler : HandlerType? = null): Nothing{
+    if(handler == null){
+        throw ManagedException(message)
+    }else{
+      val exception =  ManagedException(message)
+        exception.handler = handler
+        throw exception
+    }
+}
+
+inline fun <reified EX: ManagedException> throwManageable(
+    ctx: IdentifiableContext,
+    message: String,
+    source: Enum<*>? = null
+): Nothing{
+    val exceptionMessage = "$message @ ${ctx.contextName}"
+    val managedException : EX = ManageableException.build<EX>(exceptionMessage, source)
+    throw  managedException
+}
+
+
+inline fun <reified EX: ManagedException> Throwable.toManageable(ctx: IdentifiableContext, source: Enum<*>): EX{
+    val exceptionMessage = "$message @ ${ctx.contextName}"
+    return ManageableException.build<EX>(exceptionMessage, source, this)
 }
 
 fun Throwable.toInfoString(): String{

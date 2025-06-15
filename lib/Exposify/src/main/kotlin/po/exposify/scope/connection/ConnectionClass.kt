@@ -3,6 +3,7 @@ package po.exposify.scope.connection
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.name
+import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transactionManager
 import po.auth.sessions.models.AuthorizedSession
 import po.exposify.DatabaseManager
@@ -59,6 +60,11 @@ class ConnectionClass(
 
     internal fun <DTO: ModelDTO, D: DataModel, E: LongEntity> getService(name: String): ServiceClass<DTO, D, E>?{
        return services[name]?.safeCast<ServiceClass<DTO, D, E>>()
+    }
+
+    fun close(){
+        taskHandler.info("Closing connection to : ${connection.name}")
+        TransactionManager.closeAndUnregister(database = connection)
     }
 
     fun <DTO, D, E> service(

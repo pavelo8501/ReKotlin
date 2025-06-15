@@ -20,7 +20,7 @@ import po.misc.registries.type.TypeRegistry
 class DAOService<DTO, DATA, ENTITY>(
     val dtoClass: DTOBase<DTO, DATA, ENTITY>,
     private val registry: TypeRegistry,
-    private val moduleType : IdentifiableModule = asIdentifiableModule(dtoClass.component.sourceName, "DAOService",
+    private val moduleType : IdentifiableModule = asIdentifiableModule(dtoClass.sourceName, "DAOService",
         Components.DaoService
     )
 ): IdentifiableModule by moduleType, TasksManaged   where DTO: ModelDTO, DATA: DataModel, ENTITY : LongEntity{
@@ -28,7 +28,7 @@ class DAOService<DTO, DATA, ENTITY>(
     val entityModel: ExposifyEntityClass<ENTITY> get() = dtoClass.config.entityModel
 
     val taskConfig : TaskConfig get() {
-       return TaskConfig(actor = dtoClass.component.componentName.toString())
+       return TaskConfig(actor = dtoClass.sourceName)
     }
 
     private fun combineConditions(conditions: Set<Op<Boolean>>): Op<Boolean> {
@@ -75,7 +75,7 @@ class DAOService<DTO, DATA, ENTITY>(
             val newEntity = entityModel.new {
                 block.invoke(this)
         }
-        handler.info("Dao entity created with id ${newEntity.id.value} for ${dtoClass.component.completeName}")
+        handler.info("Dao entity created with id ${newEntity.id.value} for ${dtoClass.sourceName}")
         newEntity
     }.onFail {
         val a = it
@@ -87,7 +87,7 @@ class DAOService<DTO, DATA, ENTITY>(
             val newEntity = entityModel.new {
                 bindFn(this)
             }
-            handler.info("Entity created with id: ${newEntity.id.value} for ${dtoClass.component.completeName}")
+            handler.info("Entity created with id: ${newEntity.id.value} for ${dtoClass.sourceName}")
             newEntity
     }.onFail{
         val dtoClass = dtoClass
@@ -99,9 +99,9 @@ class DAOService<DTO, DATA, ENTITY>(
         val selectedEntity =  pickById(entityId)
         if(selectedEntity != null){
             updateFn.invoke(selectedEntity)
-            handler.info("Updated entity with id: ${selectedEntity.id.value} for ${dtoClass.component.completeName}")
+            handler.info("Updated entity with id: ${selectedEntity.id.value} for ${dtoClass.sourceName}")
         }else{
-            handler.warn("Update failed. Entity with id: ${entityId} for ${dtoClass.component.completeName} can not be found")
+            handler.warn("Update failed. Entity with id: ${entityId} for ${dtoClass.sourceName} can not be found")
         }
         selectedEntity
     }.resultOrException()

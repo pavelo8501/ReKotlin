@@ -23,8 +23,6 @@ abstract class DatabaseTest() {
         @Container
         val postgres = PostgreSQLContainer("postgres:15")
 
-        @JvmStatic
-        val connection: ConnectionClass? = null
     }
 
     fun startTestConnection(muteContainer: Boolean = true, context:  (ConnectionClass.() -> Unit)) {
@@ -35,6 +33,11 @@ abstract class DatabaseTest() {
         }
         val connectionHooks  = dbHooks{
             beforeConnection {
+                if(postgres.isRunning){
+                    println("Stopping running container ${postgres.containerName} before new launch")
+                    DatabaseManager.closeAllConnections()
+                    postgres.stop()
+                }
                 postgres.start()
                 println("Trying to connect...")
                 ConnectionInfo(
@@ -45,12 +48,12 @@ abstract class DatabaseTest() {
                     driver = postgres.driverClassName
                 )
             }
-            newConnection {
 
+            newConnection {
+                println("Opening new connection")
             }
             existentConnection { println("Reusing: ${it.name}") }
         }
-
         val connection = DatabaseManager.openConnection(null, ConnectionSettings(retries = 5), hooks = connectionHooks )
         connection.context()
     }
@@ -59,6 +62,7 @@ abstract class DatabaseTest() {
         System.setProperty("org.testcontainers.reuse.enable", "true")
         if (muteContainer) {
             System.setProperty("org.slf4j.simpleLogger.log.org.testcontainers", "ERROR")
+            DatabaseManager.closeAllConnections()
         }
         val connectionHooks  = dbHooks {
             beforeConnection {

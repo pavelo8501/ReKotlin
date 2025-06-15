@@ -13,6 +13,7 @@ import po.exposify.dto.components.result.toResultSingle
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.models.SequenceRunInfo
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.throwOperations
 import po.exposify.extensions.castOrOperationsEx
@@ -81,13 +82,12 @@ class RootSequenceHandler<DTO, D, E> (
     ){
         classSequenceConfigurators[handlerName] = configurator.castOrOperationsEx<ClassHandlerConfig<*, *, *, DTO, D, E>.()-> Unit>()
     }
-
     var lastActiveSequenceContext : SequenceContext<DTO, D, E>? = null
-    suspend fun launch(session: AuthorizedSession): ResultList<DTO, D, E>{
+
+    suspend fun launch(runInfo: SequenceRunInfo): ResultList<DTO, D, E>{
        val execProvider =  dtoRoot.createExecutionProvider()
-       lastActiveSequenceContext = SequenceContext(this, execProvider, session)
+       lastActiveSequenceContext = SequenceContext(this, execProvider, runInfo)
        return lastActiveSequenceContext.getOrOperationsEx().let {
-            handlerConfig.onStartCallback?.invoke(it)
             sequenceLambda.invoke(it, this)
         }
     }
@@ -108,13 +108,13 @@ class ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE> (
 
 
     suspend fun launch(
+        runInfo: SequenceRunInfo,
         switchLambda :  suspend  SequenceContext<DTO, D, E>.(ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE>)-> ResultList<DTO, D, E>
     ): ResultList<DTO, D, E> {
         val switchQuery = handlerDelegate.switchQueryProvider.invoke()
         val hostingDTO = switchQuery.resolve()
-
         val provider =  dtoClass.createExecutionProvider()
-        val newSequenceContext = SequenceContext(this, provider)
+        val newSequenceContext = SequenceContext(this, provider, runInfo)
         return switchLambda.invoke(newSequenceContext, this)
     }
 }

@@ -1,7 +1,7 @@
 package po.misc.types
 
 import po.misc.exceptions.ManagedException
-import po.misc.exceptions.SelfThrownException
+import po.misc.exceptions.ManageableException
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlin.reflect.typeOf
@@ -17,20 +17,20 @@ inline fun <reified T : Any, reified E: ManagedException> T?.getOrThrow(
 ):T {
     if(this == null){
         val effectiveMessage  = message?:"Expected class ${T::class.simpleName} is null"
-        throw SelfThrownException.build<E>(effectiveMessage, code)
+        throw ManageableException.build<E>(effectiveMessage, code)
     }else{
         return this
     }
 }
 
-@JvmName("getOrThrowNonReifiedT")
-inline fun <T : Any, reified E: ManagedException> T?.getOrManaged(
-    message: String,
-    code: Enum<*>? = null
+
+fun <T : Any> T?.getOrManaged(
+    className: String
 ):T {
     if(this == null){
-        val baseMessage = "Unable to return non null. Object is null."
-        throw SelfThrownException.build<E>("$baseMessage. $message", code)
+        val  code: Enum<*>? = null
+        val message = "Unable to return object of class: $className. Object is null."
+        throw ManageableException.build<ManagedException>(message, code)
     }else{
         return this
     }

@@ -42,6 +42,16 @@ class TestPropertyHelpers {
     }
 
     @Test
+    fun `Property info fully initialized`(){
+
+        val instance = SourceClass()
+
+
+
+    }
+
+
+    @Test
     fun `Selection contains only delegate properties`(){
 
         val delegatePropertiesWildcard = toPropertyMap<SourceClass, TestDelegate<*>>()

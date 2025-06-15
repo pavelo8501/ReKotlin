@@ -1,4 +1,4 @@
-package po.test.exposify.scope
+package po.test.exposify.scope.session
 
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -12,8 +12,6 @@ import po.auth.AuthSessionManager
 import po.auth.authentication.authenticator.models.AuthenticationData
 import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.auth.extensions.generatePassword
-import po.auth.extensions.session
-import po.auth.extensions.withSession
 import po.auth.extensions.withSessionContext
 import po.auth.extensions.withSessionSuspended
 import po.auth.sessions.enumerators.SessionType
@@ -22,9 +20,8 @@ import po.exposify.scope.sequence.extensions.sequence
 import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.ConsoleBehaviour
-import po.lognotify.classes.notification.models.NotifyConfig
 import po.lognotify.logNotify
-import po.test.exposify.scope.TestSessionsContext.SessionIdentity
+import po.test.exposify.scope.session.TestSessionsContext
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.dtos.PageDTO
 import po.test.exposify.setup.dtos.User
@@ -51,12 +48,11 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
         }
 
         @JvmStatic
-        val session = SessionIdentity("0", "192.169.1.1")
+        val session = TestSessionsContext.SessionIdentity("0", "192.169.1.1")
 
     }
 
-    @DisplayName("Test anonymous session flow")
-    @Test
+
     fun `authenticated and anonymous sessions execute sequences concurrently without interference`() = runTest {
 
         val authData = AuthenticationData(
@@ -78,25 +74,18 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
         val anonSession = AuthSessionManager.getOrCreateSession(authData)
         val authSession = AuthSessionManager.getOrCreateSession(authData)
 
-        anonSession.getLoggerProcess?.invoke()?.run {
-
-        }
-        authSession.getLoggerProcess?.invoke()?.run {
-          //  notifier.setNotifierConfig(NotifyConfig(console = ConsoleBehaviour.MuteInfo))
-        }
-
-        startTestConnection{
-            service(UserDTO, TableCreateMode.FORCE_RECREATE) {
+        startTestConnection {
+            service(UserDTO.Companion, TableCreateMode.FORCE_RECREATE) {
                 authenticatedUser = update(user).getDataForced()
                 AuthSessionManager.authenticator.setAuthenticator(::validateUser)
             }
 
-            service(PageDTO, TableCreateMode.CREATE) {
+            service(PageDTO.Companion, TableCreateMode.CREATE) {
 
-                sequence(PageDTO.UPDATE) { handler->
+                sequence(PageDTO.Companion.UPDATE) { handler ->
                     update(handler.inputList)
                 }
-                sequence(PageDTO.SELECT) {handler->
+                sequence(PageDTO.Companion.SELECT) { handler ->
                     select()
                 }
             }
@@ -113,24 +102,24 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
             { assertEquals(user.login, authSession.principal?.login, "Login mismatch") }
         )
 
-        logNotify().notifierConfig{
+        logNotify().notifierConfig {
             console = ConsoleBehaviour.Mute
         }
         runBlocking {
             launch {
-                withSessionSuspended(authSession){
+                withSessionSuspended(authSession) {
                     val inputData =
                         pageModelsWithSections(pageCount = 1000, sectionsCount = 10, authSession.principal!!.id)
 
-                    runSequence(PageDTO.UPDATE){
+                    runSequence(PageDTO.Companion.UPDATE) {
                         withData(inputData)
                     }
                 }
             }
             launch {
-                withSessionContext(anonSession){
+                withSessionContext(anonSession) {
                     delay(200)
-                    runSequence(PageDTO.SELECT){
+                    runSequence(PageDTO.Companion.SELECT) {
 
                     }
                 }

@@ -13,12 +13,14 @@ import po.exposify.dto.components.bindings.relation_binder.delegates.RelationDel
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-
-import po.misc.callbacks.CallbackPayload
-import po.misc.callbacks.callbackManager
+import po.misc.callbacks.manager.Containable
+import po.misc.callbacks.manager.withCallbackManager
+import po.misc.callbacks.manager.withPayload
 import po.misc.interfaces.Identifiable
+import po.misc.interfaces.IdentifiableClass
 import po.misc.interfaces.ValueBased
 import po.misc.interfaces.asIdentifiable
+import po.misc.interfaces.asIdentifiableClass
 import po.misc.reflection.mappers.models.PropertyContainer
 import po.misc.reflection.properties.toRecord
 
@@ -26,7 +28,7 @@ import po.misc.reflection.properties.toRecord
 class BindingHub<DTO, D, E, F_DTO, FD, FE>(
     val hostingDTO: CommonDTO<DTO, D, E>,
     val identifiable: Identifiable = asIdentifiable(hostingDTO.sourceName, "BindingHub")
-): Identifiable by identifiable
+): IdentifiableClass
         where  DTO : ModelDTO, D: DataModel, E: LongEntity, F_DTO: ModelDTO, FD: DataModel, FE: LongEntity {
     internal data class NotificationData<DTO : ModelDTO, F_DTO : ModelDTO>(
         val delegateName: String,
@@ -45,12 +47,23 @@ class BindingHub<DTO, D, E, F_DTO, FD, FE>(
         DelegateRegistrationComplete(11)
     }
 
+    override val identity = asIdentifiableClass(sourceName)
+    internal val notifier = withCallbackManager<Event> {
+        withPayload<Event, NotificationData<DTO, *>>(Event.DelegateRegistered){
+
+        }
+
+        withPayload<Event, ListData<DTO, D, E>>(Event.DelegateRegistrationComplete){
+
+        }
+    }
+
     val dtoClass: DTOBase<DTO, D, E> get() = hostingDTO.dtoClass
     val daoService: DAOService<DTO, D, E> get() = hostingDTO.daoService
     val dtoFactory: DTOFactory<DTO, D, E> get() = hostingDTO.dtoFactory
 
-    internal val notifier = callbackManager<NotificationData<DTO, *>>()
-    internal val listNotifier = callbackManager<ListData<DTO, D, E>>()
+   // internal val notifier = callbackManager<NotificationData<DTO, *>>()
+   // internal val listNotifier = callbackManager<ListData<DTO, D, E>>()
 
     private val responsiveDelegates: MutableMap<String, ResponsiveDelegate<DTO, D, E, *>> = mutableMapOf()
     private val attachedForeignDelegates: MutableMap<String, AttachedForeignDelegate<DTO, D, E, *, *, *>> =
@@ -59,15 +72,17 @@ class BindingHub<DTO, D, E, F_DTO, FD, FE>(
     private val relationDelegates: MutableMap<String, RelationDelegate<DTO, D, E, F_DTO, FD, FE, *>> = mutableMapOf()
 
     init {
-        dtoFactory.notifier.subscribe(this, CallbackPayload.create(DTOFactory.Events.OnCreated, ::onDtoInitialized))
+        dtoFactory.notifier.subscribe<CommonDTO<DTO, D, E>>(this, DTOFactory.Events.OnCreated){
+
+        }
     }
 
     private fun setId(delegate: DelegateInterface<DTO, *>, mapSize: Int) {
         delegate.module.setId(mapSize + 1)
     }
 
-    fun onDtoInitialized(dto: CommonDTO<DTO, D, E>) {
-        listNotifier.triggerForAll(Event.DelegateRegistrationComplete, ListData(dto, combinedList()))
+    fun onDtoInitialized(dto: Containable<CommonDTO<DTO, D, E>>) {
+        notifier.trigger(Event.DelegateRegistrationComplete, ListData(hostingDTO,  combinedList()))
     }
 
     private fun combinedList(): List<DelegateInterface<DTO, *>> {
@@ -87,7 +102,9 @@ class BindingHub<DTO, D, E, F_DTO, FD, FE>(
         delegate.updateStatus(DelegateStatus.Registered)
         val notificationData =
             NotificationData(delegate.module.completeName, delegate.property.toRecord(), delegate.module, delegate)
-        notifier.triggerForAll(Event.DelegateRegistered, notificationData)
+
+        notifier.trigger(Event.DelegateRegistered, notificationData)
+
         return delegate
     }
 
@@ -100,7 +117,7 @@ class BindingHub<DTO, D, E, F_DTO, FD, FE>(
         delegate.updateStatus(DelegateStatus.Registered)
         val notificationData =
             NotificationData(delegate.module.completeName, delegate.property.toRecord(), delegate.module, delegate)
-        notifier.triggerForAll(Event.DelegateRegistered, notificationData)
+        notifier.trigger(Event.DelegateRegistered, notificationData)
         return delegate
     }
 
@@ -112,7 +129,7 @@ class BindingHub<DTO, D, E, F_DTO, FD, FE>(
         delegate.updateStatus(DelegateStatus.Registered)
         val notificationData =
             NotificationData(delegate.module.completeName, delegate.property.toRecord(), delegate.module, delegate)
-        notifier.triggerForAll(Event.DelegateRegistered, notificationData)
+        notifier.trigger(Event.DelegateRegistered, notificationData)
         return delegate
     }
 

@@ -1,8 +1,11 @@
 package po.misc.registries.basic
 
 import po.misc.exceptions.ManagedException
+import po.misc.exceptions.throwManageable
+import po.misc.exceptions.throwManaged
+import po.misc.interfaces.IdentifiableContext
 import po.misc.interfaces.ValueBased
-import po.misc.types.getOrManaged
+import po.misc.types.getOrThrow
 
 
 class BasicRegistry<T: Any> {
@@ -20,8 +23,9 @@ class BasicRegistry<T: Any> {
     }
 
     @JvmName("getRecordReified")
-   inline fun <reified E: ManagedException> getRecord(key: ValueBased):T {
-      return registry[key].getOrManaged<T, E>("$key is not in the registry", null)
+   inline fun <reified EX: ManagedException> getRecord(key: ValueBased,  ctx: IdentifiableContext):T {
+       val item = registry[key]
+       return item?: throwManageable<EX>(ctx, "$key is not in the registry", null)
     }
 
     inline fun <reified T : Any> contains(key: ValueBased): Boolean =

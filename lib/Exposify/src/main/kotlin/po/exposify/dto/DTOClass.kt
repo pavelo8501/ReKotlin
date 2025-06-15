@@ -10,7 +10,6 @@ import po.exposify.dao.classes.ExposifyEntityClass
 import po.exposify.dto.components.SwitchQuery
 import po.exposify.dto.components.WhereQuery
 import po.exposify.dto.components.bindings.BindingHub.ListData
-import po.exposify.dto.components.bindings.BindingHub.NotificationData
 import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.components.tracker.extensions.addTrackerInfo
 import po.exposify.dto.enums.DTOClassStatus
@@ -25,11 +24,14 @@ import po.lognotify.TasksManaged
 import po.lognotify.classes.action.InlineAction
 import po.lognotify.classes.task.TaskHandler
 import po.lognotify.lastTaskHandler
-import po.misc.callbacks.CallbackPayload
-import po.misc.callbacks.callbackManager
-import po.misc.interfaces.Identifiable
+import po.misc.callbacks.manager.CallbackManager
+import po.misc.callbacks.manager.CallbackPayload
+import po.misc.interfaces.ClassIdentity
+import po.misc.interfaces.IdentifiableClass
+import po.misc.interfaces.IdentifiableImplementation
 import po.misc.interfaces.ValueBased
 import po.misc.interfaces.asIdentifiable
+import po.misc.interfaces.asIdentifiableClass
 import po.misc.registries.type.TypeRegistry
 import po.misc.serialization.SerializerInfo
 import po.misc.types.TypeRecord
@@ -37,36 +39,44 @@ import po.misc.types.toSimpleNormalizedKey
 import kotlin.reflect.KType
 
 
-sealed class DTOBase<DTO, DATA, ENTITY>(): ClassDTO,  TasksManaged, ValueBased, InlineAction
+sealed class DTOBase<DTO, DATA, ENTITY>(): ClassDTO,  TasksManaged,  InlineAction, IdentifiableClass
         where DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity
 {
     enum class Events(override val value: Int) : ValueBased{
-        ON_INITIALIZED(1),
-        DelegateInitialized(10),
+        Initialized(1),
+        StatusChanged(2),
         DelegateRegistrationComplete(11);
     }
 
-    abstract override val value: Int
 
-    var status : DTOClassStatus = DTOClassStatus.Undefined
+    abstract override val identity: ClassIdentity<*>
+    override val contextName: String get() = identity.componentName
 
-    var component: Identifiable = asIdentifiable("Undefined", "DTOBase")
+    internal val notifier = CallbackManager(
+        enumClass =  Events::class.java,
+        emitter = this,
+        CallbackPayload<Events, DTOBase<*,*,*>>(Events.Initialized),
+        CallbackPayload<Events, DTOBase<*,*,*>>(Events.StatusChanged),
+        CallbackPayload<Events, ListData<DTO, DATA, ENTITY>>(Events.DelegateRegistrationComplete)
+    )
+
+    var status: DTOClassStatus = DTOClassStatus.Undefined
+        private set(value) {
+            if(field != value){
+                field = value
+                notifier.trigger(Events.StatusChanged, this)
+            }
+        }
 
     @PublishedApi
     internal var configParameter: DTOConfig<DTO, DATA, ENTITY>? = null
     val config:  DTOConfig<DTO, DATA, ENTITY>
         get() {
-          return  configParameter.getOrInitEx("DTOConfig uninitialized ${component.completeName}", ExceptionCode.LAZY_NOT_INITIALIZED)
+          return  configParameter.getOrInitEx("DTOConfig uninitialized $completeName", ExceptionCode.LAZY_NOT_INITIALIZED)
         }
 
     override var initialized: Boolean = false
     protected val dtoMap : MutableMap<Long, CommonDTO<DTO, DATA, ENTITY>> = mutableMapOf()
-
-    internal val notifier = callbackManager<DTOBase<DTO, DATA, ENTITY>>()
-    internal val initializationNotifier = callbackManager<NotificationData<DTO, *>>()
-    internal val callbackForwarder = callbackManager<ListData<DTO, DATA, ENTITY>>()
-
-    //protected val notifier : TypedCallbackRegistry<DTOBase<DTO, DATA, ENTITY>, Unit> = TypedCallbackRegistry()
 
     internal val logger : TaskHandler<*> get() = lastTaskHandler()
 
@@ -79,28 +89,13 @@ sealed class DTOBase<DTO, DATA, ENTITY>(): ClassDTO,  TasksManaged, ValueBased, 
     internal val entityType : TypeRecord<ENTITY>
         get() = registry.getRecord<ENTITY, InitException>(SourceObject.Entity, registryExceptionMessage)
 
-    init {
-//        notifier.onKeyOverwrite = { overwrittenKey, _->
-//            logger.warn("typedCallbackRegistry notify subscription key: $overwrittenKey overwritten")
-//        }
-    }
-
-    internal fun subscribe(component: Identifiable, type: ValueBased, callback: (DTOBase<DTO, DATA, ENTITY>)-> Unit) {
-        notifier.subscribe(component, CallbackPayload.create(type, callback))
-    }
-
     @PublishedApi
-    internal fun subscribeNotifier(component: Identifiable, type: ValueBased, callback: (NotificationData<DTO, *>)-> Unit) {
-        initializationNotifier.subscribe(component, CallbackPayload.create(type, callback))
-
-    }
-
+    internal abstract fun initializationComplete()
     protected abstract fun  setup()
+
     @PublishedApi
-    internal fun initializationComplete(){
-        component = asIdentifiable(dtoType.simpleName, "BaseDTO")
-        initialized = true
-        notifier.triggerForAll(Events.ON_INITIALIZED, this)
+    internal fun updateStatus(newStatus: DTOClassStatus){
+        status = newStatus
     }
 
     internal fun registerDTO(dto: CommonDTO<DTO, DATA, ENTITY>){
@@ -120,7 +115,7 @@ sealed class DTOBase<DTO, DATA, ENTITY>(): ClassDTO,  TasksManaged, ValueBased, 
         return dtoMap[id]
     }
     internal fun lookupDTO(id: Long, operation: CrudOperation): CommonDTO<DTO, DATA, ENTITY>?{
-        return dtoMap[id]?.addTrackerInfo(operation, this.component)
+        return dtoMap[id]?.addTrackerInfo(operation, this)
     }
     internal fun lookupDTO(): List<CommonDTO<DTO, DATA, ENTITY>>{
        return dtoMap.values.toList()
@@ -163,33 +158,26 @@ sealed class DTOBase<DTO, DATA, ENTITY>(): ClassDTO,  TasksManaged, ValueBased, 
             }
         }
     }
-
-    companion object : ValueBased{
-        override val value: Int = 0
-    }
 }
 
 abstract class RootDTO<DTO, DATA, ENTITY>()
     : DTOBase<DTO, DATA, ENTITY>(),  TasksManaged,  ClassDTO
         where DTO: ModelDTO, DATA: DataModel, ENTITY: LongEntity
 {
-//    override val componentClass: ComponentClass<DTO>
-//        get()  {
-//            val classs = ComponentClass<DTO>(ComponentType.RootClass)
-//            return classs
-//        }
 
-    override val value: Int = 1
+    override val identity = asIdentifiableClass<RootDTO<DTO, DATA, ENTITY>, DTO>{dtoType.clazz}
 
     private var serviceContextParameter: ServiceContext<DTO, DATA, ENTITY>? = null
     val serviceContext: ServiceContext<DTO, DATA, ENTITY>
         get() = serviceContextParameter.getOrInitEx()
 
+
+
     fun initialization(serviceContext: ServiceContext<DTO, DATA, ENTITY>) {
         serviceContextParameter = serviceContext
         if (!initialized) setup()
     }
-    fun reinitChil(){
+    fun reinitChild(){
         config.childClasses.forEach {
             if(!it.initialized){
                 it.initialization()
@@ -197,17 +185,23 @@ abstract class RootDTO<DTO, DATA, ENTITY>()
         }
     }
 
+    override fun initializationComplete(){
+        initialized = true
+        notifier.trigger(Events.Initialized, this)
+    }
+
     fun getServiceClass(): ServiceClass<DTO, DATA, ENTITY>{
-       return serviceContext.serviceClass.getOrInitEx("ServiceClass not assigned for ${component.completeName}")
+       return serviceContext.serviceClass.getOrInitEx("ServiceClass not assigned for $completeName")
     }
 
     fun switchQuery(id: Long): SwitchQuery<DTO, DATA, ENTITY> {
         return SwitchQuery(id, this)
     }
-
-    companion object : ValueBased{
-        override val value: Int = 1
+    companion object: ValueBased{
+        override val value: Int
+            get() = 1
     }
+
 }
 
 abstract class DTOClass<DTO, DATA, ENTITY>(
@@ -215,17 +209,22 @@ abstract class DTOClass<DTO, DATA, ENTITY>(
 ): DTOBase<DTO, DATA, ENTITY>(), ClassDTO, TasksManaged
         where DTO: ModelDTO, DATA : DataModel, ENTITY: LongEntity {
 
-    override val value: Int = 2
 
-//    override val componentClass: ComponentClass<DTO>
-//        get() =  ComponentClass<DTO>(ComponentType.DTOClass)
+    override val identity = asIdentifiableClass<DTOClass<DTO, DATA, ENTITY>, DTO>{dtoType.clazz}
+
+    override fun initializationComplete(){
+        initialized = true
+        notifier.trigger(Events.Initialized, this)
+    }
 
     fun initialization() {
         if (!initialized){ setup() }
     }
 
-    companion object : ValueBased{
-        override val value: Int = 2
+    companion object: ValueBased{
+        override val value: Int
+            get() = 2
     }
+
 }
 

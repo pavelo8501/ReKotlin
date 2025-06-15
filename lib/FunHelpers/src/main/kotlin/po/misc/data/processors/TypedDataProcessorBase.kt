@@ -2,6 +2,7 @@ package po.misc.data.processors
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -11,11 +12,15 @@ import po.misc.data.PrintableBase
 import po.misc.data.console.PrintableTemplateBase
 import po.misc.data.interfaces.ComposableData
 import po.misc.data.interfaces.Printable
+import po.misc.interfaces.IdentifiableClass
+import po.misc.interfaces.asIdentifiableClass
 import po.misc.types.safeCast
 
-abstract class TypedDataProcessorBase<T:PrintableBase<T>>(){
+abstract class TypedDataProcessorBase<T:PrintableBase<T>>(): IdentifiableClass{
 
     abstract val topEmitter: TypedDataProcessorBase<*>?
+
+    override val identity = asIdentifiableClass("TypedDataProcessorBase")
 
     @PublishedApi
     internal val recordList: MutableList<T> = mutableListOf()
@@ -99,17 +104,33 @@ abstract class TypedDataProcessorBase<T:PrintableBase<T>>(){
         this.muteCondition = muteCondition.safeCast<(Printable)-> Boolean>()
     }
 
+    private val subscriberJobs = mutableListOf<Job>()
 
     private val notificationFlow = MutableSharedFlow<T>(
         replay = 10,
         extraBufferCapacity = 64,
         onBufferOverflow = BufferOverflow.SUSPEND
     )
-    val notifications: SharedFlow<T> = notificationFlow.asSharedFlow()
+    private val notifications: SharedFlow<T> = notificationFlow.asSharedFlow()
+    fun subscribeToDataEmissions(
+        scope: CoroutineScope,
+        collector: suspend (T) -> Unit
+    ): Job {
+        val job = scope.launch {
+            notifications.collect(collector)
+        }
+        subscriberJobs += job
+        return job
+    }
 
-    fun emitData(notification: T) {
+    fun stopBroadcast() {
+        subscriberJobs.forEach { it.cancel() }
+        subscriberJobs.clear()
+    }
+
+    fun emitData(data: T) {
         CoroutineScope(Dispatchers.Default).launch {
-            notificationFlow.emit(notification)
+            notificationFlow.emit(data)
         }
     }
 }

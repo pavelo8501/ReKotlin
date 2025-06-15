@@ -3,6 +3,7 @@ package po.exposify
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.transactions.TransactionManager
 import po.exposify.common.classes.DBManagerHooks
 import po.exposify.extensions.getOrInitEx
 import po.exposify.scope.connection.models.ConnectionInfo
@@ -102,14 +103,21 @@ object DatabaseManager {
         }.resultOrException()
     }
 
-}
+    fun closeAllConnections() {
+        synchronized(connections) {
+            connections.forEach {
+                try {
+                    if (it.isConnectionOpen) {
+                        it.close()
+                        println("Closed DB connection: $it")
+                    }
+                } catch (e: Exception) {
+                    println("Error while closing connection: ${e.message}")
+                }
+            }
+            connections.clear()
+        }
+    }
 
-//fun withConnection(
-//    connectionInfo: ConnectionInfo
-//): ConnectionClass {
-//    val connectionString =  connectionInfo.getConnectionString()
-//    val connection = DatabaseManager.connections.first { it.connectionInfo.getConnectionString() == connectionString }
-//    val effectiveConnection = connection.getOrOperationsEx("Connection $connectionString not found")
-//    return connection
-//}
+}
 

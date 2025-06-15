@@ -84,7 +84,7 @@ fun <DTO: ModelDTO, D: DataModel,  E: LongEntity>  DTOBase<DTO, D, E>.createDTO(
 ): CommonDTO<DTO,D,E>{
     val created =  newDTO(entity)
 
-    created.addTrackerInfo(operation,  this.component)
+    created.addTrackerInfo(operation,  this)
     created.bindingHub.createByEntity()
     created.finalizeCreation(entity, Cardinality.ONE_TO_MANY)
     return created
@@ -95,7 +95,7 @@ fun <DTO: ModelDTO, D: DataModel,  E: LongEntity> CommonDTO<DTO,D,E>.updateFromD
     data: D,
     operation: CrudOperation
 ): ResultSingle<DTO, D, E> {
-    addTrackerInfo(operation, dtoClass.component)
+    addTrackerInfo(operation, dtoClass)
     bindingHub.updateFromData(data)
     return toResult(operation)
 }

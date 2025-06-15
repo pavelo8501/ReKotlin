@@ -15,12 +15,14 @@ import po.misc.reflection.mappers.PropertyMapper
 import po.misc.reflection.mappers.helpers.createPropertyMap
 import po.misc.registries.type.TypeRegistry
 import po.misc.types.TypeRecord
+import kotlin.reflect.KClass
 
 
 inline fun <reified DTO,  reified D, reified E> DTOBase<DTO, D, E>.configuration(
     noinline block:  DTOConfig<DTO, D, E>.() -> Unit
-): Unit where DTO: ModelDTO, D: DataModel, E: LongEntity {
-    status = DTOClassStatus.PreFlightCheck
+): KClass<DTO> where DTO: ModelDTO, D: DataModel, E: LongEntity {
+
+    updateStatus(DTOClassStatus.PreFlightCheck)
     val registry = TypeRegistry()
 
     val dtoType = registry.addRecord<DTO>(SourceObject.DTO.provideType(TypeRecord.createRecord(SourceObject.DTO)))
@@ -45,5 +47,6 @@ inline fun <reified DTO,  reified D, reified E> DTOBase<DTO, D, E>.configuration
     initializationComplete()
 
     setupValidation(propertyMapper).trueOrInitException()
-    status = DTOClassStatus.Live
+    updateStatus(DTOClassStatus.Live)
+    return dtoType.clazz
 }

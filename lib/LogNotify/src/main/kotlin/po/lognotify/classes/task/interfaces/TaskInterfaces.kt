@@ -3,11 +3,11 @@ package po.lognotify.classes.task.interfaces
 import po.lognotify.classes.notification.LoggerDataProcessor
 import po.lognotify.classes.task.TaskHandler
 import po.lognotify.classes.task.models.TaskConfig
+import po.lognotify.models.TaskDispatcher.UpdateType
 import po.lognotify.models.TaskKey
 import po.lognotify.models.TaskRegistry
 import po.misc.coroutines.CoroutineInfo
 import po.misc.time.MeasuredContext
-import po.misc.types.UpdateType
 
 
 interface TopTask<T, R: Any?>: MeasuredContext, ResultantTask<T, R> {

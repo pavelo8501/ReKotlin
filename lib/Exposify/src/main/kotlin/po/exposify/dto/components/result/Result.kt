@@ -16,20 +16,25 @@ import po.exposify.extensions.getOrOperationsEx
 import po.misc.exceptions.ManagedException
 import po.misc.types.castListOrThrow
 
-sealed class ResultBase<DTO, D, E>(
-    internal val dtoClass: DTOBase<DTO, D, E>,
-) where DTO : ModelDTO, D: DataModel, E : LongEntity{
 
-    var resultMessage : String = ""
-    internal var failureCause : ManagedException? = null
-    internal var activeOperation : CrudOperation = CrudOperation.Create
+internal interface ExposifyResult{
+    val dtoClass: DTOBase<*, *, *>
+    val resultMessage: String
+    val size : Int
+    var activeCRUD: CrudOperation
+    var failureCause: ManagedException?
 }
 
 class ResultList<DTO, D, E> internal constructor(
-    dtoClass: DTOBase<DTO, D, E>,
+    override val  dtoClass: DTOBase<DTO, D, E>,
     private var result : List<CommonDTO<DTO, D, E>> = emptyList()
-) : ResultBase<DTO, D, E>(dtoClass) where DTO : ModelDTO, D: DataModel, E : LongEntity {
+) :ExposifyResult where DTO : ModelDTO, D: DataModel, E : LongEntity {
 
+
+    override var resultMessage: String = ""
+    override val size: Int get() = result.size
+    override var activeCRUD: CrudOperation = CrudOperation.Create
+    override var failureCause: ManagedException? = null
 
     fun addResult(list: List<CommonDTO<DTO, D, E>>): ResultList<DTO, D, E> {
         result = list.toMutableList()
@@ -61,7 +66,6 @@ class ResultList<DTO, D, E> internal constructor(
         return result
     }
 
-
     fun setWarningMessage(message: String): ResultList<DTO, D, E>{
         resultMessage = message
         return this
@@ -69,9 +73,16 @@ class ResultList<DTO, D, E> internal constructor(
 }
 
 class ResultSingle<DTO, D, E> internal constructor(
-    dtoClass: DTOBase<DTO, D, E>,
+    override val dtoClass: DTOBase<DTO, D, E>,
     private var result: CommonDTO<DTO, D, E>? = null
-): ResultBase<DTO, D, E>(dtoClass) where DTO : ModelDTO, D: DataModel, E : LongEntity {
+): ExposifyResult where DTO : ModelDTO, D: DataModel, E : LongEntity {
+
+    override var resultMessage: String = ""
+    override val size: Int get()  {
+        return if(result != null){ 1 }else{ 0 }
+    }
+    override var activeCRUD: CrudOperation = CrudOperation.Create
+    override var failureCause: ManagedException? = null
 
     internal fun appendDto(dtoToAppend: CommonDTO<DTO, D, E>): ResultSingle<DTO, D, E> {
         result = dtoToAppend

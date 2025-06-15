@@ -19,6 +19,8 @@ import kotlin.coroutines.coroutineContext
  */
 object AuthSessionManager : ManagedSession, TasksManaged {
 
+    override val contextName: String = "AuthSessionManager"
+
     private val internalStore : ConcurrentHashMap<String, String> = ConcurrentHashMap<String, String>()
     private val factory : SessionFactory = SessionFactory(this, internalStore)
     var authenticator : UserAuthenticator = UserAuthenticator(factory)

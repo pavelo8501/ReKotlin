@@ -17,12 +17,11 @@ enum class HandlerType(val value: Int) {
     }
 }
 
-
 open class ManagedException(
     message: String,
-    val  source: Enum<*>? = null,
+    val source: Enum<*>? = null,
     original : Throwable? = null,
-) : Throwable(message, original), SelfThrownException<ManagedException>{
+) : Throwable(message, original), ManageableException<ManagedException>{
 
     enum class ExceptionEvent{
         Registered,
@@ -72,7 +71,7 @@ open class ManagedException(
     }
 
 
-    companion object : SelfThrownException.Builder<ManagedException> {
+    companion object : ManageableException.Builder<ManagedException> {
         override fun build(message: String, source: Enum<*>?,  original: Throwable?): ManagedException {
             return ManagedException(message, null, original)
         }

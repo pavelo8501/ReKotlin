@@ -11,15 +11,13 @@ import po.misc.exceptions.ManagedException
 import kotlin.collections.forEach
 
 
-
-
-fun <T: ResultBase<*,*,*>> T.addFailureCause(exception: ManagedException):T{
+internal fun <T: ExposifyResult> T.addFailureCause(exception: ManagedException):T{
     failureCause = exception
     return this
 }
 
-fun <T: ResultBase<*,*,*>> T.addCrudOperation(operation : CrudOperation):T{
-    activeOperation = operation
+internal fun <T: ExposifyResult> T.addCrudOperation(operation : CrudOperation):T{
+    activeCRUD = operation
     return this
 }
 
@@ -54,12 +52,6 @@ fun <DTO, D, E>  ResultList<DTO, D, E>.toResultSingle(): ResultSingle<DTO, D, E>
     val dtoList = this.getAsCommonDTO()
     return  ResultSingle(this.dtoClass, dtoList.firstOrNull())
 }
-
-//fun <DTO, D, E>  ResultSingle<DTO, D, E>.toResultList(): ResultList<DTO, D, E>
-//        where  DTO: ModelDTO, D : DataModel, E : LongEntity{
-//
-//    return ResultList(dtoClass, mutableListOf(this.getAsCommonDTOForced()))
-//}
 
 fun <DTO, D, E>  List<ResultSingle<DTO, D, E>>.toResult(
    dtoClass: DTOBase<DTO, D, E>

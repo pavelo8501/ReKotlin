@@ -10,21 +10,23 @@ import po.lognotify.classes.notification.enums.EventType
 import po.lognotify.classes.task.interfaces.ResultantTask
 import po.lognotify.classes.task.models.TaskConfig
 import po.lognotify.classes.task.result.TaskResult
-import po.lognotify.extensions.currentProcess
 import po.lognotify.helpers.StaticHelper
 import po.lognotify.models.TaskDispatcher
 import po.lognotify.models.TaskDispatcher.LoggerStats
 import po.lognotify.models.TaskKey
 import po.lognotify.models.TaskRegistry
+import po.misc.callbacks.manager.CallbackManager
+import po.misc.callbacks.manager.callbackManager
 import po.misc.coroutines.CoroutineHolder
 import po.misc.data.helpers.emptyOnNull
 import po.misc.coroutines.CoroutineInfo
 import po.misc.exceptions.ManagedException
+import po.misc.interfaces.IdentifiableClass
+import po.misc.interfaces.asIdentifiableClass
 import po.misc.time.ExecutionTimeStamp
 import po.misc.time.MeasuredContext
 import po.misc.time.startTimer
 import po.misc.time.stopTimer
-import po.misc.types.UpdateType
 import kotlin.coroutines.CoroutineContext
 
 sealed class TaskBase<T, R: Any?>(
@@ -32,7 +34,7 @@ sealed class TaskBase<T, R: Any?>(
     override val config: TaskConfig,
     dispatcher: TaskDispatcher,
     internal val ctx: T,
-): StaticHelper, MeasuredContext, ResultantTask<T, R> {
+): StaticHelper, MeasuredContext, ResultantTask<T, R>, IdentifiableClass {
 
     enum class TaskStatus{
         New,
@@ -45,7 +47,10 @@ sealed class TaskBase<T, R: Any?>(
     abstract val coroutineContext: CoroutineContext
    // abstract override val notifier : NotifierBase
     abstract val registry: TaskRegistry<*, *>
-    abstract val callbackRegistry : MutableMap<UpdateType, (LoggerStats)-> Unit>
+
+
+    abstract val callbackRegistry : CallbackManager<TaskDispatcher.UpdateType>
+
     abstract override val dataProcessor: LoggerDataProcessor
     override val executionTimeStamp: ExecutionTimeStamp = ExecutionTimeStamp(key.taskName, key.taskId.toString())
     abstract override val handler: TaskHandler<R>
@@ -62,7 +67,7 @@ sealed class TaskBase<T, R: Any?>(
     override fun toString(): String {
         return "${key.taskName} | ${key.moduleName} ${config.actor.emptyOnNull(" |") }"
     }
-    fun notifyUpdate(handler: UpdateType) {
+    fun notifyUpdate(handler: TaskDispatcher.UpdateType) {
         val stats = LoggerStats(
             activeTask = this,
             activeTaskName = this.key.taskName,
@@ -71,7 +76,7 @@ sealed class TaskBase<T, R: Any?>(
             totalTasksCount = registry.tasks.count(),
             coroutineInfo = CoroutineInfo.createInfo(coroutineContext)
         )
-        callbackRegistry.filter { it.key == handler} .forEach { (_, cb) -> cb(stats) }
+        callbackRegistry.trigger(handler, stats)
     }
     fun checkChildResult(childResult : TaskResult<*>): ManagedException?{
         return  childResult.throwable?.let {exception->
@@ -97,10 +102,16 @@ class RootTask<T, R: Any?>(
 ) :TaskBase<T, R>(key, config, dispatcher, ctx), CoroutineHolder
 {
 
+    val receiverName: String get(){
+       return ctx?.let {
+            it::class.simpleName.toString()
+        }?: "NoContext"
+    }
+    override val identity = asIdentifiableClass(receiverName)
     override val dataProcessor: LoggerDataProcessor = LoggerDataProcessor(this, null)
     override var taskResult : TaskResult<R>?  =  null
     override val registry: TaskRegistry<T, R> = TaskRegistry(dispatcher, this)
-    override val callbackRegistry: MutableMap<UpdateType, (LoggerStats) -> Unit> = mutableMapOf()
+    override val callbackRegistry = callbackManager<TaskDispatcher.UpdateType>()
     override val handler: TaskHandler<R> = TaskHandler(this, dataProcessor)
     val subTasksCount : Int get() = registry.taskCount()
     var isComplete: Boolean = false
@@ -126,9 +137,9 @@ class RootTask<T, R: Any?>(
         escalationCallback = onEscalation
         startTimer()
         dataProcessor.systemEvent(EventType.START)
-        coroutineContext.currentProcess()?.let {
-            it.stopTaskObservation(this)
-        }
+//        coroutineContext.currentProcess()?.let {
+//            it.stopTaskObservation(this)
+//        }
         return this
     }
 
@@ -136,8 +147,8 @@ class RootTask<T, R: Any?>(
 //        notifier.submitNotification(
 //            Notification(ProviderTask(this), EventType.CHILD_TASK_CREATED, SeverityLevel.SYS_INFO,childTask.toString())
 //        )
-        notifyUpdate(UpdateType.OnUpdated)
-        dispatcher.notifyUpdate(UpdateType.OnUpdated, this)
+        notifyUpdate(TaskDispatcher.UpdateType.OnTaskUpdated)
+        dispatcher.notifyUpdate(TaskDispatcher.UpdateType.OnTaskUpdated, this)
     }
 
     fun complete():RootTask<T, R>{
@@ -157,12 +168,20 @@ class Task<T,  R: Any?>(
     ctx: T
 ):TaskBase<T, R>(key, config, hierarchyRoot.dispatcher, ctx), ResultantTask<T, R>{
 
+
+    val receiverName: String get(){
+        return ctx?.let {
+            it::class.simpleName.toString()
+        }?: "NoContext"
+    }
+    override val identity = asIdentifiableClass(receiverName)
+
     override val dataProcessor: LoggerDataProcessor = LoggerDataProcessor(this, hierarchyRoot.dataProcessor)
     override val coroutineContext: CoroutineContext get() = hierarchyRoot.coroutineContext
   //  override val notifier: SubNotifier = SubNotifier(this, hierarchyRoot.notifier)
     override var taskResult : TaskResult<R>?  =  null
     override val registry: TaskRegistry<*, *> get() = hierarchyRoot.registry
-    override val callbackRegistry: MutableMap<UpdateType, (LoggerStats) -> Unit> = mutableMapOf()
+    override val callbackRegistry =  callbackManager<TaskDispatcher.UpdateType>()
     override val handler: TaskHandler<R> = TaskHandler<R>(this, dataProcessor)
     override val coroutineInfo : CoroutineInfo = CoroutineInfo.createInfo(coroutineContext)
 

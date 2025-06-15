@@ -23,7 +23,7 @@ abstract class JsonDelegateBase<T: Any, R: Any>(
 ) {
 
     var  propertyParam: KProperty<R>? = null
-    val  property: KProperty<R> get() = propertyParam.getOrManaged<KProperty<R>, ManagedException>("Value is null")
+    val  property: KProperty<R> get() = propertyParam.getOrManaged<KProperty<R>>("Value is null")
 
 
     val propertyName: String get() = property.name
@@ -31,7 +31,7 @@ abstract class JsonDelegateBase<T: Any, R: Any>(
     var value: R? = null
 
     fun getJasonString():R{
-       return value.getOrManaged<R, ManagedException>("Value is null")
+       return value.getOrManaged("Value is null")
     }
 
     fun resolveProperty(property: KProperty<*>){

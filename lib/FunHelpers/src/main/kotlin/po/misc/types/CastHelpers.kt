@@ -1,8 +1,8 @@
 package po.misc.types
 
 import po.misc.data.helpers.emptyOnNull
+import po.misc.exceptions.ManageableException
 import po.misc.exceptions.ManagedException
-import po.misc.exceptions.SelfThrownException
 import kotlin.reflect.KClass
 import kotlin.reflect.cast
 
@@ -29,19 +29,36 @@ inline fun <reified BASE : Any> Any?.safeBaseCast(): BASE? {
     }
 }
 
-inline fun <reified T: Any, reified E: ManagedException> Any?.castOrThrow(
+inline fun <reified T: Any> Any?.castOrManaged(
     message: String? = null,
     code: Enum<*>? = null
 ): T {
     if(this == null){
-        throw SelfThrownException.build<E>("${message.emptyOnNull()}. Unable to cast null to ${T::class.simpleName}", code)
+        throw ManageableException.build<ManagedException>("${message.emptyOnNull()}. Unable to cast null to ${T::class.simpleName}", code)
     }else{
         val result =  this as? T
         if(result != null){
             return result
         }else{
             val effectiveMessage = "${message.emptyOnNull()}. Unable to cast ${this::class.simpleName} to  ${T::class.simpleName}"
-            throw SelfThrownException.build<E>(effectiveMessage, code)
+            throw ManageableException.build<ManagedException>(effectiveMessage, code)
+        }
+    }
+}
+
+inline fun <reified T: Any, reified E: ManagedException> Any?.castOrThrow(
+    message: String? = null,
+    code: Enum<*>? = null
+): T {
+    if(this == null){
+        throw ManageableException.build<E>("${message.emptyOnNull()}. Unable to cast null to ${T::class.simpleName}", code)
+    }else{
+        val result =  this as? T
+        if(result != null){
+            return result
+        }else{
+            val effectiveMessage = "${message.emptyOnNull()}. Unable to cast ${this::class.simpleName} to  ${T::class.simpleName}"
+            throw ManageableException.build<E>(effectiveMessage, code)
         }
     }
 }
@@ -54,7 +71,7 @@ inline fun <T: Any, reified E: ManagedException> Any?.castOrThrow(
     return try {
         kClass.cast(this)
     } catch (e: ClassCastException) {
-        val exception = SelfThrownException.build<E>(message ?: "Unable to cast to ${kClass.simpleName}", code, e)
+        val exception = ManageableException.build<E>(message ?: "Unable to cast to ${kClass.simpleName}", code, e)
         throw exception
     }
 }
@@ -72,11 +89,11 @@ inline fun <reified BASE : Any, reified E : ManagedException> Any?.castBaseOrThr
     code: Enum<*> ?  = null
 ): BASE {
     if (this == null) {
-        throw SelfThrownException.build<E>("Cannot cast null to ${BASE::class.simpleName}", code)
+        throw ManageableException.build<E>("Cannot cast null to ${BASE::class.simpleName}", code)
     }
     if (!BASE::class.java.isAssignableFrom(this::class.java)) {
         val effectiveMessage = message ?: "Cannot cast ${this::class.simpleName} to ${BASE::class.simpleName}"
-        throw SelfThrownException.build<E>(effectiveMessage, code)
+        throw ManageableException.build<E>(effectiveMessage, code)
     }
     return this as BASE
 }

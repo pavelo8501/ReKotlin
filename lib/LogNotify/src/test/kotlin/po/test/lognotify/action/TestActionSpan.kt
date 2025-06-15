@@ -24,7 +24,7 @@ class TestActionSpan: TasksManaged {
           return "Produced:${counter}"
        }
 
-        fun method1() : String = runInlineAction(module){
+        fun method1() : String = runInlineAction(module, "method1"){
             privateMethod()
         }
     }

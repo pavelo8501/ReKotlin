@@ -2,7 +2,6 @@ package po.test.misc.collections
 
 import org.junit.jupiter.api.Test
 import po.misc.collections.CompositeEnumKey
-import po.misc.collections.generateKey
 import po.misc.interfaces.Identifiable
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -33,16 +32,16 @@ class TestCompositeKey {
 
     @Test
     fun `composite keys  pass equality checks`(){
-       val key1 = CompositeEnumKey(sourceObject, SomeEnum.Value1)
-       val key2 = CompositeEnumKey(sameAsSourceObject, SomeEnum.Value1)
-       val key3 = CompositeEnumKey(sourceObject2, SomeEnum.Value1)
-       val key4 = CompositeEnumKey(sameAsSourceObject, SomeEnum.Value2)
+       val key1 = CompositeEnumKey(SomeEnum.Value1, sourceObject)
+       val key2 = CompositeEnumKey(SomeEnum.Value1, sameAsSourceObject)
+       val key3 = CompositeEnumKey(SomeEnum.Value1, sourceObject2)
+       val key4 = CompositeEnumKey(SomeEnum.Value2, sameAsSourceObject)
 
-        val keyedMap : Map<CompositeEnumKey<*,*>, String> = mapOf(key1 to "SomeString")
+        val keyedMap : Map<CompositeEnumKey<*>, String> = mapOf(key1 to "SomeString")
 
-        assertNotEquals<CompositeEnumKey<*,*>>(key1, key3, "Keys are the same")
-        assertEquals<CompositeEnumKey<*,*>>(key1, key2, "Keys are the same")
-        assertNotEquals<CompositeEnumKey<*,*>>(key1, key4, "Keys with same object but different enum considered same")
+        assertNotEquals<CompositeEnumKey<*>>(key1, key3, "Keys are the same")
+        assertEquals<CompositeEnumKey<*>>(key1, key2, "Keys are the same")
+        assertNotEquals<CompositeEnumKey<*>>(key1, key4, "Keys with same object but different enum considered same")
         assertNotNull(keyedMap[key1])
         assertEquals("SomeString", keyedMap[key1])
         assertEquals(keyedMap[key1], keyedMap[key2])
@@ -52,8 +51,8 @@ class TestCompositeKey {
     @Test
     fun `helper created keys work the same way`(){
 
-        val key1 = sourceObject.generateKey(SomeEnum.Value1)
-        val key2 = sourceObject.generateKey(SomeEnum.Value1)
+        val key1 =  CompositeEnumKey.generateKey(SomeEnum.Value1, sourceObject)
+        val key2 =  CompositeEnumKey.generateKey(SomeEnum.Value1, sourceObject)
         assertEquals(key1, key2)
     }
 

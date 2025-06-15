@@ -17,7 +17,6 @@ import po.exposify.exceptions.InitException
 import po.exposify.extensions.castOrOperationsEx
 import po.exposify.extensions.getOrOperationsEx
 import po.lognotify.classes.task.TaskHandler
-import po.misc.callbacks.CallbackPayload
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.ValueBased
 import po.misc.registries.callback.TypedCallbackRegistry
@@ -92,10 +91,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
 
     init {
 
-        dtoClass.callbackForwarder.transferTo(bindingHub.listNotifier, listOf(BindingHub.Event.DelegateRegistrationComplete)){input->
-            println("Callbacks forwarder")
-            CallbackPayload.create(input.event, input.callback)
-        }
+
         notificator.onNewSubscription = { key, subscriber->
             logger.info("New subscription for key: $key  by: ${subscriber.completeName}")
         }

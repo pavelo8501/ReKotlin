@@ -24,7 +24,7 @@ class JsonObjectDelegate<T: Any, P, S: Printable>(
 ): ReadOnlyProperty<Any?, String> where P: JsonDescriptor<*>  {
 
     var  propertyParam: KProperty<String>? = null
-    val  property: KProperty<String> get() = propertyParam.getOrManaged<KProperty<String>, ManagedException>("Value is null")
+    val  property: KProperty<String> get() = propertyParam.getOrManaged("Value is null")
 
     val propertyName: String get() = property.name
     var receiver: T? = null

@@ -3,18 +3,15 @@ package po.misc.collections
 import po.misc.interfaces.Identifiable
 
 
-fun <SO : Identifiable, E : Enum<E>> SO.registerKey(parameter: E): CompositeEnumKey<SO, E> {
-    return CompositeKeyRegistry.getKey(this, parameter)
-}
 
 object CompositeKeyRegistry {
-    private val registry = mutableMapOf<Pair<String, Enum<*>>, CompositeEnumKey<*, *>>()
+    private val registry = mutableMapOf<Pair<String, Enum<*>>, CompositeEnumKey<*>>()
 
     @Suppress("UNCHECKED_CAST")
-    fun <SO : Identifiable, E : Enum<E>> getKey(sourceObject: SO, parameter: E): CompositeEnumKey<SO, E> {
+    fun <E : Enum<E>> getKey(sourceObject: Identifiable, parameter: E): CompositeEnumKey<E> {
         val key = Pair(sourceObject.completeName, parameter)
         return registry.getOrPut(key) {
-            CompositeEnumKey(sourceObject, parameter)
-        } as CompositeEnumKey<SO, E>
+            CompositeEnumKey(parameter, sourceObject)
+        } as CompositeEnumKey<E>
     }
 }

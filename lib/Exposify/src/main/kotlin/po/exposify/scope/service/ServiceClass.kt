@@ -25,7 +25,7 @@ class ServiceClass<DTO, DATA, ENTITY>(
     private val rootDTOModel: RootDTO<DTO, DATA, ENTITY>,
     internal val connectionClass : ConnectionClass,
     private val serviceCreateOption: TableCreateMode = TableCreateMode.CREATE,
-    val module: IdentifiableModule = asIdentifiableModule(rootDTOModel.component.sourceName, "ServiceClass", Components.Service)
+    val module: IdentifiableModule = asIdentifiableModule(rootDTOModel.sourceName, "ServiceClass", Components.Service)
 ):  TasksManaged  where  DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity {
 
     private val serviceContext: ServiceContext<DTO, DATA, ENTITY> = ServiceContext(this, rootDTOModel)

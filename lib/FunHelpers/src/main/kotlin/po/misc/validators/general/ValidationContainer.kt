@@ -2,6 +2,7 @@ package po.misc.validators.general
 
 import po.misc.exceptions.ManagedException
 import po.misc.interfaces.Identifiable
+import po.misc.interfaces.IdentifiableContext
 import po.misc.interfaces.asIdentifiable
 import po.misc.types.castOrThrow
 import po.misc.validators.general.models.CheckStatus
@@ -9,7 +10,7 @@ import po.misc.validators.general.reports.ReportRecord
 import po.misc.validators.general.reports.ValidationReport
 
 sealed class ValidationContainerBase<T>(
-    val identifiable: Identifiable,
+    val identifiable: IdentifiableContext,
     var validatable: T,
     internal val validator: Validator
 ) {
@@ -32,7 +33,7 @@ sealed class ValidationContainerBase<T>(
 }
 
 class ValidationContainer<T>(
-    identifiable: Identifiable,
+    identifiable: IdentifiableContext,
     validatable: T,
     validator: Validator
 ):ValidationContainerBase<T>(identifiable, validatable, validator) {

@@ -24,6 +24,12 @@ fun String.ifNotEmpty(string: String):String{
     }
 }
 
+fun   Any?.textIfNull(fallbackText: String, textProvider: (Any)-> String): String{
+   return this?.let {
+        textProvider.invoke(it)
+    }?:fallbackText
+}
+
 fun <T> T?.toTemplate(transform: T.() -> String): String =
     this?.let(transform) ?: ""
 

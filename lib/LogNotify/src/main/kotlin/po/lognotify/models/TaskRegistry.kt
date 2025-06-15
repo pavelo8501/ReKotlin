@@ -5,7 +5,6 @@ import po.lognotify.classes.task.RootTask
 import po.lognotify.classes.task.Task
 import po.lognotify.classes.task.TaskBase
 import po.lognotify.classes.task.interfaces.ResultantTask
-import po.misc.types.UpdateType
 
 class TaskRegistry<T, R>(
     val dispatcher: TaskDispatcher,
@@ -16,7 +15,7 @@ class TaskRegistry<T, R>(
 
     fun registerChild(task: Task<*, *>) {
         tasks[task.key] = task
-        dispatcher.notifyUpdate(UpdateType.OnCreated, task)
+        dispatcher.notifyUpdate(TaskDispatcher.UpdateType.OnTaskCreated, task)
     }
 
     fun getLastSubTask(): Task<*, *>?{

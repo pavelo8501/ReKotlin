@@ -32,6 +32,8 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion")
     testImplementation("org.junit.jupiter:junit-jupiter:$junitVersion")
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
+    testImplementation(project(":lib:AuthCore"))
+
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

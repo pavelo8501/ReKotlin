@@ -39,7 +39,7 @@ sealed class ComplexDelegate<DTO, D, E, F_DTO, FD,  FE>(
     abstract override val module : IdentifiableModule
 
     abstract override val foreignClass: DTOBase<F_DTO, FD, FE>
-    abstract val typeRecord: TypeRecord<CommonDTO<F_DTO, FD, FE>>?
+    //abstract val typeRecord: TypeRecord<CommonDTO<F_DTO, FD, FE>>?
 
     protected val ownDTOClass: DTOBase<DTO, D, E> get() = hostingDTO.dtoClass
 
@@ -95,7 +95,7 @@ class AttachedForeignDelegate<DTO, D, E, F_DTO, FD, FE>(
     override val module: IdentifiableModule = asIdentifiableModule(hostingDTO.sourceName, "AttachedForeignDelegate",
         Delegates.AttachedForeignDelegate)
 
-    override val typeRecord: TypeRecord<CommonDTO<F_DTO, FD, FE>>? = null
+    //override val typeRecord: TypeRecord<CommonDTO<F_DTO, FD, FE>>? = null
 
     init {
 
@@ -131,20 +131,20 @@ class ParentDelegate<DTO, D, ENTITY, F_DTO, FD, FE>(
     override val module: IdentifiableModule = asIdentifiableModule(hostingDTO.sourceName, "AttachedForeignDelegate",
         Delegates.ParentDelegate)
 
-    override val typeRecord: TypeRecord<CommonDTO<F_DTO, FD, FE>>? = null
+    //override val typeRecord: TypeRecord<CommonDTO<F_DTO, FD, FE>>? = null
 
 
     init {
-        hostingDTO.subscribe(module, CommonDTO.Events.OnParentAttached){dto->
-            if(typeRecord != null){
-                dto.safeCast<CommonDTO<F_DTO, FD, FE>>(typeRecord.clazz)?.let { castedDTO ->
-                    foreignDTOParameter = castedDTO
-                    resolveForeign()
-                }?:run { hostingDTO.logger.warn("Safe cast failed for ${dto.completeName}") }
-            }else{
-                hostingDTO.logger.warn("TypeRecord not received. Won't cast ${dto.completeName}")
-            }
-        }
+//        hostingDTO.subscribe(module, CommonDTO.Events.OnParentAttached){dto->
+//            if(typeRecord != null){
+//                dto.safeCast<CommonDTO<F_DTO, FD, FE>>(typeRecord.clazz)?.let { castedDTO ->
+//                    foreignDTOParameter = castedDTO
+//                    resolveForeign()
+//                }?:run { hostingDTO.logger.warn("Safe cast failed for ${dto.completeName}") }
+//            }else{
+//                hostingDTO.logger.warn("TypeRecord not received. Won't cast ${dto.completeName}")
+//            }
+//        }
     }
 
 

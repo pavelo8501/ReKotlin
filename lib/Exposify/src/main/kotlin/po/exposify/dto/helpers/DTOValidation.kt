@@ -16,6 +16,7 @@ import po.lognotify.classes.notification.NotifierHub
 import po.misc.data.PrintableBase
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.asIdentifiable
+import po.misc.interfaces.asIdentifiableClass
 import po.misc.reflection.mappers.PropertyMapper
 import po.misc.validators.general.Validator
 import po.misc.validators.general.models.CheckStatus
@@ -31,19 +32,16 @@ import po.misc.validators.general.validators.conditionTrue
 fun <DTO, D, E> DTOBase<DTO, D, E>.setupValidation(
     propertyMapper : PropertyMapper
 ): Boolean  where DTO: ModelDTO, D: DataModel, E: LongEntity
-        = runInlineAction(this.component, "setupValidation") {handler->
+        = runInlineAction(this, "setupValidation") {handler->
 
     var result: Boolean = false
     var relationDelegates: List<RelationDelegate<DTO, D, E, *, *, *, *>> = listOf()
 
-    fun onDelegatesRegistered(container: BindingHub.ListData<DTO, D, E>): Boolean {
-
+    fun delegateValidation(container: BindingHub.ListData<DTO, D, E>): Boolean {
         val bindingHub = container.hostingDTO.bindingHub
         val validator = Validator()
         val entityRecord = propertyMapper.getMapperRecord<E, OperationsException>(SourceObject.Entity)
-
-        val reports = validator.validate(this.component.completeName, component) {
-
+        val reports = validator.validate(this.completeName, this) {
             val categorize = container.delegates.groupBy { it.module.moduleName }
             categorize.forEach { (key, value) ->
                 val enum = key as Delegates
@@ -96,27 +94,22 @@ fun <DTO, D, E> DTOBase<DTO, D, E>.setupValidation(
             }
         }
 
-
-        val receivedList: MutableList<PrintableBase<*>> = mutableListOf()
-        handler.subscribeHubEvents(NotifierHub.Event.DataReceived){
-            receivedList.add(it)
+        reports.forEach {report->
+            handler.log<ValidationReport>(report) {
+                printTemplate(Header)
+                getRecords().forEach {record-> record.printTemplate(ReportRecord.GeneralTemplate)}
+                printTemplate(Footer)
+            }
         }
-        handler.log<ValidationReport>(reports.first()) {
-            printTemplate(Header)
-            getRecords().forEach {record-> record.printTemplate(ReportRecord.GeneralTemplate)}
-            printTemplate(Footer)
-        }
-
-        val result = receivedList.toList()
-
-
         return reports.finalCheckStatus() != CheckStatus.FAILED
     }
 
-    val identifiable: Identifiable = asIdentifiable("setupValidation", component.completeName)
-    callbackForwarder.subscribe(identifiable, DTOBase.Events.DelegateRegistrationComplete) {
-        result = onDelegatesRegistered(it)
+    notifier.subscribe<BindingHub.ListData<DTO, D, E>>(this, DTOBase.Events.DelegateRegistrationComplete){
+        val data = it.getData()
+        result = delegateValidation(data)
     }
+
+    //Triggers configuration block and validation
     val shallowDTO = config.dtoFactory.createDto()
 
     if(result){

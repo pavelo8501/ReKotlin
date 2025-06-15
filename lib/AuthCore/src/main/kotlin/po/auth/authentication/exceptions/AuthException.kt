@@ -1,11 +1,8 @@
 package po.auth.authentication.exceptions
 
-import po.lognotify.exceptions.LoggerException
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
-import po.misc.exceptions.SelfThrownException
-import po.misc.types.safeCast
-import kotlin.reflect.full.companionObjectInstance
+import po.misc.exceptions.ManageableException
 
 enum class ErrorCodes(val value: Int) {
     UNDEFINED(0),
@@ -55,24 +52,10 @@ class AuthException(
     override var handler : HandlerType = HandlerType.CANCEL_ALL
 
 
-    companion object : SelfThrownException.Builder<AuthException> {
+    companion object : ManageableException.Builder<AuthException> {
         override fun build(message: String, source: Enum<*>?, original : Throwable?): AuthException {
             val exCode = ErrorCodes.getByValue(source?.ordinal?:0)
             return AuthException(message, exCode, original)
         }
     }
-
-//    companion object {
-//        inline fun <reified E : ManagedException> build(message: String, optionalCode: Int?): E {
-//            return E::class.companionObjectInstance?.safeCast<Builder<E>>()
-//                ?.build(message, optionalCode)
-//                ?: throw IllegalStateException("Companion object must implement Builder<E>")
-//        }
-//
-//        interface Builder<E> {
-//            fun build(message: String, optionalCode: Int?): E
-//        }
-//    }
-
-
 }

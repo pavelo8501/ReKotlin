@@ -99,7 +99,9 @@ class LoggerDataProcessor(
                 createData("", SeverityLevel.INFO, TaskData.Header)
             }
             EventType.STOP -> {
-                createData("", SeverityLevel.INFO, TaskData.Footer)
+                val data = createData("", SeverityLevel.INFO, TaskData.Footer)
+                stopBroadcast()
+                data
             }
             EventType.ExceptionRaised,
             EventType.ExceptionRethrown,

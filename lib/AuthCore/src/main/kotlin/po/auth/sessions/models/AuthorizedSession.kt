@@ -14,8 +14,8 @@ import po.auth.authentication.exceptions.ErrorCodes
 import po.auth.sessions.enumerators.SessionType
 import po.auth.sessions.interfaces.EmmitableSession
 import po.auth.sessions.interfaces.SessionIdentified
-import po.lognotify.classes.process.LoggProcess
-import po.lognotify.classes.process.ProcessableContext
+import po.lognotify.process.LoggerProcess
+import po.misc.coroutines.CoroutineHolder
 import po.misc.types.castOrThrow
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -24,7 +24,7 @@ import kotlin.coroutines.CoroutineContext
 class AuthorizedSession internal constructor(
     override val remoteAddress: String,
     val authenticator: UserAuthenticator,
-):  CoroutineContext.Element,  EmmitableSession, SessionIdentified, ProcessableContext<AuthorizedSession> {
+):  CoroutineContext.Element,  EmmitableSession, SessionIdentified, CoroutineHolder {
 
     var principal : AuthenticationPrincipal? = null
     override var sessionType: SessionType = SessionType.ANONYMOUS
@@ -38,28 +38,28 @@ class AuthorizedSession internal constructor(
         }
     }
 
-    override var getLoggerProcess: (() -> LoggProcess<*> )? = null
+    //var getLoggerProcess: (() -> LoggProcess<*> )? = null
 
     override val sessionID: String = UUID.randomUUID().toString()
+
     override val sessionContext: CoroutineContext
         get() = scope.coroutineContext
 
+    override val coroutineContext: CoroutineContext
+        get() = scope.coroutineContext
 
-    override val identifiedAs: String get() = sessionID
 
-
-    override val name: String get() =  coroutineName
-
+    val identifiedAs: String get() = sessionID
+    val name: String get() =  coroutineName
     private val scope: CoroutineScope = CoroutineScope(CoroutineName(coroutineName) + this)
 
 
-
-    override fun onProcessStart(session: LoggProcess<*>) {
-        println("onProcessStart emitted with sessionId ${session.identifiedAs}")
+    fun onProcessStart(session: LoggerProcess<*, *>) {
+        println("onProcessStart emitted with sessionId ${session.identified}")
     }
 
-    override fun onProcessEnd(session: LoggProcess<*>) {
-        println("onProcessEnd emitted with sessionId ${session.identifiedAs}")
+    fun onProcessEnd(session: LoggerProcess<*, *>) {
+        println("onProcessEnd emitted with sessionId ${session.identified}")
     }
 
     override fun sessionScope(): CoroutineScope{
