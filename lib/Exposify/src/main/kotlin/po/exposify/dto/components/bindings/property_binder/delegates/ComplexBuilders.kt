@@ -12,7 +12,7 @@ import kotlin.reflect.KProperty1
 
 fun <DTO,  DATA, ENTITY, F_DTO, FD, FE> CommonDTO<DTO, DATA, ENTITY>.attachedReference(
     foreignDTOClass: RootDTO<F_DTO, FD, FE>,
-    dataIdProperty: KProperty1<DATA, Long>,
+    dataIdProperty: KMutableProperty1<DATA, Long>,
     entityIdProperty: KMutableProperty1<ENTITY,  Long>,
     foreignDTOCallback: (F_DTO)-> Unit
 ): AttachedForeignDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>

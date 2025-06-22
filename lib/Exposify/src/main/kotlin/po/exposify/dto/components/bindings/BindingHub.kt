@@ -217,6 +217,9 @@ class BindingHub<DTO, D, E, F_DTO, FD, FE>(
         responsiveDelegates.values.forEach {
             it.updateBy(entity)
         }
+        attachedForeignDelegates.values.forEach {attachedForeign->
+            attachedForeign.resolveForeign(entity)
+        }
         val delegates = if (dtoClass is RootDTO) {
             getRelationDelegates(Cardinality.ONE_TO_MANY)
         } else {

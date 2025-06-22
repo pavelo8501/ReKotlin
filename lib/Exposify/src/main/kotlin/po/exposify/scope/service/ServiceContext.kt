@@ -8,6 +8,7 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.common.interfaces.AsContext
 import po.exposify.dto.RootDTO
+import po.exposify.dto.components.DeferredWhere
 import po.exposify.dto.components.ExecutionProvider
 import po.exposify.dto.components.SimpleQuery
 import po.exposify.dto.components.WhereQuery
@@ -81,10 +82,10 @@ class ServiceContext<DTO, DATA, ENTITY>(
     }.resultOrException()
 
     fun <T : IdTable<Long>> select(
-        conditions: WhereQuery<T>
+        conditions: DeferredWhere<T>,
     ):ResultList<DTO, DATA, ENTITY> = runTask("Select With Conditions") {handler->
             withTransactionIfNone(handler) {
-                executionProvider.select(conditions)
+                executionProvider.select(conditions.resolve())
             }
         }.resultOrException()
 

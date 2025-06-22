@@ -85,8 +85,12 @@ class ExecutionProvider<DTO, DATA, ENTITY>(
         return entities.select(dtoClass, operation)
     }
 
-    override fun <T : IdTable<Long>> select(conditions: WhereQuery<T>): ResultList<DTO, DATA, ENTITY> =
-        select(conditions)
+    override fun <T : IdTable<Long>> select(conditions: WhereQuery<T>): ResultList<DTO, DATA, ENTITY>{
+        val operation = CrudOperation.Select
+        val entities = dtoClass.config.daoService.select(conditions)
+        return entities.select(dtoClass, operation)
+    }
+
 
     override fun update(dataModel: DATA): ResultSingle<DTO, DATA, ENTITY> {
         val operation = CrudOperation.Update

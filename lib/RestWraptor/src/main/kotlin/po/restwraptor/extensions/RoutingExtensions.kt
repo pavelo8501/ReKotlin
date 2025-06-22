@@ -32,7 +32,7 @@ fun Route.withBaseUrl(vararg pathParts:String ): String{
 
     val wraptor =  application.getRestWrapTor().getOrThrow<RestWrapTor, ConfigurationException>(
         "Wraptor not found in Application registry",
-        ExceptionCodes.KEY_REGISTRATION.value)
+        ExceptionCodes.KEY_REGISTRATION)
 
     var baseRouteToUse = wraptor.wrapConfig.apiConfig.baseApiRoute
     if(baseRouteToUse.isEmpty()){ baseRouteToUse =  application.rootPath }
@@ -45,7 +45,7 @@ fun Route.withBaseUrl(vararg pathParts:String ): String{
 fun Routing.jwtSecured(block: Route.() -> Unit){
     val wraptor =  application.getRestWrapTor().getOrThrow<RestWrapTor, ConfigurationException>(
         "Wraptor not found in Application registry",
-        ExceptionCodes.KEY_REGISTRATION.value)
+        ExceptionCodes.KEY_REGISTRATION)
 
     val serviceName : String =  wraptor.wrapConfig.authConfig.jwtServiceName
 

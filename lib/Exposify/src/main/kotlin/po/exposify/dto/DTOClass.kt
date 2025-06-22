@@ -112,8 +112,7 @@ sealed class DTOBase<DTO, DATA, ENTITY>(
 
     internal var delegateRegistrationForward =  CallbackManager.createPayload<Events, ListData<DTO, DATA, ENTITY>>(notifier, Events.DelegateRegistrationComplete)
 
-    @PublishedApi
-    internal abstract fun setup()
+    abstract fun setup()
 
     @PublishedApi
     internal fun updateStatus(newStatus: DTOClassStatus){

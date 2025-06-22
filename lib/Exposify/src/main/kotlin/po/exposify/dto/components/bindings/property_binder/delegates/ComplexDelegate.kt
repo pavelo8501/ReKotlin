@@ -87,7 +87,7 @@ sealed class ComplexDelegate<DTO, D, E, F_DTO, FD,  FE>(
 class AttachedForeignDelegate<DTO, D, E, F_DTO, FD, FE>(
     hostingDTO: CommonDTO<DTO, D, E>,
     override val foreignClass: RootDTO<F_DTO, FD, FE>,
-    val dataIdProperty: KProperty1<D, Long>,
+    val dataIdProperty: KMutableProperty1<D, Long>,
     val entityIdProperty: KMutableProperty1<E,  Long>,
     val foreignDTOCallback: (F_DTO)-> Unit,
 ): ComplexDelegate<DTO, D, E, F_DTO, FD, FE>(WhoAmI.AttachedForeignDelegate, hostingDTO), IdentifiableClass
@@ -103,6 +103,7 @@ class AttachedForeignDelegate<DTO, D, E, F_DTO, FD, FE>(
         val pickResult = foreignClass.serviceContext.pickById(id)
         pickResult.getDTO()?.let { foreignDTO ->
             foreignDTOParameter = pickResult.getAsCommonDTOForced()
+
             foreignDTOCallback.invoke(foreignDTO)
         }?:run {
             hostingDTO.logger.warn("AttachedForeign dto lookup failure. No DTO with id:${id}")
@@ -120,6 +121,7 @@ class AttachedForeignDelegate<DTO, D, E, F_DTO, FD, FE>(
 
     fun resolveForeign(entity:E){
         val foreignId : Long = entityIdProperty.get(entity)
+        dataIdProperty.set(hostingDTO.dataModel, foreignId)
         getForeignDTOAndResolve(foreignId)
     }
 }

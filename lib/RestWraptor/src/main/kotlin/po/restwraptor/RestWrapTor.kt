@@ -35,10 +35,11 @@ val RestWrapTorKey = AttributeKey<RestWrapTor>("RestWrapTorInstance")
  * @property appConfigFn (Optional) Function to apply additional configurations to the application.
  */
 class RestWrapTor(
-    private var appConfigFn : ( suspend ConfigContext.() -> Unit)? = null,
+    private var appConfigFn : ( suspend ConfigContext.() -> Unit)? = null
 ): WraptorHandler, TasksManaged
 {
 
+    override val contextName: String = "RestWrapTor"
     private val personalName : String = "RestWrapTor"
 
     /**
@@ -50,7 +51,7 @@ class RestWrapTor(
 
     private var _application: Application? = null
     internal val application: Application
-        get() = _application.getOrThrow<Application, ConfigurationException>(null, ExceptionCodes.GENERAL_CONFIG_FAILURE.value)
+        get() = _application.getOrThrow<Application, ConfigurationException>(null, ExceptionCodes.GENERAL_CONFIG_FAILURE)
 
     /** The embedded Ktor server instance. */
     private lateinit var  embeddedServer : EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>
@@ -77,7 +78,7 @@ class RestWrapTor(
 
     private var hasCoreContext : CoreContext? = null
     private val coreContext : CoreContext
-        get(){ return hasCoreContext?:throw ConfigurationException("Core context accessed before init", ExceptionCodes.VALUE_IS_NULL)}
+        get(){ return hasCoreContext?:throw ConfigurationException("Core context accessed before init", ExceptionCodes.VALUE_IS_NULL, null)}
 
 
     /** The attribute key used to store this instance inside the `Application.attributes`. */
@@ -175,7 +176,7 @@ class RestWrapTor(
             application.monitor.subscribe(ServerReady) {
                 onServerStartedCallback?.invoke(this)
             }
-            registerSelf().getOrThrow<AttributeKey<RestWrapTor>, ConfigurationException>("RestWrapTor Registration inside Application failed", ExceptionCodes.KEY_REGISTRATION.value)
+            registerSelf().getOrThrow<AttributeKey<RestWrapTor>, ConfigurationException>("RestWrapTor Registration inside Application failed", ExceptionCodes.KEY_REGISTRATION)
             configContext.initialize(appConfigFn)
             appHash = System.identityHashCode(application)
             handler.info("App hash of the WrapTor configured app $appHash")

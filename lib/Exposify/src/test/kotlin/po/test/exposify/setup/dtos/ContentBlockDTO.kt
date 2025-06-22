@@ -50,15 +50,17 @@ class ContentBlockDTO(
     var classList: List<ClassData> by serializedBinding(ContentBlock::classList, ContentBlockEntity::classList)
     var metaTags:  List<MetaData> by serializedBinding(ContentBlock::metaTags, ContentBlockEntity::metaTags)
 
+
     val section by parentReference(SectionDTO){section->
-        println("parentReference[SectionDTO] for ${this::class.simpleName} updated with: ${section.completeName}")
-        sectionId = section.id
+        sectionId =  section.id
 
     }
 
     companion object: DTOClass<ContentBlockDTO, ContentBlock, ContentBlockEntity>(ContentBlockDTO::class, SectionDTO){
         override fun setup() {
-            configuration {  }
+            configuration {
+
+            }
         }
     }
 }

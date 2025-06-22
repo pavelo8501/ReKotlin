@@ -25,19 +25,12 @@ fun Routing.configureSystemRoutes(baseURL: String, configContext: ConfigContext)
         call.respondText("OK")
     }
     get(statusUrl) {
-        runTask("Accessing Application: ${configContext.hashCode()}"){taskHandler->
-            taskHandler.info("Accessing Application: ${configContext.hashCode()}")
-            call.respond(wraptor.status().toString())
-        }
-
+        call.respond(wraptor.status().toString())
     }
     val statusJsonUrl = toUrl(baseURL, "status-json")
     get(statusJsonUrl) {
-        runTask("Accessing Application: ${configContext.hashCode()}") { taskHandler ->
-            taskHandler.info("Status Json endpoint called")
-            val responseStatus: String = "OK"
-            call.respond(ApiResponse(responseStatus))
-        }
+        val responseStatus: String = "OK"
+        call.respond(ApiResponse(responseStatus))
     }
     route("{...}") {
         handle {

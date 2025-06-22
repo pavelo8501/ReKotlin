@@ -15,12 +15,12 @@ import po.test.exposify.setup.pageModels
 import po.test.exposify.setup.pageModelsWithSections
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import po.exposify.dto.components.deferredWhere
 import po.exposify.dto.components.result.ResultList
 import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.ConsoleBehaviour
 import po.lognotify.logNotify
-import po.test.exposify.dto.TestComplexDelegate.Companion.userId
 import po.test.exposify.setup.ClassData
 import po.test.exposify.setup.PageEntity
 import po.test.exposify.setup.dtos.Page
@@ -103,13 +103,7 @@ class TestSelect : DatabaseTest(), TasksManaged {
                 "First section properly updated",
                 { assertNotEquals(0, firstSection.id, "Id did not updated") },
                 { assertEquals("Section_1", firstSection.name, "Name property update failed") },
-                {
-                    assertEquals(
-                        TestUpdate.Companion.updatedById,
-                        firstSection.updatedBy,
-                        "Name property update failed"
-                    )
-                },
+                { assertEquals(updatedById, firstSection.updatedBy, "Name property update failed") },
                 { assertTrue(firstSection.contentBlocks.size == 2, "ContentBlocks count mismatch") }
             )
 
@@ -117,13 +111,7 @@ class TestSelect : DatabaseTest(), TasksManaged {
                 "Last section properly updated",
                 { assertNotEquals(0, lastSection.id, "Id did not updated") },
                 { assertEquals("Section_2", lastSection.name, "Name property update failed") },
-                {
-                    assertEquals(
-                        TestUpdate.Companion.updatedById,
-                        lastSection.updatedBy,
-                        "Name property update failed"
-                    )
-                },
+                {assertEquals(updatedById, lastSection.updatedBy, "UpdatedById property update failed") },
                 { assertTrue(lastSection.contentBlocks.size == 2, "ContentBlocks count mismatch") }
             )
 
@@ -151,7 +139,7 @@ class TestSelect : DatabaseTest(), TasksManaged {
             pageCount = 1,
             sectionsCount = 3,
             contentBlocksCount = 1,
-            updatedBy = userId
+            updatedBy = updatedById
         ).first()
         lateinit var selectedResult: ResultList<PageDTO, Page, PageEntity>
         withConnection {
@@ -241,7 +229,7 @@ class TestSelect : DatabaseTest(), TasksManaged {
         withConnection {
             service(PageDTO.Companion, TableCreateMode.FORCE_RECREATE) {
                 update(pages)
-                selectedPages = select(WhereQuery(Pages).equalsTo({ langId }, 1)).getData()
+                selectedPages = select(deferredWhere{ WhereQuery(Pages).equals(Pages.langId, 1)}).getData()
             }
         }
 
@@ -250,13 +238,60 @@ class TestSelect : DatabaseTest(), TasksManaged {
         assertAll(
             { assertEquals(2, selectedSections.count(), "Selected Sections Mismatch") },
             { assertNotEquals(0, selectedSections[0].id, "Selected Section update failure") },
-            {
-                assertEquals(
-                    updatedById,
-                    selectedSections[0].updatedBy,
-                    "Selected Section updated with wrong updatedBy"
-                )
+            { assertEquals(updatedById, selectedSections[0].updatedBy, "Selected Section updated with wrong updatedBy") }
+        )
+    }
+
+    @Test
+    fun `Property delegates update data correctly on update and select`(){
+        val controlName = "Some Caption"
+        val page = pagesSectionsContentBlocks(
+            pageCount = 1,
+            sectionsCount = 2,
+            contentBlocksCount = 3,
+            updatedBy = updatedById
+        ).first()
+
+        page.sections[0].name = controlName
+        page.sections.forEach {section->
+            section.name = controlName
+            section.contentBlocks.forEach { contentBlock->
+                contentBlock.content = controlName
             }
+        }
+
+        var updated : Page? = null
+        var selected : Page? = null
+
+        withConnection {
+            service(PageDTO, TableCreateMode.FORCE_RECREATE){
+                updated =  update(page).getData()
+                selected = select().getData().firstOrNull()
+            }
+        }
+
+        val updatedPage = assertNotNull(updated)
+        val selectedPage = assertNotNull(selected)
+
+        assertNotEquals(0, updatedPage.id)
+        assertEquals(updatedPage.id, selectedPage.id, "Page id mismatch")
+        assertTrue(updatedPage.sections.size == 2, "Sections empty in updated")
+        assertTrue(selectedPage.sections.size == 2, "Sections empty in selected")
+        assertEquals(controlName, updatedPage.sections.first().name, "Name property on Sections was not updated")
+        assertEquals(controlName, selectedPage.sections.first().name, "Name property on Sections was not updated on Select")
+        val updatedFirstSection = updatedPage.sections.first()
+        val selectedFirstSection = selectedPage.sections.first()
+        val selectedLastSection = selectedPage.sections.last()
+        assertEquals(updatedFirstSection.name, updatedPage.sections.last().name, "Name property mismatch in firs and last updated Section")
+        assertEquals(selectedFirstSection.name, selectedLastSection.name,"Name property mismatch in firs and last selected Section")
+        assertTrue(updatedFirstSection.contentBlocks.size == 3, "ContentBlocks wrong size in updated")
+
+        val firstContentBlockOfFistSection = selectedFirstSection.contentBlocks.first()
+        val lastContentBlockOfLastSection = selectedLastSection.contentBlocks.last()
+        assertAll("Asserting ContentBlocks of selection",
+            { assertTrue(selectedFirstSection.contentBlocks.size == 3, "ContentBlocks empty in selected") },
+            { assertEquals(controlName, firstContentBlockOfFistSection.content, "Content property on ContentBlock mismatch in selection") },
+            { assertEquals(firstContentBlockOfFistSection.content, lastContentBlockOfLastSection.content, "Content property on ContentBlocks mismatch") }
         )
     }
 }

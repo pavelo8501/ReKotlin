@@ -35,9 +35,9 @@ class ConfigContext(
     internal val wraptor : RestWrapTor,
     private val wrapConfig : WraptorConfig,
 
-): ConfigContextInterface, TasksManaged{
+    ): ConfigContextInterface, TasksManaged{
 
-    val personalName = "ConfigContext"
+    override val contextName: String = "ConfigContext"
 
     var apiConfig : ApiConfig
         get()  {return  wrapConfig.apiConfig}

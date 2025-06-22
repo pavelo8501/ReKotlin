@@ -44,6 +44,13 @@ sealed class SimpleQuery() {
     }
 }
 
+class DeferredWhere<T : IdTable<Long>>(private val block: () -> WhereQuery<T>) {
+    fun resolve(): WhereQuery<T> = block()
+}
+
+fun <T : IdTable<Long>> deferredWhere(block: () -> WhereQuery<T>): DeferredWhere<T> =
+    DeferredWhere(block)
+
 
 class WhereQuery<T> (
     private val table: T
@@ -101,6 +108,10 @@ class SwitchQuery<DTO: ModelDTO, D : DataModel, E: LongEntity>(
 ):SimpleQuery() {
 
     override var expression: Set<Op<Boolean>> = emptySet()
+
+    fun combineConditions(conditions: Set<Op<Boolean>>): Op<Boolean> {
+        return conditions.reduceOrNull { acc, op -> acc and op } ?: Op.TRUE
+    }
 
     init {
         addCondition(dtoClass.config.entityModel.sourceTable.id eq lookUpId)

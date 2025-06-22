@@ -35,7 +35,7 @@ fun Application.getRestWrapTor(): RestWrapTor? {
 fun Application.getWraptorRoutes(callback: (List<WraptorRoute>)-> Unit ){
    val wraptor =  getRestWrapTor().getOrThrow<RestWrapTor, ConfigurationException>(
        "Wraptor not found in Application registry",
-       ExceptionCodes.KEY_REGISTRATION.value)
+       ExceptionCodes.KEY_REGISTRATION)
 
    wraptor.getRoutes(callback)
 }
