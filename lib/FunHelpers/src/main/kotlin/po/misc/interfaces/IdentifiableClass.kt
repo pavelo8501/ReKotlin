@@ -1,45 +1,33 @@
 package po.misc.interfaces
 
-import kotlin.reflect.KClass
+import po.misc.data.helpers.textIfNull
 
-interface IdentifiableClass : IdentifiableContext {
-    val identity: ClassIdentity<*>
-    val sourceName: String get() = identity.sourceName
+class ClassIdentity(val componentName: String, var sourceName: String){
 
-    override val contextName: String get() = identity.componentName
-    val completeName: String get() = "$contextName[$sourceName]"
-}
 
-class ClassIdentity<C>(val componentName: String, internal val receiver: C) where  C: IdentifiableClass{
+    private val hashCode: Int = this.hashCode()
 
-    var sourceNameProvider : (()->  KClass<*>)? = null
-    private var sourceNameProvided : String? = null
-    val sourceName: String
-        get() {
-            sourceNameProvided = sourceNameProvider?.invoke()?.simpleName
-            return sourceNameProvided ?: "Undefined"
+    var id: Int? = null
+        private set
+
+    val completeName: String get(){
+      return  if(sourceName.isNotEmpty()){
+            "${componentName}[${sourceName}${id.textIfNull(""){ "#${id.toString()}" }}]"
+        }else{
+          "$componentName[${id.textIfNull(""){ "#${ id.toString() }" }}]"
         }
+    }
+
+    fun provideId(newId: Int){
+        id = newId
+    }
+
     fun updateSourceName(name: String){
-        sourceNameProvided = name
-    }
-
-    fun updateSourceName(sourceProvider : ()-> KClass<*>){
-        sourceNameProvider = sourceProvider
+        sourceName = name
     }
 }
 
-fun <C: IdentifiableClass> C.asIdentifiableClass(sourceName: String, clasName: String? = null):ClassIdentity<C> {
-    val name = clasName ?: this::class.simpleName.toString()
-    val classImpl = ClassIdentity(name, this)
-    classImpl.updateSourceName(sourceName)
-    return classImpl
-}
-
-fun <C: IdentifiableClass, S: Any> C.asIdentifiableClass(
-    sourceProvider: ()-> KClass<S>
-):ClassIdentity<C>{
-    val clasName = this::class.simpleName.toString()
-    val classImpl = ClassIdentity(clasName, this)
-    classImpl.updateSourceName(sourceProvider)
+fun IdentifiableContext.asIdentifiableClass(componentName: String, sourceObjectName: String):ClassIdentity{
+    val classImpl = ClassIdentity(componentName, sourceObjectName)
     return classImpl
 }

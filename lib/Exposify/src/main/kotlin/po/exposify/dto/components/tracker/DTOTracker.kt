@@ -18,18 +18,13 @@ import po.misc.time.stopTimer
 class DTOTracker<DTO: ModelDTO, DATA: DataModel>(
     internal val dto : CommonDTO<DTO, DATA, *>,
    @PublishedApi internal val config : TrackerConfig = TrackerConfig(),
-    val identifiable : Identifiable = asIdentifiable(dto.sourceName, "${Components.Tracker}")
-):  Identifiable by identifiable, MeasuredContext, TrackableDTO{
+):  MeasuredContext, TrackableDTO{
 
-    override val executionTimeStamp: ExecutionTimeStamp = ExecutionTimeStamp(dto.componentName, dto.id.toString())
-    override val sourceName: String
-        get() = dto.sourceName
+    override val executionTimeStamp: ExecutionTimeStamp = ExecutionTimeStamp(dto.completeName, dto.id.toString())
+    override var sourceName: String = dto.sourceName
+    override val contextName: String = "DTOTracker"
 
-
-//    override val completeName: String
-//        get() = super<Component>.completeName
-
-    private var activeRecord : TrackerRecord = TrackerRecord(this, dto.id, CrudOperation.Create, dto.componentName)
+    private var activeRecord : TrackerRecord = TrackerRecord(this, dto.id, CrudOperation.Create, dto.completeName)
     private val trackRecords : MutableList<TrackerRecord> = mutableListOf()
 
 
@@ -93,7 +88,7 @@ class DTOTracker<DTO: ModelDTO, DATA: DataModel>(
 
     fun TrackableDTO.getTrace(indent: String = "", isLast: Boolean = true): String {
         val connector = if (indent.isEmpty()) "" else if (isLast) "└── " else "├── "
-        val line = "$indent$connector[$componentName] (${records.size} changes)"
+        val line = "$indent$connector[$completeName] (${records.size} changes)"
         val nextIndent = indent + if (isLast) "    " else "│   "
         val childLines = childTrackers.mapIndexed { index, child ->
             child.getTrace(nextIndent, index == childTrackers.lastIndex)
@@ -104,9 +99,6 @@ class DTOTracker<DTO: ModelDTO, DATA: DataModel>(
     fun printTrace(){
         println(getTrace())
     }
-
-    override val completeName: String
-        get() = componentName
 
 }
 

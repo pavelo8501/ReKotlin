@@ -19,7 +19,7 @@ class TestDataProcessor {
         val personalName: String,
         val content : String,
         val componentName: String = "Some name",
-    ): PrintableBase<TopDataItem>(){
+    ): PrintableBase<TopDataItem>(TopTemplate){
 
         override val self: TopDataItem = this
 
@@ -27,46 +27,51 @@ class TestDataProcessor {
         override val itemId: ValueBased = toValueBased(id)
 
         companion object{
-            val TopTemplate: PrintableTemplate<TopDataItem> = PrintableTemplate{"TopTemplate->$content"}
+            val TopTemplate: PrintableTemplate<TopDataItem> = PrintableTemplate("TopTemplate"){"TopTemplate->$content"}
         }
     }
 
-    data class DataItem (
+    data class SubData (
         val id: Int,
         val personalName: String,
         val content : String,
         val componentName: String = "Some name",
-    ): PrintableBase<DataItem>(){
+    ): PrintableBase<SubData>(SubTemplate){
 
-        override val self: DataItem = this
+        override val self: SubData = this
 
         override val emitter: Identifiable = asIdentifiable(personalName, componentName)
         override val itemId: ValueBased = toValueBased(id)
 
         companion object{
-            val Template1: PrintableTemplate<DataItem> = PrintableTemplate{"Template1->$content"}
+            val SubTemplate: PrintableTemplate<SubData> = PrintableTemplate("SubTemplate"){"Template1->$content"}
         }
     }
 
-    val topDataProcessor: DataProcessor = DataProcessor()
-    val subDataProcessor: DataProcessor = DataProcessor(topDataProcessor)
+    val topDataProcessor: DataProcessor<TopDataItem> = DataProcessor<TopDataItem>()
+    val subDataProcessor: DataProcessor<SubData> = DataProcessor<SubData>(topDataProcessor)
 
+    @Test
+    fun `DataProcessor templated string`(){
+        val subRecord = SubData(1, "Name", "subRecord content")
+        topDataProcessor.logData<SubData>(subRecord, SubData.SubTemplate)
+    }
 
     @Test
     fun `Data propagated to topDataProcessor and stacked within PrintableBase`(){
 
-        var parentRecord: PrintableBase<*>? = null
+        var parentRecord: TopDataItem? = null
         var topRecord : PrintableBase<*>? = null
 
-        topDataProcessor.onRecordAttached {topRecord = it }
+        topDataProcessor.hooks.dataReceived{topRecord = it }
         topDataProcessor.onChildAttached{childRec, record -> parentRecord = record }
-
 
         val newTopRecord = TopDataItem(1, "TopDataItem", "TopDataItem_Content1")
         topDataProcessor.processRecord(newTopRecord, TopDataItem.TopTemplate)
 
-        val record1 = DataItem(1, "DataItem", "Content1")
-        val record2 = DataItem(2, "DataItem", "Content2")
+        val record1 = SubData(1, "DataItem", "Content1")
+        val record2 = SubData(2, "DataItem", "Content2")
+
         subDataProcessor.forwardTop(record1)
         subDataProcessor.forwardTop(record2)
 
@@ -76,7 +81,6 @@ class TestDataProcessor {
 
         val processedData = assertNotNull(parentRecord, "ParentRecord is null")
         assertEquals(2, processedData.children.size, "Child records were not attached")
-
     }
 
 

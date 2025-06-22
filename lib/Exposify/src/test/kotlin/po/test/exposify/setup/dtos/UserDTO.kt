@@ -8,7 +8,7 @@ import po.exposify.dto.RootDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.bindings.property_binder.delegates.binding
-import po.exposify.dto.helpers.configuration
+import po.exposify.dto.configuration.configuration
 import po.exposify.scope.sequence.classes.RootHandlerProvider
 import po.test.exposify.setup.UserEntity
 
@@ -42,7 +42,7 @@ class UserDTO(
     var updated : LocalDateTime by binding(User::updated, UserEntity::updated)
     var created : LocalDateTime by binding(User::created, UserEntity::created)
 
-    companion object: RootDTO<UserDTO, User, UserEntity>(){
+    companion object: RootDTO<UserDTO, User, UserEntity>(UserDTO::class){
 
         val SELECT by RootHandlerProvider(this)
         val PICK by RootHandlerProvider(this)

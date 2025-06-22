@@ -16,7 +16,7 @@ data class MappingReportDepr(
     val checkType: CheckBase<*>,
     val dataSourceKey: ValueBased,
     val tester: ValidationSubject<*>?,
-): PrintableBase<MappingReportDepr>() {
+): PrintableBase<MappingReportDepr>(Header) {
 
     override val itemId : ValueBased = dataSourceKey
     override val emitter: Identifiable = checkType.component
@@ -35,9 +35,9 @@ data class MappingReportDepr(
     val hasFailures: Boolean get() = results.any { it.status == CheckStatus.FAILED }
 
     fun printReport(): String = buildString {
-        print(Header)
-        results.forEach { records-> records.printTemplate(ReportRecordDepr.GeneralTemplate) }
-        print(Footer)
+        echo(Header)
+        results.forEach { records-> records.echo(ReportRecordDepr.GeneralTemplate) }
+        echo(Footer)
     }
 
     fun provideResult(records: List<ReportRecordDepr>):MappingReportDepr{
@@ -47,11 +47,11 @@ data class MappingReportDepr(
 
     companion object{
 
-        val Header : PrintableTemplate<MappingReportDepr> = PrintableTemplate(){
+        val Header : PrintableTemplate<MappingReportDepr> = PrintableTemplate("Header"){
             "Validating ${checkType.checkName} [${checkType.component.completeName}]".colorize(Colour.BLUE)
         }
 
-        val Footer : PrintableTemplate<MappingReportDepr> = PrintableTemplate{
+        val Footer : PrintableTemplate<MappingReportDepr> = PrintableTemplate("Footer"){
             """Overall Result: ${overallResult.matchTemplate(
                 templateRule(toString().colorize(Colour.GREEN)){overallResult == CheckStatus.PASSED},
                 templateRule(toString().colorize(Colour.RED)){overallResult == CheckStatus.FAILED},

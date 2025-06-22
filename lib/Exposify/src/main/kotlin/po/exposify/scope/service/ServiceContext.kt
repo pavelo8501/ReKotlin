@@ -26,11 +26,13 @@ import po.misc.exceptions.toManageable
 import po.misc.interfaces.IdentifiableContext
 
 class ServiceContext<DTO, DATA, ENTITY>(
-    internal  val serviceClass : ServiceClass<DTO, DATA, ENTITY>,
+    @PublishedApi internal  val serviceClass : ServiceClass<DTO, DATA, ENTITY>,
     internal val dtoClass: RootDTO<DTO, DATA, ENTITY>,
 ): TasksManaged, IdentifiableContext,  AsContext<DATA>  where DTO : ModelDTO, DATA: DataModel,  ENTITY: LongEntity {
 
     private val dbConnection: Database get() = serviceClass.connection
+
+    override val contextName: String = "ServiceContext"
 
     @LogOnFault
     val personalName: String = "ServiceContext[${dbConnection.name}]"

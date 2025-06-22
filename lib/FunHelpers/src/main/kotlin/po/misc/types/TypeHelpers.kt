@@ -1,7 +1,13 @@
 package po.misc.types
 
+import po.misc.callbacks.manager.CallbackPayload
+import po.misc.data.helpers.emptyOnNull
+import po.misc.data.helpers.textIfNull
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.ManageableException
+import po.misc.exceptions.ManagedCallsitePayload
+import po.misc.exceptions.managedException
+import po.misc.exceptions.throwManaged
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlin.reflect.typeOf
@@ -18,6 +24,22 @@ inline fun <reified T : Any, reified E: ManagedException> T?.getOrThrow(
     if(this == null){
         val effectiveMessage  = message?:"Expected class ${T::class.simpleName} is null"
         throw ManageableException.build<E>(effectiveMessage, code)
+    }else{
+        return this
+    }
+}
+
+
+fun <T : Any> T?.getOrManaged(
+    payload: ManagedCallsitePayload
+):T {
+    if(this == null){
+        var message = "${payload.message}. getOrManaged returned null. ${payload.targetObject.textIfNull(""){ "Target object: ${it}"}}"
+        message += payload.description
+
+        val managed = payload.ctx.managedException(message, payload.source, payload.cause)
+        payload.outputOverride?.invoke(managed)?: run {  throwManaged(message, payload.handler, payload.source, payload.cause)}
+       throw managed
     }else{
         return this
     }

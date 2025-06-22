@@ -8,7 +8,7 @@ import java.time.format.DateTimeFormatter
 
 
 
-interface PrintHelper{
+interface DateHelper{
 
     fun timestamp(): LocalTime = LocalTime.now()
 

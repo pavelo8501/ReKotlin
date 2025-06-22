@@ -14,16 +14,16 @@ class TestCompositeKey {
         Value1,
         Value2
     }
-    class SourceObject(override val sourceName: String) : Identifiable{
-        override val componentName: String = "SomeName1"
+    class SourceObject(override var sourceName: String) : Identifiable{
+        override val contextName: String = "SomeName1"
     }
 
-    class SameAsSourceObject(override val sourceName: String) : Identifiable{
-        override val componentName: String = "SomeName1"
+    class SameAsSourceObject(override var sourceName: String) : Identifiable{
+        override val contextName: String = "SomeName1"
     }
 
-    class SourceObject2(override val sourceName: String): Identifiable{
-        override val componentName: String = "SomeName2"
+    class SourceObject2(override var sourceName: String): Identifiable{
+        override val contextName: String = "SomeName2"
     }
 
     val sourceObject : SourceObject = SourceObject("SomeName1Complete")

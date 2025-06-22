@@ -18,7 +18,7 @@ class TestCreate: DatabaseTest() {
     @Test
     fun `Created default records`()= runTest{
 
-        startTestConnection {
+        withConnection {
 
             service(UserDTO, TableCreateMode.CREATE) {
                 if (select().getDTO().count() == 0) {

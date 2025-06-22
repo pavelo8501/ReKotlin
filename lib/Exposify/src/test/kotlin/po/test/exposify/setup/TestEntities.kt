@@ -29,7 +29,6 @@ class PageEntity(id: EntityID<Long>) : LongEntity(id) {
     var langId by Pages.langId
     var updated by Pages.updated
     var updatedBy by Pages.updatedBy
-    //var updatedBy by UserEntity referencedOn Pages.updatedBy
     val sections by SectionEntity referrersOn Sections.page
 }
 

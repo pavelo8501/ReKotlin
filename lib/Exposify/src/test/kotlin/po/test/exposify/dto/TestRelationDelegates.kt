@@ -32,7 +32,7 @@ class TestRelationDelegates : DatabaseTest() {
             name = "name",
             email = "nomail@void.null"
         )
-        startTestConnection(){
+        withConnection(){
             service(UserDTO) {
                 user = update(user).getDataForced()
             }
@@ -43,7 +43,7 @@ class TestRelationDelegates : DatabaseTest() {
         var updatedPageResult : ResultSingle<PageDTO, Page, PageEntity>? = null
         var selectedPageResult : ResultList<PageDTO, Page, PageEntity>? = null
 
-        startTestConnection{
+        withConnection{
             service(PageDTO, TableCreateMode.CREATE) {
                 page.sections.addAll(sourceSections)
                 updatedPageResult = update(page)
@@ -75,7 +75,7 @@ class TestRelationDelegates : DatabaseTest() {
             name = "name",
             email = "nomail@void.null"
         )
-        startTestConnection{
+        withConnection{
             service(UserDTO) {
                 user = update(user).getDataForced()
             }
@@ -89,7 +89,7 @@ class TestRelationDelegates : DatabaseTest() {
         var selectedDTO : PageDTO? = null
         var updatedSectionsCount = 0
 
-        startTestConnection{
+        withConnection{
             service(PageDTO, TableCreateMode.CREATE) {
                 page.sections.addAll(sourceSections)
                 updatedSectionsCount = update(page).getDataForced().sections.count()
@@ -121,7 +121,7 @@ class TestRelationDelegates : DatabaseTest() {
             name = "name",
             email = "nomail@void.null"
         )
-        startTestConnection(){
+        withConnection{
             service(UserDTO) {
                 user = update(user).getDataForced()
             }
@@ -132,7 +132,7 @@ class TestRelationDelegates : DatabaseTest() {
         var updatedPageData: Page? = null
         var updatedPageDTO : PageDTO? = null
 
-        startTestConnection(){
+        withConnection{
             service(PageDTO, TableCreateMode.CREATE) {
                 page.sections.addAll(sourceSections)
                 val updateResult = update(page)

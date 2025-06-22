@@ -31,6 +31,8 @@ class ConnectionClass(
     val connection: Database,
 ): TasksManaged {
 
+    override val contextName: String = "ConnectionClass"
+
     val sourceName: String = connection.name
     val name: String = "ConnectionClass[${sourceName}]"
     private val dispatchManager = UserDispatchManager()
@@ -63,8 +65,11 @@ class ConnectionClass(
     }
 
     fun close(){
-        taskHandler.info("Closing connection to : ${connection.name}")
+        taskHandler.info("Closing connection: ${connection.name}")
         TransactionManager.closeAndUnregister(database = connection)
+        services.values.forEach {
+            it.deinitializeService()
+        }
     }
 
     fun <DTO, D, E> service(
@@ -75,9 +80,9 @@ class ConnectionClass(
 
         handler.info("Creating ServiceClass")
         val serviceClass = ServiceClass(dtoClass, this, createOptions)
-        services[serviceClass.module.completeName] = serviceClass
+        services[serviceClass.completeName] = serviceClass
         serviceClass.initService(dtoClass)
-        getService<DTO, D, E>(serviceClass.module.completeName)?.runServiceContext(block)
+        getService<DTO, D, E>(serviceClass.completeName)?.runServiceContext(block)
     }.onFail{
         throw it
     }

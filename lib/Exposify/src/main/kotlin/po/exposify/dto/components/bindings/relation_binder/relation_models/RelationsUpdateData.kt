@@ -19,9 +19,9 @@ data class RelationsUpdateParams<DTO : ModelDTO, D: DataModel, E: LongEntity, V:
     val component : Identifiable
 ) : ObservableData{
 
-
-    override val componentName: String get()= component.componentName
-    override val sourceName:  String get()= component.sourceName
+    override var sourceName: String
+        get() = dto.sourceName
+        set(value) {}
+    override val contextName: String get()= component.contextName
     override val id: Long get()= dto.id
-
 }

@@ -1,29 +1,35 @@
 package po.misc.data
 
-import po.misc.data.console.PrintHelper
+import po.misc.data.console.DateHelper
 import po.misc.data.console.PrintableTemplateBase
 import po.misc.data.interfaces.ComposableData
 import po.misc.data.interfaces.Printable
 import po.misc.data.json.JObject
 import po.misc.data.json.JRecord
 import po.misc.data.json.JsonHolder
-import po.misc.data.json.formatJsonSafe
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.ValueBased
-import po.misc.registries.basic.BasicRegistry
 import kotlin.collections.listOf
 
-abstract class PrintableBase<T>()
-    : ComposableData, Printable, PrintHelper where T: Printable
-{
+abstract class PrintableBase<T>(
+    var defaultTemplate: PrintableTemplateBase<T>
+): ComposableData, Printable, DateHelper where T: Printable {
 
     abstract override val itemId :ValueBased
     abstract override val emitter: Identifiable
     abstract val self:T
     override var parentRecord: PrintableBase<*>? = null
-    protected val templateRegistry : BasicRegistry<T.() -> String> = BasicRegistry()
+    //protected val templateRegistry : BasicRegistry<T.() -> String> = BasicRegistry()
     override var children: List<PrintableBase<*>> = listOf()
 
+    val templates: MutableList<PrintableTemplateBase<T>> = mutableListOf<PrintableTemplateBase<T>>().also {templateList->
+        defaultTemplate.let {
+            templateList.add(it)
+        }
+    }
+    val formattedString : String get(){
+        return defaultTemplate.resolve(self)
+    }
 
     internal var jsonHolder : JsonHolder? = null
     internal val jsonObject : JObject get() {
@@ -39,7 +45,7 @@ abstract class PrintableBase<T>()
     internal var muteCondition: ((T) -> Boolean)? = null
     var genericMuteCondition: ((ComposableData)-> Boolean)? = null
 
-    private val templateNotFound : (Any) -> String = { key-> "[template for key: $key not defined]"}
+    private val templateNotFound : (Printable) -> String = { key-> "[template for data: $key not defined]"}
 
     @PublishedApi
     internal var outputSource: ((String)-> Unit)?=null
@@ -54,9 +60,39 @@ abstract class PrintableBase<T>()
         }
        return muteCondition?.invoke(self)?:false
     }
-    private fun outputData(data: String){
-        outputSource?.invoke(data) ?:run {
-            println(data)
+
+    internal fun changeDefaultTemplate(template: PrintableTemplateBase<T>){
+        defaultTemplate = template
+    }
+
+    fun addTemplate(vararg template: PrintableTemplateBase<T>){
+        template.forEach {
+            templates.add(it)
+        }
+    }
+
+    fun templatedString(template: PrintableTemplateBase<T>? = null): String{
+        return template?.let {
+            formatString(it.template)
+        }?:run {
+            formatString(defaultTemplate.template)
+        }
+    }
+
+    fun echo(){
+        if(!shouldMute()){
+            //val result = templatedString()
+            outputSource?.invoke(formattedString)?:run {
+                println(formattedString)
+            }
+        }
+    }
+    fun echo(template: PrintableTemplateBase<T>){
+        if(!shouldMute()){
+            val result =formatString(template.template)
+            outputSource?.invoke(result)?:run {
+                println(result)
+            }
         }
     }
 
@@ -72,43 +108,6 @@ abstract class PrintableBase<T>()
 
     override fun setParent(parent: PrintableBase<*>) {
        parentRecord = parent
-    }
-
-    fun print(): String?{
-        if(!shouldMute()){
-            val result = toString()
-            outputData(result)
-            return result
-        }
-        return null
-    }
-
-    fun print(message: String? = null): String?{
-        if(!shouldMute()){
-           val result =  message?: toString()
-            outputData(result)
-            return result
-
-        }
-        return null
-    }
-
-    fun print(key: ValueBased): String?{
-        if(!shouldMute()){
-            val result =  formatString(templateRegistry.getRecord(key)?:templateNotFound)
-            outputData(result)
-            return result
-        }
-        return null
-    }
-
-    fun printTemplate(template: PrintableTemplateBase<T>): String?{
-        if(!shouldMute()){
-            val result =formatString(template.template)
-            outputData(result)
-            return result
-        }
-        return null
     }
 
     fun setGenericMute(condition:(ComposableData)-> Boolean){
@@ -130,9 +129,9 @@ abstract class PrintableBase<T>()
         rows.forEach { println(rowToString(it)) }
     }
 
-    fun setTemplate(key: ValueBased, templateProvider: T.()-> String){
-        templateRegistry.addRecord(key, templateProvider)
-    }
+//    fun setTemplate(key: ValueBased, templateProvider: T.()-> String){
+//        templateRegistry.addRecord(key, templateProvider)
+//    }
     fun printTree(level: Int = 0, template: T.() -> String) {
         println("  ".repeat(level) + template(self))
         children.forEach {

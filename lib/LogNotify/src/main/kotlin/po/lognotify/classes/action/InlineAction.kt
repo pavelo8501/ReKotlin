@@ -1,31 +1,49 @@
 package po.lognotify.classes.action
 
+import po.lognotify.LoggableContext
+import po.lognotify.TaskProcessor
 import po.lognotify.TasksManaged
+import po.lognotify.anotations.LogOnFault
 import po.lognotify.classes.task.TaskHandler
+import po.lognotify.exceptions.handleException
 import po.lognotify.extensions.getOrLoggerException
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.IdentifiableContext
+import po.misc.reflection.properties.takePropertySnapshot
 
-interface InlineAction : TasksManaged {
+interface InlineAction:  LoggableContext {
 
-    override val contextName: String
-        get() = "InlineAction"
-
-    override fun activeTaskHandler(): TaskHandler<*>{
+    val actionHandler: TaskHandler<*> get() {
         val message = """ActionSpan runActionSpan resulted in failure. Unable to get task handler. No active tasks in context.
         Make sure that logger tasks were started before calling this method.
     """.trimMargin()
 
-        val availableRoot =  TasksManaged.taskDispatcher.activeRootTask().getOrLoggerException(message)
-        return availableRoot.registry.getLastSubTask()?.handler?:availableRoot.handler
+       val availableRoot =  TasksManaged.LogNotify.taskDispatcher.activeRootTask().getOrLoggerException(message)
+       return availableRoot.registry.getLastSubTask()?.handler?:availableRoot.handler
     }
+
+    fun <T: Any, R>  runInlineAction(actionName: String, receiver: T,  block: T.(TaskHandler<*>)->R):R{
+        val activeTask  = this.actionHandler
+        val newActionSpan = ActionSpan(actionName, activeTask.task.key, this)
+        return try {
+            block.invoke(receiver, activeTask)
+        }catch (ex: Throwable){
+            val snapshot = takePropertySnapshot<T, LogOnFault>(receiver)
+            newActionSpan.handleException(ex,  activeTask.task, snapshot)
+            throw ex
+        }
+    }
+
+    fun <T:InlineAction, R>  T.runInlineAction(actionName: String,  block: T.(TaskHandler<*>)->R):R{
+        val activeTask  = this.actionHandler
+        val newActionSpan = ActionSpan(actionName, activeTask.task.key, this)
+        return try {
+            block.invoke(this, activeTask)
+        }catch (ex: Throwable){
+            val snapshot = takePropertySnapshot<T, LogOnFault>(this)
+            throw newActionSpan.handleException(ex,  activeTask.task, snapshot)
+        }
+    }
+
 }
 
-inline fun <T:InlineAction,R>  T.runInlineAction(identifiable: IdentifiableContext, actionName: String,  block: T.(TaskHandler<*>)->R):R{
-    return try {
-        val activeTask  = this.activeTaskHandler()
-        activeTask.task.actionSpan(identifiable,  actionName,  this, block.invoke(this, activeTask))
-    }catch (ex: Throwable){
-        throw ex
-    }
-}

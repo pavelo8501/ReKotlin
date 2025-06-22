@@ -17,7 +17,7 @@ import po.misc.validators.general.models.CheckStatus
 class ReportRecordDepr internal constructor(
     val sourceName: String,
     val targetName: String,
-): PrintableBase<ReportRecordDepr>(){
+): PrintableBase<ReportRecordDepr>(GeneralTemplate){
 
 
     override val itemId : ValueBased = toValueBased(0)
@@ -47,7 +47,7 @@ class ReportRecordDepr internal constructor(
     }
 
     companion object{
-       val GeneralTemplate : PrintableTemplate<ReportRecordDepr> = PrintableTemplate(){
+       val GeneralTemplate : PrintableTemplate<ReportRecordDepr> = PrintableTemplate("GeneralTemplate"){
            "Check Source:$sourceName Target:$targetName Status:${status.matchTemplate(
                templateRule(toString().colorize(Colour.GREEN)){ status == CheckStatus.PASSED },
                templateRule(toString().colorize(Colour.RED)){ status == CheckStatus.FAILED },

@@ -29,7 +29,7 @@ class TestSelect : DatabaseTest() {
 
         val pages = pageModels(pageCount = 1, updatedBy = 1)
         var assignedUserId : Long = 0
-        startTestConnection{
+        withConnection{
             service(UserDTO, TableCreateMode.FORCE_RECREATE) {
                 val userData =  update(user).getDataForced()
                 assignedUserId = userData.id
@@ -52,8 +52,7 @@ class TestSelect : DatabaseTest() {
             pageCount = 1,
             updatedBy = 1)
 
-        startTestConnection{
-
+        withConnection{
             service(PageDTO, TableCreateMode.FORCE_RECREATE) {
                 val originalPages = pages[0]
                 val updatedPageDtos = update(pages)
@@ -73,7 +72,7 @@ class TestSelect : DatabaseTest() {
             email = "nomail@void.null")
 
         var assignedUserId : Long = 0
-        startTestConnection{
+        withConnection{
             service(UserDTO, TableCreateMode.CREATE) {
                 val userData =  update(user).getDataForced()
                 assignedUserId = userData.id
@@ -138,7 +137,7 @@ class TestSelect : DatabaseTest() {
             email = "nomail@void.null")
 
         var assignedUserId : Long = 0
-        startTestConnection{
+        withConnection{
             service(UserDTO, TableCreateMode.CREATE) {
                 val userData = update(user).getDataForced()
                 assignedUserId = userData.id

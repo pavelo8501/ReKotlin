@@ -2,11 +2,10 @@ package po.exposify.dto.enums
 
 
 enum class DTOClassStatus {
-    Undefined,
+    Uninitialized,
     PreFlightCheck,
-    Live
+    Initialized,
 }
-
 
 enum class DTOInitStatus {
     UNINITIALIZED,

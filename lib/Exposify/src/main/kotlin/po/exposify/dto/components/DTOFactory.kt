@@ -9,7 +9,6 @@ import po.exposify.dto.DTOBase
 import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.components.tracker.DTOTracker
 import po.exposify.dto.components.tracker.extensions.addTrackerInfo
-import po.exposify.dto.enums.Components
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.OperationsException
@@ -17,13 +16,14 @@ import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.castOrOperationsEx
 import po.lognotify.TasksManaged
 import po.lognotify.anotations.LogOnFault
+import po.lognotify.classes.action.InlineAction
+import po.lognotify.classes.task.TaskHandler
 import po.lognotify.extensions.subTask
-import po.misc.callbacks.manager.callbackManager
+import po.misc.callbacks.manager.CallbackManager
+import po.misc.callbacks.manager.builders.callbackManager
 import po.misc.interfaces.IdentifiableClass
-import po.misc.interfaces.IdentifiableModule
 import po.misc.interfaces.ValueBased
 import po.misc.interfaces.asIdentifiableClass
-import po.misc.interfaces.asIdentifiableModule
 import po.misc.types.TypeRecord
 import po.misc.registries.type.TypeRegistry
 import po.misc.serialization.SerializerInfo
@@ -32,18 +32,21 @@ import kotlin.reflect.KType
 class DTOFactory<DTO, DATA, ENTITY>(
     private val dtoClass: DTOBase<DTO, DATA, ENTITY>,
     private val typeRegistry : TypeRegistry,
-): IdentifiableClass, TasksManaged where DTO : ModelDTO, DATA: DataModel, ENTITY: LongEntity {
+): IdentifiableClass, InlineAction where DTO : ModelDTO, DATA: DataModel, ENTITY: LongEntity {
 
     enum class Events(override val value: Int) : ValueBased{
         OnCreated(1),
         OnInitialized(2)
     }
-    //val notificator : TypedCallbackRegistry<CommonDTO<DTO, DATA, ENTITY>, Unit> = TypedCallbackRegistry()
-    //val notifier = callbackManager<CommonDTO<DTO, DATA, ENTITY>>()
 
-    override val identity = asIdentifiableClass(dtoClass.sourceName)
+
+    override val identity = asIdentifiableClass("DTOFactory", dtoClass.completeName)
     override val contextName : String get()= identity.componentName
-    val notifier = callbackManager<Events>()
+
+    val notifier = callbackManager<Events>(
+        { CallbackManager.createPayload<Events, CommonDTO<DTO, DATA, ENTITY>>(it, Events.OnInitialized) }
+    )
+    val onCreatedPayload = CallbackManager.createPayload<Events, CommonDTO<DTO, DATA, ENTITY>>(notifier, Events.OnCreated)
 
     val  dataType : TypeRecord<DATA> get() = typeRegistry.getRecord<DATA, OperationsException>(SourceObject.Data)
     val  dtoType: TypeRecord<DTO> get() = typeRegistry.getRecord<DTO, OperationsException>(SourceObject.DTO)
@@ -64,6 +67,7 @@ class DTOFactory<DTO, DATA, ENTITY>(
     }
 
     fun serializerLookup(propertyName: String, type: KType):SerializerInfo<*>?{
+
         return if(typedSerializers.containsKey(propertyName)){
             typedSerializers[propertyName]
         }else{

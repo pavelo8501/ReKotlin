@@ -5,20 +5,14 @@ import po.lognotify.classes.task.RootTask
 import po.lognotify.classes.task.TaskBase
 import po.lognotify.classes.task.interfaces.ResultantTask
 import po.lognotify.classes.task.interfaces.UpdatableTasks
-import po.misc.callbacks.manager.CallbackContainer
+import po.misc.callbacks.manager.CallbackManager
 import po.misc.callbacks.manager.Containable
-import po.misc.callbacks.manager.callbackManager
-import po.misc.callbacks.manager.withCallbackManager
-import po.misc.callbacks.manager.withPayload
-import po.misc.callbacks.manager.wrapRawCallback
+import po.misc.callbacks.manager.builders.callbackManager
+import po.misc.callbacks.manager.builders.withCallbackManager
 import po.misc.coroutines.CoroutineInfo
 import po.misc.interfaces.IdentifiableClass
-import po.misc.interfaces.IdentifiableContext
 import po.misc.interfaces.asIdentifiableClass
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.collections.component1
-import kotlin.collections.component2
-import kotlin.collections.forEach
 import kotlin.collections.set
 
 
@@ -41,13 +35,18 @@ class TaskDispatcher(val notifierHub: NotifierHub) : UpdatableTasks, Identifiabl
         val coroutineInfo: CoroutineInfo,
     )
 
-    override val identity = asIdentifiableClass("TaskDispatcher")
+    override val identity = asIdentifiableClass("LogNotify", "TaskDispatcher")
 
 
-    internal val callbackRegistry = withCallbackManager<UpdateType> {
-        withPayload<UpdateType, LoggerStats>(UpdateType.OnDataReceived){
+    internal val callbackRegistry = callbackManager<UpdateType>(
+        { CallbackManager.createPayload<UpdateType, LoggerStats>(it,  UpdateType.OnTaskCreated) },
+        { CallbackManager.createPayload<UpdateType, LoggerStats>(it,  UpdateType.OnTaskStart) },
+        { CallbackManager.createPayload<UpdateType, LoggerStats>(it,  UpdateType.OnTaskUpdated) },
+        { CallbackManager.createPayload<UpdateType, LoggerStats>(it,  UpdateType.OnTaskComplete) }
+    )
 
-        }
+    init {
+
     }
 
 

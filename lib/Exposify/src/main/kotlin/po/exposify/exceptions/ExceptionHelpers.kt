@@ -1,7 +1,6 @@
 package po.exposify.exceptions
 
 import po.exposify.exceptions.enums.ExceptionCode
-import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManageableException
 
 fun  Boolean.trueOrInitException(){

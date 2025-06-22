@@ -21,10 +21,10 @@ import kotlin.coroutines.coroutineContext
 class SequenceContext<DTO, D, E>(
     internal val sequenceHandler: SequenceHandlerBase<DTO, D, E>,
     private val executionContext: ExecutionContext<DTO, D, E>,
-    val runInfo : SequenceRunInfo
-
-):TasksManaged where  DTO : ModelDTO, D : DataModel, E: LongEntity
+    val runInfo : SequenceRunInfo):TasksManaged where  DTO : ModelDTO, D : DataModel, E: LongEntity
 {
+
+    override val contextName: String = "SequenceContext"
 
     private var latestSingleResult : ResultSingle<DTO,D, E> = ResultSingle(sequenceHandler.dtoBase)
 

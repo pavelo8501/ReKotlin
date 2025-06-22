@@ -36,7 +36,7 @@ fun <DTO : ModelDTO, D: DataModel, E: LongEntity> CommonDTO<DTO, D, E>.toDto(
 ):DTO {
     val typeRecord = dtoClass.getTypeRecord<DTO, D, E, DTO>(SourceObject.DTO).getOrOperationsEx("Type record not found for key:${SourceObject.DTO} at ${this.completeName}")
     val fromClassKey = typeRecord.typeKey
-    val commonDtoKey =    dtoType.typeKey
+    val commonDtoKey = dtoType.typeKey
 
     if(fromClassKey != commonDtoKey){
         val message = "typeKeys do not match. CommonDtoKey = $commonDtoKey. Key obtained from class = $fromClassKey"

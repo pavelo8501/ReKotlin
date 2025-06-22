@@ -24,12 +24,16 @@ data class TaskData(
     val timeStamp : ExecutionTimeStamp,
     val message: String,
     val severity: SeverityLevel,
-): PrintableBase<TaskData>(){
+): PrintableBase<TaskData>(Message){
 
     override val self: TaskData = this
 
     override val itemId: ValueBased= toValueBased(taskKey.taskId)
     override val emitter : Identifiable = asIdentifiable(taskKey.taskName, taskKey.moduleName)
+
+    init {
+        addTemplate(Header, Footer, Message)
+    }
 
     companion object {
 
@@ -53,20 +57,24 @@ data class TaskData(
             )
         }
 
-        val Header: PrintableTemplate<TaskData> = PrintableTemplate {
+        val Header: PrintableTemplate<TaskData> = PrintableTemplate("Header") {
             SpecialChars.NewLine.char + prefix.invoke(this, "Start") + "${config.actor.emptyOnNull("by ")}]".colorize(Colour.BLUE)
         }
 
-        val Footer: PrintableTemplate<TaskData> = PrintableTemplate {
+        val Footer: PrintableTemplate<TaskData> = PrintableTemplate("Footer") {
             prefix.invoke(this, "Stop") +
                     " | $currentTime] Elapsed: ${timeStamp.elapsed}".colorize(Colour.BLUE)
         }
 
-        val Message: PrintableTemplate<TaskData> = PrintableTemplate {
+        val Message: PrintableTemplate<TaskData> = PrintableTemplate("Message") {
             "${prefix.invoke(this, "")} ${messageFormatter.invoke(this)}"
         }
 
-        val Debug: DebugTemplate<TaskData> = DebugTemplate {
+        val Exception: PrintableTemplate<TaskData> = PrintableTemplate("Exception") {
+            "${prefix.invoke(this, "")} ${messageFormatter.invoke(this)}"
+        }
+
+        val Debug: DebugTemplate<TaskData> = DebugTemplate{
             "${prefix.invoke(this, "")} ${message.colorize(Colour.GREEN)}"
         }
     }

@@ -25,12 +25,10 @@ class ExceptionHandler2<T, R: Any?>(
 ) : ExceptionHandled<R> {
 
    private fun notifyHandlerSet(handler : HandlerType): TaskData{
-
-      return  task.dataProcessor.systemEvent(EventType.EXCEPTION_HANDLED)
+      TODO("Depreciated")
    }
    private fun notifyHandled(managedEx : ManagedException):TaskData{
-
-      return  task.dataProcessor.systemEvent(EventType.EXCEPTION_HANDLED)
+      TODO("Depreciated")
    }
    private fun notifyUnhandled(managedEx : ManagedException){
       val severity = SeverityLevel.EXCEPTION

@@ -1,17 +1,58 @@
 package po.misc.validators.general.validators
 
 import po.misc.data.helpers.emptyOnNull
+import po.misc.validators.general.SequentialContainer
 import po.misc.validators.general.ValidationContainer
+import po.misc.validators.general.ValidationContainerBase
+import po.misc.validators.general.models.CheckStatus
 import po.misc.validators.general.reports.ReportRecord
 
-fun <T: Any> ValidationContainer<T>.conditionTrue(
+
+class ValidatorHooks<T: Any>(){
+
+    private  var onSuccess: ((T)-> Unit)? = null
+    private  var onFailure: ((T)-> Unit)? = null
+    internal var onResultCallback: ((CheckStatus)-> Unit)? = null
+
+    fun onSuccess(hook:(T)-> Unit){
+        onSuccess = hook
+    }
+
+    fun onFailure(hook:(T)-> Unit){
+        onFailure = hook
+    }
+
+    fun onResult(hook:(CheckStatus)-> Unit){
+        onResultCallback = hook
+    }
+}
+
+
+fun <T: Any> ValidationContainer<T>.validatorHooks(
+    block: ValidatorHooks<T>.()-> Unit
+):ValidationContainer<T>{
+    block.invoke(hooks)
+    return this
+}
+
+fun <T: Any>  SequentialContainer<T>.validatorHooks(
+    block: ValidatorHooks<T>.()-> Unit
+):SequentialContainer<T>{
+
+    block.invoke(sequentialHooks)
+    return this
+}
+
+
+
+
+fun <T: Any> ValidationContainerBase<T>.conditionTrue(
     checkName: String,
     failureMessage: String?= null,
-    predicate: (T)-> Boolean
+    predicate: ()-> Boolean,
 ): ReportRecord {
-
   return  try {
-        val result = predicate.invoke(validatable)
+        val result = predicate.invoke()
         if(result){
             validationReport.addRecord(ReportRecord.success(this,checkName))
         }else{

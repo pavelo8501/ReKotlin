@@ -24,7 +24,17 @@ fun String.ifNotEmpty(string: String):String{
     }
 }
 
-fun   Any?.textIfNull(fallbackText: String, textProvider: (Any)-> String): String{
+
+fun <T: Any>  Any?.textIfNotNull(textOnNull: String = "", sourceProvider: T.()-> String): String{
+
+    return this?.let {
+        @Suppress("UNCHECKED_CAST")
+        sourceProvider.invoke(it as T)
+    }?:textOnNull
+}
+
+fun Any?.textIfNull(fallbackText: String, textProvider: (Any)-> String): String{
+
    return this?.let {
         textProvider.invoke(it)
     }?:fallbackText

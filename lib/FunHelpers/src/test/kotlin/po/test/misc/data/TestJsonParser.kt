@@ -36,7 +36,7 @@ class TestJsonParser {
         val timeStamp: ExecutionTimeStamp,
         val message: String,
         val severity: Int,
-    ) : PrintableBase<TaskDataLocal>(), JasonStringSerializable {
+    ) : PrintableBase<TaskDataLocal>(Message), JasonStringSerializable {
 
         override val self: TaskDataLocal = this
 
@@ -68,7 +68,7 @@ class TestJsonParser {
 
             val prefix: TaskDataLocal.(auxMessage: String) -> String = { auxMessage ->
                 "${Colour.makeOfColour(Colour.BLUE, "[${auxMessage}")}  ${nestingFormatter(this)}" +
-                        "${taskName} | ${emitter.componentName} @ $currentTime".colorize(Colour.BLUE)
+                        "${taskName} | ${emitter.contextName} @ $currentTime".colorize(Colour.BLUE)
             }
 
             val messageFormatter: TaskDataLocal.() -> String = {
@@ -79,19 +79,19 @@ class TestJsonParser {
                 )
             }
 
-            val Header: PrintableTemplate<TaskDataLocal> = PrintableTemplate {
+            val Header: PrintableTemplate<TaskDataLocal> = PrintableTemplate("Header") {
                 SpecialChars.NewLine.char + prefix.invoke(
                     this,
                     "Start"
-                ) + "${emitter.componentName.emptyOnNull("by ")}]".colorize(Colour.BLUE)
+                ) + "${emitter.contextName.emptyOnNull("by ")}]".colorize(Colour.BLUE)
             }
 
-            val Footer: PrintableTemplate<TaskDataLocal> = PrintableTemplate {
+            val Footer: PrintableTemplate<TaskDataLocal> = PrintableTemplate("Footer") {
                 prefix.invoke(this, "Stop") +
                         " | $currentTime] Elapsed: ${timeStamp.elapsed}".colorize(Colour.BLUE)
             }
 
-            val Message: PrintableTemplate<TaskDataLocal> = PrintableTemplate {
+            val Message: PrintableTemplate<TaskDataLocal> = PrintableTemplate("Message") {
                 "${prefix.invoke(this, "")} ${messageFormatter.invoke(this)}"
             }
 
@@ -101,7 +101,9 @@ class TestJsonParser {
         }
     }
 
-    data class ValidationRep(var validationName: String): PrintableBase<ValidationRep>(), JasonStringSerializable {
+    data class ValidationRep(
+        var validationName: String
+    ): PrintableBase<ValidationRep>(Main), JasonStringSerializable {
         override val itemId: ValueBased = toValueBased(0)
         override val emitter: Identifiable = asIdentifiable("ValidationReport", "ValidationReport")
         override val self: ValidationRep = this
@@ -111,6 +113,7 @@ class TestJsonParser {
 
         companion object :JsonDescriptor<ValidationRep>() {
             val validationName: String by JsonDelegate<ValidationRep, String>(ValidationRep::validationName, StringDefaultProvider)
+            val Main  : PrintableTemplate<ValidationRep> = PrintableTemplate("Main")
         }
     }
 

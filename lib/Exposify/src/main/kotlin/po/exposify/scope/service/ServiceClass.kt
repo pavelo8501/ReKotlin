@@ -9,7 +9,6 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import po.auth.sessions.models.AuthorizedSession
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.RootDTO
-import po.exposify.dto.enums.Components
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.scope.connection.ConnectionClass
 import po.exposify.scope.connection.controls.CoroutineEmitter
@@ -17,21 +16,22 @@ import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.classes.task.TaskHandler
 import po.lognotify.lastTaskHandler
-import po.lognotify.logNotify
-import po.misc.interfaces.IdentifiableModule
-import po.misc.interfaces.asIdentifiableModule
+import po.misc.interfaces.IdentifiableClass
+import po.misc.interfaces.asIdentifiableClass
 
 class ServiceClass<DTO, DATA, ENTITY>(
     private val rootDTOModel: RootDTO<DTO, DATA, ENTITY>,
-    internal val connectionClass : ConnectionClass,
+    @PublishedApi internal val connectionClass : ConnectionClass,
     private val serviceCreateOption: TableCreateMode = TableCreateMode.CREATE,
-    val module: IdentifiableModule = asIdentifiableModule(rootDTOModel.sourceName, "ServiceClass", Components.Service)
-):  TasksManaged  where  DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity {
+):  TasksManaged, IdentifiableClass  where  DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity {
 
     private val serviceContext: ServiceContext<DTO, DATA, ENTITY> = ServiceContext(this, rootDTOModel)
     internal val connection: Database get() = connectionClass.connection
     val logger : TaskHandler<*> get()= lastTaskHandler()
 
+    override val identity = asIdentifiableClass("ServiceClass", rootDTOModel.completeName)
+
+    private var running: Boolean = true
 
     private fun prepareTables(serviceCreateOption: TableCreateMode) {
         val tableList = mutableListOf<IdTable<Long>>()
@@ -64,12 +64,21 @@ class ServiceClass<DTO, DATA, ENTITY>(
         }
     }
 
+    internal fun deinitializeService(){
+        running = false
+        rootDTOModel.finalize()
+    }
+
     internal fun initService(rootDTOModel: RootDTO<DTO, DATA, ENTITY>){
         transaction {
-            rootDTOModel.initialization(serviceContext)
-            prepareTables(serviceCreateOption)
+            if(running){
+                rootDTOModel.initialization(serviceContext)
+
+                prepareTables(serviceCreateOption)
+            }
         }
     }
+
 
     internal fun runServiceContext(block:  ServiceContext<DTO, DATA, ENTITY>.()->Unit){
         println("Before   ServiceContext invoked (runServiceContext)")

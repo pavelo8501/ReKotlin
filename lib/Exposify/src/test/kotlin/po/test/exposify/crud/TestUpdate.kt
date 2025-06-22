@@ -22,11 +22,14 @@ import po.test.exposify.setup.pagesSectionsContentBlocks
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNotSame
 import kotlin.test.assertTrue
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestUpdate : DatabaseTest(), TasksManaged {
+
+    override val contextName: String = "TestUpdate"
 
     companion object{
         @JvmStatic
@@ -47,7 +50,7 @@ class TestUpdate : DatabaseTest(), TasksManaged {
             name = "name",
             email = "nomail@void.null"
         )
-        startTestConnection {
+        withConnection {
             service(UserDTO, TableCreateMode.FORCE_RECREATE) {
                 updatedById = update(user).getDataForced().id
             }
@@ -55,60 +58,76 @@ class TestUpdate : DatabaseTest(), TasksManaged {
     }
 
     @Test
-    fun `saves new dto and verifies entire relation tree`() = runTest{
+    fun `Saves new dto and verifies entire relation tree`(){
 
-        val inputPages = pagesSectionsContentBlocks(pageCount = 1, sectionsCount =  1, contentBlocksCount = 1 , updatedBy = updatedById)
-        val expectedContentBlock = inputPages[0].sections[0].contentBlocks[0]
-        var updateResult : ResultSingle<PageDTO, Page, PageEntity>? = null
+        val inputPage = pagesSectionsContentBlocks(pageCount = 1, sectionsCount =  2, contentBlocksCount = 2 , updatedBy = updatedById).first()
 
-        startTestConnection{
-            service(PageDTO, TableCreateMode.CREATE) {
-                updateResult =  update(inputPages[0])
+        inputPage.name = "TestPage"
+        for(i in 0.. inputPage.sections.size-1){
+            val index = i+1
+            val section =  inputPage.sections[i]
+            section.name = "Section_$index"
+
+            for(a in 0 ..  section.contentBlocks.size-1){
+                val indexA = a+1
+                val contentBlock  = section.contentBlocks[a]
+                contentBlock.name = "Content_${index}_$indexA"
             }
         }
 
-        val pageDto = assertNotNull(updateResult?.getDTO(),  "PageDto is null")
-        assertAll("PageDto properly updated",
-            { assertNotEquals(0, pageDto.id, "Id did not updated") },
-            { assertEquals(inputPages[0].name, pageDto.name, "Name property update failed") },
-            { assertTrue(pageDto.sections.size == 1, "Sections count mismatch") }
-        )
+        var updatedPage : Page? = null
 
-        val sectionDto = assertNotNull(pageDto.sections[0],  "SectionDTO is null")
-        assertAll("SectionDTO properly updated",
-            { assertNotEquals(0, sectionDto.id, "Id did not updated") },
-            { assertEquals(inputPages[0].sections[0].name, sectionDto.name, "Name property update failed") },
-            { assertTrue(sectionDto.contentBlocks.size == 1, "ContentBlocks count mismatch") }
-        )
+        withConnection{
+            service(PageDTO, TableCreateMode.CREATE) {
+                updatedPage =  update(inputPage).getDataForced()
 
-        val contentBlockDTO = assertNotNull(pageDto.sections[0].contentBlocks[0],  "ContentBlockDTO is null")
-        assertAll("ContentBlockDTO properly updated",
-            { assertNotEquals(0, contentBlockDTO.id, "Id did not updated") },
-            { assertEquals(expectedContentBlock.name, contentBlockDTO.name, "Name property update failed") },
-        )
+            }
+        }
 
-        val page = assertNotNull(updateResult.getData(),  "Page is null")
+        val  page = assertNotNull(updatedPage, "Updated page is null")
+        val totalContBlocks = page.sections.sumOf { it.contentBlocks.size }
         assertAll("Page properly updated",
             { assertNotEquals(0, page.id, "Id did not updated") },
-            { assertEquals(inputPages[0].name, page.name, "Name property update failed") },
-            { assertTrue(page.sections.size == 1, "Sections count mismatch") }
+            { assertEquals("TestPage", page.name, "Name property update failed") },
+            { assertEquals(updatedById, page.updatedBy, "Name property update failed") },
+            { assertEquals(4,  totalContBlocks, "Sections count mismatch") }
         )
 
-        val section = assertNotNull(page.sections[0],  "Section is null")
-        assertAll("Section properly updated",
-            { assertNotEquals(0, section.id, "Id did not updated") },
-            { assertEquals(inputPages[0].sections[0].name, section.name, "Name property update failed") },
-            { assertTrue(section.contentBlocks.size == 1, "ContentBlocks count mismatch") }
+        val firstSection =  page.sections.first()
+        val lastSection =  page.sections.last()
+
+        assertNotSame(firstSection, lastSection, "First and last sections are the same object")
+
+        assertAll("First section properly updated",
+            { assertNotEquals(0, firstSection.id, "Id did not updated") },
+            { assertEquals("Section_1", firstSection.name, "Name property update failed") },
+            { assertEquals(updatedById, firstSection.updatedBy, "Name property update failed") },
+            { assertTrue(firstSection.contentBlocks.size == 2, "ContentBlocks count mismatch") }
         )
 
-        val contentBlock = assertNotNull(page.sections[0].contentBlocks[0],  "ContentBlock is null")
-        assertAll("ContentBlock properly updated",
-            { assertNotEquals(0, contentBlock.id, "Id did not updated") },
-            { assertEquals(expectedContentBlock.name, contentBlock.name, "Name property update failed") },
+        assertAll("Last section properly updated",
+            { assertNotEquals(0, lastSection.id, "Id did not updated") },
+            { assertEquals("Section_2", lastSection.name, "Name property update failed") },
+            { assertEquals(updatedById, lastSection.updatedBy, "Name property update failed") },
+            { assertTrue(lastSection.contentBlocks.size == 2, "ContentBlocks count mismatch") }
+        )
+
+        val firstContentBlock =  firstSection.contentBlocks.first()
+        val lastContentBlock =  lastSection.contentBlocks.last()
+        assertNotSame(firstContentBlock, lastContentBlock, "First and last content blocks are the same object")
+
+        assertAll("First ContentBlock properly updated",
+            { assertNotEquals(0, firstContentBlock.id, "Id did not updated") },
+            { assertEquals("Content_1_1", firstContentBlock.name, "Name property update failed") },
+        )
+
+        assertAll("Last ContentBlock properly updated",
+            { assertNotEquals(0, lastContentBlock.id, "Id did not updated") },
+            { assertEquals("Content_2_2", lastContentBlock.name, "Name property update failed") },
         )
     }
 
-    @Test
+
     fun `updates existent dto and verifies entire relation tree`() = runTest{
 
         val initialPages = pagesSectionsContentBlocks(pageCount = 1, sectionsCount =  1, contentBlocksCount = 1 , updatedBy = updatedById)
@@ -119,7 +138,7 @@ class TestUpdate : DatabaseTest(), TasksManaged {
         val updatedSectionName = "other_section_name"
         val updatedContentBlockName = "other_content_block_name"
 
-        startTestConnection {
+        withConnection {
             service(PageDTO, TableCreateMode.CREATE) {
                 persistedPage =  update(initialPages[0]).getDataForced()
                 persistedPage.name = updatedPageName
@@ -170,7 +189,7 @@ class TestUpdate : DatabaseTest(), TasksManaged {
         )
     }
 
-    @Test
+
     fun `user updates`() = runTest {
         val user = User(
             id = 0,
@@ -182,7 +201,7 @@ class TestUpdate : DatabaseTest(), TasksManaged {
         var userDataModel: User? = null
 
 
-        startTestConnection{
+        withConnection{
             service(UserDTO, TableCreateMode.CREATE){
                userDataModel = update(user).getData()
             }

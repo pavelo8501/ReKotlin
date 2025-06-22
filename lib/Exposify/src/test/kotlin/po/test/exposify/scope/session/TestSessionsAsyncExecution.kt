@@ -74,7 +74,7 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
         val anonSession = AuthSessionManager.getOrCreateSession(authData)
         val authSession = AuthSessionManager.getOrCreateSession(authData)
 
-        startTestConnection {
+        withConnection {
             service(UserDTO.Companion, TableCreateMode.FORCE_RECREATE) {
                 authenticatedUser = update(user).getDataForced()
                 AuthSessionManager.authenticator.setAuthenticator(::validateUser)

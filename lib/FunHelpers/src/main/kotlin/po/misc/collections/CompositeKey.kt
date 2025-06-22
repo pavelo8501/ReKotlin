@@ -19,13 +19,13 @@ class CompositeKey (
         if (this === other) return true
         if (other !is CompositeKey) return false
         return component.sourceName == other.component.sourceName &&
-                component.componentName == other.component.componentName &&
+                component.sourceName == other.component.sourceName &&
                 type.value == other.type.value
     }
 
     override fun hashCode(): Int {
         var result = component.sourceName.hashCode()
-        result = 31 * result + component.componentName.hashCode()
+        result = 31 * result + component.sourceName.hashCode()
         result = 31 * result + type.value.hashCode()
         return result
     }

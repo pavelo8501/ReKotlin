@@ -12,12 +12,13 @@ import po.exposify.dto.components.bindings.property_binder.delegates.parentRefer
 import po.exposify.dto.components.bindings.property_binder.delegates.serializedBinding
 import po.exposify.dto.components.bindings.relation_binder.delegates.oneToManyOf
 import po.exposify.dto.enums.Cardinality
-import po.exposify.dto.helpers.configuration
+import po.exposify.dto.configuration.configuration
 import po.exposify.scope.sequence.classes.SwitchHandlerProvider
 import po.test.exposify.setup.ClassData
 import po.test.exposify.setup.ContentBlockEntity
 import po.test.exposify.setup.MetaData
 import po.test.exposify.setup.SectionEntity
+import po.test.exposify.setup.UserEntity
 
 @Serializable
 data class Section(
@@ -55,8 +56,11 @@ class SectionDTO(
     var classList: List<ClassData> by serializedBinding(Section::classList, SectionEntity::classList)
     var metaTags: List<MetaData> by serializedBinding(Section::metaTags, SectionEntity::metaTags)
 
-    val user : UserDTO by attachedReference(UserDTO, Section::updatedBy){user->
 
+    var updatedBy: Long = 0
+
+    val user : UserDTO by attachedReference(UserDTO, Section::updatedBy, SectionEntity::updatedBy){user->
+        updatedBy = user.id
     }
 
     val page : PageDTO by parentReference(PageDTO){page->
@@ -69,7 +73,7 @@ class SectionDTO(
         SectionEntity::contentBlocks,
         ContentBlockEntity::section)
 
-    companion object: DTOClass<SectionDTO, Section, SectionEntity>(PageDTO){
+    companion object: DTOClass<SectionDTO, Section, SectionEntity>(SectionDTO::class, PageDTO){
        val UPDATE by SwitchHandlerProvider(this, Cardinality.ONE_TO_MANY, PageDTO.SELECT)
        val SELECT_UPDATE by SwitchHandlerProvider(this, Cardinality.ONE_TO_MANY, PageDTO.UPDATE)
 

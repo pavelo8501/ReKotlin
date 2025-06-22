@@ -13,8 +13,7 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 
 
-fun <DTO: ModelDTO, D: DataModel, E: LongEntity> DTOBase<DTO, D, E>.shallowDTO():CommonDTO<DTO, D, E>
-{
+fun <DTO: ModelDTO, D: DataModel, E: LongEntity> DTOBase<DTO, D, E>.shallowDTO():CommonDTO<DTO, D, E> {
     return config.dtoFactory.createDto()
 }
 
@@ -46,12 +45,7 @@ fun <DTO: ModelDTO, D: DataModel,  E: LongEntity>  DTOBase<DTO, D, E>.newDTO(
  ):CommonDTO<DTO, D, E>
  {
     val newDto = config.dtoFactory.createDto(data)
-    val insertedEntity = config.daoService.save { entity ->
-        newDto.bindingHub.updateEntity(entity)
-    }
-    newDto.finalizeCreation(insertedEntity, Cardinality.ONE_TO_MANY)
-    registerDTO(newDto)
-    newDto.bindingHub.createChildByData()
+    newDto.bindingHub.create()
     return newDto
 }
 
@@ -83,10 +77,7 @@ fun <DTO: ModelDTO, D: DataModel,  E: LongEntity>  DTOBase<DTO, D, E>.createDTO(
     operation: CrudOperation,
 ): CommonDTO<DTO,D,E>{
     val created =  newDTO(entity)
-
-    created.addTrackerInfo(operation,  this)
-    created.bindingHub.createByEntity()
-    created.finalizeCreation(entity, Cardinality.ONE_TO_MANY)
+    created.bindingHub.insert(entity)
     return created
 }
 
@@ -95,8 +86,7 @@ fun <DTO: ModelDTO, D: DataModel,  E: LongEntity> CommonDTO<DTO,D,E>.updateFromD
     data: D,
     operation: CrudOperation
 ): ResultSingle<DTO, D, E> {
-    addTrackerInfo(operation, dtoClass)
-    bindingHub.updateFromData(data)
+    bindingHub.update(data)
     return toResult(operation)
 }
 

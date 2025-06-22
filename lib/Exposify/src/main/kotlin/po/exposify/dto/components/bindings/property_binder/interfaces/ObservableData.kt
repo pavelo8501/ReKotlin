@@ -8,7 +8,6 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.ValueBased
 
-
 interface ObservableData : Identifiable{
     val id: Long
     val operation : CrudOperation
@@ -17,16 +16,3 @@ interface ObservableData : Identifiable{
     val oldValue: Any?
     val newValue: Any
 }
-
-data class UpdateParams<DTO : ModelDTO, D: DataModel, E: LongEntity, V: Any>(
-    val dto: CommonDTO<DTO, D, E>,
-    override val operation : CrudOperation,
-    override val methodName : String,
-    override val propertyName: String,
-    override val oldValue: V?,
-    override val newValue: V,
-    val component : Identifiable,
-    override val componentName: String = component.componentName,
-    override val sourceName: String = component.sourceName,
-    override val id: Long = dto.id
-) : ObservableData

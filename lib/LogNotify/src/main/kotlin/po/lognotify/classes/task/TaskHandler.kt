@@ -26,14 +26,16 @@ class TaskHandler<R: Any?>(
     val identifiable: Identifiable = asIdentifiable(task.key.taskName, "TaskHandler")
 ): HandledTask<R>, Identifiable by identifiable{
 
-    val actions : List<ActionSpan<*,*>> get()= task.actionSpans
+    val actions : List<ActionSpan<*>> get()= task.actionSpans
 
     fun echo(message: String){
         dataProcessor.info(message)
     }
-    fun log(data: PrintableBase<*>) = dataProcessor.log(data)
-    fun <T: Printable> log(data: T,   printFn: T.(StringBuilder)-> Unit)
-        = dataProcessor.log(data, printFn)
+    fun <T2: PrintableBase<T2>> log(data: T2, template: PrintableTemplateBase<T2>)
+        = dataProcessor.log<T2>(data, template)
+
+    fun <T: Printable> logFormatted(data: T,   printFn: T.(StringBuilder)-> Unit)
+        = dataProcessor.logFormatted(data, printFn)
 
     fun info(message: String): TaskData{
        return dataProcessor.info(message)

@@ -16,12 +16,16 @@ import kotlin.collections.forEach
 
 data class ValidationReport(
    private  var validationName: String,
-): PrintableBase<ValidationReport>() {
+): PrintableBase<ValidationReport>(Header) {
 
     override val itemId : ValueBased = toValueBased(0)
     override val emitter: Identifiable = asIdentifiable("ValidationReport", "ValidationReport")
 
     override val self: ValidationReport = this
+
+    init {
+        addTemplate(Header, Footer)
+    }
 
     fun setName(name: String){
         validationName = name
@@ -50,19 +54,18 @@ data class ValidationReport(
     val hasFailures: Boolean get() = getRecords().any { it.result == CheckStatus.FAILED }
 
     fun printReport(): String = buildString {
-        super.printTemplate(Header)
-        getRecords().forEach {  record-> record.printTemplate(ReportRecord.GeneralTemplate)}
-        super.printTemplate(Footer)
+        super.echo(Header)
+        getRecords().forEach {  record-> record.echo(ReportRecord.GeneralTemplate)}
+        super.echo(Footer)
     }
-
 
     companion object{
 
-        val Header : PrintableTemplate<ValidationReport> = PrintableTemplate(){
+        val Header : PrintableTemplate<ValidationReport> = PrintableTemplate("Header"){
             "Validating $validationName".colorize(Colour.BLUE)
         }
 
-        val Footer : PrintableTemplate<ValidationReport> = PrintableTemplate{
+        val Footer : PrintableTemplate<ValidationReport> = PrintableTemplate("Footer"){
             """Overall Result: ${overallResult.name.matchTemplate(
                 templateRule(overallResult.name.colorize(Colour.GREEN)){overallResult == CheckStatus.PASSED},
                 templateRule(overallResult.name.colorize(Colour.RED)){overallResult == CheckStatus.FAILED},
@@ -70,9 +73,5 @@ data class ValidationReport(
             )}
             """.trimMargin().colorize(Colour.BLUE)
         }
-
-//        fun createReport(checkItem : CheckBase<*>, records: List<ReportRecord>):ValidationReport{
-//            return ValidationReport(checkItem, checkItem.sourceKey, checkItem.validatable).provideResult(records)
-//        }
     }
 }

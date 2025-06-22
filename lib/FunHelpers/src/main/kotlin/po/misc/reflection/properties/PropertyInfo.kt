@@ -1,8 +1,11 @@
 package po.misc.reflection.properties
 
 
+import po.misc.collections.StaticTypeKey
 import po.misc.data.helpers.textIfNull
 import po.misc.types.toSimpleNormalizedKey
+import kotlin.reflect.KClass
+import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
 import kotlin.reflect.KType
 import kotlin.reflect.KVisibility
@@ -14,29 +17,53 @@ class StaticTypeToken<T : Any>(
     val propertyName: String? = null
 )
 
-data class PropertyInfo<T: Any>(
-    val name: String,
-    val property: KProperty1<T, Any>,
-    val returnType: KType,
-    val visibility: KVisibility?,
+data class PropertyInfo<T: Any, V: Any>(
+    val property: KProperty1<T, V>,
+    internal val clazz: KClass<T>,
 ){
-    var returnTypeToken : StaticTypeToken<*>? = null
+    val typeKey = StaticTypeKey(clazz)
+    val propertyName: String get()= property.name
+    val returnType: KType = property.returnType
+    val visibility: KVisibility? = property.visibility
+
+
+    var returnTypeKey: StaticTypeKey<V>? = null
+
+    var returnTypeToken : StaticTypeToken<V>? = null
+
 
     var  container: PropertyContainer<T>? = null
+
+    fun returnKey(clazz: KClass<V>): PropertyInfo<T, V>{
+        returnTypeKey = StaticTypeKey.createTypeKey(clazz)
+        return this
+    }
 
     fun addReceiverInfo(container: PropertyContainer<T>){
         this.container = container
     }
+
+    companion object{
+        fun <T: Any, V: Any> create(kProperty1: KProperty1<T, V>,  clazz: KClass<T>):PropertyInfo<T, V>{
+           return PropertyInfo(kProperty1, clazz)
+        }
+        fun <T: Any, V: Any> create(kProperty1: KProperty1<T, V>,  instance: T):PropertyInfo<T, V>{
+            val clazz =  instance::class as KClass<T>
+            val property = PropertyInfo(kProperty1, clazz)
+            kProperty1.get(instance).let {
+                val resultClass =  it::class as KClass<V>
+                val staticTypeKey = StaticTypeKey<V>(resultClass)
+                property.returnTypeKey = staticTypeKey
+            }
+            return property
+        }
+    }
+
 }
 
-inline fun <reified T : Any> typeTokenOf(value: T): StaticTypeToken<T> {
-    val property = value::class.simpleName.toString()
-    val type = typeOf<T>()
-    return  StaticTypeToken<T>(value, type, property)
-}
 
 fun <T : Any> StaticTypeToken<T>.assignIfMatches(
-    map : Map<String, PropertyInfo<*>>,
+    map : Map<String, PropertyInfo<*, T>>,
 ) {
     map.values.forEach {
         if(it.returnType == this.kType){
@@ -47,14 +74,15 @@ fun <T : Any> StaticTypeToken<T>.assignIfMatches(
 
 
 
-fun <T: Any> KProperty1<T, Any>.toPropertyInfo(receiver:T, container:PropertyContainer<T>? = null):PropertyInfo<T>{
+fun <T: Any, V: Any> KProperty1<T, V>.toPropertyInfo(clazz: KClass<T>):PropertyInfo<T, V>{
 
-   val info = PropertyInfo( this.name, this,  this.returnType, this.visibility)
-   if(container != null){
-       container.addProperty(info)
-       info.addReceiverInfo(container)
-   }
+   val info =  PropertyInfo.create(this, clazz)
    return  info
+}
+
+fun <T: Any, V: Any> KMutableProperty1<T, V>.toPropertyInfo(clazz: KClass<T>):PropertyInfo<T, V>{
+    val info = PropertyInfo(this,  clazz)
+    return  info
 }
 
 //inline fun <reified T : Any> Any.toPropertyInfo(name: String):PropertyInfo<T, Any>?{

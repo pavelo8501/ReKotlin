@@ -48,7 +48,7 @@ class TestSessionsContext : DatabaseTest()  {
             name = "name",
             email = "nomail@void.null"
         )
-        startTestConnection {
+        withConnection {
 
             service(UserDTO.Companion, TableCreateMode.CREATE) {
                 userId = update(user).getDataForced().id

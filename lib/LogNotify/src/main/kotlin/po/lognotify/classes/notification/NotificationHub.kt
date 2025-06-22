@@ -6,21 +6,24 @@ import kotlinx.coroutines.Job
 import po.lognotify.classes.notification.models.NotifyConfig
 import po.lognotify.classes.notification.models.TaskData
 import po.lognotify.classes.task.RootTask
-import po.misc.callbacks.manager.callbackManager
+import po.misc.callbacks.manager.builders.callbackManager
 import po.misc.data.PrintableBase
-import po.misc.data.processors.TypedDataProcessorBase
+import po.misc.data.processors.DataProcessorBase
 import po.misc.interfaces.Identifiable
+import po.misc.interfaces.IdentifiableContext
 import po.misc.interfaces.ValueBased
 import po.misc.registries.callback.TypedCallbackRegistry
 
 
 class NotifierHub(
     val config : NotifyConfig = NotifyConfig()
-) : TypedDataProcessorBase<TaskData>() {
+): DataProcessorBase<TaskData>(), IdentifiableContext {
 
     enum class Event(override val value: Int): ValueBased{
         DataReceived(1)
     }
+
+    override val contextName: String = "NotifierHub"
 
     override val topEmitter: LoggerDataProcessor? = null
     private val subNotifiers = mutableSetOf<LoggerDataProcessor>()

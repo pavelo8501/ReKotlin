@@ -3,10 +3,8 @@ package po.lognotify
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import po.lognotify.TasksManaged.Companion.taskDispatcher
 import po.lognotify.classes.notification.LoggerDataProcessor
 import po.lognotify.classes.notification.NotifierHub
-import po.lognotify.classes.notification.models.NotifyConfig
 import po.lognotify.classes.task.RootTask
 import po.lognotify.classes.task.TaskHandler
 import po.lognotify.classes.task.models.TaskConfig
@@ -16,18 +14,37 @@ import po.lognotify.models.TaskDispatcher
 import po.lognotify.models.TaskDispatcher.UpdateType
 import po.lognotify.models.TaskKey
 import po.misc.callbacks.manager.wrapRawCallback
+import po.misc.data.PrintableBase
+import po.misc.data.console.PrintableTemplateBase
+import po.misc.data.interfaces.Printable
+import po.misc.exceptions.throwManaged
 import po.misc.interfaces.IdentifiableContext
 import kotlin.coroutines.CoroutineContext
 
-interface TasksManaged: IdentifiableContext {
 
-    override val contextName: String
-        get() = "TasksManaged"
+interface LoggableContext: IdentifiableContext{
 
-    companion object{
 
-       // override val componentName: String = "TasksManaged Companion"
+    val logHandler:  LoggerDataProcessor get() {
+      return TasksManaged.LogNotify.taskDispatcher.activeRootTask()?.dataProcessor?:run {
+          throwManaged("dataProcessor not found")
+      }
+    }
 
+    fun<T: PrintableBase<T>> log(record: T, template: PrintableTemplateBase<T>): T{
+        logHandler.log(record, template)
+        return record
+    }
+
+    fun<T: PrintableBase<T>> info(record:  T, template: PrintableTemplateBase<T>){
+        logHandler.log(record, template)
+    }
+}
+
+
+interface TasksManaged :  LoggableContext {
+
+    object LogNotify {
         val logger : LoggingService = LoggingService()
         val taskDispatcher: TaskDispatcher = TaskDispatcher(NotifierHub())
 
@@ -59,14 +76,14 @@ interface TasksManaged: IdentifiableContext {
         Make sure that logger tasks were started before calling this method.
     """.trimMargin()
 
-        val availableRoot =  taskDispatcher.activeRootTask().getOrLoggerException(message)
+        val availableRoot =  LogNotify.taskDispatcher.activeRootTask().getOrLoggerException(message)
         return availableRoot.registry.getLastSubTask()?.handler?:availableRoot.handler
     }
 
 }
 
 fun  TasksManaged.logNotify(): LogNotifyHandler{
-    return  LogNotifyHandler(taskDispatcher)
+    return  LogNotifyHandler(TasksManaged.LogNotify.taskDispatcher)
 }
 
 fun  TasksManaged.lastTaskHandler(): TaskHandler<*>{
@@ -74,6 +91,6 @@ fun  TasksManaged.lastTaskHandler(): TaskHandler<*>{
         Make sure that logger tasks were started before calling this method.
     """.trimMargin()
 
-    val availableRoot =  taskDispatcher.activeRootTask().getOrLoggerException(message)
+    val availableRoot =  TasksManaged.LogNotify.taskDispatcher.activeRootTask().getOrLoggerException(message)
     return availableRoot.registry.getLastSubTask()?.handler?:availableRoot.handler
 }

@@ -14,9 +14,10 @@ class TestPropertyMapper {
     data class SourceClass(
         val property1: String = "Property1",
         val property2 : Int = 10,
-        val property3: Boolean = false, override val sourceName: String = ""
+        val property3: Boolean = false, override var sourceName: String = ""
     ): Identifiable{
-        override val componentName: String = "SourceClass1"
+        override val contextName: String
+            get() = TODO("Not yet implemented")
     }
 
     @Test

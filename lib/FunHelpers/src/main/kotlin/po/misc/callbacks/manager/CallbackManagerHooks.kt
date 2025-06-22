@@ -1,6 +1,5 @@
 package po.misc.callbacks.manager
 
-import po.misc.interfaces.Identifiable
 import po.misc.interfaces.IdentifiableClass
 import po.misc.interfaces.IdentifiableContext
 
@@ -15,6 +14,7 @@ class CallbackManagerHooks{
     internal var onNewSubscription: ((ManagerStats)-> Unit)? = null
     internal var onBeforeTrigger: ((TriggerEvent)-> Unit)? = null
     internal var onAfterTriggered: ((PostTriggerEvent)-> Unit)? = null
+    internal var onFailureHook: ((String)-> Unit)? = null
 
     internal var onForwarding: ((HopInfo)-> Unit)? = null
 
@@ -33,5 +33,10 @@ class CallbackManagerHooks{
     fun afterTriggered(hook: (PostTriggerEvent)-> Unit) {
         onAfterTriggered = hook
     }
+
+    fun onFailure(hook: (String)-> Unit) {
+        onFailureHook = hook
+    }
+
 }
 

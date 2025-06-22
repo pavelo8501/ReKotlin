@@ -53,7 +53,7 @@ class TestCRUD : DatabaseTest(),  TasksManaged {
             email = "nomail@void.null"
         )
 
-        startTestConnection{
+        withConnection{
             service(UserDTO){
                 update(inputUser)
                 sequence(UserDTO.PICK) { handler ->

@@ -13,6 +13,7 @@ class SessionFactory(
     private  val internalStorage : ConcurrentHashMap<String, String>
 ) : TasksManaged
 {
+    override val contextName: String = "SessionFactory"
 
     private val activeSessions : ConcurrentHashMap<String, AuthorizedSession> = ConcurrentHashMap<String, AuthorizedSession>()
 

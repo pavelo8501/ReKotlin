@@ -28,12 +28,9 @@ interface ResultantTask<T, R:Any?> : MeasuredContext{
 
 interface UpdatableTasks{
 
-    // fun onTaskCreated(handler: UpdateType, callback: (TaskDispatcher.LoggerStats)-> Unit)
-    // fun onTaskComplete(handler: UpdateType, callback: (TaskDispatcher.LoggerStats)-> Unit)
     fun notifyUpdate(handler: UpdateType, task: ResultantTask<*, *>)
 }
 
 interface HandledTask<R: Any?>{
-   // val notifier: NotifierBase
-    //fun handleFailure(vararg  handlers: HandlerType, fallbackFn: (exception: ManagedException)->R)
+
 }

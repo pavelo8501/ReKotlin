@@ -4,6 +4,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import po.lognotify.TaskProcessor
 import po.lognotify.classes.action.ActionSpan
 import po.lognotify.classes.notification.LoggerDataProcessor
 import po.lognotify.classes.notification.enums.EventType
@@ -16,7 +17,7 @@ import po.lognotify.models.TaskDispatcher.LoggerStats
 import po.lognotify.models.TaskKey
 import po.lognotify.models.TaskRegistry
 import po.misc.callbacks.manager.CallbackManager
-import po.misc.callbacks.manager.callbackManager
+import po.misc.callbacks.manager.builders.callbackManager
 import po.misc.coroutines.CoroutineHolder
 import po.misc.data.helpers.emptyOnNull
 import po.misc.coroutines.CoroutineInfo
@@ -34,7 +35,7 @@ sealed class TaskBase<T, R: Any?>(
     override val config: TaskConfig,
     dispatcher: TaskDispatcher,
     internal val ctx: T,
-): StaticHelper, MeasuredContext, ResultantTask<T, R>, IdentifiableClass {
+): StaticHelper, MeasuredContext, ResultantTask<T, R>, IdentifiableClass, TaskProcessor {
 
     enum class TaskStatus{
         New,
@@ -45,17 +46,12 @@ sealed class TaskBase<T, R: Any?>(
 
     abstract var taskResult: TaskResult<R>?
     abstract val coroutineContext: CoroutineContext
-   // abstract override val notifier : NotifierBase
     abstract val registry: TaskRegistry<*, *>
-
-
     abstract val callbackRegistry : CallbackManager<TaskDispatcher.UpdateType>
-
     abstract override val dataProcessor: LoggerDataProcessor
     override val executionTimeStamp: ExecutionTimeStamp = ExecutionTimeStamp(key.taskName, key.taskId.toString())
     abstract override val handler: TaskHandler<R>
-
-    internal val  actionSpans : MutableList<ActionSpan<*,*>> = mutableListOf()
+    internal val  actionSpans : MutableList<ActionSpan<*>> = mutableListOf()
 
     var taskStatus : TaskStatus = TaskStatus.New
         internal set
@@ -76,7 +72,7 @@ sealed class TaskBase<T, R: Any?>(
             totalTasksCount = registry.tasks.count(),
             coroutineInfo = CoroutineInfo.createInfo(coroutineContext)
         )
-        callbackRegistry.trigger(handler, stats)
+        callbackRegistry.trigger<LoggerStats>(handler, stats)
     }
     fun checkChildResult(childResult : TaskResult<*>): ManagedException?{
         return  childResult.throwable?.let {exception->
@@ -86,7 +82,7 @@ sealed class TaskBase<T, R: Any?>(
         }
     }
 
-    fun addActionSpan(actionSpan: ActionSpan<*,*> ):ActionSpan<*,*>{
+    fun addActionSpan(actionSpan: ActionSpan<*> ):ActionSpan<*>{
         actionSpans.add(actionSpan)
         return actionSpan
     }
@@ -107,7 +103,7 @@ class RootTask<T, R: Any?>(
             it::class.simpleName.toString()
         }?: "NoContext"
     }
-    override val identity = asIdentifiableClass(receiverName)
+    override val identity = asIdentifiableClass("RootTask", receiverName)
     override val dataProcessor: LoggerDataProcessor = LoggerDataProcessor(this, null)
     override var taskResult : TaskResult<R>?  =  null
     override val registry: TaskRegistry<T, R> = TaskRegistry(dispatcher, this)
@@ -136,10 +132,7 @@ class RootTask<T, R: Any?>(
     fun start(onEscalation: ((ManagedException)-> Unit)? = null):RootTask<T, R>{
         escalationCallback = onEscalation
         startTimer()
-        dataProcessor.systemEvent(EventType.START)
-//        coroutineContext.currentProcess()?.let {
-//            it.stopTaskObservation(this)
-//        }
+        dataProcessor.registerStart()
         return this
     }
 
@@ -154,7 +147,7 @@ class RootTask<T, R: Any?>(
     fun complete():RootTask<T, R>{
         stopTimer()
         isComplete = true
-        dataProcessor.systemEvent(EventType.STOP)
+        dataProcessor.registerStop()
         dispatcher.removeRootTask(this)
         return this
     }
@@ -174,7 +167,8 @@ class Task<T,  R: Any?>(
             it::class.simpleName.toString()
         }?: "NoContext"
     }
-    override val identity = asIdentifiableClass(receiverName)
+
+    override val identity = asIdentifiableClass(key.taskName, receiverName)
 
     override val dataProcessor: LoggerDataProcessor = LoggerDataProcessor(this, hierarchyRoot.dataProcessor)
     override val coroutineContext: CoroutineContext get() = hierarchyRoot.coroutineContext
@@ -191,12 +185,12 @@ class Task<T,  R: Any?>(
 
     fun start():Task<T, R>{
         startTimer()
-        dataProcessor.systemEvent(EventType.START)
+        dataProcessor.registerStart()
         return this
     }
     fun complete():Task<T, R>{
         stopTimer()
-        dataProcessor.systemEvent(EventType.STOP)
+        dataProcessor.registerStop()
         return this
     }
 }

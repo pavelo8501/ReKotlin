@@ -28,16 +28,14 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
    val dtoClass: DTOBase<DTO, DATA, ENTITY>
 ): Identifiable,  ModelDTO where DTO : ModelDTO,  DATA: DataModel , ENTITY: LongEntity {
 
-    enum class Events(override val value: Int): ValueBased{
-        OnParentAttached(1)
-    }
+    override val objectId: Long
+        get() = 0
 
     override val dtoType :TypeRecord<DTO> = registry.getRecord<DTO, InitException>(SourceObject.DTO)
     val dtoId : DTOId<DTO> = DTOId(UUID.randomUUID().hashCode().toLong())
-    override val componentName: String
+    override val contextName: String
         get() = "CommonDTO[${sourceName}#${dtoId.id}]"
-    override val sourceName: String
-        get() = dtoType.simpleName
+    override var sourceName: String = dtoType.simpleName
 
     val dtoClassConfig: DTOConfig<DTO, DATA, ENTITY>
         get() {
@@ -86,63 +84,32 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
             return trackerParameter ?: DTOTracker(this)
         }
 
-    private val notificator: TypedCallbackRegistry<CommonDTO<ModelDTO, DataModel, LongEntity>, Unit> = TypedCallbackRegistry()
-
-
-    init {
-
-
-        notificator.onNewSubscription = { key, subscriber->
-            logger.info("New subscription for key: $key  by: ${subscriber.completeName}")
-        }
-        notificator.onKeyOverwrite = {keyStr, subscriber->
-            logger.warn("Key: $keyStr was overwritten by ${subscriber.completeName}")
-        }
-        notificator.onBeforeTrigger = {key, subscriber, value ->
-            val message = """
-                About to trigger key: ${key.value} for subscriber ${subscriber.completeName}
-                Trigger payload: ${value::class.simpleName}
-            """.trimIndent()
-            logger.info(message)
-        }
-        notificator.onAfterTriggered = {
-            logger.info("Triggers count: $it")
+    override fun compareTo(other: Long): Int {
+        val comparison = objectId.compareTo(other)
+        if (comparison != 0) {
+            return objectId.toInt()
+        } else {
+            return 0
         }
     }
 
-    internal fun <F_DTO, FD, FE> setForeignDTO(
-        foreign: CommonDTO<F_DTO, FD, FE>
-    ) where F_DTO: ModelDTO, FD: DataModel, FE: LongEntity
-    {
-        logger.info("foreign received cast ${foreign::class.simpleName}")
-        val castedToInterface = foreign.castOrOperationsEx<CommonDTO<ModelDTO, DataModel, LongEntity>>()
-        logger.info("foreign after cast ${foreign::class.simpleName}")
-        notificator.triggerForAll(Events.OnParentAttached, castedToInterface)
+    override fun updateId(id: Long) {
 
     }
 
-    internal fun subscribe(
-        subscriber: Identifiable,
-        eventType: Events,
-        callback:(CommonDTO<ModelDTO, DataModel, LongEntity>)-> Unit)
-    {
-        notificator.subscribe(subscriber, eventType, callback)
-    }
-
-    internal fun getEntity(requesting: Identifiable):ENTITY{
+    internal fun getEntity():ENTITY{
        return if(isEntityInserted){
-            entityParameter.getOrOperationsEx(withIdentification("Requesting entity while not inserted"), ExceptionCode.METHOD_MISUSED)
+            entityParameter.getOrOperationsEx("Requesting entity while not inserted", ExceptionCode.METHOD_MISUSED)
         }else{
-            val requestedBy = requesting.withIdentification("Entity was requested by")
-            val message = "${withIdentification("Requesting entity while not inserted")}${requestedBy}"
+            val message = "Requesting entity while not inserted"
             entityParameter.getOrOperationsEx(message, ExceptionCode.METHOD_MISUSED)
         }
     }
 
-
     internal fun finalizeCreation(entity: ENTITY, cardinality: Cardinality): ENTITY {
         if(entityParameter != null){
-            logger.warn(withIdentification("finalizeCreation. Updating entityParameter when it is already set"))
+
+            logger.warn("finalizeCreation. Updating entityParameter when it is already set")
         }
         entityParameter = entity
         dataModel.id = entity.id.value
@@ -153,18 +120,12 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
 
     internal fun provideEntity(entity: ENTITY): ENTITY {
         if(entityParameter != null){
-            logger.warn(withIdentification("provideEntity. Updating entityParameter when it is already set"))
+            logger.warn("provideEntity. Updating entityParameter when it is already set")
         }
         entityParameter = entity
         dataModel.id = entity.id.value
         return entity
     }
-
-//    fun createByData(): CommonDTO<DTO, DATA, ENTITY> {
-//        bindingHub.createByData()
-//        dtoClass.registerDTO(this)
-//        return this
-//    }
 
     internal fun initialize(tracker: DTOTracker<DTO, DATA>? = null): CommonDTO<DTO, DATA, ENTITY> {
         if (tracker != null) {

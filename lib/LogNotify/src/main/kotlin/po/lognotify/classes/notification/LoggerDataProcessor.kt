@@ -11,33 +11,29 @@ import po.lognotify.enums.SeverityLevel
 import po.misc.data.PrintableBase
 import po.misc.data.console.PrintableTemplateBase
 import po.misc.data.interfaces.Printable
-import po.misc.data.processors.TypedDataProcessorBase
+import po.misc.data.processors.DataProcessorBase
+import po.misc.exceptions.ManagedException
 
 class LoggerDataProcessor(
     val task : TaskBase<*, *>,
     override val topEmitter: LoggerDataProcessor?
-) : TypedDataProcessorBase<TaskData>() {
+) : DataProcessorBase<TaskData>() {
 
     enum class LoggerProcessorType{RootTask, Task }
-
     var config : NotifyConfig = NotifyConfig()
-
     var processorType: LoggerProcessorType = LoggerProcessorType.Task
 
     init {
         when(task){
             is RootTask -> {
                 processorType = LoggerProcessorType.RootTask
-                onNewRecord {
-                    emitData(it)
-                }
             }
             is Task->{
+              processorType = LoggerProcessorType.Task
               config =  task.hierarchyRoot.dataProcessor.config
             }
         }
         provideMuteCondition(::setMuteConditions)
-        provideOutputSource(::onTaskOutput)
     }
 
     private fun setMuteConditions(data: TaskData): Boolean{
@@ -50,25 +46,6 @@ class LoggerDataProcessor(
                 false
             }
         }
-    }
-
-    private fun onTaskOutput(message: String){
-        println(message)
-    }
-
-    private fun createData(message: String, severity: SeverityLevel, template:  PrintableTemplateBase<TaskData>):TaskData{
-        val data =  TaskData(
-            taskKey = task.key,
-            config = task.config,
-            timeStamp = task.executionTimeStamp,
-            message = message,
-            severity = severity
-        )
-        processRecord(data, template)
-        if(processorType == LoggerProcessorType.Task){
-            forwardTop(data)
-        }
-        return data
     }
 
     private fun forwardOrEmmit(data:TaskData){
@@ -87,69 +64,69 @@ class LoggerDataProcessor(
             message = message,
             severity = severity
         )
-        if(arbitraryData != null){
-            data.addChild(arbitraryData)
-        }
         return data
     }
 
-    fun systemEvent(eventType : EventType, message: String? = null):TaskData{
-       return when(eventType){
-            EventType.START->{
-                createData("", SeverityLevel.INFO, TaskData.Header)
-            }
-            EventType.STOP -> {
-                val data = createData("", SeverityLevel.INFO, TaskData.Footer)
-                stopBroadcast()
-                data
-            }
-            EventType.ExceptionRaised,
-            EventType.ExceptionRethrown,
-            EventType.ExceptionReachedTop -> {
-                warn(message?: EventType.ExceptionReachedTop.toString(), task)
-            }
-            else -> {
-                TODO("Not yet implemented.")
-            }
-        }
+    fun registerStart(){
+       val dataRecord = createData("", SeverityLevel.INFO, null)
+        processRecord(dataRecord, TaskData.Header)
+        forwardOrEmmit(dataRecord)
     }
 
-    fun log(data: PrintableBase<*>){
-        processRecord(data, null)
-        createData("Forwarding", SeverityLevel.LOG, data)
-        forwardOrEmmit(createData("Forwarding", SeverityLevel.LOG, data))
+    fun registerStop(){
+        val dataRecord = createData("", SeverityLevel.INFO, null)
+        processRecord(dataRecord, TaskData.Footer)
+        forwardOrEmmit(dataRecord)
+        stopBroadcast()
     }
 
-    fun <T: Printable> log(data: T, printFn: T.(StringBuilder)-> Unit){
+    fun <T: PrintableBase<T>> log(dataRecord: T, template: PrintableTemplateBase<T>){
+        dataRecord.defaultTemplate = template
+        dataRecord.echo()
+        val packedRecord = createData("Forwarding", SeverityLevel.LOG, dataRecord)
+        processRecord(packedRecord, null)
+        forwardOrEmmit(packedRecord)
+    }
+
+    fun <T: Printable> logFormatted(data: T, printFn: T.(StringBuilder)-> Unit){
         buildString{ data.printFn(this) }
-        forwardOrEmmit(createData("Forwarding", SeverityLevel.LOG, data as PrintableBase<*>))
+        val asPrintable =  data as PrintableBase<*>
+        asPrintable.echo()
+        forwardOrEmmit(createData("Forwarding", SeverityLevel.LOG, asPrintable))
     }
 
     fun info(message: String): TaskData {
-        return createData(message, SeverityLevel.INFO, TaskData.Message)
+        val dataRecord = createData(message, SeverityLevel.INFO, null)
+        processRecord(dataRecord, TaskData.Message)
+        return dataRecord
     }
     fun <R> info(message: String, task: TaskBase<*, R>): TaskData{
-        return  createData(message, SeverityLevel.INFO, TaskData.Message)
+        val dataRecord = createData(message, SeverityLevel.INFO, null)
+        processRecord(dataRecord, TaskData.Message)
+        return dataRecord
     }
 
     fun warn(message: String): TaskData {
-        return createData(message, SeverityLevel.WARNING,  TaskData.Message)
+        val dataRecord =createData(message, SeverityLevel.WARNING,  null)
+        processRecord(dataRecord, TaskData.Message)
+        return dataRecord
     }
+    fun error(exception: ManagedException): TaskData {
+       val dataRecord =  createData(exception.message, SeverityLevel.EXCEPTION, null)
+        processRecord(dataRecord, TaskData.Exception)
+        return dataRecord
+    }
+
     internal fun <R> warn(message: String, task: TaskBase<*, R>): TaskData{
-        return  createData(message, SeverityLevel.WARNING, TaskData.Message)
+        return  createData(message, SeverityLevel.WARNING, null)
     }
     fun warn(th: Throwable, message: String): TaskData {
-        return createData("$message ${th.message.toString()}", SeverityLevel.WARNING,  TaskData.Message)
+        return createData("$message ${th.message.toString()}", SeverityLevel.WARNING,  null)
     }
-
-    internal fun <R> error(message: String, task: TaskBase<*, R>): TaskData{
-        return  createData(message, SeverityLevel.EXCEPTION, TaskData.Message)
-    }
-
     @PublishedApi
     internal fun <R> debug(message: String, where: String,  task: TaskBase<*, R>){
         if(config.inShowDebugList(TaskData.Debug)){
-            createData("Debug: $where -> $message" , SeverityLevel.DEBUG, TaskData.Debug)
+            createData("Debug: $where -> $message" , SeverityLevel.DEBUG, null)
         }
     }
 }

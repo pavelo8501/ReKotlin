@@ -7,9 +7,6 @@ import po.exposify.dto.DTOClass
 import po.exposify.dto.components.bindings.DelegateStatus
 import po.exposify.dto.components.bindings.interfaces.DelegateInterface
 import po.exposify.dto.components.bindings.property_binder.interfaces.ObservableData
-import po.exposify.dto.components.bindings.property_binder.interfaces.UpdateParams
-import po.exposify.dto.components.tracker.CrudOperation
-import po.exposify.dto.enums.Delegates
 import po.exposify.dto.helpers.getPropertyRecord
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
@@ -19,9 +16,9 @@ import po.exposify.extensions.getOrInitEx
 import po.exposify.extensions.getOrOperationsEx
 import po.misc.data.SmartLazy
 import po.misc.interfaces.Identifiable
-import po.misc.interfaces.IdentifiableModule
+import po.misc.interfaces.IdentifiableClass
 import po.misc.interfaces.ValueBased
-import po.misc.interfaces.asIdentifiableModule
+import po.misc.interfaces.asIdentifiableClass
 import po.misc.registries.callback.TypedCallbackRegistry
 import po.misc.validators.mapping.models.MappingCheck
 import kotlin.Any
@@ -31,7 +28,7 @@ import kotlin.reflect.KProperty
 
 sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
     protected val hostingDTO: CommonDTO<DTO, D, E>
-): ReadWriteProperty<DTO, V>, DelegateInterface<DTO, DTO>
+): ReadWriteProperty<DTO, V>, DelegateInterface<DTO, DTO>, IdentifiableClass
       where DTO: ModelDTO, D: DataModel, E: LongEntity
 {
     override var status: DelegateStatus = DelegateStatus.Created
@@ -52,13 +49,10 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
     private var propertyParameter : KProperty<V>? = null
     val property: KProperty<V> get() = propertyParameter.getOrInitEx()
 
-
     val name: String by SmartLazy("Uninitialized"){
         propertyParameter?.name
     }
-
-    override val module: IdentifiableModule = asIdentifiableModule(name, hostingDTO.sourceName,
-        Delegates.ResponsiveDelegate)
+    override val identity = asIdentifiableClass("ResponsiveDelegate", hostingDTO.sourceName)
 
     var dataPropertyParameter:KMutableProperty1<D, V>? = null
     val dataProperty:KMutableProperty1<D, V>
@@ -70,7 +64,11 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
 
     protected var onPropertyInitialized: ((KProperty<*>)-> Unit)? = null
 
-    var activeValue : V? = null
+    private var effectiveValue : V? = null
+    private val value  : V
+        get() =  effectiveValue.getOrOperationsEx("Value accessed before initialization")
+    val isValueNull : Boolean  get() = effectiveValue == null
+
     var valueUpdated : Boolean = false
 
     protected val subscriptions : TypedCallbackRegistry<ObservableData, Unit> = TypedCallbackRegistry()
@@ -78,15 +76,12 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
 
 
     private fun notifyUpdate(type: UpdateType, value: V){
-        subscriptions.triggerForAll(
-            type,
-            UpdateParams(hostingDTO, CrudOperation.Initialize, "update", name, activeValue, value, module)
-        )
+
     }
     override fun resolveProperty(property: KProperty<*>){
         if(propertyParameter == null){
             propertyParameter = property.castOrInitEx()
-            module.updateName(property.name)
+            identity.updateSourceName(property.name)
             hostingDTO.bindingHub.setResponsiveDelegate(this)
             onPropertyInitialized?.invoke(property)
         }
@@ -96,25 +91,55 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
         this.status = status
     }
 
-
-    private fun valueChanged(updateType : UpdateType, value : V){
-        if(activeValue != value){
-            valueUpdated = true
-            notifyUpdate(updateType, value)
-            notifyUpdate(UpdateType.CHANGE, value)
-            activeValue = value
-        }
+    private fun valueChanged(updateType : UpdateType, newValue : V){
+        valueUpdated = true
+        effectiveValue = newValue
+        notifyUpdate(updateType, newValue)
+        notifyUpdate(UpdateType.CHANGE, value)
     }
-    private fun updateEntityProperty(value:V, entity:E?){
-        entity?.let {
-            entityProperty.set(it, value)
-            dataProperty.set(hostingDTO.dataModel, value)
-        }?:run {
+
+//    private fun updateEntityProperty(value:V, entity:E?){
+//        entity?.let {
+//            entityProperty.set(it, value)
+//            dataProperty.set(hostingDTO.dataModel, value)
+//        }?:run {
+//            if(hostingDTO.isEntityInserted){
+//                entityProperty.set(hostingDTO.getEntity(), value)
+//            }else{
+//                hostingDTO.logger.warn("${hostingDTO.completeName} attempted to update entity not inserted")
+//            }
+//        }
+//    }
+
+    internal fun updateBy(data:D){
+        val newValue = dataProperty(data)
+        if(effectiveValue != newValue){
             if(hostingDTO.isEntityInserted){
-                entityProperty.set(hostingDTO.getEntity(module), value)
+                val entity = hostingDTO.getEntity()
+                entityProperty.set(entity, newValue)
             }else{
                 hostingDTO.logger.warn("${hostingDTO.completeName} attempted to update entity not inserted")
             }
+            valueChanged(UpdateType.DATA_UPDATE, newValue)
+        }
+    }
+
+    /**
+     * Updates entity form data model
+     */
+    internal fun update(entity:E){
+        val newValue = dataProperty(hostingDTO.dataModel)
+        if(effectiveValue!= newValue){
+            entityProperty.set(entity, newValue)
+            valueChanged(UpdateType.ENTITY_UPDATE, newValue)
+        }
+    }
+    internal fun updateBy(entity:E){
+        val newValue = entityProperty.get(entity)
+        if(effectiveValue!= newValue){
+            effectiveValue = newValue
+            dataProperty.set(hostingDTO.dataModel, newValue)
+            valueChanged(UpdateType.ENTITY_UPDATE, newValue)
         }
     }
 
@@ -125,25 +150,38 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
     }
     override fun getValue(thisRef: DTO, property: KProperty<*>): V {
         resolveProperty(property)
-        return activeValue?: dataProperty.get(hostingDTO.dataModel)
+        return value
     }
     override fun setValue(thisRef: DTO, property: KProperty<*>, value: V) {
         resolveProperty(property)
-        updateEntityProperty(value, null)
-        valueChanged(UpdateType.DTO_UPDATE, value)
+        if(effectiveValue != value){
+            val dataModel = hostingDTO.dataModel
+            dataProperty.set(dataModel, value)
+            if(hostingDTO.isEntityInserted){
+                val entity = hostingDTO.getEntity()
+                entityProperty.set(entity, value)
+            }else{
+                hostingDTO.logger.warn("${hostingDTO.completeName} update through delegate set. Entity must have been inserted but its not")
+            }
+            valueChanged(UpdateType.DTO_UPDATE, value)
+        }
     }
 
-    internal fun updateDataProperty(data : D, entity:E?){
-        val value = dataProperty.get(data)
-        updateEntityProperty(value, entity)
-        valueChanged(UpdateType.DATA_UPDATE, value)
-    }
 
-    internal fun updateDTOProperty(entity:E){
-        val value = entityProperty.get(entity)
-        dataProperty.set(hostingDTO.dataModel, value)
-        valueChanged(UpdateType.ENTITY_UPDATE, value)
-    }
+
+
+
+//    internal fun updateDataProperty(data : D, entity:E?){
+//        val value = dataProperty.get(data)
+//        updateEntityProperty(value, entity)
+//        valueChanged(UpdateType.DATA_UPDATE, value)
+//    }
+
+//    internal fun updateDTOProperty(entity:E){
+//        val value = entityProperty.get(entity)
+//        dataProperty.set(hostingDTO.dataModel, value)
+//        valueChanged(UpdateType.ENTITY_UPDATE, value)
+//    }
 
     fun subscribeUpdates(subscriber: Identifiable, callback: (ObservableData)-> Unit){
         subscriptions.subscribe(subscriber, UpdateType.CHANGE, callback)

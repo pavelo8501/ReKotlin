@@ -28,6 +28,8 @@ import kotlin.test.assertTrue
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestResponsiveDelegates : DatabaseTest(), TasksManaged {
 
+
+
     companion object{
         @JvmStatic
         var updatedById : Long = 0
@@ -47,7 +49,7 @@ class TestResponsiveDelegates : DatabaseTest(), TasksManaged {
             name = "name",
             email = "nomail@void.null"
         )
-        startTestConnection{
+        withConnection{
             service(UserDTO, TableCreateMode.FORCE_RECREATE) {
                 updatedById = update(user).getDataForced().id
             }
@@ -68,7 +70,7 @@ class TestResponsiveDelegates : DatabaseTest(), TasksManaged {
         lateinit var updated : List<Section>
         lateinit var selected : List<Section>
 
-        startTestConnection {
+        withConnection {
             service(PageDTO){
                val firstInsert =  update(page).getDataForced()
                firstInsert.sections.forEach { it.classList = classUpdatedList }
@@ -108,7 +110,7 @@ class TestResponsiveDelegates : DatabaseTest(), TasksManaged {
         var updated : Page? = null
         var selected : Page? = null
 
-        startTestConnection {
+        withConnection {
             service(PageDTO, TableCreateMode.FORCE_RECREATE){
                 updated =  update(page).getData()
                 selected = select().getData().firstOrNull()

@@ -1,7 +1,6 @@
 package po.misc.validators.general
 
 
-import po.misc.interfaces.Identifiable
 import po.misc.interfaces.IdentifiableContext
 import po.misc.validators.general.reports.ValidationReport
 

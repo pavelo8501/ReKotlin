@@ -23,14 +23,11 @@ class DTOConfig<DTO, DATA, ENTITY>(
 
     internal var trackerConfigModified : Boolean = false
     val trackerConfig : TrackerConfig = TrackerConfig()
-
     val childClasses : MutableList<DTOClass<*,*,*>> = mutableListOf()
 
     @PublishedApi
-   internal fun addHierarchMemberIfAbsent(childDTO : DTOClass<*, *, *>) {
-       if (!childDTO.initialized) {
-           childDTO.initialization()
-       }
+   internal fun addHierarchMember(childDTO : DTOClass<*, *, *>) {
+
        childClasses.add(childDTO)
    }
 

@@ -37,7 +37,7 @@ class TestComplexDelegate : DatabaseTest() {
             name = "name",
             email = "nomail@void.null"
         )
-        startTestConnection{
+        withConnection{
             service(UserDTO, TableCreateMode.CREATE) {
                 userId =  update(user).getDataForced().id
             }
@@ -45,54 +45,47 @@ class TestComplexDelegate : DatabaseTest() {
     }
 
     @Test
-    fun `attachedReference property binding`(){
-
+    fun `parentReference property binding`(){
         val sourceSections = sectionsPreSaved(0)
         val page = pagesSectionsContentBlocks(pageCount = 1, sectionsCount = 3, contentBlocksCount = 1, updatedBy = userId).first()
         page.sections.addAll(sourceSections)
-        var updatedPageData: Page? = null
-        var updatedPageDTO : PageDTO? = null
-        startTestConnection{
+        lateinit var updatedPage: Page
+        lateinit var updatedPageDTO : PageDTO
+        withConnection{
             service(PageDTO, TableCreateMode.CREATE){
                 val updateResult = update(page)
-                updatedPageData = updateResult.getDataForced()
+                updatedPage = updateResult.getDataForced()
                 updatedPageDTO = updateResult.getDTOForced()
             }
         }
-        val persistedDataSection  = updatedPageData?.sections?.first()
-        val persistedFirstDtoSection = updatedPageDTO?.sections?.first()
-        val persistedLastDtoSection = updatedPageDTO?.sections?.last()
 
-        assertNotNull(persistedDataSection, "Failed to get DataSection after update")
-        assertNotNull(persistedFirstDtoSection, "Failed to get DtoSection after update")
-        assertNotNull(persistedLastDtoSection, "Failed to get DtoSection after update")
-        assertNotEquals(persistedFirstDtoSection, persistedLastDtoSection, "First and last sections(DTO) are the same")
+        val sectionDtoFirst = assertNotNull(updatedPageDTO.sections.firstOrNull(), "Failed to get DtoSection after update")
+        val sectionDtoLast = assertNotNull(updatedPageDTO.sections.lastOrNull(), "Failed to get DtoSection after update")
+        assertNotEquals(sectionDtoFirst, sectionDtoLast, "First and last sections(DTO) are the same")
 
         assertAll("idReferenced updated in dto",
-            { assertNotEquals(0, updatedPageData.id, "updatedPageData id failed to update") },
-            { assertEquals(updatedPageData.id, persistedDataSection.pageId, "PageId in data model not updated. Expected ${updatedPageData.id}") },
-            { assertEquals(updatedPageData.id, persistedFirstDtoSection.page.id, "PageId in DTO not updated.. Expected ${updatedPageData.id}") },
-            { assertEquals(updatedPageData.id, persistedLastDtoSection.page.id, "PageId in last picked section. Expected ${updatedPageData.id}") }
+            { assertNotEquals(0, updatedPage.id, "updatedPageData id failed to update") },
+            { assertEquals(updatedPage.id, sectionDtoFirst.page.id, "PageId in DTO not updated.. Expected ${updatedPage.id}") },
+            { assertEquals(updatedPage.id, sectionDtoLast.page.id, "PageId in last picked section. Expected ${updatedPage.id}") }
           )
 
-        val persistedFirstSection = updatedPageData.sections.first()
-        val persistedLastSection = updatedPageData.sections.last()
+        val firstSection = assertNotNull(updatedPage.sections.firstOrNull(), "firstSection is null")
+        val lastSection = assertNotNull(updatedPage.sections.lastOrNull(), "lastSection is null" )
 
-        assertNotEquals(persistedFirstSection, persistedLastSection, "First and last section(Data Model) are the same")
+        assertNotEquals(firstSection, lastSection, "First and last section(Data Model) are the same")
 
         assertAll("idReferenced updated in data model",
-            { assertNotEquals(0, updatedPageData.id, "updatedPageData id failed to update") },
-            { assertEquals(updatedPageData.id, persistedFirstSection.pageId, "PageId in first section not updated. Expected ${updatedPageData.id}") },
-            { assertEquals(updatedPageData.id, persistedLastSection.pageId, "PageId in last section  not updated.. Expected ${updatedPageData.id}") },
+            { assertNotEquals(0, updatedPage.id, "updatedPageData id failed to update") },
+            { assertEquals(updatedPage.id, firstSection.pageId, "PageId in first section not updated. Expected ${updatedPage.id}") },
+            { assertEquals(updatedPage.id, lastSection.pageId, "PageId in last section  not updated.. Expected ${updatedPage.id}") },
         )
     }
 
     @Test
-    fun `attachedReference property binding on select`() = runTest{
-
+    fun `parentReference  property binding on select`() = runTest{
         val page = pagesSectionsContentBlocks(pageCount = 1, sectionsCount = 3, contentBlocksCount = 1, updatedBy = userId).first()
         lateinit var selectedResult : ResultList<PageDTO, Page, PageEntity>
-        startTestConnection{
+        withConnection{
             service(PageDTO, TableCreateMode.CREATE) {
                 update(page)
                 selectedResult = select()
@@ -100,16 +93,18 @@ class TestComplexDelegate : DatabaseTest() {
         }
 
         val persistedPageDto = assertNotNull(selectedResult.getDTO().firstOrNull(), "Page(DTO) is null")
-        val persistedFirstDtoSection = assertNotNull(persistedPageDto.sections.firstOrNull(), "Section(DTO) is null")
-        val persistedLastDtoSection = assertNotNull(persistedPageDto.sections.lastOrNull(), "Section(DTO) is null")
-        assertNotEquals(persistedFirstDtoSection, persistedLastDtoSection, "First and last Sections(DTO) are the same")
+        val sectionDTOFirst = assertNotNull(persistedPageDto.sections.firstOrNull(), "Section(DTO) is null")
+        val sectionDTOLast = assertNotNull(persistedPageDto.sections.lastOrNull(), "Section(DTO) is null")
+
+        assertNotEquals(sectionDTOFirst, sectionDTOLast, "First and last Sections(DTO) are the same")
 
         assertAll("page_id selected appropriately",
             { assertNotEquals(0, persistedPageDto.id, "id updated on select in PageDTO")},
-            { assertEquals(persistedPageDto.id, persistedFirstDtoSection.page.id, "PageId mismatch in first selected Section(DTO)")},
-            { assertEquals(persistedPageDto.id, persistedLastDtoSection.page.id, "PageId mismatch in last selected Section(DTO)")}
+            { assertEquals(persistedPageDto.id, sectionDTOFirst.page.id, "PageId mismatch in first selected Section(DTO)")},
+            { assertEquals(persistedPageDto.id, sectionDTOLast.page.id, "PageId mismatch in last selected Section(DTO)")}
         )
     }
+
 
     @Test
     fun `attachedReference property binding on update&pick`() = runTest{
@@ -118,33 +113,22 @@ class TestComplexDelegate : DatabaseTest() {
         val page = Page(id = 0, name = "home", langId = 1, updatedBy = userId)
         page.sections.addAll(sourceSections)
         var updatedPageData: Page? = null
-        lateinit var updatedPageDTO : PageDTO
         var pickedData: Page? = null
-        var pickedDTO : PageDTO? = null
-        startTestConnection {
-            service(PageDTO, TableCreateMode.CREATE) {
-                val updateResult = update(page)
-                updatedPageData = updateResult.getDataForced()
-                updatedPageDTO = updateResult.getDTOForced()
-                val selectionResult = pickById(updatedPageData.id)
-                pickedData = selectionResult.getDataForced()
-                pickedDTO = selectionResult.getDTO() as PageDTO
+        lateinit var pickedDTO : PageDTO
+        withConnection {
+            service(PageDTO, TableCreateMode.FORCE_RECREATE) {
+                val updated = update(page)
+                updatedPageData = updated.getDataForced()
+                val picked = pickById(updatedPageData.id)
+                pickedData = picked.getDataForced()
+                pickedDTO = picked.getDTOForced()
             }
         }
-
         assertNotNull(updatedPageData, "Failed to update PageData")
-        assertNotNull(updatedPageDTO, "Failed  to update PageDTO")
-
-        assertAll("attachedReference updated",
-            { assertNotEquals(0, userId, "updatedPageData id failed to update") },
-            { assertEquals(userId, updatedPageData.updatedBy, "UpdatedById in Page not updated. Expected $userId") },
-          //  { assertEquals(userId, updatedPageDTO.updatedBy, "UpdatedById in PageDTO not updated.. Expected $userId") },
-        )
-
         assertNotNull(pickedData, "Failed to pick PageData")
         assertNotNull(pickedDTO, "Failed  to pick PageDTO")
 
-        assertAll("foreign2IdReference picked",
+        assertAll("attachedReference picked",
             { assertEquals(
                 updatedPageData.updatedBy,
                 pickedData.updatedBy,

@@ -54,9 +54,9 @@ class TestPropertyHelpers {
     @Test
     fun `Selection contains only delegate properties`(){
 
-        val delegatePropertiesWildcard = toPropertyMap<SourceClass, TestDelegate<*>>()
-        val delegatePropertiesStr = toPropertyMap<SourceClass, TestDelegate<String>>()
-        val delegatePropertiesInt = toPropertyMap<SourceClass, TestDelegate<Int>>()
+        val delegatePropertiesWildcard = toPropertyMap<SourceClass>()
+        val delegatePropertiesStr = toPropertyMap<SourceClass>()
+        val delegatePropertiesInt = toPropertyMap<SourceClass>()
 
         assertEquals(3, delegatePropertiesWildcard.size)
         assertEquals(1, delegatePropertiesStr.size)

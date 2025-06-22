@@ -8,11 +8,9 @@ import org.jetbrains.exposed.dao.id.IdTable
 
 interface ClassDTO{
 
-    var initialized : Boolean
     fun nowTime(): LocalDateTime {
         return LocalDateTime.Companion.parse(Clock.System.now().toLocalDateTime(TimeZone.UTC).toString())
     }
-
     fun getAssociatedTables(cumulativeList: MutableList<IdTable<Long>>)
 }
 

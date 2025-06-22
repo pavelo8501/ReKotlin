@@ -27,6 +27,7 @@ class ExecutionProvider<DTO, DATA, ENTITY>(
     override val dtoClass: DTOBase<DTO, DATA, ENTITY>,
 ):  ExecutionContext<DTO, DATA, ENTITY> where  DTO  : ModelDTO , DATA : DataModel, ENTITY: LongEntity {
 
+    override val contextName: String = "ExecutionProvider"
 
     override val logger: TaskHandler<*> get() = lastTaskHandler()
 
@@ -97,7 +98,6 @@ class ExecutionProvider<DTO, DATA, ENTITY>(
         if (dataModel.id == 0L) {
             return insert(dataModel)
         }
-
         // 2. Try updating from cached/lookup DTO
         dtoClass.lookupDTO(dataModel.id, operation)
             ?.updateFromData(dataModel, operation)

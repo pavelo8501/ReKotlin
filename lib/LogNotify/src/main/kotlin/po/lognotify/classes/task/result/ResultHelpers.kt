@@ -14,7 +14,7 @@ private fun <T, R> resultContainerCreation(task: TaskBase<T, R>, result: R): Tas
         if(subTask.taskStatus == TaskBase.TaskStatus.Faulty){
             val exception = subTask.taskResult?.throwable
             task.dataProcessor.warn("Exception(${exception?.message}) swallowed by $subTask", task)
-            val waypointInfo = exception?.handlingData?.joinToString(" -> ") { "${it.wayPoint.completeName}(${it.message.emptyOnNull()})" }
+            val waypointInfo = exception?.handlingData?.joinToString(" -> ") { "${it.wayPoint.contextName}(${it.message.emptyOnNull()})" }
             waypointInfo?.wrapByDelimiter("->").emptyOnNull()
             task.dataProcessor.warn(waypointInfo?.wrapByDelimiter("->").emptyOnNull(), task)
         }

@@ -1,6 +1,7 @@
 package po.misc.exceptions
 
 import po.misc.interfaces.Identifiable
+import po.misc.interfaces.IdentifiableContext
 
 enum class HandlerType(val value: Int) {
     GENERIC(0),
@@ -18,7 +19,7 @@ enum class HandlerType(val value: Int) {
 }
 
 open class ManagedException(
-    message: String,
+    override val message: String,
     val source: Enum<*>? = null,
     original : Throwable? = null,
 ) : Throwable(message, original), ManageableException<ManagedException>{
@@ -31,7 +32,7 @@ open class ManagedException(
     }
 
     data class HandlingData(
-       val wayPoint: Identifiable,
+       val wayPoint: IdentifiableContext,
        val event: ExceptionEvent,
        val message: String? = null
     )
@@ -43,7 +44,7 @@ open class ManagedException(
         internal set
 
     override fun addHandlingData(
-        waypoint: Identifiable,
+        waypoint: IdentifiableContext,
         event: ExceptionEvent,
         message: String?
     ): ManagedException{
@@ -52,7 +53,7 @@ open class ManagedException(
     }
     override fun setHandler(
         handlerType: HandlerType,
-        wayPoint: Identifiable
+        wayPoint: IdentifiableContext
     ): ManagedException{
         addHandlingData(wayPoint, ExceptionEvent.HandlerChanged)
         handler = handlerType

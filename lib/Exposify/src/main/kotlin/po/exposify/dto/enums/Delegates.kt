@@ -2,7 +2,7 @@ package po.exposify.dto.enums
 
 import po.misc.interfaces.Named
 
-enum class Delegates(override val moduleName: String): Named{
+enum class Delegate(override val moduleName: String): Named{
     ResponsiveDelegate("ResponsiveDelegate"),
     AttachedForeignDelegate("AttachedForeignDelegate"),
     ParentDelegate("ParentDelegate"),

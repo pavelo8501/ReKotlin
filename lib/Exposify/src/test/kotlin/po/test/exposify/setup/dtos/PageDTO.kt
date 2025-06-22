@@ -9,10 +9,11 @@ import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.bindings.property_binder.delegates.attachedReference
 import po.exposify.dto.components.bindings.property_binder.delegates.binding
 import po.exposify.dto.components.bindings.relation_binder.delegates.oneToManyOf
-import po.exposify.dto.helpers.configuration
+import po.exposify.dto.configuration.configuration
 import po.exposify.scope.sequence.classes.RootHandlerProvider
 import po.test.exposify.setup.PageEntity
 import po.test.exposify.setup.SectionEntity
+import po.test.exposify.setup.UserEntity
 
 @Serializable
 data class Page(
@@ -38,14 +39,15 @@ class PageDTO(
 
     var updatedBy: Long = 0
 
-    val user by attachedReference(UserDTO, Page::updatedBy){user->
+    val user by attachedReference(UserDTO, Page::updatedBy, PageEntity::updatedBy){user->
         updatedBy = user.id
-        dataModel.updatedBy = user.id
+        dataModel.updatedBy =  user.id
     }
 
     val sections : List<SectionDTO> by oneToManyOf(SectionDTO, Page::sections, PageEntity::sections, SectionEntity::page)
 
-    companion object: RootDTO<PageDTO, Page, PageEntity>(){
+
+    companion object: RootDTO<PageDTO, Page, PageEntity>(PageDTO::class){
 
         val UPDATE by RootHandlerProvider(this)
         val SELECT by RootHandlerProvider(this)

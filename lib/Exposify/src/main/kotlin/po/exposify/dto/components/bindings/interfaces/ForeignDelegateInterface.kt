@@ -5,6 +5,5 @@ import po.exposify.dto.CommonDTO
 internal interface ForeignDelegateInterface {
 
 
-    fun resolveForeign()
 
 }

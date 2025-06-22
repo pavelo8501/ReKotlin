@@ -3,17 +3,14 @@ package po.exposify.dto.components.bindings.interfaces
 import po.exposify.dto.DTOBase
 import po.exposify.dto.components.bindings.DelegateStatus
 import po.exposify.dto.interfaces.ModelDTO
-import po.misc.interfaces.IdentifiableModule
-import po.misc.interfaces.IdentifiableModuleInstance
 import kotlin.reflect.KProperty
 
-internal interface DelegateInterface<DTO: ModelDTO, F_DTO: ModelDTO> {
+internal interface DelegateInterface<DTO: ModelDTO, F_DTO: ModelDTO>{
 
     fun resolveProperty(property: KProperty<*>)
     fun updateStatus(status: DelegateStatus)
 
     var status: DelegateStatus
-    val module: IdentifiableModule
     val hostingClass: DTOBase<DTO, *, *>
     val foreignClass: DTOBase<F_DTO, *, *>
 

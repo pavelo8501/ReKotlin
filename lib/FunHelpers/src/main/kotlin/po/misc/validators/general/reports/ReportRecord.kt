@@ -20,7 +20,7 @@ class ReportRecord internal constructor(
     val checkName: String,
     val recordName: String,
     val result: CheckStatus,
-): PrintableBase<ReportRecord>() {
+): PrintableBase<ReportRecord>(GeneralTemplate) {
 
 
     var message: String? = null
@@ -38,7 +38,7 @@ class ReportRecord internal constructor(
 
     companion object{
 
-        val GeneralTemplate : PrintableTemplate<ReportRecord> = PrintableTemplate(){
+        val GeneralTemplate : PrintableTemplate<ReportRecord> = PrintableTemplate("GeneralTemplate"){
             "Check:$recordName | Status:${result.name.matchTemplate(
                 templateRule(result.name.colorize(Colour.GREEN)){ result == CheckStatus.PASSED },
                 templateRule(result.name.colorize(Colour.RED)){ result == CheckStatus.FAILED },

@@ -62,7 +62,7 @@ class TaskResult<R : Any?>(
 
     fun resultOrException():R {
         throwable?.let {
-            task.dataProcessor.error("ResultOrException triggered. Escalating ${it.name()}", task)
+            task.dataProcessor.error(it)
             throw it
         }
         return result
