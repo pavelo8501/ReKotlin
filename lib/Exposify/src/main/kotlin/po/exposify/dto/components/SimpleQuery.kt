@@ -12,6 +12,7 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.greater
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.like
 import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.transactions.transaction
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.RootDTO
 import po.exposify.dto.components.tracker.CrudOperation
@@ -21,6 +22,7 @@ import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.throwOperations
+import po.exposify.extensions.withTransactionIfNone
 
 
 fun Op<Boolean>.toSqlString(): String {
@@ -62,7 +64,7 @@ class WhereQuery<T> (
     }
 
     fun <V> equalsTo(column: T.() -> Column<V>, value: V): WhereQuery<T> {
-        addCondition(table.column() eq value)
+            addCondition(table.column() eq value)
         return this
     }
 

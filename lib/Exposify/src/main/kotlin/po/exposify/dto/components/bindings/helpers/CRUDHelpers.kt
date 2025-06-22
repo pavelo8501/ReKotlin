@@ -4,6 +4,7 @@ import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
 import po.exposify.dto.RootDTO
+import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.components.result.toResult
 import po.exposify.dto.components.tracker.CrudOperation
@@ -36,6 +37,32 @@ fun <DTO: ModelDTO, D: DataModel,  E: LongEntity>  DTOBase<DTO, D, E>.newDTO(
 }
 
 
+internal fun  <DTO: ModelDTO, D: DataModel,  E: LongEntity> List<E>.select(
+    dtoClass:DTOBase<DTO, D, E>,
+    operation : CrudOperation
+): ResultList<DTO, D, E>
+{
+    val result :  MutableList<CommonDTO<DTO, D, E>> = mutableListOf()
+    forEach { entity ->
+        val createdDTO =  dtoClass.config.dtoFactory.createDto()
+        createdDTO.bindingHub.select(entity)
+        result.add(createdDTO)
+    }
+    return  result.toResult(dtoClass, operation)
+}
+
+
+internal fun  <DTO: ModelDTO, D: DataModel,  E: LongEntity> E.select(
+    dtoClass:DTOBase<DTO, D, E>,
+    operation : CrudOperation
+): ResultSingle<DTO, D, E>
+{
+    val createdDTO =  dtoClass.config.dtoFactory.createDto()
+    createdDTO.bindingHub.select(this)
+    return  createdDTO.toResult(operation)
+}
+
+
 /***
  * createByData Entry point for DTO hierarchy creation
  */
@@ -50,36 +77,27 @@ fun <DTO: ModelDTO, D: DataModel,  E: LongEntity>  DTOBase<DTO, D, E>.newDTO(
 }
 
 
-//fun  <DTO: ModelDTO, D: DataModel, E: LongEntity> DTOBase<DTO, D, E>.createDTO(
-//    data: D,
-//    operation: CrudOperation
-//):CommonDTO<DTO, D, E>{
-//    val newDto = config.dtoFactory.createDto(data)
-//    newDto.addTrackerInfo(operation, this)
-//    return newDto.createByData()
+//fun <DTO: ModelDTO, D: DataModel,  E: LongEntity>  DTOBase<DTO, D, E>.createDTO(
+//    entities : List<E>,
+//    operation: CrudOperation,
+//): List<CommonDTO<DTO,D,E>>{
+//    val result :  MutableList<CommonDTO<DTO,D,E>> = mutableListOf()
+//    entities.forEach {entity->
+//        val created = createDTO(entity, operation)
+//        result.add(created)
+//    }
+//    return result.toList()
 //}
 
-fun <DTO: ModelDTO, D: DataModel,  E: LongEntity>  DTOBase<DTO, D, E>.createDTO(
-    entities : List<E>,
-    operation: CrudOperation,
-): List<CommonDTO<DTO,D,E>>{
-    val result :  MutableList<CommonDTO<DTO,D,E>> = mutableListOf()
-    entities.forEach {entity->
-        val created = createDTO(entity, operation)
-        result.add(created)
-    }
-    return result.toList()
-}
 
-
-fun <DTO: ModelDTO, D: DataModel,  E: LongEntity>  DTOBase<DTO, D, E>.createDTO(
-    entity : E,
-    operation: CrudOperation,
-): CommonDTO<DTO,D,E>{
-    val created =  newDTO(entity)
-    created.bindingHub.insert(entity)
-    return created
-}
+//fun <DTO: ModelDTO, D: DataModel,  E: LongEntity>  DTOBase<DTO, D, E>.createDTO(
+//    entity : E,
+//    operation: CrudOperation,
+//): CommonDTO<DTO,D,E>{
+//    val created =  newDTO(entity)
+//    created.bindingHub.insert(entity)
+//    return created
+//}
 
 
 fun <DTO: ModelDTO, D: DataModel,  E: LongEntity> CommonDTO<DTO,D,E>.updateFromData(

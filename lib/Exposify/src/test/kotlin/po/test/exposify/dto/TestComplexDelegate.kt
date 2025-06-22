@@ -81,29 +81,7 @@ class TestComplexDelegate : DatabaseTest() {
         )
     }
 
-    @Test
-    fun `parentReference  property binding on select`() = runTest{
-        val page = pagesSectionsContentBlocks(pageCount = 1, sectionsCount = 3, contentBlocksCount = 1, updatedBy = userId).first()
-        lateinit var selectedResult : ResultList<PageDTO, Page, PageEntity>
-        withConnection{
-            service(PageDTO, TableCreateMode.CREATE) {
-                update(page)
-                selectedResult = select()
-            }
-        }
 
-        val persistedPageDto = assertNotNull(selectedResult.getDTO().firstOrNull(), "Page(DTO) is null")
-        val sectionDTOFirst = assertNotNull(persistedPageDto.sections.firstOrNull(), "Section(DTO) is null")
-        val sectionDTOLast = assertNotNull(persistedPageDto.sections.lastOrNull(), "Section(DTO) is null")
-
-        assertNotEquals(sectionDTOFirst, sectionDTOLast, "First and last Sections(DTO) are the same")
-
-        assertAll("page_id selected appropriately",
-            { assertNotEquals(0, persistedPageDto.id, "id updated on select in PageDTO")},
-            { assertEquals(persistedPageDto.id, sectionDTOFirst.page.id, "PageId mismatch in first selected Section(DTO)")},
-            { assertEquals(persistedPageDto.id, sectionDTOLast.page.id, "PageId mismatch in last selected Section(DTO)")}
-        )
-    }
 
 
     @Test

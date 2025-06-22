@@ -6,6 +6,7 @@ import po.exposify.dto.DTOBase
 import po.exposify.dto.RootDTO
 import po.exposify.dto.components.bindings.helpers.createDTO
 import po.exposify.dto.components.bindings.helpers.newDTO
+import po.exposify.dto.components.bindings.helpers.select
 import po.exposify.dto.components.bindings.helpers.shallowDTO
 import po.exposify.dto.components.bindings.helpers.updateFromData
 import po.exposify.dto.components.result.ResultList
@@ -47,7 +48,7 @@ class ExecutionProvider<DTO, DATA, ENTITY>(
             existent.toResult(operation)
         } else {
             dtoClass.config.daoService.pickById(id)?.let { entity ->
-                dtoClass.createDTO(entity, operation).toResult(operation)
+                entity.select(dtoClass, operation)
             } ?: run {
                 val message = "Entity with provided id :${id} not found"
                 dtoClass.shallowDTO().toResult(OperationsException(message, ExceptionCode.DB_CRUD_FAILURE, null), operation)
@@ -62,7 +63,7 @@ class ExecutionProvider<DTO, DATA, ENTITY>(
             if (existent != null) {
                 existent.toResult(operation)
             } else {
-                dtoClass.createDTO(entity, operation).toResult(operation)
+                entity.select(dtoClass, operation)
             }
         } ?: run {
             val queryStr = conditions.build().toSqlString()
@@ -72,20 +73,16 @@ class ExecutionProvider<DTO, DATA, ENTITY>(
         }
     }
 
-    override fun select(invalidateCache: Boolean): ResultList<DTO, DATA, ENTITY> {
+    override fun select(): ResultList<DTO, DATA, ENTITY> {
         val operation = CrudOperation.Select
-        if (!invalidateCache) {
-            return dtoClass.lookupDTO().toResult(dtoClass, operation)
-        } else {
-            dtoClass.clearCachedDTOs()
-            return dtoClass.createDTO(dtoClass.config.daoService.select(), operation).toResult(dtoClass, operation)
-        }
+        val entities =  dtoClass.config.daoService.select()
+        return  entities.select(dtoClass, operation)
     }
 
     override fun select(conditions: SimpleQuery): ResultList<DTO, DATA, ENTITY> {
         val operation = CrudOperation.Select
         val entities = dtoClass.config.daoService.select(conditions)
-        return dtoClass.createDTO(entities, operation).toResult(dtoClass, operation)
+        return entities.select(dtoClass, operation)
     }
 
     override fun <T : IdTable<Long>> select(conditions: WhereQuery<T>): ResultList<DTO, DATA, ENTITY> =

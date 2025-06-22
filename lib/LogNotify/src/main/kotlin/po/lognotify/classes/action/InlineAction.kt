@@ -22,28 +22,16 @@ interface InlineAction:  LoggableContext {
        return availableRoot.registry.getLastSubTask()?.handler?:availableRoot.handler
     }
 
-    fun <T: Any, R>  runInlineAction(actionName: String, receiver: T,  block: T.(TaskHandler<*>)->R):R{
+    fun <T: Any, R>  runInlineAction(actionName: String, receiver: T,  block: (TaskHandler<*>)->R):R{
         val activeTask  = this.actionHandler
         val newActionSpan = ActionSpan(actionName, activeTask.task.key, this)
         return try {
-            block.invoke(receiver, activeTask)
+            block.invoke(activeTask)
         }catch (ex: Throwable){
-            val snapshot = takePropertySnapshot<T, LogOnFault>(receiver)
-            newActionSpan.handleException(ex,  activeTask.task, snapshot)
+           // val snapshot = takePropertySnapshot<T, LogOnFault>(receiver)
+          //  newActionSpan.handleException(ex,  activeTask.task, snapshot)
             throw ex
         }
     }
-
-    fun <T:InlineAction, R>  T.runInlineAction(actionName: String,  block: T.(TaskHandler<*>)->R):R{
-        val activeTask  = this.actionHandler
-        val newActionSpan = ActionSpan(actionName, activeTask.task.key, this)
-        return try {
-            block.invoke(this, activeTask)
-        }catch (ex: Throwable){
-            val snapshot = takePropertySnapshot<T, LogOnFault>(this)
-            throw newActionSpan.handleException(ex,  activeTask.task, snapshot)
-        }
-    }
-
 }
 

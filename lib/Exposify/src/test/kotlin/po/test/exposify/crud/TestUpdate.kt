@@ -55,6 +55,8 @@ class TestUpdate : DatabaseTest(), TasksManaged {
                 updatedById = update(user).getDataForced().id
             }
         }
+
+
     }
 
     @Test
@@ -80,7 +82,6 @@ class TestUpdate : DatabaseTest(), TasksManaged {
         withConnection{
             service(PageDTO, TableCreateMode.CREATE) {
                 updatedPage =  update(inputPage).getDataForced()
-
             }
         }
 
@@ -127,91 +128,45 @@ class TestUpdate : DatabaseTest(), TasksManaged {
         )
     }
 
+    @Test
+    fun `Updates existent dto and verifies entire relation tree`(){
 
-    fun `updates existent dto and verifies entire relation tree`() = runTest{
-
-        val initialPages = pagesSectionsContentBlocks(pageCount = 1, sectionsCount =  1, contentBlocksCount = 1 , updatedBy = updatedById)
+        val initialPage = pagesSectionsContentBlocks(pageCount = 1, sectionsCount =  1, contentBlocksCount = 1 , updatedBy = updatedById).first()
+        var updatedPage: Page? = null
         var persistedPage : Page? = null
-        var updateResult : ResultSingle<PageDTO, Page, PageEntity>? = null
-
         val updatedPageName = "other_name"
         val updatedSectionName = "other_section_name"
         val updatedContentBlockName = "other_content_block_name"
 
         withConnection {
-            service(PageDTO, TableCreateMode.CREATE) {
-                persistedPage =  update(initialPages[0]).getDataForced()
-                persistedPage.name = updatedPageName
-                persistedPage.sections[0].name =updatedSectionName
-                persistedPage.sections[0].contentBlocks[0].name = updatedContentBlockName
-                updateResult = update(persistedPage)
+            service(PageDTO, TableCreateMode.FORCE_RECREATE) {
+                updatedPage =  update(initialPage).getDataForced()
+
+                updatedPage.name = updatedPageName
+                updatedPage.sections[0].name =updatedSectionName
+                updatedPage.sections[0].contentBlocks[0].name = updatedContentBlockName
+                persistedPage = update(updatedPage).getDataForced()
             }
         }
 
-        val pageDto = assertNotNull(updateResult?.getDTO(),  "PageDto is null")
+        val page = assertNotNull(persistedPage,  "Page is null")
         assertAll("PageDto properly updated",
-            { assertNotEquals(0, pageDto.id, "Id did not updated") },
-            { assertEquals(updatedPageName, pageDto.name, "Name property update failed") },
-            { assertTrue(pageDto.sections.size == 1, "Sections count mismatch") }
-        )
-
-        val sectionDto = assertNotNull(pageDto.sections[0],  "SectionDTO is null")
-        assertAll("SectionDTO properly updated",
-            { assertNotEquals(0, sectionDto.id, "Id did not updated") },
-            { assertEquals(updatedSectionName, sectionDto.name, "Name property update failed") },
-            { assertTrue(sectionDto.contentBlocks.size == 1, "ContentBlocks count mismatch") }
-        )
-
-        val contentBlockDTO = assertNotNull(pageDto.sections[0].contentBlocks[0],  "ContentBlockDTO is null")
-        assertAll("ContentBlockDTO properly updated",
-            { assertNotEquals(0, contentBlockDTO.id, "Id did not updated") },
-            { assertEquals(updatedContentBlockName, contentBlockDTO.name, "Name property update failed") },
-        )
-
-        val page = assertNotNull(updateResult.getData(),  "Page is null")
-        assertAll("Page properly updated",
             { assertNotEquals(0, page.id, "Id did not updated") },
             { assertEquals(updatedPageName, page.name, "Name property update failed") },
             { assertTrue(page.sections.size == 1, "Sections count mismatch") }
         )
 
-        val section = assertNotNull(page.sections[0],  "Section is null")
+        val section = assertNotNull(page.sections.firstOrNull(),  "SectionDTO is null")
         assertAll("Section properly updated",
             { assertNotEquals(0, section.id, "Id did not updated") },
             { assertEquals(updatedSectionName, section.name, "Name property update failed") },
             { assertTrue(section.contentBlocks.size == 1, "ContentBlocks count mismatch") }
         )
 
-        val contentBlock = assertNotNull(page.sections[0].contentBlocks[0],  "ContentBlock is null")
+        val contentBlock = section.contentBlocks.first()
         assertAll("ContentBlock properly updated",
             { assertNotEquals(0, contentBlock.id, "Id did not updated") },
-            { assertEquals(updatedContentBlockName,  contentBlock.name, "Name property update failed") },
-        )
-    }
-
-
-    fun `user updates`() = runTest {
-        val user = User(
-            id = 0,
-            login = "some_login",
-            hashedPassword = generatePassword("password"),
-            name = "name",
-            email = "nomail@void.null"
-        )
-        var userDataModel: User? = null
-
-
-        withConnection{
-            service(UserDTO, TableCreateMode.CREATE){
-               userDataModel = update(user).getData()
-            }
-        }
-
-        val updatedUser = assertNotNull(userDataModel, "Updated data model is null")
-        assertNotNull(updatedUser, "User Update failure")
-        assertAll("User Properties Updates",
-            { assertEquals(user.login, updatedUser.login, "Login property update failure. Should be: ${user.login}") },
-            { assertNotEquals("password", updatedUser.hashedPassword, "Login property update failure. Should be: ${user.login}") }
+            { assertEquals(updatedContentBlockName, contentBlock.name, "Name property update failed") },
         )
     }
 }

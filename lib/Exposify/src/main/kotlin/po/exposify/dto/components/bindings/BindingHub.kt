@@ -183,40 +183,47 @@ class BindingHub<DTO, D, E, F_DTO, FD, FE>(
     }
 
 
-    internal fun update(data: D) = runInlineAction("update") {
+    internal fun update(data: D){
         responsiveDelegates.values.forEach { responsiveDelegate ->
             responsiveDelegate.updateBy(data)
         }
+        getRelationDelegates(hostingDTO.cardinality).forEach {delegate->
+            delegate.updateBy(data)
+        }
     }
 
-    internal fun insert(entity:E) = runInlineAction("insert(entity)") {
-
-    }
-
-    internal fun create() = runInlineAction("create") {
+    internal fun create(){
         if(dtoClass is RootDTO){
             val newEntity =  daoService.save {
                 update(it)
             }
             hostingDTO.provideEntity(newEntity)
             dtoClass.registerDTO(hostingDTO)
-            getRelationDelegates(Cardinality.ONE_TO_MANY).forEach {relation->
-                relation.update(hostingDTO.dataModel)
+
+            val relationDelegates = getRelationDelegates(Cardinality.ONE_TO_MANY)
+            relationDelegates.forEach {delegateC->
+                delegateC.updateBy(hostingDTO.dataModel)
             }
         }else{
-            getRelationDelegates(hostingDTO.cardinality).forEach { relation ->
-                relation.update(hostingDTO.dataModel)
+            val relationDelegates = getRelationDelegates(hostingDTO.cardinality)
+            relationDelegates.forEach {
+                it.updateBy(hostingDTO.dataModel)
             }
         }
     }
 
-
-    internal fun select(entity:E) = runInlineAction("select") {
-        daoService.save {
-            update(it)
-            getRelationDelegates(hostingDTO.cardinality).forEach { delegate ->
-                delegate.selectByEntity(entity)
-            }
+    internal fun select(entity:E){
+        hostingDTO.provideEntity(entity)
+        responsiveDelegates.values.forEach {
+            it.updateBy(entity)
+        }
+        val delegates = if (dtoClass is RootDTO) {
+            getRelationDelegates(Cardinality.ONE_TO_MANY)
+        } else {
+            getRelationDelegates(hostingDTO.cardinality)
+        }
+        delegates.forEach {
+            it.createByEntity(entity)
         }
     }
 
@@ -227,46 +234,4 @@ class BindingHub<DTO, D, E, F_DTO, FD, FE>(
            }
         }
     }
-
-
-//    internal fun createChildByData(data:D) = runInlineAction("createChildByData") {
-//        getRelationDelegates(hostingDTO.cardinality).forEach { relationDelegate ->
-//            relationDelegate.create()
-//        }
-//        attachedForeignDelegates.values.forEach {
-//            it.resolveForeign(data)
-//        }
-//    }
-//
-//    internal fun <F_DTO: ModelDTO, FD : DataModel, FE: LongEntity>  setParent(parentDTO: CommonDTO<F_DTO, FD, FE>){
-//        parentDelegates.forEach { (key, value)->
-//           if(value.foreignClass == parentDTO.dtoClass){
-//               value.resolveForeign(parentDTO)
-//           }
-//        }
-//    }
-//
-//    fun createByEntity() {
-//        responsiveDelegates.values.forEach { responsiveDelegate ->
-//            responsiveDelegate.updateDTOProperty(hostingDTO.getEntity())
-//        }
-//        getRelationDelegates(hostingDTO.cardinality).forEach { relationDelegate ->
-//            relationDelegate.createByEntity()
-//        }
-//        attachedForeignDelegates.values.forEach {
-//            it.resolveForeign()
-//        }
-//    }
-//
-//    fun updateFromData(data: D) {
-//        responsiveDelegates.values.forEach {
-//            it.updateDataProperty(data, hostingDTO.getEntity())
-//        }
-//        getRelationDelegates(hostingDTO.cardinality).forEach { relationDelegate ->
-//            relationDelegate.updateFromData(data)
-//        }
-//        attachedForeignDelegates.values.forEach {
-//            it.resolveForeign(data)
-//        }
-//    }
 }

@@ -9,6 +9,7 @@ import po.exposify.dto.DTOClass
 import po.exposify.dto.components.bindings.DelegateStatus
 import po.exposify.dto.components.bindings.helpers.createDTO
 import po.exposify.dto.components.bindings.helpers.newDTO
+import po.exposify.dto.components.bindings.helpers.select
 import po.exposify.dto.components.bindings.interfaces.DelegateInterface
 import po.exposify.dto.components.bindings.interfaces.ForeignDelegateInterface
 import po.exposify.dto.components.tracker.CrudOperation
@@ -21,6 +22,7 @@ import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.castOrInitEx
 import po.exposify.extensions.getOrOperationsEx
 import po.lognotify.classes.action.InlineAction
+import po.lognotify.classes.action.runInlineAction
 import po.misc.data.SmartLazy
 import po.misc.interfaces.IdentifiableClass
 import po.misc.interfaces.asIdentifiableClass
@@ -87,26 +89,7 @@ sealed class RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V: Any>(
         this.status = status
     }
 
-//    fun create(data:DATA) = runInlineAction("insert", hostingDTO) {
-//
-//        val childDtoList = getPropertyData(data)
-//        val hostingDtoEntity = hostingDTO.getEntity()
-//        val dataList = getPropertyData()
-//        dataList.forEach { data ->
-//            val newDto = foreignClass.newDTO(data)
-//            newDto.addTrackerInfo(CrudOperation.Insert, this)
-//            val insertedEntity = newDto.daoService.save {
-//                newDto.bindingHub.updateEntity(it)
-//                foreignEntityProperty.set(it, hostingDtoEntity)
-//            }
-//            this@RelationDelegate.saveDto(newDto, insertedEntity)
-//        }
-//        this@RelationDelegate.getChildDTOs().forEach { savedDto ->
-//           // savedDto.bindingHub.createChildByData(savedDto.dataModel)
-//        }
-//    }
-
-    fun update(data:DATA) = runInlineAction("update") {
+    fun updateBy(data:DATA) = runInlineAction("updateByData") {
         val childDtoList = getChildDTOs()
         getPropertyData(data).forEach { data ->
             val existent = childDtoList.find { it.id == data.id }
@@ -120,16 +103,18 @@ sealed class RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V: Any>(
                     foreignEntityProperty.set(it, hostingDTO.getEntity())
                 }
                 newDto.provideEntity(insertedEntity)
+                foreignClass.registerDTO(newDto)
                 saveDto(newDto)
                 newDto.bindingHub.create()
             }
         }
     }
 
-    fun selectByEntity(entity:ENTITY) = runInlineAction("selectByEntity") {
+    fun createByEntity(entity:ENTITY) = runInlineAction("selectByEntity") {
         val foreignEntities =  getEntityData(entity)
         foreignEntities.forEach { entity->
-            val newDto = foreignClass.createDTO(entity, CrudOperation.Select)
+            val newDto = foreignClass.config.dtoFactory.createDto()
+            newDto.bindingHub.select(entity)
             saveDto(newDto, true)
         }
     }

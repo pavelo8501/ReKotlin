@@ -74,14 +74,15 @@ class ServiceContext<DTO, DATA, ENTITY>(
         }
     }.resultOrException()
 
-    fun select(invalidateCache: Boolean = false): ResultList<DTO, DATA, ENTITY> = runTask("Select") {handler->
+    fun select(): ResultList<DTO, DATA, ENTITY> = runTask("Select") {handler->
         withTransactionIfNone(handler) {
-            executionProvider.select(invalidateCache)
+            executionProvider.select()
         }
     }.resultOrException()
 
-    fun <T : IdTable<Long>> select(conditions: WhereQuery<T>): ResultList<DTO, DATA, ENTITY> =
-        runTaskBlocking("Select With Conditions") {handler->
+    fun <T : IdTable<Long>> select(
+        conditions: WhereQuery<T>
+    ):ResultList<DTO, DATA, ENTITY> = runTask("Select With Conditions") {handler->
             withTransactionIfNone(handler) {
                 executionProvider.select(conditions)
             }
@@ -99,7 +100,7 @@ class ServiceContext<DTO, DATA, ENTITY>(
         }
     }.resultOrException()
 
-    fun delete(toDelete: DATA): ResultList<DTO, DATA, ENTITY>? = runTaskBlocking("Delete") {handler->
+    fun delete(toDelete: DATA): ResultList<DTO, DATA, ENTITY>? = runTask("Delete") {handler->
         withTransactionIfNone(handler) {
             executionProvider.update(toDelete)
         }

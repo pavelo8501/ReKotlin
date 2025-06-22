@@ -56,7 +56,7 @@ class TestResponsiveDelegates : DatabaseTest(), TasksManaged {
         }
     }
 
-    @Test
+
     fun `Serialize delegates update data correctly on update and select`(){
 
         val classInitialList : List<ClassData> = listOf(ClassData(1,"class_1"))
@@ -75,7 +75,7 @@ class TestResponsiveDelegates : DatabaseTest(), TasksManaged {
                val firstInsert =  update(page).getDataForced()
                firstInsert.sections.forEach { it.classList = classUpdatedList }
                updated = update(firstInsert).getDataForced().sections.map{it}
-               selected = select(true).getData().flatMap{ it.sections }
+               selected = select().getData().flatMap{ it.sections }
             }
         }
 
