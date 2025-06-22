@@ -2,15 +2,15 @@ package po.lognotify.extensions
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import po.lognotify.classes.notification.RootNotifier
-import po.lognotify.classes.notification.models.Notification
+
+import po.lognotify.classes.task.RootTask
+import po.misc.data.PrintableBase
 
 
-suspend fun CoroutineScope.subscribeTo(notifier: RootNotifier<*>, notificationFn: (suspend (Notification)-> Unit)? =null) {
-
-    launch {
-            notifier.notifications.collect { notification ->
-            notificationFn?.invoke(notification)
-        }
-    }
-}
+//suspend fun CoroutineScope.subscribeTo(rootTask: RootTask<*, *>, notificationFn: (suspend (PrintableBase<*>)-> Unit)? =null) {
+//    launch {
+//        rootTask.dataProcessor.notifications.collect {notification ->
+//            notificationFn?.invoke(notification)
+//        }
+//    }
+//}

@@ -1,0 +1,30 @@
+package po.misc.callbacks.manager
+
+import po.misc.interfaces.IdentifiableClass
+
+
+//fun<E: Enum<E>, T: Any>  CallbackManager<E>.listen(
+//    subscriber: IdentifiableClass,
+//    eventType: E,
+//    function: (Containable<T>) -> Unit
+//): CallbackManager<E>  {
+//    this.subscribe<T>(subscriber, eventType, function)
+//   return this
+//}
+
+
+
+fun<E: Enum<E>, T: Any> E.subscribe(init: CallbackPayload<E, T>.() -> Unit): CallbackPayload<E, T> {
+   // return CallbackPayload<E, T>(this).apply(init)
+    TODO("In refactor")
+}
+
+
+
+fun <T1: Any, T2: Any> withConverter(converter: (T1) -> T2):(T1) -> T2{
+    return converter
+}
+
+fun <T : Any> wrapRawCallback(raw: (T) -> Unit): (Containable<T>) -> Unit {
+    return { containable -> raw(containable.getData()) }
+}

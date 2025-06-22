@@ -1,15 +1,17 @@
 package po.lognotify.exceptions
 
 import po.lognotify.classes.notification.enums.EventType
-import po.lognotify.classes.notification.models.Notification
-import po.lognotify.classes.notification.sealed.ProviderTask
+import po.lognotify.classes.notification.models.TaskData
+import po.lognotify.classes.task.RootTask
+import po.lognotify.classes.task.Task
 import po.lognotify.classes.task.TaskBase
-import po.lognotify.classes.task.interfaces.ResultantTask
 import po.lognotify.classes.task.result.TaskResult
-import po.lognotify.classes.task.result.toTaskResult
+import po.lognotify.classes.task.result.createFaultyResult
+import po.lognotify.classes.task.result.onTaskResult
 import po.lognotify.enums.SeverityLevel
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
+import po.misc.types.castOrThrow
 
 interface ExceptionHandled<R: Any?> {
 
@@ -18,30 +20,15 @@ interface ExceptionHandled<R: Any?> {
 
 }
 
-class ExceptionHandler<R: Any?>(
-   private val task : TaskBase<R>,
+class ExceptionHandler2<T, R: Any?>(
+   private val task : TaskBase<T, R>,
 ) : ExceptionHandled<R> {
 
-   private fun notifyHandlerSet(handler : HandlerType){
-      val message = "$handler handle set"
-      val notification = Notification(
-         ProviderTask(task),
-         EventType.HANDLER_REGISTERED,
-         SeverityLevel.INFO,
-         message)
-      task.notifier.submitNotification(notification)
+   private fun notifyHandlerSet(handler : HandlerType): TaskData{
+      TODO("Depreciated")
    }
-   private fun notifyHandled(managedEx : ManagedException){
-      val message =  "Exception Handled. Exception Message : ${managedEx.message}"
-      val severity = SeverityLevel.WARNING
-
-      val notification = Notification(
-         ProviderTask(task),
-         EventType.EXCEPTION_UNHANDLED,
-         severity,
-         message)
-
-      task.notifier.submitNotification(notification)
+   private fun notifyHandled(managedEx : ManagedException):TaskData{
+      TODO("Depreciated")
    }
    private fun notifyUnhandled(managedEx : ManagedException){
       val severity = SeverityLevel.EXCEPTION
@@ -58,13 +45,7 @@ class ExceptionHandler<R: Any?>(
              Snapshot: $snapshotStr
          """.trimIndent()
 
-      val notification = Notification(
-         ProviderTask(task),
-         EventType.EXCEPTION_UNHANDLED,
-         severity,
-         message)
 
-      task.notifier.submitNotification(notification)
    }
 
    val registeredAsyncHandlers : MutableMap<HandlerType, suspend (exception:  ManagedException)->R> = mutableMapOf()
@@ -88,11 +69,19 @@ class ExceptionHandler<R: Any?>(
       val handlerFn = registeredHandlers[managedEx.handler]
       return if (handlerFn != null) {
          notifyHandled(managedEx)
-         val result =  handlerFn.invoke(managedEx)
-         task.toTaskResult(result)
+         val result = handlerFn.invoke(managedEx)
+         val positive =  when(task){
+            is RootTask->{
+               onTaskResult(task, result)
+            }
+            is Task<T, R>->{
+               onTaskResult(task, result)
+            }
+         }
+         positive.castOrThrow<TaskResult<R>, LoggerException>("Failed in ExceptionHandler")
       } else {
          notifyUnhandled(managedEx)
-         task.toTaskResult(managedEx)
+         createFaultyResult(managedEx, task)
       }
    }
 }

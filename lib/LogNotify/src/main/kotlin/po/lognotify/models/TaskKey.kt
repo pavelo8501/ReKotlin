@@ -18,9 +18,12 @@ class TaskKey(
         return taskId
     }
     override fun compareTo(other: TaskKey): Int {
-        val nameComparison = taskId.compareTo(other.taskId)
-        return if (nameComparison != 0) nameComparison else taskId.compareTo(other.taskId)
+        return compareValuesBy(this, other,
+            { it.nestingLevel },
+            { it.taskId }
+        )
     }
+
     override fun toString(): String = "TaskKey(${taskId}, $moduleName)"
 
 }

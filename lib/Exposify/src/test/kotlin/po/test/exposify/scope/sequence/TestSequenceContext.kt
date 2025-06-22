@@ -21,7 +21,7 @@ import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.ConsoleBehaviour
 import po.lognotify.logNotify
-import po.test.exposify.scope.TestSessionsContext
+import po.test.exposify.scope.session.TestSessionsContext
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.PageEntity
 import po.test.exposify.setup.Pages
@@ -65,7 +65,7 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
             name = "name",
             email = "nomail@void.null"
         )
-        startTestConnection {
+        withConnection {
             service(UserDTO.Companion, TableCreateMode.FORCE_RECREATE) {
                 updatedById = update(user).getDataForced().id
             }
@@ -81,7 +81,7 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
             assertTrue(pageDtoByOnResultCollected.sections.size == 1, "Sections not updated")
         }
 
-        startTestConnection {
+        withConnection {
             service(PageDTO, TableCreateMode.CREATE) {
                 update(pageModelsWithSections(pageCount = 1, sectionsCount = 1, updatedBy = updatedById))
                 sequence(PageDTO.SELECT) {
@@ -136,7 +136,7 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
     @Test
     fun `Sequence launched with conditions and input work`() = runTest {
         var updatedPages: List<Page> = emptyList()
-        startTestConnection {
+        withConnection {
             service(PageDTO.Companion, TableCreateMode.CREATE) {
                 sequence(PageDTO.Companion.UPDATE) { handler ->
                     update(handler.inputList)
@@ -195,7 +195,7 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
         fun onSectionUpdated(result: ResultSingle<SectionDTO, Section, SectionEntity>) {
             sectionUpdateOutput = result.getDataForced()
         }
-        startTestConnection {
+        withConnection {
             service(PageDTO.Companion, TableCreateMode.CREATE) {
                 sequence(PageDTO.UPDATE) { handler ->
                     val insert = collectResult(update(handler.inputList))
@@ -234,6 +234,7 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
             "Page update statement succeed",
             { assertInstanceOf<Section>(sectionUpdateOutput, "Returned value is not of type Page") },
             { assertEquals("NewName", sectionUpdateOutput.name, "Section properties update failed") },
+            { assertEquals("NewDescription", sectionUpdateOutput.description, "Section properties update failed") },
             { assertNotEquals(0, sectionUpdateOutput.id, "Updated section Section record") }
         )
     }

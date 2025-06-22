@@ -3,12 +3,11 @@ package po.exposify.dto.components
 
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.common.classes.ClassBlueprint
-import po.exposify.dto.components.property_binder.enums.PropertyType
-import po.exposify.dto.components.property_binder.enums.UpdateMode
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
-import kotlin.reflect.KProperty
+import po.exposify.exceptions.throwInit
+import po.exposify.exceptions.throwOperations
 
 
 class DataModelContainer<DTO : ModelDTO, DATA: DataModel>(
@@ -31,7 +30,7 @@ class DataModelContainer<DTO : ModelDTO, DATA: DataModel>(
         if(isValue != null){
             return isValue
         }else{
-            throw OperationsException("Property value type mismatch", ExceptionCode.REFLECTION_ERROR)
+            throwOperations("Property value type mismatch", ExceptionCode.REFLECTION_ERROR)
         }
     }
 

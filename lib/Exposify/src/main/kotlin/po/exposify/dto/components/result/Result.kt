@@ -3,28 +3,38 @@ package po.exposify.dto.components.result
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
+import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.components.tracker.extensions.TrackableDTONode
 import po.exposify.dto.components.tracker.extensions.collectTrackerTree
 import po.exposify.dto.components.tracker.interfaces.TrackableDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.OperationsException
+import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.getOrOperationsEx
+import po.misc.exceptions.ManagedException
 import po.misc.types.castListOrThrow
 
-sealed class ResultBase<DTO, D, E>(
-    internal val dtoClass: DTOBase<DTO, D, E>,
-) where DTO : ModelDTO, D: DataModel, E : LongEntity{
 
-    var resultMessage : String = ""
-
+internal interface ExposifyResult{
+    val dtoClass: DTOBase<*, *, *>
+    val resultMessage: String
+    val size : Int
+    var activeCRUD: CrudOperation
+    var failureCause: ManagedException?
 }
 
 class ResultList<DTO, D, E> internal constructor(
-    dtoClass: DTOBase<DTO, D, E>,
-    private var result : MutableList<CommonDTO<DTO, D, E>>
-) : ResultBase<DTO, D, E>(dtoClass) where DTO : ModelDTO, D: DataModel, E : LongEntity {
+    override val  dtoClass: DTOBase<DTO, D, E>,
+    private var result : List<CommonDTO<DTO, D, E>> = emptyList()
+) :ExposifyResult where DTO : ModelDTO, D: DataModel, E : LongEntity {
 
+
+    override var resultMessage: String = ""
+    override val size: Int get() = result.size
+    override var activeCRUD: CrudOperation = CrudOperation.Create
+    override var failureCause: ManagedException? = null
 
     fun addResult(list: List<CommonDTO<DTO, D, E>>): ResultList<DTO, D, E> {
         result = list.toMutableList()
@@ -32,14 +42,14 @@ class ResultList<DTO, D, E> internal constructor(
     }
 
     internal fun appendDto(dto: CommonDTO<DTO, D, E>): ResultList<DTO, D, E> {
-        result.add(dto)
+        val mutable = result.toMutableList()
+        mutable.add(dto)
+        result = mutable.toList()
         return this
     }
 
     internal fun appendDto(single: ResultSingle<DTO, D, E>): ResultList<DTO, D, E> {
-        single.getAsCommonDTO()?.let {
-            result.add(it)
-        }
+        appendDto(single.getAsCommonDTOForced())
         return this
     }
 
@@ -48,13 +58,13 @@ class ResultList<DTO, D, E> internal constructor(
     }
 
     fun getDTO(): List<DTO> {
-        return result.castListOrThrow<DTO, OperationsException>(dtoClass.config.registryRecord.derivedDTOClazz)
+        val typeRecord = dtoClass.config.registry.getRecord<DTO, OperationsException>(SourceObject.DTO)
+        return result.castListOrThrow<DTO, OperationsException>(typeRecord.clazz, "getDTO", ExceptionCode.CAST_FAILURE)
     }
 
     internal fun getAsCommonDTO(): List<CommonDTO<DTO, D, E>> {
         return result
     }
-
 
     fun setWarningMessage(message: String): ResultList<DTO, D, E>{
         resultMessage = message
@@ -63,9 +73,16 @@ class ResultList<DTO, D, E> internal constructor(
 }
 
 class ResultSingle<DTO, D, E> internal constructor(
-    dtoClass: DTOBase<DTO, D, E>,
+    override val dtoClass: DTOBase<DTO, D, E>,
     private var result: CommonDTO<DTO, D, E>? = null
-): ResultBase<DTO, D, E>(dtoClass) where DTO : ModelDTO, D: DataModel, E : LongEntity {
+): ExposifyResult where DTO : ModelDTO, D: DataModel, E : LongEntity {
+
+    override var resultMessage: String = ""
+    override val size: Int get()  {
+        return if(result != null){ 1 }else{ 0 }
+    }
+    override var activeCRUD: CrudOperation = CrudOperation.Create
+    override var failureCause: ManagedException? = null
 
     internal fun appendDto(dtoToAppend: CommonDTO<DTO, D, E>): ResultSingle<DTO, D, E> {
         result = dtoToAppend
@@ -73,7 +90,7 @@ class ResultSingle<DTO, D, E> internal constructor(
     }
 
     fun getData(): D? {
-        val dataModel =  result?.dataModel
+        val dataModel = result?.dataModel
         return dataModel
     }
 
@@ -100,16 +117,26 @@ class ResultSingle<DTO, D, E> internal constructor(
         return result as DTO
     }
 
-    fun getTrackerInfo(): TrackableDTO{
+    fun getTrackerInfo(): TrackableDTO {
         return result.getOrOperationsEx().tracker.collectTrackers()
     }
 
-    fun getTrackerTree():TrackableDTONode{
+    fun getTrackerTree(): TrackableDTONode {
         return result.getOrOperationsEx().tracker.collectTrackerTree()
     }
 
-    fun setWarningMessage(message: String): ResultSingle<DTO, D, E>{
+    fun setWarningMessage(message: String): ResultSingle<DTO, D, E> {
         resultMessage = message
         return this
+    }
+
+    fun toResultList(): ResultList<DTO, D, E> {
+        val transform = ResultList(dtoClass)
+        result?.let {
+            transform.addResult(listOf(it))
+        } ?: run {
+            transform.setWarningMessage(resultMessage)
+        }
+        return transform
     }
 }

@@ -3,195 +3,135 @@ package po.exposify.dto
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.components.DAOService
 import po.exposify.dto.interfaces.DataModel
-import po.exposify.common.classes.MapBuilder
 import po.exposify.dto.components.DTOConfig
 import po.exposify.dto.components.DTOFactory
-import po.exposify.dto.components.DataModelContainer
-import po.exposify.dto.components.MultipleRepository
-import po.exposify.dto.components.MultipleRepositoryAdv
-import po.exposify.dto.components.RepositoryBase
-import po.exposify.dto.components.RepositoryBaseAdv
-import po.exposify.dto.components.SingleRepository
-import po.exposify.dto.components.proFErty_binder.EntityUpdateContainer
-import po.exposify.dto.components.property_binder.DTOPropertyBinder
-import po.exposify.dto.components.relation_binder.components.MultipleChildContainer
-import po.exposify.dto.components.relation_binder.components.MultipleChildContainerAdv
-import po.exposify.dto.components.relation_binder.components.SingleChildContainer
+import po.exposify.dto.components.bindings.BindingHub
+import po.exposify.dto.components.tracker.DTOTracker
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.dto.enums.DTOInitStatus
-import po.exposify.dto.models.DTORegistryItem
-import po.exposify.dto.components.tracker.DTOTracker
-import po.exposify.exceptions.OperationsException
+import po.exposify.dto.models.DTOId
+import po.exposify.dto.models.SourceObject
+import po.exposify.exceptions.InitException
 import po.exposify.extensions.castOrOperationsEx
-import po.misc.collections.CompositeEnumKey
-import po.misc.collections.generateKey
-import po.misc.types.castOrThrow
-import po.misc.types.safeCast
+import po.exposify.extensions.getOrOperationsEx
+import po.lognotify.classes.task.TaskHandler
+import po.misc.interfaces.Identifiable
+import po.misc.interfaces.ValueBased
+import po.misc.registries.callback.TypedCallbackRegistry
+import po.misc.registries.type.TypeRegistry
+import po.misc.types.TypeRecord
+import java.util.UUID
 
 abstract class CommonDTO<DTO, DATA, ENTITY>(
    val dtoClass: DTOBase<DTO, DATA, ENTITY>
-): ModelDTO where DTO : ModelDTO,  DATA: DataModel , ENTITY: LongEntity {
+): Identifiable,  ModelDTO where DTO : ModelDTO,  DATA: DataModel , ENTITY: LongEntity {
+
+    override val objectId: Long
+        get() = 0
+
+    override val dtoType :TypeRecord<DTO> = registry.getRecord<DTO, InitException>(SourceObject.DTO)
+    val dtoId : DTOId<DTO> = DTOId(UUID.randomUUID().hashCode().toLong())
+    override val contextName: String
+        get() = "CommonDTO[${sourceName}#${dtoId.id}]"
+    override var sourceName: String = dtoType.simpleName
 
     val dtoClassConfig: DTOConfig<DTO, DATA, ENTITY>
-        get() = dtoClass.config.castOrOperationsEx<DTOConfig<DTO, DATA, ENTITY>>("dtoClassConfig uninitialized")
-
-    private val registryRecord : DTORegistryItem<DTO, DATA, ENTITY> get() = dtoClass.config.registryRecord
-
-    override val dtoName : String get() = "[CommonDTO ${registryRecord.derivedDTOClazz.simpleName.toString()}]"
-
-    abstract override var dataModel: DATA
-
-    override val daoService: DAOService<DTO, DATA, ENTITY>  get() = dtoClassConfig.daoService
-    override val dtoFactory: DTOFactory<DTO, DATA, ENTITY>  get() = dtoClassConfig.dtoFactory
-
-    private var insertedEntity : ENTITY? = null
-    val daoEntity : ENTITY
         get() {
-            return  insertedEntity?:daoService.entityModel[id]
+            return dtoClass.config.castOrOperationsEx<DTOConfig<DTO, DATA, ENTITY>>("dtoClassConfig uninitialized")
         }
 
-    @PublishedApi
-    internal val dtoPropertyBinder : DTOPropertyBinder<DTO, DATA, ENTITY> = DTOPropertyBinder(this)
-
-    override val dataContainer: DataModelContainer<DTO, DATA> by lazy {
-       val dataContainer = DataModelContainer<DTO, DATA>(dataModel, dtoClassConfig.dtoFactory.dataBlueprint)
-       dataContainer.onDataModelUpdated = ::dataModelContainerUpdated
-       dataContainer
+    val registry: TypeRegistry get() {
+        return dtoClass.config.registry
     }
+    abstract override val dataModel: DATA
 
-    var onInitializationStatusChange : ((CommonDTO<DTO, DATA, ENTITY>)-> Unit)? = null
+    val entityType: TypeRecord<ENTITY>
+        get() = registry.getRecord<ENTITY, InitException>(SourceObject.Entity)
+    val dataType:  TypeRecord<DATA>
+        get() = registry.getRecord<DATA, InitException>(SourceObject.Data)
+
+    val logger : TaskHandler<*> get()= dtoClass.logger
+
+    override var cardinality: Cardinality = Cardinality.ONE_TO_MANY
+
+    override val daoService: DAOService<DTO, DATA, ENTITY> get() = dtoClassConfig.daoService
+    override val dtoFactory: DTOFactory<DTO, DATA, ENTITY> get() = dtoClassConfig.dtoFactory
+
+    private var entityParameter: ENTITY? = null
+    val isEntityInserted: Boolean get() = entityParameter != null
+
+    @PublishedApi
+    internal val bindingHub: BindingHub<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity> = BindingHub(this)
+
+    var onInitializationStatusChange: ((CommonDTO<DTO, DATA, ENTITY>) -> Unit)? = null
     var initStatus: DTOInitStatus = DTOInitStatus.UNINITIALIZED
-        set(value){
-            if(value!= field){
+        set(value) {
+            if (value != field) {
                 field = value
                 onInitializationStatusChange?.invoke(this)
             }
         }
 
-    override var id : Long = 0
-        get(){return dataContainer.dataModel.id}
-
-    val repositories: MutableMap<CompositeEnumKey<DTOClass<*,*,*>, Cardinality>, RepositoryBase<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>>
-        = mutableMapOf()
-
-    val repositoriesAdv: MutableMap<CompositeEnumKey<DTOClass<*,*,*>, Cardinality>, RepositoryBaseAdv<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>>
-            = mutableMapOf()
+    override var id: Long
+        get() = dataModel.id
+        set(value){ dataModel.id = value }
 
     internal var trackerParameter: DTOTracker<DTO, DATA>? = null
     override val tracker: DTOTracker<DTO, DATA>
-        get(){
-           return trackerParameter?: DTOTracker(this)
+        get() {
+            return trackerParameter ?: DTOTracker(this)
         }
 
-    private fun dataModelContainerUpdated(model : DATA){
-        dataModel = model
+    override fun compareTo(other: Long): Int {
+        val comparison = objectId.compareTo(other)
+        if (comparison != 0) {
+            return objectId.toInt()
+        } else {
+            return 0
+        }
     }
 
-    internal fun <C_DTO:ModelDTO, CD : DataModel, CE : LongEntity> getRepository(
-        childClass: DTOClass<C_DTO, CD, CE>,
-        cardinality: Cardinality,
-    ):RepositoryBase<DTO, DATA, ENTITY, C_DTO, CD, CE>{
+    override fun updateId(id: Long) {
 
-        val repo = repositories[childClass.generateKey(cardinality)]
-
-        return repo.castOrThrow<RepositoryBase<DTO, DATA, ENTITY, C_DTO, CD, CE>, OperationsException>(
-            "Child repository not found @ $dtoName",
-            ExceptionCode.VALUE_NOT_FOUND.value
-        )
     }
 
-    internal fun <C_DTO:ModelDTO, CD : DataModel, CE : LongEntity> getOneToOneRepository(
-        childClass: DTOClass<C_DTO, CD, CE>
-    ): SingleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>{
-
-        val foundRepository = repositories[childClass.generateKey(Cardinality.ONE_TO_ONE)]
-        if(foundRepository!= null){
-            return foundRepository.castOrThrow<SingleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>, OperationsException>()
+    internal fun getEntity():ENTITY{
+       return if(isEntityInserted){
+            entityParameter.getOrOperationsEx("Requesting entity while not inserted", ExceptionCode.METHOD_MISUSED)
         }else{
-            throw OperationsException("Child repository not found @ $dtoName", ExceptionCode.REPOSITORY_NOT_FOUND)
+            val message = "Requesting entity while not inserted"
+            entityParameter.getOrOperationsEx(message, ExceptionCode.METHOD_MISUSED)
         }
     }
 
-    internal fun <C_DTO: ModelDTO, CD: DataModel, CE: LongEntity> getOneToManyRepository(
-        childClass: DTOClass<C_DTO, CD, CE>
-    ): MultipleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>{
+    internal fun finalizeCreation(entity: ENTITY, cardinality: Cardinality): ENTITY {
+        if(entityParameter != null){
 
-        val foundRepository = repositories[childClass.generateKey(Cardinality.ONE_TO_MANY)]
-        if(foundRepository!= null){
-            return foundRepository.castOrThrow<MultipleRepository<DTO, DATA, ENTITY, C_DTO, CD, CE>, OperationsException>()
-        }else{
-            throw OperationsException("Child repository not found @ $dtoName", ExceptionCode.REPOSITORY_NOT_FOUND)
+            logger.warn("finalizeCreation. Updating entityParameter when it is already set")
         }
-    }
-
-    fun <CHILD_DTO: ModelDTO, CHILD_DATA: DataModel, CHILD_ENTITY: LongEntity> createRepository(
-        binding : MultipleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>,
-    ): MultipleRepository<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>
-    {
-        val newRepo =  MultipleRepository(binding, this, binding.childClass)
-        val casted =  newRepo.castOrOperationsEx<MultipleRepository<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>>()
-        repositories[binding.childClass.generateKey(Cardinality.ONE_TO_MANY)] = casted
-        return newRepo
-    }
-
-    fun createRepository(
-        bindingContainer : MultipleChildContainerAdv<DTO, DATA, ENTITY, *, *, *>,
-    ) {
-        val newRepo = MultipleRepositoryAdv(bindingContainer, this)
-        val casted =  newRepo.castOrOperationsEx<MultipleRepositoryAdv<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>>()
-        val key = bindingContainer.thisKey as CompositeEnumKey<DTOClass<*, *, *>, Cardinality>
-        repositoriesAdv[key] = casted
-    }
-
-    @JvmName("createRepositorySingle")
-    fun <CHILD_DTO: ModelDTO, CHILD_DATA: DataModel, CHILD_ENTITY: LongEntity> createRepository(
-        binding : SingleChildContainer<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>,
-    ): SingleRepository<DTO, DATA, ENTITY, CHILD_DTO, CHILD_DATA, CHILD_ENTITY>
-    {
-        val newRepo = SingleRepository(binding, this, binding.childClass)
-        val casted =  newRepo.castOrOperationsEx<MultipleRepository<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>>()
-        repositories[binding.childClass.generateKey(Cardinality.ONE_TO_ONE)] = casted
-        return newRepo
-    }
-
-    fun getDtoRepositories():List<RepositoryBase<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity>>{
-        return repositories.values.toList()
-    }
-
-    fun <F_DTO: ModelDTO, FD: DataModel, FE: LongEntity> getDtoRepositories(
-        childClass: DTOClass<F_DTO, FD, FE>
-    ):List<RepositoryBase<DTO, DATA, ENTITY, F_DTO, FD, FE>>{
-        return repositories.values.filter { it.childClass == childClass }
-            .mapNotNull{ it.safeCast<RepositoryBase<DTO, DATA, ENTITY, F_DTO, FD, FE>>() }
-    }
-
-
-    suspend fun <P_DTO: ModelDTO, PD: DataModel, PE: LongEntity>updateBindingsAfterInserted(
-        container: EntityUpdateContainer<ENTITY, P_DTO, PD, PE>
-    ){
-        dataContainer.setDataModelId(container.ownEntity.id.value)
-        insertedEntity = container.ownEntity
-        dtoPropertyBinder.afterInsertUpdate(container)
+        entityParameter = entity
+        dataModel.id = entity.id.value
+        this.cardinality = cardinality
         initStatus = DTOInitStatus.INITIALIZED
+        return entity
     }
 
-
-   internal fun initialize(tracker: DTOTracker<DTO, DATA>? = null): CommonDTO<DTO,DATA, ENTITY> {
-       selfRegistration(registryRecord)
-       if(tracker != null){
-           trackerParameter = tracker
-       }
-       return this
-   }
-
-    companion object{
-        val dtoRegistry: MapBuilder<String, DTORegistryItem<*,*,*>> = MapBuilder<String, DTORegistryItem<*,*,*>>()
-        internal fun <DTO: ModelDTO, DATA :DataModel, ENTITY: LongEntity> selfRegistration(
-            regItem :  DTORegistryItem<DTO, DATA, ENTITY>
-        ){
-            dtoRegistry.putIfAbsent(regItem.typeKeyCombined, regItem)
+    internal fun provideEntity(entity: ENTITY): ENTITY {
+        if(entityParameter != null){
+            logger.warn("provideEntity. Updating entityParameter when it is already set")
         }
+        entityParameter = entity
+        dataModel.id = entity.id.value
+        return entity
+    }
+
+    internal fun initialize(tracker: DTOTracker<DTO, DATA>? = null): CommonDTO<DTO, DATA, ENTITY> {
+        if (tracker != null) {
+            trackerParameter = tracker
+        }
+        initStatus = DTOInitStatus.PARTIAL_WITH_DATA
+        return this
     }
 }

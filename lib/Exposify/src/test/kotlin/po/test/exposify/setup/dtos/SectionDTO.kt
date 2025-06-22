@@ -6,17 +6,19 @@ import kotlinx.serialization.Serializable
 import po.exposify.dto.DTOClass
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.components.property_binder.delegates.binding
-import po.exposify.dto.components.property_binder.delegates.foreign2IdReference
-import po.exposify.dto.components.property_binder.delegates.parent2IdReference
-import po.exposify.dto.components.property_binder.delegates.serializedBinding
-import po.exposify.dto.components.relation_binder.delegates.oneToManyOf
+import po.exposify.dto.components.bindings.property_binder.delegates.attachedReference
+import po.exposify.dto.components.bindings.property_binder.delegates.binding
+import po.exposify.dto.components.bindings.property_binder.delegates.parentReference
+import po.exposify.dto.components.bindings.property_binder.delegates.serializedBinding
+import po.exposify.dto.components.bindings.relation_binder.delegates.oneToManyOf
 import po.exposify.dto.enums.Cardinality
+import po.exposify.dto.configuration.configuration
 import po.exposify.scope.sequence.classes.SwitchHandlerProvider
 import po.test.exposify.setup.ClassData
 import po.test.exposify.setup.ContentBlockEntity
 import po.test.exposify.setup.MetaData
 import po.test.exposify.setup.SectionEntity
+import po.test.exposify.setup.UserEntity
 
 @Serializable
 data class Section(
@@ -26,16 +28,15 @@ data class Section(
     @SerialName("json_ld")
     var jsonLd: String,
     @SerialName("class_list")
-    var classList: List<ClassData>,
+    var classList: List<ClassData> = emptyList(),
     @SerialName("meta_tags")
-    var metaTags: List<MetaData>,
+    var metaTags: List<MetaData> = emptyList(),
     @SerialName("lang_id")
     var langId: Int,
     @SerialName("updated_by")
     var updatedBy: Long,
     @SerialName("page_id")
     var pageId : Long,
-   // var page: TestPage
 ): DataModel
 {
     @SerialName("content_blocks")
@@ -47,17 +48,24 @@ class SectionDTO(
     override var dataModel: Section
 ): CommonDTO<SectionDTO, Section, SectionEntity>(SectionDTO) {
 
-    var name : String by binding(Section::name, SectionEntity::name)
-    var description : String by binding(Section::description, SectionEntity::description)
-    var jsonLd : String by binding(Section::jsonLd, SectionEntity::jsonLd)
-    var langId : Int by binding(Section::langId, SectionEntity::langId)
-    var updated : LocalDateTime by binding(Section::updated, SectionEntity::updated)
+    var name: String by binding(Section::name, SectionEntity::name)
+    var description: String by binding(Section::description, SectionEntity::description)
+    var jsonLd: String by binding(Section::jsonLd, SectionEntity::jsonLd)
+    var langId: Int by binding(Section::langId, SectionEntity::langId)
+    var updated: LocalDateTime by binding(Section::updated, SectionEntity::updated)
+    var classList: List<ClassData> by serializedBinding(Section::classList, SectionEntity::classList)
+    var metaTags: List<MetaData> by serializedBinding(Section::metaTags, SectionEntity::metaTags)
 
-    var classList:  List<ClassData> by serializedBinding(Section::classList, SectionEntity::classList)
-    var metaTags :  List<MetaData> by serializedBinding(Section::metaTags, SectionEntity::metaTags)
 
-    val updatedBy : Long by foreign2IdReference(Section::updatedBy, SectionEntity::updatedBy, UserDTO)
-    val pageId : Long by parent2IdReference(Section::pageId, SectionEntity::page)
+    var updatedBy: Long = 0
+
+    val user : UserDTO by attachedReference(UserDTO, Section::updatedBy, SectionEntity::updatedBy){user->
+        updatedBy = user.id
+    }
+
+    val page : PageDTO by parentReference(PageDTO){page->
+        pageId = page.id
+    }
 
     val contentBlocks : List<ContentBlockDTO> by oneToManyOf(
         ContentBlockDTO,
@@ -65,15 +73,14 @@ class SectionDTO(
         SectionEntity::contentBlocks,
         ContentBlockEntity::section)
 
-    companion object: DTOClass<SectionDTO, Section, SectionEntity>(PageDTO){
-
+    companion object: DTOClass<SectionDTO, Section, SectionEntity>(SectionDTO::class, PageDTO){
        val UPDATE by SwitchHandlerProvider(this, Cardinality.ONE_TO_MANY, PageDTO.SELECT)
        val SELECT_UPDATE by SwitchHandlerProvider(this, Cardinality.ONE_TO_MANY, PageDTO.UPDATE)
 
         override fun setup() {
-            configuration<SectionDTO, Section, SectionEntity>(SectionEntity) {
+            configuration{
                 applyTrackerConfig {
-                    name = "AltSection"
+                    name = "SECTION"
                     observeProperties = true
                     observeRelationBindings = true
                 }

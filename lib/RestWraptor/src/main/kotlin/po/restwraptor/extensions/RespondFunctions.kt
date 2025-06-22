@@ -20,7 +20,7 @@ suspend fun RoutingContext.respondInternal(throwable : Throwable) {
 
     var code = 0
     if(throwable is DataException){
-        code = throwable.code.value
+        code = throwable.source?.ordinal?:0
     }else{
         code =   HttpStatusCode.InternalServerError.value
     }

@@ -12,14 +12,17 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.greater
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.like
 import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.transactions.transaction
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.RootDTO
-import po.exposify.dto.components.result.ResultSingle
-import po.exposify.dto.components.result.createSingleResult
+import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.exceptions.throwOperations
+import po.exposify.extensions.withTransactionIfNone
 
 
 fun Op<Boolean>.toSqlString(): String {
@@ -41,6 +44,13 @@ sealed class SimpleQuery() {
     }
 }
 
+class DeferredWhere<T : IdTable<Long>>(private val block: () -> WhereQuery<T>) {
+    fun resolve(): WhereQuery<T> = block()
+}
+
+fun <T : IdTable<Long>> deferredWhere(block: () -> WhereQuery<T>): DeferredWhere<T> =
+    DeferredWhere(block)
+
 
 class WhereQuery<T> (
     private val table: T
@@ -61,7 +71,7 @@ class WhereQuery<T> (
     }
 
     fun <V> equalsTo(column: T.() -> Column<V>, value: V): WhereQuery<T> {
-        addCondition(table.column() eq value)
+            addCondition(table.column() eq value)
         return this
     }
 
@@ -76,12 +86,10 @@ class WhereQuery<T> (
         return this
     }
 
-
     fun <V : Comparable<V>> lessThan(column: T.() -> Column<V>, value: V): WhereQuery<T> {
         addCondition(table.column().less(value))
         return this
     }
-
 
     fun <V : Comparable<V>> lessOrEquals(column: T.() -> Column<V>, value: V): WhereQuery<T> {
         addCondition(table.column().lessEq(value))
@@ -101,6 +109,10 @@ class SwitchQuery<DTO: ModelDTO, D : DataModel, E: LongEntity>(
 
     override var expression: Set<Op<Boolean>> = emptySet()
 
+    fun combineConditions(conditions: Set<Op<Boolean>>): Op<Boolean> {
+        return conditions.reduceOrNull { acc, op -> acc and op } ?: Op.TRUE
+    }
+
     init {
         addCondition(dtoClass.config.entityModel.sourceTable.id eq lookUpId)
     }
@@ -110,10 +122,10 @@ class SwitchQuery<DTO: ModelDTO, D : DataModel, E: LongEntity>(
     }
 
     fun resolve(): CommonDTO<DTO, D, E> {
-        val existent = dtoClass.lookupDTO(lookUpId)
+        val existent = dtoClass.lookupDTO(lookUpId, CrudOperation.Pick)
         if (existent == null) {
-            throw OperationsException("Unable to find ${dtoClass.config.registryRecord.dtoName} with id $lookUpId",
-                ExceptionCode.VALUE_NOT_FOUND)
+            val message = "Unable to find ${dtoClass.config.registry.getRecord<DTO>(SourceObject.DTO)} with id $lookUpId"
+            throwOperations(message, ExceptionCode.VALUE_NOT_FOUND )
         }
         return existent
     }

@@ -1,10 +1,9 @@
 package po.misc.exceptions
 
-import po.misc.types.safeCast
-import kotlin.reflect.full.companionObjectInstance
+import po.misc.interfaces.Identifiable
+import po.misc.interfaces.IdentifiableContext
 
 enum class HandlerType(val value: Int) {
-
     GENERIC(0),
     SKIP_SELF(1),
     CANCEL_ALL(2),
@@ -19,41 +18,44 @@ enum class HandlerType(val value: Int) {
     }
 }
 
-sealed interface SelfThrownException<E:ManagedException>  {
-    val message: String
-    var handler  : HandlerType
-    var propertySnapshot :  Map<String, Any?>
-
-    fun setSourceException(th: Throwable): E
-    fun getSourceException(returnSelfIfNull: Boolean): Throwable?
-    fun setHandler(handlerType: HandlerType): E
-    fun throwSelf(): Nothing
-
-
-    interface Builder<E> {
-        fun build(message: String, optionalCode: Int?): E
-    }
-
-    companion object {
-        inline fun <reified E : ManagedException> build(message: String, optionalCode: Int?): E {
-            return E::class.companionObjectInstance?.safeCast<Builder<E>>()?.build(message, optionalCode)
-                ?: throw IllegalStateException("Companion object must implement Builder<E> @ SelfThrownException")
-        }
-    }
-}
-
 open class ManagedException(
-    override var message: String,
-) : Throwable(message), SelfThrownException<ManagedException>{
+    override val message: String,
+    val source: Enum<*>? = null,
+    original : Throwable? = null,
+) : Throwable(message, original), ManageableException<ManagedException>{
 
-    override var handler  : HandlerType = HandlerType.CANCEL_ALL
-    override var propertySnapshot :  Map<String, Any?> = emptyMap()
-
-    fun addMessage(newMessage: String): ManagedException{
-        message = "$message. $newMessage"
-        return this
+    enum class ExceptionEvent{
+        Registered,
+        HandlerChanged,
+        Rethrown,
+        Thrown
     }
-    override fun setHandler(handlerType: HandlerType): ManagedException{
+
+    data class HandlingData(
+       val wayPoint: IdentifiableContext,
+       val event: ExceptionEvent,
+       val message: String? = null
+    )
+
+    open var handler  : HandlerType = HandlerType.SKIP_SELF
+        internal set
+    override var propertySnapshot :  Map<String, Any?> = emptyMap()
+    var handlingData: List<HandlingData> = listOf()
+        internal set
+
+    override fun addHandlingData(
+        waypoint: IdentifiableContext,
+        event: ExceptionEvent,
+        message: String?
+    ): ManagedException{
+       handlingData = handlingData.toMutableList().apply { add(HandlingData(waypoint,event, message) ) }
+       return this
+    }
+    override fun setHandler(
+        handlerType: HandlerType,
+        wayPoint: IdentifiableContext
+    ): ManagedException{
+        addHandlingData(wayPoint, ExceptionEvent.HandlerChanged)
         handler = handlerType
         return this
     }
@@ -64,18 +66,18 @@ open class ManagedException(
         return this
     }
 
-    private var source : Throwable? = null
-    override fun setSourceException(th: Throwable): ManagedException{
-        source = th
-        return this
-    }
-    override fun getSourceException(returnSelfIfNull: Boolean): Throwable?{
-        if(returnSelfIfNull){
-            return source?:this
-        }
-        return source
-    }
-    override fun throwSelf():Nothing {
+    override fun throwSelf(wayPoint: Identifiable):Nothing {
+        addHandlingData(wayPoint, ExceptionEvent.Thrown)
         throw this
     }
+
+
+    companion object : ManageableException.Builder<ManagedException> {
+        override fun build(message: String, source: Enum<*>?,  original: Throwable?): ManagedException {
+            return ManagedException(message, null, original)
+        }
+    }
+
 }
+
+

@@ -4,48 +4,66 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
-import po.lognotify.classes.jobs.ManagedJob
-import po.lognotify.classes.notification.NotifierBase
-import po.lognotify.classes.notification.RootNotifier
-import po.lognotify.classes.notification.SubNotifier
+import po.lognotify.TaskProcessor
+import po.lognotify.classes.action.ActionSpan
+import po.lognotify.classes.notification.LoggerDataProcessor
 import po.lognotify.classes.notification.enums.EventType
-import po.lognotify.classes.notification.models.Notification
-import po.lognotify.classes.notification.sealed.ProviderTask
 import po.lognotify.classes.task.interfaces.ResultantTask
+import po.lognotify.classes.task.models.TaskConfig
 import po.lognotify.classes.task.result.TaskResult
-import po.lognotify.enums.SeverityLevel
-import po.lognotify.exceptions.ExceptionHandler
-import po.lognotify.extensions.currentProcess
 import po.lognotify.helpers.StaticHelper
 import po.lognotify.models.TaskDispatcher
 import po.lognotify.models.TaskDispatcher.LoggerStats
 import po.lognotify.models.TaskKey
 import po.lognotify.models.TaskRegistry
+import po.misc.callbacks.manager.CallbackManager
+import po.misc.callbacks.manager.builders.callbackManager
 import po.misc.coroutines.CoroutineHolder
-import po.misc.exceptions.CoroutineInfo
+import po.misc.data.helpers.emptyOnNull
+import po.misc.coroutines.CoroutineInfo
 import po.misc.exceptions.ManagedException
+import po.misc.interfaces.IdentifiableClass
+import po.misc.interfaces.asIdentifiableClass
 import po.misc.time.ExecutionTimeStamp
 import po.misc.time.MeasuredContext
 import po.misc.time.startTimer
 import po.misc.time.stopTimer
-import po.misc.types.UpdateType
 import kotlin.coroutines.CoroutineContext
 
-sealed class TaskBase<R: Any?>(
+sealed class TaskBase<T, R: Any?>(
     override val key: TaskKey,
+    override val config: TaskConfig,
     dispatcher: TaskDispatcher,
-): StaticHelper, MeasuredContext, ResultantTask<R> {
+    internal val ctx: T,
+): StaticHelper, MeasuredContext, ResultantTask<T, R>, IdentifiableClass, TaskProcessor {
 
+    enum class TaskStatus{
+        New,
+        Complete,
+        Failing,
+        Faulty
+    }
+
+    abstract var taskResult: TaskResult<R>?
     abstract val coroutineContext: CoroutineContext
-    abstract override val notifier : NotifierBase
-    abstract val registry: TaskRegistry<*>
-    abstract val callbackRegistry : MutableMap<UpdateType, (LoggerStats)-> Unit>
-
-    override val exceptionHandler: ExceptionHandler<R> = ExceptionHandler<R>(this)
+    abstract val registry: TaskRegistry<*, *>
+    abstract val callbackRegistry : CallbackManager<TaskDispatcher.UpdateType>
+    abstract override val dataProcessor: LoggerDataProcessor
     override val executionTimeStamp: ExecutionTimeStamp = ExecutionTimeStamp(key.taskName, key.taskId.toString())
     abstract override val handler: TaskHandler<R>
+    internal val  actionSpans : MutableList<ActionSpan<*>> = mutableListOf()
 
-    fun notifyUpdate(handler: UpdateType) {
+    var taskStatus : TaskStatus = TaskStatus.New
+        internal set
+
+    internal fun lookUpRoot(): RootTask<*,*>{
+        return registry.hierarchyRoot
+    }
+
+    override fun toString(): String {
+        return "${key.taskName} | ${key.moduleName} ${config.actor.emptyOnNull(" |") }"
+    }
+    fun notifyUpdate(handler: TaskDispatcher.UpdateType) {
         val stats = LoggerStats(
             activeTask = this,
             activeTaskName = this.key.taskName,
@@ -54,93 +72,125 @@ sealed class TaskBase<R: Any?>(
             totalTasksCount = registry.tasks.count(),
             coroutineInfo = CoroutineInfo.createInfo(coroutineContext)
         )
-        callbackRegistry.filter { it.key == handler} .forEach { (_, cb) -> cb(stats) }
+        callbackRegistry.trigger<LoggerStats>(handler, stats)
+    }
+    fun checkChildResult(childResult : TaskResult<*>): ManagedException?{
+        return  childResult.throwable?.let {exception->
+            val childTask = childResult.task
+            childTask.taskStatus = TaskStatus.Faulty
+            exception
+        }
     }
 
-    abstract fun onStart():TaskBase<R>
+    fun addActionSpan(actionSpan: ActionSpan<*> ):ActionSpan<*>{
+        actionSpans.add(actionSpan)
+        return actionSpan
+    }
+
 }
 
-class RootTask<R: Any?>(
+class RootTask<T, R: Any?>(
     key : TaskKey,
+    config: TaskConfig,
     override val coroutineContext: CoroutineContext,
     val dispatcher: TaskDispatcher,
-) :TaskBase<R>(key, dispatcher), CoroutineHolder
+    ctx: T,
+) :TaskBase<T, R>(key, config, dispatcher, ctx), CoroutineHolder
 {
-    override val notifier: RootNotifier<R> =  RootNotifier(this)
-    //override var taskResult : TaskResult<R>?  =  null
-    override val registry: TaskRegistry<R> = TaskRegistry(dispatcher, this)
-    override val callbackRegistry: MutableMap<UpdateType, (LoggerStats) -> Unit> = mutableMapOf()
-    override val handler: TaskHandler<R> = TaskHandler(this, exceptionHandler)
+
+    val receiverName: String get(){
+       return ctx?.let {
+            it::class.simpleName.toString()
+        }?: "NoContext"
+    }
+    override val identity = asIdentifiableClass("RootTask", receiverName)
+    override val dataProcessor: LoggerDataProcessor = LoggerDataProcessor(this, null)
+    override var taskResult : TaskResult<R>?  =  null
+    override val registry: TaskRegistry<T, R> = TaskRegistry(dispatcher, this)
+    override val callbackRegistry = callbackManager<TaskDispatcher.UpdateType>()
+    override val handler: TaskHandler<R> = TaskHandler(this, dataProcessor)
     val subTasksCount : Int get() = registry.taskCount()
     var isComplete: Boolean = false
     override val coroutineInfo : CoroutineInfo = CoroutineInfo.createInfo(coroutineContext)
 
+    var escalationCallback : ((ManagedException)-> Unit)? = null
+
     internal fun commitSuicide(exception: ManagedException?){
        val cancellation =  exception?.let {
-            CancellationException(it.message,  exception.getSourceException(true))
+            CancellationException(it.message,  exception)
         }
         val job = coroutineContext[Job]
         if(job != null){
-            notifier.systemInfo(EventType.TASK_CANCELLATION, SeverityLevel.EXCEPTION, "Cancelling Job $job")
+            dataProcessor.debug("Cancelling Job $job", "RootTask(commitSuicide)", this)
             job.cancel(cancellation)
         }else{
-            notifier.systemInfo(EventType.TASK_CANCELLATION, SeverityLevel.EXCEPTION, "Cancelling Context ${coroutineContext[CoroutineName]?.name?:"Unknown"}")
+            dataProcessor.debug("Cancelling Context ${coroutineContext[CoroutineName]?.name?:"Unknown"}", "RootTask(commitSuicide)", this)
             coroutineContext.cancel(cancellation)
         }
     }
 
-    override fun onStart():RootTask<R>{
+    fun start(onEscalation: ((ManagedException)-> Unit)? = null):RootTask<T, R>{
+        escalationCallback = onEscalation
         startTimer()
-        notifier.systemInfo(EventType.START, SeverityLevel.SYS_INFO)
-        coroutineContext.currentProcess()?.let {
-            notifier.systemInfo(EventType.START, SeverityLevel.INFO, it)
-            it.stopTaskObservation(this)
-        }
+        dataProcessor.registerStart()
         return this
     }
 
-    fun onChildCreated(childTask: Task<*>){
+    fun onChildCreated(childTask: Task<*, *>){
 //        notifier.submitNotification(
 //            Notification(ProviderTask(this), EventType.CHILD_TASK_CREATED, SeverityLevel.SYS_INFO,childTask.toString())
 //        )
-        notifyUpdate(UpdateType.OnUpdated)
-        dispatcher.notifyUpdate(UpdateType.OnUpdated, this)
+        notifyUpdate(TaskDispatcher.UpdateType.OnTaskUpdated)
+        dispatcher.notifyUpdate(TaskDispatcher.UpdateType.OnTaskUpdated, this)
     }
 
-    fun onComplete():RootTask<R>{
+    fun complete():RootTask<T, R>{
         stopTimer()
         isComplete = true
-        notifier.systemInfo(EventType.STOP, SeverityLevel.SYS_INFO)
+        dataProcessor.registerStop()
         dispatcher.removeRootTask(this)
         return this
     }
 }
 
-class Task<R: Any?>(
+class Task<T,  R: Any?>(
     key : TaskKey,
-    val parentTask: TaskBase<*>,
-    val hierarchyRoot: RootTask<*>,
-):TaskBase<R>(key, hierarchyRoot.dispatcher), ResultantTask<R>{
+    config: TaskConfig,
+    internal val parentTask: TaskBase<*,*>,
+    internal val hierarchyRoot: RootTask<*,*>,
+    ctx: T
+):TaskBase<T, R>(key, config, hierarchyRoot.dispatcher, ctx), ResultantTask<T, R>{
 
+
+    val receiverName: String get(){
+        return ctx?.let {
+            it::class.simpleName.toString()
+        }?: "NoContext"
+    }
+
+    override val identity = asIdentifiableClass(key.taskName, receiverName)
+
+    override val dataProcessor: LoggerDataProcessor = LoggerDataProcessor(this, hierarchyRoot.dataProcessor)
     override val coroutineContext: CoroutineContext get() = hierarchyRoot.coroutineContext
-    override val notifier: SubNotifier = SubNotifier(this, hierarchyRoot.notifier)
-    override val registry: TaskRegistry<*> get() = hierarchyRoot.registry
-    override val callbackRegistry: MutableMap<UpdateType, (LoggerStats) -> Unit> = mutableMapOf()
-    override val handler: TaskHandler<R> = TaskHandler<R>(this, exceptionHandler)
+  //  override val notifier: SubNotifier = SubNotifier(this, hierarchyRoot.notifier)
+    override var taskResult : TaskResult<R>?  =  null
+    override val registry: TaskRegistry<*, *> get() = hierarchyRoot.registry
+    override val callbackRegistry =  callbackManager<TaskDispatcher.UpdateType>()
+    override val handler: TaskHandler<R> = TaskHandler<R>(this, dataProcessor)
     override val coroutineInfo : CoroutineInfo = CoroutineInfo.createInfo(coroutineContext)
 
     fun notifyRootCancellation(exception: ManagedException?) {
         hierarchyRoot.commitSuicide(exception)
     }
 
-    override fun onStart():Task<R>{
+    fun start():Task<T, R>{
         startTimer()
-        notifier.systemInfo(EventType.START, SeverityLevel.SYS_INFO)
+        dataProcessor.registerStart()
         return this
     }
-    fun onComplete():Task<R>{
+    fun complete():Task<T, R>{
         stopTimer()
-        notifier.systemInfo(EventType.STOP, SeverityLevel.SYS_INFO)
+        dataProcessor.registerStop()
         return this
     }
 }

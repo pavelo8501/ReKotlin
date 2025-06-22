@@ -1,6 +1,6 @@
 package po.lognotify.classes.task.models
 
-import po.misc.exceptions.CoroutineInfo
+import po.misc.coroutines.CoroutineInfo
 
 
 data class TaskId(

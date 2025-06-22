@@ -48,7 +48,7 @@ val FlexibleContentNegotiationPlugin = createApplicationPlugin("FlexibleContentN
         transformBody {
            val transformBodyContext = this
            val byteReadChannel = it
-           val type = transformBodyContext.requestedType.getOrThrow<TypeInfo, ConfigurationException>("RequestedType undefined", ExceptionCodes.VALUE_IS_NULL.value)
+           val type = transformBodyContext.requestedType.getOrThrow<TypeInfo, ConfigurationException>("RequestedType undefined", ExceptionCodes.VALUE_IS_NULL)
 
            val byteChannel = it.toString()
            if (type == String::class) return@transformBody it.toString() // skip plain text

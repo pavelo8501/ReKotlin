@@ -8,7 +8,6 @@ import po.auth.extensions.generatePassword
 import po.auth.extensions.withSessionContext
 import po.exposify.DatabaseManager
 import po.exposify.dto.components.WhereQuery
-import po.exposify.dto.components.result.toResultList
 import po.exposify.scope.connection.models.ConnectionInfo
 import po.exposify.scope.sequence.extensions.runSequence
 import po.exposify.scope.sequence.extensions.sequence
@@ -16,7 +15,7 @@ import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.ConsoleBehaviour
 import po.lognotify.logNotify
-import po.test.exposify.scope.TestSessionsContext
+import po.test.exposify.scope.session.TestSessionsContext
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.Users
 import po.test.exposify.setup.dtos.PageDTO
@@ -54,7 +53,7 @@ class TestCRUD : DatabaseTest(),  TasksManaged {
             email = "nomail@void.null"
         )
 
-        startTestConnection{
+        withConnection{
             service(UserDTO){
                 update(inputUser)
                 sequence(UserDTO.PICK) { handler ->
@@ -83,6 +82,8 @@ class TestCRUD : DatabaseTest(),  TasksManaged {
         assertEquals(selectedUser.name, inputUser.name)
         assertEquals(selectedUser.login, inputUser.login)
     }
+
+
     fun `test run n a real db with sequence select`() = runTest{
 
         val connectionInfo = ConnectionInfo(host ="0.0.0.0", port ="5432", dbName = "medprof_postgres", user = "django-api", pwd = "django-api_usrPWD12")

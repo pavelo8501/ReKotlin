@@ -5,17 +5,17 @@ import po.auth.sessions.models.AuthorizedSession
 import po.exposify.dto.DTOBase
 import po.exposify.dto.DTOClass
 import po.exposify.dto.RootDTO
-import po.exposify.dto.components.RootExecutionProvider
 import po.exposify.dto.components.SimpleQuery
+import po.exposify.dto.components.createExecutionProvider
 import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
-import po.exposify.dto.components.result.toResultList
 import po.exposify.dto.components.result.toResultSingle
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.exceptions.OperationsException
+import po.exposify.dto.models.SequenceRunInfo
 import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.exceptions.throwOperations
 import po.exposify.extensions.castOrOperationsEx
 import po.exposify.extensions.getOrOperationsEx
 import po.exposify.scope.sequence.SequenceContext
@@ -50,14 +50,16 @@ sealed class SequenceHandlerBase<DTO, D, E>(
     internal fun provideCollectedResultSingle(result : ResultSingle<DTO,D,E>){
         handlerConfig.collectSingleResultFn?.invoke(result)
             ?:handlerConfig.collectListResultFn?.invoke(result.toResultList())
-            ?: throw OperationsException("Result collection is required but onResultCollected lambda is not provided",
+            ?: throwOperations(
+                "Result collection is required but onResultCollected lambda is not provided",
                 ExceptionCode.VALUE_IS_NULL)
     }
 
     internal fun provideCollectedResultList(result : ResultList<DTO,D,E>){
         handlerConfig.collectListResultFn?.invoke(result)
             ?:handlerConfig.collectSingleResultFn?.invoke(result.toResultSingle())
-            ?:throw OperationsException("Result collection is required but onResultCollected lambda is not provided",
+            ?: throwOperations(
+                "Result collection is required but onResultCollected lambda is not provided",
                 ExceptionCode.VALUE_IS_NULL)
     }
 
@@ -80,13 +82,12 @@ class RootSequenceHandler<DTO, D, E> (
     ){
         classSequenceConfigurators[handlerName] = configurator.castOrOperationsEx<ClassHandlerConfig<*, *, *, DTO, D, E>.()-> Unit>()
     }
-
     var lastActiveSequenceContext : SequenceContext<DTO, D, E>? = null
-    suspend fun launch(session: AuthorizedSession): ResultList<DTO, D, E>{
-       val execProvider = RootExecutionProvider(dtoRoot)
-       lastActiveSequenceContext = SequenceContext(this, execProvider, session)
+
+    suspend fun launch(runInfo: SequenceRunInfo): ResultList<DTO, D, E>{
+       val execProvider =  dtoRoot.createExecutionProvider()
+       lastActiveSequenceContext = SequenceContext(this, execProvider, runInfo)
        return lastActiveSequenceContext.getOrOperationsEx().let {
-            handlerConfig.onStartCallback?.invoke(it)
             sequenceLambda.invoke(it, this)
         }
     }
@@ -107,15 +108,13 @@ class ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE> (
 
 
     suspend fun launch(
+        runInfo: SequenceRunInfo,
         switchLambda :  suspend  SequenceContext<DTO, D, E>.(ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE>)-> ResultList<DTO, D, E>
     ): ResultList<DTO, D, E> {
         val switchQuery = handlerDelegate.switchQueryProvider.invoke()
         val hostingDTO = switchQuery.resolve()
-
-      //  val hostingDTO = switchQuery.resolve().getAsCommonDTOForced()
-
-        val repo = hostingDTO.getRepository(dtoClass, cardinality)
-        val newSequenceContext = SequenceContext(this, repo)
+        val provider =  dtoClass.createExecutionProvider()
+        val newSequenceContext = SequenceContext(this, provider, runInfo)
         return switchLambda.invoke(newSequenceContext, this)
     }
 }

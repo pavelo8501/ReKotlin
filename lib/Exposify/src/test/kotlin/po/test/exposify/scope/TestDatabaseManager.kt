@@ -9,7 +9,7 @@ class TestDatabaseManager : DatabaseTest() {
 
     @Test
     fun `Open connection blocking with retries`(){
-        startTestConnection(true){
+        withConnection{
             service(PageDTO){
                  truncate()
 

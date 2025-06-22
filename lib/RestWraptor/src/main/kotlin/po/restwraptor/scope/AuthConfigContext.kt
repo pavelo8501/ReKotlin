@@ -26,13 +26,13 @@ class AuthConfigContext(
     private val wraptorConfig: WraptorConfig,
 ): StringHelper, TasksManaged{
 
-    val personalName = "AuthConfigContext"
+    override val contextName: String = "AuthConfigContext"
     private val authConfig get() = wraptorConfig.authConfig
 
     private suspend fun installJWTAuthentication(jwtService: JWTService,  app: Application){
         app.apply {
             subTask("InstallJWTAuthentication") {handler->
-                if (this.pluginOrNull(Authentication) != null) {
+                if (this@apply.pluginOrNull(Authentication) != null) {
                     handler.info("Authentication installation skipped. Custom Authentication already installed")
                 } else {
                     install(Authentication) {

@@ -1,11 +1,16 @@
 package po.lognotify.classes.notification.enums
 
+import po.misc.interfaces.ValueBased
+
 
 enum class EventType(val eventId: Int){
     UNKNOWN(0),
     START(1),
     STOP(2),
     HANDLER_REGISTERED(3),
+    ExceptionRaised(11),
+    ExceptionRethrown(12),
+    ExceptionReachedTop(14),
     EXCEPTION_HANDLED(4),
     EXCEPTION_UNHANDLED(5),
     EXCEPTION_THROWN(6),
@@ -24,4 +29,10 @@ enum class EventType(val eventId: Int){
             return UNKNOWN
         }
     }
+}
+
+enum class TaskEvent(override val value: Int): ValueBased{
+    Info(1),
+    Warning(2),
+    Exception(3)
 }

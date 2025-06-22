@@ -5,6 +5,7 @@ enum class ExceptionCode(val value: Int) {
 
     // Generic / Undefined
     UNDEFINED(0),
+
     // Initialization & Lazy-loading Issues
     INITIALIZATION_OUTSIDE_CONTEXT(1001),
     NOT_INITIALIZED(1002),
@@ -38,7 +39,10 @@ enum class ExceptionCode(val value: Int) {
     REQUESTED_RESULT_MISMATCH(5002),
 
     // Factory & DTO
-    FACTORY_CREATE_FAILURE(6001);
+    FACTORY_CREATE_FAILURE(6001),
+
+    //Internal Errors and misuse
+    METHOD_MISUSED(7001);
 
     companion object {
         fun getByValue(value: Int): ExceptionCode {

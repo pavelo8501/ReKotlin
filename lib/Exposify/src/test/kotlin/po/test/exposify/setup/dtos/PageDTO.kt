@@ -6,14 +6,14 @@ import kotlinx.serialization.Serializable
 import po.exposify.dto.RootDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.components.property_binder.delegates.binding
-import po.exposify.dto.components.property_binder.delegates.foreign2IdReference
-import po.exposify.dto.components.relation_binder.delegates.oneToManyOf
-import po.exposify.dto.components.relation_binder.delegates.oneToManyOfAdv
+import po.exposify.dto.components.bindings.property_binder.delegates.attachedReference
+import po.exposify.dto.components.bindings.property_binder.delegates.binding
+import po.exposify.dto.components.bindings.relation_binder.delegates.oneToManyOf
+import po.exposify.dto.configuration.configuration
 import po.exposify.scope.sequence.classes.RootHandlerProvider
 import po.test.exposify.setup.PageEntity
 import po.test.exposify.setup.SectionEntity
-
+import po.test.exposify.setup.UserEntity
 
 @Serializable
 data class Page(
@@ -22,7 +22,7 @@ data class Page(
     @SerialName("lang_id")
     var langId: Int = 1,
     @SerialName("updated_by")
-    var updatedById: Long = 0
+    var updatedBy: Long = 0
 ): DataModel
 {
     var updated: LocalDateTime = PageDTO.nowTime()
@@ -37,25 +37,31 @@ class PageDTO(
     var langId : Int by binding(Page::langId, PageEntity::langId)
     var updated : LocalDateTime by binding(Page::updated, PageEntity::updated)
 
-    val updatedById : Long by foreign2IdReference(Page::updatedById, PageEntity::updatedBy, UserDTO)
-    //val sections : List<SectionDTO> by oneToManyOf(SectionDTO, Page::sections, PageEntity::sections, SectionEntity::page)
+    var updatedBy: Long = 0
 
-    val sections: List<SectionDTO> by oneToManyOfAdv(SectionDTO, Page::sections, PageEntity::sections)
+    val user by attachedReference(UserDTO, Page::updatedBy, PageEntity::updatedBy){user->
+        updatedBy = user.id
+        dataModel.updatedBy =  user.id
+    }
 
-    companion object: RootDTO<PageDTO, Page, PageEntity>(){
+    val sections : List<SectionDTO> by oneToManyOf(SectionDTO, Page::sections, PageEntity::sections, SectionEntity::page)
+
+
+    companion object: RootDTO<PageDTO, Page, PageEntity>(PageDTO::class){
+
         val UPDATE by RootHandlerProvider(this)
         val SELECT by RootHandlerProvider(this)
+
         override fun setup() {
-            configuration<PageDTO, Page, PageEntity>(PageEntity){
-                println("Configuration lambda invoked RootDTO")
+
+            configuration{
                 applyTrackerConfig {
                     name = "page"
                     observeProperties = true
                     observeRelationBindings = true
                 }
-               // hierarchyMembers(SectionDTO, ContentBlockDTO)
-                useDataModelBuilder { Page() }
             }
         }
+
     }
 }

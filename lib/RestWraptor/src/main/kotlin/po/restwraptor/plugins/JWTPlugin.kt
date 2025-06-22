@@ -71,23 +71,18 @@ val JWTPlugin: ApplicationPlugin<JWTPluginConfig> = createApplicationPlugin(
     }
 
     on(CallSetup) { call ->
-        runTask("Processing incoming call") { handler ->
-            val path = call.request.path()
-            handler.info("Processing call to $path")
+        val path = call.request.path()
 
-            if (checkDestinationSecured(path)) {
-                val sessionId = readSessionId(call.request.headers).getOrThrow<String, AuthException>()
-                val jwtToken = service.tokenRepository.resolve(sessionId)
-                    .getOrThrow<JwtToken, AuthException>("Token not found in repository")
-                val validatedToken = service.isNotExpired(jwtToken) {
-                    handler.info("Invalidating Token due to expiry")
-                    service.tokenRepository.invalidate(jwtToken.sessionId)
-                    call.respondUnauthorized("Session expired", HttpStatusCode.Unauthorized.value)
-                    return@isNotExpired
-                }
-                handler.info("Token is valid, call allowed to proceed")
-                validatedToken
+        if (checkDestinationSecured(path)) {
+            val sessionId = readSessionId(call.request.headers).getOrThrow<String, AuthException>()
+            val jwtToken = service.tokenRepository.resolve(sessionId)
+                .getOrThrow<JwtToken, AuthException>("Token not found in repository")
+            val validatedToken = service.isNotExpired(jwtToken) {
+                service.tokenRepository.invalidate(jwtToken.sessionId)
+                call.respondUnauthorized("Session expired", HttpStatusCode.Unauthorized.value)
+                return@isNotExpired
             }
+            validatedToken
         }
     }
 }

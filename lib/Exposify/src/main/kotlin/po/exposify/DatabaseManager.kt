@@ -3,6 +3,7 @@ package po.exposify
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.transactions.TransactionManager
 import po.exposify.common.classes.DBManagerHooks
 import po.exposify.extensions.getOrInitEx
 import po.exposify.scope.connection.models.ConnectionInfo
@@ -11,9 +12,13 @@ import po.exposify.scope.connection.models.ConnectionSettings
 import po.lognotify.classes.task.models.TaskConfig
 import po.lognotify.extensions.runTask
 import po.lognotify.extensions.runTaskBlocking
+import po.misc.interfaces.IdentifiableClass
+import po.misc.interfaces.IdentifiableContext
 import po.misc.serialization.SerializerInfo
 
-object DatabaseManager {
+object DatabaseManager: IdentifiableContext {
+
+    override val contextName: String = "DatabaseManager"
 
     private var  connectionUpdated : ((String, Boolean)-> Unit)? = null
     internal val connections  = mutableListOf<ConnectionClass>()
@@ -23,6 +28,7 @@ object DatabaseManager {
 
     private fun tryConnect(connectionInfo:ConnectionInfo): ConnectionClass {
         try {
+            println("tryConnect hit")
             val hikariConfig= HikariConfig().apply {
                 driverClassName = connectionInfo.driverClassName
                 jdbcUrl = connectionInfo.getConnectionString()
@@ -43,6 +49,12 @@ object DatabaseManager {
             println(th.message.toString())
             throw th
         }
+    }
+
+    @PublishedApi
+    internal fun signalCloseConnection(issuer: IdentifiableClass, connectionClass: ConnectionClass){
+        println("Close connection signal received from ${issuer.completeName}")
+        connectionClass.close()
     }
 
     @PublishedApi
@@ -102,14 +114,20 @@ object DatabaseManager {
         }.resultOrException()
     }
 
+    fun closeAllConnections() {
+        synchronized(connections) {
+            connections.forEach {
+                try {
+                    if (it.isConnectionOpen) {
+                        it.close()
+                        println("Closed DB connection: $it")
+                    }
+                } catch (e: Exception) {
+                    println("Error while closing connection: ${e.message}")
+                }
+            }
+            connections.clear()
+        }
+    }
 }
-
-//fun withConnection(
-//    connectionInfo: ConnectionInfo
-//): ConnectionClass {
-//    val connectionString =  connectionInfo.getConnectionString()
-//    val connection = DatabaseManager.connections.first { it.connectionInfo.getConnectionString() == connectionString }
-//    val effectiveConnection = connection.getOrOperationsEx("Connection $connectionString not found")
-//    return connection
-//}
 

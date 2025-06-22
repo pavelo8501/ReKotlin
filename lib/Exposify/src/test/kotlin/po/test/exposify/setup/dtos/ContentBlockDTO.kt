@@ -3,13 +3,13 @@ package po.test.exposify.setup.dtos
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.builtins.ListSerializer
 import po.exposify.dto.DTOClass
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.components.property_binder.delegates.binding
-import po.exposify.dto.components.property_binder.delegates.parent2IdReference
-import po.exposify.dto.components.property_binder.delegates.serializedBinding
+import po.exposify.dto.components.bindings.property_binder.delegates.binding
+import po.exposify.dto.components.bindings.property_binder.delegates.parentReference
+import po.exposify.dto.components.bindings.property_binder.delegates.serializedBinding
+import po.exposify.dto.configuration.configuration
 import po.test.exposify.setup.ClassData
 import po.test.exposify.setup.ContentBlockEntity
 import po.test.exposify.setup.MetaData
@@ -36,7 +36,6 @@ data class ContentBlock(
     var updated: LocalDateTime = ContentBlockDTO.nowTime()
 }
 
-
 class ContentBlockDTO(
     override var dataModel: ContentBlock
 ): CommonDTO<ContentBlockDTO, ContentBlock, ContentBlockEntity>(ContentBlockDTO) {
@@ -51,11 +50,15 @@ class ContentBlockDTO(
     var classList: List<ClassData> by serializedBinding(ContentBlock::classList, ContentBlockEntity::classList)
     var metaTags:  List<MetaData> by serializedBinding(ContentBlock::metaTags, ContentBlockEntity::metaTags)
 
-    val sectionId by parent2IdReference(ContentBlock::sectionId, ContentBlockEntity::section)
 
-    companion object: DTOClass<ContentBlockDTO, ContentBlock, ContentBlockEntity>(SectionDTO){
+    val section by parentReference(SectionDTO){section->
+        sectionId =  section.id
+
+    }
+
+    companion object: DTOClass<ContentBlockDTO, ContentBlock, ContentBlockEntity>(ContentBlockDTO::class, SectionDTO){
         override fun setup() {
-            configuration<ContentBlockDTO, ContentBlock, ContentBlockEntity>(ContentBlockEntity){
+            configuration {
 
             }
         }

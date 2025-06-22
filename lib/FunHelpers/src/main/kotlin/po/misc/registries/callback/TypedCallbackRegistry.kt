@@ -5,30 +5,67 @@ import po.misc.interfaces.Identifiable
 import po.misc.interfaces.ValueBased
 
 
-class TypedCallbackRegistry<T: Any> {
+abstract class TypedCallback<T, R>(){
+    abstract val callback : (T)-> R
+}
 
-    class TypedCallback<T>(
-        val callback : (T)-> Unit
-    )
+open class TypedCallbackRegistry<T, R>(){
 
-    private val subscriptions = mutableMapOf<CompositeKey, TypedCallback<T>>()
+    class Callback<T, R>(override val callback : (T)-> R):TypedCallback<T, R>()
+    private val subscriptions = mutableMapOf<CompositeKey, TypedCallback<T, R>>()
+    val unTriggered= mutableMapOf<ValueBased, T>()
 
-    fun subscribe(component: Identifiable, type: ValueBased, callback: (T) -> Unit) {
+    var onNewSubscription: ((ValueBased, Identifiable)-> Unit)? = null
+    var onKeyOverwrite: ((key: String, Identifiable)-> Unit)? = null
+    var onBeforeTrigger: ((ValueBased, Identifiable, T)-> Unit)? = null
+    var onAfterTriggered: ((triggerCount:Int)-> Unit)? = null
+
+    fun subscribe(component: Identifiable, type: ValueBased,  callback : (T)-> R) {
+
+        onNewSubscription?.invoke(type, component)
+
         val key = CompositeKey(component, type)
-        subscriptions[key] = TypedCallback(callback)
+        if(subscriptions.contains(key)){
+            onKeyOverwrite?.invoke(key.toString(), component)
+        }
+        subscriptions[key] = Callback(callback)
+
+        val missedEvent = unTriggered[type]
+
+        if(missedEvent != null){
+            callback.invoke(missedEvent)
+            unTriggered.remove(type)
+        }
     }
 
-    fun trigger(type: ValueBased, value:T) {
-        val toCall  = subscriptions.filter { it.key.type.value == type.value }
-        toCall.values.forEach {typedCallback->
-            typedCallback.callback.invoke(value)
+    fun triggerForAll(type: ValueBased, value:T) {
+        var triggersCount = 0
+        subscriptions.filter { keyValue -> keyValue.key.type.value == type.value }
+            .forEach {entry->
+                triggersCount++
+                onBeforeTrigger?.invoke(type, entry.key.component, value)
+                entry.value.callback.invoke(value)
+            }
+        if(triggersCount == 0){
+            unTriggered[type] = value
         }
+        onAfterTriggered?.invoke(triggersCount)
     }
 
     fun trigger(component: Identifiable, type: ValueBased, value:T) {
         val key = CompositeKey(component, type)
-        subscriptions[key]?.callback?.invoke(value)
+        subscriptions[key]?.let { callbackContainer->
+            onBeforeTrigger?.invoke(key.type, key.component, value)
+            callbackContainer.callback.invoke(value)
+            onAfterTriggered?.invoke(1)
+        }?:run {
+            unTriggered[type] = value
+            onAfterTriggered?.invoke(0)
+        }
     }
+
+    fun hasSubscribersFor(type: ValueBased): Boolean =
+        subscriptions.keys.any { it.type == type }
 
     fun clear(component: Identifiable? = null, type: ValueBased? = null) {
         when {

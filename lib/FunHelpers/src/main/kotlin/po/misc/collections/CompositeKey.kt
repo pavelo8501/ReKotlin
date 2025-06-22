@@ -10,23 +10,28 @@ class CompositeKey (
 
 
     val key: String
-        get() = "CompositeKey(${component.qualifiedName}:${type.value})"
+        get() = "CompositeKey(${component.completeName}:${type.value})"
 
     override fun toString(): String = key
+
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is CompositeKey) return false
-        return component.qualifiedName == other.component.qualifiedName &&
+        return component.sourceName == other.component.sourceName &&
+                component.sourceName == other.component.sourceName &&
                 type.value == other.type.value
     }
 
     override fun hashCode(): Int {
-        return 31 * component.qualifiedName.hashCode() + type.value.hashCode()
+        var result = component.sourceName.hashCode()
+        result = 31 * result + component.sourceName.hashCode()
+        result = 31 * result + type.value.hashCode()
+        return result
     }
 
     override fun compareTo(other: CompositeKey): Int {
-        val componentComparison = component.qualifiedName.compareTo(other.component.qualifiedName)
+        val componentComparison = component.completeName.compareTo(other.component.completeName)
         return if (componentComparison != 0) componentComparison
         else type.value.compareTo(other.type.value)
     }

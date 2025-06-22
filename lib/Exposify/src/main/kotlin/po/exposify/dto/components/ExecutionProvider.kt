@@ -2,140 +2,128 @@ package po.exposify.dto.components
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
-import po.exposify.dto.CommonDTO
+import po.exposify.dto.DTOBase
 import po.exposify.dto.RootDTO
-import po.exposify.dto.components.proFErty_binder.containerize
-import po.exposify.dto.components.property_binder.enums.UpdateMode
+import po.exposify.dto.components.bindings.helpers.createDTO
+import po.exposify.dto.components.bindings.helpers.newDTO
+import po.exposify.dto.components.bindings.helpers.select
+import po.exposify.dto.components.bindings.helpers.shallowDTO
+import po.exposify.dto.components.bindings.helpers.updateFromData
 import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
-import po.exposify.dto.components.result.createResultList
-import po.exposify.dto.components.result.createSingleResult
+import po.exposify.dto.components.result.toResult
 import po.exposify.dto.components.tracker.CrudOperation
-import po.exposify.dto.components.tracker.extensions.addTrackerInfo
-import po.exposify.dto.interfaces.ComponentType
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ExecutionContext
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.extensions.getOrOperationsEx
+import po.exposify.exceptions.throwOperations
 import po.lognotify.classes.task.TaskHandler
 import po.lognotify.lastTaskHandler
 
 
-class RootExecutionProvider<DTO, DATA, ENTITY>(
-    override val dtoClass: RootDTO<DTO, DATA, ENTITY>,
-): ExecutionContext<DTO, DATA, ENTITY> where  DTO  : ModelDTO , DATA : DataModel, ENTITY: LongEntity{
+class ExecutionProvider<DTO, DATA, ENTITY>(
+    override val dtoClass: DTOBase<DTO, DATA, ENTITY>,
+):  ExecutionContext<DTO, DATA, ENTITY> where  DTO  : ModelDTO , DATA : DataModel, ENTITY: LongEntity {
 
-    override val qualifiedName: String
-        get() = dtoClass.qualifiedName
-    override val type: ComponentType = ComponentType.RootExecutionProvider
+    override val contextName: String = "ExecutionProvider"
 
-    override val logger : TaskHandler<*> get() = lastTaskHandler()
+    override val logger: TaskHandler<*> get() = lastTaskHandler()
 
-    private suspend fun createDto(entity: ENTITY):CommonDTO<DTO, DATA, ENTITY>{
-        val dto = dtoClass.config.dtoFactory.createDto()
-        dto.dtoPropertyBinder.update(entity.containerize(UpdateMode.ENTITY_TO_MODEL, null, true))
-        dtoClass.registerDTO(dto)
-        dto.getDtoRepositories().forEach { it.loadHierarchyByEntity() }
-        return dto
-    }
-
-    private suspend fun insert(dataModel: DATA): ResultSingle<DTO, DATA, ENTITY> {
-        val dto = dtoClass.config.dtoFactory.createDto(dataModel)
-        dto.addTrackerInfo(CrudOperation.Insert, this)
-        dtoClass.config.daoService.save(dto)
-        dtoClass.registerDTO(dto)
-        dto.getDtoRepositories().forEach { it.loadHierarchyByModel() }
-        with(dtoClass) {
-            return dto.createSingleResult(CrudOperation.Insert)
-        }
-    }
-
-    override suspend fun select(): ResultList<DTO, DATA, ENTITY> {
-        val dtos = mutableListOf<CommonDTO<DTO, DATA, ENTITY>>()
-        val entities =    dtoClass.config.daoService.select()
-        entities.forEach {
-            val newDto =  createDto(it)
-            dtos.add(newDto)
-        }
-        return dtos.createResultList(dtoClass, CrudOperation.Select)
-    }
-    override suspend fun select(conditions: SimpleQuery): ResultList<DTO, DATA, ENTITY> {
-        val dtos = mutableListOf<CommonDTO<DTO, DATA, ENTITY>>()
-        val entities =  dtoClass.config.daoService.select(conditions)
-        entities.forEach {
-            val newDto =  createDto(it)
-            dtos.add(newDto)
-        }
-        return dtos.createResultList(dtoClass, CrudOperation.Select)
-    }
-
-    override suspend fun <T : IdTable<Long>> select(conditions: WhereQuery<T>): ResultList<DTO, DATA, ENTITY>
-            = select(conditions)
-
-    override suspend fun pickById(id: Long): ResultSingle<DTO, DATA, ENTITY>{
-        val existent = dtoClass.lookupDTO(id)
-        return if(existent != null){
-            ResultSingle(dtoClass, existent)
-        }else{
-            val entity = dtoClass.config.daoService.pickById(id).getOrOperationsEx("Entity with provided id :${id} not found")
-            ResultSingle(dtoClass, createDto(entity))
-        }
-    }
-
-    override suspend fun pick(conditions: SimpleQuery): ResultSingle<DTO, DATA, ENTITY>{
-        val entity = dtoClass.config.daoService.pick(conditions)
-        if(entity == null){
-            val queryStr = conditions.build().toSqlString()
-            throw OperationsException("Unable to find ${dtoClass.config.registryRecord.dtoName} for query $queryStr",
-                ExceptionCode.VALUE_NOT_FOUND)
-        }else{
-            val existent = dtoClass.lookupDTO(entity.id.value)
-            return if (existent != null) {
-                existent.addTrackerInfo(CrudOperation.Pick, this)
-                existent.createSingleResult(CrudOperation.Pick)
-            } else {
-                createDto(entity).createSingleResult(CrudOperation.Initialize)
-            }
-        }
-    }
-
-    override suspend fun update(dataModel: DATA): CommonDTO<DTO, DATA, ENTITY>{
-        if (dataModel.id == 0L) {
-            return insert(dataModel).getAsCommonDTOForced()
+    private fun insert(data: DATA): ResultSingle<DTO, DATA, ENTITY> {
+        val operation = CrudOperation.Insert
+        if (dtoClass is RootDTO) {
+            return dtoClass.createDTO(data, operation).toResult(operation)
         } else {
-            val existent = dtoClass.lookupDTO(dataModel.id)
-            if (existent != null) {
-                existent.addTrackerInfo(CrudOperation.Update, this)
-                existent.dtoPropertyBinder.update(dataModel)
-                existent.getDtoRepositories().forEach { repo ->
-                    repo.loadHierarchyByModel()
-                }
-                return  existent
-            } else {
-                val entity = dtoClass.config.daoService.pickById(dataModel.id)
-                    .getOrOperationsEx("Unable to update. DTO with id:${dataModel.id} not found.")
-                val newDto = createDto(entity)
-                newDto.addTrackerInfo(CrudOperation.Update, this)
-                dtoClass.registerDTO(newDto)
-                newDto.dtoPropertyBinder.update(dataModel)
-                return newDto
+            throwOperations("Setup misconfiguration", ExceptionCode.ABNORMAL_STATE)
+        }
+    }
+
+    override fun pickById(id: Long): ResultSingle<DTO, DATA, ENTITY> {
+        val operation = CrudOperation.Pick
+        val existent = dtoClass.lookupDTO(id, operation)
+        return if (existent != null) {
+            existent.toResult(operation)
+        } else {
+            dtoClass.config.daoService.pickById(id)?.let { entity ->
+                entity.select(dtoClass, operation)
+            } ?: run {
+                val message = "Entity with provided id :${id} not found"
+                dtoClass.shallowDTO().toResult(OperationsException(message, ExceptionCode.DB_CRUD_FAILURE, null), operation)
             }
         }
     }
 
-    override suspend fun update(dataModels: List<DATA>): ResultList<DTO, DATA, ENTITY>{
-        val dtos = mutableListOf<CommonDTO<DTO, DATA, ENTITY>>()
-        dataModels.forEach {
-            dtos.add(update(it))
+    override fun pick(conditions: SimpleQuery): ResultSingle<DTO, DATA, ENTITY> {
+        val operation = CrudOperation.Pick
+        return dtoClass.config.daoService.pick(conditions)?.let { entity ->
+            val existent = dtoClass.lookupDTO(entity.id.value, operation)
+            if (existent != null) {
+                existent.toResult(operation)
+            } else {
+                entity.select(dtoClass, operation)
+            }
+        } ?: run {
+            val queryStr = conditions.build().toSqlString()
+            val message =
+                "Unable to find ${dtoClass.config.registry.getRecord<DTO>(SourceObject.DTO)} for query $queryStr"
+            dtoClass.shallowDTO().toResult(OperationsException(message, ExceptionCode.DB_CRUD_FAILURE, null), operation)
         }
-        return dtos.createResultList(dtoClass, CrudOperation.Update)
+    }
+
+    override fun select(): ResultList<DTO, DATA, ENTITY> {
+        val operation = CrudOperation.Select
+        val entities =  dtoClass.config.daoService.select()
+        return  entities.select(dtoClass, operation)
+    }
+
+    override fun select(conditions: SimpleQuery): ResultList<DTO, DATA, ENTITY> {
+        val operation = CrudOperation.Select
+        val entities = dtoClass.config.daoService.select(conditions)
+        return entities.select(dtoClass, operation)
+    }
+
+    override fun <T : IdTable<Long>> select(conditions: WhereQuery<T>): ResultList<DTO, DATA, ENTITY>{
+        val operation = CrudOperation.Select
+        val entities = dtoClass.config.daoService.select(conditions)
+        return entities.select(dtoClass, operation)
+    }
+
+
+    override fun update(dataModel: DATA): ResultSingle<DTO, DATA, ENTITY> {
+        val operation = CrudOperation.Update
+
+        // 1. Redirect to insert if id == 0
+        if (dataModel.id == 0L) {
+            return insert(dataModel)
+        }
+        // 2. Try updating from cached/lookup DTO
+        dtoClass.lookupDTO(dataModel.id, operation)
+            ?.updateFromData(dataModel, operation)
+            ?.let { return it }
+
+
+        // 3. Try fetching the entity directly
+        val entity = dtoClass.config.daoService.pickById(dataModel.id)
+        if (entity != null) {
+            return dtoClass.newDTO(entity).updateFromData(dataModel, operation)
+        }
+
+        // 4. Final fallback: return error
+        val message = "Unable to update. DTO with id: ${dataModel.id} not found."
+        return dtoClass.newDTO(dataModel)
+            .toResult(OperationsException(message, ExceptionCode.DB_CRUD_FAILURE, null), operation)
+    }
+
+    override fun update(dataModels: List<DATA>): ResultList<DTO, DATA, ENTITY> {
+        return dataModels.map { update(it) }.toResult(dtoClass)
     }
 }
 
-fun <DTO, DATA, ENTITY> RootDTO<DTO, DATA, ENTITY>.createExecutionProvider()
-: RootExecutionProvider<DTO, DATA, ENTITY>
+fun <DTO, DATA, ENTITY> DTOBase<DTO, DATA, ENTITY>.createExecutionProvider()
+: ExecutionProvider<DTO, DATA, ENTITY>
         where  DTO  : ModelDTO , DATA : DataModel, ENTITY: LongEntity{
-   return RootExecutionProvider(this)
+   return ExecutionProvider(this)
 }

@@ -8,31 +8,37 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.common.interfaces.AsContext
 import po.exposify.dto.RootDTO
+import po.exposify.dto.components.DeferredWhere
+import po.exposify.dto.components.ExecutionProvider
 import po.exposify.dto.components.SimpleQuery
-import po.exposify.dto.components.RootExecutionProvider
 import po.exposify.dto.components.WhereQuery
 import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
-import po.exposify.dto.components.result.createSingleResult
-import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.exceptions.InitException
+import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.withTransactionIfNone
 import po.lognotify.TasksManaged
 import po.lognotify.anotations.LogOnFault
 import po.lognotify.classes.task.result.onFailureCause
+import po.lognotify.extensions.runTask
 import po.lognotify.extensions.runTaskBlocking
+import po.misc.exceptions.toManageable
+import po.misc.interfaces.IdentifiableContext
 
 class ServiceContext<DTO, DATA, ENTITY>(
-    internal  val serviceClass : ServiceClass<DTO, DATA, ENTITY>,
+    @PublishedApi internal  val serviceClass : ServiceClass<DTO, DATA, ENTITY>,
     internal val dtoClass: RootDTO<DTO, DATA, ENTITY>,
-): TasksManaged,  AsContext<DATA>  where DTO : ModelDTO, DATA: DataModel,  ENTITY: LongEntity {
+): TasksManaged, IdentifiableContext,  AsContext<DATA>  where DTO : ModelDTO, DATA: DataModel,  ENTITY: LongEntity {
 
     private val dbConnection: Database get() = serviceClass.connection
+
+    override val contextName: String = "ServiceContext"
 
     @LogOnFault
     val personalName: String = "ServiceContext[${dbConnection.name}]"
 
-    private val executionProvider: RootExecutionProvider<DTO, DATA, ENTITY> by lazy { RootExecutionProvider(dtoClass) }
+    private val executionProvider: ExecutionProvider<DTO, DATA, ENTITY> by lazy { ExecutionProvider(dtoClass) }
 
     fun truncate() = runTaskBlocking("Truncate") { handler ->
         newSuspendedTransaction {
@@ -41,59 +47,62 @@ class ServiceContext<DTO, DATA, ENTITY>(
                 exec("TRUNCATE TABLE ${table.tableName} RESTART IDENTITY CASCADE")
                 handler.info("TRUNCATE TABLE ${table.tableName} RESTART IDENTITY CASCADE Executed")
             } catch (th: Throwable) {
-                handler.warn(th, "Running TRUNCATE TABLE ${table.tableName} RESTART IDENTITY CASCADE")
+               val managed =  th.toManageable<InitException>(this@ServiceContext, ExceptionCode.DB_TABLE_CREATION_FAILURE)
+                handler.warn(managed)
             }
         }
     }.onFailureCause {
         val a = it
     }.resultOrException()
 
-    fun pick(conditions: SimpleQuery): ResultSingle<DTO, DATA, ENTITY> = runTaskBlocking("Pick by conditions") {
-        withTransactionIfNone {
+    fun pick(conditions: SimpleQuery): ResultSingle<DTO, DATA, ENTITY>
+        = runTask("Pick by conditions") {handler->
+        withTransactionIfNone(handler){
             executionProvider.pick(conditions)
         }
     }.resultOrException()
 
     fun <T : IdTable<Long>> pick(conditions: WhereQuery<T>): ResultSingle<DTO, DATA, ENTITY> =
-        runTaskBlocking("Pick by conditions") {
-            withTransactionIfNone {
+        runTask("Pick by conditions") {handler->
+            withTransactionIfNone(handler) {
                 executionProvider.pick(conditions)
             }
         }.resultOrException()
 
-    fun pickById(id: Long): ResultSingle<DTO, DATA, ENTITY> = runTaskBlocking("Pick by ID") { handler ->
+    fun pickById(id: Long): ResultSingle<DTO, DATA, ENTITY> = runTask("Pick by ID") { handler ->
         withTransactionIfNone(handler) {
             executionProvider.pickById(id)
         }
     }.resultOrException()
 
-    fun select(): ResultList<DTO, DATA, ENTITY> = runTaskBlocking("Select") {
-        withTransactionIfNone {
+    fun select(): ResultList<DTO, DATA, ENTITY> = runTask("Select") {handler->
+        withTransactionIfNone(handler) {
             executionProvider.select()
         }
     }.resultOrException()
 
-    fun <T : IdTable<Long>> select(conditions: WhereQuery<T>): ResultList<DTO, DATA, ENTITY> =
-        runTaskBlocking("Select With Conditions") {
-            withTransactionIfNone {
-                executionProvider.select(conditions)
+    fun <T : IdTable<Long>> select(
+        conditions: DeferredWhere<T>,
+    ):ResultList<DTO, DATA, ENTITY> = runTask("Select With Conditions") {handler->
+            withTransactionIfNone(handler) {
+                executionProvider.select(conditions.resolve())
             }
         }.resultOrException()
 
-    fun update(dataModel: DATA): ResultSingle<DTO, DATA, ENTITY> = runTaskBlocking("Update") { handler ->
-        withTransactionIfNone {
-            executionProvider.update(dataModel).createSingleResult(CrudOperation.Update)
+    fun update(dataModel: DATA): ResultSingle<DTO, DATA, ENTITY> = runTask("Update") { handler ->
+        withTransactionIfNone(handler) {
+            executionProvider.update(dataModel)
         }
     }.resultOrException()
 
-    fun update(dataModels: List<DATA>): ResultList<DTO, DATA, ENTITY> = runTaskBlocking("Update") { handler ->
+    fun update(dataModels: List<DATA>): ResultList<DTO, DATA, ENTITY> = runTask("Update") { handler ->
         withTransactionIfNone(handler) {
             executionProvider.update(dataModels)
         }
     }.resultOrException()
 
-    fun delete(toDelete: DATA): ResultList<DTO, DATA, ENTITY>? = runTaskBlocking("Delete") {
-        withTransactionIfNone {
+    fun delete(toDelete: DATA): ResultList<DTO, DATA, ENTITY>? = runTask("Delete") {handler->
+        withTransactionIfNone(handler) {
             executionProvider.update(toDelete)
         }
         null

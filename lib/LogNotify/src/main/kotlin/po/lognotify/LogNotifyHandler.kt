@@ -6,10 +6,10 @@ import po.lognotify.models.TaskDispatcher
 
 class LogNotifyHandler internal constructor(val dispatcher: TaskDispatcher) {
 
-    val notifier: NotifierHub get()= dispatcher.notifier
+    val notifierHub: NotifierHub get() = dispatcher.notifierHub
 
     fun notifierConfig(block: NotifyConfig.()-> Unit){
-        notifier.config.block()
+        notifierHub.config.block()
     }
 
 }

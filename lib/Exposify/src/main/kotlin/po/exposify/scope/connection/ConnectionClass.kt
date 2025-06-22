@@ -3,6 +3,7 @@ package po.exposify.scope.connection
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.name
+import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transactionManager
 import po.auth.sessions.models.AuthorizedSession
 import po.exposify.DatabaseManager
@@ -19,7 +20,7 @@ import po.lognotify.TasksManaged
 import po.lognotify.classes.task.TaskHandler
 import po.lognotify.extensions.runTask
 import po.lognotify.lastTaskHandler
-import po.misc.exceptions.CoroutineInfo
+import po.misc.coroutines.CoroutineInfo
 import po.misc.serialization.SerializerInfo
 import po.misc.types.safeCast
 import kotlin.coroutines.coroutineContext
@@ -29,6 +30,8 @@ class ConnectionClass(
     val connectionInfo: ConnectionInfo,
     val connection: Database,
 ): TasksManaged {
+
+    override val contextName: String = "ConnectionClass"
 
     val sourceName: String = connection.name
     val name: String = "ConnectionClass[${sourceName}]"
@@ -42,7 +45,7 @@ class ConnectionClass(
     private val taskHandler: TaskHandler<*> = lastTaskHandler()
 
     init {
-        taskHandler.warn("CONNECTION_CLASS CREATED  ${name}")
+        taskHandler.warn("CONNECTION_CLASS CREATED $name")
     }
 
     internal suspend fun requestEmitter(session: AuthorizedSession): CoroutineEmitter {
@@ -61,6 +64,14 @@ class ConnectionClass(
        return services[name]?.safeCast<ServiceClass<DTO, D, E>>()
     }
 
+    fun close(){
+        taskHandler.info("Closing connection: ${connection.name}")
+        TransactionManager.closeAndUnregister(database = connection)
+        services.values.forEach {
+            it.deinitializeService()
+        }
+    }
+
     fun <DTO, D, E> service(
         dtoClass : RootDTO<DTO, D, E>,
         createOptions : TableCreateMode = TableCreateMode.CREATE,
@@ -69,9 +80,11 @@ class ConnectionClass(
 
         handler.info("Creating ServiceClass")
         val serviceClass = ServiceClass(dtoClass, this, createOptions)
-        services[serviceClass.qualifiedName] = serviceClass
+        services[serviceClass.completeName] = serviceClass
         serviceClass.initService(dtoClass)
-        getService<DTO, D, E>(serviceClass.qualifiedName)?.runServiceContext(block)
+        getService<DTO, D, E>(serviceClass.completeName)?.runServiceContext(block)
+    }.onFail{
+        throw it
     }
 
     fun clearServices(){

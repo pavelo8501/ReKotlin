@@ -1,16 +1,14 @@
 package po.test.auth
 
-import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import org.junit.jupiter.api.Test
 import po.auth.AuthSessionManager
 import po.auth.extensions.currentSession
-import po.auth.extensions.withSession
 import po.auth.extensions.withSessionContext
 import po.auth.sessions.interfaces.SessionIdentified
 import po.auth.sessions.models.AuthorizedSession
-import po.misc.exceptions.getCoroutineInfo
+import po.misc.coroutines.getCoroutineInfo
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 

@@ -16,17 +16,6 @@ inline fun <reified T> KSerializer<T>.toSerializerInfo(
     return SerializerInfo(key, this, type, isListSerializer)
 }
 
-
-//inline fun <reified T> toSerializerInfo(
-//    serializer: KSerializer<T>,
-//    isListSerializer: Boolean = true
-//): SerializerInfo<T> {
-//    val type =  typeOf<T>()
-//    val key = type.toSimpleNormalizedKey()
-//    return SerializerInfo(key, serializer, type, isListSerializer)
-//}
-//
-
 fun <T: Any> toSerializerInfo(
     type: KType,
     serializer: KSerializer<T>,

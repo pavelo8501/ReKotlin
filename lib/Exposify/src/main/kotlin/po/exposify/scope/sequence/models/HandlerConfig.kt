@@ -22,14 +22,14 @@ sealed class HandlerConfigBase<DTO, D, E>() where DTO: ModelDTO, D: DataModel, E
     internal val inputList: List<D>
         get() = inputListParameter
             ?: inputDataSource?.let { listOf(it) }
-            ?: throw InitException("InputList used but not provided", ExceptionCode.VALUE_IS_NULL)
+            ?: throw InitException("InputList used but not provided", ExceptionCode.VALUE_IS_NULL, null)
 
 
     private var inputDataSource: D? = null
     internal val inputData : D
         get() = inputDataSource
             ?: inputListParameter?.firstOrNull()
-            ?: throw InitException("InputData used but not provided", ExceptionCode.VALUE_IS_NULL)
+            ?: throw InitException("InputData used but not provided", ExceptionCode.VALUE_IS_NULL, null)
 
     private var queryParameterProvider: (() -> SimpleQuery)? = null
     internal val query : SimpleQuery

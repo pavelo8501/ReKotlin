@@ -21,6 +21,8 @@ import kotlin.test.assertTrue
 
 class TestDTOTracker: DatabaseTest(), TasksManaged {
 
+    override val contextName: String = "TestDTOTracker"
+
     companion object{
         @JvmStatic
         var updatedById : Long = 0
@@ -38,7 +40,7 @@ class TestDTOTracker: DatabaseTest(), TasksManaged {
             name = "name",
             email = "nomail@void.null"
         )
-        startTestConnection{
+        withConnection{
             service(UserDTO, TableCreateMode.FORCE_RECREATE) {
                 updatedById = update(user).getDataForced().id
             }
@@ -55,7 +57,7 @@ class TestDTOTracker: DatabaseTest(), TasksManaged {
             contentBlocksCount = 1,
             updatedBy = updatedById).first()
 
-        startTestConnection{
+        withConnection{
             service(PageDTO) {
                 updateResult = update(page)
             }
