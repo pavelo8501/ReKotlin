@@ -1,6 +1,8 @@
 package po.lognotify.classes.notification.models
 
+import po.misc.collections.StaticTypeKey
 import po.misc.data.console.DebugTemplate
+import po.misc.data.printable.PrintableCompanion
 
 
 enum class ConsoleBehaviour{
@@ -16,6 +18,20 @@ data class NotifyConfig(
 ){
 
     private val showDebugList : MutableList<DebugTemplate<*>> = mutableListOf()
+
+    var debugWhiteList: MutableMap<Int, StaticTypeKey<*>> = mutableMapOf()
+        private set
+
+   internal fun updateDebugWhiteList(whiteList: Map<Int, StaticTypeKey<*>>){
+        debugWhiteList.clear()
+        debugWhiteList.putAll(whiteList)
+    }
+
+    fun allowDebug(vararg dataClasses: PrintableCompanion<*>){
+        dataClasses.forEach {
+            debugWhiteList[it.typeKey.hashCode()] = it.typeKey
+        }
+    }
 
     fun inShowDebugList(debugTemplate: DebugTemplate<*>): Boolean{
         return showDebugList.any { it == debugTemplate }

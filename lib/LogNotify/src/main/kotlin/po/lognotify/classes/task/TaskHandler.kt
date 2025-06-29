@@ -12,14 +12,13 @@ import po.lognotify.classes.task.models.TaskConfig
 import po.lognotify.models.TaskDispatcher
 import po.lognotify.models.TaskDispatcher.LoggerStats
 import po.misc.callbacks.manager.wrapRawCallback
-import po.misc.data.PrintableBase
+import po.misc.data.printable.PrintableBase
 import po.misc.data.console.PrintableTemplateBase
-import po.misc.data.interfaces.Printable
+import po.misc.data.printable.Printable
+import po.misc.data.printable.PrintableCompanion
 import po.misc.exceptions.ManagedException
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.asIdentifiable
-
-//typealias PrintTemplate<T> = PrintableBase<T>.(StringBuilder) -> Unit
 
 class TaskHandler<R: Any?>(
     val task : TaskBase<*, R>,
@@ -34,8 +33,11 @@ class TaskHandler<R: Any?>(
     fun echo(message: String){
         dataProcessor.info(message)
     }
-    fun <T2: PrintableBase<T2>> log(data: T2, template: PrintableTemplateBase<T2>)
-        = dataProcessor.log<T2>(data, template)
+
+    fun <T2: PrintableBase<T2>> log(data: T2, template: PrintableTemplateBase<T2>):T2 = dataProcessor.log(data, template)
+    fun <T2: PrintableBase<T2>> debug(data: T2, dataClass: PrintableCompanion<T2>, template: PrintableTemplateBase<T2>):T2
+        = dataProcessor.debug(data, dataClass, template)
+
 
     fun <T: Printable> logFormatted(data: T,   printFn: T.(StringBuilder)-> Unit)
         = dataProcessor.logFormatted(data, printFn)

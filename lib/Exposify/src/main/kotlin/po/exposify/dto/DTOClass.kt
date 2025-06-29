@@ -20,7 +20,6 @@ import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.InitException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.initAbnormal
-import po.exposify.exceptions.initException
 import po.exposify.exceptions.throwInit
 import po.exposify.extensions.castOrOperations
 import po.exposify.extensions.getOrInit
@@ -33,7 +32,7 @@ import po.misc.callbacks.manager.CallbackManager
 import po.misc.callbacks.manager.CallbackPayload
 import po.misc.callbacks.manager.builders.callbackManager
 import po.misc.callbacks.manager.models.Configuration
-import po.misc.data.builders.logProxy
+import po.misc.data.printable.printableProxy
 import po.misc.interfaces.ClassIdentity
 import po.misc.interfaces.IdentifiableClass
 import po.misc.interfaces.ValueBased
@@ -47,7 +46,7 @@ import kotlin.reflect.KType
 
 sealed class DTOBase<DTO, DATA, ENTITY>(
     override val identity: ClassIdentity
-): ClassDTO,  InlineAction, IdentifiableClass
+): ClassDTO,  InlineAction, IdentifiableClass, TasksManaged
         where DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity
 {
     enum class Events(override val value: Int) : ValueBased{
@@ -89,16 +88,14 @@ sealed class DTOBase<DTO, DATA, ENTITY>(
 
     internal val logger : TaskHandler<*> get() = actionHandler
 
-    val warning = logProxy(this, DTOClassEvent.Warning){
-        val event = DTOClassEvent(this, it)
-        log(event, DTOClassEvent.Warning)
+    val warning = printableProxy(this, DTOClassEvent.Warning){params->
+        log(DTOClassEvent(this, params.message), params.template)
     }
-    val success = logProxy(this, DTOClassEvent.Success){
-        val event = DTOClassEvent(this, it)
-        log(event, DTOClassEvent.Success)
+    val success = printableProxy(this, DTOClassEvent.Success){params->
+        log(DTOClassEvent(this, params.message), params.template)
     }
-    val info = logProxy(this, DTOClassEvent.Info){
-        log(DTOClassEvent(this, it), DTOClassEvent.Info)
+    val info = printableProxy(this, DTOClassEvent.Info){params->
+        log(DTOClassEvent(this, params.message), params.template)
     }
 
     private val registryExceptionMessage = "Can not find type record in DTOClass"

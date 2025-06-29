@@ -11,7 +11,7 @@ import po.lognotify.enums.SeverityLevel
 import po.lognotify.extensions.runTask
 import po.lognotify.extensions.subTask
 import po.lognotify.logNotify
-import po.misc.data.PrintableBase
+import po.misc.data.printable.PrintableBase
 import po.misc.exceptions.ManagedException
 import po.misc.interfaces.Identifiable
 import kotlin.test.assertEquals

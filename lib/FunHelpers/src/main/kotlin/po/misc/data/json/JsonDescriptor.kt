@@ -1,6 +1,6 @@
 package po.misc.data.json
 
-import po.misc.data.PrintableBase
+import po.misc.data.printable.PrintableBase
 
 open class JsonDescriptor<T: PrintableBase<*>>() {
 

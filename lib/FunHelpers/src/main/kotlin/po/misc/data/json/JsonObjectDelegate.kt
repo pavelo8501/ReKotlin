@@ -1,9 +1,7 @@
 package po.misc.data.json
 
-import po.misc.data.interfaces.Printable
-import po.misc.exceptions.ManagedException
+import po.misc.data.printable.Printable
 import po.misc.types.castOrManaged
-import po.misc.types.castOrThrow
 import po.misc.types.getOrManaged
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty

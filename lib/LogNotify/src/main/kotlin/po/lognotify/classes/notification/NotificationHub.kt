@@ -7,7 +7,7 @@ import po.lognotify.classes.notification.models.NotifyConfig
 import po.lognotify.classes.notification.models.TaskData
 import po.lognotify.classes.task.RootTask
 import po.misc.callbacks.manager.builders.callbackManager
-import po.misc.data.PrintableBase
+import po.misc.data.printable.PrintableBase
 import po.misc.data.processors.DataProcessorBase
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.IdentifiableContext
@@ -16,8 +16,8 @@ import po.misc.registries.callback.TypedCallbackRegistry
 
 
 class NotifierHub(
-    val config : NotifyConfig = NotifyConfig()
-): DataProcessorBase<TaskData>(), IdentifiableContext {
+    val sharedConfig : NotifyConfig = NotifyConfig()
+): DataProcessorBase<TaskData>(null, null), IdentifiableContext {
 
     enum class Event(override val value: Int): ValueBased{
         DataReceived(1)
@@ -25,33 +25,29 @@ class NotifierHub(
 
     override val contextName: String = "NotifierHub"
 
-    override val topEmitter: LoggerDataProcessor? = null
     private val subNotifiers = mutableSetOf<LoggerDataProcessor>()
-    private val collectorJobs = mutableMapOf<LoggerDataProcessor, Job>()
+   // private val collectorJobs = mutableMapOf<LoggerDataProcessor, Job>()
 
     private val notificator: TypedCallbackRegistry<PrintableBase<*>, Unit> = TypedCallbackRegistry()
-
     private val notifier = callbackManager<Event>()
+
 
     fun subscribe(subscriber: Identifiable, eventType:Event, callback: (PrintableBase<*>)-> Unit){
         notificator.subscribe(subscriber, eventType, callback)
     }
 
     internal fun register(rootTask: RootTask<*,*>){
-
-        subNotifiers.add( rootTask.dataProcessor)
-
+        subNotifiers.add(rootTask.dataProcessor)
+        rootTask.dataProcessor.config = sharedConfig
         val job = CoroutineScope(Dispatchers.Default)
-        rootTask.dataProcessor.subscribeToDataEmissions(job){
-
+        rootTask.dataProcessor.emitter?.subscribeToDataEmissions(job){
             notificator.triggerForAll(Event.DataReceived, it)
         }
-
     }
 
     internal fun unregister(rootTask: RootTask<*, *>) {
         subNotifiers.remove(rootTask.dataProcessor)
-        collectorJobs.remove(rootTask.dataProcessor)?.cancel()
+       // collectorJobs.remove(rootTask.dataProcessor)?.cancel()
     }
 
 

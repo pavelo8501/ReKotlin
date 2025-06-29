@@ -1,36 +1,50 @@
 package po.exposify.dto.components.tracker
 
+import po.exposify.common.events.DTOEvent
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.bindings.property_binder.interfaces.ObservableData
 import po.exposify.dto.components.tracker.interfaces.TrackableDTO
 import po.exposify.dto.enums.Components
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
+import po.lognotify.TasksManaged
+import po.misc.data.printable.printableProxy
 import po.misc.interfaces.Identifiable
+import po.misc.interfaces.IdentifiableClass
 import po.misc.interfaces.IdentifiableContext
 import po.misc.interfaces.asIdentifiable
 import po.misc.time.ExecutionTimeStamp
 import po.misc.time.MeasuredContext
 import po.misc.time.startTimer
 import po.misc.time.stopTimer
+import kotlin.math.log10
 
 
 class DTOTracker<DTO: ModelDTO, DATA: DataModel>(
     internal val dto : CommonDTO<DTO, DATA, *>,
-   @PublishedApi internal val config : TrackerConfig = TrackerConfig(),
-):  MeasuredContext, TrackableDTO{
+   @PublishedApi internal val config : TrackerConfig = TrackerConfig()
+):  MeasuredContext, TrackableDTO, TasksManaged
+{
 
     override val executionTimeStamp: ExecutionTimeStamp = ExecutionTimeStamp(dto.completeName, dto.id.toString())
     override var sourceName: String = dto.sourceName
     override val contextName: String = "DTOTracker"
 
-    private var activeRecord : TrackerRecord = TrackerRecord(this, dto.id, CrudOperation.Create, dto.completeName)
+    var activeRecord : TrackerRecord = TrackerRecord(this, dto.id, CrudOperation.Create, dto.completeName)
+        private set
+
     private val trackRecords : MutableList<TrackerRecord> = mutableListOf()
-
-
 
     override val records : List<ObservableData> get() = trackRecords.toList()
     override val childTrackers : MutableList<TrackableDTO> = mutableListOf()
+
+    val debug = printableProxy(this, DTOEvent.Debug){params->
+        debug(DTOEvent(this, params.message), DTOEvent, params.template)
+    }
+
+    init {
+        addTrackResult(CrudOperation.Initialize)
+    }
 
     private fun finalizeLast(){
         activeRecord.finalize(dto,stopTimer())
@@ -52,7 +66,7 @@ class DTOTracker<DTO: ModelDTO, DATA: DataModel>(
     }
 
     fun addTrackResult(operation:CrudOperation? = null) {
-
+        debug.logMessage("Active CRUD", DTOEvent.Stats)
         trackRecords.firstOrNull { it.operation == operation }?.finalize(dto, stopTimer())?:finalizeLast()
     }
 

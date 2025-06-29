@@ -14,10 +14,10 @@ private fun <T, R> resultContainerCreation(task: TaskBase<T, R>, result: R): Tas
     task.registry.getFirstSubTask(task)?.let {subTask->
         if(subTask.taskStatus == TaskBase.TaskStatus.Faulty){
             val exception = subTask.taskResult?.throwable
-            task.dataProcessor.warn("Exception(${exception?.message}) swallowed by $subTask", task)
+            task.dataProcessor.warn("Exception(${exception?.message}) swallowed by $subTask")
             val waypointInfo = exception?.handlingData?.joinToString(" -> ") { "${it.wayPoint.contextName}(${it.message.emptyOnNull()})" }
             waypointInfo?.wrapByDelimiter("->").emptyOnNull()
-            task.dataProcessor.warn(waypointInfo?.wrapByDelimiter("->").emptyOnNull(), task)
+            task.dataProcessor.warn(waypointInfo?.wrapByDelimiter("->").emptyOnNull())
         }
     }
     val result = TaskResult(task, result = result, throwable = null)
@@ -40,10 +40,10 @@ fun <T, R> onTaskResult(task: TaskBase<T, R>, result: R): TaskResult<R>{
                    val childException = task.checkChildResult(result)
                    if(childException != null){
                        val subTask = task.registry.getFirstSubTask(task)
-                       task.dataProcessor.warn("Exception ${childException.name()} swallowed by $subTask}", task)
+                       task.dataProcessor.warn("Exception ${childException.name()} swallowed by $subTask}")
                        createFaultyResult(childException, task)
                    }else{
-                       task.dataProcessor.debug("SubTask has no faults. Why this branch called I don't know","ResultHelpers|onTaskResult",task)
+                       task.dataProcessor.debug("SubTask has no faults. Why this branch called I don't know","ResultHelpers|onTaskResult")
                        resultContainerCreation(task, result)
                    }
                 }
@@ -51,17 +51,17 @@ fun <T, R> onTaskResult(task: TaskBase<T, R>, result: R): TaskResult<R>{
                     val childException = task.checkChildResult(result)
                     if(childException != null){
                         val subTask = task.registry.getFirstSubTask(task)
-                        task.dataProcessor.warn("Exception ${childException.name()} swallowed by $subTask}", task)
+                        task.dataProcessor.warn("Exception ${childException.name()} swallowed by $subTask}")
                         createFaultyResult(childException, task)
                     }else{
-                        task.dataProcessor.debug("SubTask has no faults. Why this branch called I don't know","ResultHelpers|onTaskResult",task)
+                        task.dataProcessor.debug("SubTask has no faults. Why this branch called I don't know","ResultHelpers|onTaskResult")
                         resultContainerCreation(task, result)
                     }
                 }
             }
         }
         else -> {
-            task.dataProcessor.debug("Result ok. ResultContainerCreation","ResultHelpers|onTaskResult", task)
+            task.dataProcessor.debug("Result ok. ResultContainerCreation","ResultHelpers|onTaskResult")
             resultContainerCreation(task, result)
         }
     }

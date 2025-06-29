@@ -3,10 +3,11 @@ package po.lognotify.classes.notification.models
 import po.lognotify.classes.task.models.TaskConfig
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.models.TaskKey
-import po.misc.data.PrintableBase
+import po.misc.data.printable.PrintableBase
 import po.misc.data.console.DebugTemplate
 import po.misc.data.console.PrintableTemplate
 import po.misc.data.helpers.emptyOnNull
+import po.misc.data.printable.PrintableCompanion
 import po.misc.data.styles.colorize
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
@@ -35,15 +36,13 @@ data class TaskData(
         addTemplate(Header, Footer, Message)
     }
 
-    companion object {
-
+    companion object: PrintableCompanion<TaskData>({TaskData::class}) {
         val nestingFormatter: TaskData.() -> String = {
             matchTemplate(
                 templateRule(taskKey.nestingLevel.toString()) { taskKey.nestingLevel > 0 },
                 templateRule("Root ".colorize(Colour.GREEN)) { taskKey.nestingLevel == 0 }
             )
         }
-
         val prefix: TaskData.(auxMessage: String) -> String = { auxMessage ->
             "${Colour.makeOfColour(Colour.BLUE, "[${auxMessage}")}  ${nestingFormatter(this)}" +
                     "${taskKey.taskName} | ${taskKey.moduleName} @ $currentTime".colorize(Colour.BLUE)
@@ -74,8 +73,8 @@ data class TaskData(
             "${prefix.invoke(this, "")} ${messageFormatter.invoke(this)}"
         }
 
-        val Debug: DebugTemplate<TaskData> = DebugTemplate{
-            "${prefix.invoke(this, "")} ${message.colorize(Colour.GREEN)}"
+        val Debug: PrintableTemplate<TaskData> = PrintableTemplate("Debug"){
+            "${prefix.invoke(this, "")} ${ message.colorize(Colour.GREEN)}"
         }
     }
 }

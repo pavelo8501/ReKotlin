@@ -20,7 +20,6 @@ import po.exposify.dto.components.result.ResultList
 import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.ConsoleBehaviour
-import po.lognotify.logNotify
 import po.test.exposify.setup.ClassData
 import po.test.exposify.setup.PageEntity
 import po.test.exposify.setup.dtos.Page

@@ -1,7 +1,7 @@
 package po.test.misc.data
 
 import org.junit.jupiter.api.Test
-import po.misc.data.PrintableBase
+import po.misc.data.printable.PrintableBase
 import po.misc.data.console.DebugTemplate
 import po.misc.data.console.PrintableTemplate
 import po.misc.data.helpers.emptyOnNull

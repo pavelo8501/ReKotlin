@@ -8,7 +8,6 @@ import po.exposify.dto.components.result.ResultSingle
 import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.ConsoleBehaviour
-import po.lognotify.logNotify
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.PageEntity
 import po.test.exposify.setup.dtos.Page

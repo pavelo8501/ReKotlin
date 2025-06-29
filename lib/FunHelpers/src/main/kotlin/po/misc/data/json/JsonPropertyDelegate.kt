@@ -1,6 +1,6 @@
 package po.misc.data.json
 
-import po.misc.data.PrintableBase
+import po.misc.data.printable.PrintableBase
 import po.misc.exceptions.ManagedException
 import po.misc.time.ExecutionTimeStamp
 import po.misc.types.castOrManaged

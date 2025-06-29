@@ -1,28 +1,26 @@
-package po.misc.data
+package po.misc.data.printable
 
 import po.misc.data.console.DateHelper
 import po.misc.data.console.PrintableTemplateBase
-import po.misc.data.interfaces.ComposableData
-import po.misc.data.interfaces.Printable
 import po.misc.data.json.JObject
 import po.misc.data.json.JRecord
 import po.misc.data.json.JsonHolder
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.ValueBased
-import kotlin.collections.listOf
 
 abstract class PrintableBase<T>(
     var defaultTemplate: PrintableTemplateBase<T>
-): ComposableData, Printable, DateHelper where T: Printable {
+): ComposableData, Printable, DateHelper where T:PrintableBase<T> {
 
-    abstract override val itemId :ValueBased
+    abstract override val itemId : ValueBased
     abstract override val emitter: Identifiable
+
     abstract val self:T
+
     override var parentRecord: PrintableBase<*>? = null
-    //protected val templateRegistry : BasicRegistry<T.() -> String> = BasicRegistry()
     override var children: List<PrintableBase<*>> = listOf()
 
-    val templates: MutableList<PrintableTemplateBase<T>> = mutableListOf<PrintableTemplateBase<T>>().also {templateList->
+    val templates: MutableList<PrintableTemplateBase<T>> = mutableListOf<PrintableTemplateBase<T>>().also { templateList->
         defaultTemplate.let {
             templateList.add(it)
         }
@@ -32,7 +30,8 @@ abstract class PrintableBase<T>(
     }
 
     internal var jsonHolder : JsonHolder? = null
-    internal val jsonObject : JObject get() {
+    internal val jsonObject : JObject
+        get() {
         val itemIdRecord = JRecord("itemId", itemId.value)
         val emitterRecord = JRecord("emitter", emitter.completeName)
         val hostingClassName =  self::class.simpleName.toString()
@@ -65,6 +64,10 @@ abstract class PrintableBase<T>(
         defaultTemplate = template
     }
 
+    override fun setParent(parent: PrintableBase<*>) {
+        parentRecord = parent
+    }
+
     fun addTemplate(vararg template: PrintableTemplateBase<T>){
         template.forEach {
             templates.add(it)
@@ -89,7 +92,7 @@ abstract class PrintableBase<T>(
     }
     fun echo(template: PrintableTemplateBase<T>){
         if(!shouldMute()){
-            val result =formatString(template.template)
+            val result = formatString(template.template)
             outputSource?.invoke(result)?:run {
                 println(result)
             }
@@ -100,19 +103,15 @@ abstract class PrintableBase<T>(
         record.setParent(self as PrintableBase<*>)
         children = children.toMutableList().apply { add(record) }
     }
-
     fun addChildren(records:List<PrintableBase<*>>){
         records.map { it.setParent(self as PrintableBase<*>)}
         children = records
     }
 
-    override fun setParent(parent: PrintableBase<*>) {
-       parentRecord = parent
-    }
-
     fun setGenericMute(condition:(ComposableData)-> Boolean){
         genericMuteCondition = condition
     }
+
     fun setMute(condition:((T)-> Boolean)? = null ){
         muteCondition = condition
     }
@@ -128,11 +127,7 @@ abstract class PrintableBase<T>(
         println(colWidths.joinToString("-+-") { "-".repeat(it) })
         rows.forEach { println(rowToString(it)) }
     }
-
-//    fun setTemplate(key: ValueBased, templateProvider: T.()-> String){
-//        templateRegistry.addRecord(key, templateProvider)
-//    }
-    fun printTree(level: Int = 0, template: T.() -> String) {
+    fun printTree(level: Int = 0, template: T .() -> String) {
         println("  ".repeat(level) + template(self))
         children.forEach {
             @Suppress("UNCHECKED_CAST")
@@ -148,4 +143,5 @@ abstract class PrintableBase<T>(
         }
         return jsonHolder
     }
+
 }

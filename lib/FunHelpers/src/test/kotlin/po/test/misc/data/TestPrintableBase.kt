@@ -1,7 +1,9 @@
 package po.test.misc.data
 
+import org.junit.jupiter.api.Test
+import po.misc.collections.StaticTypeKey
 import po.misc.data.console.DateHelper
-import po.misc.data.PrintableBase
+import po.misc.data.printable.PrintableBase
 import po.misc.data.console.PrintableTemplate
 import po.misc.data.styles.colorize
 import po.misc.data.processors.DataProcessor
@@ -12,6 +14,11 @@ import po.misc.interfaces.Identifiable
 import po.misc.interfaces.ValueBased
 import po.misc.interfaces.asIdentifiable
 import po.misc.interfaces.toValueBased
+import kotlin.test.assertTrue
+import po.misc.data.printable.PrintableCompanion
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNotSame
+
 
 class TestPrintableBase: DateHelper {
 
@@ -25,7 +32,7 @@ class TestPrintableBase: DateHelper {
      * composition rules.
      *
      */
-    val processor: DataProcessor<Item> = DataProcessor<Item>()
+    val processor: DataProcessor<Item> = DataProcessor<Item>(null,null)
 
     data class Item (
         val personalName: String,
@@ -39,7 +46,8 @@ class TestPrintableBase: DateHelper {
         override val emitter: Identifiable = asIdentifiable(personalName, componentName)
         override val itemId: ValueBased = toValueBased(0)
 
-        companion object{
+        companion object: PrintableCompanion<Item>({Item::class}){
+
             val Printable: PrintableTemplate<Item> = PrintableTemplate(
                 templateName = "Printable",
                 delimiter = SpecialChars.NewLine.char,
@@ -65,12 +73,22 @@ class TestPrintableBase: DateHelper {
         override val emitter: Identifiable = asIdentifiable(personalName, componentName)
         override val itemId: ValueBased = toValueBased(0)
 
-        companion object{
+        companion object: PrintableCompanion<Item2>({Item2::class}){
             val Template2: PrintableTemplate<Item2> = PrintableTemplate<Item2>("Template2"){
                 "String2-> $personalName | $module And Value=$handled".colorize(Colour.RED)
             }
         }
     }
+
+    @Test
+    fun `Printable metadata properly initialized`(){
+        val item = Item("name")
+        val item2 = Item2("name")
+        assertTrue(Item.metaDataInitialized)
+        assertTrue(Item2.metaDataInitialized)
+        assertNotEquals(Item.typeKey.hashCode(), Item2.typeKey.hashCode(), "Keys are the same")
+    }
+
 
 
 //

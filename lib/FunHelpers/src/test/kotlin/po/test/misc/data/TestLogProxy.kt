@@ -1,9 +1,9 @@
 package po.test.misc.data
 
 import org.junit.jupiter.api.Test
-import po.misc.data.PrintableBase
-import po.misc.data.builders.logProxy
+import po.misc.data.printable.PrintableBase
 import po.misc.data.console.PrintableTemplate
+import po.misc.data.printable.printableProxy
 import po.misc.data.processors.DataProcessor
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
@@ -13,7 +13,6 @@ import po.misc.interfaces.ValueBased
 import po.misc.interfaces.asIdentifiable
 import po.misc.interfaces.toValueBased
 import po.test.misc.data.TestLogProxy.ArbitraryData.Companion.Template2
-import po.test.misc.data.TestLogProxy.TopDataItem.Companion.TopTemplate
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -59,7 +58,7 @@ class TestLogProxy: IdentifiableContext {
 
     @Test
     fun `Log proxy forward data to processor`(){
-        val warning = logProxy(this, Template2){
+        val warning = printableProxy(this, Template2){
             val data = ArbitraryData(contextName, "TestLogProxy", it)
             dataProcessor.logData(data, data.defaultTemplate)
         }

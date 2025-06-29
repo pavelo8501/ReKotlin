@@ -1,6 +1,5 @@
-package po.misc.data.interfaces
+package po.misc.data.printable
 
-import po.misc.data.json.JObject
 import po.misc.data.json.JsonHolder
 
 

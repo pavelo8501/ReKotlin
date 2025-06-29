@@ -21,7 +21,6 @@ import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.throwOperations
 import po.lognotify.classes.task.TaskHandler
-import po.lognotify.lastTaskHandler
 
 
 class ExecutionProvider<DTO, DATA, ENTITY>(
@@ -30,7 +29,7 @@ class ExecutionProvider<DTO, DATA, ENTITY>(
 
     override val contextName: String = "ExecutionProvider"
 
-    override val logger: TaskHandler<*> get() = lastTaskHandler()
+    override val logger: TaskHandler<*> get() = taskHandler()
 
     private fun insert(data: DATA): ResultSingle<DTO, DATA, ENTITY> {
         val operation = CrudOperation.Insert

@@ -37,16 +37,16 @@ class TaskDispatcher(val notifierHub: NotifierHub) : UpdatableTasks, Identifiabl
 
     override val identity = asIdentifiableClass("LogNotify", "TaskDispatcher")
 
-
     internal val callbackRegistry = callbackManager<UpdateType>(
         { CallbackManager.createPayload<UpdateType, LoggerStats>(it,  UpdateType.OnTaskCreated) },
         { CallbackManager.createPayload<UpdateType, LoggerStats>(it,  UpdateType.OnTaskStart) },
         { CallbackManager.createPayload<UpdateType, LoggerStats>(it,  UpdateType.OnTaskUpdated) },
         { CallbackManager.createPayload<UpdateType, LoggerStats>(it,  UpdateType.OnTaskComplete) }
     )
-
     init {
-
+        notifierHub.hooks.debugListUpdated {debugWhiteList->
+            notifierHub.sharedConfig.updateDebugWhiteList(debugWhiteList)
+        }
     }
 
 
@@ -78,7 +78,6 @@ class TaskDispatcher(val notifierHub: NotifierHub) : UpdatableTasks, Identifiabl
 
     }
     fun addRootTask(task: RootTask<*, *>) {
-        task.dataProcessor.config = notifierHub.config
         taskHierarchy[task.key] = task
         notifierHub.register(task)
 
@@ -94,6 +93,9 @@ class TaskDispatcher(val notifierHub: NotifierHub) : UpdatableTasks, Identifiabl
       return taskHierarchy.values.firstOrNull { !it.isComplete }
     }
 
+    fun activeRootTasks(): List<RootTask<*, *>>{
+        return taskHierarchy.values.filter {!it.isComplete }
+    }
 
     fun keyLookup(name: String, nestingLevel: Int): TaskKey?{
         return taskHierarchy.keys.firstOrNull { it.taskName == name  && it.nestingLevel == nestingLevel}

@@ -1,8 +1,5 @@
 package po.misc.data.json
 
-import po.misc.data.PrintableBase
-import po.misc.data.interfaces.Printable
-
 interface JasonStringSerializable {
     fun toJson(): String
 }

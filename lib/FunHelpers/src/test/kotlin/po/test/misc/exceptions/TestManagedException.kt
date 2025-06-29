@@ -33,7 +33,7 @@ class TestManagedException {
     }
 
     fun throwCustomException(message: String, code:CustomExceptionCode): Nothing{
-       throw ManageableException.build<CustomException>(message, code)
+       throw ManageableException.build<CustomException, CustomExceptionCode>(message, code)
     }
 
     @Test

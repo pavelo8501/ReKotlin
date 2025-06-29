@@ -9,6 +9,7 @@ import po.auth.extensions.createDefaultIdentifier
 import po.auth.extensions.generatePassword
 import po.auth.extensions.withSessionContext
 import po.exposify.DatabaseManager
+import po.exposify.common.events.DTOEvent
 import po.exposify.dto.components.WhereQuery
 import po.exposify.scope.connection.models.ConnectionInfo
 import po.exposify.scope.sequence.extensions.runSequence
@@ -19,7 +20,6 @@ import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.ConsoleBehaviour
-import po.lognotify.logNotify
 import po.test.exposify.crud.TestSelect
 import po.test.exposify.scope.session.TestSessionsContext
 import po.test.exposify.setup.DatabaseTest
@@ -29,7 +29,6 @@ import po.test.exposify.setup.dtos.Section
 import po.test.exposify.setup.dtos.SectionDTO
 import po.test.exposify.setup.dtos.User
 import po.test.exposify.setup.dtos.UserDTO
-import po.test.exposify.setup.pageModelsWithSections
 import po.test.exposify.setup.pagesSectionsContentBlocks
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -53,6 +52,7 @@ class TestSequenceCrud : DatabaseTest(),  TasksManaged {
         val loggerHandler: LogNotifyHandler = logNotify()
         loggerHandler.notifierConfig {
             console = ConsoleBehaviour.MuteNoEvents
+            allowDebug(DTOEvent)
         }
         val user = User(
             id = 0,

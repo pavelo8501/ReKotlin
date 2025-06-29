@@ -29,7 +29,7 @@ class SequenceContext<DTO, D, E>(
     private var latestSingleResult : ResultSingle<DTO,D, E> = ResultSingle(sequenceHandler.dtoBase)
 
     private var firstRun = true
-    private suspend fun onFirsRun(){
+    private fun onFirsRun(){
         if(firstRun){
             sequenceHandler.handlerConfig.onStartCallback?.invoke(runInfo)
             firstRun = false

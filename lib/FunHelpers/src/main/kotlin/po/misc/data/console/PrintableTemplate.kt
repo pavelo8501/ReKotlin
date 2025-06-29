@@ -1,15 +1,13 @@
 package po.misc.data.console
 
-import po.misc.data.interfaces.Printable
-import po.misc.data.interfaces.PrintableProvider
-import po.misc.data.styles.SpecialChars
+import po.misc.data.printable.Printable
+import po.misc.data.printable.PrintableProvider
 
 interface PrintableWithTemplate : Printable {
     fun defaultTemplate(): String = this.toString()
 }
 
 sealed class PrintableTemplateBase<T: Printable>: PrintableProvider<T>{
-
     abstract val templateName: String
     abstract val templateParts: List<T.() -> String>
     abstract override val template: T.() -> String

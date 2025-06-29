@@ -19,7 +19,6 @@ import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.classes.task.TaskHandler
 import po.lognotify.extensions.runTask
-import po.lognotify.lastTaskHandler
 import po.misc.coroutines.CoroutineInfo
 import po.misc.serialization.SerializerInfo
 import po.misc.types.safeCast
@@ -42,7 +41,7 @@ class ConnectionClass(
 
     internal val serializerMap = mutableMapOf<String, SerializerInfo<*>>()
     private  var services: MutableMap<String, ServiceClass<*, *, *>> = mutableMapOf()
-    private val taskHandler: TaskHandler<*> = lastTaskHandler()
+    private val taskHandler: TaskHandler<*> = taskHandler()
 
     init {
         taskHandler.warn("CONNECTION_CLASS CREATED $name")

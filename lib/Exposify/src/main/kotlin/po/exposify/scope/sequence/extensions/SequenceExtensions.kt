@@ -12,7 +12,6 @@ import po.exposify.scope.sequence.classes.RootHandlerProvider
 import po.exposify.scope.sequence.classes.RootSequenceHandler
 import po.exposify.scope.sequence.classes.SwitchHandlerProvider
 import po.exposify.scope.service.ServiceContext
-import po.lognotify.lastTaskHandler
 
 
 fun <DTO, D, E>  ServiceContext<DTO, D, E>.sequence(
@@ -36,7 +35,7 @@ suspend fun <DTO, D, E, F_DTO, FD, FE> SequenceContext<F_DTO,FD, FE>.switchConte
         val casted = it.castOrOperations<ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE>>()
         casted.launch(runInfo, switchLambda)
     }?:run {
-        lastTaskHandler().warn("Switch statement name: ${handlerDelegate.name} will not be executed. No handler being provided")
+        taskHandler().warn("Switch statement name: ${handlerDelegate.name} will not be executed. No handler being provided")
     }
 }
 

@@ -2,7 +2,7 @@ package po.exposify.common.event
 
 import po.exposify.dto.DTOBase
 import po.exposify.dto.DTOClass
-import po.misc.data.PrintableBase
+import po.misc.data.printable.PrintableBase
 import po.misc.data.console.PrintableTemplate
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize

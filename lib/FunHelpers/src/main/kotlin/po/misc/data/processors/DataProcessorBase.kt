@@ -8,16 +8,19 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
-import po.misc.data.PrintableBase
+import po.misc.collections.StaticTypeKey
+import po.misc.data.printable.PrintableBase
+import po.misc.data.printable.PrintableCompanion
 import po.misc.data.console.PrintableTemplateBase
-import po.misc.data.interfaces.ComposableData
-import po.misc.data.interfaces.Printable
+import po.misc.data.printable.ComposableData
+import po.misc.data.printable.Printable
 import po.misc.types.safeCast
 
-abstract class DataProcessorBase<T:PrintableBase<T>>(){
-
-    abstract val topEmitter: DataProcessorBase<*>?
-
+abstract class DataProcessorBase<T:PrintableBase<T>>(
+    val topEmitter: DataProcessorBase<*>?,
+    val emitter: EmittableFlow<T>?
+)
+{
     @PublishedApi
     internal val recordList: MutableList<PrintableBase<*>> = mutableListOf()
     private val activeRecord: PrintableBase<*>? get() = recordList.lastOrNull()
@@ -29,14 +32,46 @@ abstract class DataProcessorBase<T:PrintableBase<T>>(){
     internal var outputSource: ((String)-> Unit)? = null
 
     val hooks: ProcessorHooks<T>  = ProcessorHooks()
+    private val debugWhiteList: MutableMap<Int, StaticTypeKey<*>> = mutableMapOf()
 
-    private var onChildAddCallback : ((childRecord:PrintableBase<*>,parentRecord:T) -> Unit)? = null
-    fun onChildAttached(callback: (childRecord:PrintableBase<*>, parentRecord:T) -> Unit){
-        onChildAddCallback = callback
+   // private var onDebugListUpdated:((MutableMap<Int, StaticTypeKey<*>>)-> Unit)? = null
+
+    init {
+        topEmitter?.hooks?.debugListUpdated{ topEmittersList->
+            updateDebugWhiteList(topEmittersList)
+        }
     }
 
     private fun addData(record: PrintableBase<*>){
         recordList.add(record)
+    }
+    private fun acceptForwarded(record:  PrintableBase<*>){
+        activeRecord?.let {
+            it.addChild(record)
+            hooks.onChildAttached?.invoke(record, it)
+        }?:run {
+            recordList.add(record)
+        }
+    }
+
+    protected fun updateDebugWhiteList(whiteList: MutableMap<Int, StaticTypeKey<*>>){
+        debugWhiteList.clear()
+        debugWhiteList.putAll(whiteList)
+        hooks.onDebugListUpdated?.invoke(debugWhiteList)
+    }
+
+    fun allowDebug(vararg printableClass: PrintableCompanion<*>){
+        printableClass.forEach {
+            debugWhiteList[it.typeKey.hashCode()] = it.typeKey
+        }
+        hooks.onDebugListUpdated?.invoke(debugWhiteList)
+    }
+
+    fun <T: PrintableBase<T>> debugData(arbitraryRecord: T, printableClass: PrintableCompanion<T>, template: PrintableTemplateBase<T>, debuggable:(T)-> Unit){
+        arbitraryRecord.defaultTemplate = template
+        if(debugWhiteList.contains(printableClass.typeKey.hashCode())){
+            debuggable.invoke(arbitraryRecord)
+        }
     }
 
     fun processRecord(record: T, template: PrintableTemplateBase<T>?){
@@ -49,7 +84,7 @@ abstract class DataProcessorBase<T:PrintableBase<T>>(){
         globalMuteCondition?.let {
             record.setGenericMute(it)
         }
-        hooks.onData?.invoke(record)?:run {
+        hooks.onDataReceived?.invoke(record)?:run {
             record.echo()
         }
     }
@@ -62,7 +97,10 @@ abstract class DataProcessorBase<T:PrintableBase<T>>(){
     fun <T2: PrintableBase<T2>> logData(data:T2, template: PrintableTemplateBase<T2>):T2{
         data.changeDefaultTemplate(template)
         hooks.onArbitraryData?.invoke(data) ?:run {
-            activeRecord?.addChild(data)?:run {
+            activeRecord?.let {
+                it.addChild(data)
+                hooks.onChildAttached?.invoke(data, it)
+            }?:run {
                 addData(data)
             }
             data.echo()
@@ -81,8 +119,10 @@ abstract class DataProcessorBase<T:PrintableBase<T>>(){
         }
     }
 
-    fun forwardTop(data: PrintableBase<T>){
-        topEmitter?.addData(data)
+
+    fun forwardOrEmmit(data: T){
+        topEmitter?.acceptForwarded(data)
+        emitter?.emitData(data)
     }
 
     fun provideMuteCondition(muteCondition: (ComposableData)-> Boolean) {
@@ -94,39 +134,41 @@ abstract class DataProcessorBase<T:PrintableBase<T>>(){
         this.muteCondition = muteCondition.safeCast<(Printable)-> Boolean>()
     }
 
-    private val subscriberJobs = mutableListOf<Job>()
+//    private val subscriberJobs = mutableListOf<Job>()
+//    private val notificationFlow = MutableSharedFlow<T>(
+//        replay = 10,
+//        extraBufferCapacity = 64,
+//        onBufferOverflow = BufferOverflow.SUSPEND
+//    )
+   // private val notifications: SharedFlow<T> = notificationFlow.asSharedFlow()
 
-    private val notificationFlow = MutableSharedFlow<T>(
-        replay = 10,
-        extraBufferCapacity = 64,
-        onBufferOverflow = BufferOverflow.SUSPEND
-    )
-    private val notifications: SharedFlow<T> = notificationFlow.asSharedFlow()
-    fun subscribeToDataEmissions(
-        scope: CoroutineScope,
-        collector: suspend (T) -> Unit
-    ): Job {
-        val job = scope.launch {
-            notifications.collect(collector)
-        }
-        subscriberJobs += job
-        return job
-    }
+//    fun subscribeToDataEmissions(scope: CoroutineScope, collector: suspend (T) -> Unit): Job {
+//        if(emitter!=null){
+//            emitter.subscribeToDataEmissions(scope, collector)
+//        }
+//
+//        val job = scope.launch {
+//            notifications.collect(collector)
+//        }
+//        subscriberJobs += job
+//        return job
+//    }
 
-    fun stopBroadcast() {
-        subscriberJobs.forEach { it.cancel() }
-        subscriberJobs.clear()
-    }
-
-    fun emitData(data: T) {
-        CoroutineScope(Dispatchers.Default).launch {
-            notificationFlow.emit(data)
-        }
-    }
+//    fun stopBroadcast() {
+//        subscriberJobs.forEach { it.cancel() }
+//        subscriberJobs.clear()
+//    }
+//
+//    fun emitData(data: T) {
+//        CoroutineScope(Dispatchers.Default).launch {
+//            notificationFlow.emit(data)
+//        }
+//    }
 }
 
 class DataProcessor<T: PrintableBase<T>>(
-    override val topEmitter: DataProcessorBase<*>? = null,
-):DataProcessorBase<T>(){
+    topEmitter: DataProcessorBase<*>?,
+    emitter: EmittableFlow<T>? = null
+):DataProcessorBase<T>(topEmitter, emitter){
 
 }

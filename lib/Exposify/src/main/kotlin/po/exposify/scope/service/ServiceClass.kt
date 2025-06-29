@@ -15,7 +15,6 @@ import po.exposify.scope.connection.controls.CoroutineEmitter
 import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.classes.task.TaskHandler
-import po.lognotify.lastTaskHandler
 import po.misc.interfaces.IdentifiableClass
 import po.misc.interfaces.asIdentifiableClass
 
@@ -27,7 +26,7 @@ class ServiceClass<DTO, DATA, ENTITY>(
 
     private val serviceContext: ServiceContext<DTO, DATA, ENTITY> = ServiceContext(this, rootDTOModel)
     internal val connection: Database get() = connectionClass.connection
-    val logger : TaskHandler<*> get()= lastTaskHandler()
+    val logger : TaskHandler<*> get()= taskHandler()
 
     override val identity = asIdentifiableClass("ServiceClass", rootDTOModel.completeName)
 

@@ -4,7 +4,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 import po.lognotify.classes.task.RootTask
-import po.misc.data.PrintableBase
+import po.misc.data.printable.PrintableBase
 
 
 //suspend fun CoroutineScope.subscribeTo(rootTask: RootTask<*, *>, notificationFn: (suspend (PrintableBase<*>)-> Unit)? =null) {

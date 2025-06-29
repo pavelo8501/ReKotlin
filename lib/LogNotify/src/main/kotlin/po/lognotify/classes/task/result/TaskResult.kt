@@ -51,10 +51,10 @@ class TaskResult<R : Any?>(
 
     private var onFailFn: ((ManagedException) -> Unit)? = null
     fun onFail(callback: (ManagedException)->Unit): TaskResult<R> {
-        task.dataProcessor.debug("Handled onFail registered","${personalName}|onFail",task)
+        task.dataProcessor.debug("Handled onFail registered","${personalName}|onFail")
         throwable?.let {
             task.taskStatus = TaskBase.TaskStatus.Faulty
-            task.dataProcessor.info("Handled ${it.name()} by onFail", task)
+            task.dataProcessor.info("Handled ${it.name()} by onFail")
             callback.invoke(it)
         }
         return this
@@ -73,7 +73,7 @@ class TaskResult<R : Any?>(
         exHandlingCallback = resultCallback
         throwable?.let {
             result = resultCallback()
-            task.dataProcessor.debug("Faulty result handled silently", "${personalName}|handleException",task)
+            task.dataProcessor.debug("Faulty result handled silently", "${personalName}|handleException")
         }
     }
 
@@ -82,23 +82,16 @@ class TaskResult<R : Any?>(
         onHandleFailure = handleFailureCallback
         return throwable?.let { managed ->
             val message = "Handled ${managed.name()} by onHandleFailure. Fallback result provided"
-            task.dataProcessor.warn(message, task)
+            task.dataProcessor.warn(message)
             provideResult(handleFailureCallback.invoke(managed))
         } ?: result
     }
-
-//    internal fun onResult(): TaskResult<R>{
-//        isSuccess = true
-//        onResultFn?.invoke(result)
-//        onCompleteFn?.invoke(this)
-//        return this
-//    }
 
     internal fun provideThrowable(th: ManagedException): TaskResult<R>{
         isSuccess = false
         task.taskStatus = TaskBase.TaskStatus.Failing
         exHandlingCallback?.let {
-            task.dataProcessor.debug("Faulty result handled silently", "${personalName}|handleException",task)
+            task.dataProcessor.debug("Faulty result handled silently", "${personalName}|handleException")
             onCompleteFn?.invoke(this)
         }?:run {
             throwable = th

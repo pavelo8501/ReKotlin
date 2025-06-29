@@ -181,7 +181,7 @@ inline fun <reified T: Any, R: Any?> T.runTask(
             if (config.attempts > 1) {
                 task.handler.warn("Task resulted in failure. Attempt $attempt of ${config.attempts}")
             }
-            task.dataProcessor.debug("Throwable in catch block", "TaskLauncher|runTask", task)
+            task.dataProcessor.debug("Throwable in catch block", "TaskLauncher|runTask")
             task.taskResult?:run{
                 throw managed
             }

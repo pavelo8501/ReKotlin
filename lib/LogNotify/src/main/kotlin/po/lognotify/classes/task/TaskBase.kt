@@ -8,6 +8,7 @@ import po.lognotify.TaskProcessor
 import po.lognotify.classes.action.ActionSpan
 import po.lognotify.classes.notification.LoggerDataProcessor
 import po.lognotify.classes.notification.enums.EventType
+import po.lognotify.classes.notification.models.TaskData
 import po.lognotify.classes.task.interfaces.ResultantTask
 import po.lognotify.classes.task.models.TaskConfig
 import po.lognotify.classes.task.result.TaskResult
@@ -22,7 +23,9 @@ import po.misc.callbacks.manager.builders.callbackManager
 import po.misc.coroutines.CoroutineHolder
 import po.misc.data.helpers.emptyOnNull
 import po.misc.coroutines.CoroutineInfo
+import po.misc.data.processors.FlowEmitter
 import po.misc.exceptions.ManagedException
+import po.misc.interfaces.ClassIdentity
 import po.misc.interfaces.IdentifiableClass
 import po.misc.interfaces.asIdentifiableClass
 import po.misc.time.ExecutionTimeStamp
@@ -99,8 +102,8 @@ class RootTask<T, R: Any?>(
 ) :TaskBase<T, R>(key, config, dispatcher, ctx), CoroutineHolder
 {
 
-    override val identity = asIdentifiableClass(key.taskName,  key.moduleName)
-    override val dataProcessor: LoggerDataProcessor = LoggerDataProcessor(this, null)
+    override val identity : ClassIdentity =  ClassIdentity.create(key.taskName, key.moduleName)
+    override val dataProcessor: LoggerDataProcessor = LoggerDataProcessor(this, null, FlowEmitter())
     override var taskResult : TaskResult<R>?  =  null
     override val registry: TaskRegistry<T, R> = TaskRegistry(dispatcher, this)
     override val callbackRegistry = callbackManager<TaskDispatcher.UpdateType>()
@@ -117,10 +120,10 @@ class RootTask<T, R: Any?>(
         }
         val job = coroutineContext[Job]
         if(job != null){
-            dataProcessor.debug("Cancelling Job $job", "RootTask(commitSuicide)", this)
+            dataProcessor.debug("Cancelling Job $job", "RootTask(commitSuicide)")
             job.cancel(cancellation)
         }else{
-            dataProcessor.debug("Cancelling Context ${coroutineContext[CoroutineName]?.name?:"Unknown"}", "RootTask(commitSuicide)", this)
+            dataProcessor.debug("Cancelling Context ${coroutineContext[CoroutineName]?.name?:"Unknown"}", "RootTask(commitSuicide)")
             coroutineContext.cancel(cancellation)
         }
     }
@@ -133,9 +136,6 @@ class RootTask<T, R: Any?>(
     }
 
     fun onChildCreated(childTask: Task<*, *>){
-//        notifier.submitNotification(
-//            Notification(ProviderTask(this), EventType.CHILD_TASK_CREATED, SeverityLevel.SYS_INFO,childTask.toString())
-//        )
         notifyUpdate(TaskDispatcher.UpdateType.OnTaskUpdated)
         dispatcher.notifyUpdate(TaskDispatcher.UpdateType.OnTaskUpdated, this)
     }
@@ -169,12 +169,10 @@ class Task<T,  R: Any?>(
     ctx: T
 ):TaskBase<T, R>(key, config, hierarchyRoot.dispatcher, ctx), ResultantTask<T, R>{
 
+    override val identity:  ClassIdentity = ClassIdentity.create(key.taskName, key.moduleName)
 
-    override val identity = asIdentifiableClass(key.taskName, key.moduleName)
-
-    override val dataProcessor: LoggerDataProcessor = LoggerDataProcessor(this, hierarchyRoot.dataProcessor)
+    override val dataProcessor: LoggerDataProcessor = LoggerDataProcessor(this, hierarchyRoot.dataProcessor, null)
     override val coroutineContext: CoroutineContext get() = hierarchyRoot.coroutineContext
-  //  override val notifier: SubNotifier = SubNotifier(this, hierarchyRoot.notifier)
     override var taskResult : TaskResult<R>?  =  null
     override val registry: TaskRegistry<*, *> get() = hierarchyRoot.registry
     override val callbackRegistry =  callbackManager<TaskDispatcher.UpdateType>()
