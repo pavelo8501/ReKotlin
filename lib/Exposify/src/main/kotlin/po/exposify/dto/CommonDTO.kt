@@ -14,8 +14,10 @@ import po.exposify.dto.enums.DTOInitStatus
 import po.exposify.dto.models.DTOId
 import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.InitException
-import po.exposify.extensions.castOrOperationsEx
-import po.exposify.extensions.getOrOperationsEx
+import po.exposify.exceptions.initException
+import po.exposify.exceptions.throwOperations
+import po.exposify.extensions.castOrOperations
+import po.exposify.extensions.getOrOperations
 import po.lognotify.classes.task.TaskHandler
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.ValueBased
@@ -31,16 +33,13 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     override val objectId: Long
         get() = 0
 
-    override val dtoType :TypeRecord<DTO> = registry.getRecord<DTO, InitException>(SourceObject.DTO)
+    override val dtoType :TypeRecord<DTO> get() = dtoClass.dtoType
+    val dtoClassConfig: DTOConfig<DTO, DATA, ENTITY> get() =   dtoClass.config.castOrOperations<DTOConfig<DTO, DATA, ENTITY>>(this)
+
     val dtoId : DTOId<DTO> = DTOId(UUID.randomUUID().hashCode().toLong())
     override val contextName: String
         get() = "CommonDTO[${sourceName}#${dtoId.id}]"
     override var sourceName: String = dtoType.simpleName
-
-    val dtoClassConfig: DTOConfig<DTO, DATA, ENTITY>
-        get() {
-            return dtoClass.config.castOrOperationsEx<DTOConfig<DTO, DATA, ENTITY>>("dtoClassConfig uninitialized")
-        }
 
     val registry: TypeRegistry get() {
         return dtoClass.config.registry
@@ -48,9 +47,9 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     abstract override val dataModel: DATA
 
     val entityType: TypeRecord<ENTITY>
-        get() = registry.getRecord<ENTITY, InitException>(SourceObject.Entity)
+        get() = registry.getRecord<ENTITY, InitException>(SourceObject.Entity){ initException(it, ExceptionCode.ABNORMAL_STATE) }
     val dataType:  TypeRecord<DATA>
-        get() = registry.getRecord<DATA, InitException>(SourceObject.Data)
+        get() = registry.getRecord<DATA, InitException>(SourceObject.Data){ initException(it, ExceptionCode.ABNORMAL_STATE) }
 
     val logger : TaskHandler<*> get()= dtoClass.logger
 
@@ -63,7 +62,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     val isEntityInserted: Boolean get() = entityParameter != null
 
     @PublishedApi
-    internal val bindingHub: BindingHub<DTO, DATA, ENTITY, ModelDTO, DataModel, LongEntity> = BindingHub(this)
+    internal val bindingHub: BindingHub<DTO, DATA, ENTITY> = BindingHub(this)
 
     var onInitializationStatusChange: ((CommonDTO<DTO, DATA, ENTITY>) -> Unit)? = null
     var initStatus: DTOInitStatus = DTOInitStatus.UNINITIALIZED
@@ -98,12 +97,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     }
 
     internal fun getEntity():ENTITY{
-       return if(isEntityInserted){
-            entityParameter.getOrOperationsEx("Requesting entity while not inserted", ExceptionCode.METHOD_MISUSED)
-        }else{
-            val message = "Requesting entity while not inserted"
-            entityParameter.getOrOperationsEx(message, ExceptionCode.METHOD_MISUSED)
-        }
+        return entityParameter?:throwOperations("Requesting entity while not inserted", ExceptionCode.METHOD_MISUSED,  this)
     }
 
     internal fun finalizeCreation(entity: ENTITY, cardinality: Cardinality): ENTITY {

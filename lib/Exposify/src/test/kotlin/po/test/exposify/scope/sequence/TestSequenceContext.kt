@@ -48,8 +48,9 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
 
         @JvmStatic
         val session = TestSessionsContext.SessionIdentity("0", "192.169.1.1")
-
     }
+
+
 
     @BeforeAll
     fun setup() = runTest {

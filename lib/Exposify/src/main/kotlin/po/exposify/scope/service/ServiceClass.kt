@@ -73,7 +73,6 @@ class ServiceClass<DTO, DATA, ENTITY>(
         transaction {
             if(running){
                 rootDTOModel.initialization(serviceContext)
-
                 prepareTables(serviceCreateOption)
             }
         }

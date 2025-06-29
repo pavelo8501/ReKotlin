@@ -5,7 +5,7 @@ import com.zaxxer.hikari.HikariDataSource
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import po.exposify.common.classes.DBManagerHooks
-import po.exposify.extensions.getOrInitEx
+import po.exposify.extensions.getOrInit
 import po.exposify.scope.connection.models.ConnectionInfo
 import po.exposify.scope.connection.ConnectionClass
 import po.exposify.scope.connection.models.ConnectionSettings
@@ -72,7 +72,7 @@ object DatabaseManager: IdentifiableContext {
       return runTask("openConnection", TaskConfig(attempts = settings.retries, moduleName = "DatabaseManager")) {
          val effectiveConnectionInfo = connectionInfo?:hooks?.onBeforeConnection?.invoke()
          val connection = if(effectiveConnectionInfo == null){
-             connections.firstOrNull().getOrInitEx("No connection info was provided nor opened connections exist")
+             connections.firstOrNull().getOrInit("No connection info was provided nor opened connections exist")
           }else{
              val existentConnection =  connections.firstOrNull { it.connectionInfo.key == effectiveConnectionInfo.key }
                existentConnection?.let {
@@ -97,7 +97,7 @@ object DatabaseManager: IdentifiableContext {
         return runTaskBlocking("openConnectionAsync", TaskConfig(attempts = settings.retries, moduleName = "DatabaseManager")) {
             val effectiveConnectionInfo = connectionInfo?:hooks?.onBeforeConnection?.invoke()
             val connection = if(effectiveConnectionInfo == null){
-                connections.firstOrNull().getOrInitEx("No connection info was provided nor opened connections exist")
+                connections.firstOrNull().getOrInit("No connection info was provided nor opened connections exist")
             }else{
                 val existentConnection =  connections.firstOrNull { it.connectionInfo.key == effectiveConnectionInfo.key }
                 existentConnection?.let {

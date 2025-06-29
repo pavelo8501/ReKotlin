@@ -30,12 +30,9 @@ class CoroutineEmitter(
         }
     }
 
-    suspend fun <DTO, D, E, F_DTO, FD, FE>dispatchChild(
-        classHandler : ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE>,
-    ): ResultList<DTO, D, E>
-    where DTO : ModelDTO,  D: DataModel, E: LongEntity,
-                F_DTO: ModelDTO,FD : DataModel, FE : LongEntity {
-
+    suspend fun <DTO:ModelDTO, D: DataModel, E: LongEntity, F: ModelDTO, FD: DataModel, FE: LongEntity>dispatchChild(
+        classHandler: ClassSequenceHandler<DTO, D, E, F, FD, FE>
+    ): ResultList<DTO, D, E>{
         return session.runProcess("Sequence dispatched by ${classHandler.dtoClass.completeName}", Dispatchers.IO) {
             newSuspendedTransaction(coroutineContext){
                     val runnableContext = RunnableContext.runInfo(session)
@@ -48,4 +45,11 @@ class CoroutineEmitter(
         }
     }
 
+    suspend fun <DTO:ModelDTO, D: DataModel, E: LongEntity>dispatch(block:suspend ()-> ResultList<DTO,D,E>): ResultList<DTO, D, E>{
+        return session.runProcess("Sequence dispatch", Dispatchers.IO){
+            newSuspendedTransaction(coroutineContext) {
+                block.invoke()
+            }
+        }
+    }
 }

@@ -19,6 +19,8 @@ import kotlin.test.assertNotNull
 
 class TestTaskBase:TasksManaged {
 
+    override val contextName: String = "TestTaskBase"
+
     data class TaskLaunchParam (val taskName: String, val childTaskCount: Int, val delay : Long)
 
     class ReceiverClass{
@@ -53,7 +55,7 @@ class TestTaskBase:TasksManaged {
         val taskStats = mutableListOf<TaskDispatcher.LoggerStats>()
         val loggHandler = logNotify()
 
-        loggHandler.dispatcher.onTaskCreated(UpdateType.OnCreated){ taskStats.add(it) }
+        loggHandler.dispatcher.onTaskCreated(TaskDispatcher.UpdateType.OnTaskCreated){ taskStats.add(it.getData()) }
 
         receiverClass.function1(input =  1, childCount =  10)
 
@@ -65,8 +67,8 @@ class TestTaskBase:TasksManaged {
             )
 
         taskStats.clear()
-        loggHandler.dispatcher.onTaskCreated(UpdateType.OnCreated){
-            taskStats.add(it)
+        loggHandler.dispatcher.onTaskCreated(TaskDispatcher.UpdateType.OnTaskCreated){
+            taskStats.add(it.getData())
         }
 
         val topTaskName = "TopTask"

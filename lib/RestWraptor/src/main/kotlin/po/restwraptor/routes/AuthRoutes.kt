@@ -6,22 +6,17 @@ import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Routing
 import io.ktor.server.routing.post
-import po.auth.authentication.exceptions.AuthException
-import po.auth.authentication.exceptions.ErrorCodes
+import po.auth.exceptions.AuthErrorCode
+import po.auth.exceptions.AuthException
+import po.auth.exceptions.authException
 import po.auth.extensions.authenticate
 import po.auth.sessions.models.AuthorizedSession
-import po.lognotify.extensions.runTask
-import po.misc.exceptions.HandlerType
 import po.misc.types.getOrThrow
 import po.restwraptor.enums.WraptorHeaders
 import po.restwraptor.extensions.asBearer
 import po.restwraptor.extensions.authSessionOrNull
-import po.restwraptor.extensions.respondInternal
-import po.restwraptor.extensions.respondUnauthorized
 import po.restwraptor.extensions.withBaseUrl
-import po.restwraptor.models.request.ApiRequest
 import po.restwraptor.models.request.LoginRequest
-import po.restwraptor.models.request.LogoutRequest
 import po.restwraptor.models.response.ApiResponse
 import po.restwraptor.scope.AuthConfigContext
 
@@ -31,7 +26,9 @@ fun Routing.configureAuthRoutes(authPrefix: String,  authConfigContext: AuthConf
     post(withBaseUrl(authPrefix, loginRoute)) {
 
         val session = call.authSessionOrNull()
-            .getOrThrow<AuthorizedSession, AuthException>("Session can not be located", ErrorCodes.SESSION_NOT_FOUND)
+            .getOrThrow<AuthorizedSession, AuthException>(null){
+                authException("Session can not be located", AuthErrorCode.SESSION_NOT_FOUND)
+            }
         val credentials = call.receive<LoginRequest>()
         val principal = session.authenticate(credentials.login, credentials.password)
         val jwtToken = session.authenticator.jwtService.generateToken(principal, session)

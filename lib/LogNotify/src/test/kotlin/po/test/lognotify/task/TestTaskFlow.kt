@@ -1,29 +1,29 @@
 package po.test.lognotify.task
 
-import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
+import po.lognotify.classes.task.models.TaskConfig
+import po.lognotify.extensions.runTask
+import po.lognotify.extensions.subTask
+import po.misc.exceptions.HandlerType
+import po.misc.interfaces.IdentifiableContext
+import kotlin.test.assertEquals
 
-class TestTaskFlow {
+class TestTaskFlow: IdentifiableContext {
 
-
-//    val flow = MutableSharedFlow<String>()
-//    val messages = mutableListOf<String>()
-//
-//    val job = launch {
-//        flow.collect {
-//            messages += it
-//        }
-//    }
-//
-//    flow.emit("one")
-//    flow.emit("two")
-//    job.cancel() // cancel collection
-//
-//    assertEquals(listOf("one", "two"), messages)
+    override val contextName: String = "TestTaskFlow"
 
     @Test
-    fun `Log flow completes when scope is cancelled`() = runTest {
+    fun `Consequent tasks inherit task configuration if not explicitly overriden`(){
 
-
+        var taskConfig: TaskConfig? = null
+        val entryTaskConfig = TaskConfig(exceptionHandler = HandlerType.CancelAll)
+        runTask<TestTaskFlow, Unit>("Entry task", entryTaskConfig){
+            runTask<TestTaskFlow, Unit>("Nested Root task"){
+                subTask("Sub task"){handler->
+                    taskConfig = handler.taskConfig
+                }
+            }
+        }
+        assertEquals(entryTaskConfig, taskConfig)
     }
 }

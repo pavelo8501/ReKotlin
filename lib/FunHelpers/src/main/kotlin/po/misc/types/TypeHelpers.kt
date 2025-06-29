@@ -8,6 +8,7 @@ import po.misc.exceptions.ManageableException
 import po.misc.exceptions.ManagedCallsitePayload
 import po.misc.exceptions.managedException
 import po.misc.exceptions.throwManaged
+import po.misc.interfaces.IdentifiableContext
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlin.reflect.typeOf
@@ -18,14 +19,19 @@ inline fun <T1 : Any, R : Any> safeLet(p1: T1?, block: (T1) -> R?): R? {
 }
 
 inline fun <reified T : Any, reified E: ManagedException> T?.getOrThrow(
-    message: String? = null,
-    code: Enum<*> ?  = null
+    ctx: IdentifiableContext? = null,
+    exceptionProvider:(String)->E
 ):T {
-    if(this == null){
-        val effectiveMessage  = message?:"Expected class ${T::class.simpleName} is null"
-        throw ManageableException.build<E>(effectiveMessage, code)
-    }else{
+    if(this != null){
         return this
+    }else{
+        val message = "Expected class ${T::class.simpleName} is null"
+        val exception =  exceptionProvider(message)
+        if(ctx != null){
+            exception.throwSelf(ctx)
+        }else{
+            throw exception
+        }
     }
 }
 
@@ -47,14 +53,14 @@ fun <T : Any> T?.getOrManaged(
 
 
 fun <T : Any> T?.getOrManaged(
-    className: String
+    className: String,
+    ctx: IdentifiableContext? = null
 ):T {
-    if(this == null){
-        val  code: Enum<*>? = null
-        val message = "Unable to return object of class: $className. Object is null."
-        throw ManageableException.build<ManagedException>(message, code)
-    }else{
+    if(this != null){
         return this
+    }else{
+        val message = "Unable to return object of class: $className. Object is null."
+        throwManaged(message)
     }
 }
 

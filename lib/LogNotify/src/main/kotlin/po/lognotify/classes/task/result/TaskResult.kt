@@ -5,7 +5,7 @@ import po.misc.exceptions.ManagedException
 import po.misc.exceptions.name
 
 class TaskResult<R : Any?>(
-    internal val task: TaskBase<*, R>,
+    @PublishedApi internal val task: TaskBase<*, R>,
     var result: R,
     var throwable: ManagedException? = null
 ){

@@ -9,14 +9,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import po.auth.authentication.authenticator.UserAuthenticator
 import po.auth.authentication.authenticator.models.AuthenticationPrincipal
-import po.auth.authentication.exceptions.AuthException
-import po.auth.authentication.exceptions.ErrorCodes
 import po.auth.sessions.enumerators.SessionType
 import po.auth.sessions.interfaces.EmmitableSession
 import po.auth.sessions.interfaces.SessionIdentified
 import po.lognotify.process.LoggerProcess
 import po.misc.coroutines.CoroutineHolder
-import po.misc.types.castOrThrow
+import po.misc.types.castOrManaged
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.CoroutineContext
@@ -92,10 +90,7 @@ class AuthorizedSession internal constructor(
 
     internal inline fun <reified T: Any> getSessionAttr(name: String): T? {
         sessionStore.keys.firstOrNull{ it.name ==  name}?.let {key->
-            val sessionParam = sessionStore[key].castOrThrow<T, AuthException>(
-                "SessionStore item not found by key",
-                ErrorCodes.SESSION_PARAM_FAILURE)
-
+            val sessionParam = sessionStore[key].castOrManaged<T>("SessionStore item not found by key")
             return sessionParam
         }
         return null
@@ -107,10 +102,7 @@ class AuthorizedSession internal constructor(
 
     internal inline fun <reified T: Any> getRoundTripAttr(name: String): T? {
         roundTripStore.keys.firstOrNull{ it.name ==  name}?.let { key ->
-            val sessionParam = roundTripStore[key].castOrThrow<T, AuthException>(
-                "SessionStore item not found by key",
-                ErrorCodes.SESSION_PARAM_FAILURE)
-
+            val sessionParam = roundTripStore[key].castOrManaged<T>("SessionStore item not found by key")
             return sessionParam
         }
         return null
@@ -122,10 +114,7 @@ class AuthorizedSession internal constructor(
 
     internal inline fun <reified T: Any> getExternalRef(name: String): T? {
         externalStore.keys.firstOrNull{ it.name ==  name}?.let { key ->
-            val sessionParam = externalStore[key].castOrThrow<T, AuthException>(
-                "SessionStore item not found by key",
-                ErrorCodes.SESSION_PARAM_FAILURE)
-
+            val sessionParam = externalStore[key].castOrManaged<T>("SessionStore item not found by key")
             return sessionParam
         }
         return null

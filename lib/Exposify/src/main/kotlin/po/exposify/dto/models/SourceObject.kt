@@ -4,9 +4,8 @@ import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.extensions.getOrOperationsEx
+import po.exposify.extensions.getOrOperations
 import po.misc.interfaces.ValueBased
-import po.misc.interfaces.ValueBasedClass
 import po.misc.types.TypeRecord
 import po.misc.types.safeCast
 
@@ -16,7 +15,7 @@ sealed class SourceObject<T: Any>(override val value: Int): ValueBased{
     internal var typeRecord : TypeRecord<T>? = null
 
     fun getTypeRecord(): TypeRecord<T>{
-        return typeRecord.getOrOperationsEx()
+        return typeRecord.getOrOperations()
     }
 
     object DTO : SourceObject<ModelDTO>(1){
@@ -48,11 +47,7 @@ sealed class SourceObject<T: Any>(override val value: Int): ValueBased{
 
     object CommonDTOType : SourceObject<CommonDTO<*, *, *>>(4){
         override var name: String = "commonDTO"
-
-        fun <DTO, D, E> provideType(
-            record : TypeRecord<CommonDTO<DTO, D, E>>
-        ): CommonDTOType where DTO:ModelDTO, D:DataModel, E: LongEntity
-        {
+        fun <T: CommonDTO<* ,* , *>> provideType(record : TypeRecord<T>): CommonDTOType {
             typeRecord = record.safeCast()
             name = record.simpleName
             return this

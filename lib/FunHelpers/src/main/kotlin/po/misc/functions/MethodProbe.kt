@@ -18,7 +18,7 @@ inline fun <T, reified R: Any> T.methodeProbe(
 
    return try {
         val probeObject = ProbeObject(this)
-        val payload =  exceptionPayload("Exception in Method: $methodName of Component: $completeName", HandlerType.SKIP_SELF, null,  exceptionOutput)
+        val payload =  exceptionPayload("Exception in Method: $methodName of Component: $completeName", HandlerType.SkipSelf, null,  exceptionOutput)
        probeObject.provideExPayload(payload)
        block.invoke(probeObject)
     }catch (throwable: Throwable){
@@ -38,7 +38,7 @@ inline fun <T, reified R: Any> T.methodeProbe(
                 } ?: throw throwable
             }
             else -> {
-                val exception = throwable.toManaged(this, HandlerType.SKIP_SELF, null)
+                val exception = throwable.toManaged(this, HandlerType.SkipSelf, null)
                 exceptionOutput?.let {
                     it(exception)
                     println(exception.message)

@@ -22,7 +22,7 @@ class TestManagedException {
         source:CustomExceptionCode,
         original: Throwable?
     ) : ManagedException(message, source, original){
-        override var handler: HandlerType = HandlerType.SKIP_SELF
+        override var handler: HandlerType = HandlerType.SkipSelf
 
         companion object : ManageableException.Builder<CustomException> {
             override fun build(message: String,  source: Enum<*>?, original: Throwable?): CustomException {

@@ -8,10 +8,8 @@ import po.misc.exceptions.ManagedException
 class ConfigurationException(
     override var message: String,
     code: ExceptionCodes = ExceptionCodes.UNKNOWN,
-    original: Throwable?
+    original: Throwable? = null
 ) :  ManagedException(message, code, original){
-
-    var handlerType : HandlerType = HandlerType.SKIP_SELF
 
     companion object : ManageableException.Builder<ConfigurationException> {
         override fun build(message: String, source: Enum<*>?,  original: Throwable?): ConfigurationException {

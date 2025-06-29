@@ -3,6 +3,7 @@ package po.misc.data.json
 import po.misc.data.PrintableBase
 import po.misc.exceptions.ManagedException
 import po.misc.time.ExecutionTimeStamp
+import po.misc.types.castOrManaged
 import po.misc.types.castOrThrow
 import po.misc.types.getOrManaged
 import kotlin.reflect.KCallable
@@ -37,8 +38,7 @@ abstract class JsonDelegateBase<T: Any, R: Any>(
     fun resolveProperty(property: KProperty<*>){
         if(propertyParam == null) {
             propertyParam =
-                property.castOrThrow<KProperty<R>, ManagedException>("Unable to cast KProperty<*> to KProperty<F_DTO>")
-
+                property.castOrManaged<KProperty<R>>("Unable to cast KProperty<*> to KProperty<F_DTO>")
         }
     }
 

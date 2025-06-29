@@ -47,7 +47,7 @@ class ServiceContext<DTO, DATA, ENTITY>(
                 exec("TRUNCATE TABLE ${table.tableName} RESTART IDENTITY CASCADE")
                 handler.info("TRUNCATE TABLE ${table.tableName} RESTART IDENTITY CASCADE Executed")
             } catch (th: Throwable) {
-               val managed =  th.toManageable<InitException>(this@ServiceContext, ExceptionCode.DB_TABLE_CREATION_FAILURE)
+               val managed =  th.toManageable<InitException, ExceptionCode>(this@ServiceContext, ExceptionCode.DB_TABLE_CREATION_FAILURE)
                 handler.warn(managed)
             }
         }

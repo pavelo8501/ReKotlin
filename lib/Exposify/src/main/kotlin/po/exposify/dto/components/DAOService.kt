@@ -15,8 +15,7 @@ import po.misc.registries.type.TypeRegistry
 
 
 class DAOService<DTO, DATA, ENTITY>(
-    val dtoClass: DTOBase<DTO, DATA, ENTITY>,
-    private val registry: TypeRegistry,
+    val dtoClass: DTOBase<DTO, DATA, ENTITY>
 ): InlineAction   where DTO: ModelDTO, DATA: DataModel, ENTITY : LongEntity{
 
     override val contextName: String = "DAOService"

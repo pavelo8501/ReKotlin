@@ -26,23 +26,15 @@ inline fun <reified DTO,  reified D, reified E> DTOBase<DTO, D, E>.configuration
 ) where DTO: ModelDTO, D: DataModel, E: LongEntity {
 
     if(status == DTOClassStatus.Uninitialized){
-        val registry = TypeRegistry()
-
-        registry.addRecord<DTO>(SourceObject.DTO.provideType(dtoType))
-        val dataType = registry.addRecord<D>( SourceObject.Data.provideType(TypeRecord.createRecord(SourceObject.Data)))
-        val entityType = registry.addRecord<E>(SourceObject.Entity.provideType(TypeRecord.createRecord(SourceObject.Entity)))
-        registry.addRecord<CommonDTO<DTO, D, E>>(
-            SourceObject.CommonDTOType.provideType<DTO, D, E>(
-                TypeRecord.createRecord(SourceObject.CommonDTOType)
-            )
-        )
-        val entityModel =  getExposifyEntityCompanion<E, InitException>()
-        val entityMetadata =  entityModel.analyzeExposedTableMetadata<E>()
-        val propertyMapper = PropertyMapper()
-        propertyMapper.addMapperRecord(SourceObject.Entity,  createPropertyMap(entityType, entityMetadata))
-        propertyMapper.addMapperRecord(SourceObject.Data,  createPropertyMap(dataType))
-        propertyMapper.addMapperRecord(SourceObject.DTO,  createPropertyMap(dtoType))
-        configParameter = DTOConfig(registry, propertyMapper, entityModel, this)
+        config.registry.addRecord(SourceObject.DTO, dtoType)
+        val dataType =  config.registry.addRecord<D>( SourceObject.Data.provideType(TypeRecord.createRecord(SourceObject.Data)))
+        val entityType = config.registry.addRecord<E>(SourceObject.Entity.provideType(TypeRecord.createRecord(SourceObject.Entity)))
+        config.registry.addRecord<CommonDTO<DTO, D, E>>(SourceObject.CommonDTOType.provideType(TypeRecord.createRecord(SourceObject.CommonDTOType)))
+        config.entityModelBacking =  getExposifyEntityCompanion<E, InitException>()
+        val entityMetadata =  config.entityModel.analyzeExposedTableMetadata<E>()
+        config.propertyMap.addMapperRecord(SourceObject.Entity,  createPropertyMap(entityType, entityMetadata))
+        config.propertyMap.addMapperRecord(SourceObject.Data,  createPropertyMap(dataType))
+        config.propertyMap.addMapperRecord(SourceObject.DTO,  createPropertyMap(dtoType))
         block.invoke(config)
 
         val shallowDTO = shallowDTO()

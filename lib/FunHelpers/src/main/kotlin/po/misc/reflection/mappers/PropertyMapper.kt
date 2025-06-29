@@ -9,7 +9,9 @@ import po.misc.reflection.mappers.models.PropertyRecord
 import po.misc.reflection.properties.toPropertyMap
 import po.misc.types.TypeRecord
 import po.misc.types.castBaseOrThrow
+import po.misc.types.castOrManaged
 import po.misc.types.castOrThrow
+import po.misc.types.getOrManaged
 import po.misc.types.getOrThrow
 import po.misc.types.safeCast
 import po.misc.validators.mapping.MappingValidator
@@ -29,9 +31,7 @@ class PropertyMapper {
         component: Identifiable,
         requestType: MappingValidator.MappedPropertyValidator
     ):List<MappingCheckRecord>{
-
-        val mapperRecord =  getMapperRecord<T>(key).getOrThrow<PropertyMapperRecord<T>, ManagedException>()
-
+        val mapperRecord =  getMapperRecord<T>(key).getOrManaged("Mapper record by key $key", component)
         return  when(requestType){
             MappingValidator.MappedPropertyValidator.NON_NULLABLE->{
                 mapperRecord.columnMetadata.filter { !it.isNullable && !it.hasDefault && !it.isForeignKey }.toMappingCheckRecords(mapperRecord)
@@ -73,7 +73,7 @@ class PropertyMapper {
             propertyMap.forEach { (key, value) ->
                 asMutable[key] = value
             }
-            existent.castOrThrow<PropertyMapperRecord<T>, ManagedException>()
+            existent.castOrManaged<PropertyMapperRecord<T>>()
         } ?: run {
             val newRecord = PropertyMapperRecord(typeRecord, propertyMap)
             mappedProperties[key] = newRecord
@@ -86,8 +86,8 @@ class PropertyMapper {
     }
 
     @JvmName("getPropertyItemUnsafe")
-    inline fun <T: Any, reified E: ManagedException> getMapperRecord(key: ValueBased): PropertyMapperRecord<T> {
-        return mappedProperties[key].castBaseOrThrow<PropertyMapperRecord<T>, E>()
+    inline fun <T: Any, reified E: ManagedException> getMapperRecord(key: ValueBased, exceptionProvider:(String)->E): PropertyMapperRecord<T> {
+        return mappedProperties[key].castBaseOrThrow<PropertyMapperRecord<T>, E>(null,  exceptionProvider)
     }
 
     fun <T: Any> getMapperRecord(key: ValueBased): PropertyMapperRecord<T>?{

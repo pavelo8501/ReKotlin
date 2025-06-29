@@ -10,19 +10,26 @@ import po.lognotify.classes.task.result.TaskResult
 import po.lognotify.classes.task.result.createFaultyResult
 import po.lognotify.classes.task.result.onTaskResult
 import po.lognotify.exceptions.handleException
+import po.misc.exceptions.HandlerType
 import po.misc.interfaces.IdentifiableContext
 import po.misc.reflection.properties.takePropertySnapshot
 
 
-suspend inline fun <reified T: IdentifiableContext, R: Any?> T.subTaskAsync(
+suspend inline fun <reified T: Any, R: Any?> T.subTaskAsync(
     taskName: String,
-    config: TaskConfig = TaskConfig(),
+    config: TaskConfig = TaskConfig(isDefault = true),
     noinline block: suspend  T.(TaskHandler<R>)-> R
 ): TaskResult<R> {
+
+
+    var effectiveConfig = config
     val rootTask = TasksManaged.LogNotify.taskDispatcher.activeRootTask()
+    if(rootTask != null && config.isDefault){
+        effectiveConfig = rootTask.config
+    }
     val moduleName: String =  this::class.simpleName?:config.moduleName
     val result = if(rootTask != null){
-        val subTask = rootTask.createChild<T, R>(taskName, moduleName, config, this)
+        val subTask = rootTask.createChild<T, R>(taskName, moduleName, effectiveConfig, this)
         withContext(subTask.coroutineContext){
             try {
                 subTask.start()
@@ -30,7 +37,7 @@ suspend inline fun <reified T: IdentifiableContext, R: Any?> T.subTaskAsync(
                 onTaskResult<T, R>(subTask, value)
                 TaskResult(subTask, value)
             }catch (throwable: Throwable){
-              val managed =  subTask.handleException(throwable, subTask, null)
+              val managed =  handleException(throwable, subTask, null)
               createFaultyResult(managed, subTask)
             }finally {
                 subTask.complete()
@@ -45,21 +52,32 @@ suspend inline fun <reified T: IdentifiableContext, R: Any?> T.subTaskAsync(
 
 inline fun <reified T: IdentifiableContext, R: Any?> T.subTask(
     taskName: String,
-    config: TaskConfig = TaskConfig(),
+    config: TaskConfig = TaskConfig(isDefault = true),
     block: T.(TaskHandler<R>) -> R
 ): TaskResult<R>{
+
+    var effectiveConfig = config
     val rootTask = TasksManaged.LogNotify.taskDispatcher.activeRootTask()
+    if(rootTask != null && config.isDefault){
+        effectiveConfig = rootTask.config
+    }
+
     val moduleName = this::class.simpleName?:config.moduleName
     val result =  rootTask?.let {
-       val subTask = it.createChild<T, R>(taskName, moduleName, config, this)
+       val subTask = it.createChild<T, R>(taskName, moduleName, effectiveConfig, this)
         subTask.start()
        val subTaskResult = try {
             val value = block.invoke(this, subTask.handler)
             onTaskResult<T,R>(subTask, value)
         }catch (throwable: Throwable) {
-           val snapshot = subTask.takePropertySnapshot<T, LogOnFault>(this)
-           val managed = subTask.handleException(throwable, subTask, snapshot)
-           createFaultyResult(managed, subTask)
+           val snapshot = takePropertySnapshot<T, LogOnFault>(this)
+           val managed = handleException(throwable, subTask, snapshot)
+           val subtaskFaultyResult =  if(managed.handler == HandlerType.CancelAll){
+               rootTask.complete(managed)
+           }else{
+               createFaultyResult(managed, subTask)
+           }
+           subtaskFaultyResult
         } finally {
             subTask.complete()
         }

@@ -1,6 +1,5 @@
 package po.test.restwraptor
 
-import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -16,13 +15,12 @@ import io.ktor.server.routing.Routing
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
-import io.ktor.utils.io.InternalAPI
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import po.auth.authentication.authenticator.models.AuthenticationPrincipal
-import po.auth.authentication.exceptions.AuthException
-import po.auth.authentication.exceptions.ErrorCodes
+import po.auth.exceptions.AuthException
+import po.auth.exceptions.ErrorCodes
 import po.auth.extensions.authenticate
 import po.auth.extensions.readCryptoRsaKeys
 import po.auth.extensions.setKeyBasePath
@@ -34,7 +32,6 @@ import po.restwraptor.RestWrapTor
 import po.restwraptor.enums.WraptorHeaders
 import po.restwraptor.extensions.asBearer
 import po.restwraptor.extensions.authSessionOrNull
-import po.restwraptor.extensions.jwtSecured
 import po.restwraptor.extensions.respondBadRequest
 import po.restwraptor.extensions.respondInternal
 import po.restwraptor.extensions.respondUnauthorized

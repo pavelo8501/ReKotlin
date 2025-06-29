@@ -11,6 +11,7 @@ import po.lognotify.classes.notification.enums.EventType
 import po.lognotify.classes.task.interfaces.ResultantTask
 import po.lognotify.classes.task.models.TaskConfig
 import po.lognotify.classes.task.result.TaskResult
+import po.lognotify.classes.task.result.createFaultyResult
 import po.lognotify.helpers.StaticHelper
 import po.lognotify.models.TaskDispatcher
 import po.lognotify.models.TaskDispatcher.LoggerStats
@@ -98,12 +99,7 @@ class RootTask<T, R: Any?>(
 ) :TaskBase<T, R>(key, config, dispatcher, ctx), CoroutineHolder
 {
 
-    val receiverName: String get(){
-       return ctx?.let {
-            it::class.simpleName.toString()
-        }?: "NoContext"
-    }
-    override val identity = asIdentifiableClass("RootTask", receiverName)
+    override val identity = asIdentifiableClass(key.taskName,  key.moduleName)
     override val dataProcessor: LoggerDataProcessor = LoggerDataProcessor(this, null)
     override var taskResult : TaskResult<R>?  =  null
     override val registry: TaskRegistry<T, R> = TaskRegistry(dispatcher, this)
@@ -151,6 +147,18 @@ class RootTask<T, R: Any?>(
         dispatcher.removeRootTask(this)
         return this
     }
+
+    fun complete(exception: ManagedException): Nothing{
+        stopTimer()
+        registry.setChildTasksStatus(TaskStatus.Faulty, this)
+        taskStatus = TaskStatus.Failing
+        taskResult =  createFaultyResult(exception, this)
+        isComplete = true
+        dataProcessor.registerStop()
+        dispatcher.removeRootTask(this)
+        throw exception
+    }
+
 }
 
 class Task<T,  R: Any?>(
@@ -162,13 +170,7 @@ class Task<T,  R: Any?>(
 ):TaskBase<T, R>(key, config, hierarchyRoot.dispatcher, ctx), ResultantTask<T, R>{
 
 
-    val receiverName: String get(){
-        return ctx?.let {
-            it::class.simpleName.toString()
-        }?: "NoContext"
-    }
-
-    override val identity = asIdentifiableClass(key.taskName, receiverName)
+    override val identity = asIdentifiableClass(key.taskName, key.moduleName)
 
     override val dataProcessor: LoggerDataProcessor = LoggerDataProcessor(this, hierarchyRoot.dataProcessor)
     override val coroutineContext: CoroutineContext get() = hierarchyRoot.coroutineContext

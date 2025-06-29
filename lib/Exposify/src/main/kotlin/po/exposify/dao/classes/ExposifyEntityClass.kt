@@ -7,7 +7,7 @@ import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.isAutoInc
 import po.exposify.dao.interfaces.EntityDTO
-import po.exposify.extensions.castOrInitEx
+import po.exposify.extensions.castOrInit
 import po.misc.data.ColumnMetadata
 import po.misc.reflection.mappers.models.PropertyRecord
 import kotlin.reflect.KProperty
@@ -50,7 +50,7 @@ abstract class ExposifyEntityClass<out E : LongEntity>(
                 referencedTable = column.referee?.table?.tableName)
 
             metaData.propertyRecord = columnNamePropertyMap[column.name]?.let {
-                val casted = it.castOrInitEx<KProperty<E>>()
+                val casted = it.castOrInit<KProperty<E>>()
                 PropertyRecord.create(casted)
             }
             metaData

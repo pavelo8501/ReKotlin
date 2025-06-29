@@ -8,6 +8,7 @@ import po.lognotify.classes.notification.LoggerDataProcessor
 import po.lognotify.classes.notification.NotifierHub
 import po.lognotify.classes.notification.models.TaskData
 import po.lognotify.classes.task.interfaces.HandledTask
+import po.lognotify.classes.task.models.TaskConfig
 import po.lognotify.models.TaskDispatcher
 import po.lognotify.models.TaskDispatcher.LoggerStats
 import po.misc.callbacks.manager.wrapRawCallback
@@ -27,6 +28,8 @@ class TaskHandler<R: Any?>(
 ): HandledTask<R>, Identifiable by identifiable{
 
     val actions : List<ActionSpan<*>> get()= task.actionSpans
+
+    val taskConfig: TaskConfig get() = task.config
 
     fun echo(message: String){
         dataProcessor.info(message)

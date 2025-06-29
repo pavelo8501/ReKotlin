@@ -19,9 +19,11 @@ import po.exposify.dto.enums.DTOClassStatus
 import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.InitException
 import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.exceptions.initAbnormal
+import po.exposify.exceptions.initException
 import po.exposify.exceptions.throwInit
-import po.exposify.extensions.castOrOperationsEx
-import po.exposify.extensions.getOrInitEx
+import po.exposify.extensions.castOrOperations
+import po.exposify.extensions.getOrInit
 import po.exposify.scope.service.ServiceClass
 import po.exposify.scope.service.ServiceContext
 import po.lognotify.TasksManaged
@@ -35,7 +37,6 @@ import po.misc.data.builders.logProxy
 import po.misc.interfaces.ClassIdentity
 import po.misc.interfaces.IdentifiableClass
 import po.misc.interfaces.ValueBased
-import po.misc.registries.type.TypeRegistry
 import po.misc.serialization.SerializerInfo
 import po.misc.types.TypeRecord
 import po.misc.types.toSimpleNormalizedKey
@@ -53,6 +54,10 @@ sealed class DTOBase<DTO, DATA, ENTITY>(
         Initialized(1),
         StatusChanged(2),
         DelegateRegistrationComplete(11);
+    }
+
+    val config:  DTOConfig<DTO, DATA, ENTITY> by lazy {
+        DTOConfig(this)
     }
 
     val notifier :  CallbackManager<Events> = callbackManager<Events>(
@@ -74,12 +79,9 @@ sealed class DTOBase<DTO, DATA, ENTITY>(
             }
         }
 
-    @PublishedApi
-    internal var configParameter: DTOConfig<DTO, DATA, ENTITY>? = null
-    val config:  DTOConfig<DTO, DATA, ENTITY>
-        get() {
-          return configParameter.getOrInitEx("DTOConfig uninitialized $completeName", ExceptionCode.LAZY_NOT_INITIALIZED)
-        }
+   // @PublishedApi
+   // internal var configParameter: DTOConfig<DTO, DATA, ENTITY>? = null
+
 
     protected val dtoMap : MutableMap<Long, CommonDTO<DTO, DATA, ENTITY>> = mutableMapOf()
 
@@ -101,14 +103,12 @@ sealed class DTOBase<DTO, DATA, ENTITY>(
 
     private val registryExceptionMessage = "Can not find type record in DTOClass"
 
-    private val registry:  TypeRegistry get()= config.registry
-
     abstract val dtoType : TypeRecord<DTO>
 
     internal val dataType : TypeRecord<DATA>
-        get() = registry.getRecord<DATA, InitException>(SourceObject.Data, registryExceptionMessage)
+        get() = config.registry.getRecord<DATA, InitException>(SourceObject.Data){ initAbnormal(registryExceptionMessage) }
     internal val entityType : TypeRecord<ENTITY>
-        get() = registry.getRecord<ENTITY, InitException>(SourceObject.Entity, registryExceptionMessage)
+        get() = config.registry.getRecord<ENTITY, InitException>(SourceObject.Entity){ initAbnormal(registryExceptionMessage) }
 
     internal var delegateRegistrationForward =  CallbackManager.createPayload<Events, ListData<DTO, DATA, ENTITY>>(notifier, Events.DelegateRegistrationComplete)
 
@@ -173,7 +173,7 @@ sealed class DTOBase<DTO, DATA, ENTITY>(
     }
 
     fun getEntityModel(): ExposifyEntityClass<ENTITY> {
-        return config.entityModel.castOrOperationsEx<ExposifyEntityClass<ENTITY>>()
+        return config.entityModel.castOrOperations<ExposifyEntityClass<ENTITY>>(this)
     }
 
     fun findHierarchyRoot(): RootDTO<*, *, *>{
@@ -210,13 +210,12 @@ abstract class RootDTO<DTO, DATA, ENTITY>(
         where DTO: ModelDTO, DATA: DataModel, ENTITY: LongEntity
 {
 
-
     override val dtoType: TypeRecord<DTO> =  TypeRecord.createRecord(SourceObject.DTO, clazz)
 
     private var serviceContextParameter: ServiceContext<DTO, DATA, ENTITY>? = null
     @PublishedApi
     internal val serviceContext: ServiceContext<DTO, DATA, ENTITY>
-        get() = serviceContextParameter.getOrInitEx()
+        get() = serviceContextParameter.getOrInit(this)
 
     internal val serviceClass: ServiceClass<DTO, DATA, ENTITY>
         get() = serviceContext.serviceClass
@@ -231,7 +230,7 @@ abstract class RootDTO<DTO, DATA, ENTITY>(
     }
 
     fun getServiceClass(): ServiceClass<DTO, DATA, ENTITY>{
-       return serviceContext.serviceClass.getOrInitEx("ServiceClass not assigned for $completeName")
+       return serviceContext.serviceClass.getOrInit(this)
     }
 
     fun switchQuery(id: Long): SwitchQuery<DTO, DATA, ENTITY> {

@@ -13,7 +13,7 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.extensions.castOrOperationsEx
+import po.exposify.extensions.castOrOperations
 import po.lognotify.TasksManaged
 import po.lognotify.anotations.LogOnFault
 import po.lognotify.classes.action.InlineAction
@@ -30,15 +30,13 @@ import po.misc.serialization.SerializerInfo
 import kotlin.reflect.KType
 
 class DTOFactory<DTO, DATA, ENTITY>(
-    private val dtoClass: DTOBase<DTO, DATA, ENTITY>,
-    private val typeRegistry : TypeRegistry,
+    private val dtoClass: DTOBase<DTO, DATA, ENTITY>
 ): IdentifiableClass, InlineAction where DTO : ModelDTO, DATA: DataModel, ENTITY: LongEntity {
 
     enum class Events(override val value: Int) : ValueBased{
         OnCreated(1),
         OnInitialized(2)
     }
-
 
     override val identity = asIdentifiableClass("DTOFactory", dtoClass.completeName)
     override val contextName : String get()= identity.componentName
@@ -48,8 +46,8 @@ class DTOFactory<DTO, DATA, ENTITY>(
     )
     val onCreatedPayload = CallbackManager.createPayload<Events, CommonDTO<DTO, DATA, ENTITY>>(notifier, Events.OnCreated)
 
-    val  dataType : TypeRecord<DATA> get() = typeRegistry.getRecord<DATA, OperationsException>(SourceObject.Data)
-    val  dtoType: TypeRecord<DTO> get() = typeRegistry.getRecord<DTO, OperationsException>(SourceObject.DTO)
+    val  dataType : TypeRecord<DATA> get() =  dtoClass.dataType
+    val  dtoType: TypeRecord<DTO> get() = dtoClass.dtoType
 
     val config: DTOConfig<DTO, DATA, ENTITY>
         get() = dtoClass.config
@@ -146,7 +144,7 @@ class DTOFactory<DTO, DATA, ENTITY>(
                 }
             }
             val newDto = dtoBlueprint.getConstructor().callBy(dtoBlueprint.getConstructorArgs())
-                .castOrOperationsEx<CommonDTO<DTO, DATA, ENTITY>>("Unable to cast DTO to CommonDTO<DTO, DATA, ENTITY")
+                .castOrOperations<CommonDTO<DTO, DATA, ENTITY>>(this)
             notifier.trigger(Events.OnCreated, newDto)
             dtoPostCreation(newDto)
         }.resultOrException()

@@ -7,27 +7,35 @@ import po.exposify.dto.DTOClass
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dao.classes.ExposifyEntityClass
 import po.exposify.dto.components.tracker.TrackerConfig
+import po.exposify.extensions.getOrInit
 import po.misc.reflection.mappers.PropertyMapper
 import po.misc.registries.type.TypeRegistry
 
 class DTOConfig<DTO, DATA, ENTITY>(
-    val registry: TypeRegistry,
-    val propertyMap : PropertyMapper,
-    val entityModel: ExposifyEntityClass<ENTITY>,
     val dtoClass : DTOBase<DTO, DATA , ENTITY>,
 ) where DTO: ModelDTO, DATA: DataModel,  ENTITY : LongEntity{
 
+
+    @PublishedApi
+    internal var entityModelBacking: ExposifyEntityClass<ENTITY>? = null
+    val entityModel: ExposifyEntityClass<ENTITY> get() = entityModelBacking.getOrInit("entityModel", dtoClass)
+
+    @PublishedApi
+    internal val propertyMap : PropertyMapper = PropertyMapper()
+
+    @PublishedApi
+    internal val registry: TypeRegistry = TypeRegistry()
+
    @PublishedApi
-   internal var dtoFactory: DTOFactory<DTO, DATA, ENTITY> = DTOFactory(dtoClass, registry)
-   internal var daoService :  DAOService<DTO, DATA, ENTITY> =  DAOService(dtoClass, registry)
+   internal val dtoFactory: DTOFactory<DTO, DATA, ENTITY> by lazy { DTOFactory(dtoClass) }
+   internal val daoService :  DAOService<DTO, DATA, ENTITY>  by lazy { DAOService(dtoClass) }
 
     internal var trackerConfigModified : Boolean = false
     val trackerConfig : TrackerConfig = TrackerConfig()
     val childClasses : MutableList<DTOClass<*,*,*>> = mutableListOf()
 
-    @PublishedApi
+   @PublishedApi
    internal fun addHierarchMember(childDTO : DTOClass<*, *, *>) {
-
        childClasses.add(childDTO)
    }
 

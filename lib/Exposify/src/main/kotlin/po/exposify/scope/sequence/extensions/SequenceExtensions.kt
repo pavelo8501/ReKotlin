@@ -5,7 +5,7 @@ import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.extensions.castOrOperationsEx
+import po.exposify.extensions.castOrOperations
 import po.exposify.scope.sequence.SequenceContext
 import po.exposify.scope.sequence.classes.ClassSequenceHandler
 import po.exposify.scope.sequence.classes.RootHandlerProvider
@@ -33,7 +33,7 @@ suspend fun <DTO, D, E, F_DTO, FD, FE> SequenceContext<F_DTO,FD, FE>.switchConte
 {
     val switchHandler = sequenceHandler.handlerConfig.getSwitchHandler(handlerDelegate.name)
     switchHandler?.let {
-        val casted = it.castOrOperationsEx<ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE>>()
+        val casted = it.castOrOperations<ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE>>()
         casted.launch(runInfo, switchLambda)
     }?:run {
         lastTaskHandler().warn("Switch statement name: ${handlerDelegate.name} will not be executed. No handler being provided")

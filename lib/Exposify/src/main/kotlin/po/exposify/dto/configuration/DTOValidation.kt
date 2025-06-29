@@ -9,7 +9,11 @@ import po.exposify.dto.enums.DTOClassStatus
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.SourceObject
+import po.exposify.exceptions.InitException
 import po.exposify.exceptions.OperationsException
+import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.exceptions.initAbnormal
+import po.exposify.exceptions.operationsException
 import po.lognotify.classes.action.runInlineAction
 import po.misc.validators.general.Validator
 import po.misc.validators.general.models.CheckStatus
@@ -27,7 +31,7 @@ fun <DTO, D, E> DTOBase<DTO, D, E>.setupValidation(
         = runInlineAction("setupValidation") { handler ->
     val bindingHub = validatableDTO.bindingHub
     val validator = Validator()
-    val entityRecord =  config.propertyMap.getMapperRecord<E, OperationsException>(SourceObject.Entity)
+    val entityRecord =  config.propertyMap.getMapperRecord<E, InitException>(SourceObject.Entity){ initAbnormal(it, this) }
     val responsiveDelegates = bindingHub.getResponsiveDelegates()
     val relationsDelegates  = bindingHub.getRelationDelegates()
     val parentDelegates = bindingHub.getParentDelegates()

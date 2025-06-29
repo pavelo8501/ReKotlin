@@ -9,8 +9,8 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.interfaces.RunnableContext
 import po.exposify.exceptions.InitException
 import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.extensions.getOrInitEx
-import po.exposify.extensions.getOrOperationsEx
+import po.exposify.extensions.getOrInit
+import po.exposify.extensions.getOrOperations
 import po.exposify.scope.sequence.classes.ClassSequenceHandler
 import po.exposify.scope.sequence.classes.RootSequenceHandler
 import kotlin.collections.set
@@ -34,7 +34,7 @@ sealed class HandlerConfigBase<DTO, D, E>() where DTO: ModelDTO, D: DataModel, E
     private var queryParameterProvider: (() -> SimpleQuery)? = null
     internal val query : SimpleQuery
         get() {
-          val provider =  queryParameterProvider.getOrInitEx("Query used but not provided", ExceptionCode.VALUE_IS_NULL)
+          val provider =  queryParameterProvider.getOrInit("Query used but not provided", null)
           return provider()
         }
 
@@ -89,15 +89,11 @@ class RootHandlerConfig<DTO, D, E>() : HandlerConfigBase<DTO, D, E>()
 }
 
 class ClassHandlerConfig<DTO, D, E, F_DTO, FD, FE>() : HandlerConfigBase<DTO, D, E>()
-        where DTO: ModelDTO, D: DataModel, E: LongEntity,
-            F_DTO: ModelDTO, FD: DataModel, FE: LongEntity
+        where DTO: ModelDTO, D: DataModel, E: LongEntity, F_DTO: ModelDTO, FD: DataModel, FE: LongEntity
 {
-
-
-
     internal var rootHandlerParameter : RootSequenceHandler<F_DTO, FD, FE>? = null
     val rootHandler  : RootSequenceHandler<F_DTO, FD, FE>
-        get() = rootHandlerParameter.getOrOperationsEx("Root handler not found")
+        get() = rootHandlerParameter.getOrOperations("Root handler not found")
 
     internal fun registerRootHandler(handler: RootSequenceHandler<F_DTO, FD, FE>){
         rootHandlerParameter = handler

@@ -21,6 +21,23 @@ internal fun <T: ExposifyResult> T.addCrudOperation(operation : CrudOperation):T
     return this
 }
 
+internal fun <EX: ManagedException,  DTO:ModelDTO, D: DataModel, E : LongEntity>  EX.toResultSingle(
+    operation : CrudOperation,
+    dtoClass: DTOBase<DTO, D, E>
+): ResultSingle<DTO, D, E>{
+    val result =  ResultSingle(dtoClass).addCrudOperation(operation)
+    return  result.addFailureCause(this)
+}
+
+internal fun <EX: ManagedException,  DTO:ModelDTO, D: DataModel, E : LongEntity>  EX.toResultList(
+    operation : CrudOperation,
+    dtoClass: DTOBase<DTO, D, E>
+): ResultList<DTO, D, E>{
+    val result =  ResultList(dtoClass).addCrudOperation(operation)
+    return  result.addFailureCause(this)
+}
+
+
 fun <DTO, D, E>  CommonDTO<DTO, D, E>.toResult(
     operation : CrudOperation
 ): ResultSingle<DTO,D,E> where  DTO: ModelDTO, D : DataModel, E : LongEntity{

@@ -1,10 +1,10 @@
-package po.auth.authentication.exceptions
+package po.auth.exceptions
 
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.ManageableException
 
-enum class ErrorCodes(val value: Int) {
+enum class AuthErrorCode(val value: Int) {
     UNDEFINED(0),
     INVALID_KEY_FORMAT(1002),
     INVALID_TOKEN(1003),
@@ -30,11 +30,9 @@ enum class ErrorCodes(val value: Int) {
     SESSION_NOT_FOUND(5001),
     SESSION_PARAM_FAILURE(5002);
 
-
     companion object {
-
-        fun getByValue(value: Int): ErrorCodes {
-            ErrorCodes.entries.firstOrNull { it.value == value }?.let {
+        fun getByValue(value: Int): AuthErrorCode {
+            entries.firstOrNull { it.value == value }?.let {
                 return it
             }
             return UNDEFINED
@@ -44,17 +42,15 @@ enum class ErrorCodes(val value: Int) {
 
 class AuthException(
     override var message: String,
-    val code: ErrorCodes,
-    original : Throwable?
+    val code: AuthErrorCode,
+    original : Throwable? = null
 ) : ManagedException(message, code, original){
 
-
-    override var handler : HandlerType = HandlerType.CANCEL_ALL
-
+    override var handler : HandlerType = HandlerType.CancelAll
 
     companion object : ManageableException.Builder<AuthException> {
         override fun build(message: String, source: Enum<*>?, original : Throwable?): AuthException {
-            val exCode = ErrorCodes.getByValue(source?.ordinal?:0)
+            val exCode = AuthErrorCode.getByValue(source?.ordinal?:0)
             return AuthException(message, exCode, original)
         }
     }

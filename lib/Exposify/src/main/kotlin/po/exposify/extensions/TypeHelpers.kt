@@ -3,75 +3,65 @@ package po.exposify.extensions
 import po.exposify.exceptions.InitException
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.exceptions.initException
+import po.exposify.exceptions.operationsException
 import po.misc.exceptions.ManagedException
+import po.misc.interfaces.IdentifiableContext
 import po.misc.types.castOrThrow
 import po.misc.types.getOrThrow
 
-inline fun <reified T: Any> Any?.castOrOperationsEx(
-    message: String? = null,
-    code:  ExceptionCode = ExceptionCode.CAST_FAILURE): T
-{
-   return this.castOrThrow<T, OperationsException>(message, code)
+internal inline fun <reified T: Any> Any?.castOrOperations(ctx: IdentifiableContext? = null ): T {
+   return this.castOrThrow<T, OperationsException>(ctx){
+       operationsException(it, ExceptionCode.CAST_FAILURE, ctx)
+   }
 }
 
-inline fun <reified T: Any> Any?.castOrInitEx(
-    message: String? = null,
-    code:  ExceptionCode = ExceptionCode.CAST_FAILURE): T
+@PublishedApi
+internal inline fun <reified T: Any> Any?.castOrInit(ctx: IdentifiableContext? = null): T
 {
-    return this.castOrThrow<T, InitException>(message, code)
+    return this.castOrThrow<T, InitException>(ctx){
+        initException(it, ExceptionCode.CAST_FAILURE)
+    }
 }
 
-inline fun <reified T: Any> Any.castLetOrInitEx(
-    message: String = "",
-    code:  ExceptionCode = ExceptionCode.CAST_FAILURE,
-    block: (T)->T): T
-{
+internal inline fun <reified T: Any> Any.castLetOrInit(block: (T)->T): T {
     try {
-       val result =  this.castOrThrow<T, InitException>(message, code)
+       val result =  this.castOrThrow<T, InitException>(null){
+           initException(it,  ExceptionCode.CAST_FAILURE)
+       }
        return block.invoke(result)
     }catch (ex: Throwable){
         throw  ex
     }
 }
 
-inline fun <reified T : Any> T?.getOrOperationsEx(
-    message: String? = null,
-    code: ExceptionCode = ExceptionCode.VALUE_IS_NULL
-): T {
-   return this.getOrThrow<T, OperationsException>(message, code)
+
+internal inline fun <reified T : Any> T?.getOrOperations(ctx: IdentifiableContext? = null): T {
+   return this.getOrThrow<T, OperationsException>(ctx){
+       operationsException(it, ExceptionCode.VALUE_IS_NULL)
+   }
 }
 
-
-@JvmName("getOrOperationsExNonReified")
-fun <T : Any> T?.getOrOperationsEx(
-    message: String,
-    code: ExceptionCode = ExceptionCode.VALUE_IS_NULL
-): T {
-
-    if(this == null){
-
-        throw OperationsException(message, code, null)
-    }else{
+internal fun <T : Any> T?.getOrOperations(className: String, ctx: IdentifiableContext? = null): T {
+    if(this != null){
         return this
+    }else{
+       throw operationsException("$className is null", ExceptionCode.VALUE_IS_NULL, ctx)
     }
 }
 
-inline fun <reified T : Any> T?.getOrInitEx(
-    message: String? = null,
-    code: ExceptionCode = ExceptionCode.VALUE_IS_NULL
-): T {
-    return this.getOrThrow<T, InitException>(message, code)
+@PublishedApi
+internal inline fun <reified T : Any> T?.getOrInit(ctx: IdentifiableContext? = null): T {
+    return this.getOrThrow<T, InitException>(ctx){
+        initException(it, ExceptionCode.VALUE_IS_NULL)
+    }
 }
 
-@JvmName("getOrInitExNonReified")
-fun <T : Any> T?.getOrInitEx(
-    message: String,
-    code: ExceptionCode = ExceptionCode.VALUE_IS_NULL
-): T {
-    if(this == null){
-        throw InitException(message, code, null)
-    }else{
+internal fun <T : Any> T?.getOrInit(className: String, ctx: IdentifiableContext? = null): T {
+    if(this != null){
         return this
+    }else{
+        throw initException("$className is null", ExceptionCode.VALUE_IS_NULL, ctx)
     }
 }
 

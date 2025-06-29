@@ -3,19 +3,19 @@ package po.test.lognotify.action
 import org.junit.jupiter.api.Test
 import po.lognotify.TasksManaged
 import po.lognotify.classes.action.InlineAction
-import po.lognotify.classes.action.runInlineAction
 import po.lognotify.extensions.runTask
-import po.misc.interfaces.Identifiable
-import po.misc.interfaces.IdentifiableModule
-import po.misc.interfaces.asIdentifiable
-import po.misc.interfaces.asIdentifiableModule
+import po.misc.interfaces.ClassIdentity
+import po.misc.interfaces.IdentifiableClass
+import po.misc.interfaces.asIdentifiableClass
 import kotlin.test.assertEquals
 
 class TestActionSpan: TasksManaged {
 
-    class FactoryClass() : InlineAction{
+    override val contextName: String
+        get() = "TestActionSpan"
 
-       val module: Identifiable = asIdentifiable("Page", "DTOClass")
+    class FactoryClass() : IdentifiableClass, InlineAction{
+       override val identity:  ClassIdentity = asIdentifiableClass("TestActionSpan", "FactoryClass")
 
        private var counter:Int = 0
 
@@ -24,7 +24,7 @@ class TestActionSpan: TasksManaged {
           return "Produced:${counter}"
        }
 
-        fun method1() : String = runInlineAction(module, "method1"){
+        fun method1() : String = runInlineAction("method1", this){
             privateMethod()
         }
     }

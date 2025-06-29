@@ -9,15 +9,17 @@ import po.exposify.dto.components.SimpleQuery
 import po.exposify.dto.components.createExecutionProvider
 import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
+import po.exposify.dto.components.result.toResultList
 import po.exposify.dto.components.result.toResultSingle
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.DataModel
+import po.exposify.dto.interfaces.ExecutionContext
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.SequenceRunInfo
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.throwOperations
-import po.exposify.extensions.castOrOperationsEx
-import po.exposify.extensions.getOrOperationsEx
+import po.exposify.extensions.castOrOperations
+import po.exposify.extensions.getOrOperations
 import po.exposify.scope.sequence.SequenceContext
 import po.exposify.scope.sequence.models.ClassHandlerConfig
 import po.exposify.scope.sequence.models.HandlerConfigBase
@@ -37,7 +39,7 @@ sealed class SequenceHandlerBase<DTO, D, E>(
 
     private var finalResultParameter: ResultList<DTO, D, E>? = null
     val finalResult: ResultList<DTO, D, E>
-        get()= finalResultParameter.getOrOperationsEx("finalResult null in SequenceHandlerBase")
+        get()= finalResultParameter.getOrOperations("finalResult")
 
     internal fun provideFinalResult(result : ResultList<DTO, D, E>){
         finalResultParameter = result
@@ -70,7 +72,6 @@ class RootSequenceHandler<DTO, D, E> (
     val dtoRoot: RootDTO<DTO, D, E>,
     name : String,
     val sequenceLambda: suspend SequenceContext<DTO, D, E>.(RootSequenceHandler<DTO, D, E>) -> ResultList<DTO, D, E>
-
 ):SequenceHandlerBase<DTO, D, E>(dtoRoot, Cardinality.ONE_TO_MANY, name)
         where DTO: ModelDTO, D: DataModel, E: LongEntity
 {
@@ -80,14 +81,14 @@ class RootSequenceHandler<DTO, D, E> (
         handlerName: String,
         configurator : ClassHandlerConfig<DTO, D, E, F_DTO, FD, FE>.()-> Unit
     ){
-        classSequenceConfigurators[handlerName] = configurator.castOrOperationsEx<ClassHandlerConfig<*, *, *, DTO, D, E>.()-> Unit>()
+        classSequenceConfigurators[handlerName] = configurator.castOrOperations<ClassHandlerConfig<*, *, *, DTO, D, E>.()-> Unit>()
     }
     var lastActiveSequenceContext : SequenceContext<DTO, D, E>? = null
 
     suspend fun launch(runInfo: SequenceRunInfo): ResultList<DTO, D, E>{
        val execProvider =  dtoRoot.createExecutionProvider()
        lastActiveSequenceContext = SequenceContext(this, execProvider, runInfo)
-       return lastActiveSequenceContext.getOrOperationsEx().let {
+       return lastActiveSequenceContext.getOrOperations().let {
             sequenceLambda.invoke(it, this)
         }
     }
@@ -100,22 +101,30 @@ class ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE> (
     cardinality: Cardinality,
     name : String
 ):SequenceHandlerBase<DTO, D, E>(dtoClass, cardinality, name)
-        where DTO: ModelDTO, D: DataModel, E: LongEntity,
-              F_DTO : ModelDTO,FD : DataModel, FE: LongEntity
+        where DTO: ModelDTO, D: DataModel, E: LongEntity, F_DTO : ModelDTO,FD : DataModel, FE: LongEntity
 {
     override val handlerConfig : ClassHandlerConfig<DTO, D, E, F_DTO, FD, FE> = ClassHandlerConfig()
-
-
 
     suspend fun launch(
         runInfo: SequenceRunInfo,
         switchLambda :  suspend  SequenceContext<DTO, D, E>.(ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE>)-> ResultList<DTO, D, E>
     ): ResultList<DTO, D, E> {
         val switchQuery = handlerDelegate.switchQueryProvider.invoke()
-        val hostingDTO = switchQuery.resolve()
-        val provider =  dtoClass.createExecutionProvider()
-        val newSequenceContext = SequenceContext(this, provider, runInfo)
-        return switchLambda.invoke(newSequenceContext, this)
+        val parentExecutionContext = handlerDelegate.rootSequenceHandler.dtoRoot.createExecutionProvider()
+        val queryResult = switchQuery.resolve(parentExecutionContext)
+
+       return queryResult.failureCause?.toResultList(queryResult.activeCRUD, dtoClass) ?:run {
+            val provider =  dtoClass.createExecutionProvider()
+            val newSequenceContext = SequenceContext(this, provider, runInfo)
+            switchLambda.invoke(newSequenceContext, this)
+        }
+//        if(queryResult.isFaulty){
+//            val faultyResult = queryResult.failureCause?.toResultList(queryResult.activeCRUD, dtoClass)
+//            return  queryResult.failureCause?.toResultList(queryResult.activeCRUD, dtoClass)
+//        }
+//        val provider =  dtoClass.createExecutionProvider()
+//        val newSequenceContext = SequenceContext(this, provider, runInfo)
+//        return switchLambda.invoke(newSequenceContext, this)
     }
 }
 

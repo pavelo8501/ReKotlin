@@ -8,9 +8,11 @@ import kotlin.reflect.full.companionObjectInstance
 
 
 sealed interface ManageableException<E:ManagedException>  {
+
+   // val message: String
     var propertySnapshot :  Map<String, Any?>
     fun setHandler(handlerType: HandlerType,  wayPoint: IdentifiableContext): E
-    fun throwSelf(wayPoint: Identifiable): Nothing
+    fun throwSelf(wayPoint: IdentifiableContext): Nothing
 
     fun addHandlingData(waypoint: IdentifiableContext, event: ExceptionEvent, message: String? = null): ManagedException
 
@@ -19,7 +21,7 @@ sealed interface ManageableException<E:ManagedException>  {
     }
 
     companion object {
-        inline fun <reified E : ManagedException> build(message: String, source:  Enum<*>?, original : Throwable? = null): E {
+        inline fun <reified E : ManagedException, S: Enum<S>> build(message: String, source: S?, original : Throwable? = null): E {
             val newManaged = E::class.companionObjectInstance?.safeCast<Builder<E>>()?.build(message, source, original)
           return  newManaged?:run {
               val exceptionMessage =

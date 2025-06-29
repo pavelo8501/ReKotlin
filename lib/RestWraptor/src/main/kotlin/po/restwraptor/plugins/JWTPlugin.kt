@@ -1,6 +1,5 @@
 package po.restwraptor.plugins
 
-import io.ktor.client.statement.HttpResponse
 import io.ktor.http.Headers
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationPlugin
@@ -12,10 +11,11 @@ import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.request.path
-import po.auth.authentication.exceptions.AuthException
+import po.auth.exceptions.AuthException
 import po.auth.authentication.jwt.JWTService
 import po.auth.authentication.jwt.models.JwtToken
-import po.lognotify.extensions.runTask
+import po.auth.exceptions.authException
+import po.misc.types.getOrManaged
 import po.misc.types.getOrThrow
 import po.restwraptor.enums.WraptorHeaders
 import po.restwraptor.extensions.getWraptorRoutes
@@ -74,9 +74,8 @@ val JWTPlugin: ApplicationPlugin<JWTPluginConfig> = createApplicationPlugin(
         val path = call.request.path()
 
         if (checkDestinationSecured(path)) {
-            val sessionId = readSessionId(call.request.headers).getOrThrow<String, AuthException>()
-            val jwtToken = service.tokenRepository.resolve(sessionId)
-                .getOrThrow<JwtToken, AuthException>("Token not found in repository")
+            val sessionId = readSessionId(call.request.headers).getOrManaged("SessionId")
+            val jwtToken = service.tokenRepository.resolve(sessionId).getOrManaged("Token not found in repository")
             val validatedToken = service.isNotExpired(jwtToken) {
                 service.tokenRepository.invalidate(jwtToken.sessionId)
                 call.respondUnauthorized("Session expired", HttpStatusCode.Unauthorized.value)

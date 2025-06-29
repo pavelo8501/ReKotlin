@@ -12,7 +12,7 @@ class DataException(
     original: Throwable? = null
 ) : ManagedException(message, source, original) {
 
-    override var handler: HandlerType = HandlerType.CANCEL_ALL
+    override var handler: HandlerType = HandlerType.CancelAll
 
 
     companion object : ManageableException.Builder<DataException> {

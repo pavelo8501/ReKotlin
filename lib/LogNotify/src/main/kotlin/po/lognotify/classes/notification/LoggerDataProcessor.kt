@@ -12,7 +12,10 @@ import po.misc.data.PrintableBase
 import po.misc.data.console.PrintableTemplateBase
 import po.misc.data.interfaces.Printable
 import po.misc.data.processors.DataProcessorBase
+import po.misc.data.styles.SpecialChars
 import po.misc.exceptions.ManagedException
+import po.misc.exceptions.name
+import po.misc.exceptions.waypointInfo
 
 class LoggerDataProcessor(
     val task : TaskBase<*, *>,
@@ -67,17 +70,19 @@ class LoggerDataProcessor(
         return data
     }
 
-    fun registerStart(){
+    fun registerStart(): TaskData{
        val dataRecord = createData("", SeverityLevel.INFO, null)
         processRecord(dataRecord, TaskData.Header)
         forwardOrEmmit(dataRecord)
+        return dataRecord
     }
 
-    fun registerStop(){
+    fun registerStop():TaskData{
         val dataRecord = createData("", SeverityLevel.INFO, null)
         processRecord(dataRecord, TaskData.Footer)
         forwardOrEmmit(dataRecord)
         stopBroadcast()
+        return dataRecord
     }
 
     fun <T: PrintableBase<T>> log(dataRecord: T, template: PrintableTemplateBase<T>){
@@ -111,8 +116,19 @@ class LoggerDataProcessor(
         processRecord(dataRecord, TaskData.Message)
         return dataRecord
     }
+
     fun error(exception: ManagedException): TaskData {
-       val dataRecord =  createData(exception.message, SeverityLevel.EXCEPTION, null)
+       val dataRecord =  createData(exception.message.toString(), SeverityLevel.EXCEPTION, null)
+        processRecord(dataRecord, TaskData.Exception)
+        return dataRecord
+    }
+
+    @PublishedApi
+    internal fun errorHandled(handledBy: String, exception: ManagedException): TaskData {
+        var message = "Exception: ${exception.name()} handled by $handledBy block in $task"
+        message += SpecialChars.NewLine
+        message += exception.waypointInfo()
+        val dataRecord =  createData(message, SeverityLevel.EXCEPTION, null)
         processRecord(dataRecord, TaskData.Exception)
         return dataRecord
     }

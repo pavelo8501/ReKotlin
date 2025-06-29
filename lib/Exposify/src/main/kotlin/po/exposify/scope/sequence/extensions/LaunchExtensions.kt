@@ -8,6 +8,7 @@ import po.exposify.dto.components.SwitchQuery
 import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.interfaces.RunnableContext
 import po.exposify.scope.sequence.classes.RootHandlerProvider
 import po.exposify.scope.sequence.classes.SwitchHandlerProvider
 import po.exposify.scope.sequence.models.ClassHandlerConfig
@@ -33,7 +34,6 @@ suspend fun <DTO: ModelDTO, D: DataModel, E : LongEntity, F_DTO: ModelDTO, FD : 
     switchQueryProvider: ()-> SwitchQuery<F_DTO, FD, FE>,
     configBuilder: (ClassHandlerConfig<DTO, D, E, F_DTO, FD, FE>.()-> Unit)? = null
 ): ResultList<DTO, D, E> {
-
     val classHandler = handlerDelegate.createHandler(switchQueryProvider)
     configBuilder?.invoke(classHandler.handlerConfig)
     if(classHandler.handlerConfig.rootHandlerParameter == null){
@@ -46,6 +46,33 @@ suspend fun <DTO: ModelDTO, D: DataModel, E : LongEntity, F_DTO: ModelDTO, FD : 
     val session = coroutineContext[AuthorizedSession]?: AuthSessionManager.getOrCreateSession(createDefaultIdentifier())
     val emitter = classHandler.handlerConfig.rootHandler.dtoRoot.getServiceClass().requestEmitter(session)
     return emitter.dispatchChild(classHandler)
+}
+
+
+suspend fun <DTO: ModelDTO, D: DataModel, E : LongEntity, F_DTO: ModelDTO, FD : DataModel,  FE: LongEntity> runSequence2(
+    handlerDelegate: SwitchHandlerProvider<DTO, D, E, F_DTO, FD, FE>,
+    switchQueryProvider: ()-> SwitchQuery<F_DTO, FD, FE>,
+    configBuilder: (ClassHandlerConfig<DTO, D, E, F_DTO, FD, FE>.()-> Unit)? = null
+): ResultList<DTO, D, E> {
+    val classHandler = handlerDelegate.createHandler(switchQueryProvider)
+    configBuilder?.invoke(classHandler.handlerConfig)
+    if(classHandler.handlerConfig.rootHandlerParameter == null){
+        val rootHandler = handlerDelegate.createParentHandler()
+        classHandler.handlerConfig.rootHandlerParameter = rootHandler
+        rootHandler.handlerConfig.registerSwitchHandler(handlerDelegate.name, classHandler)
+    }else{
+        classHandler.handlerConfig.rootHandler.handlerConfig.registerSwitchHandler(handlerDelegate.name, classHandler)
+    }
+    val session = coroutineContext[AuthorizedSession]?: AuthSessionManager.getOrCreateSession(createDefaultIdentifier())
+    val emitter = classHandler.handlerConfig.rootHandler.dtoRoot.getServiceClass().requestEmitter(session)
+    return emitter.dispatch {
+        val runnableContext = RunnableContext.runInfo(session)
+        classHandler.handlerConfig.onStartCallback?.invoke(runnableContext)
+        classHandler.handlerConfig.rootHandler.launch(runnableContext)
+        val result = classHandler.finalResult
+        classHandler.handlerConfig.onCompleteCallback?.invoke(runnableContext)
+        result
+    }
 }
 
 fun <DTO, D, E, F_DTO, FD, FE>  ClassHandlerConfig<DTO, D, E, F_DTO, FD, FE>.usingRoot(

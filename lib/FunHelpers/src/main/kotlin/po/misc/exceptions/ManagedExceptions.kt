@@ -1,28 +1,26 @@
 package po.misc.exceptions
 
-import po.misc.interfaces.Identifiable
 import po.misc.interfaces.IdentifiableContext
 
 enum class HandlerType(val value: Int) {
-    GENERIC(0),
-    SKIP_SELF(1),
-    CANCEL_ALL(2),
-    UNMANAGED(3);
+    Undefined(0),
+    SkipSelf(1),
+    CancelAll(2);
     companion object {
         fun fromValue(value: Int): HandlerType {
             entries.firstOrNull { it.value == value }?.let {
                 return it
             }
-            return GENERIC
+            return Undefined
         }
     }
 }
 
 open class ManagedException(
-    override val message: String,
+    internal var msg: String,
     val source: Enum<*>? = null,
     original : Throwable? = null,
-) : Throwable(message, original), ManageableException<ManagedException>{
+) : Throwable(msg, original), ManageableException<ManagedException>{
 
     enum class ExceptionEvent{
         Registered,
@@ -35,13 +33,31 @@ open class ManagedException(
        val wayPoint: IdentifiableContext,
        val event: ExceptionEvent,
        val message: String? = null
-    )
+    ){
+        override fun toString(): String {
+            return when (event) {
+                ExceptionEvent.Registered -> {
+                    "First registered in ${wayPoint.contextName}"
+                }
+                ExceptionEvent.Thrown -> {
+                    "Thrown in ${wayPoint.contextName}"
+                }
+                else -> {
+                    "$wayPoint[${event.name}]"
+                }
+            }
+        }
+    }
 
-    open var handler  : HandlerType = HandlerType.SKIP_SELF
+    open var handler  : HandlerType = HandlerType.Undefined
         internal set
     override var propertySnapshot :  Map<String, Any?> = emptyMap()
     var handlingData: List<HandlingData> = listOf()
         internal set
+
+    internal fun setMessage(message: String){
+        msg = message
+    }
 
     override fun addHandlingData(
         waypoint: IdentifiableContext,
@@ -55,22 +71,25 @@ open class ManagedException(
         handlerType: HandlerType,
         wayPoint: IdentifiableContext
     ): ManagedException{
-        addHandlingData(wayPoint, ExceptionEvent.HandlerChanged)
+        if(handlingData.isEmpty()){
+            addHandlingData(wayPoint, ExceptionEvent.Registered)
+        }else{
+            addHandlingData(wayPoint, ExceptionEvent.HandlerChanged)
+        }
         handler = handlerType
         return this
     }
+    override fun throwSelf(wayPoint: IdentifiableContext):Nothing {
+        addHandlingData(wayPoint, ExceptionEvent.Thrown)
+        throw this
+    }
+
     fun setPropertySnapshot(snapshot: Map<String, Any?>?):ManagedException{
         if(snapshot != null){
             propertySnapshot = snapshot
         }
         return this
     }
-
-    override fun throwSelf(wayPoint: Identifiable):Nothing {
-        addHandlingData(wayPoint, ExceptionEvent.Thrown)
-        throw this
-    }
-
 
     companion object : ManageableException.Builder<ManagedException> {
         override fun build(message: String, source: Enum<*>?,  original: Throwable?): ManagedException {

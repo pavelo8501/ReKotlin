@@ -11,8 +11,6 @@ class TaskRegistry<T, R>(
     val hierarchyRoot: RootTask<T, R>
 ) {
     val tasks: MutableMap<TaskKey, Task<*, *>> = mutableMapOf()
-    //val tasks: MutableList<Task<*, *>> = mutableListOf<Task<*, *>>()
-
     fun registerChild(task: Task<*, *>) {
         tasks[task.key] = task
         dispatcher.notifyUpdate(TaskDispatcher.UpdateType.OnTaskCreated, task)
@@ -20,6 +18,13 @@ class TaskRegistry<T, R>(
 
     fun getLastSubTask(): Task<*, *>?{
         return tasks.values.lastOrNull()
+    }
+
+    fun setChildTasksStatus(status: TaskBase.TaskStatus, taskCalling: TaskBase<*,*>){
+        val subTasks = getSubTasks(taskCalling)
+        subTasks.forEach {
+            it.taskStatus = status
+        }
     }
 
     fun getAsResultantTaskList (): List<ResultantTask<*, *>>{

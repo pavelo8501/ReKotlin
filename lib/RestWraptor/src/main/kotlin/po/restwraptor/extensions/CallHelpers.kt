@@ -51,7 +51,9 @@ fun <T :ApplicationCall>  T.authSessionOrNull():AuthorizedSession?{
 suspend fun <T :ApplicationCall, R>  T.withSession(block : suspend AuthorizedSession.()-> R):R{
    val authorizedSessionKey = AttributeKey<AuthorizedSession>("AuthSession")
    val session =  attributes.takeOrNull(authorizedSessionKey)
-   val checked = session.getOrThrow<AuthorizedSession, ConfigurationException>("session missing", ExceptionCodes.GENERAL_AUTH_CONFIG_FAILURE)
+   val checked = session.getOrThrow<AuthorizedSession, ConfigurationException>(null){message->
+       ConfigurationException("$message Session missing", ExceptionCodes.GENERAL_AUTH_CONFIG_FAILURE)
+   }
    return withContext(this.coroutineContext){
         block(checked)
     }

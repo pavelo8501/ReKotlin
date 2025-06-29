@@ -10,7 +10,10 @@ import po.lognotify.extensions.runTask
 import po.lognotify.logNotify
 import po.lognotify.process.runProcess
 
-class TestProcessFlow: TasksManaged {
+class TestProcessFlow() : TasksManaged {
+
+
+    override val contextName: String = "TestProcessFlow"
 
     class SessionIdentity(override val sessionID: String, override val remoteAddress: String): SessionIdentified
 

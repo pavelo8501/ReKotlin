@@ -9,4 +9,10 @@ data class WraptorRoute(
     val path : String,
     val isSecured : Boolean = false,
     private val node : RoutingNode,
-)
+){
+
+    override fun toString(): String {
+        return "Path: $path Method: ${selector.name} Secured: $isSecured"
+    }
+
+}

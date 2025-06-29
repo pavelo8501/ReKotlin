@@ -1,6 +1,7 @@
 package po.misc.reflection.mappers.models
 
 import po.misc.exceptions.ManagedException
+import po.misc.types.castOrManaged
 import po.misc.types.castOrThrow
 import kotlin.reflect.KProperty
 import kotlin.reflect.KProperty1
@@ -17,14 +18,14 @@ data class PropertyRecord<T: Any>(
 
     fun <R: Any> asKProperty1():KProperty1<T, R>{
         val message = "Unable to cast KProperty<T> to <KProperty1<T, *> in PropertyHelpers.kt"
-        return property.castOrThrow<KProperty1<T, R>, ManagedException>()
+        return property.castOrManaged<KProperty1<T, R>>()
     }
 
     companion object{
 
         fun <T: Any> create(property: KProperty1<T, *>):PropertyRecord<T>{
             val message = "Unable to cast KProperty1<T, *> to <KProperty<T> in PropertyHelpers.kt"
-           return PropertyRecord(property.name, property.castOrThrow<KProperty<T>, ManagedException>(message))
+           return PropertyRecord(property.name, property.castOrManaged<KProperty<T>>(message))
         }
 
         fun <T: Any> create(property: KProperty<T>):PropertyRecord<T>{

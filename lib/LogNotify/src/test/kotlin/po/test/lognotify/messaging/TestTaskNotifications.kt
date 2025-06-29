@@ -20,9 +20,8 @@ import kotlin.test.assertTrue
 
 class TestTaskNotifications : TasksManaged, Identifiable {
 
-
-    override val sourceName: String = "TestTaskNotifications"
-    override val componentName: String = "TestTaskNotifications"
+    override val contextName: String = "TestTaskNotifications"
+    override var sourceName: String = "TestTaskNotifications"
 
     @Test
     fun `Debug information can be switched on&off for specific data type`(){
@@ -80,8 +79,9 @@ class TestTaskNotifications : TasksManaged, Identifiable {
 
         runTask("Task1", TaskConfig(actor = "TestInstance")) { handler ->
 
-            val startEvent = handler.dataProcessor.systemEvent(EventType.START)
-            val stopEvent =  handler.dataProcessor.systemEvent(EventType.STOP)
+            val startEvent = handler.dataProcessor.registerStart()
+            val stopEvent =  handler.dataProcessor.registerStop()
+
             val info = handler.info("Info message")
             val warning = handler.warn("Info message")
             val warning2 = handler.warn(ManagedException("Exception Message"), "Additional message")

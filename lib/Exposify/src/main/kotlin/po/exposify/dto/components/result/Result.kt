@@ -12,7 +12,8 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.extensions.getOrOperationsEx
+import po.exposify.exceptions.operationsException
+import po.exposify.extensions.getOrOperations
 import po.misc.exceptions.ManagedException
 import po.misc.types.castListOrThrow
 
@@ -58,8 +59,10 @@ class ResultList<DTO, D, E> internal constructor(
     }
 
     fun getDTO(): List<DTO> {
-        val typeRecord = dtoClass.config.registry.getRecord<DTO, OperationsException>(SourceObject.DTO)
-        return result.castListOrThrow<DTO, OperationsException>(typeRecord.clazz, "getDTO", ExceptionCode.CAST_FAILURE)
+        val typeRecord = dtoClass.dtoType
+        return result.castListOrThrow<DTO, OperationsException>(typeRecord.clazz) {
+            operationsException(it, ExceptionCode.CAST_FAILURE)
+        }
     }
 
     internal fun getAsCommonDTO(): List<CommonDTO<DTO, D, E>> {
@@ -84,6 +87,8 @@ class ResultSingle<DTO, D, E> internal constructor(
     override var activeCRUD: CrudOperation = CrudOperation.Create
     override var failureCause: ManagedException? = null
 
+    val isFaulty: Boolean get() = failureCause != null
+
     internal fun appendDto(dtoToAppend: CommonDTO<DTO, D, E>): ResultSingle<DTO, D, E> {
         result = dtoToAppend
         return this
@@ -104,7 +109,7 @@ class ResultSingle<DTO, D, E> internal constructor(
     }
 
     internal fun getAsCommonDTOForced(): CommonDTO<DTO, D, E> {
-        return result.getOrOperationsEx("No result")
+        return result.getOrOperations("No result")
     }
 
     fun getDTO(): DTO? {
@@ -118,17 +123,19 @@ class ResultSingle<DTO, D, E> internal constructor(
     }
 
     fun getTrackerInfo(): TrackableDTO {
-        return result.getOrOperationsEx().tracker.collectTrackers()
+        return result.getOrOperations().tracker.collectTrackers()
     }
 
     fun getTrackerTree(): TrackableDTONode {
-        return result.getOrOperationsEx().tracker.collectTrackerTree()
+        return result.getOrOperations().tracker.collectTrackerTree()
     }
 
     fun setWarningMessage(message: String): ResultSingle<DTO, D, E> {
         resultMessage = message
         return this
     }
+
+
 
     fun toResultList(): ResultList<DTO, D, E> {
         val transform = ResultList(dtoClass)

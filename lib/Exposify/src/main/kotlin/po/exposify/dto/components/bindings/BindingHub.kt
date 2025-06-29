@@ -14,13 +14,11 @@ import po.exposify.dto.components.bindings.relation_binder.delegates.RelationDel
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.extensions.castOrOperations
 import po.lognotify.classes.action.InlineAction
 import po.lognotify.classes.action.runInlineAction
-import po.misc.callbacks.manager.CallbackManager
-import po.misc.callbacks.manager.Containable
 import po.misc.callbacks.manager.builders.bridgeFrom
 import po.misc.callbacks.manager.builders.callbackBuilder
-import po.misc.callbacks.manager.builders.callbackManager
 import po.misc.callbacks.manager.builders.createPayload
 import po.misc.callbacks.manager.builders.managerHooks
 import po.misc.interfaces.Identifiable
@@ -33,14 +31,14 @@ import po.misc.reflection.properties.toRecord
 import po.misc.types.castOrManaged
 
 
-class BindingHub<DTO, D, E, F_DTO, FD, FE>(
+class BindingHub<DTO, D, E>(
     val hostingDTO: CommonDTO<DTO, D, E>,
     val identifiable: Identifiable = asIdentifiable(hostingDTO.sourceName, "BindingHub")
 ): IdentifiableClass, InlineAction
-        where  DTO : ModelDTO, D: DataModel, E: LongEntity, F_DTO: ModelDTO, FD: DataModel, FE: LongEntity
+        where  DTO : ModelDTO, D: DataModel, E: LongEntity
 {
     internal data class NotificationData<DTO : ModelDTO,D:DataModel, E: LongEntity,  F_DTO : ModelDTO>(
-        val self: BindingHub<DTO, D, E, F_DTO, *, *>,
+        val self: BindingHub<DTO, D, E>,
         val delegateName: String,
         val propertyRecord: PropertyContainer<Any>,
         val delegate: DelegateInterface<DTO, F_DTO>
@@ -75,7 +73,7 @@ class BindingHub<DTO, D, E, F_DTO, FD, FE>(
     private val attachedForeignDelegates: MutableMap<String, AttachedForeignDelegate<DTO, D, E, *, *, *>> =
         mutableMapOf()
     private val parentDelegates: MutableMap<String, ParentDelegate<DTO, D, E, *, *, *>> = mutableMapOf()
-    private val relationDelegates: MutableMap<String, RelationDelegate<DTO, D, E, F_DTO, FD, FE, *>> = mutableMapOf()
+    private val relationDelegates: MutableMap<String, RelationDelegate<DTO, D, E, *, *, *, *>> = mutableMapOf()
 
     init {
         notifier.managerHooks{
@@ -107,14 +105,14 @@ class BindingHub<DTO, D, E, F_DTO, FD, FE>(
         return result.toList()
     }
 
-    fun setRelationBinding(
-        delegate: RelationDelegate<DTO, D, E, F_DTO, FD, FE, *>
-    ): RelationDelegate<DTO, D, E, F_DTO, FD, FE, *> {
+    fun <F_DTO: ModelDTO> setRelationBinding(
+        delegate: RelationDelegate<DTO, D, E, F_DTO, *, *, *>
+    ): RelationDelegate<DTO, D, E, *, *, *, *> {
         delegate.identity.provideId(relationDelegates.size+1)
         relationDelegates[delegate.completeName] = delegate
         delegate.updateStatus(DelegateStatus.Registered)
         val notificationData =
-            NotificationData(this, delegate.completeName, delegate.property.toRecord(), delegate)
+            NotificationData(this, delegate.completeName, delegate.property.toRecord(), delegate as  DelegateInterface<DTO, F_DTO>)
 
         notifier.trigger(Event.DelegateRegistered, notificationData)
 
@@ -122,26 +120,26 @@ class BindingHub<DTO, D, E, F_DTO, FD, FE>(
     }
 
 
-    fun setParentDelegate(
-        delegate: ParentDelegate<DTO, D, E, *, *, *>
-    ): ParentDelegate<DTO, D, E, *, *, *> {
+    fun <F_DTO: ModelDTO> setParentDelegate(
+        delegate: ParentDelegate<DTO, D, E, F_DTO, *, *>
+    ): ParentDelegate<DTO, D, E, F_DTO, *, *> {
         delegate.identity.provideId(parentDelegates.size+1)
         parentDelegates[delegate.completeName] = delegate
         delegate.updateStatus(DelegateStatus.Registered)
         val notificationData =
-            NotificationData(this, delegate.completeName, delegate.property.toRecord(), delegate.castOrManaged())
+            NotificationData(this, delegate.completeName, delegate.property.toRecord(), delegate.castOrOperations<DelegateInterface<DTO, F_DTO>>(this))
         notifier.trigger(Event.DelegateRegistered, notificationData)
         return delegate
     }
 
-    fun setAttachedForeignDelegate(
-        delegate: AttachedForeignDelegate<DTO, D, E, *, *, *>
+    fun <F_DTO: ModelDTO> setAttachedForeignDelegate(
+        delegate: AttachedForeignDelegate<DTO, D, E, F_DTO, *, *>
     ): AttachedForeignDelegate<DTO, D, E, *, *, *> {
         delegate.identity.provideId(attachedForeignDelegates.size+1)
         attachedForeignDelegates[delegate.completeName] = delegate
         delegate.updateStatus(DelegateStatus.Registered)
         val notificationData =
-            NotificationData(this, delegate.completeName, delegate.property.toRecord(), delegate.castOrManaged())
+            NotificationData(this, delegate.completeName, delegate.property.toRecord(), delegate.castOrOperations<DelegateInterface<DTO, F_DTO>>(this))
         notifier.trigger(Event.DelegateRegistered, notificationData)
         return delegate
     }
@@ -160,7 +158,7 @@ class BindingHub<DTO, D, E, F_DTO, FD, FE>(
         return this.responsiveDelegates.values.toList()
     }
 
-    fun getRelationDelegates(cardinality: Cardinality = Cardinality.ONE_TO_MANY): List<RelationDelegate<DTO, D, E, F_DTO, FD, FE, *>> {
+    fun getRelationDelegates(cardinality: Cardinality = Cardinality.ONE_TO_MANY): List<RelationDelegate<DTO, D, E, *, *, *, *>> {
         return this.relationDelegates.values.filter { it.cardinality == cardinality }.toList()
     }
 

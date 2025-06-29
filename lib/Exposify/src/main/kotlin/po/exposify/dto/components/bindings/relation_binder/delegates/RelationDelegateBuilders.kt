@@ -8,7 +8,7 @@ import po.exposify.dto.CommonDTO
 import po.exposify.dto.RootDTO
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.SourceObject
-import po.exposify.extensions.castOrInitEx
+import po.exposify.extensions.castOrInit
 import po.lognotify.classes.task.models.TaskConfig
 import po.lognotify.extensions.subTask
 import po.misc.types.TypeRecord
@@ -25,8 +25,7 @@ inline fun <DTO, DATA, ENTITY, reified F_DTO, CD,  FE> CommonDTO<DTO, DATA, ENTI
         where DATA:DataModel, ENTITY : LongEntity, DTO : ModelDTO, F_DTO: ModelDTO,  CD: DataModel, FE: LongEntity
         = subTask("oneToOneOf", TaskConfig(actor = this.completeName)){
 
-
-    val castedOwnDataModel = ownDataModel.castOrInitEx<KMutableProperty1<DATA, CD>>()
+    val castedOwnDataModel = ownDataModel.castOrInit<KMutableProperty1<DATA, CD>>()
     val bindingDelegate = OneToOneDelegate(this, childClass, castedOwnDataModel, ownEntity, foreignEntity)
     bindingDelegate
 }.resultOrException()
@@ -54,7 +53,7 @@ fun <DTO, DATA, ENTITY, F_DTO, FD,  FE> CommonDTO<DTO, DATA, ENTITY>.oneToManyOf
         where  DTO : ModelDTO, DATA:DataModel, ENTITY : LongEntity, F_DTO: ModelDTO,  FD: DataModel, FE: LongEntity
  = subTask("oneToManyOf", TaskConfig(actor = this.completeName)) {
 
-    val castedOwnDataModels = ownDataModels.castOrInitEx<KProperty1<DATA, MutableList<FD>>>()
+    val castedOwnDataModels = ownDataModels.castOrInit<KProperty1<DATA, MutableList<FD>>>()
     val bindingDelegate = OneToManyDelegate(this, childClass, castedOwnDataModels, ownEntities, foreignEntity)
     bindingDelegate
 }.resultOrException()

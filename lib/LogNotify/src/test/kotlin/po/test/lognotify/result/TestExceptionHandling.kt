@@ -5,14 +5,24 @@ import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import po.lognotify.TasksManaged
 import po.lognotify.classes.task.models.TaskConfig
+import po.lognotify.classes.task.result.onFailureCause
 import po.lognotify.extensions.runTask
 import po.lognotify.extensions.subTask
+import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
+import po.misc.exceptions.throwManaged
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class TestExceptionHandling: TasksManaged {
+
+
+    override val contextName: String = "TestExceptionHandling"
+
+    fun subTaskThrowingManaged(inputParam: Int): Int = subTask("subTaskThrowing"){
+        throwManaged("TestException")
+    }.resultOrException()
 
     fun subTaskThrowing(): Int = subTask("subTaskThrowing"){
         throw Exception("GenericException")
@@ -30,6 +40,17 @@ class TestExceptionHandling: TasksManaged {
         subTaskThrowing()
     }.handleFailure{exception->
         10
+    }
+
+    @Test
+    fun `If starting task default handler Cancel_All exception is brought to the entry point`() {
+        assertThrows<ManagedException> {
+            runTask("EntryTask", TaskConfig(exceptionHandler = HandlerType.CancelAll)){
+                subTaskThrowingManaged(10)
+            }.onFailureCause {
+                it.throwSelf(this)
+            }
+        }
     }
 
     @Test

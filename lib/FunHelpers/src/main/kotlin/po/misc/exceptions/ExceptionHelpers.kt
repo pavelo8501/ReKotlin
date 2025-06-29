@@ -30,13 +30,13 @@ inline fun <reified T> Iterable<T>.countEqualsOrException(equalsTo: Int, excepti
 }
 
 
-inline fun <reified EX: ManagedException>  IdentifiableContext.manageableException(
+inline fun <reified EX: ManagedException, S: Enum<S>>  IdentifiableContext.manageableException(
     message: String,
-    source: Enum<*>,
+    source: S,
     original: Throwable? = null
 ):EX{
     val exceptionMessage = "$message @ $contextName"
-    return ManageableException.build<EX>(exceptionMessage, source, original)
+    return ManageableException.build<EX, S>(exceptionMessage, source, original)
 }
 
 fun IdentifiableContext.managedException(message: String, source: Enum<*>?, original: Throwable?): ManagedException{
@@ -50,9 +50,23 @@ fun IdentifiableContext.managedWithHandler(message: String, handler: HandlerType
     return exception
 }
 
+
+
+fun throwManaged(message: String, ctx: IdentifiableContext,  handler : HandlerType? = null): Nothing{
+    if(handler == null){
+        val exception =  ManagedException(message)
+        exception.throwSelf(ctx)
+    }else{
+        val exception =  ManagedException(message)
+        exception.handler = handler
+        exception.throwSelf(ctx)
+    }
+}
+
 fun throwManaged(message: String, handler : HandlerType?, source: Enum<*>? , original: Throwable?): Nothing{
     if(handler == null){
-        throw ManagedException(message)
+        val exception =  ManagedException(message)
+        throw exception
     }else{
         val exception =  ManagedException(message)
         exception.handler = handler
@@ -70,14 +84,17 @@ fun throwManaged(message: String, handler : HandlerType? = null): Nothing{
     }
 }
 
-inline fun <reified EX: ManagedException> throwManageable(
-    ctx: IdentifiableContext,
+inline fun <reified EX: ManagedException, S: Enum<S>> throwManageable(
     message: String,
-    source: Enum<*>? = null
+    source: S? = null,
+    ctx: IdentifiableContext? = null
 ): Nothing{
-    val exceptionMessage = "$message @ ${ctx.contextName}"
-    val managedException : EX = ManageableException.build<EX>(exceptionMessage, source)
-    throw  managedException
+    val managedException : EX = ManageableException.build<EX, S>(message, source)
+    if(ctx != null){
+        managedException.throwSelf(ctx)
+    }else{
+        throw  managedException
+    }
 }
 
 
@@ -88,9 +105,9 @@ fun Throwable.toManaged(ctx: IdentifiableContext,  handler: HandlerType,  source
     return exception
 }
 
-inline fun <reified EX: ManagedException> Throwable.toManageable(ctx: IdentifiableContext, source: Enum<*>): EX{
+inline fun <reified EX: ManagedException, S: Enum<S>> Throwable.toManageable(ctx: IdentifiableContext, source: S): EX{
     val exceptionMessage = "$message @ ${ctx.contextName}"
-    return ManageableException.build<EX>(exceptionMessage, source, this)
+    return ManageableException.build<EX, S>(exceptionMessage, source, this)
 }
 
 fun Throwable.toInfoString(): String{
@@ -101,8 +118,9 @@ fun Throwable.toInfoString(): String{
 }
 
 fun ManagedException.waypointInfo(): String{
-  return  handlingData.asReversed().joinToString(" -> "){ "${it.wayPoint.contextName}[${it.event}]" }
-       .wrapByDelimiter("->")
+  val resultStr =  handlingData.joinToString(" -> "){ "$it" }
+       .wrapByDelimiter(delimiter =  "->", maxLineLength = 200)
+    return resultStr
 }
 
 fun <EX: Throwable> EX.name(): String{

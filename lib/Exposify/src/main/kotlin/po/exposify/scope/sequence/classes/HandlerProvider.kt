@@ -9,8 +9,8 @@ import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.extensions.getOrInitEx
-import po.exposify.extensions.getOrOperationsEx
+import po.exposify.extensions.getOrInit
+import po.exposify.extensions.getOrOperations
 import po.exposify.scope.sequence.SequenceContext
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
@@ -31,7 +31,7 @@ sealed class HandlerProviderBase<DTO, D, E, V>(
         where DTO: ModelDTO, D: DataModel, E: LongEntity, V : HandlerProvider<DTO, D, E>{
 
     private var propertyName : String? = null
-    override val name : String get() = propertyName.getOrInitEx()
+    override val name : String get() = propertyName.getOrInit("propertyName")
 
     override var isInitialized: Boolean = false
     abstract override var isRootHandler : Boolean
@@ -59,7 +59,7 @@ class RootHandlerProvider<DTO, D, E> internal constructor(
 
     val sequenceLambda :
             suspend SequenceContext<DTO, D, E>.(RootSequenceHandler<DTO, D, E>) -> ResultList<DTO, D, E>
-        get() = sequenceLambdaParameter.getOrInitEx()
+        get() = sequenceLambdaParameter.getOrInit("sequenceLambdaParameter")
 
     internal fun storeSequenceLambda(block: suspend  SequenceContext<DTO, D, E>.(RootSequenceHandler<DTO, D, E> ) -> ResultList<DTO, D, E>){
         sequenceLambdaParameter = block
@@ -84,11 +84,11 @@ class SwitchHandlerProvider<DTO, D, E, F_DTO, FD, FE> internal constructor(
 
     private var switchQueryProviderParameter : (()-> SwitchQuery<F_DTO, FD, FE>)? = null
     val  switchQueryProvider : ()-> SwitchQuery<F_DTO, FD, FE>
-        get() = switchQueryProviderParameter.getOrOperationsEx()
+        get() = switchQueryProviderParameter.getOrOperations("switchQueryProviderParameter")
 
     var switchLambdaParameter: (suspend  SequenceContext<DTO, D, E>.(ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE>)-> ResultList<DTO, D, E>)? = null
     val switchLambda: (suspend  SequenceContext<DTO, D, E>.(ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE>)-> ResultList<DTO, D, E>)
-        get() =  switchLambdaParameter.getOrInitEx("SwitchLambda was not provided")
+        get() =  switchLambdaParameter.getOrInit("switchLambdaParameter")
 
     internal fun storeSwitchLambda(
         block: suspend  SequenceContext<DTO, D, E>.(ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE>)-> ResultList<DTO, D, E>

@@ -11,9 +11,9 @@ import po.exposify.dto.helpers.getPropertyRecord
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.SourceObject
-import po.exposify.extensions.castOrInitEx
-import po.exposify.extensions.getOrInitEx
-import po.exposify.extensions.getOrOperationsEx
+import po.exposify.extensions.castOrInit
+import po.exposify.extensions.getOrInit
+import po.exposify.extensions.getOrOperations
 import po.misc.data.SmartLazy
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.IdentifiableClass
@@ -47,7 +47,7 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
         get() = hostingDTO.dtoClass
 
     private var propertyParameter : KProperty<V>? = null
-    val property: KProperty<V> get() = propertyParameter.getOrInitEx()
+    val property: KProperty<V> get() = propertyParameter.getOrInit(this)
 
     val name: String by SmartLazy("Uninitialized"){
         propertyParameter?.name
@@ -56,17 +56,17 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
 
     var dataPropertyParameter:KMutableProperty1<D, V>? = null
     val dataProperty:KMutableProperty1<D, V>
-        get() = dataPropertyParameter.getOrOperationsEx()
+        get() = dataPropertyParameter.getOrOperations("dataProperty", this)
 
     var entityPropertyParameter:KMutableProperty1<E, V>? = null
     val entityProperty:KMutableProperty1<E, V>
-        get() = entityPropertyParameter.getOrOperationsEx()
+        get() = entityPropertyParameter.getOrOperations("entityProperty", this)
 
     protected var onPropertyInitialized: ((KProperty<*>)-> Unit)? = null
 
     private var effectiveValue : V? = null
     private val value  : V
-        get() =  effectiveValue.getOrOperationsEx("Value accessed before initialization")
+        get() =  effectiveValue.getOrOperations("Value accessed before initialization", this)
     val isValueNull : Boolean  get() = effectiveValue == null
 
     var valueUpdated : Boolean = false
@@ -80,7 +80,7 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
     }
     override fun resolveProperty(property: KProperty<*>){
         if(propertyParameter == null){
-            propertyParameter = property.castOrInitEx()
+            propertyParameter = property.castOrInit(this)
             identity.updateSourceName(property.name)
             hostingDTO.bindingHub.setResponsiveDelegate(this)
             onPropertyInitialized?.invoke(property)
@@ -218,7 +218,7 @@ class PropertyDelegate<DTO, D, E, V: Any> @PublishedApi internal constructor (
         }?:run {
             onPropertyInitialized = {
                 dataPropertyParameter =  dto.getPropertyRecord(DTOClass, it.name)
-                    .castOrInitEx("cast to MutableProperty failed")
+                    .castOrInit(this)
             }
         }
 
@@ -227,7 +227,7 @@ class PropertyDelegate<DTO, D, E, V: Any> @PublishedApi internal constructor (
         }?:run {
             onPropertyInitialized = {
                 entityPropertyParameter =  dto.getPropertyRecord(SourceObject.Entity, it.name)
-                    .castOrInitEx("cast to MutableProperty failed")
+                    .castOrInit(this)
             }
         }
     }

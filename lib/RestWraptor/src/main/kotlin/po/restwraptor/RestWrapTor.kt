@@ -51,7 +51,9 @@ class RestWrapTor(
 
     private var _application: Application? = null
     internal val application: Application
-        get() = _application.getOrThrow<Application, ConfigurationException>(null, ExceptionCodes.GENERAL_CONFIG_FAILURE)
+        get() = _application.getOrThrow<Application, ConfigurationException>(null){message->
+            ConfigurationException(message, ExceptionCodes.GENERAL_CONFIG_FAILURE)
+        }
 
     /** The embedded Ktor server instance. */
     private lateinit var  embeddedServer : EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>
@@ -147,6 +149,10 @@ class RestWrapTor(
         }
     }
 
+    suspend fun getRoutes():List<WraptorRoute>{
+        return coreContext.getWraptorRoutes()
+    }
+
     override fun getConnectors(callback : (List<EngineConnectorConfig>)-> Unit ){
         callback.invoke(embeddedServer.engineConfig.connectors.toList())
     }
@@ -176,7 +182,9 @@ class RestWrapTor(
             application.monitor.subscribe(ServerReady) {
                 onServerStartedCallback?.invoke(this)
             }
-            registerSelf().getOrThrow<AttributeKey<RestWrapTor>, ConfigurationException>("RestWrapTor Registration inside Application failed", ExceptionCodes.KEY_REGISTRATION)
+            registerSelf().getOrThrow<AttributeKey<RestWrapTor>, ConfigurationException>(null){_->
+                ConfigurationException("RestWrapTor Registration inside Application failed", ExceptionCodes.KEY_REGISTRATION)
+            }
             configContext.initialize(appConfigFn)
             appHash = System.identityHashCode(application)
             handler.info("App hash of the WrapTor configured app $appHash")

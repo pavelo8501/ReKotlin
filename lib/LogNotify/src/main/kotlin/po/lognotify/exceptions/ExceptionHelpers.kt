@@ -3,6 +3,7 @@ package po.lognotify.exceptions
 import po.lognotify.TaskProcessor
 import po.lognotify.TasksManaged
 import po.lognotify.anotations.LogOnFault
+import po.lognotify.classes.action.InlineAction
 import po.lognotify.classes.task.RootTask
 import po.lognotify.classes.task.Task
 import po.lognotify.classes.task.TaskBase
@@ -21,37 +22,43 @@ import kotlin.reflect.full.staticProperties
 
 
 @PublishedApi
-internal fun TaskProcessor.handleException(
+internal fun handleException(
     exception: Throwable,
     task: TaskBase<*, *>,
-    snapshot: Map<String, Any?>?
+    snapshot: Map<String, Any?>?,
+    action: InlineAction? = null
 ): ManagedException {
     if (exception is ManagedException) {
-        if(task is RootTask){
-            task.dataProcessor.debug("${exception.name()} has reached root task", "handleException", task)
-            val taskData = task.dataProcessor.error(exception)
-            exception.throwSelf(taskData.emitter)
-        }
-
         exception.setPropertySnapshot(snapshot)
         return   when (exception.handler) {
-            HandlerType.SKIP_SELF, HandlerType.UNMANAGED, HandlerType.CANCEL_ALL -> {
+            HandlerType.SkipSelf ->{
                 val taskData = task.dataProcessor.error(exception)
                 exception.addHandlingData(taskData.emitter,ManagedException.ExceptionEvent.Rethrown, taskData.message)
             }
-
-            HandlerType.GENERIC -> {
-                val taskData = task.dataProcessor.error(exception)
-                exception.addHandlingData(taskData.emitter,ManagedException.ExceptionEvent.Rethrown, taskData.message)
+            HandlerType.Undefined ->{
+                val exceptionHandler = task.config.exceptionHandler
+                if(action != null){
+                    exception.setHandler(exceptionHandler, action)
+                }else{
+                    exception.setHandler(exceptionHandler, task)
+                }
+                task.dataProcessor.error(exception)
+                exception
+            }
+            HandlerType.CancelAll ->{
+                if(task is RootTask){
+                    exception.addHandlingData(task,  ManagedException.ExceptionEvent.Thrown)
+                }
+                exception
             }
         }
     } else {
-
+        val exceptionHandler = task.config.exceptionHandler
         val managed = ManagedException(exception.message.toString(),null, exception)
-            .setHandler(HandlerType.GENERIC, task)
+            .setHandler(exceptionHandler, task)
             .addHandlingData(task, ManagedException.ExceptionEvent.Registered, exception.message.toString())
             .setPropertySnapshot(snapshot)
-        val taskData = task.dataProcessor.error(managed)
+        task.dataProcessor.error(managed)
         return managed
     }
 }

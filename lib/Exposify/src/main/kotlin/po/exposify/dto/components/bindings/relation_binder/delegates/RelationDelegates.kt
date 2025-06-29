@@ -7,20 +7,18 @@ import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
 import po.exposify.dto.DTOClass
 import po.exposify.dto.components.bindings.DelegateStatus
-import po.exposify.dto.components.bindings.helpers.createDTO
 import po.exposify.dto.components.bindings.helpers.newDTO
-import po.exposify.dto.components.bindings.helpers.select
 import po.exposify.dto.components.bindings.interfaces.DelegateInterface
 import po.exposify.dto.components.bindings.interfaces.ForeignDelegateInterface
 import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.components.tracker.extensions.addTrackerInfo
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.InitException
 import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.extensions.castOrInitEx
-import po.exposify.extensions.getOrOperationsEx
+import po.exposify.exceptions.initException
+import po.exposify.extensions.castOrInit
+import po.exposify.extensions.getOrOperations
 import po.lognotify.classes.action.InlineAction
 import po.lognotify.classes.action.runInlineAction
 import po.misc.data.SmartLazy
@@ -39,7 +37,7 @@ sealed class RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V: Any>(
     val foreignEntityProperty: KMutableProperty1<FE, ENTITY>
 ): DelegateInterface<DTO, F_DTO>, ForeignDelegateInterface, IdentifiableClass, InlineAction
         where DTO: ModelDTO, DATA: DataModel,  ENTITY : LongEntity,
-              F_DTO: ModelDTO,  FD: DataModel, FE : LongEntity
+              F_DTO: ModelDTO, FD: DataModel,  FE: LongEntity
 {
 
     override var status: DelegateStatus = DelegateStatus.Created
@@ -49,17 +47,13 @@ sealed class RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V: Any>(
         get() = hostingDTO.dtoClass
 
     protected var onPropertyInitialized: ((KProperty<*>)-> Unit)? = null
-    private var propertyParameter : KProperty<V>? = null
-    val property: KProperty<V> get() = propertyParameter.getOrOperationsEx()
+    private var propertyParameter : KProperty<F_DTO>? = null
+    val property: KProperty<F_DTO> get() = propertyParameter.getOrOperations(this)
     val name : String by SmartLazy("Uninitialized"){ propertyParameter?.name }
-
-    protected val dtoType : TypeRecord<DTO>
-        get() =  hostingDTO.dtoType
-
-    protected val childType : TypeRecord<F_DTO>
-        get() = foreignClass.config.registry.getRecord<F_DTO, InitException>(SourceObject.DTO)
-
     override val identity = asIdentifiableClass("RelationDelegate", hostingDTO.sourceName)
+
+    protected val dtoType : TypeRecord<DTO> get() =  hostingDTO.dtoType
+    protected val childType : TypeRecord<F_DTO> get() = foreignClass.dtoType
 
     abstract fun getEffectiveValue():V
     protected abstract fun getChildDTOs(): List<CommonDTO<F_DTO, FD, FE>>
@@ -78,9 +72,9 @@ sealed class RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V: Any>(
     }
     override fun resolveProperty(property: KProperty<*>){
         if(propertyParameter == null){
-            propertyParameter = property.castOrInitEx("Unable to cast KProperty<*> to KProperty<V>")
+            propertyParameter = property.castOrInit(this)
             identity.updateSourceName(property.name)
-            hostingDTO.bindingHub.setRelationBinding(this.castOrInitEx())
+            hostingDTO.bindingHub.setRelationBinding<F_DTO>(this)
             onPropertyInitialized?.invoke(property)
         }
     }
@@ -136,8 +130,9 @@ class OneToManyDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>(
 
     private val dtos : MutableList<CommonDTO<F_DTO, FD, FE>> = mutableListOf()
     override fun getEffectiveValue(): List<F_DTO> {
-        return dtos.map { it.castOrThrow<F_DTO, InitException>(childType.clazz, "getEffectiveValue cast failed",
-            ExceptionCode.CAST_FAILURE) }
+        return dtos.map {
+            it.castOrThrow<F_DTO, InitException>(childType.clazz, this) {msg-> initException(msg, ExceptionCode.CAST_FAILURE) }
+        }
     }
 
     override fun getChildDTOs(): List<CommonDTO<F_DTO, FD, FE>> {
@@ -182,9 +177,7 @@ class OneToOneDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>(
 
     private var childDTO : CommonDTO<F_DTO, FD, FE>? = null
     override fun getEffectiveValue(): F_DTO {
-        return childDTO.castOrThrow<F_DTO, InitException>(
-            childType.clazz, "dto uninitialized in getEffectiveValue",
-            ExceptionCode.CAST_FAILURE)
+        return childDTO.castOrThrow<F_DTO, InitException>(childType.clazz, this){msg-> initException(msg, ExceptionCode.CAST_FAILURE) }
     }
 
     override fun getChildDTOs(): List<CommonDTO<F_DTO, FD, FE>> {

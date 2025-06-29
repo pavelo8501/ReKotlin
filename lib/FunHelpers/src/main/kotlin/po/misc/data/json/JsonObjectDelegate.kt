@@ -2,6 +2,7 @@ package po.misc.data.json
 
 import po.misc.data.interfaces.Printable
 import po.misc.exceptions.ManagedException
+import po.misc.types.castOrManaged
 import po.misc.types.castOrThrow
 import po.misc.types.getOrManaged
 import kotlin.properties.ReadOnlyProperty
@@ -35,7 +36,7 @@ class JsonObjectDelegate<T: Any, P, S: Printable>(
     fun resolveProperty(property: KProperty<*>){
         if(propertyParam == null) {
             propertyParam =
-                property.castOrThrow<KProperty<String>, ManagedException>("Unable to cast KProperty<*> to KProperty<F_DTO>")
+                property.castOrManaged<KProperty<String>>("Unable to cast KProperty<*> to KProperty<F_DTO>")
             parent.subscribeForReceiver {receiver->
                 val subObject = sourceProperty.get(receiver as S)
                 val resultList : MutableList<String> = mutableListOf()

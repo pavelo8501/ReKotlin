@@ -5,6 +5,7 @@ import po.lognotify.classes.task.Task
 import po.lognotify.classes.task.TaskBase
 import po.misc.data.helpers.emptyOnNull
 import po.misc.data.helpers.wrapByDelimiter
+import po.misc.exceptions.ManageableException
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.name
 import kotlin.collections.joinToString
@@ -66,8 +67,11 @@ fun <T, R> onTaskResult(task: TaskBase<T, R>, result: R): TaskResult<R>{
     }
 }
 
-inline fun <R: Any?> TaskResult<R>.onFailureCause(block: (Throwable) -> Unit): TaskResult<R> {
-    if (!isSuccess && throwable != null) block.invoke(throwable!!)
+inline fun <R: Any?> TaskResult<R>.onFailureCause(block: (ManageableException<*>) -> Unit): TaskResult<R> {
+    throwable?.let {
+        task.dataProcessor.errorHandled("onFailureCause", it)
+        block.invoke(it)
+    }
     return this
 }
 

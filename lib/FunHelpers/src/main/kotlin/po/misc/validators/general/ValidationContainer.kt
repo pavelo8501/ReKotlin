@@ -3,6 +3,7 @@ package po.misc.validators.general
 import po.misc.exceptions.ManagedException
 import po.misc.interfaces.IdentifiableContext
 import po.misc.interfaces.asIdentifiable
+import po.misc.types.castOrManaged
 import po.misc.types.castOrThrow
 import po.misc.validators.general.models.CheckStatus
 import po.misc.validators.general.reports.ReportRecord
@@ -129,9 +130,8 @@ fun <T: Any> ValidationContainerBase<*>.validation(
     validatable: T,
     validatorBlock: ValidationContainer<T>.(validatable:(T))-> Unit
 ): ValidationContainer<T> {
-
     reassignValidatable(validatable)
-    val casted = this.castOrThrow<ValidationContainer<T>, ManagedException>()
+    val casted = this.castOrManaged<ValidationContainer<T>>()
     validatorBlock.invoke(casted, validatable)
     validator.validations.add(casted)
     return casted

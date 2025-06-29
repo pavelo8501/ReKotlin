@@ -1,20 +1,16 @@
 package po.exposify.common.classes
 
-import po.exposify.common.classes.ConstructorBuilder
 import po.exposify.common.interfaces.BlueprintContainer
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.extensions.castOrOperationsEx
-import po.exposify.extensions.getOrOperationsEx
+import po.misc.types.getOrManaged
 import kotlin.collections.mapOf
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
-import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KParameter
 import kotlin.reflect.KProperty1
 import kotlin.reflect.KType
 import kotlin.reflect.full.memberProperties
-import kotlin.reflect.jvm.isAccessible
 
 
 enum class ConstructorParams{
@@ -84,12 +80,12 @@ class ClassBlueprint<T>(
     }
 
    fun getValue(instance:T, name: String): Any?{
-        val property = properties[name].getOrOperationsEx("Property with name: $name not found in ${clazz.simpleName}")
+        val property = properties[name].getOrManaged("Property with name: $name not found in ${clazz.simpleName}")
         return property.get(instance)
    }
 
     fun getValueCheckType(instance:T, name: String): Any?{
-        val property = properties[name].getOrOperationsEx("Property with name: $name not found in ${clazz.simpleName}")
+        val property = properties[name].getOrManaged("Property with name: $name not found in ${clazz.simpleName}")
         return property.get(instance)
     }
 

@@ -8,6 +8,7 @@ import po.misc.reflection.mappers.interfaces.MappablePropertyRecord
 import po.misc.reflection.mappers.models.PropertyMapperRecord
 import po.misc.reflection.mappers.models.PropertyRecord
 import po.misc.types.TypeRecord
+import po.misc.types.castOrManaged
 import po.misc.types.castOrThrow
 import po.misc.validators.mapping.models.InstancedCheck
 import po.misc.validators.mapping.models.MappingCheckRecord
@@ -26,7 +27,7 @@ fun <T : Any> createPropertyMap(
         classTypeRecord = typeRecord,
         columnMetadata = columnMetadata?:emptyList(),
         propertyMap = typeRecord.clazz.memberProperties.associate {
-          it.name to PropertyRecord(it.name, it.castOrThrow<KProperty<T>, ManagedException>())
+          it.name to PropertyRecord(it.name, it.castOrManaged<KProperty<T>>())
     })
 }
 
@@ -36,7 +37,7 @@ inline fun <reified T : Any> createPropertyMap(
 ): PropertyMapperRecord<T>{
     val typeRecord = TypeRecord.createRecord<T>(element)
     val properties =  T::class.memberProperties.associate {
-        it.name to PropertyRecord(it.name, it.castOrThrow<KProperty<T>,  ManagedException>("Cast to KProperty failed at PropertyMap<T: Any>"))
+        it.name to PropertyRecord(it.name, it.castOrManaged<KProperty<T>>("Cast to KProperty failed at PropertyMap<T: Any>"))
     }
     return PropertyMapperRecord(propertyMap = properties, classTypeRecord = typeRecord, columnMetadata = columnMetadata?:emptyList())
 }

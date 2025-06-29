@@ -1,7 +1,8 @@
 package po.auth.models
 
-import po.auth.authentication.exceptions.AuthException
-import po.auth.authentication.exceptions.ErrorCodes
+import po.auth.exceptions.AuthErrorCode
+import po.auth.exceptions.AuthException
+import po.auth.exceptions.authException
 import java.security.KeyFactory
 import java.security.PrivateKey
 import java.security.PublicKey
@@ -34,19 +35,19 @@ class CryptoRsaKeys(
                 val privateSpec = PKCS8EncodedKeySpec(privateBytes)
                 keyFactory.generatePrivate(privateSpec)
             }.onFailure {
-                throw AuthException("Decoding privateKey", ErrorCodes.INVALID_KEY_FORMAT, it)
+                throw authException("Decoding privateKey", AuthErrorCode.INVALID_KEY_FORMAT, it)
             }.onSuccess {privateKey->
                 runCatching {
                     val publicBytes = decodePem(publicPem)
                     val publicSpec = X509EncodedKeySpec(publicBytes)
                     keyFactory.generatePublic(publicSpec)
                 }.onFailure {
-                    throw AuthException("Decoding publicKey", ErrorCodes.INVALID_KEY_FORMAT, it)
+                    throw authException("Decoding publicKey", AuthErrorCode.INVALID_KEY_FORMAT, it)
                 }.onSuccess {publicKey->
                     return CryptoRsaKeys(privateKey, publicKey)
                 }
             }
-            throw AuthException("CryptoRsaKeys FromPem failed", ErrorCodes.INVALID_KEY_FORMAT, null)
+            throw authException("CryptoRsaKeys FromPem failed", AuthErrorCode.INVALID_KEY_FORMAT, null)
         }
 
         private fun decodePem(pem: String): ByteArray {

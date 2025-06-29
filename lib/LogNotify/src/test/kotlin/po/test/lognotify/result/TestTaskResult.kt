@@ -6,16 +6,25 @@ import org.junit.jupiter.api.assertAll
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertInstanceOf
 import org.junit.jupiter.api.assertThrows
+import po.lognotify.classes.task.models.TaskConfig
 import po.lognotify.classes.task.result.TaskResult
 import po.lognotify.classes.task.result.resultOrNull
+import po.lognotify.extensions.runTask
 import po.lognotify.extensions.runTaskAsync
+import po.lognotify.extensions.subTask
+import po.misc.exceptions.HandlerType
+import po.misc.interfaces.IdentifiableContext
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class TestTaskResult {
+class TestTaskResult: IdentifiableContext {
+
+
+    override val contextName: String
+        get() = "TestTaskResult"
 
     suspend fun nonNullable(name: String, value: Int): Int = runTaskAsync(name) {
         value
@@ -28,6 +37,9 @@ class TestTaskResult {
     suspend fun nullableResultResultOrNull(name: String, value: Int?): Int? = runTaskAsync(name) {
         value
     }.resultOrNull()
+
+
+
 
     @Test
     fun `Container returns result as expected`() = runTest {

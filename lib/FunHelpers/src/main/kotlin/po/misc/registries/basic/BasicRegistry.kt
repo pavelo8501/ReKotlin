@@ -23,9 +23,9 @@ class BasicRegistry<T: Any> {
     }
 
     @JvmName("getRecordReified")
-   inline fun <reified EX: ManagedException> getRecord(key: ValueBased,  ctx: IdentifiableContext):T {
+   inline fun <reified EX: ManagedException, S: Enum<S>> getRecord(key: ValueBased, ctx: IdentifiableContext, source:S? = null):T {
        val item = registry[key]
-       return item?: throwManageable<EX>(ctx, "$key is not in the registry", null)
+       return item?: throwManageable<EX, S>("$key is not in the registry", source, ctx)
     }
 
     inline fun <reified T : Any> contains(key: ValueBased): Boolean =

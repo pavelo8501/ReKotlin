@@ -15,12 +15,17 @@ import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.transactions.transaction
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.RootDTO
+import po.exposify.dto.components.result.ResultSingle
+import po.exposify.dto.components.result.toResult
+import po.exposify.dto.components.result.toResultSingle
 import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.interfaces.DataModel
+import po.exposify.dto.interfaces.ExecutionContext
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.exceptions.operationsException
 import po.exposify.exceptions.throwOperations
 import po.exposify.extensions.withTransactionIfNone
 
@@ -104,7 +109,7 @@ class WhereQuery<T> (
 
 class SwitchQuery<DTO: ModelDTO, D : DataModel, E: LongEntity>(
     private val lookUpId: Long,
-    private val dtoClass: RootDTO<DTO,D,E>,
+    private val dtoClass: RootDTO<DTO,D,E>
 ):SimpleQuery() {
 
     override var expression: Set<Op<Boolean>> = emptySet()
@@ -121,13 +126,15 @@ class SwitchQuery<DTO: ModelDTO, D : DataModel, E: LongEntity>(
         expression = expression + condition
     }
 
-    fun resolve(): CommonDTO<DTO, D, E> {
-        val existent = dtoClass.lookupDTO(lookUpId, CrudOperation.Pick)
-        if (existent == null) {
-            val message = "Unable to find ${dtoClass.config.registry.getRecord<DTO>(SourceObject.DTO)} with id $lookUpId"
-            throwOperations(message, ExceptionCode.VALUE_NOT_FOUND )
+    fun resolve(executionContext: ExecutionContext<DTO, D, E>): ResultSingle<DTO, D, E> {
+       return dtoClass.lookupDTO(lookUpId, CrudOperation.Pick)?.toResult(CrudOperation.Pick) ?:run {
+            if(executionContext != null){
+                executionContext.pickById(lookUpId)
+            }else{
+                val message = "Unable to find ${dtoClass.config.registry.getRecord<DTO>(SourceObject.DTO)} with id $lookUpId"
+                operationsException(message, ExceptionCode.QueryResolvedNull).toResultSingle(CrudOperation.Pick, dtoClass)
+            }
         }
-        return existent
     }
 
 }
