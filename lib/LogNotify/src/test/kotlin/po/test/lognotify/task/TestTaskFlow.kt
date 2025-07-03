@@ -15,6 +15,14 @@ class TestTaskFlow: TasksManaged {
     override val contextName: String = "TestTaskFlow"
 
     @Test
+    fun `Task message issued`(){
+        runTask("Entry task"){
+
+        }
+
+    }
+
+
     fun `Default root task is created to avoid crash and warning issued`(){
 
         assertDoesNotThrow {
@@ -22,7 +30,7 @@ class TestTaskFlow: TasksManaged {
         }
     }
 
-    @Test
+
     fun `Consequent tasks inherit task configuration if not explicitly overriden`(){
         var taskConfig: TaskConfig? = null
         val entryTaskConfig = TaskConfig(exceptionHandler = HandlerType.CancelAll)

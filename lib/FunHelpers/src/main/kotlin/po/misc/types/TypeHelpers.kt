@@ -9,6 +9,7 @@ import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.exceptions.managedException
 import po.misc.exceptions.throwManaged
 import po.misc.interfaces.IdentifiableContext
+import java.time.LocalDateTime
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlin.reflect.typeOf
@@ -72,14 +73,25 @@ inline fun <reified T, reified U> initializeContexts(
     receiverInstance.block(paramInstance)
 }
 
-inline fun <reified T: Any> T.getType(): KClass<T> {
-    return T::class
-}
-
 fun Any?.isNull(): Boolean{
     return this == null
 }
 
 fun Any?.isNotNull(): Boolean{
     return this != null
+}
+
+
+fun <T: Any> TypeData<T>.getDefaultForType(): T? {
+    val result = when (this.kType.classifier) {
+        Int::class -> -1
+        String::class -> "Default"
+        Boolean::class -> false
+        Long::class -> -1L
+        LocalDateTime::class -> {
+            LocalDateTime.now()
+        }
+        else -> null
+    }
+    return result?.safeCast(this.clazz)
 }

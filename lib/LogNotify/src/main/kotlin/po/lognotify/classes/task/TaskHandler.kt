@@ -6,7 +6,7 @@ import kotlinx.coroutines.runBlocking
 import po.lognotify.classes.action.ActionSpan
 import po.lognotify.classes.notification.LoggerDataProcessor
 import po.lognotify.classes.notification.NotifierHub
-import po.lognotify.classes.notification.models.TaskData
+import po.lognotify.classes.notification.models.LogData
 import po.lognotify.classes.task.interfaces.HandledTask
 import po.lognotify.classes.task.models.TaskConfig
 import po.lognotify.models.TaskDispatcher
@@ -42,13 +42,13 @@ class TaskHandler<R: Any?>(
     fun <T: Printable> logFormatted(data: T,   printFn: T.(StringBuilder)-> Unit)
         = dataProcessor.logFormatted(data, printFn)
 
-    fun info(message: String): TaskData{
+    fun info(message: String): LogData{
        return dataProcessor.info(message)
     }
-    fun warn(message: String): TaskData{
+    fun warn(message: String): LogData{
         return dataProcessor.warn(message)
     }
-    fun warn(ex: ManagedException, message: String = ""): TaskData{
+    fun warn(ex: ManagedException, message: String = ""): LogData{
         return dataProcessor.warn(ex, message)
     }
 

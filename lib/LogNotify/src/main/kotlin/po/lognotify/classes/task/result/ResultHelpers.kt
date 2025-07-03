@@ -61,7 +61,7 @@ fun <T, R> onTaskResult(task: TaskBase<T, R>, result: R): TaskResult<R>{
             }
         }
         else -> {
-            task.dataProcessor.debug("Result ok. ResultContainerCreation","ResultHelpers|onTaskResult")
+            task.dataProcessor.debug("Result ok. ResultContainerCreation", "ResultHelpers|onTaskResult")
             resultContainerCreation(task, result)
         }
     }

@@ -4,7 +4,7 @@ package po.test.lognotify.messaging
 import org.junit.jupiter.api.Test
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.NotifierHub
-import po.lognotify.classes.notification.models.TaskData
+import po.lognotify.classes.notification.models.LogData
 import po.lognotify.classes.task.models.TaskConfig
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.extensions.runTask
@@ -33,16 +33,16 @@ class TestTaskNotifications : TasksManaged, Identifiable {
         runTask("RootTaskNoDebug"){
 
         }
-        assertFalse(notifications.any { (it as TaskData).severity == SeverityLevel.DEBUG }, "Some of notifications are of type DEBUG")
+        assertFalse(notifications.any { (it as LogData).severity == SeverityLevel.DEBUG }, "Some of notifications are of type DEBUG")
         notifications.clear()
 
         handler.notifierConfig {
-            allowDebug(TaskData)
+            allowDebug(LogData)
         }
         runTask("RootTaskWithDebug"){
 
         }
-        assertTrue(notifications.any { (it as TaskData).severity == SeverityLevel.DEBUG }, "None of the notifications are of type DEBUG")
+        assertTrue(notifications.any { (it as LogData).severity == SeverityLevel.DEBUG }, "None of the notifications are of type DEBUG")
     }
 
 
@@ -94,9 +94,8 @@ class TestTaskNotifications : TasksManaged, Identifiable {
 
     fun `Task notifications`(){
         runTask("Task1"){handler->
-
-            val taskData = TaskData(
-                taskKey = handler.task.key,
+            val taskData = LogData(
+                emitter = handler.task,
                 config =  handler.task.config,
                 timeStamp = handler.task.executionTimeStamp,
                 message = "Let the templating era begins",
@@ -107,10 +106,9 @@ class TestTaskNotifications : TasksManaged, Identifiable {
                 println(it)
             }
 
-            handler.dataProcessor.processRecord(taskData, TaskData.Header)
-            handler.dataProcessor.processRecord(taskData, TaskData.Footer)
-            handler.dataProcessor.processRecord(taskData, TaskData.Message)
-
+            handler.dataProcessor.processRecord(taskData, LogData.Header)
+            handler.dataProcessor.processRecord(taskData, LogData.Footer)
+            handler.dataProcessor.processRecord(taskData, LogData.Message)
 
         }
 

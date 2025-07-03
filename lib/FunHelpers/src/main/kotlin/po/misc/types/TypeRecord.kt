@@ -42,11 +42,11 @@ data class TypeData<T: Any>(
         ?.simpleName
         ?: "Unknown"
 
+
     companion object{
         inline fun <reified T: Any> createRecord():TypeData<T>{
             return TypeData(T::class, typeOf<T>())
         }
-
         fun <T: Any> createRecord(clazz: KClass<T>):TypeData<T>{
             val type =  clazz.createType()
             return TypeData(clazz, type)

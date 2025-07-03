@@ -82,7 +82,7 @@ inline fun <reified T: IdentifiableContext, R: Any?> T.subTask(
             subTask.complete()
         }
         subTaskResult
-    }?:this.runTask(taskName, config, block)
+    }?:this.runTask(taskName, config, block =  block)
     return result
 }
 

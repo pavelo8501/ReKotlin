@@ -10,6 +10,7 @@ import po.lognotify.classes.task.models.TaskConfig
 import po.lognotify.classes.task.result.TaskResult
 import po.lognotify.classes.task.result.createFaultyResult
 import po.lognotify.classes.task.result.onTaskResult
+import po.lognotify.debug.DebugProxy
 import po.lognotify.exceptions.handleException
 import po.misc.coroutines.LauncherType
 import po.misc.functions.repeatIfFaulty
@@ -162,8 +163,13 @@ suspend inline fun <reified T: Any, R: Any?> T.runTaskAsync(
 inline fun <reified T: Any, R: Any?> T.runTask(
     taskName: String,
     config: TaskConfig = TaskConfig(isDefault = true),
+    debugProxy: DebugProxy<*,*>? = null,
     block: T.(TaskHandler<R>)-> R,
 ): TaskResult<R> {
+
+    if(debugProxy != null){
+        debugProxy.methodName = taskName
+    }
 
     var effectiveConfig = config
     val dispatcher = TasksManaged.LogNotify.taskDispatcher

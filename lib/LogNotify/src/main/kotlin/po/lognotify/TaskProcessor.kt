@@ -1,5 +1,7 @@
 package po.lognotify
 
-internal interface TaskProcessor {
+import po.misc.interfaces.IdentifiableClass
+
+interface TaskProcessor: IdentifiableClass {
 
 }

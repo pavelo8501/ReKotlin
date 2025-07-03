@@ -1,7 +1,7 @@
 package po.lognotify.classes.notification
 
+import po.lognotify.classes.notification.models.LogData
 import po.lognotify.classes.notification.models.NotifyConfig
-import po.lognotify.classes.notification.models.TaskData
 import po.lognotify.classes.task.RootTask
 import po.lognotify.classes.task.Task
 import po.lognotify.classes.task.TaskBase
@@ -21,8 +21,8 @@ import po.misc.exceptions.waypointInfo
 class LoggerDataProcessor(
     val task : TaskBase<*, *>,
     parent: LoggerDataProcessor?,
-    emitter: FlowEmitter<TaskData>?,
-) : DataProcessorBase<TaskData>(parent, emitter) {
+    emitter: FlowEmitter<LogData>?,
+) : DataProcessorBase<LogData>(parent, emitter) {
 
     enum class LoggerProcessorType{RootTask, Task }
     var config : NotifyConfig
@@ -43,7 +43,7 @@ class LoggerDataProcessor(
         provideMuteCondition(::setMuteConditions)
     }
 
-    private fun setMuteConditions(data: TaskData): Boolean{
+    private fun setMuteConditions(data: LogData): Boolean{
       return when(config.console){
            NotifyConfig.ConsoleBehaviour.Mute ->true
           NotifyConfig.ConsoleBehaviour.FullPrint -> false
@@ -55,9 +55,9 @@ class LoggerDataProcessor(
         }
     }
 
-    private fun createData(message: String, severity: SeverityLevel):TaskData{
-        val data =  TaskData(
-            taskKey = task.key,
+    private fun createData(message: String, severity: SeverityLevel):LogData{
+        val data =  LogData(
+            emitter = task,
             config = task.config,
             timeStamp = task.executionTimeStamp,
             message = message,
@@ -66,9 +66,9 @@ class LoggerDataProcessor(
         return data
     }
 
-    private fun createData(arbitraryData: PrintableBase<*>, severity: SeverityLevel):TaskData{
-        val data =  TaskData(
-            taskKey = task.key,
+    private fun createData(arbitraryData: PrintableBase<*>, severity: SeverityLevel):LogData{
+        val data =  LogData(
+            emitter = task,
             config = task.config,
             timeStamp = task.executionTimeStamp,
             message = arbitraryData.formattedString,
@@ -79,27 +79,27 @@ class LoggerDataProcessor(
     }
 
     @PublishedApi
-    internal fun errorHandled(handledBy: String, exception: ManagedException): TaskData {
+    internal fun errorHandled(handledBy: String, exception: ManagedException): LogData {
         var message = "Exception: ${exception.name()} handled by $handledBy block in $task"
         message += SpecialChars.NewLine
         message += exception.waypointInfo()
         val dataRecord =  createData(message, SeverityLevel.EXCEPTION)
-        processRecord(dataRecord, TaskData.Exception)
+        processRecord(dataRecord, LogData.Exception)
         return dataRecord
     }
 
     @PublishedApi
-    internal fun registerStart(): TaskData{
+    internal fun registerStart(): LogData{
        val dataRecord = createData("", SeverityLevel.INFO)
-        processRecord(dataRecord, TaskData.Header)
+        processRecord(dataRecord, LogData.Header)
         forwardOrEmmit(dataRecord)
         return dataRecord
     }
 
     @PublishedApi
-    internal  fun registerStop():TaskData{
+    internal  fun registerStop():LogData{
         val dataRecord = createData("", SeverityLevel.INFO)
-        processRecord(dataRecord, TaskData.Footer)
+        processRecord(dataRecord, LogData.Footer)
         forwardOrEmmit(dataRecord)
         emitter?.stopBroadcast()
         return dataRecord
@@ -117,11 +117,11 @@ class LoggerDataProcessor(
     internal fun debug(message: String, methodName: String){
         val data = createData("$message @ $methodName in $task", SeverityLevel.DEBUG)
         if(config.debugAll == NotifyConfig.DebugOptions.DebugAll){
-            processRecord(data, TaskData.Debug)
+            processRecord(data, LogData.Debug)
             forwardOrEmmit(data)
         }else{
-            debugData(data, TaskData, TaskData.Debug){debuggable->
-                processRecord(debuggable, TaskData.Debug)
+            debugData(data, LogData, LogData.Debug){debuggable->
+                processRecord(debuggable, LogData.Debug)
                 forwardOrEmmit(debuggable)
             }
         }
@@ -129,7 +129,8 @@ class LoggerDataProcessor(
 
     private fun <T: PrintableBase<T>> debugRecord(arbitraryRecord: T){
         val actionSpan = task.activeActionSpan()
-        val template = TaskData.Debug
+        val template = LogData.Debug
+        val template2 = arbitraryRecord.defaultTemplate
         if (actionSpan != null) {
             template.setAuxParams(TemplateAuxParams(actionSpan.toString()))
         }
@@ -156,26 +157,26 @@ class LoggerDataProcessor(
         forwardOrEmmit(createData("Forwarding", SeverityLevel.LOG))
     }
 
-    fun info(message: String): TaskData {
+    fun info(message: String): LogData {
         val dataRecord = createData(message, SeverityLevel.INFO)
-        processRecord(dataRecord, TaskData.Message)
+        processRecord(dataRecord, LogData.Message)
         return dataRecord
     }
 
-    fun warn(message: String): TaskData {
+    fun warn(message: String): LogData {
         val dataRecord =createData(message, SeverityLevel.WARNING)
-        processRecord(dataRecord, TaskData.Message)
+        processRecord(dataRecord, LogData.Message)
         return dataRecord
     }
 
-    fun warn(th: Throwable, message: String): TaskData {
+    fun warn(th: Throwable, message: String): LogData {
         return createData("$message ${th.message.toString()}", SeverityLevel.WARNING)
     }
 
-    fun error(exception: ManagedException): TaskData {
+    fun error(exception: ManagedException): LogData {
         val text = "Exception: ${exception.message}. ${exception.waypointInfo()}"
         val dataRecord = createData(text, SeverityLevel.EXCEPTION)
-        processRecord(dataRecord, TaskData.Exception)
+        processRecord(dataRecord, LogData.Exception)
         return dataRecord
     }
 }

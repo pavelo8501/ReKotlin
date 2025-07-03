@@ -1,6 +1,7 @@
 package po.misc.types
 
 import kotlin.reflect.KClass
+import kotlin.reflect.KClassifier
 import kotlin.reflect.KType
 import kotlin.reflect.typeOf
 
@@ -30,4 +31,10 @@ fun KType.toSimpleNormalizedKey(): String {
         }
         else -> classifier.toString()
     }
+}
+
+fun  KClassifier?.simplifiedName(): String{
+   return this?.let {
+        (it as KClass<*>).simpleName.toString()
+    }?:"Null"
 }

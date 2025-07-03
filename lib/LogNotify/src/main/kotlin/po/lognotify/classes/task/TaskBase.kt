@@ -7,8 +7,6 @@ import kotlinx.coroutines.cancel
 import po.lognotify.TaskProcessor
 import po.lognotify.classes.action.ActionSpan
 import po.lognotify.classes.notification.LoggerDataProcessor
-import po.lognotify.classes.notification.enums.EventType
-import po.lognotify.classes.notification.models.TaskData
 import po.lognotify.classes.task.interfaces.ResultantTask
 import po.lognotify.classes.task.models.TaskConfig
 import po.lognotify.classes.task.result.TaskResult
@@ -39,7 +37,7 @@ sealed class TaskBase<T, R: Any?>(
     override val config: TaskConfig,
     dispatcher: TaskDispatcher,
     internal val ctx: T,
-): StaticHelper, MeasuredContext, ResultantTask<T, R>, IdentifiableClass, TaskProcessor {
+): StaticHelper, MeasuredContext, ResultantTask<T, R>, TaskProcessor {
 
     enum class TaskStatus{
         Active,
@@ -92,7 +90,7 @@ sealed class TaskBase<T, R: Any?>(
     }
 
     fun activeActionSpan():ActionSpan<*>?{
-       return actionSpans.first { it.status == ActionSpan.Status.Active }
+       return actionSpans.firstOrNull { it.status == ActionSpan.Status.Active }
     }
 
 }

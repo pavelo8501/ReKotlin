@@ -15,7 +15,7 @@ class ActionSpan<T>(
     val actionName: String,
     val taskHandler: TaskHandler<*>,
     val ctx: T,
-): TaskProcessor, IdentifiableClass where T: InlineAction {
+): TaskProcessor where T: InlineAction {
 
     enum class Status{
         Active,
