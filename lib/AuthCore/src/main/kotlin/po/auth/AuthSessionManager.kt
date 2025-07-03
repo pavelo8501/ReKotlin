@@ -10,6 +10,7 @@ import po.auth.sessions.interfaces.ManagedSession
 import po.auth.sessions.interfaces.SessionIdentified
 import po.auth.sessions.models.AuthorizedSession
 import po.lognotify.TasksManaged
+import po.misc.interfaces.IdentifiableContext
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.coroutineContext
 
@@ -17,7 +18,7 @@ import kotlin.coroutines.coroutineContext
 /**
  * Utilities for creating, accessing, and executing within session context.
  */
-object AuthSessionManager : ManagedSession, TasksManaged {
+object AuthSessionManager : ManagedSession, TasksManaged, IdentifiableContext {
 
     override val contextName: String = "AuthSessionManager"
 

@@ -18,7 +18,7 @@ data class ValidationReport(
    private  var validationName: String,
 ): PrintableBase<ValidationReport>(Header) {
 
-    override val itemId : ValueBased = toValueBased(0)
+   // override val itemId : ValueBased = toValueBased(0)
     override val emitter: Identifiable = asIdentifiable("ValidationReport", "ValidationReport")
 
     override val self: ValidationReport = this

@@ -2,7 +2,8 @@ package po.misc.data.styles
 
 
 fun String.colorize(colour: Colour): String{
-    return Colour.makeOfColour(colour, this)
+    val result = Colour.makeOfColour(colour, this)
+    return result
 }
 
 infix fun Colour.text(message: String): String{

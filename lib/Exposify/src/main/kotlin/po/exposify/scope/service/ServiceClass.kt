@@ -77,7 +77,6 @@ class ServiceClass<DTO, DATA, ENTITY>(
         }
     }
 
-
     internal fun runServiceContext(block:  ServiceContext<DTO, DATA, ENTITY>.()->Unit){
         println("Before   ServiceContext invoked (runServiceContext)")
         serviceContext.block()

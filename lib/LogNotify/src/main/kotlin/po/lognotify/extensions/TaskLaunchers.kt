@@ -72,7 +72,8 @@ inline fun <reified T: Any, R: Any?> T.runTaskBlocking(
    val receiver = this
    val result = runBlocking {
        val moduleName: String = this::class.simpleName?:config.moduleName
-       val newTask = TasksManaged.LogNotify.createHierarchyRoot<T, R>(taskName, moduleName, effectiveConfig, this@runTaskBlocking)
+       val dispatcher = TasksManaged.LogNotify.taskDispatcher
+       val newTask = dispatcher.createHierarchyRoot<T, R>(taskName, moduleName, effectiveConfig, this@runTaskBlocking)
        when(config.launcherType){
            is LauncherType.AsyncLauncher -> {
                (config.launcherType as LauncherType.AsyncLauncher).RunCoroutineHolder(newTask, config.dispatcher){
@@ -131,7 +132,8 @@ suspend inline fun <reified T: Any, R: Any?> T.runTaskAsync(
 
     val receiver = this
     val moduleName: String = this::class.simpleName ?: config.moduleName
-    val newTask = TasksManaged.LogNotify.createHierarchyRoot<T, R>(taskName, moduleName, effectiveConfig, this)
+    val dispatcher = TasksManaged.LogNotify.taskDispatcher
+    val newTask = dispatcher.createHierarchyRoot<T, R>(taskName, moduleName, effectiveConfig, this)
     return when (config.launcherType) {
         is LauncherType.AsyncLauncher -> {
             (config.launcherType as LauncherType.AsyncLauncher).RunCoroutineHolder(newTask, config.dispatcher) {
@@ -164,12 +166,13 @@ inline fun <reified T: Any, R: Any?> T.runTask(
 ): TaskResult<R> {
 
     var effectiveConfig = config
-    val rootTask = TasksManaged.LogNotify.taskDispatcher.activeRootTask()
+    val dispatcher = TasksManaged.LogNotify.taskDispatcher
+    val rootTask =  dispatcher.activeRootTask()
     if(rootTask != null && config.isDefault){
         effectiveConfig = rootTask.config
     }
     val moduleName: String = this::class.simpleName?:config.moduleName
-    val task = TasksManaged.LogNotify.createHierarchyRoot<T, R>(taskName, moduleName, effectiveConfig, this)
+    val task = dispatcher.createHierarchyRoot<T, R>(taskName, moduleName, effectiveConfig, this)
     task.start()
     val result = repeatIfFaulty(times =  config.attempts, actionOnFault = {Thread.sleep(config.delayMs)}){attempt->
         try {

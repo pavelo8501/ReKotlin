@@ -5,7 +5,7 @@ import kotlin.reflect.KClass
 
 class ClassIdentity(val componentName: String, var sourceName: String) {
     private val hashCode: Int = this.hashCode()
-    var id: Int? = null
+    var id: Long? = null
         private set
 
     val completeName: String
@@ -17,7 +17,7 @@ class ClassIdentity(val componentName: String, var sourceName: String) {
             }
         }
 
-    fun provideId(newId: Int) {
+    fun provideId(newId: Long) {
         id = newId
     }
 
@@ -26,11 +26,19 @@ class ClassIdentity(val componentName: String, var sourceName: String) {
     }
 
     companion object {
-        fun create(componentName: String, sourceObjectName: String): ClassIdentity {
-            return ClassIdentity(componentName, sourceObjectName)
+        fun create(componentName: String, sourceObjectName: String, id: Long? = null): ClassIdentity {
+            val identity = ClassIdentity(componentName, sourceObjectName)
+            if(id != null){
+                identity.provideId(id)
+            }
+            return identity
         }
 
-        fun create(componentName: String, sourceClass: KClass<*>): ClassIdentity {
+        fun create(componentName: String, sourceClass: KClass<*>, id: Long? = null): ClassIdentity {
+            val identity = ClassIdentity(componentName, sourceClass.simpleName.toString())
+            if(id != null){
+                identity.provideId(id)
+            }
             return ClassIdentity(componentName, sourceClass.simpleName.toString())
         }
     }

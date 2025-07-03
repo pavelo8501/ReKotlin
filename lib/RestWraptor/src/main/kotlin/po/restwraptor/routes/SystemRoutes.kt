@@ -16,7 +16,6 @@ import po.restwraptor.extensions.respondNotFound
 
 fun Routing.configureSystemRoutes(baseURL: String, configContext: ConfigContext) {
 
-    val taskHandler = configContext.getThisTaskHandler()
     val wraptor = configContext.wraptor
 
     val statusUrl = toUrl(baseURL, "status")

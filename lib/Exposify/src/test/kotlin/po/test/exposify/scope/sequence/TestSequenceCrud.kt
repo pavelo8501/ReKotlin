@@ -9,7 +9,6 @@ import po.auth.extensions.createDefaultIdentifier
 import po.auth.extensions.generatePassword
 import po.auth.extensions.withSessionContext
 import po.exposify.DatabaseManager
-import po.exposify.common.events.DTOEvent
 import po.exposify.dto.components.WhereQuery
 import po.exposify.scope.connection.models.ConnectionInfo
 import po.exposify.scope.sequence.extensions.runSequence
@@ -19,8 +18,10 @@ import po.exposify.scope.sequence.extensions.switchContext
 import po.exposify.scope.service.enums.TableCreateMode
 import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
-import po.lognotify.classes.notification.models.ConsoleBehaviour
-import po.test.exposify.crud.TestSelect
+import po.lognotify.classes.notification.models.NotifyConfig
+import po.lognotify.classes.task.models.TaskConfig
+import po.lognotify.extensions.runTaskAsync
+import po.misc.exceptions.HandlerType
 import po.test.exposify.scope.session.TestSessionsContext
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.Users
@@ -50,9 +51,10 @@ class TestSequenceCrud : DatabaseTest(),  TasksManaged {
     fun setup() {
 
         val loggerHandler: LogNotifyHandler = logNotify()
+
         loggerHandler.notifierConfig {
-            console = ConsoleBehaviour.MuteNoEvents
-            allowDebug(DTOEvent)
+            console = NotifyConfig.ConsoleBehaviour.MuteNoEvents
+            debugAll = NotifyConfig.DebugOptions.DebugAll
         }
         val user = User(
             id = 0,
@@ -63,7 +65,7 @@ class TestSequenceCrud : DatabaseTest(),  TasksManaged {
         )
         withConnection {
             service(UserDTO, TableCreateMode.FORCE_RECREATE) {
-                TestSelect.Companion.updatedById = update(user).getDataForced().id
+                updatedById = update(user).getDataForced().id
             }
         }
     }
@@ -136,6 +138,35 @@ class TestSequenceCrud : DatabaseTest(),  TasksManaged {
     }
 
     @Test
+    fun `Faulty impl`() = runTest {
+
+        withConnection {
+            service(PageDTO) {
+                val pages = pagesSectionsContentBlocks(pageCount = 1, sectionsCount = 2, contentBlocksCount = 4, updatedBy = updatedById)
+                update(pages)
+                sequence(PageDTO.SELECT) {
+                    switchContext(SectionDTO.UPDATE) { handler ->
+                        update(handler.inputData).toResultList()
+                    }
+                    select()
+                }
+                sequence(PageDTO.UPDATE) { handler -> update(handler.inputList) }
+            }
+        }
+        runTaskAsync("PostPages", TaskConfig(exceptionHandler = HandlerType.CancelAll)) { handler ->
+            val section = jsonToSection()
+            section.contentBlocks.forEach { println(it) }
+            println(section)
+            val id = 1L
+            val result = runSequence2(SectionDTO.UPDATE, { PageDTO.switchQuery(id) }) {
+                withData(section)
+            }.getData().first()
+        }
+    }
+
+
+
+
     fun `Update sequence as a DTO hierarchy child member`() = runTest {
 
         val pages =  pagesSectionsContentBlocks(pageCount = 1, sectionsCount = 1, contentBlocksCount = 2, updatedBy = updatedById)
@@ -154,10 +185,6 @@ class TestSequenceCrud : DatabaseTest(),  TasksManaged {
         val result = runSequence2(SectionDTO.UPDATE, { PageDTO.switchQuery(1) }) {
             withData(jsonToSection())
         }.getData().first()
-
-
-
-
     }
 
 
@@ -165,7 +192,7 @@ class TestSequenceCrud : DatabaseTest(),  TasksManaged {
 
         val loggerHandler: LogNotifyHandler = logNotify()
         loggerHandler.notifierConfig {
-            console = ConsoleBehaviour.MuteNoEvents
+            console = NotifyConfig.ConsoleBehaviour.MuteNoEvents
         }
 
         val inputUser = User(

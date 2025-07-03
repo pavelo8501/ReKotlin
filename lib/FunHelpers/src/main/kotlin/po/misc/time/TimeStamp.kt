@@ -15,8 +15,9 @@ data class ExecutionTimeStamp(val name: String, var id: String) {
         return this
     }
 
-    fun startTimer() {
+    fun startTimer():ExecutionTimeStamp {
         startTime = System.nanoTime()
+        return this
     }
 
 

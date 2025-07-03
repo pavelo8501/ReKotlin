@@ -5,7 +5,7 @@ import po.misc.data.helpers.emptyOnNull
 import po.misc.data.helpers.textIfNull
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.ManageableException
-import po.misc.exceptions.ManagedCallsitePayload
+import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.exceptions.managedException
 import po.misc.exceptions.throwManaged
 import po.misc.interfaces.IdentifiableContext
@@ -37,7 +37,7 @@ inline fun <reified T : Any, reified E: ManagedException> T?.getOrThrow(
 
 
 fun <T : Any> T?.getOrManaged(
-    payload: ManagedCallsitePayload
+    payload: ManagedCallSitePayload
 ):T {
     if(this == null){
         var message = "${payload.message}. getOrManaged returned null. ${payload.targetObject.textIfNull(""){ "Target object: ${it}"}}"

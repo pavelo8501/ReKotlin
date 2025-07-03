@@ -12,7 +12,6 @@ data class TypeRecord<T: Any>(
     val clazz: KClass<T>,
     val kType: KType,
 ){
-
     val typeKey : String = kType.toSimpleNormalizedKey()
     val simpleName : String get() = clazz.simpleName.toString()
     val qualifiedName: String get() = clazz.qualifiedName.toString()
@@ -27,5 +26,30 @@ data class TypeRecord<T: Any>(
            return TypeRecord(element, clazz, type)
         }
     }
+}
 
+
+data class TypeData<T: Any>(
+    val clazz: KClass<T>,
+    val kType: KType,
+){
+    val typeKey : String = kType.toSimpleNormalizedKey()
+    val simpleName : String get() = clazz.simpleName.toString()
+    val qualifiedName: String get() = clazz.qualifiedName.toString()
+
+    val typeName = kType.classifier
+        ?.let { it as? KClass<*> }
+        ?.simpleName
+        ?: "Unknown"
+
+    companion object{
+        inline fun <reified T: Any> createRecord():TypeData<T>{
+            return TypeData(T::class, typeOf<T>())
+        }
+
+        fun <T: Any> createRecord(clazz: KClass<T>):TypeData<T>{
+            val type =  clazz.createType()
+            return TypeData(clazz, type)
+        }
+    }
 }

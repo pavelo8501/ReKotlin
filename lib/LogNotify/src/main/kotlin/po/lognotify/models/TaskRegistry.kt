@@ -67,4 +67,10 @@ class TaskRegistry<T, R>(
     fun taskCount(): Int {
        return tasks.size + 1
     }
+
+    fun getActiveTask(): TaskBase<*, *>{
+       val found =  tasks.values.firstOrNull { it.taskStatus == TaskBase.TaskStatus.Active }
+       if(found == null){ return  hierarchyRoot }
+       return found
+    }
 }

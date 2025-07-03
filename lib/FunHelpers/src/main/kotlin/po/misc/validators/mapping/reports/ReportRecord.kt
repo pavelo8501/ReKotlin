@@ -20,7 +20,7 @@ class ReportRecordDepr internal constructor(
 ): PrintableBase<ReportRecordDepr>(GeneralTemplate){
 
 
-    override val itemId : ValueBased = toValueBased(0)
+   // override val itemId : ValueBased = toValueBased(0)
     override val emitter: Identifiable = asIdentifiable(sourceName,targetName)
 
     override val self: ReportRecordDepr = this

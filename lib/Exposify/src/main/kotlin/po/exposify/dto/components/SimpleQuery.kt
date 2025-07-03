@@ -128,12 +128,8 @@ class SwitchQuery<DTO: ModelDTO, D : DataModel, E: LongEntity>(
 
     fun resolve(executionContext: ExecutionContext<DTO, D, E>): ResultSingle<DTO, D, E> {
        return dtoClass.lookupDTO(lookUpId, CrudOperation.Pick)?.toResult(CrudOperation.Pick) ?:run {
-            if(executionContext != null){
-                executionContext.pickById(lookUpId)
-            }else{
-                val message = "Unable to find ${dtoClass.config.registry.getRecord<DTO>(SourceObject.DTO)} with id $lookUpId"
-                operationsException(message, ExceptionCode.QueryResolvedNull).toResultSingle(CrudOperation.Pick, dtoClass)
-            }
+           executionContext.pickById(lookUpId)
+
         }
     }
 

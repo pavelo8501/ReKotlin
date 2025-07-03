@@ -20,6 +20,7 @@ import po.lognotify.TasksManaged
 import po.lognotify.classes.task.TaskHandler
 import po.lognotify.extensions.runTask
 import po.misc.coroutines.CoroutineInfo
+import po.misc.interfaces.IdentifiableContext
 import po.misc.serialization.SerializerInfo
 import po.misc.types.safeCast
 import kotlin.coroutines.coroutineContext
@@ -28,7 +29,7 @@ class ConnectionClass(
     internal val databaseManager : DatabaseManager,
     val connectionInfo: ConnectionInfo,
     val connection: Database,
-): TasksManaged {
+): TasksManaged, IdentifiableContext {
 
     override val contextName: String = "ConnectionClass"
 

@@ -18,7 +18,7 @@ data class DTOClassEvent(
 ): PrintableBase<DTOClassEvent>(Success){
     override val self: DTOClassEvent = this
 
-    override val itemId: ValueBased = DTOClass
+   // override val itemId: ValueBased = DTOClass
     override val emitter: Identifiable = asIdentifiable(dtoClass.identity.sourceName, dtoClass.contextName)
 
     init {

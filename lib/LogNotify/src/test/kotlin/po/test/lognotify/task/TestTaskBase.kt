@@ -7,11 +7,9 @@ import org.junit.jupiter.api.assertAll
 import po.lognotify.TasksManaged
 import po.lognotify.classes.task.TaskHandler
 import po.lognotify.classes.task.models.TaskConfig
-import po.lognotify.extensions.runTask
 import po.lognotify.extensions.runTaskAsync
 import po.lognotify.extensions.runTaskBlocking
 import po.lognotify.extensions.subTaskAsync
-import po.lognotify.logNotify
 import po.lognotify.models.TaskDispatcher
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals

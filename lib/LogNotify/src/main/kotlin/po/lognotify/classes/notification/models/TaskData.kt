@@ -4,19 +4,19 @@ import po.lognotify.classes.task.models.TaskConfig
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.models.TaskKey
 import po.misc.data.printable.PrintableBase
-import po.misc.data.console.DebugTemplate
 import po.misc.data.console.PrintableTemplate
 import po.misc.data.helpers.emptyOnNull
+import po.misc.data.helpers.withIndention
+import po.misc.data.helpers.withMargin
 import po.misc.data.printable.PrintableCompanion
 import po.misc.data.styles.colorize
 import po.misc.data.styles.Colour
+import po.misc.data.styles.Emoji
 import po.misc.data.styles.SpecialChars
 import po.misc.data.templates.matchTemplate
 import po.misc.data.templates.templateRule
 import po.misc.interfaces.Identifiable
-import po.misc.interfaces.ValueBased
 import po.misc.interfaces.asIdentifiable
-import po.misc.interfaces.toValueBased
 import po.misc.time.ExecutionTimeStamp
 
 data class TaskData(
@@ -28,8 +28,6 @@ data class TaskData(
 ): PrintableBase<TaskData>(Message){
 
     override val self: TaskData = this
-
-    override val itemId: ValueBased= toValueBased(taskKey.taskId)
     override val emitter : Identifiable = asIdentifiable(taskKey.taskName, taskKey.moduleName)
 
     init {
@@ -73,8 +71,10 @@ data class TaskData(
             "${prefix.invoke(this, "")} ${messageFormatter.invoke(this)}"
         }
 
-        val Debug: PrintableTemplate<TaskData> = PrintableTemplate("Debug"){
-            "${prefix.invoke(this, "")} ${ message.colorize(Colour.GREEN)}"
-        }
+        val Debug: PrintableTemplate<TaskData> = PrintableTemplate("Debug", SpecialChars.NewLine.char,
+            {aux-> "${Emoji.HammerAndPick}  ${(aux.prefix?:"N/A").colorize(Colour.BLUE)}".withMargin(1,0) },
+            { message.withIndention(4," ").withMargin(0,1)}
+        )
+
     }
 }

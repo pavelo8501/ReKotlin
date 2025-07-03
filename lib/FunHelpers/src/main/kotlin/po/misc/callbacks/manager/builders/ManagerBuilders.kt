@@ -110,18 +110,6 @@ fun <E: Enum<E>, T: Any> PayloadBuilder<E, T>.bridgeFrom(
     sourcePayloadPayload.bridge(this.payload)
 }
 
-
-//firstManager.bridge(secondHolder.dispatcherPayload, firstHolder.routedPayload)
-
-//fun <E2 : Enum<E2>, T: Any> bridge(
-//    subscribingPayload: CallbackPayload<E2, T>,
-//    requiredPayload:  CallbackPayload<E, T>
-//){
-//    return requiredPayload.bridge(subscribingPayload)
-//}
-//
-//
-
 fun<E: Enum<E>> IdentifiableClass.withCallbackManager(
     manager: CallbackManager<E>,
     block : SubscriptionBuilder<E>.() -> Unit

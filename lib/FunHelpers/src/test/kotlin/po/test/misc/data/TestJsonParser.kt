@@ -2,10 +2,8 @@ package po.test.misc.data
 
 import org.junit.jupiter.api.Test
 import po.misc.data.printable.PrintableBase
-import po.misc.data.console.DebugTemplate
 import po.misc.data.console.PrintableTemplate
 import po.misc.data.helpers.emptyOnNull
-import po.misc.data.json.ElapsedTimeProvider
 import po.misc.data.json.IntDefaultProvider
 import po.misc.data.json.JasonStringSerializable
 import po.misc.data.json.JsonDelegate
@@ -40,7 +38,6 @@ class TestJsonParser {
 
         override val self: TaskDataLocal = this
 
-        override val itemId: ValueBased = toValueBased(0)
         override val emitter: Identifiable = asIdentifiable(taskName, "TestJsonParser")
         override fun toJson(): String {
             return  serialize(this)
@@ -95,7 +92,7 @@ class TestJsonParser {
                 "${prefix.invoke(this, "")} ${messageFormatter.invoke(this)}"
             }
 
-            val Debug: DebugTemplate<TaskDataLocal> = DebugTemplate {
+            val Debug: PrintableTemplate<TaskDataLocal> = PrintableTemplate("Debug") {
                 "${prefix.invoke(this, "")} ${message.colorize(Colour.GREEN)}"
             }
         }
@@ -104,7 +101,6 @@ class TestJsonParser {
     data class ValidationRep(
         var validationName: String
     ): PrintableBase<ValidationRep>(Main), JasonStringSerializable {
-        override val itemId: ValueBased = toValueBased(0)
         override val emitter: Identifiable = asIdentifiable("ValidationReport", "ValidationReport")
         override val self: ValidationRep = this
         override fun toJson(): String {

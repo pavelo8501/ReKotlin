@@ -78,17 +78,6 @@ sealed class CallbackPayloadBase<E: Enum<E>, T, R>(
         }
     }
 
-//    fun <E2: Enum<E2>, T2: Any> bridge(
-//        subscriber: IdentifiableClass,
-//        payload: CallbackPayloadBase<E2, T2, Unit>,
-//        dataAdapter: (T2)->T,
-//    ): CallableContainer<T>?{
-//       val foundContainer =   containers.values.firstOrNull  { it.subscriber == subscriber}
-//       return foundContainer?.let {container->
-//            val createdContainer = payload.subscribeRouted(container.subscriber, dataAdapter, container.callback)
-//            createdContainer.addHopInfo(manager.emitter,  container)
-//        }
-//    }
     private fun createSubscription(subscriber: IdentifiableClass, expires: Int,  function: (Containable<T>)-> Unit){
         newSubscription(subscriber)
         val newContainer = CallbackContainer(this, subscriber, expires, function)

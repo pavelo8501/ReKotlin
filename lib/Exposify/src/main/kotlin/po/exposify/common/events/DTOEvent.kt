@@ -8,6 +8,7 @@ import po.misc.data.console.PrintableTemplate
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.PrintableCompanion
 import po.misc.interfaces.Identifiable
+import po.misc.interfaces.IdentifiableContext
 import po.misc.interfaces.ValueBased
 
 data class DTOEvent(
@@ -17,15 +18,15 @@ data class DTOEvent(
 ): PrintableBase<DTOEvent>(Debug){
     override val self: DTOEvent = this
 
-    override val itemId: ValueBased = DTOClass
-    override val emitter: Identifiable = tracker
+   // override val itemId: ValueBased = DTOClass
+    override val emitter:  IdentifiableContext = tracker
     val currentOperation: CrudOperation get(){
       return  tracker.activeRecord.operation
     }
 
     companion object: PrintableCompanion<DTOEvent>({DTOEvent::class}){
         fun prefix(data:DTOEvent): String{
-            return "DTO: ${data.tracker.completeName}"
+            return data.tracker.completeName
         }
 
         val Stats : PrintableTemplate<DTOEvent> = PrintableTemplate("Stats"){

@@ -6,9 +6,8 @@ import kotlin.reflect.KClass
 
 abstract class PrintableCompanion<T : PrintableBase<T>>(private val classProvider: ()-> KClass<T>) {
 
-
     private var typeKeyBacking: StaticTypeKey<T>? = null
-    val  typeKey: StaticTypeKey<T> get() = typeKeyBacking.getOrManaged("typeKey")
+    val typeKey: StaticTypeKey<T> get() = typeKeyBacking.getOrManaged("typeKey")
 
     val metaDataInitialized: Boolean
         get() = typeKeyBacking != null

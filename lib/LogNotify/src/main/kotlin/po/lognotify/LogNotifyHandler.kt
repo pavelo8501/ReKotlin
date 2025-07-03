@@ -10,5 +10,4 @@ class LogNotifyHandler internal constructor(val dispatcher: TaskDispatcher) {
     fun notifierConfig(block: NotifyConfig.()-> Unit){
         notifierHub.sharedConfig.block()
     }
-
 }

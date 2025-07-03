@@ -6,13 +6,13 @@ import po.auth.sessions.enumerators.SessionType
 import po.auth.sessions.interfaces.SessionIdentified
 import po.auth.sessions.models.AuthorizedSession
 import po.lognotify.TasksManaged
+import po.misc.interfaces.IdentifiableContext
 import java.util.concurrent.ConcurrentHashMap
 
 class SessionFactory(
     private val manager: AuthSessionManager,
     private  val internalStorage : ConcurrentHashMap<String, String>
-) : TasksManaged
-{
+) : TasksManaged, IdentifiableContext {
     override val contextName: String = "SessionFactory"
 
     private val activeSessions : ConcurrentHashMap<String, AuthorizedSession> = ConcurrentHashMap<String, AuthorizedSession>()

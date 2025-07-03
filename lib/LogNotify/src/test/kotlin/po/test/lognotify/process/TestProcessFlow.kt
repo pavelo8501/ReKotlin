@@ -7,7 +7,6 @@ import po.auth.extensions.session
 import po.auth.sessions.interfaces.SessionIdentified
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.runTask
-import po.lognotify.logNotify
 import po.lognotify.process.runProcess
 
 class TestProcessFlow() : TasksManaged {

@@ -44,7 +44,7 @@ class TestPrintableBase: DateHelper {
         override val self: Item = this
 
         override val emitter: Identifiable = asIdentifiable(personalName, componentName)
-        override val itemId: ValueBased = toValueBased(0)
+      //  override val itemId: ValueBased = toValueBased(0)
 
         companion object: PrintableCompanion<Item>({Item::class}){
 
@@ -71,7 +71,7 @@ class TestPrintableBase: DateHelper {
 
         override val self: Item2 = this
         override val emitter: Identifiable = asIdentifiable(personalName, componentName)
-        override val itemId: ValueBased = toValueBased(0)
+       // override val itemId: ValueBased = toValueBased(0)
 
         companion object: PrintableCompanion<Item2>({Item2::class}){
             val Template2: PrintableTemplate<Item2> = PrintableTemplate<Item2>("Template2"){

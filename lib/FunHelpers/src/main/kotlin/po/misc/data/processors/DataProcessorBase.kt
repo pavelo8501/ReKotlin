@@ -67,8 +67,10 @@ abstract class DataProcessorBase<T:PrintableBase<T>>(
         hooks.onDebugListUpdated?.invoke(debugWhiteList)
     }
 
-    fun <T: PrintableBase<T>> debugData(arbitraryRecord: T, printableClass: PrintableCompanion<T>, template: PrintableTemplateBase<T>, debuggable:(T)-> Unit){
-        arbitraryRecord.defaultTemplate = template
+    fun <T: PrintableBase<T>> debugData(arbitraryRecord: T, printableClass: PrintableCompanion<T>, template: PrintableTemplateBase<T>?, debuggable:(T)-> Unit){
+        if(template != null){
+            arbitraryRecord.defaultTemplate = template
+        }
         if(debugWhiteList.contains(printableClass.typeKey.hashCode())){
             debuggable.invoke(arbitraryRecord)
         }

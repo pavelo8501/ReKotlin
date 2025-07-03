@@ -13,9 +13,8 @@ interface Identifiable: IdentifiableContext{
 
 interface IdentifiableClass : IdentifiableContext {
     val identity: ClassIdentity
-    val completeName: String get()= "${identity.componentName}[${identity.sourceName}]"
+    val completeName: String get()= identity.completeName
     override  val contextName: String get() = identity.componentName
-  // override  val contextName: String get() = completeName
 }
 
 interface ObservedContext: IdentifiableContext{

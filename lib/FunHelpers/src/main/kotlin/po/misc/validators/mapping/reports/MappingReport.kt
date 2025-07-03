@@ -12,13 +12,14 @@ import po.misc.validators.general.models.CheckStatus
 import po.misc.validators.mapping.models.CheckBase
 import po.misc.validators.mapping.models.ValidationSubject
 
+
 data class MappingReportDepr(
     val checkType: CheckBase<*>,
     val dataSourceKey: ValueBased,
     val tester: ValidationSubject<*>?,
 ): PrintableBase<MappingReportDepr>(Header) {
 
-    override val itemId : ValueBased = dataSourceKey
+    //override val itemId : ValueBased = dataSourceKey
     override val emitter: Identifiable = checkType.component
 
     override val self: MappingReportDepr = this

@@ -31,7 +31,7 @@ class TestLogProxy: IdentifiableContext {
     ): PrintableBase<TopDataItem>(TopTemplate){
         override val self: TopDataItem = this
         override val emitter: Identifiable = asIdentifiable(personalName, componentName)
-        override val itemId: ValueBased = toValueBased(id)
+
         companion object{
             val TopTemplate: PrintableTemplate<TopDataItem> = PrintableTemplate("TopTemplate"){"TopTemplate->$content"}
         }
@@ -45,7 +45,6 @@ class TestLogProxy: IdentifiableContext {
 
         override val self: ArbitraryData = this
         override val emitter: Identifiable = asIdentifiable(personalName, componentName)
-        override val itemId: ValueBased = toValueBased(0)
 
         companion object{
             val Template2: PrintableTemplate<ArbitraryData> = PrintableTemplate<ArbitraryData>("ArbitraryData"){
@@ -54,18 +53,16 @@ class TestLogProxy: IdentifiableContext {
         }
     }
 
-    val dataProcessor: DataProcessor<TopDataItem> = DataProcessor()
+    val dataProcessor: DataProcessor<TopDataItem> = DataProcessor(null)
 
     @Test
     fun `Log proxy forward data to processor`(){
         val warning = printableProxy(this, Template2){
-            val data = ArbitraryData(contextName, "TestLogProxy", it)
+            val data = ArbitraryData(contextName, "TestLogProxy", it.message)
             dataProcessor.logData(data, data.defaultTemplate)
         }
 
-        val processed = warning.logMessage("test str")
-        assertEquals("test str",  processed.message)
-
+        warning.logMessage("test str")
         var received  : PrintableBase<*>? = null
         dataProcessor.hooks.arbitraryDataReceived {
             it.echo()

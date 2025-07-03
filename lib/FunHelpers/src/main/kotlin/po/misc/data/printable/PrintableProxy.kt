@@ -23,7 +23,7 @@ class PrintableProxy<T: Any, D: PrintableBase<D>>(
     }
 }
 
-fun<T: Any, D: PrintableBase<D>>  IdentifiableContext.printableProxy(
+fun <T: Any, D: PrintableBase<D>>  IdentifiableContext.printableProxy(
     holder:T,
     defaultTemplate: PrintableTemplate<D>,
     dataBuilder: T.(ProxyParams<D>)->Unit

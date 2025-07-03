@@ -11,6 +11,8 @@ import po.exposify.dto.components.bindings.interfaces.DelegateInterface
 import po.exposify.dto.components.bindings.interfaces.ForeignDelegateInterface
 import po.exposify.dto.helpers.toDto
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.exceptions.throwInit
 import po.exposify.extensions.castOrInit
 import po.exposify.extensions.getOrOperations
 import po.misc.data.SmartLazy
@@ -98,10 +100,10 @@ class AttachedForeignDelegate<DTO, D, E, F_DTO, FD, FE>(
         val pickResult = foreignClass.serviceContext.pickById(id)
         pickResult.getDTO()?.let { foreignDTO ->
             foreignDTOParameter = pickResult.getAsCommonDTOForced()
-
             foreignDTOCallback.invoke(foreignDTO)
         }?:run {
             hostingDTO.logger.warn("AttachedForeign dto lookup failure. No DTO with id:${id}")
+            throwInit("AttachedForeign DTO ${foreignClass} lookup failure. No DTO with id:${id}", ExceptionCode.BAD_DTO_SETUP, this)
         }
     }
 

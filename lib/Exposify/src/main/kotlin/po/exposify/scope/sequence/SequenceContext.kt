@@ -15,13 +15,14 @@ import po.exposify.scope.sequence.classes.SequenceHandlerBase
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.subTask
 import po.misc.coroutines.CoroutineInfo
+import po.misc.interfaces.IdentifiableContext
 import kotlin.coroutines.coroutineContext
 
 
 class SequenceContext<DTO, D, E>(
     internal val sequenceHandler: SequenceHandlerBase<DTO, D, E>,
     private val executionContext: ExecutionContext<DTO, D, E>,
-    val runInfo : SequenceRunInfo):TasksManaged where  DTO : ModelDTO, D : DataModel, E: LongEntity
+    val runInfo : SequenceRunInfo):TasksManaged, IdentifiableContext where  DTO : ModelDTO, D : DataModel, E: LongEntity
 {
 
     override val contextName: String = "SequenceContext"

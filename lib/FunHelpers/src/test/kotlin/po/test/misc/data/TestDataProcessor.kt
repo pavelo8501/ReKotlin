@@ -26,7 +26,7 @@ class TestDataProcessor {
         override val self: TopDataItem = this
 
         override val emitter: Identifiable = asIdentifiable(personalName, componentName)
-        override val itemId: ValueBased = toValueBased(id)
+    //    override val itemId: ValueBased = toValueBased(id)
 
         companion object: PrintableCompanion<TopDataItem>({TopDataItem::class}){
             val TopTemplate: PrintableTemplate<TopDataItem> = PrintableTemplate("TopTemplate"){"TopTemplate->$content"}
@@ -44,7 +44,7 @@ class TestDataProcessor {
         override val self: SubData = this
 
         override val emitter: Identifiable = asIdentifiable(personalName, componentName)
-        override val itemId: ValueBased = toValueBased(id)
+       // override val itemId: ValueBased = toValueBased(id)
 
         companion object:PrintableCompanion<SubData>({SubData::class}){
             val SubTemplate: PrintableTemplate<SubData> = PrintableTemplate("SubTemplate"){"Template1->$content"}

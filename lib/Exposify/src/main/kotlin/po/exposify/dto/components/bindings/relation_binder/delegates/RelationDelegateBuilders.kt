@@ -5,13 +5,8 @@ import org.jetbrains.exposed.sql.SizedIterable
 import po.exposify.dto.DTOClass
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.RootDTO
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.dto.models.SourceObject
 import po.exposify.extensions.castOrInit
-import po.lognotify.classes.task.models.TaskConfig
-import po.lognotify.extensions.subTask
-import po.misc.types.TypeRecord
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
 
@@ -22,13 +17,11 @@ inline fun <DTO, DATA, ENTITY, reified F_DTO, CD,  FE> CommonDTO<DTO, DATA, ENTI
     ownEntity: KMutableProperty1<ENTITY, FE>,
     foreignEntity: KMutableProperty1<FE, ENTITY>
 ): OneToOneDelegate<DTO, DATA, ENTITY, F_DTO, CD, FE>
-        where DATA:DataModel, ENTITY : LongEntity, DTO : ModelDTO, F_DTO: ModelDTO,  CD: DataModel, FE: LongEntity
-        = subTask("oneToOneOf", TaskConfig(actor = this.completeName)){
-
+    where DATA:DataModel, ENTITY : LongEntity, DTO : ModelDTO, F_DTO: ModelDTO,  CD: DataModel, FE: LongEntity
+{
     val castedOwnDataModel = ownDataModel.castOrInit<KMutableProperty1<DATA, CD>>()
-    val bindingDelegate = OneToOneDelegate(this, childClass, castedOwnDataModel, ownEntity, foreignEntity)
-    bindingDelegate
-}.resultOrException()
+    return OneToOneDelegate(this, childClass, castedOwnDataModel, ownEntity, foreignEntity)
+}
 
 
 /**
@@ -50,11 +43,9 @@ fun <DTO, DATA, ENTITY, F_DTO, FD,  FE> CommonDTO<DTO, DATA, ENTITY>.oneToManyOf
     ownEntities: KProperty1<ENTITY, SizedIterable<FE>>,
     foreignEntity: KMutableProperty1<FE, ENTITY>
 ): OneToManyDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>
-        where  DTO : ModelDTO, DATA:DataModel, ENTITY : LongEntity, F_DTO: ModelDTO,  FD: DataModel, FE: LongEntity
- = subTask("oneToManyOf", TaskConfig(actor = this.completeName)) {
-
+    where  DTO : ModelDTO, DATA:DataModel, ENTITY : LongEntity, F_DTO: ModelDTO,  FD: DataModel, FE: LongEntity
+{
     val castedOwnDataModels = ownDataModels.castOrInit<KProperty1<DATA, MutableList<FD>>>()
-    val bindingDelegate = OneToManyDelegate(this, childClass, castedOwnDataModels, ownEntities, foreignEntity)
-    bindingDelegate
-}.resultOrException()
+    return OneToManyDelegate(this, childClass, castedOwnDataModels, ownEntities, foreignEntity)
+}
 

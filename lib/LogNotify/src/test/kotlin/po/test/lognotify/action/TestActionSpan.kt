@@ -3,6 +3,7 @@ package po.test.lognotify.action
 import org.junit.jupiter.api.Test
 import po.lognotify.TasksManaged
 import po.lognotify.classes.action.InlineAction
+import po.lognotify.classes.action.runInlineAction
 import po.lognotify.extensions.runTask
 import po.misc.interfaces.ClassIdentity
 import po.misc.interfaces.IdentifiableClass
@@ -24,7 +25,7 @@ class TestActionSpan: TasksManaged {
           return "Produced:${counter}"
        }
 
-        fun method1() : String = runInlineAction("method1", this){
+        fun method1() : String = runInlineAction("method1"){
             privateMethod()
         }
     }

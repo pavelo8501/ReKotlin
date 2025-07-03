@@ -2,12 +2,11 @@ package po.misc.types
 
 import po.misc.data.helpers.emptyOnNull
 import po.misc.exceptions.HandlerType
-import po.misc.exceptions.ManageableException
+import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.throwManaged
 import po.misc.interfaces.IdentifiableContext
 import kotlin.reflect.KClass
-import kotlin.reflect.KType
 import kotlin.reflect.cast
 
 
@@ -32,6 +31,25 @@ inline fun <reified BASE : Any> Any?.safeBaseCast(): BASE? {
         else -> null
     }
 }
+
+
+inline fun <reified T: Any> Any?.castOrManaged(
+    payload: ManagedCallSitePayload
+): T {
+    if(this == null){
+        payload.message = "Unable to cast null to ${T::class.simpleName}"
+        throwManaged(payload)
+    }else{
+        val result =  this as? T
+        if(result != null){
+            return result
+        }else{
+            payload.message = "Unable to cast ${this::class.simpleName} to  ${T::class.simpleName}"
+            throwManaged(payload)
+        }
+    }
+}
+
 
 inline fun <reified T: Any> Any?.castOrManaged(
     message: String? = null,

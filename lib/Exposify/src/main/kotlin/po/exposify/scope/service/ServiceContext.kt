@@ -5,6 +5,7 @@ import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.name
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import po.exposify.common.events.ContextEvent
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.common.interfaces.AsContext
 import po.exposify.dto.RootDTO
@@ -23,22 +24,28 @@ import po.lognotify.anotations.LogOnFault
 import po.lognotify.classes.task.result.onFailureCause
 import po.lognotify.extensions.runTask
 import po.lognotify.extensions.runTaskBlocking
+import po.misc.data.printable.printableProxy
 import po.misc.exceptions.toManageable
+import po.misc.interfaces.ClassIdentity
+import po.misc.interfaces.IdentifiableClass
 import po.misc.interfaces.IdentifiableContext
 
 class ServiceContext<DTO, DATA, ENTITY>(
     @PublishedApi internal  val serviceClass : ServiceClass<DTO, DATA, ENTITY>,
     internal val dtoClass: RootDTO<DTO, DATA, ENTITY>,
-): TasksManaged, IdentifiableContext,  AsContext<DATA>  where DTO : ModelDTO, DATA: DataModel,  ENTITY: LongEntity {
-
-    private val dbConnection: Database get() = serviceClass.connection
-
-    override val contextName: String = "ServiceContext"
-
-    @LogOnFault
-    val personalName: String = "ServiceContext[${dbConnection.name}]"
+): TasksManaged, IdentifiableClass where DTO : ModelDTO, DATA: DataModel,  ENTITY: LongEntity {
 
     private val executionProvider: ExecutionProvider<DTO, DATA, ENTITY> by lazy { ExecutionProvider(dtoClass) }
+    private val dbConnection: Database get() = serviceClass.connection
+    override val contextName: String = "ServiceContext"
+    override val identity: ClassIdentity = ClassIdentity.create("ServiceContext", serviceClass.completeName)
+
+
+    val debug = printableProxy( ContextEvent.Debug){
+
+        ContextEvent(this@ServiceContext, "", it.message)
+    }
+
 
     fun truncate() = runTaskBlocking("Truncate") { handler ->
         newSuspendedTransaction {
@@ -55,8 +62,10 @@ class ServiceContext<DTO, DATA, ENTITY>(
         val a = it
     }.resultOrException()
 
-    fun pick(conditions: SimpleQuery): ResultSingle<DTO, DATA, ENTITY>
-        = runTask("Pick by conditions") {handler->
+    fun pick(conditions: SimpleQuery): ResultSingle<DTO, DATA, ENTITY> =
+        runTask("Pick by conditions") {handler->
+        debug.logMessage()
+
         withTransactionIfNone(handler){
             executionProvider.pick(conditions)
         }

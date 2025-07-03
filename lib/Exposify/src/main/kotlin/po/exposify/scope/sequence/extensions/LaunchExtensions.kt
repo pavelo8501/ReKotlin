@@ -53,7 +53,7 @@ suspend fun <DTO: ModelDTO, D: DataModel, E : LongEntity, F_DTO: ModelDTO, FD : 
     handlerDelegate: SwitchHandlerProvider<DTO, D, E, F_DTO, FD, FE>,
     switchQueryProvider: ()-> SwitchQuery<F_DTO, FD, FE>,
     configBuilder: (ClassHandlerConfig<DTO, D, E, F_DTO, FD, FE>.()-> Unit)? = null
-): ResultList<DTO, D, E> {
+) : ResultList<DTO, D, E> {
     val classHandler = handlerDelegate.createHandler(switchQueryProvider)
     configBuilder?.invoke(classHandler.handlerConfig)
     if(classHandler.handlerConfig.rootHandlerParameter == null){
@@ -67,6 +67,7 @@ suspend fun <DTO: ModelDTO, D: DataModel, E : LongEntity, F_DTO: ModelDTO, FD : 
     val emitter = classHandler.handlerConfig.rootHandler.dtoRoot.getServiceClass().requestEmitter(session)
     return emitter.dispatch {
         val runnableContext = RunnableContext.runInfo(session)
+
         classHandler.handlerConfig.onStartCallback?.invoke(runnableContext)
         classHandler.handlerConfig.rootHandler.launch(runnableContext)
         val result = classHandler.finalResult
@@ -78,8 +79,7 @@ suspend fun <DTO: ModelDTO, D: DataModel, E : LongEntity, F_DTO: ModelDTO, FD : 
 fun <DTO, D, E, F_DTO, FD, FE>  ClassHandlerConfig<DTO, D, E, F_DTO, FD, FE>.usingRoot(
     handlerDelegate : RootHandlerProvider<F_DTO, FD, FE>,
     configBuilder: RootHandlerConfig<F_DTO, FD, FE>.()-> Unit
-) where  DTO: ModelDTO, D: DataModel, E: LongEntity,
-         F_DTO: ModelDTO, FD : DataModel, FE : LongEntity
+) where  DTO: ModelDTO, D: DataModel, E: LongEntity, F_DTO: ModelDTO, FD : DataModel, FE : LongEntity
 {
     val newRootHandler = handlerDelegate.createHandler()
     configBuilder.invoke(newRootHandler.handlerConfig)
@@ -90,8 +90,7 @@ fun <DTO, D, E, F_DTO, FD, FE>  RootHandlerConfig<DTO, D, E>.usingSwitch(
     switchHandlerProvider : SwitchHandlerProvider<F_DTO, FD, FE, DTO, D, E>,
     switchQueryProvider : ()-> SwitchQuery<DTO, D, E>,
     configBuilder: ClassHandlerConfig<F_DTO, FD, FE, DTO, D, E>.()-> Unit
-) where  DTO: ModelDTO, D: DataModel, E: LongEntity,
-         F_DTO: ModelDTO, FD : DataModel, FE : LongEntity
+) where  DTO: ModelDTO, D: DataModel, E: LongEntity, F_DTO: ModelDTO, FD : DataModel, FE : LongEntity
 {
     val newSwitchHandler = switchHandlerProvider.createHandler(switchQueryProvider)
     configBuilder.invoke(newSwitchHandler.handlerConfig)

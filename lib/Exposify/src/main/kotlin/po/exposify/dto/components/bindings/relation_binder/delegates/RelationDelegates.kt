@@ -24,6 +24,7 @@ import po.lognotify.classes.action.runInlineAction
 import po.misc.data.SmartLazy
 import po.misc.interfaces.IdentifiableClass
 import po.misc.interfaces.asIdentifiableClass
+import po.misc.lookups.HierarchyNode
 import po.misc.types.TypeRecord
 import po.misc.types.castOrThrow
 import kotlin.reflect.KMutableProperty1
@@ -56,7 +57,7 @@ sealed class RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V: Any>(
     protected val childType : TypeRecord<F_DTO> get() = foreignClass.dtoType
 
     abstract fun getEffectiveValue():V
-    protected abstract fun getChildDTOs(): List<CommonDTO<F_DTO, FD, FE>>
+    abstract fun getChildDTOs(): List<CommonDTO<F_DTO, FD, FE>>
     abstract fun getPropertyData(data:DATA):List<FD>
     abstract fun getEntityData(entity:ENTITY):List<FE>
     protected abstract fun saveDto(dto:CommonDTO<F_DTO, FD, FE>, updateData: Boolean = false)
@@ -82,6 +83,13 @@ sealed class RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V: Any>(
     override fun updateStatus(status: DelegateStatus) {
         this.status = status
     }
+
+//    fun resolveHierarchy(): HierarchyNode<CommonDTO<*,*,*>>{
+//
+//
+//        val childNodes = getChildDTOs().map { it.bindingHub.buildHierarchyTree() }
+//        return  HierarchyNode(hostingClass.dtoType, getChildDTOs(), childNodes)
+//    }
 
     fun updateBy(data:DATA) = runInlineAction("updateByData") {
         val childDtoList = getChildDTOs()

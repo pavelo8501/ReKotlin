@@ -4,13 +4,11 @@ package po.test.lognotify.messaging
 import org.junit.jupiter.api.Test
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.NotifierHub
-import po.lognotify.classes.notification.enums.EventType
 import po.lognotify.classes.notification.models.TaskData
 import po.lognotify.classes.task.models.TaskConfig
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.extensions.runTask
 import po.lognotify.extensions.subTask
-import po.lognotify.logNotify
 import po.misc.data.printable.PrintableBase
 import po.misc.exceptions.ManagedException
 import po.misc.interfaces.Identifiable
@@ -39,7 +37,7 @@ class TestTaskNotifications : TasksManaged, Identifiable {
         notifications.clear()
 
         handler.notifierConfig {
-            showDebugInfo(TaskData.Debug)
+            allowDebug(TaskData)
         }
         runTask("RootTaskWithDebug"){
 

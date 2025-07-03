@@ -8,11 +8,11 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.ValueBased
 
-interface ObservableData : Identifiable{
-    val id: Long
-    val operation : CrudOperation
-    val methodName: String
-    val propertyName: String
-    val oldValue: Any?
-    val newValue: Any
-}
+//interface ObservableData{
+//    val id: Long
+//    val operation : CrudOperation
+//    val methodName: String
+//    val propertyName: String
+//    val oldValue: Any?
+//    val newValue: Any
+//}

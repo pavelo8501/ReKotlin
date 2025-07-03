@@ -21,11 +21,12 @@ import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.throwOperations
 import po.lognotify.classes.task.TaskHandler
+import po.misc.interfaces.IdentifiableContext
 
 
 class ExecutionProvider<DTO, DATA, ENTITY>(
     override val dtoClass: DTOBase<DTO, DATA, ENTITY>,
-):  ExecutionContext<DTO, DATA, ENTITY> where  DTO  : ModelDTO , DATA : DataModel, ENTITY: LongEntity {
+):  ExecutionContext<DTO, DATA, ENTITY>, IdentifiableContext where  DTO  : ModelDTO , DATA : DataModel, ENTITY: LongEntity {
 
     override val contextName: String = "ExecutionProvider"
 

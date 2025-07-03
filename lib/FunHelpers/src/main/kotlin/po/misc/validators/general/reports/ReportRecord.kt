@@ -26,7 +26,7 @@ class ReportRecord internal constructor(
     var message: String? = null
         private set
 
-    override val itemId: ValueBased = toValueBased(0)
+   // override val itemId: ValueBased = toValueBased(0)
     override val emitter: Identifiable = asIdentifiable(recordName, checkName)
 
     override val self: ReportRecord = this

@@ -1,10 +1,13 @@
 package po.lognotify.models
 
+import po.lognotify.TasksManaged.LogNotify.defaultContext
+import po.lognotify.TasksManaged.LogNotify.taskDispatcher
 import po.lognotify.classes.notification.NotifierHub
 import po.lognotify.classes.task.RootTask
 import po.lognotify.classes.task.TaskBase
 import po.lognotify.classes.task.interfaces.ResultantTask
 import po.lognotify.classes.task.interfaces.UpdatableTasks
+import po.lognotify.classes.task.models.TaskConfig
 import po.misc.callbacks.manager.CallbackManager
 import po.misc.callbacks.manager.Containable
 import po.misc.callbacks.manager.builders.callbackManager
@@ -49,12 +52,40 @@ class TaskDispatcher(val notifierHub: NotifierHub) : UpdatableTasks, Identifiabl
         }
     }
 
+    private fun createDefaultTask(): RootTask<TaskDispatcher, Unit> {
+        val task = createHierarchyRoot<TaskDispatcher, Unit>("Default", "LogNotify", TaskConfig(), this)
+        val warningMessage =
+            """No active tasks in context, taskHandler() has created a default task to avoid crash.
+        Make sure that logger tasks were started before calling this method.
+        """.trimMargin()
+        task.dataProcessor.warn(warningMessage)
+        return task
+    }
+
+    @PublishedApi
+    internal fun <T, R> createHierarchyRoot(
+        name: String,
+        moduleName: String,
+        config: TaskConfig,
+        receiver:T
+    ): RootTask<T, R>
+    {
+        val newTask = RootTask<T, R>(TaskKey(name, 0, moduleName), config, defaultContext(name), taskDispatcher, receiver)
+        taskDispatcher.addRootTask(newTask)
+        return newTask
+    }
+
 
     internal val taskHierarchy = ConcurrentHashMap<TaskKey, RootTask<*, *>>()
    // internal val callbackRegistry : MutableMap<UpdateType, (LoggerStats)-> Unit> = mutableMapOf()
 
-    internal fun getTasks(): List<TaskBase<*,*>>{
+    internal fun getTasks(): List<TaskBase<*, *>>{
         return taskHierarchy.values.toList()
+    }
+
+    internal fun getActiveTasks(): TaskBase<*, *>{
+       val activeRootTask =  taskHierarchy.values.firstOrNull { it.taskStatus == TaskBase.TaskStatus.Active }
+       return activeRootTask?.registry?.getActiveTask() ?: createDefaultTask()
     }
 
     fun onTaskCreated(handler: UpdateType, callback: (Containable<LoggerStats>) -> Unit) {

@@ -4,6 +4,7 @@ import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
 import po.exposify.dto.components.tracker.CrudOperation
+import po.exposify.dto.components.tracker.DTOTracker
 import po.exposify.dto.components.tracker.extensions.TrackableDTONode
 import po.exposify.dto.components.tracker.extensions.collectTrackerTree
 import po.exposify.dto.components.tracker.interfaces.TrackableDTO
@@ -65,6 +66,10 @@ class ResultList<DTO, D, E> internal constructor(
         }
     }
 
+    fun getTrackers(): List<DTOTracker<DTO, D>>{
+        return result.map { it.tracker }
+    }
+
     internal fun getAsCommonDTO(): List<CommonDTO<DTO, D, E>> {
         return result
     }
@@ -122,20 +127,14 @@ class ResultSingle<DTO, D, E> internal constructor(
         return result as DTO
     }
 
-    fun getTrackerInfo(): TrackableDTO {
-        return result.getOrOperations().tracker.collectTrackers()
-    }
-
-    fun getTrackerTree(): TrackableDTONode {
-        return result.getOrOperations().tracker.collectTrackerTree()
+    fun getTracker():DTOTracker<DTO, D>?{
+        return result?.tracker
     }
 
     fun setWarningMessage(message: String): ResultSingle<DTO, D, E> {
         resultMessage = message
         return this
     }
-
-
 
     fun toResultList(): ResultList<DTO, D, E> {
         val transform = ResultList(dtoClass)

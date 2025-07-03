@@ -41,26 +41,6 @@ class TestDTOConfiguration : DatabaseTest(), IdentifiableClass {
         var userId: Long = 0
     }
 
-
-//
-//    fun `DTO classes properly initialized `() {
-//
-//        fun onInitialized(dto: Containable<DTOBase<PageDTO, Page, PageEntity>>){
-//            val pageDTOClass  = assertIs<PageDTO.Companion>(dto.getData())
-//            assertEquals(DTOClassStatus.Initialized, pageDTOClass.status, "Root DTO uninitialized")
-//            assertEquals(DTOClassStatus.Initialized, SectionDTO.status, "SectionDTO uninitialized")
-//            assertEquals(DTOClassStatus.Initialized, ContentBlockDTO.status, "ContentBlockDTO uninitialized")
-//        }
-//
-//        PageDTO.onInitialized.request(this, ::onInitialized)
-//
-//        withConnection {
-//            service(PageDTO) {
-//
-//            }
-//        }
-//    }
-
     @Test
     fun `Validator reports fails when missing init`() {
         val exception = assertThrows<InitException> {
@@ -76,8 +56,6 @@ class TestDTOConfiguration : DatabaseTest(), IdentifiableClass {
     @Test
     fun `Happy path validator reports all green`() {
         startTestConnection()
-
-
         fun onInitialized(dto: Containable<DTOBase<PageDTO, Page, PageEntity>>){
             val pageDTOClass  = assertIs<PageDTO.Companion>(dto.getData())
             assertEquals(DTOClassStatus.Initialized, pageDTOClass.status, "Root DTO uninitialized")

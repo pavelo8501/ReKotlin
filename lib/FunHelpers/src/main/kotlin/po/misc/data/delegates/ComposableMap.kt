@@ -3,7 +3,6 @@ package po.misc.data.delegates
 import po.misc.collections.StaticTypeKey
 import po.misc.data.anotation.Composable
 import po.misc.reflection.objects.Composed
-import po.misc.reflection.objects.ObjectManager
 import po.misc.reflection.properties.PropertyIO
 import po.misc.reflection.properties.SourcePropertyIO
 import po.misc.reflection.properties.createPropertyIO

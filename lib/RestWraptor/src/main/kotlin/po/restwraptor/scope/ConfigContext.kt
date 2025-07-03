@@ -15,7 +15,6 @@ import po.auth.models.CryptoRsaKeys
 import po.lognotify.TasksManaged
 import po.lognotify.classes.task.TaskHandler
 import po.lognotify.extensions.subTask
-import po.lognotify.lastTaskHandler
 import po.restwraptor.RestWrapTor
 import po.restwraptor.models.configuration.ApiConfig
 import po.restwraptor.models.configuration.AuthConfig
@@ -118,9 +117,7 @@ class ConfigContext(
         return app
     }
 
-    internal fun getThisTaskHandler(): TaskHandler<*>{
-        return lastTaskHandler()
-    }
+
 
    // private var userLookupFn: (suspend(login: String)-> AuthenticationPrincipal?)? = null
     private var authConfigFn:  (suspend AuthConfigContext.()-> Unit)? = null

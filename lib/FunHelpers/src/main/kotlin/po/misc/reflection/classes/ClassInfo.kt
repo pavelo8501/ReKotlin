@@ -27,47 +27,50 @@ data class TypeTraits(
     val isAbstract: Boolean
 )
 
-data class ClassInfo(
+data class ClassInfo<T: Any?>(
     val classRole :ClassRole,
     val simpleName: String,
     val traits : TypeTraits,
 ) {
     val implementationMap = mutableMapOf<String, Boolean>()
 
-    fun <T: Any> implements(receiver:T,   superClass: KClass<*>) {
+    fun <I: Any> implements(receiver:I, superClass: KClass<*>) {
         val result = receiver::class.isSubclassOf(superClass)
         implementationMap[superClass.simpleName.toString()] = result
     }
+
+    fun canSubstituteWithNull(): Boolean{
+        return traits.isUnit || traits.isNullable
+    }
 }
 
-fun overallInfoFromType(
+fun <T: Any?> overallInfoFromType(
     role: ClassRole,
-    type: KType,
-    traits : TypeTraits
-): ClassInfo {
+    type: KType
+): ClassInfo<T> {
     val kClass = type.classifier as? KClass<*> ?: throw IllegalStateException("Unsupported type classifier")
     return ClassInfo(
         classRole = role,
         simpleName = kClass.simpleName ?: "<anonymous>",
-        traits =  traits
+        traits =  analyzeType(type)
     )
 }
 
-inline fun <reified R> overallInfo(role: ClassRole): ClassInfo {
+inline fun <reified R: Any?> overallInfo(role: ClassRole): ClassInfo<R> {
     val traits = analyzeType<R>()
-    return overallInfoFromType(role, typeOf<R>(), traits)
+    return overallInfoFromType<R>(role, typeOf<R>())
 }
 
 
 inline fun <T: Any> T.overallInfo(
     role:ClassRole,
-    block: ClassInfo.(T)-> Unit
-):ClassInfo{
+    block: ClassInfo<T>.(T)-> Unit
+):ClassInfo<T>{
    val  clazz : KClass<out T> = this::class
     val isFunction : Boolean =  clazz.isFun
     val simpleName: String = clazz.simpleName.toString()
     val isNullable: Boolean = clazz::class.isNull()
-    val info = ClassInfo(
+    val info = ClassInfo<T>(
         classRole = role,
         simpleName = simpleName,
         traits = analyzeInstanceType(this),
@@ -80,6 +83,23 @@ inline fun <reified T> analyzeType(): TypeTraits {
     val type = typeOf<T>()
     val kClass = type.classifier as? KClass<*> ?: throw IllegalArgumentException("Unknown classifier")
 
+    return TypeTraits(
+        isUnit = kClass == Unit::class,
+        isEnum = kClass.isSubclassOf(Enum::class),
+        isNullable = type.isMarkedNullable,
+        isFunction = kClass.isSubclassOf(Function::class),
+        isPrimitive = kClass.java.isPrimitive,
+        isObject = kClass.objectInstance != null,
+        isDataClass = kClass.isData,
+        isSealed = kClass.isSealed,
+        isInterface = kClass.java.isInterface,
+        isAbstract = kClass.isAbstract
+    )
+}
+
+
+fun analyzeType(type: KType): TypeTraits {
+    val kClass = type.classifier as? KClass<*> ?: throw IllegalArgumentException("Unknown classifier")
     return TypeTraits(
         isUnit = kClass == Unit::class,
         isEnum = kClass.isSubclassOf(Enum::class),

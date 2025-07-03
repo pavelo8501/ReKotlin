@@ -76,30 +76,6 @@ internal fun  <DTO: ModelDTO, D: DataModel,  E: LongEntity> E.select(
     return newDto
 }
 
-
-//fun <DTO: ModelDTO, D: DataModel,  E: LongEntity>  DTOBase<DTO, D, E>.createDTO(
-//    entities : List<E>,
-//    operation: CrudOperation,
-//): List<CommonDTO<DTO,D,E>>{
-//    val result :  MutableList<CommonDTO<DTO,D,E>> = mutableListOf()
-//    entities.forEach {entity->
-//        val created = createDTO(entity, operation)
-//        result.add(created)
-//    }
-//    return result.toList()
-//}
-
-
-//fun <DTO: ModelDTO, D: DataModel,  E: LongEntity>  DTOBase<DTO, D, E>.createDTO(
-//    entity : E,
-//    operation: CrudOperation,
-//): CommonDTO<DTO,D,E>{
-//    val created =  newDTO(entity)
-//    created.bindingHub.insert(entity)
-//    return created
-//}
-
-
 fun <DTO: ModelDTO, D: DataModel,  E: LongEntity> CommonDTO<DTO,D,E>.updateFromData(
     data: D,
     operation: CrudOperation

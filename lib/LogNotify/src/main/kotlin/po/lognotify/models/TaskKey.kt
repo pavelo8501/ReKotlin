@@ -24,6 +24,13 @@ class TaskKey(
         )
     }
 
-    override fun toString(): String = "TaskKey(${taskId}, $moduleName)"
+    override fun toString(): String {
+        val nesting = if(nestingLevel == 0){
+           "R Task: "
+       }else{
+            "$nestingLevel Task: "
+        }
+       return "$nesting $taskName | $moduleName"
+    }
 
 }

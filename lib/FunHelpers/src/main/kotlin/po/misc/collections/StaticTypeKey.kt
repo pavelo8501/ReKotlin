@@ -22,6 +22,11 @@ class StaticTypeKey<T : Any> @PublishedApi internal constructor(
         return "StaticTypeKey(cachedHash=$cachedHash)"
     }
 
+    fun <I: Any> isInstanceOfType(instance: I): Boolean{
+       val instanceName = instance::class.java.typeName
+       return typeName == instanceName
+    }
+
     companion object {
         inline fun <reified T : Any> createTypeKey(): StaticTypeKey<T> {
             return StaticTypeKey(T::class)

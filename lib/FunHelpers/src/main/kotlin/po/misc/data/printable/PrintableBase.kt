@@ -2,18 +2,20 @@ package po.misc.data.printable
 
 import po.misc.data.console.DateHelper
 import po.misc.data.console.PrintableTemplateBase
+import po.misc.data.console.TemplateAuxParams
 import po.misc.data.json.JObject
 import po.misc.data.json.JRecord
 import po.misc.data.json.JsonHolder
 import po.misc.interfaces.Identifiable
+import po.misc.interfaces.IdentifiableContext
 import po.misc.interfaces.ValueBased
 
 abstract class PrintableBase<T>(
     var defaultTemplate: PrintableTemplateBase<T>
 ): ComposableData, Printable, DateHelper where T:PrintableBase<T> {
 
-    abstract override val itemId : ValueBased
-    abstract override val emitter: Identifiable
+  //  abstract override val itemId : ValueBased
+    abstract override val emitter:  IdentifiableContext
 
     abstract val self:T
 
@@ -32,10 +34,10 @@ abstract class PrintableBase<T>(
     internal var jsonHolder : JsonHolder? = null
     internal val jsonObject : JObject
         get() {
-        val itemIdRecord = JRecord("itemId", itemId.value)
-        val emitterRecord = JRecord("emitter", emitter.completeName)
+       // val itemIdRecord = JRecord("itemId", itemId.value)
+        val emitterRecord = JRecord("emitter", emitter.contextName)
         val hostingClassName =  self::class.simpleName.toString()
-        return JObject(hostingClassName).addRecord(itemIdRecord).addRecord(emitterRecord)
+        return JObject(hostingClassName).addRecord(emitterRecord)
     }
 
     @PublishedApi
@@ -49,8 +51,9 @@ abstract class PrintableBase<T>(
     @PublishedApi
     internal var outputSource: ((String)-> Unit)?=null
 
-    private fun formatString(stringProvider: T.()-> String): String{
-       return stringProvider.invoke(self)
+    private fun formatString(params: TemplateAuxParams, stringProvider: T.(TemplateAuxParams)-> String): String{
+
+       return stringProvider.invoke(self, params)
     }
     private fun shouldMute(): Boolean{
         if(mute) return true
@@ -76,9 +79,9 @@ abstract class PrintableBase<T>(
 
     fun templatedString(template: PrintableTemplateBase<T>? = null): String{
         return template?.let {
-            formatString(it.template)
+            formatString(it.getOrCreateParams(), it.template)
         }?:run {
-            formatString(defaultTemplate.template)
+            formatString(TemplateAuxParams(""), defaultTemplate.template)
         }
     }
 
@@ -92,7 +95,7 @@ abstract class PrintableBase<T>(
     }
     fun echo(template: PrintableTemplateBase<T>){
         if(!shouldMute()){
-            val result = formatString(template.template)
+            val result = formatString(template.getOrCreateParams(), template.template)
             outputSource?.invoke(result)?:run {
                 println(result)
             }

@@ -1,6 +1,8 @@
 package po.test.lognotify.task
 
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
+import po.lognotify.TasksManaged
 import po.lognotify.classes.task.models.TaskConfig
 import po.lognotify.extensions.runTask
 import po.lognotify.extensions.subTask
@@ -8,13 +10,20 @@ import po.misc.exceptions.HandlerType
 import po.misc.interfaces.IdentifiableContext
 import kotlin.test.assertEquals
 
-class TestTaskFlow: IdentifiableContext {
+class TestTaskFlow: TasksManaged {
 
     override val contextName: String = "TestTaskFlow"
 
     @Test
-    fun `Consequent tasks inherit task configuration if not explicitly overriden`(){
+    fun `Default root task is created to avoid crash and warning issued`(){
 
+        assertDoesNotThrow {
+            logHandler.info("Some message")
+        }
+    }
+
+    @Test
+    fun `Consequent tasks inherit task configuration if not explicitly overriden`(){
         var taskConfig: TaskConfig? = null
         val entryTaskConfig = TaskConfig(exceptionHandler = HandlerType.CancelAll)
         runTask<TestTaskFlow, Unit>("Entry task", entryTaskConfig){

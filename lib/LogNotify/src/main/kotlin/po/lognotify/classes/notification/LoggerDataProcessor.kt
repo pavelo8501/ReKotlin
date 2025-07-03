@@ -1,6 +1,5 @@
 package po.lognotify.classes.notification
 
-import po.lognotify.classes.notification.models.ConsoleBehaviour
 import po.lognotify.classes.notification.models.NotifyConfig
 import po.lognotify.classes.notification.models.TaskData
 import po.lognotify.classes.task.RootTask
@@ -9,6 +8,7 @@ import po.lognotify.classes.task.TaskBase
 import po.lognotify.enums.SeverityLevel
 import po.misc.data.printable.PrintableBase
 import po.misc.data.console.PrintableTemplateBase
+import po.misc.data.console.TemplateAuxParams
 import po.misc.data.printable.Printable
 import po.misc.data.printable.PrintableCompanion
 import po.misc.data.processors.DataProcessorBase
@@ -45,10 +45,10 @@ class LoggerDataProcessor(
 
     private fun setMuteConditions(data: TaskData): Boolean{
       return when(config.console){
-            ConsoleBehaviour.Mute ->true
-            ConsoleBehaviour.FullPrint -> false
-            ConsoleBehaviour.MuteInfo -> data.severity == SeverityLevel.INFO
-            ConsoleBehaviour.MuteNoEvents -> {
+           NotifyConfig.ConsoleBehaviour.Mute ->true
+          NotifyConfig.ConsoleBehaviour.FullPrint -> false
+          NotifyConfig.ConsoleBehaviour.MuteInfo -> data.severity == SeverityLevel.INFO
+          NotifyConfig.ConsoleBehaviour.MuteNoEvents -> {
                 //Should refactor later to lookup for events in the task chain
                 false
             }
@@ -116,20 +116,38 @@ class LoggerDataProcessor(
     @PublishedApi
     internal fun debug(message: String, methodName: String){
         val data = createData("$message @ $methodName in $task", SeverityLevel.DEBUG)
-        debugData(data, TaskData, TaskData.Debug){debuggable->
-            processRecord(debuggable, TaskData.Debug)
+        if(config.debugAll == NotifyConfig.DebugOptions.DebugAll){
+            processRecord(data, TaskData.Debug)
+            forwardOrEmmit(data)
+        }else{
+            debugData(data, TaskData, TaskData.Debug){debuggable->
+                processRecord(debuggable, TaskData.Debug)
+                forwardOrEmmit(debuggable)
+            }
         }
     }
-    fun <T: PrintableBase<T>> debug(arbitraryRecord: T, arbitraryClass: PrintableCompanion<T>,  template: PrintableTemplateBase<T>):T{
-        debugData(arbitraryRecord, arbitraryClass, template){debuggable->
-            debuggable.echo()
-            val packedRecord = createData(debuggable, SeverityLevel.DEBUG)
-            forwardOrEmmit(packedRecord)
+
+    private fun <T: PrintableBase<T>> debugRecord(arbitraryRecord: T){
+        val actionSpan = task.activeActionSpan()
+        val template = TaskData.Debug
+        if (actionSpan != null) {
+            template.setAuxParams(TemplateAuxParams(actionSpan.toString()))
         }
-       return arbitraryRecord
+        val packedRecord = createData(arbitraryRecord, SeverityLevel.DEBUG)
+        processRecord(packedRecord, template)
+        forwardOrEmmit(packedRecord)
     }
 
-
+    fun <T: PrintableBase<T>> debug(arbitraryRecord: T, arbitraryClass: PrintableCompanion<T>,  template: PrintableTemplateBase<T>?):T {
+        if (config.debugAll == NotifyConfig.DebugOptions.DebugAll) {
+            debugRecord(arbitraryRecord)
+        } else {
+            debugData(arbitraryRecord, arbitraryClass, template) { debuggable ->
+                debugRecord(debuggable)
+            }
+        }
+        return arbitraryRecord
+    }
 
     fun <T: Printable> logFormatted(data: T, printFn: T.(StringBuilder)-> Unit){
         buildString{ data.printFn(this) }
@@ -155,7 +173,8 @@ class LoggerDataProcessor(
     }
 
     fun error(exception: ManagedException): TaskData {
-       val dataRecord =  createData(exception.message.toString(), SeverityLevel.EXCEPTION)
+        val text = "Exception: ${exception.message}. ${exception.waypointInfo()}"
+        val dataRecord = createData(text, SeverityLevel.EXCEPTION)
         processRecord(dataRecord, TaskData.Exception)
         return dataRecord
     }

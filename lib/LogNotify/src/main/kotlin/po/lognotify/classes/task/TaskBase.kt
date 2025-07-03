@@ -42,7 +42,7 @@ sealed class TaskBase<T, R: Any?>(
 ): StaticHelper, MeasuredContext, ResultantTask<T, R>, IdentifiableClass, TaskProcessor {
 
     enum class TaskStatus{
-        New,
+        Active,
         Complete,
         Failing,
         Faulty
@@ -57,7 +57,7 @@ sealed class TaskBase<T, R: Any?>(
     abstract override val handler: TaskHandler<R>
     internal val  actionSpans : MutableList<ActionSpan<*>> = mutableListOf()
 
-    var taskStatus : TaskStatus = TaskStatus.New
+    var taskStatus : TaskStatus = TaskStatus.Active
         internal set
 
     internal fun lookUpRoot(): RootTask<*,*>{
@@ -89,6 +89,10 @@ sealed class TaskBase<T, R: Any?>(
     fun addActionSpan(actionSpan: ActionSpan<*> ):ActionSpan<*>{
         actionSpans.add(actionSpan)
         return actionSpan
+    }
+
+    fun activeActionSpan():ActionSpan<*>?{
+       return actionSpans.first { it.status == ActionSpan.Status.Active }
     }
 
 }

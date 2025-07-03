@@ -7,7 +7,3 @@ interface Printable {
     fun defaultsToJson(): JsonHolder?
 }
 
-interface PrintableProvider<T:Printable> {
-    val template: T.()-> String
-
-}

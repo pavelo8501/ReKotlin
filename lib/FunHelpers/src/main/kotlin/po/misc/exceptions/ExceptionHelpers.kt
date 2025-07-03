@@ -63,6 +63,18 @@ fun throwManaged(message: String, ctx: IdentifiableContext,  handler : HandlerTy
     }
 }
 
+
+fun throwManaged(payload: ManagedCallSitePayload): Nothing{
+    if(payload.handler == null){
+        throw ManagedException(payload.message)
+    }else{
+        val exception =  ManagedException(payload.message)
+        exception.handler = payload.handler
+        throw exception
+    }
+}
+
+
 fun throwManaged(message: String, handler : HandlerType?, source: Enum<*>? , original: Throwable?): Nothing{
     if(handler == null){
         val exception =  ManagedException(message)
@@ -132,6 +144,17 @@ fun <EX: Throwable> EX.name(): String{
         "${this.javaClass.simpleName}[msg:${message ?: ""}]"
     }
 }
+
+
+fun  Throwable.text(): String{
+   return if(this.message != null){
+        this.message.toString()
+    }else{
+        this.javaClass.simpleName.toString()
+    }
+}
+
+
 
 fun <EX: Throwable> EX.shortName(): String{
     return if (this is ManagedException) {
