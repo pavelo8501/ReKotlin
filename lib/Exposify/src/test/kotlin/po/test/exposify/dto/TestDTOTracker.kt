@@ -6,9 +6,9 @@ import org.junit.jupiter.api.Test
 import po.auth.extensions.generatePassword
 import po.exposify.common.events.DTOEvent
 import po.exposify.dto.components.result.ResultSingle
-import po.exposify.scope.service.enums.TableCreateMode
+import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
-import po.lognotify.classes.notification.models.ConsoleBehaviour
+import po.lognotify.classes.notification.models.NotifyConfig
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.PageEntity
 import po.test.exposify.setup.dtos.Page
@@ -32,7 +32,7 @@ class TestDTOTracker: DatabaseTest(), TasksManaged {
     fun setup() = runTest {
 
         logNotify().notifierConfig {
-            console = ConsoleBehaviour.MuteNoEvents
+            console = NotifyConfig.ConsoleBehaviour.MuteNoEvents
             allowDebug(DTOEvent)
         }
 
@@ -44,7 +44,7 @@ class TestDTOTracker: DatabaseTest(), TasksManaged {
             email = "nomail@void.null"
         )
         withConnection{
-            service(UserDTO, TableCreateMode.FORCE_RECREATE) {
+            service(UserDTO, TableCreateMode.ForceRecreate) {
                 updatedById = update(user).getDataForced().id
             }
         }

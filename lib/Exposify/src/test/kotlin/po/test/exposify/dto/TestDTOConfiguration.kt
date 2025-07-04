@@ -6,14 +6,11 @@ import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import po.auth.extensions.generatePassword
 import po.exposify.dto.DTOBase
-import po.exposify.dto.DTOClass
 import po.exposify.dto.enums.DTOClassStatus
 import po.exposify.exceptions.InitException
-import po.exposify.scope.service.enums.TableCreateMode
+import po.exposify.scope.service.models.TableCreateMode
 import po.misc.callbacks.manager.Containable
-import po.misc.exceptions.ManagedException
 import po.misc.interfaces.IdentifiableClass
-import po.misc.interfaces.IdentifiableContext
 import po.misc.interfaces.asIdentifiableClass
 import po.test.exposify.dto.TestDTOTracker.Companion.updatedById
 import po.test.exposify.setup.DatabaseTest
@@ -25,7 +22,6 @@ import po.test.exposify.setup.dtos.SectionDTO
 import po.test.exposify.setup.dtos.User
 import po.test.exposify.setup.dtos.UserDTO
 import po.test.exposify.setup.pageModelsWithSections
-import po.test.exposify.setup.pagesSectionsContentBlocks
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
@@ -73,7 +69,7 @@ class TestDTOConfiguration : DatabaseTest(), IdentifiableClass {
         )
 
         withConnection {
-            service(UserDTO, TableCreateMode.FORCE_RECREATE) {
+            service(UserDTO, TableCreateMode.ForceRecreate) {
                 updatedById = update(user).getDataForced().id
             }
         }

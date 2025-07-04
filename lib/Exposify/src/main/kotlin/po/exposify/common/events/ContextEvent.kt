@@ -1,6 +1,5 @@
 package po.exposify.common.events
 
-import po.exposify.common.events.DTOEvent.Companion.prefix
 import po.misc.data.console.PrintableTemplate
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.PrintableCompanion
@@ -19,6 +18,7 @@ data class ContextEvent(
 
 
     companion object: PrintableCompanion<ContextEvent>({ContextEvent::class}){
+
         fun prefix(ctx: IdentifiableContext): String{
            return "Debug in  ${ctx.contextName}"
         }

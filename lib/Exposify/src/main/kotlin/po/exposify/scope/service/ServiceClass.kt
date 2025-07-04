@@ -10,34 +10,36 @@ import po.auth.sessions.models.AuthorizedSession
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.RootDTO
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.extensions.withTransactionIfNone
 import po.exposify.scope.connection.ConnectionClass
 import po.exposify.scope.connection.controls.CoroutineEmitter
-import po.exposify.scope.service.enums.TableCreateMode
+import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.classes.task.TaskHandler
+import po.misc.interfaces.ClassIdentity
 import po.misc.interfaces.IdentifiableClass
-import po.misc.interfaces.asIdentifiableClass
 
 class ServiceClass<DTO, DATA, ENTITY>(
     private val rootDTOModel: RootDTO<DTO, DATA, ENTITY>,
-    @PublishedApi internal val connectionClass : ConnectionClass,
-    private val serviceCreateOption: TableCreateMode = TableCreateMode.CREATE,
+    @PublishedApi internal val connectionClass : ConnectionClass
 ):  TasksManaged, IdentifiableClass  where  DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity {
 
-    private val serviceContext: ServiceContext<DTO, DATA, ENTITY> = ServiceContext(this, rootDTOModel)
-    internal val connection: Database get() = connectionClass.connection
-    val logger : TaskHandler<*> get()= taskHandler()
+    override val identity: ClassIdentity = ClassIdentity.create("ServiceClass", rootDTOModel.completeName)
+    private var tableRecreationList: List<IdTable<Long>>? = null
 
-    override val identity = asIdentifiableClass("ServiceClass", rootDTOModel.completeName)
+    internal val connection: Database get() = connectionClass.connection
+    internal val serviceContext: ServiceContext<DTO, DATA, ENTITY> = ServiceContext(this, rootDTOModel)
+
+    val logger : TaskHandler<*> get()= taskHandler()
 
     private var running: Boolean = true
 
-    private fun prepareTables(serviceCreateOption: TableCreateMode) {
-        val tableList = mutableListOf<IdTable<Long>>()
-        rootDTOModel.getAssociatedTables(tableList)
-        val dropStatement =  rootDTOModel.config.entityModel.sourceTable.dropStatement()
-        when (serviceCreateOption) {
-            TableCreateMode.CREATE -> {
+    private fun prepareTables(createOption: TableCreateMode) {
+        when (createOption) {
+            TableCreateMode.Create -> {
+                val tableList = mutableListOf<IdTable<Long>>()
+                rootDTOModel.getAssociatedTables(tableList)
+
                 logger.info("Creating tables TableCreateMode.CREATE")
                 tableList.forEach {table->
                     if (!table.exists()) {
@@ -49,10 +51,14 @@ class ServiceClass<DTO, DATA, ENTITY>(
                     }
                 }
             }
-            TableCreateMode.FORCE_RECREATE -> {
-                val backwards = tableList.reversed()
-                logger.info("Dropping tables  TableCreateMode.FORCE_RECREATE  ${backwards.onEach { "${it.tableName}, " }}")
-                SchemaUtils.drop(*backwards.toTypedArray<IdTable<Long>>(), inBatch = true)
+            TableCreateMode.ForceRecreate -> {
+                val tableList = TableCreateMode.ForceRecreate.tables.ifEmpty {
+                    val newList = mutableListOf<IdTable<Long>>()
+                    rootDTOModel.getAssociatedTables(newList)
+                    newList.reversed()
+                }
+                logger.info("Dropping tables  TableCreateMode.FORCE_RECREATE  ${tableList.joinToString(", "){it.tableName} }")
+                SchemaUtils.drop(*tableList.toTypedArray<IdTable<Long>>(), inBatch = true)
                 logger.info("Dropped. Recreating")
                 tableList.forEach {table->
                     logger.info("Creating table ${table.tableName}")
@@ -63,26 +69,30 @@ class ServiceClass<DTO, DATA, ENTITY>(
         }
     }
 
+    internal fun recreateUsing(tables: List<IdTable<Long>>){
+        tableRecreationList = tables
+    }
+
     internal fun deinitializeService(){
         running = false
         rootDTOModel.finalize()
     }
 
-    internal fun initService(rootDTOModel: RootDTO<DTO, DATA, ENTITY>){
-        transaction {
+    internal fun initService(
+        rootDTOModel: RootDTO<DTO, DATA, ENTITY>,
+        serviceCreateOption: TableCreateMode = TableCreateMode.Create,
+        block:  ServiceContext<DTO, DATA, ENTITY>.()->Unit
+    ): ServiceContext<DTO, DATA, ENTITY>{
+        withTransactionIfNone(serviceContext.debugger, false){
             if(running){
                 rootDTOModel.initialization(serviceContext)
                 prepareTables(serviceCreateOption)
+                serviceContext.block()
             }
         }
+        return serviceContext
     }
-
-    internal fun runServiceContext(block:  ServiceContext<DTO, DATA, ENTITY>.()->Unit){
-        println("Before   ServiceContext invoked (runServiceContext)")
-        serviceContext.block()
-    }
-
-    internal suspend fun requestEmitter(session: AuthorizedSession): CoroutineEmitter
-        = connectionClass.requestEmitter(session)
+    internal suspend fun requestEmitter(session: AuthorizedSession): CoroutineEmitter =
+        connectionClass.requestEmitter(session)
 
 }

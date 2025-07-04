@@ -9,6 +9,7 @@ import po.exposify.dto.interfaces.ClassDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dao.classes.ExposifyEntityClass
+import po.exposify.dto.components.ExecutionProvider
 import po.exposify.dto.components.SwitchQuery
 import po.exposify.dto.components.WhereQuery
 import po.exposify.dto.components.bindings.BindingHub.ListData
@@ -28,6 +29,7 @@ import po.exposify.scope.service.ServiceContext
 import po.lognotify.TasksManaged
 import po.lognotify.classes.action.InlineAction
 import po.lognotify.classes.task.TaskHandler
+import po.lognotify.debug.debugProxy
 import po.misc.callbacks.manager.CallbackManager
 import po.misc.callbacks.manager.CallbackPayload
 import po.misc.callbacks.manager.builders.callbackManager
@@ -42,7 +44,6 @@ import po.misc.types.toSimpleNormalizedKey
 import po.misc.validators.general.models.CheckStatus
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
-
 
 sealed class DTOBase<DTO, DATA, ENTITY>(
     override val identity: ClassIdentity
@@ -78,10 +79,6 @@ sealed class DTOBase<DTO, DATA, ENTITY>(
             }
         }
 
-   // @PublishedApi
-   // internal var configParameter: DTOConfig<DTO, DATA, ENTITY>? = null
-
-
     protected val dtoMap : MutableMap<Long, CommonDTO<DTO, DATA, ENTITY>> = mutableMapOf()
 
     val dtoMapSize: Int get() = dtoMap.size
@@ -96,6 +93,10 @@ sealed class DTOBase<DTO, DATA, ENTITY>(
     }
     val info = printableProxy(this, DTOClassEvent.Info){params->
         log(DTOClassEvent(this, params.message), params.template)
+    }
+
+    val debug = debugProxy(this, DTOClassEvent){
+        DTOClassEvent(this, it.message, status.name, dtoMapSize)
     }
 
     private val registryExceptionMessage = "Can not find type record in DTOClass"
@@ -154,9 +155,6 @@ sealed class DTOBase<DTO, DATA, ENTITY>(
 
     internal fun lookupDTO(id: Long): CommonDTO<DTO, DATA, ENTITY>?{
         return dtoMap[id]
-    }
-    internal fun lookupDTO(id: Long, operation: CrudOperation): CommonDTO<DTO, DATA, ENTITY>?{
-        return dtoMap[id]?.addTrackerInfo(operation, this)
     }
     internal fun lookupDTO(): List<CommonDTO<DTO, DATA, ENTITY>>{
        return dtoMap.values.toList()
@@ -217,6 +215,7 @@ abstract class RootDTO<DTO, DATA, ENTITY>(
     internal val serviceClass: ServiceClass<DTO, DATA, ENTITY>
         get() = serviceContext.serviceClass
 
+    internal val executionContext: ExecutionProvider<DTO, DATA, ENTITY> by lazy { ExecutionProvider(this) }
 
     internal fun initialization(serviceContext: ServiceContext<DTO, DATA, ENTITY>) {
         serviceContextParameter = serviceContext

@@ -6,10 +6,10 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertAll
 import po.auth.extensions.generatePassword
-import po.exposify.scope.service.enums.TableCreateMode
+import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
-import po.lognotify.classes.notification.models.ConsoleBehaviour
+import po.lognotify.classes.notification.models.NotifyConfig
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.dtos.Page
 import po.test.exposify.setup.dtos.PageDTO
@@ -39,7 +39,7 @@ class TestUpdate : DatabaseTest(), TasksManaged {
 
         val loggerHandler: LogNotifyHandler  = logNotify()
         loggerHandler.notifierConfig {
-            console = ConsoleBehaviour.MuteNoEvents
+            console = NotifyConfig.ConsoleBehaviour.MuteNoEvents
         }
         val user = User(
             id = 0,
@@ -49,7 +49,7 @@ class TestUpdate : DatabaseTest(), TasksManaged {
             email = "nomail@void.null"
         )
         withConnection {
-            service(UserDTO, TableCreateMode.FORCE_RECREATE) {
+            service(UserDTO, TableCreateMode.ForceRecreate) {
                 updatedById = update(user).getDataForced().id
             }
         }
@@ -78,7 +78,7 @@ class TestUpdate : DatabaseTest(), TasksManaged {
         var updatedPage : Page? = null
 
         withConnection{
-            service(PageDTO, TableCreateMode.CREATE) {
+            service(PageDTO, TableCreateMode.Create) {
                 updatedPage =  update(inputPage).getDataForced()
             }
         }
@@ -137,7 +137,7 @@ class TestUpdate : DatabaseTest(), TasksManaged {
         val updatedContentBlockName = "other_content_block_name"
 
         withConnection {
-            service(PageDTO, TableCreateMode.FORCE_RECREATE) {
+            service(PageDTO, TableCreateMode.ForceRecreate) {
                 updatedPage =  update(initialPage).getDataForced()
 
                 updatedPage.name = updatedPageName
@@ -176,7 +176,7 @@ class TestUpdate : DatabaseTest(), TasksManaged {
         lateinit var updatedPage: Page
         lateinit var updatedPageDTO : PageDTO
         withConnection{
-            service(PageDTO, TableCreateMode.CREATE){
+            service(PageDTO, TableCreateMode.Create){
                 val updateResult = update(page)
                 updatedPage = updateResult.getDataForced()
                 updatedPageDTO = updateResult.getDTOForced()

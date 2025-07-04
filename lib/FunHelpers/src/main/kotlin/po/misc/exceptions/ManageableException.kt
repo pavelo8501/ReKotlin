@@ -7,7 +7,7 @@ import po.misc.types.safeCast
 import kotlin.reflect.full.companionObjectInstance
 
 
-sealed interface ManageableException<E:ManagedException>  {
+sealed interface ManageableException<E:ManagedException> {
 
    // val message: String
     var propertySnapshot :  Map<String, Any?>

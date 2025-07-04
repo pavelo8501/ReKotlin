@@ -84,13 +84,6 @@ sealed class RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V: Any>(
         this.status = status
     }
 
-//    fun resolveHierarchy(): HierarchyNode<CommonDTO<*,*,*>>{
-//
-//
-//        val childNodes = getChildDTOs().map { it.bindingHub.buildHierarchyTree() }
-//        return  HierarchyNode(hostingClass.dtoType, getChildDTOs(), childNodes)
-//    }
-
     fun updateBy(data:DATA) = runInlineAction("updateByData") {
         val childDtoList = getChildDTOs()
         getPropertyData(data).forEach { data ->

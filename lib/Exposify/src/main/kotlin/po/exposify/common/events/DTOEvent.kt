@@ -25,16 +25,13 @@ data class DTOEvent(
     }
 
     companion object: PrintableCompanion<DTOEvent>({DTOEvent::class}){
-        fun prefix(data:DTOEvent): String{
-            return data.tracker.completeName
-        }
 
         val Stats : PrintableTemplate<DTOEvent> = PrintableTemplate("Stats"){
-            "${prefix(this)}: Active operation: $currentOperation"
+            "Active operation: $currentOperation"
         }
 
         val Debug : PrintableTemplate<DTOEvent> = PrintableTemplate("Debug"){
-            "${prefix(this)}: $message"
+            message
         }
     }
 }

@@ -62,6 +62,7 @@ class RootHandlerProvider<DTO, D, E> internal constructor(
         get() = sequenceLambdaParameter.getOrInit("sequenceLambdaParameter")
 
     internal fun storeSequenceLambda(block: suspend  SequenceContext<DTO, D, E>.(RootSequenceHandler<DTO, D, E> ) -> ResultList<DTO, D, E>){
+        dtoRoot.debug.notify("Sequence lambda saved")
         sequenceLambdaParameter = block
     }
 

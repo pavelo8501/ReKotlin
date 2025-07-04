@@ -3,11 +3,11 @@ package po.test.exposify.crud
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.assertAll
 import po.auth.extensions.generatePassword
-import po.exposify.scope.service.enums.TableCreateMode
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.dtos.User
 import po.test.exposify.setup.dtos.UserDTO
 import org.junit.jupiter.api.Test
+import po.exposify.scope.service.models.TableCreateMode
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
@@ -27,7 +27,7 @@ class TestPick : DatabaseTest(){
         var pickedDTO : UserDTO? = null
 
         withConnection{
-            service(UserDTO, TableCreateMode.CREATE) {
+            service(UserDTO, TableCreateMode.Create) {
                 val userDataModel =  update(user).getDataForced()
                  pickedDTO = pickById(userDataModel.id).getDTO() as UserDTO
             }

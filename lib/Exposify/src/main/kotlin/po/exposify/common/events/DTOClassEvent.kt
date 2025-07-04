@@ -1,12 +1,15 @@
 package po.exposify.common.event
 
+import po.exposify.common.events.DTOEvent
 import po.exposify.dto.DTOBase
 import po.exposify.dto.DTOClass
 import po.misc.data.printable.PrintableBase
 import po.misc.data.console.PrintableTemplate
+import po.misc.data.printable.PrintableCompanion
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.interfaces.Identifiable
+import po.misc.interfaces.IdentifiableContext
 import po.misc.interfaces.ValueBased
 import po.misc.interfaces.asIdentifiable
 
@@ -18,14 +21,13 @@ data class DTOClassEvent(
 ): PrintableBase<DTOClassEvent>(Success){
     override val self: DTOClassEvent = this
 
-   // override val itemId: ValueBased = DTOClass
-    override val emitter: Identifiable = asIdentifiable(dtoClass.identity.sourceName, dtoClass.contextName)
+    override val emitter: IdentifiableContext = dtoClass
 
     init {
         addTemplate(Info, Success, Warning)
     }
 
-    companion object{
+    companion object: PrintableCompanion<DTOClassEvent>({DTOClassEvent::class}){
 
         fun identity(data:DTOClassEvent): String{
             return "DTO: ${data.dtoClass.identity.completeName}. Status:${data.status}"
@@ -41,6 +43,10 @@ data class DTOClassEvent(
 
         val Warning : PrintableTemplate<DTOClassEvent> = PrintableTemplate("Warning"){
             "${identity(this)}: Message: ${message.colorize(Colour.YELLOW)}"
+        }
+
+        val Debug: PrintableTemplate<DTOClassEvent> = PrintableTemplate("Debug"){
+            message
         }
 
     }

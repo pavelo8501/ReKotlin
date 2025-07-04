@@ -1,9 +1,9 @@
 package po.lognotify.debug.interfaces
 
 import po.lognotify.debug.models.InputParameter
+import po.misc.data.processors.DataProcessor
 
-internal interface DebugContext {
-
-     val inputParams: MutableList<InputParameter>
-
+interface DebugProvider {
+   val inputParams: MutableList<InputParameter>
+  // fun provideDataProcessor(processor: DataProcessor<*>)
 }

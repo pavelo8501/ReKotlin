@@ -16,10 +16,10 @@ import po.exposify.scope.sequence.extensions.sequence
 import po.exposify.scope.sequence.extensions.switchContext
 import po.exposify.scope.sequence.extensions.usingRoot
 import po.exposify.scope.sequence.extensions.usingSwitch
-import po.exposify.scope.service.enums.TableCreateMode
+import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
-import po.lognotify.classes.notification.models.ConsoleBehaviour
+import po.lognotify.classes.notification.models.NotifyConfig
 import po.test.exposify.scope.session.TestSessionsContext
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.PageEntity
@@ -56,7 +56,7 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
 
         val loggerHandler: LogNotifyHandler = logNotify()
         loggerHandler.notifierConfig {
-            console = ConsoleBehaviour.MuteNoEvents
+            console = NotifyConfig.ConsoleBehaviour.MuteNoEvents
         }
         val user = User(
             id = 0,
@@ -66,7 +66,7 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
             email = "nomail@void.null"
         )
         withConnection {
-            service(UserDTO.Companion, TableCreateMode.FORCE_RECREATE) {
+            service(UserDTO.Companion, TableCreateMode.ForceRecreate) {
                 updatedById = update(user).getDataForced().id
             }
         }
@@ -82,7 +82,7 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
         }
 
         withConnection {
-            service(PageDTO, TableCreateMode.CREATE) {
+            service(PageDTO, TableCreateMode.Create) {
                 update(pageModelsWithSections(pageCount = 1, sectionsCount = 1, updatedBy = updatedById))
                 sequence(PageDTO.SELECT) {
                     switchContext(SectionDTO.UPDATE) { switchHandler ->
@@ -137,7 +137,7 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
     fun `Sequence launched with conditions and input work`() = runTest {
         var updatedPages: List<Page> = emptyList()
         withConnection {
-            service(PageDTO.Companion, TableCreateMode.CREATE) {
+            service(PageDTO.Companion, TableCreateMode.Create) {
                 sequence(PageDTO.Companion.UPDATE) { handler ->
                     update(handler.inputList)
                 }
@@ -196,7 +196,7 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
             sectionUpdateOutput = result.getDataForced()
         }
         withConnection {
-            service(PageDTO.Companion, TableCreateMode.CREATE) {
+            service(PageDTO.Companion, TableCreateMode.Create) {
                 sequence(PageDTO.UPDATE) { handler ->
                     val insert = collectResult(update(handler.inputList))
                     switchContext(SectionDTO.UPDATE) { switchHandler ->

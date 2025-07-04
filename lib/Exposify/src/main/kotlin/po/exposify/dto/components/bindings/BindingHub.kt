@@ -5,6 +5,7 @@ import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
 import po.exposify.dto.RootDTO
 import po.exposify.dto.components.DAOService
+import po.exposify.dto.components.DTOExecutionProvider
 import po.exposify.dto.components.DTOFactory
 import po.exposify.dto.components.bindings.interfaces.DelegateInterface
 import po.exposify.dto.components.bindings.property_binder.delegates.AttachedForeignDelegate
@@ -21,6 +22,7 @@ import po.misc.callbacks.manager.builders.bridgeFrom
 import po.misc.callbacks.manager.builders.callbackBuilder
 import po.misc.callbacks.manager.builders.createPayload
 import po.misc.callbacks.manager.builders.managerHooks
+import po.misc.interfaces.ClassIdentity
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.IdentifiableClass
 import po.misc.interfaces.ValueBased
@@ -33,20 +35,16 @@ import po.misc.reflection.properties.toRecord
 import po.misc.types.TypeRecord
 import po.misc.types.castOrManaged
 
-
 class BindingHub<DTO, D, E>(
-    val hostingDTO: CommonDTO<DTO, D, E>,
-    val identifiable: Identifiable = asIdentifiable(hostingDTO.sourceName, "BindingHub")
-): IdentifiableClass, InlineAction
-        where  DTO : ModelDTO, D: DataModel, E: LongEntity
-{
+    val hostingDTO: CommonDTO<DTO, D, E>
+): IdentifiableClass, InlineAction where  DTO : ModelDTO, D: DataModel, E: LongEntity{
+
     internal data class NotificationData<DTO : ModelDTO,D:DataModel, E: LongEntity,  F_DTO : ModelDTO>(
         val self: BindingHub<DTO, D, E>,
         val delegateName: String,
         val propertyRecord: PropertyContainer<Any>,
         val delegate: DelegateInterface<DTO, F_DTO>
     )
-
     internal data class ListData<DTO, D, E>(
         val hostingDTO: CommonDTO<DTO, D, E>,
         val delegates: List<DelegateInterface<DTO, *>>
@@ -57,7 +55,13 @@ class BindingHub<DTO, D, E>(
         DelegateRegistrationComplete(11)
     }
 
-    override val identity = asIdentifiableClass("DTOFactory", hostingDTO.sourceName)
+    override val identity: ClassIdentity by lazy {ClassIdentity.create("BindingHub", hostingDTO.sourceName)}
+
+    private val dtoClass: DTOBase<DTO, D, E> get() = hostingDTO.dtoClass
+    private val daoService: DAOService<DTO, D, E> get() = hostingDTO.daoService
+    private val dtoFactory: DTOFactory<DTO, D, E> get() = hostingDTO.dtoFactory
+
+    internal val executionContext: DTOExecutionProvider<DTO, D, E> by lazy { DTOExecutionProvider(dtoClass, hostingDTO) }
 
     internal val notifier = callbackBuilder<Event> {
         createPayload<Event, NotificationData<DTO,D,E, *>>(Event.DelegateRegistered)
@@ -65,11 +69,6 @@ class BindingHub<DTO, D, E>(
             bridgeFrom(dtoClass.delegateRegistrationForward)
         }
     }
-
-
-    val dtoClass: DTOBase<DTO, D, E> get() = hostingDTO.dtoClass
-    val daoService: DAOService<DTO, D, E> get() = hostingDTO.daoService
-    val dtoFactory: DTOFactory<DTO, D, E> get() = hostingDTO.dtoFactory
 
     private val responsiveDelegates: MutableMap<String, ResponsiveDelegate<DTO, D, E, *>> = mutableMapOf()
     private val attachedForeignDelegates: MutableMap<String, AttachedForeignDelegate<DTO, D, E, *, *, *>> =
@@ -90,10 +89,6 @@ class BindingHub<DTO, D, E>(
         dtoFactory.onCreatedPayload.subscribe(this){
             onDtoInitialized(it.getData())
         }
-    }
-
-    fun getDtoInfo(): List<PropertyUpdate<*>>{
-        TODO("Not yet implemented")
     }
 
     fun resolveHierarchy(): HierarchyNode<CommonDTO<*, *, *>> {
@@ -164,7 +159,6 @@ class BindingHub<DTO, D, E>(
         return delegate
     }
 
-
     fun setResponsiveDelegate(
         delegate: ResponsiveDelegate<DTO, D, E, *>
     ): ResponsiveDelegate<DTO, D, E, *> {
@@ -190,6 +184,36 @@ class BindingHub<DTO, D, E>(
         return parentDelegates.values.toList()
     }
 
+    internal fun loadHierarchyByEntity(entity: E?): CommonDTO<DTO, D, E> =
+    runInlineAction("loadHierarchyByEntity") {
+        val consEntity: E = entity ?: hostingDTO.getEntity()
+        responsiveDelegates.values.forEach { responsiveDelegate ->
+            responsiveDelegate.update(consEntity)
+        }
+        attachedForeignDelegates.values.forEach { attached ->
+            attached.resolveForeign(hostingDTO.dataModel, entity)
+        }
+        hostingDTO
+    }
+
+    internal fun loadHierarchyByData(data: D?): CommonDTO<DTO, D, E> = runInlineAction("loadHierarchyByData") {
+        val consData: D = data ?: hostingDTO.dataModel
+
+        if(dtoClass is RootDTO) {
+            val newEntity = daoService.save { update(it) }
+            hostingDTO.provideEntity(newEntity)
+            dtoClass.registerDTO(hostingDTO)
+        }
+        responsiveDelegates.values.forEach { responsiveDelegate ->
+            responsiveDelegate.updateBy(consData)
+        }
+        getRelationDelegates(hostingDTO.cardinality).forEach { delegate ->
+            delegate.updateBy(consData)
+        }
+        hostingDTO
+    }
+
+
 
     internal fun update(entity: E) = runInlineAction("update") {
         responsiveDelegates.values.forEach { responsiveDelegate ->
@@ -199,7 +223,6 @@ class BindingHub<DTO, D, E>(
             attached.resolveForeign(hostingDTO.dataModel, entity)
         }
     }
-
 
     internal fun update(data: D){
         responsiveDelegates.values.forEach { responsiveDelegate ->
@@ -248,7 +271,7 @@ class BindingHub<DTO, D, E>(
         }
     }
 
-    internal fun <F_DTO: ModelDTO, FD : DataModel, FE: LongEntity>  setParent(parentDTO: CommonDTO<F_DTO, FD, FE>){
+    internal fun <F_DTO: ModelDTO, FD : DataModel, FE: LongEntity> setParent(parentDTO: CommonDTO<F_DTO, FD, FE>){
         parentDelegates.forEach { (key, value)->
            if(value.foreignClass == parentDTO.dtoClass){
                value.resolveForeign(parentDTO)

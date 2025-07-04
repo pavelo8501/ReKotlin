@@ -13,6 +13,7 @@ import po.lognotify.classes.task.result.onTaskResult
 import po.lognotify.debug.DebugProxy
 import po.lognotify.exceptions.handleException
 import po.misc.coroutines.LauncherType
+import po.misc.data.helpers.emptyAsNull
 import po.misc.functions.repeatIfFaulty
 import po.misc.interfaces.IdentifiableContext
 import po.misc.reflection.properties.takePropertySnapshot
@@ -160,26 +161,27 @@ suspend inline fun <reified T: Any, R: Any?> T.runTaskAsync(
  * @param block The block to execute with contextual receivers [T] and [TaskHandler].
  * @return The result of the task, wrapped in [TaskResult].
  */
-inline fun <reified T: Any, R: Any?> T.runTask(
+inline fun <reified T: IdentifiableContext, R: Any?> T.runTask(
     taskName: String,
     config: TaskConfig = TaskConfig(isDefault = true),
     debugProxy: DebugProxy<*,*>? = null,
     block: T.(TaskHandler<R>)-> R,
 ): TaskResult<R> {
 
-    if(debugProxy != null){
-        debugProxy.methodName = taskName
-    }
-
     var effectiveConfig = config
     val dispatcher = TasksManaged.LogNotify.taskDispatcher
     val rootTask =  dispatcher.activeRootTask()
+    val moduleName: String = effectiveConfig.moduleName.emptyAsNull()?:this.contextName
     if(rootTask != null && config.isDefault){
         effectiveConfig = rootTask.config
     }
-    val moduleName: String = this::class.simpleName?:config.moduleName
     val task = dispatcher.createHierarchyRoot<T, R>(taskName, moduleName, effectiveConfig, this)
     task.start()
+
+    if(debugProxy != null){
+        debugProxy.provideDataProcessor(task.dataProcessor)
+        debugProxy.methodName = taskName
+    }
     val result = repeatIfFaulty(times =  config.attempts, actionOnFault = {Thread.sleep(config.delayMs)}){attempt->
         try {
             val lambdaResult = block.invoke(this, task.handler)
@@ -199,34 +201,6 @@ inline fun <reified T: Any, R: Any?> T.runTask(
         }
     }
     return result
-
-//
-//    repeat(config.attempts) { attempt ->
-//        try {
-//            val lambdaResult = block.invoke(this, task.handler)
-//            val result = onTaskResult(task, lambdaResult)
-//            task.dataProcessor.debug("Created result  by onTaskResult", "TaskLauncher|runTask", task)
-//            return result
-//        }catch (throwable: Throwable){
-//            val snapshot = takePropertySnapshot<T, LogOnFault>(this)
-//            val managed = handleException(throwable, task, snapshot)
-//            task.dataProcessor.debug("Throwable in catch block", "TaskLauncher|runTask", task)
-//
-//            result = createFaultyResult(managed, task)
-//            if(config.attempts > 0){
-//                val attemptCount = attempt + 1
-//                task.handler.warn("Task resulted in failure. Attempt $attemptCount of ${config.attempts}")
-//                if (attempt < config.attempts - 1) {
-//                    Thread.sleep(config.delayMs)
-//                }
-//            }
-//        }finally {
-//            task.complete()
-//        }
-//    }
-
-//  val testResult = result?.resultOrException()
-//  return result.getOrLoggerException("Maximum retries exceeded")
 }
 
 

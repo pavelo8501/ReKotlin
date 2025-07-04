@@ -12,6 +12,8 @@ import po.exposify.scope.connection.models.ConnectionSettings
 import po.lognotify.classes.task.models.TaskConfig
 import po.lognotify.extensions.runTask
 import po.lognotify.extensions.runTaskBlocking
+import po.misc.exceptions.ManagedException
+import po.misc.exceptions.text
 import po.misc.interfaces.IdentifiableClass
 import po.misc.interfaces.IdentifiableContext
 import po.misc.serialization.SerializerInfo
@@ -26,9 +28,8 @@ object DatabaseManager: IdentifiableContext {
         connections.add(connection)
     }
 
-    private fun tryConnect(connectionInfo:ConnectionInfo): ConnectionClass {
+    private fun tryConnect(connectionInfo:ConnectionInfo, hooks:DBManagerHooks?): ConnectionClass {
         try {
-            println("tryConnect hit")
             val hikariConfig= HikariConfig().apply {
                 driverClassName = connectionInfo.driverClassName
                 jdbcUrl = connectionInfo.getConnectionString()
@@ -46,7 +47,11 @@ object DatabaseManager: IdentifiableContext {
             return  connectionClass
         }catch (th: Throwable){
             connectionUpdated?.invoke(th.message.toString(), false)
-            println(th.message.toString())
+            if(hooks != null){
+                hooks.onConnectionFail?.invoke(th)
+            }else{
+                println(th.text())
+            }
             throw th
         }
     }
@@ -79,7 +84,7 @@ object DatabaseManager: IdentifiableContext {
                   hooks?.onExistentConnection?.invoke(it)
                   it
               } ?: run {
-                  val newConnection = tryConnect(effectiveConnectionInfo)
+                  val newConnection = tryConnect(effectiveConnectionInfo, hooks)
                   hooks?.onNewConnection?.invoke(newConnection)
                   connectionUpdated?.invoke("Connected", true)
                  newConnection
@@ -104,7 +109,7 @@ object DatabaseManager: IdentifiableContext {
                     hooks?.onExistentConnection?.invoke(it)
                     it
                 } ?: run {
-                    val newConnection = tryConnect(effectiveConnectionInfo)
+                    val newConnection = tryConnect(effectiveConnectionInfo, hooks)
                     hooks?.onNewConnection?.invoke(newConnection)
                     connectionUpdated?.invoke("Connected", true)
                     newConnection

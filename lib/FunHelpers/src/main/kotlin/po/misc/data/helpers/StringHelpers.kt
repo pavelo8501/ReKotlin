@@ -48,6 +48,12 @@ fun String.ifNotEmpty(string: String):String{
     }
 }
 
+fun String?.emptyAsNull(): String?{
+    if(this != null && this.count() > 0){ return this }
+    return null
+}
+
+
 fun <T: Any>  Any?.textIfNotNull(textOnNull: String = "", sourceProvider: T.()-> String): String{
 
     return this?.let {

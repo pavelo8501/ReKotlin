@@ -67,7 +67,7 @@ fun <T, R> onTaskResult(task: TaskBase<T, R>, result: R): TaskResult<R>{
     }
 }
 
-inline fun <R: Any?> TaskResult<R>.onFailureCause(block: (ManageableException<*>) -> Unit): TaskResult<R> {
+inline fun <R: Any?> TaskResult<R>.onFailureCause(block: (ManagedException) -> Unit): TaskResult<R> {
     throwable?.let {
         task.dataProcessor.errorHandled("onFailureCause", it)
         block.invoke(it)

@@ -24,6 +24,7 @@ import po.exposify.scope.sequence.SequenceContext
 import po.exposify.scope.sequence.models.ClassHandlerConfig
 import po.exposify.scope.sequence.models.HandlerConfigBase
 import po.exposify.scope.sequence.models.RootHandlerConfig
+import po.misc.exceptions.text
 
 sealed class SequenceHandlerBase<DTO, D, E>(
     val dtoBase: DTOBase<DTO, D, E>,
@@ -89,7 +90,7 @@ class RootSequenceHandler<DTO, D, E> (
        val execProvider =  dtoRoot.createExecutionProvider()
        lastActiveSequenceContext = SequenceContext(this, execProvider, runInfo)
        return lastActiveSequenceContext.getOrOperations().let {
-            sequenceLambda.invoke(it, this)
+          sequenceLambda.invoke(it, this)
         }
     }
 }
@@ -111,28 +112,14 @@ class ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE> (
         val switchQuery = handlerDelegate.switchQueryProvider.invoke()
         val parentExecutionContext = handlerDelegate.rootSequenceHandler.dtoRoot.createExecutionProvider()
         val queryResult = switchQuery.resolve(parentExecutionContext)
-        if (queryResult.failureCause != null) {
-            println(queryResult.failureCause)
+        queryResult.failureCause?.let {
+            dtoClass.warning.logMessage(it.text())
         }
         val provider = dtoClass.createExecutionProvider()
         val newSequenceContext = SequenceContext(this, provider, runInfo)
         val result = switchLambda.invoke(newSequenceContext, this)
         return result
     }
-
-//       return queryResult.failureCause?.toResultList(queryResult.activeCRUD, dtoClass) ?:run {
-//            val provider =  dtoClass.createExecutionProvider()
-//            val newSequenceContext = SequenceContext(this, provider, runInfo)
-//            switchLambda.invoke(newSequenceContext, this)
-//        }
-//        if(queryResult.isFaulty){
-//            val faultyResult = queryResult.failureCause?.toResultList(queryResult.activeCRUD, dtoClass)
-//            return  queryResult.failureCause?.toResultList(queryResult.activeCRUD, dtoClass)
-//        }
-//        val provider =  dtoClass.createExecutionProvider()
-//        val newSequenceContext = SequenceContext(this, provider, runInfo)
-//        return switchLambda.invoke(newSequenceContext, this)
-
 }
 
 

@@ -14,28 +14,28 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 
 
-fun <DTO: ModelDTO, D: DataModel, E: LongEntity> DTOBase<DTO, D, E>.shallowDTO():CommonDTO<DTO, D, E> {
+@PublishedApi
+internal fun <DTO: ModelDTO, D: DataModel, E: LongEntity> DTOBase<DTO, D, E>.shallowDTO():CommonDTO<DTO, D, E> {
     return config.dtoFactory.createDto()
 }
 
-fun  <DTO: ModelDTO, D: DataModel, E: LongEntity> DTOBase<DTO, D, E>.newDTO(
+internal fun  <DTO: ModelDTO, D: DataModel, E: LongEntity> DTOBase<DTO, D, E>.newDTO(
     data: D
 ):CommonDTO<DTO, D, E>{
     return config.dtoFactory.createDto(data)
 }
 
-fun  <DTO: ModelDTO, D: DataModel, E: LongEntity> DTOBase<DTO, D, E>.newDTO(
+internal fun  <DTO: ModelDTO, D: DataModel, E: LongEntity> DTOBase<DTO, D, E>.newDTO(
     dataList: List<D>
 ):List<CommonDTO<DTO, D, E>> = dataList.map { newDTO(it) }
 
-fun <DTO: ModelDTO, D: DataModel,  E: LongEntity>  DTOBase<DTO, D, E>.newDTO(
+internal fun <DTO: ModelDTO, D: DataModel,  E: LongEntity>  DTOBase<DTO, D, E>.newDTO(
     entity:E
 ): CommonDTO<DTO,D,E>{
    val dto = config.dtoFactory.createDto()
     dto.provideEntity(entity)
     return  dto
 }
-
 
 internal fun  <DTO: ModelDTO, D: DataModel,  E: LongEntity> List<E>.select(
     dtoClass:DTOBase<DTO, D, E>,
@@ -49,17 +49,6 @@ internal fun  <DTO: ModelDTO, D: DataModel,  E: LongEntity> List<E>.select(
         result.add(createdDTO)
     }
     return  result.toResult(dtoClass, operation)
-}
-
-
-internal fun  <DTO: ModelDTO, D: DataModel,  E: LongEntity> E.select(
-    dtoClass:DTOBase<DTO, D, E>,
-    operation : CrudOperation
-): ResultSingle<DTO, D, E>
-{
-    val createdDTO =  dtoClass.config.dtoFactory.createDto()
-    createdDTO.bindingHub.select(this)
-    return  createdDTO.toResult(operation)
 }
 
 

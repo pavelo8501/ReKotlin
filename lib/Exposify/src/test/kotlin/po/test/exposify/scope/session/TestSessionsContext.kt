@@ -16,7 +16,7 @@ import po.auth.sessions.models.AuthorizedSession
 import po.exposify.dto.components.result.ResultList
 import po.exposify.scope.sequence.extensions.runSequence
 import po.exposify.scope.sequence.extensions.sequence
-import po.exposify.scope.service.enums.TableCreateMode
+import po.exposify.scope.service.models.TableCreateMode
 import po.misc.coroutines.CoroutineInfo
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.PageEntity
@@ -50,11 +50,11 @@ class TestSessionsContext : DatabaseTest()  {
         )
         withConnection {
 
-            service(UserDTO.Companion, TableCreateMode.CREATE) {
+            service(UserDTO.Companion, TableCreateMode.Create) {
                 userId = update(user).getDataForced().id
             }
 
-            service(PageDTO.Companion, TableCreateMode.CREATE) {
+            service(PageDTO.Companion, TableCreateMode.Create) {
                 sequence(PageDTO.Companion.UPDATE) { handler ->
                     update(handler.inputList)
                 }

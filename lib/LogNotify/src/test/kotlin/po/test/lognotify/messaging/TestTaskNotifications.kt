@@ -1,6 +1,5 @@
 package po.test.lognotify.messaging
 
-
 import org.junit.jupiter.api.Test
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.NotifierHub

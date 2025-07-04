@@ -17,19 +17,16 @@ import po.exposify.scope.service.ServiceContext
 fun <DTO, D, E>  ServiceContext<DTO, D, E>.sequence(
     handlerDelegate : RootHandlerProvider<DTO, D, E>,
     block: suspend  SequenceContext<DTO, D, E>.(RootSequenceHandler<DTO, D, E>) -> ResultList<DTO, D, E>
-) where DTO: ModelDTO, D:DataModel, E:LongEntity
-{
-    //this.dtoClass.reinitChil()
+) where DTO: ModelDTO, D:DataModel, E:LongEntity {
     handlerDelegate.storeSequenceLambda(block)
 }
 
 //Should execute block lambda immediately. The process is already ongoing no need to store it.
 suspend fun <DTO, D, E, F_DTO, FD, FE> SequenceContext<F_DTO,FD, FE>.switchContext(
-    handlerDelegate : SwitchHandlerProvider<DTO, D, E, F_DTO,FD, FE>,
-    switchLambda :  suspend  SequenceContext<DTO, D, E>.(ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE>)-> ResultList<DTO, D, E>
-) where  DTO: ModelDTO, D : DataModel, E : LongEntity,
-           F_DTO: ModelDTO, FD: DataModel, FE: LongEntity
-{
+    handlerDelegate: SwitchHandlerProvider<DTO, D, E, F_DTO,FD, FE>,
+    switchLambda: suspend SequenceContext<DTO, D, E>.(ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE>)-> ResultList<DTO, D, E>
+) where  DTO: ModelDTO, D: DataModel, E: LongEntity, F_DTO: ModelDTO, FD: DataModel, FE: LongEntity{
+
     val switchHandler = sequenceHandler.handlerConfig.getSwitchHandler(handlerDelegate.name)
     switchHandler?.let {
         val casted = it.castOrOperations<ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE>>()

@@ -127,8 +127,8 @@ class SwitchQuery<DTO: ModelDTO, D : DataModel, E: LongEntity>(
     }
 
     fun resolve(executionContext: ExecutionContext<DTO, D, E>): ResultSingle<DTO, D, E> {
-       return dtoClass.lookupDTO(lookUpId, CrudOperation.Pick)?.toResult(CrudOperation.Pick) ?:run {
-           executionContext.pickById(lookUpId)
+       return dtoClass.lookupDTO(lookUpId)?.toResult(CrudOperation.Pick) ?:run {
+           executionContext.pickById(lookUpId, executionContext)
 
         }
     }

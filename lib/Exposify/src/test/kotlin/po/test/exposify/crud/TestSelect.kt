@@ -5,7 +5,6 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.assertAll
 import po.auth.extensions.generatePassword
 import po.exposify.dto.components.WhereQuery
-import po.exposify.scope.service.enums.TableCreateMode
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.Pages
 import po.test.exposify.setup.dtos.PageDTO
@@ -17,9 +16,10 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import po.exposify.dto.components.deferredWhere
 import po.exposify.dto.components.result.ResultList
+import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
-import po.lognotify.classes.notification.models.ConsoleBehaviour
+import po.lognotify.classes.notification.models.NotifyConfig
 import po.test.exposify.setup.ClassData
 import po.test.exposify.setup.PageEntity
 import po.test.exposify.setup.dtos.Page
@@ -47,7 +47,7 @@ class TestSelect : DatabaseTest(), TasksManaged {
 
         val loggerHandler: LogNotifyHandler = logNotify()
         loggerHandler.notifierConfig {
-            console = ConsoleBehaviour.MuteNoEvents
+            console = NotifyConfig.ConsoleBehaviour.MuteNoEvents
         }
         val user = User(
             id = 0,
@@ -57,7 +57,7 @@ class TestSelect : DatabaseTest(), TasksManaged {
             email = "nomail@void.null"
         )
         withConnection {
-            service(UserDTO, TableCreateMode.FORCE_RECREATE) {
+            service(UserDTO, TableCreateMode.ForceRecreate) {
                 updatedById = update(user).getDataForced().id
             }
         }
@@ -86,7 +86,7 @@ class TestSelect : DatabaseTest(), TasksManaged {
             }
 
             var persistedPages: List<Page> = emptyList()
-            service(PageDTO, TableCreateMode.FORCE_RECREATE) {
+            service(PageDTO, TableCreateMode.ForceRecreate) {
                 update(initialPage).getDataForced()
                 PageDTO.clearCachedDTOs()
                 persistedPages = select().getData()
@@ -142,7 +142,7 @@ class TestSelect : DatabaseTest(), TasksManaged {
         ).first()
         lateinit var selectedResult: ResultList<PageDTO, Page, PageEntity>
         withConnection {
-            service(PageDTO, TableCreateMode.FORCE_RECREATE) {
+            service(PageDTO, TableCreateMode.ForceRecreate) {
                 update(page)
                 selectedResult = select()
             }
@@ -188,7 +188,7 @@ class TestSelect : DatabaseTest(), TasksManaged {
         var persistedPages: List<Page> = emptyList()
 
         withConnection {
-            service(PageDTO, TableCreateMode.FORCE_RECREATE) {
+            service(PageDTO, TableCreateMode.ForceRecreate) {
                 update(inputPages).getData()
                 PageDTO.clearCachedDTOs()
                 persistedPages = select().getData()
@@ -226,7 +226,7 @@ class TestSelect : DatabaseTest(), TasksManaged {
 
         var selectedPages: List<Page> = emptyList()
         withConnection {
-            service(PageDTO.Companion, TableCreateMode.FORCE_RECREATE) {
+            service(PageDTO.Companion, TableCreateMode.ForceRecreate) {
                 update(pages)
                 selectedPages = select(deferredWhere{ WhereQuery(Pages).equals(Pages.langId, 1)}).getData()
             }
@@ -263,7 +263,7 @@ class TestSelect : DatabaseTest(), TasksManaged {
         var selected : Page? = null
 
         withConnection {
-            service(PageDTO, TableCreateMode.FORCE_RECREATE){
+            service(PageDTO, TableCreateMode.ForceRecreate){
                 updated =  update(page).getData()
                 selected = select().getData().firstOrNull()
             }

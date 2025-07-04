@@ -35,7 +35,7 @@ interface TasksManaged : IdentifiableContext {
 
     val logHandler: LoggerDataProcessor
         get() {
-            return taskHandler().dataProcessor
+            return LogNotify.taskDispatcher.getActiveTasks().dataProcessor
         }
 
     fun <T : PrintableBase<T>> log(data: T, template: PrintableTemplateBase<T>) {

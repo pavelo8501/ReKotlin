@@ -18,6 +18,7 @@ import po.exposify.exceptions.initException
 import po.exposify.exceptions.throwOperations
 import po.exposify.extensions.castOrOperations
 import po.exposify.extensions.getOrOperations
+import po.lognotify.TasksManaged
 import po.lognotify.classes.task.TaskHandler
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.ValueBased
@@ -28,7 +29,7 @@ import java.util.UUID
 
 abstract class CommonDTO<DTO, DATA, ENTITY>(
    val dtoClass: DTOBase<DTO, DATA, ENTITY>
-): Identifiable,  ModelDTO where DTO : ModelDTO,  DATA: DataModel , ENTITY: LongEntity {
+): Identifiable, ModelDTO, TasksManaged where DTO : ModelDTO,  DATA: DataModel , ENTITY: LongEntity {
 
     override val objectId: Long
         get() = 0
@@ -41,17 +42,12 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         get() = "CommonDTO[${sourceName}#${dtoId.id}]"
     override var sourceName: String = dtoType.simpleName
 
-    val registry: TypeRegistry get() {
-        return dtoClass.config.registry
-    }
     abstract override val dataModel: DATA
 
-    val entityType: TypeRecord<ENTITY>
-        get() = registry.getRecord<ENTITY, InitException>(SourceObject.Entity){ initException(it, ExceptionCode.ABNORMAL_STATE) }
-    val dataType:  TypeRecord<DATA>
-        get() = registry.getRecord<DATA, InitException>(SourceObject.Data){ initException(it, ExceptionCode.ABNORMAL_STATE) }
+    val entityType: TypeRecord<ENTITY> get() = dtoClass.entityType
+    val dataType:  TypeRecord<DATA> get() = dtoClass.dataType
 
-    val logger : TaskHandler<*> get()= dtoClass.logger
+    val logger : TaskHandler<*> get() = taskHandler()
 
     override var cardinality: Cardinality = Cardinality.ONE_TO_MANY
 

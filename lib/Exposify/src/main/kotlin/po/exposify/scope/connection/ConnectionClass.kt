@@ -15,7 +15,7 @@ import po.exposify.scope.connection.controls.CoroutineEmitter
 import po.exposify.scope.connection.controls.UserDispatchManager
 import po.exposify.scope.service.ServiceClass
 import po.exposify.scope.service.ServiceContext
-import po.exposify.scope.service.enums.TableCreateMode
+import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.classes.task.TaskHandler
 import po.lognotify.extensions.runTask
@@ -74,18 +74,21 @@ class ConnectionClass(
 
     fun <DTO, D, E> service(
         dtoClass : RootDTO<DTO, D, E>,
-        createOptions : TableCreateMode = TableCreateMode.CREATE,
+        createOptions : TableCreateMode = TableCreateMode.Create,
         block: ServiceContext<DTO, D, E>.()->Unit,
-    ) where DTO : ModelDTO, D: DataModel, E: LongEntity = runTask("Create Service") { handler ->
+    ): Unit where DTO : ModelDTO, D: DataModel, E: LongEntity = runTask("service") { handler ->
 
-        handler.info("Creating ServiceClass")
-        val serviceClass = ServiceClass(dtoClass, this, createOptions)
-        services[serviceClass.completeName] = serviceClass
-        serviceClass.initService(dtoClass)
-        getService<DTO, D, E>(serviceClass.completeName)?.runServiceContext(block)
-    }.onFail{
-        throw it
-    }
+        val existentService = getService<DTO, D, E>(dtoClass.contextName)
+        if(existentService == null){
+            val serviceClass = ServiceClass(dtoClass, this)
+            handler.info("ServiceClass ${serviceClass.contextName} created")
+            serviceClass.initService(dtoClass, createOptions,  block)
+            services[dtoClass.contextName] = serviceClass
+        }else{
+            handler.info("Using ServiceClass ${existentService.contextName}")
+            block.invoke(existentService.serviceContext)
+        }
+    }.resultOrException()
 
     fun clearServices(){
         services.clear()

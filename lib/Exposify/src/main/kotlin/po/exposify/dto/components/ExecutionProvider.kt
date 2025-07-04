@@ -2,6 +2,7 @@ package po.exposify.dto.components
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
+import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
 import po.exposify.dto.RootDTO
 import po.exposify.dto.components.bindings.helpers.createDTO
@@ -20,36 +21,35 @@ import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.throwOperations
+import po.lognotify.TasksManaged
 import po.lognotify.classes.task.TaskHandler
 import po.misc.interfaces.IdentifiableContext
 
 
 class ExecutionProvider<DTO, DATA, ENTITY>(
     override val dtoClass: DTOBase<DTO, DATA, ENTITY>,
-):  ExecutionContext<DTO, DATA, ENTITY>, IdentifiableContext where  DTO  : ModelDTO , DATA : DataModel, ENTITY: LongEntity {
+): ExecutionContext<DTO, DATA, ENTITY>, IdentifiableContext where  DTO: ModelDTO, DATA : DataModel, ENTITY: LongEntity {
 
     override val contextName: String = "ExecutionProvider"
-
     override val logger: TaskHandler<*> get() = taskHandler()
 
     private fun insert(data: DATA): ResultSingle<DTO, DATA, ENTITY> {
         val operation = CrudOperation.Insert
         if (dtoClass is RootDTO) {
-            return dtoClass.createDTO(data, operation).toResult(operation)
+           val dto = dtoClass.newDTO(data).bindingHub.loadHierarchyByData(null)
+            return dto.toResult(operation)
         } else {
             throwOperations("Setup misconfiguration", ExceptionCode.ABNORMAL_STATE)
         }
     }
 
-    override fun pickById(id: Long): ResultSingle<DTO, DATA, ENTITY> {
+    override fun pickById(id: Long, initiator: IdentifiableContext): ResultSingle<DTO, DATA, ENTITY> {
         val operation = CrudOperation.Pick
-        val existent = dtoClass.lookupDTO(id, operation)
-        return if (existent != null) {
-            existent.toResult(operation)
-        } else {
-            dtoClass.config.daoService.pickById(id)?.let { entity ->
-                entity.select(dtoClass, operation)
-            } ?: run {
+        return dtoClass.lookupDTO(id)?.toResult(operation)?:run {
+            val result = dtoClass.config.daoService.pickById(id)
+            if(result != null){
+                dtoClass.newDTO(result).bindingHub.loadHierarchyByEntity(null).toResult(operation)
+            }else{
                 val message = "Entity with provided id :${id} not found"
                 dtoClass.shallowDTO().toResult(OperationsException(message, ExceptionCode.DB_CRUD_FAILURE, null), operation)
             }
@@ -58,14 +58,11 @@ class ExecutionProvider<DTO, DATA, ENTITY>(
 
     override fun pick(conditions: SimpleQuery): ResultSingle<DTO, DATA, ENTITY> {
         val operation = CrudOperation.Pick
-        return dtoClass.config.daoService.pick(conditions)?.let { entity ->
-            val existent = dtoClass.lookupDTO(entity.id.value, operation)
-            if (existent != null) {
-                existent.toResult(operation)
-            } else {
-                entity.select(dtoClass, operation)
-            }
-        } ?: run {
+
+        val entity = dtoClass.config.daoService.pick(conditions)
+        return if (entity != null) {
+            dtoClass.newDTO(entity).bindingHub.loadHierarchyByEntity(null).toResult(operation)
+        } else {
             val queryStr = conditions.build().toSqlString()
             val message =
                 "Unable to find ${dtoClass.config.registry.getRecord<DTO>(SourceObject.DTO)} for query $queryStr"
@@ -91,34 +88,80 @@ class ExecutionProvider<DTO, DATA, ENTITY>(
         return entities.select(dtoClass, operation)
     }
 
-
-    override fun update(dataModel: DATA): ResultSingle<DTO, DATA, ENTITY> {
+    override fun update(dataModel: DATA, initiator: IdentifiableContext): ResultSingle<DTO, DATA, ENTITY> {
         val operation = CrudOperation.Update
 
-        // 1. Redirect to insert if id == 0
         if (dataModel.id == 0L) {
             return insert(dataModel)
         }
-        // 2. Try updating from cached/lookup DTO
-        dtoClass.lookupDTO(dataModel.id, operation)
+        dtoClass.lookupDTO(dataModel.id)
             ?.updateFromData(dataModel, operation)
             ?.let { return it }
 
-
-        // 3. Try fetching the entity directly
         val entity = dtoClass.config.daoService.pickById(dataModel.id)
         if (entity != null) {
             return dtoClass.newDTO(entity).updateFromData(dataModel, operation)
         }
 
-        // 4. Final fallback: return error
         val message = "Unable to update. DTO with id: ${dataModel.id} not found."
         return dtoClass.newDTO(dataModel)
             .toResult(OperationsException(message, ExceptionCode.DB_CRUD_FAILURE, null), operation)
     }
 
-    override fun update(dataModels: List<DATA>): ResultList<DTO, DATA, ENTITY> {
-        return dataModels.map { update(it) }.toResult(dtoClass)
+    override fun update(dataModels: List<DATA>,  initiator: IdentifiableContext): ResultList<DTO, DATA, ENTITY> {
+        return dataModels.map { update(it, initiator) }.toResult(dtoClass)
+    }
+
+    override fun insert(dataModels: List<DATA>): ResultList<DTO, DATA, ENTITY> {
+        val result = dataModels.map { dataModel ->
+            dataModel.id = 0
+            insert(dataModel)
+        }.toResult(dtoClass)
+        return result
+    }
+
+    fun delete(dataModel: DATA): ResultSingle<DTO, DATA, ENTITY>{
+        TODO("Not yet implemented")
+    }
+
+}
+
+class DTOExecutionProvider<DTO, D, E>(
+    override val dtoClass: DTOBase<DTO, D, E>,
+    val dto: CommonDTO<DTO, D, E>
+):  ExecutionContext<DTO, D, E>, TasksManaged where  DTO: ModelDTO , D: DataModel, E: LongEntity {
+
+    override val contextName: String = "DTOExecutionProvider"
+    override val logger: TaskHandler<*> get() = taskHandler()
+    override fun select(): ResultList<DTO, D, E> {
+        TODO("Not yet implemented")
+    }
+
+    override fun <T : IdTable<Long>> select(conditions: WhereQuery<T>): ResultList<DTO, D, E> {
+        TODO("Not yet implemented")
+    }
+
+    override fun select(conditions: SimpleQuery): ResultList<DTO, D, E> {
+        TODO("Not yet implemented")
+    }
+
+    override fun pickById(id: Long,  initiator: IdentifiableContext): ResultSingle<DTO, D, E> {
+        TODO("Not yet implemented")
+    }
+
+    override fun pick(conditions: SimpleQuery): ResultSingle<DTO, D, E> {
+        TODO("Not yet implemented")
+    }
+
+    override fun update(dataModels: List<D>,  initiator: IdentifiableContext): ResultList<DTO, D, E> {
+        TODO("Not yet implemented")
+    }
+
+    override fun update(dataModel: D,  initiator: IdentifiableContext): ResultSingle<DTO, D, E> {
+        TODO("Not yet implemented")
+    }
+    override fun insert(dataModels: List<D>): ResultList<DTO, D, E> {
+        TODO("Not yet implemented")
     }
 }
 
