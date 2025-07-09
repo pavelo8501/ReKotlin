@@ -1,7 +1,7 @@
 package po.lognotify.classes.jobs
 
-import po.lognotify.classes.task.TaskHandler
-import po.lognotify.classes.task.TaskBase
+import po.lognotify.tasks.TaskHandler
+import po.lognotify.tasks.TaskBase
 
 class ManagedJob(
     val task : TaskBase<*, *>,

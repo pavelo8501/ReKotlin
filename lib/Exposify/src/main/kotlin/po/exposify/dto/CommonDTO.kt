@@ -4,124 +4,156 @@ import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.components.DAOService
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.components.DTOConfig
+import po.exposify.dto.components.DTOExecutionContext
 import po.exposify.dto.components.DTOFactory
 import po.exposify.dto.components.bindings.BindingHub
 import po.exposify.dto.components.tracker.DTOTracker
+import po.exposify.dto.components.tracker.models.TrackerConfig
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.dto.enums.DTOInitStatus
+import po.exposify.dto.enums.DTOStatus
+import po.exposify.dto.helpers.asDTO
+import po.exposify.dto.interfaces.ResultingDTO
 import po.exposify.dto.models.DTOId
-import po.exposify.dto.models.SourceObject
-import po.exposify.exceptions.InitException
-import po.exposify.exceptions.initException
-import po.exposify.exceptions.throwOperations
-import po.exposify.extensions.castOrOperations
-import po.exposify.extensions.getOrOperations
+import po.exposify.exceptions.managedPayload
+import po.exposify.exceptions.operationsException
+import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
-import po.lognotify.classes.task.TaskHandler
-import po.misc.interfaces.Identifiable
-import po.misc.interfaces.ValueBased
-import po.misc.registries.callback.TypedCallbackRegistry
-import po.misc.registries.type.TypeRegistry
+import po.misc.interfaces.CtxId
+import po.misc.interfaces.TypedContext
+import po.misc.types.TypeData
 import po.misc.types.TypeRecord
+import po.misc.types.castOrThrow
 import java.util.UUID
+
+
 
 abstract class CommonDTO<DTO, DATA, ENTITY>(
    val dtoClass: DTOBase<DTO, DATA, ENTITY>
-): Identifiable, ModelDTO, TasksManaged where DTO : ModelDTO,  DATA: DataModel , ENTITY: LongEntity {
+): ModelDTO, TypedContext<DTO>, TasksManaged where DTO:ModelDTO,  DATA: DataModel , ENTITY: LongEntity {
 
-    override val objectId: Long
-        get() = 0
+    enum class DataStatus {
+        New,
+        Dirty,
+        UpToDate
+    }
 
-    override val dtoType :TypeRecord<DTO> get() = dtoClass.dtoType
-    val dtoClassConfig: DTOConfig<DTO, DATA, ENTITY> get() =   dtoClass.config.castOrOperations<DTOConfig<DTO, DATA, ENTITY>>(this)
+    var onInitializationStatusChange: ((CommonDTO<DTO, DATA, ENTITY>) -> Unit)? = null
 
-    val dtoId : DTOId<DTO> = DTOId(UUID.randomUUID().hashCode().toLong())
+    override var status: DTOStatus = DTOStatus.Uninitialized
+        internal set(value) {
+                if (value != field) {
+                    field = value
+                    onInitializationStatusChange?.invoke(this)
+                }
+            }
+
+    override var dataStatus:DataStatus= DataStatus.New
+        internal set
+
+    val commonType: TypeData<CommonDTO<DTO, DATA, ENTITY>> by lazy { dtoClass.commonType.toTypeData() }
+    override val typeData: TypeData<DTO> get() = dtoClass.dtoType
+    val dtoClassConfig: DTOConfig<DTO, DATA, ENTITY> get() =  dtoClass.config
+
+    override val dtoId : DTOId<DTO> = DTOId(UUID.randomUUID().hashCode().toLong())
     override val contextName: String
         get() = "CommonDTO[${sourceName}#${dtoId.id}]"
-    override var sourceName: String = dtoType.simpleName
+    override var sourceName: String = typeData.simpleName
 
-    abstract override val dataModel: DATA
+    override val tracker: DTOTracker<DTO, DATA, ENTITY> = DTOTracker(this)
+    override val hub: BindingHub<DTO, DATA, ENTITY> =  BindingHub(this)
+    internal val executionContext: DTOExecutionContext<DTO, DATA, ENTITY> = DTOExecutionContext(dtoClass, this)
+
+    internal val dataModel:DATA get() {
+        return executionContext.getDataModel(this)
+    }
 
     val entityType: TypeRecord<ENTITY> get() = dtoClass.entityType
     val dataType:  TypeRecord<DATA> get() = dtoClass.dataType
 
-    val logger : TaskHandler<*> get() = taskHandler()
+    val logger : LogNotifyHandler get() {
+        tracker.logDebug("Accessing logger", this)
+        return logHandler
+    }
 
     override var cardinality: Cardinality = Cardinality.ONE_TO_MANY
 
     override val daoService: DAOService<DTO, DATA, ENTITY> get() = dtoClassConfig.daoService
     override val dtoFactory: DTOFactory<DTO, DATA, ENTITY> get() = dtoClassConfig.dtoFactory
 
-    private var entityParameter: ENTITY? = null
-    val isEntityInserted: Boolean get() = entityParameter != null
-
-    @PublishedApi
-    internal val bindingHub: BindingHub<DTO, DATA, ENTITY> = BindingHub(this)
-
-    var onInitializationStatusChange: ((CommonDTO<DTO, DATA, ENTITY>) -> Unit)? = null
-    var initStatus: DTOInitStatus = DTOInitStatus.UNINITIALIZED
-        set(value) {
-            if (value != field) {
+    private var idBacking: Long = -1L
+    override var id: Long = idBacking
+        set(value){
+            if(value != field && value > 0){
                 field = value
-                onInitializationStatusChange?.invoke(this)
             }
         }
 
-    override var id: Long
-        get() = dataModel.id
-        set(value){ dataModel.id = value }
+//    internal fun toDTOResult():DTOResult<DTO>{
+//        return DTOResult(this as ModelDTO<DTO>)
+//    }
 
-    internal var trackerParameter: DTOTracker<DTO, DATA>? = null
-    override val tracker: DTOTracker<DTO, DATA>
-        get() {
-            return trackerParameter ?: DTOTracker(this)
-        }
+    fun updateId(providedId: Long) {
+        id = providedId
 
-    override fun compareTo(other: Long): Int {
-        val comparison = objectId.compareTo(other)
-        if (comparison != 0) {
-            return objectId.toInt()
-        } else {
-            return 0
+        executionContext.getDataModelOrNull()?.let {
+            it.id = providedId
+            tracker.dtoIdUpdated(providedId)
         }
     }
 
-    override fun updateId(id: Long) {
-
-    }
-
-    internal fun getEntity():ENTITY{
-        return entityParameter?:throwOperations("Requesting entity while not inserted", ExceptionCode.METHOD_MISUSED,  this)
-    }
-
-    internal fun finalizeCreation(entity: ENTITY, cardinality: Cardinality): ENTITY {
-        if(entityParameter != null){
-
-            logger.warn("finalizeCreation. Updating entityParameter when it is already set")
+    override fun <DATA: DataModel, ENTITY: LongEntity> asCommonDTO(): CommonDTO<DTO, DATA, ENTITY>{
+        return this.castOrThrow<CommonDTO<DTO, DATA, ENTITY>>(this){
+            operationsException(this.managedPayload(it, ExceptionCode.CAST_FAILURE))
         }
-        entityParameter = entity
-        dataModel.id = entity.id.value
-        this.cardinality = cardinality
-        initStatus = DTOInitStatus.INITIALIZED
+    }
+
+    internal fun provideEntity(entity: ENTITY, dtoStatus: DTOStatus): ENTITY {
+        if(dtoStatus == DTOStatus.Complete){
+            val entityId = entity.id.value
+            updateId(entityId)
+        }
+        executionContext.entityBacking = entity
+        updateStatus(dtoStatus)
         return entity
     }
-
-    internal fun provideEntity(entity: ENTITY): ENTITY {
-        if(entityParameter != null){
-            logger.warn("provideEntity. Updating entityParameter when it is already set")
+    internal fun provideData(data: DATA, dtoStatus: DTOStatus, initiator: CtxId): DATA {
+        if(data.id != 0L){
+            id = data.id
         }
-        entityParameter = entity
-        dataModel.id = entity.id.value
-        return entity
+        executionContext.provideDataModel(data, initiator)
+        updateStatus(dtoStatus)
+        return data
     }
 
-    internal fun initialize(tracker: DTOTracker<DTO, DATA>? = null): CommonDTO<DTO, DATA, ENTITY> {
-        if (tracker != null) {
-            trackerParameter = tracker
+    internal fun updateStatus(dtoStatus: DTOStatus){
+        if(dtoStatus == status){
+            logHandler.dataProcessor.warn("DTO{$this} new status ${dtoStatus.name} while existing status ${status.name}")
         }
-        initStatus = DTOInitStatus.PARTIAL_WITH_DATA
+        when(dtoStatus){
+            DTOStatus.Complete->{
+                if(id  < 1){
+                    val dataModel = executionContext.getDataModel(this)
+                    if(dataModel.id == 0L){
+                        val entityId = executionContext.getEntity(this).id.value
+                        dataModel.id = entityId
+                        tracker.dtoIdUpdated(entityId)
+                    }
+                }
+                executionContext.notifyDTOComplete(this)
+                status = dtoStatus
+            }
+            else -> {
+                status = dtoStatus
+            }
+        }
+    }
+
+    internal fun initialize(trackerConfig: TrackerConfig? = null): CommonDTO<DTO, DATA, ENTITY> {
+        if (trackerConfig != null) {
+            tracker.updateConfig(trackerConfig)
+        }
         return this
     }
 }

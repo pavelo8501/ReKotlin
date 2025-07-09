@@ -54,8 +54,8 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
     @BeforeAll
     fun setup() = runTest {
 
-        val loggerHandler: LogNotifyHandler = logNotify()
-        loggerHandler.notifierConfig {
+
+        logHandler.notifierConfig {
             console = NotifyConfig.ConsoleBehaviour.MuteNoEvents
         }
         val user = User(

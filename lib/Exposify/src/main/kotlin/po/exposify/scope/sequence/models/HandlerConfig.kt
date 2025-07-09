@@ -93,7 +93,7 @@ class ClassHandlerConfig<DTO, D, E, F_DTO, FD, FE>() : HandlerConfigBase<DTO, D,
 {
     internal var rootHandlerParameter : RootSequenceHandler<F_DTO, FD, FE>? = null
     val rootHandler  : RootSequenceHandler<F_DTO, FD, FE>
-        get() = rootHandlerParameter.getOrOperations("Root handler not found")
+        get() = rootHandlerParameter.getOrOperations(rootHandler.dtoRoot)
 
     internal fun registerRootHandler(handler: RootSequenceHandler<F_DTO, FD, FE>){
         rootHandlerParameter = handler

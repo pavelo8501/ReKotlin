@@ -6,6 +6,7 @@ import po.exposify.dto.DTOClass
 import po.exposify.dto.RootDTO
 import po.exposify.dto.components.SwitchQuery
 import po.exposify.dto.components.result.ResultList
+import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
@@ -45,6 +46,8 @@ sealed class HandlerProviderBase<DTO, D, E, V>(
     }
 }
 
+
+
 class RootHandlerProvider<DTO, D, E> internal constructor(
     val dtoRoot: RootDTO<DTO, D, E>,
 ):HandlerProviderBase<DTO, D, E, RootHandlerProvider<DTO, D, E>>(dtoRoot)
@@ -77,7 +80,7 @@ class SwitchHandlerProvider<DTO, D, E, F_DTO, FD, FE> internal constructor(
     val rootSequenceHandler: RootHandlerProvider<F_DTO, FD, FE> ,
 ):HandlerProviderBase<DTO, D, E, SwitchHandlerProvider<DTO, D, E, F_DTO, FD, FE>>(dtoClass)
         where DTO: ModelDTO, D: DataModel, E: LongEntity,
-              F_DTO : ModelDTO,FD : DataModel, FE: LongEntity
+              F_DTO: ModelDTO, FD : DataModel, FE: LongEntity
 {
 
     override var isRootHandler : Boolean = false

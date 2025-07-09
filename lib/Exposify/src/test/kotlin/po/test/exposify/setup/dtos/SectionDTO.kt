@@ -37,16 +37,13 @@ data class Section(
     var updatedBy: Long,
     @SerialName("page_id")
     var pageId : Long,
-): DataModel
-{
+): DataModel {
     @SerialName("content_blocks")
     val contentBlocks : MutableList<ContentBlock> = mutableListOf()
     var updated: LocalDateTime = UserDTO.nowTime()
 }
 
-class SectionDTO(
-    override var dataModel: Section
-): CommonDTO<SectionDTO, Section, SectionEntity>(SectionDTO) {
+class SectionDTO(): CommonDTO<SectionDTO, Section, SectionEntity>(SectionDTO) {
 
     var name: String by binding(Section::name, SectionEntity::name)
     var description: String by binding(Section::description, SectionEntity::description)
@@ -74,13 +71,15 @@ class SectionDTO(
         ContentBlockEntity::section)
 
     companion object: DTOClass<SectionDTO, Section, SectionEntity>(SectionDTO::class, PageDTO){
+
+
        val UPDATE by SwitchHandlerProvider(this, Cardinality.ONE_TO_MANY, PageDTO.SELECT)
        val SELECT_UPDATE by SwitchHandlerProvider(this, Cardinality.ONE_TO_MANY, PageDTO.UPDATE)
 
         override fun setup() {
             configuration{
                 applyTrackerConfig {
-                    name = "SECTION"
+                    aliasName = "SECTION"
                     observeProperties = true
                     observeRelationBindings = true
                 }

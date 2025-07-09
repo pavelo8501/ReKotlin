@@ -1,6 +1,8 @@
 package po.lognotify.process
 
 
+import po.misc.data.printable.PrintableBase
+import po.misc.interfaces.IdentifiableContext
 import kotlin.coroutines.CoroutineContext
 
 interface ProcessableContext<out E: CoroutineContext.Element> : CoroutineContext.Element {
@@ -12,4 +14,13 @@ interface ProcessableContext<out E: CoroutineContext.Element> : CoroutineContext
 
     fun onProcessStart(session: LoggerProcess<*, *>)
     fun onProcessEnd(session: LoggerProcess<*, *>)
+}
+
+
+interface LogReceiver: IdentifiableContext{
+
+    val receivableContext:()->LogReceiver
+
+    fun receiveUpdate(data: PrintableBase<*>)
+
 }

@@ -31,9 +31,7 @@ data class User(
     }
 }
 
-class UserDTO(
-    override var dataModel: User
-): CommonDTO<UserDTO,  User, UserEntity>(UserDTO) {
+class UserDTO(): CommonDTO<UserDTO,  User, UserEntity>(UserDTO) {
 
     var login : String by binding(User::login, UserEntity::login)
     var name : String by binding(User::name, UserEntity::name)

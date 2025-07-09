@@ -36,9 +36,7 @@ data class ContentBlock(
     var updated: LocalDateTime = ContentBlockDTO.nowTime()
 }
 
-class ContentBlockDTO(
-    override var dataModel: ContentBlock
-): CommonDTO<ContentBlockDTO, ContentBlock, ContentBlockEntity>(ContentBlockDTO) {
+class ContentBlockDTO(): CommonDTO<ContentBlockDTO, ContentBlock, ContentBlockEntity>(ContentBlockDTO) {
 
     var name : String by binding(ContentBlock::name, ContentBlockEntity::name)
     var content : String by binding(ContentBlock::content, ContentBlockEntity::content)
@@ -51,9 +49,8 @@ class ContentBlockDTO(
     var metaTags:  List<MetaData> by serializedBinding(ContentBlock::metaTags, ContentBlockEntity::metaTags)
 
 
-    val section by parentReference(SectionDTO){section->
+    val section : SectionDTO by parentReference(SectionDTO){section->
         sectionId =  section.id
-
     }
 
     companion object: DTOClass<ContentBlockDTO, ContentBlock, ContentBlockEntity>(ContentBlockDTO::class, SectionDTO){

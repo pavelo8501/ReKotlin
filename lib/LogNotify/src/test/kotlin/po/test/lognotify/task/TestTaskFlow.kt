@@ -3,11 +3,10 @@ package po.test.lognotify.task
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import po.lognotify.TasksManaged
-import po.lognotify.classes.task.models.TaskConfig
+import po.lognotify.tasks.models.TaskConfig
 import po.lognotify.extensions.runTask
 import po.lognotify.extensions.subTask
 import po.misc.exceptions.HandlerType
-import po.misc.interfaces.IdentifiableContext
 import kotlin.test.assertEquals
 
 class TestTaskFlow: TasksManaged {

@@ -5,14 +5,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import po.lognotify.classes.notification.LoggerDataProcessor
 import po.lognotify.classes.notification.NotifierHub
-import po.lognotify.classes.task.RootTask
-import po.lognotify.classes.task.TaskHandler
-import po.lognotify.classes.task.models.TaskConfig
-import po.lognotify.extensions.getOrLoggerException
+import po.lognotify.tasks.TaskHandler
 import po.lognotify.models.TaskDispatcher
 import po.lognotify.models.TaskDispatcher.UpdateType
-import po.lognotify.models.TaskKey
-import po.misc.callbacks.manager.wrapRawCallback
+import po.lognotify.process.LogReceiver
+import po.misc.callbacks.wrapRawCallback
 import po.misc.data.printable.PrintableBase
 import po.misc.data.console.PrintableTemplateBase
 import po.misc.data.printable.PrintableCompanion
@@ -33,26 +30,23 @@ interface TasksManaged : IdentifiableContext {
             taskDispatcher.onTaskComplete(handler, wrapRawCallback(callback))
     }
 
-    val logHandler: LoggerDataProcessor
+
+    val logHandler: LogNotifyHandler
         get() {
-            return LogNotify.taskDispatcher.getActiveTasks().dataProcessor
+            return LogNotifyHandler(LogNotify.taskDispatcher)
         }
 
     fun <T : PrintableBase<T>> log(data: T, template: PrintableTemplateBase<T>) {
-        logHandler.log(data, template)
+        logHandler.dispatcher.getActiveDataProcessor().log(data, template)
     }
 
     fun <T : PrintableBase<T>> debug(data: T, dataClass: PrintableCompanion<T>, template: PrintableTemplateBase<T>) {
-        logHandler.debug(data, dataClass, template)
+        logHandler.dispatcher.getActiveDataProcessor().debug(data, dataClass, template)
     }
 
     fun taskHandler(): TaskHandler<*> {
-        val activeTask = LogNotify.taskDispatcher.getActiveTasks()
-        return activeTask.handler
+        return LogNotify.taskDispatcher.activeTask()?.handler?: LogNotify.taskDispatcher.createDefaultTask().handler
     }
 
-    fun logNotify(): LogNotifyHandler {
-        return LogNotifyHandler(LogNotify.taskDispatcher)
-    }
 }
 

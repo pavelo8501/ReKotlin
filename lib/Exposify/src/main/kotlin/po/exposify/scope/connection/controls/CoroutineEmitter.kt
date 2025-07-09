@@ -8,7 +8,6 @@ import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.interfaces.RunnableContext
-import po.exposify.scope.sequence.classes.ClassSequenceHandler
 import po.exposify.scope.sequence.classes.RootSequenceHandler
 import po.lognotify.process.runProcess
 
@@ -30,20 +29,20 @@ class CoroutineEmitter(
         }
     }
 
-    suspend fun <DTO:ModelDTO, D: DataModel, E: LongEntity, F: ModelDTO, FD: DataModel, FE: LongEntity>dispatchChild(
-        classHandler: ClassSequenceHandler<DTO, D, E, F, FD, FE>
-    ): ResultList<DTO, D, E>{
-        return session.runProcess("Sequence dispatched by ${classHandler.dtoClass.completeName}", Dispatchers.IO) {
-            newSuspendedTransaction(coroutineContext){
-                    val runnableContext = RunnableContext.runInfo(session)
-                    classHandler.handlerConfig.onStartCallback?.invoke(runnableContext)
-                    classHandler.handlerConfig.rootHandler.launch(runnableContext)
-                    val result = classHandler.finalResult
-                    classHandler.handlerConfig.onCompleteCallback?.invoke(runnableContext)
-                    result
-                }
-        }
-    }
+//    suspend fun <DTO:ModelDTO<DTO>, D: DataModel, E: LongEntity, F: ModelDTO<F>, FD: DataModel, FE: LongEntity>dispatchChild(
+//        classHandler: ClassSequenceHandler<DTO, D, E, F, FD, FE>
+//    ): ResultList<DTO, D, E>{
+//        return session.runProcess("Sequence dispatched by ${classHandler.dtoClass.completeName}", Dispatchers.IO) {
+//            newSuspendedTransaction(coroutineContext){
+//                    val runnableContext = RunnableContext.runInfo(session)
+//                    classHandler.handlerConfig.onStartCallback?.invoke(runnableContext)
+//                    classHandler.handlerConfig.rootHandler.launch(runnableContext)
+//                    val result = classHandler.finalResult
+//                    classHandler.handlerConfig.onCompleteCallback?.invoke(runnableContext)
+//                    result
+//                }
+//        }
+//    }
 
     suspend fun <DTO:ModelDTO, D: DataModel, E: LongEntity>dispatch(block:suspend ()-> ResultList<DTO,D,E>): ResultList<DTO, D, E>{
         return session.runProcess("Sequence dispatch", Dispatchers.IO){

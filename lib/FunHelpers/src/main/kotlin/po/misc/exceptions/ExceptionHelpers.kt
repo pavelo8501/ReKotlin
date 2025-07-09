@@ -117,6 +117,16 @@ fun Throwable.toManaged(ctx: IdentifiableContext,  handler: HandlerType,  source
     return exception
 }
 
+fun Throwable.toManaged(payload: ManagedCallSitePayload): ManagedException{
+    val exceptionMessage = "$message @ ${payload.ctx}"
+    val exception = ManagedException(payload.message, payload.source, payload.cause)
+    exception.addHandlingData(payload.ctx,  ManagedException.ExceptionEvent.Registered)
+    payload.handler?.let {
+        exception.handler = it
+    }
+    return exception
+}
+
 inline fun <reified EX: ManagedException, S: Enum<S>> Throwable.toManageable(ctx: IdentifiableContext, source: S): EX{
     val exceptionMessage = "$message @ ${ctx.contextName}"
     return ManageableException.build<EX, S>(exceptionMessage, source, this)

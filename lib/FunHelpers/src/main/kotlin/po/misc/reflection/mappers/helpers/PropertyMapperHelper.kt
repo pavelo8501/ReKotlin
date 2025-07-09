@@ -26,7 +26,7 @@ fun <T : Any> createPropertyMap(
     return PropertyMapperRecord(
         classTypeRecord = typeRecord,
         columnMetadata = columnMetadata?:emptyList(),
-        propertyMap = typeRecord.clazz.memberProperties.associate {
+        propertyMap = typeRecord.kClass.memberProperties.associate {
           it.name to PropertyRecord(it.name, it.castOrManaged<KProperty<T>>())
     })
 }

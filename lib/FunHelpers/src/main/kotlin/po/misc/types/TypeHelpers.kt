@@ -1,38 +1,40 @@
 package po.misc.types
 
-import po.misc.callbacks.manager.CallbackPayload
-import po.misc.data.helpers.emptyOnNull
 import po.misc.data.helpers.textIfNull
-import po.misc.exceptions.ManagedException
-import po.misc.exceptions.ManageableException
 import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.exceptions.managedException
 import po.misc.exceptions.throwManaged
 import po.misc.interfaces.IdentifiableContext
 import java.time.LocalDateTime
 import kotlin.reflect.KClass
-import kotlin.reflect.KType
-import kotlin.reflect.typeOf
 
 
 inline fun <T1 : Any, R : Any> safeLet(p1: T1?, block: (T1) -> R?): R? {
     return if (p1 != null) block(p1) else null
 }
 
-inline fun <reified T : Any, reified E: ManagedException> T?.getOrThrow(
-    ctx: IdentifiableContext? = null,
-    exceptionProvider:(String)->E
+
+inline fun <reified T : Any> T?.getOrThrow(
+    exceptionProvider:(String)-> Throwable
+):T {
+    if (this != null) {
+        return this
+    } else {
+        val message = "Expected class ${T::class.simpleName} is null"
+        throw exceptionProvider(message)
+    }
+}
+
+
+fun <T : Any> T?.getOrThrow(
+    kClass: KClass<*>,
+    exceptionProvider:(String)-> Throwable
 ):T {
     if(this != null){
         return this
     }else{
-        val message = "Expected class ${T::class.simpleName} is null"
-        val exception =  exceptionProvider(message)
-        if(ctx != null){
-            exception.throwSelf(ctx)
-        }else{
-            throw exception
-        }
+        val message = "Expected class ${kClass.simpleName} is null"
+        throw exceptionProvider(message)
     }
 }
 
@@ -93,5 +95,5 @@ fun <T: Any> TypeData<T>.getDefaultForType(): T? {
         }
         else -> null
     }
-    return result?.safeCast(this.clazz)
+    return result?.safeCast(this.kClass)
 }

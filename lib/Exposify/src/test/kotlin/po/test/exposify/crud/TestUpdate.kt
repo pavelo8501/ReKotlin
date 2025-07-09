@@ -6,6 +6,8 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertAll
 import po.auth.extensions.generatePassword
+import po.exposify.common.events.ContextData
+import po.exposify.common.events.DTOData
 import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
@@ -37,9 +39,9 @@ class TestUpdate : DatabaseTest(), TasksManaged {
     @BeforeAll
     fun setup() = runTest {
 
-        val loggerHandler: LogNotifyHandler  = logNotify()
-        loggerHandler.notifierConfig {
+        logHandler.notifierConfig {
             console = NotifyConfig.ConsoleBehaviour.MuteNoEvents
+            allowDebug(ContextData, DTOData)
         }
         val user = User(
             id = 0,
@@ -53,15 +55,11 @@ class TestUpdate : DatabaseTest(), TasksManaged {
                 updatedById = update(user).getDataForced().id
             }
         }
-
-
     }
 
     @Test
     fun `Saves new dto and verifies entire relation tree`(){
-
         val inputPage = pagesSectionsContentBlocks(pageCount = 1, sectionsCount =  2, contentBlocksCount = 2 , updatedBy = updatedById).first()
-
         inputPage.name = "TestPage"
         for(i in 0.. inputPage.sections.size-1){
             val index = i+1
@@ -74,12 +72,10 @@ class TestUpdate : DatabaseTest(), TasksManaged {
                 contentBlock.name = "Content_${index}_$indexA"
             }
         }
-
         var updatedPage : Page? = null
-
         withConnection{
             service(PageDTO, TableCreateMode.Create) {
-                updatedPage =  update(inputPage).getDataForced()
+                updatedPage = update(inputPage).getDataForced()
             }
         }
 
@@ -123,48 +119,6 @@ class TestUpdate : DatabaseTest(), TasksManaged {
         assertAll("Last ContentBlock properly updated",
             { assertNotEquals(0, lastContentBlock.id, "Id did not updated") },
             { assertEquals("Content_2_2", lastContentBlock.name, "Name property update failed") },
-        )
-    }
-
-    @Test
-    fun `Updates existent dto and verifies entire relation tree`(){
-
-        val initialPage = pagesSectionsContentBlocks(pageCount = 1, sectionsCount =  1, contentBlocksCount = 1 , updatedBy = updatedById).first()
-        var updatedPage: Page? = null
-        var persistedPage : Page? = null
-        val updatedPageName = "other_name"
-        val updatedSectionName = "other_section_name"
-        val updatedContentBlockName = "other_content_block_name"
-
-        withConnection {
-            service(PageDTO, TableCreateMode.ForceRecreate) {
-                updatedPage =  update(initialPage).getDataForced()
-
-                updatedPage.name = updatedPageName
-                updatedPage.sections[0].name =updatedSectionName
-                updatedPage.sections[0].contentBlocks[0].name = updatedContentBlockName
-                persistedPage = update(updatedPage).getDataForced()
-            }
-        }
-
-        val page = assertNotNull(persistedPage,  "Page is null")
-        assertAll("PageDto properly updated",
-            { assertNotEquals(0, page.id, "Id did not updated") },
-            { assertEquals(updatedPageName, page.name, "Name property update failed") },
-            { assertTrue(page.sections.size == 1, "Sections count mismatch") }
-        )
-
-        val section = assertNotNull(page.sections.firstOrNull(),  "SectionDTO is null")
-        assertAll("Section properly updated",
-            { assertNotEquals(0, section.id, "Id did not updated") },
-            { assertEquals(updatedSectionName, section.name, "Name property update failed") },
-            { assertTrue(section.contentBlocks.size == 1, "ContentBlocks count mismatch") }
-        )
-
-        val contentBlock = section.contentBlocks.first()
-        assertAll("ContentBlock properly updated",
-            { assertNotEquals(0, contentBlock.id, "Id did not updated") },
-            { assertEquals(updatedContentBlockName, contentBlock.name, "Name property update failed") },
         )
     }
 

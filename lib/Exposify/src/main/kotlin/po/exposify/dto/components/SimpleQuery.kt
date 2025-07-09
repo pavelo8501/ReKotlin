@@ -12,22 +12,12 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.greater
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.like
 import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.transactions.transaction
-import po.exposify.dto.CommonDTO
 import po.exposify.dto.RootDTO
 import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.components.result.toResult
-import po.exposify.dto.components.result.toResultSingle
 import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.interfaces.DataModel
-import po.exposify.dto.interfaces.ExecutionContext
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.dto.models.SourceObject
-import po.exposify.exceptions.OperationsException
-import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.exceptions.operationsException
-import po.exposify.exceptions.throwOperations
-import po.exposify.extensions.withTransactionIfNone
 
 
 fun Op<Boolean>.toSqlString(): String {
@@ -128,8 +118,8 @@ class SwitchQuery<DTO: ModelDTO, D : DataModel, E: LongEntity>(
 
     fun resolve(executionContext: ExecutionContext<DTO, D, E>): ResultSingle<DTO, D, E> {
        return dtoClass.lookupDTO(lookUpId)?.toResult(CrudOperation.Pick) ?:run {
-           executionContext.pickById(lookUpId, executionContext)
-
+           //executionContext.pickById(lookUpId, executionContext)
+           TODO("Not")
         }
     }
 

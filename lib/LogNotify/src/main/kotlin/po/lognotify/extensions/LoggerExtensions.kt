@@ -12,8 +12,3 @@ inline fun <reified T: Any> T?.getOrLoggerException(message: String):T{
         throw ex
     }
 }
-
-//@PublishedApi
-//internal inline fun <reified T: Any> Any?.castOrLoggerException(message: String? = null): T {
-//  return  this.castOrThrow<T, LoggerException>(message)
-//}

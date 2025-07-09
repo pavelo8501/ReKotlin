@@ -4,10 +4,8 @@ package po.exposify.dto.components
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.common.classes.ClassBlueprint
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.exceptions.throwInit
-import po.exposify.exceptions.throwOperations
+import po.exposify.exceptions.operationsException
 
 
 class DataModelContainer<DTO : ModelDTO, DATA: DataModel>(
@@ -30,7 +28,7 @@ class DataModelContainer<DTO : ModelDTO, DATA: DataModel>(
         if(isValue != null){
             return isValue
         }else{
-            throwOperations("Property value type mismatch", ExceptionCode.REFLECTION_ERROR)
+           throw operationsException("Property value type mismatch", ExceptionCode.REFLECTION_ERROR)
         }
     }
 

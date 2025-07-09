@@ -12,5 +12,7 @@ dev_data/
 buildSrc/
 app/
 
+lib/dev_data/
+
 build-logic
 MedTest/

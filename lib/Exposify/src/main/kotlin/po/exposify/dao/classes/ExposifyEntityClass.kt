@@ -10,6 +10,7 @@ import po.exposify.dao.interfaces.EntityDTO
 import po.exposify.extensions.castOrInit
 import po.misc.data.ColumnMetadata
 import po.misc.reflection.mappers.models.PropertyRecord
+import po.misc.types.castOrManaged
 import kotlin.reflect.KProperty
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.memberProperties
@@ -50,7 +51,7 @@ abstract class ExposifyEntityClass<out E : LongEntity>(
                 referencedTable = column.referee?.table?.tableName)
 
             metaData.propertyRecord = columnNamePropertyMap[column.name]?.let {
-                val casted = it.castOrInit<KProperty<E>>()
+                val casted = it.castOrManaged<KProperty<E>>()
                 PropertyRecord.create(casted)
             }
             metaData

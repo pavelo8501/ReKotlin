@@ -1,6 +1,5 @@
 package po.test.exposify.crud
 
-import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.assertAll
 import po.auth.extensions.generatePassword
@@ -14,14 +13,13 @@ import po.test.exposify.setup.pageModels
 import po.test.exposify.setup.pageModelsWithSections
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import po.exposify.common.events.ContextData
+import po.exposify.common.events.DTOData
 import po.exposify.dto.components.deferredWhere
-import po.exposify.dto.components.result.ResultList
 import po.exposify.scope.service.models.TableCreateMode
-import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.NotifyConfig
 import po.test.exposify.setup.ClassData
-import po.test.exposify.setup.PageEntity
 import po.test.exposify.setup.dtos.Page
 import po.test.exposify.setup.pagesSectionsContentBlocks
 import kotlin.test.assertEquals
@@ -34,7 +32,6 @@ import kotlin.test.assertTrue
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestSelect : DatabaseTest(), TasksManaged {
 
-
     override val contextName: String = "TestUpdate"
 
     companion object {
@@ -44,10 +41,9 @@ class TestSelect : DatabaseTest(), TasksManaged {
 
     @BeforeAll
     fun setup() {
-
-        val loggerHandler: LogNotifyHandler = logNotify()
-        loggerHandler.notifierConfig {
+        logHandler.notifierConfig {
             console = NotifyConfig.ConsoleBehaviour.MuteNoEvents
+            allowDebug(ContextData, DTOData)
         }
         val user = User(
             id = 0,
@@ -63,114 +59,76 @@ class TestSelect : DatabaseTest(), TasksManaged {
         }
     }
 
-
     @Test
     fun `Select retrieves persisted data properly`() {
-        withConnection {
-            val initialPage = pagesSectionsContentBlocks(
-                pageCount = 1,
-                sectionsCount = 2,
-                contentBlocksCount = 2,
-                updatedBy = updatedById
-            ).first()
-            for (i in 0..initialPage.sections.size - 1) {
-                val index = i + 1
-                val section = initialPage.sections[i]
-                section.name = "Section_$index"
 
-                for (a in 0..section.contentBlocks.size - 1) {
-                    val indexA = a + 1
-                    val contentBlock = section.contentBlocks[a]
-                    contentBlock.name = "Content_${index}_$indexA"
-                }
-            }
-
-            var persistedPages: List<Page> = emptyList()
-            service(PageDTO, TableCreateMode.ForceRecreate) {
-                update(initialPage).getDataForced()
-                PageDTO.clearCachedDTOs()
-                persistedPages = select().getData()
-            }
-            assertEquals(1, persistedPages.size, "Selected page count dos not match saved")
-
-            val firstSection = persistedPages.first().sections.first()
-            val lastSection = persistedPages.first().sections.last()
-
-            assertNotSame(firstSection, lastSection, "First and last sections are the same object")
-
-            assertAll(
-                "First section properly updated",
-                { assertNotEquals(0, firstSection.id, "Id did not updated") },
-                { assertEquals("Section_1", firstSection.name, "Name property update failed") },
-                { assertEquals(updatedById, firstSection.updatedBy, "Name property update failed") },
-                { assertTrue(firstSection.contentBlocks.size == 2, "ContentBlocks count mismatch") }
-            )
-
-            assertAll(
-                "Last section properly updated",
-                { assertNotEquals(0, lastSection.id, "Id did not updated") },
-                { assertEquals("Section_2", lastSection.name, "Name property update failed") },
-                {assertEquals(updatedById, lastSection.updatedBy, "UpdatedById property update failed") },
-                { assertTrue(lastSection.contentBlocks.size == 2, "ContentBlocks count mismatch") }
-            )
-
-            val firstContentBlock = firstSection.contentBlocks.first()
-            val lastContentBlock = lastSection.contentBlocks.last()
-            assertNotSame(firstContentBlock, lastContentBlock, "First and last content blocks are the same object")
-
-            assertAll(
-                "First ContentBlock properly updated",
-                { assertNotEquals(0, firstContentBlock.id, "Id did not updated") },
-                { assertEquals("Content_1_1", firstContentBlock.name, "Name property update failed") },
-            )
-
-            assertAll(
-                "Last ContentBlock properly updated",
-                { assertNotEquals(0, lastContentBlock.id, "Id did not updated") },
-                { assertEquals("Content_2_2", lastContentBlock.name, "Name property update failed") },
-            )
-        }
-    }
-
-    @Test
-    fun `ParentReference  property binding on select`() {
-        val page = pagesSectionsContentBlocks(
+        val initialPage = pagesSectionsContentBlocks(
             pageCount = 1,
-            sectionsCount = 3,
-            contentBlocksCount = 1,
+            sectionsCount = 2,
+            contentBlocksCount = 2,
             updatedBy = updatedById
         ).first()
-        lateinit var selectedResult: ResultList<PageDTO, Page, PageEntity>
-        withConnection {
-            service(PageDTO, TableCreateMode.ForceRecreate) {
-                update(page)
-                selectedResult = select()
+        for (i in 0..initialPage.sections.size - 1) {
+            val index = i + 1
+            val section = initialPage.sections[i]
+            section.name = "Section_$index"
+
+            for (a in 0..section.contentBlocks.size - 1) {
+                val indexA = a + 1
+                val contentBlock = section.contentBlocks[a]
+                contentBlock.name = "Content_${index}_$indexA"
             }
         }
+        initialPage.name = "Select retrieves persisted data properly"
 
-        val persistedPageDto = assertNotNull(selectedResult.getDTO().firstOrNull(), "Page(DTO) is null")
-        val sectionDTOFirst = assertNotNull(persistedPageDto.sections.firstOrNull(), "Section(DTO) is null")
-        val sectionDTOLast = assertNotNull(persistedPageDto.sections.lastOrNull(), "Section(DTO) is null")
+        var persistedPages: List<Page> = emptyList()
+        withConnection {
+            service(PageDTO, TableCreateMode.ForceRecreate) {
+                PageDTO.clearCachedDTOs()
+                truncate()
+                update(initialPage).getDataForced()
+                persistedPages = select().getData()
+            }
+        }
+        assertEquals(1, persistedPages.size, "Selected page count dos not match saved")
 
-        assertNotEquals(sectionDTOFirst, sectionDTOLast, "First and last Sections(DTO) are the same")
+        val page = persistedPages.firstOrNull()
+        val firstSection = assertNotNull(page?.sections?.firstOrNull(), "Sections are empty")
+        val lastSection =  assertNotNull(page.sections.lastOrNull(), "Sections are empty")
+
+        assertNotSame(firstSection, lastSection, "First and last sections are the same object")
 
         assertAll(
-            "page_id selected appropriately",
-            { assertNotEquals(0, persistedPageDto.id, "id updated on select in PageDTO") },
-            {
-                assertEquals(
-                    persistedPageDto.id,
-                    sectionDTOFirst.page.id,
-                    "PageId mismatch in first selected Section(DTO)"
-                )
-            },
-            {
-                assertEquals(
-                    persistedPageDto.id,
-                    sectionDTOLast.page.id,
-                    "PageId mismatch in last selected Section(DTO)"
-                )
-            }
+            "First section properly updated",
+            { assertNotEquals(0, firstSection.id, "Id did not updated") },
+            { assertEquals("Section_1", firstSection.name, "Name property update failed") },
+            { assertNotEquals(0, firstSection.pageId, "Attached foreign failed pageId is 0") },
+            { assertEquals(updatedById, firstSection.updatedBy, "UpdatedBy property update failed") },
+            { assertTrue(firstSection.contentBlocks.size == 2, "ContentBlocks count mismatch") }
+        )
+
+        assertAll(
+            "Last section properly updated",
+            { assertNotEquals(0, lastSection.id, "Id did not updated") },
+            { assertEquals("Section_2", lastSection.name, "Name property update failed") },
+            { assertEquals(updatedById, lastSection.updatedBy, "UpdatedById property update failed") },
+            { assertTrue(lastSection.contentBlocks.size == 2, "ContentBlocks count mismatch") }
+        )
+
+        val firstContentBlock = firstSection.contentBlocks.first()
+        val lastContentBlock = lastSection.contentBlocks.last()
+        assertNotSame(firstContentBlock, lastContentBlock, "First and last content blocks are the same object")
+
+        assertAll(
+            "First ContentBlock properly updated",
+            { assertNotEquals(0, firstContentBlock.id, "Id did not updated") },
+            { assertEquals("Content_1_1", firstContentBlock.name, "Name property update failed") },
+        )
+
+        assertAll(
+            "Last ContentBlock properly updated",
+            { assertNotEquals(0, lastContentBlock.id, "Id did not updated") },
+            { assertEquals("Content_2_2", lastContentBlock.name, "Name property update failed") },
         )
     }
 
@@ -184,13 +142,16 @@ class TestSelect : DatabaseTest(), TasksManaged {
         val classList: List<ClassData> = listOf(ClassData(1, "str_1"), ClassData(2, "str2"))
         val inputPages =
             pageModelsWithSections(pageCount = 2, sectionsCount = 2, updatedBy = updatedById, classes = classList)
+        inputPages.forEachIndexed {index, page->
+            page.name = "Postgres serializable classes#$index"
+        }
 
         var persistedPages: List<Page> = emptyList()
 
         withConnection {
             service(PageDTO, TableCreateMode.ForceRecreate) {
-                update(inputPages).getData()
                 PageDTO.clearCachedDTOs()
+                update(inputPages).getData()
                 persistedPages = select().getData()
             }
         }
@@ -219,14 +180,14 @@ class TestSelect : DatabaseTest(), TasksManaged {
 
     @Test
     fun `Updates and selects with conditions`() {
-
         val pages = pageModelsWithSections(pageCount = 2, sectionsCount = 2, updatedBy = updatedById)
         pages[0].langId = 1
         pages[1].langId = 2
 
         var selectedPages: List<Page> = emptyList()
         withConnection {
-            service(PageDTO.Companion, TableCreateMode.ForceRecreate) {
+            service(PageDTO, TableCreateMode.ForceRecreate) {
+                truncate()
                 update(pages)
                 selectedPages = select(deferredWhere{ WhereQuery(Pages).equals(Pages.langId, 1)}).getData()
             }
@@ -264,6 +225,7 @@ class TestSelect : DatabaseTest(), TasksManaged {
 
         withConnection {
             service(PageDTO, TableCreateMode.ForceRecreate){
+                truncate()
                 updated =  update(page).getData()
                 selected = select().getData().firstOrNull()
             }

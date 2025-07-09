@@ -2,9 +2,9 @@ package po.lognotify.classes.notification
 
 import po.lognotify.classes.notification.models.LogData
 import po.lognotify.classes.notification.models.NotifyConfig
-import po.lognotify.classes.task.RootTask
-import po.lognotify.classes.task.Task
-import po.lognotify.classes.task.TaskBase
+import po.lognotify.tasks.RootTask
+import po.lognotify.tasks.Task
+import po.lognotify.tasks.TaskBase
 import po.lognotify.enums.SeverityLevel
 import po.misc.data.printable.PrintableBase
 import po.misc.data.console.PrintableTemplateBase

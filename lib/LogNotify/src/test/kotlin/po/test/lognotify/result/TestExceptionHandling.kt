@@ -4,8 +4,8 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import po.lognotify.TasksManaged
-import po.lognotify.classes.task.models.TaskConfig
-import po.lognotify.classes.task.result.onFailureCause
+import po.lognotify.tasks.models.TaskConfig
+import po.lognotify.tasks.result.onFailureCause
 import po.lognotify.extensions.runTask
 import po.lognotify.extensions.subTask
 import po.misc.exceptions.HandlerType
@@ -13,7 +13,6 @@ import po.misc.exceptions.ManagedException
 import po.misc.exceptions.throwManaged
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 
 class TestExceptionHandling: TasksManaged {
 

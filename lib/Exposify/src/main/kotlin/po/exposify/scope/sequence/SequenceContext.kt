@@ -1,19 +1,19 @@
 package po.exposify.scope.sequence
 
 import org.jetbrains.exposed.dao.LongEntity
-import po.exposify.common.events.ContextEvent
+import po.exposify.common.events.ContextData
+import po.exposify.dto.components.ExecutionContext
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.components.SimpleQuery
 import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
-import po.exposify.dto.interfaces.ExecutionContext
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.SequenceRunInfo
 import po.exposify.extensions.checkDataListNotEmpty
 import po.exposify.scope.sequence.classes.SequenceHandlerBase
 import po.lognotify.TasksManaged
 import po.lognotify.debug.debugProxy
-import po.lognotify.extensions.subTask
+import po.lognotify.extensions.runTask
 import po.misc.interfaces.ClassIdentity
 import po.misc.interfaces.IdentifiableClass
 
@@ -22,7 +22,7 @@ class SequenceContext<DTO, D, E>(
     internal val sequenceHandler: SequenceHandlerBase<DTO, D, E>,
     private val executionContext: ExecutionContext<DTO, D, E>,
     val runInfo : SequenceRunInfo
-):TasksManaged, IdentifiableClass where  DTO : ModelDTO, D : DataModel, E: LongEntity {
+):TasksManaged, IdentifiableClass where  DTO: ModelDTO, D: DataModel, E: LongEntity {
 
     override val identity: ClassIdentity = ClassIdentity.create("SequenceContext", executionContext.contextName)
 
@@ -30,8 +30,8 @@ class SequenceContext<DTO, D, E>(
 
     private var firstRun = true
 
-    internal val debug = debugProxy(this, ContextEvent, ContextEvent.Debug){
-        ContextEvent(this, it.message)
+    internal val debug = debugProxy(this, ContextData, ContextData.Debug){
+        ContextData(this, it.message)
     }
 
     private fun onFirsRun(){
@@ -52,35 +52,35 @@ class SequenceContext<DTO, D, E>(
     }
 
     fun pick(conditions: SimpleQuery): ResultSingle<DTO, D, E> =
-        subTask("Pick", debugProxy = debug.captureInput(conditions)) {
+        runTask("Pick") {
         onFirsRun()
         val result = executionContext.pick(conditions)
         submitLatestResult(result)
     }.resultOrException()
 
     fun pickById(id: Long): ResultSingle<DTO, D, E> =
-        subTask("PickById", debugProxy = debug.captureInput(id)) {
+        runTask("PickById") {
         onFirsRun()
-        val result = executionContext.pickById(id, sequenceHandler.dtoBase)
+        val result = executionContext.pickById(id)
         submitLatestResult(result)
     }.resultOrException()
 
     fun select(conditions: SimpleQuery):ResultList<DTO, D, E> =
-        subTask("Select", debugProxy = debug.captureInput(conditions)) {
+        runTask("Select") {
         onFirsRun()
         val result = executionContext.select(conditions)
         submitLatestResult(result)
     }.resultOrException()
 
     fun select():ResultList<DTO, D, E> =
-        subTask("Select", debugProxy = debug.captureInput()) {
+        runTask("Select") {
         onFirsRun()
         val result = executionContext.select()
         submitLatestResult(result)
     }.resultOrException()
 
     fun update(dataModels: List<D>):ResultList<DTO, D, E> =
-        subTask("Update(List)", debugProxy = debug.captureInput(dataModels)) {
+        runTask("Update(List)") {
         checkDataListNotEmpty(dataModels)
         onFirsRun()
         val result = executionContext.update(dataModels, sequenceHandler.dtoBase)
@@ -88,7 +88,7 @@ class SequenceContext<DTO, D, E>(
     }.resultOrException()
 
     fun update(dataModel: D): ResultSingle<DTO, D, E> =
-        subTask("Update(Single)", debugProxy = debug.capture<DataModel>(dataModel){ parameter.id }) {
+        runTask("Update(Single)") {
         onFirsRun()
         val result = executionContext.update(dataModel, sequenceHandler.dtoBase)
         submitLatestResult(result)

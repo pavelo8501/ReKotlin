@@ -19,6 +19,6 @@ interface Composed {
             }
             else -> null
         }
-        return  result?.safeCast(typeData.clazz)
+        return  result?.safeCast(typeData.kClass)
     }
 }

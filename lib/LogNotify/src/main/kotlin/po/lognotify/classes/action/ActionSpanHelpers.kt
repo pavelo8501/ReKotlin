@@ -1,7 +1,7 @@
 package po.lognotify.classes.action
 
 import po.lognotify.anotations.LogOnFault
-import po.lognotify.classes.task.TaskHandler
+import po.lognotify.tasks.TaskHandler
 import po.lognotify.exceptions.handleException
 import po.misc.exceptions.HandlerType
 import po.misc.reflection.classes.ClassInfo

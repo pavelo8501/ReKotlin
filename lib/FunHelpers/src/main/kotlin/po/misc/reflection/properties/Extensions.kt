@@ -13,8 +13,12 @@ inline fun <T: Any, reified A: Annotation>  takePropertySnapshot(obj: T): Map<St
     val kClass = obj::class
     for(property in  kClass.memberProperties) {
         if (property.findAnnotations<A>().isNotEmpty()) {
-            val value = property.getter.call(obj)
-            snapshot[property.name] = value
+            try {
+                val value = property.getter.call(obj)
+                snapshot[property.name] = value
+            }catch (ex: Throwable){
+
+            }
         }
     }
     return snapshot.toMap()

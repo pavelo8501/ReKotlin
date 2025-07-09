@@ -1,7 +1,7 @@
 package po.misc.reflection.classes
 
-import po.misc.callbacks.manager.CallbackManager
-import po.misc.callbacks.manager.builders.callbackManager
+import po.misc.callbacks.CallbackManager
+import po.misc.callbacks.builders.callbackManager
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.interfaces.ClassIdentity
@@ -11,8 +11,6 @@ import po.misc.reflection.properties.PropertyGroup
 import po.misc.reflection.properties.SourcePropertyIO
 import po.misc.types.TypeData
 import po.misc.types.castOrManaged
-import po.misc.types.safeCast
-import kotlin.reflect.KClass
 
 
 interface WithSurrogateHooks<T: IdentifiableContext>{
@@ -37,7 +35,7 @@ class KSurrogate<T: IdentifiableContext>(
         SourcePropertyInitialized
     }
 
-    val classRecord = TypeData.createRecord(receiver::class)
+    val classRecord = TypeData.createByKClass(receiver::class)
     val classInfo = overallInfoFromType<T>(ClassRole.Receiver, classRecord.kType)
 
     override val identity: ClassIdentity = ClassIdentity.create("KSurrogate", classRecord::class)

@@ -5,8 +5,8 @@ import kotlinx.coroutines.delay
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertAll
 import po.lognotify.TasksManaged
-import po.lognotify.classes.task.TaskHandler
-import po.lognotify.classes.task.models.TaskConfig
+import po.lognotify.tasks.TaskHandler
+import po.lognotify.tasks.models.TaskConfig
 import po.lognotify.extensions.runTaskAsync
 import po.lognotify.extensions.runTaskBlocking
 import po.lognotify.extensions.subTaskAsync

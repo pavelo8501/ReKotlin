@@ -5,6 +5,7 @@ import po.misc.interfaces.Identifiable
 import po.misc.interfaces.ValueBased
 import po.misc.interfaces.ValueBasedClass
 import po.misc.types.TypeRecord
+import po.misc.types.castOrManaged
 import po.misc.types.castOrThrow
 import po.misc.types.getOrThrow
 import po.misc.types.safeCast
@@ -26,10 +27,10 @@ class TypeRegistry {
         return record
     }
 
-    inline fun <T : Any, reified E : ManagedException> getRecord(key: ValueBased, exceptionProvider:(String)->E): TypeRecord<T> {
+    inline fun <T : Any> getRecord(key: ValueBased, exceptionProvider:(String)-> Throwable): TypeRecord<T> {
         val consRecord = registry[key]
-            .getOrThrow<TypeRecord<*>, E>(null, exceptionProvider)
-        val casted = consRecord.castOrThrow<TypeRecord<T>, E>(null, exceptionProvider)
+            .getOrThrow<TypeRecord<*>>(exceptionProvider)
+        val casted = consRecord.castOrManaged<TypeRecord<T>>(null)
         return casted
     }
 

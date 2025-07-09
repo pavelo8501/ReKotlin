@@ -4,7 +4,7 @@ import po.misc.reflection.properties.models.PropertyUpdate
 
 
 data class TrackerRecord(
-    val component: DTOTracker<*,*>,
+    val component: DTOTracker<*, *, *>,
     val operation: CrudOperation = CrudOperation.Create,
     val methodName: String = "",
 ){

@@ -5,21 +5,17 @@ import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
 import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.components.tracker.DTOTracker
-import po.exposify.dto.components.tracker.extensions.TrackableDTONode
-import po.exposify.dto.components.tracker.extensions.collectTrackerTree
-import po.exposify.dto.components.tracker.interfaces.TrackableDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.dto.models.SourceObject
-import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.exceptions.managedPayload
 import po.exposify.exceptions.operationsException
 import po.exposify.extensions.getOrOperations
 import po.misc.exceptions.ManagedException
+import po.misc.interfaces.CtxId
 import po.misc.types.castListOrThrow
 
-
-internal interface ExposifyResult{
+interface ExposifyResult{
     val dtoClass: DTOBase<*, *, *>
     val resultMessage: String
     val size : Int
@@ -27,12 +23,20 @@ internal interface ExposifyResult{
     var failureCause: ManagedException?
 }
 
+sealed class ResultBase<DTO, D>(
+    dtoClass: DTOBase<DTO, D, *>
+) where DTO: ModelDTO, D: DataModel{
+
+}
+
 class ResultList<DTO, D, E> internal constructor(
-    override val  dtoClass: DTOBase<DTO, D, E>,
+    override val dtoClass: DTOBase<DTO, D, E>,
     private var result : List<CommonDTO<DTO, D, E>> = emptyList()
-) :ExposifyResult where DTO : ModelDTO, D: DataModel, E : LongEntity {
+):ResultBase<DTO, D>(dtoClass), ExposifyResult, CtxId where DTO: ModelDTO, D: DataModel, E : LongEntity {
 
 
+    override val contextName: String
+        get() = "ResultList"
     override var resultMessage: String = ""
     override val size: Int get() = result.size
     override var activeCRUD: CrudOperation = CrudOperation.Create
@@ -56,17 +60,17 @@ class ResultList<DTO, D, E> internal constructor(
     }
 
     fun getData(): List<D> {
-        return result.map { it.dataModel }
+        return result.map { it.hub.execCtx.getDataModel(this) }
     }
 
     fun getDTO(): List<DTO> {
         val typeRecord = dtoClass.dtoType
-        return result.castListOrThrow<DTO, OperationsException>(typeRecord.clazz) {
-            operationsException(it, ExceptionCode.CAST_FAILURE)
+        return result.castListOrThrow(typeRecord.kClass, this) {str, th->
+            operationsException(managedPayload(str, ExceptionCode.CAST_FAILURE))
         }
     }
 
-    fun getTrackers(): List<DTOTracker<DTO, D>>{
+    fun getTrackers(): List<DTOTracker<DTO, D, E>>{
         return result.map { it.tracker }
     }
 
@@ -83,7 +87,10 @@ class ResultList<DTO, D, E> internal constructor(
 class ResultSingle<DTO, D, E> internal constructor(
     override val dtoClass: DTOBase<DTO, D, E>,
     private var result: CommonDTO<DTO, D, E>? = null
-): ExposifyResult where DTO : ModelDTO, D: DataModel, E : LongEntity {
+): ResultBase<DTO, D>(dtoClass), ExposifyResult, CtxId where DTO : ModelDTO, D: DataModel, E : LongEntity {
+
+    override val contextName: String
+        get() = "ResultSingle"
 
     override var resultMessage: String = ""
     override val size: Int get()  {
@@ -99,14 +106,19 @@ class ResultSingle<DTO, D, E> internal constructor(
         return this
     }
 
+//    internal fun asContainer():DTOResult<DTO>{
+//       val resulting =  result?.toDTOResult().getOrOperations(this)
+//
+//       return resulting
+//    }
+
     fun getData(): D? {
-        val dataModel = result?.dataModel
+        val dataModel = result?.hub?.execCtx?.getDataModel(this)
         return dataModel
     }
 
     fun getDataForced(): D {
-        val dataModel = getAsCommonDTOForced().dataModel
-        return dataModel
+        return getData().getOrOperations("DataModel", this)
     }
 
     internal fun getAsCommonDTO(): CommonDTO<DTO, D, E>? {
@@ -114,7 +126,7 @@ class ResultSingle<DTO, D, E> internal constructor(
     }
 
     internal fun getAsCommonDTOForced(): CommonDTO<DTO, D, E> {
-        return result.getOrOperations("No result")
+        return result.getOrOperations(this)
     }
 
     fun getDTO(): DTO? {
@@ -127,7 +139,7 @@ class ResultSingle<DTO, D, E> internal constructor(
         return result as DTO
     }
 
-    fun getTracker():DTOTracker<DTO, D>?{
+    fun getTracker():DTOTracker<DTO, D, E>?{
         return result?.tracker
     }
 

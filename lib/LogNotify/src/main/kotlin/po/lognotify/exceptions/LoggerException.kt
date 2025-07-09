@@ -21,8 +21,8 @@ class LoggerException(
     }
 }
 
-inline fun <reified T: Any>  Any?.castOrLoggerEx(ctx: IdentifiableContext?):T{
-   return this.castOrThrow<T, LoggerException>(ctx){message->
+inline fun <reified T: Any>  Any?.castOrLoggerEx(ctx: IdentifiableContext):T{
+   return this.castOrThrow<T>(ctx){message->
        LoggerException(message)
    }
 }

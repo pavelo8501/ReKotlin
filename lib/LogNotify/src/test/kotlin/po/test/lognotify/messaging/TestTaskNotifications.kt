@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.NotifierHub
 import po.lognotify.classes.notification.models.LogData
-import po.lognotify.classes.task.models.TaskConfig
+import po.lognotify.tasks.models.TaskConfig
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.extensions.runTask
 import po.lognotify.extensions.subTask

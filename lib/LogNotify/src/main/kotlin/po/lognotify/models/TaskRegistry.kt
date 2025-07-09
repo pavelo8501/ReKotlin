@@ -1,10 +1,10 @@
 package po.lognotify.models
 
 
-import po.lognotify.classes.task.RootTask
-import po.lognotify.classes.task.Task
-import po.lognotify.classes.task.TaskBase
-import po.lognotify.classes.task.interfaces.ResultantTask
+import po.lognotify.tasks.RootTask
+import po.lognotify.tasks.Task
+import po.lognotify.tasks.TaskBase
+import po.lognotify.tasks.interfaces.ResultantTask
 
 class TaskRegistry<T, R>(
     val dispatcher: TaskDispatcher,

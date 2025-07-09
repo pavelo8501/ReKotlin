@@ -3,11 +3,11 @@ package po.test.misc.callback
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
-import po.misc.callbacks.manager.CallbackManager
-import po.misc.callbacks.manager.builders.bridgeFrom
-import po.misc.callbacks.manager.builders.callbackBuilder
-import po.misc.callbacks.manager.builders.createPayload
-import po.misc.callbacks.manager.builders.createPayloadWithResult
+import po.misc.callbacks.CallbackManager
+import po.misc.callbacks.builders.bridgeFrom
+import po.misc.callbacks.builders.callbackBuilder
+import po.misc.callbacks.builders.createPayload
+import po.misc.callbacks.builders.createPayloadWithResult
 import po.misc.exceptions.ManagedException
 import po.misc.interfaces.IdentifiableClass
 import po.misc.interfaces.IdentifiableContext

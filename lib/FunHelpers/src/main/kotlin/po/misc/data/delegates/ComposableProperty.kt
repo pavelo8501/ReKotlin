@@ -1,11 +1,10 @@
 package po.misc.data.delegates
 
 import po.misc.exceptions.ManagedCallSitePayload
-import po.misc.exceptions.managedPayload
+
 import po.misc.interfaces.ClassIdentity
 import po.misc.interfaces.IdentifiableClass
 import po.misc.interfaces.IdentifiableContext
-import po.misc.reflection.classes.DataProvider
 import po.misc.reflection.classes.KSurrogate
 import po.misc.reflection.properties.SourcePropertyIO
 import po.misc.reflection.properties.createSourcePropertyIO
@@ -23,7 +22,7 @@ class ComposableProperty<T: IdentifiableContext, V: Any>(
 ): IdentifiableClass {
 
     override val identity:ClassIdentity = ClassIdentity.create("ComposableProperty2", contextName)
-    val exceptionPayload: ManagedCallSitePayload = managedPayload()
+    val exceptionPayload: ManagedCallSitePayload = ManagedCallSitePayload.create("ComposableProperty2", this)
 
     private var backingProperty: KProperty1<T, V>? = null
     private val property: KProperty1<T, V> get() = backingProperty.getOrManaged(exceptionPayload)

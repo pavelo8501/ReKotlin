@@ -17,10 +17,11 @@ import po.exposify.scope.service.ServiceClass
 import po.exposify.scope.service.ServiceContext
 import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
-import po.lognotify.classes.task.TaskHandler
+import po.lognotify.tasks.TaskHandler
 import po.lognotify.extensions.runTask
 import po.misc.coroutines.CoroutineInfo
-import po.misc.interfaces.IdentifiableContext
+import po.misc.interfaces.ClassIdentity
+import po.misc.interfaces.IdentifiableClass
 import po.misc.serialization.SerializerInfo
 import po.misc.types.safeCast
 import kotlin.coroutines.coroutineContext
@@ -29,23 +30,20 @@ class ConnectionClass(
     internal val databaseManager : DatabaseManager,
     val connectionInfo: ConnectionInfo,
     val connection: Database,
-): TasksManaged, IdentifiableContext {
+): TasksManaged, IdentifiableClass {
 
-    override val contextName: String = "ConnectionClass"
-
-    val sourceName: String = connection.name
-    val name: String = "ConnectionClass[${sourceName}]"
+    override val identity: ClassIdentity = ClassIdentity.create("ConnectionClass", connection.name)
     private val dispatchManager = UserDispatchManager()
 
     val isConnectionOpen: Boolean
-        get() { return connectionInfo.connection.transactionManager.currentOrNull()?.connection?.isClosed == false }
+        get() = connectionInfo.connection.transactionManager.currentOrNull()?.connection?.isClosed == false
 
     internal val serializerMap = mutableMapOf<String, SerializerInfo<*>>()
     private  var services: MutableMap<String, ServiceClass<*, *, *>> = mutableMapOf()
     private val taskHandler: TaskHandler<*> = taskHandler()
 
     init {
-        taskHandler.warn("CONNECTION_CLASS CREATED $name")
+        taskHandler.warn("CONNECTION_CLASS CREATED $completeName")
     }
 
     internal suspend fun requestEmitter(session: AuthorizedSession): CoroutineEmitter {
@@ -76,16 +74,17 @@ class ConnectionClass(
         dtoClass : RootDTO<DTO, D, E>,
         createOptions : TableCreateMode = TableCreateMode.Create,
         block: ServiceContext<DTO, D, E>.()->Unit,
-    ): Unit where DTO : ModelDTO, D: DataModel, E: LongEntity = runTask("service") { handler ->
+    ): Unit where DTO : ModelDTO, D: DataModel, E: LongEntity = runTask("service"){
+
 
         val existentService = getService<DTO, D, E>(dtoClass.contextName)
         if(existentService == null){
-            val serviceClass = ServiceClass(dtoClass, this)
-            handler.info("ServiceClass ${serviceClass.contextName} created")
+            val serviceClass = ServiceClass(dtoClass, ctx)
+            task.info("ServiceClass ${serviceClass.contextName} created")
             serviceClass.initService(dtoClass, createOptions,  block)
             services[dtoClass.contextName] = serviceClass
         }else{
-            handler.info("Using ServiceClass ${existentService.contextName}")
+            task.info("Using ServiceClass ${existentService.contextName}")
             block.invoke(existentService.serviceContext)
         }
     }.resultOrException()

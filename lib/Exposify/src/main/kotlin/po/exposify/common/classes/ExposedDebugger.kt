@@ -14,7 +14,7 @@ import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.PrintableCompanion
 import po.misc.interfaces.IdentifiableContext
 
-class ExposedDebugger<T: IdentifiableContext, P: PrintableBase<P>>(
+class ExposifyDebugger<T: IdentifiableContext, P: PrintableBase<P>>(
     receiver:T,
     printableClass: PrintableCompanion<P>,
     val  dataProcessor: LoggerDataProcessor,
@@ -29,14 +29,14 @@ class ExposedDebugger<T: IdentifiableContext, P: PrintableBase<P>>(
     fun warn(message: String): LogData = dataProcessor.warn(message)
 }
 
-fun <T: IdentifiableContext, P: PrintableBase<P>> TasksManaged.exposedDebugger(
+fun <T: IdentifiableContext, P: PrintableBase<P>> TasksManaged.exposifyDebugger(
     receiver:T,
     printableClass: PrintableCompanion<P>,
     usingTemplate: PrintableTemplate<P>? = null,
     dataProvider: (DebugParams<P>)-> P
-):ExposedDebugger<T, P>{
-    val dataProcessor = this.logHandler
-    val proxy = ExposedDebugger(receiver,printableClass, dataProcessor,  dataProvider)
+):ExposifyDebugger<T, P>{
+    val dataProcessor = this.logHandler.dispatcher.getActiveDataProcessor()
+    val proxy = ExposifyDebugger(receiver,printableClass, dataProcessor,  dataProvider)
     proxy.activeTemplate = usingTemplate
     return  proxy
 }

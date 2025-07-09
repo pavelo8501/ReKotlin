@@ -3,12 +3,9 @@ package po.misc.reflection.properties
 import po.misc.collections.SlidingBuffer
 import po.misc.collections.StaticTypeKey
 import po.misc.data.delegates.ComposableProperty
-import po.misc.data.helpers.makeIndention
 import po.misc.data.helpers.textIfNull
-import po.misc.data.styles.SpecialChars
-import po.misc.exceptions.managedPayload
+import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.interfaces.IdentifiableContext
-import po.misc.reflection.classes.ContainerBase
 import po.misc.reflection.objects.Composed
 import po.misc.reflection.properties.models.PropertyUpdate
 import po.misc.types.castOrManaged
@@ -61,8 +58,6 @@ sealed class PropertyIOBase<T: Any, V: Any>(
         PropertyUpdate(propertyName, it)
     }
 
-    val exceptionPayload = managedPayload()
-
     init {
         currentValue?.let { buffer.add(it) }
     }
@@ -72,6 +67,10 @@ sealed class PropertyIOBase<T: Any, V: Any>(
     }
     protected val asKProperty: KProperty1<T, V> by lazy {
         propertyInfo.property.castOrManaged()
+    }
+
+    private fun payload(message: String): ManagedCallSitePayload{
+      return  ManagedCallSitePayload.create(message, this)
     }
 
     fun initialize(dataObject:T){
@@ -96,8 +95,8 @@ sealed class PropertyIOBase<T: Any, V: Any>(
 
     fun getValue(): V {
         return  buffer.getValue()?:run {
-           val type =  propertyInfo.valueTypeData.getOrManaged(exceptionPayload.message("Default result unavailable. No valueTypeData"))
-           getDefaultForType(type).getOrManaged(exceptionPayload.message("No default result for type ${type.kType}"))
+           val type =  propertyInfo.valueTypeData.getOrManaged(payload("Default result unavailable. No valueTypeData"))
+           getDefaultForType(type).getOrManaged(payload("No default result for type ${type.kType}") )
         }
     }
 

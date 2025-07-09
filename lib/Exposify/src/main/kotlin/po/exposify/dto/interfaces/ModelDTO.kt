@@ -1,20 +1,30 @@
 package po.exposify.dto.interfaces
 
+import org.jetbrains.exposed.dao.LongEntity
+import po.exposify.dto.CommonDTO
+import po.exposify.dto.CommonDTO.DataStatus
 import po.exposify.dto.components.DAOService
 import po.exposify.dto.components.DTOFactory
+import po.exposify.dto.components.bindings.BindingHub
 import po.exposify.dto.components.tracker.DTOTracker
 import po.exposify.dto.enums.Cardinality
-import po.misc.data.delegates.ValueBasedEntry
-import po.misc.types.TypeRecord
+import po.exposify.dto.enums.DTOStatus
+import po.exposify.dto.models.DTOId
+import po.misc.interfaces.TypedContext
+import po.misc.types.TypeData
 
-interface ModelDTO : DataModel , ValueBasedEntry {
+interface ModelDTO: DataModel {
     val cardinality: Cardinality
-    val dataModel: DataModel
-    //val dataContainer  : DataModelContainer<*, *>
+    val status: DTOStatus
+    val dataStatus:DataStatus
+    val hub: BindingHub<*, *, *>
     val daoService : DAOService<*, *, *>
     val dtoFactory: DTOFactory<*, *, *>
-    val tracker: DTOTracker<*,*>
-    val dtoType: TypeRecord<*>
+    val tracker: DTOTracker<*, *, *>
+    val dtoId : DTOId<*>
+    val typeData: TypeData<*>
+
+    fun <D: DataModel, E: LongEntity> asCommonDTO(): CommonDTO<*, D, E>
 }
 
 

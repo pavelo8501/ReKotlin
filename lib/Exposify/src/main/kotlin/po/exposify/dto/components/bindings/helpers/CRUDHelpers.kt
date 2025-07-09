@@ -16,63 +16,14 @@ import po.exposify.dto.interfaces.ModelDTO
 
 @PublishedApi
 internal fun <DTO: ModelDTO, D: DataModel, E: LongEntity> DTOBase<DTO, D, E>.shallowDTO():CommonDTO<DTO, D, E> {
-    return config.dtoFactory.createDto()
+    val dto = config.dtoFactory.createDto()
+    return dto
 }
 
-internal fun  <DTO: ModelDTO, D: DataModel, E: LongEntity> DTOBase<DTO, D, E>.newDTO(
-    data: D
-):CommonDTO<DTO, D, E>{
-    return config.dtoFactory.createDto(data)
-}
-
-internal fun  <DTO: ModelDTO, D: DataModel, E: LongEntity> DTOBase<DTO, D, E>.newDTO(
-    dataList: List<D>
-):List<CommonDTO<DTO, D, E>> = dataList.map { newDTO(it) }
-
-internal fun <DTO: ModelDTO, D: DataModel,  E: LongEntity>  DTOBase<DTO, D, E>.newDTO(
-    entity:E
-): CommonDTO<DTO,D,E>{
+internal fun <DTO: ModelDTO, D: DataModel,  E: LongEntity>  DTOBase<DTO, D, E>.newDTO(): CommonDTO<DTO,D,E>{
    val dto = config.dtoFactory.createDto()
-    dto.provideEntity(entity)
     return  dto
 }
-
-internal fun  <DTO: ModelDTO, D: DataModel,  E: LongEntity> List<E>.select(
-    dtoClass:DTOBase<DTO, D, E>,
-    operation : CrudOperation
-): ResultList<DTO, D, E>
-{
-    val result :  MutableList<CommonDTO<DTO, D, E>> = mutableListOf()
-    forEach { entity ->
-        val createdDTO =  dtoClass.config.dtoFactory.createDto()
-        createdDTO.bindingHub.select(entity)
-        result.add(createdDTO)
-    }
-    return  result.toResult(dtoClass, operation)
-}
-
-
-/***
- * createByData Entry point for DTO hierarchy creation
- */
- internal fun  <DTO: ModelDTO, D: DataModel, E: LongEntity> RootDTO<DTO, D, E>.createDTO(
-    data:D,
-    operation: CrudOperation
- ):CommonDTO<DTO, D, E>
- {
-    val newDto = config.dtoFactory.createDto(data)
-    newDto.bindingHub.create()
-    return newDto
-}
-
-fun <DTO: ModelDTO, D: DataModel,  E: LongEntity> CommonDTO<DTO,D,E>.updateFromData(
-    data: D,
-    operation: CrudOperation
-): ResultSingle<DTO, D, E> {
-    bindingHub.update(data)
-    return toResult(operation)
-}
-
 
 
 

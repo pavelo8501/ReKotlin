@@ -1,23 +1,30 @@
 package po.lognotify.extensions
 
 import kotlinx.coroutines.runBlocking
-import po.lognotify.TaskProcessor
 import po.lognotify.TasksManaged
 import po.lognotify.anotations.LogOnFault
-import po.lognotify.classes.task.RootTask
-import po.lognotify.classes.task.TaskHandler
-import po.lognotify.classes.task.models.TaskConfig
-import po.lognotify.classes.task.result.TaskResult
-import po.lognotify.classes.task.result.createFaultyResult
-import po.lognotify.classes.task.result.onTaskResult
+import po.lognotify.classes.TaskContainer
+import po.lognotify.classes.action.ActionSpan
+import po.lognotify.classes.action.InlineAction
+import po.lognotify.tasks.RootTask
+import po.lognotify.tasks.TaskHandler
+import po.lognotify.tasks.createChild
+import po.lognotify.tasks.models.TaskConfig
+import po.lognotify.tasks.models.TaskOptions
+import po.lognotify.tasks.result.TaskResult
+import po.lognotify.tasks.result.createFaultyResult
+import po.lognotify.tasks.result.onTaskResult
 import po.lognotify.debug.DebugProxy
+import po.lognotify.debug.LoggedContext
 import po.lognotify.exceptions.handleException
+import po.lognotify.tasks.TaskBase
 import po.misc.coroutines.LauncherType
 import po.misc.data.helpers.emptyAsNull
+import po.misc.exceptions.HandlerType
 import po.misc.functions.repeatIfFaulty
-import po.misc.interfaces.IdentifiableContext
+import po.misc.interfaces.CtxId
 import po.misc.reflection.properties.takePropertySnapshot
-
+import po.misc.types.containers.context.CTXContainer
 
 @PublishedApi
 internal suspend fun <T: Any, R: Any?> taskRunner(receiver :T, newTask: RootTask<T, R>, block: suspend T.(TaskHandler<R>)-> R): TaskResult<R>{
@@ -61,7 +68,7 @@ internal suspend fun <T: Any, R: Any?> taskRunner(receiver :T, newTask: RootTask
  */
 inline fun <reified T: Any, R: Any?> T.runTaskBlocking(
     taskName: String,
-    config: TaskConfig = TaskConfig(isDefault = true),
+    config: TaskConfig = TaskConfig(isDefault = true, options = TaskOptions.RunAsRootTask),
     noinline block: suspend T.(TaskHandler<R>)-> R,
 ): TaskResult<R> {
 
@@ -121,7 +128,10 @@ inline fun <reified T: Any, R: Any?> T.runTaskBlocking(
  */
 suspend inline fun <reified T: Any, R: Any?> T.runTaskAsync(
     taskName: String,
-    config: TaskConfig = TaskConfig(isDefault = true),
+    config: TaskConfig = TaskConfig(
+        isDefault = true,
+        options = TaskOptions.RunAsRootTask
+    ),
     noinline block: suspend T.(TaskHandler<R>)-> R,
 ): TaskResult<R> {
 
@@ -150,6 +160,9 @@ suspend inline fun <reified T: Any, R: Any?> T.runTaskAsync(
     }
 }
 
+
+
+
 /**
  * Starts a root task in a blocking (non-suspending) context with retry support.
  *
@@ -161,46 +174,65 @@ suspend inline fun <reified T: Any, R: Any?> T.runTaskAsync(
  * @param block The block to execute with contextual receivers [T] and [TaskHandler].
  * @return The result of the task, wrapped in [TaskResult].
  */
-inline fun <reified T: IdentifiableContext, R: Any?> T.runTask(
+inline fun <reified T: CtxId, R: Any?> T.runTask(
     taskName: String,
     config: TaskConfig = TaskConfig(isDefault = true),
     debugProxy: DebugProxy<*,*>? = null,
-    block: T.(TaskHandler<R>)-> R,
-): TaskResult<R> {
+    block:  TaskContainer<T, R>.() -> R,
+):  TaskResult<R> {
 
-    var effectiveConfig = config
+    val moduleName: String = config.moduleName.emptyAsNull() ?: this.contextName
+
     val dispatcher = TasksManaged.LogNotify.taskDispatcher
-    val rootTask =  dispatcher.activeRootTask()
-    val moduleName: String = effectiveConfig.moduleName.emptyAsNull()?:this.contextName
-    if(rootTask != null && config.isDefault){
-        effectiveConfig = rootTask.config
-    }
-    val task = dispatcher.createHierarchyRoot<T, R>(taskName, moduleName, effectiveConfig, this)
-    task.start()
+    val activeTask = dispatcher.activeTask()
 
-    if(debugProxy != null){
-        debugProxy.provideDataProcessor(task.dataProcessor)
+    val newTask: TaskBase<T, R> = if (config.options != TaskOptions.RunAsRootTask && activeTask != null) {
+        activeTask.createChild(taskName, moduleName, activeTask.config.copy(), this)
+    } else {
+        dispatcher.createHierarchyRoot(taskName, moduleName, config, this)
+    }
+
+    newTask.start()
+    if (debugProxy != null) {
+        debugProxy.provideDataProcessor(newTask.dataProcessor)
         debugProxy.methodName = taskName
     }
-    val result = repeatIfFaulty(times =  config.attempts, actionOnFault = {Thread.sleep(config.delayMs)}){attempt->
+
+    val taskContainer:TaskContainer<T, R> =  TaskContainer.create<T, R>(newTask)
+
+    val result = repeatIfFaulty(times = config.attempts, actionOnFault = { Thread.sleep(config.delayMs) }) { attempt ->
         try {
-            val lambdaResult = block.invoke(this, task.handler)
-            onTaskResult(task, lambdaResult)
-        }catch (throwable: Throwable){
+            val lambdaResult = block.invoke(taskContainer)
+            onTaskResult(newTask, lambdaResult)
+        } catch (throwable: Throwable) {
             val snapshot = takePropertySnapshot<T, LogOnFault>(this)
-            val managed = handleException(throwable, task, snapshot)
+            val managed = handleException(throwable, newTask, snapshot)
             if (config.attempts > 1) {
-                task.handler.warn("Task resulted in failure. Attempt $attempt of ${config.attempts}")
+                newTask.handler.warn("Task resulted in failure. Attempt $attempt of ${config.attempts}")
             }
-            task.dataProcessor.debug("Throwable in catch block", "TaskLauncher|runTask")
-            task.taskResult?:run{
+            newTask.dataProcessor.debug("Throwable in catch block", "TaskLauncher|runTask")
+            newTask.taskResult ?: run {
                 throw managed
             }
-        }finally {
-            task.complete()
+        } finally {
+            newTask.complete()
         }
     }
     return result
+}
+
+
+inline fun <T: CtxId, R> (CTXContainer<TaskBase<T, R>>).runner(block:()->R):R{
+    try {
+        return block.invoke()
+    }catch (ex: Throwable){
+        val ctx =  this.extract().ctx
+        val task = this.extract()
+        val snapshot = takePropertySnapshot<T, LogOnFault>(ctx)
+        val managed = handleException(ex, task, snapshot)
+
+        throw managed
+    }
 }
 
 

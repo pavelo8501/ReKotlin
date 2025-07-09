@@ -5,7 +5,6 @@ import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.exists
-import org.jetbrains.exposed.sql.transactions.transaction
 import po.auth.sessions.models.AuthorizedSession
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.RootDTO
@@ -15,7 +14,7 @@ import po.exposify.scope.connection.ConnectionClass
 import po.exposify.scope.connection.controls.CoroutineEmitter
 import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
-import po.lognotify.classes.task.TaskHandler
+import po.lognotify.tasks.TaskHandler
 import po.misc.interfaces.ClassIdentity
 import po.misc.interfaces.IdentifiableClass
 

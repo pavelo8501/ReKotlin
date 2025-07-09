@@ -1,7 +1,7 @@
 package po.test.misc.callback
 
 import org.junit.jupiter.api.Test
-import po.misc.callbacks.manager.CallbackManager
+import po.misc.callbacks.CallbackManager
 import po.misc.interfaces.IdentifiableClass
 import po.misc.interfaces.IdentifiableContext
 import po.misc.interfaces.asIdentifiableClass

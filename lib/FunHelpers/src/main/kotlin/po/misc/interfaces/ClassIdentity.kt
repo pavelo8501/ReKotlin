@@ -3,7 +3,10 @@ package po.misc.interfaces
 import po.misc.data.helpers.textIfNull
 import kotlin.reflect.KClass
 
-class ClassIdentity(val componentName: String, var sourceName: String) {
+class ClassIdentity(val componentName: String, private val initialSourceName: String) {
+    private var updatedSourceName: String? = null
+    val sourceName: String get() = updatedSourceName?:initialSourceName
+
     private val hashCode: Int = this.hashCode()
     var id: Long? = null
         private set
@@ -22,24 +25,24 @@ class ClassIdentity(val componentName: String, var sourceName: String) {
     }
 
     fun updateSourceName(name: String) {
-        sourceName = name
+        updatedSourceName = name
     }
 
     companion object {
         fun create(componentName: String, sourceObjectName: String, id: Long? = null): ClassIdentity {
-            val identity = ClassIdentity(componentName, sourceObjectName)
-            if(id != null){
-                identity.provideId(id)
+            val identity =  ClassIdentity(componentName, sourceObjectName)
+            id?.let {
+                identity.provideId(it)
             }
             return identity
         }
 
         fun create(componentName: String, sourceClass: KClass<*>, id: Long? = null): ClassIdentity {
-            val identity = ClassIdentity(componentName, sourceClass.simpleName.toString())
-            if(id != null){
-                identity.provideId(id)
+            val identity =  ClassIdentity(componentName, sourceClass.simpleName.toString())
+            id?.let {
+                identity.provideId(it)
             }
-            return ClassIdentity(componentName, sourceClass.simpleName.toString())
+            return identity
         }
     }
 }

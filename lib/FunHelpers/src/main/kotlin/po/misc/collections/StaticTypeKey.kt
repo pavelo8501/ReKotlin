@@ -5,12 +5,23 @@ import kotlin.reflect.KType
 import kotlin.reflect.typeOf
 
 
-class StaticTypeKey<T : Any> @PublishedApi internal constructor(
-    private val clazz: KClass<T>
-) {
+interface ComparableType<T: Any>{
+    val kClass: KClass<T>
 
-    internal val typeName: String = clazz.java.typeName
+    val typeName: String
+
+    override fun equals(other: Any?): Boolean
+}
+
+class StaticTypeKey<T: Any> @PublishedApi internal constructor(
+    override val kClass: KClass<T>
+):ComparableType<T> {
+
+    internal val javaName: String = kClass.java.typeName
     private val cachedHash: Int = typeName.hashCode()
+
+    override val typeName: String
+        get() = javaName
 
     override fun equals(other: Any?): Boolean {
         return other is StaticTypeKey<*> &&

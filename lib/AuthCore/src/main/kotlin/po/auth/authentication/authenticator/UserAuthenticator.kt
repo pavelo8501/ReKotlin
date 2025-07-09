@@ -24,7 +24,7 @@ class UserAuthenticator(
     var keyBasePath : Path? = null
 
     private var _jwtService : JWTService? = null
-    val jwtService: JWTService get() = _jwtService.getOrThrow<JWTService, AuthException>(null){message->
+    val jwtService: JWTService get() = _jwtService.getOrThrow<JWTService>(){message->
         authException(message, AuthErrorCode.UNINITIALIZED)
     }
 
@@ -38,7 +38,7 @@ class UserAuthenticator(
     }
 
     suspend fun authenticate(login: String, password: String, anonymous: AuthorizedSession): AuthenticationPrincipal{
-        val principalLookupFn = lookupFn.getOrThrow<AuthFunction, AuthException>(null){message->
+        val principalLookupFn = lookupFn.getOrThrow<AuthFunction>(){message->
             authException("Authenticate function not set", AuthErrorCode.CONFIGURATION_MISSING)
         }
         val principal =  principalLookupFn.invoke(login)

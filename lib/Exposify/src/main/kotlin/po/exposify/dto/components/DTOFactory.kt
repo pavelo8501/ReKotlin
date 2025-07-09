@@ -13,11 +13,9 @@ import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.castOrOperations
 import po.lognotify.anotations.LogOnFault
 import po.lognotify.classes.action.InlineAction
-import po.lognotify.classes.action.action
 import po.lognotify.classes.action.runAction
-import po.lognotify.classes.action.runInlineAction
-import po.misc.callbacks.manager.CallbackManager
-import po.misc.callbacks.manager.builders.callbackManager
+import po.misc.callbacks.CallbackManager
+import po.misc.callbacks.builders.callbackManager
 import po.misc.interfaces.IdentifiableContext
 import po.misc.interfaces.ValueBased
 import po.misc.serialization.SerializerInfo
@@ -36,7 +34,7 @@ class DTOFactory<DTO, DATA, ENTITY>(
     override val contextName: String get() = "DTOFactory"
 
     val notifier = callbackManager<Events>(
-        { CallbackManager.createPayload<Events, CommonDTO<DTO, DATA, ENTITY>>(it, Events.OnInitialized) }
+        { CallbackManager.createPayload<Events, CommonDTO<DTO, DATA, ENTITY>>(this, Events.OnInitialized) }
     )
     val onCreatedPayload =
         CallbackManager.createPayload<Events, CommonDTO<DTO, DATA, ENTITY>>(notifier, Events.OnCreated)
@@ -44,8 +42,8 @@ class DTOFactory<DTO, DATA, ENTITY>(
     val config: DTOConfig<DTO, DATA, ENTITY>
         get() = dtoClass.config
 
-    internal val dataBlueprint: ClassBlueprint<DATA> = ClassBlueprint(dtoClass.dataType.clazz)
-    val dtoBlueprint: ClassBlueprint<DTO> = ClassBlueprint(dtoClass.dtoType.clazz)
+    internal val dataBlueprint: ClassBlueprint<DATA> = ClassBlueprint(dtoClass.dataType.kClass)
+    val dtoBlueprint: ClassBlueprint<DTO> = ClassBlueprint(dtoClass.dtoType.kClass)
 
     var dataModelBuilderFn: (() -> DATA)? = null
 
@@ -68,9 +66,10 @@ class DTOFactory<DTO, DATA, ENTITY>(
         }
     }
 
-    fun dtoPostCreation(dto: CommonDTO<DTO, DATA, ENTITY>): CommonDTO<DTO, DATA, ENTITY> = action("dtoPostCreation") {
+    fun dtoPostCreation(dto: CommonDTO<DTO, DATA, ENTITY>): CommonDTO<DTO, DATA, ENTITY>
+    = runAction("dtoPostCreation", dtoClass.dtoType.kType) {
         val result = if (config.trackerConfigModified) {
-            dto.initialize(DTOTracker(dto, config.trackerConfig))
+            dto.initialize(config.trackerConfig)
         } else {
             dto.initialize()
             notifier.trigger(Events.OnInitialized, dto)
@@ -114,7 +113,8 @@ class DTOFactory<DTO, DATA, ENTITY>(
      * @input dataModel:  DATA?
      * @return DTOFunctions<DATA, ENTITY> or null
      * */
-    fun createDto(withDataModel: DATA? = null): CommonDTO<DTO, DATA, ENTITY> = runInlineAction("Create DTO") { handler ->
+    fun createDto(withDataModel: DATA? = null): CommonDTO<DTO, DATA, ENTITY>
+    = runAction("Create DTO", dtoClass.dtoType.kType) { handler ->
         dtoBlueprint.setExternalParamLookupFn { param ->
             when (param.name) {
                 "dataModel" -> {
@@ -135,8 +135,8 @@ class DTOFactory<DTO, DATA, ENTITY>(
             }
         }
         val newDto = dtoBlueprint.getConstructor().callBy(dtoBlueprint.getConstructorArgs())
-            .castOrOperations<CommonDTO<DTO, DATA, ENTITY>>(this)
-        notifier.trigger(Events.OnCreated, newDto)
-        dtoPostCreation(newDto)
+        val asCommonDTO = newDto.castOrOperations<CommonDTO<DTO, DATA, ENTITY>>(this)
+        notifier.trigger(Events.OnCreated, asCommonDTO)
+        dtoPostCreation(asCommonDTO)
     }
 }

@@ -36,8 +36,8 @@ class TestPick : DatabaseTest(){
         val userDTO =  assertNotNull(pickedDTO, "Picked DTO is null")
         assertNotEquals(0,  userDTO.id, "UserDTO failed to update")
         assertAll("Asserting picked data model",
-            { assertNotEquals(0, userDTO.dataModel.id, "Failed to update") },
-            { assertEquals(user.login, userDTO.dataModel.login, "Input model/picked model login mismatch. Expecting ${user.login}") }
+            { assertNotEquals(0, userDTO.id, "Failed to update") },
+            { assertEquals(user.login, userDTO.login, "Input model/picked model login mismatch. Expecting ${user.login}") }
         )
     }
 }

@@ -98,7 +98,7 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
             { assertEquals(user.login, authSession.principal?.login, "Login mismatch") }
         )
 
-        logNotify().notifierConfig {
+        logHandler.notifierConfig {
             console = NotifyConfig.ConsoleBehaviour.Mute
         }
         runBlocking {

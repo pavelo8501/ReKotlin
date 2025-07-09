@@ -2,13 +2,13 @@ package po.test.misc.callback
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
-import po.misc.callbacks.manager.CallbackManager
-import po.misc.callbacks.manager.Containable
-import po.misc.callbacks.manager.builders.callbackManager
-import po.misc.callbacks.manager.builders.listen
-import po.misc.callbacks.manager.builders.managerHooks
-import po.misc.callbacks.manager.builders.requestOnce
-import po.misc.callbacks.manager.builders.withCallbackManager
+import po.misc.callbacks.CallbackManager
+import po.misc.callbacks.Containable
+import po.misc.callbacks.builders.callbackManager
+import po.misc.callbacks.builders.listen
+import po.misc.callbacks.builders.managerHooks
+import po.misc.callbacks.builders.requestOnce
+import po.misc.callbacks.builders.withCallbackManager
 import po.misc.interfaces.IdentifiableClass
 import po.misc.interfaces.IdentifiableContext
 import po.misc.interfaces.asIdentifiableClass
@@ -47,9 +47,9 @@ class TestCallbackSubscriptions() : IdentifiableClass {
     @Test
     fun `DSL type subscriptions  work as expected`(){
         val manager = callbackManager<Event>(
-            { CallbackManager.createPayload<Event, Int>(it, Event.OnInit) },
-            { CallbackManager.createPayload<Event, Boolean>(it, Event.OnInit) } ,
-            { CallbackManager.createPayload<Event, Int>(it, Event.OnOneShot) }
+            { CallbackManager.createPayload<Event, Int>(this, Event.OnInit) },
+            { CallbackManager.createPayload<Event, Boolean>(this, Event.OnInit) } ,
+            { CallbackManager.createPayload<Event, Int>(this, Event.OnOneShot) }
         )
         var managerInfo = manager.getStats()
         assertEquals(2, managerInfo.eventTypesCount, "Registered event count should be 1")
@@ -80,7 +80,7 @@ class TestCallbackSubscriptions() : IdentifiableClass {
 
         manager.managerHooks {
             beforeTrigger{
-                beforeTriggerSubscriberName =  it.subscriber.completeName
+                beforeTriggerSubscriberName =  it.subscriber.contextName
                 beforeTriggerEventName = it.eventType.name
                 beforeTriggerEmitterName = it.emitter.contextName
             }
@@ -101,6 +101,6 @@ class TestCallbackSubscriptions() : IdentifiableClass {
         assertEquals(manager.sourceName, newSubscriptionEmitterName, "Wrong callback manager context name")
         assertEquals(newSubscriptionEmitterName, beforeTriggerEmitterName)
         assertEquals(beforeTriggerEmitterName, afterTriggeredEmitterName, "afterTriggeredEmitterName does not match")
-        assertEquals(completeName,  receivedContainer.subscriber.completeName)
+        assertEquals(completeName,  receivedContainer.subscriber.contextName)
     }
 }

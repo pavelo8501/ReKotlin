@@ -3,22 +3,21 @@ package po.exposify
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.transactions.TransactionManager
 import po.exposify.common.classes.DBManagerHooks
 import po.exposify.extensions.getOrInit
 import po.exposify.scope.connection.models.ConnectionInfo
 import po.exposify.scope.connection.ConnectionClass
 import po.exposify.scope.connection.models.ConnectionSettings
-import po.lognotify.classes.task.models.TaskConfig
+import po.lognotify.tasks.models.TaskConfig
 import po.lognotify.extensions.runTask
 import po.lognotify.extensions.runTaskBlocking
-import po.misc.exceptions.ManagedException
 import po.misc.exceptions.text
+import po.misc.interfaces.CtxId
 import po.misc.interfaces.IdentifiableClass
 import po.misc.interfaces.IdentifiableContext
 import po.misc.serialization.SerializerInfo
 
-object DatabaseManager: IdentifiableContext {
+object DatabaseManager: CtxId {
 
     override val contextName: String = "DatabaseManager"
 

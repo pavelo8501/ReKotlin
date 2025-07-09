@@ -4,10 +4,13 @@ import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.components.tracker.interfaces.TrackableDTO
+import po.exposify.dto.helpers.asDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.misc.interfaces.Identifiable
 import po.misc.interfaces.IdentifiableContext
+import po.misc.lookups.HierarchyNode
+import po.misc.types.Typed
 
 fun TrackableDTO.collectTrackerTree(): TrackableDTONode {
     val rootNode = TrackableDTONode(this)
@@ -33,7 +36,7 @@ fun <DTO: ModelDTO, D: DataModel, E: LongEntity> CommonDTO<DTO, D, E>.addTracker
     operation:CrudOperation,
     moduleName: IdentifiableContext
 ):CommonDTO<DTO, D, E>{
-    tracker.addTrackInfo(operation, moduleName)
+    tracker.addTrackInfo(operation)
     return this
 }
 
@@ -42,4 +45,26 @@ fun <DTO: ModelDTO, D: DataModel, E : LongEntity> CommonDTO<DTO, D, E>.addTracke
 ):CommonDTO<DTO, D, E>{
     tracker.addTrackResult(operation)
     return this
+}
+
+fun <DTO: ModelDTO, D: DataModel, E : LongEntity> CommonDTO<DTO, D, E>.resolveHierarchy(): HierarchyNode<ModelDTO> {
+
+    fun traverse(dtos: List<ModelDTO>): List<HierarchyNode<ModelDTO>> {
+        return dtos.groupBy { it.typeData }
+            .map { (type, group) ->
+                val children = group
+                    .flatMap { it.hub.relationDelegates.flatMap {
+                            delegate -> delegate.getChild().valueAsList() } }
+
+                val child = traverse(children)
+                val groupAsList = group.toList()
+
+                HierarchyNode(typeData, groupAsList).addChildNodes(child)
+            }
+    }
+    val rootNode = HierarchyNode<ModelDTO>(this.typeData, mutableListOf(this.asDTO()))
+    val firstLevelChildren = this.hub.relationDelegates
+        .flatMap { it.getChild().valueAsList() }
+    rootNode.children += traverse(firstLevelChildren)
+    return rootNode
 }

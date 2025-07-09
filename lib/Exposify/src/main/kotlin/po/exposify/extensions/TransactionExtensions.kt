@@ -1,21 +1,17 @@
 package po.exposify.extensions
 
 import kotlinx.coroutines.Dispatchers
-import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.SqlLogger
 import org.jetbrains.exposed.sql.addLogger
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.jetbrains.exposed.sql.transactions.experimental.suspendedTransactionAsync
 import org.jetbrains.exposed.sql.transactions.transaction
-import po.exposify.common.classes.ExposedDebugger
-import po.lognotify.classes.notification.LoggerDataProcessor
-import po.lognotify.classes.task.TaskHandler
-import kotlin.coroutines.CoroutineContext
+import po.exposify.common.classes.ExposifyDebugger
+import po.lognotify.interfaces.LoggableCTX
+import po.misc.interfaces.CtxId
 
 
 suspend fun <T> withSuspendedTransactionIfNone(
-    logDataProcessor: ExposedDebugger<*,*>,
+    logDataProcessor: ExposifyDebugger<*,*>,
     warnIfNoTransaction: Boolean,
     block: suspend () -> T): T {
     return if (TransactionManager.currentOrNull() == null || TransactionManager.current().connection.isClosed) {
@@ -30,7 +26,7 @@ suspend fun <T> withSuspendedTransactionIfNone(
 }
 
 fun <T> withTransactionIfNone(
-    logDataProcessor: ExposedDebugger<*,*>,
+    logDataProcessor: ExposifyDebugger<*,*>,
     warnIfNoTransaction: Boolean,
     block: () -> T): T {
     return if (TransactionManager.currentOrNull() == null || TransactionManager.current().connection.isClosed) {
@@ -43,6 +39,27 @@ fun <T> withTransactionIfNone(
         }
     } else {
         block()
+    }
+}
+
+fun <T, R> T.withTransactionRestored(
+logDataProcessor: ExposifyDebugger<*, *>,
+warnIfNoTransaction: Boolean = true,
+block: T.() -> R
+): R where T: CtxId, R: Any? {
+
+    val context = this@withTransactionRestored
+
+    return if (TransactionManager.currentOrNull()?.connection?.isClosed != false) {
+        if (warnIfNoTransaction) {
+            logDataProcessor.warn("Transaction lost context. Restoring")
+        }
+        transaction {
+            addLogger(logDataProcessor)
+            block(context)
+        }
+    } else {
+        block(context)
     }
 }
 

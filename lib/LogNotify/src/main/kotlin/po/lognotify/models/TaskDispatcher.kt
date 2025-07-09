@@ -2,16 +2,17 @@ package po.lognotify.models
 
 import po.lognotify.TasksManaged.LogNotify.defaultContext
 import po.lognotify.TasksManaged.LogNotify.taskDispatcher
+import po.lognotify.classes.notification.LoggerDataProcessor
 import po.lognotify.classes.notification.NotifierHub
-import po.lognotify.classes.task.RootTask
-import po.lognotify.classes.task.TaskBase
-import po.lognotify.classes.task.interfaces.ResultantTask
-import po.lognotify.classes.task.interfaces.UpdatableTasks
-import po.lognotify.classes.task.models.TaskConfig
-import po.misc.callbacks.manager.CallbackManager
-import po.misc.callbacks.manager.Containable
-import po.misc.callbacks.manager.builders.callbackManager
-import po.misc.callbacks.manager.builders.withCallbackManager
+import po.lognotify.tasks.RootTask
+import po.lognotify.tasks.TaskBase
+import po.lognotify.tasks.interfaces.ResultantTask
+import po.lognotify.tasks.interfaces.UpdatableTasks
+import po.lognotify.tasks.models.TaskConfig
+import po.lognotify.process.LogReceiver
+import po.misc.callbacks.CallbackManager
+import po.misc.callbacks.Containable
+import po.misc.callbacks.builders.callbackManager
 import po.misc.coroutines.CoroutineInfo
 import po.misc.interfaces.IdentifiableClass
 import po.misc.interfaces.asIdentifiableClass
@@ -41,10 +42,10 @@ class TaskDispatcher(val notifierHub: NotifierHub) : UpdatableTasks, Identifiabl
     override val identity = asIdentifiableClass("LogNotify", "TaskDispatcher")
 
     internal val callbackRegistry = callbackManager<UpdateType>(
-        { CallbackManager.createPayload<UpdateType, LoggerStats>(it,  UpdateType.OnTaskCreated) },
-        { CallbackManager.createPayload<UpdateType, LoggerStats>(it,  UpdateType.OnTaskStart) },
-        { CallbackManager.createPayload<UpdateType, LoggerStats>(it,  UpdateType.OnTaskUpdated) },
-        { CallbackManager.createPayload<UpdateType, LoggerStats>(it,  UpdateType.OnTaskComplete) }
+        { CallbackManager.createPayload<UpdateType, LoggerStats>(this,  UpdateType.OnTaskCreated) },
+        { CallbackManager.createPayload<UpdateType, LoggerStats>(this,  UpdateType.OnTaskStart) },
+        { CallbackManager.createPayload<UpdateType, LoggerStats>(this,  UpdateType.OnTaskUpdated) },
+        { CallbackManager.createPayload<UpdateType, LoggerStats>(this,  UpdateType.OnTaskComplete) }
     )
     init {
         notifierHub.hooks.debugListUpdated {debugWhiteList->
@@ -52,7 +53,11 @@ class TaskDispatcher(val notifierHub: NotifierHub) : UpdatableTasks, Identifiabl
         }
     }
 
-    private fun createDefaultTask(): RootTask<TaskDispatcher, Unit> {
+    fun getActiveDataProcessor(): LoggerDataProcessor{
+        return activeTask()?.dataProcessor?:createDefaultTask().dataProcessor
+    }
+
+    internal fun createDefaultTask(): RootTask<TaskDispatcher, Unit> {
         val task = createHierarchyRoot<TaskDispatcher, Unit>("Default", "LogNotify", TaskConfig(), this)
         val warningMessage =
             """No active tasks in context, taskHandler() has created a default task to avoid crash.
@@ -62,14 +67,14 @@ class TaskDispatcher(val notifierHub: NotifierHub) : UpdatableTasks, Identifiabl
         return task
     }
 
+
     @PublishedApi
     internal fun <T, R> createHierarchyRoot(
         name: String,
         moduleName: String,
         config: TaskConfig,
         receiver:T
-    ): RootTask<T, R>
-    {
+    ): RootTask<T, R>{
         val newTask = RootTask<T, R>(TaskKey(name, 0, moduleName), config, defaultContext(name), taskDispatcher, receiver)
         taskDispatcher.addRootTask(newTask)
         return newTask
@@ -81,11 +86,6 @@ class TaskDispatcher(val notifierHub: NotifierHub) : UpdatableTasks, Identifiabl
 
     internal fun getTasks(): List<TaskBase<*, *>>{
         return taskHierarchy.values.toList()
-    }
-
-    internal fun getActiveTasks(): TaskBase<*, *>{
-       val activeRootTask =  taskHierarchy.values.firstOrNull { it.taskStatus == TaskBase.TaskStatus.Active }
-       return activeRootTask?.registry?.getActiveTask() ?: createDefaultTask()
     }
 
     fun onTaskCreated(handler: UpdateType, callback: (Containable<LoggerStats>) -> Unit) {
@@ -106,7 +106,6 @@ class TaskDispatcher(val notifierHub: NotifierHub) : UpdatableTasks, Identifiabl
             coroutineInfo = task.coroutineInfo
         )
         callbackRegistry.trigger(handler, stats)
-
     }
     fun addRootTask(task: RootTask<*, *>) {
         taskHierarchy[task.key] = task
@@ -123,9 +122,12 @@ class TaskDispatcher(val notifierHub: NotifierHub) : UpdatableTasks, Identifiabl
     fun activeRootTask(): RootTask<*, *>?{
       return taskHierarchy.values.firstOrNull { !it.isComplete }
     }
-
-    fun activeRootTasks(): List<RootTask<*, *>>{
-        return taskHierarchy.values.filter {!it.isComplete }
+    fun activeTask(): TaskBase<*, *>?{
+        val activeRootTask = taskHierarchy.values.firstOrNull { it.taskStatus == TaskBase.TaskStatus.Active }
+        return activeRootTask?.registry?.getActiveTask()
+    }
+    fun activeTasks(): List<TaskBase<*, *>>{
+        return  taskHierarchy.values.filter { it.taskStatus == TaskBase.TaskStatus.Active }
     }
 
     fun keyLookup(name: String, nestingLevel: Int): TaskKey?{

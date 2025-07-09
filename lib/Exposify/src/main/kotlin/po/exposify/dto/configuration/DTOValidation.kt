@@ -29,13 +29,13 @@ fun <DTO, D, E> DTOBase<DTO, D, E>.setupValidation(
     validatableDTO : CommonDTO<DTO, D, E>
 ): CheckStatus  where DTO: ModelDTO, D: DataModel, E: LongEntity
         = runInlineAction("setupValidation") { handler ->
-    val bindingHub = validatableDTO.bindingHub
+    val bindingHub = validatableDTO.hub
     val validator = Validator()
     val entityRecord =  config.propertyMap.getMapperRecord<E, InitException>(SourceObject.Entity){ initAbnormal(it, this) }
-    val responsiveDelegates = bindingHub.getResponsiveDelegates()
-    val relationsDelegates  = bindingHub.getRelationDelegates()
-    val parentDelegates = bindingHub.getParentDelegates()
-    val attachedForeignDelegates = bindingHub.getAttachedForeignDelegates()
+    val responsiveDelegates = bindingHub.responsiveDelegates
+    val relationsDelegates  = bindingHub.relationDelegates
+    val parentDelegates = bindingHub.parentDelegates
+    val attachedForeignDelegates = bindingHub.attachedForeignDelegates
     val validationSequence = sequenceOf(
         ValidationCheck.AttachedForeign,
         ValidationCheck.MandatoryProperties,

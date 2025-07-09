@@ -12,6 +12,7 @@ import po.exposify.scope.sequence.classes.RootHandlerProvider
 import po.exposify.scope.sequence.classes.RootSequenceHandler
 import po.exposify.scope.sequence.classes.SwitchHandlerProvider
 import po.exposify.scope.service.ServiceContext
+import po.misc.interfaces.IdentifiableContext
 
 
 fun <DTO, D, E>  ServiceContext<DTO, D, E>.sequence(
@@ -29,7 +30,7 @@ suspend fun <DTO, D, E, F_DTO, FD, FE> SequenceContext<F_DTO,FD, FE>.switchConte
 
     val switchHandler = sequenceHandler.handlerConfig.getSwitchHandler(handlerDelegate.name)
     switchHandler?.let {
-        val casted = it.castOrOperations<ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE>>()
+        val casted = it.castOrOperations<ClassSequenceHandler<DTO, D, E, F_DTO, FD, FE>>(handlerDelegate.dtoClass)
         casted.launch(runInfo, switchLambda)
     }?:run {
         taskHandler().warn("Switch statement name: ${handlerDelegate.name} will not be executed. No handler being provided")

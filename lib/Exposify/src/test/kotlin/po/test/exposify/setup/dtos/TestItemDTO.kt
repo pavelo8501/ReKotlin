@@ -15,9 +15,7 @@ data class TestItem(
 ): DataModel
 
 
-class TestItemDTO(
-    override var dataModel: TestItem
-): CommonDTO<TestItemDTO, TestItem, TestsItemEntity>(TestItemDTO) {
+class TestItemDTO(): CommonDTO<TestItemDTO, TestItem, TestsItemEntity>(TestItemDTO) {
 
     val name : String by binding(TestItem::name, TestsItemEntity::name)
 

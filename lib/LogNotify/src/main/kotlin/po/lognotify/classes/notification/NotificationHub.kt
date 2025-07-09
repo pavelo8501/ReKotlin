@@ -4,8 +4,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import po.lognotify.classes.notification.models.LogData
 import po.lognotify.classes.notification.models.NotifyConfig
-import po.lognotify.classes.task.RootTask
-import po.misc.callbacks.manager.builders.callbackManager
+import po.lognotify.tasks.RootTask
+import po.misc.callbacks.builders.callbackManager
 import po.misc.data.printable.PrintableBase
 import po.misc.data.processors.DataProcessorBase
 import po.misc.interfaces.Identifiable

@@ -2,9 +2,9 @@ package po.test.misc.callback
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import po.misc.callbacks.manager.CallbackManager
-import po.misc.callbacks.manager.builders.callbackManager
-import po.misc.callbacks.manager.models.Configuration
+import po.misc.callbacks.CallbackManager
+import po.misc.callbacks.builders.callbackManager
+import po.misc.callbacks.models.Configuration
 import po.misc.exceptions.ManagedException
 import po.misc.interfaces.ClassIdentity
 import po.misc.interfaces.IdentifiableClass

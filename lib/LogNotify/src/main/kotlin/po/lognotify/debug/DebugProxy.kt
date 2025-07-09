@@ -51,26 +51,38 @@ open class DebugProxy<T: IdentifiableContext, P: PrintableBase<P>>(
         dataProcessor.debug(printable, printableClass, template)
     }
 
-    fun captureInput(vararg parameters: Any):DebugProxy<T,P>{
+//    fun captureInput(vararg parameters: Any):DebugProxy<T,P>{
+//        inputParams.clear()
+//        parameters.forEachIndexed { index, parameter ->
+//            val inputParameter = createInputParameter(index, parameter)
+//            inputParams.add(inputParameter)
+//        }
+//        return this
+//    }
+
+    inline fun <reified INPUT: Any> captureInput(parameter: INPUT, block:INPUT.()-> Unit):DebugProxy<T,P>{
         inputParams.clear()
-        parameters.forEachIndexed { index, parameter ->
-            val inputParameter = createInputParameter(index, parameter)
-            inputParams.add(inputParameter)
+        val captureBlock = CaptureBlock(parameter)
+
+        block.invoke(captureBlock.parameter)
+
+        captureBlock.inputParams.forEach {
+            this.inputParams.add(it)
         }
         return this
     }
 
-    inline fun <reified INPUT: Any> capture(parameter: INPUT, captureBlock:CaptureBlock<INPUT>.()-> Unit):DebugProxy<T,P>{
-        inputParams.clear()
-        captureInput(parameter)
-        val param = inputParams.first()
-        val block = CaptureBlock(parameter, param)
-        captureBlock.invoke(block)
-        block.inputParams.forEach {
-            param.addListParameter(it)
-        }
-        return this
-    }
+//    inline fun <reified INPUT: Any> capture(parameter: INPUT, captureBlock:CaptureBlock<INPUT>.()-> Unit):DebugProxy<T,P>{
+//        inputParams.clear()
+//        captureInput(parameter)
+//        val param = inputParams.first()
+//        val block = CaptureBlock(parameter, param)
+//        captureBlock.invoke(block)
+//        block.inputParams.forEach {
+//            param.addListParameter(it)
+//        }
+//        return this
+//    }
 
     fun inputParameters(): List<InputParameter>{
         return inputParams
@@ -83,7 +95,7 @@ fun <T: IdentifiableContext, P: PrintableBase<P>> TasksManaged.debugProxy(
     usingTemplate: PrintableTemplate<P>? = null,
     dataProvider: (DebugParams<P>)-> P
 ):DebugProxy<T, P>{
-    val dataProcessor = this.logHandler
+    val dataProcessor = this.logHandler.dispatcher.getActiveDataProcessor()
     val proxy = DebugProxy(receiver,printableClass, dataProcessor,  dataProvider)
     proxy.activeTemplate = usingTemplate
     return  proxy

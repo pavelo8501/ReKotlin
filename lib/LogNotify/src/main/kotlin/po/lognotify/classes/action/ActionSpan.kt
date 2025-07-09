@@ -1,13 +1,10 @@
 package po.lognotify.classes.action
 
 import po.lognotify.TaskProcessor
-import po.lognotify.classes.task.TaskHandler
+import po.lognotify.tasks.TaskHandler
 import po.lognotify.models.TaskKey
 import po.misc.exceptions.ManagedException
 import po.misc.interfaces.ClassIdentity
-import po.misc.interfaces.Identifiable
-import po.misc.interfaces.IdentifiableClass
-import po.misc.interfaces.IdentifiableContext
 import po.misc.reflection.classes.ClassInfo
 import po.misc.time.ExecutionTimeStamp
 

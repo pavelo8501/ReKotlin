@@ -4,7 +4,6 @@ import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.interfaces.ModelDTO
-import po.misc.callbacks.manager.Containable
 import po.misc.reflection.properties.models.PropertyUpdate
 import kotlin.reflect.KMutableProperty1
 

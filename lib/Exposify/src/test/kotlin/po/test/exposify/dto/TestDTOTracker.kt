@@ -4,7 +4,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import po.auth.extensions.generatePassword
-import po.exposify.common.events.DTOEvent
+import po.exposify.common.events.DTOData
 import po.exposify.dto.components.result.ResultSingle
 import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
@@ -31,9 +31,9 @@ class TestDTOTracker: DatabaseTest(), TasksManaged {
     @BeforeAll
     fun setup() = runTest {
 
-        logNotify().notifierConfig {
+        logHandler.notifierConfig {
             console = NotifyConfig.ConsoleBehaviour.MuteNoEvents
-            allowDebug(DTOEvent)
+            allowDebug(DTOData)
         }
 
         val user = User(

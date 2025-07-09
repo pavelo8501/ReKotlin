@@ -29,7 +29,7 @@ data class PropertyInfo<T: Any, V: Any>(
     val returnType: KType = property.returnType
     val visibility: KVisibility? = property.visibility
 
-    val typeData : TypeData<T> = TypeData.createRecord(receiverClass)
+    val typeData : TypeData<T> = TypeData.createByKClass(receiverClass)
 
     var valueTypeData: TypeData<V>? = null
     var returnTypeKey: StaticTypeKey<V>? = null
@@ -37,7 +37,7 @@ data class PropertyInfo<T: Any, V: Any>(
 
     fun setValueClass(clazz: KClass<V>): PropertyInfo<T, V>{
         valueClass = clazz
-        valueTypeData = TypeData.createRecord(clazz)
+        valueTypeData = TypeData.createByKClass(clazz)
         returnTypeKey = StaticTypeKey.createTypeKey(clazz)
         return this
     }

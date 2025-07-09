@@ -9,7 +9,7 @@ import po.auth.extensions.createDefaultIdentifier
 import po.auth.extensions.generatePassword
 import po.auth.extensions.withSessionContext
 import po.exposify.DatabaseManager
-import po.exposify.common.events.ContextEvent
+import po.exposify.common.events.ContextData
 import po.exposify.dto.components.WhereQuery
 import po.exposify.scope.connection.models.ConnectionInfo
 import po.exposify.scope.sequence.extensions.runSequence
@@ -19,7 +19,7 @@ import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.NotifyConfig
-import po.lognotify.classes.task.models.TaskConfig
+import po.lognotify.tasks.models.TaskConfig
 import po.lognotify.extensions.runTaskAsync
 import po.misc.exceptions.HandlerType
 import po.test.exposify.scope.session.TestSessionsContext
@@ -50,11 +50,9 @@ class TestSequenceCrud : DatabaseTest(),  TasksManaged {
     @BeforeAll
     fun setup() {
 
-        val loggerHandler: LogNotifyHandler = logNotify()
-
-        loggerHandler.notifierConfig {
+        logHandler.notifierConfig {
             console = NotifyConfig.ConsoleBehaviour.MuteNoEvents
-            allowDebug(ContextEvent)
+            allowDebug(ContextData)
         }
         val user = User(
             id = 0,
@@ -145,6 +143,7 @@ class TestSequenceCrud : DatabaseTest(),  TasksManaged {
                 val pages = pagesSectionsContentBlocks(pageCount = 1, sectionsCount = 2, contentBlocksCount = 4, updatedBy = updatedById)
                 update(pages)
                 sequence(PageDTO.SELECT) {
+
                     switchContext(SectionDTO.UPDATE) { handler ->
                         update(handler.inputData).toResultList()
                     }
@@ -188,8 +187,7 @@ class TestSequenceCrud : DatabaseTest(),  TasksManaged {
 
     fun `Pick statement is processed in Sequence context`() = runTest {
 
-        val loggerHandler: LogNotifyHandler = logNotify()
-        loggerHandler.notifierConfig {
+        logHandler.notifierConfig {
             console = NotifyConfig.ConsoleBehaviour.MuteNoEvents
         }
 

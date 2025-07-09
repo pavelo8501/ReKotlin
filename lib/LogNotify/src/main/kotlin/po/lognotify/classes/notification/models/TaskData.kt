@@ -2,8 +2,8 @@ package po.lognotify.classes.notification.models
 
 import po.lognotify.TaskProcessor
 import po.lognotify.classes.action.ActionSpan
-import po.lognotify.classes.task.TaskBase
-import po.lognotify.classes.task.models.TaskConfig
+import po.lognotify.tasks.TaskBase
+import po.lognotify.tasks.models.TaskConfig
 import po.lognotify.enums.SeverityLevel
 import po.misc.data.printable.PrintableBase
 import po.misc.data.console.PrintableTemplate

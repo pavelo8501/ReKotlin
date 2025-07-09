@@ -21,11 +21,11 @@ fun exceptionOutput(callback: ()-> ManagedException):ManagedException{
 
 
 
-fun IdentifiableContext.managedPayload(
-    message: String? = null,
-    handlerType: HandlerType = HandlerType.SkipSelf,
-    source: Enum<*>? = null,
-    outputOverride:((ManagedException)-> Unit)? = null
-):ManagedCallSitePayload{
-    return ManagedCallSitePayload(this, message?:"", handlerType, source)
-}
+//fun IdentifiableContext.managedPayload(
+//    message: String? = null,
+//    handlerType: HandlerType = HandlerType.SkipSelf,
+//    source: Enum<*>? = null,
+//    outputOverride:((ManagedException)-> Unit)? = null
+//):ManagedCallSitePayload{
+//    return ManagedCallSitePayload(this, message?:"", handlerType, source)
+//}

@@ -68,7 +68,7 @@ abstract class DatabaseTest() : IdentifiableContext {
             newConnection {
                 println("Opening new connection")
             }
-            existentConnection { println("Reusing: ${it.name}") }
+            existentConnection { println("Reusing: ${it.completeName}") }
         }
         val connection = DatabaseManager.openConnection(null, ConnectionSettings(retries = 5), hooks = connectionHooks )
         return connection
@@ -93,7 +93,7 @@ abstract class DatabaseTest() : IdentifiableContext {
             newConnection {
                 postgres.start()
             }
-            existentConnection { println("Reusing: ${it.name}") }
+            existentConnection { println("Reusing: ${it.completeName}") }
         }
         val connection = DatabaseManager.openConnectionAsync(null, ConnectionSettings(retries = 5), hooks = connectionHooks )
         connection

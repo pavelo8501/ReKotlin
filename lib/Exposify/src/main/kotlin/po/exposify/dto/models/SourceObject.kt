@@ -14,10 +14,6 @@ sealed class SourceObject<T: Any>(override val value: Int): ValueBased{
     abstract var name: String
     internal var typeRecord : TypeRecord<T>? = null
 
-    fun getTypeRecord(): TypeRecord<T>{
-        return typeRecord.getOrOperations()
-    }
-
     object DTO : SourceObject<ModelDTO>(1){
         override var name: String = "DTO"
         fun <T: ModelDTO> provideType(record : TypeRecord<T>): DTO {

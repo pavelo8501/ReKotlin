@@ -29,7 +29,7 @@ internal fun <EX: ManagedException,  DTO:ModelDTO, D: DataModel, E : LongEntity>
     return  result.addFailureCause(this)
 }
 
-internal fun <EX: ManagedException,  DTO:ModelDTO, D: DataModel, E : LongEntity>  EX.toResultList(
+internal fun <EX: ManagedException, DTO:ModelDTO, D: DataModel, E : LongEntity>  EX.toResultList(
     operation : CrudOperation,
     dtoClass: DTOBase<DTO, D, E>
 ): ResultList<DTO, D, E>{
