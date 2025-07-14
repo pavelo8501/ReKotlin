@@ -67,14 +67,14 @@ inline fun <reified T: Any> CtxId.getResolved(block:T.()-> Unit){
 
 
 
-interface Identifiable: CtxId{
+interface Identifiable: CTX{
     var sourceName: String
     val completeName: String get()= "$contextName[$sourceName]"
 
 }
 
 
-interface TypedContext<T: Any>: CtxId{
+interface TypedContext<T: Any>: CTX{
     val typeData: TypeData<T>
     var sourceName: String
     val completeName: String get() = "$contextName[$sourceName]"
@@ -82,7 +82,7 @@ interface TypedContext<T: Any>: CtxId{
 
 
 
-interface IdentifiableClass : CtxId {
+interface IdentifiableClass : CTX {
 
     val identity: ClassIdentity
 
@@ -92,7 +92,7 @@ interface IdentifiableClass : CtxId {
     val completeName: String get() = identity?.completeName?:"Default"
 }
 
-interface ObservedContext: CtxId{
+interface ObservedContext: CTX{
     val sourceName: String
     val completeName: String get()= "$contextName[$sourceName]"
     val exceptionOutput: ((ManagedException)-> Unit)?

@@ -5,6 +5,7 @@ import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
 import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.components.tracker.DTOTracker
+import po.exposify.dto.helpers.asDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.enums.ExceptionCode
@@ -135,8 +136,14 @@ class ResultSingle<DTO, D, E> internal constructor(
     }
 
     fun getDTOForced(): DTO {
-        @Suppress("UNCHECKED_CAST")
-        return result as DTO
+       return result?.asDTO() ?:run {
+            val managed = failureCause
+            if(managed != null){
+                throw managed
+            }else{
+                throw operationsException("Result is null with reason unknow", ExceptionCode.DTO_LOOKUP_FAILURE)
+            }
+        }
     }
 
     fun getTracker():DTOTracker<DTO, D, E>?{

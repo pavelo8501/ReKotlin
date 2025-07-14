@@ -1,11 +1,12 @@
 package po.misc.exceptions
 
+import po.misc.data.helpers.textIfNull
 import po.misc.interfaces.IdentifiableContext
 
 
 class ManagedCallSitePayload(
     val ctx: IdentifiableContext,
-    var message: String,
+    var message: String? = null,
     val handler: HandlerType? = null,
     val source: Enum<*>? = null,
     val cause: Throwable? = null,
@@ -20,8 +21,18 @@ class ManagedCallSitePayload(
         return this
     }
 
+
+    fun method(methodName: String, expectedResult: String):ManagedCallSitePayload{
+        message =  "$methodName:$expectedResult"
+        return this
+    }
+
     fun provideDescription(methodName: String, reason: String, result: String){
         description +=  "In method: $methodName. Reason:${reason}. Result:${result}"
+    }
+
+    override fun toString(): String {
+        return message.textIfNull("")
     }
 
     companion object{

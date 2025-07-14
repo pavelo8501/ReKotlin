@@ -15,7 +15,7 @@ fun  Boolean.trueOrInitException(){
 
 @PublishedApi
 internal fun initException(payload: ManagedCallSitePayload): OperationsException{
-    val exception = OperationsException(payload.message, payload.source as ExceptionCode, payload.cause)
+    val exception = OperationsException(payload.toString(), payload.source as ExceptionCode, payload.cause)
     exception.addHandlingData(payload.ctx, ManagedException.ExceptionEvent.Registered)
     return exception
 }
@@ -53,7 +53,7 @@ internal fun exception(payload: ManagedCallSitePayload): OperationsException = o
 
 @PublishedApi
 internal fun operationsException(payload: ManagedCallSitePayload): OperationsException{
-    val exception = OperationsException(payload.message, payload.source as ExceptionCode, payload.cause)
+    val exception = OperationsException(payload.toString(), payload.source as ExceptionCode, payload.cause)
     exception.addHandlingData(payload.ctx, ManagedException.ExceptionEvent.Registered)
     return exception
 }

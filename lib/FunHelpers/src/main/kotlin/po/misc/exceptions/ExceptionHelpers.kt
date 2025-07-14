@@ -66,9 +66,9 @@ fun throwManaged(message: String, ctx: IdentifiableContext,  handler : HandlerTy
 
 fun throwManaged(payload: ManagedCallSitePayload): Nothing{
     if(payload.handler == null){
-        throw ManagedException(payload.message)
+        throw ManagedException(payload.toString())
     }else{
-        val exception =  ManagedException(payload.message)
+        val exception =  ManagedException(payload.toString())
         exception.handler = payload.handler
         throw exception
     }
@@ -119,7 +119,7 @@ fun Throwable.toManaged(ctx: IdentifiableContext,  handler: HandlerType,  source
 
 fun Throwable.toManaged(payload: ManagedCallSitePayload): ManagedException{
     val exceptionMessage = "$message @ ${payload.ctx}"
-    val exception = ManagedException(payload.message, payload.source, payload.cause)
+    val exception = ManagedException(payload.toString(), payload.source, payload.cause)
     exception.addHandlingData(payload.ctx,  ManagedException.ExceptionEvent.Registered)
     payload.handler?.let {
         exception.handler = it

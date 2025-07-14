@@ -7,7 +7,7 @@ import po.misc.callbacks.CallbackPayloadBase
 import po.misc.callbacks.Containable
 import po.misc.callbacks.ResultCallbackPayload
 import po.misc.callbacks.models.Configuration
-import po.misc.functions.containers.DeferredResultContainer
+import po.misc.functions.containers.DeferredContainer
 import po.misc.interfaces.IdentifiableClass
 import po.misc.interfaces.IdentifiableContext
 
@@ -86,11 +86,11 @@ inline fun<E: Enum<E>, reified T: Any> CallbackManager<E>.createPayload(
 inline fun<E: Enum<E>, reified T: Any> CallbackManager<E>.createPayloadDeferred(
     eventType:E,
     noinline block: (PayloadBuilder<E, T>.()-> Unit) ? = null
-):DeferredResultContainer<CallbackPayload<E, T>>{
+): DeferredContainer<CallbackPayload<E, T>>{
     val payload = CallbackManager.createPayload<E, T>(this, eventType)
     val payloadBuilder =  PayloadBuilder(this, payload)
     block?.invoke(payloadBuilder)
-   return DeferredResultContainer<CallbackPayload<E, T>>(this){
+   return DeferredContainer<CallbackPayload<E, T>>(this){
         payload
     }
 }

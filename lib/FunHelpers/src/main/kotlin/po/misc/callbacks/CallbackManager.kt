@@ -6,6 +6,7 @@ import po.misc.collections.StaticTypeKey
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.throwManaged
 import po.misc.functions.methodeProbe
+import po.misc.interfaces.CTX
 import po.misc.interfaces.IdentifiableClass
 import po.misc.interfaces.IdentifiableContext
 import po.misc.interfaces.ObservedContext
@@ -20,7 +21,7 @@ class CallbackManager<E: Enum<E>>(
     enumClass: Class<E>,
     val emitter: IdentifiableContext,
     private val config: Configuration = Configuration()
-): ObservedContext {
+): ObservedContext, CTX {
 
     data class ManagerStats(
         val eventTypesCount: Int,
@@ -30,7 +31,7 @@ class CallbackManager<E: Enum<E>>(
         val routedContainersCount: Int
     )
 
-    override val contextName: String = "CallbackManager"
+    override val contextName: String = "CallbackManager On ${emitter.contextName}"
     override val sourceName: String = emitter.contextName
 
     internal val  singleTypeEventMap = EnumMap<E, MutableList<CallbackPayload<E, *,>>>(enumClass)
