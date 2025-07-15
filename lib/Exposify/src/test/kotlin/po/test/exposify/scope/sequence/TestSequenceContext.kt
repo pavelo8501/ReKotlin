@@ -1,42 +1,15 @@
 package po.test.exposify.scope.sequence
 
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.assertAll
-import org.junit.jupiter.api.assertDoesNotThrow
-import org.junit.jupiter.api.assertInstanceOf
 import po.auth.extensions.generatePassword
-import po.auth.extensions.withSessionContext
-import po.exposify.dto.components.result.ResultSingle
-import po.exposify.scope.sequence.extensions.collectResult
-import po.exposify.scope.sequence.extensions.runSequence
-import po.exposify.scope.sequence.extensions.sequence
-import po.exposify.scope.sequence.extensions.switchContext
-import po.exposify.scope.sequence.extensions.usingRoot
-import po.exposify.scope.sequence.extensions.usingSwitch
 import po.exposify.scope.service.models.TableCreateMode
-import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.NotifyConfig
 import po.test.exposify.scope.session.TestSessionsContext
 import po.test.exposify.setup.DatabaseTest
-import po.test.exposify.setup.PageEntity
-import po.test.exposify.setup.Pages
-import po.test.exposify.setup.SectionEntity
-import po.test.exposify.setup.dtos.Page
-import po.test.exposify.setup.dtos.PageDTO
-import po.test.exposify.setup.dtos.Section
-import po.test.exposify.setup.dtos.SectionDTO
 import po.test.exposify.setup.dtos.User
 import po.test.exposify.setup.dtos.UserDTO
-import po.test.exposify.setup.pageModels
-import po.test.exposify.setup.pageModelsWithSections
-import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestSequenceContext : DatabaseTest(), TasksManaged {

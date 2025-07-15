@@ -35,7 +35,7 @@ sealed class ResultBase<DTO, D>(
 class ResultList<DTO, D, E> internal constructor(
     override val dtoClass: DTOBase<DTO, D, E>,
     private var result : List<CommonDTO<DTO, D, E>> = emptyList()
-):ResultBase<DTO, D>(dtoClass), ExposifyResult, CtxId where DTO: ModelDTO, D: DataModel, E : LongEntity {
+):ResultBase<DTO, D>(dtoClass),  ExposifyResult, CtxId where DTO: ModelDTO, D: DataModel, E : LongEntity {
 
     override val contextName: String
         get() = "ResultList"
@@ -89,7 +89,7 @@ class ResultList<DTO, D, E> internal constructor(
 class ResultSingle<DTO, D, E> internal constructor(
     override val dtoClass: DTOBase<DTO, D, E>,
     private var result: CommonDTO<DTO, D, E>? = null
-): ResultBase<DTO, D>(dtoClass), DTOResult<DTO>, ExposifyResult, CtxId where DTO : ModelDTO, D: DataModel, E : LongEntity {
+): ResultBase<DTO, D>(dtoClass), ExposifyResult, CtxId where DTO : ModelDTO, D: DataModel, E : LongEntity {
 
     override val contextName: String
         get() = "ResultSingle"
@@ -103,7 +103,7 @@ class ResultSingle<DTO, D, E> internal constructor(
 
     val isFaulty: Boolean get() = failureCause != null
 
-    override val dto: DTO get(){
+    val dto: DTO get(){
        return getDTOForced()
     }
 

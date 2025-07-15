@@ -7,6 +7,7 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.DTOBase
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dao.classes.ExposifyEntityClass
+import po.exposify.dto.components.query.SimpleQuery
 import po.lognotify.classes.action.InlineAction
 import po.lognotify.classes.action.runAction
 import po.lognotify.classes.action.runInlineAction

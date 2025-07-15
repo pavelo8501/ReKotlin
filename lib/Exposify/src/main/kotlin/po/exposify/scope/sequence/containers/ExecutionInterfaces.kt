@@ -1,14 +1,5 @@
 package po.exposify.scope.sequence.containers
 
-import org.jetbrains.exposed.dao.LongEntity
-import org.jetbrains.exposed.dao.id.IdTable
-import po.exposify.dto.components.WhereQuery
-import po.exposify.dto.components.result.ResultList
-import po.exposify.dto.components.result.ResultSingle
-import po.exposify.dto.interfaces.DataModel
-import po.exposify.dto.interfaces.ModelDTO
-
-
 
 //interface RootSingleCTX<DTO: ModelDTO<DTO>, D : DataModel, E: LongEntity>{
 //    fun RootExecCTX<DTO, D, E>.pickById(id: Long, block: RootExecCTX<DTO, D, E>.(Long)->  ResultSingle<DTO, D, E>)

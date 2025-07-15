@@ -1,11 +1,13 @@
 package po.exposify.scope.sequence.launcher
 
 import po.exposify.dto.DTOBase
-import po.exposify.dto.RootDTO
+import po.exposify.dto.components.query.WhereQuery
+import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.scope.sequence.builder.SingleDTOResult
+import po.exposify.extensions.getOrOperations
+import po.misc.functions.containers.DeferredContainer
 
 
 sealed class ExecutionHandlerBase<DTO, D>(
@@ -14,24 +16,42 @@ sealed class ExecutionHandlerBase<DTO, D>(
 
     protected var thisName : String? = null
     private var isInitialized: Boolean = false
-   // protected var valueBacking: ValueContainer<V>? = null
 }
 
 
-class ParametrizedSingleHandler<DTO, D, P> internal constructor(
-    val dtoRoot: RootDTO<DTO, D, *>,
-    val descriptor: SequenceDescriptorBase<DTO, D, P>
-):ExecutionHandlerBase<DTO, D>(dtoRoot), SingleDTOResult<DTO, D>
+class SingleResultHandler<DTO, D, P> internal constructor(
+    val descriptor: RootDescriptorBase<DTO, D, P>
+):ExecutionHandlerBase<DTO, D>(descriptor.dtoClass)
         where DTO: ModelDTO, D: DataModel, P:D
 {
     var result: ResultSingle<DTO, D, *>? = null
 
     companion object{
         fun <DTO: ModelDTO, D: DataModel, P:D> create(
-            dtoRoot: RootDTO<DTO, D, *>,
-            descriptor: SequenceDescriptorBase<DTO , D , P>
-        ):ParametrizedSingleHandler<DTO, D, P>{
-          return  ParametrizedSingleHandler(dtoRoot, descriptor)
+            descriptor: RootDescriptorBase<DTO , D , P>
+        ):SingleResultHandler<DTO, D, P>{
+          return  SingleResultHandler(descriptor)
+        }
+    }
+}
+
+
+class ListResultHandler<DTO, D> internal constructor(
+   private val descriptor: ListDescriptor<DTO, D>
+):ExecutionHandlerBase<DTO, D>(descriptor.dtoClass)
+        where DTO: ModelDTO, D: DataModel
+{
+    var result: ResultList<DTO, D, *>? = null
+
+    private val deferredQueryError = "DeferredQuery required but not provided"
+    private var deferredQueryBacking: DeferredContainer<WhereQuery<*>>? = null
+    val whereQuery: DeferredContainer<WhereQuery<*>> get() =  deferredQueryBacking.getOrOperations(deferredQueryError)
+
+    companion object{
+        fun <DTO: ModelDTO, D: DataModel> create(
+            descriptor: ListDescriptor<DTO, D>
+        ):ListResultHandler<DTO, D>{
+            return  ListResultHandler(descriptor)
         }
     }
 }

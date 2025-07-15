@@ -56,7 +56,7 @@ class UserAuthenticator(
         _jwtService = service
     }
 
-    override suspend fun authorize(authData: SessionIdentified): AuthorizedSession {
+    override fun authorize(authData: SessionIdentified): AuthorizedSession {
         val existentSession = factory.sessionLookUp(authData.sessionID)
         return existentSession ?: factory.createAnonymousSession(authData, this)
     }

@@ -8,7 +8,7 @@ import po.auth.sessions.models.AuthorizedSession
 import kotlin.coroutines.coroutineContext
 
 
-suspend fun session(identifyData: SessionIdentified): AuthorizedSession
+fun session(identifyData: SessionIdentified): AuthorizedSession
     = AuthSessionManager.authenticator.authorize(identifyData)
 
 suspend fun withSessionContext(

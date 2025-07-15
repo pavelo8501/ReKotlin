@@ -10,8 +10,7 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dao.classes.ExposifyEntityClass
 import po.exposify.dto.components.ExecutionContext
-import po.exposify.dto.components.SwitchQuery
-import po.exposify.dto.components.WhereQuery
+import po.exposify.dto.components.query.WhereQuery
 import po.exposify.dto.components.createProvider
 import po.exposify.dto.configuration.setupValidation
 import po.exposify.dto.enums.DTOClassStatus
@@ -110,6 +109,8 @@ sealed class DTOBase<DTO, DATA, ENTITY>(
     internal val entityType : TypeRecord<ENTITY>
         get() = config.registry.getRecord<ENTITY>(SourceObject.Entity){ initAbnormal(registryExceptionMessage) }
 
+    abstract val serviceClass: ServiceClass<*,*,*>
+
     //internal var delegateRegistrationForward =  CallbackManager.createPayload<Events, ListData<DTO, DATA, ENTITY>>(notifier, Events.DelegateRegistrationComplete)
 
     abstract fun setup()
@@ -186,10 +187,6 @@ sealed class DTOBase<DTO, DATA, ENTITY>(
         }
     }
 
-    fun whereQuery(): WhereQuery<IdTable<Long>> {
-        return  WhereQuery(config.entityModel.sourceTable)
-    }
-
     fun serializerLookup(type: KType): SerializerInfo<*>?{
         val normalizedKey = type.toSimpleNormalizedKey()
         when(this){
@@ -220,7 +217,7 @@ abstract class RootDTO<DTO, DATA, ENTITY>(
     internal val serviceContext: ServiceContext<DTO, DATA, ENTITY>
         get() = serviceContextParameter.getOrInit(this)
 
-    internal val serviceClass: ServiceClass<DTO, DATA, ENTITY>
+    override val serviceClass: ServiceClass<DTO, DATA, ENTITY>
         get() = serviceContext.serviceClass
 
     internal val executionContext: ExecutionContext<DTO, DATA, ENTITY> by lazy { createProvider() }
@@ -233,13 +230,6 @@ abstract class RootDTO<DTO, DATA, ENTITY>(
         }
     }
 
-    fun getServiceClass(): ServiceClass<DTO, DATA, ENTITY>{
-       return serviceContext.serviceClass.getOrInit(this)
-    }
-
-    fun switchQuery(id: Long): SwitchQuery<DTO, DATA, ENTITY> {
-        return SwitchQuery(id, this)
-    }
     companion object: ValueBased{
         override val value: Int
             get() = 1
@@ -253,8 +243,11 @@ abstract class DTOClass<DTO, DATA, ENTITY>(
         where DTO: ModelDTO, DATA : DataModel, ENTITY: LongEntity
 {
     override val dtoType: TypeData<DTO> by lazy {  TypeData.createByKClass(clazz) }
-
     internal val parentTypedMap: MutableMap<TypeData<*>, TypedContainer<*>> = mutableMapOf()
+
+    override val serviceClass: ServiceClass<*, *, *>
+        get() =  findHierarchyRoot().serviceClass
+
 
     @PublishedApi
     internal fun initialization() {

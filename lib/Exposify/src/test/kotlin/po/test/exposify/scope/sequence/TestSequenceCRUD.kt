@@ -1,20 +1,30 @@
 package po.test.exposify.scope.sequence
 
 import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertDoesNotThrow
 import po.auth.extensions.generatePassword
 import po.auth.extensions.session
+import po.auth.sessions.models.AuthorizedSession
+import po.exposify.common.events.ContextData
+import po.exposify.common.events.DTOData
+import po.exposify.dto.components.query.deferredQuery
+import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
 import po.exposify.scope.sequence.builder.pickById
+import po.exposify.scope.sequence.builder.select
 import po.exposify.scope.sequence.builder.sequenced
 import po.exposify.scope.sequence.builder.withInputValue
 import po.exposify.scope.sequence.builder.withResult
 import po.exposify.scope.sequence.launcher.launch
+import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
+import po.lognotify.classes.notification.models.NotifyConfig
 import po.test.exposify.scope.session.TestSessionsContext
 import po.test.exposify.setup.DatabaseTest
+import po.test.exposify.setup.Pages
 import po.test.exposify.setup.dtos.Page
 import po.test.exposify.setup.dtos.PageDTO
 import po.test.exposify.setup.dtos.User
@@ -22,16 +32,27 @@ import po.test.exposify.setup.dtos.UserDTO
 import po.test.exposify.setup.pageModelsWithSections
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
+import kotlin.test.assertNull
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestSequence2 : DatabaseTest(), TasksManaged {
+class TestSequenceCRUD : DatabaseTest(), TasksManaged {
 
-    val sessionIdentity = TestSessionsContext.SessionIdentity("0", "192.169.1.1")
+    private val sessionIdentity = TestSessionsContext.SessionIdentity("0", "192.169.1.1")
+    val session :  AuthorizedSession = session(sessionIdentity)
 
-    @Test
-    fun `Sequnenced PICK BY ID execution`() = runTest {
+    companion object{
+        @JvmStatic
+        var updatedById : Long = 0
+    }
 
+    @BeforeAll
+    fun setup() = runTest {
+
+        logHandler.notifierConfig {
+            console = NotifyConfig.ConsoleBehaviour.MuteNoEvents
+            allowDebug(ContextData, DTOData)
+        }
         val user = User(
             id = 0,
             login = "some_login",
@@ -39,14 +60,62 @@ class TestSequence2 : DatabaseTest(), TasksManaged {
             name = "name",
             email = "nomail@void.null"
         )
+        withConnection {
+            service(UserDTO, TableCreateMode.ForceRecreate) {
+                updatedById = update(user).getDataForced().id
+            }
+        }
+    }
+
+
+    fun `Sequnenced SELECT execution`() = runTest {
+        val pages: List<Page> = pageModelsWithSections(pageCount = 2, sectionsCount = 2, updatedBy = 1)
+        withConnection{
+            service(PageDTO) {
+                update(pages)
+                sequenced(PageDTO.SELECT){handler->
+                    select {
+
+                    }
+                }
+            }
+        }
+
+        val selectResult: ResultList<PageDTO, Page, *> = assertDoesNotThrow {
+            launch(PageDTO.SELECT, session)
+        }
+        assertNull(selectResult.failureCause, "Selection ended up with exception")
+        assertEquals(2, selectResult.size, "Selection count mismatch")
+    }
+
+    @Test
+    fun `Sequnenced SELECT with query parameter`() = runTest {
+        val pages: List<Page> = pageModelsWithSections(pageCount = 2, sectionsCount = 2, updatedBy = 1)
+        withConnection{
+            service(PageDTO) {
+                update(pages)
+                sequenced(PageDTO.SELECT){handler->
+                    select(handler.whereQuery){
+
+                    }
+                }
+            }
+        }
+
+        val selectResult: ResultList<PageDTO, Page, *> = assertDoesNotThrow {
+            launch(PageDTO.SELECT, deferredQuery(PageDTO) { equals(Pages.name, "John") },  session)
+        }
+        assertNull(selectResult.failureCause, "Selection ended up with exception")
+        assertEquals(2, selectResult.size, "Selection count mismatch")
+    }
+
+
+    fun `Sequnenced PICK BY ID execution`() = runTest {
 
         val page: Page = pageModelsWithSections(pageCount = 1, sectionsCount = 2, updatedBy = 1).first()
         var pickById = 0L
 
         withConnection {
-            service(UserDTO) {
-                update(user)
-            }
             service(PageDTO) {
                 pickById = update(page).getData()?.id?:0L
                 sequenced(PageDTO.PICK) {handler->
@@ -62,7 +131,6 @@ class TestSequence2 : DatabaseTest(), TasksManaged {
                 }
             }
         }
-        val session = session(sessionIdentity)
         with(session){
             val pickResult: ResultSingle<PageDTO, Page, *> = assertDoesNotThrow {
                 launch(PageDTO.PICK, pickById)
@@ -73,7 +141,6 @@ class TestSequence2 : DatabaseTest(), TasksManaged {
     }
 
     fun `Simplified sequnence INSERT execution`() = runTest {
-
 
         val user = User(
             id = 0,

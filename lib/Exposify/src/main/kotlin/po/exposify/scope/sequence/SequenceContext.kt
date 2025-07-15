@@ -4,13 +4,12 @@ import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.common.events.ContextData
 import po.exposify.dto.components.ExecutionContext
 import po.exposify.dto.interfaces.DataModel
-import po.exposify.dto.components.SimpleQuery
+import po.exposify.dto.components.query.SimpleQuery
 import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.SequenceRunInfo
 import po.exposify.extensions.checkDataListNotEmpty
-import po.exposify.scope.sequence.classes.SequenceHandlerBase
 import po.lognotify.TasksManaged
 import po.lognotify.debug.debugProxy
 import po.lognotify.extensions.runTask
@@ -19,14 +18,13 @@ import po.misc.interfaces.IdentifiableClass
 
 
 class SequenceContext<DTO, D, E>(
-    internal val sequenceHandler: SequenceHandlerBase<DTO, D, E>,
     private val executionContext: ExecutionContext<DTO, D, E>,
     val runInfo : SequenceRunInfo
 ):TasksManaged, IdentifiableClass where  DTO: ModelDTO, D: DataModel, E: LongEntity {
 
     override val identity: ClassIdentity = ClassIdentity.create("SequenceContext", executionContext.contextName)
 
-    private var latestSingleResult : ResultSingle<DTO,D, E> = ResultSingle(sequenceHandler.dtoBase)
+  //  private var latestSingleResult : ResultSingle<DTO,D, E> = ResultSingle(sequenceHandler.dtoBase)
 
     private var firstRun = true
 
@@ -36,18 +34,18 @@ class SequenceContext<DTO, D, E>(
 
     private fun onFirsRun(){
         if(firstRun){
-            sequenceHandler.handlerConfig.onStartCallback?.invoke(runInfo)
+         //  sequenceHandler.handlerConfig.onStartCallback?.invoke(runInfo)
             firstRun = false
         }
     }
 
     private fun submitLatestResult(result :  ResultList<DTO, D, E>):ResultList<DTO, D, E>{
-       sequenceHandler.provideFinalResult(result)
+     //  sequenceHandler.provideFinalResult(result)
        return result
     }
     private fun submitLatestResult(result :  ResultSingle<DTO, D, E>): ResultSingle<DTO, D, E>{
-        latestSingleResult = result
-        sequenceHandler.provideFinalResult(result)
+     //   latestSingleResult = result
+      //  sequenceHandler.provideFinalResult(result)
         return result
     }
 
@@ -83,15 +81,17 @@ class SequenceContext<DTO, D, E>(
         runTask("Update(List)") {
         checkDataListNotEmpty(dataModels)
         onFirsRun()
-        val result = executionContext.update(dataModels, sequenceHandler.dtoBase)
-        submitLatestResult(result)
+        //val result = executionContext.update(dataModels, sequenceHandler.dtoBase)
+        //submitLatestResult(result)
+            TODO("Depr")
     }.resultOrException()
 
     fun update(dataModel: D): ResultSingle<DTO, D, E> =
         runTask("Update(Single)") {
         onFirsRun()
-        val result = executionContext.update(dataModel, sequenceHandler.dtoBase)
-        submitLatestResult(result)
+      //  val result = executionContext.update(dataModel, sequenceHandler.dtoBase)
+       // submitLatestResult(result)
+            TODO("Depr")
     }.resultOrException()
 
 }

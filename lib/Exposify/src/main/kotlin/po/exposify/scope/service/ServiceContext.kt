@@ -8,10 +8,9 @@ import po.exposify.common.classes.exposifyDebugger
 import po.exposify.common.events.ContextData
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.RootDTO
-import po.exposify.dto.components.DeferredWhere
 import po.exposify.dto.components.ExecutionContext
-import po.exposify.dto.components.SimpleQuery
-import po.exposify.dto.components.WhereQuery
+import po.exposify.dto.components.query.SimpleQuery
+import po.exposify.dto.components.query.WhereQuery
 import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.interfaces.ModelDTO
@@ -22,6 +21,7 @@ import po.lognotify.TasksManaged
 import po.lognotify.extensions.runTask
 import po.lognotify.extensions.runTaskBlocking
 import po.misc.exceptions.toManageable
+import po.misc.functions.containers.DeferredContainer
 import po.misc.interfaces.ClassIdentity
 import po.misc.interfaces.IdentifiableClass
 
@@ -62,10 +62,10 @@ class ServiceContext<DTO, DATA, ENTITY>(
         }
     }.resultOrException()
 
-    fun <T : IdTable<Long>> pick(conditions: WhereQuery<T>): ResultSingle<DTO, DATA, ENTITY> =
+    fun pick(conditions: DeferredContainer<WhereQuery<ENTITY>>): ResultSingle<DTO, DATA, ENTITY> =
         runTask("Pick(conditions)") {
             withTransactionRestored (debugger, false) {
-                executionProvider.pick(conditions)
+                executionProvider.pick(conditions.resolve())
             }
         }.resultOrException()
 
@@ -83,7 +83,7 @@ class ServiceContext<DTO, DATA, ENTITY>(
         }
     }.resultOrException()
 
-    fun <T : IdTable<Long>> select(conditions: DeferredWhere<T>):ResultList<DTO, DATA, ENTITY> =
+    fun select(conditions: DeferredContainer<WhereQuery<ENTITY>>):ResultList<DTO, DATA, ENTITY> =
         runTask("Select(with conditions)") {
             withTransactionRestored(debugger, false) {
                 executionProvider.select(conditions.resolve())

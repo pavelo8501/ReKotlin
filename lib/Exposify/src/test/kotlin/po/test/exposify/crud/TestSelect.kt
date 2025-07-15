@@ -3,7 +3,7 @@ package po.test.exposify.crud
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.assertAll
 import po.auth.extensions.generatePassword
-import po.exposify.dto.components.WhereQuery
+import po.exposify.dto.components.query.WhereQuery
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.Pages
 import po.test.exposify.setup.dtos.PageDTO
@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import po.exposify.common.events.ContextData
 import po.exposify.common.events.DTOData
-import po.exposify.dto.components.deferredWhere
+import po.exposify.dto.components.query.deferredQuery
 import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.NotifyConfig
@@ -189,7 +189,7 @@ class TestSelect : DatabaseTest(), TasksManaged {
             service(PageDTO, TableCreateMode.ForceRecreate) {
                 truncate()
                 update(pages)
-                selectedPages = select(deferredWhere{ WhereQuery(Pages).equals(Pages.langId, 1)}).getData()
+                selectedPages = select(deferredQuery(PageDTO){ equals(Pages.langId, 1) }).getData()
             }
         }
 

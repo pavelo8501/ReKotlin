@@ -4,6 +4,7 @@ import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOClass
 import po.exposify.dto.components.createDTOProvider
 import po.exposify.dto.components.result.ResultBase
+import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
@@ -20,8 +21,8 @@ import po.misc.types.TypeData
 import po.misc.types.interfaces.TagTypedClass
 
 enum class ChunkType {
-    InsertChunk,
     PickByIdChunk,
+    SelectChunk,
     UpdateChunk
 }
 
@@ -43,25 +44,14 @@ sealed class ExecutionChunkBase<DTO, D, P>(): CTX
 {
 
     internal val exceptionPayload: ManagedCallSitePayload = ManagedCallSitePayload(this)
-
-    @PublishedApi
-
-  //  internal val configContainer: LambdaContainer<ExecutionChunkBase<DTO, D, P>> = LambdaContainer(this)
-   // abstract val configurationBlock: ExecutionChunkBase<DTO, D, P>.() -> Unit
-    //abstract var activeResult:ResultBase<DTO, D>?
-
-
-    internal val resultContainer: LazyExecutionContainer<P, ResultBase<DTO, D>> = LazyExecutionContainer(this)
-    internal val withResultContainer: LambdaContainer<ResultSingle<DTO, D, *>> = LambdaContainer(this)
+    //internal open val resultContainer: LazyExecutionContainer<P, ResultBase<DTO, D>> = LazyExecutionContainer(this)
+    val withBaseResultContainer: LambdaContainer<ResultBase<DTO, D>> = LambdaContainer(this)
 
     @PublishedApi
     internal val inputContainer: DeferredContainer<P> = DeferredContainer(this)
     val currentValue: P? get() = inputContainer.currentValue
 
     val withInputContainer: LambdaContainer<P> = LambdaContainer(this)
-
-   // protected abstract val withResultContainer: LambdaContainer<ResultBase<DTO, D>>
-
     val healthMonitor: HealthMonitor<ExecutionChunkBase<DTO, D, P>> = HealthMonitor(this)
 
     abstract fun configure()
@@ -80,12 +70,11 @@ sealed class SingleResultChunks<DTO, D, P>(
 ):ExecutionChunkBase<DTO, D, P>(), CTX
         where DTO : ModelDTO, D : DataModel, P : Any
 {
-
     abstract var activeResult: ResultSingle<DTO, D, *>?
     internal val configContainer: LambdaContainer<SingleResultChunks<DTO, D, P>> = LambdaContainer(this)
 
-    internal val switchLambdaContainer: LazyContainerWithReceiver<SwitchChunkContainer<DTO, D, *, *>, SequenceParameter<*>, LazyExecutionContainer<*, ResultBase<*, *>>>
-        = LazyContainerWithReceiver(this)
+    val resultContainer: LazyExecutionContainer<P, ResultSingle<DTO, D, *>> = LazyExecutionContainer(this)
+    val withResultContainer: LambdaContainer<ResultSingle<DTO, D, *>> = LambdaContainer(this)
 
     val switchContainers: MutableMap<TypeData<*>, SwitchChunkContainer<DTO, D, *, *>> = mutableMapOf()
 
@@ -107,7 +96,6 @@ sealed class SingleResultChunks<DTO, D, P>(
     fun computeResult():ResultSingle<DTO, D, *>{
         val parameter = preResultComputation()
         val result = resultContainer.resolve(parameter)
-        activeResult = result as ResultSingle<DTO, D, *>
         if(withResultContainer.isLambdaProvided){
             withResultContainer.resolve(result)
         }
@@ -117,10 +105,7 @@ sealed class SingleResultChunks<DTO, D, P>(
     override fun configure() {
         configContainer.resolve(this)
     }
-
 }
-
-
 
 class PickByIdChunk<DTO, D>(
     override val tagType: TaggedType<PickByIdChunk<DTO, D>, ChunkType>,
@@ -152,32 +137,8 @@ class UpdateChunk<DTO, D>(
 ):SingleResultChunks<DTO, D, D>(configBlock), TagTypedClass<UpdateChunk<DTO, D>, ChunkType>
         where DTO: ModelDTO, D : DataModel
 {
-
     override val contextName: String get() = "UpdateChunk"
     override var activeResult: ResultSingle<DTO, D, *>? = null
-
-
-//    fun computeResult():ResultSingle<DTO, D, *>{
-//        val parameter = preResultComputation()
-//        val result = resultContainer.resolve(parameter)
-//        activeResult = result as ResultSingle<DTO, D, *>
-//        if(withResultContainer.isLambdaProvided){
-//            withResultContainer.resolve(result)
-//        }
-//        return result
-//    }
-
-//    override fun <F: ModelDTO, FD: DataModel> createSwitchContainer(
-//        dto: CommonDTO<DTO, D, *>,
-//        foreignClass: DTOClass<F, FD, *>
-//    ): SwitchChunkContainer<DTO, D, F, FD> {
-//
-//        val executionProvider = createDTOProvider(dto, foreignClass)
-//        val switchContainer = SwitchChunkContainer(executionProvider)
-//        val dataType = dto.dataType.toTypeData()
-//        switchContainers.put(dataType, switchContainer)
-//        return switchContainer
-//    }
 
     override fun toString(): String {
         return tagType.normalizedSimpleString()
@@ -194,162 +155,57 @@ class UpdateChunk<DTO, D>(
 }
 
 
-
-//class InsertChunk<DTO, D>(
-//    override val tagType: TaggedType<InsertChunk<DTO, D>, ChunkType>,
-//    val configBlock: SingleResultChunk<DTO, D, D>.() -> Unit,
-//): ExecutionChunkBase<DTO, D, D>(), SingleResultChunk<DTO, D, D>, TagTypedClass<InsertChunk<DTO, D>, ChunkType>
-//        where DTO: ModelDTO, D : DataModel
-//{
-//
-//    override var activeResult: ResultSingle<DTO, D, *>? = null
-//    override val contextName: String get() = "InsertChunk"
-//
-//    override val configurationBlock: ResultChunk<DTO, D, D>.() -> Unit get(){
-//       return configBlock as ResultChunk<DTO, D, D>.() -> Unit
-//    }
-//
-//    init {
-//        configContainer.registerProvider(configurationBlock)
-//    }
-//
-//    fun computeResult():ResultSingle<DTO, D, *>{
-//        val parameter = preResultComputation()
-//        val result = resultContainer.resolve(parameter)
-//        activeResult = result as ResultSingle<DTO, D, *>
-//        if(withResultContainer.isLambdaProvided){
-//            withResultContainer.resolve(result)
-//        }
-//        return result
-//    }
-//
-//    val switchContainers: MutableMap<TypeData<CommonDTO<*, *, *>>, SwitchChunkContainer<DTO, D, *, *>> = mutableMapOf()
-//
-//    override fun <F: ModelDTO, FD: DataModel> createSwitchContainer(
-//        dto: CommonDTO<DTO, D, *>,
-//        foreignClass: DTOClass<F, FD, *>
-//    ): SwitchChunkContainer<DTO, D, F, FD> {
-//        val executionProvider = createDTOProvider(dto, foreignClass)
-//        val switchContainer = SwitchChunkContainer(executionProvider)
-//        val commonType = dto.commonType.castOrOperations<TypeData<CommonDTO<*, *, *>>>(exceptionPayload)
-//        switchContainers.put(commonType, switchContainer)
-//        return switchContainer
-//    }
-//
-//    override fun toString(): String {
-//        return tagType.normalizedSimpleString()
-//    }
-//
-//    companion object{
-//        fun <DTO, D> create(
-//            configBlock:  SingleResultChunk<DTO, D, D>.() -> Unit
-//        ):InsertChunk<DTO, D> where DTO: ModelDTO, D : DataModel{
-//            val tagType = TaggedType.create<InsertChunk<DTO, D>, ChunkType>(ChunkType.InsertChunk)
-//            return InsertChunk(tagType, configBlock)
-//        }
-//    }
-//}
+sealed class ListResultChunks<DTO, D, P>(
+    val configurationBlock: ListResultChunks<DTO, D, P>.() -> Unit
+):ExecutionChunkBase<DTO, D, P>(), CTX
+        where DTO : ModelDTO, D : DataModel, P : Any
+{
+    protected var activeResult: ResultList<DTO, D, *>? = null
 
 
-//
-//data class SelectChunk<DTO, D, E>(
-//    val dtoClass: RootDTO<DTO, D, E>,
-//    override val lambda: () -> ResultList<DTO, D, E>
-//):ExecutionChunkBase<DTO, D, E, D>(dtoClass) where DTO: ModelDTO, D : DataModel, E: LongEntity{
-//
-//    override fun execute(parameter: D): ResultBase<DTO, D, E> {
-//        TODO("Not yet implemented")
-//    }
-//
-//    companion object{
-//        fun <DTO, D, E> create(
-//            dtoClass:RootDTO<DTO, D, E>,
-//            lambda: () -> ResultList<DTO, D, E>
-//        ):SelectChunk<DTO, D, E> where DTO: ModelDTO, D : DataModel, E: LongEntity{
-//            return SelectChunk(dtoClass, lambda)
-//        }
-//    }
-//}
-//
-//data class InsertListChunk<DTO, D, E>(
-//    val dtoClass: RootDTO<DTO, D, E>,
-//    override val lambda: () -> ResultList<DTO, D, E>
-//):ExecutionChunkBase<DTO, D, E, List<D>>(dtoClass) where DTO: ModelDTO, D : DataModel, E: LongEntity{
-//
-//    override fun execute(parameter: List<D>): ResultBase<DTO, D, E> {
-//        TODO("Not yet implemented")
-//    }
-//
-//    companion object{
-//        fun <DTO, D, E> create(
-//            dtoClass:RootDTO<DTO, D, E>,
-//            lambda: () -> ResultList<DTO, D, E>
-//        ):InsertListChunk<DTO, D, E> where DTO: ModelDTO, D : DataModel, E: LongEntity{
-//            return InsertListChunk(dtoClass, lambda)
-//        }
-//    }
-//}
-//
-//
-//data class PickByIdChunk<DTO, D, E>(
-//    val dtoClass: RootDTO<DTO, D, E>,
-//    val execCtx:RootExecCTX<DTO, D, E>,
-//     val lambda: RootExecCTX<DTO, D, E>.(Long) -> ResultSingle<DTO, D, E>
-//) where DTO: ModelDTO, D : DataModel, E: LongEntity{
-//
-//    fun execute(parameter: Long): ResultBase<DTO, D, E> {
-//        TODO("Not yet implemented")
-//    }
-//
-//    companion object{
-//        fun <DTO, D, E>  create(
-//            dtoClass:RootDTO<DTO, D, E>,
-//            execCtx: RootExecCTX<DTO, D, E>,
-//            lambda: RootExecCTX<DTO, D, E>.(Long) -> ResultSingle<DTO, D, E>
-//        ):PickByIdChunk<DTO, D, E> where DTO: ModelDTO, D : DataModel, E: LongEntity{
-//            return PickByIdChunk(dtoClass,execCtx,  lambda)
-//        }
-//    }
-//}
-//
-//data class PickChunk<DTO, D, E, T>(
-//    val dtoClass: RootDTO<DTO, D, E>,
-//    override val lambda: () -> ResultSingle<DTO, D, E>
-//):ExecutionChunkBase<DTO, D, E, T>(dtoClass) where DTO: ModelDTO, D : DataModel, E: LongEntity, T: IdTable<Long>{
-//
-//    override fun execute(parameter: T): ResultSingle<DTO, D, E> {
-//        TODO("Not yet implemented")
-//    }
-//
-//    companion object{
-//        fun <DTO, D, E, T> create(
-//            dtoClass:RootDTO<DTO, D, E>,
-//            lambda: () -> ResultSingle<DTO, D, E>
-//        ):PickChunk<DTO, D, E, T> where DTO: ModelDTO, D : DataModel, E: LongEntity,  T: IdTable<Long>{
-//            return PickChunk(dtoClass, lambda)
-//        }
-//    }
-//}
-//
-//
+    internal val configContainer: LambdaContainer<ListResultChunks<DTO, D, P>> = LambdaContainer(this)
 
-//
-//data class UpdateListChunk<DTO, D, E>(
-//    val dtoClass: RootDTO<DTO, D, E>,
-//    override val lambda: () -> ResultList<DTO, D, E>
-//):ExecutionChunkBase<DTO, D, E, List<D>>(dtoClass) where DTO: ModelDTO, D : DataModel, E: LongEntity{
-//
-//    override fun execute(parameter: List<D>): ResultBase<DTO, D, E> {
-//
-//        TODO("Not yet implemented")
-//    }
-//
-//    companion object{
-//        fun <DTO, D, E> create(
-//            dtoClass:RootDTO<DTO, D, E>,
-//            lambda: () -> ResultList<DTO, D, E>
-//        ):UpdateListChunk<DTO, D, E> where DTO: ModelDTO, D : DataModel, E: LongEntity{
-//            return UpdateListChunk(dtoClass, lambda)
-//        }
-//    }
-//}
+    val resultContainer: LazyExecutionContainer<P, ResultList<DTO, D, *>> = LazyExecutionContainer(this)
+    internal val withResultContainer: LambdaContainer<ResultList<DTO, D, *>> = LambdaContainer(this)
+
+    init {
+        configContainer.registerProvider(configurationBlock)
+    }
+
+    fun computeResult():ResultList<DTO, D, *>{
+       // val parameter = preResultComputation()
+        val result = resultContainer.resolve()
+        if(withResultContainer.isLambdaProvided){
+            withResultContainer.resolve(result)
+        }
+        return result
+    }
+
+    override fun configure() {
+        configContainer.resolve(this)
+    }
+}
+
+class SelectChunk<DTO, D>(
+    override val tagType: TaggedType<SelectChunk<DTO, D>, ChunkType>,
+    configBlock: ListResultChunks<DTO, D, Unit>.() -> Unit,
+):ListResultChunks<DTO, D, Unit>(configBlock), TagTypedClass<SelectChunk<DTO, D>, ChunkType>
+        where DTO: ModelDTO, D : DataModel
+{
+
+    override val contextName: String get() = "SelectChunk"
+
+    init {
+        resultContainer.provideReceiver(Unit)
+    }
+
+
+    companion object{
+        fun <DTO, D> create(
+            configBlock:  ListResultChunks<DTO, D, Unit>.() -> Unit
+        ):SelectChunk<DTO, D> where DTO: ModelDTO, D : DataModel{
+            val tagType = TaggedType.create<SelectChunk<DTO, D>, ChunkType>(ChunkType.SelectChunk)
+            return SelectChunk(tagType, configBlock)
+        }
+    }
+}

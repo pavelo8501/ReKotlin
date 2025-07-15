@@ -15,14 +15,12 @@ import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.configuration.configuration
 import po.exposify.scope.sequence.builder.PickById
 import po.exposify.scope.sequence.builder.UpdateSingle
-import po.exposify.scope.sequence.classes.SwitchHandlerProvider
 import po.exposify.scope.sequence.launcher.ParametrizedSwitchSinge
 import po.exposify.scope.sequence.launcher.SwitchSinge
 import po.test.exposify.setup.ClassData
 import po.test.exposify.setup.ContentBlockEntity
 import po.test.exposify.setup.MetaData
 import po.test.exposify.setup.SectionEntity
-import po.test.exposify.setup.UserEntity
 
 @Serializable
 data class Section(
@@ -77,12 +75,7 @@ class SectionDTO(): CommonDTO<SectionDTO, Section, SectionEntity>(SectionDTO) {
     companion object: DTOClass<SectionDTO, Section, SectionEntity>(SectionDTO::class, PageDTO){
 
        val PICK = SwitchSinge(this, PickById)
-
        val UPDATE = ParametrizedSwitchSinge(this, UpdateSingle)
-
-
-       //val UPDATE by SwitchHandlerProvider(this, Cardinality.ONE_TO_MANY, PageDTO.SELECT)
-       val SELECT_UPDATE by SwitchHandlerProvider(this, Cardinality.ONE_TO_MANY, PageDTO.UPDATE)
 
         override fun setup() {
             configuration{

@@ -13,7 +13,8 @@ import po.exposify.dto.components.tracker.models.TrackerTag
 import po.exposify.dto.configuration.configuration
 import po.exposify.scope.sequence.builder.InsertSingle
 import po.exposify.scope.sequence.builder.PickById
-import po.exposify.scope.sequence.classes.RootHandlerProvider
+import po.exposify.scope.sequence.builder.Select
+import po.exposify.scope.sequence.launcher.ListDescriptor
 import po.exposify.scope.sequence.launcher.LongSingeDescriptor
 import po.exposify.scope.sequence.launcher.ParametrizedSingeDescriptor
 import po.test.exposify.setup.PageEntity
@@ -51,10 +52,7 @@ class PageDTO(): CommonDTO<PageDTO, Page, PageEntity>(this){
 
         val INSERT = ParametrizedSingeDescriptor(this, InsertSingle)
         val PICK = LongSingeDescriptor(this, PickById)
-
-
-        val UPDATE by RootHandlerProvider(this)
-        val SELECT by RootHandlerProvider(this)
+        val SELECT = ListDescriptor(this, Select)
 
         //val launcher: LaunchConfigurator<PageDTO, ResultSingle<PageDTO,*,*>> = launch(this)
 

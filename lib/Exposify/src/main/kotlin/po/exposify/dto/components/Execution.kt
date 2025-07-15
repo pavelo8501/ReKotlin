@@ -9,6 +9,9 @@ import po.exposify.dto.RootDTO
 import po.exposify.dto.components.bindings.BindingHub
 import po.exposify.dto.components.bindings.helpers.newDTO
 import po.exposify.dto.components.bindings.helpers.shallowDTO
+import po.exposify.dto.components.query.SimpleQuery
+import po.exposify.dto.components.query.WhereQuery
+import po.exposify.dto.components.query.toSqlString
 import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.components.result.toResult
@@ -100,7 +103,7 @@ sealed class ExecutionContext<DTO, DATA, ENTITY>(
         return dtos.toResult(dtoClass, operation)
     }
 
-    fun <T : IdTable<Long>> select(conditions: WhereQuery<T>): ResultList<DTO, DATA, ENTITY> {
+    fun select(conditions: WhereQuery<ENTITY>): ResultList<DTO, DATA, ENTITY> {
         val operation = CrudOperation.Select
         val entities =  daoService.select(conditions)
         val dtos = entities.map {

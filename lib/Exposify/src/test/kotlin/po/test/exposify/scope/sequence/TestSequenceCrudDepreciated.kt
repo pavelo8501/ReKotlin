@@ -3,41 +3,20 @@ package po.test.exposify.scope.sequence
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import po.auth.extensions.createDefaultIdentifier
 import po.auth.extensions.generatePassword
-import po.auth.extensions.withSessionContext
-import po.exposify.DatabaseManager
 import po.exposify.common.events.ContextData
-import po.exposify.dto.components.WhereQuery
-import po.exposify.scope.connection.models.ConnectionInfo
-import po.exposify.scope.sequence.extensions.runSequence
-import po.exposify.scope.sequence.extensions.sequence
-import po.exposify.scope.sequence.extensions.switchContext
 import po.exposify.scope.service.models.TableCreateMode
-import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.NotifyConfig
-import po.lognotify.tasks.models.TaskConfig
-import po.lognotify.extensions.runTaskAsync
-import po.misc.exceptions.HandlerType
 import po.test.exposify.scope.session.TestSessionsContext
 import po.test.exposify.setup.DatabaseTest
-import po.test.exposify.setup.Users
-import po.test.exposify.setup.dtos.PageDTO
 import po.test.exposify.setup.dtos.Section
-import po.test.exposify.setup.dtos.SectionDTO
 import po.test.exposify.setup.dtos.User
 import po.test.exposify.setup.dtos.UserDTO
-import po.test.exposify.setup.pagesSectionsContentBlocks
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestSequenceCrud : DatabaseTest(),  TasksManaged {
+class TestSequenceCrudDepreciated : DatabaseTest(),  TasksManaged {
 
     companion object{
         @JvmStatic

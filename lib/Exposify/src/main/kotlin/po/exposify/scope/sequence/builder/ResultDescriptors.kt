@@ -7,20 +7,20 @@ import po.exposify.dto.interfaces.ModelDTO
 
 
 sealed class SingleResultMarker
-sealed class ListResultMarker
-
 
 object SelectSingle:SingleResultMarker()
 object InsertSingle:SingleResultMarker()
 object PickById:SingleResultMarker()
 object UpdateSingle:SingleResultMarker()
 
+sealed class ListResultMarker
 
-interface SingleDTOResult<DTO: ModelDTO, D: DataModel> {
+object Select:ListResultMarker()
 
-}
 
-interface ListDTOResult<DTO: ModelDTO, D: DataModel>{
-    val result: ResultList<DTO, D, *>?
-}
+
+
+//interface ListDTOResult<DTO: ModelDTO, D: DataModel>{
+//    val result: ResultList<DTO, D, *>?
+//}
 

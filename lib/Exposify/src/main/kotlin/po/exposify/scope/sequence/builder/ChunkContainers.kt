@@ -40,7 +40,7 @@ sealed class ChunkContainer<CHUNK_DTO, CHUNK_DATA>(
 class SequenceChunkContainer<DTO, D>(
     val execContext: RootExecutionContext<DTO, D, *>,
     val providedId: Long = 0
-):ChunkContainer<DTO, D>(execContext),  TasksManaged, IdentifiableClass where DTO: ModelDTO, D: DataModel {
+):ChunkContainer<DTO, D>(execContext), TasksManaged, IdentifiableClass where DTO: ModelDTO, D: DataModel {
 
     override val identity: ClassIdentity =
         ClassIdentity.Companion.create("SequenceChunkContainer", execContext.contextName, providedId)
