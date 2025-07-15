@@ -53,24 +53,6 @@ inline fun <reified BASE : Any> Any?.safeBaseCast(): BASE? {
 }
 
 inline fun <reified T: Any> Any?.castOrManaged(
-    payload: ManagedCallSitePayload
-): T {
-    if(this == null){
-        payload.message = "Unable to cast null to ${T::class.simpleName}"
-        throwManaged(payload)
-    }else{
-        val result =  this as? T
-        if(result != null){
-            return result
-        }else{
-            payload.message = "Unable to cast ${this::class.simpleName} to  ${T::class.simpleName}"
-            throwManaged(payload)
-        }
-    }
-}
-
-
-inline fun <reified T: Any> Any?.castOrManaged(
     message: String? = null,
     handler: HandlerType = HandlerType.SkipSelf
 ): T {
@@ -121,6 +103,27 @@ inline fun <reified T: Any> Any?.castOrThrow(
         if(exception is ManagedException){
             exception.throwSelf(ctx)
         }else{
+            throw exception
+        }
+    }
+}
+
+
+inline fun <reified T: Any> Any?.castOrThrow(
+    payload: ManagedCallSitePayload,
+    exceptionProvider: (message: String)-> Throwable,
+): T {
+    if(this == null){
+        val msg = "Unable to cast null to ${T::class.simpleName}"
+        val exception =  exceptionProvider(msg)
+        throw exception
+    }else{
+        val result =  this as? T
+        if(result != null){
+            return result
+        }else{
+            val msg = "Unable to cast ${this::class.simpleName} to ${T::class.simpleName}"
+            val exception =  exceptionProvider(msg)
             throw exception
         }
     }

@@ -53,7 +53,7 @@ class BindingHub<DTO, D, E>(
         return hostingDTO.tracker
     }
 
-    internal val execCtx: DTOExecutionContext<DTO, D, E> get()  {
+    internal val execCtx: DTOExecutionContext<DTO, D, E, DTO, D, E> get()  {
         return hostingDTO.executionContext
     }
 

@@ -5,7 +5,6 @@ import kotlinx.coroutines.withContext
 import po.auth.AuthSessionManager
 import po.auth.sessions.interfaces.SessionIdentified
 import po.auth.sessions.models.AuthorizedSession
-import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
 
 

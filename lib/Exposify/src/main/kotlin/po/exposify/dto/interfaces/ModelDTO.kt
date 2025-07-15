@@ -23,8 +23,6 @@ interface ModelDTO: DataModel {
     val tracker: DTOTracker<*, *, *>
     val dtoId : DTOId<*>
     val typeData: TypeData<*>
-
-    fun <D: DataModel, E: LongEntity> asCommonDTO(): CommonDTO<*, D, E>
 }
 
 

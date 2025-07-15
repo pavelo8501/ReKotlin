@@ -32,7 +32,7 @@ sealed class ComplexDelegate<DTO, D, E, F, FD,  FE>(
     override var status: DelegateStatus = DelegateStatus.Created
     override val hostingClass: DTOBase<DTO, D, E>
         get() = hostingDTO.dtoClass
-    protected val execContext: DTOExecutionContext<DTO,D,E> get(){
+    protected val execContext: DTOExecutionContext<DTO,D,E, DTO,D,E> get(){
         return hostingDTO.executionContext
     }
 

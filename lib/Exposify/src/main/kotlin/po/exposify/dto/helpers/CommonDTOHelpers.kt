@@ -29,3 +29,8 @@ fun <DTO : ModelDTO, D : DataModel, E : LongEntity, T: Any>  DTOBase<DTO, D, E>.
 fun <DTO, D, E> CommonDTO<DTO, D, E>.asDTO():DTO where DTO : ModelDTO, D : DataModel, E : LongEntity{
     return castOrOperations(typeData.kClass)
 }
+
+
+fun <DTO: ModelDTO, D: DataModel, E: LongEntity> DTO.asCommonDTO(
+    dtoClass: DTOBase<DTO, D, E>
+): CommonDTO<DTO, D, E> =  castOrOperations<CommonDTO<DTO, D, E>>(dtoClass)

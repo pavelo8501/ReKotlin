@@ -6,11 +6,13 @@ import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.initException
 import po.exposify.exceptions.managedPayload
 import po.exposify.exceptions.operationsException
+import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.waypointInfo
 import po.misc.interfaces.CtxId
 import po.misc.interfaces.IdentifiableContext
 import po.misc.interfaces.TypedContext
+import po.misc.types.castOrManaged
 import po.misc.types.castOrThrow
 import po.misc.types.castTypedOrThrow
 import po.misc.types.getOrThrow
@@ -20,6 +22,12 @@ internal inline fun <reified T: Any> Any?.castOrOperations(ctx:IdentifiableConte
    return this.castOrThrow<T>(ctx){
        operationsException(ctx.managedPayload(it, ExceptionCode.CAST_FAILURE))
    }
+}
+
+internal inline fun <reified T: Any> Any?.castOrOperations(payload: ManagedCallSitePayload): T {
+    return this.castOrThrow<T>(payload){msg->
+        OperationsException(msg, ExceptionCode.CAST_FAILURE, null)
+    }
 }
 
 internal fun <T: Any> Any?.castOrOperations(kClass: KClass<T>): T {

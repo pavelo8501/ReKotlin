@@ -50,7 +50,7 @@ sealed class RelationDelegate<DTO, D, E, F, FD, FE>(
 
     override val hostingClass: DTOBase<DTO, D, E> get() = hostingDTO.dtoClass
     protected val bindingHub: BindingHub<DTO,D,E> get() = hostingDTO.hub
-    protected val ownExecutionContext: DTOExecutionContext<DTO, D, E> get() = bindingHub.execCtx
+    protected val ownExecutionContext: DTOExecutionContext<DTO, D, E, DTO, D, E> get() = bindingHub.execCtx
     protected val tracker: DTOTracker<DTO, D, E> get() = hostingDTO.tracker
     protected val commonType: TypeData<CommonDTO<DTO, D, E>> = hostingClass.commonType.toTypeData()
     protected val dtoType: TypeData<DTO> = hostingDTO.typeData

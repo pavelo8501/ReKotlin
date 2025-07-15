@@ -11,20 +11,14 @@ import po.exposify.dto.components.tracker.DTOTracker
 import po.exposify.dto.components.tracker.models.TrackerConfig
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.dto.enums.DTOStatus
-import po.exposify.dto.helpers.asDTO
-import po.exposify.dto.interfaces.ResultingDTO
 import po.exposify.dto.models.DTOId
-import po.exposify.exceptions.managedPayload
-import po.exposify.exceptions.operationsException
 import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
 import po.misc.interfaces.CtxId
 import po.misc.interfaces.TypedContext
 import po.misc.types.TypeData
 import po.misc.types.TypeRecord
-import po.misc.types.castOrThrow
 import java.util.UUID
 
 
@@ -63,7 +57,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
 
     override val tracker: DTOTracker<DTO, DATA, ENTITY> = DTOTracker(this)
     override val hub: BindingHub<DTO, DATA, ENTITY> =  BindingHub(this)
-    internal val executionContext: DTOExecutionContext<DTO, DATA, ENTITY> = DTOExecutionContext(dtoClass, this)
+    internal val executionContext: DTOExecutionContext<DTO, DATA, ENTITY, DTO, DATA, ENTITY> = DTOExecutionContext(this, dtoClass)
 
     internal val dataModel:DATA get() {
         return executionContext.getDataModel(this)
@@ -100,12 +94,6 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         executionContext.getDataModelOrNull()?.let {
             it.id = providedId
             tracker.dtoIdUpdated(providedId)
-        }
-    }
-
-    override fun <DATA: DataModel, ENTITY: LongEntity> asCommonDTO(): CommonDTO<DTO, DATA, ENTITY>{
-        return this.castOrThrow<CommonDTO<DTO, DATA, ENTITY>>(this){
-            operationsException(this.managedPayload(it, ExceptionCode.CAST_FAILURE))
         }
     }
 

@@ -15,22 +15,22 @@ import po.misc.types.getOrManaged
  * @param V The externally visible value (e.g., input, output, or transformed result).
  * @param initialLambda Optional lambda provider assigned during construction.
  */
-sealed class ReactiveFunctionContainer<T: Any, R: Any?, V: Any>(
-  initialLambda: ((T)->R)? = null
-): ReactiveComponent<ReactiveFunctionContainer<*, *, *>, V>, CTX{
+sealed class ReactiveFunctionContainer<T: Any, P, R: Any?, V: Any>(
+  initialLambda: (T.(P)->R)? = null
+): ReactiveComponent<ReactiveFunctionContainer<*, *, *, *>, V>, CTX{
 
     /**
      * Hook manager for this container.
      */
-    override val hooks: ReactiveHooks<ReactiveFunctionContainer<*, *, *>, V> = ReactiveHooks(this)
+    override val hooks: ReactiveHooks<ReactiveFunctionContainer<*, *, *, *>, V> = ReactiveHooks(this)
 
     /**
      * Payload used for enhanced exception reporting during resolution.
      */
     protected val exceptionPayload: ManagedCallSitePayload = ManagedCallSitePayload(ctx = this)
 
-    private var lambdaBacking: ((T)->R)? = null
-    protected val lambda: ((T)->R) get(){
+    private var lambdaBacking: (T.(P)->R)? = null
+    protected val lambda: (T.(P)->R) get(){
         return lambdaBacking.getOrManaged(exceptionPayload.message("Get lambda"))
     }
     override val isLambdaProvided: Boolean get() = lambdaBacking != null
@@ -44,6 +44,8 @@ sealed class ReactiveFunctionContainer<T: Any, R: Any?, V: Any>(
     protected val receiver:T  get() {
         return receiverBacking.getOrManaged(exceptionPayload.method("receiver get()", "receiverBacking:T"))
     }
+
+    abstract val parameter:P
 
     private var valueBacking:V? = null
     open val value: V get() = valueBacking.getOrManaged(exceptionPayload.method("value get()", "valueBacking:V"))
@@ -60,7 +62,7 @@ sealed class ReactiveFunctionContainer<T: Any, R: Any?, V: Any>(
 
     init {
         initialLambda?.let {
-            registerProvider(it)
+            registerParametrizedProvider(it)
         }
     }
 
@@ -69,7 +71,6 @@ sealed class ReactiveFunctionContainer<T: Any, R: Any?, V: Any>(
         lambdaBacking = null
         receiverBacking = null
     }
-
 
     override fun notifyChanged(old: V?, new: V){
         hooks.fireChange(old, new)
@@ -85,16 +86,22 @@ sealed class ReactiveFunctionContainer<T: Any, R: Any?, V: Any>(
     /**
      * Registers a new lambda provider and triggers the [onProviderSet] hook.
      */
-    fun registerProvider(block: (T)->R){
+    fun registerParametrizedProvider(block: T.(P)->R):ReactiveFunctionContainer<T, P, R, V>{
         lambdaBacking = block
         hooks.fireProviderSet()
+        return this
+    }
+
+    fun registerProvider(block: T.() -> R) {
+        registerParametrizedProvider { _: P -> block() }
     }
 
     /**
      * Allows child classes to provide the input receiver.
      */
-   open fun provideReceiver(value:T){
+   open fun provideReceiver(value:T):ReactiveFunctionContainer<T, P, R, V>{
         receiverBacking = value
+        return this
     }
 
     /**
@@ -103,7 +110,7 @@ sealed class ReactiveFunctionContainer<T: Any, R: Any?, V: Any>(
     fun resolve(receiver:T):V{
        hooks.fireBeforeResolve()
        receiverBacking = receiver
-       resultBacking = lambda.invoke(receiver)
+       resultBacking = lambda.invoke(receiver, parameter)
        hooks.fireResolved(value)
        return value
     }
@@ -113,7 +120,7 @@ sealed class ReactiveFunctionContainer<T: Any, R: Any?, V: Any>(
      */
     open fun resolve():V{
         hooks.fireBeforeResolve()
-        resultBacking = lambda.invoke(receiver)
+        resultBacking = lambda.invoke(receiver, parameter)
         hooks.fireResolved(value)
         return value
     }
@@ -149,14 +156,17 @@ sealed class ReactiveFunctionContainer<T: Any, R: Any?, V: Any>(
  */
 class LambdaContainer<T: Any>(
     private val holder: CTX,
-    initialLambda: ((T)-> Unit)? = null
-): ReactiveFunctionContainer<T, Unit, T>(initialLambda) {
+    initialLambda: (T.(Unit)-> Unit)? = null
+): ReactiveFunctionContainer<T, Unit,  Unit, T>(initialLambda) {
 
     /**
      * A unique name for the container based on the provided context.
      */
     override val contextName: String
         get() = "LambdaContainer On ${holder.contextName}"
+
+
+    override var parameter: Unit = Unit
 
     /**
      * Returns the last receiver value that was used during resolution.
@@ -171,9 +181,10 @@ class LambdaContainer<T: Any>(
      *
      * @param value The input to be consumed by the lambda.
      */
-    override fun provideReceiver(value:T){
+    override fun provideReceiver(value:T):LambdaContainer<T>{
         receiverBacking = value
         provideValue(value)
+        return this
     }
 
     /**
@@ -201,14 +212,16 @@ class LambdaContainer<T: Any>(
  */
 class DeferredContainer<R: Any>(
     private val holder: CTX,
-    initialLambda: ((Unit)-> R)? = null
-): ReactiveFunctionContainer<Unit, R, R>(initialLambda) {
+    initialLambda: (Unit.(Unit)-> R)? = null
+): ReactiveFunctionContainer<Unit, Unit, R, R>(initialLambda) {
 
     /**
      * A unique name for the container based on the provided context.
      */
     override val contextName: String
          get() = "DeferredContainer On ${holder.contextName}"
+
+    override var parameter: Unit = Unit
 
     /**
      * Returns the latest resolved result.
@@ -248,16 +261,18 @@ class DeferredContainer<R: Any>(
  * @param holder A parent context used for diagnostics and contextual naming.
  * @param initialLambda Optional lambda function to assign on initialization.
  */
-class DeferredInputContainer<T : Any, R : Any>(
+class LazyExecutionContainer<T : Any, R : Any>(
     private val holder: CTX,
-    initialLambda: ((T)-> R)? = null
-): ReactiveFunctionContainer<T, R, R>(initialLambda) {
+    initialLambda: (T.(Unit)-> R)? = null
+): ReactiveFunctionContainer<T, Unit, R, R>(initialLambda) {
 
     /**
      * A unique name for the container, based on the parent context.
      */
     override val contextName: String
         get() = "DeferredInputContainer On ${holder.contextName}"
+
+    override var parameter: Unit = Unit
 
     /**
      * The most recently resolved result.
@@ -272,8 +287,9 @@ class DeferredInputContainer<T : Any, R : Any>(
      *
      * @param value The input value for the lambda.
      */
-    override fun provideReceiver(value:T){
+    override fun provideReceiver(value:T):LazyExecutionContainer<T, R>{
         receiverBacking = value
+        return this
     }
 
     /**
@@ -296,5 +312,54 @@ class DeferredInputContainer<T : Any, R : Any>(
         provideValue(resolvedValue)
         return value
     }
+}
 
+class LazyContainerWithReceiver<T: Any, P, R:Any>(
+    private val holder: CTX,
+    initialLambda: (T.(P)-> R)? = null
+): ReactiveFunctionContainer<T, P, R, R>(initialLambda) {
+
+    override val contextName: String
+        get() = "LazyContainerWithReceiver On ${holder.contextName}"
+
+    private  var parameterBacking: P? = null
+    override val parameter: P get() =  parameterBacking.getOrManaged(exceptionPayload.method("parameter get()", "parameter<P>"))
+
+    override fun provideReceiver(value:T): LazyContainerWithReceiver<T, P, R>{
+        receiverBacking = value
+        return this
+    }
+
+    fun provideReceiverWithParameter(receiver:T, parameter:P): LazyContainerWithReceiver<T, P, R>{
+        provideReceiver(receiver)
+        parameterBacking = parameter
+        return this
+    }
+
+    fun provideParameter(parameter:P): LazyContainerWithReceiver<T, P, R>{
+        parameterBacking = parameter
+        return this
+    }
+
+    companion object {
+
+        fun <T: Any, P, R: Any> createWithParameters(
+            holder: CTX,
+            receiver: T,
+            parameter:P
+        ):LazyContainerWithReceiver<T, P,  R>{
+           val container =  LazyContainerWithReceiver<T, P,  R>(holder)
+           return  container.provideReceiverWithParameter(receiver, parameter)
+        }
+
+        fun <T: Any, P, R: Any> createWithParameters(
+            holder: CTX,
+            receiver: T,
+            parameter:P,
+            lambda: (T.(P)-> R)
+        ):LazyContainerWithReceiver<T, P,  R>{
+            val container =  LazyContainerWithReceiver<T, P,  R>(holder, lambda)
+            return  container.provideReceiverWithParameter(receiver, parameter)
+        }
+    }
 }

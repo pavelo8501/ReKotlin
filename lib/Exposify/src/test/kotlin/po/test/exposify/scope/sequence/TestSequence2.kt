@@ -10,6 +10,7 @@ import po.exposify.dto.components.result.ResultSingle
 import po.exposify.scope.sequence.builder.pickById
 import po.exposify.scope.sequence.builder.sequenced
 import po.exposify.scope.sequence.builder.withInputValue
+import po.exposify.scope.sequence.builder.withResult
 import po.exposify.scope.sequence.launcher.launch
 import po.lognotify.TasksManaged
 import po.test.exposify.scope.session.TestSessionsContext
@@ -25,10 +26,12 @@ import kotlin.test.assertNotEquals
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestSequence2 : DatabaseTest(), TasksManaged {
+
+    val sessionIdentity = TestSessionsContext.SessionIdentity("0", "192.169.1.1")
+
     @Test
     fun `Sequnenced PICK BY ID execution`() = runTest {
 
-        val sessionIdentity = TestSessionsContext.SessionIdentity("0", "192.169.1.1")
         val user = User(
             id = 0,
             login = "some_login",
@@ -38,7 +41,6 @@ class TestSequence2 : DatabaseTest(), TasksManaged {
         )
 
         val page: Page = pageModelsWithSections(pageCount = 1, sectionsCount = 2, updatedBy = 1).first()
-
         var pickById = 0L
 
         withConnection {
@@ -51,6 +53,10 @@ class TestSequence2 : DatabaseTest(), TasksManaged {
                     pickById(handler.input){
                         withInputValue {
                             println("Input Value: $this")
+                        }
+                        withResult {
+                            println("WithResult")
+                            println(this)
                         }
                     }
                 }
@@ -68,7 +74,7 @@ class TestSequence2 : DatabaseTest(), TasksManaged {
 
     fun `Simplified sequnence INSERT execution`() = runTest {
 
-        val sessionIdentity = TestSessionsContext.SessionIdentity("0", "192.169.1.1")
+
         val user = User(
             id = 0,
             login = "some_login",

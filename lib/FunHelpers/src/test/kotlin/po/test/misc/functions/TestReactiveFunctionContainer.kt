@@ -4,12 +4,18 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertAll
 import po.misc.functions.containers.DeferredContainer
 import po.misc.functions.containers.LambdaContainer
+import po.misc.functions.containers.LazyContainerWithReceiver
 import po.misc.interfaces.CTX
 import po.test.misc.setup.ControlClass
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class TestReactiveFunctionContainer {
+
+    class ReceiverClass(): ControlClass(), CTX{
+        override val contextName: String
+            get() = "ReceiverClass[TestFunContainers]"
+    }
 
     class HoldingClass(): ControlClass(), CTX{
 
@@ -37,7 +43,6 @@ class TestReactiveFunctionContainer {
     fun HoldingClass.withInput(block: String.()-> Unit){
         withInputFNContainer.registerProvider(block)
     }
-
     fun HoldingClass.getResult(): DeferredContainer<Int> = resultFNContainer
 
 
@@ -75,6 +80,20 @@ class TestReactiveFunctionContainer {
         assertAll("Input provided but no lambdas should be triggered",
           { assertEquals(inputString.count(), triggeredResult, "Wrong result returned by DeferredContainer<Int>") }
         )
+    }
+
+
+    @Test
+    fun `LazyContainerWithReceiver execution logic work as expected`(){
+
+        val receiver = ReceiverClass()
+        val parameter: String = "SomeStr"
+
+        val lambdaProperty:ReceiverClass.(String)-> Int = {
+            10
+        }
+        val lazyWithReceiver = LazyContainerWithReceiver.createWithParameters<ReceiverClass, String, Int>(receiver, receiver, parameter, lambdaProperty)
+
     }
 
 }

@@ -13,6 +13,8 @@ sealed class ListResultMarker
 object SelectSingle:SingleResultMarker()
 object InsertSingle:SingleResultMarker()
 object PickById:SingleResultMarker()
+object UpdateSingle:SingleResultMarker()
+
 
 interface SingleDTOResult<DTO: ModelDTO, D: DataModel> {
 

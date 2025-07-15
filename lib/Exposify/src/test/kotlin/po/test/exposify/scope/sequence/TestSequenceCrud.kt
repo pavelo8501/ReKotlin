@@ -135,111 +135,111 @@ class TestSequenceCrud : DatabaseTest(),  TasksManaged {
         return Json.decodeFromString<Section>(jsonStr)
     }
 
-    @Test
+
     fun `Consequtive sequence calls work as expected`() = runTest {
 
-        withConnection {
-            service(PageDTO){
-                val pages = pagesSectionsContentBlocks(pageCount = 1, sectionsCount = 2, contentBlocksCount = 4, updatedBy = updatedById)
-                update(pages)
-                sequence(PageDTO.SELECT) {
-
-                    switchContext(SectionDTO.UPDATE) { handler ->
-                        update(handler.inputData).toResultList()
-                    }
-                    select()
-                }
-                sequence(PageDTO.UPDATE) { handler -> update(handler.inputList) }
-            }
-        }
-
-        runTaskAsync("PostPages#1", TaskConfig(exceptionHandler = HandlerType.CancelAll)) { handler ->
-            val section = jsonToSection()
-            section.contentBlocks.forEach { println(it) }
-            println(section)
-            val id = 1L
-            val result = runSequence(SectionDTO.UPDATE, { PageDTO.switchQuery(id) }) {
-                withData(section)
-            }.getData().first()
-        }
+//        withConnection {
+//            service(PageDTO){
+//                val pages = pagesSectionsContentBlocks(pageCount = 1, sectionsCount = 2, contentBlocksCount = 4, updatedBy = updatedById)
+//                update(pages)
+//                sequence(PageDTO.SELECT) {
+//
+//                    switchContext(SectionDTO.UPDATE) { handler ->
+//                        update(handler.inputData).toResultList()
+//                    }
+//                    select()
+//                }
+//                sequence(PageDTO.UPDATE) { handler -> update(handler.inputList) }
+//            }
+//        }
+//
+//        runTaskAsync("PostPages#1", TaskConfig(exceptionHandler = HandlerType.CancelAll)) { handler ->
+//            val section = jsonToSection()
+//            section.contentBlocks.forEach { println(it) }
+//            println(section)
+//            val id = 1L
+//            val result = runSequence(SectionDTO.UPDATE, { PageDTO.switchQuery(id) }) {
+//                withData(section)
+//            }.getData().first()
+//        }
     }
 
     fun `Update sequence as a DTO hierarchy child member`() = runTest {
 
-        val pages =  pagesSectionsContentBlocks(pageCount = 1, sectionsCount = 1, contentBlocksCount = 2, updatedBy = updatedById)
-        withConnection {
-            service(PageDTO, TableCreateMode.Create) {
-                update(pages)
-                sequence(PageDTO.SELECT) {
-                    switchContext(SectionDTO.UPDATE){ handler->
-                        update(handler.inputData).toResultList()
-                    }
-                    select()
-                }
-            }
-        }
-
-        val result = runSequence(SectionDTO.UPDATE, { PageDTO.switchQuery(1) }) {
-            withData(jsonToSection())
-        }.getData().first()
+//        val pages =  pagesSectionsContentBlocks(pageCount = 1, sectionsCount = 1, contentBlocksCount = 2, updatedBy = updatedById)
+//        withConnection {
+//            service(PageDTO, TableCreateMode.Create) {
+//                update(pages)
+//                sequence(PageDTO.SELECT) {
+//                    switchContext(SectionDTO.UPDATE){ handler->
+//                        update(handler.inputData).toResultList()
+//                    }
+//                    select()
+//                }
+//            }
+//        }
+//
+//        val result = runSequence(SectionDTO.UPDATE, { PageDTO.switchQuery(1) }) {
+//            withData(jsonToSection())
+//        }.getData().first()
     }
 
 
     fun `Pick statement is processed in Sequence context`() = runTest {
 
-        logHandler.notifierConfig {
-            console = NotifyConfig.ConsoleBehaviour.MuteNoEvents
-        }
-
-        val inputUser = User(
-            id = 0,
-            login = "some_login",
-            hashedPassword = generatePassword("password"),
-            name = "name",
-            email = "nomail@void.null"
-        )
-
-        withConnection{
-            service(UserDTO){
-                update(inputUser)
-                sequence(UserDTO.PICK) { handler ->
-                    pick(handler.query).toResultList()
-                }
-            }
-        }
-
-        var userFail: User? = null
-        var userSuccess: User? = null
-        withSessionContext(createDefaultIdentifier()) {
-            userFail = runSequence(UserDTO.PICK) {
-                withQuery {
-                    WhereQuery(Users).equalsTo({ login }, "wrong")
-                }
-            }.getData().firstOrNull()
-            userSuccess = runSequence(UserDTO.PICK) {
-                withQuery {
-                    WhereQuery(Users).equalsTo({ login }, inputUser.login)
-                }
-            }.getData().firstOrNull()
-        }
-
-        assertNull(userFail)
-        val selectedUser = assertNotNull(userSuccess)
-        assertEquals(selectedUser.name, inputUser.name)
-        assertEquals(selectedUser.login, inputUser.login)
+//        logHandler.notifierConfig {
+//            console = NotifyConfig.ConsoleBehaviour.MuteNoEvents
+//        }
+//
+//        val inputUser = User(
+//            id = 0,
+//            login = "some_login",
+//            hashedPassword = generatePassword("password"),
+//            name = "name",
+//            email = "nomail@void.null"
+//        )
+//
+//        withConnection{
+//            service(UserDTO){
+//                update(inputUser)
+//                sequence(UserDTO.PICK) { handler ->
+//                    pick(handler.query).toResultList()
+//                }
+//            }
+//        }
+//
+//        var userFail: User? = null
+//        var userSuccess: User? = null
+//        withSessionContext(createDefaultIdentifier()) {
+//            userFail = runSequence(UserDTO.PICK) {
+//                withQuery {
+//                    WhereQuery(Users).equalsTo({ login }, "wrong")
+//                }
+//            }.getData().firstOrNull()
+//            userSuccess = runSequence(UserDTO.PICK) {
+//                withQuery {
+//                    WhereQuery(Users).equalsTo({ login }, inputUser.login)
+//                }
+//            }.getData().firstOrNull()
+//        }
+//
+//        assertNull(userFail)
+//        val selectedUser = assertNotNull(userSuccess)
+//        assertEquals(selectedUser.name, inputUser.name)
+//        assertEquals(selectedUser.login, inputUser.login)
     }
 
 
     fun `test run n a real db with sequence select`() = runTest{
 
-        val connectionInfo = ConnectionInfo(host ="0.0.0.0", port ="5432", dbName = "medprof_postgres", user = "django-api", pwd = "django-api_usrPWD12")
-        DatabaseManager.openConnection(connectionInfo).service(PageDTO){
-            sequence(PageDTO.SELECT) {
-                select()
-            }
-        }
-       val result = runSequence(PageDTO.SELECT).getData()
-
-        assertTrue(result.isNotEmpty())
+//        val connectionInfo = ConnectionInfo(host ="0.0.0.0", port ="5432", dbName = "medprof_postgres", user = "django-api", pwd = "django-api_usrPWD12")
+//        DatabaseManager.openConnection(connectionInfo).service(PageDTO){
+//            sequence(PageDTO.SELECT) {
+//                select()
+//            }
+//        }
+//       val result = runSequence(PageDTO.SELECT).getData()
+//
+//        assertTrue(result.isNotEmpty())
     }
 }

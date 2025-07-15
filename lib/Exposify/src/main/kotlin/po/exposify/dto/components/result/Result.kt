@@ -24,6 +24,8 @@ interface ExposifyResult{
     var failureCause: ManagedException?
 }
 
+
+
 sealed class ResultBase<DTO, D>(
     dtoClass: DTOBase<DTO, D, *>
 ) where DTO: ModelDTO, D: DataModel{
@@ -34,7 +36,6 @@ class ResultList<DTO, D, E> internal constructor(
     override val dtoClass: DTOBase<DTO, D, E>,
     private var result : List<CommonDTO<DTO, D, E>> = emptyList()
 ):ResultBase<DTO, D>(dtoClass), ExposifyResult, CtxId where DTO: ModelDTO, D: DataModel, E : LongEntity {
-
 
     override val contextName: String
         get() = "ResultList"
@@ -88,7 +89,7 @@ class ResultList<DTO, D, E> internal constructor(
 class ResultSingle<DTO, D, E> internal constructor(
     override val dtoClass: DTOBase<DTO, D, E>,
     private var result: CommonDTO<DTO, D, E>? = null
-): ResultBase<DTO, D>(dtoClass), ExposifyResult, CtxId where DTO : ModelDTO, D: DataModel, E : LongEntity {
+): ResultBase<DTO, D>(dtoClass), DTOResult<DTO>, ExposifyResult, CtxId where DTO : ModelDTO, D: DataModel, E : LongEntity {
 
     override val contextName: String
         get() = "ResultSingle"
@@ -102,16 +103,14 @@ class ResultSingle<DTO, D, E> internal constructor(
 
     val isFaulty: Boolean get() = failureCause != null
 
+    override val dto: DTO get(){
+       return getDTOForced()
+    }
+
     internal fun appendDto(dtoToAppend: CommonDTO<DTO, D, E>): ResultSingle<DTO, D, E> {
         result = dtoToAppend
         return this
     }
-
-//    internal fun asContainer():DTOResult<DTO>{
-//       val resulting =  result?.toDTOResult().getOrOperations(this)
-//
-//       return resulting
-//    }
 
     fun getData(): D? {
         val dataModel = result?.hub?.execCtx?.getDataModel(this)

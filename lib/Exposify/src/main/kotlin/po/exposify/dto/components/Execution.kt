@@ -127,6 +127,21 @@ sealed class ExecutionContext<DTO, DATA, ENTITY>(
         }
     }
 
+    fun updateSingle(dataModel: DATA, initiator: CtxId): ResultSingle<DTO, DATA, ENTITY> {
+        val operation = CrudOperation.Update
+        if (dataModel.id == 0L) {
+            return insert(dataModel)
+        }
+        val existentDto = dtoClass.lookupDTO(dataModel.id)
+
+        return if (existentDto != null) {
+            existentDto.hub.updatePropertiesBy(dataModel).toResult(operation)
+        } else {
+            val dto = dtoClass.newDTO()
+            dto.hub.loadHierarchyByData(dataModel, initiator).toResult(operation)
+        }
+    }
+
     fun update(dataModels: List<DATA>,  initiator: CtxId): ResultList<DTO, DATA, ENTITY> {
         return dataModels.map { update(it, initiator) }.toResult(dtoClass)
     }
@@ -144,7 +159,7 @@ sealed class ExecutionContext<DTO, DATA, ENTITY>(
     }
 }
 
-open class RootExecutionContext<DTO, D, E>(
+class RootExecutionContext<DTO, D, E>(
    rootClass: RootDTO<DTO, D, E>,
    var sourceContext: CtxId? = null
 ):ExecutionContext<DTO, D, E>(rootClass) where DTO: ModelDTO , D: DataModel, E: LongEntity {
@@ -167,15 +182,21 @@ fun <DTO: ModelDTO, D: DataModel, E:LongEntity> RootDTO<DTO, D, E>.createProvide
 
 
 
-class DTOExecutionContext<DTO, D, E>(
-    dtoClass: DTOBase<DTO, D, E>,
-    private val dto: CommonDTO<DTO, D, E>
-):ExecutionContext<DTO, D, E>(dtoClass) where DTO: ModelDTO, D: DataModel,E: LongEntity {
+class DTOExecutionContext<DTO, D, E, F, FD, FE>(
+    private val dto: CommonDTO<DTO, D, E>,
+    private val foreignDtoClass: DTOBase<F, FD, FE>
+):ExecutionContext<F, FD, FE>(foreignDtoClass)
+        where DTO: ModelDTO, D: DataModel,E: LongEntity, F : ModelDTO, FD : DataModel, FE : LongEntity {
     enum class DTOExecutionEvents{
         OnDTOComplete
     }
     override val contextName: String = "DTOExecutionProvider"
     override val logger: LoggerDataProcessor get() = logHandler.dataProcessor
+
+    val selfAsBase:ExecutionContext<F, FD, FE> get(){
+        return this as ExecutionContext<F, FD, FE>
+    }
+
 
     internal val notifier: CallbackManager<DTOExecutionEvents> = CallbackManager(DTOExecutionEvents::class.java, this)
     internal val onDTOComplete = CallbackManager.createPayload<DTOExecutionEvents, CommonDTO<DTO, D, E>>(
@@ -208,9 +229,9 @@ class DTOExecutionContext<DTO, D, E>(
 }
 
 
-fun <DTO: ModelDTO, D: DataModel, E:LongEntity> createDTOProvider(
-     dtoClass:  DTOClass<DTO, D, E>,
-     dto: CommonDTO<DTO, D, E>
-):DTOExecutionContext<DTO, D, E> {
-    return DTOExecutionContext(dtoClass, dto)
+fun <DTO: ModelDTO, D: DataModel, E:LongEntity, F : ModelDTO, FD : DataModel, FE : LongEntity > createDTOProvider(
+     dto: CommonDTO<DTO, D, E>,
+     foreignDtoClass: DTOClass<F, FD, FE>
+):DTOExecutionContext<DTO, D, E, F, FD, FE> {
+    return DTOExecutionContext(dto, foreignDtoClass)
 }
