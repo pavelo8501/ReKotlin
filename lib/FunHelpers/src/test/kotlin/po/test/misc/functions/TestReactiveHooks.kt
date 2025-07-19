@@ -3,13 +3,15 @@ package po.test.misc.functions
 import org.junit.jupiter.api.Test
 import po.misc.functions.containers.DeferredContainer
 import po.misc.functions.containers.LambdaContainer
-import po.misc.interfaces.CTX
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asContext
 import kotlin.test.assertEquals
 
 class TestReactiveHooks: CTX {
 
-    override val contextName: String
-        get() = "TestReactiveHooks"
+    override val identity: CTXIdentity<out CTX> = asContext()
+
 
     @Test
     fun `Reactive hooks work as expected`(){

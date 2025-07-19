@@ -6,18 +6,17 @@ import org.junit.jupiter.api.assertAll
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertInstanceOf
 import org.junit.jupiter.api.assertThrows
-import po.lognotify.tasks.result.TaskResult
-import po.lognotify.tasks.result.resultOrNull
+import po.lognotify.TasksManaged
+import po.lognotify.common.result.TaskResult
+import po.lognotify.common.result.resultOrNull
 import po.lognotify.extensions.runTaskAsync
-import po.misc.interfaces.IdentifiableContext
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class TestTaskResult: IdentifiableContext {
-
+class TestTaskResult: TasksManaged {
 
     override val contextName: String
         get() = "TestTaskResult"
@@ -33,9 +32,6 @@ class TestTaskResult: IdentifiableContext {
     suspend fun nullableResultResultOrNull(name: String, value: Int?): Int? = runTaskAsync(name) {
         value
     }.resultOrNull()
-
-
-
 
     @Test
     fun `Container returns result as expected`() = runTest {

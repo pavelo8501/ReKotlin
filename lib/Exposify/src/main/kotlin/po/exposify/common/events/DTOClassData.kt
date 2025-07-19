@@ -6,7 +6,8 @@ import po.misc.data.console.PrintableTemplate
 import po.misc.data.printable.PrintableCompanion
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
-import po.misc.interfaces.IdentifiableContext
+import po.misc.context.Identifiable
+import po.misc.interfaces.asIdentifiable
 
 data class DTOClassData(
     private val dtoClass: DTOBase<*, *, *>,
@@ -16,7 +17,7 @@ data class DTOClassData(
 ): PrintableBase<DTOClassData>(Success){
     override val self: DTOClassData = this
 
-    override val emitter: IdentifiableContext = dtoClass
+    override val producer: Identifiable = asIdentifiable("DTOClassData", "dtoClass")
 
     init {
         addTemplate(Info, Success, Warning)

@@ -19,12 +19,6 @@ fun <DTO : ModelDTO, D : DataModel, E : LongEntity>  CommonDTO<DTO, D, E>.getPro
       .getOrInit("Property name $propertyName not found in propertyMap")
 }
 
-fun <DTO : ModelDTO, D : DataModel, E : LongEntity, T: Any>  DTOBase<DTO, D, E>.getTypeRecord(
-    key : ValueBased
-): TypeRecord<T>?{
-    return config.registry.getRecord<T>(key)
-}
-
 
 fun <DTO, D, E> CommonDTO<DTO, D, E>.asDTO():DTO where DTO : ModelDTO, D : DataModel, E : LongEntity{
     return castOrOperations(typeData.kClass)

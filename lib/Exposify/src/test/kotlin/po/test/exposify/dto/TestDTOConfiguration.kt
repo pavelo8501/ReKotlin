@@ -10,7 +10,7 @@ import po.exposify.dto.enums.DTOClassStatus
 import po.exposify.exceptions.InitException
 import po.exposify.scope.service.models.TableCreateMode
 import po.misc.callbacks.Containable
-import po.misc.interfaces.IdentifiableClass
+import po.misc.context.IdentifiableClass
 import po.misc.interfaces.asIdentifiableClass
 import po.test.exposify.dto.TestDTOTracker.Companion.updatedById
 import po.test.exposify.setup.DatabaseTest

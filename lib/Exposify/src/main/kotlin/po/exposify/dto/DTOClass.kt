@@ -10,19 +10,17 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dao.classes.ExposifyEntityClass
 import po.exposify.dto.components.ExecutionContext
-import po.exposify.dto.components.query.WhereQuery
 import po.exposify.dto.components.createProvider
 import po.exposify.dto.configuration.setupValidation
 import po.exposify.dto.enums.DTOClassStatus
-import po.exposify.dto.models.SourceObject
+import po.exposify.dto.models.CommonDTOType
 import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.exceptions.initAbnormal
 import po.exposify.exceptions.throwInit
 import po.exposify.extensions.getOrInit
 import po.exposify.scope.service.ServiceClass
 import po.exposify.scope.service.ServiceContext
 import po.lognotify.TasksManaged
-import po.lognotify.classes.action.InlineAction
+import po.lognotify.action.InlineAction
 import po.lognotify.tasks.TaskHandler
 import po.lognotify.debug.debugProxy
 import po.misc.callbacks.CallbackManager
@@ -30,12 +28,12 @@ import po.misc.callbacks.CallbackPayload
 import po.misc.callbacks.builders.callbackManager
 import po.misc.callbacks.models.Configuration
 import po.misc.data.printable.printableProxy
+import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.interfaces.ClassIdentity
-import po.misc.interfaces.IdentifiableClass
+import po.misc.context.IdentifiableClass
 import po.misc.interfaces.ValueBased
 import po.misc.serialization.SerializerInfo
 import po.misc.types.TypeData
-import po.misc.types.TypeRecord
 import po.misc.types.containers.TypedContainer
 import po.misc.types.toSimpleNormalizedKey
 import po.misc.validators.general.models.CheckStatus
@@ -52,6 +50,8 @@ sealed class DTOBase<DTO, DATA, ENTITY>(
         StatusChanged(2),
         DelegateRegistrationComplete(11);
     }
+
+    val exPayload: ManagedCallSitePayload = ManagedCallSitePayload(this)
 
     val config:  DTOConfig<DTO, DATA, ENTITY> by lazy {
         DTOConfig(this)
@@ -100,14 +100,28 @@ sealed class DTOBase<DTO, DATA, ENTITY>(
 
     abstract val dtoType : TypeData<DTO>
 
-    @PublishedApi
-    internal var commonTypeParameter: TypeRecord<CommonDTO<DTO, DATA, ENTITY>>? = null
-    internal val commonType: TypeRecord<CommonDTO<DTO, DATA, ENTITY>> by lazy { commonTypeParameter!! }
+    private var dataTypeBacking: TypeData<DATA>? = null
+    val dataType: TypeData<DATA> get() = dataTypeBacking.getOrInit(exPayload.valueFailure("dataTypeBacking", "TypeRecord<DATA>"))
+    val isDataTypeAvailable: Boolean get() = dataTypeBacking != null
+    fun provideDataType(dataType: TypeData<DATA>){
+        dataTypeBacking = dataType
+    }
 
-    internal val dataType : TypeRecord<DATA>
-        get() = config.registry.getRecord<DATA>(SourceObject.Data){ initAbnormal(registryExceptionMessage) }
-    internal val entityType : TypeRecord<ENTITY>
-        get() = config.registry.getRecord<ENTITY>(SourceObject.Entity){ initAbnormal(registryExceptionMessage) }
+    private var entityTypeBacking: TypeData<ENTITY>? = null
+    val entityType: TypeData<ENTITY> get() = entityTypeBacking.getOrInit(exPayload.valueFailure("entityTypeBacking", "TypeRecord<ENTITY>"))
+    val isEntityTypeAvailable: Boolean get() = entityTypeBacking != null
+    fun provideEntityType(entityType: TypeData<ENTITY>){
+        entityTypeBacking = entityType
+    }
+
+    private var commonTypeBacking: CommonDTOType<DTO, DATA, ENTITY>? = null
+    val commonType: CommonDTOType<DTO, DATA, ENTITY> get() {
+      return commonTypeBacking.getOrInit(exPayload.valueFailure("commonTypeBacking", "CommonDTOType<DTO, DATA, ENTITY>"))
+    }
+    val isCommonDTOTypeAvailable: Boolean get() = commonTypeBacking != null
+    fun provideCommonDTOType(commonType: CommonDTOType<DTO, DATA, ENTITY>){
+        commonTypeBacking = commonType
+    }
 
     abstract val serviceClass: ServiceClass<*,*,*>
 

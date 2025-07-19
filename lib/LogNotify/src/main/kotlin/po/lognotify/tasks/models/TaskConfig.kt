@@ -13,7 +13,7 @@ enum class TaskOptions{
 
 
 data class TaskConfig (
-    var attempts: Int = 1,
+    var attempts: Int = 0,
     var delayMs: Long = 2000,
     var moduleName: String = "",
     var options:TaskOptions = TaskOptions.RunNested,

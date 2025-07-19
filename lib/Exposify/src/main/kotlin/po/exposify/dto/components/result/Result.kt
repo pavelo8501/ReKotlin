@@ -13,7 +13,7 @@ import po.exposify.exceptions.managedPayload
 import po.exposify.exceptions.operationsException
 import po.exposify.extensions.getOrOperations
 import po.misc.exceptions.ManagedException
-import po.misc.interfaces.CtxId
+import po.misc.context.CtxId
 import po.misc.types.castListOrThrow
 
 interface ExposifyResult{
@@ -62,7 +62,7 @@ class ResultList<DTO, D, E> internal constructor(
     }
 
     fun getData(): List<D> {
-        return result.map { it.hub.execCtx.getDataModel(this) }
+        return result.map { it.dataContainer.source }
     }
 
     fun getDTO(): List<DTO> {
@@ -113,8 +113,7 @@ class ResultSingle<DTO, D, E> internal constructor(
     }
 
     fun getData(): D? {
-        val dataModel = result?.hub?.execCtx?.getDataModel(this)
-        return dataModel
+        return result?.dataContainer?.source
     }
 
     fun getDataForced(): D {

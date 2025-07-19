@@ -14,7 +14,7 @@ import po.lognotify.TasksManaged
 import po.lognotify.debug.debugProxy
 import po.lognotify.extensions.runTask
 import po.misc.interfaces.ClassIdentity
-import po.misc.interfaces.IdentifiableClass
+import po.misc.context.IdentifiableClass
 
 
 class SequenceContext<DTO, D, E>(

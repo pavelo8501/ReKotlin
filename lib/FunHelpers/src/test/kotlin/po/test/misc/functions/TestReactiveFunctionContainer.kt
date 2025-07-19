@@ -5,7 +5,9 @@ import org.junit.jupiter.api.assertAll
 import po.misc.functions.containers.DeferredContainer
 import po.misc.functions.containers.LambdaContainer
 import po.misc.functions.containers.LazyContainerWithReceiver
-import po.misc.interfaces.CTX
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asContext
 import po.test.misc.setup.ControlClass
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -13,12 +15,15 @@ import kotlin.test.assertTrue
 class TestReactiveFunctionContainer {
 
     class ReceiverClass(): ControlClass(), CTX{
+
+        override val identity: CTXIdentity<out CTX> = asContext()
+
         override val contextName: String
             get() = "ReceiverClass[TestFunContainers]"
     }
 
     class HoldingClass(): ControlClass(), CTX{
-
+        override val identity: CTXIdentity<out CTX> = asContext()
         override val contextName: String
             get() = "HoldingClass[TestFunContainers]"
 

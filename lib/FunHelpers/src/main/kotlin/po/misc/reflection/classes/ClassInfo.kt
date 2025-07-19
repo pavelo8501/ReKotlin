@@ -34,13 +34,15 @@ data class ClassInfo<T: Any?>(
 ) {
     val implementationMap = mutableMapOf<String, Boolean>()
 
+    val acceptsNull: Boolean get(){
+        return classRole == ClassRole.Result && (traits.isUnit || traits.isNullable)
+    }
+
+
+
     fun <I: Any> implements(receiver:I, superClass: KClass<*>) {
         val result = receiver::class.isSubclassOf(superClass)
         implementationMap[superClass.simpleName.toString()] = result
-    }
-
-    fun canSubstituteWithNull(): Boolean{
-        return traits.isUnit || traits.isNullable
     }
 }
 

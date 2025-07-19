@@ -15,8 +15,7 @@ import po.exposify.scope.sequence.builder.InsertSingle
 import po.exposify.scope.sequence.builder.PickById
 import po.exposify.scope.sequence.builder.Select
 import po.exposify.scope.sequence.launcher.ListDescriptor
-import po.exposify.scope.sequence.launcher.LongSingeDescriptor
-import po.exposify.scope.sequence.launcher.ParametrizedSingeDescriptor
+import po.exposify.scope.sequence.launcher.SingleDescriptor
 import po.test.exposify.setup.PageEntity
 import po.test.exposify.setup.SectionEntity
 
@@ -50,8 +49,8 @@ class PageDTO(): CommonDTO<PageDTO, Page, PageEntity>(this){
 
     companion object: RootDTO<PageDTO, Page, PageEntity>(PageDTO::class){
 
-        val INSERT = ParametrizedSingeDescriptor(this, InsertSingle)
-        val PICK = LongSingeDescriptor(this, PickById)
+        val INSERT = SingleDescriptor(this, InsertSingle)
+        val PICK = SingleDescriptor(this, PickById)
         val SELECT = ListDescriptor(this, Select)
 
         //val launcher: LaunchConfigurator<PageDTO, ResultSingle<PageDTO,*,*>> = launch(this)

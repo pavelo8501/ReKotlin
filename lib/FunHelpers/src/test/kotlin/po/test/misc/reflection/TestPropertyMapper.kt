@@ -1,7 +1,10 @@
 package po.test.misc.reflection
 
 import org.junit.jupiter.api.Test
-import po.misc.interfaces.Identifiable
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.Identifiable
+import po.misc.context.asContext
 import po.misc.interfaces.ValueBased
 import po.misc.reflection.mappers.PropertyMapper
 
@@ -14,8 +17,11 @@ class TestPropertyMapper {
     data class SourceClass(
         val property1: String = "Property1",
         val property2 : Int = 10,
-        val property3: Boolean = false, override var sourceName: String = ""
-    ): Identifiable{
+        val property3: Boolean = false, var sourceName: String = ""
+    ): CTX{
+
+        override val identity: CTXIdentity<out CTX> = asContext()
+
         override val contextName: String
             get() = TODO("Not yet implemented")
     }

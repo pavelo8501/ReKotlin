@@ -2,7 +2,10 @@ package po.test.misc.registries
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertAll
-import po.misc.interfaces.Identifiable
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.Identifiable
+import po.misc.context.asContext
 import po.misc.interfaces.ValueBased
 import po.misc.registries.callback.CallbackRegistry
 import po.misc.registries.callback.TypedCallbackRegistry
@@ -14,9 +17,11 @@ class TestCallbackRegistry {
         ON_START(1),
         ON_FINISH(2);
     }
-    class Component(override var sourceName: String
-    ) : Identifiable{
-          override val contextName: String = "ssss"
+    class Component(var sourceName: String
+    ) : CTX{
+
+        override val identity: CTXIdentity<out CTX> = asContext()
+         override val contextName: String = "ssss"
     }
 
    data class ValueRecord(

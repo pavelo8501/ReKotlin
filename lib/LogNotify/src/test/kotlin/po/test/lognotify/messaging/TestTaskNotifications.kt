@@ -7,10 +7,9 @@ import po.lognotify.classes.notification.models.LogData
 import po.lognotify.tasks.models.TaskConfig
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.extensions.runTask
-import po.lognotify.extensions.subTask
 import po.misc.data.printable.PrintableBase
 import po.misc.exceptions.ManagedException
-import po.misc.interfaces.Identifiable
+import po.misc.context.Identifiable
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -23,10 +22,9 @@ class TestTaskNotifications : TasksManaged, Identifiable {
     @Test
     fun `Debug information can be switched on&off for specific data type`(){
 
-        val handler = logNotify()
         val notifications: MutableList<PrintableBase<*>> = mutableListOf()
 
-        handler.notifierHub.subscribe(this, NotifierHub.Event.DataReceived){
+       logHandler.notifierHub.subscribe(this, NotifierHub.Event.DataReceived){
             notifications.add(it)
         }
         runTask("RootTaskNoDebug"){
@@ -35,7 +33,7 @@ class TestTaskNotifications : TasksManaged, Identifiable {
         assertFalse(notifications.any { (it as LogData).severity == SeverityLevel.DEBUG }, "Some of notifications are of type DEBUG")
         notifications.clear()
 
-        handler.notifierConfig {
+        logHandler.notifierConfig {
             allowDebug(LogData)
         }
         runTask("RootTaskWithDebug"){
@@ -47,23 +45,26 @@ class TestTaskNotifications : TasksManaged, Identifiable {
 
     fun `Exception info displayed correctly lambdas expect NonNullable`() {
 
-        fun subTask1(): Int = subTask("Sub task 1"){
+        fun subTask1(): Int = runTask("Sub task 1"){
             throw Exception("GenericException")
              10
         }.resultOrException()
 
-        runTask("Task1", TaskConfig(actor = "TestInstance")) {
+        runTask("Task1", TaskConfig(initiator = "TestInstance")) {
             subTask1()
             println("End of subTask1")
         }
     }
 
+    fun subTask2(): Int = runTask("Sub task 2"){
+        throw Exception("GenericException")
+        10
+    }.resultOrException()
+
     fun `Exception info displayed correctly lambdas expect Unit`() {
-        runTask("Task1", TaskConfig(actor = "TestInstance")) {
-            subTask("Sub task 1"){
-                subTask("Sub task 2"){
-                    throw Exception("GenericException")
-                }
+        runTask("Task1", TaskConfig(initiator = "TestInstance")) {
+            runTask("Sub task 1"){
+                subTask2()
             }.onFail {
                 val exception = it
             }
@@ -74,14 +75,14 @@ class TestTaskNotifications : TasksManaged, Identifiable {
 
     fun `Task predefined messages work as expected`() {
 
-        runTask("Task1", TaskConfig(actor = "TestInstance")) { handler ->
+        runTask("Task1", TaskConfig(initiator = "TestInstance")) {
 
-            val startEvent = handler.dataProcessor.registerStart()
-            val stopEvent =  handler.dataProcessor.registerStop()
+            val startEvent = taskHandler.dataProcessor.registerStart()
+            val stopEvent =  taskHandler.dataProcessor.registerStop()
 
-            val info = handler.info("Info message")
-            val warning = handler.warn("Info message")
-            val warning2 = handler.warn(ManagedException("Exception Message"), "Additional message")
+            val info = taskHandler.info("Info message")
+            val warning = taskHandler.warn("Info message")
+            val warning2 = taskHandler.warn(ManagedException("Exception Message"), "Additional message")
 
             assertEquals(SeverityLevel.INFO, info.severity, "Severity mismatch")
             assertEquals(SeverityLevel.WARNING, warning.severity, "Severity mismatch")
@@ -92,23 +93,22 @@ class TestTaskNotifications : TasksManaged, Identifiable {
     }
 
     fun `Task notifications`(){
-        runTask("Task1"){handler->
+        runTask("Task1"){
             val taskData = LogData(
-                emitter = handler.task,
-                config =  handler.task.config,
-                timeStamp = handler.task.executionTimeStamp,
+                producer = taskHandler.task,
+                config =  taskHandler.task.config,
+                timeStamp = taskHandler.task.executionTimeStamp,
                 message = "Let the templating era begins",
                 severity = SeverityLevel.EXCEPTION
                 )
 
-            handler.dataProcessor.provideOutputSource{
+            taskHandler.dataProcessor.provideOutputSource{
                 println(it)
             }
 
-            handler.dataProcessor.processRecord(taskData, LogData.Header)
-            handler.dataProcessor.processRecord(taskData, LogData.Footer)
-            handler.dataProcessor.processRecord(taskData, LogData.Message)
-
+            taskHandler.dataProcessor.processRecord(taskData, LogData.Header)
+            taskHandler.dataProcessor.processRecord(taskData, LogData.Footer)
+            taskHandler.dataProcessor.processRecord(taskData, LogData.Message)
         }
 
     }

@@ -48,7 +48,7 @@ data class TypeRecord<T: Any>(
     }
 }
 
-data class TypeData<T: Any>(
+open class TypeData<T: Any>(
     override val kClass: KClass<T>,
     override val kType: KType,
 ):Typed<T>, ComparableType<T>{

@@ -1,17 +1,15 @@
 package po.misc.validators.general
 
-import po.misc.exceptions.ManagedException
-import po.misc.interfaces.IdentifiableContext
-import po.misc.interfaces.asIdentifiable
+import po.misc.context.CTX
+import po.misc.context.Identifiable
 import po.misc.types.castOrManaged
-import po.misc.types.castOrThrow
 import po.misc.validators.general.models.CheckStatus
 import po.misc.validators.general.reports.ReportRecord
 import po.misc.validators.general.reports.ValidationReport
 import po.misc.validators.general.validators.ValidatorHooks
 
 sealed class ValidationContainerBase<T: Any>(
-    val identifiable: IdentifiableContext,
+    val identifiable: CTX,
     var validatable: T,
     internal val validator: Validator
 ) {
@@ -21,7 +19,7 @@ sealed class ValidationContainerBase<T: Any>(
 
     val overallStatus: CheckStatus get() = validationReport.overallResult
 
-    internal val validationReport: ValidationReport = ValidationReport(this.validationName)
+    internal val validationReport: ValidationReport = ValidationReport(identifiable, validationName)
     internal fun setValidationName(name: String): ValidationContainerBase<T> {
         validationName = name
         validationReport.setName(name)
@@ -40,7 +38,7 @@ sealed class ValidationContainerBase<T: Any>(
 }
 
 class ValidationContainer<T: Any>(
-    identifiable: IdentifiableContext,
+    identifiable: CTX,
     validatable: T,
     validator: Validator
 ):ValidationContainerBase<T>(identifiable, validatable, validator) {
@@ -50,7 +48,7 @@ class ValidationContainer<T: Any>(
 }
 
 class SequentialContainer<T: Any>(
-    identifiable: IdentifiableContext,
+    identifiable: CTX,
     validatable: List<T>,
     validator: Validator
 ):ValidationContainerBase<List<T>>(identifiable, validatable, validator) {
@@ -78,11 +76,15 @@ fun <T: Any> Validator.validation(
         validations.add(validationContainer)
       validationContainer
     }?:run {
-      val failedValidation =   ValidationContainer(asIdentifiable("Null", "Null"), validatable, this).also {
-            it.validationReport.addRecord(ReportRecord.fail(it,"Initialization", "Identifiable not found in Validator"))
-        }
-        validations.add(failedValidation)
-        failedValidation
+
+
+//       val failedValidation =   ValidationContainer(identifiable("Null", identifiable), validatable, this).also {
+//            it.validationReport.addRecord(ReportRecord.fail(it,"Initialization", "Identifiable not found in Validator"))
+//        }
+//        validations.add(failedValidation)
+//        failedValidation
+
+        TODO("Depr")
     }
 }
 
@@ -104,18 +106,20 @@ fun <T: Any> Validator.sequentialValidation(
         validationContainer.validationComplete()
         validationContainer
     } ?: run {
-        val failedValidation = SequentialContainer(asIdentifiable("Null", "Null"), validatableList, this).also {
-            it.validationReport.addRecord(
-                ReportRecord.fail(
-                    it,
-                    "Initialization",
-                    "Identifiable not found in Validator"
-                )
-            )
-        }
-        validations.add(failedValidation)
-        failedValidation.validationComplete()
-        failedValidation
+//        val failedValidation = SequentialContainer(asIdentifiable("Null", "Null"), validatableList, this).also {
+//            it.validationReport.addRecord(
+//                ReportRecord.fail(
+//                    it,
+//                    "Initialization",
+//                    "Identifiable not found in Validator"
+//                )
+//            )
+//
+//        }
+//        validations.add(failedValidation)
+//        failedValidation.validationComplete()
+//        failedValidation
+        TODO("Depr")
     }
 }
 

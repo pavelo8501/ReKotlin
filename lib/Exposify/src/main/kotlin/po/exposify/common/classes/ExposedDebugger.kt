@@ -12,9 +12,9 @@ import po.lognotify.debug.models.DebugParams
 import po.misc.data.console.PrintableTemplate
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.PrintableCompanion
-import po.misc.interfaces.IdentifiableContext
+import po.misc.context.Identifiable
 
-class ExposifyDebugger<T: IdentifiableContext, P: PrintableBase<P>>(
+class ExposifyDebugger<T: Identifiable, P: PrintableBase<P>>(
     receiver:T,
     printableClass: PrintableCompanion<P>,
     val  dataProcessor: LoggerDataProcessor,
@@ -29,7 +29,7 @@ class ExposifyDebugger<T: IdentifiableContext, P: PrintableBase<P>>(
     fun warn(message: String): LogData = dataProcessor.warn(message)
 }
 
-fun <T: IdentifiableContext, P: PrintableBase<P>> TasksManaged.exposifyDebugger(
+fun <T: Identifiable, P: PrintableBase<P>> TasksManaged.exposifyDebugger(
     receiver:T,
     printableClass: PrintableCompanion<P>,
     usingTemplate: PrintableTemplate<P>? = null,

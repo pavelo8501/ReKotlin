@@ -1,8 +1,5 @@
 package po.misc.types.containers.updatable.models
 
-import po.misc.interfaces.IdentifiableContext
-
-
 
 enum class UpdatableEvents{
     OnArmed,

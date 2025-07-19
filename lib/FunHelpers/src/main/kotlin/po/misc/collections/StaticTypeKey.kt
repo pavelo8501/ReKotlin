@@ -7,9 +7,7 @@ import kotlin.reflect.typeOf
 
 interface ComparableType<T: Any>{
     val kClass: KClass<T>
-
     val typeName: String
-
     override fun equals(other: Any?): Boolean
 }
 

@@ -7,13 +7,13 @@ import po.misc.callbacks.CallbackPayloadBase
 import po.misc.callbacks.Containable
 import po.misc.callbacks.ResultCallbackPayload
 import po.misc.callbacks.models.Configuration
+import po.misc.context.CTX
 import po.misc.functions.containers.DeferredContainer
-import po.misc.interfaces.IdentifiableClass
-import po.misc.interfaces.IdentifiableContext
+import po.misc.context.Identifiable
 
 data class SubscriptionBuilder<E: Enum<E>>(
     val manager:  CallbackManager<E>,
-    val subscriber: IdentifiableClass
+    val subscriber: CTX
 )
 
 data class ManagerBuilder<E: Enum<E>>(
@@ -31,7 +31,7 @@ data class ResultPayloadBuilder<E: Enum<E>, T: Any, R: Any>(
 )
 
 
-inline fun<reified E: Enum<E>> IdentifiableContext.callbackManager(
+inline fun<reified E: Enum<E>> CTX.callbackManager(
     vararg payloadsProvider: CallbackManager<E>.() -> CallbackPayloadBase<E, *,* >,
     config: Configuration = Configuration()
 ): CallbackManager<E>{
@@ -54,7 +54,7 @@ inline fun<reified E: Enum<E>> IdentifiableContext.callbackManager(
 //    return this
 //}
 
-inline fun<reified E: Enum<E>> IdentifiableContext.callbackBuilder(
+inline fun<reified E: Enum<E>> CTX.callbackBuilder(
     block: CallbackManager<E>.()-> Unit
 ): CallbackManager<E>{
     val manager = CallbackManager<E>(E::class.java, this)
@@ -145,7 +145,7 @@ fun <E: Enum<E>, T: Any> PayloadBuilder<E, T>.bridgeFrom(
     sourcePayloadPayload.bridge(this.payload)
 }
 
-fun<E: Enum<E>> IdentifiableClass.withCallbackManager(
+fun<E: Enum<E>> CTX.withCallbackManager(
     manager: CallbackManager<E>,
     block : SubscriptionBuilder<E>.() -> Unit
 ):CallbackManager<E>{

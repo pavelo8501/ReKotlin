@@ -5,8 +5,7 @@ import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.throwManaged
-import po.misc.interfaces.IdentifiableContext
-import po.misc.interfaces.TypedContext
+import po.misc.context.CTX
 import kotlin.reflect.KClass
 import kotlin.reflect.cast
 
@@ -87,7 +86,7 @@ fun <T: Any> Any?.castOrManaged(
 
 
 inline fun <reified T: Any> Any?.castOrThrow(
-    ctx: IdentifiableContext,
+    ctx: CTX,
     exceptionProvider: (message: String)-> Throwable,
 ): T {
     val result =  this as? T
@@ -100,11 +99,7 @@ inline fun <reified T: Any> Any?.castOrThrow(
             "Unable to cast ${this::class.simpleName} to  ${T::class.simpleName}"
         }
         val exception = exceptionProvider(message)
-        if(exception is ManagedException){
-            exception.throwSelf(ctx)
-        }else{
-            throw exception
-        }
+        throw exception
     }
 }
 
@@ -130,27 +125,23 @@ inline fun <reified T: Any> Any?.castOrThrow(
 }
 
 
-inline fun <T: Any> Any?.castTypedOrThrow(
-    ctx: TypedContext<T>,
-    exceptionProvider: (message: String, original: Throwable)-> Throwable,
-):T {
-    return try {
-        ctx.typeData.kClass.cast(this)
-    } catch (e: ClassCastException) {
-        val thisCtx = this
-        val message = if(thisCtx != null){
-            "Unable to cast ${thisCtx::class.simpleName.toString()} to ${ctx.typeData.kClass.simpleName}. ${e.message}"
-        }else{
-            "Unable to cast null to ${ctx.typeData.kClass.simpleName}"
-        }
-        val exception = exceptionProvider(message, e)
-        if(exception is ManagedException){
-            exception.throwSelf(ctx)
-        }else{
-            throw exception
-        }
-    }
-}
+//inline fun <T: Any> Any?.castTypedOrThrow(
+//    ctx: TypedContext<T>,
+//    exceptionProvider: (message: String, original: Throwable)-> Throwable,
+//):T {
+//    return try {
+//        ctx.typeData.kClass.cast(this)
+//    } catch (e: ClassCastException) {
+//        val thisCtx = this
+//        val message = if(thisCtx != null){
+//            "Unable to cast ${thisCtx::class.simpleName.toString()} to ${ctx.typeData.kClass.simpleName}. ${e.message}"
+//        }else{
+//            "Unable to cast null to ${ctx.typeData.kClass.simpleName}"
+//        }
+//        val exception = exceptionProvider(message, e)
+//        throw exception
+//    }
+//}
 
 
 inline fun <T: Any> Any?.castOrThrow(

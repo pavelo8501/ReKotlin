@@ -1,13 +1,11 @@
 package po.misc.reflection.classes
 
-import po.misc.interfaces.IdentifiableContext
-import po.misc.reflection.properties.PropertyGroup
+import po.misc.context.CTX
+import po.misc.context.Identifiable
 
-import po.misc.reflection.properties.SourcePropertyIO
 import kotlin.reflect.KClass
-import kotlin.reflect.typeOf
 
-class DataProvider<T: IdentifiableContext, V: Any>(
+class DataProvider<T: CTX, V: Any>(
     val surrogate: KSurrogate<T>,
     val valueClass: KClass<V>,
 ) {
@@ -21,7 +19,7 @@ class DataProvider<T: IdentifiableContext, V: Any>(
 
 
 
-inline fun <reified T: IdentifiableContext> createSurrogate(
+inline fun <reified T: CTX> createSurrogate(
     receiver:T,
     block: KSurrogate<T>.()-> Unit
 ): KSurrogate<T>{

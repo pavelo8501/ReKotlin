@@ -5,8 +5,9 @@ import po.lognotify.tasks.RootTask
 import po.lognotify.tasks.Task
 import po.lognotify.tasks.TaskBase
 import po.lognotify.tasks.interfaces.ResultantTask
+import po.misc.context.CTX
 
-class TaskRegistry<T, R>(
+class TaskRegistry<T: CTX, R>(
     val dispatcher: TaskDispatcher,
     val hierarchyRoot: RootTask<T, R>
 ) {

@@ -28,7 +28,7 @@ class TestProcessFlow() : TasksManaged {
             rootTask()
         }
 
-        val tasks = logNotify().dispatcher.getTasks()
+        val tasks = logHandler.dispatcher.getTasks()
         tasks.forEach {
             println(it)
         }

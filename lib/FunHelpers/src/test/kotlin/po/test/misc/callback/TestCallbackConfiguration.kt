@@ -5,19 +5,20 @@ import org.junit.jupiter.api.assertThrows
 import po.misc.callbacks.CallbackManager
 import po.misc.callbacks.builders.callbackManager
 import po.misc.callbacks.models.Configuration
+import po.misc.context.CTX
+import po.misc.context.asContext
 import po.misc.exceptions.ManagedException
-import po.misc.interfaces.ClassIdentity
-import po.misc.interfaces.IdentifiableClass
-import po.misc.interfaces.IdentifiableContext
-import po.misc.interfaces.asIdentifiableClass
 
-class TestCallbackConfiguration: IdentifiableClass {
 
-    override val identity: ClassIdentity = asIdentifiableClass("TestUnit", "TestCallbackConfiguration")
+class TestCallbackConfiguration:  CTX {
 
-    class FirstHoldingClass(private val callbackConfiguration: Configuration) : IdentifiableContext{
+
+    override val identity = asContext()
+
+    internal class FirstHoldingClass(private val callbackConfiguration: Configuration) : CTX{
         enum class Event{ OnInit, OnRouted  }
-        override val contextName: String = "FirstHoldingClass"
+
+        override val identity = asContext()
 
         val cbManager = callbackManager<Event>(config =  callbackConfiguration)
         val routedPayload = CallbackManager.createPayload<Event, String>(cbManager, Event.OnRouted)

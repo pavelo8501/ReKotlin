@@ -8,16 +8,15 @@ import po.exposify.extensions.getOrInit
 import po.exposify.scope.connection.models.ConnectionInfo
 import po.exposify.scope.connection.ConnectionClass
 import po.exposify.scope.connection.models.ConnectionSettings
+import po.lognotify.TasksManaged
 import po.lognotify.tasks.models.TaskConfig
 import po.lognotify.extensions.runTask
 import po.lognotify.extensions.runTaskBlocking
-import po.misc.exceptions.text
-import po.misc.interfaces.CtxId
-import po.misc.interfaces.IdentifiableClass
-import po.misc.interfaces.IdentifiableContext
+import po.misc.exceptions.throwableToText
+import po.misc.context.IdentifiableClass
 import po.misc.serialization.SerializerInfo
 
-object DatabaseManager: CtxId {
+object DatabaseManager: TasksManaged {
 
     override val contextName: String = "DatabaseManager"
 
@@ -49,7 +48,7 @@ object DatabaseManager: CtxId {
             if(hooks != null){
                 hooks.onConnectionFail?.invoke(th)
             }else{
-                println(th.text())
+                println(th.throwableToText())
             }
             throw th
         }

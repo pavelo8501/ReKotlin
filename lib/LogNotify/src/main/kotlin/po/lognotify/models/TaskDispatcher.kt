@@ -9,12 +9,12 @@ import po.lognotify.tasks.TaskBase
 import po.lognotify.tasks.interfaces.ResultantTask
 import po.lognotify.tasks.interfaces.UpdatableTasks
 import po.lognotify.tasks.models.TaskConfig
-import po.lognotify.process.LogReceiver
 import po.misc.callbacks.CallbackManager
 import po.misc.callbacks.Containable
 import po.misc.callbacks.builders.callbackManager
 import po.misc.coroutines.CoroutineInfo
-import po.misc.interfaces.IdentifiableClass
+import po.misc.context.CTX
+import po.misc.context.IdentifiableClass
 import po.misc.interfaces.asIdentifiableClass
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.set
@@ -69,7 +69,7 @@ class TaskDispatcher(val notifierHub: NotifierHub) : UpdatableTasks, Identifiabl
 
 
     @PublishedApi
-    internal fun <T, R> createHierarchyRoot(
+    internal fun <T : CTX, R> createHierarchyRoot(
         name: String,
         moduleName: String,
         config: TaskConfig,

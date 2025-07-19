@@ -1,8 +1,9 @@
 package po.misc.data.printable
 
+import po.misc.context.CTX
 import po.misc.data.console.PrintableTemplate
 import po.misc.data.printable.PrintableProxy.ProxyParams
-import po.misc.interfaces.IdentifiableContext
+import po.misc.context.Identifiable
 
 class PrintableProxy<T: Any, D: PrintableBase<D>>(
    val receiver: T,
@@ -23,7 +24,7 @@ class PrintableProxy<T: Any, D: PrintableBase<D>>(
     }
 }
 
-fun <T: Any, D: PrintableBase<D>>  IdentifiableContext.printableProxy(
+fun <T: Any, D: PrintableBase<D>>  CTX.printableProxy(
     holder:T,
     defaultTemplate: PrintableTemplate<D>,
     dataBuilder: T.(ProxyParams<D>)->Unit

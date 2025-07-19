@@ -1,19 +1,18 @@
 package po.test.misc.reflection
 
-import org.junit.jupiter.api.Test
-import po.misc.interfaces.IdentifiableClass
-import po.misc.interfaces.IdentifiableContext
-import po.misc.reflection.objects.Composed
-import po.misc.reflection.properties.PropertyGroup
-import po.misc.reflection.properties.createPropertyIO
-import po.misc.reflection.properties.createSourcePropertyIO
-import kotlin.test.assertEquals
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.Identifiable
+import po.misc.context.asContext
 
 class TestPropertyIO {
 
     data class UpdateSource(val field1: String = "Updated Value")
     data class DBEntity(var field1: String)
-    class Source(var field1: String = "field1"): IdentifiableContext{
+    class Source(var field1: String = "field1"): CTX{
+
+        override val identity: CTXIdentity<out CTX> = asContext()
+
         override val contextName: String
             get() = "Source"
     }

@@ -13,11 +13,7 @@ import po.exposify.common.events.DTOData
 import po.exposify.dto.components.query.deferredQuery
 import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
-import po.exposify.scope.sequence.builder.pickById
-import po.exposify.scope.sequence.builder.select
-import po.exposify.scope.sequence.builder.sequenced
-import po.exposify.scope.sequence.builder.withInputValue
-import po.exposify.scope.sequence.builder.withResult
+import po.exposify.scope.sequence.builder.*
 import po.exposify.scope.sequence.launcher.launch
 import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
@@ -33,7 +29,6 @@ import po.test.exposify.setup.pageModelsWithSections
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
-
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestSequenceCRUD : DatabaseTest(), TasksManaged {
@@ -67,14 +62,13 @@ class TestSequenceCRUD : DatabaseTest(), TasksManaged {
         }
     }
 
-
     fun `Sequnenced SELECT execution`() = runTest {
         val pages: List<Page> = pageModelsWithSections(pageCount = 2, sectionsCount = 2, updatedBy = 1)
         withConnection{
             service(PageDTO) {
                 update(pages)
                 sequenced(PageDTO.SELECT){handler->
-                    select {
+                    select(handler) {
 
                     }
                 }
@@ -88,14 +82,14 @@ class TestSequenceCRUD : DatabaseTest(), TasksManaged {
         assertEquals(2, selectResult.size, "Selection count mismatch")
     }
 
-    @Test
+
     fun `Sequnenced SELECT with query parameter`() = runTest {
         val pages: List<Page> = pageModelsWithSections(pageCount = 2, sectionsCount = 2, updatedBy = 1)
         withConnection{
             service(PageDTO) {
                 update(pages)
                 sequenced(PageDTO.SELECT){handler->
-                    select(handler.whereQuery){
+                    select(handler){
 
                     }
                 }
@@ -109,7 +103,7 @@ class TestSequenceCRUD : DatabaseTest(), TasksManaged {
         assertEquals(2, selectResult.size, "Selection count mismatch")
     }
 
-
+    @Test
     fun `Sequnenced PICK BY ID execution`() = runTest {
 
         val page: Page = pageModelsWithSections(pageCount = 1, sectionsCount = 2, updatedBy = 1).first()
@@ -119,7 +113,7 @@ class TestSequenceCRUD : DatabaseTest(), TasksManaged {
             service(PageDTO) {
                 pickById = update(page).getData()?.id?:0L
                 sequenced(PageDTO.PICK) {handler->
-                    pickById(handler.input){
+                    pickById(handler){
                         withInputValue {
                             println("Input Value: $this")
                         }

@@ -2,7 +2,6 @@ package po.lognotify.debug
 
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.LoggerDataProcessor
-import po.lognotify.debug.extensions.createInputParameter
 import po.lognotify.debug.interfaces.DebugProvider
 import po.lognotify.debug.models.CaptureBlock
 import po.lognotify.debug.models.DebugParams
@@ -10,15 +9,20 @@ import po.lognotify.debug.models.InputParameter
 import po.misc.data.console.PrintableTemplate
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.PrintableCompanion
-import po.misc.interfaces.IdentifiableContext
+import po.misc.context.CTX
+import po.misc.interfaces.ClassIdentity
+import po.misc.context.IdentifiableClass
+import po.misc.context.Identifiable
 
 
-open class DebugProxy<T: IdentifiableContext, P: PrintableBase<P>>(
+open class DebugProxy<T: Identifiable, P: PrintableBase<P>>(
     val receiver:T,
     val printableClass: PrintableCompanion<P>,
     private var dataProcessor: LoggerDataProcessor,
     val dataProvider: (DebugParams<P>)-> P
-): DebugProvider{
+): DebugProvider, IdentifiableClass{
+
+    override val identity: ClassIdentity = ClassIdentity.create("DebugProxy", receiver.contextName)
 
     open var activeTemplate: PrintableTemplate<P>? = null
     var methodName: String = "N/A"
@@ -89,7 +93,7 @@ open class DebugProxy<T: IdentifiableContext, P: PrintableBase<P>>(
     }
 }
 
-fun <T: IdentifiableContext, P: PrintableBase<P>> TasksManaged.debugProxy(
+fun <T: CTX, P: PrintableBase<P>> TasksManaged.debugProxy(
     receiver:T,
     printableClass: PrintableCompanion<P>,
     usingTemplate: PrintableTemplate<P>? = null,

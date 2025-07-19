@@ -52,9 +52,9 @@ class TestSequenceSwitch : DatabaseTest(), TasksManaged {
                 pickById = update(page).getData()?.id ?: 0L
 
                 sequenced(PageDTO.PICK) { handler ->
-                    pickById(handler.input) {
+                    pickById(handler) {
                         switchStatement(SectionDTO.UPDATE){switchHandler->
-                            update(switchHandler.input){
+                            update(switchHandler){
 
                             }
                         }

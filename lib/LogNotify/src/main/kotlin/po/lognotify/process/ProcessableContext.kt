@@ -2,7 +2,7 @@ package po.lognotify.process
 
 
 import po.misc.data.printable.PrintableBase
-import po.misc.interfaces.IdentifiableContext
+import po.misc.context.Identifiable
 import kotlin.coroutines.CoroutineContext
 
 interface ProcessableContext<out E: CoroutineContext.Element> : CoroutineContext.Element {
@@ -17,7 +17,7 @@ interface ProcessableContext<out E: CoroutineContext.Element> : CoroutineContext
 }
 
 
-interface LogReceiver: IdentifiableContext{
+interface LogReceiver: Identifiable{
 
     val receivableContext:()->LogReceiver
 

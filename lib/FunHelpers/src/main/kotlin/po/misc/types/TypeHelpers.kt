@@ -2,9 +2,10 @@ package po.misc.types
 
 import po.misc.data.helpers.textIfNull
 import po.misc.exceptions.ManagedCallSitePayload
+import po.misc.exceptions.ManagedException
 import po.misc.exceptions.managedException
 import po.misc.exceptions.throwManaged
-import po.misc.interfaces.IdentifiableContext
+import po.misc.context.Identifiable
 import java.time.LocalDateTime
 import kotlin.reflect.KClass
 
@@ -45,9 +46,7 @@ fun <T : Any> T?.getOrManaged(
     if(this == null){
         var message = "${payload.message}. getOrManaged returned null. ${payload.targetObject.textIfNull(""){ "Target object: ${it}"}}"
         message += payload.description
-
-        val managed = payload.ctx.managedException(message, payload.source, payload.cause)
-        payload.outputOverride?.invoke(managed)?: run {  throwManaged(message, payload.handler, payload.source, payload.cause)}
+        val managed = payload.producer.managedException(message, payload.source, payload.cause)
        throw managed
     }else{
         return this
@@ -57,7 +56,6 @@ fun <T : Any> T?.getOrManaged(
 
 fun <T : Any> T?.getOrManaged(
     className: String,
-    ctx: IdentifiableContext? = null
 ):T {
     if(this != null){
         return this
@@ -96,4 +94,20 @@ fun <T: Any> TypeData<T>.getDefaultForType(): T? {
         else -> null
     }
     return result?.safeCast(this.kClass)
+}
+
+inline fun <T: Any> T?.letOrException(ex : ManagedException, block: (T)-> T){
+    if(this != null){
+        block(this)
+    } else {
+        throw ex
+    }
+}
+
+fun <T: Any?, E: ManagedException> T.testOrException( exception : E, predicate: (T) -> Boolean): T{
+    if (predicate(this)){
+        return this
+    }else{
+        throw exception
+    }
 }

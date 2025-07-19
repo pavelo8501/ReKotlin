@@ -1,6 +1,7 @@
 package po.test.misc.data
 
 import org.junit.jupiter.api.Test
+import po.misc.context.CTX
 import po.misc.data.printable.PrintableBase
 import po.misc.data.console.PrintableTemplate
 import po.misc.data.helpers.emptyOnNull
@@ -16,19 +17,19 @@ import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
 import po.misc.data.templates.matchTemplate
 import po.misc.data.templates.templateRule
-import po.misc.interfaces.Identifiable
-import po.misc.interfaces.ValueBased
-import po.misc.interfaces.asIdentifiable
-import po.misc.interfaces.toValueBased
+import po.misc.context.asContext
 import po.misc.time.ExecutionTimeStamp
 
 
 import kotlin.test.assertTrue
 
-class TestJsonParser {
+class TestJsonParser: CTX {
 
+
+    override val identity = asContext()
 
     data class TaskDataLocal(
+        override val producer : CTX,
         val nestingLevel: Int,
         val taskName: String,
         val timeStamp: ExecutionTimeStamp,
@@ -38,7 +39,6 @@ class TestJsonParser {
 
         override val self: TaskDataLocal = this
 
-        override val emitter: Identifiable = asIdentifiable(taskName, "TestJsonParser")
         override fun toJson(): String {
             return  serialize(this)
         }
@@ -65,7 +65,7 @@ class TestJsonParser {
 
             val prefix: TaskDataLocal.(auxMessage: String) -> String = { auxMessage ->
                 "${Colour.makeOfColour(Colour.BLUE, "[${auxMessage}")}  ${nestingFormatter(this)}" +
-                        "${taskName} | ${emitter.contextName} @ $currentTime".colorize(Colour.BLUE)
+                        "${taskName} | ${producer.contextName} @ $currentTime".colorize(Colour.BLUE)
             }
 
             val messageFormatter: TaskDataLocal.() -> String = {
@@ -80,7 +80,7 @@ class TestJsonParser {
                 SpecialChars.NewLine.char + prefix.invoke(
                     this,
                     "Start"
-                ) + "${emitter.contextName.emptyOnNull("by ")}]".colorize(Colour.BLUE)
+                ) + "${producer.contextName.emptyOnNull("by ")}]".colorize(Colour.BLUE)
             }
 
             val Footer: PrintableTemplate<TaskDataLocal> = PrintableTemplate("Footer") {
@@ -99,9 +99,9 @@ class TestJsonParser {
     }
 
     data class ValidationRep(
+        override val producer: CTX,
         var validationName: String
     ): PrintableBase<ValidationRep>(Main), JasonStringSerializable {
-        override val emitter: Identifiable = asIdentifiable("ValidationReport", "ValidationReport")
         override val self: ValidationRep = this
         override fun toJson(): String {
             return serialize(this)
@@ -117,6 +117,7 @@ class TestJsonParser {
     fun `To json conversion`() {
 
         val task = TaskDataLocal(
+            this,
             nestingLevel = 0,
             taskName = "TestTask",
             timeStamp = ExecutionTimeStamp("task", 1.toString()),
@@ -125,10 +126,10 @@ class TestJsonParser {
         )
 
         //val map = PrintableBase.Companion.firstRun<TaskDataLocal>()
-        val report1 = ValidationRep("UserValidation")
-        val report2 = ValidationRep("UserValidation")
-        val report3 = ValidationRep("UserValidation")
-        val report4 = ValidationRep("UserValidation")
+        val report1 = ValidationRep(this, "UserValidation")
+        val report2 = ValidationRep(this, "UserValidation")
+        val report3 = ValidationRep(this, "UserValidation")
+        val report4 = ValidationRep(this, "UserValidation")
 
         task.addChild(report1)
         task.addChild(report2)
@@ -147,6 +148,7 @@ class TestJsonParser {
     fun `To json conversion as as array`() {
 
         val rootTask = TaskDataLocal(
+            this,
             nestingLevel = 0,
             taskName = "RootTask",
             timeStamp = ExecutionTimeStamp("task", 1.toString()),
@@ -157,6 +159,7 @@ class TestJsonParser {
         val tasks: MutableList<TaskDataLocal> = mutableListOf()
         for (i in 1..10) {
             val task = TaskDataLocal(
+                this,
                 nestingLevel = i,
                 taskName = "TestTask",
                 timeStamp = ExecutionTimeStamp("task_${i}", i.toString()),

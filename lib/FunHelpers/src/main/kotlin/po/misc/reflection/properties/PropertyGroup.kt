@@ -1,6 +1,5 @@
 package po.misc.reflection.properties
 
-import po.misc.interfaces.IdentifiableContext
 import po.misc.reflection.properties.enums.DataTag
 
 

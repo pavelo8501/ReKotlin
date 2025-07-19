@@ -4,7 +4,8 @@ import org.junit.jupiter.api.Test
 import po.misc.data.monitor.HealthMonitor
 import po.misc.data.monitor.LifecyclePhase
 import po.misc.data.monitor.MonitorAction
-import po.misc.interfaces.CTX
+import po.misc.context.CTX
+import po.misc.context.asContext
 import po.test.misc.setup.ControlClass
 import kotlin.test.assertEquals
 
@@ -12,7 +13,9 @@ class TestHealthMonitor {
 
 
     class Monitored() : ControlClass(), CTX {
-        override val contextName: String get() = "Monitored"
+
+        override val identity = asContext()
+
         val monitor: HealthMonitor<Monitored> = HealthMonitor(this)
         init {
             monitor.phase(LifecyclePhase.Initialization)

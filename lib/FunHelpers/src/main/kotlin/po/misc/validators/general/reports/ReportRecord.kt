@@ -1,5 +1,6 @@
 package po.misc.validators.general.reports
 
+import po.misc.context.CTX
 import po.misc.data.printable.PrintableBase
 import po.misc.data.console.PrintableTemplate
 import po.misc.data.helpers.emptyOnNull
@@ -8,16 +9,12 @@ import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.data.templates.matchTemplate
 import po.misc.data.templates.templateRule
-import po.misc.interfaces.Identifiable
-import po.misc.interfaces.ValueBased
-import po.misc.interfaces.asIdentifiable
-import po.misc.interfaces.toValueBased
 import po.misc.validators.general.ValidationContainerBase
 import po.misc.validators.general.models.CheckStatus
 
 
 class ReportRecord internal constructor(
-    val checkName: String,
+    override val producer: CTX,
     val recordName: String,
     val result: CheckStatus,
 ): PrintableBase<ReportRecord>(GeneralTemplate) {
@@ -27,7 +24,7 @@ class ReportRecord internal constructor(
         private set
 
    // override val itemId: ValueBased = toValueBased(0)
-    override val emitter: Identifiable = asIdentifiable(recordName, checkName)
+
 
     override val self: ReportRecord = this
 
@@ -49,13 +46,13 @@ class ReportRecord internal constructor(
 
 
         fun success(container: ValidationContainerBase<*>, checkName: String):ReportRecord{
-            return ReportRecord(container.validationName, checkName, CheckStatus.PASSED)
+            return ReportRecord(container.identifiable, checkName, CheckStatus.PASSED)
         }
         fun fail(container: ValidationContainerBase<*>, checkName: String, message: String):ReportRecord{
-          return ReportRecord(container.validationName, checkName, CheckStatus.FAILED).setMessage(message)
+          return ReportRecord(container.identifiable, checkName, CheckStatus.FAILED).setMessage(message)
         }
         fun fail(container: ValidationContainerBase<*>, checkName: String, th: Throwable):ReportRecord{
-            return ReportRecord(container.validationName, checkName, CheckStatus.FAILED).setMessage(th.message.toString())
+            return ReportRecord(container.identifiable, checkName, CheckStatus.FAILED).setMessage(th.message.toString())
         }
 
     }

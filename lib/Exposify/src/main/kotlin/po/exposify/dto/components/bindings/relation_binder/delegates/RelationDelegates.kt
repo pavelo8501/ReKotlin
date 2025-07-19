@@ -6,25 +6,25 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
 import po.exposify.dto.DTOClass
-import po.exposify.dto.components.DTOExecutionContext
 import po.exposify.dto.components.bindings.BindingHub
 import po.exposify.dto.components.bindings.DelegateStatus
 import po.exposify.dto.components.bindings.helpers.newDTO
 import po.exposify.dto.components.bindings.interfaces.DelegateInterface
 import po.exposify.dto.components.bindings.interfaces.ForeignDelegateInterface
+import po.exposify.dto.components.createDTOContext
 import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.components.tracker.DTOTracker
 import po.exposify.dto.components.tracker.extensions.addTrackerInfo
 import po.exposify.dto.enums.Cardinality
-import po.exposify.dto.enums.DTOStatus
 import po.exposify.dto.helpers.asDTO
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.models.CommonDTOType
 import po.exposify.extensions.castOrInit
 import po.exposify.extensions.getOrOperations
-import po.lognotify.classes.action.InlineAction
+import po.lognotify.action.InlineAction
 import po.misc.data.SmartLazy
 import po.misc.interfaces.ClassIdentity
-import po.misc.interfaces.IdentifiableClass
+import po.misc.context.IdentifiableClass
 import po.misc.types.TypeData
 import po.misc.types.containers.Multiple
 import po.misc.types.containers.Single
@@ -49,17 +49,15 @@ sealed class RelationDelegate<DTO, D, E, F, FD, FE>(
     override val identity: ClassIdentity = ClassIdentity.create(delegateName, hostingDTO.sourceName)
 
     override val hostingClass: DTOBase<DTO, D, E> get() = hostingDTO.dtoClass
-    protected val bindingHub: BindingHub<DTO,D,E> get() = hostingDTO.hub
-    protected val ownExecutionContext: DTOExecutionContext<DTO, D, E, DTO, D, E> get() = bindingHub.execCtx
     protected val tracker: DTOTracker<DTO, D, E> get() = hostingDTO.tracker
-    protected val commonType: TypeData<CommonDTO<DTO, D, E>> = hostingClass.commonType.toTypeData()
+    protected val commonType: CommonDTOType<DTO, D, E>  get() =  hostingClass.commonType
     protected val dtoType: TypeData<DTO> = hostingDTO.typeData
 
     protected val ownEntity:E get(){
-      return  ownExecutionContext.getEntity(this)
+        return hostingDTO.entityContainer.source
     }
     protected val ownDataModel:D get(){
-        return  ownExecutionContext.getDataModel(this)
+        return hostingDTO.dataContainer.source
     }
 
 
@@ -83,6 +81,7 @@ sealed class RelationDelegate<DTO, D, E, F, FD, FE>(
             propertyParameter = property.castOrInit(this)
             identity.updateSourceName(property.name)
             hostingDTO.hub.registerRelationDelegate(this)
+            hostingDTO.registerExecutionContext(foreignClass.commonType, hostingDTO.createDTOContext(foreignClass))
             onPropertyInitialized?.invoke(property)
         }
     }
@@ -147,9 +146,6 @@ class OneToManyDelegate<DTO, D, E, F, FD, FE>(
     override val cardinality : Cardinality = Cardinality.ONE_TO_MANY
     private val dtos : MutableList<CommonDTO<F, FD, FE>> = mutableListOf()
 
-//    val container =  hostingDTO.toUpdatableContainer(hostingDTO.dtoClass.commonType.toTypeData(), ownOnForeignEntityProperty){
-//        it.entity
-//    }
     override val childCommonDTOList: List<CommonDTO<F, FD, FE>> get(){
         return dtos.toList()
     }
@@ -180,24 +176,27 @@ class OneToManyDelegate<DTO, D, E, F, FD, FE>(
     override fun attachChildDataModel(){
         val childDataList = dataProperty.get(ownDataModel)
         dtos.forEach {
-           val dataModel =  it.executionContext.getDataModel(this)
+           val dataModel =  it.dataContainer.source
            childDataList.add(dataModel)
         }
     }
     override fun extractChildEntities(entity: E): List<FE> {
         return entitiesProperty.get(entity).toList()
     }
-    override fun save(common: CommonDTO<F, FD, FE>){
+
+    private fun dtoSave(common: CommonDTO<F, FD, FE>){
         common.cardinality = cardinality
-        bindEntity = true
         common.hub.assignParent(hostingDTO.asDTO(), dtoType,  entityBinder)
         dtos.add(common)
     }
+
+    override fun save(common: CommonDTO<F, FD, FE>){
+        bindEntity = true
+        dtoSave(common)
+    }
     override fun save(common: CommonDTO<F, FD, FE>, data:FD){
         bindEntity = false
-        common.cardinality = cardinality
-        common.hub.assignParent(hostingDTO.asDTO(), dtoType, entityBinder)
-        dtos.add(common)
+        dtoSave(common)
     }
 
     operator fun provideDelegate(thisRef: DTO, property: KProperty<*>): OneToManyDelegate<DTO, D, E, F, FD, FE> {
@@ -255,26 +254,27 @@ class OneToOneDelegate<DTO, D, E, F, FD, FE>(
     }
     override fun attachChildDataModel(){
         childDTOBacking?.let {
-            val childDataModel = it.executionContext.getDataModel(this)
+            val childDataModel = it.dataContainer.source
             dataProperty.set(ownDataModel, childDataModel)
         }
-
     }
     override fun extractChildEntities(entity: E): List<FE> {
         return listOf(entityProperty.get(entity))
     }
-    override fun save(common: CommonDTO<F, FD, FE>){
+
+    private fun dtoSave(common: CommonDTO<F, FD, FE>){
         common.cardinality = cardinality
-        bindEntity = true
         common.hub.assignParent(hostingDTO.asDTO(), dtoType,  entityBinder)
         childDTOBacking = common
     }
+
+    override fun save(common: CommonDTO<F, FD, FE>){
+        bindEntity = true
+        dtoSave(common)
+    }
     override fun save(common: CommonDTO<F, FD, FE>, data:FD){
-        common.cardinality = cardinality
         bindEntity = false
-        common.hub.assignParent(hostingDTO.asDTO(), dtoType, entityBinder)
-      //  common.provideData(data, DTOStatus.PartialWithData)
-        childDTOBacking = common
+        dtoSave(common)
     }
 
     operator fun getValue(thisRef:DTO, property: KProperty<*>): F {

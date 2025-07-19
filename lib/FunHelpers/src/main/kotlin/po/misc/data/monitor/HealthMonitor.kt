@@ -7,8 +7,7 @@ import po.misc.data.printable.PrintableCompanion
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
-import po.misc.interfaces.CTX
-import po.misc.interfaces.IdentifiableContext
+import po.misc.context.CTX
 import po.misc.reflection.anotations.ManagedProperty
 import po.misc.reflection.properties.takePropertySnapshot
 import po.misc.types.isNotNull
@@ -36,7 +35,7 @@ class HealthMonitor<T: CTX>(
         var message: String? = null
     ): PrintableBase<Record>(Default){
         override val self: Record = this
-        override val emitter: IdentifiableContext get() = holder
+        override val producer: CTX get() = holder
         val dateTime: LocalTime = LocalTime.now()
 
         companion object: PrintableCompanion<Record>({Record::class}){
@@ -55,7 +54,7 @@ class HealthMonitor<T: CTX>(
         phase(LifecyclePhase.Construction)
     }
     private fun finalizePhase(lastRecord: Record){
-        healthJournal[lastRecord.phase]?.add(Record(source, lastRecord.phase, MonitorAction.Stop, source.contextName))
+        healthJournal[lastRecord.phase]?.add(Record(source, lastRecord.phase, MonitorAction.Stop, source.completeName))
     }
 
     private fun prebuildRecord(action: MonitorAction, parameter: String):Record{
@@ -72,14 +71,14 @@ class HealthMonitor<T: CTX>(
         val snapshot = takePropertySnapshot<T, ManagedProperty>(source)
         if(snapshot.isNotEmpty()){
             println("Before crash  property snapshot")
-           val snapshotStr =  snapshot.entries.joinToString(separator = SpecialChars.NewLine.char) { "val ${it.key} = ${it.value}" }
+           val snapshotStr =  snapshot.joinToString(separator = SpecialChars.NewLine.char) { "val ${it.propertyName} = ${it.value}" }
             println(snapshotStr)
         }
     }
 
     fun phase(phase: LifecyclePhase){
         lastRecordOfActivePhase?.let { finalizePhase(it) }
-        healthJournal.put(phase, mutableListOf(Record(source, phase, MonitorAction.Start, source.contextName)))
+        healthJournal.put(phase, mutableListOf(Record(source, phase, MonitorAction.Start, source.completeName)))
     }
 
 
@@ -116,7 +115,7 @@ class HealthMonitor<T: CTX>(
         val recordsStr: String = records.joinToString(SpecialChars.NewLine.char) {
             it.formattedString
         }
-        val phaseStr = "[${phase.name} of ${source.contextName.colorize(Colour.YELLOW)}] ${SpecialChars.NewLine.char}${recordsStr}"
+        val phaseStr = "[${phase.name} of ${source.completeName.colorize(Colour.YELLOW)}] ${SpecialChars.NewLine.char}${recordsStr}"
         return phaseStr
     }
 
@@ -128,7 +127,7 @@ class HealthMonitor<T: CTX>(
         val phases =  healthJournal.keys.joinToString(separator = SpecialChars.NewLine.char.repeat(2)) {
             phaseReport(it)
         }
-        val report = "${Colour.makeOfColour(Colour.BLUE, "Activity report")} for (${source.contextName}) ${SpecialChars.NewLine}$phases"
+        val report = "${Colour.makeOfColour(Colour.BLUE, "Activity report")} for (${source.completeName}) ${SpecialChars.NewLine}$phases"
         return  report
     }
 

@@ -1,14 +1,15 @@
 package po.misc.callbacks
 
-import po.misc.interfaces.IdentifiableContext
+import po.misc.context.CTX
+import po.misc.context.Identifiable
 
 
 class CallbackManagerHooks{
 
-    data class SubscriptionRecord(val subscriber: IdentifiableContext, val eventType: Enum<*>)
-    data class ManagerStats(val newEntry: SubscriptionRecord, val registrySize: Int, val emitter: IdentifiableContext)
-    data class TriggerEvent(val subscriber: IdentifiableContext, val eventType: Enum<*>, val value: Any, val emitter: IdentifiableContext)
-    data class PostTriggerEvent(val triggeredCount: Int, val registrySize: Int, val emitter: IdentifiableContext)
+    data class SubscriptionRecord(val subscriber: CTX, val eventType: Enum<*>)
+    data class ManagerStats(val newEntry: SubscriptionRecord, val registrySize: Int, val emitter: CTX)
+    data class TriggerEvent(val subscriber: CTX, val eventType: Enum<*>, val value: Any, val emitter: CTX)
+    data class PostTriggerEvent(val triggeredCount: Int, val registrySize: Int, val emitter: CTX)
 
     internal var onNewSubscription: ((ManagerStats)-> Unit)? = null
     internal var onBeforeTrigger: ((TriggerEvent)-> Unit)? = null

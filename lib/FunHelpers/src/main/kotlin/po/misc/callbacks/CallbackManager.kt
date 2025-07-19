@@ -6,10 +6,11 @@ import po.misc.collections.StaticTypeKey
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.throwManaged
 import po.misc.functions.methodeProbe
-import po.misc.interfaces.CTX
-import po.misc.interfaces.IdentifiableClass
-import po.misc.interfaces.IdentifiableContext
-import po.misc.interfaces.ObservedContext
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.Identifiable
+import po.misc.context.asContext
+import po.misc.context.fromContext
 import po.misc.types.TypeData
 import po.misc.types.castOrManaged
 import po.misc.types.safeCast
@@ -19,9 +20,9 @@ import kotlin.Any
 
 class CallbackManager<E: Enum<E>>(
     enumClass: Class<E>,
-    val emitter: IdentifiableContext,
+    val emitter: CTX,
     private val config: Configuration = Configuration()
-): ObservedContext, CTX {
+): CTX {
 
     data class ManagerStats(
         val eventTypesCount: Int,
@@ -31,13 +32,16 @@ class CallbackManager<E: Enum<E>>(
         val routedContainersCount: Int
     )
 
-    override val contextName: String = "CallbackManager On ${emitter.contextName}"
-    override val sourceName: String = emitter.contextName
+    override val identity  = fromContext<CallbackManager<*>>(this)
+
+
+   //val identity: Identifiable = identifiable("CallbackManager", emitter.context)
+
 
     internal val  singleTypeEventMap = EnumMap<E, MutableList<CallbackPayload<E, *,>>>(enumClass)
     internal val  resultTypeEventMap = EnumMap<E, MutableList<ResultCallbackPayload<E, *, *>>>(enumClass)
 
-    override var exceptionOutput: ((ManagedException) -> Unit)? = null
+    var exceptionOutput: ((ManagedException) -> Unit)? = null
     internal var hooks: CallbackManagerHooks? = null
 
     private fun <T: Any> containerLookup(
@@ -137,10 +141,10 @@ class CallbackManager<E: Enum<E>>(
     }
 
     inline fun <reified T: Any> subscribe(
-        subscriber: IdentifiableContext,
+        subscriber: CTX,
         eventType:E,
         noinline function: (Containable<T>) -> Unit
-    ): Unit = methodeProbe("subscribe", subscriber) {
+    ): Unit {
         val key = StaticTypeKey.createTypeKey<T>()
         payloadLookup(eventType, key)?.subscribe(subscriber, function)?:run {
             throwManaged("Payload for the given eventType: ${eventType.name} and key: $key not registered")
@@ -149,20 +153,20 @@ class CallbackManager<E: Enum<E>>(
     }
 
     inline fun <reified T: Any> request(
-        subscriber: IdentifiableClass,
+        subscriber: CTX,
         eventType: E,
         noinline function: (Containable<T>) -> Unit
-    ): Unit = methodeProbe("request", eventType) {
+    ): Unit {
         val key = StaticTypeKey.createTypeKey<T>()
         payloadLookup(eventType, key)?.request(subscriber, function) ?:run {
             throwManaged("Payload for the given eventType: ${eventType.name} and key: $key not registered")
         }
     }
 
-    inline fun <reified T: Any> trigger(eventType: E, value: T, subscriber: IdentifiableClass? = null): Unit
+    inline fun <reified T: Any> trigger(eventType: E, value: T, subscriber: CTX? = null): Unit
         = trigger(eventType, StaticTypeKey.createTypeKey<T>(), value, subscriber)
 
-    fun <T: Any> trigger(eventType: E, key: ComparableType<T>, value: T, subscriber: IdentifiableClass? = null){
+    fun <T: Any> trigger(eventType: E, key: ComparableType<T>, value: T, subscriber: CTX? = null){
         val payload = payloadLookup(eventType, key)
         if(payload != null) {
             subscriber?.let {subscriber->
@@ -173,10 +177,10 @@ class CallbackManager<E: Enum<E>>(
         }
     }
 
-    inline fun <reified T: Any, R: Any> triggerAndExpect(eventType: E, value: T, subscriber: IdentifiableClass? = null): R
+    inline fun <reified T: Any, R: Any> triggerAndExpect(eventType: E, value: T, subscriber: CTX? = null): R
             =triggerAndExpect(eventType, StaticTypeKey.createTypeKey<T>(), value, subscriber)
 
-    fun <T: Any, R: Any> triggerAndExpect(eventType: E, key: ComparableType<T>, value: T, subscriber: IdentifiableClass? = null):R {
+    fun <T: Any, R: Any> triggerAndExpect(eventType: E, key: ComparableType<T>, value: T, subscriber: CTX? = null):R {
         val payload = resultPayloadLookup<T,R>(eventType, key)
         if(payload != null) {
             subscriber?.let { subscriber ->

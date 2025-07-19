@@ -1,9 +1,12 @@
 package po.misc.functions.containers
 
 import po.misc.exceptions.ManagedCallSitePayload
-import po.misc.functions.hooks.ReactiveComponent
+import po.misc.functions.hooks.BasicHooks
 import po.misc.functions.hooks.ReactiveHooks
-import po.misc.interfaces.CTX
+import po.misc.functions.interfaces.FunctionalClass
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asContext
 import po.misc.types.getOrManaged
 
 
@@ -15,19 +18,24 @@ import po.misc.types.getOrManaged
  * @param V The externally visible value (e.g., input, output, or transformed result).
  * @param initialLambda Optional lambda provider assigned during construction.
  */
-sealed class BasicFunctionContainer<T: Any, R: Any?, V: Any>(
-  initialLambda: ((T)->R)? = null
-): ReactiveComponent<BasicFunctionContainer<T, R, V>, V>, CTX{
+sealed class BasicFunctionContainer<T: Any, R: Any?, V: Any?>(
+  val holder: CTX,
+  initialLambda: ((T)->R)? = null,
+  val hooks: ReactiveHooks<BasicFunctionContainer<T, R, V>, V> = ReactiveHooks()
+):  FunctionalClass<V>, CTX, BasicHooks<BasicFunctionContainer<T, R, V>, V> by hooks{
+
+    override val identity : CTXIdentity<BasicFunctionContainer<T, R, V>> = asContext(parentContext = holder)
+
 
     /**
      * Hook manager for this container.
      */
-    override val hooks: ReactiveHooks<BasicFunctionContainer<T, R, V>, V> = ReactiveHooks(this)
+   // override val hooks: ReactiveHooks<BasicFunctionContainer<T, R, V>, V> = ReactiveHooks(this)
 
     /**
      * Payload used for enhanced exception reporting during resolution.
      */
-    protected val exceptionPayload: ManagedCallSitePayload = ManagedCallSitePayload(ctx = this)
+    protected val exceptionPayload: ManagedCallSitePayload = ManagedCallSitePayload(this)
 
     private var lambdaBacking: ((T)->R)? = null
     protected val lambda: ((T)->R) get(){
@@ -35,16 +43,12 @@ sealed class BasicFunctionContainer<T: Any, R: Any?, V: Any>(
     }
     override val isLambdaProvided: Boolean get() = lambdaBacking != null
 
+    abstract  val receiver:T
+
     protected var resultBacking: R? = null
     protected val  result:R  get() {
         return resultBacking.getOrManaged(exceptionPayload.method("result get()", "resultBacking:T"))
     }
-
-//    protected var receiverBacking: T? = null
-//    protected val receiver:T  get() {
-//        return receiverBacking.getOrManaged(exceptionPayload.method("receiver get()", "receiverBacking:T"))
-//    }
-    abstract  val receiver:T
 
     private var valueBacking:V? = null
     open val value: V get() = valueBacking.getOrManaged(exceptionPayload.method("value get()", "valueBacking:V"))
@@ -71,7 +75,7 @@ sealed class BasicFunctionContainer<T: Any, R: Any?, V: Any>(
         //receiverBacking = null
     }
 
-    override fun notifyChanged(old: V?, new: V){
+    fun notifyChanged(old: V?, new: V){
         hooks.fireChange(old, new)
     }
 
@@ -125,7 +129,7 @@ sealed class BasicFunctionContainer<T: Any, R: Any?, V: Any>(
         return value
     }
 
-    override fun disposeHooks() {
+    fun disposeHooks() {
         hooks.disposeHooks()
     }
 
@@ -155,9 +159,9 @@ sealed class BasicFunctionContainer<T: Any, R: Any?, V: Any>(
  * @param initialLambda An optional lambda to register during initialization.
  */
 class LambdaContainer<T: Any>(
-    private val holder: CTX,
+    holder: CTX ,
     initialLambda: ((T)-> Unit)? = null
-): BasicFunctionContainer<T, Unit, T>(initialLambda) {
+): BasicFunctionContainer<T, Unit, T>(holder , initialLambda) {
 
     /**
      * A unique name for the container based on the provided context.
@@ -217,10 +221,10 @@ class LambdaContainer<T: Any>(
  * @param holder A parent context used for naming and identification.
  * @param initialLambda An optional lambda to register during initialization.
  */
-class DeferredContainer<R: Any>(
-    private val holder: CTX,
+class DeferredContainer<R>(
+    holder: CTX,
     initialLambda: ((Unit)-> R)? = null
-): BasicFunctionContainer<Unit, R, R>(initialLambda) {
+): BasicFunctionContainer<Unit, R, R>(holder, initialLambda) where R: Any?{
 
     /**
      * A unique name for the container based on the provided context.
@@ -232,7 +236,6 @@ class DeferredContainer<R: Any>(
     override fun receiverProvided(value: Unit) {
 
     }
-
 
     /**
      * Returns the latest resolved result.
@@ -249,6 +252,7 @@ class DeferredContainer<R: Any>(
      * @return The resolved result.
      */
     override fun resolve():R{
+        hooks.fireBeforeResolve()
         val resolvedValue =  super.resolve()
         provideValue(resolvedValue)
         return value
@@ -272,9 +276,9 @@ class DeferredContainer<R: Any>(
  * @param initialLambda Optional lambda function to assign on initialization.
  */
 class LazyExecutionContainer<T : Any, R : Any>(
-    private val holder: CTX,
+    holder: CTX,
     initialLambda: ((T)-> R)? = null
-): BasicFunctionContainer<T, R, R>(initialLambda) {
+): BasicFunctionContainer<T, R, R>(holder, initialLambda) {
 
     /**
      * A unique name for the container, based on the parent context.

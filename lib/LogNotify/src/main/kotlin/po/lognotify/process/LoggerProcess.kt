@@ -1,7 +1,7 @@
 package po.lognotify.process
 
 import po.misc.coroutines.CoroutineHolder
-import po.misc.interfaces.Identifiable
+import po.misc.context.Identifiable
 import po.misc.interfaces.asIdentifiable
 import po.misc.time.ExecutionTimeStamp
 

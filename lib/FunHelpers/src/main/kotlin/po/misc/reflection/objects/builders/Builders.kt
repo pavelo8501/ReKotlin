@@ -1,16 +1,5 @@
 package po.misc.reflection.objects.builders
 
-import po.misc.data.delegates.ComposableProperty
-import po.misc.interfaces.IdentifiableContext
-import po.misc.reflection.objects.Composed
-import po.misc.reflection.properties.PropertyIO
-import po.misc.reflection.properties.PropertyIOBase
-import po.misc.reflection.properties.createPropertyIO
-import po.misc.reflection.properties.toPropertyInfo
-import kotlin.reflect.KClass
-import kotlin.reflect.KMutableProperty1
-import kotlin.reflect.KProperty1
-import kotlin.reflect.full.memberProperties
 //
 //fun <E: Enum<E>, T: Composed> T.createClassSurrogate(
 //    key:E,

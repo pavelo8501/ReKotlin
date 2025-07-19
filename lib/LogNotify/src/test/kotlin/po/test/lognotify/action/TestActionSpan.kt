@@ -2,11 +2,11 @@ package po.test.lognotify.action
 
 import org.junit.jupiter.api.Test
 import po.lognotify.TasksManaged
-import po.lognotify.classes.action.InlineAction
-import po.lognotify.classes.action.runInlineAction
+import po.lognotify.action.InlineAction
+import po.lognotify.extensions.runInlineAction
 import po.lognotify.extensions.runTask
 import po.misc.interfaces.ClassIdentity
-import po.misc.interfaces.IdentifiableClass
+import po.misc.context.IdentifiableClass
 import po.misc.interfaces.asIdentifiableClass
 import kotlin.test.assertEquals
 
@@ -35,12 +35,12 @@ class TestActionSpan: TasksManaged {
     @Test
     fun `ActionSpan test`(){
 
-        runTask("RootTask"){handler->
+        runTask("RootTask"){
             factory.method1()
             factory.method1()
             factory.method1()
 
-            assertEquals(3, handler.actions.size, "ActionSpan size mismatch")
+            assertEquals(3, taskHandler.actions.size, "ActionSpan size mismatch")
         }
 
     }

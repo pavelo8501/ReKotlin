@@ -1,7 +1,6 @@
 package po.misc.reflection.classes
 
-import po.misc.interfaces.ClassIdentity
-import po.misc.interfaces.IdentifiableClass
+import po.misc.context.CTX
 import po.misc.reflection.properties.PropertyGroup
 import po.misc.reflection.properties.PropertyIO
 import kotlin.reflect.KClass
@@ -10,11 +9,13 @@ import kotlin.reflect.KType
 abstract class ContainerBase<T>(
     internal val kClass: KClass<T>,
     internal val kType: KType
-): IdentifiableClass where T: ContainerBase<T>{
+): CTX where T: ContainerBase<T>{
 
     abstract val  self: ContainerBase<T>
 
-    override val identity: ClassIdentity = ClassIdentity.create("ContainerBase", kClass)
+    override val contextName: String
+        get() = "ContainerBase"
+
 
     internal var dataInstance:T? = null
 

@@ -3,7 +3,7 @@ package po.exposify.exceptions
 import po.exposify.exceptions.enums.ExceptionCode
 import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.exceptions.ManagedException
-import po.misc.interfaces.IdentifiableContext
+import po.misc.context.Identifiable
 
 fun  Boolean.trueOrInitException(){
     if(!this){
@@ -27,7 +27,7 @@ internal fun initException(message: String, code: ExceptionCode, original: Throw
 
 
 @PublishedApi
-internal fun initException(message: String, code: ExceptionCode,  ctx: IdentifiableContext? = null): InitException{
+internal fun initException(message: String, code: ExceptionCode,  ctx: Identifiable? = null): InitException{
     val exception = InitException(message, code, null)
     if(ctx != null){
         exception.addHandlingData(ctx, ManagedException.ExceptionEvent.Registered)
@@ -35,14 +35,14 @@ internal fun initException(message: String, code: ExceptionCode,  ctx: Identifia
     return exception
 }
 
-internal fun initAbnormal(message: String, ctx: IdentifiableContext? = null): InitException{
+internal fun initAbnormal(message: String, ctx: Identifiable? = null): InitException{
     val exception = InitException(message, ExceptionCode.ABNORMAL_STATE, null)
     if(ctx != null){
         exception.addHandlingData(ctx, ManagedException.ExceptionEvent.Registered)
     }
     return exception
 }
-internal fun throwInit(message: String, code: ExceptionCode, ctx: IdentifiableContext? = null): Nothing{
+internal fun throwInit(message: String, code: ExceptionCode, ctx: Identifiable? = null): Nothing{
     throw  initException(message, code, ctx)
 }
 

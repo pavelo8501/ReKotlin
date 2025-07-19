@@ -1,15 +1,10 @@
 package po.misc.registries.type
 
-import po.misc.exceptions.ManagedException
-import po.misc.interfaces.Identifiable
 import po.misc.interfaces.ValueBased
-import po.misc.interfaces.ValueBasedClass
 import po.misc.types.TypeRecord
 import po.misc.types.castOrManaged
-import po.misc.types.castOrThrow
 import po.misc.types.getOrThrow
 import po.misc.types.safeCast
-import kotlin.reflect.typeOf
 
 class TypeRegistry {
 

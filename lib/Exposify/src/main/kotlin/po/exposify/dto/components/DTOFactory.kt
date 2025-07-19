@@ -6,24 +6,23 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.common.classes.ClassBlueprint
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
-import po.exposify.dto.components.tracker.DTOTracker
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.castOrOperations
 import po.lognotify.anotations.LogOnFault
-import po.lognotify.classes.action.InlineAction
+import po.lognotify.action.InlineAction
 import po.lognotify.classes.action.runAction
 import po.misc.callbacks.CallbackManager
 import po.misc.callbacks.builders.callbackManager
-import po.misc.interfaces.IdentifiableContext
+import po.misc.context.Identifiable
 import po.misc.interfaces.ValueBased
 import po.misc.serialization.SerializerInfo
 import kotlin.reflect.KType
 
 class DTOFactory<DTO, DATA, ENTITY>(
     private val dtoClass: DTOBase<DTO, DATA, ENTITY>
-): IdentifiableContext, InlineAction where DTO : ModelDTO, DATA: DataModel, ENTITY: LongEntity {
+): Identifiable, InlineAction where DTO : ModelDTO, DATA: DataModel, ENTITY: LongEntity {
 
     enum class Events(override val value: Int) : ValueBased {
         OnCreated(1),

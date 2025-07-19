@@ -8,15 +8,14 @@ import po.lognotify.tasks.RootTask
 import po.misc.callbacks.builders.callbackManager
 import po.misc.data.printable.PrintableBase
 import po.misc.data.processors.DataProcessorBase
-import po.misc.interfaces.Identifiable
-import po.misc.interfaces.IdentifiableContext
+import po.misc.context.Identifiable
 import po.misc.interfaces.ValueBased
 import po.misc.registries.callback.TypedCallbackRegistry
 
 
 class NotifierHub(
     val sharedConfig : NotifyConfig = NotifyConfig()
-): DataProcessorBase<LogData>(null, null), IdentifiableContext {
+): DataProcessorBase<LogData>(null, null), Identifiable {
 
     enum class Event(override val value: Int): ValueBased{
         DataReceived(1)

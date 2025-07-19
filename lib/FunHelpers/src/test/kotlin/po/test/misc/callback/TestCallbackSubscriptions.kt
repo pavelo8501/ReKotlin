@@ -9,21 +9,22 @@ import po.misc.callbacks.builders.listen
 import po.misc.callbacks.builders.managerHooks
 import po.misc.callbacks.builders.requestOnce
 import po.misc.callbacks.builders.withCallbackManager
-import po.misc.interfaces.IdentifiableClass
-import po.misc.interfaces.IdentifiableContext
-import po.misc.interfaces.asIdentifiableClass
+import po.misc.context.CTX
+import po.misc.context.asContext
 import po.test.misc.callback.TestCallbackSubscriptions.FirstHoldingClass.Event
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
-class TestCallbackSubscriptions() : IdentifiableClass {
+class TestCallbackSubscriptions(): CTX {
 
-    override val contextName: String = "TestCallbackSubscriptions"
-    override val identity = asIdentifiableClass("TestCallbackDataHandling", "Test")
 
-    class FirstHoldingClass: IdentifiableContext{
+    override val identity = asContext()
+
+
+    internal class FirstHoldingClass: CTX{
         enum class Event{ OnInit, OnOneShot }
-        override val contextName: String = "FirstHoldingClass"
+
+        override val identity = asContext()
 
         val notifier = CallbackManager(
             enumClass = Event::class.java,
@@ -80,15 +81,15 @@ class TestCallbackSubscriptions() : IdentifiableClass {
 
         manager.managerHooks {
             beforeTrigger{
-                beforeTriggerSubscriberName =  it.subscriber.contextName
+                beforeTriggerSubscriberName =  it.subscriber.completeName
                 beforeTriggerEventName = it.eventType.name
-                beforeTriggerEmitterName = it.emitter.contextName
+                beforeTriggerEmitterName = it.emitter.completeName
             }
             afterTriggered{
-                afterTriggeredEmitterName =  it.emitter.contextName
+                afterTriggeredEmitterName =  it.emitter.completeName
             }
             newSubscription{
-                newSubscriptionEmitterName = it.emitter.contextName
+                newSubscriptionEmitterName = it.emitter.completeName
             }
         }
         manager.subscribe<Int>(this, Event.OnInit){
@@ -98,9 +99,9 @@ class TestCallbackSubscriptions() : IdentifiableClass {
         assertNotNull(manager.hooks, "managerHooks extension do not install hooks")
         assertEquals(completeName, beforeTriggerSubscriberName)
         assertEquals("OnInit", beforeTriggerEventName)
-        assertEquals(manager.sourceName, newSubscriptionEmitterName, "Wrong callback manager context name")
+        assertEquals(manager.contextName, newSubscriptionEmitterName, "Wrong callback manager context name")
         assertEquals(newSubscriptionEmitterName, beforeTriggerEmitterName)
         assertEquals(beforeTriggerEmitterName, afterTriggeredEmitterName, "afterTriggeredEmitterName does not match")
-        assertEquals(completeName,  receivedContainer.subscriber.contextName)
+        assertEquals(completeName,  receivedContainer.subscriber.completeName)
     }
 }

@@ -1,24 +1,19 @@
 package po.test.exposify.setup
 
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.TestInstance
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
-import po.auth.AuthSessionManager
 import po.exposify.DatabaseManager
-import po.exposify.common.classes.DBManagerHooks
 import po.exposify.common.classes.dbHooks
 import po.exposify.scope.connection.models.ConnectionInfo
-import po.exposify.exceptions.InitException
 import po.exposify.scope.connection.ConnectionClass
 import po.exposify.scope.connection.models.ConnectionSettings
-import po.misc.interfaces.IdentifiableContext
-import po.misc.types.getOrThrow
+import po.misc.context.Identifiable
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers
-abstract class DatabaseTest() : IdentifiableContext {
+abstract class DatabaseTest() : Identifiable {
 
     override  val contextName: String = "DatabaseTest"
 

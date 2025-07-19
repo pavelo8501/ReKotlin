@@ -15,14 +15,14 @@ import po.misc.data.processors.DataProcessorBase
 import po.misc.data.processors.FlowEmitter
 import po.misc.data.styles.SpecialChars
 import po.misc.exceptions.ManagedException
-import po.misc.exceptions.name
+import po.misc.exceptions.throwableToText
 import po.misc.exceptions.waypointInfo
 
 class LoggerDataProcessor(
     val task : TaskBase<*, *>,
     parent: LoggerDataProcessor?,
     emitter: FlowEmitter<LogData>?,
-) : DataProcessorBase<LogData>(parent, emitter) {
+) : DataProcessorBase<LogData>(parent, emitter), LoggerContract {
 
     enum class LoggerProcessorType{RootTask, Task }
     var config : NotifyConfig
@@ -57,7 +57,7 @@ class LoggerDataProcessor(
 
     private fun createData(message: String, severity: SeverityLevel):LogData{
         val data =  LogData(
-            emitter = task,
+            producer = task,
             config = task.config,
             timeStamp = task.executionTimeStamp,
             message = message,
@@ -68,7 +68,7 @@ class LoggerDataProcessor(
 
     private fun createData(arbitraryData: PrintableBase<*>, severity: SeverityLevel):LogData{
         val data =  LogData(
-            emitter = task,
+            producer = task,
             config = task.config,
             timeStamp = task.executionTimeStamp,
             message = arbitraryData.formattedString,
@@ -80,7 +80,7 @@ class LoggerDataProcessor(
 
     @PublishedApi
     internal fun errorHandled(handledBy: String, exception: ManagedException): LogData {
-        var message = "Exception: ${exception.name()} handled by $handledBy block in $task"
+        var message = "Exception: ${exception.throwableToText()} handled by $handledBy block in $task"
         message += SpecialChars.NewLine
         message += exception.waypointInfo()
         val dataRecord =  createData(message, SeverityLevel.EXCEPTION)
@@ -157,26 +157,27 @@ class LoggerDataProcessor(
         forwardOrEmmit(createData("Forwarding", SeverityLevel.LOG))
     }
 
-    fun info(message: String): LogData {
+    override fun info(message: String): LogData {
         val dataRecord = createData(message, SeverityLevel.INFO)
         processRecord(dataRecord, LogData.Message)
         return dataRecord
     }
 
-    fun warn(message: String): LogData {
+    override fun warn(message: String): LogData {
         val dataRecord =createData(message, SeverityLevel.WARNING)
         processRecord(dataRecord, LogData.Message)
         return dataRecord
     }
 
     fun warn(th: Throwable, message: String): LogData {
-        return createData("$message ${th.message.toString()}", SeverityLevel.WARNING)
+        val dataRecord = createData("$message ${th.throwableToText()}", SeverityLevel.WARNING)
+        processRecord(dataRecord, LogData.Message)
+        return dataRecord
     }
 
-    fun error(exception: ManagedException): LogData {
+    fun error(exception: ManagedException){
         val text = "Exception: ${exception.message}. ${exception.waypointInfo()}"
         val dataRecord = createData(text, SeverityLevel.EXCEPTION)
         processRecord(dataRecord, LogData.Exception)
-        return dataRecord
     }
 }

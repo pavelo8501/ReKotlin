@@ -1,17 +1,21 @@
 package po.misc.exceptions
 
-import po.misc.interfaces.IdentifiableContext
+import po.misc.data.printable.PrintableBase
+import po.misc.data.printable.knowntypes.PropertyData
+import po.misc.exceptions.models.ExceptionData
+import po.misc.exceptions.models.ExceptionEventData
+import po.misc.context.CTX
+import po.misc.context.Identifiable
+
 
 enum class HandlerType(val value: Int) {
     Undefined(0),
     SkipSelf(1),
     CancelAll(2);
+
     companion object {
         fun fromValue(value: Int): HandlerType {
-            entries.firstOrNull { it.value == value }?.let {
-                return it
-            }
-            return Undefined
+            return entries.firstOrNull { it.value == value } ?:Undefined
         }
     }
 }
@@ -23,78 +27,108 @@ open class ManagedException(
 ) : Throwable(msg, original), ManageableException<ManagedException>{
 
     enum class ExceptionEvent{
-        Registered,
+        Thrown,
         HandlerChanged,
         Rethrown,
-        Thrown
+        Executed
     }
 
-    data class HandlingData(
-       val wayPoint: IdentifiableContext,
-       val event: ExceptionEvent,
-       val message: String? = null
-    ){
-        override fun toString(): String {
-            return when (event) {
-                ExceptionEvent.Registered -> {
-                    "First registered in ${wayPoint.contextName}"
-                }
-                ExceptionEvent.Thrown -> {
-                    "Thrown in ${wayPoint.contextName}"
-                }
-                else -> {
-                    "$wayPoint[${event.name}]"
-                }
-            }
-        }
+    open var handler: HandlerType = HandlerType.Undefined
+        internal set
+
+    var propertySnapshot :  List<PropertyData> = emptyList()
+
+    private var handlingDataBacking: MutableList<ExceptionData> = mutableListOf()
+    val handlingData: List<ExceptionData> get() = handlingDataBacking.toList()
+
+    private fun byStackTrace(data: ExceptionData){
+        data.addStackTraceElement(stackTrace.toList())
+
     }
 
-    open var handler  : HandlerType = HandlerType.Undefined
-        internal set
-    override var propertySnapshot :  Map<String, Any?> = emptyMap()
-    var handlingData: List<HandlingData> = listOf()
-        internal set
+    private fun getExceptionDataByEvent(event:ExceptionEvent):ExceptionData?{
+       return handlingData.firstOrNull { it.event == event }
+    }
 
     internal fun setMessage(message: String){
         msg = message
     }
 
-    override fun addHandlingData(
-        waypoint: IdentifiableContext,
-        event: ExceptionEvent,
-        message: String?
+
+    fun addBackTraceRecord(record: PrintableBase<*>, producer: CTX){
+
+        println("handlingData count  ${handlingData.size}")
+
+
+        var done: Boolean = false
+        handlingData.forEach { data->
+            println("Events Items size: ${  data.events.items.size}")
+            data.events.items.forEach {
+                println("Event Name: ${it.event.name}")
+                println("backTraceRecords size: ${it.backTraceRecords.size}")
+                println("Producer: ${it.producer}")
+                println("StackTrace element: ${it.stackTraceElement}")
+            }
+        }
+      println(done)
+    }
+
+    fun addHandlingData(
+        data: ExceptionData
     ): ManagedException{
-       handlingData = handlingData.toMutableList().apply { add(HandlingData(waypoint,event, message) ) }
+        byStackTrace(data)
+        handlingDataBacking.add(data)
        return this
     }
-    override fun setHandler(
+
+    fun setHandler(
         handlerType: HandlerType,
-        wayPoint: IdentifiableContext
+        producer: CTX
     ): ManagedException{
         if(handlingData.isEmpty()){
-            addHandlingData(wayPoint, ExceptionEvent.Registered)
+          val data =  ExceptionData.createThrown(producer)
+            addHandlingData(data)
+
         }else{
-            addHandlingData(wayPoint, ExceptionEvent.HandlerChanged)
+            addHandlingData(ExceptionData.createThrown(producer))
         }
-        handler = handlerType
+        if(handler != handlerType){
+            handler = handlerType
+        }
         return this
     }
-    override fun throwSelf(wayPoint: IdentifiableContext):Nothing {
-        addHandlingData(wayPoint, ExceptionEvent.Thrown)
+
+
+    fun throwSelf(producer: CTX,  event: ExceptionEvent = ManagedException.ExceptionEvent.Thrown):Nothing {
+        getExceptionDataByEvent(event)?.let {
+            val eventData = ExceptionEventData(it, producer.completeName, producer::class.qualifiedName.toString(), event.name)
+            it.events.addItem(eventData)
+        }?:run {
+            val data = ExceptionData.fromExceptionEvent(event, producer)
+            addHandlingData(data)
+        }
         throw this
     }
 
-    fun setPropertySnapshot(snapshot: Map<String, Any?>?):ManagedException{
+    fun setPropertySnapshot(snapshot: List<PropertyData>?):ManagedException{
         if(snapshot != null){
             propertySnapshot = snapshot
         }
         return this
     }
 
-    companion object : ManageableException.Builder<ManagedException> {
+    companion object : ManageableException.Builder<ManagedException>{
+
+
+        fun create(payload: ManagedCallSitePayload): ManagedException{
+            return ManagedException(payload.message, payload.source, payload.cause)
+        }
+
         override fun build(message: String, source: Enum<*>?,  original: Throwable?): ManagedException {
             return ManagedException(message, null, original)
         }
+
+
     }
 
 }

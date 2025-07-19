@@ -5,7 +5,8 @@ import po.misc.collections.StaticTypeKey
 import po.misc.data.delegates.ComposableProperty
 import po.misc.data.helpers.textIfNull
 import po.misc.exceptions.ManagedCallSitePayload
-import po.misc.interfaces.IdentifiableContext
+import po.misc.context.CTX
+import po.misc.context.asContext
 import po.misc.reflection.objects.Composed
 import po.misc.reflection.properties.models.PropertyUpdate
 import po.misc.types.castOrManaged
@@ -19,7 +20,7 @@ sealed class PropertyIOBase<T: Any, V: Any>(
     val propertyInfo: PropertyInfo<T, V>,
     val propertyType: PropertyType,
     private var currentValue: V?
-): Composed, IdentifiableContext {
+): Composed, CTX {
 
     enum class PropertyType {
         Computed,
@@ -33,6 +34,9 @@ sealed class PropertyIOBase<T: Any, V: Any>(
     }
 
     override val contextName: String get() = "PropertyIOBase[$propertyName]"
+
+    override val identity = asContext()
+
 
     val ioType: PropertyIOType get(){
        return if(propertyInfo.mutable){
@@ -70,7 +74,7 @@ sealed class PropertyIOBase<T: Any, V: Any>(
     }
 
     private fun payload(message: String): ManagedCallSitePayload{
-      return  ManagedCallSitePayload.create(message, this)
+      return  ManagedCallSitePayload.create(this)
     }
 
     fun initialize(dataObject:T){
@@ -157,14 +161,14 @@ fun <E: Enum<E>, T, V: Any> ComposableProperty<T, V>.createPropertyIO(
     receiver:T,
     property: KProperty1<T, V>
 
-):SourcePropertyIO<T, V> where T : Composed, T: IdentifiableContext{
+):SourcePropertyIO<T, V> where T : Composed, T: CTX{
     val propertyInfo = property.toPropertyInfo(receiver::class as KClass<T>)
     val property = SourcePropertyIO(propertyInfo, PropertyIOBase.PropertyType.DelegateProvided)
     property.provideReceiver(receiver)
     return property
 }
 
-fun <T: IdentifiableContext,  V: Any> createSourcePropertyIO(
+fun <T: CTX,  V: Any> createSourcePropertyIO(
     receiver:T,
     property: KProperty1<T, V>,
     valueClass: KClass<V>,

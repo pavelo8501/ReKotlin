@@ -1,7 +1,5 @@
 package po.exposify.dto.interfaces
 
-import org.jetbrains.exposed.dao.LongEntity
-import po.exposify.dto.CommonDTO
 import po.exposify.dto.CommonDTO.DataStatus
 import po.exposify.dto.components.DAOService
 import po.exposify.dto.components.DTOFactory
@@ -10,7 +8,6 @@ import po.exposify.dto.components.tracker.DTOTracker
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.enums.DTOStatus
 import po.exposify.dto.models.DTOId
-import po.misc.interfaces.TypedContext
 import po.misc.types.TypeData
 
 interface ModelDTO: DataModel {

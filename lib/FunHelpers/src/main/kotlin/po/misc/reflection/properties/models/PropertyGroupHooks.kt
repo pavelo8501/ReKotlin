@@ -1,8 +1,9 @@
 package po.misc.reflection.properties.models
 
-import po.misc.interfaces.IdentifiableContext
+import po.misc.context.CTX
+import po.misc.context.Identifiable
 
-class PropertyGroupHooks<T: IdentifiableContext, V: Any>() {
+class PropertyGroupHooks<T: CTX, V: Any>() {
 
 
 

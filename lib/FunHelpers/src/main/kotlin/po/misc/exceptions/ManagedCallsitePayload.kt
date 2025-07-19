@@ -1,23 +1,26 @@
 package po.misc.exceptions
 
 import po.misc.data.helpers.textIfNull
-import po.misc.interfaces.IdentifiableContext
-
+import po.misc.context.CTX
+import po.misc.context.Identifiable
 
 class ManagedCallSitePayload(
-    val ctx: IdentifiableContext,
-    var message: String? = null,
+    val producer: CTX,
+    var message: String = "",
     val handler: HandlerType? = null,
     val source: Enum<*>? = null,
-    val cause: Throwable? = null,
-    val outputOverride:((ManagedException)-> Unit)? = null
+    val cause: Throwable? = null
 ){
     var targetObject: String? = null
     var description: String? = null
 
-
     fun message(msg: String):ManagedCallSitePayload{
         message = msg
+        return this
+    }
+
+    fun valueFailure(parameterName: String, parameterTypeName: String):ManagedCallSitePayload{
+        message = "$parameterName : $parameterTypeName"
         return this
     }
 
@@ -36,16 +39,17 @@ class ManagedCallSitePayload(
     }
 
     companion object{
-        fun create(message: String, ctx: IdentifiableContext):ManagedCallSitePayload{
-           return ManagedCallSitePayload(ctx, message)
+
+        fun  create(producer: CTX, message: String = ""):ManagedCallSitePayload{
+           return ManagedCallSitePayload(producer,  message)
         }
     }
 }
 
-fun IdentifiableContext.toPayload(message: String):ManagedCallSitePayload{
-   return ManagedCallSitePayload(this, message)
+fun CTX.toPayload(message: String = ""):ManagedCallSitePayload{
+   return ManagedCallSitePayload(this,  message)
 }
 
-fun IdentifiableContext.toPayload(cause: Throwable, message: String? = null):ManagedCallSitePayload{
-    return ManagedCallSitePayload(this, cause =  cause, message = message?:cause.text())
+fun CTX.toPayload(cause: Throwable):ManagedCallSitePayload{
+    return ManagedCallSitePayload(this, cause =  cause)
 }

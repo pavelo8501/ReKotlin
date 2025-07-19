@@ -23,9 +23,6 @@ class DTOConfig<DTO, DATA, ENTITY>(
     @PublishedApi
     internal val propertyMap : PropertyMapper = PropertyMapper()
 
-    @PublishedApi
-    internal val registry: TypeRegistry = TypeRegistry()
-
    @PublishedApi
    internal val dtoFactory: DTOFactory<DTO, DATA, ENTITY> by lazy { DTOFactory(dtoClass) }
    internal val daoService :  DAOService<DTO, DATA, ENTITY>  by lazy { DAOService(dtoClass) }

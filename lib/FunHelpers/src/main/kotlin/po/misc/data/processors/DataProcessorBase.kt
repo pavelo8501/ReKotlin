@@ -1,13 +1,6 @@
 package po.misc.data.processors
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.launch
+
 import po.misc.collections.StaticTypeKey
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.PrintableCompanion
@@ -33,8 +26,6 @@ abstract class DataProcessorBase<T:PrintableBase<T>>(
 
     val hooks: ProcessorHooks<T>  = ProcessorHooks()
     private val debugWhiteList: MutableMap<Int, StaticTypeKey<*>> = mutableMapOf()
-
-   // private var onDebugListUpdated:((MutableMap<Int, StaticTypeKey<*>>)-> Unit)? = null
 
     init {
         topEmitter?.hooks?.debugListUpdated{ topEmittersList->
@@ -121,7 +112,6 @@ abstract class DataProcessorBase<T:PrintableBase<T>>(
         }
     }
 
-
     fun forwardOrEmmit(data: T){
         topEmitter?.acceptForwarded(data)
         emitter?.emitData(data)
@@ -136,36 +126,6 @@ abstract class DataProcessorBase<T:PrintableBase<T>>(
         this.muteCondition = muteCondition.safeCast<(Printable)-> Boolean>()
     }
 
-//    private val subscriberJobs = mutableListOf<Job>()
-//    private val notificationFlow = MutableSharedFlow<T>(
-//        replay = 10,
-//        extraBufferCapacity = 64,
-//        onBufferOverflow = BufferOverflow.SUSPEND
-//    )
-   // private val notifications: SharedFlow<T> = notificationFlow.asSharedFlow()
-
-//    fun subscribeToDataEmissions(scope: CoroutineScope, collector: suspend (T) -> Unit): Job {
-//        if(emitter!=null){
-//            emitter.subscribeToDataEmissions(scope, collector)
-//        }
-//
-//        val job = scope.launch {
-//            notifications.collect(collector)
-//        }
-//        subscriberJobs += job
-//        return job
-//    }
-
-//    fun stopBroadcast() {
-//        subscriberJobs.forEach { it.cancel() }
-//        subscriberJobs.clear()
-//    }
-//
-//    fun emitData(data: T) {
-//        CoroutineScope(Dispatchers.Default).launch {
-//            notificationFlow.emit(data)
-//        }
-//    }
 }
 
 class DataProcessor<T: PrintableBase<T>>(

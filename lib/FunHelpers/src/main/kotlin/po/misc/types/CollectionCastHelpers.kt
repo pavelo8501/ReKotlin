@@ -1,7 +1,8 @@
 package po.misc.types
 
 import po.misc.exceptions.ManagedException
-import po.misc.interfaces.IdentifiableContext
+import po.misc.context.CTX
+import po.misc.context.Identifiable
 import kotlin.reflect.KClass
 
 
@@ -22,7 +23,6 @@ fun <T : Any>  List<Any>.findByTypeFirstOrNull(
 
 inline fun <T : Any> List<*>.castListOrThrow(
     kClass: KClass<T>,
-    ctx: IdentifiableContext,
     exceptionProvider: (message: String, original: Throwable)-> Throwable,
 ): List<T> {
     return this.mapNotNull { it.castOrThrow<T>(kClass, exceptionProvider) }
@@ -37,7 +37,7 @@ fun <T : Any> List<*>.castListOrManaged(
 
 
 inline fun <reified BASE : Any, reified E : ManagedException> Any?.castBaseOrThrow(
-    ctx: IdentifiableContext? = null,
+    producer: CTX? = null,
     exceptionProvider: (message: String)-> E,
 ): BASE {
     try {
@@ -49,10 +49,20 @@ inline fun <reified BASE : Any, reified E : ManagedException> Any?.castBaseOrThr
             "Cannot cast ${this::class.simpleName} to ${BASE::class.simpleName}"
         }
         val exception = exceptionProvider(message)
-        if(ctx != null){
-            exception.throwSelf(ctx)
+        if(producer != null){
+            exception.throwSelf(producer, ManagedException.ExceptionEvent.Thrown)
         }else{
             throw exception
         }
     }
 }
+
+inline fun <reified T> Iterable<T>.countEqualsOrException(equalsTo: Int, exception:ManagedException):Iterable<T>{
+    val actualCount = this.count()
+    if(actualCount != equalsTo){
+        throw exception
+    }else{
+        return this
+    }
+}
+

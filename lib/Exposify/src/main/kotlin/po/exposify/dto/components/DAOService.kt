@@ -8,15 +8,15 @@ import po.exposify.dto.DTOBase
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dao.classes.ExposifyEntityClass
 import po.exposify.dto.components.query.SimpleQuery
-import po.lognotify.classes.action.InlineAction
-import po.lognotify.classes.action.runAction
-import po.lognotify.classes.action.runInlineAction
+import po.lognotify.TasksManaged
+import po.lognotify.extensions.runAction
+import po.lognotify.extensions.runInlineAction
 import kotlin.reflect.full.withNullability
 
 
 class DAOService<DTO, DATA, ENTITY>(
     val dtoClass: DTOBase<DTO, DATA, ENTITY>
-): InlineAction   where DTO: ModelDTO, DATA: DataModel, ENTITY : LongEntity {
+): TasksManaged   where DTO: ModelDTO, DATA: DataModel, ENTITY : LongEntity {
 
     override val contextName: String = "DAOService"
     val entityModel: ExposifyEntityClass<ENTITY> get() = dtoClass.config.entityModel
@@ -36,10 +36,10 @@ class DAOService<DTO, DATA, ENTITY>(
         queryResult
     }
 
-    fun pickById(id: Long): ENTITY? = runAction("PickById", dtoClass.entityType.kType.withNullability(true)) { handler ->
+    fun pickById(id: Long): ENTITY? = runAction("PickById", dtoClass.entityType.kType.withNullability(true)){
         val entity = entityModel.findById(id)
         if (entity == null) {
-            handler.info("Entity with id: $id not found")
+            info("Entity with id: $id not found")
         }
         entity
     }
@@ -48,10 +48,10 @@ class DAOService<DTO, DATA, ENTITY>(
         entityModel.all().toList()
     }
 
-    fun select(conditions: SimpleQuery): List<ENTITY> = runInlineAction("Select") { handler ->
+    fun select(conditions: SimpleQuery): List<ENTITY> = runInlineAction("Select") {
         val opConditions = buildConditions(conditions)
         val result = entityModel.find(opConditions).toList()
-        handler.info("${result.count()} entities selected")
+        info("${result.count()} entities selected")
         result
     }
 
@@ -64,12 +64,12 @@ class DAOService<DTO, DATA, ENTITY>(
     }
 
     fun update(entityId: Long, updateFn: (newEntity: ENTITY) -> Unit): ENTITY?
-        = runAction("Update", dtoClass.entityType.kType.withNullability(true)) { handler ->
+        = runAction("Update", dtoClass.entityType.kType.withNullability(true)){
         val updated = pickById(entityId)?.let { picked ->
             updateFn.invoke(picked)
             picked
         } ?: run {
-            handler.warn("Update failed. Entity with id: ${entityId} for ${dtoClass.completeName} can not be found")
+            warn("Update failed. Entity with id: ${entityId} for ${dtoClass.completeName} can not be found")
             null
         }
         updated

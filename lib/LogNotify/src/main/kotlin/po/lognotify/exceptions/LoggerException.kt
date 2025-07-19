@@ -4,7 +4,7 @@ package po.lognotify.exceptions
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.ManageableException
-import po.misc.interfaces.IdentifiableContext
+import po.misc.context.CTX
 import po.misc.types.castOrThrow
 
 class LoggerException(
@@ -21,7 +21,7 @@ class LoggerException(
     }
 }
 
-inline fun <reified T: Any>  Any?.castOrLoggerEx(ctx: IdentifiableContext):T{
+inline fun <reified T: Any>  Any?.castOrLoggerEx(ctx: CTX):T{
    return this.castOrThrow<T>(ctx){message->
        LoggerException(message)
    }

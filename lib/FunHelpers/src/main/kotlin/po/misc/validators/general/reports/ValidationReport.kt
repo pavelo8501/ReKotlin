@@ -1,25 +1,23 @@
 package po.misc.validators.general.reports
 
+import po.misc.context.CTX
 import po.misc.data.printable.PrintableBase
 import po.misc.data.console.PrintableTemplate
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.data.templates.matchTemplate
 import po.misc.data.templates.templateRule
-import po.misc.interfaces.Identifiable
-import po.misc.interfaces.ValueBased
-import po.misc.interfaces.asIdentifiable
-import po.misc.interfaces.toValueBased
 import po.misc.validators.general.models.CheckStatus
 import kotlin.collections.forEach
 
 
 data class ValidationReport(
-   private  var validationName: String,
+    override val producer: CTX,
+    private  var validationName: String,
 ): PrintableBase<ValidationReport>(Header) {
 
    // override val itemId : ValueBased = toValueBased(0)
-    override val emitter: Identifiable = asIdentifiable("ValidationReport", "ValidationReport")
+   // override val producer: Identifiable = asIdentifiable("ValidationReport", "ValidationReport")
 
     override val self: ValidationReport = this
 

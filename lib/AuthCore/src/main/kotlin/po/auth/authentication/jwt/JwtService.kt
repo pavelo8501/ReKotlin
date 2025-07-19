@@ -14,13 +14,13 @@ import po.auth.authentication.jwt.models.JwtToken
 import po.auth.authentication.jwt.repositories.InMemoryTokenStore
 import po.auth.sessions.models.AuthorizedSession
 import po.lognotify.TasksManaged
-import po.misc.interfaces.IdentifiableContext
+import po.misc.context.Identifiable
 import java.time.Instant
 import java.util.Date
 
 class JWTService(
     private var config : JwtConfig
-): TasksManaged, IdentifiableContext {
+): TasksManaged, Identifiable {
     override val contextName: String = "JWTService"
     var name: String = ""
     val realm: String

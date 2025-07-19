@@ -5,17 +5,17 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
 import po.exposify.dto.RootDTO
-import po.exposify.dto.components.DTOExecutionContext
 import po.exposify.dto.components.bindings.BindingHub
 import po.exposify.dto.components.bindings.DelegateStatus
 import po.exposify.dto.components.bindings.interfaces.DelegateInterface
 import po.exposify.dto.components.bindings.interfaces.ForeignDelegateInterface
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.models.CommonDTOType
 import po.exposify.extensions.castOrInit
 import po.exposify.extensions.getOrOperations
 import po.misc.data.SmartLazy
 import po.misc.interfaces.ClassIdentity
-import po.misc.interfaces.IdentifiableClass
+import po.misc.context.IdentifiableClass
 import po.misc.types.TypeData
 import po.misc.types.containers.updatable.ActionValue
 import kotlin.getValue
@@ -32,9 +32,7 @@ sealed class ComplexDelegate<DTO, D, E, F, FD,  FE>(
     override var status: DelegateStatus = DelegateStatus.Created
     override val hostingClass: DTOBase<DTO, D, E>
         get() = hostingDTO.dtoClass
-    protected val execContext: DTOExecutionContext<DTO,D,E, DTO,D,E> get(){
-        return hostingDTO.executionContext
-    }
+
 
     private var propertyParameter : KProperty<F>? = null
     val property: KProperty<F> get() = propertyParameter.getOrOperations(this)
@@ -109,8 +107,8 @@ class AttachedForeignDelegate<DTO, D, E, F, FD, FE>(
     }
 
     internal fun update(){
-        val dataModel = execContext.getDataModel(this)
-        dataIdProperty.set(dataModel, foreignDTO.id)
+
+        dataIdProperty.set(hostingDTO.dataContainer.source, foreignDTO.id)
     }
 
     internal fun resolveForeign(entity:E):E{
@@ -141,7 +139,7 @@ class ParentDelegate<DTO, D, E, F, FD, FE>(
     val hub: BindingHub<DTO, D, E> = hostingDTO.hub
 
     val foreignDTOType: TypeData<F> = foreignClass.dtoType
-    val commonType: TypeData<CommonDTO<F, FD, FE>>  by lazy {  foreignClass.commonType.toTypeData() }
+    val commonType: CommonDTOType<F, FD, FE> get() = foreignClass.commonType
 
     internal var entityBinderBacking: ActionValue<E>? = null
     val entityBinder: ActionValue<E> by lazy { entityBinderBacking.getOrOperations(this) }
@@ -155,13 +153,15 @@ class ParentDelegate<DTO, D, E, F, FD, FE>(
 
     fun assignParentDTO(dto: F){
         foreignDTOBacking = dto
-        hub.execCtx.onDTOComplete.subscribe(this){
+
+        hostingDTO.notifier.subscribe<CommonDTO<DTO, D, E>>(this, CommonDTO.DTOEvents.OnDTOComplete){
             val commonDTO = it.getData()
-            val dataModel =  commonDTO.executionContext.getDataModel(this)
+            val dataModel =  commonDTO.dataContainer.source
             parentDTOProvider.invoke(dataModel, dto)
         }
-        hub.execCtx.getDataModelOrNull()?.let {
-            parentDTOProvider.invoke(it, dto)
+
+        if(hostingDTO.dataContainer.isSourceAvailable){
+            parentDTOProvider.invoke(hostingDTO.dataContainer.source, dto)
         }
     }
 }

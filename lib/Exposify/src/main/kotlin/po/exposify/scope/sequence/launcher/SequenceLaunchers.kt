@@ -1,7 +1,6 @@
 package po.exposify.scope.sequence.launcher
 
 import org.jetbrains.exposed.dao.LongEntity
-import org.jetbrains.exposed.dao.id.LongIdTable
 import po.auth.sessions.models.AuthorizedSession
 import po.exposify.dto.components.query.WhereQuery
 import po.exposify.dto.components.result.ResultList
@@ -16,122 +15,94 @@ import po.exposify.extensions.withTransactionIfNone
 import po.exposify.scope.sequence.builder.PickByIdChunk
 import po.exposify.scope.sequence.builder.SelectChunk
 import po.exposify.scope.sequence.builder.UpdateChunk
+import po.exposify.scope.sequence.builder.UpdateListChunk
 import po.misc.functions.containers.DeferredContainer
 
-
-private fun <DTO, D> launchExecutionSingle(
-    launchDescriptor: LongSingeDescriptor<DTO, D>,
-    parameter: Long,
+private suspend fun <DTO, D, E> launchExecutionSingle(
+    launchDescriptor: SingleDescriptor<DTO, D, E>,
+    parameter: Long? = null,
+    inputData:D? = null,
+    query: DeferredContainer<WhereQuery<E>>? = null,
     session: AuthorizedSession
-): ResultSingle<DTO, D, *> where DTO: ModelDTO, D:DataModel
-{
-    val wrongBranchMsg = "LaunchExecutionResultSingle else branch should have never be reached"
-
-    val container =  launchDescriptor.container
-    var activeResult: ResultSingle<DTO, D, *>? = null
-    withTransactionIfNone(container.debugger, warnIfNoTransaction = false) {
-        container.chunks.forEach { chunk ->
-            when(chunk){
-                is PickByIdChunk ->  {
-                    val pickByIdChunk =  chunk
-                    println("Chunk returned after being persisted in RootDTO")
-                    pickByIdChunk.healthMonitor.print()
-                    pickByIdChunk.inputContainer.registerProvider { parameter }
-                    activeResult = chunk.computeResult()
-                }
-                else -> throw operationsException(wrongBranchMsg, ExceptionCode.ABNORMAL_STATE)
-            }
-            chunk.healthMonitor.print()
-        }
-    }
-    return activeResult.getOrOperations("activeResult")
-}
-
-private fun <DTO, D> launchExecutionSingle(
-    launchDescriptor: ParametrizedSingeDescriptor<DTO, D>,
-    parameter:D,
-    session: AuthorizedSession
-): ResultSingle<DTO, D, *> where DTO: ModelDTO, D:DataModel
+): ResultSingle<DTO, D, *> where DTO : ModelDTO, D : DataModel, E : LongEntity
 {
     val wrongBranchMsg = "LaunchExecutionResultSingle else branch should have never be reached"
     val container =  launchDescriptor.container
-    var activeResult: ResultSingle<DTO, D, *>? = null
-    withTransactionIfNone(container.debugger, warnIfNoTransaction = false) {
-        container.chunks.forEach { chunk ->
-            when(chunk){
-                is UpdateChunk<*, *> -> {
-                    val insertChunk = chunk.castOrOperations<UpdateChunk<DTO, D>>(launchDescriptor)
-                    println("Chunk returned after being persisted in RootDTO")
-                    insertChunk.healthMonitor.print()
-                    insertChunk.inputContainer.registerProvider { parameter }
-                    activeResult = insertChunk.computeResult()
-                }
-                else -> throw operationsException(wrongBranchMsg, ExceptionCode.ABNORMAL_STATE)
-            }
-            chunk.healthMonitor.print()
-        }
+    val service =  launchDescriptor.dtoBaseClass.serviceClass
+    val emitter = service.requestEmitter(session)
+   return emitter.dispatchSingle {
+       var effectiveResult: ResultSingle<DTO, D, *>? = null
+
+       if(parameter != null){
+           val deferredParameter = DeferredContainer<Long>(launchDescriptor){ parameter }
+           container.singleTypeHandler.provideDeferredParameter(deferredParameter)
+       }
+
+       if(inputData != null){
+           val deferredInput = DeferredContainer<D>(launchDescriptor){ inputData }
+           container.singleTypeHandler.provideDeferredInput(deferredInput)
+       }
+
+       if(query != null){
+           container.singleTypeHandler.provideWhereQuery(query)
+       }
+       container.singleResultChunks.forEach { chunk ->
+           when(chunk){
+               is PickByIdChunk <*, *>-> {
+                   val pickById = chunk.castOrOperations<PickByIdChunk<DTO, D>>(launchDescriptor)
+                   println("Chunk returned after being persisted in RootDTO")
+                   pickById.healthMonitor.print()
+                   effectiveResult = pickById.computeResult()
+               }
+
+               is UpdateChunk<*, *> -> {
+                   val updateChunk = chunk.castOrOperations<UpdateChunk<DTO, D>>(launchDescriptor)
+                   println("Chunk returned after being persisted in RootDTO")
+                   updateChunk.healthMonitor.print()
+                   effectiveResult = updateChunk.computeResult()
+               }
+           }
+       }
+       effectiveResult.getOrOperations("effectiveResult")
     }
-    return activeResult.getOrOperations("activeResult")
 }
 
-
-
-fun <DTO, D>  AuthorizedSession.launch(
-    launchDescriptor: LongSingeDescriptor<DTO, D>,
-    parameter: Long
-): ResultSingle<DTO, D, *> where DTO: ModelDTO, D:DataModel{
-   return launchExecutionSingle(launchDescriptor, parameter, this)
-}
-
-fun <DTO, D> launch(
-    launchDescriptor: LongSingeDescriptor<DTO, D>,
-    parameter: Long,
-    session:AuthorizedSession
-): ResultSingle<DTO, D, *> where DTO: ModelDTO, D:DataModel{
-    return launchExecutionSingle(launchDescriptor, parameter, session)
-}
-
-
-fun <DTO, D>  AuthorizedSession.launch(
-    launchDescriptor: ParametrizedSingeDescriptor<DTO, D>,
-    parameter: D
-): ResultSingle<DTO, D, *> where DTO: ModelDTO, D:DataModel{
-    return launchExecutionSingle(launchDescriptor, parameter, this)
-}
-
-fun <DTO, D>  launch(
-    launchDescriptor: ParametrizedSingeDescriptor<DTO, D>,
-    parameter: D,
+private suspend fun <DTO, D, E> launchExecutionList(
+    launchDescriptor: ListDescriptor<DTO, D, E>,
+    parameter: Long? = null,
+    inputData:List<D>? = null,
+    query: DeferredContainer<WhereQuery<E>>? = null,
     session: AuthorizedSession
-): ResultSingle<DTO, D, *> where DTO : ModelDTO, D : DataModel{
-    return launchExecutionSingle(launchDescriptor, parameter, session)
-}
-
-
-
-private suspend fun <DTO, D, P> launchExecutionList(
-    launchDescriptor: ListDescriptor<DTO, D>,
-    parameter:P,
-    session: AuthorizedSession
-): ResultList<DTO, D, *> where DTO: ModelDTO, D:DataModel, P:Any
+): ResultList<DTO, D, *> where DTO: ModelDTO, D:DataModel, E: LongEntity
 {
     val wrongBranchMsg = "LaunchExecutionResultSingle else branch should have never be reached"
     val container =  launchDescriptor.container
     val service =  launchDescriptor.dtoBaseClass.serviceClass
     val emitter = service.requestEmitter(session)
 
-    return emitter.dispatch {
+    return emitter.dispatchList {
         var effectiveResult: ResultList<DTO, D, *>? = null
         withTransactionIfNone(container.debugger, warnIfNoTransaction = false) {
-            container.chunks.forEach { chunk ->
+
+            if(query != null){
+                container.listTypeHandler.provideWhereQuery(query)
+            }
+
+            container.listResultChunks.forEach {chunk ->
                 when(chunk){
                     is SelectChunk<*, *> -> {
-                        val insertChunk = chunk.castOrOperations<SelectChunk<DTO, D>>(launchDescriptor)
+                        val selectChunk = chunk.castOrOperations<SelectChunk<DTO, D>>(launchDescriptor)
                         println("Chunk returned after being persisted in RootDTO")
-                        insertChunk.healthMonitor.print()
-                        effectiveResult = insertChunk.computeResult()
+                        selectChunk.healthMonitor.print()
+                        effectiveResult = selectChunk.computeResult()
                     }
-                    else -> throw operationsException(wrongBranchMsg, ExceptionCode.ABNORMAL_STATE)
+
+                    is UpdateListChunk<*, *> -> {
+                        val updateListChunk = chunk.castOrOperations<UpdateListChunk<DTO, D>>(launchDescriptor)
+                        println("Chunk returned after being persisted in RootDTO")
+                        updateListChunk.healthMonitor.print()
+                        effectiveResult = updateListChunk.computeResult()
+                    }
                 }
                 chunk.healthMonitor.print()
             }
@@ -140,17 +111,49 @@ private suspend fun <DTO, D, P> launchExecutionList(
     }
 }
 
-suspend fun <DTO, D> launch(
-    launchDescriptor: ListDescriptor<DTO, D>,
-    session: AuthorizedSession
-): ResultList<DTO, D, *> where DTO : ModelDTO, D : DataModel{
-    return launchExecutionList(launchDescriptor, Unit, session)
+
+suspend fun <DTO, D, E>  AuthorizedSession.launch(
+    launchDescriptor: SingleDescriptor<DTO, D, E>,
+    parameter: Long
+): ResultSingle<DTO, D, *> where DTO: ModelDTO, D:DataModel, E : LongEntity{
+   return launchExecutionSingle<DTO,  D, E>(launchDescriptor =  launchDescriptor, parameter = parameter, session =  this)
 }
 
 suspend fun <DTO, D, E> launch(
-    launchDescriptor: ListDescriptor<DTO, D>,
+    launchDescriptor: SingleDescriptor<DTO, D, E>,
+    parameter: Long,
+    session:AuthorizedSession
+): ResultSingle<DTO, D, *> where DTO: ModelDTO, D:DataModel, E : LongEntity{
+    return launchExecutionSingle(launchDescriptor = launchDescriptor, parameter =  parameter, session =  session)
+}
+
+
+//suspend fun <DTO, D, E>  AuthorizedSession.launch(
+//    launchDescriptor: ParametrizedSingeDescriptor<DTO, D, E>,
+//    parameter: D
+//): ResultSingle<DTO, D, *> where DTO: ModelDTO, D:DataModel, E : LongEntity{
+//    return launchExecutionSingle(launchDescriptor, parameter, this)
+//}
+//
+//suspend fun <DTO, D, E>  launch(
+//    launchDescriptor: ParametrizedSingeDescriptor<DTO, D, E>,
+//    parameter: D,
+//    session: AuthorizedSession
+//): ResultSingle<DTO, D, *> where DTO : ModelDTO, D : DataModel, E : LongEntity{
+//    return launchExecutionSingle(launchDescriptor, parameter, session)
+//}
+
+suspend fun <DTO, D, E> launch(
+    launchDescriptor: ListDescriptor<DTO, D, E>,
+    session: AuthorizedSession
+): ResultList<DTO, D, *> where DTO : ModelDTO, D : DataModel, E : LongEntity{
+    return launchExecutionList(launchDescriptor, session = session)
+}
+
+suspend fun <DTO, D, E> launch(
+    launchDescriptor: ListDescriptor<DTO, D, E>,
     deferredQuery: DeferredContainer<WhereQuery<E>>,
     session: AuthorizedSession
 ): ResultList<DTO, D, *> where DTO : ModelDTO, D : DataModel, E: LongEntity {
-    return launchExecutionList(launchDescriptor, Unit, session)
+    return launchExecutionList(launchDescriptor, query = deferredQuery,  session =  session)
 }

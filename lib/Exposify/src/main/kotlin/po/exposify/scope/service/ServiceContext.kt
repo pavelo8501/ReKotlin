@@ -1,7 +1,6 @@
 package po.exposify.scope.service
 
 import org.jetbrains.exposed.dao.LongEntity
-import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import po.exposify.common.classes.exposifyDebugger
@@ -23,7 +22,7 @@ import po.lognotify.extensions.runTaskBlocking
 import po.misc.exceptions.toManageable
 import po.misc.functions.containers.DeferredContainer
 import po.misc.interfaces.ClassIdentity
-import po.misc.interfaces.IdentifiableClass
+import po.misc.context.IdentifiableClass
 
 class ServiceContext<DTO, DATA, ENTITY>(
     @PublishedApi internal  val serviceClass : ServiceClass<DTO, DATA, ENTITY>,

@@ -1,10 +1,10 @@
 package po.misc.data.delegates
 
+import po.misc.context.CTX
+import po.misc.context.asContext
 import po.misc.exceptions.ManagedCallSitePayload
 
-import po.misc.interfaces.ClassIdentity
-import po.misc.interfaces.IdentifiableClass
-import po.misc.interfaces.IdentifiableContext
+
 import po.misc.reflection.classes.KSurrogate
 import po.misc.reflection.properties.SourcePropertyIO
 import po.misc.reflection.properties.createSourcePropertyIO
@@ -16,13 +16,14 @@ import kotlin.reflect.KProperty1
 
 
 
-class ComposableProperty<T: IdentifiableContext, V: Any>(
+class ComposableProperty<T: CTX, V: Any>(
     val surrogate: KSurrogate<T>,
     val valueClass: KClass<V>
-): IdentifiableClass {
+): CTX {
 
-    override val identity:ClassIdentity = ClassIdentity.create("ComposableProperty2", contextName)
-    val exceptionPayload: ManagedCallSitePayload = ManagedCallSitePayload.create("ComposableProperty2", this)
+    override val identity = asContext()
+
+    val exceptionPayload: ManagedCallSitePayload = ManagedCallSitePayload.create(this)
 
     private var backingProperty: KProperty1<T, V>? = null
     private val property: KProperty1<T, V> get() = backingProperty.getOrManaged(exceptionPayload)
@@ -34,7 +35,6 @@ class ComposableProperty<T: IdentifiableContext, V: Any>(
 
     fun resolveProperty(property: KProperty<*>, thisRef:T){
         backingProperty = property.castOrManaged<KProperty1<T, V>>()
-        identity.updateSourceName(propertyName)
         surrogate.setSourceProperty(propertyIO)
     }
 
@@ -52,7 +52,7 @@ class ComposableProperty<T: IdentifiableContext, V: Any>(
     }
 }
 
-fun <T: IdentifiableContext, V: Any> propertyBinding(
+fun <T: CTX, V: Any> propertyBinding(
     surrogate: KSurrogate<T>,
     valueClass: KClass<V>
 ):ComposableProperty<T, V>{

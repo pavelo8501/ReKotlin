@@ -5,7 +5,8 @@ import po.exposify.dto.components.tracker.DTOTracker
 import po.misc.data.console.PrintableTemplate
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.PrintableCompanion
-import po.misc.interfaces.IdentifiableContext
+import po.misc.context.Identifiable
+import po.misc.interfaces.asIdentifiable
 
 data class DTOData(
     private val tracker: DTOTracker<*, *, *>,
@@ -15,7 +16,7 @@ data class DTOData(
     override val self: DTOData = this
 
    // override val itemId: ValueBased = DTOClass
-    override val emitter:  IdentifiableContext = tracker
+    override val producer:  Identifiable = asIdentifiable(tracker.contextName, "DTOData")
     val currentOperation: CrudOperation get(){
       return  tracker.activeRecord.operation
     }

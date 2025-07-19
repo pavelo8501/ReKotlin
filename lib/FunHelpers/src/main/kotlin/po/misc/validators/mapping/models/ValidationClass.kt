@@ -1,11 +1,12 @@
 package po.misc.validators.mapping.models
 
-import po.misc.interfaces.Identifiable
+import po.misc.context.CTX
+import po.misc.context.Identifiable
 import po.misc.reflection.mappers.models.PropertyRecord
 
 
 sealed interface ValidationSubject<T: Any>{
-    val component: Identifiable
+    val component: CTX
     val validatableRecords : List<ValidatableRecord>
 }
 
@@ -15,7 +16,7 @@ interface ValidatableRecord{
 
 
 class ValidationClass<T: Any>(
-    override val component: Identifiable,
+    override val component: CTX,
     override var validatableRecords: List<ValidationRecord> = emptyList()
 ):ValidationSubject<T>{
 
@@ -26,7 +27,7 @@ class ValidationClass<T: Any>(
 }
 
 class ValidationInstance<T: Any>(
-    override val component: Identifiable,
+    override val component: CTX,
     override var validatableRecords: List<InstanceRecord<T>> = emptyList()
 ): ValidationSubject<T>{
 

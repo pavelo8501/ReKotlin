@@ -5,17 +5,26 @@ import org.junit.jupiter.api.assertThrows
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.ManageableException
-import po.misc.exceptions.name
-import po.misc.exceptions.shortName
+import po.misc.exceptions.toManaged
+import po.misc.exceptions.toPayload
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asContext
 import kotlin.test.assertEquals
 
-class TestManagedException {
+class TestManagedException: CTX {
 
     enum class CustomExceptionCode{
         Unknown,
         Code1,
         Code2
     }
+
+    override val identity: CTXIdentity<out CTX> = asContext()
+
+    override val contextName: String
+        get() = "TestManagedException"
+
 
     class CustomException(
         override var message: String,
@@ -36,6 +45,18 @@ class TestManagedException {
        throw ManageableException.build<CustomException, CustomExceptionCode>(message, code)
     }
 
+
+    @Test
+    fun `Waypoint data from stacktrace`(){
+        val exPayload = this.toPayload("Test")
+        val exception =  assertThrows<ManagedException> {
+            throw exPayload.toManaged()
+        }
+        val trace = exception.stackTrace
+        trace.forEach { println(it) }
+    }
+
+
     @Test
     fun `correct exception type is thrown`(){
         val message  = "text"
@@ -54,10 +75,6 @@ class TestManagedException {
         val exception =  assertThrows<CustomException> {
             throwCustomException(message, CustomExceptionCode.Code1)
         }
-        val parsedName = exception.name()
-        val parsedShortName = exception.shortName()
-        assertEquals(nameShouldBe, parsedName, "ExceptionName wrongly parsed")
-        assertEquals(shortNameShouldBe, parsedShortName, "Exception \"ShortName\" wrongly parsed")
     }
 
 

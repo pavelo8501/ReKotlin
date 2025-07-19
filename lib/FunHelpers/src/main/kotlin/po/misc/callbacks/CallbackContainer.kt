@@ -1,20 +1,20 @@
 package po.misc.callbacks
 
 
-import po.misc.interfaces.IdentifiableClass
-import po.misc.interfaces.IdentifiableContext
+import po.misc.context.CTX
+import po.misc.context.Identifiable
 import po.misc.types.getOrManaged
 
 interface Containable<T: Any>{
     val expiryCounter: Int
-    val subscriber: IdentifiableContext
+    val subscriber: CTX
     fun getData():T
 }
 
 interface CallableContainer<T: Any>: Containable<T>{
     val  createdBy: CallbackPayloadBase<*,*,*>
     override val expiryCounter: Int
-    override val subscriber: IdentifiableContext
+    override val subscriber: CTX
     val callback: (Containable<T>)-> Unit
     val routingInfo : MutableList<HopInfo>
     val expires: Boolean
@@ -24,7 +24,7 @@ interface CallableContainer<T: Any>: Containable<T>{
 
 class RoutedWithConversionContainer<T1, T2> internal constructor(
     override val  createdBy: CallbackPayloadBase<*,*, *>,
-    override val subscriber: IdentifiableClass,
+    override val subscriber: CTX,
     override val expiryCounter: Int,
     val dataAdapter: (T2)->T1,
     override val callback: (Containable<T1>)-> Unit
@@ -39,11 +39,11 @@ class RoutedWithConversionContainer<T1, T2> internal constructor(
 
     private var containerData: T1? = null
 
-    fun addHopInfo(sender: IdentifiableContext, receiver: CallableContainer<*>):RoutedWithConversionContainer<T1, T2>{
+    fun addHopInfo(sender: CTX, receiver: CallableContainer<*>):RoutedWithConversionContainer<T1, T2>{
         routingInfo.addAll(receiver.routingInfo)
         val info =  HopInfo(
-            emitterName =  sender.contextName,
-            receiverName = createdBy.manager.emitter.contextName,
+            emitterName =  sender.completeName,
+            receiverName = createdBy.manager.emitter.completeName,
             subscriber = subscriber,
             dataName = "",
             hopNr = routingInfo.size
@@ -72,7 +72,7 @@ class RoutedWithConversionContainer<T1, T2> internal constructor(
 
 class RoutedContainer<T> internal constructor(
     override val  createdBy: CallbackPayloadBase<*,*, *>,
-    override val subscriber: IdentifiableContext,
+    override val subscriber: CTX,
     override val expiryCounter: Int,
     //val dataAdapter: (T2)->T1,
     override val callback: (Containable<T>)-> Unit
@@ -87,11 +87,11 @@ class RoutedContainer<T> internal constructor(
 
     private var containerData: T? = null
 
-    fun addHopInfo(sender: IdentifiableContext, receiver: CallableContainer<*>):RoutedContainer<T>{
+    fun addHopInfo(sender: CTX, receiver: CallableContainer<*>):RoutedContainer<T>{
         routingInfo.addAll(receiver.routingInfo)
         val info =  HopInfo(
-            emitterName =  sender.contextName,
-            receiverName = createdBy.manager.emitter.contextName,
+            emitterName =  sender.completeName,
+            receiverName = createdBy.manager.emitter.completeName,
             subscriber = subscriber,
             dataName = "",
             hopNr = routingInfo.size
@@ -117,7 +117,7 @@ class RoutedContainer<T> internal constructor(
  */
 class CallbackContainer<T> internal constructor (
     override val createdBy: CallbackPayloadBase<*,*,*>,
-    override val subscriber: IdentifiableContext,
+    override val subscriber: CTX,
     override val expiryCounter: Int,
     override val callback: ((Containable<T>)-> Unit)
 ): CallableContainer<T> where T:Any{

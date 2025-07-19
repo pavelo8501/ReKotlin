@@ -2,18 +2,18 @@ package po.lognotify.tasks
 
 import po.lognotify.tasks.models.TaskConfig
 import po.lognotify.models.TaskKey
+import po.misc.context.CTX
 
 fun createTaskKey(name: String, moduleName: String, nestingLevel: Int = 0): TaskKey{
     return TaskKey(name, nestingLevel, moduleName)
 }
 
-fun <T, R: Any?>  TaskBase<*, *>.createChild(
+fun <T: CTX, R: Any?>  TaskBase<*, *>.createChild(
     name: String,
     moduleName: String,
     config: TaskConfig,
     receiver: T
-): Task<T, R>
-{
+): Task<T, R>{
     val thisTask = this
   return  when(thisTask){
         is RootTask->{
@@ -31,3 +31,12 @@ fun <T, R: Any?>  TaskBase<*, *>.createChild(
         }
     }
 }
+
+fun <T: CTX, R: Any?>  TaskBase<*, *>.getIdentified(
+
+){
+    this.createTaskData()
+}
+
+
+

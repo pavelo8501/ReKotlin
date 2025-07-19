@@ -18,7 +18,7 @@ import po.misc.callbacks.CallbackManager
 import po.misc.callbacks.builders.callbackManager
 import po.misc.data.SmartLazy
 import po.misc.interfaces.ClassIdentity
-import po.misc.interfaces.IdentifiableClass
+import po.misc.context.IdentifiableClass
 import po.misc.reflection.properties.models.PropertyUpdate
 import po.misc.types.getOrManaged
 import po.misc.validators.mapping.models.MappingCheck
@@ -43,9 +43,15 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
 
     override val hostingClass: DTOBase<DTO, *, *>
         get() = hostingDTO.dtoClass
-    protected val ownDataModel:D get(){
-        return hostingDTO.executionContext.getDataModel(this)
+
+    protected val dataModel:D get(){
+        return hostingDTO.dataContainer.source
     }
+
+    protected val entity:E get(){
+        return hostingDTO.entityContainer.source
+    }
+
 
 
     private var propertyParameter : KProperty<V>? = null
@@ -103,7 +109,7 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
         val newValue = entityProperty.get(entity)
         if(effectiveValue!= newValue){
             effectiveValue = newValue
-            dataProperty.set(hub.execCtx.getDataModel(this), newValue)
+            dataProperty.set(dataModel, newValue)
             valueChanged(newValue)
         }
     }
@@ -113,7 +119,7 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
      */
     internal fun update(entity:E){
 
-        val value = effectiveValue?:dataProperty(hub.execCtx.getDataModel(this))
+        val value = effectiveValue?:dataProperty(dataModel)
 
         entityProperty.set(entity, value)
     }
@@ -122,8 +128,8 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
      * Updates data model  form pre-saved entity
      */
     internal fun updateData(){
-        val value = effectiveValue?:entityProperty(hub.execCtx.getEntity(this))
-        dataProperty.set(ownDataModel, value)
+        val value = effectiveValue?:entityProperty(entity)
+        dataProperty.set(dataModel, value)
     }
 
 
@@ -138,11 +144,11 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
     override fun setValue(thisRef: DTO, property: KProperty<*>, value: V) {
         resolveProperty(property)
         if(effectiveValue != value){
-            val dataModel = hub.execCtx.getDataModel(this)
+
             dataProperty.set(dataModel, value)
-            hub.execCtx.entityBacking?.let {
-                entityProperty.set(it, value)
-            }?:run {
+            if(hostingDTO.entityContainer.isSourceAvailable){
+                entityProperty.set(entity, value)
+            }else{
                 hostingDTO.logger.dataProcessor.warn("${hostingDTO.completeName} update through delegate set. Entity must have been inserted but its not")
             }
             valueChanged(value)

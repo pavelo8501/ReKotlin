@@ -4,7 +4,6 @@ import po.misc.collections.StaticTypeKey
 import po.misc.data.printable.PrintableCompanion
 
 
-
 data class NotifyConfig(
     var console : ConsoleBehaviour = ConsoleBehaviour.FullPrint,
     var debugAll:DebugOptions = DebugOptions.Listed

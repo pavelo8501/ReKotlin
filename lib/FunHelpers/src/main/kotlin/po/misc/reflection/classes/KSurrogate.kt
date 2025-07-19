@@ -2,32 +2,34 @@ package po.misc.reflection.classes
 
 import po.misc.callbacks.CallbackManager
 import po.misc.callbacks.builders.callbackManager
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
-import po.misc.interfaces.ClassIdentity
-import po.misc.interfaces.IdentifiableClass
-import po.misc.interfaces.IdentifiableContext
+import po.misc.context.Identifiable
+import po.misc.context.asContext
+import po.misc.context.fromContext
 import po.misc.reflection.properties.PropertyGroup
 import po.misc.reflection.properties.SourcePropertyIO
 import po.misc.types.TypeData
 import po.misc.types.castOrManaged
 
 
-interface WithSurrogateHooks<T: IdentifiableContext>{
+interface WithSurrogateHooks<T: CTX>{
     fun groupRegistered(hook: (PropertyGroup<T, *>)-> Unit)
 }
 
-class SurrogateHooks<T: IdentifiableContext>(): WithSurrogateHooks<T>{
+class SurrogateHooks<T: CTX>(): WithSurrogateHooks<T>{
     internal var onGroupRegistered: ((PropertyGroup<T, *>)-> Unit)? = null
     override fun groupRegistered(hook: (PropertyGroup<T, *>)-> Unit){
         onGroupRegistered = hook
     }
 }
 
-class KSurrogate<T: IdentifiableContext>(
+class KSurrogate<T: CTX>(
     val receiver:T,
     val hooks:SurrogateHooks<T> = SurrogateHooks()
-):AbstractMutableMap<String, SourcePropertyIO<T, Any>>(), WithSurrogateHooks<T> by hooks, IdentifiableClass {
+):AbstractMutableMap<String, SourcePropertyIO<T, Any>>(), WithSurrogateHooks<T> by hooks, CTX {
 
     enum class SurrogateEvents{
         GroupCreated,
@@ -35,10 +37,12 @@ class KSurrogate<T: IdentifiableContext>(
         SourcePropertyInitialized
     }
 
+    override val identity:  CTXIdentity<KSurrogate<T>> = fromContext(this, receiver)
+
     val classRecord = TypeData.createByKClass(receiver::class)
     val classInfo = overallInfoFromType<T>(ClassRole.Receiver, classRecord.kType)
 
-    override val identity: ClassIdentity = ClassIdentity.create("KSurrogate", classRecord::class)
+
 
     val backingMap: MutableMap<String, SourcePropertyIO<T, Any>> = mutableMapOf()
    // val dataSources: MutableMap<KClass<*>, DataSource<*>> = mutableMapOf()
@@ -103,5 +107,7 @@ class KSurrogate<T: IdentifiableContext>(
         }
         return text
     }
+
+
 
 }

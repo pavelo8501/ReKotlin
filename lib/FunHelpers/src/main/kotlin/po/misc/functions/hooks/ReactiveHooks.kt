@@ -1,50 +1,41 @@
 package po.misc.functions.hooks
 
-import po.misc.interfaces.CTX
+import po.misc.context.CTX
 
 
 /**
  * Hook manager for tracking and reacting to state changes in a [ReactiveComponent].
- *
  * @param S The component type that owns this hook manager.
  * @param V The value type being managed by the component.
  * @property source The component instance that owns this hook set.
  */
-class ReactiveHooks<S: CTX, V: Any>(private val source: S) {
+class ReactiveHooks<S: CTX, V: Any?>(private var source: S? = null): BasicHooks<S, V> {
+
+    val isInitialized: Boolean get() = source != null
 
     private var onProviderSetHook: ((S) -> Unit)? = null
-    /**
-     * Registers a callback that is invoked when the lambda provider is set.
-     */
-    fun onProviderSet(block: (S) -> Unit) {
-        onProviderSetHook = block
+    override fun onProviderSet(onSet: (S) -> Unit) {
+        onProviderSetHook = onSet
     }
-    internal fun fireProviderSet() = onProviderSetHook?.invoke(source)
-
+    internal fun fireProviderSet() {
+        source?.let { onProviderSetHook?.invoke(it) }
+    }
 
     private var onBeforeResolveHook: ((S) -> Unit)? = null
-    /**
-     * Registers a callback to be called before resolution begins.
-     */
-    fun onBeforeResolve(block: (S) -> Unit){
-        onBeforeResolveHook = block
+    override fun onBeforeResolve(beforeResolve: (S) -> Unit){
+        onBeforeResolveHook = beforeResolve
     }
-    internal fun fireBeforeResolve() = onBeforeResolveHook?.invoke(source)
-
+    internal fun fireBeforeResolve(){
+        source?.let { onBeforeResolveHook?.invoke(it) }
+    }
 
     private var onResolvedHook: ((V) -> Unit)? = null
-    /**
-     * Registers a callback to be called after resolution completes.
-     */
-    fun onResolved(block: (V) -> Unit){
-        onResolvedHook = block
+    override fun onResolved(onResolved: (V) -> Unit){
+        onResolvedHook = onResolved
     }
     private var withResolvedValueHook: (V.() -> Unit)? = null
-    /**
-     * Registers a lambda-style callback using receiver syntax, called with the resolved value.
-     */
-    fun withResolvedValue(block: V.() -> Unit){
-        withResolvedValueHook = block
+    override fun withResolvedValue(withValue: V.() -> Unit){
+        withResolvedValueHook = withValue
     }
     internal fun fireResolved(result: V) {
         onResolvedHook?.invoke(result)
@@ -53,30 +44,19 @@ class ReactiveHooks<S: CTX, V: Any>(private val source: S) {
 
 
     private var onChangeHook: ((old: V?, new: V) -> Unit)? = null
-    /**
-     * Registers a callback to be called whenever the value changes.
-     *
-     * @param block A function receiving the old and new values.
-     */
-    fun onChange(block: (V?, V) -> Unit){
-        onChangeHook = block
+    override fun onChange(onChange: (V?, V) -> Unit){
+        onChangeHook = onChange
     }
     internal fun fireChange(old: V?, new: V) = onChangeHook?.invoke(old, new)
 
     private var onDisposeHook: ((S) -> Unit)? = null
-    /**
-     * Registers a callback to be called when the component is disposed.
-     */
-    fun onDispose(block: (S) -> Unit){
-        onDisposeHook = block
+    override fun onDispose(onDispose: (S) -> Unit){
+        onDisposeHook = onDispose
     }
     internal fun fireDispose() {
-        onDisposeHook?.invoke(source)
+        source?.let { onDisposeHook?.invoke(it) }
     }
 
-    /**
-     * Clears all lifecycle hooks except [onDispose].
-     */
     private fun clearHookBindings(){
         onProviderSetHook = null
         onBeforeResolveHook = null
@@ -84,9 +64,10 @@ class ReactiveHooks<S: CTX, V: Any>(private val source: S) {
         onChangeHook = null
     }
 
-    /**
-     * Disposes all hooks and calls the dispose callback if registered.
-     */
+    fun initialize(source: S){
+        this.source = source
+    }
+
     fun disposeHooks(){
         clearHookBindings()
         fireDispose()

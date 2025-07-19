@@ -1,15 +1,14 @@
 package po.test.misc.reflection
 
 import org.junit.jupiter.api.Test
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
 import po.misc.data.delegates.propertyBinding
-import po.misc.interfaces.IdentifiableContext
+import po.misc.context.Identifiable
+import po.misc.context.asContext
 import po.misc.reflection.classes.KSurrogate
-import po.misc.reflection.properties.PropertyIO
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertSame
 
 class TestKSurrogate {
 
@@ -32,7 +31,10 @@ class TestKSurrogate {
         val  field3: KMutableProperty1<Source, Boolean> = Source::field3
     )
 
-    class MainObject(): IdentifiableContext {
+    class MainObject(): CTX {
+
+        override val identity: CTXIdentity<out CTX> = asContext()
+
         override val contextName: String get() = "MainObject"
 
         val source: Source = Source()

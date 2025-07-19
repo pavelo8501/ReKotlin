@@ -1,14 +1,17 @@
 package po.misc.functions.containers
 
 import po.misc.exceptions.ManagedCallSitePayload
-import po.misc.interfaces.CTX
+import po.misc.context.CTX
 import po.misc.types.getOrManaged
 
 sealed class ReceivableFunctionContainer<T: Any, P, R: Any?, V: Any>(
+    context: CTX,
     val initialLambda: (T.(P)-> R)? = null
-): CTX {
+){
 
-    protected val exceptionPayload: ManagedCallSitePayload = ManagedCallSitePayload(ctx = this)
+   // val identity: Identifiable = identifiable("ReceivableFunctionContainer", context)
+
+    protected val exceptionPayload: ManagedCallSitePayload = ManagedCallSitePayload(context)
     abstract val parameter: P
 
 
@@ -28,11 +31,7 @@ sealed class ReceivableFunctionContainer<T: Any, P, R: Any?, V: Any>(
 class LazyContainerWithReceiver<T: Any, P, R:Any>(
     private val holder: CTX,
     initialLambda: (T.(P)-> R)? = null
-): ReceivableFunctionContainer<T, P, R, R>(initialLambda) {
-
-    override val contextName: String
-        get() = "LazyContainerWithReceiver On ${holder.contextName}"
-
+): ReceivableFunctionContainer<T, P, R, R>(holder,  initialLambda) {
 
 
     private  var parameterBacking: P? = null

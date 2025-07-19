@@ -4,13 +4,13 @@ import po.misc.callbacks.CallbackManager
 import po.misc.callbacks.Containable
 import po.misc.callbacks.builders.callbackManager
 import po.misc.callbacks.builders.createPayload
+import po.misc.context.CTX
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.toManaged
-import po.misc.exceptions.toPayload
-import po.misc.interfaces.ClassIdentity
-import po.misc.interfaces.CtxId
-import po.misc.interfaces.IdentifiableClass
-import po.misc.interfaces.IdentifiableContext
+import po.misc.context.Identifiable
+import po.misc.context.asContext
+import po.misc.context.fromContext
+import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.reflection.classes.ClassInfo
 import po.misc.reflection.classes.ClassRole
 import po.misc.reflection.classes.overallInfo
@@ -18,7 +18,6 @@ import po.misc.reflection.classes.overallInfoFromType
 import po.misc.types.TypeData
 import po.misc.types.Typed
 import po.misc.types.containers.ComplexContainers
-import po.misc.types.containers.TypedClass
 import po.misc.types.containers.TypedContainer
 import po.misc.types.containers.updatable.models.UpdatableData
 import po.misc.types.containers.updatable.models.UpdatableEvents
@@ -31,9 +30,9 @@ interface UpdatableClass<T: Any>{
 }
 
 class ActionValue<V>(
-  private val owner: CtxId,
+  private val owner: CTX,
   private val actionLambda: (Containable<ActionClassData<V>>)-> Unit
-): ComplexContainers<V>, IdentifiableClass where V:Any{
+): ComplexContainers<V>, CTX where V:Any{
 
     enum class ActionClassEvents{
         OnValueProvided
@@ -41,7 +40,7 @@ class ActionValue<V>(
     data class ActionClassData<V: Any>(val event: ActionClassEvents, val value:V, val exception: ManagedException?){
         val success: Boolean = exception == null
     }
-    override val identity: ClassIdentity = ClassIdentity.create("UpdatableContainer", owner.contextName)
+    override val identity = asContext(owner)
 
     val actionClassNotifier: CallbackManager<ActionClassEvents> = CallbackManager<ActionClassEvents>(ActionClassEvents::class.java, this)
     internal val onValuePayload = CallbackManager.createPayload<ActionClassEvents, ActionClassData<V>>(actionClassNotifier, ActionClassEvents.OnValueProvided)
@@ -56,15 +55,17 @@ class ActionValue<V>(
     }
 }
 
-class UpdatableContainer<T: CtxId, R: Any, V: Any>(
+class UpdatableContainer<T: CTX, R: Any, V: Any>(
     source:T,
     typeData: Typed<T>,
     classInfo: ClassInfo<T>,
     val property: KMutableProperty1<R, V>,
     val dataLambda:(T)-> V
-): TypedContainer<T>(source, typeData, classInfo), ComplexContainers<T>, DeferredMutation<T, R> {
+): TypedContainer<T>(source, typeData, classInfo), ComplexContainers<T>, DeferredMutation<T, R>, CTX {
 
-    override val identity: ClassIdentity = ClassIdentity.create("UpdatableContainer", contextName)
+    override val identity = fromContext(this, source)
+    val exPayload: ManagedCallSitePayload = ManagedCallSitePayload.create(this)
+
 
     override val notifier: CallbackManager<UpdatableEvents> = callbackManager<UpdatableEvents>(
         { createPayload<UpdatableEvents,UpdatableData>(UpdatableEvents.OnArmed) },
@@ -115,20 +116,21 @@ class UpdatableContainer<T: CtxId, R: Any, V: Any>(
             notifier.trigger<UpdatableData>(event, createData("By direct value provided", true, event))
         }.onFailure {
             event = UpdatableEvents.Failure
-            notifier.trigger<ManagedException>(event, it.toManaged(toPayload(it)) )
+
+            notifier.trigger<ManagedException>(event, it.toManaged(exPayload) )
         }
     }
 }
 
 
-inline fun <reified T: CtxId, R: Any, V: Any> T.toUpdatableContainer(
+inline fun <reified T: CTX, R: Any, V: Any> T.toUpdatableContainer(
     property: KMutableProperty1<R, V>,
     noinline  dataLambda:(T)-> V
 ):UpdatableContainer<T, R, V>{
     return UpdatableContainer(this, TypeData.create<T>(),overallInfo(ClassRole.Receiver), property, dataLambda)
 }
 
-fun <T: CtxId, R: Any, V: Any> T.toUpdatableContainer(
+fun <T: CTX, R: Any, V: Any> T.toUpdatableContainer(
     typeData: TypeData<T>,
     property: KMutableProperty1<R, V>,
     dataLambda:(T)-> V

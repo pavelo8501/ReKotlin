@@ -1,77 +1,14 @@
 package po.misc.exceptions
 
-import po.misc.data.helpers.emptyOnNull
+import po.misc.context.CTX
 import po.misc.data.helpers.wrapByDelimiter
-import po.misc.interfaces.IdentifiableContext
-
-inline fun <T: Any> T?.letOrException(ex : ManagedException, block: (T)-> T){
-    if(this != null){
-        block(this)
-    } else {
-        throw ex
-    }
-}
-
-fun <T: Any?, E: ManagedException> T.testOrException( exception : E, predicate: (T) -> Boolean): T{
-    if (predicate(this)){
-        return this
-    }else{
-        throw exception
-    }
-}
-
-inline fun <reified T> Iterable<T>.countEqualsOrException(equalsTo: Int, exception:ManagedException):Iterable<T>{
-    val actualCount = this.count()
-    if(actualCount != equalsTo){
-        throw exception
-    }else{
-        return this
-    }
-}
+import po.misc.exceptions.models.ExceptionData
+import po.misc.context.Identifiable
 
 
-inline fun <reified EX: ManagedException, S: Enum<S>>  IdentifiableContext.manageableException(
-    message: String,
-    source: S,
-    original: Throwable? = null
-):EX{
-    val exceptionMessage = "$message @ $contextName"
-    return ManageableException.build<EX, S>(exceptionMessage, source, original)
-}
-
-fun IdentifiableContext.managedException(message: String, source: Enum<*>?, original: Throwable?): ManagedException{
-    val exceptionMessage = "$message @ $contextName"
+fun CTX.managedException(message: String, source: Enum<*>?, original: Throwable?): ManagedException{
+    val exceptionMessage = "$message @ $completeName"
     return  ManagedException(exceptionMessage, source, original)
-}
-
-fun IdentifiableContext.managedWithHandler(message: String, handler: HandlerType,  source: Enum<*>): ManagedException{
-    val exception = ManagedException(message, source, null)
-    exception.handler  = handler
-    return exception
-}
-
-
-
-fun throwManaged(message: String, ctx: IdentifiableContext,  handler : HandlerType? = null): Nothing{
-    if(handler == null){
-        val exception =  ManagedException(message)
-        exception.throwSelf(ctx)
-    }else{
-        val exception =  ManagedException(message)
-        exception.handler = handler
-        exception.throwSelf(ctx)
-    }
-}
-
-
-fun throwManaged(payload: ManagedCallSitePayload): Nothing{
-    if(payload.handler == null){
-        throw ManagedException(payload.toString())
-    }else{
-        val exception =  ManagedException(payload.toString())
-        exception.handler = payload.handler
-        throw exception
-    }
 }
 
 
@@ -99,36 +36,39 @@ fun throwManaged(message: String, handler : HandlerType? = null): Nothing{
 inline fun <reified EX: ManagedException, S: Enum<S>> throwManageable(
     message: String,
     source: S? = null,
-    ctx: IdentifiableContext? = null
+    context: CTX? = null
 ): Nothing{
     val managedException : EX = ManageableException.build<EX, S>(message, source)
-    if(ctx != null){
-        managedException.throwSelf(ctx)
+    if(context != null){
+        managedException.throwSelf(context, ManagedException.ExceptionEvent.Thrown)
     }else{
         throw  managedException
     }
 }
 
+fun ManagedCallSitePayload.toManaged(): ManagedException{
+  return  ManagedException.create(this)
+}
 
-fun Throwable.toManaged(ctx: IdentifiableContext,  handler: HandlerType,  source: Enum<*>?): ManagedException{
-    val exceptionMessage = "$message @ ${ctx.contextName}"
+fun Throwable.toManaged(ctx: CTX, handler: HandlerType, source: Enum<*>?): ManagedException{
+    val exceptionMessage = "$message @ ${ctx.completeName}"
     val exception = ctx.managedException(exceptionMessage,source, this)
     exception.handler = handler
     return exception
 }
 
 fun Throwable.toManaged(payload: ManagedCallSitePayload): ManagedException{
-    val exceptionMessage = "$message @ ${payload.ctx}"
-    val exception = ManagedException(payload.toString(), payload.source, payload.cause)
-    exception.addHandlingData(payload.ctx,  ManagedException.ExceptionEvent.Registered)
+
+    val exceptionMessage = "$message @ ${payload.producer.completeName}"
+    val managed = ManagedException(this.throwableToText(), payload.source, this)
     payload.handler?.let {
-        exception.handler = it
+        managed.handler = it
     }
-    return exception
+    return managed
 }
 
-inline fun <reified EX: ManagedException, S: Enum<S>> Throwable.toManageable(ctx: IdentifiableContext, source: S): EX{
-    val exceptionMessage = "$message @ ${ctx.contextName}"
+inline fun <reified EX: ManagedException, S: Enum<S>> Throwable.toManageable(ctx: CTX, source: S): EX{
+    val exceptionMessage = "$message @ ${ctx.completeName}"
     return ManageableException.build<EX, S>(exceptionMessage, source, this)
 }
 
@@ -145,18 +85,7 @@ fun ManagedException.waypointInfo(): String{
     return resultStr
 }
 
-fun <EX: Throwable> EX.name(): String{
-    return if (this is ManagedException) {
-        val name = this::class.simpleName
-        val handlerName = this.handler.name
-        "$name[msg:${message} ${source?.name.emptyOnNull("code:")} hdl:${handlerName}]"
-    }else{
-        "${this.javaClass.simpleName}[msg:${message ?: ""}]"
-    }
-}
-
-
-fun  Throwable.text(): String{
+fun  Throwable.throwableToText(): String{
    return if(this.message != null){
         this.message.toString()
     }else{
@@ -164,15 +93,13 @@ fun  Throwable.text(): String{
     }
 }
 
-
-
-fun <EX: Throwable> EX.shortName(): String{
-    return if (this is ManagedException) {
-        val name = this::class.simpleName
-        val handlerName = this.handler.name
-        val completeName = "$name(${message})"
-        completeName
-    }else{
-        "${this.javaClass.simpleName}(${message ?: ""})"
-    }
-}
+//fun <EX: Throwable> EX.shortName(): String{
+//    return if (this is ManagedException) {
+//        val name = this::class.simpleName
+//        val handlerName = this.handler.name
+//        val completeName = "$name(${message})"
+//        completeName
+//    }else{
+//        "${this.javaClass.simpleName}(${message ?: ""})"
+//    }
+//}

@@ -1,7 +1,8 @@
 package po.misc.registries.callback
 
 import po.misc.collections.CompositeKey
-import po.misc.interfaces.Identifiable
+import po.misc.context.CTX
+import po.misc.context.Identifiable
 import po.misc.interfaces.ValueBased
 
 
@@ -9,12 +10,12 @@ import po.misc.interfaces.ValueBased
 class CallbackRegistry {
 
     private val subscriptions = mutableMapOf<CompositeKey, () -> Unit>()
-    fun subscribe(component: Identifiable, type: ValueBased, callback: () -> Unit) {
+    fun subscribe(component: CTX, type: ValueBased, callback: () -> Unit) {
         val key = CompositeKey(component, type)
         subscriptions[key] = callback
     }
 
-    fun trigger(component: Identifiable, type: ValueBased) {
+    fun trigger(component: CTX, type: ValueBased) {
         val key = CompositeKey(component, type)
         subscriptions[key]?.invoke()
     }
@@ -26,7 +27,7 @@ class CallbackRegistry {
         }
     }
 
-    fun clear(component: Identifiable? = null, type: ValueBased? = null) {
+    fun clear(component: CTX? = null, type: ValueBased? = null) {
         when {
             component != null && type != null -> subscriptions.remove(CompositeKey(component, type))
             component != null -> subscriptions.keys.removeIf { it.component == component }

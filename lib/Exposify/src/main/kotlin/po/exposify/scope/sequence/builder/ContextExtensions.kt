@@ -1,5 +1,7 @@
 package po.exposify.scope.sequence.builder
 
+import org.jetbrains.exposed.dao.LongEntity
+import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.createProvider
 import po.exposify.dto.components.result.ResultBase
 import po.exposify.dto.components.result.ResultList
@@ -7,21 +9,23 @@ import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.helpers.asCommonDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.extensions.castOrOperations
 import po.exposify.scope.sequence.launcher.ListDescriptor
-import po.exposify.scope.sequence.launcher.ListResultHandler
-import po.exposify.scope.sequence.launcher.LongSingeDescriptor
-import po.exposify.scope.sequence.launcher.ParametrizedSingeDescriptor
-import po.exposify.scope.sequence.launcher.ParametrizedSwitchSinge
-import po.exposify.scope.sequence.launcher.SwitchSinge
+import po.exposify.scope.sequence.launcher.ListTypeHandler
+import po.exposify.scope.sequence.launcher.SingleDescriptor
+import po.exposify.scope.sequence.launcher.SingleTypeHandler
+import po.exposify.scope.sequence.launcher.SingleTypeSwitchHandler
+import po.exposify.scope.sequence.launcher.SwitchSingeDescriptor
 import po.exposify.scope.sequence.models.SequenceParameter
 import po.exposify.scope.service.ServiceContext
+import po.misc.functions.containers.DeferredContainer
 import po.misc.functions.containers.LambdaContainer
 import po.misc.functions.containers.LazyExecutionContainer
 
 
-fun <DTO, D, P> ExecutionChunkBase<DTO, D, P>.withResult(
+fun <DTO, D> ExecutionChunkBase<DTO, D>.withResult(
     block: ResultBase<DTO, D>.()-> Unit
-) where DTO : ModelDTO, D : DataModel, P : Any {
+) where DTO : ModelDTO, D : DataModel{
 
     when(this){
         is SingleResultChunks->{
@@ -33,103 +37,73 @@ fun <DTO, D, P> ExecutionChunkBase<DTO, D, P>.withResult(
     }
 }
 
-fun <DTO, D, P> ExecutionChunkBase<DTO, D, P>.withInputValue(
-    block:P.()-> Unit
-) where DTO: ModelDTO, D: DataModel, P:Any {
-    withInputContainer.registerProvider(block)
+fun <DTO, D> ExecutionChunkBase<DTO, D>.withInputValue(
+    block:D.()-> Unit
+) where DTO: ModelDTO, D: DataModel{
+    withInputValueLambda.registerProvider(block)
+
 }
 
+fun <DTO, D, E, F, FD, FE> SingleResultChunks<F, FD>.switchStatement(
+    switchDescriptor: SwitchSingeDescriptor<DTO, D, E, F>,
+    block: SwitchChunkContainer<DTO, D, E, F, FD, FE>.(SingleTypeSwitchHandler<DTO, D, E, F, FD, FE>) -> DeferredContainer<ResultSingle<DTO, D, *>>
+) where DTO : ModelDTO, D : DataModel, E: LongEntity, F: ModelDTO, FD: DataModel, FE: LongEntity{
 
-fun <DTO, D, F, FD> SingleResultChunks<DTO, D, *>.switchStatement(
-    switchDescriptor: SwitchSinge<F, FD>,
-    block: SwitchChunkContainer<DTO, D, F, FD>.(SequenceParameter<Long>) -> LazyExecutionContainer<Long, ResultBase<F, FD>>
-) where DTO : ModelDTO, D : DataModel, F: ModelDTO, FD: DataModel{
-
-    activeResult?.let {result->
-        val commonDTO =  result.dto.asCommonDTO(result.dtoClass)
-        val switchContainer = createSwitchContainer(commonDTO, switchDescriptor.dtoClass)
-        val container = LambdaContainer<Long>(result.dtoClass)
-        val sequenceParameter = SequenceParameter<Long>(container)
-        block.invoke(switchContainer, sequenceParameter)
-
+    val consResult = activeResult
+    if(consResult != null){
+        consResult.getAsCommonDTO()?.let {foreignDTO->
+            val castedForeign = foreignDTO.castOrOperations<CommonDTO<F, FD, FE>>(switchDescriptor)
+            val switchContainer = SwitchChunkContainer(switchDescriptor, castedForeign, this)
+            block.invoke(switchContainer,  switchContainer.singleTypeSwitchHandler)
+            registerSwitchContainer(switchContainer, switchDescriptor.inputType)
+        }?:run { println("SwitchChunkContainer can not be created. Result is empty") }
+    }else{
+        println("SwitchChunkContainer can not be created. activeResult is null")
     }
 }
 
-fun <DTO, D, F, FD> SingleResultChunks<DTO, D, *>.switchStatement(
-    switchDescriptor: ParametrizedSwitchSinge<F, FD>,
-    block: SwitchChunkContainer<DTO, D, F, FD>.(SequenceParameter<FD>) -> LazyExecutionContainer<FD, ResultSingle<F, FD, *>>
-) where DTO : ModelDTO, D : DataModel, F: ModelDTO, FD: DataModel{
-
-    resultContainer.hooks.onResolved {result->
-        val commonDTO =  result.dto.asCommonDTO(result.dtoClass)
-        val switchContainer = createSwitchContainer(commonDTO, switchDescriptor.dtoClass)
-        val container = LambdaContainer<FD>(result.dtoClass)
-        val sequenceParameter = SequenceParameter<FD>(container)
-        block.invoke(switchContainer, sequenceParameter)
-    }
-}
-
-
-private fun <DTO, D, P: Any>  sequencedSingle(
-    serviceContext: ServiceContext<DTO, D, *>,
-    block: SequenceChunkContainer<DTO, D>.(SequenceParameter<P>) -> LazyExecutionContainer<P, ResultSingle<DTO, D, *>>
-): SequenceChunkContainer<DTO, D> where DTO : ModelDTO, D : DataModel  {
+private fun <DTO, D, E> sequencedSingle(
+    serviceContext: ServiceContext<DTO, D, E>,
+    block: SequenceChunkContainer<DTO, D, E>.(SingleTypeHandler<DTO, D, E>) -> DeferredContainer<ResultSingle<DTO, D, *>>
+): SequenceChunkContainer<DTO, D, E> where DTO : ModelDTO, D : DataModel, E : LongEntity   {
 
     val execContext = serviceContext.dtoClass.createProvider()
     val chunkContainer = SequenceChunkContainer(execContext, 100)
-    val container = LambdaContainer<P>(serviceContext.dtoClass)
-    val sequenceParameter = SequenceParameter<P>(container)
-    block.invoke(chunkContainer, sequenceParameter)
+    block.invoke(chunkContainer, chunkContainer.singleTypeHandler)
     chunkContainer.chunks.forEach {chunk->
         chunk.configure()
     }
     return chunkContainer
 }
 
-fun <DTO, D> ServiceContext<DTO, D, *>.sequenced(
-    launchDescriptor: LongSingeDescriptor<DTO, D>,
-    block: SequenceChunkContainer<DTO, D>.(SequenceParameter<Long>) -> LazyExecutionContainer<Long, ResultSingle<DTO, D, *>>
-) where DTO : ModelDTO, D : DataModel {
-
-    val chunkContainer = sequencedSingle(this, block)
-    launchDescriptor.registerChunkContainer(chunkContainer)
-}
-
-fun <DTO, D> ServiceContext<DTO, D, *>.sequenced(
-    launchDescriptor: ParametrizedSingeDescriptor<DTO, D>,
-    block: SequenceChunkContainer<DTO, D>.(SequenceParameter<D>) -> LazyExecutionContainer<D, ResultSingle<DTO, D, *>>
-) where DTO : ModelDTO, D : DataModel{
-    val chunkContainer = sequencedSingle(this, block)
-    launchDescriptor.registerChunkContainer(chunkContainer)
-}
-
-
-private fun <DTO, D, P: Any>  sequencedList(
-    launchDescriptor: ListDescriptor<DTO, D>,
-    serviceContext: ServiceContext<DTO, D, *>,
-    block: SequenceChunkContainer<DTO, D>.(ListResultHandler<DTO, D>) -> LazyExecutionContainer<P, ResultList<DTO, D, *>>
-): SequenceChunkContainer<DTO, D> where DTO : ModelDTO, D : DataModel  {
+private fun <DTO, D, E>  sequencedList(
+    serviceContext: ServiceContext<DTO, D, E>,
+    block: SequenceChunkContainer<DTO, D, E>.(ListTypeHandler<DTO, D, E>) -> DeferredContainer<ResultList<DTO, D, *>>
+): SequenceChunkContainer<DTO, D, E> where DTO : ModelDTO, D : DataModel, E : LongEntity  {
 
     val execContext = serviceContext.dtoClass.createProvider()
     val chunkContainer = SequenceChunkContainer(execContext, 300)
-    //val container = LambdaContainer<P>(serviceContext.dtoClass)
-    //val sequenceParameter = SequenceParameter<P>(container)
-
-    val listResultHandler = ListResultHandler.create(launchDescriptor)
-
-    block.invoke(chunkContainer,  listResultHandler)
+    block.invoke(chunkContainer, chunkContainer.listTypeHandler)
     chunkContainer.chunks.forEach {chunk->
         chunk.configure()
     }
     return chunkContainer
 }
 
+fun <DTO, D, E> ServiceContext<DTO, D, E>.sequenced(
+    launchDescriptor: SingleDescriptor<DTO, D, E>,
+    block: SequenceChunkContainer<DTO, D, E>.(SingleTypeHandler<DTO, D, E>) -> DeferredContainer<ResultSingle<DTO, D, *>>
+) where DTO : ModelDTO, D : DataModel,  E : LongEntity{
+    val chunkContainer = sequencedSingle(this, block)
+    launchDescriptor.registerChunkContainer(chunkContainer)
+}
 
-fun <DTO, D> ServiceContext<DTO, D, *>.sequenced(
-    launchDescriptor: ListDescriptor<DTO, D>,
-    block: SequenceChunkContainer<DTO, D>.(ListResultHandler<DTO, D>) -> LazyExecutionContainer<Unit, ResultList<DTO, D, *>>
-) where DTO : ModelDTO, D : DataModel
+
+fun <DTO, D, E> ServiceContext<DTO, D, E>.sequenced(
+    launchDescriptor: ListDescriptor<DTO, D, E>,
+    block: SequenceChunkContainer<DTO, D, E>.(ListTypeHandler<DTO, D, E>) -> DeferredContainer<ResultList<DTO, D, *>>
+) where DTO : ModelDTO, D : DataModel, E: LongEntity
 {
-    val chunkContainer = sequencedList(launchDescriptor, this, block)
+    val chunkContainer = sequencedList(this, block)
     launchDescriptor.registerChunkContainer(chunkContainer)
 }

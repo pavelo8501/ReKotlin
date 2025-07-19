@@ -1,13 +1,11 @@
 package po.misc.callbacks
 
 import po.misc.callbacks.components.PayloadAnalyzer
-import po.misc.callbacks.interfaces.ManageableHub
 import po.misc.collections.ComparableType
 import po.misc.collections.StaticTypeKey
+import po.misc.context.CTX
 import po.misc.exceptions.throwManaged
-import po.misc.interfaces.IdentifiableClass
-import po.misc.interfaces.IdentifiableContext
-import po.misc.types.Typed
+import po.misc.context.Identifiable
 import po.misc.types.getOrManaged
 
 
@@ -26,8 +24,8 @@ sealed class CallbackPayloadBase<E: Enum<E>, T, R>(
 
     abstract val withResult: Boolean
 
-    internal val containers = mutableMapOf<IdentifiableContext, CallableContainer<T>>()
-    internal val routedContainers  = mutableMapOf<IdentifiableContext, RoutedContainer<T>>()
+    internal val containers = mutableMapOf<CTX, CallableContainer<T>>()
+    internal val routedContainers  = mutableMapOf<CTX, RoutedContainer<T>>()
     internal val leftoverData = mutableListOf<T>()
 
     internal fun registerManager(manager: CallbackManager<E>){
@@ -42,7 +40,7 @@ sealed class CallbackPayloadBase<E: Enum<E>, T, R>(
         val postTriggerEvent = CallbackManagerHooks.PostTriggerEvent(triggeredCount, containers.size, manager.emitter)
         manager.hooks?.onAfterTriggered?.let { it(postTriggerEvent) }
     }
-    private fun newSubscription(subscriber: IdentifiableContext){
+    private fun newSubscription(subscriber: CTX){
         val subscriptionEvent =   CallbackManagerHooks.SubscriptionRecord(subscriber, eventType)
         val callbackStats = CallbackManagerHooks.ManagerStats(subscriptionEvent, containers.size, manager.emitter)
         manager.hooks?.onNewSubscription?.let { it(callbackStats) }
@@ -57,7 +55,7 @@ sealed class CallbackPayloadBase<E: Enum<E>, T, R>(
             removeContainer(container)
         }
     }
-    private fun triggerIfLeftover(subscriber: IdentifiableContext, function: (Containable<T>)-> Unit){
+    private fun triggerIfLeftover(subscriber: CTX, function: (Containable<T>)-> Unit){
         leftoverData.forEach {
 
             val newContainer = CallbackContainer<T>(this, subscriber, 0,  function)
@@ -73,11 +71,11 @@ sealed class CallbackPayloadBase<E: Enum<E>, T, R>(
         }
     }
 
-    internal fun removeContainer(subscriber: IdentifiableClass){
+    internal fun removeContainer(subscriber: CTX){
         if(containers.containsKey(subscriber)){
             containers.remove(subscriber)
         }else{
-            throwManaged("removeContainer fail. No container for key ${subscriber.contextName}")
+            throwManaged("removeContainer fail. No container for key $subscriber")
         }
     }
 
@@ -88,19 +86,19 @@ sealed class CallbackPayloadBase<E: Enum<E>, T, R>(
         }
     }
 
-    private fun createSubscription(subscriber: IdentifiableContext, expires: Int,  function: (Containable<T>)-> Unit){
+    private fun createSubscription(subscriber: CTX, expires: Int,  function: (Containable<T>)-> Unit){
         newSubscription(subscriber)
         val newContainer = CallbackContainer(this, subscriber, expires, function)
         containers[subscriber] = newContainer
         triggerIfLeftover(subscriber, function)
     }
-    fun subscribe(subscriber: IdentifiableContext, function: (Containable<T>)-> Unit) : Unit =
+    fun subscribe(subscriber: CTX, function: (Containable<T>)-> Unit) : Unit =
         createSubscription(subscriber, -1, function)
-    fun request(subscriber: IdentifiableClass, function: (Containable<T>)-> Unit) : Unit =
+    fun request(subscriber: CTX, function: (Containable<T>)-> Unit) : Unit =
         createSubscription(subscriber, 0, function)
 
     private fun  createRoutedSubscription(
-        subscriber: IdentifiableContext,
+        subscriber: CTX,
         expires: Int,
        // dataAdapter: (T)->T2,
         function: (Containable<T>)-> Unit) : RoutedContainer<T> {
@@ -110,12 +108,12 @@ sealed class CallbackPayloadBase<E: Enum<E>, T, R>(
     }
 
 
-    fun subscribeRouted(subscriber: IdentifiableContext, function: (Containable<T>)-> Unit)
+    fun subscribeRouted(subscriber: CTX, function: (Containable<T>)-> Unit)
         = createRoutedSubscription(subscriber, -1,  function)
-    fun requestRouted(subscriber: IdentifiableContext,  function: (Containable<T>)-> Unit)
+    fun requestRouted(subscriber: CTX,  function: (Containable<T>)-> Unit)
             = createRoutedSubscription(subscriber, 0,  function)
 
-    fun triggerRouted(value: T, subscriber: IdentifiableClass? = null): Int{
+    fun triggerRouted(value: T, subscriber: CTX? = null): Int{
         var triggersCount = 0
         if(subscriber != null){
             routedContainers.filter { it.key == subscriber }.forEach {(key, routed) ->
@@ -133,7 +131,7 @@ sealed class CallbackPayloadBase<E: Enum<E>, T, R>(
         return triggersCount
     }
 
-    fun trigger(subscriber: IdentifiableClass, value: T){
+    fun trigger(subscriber: CTX, value: T){
         containers[subscriber]?.let {container->
             beforeTrigger(container, value)
             container.trigger(value)

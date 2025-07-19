@@ -3,20 +3,18 @@ package po.lognotify
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import po.lognotify.classes.notification.LoggerDataProcessor
 import po.lognotify.classes.notification.NotifierHub
 import po.lognotify.tasks.TaskHandler
 import po.lognotify.models.TaskDispatcher
 import po.lognotify.models.TaskDispatcher.UpdateType
-import po.lognotify.process.LogReceiver
 import po.misc.callbacks.wrapRawCallback
 import po.misc.data.printable.PrintableBase
 import po.misc.data.console.PrintableTemplateBase
 import po.misc.data.printable.PrintableCompanion
-import po.misc.interfaces.IdentifiableContext
+import po.misc.context.CTX
 import kotlin.coroutines.CoroutineContext
 
-interface TasksManaged : IdentifiableContext {
+interface TasksManaged : CTX {
 
     object LogNotify {
         val taskDispatcher: TaskDispatcher = TaskDispatcher(NotifierHub())

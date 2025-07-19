@@ -3,27 +3,22 @@ package po.exposify.dto.components.tracker
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.common.events.DTOData
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.components.bindings.BindingHub
 import po.exposify.dto.components.tracker.extensions.resolveHierarchy
 import po.exposify.dto.components.tracker.interfaces.TrackableDTO
 import po.exposify.dto.components.tracker.models.DTOEvents
 import po.exposify.dto.components.tracker.models.TrackerConfig
-import po.exposify.dto.components.tracker.models.TrackerTag
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.lognotify.TasksManaged
-import po.lognotify.process.LogReceiver
-import po.misc.callbacks.CallableContainer
 import po.misc.callbacks.CallbackManager
 import po.misc.callbacks.Containable
 import po.misc.callbacks.builders.callbackBuilder
 import po.misc.callbacks.builders.createPayload
-import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.printableProxy
 import po.misc.interfaces.ClassIdentity
-import po.misc.interfaces.CtxId
-import po.misc.interfaces.IdentifiableClass
-import po.misc.interfaces.IdentifiableContext
+import po.misc.context.CtxId
+import po.misc.context.IdentifiableClass
+import po.misc.context.Identifiable
 import po.misc.interfaces.asIdentifiable
 import po.misc.lookups.HierarchyNode
 import po.misc.lookups.transformNode
@@ -67,7 +62,7 @@ class DTOTracker<DTO: ModelDTO, D: DataModel, E: LongEntity>(
 
     internal fun subscribe(
         event:DTOEvents,
-        ctx: IdentifiableContext?,
+        ctx: Identifiable?,
         lambda: (Containable<DTOTracker<DTO, *, *>>) -> Unit
     ){
         val context = ctx?:run {
@@ -108,7 +103,7 @@ class DTOTracker<DTO: ModelDTO, D: DataModel, E: LongEntity>(
         activeRecord.setPropertyUpdate(update)
     }
 
-    fun addTrackInfo(operation:CrudOperation, module: IdentifiableContext? = null):DTOTracker<DTO, D, E>{
+    fun addTrackInfo(operation:CrudOperation, module: Identifiable? = null):DTOTracker<DTO, D, E>{
         finalizeLast()
         if(activeRecord.operation != CrudOperation.Create){ onStart() }
 

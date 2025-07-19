@@ -21,7 +21,7 @@ import po.lognotify.tasks.TaskHandler
 import po.lognotify.extensions.runTask
 import po.misc.coroutines.CoroutineInfo
 import po.misc.interfaces.ClassIdentity
-import po.misc.interfaces.IdentifiableClass
+import po.misc.context.IdentifiableClass
 import po.misc.serialization.SerializerInfo
 import po.misc.types.safeCast
 import kotlin.coroutines.coroutineContext

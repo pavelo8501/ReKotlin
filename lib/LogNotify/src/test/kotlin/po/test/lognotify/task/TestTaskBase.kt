@@ -4,24 +4,28 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertAll
+import org.junit.jupiter.api.assertThrows
 import po.lognotify.TasksManaged
+import po.lognotify.extensions.runTask
 import po.lognotify.tasks.TaskHandler
 import po.lognotify.tasks.models.TaskConfig
 import po.lognotify.extensions.runTaskAsync
 import po.lognotify.extensions.runTaskBlocking
-import po.lognotify.extensions.subTaskAsync
 import po.lognotify.models.TaskDispatcher
+import po.misc.exceptions.HandlerType
+import po.misc.exceptions.ManagedException
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 
-class TestTaskBase:TasksManaged {
+class TestTaskBase : TasksManaged {
 
     override val contextName: String = "TestTaskBase"
 
     data class TaskLaunchParam (val taskName: String, val childTaskCount: Int, val delay : Long)
 
-    class ReceiverClass{
+    class ReceiverClass :  TasksManaged{
+        override val contextName: String = "ReceiverClass"
         fun function1(input: Int, childCount: Int,  callback: ((TaskHandler<Int>)-> Unit)? = null): Int
             = runTaskBlocking("task_function1"){handler->
             callback?.invoke(handler)
@@ -43,17 +47,19 @@ class TestTaskBase:TasksManaged {
            return totalTasks
         }
         suspend fun childTask(taskName: String)
-            = subTaskAsync(taskName){
+            = runTaskAsync(taskName){
         }
     }
+
+
 
     @Test
     fun `Task hierarchy creation in asynchronous mode`(){
         val receiverClass = ReceiverClass()
         val taskStats = mutableListOf<TaskDispatcher.LoggerStats>()
-        val loggHandler = logNotify()
 
-        loggHandler.dispatcher.onTaskCreated(TaskDispatcher.UpdateType.OnTaskCreated){ taskStats.add(it.getData()) }
+
+        logHandler.dispatcher.onTaskCreated(TaskDispatcher.UpdateType.OnTaskCreated){ taskStats.add(it.getData()) }
 
         receiverClass.function1(input =  1, childCount =  10)
 
@@ -65,7 +71,7 @@ class TestTaskBase:TasksManaged {
             )
 
         taskStats.clear()
-        loggHandler.dispatcher.onTaskCreated(TaskDispatcher.UpdateType.OnTaskCreated){
+        logHandler.dispatcher.onTaskCreated(TaskDispatcher.UpdateType.OnTaskCreated){
             taskStats.add(it.getData())
         }
 
@@ -76,7 +82,7 @@ class TestTaskBase:TasksManaged {
         runTaskBlocking(topTaskName, TaskConfig(dispatcher = Dispatchers.IO)){
             runTaskAsync(rootTask1Name){
                 for(i in 1..20){
-                    subTaskAsync("${rootTask1Name}_child_$i"){
+                    runTask("${rootTask1Name}_child_$i"){
 
                     }
                 }

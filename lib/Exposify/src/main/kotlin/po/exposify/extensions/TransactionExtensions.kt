@@ -6,8 +6,7 @@ import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 import po.exposify.common.classes.ExposifyDebugger
-import po.lognotify.interfaces.LoggableCTX
-import po.misc.interfaces.CtxId
+import po.misc.context.CtxId
 
 
 suspend fun <T> withSuspendedTransactionIfNone(

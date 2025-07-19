@@ -6,19 +6,15 @@ import po.misc.data.console.TemplateAuxParams
 import po.misc.data.json.JObject
 import po.misc.data.json.JRecord
 import po.misc.data.json.JsonHolder
-import po.misc.interfaces.Identifiable
-import po.misc.interfaces.IdentifiableContext
-import po.misc.interfaces.ValueBased
+import po.misc.context.CTX
 
 abstract class PrintableBase<T>(
     var defaultTemplate: PrintableTemplateBase<T>
 ): ComposableData, Printable, DateHelper where T:PrintableBase<T> {
 
   //  abstract override val itemId : ValueBased
-    abstract override val emitter:  IdentifiableContext
-
+    abstract override val producer:  CTX
     abstract val self:T
-
     override var parentRecord: PrintableBase<*>? = null
     override var children: List<PrintableBase<*>> = listOf()
 
@@ -35,7 +31,7 @@ abstract class PrintableBase<T>(
     internal val jsonObject : JObject
         get() {
        // val itemIdRecord = JRecord("itemId", itemId.value)
-        val emitterRecord = JRecord("emitter", emitter.contextName)
+        val emitterRecord = JRecord("emitter", producer.completeName)
         val hostingClassName =  self::class.simpleName.toString()
         return JObject(hostingClassName).addRecord(emitterRecord)
     }

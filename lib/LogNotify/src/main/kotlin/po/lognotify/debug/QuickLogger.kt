@@ -1,10 +1,10 @@
 package po.lognotify.debug
 
 
-import po.misc.interfaces.CtxId
-import po.misc.interfaces.IdentifiableContext
+import po.misc.context.CtxId
+import po.misc.context.Identifiable
 
-class EmptyContext<T:CtxId>(val ctx:T):IdentifiableContext, LoggedContext<T>{
+class EmptyContext<T:CtxId>(val ctx:T):Identifiable, LoggedContext<T>{
     override val contextName: String = "LoggedContext"
 }
 
