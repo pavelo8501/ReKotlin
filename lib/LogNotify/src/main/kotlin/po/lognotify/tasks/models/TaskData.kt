@@ -2,7 +2,7 @@ package po.lognotify.tasks.models
 
 import po.lognotify.action.models.ActionData
 import po.lognotify.tasks.TaskBase
-import po.misc.data.console.PrintableTemplate
+import po.misc.data.printable.PrintableTemplate
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.PrintableCompanion
 import po.misc.data.styles.SpecialChars

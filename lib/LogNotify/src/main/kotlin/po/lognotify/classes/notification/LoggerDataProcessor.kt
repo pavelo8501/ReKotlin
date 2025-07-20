@@ -7,8 +7,8 @@ import po.lognotify.tasks.Task
 import po.lognotify.tasks.TaskBase
 import po.lognotify.enums.SeverityLevel
 import po.misc.data.printable.PrintableBase
-import po.misc.data.console.PrintableTemplateBase
-import po.misc.data.console.TemplateAuxParams
+import po.misc.data.printable.PrintableTemplateBase
+import po.misc.data.printable.TemplateAuxParams
 import po.misc.data.printable.Printable
 import po.misc.data.printable.PrintableCompanion
 import po.misc.data.processors.DataProcessorBase

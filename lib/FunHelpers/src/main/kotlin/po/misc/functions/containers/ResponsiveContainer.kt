@@ -2,7 +2,6 @@ package po.misc.functions.containers
 
 import po.misc.exceptions.ManagedException
 import po.misc.functions.hooks.Change
-import po.misc.functions.hooks.DataHooks
 import po.misc.functions.hooks.DataNotifier
 import po.misc.functions.models.ContainerMode
 import po.misc.functions.models.LambdaState
@@ -10,13 +9,6 @@ import po.misc.functions.models.Updated
 import po.misc.types.getOrManaged
 
 
-
-interface ContainerState<V: Any>{
-    val identifiedAs: String
-    val state: LambdaState
-    var containerMode: ContainerMode
-    val value : V
-}
 
 data class ContainerResult<T: Any>(
     override val oldValue: T?,
@@ -31,10 +23,11 @@ data class ContainerResult<T: Any>(
  * @param V The input value type.
  * @param R The output result type.
  */
-sealed class ResponsiveContainer<V: Any, R: Any>(
-   val notifier: DataNotifier<ContainerState<V>, R> = DataNotifier(null)
-):LambdaUnit<V, R>, ContainerState<V>, DataHooks<ContainerState<V>, R> by notifier {
+abstract class ResponsiveContainer<V: Any, R: Any>(
 
+):LambdaUnit<V, R>{
+
+    abstract override val function: (V) -> R
     abstract override val identifiedAs: String
     //override val identity : CTXIdentity<ResponsiveContainer<V, R>> = asContext()
 
@@ -44,7 +37,6 @@ sealed class ResponsiveContainer<V: Any, R: Any>(
     override var containerMode: ContainerMode = ContainerMode.Silent
 
     init {
-        notifier.initialize(this)
         message("initialized")
     }
 
@@ -73,7 +65,6 @@ sealed class ResponsiveContainer<V: Any, R: Any>(
     }
 
      protected fun supplyResultBacking(result:R):R{
-        notifier.triggerChanged(Updated<R?,R>(resultBacking, result))
         resultBacking = result
         changeState(LambdaState.Complete)
         return result
@@ -82,7 +73,6 @@ sealed class ResponsiveContainer<V: Any, R: Any>(
     protected fun changeState(newState: LambdaState){
         val oldState = state
         stateBacking = newState
-        notifier.triggerInitialized()
         message("Status changed from ${oldState.name} to ${newState.name}")
     }
 
@@ -104,9 +94,9 @@ sealed class ResponsiveContainer<V: Any, R: Any>(
  * @param lambda The operation to execute when triggered.
  */
 open class Producer<V: Any>(
-    val lambda:(V)-> Unit
+    override val function: (V) -> Unit
+    // override val function: Function<V, Unit>:(V)-> Unit
 ):ResponsiveContainer<V, Unit>(){
-
 
    override val identifiedAs: String get() = "Producer<V>"
 
@@ -121,7 +111,7 @@ open class Producer<V: Any>(
      */
     override fun trigger(): Unit {
       val result = valueBacking?.let {
-            lambda.invoke(it)
+          function.invoke(it)
         }?:println("Value parameter not provided")
         supplyResultBacking(result)
     }
@@ -138,8 +128,7 @@ open class Producer<V: Any>(
  * @property lambda A function that returns a value of type [R].
  */
 open class Provider<R: Any>(
-
-    open val lambda:()-> R
+    override val function: (Unit) -> R
 ): ResponsiveContainer<Unit, R>() {
 
     override val identifiedAs: String get() = "Provider<R>"
@@ -159,42 +148,8 @@ open class Provider<R: Any>(
      * @return The result produced by the lambda.
      */
     override fun trigger(): R {
-        val result  = lambda.invoke()
+        val result  = function.invoke(Unit)
         return supplyResultBacking(result)
-    }
-
-}
-
-
-open class DSLProvider<T: Any,  R: Any>(
-    var initialValue : T,
-    open val lambda: T.()-> R
-): ResponsiveContainer<T, R>() {
-
-    override val identifiedAs: String get() = "DSLProvider<T, R>"
-
-
-    private var ownResult: R? = null
-    override val result: R get() = resultBacking ?: ownResult!!
-
-    init {
-        provideValue(initialValue)
-    }
-
-    /**
-     * Executes the lambda and stores its result.
-     * @return The result produced by the lambda.
-     */
-    override fun trigger(): R {
-        return valueBacking?.let {
-            val result = lambda.invoke(it)
-            ownResult = result
-            supplyResultBacking(result)
-        } ?: run {
-            val result = lambda.invoke(value)
-            ownResult = result
-            supplyResultBacking(result)
-        }
     }
 }
 
@@ -209,7 +164,7 @@ open class DSLProvider<T: Any,  R: Any>(
  * @property lambda A predicate function that returns true or false based on the input.
  */
 class Evaluator<V: Any>(
-    val lambda:(V)-> Boolean
+    override val function: (V) -> Boolean
 ): ResponsiveContainer<V, Boolean>()  {
 
     override val identifiedAs: String get() = "Evaluator<V>"
@@ -222,14 +177,13 @@ class Evaluator<V: Any>(
      */
     override fun trigger(): Boolean {
         return valueBacking?.let {
-            val result  = lambda.invoke(it)
+            val result  = function.invoke(it)
             supplyResultBacking(result)
         }?:run {
             supplyResultBacking(false)
             false
         }
     }
-
 }
 
 /**
@@ -243,11 +197,10 @@ class Evaluator<V: Any>(
  * @property lambda A transformation function that maps [V] to [R].
  */
 class Adapter<V: Any, R: Any>(
-    val lambda:(V)-> R
+    override val function: (V) -> R
 ): ResponsiveContainer<V, R>() {
 
     override val identifiedAs: String get() = "Adapter<V, R>"
-
     private var ownResult: R? = null
 
     override val result: R
@@ -259,7 +212,7 @@ class Adapter<V: Any, R: Any>(
      */
     override fun trigger(): R {
         return valueBacking?.let {
-            val result  = lambda.invoke(it)
+            val result  = function.invoke(it)
             supplyResultBacking(result)
         }?:run {
             message("Value parameter not provided")

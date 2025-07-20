@@ -5,14 +5,14 @@ import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.data.console.DateHelper
 import po.misc.data.printable.PrintableBase
-import po.misc.data.console.PrintableTemplate
+import po.misc.data.printable.PrintableTemplate
 import po.misc.data.styles.colorize
 import po.misc.data.processors.DataProcessor
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.text
-import po.misc.context.Identifiable
 import po.misc.context.asContext
+import po.misc.data.printable.PartsTemplate
 import po.misc.interfaces.ValueBased
 import kotlin.test.assertTrue
 import po.misc.data.printable.PrintableCompanion
@@ -49,8 +49,7 @@ class TestPrintableBase: DateHelper, CTX {
 
         companion object: PrintableCompanion<Item>({Item::class}){
 
-            val Printable: PrintableTemplate<Item> = PrintableTemplate(
-                templateName = "Printable",
+            val Printable: PartsTemplate<Item> = PartsTemplate(
                 delimiter = SpecialChars.NewLine.char,
                 { Colour.RED text "String1->  $personalName |"},
                 {"$description And Value=$intValue"}
@@ -75,7 +74,7 @@ class TestPrintableBase: DateHelper, CTX {
        // override val itemId: ValueBased = toValueBased(0)
 
         companion object: PrintableCompanion<Item2>({Item2::class}){
-            val Template2: PrintableTemplate<Item2> = PrintableTemplate<Item2>("Template2"){
+            val Template2: PrintableTemplate<Item2> = PrintableTemplate<Item2>(){
                 "String2-> $personalName | $module And Value=$handled".colorize(Colour.RED)
             }
         }

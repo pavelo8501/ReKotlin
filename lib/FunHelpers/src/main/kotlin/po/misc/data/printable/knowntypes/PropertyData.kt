@@ -1,6 +1,6 @@
 package po.misc.data.printable.knowntypes
 
-import po.misc.data.console.PrintableTemplate
+import po.misc.data.printable.PrintableTemplate
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.PrintableCompanion
 import po.misc.context.CTX
@@ -15,7 +15,7 @@ class PropertyData(
 
     companion object: PrintableCompanion<PropertyData>({PropertyData::class}){
 
-        val Property = PrintableTemplate<PropertyData>("Property"){
+        val Property = PrintableTemplate<PropertyData>(){
             "$propertyName = $value"
         }
 

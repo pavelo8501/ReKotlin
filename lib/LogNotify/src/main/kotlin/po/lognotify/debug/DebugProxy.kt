@@ -6,7 +6,7 @@ import po.lognotify.debug.interfaces.DebugProvider
 import po.lognotify.debug.models.CaptureBlock
 import po.lognotify.debug.models.DebugParams
 import po.lognotify.debug.models.InputParameter
-import po.misc.data.console.PrintableTemplate
+import po.misc.data.printable.PrintableTemplate
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.PrintableCompanion
 import po.misc.context.CTX

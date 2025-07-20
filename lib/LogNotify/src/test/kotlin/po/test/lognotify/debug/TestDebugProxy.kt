@@ -1,7 +1,7 @@
 package po.test.lognotify.debug
 
 import po.lognotify.TasksManaged
-import po.misc.data.console.PrintableTemplate
+import po.misc.data.printable.PrintableTemplate
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.PrintableCompanion
 import po.misc.context.IdentifiableClass

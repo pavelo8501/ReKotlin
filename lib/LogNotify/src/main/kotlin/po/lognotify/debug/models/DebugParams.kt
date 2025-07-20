@@ -1,6 +1,6 @@
 package po.lognotify.debug.models
 
-import po.misc.data.console.PrintableTemplate
+import po.misc.data.printable.PrintableTemplate
 import po.misc.data.printable.PrintableBase
 
 

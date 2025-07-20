@@ -4,7 +4,7 @@ package po.misc.data.processors
 import po.misc.collections.StaticTypeKey
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.PrintableCompanion
-import po.misc.data.console.PrintableTemplateBase
+import po.misc.data.printable.PrintableTemplateBase
 import po.misc.data.printable.ComposableData
 import po.misc.data.printable.Printable
 import po.misc.types.safeCast

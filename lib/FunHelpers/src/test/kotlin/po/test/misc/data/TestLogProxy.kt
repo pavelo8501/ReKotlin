@@ -3,12 +3,11 @@ package po.test.misc.data
 import org.junit.jupiter.api.Test
 import po.misc.context.CTX
 import po.misc.data.printable.PrintableBase
-import po.misc.data.console.PrintableTemplate
+import po.misc.data.printable.PrintableTemplate
 import po.misc.data.printable.printableProxy
 import po.misc.data.processors.DataProcessor
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
-import po.misc.context.Identifiable
 import po.misc.context.asContext
 
 import po.test.misc.data.TestLogProxy.ArbitraryData.Companion.Template2
@@ -33,7 +32,7 @@ class TestLogProxy: CTX {
 
 
         companion object{
-            val TopTemplate: PrintableTemplate<TopDataItem> = PrintableTemplate("TopTemplate"){"TopTemplate->$content"}
+            val TopTemplate: PrintableTemplate<TopDataItem> = PrintableTemplate(){"TopTemplate->$content"}
         }
     }
 
@@ -48,7 +47,7 @@ class TestLogProxy: CTX {
 
 
         companion object{
-            val Template2: PrintableTemplate<ArbitraryData> = PrintableTemplate<ArbitraryData>("ArbitraryData"){
+            val Template2: PrintableTemplate<ArbitraryData> = PrintableTemplate<ArbitraryData>(){
                 "Template2-> $personalName | Message ->  ${message.colorize(Colour.RED)}"
             }
         }

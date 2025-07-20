@@ -3,7 +3,7 @@ package po.test.misc.data
 import org.junit.jupiter.api.Test
 import po.misc.context.CTX
 import po.misc.data.printable.PrintableBase
-import po.misc.data.console.PrintableTemplate
+import po.misc.data.printable.PrintableTemplate
 import po.misc.data.helpers.emptyOnNull
 import po.misc.data.json.IntDefaultProvider
 import po.misc.data.json.JasonStringSerializable
@@ -76,23 +76,23 @@ class TestJsonParser: CTX {
                 )
             }
 
-            val Header: PrintableTemplate<TaskDataLocal> = PrintableTemplate("Header") {
+            val Header: PrintableTemplate<TaskDataLocal> = PrintableTemplate() {
                 SpecialChars.NewLine.char + prefix.invoke(
                     this,
                     "Start"
                 ) + "${producer.contextName.emptyOnNull("by ")}]".colorize(Colour.BLUE)
             }
 
-            val Footer: PrintableTemplate<TaskDataLocal> = PrintableTemplate("Footer") {
+            val Footer: PrintableTemplate<TaskDataLocal> = PrintableTemplate() {
                 prefix.invoke(this, "Stop") +
                         " | $currentTime] Elapsed: ${timeStamp.elapsed}".colorize(Colour.BLUE)
             }
 
-            val Message: PrintableTemplate<TaskDataLocal> = PrintableTemplate("Message") {
+            val Message: PrintableTemplate<TaskDataLocal> = PrintableTemplate() {
                 "${prefix.invoke(this, "")} ${messageFormatter.invoke(this)}"
             }
 
-            val Debug: PrintableTemplate<TaskDataLocal> = PrintableTemplate("Debug") {
+            val Debug: PrintableTemplate<TaskDataLocal> = PrintableTemplate() {
                 "${prefix.invoke(this, "")} ${message.colorize(Colour.GREEN)}"
             }
         }
@@ -109,7 +109,7 @@ class TestJsonParser: CTX {
 
         companion object :JsonDescriptor<ValidationRep>() {
             val validationName: String by JsonDelegate<ValidationRep, String>(ValidationRep::validationName, StringDefaultProvider)
-            val Main  : PrintableTemplate<ValidationRep> = PrintableTemplate("Main")
+            val Main  : PrintableTemplate<ValidationRep> = PrintableTemplate()
         }
     }
 

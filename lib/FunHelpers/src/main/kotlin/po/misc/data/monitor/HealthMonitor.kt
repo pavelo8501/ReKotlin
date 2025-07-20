@@ -1,6 +1,6 @@
 package po.misc.data.monitor
 
-import po.misc.data.console.PrintableTemplate
+import po.misc.data.printable.PrintableTemplate
 import po.misc.data.helpers.emptyOnNull
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.PrintableCompanion
@@ -39,7 +39,7 @@ class HealthMonitor<T: CTX>(
         val dateTime: LocalTime = LocalTime.now()
 
         companion object: PrintableCompanion<Record>({Record::class}){
-            val Default = PrintableTemplate<Record>("Default"){
+            val Default = PrintableTemplate<Record>(){
                 "${dateTime.toString()} : ${action.name} -> ($parameter = $value) ${message.emptyOnNull()} "
             }
         }

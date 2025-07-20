@@ -1,6 +1,10 @@
 package po.misc.data.printable
 
 import po.misc.collections.StaticTypeKey
+import po.misc.data.styles.SpecialChars
+import po.misc.functions.dsl.DSLBuilder
+import po.misc.functions.dsl.DSLContainer
+import po.misc.functions.dsl.dslBuilder
 import po.misc.types.getOrManaged
 import kotlin.reflect.KClass
 
@@ -17,4 +21,14 @@ abstract class PrintableCompanion<T : PrintableBase<T>>(private val classProvide
             typeKeyBacking = StaticTypeKey.Companion.createTypeKey(classProvider.invoke())
         }
     }
+
+    fun createTemplate(
+        separator: String = SpecialChars.NewLine.char,
+        block: DSLContainer<T, String>.() -> Unit
+    ): Template<T>{
+      val template =  Template<T>("/n")
+      template.dslBuilder(block)
+      return  template
+    }
+
 }

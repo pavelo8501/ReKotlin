@@ -1,8 +1,6 @@
 package po.misc.data.printable
 
 import po.misc.data.console.DateHelper
-import po.misc.data.console.PrintableTemplateBase
-import po.misc.data.console.TemplateAuxParams
 import po.misc.data.json.JObject
 import po.misc.data.json.JRecord
 import po.misc.data.json.JsonHolder
@@ -47,10 +45,14 @@ abstract class PrintableBase<T>(
     @PublishedApi
     internal var outputSource: ((String)-> Unit)?=null
 
-    private fun formatString(params: TemplateAuxParams, stringProvider: T.(TemplateAuxParams)-> String): String{
-
-       return stringProvider.invoke(self, params)
+    private fun formatString(stringProvider: T.()-> String): String{
+       return stringProvider.invoke(self)
     }
+
+    private fun formatString(template: PrintableTemplateBase<T>): String{
+        return template.evaluateTemplate(self)
+    }
+
     private fun shouldMute(): Boolean{
         if(mute) return true
         if(genericMuteCondition?.invoke(this)?:false){
@@ -74,24 +76,26 @@ abstract class PrintableBase<T>(
     }
 
     fun templatedString(template: PrintableTemplateBase<T>? = null): String{
-        return template?.let {
-            formatString(it.getOrCreateParams(), it.template)
+
+        return template?.let {template->
+            template.evaluateTemplate(self)
+
         }?:run {
-            formatString(TemplateAuxParams(""), defaultTemplate.template)
+
+            formatString(defaultTemplate)
         }
     }
 
     fun echo(){
-        if(!shouldMute()){
-            //val result = templatedString()
-            outputSource?.invoke(formattedString)?:run {
+        if(!shouldMute()) {
+            outputSource?.invoke(formattedString) ?: run {
                 println(formattedString)
             }
         }
     }
     fun echo(template: PrintableTemplateBase<T>){
         if(!shouldMute()){
-            val result = formatString(template.getOrCreateParams(), template.template)
+            val result = template.evaluateTemplate(self)
             outputSource?.invoke(result)?:run {
                 println(result)
             }

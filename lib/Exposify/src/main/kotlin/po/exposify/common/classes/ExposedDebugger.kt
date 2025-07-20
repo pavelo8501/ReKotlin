@@ -9,7 +9,7 @@ import po.lognotify.classes.notification.LoggerDataProcessor
 import po.lognotify.classes.notification.models.LogData
 import po.lognotify.debug.DebugProxy
 import po.lognotify.debug.models.DebugParams
-import po.misc.data.console.PrintableTemplate
+import po.misc.data.printable.PrintableTemplate
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.PrintableCompanion
 import po.misc.context.Identifiable

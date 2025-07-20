@@ -10,7 +10,7 @@ import po.lognotify.models.TaskDispatcher
 import po.lognotify.models.TaskDispatcher.LoggerStats
 import po.misc.callbacks.wrapRawCallback
 import po.misc.data.printable.PrintableBase
-import po.misc.data.console.PrintableTemplateBase
+import po.misc.data.printable.PrintableTemplateBase
 import po.misc.data.printable.Printable
 import po.misc.data.printable.PrintableCompanion
 import po.misc.exceptions.ManagedException

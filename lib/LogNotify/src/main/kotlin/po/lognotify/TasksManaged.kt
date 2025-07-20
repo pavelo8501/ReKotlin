@@ -9,7 +9,7 @@ import po.lognotify.models.TaskDispatcher
 import po.lognotify.models.TaskDispatcher.UpdateType
 import po.misc.callbacks.wrapRawCallback
 import po.misc.data.printable.PrintableBase
-import po.misc.data.console.PrintableTemplateBase
+import po.misc.data.printable.PrintableTemplateBase
 import po.misc.data.printable.PrintableCompanion
 import po.misc.context.CTX
 import kotlin.coroutines.CoroutineContext

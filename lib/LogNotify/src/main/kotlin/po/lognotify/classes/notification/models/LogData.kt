@@ -7,7 +7,7 @@ import po.lognotify.tasks.TaskBase
 import po.lognotify.tasks.models.TaskConfig
 import po.lognotify.enums.SeverityLevel
 import po.misc.data.printable.PrintableBase
-import po.misc.data.console.PrintableTemplate
+import po.misc.data.printable.PrintableTemplate
 import po.misc.data.helpers.withIndention
 import po.misc.data.helpers.withMargin
 import po.misc.data.printable.PrintableCompanion

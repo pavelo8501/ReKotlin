@@ -7,9 +7,9 @@ import po.misc.context.asContext
 internal interface TestLogger  : CTX
 
 open class ControlClass(
-    val property1: String = "Property1<String>",
-    val property2: Int = 10,
-    val property3: String = "Property2<String>",
+    var property1: String = "Property1<String>",
+    var property2: Int = 10,
+    var property3: String = "Property2<String>",
 ): CTX {
 
     override val identity: CTXIdentity<out CTX> = asContext()

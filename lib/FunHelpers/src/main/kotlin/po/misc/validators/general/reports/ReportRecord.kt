@@ -2,7 +2,7 @@ package po.misc.validators.general.reports
 
 import po.misc.context.CTX
 import po.misc.data.printable.PrintableBase
-import po.misc.data.console.PrintableTemplate
+import po.misc.data.printable.PrintableTemplate
 import po.misc.data.helpers.emptyOnNull
 import po.misc.data.helpers.withIndention
 import po.misc.data.styles.Colour
@@ -35,7 +35,7 @@ class ReportRecord internal constructor(
 
     companion object{
 
-        val GeneralTemplate : PrintableTemplate<ReportRecord> = PrintableTemplate("GeneralTemplate"){
+        val GeneralTemplate : PrintableTemplate<ReportRecord> = PrintableTemplate(){
             "Check:$recordName | Status:${result.name.matchTemplate(
                 templateRule(result.name.colorize(Colour.GREEN)){ result == CheckStatus.PASSED },
                 templateRule(result.name.colorize(Colour.RED)){ result == CheckStatus.FAILED },

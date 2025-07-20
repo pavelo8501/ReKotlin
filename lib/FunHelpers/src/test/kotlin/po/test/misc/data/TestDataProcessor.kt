@@ -5,9 +5,8 @@ import org.junit.jupiter.api.assertInstanceOf
 import po.misc.context.CTX
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.PrintableCompanion
-import po.misc.data.console.PrintableTemplate
+import po.misc.data.printable.PrintableTemplate
 import po.misc.data.processors.DataProcessor
-import po.misc.context.Identifiable
 import po.misc.context.asContext
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -31,8 +30,9 @@ class TestDataProcessor: CTX {
     //    override val itemId: ValueBased = toValueBased(id)
 
         companion object: PrintableCompanion<TopDataItem>({TopDataItem::class}){
-            val TopTemplate: PrintableTemplate<TopDataItem> = PrintableTemplate("TopTemplate"){"TopTemplate->$content"}
-            val Debug: PrintableTemplate<TopDataItem> = PrintableTemplate("Debug"){"Debug[Name:$personalName Content:$content"}
+
+            val TopTemplate: PrintableTemplate<TopDataItem> = PrintableTemplate(){"TopTemplate->$content"}
+            val Debug: PrintableTemplate<TopDataItem> = PrintableTemplate(){"Debug[Name:$personalName Content:$content"}
         }
     }
 
@@ -49,7 +49,7 @@ class TestDataProcessor: CTX {
        // override val itemId: ValueBased = toValueBased(id)
 
         companion object:PrintableCompanion<SubData>({SubData::class}){
-            val SubTemplate: PrintableTemplate<SubData> = PrintableTemplate("SubTemplate"){"Template1->$content"}
+            val SubTemplate: PrintableTemplate<SubData> = PrintableTemplate(){"Template1->$content"}
         }
     }
 

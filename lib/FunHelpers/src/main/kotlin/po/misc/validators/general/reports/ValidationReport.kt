@@ -2,7 +2,7 @@ package po.misc.validators.general.reports
 
 import po.misc.context.CTX
 import po.misc.data.printable.PrintableBase
-import po.misc.data.console.PrintableTemplate
+import po.misc.data.printable.PrintableTemplate
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.data.templates.matchTemplate
@@ -59,11 +59,11 @@ data class ValidationReport(
 
     companion object{
 
-        val Header : PrintableTemplate<ValidationReport> = PrintableTemplate("Header"){
+        val Header : PrintableTemplate<ValidationReport> = PrintableTemplate(){
             "Validating $validationName".colorize(Colour.BLUE)
         }
 
-        val Footer : PrintableTemplate<ValidationReport> = PrintableTemplate("Footer"){
+        val Footer : PrintableTemplate<ValidationReport> = PrintableTemplate{
             """Overall Result: ${overallResult.name.matchTemplate(
                 templateRule(overallResult.name.colorize(Colour.GREEN)){overallResult == CheckStatus.PASSED},
                 templateRule(overallResult.name.colorize(Colour.RED)){overallResult == CheckStatus.FAILED},
