@@ -43,11 +43,7 @@ inline fun <T, reified R: Any> T.methodeProbe(
                 } ?: throw throwable
             }
             else -> {
-                val exception = throwable.toManaged(this, HandlerType.SkipSelf, null)
-                exceptionOutput?.let {
-                    it(exception)
-                    println(exception.message)
-                } ?: throw exception
+
             }
         }
        return Unit as R

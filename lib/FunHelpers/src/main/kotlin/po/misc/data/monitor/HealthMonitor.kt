@@ -35,7 +35,7 @@ class HealthMonitor<T: CTX>(
         var message: String? = null
     ): PrintableBase<Record>(Default){
         override val self: Record = this
-        override val producer: CTX get() = holder
+        val producer: CTX get() = holder
         val dateTime: LocalTime = LocalTime.now()
 
         companion object: PrintableCompanion<Record>({Record::class}){

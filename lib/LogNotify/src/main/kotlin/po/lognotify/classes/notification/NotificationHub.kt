@@ -6,22 +6,25 @@ import po.lognotify.classes.notification.models.LogData
 import po.lognotify.classes.notification.models.NotifyConfig
 import po.lognotify.tasks.RootTask
 import po.misc.callbacks.builders.callbackManager
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
 import po.misc.data.printable.PrintableBase
 import po.misc.data.processors.DataProcessorBase
 import po.misc.context.Identifiable
+import po.misc.context.asIdentity
 import po.misc.interfaces.ValueBased
 import po.misc.registries.callback.TypedCallbackRegistry
 
 
 class NotifierHub(
     val sharedConfig : NotifyConfig = NotifyConfig()
-): DataProcessorBase<LogData>(null, null), Identifiable {
+): DataProcessorBase<LogData>(null, null), CTX {
 
     enum class Event(override val value: Int): ValueBased{
         DataReceived(1)
     }
 
-    override val contextName: String = "NotifierHub"
+    override val identity = asIdentity()
 
     private val subNotifiers = mutableSetOf<LoggerDataProcessor>()
    // private val collectorJobs = mutableMapOf<LoggerDataProcessor, Job>()
@@ -30,7 +33,7 @@ class NotifierHub(
     private val notifier = callbackManager<Event>()
 
 
-    fun subscribe(subscriber: Identifiable, eventType:Event, callback: (PrintableBase<*>)-> Unit){
+    fun subscribe(subscriber: CTX, eventType:Event, callback: (PrintableBase<*>)-> Unit){
         notificator.subscribe(subscriber, eventType, callback)
     }
 

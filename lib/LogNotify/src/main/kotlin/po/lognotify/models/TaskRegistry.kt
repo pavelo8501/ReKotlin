@@ -1,6 +1,7 @@
 package po.lognotify.models
 
 
+import po.lognotify.tasks.ExecutionStatus
 import po.lognotify.tasks.RootTask
 import po.lognotify.tasks.Task
 import po.lognotify.tasks.TaskBase
@@ -21,7 +22,7 @@ class TaskRegistry<T: CTX, R>(
         return tasks.values.lastOrNull()
     }
 
-    fun setChildTasksStatus(status: TaskBase.TaskStatus, taskCalling: TaskBase<*,*>){
+    fun setChildTasksStatus(status: ExecutionStatus, taskCalling: TaskBase<*,*>){
         val subTasks = getSubTasks(taskCalling)
         subTasks.forEach {
             it.taskStatus = status
@@ -70,7 +71,7 @@ class TaskRegistry<T: CTX, R>(
     }
 
     fun getActiveTask(): TaskBase<*, *>{
-       val found =  tasks.values.firstOrNull { it.taskStatus == TaskBase.TaskStatus.Active }
+       val found =  tasks.values.firstOrNull { it.taskStatus == ExecutionStatus.Active }
        if(found == null){ return  hierarchyRoot }
        return found
     }

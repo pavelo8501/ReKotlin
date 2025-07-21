@@ -12,3 +12,14 @@ fun <C : MutableCollection<in R>, R> Iterable<*>.selectToInstance(destination: C
     }
     return destination
 }
+
+fun <T : Any> Iterable<T>.selectUntil(predicate:(T)-> Boolean): List<T> {
+    val resultingList = mutableListOf<T>()
+    for (element in this) {
+        resultingList.add(element)
+        if (predicate(element)) {
+            return resultingList
+        }
+    }
+    return emptyList()
+}

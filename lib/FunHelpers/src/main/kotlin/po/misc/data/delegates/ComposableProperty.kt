@@ -2,6 +2,8 @@ package po.misc.data.delegates
 
 import po.misc.context.CTX
 import po.misc.context.asContext
+import po.misc.context.asIdentity
+import po.misc.exceptions.ExceptionPayload
 import po.misc.exceptions.ManagedCallSitePayload
 
 
@@ -21,9 +23,9 @@ class ComposableProperty<T: CTX, V: Any>(
     val valueClass: KClass<V>
 ): CTX {
 
-    override val identity = asContext()
+    override val identity = asIdentity()
 
-    val exceptionPayload: ManagedCallSitePayload = ManagedCallSitePayload.create(this)
+    val exceptionPayload: ExceptionPayload = ExceptionPayload(this)
 
     private var backingProperty: KProperty1<T, V>? = null
     private val property: KProperty1<T, V> get() = backingProperty.getOrManaged(exceptionPayload)

@@ -1,5 +1,6 @@
 package po.lognotify.common.result
 
+import po.lognotify.tasks.ExecutionStatus
 import po.lognotify.tasks.TaskBase
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.throwableToText
@@ -62,7 +63,7 @@ class TaskResult<R : Any?>(
     fun onFail(callback: (ManagedException)->Unit): TaskResult<R> {
         task.dataProcessor.debug("Handled onFail registered","${personalName}|onFail")
         throwable?.let {
-            task.taskStatus = TaskBase.TaskStatus.Faulty
+            task.taskStatus = ExecutionStatus.Faulty
             task.dataProcessor.info("Handled ${it.throwableToText()} by onFail")
             callback.invoke(it)
         }
@@ -98,7 +99,7 @@ class TaskResult<R : Any?>(
 
     internal fun provideThrowable(th: ManagedException): TaskResult<R>{
         isSuccess = false
-        task.taskStatus = TaskBase.TaskStatus.Failing
+        task.taskStatus = ExecutionStatus.Failing
         exHandlingCallback?.let {
             task.dataProcessor.debug("Faulty result handled silently", "${personalName}|handleException")
             onCompleteFn?.invoke(this)

@@ -2,6 +2,8 @@ package po.misc.functions.containers
 
 import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.context.CTX
+import po.misc.exceptions.ExceptionPayload
+import po.misc.exceptions.toPayload
 import po.misc.types.getOrManaged
 
 sealed class ReceivableFunctionContainer<T: Any, P, R: Any?, V: Any>(
@@ -11,7 +13,7 @@ sealed class ReceivableFunctionContainer<T: Any, P, R: Any?, V: Any>(
 
    // val identity: Identifiable = identifiable("ReceivableFunctionContainer", context)
 
-    protected val exceptionPayload: ManagedCallSitePayload = ManagedCallSitePayload(context)
+    protected val exceptionPayload: ExceptionPayload = context.toPayload("")
     abstract val parameter: P
 
 

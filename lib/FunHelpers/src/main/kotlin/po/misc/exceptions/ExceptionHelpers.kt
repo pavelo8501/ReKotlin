@@ -6,9 +6,19 @@ import po.misc.exceptions.models.ExceptionData
 import po.misc.context.Identifiable
 
 
-fun CTX.managedException(message: String, source: Enum<*>?, original: Throwable?): ManagedException{
+fun CTX.managedException(message: String, source: Enum<*>?): ManagedException{
+
     val exceptionMessage = "$message @ $completeName"
-    return  ManagedException(exceptionMessage, source, original)
+    val payload =   toPayload {
+        this.message = exceptionMessage
+        this.source = source
+    }
+    return  ManagedException(payload.message, payload, null)
+}
+
+fun CTX.managedException(cause: Throwable): ManagedException{
+    val payload = toPayload(cause)
+    return  ManagedException(payload.message, payload, cause)
 }
 
 
@@ -46,21 +56,16 @@ inline fun <reified EX: ManagedException, S: Enum<S>> throwManageable(
     }
 }
 
-fun ManagedCallSitePayload.toManaged(): ManagedException{
-  return  ManagedException.create(this)
-}
 
-fun Throwable.toManaged(ctx: CTX, handler: HandlerType, source: Enum<*>?): ManagedException{
-    val exceptionMessage = "$message @ ${ctx.completeName}"
-    val exception = ctx.managedException(exceptionMessage,source, this)
-    exception.handler = handler
-    return exception
+fun Throwable.toManaged(ctx: CTX, handler: HandlerType): ManagedException{
+
+   val payload =  ctx.toPayload{  }
+   return  ManagedException(payload.message, payload, this)
 }
 
 fun Throwable.toManaged(payload: ManagedCallSitePayload): ManagedException{
-
     val exceptionMessage = "$message @ ${payload.producer.completeName}"
-    val managed = ManagedException(this.throwableToText(), payload.source, this)
+    val managed = ManagedException(this.throwableToText(), payload, this)
     payload.handler?.let {
         managed.handler = it
     }

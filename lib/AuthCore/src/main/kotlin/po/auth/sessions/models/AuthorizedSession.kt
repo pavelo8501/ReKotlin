@@ -52,13 +52,13 @@ class AuthorizedSession internal constructor(
     private val scope: CoroutineScope = CoroutineScope(CoroutineName(coroutineName) + this)
 
 
-    fun onProcessStart(session: LoggerProcess<*, *>) {
-        println("onProcessStart emitted with sessionId ${session.identified}")
-    }
-
-    fun onProcessEnd(session: LoggerProcess<*, *>) {
-        println("onProcessEnd emitted with sessionId ${session.identified}")
-    }
+//    fun onProcessStart(session: LoggerProcess<*, *>) {
+//        println("onProcessStart emitted with sessionId ${session.identified}")
+//    }
+//
+//    fun onProcessEnd(session: LoggerProcess<*, *>) {
+//        println("onProcessEnd emitted with sessionId ${session.identified}")
+//    }
 
     override fun sessionScope(): CoroutineScope{
         println("Redispatched session $sessionID")

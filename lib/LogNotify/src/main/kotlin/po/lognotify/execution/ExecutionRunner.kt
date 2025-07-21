@@ -5,9 +5,8 @@ import po.lognotify.TasksManaged
 import po.lognotify.common.containers.RunnableContainer
 import po.lognotify.common.result.PreliminaryResult
 import po.misc.exceptions.ManagedException
-import po.misc.functions.RepeatAttempts2
-import po.misc.functions.RepeatResult
 import po.misc.functions.models.RepeatAttempts
+import po.misc.functions.models.RepeatResult
 import po.misc.functions.repeatIfFaulty
 import po.misc.functions.repeatIfFaultySuspending
 import po.misc.reflection.classes.ClassRole
@@ -23,7 +22,7 @@ internal inline fun <T: TasksManaged, R: Any?> RunnableContainer<T, R>.repeatExe
 internal suspend inline fun <T: TasksManaged, R: Any?> ControlledExecution.repeatExecutionSuspending(
     container: RunnableContainer<T, R>,
     noinline actionOnFault: suspend (Throwable) -> Unit,
-    crossinline block: (RepeatAttempts2) -> R
+    crossinline block: (RepeatAttempts) -> R
 ):  RepeatResult<R> = repeatIfFaultySuspending(container.attempts, actionOnFault, block)
 
 
@@ -31,35 +30,28 @@ internal suspend inline fun <T: TasksManaged, R: Any?> ControlledExecution.repea
 internal fun <T: TasksManaged, R: Any?> RunnableContainer<T, R>.controlledRun(
     execLambda: ()-> R
 ):R {
-    println("Subscribing ${this.hashCode()}")
-    classInfoProvider.registerProvider { overallInfo<R>(ClassRole.Result) }
-   val result = repeatExecution(
-        this,
-//        actionOnFault = {
-//            println("Call ${this.hashCode()}")
-//            registeredManaged = processExceptionCase(this ,it)
-//            Thread.sleep(this.taskConfig.delayMs)
-//        },
-        block = { data ->
-            if (data.failDetected && data.attemptsTotal > 1) {
-                println("Attempt:${data.currentAttempt}; Left: ${data.attemptsLeft}")
-            }
-            try {
-                execLambda()
-            } catch (th: Throwable) {
-               val managed = processExceptionCase(this, th)
-                Thread.sleep(this.taskConfig.delayMs)
-                val res = PreliminaryResult(classInfoProvider.resolve())
-                if (res.resultAcceptsNulls) {
-                    res.provideAcceptableResult(null)
-                    res.getAcceptableResult() as R
-                } else {
-                    throw managed
-                }
+    val result = repeatExecution(this) { data ->
+        if (data.failDetected && data.attemptsTotal > 1) {
+            println("Attempt:${data.currentAttempt}; Left: ${data.attemptsLeft}")
+        }
+        try {
+            execLambda()
+        } catch (th: Throwable) {
+
+            println("catch block reached ${this.source}")
+
+            val managed = processExceptionCase(this, th)
+            Thread.sleep(this.taskConfig.delayMs)
+            val res = PreliminaryResult(classInfoProvider.resolve())
+            if (res.resultAcceptsNulls) {
+                res.provideAcceptableResult(null)
+                res.getAcceptableResult() as R
+            } else {
+                throw managed
             }
         }
-    )
-   return finalizeRun(result)
+    }
+    return finalizeRun(result)
 }
 
 

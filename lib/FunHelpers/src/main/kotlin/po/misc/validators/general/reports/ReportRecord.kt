@@ -14,7 +14,7 @@ import po.misc.validators.general.models.CheckStatus
 
 
 class ReportRecord internal constructor(
-    override val producer: CTX,
+    val producer: CTX,
     val recordName: String,
     val result: CheckStatus,
 ): PrintableBase<ReportRecord>(GeneralTemplate) {

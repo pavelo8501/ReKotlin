@@ -27,8 +27,6 @@ interface TasksManaged : CTX {
         fun onTaskComplete(handler: UpdateType, callback: (TaskDispatcher.LoggerStats) -> Unit): Unit =
             taskDispatcher.onTaskComplete(handler, wrapRawCallback(callback))
     }
-
-
     val logHandler: LogNotifyHandler
         get() {
             return LogNotifyHandler(LogNotify.taskDispatcher)
@@ -45,6 +43,5 @@ interface TasksManaged : CTX {
     fun taskHandler(): TaskHandler<*> {
         return LogNotify.taskDispatcher.activeTask()?.handler?: LogNotify.taskDispatcher.createDefaultTask().handler
     }
-
 }
 

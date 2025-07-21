@@ -5,6 +5,7 @@ import org.junit.jupiter.api.assertThrows
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.runInlineAction
 import po.lognotify.extensions.runTask
+import po.lognotify.interfaces.FakeTasksManaged
 import po.lognotify.tasks.models.TaskConfig
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
@@ -12,7 +13,7 @@ import po.test.lognotify.result.TestExceptionHandling.Companion.inlineActionThro
 import po.test.lognotify.result.TestExceptionHandling.Companion.throwingInlineActionHitCount
 import kotlin.test.assertEquals
 
-class TestAuxMethods() : TasksManaged {
+class TestAuxMethods() : FakeTasksManaged {
 
     override val contextName: String = "TestAuxMethods"
 

@@ -2,7 +2,6 @@ package po.lognotify.process
 
 import po.misc.coroutines.CoroutineHolder
 import po.misc.context.Identifiable
-import po.misc.interfaces.asIdentifiable
 import po.misc.time.ExecutionTimeStamp
 
 
@@ -12,7 +11,7 @@ class LoggerProcess<T, R>(
     val block: suspend T.()->R
 ) where T: CoroutineHolder {
 
-    val identified :  Identifiable = asIdentifiable(processName, "LoggerProcess")
+   // val identified :  Identifiable = asIdentifiable(processName, "LoggerProcess")
     val executionTimeStamp: ExecutionTimeStamp = ExecutionTimeStamp(processName, "LoggerProcess")
 
     suspend fun launchProcess():R{

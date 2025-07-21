@@ -1,5 +1,6 @@
 package po.auth.exceptions
 
+import po.misc.exceptions.ExceptionPayload
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.ManageableException
@@ -43,15 +44,10 @@ enum class AuthErrorCode(val value: Int) {
 class AuthException(
     override var message: String,
     val code: AuthErrorCode,
+    val payload: ExceptionPayload? = null,
     original : Throwable? = null
-) : ManagedException(message, code, original){
+) : ManagedException(message, payload?.provideCode(code), original){
 
     override var handler : HandlerType = HandlerType.CancelAll
 
-    companion object : ManageableException.Builder<AuthException> {
-        override fun build(message: String, source: Enum<*>?, original : Throwable?): AuthException {
-            val exCode = AuthErrorCode.getByValue(source?.ordinal?:0)
-            return AuthException(message, exCode, original)
-        }
-    }
 }

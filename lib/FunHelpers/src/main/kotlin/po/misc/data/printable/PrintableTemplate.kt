@@ -7,27 +7,15 @@ interface PrintableWithTemplate : Printable {
     fun defaultTemplate(): String = this.toString()
 }
 
-
-
 sealed class PrintableTemplateBase<T: Printable>() {
-
     var templateParts: List<T.() -> String> = listOf()
     var params: TemplateAuxParams? = null
-
-    protected fun provideTemplateParts(parts: List<T.() -> String>) {
-        templateParts = parts
-    }
 
     abstract fun evaluateTemplate(data: T): String
 
     internal fun resolve(receiver: T): String {
         return  evaluateTemplate(receiver)
     }
-
-    fun getOrCreateParams():TemplateAuxParams{
-        return params?:TemplateAuxParams()
-    }
-
     fun setAuxParams(auxiliaryParameters: TemplateAuxParams){
         params = auxiliaryParameters
     }
@@ -54,9 +42,7 @@ class PartsTemplate<T: Printable>(
 }
 
 class Template<T: Printable>(val delimiter: String):PrintableTemplateBase<T>(), DSLBuilder<T, String> {
-
     override val dslContainer: DSLContainer<T, String> = DSLContainer()
-
     override fun evaluateTemplate(data: T): String {
       return  dslContainer.resolve(data){
             it.joinToString(separator = delimiter) {string-> string }

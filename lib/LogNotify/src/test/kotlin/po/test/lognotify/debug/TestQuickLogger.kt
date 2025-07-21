@@ -3,8 +3,9 @@ package po.test.lognotify.debug
 import org.junit.jupiter.api.Test
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.runTaskBlocking
+import po.lognotify.interfaces.FakeTasksManaged
 
-class TestQuickLogger() : TasksManaged {
+class TestQuickLogger() : FakeTasksManaged {
 
 
     override val contextName: String = "TestQuickLogger"

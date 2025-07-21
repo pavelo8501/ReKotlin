@@ -7,6 +7,7 @@ import po.misc.functions.interfaces.FunctionalClass
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asContext
+import po.misc.exceptions.ExceptionPayload
 import po.misc.types.getOrManaged
 
 
@@ -35,7 +36,7 @@ sealed class BasicFunctionContainer<T: Any, R: Any?, V: Any?>(
     /**
      * Payload used for enhanced exception reporting during resolution.
      */
-    protected val exceptionPayload: ManagedCallSitePayload = ManagedCallSitePayload(this)
+    protected val exceptionPayload: ExceptionPayload = ExceptionPayload(this)
 
     private var lambdaBacking: ((T)->R)? = null
     protected val lambda: ((T)->R) get(){

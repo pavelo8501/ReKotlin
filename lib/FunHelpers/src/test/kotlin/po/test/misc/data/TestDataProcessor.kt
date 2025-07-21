@@ -12,12 +12,11 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
-class TestDataProcessor: CTX {
+class TestDataProcessor {
 
-    override val identity = asContext()
+
 
     data class TopDataItem (
-        override val producer: CTX,
         val id: Int,
         val personalName: String,
         val content : String,
@@ -37,7 +36,6 @@ class TestDataProcessor: CTX {
     }
 
     data class SubData (
-        override val producer: CTX,
         val id: Int,
         val personalName: String,
         val content : String,
@@ -53,14 +51,12 @@ class TestDataProcessor: CTX {
         }
     }
 
-
-
     @Test
     fun `DataProcessor templated string`(){
 
         val topDataProcessor: DataProcessor<TopDataItem> = DataProcessor<TopDataItem>(null)
 
-        val subRecord = SubData(this, 1, "Name", "subRecord content")
+        val subRecord = SubData(1, "Name", "subRecord content")
         topDataProcessor.logData<SubData>(subRecord, SubData.SubTemplate)
     }
 
@@ -76,11 +72,11 @@ class TestDataProcessor: CTX {
         topDataProcessor.hooks.dataReceived{topRecord = it }
         topDataProcessor.hooks.childAttached {childRec, record -> parentRecord = record   }
 
-        val newTopRecord = TopDataItem(this, 1, "TopDataItem", "TopDataItem_Content1")
+        val newTopRecord = TopDataItem(1, "TopDataItem", "TopDataItem_Content1")
         topDataProcessor.processRecord(newTopRecord, TopDataItem.TopTemplate)
 
-        val record1 = SubData(this, 1, "DataItem", "Content1")
-        val record2 = SubData(this, 2, "DataItem", "Content2")
+        val record1 = SubData(1, "DataItem", "Content1")
+        val record2 = SubData(2, "DataItem", "Content2")
 
         subDataProcessor.forwardOrEmmit(record1)
         subDataProcessor.forwardOrEmmit(record2)
@@ -99,8 +95,8 @@ class TestDataProcessor: CTX {
         val topDataProcessor: DataProcessor<TopDataItem> = DataProcessor(null)
         val subDataProcessor: DataProcessor<SubData> = DataProcessor<SubData>(topDataProcessor)
 
-        val debugInfo = TopDataItem(this, 0, "Some name", "Content")
-        val subDebugInfo = SubData(this, 0, "Sub Data", "sub Content")
+        val debugInfo = TopDataItem(0, "Some name", "Content")
+        val subDebugInfo = SubData(0, "Sub Data", "sub Content")
         var toDebug:TopDataItem? = null
         var toDebugSub: SubData? = null
 

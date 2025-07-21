@@ -6,7 +6,7 @@ import po.misc.data.printable.PrintableCompanion
 import po.misc.context.CTX
 
 class PropertyData(
-    override val producer: CTX,
+    val producer: CTX,
     val propertyName: String,
     val value: String,
 ): PrintableBase<PropertyData>(Property){

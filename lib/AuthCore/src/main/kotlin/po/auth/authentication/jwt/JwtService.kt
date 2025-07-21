@@ -20,8 +20,8 @@ import java.util.Date
 
 class JWTService(
     private var config : JwtConfig
-): TasksManaged, Identifiable {
-    override val contextName: String = "JWTService"
+){
+
     var name: String = ""
     val realm: String
         get(){return config.realm}

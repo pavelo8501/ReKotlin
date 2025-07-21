@@ -1,16 +1,19 @@
 package po.lognotify.action
 
 
+import kotlinx.coroutines.withContext
 import po.lognotify.TasksManaged
 import po.lognotify.action.models.ActionData
 import po.lognotify.anotations.LogOnFault
+import po.lognotify.common.LogInstance
 import po.lognotify.tasks.TaskHandler
 import po.lognotify.models.TaskKey
+import po.lognotify.tasks.ExecutionStatus
 import po.lognotify.tasks.TaskBase
+import po.misc.context.CTX
+import po.misc.context.subIdentity
 import po.misc.data.printable.knowntypes.PropertyData
 import po.misc.exceptions.ManagedException
-import po.misc.interfaces.ClassIdentity
-import po.misc.context.IdentifiableClass
 import po.misc.reflection.classes.ClassInfo
 import po.misc.reflection.properties.takePropertySnapshot
 import po.misc.time.ExecutionTimeStamp
@@ -19,16 +22,10 @@ import kotlin.reflect.KType
 class ActionSpan<T, R: Any?>(
     val actionName: String,
     val taskHandler: TaskHandler<*>,
-    val receiver: T,
-): IdentifiableClass  where T: TasksManaged {
+    override val receiver: T,
+): LogInstance<T>  where T: CTX {
 
-    enum class Status{
-        Active,
-        Complete,
-        Failed
-    }
-
-    override val identity: ClassIdentity = ClassIdentity.create("ActionSpan", receiver.contextName)
+    override val identity = subIdentity(this, receiver)
 
     override val contextName: String
         get() = "ActionSpan"
@@ -36,7 +33,7 @@ class ActionSpan<T, R: Any?>(
     val inTask: TaskKey get()= taskHandler.task.key
     val taskBase : TaskBase<*, *> get() = taskHandler.task
 
-    var status : Status = Status.Active
+    var actionSpanStatus : ExecutionStatus = ExecutionStatus.Active
         private set
 
     val shortName: String get() = "ActionSpan[${actionName}] in Context[${receiver.contextName}]"
@@ -50,17 +47,18 @@ class ActionSpan<T, R: Any?>(
 
     fun onException(callback:(ActionSpan<T, R>)-> Unit){
         onExceptionCallback = callback
-        setStatus(Status.Failed)
+        changeStatus(ExecutionStatus.Faulty)
     }
-    fun setStatus(newStatus : Status){
-        status = newStatus
+
+    override fun changeStatus(status:ExecutionStatus){
+        actionSpanStatus = status
     }
 
     fun createData(): ActionData {
         val data = ActionData(
             actionSpan = this,
             actionName = actionName,
-            status = status,
+            status = actionSpanStatus,
             propertySnapshot = createPropertySnapshot(),
         )
         return data
@@ -72,12 +70,12 @@ class ActionSpan<T, R: Any?>(
     }
 
     fun complete(){
-        status = Status.Complete
+        actionSpanStatus = ExecutionStatus.Complete
         executionTime.stopTimer()
     }
 
     fun complete(exception: ManagedException, classInfo: ClassInfo<R>){
-        status = Status.Failed
+        actionSpanStatus = ExecutionStatus.Faulty
         failedClassInfo = classInfo
         executionTime.stopTimer()
         managed = exception

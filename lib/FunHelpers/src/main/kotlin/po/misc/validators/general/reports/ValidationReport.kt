@@ -12,7 +12,7 @@ import kotlin.collections.forEach
 
 
 data class ValidationReport(
-    override val producer: CTX,
+    val producer: CTX,
     private  var validationName: String,
 ): PrintableBase<ValidationReport>(Header) {
 

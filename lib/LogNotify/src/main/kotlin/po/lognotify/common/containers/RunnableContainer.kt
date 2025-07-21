@@ -4,23 +4,35 @@ import po.lognotify.TasksManaged
 import po.lognotify.action.ActionSpan
 import po.lognotify.classes.notification.LoggerContract
 import po.lognotify.classes.notification.LoggerDataProcessor
+import po.lognotify.common.LogInstance
 import po.lognotify.execution.ControlledExecution
+import po.lognotify.tasks.ExecutionStatus
 import po.lognotify.tasks.RootTask
 import po.lognotify.tasks.TaskBase
 import po.lognotify.tasks.TaskHandler
 import po.lognotify.tasks.models.TaskConfig
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.exceptions.ExceptionPayload
 import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.functions.containers.DeferredContainer
 import po.misc.reflection.classes.ClassInfo
 
 
-sealed class RunnableContainer<T: TasksManaged, R: Any?>(
-   internal val receiver:T,
+sealed class RunnableContainer<T: CTX, R: Any?>(
+   val source : LogInstance<T>,
    val notifier: LoggerDataProcessor
 ): ControlledExecution, LoggerContract by notifier{
 
+    override val identity: CTXIdentity<out CTX>
+        get() = source.identity
+
+
+    val receiver:T get()  = source.receiver
+
     override val contextName: String get() = receiver.contextName
-    val exPayload: ManagedCallSitePayload = ManagedCallSitePayload(this)
+
+    val exPayload: ExceptionPayload = ExceptionPayload(this)
     var verboseMode: Boolean = false
 
     abstract val classInfoProvider: DeferredContainer<ClassInfo<R>>
@@ -61,6 +73,10 @@ sealed class RunnableContainer<T: TasksManaged, R: Any?>(
         notifyResult()
     }
 
+    fun notifySourceIsFailing(){
+        source.changeStatus(ExecutionStatus.Failing)
+    }
+
     fun <R2> estimateReturnNullability(classInfo : ClassInfo<R2>): Boolean{
        if(classInfo.acceptsNull){
            resultNullable = true
@@ -73,9 +89,11 @@ sealed class RunnableContainer<T: TasksManaged, R: Any?>(
 }
 
 
-class TaskContainer<T: TasksManaged, R: Any?>(
+class TaskContainer<T: CTX, R: Any?>(
     val sourceTask: TaskBase<T, R>,
-): RunnableContainer<T, R>(sourceTask.ctx, sourceTask.dataProcessor) {
+): RunnableContainer<T, R>(sourceTask, sourceTask.dataProcessor) {
+
+
 
     override val effectiveTask: TaskBase<T, R> get() = sourceTask
     override val taskHandler: TaskHandler<R> get() = sourceTask.handler
@@ -96,7 +114,7 @@ class TaskContainer<T: TasksManaged, R: Any?>(
 
 class ActionContainer<T: TasksManaged, R: Any?>(
     val actionSpan: ActionSpan<T, R>
-): RunnableContainer<T, R>(actionSpan.receiver, actionSpan.taskHandler.dataProcessor) {
+): RunnableContainer<T, R>(actionSpan, actionSpan.taskHandler.dataProcessor) {
 
 
     override val effectiveTask: TaskBase<*, *> get() = actionSpan.taskBase

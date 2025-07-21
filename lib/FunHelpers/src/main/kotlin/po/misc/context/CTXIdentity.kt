@@ -23,7 +23,11 @@ class CTXIdentity<T: CTX> @PublishedApi internal constructor(
     internal val kType: KType,
     val parentContext: CTX? = null
 ) {
+
+    val parentIdentity: CTXIdentity<*>? get() = parentContext?.identity
     internal val name: String = kClass.simpleName ?: "Unnamed"
+
+
     /**
      * Hierarchical identity string built from this context and its parents (if any).
      *
@@ -31,29 +35,53 @@ class CTXIdentity<T: CTX> @PublishedApi internal constructor(
      */
     val completeName: String get() = buildString {
         append(name)
-        parentContext?.let {
+        parentIdentity?.let {
             append("/")
-            append(it.identity.completeName)
+            append(it.completeName)
         }
     }
+
+    val qualifiedName: String get() = kClass.qualifiedName?:"Unnamed"
+
     /**
      * Returns [completeName] as the string representation of this identity.
      */
     override fun toString(): String = completeName
 }
 
-fun <T, T2>  fromContext(context: T, parentContext:T2? = null): CTXIdentity<T> where T: CTX, T2:CTX {
-    val kClass = context::class as KClass<T>
-    return parentContext?.let {
-        CTXIdentity(kClass, kClass.createType(), it)
-    }?:CTXIdentity(kClass, kClass.createType())
+//fun <T, T2>  fromContext(context: T, parentContext:T2? = null): CTXIdentity<T> where T: CTX, T2:CTX {
+//    val kClass = context::class as KClass<T>
+//    return parentContext?.let {
+//        CTXIdentity(kClass, kClass.createType(), it)
+//    }?:CTXIdentity(kClass, kClass.createType())
+//}
+
+//fun <T>  fromContext(context: T): CTXIdentity<T> where T: CTX{
+//    val kClass = context::class as KClass<T>
+//    val kType =  kClass.createType()
+//    return CTXIdentity(kClass, kType)
+//}
+
+
+//inline fun <reified T>  T.subIdentity(parentContext:CTX): CTXIdentity<T> where T: CTX{
+//    require(T::class != parentContext.identity.kClass) {
+//        "Parent context must be of a different class than the current context"
+//    }
+//   return CTXIdentity(T::class, typeOf<T>() , parentContext)
+//}
+
+inline fun <reified T>  subIdentity(context: T,  parentContext:CTX): CTXIdentity<T> where T: CTX{
+    require(T::class != parentContext.identity.kClass) {
+        "Parent context must be of a different class than the current context"
+    }
+    return CTXIdentity(T::class, typeOf<T>() , parentContext)
 }
 
-fun <T>  fromContext(context: T): CTXIdentity<T> where T: CTX{
-    val kClass = context::class as KClass<T>
-   return CTXIdentity(kClass, kClass.createType())
+inline fun <reified T>  T.asIdentity(): CTXIdentity<T> where T: CTX {
+    return  CTXIdentity(T::class, typeOf<T>())
 }
 
+@Deprecated("Because of similarity to withContext", ReplaceWith("asIdentity"), DeprecationLevel.WARNING)
 inline fun <reified T>  T.asContext(): CTXIdentity<T> where T: CTX {
     return  CTXIdentity(T::class, typeOf<T>())
 }

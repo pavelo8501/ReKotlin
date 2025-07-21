@@ -44,10 +44,8 @@ fun <T : Any> T?.getOrManaged(
     payload: ManagedCallSitePayload
 ):T {
     if(this == null){
-        var message = "${payload.message}. getOrManaged returned null. ${payload.targetObject.textIfNull(""){ "Target object: ${it}"}}"
-        message += payload.description
-        val managed = payload.producer.managedException(message, payload.source, payload.cause)
-       throw managed
+        payload.addDescription("getOrManaged returned null")
+        throw ManagedException(payload.message, payload)
     }else{
         return this
     }

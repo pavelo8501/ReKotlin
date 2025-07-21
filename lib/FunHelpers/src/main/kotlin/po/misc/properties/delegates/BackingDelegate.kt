@@ -6,6 +6,9 @@ import po.misc.functions.hooks.DataHooks
 import po.misc.functions.hooks.DataNotifier
 import po.misc.context.CTX
 import po.misc.context.asContext
+import po.misc.context.asIdentity
+import po.misc.exceptions.toManaged
+import po.misc.exceptions.toPayload
 import po.misc.functions.models.Updated
 import po.misc.types.TypeData
 import po.misc.types.getOrManaged
@@ -35,8 +38,8 @@ class BackingDelegate<T : Any>(
 
     private var value: T? = null
 
-    override val identity  = asContext()
-    private val exPayload: ManagedCallSitePayload = ManagedCallSitePayload(this)
+    override val identity  = asIdentity()
+
     private val notifier : DataNotifier<BackingDelegate<T>, T> = DataNotifier(this)
 
     override val contextName: String get() = identity.completeName
@@ -67,7 +70,7 @@ class BackingDelegate<T : Any>(
      */
     override fun getValue(thisRef: Any?, property: KProperty<*>): T {
         return value.getOrManaged(
-            exPayload.valueFailure(property.name, typeInfo.toString())
+            toPayload { valueFailure("value", typeInfo.toString()) }
         )
     }
 

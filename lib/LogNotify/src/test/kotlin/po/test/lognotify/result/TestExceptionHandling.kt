@@ -6,17 +6,25 @@ import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import po.lognotify.TasksManaged
+
 import po.lognotify.tasks.models.TaskConfig
 import po.lognotify.common.result.onFailureCause
 import po.lognotify.extensions.runInlineAction
 import po.lognotify.extensions.runTask
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestExceptionHandling: TasksManaged {
+
+
+    override val identity: CTXIdentity<out CTX> = asIdentity()
 
     override val contextName: String = "TestExceptionHandling"
 
@@ -102,9 +110,24 @@ class TestExceptionHandling: TasksManaged {
                 }
             }
         }
-        val backTrace = managed.handlingData.flatMap { it.events.items }.flatMap { it.backTraceRecords }
-        assertEquals(1, backTrace.size)
-        backTrace.forEach { it.echo() }
+
+         val backTrace =  managed.exceptionData.mapNotNull { it.auxData }
+        assertTrue(backTrace.isNotEmpty())
+
+        val withStackTraceElement =  managed.exceptionData.mapNotNull { it.thisStackTraceElement }
+        assertTrue(withStackTraceElement.isNotEmpty())
+
+        val statusThrown = managed.exceptionData.filter { it.event == ManagedException.ExceptionEvent.Thrown }
+        assertTrue(statusThrown.isNotEmpty())
+        statusThrown.forEach {
+            if(it.thisStackTraceElement != null){
+                println(it.thisStackTraceElement)
+            }
+        }
+
+        backTrace.forEach {
+            it.echo()
+        }
     }
 
     fun `Skip logic work same and predictable for tasks and inline actions`() {
@@ -128,7 +151,7 @@ class TestExceptionHandling: TasksManaged {
             runTask("EntryTask", TaskConfig(exceptionHandler = HandlerType.CancelAll)){
                 subTaskThrowing(Exception("General"))
             }.onFailureCause {
-                it.throwSelf(this, null)
+                it.throwSelf(this)
             }
         }
     }

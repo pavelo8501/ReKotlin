@@ -11,6 +11,7 @@ import po.lognotify.tasks.TaskHandler
 import po.lognotify.tasks.models.TaskConfig
 import po.lognotify.extensions.runTaskAsync
 import po.lognotify.extensions.runTaskBlocking
+import po.lognotify.interfaces.FakeTasksManaged
 import po.lognotify.models.TaskDispatcher
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
@@ -18,13 +19,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 
-class TestTaskBase : TasksManaged {
+class TestTaskBase : FakeTasksManaged {
 
     override val contextName: String = "TestTaskBase"
 
     data class TaskLaunchParam (val taskName: String, val childTaskCount: Int, val delay : Long)
 
-    class ReceiverClass :  TasksManaged{
+    class ReceiverClass :  FakeTasksManaged{
         override val contextName: String = "ReceiverClass"
         fun function1(input: Int, childCount: Int,  callback: ((TaskHandler<Int>)-> Unit)? = null): Int
             = runTaskBlocking("task_function1"){handler->

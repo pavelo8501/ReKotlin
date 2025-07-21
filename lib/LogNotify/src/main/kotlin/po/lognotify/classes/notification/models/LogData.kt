@@ -6,6 +6,7 @@ import po.lognotify.action.ActionSpan
 import po.lognotify.tasks.TaskBase
 import po.lognotify.tasks.models.TaskConfig
 import po.lognotify.enums.SeverityLevel
+import po.misc.context.CTX
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.PrintableTemplate
 import po.misc.data.helpers.withIndention
@@ -17,12 +18,12 @@ import po.misc.data.styles.Emoji
 import po.misc.data.styles.SpecialChars
 import po.misc.data.templates.matchTemplate
 import po.misc.data.templates.templateRule
-import po.misc.context.IdentifiableClass
+
 import po.misc.time.ExecutionTimeStamp
 
 
 data class LogData(
-    override val producer : IdentifiableClass,
+    override val producer : CTX,
     val config: TaskConfig,
     val timeStamp : ExecutionTimeStamp,
     val message: String,
@@ -67,7 +68,6 @@ data class LogData(
                 templateRule("Root ".colorize(Colour.GREEN)) { nestingLevel == 0 }
             )
         }
-
         val messageFormatter: LogData.() -> String = {
             matchTemplate(
                 templateRule(message) { severity == SeverityLevel.INFO },
@@ -76,26 +76,25 @@ data class LogData(
             )
         }
 
-        val Header: PrintableTemplate<LogData> = PrintableTemplate("Header") {
+        val Header: PrintableTemplate<LogData> = PrintableTemplate() {
             prefix.colorize(Colour.BLUE)
         }
 
-        val Footer: PrintableTemplate<LogData> = PrintableTemplate("Footer") {
+        val Footer: PrintableTemplate<LogData> = PrintableTemplate() {
             prefix.colorize(Colour.BLUE) + " | $currentTime] Elapsed: ${timeStamp.elapsed}".colorize(Colour.BLUE)
         }
 
-        val Message: PrintableTemplate<LogData> = PrintableTemplate("Message") {
+        val Message: PrintableTemplate<LogData> = PrintableTemplate() {
             prefix.colorize(Colour.BLUE) +  messageFormatter.invoke(this)
         }
 
-        val Exception: PrintableTemplate<LogData> = PrintableTemplate("Exception") {
+        val Exception: PrintableTemplate<LogData> = PrintableTemplate() {
             prefix.colorize(Colour.BLUE) +  messageFormatter.invoke(this)
         }
 
-        val Debug: PrintableTemplate<LogData> = PrintableTemplate("Debug", SpecialChars.NewLine.char,
-            {"${Emoji.HammerAndPick}  ${prefix.colorize(Colour.BLUE)}".withMargin(1,0) },
-            { message.withIndention(4," ").withMargin(0,1)}
-        )
-
+        val Debug = createTemplate{
+            next{ "${Emoji.HammerAndPick}  ${prefix.colorize(Colour.BLUE)}" }
+            next { message.withIndention(4," ").withMargin(0,1) }
+        }
     }
 }

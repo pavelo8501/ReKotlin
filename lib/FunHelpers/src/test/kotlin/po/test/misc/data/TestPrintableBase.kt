@@ -16,17 +16,16 @@ import po.misc.data.printable.PartsTemplate
 import po.misc.interfaces.ValueBased
 import kotlin.test.assertTrue
 import po.misc.data.printable.PrintableCompanion
+import po.misc.data.printable.PrintableGroup
 import kotlin.test.assertNotEquals
 
 
-class TestPrintableBase: DateHelper, CTX {
+class TestPrintableBase: DateHelper {
 
     enum class Events(override val value: Int) : ValueBased{
         Info(1),
         Warn(2)
     }
-
-    override val identity: CTXIdentity<out CTX> = asContext()
 
     /***
      * DataProcessor should contain an information about data
@@ -36,7 +35,6 @@ class TestPrintableBase: DateHelper, CTX {
     val processor: DataProcessor<Item> = DataProcessor<Item>(null,null)
 
     data class Item (
-        override val producer: CTX,
         val personalName: String,
         val componentName: String = "Some name",
         val description : String = "description",
@@ -48,6 +46,18 @@ class TestPrintableBase: DateHelper, CTX {
       //  override val itemId: ValueBased = toValueBased(0)
 
         companion object: PrintableCompanion<Item>({Item::class}){
+
+            val Header = createTemplate(){
+                next {
+                    "$personalName | $componentName | $description".colorize(Colour.BLUE)
+                }
+            }
+
+            val Footer = createTemplate(){
+                next {
+                    "$personalName Value = ${intValue}".colorize(Colour.BLUE)
+                }
+            }
 
             val Printable: PartsTemplate<Item> = PartsTemplate(
                 delimiter = SpecialChars.NewLine.char,
@@ -62,7 +72,6 @@ class TestPrintableBase: DateHelper, CTX {
      * about each other except for shared base.
      */
     data class Item2 (
-        override val producer : CTX,
         val personalName: String,
         val componentName: String = "Some name",
         val error: String = "Generic error",
@@ -74,16 +83,47 @@ class TestPrintableBase: DateHelper, CTX {
        // override val itemId: ValueBased = toValueBased(0)
 
         companion object: PrintableCompanion<Item2>({Item2::class}){
-            val Template2: PrintableTemplate<Item2> = PrintableTemplate<Item2>(){
-                "String2-> $personalName | $module And Value=$handled".colorize(Colour.RED)
+
+            val RegularStr = createTemplate{
+                next {
+                    "$componentName in $module".colorize(Colour.CYAN)
+                }
+            }
+
+            val Template2 = createTemplate{
+                next {
+                    "String2-> $personalName | $module And Value=$handled".colorize(Colour.RED)
+                }
             }
         }
     }
 
+    class ItemGroup(
+        groupHost:Item,
+    ) : PrintableGroup<Item, Item2>(groupHost, Item.Header, Item2.RegularStr)
+
+    @Test
+    fun `Test printable group`(){
+
+        val item = Item("groupHost")
+        val group1 = ItemGroup(item)
+        group1.setHeader(Item.Header)
+        group1.setFooter(Item.Footer)
+
+        for(i in 1..11){
+            val childItem = Item2("childItem_${i}", componentName = "Component#${i}")
+            group1.addRecord(childItem, )
+        }
+        val string = group1.formattedString
+        assertTrue(string.contains("Component#3"))
+        println(string)
+
+    }
+
     @Test
     fun `Printable metadata properly initialized`(){
-        val item = Item(this, "name")
-        val item2 = Item2(this, "name")
+        val item = Item("name")
+        val item2 = Item2("name")
         assertTrue(Item.metaDataInitialized)
         assertTrue(Item2.metaDataInitialized)
         assertNotEquals(Item.typeKey.hashCode(), Item2.typeKey.hashCode(), "Keys are the same")

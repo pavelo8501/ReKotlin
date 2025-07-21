@@ -7,6 +7,7 @@ import po.lognotify.classes.notification.models.LogData
 import po.lognotify.tasks.models.TaskConfig
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.extensions.runTask
+import po.lognotify.interfaces.FakeTasksManaged
 import po.misc.data.printable.PrintableBase
 import po.misc.exceptions.ManagedException
 import po.misc.context.Identifiable
@@ -14,10 +15,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class TestTaskNotifications : TasksManaged, Identifiable {
+class TestTaskNotifications : FakeTasksManaged {
 
-    override val contextName: String = "TestTaskNotifications"
-    override var sourceName: String = "TestTaskNotifications"
 
     @Test
     fun `Debug information can be switched on&off for specific data type`(){

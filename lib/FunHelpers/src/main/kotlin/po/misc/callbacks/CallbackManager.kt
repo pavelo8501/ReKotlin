@@ -5,12 +5,9 @@ import po.misc.collections.ComparableType
 import po.misc.collections.StaticTypeKey
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.throwManaged
-import po.misc.functions.methodeProbe
 import po.misc.context.CTX
-import po.misc.context.CTXIdentity
-import po.misc.context.Identifiable
-import po.misc.context.asContext
-import po.misc.context.fromContext
+import po.misc.context.asIdentity
+import po.misc.context.subIdentity
 import po.misc.types.TypeData
 import po.misc.types.castOrManaged
 import po.misc.types.safeCast
@@ -32,7 +29,7 @@ class CallbackManager<E: Enum<E>>(
         val routedContainersCount: Int
     )
 
-    override val identity  = fromContext<CallbackManager<*>>(this)
+    override val identity  = subIdentity<CallbackManager<*>>(this,  emitter)
 
 
    //val identity: Identifiable = identifiable("CallbackManager", emitter.context)

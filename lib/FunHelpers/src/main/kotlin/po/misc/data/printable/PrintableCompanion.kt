@@ -26,8 +26,9 @@ abstract class PrintableCompanion<T : PrintableBase<T>>(private val classProvide
         separator: String = SpecialChars.NewLine.char,
         block: DSLContainer<T, String>.() -> Unit
     ): Template<T>{
-      val template =  Template<T>("/n")
+      val template =  Template<T>(separator)
       template.dslBuilder(block)
+
       return  template
     }
 

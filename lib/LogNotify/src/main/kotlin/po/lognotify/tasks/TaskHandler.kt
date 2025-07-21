@@ -15,13 +15,11 @@ import po.misc.data.printable.Printable
 import po.misc.data.printable.PrintableCompanion
 import po.misc.exceptions.ManagedException
 import po.misc.context.Identifiable
-import po.misc.interfaces.asIdentifiable
 
 class TaskHandler<R: Any?>(
     val task : TaskBase<*, R>,
     internal val dataProcessor: LoggerDataProcessor,
-    val identifiable: Identifiable = asIdentifiable(task.key.taskName, "TaskHandler")
-): HandledTask<R>, Identifiable by identifiable{
+): HandledTask<R>{
 
     val actions : List<ActionSpan<*, *>> get()= task.actionSpans
 
@@ -49,23 +47,12 @@ class TaskHandler<R: Any?>(
         return dataProcessor.warn(ex, message)
     }
 
-    fun subscribeHubEvents(
-        eventType: NotifierHub.Event,
-        callback: (PrintableBase<*>) -> Unit) = task.lookUpRoot().dispatcher.notifierHub.subscribe(this, eventType, callback)
+//    fun subscribeHubEvents(
+//        eventType: NotifierHub.Event,
+//        callback: (PrintableBase<*>) -> Unit) = task.lookUpRoot().dispatcher.notifierHub.subscribe(this, eventType, callback)
 
     fun subscribeTaskEvents(handler: TaskDispatcher.UpdateType, callback: (LoggerStats) -> Unit) {
         task.callbackRegistry.subscribe(task, handler, wrapRawCallback(callback))
     }
-
-//    inline fun <T, R2>  withTaskContext(receiver: T,  crossinline block : suspend T.() -> R2):R2{
-//        var result: R2? = null
-//        runBlocking {
-//            val job = launch(start = CoroutineStart.UNDISPATCHED, context = task.coroutineContext) {
-//                result = block(receiver)
-//            }
-//            job.join()
-//        }
-//        return result as R2
-//    }
 }
 

@@ -8,9 +8,13 @@ import po.auth.sessions.interfaces.SessionIdentified
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.runTask
 import po.lognotify.process.runProcess
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asContext
 
 class TestProcessFlow() : TasksManaged {
 
+    override val identity: CTXIdentity<TestProcessFlow> = asContext()
 
     override val contextName: String = "TestProcessFlow"
 

@@ -1,18 +1,17 @@
 package po.lognotify.execution
 
 import po.lognotify.TasksManaged
-import po.lognotify.action.ActionSpan
 import po.lognotify.anotations.LogOnFault
 import po.lognotify.common.containers.ActionContainer
 import po.lognotify.common.containers.RunnableContainer
 import po.lognotify.common.containers.TaskContainer
 import po.lognotify.common.result.PreliminaryResult
 import po.lognotify.exceptions.handleException
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
 import po.misc.data.styles.SpecialChars
 import po.misc.exceptions.ManagedException
-import po.misc.functions.RepeatResult
 import po.misc.reflection.properties.takePropertySnapshot
-import po.misc.types.castOrManaged
 
 /**
  * Internal marker interface for tightly controlled execution units within the logging and task management system.
@@ -58,6 +57,7 @@ internal interface ControlledExecution : TasksManaged {
         container: RunnableContainer<T, R>,
         throwable: Throwable
     ): ManagedException {
+        container.notifySourceIsFailing()
         val snapshot = takePropertySnapshot<T, LogOnFault>(container.receiver)
         val managed = handleException(throwable, container, snapshot)
         return managed

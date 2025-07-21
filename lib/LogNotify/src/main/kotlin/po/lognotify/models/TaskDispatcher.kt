@@ -4,6 +4,7 @@ import po.lognotify.TasksManaged.LogNotify.defaultContext
 import po.lognotify.TasksManaged.LogNotify.taskDispatcher
 import po.lognotify.classes.notification.LoggerDataProcessor
 import po.lognotify.classes.notification.NotifierHub
+import po.lognotify.tasks.ExecutionStatus
 import po.lognotify.tasks.RootTask
 import po.lognotify.tasks.TaskBase
 import po.lognotify.tasks.interfaces.ResultantTask
@@ -14,13 +15,12 @@ import po.misc.callbacks.Containable
 import po.misc.callbacks.builders.callbackManager
 import po.misc.coroutines.CoroutineInfo
 import po.misc.context.CTX
-import po.misc.context.IdentifiableClass
-import po.misc.interfaces.asIdentifiableClass
+import po.misc.context.asIdentity
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.set
 
 
-class TaskDispatcher(val notifierHub: NotifierHub) : UpdatableTasks, IdentifiableClass{
+class TaskDispatcher(val notifierHub: NotifierHub) : UpdatableTasks, CTX{
 
     enum class UpdateType{
         OnDataReceived,
@@ -39,7 +39,7 @@ class TaskDispatcher(val notifierHub: NotifierHub) : UpdatableTasks, Identifiabl
         val coroutineInfo: CoroutineInfo,
     )
 
-    override val identity = asIdentifiableClass("LogNotify", "TaskDispatcher")
+    override val identity = asIdentity()
 
     internal val callbackRegistry = callbackManager<UpdateType>(
         { CallbackManager.createPayload<UpdateType, LoggerStats>(this,  UpdateType.OnTaskCreated) },
@@ -123,11 +123,11 @@ class TaskDispatcher(val notifierHub: NotifierHub) : UpdatableTasks, Identifiabl
       return taskHierarchy.values.firstOrNull { !it.isComplete }
     }
     fun activeTask(): TaskBase<*, *>?{
-        val activeRootTask = taskHierarchy.values.firstOrNull { it.taskStatus == TaskBase.TaskStatus.Active }
+        val activeRootTask = taskHierarchy.values.firstOrNull { it.taskStatus == ExecutionStatus.Active }
         return activeRootTask?.registry?.getActiveTask()
     }
     fun activeTasks(): List<TaskBase<*, *>>{
-        return  taskHierarchy.values.filter { it.taskStatus == TaskBase.TaskStatus.Active }
+        return  taskHierarchy.values.filter { it.taskStatus == ExecutionStatus.Active }
     }
 
     fun keyLookup(name: String, nestingLevel: Int): TaskKey?{

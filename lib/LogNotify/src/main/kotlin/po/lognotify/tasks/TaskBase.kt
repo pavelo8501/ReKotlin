@@ -7,6 +7,7 @@ import kotlinx.coroutines.cancel
 import po.lognotify.action.models.ActionData
 import po.lognotify.action.ActionSpan
 import po.lognotify.classes.notification.LoggerDataProcessor
+import po.lognotify.common.LogInstance
 import po.lognotify.tasks.interfaces.ResultantTask
 import po.lognotify.tasks.models.TaskConfig
 import po.lognotify.common.result.TaskResult
@@ -29,8 +30,8 @@ import po.misc.data.templates.matchTemplate
 import po.misc.data.templates.templateRule
 import po.misc.exceptions.ManagedException
 import po.misc.context.CTX
-import po.misc.interfaces.ClassIdentity
-import po.misc.context.IdentifiableClass
+import po.misc.context.asIdentity
+import po.misc.context.subIdentity
 import po.misc.reflection.classes.ClassInfo
 import po.misc.time.ExecutionTimeStamp
 import po.misc.time.MeasuredContext
@@ -38,19 +39,22 @@ import po.misc.time.startTimer
 import po.misc.time.stopTimer
 import kotlin.coroutines.CoroutineContext
 
+
+enum class ExecutionStatus {
+    Active,
+    Complete,
+    Failing,
+    Faulty
+}
+
 sealed class TaskBase<T: CTX, R: Any?>(
     override val key: TaskKey,
     override val config: TaskConfig,
     dispatcher: TaskDispatcher,
-    val ctx: T,
-): StaticHelper, MeasuredContext, ResultantTask<T, R>, IdentifiableClass {
+    override val receiver: T,
+): StaticHelper, MeasuredContext, ResultantTask<T, R>, LogInstance<T> {
 
-    enum class TaskStatus {
-        Active,
-        Complete,
-        Failing,
-        Faulty
-    }
+
 
     abstract var taskResult: TaskResult<R>?
     abstract val coroutineContext: CoroutineContext
@@ -65,7 +69,7 @@ sealed class TaskBase<T: CTX, R: Any?>(
     abstract fun complete(): TaskBase<T, R>
     abstract fun complete(managed: ManagedException): TaskBase<T, R>
 
-    var taskStatus: TaskStatus = TaskStatus.Active
+    var taskStatus: ExecutionStatus = ExecutionStatus.Active
         internal set
 
     internal fun lookUpRoot(): RootTask<*, *> {
@@ -80,19 +84,19 @@ sealed class TaskBase<T: CTX, R: Any?>(
             is RootTask->{
                 "RootTask[${key.taskName}] | Module[${key.moduleName}]".colorize(Colour.BLUE) +
                         matchTemplate(
-                            templateRule("Status[${taskStatus.name}]".colorize(Colour.GREEN) ) {  taskStatus == TaskStatus.Complete },
-                            templateRule("Status[${taskStatus.name}]".colorize(Colour.RED)) { taskStatus == TaskStatus.Faulty },
-                            templateRule("Status[${taskStatus.name}]".colorize(Colour.BRIGHT_WHITE)) { taskStatus == TaskStatus.Active },
-                            templateRule("Status[${taskStatus.name}]".colorize(Colour.YELLOW)) { taskStatus == TaskStatus.Failing })+ SpecialChars.NewLine.char+
+                            templateRule("Status[${taskStatus.name}]".colorize(Colour.GREEN) ) {  taskStatus == ExecutionStatus.Complete },
+                            templateRule("Status[${taskStatus.name}]".colorize(Colour.RED)) { taskStatus == ExecutionStatus.Faulty },
+                            templateRule("Status[${taskStatus.name}]".colorize(Colour.BRIGHT_WHITE)) { taskStatus == ExecutionStatus.Active },
+                            templateRule("Status[${taskStatus.name}]".colorize(Colour.YELLOW)) { taskStatus == ExecutionStatus.Failing })+ SpecialChars.NewLine.char+
                         "Hierarchy[Members count:${registry.tasks.size}; Active task: ${registry.getActiveTask().key.taskName}]"
             }
             is Task->{
                 "(${key.nestingLevel})Task[${key.taskName}] | Module[${key.moduleName}]".colorize(Colour.BLUE) +
                         matchTemplate(
-                            templateRule("Status[${taskStatus.name}]".colorize(Colour.GREEN) ) {  taskStatus == TaskStatus.Complete },
-                            templateRule("Status[${taskStatus.name}]".colorize(Colour.RED)) { taskStatus == TaskStatus.Faulty },
-                            templateRule("Status[${taskStatus.name}]".colorize(Colour.BRIGHT_WHITE)) { taskStatus == TaskStatus.Active },
-                            templateRule("Status[${taskStatus.name}]".colorize(Colour.YELLOW)) { taskStatus == TaskStatus.Failing })+
+                            templateRule("Status[${taskStatus.name}]".colorize(Colour.GREEN) ) {  taskStatus == ExecutionStatus.Complete },
+                            templateRule("Status[${taskStatus.name}]".colorize(Colour.RED)) { taskStatus == ExecutionStatus.Faulty },
+                            templateRule("Status[${taskStatus.name}]".colorize(Colour.BRIGHT_WHITE)) { taskStatus == ExecutionStatus.Active },
+                            templateRule("Status[${taskStatus.name}]".colorize(Colour.YELLOW)) { taskStatus == ExecutionStatus.Failing })+
                         "ActionSpan count: ${actionSpans.size}"
             }
         }
@@ -112,10 +116,14 @@ sealed class TaskBase<T: CTX, R: Any?>(
         callbackRegistry.trigger<LoggerStats>(handler, stats)
     }
 
+    override fun changeStatus(status:ExecutionStatus){
+        taskStatus = status
+    }
+
     fun checkChildResult(childResult: TaskResult<*>): ManagedException? {
         return childResult.throwable?.let { exception ->
             val childTask = childResult.task
-            childTask.taskStatus = TaskStatus.Faulty
+            childTask.taskStatus = ExecutionStatus.Faulty
             exception
         }
     }
@@ -126,7 +134,7 @@ sealed class TaskBase<T: CTX, R: Any?>(
     }
 
     fun activeActionSpan(): ActionSpan<*, *>? {
-        return actionSpans.firstOrNull { it.status == ActionSpan.Status.Active }
+        return actionSpans.firstOrNull { it.actionSpanStatus == ExecutionStatus.Active }
     }
 
     fun checkIfCanBeSkipped(classInfo: ClassInfo<R>?): Boolean {
@@ -138,6 +146,13 @@ sealed class TaskBase<T: CTX, R: Any?>(
         } else {
             return false
         }
+    }
+
+    fun createTaskData(predicate: TaskBase<* , *>.()-> List<ActionData>):TaskData{
+        val result = this.predicate()
+        val taskData = TaskData(this)
+        taskData.actionSpanRecords = result
+        return taskData
     }
 
     fun createTaskData(actionRecords: List<ActionData>? = null): TaskData{
@@ -156,10 +171,10 @@ class RootTask<T: CTX, R: Any?>(
     config: TaskConfig,
     override val coroutineContext: CoroutineContext,
     val dispatcher: TaskDispatcher,
-    ctx: T,
-):TaskBase<T, R>(key, config, dispatcher, ctx), CoroutineHolder{
+    receiver: T,
+):TaskBase<T, R>(key, config, dispatcher, receiver), CoroutineHolder{
 
-    override val identity : ClassIdentity =  ClassIdentity.create(key.taskName, key.moduleName)
+    override val identity = subIdentity(this, receiver)
 
     override val dataProcessor: LoggerDataProcessor = LoggerDataProcessor(this, null, FlowEmitter())
     override var taskResult : TaskResult<R>?  =  null
@@ -215,8 +230,8 @@ class RootTask<T: CTX, R: Any?>(
 
     override fun complete(managed: ManagedException): Nothing{
         stopTimer()
-        registry.setChildTasksStatus(TaskStatus.Faulty, this)
-        taskStatus = TaskStatus.Failing
+        registry.setChildTasksStatus(ExecutionStatus.Faulty, this)
+        changeStatus(ExecutionStatus.Failing)
         taskResult =  createFaultyResult(managed, this)
         isComplete = true
         dataProcessor.registerStop()
@@ -234,7 +249,9 @@ class Task<T: CTX,  R: Any?>(
     receiver: T
 ):TaskBase<T, R>(key, config, hierarchyRoot.dispatcher, receiver), ResultantTask<T, R>{
 
-    override val identity:  ClassIdentity = ClassIdentity.create(key.taskName, key.moduleName)
+
+    override val identity = subIdentity(this, receiver)
+
     override val dataProcessor: LoggerDataProcessor = LoggerDataProcessor(this, hierarchyRoot.dataProcessor, null)
     override val coroutineContext: CoroutineContext get() = hierarchyRoot.coroutineContext
     override var taskResult : TaskResult<R>?  =  null
@@ -260,8 +277,8 @@ class Task<T: CTX,  R: Any?>(
 
     override fun complete(managed: ManagedException): TaskBase<T, R> {
         stopTimer()
-        registry.setChildTasksStatus(TaskStatus.Faulty, this)
-        taskStatus = TaskStatus.Failing
+        registry.setChildTasksStatus(ExecutionStatus.Faulty, this)
+        changeStatus(ExecutionStatus.Failing)
         taskResult =  createFaultyResult(managed, this)
         dataProcessor.registerStop()
         throw managed

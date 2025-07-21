@@ -2,21 +2,17 @@ package po.test.lognotify.action
 
 import org.junit.jupiter.api.Test
 import po.lognotify.TasksManaged
-import po.lognotify.action.InlineAction
 import po.lognotify.extensions.runInlineAction
 import po.lognotify.extensions.runTask
-import po.misc.interfaces.ClassIdentity
-import po.misc.context.IdentifiableClass
-import po.misc.interfaces.asIdentifiableClass
+import po.lognotify.interfaces.FakeTasksManaged
 import kotlin.test.assertEquals
 
-class TestActionSpan: TasksManaged {
+class TestActionSpan: FakeTasksManaged {
 
     override val contextName: String
         get() = "TestActionSpan"
 
-    class FactoryClass() : IdentifiableClass, InlineAction{
-       override val identity:  ClassIdentity = asIdentifiableClass("TestActionSpan", "FactoryClass")
+    class FactoryClass() : FakeTasksManaged {
 
        private var counter:Int = 0
 

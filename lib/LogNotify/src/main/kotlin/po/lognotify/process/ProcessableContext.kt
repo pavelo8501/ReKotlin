@@ -17,10 +17,8 @@ interface ProcessableContext<out E: CoroutineContext.Element> : CoroutineContext
 }
 
 
-interface LogReceiver: Identifiable{
-
+interface LogReceiver{
     val receivableContext:()->LogReceiver
-
     fun receiveUpdate(data: PrintableBase<*>)
 
 }

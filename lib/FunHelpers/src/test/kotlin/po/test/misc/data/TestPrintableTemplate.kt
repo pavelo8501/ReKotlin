@@ -13,15 +13,20 @@ import po.misc.data.templates.matchTemplate
 import po.misc.data.templates.templateRule
 import kotlin.test.assertEquals
 
-class TestPrintableTemplate: CTX {
+class TestPrintableTemplate {
 
-    override val identity = asContext()
+
+
+    class NEWClas(
+        val name: String = "Stroka"
+    )
+
 
     data class PrintableRecord (
-        override val producer: CTX,
         val personalName: String = "personalName",
         val componentName: String = "Some name",
         val description : String = "description",
+        val newClass: NEWClas = NEWClas(),
         val intValue: Int = 200
     ): PrintableBase<PrintableRecord>(Printable){
 
@@ -30,8 +35,17 @@ class TestPrintableTemplate: CTX {
         companion object: PrintableCompanion<PrintableRecord>({PrintableRecord::class}){
 
             val Printable : Template<PrintableRecord> = createTemplate{
-                next{
+                next {
                     personalName
+                }
+                next {
+                    "ssflsdkfjlof"
+                }
+                with({ it.newClass }){
+                    next {
+                        name
+
+                    }
                 }
             }
         }
@@ -40,7 +54,7 @@ class TestPrintableTemplate: CTX {
     @Test
     fun `DSL Builder saves lambda for deferred calculation`(){
 
-            val record1 = PrintableRecord(this, "personalName")
+            val record1 = PrintableRecord("personalName")
             record1.echo()
             assertEquals(PrintableRecord.Printable,  record1.defaultTemplate, "Template was not persisted")
             assertEquals("personalName", record1.formattedString)

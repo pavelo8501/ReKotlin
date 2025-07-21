@@ -7,10 +7,11 @@ import po.misc.callbacks.builders.createPayload
 import po.misc.context.CTX
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.toManaged
-import po.misc.context.Identifiable
 import po.misc.context.asContext
-import po.misc.context.fromContext
+import po.misc.context.subIdentity
+import po.misc.exceptions.ExceptionPayload
 import po.misc.exceptions.ManagedCallSitePayload
+import po.misc.exceptions.toPayload
 import po.misc.reflection.classes.ClassInfo
 import po.misc.reflection.classes.ClassRole
 import po.misc.reflection.classes.overallInfo
@@ -63,8 +64,8 @@ class UpdatableContainer<T: CTX, R: Any, V: Any>(
     val dataLambda:(T)-> V
 ): TypedContainer<T>(source, typeData, classInfo), ComplexContainers<T>, DeferredMutation<T, R>, CTX {
 
-    override val identity = fromContext(this, source)
-    val exPayload: ManagedCallSitePayload = ManagedCallSitePayload.create(this)
+    override val identity = subIdentity(this,  source)
+    val exPayload: ExceptionPayload = toPayload { }
 
 
     override val notifier: CallbackManager<UpdatableEvents> = callbackManager<UpdatableEvents>(

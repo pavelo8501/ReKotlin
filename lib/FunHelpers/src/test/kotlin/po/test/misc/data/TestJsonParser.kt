@@ -23,13 +23,10 @@ import po.misc.time.ExecutionTimeStamp
 
 import kotlin.test.assertTrue
 
-class TestJsonParser: CTX {
-
-
-    override val identity = asContext()
+class TestJsonParser {
 
     data class TaskDataLocal(
-        override val producer : CTX,
+        val contextName: String,
         val nestingLevel: Int,
         val taskName: String,
         val timeStamp: ExecutionTimeStamp,
@@ -65,7 +62,7 @@ class TestJsonParser: CTX {
 
             val prefix: TaskDataLocal.(auxMessage: String) -> String = { auxMessage ->
                 "${Colour.makeOfColour(Colour.BLUE, "[${auxMessage}")}  ${nestingFormatter(this)}" +
-                        "${taskName} | ${producer.contextName} @ $currentTime".colorize(Colour.BLUE)
+                        "$taskName | @ $currentTime".colorize(Colour.BLUE)
             }
 
             val messageFormatter: TaskDataLocal.() -> String = {
@@ -80,7 +77,7 @@ class TestJsonParser: CTX {
                 SpecialChars.NewLine.char + prefix.invoke(
                     this,
                     "Start"
-                ) + "${producer.contextName.emptyOnNull("by ")}]".colorize(Colour.BLUE)
+                ) + "${contextName.emptyOnNull("by ")}]".colorize(Colour.BLUE)
             }
 
             val Footer: PrintableTemplate<TaskDataLocal> = PrintableTemplate() {
@@ -99,7 +96,6 @@ class TestJsonParser: CTX {
     }
 
     data class ValidationRep(
-        override val producer: CTX,
         var validationName: String
     ): PrintableBase<ValidationRep>(Main), JasonStringSerializable {
         override val self: ValidationRep = this
@@ -117,7 +113,7 @@ class TestJsonParser: CTX {
     fun `To json conversion`() {
 
         val task = TaskDataLocal(
-            this,
+            contextName = "SomeContext",
             nestingLevel = 0,
             taskName = "TestTask",
             timeStamp = ExecutionTimeStamp("task", 1.toString()),
@@ -126,10 +122,10 @@ class TestJsonParser: CTX {
         )
 
         //val map = PrintableBase.Companion.firstRun<TaskDataLocal>()
-        val report1 = ValidationRep(this, "UserValidation")
-        val report2 = ValidationRep(this, "UserValidation")
-        val report3 = ValidationRep(this, "UserValidation")
-        val report4 = ValidationRep(this, "UserValidation")
+        val report1 = ValidationRep("UserValidation")
+        val report2 = ValidationRep("UserValidation")
+        val report3 = ValidationRep("UserValidation")
+        val report4 = ValidationRep("UserValidation")
 
         task.addChild(report1)
         task.addChild(report2)
@@ -148,7 +144,7 @@ class TestJsonParser: CTX {
     fun `To json conversion as as array`() {
 
         val rootTask = TaskDataLocal(
-            this,
+            contextName = "Some name",
             nestingLevel = 0,
             taskName = "RootTask",
             timeStamp = ExecutionTimeStamp("task", 1.toString()),
@@ -159,7 +155,7 @@ class TestJsonParser: CTX {
         val tasks: MutableList<TaskDataLocal> = mutableListOf()
         for (i in 1..10) {
             val task = TaskDataLocal(
-                this,
+               contextName = "Some name",
                 nestingLevel = i,
                 taskName = "TestTask",
                 timeStamp = ExecutionTimeStamp("task_${i}", i.toString()),

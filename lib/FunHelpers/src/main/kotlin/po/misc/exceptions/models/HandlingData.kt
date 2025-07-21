@@ -2,9 +2,7 @@ package po.misc.exceptions.models
 
 import po.misc.data.printable.PrintableBase
 import po.misc.exceptions.ManagedException.ExceptionEvent
-import po.misc.exceptions.throwableToText
 import po.misc.context.CTX
-import po.misc.context.Identifiable
 
 
 class ExceptionEventGroup<T: Any>(
@@ -51,14 +49,49 @@ data class ExceptionEventData(
     }
 }
 
+class ExceptionData2(
+    val event: ExceptionEvent,
+    val message: String,
+    val producer: CTX?,
+){
+
+    var auxData: PrintableBase<*>? = null
+        private set
+
+    var thisStackTraceElement: StackTraceElement? = null
+        private set
+
+    var stackTraceList: List<StackTraceElement> = emptyList()
+        private set
+
+    fun addStackTrace(stackTrace: List<StackTraceElement>):ExceptionData2{
+        if(producer != null){
+            thisStackTraceElement =  producer.identity.parentIdentity?.let {parentIdentity->
+                stackTrace.firstOrNull { it.className == parentIdentity.qualifiedName }
+            }?:run {
+                stackTrace.firstOrNull { it.className == producer?.identity?.qualifiedName }
+            }
+        }else{
+            stackTraceList = stackTrace
+        }
+        return this
+    }
+
+    fun provideAuxData(data: PrintableBase<*>?):ExceptionData2{
+        auxData = data
+        return this
+    }
+
+}
+
+
+
 data class ExceptionData(
     val event: ExceptionEvent,
     val producer: CTX
 ) {
     val events:ExceptionEventGroup<ExceptionEventData> =  ExceptionEventGroup(event)
     private var savedTrace: List<StackTraceElement> = listOf()
-
-
 
     fun addMessage(msg: String){
         events.items.lastOrNull()?.addMessage(msg)

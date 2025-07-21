@@ -7,6 +7,8 @@ import po.misc.data.helpers.textIfNull
 import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.context.CTX
 import po.misc.context.asContext
+import po.misc.context.asIdentity
+import po.misc.exceptions.toPayload
 import po.misc.reflection.objects.Composed
 import po.misc.reflection.properties.models.PropertyUpdate
 import po.misc.types.castOrManaged
@@ -35,7 +37,7 @@ sealed class PropertyIOBase<T: Any, V: Any>(
 
     override val contextName: String get() = "PropertyIOBase[$propertyName]"
 
-    override val identity = asContext()
+    override val identity = asIdentity()
 
 
     val ioType: PropertyIOType get(){
@@ -74,7 +76,7 @@ sealed class PropertyIOBase<T: Any, V: Any>(
     }
 
     private fun payload(message: String): ManagedCallSitePayload{
-      return  ManagedCallSitePayload.create(this)
+      return  toPayload { message }
     }
 
     fun initialize(dataObject:T){

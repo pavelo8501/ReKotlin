@@ -9,9 +9,12 @@ package po.misc.context
  * including optional parent context information for hierarchical resolution.
  */
 interface CTX{
+
     val identity: CTXIdentity<out  CTX>
     val completeName: String get() = identity.completeName
     val contextName: String get() = identity.name
+    val qualifiedName: String get() = identity.qualifiedName
+    val parentIdentity:CTXIdentity<*>? get() = identity.parentIdentity
 }
 
 /**

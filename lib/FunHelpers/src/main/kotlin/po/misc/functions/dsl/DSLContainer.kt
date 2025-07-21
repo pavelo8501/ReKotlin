@@ -7,7 +7,7 @@ import po.misc.types.safeCast
 
 class DSLContainer<T, R>(
     private var constructLambda : (DSLContainer<T, R>.() -> Unit)? = null
-): DSLStorage<T, R> where T: Any, R:Any {
+): DSLExecutable<T, R> where T: Any, R:Any {
 
     private var dataProvider : Adapter<Any, T>? = null
 

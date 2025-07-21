@@ -157,6 +157,12 @@ class LoggerDataProcessor(
         forwardOrEmmit(createData("Forwarding", SeverityLevel.LOG))
     }
 
+    internal fun notify(message: String, severity: SeverityLevel): LogData{
+        val dataRecord = createData(message, severity)
+        processRecord(dataRecord, LogData.Message)
+        return dataRecord
+    }
+
     override fun info(message: String): LogData {
         val dataRecord = createData(message, SeverityLevel.INFO)
         processRecord(dataRecord, LogData.Message)

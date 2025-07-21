@@ -1,17 +1,16 @@
 package po.misc.functions.models
 
-import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.functions.ProbeContext
-import po.misc.context.Identifiable
 import po.misc.context.ObservedContext
+import po.misc.exceptions.ExceptionPayload
 
 class ProbeObject<T>(
     val receiver:T,
 ): ProbeContext<T>  where T : ObservedContext {
 
-    override var exceptionPayload: ManagedCallSitePayload = ManagedCallSitePayload(receiver, "")
+    override var exceptionPayload: ExceptionPayload = ExceptionPayload(receiver, "")
 
-    fun provideExPayload(payload: ManagedCallSitePayload){
+    fun provideExPayload(payload: ExceptionPayload){
         exceptionPayload = payload
     }
 }

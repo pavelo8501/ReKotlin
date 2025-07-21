@@ -10,13 +10,14 @@ import po.lognotify.TasksManaged
 import po.lognotify.common.result.TaskResult
 import po.lognotify.common.result.resultOrNull
 import po.lognotify.extensions.runTaskAsync
+import po.lognotify.interfaces.FakeTasksManaged
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class TestTaskResult: TasksManaged {
+class TestTaskResult: FakeTasksManaged {
 
     override val contextName: String
         get() = "TestTaskResult"

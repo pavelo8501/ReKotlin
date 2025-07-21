@@ -10,28 +10,24 @@ abstract class PrintableBase<T>(
     var defaultTemplate: PrintableTemplateBase<T>
 ): ComposableData, Printable, DateHelper where T:PrintableBase<T> {
 
-  //  abstract override val itemId : ValueBased
-    abstract override val producer:  CTX
     abstract val self:T
     override var parentRecord: PrintableBase<*>? = null
     override var children: List<PrintableBase<*>> = listOf()
 
-    val templates: MutableList<PrintableTemplateBase<T>> = mutableListOf<PrintableTemplateBase<T>>().also { templateList->
-        defaultTemplate.let {
-            templateList.add(it)
+    var activeTemplate:  PrintableTemplateBase<T>? = null
+    val templates: MutableList<PrintableTemplateBase<T>> = mutableListOf<PrintableTemplateBase<T>>()
+
+    override val formattedString : String get(){
+        return activeTemplate?.resolve(self) ?:run {
+            defaultTemplate.resolve(self)
         }
-    }
-    val formattedString : String get(){
-        return defaultTemplate.resolve(self)
     }
 
     internal var jsonHolder : JsonHolder? = null
     internal val jsonObject : JObject
         get() {
-       // val itemIdRecord = JRecord("itemId", itemId.value)
-        val emitterRecord = JRecord("emitter", producer.completeName)
         val hostingClassName =  self::class.simpleName.toString()
-        return JObject(hostingClassName).addRecord(emitterRecord)
+        return JObject(hostingClassName)
     }
 
     @PublishedApi
@@ -44,6 +40,12 @@ abstract class PrintableBase<T>(
 
     @PublishedApi
     internal var outputSource: ((String)-> Unit)?=null
+
+    init {
+        activeTemplate?:run {
+            activeTemplate = defaultTemplate
+        }
+    }
 
     private fun formatString(stringProvider: T.()-> String): String{
        return stringProvider.invoke(self)
@@ -75,18 +77,11 @@ abstract class PrintableBase<T>(
         }
     }
 
-    fun templatedString(template: PrintableTemplateBase<T>? = null): String{
-
-        return template?.let {template->
-            template.evaluateTemplate(self)
-
-        }?:run {
-
-            formatString(defaultTemplate)
-        }
+    fun templatedString(template: PrintableTemplateBase<T>): String{
+        return template.resolve(self)
     }
 
-    fun echo(){
+    override fun echo(){
         if(!shouldMute()) {
             outputSource?.invoke(formattedString) ?: run {
                 println(formattedString)
@@ -95,7 +90,7 @@ abstract class PrintableBase<T>(
     }
     fun echo(template: PrintableTemplateBase<T>){
         if(!shouldMute()){
-            val result = template.evaluateTemplate(self)
+            val result = template.resolve(self)
             outputSource?.invoke(result)?:run {
                 println(result)
             }
@@ -119,17 +114,6 @@ abstract class PrintableBase<T>(
         muteCondition = condition
     }
 
-    fun printTable(headers: List<String>, rows: List<List<String>>) {
-        val colWidths = headers.mapIndexed { i, header ->
-            maxOf(header.length, rows.maxOfOrNull { it.getOrNull(i)?.length ?: 0 } ?: 0)
-        }
-
-        fun rowToString(row: List<String>): String =
-            row.mapIndexed { i, cell -> cell.padEnd(colWidths[i]) }.joinToString(" | ")
-        println(rowToString(headers))
-        println(colWidths.joinToString("-+-") { "-".repeat(it) })
-        rows.forEach { println(rowToString(it)) }
-    }
     fun printTree(level: Int = 0, template: T .() -> String) {
         println("  ".repeat(level) + template(self))
         children.forEach {
@@ -146,5 +130,4 @@ abstract class PrintableBase<T>(
         }
         return jsonHolder
     }
-
 }

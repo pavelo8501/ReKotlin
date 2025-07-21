@@ -1,5 +1,6 @@
 package po.lognotify.common.result
 
+import po.lognotify.tasks.ExecutionStatus
 import po.lognotify.tasks.RootTask
 import po.lognotify.tasks.Task
 import po.lognotify.tasks.TaskBase
@@ -12,7 +13,7 @@ import kotlin.collections.joinToString
 
 private fun <T: CTX, R> resultContainerCreation(task: TaskBase<T, R>, result: R): TaskResult<R>{
     task.registry.getFirstSubTask(task)?.let {subTask->
-        if(subTask.taskStatus == TaskBase.TaskStatus.Faulty){
+        if(subTask.taskStatus == ExecutionStatus.Faulty){
             val exception = subTask.taskResult?.throwable
             task.dataProcessor.warn("Exception(${exception?.message}) swallowed by $subTask")
             val waypointInfo = exception?.handlingData?.flatMap { it.events.items }?.joinToString(" -> ") { "${it.event}(${it.message.emptyOnNull()})" }

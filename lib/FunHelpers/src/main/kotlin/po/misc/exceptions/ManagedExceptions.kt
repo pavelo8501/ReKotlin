@@ -6,6 +6,7 @@ import po.misc.exceptions.models.ExceptionData
 import po.misc.exceptions.models.ExceptionEventData
 import po.misc.context.CTX
 import po.misc.context.Identifiable
+import po.misc.exceptions.models.ExceptionData2
 
 
 enum class HandlerType(val value: Int) {
@@ -21,10 +22,10 @@ enum class HandlerType(val value: Int) {
 }
 
 open class ManagedException(
-    internal var msg: String,
-    val source: Enum<*>? = null,
+    message: String,
+    private val payload: ManagedCallSitePayload? = null,
     original : Throwable? = null,
-) : Throwable(msg, original), ManageableException<ManagedException>{
+) : Throwable(message, original), ManageableException<ManagedException>{
 
     enum class ExceptionEvent{
         Thrown,
@@ -33,64 +34,74 @@ open class ManagedException(
         Executed
     }
 
+    constructor(payload: ExceptionPayload) : this(payload.message, payload, payload.cause)
+
     open var handler: HandlerType = HandlerType.Undefined
         internal set
 
-    var propertySnapshot :  List<PropertyData> = emptyList()
+    var propertySnapshot : List<PropertyData> = emptyList()
 
     private var handlingDataBacking: MutableList<ExceptionData> = mutableListOf()
-    val handlingData: List<ExceptionData> get() = handlingDataBacking.toList()
+    val handlingData: List<ExceptionData> get() = handlingDataBacking
 
-    private fun byStackTrace(data: ExceptionData){
-        data.addStackTraceElement(stackTrace.toList())
+    internal val exceptionDataBacking: MutableList<ExceptionData2> = mutableListOf()
+    val  exceptionData: List<ExceptionData2> = exceptionDataBacking
 
+    init {
+       addExceptionData(payload?.toDataWithTrace(stackTrace.toList()) ?: ExceptionData2(ExceptionEvent.Thrown, message, null))
     }
 
     private fun getExceptionDataByEvent(event:ExceptionEvent):ExceptionData?{
        return handlingData.firstOrNull { it.event == event }
     }
 
-    internal fun setMessage(message: String){
-        msg = message
+
+//    fun addBackTraceRecord(  record: PrintableBase<*>, producer: CTX){
+//        println("handlingData count  ${handlingData.size}")
+//        var done: Boolean = false
+//        handlingData.forEach { data->
+//            println("Events Items size: ${  data.events.items.size}")
+//            data.events.items.forEach {
+//                println("Event Name: ${it.event.name}")
+//                println("backTraceRecords size: ${it.backTraceRecords.size}")
+//                println("Producer: ${it.producer}")
+//                println("StackTrace element: ${it.stackTraceElement}")
+//            }
+//        }
+//      println(done)
+//    }
+
+
+
+    fun addExceptionData(
+        data: ExceptionData2
+    ):ManagedException{
+        data.addStackTrace(this.stackTrace.toList())
+        exceptionDataBacking.add(data)
+        return  this
     }
 
-
-    fun addBackTraceRecord(record: PrintableBase<*>, producer: CTX){
-
-        println("handlingData count  ${handlingData.size}")
-
-
-        var done: Boolean = false
-        handlingData.forEach { data->
-            println("Events Items size: ${  data.events.items.size}")
-            data.events.items.forEach {
-                println("Event Name: ${it.event.name}")
-                println("backTraceRecords size: ${it.backTraceRecords.size}")
-                println("Producer: ${it.producer}")
-                println("StackTrace element: ${it.stackTraceElement}")
-            }
-        }
-      println(done)
-    }
-
-    fun addHandlingData(
-        data: ExceptionData
-    ): ManagedException{
-        byStackTrace(data)
-        handlingDataBacking.add(data)
-       return this
-    }
+//    fun addHandlingData(
+//        data: ExceptionData
+//    ): ManagedException{
+//        byStackTrace(data)
+//        handlingDataBacking.add(data)
+//       return this
+//    }
 
     fun setHandler(
         handlerType: HandlerType,
-        producer: CTX
+        producer: CTX,
+        arbitraryData: PrintableBase<*>? = null
     ): ManagedException{
-        if(handlingData.isEmpty()){
-          val data =  ExceptionData.createThrown(producer)
-            addHandlingData(data)
-
+        val thisMessage = message?:""
+        if(exceptionData.isEmpty()){
+            val data =  ExceptionData2(ExceptionEvent.Thrown, thisMessage, producer).provideAuxData(arbitraryData)
+            data.addStackTrace(stackTrace.toList())
+            exceptionDataBacking.add(data)
         }else{
-            addHandlingData(ExceptionData.createThrown(producer))
+            val data = ExceptionData2(ExceptionEvent.HandlerChanged, thisMessage, producer).provideAuxData(arbitraryData)
+            exceptionDataBacking.add(data)
         }
         if(handler != handlerType){
             handler = handlerType
@@ -99,14 +110,10 @@ open class ManagedException(
     }
 
 
-    fun throwSelf(producer: CTX,  event: ExceptionEvent = ManagedException.ExceptionEvent.Thrown):Nothing {
-        getExceptionDataByEvent(event)?.let {
-            val eventData = ExceptionEventData(it, producer.completeName, producer::class.qualifiedName.toString(), event.name)
-            it.events.addItem(eventData)
-        }?:run {
-            val data = ExceptionData.fromExceptionEvent(event, producer)
-            addHandlingData(data)
-        }
+    fun throwSelf(producer: CTX,  event: ExceptionEvent = ExceptionEvent.Thrown):Nothing {
+        val data = ExceptionData2(event, message?:"", producer)
+        data.addStackTrace(stackTrace.toList())
+        addExceptionData(data)
         throw this
     }
 
@@ -121,7 +128,7 @@ open class ManagedException(
 
 
         fun create(payload: ManagedCallSitePayload): ManagedException{
-            return ManagedException(payload.message, payload.source, payload.cause)
+            return ManagedException(payload.message, payload, payload.cause)
         }
 
         override fun build(message: String, source: Enum<*>?,  original: Throwable?): ManagedException {

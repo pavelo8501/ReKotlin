@@ -1,12 +1,22 @@
 package po.misc.functions.dsl
 
-import po.misc.functions.dsl.DSLContainer
-
-
+/**
+ * Marker interface for components capable of owning a [DSLContainer].
+ *
+ * Implementing this interface allows a class to participate in DSL construction
+ * by exposing a [dslContainer]. It also enables the use of the [dslBuilder] extension
+ * function, which simplifies the process of building and resolving nested DSL blocks.
+ *
+ * This is typically used as a hook to embed DSL logic declaratively inside a
+ * larger structure or coordinator.
+ *
+ * @param T The input data type the DSL operates on.
+ * @param R The result type produced by DSL blocks.
+ *
+ * @see dslBuilder
+ */
 fun <T : Any, R : Any>  DSLBuilder<T,R>.dslBuilder(block: DSLContainer<T, R>.() -> Unit): DSLContainer<T, R> {
-
-    this.dslContainer.block()
-
+    dslContainer.block()
     val container = DSLContainer<T, R>(block)
     container.build()
     return container
