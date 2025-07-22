@@ -14,7 +14,13 @@ class TestDSLContainer() : DSLBuilder<TestDSLControlClass, String> {
     override val dslContainer: DSLContainer<TestDSLControlClass, String> = DSLContainer()
 
     class TestDSLSubClass(val property : String)
+
     class TestDSLControlClass(val subClassProperty : TestDSLSubClass):ControlClass()
+
+    class Starter():DSLBuilder<TestDSLControlClass, String>{
+        override val dslContainer: DSLContainer<TestDSLControlClass, String> = DSLContainer()
+
+    }
 
     @Test
     fun `DSLContainer preEvaluate self constructing lambda, structure being created`() {
@@ -82,4 +88,5 @@ class TestDSLContainer() : DSLBuilder<TestDSLControlClass, String> {
         }
         assertEquals("Test/SubTest", convertedResult, "Resulting string mismatch")
     }
+
 }

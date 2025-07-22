@@ -13,7 +13,7 @@ import kotlin.collections.joinToString
 
 private fun <T: CTX, R> resultContainerCreation(task: TaskBase<T, R>, result: R): TaskResult<R>{
     task.registry.getFirstSubTask(task)?.let {subTask->
-        if(subTask.taskStatus == ExecutionStatus.Faulty){
+        if(subTask.executionStatus == ExecutionStatus.Faulty){
             val exception = subTask.taskResult?.throwable
             task.dataProcessor.warn("Exception(${exception?.message}) swallowed by $subTask")
             val waypointInfo = exception?.handlingData?.flatMap { it.events.items }?.joinToString(" -> ") { "${it.event}(${it.message.emptyOnNull()})" }

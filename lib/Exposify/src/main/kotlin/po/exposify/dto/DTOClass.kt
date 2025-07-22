@@ -20,17 +20,13 @@ import po.exposify.extensions.getOrInit
 import po.exposify.scope.service.ServiceClass
 import po.exposify.scope.service.ServiceContext
 import po.lognotify.TasksManaged
-import po.lognotify.action.InlineAction
 import po.lognotify.tasks.TaskHandler
 import po.lognotify.debug.debugProxy
 import po.misc.callbacks.CallbackManager
 import po.misc.callbacks.CallbackPayload
 import po.misc.callbacks.builders.callbackManager
 import po.misc.callbacks.models.Configuration
-import po.misc.data.printable.printableProxy
-import po.misc.exceptions.ManagedCallSitePayload
-import po.misc.interfaces.ClassIdentity
-import po.misc.context.IdentifiableClass
+import po.misc.exceptions.ExceptionPayload
 import po.misc.interfaces.ValueBased
 import po.misc.serialization.SerializerInfo
 import po.misc.types.TypeData
@@ -41,8 +37,7 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KType
 
 sealed class DTOBase<DTO, DATA, ENTITY>(
-    override val identity: ClassIdentity
-): ClassDTO,  InlineAction, IdentifiableClass, TasksManaged
+): ClassDTO,  TasksManaged
         where DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity
 {
     enum class Events(override val value: Int) : ValueBased{
@@ -51,7 +46,7 @@ sealed class DTOBase<DTO, DATA, ENTITY>(
         DelegateRegistrationComplete(11);
     }
 
-    val exPayload: ManagedCallSitePayload = ManagedCallSitePayload(this)
+    val exPayload: ExceptionPayload = ExceptionPayload(this)
 
     val config:  DTOConfig<DTO, DATA, ENTITY> by lazy {
         DTOConfig(this)
@@ -70,7 +65,7 @@ sealed class DTOBase<DTO, DATA, ENTITY>(
     var status: DTOClassStatus = DTOClassStatus.Uninitialized
         protected set(value) {
             if(field != value){
-                info.logMessage("Changed status from ${field.name} to ${value.name}")
+               // info.logMessage("Changed status from ${field.name} to ${value.name}")
                 field = value
                 notifier.trigger(Events.StatusChanged, this)
             }
@@ -80,17 +75,17 @@ sealed class DTOBase<DTO, DATA, ENTITY>(
 
     val dtoMapSize: Int get() = dtoMap.size
 
-    internal val logger : TaskHandler<*> get() = actionHandler
+    internal val logger : TaskHandler<*> get() = taskHandler()
 
-    val warning = printableProxy(this, DTOClassData.Warning){ params->
-        log(DTOClassData(this, params.message), params.template)
-    }
-    val success = printableProxy(this, DTOClassData.Success){ params->
-        log(DTOClassData(this, params.message), params.template)
-    }
-    val info = printableProxy(this, DTOClassData.Info){ params->
-        log(DTOClassData(this, params.message), params.template)
-    }
+//    val warning = printableProxy(this, DTOClassData.Warning){ params->
+//        log(DTOClassData(this, params.message), params.template)
+//    }
+//    val success = printableProxy(this, DTOClassData.Success){ params->
+//        log(DTOClassData(this, params.message), params.template)
+//    }
+//    val info = printableProxy(this, DTOClassData.Info){ params->
+//        log(DTOClassData(this, params.message), params.template)
+//    }
 
     val debug = debugProxy(this, DTOClassData){
         DTOClassData(this, it.message, status.name, dtoMapSize)
@@ -137,7 +132,7 @@ sealed class DTOBase<DTO, DATA, ENTITY>(
     @PublishedApi
     internal  fun initializationComplete(shallowDTO: CommonDTO<DTO, DATA, ENTITY>){
         status = DTOClassStatus.PreFlightCheck
-        info.logMessage("Launching validation sequence")
+       // info.logMessage("Launching validation sequence")
         val validationResult = setupValidation(shallowDTO)
         if(validationResult == CheckStatus.PASSED){
             status = DTOClassStatus.Initialized
@@ -151,7 +146,7 @@ sealed class DTOBase<DTO, DATA, ENTITY>(
     }
 
     internal fun finalize(){
-        warning.logMessage("Finalizing")
+      //  warning.logMessage("Finalizing")
         clearCachedDTOs()
         updateStatus(DTOClassStatus.Uninitialized)
         config.childClasses.forEach { it.finalize() }
@@ -165,7 +160,7 @@ sealed class DTOBase<DTO, DATA, ENTITY>(
        }
        val exists = dtoMap.containsKey(usedId)
         if(exists){
-            warning.logMessage("Given dto with id: ${dto.id} already exist in dtoMap")
+        //    warning.logMessage("Given dto with id: ${dto.id} already exist in dtoMap")
         }
         dtoMap.putIfAbsent(usedId, dto)
     }
@@ -220,7 +215,7 @@ sealed class DTOBase<DTO, DATA, ENTITY>(
 
 abstract class RootDTO<DTO, DATA, ENTITY>(
     private val clazz: KClass<DTO>
-): DTOBase<DTO, DATA, ENTITY>(ClassIdentity("RootDTO", clazz.simpleName.toString())), TasksManaged,  ClassDTO
+): DTOBase<DTO, DATA, ENTITY>(), TasksManaged,  ClassDTO
         where DTO: ModelDTO, DATA: DataModel, ENTITY: LongEntity
 {
 
@@ -239,7 +234,7 @@ abstract class RootDTO<DTO, DATA, ENTITY>(
     internal fun initialization(serviceContext: ServiceContext<DTO, DATA, ENTITY>) {
         serviceContextParameter = serviceContext
         if(status == DTOClassStatus.Uninitialized){
-            info.logMessage("Launching initialization sequence")
+          //  info.logMessage("Launching initialization sequence")
             setup()
         }
     }
@@ -253,7 +248,7 @@ abstract class RootDTO<DTO, DATA, ENTITY>(
 abstract class DTOClass<DTO, DATA, ENTITY>(
     val clazz: KClass<DTO>,
     val parentClass: DTOBase<*, *, *>,
-): DTOBase<DTO, DATA, ENTITY>(ClassIdentity("DTOClass", clazz.simpleName.toString())), ClassDTO, TasksManaged
+): DTOBase<DTO, DATA, ENTITY>(), ClassDTO, TasksManaged
         where DTO: ModelDTO, DATA : DataModel, ENTITY: LongEntity
 {
     override val dtoType: TypeData<DTO> by lazy {  TypeData.createByKClass(clazz) }

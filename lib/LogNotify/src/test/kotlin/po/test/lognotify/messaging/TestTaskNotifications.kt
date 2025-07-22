@@ -1,16 +1,14 @@
 package po.test.lognotify.messaging
 
 import org.junit.jupiter.api.Test
-import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.NotifierHub
-import po.lognotify.classes.notification.models.LogData
+import po.lognotify.classes.notification.models.TaskData
 import po.lognotify.tasks.models.TaskConfig
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.extensions.runTask
 import po.lognotify.interfaces.FakeTasksManaged
 import po.misc.data.printable.PrintableBase
 import po.misc.exceptions.ManagedException
-import po.misc.context.Identifiable
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -29,16 +27,16 @@ class TestTaskNotifications : FakeTasksManaged {
         runTask("RootTaskNoDebug"){
 
         }
-        assertFalse(notifications.any { (it as LogData).severity == SeverityLevel.DEBUG }, "Some of notifications are of type DEBUG")
+        assertFalse(notifications.any { (it as TaskData).severity == SeverityLevel.DEBUG }, "Some of notifications are of type DEBUG")
         notifications.clear()
 
         logHandler.notifierConfig {
-            allowDebug(LogData)
+            allowDebug(TaskData)
         }
         runTask("RootTaskWithDebug"){
 
         }
-        assertTrue(notifications.any { (it as LogData).severity == SeverityLevel.DEBUG }, "None of the notifications are of type DEBUG")
+        assertTrue(notifications.any { (it as TaskData).severity == SeverityLevel.DEBUG }, "None of the notifications are of type DEBUG")
     }
 
 
@@ -89,26 +87,5 @@ class TestTaskNotifications : FakeTasksManaged {
             assertEquals(SeverityLevel.INFO, startEvent.severity,"Severity mismatch")
             assertEquals(SeverityLevel.INFO, stopEvent.severity, "Severity mismatch")
         }
-    }
-
-    fun `Task notifications`(){
-        runTask("Task1"){
-            val taskData = LogData(
-                producer = taskHandler.task,
-                config =  taskHandler.task.config,
-                timeStamp = taskHandler.task.executionTimeStamp,
-                message = "Let the templating era begins",
-                severity = SeverityLevel.EXCEPTION
-                )
-
-            taskHandler.dataProcessor.provideOutputSource{
-                println(it)
-            }
-
-            taskHandler.dataProcessor.processRecord(taskData, LogData.Header)
-            taskHandler.dataProcessor.processRecord(taskData, LogData.Footer)
-            taskHandler.dataProcessor.processRecord(taskData, LogData.Message)
-        }
-
     }
 }

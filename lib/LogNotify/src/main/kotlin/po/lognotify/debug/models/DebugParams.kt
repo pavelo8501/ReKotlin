@@ -1,10 +1,10 @@
 package po.lognotify.debug.models
 
-import po.misc.data.printable.PrintableTemplate
 import po.misc.data.printable.PrintableBase
+import po.misc.data.printable.PrintableTemplateBase
 
 
 data class DebugParams<D: PrintableBase<D>>(
     val message: String,
-    val template:PrintableTemplate<D>?
+    val template:PrintableTemplateBase<D>?
 )

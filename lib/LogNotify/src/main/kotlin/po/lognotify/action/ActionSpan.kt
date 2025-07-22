@@ -1,15 +1,14 @@
 package po.lognotify.action
 
 
-import kotlinx.coroutines.withContext
-import po.lognotify.TasksManaged
-import po.lognotify.action.models.ActionData
+import po.lognotify.classes.notification.models.ActionData
 import po.lognotify.anotations.LogOnFault
 import po.lognotify.common.LogInstance
 import po.lognotify.tasks.TaskHandler
 import po.lognotify.models.TaskKey
 import po.lognotify.tasks.ExecutionStatus
 import po.lognotify.tasks.TaskBase
+import po.lognotify.tasks.models.TaskConfig
 import po.misc.context.CTX
 import po.misc.context.subIdentity
 import po.misc.data.printable.knowntypes.PropertyData
@@ -30,10 +29,13 @@ class ActionSpan<T, R: Any?>(
     override val contextName: String
         get() = "ActionSpan"
 
+    override val config: TaskConfig get() = taskHandler.taskConfig
+
     val inTask: TaskKey get()= taskHandler.task.key
     val taskBase : TaskBase<*, *> get() = taskHandler.task
 
-    var actionSpanStatus : ExecutionStatus = ExecutionStatus.Active
+
+    override var executionStatus : ExecutionStatus = ExecutionStatus.Active
         private set
 
     val shortName: String get() = "ActionSpan[${actionName}] in Context[${receiver.contextName}]"
@@ -51,14 +53,14 @@ class ActionSpan<T, R: Any?>(
     }
 
     override fun changeStatus(status:ExecutionStatus){
-        actionSpanStatus = status
+        executionStatus = status
     }
 
     fun createData(): ActionData {
         val data = ActionData(
             actionSpan = this,
             actionName = actionName,
-            status = actionSpanStatus,
+            status = executionStatus,
             propertySnapshot = createPropertySnapshot(),
         )
         return data
@@ -70,12 +72,12 @@ class ActionSpan<T, R: Any?>(
     }
 
     fun complete(){
-        actionSpanStatus = ExecutionStatus.Complete
+        executionStatus = ExecutionStatus.Complete
         executionTime.stopTimer()
     }
 
     fun complete(exception: ManagedException, classInfo: ClassInfo<R>){
-        actionSpanStatus = ExecutionStatus.Faulty
+        executionStatus = ExecutionStatus.Faulty
         failedClassInfo = classInfo
         executionTime.stopTimer()
         managed = exception

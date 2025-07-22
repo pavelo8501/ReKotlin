@@ -16,12 +16,10 @@ import po.exposify.extensions.getOrInit
 import po.exposify.extensions.getOrOperations
 import po.misc.callbacks.CallbackManager
 import po.misc.callbacks.builders.callbackManager
+import po.misc.context.CTX
 import po.misc.data.SmartLazy
-import po.misc.interfaces.ClassIdentity
-import po.misc.context.IdentifiableClass
 import po.misc.reflection.properties.models.PropertyUpdate
 import po.misc.types.getOrManaged
-import po.misc.validators.mapping.models.MappingCheck
 import kotlin.Any
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KMutableProperty1
@@ -29,8 +27,8 @@ import kotlin.reflect.KProperty
 
 sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
     protected val hostingDTO: CommonDTO<DTO, D, E>,
-    override val identity: ClassIdentity,
-): ReadWriteProperty<DTO, V>, DelegateInterface<DTO, DTO>, IdentifiableClass where DTO: ModelDTO, D: DataModel, E: LongEntity
+   // override val identity: Iden,
+): ReadWriteProperty<DTO, V>, DelegateInterface<DTO, DTO>, CTX where DTO: ModelDTO, D: DataModel, E: LongEntity
 {
     override var status: DelegateStatus = DelegateStatus.Created
     enum class UpdateType(){

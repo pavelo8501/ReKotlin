@@ -32,11 +32,5 @@ fun <T: CTX, R: Any?>  TaskBase<*, *>.createChild(
     }
 }
 
-fun <T: CTX, R: Any?>  TaskBase<*, *>.getIdentified(
-
-){
-    this.createTaskData()
-}
-
 
 

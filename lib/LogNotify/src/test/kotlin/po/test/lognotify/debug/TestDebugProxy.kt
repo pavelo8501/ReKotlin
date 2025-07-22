@@ -11,7 +11,7 @@ import po.misc.data.printable.PrintableCompanion
 class TestDebugProxy: FakeTasksManaged {
 
     data class DataItem(
-        override val producer: CTX,
+        val producer: CTX,
         val content: String,
     ): PrintableBase<DataItem>(Debug) {
         override val self: DataItem = this

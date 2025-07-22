@@ -63,7 +63,7 @@ class TaskResult<R : Any?>(
     fun onFail(callback: (ManagedException)->Unit): TaskResult<R> {
         task.dataProcessor.debug("Handled onFail registered","${personalName}|onFail")
         throwable?.let {
-            task.taskStatus = ExecutionStatus.Faulty
+            task.changeStatus(ExecutionStatus.Faulty)
             task.dataProcessor.info("Handled ${it.throwableToText()} by onFail")
             callback.invoke(it)
         }
@@ -99,7 +99,7 @@ class TaskResult<R : Any?>(
 
     internal fun provideThrowable(th: ManagedException): TaskResult<R>{
         isSuccess = false
-        task.taskStatus = ExecutionStatus.Failing
+        task.changeStatus(ExecutionStatus.Failing)
         exHandlingCallback?.let {
             task.dataProcessor.debug("Faulty result handled silently", "${personalName}|handleException")
             onCompleteFn?.invoke(this)

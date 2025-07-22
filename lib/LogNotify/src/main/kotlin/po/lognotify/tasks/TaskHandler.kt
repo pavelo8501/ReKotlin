@@ -2,8 +2,7 @@ package po.lognotify.tasks
 
 import po.lognotify.action.ActionSpan
 import po.lognotify.classes.notification.LoggerDataProcessor
-import po.lognotify.classes.notification.NotifierHub
-import po.lognotify.classes.notification.models.LogData
+import po.lognotify.classes.notification.models.TaskData
 import po.lognotify.tasks.interfaces.HandledTask
 import po.lognotify.tasks.models.TaskConfig
 import po.lognotify.models.TaskDispatcher
@@ -37,13 +36,13 @@ class TaskHandler<R: Any?>(
     fun <T: Printable> logFormatted(data: T,   printFn: T.(StringBuilder)-> Unit)
         = dataProcessor.logFormatted(data, printFn)
 
-    fun info(message: String): LogData{
+    fun info(message: String): TaskData{
        return dataProcessor.info(message)
     }
-    fun warn(message: String): LogData{
+    fun warn(message: String): TaskData{
         return dataProcessor.warn(message)
     }
-    fun warn(ex: ManagedException, message: String = ""): LogData{
+    fun warn(ex: ManagedException, message: String = ""): TaskData{
         return dataProcessor.warn(ex, message)
     }
 

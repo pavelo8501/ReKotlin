@@ -2,8 +2,8 @@ package po.lognotify.classes.notification
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import po.lognotify.classes.notification.models.LogData
 import po.lognotify.classes.notification.models.NotifyConfig
+import po.lognotify.classes.notification.models.TaskData
 import po.lognotify.tasks.RootTask
 import po.misc.callbacks.builders.callbackManager
 import po.misc.context.CTX
@@ -18,7 +18,7 @@ import po.misc.registries.callback.TypedCallbackRegistry
 
 class NotifierHub(
     val sharedConfig : NotifyConfig = NotifyConfig()
-): DataProcessorBase<LogData>(null, null), CTX {
+): DataProcessorBase<TaskData>(null, null), CTX {
 
     enum class Event(override val value: Int): ValueBased{
         DataReceived(1)

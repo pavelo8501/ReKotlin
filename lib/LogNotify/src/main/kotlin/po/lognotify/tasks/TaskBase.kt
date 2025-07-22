@@ -4,9 +4,10 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
-import po.lognotify.action.models.ActionData
+import po.lognotify.classes.notification.models.ActionData
 import po.lognotify.action.ActionSpan
 import po.lognotify.classes.notification.LoggerDataProcessor
+import po.lognotify.classes.notification.models.ErrorSnapshot
 import po.lognotify.common.LogInstance
 import po.lognotify.tasks.interfaces.ResultantTask
 import po.lognotify.tasks.models.TaskConfig
@@ -17,20 +18,15 @@ import po.lognotify.models.TaskDispatcher
 import po.lognotify.models.TaskDispatcher.LoggerStats
 import po.lognotify.models.TaskKey
 import po.lognotify.models.TaskRegistry
-import po.lognotify.tasks.models.TaskData
 import po.misc.callbacks.CallbackManager
 import po.misc.callbacks.builders.callbackManager
 import po.misc.coroutines.CoroutineHolder
 import po.misc.coroutines.CoroutineInfo
 import po.misc.data.processors.FlowEmitter
 import po.misc.data.styles.Colour
-import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
-import po.misc.data.templates.matchTemplate
-import po.misc.data.templates.templateRule
 import po.misc.exceptions.ManagedException
 import po.misc.context.CTX
-import po.misc.context.asIdentity
 import po.misc.context.subIdentity
 import po.misc.reflection.classes.ClassInfo
 import po.misc.time.ExecutionTimeStamp
@@ -54,8 +50,6 @@ sealed class TaskBase<T: CTX, R: Any?>(
     override val receiver: T,
 ): StaticHelper, MeasuredContext, ResultantTask<T, R>, LogInstance<T> {
 
-
-
     abstract var taskResult: TaskResult<R>?
     abstract val coroutineContext: CoroutineContext
     abstract val registry: TaskRegistry<*, *>
@@ -64,13 +58,17 @@ sealed class TaskBase<T: CTX, R: Any?>(
     override val executionTimeStamp: ExecutionTimeStamp = ExecutionTimeStamp(key.taskName, key.taskId.toString())
     abstract override val handler: TaskHandler<R>
     internal val actionSpans: MutableList<ActionSpan<*, *>> = mutableListOf()
+    abstract val header: String
+    val footer: String get() = "Footer"
 
     abstract fun start(): TaskBase<T, R>
     abstract fun complete(): TaskBase<T, R>
     abstract fun complete(managed: ManagedException): TaskBase<T, R>
 
-    var taskStatus: ExecutionStatus = ExecutionStatus.Active
-        internal set
+    protected var taskStatus: ExecutionStatus = ExecutionStatus.Active
+    override val executionStatus: ExecutionStatus get() = taskStatus
+
+
 
     internal fun lookUpRoot(): RootTask<*, *> {
         return registry.hierarchyRoot
@@ -79,29 +77,7 @@ sealed class TaskBase<T: CTX, R: Any?>(
 
 
     override fun toString(): String {
-
-      val header =  when(this){
-            is RootTask->{
-                "RootTask[${key.taskName}] | Module[${key.moduleName}]".colorize(Colour.BLUE) +
-                        matchTemplate(
-                            templateRule("Status[${taskStatus.name}]".colorize(Colour.GREEN) ) {  taskStatus == ExecutionStatus.Complete },
-                            templateRule("Status[${taskStatus.name}]".colorize(Colour.RED)) { taskStatus == ExecutionStatus.Faulty },
-                            templateRule("Status[${taskStatus.name}]".colorize(Colour.BRIGHT_WHITE)) { taskStatus == ExecutionStatus.Active },
-                            templateRule("Status[${taskStatus.name}]".colorize(Colour.YELLOW)) { taskStatus == ExecutionStatus.Failing })+ SpecialChars.NewLine.char+
-                        "Hierarchy[Members count:${registry.tasks.size}; Active task: ${registry.getActiveTask().key.taskName}]"
-            }
-            is Task->{
-                "(${key.nestingLevel})Task[${key.taskName}] | Module[${key.moduleName}]".colorize(Colour.BLUE) +
-                        matchTemplate(
-                            templateRule("Status[${taskStatus.name}]".colorize(Colour.GREEN) ) {  taskStatus == ExecutionStatus.Complete },
-                            templateRule("Status[${taskStatus.name}]".colorize(Colour.RED)) { taskStatus == ExecutionStatus.Faulty },
-                            templateRule("Status[${taskStatus.name}]".colorize(Colour.BRIGHT_WHITE)) { taskStatus == ExecutionStatus.Active },
-                            templateRule("Status[${taskStatus.name}]".colorize(Colour.YELLOW)) { taskStatus == ExecutionStatus.Failing })+
-                        "ActionSpan count: ${actionSpans.size}"
-            }
-        }
-        return header
-        //return "${key.taskName} | ${key.moduleName} ${config.initiator.emptyOnNull(" |")}"
+       return dataProcessor.activeGroup?.groupHost?.formattedString?:"-----"
     }
 
     fun notifyUpdate(handler: TaskDispatcher.UpdateType) {
@@ -134,7 +110,7 @@ sealed class TaskBase<T: CTX, R: Any?>(
     }
 
     fun activeActionSpan(): ActionSpan<*, *>? {
-        return actionSpans.firstOrNull { it.actionSpanStatus == ExecutionStatus.Active }
+        return actionSpans.firstOrNull { it.executionStatus == ExecutionStatus.Active }
     }
 
     fun checkIfCanBeSkipped(classInfo: ClassInfo<R>?): Boolean {
@@ -148,22 +124,24 @@ sealed class TaskBase<T: CTX, R: Any?>(
         }
     }
 
-    fun createTaskData(predicate: TaskBase<* , *>.()-> List<ActionData>):TaskData{
-        val result = this.predicate()
-        val taskData = TaskData(this)
+    fun createTaskData(builder: TaskBase<* , *>.()-> List<ActionData>): ErrorSnapshot{
+        val result = this.builder()
+
+        val taskData = ErrorSnapshot.errorSnapshotBuilder.build(this)
+
         taskData.actionSpanRecords = result
         return taskData
     }
 
-    fun createTaskData(actionRecords: List<ActionData>? = null): TaskData{
-        return actionRecords?.let {
-             TaskData(this).apply {
-                actionSpanRecords = actionRecords
-            }
-        }?:run {
-            TaskData(this)
-        }
-    }
+//    fun createTaskData(actionRecords: List<ActionData>? = null): TaskData{
+//        return actionRecords?.let {
+//             TaskData(this).apply {
+//                actionSpanRecords = actionRecords
+//            }
+//        }?:run {
+//            TaskData(this)
+//        }
+//    }
 }
 
 class RootTask<T: CTX, R: Any?>(
@@ -181,7 +159,7 @@ class RootTask<T: CTX, R: Any?>(
     override val registry: TaskRegistry<T, R> = TaskRegistry(dispatcher, this)
     override val callbackRegistry = callbackManager<TaskDispatcher.UpdateType>()
     override val handler: TaskHandler<R> = TaskHandler(this, dataProcessor)
-
+    override val header: String get()= "(R)[${key.taskName}] | Module[${key.moduleName}]".colorize(Colour.BLUE)
 
     val subTasksCount : Int get() = registry.taskCount()
     var isComplete: Boolean = false
@@ -259,7 +237,7 @@ class Task<T: CTX,  R: Any?>(
     override val callbackRegistry =  callbackManager<TaskDispatcher.UpdateType>()
     override val handler: TaskHandler<R> = TaskHandler<R>(this, dataProcessor)
     override val coroutineInfo : CoroutineInfo = CoroutineInfo.createInfo(coroutineContext)
-
+    override val header: String get() = "(${key.nestingLevel})[${key.taskName}] | Module[${key.moduleName}]".colorize(Colour.BLUE)
     fun notifyRootCancellation(exception: ManagedException?) {
         hierarchyRoot.commitSuicide(exception)
     }

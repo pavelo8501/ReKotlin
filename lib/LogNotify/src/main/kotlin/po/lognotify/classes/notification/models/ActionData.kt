@@ -1,7 +1,6 @@
-package po.lognotify.action.models
+package po.lognotify.classes.notification.models
 
 import po.lognotify.action.ActionSpan
-import po.lognotify.classes.notification.models.LogData
 import po.lognotify.tasks.ExecutionStatus
 import po.misc.context.CTX
 import po.misc.data.printable.PrintableBase
@@ -22,27 +21,20 @@ class ActionData(
 
     override val self: ActionData = this
 
-    override val producer: CTX
-        get() = actionSpan
+    val producer: CTX get() = actionSpan
 
     companion object : PrintableCompanion<ActionData>({ ActionData::class }) {
 
-        val nestingFormatter: LogData.() -> String = {
-            matchTemplate(
-                templateRule(nestingLevel.toString()) { nestingLevel > 0 },
-                templateRule("Root ".colorize(Colour.GREEN)) { nestingLevel == 0 }
-            )
-        }
         val Info: Template<ActionData> = createTemplate(""){
             next {
                 "$actionName Scope[${producer.completeName} Status["
             }
             next {
                 "${matchTemplate(
-                templateRule(status.name.colorize(Colour.BRIGHT_WHITE)) { status == ExecutionStatus.Active },
-                templateRule(status.name.colorize(Colour.GREEN)) { status == ExecutionStatus.Complete },
-                templateRule(status.name.colorize(Colour.RED)) { status == ExecutionStatus.Failing },
-                templateRule(status.name.colorize(Colour.RED)) { status == ExecutionStatus.Faulty }
+                    templateRule(status.name.colorize(Colour.BRIGHT_WHITE)) { status == ExecutionStatus.Active },
+                    templateRule(status.name.colorize(Colour.GREEN)) { status == ExecutionStatus.Complete },
+                    templateRule(status.name.colorize(Colour.RED)) { status == ExecutionStatus.Failing },
+                    templateRule(status.name.colorize(Colour.RED)) { status == ExecutionStatus.Faulty }
                 )}]"
             }
         }

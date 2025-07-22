@@ -1,7 +1,6 @@
 package po.exposify.dto.configuration
 
 import org.jetbrains.exposed.dao.LongEntity
-import org.jetbrains.exposed.dao.withHook
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
 import po.exposify.dto.components.bindings.DelegateStatus
@@ -10,25 +9,20 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.InitException
-import po.exposify.exceptions.OperationsException
-import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.initAbnormal
-import po.exposify.exceptions.operationsException
-import po.lognotify.classes.action.runInlineAction
 import po.misc.validators.general.Validator
 import po.misc.validators.general.models.CheckStatus
 import po.misc.validators.general.reports.ReportRecord
 import po.misc.validators.general.reports.ValidationReport
 import po.misc.validators.general.reports.finalCheckStatus
 import po.misc.validators.general.sequentialValidation
-import po.misc.validators.general.validation
 import po.misc.validators.general.validators.conditionTrue
 import po.misc.validators.general.validators.validatorHooks
 
 fun <DTO, D, E> DTOBase<DTO, D, E>.setupValidation(
     validatableDTO : CommonDTO<DTO, D, E>
-): CheckStatus  where DTO: ModelDTO, D: DataModel, E: LongEntity
-        = runInlineAction("setupValidation") { handler ->
+): CheckStatus  where DTO: ModelDTO, D: DataModel, E: LongEntity {
+
     val bindingHub = validatableDTO.hub
     val validator = Validator()
     val entityRecord =  config.propertyMap.getMapperRecord<E, InitException>(SourceObject.Entity){ initAbnormal(it, this) }

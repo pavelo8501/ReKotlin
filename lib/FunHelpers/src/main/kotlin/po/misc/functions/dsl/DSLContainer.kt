@@ -1,6 +1,8 @@
 package po.misc.functions.dsl
 
 import po.misc.functions.containers.Adapter
+import po.misc.functions.containers.DSLProvider
+import po.misc.functions.containers.LambdaUnit
 
 import po.misc.types.safeCast
 
@@ -14,6 +16,7 @@ class DSLContainer<T, R>(
     private val subContainers: MutableList<DSLContainer<*, R>> = mutableListOf()
 
     private val dslBlocksBacking: MutableList<DSLProvider<T, R>> = mutableListOf()
+
     override val dslBlocks: List<DSLProvider<T, R>> get() = dslBlocksBacking
 
     override val subContainersCount: Int get() = subContainers.size
@@ -21,16 +24,16 @@ class DSLContainer<T, R>(
 
     private fun <T2: Any> createDataAdapter(providerLambda : (T2)->T ){
          providerLambda.safeCast<(Any)->T>()?.let {
-             dataProvider = Adapter<Any, T>(it)
+             dataProvider = Adapter(it)
          }
     }
 
-    override fun <T2 : Any> with(valueProvider: (T)-> T2, subConstructLambda: DSLContainer<T2, R>.() -> Unit): DSLContainer<T2, R> {
+    override fun <T2 : Any> with(valueProvider: (T)-> T2, subConstructLambda: DSLContainer<T2, R>.() -> Unit) {
         val container =  DSLContainer(subConstructLambda)
         container.createDataAdapter(valueProvider)
         subContainers.add(container)
         container.build()
-        return container
+        //return container
     }
 
     override fun next(block: T.() -> R) {
@@ -41,6 +44,14 @@ class DSLContainer<T, R>(
         this.constructLambda?.invoke(this)
         return this
     }
+
+    fun build(block: DSLBlock<T, R>): DSLContainer<T, R> {
+
+        this.constructLambda?.invoke(this)
+        return this
+    }
+
+
 
     fun build(lambda: DSLContainer<T, R>.() -> Unit): DSLContainer<T, R> {
        lambda.invoke(this)

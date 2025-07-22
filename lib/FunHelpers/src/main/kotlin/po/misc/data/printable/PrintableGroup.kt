@@ -22,6 +22,21 @@ abstract class PrintableGroup<T1: PrintableBase<T1>, T2:  PrintableBase<T2>>(
 
     private val recordsBacking: MutableList<T2> = mutableListOf()
     val records: List<T2> = recordsBacking
+    val childCount: Int  get() = records.size
+
+    fun getHostAndJoin():T1{
+        groupHost.addChildren(records)
+        return groupHost
+    }
+
+    var childProcessLambda: (T2.(PrintableGroup<T1, T2>)-> Unit)? = null
+    fun processChild(block:T2.(PrintableGroup<T1, T2>)-> Unit){
+        childProcessLambda = block
+    }
+
+    fun finalize(block:T1.()-> Unit){
+        groupHost.block()
+    }
 
     private fun createFormatedString(): String {
         val result: MutableList<String> = mutableListOf()
@@ -34,7 +49,6 @@ abstract class PrintableGroup<T1: PrintableBase<T1>, T2:  PrintableBase<T2>>(
 
     fun setHeader(header: PrintableTemplateBase<T1>){
         headerTemplate  = header
-
     }
 
     fun setFooter(footer: PrintableTemplateBase<T1>){
@@ -42,16 +56,13 @@ abstract class PrintableGroup<T1: PrintableBase<T1>, T2:  PrintableBase<T2>>(
     }
 
     fun addRecord(printable: T2):PrintableGroup<T1,T2>{
+        childProcessLambda?.invoke(printable, this)
         recordsBacking.add(printable)
         return  this
     }
 
     override fun echo() {
         println(formattedString)
-    }
-
-    fun toTemplatedString(){
-
     }
 
 

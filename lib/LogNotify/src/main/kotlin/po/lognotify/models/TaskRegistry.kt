@@ -25,7 +25,7 @@ class TaskRegistry<T: CTX, R>(
     fun setChildTasksStatus(status: ExecutionStatus, taskCalling: TaskBase<*,*>){
         val subTasks = getSubTasks(taskCalling)
         subTasks.forEach {
-            it.taskStatus = status
+            it.changeStatus(status)
         }
     }
 
@@ -71,7 +71,7 @@ class TaskRegistry<T: CTX, R>(
     }
 
     fun getActiveTask(): TaskBase<*, *>{
-       val found =  tasks.values.firstOrNull { it.taskStatus == ExecutionStatus.Active }
+       val found =  tasks.values.firstOrNull { it.executionStatus == ExecutionStatus.Active }
        if(found == null){ return  hierarchyRoot }
        return found
     }

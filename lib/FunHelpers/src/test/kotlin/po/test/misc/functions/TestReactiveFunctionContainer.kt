@@ -8,6 +8,7 @@ import po.misc.functions.containers.LazyContainerWithReceiver
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asContext
+import po.misc.functions.containers.LambdaHolder
 import po.test.misc.setup.ControlClass
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -29,7 +30,7 @@ class TestReactiveFunctionContainer {
 
         private var result: Int? = null
 
-        val withInputFNContainer: LambdaContainer<String> = LambdaContainer(this)
+        val withInputFNContainer: LambdaHolder<String> = LambdaHolder(this)
         val resultFNContainer: DeferredContainer<Int> = DeferredContainer(this)
 
         init {

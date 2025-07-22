@@ -22,9 +22,8 @@ import po.misc.callbacks.CallbackPayload
 import po.misc.callbacks.builders.callbackBuilder
 import po.misc.callbacks.builders.registerPayload
 import po.misc.containers.BackingContainer
-import po.misc.exceptions.ManagedCallSitePayload
-import po.misc.context.CtxId
-import po.misc.context.TypedContext
+import po.misc.context.CTX
+import po.misc.exceptions.ExceptionPayload
 import po.misc.types.TypeData
 import java.util.UUID
 
@@ -32,7 +31,7 @@ import java.util.UUID
 
 abstract class CommonDTO<DTO, DATA, ENTITY>(
    val dtoClass: DTOBase<DTO, DATA, ENTITY>
-): ModelDTO, TypedContext<DTO>, TasksManaged where DTO:ModelDTO,  DATA: DataModel , ENTITY: LongEntity {
+): ModelDTO, TasksManaged where DTO:ModelDTO,  DATA: DataModel , ENTITY: LongEntity {
 
     enum class DataStatus {
         New,
@@ -44,7 +43,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         OnDTOComplete
     }
 
-    private val exPayload: ManagedCallSitePayload = ManagedCallSitePayload(this)
+    private val exPayload: ExceptionPayload = ExceptionPayload(this)
 
     var onInitializationStatusChange: ((CommonDTO<DTO, DATA, ENTITY>) -> Unit)? = null
 
@@ -65,9 +64,11 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     val commonType: CommonDTOType<DTO, DATA, ENTITY> by lazy { dtoClass.commonType}
 
     override val dtoId : DTOId<DTO> = DTOId(UUID.randomUUID().hashCode().toLong())
+
     override val contextName: String
         get() = "CommonDTO[${sourceName}#${dtoId.id}]"
-    override var sourceName: String = typeData.simpleName
+
+    var sourceName: String = typeData.simpleName
 
     override val tracker: DTOTracker<DTO, DATA, ENTITY> = DTOTracker(this)
     override val hub: BindingHub<DTO, DATA, ENTITY> =  BindingHub(this)
@@ -94,6 +95,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         warnIfEmpty: Boolean = false
     ): DTOExecutionContext<F, FD, FE, DTO, DATA, ENTITY>?{
        val found =  executionContextMap[foreignDTO.commonType]
+
 
        return found?.castOrOperations<DTOExecutionContext<F, FD, FE, DTO, DATA, ENTITY>>(exPayload)?:run {
             if(warnIfEmpty && executionContextMap.isEmpty()){
@@ -139,7 +141,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         updateStatus(dtoStatus)
         return entity
     }
-    internal fun provideData(data: DATA, dtoStatus: DTOStatus, initiator: CtxId): DATA {
+    internal fun provideData(data: DATA, dtoStatus: DTOStatus, initiator: CTX): DATA {
         if(data.id != 0L){
             id = data.id
         }

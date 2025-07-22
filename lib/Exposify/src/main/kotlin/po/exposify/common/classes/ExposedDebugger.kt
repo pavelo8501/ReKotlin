@@ -6,15 +6,14 @@ import org.jetbrains.exposed.sql.statements.StatementContext
 import org.jetbrains.exposed.sql.statements.expandArgs
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.LoggerDataProcessor
-import po.lognotify.classes.notification.models.LogData
 import po.lognotify.debug.DebugProxy
 import po.lognotify.debug.models.DebugParams
-import po.misc.data.printable.PrintableTemplate
+import po.misc.context.CTX
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.PrintableCompanion
-import po.misc.context.Identifiable
+import po.misc.data.printable.PrintableTemplateBase
 
-class ExposifyDebugger<T: Identifiable, P: PrintableBase<P>>(
+class ExposifyDebugger<T: CTX, P: PrintableBase<P>>(
     receiver:T,
     printableClass: PrintableCompanion<P>,
     val  dataProcessor: LoggerDataProcessor,
@@ -26,13 +25,13 @@ class ExposifyDebugger<T: Identifiable, P: PrintableBase<P>>(
         super<DebugProxy>.notify(sqlText)
     }
 
-    fun warn(message: String): LogData = dataProcessor.warn(message)
+    fun warn(message: String) = dataProcessor.warn(message)
 }
 
-fun <T: Identifiable, P: PrintableBase<P>> TasksManaged.exposifyDebugger(
+fun <T: CTX, P: PrintableBase<P>> TasksManaged.exposifyDebugger(
     receiver:T,
     printableClass: PrintableCompanion<P>,
-    usingTemplate: PrintableTemplate<P>? = null,
+    usingTemplate: PrintableTemplateBase<P>? = null,
     dataProvider: (DebugParams<P>)-> P
 ):ExposifyDebugger<T, P>{
     val dataProcessor = this.logHandler.dispatcher.getActiveDataProcessor()

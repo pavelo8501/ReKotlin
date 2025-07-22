@@ -123,11 +123,11 @@ class TaskDispatcher(val notifierHub: NotifierHub) : UpdatableTasks, CTX{
       return taskHierarchy.values.firstOrNull { !it.isComplete }
     }
     fun activeTask(): TaskBase<*, *>?{
-        val activeRootTask = taskHierarchy.values.firstOrNull { it.taskStatus == ExecutionStatus.Active }
+        val activeRootTask = taskHierarchy.values.firstOrNull { it.executionStatus == ExecutionStatus.Active }
         return activeRootTask?.registry?.getActiveTask()
     }
     fun activeTasks(): List<TaskBase<*, *>>{
-        return  taskHierarchy.values.filter { it.taskStatus == ExecutionStatus.Active }
+        return  taskHierarchy.values.filter { it.executionStatus == ExecutionStatus.Active }
     }
 
     fun keyLookup(name: String, nestingLevel: Int): TaskKey?{

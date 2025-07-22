@@ -12,13 +12,17 @@ import po.lognotify.TasksManaged
 import po.lognotify.tasks.models.TaskConfig
 import po.lognotify.extensions.runTask
 import po.lognotify.extensions.runTaskBlocking
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
 import po.misc.exceptions.throwableToText
-import po.misc.context.IdentifiableClass
 import po.misc.serialization.SerializerInfo
 
 object DatabaseManager: TasksManaged {
 
     override val contextName: String = "DatabaseManager"
+
+    override val identity: CTXIdentity<out CTX> = asIdentity()
 
     private var  connectionUpdated : ((String, Boolean)-> Unit)? = null
     internal val connections  = mutableListOf<ConnectionClass>()
@@ -55,7 +59,7 @@ object DatabaseManager: TasksManaged {
     }
 
     @PublishedApi
-    internal fun signalCloseConnection(issuer: IdentifiableClass, connectionClass: ConnectionClass){
+    internal fun signalCloseConnection(issuer: CTX, connectionClass: ConnectionClass){
         println("Close connection signal received from ${issuer.completeName}")
         connectionClass.close()
     }
@@ -72,6 +76,7 @@ object DatabaseManager: TasksManaged {
         settings : ConnectionSettings = ConnectionSettings(5),
         hooks: DBManagerHooks? = null
     ): ConnectionClass {
+
       return runTask("openConnection", TaskConfig(attempts = settings.retries, moduleName = "DatabaseManager")) {
          val effectiveConnectionInfo = connectionInfo?:hooks?.onBeforeConnection?.invoke()
          val connection = if(effectiveConnectionInfo == null){

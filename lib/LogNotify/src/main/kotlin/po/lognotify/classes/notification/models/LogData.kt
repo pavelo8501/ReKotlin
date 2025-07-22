@@ -1,100 +1,92 @@
 package po.lognotify.classes.notification.models
 
 
-import po.lognotify.action.models.ActionData
-import po.lognotify.action.ActionSpan
-import po.lognotify.tasks.TaskBase
+import po.lognotify.classes.notification.models.ActionData
+import po.lognotify.common.LogInstance
 import po.lognotify.tasks.models.TaskConfig
 import po.lognotify.enums.SeverityLevel
-import po.misc.context.CTX
+import po.lognotify.tasks.ExecutionStatus
 import po.misc.data.printable.PrintableBase
-import po.misc.data.printable.PrintableTemplate
-import po.misc.data.helpers.withIndention
-import po.misc.data.helpers.withMargin
 import po.misc.data.printable.PrintableCompanion
+import po.misc.data.printable.PrintableGroup
 import po.misc.data.styles.colorize
 import po.misc.data.styles.Colour
-import po.misc.data.styles.Emoji
-import po.misc.data.styles.SpecialChars
 import po.misc.data.templates.matchTemplate
 import po.misc.data.templates.templateRule
 
 import po.misc.time.ExecutionTimeStamp
 
 
-data class LogData(
-    override val producer : CTX,
-    val config: TaskConfig,
-    val timeStamp : ExecutionTimeStamp,
+class LifecycleDataGroup(
+    val logData: TaskData
+): PrintableGroup<TaskData, LogEvent>(logData, TaskData.Header, LogEvent.Message)
+
+
+class LogEvent(
+    val logInstance: LogInstance<*>,
     val message: String,
     val severity: SeverityLevel
-): PrintableBase<LogData>(Message){
+): PrintableBase<LogEvent>(Message){
 
-    override val self: LogData = this
-    var nestingLevel: Int = 0
-    var actionSpanRecords: List<ActionData> = emptyList()
+    override val self: LogEvent = this
 
-    private val nestingStr: String get() {
-       return if(nestingLevel == 0){
-            "R"
-        }else{
-            nestingLevel.toString()
-       }
-    }
+    companion object: PrintableCompanion<LogEvent>({LogEvent::class}) {
 
-    val prefix: String = when(producer){
-        is TaskBase<*,*> ->{
-            nestingLevel = producer.key.nestingLevel
-            "[${producer.key.taskName} ($nestingStr) | ${producer.key.moduleName}]"
-        }
-        is ActionSpan<*, *> ->{
-            nestingLevel =  producer.inTask.nestingLevel
-            producer.contextName
-        }
-        else -> {
-            producer.contextName
+        val Message = createTemplate{
+            next {
+                matchTemplate(
+                    templateRule(message) { severity == SeverityLevel.INFO },
+                    templateRule(message.colorize(Colour.YELLOW)) { severity == SeverityLevel.WARNING },
+                    templateRule(message.colorize(Colour.RED)) { severity == SeverityLevel.EXCEPTION }
+                )
+            }
         }
     }
+}
 
-    init {
-        addTemplate(Header, Footer, Message)
-    }
+data class TaskData(
+    val executionStatus: ExecutionStatus,
+    val taskHeader: String,
+    val taskFooter: String,
+    val config: TaskConfig,
+    val timeStamp : ExecutionTimeStamp,
+    val message: String = "",
+    val severity: SeverityLevel = SeverityLevel.INFO
+): PrintableBase<TaskData>(Message) {
+    override val self: TaskData = this
+    companion object : PrintableCompanion<TaskData>({ TaskData::class }) {
 
-    companion object: PrintableCompanion<LogData>({LogData::class}) {
-
-        val nestingFormatter: LogData.() -> String = {
-            matchTemplate(
-                templateRule(nestingLevel.toString()) { nestingLevel > 0 },
-                templateRule("Root ".colorize(Colour.GREEN)) { nestingLevel == 0 }
-            )
+        val Header = createTemplate{
+            next { "$taskHeader Status[" }
+            with({it.executionStatus}){
+                next{
+                    matchTemplate(
+                        templateRule(name.colorize(Colour.GREEN))
+                        { this ==   ExecutionStatus.Complete},
+                        templateRule(name.colorize(Colour.BRIGHT_WHITE))
+                        { this ==   ExecutionStatus.Active},
+                        templateRule(name.colorize(Colour.RED))
+                        { this ==   ExecutionStatus.Failing},
+                        templateRule(name.colorize(Colour.RED))
+                        { this ==   ExecutionStatus.Faulty})
+                }
+                next{ "]" }
+            }
         }
-        val messageFormatter: LogData.() -> String = {
-            matchTemplate(
-                templateRule(message) { severity == SeverityLevel.INFO },
-                templateRule(message.colorize(Colour.YELLOW)) { severity == SeverityLevel.WARNING },
-                templateRule(message.colorize(Colour.RED)) { severity == SeverityLevel.EXCEPTION }
-            )
-        }
-
-        val Header: PrintableTemplate<LogData> = PrintableTemplate() {
-            prefix.colorize(Colour.BLUE)
-        }
-
-        val Footer: PrintableTemplate<LogData> = PrintableTemplate() {
-            prefix.colorize(Colour.BLUE) + " | $currentTime] Elapsed: ${timeStamp.elapsed}".colorize(Colour.BLUE)
-        }
-
-        val Message: PrintableTemplate<LogData> = PrintableTemplate() {
-            prefix.colorize(Colour.BLUE) +  messageFormatter.invoke(this)
-        }
-
-        val Exception: PrintableTemplate<LogData> = PrintableTemplate() {
-            prefix.colorize(Colour.BLUE) +  messageFormatter.invoke(this)
+        val Footer = createTemplate{
+            next { taskFooter }
         }
 
-        val Debug = createTemplate{
-            next{ "${Emoji.HammerAndPick}  ${prefix.colorize(Colour.BLUE)}" }
-            next { message.withIndention(4," ").withMargin(0,1) }
+        val Message =createTemplate{
+            next {
+                matchTemplate(
+                    templateRule(message.colorize(Colour.GREEN))
+                    { severity == SeverityLevel.INFO},
+                    templateRule(message.colorize(Colour.YELLOW))
+                    { severity ==   SeverityLevel.WARNING},
+                    templateRule(message.colorize(Colour.RED))
+                    { severity ==   SeverityLevel.EXCEPTION})
+            }
         }
     }
 }

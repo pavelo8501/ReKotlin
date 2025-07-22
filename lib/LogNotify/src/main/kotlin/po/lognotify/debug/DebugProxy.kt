@@ -6,11 +6,10 @@ import po.lognotify.debug.interfaces.DebugProvider
 import po.lognotify.debug.models.CaptureBlock
 import po.lognotify.debug.models.DebugParams
 import po.lognotify.debug.models.InputParameter
-import po.misc.data.printable.PrintableTemplate
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.PrintableCompanion
 import po.misc.context.CTX
-import po.misc.context.Identifiable
+import po.misc.data.printable.PrintableTemplateBase
 
 
 open class DebugProxy<T: CTX, P: PrintableBase<P>>(
@@ -21,7 +20,7 @@ open class DebugProxy<T: CTX, P: PrintableBase<P>>(
 ): DebugProvider{
 
 
-    open var activeTemplate: PrintableTemplate<P>? = null
+    open var activeTemplate: PrintableTemplateBase<P>? = null
     var methodName: String = "N/A"
     override val inputParams: MutableList<InputParameter> = mutableListOf()
 
@@ -47,7 +46,7 @@ open class DebugProxy<T: CTX, P: PrintableBase<P>>(
         dataProcessor.debug(printable, printableClass, null)
     }
 
-    fun notify(message: String, template: PrintableTemplate<P>){
+    fun notify(message: String, template: PrintableTemplateBase<P>){
         val printable =  dataProvider.invoke(DebugParams(message, template))
         dataProcessor.debug(printable, printableClass, template)
     }
@@ -93,7 +92,7 @@ open class DebugProxy<T: CTX, P: PrintableBase<P>>(
 fun <T: CTX, P: PrintableBase<P>> TasksManaged.debugProxy(
     receiver:T,
     printableClass: PrintableCompanion<P>,
-    usingTemplate: PrintableTemplate<P>? = null,
+    usingTemplate: PrintableTemplateBase<P>? = null,
     dataProvider: (DebugParams<P>)-> P
 ):DebugProxy<T, P>{
     val dataProcessor = this.logHandler.dispatcher.getActiveDataProcessor()

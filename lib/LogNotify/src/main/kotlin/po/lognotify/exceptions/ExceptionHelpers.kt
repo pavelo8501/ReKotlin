@@ -2,13 +2,14 @@ package po.lognotify.exceptions
 
 import po.lognotify.TasksManaged
 import po.lognotify.action.ActionSpan
+import po.lognotify.classes.notification.models.ErrorSnapshot
 import po.lognotify.common.containers.ActionContainer
 import po.lognotify.common.containers.RunnableContainer
 import po.lognotify.common.containers.TaskContainer
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.tasks.ExecutionStatus
 import po.lognotify.tasks.RootTask
-import po.lognotify.tasks.models.TaskData
+import po.lognotify.classes.notification.models.TaskData
 import po.misc.data.printable.knowntypes.PropertyData
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
@@ -77,17 +78,15 @@ internal fun <T: TasksManaged, R: Any?> handleException(
     }
 }
 
-fun <T: TasksManaged, R: Any?> RunnableContainer<T, R>.provideBackTrace(): TaskData{
 
+
+fun <T: TasksManaged, R: Any?> RunnableContainer<T, R>.provideBackTrace(): ErrorSnapshot{
    val compiledReport = effectiveTask.createTaskData(){
-
        val selectedSpans = actionSpans.selectUntil {
-           (it.actionSpanStatus == ExecutionStatus.Failing) || (it.actionSpanStatus == ExecutionStatus.Faulty)
+           (it.executionStatus == ExecutionStatus.Failing) || (it.executionStatus == ExecutionStatus.Faulty)
        }
        selectedSpans.map { it.createData() }
     }
-
     return compiledReport
-
 }
 

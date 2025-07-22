@@ -6,6 +6,7 @@ import po.misc.functions.containers.LambdaContainer
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asContext
+import po.misc.functions.containers.LambdaHolder
 import kotlin.test.assertEquals
 
 class TestReactiveHooks: CTX {
@@ -27,7 +28,7 @@ class TestReactiveHooks: CTX {
 
         var valueProvided = ""
 
-        val lambdaContainer = LambdaContainer<String>(this)
+        val lambdaContainer = LambdaHolder<String>(this)
 
         lambdaContainer.hooks.onProviderSet {
             onProviderSetBlockExecuted = true

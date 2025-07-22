@@ -1,0 +1,267 @@
+package po.misc.functions.containers
+
+import po.misc.functions.hooks.Change
+import po.misc.functions.models.ContainerMode
+import po.misc.functions.models.LambdaState
+import po.misc.types.getOrManaged
+
+
+data class ContainerResult<T: Any>(
+    override val oldValue: T?,
+    override val  newValue : T
+): Change<T?, T>
+
+
+sealed interface DSLPowered<V: Any, R: Any>{
+    fun operate2(block:V.()->R):R
+}
+
+sealed interface DuplexUnit<V: Any, R: Any>: LambdaUnit<V, R>{
+    val function :  Function1<V, R>
+    val resultHandler : ResultHandler<V,R>
+}
+
+sealed interface ParametrizedUnit<V: Any, P: Any?, R: Any>: LambdaUnit<V, R>{
+    val function :  Function2<V, P, R>
+    val resultHandler : ResultHandler<V,R>
+}
+
+sealed interface NoResultLambda<V: Any>: LambdaUnit<V, Unit>{
+    val function :  Function1<V, Unit>
+    override fun trigger(value: V)
+}
+
+sealed interface DeferredUnit<R: Any>{
+    val function :  Function<R>
+    val resultHandler : ResultHandler<Unit, R>
+}
+
+data class LambdaUnitConfig(
+    val cacheResult: Boolean = false,
+    val cacheValue: Boolean = false,
+    val containerMode: ContainerMode = ContainerMode.Silent
+)
+
+class ResultHandler<V:Any, R:Any>(){
+    var  resultProvided : ((R)-> Unit)? = null
+
+    fun onResultProvided(onResult:(R)-> Unit){
+        resultProvided = onResult
+    }
+    fun provideResult(result:R, provider:LambdaUnit<V, R>){
+        when(provider){
+            is DeferredUnit<*>->{
+                resultProvided?.invoke(result)
+            }
+            is DuplexUnit->{
+                resultProvided?.invoke(result)
+            }
+        }
+    }
+}
+
+/**
+ * Abstract base class for [LambdaUnit] implementations that store and reuse input [valueBacking].
+ *
+ * @param V The input value type.
+ * @param R The output result type.
+ */
+sealed class LambdaContainer<V: Any, R: Any>(
+    val config: LambdaUnitConfig? = null
+):LambdaUnit<V, R>{
+
+    abstract override val identifiedAs: String
+
+    private var stateBacking: LambdaState = LambdaState.Idle
+    override val state: LambdaState get() = stateBacking
+
+    private val effectiveConfig: LambdaUnitConfig = config ?: LambdaUnitConfig()
+    override val containerMode: ContainerMode get () = effectiveConfig.containerMode
+
+
+    protected open var valueBacking : V? = null
+    override val persistedValue: V get() = valueBacking.getOrManaged("value")
+
+    private var resultBacking : R? = null
+    val result:R get()  {
+        return try {
+            resultBacking!!
+        }catch (th: Throwable){
+            fallbackOrThrow(th)
+        }
+    }
+
+    init {
+        message("initialized")
+        changeState(LambdaState.Idle)
+    }
+
+    protected fun onTriggered(instance:NoResultLambda<*>){
+
+    }
+
+    private var exceptionFallback: ((Throwable)-> R)? =  null
+    fun exceptionFallback(fallback:(Throwable)-> R){
+        exceptionFallback = fallback
+    }
+
+    private fun fallbackOrThrow(exception: Throwable): R{
+      return  exceptionFallback?.invoke(exception)?:run {
+            message("Throwing exception since no fallback provided")
+            throw exception
+        }
+    }
+
+    final override  fun provideValue(value: V){
+        valueBacking = value
+        changeState(LambdaState.Waiting)
+    }
+
+
+    protected fun provideResult(result:R){
+        resultBacking = result
+    }
+
+    private fun clearResult(){
+        resultBacking = null
+    }
+
+    abstract override fun trigger(value:V):R
+
+    protected fun changeState(newState: LambdaState){
+        val oldState = state
+        stateBacking = newState
+        message("Status changed from ${oldState.name} to ${newState.name}")
+    }
+
+    protected fun message(msg: String, nonBlockable: Boolean = false){
+        if((containerMode == ContainerMode.Verbose) || nonBlockable){
+            println(identifiedAs)
+            println(msg)
+        }
+    }
+}
+
+/**
+ * A simple implementation of [ResponsiveContainer] that executes a value-based lambda
+ * without returning any result.
+ *
+ * Useful for fire-and-forget operations in lifecycle or hook systems.
+ *
+ * @param V The type of value consumed by the lambda.
+ * @param lambda The operation to execute when triggered.
+ */
+class Notifier<V: Any>(
+    override val function: (V) -> Unit,
+):LambdaContainer<V, Unit>(), NoResultLambda<V>{
+
+   override val identifiedAs: String get() = "Producer<V>"
+
+    override fun trigger(value: V) {
+        function.invoke(value)
+        onTriggered(this)
+        changeState(LambdaState.Complete)
+    }
+}
+
+/**
+ * A simple implementation of [ResponsiveContainer] that produces a value without requiring input.
+ *
+ * This class encapsulates a parameterless lambda that returns a result of type [R].
+ * It can be used in reactive or deferred execution flows where a value must be supplied lazily.
+ *
+ * @param R The result type of the lambda.
+ * @property lambda A function that returns a value of type [R].
+ */
+class Provider<R: Any>(
+    override val function: () -> R,
+): LambdaContainer<Unit, R>(), DeferredUnit<R> {
+    override val identifiedAs: String get() = "Provider<R>"
+    override val resultHandler : ResultHandler<Unit, R> =  ResultHandler()
+    override fun trigger(value: Unit): R {
+        val result = function.invoke()
+        resultHandler.provideResult(result, this)
+        return  result
+    }
+    fun trigger(): R {
+       return trigger(Unit)
+    }
+
+}
+
+class DSLProvider<T: Any,  R: Any>(
+    override val function: T.() -> R,
+): LambdaContainer<T, R>(), DuplexUnit<T, R>{
+    override val identifiedAs: String get() = "DSLProvider<T, R>"
+    override val resultHandler : ResultHandler<T, R> =  ResultHandler()
+
+    override fun trigger(value: T): R {
+        val result = function.invoke(value)
+        resultHandler.provideResult(result, this)
+        return result
+    }
+}
+
+/**
+ * A simple implementation of [ResponsiveContainer] that evaluates a boolean condition using an input value.
+ *
+ * This class encapsulates a predicate lambda `(V) -> Boolean`, allowing logic such as validation
+ * or filtering to be deferred and executed conditionally.
+ *
+ * @param V The input value type.
+ * @property lambda A predicate function that returns true or false based on the input.
+ */
+class Evaluator<V: Any>(
+    override val function: (V) -> Boolean
+): LambdaContainer<V, Boolean>(), DuplexUnit<V, Boolean>  {
+
+    override val identifiedAs: String get() = "Evaluator<V>"
+    override val resultHandler : ResultHandler<V, Boolean> =  ResultHandler()
+    override fun trigger(value: V): Boolean {
+        val result = function.invoke(value)
+        changeState(LambdaState.Complete)
+        resultHandler.provideResult(result, this)
+        return result
+    }
+}
+
+/**
+ * A simple implementation of [ResponsiveContainer] that transforms an input of type [V] into a result of type [R].
+ *
+ * This class allows for dynamic value adaptation where an input is mapped to a different output.
+ * Useful for data transformation in pluggable systems or deferred computation chains.
+ *
+ * @param V The input value type.
+ * @param R The result type.
+ * @property lambda A transformation function that maps [V] to [R].
+ */
+class Adapter<V: Any, R: Any>(
+    override val function: (V) -> R,
+): LambdaContainer<V, R>(), DuplexUnit<V, R> {
+    override val identifiedAs: String get() = "Adapter<V, R>"
+    override val resultHandler : ResultHandler<V, R> =  ResultHandler()
+    override fun trigger(value: V): R {
+        val result = function.invoke(value)
+        changeState(LambdaState.Complete)
+        resultHandler.provideResult(result, this)
+        return result
+    }
+}
+
+
+class DSLAdapter<T: Any, P:Any,  R: Any>(
+    val parameter:P,
+    override val function: T.(P) -> R,
+): LambdaContainer<T, R>(), ParametrizedUnit<T, P, R>{
+    override val identifiedAs: String get() = "DSLProvider<T, R>"
+    override val resultHandler : ResultHandler<T, R> =  ResultHandler()
+
+    override fun trigger(value: T): R {
+        val result = function.invoke(value, parameter)
+        resultHandler.provideResult(result, this)
+        return result
+    }
+}
+
+
+

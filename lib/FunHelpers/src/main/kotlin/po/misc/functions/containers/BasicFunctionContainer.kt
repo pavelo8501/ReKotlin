@@ -159,7 +159,7 @@ sealed class BasicFunctionContainer<T: Any, R: Any?, V: Any?>(
  * @param holder A parent context used for naming and identification.
  * @param initialLambda An optional lambda to register during initialization.
  */
-class LambdaContainer<T: Any>(
+class LambdaHolder<T: Any>(
     holder: CTX ,
     initialLambda: ((T)-> Unit)? = null
 ): BasicFunctionContainer<T, Unit, T>(holder , initialLambda) {
@@ -194,7 +194,7 @@ class LambdaContainer<T: Any>(
      *
      * @param value The input to be consumed by the lambda.
      */
-    override fun provideReceiver(value:T):LambdaContainer<T>{
+    override fun provideReceiver(value:T): LambdaHolder<T>{
         receiverProvided(value)
         return this
     }

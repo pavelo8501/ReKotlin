@@ -1,5 +1,7 @@
 package po.misc.functions.dsl
 
+import po.misc.functions.containers.DSLProvider
+
 
 /**
  * Defines a contract for components that participate in DSL block execution and composition.
@@ -46,6 +48,15 @@ interface DSLExecutable<T: Any, R : Any> {
      * @param subConstructLambda DSL construction lambda for the sub-container.
      * @return A new DSL container scoped to [T2].
      */
-    fun <T2 : Any> with(valueProvider: (T)-> T2, subConstructLambda: DSLContainer<T2, R>.() -> Unit): DSLContainer<T2, R>
+    fun <T2 : Any> with(valueProvider: (T)-> T2, subConstructLambda: DSLContainer<T2, R>.() -> Unit)
 }
+
+sealed interface DSLExecutableBlock<T: Any, R: Any>: DSLStorage2<T, R>{
+
+}
+
+sealed interface DSLExecutableSubBlock<T2: Any, T: Any, R: Any>{
+
+}
+
 

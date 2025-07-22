@@ -22,13 +22,15 @@ import po.exposify.exceptions.managedPayload
 import po.exposify.exceptions.operationsException
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.LoggerDataProcessor
-import po.misc.context.CtxId
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
 import po.misc.context.Identifiable
+import po.misc.context.asIdentity
 
 
 sealed class ExecutionContext<DTO, DATA, ENTITY>(
    val dtoClass: DTOBase<DTO, DATA, ENTITY>
-):Identifiable, TasksManaged
+): TasksManaged
         where DTO: ModelDTO, DATA : DataModel, ENTITY: LongEntity
 {
 
@@ -107,7 +109,7 @@ sealed class ExecutionContext<DTO, DATA, ENTITY>(
         return dtos.toResult(dtoClass, operation)
     }
 
-    fun update(dataModel: DATA, initiator: CtxId): ResultSingle<DTO, DATA, ENTITY> {
+    fun update(dataModel: DATA, initiator: CTX): ResultSingle<DTO, DATA, ENTITY> {
         val operation = CrudOperation.Update
         if (dataModel.id == 0L) {
             return insert(dataModel)
@@ -122,7 +124,7 @@ sealed class ExecutionContext<DTO, DATA, ENTITY>(
         }
     }
 
-    fun updateSingle(dataModel: DATA, initiator: CtxId): ResultSingle<DTO, DATA, ENTITY> {
+    fun updateSingle(dataModel: DATA, initiator: CTX): ResultSingle<DTO, DATA, ENTITY> {
         val operation = CrudOperation.Update
         if (dataModel.id == 0L) {
             return insert(dataModel)
@@ -137,7 +139,7 @@ sealed class ExecutionContext<DTO, DATA, ENTITY>(
         }
     }
 
-    fun update(dataModels: List<DATA>,  initiator: CtxId): ResultList<DTO, DATA, ENTITY> {
+    fun update(dataModels: List<DATA>,  initiator: CTX): ResultList<DTO, DATA, ENTITY> {
         return dataModels.map { update(it, initiator) }.toResult(dtoClass)
     }
 
@@ -156,8 +158,12 @@ sealed class ExecutionContext<DTO, DATA, ENTITY>(
 
 class RootExecutionContext<DTO, D, E>(
    rootClass: RootDTO<DTO, D, E>,
-   var sourceContext: CtxId? = null
+   var sourceContext: CTX? = null
 ):ExecutionContext<DTO, D, E>(rootClass) where DTO: ModelDTO , D: DataModel, E: LongEntity {
+
+    override val identity: CTXIdentity<out CTX> = asIdentity()
+
+
     override val logger: LoggerDataProcessor
         get() = logHandler.dataProcessor
 
@@ -182,6 +188,9 @@ class DTOExecutionContext<DTO, D, E, F, FD, FE>(
     private val hostingDTO: CommonDTO<F, FD, FE>,
 ):ExecutionContext<DTO, D, E>(dtoClass)
         where DTO: ModelDTO, D: DataModel,E: LongEntity, F : ModelDTO, FD : DataModel, FE : LongEntity {
+
+    override val identity: CTXIdentity<out CTX> = asIdentity()
+
 //    enum class DTOExecutionEvents{
 //        OnDTOComplete
 //    }

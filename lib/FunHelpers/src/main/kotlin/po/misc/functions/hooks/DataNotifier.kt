@@ -1,17 +1,17 @@
 package po.misc.functions.hooks
 
-import po.misc.functions.containers.Producer
+import po.misc.functions.containers.Notifier
 
 
 class DataNotifier<T: Any, V: Any>(
     var receiver: T?
 ): ResponsiveData<T, V> {
 
-    private var beforeInitLambda: Producer<T>? = null
-    private var initializedLambda: Producer<T>? = null
-    private var disposedLambda: Producer<T>? = null
+    private var beforeInitLambda: Notifier<T>? = null
+    private var initializedLambda: Notifier<T>? = null
+    private var disposedLambda: Notifier<T>? = null
 
-    private var valueUpdatedLambda: Producer<Change<V?, V>>? = null
+    private var valueUpdatedLambda: Notifier<Change<V?, V>>? = null
 
     init {
         receiver?.let {receiver->
@@ -28,7 +28,7 @@ class DataNotifier<T: Any, V: Any>(
         receiver?.let { receiver ->
             beforeInitLambda?.provideValue(receiver)
         }
-        beforeInitLambda?.trigger()
+       // beforeInitLambda?.trigger(receiver)
 
     }
     override fun triggerInitialized() {
@@ -36,7 +36,7 @@ class DataNotifier<T: Any, V: Any>(
         receiver?.let { receiver ->
             initializedLambda?.provideValue(receiver)
         }
-        initializedLambda?.trigger()
+       // initializedLambda?.trigger()
     }
 
     override fun triggerChanged(change: Change<V?, V>) {
@@ -47,23 +47,23 @@ class DataNotifier<T: Any, V: Any>(
         receiver?.let { receiver ->
             disposedLambda?.provideValue(receiver)
         }
-        disposedLambda?.trigger()
+        //disposedLambda?.trigger()
     }
 
     override fun onBeforeInitialized(onBeforeInitialized: (T) -> Unit) {
-        beforeInitLambda = Producer(onBeforeInitialized)
+        beforeInitLambda = Notifier(onBeforeInitialized)
     }
 
     override fun onInitialized(onInitialized: (T) -> Unit) {
-        initializedLambda = Producer(onInitialized)
+        initializedLambda = Notifier(onInitialized)
     }
 
     override fun onChanged(onChanged: (Change<V?, V>) -> Unit) {
-        valueUpdatedLambda = Producer(onChanged)
+        valueUpdatedLambda = Notifier(onChanged)
     }
 
     override fun onDisposed(onDisposed: (T) -> Unit) {
-        disposedLambda = Producer(onDisposed)
+        disposedLambda = Notifier(onDisposed)
     }
 
 }

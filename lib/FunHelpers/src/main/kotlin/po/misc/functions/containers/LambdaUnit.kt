@@ -9,18 +9,17 @@ import po.misc.context.CTX
  * @param V The input value type the lambda expects.
  * @param R The result type the lambda produces.
  */
-interface LambdaUnit<V: Any, R: Any?>: LambdaContainerState<V>{
-    val function: Function1<V, R>
+interface LambdaUnit<V: Any, R: Any>: LambdaContainerState<V>{
+
     /**
      * Triggers the lambda without passing a value (assumes it was provided earlier).
      */
-    fun trigger():R
+   // fun trigger():R
 
     /**
      * Triggers the lambda using the given [value].
      */
     fun trigger(value: V):R
-
     /**
      * Provides a [value] for later use by [trigger] without parameters.
      */

@@ -1,7 +1,10 @@
 package po.lognotify.classes.notification
 
-import po.lognotify.classes.notification.models.LogData
+import po.lognotify.classes.notification.models.LifecycleDataGroup
+import po.lognotify.classes.notification.models.LogEvent
 import po.lognotify.classes.notification.models.NotifyConfig
+import po.lognotify.classes.notification.models.TaskData
+import po.lognotify.common.LogInstance
 import po.lognotify.tasks.RootTask
 import po.lognotify.tasks.Task
 import po.lognotify.tasks.TaskBase
@@ -21,8 +24,8 @@ import po.misc.exceptions.waypointInfo
 class LoggerDataProcessor(
     val task : TaskBase<*, *>,
     parent: LoggerDataProcessor?,
-    emitter: FlowEmitter<LogData>?,
-) : DataProcessorBase<LogData>(parent, emitter), LoggerContract {
+    emitter: FlowEmitter<TaskData>?,
+) : DataProcessorBase<TaskData>(parent, emitter), LoggerContract {
 
     enum class LoggerProcessorType{RootTask, Task }
     var config : NotifyConfig
@@ -43,7 +46,7 @@ class LoggerDataProcessor(
         provideMuteCondition(::setMuteConditions)
     }
 
-    private fun setMuteConditions(data: LogData): Boolean{
+    private fun setMuteConditions(data: TaskData): Boolean{
       return when(config.console){
            NotifyConfig.ConsoleBehaviour.Mute ->true
           NotifyConfig.ConsoleBehaviour.FullPrint -> false
@@ -55,51 +58,73 @@ class LoggerDataProcessor(
         }
     }
 
-    private fun createData(message: String, severity: SeverityLevel):LogData{
-        val data =  LogData(
-            producer = task,
+    var activeGroup: LifecycleDataGroup? = null
+
+    private fun createGroup(logData: TaskData){
+        activeGroup = LifecycleDataGroup(logData)
+    }
+
+    private fun createData(message: String, severity: SeverityLevel):TaskData{
+        val data =  TaskData(
+            taskHeader = task.header,
             config = task.config,
             timeStamp = task.executionTimeStamp,
             message = message,
-            severity = severity
+            severity = severity,
+            executionStatus = task.executionStatus,
+            taskFooter = task.header
+
         )
         return data
     }
 
-    private fun createData(arbitraryData: PrintableBase<*>, severity: SeverityLevel):LogData{
-        val data =  LogData(
-            producer = task,
-            config = task.config,
-            timeStamp = task.executionTimeStamp,
-            message = arbitraryData.formattedString,
-            severity = severity
-        )
-        data.addChild(arbitraryData)
-        return data
+    private fun createData(arbitraryData: PrintableBase<*>, severity: SeverityLevel): TaskData{
+        val taskData = createData("", severity)
+        taskData.addChild(arbitraryData)
+        return taskData
+    }
+
+    private fun createLogEvent(message: String, severity: SeverityLevel, logInstance: LogInstance<*>): LogEvent{
+        val event = LogEvent(logInstance, message, severity)
+        activeGroup?.let {
+            it.processChild { group->
+               if(config.console == NotifyConfig.ConsoleBehaviour.MuteNoEvents){
+                  if(group.childCount > 0){
+                      echo()
+                  }
+               }else{
+                   echo()
+               }
+            }
+        }?:run {
+
+        }
+       return LogEvent(logInstance, message, severity)
     }
 
     @PublishedApi
-    internal fun errorHandled(handledBy: String, exception: ManagedException): LogData {
+    internal fun errorHandled(handledBy: String, exception: ManagedException): TaskData {
         var message = "Exception: ${exception.throwableToText()} handled by $handledBy block in $task"
         message += SpecialChars.NewLine
         message += exception.waypointInfo()
         val dataRecord =  createData(message, SeverityLevel.EXCEPTION)
-        processRecord(dataRecord, LogData.Exception)
+        processRecord(dataRecord, TaskData.Message)
         return dataRecord
     }
 
     @PublishedApi
-    internal fun registerStart(): LogData{
+    internal fun registerStart(): TaskData{
        val dataRecord = createData("", SeverityLevel.INFO)
-        processRecord(dataRecord, LogData.Header)
+        createGroup(dataRecord)
+        processRecord(dataRecord, TaskData.Header)
         forwardOrEmmit(dataRecord)
         return dataRecord
     }
 
     @PublishedApi
-    internal  fun registerStop():LogData{
+    internal  fun registerStop():TaskData{
         val dataRecord = createData("", SeverityLevel.INFO)
-        processRecord(dataRecord, LogData.Footer)
+        processRecord(dataRecord, TaskData.Footer)
         forwardOrEmmit(dataRecord)
         emitter?.stopBroadcast()
         return dataRecord
@@ -117,11 +142,11 @@ class LoggerDataProcessor(
     internal fun debug(message: String, methodName: String){
         val data = createData("$message @ $methodName in $task", SeverityLevel.DEBUG)
         if(config.debugAll == NotifyConfig.DebugOptions.DebugAll){
-            processRecord(data, LogData.Debug)
+            processRecord(data, TaskData.Message)
             forwardOrEmmit(data)
         }else{
-            debugData(data, LogData, LogData.Debug){debuggable->
-                processRecord(debuggable, LogData.Debug)
+            debugData(data, TaskData, TaskData.Message){debuggable->
+                processRecord(debuggable, TaskData.Message)
                 forwardOrEmmit(debuggable)
             }
         }
@@ -129,7 +154,7 @@ class LoggerDataProcessor(
 
     private fun <T: PrintableBase<T>> debugRecord(arbitraryRecord: T){
         val actionSpan = task.activeActionSpan()
-        val template = LogData.Debug
+        val template = TaskData.Message
         val template2 = arbitraryRecord.defaultTemplate
         if (actionSpan != null) {
             template.setAuxParams(TemplateAuxParams(actionSpan.toString()))
@@ -157,33 +182,37 @@ class LoggerDataProcessor(
         forwardOrEmmit(createData("Forwarding", SeverityLevel.LOG))
     }
 
-    internal fun notify(message: String, severity: SeverityLevel): LogData{
+    internal fun notify(message: String, severity: SeverityLevel): TaskData{
         val dataRecord = createData(message, severity)
-        processRecord(dataRecord, LogData.Message)
+        activeGroup?.let {
+           val event =  createLogEvent(message, severity, task)
+            it.addRecord(event)
+        }
+        processRecord(dataRecord, TaskData.Message)
         return dataRecord
     }
 
-    override fun info(message: String): LogData {
+    override fun info(message: String): TaskData {
         val dataRecord = createData(message, SeverityLevel.INFO)
-        processRecord(dataRecord, LogData.Message)
+        processRecord(dataRecord, TaskData.Message)
         return dataRecord
     }
 
-    override fun warn(message: String): LogData {
+    override fun warn(message: String): TaskData {
         val dataRecord =createData(message, SeverityLevel.WARNING)
-        processRecord(dataRecord, LogData.Message)
+        processRecord(dataRecord, TaskData.Message)
         return dataRecord
     }
 
-    fun warn(th: Throwable, message: String): LogData {
+    fun warn(th: Throwable, message: String): TaskData {
         val dataRecord = createData("$message ${th.throwableToText()}", SeverityLevel.WARNING)
-        processRecord(dataRecord, LogData.Message)
+        processRecord(dataRecord, TaskData.Message)
         return dataRecord
     }
 
     fun error(exception: ManagedException){
         val text = "Exception: ${exception.message}. ${exception.waypointInfo()}"
         val dataRecord = createData(text, SeverityLevel.EXCEPTION)
-        processRecord(dataRecord, LogData.Exception)
+        processRecord(dataRecord, TaskData.Message)
     }
 }

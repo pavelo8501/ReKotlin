@@ -22,3 +22,10 @@ fun <T : Any, R : Any>  DSLBuilder<T,R>.dslBuilder(block: DSLContainer<T, R>.() 
     return container
 }
 
+inline fun <T: Any, T2: Any, R> withBlockFlattened(
+    crossinline adapter: (T) -> T2,
+    crossinline block: T2.() -> R
+): T.() -> R = {
+    val adapted = adapter(this)
+    block(adapted)
+}

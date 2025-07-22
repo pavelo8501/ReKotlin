@@ -6,15 +6,16 @@ import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.initException
 import po.exposify.exceptions.managedPayload
 import po.exposify.exceptions.operationsException
+import po.misc.context.CTX
 import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.exceptions.ManagedException
-import po.misc.context.CtxId
 import po.misc.context.Identifiable
 import po.misc.types.castOrThrow
 import po.misc.types.getOrThrow
 import kotlin.reflect.KClass
 
-internal inline fun <reified T: Any> Any?.castOrOperations(ctx:Identifiable): T {
+
+internal inline fun <reified T: Any> Any?.castOrOperations(ctx: CTX): T {
    return this.castOrThrow<T>(ctx){
        operationsException(ctx.managedPayload(it, ExceptionCode.CAST_FAILURE))
    }
@@ -32,65 +33,31 @@ internal fun <T: Any> Any?.castOrOperations(kClass: KClass<T>): T {
     }
 }
 
-internal fun <T: Any> Any?.castOrOperations(kClass: KClass<T>, ctx: CtxId): T {
+internal fun <T: Any> Any?.castOrOperations(kClass: KClass<T>, ctx: CTX): T {
     return this.castOrThrow<T>(kClass){msg, th->
-       val exception = OperationsException(msg, ExceptionCode.CAST_FAILURE, th)
-        exception.addHandlingData(ctx, ManagedException.ExceptionEvent.Registered)
+        OperationsException(msg, ExceptionCode.CAST_FAILURE, th)
     }
 }
 
-//internal inline fun <reified C: IdentifiableContext> IdentifiableContext?.castOrOperations(): C {
-//
-//    if(this is TypedContext<*>){
-//        val thisAsTyped = this as TypedContext<C>
-//        thisAsTyped.castTypedOrThrow(thisAsTyped){str,th->
-//            operationsException(managedPayload(cause = th, source = ExceptionCode.CAST_FAILURE))
-//        }
-//    }else{
-//        castOrThrow<C>(this){
-//
-//        }
-//    }
-//
-//    return this.castOrThrow(typeData.clazz){
-//        operationsException(this.managedPayload(it, ExceptionCode.CAST_FAILURE))
-//    }
-//}
-
-
 @PublishedApi
-internal inline fun <reified T: Any> Any?.castOrInit(ctx: Identifiable): T
+internal inline fun <reified T: Any> Any?.castOrInit(ctx: CTX): T
 {
     return this.castOrThrow<T>(ctx){
         initException(it, ExceptionCode.CAST_FAILURE)
     }
 }
 
-//internal inline fun <reified T: Any> Any.castLetOrInit(block: (T)->T): T {
-//    try {
-//       val result =  this.castOrThrow<T>(null){
-//           initException(it,  ExceptionCode.CAST_FAILURE)
-//       }
-//       return block.invoke(result)
-//    }catch (ex: Throwable){
-//        throw  ex
-//    }
-//}
 
-
-internal inline fun <reified T : Any> T?.getOrOperations(ctx: Identifiable): T {
+internal inline fun <reified T : Any> T?.getOrOperations(ctx: CTX): T {
    return this.getOrThrow<T>(){
        operationsException(ctx.managedPayload(it, ExceptionCode.VALUE_IS_NULL))
    }
 }
 
-internal fun <T : Any> T?.getOrOperations(message: String, ctx: Identifiable? = null): T {
+internal fun <T : Any> T?.getOrOperations(message: String, ctx: CTX? = null): T {
     return this ?: run {
         val message = "Can not get.  Value is null. $message"
         val ex = operationsException(message, ExceptionCode.VALUE_IS_NULL, null)
-        if (ctx != null) {
-            ex.addHandlingData(ctx, ManagedException.ExceptionEvent.Registered)
-        }
         throw ex
     }
 }
@@ -112,13 +79,13 @@ internal fun <T : Any> T?.getOrOperations(payload: ManagedCallSitePayload): T {
 
 
 @PublishedApi
-internal inline fun <reified T : Any> T?.getOrInit(ctx: Identifiable): T {
+internal inline fun <reified T : Any> T?.getOrInit(ctx: CTX): T {
     return this.getOrThrow<T>(){
         initException(ctx.managedPayload(message =  it, source =  ExceptionCode.VALUE_IS_NULL))
     }
 }
 
-internal fun <T : Any> T?.getOrInit(className: String, ctx: Identifiable? = null): T {
+internal fun <T : Any> T?.getOrInit(className: String, ctx: CTX? = null): T {
     if(this != null){
         return this
     }else{

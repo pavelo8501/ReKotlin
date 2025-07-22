@@ -16,11 +16,11 @@ import po.exposify.dto.enums.DTOStatus
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.extensions.castOrOperations
-import po.lognotify.action.InlineAction
+import po.lognotify.TasksManaged
+import po.misc.context.CTX
+import po.misc.context.asIdentity
+import po.misc.exceptions.ExceptionPayload
 import po.misc.exceptions.ManagedCallSitePayload
-import po.misc.interfaces.ClassIdentity
-import po.misc.context.CtxId
-import po.misc.context.IdentifiableClass
 import po.misc.types.TypeData
 import po.misc.types.containers.TypedContainer
 import po.misc.types.containers.toTypeContainer
@@ -41,15 +41,16 @@ import kotlin.collections.flatMap
  */
 class BindingHub<DTO, D, E>(
     val hostingDTO: CommonDTO<DTO, D, E>
-): IdentifiableClass, InlineAction where  DTO : ModelDTO, D: DataModel, E: LongEntity {
+):  TasksManaged where  DTO : ModelDTO, D: DataModel, E: LongEntity {
 
-    override val identity: ClassIdentity by lazy { ClassIdentity.create("BindingHub", hostingDTO.sourceName) }
+    override val identity = asIdentity()
+
 
     private val dtoClass: DTOBase<DTO, D, E> get() = hostingDTO.dtoClass
     private val daoService: DAOService<DTO, D, E> get() = hostingDTO.daoService
     private val dtoFactory: DTOFactory<DTO, D, E> get() = hostingDTO.dtoFactory
 
-    private val exPayload: ManagedCallSitePayload = ManagedCallSitePayload(this)
+    private val exPayload: ExceptionPayload = ExceptionPayload(this)
 
     internal val tracker: DTOTracker<DTO, D, E> get() {
         return hostingDTO.tracker
@@ -122,6 +123,7 @@ class BindingHub<DTO, D, E>(
         delegate: RelationDelegate<DTO, D, E, F, *, *>
     ): RelationDelegate<DTO, D, E, *, *, *> {
         delegate.identity.provideId(relationDelegateMap.size.toLong() + 1)
+
         relationDelegateMap[delegate.completeName] = delegate
         delegate.updateStatus(DelegateStatus.Registered)
         return delegate
@@ -130,7 +132,7 @@ class BindingHub<DTO, D, E>(
     internal fun <F : ModelDTO> registerParentDelegate(
         delegate: ParentDelegate<DTO, D, E, F, *, *>
     ): ParentDelegate<DTO, D, E, F, *, *> {
-        parentDelegateMap[delegate.completeName] = delegate
+        parentDelegateMap[delegate.identity] = delegate
         delegate.updateStatus(DelegateStatus.Registered)
         return delegate
     }
@@ -294,7 +296,7 @@ class BindingHub<DTO, D, E>(
      * @param initiator The context triggering the process, for logging/tracking.
      * @return The updated [hostingDTO] reference.
      */
-    fun loadHierarchyByData(data: D, initiator: CtxId): CommonDTO<DTO, D, E>{
+    fun loadHierarchyByData(data: D, initiator: CTX): CommonDTO<DTO, D, E>{
         tracker.logDebug("loadHierarchyByData on $hostingDTO", initiator)
         resolveHierarchy(data)
         tracker.logDebug("updateDTOs on $hostingDTO initiated by${initiator.contextName}", initiator)
@@ -311,7 +313,7 @@ class BindingHub<DTO, D, E>(
      * @param initiator The context triggering the process, for logging/tracking.
      * @return The updated [hostingDTO] reference.
      */
-    fun loadHierarchyByEntity(entity: E, initiator: CtxId): CommonDTO<DTO, D, E>{
+    fun loadHierarchyByEntity(entity: E, initiator: CTX): CommonDTO<DTO, D, E>{
         tracker.logDebug("loadHierarchyByEntity on $hostingDTO", initiator)
         resolveHierarchy(entity)
         tracker.logDebug("updateDTOs on $hostingDTO initiated by${initiator.contextName}", initiator)

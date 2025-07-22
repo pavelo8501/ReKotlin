@@ -11,12 +11,17 @@ import po.exposify.dto.components.query.SimpleQuery
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.runAction
 import po.lognotify.extensions.runInlineAction
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
 import kotlin.reflect.full.withNullability
 
 
 class DAOService<DTO, DATA, ENTITY>(
     val dtoClass: DTOBase<DTO, DATA, ENTITY>
 ): TasksManaged   where DTO: ModelDTO, DATA: DataModel, ENTITY : LongEntity {
+
+    override val identity: CTXIdentity<out CTX> = asIdentity()
 
     override val contextName: String = "DAOService"
     val entityModel: ExposifyEntityClass<ENTITY> get() = dtoClass.config.entityModel

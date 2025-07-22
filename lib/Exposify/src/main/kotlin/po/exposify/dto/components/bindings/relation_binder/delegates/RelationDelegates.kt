@@ -21,10 +21,9 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.CommonDTOType
 import po.exposify.extensions.castOrInit
 import po.exposify.extensions.getOrOperations
-import po.lognotify.action.InlineAction
+import po.misc.context.CTX
 import po.misc.data.SmartLazy
-import po.misc.interfaces.ClassIdentity
-import po.misc.context.IdentifiableClass
+import po.misc.context.asIdentity
 import po.misc.types.TypeData
 import po.misc.types.containers.Multiple
 import po.misc.types.containers.Single
@@ -40,13 +39,14 @@ sealed class RelationDelegate<DTO, D, E, F, FD, FE>(
     protected val hostingDTO : CommonDTO<DTO, D, E>,
     val foreignClass: DTOClass<F, FD, FE>,
     delegateName: String
-): DelegateInterface<DTO, F>, ForeignDelegateInterface, IdentifiableClass, InlineAction
+): DelegateInterface<DTO, F>, ForeignDelegateInterface, CTX
         where DTO: ModelDTO, D: DataModel,  E : LongEntity, F: ModelDTO,FD: DataModel, FE: LongEntity
 {
 
     override var status: DelegateStatus = DelegateStatus.Created
     abstract val cardinality : Cardinality
-    override val identity: ClassIdentity = ClassIdentity.create(delegateName, hostingDTO.sourceName)
+
+    override val identity = asIdentity()
 
     override val hostingClass: DTOBase<DTO, D, E> get() = hostingDTO.dtoClass
     protected val tracker: DTOTracker<DTO, D, E> get() = hostingDTO.tracker
