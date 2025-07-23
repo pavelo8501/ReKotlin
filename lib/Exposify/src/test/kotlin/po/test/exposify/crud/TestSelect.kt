@@ -19,6 +19,9 @@ import po.exposify.dto.components.query.deferredQuery
 import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.NotifyConfig
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
 import po.test.exposify.setup.ClassData
 import po.test.exposify.setup.dtos.Page
 import po.test.exposify.setup.pagesSectionsContentBlocks
@@ -32,7 +35,10 @@ import kotlin.test.assertTrue
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestSelect : DatabaseTest(), TasksManaged {
 
+
+    override val identity: CTXIdentity<out CTX> = asIdentity()
     override val contextName: String = "TestUpdate"
+
 
     companion object {
         @JvmStatic

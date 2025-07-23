@@ -21,6 +21,7 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.CommonDTOType
 import po.exposify.extensions.castOrInit
 import po.exposify.extensions.getOrOperations
+import po.misc.containers.LazyBackingContainer
 import po.misc.context.CTX
 import po.misc.data.SmartLazy
 import po.misc.context.asIdentity
@@ -50,7 +51,11 @@ sealed class RelationDelegate<DTO, D, E, F, FD, FE>(
 
     override val hostingClass: DTOBase<DTO, D, E> get() = hostingDTO.dtoClass
     protected val tracker: DTOTracker<DTO, D, E> get() = hostingDTO.tracker
-    protected val commonType: CommonDTOType<DTO, D, E>  get() =  hostingClass.commonType
+   // protected val commonType: CommonDTOType<DTO, D, E> get() = hostingDTO.commonType
+
+
+
+
     protected val dtoType: TypeData<DTO> = hostingDTO.typeData
 
     protected val ownEntity:E get(){
@@ -78,11 +83,18 @@ sealed class RelationDelegate<DTO, D, E, F, FD, FE>(
     protected abstract fun save(common: CommonDTO<F, FD, FE>, data: FD)
     override fun resolveProperty(property: KProperty<*>){
         if(propertyParameter == null){
-            propertyParameter = property.castOrInit(this)
-            identity.updateSourceName(property.name)
-            hostingDTO.hub.registerRelationDelegate(this)
-            hostingDTO.registerExecutionContext(foreignClass.commonType, hostingDTO.createDTOContext(foreignClass))
-            onPropertyInitialized?.invoke(property)
+            try {
+                propertyParameter = property.castOrInit(this)
+                identity.setNamePattern { property.name }
+                hostingDTO.hub.registerRelationDelegate(this)
+                println("resolveProperty of delegate accessing ${foreignClass.contextName} Hash: ${foreignClass.hashCode()}")
+                foreignClass.commonDTOType.getValue {dtoType->
+                    hostingDTO.registerExecutionContext(dtoType,  hostingDTO.createDTOContext(foreignClass))
+                }
+                onPropertyInitialized?.invoke(property)
+            }catch (th: Throwable){
+                throw th
+            }
         }
     }
     override fun updateStatus(status: DelegateStatus) {
@@ -109,9 +121,9 @@ sealed class RelationDelegate<DTO, D, E, F, FD, FE>(
                 val crud =  ifExists.invoke(existent.asDTO())
             }else{
                 val newDto = foreignClass.newDTO()
-                newDto.addTrackerInfo(CrudOperation.Create, this)
+                newDto.addTrackerInfo(CrudOperation.Create)
                 save(newDto)
-                newDto.hub.resolveHierarchy(childData)
+                newDto.hub.resolveHierarchy(childData, foreignClass.dataType)
             }
         }
     }

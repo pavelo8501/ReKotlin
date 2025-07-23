@@ -24,14 +24,14 @@ private suspend fun <DTO, D, E> launchExecutionSingle(
     inputData:D? = null,
     query: DeferredContainer<WhereQuery<E>>? = null,
     session: AuthorizedSession
-): ResultSingle<DTO, D, *> where DTO : ModelDTO, D : DataModel, E : LongEntity
+): ResultSingle<DTO, D, E> where DTO : ModelDTO, D : DataModel, E : LongEntity
 {
     val wrongBranchMsg = "LaunchExecutionResultSingle else branch should have never be reached"
     val container =  launchDescriptor.container
     val service =  launchDescriptor.dtoBaseClass.serviceClass
     val emitter = service.requestEmitter(session)
    return emitter.dispatchSingle {
-       var effectiveResult: ResultSingle<DTO, D, *>? = null
+       var effectiveResult: ResultSingle<DTO, D, E>? = null
 
        if(parameter != null){
            val deferredParameter = DeferredContainer<Long>(launchDescriptor){ parameter }
@@ -52,18 +52,18 @@ private suspend fun <DTO, D, E> launchExecutionSingle(
                    val pickById = chunk.castOrOperations<PickByIdChunk<DTO, D>>(launchDescriptor)
                    println("Chunk returned after being persisted in RootDTO")
                    pickById.healthMonitor.print()
-                   effectiveResult = pickById.computeResult()
+                   effectiveResult = pickById.computeResult().castOrOperations(launchDescriptor)
                }
 
                is UpdateChunk<*, *> -> {
                    val updateChunk = chunk.castOrOperations<UpdateChunk<DTO, D>>(launchDescriptor)
                    println("Chunk returned after being persisted in RootDTO")
                    updateChunk.healthMonitor.print()
-                   effectiveResult = updateChunk.computeResult()
+                   effectiveResult = updateChunk.computeResult().castOrOperations(launchDescriptor)
                }
            }
        }
-       effectiveResult.getOrOperations("effectiveResult")
+       effectiveResult.getOrOperations("effectiveResult", launchDescriptor)
     }
 }
 
@@ -73,7 +73,7 @@ private suspend fun <DTO, D, E> launchExecutionList(
     inputData:List<D>? = null,
     query: DeferredContainer<WhereQuery<E>>? = null,
     session: AuthorizedSession
-): ResultList<DTO, D, *> where DTO: ModelDTO, D:DataModel, E: LongEntity
+): ResultList<DTO, D, E> where DTO: ModelDTO, D:DataModel, E: LongEntity
 {
     val wrongBranchMsg = "LaunchExecutionResultSingle else branch should have never be reached"
     val container =  launchDescriptor.container
@@ -81,7 +81,7 @@ private suspend fun <DTO, D, E> launchExecutionList(
     val emitter = service.requestEmitter(session)
 
     return emitter.dispatchList {
-        var effectiveResult: ResultList<DTO, D, *>? = null
+        var effectiveResult: ResultList<DTO, D, E>? = null
         withTransactionIfNone(container.debugger, warnIfNoTransaction = false) {
 
             if(query != null){
@@ -94,20 +94,20 @@ private suspend fun <DTO, D, E> launchExecutionList(
                         val selectChunk = chunk.castOrOperations<SelectChunk<DTO, D>>(launchDescriptor)
                         println("Chunk returned after being persisted in RootDTO")
                         selectChunk.healthMonitor.print()
-                        effectiveResult = selectChunk.computeResult()
+                        effectiveResult = selectChunk.computeResult().castOrOperations(launchDescriptor)
                     }
 
                     is UpdateListChunk<*, *> -> {
                         val updateListChunk = chunk.castOrOperations<UpdateListChunk<DTO, D>>(launchDescriptor)
                         println("Chunk returned after being persisted in RootDTO")
                         updateListChunk.healthMonitor.print()
-                        effectiveResult = updateListChunk.computeResult()
+                        effectiveResult = updateListChunk.computeResult().castOrOperations(launchDescriptor)
                     }
                 }
                 chunk.healthMonitor.print()
             }
         }
-        effectiveResult.getOrOperations("effectiveResult")
+        effectiveResult.getOrOperations("effectiveResult", launchDescriptor)
     }
 }
 

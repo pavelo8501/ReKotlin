@@ -17,24 +17,30 @@ import po.exposify.exceptions.InitException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.withTransactionRestored
 import po.lognotify.TasksManaged
+import po.lognotify.common.result.onFailureCause
 import po.lognotify.extensions.runTask
 import po.lognotify.extensions.runTaskBlocking
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
+import po.misc.context.asSubIdentity
+import po.misc.exceptions.throwableToText
 import po.misc.exceptions.toManageable
 import po.misc.functions.containers.DeferredContainer
-import po.misc.interfaces.ClassIdentity
-import po.misc.context.IdentifiableClass
+
 
 class ServiceContext<DTO, DATA, ENTITY>(
     @PublishedApi internal  val serviceClass : ServiceClass<DTO, DATA, ENTITY>,
-    internal val dtoClass: RootDTO<DTO, DATA, ENTITY>,
-): TasksManaged, IdentifiableClass where DTO : ModelDTO, DATA: DataModel,  ENTITY: LongEntity {
+    val dtoClass: RootDTO<DTO, DATA, ENTITY>,
+): TasksManaged where DTO : ModelDTO, DATA: DataModel,  ENTITY: LongEntity {
 
-    override val identity: ClassIdentity = ClassIdentity.create("ServiceContext", dtoClass.identity.sourceName)
+
+    override val identity: CTXIdentity<ServiceContext<DTO, DATA, ENTITY>> = asSubIdentity(this, dtoClass)
+
     private val executionProvider: ExecutionContext<DTO, DATA, ENTITY> get() = dtoClass.executionContext
     private val dbConnection: Database get() = serviceClass.connection
 
     val debugger = exposifyDebugger(this, ContextData){
-        ContextData(this@ServiceContext, it.message)
+        ContextData(it.message)
     }
 
     fun truncate() = runTaskBlocking("Truncate") { handler ->
@@ -91,10 +97,16 @@ class ServiceContext<DTO, DATA, ENTITY>(
 
     fun update(dataModel: DATA): ResultSingle<DTO, DATA, ENTITY> =
         runTask("Update") {
+
+
+
             withTransactionRestored(debugger, false) {
             executionProvider.update(dataModel, dtoClass)
         }
-    }.resultOrException()
+
+    }.onFailureCause { exception->
+            println(exception.throwableToText())
+    } .resultOrException()
 
     fun update(dataModels: List<DATA>): ResultList<DTO, DATA, ENTITY> =
         runTask("Update") {

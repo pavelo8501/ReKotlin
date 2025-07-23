@@ -42,7 +42,7 @@ data class ExceptionEventData(
             return ExceptionEventData(
                 exceptionData,
                 message = message,
-                contextName = context.identity.name,
+                contextName = context.identity.identifiedByName,
                 fullyQualifiedName = context::class.qualifiedName.toString()
             )
         }
@@ -67,9 +67,9 @@ class ExceptionData2(
     fun addStackTrace(stackTrace: List<StackTraceElement>):ExceptionData2{
         if(producer != null){
             thisStackTraceElement =  producer.identity.parentIdentity?.let {parentIdentity->
-                stackTrace.firstOrNull { it.className == parentIdentity.qualifiedName }
+                stackTrace.firstOrNull { it.className == parentIdentity.classQualifiedName }
             }?:run {
-                stackTrace.firstOrNull { it.className == producer?.identity?.qualifiedName }
+                stackTrace.firstOrNull { it.className == producer?.identity?.classQualifiedName }
             }
         }else{
             stackTraceList = stackTrace

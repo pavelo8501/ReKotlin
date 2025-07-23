@@ -12,6 +12,9 @@ import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.NotifyConfig
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.dtos.Page
 import po.test.exposify.setup.dtos.PageDTO
@@ -29,6 +32,7 @@ import kotlin.test.assertTrue
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestUpdate : DatabaseTest(), TasksManaged {
 
+    override val identity: CTXIdentity<out CTX> = asIdentity()
     override val contextName: String = "TestUpdate"
 
     companion object{

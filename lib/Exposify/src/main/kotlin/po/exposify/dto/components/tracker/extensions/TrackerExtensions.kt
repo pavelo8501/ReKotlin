@@ -7,6 +7,7 @@ import po.exposify.dto.components.tracker.interfaces.TrackableDTO
 import po.exposify.dto.helpers.asDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
+import po.misc.context.CTX
 import po.misc.context.Identifiable
 import po.misc.lookups.HierarchyNode
 
@@ -32,7 +33,6 @@ data class TrackableDTONode(
 
 fun <DTO: ModelDTO, D: DataModel, E: LongEntity> CommonDTO<DTO, D, E>.addTrackerInfo(
     operation:CrudOperation,
-    moduleName: Identifiable
 ):CommonDTO<DTO, D, E>{
     tracker.addTrackInfo(operation)
     return this

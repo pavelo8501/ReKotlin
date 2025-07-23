@@ -6,6 +6,9 @@ import po.auth.extensions.generatePassword
 import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.NotifyConfig
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
 import po.test.exposify.scope.session.TestSessionsContext
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.dtos.User
@@ -13,6 +16,8 @@ import po.test.exposify.setup.dtos.UserDTO
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestSequenceContext : DatabaseTest(), TasksManaged {
+
+    override val identity: CTXIdentity<out CTX> = asIdentity()
 
     companion object{
         @JvmStatic

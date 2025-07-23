@@ -18,6 +18,9 @@ import po.exposify.scope.sequence.launcher.launch
 import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.models.NotifyConfig
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
 import po.test.exposify.scope.session.TestSessionsContext
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.Pages
@@ -31,7 +34,12 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+
 class TestSequenceCRUD : DatabaseTest(), TasksManaged {
+
+    override val identity: CTXIdentity<out CTX> = asIdentity()
+
+    override val contextName: String = "TestSequenceCRUD"
 
     private val sessionIdentity = TestSessionsContext.SessionIdentity("0", "192.169.1.1")
     val session :  AuthorizedSession = session(sessionIdentity)
@@ -126,9 +134,10 @@ class TestSequenceCRUD : DatabaseTest(), TasksManaged {
             }
         }
         with(session){
-            val pickResult: ResultSingle<PageDTO, Page, *> = assertDoesNotThrow {
-                launch(PageDTO.PICK, pickById)
-            }
+            val pickResult=  launch(PageDTO.PICK, pickById)
+//            val pickResult: ResultSingle<PageDTO, Page, *> = assertDoesNotThrow {
+//                launch(PageDTO.PICK, pickById)
+//            }
             assertNotEquals(0L, pickById, "pickID should not be 0")
             assertEquals(pickById, pickResult.getDTOForced().id, "Picked dto id does not match requested")
         }

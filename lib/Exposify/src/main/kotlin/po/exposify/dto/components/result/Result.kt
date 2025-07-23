@@ -9,11 +9,12 @@ import po.exposify.dto.helpers.asDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.exceptions.managedPayload
 import po.exposify.exceptions.operationsException
 import po.exposify.extensions.getOrOperations
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asSubIdentity
 import po.misc.exceptions.ManagedException
-import po.misc.context.CtxId
 import po.misc.types.castListOrThrow
 
 interface ExposifyResult{
@@ -28,17 +29,17 @@ interface ExposifyResult{
 
 sealed class ResultBase<DTO, D>(
     dtoClass: DTOBase<DTO, D, *>
-) where DTO: ModelDTO, D: DataModel{
+): CTX  where DTO: ModelDTO, D: DataModel{
 
 }
 
 class ResultList<DTO, D, E> internal constructor(
     override val dtoClass: DTOBase<DTO, D, E>,
     private var result : List<CommonDTO<DTO, D, E>> = emptyList()
-):ResultBase<DTO, D>(dtoClass),  ExposifyResult, CtxId where DTO: ModelDTO, D: DataModel, E : LongEntity {
+):ResultBase<DTO, D>(dtoClass),  ExposifyResult where DTO: ModelDTO, D: DataModel, E : LongEntity {
 
-    override val contextName: String
-        get() = "ResultList"
+    override val identity: CTXIdentity<out CTX> = asSubIdentity(this, dtoClass)
+
     override var resultMessage: String = ""
     override val size: Int get() = result.size
     override var activeCRUD: CrudOperation = CrudOperation.Create
@@ -67,8 +68,8 @@ class ResultList<DTO, D, E> internal constructor(
 
     fun getDTO(): List<DTO> {
         val typeRecord = dtoClass.dtoType
-        return result.castListOrThrow(typeRecord.kClass, this) {str, th->
-            operationsException(managedPayload(str, ExceptionCode.CAST_FAILURE))
+        return result.castListOrThrow(typeRecord.kClass) { str, th->
+            operationsException(str, ExceptionCode.CAST_FAILURE, dtoClass)
         }
     }
 
@@ -89,10 +90,9 @@ class ResultList<DTO, D, E> internal constructor(
 class ResultSingle<DTO, D, E> internal constructor(
     override val dtoClass: DTOBase<DTO, D, E>,
     private var result: CommonDTO<DTO, D, E>? = null
-): ResultBase<DTO, D>(dtoClass), ExposifyResult, CtxId where DTO : ModelDTO, D: DataModel, E : LongEntity {
+): ResultBase<DTO, D>(dtoClass), ExposifyResult where DTO : ModelDTO, D: DataModel, E : LongEntity {
 
-    override val contextName: String
-        get() = "ResultSingle"
+    override val identity: CTXIdentity<out CTX> = asSubIdentity(this, dtoClass)
 
     override var resultMessage: String = ""
     override val size: Int get()  {
@@ -117,7 +117,7 @@ class ResultSingle<DTO, D, E> internal constructor(
     }
 
     fun getDataForced(): D {
-        return getData().getOrOperations("DataModel", this)
+        return getData().getOrOperations("getData",this)
     }
 
     internal fun getAsCommonDTO(): CommonDTO<DTO, D, E>? {
@@ -125,7 +125,7 @@ class ResultSingle<DTO, D, E> internal constructor(
     }
 
     internal fun getAsCommonDTOForced(): CommonDTO<DTO, D, E> {
-        return result.getOrOperations(this)
+        return result.getOrOperations("Result", this)
     }
 
     fun getDTO(): DTO? {
@@ -139,7 +139,7 @@ class ResultSingle<DTO, D, E> internal constructor(
             if(managed != null){
                 throw managed
             }else{
-                throw operationsException("Result is null with reason unknow", ExceptionCode.DTO_LOOKUP_FAILURE)
+                throw operationsException("Result is null with reason unknow", ExceptionCode.DTO_LOOKUP_FAILURE, dtoClass)
             }
         }
     }

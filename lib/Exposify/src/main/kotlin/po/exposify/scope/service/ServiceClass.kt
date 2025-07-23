@@ -15,19 +15,20 @@ import po.exposify.scope.connection.controls.CoroutineEmitter
 import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.tasks.TaskHandler
-import po.misc.interfaces.ClassIdentity
-import po.misc.context.IdentifiableClass
+import po.misc.context.asIdentity
 
 class ServiceClass<DTO, DATA, ENTITY>(
     private val rootDTOModel: RootDTO<DTO, DATA, ENTITY>,
     @PublishedApi internal val connectionClass : ConnectionClass
-):  TasksManaged, IdentifiableClass  where  DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity {
+):  TasksManaged  where  DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity {
 
-    override val identity: ClassIdentity = ClassIdentity.create("ServiceClass", rootDTOModel.completeName)
+
+    override val identity = asIdentity()
+
     private var tableRecreationList: List<IdTable<Long>>? = null
 
     internal val connection: Database get() = connectionClass.connection
-    internal val serviceContext: ServiceContext<DTO, DATA, ENTITY> = ServiceContext(this, rootDTOModel)
+    val serviceContext: ServiceContext<DTO, DATA, ENTITY> = ServiceContext(this, rootDTOModel)
 
     val logger : TaskHandler<*> get()= taskHandler()
 

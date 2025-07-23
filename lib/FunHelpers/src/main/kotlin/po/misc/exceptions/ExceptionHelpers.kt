@@ -11,14 +11,14 @@ fun CTX.managedException(message: String, source: Enum<*>?): ManagedException{
     val exceptionMessage = "$message @ $completeName"
     val payload =   toPayload {
         this.message = exceptionMessage
-        this.source = source
+        this.code = source
     }
-    return  ManagedException(payload.message, payload, null)
+    return  ManagedException(payload)
 }
 
 fun CTX.managedException(cause: Throwable): ManagedException{
     val payload = toPayload(cause)
-    return  ManagedException(payload.message, payload, cause)
+    return  ManagedException(payload)
 }
 
 
@@ -60,12 +60,13 @@ inline fun <reified EX: ManagedException, S: Enum<S>> throwManageable(
 fun Throwable.toManaged(ctx: CTX, handler: HandlerType): ManagedException{
 
    val payload =  ctx.toPayload{  }
-   return  ManagedException(payload.message, payload, this)
+   return  ManagedException(payload)
 }
 
-fun Throwable.toManaged(payload: ManagedCallSitePayload): ManagedException{
-    val exceptionMessage = "$message @ ${payload.producer.completeName}"
-    val managed = ManagedException(this.throwableToText(), payload, this)
+fun Throwable.toManaged(payload: ExceptionPayload): ManagedException{
+    val exceptionMessage = "$message @ ${payload.producer?.completeName}"
+    payload.message = exceptionMessage
+    val managed = ManagedException(payload)
     payload.handler?.let {
         managed.handler = it
     }
@@ -97,14 +98,3 @@ fun  Throwable.throwableToText(): String{
         this.javaClass.simpleName.toString()
     }
 }
-
-//fun <EX: Throwable> EX.shortName(): String{
-//    return if (this is ManagedException) {
-//        val name = this::class.simpleName
-//        val handlerName = this.handler.name
-//        val completeName = "$name(${message})"
-//        completeName
-//    }else{
-//        "${this.javaClass.simpleName}(${message ?: ""})"
-//    }
-//}

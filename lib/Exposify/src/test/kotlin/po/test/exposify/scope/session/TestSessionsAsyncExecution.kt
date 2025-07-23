@@ -4,11 +4,16 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.TestInstance
 import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.lognotify.TasksManaged
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.dtos.User
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
+
+    override val identity: CTXIdentity<out CTX> = asIdentity()
 
     companion object {
 

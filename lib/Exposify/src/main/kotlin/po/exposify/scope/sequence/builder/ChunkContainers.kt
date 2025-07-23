@@ -14,8 +14,8 @@ import po.exposify.scope.sequence.launcher.SingleTypeHandler
 import po.exposify.scope.sequence.launcher.SingleTypeSwitchHandler
 import po.exposify.scope.sequence.launcher.SwitchDescriptorBase
 import po.lognotify.TasksManaged
-import po.misc.interfaces.ClassIdentity
-import po.misc.context.IdentifiableClass
+import po.misc.context.asIdentity
+import po.misc.context.asSubIdentity
 import po.misc.types.TypeData
 
 sealed class ChunkContainer<DTO, D, E>(
@@ -44,11 +44,12 @@ sealed class ChunkContainer<DTO, D, E>(
 class SequenceChunkContainer<DTO, D, E>(
     val execContext: RootExecutionContext<DTO, D, E>,
     val providedId: Long = 0
-):ChunkContainer<DTO, D, E>(), TasksManaged, IdentifiableClass where DTO: ModelDTO, D: DataModel, E: LongEntity {
+):ChunkContainer<DTO, D, E>(), TasksManaged where DTO: ModelDTO, D: DataModel, E: LongEntity {
 
-    override val identity: ClassIdentity =
-        ClassIdentity.create("SequenceChunkContainer", execContext.contextName, providedId)
-    internal val debugger = exposifyDebugger(this, ContextData.Companion) { ContextData(this, it.message) }
+    override val identity = asIdentity(providedId)
+
+
+    internal val debugger = exposifyDebugger(this, ContextData.Companion) { ContextData(it.message) }
 
     val listTypeHandler:  ListTypeHandler<DTO, D, E> = ListTypeHandler()
     val singleTypeHandler: SingleTypeHandler<DTO, D, E> = SingleTypeHandler()
@@ -70,11 +71,12 @@ class SwitchChunkContainer<DTO, D, E, F, FD, FE>(
     val descriptor:  SwitchDescriptorBase<DTO, D, E, F>,
     val parentDTO: CommonDTO<F, FD, FE>,
     val hostingChunk: ExecutionChunkBase<F, FD>,
-): ChunkContainer<DTO, D, E>(), TasksManaged, IdentifiableClass
+): ChunkContainer<DTO, D, E>(), TasksManaged
         where DTO: ModelDTO, D: DataModel, E : LongEntity, F: ModelDTO, FD: DataModel, FE : LongEntity
 {
-    override val identity: ClassIdentity = ClassIdentity.create("SwitchChunkContainer", descriptor.dtoClass.contextName)
-    internal val debugger = exposifyDebugger(this, ContextData.Companion){ ContextData(this, it.message) }
+    override val identity = asSubIdentity(this, descriptor.dtoClass)
+
+    internal val debugger = exposifyDebugger(this, ContextData.Companion){ ContextData(it.message) }
 
     val singleTypeSwitchHandler: SingleTypeSwitchHandler<DTO, D, E, F, FD, FE> = SingleTypeSwitchHandler(descriptor, parentDTO)
 

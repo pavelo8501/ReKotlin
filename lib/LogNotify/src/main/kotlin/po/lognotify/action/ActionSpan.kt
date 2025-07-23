@@ -10,7 +10,7 @@ import po.lognotify.tasks.ExecutionStatus
 import po.lognotify.tasks.TaskBase
 import po.lognotify.tasks.models.TaskConfig
 import po.misc.context.CTX
-import po.misc.context.subIdentity
+import po.misc.context.asSubIdentity
 import po.misc.data.printable.knowntypes.PropertyData
 import po.misc.exceptions.ManagedException
 import po.misc.reflection.classes.ClassInfo
@@ -24,7 +24,7 @@ class ActionSpan<T, R: Any?>(
     override val receiver: T,
 ): LogInstance<T>  where T: CTX {
 
-    override val identity = subIdentity(this, receiver)
+    override val identity = asSubIdentity(this, receiver)
 
     override val contextName: String
         get() = "ActionSpan"

@@ -1,4 +1,4 @@
-package po.misc.types
+package po.misc.collections
 
 
 fun <C : MutableCollection<in R>, R> Iterable<*>.selectToInstance(destination: C, instance:R): C {
@@ -22,4 +22,9 @@ fun <T : Any> Iterable<T>.selectUntil(predicate:(T)-> Boolean): List<T> {
         }
     }
     return emptyList()
+}
+
+fun <T> Array<out T>.takeFromMatch(predicate: (T) -> Boolean, count: Int): List<T> {
+    return this.dropWhile { !predicate(it) }
+        .take(count)
 }

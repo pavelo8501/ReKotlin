@@ -6,7 +6,7 @@ import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 import po.exposify.common.classes.ExposifyDebugger
-import po.misc.context.CtxId
+import po.misc.context.CTX
 
 
 suspend fun <T> withSuspendedTransactionIfNone(
@@ -45,7 +45,7 @@ fun <T, R> T.withTransactionRestored(
 logDataProcessor: ExposifyDebugger<*, *>,
 warnIfNoTransaction: Boolean = true,
 block: T.() -> R
-): R where T: CtxId, R: Any? {
+): R where T: CTX, R: Any? {
 
     val context = this@withTransactionRestored
 

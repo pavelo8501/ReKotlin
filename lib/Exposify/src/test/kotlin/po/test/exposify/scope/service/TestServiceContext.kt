@@ -4,6 +4,9 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
 import po.test.exposify.setup.ContentBlocks
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.Pages
@@ -15,6 +18,8 @@ import po.test.exposify.setup.dtos.UserDTO
 
 class TestServiceContext : DatabaseTest(), TasksManaged {
 
+
+    override val identity: CTXIdentity<out CTX> = asIdentity()
 
     @Test
     fun `Tables ForceRecreate work as expected`() {

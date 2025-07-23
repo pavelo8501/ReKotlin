@@ -39,6 +39,7 @@ internal fun <T: TasksManaged, R: Any?> RunnableContainer<T, R>.controlledRun(
         } catch (th: Throwable) {
 
             println("catch block reached ${this.source}")
+            th.stackTrace.forEach { println(it) }
 
             val managed = processExceptionCase(this, th)
             Thread.sleep(this.taskConfig.delayMs)

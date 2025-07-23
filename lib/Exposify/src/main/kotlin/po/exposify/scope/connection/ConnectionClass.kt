@@ -19,9 +19,9 @@ import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.tasks.TaskHandler
 import po.lognotify.extensions.runTask
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
 import po.misc.coroutines.CoroutineInfo
-import po.misc.interfaces.ClassIdentity
-import po.misc.context.IdentifiableClass
 import po.misc.serialization.SerializerInfo
 import po.misc.types.safeCast
 import kotlin.coroutines.coroutineContext
@@ -30,16 +30,18 @@ class ConnectionClass(
     internal val databaseManager : DatabaseManager,
     val connectionInfo: ConnectionInfo,
     val connection: Database,
-): TasksManaged, IdentifiableClass {
+): TasksManaged {
 
-    override val identity: ClassIdentity = ClassIdentity.create("ConnectionClass", connection.name)
+    override val identity :  CTXIdentity<ConnectionClass> = asIdentity()
+
     private val dispatchManager = UserDispatchManager()
 
     val isConnectionOpen: Boolean
         get() = connectionInfo.connection.transactionManager.currentOrNull()?.connection?.isClosed == false
 
     internal val serializerMap = mutableMapOf<String, SerializerInfo<*>>()
-    private  var services: MutableMap<String, ServiceClass<*, *, *>> = mutableMapOf()
+    private  var servicesBacking: MutableMap<String, ServiceClass<*, *, *>> = mutableMapOf()
+    val  services : List<ServiceClass<*, *, *>> get() = servicesBacking.values.toList()
     private val taskHandler: TaskHandler<*> = taskHandler()
 
     init {
@@ -59,13 +61,13 @@ class ConnectionClass(
     }
 
     internal fun <DTO: ModelDTO, D: DataModel, E: LongEntity> getService(name: String): ServiceClass<DTO, D, E>?{
-       return services[name]?.safeCast<ServiceClass<DTO, D, E>>()
+       return servicesBacking[name]?.safeCast<ServiceClass<DTO, D, E>>()
     }
 
     fun close(){
         taskHandler.info("Closing connection: ${connection.name}")
         TransactionManager.closeAndUnregister(database = connection)
-        services.values.forEach {
+        servicesBacking.values.forEach {
             it.deinitializeService()
         }
     }
@@ -76,20 +78,21 @@ class ConnectionClass(
         block: ServiceContext<DTO, D, E>.()->Unit,
     ): Unit where DTO : ModelDTO, D: DataModel, E: LongEntity = runTask("service"){
 
+        val connectionClass = this@ConnectionClass
 
         val existentService = getService<DTO, D, E>(dtoClass.contextName)
         if(existentService == null){
-            val serviceClass = ServiceClass(dtoClass, ctx)
-            task.info("ServiceClass ${serviceClass.contextName} created")
-            serviceClass.initService(dtoClass, createOptions,  block)
-            services[dtoClass.contextName] = serviceClass
+            val serviceClass = ServiceClass(dtoClass, connectionClass)
+            info("ServiceClass ${serviceClass.contextName} created")
+            serviceClass.initService(dtoClass, createOptions, block)
+            servicesBacking[dtoClass.contextName] = serviceClass
         }else{
-            task.info("Using ServiceClass ${existentService.contextName}")
+            info("Using ServiceClass ${existentService.contextName}")
             block.invoke(existentService.serviceContext)
         }
     }.resultOrException()
 
     fun clearServices(){
-        services.clear()
+        servicesBacking.clear()
     }
 }

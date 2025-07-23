@@ -11,6 +11,7 @@ import po.exposify.dto.components.bindings.property_binder.delegates.binding
 import po.exposify.dto.components.bindings.relation_binder.delegates.oneToManyOf
 import po.exposify.dto.components.tracker.models.TrackerTag
 import po.exposify.dto.configuration.configuration
+import po.exposify.dto.dtoOf
 import po.exposify.scope.sequence.builder.InsertSingle
 import po.exposify.scope.sequence.builder.PickById
 import po.exposify.scope.sequence.builder.Select
@@ -47,7 +48,7 @@ class PageDTO(): CommonDTO<PageDTO, Page, PageEntity>(this){
 
     val sections : List<SectionDTO> by oneToManyOf(SectionDTO, Page::sections, PageEntity::sections, SectionEntity::page)
 
-    companion object: RootDTO<PageDTO, Page, PageEntity>(PageDTO::class){
+    companion object: RootDTO<PageDTO, Page, PageEntity>(dtoOf<PageDTO>()){
 
         val INSERT = SingleDescriptor(this, InsertSingle)
         val PICK = SingleDescriptor(this, PickById)

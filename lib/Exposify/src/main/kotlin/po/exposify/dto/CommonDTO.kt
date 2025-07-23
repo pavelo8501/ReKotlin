@@ -22,7 +22,10 @@ import po.misc.callbacks.CallbackPayload
 import po.misc.callbacks.builders.callbackBuilder
 import po.misc.callbacks.builders.registerPayload
 import po.misc.containers.BackingContainer
+import po.misc.containers.LazyBackingContainer
 import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
 import po.misc.exceptions.ExceptionPayload
 import po.misc.types.TypeData
 import java.util.UUID
@@ -43,6 +46,8 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         OnDTOComplete
     }
 
+    override val identity: CTXIdentity<out CTX> = asIdentity()
+
     private val exPayload: ExceptionPayload = ExceptionPayload(this)
 
     var onInitializationStatusChange: ((CommonDTO<DTO, DATA, ENTITY>) -> Unit)? = null
@@ -61,7 +66,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     override val typeData: TypeData<DTO> get() = dtoClass.dtoType
 
     val dtoClassConfig: DTOConfig<DTO, DATA, ENTITY> get() =  dtoClass.config
-    val commonType: CommonDTOType<DTO, DATA, ENTITY> by lazy { dtoClass.commonType}
+    val commonType: LazyBackingContainer<CommonDTOType<DTO, DATA, ENTITY>> get() = dtoClass.commonDTOType
 
     override val dtoId : DTOId<DTO> = DTOId(UUID.randomUUID().hashCode().toLong())
 
@@ -94,9 +99,8 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         foreignDTO: DTOClass<F, FD, FE>,
         warnIfEmpty: Boolean = false
     ): DTOExecutionContext<F, FD, FE, DTO, DATA, ENTITY>?{
-       val found =  executionContextMap[foreignDTO.commonType]
 
-
+       val found = foreignDTO.commonDTOType.getValue()?.let { executionContextMap[it] }
        return found?.castOrOperations<DTOExecutionContext<F, FD, FE, DTO, DATA, ENTITY>>(exPayload)?:run {
             if(warnIfEmpty && executionContextMap.isEmpty()){
                 logHandler.dataProcessor.warn("executionContextMap is empty")
@@ -104,8 +108,6 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
            null
         }
     }
-
-
 
     val logger : LogNotifyHandler get() {
         tracker.logDebug("Accessing logger", this)

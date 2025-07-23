@@ -36,9 +36,16 @@ fun <T:TasksManaged, R: Any?> T.runAction(
     taskHandler.task.addActionSpan(newActionSpan)
     val container = ActionContainer.create(newActionSpan)
     container.classInfoProvider.registerProvider { overallInfoFromType(ClassRole.Result, resultType) }
-    return container.controlledRun{
+
+    return try {
         block.invoke(container as RunnableContainer<T, R>)
+    }catch (th: Throwable){
+       throw th
     }
+
+//    return container.controlledRun{
+//        block.invoke(container as RunnableContainer<T, R>)
+//    }
 }
 
 inline fun <T:TasksManaged, reified R: Any?>  T.action(

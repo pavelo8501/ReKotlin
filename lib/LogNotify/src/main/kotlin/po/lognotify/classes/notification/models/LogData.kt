@@ -1,7 +1,5 @@
 package po.lognotify.classes.notification.models
 
-
-import po.lognotify.classes.notification.models.ActionData
 import po.lognotify.common.LogInstance
 import po.lognotify.tasks.models.TaskConfig
 import po.lognotify.enums.SeverityLevel
@@ -36,6 +34,7 @@ class LogEvent(
             next {
                 matchTemplate(
                     templateRule(message) { severity == SeverityLevel.INFO },
+                    templateRule(message) { severity == SeverityLevel.LOG },
                     templateRule(message.colorize(Colour.YELLOW)) { severity == SeverityLevel.WARNING },
                     templateRule(message.colorize(Colour.RED)) { severity == SeverityLevel.EXCEPTION }
                 )
@@ -56,36 +55,30 @@ data class TaskData(
     override val self: TaskData = this
     companion object : PrintableCompanion<TaskData>({ TaskData::class }) {
 
-        val Header = createTemplate{
+        val Header = createTemplate {
             next { "$taskHeader Status[" }
-            with({it.executionStatus}){
-                next{
-                    matchTemplate(
-                        templateRule(name.colorize(Colour.GREEN))
-                        { this ==   ExecutionStatus.Complete},
-                        templateRule(name.colorize(Colour.BRIGHT_WHITE))
-                        { this ==   ExecutionStatus.Active},
-                        templateRule(name.colorize(Colour.RED))
-                        { this ==   ExecutionStatus.Failing},
-                        templateRule(name.colorize(Colour.RED))
-                        { this ==   ExecutionStatus.Faulty})
+            next {
+                val status = when (executionStatus) {
+                    ExecutionStatus.Complete -> executionStatus.name.colorize(Colour.GREEN)
+                    ExecutionStatus.Active -> executionStatus.name.colorize(Colour.BRIGHT_WHITE)
+                    ExecutionStatus.Failing, ExecutionStatus.Faulty -> executionStatus.name.colorize(Colour.RED)
                 }
-                next{ "]" }
+                "$status]"
             }
         }
         val Footer = createTemplate{
             next { taskFooter }
         }
 
-        val Message =createTemplate{
+        val Message = createTemplate{
             next {
-                matchTemplate(
-                    templateRule(message.colorize(Colour.GREEN))
-                    { severity == SeverityLevel.INFO},
-                    templateRule(message.colorize(Colour.YELLOW))
-                    { severity ==   SeverityLevel.WARNING},
-                    templateRule(message.colorize(Colour.RED))
-                    { severity ==   SeverityLevel.EXCEPTION})
+                when(severity){
+                    SeverityLevel.INFO->message.colorize(Colour.GREEN)
+                    SeverityLevel.LOG->message.colorize(Colour.BRIGHT_WHITE)
+                    SeverityLevel.WARNING->message.colorize(Colour.YELLOW)
+                    SeverityLevel.EXCEPTION->message.colorize(Colour.RED)
+                    SeverityLevel.SYS_INFO,SeverityLevel.DEBUG->message.colorize(Colour.MAGENTA)
+                }
             }
         }
     }

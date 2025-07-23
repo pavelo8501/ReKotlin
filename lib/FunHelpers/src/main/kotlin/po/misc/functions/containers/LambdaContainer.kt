@@ -43,6 +43,8 @@ data class LambdaUnitConfig(
 )
 
 class ResultHandler<V:Any, R:Any>(){
+
+
     var  resultProvided : ((R)-> Unit)? = null
 
     fun onResultProvided(onResult:(R)-> Unit){
@@ -177,7 +179,9 @@ class Provider<R: Any>(
     override val function: () -> R,
 ): LambdaContainer<Unit, R>(), DeferredUnit<R> {
     override val identifiedAs: String get() = "Provider<R>"
+
     override val resultHandler : ResultHandler<Unit, R> =  ResultHandler()
+
     override fun trigger(value: Unit): R {
         val result = function.invoke()
         resultHandler.provideResult(result, this)
@@ -186,7 +190,46 @@ class Provider<R: Any>(
     fun trigger(): R {
        return trigger(Unit)
     }
+}
 
+class NullableProvider<R: Any>(
+    private val initialLambda: (() -> R)? = null
+): LambdaContainer<Unit, R>(), DeferredUnit<R> {
+
+    var isUserDefinedFunction: Boolean = false
+        private set
+
+    override var function: () -> R = {
+        result
+    }
+    override val identifiedAs: String get() = "NullableProvider<R>"
+    override val resultHandler : ResultHandler<Unit, R> =  ResultHandler()
+
+    init {
+        initialLambda?.let {
+            isUserDefinedFunction = true
+            function = it
+        }
+    }
+    fun subscribe(lambda: (() -> R)){
+        isUserDefinedFunction = true
+        function = lambda
+    }
+    override fun trigger(value: Unit): R {
+        val result = function.invoke()
+        resultHandler.provideResult(result, this)
+        provideResult(result)
+        return  result
+    }
+    fun trigger(): R {
+        return trigger(Unit)
+    }
+
+    fun dispose(){
+        function = {
+            result
+        }
+    }
 }
 
 class DSLProvider<T: Any,  R: Any>(

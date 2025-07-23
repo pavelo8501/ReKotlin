@@ -8,7 +8,8 @@ import po.misc.context.CTX
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.toManaged
 import po.misc.context.asContext
-import po.misc.context.subIdentity
+import po.misc.context.asIdentity
+import po.misc.context.asSubIdentity
 import po.misc.exceptions.ExceptionPayload
 import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.exceptions.toPayload
@@ -41,7 +42,7 @@ class ActionValue<V>(
     data class ActionClassData<V: Any>(val event: ActionClassEvents, val value:V, val exception: ManagedException?){
         val success: Boolean = exception == null
     }
-    override val identity = asContext(owner)
+    override val identity = asSubIdentity(this, owner)
 
     val actionClassNotifier: CallbackManager<ActionClassEvents> = CallbackManager<ActionClassEvents>(ActionClassEvents::class.java, this)
     internal val onValuePayload = CallbackManager.createPayload<ActionClassEvents, ActionClassData<V>>(actionClassNotifier, ActionClassEvents.OnValueProvided)
@@ -64,7 +65,7 @@ class UpdatableContainer<T: CTX, R: Any, V: Any>(
     val dataLambda:(T)-> V
 ): TypedContainer<T>(source, typeData, classInfo), ComplexContainers<T>, DeferredMutation<T, R>, CTX {
 
-    override val identity = subIdentity(this,  source)
+    override val identity = asSubIdentity(this,  source)
     val exPayload: ExceptionPayload = toPayload { }
 
 

@@ -14,12 +14,11 @@ import po.misc.callbacks.CallbackManager
 import po.misc.callbacks.Containable
 import po.misc.callbacks.builders.callbackBuilder
 import po.misc.callbacks.builders.createPayload
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
 import po.misc.data.printable.printableProxy
-import po.misc.interfaces.ClassIdentity
-import po.misc.context.CtxId
-import po.misc.context.IdentifiableClass
 import po.misc.context.Identifiable
-import po.misc.interfaces.asIdentifiable
+import po.misc.context.asSubIdentity
 import po.misc.lookups.HierarchyNode
 import po.misc.lookups.transformNode
 import po.misc.reflection.properties.models.PropertyUpdate
@@ -29,9 +28,10 @@ import po.misc.time.startTimer
 
 class DTOTracker<DTO: ModelDTO, D: DataModel, E: LongEntity>(
     internal val dto : CommonDTO<DTO, D, E>
-):  MeasuredContext, TrackableDTO, TasksManaged, IdentifiableClass{
+):  MeasuredContext, TrackableDTO, TasksManaged{
 
-    override val identity: ClassIdentity = ClassIdentity.create("Tracker", dto.sourceName)
+    override val identity: CTXIdentity<DTOTracker<DTO, D, E>> = asSubIdentity(this, dto)
+
 
     override val executionTimeStamp: ExecutionTimeStamp = ExecutionTimeStamp(dto.completeName, "-1")
 
@@ -53,25 +53,14 @@ class DTOTracker<DTO: ModelDTO, D: DataModel, E: LongEntity>(
     }
 
     internal fun dtoIdUpdated(id: Long){
-        identity.provideId(id)
+        identity.setId(id)
     }
 
     fun updateConfig(trackerConfig:TrackerConfig){
         config = trackerConfig
     }
 
-    internal fun subscribe(
-        event:DTOEvents,
-        ctx: Identifiable?,
-        lambda: (Containable<DTOTracker<DTO, *, *>>) -> Unit
-    ){
-        val context = ctx?:run {
-            asIdentifiable("Default", "Default")
-        }
-        notifier.subscribe<DTOTracker<DTO, *, *>>(context, event, lambda)
-    }
-
-    internal fun logDebug(message: String, byContext: CtxId){
+    internal fun logDebug(message: String, byContext: CTX){
         val toDebugMsg = "$message by ${byContext.contextName}"
         debug.logMessage(toDebugMsg)
     }
@@ -103,10 +92,9 @@ class DTOTracker<DTO: ModelDTO, D: DataModel, E: LongEntity>(
         activeRecord.setPropertyUpdate(update)
     }
 
-    fun addTrackInfo(operation:CrudOperation, module: Identifiable? = null):DTOTracker<DTO, D, E>{
+    fun addTrackInfo(operation:CrudOperation, module: CTX? = null):DTOTracker<DTO, D, E>{
         finalizeLast()
         if(activeRecord.operation != CrudOperation.Create){ onStart() }
-
         activeRecord = TrackerRecord(this, operation, module?.contextName?:"")
         debug.logMessage("Active CRUD: $activeRecord", DTOData.Stats)
         startTimer()

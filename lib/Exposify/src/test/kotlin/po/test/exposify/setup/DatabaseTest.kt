@@ -13,9 +13,9 @@ import po.misc.context.Identifiable
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers
-abstract class DatabaseTest() : Identifiable {
+abstract class DatabaseTest(){
 
-    override  val contextName: String = "DatabaseTest"
+
 
     companion object {
         @JvmStatic
@@ -28,6 +28,8 @@ abstract class DatabaseTest() : Identifiable {
     init {
         connectionClass =  startTestConnection()
     }
+
+
     fun withConnection(block: ConnectionClass.()-> Unit){
         connectionClass?.let {
             block.invoke(it)

@@ -1,8 +1,8 @@
 package po.exposify.scope.sequence.models
 
-import po.misc.functions.containers.LambdaContainer
+import po.misc.functions.containers.LambdaHolder
 
 
 data class SequenceParameter<P: Any>(
-    val  input: LambdaContainer<P>
+    val  input: LambdaHolder<P>
 )

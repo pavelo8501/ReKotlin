@@ -1,12 +1,14 @@
 package po.test.misc.functions
 
 import org.junit.jupiter.api.Test
+import po.misc.functions.containers.NullableProvider
 import po.misc.functions.dsl.DSLBuilder
 import po.misc.functions.dsl.DSLContainer
 import po.misc.functions.dsl.dslBuilder
 import po.test.misc.functions.TestDSLContainer.TestDSLControlClass
 import po.test.misc.setup.ControlClass
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class TestDSLContainer() : DSLBuilder<TestDSLControlClass, String> {
 
@@ -21,6 +23,8 @@ class TestDSLContainer() : DSLBuilder<TestDSLControlClass, String> {
         override val dslContainer: DSLContainer<TestDSLControlClass, String> = DSLContainer()
 
     }
+
+
 
     @Test
     fun `DSLContainer preEvaluate self constructing lambda, structure being created`() {

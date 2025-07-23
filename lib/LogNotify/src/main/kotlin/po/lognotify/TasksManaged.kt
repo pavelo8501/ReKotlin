@@ -27,6 +27,7 @@ interface TasksManaged : CTX {
         fun onTaskComplete(handler: UpdateType, callback: (TaskDispatcher.LoggerStats) -> Unit): Unit =
             taskDispatcher.onTaskComplete(handler, wrapRawCallback(callback))
     }
+
     val logHandler: LogNotifyHandler
         get() {
             return LogNotifyHandler(LogNotify.taskDispatcher)
@@ -35,6 +36,9 @@ interface TasksManaged : CTX {
     fun <T : PrintableBase<T>> log(data: T, template: PrintableTemplateBase<T>) {
         logHandler.dispatcher.getActiveDataProcessor().log(data, template)
     }
+
+
+
 
     fun <T : PrintableBase<T>> debug(data: T, dataClass: PrintableCompanion<T>, template: PrintableTemplateBase<T>) {
         logHandler.dispatcher.getActiveDataProcessor().debug(data, dataClass, template)

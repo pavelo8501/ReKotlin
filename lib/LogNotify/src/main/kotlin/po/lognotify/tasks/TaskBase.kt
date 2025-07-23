@@ -27,7 +27,7 @@ import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.exceptions.ManagedException
 import po.misc.context.CTX
-import po.misc.context.subIdentity
+import po.misc.context.asSubIdentity
 import po.misc.reflection.classes.ClassInfo
 import po.misc.time.ExecutionTimeStamp
 import po.misc.time.MeasuredContext
@@ -152,7 +152,7 @@ class RootTask<T: CTX, R: Any?>(
     receiver: T,
 ):TaskBase<T, R>(key, config, dispatcher, receiver), CoroutineHolder{
 
-    override val identity = subIdentity(this, receiver)
+    override val identity = asSubIdentity(this, receiver)
 
     override val dataProcessor: LoggerDataProcessor = LoggerDataProcessor(this, null, FlowEmitter())
     override var taskResult : TaskResult<R>?  =  null
@@ -228,7 +228,7 @@ class Task<T: CTX,  R: Any?>(
 ):TaskBase<T, R>(key, config, hierarchyRoot.dispatcher, receiver), ResultantTask<T, R>{
 
 
-    override val identity = subIdentity(this, receiver)
+    override val identity = asSubIdentity(this, receiver)
 
     override val dataProcessor: LoggerDataProcessor = LoggerDataProcessor(this, hierarchyRoot.dataProcessor, null)
     override val coroutineContext: CoroutineContext get() = hierarchyRoot.coroutineContext

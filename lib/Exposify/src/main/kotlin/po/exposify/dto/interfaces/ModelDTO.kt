@@ -8,9 +8,10 @@ import po.exposify.dto.components.tracker.DTOTracker
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.enums.DTOStatus
 import po.exposify.dto.models.DTOId
+import po.misc.context.CTX
 import po.misc.types.TypeData
 
-interface ModelDTO: DataModel {
+interface ModelDTO: DataModel, CTX {
     val cardinality: Cardinality
     val status: DTOStatus
     val dataStatus:DataStatus

@@ -29,6 +29,7 @@ fun <DTO, D> ExecutionChunkBase<DTO, D>.withResult(
 
     when(this){
         is SingleResultChunks->{
+
             withResultContainer.registerProvider(block)
         }
         is ListResultChunks->{

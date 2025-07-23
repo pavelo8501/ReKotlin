@@ -6,6 +6,6 @@ import po.exposify.exceptions.operationsException
 
 fun checkDataListNotEmpty(dataModels: List<DataModel>){
     if( dataModels.isEmpty()){
-       throw operationsException("Provided DataModels input list is empty", ExceptionCode.INVALID_DATA)
+        throw IllegalArgumentException("Provided DataModels input list is empty")
     }
 }

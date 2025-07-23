@@ -6,7 +6,6 @@ import po.misc.data.helpers.emptyAsNull
 import po.misc.data.tags.EnumTag
 import po.misc.data.tags.Tagged
 import po.misc.interfaces.ValueBased
-import javax.swing.text.html.HTML
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlin.reflect.full.createType

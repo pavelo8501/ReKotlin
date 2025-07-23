@@ -15,22 +15,16 @@ class NullablePropertyWrapper<T : Any, V : Any?> {
     }
 
     fun extract(): KMutableProperty1<T, V> {
-        return property ?: throw OperationsException(
-            "Extracting property undefined",
-            ExceptionCode.NOT_INITIALIZED, null
-        )
+        return property ?: throw  Exception("Extracting property undefined")
     }
 
     fun get(receiver: T): V {
-        return property?.get(receiver) ?: throw OperationsException(
-            "Trying to get from uninitialized property",
-            ExceptionCode.NOT_INITIALIZED, null
-        )
+        return property?.get(receiver) ?: throw  Exception("Extracting property undefined")
     }
 
     fun set(receiver: T, value: V) {
         if (!isNullable && value == null) {
-            throw OperationsException("Cannot set null on non-nullable property", ExceptionCode.NOT_INITIALIZED, null)
+            throw  Exception("Extracting property undefined")
         }
         property?.set(receiver, value)
     }

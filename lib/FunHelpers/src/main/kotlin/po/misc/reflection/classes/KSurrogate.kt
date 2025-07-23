@@ -4,7 +4,7 @@ import po.misc.callbacks.CallbackManager
 import po.misc.callbacks.builders.callbackManager
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
-import po.misc.context.subIdentity
+import po.misc.context.asSubIdentity
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.reflection.properties.PropertyGroup
@@ -35,7 +35,7 @@ class KSurrogate<T: CTX>(
         SourcePropertyInitialized
     }
 
-    override val identity:  CTXIdentity<KSurrogate<T>> = subIdentity(this, receiver)
+    override val identity:  CTXIdentity<KSurrogate<T>> = asSubIdentity(this, receiver)
 
     val classRecord = TypeData.createByKClass(receiver::class)
     val classInfo = overallInfoFromType<T>(ClassRole.Receiver, classRecord.kType)

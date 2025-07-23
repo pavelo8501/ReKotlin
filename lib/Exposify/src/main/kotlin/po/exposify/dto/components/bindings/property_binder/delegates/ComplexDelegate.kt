@@ -13,9 +13,10 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.CommonDTOType
 import po.exposify.extensions.castOrInit
 import po.exposify.extensions.getOrOperations
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asSubIdentity
 import po.misc.data.SmartLazy
-import po.misc.interfaces.ClassIdentity
-import po.misc.context.IdentifiableClass
 import po.misc.types.TypeData
 import po.misc.types.containers.updatable.ActionValue
 import kotlin.getValue
@@ -24,8 +25,7 @@ import kotlin.reflect.KProperty
 
 sealed class ComplexDelegate<DTO, D, E, F, FD,  FE>(
     internal val hostingDTO : CommonDTO<DTO, D, E>,
-    override val identity:  ClassIdentity
-): DelegateInterface<DTO, F>, ForeignDelegateInterface, IdentifiableClass
+): DelegateInterface<DTO, F>, ForeignDelegateInterface, CTX
     where D: DataModel, E: LongEntity, DTO : ModelDTO, F: ModelDTO, FD : DataModel,  FE: LongEntity
 {
 
@@ -80,14 +80,16 @@ sealed class ComplexDelegate<DTO, D, E, F, FD,  FE>(
 
 class AttachedForeignDelegate<DTO, D, E, F, FD, FE>(
     hostingDTO: CommonDTO<DTO, D, E>,
-    identity: ClassIdentity = ClassIdentity.create("AttachedForeignDelegate", hostingDTO.sourceName),
     override val foreignClass: RootDTO<F, FD, FE>,
     val dataIdProperty: KMutableProperty1<D, Long>,
     val entityIdProperty: KMutableProperty1<E,  Long>,
     val foreignDTOCallback: (F)-> Unit
-): ComplexDelegate<DTO, D, E, F, FD, FE>(hostingDTO, identity)
-    where D: DataModel, E: LongEntity, DTO: ModelDTO, F: ModelDTO, FD: DataModel, FE: LongEntity {
-    val attachedName: String get() = entityIdProperty.name
+): ComplexDelegate<DTO, D, E, F, FD, FE>(hostingDTO)
+    where D: DataModel, E: LongEntity, DTO: ModelDTO, F: ModelDTO, FD: DataModel, FE: LongEntity
+{
+    override val identity: CTXIdentity<out CTX> = asSubIdentity(this, hostingDTO)
+
+        val attachedName: String get() = entityIdProperty.name
 
     private fun getForeignDTO(id: Long): F{
         val result = foreignClass.executionContext.pickById(id)
@@ -128,18 +130,19 @@ class AttachedForeignDelegate<DTO, D, E, F, FD, FE>(
 
 class ParentDelegate<DTO, D, E, F, FD, FE>(
     hostingDTO: CommonDTO<DTO, D, E>,
-    identity: ClassIdentity = ClassIdentity.create("ParentDelegate", hostingDTO.sourceName),
     override val foreignClass: DTOBase<F, FD, FE>,
     val parentDTOProvider: D.(F)-> Unit
-): ComplexDelegate<DTO, D, E, F, FD, FE>(hostingDTO,  identity)
+): ComplexDelegate<DTO, D, E, F, FD, FE>(hostingDTO)
         where DTO : ModelDTO, D: DataModel, E: LongEntity,  F: ModelDTO, FD : DataModel, FE: LongEntity
 {
+
+    override val identity: CTXIdentity<out CTX> = asSubIdentity(this, hostingDTO)
 
     val initialized: Boolean get() = entityBinderBacking != null
     val hub: BindingHub<DTO, D, E> = hostingDTO.hub
 
     val foreignDTOType: TypeData<F> = foreignClass.dtoType
-    val commonType: CommonDTOType<F, FD, FE> get() = foreignClass.commonType
+    //val commonType: CommonDTOType<F, FD, FE> get() = foreignClass.commonType
 
     internal var entityBinderBacking: ActionValue<E>? = null
     val entityBinder: ActionValue<E> by lazy { entityBinderBacking.getOrOperations(this) }

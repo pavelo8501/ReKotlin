@@ -19,18 +19,19 @@ inline fun <reified DTO,  reified D, reified E> DTOBase<DTO, D, E>.configuration
 ) where DTO: ModelDTO, D: DataModel, E: LongEntity {
 
     if(status == DTOClassStatus.Uninitialized){
-
         provideDataType(TypeData.create<D>())
-        provideEntityType(TypeData.create<E>())
-        val commonDTOType: CommonDTOType<DTO, D, E> = CommonDTOType.create()
-        provideCommonDTOType(commonDTOType)
+        val entityType = TypeData.create<E>()
+        provideEntityType(entityType)
 
+        println("Entity type ${entityType.typeName}")
+
+        commonDTOType.provideValue(CommonDTOType.create())
         config.entityModelBacking =  getExposifyEntityCompanion<E, InitException>()
         val entityMetadata =  config.entityModel.analyzeExposedTableMetadata<E>()
         config.propertyMap.addMapperRecord(SourceObject.Entity,  createPropertyMap(entityType, entityMetadata))
         config.propertyMap.addMapperRecord(SourceObject.Data,  createPropertyMap(dataType))
-        block.invoke(config)
 
+        block.invoke(config)
         val shallowDTO = shallowDTO()
         val relationDelegates = shallowDTO.hub.relationDelegates
         relationDelegates.forEach {relationDelegate->

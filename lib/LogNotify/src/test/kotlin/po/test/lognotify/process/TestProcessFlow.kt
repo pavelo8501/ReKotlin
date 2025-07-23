@@ -36,8 +36,6 @@ class TestProcessFlow() : TasksManaged {
         tasks.forEach {
             println(it)
         }
-
-        val a = 10
     }
 
 }

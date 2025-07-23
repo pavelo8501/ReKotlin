@@ -17,6 +17,8 @@ import po.exposify.extensions.getOrOperations
 import po.misc.callbacks.CallbackManager
 import po.misc.callbacks.builders.callbackManager
 import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asSubIdentity
 import po.misc.data.SmartLazy
 import po.misc.reflection.properties.models.PropertyUpdate
 import po.misc.types.getOrManaged
@@ -27,16 +29,14 @@ import kotlin.reflect.KProperty
 
 sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
     protected val hostingDTO: CommonDTO<DTO, D, E>,
-   // override val identity: Iden,
 ): ReadWriteProperty<DTO, V>, DelegateInterface<DTO, DTO>, CTX where DTO: ModelDTO, D: DataModel, E: LongEntity
 {
     override var status: DelegateStatus = DelegateStatus.Created
     enum class UpdateType(){
         PropertyUpdated
     }
-    val notifier: CallbackManager<UpdateType> = callbackManager(
-        { CallbackManager.createPayload<UpdateType, List<PropertyUpdate<V>>>(this, UpdateType.PropertyUpdated) }
-    )
+
+
     val hub: BindingHub<DTO, D, E> = hostingDTO.hub
 
     override val hostingClass: DTOBase<DTO, *, *>
@@ -49,8 +49,6 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
     protected val entity:E get(){
         return hostingDTO.entityContainer.source
     }
-
-
 
     private var propertyParameter : KProperty<V>? = null
     val property: KProperty<V> get() = propertyParameter.getOrInit(this)
@@ -74,12 +72,13 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
     val isValueNull : Boolean  get() = effectiveValue == null
     var valueUpdated : Boolean = false
 
-    abstract val propertyChecks : List<MappingCheck<V>>
+    //abstract val propertyChecks : List<MappingCheck<V>>
 
     override fun resolveProperty(property: KProperty<*>){
         if(propertyParameter == null){
             propertyParameter = property.castOrInit(this)
-            identity.updateSourceName(property.name)
+            identity.setNamePattern { property.name }
+
             hostingDTO.hub.registerResponsiveDelegate(this)
             onPropertyInitialized?.invoke(property)
         }
@@ -159,23 +158,31 @@ class SerializedDelegate<DTO, D, E, V: Any> @PublishedApi internal constructor(
     dto : CommonDTO<DTO, D, E>,
     serializedDataProperty:KMutableProperty1<D, V>,
     serializedEntityProperty:KMutableProperty1<E, V>,
-    override val  propertyChecks : List<MappingCheck<V>>
-) : ResponsiveDelegate<DTO, D, E, V>(dto, ClassIdentity.create("SerializedDelegate", dto.sourceName))
-        where DTO: ModelDTO, D: DataModel, E: LongEntity {
+) : ResponsiveDelegate<DTO, D, E, V>(dto) where DTO: ModelDTO, D: DataModel, E: LongEntity
+{
+    override val identity: CTXIdentity<out CTX> = asSubIdentity(this, dto)
+
     init {
         dataPropertyParameter = serializedDataProperty
         entityPropertyParameter = serializedEntityProperty
     }
+
 }
+
 
 
 class PropertyDelegate<DTO, D, E, V: Any> @PublishedApi internal constructor (
     dto:  CommonDTO<DTO, D, E>,
     datProperty:KMutableProperty1<D, V>?,
-    entProperty :KMutableProperty1<E, V>?,
-    override var  propertyChecks : MutableList<MappingCheck<V>> = mutableListOf()
-): ResponsiveDelegate <DTO, D, E, V>(dto, ClassIdentity.create("PropertyDelegate", dto.sourceName))
-        where DTO: ModelDTO, D: DataModel, E: LongEntity{
+    entProperty :KMutableProperty1<E, V>?
+): ResponsiveDelegate <DTO, D, E, V>(dto) where DTO: ModelDTO, D: DataModel, E: LongEntity {
+
+    override val identity: CTXIdentity<out CTX> = asSubIdentity(this, dto)
+
+    val notifier: CallbackManager<UpdateType> = callbackManager(
+        { CallbackManager.createPayload<UpdateType, List<PropertyUpdate<V>>>(this, UpdateType.PropertyUpdated) }
+    )
+
     init {
         datProperty?.let {
             dataPropertyParameter = it

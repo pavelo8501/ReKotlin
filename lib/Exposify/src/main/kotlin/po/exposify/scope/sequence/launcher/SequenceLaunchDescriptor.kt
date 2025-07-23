@@ -11,6 +11,8 @@ import po.exposify.scope.sequence.builder.ListResultMarker
 import po.exposify.scope.sequence.builder.SequenceChunkContainer
 import po.exposify.scope.sequence.builder.SingleResultMarker
 import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
 import po.misc.types.TypeData
 
 
@@ -18,6 +20,8 @@ sealed class SequenceDescriptorBase<DTO, D, E>(
    val  dtoBaseClass: DTOBase<DTO, D, E>
 ): CTX  where DTO: ModelDTO, D: DataModel, E: LongEntity{
     abstract override val contextName: String
+
+    override val identity: CTXIdentity<out CTX> = asIdentity()
 
     val parameterType: TypeData<Long> = TypeData.create<Long>()
     val inputType: TypeData<D> get() = dtoBaseClass.dataType
@@ -63,7 +67,7 @@ class ListDescriptor<DTO, D, E>(
 sealed class SwitchDescriptorBase<DTO, D, E, F>(
    val dtoClass: DTOClass<DTO, D, E>,
    val rootDescriptor:SequenceDescriptorBase<F, *, *>
-): SequenceDescriptorBase<DTO, D, E>(dtoClass), CTX
+): SequenceDescriptorBase<DTO, D, E>(dtoClass)
         where DTO: ModelDTO, D: DataModel, E:LongEntity, F : ModelDTO
 {
 
@@ -75,7 +79,7 @@ class SwitchSingeDescriptor<DTO, D, E, F>(
     val marker: SingleResultMarker
 ): SwitchDescriptorBase<DTO, D, E, F>(dtoClass, rootDescriptor), CTX where DTO: ModelDTO, D: DataModel, E: LongEntity, F : ModelDTO{
 
-    override val contextName: String get() = "SwitchDescriptorSinge"
+   override val contextName: String get() = "SwitchDescriptorSinge"
 
 }
 

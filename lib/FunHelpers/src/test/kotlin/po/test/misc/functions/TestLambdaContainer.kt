@@ -6,6 +6,7 @@ import po.misc.functions.containers.DSLAdapter
 import po.misc.functions.containers.DSLProvider
 import po.misc.functions.containers.Evaluator
 import po.misc.functions.containers.Notifier
+import po.misc.functions.containers.NullableProvider
 import po.misc.functions.containers.Provider
 import po.test.misc.setup.ControlClass
 import kotlin.test.assertEquals
@@ -15,7 +16,30 @@ class TestLambdaContainer {
 
     val controlClass = ControlClass()
 
+
     @Test
+    fun `NullableProvider dispose work as expected`(){
+
+        val expectedResult =  "Result"
+        var triggerCount: Int = 0
+        val nullableProvider =  NullableProvider<String>()
+
+        nullableProvider.subscribe {
+            triggerCount ++
+            expectedResult
+        }
+
+        val actualResult1 = nullableProvider.trigger()
+        nullableProvider.dispose()
+        val actualResult2 = nullableProvider.trigger()
+
+        assertEquals(expectedResult, actualResult1)
+        assertEquals(actualResult1, actualResult2)
+        assertTrue(triggerCount == 1)
+
+    }
+
+
     fun `ResponsiveContainers basic functionality work as expected`() {
         val outputList: MutableList<String> = mutableListOf()
         val producer: Notifier<String> = Notifier { outputList.add(it) }

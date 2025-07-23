@@ -11,10 +11,18 @@ package po.misc.context
 interface CTX{
 
     val identity: CTXIdentity<out  CTX>
+
+    val contextName: String get() {
+        return if(identity != null){
+            identity.identifiedByName
+        }else{
+            "N/A"
+        }
+    }
+
     val completeName: String get() = identity.completeName
-    val contextName: String get() = identity.name
-    val qualifiedName: String get() = identity.qualifiedName
-    val parentIdentity:CTXIdentity<*>? get() = identity.parentIdentity
+   // val classQualifiedName: String get() = identity.classQualifiedName
+   // val parentIdentity:CTXIdentity<*>? get() = identity.parentIdentity
 }
 
 /**

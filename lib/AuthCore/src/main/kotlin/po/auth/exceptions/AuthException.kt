@@ -43,11 +43,14 @@ enum class AuthErrorCode(val value: Int) {
 
 class AuthException(
     override var message: String,
-    val code: AuthErrorCode,
-    val payload: ExceptionPayload? = null,
+    override val code: AuthErrorCode,
     original : Throwable? = null
-) : ManagedException(message, payload?.provideCode(code), original){
+) : ManagedException(message, code, original){
 
     override var handler : HandlerType = HandlerType.CancelAll
+
+    constructor(authPayload: ExceptionPayload) : this(authPayload.message, authPayload.code as AuthErrorCode, authPayload.cause){
+        payload = authPayload
+    }
 
 }

@@ -1,64 +1,58 @@
 package po.exposify.exceptions
 
 import po.exposify.exceptions.enums.ExceptionCode
-import po.misc.exceptions.ManagedCallSitePayload
-import po.misc.exceptions.ManagedException
-import po.misc.context.Identifiable
+import po.misc.context.CTX
+import po.misc.exceptions.ExceptionPayload
+import po.misc.exceptions.toPayload
 
-fun  Boolean.trueOrInitException(){
-    if(!this){
-       val exception = InitException("Tested value is false", ExceptionCode.UNDEFINED, null)
-        throw exception
+
+@PublishedApi
+internal fun initException(payload: ExceptionPayload): InitException{
+    val exception = InitException(payload)
+    return exception
+}
+
+@PublishedApi
+internal fun initException(message: String, exceptionCode: ExceptionCode, context: CTX): InitException{
+    val payload = context.toPayload{
+        message(message)
+        code = exceptionCode
     }
-    return
+    return InitException(payload)
 }
 
 @PublishedApi
-internal fun initException(payload: ManagedCallSitePayload): OperationsException{
-    val exception = OperationsException(payload.toString(), payload.source as ExceptionCode, payload.cause)
-    exception.addHandlingData(payload.ctx, ManagedException.ExceptionEvent.Registered)
-    return exception
-}
-
-@PublishedApi
-internal fun initException(message: String, code: ExceptionCode, original: Throwable): InitException{
-    return InitException(message, code, original)
-}
+internal fun <T: CTX> T.initException(
+    message: String,
+    code: ExceptionCode
+):InitException = initException(message, code, this)
 
 
-@PublishedApi
-internal fun initException(message: String, code: ExceptionCode,  ctx: Identifiable? = null): InitException{
-    val exception = InitException(message, code, null)
-    if(ctx != null){
-        exception.addHandlingData(ctx, ManagedException.ExceptionEvent.Registered)
+
+internal fun initAbnormal(message: String, context: CTX): InitException{
+    val payload = context.toPayload{
+        message(message)
+        code = ExceptionCode.ABNORMAL_STATE
     }
-    return exception
+    return InitException(payload)
 }
 
-internal fun initAbnormal(message: String, ctx: Identifiable? = null): InitException{
-    val exception = InitException(message, ExceptionCode.ABNORMAL_STATE, null)
-    if(ctx != null){
-        exception.addHandlingData(ctx, ManagedException.ExceptionEvent.Registered)
+@PublishedApi
+internal fun operationsException(payload: ExceptionPayload): OperationsException{
+    return OperationsException(payload)
+}
+
+@PublishedApi
+internal fun operationsException(message: String, exceptionCode: ExceptionCode,  context: CTX): OperationsException{
+    val payload = context.toPayload{
+        message(message)
+        code = exceptionCode
     }
-    return exception
-}
-internal fun throwInit(message: String, code: ExceptionCode, ctx: Identifiable? = null): Nothing{
-    throw  initException(message, code, ctx)
+    return OperationsException(payload)
 }
 
+internal fun <T: CTX> T.operationsException(
+    message: String,
+    code: ExceptionCode
+):OperationsException = operationsException(message, code, this)
 
-@PublishedApi
-internal fun exception(payload: ManagedCallSitePayload): OperationsException = operationsException(payload)
-
-
-@PublishedApi
-internal fun operationsException(payload: ManagedCallSitePayload): OperationsException{
-    val exception = OperationsException(payload.toString(), payload.source as ExceptionCode, payload.cause)
-    exception.addHandlingData(payload.ctx, ManagedException.ExceptionEvent.Registered)
-    return exception
-}
-
-@PublishedApi
-internal fun operationsException(message: String, code: ExceptionCode, original: Throwable? = null): OperationsException{
-    return OperationsException(message, code, original)
-}

@@ -1,11 +1,12 @@
 package po.misc.types
 
-import po.misc.data.helpers.textIfNull
-import po.misc.exceptions.ManagedCallSitePayload
+import po.misc.collections.takeFromMatch
+import po.misc.context.CTX
 import po.misc.exceptions.ManagedException
-import po.misc.exceptions.managedException
 import po.misc.exceptions.throwManaged
-import po.misc.context.Identifiable
+import po.misc.exceptions.ExceptionPayload
+import po.misc.exceptions.ManagedCallSitePayload
+import po.misc.exceptions.ManagedPayload
 import java.time.LocalDateTime
 import kotlin.reflect.KClass
 
@@ -40,12 +41,53 @@ fun <T : Any> T?.getOrThrow(
 }
 
 
+
+internal fun currentCallerTrace(methodName: String): List<StackTraceElement> {
+    return Thread.currentThread().stackTrace
+        .takeFromMatch({ it.methodName == methodName }, 2)
+}
+
+@Deprecated("Inefficient", ReplaceWith("getOrManaged(callingContext: Any)"), DeprecationLevel.WARNING)
 fun <T : Any> T?.getOrManaged(
-    payload: ManagedCallSitePayload
+    payload: ExceptionPayload
 ):T {
     if(this == null){
         payload.addDescription("getOrManaged returned null")
-        throw ManagedException(payload.message, payload)
+        throw ManagedException(payload)
+    }else{
+        return this
+    }
+}
+
+
+fun <T: Any> T?.getOrManaged(
+   callingContext: Any
+):T {
+    if(this == null){
+        val trace = currentCallerTrace("getOrManaged")
+        val message = "Result is null"
+        val payload =  when(callingContext){
+            is CTX -> { ManagedPayload(callingContext, message, trace) }
+            else -> { ManagedPayload(callingContext::class.qualifiedName.toString(), message, trace) }
+        }
+        throw ManagedException(payload)
+    }else{
+        return this
+    }
+}
+
+fun <T: Any> T?.getOrManaged(
+    callingContext: Any,
+    exceptionProvider: (ManagedCallSitePayload)-> Throwable,
+):T {
+    if(this == null){
+        val trace = currentCallerTrace("getOrManaged")
+        val message = "Result is null"
+        val payload =  when(callingContext){
+            is CTX -> { ManagedPayload(callingContext, message, trace) }
+            else -> { ManagedPayload(callingContext::class.qualifiedName.toString(), message, trace) }
+        }
+        throw exceptionProvider.invoke(payload)
     }else{
         return this
     }

@@ -3,6 +3,10 @@ package po.exposify.common.classes
 import po.exposify.common.interfaces.BlueprintContainer
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
+import po.misc.exceptions.ExceptionPayload
 import po.misc.types.getOrManaged
 import kotlin.collections.mapOf
 import kotlin.reflect.KClass
@@ -28,9 +32,13 @@ class ClassBlueprint<T>(
     val clazz  : KClass<T>,
     val params : ConstructorParams = ConstructorParams.UsePrimary,
     val builder : ConstructorBuilder = ConstructorBuilder(),
-): BlueprintContainer<T> where T: Any {
-    var  paramLookupFn : ( (type: KParameter) -> Any? )? = null
+): BlueprintContainer<T>, CTX where T: Any {
 
+    override val identity: CTXIdentity<out CTX> = asIdentity()
+
+    val exPayload : ExceptionPayload = ExceptionPayload(this)
+
+    var  paramLookupFn : ( (type: KParameter) -> Any? )? = null
     var className: String = ""
     private var constructorArgs: MutableList<ConstructorArgument> = mutableListOf<ConstructorArgument>()
     var nestedClasses: Map<String, Map<String, ClassData<*>>> = mapOf<String,  Map<String, ClassData<*>>>()
@@ -52,7 +60,7 @@ class ClassBlueprint<T>(
     }
     override fun getConstructor(): KFunction<T> {
         return effectiveConstructor?:
-        throw OperationsException("Effective constructor not set", ExceptionCode.CONSTRUCTOR_MISSING, null)
+        throw OperationsException(exPayload.messageAndCode("Effective constructor not set", ExceptionCode.CONSTRUCTOR_MISSING))
     }
     override fun initialize(){
         className = clazz.simpleName.toString()

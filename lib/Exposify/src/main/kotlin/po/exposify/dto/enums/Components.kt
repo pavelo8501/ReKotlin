@@ -1,9 +1,9 @@
 package po.exposify.dto.enums
 
-import po.misc.interfaces.Named
 
 
-enum class Components(override val moduleName: String): Named {
+
+enum class Components(val moduleName: String){
     Service("Service"),
     DTOFactory("DTOFactory"),
     DaoService("DaoService"),

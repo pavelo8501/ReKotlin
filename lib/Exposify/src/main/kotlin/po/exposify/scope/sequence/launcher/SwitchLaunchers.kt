@@ -58,7 +58,7 @@ suspend fun <DTO, D, E, F, FD> launchSwitch(
                         activeResult = updateChunk.computeResult()
                     }
                     else -> {
-                        throw operationsException(wrongBranchMsg, ExceptionCode.ABNORMAL_STATE)
+                        throw switchDescriptor.operationsException(wrongBranchMsg, ExceptionCode.ABNORMAL_STATE)
                     }
                 }
             }
@@ -67,7 +67,7 @@ suspend fun <DTO, D, E, F, FD> launchSwitch(
         println("No switch containers for switchContainer ${switchDescriptor.parameterType}")
         println("Total containers count ${container.chunkCollectionSize}")
     }
-    return activeResult.getOrOperations("activeResult")
+    return activeResult.getOrOperations("activeResult", switchDescriptor)
 }
 
 

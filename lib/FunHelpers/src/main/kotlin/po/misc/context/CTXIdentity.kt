@@ -1,7 +1,10 @@
 package po.misc.context
 
+import po.misc.types.getKType
+import java.util.UUID
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
+import kotlin.reflect.KTypeProjection
 import kotlin.reflect.full.createType
 import kotlin.reflect.typeOf
 
@@ -21,64 +24,87 @@ class CTXIdentity<T: CTX> @PublishedApi internal constructor(
     internal val kClass: KClass<T>,
     @PublishedApi
     internal val kType: KType,
+    private var userDefinedId: Long? = null,
     val parentContext: CTX? = null
 ) {
 
     val parentIdentity: CTXIdentity<*>? get() = parentContext?.identity
-    internal val name: String = kClass.simpleName ?: "Unnamed"
+    val className: String = kClass.simpleName ?: "Unnamed"
+
+    private val uuid: UUID  = UUID.randomUUID()
+    private var namePattern: ((CTXIdentity<T>)-> String)? = null
+    private val baseName: String get() = userDefinedId?.let { "$className#$it" } ?: className
+
+    val numericId: Long  by lazy { userDefinedId?: run { uuid.mostSignificantBits xor uuid.leastSignificantBits } }
+    val isIdUsedDefined: Boolean get() = userDefinedId != null
+
+    val identifiedByName: String get () =  namePattern?.invoke(this) ?: baseName
+
 
 
     /**
      * Hierarchical identity string built from this context and its parents (if any).
-     *
      * Format: `Child/Parent/.../Root`
      */
     val completeName: String get() = buildString {
-        append(name)
+        append(baseName)
         parentIdentity?.let {
             append("/")
             append(it.completeName)
         }
     }
+    val classQualifiedName: String get() = kClass.qualifiedName?:"Unnamed"
+    fun setId(id: Long){
+        userDefinedId = id
+    }
 
-    val qualifiedName: String get() = kClass.qualifiedName?:"Unnamed"
+    fun setNamePattern(builder:(CTXIdentity<T>)-> String){
+        namePattern = builder
+    }
 
-    /**
-     * Returns [completeName] as the string representation of this identity.
-     */
     override fun toString(): String = completeName
+
+    override fun hashCode(): Int {
+        var result = kClass.hashCode()
+        result = 31 * result + kType.hashCode()
+        result = 31 * result + (parentContext?.hashCode() ?: 0)
+        return result
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is CTXIdentity<*>) return false
+        return kClass == other.kClass && kType == other.kType
+    }
+
 }
 
-//fun <T, T2>  fromContext(context: T, parentContext:T2? = null): CTXIdentity<T> where T: CTX, T2:CTX {
-//    val kClass = context::class as KClass<T>
-//    return parentContext?.let {
-//        CTXIdentity(kClass, kClass.createType(), it)
-//    }?:CTXIdentity(kClass, kClass.createType())
-//}
-
-//fun <T>  fromContext(context: T): CTXIdentity<T> where T: CTX{
-//    val kClass = context::class as KClass<T>
-//    val kType =  kClass.createType()
-//    return CTXIdentity(kClass, kType)
-//}
-
-
-//inline fun <reified T>  T.subIdentity(parentContext:CTX): CTXIdentity<T> where T: CTX{
-//    require(T::class != parentContext.identity.kClass) {
-//        "Parent context must be of a different class than the current context"
-//    }
-//   return CTXIdentity(T::class, typeOf<T>() , parentContext)
-//}
-
-inline fun <reified T>  subIdentity(context: T,  parentContext:CTX): CTXIdentity<T> where T: CTX{
+inline fun <reified T>  asSubIdentity(thisContext: T,  parentContext:CTX, withId: Long? = null): CTXIdentity<T> where T: CTX{
     require(T::class != parentContext.identity.kClass) {
         "Parent context must be of a different class than the current context"
     }
-    return CTXIdentity(T::class, typeOf<T>() , parentContext)
+    return try {
+        CTXIdentity(thisContext::class as KClass<T>, typeOf<T>(), withId, parentContext)
+    }catch (th: Throwable){
+        throw th
+    }
 }
 
-inline fun <reified T>  T.asIdentity(): CTXIdentity<T> where T: CTX {
-    return  CTXIdentity(T::class, typeOf<T>())
+fun <T> createIdentity(kClass: KClass<T>, kType: KType, withId: Long? = null): CTXIdentity<out T> where T: CTX {
+
+    return try {
+        CTXIdentity(kClass, kType, withId)
+    }catch (th: Throwable){
+        throw th
+    }
+}
+
+inline fun <reified T>  T.asIdentity(withId: Long? = null): CTXIdentity<T> where T: CTX {
+    return try {
+        CTXIdentity(T::class, typeOf<T>(), withId)
+    }catch (th: Throwable){
+        throw th
+    }
 }
 
 @Deprecated("Because of similarity to withContext", ReplaceWith("asIdentity"), DeprecationLevel.WARNING)
@@ -86,9 +112,10 @@ inline fun <reified T>  T.asContext(): CTXIdentity<T> where T: CTX {
     return  CTXIdentity(T::class, typeOf<T>())
 }
 
+@Deprecated("Because of similarity to withContext", ReplaceWith("asIdentity"), DeprecationLevel.WARNING)
 inline fun <reified T, reified T2>  T.asContext(parentContext: T2): CTXIdentity<T> where T: CTX, T2: CTX {
     require(T::class != T2::class) {
         "Parent context must be of a different class than the current context"
     }
-    return  CTXIdentity(T::class, typeOf<T>(), parentContext)
+    return  CTXIdentity(T::class, typeOf<T>(), null, parentContext)
 }

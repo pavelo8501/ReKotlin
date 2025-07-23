@@ -13,6 +13,9 @@ import po.exposify.scope.sequence.builder.switchStatement
 import po.exposify.scope.sequence.builder.update
 import po.exposify.scope.sequence.launcher.launchSwitch
 import po.lognotify.TasksManaged
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
 import po.test.exposify.scope.session.TestSessionsContext
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.dtos.Page
@@ -25,6 +28,9 @@ import po.test.exposify.setup.pageModelsWithSections
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestSequenceSwitch : DatabaseTest(), TasksManaged {
+
+
+    override val identity: CTXIdentity<out CTX> = asIdentity()
 
     val sessionIdentity: TestSessionsContext.SessionIdentity = TestSessionsContext.SessionIdentity("0", "192.169.1.1")
 

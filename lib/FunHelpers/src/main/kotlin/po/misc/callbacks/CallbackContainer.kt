@@ -42,8 +42,8 @@ class RoutedWithConversionContainer<T1, T2> internal constructor(
     fun addHopInfo(sender: CTX, receiver: CallableContainer<*>):RoutedWithConversionContainer<T1, T2>{
         routingInfo.addAll(receiver.routingInfo)
         val info =  HopInfo(
-            emitterName =  sender.completeName,
-            receiverName = createdBy.manager.emitter.completeName,
+            emitterName =  sender.contextName,
+            receiverName = createdBy.manager.emitter.contextName,
             subscriber = subscriber,
             dataName = "",
             hopNr = routingInfo.size
@@ -90,8 +90,8 @@ class RoutedContainer<T> internal constructor(
     fun addHopInfo(sender: CTX, receiver: CallableContainer<*>):RoutedContainer<T>{
         routingInfo.addAll(receiver.routingInfo)
         val info =  HopInfo(
-            emitterName =  sender.completeName,
-            receiverName = createdBy.manager.emitter.completeName,
+            emitterName =  sender.contextName,
+            receiverName = createdBy.manager.emitter.contextName,
             subscriber = subscriber,
             dataName = "",
             hopNr = routingInfo.size

@@ -13,23 +13,23 @@ import po.exposify.extensions.checkDataListNotEmpty
 import po.lognotify.TasksManaged
 import po.lognotify.debug.debugProxy
 import po.lognotify.extensions.runTask
-import po.misc.interfaces.ClassIdentity
-import po.misc.context.IdentifiableClass
+import po.misc.context.CTX
+import po.misc.context.asIdentity
 
 
 class SequenceContext<DTO, D, E>(
     private val executionContext: ExecutionContext<DTO, D, E>,
     val runInfo : SequenceRunInfo
-):TasksManaged, IdentifiableClass where  DTO: ModelDTO, D: DataModel, E: LongEntity {
+):TasksManaged, CTX where  DTO: ModelDTO, D: DataModel, E: LongEntity {
 
-    override val identity: ClassIdentity = ClassIdentity.create("SequenceContext", executionContext.contextName)
+    override val identity = asIdentity()
 
   //  private var latestSingleResult : ResultSingle<DTO,D, E> = ResultSingle(sequenceHandler.dtoBase)
 
     private var firstRun = true
 
     internal val debug = debugProxy(this, ContextData, ContextData.Debug){
-        ContextData(this, it.message)
+        ContextData(it.message)
     }
 
     private fun onFirsRun(){
@@ -75,23 +75,6 @@ class SequenceContext<DTO, D, E>(
         onFirsRun()
         val result = executionContext.select()
         submitLatestResult(result)
-    }.resultOrException()
-
-    fun update(dataModels: List<D>):ResultList<DTO, D, E> =
-        runTask("Update(List)") {
-        checkDataListNotEmpty(dataModels)
-        onFirsRun()
-        //val result = executionContext.update(dataModels, sequenceHandler.dtoBase)
-        //submitLatestResult(result)
-            TODO("Depr")
-    }.resultOrException()
-
-    fun update(dataModel: D): ResultSingle<DTO, D, E> =
-        runTask("Update(Single)") {
-        onFirsRun()
-      //  val result = executionContext.update(dataModel, sequenceHandler.dtoBase)
-       // submitLatestResult(result)
-            TODO("Depr")
     }.resultOrException()
 
 }

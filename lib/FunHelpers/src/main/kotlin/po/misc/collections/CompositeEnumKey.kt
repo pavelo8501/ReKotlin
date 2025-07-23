@@ -15,7 +15,7 @@ class CompositeEnumKey<E: Enum<E>>(
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is CompositeEnumKey<E>) return false
-        return source.completeName == other.source.completeName &&
+        return source.contextName == other.source.completeName &&
                 enumKey == other.enumKey
     }
     override fun hashCode(): Int {

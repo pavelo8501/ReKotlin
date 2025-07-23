@@ -17,7 +17,8 @@ import po.misc.callbacks.CallbackManager
 import po.misc.callbacks.builders.callbackManager
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
-import po.misc.context.asIdentity
+import po.misc.context.asSubIdentity
+import po.misc.exceptions.toPayload
 import po.misc.interfaces.ValueBased
 import po.misc.serialization.SerializerInfo
 import kotlin.reflect.KType
@@ -31,10 +32,7 @@ class DTOFactory<DTO, DATA, ENTITY>(
         OnInitialized(2)
     }
 
-    override val identity: CTXIdentity<out CTX> = asIdentity()
-
-   // override val identity: ClassIdentity  get() =  ClassIdentity.create("DTOFactory", dtoClass.identity.sourceName)
-    override val contextName: String get() = "DTOFactory"
+    override val identity: CTXIdentity<out CTX> = asSubIdentity(this, dtoClass)
 
     val notifier = callbackManager<Events>(
         { CallbackManager.createPayload<Events, CommonDTO<DTO, DATA, ENTITY>>(this, Events.OnInitialized) }
@@ -95,11 +93,10 @@ class DTOFactory<DTO, DATA, ENTITY>(
                 serializerLookup(param.name.toString(), param.type)?.let {
                     Json.Default.decodeFromString(it.serializer, "[]")
                 } ?: run {
-                    throw OperationsException(
-                        "Requested parameter name: ${param.name} $contextName",
-                        ExceptionCode.FACTORY_CREATE_FAILURE,
-                        null
-                    )
+                    val payload = toPayload {
+                        method("get ${param.name}", param.type.toString())
+                    }
+                    throw OperationsException(payload)
                 }
             }
             val result = dataBlueprint.getConstructor().callBy(dataBlueprint.getConstructorArgs())
@@ -129,10 +126,8 @@ class DTOFactory<DTO, DATA, ENTITY>(
                 }
 
                 else -> {
-                    throw OperationsException(
-                        "Parameter ${param.name} unavailable when creating dataModel",
-                        ExceptionCode.VALUE_NOT_FOUND, null
-                    )
+                    val payload = toPayload("Parameter ${param.name} unavailable when creating dataModel")
+                    throw OperationsException(payload)
                 }
             }
         }

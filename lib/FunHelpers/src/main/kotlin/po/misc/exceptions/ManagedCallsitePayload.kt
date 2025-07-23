@@ -4,76 +4,17 @@ import po.misc.data.helpers.textIfNull
 import po.misc.context.CTX
 import po.misc.data.printable.PrintableBase
 import po.misc.exceptions.models.ExceptionData2
-//
-//class ManagedCallSitePayload(
-//    val producer: CTX,
-//    var message: String = "",
-//    val handler: HandlerType? = null,
-//    val source: Enum<*>? = null,
-//    val cause: Throwable? = null
-//){
-//    var targetObject: String? = null
-//    var description: String? = null
-//
-//    fun message(msg: String):ManagedCallSitePayload{
-//        message = msg
-//        return this
-//    }
-//
-//    fun valueFailure(parameterName: String, parameterTypeName: String):ManagedCallSitePayload{
-//        message = "$parameterName : $parameterTypeName"
-//        return this
-//    }
-//
-//
-//    fun method(methodName: String, expectedResult: String):ManagedCallSitePayload{
-//        message =  "$methodName:$expectedResult"
-//        return this
-//    }
-//
-//    fun provideDescription(methodName: String, reason: String, result: String){
-//        description +=  "In method: $methodName. Reason:${reason}. Result:${result}"
-//    }
-//
-//    internal fun toDataWithTrace(stackTrace: List<StackTraceElement>): ExceptionData2{
-//       return ExceptionData2(
-//            ManagedException.ExceptionEvent.Thrown,
-//            producer,
-//            stackTrace = stackTrace
-//        )
-//    }
-//
-//    internal fun toData(auxData:  PrintableBase<*>? = null): ExceptionData2{
-//        return ExceptionData2(
-//            ManagedException.ExceptionEvent.Thrown,
-//            producer,
-//            auxData =  auxData
-//        )
-//    }
-//
-//    override fun toString(): String {
-//        return message.textIfNull("")
-//    }
-//
-//    companion object{
-//
-//        fun  create(producer: CTX, message: String = ""):ManagedCallSitePayload{
-//           return ManagedCallSitePayload(producer,  message)
-//        }
-//    }
-//}
-
 
 interface ManagedCallSitePayload{
-    val producer: CTX
+    var producer: CTX?
     var handler: HandlerType?
-    var message: String
-    var source: Enum<*>?
+    val message: String
+    var code: Enum<*>?
     var cause: Throwable?
     var description: String?
-    fun valueFailure(parameterName: String, parameterTypeName: String):ExceptionPayload
+    fun valueFailure(parameterName: String, parameterTypeName: String):ManagedCallSitePayload
     fun toDataWithTrace(stackTrace: List<StackTraceElement>): ExceptionData2
-    fun addDescription(message: String):ExceptionPayload
+    fun addDescription(message: String):ManagedCallSitePayload
     fun create(producer: CTX, message: String = ""):ExceptionPayload{
         return ExceptionPayload(producer,  message)
     }
@@ -81,14 +22,74 @@ interface ManagedCallSitePayload{
 
 
 
+class ManagedPayload(
+    val contextName: String,
+    override val message: String,
+    val trace: List<StackTraceElement>,
+):ManagedCallSitePayload{
+    var targetObject: String? = null
+
+    override var handler: HandlerType? = null
+    override var code: Enum<*>? = null
+    override var cause: Throwable? = null
+    override var description: String? = null
+
+    override var producer: CTX? = null
+
+    constructor(
+        callingContext: CTX,
+        message: String,
+        trace: List<StackTraceElement>
+    ): this(contextName = callingContext.contextName, message = message, trace = trace){
+        producer = callingContext
+    }
+
+    override fun valueFailure(parameterName: String, parameterTypeName: String):ManagedCallSitePayload{
+        return this
+    }
+
+    override fun addDescription(message: String):ManagedCallSitePayload{
+        description = message
+        return this
+    }
+
+    override fun create(producer: CTX, message: String):ExceptionPayload{
+        return ExceptionPayload(producer,  message)
+    }
+
+    override fun toDataWithTrace(stackTrace: List<StackTraceElement>): ExceptionData2{
+        return ExceptionData2(
+            ManagedException.ExceptionEvent.Thrown,
+            message,
+            producer
+        ).addStackTrace(stackTrace)
+    }
+
+    internal fun toData(auxData:  PrintableBase<*>? = null): ExceptionData2{
+        return ExceptionData2(
+            ManagedException.ExceptionEvent.Thrown,
+            message,
+            producer,
+        ).provideAuxData(auxData)
+    }
+
+    override fun toString(): String {
+        return message.textIfNull("")
+    }
+}
+
+
 class ExceptionPayload(
-    override val producer: CTX,
+    override var producer: CTX?,
     override var message: String = "",
     override var handler: HandlerType? = null,
-    override var source: Enum<*>? = null,
+    override var code: Enum<*>? = null,
     override var cause: Throwable? = null
 ):ManagedCallSitePayload{
     var targetObject: String? = null
+
+
+
 
     override var description: String? = null
 
@@ -107,6 +108,10 @@ class ExceptionPayload(
         return this
     }
 
+    fun messageAndCode(msg: String, code: Enum<*>):ExceptionPayload{
+       return ExceptionPayload(producer,  msg, handler, code)
+    }
+
     fun method(methodName: String, expectedResult: String):ExceptionPayload{
         message =  "$methodName:$expectedResult"
         return this
@@ -116,8 +121,8 @@ class ExceptionPayload(
         description +=  "In method: $methodName. Reason:${reason}. Result:${result}"
     }
 
-    fun provideCode(code: Enum<*>):ExceptionPayload{
-        source = code
+    fun provideCode(exceptionCode: Enum<*>):ExceptionPayload{
+        code = exceptionCode
         return this
     }
 
@@ -150,7 +155,6 @@ class ExceptionPayload(
     override fun toString(): String {
         return message.textIfNull("")
     }
-
 }
 
 

@@ -17,7 +17,9 @@ class CommonDTOType<DTO: ModelDTO, D: DataModel, E: LongEntity>(
 
     companion object{
        fun <DTO: ModelDTO, D: DataModel, E: LongEntity> create():CommonDTOType<DTO, D, E>{
+
            val typeData = TypeData.create<CommonDTO<DTO, D, E>>()
+           println("CommonDTO Type ${typeData.typeName}")
            return CommonDTOType(typeData.kClass, typeData.kType)
         }
     }

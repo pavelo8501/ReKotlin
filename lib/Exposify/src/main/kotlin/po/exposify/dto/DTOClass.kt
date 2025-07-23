@@ -9,13 +9,14 @@ import po.exposify.dto.interfaces.ClassDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dao.classes.ExposifyEntityClass
+import po.exposify.dto.RootDTO
 import po.exposify.dto.components.ExecutionContext
 import po.exposify.dto.components.createProvider
 import po.exposify.dto.configuration.setupValidation
 import po.exposify.dto.enums.DTOClassStatus
 import po.exposify.dto.models.CommonDTOType
 import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.exceptions.throwInit
+import po.exposify.exceptions.initException
 import po.exposify.extensions.getOrInit
 import po.exposify.scope.service.ServiceClass
 import po.exposify.scope.service.ServiceContext
@@ -26,6 +27,10 @@ import po.misc.callbacks.CallbackManager
 import po.misc.callbacks.CallbackPayload
 import po.misc.callbacks.builders.callbackManager
 import po.misc.callbacks.models.Configuration
+import po.misc.containers.LazyBackingContainer
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.createIdentity
 import po.misc.exceptions.ExceptionPayload
 import po.misc.interfaces.ValueBased
 import po.misc.serialization.SerializerInfo
@@ -35,10 +40,24 @@ import po.misc.types.toSimpleNormalizedKey
 import po.misc.validators.general.models.CheckStatus
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
+import kotlin.reflect.typeOf
+
+
+
+class DTOIdentity<DTO: ModelDTO>(
+    val kClass: KClass<DTO>,
+    val kType : KType
+)
+
+inline fun <reified DTO> dtoOf(): DTOIdentity<DTO> where DTO: ModelDTO, DTO: CTX {
+   return DTOIdentity(DTO::class, typeOf<DTO>())
+}
+
 
 sealed class DTOBase<DTO, DATA, ENTITY>(
-): ClassDTO,  TasksManaged
-        where DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity
+    final override val identity: CTXIdentity<out CTX>
+): ClassDTO, TasksManaged where DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity
+
 {
     enum class Events(override val value: Int) : ValueBased{
         Initialized(1),
@@ -46,8 +65,8 @@ sealed class DTOBase<DTO, DATA, ENTITY>(
         DelegateRegistrationComplete(11);
     }
 
-    val exPayload: ExceptionPayload = ExceptionPayload(this)
 
+    val exPayload: ExceptionPayload = ExceptionPayload(this)
     val config:  DTOConfig<DTO, DATA, ENTITY> by lazy {
         DTOConfig(this)
     }
@@ -109,14 +128,20 @@ sealed class DTOBase<DTO, DATA, ENTITY>(
         entityTypeBacking = entityType
     }
 
-    private var commonTypeBacking: CommonDTOType<DTO, DATA, ENTITY>? = null
-    val commonType: CommonDTOType<DTO, DATA, ENTITY> get() {
-      return commonTypeBacking.getOrInit(exPayload.valueFailure("commonTypeBacking", "CommonDTOType<DTO, DATA, ENTITY>"))
-    }
-    val isCommonDTOTypeAvailable: Boolean get() = commonTypeBacking != null
-    fun provideCommonDTOType(commonType: CommonDTOType<DTO, DATA, ENTITY>){
-        commonTypeBacking = commonType
-    }
+    @PublishedApi
+    internal val commonDTOType : LazyBackingContainer<CommonDTOType<DTO, DATA, ENTITY>> = LazyBackingContainer()
+    val isCommonDTOTypeAvailable: Boolean get() = commonDTOType.isValueAvailable
+
+
+//    private var commonTypeBacking: CommonDTOType<DTO, DATA, ENTITY>? = null
+//    val commonType: CommonDTOType<DTO, DATA, ENTITY> get() {
+//        return commonTypeBacking.getOrInit(this)
+//    }
+    //val isCommonDTOTypeAvailable: Boolean get() = commonTypeBacking != null
+//    fun provideCommonDTOType(commonType: CommonDTOType<DTO, DATA, ENTITY>){
+//        println("Type provided for ${commonType.typeName}")
+//        commonTypeBacking = commonType
+//    }
 
     abstract val serviceClass: ServiceClass<*,*,*>
 
@@ -141,7 +166,7 @@ sealed class DTOBase<DTO, DATA, ENTITY>(
             val root = findHierarchyRoot()
             DatabaseManager.signalCloseConnection(this, root.serviceClass.connectionClass)
             finalize()
-            throwInit("DTO validation check failure", ExceptionCode.BAD_DTO_SETUP)
+            throw initException("DTO validation check failure", ExceptionCode.BAD_DTO_SETUP, this)
         }
     }
 
@@ -214,10 +239,12 @@ sealed class DTOBase<DTO, DATA, ENTITY>(
 }
 
 abstract class RootDTO<DTO, DATA, ENTITY>(
-    private val clazz: KClass<DTO>
-): DTOBase<DTO, DATA, ENTITY>(), TasksManaged,  ClassDTO
-        where DTO: ModelDTO, DATA: DataModel, ENTITY: LongEntity
+    private val clazz: KClass<DTO>,
+    private val kType: KType
+): DTOBase<DTO, DATA, ENTITY>(createIdentity(clazz, kType)), ClassDTO where DTO: ModelDTO, DTO:CTX, DATA: DataModel, ENTITY: LongEntity
 {
+
+    constructor(dtoIdentity: DTOIdentity<DTO>) : this(dtoIdentity.kClass, dtoIdentity.kType)
 
     override val dtoType: TypeData<DTO> by lazy { TypeData.createByKClass(clazz) }
 
@@ -247,10 +274,13 @@ abstract class RootDTO<DTO, DATA, ENTITY>(
 
 abstract class DTOClass<DTO, DATA, ENTITY>(
     val clazz: KClass<DTO>,
+    val kType: KType,
     val parentClass: DTOBase<*, *, *>,
-): DTOBase<DTO, DATA, ENTITY>(), ClassDTO, TasksManaged
-        where DTO: ModelDTO, DATA : DataModel, ENTITY: LongEntity
+): DTOBase<DTO, DATA, ENTITY>(createIdentity(clazz, kType)), ClassDTO, TasksManaged where DTO: ModelDTO, DATA : DataModel, ENTITY: LongEntity
 {
+    constructor(dtoIdentity: DTOIdentity<DTO>, parentClass: DTOBase<*, *, *>): this(dtoIdentity.kClass, dtoIdentity.kType, parentClass)
+
+
     override val dtoType: TypeData<DTO> by lazy {  TypeData.createByKClass(clazz) }
     internal val parentTypedMap: MutableMap<TypeData<*>, TypedContainer<*>> = mutableMapOf()
 

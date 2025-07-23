@@ -8,6 +8,7 @@ import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.context.CTX
 import po.misc.context.asContext
 import po.misc.context.asIdentity
+import po.misc.exceptions.ExceptionPayload
 import po.misc.exceptions.toPayload
 import po.misc.reflection.objects.Composed
 import po.misc.reflection.properties.models.PropertyUpdate
@@ -75,7 +76,7 @@ sealed class PropertyIOBase<T: Any, V: Any>(
         propertyInfo.property.castOrManaged()
     }
 
-    private fun payload(message: String): ManagedCallSitePayload{
+    private fun payload(message: String): ExceptionPayload{
       return  toPayload { message }
     }
 

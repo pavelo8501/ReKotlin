@@ -2,6 +2,9 @@ package po.misc.containers
 
 import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.exceptions.ManagedException
+import po.misc.functions.containers.Notifier
+import po.misc.functions.containers.NullableProvider
+import po.misc.functions.containers.Provider
 import po.misc.types.Typed
 import po.misc.types.getOrManaged
 
@@ -22,7 +25,7 @@ open class BackingContainer<T: Any>(
     val exPayload: ManagedCallSitePayload,
     var typeData: Typed<T>? = null,
     private var sourceBacking:T? = null
-) {
+){
 
     /**
      * Returns the current source value.
@@ -45,4 +48,41 @@ open class BackingContainer<T: Any>(
         typeData = type
         sourceBacking = source
     }
+}
+
+class LazyBackingContainer<T: Any>(
+    private var initialValue:T? = null
+){
+    var notifier : Notifier<T>? = null
+    val isValueAvailable: Boolean get() = backingValue != null
+
+    private var backingValue: T? = initialValue
+    private var pendingCallback: ((T) -> Unit)? = null
+
+    fun provideValue(value: T) {
+        if (backingValue == null) {
+            backingValue = value
+            pendingCallback?.invoke(value)
+            pendingCallback = null
+        }
+    }
+
+    fun getValue(callback: (T) -> Unit) {
+        val value = backingValue
+        if (value != null) {
+            callback(value)
+        } else {
+            pendingCallback = callback
+        }
+    }
+
+    fun getValue():T?{
+        return backingValue
+    }
+
+    fun reset() {
+        backingValue = null
+        pendingCallback = null
+    }
+
 }

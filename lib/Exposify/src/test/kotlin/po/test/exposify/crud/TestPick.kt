@@ -15,7 +15,7 @@ import kotlin.test.assertNotNull
 class TestPick : DatabaseTest(){
 
     @Test
-    fun `user updates and pick`() = runTest {
+    fun `user updates and pick`(){
         val user = User(
             id = 0,
             login = "some_login",
@@ -28,6 +28,7 @@ class TestPick : DatabaseTest(){
 
         withConnection{
             service(UserDTO, TableCreateMode.Create) {
+
                 val userDataModel =  update(user).getDataForced()
                  pickedDTO = pickById(userDataModel.id).getDTO() as UserDTO
             }

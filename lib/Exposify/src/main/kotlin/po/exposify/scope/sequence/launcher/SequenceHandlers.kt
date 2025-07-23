@@ -11,15 +11,18 @@ import po.exposify.extensions.getOrOperations
 import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.functions.containers.DeferredContainer
 import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
+import po.misc.exceptions.ExceptionPayload
 
 
 sealed class ExecutionHandlerBase<DTO, D, E>(
 ): CTX where DTO: ModelDTO, D: DataModel, E : LongEntity  {
 
-    override val contextName: String
-        get() = "ExecutionHandlerBase"
 
-    val exPayload: ManagedCallSitePayload = ManagedCallSitePayload(this)
+    override val identity: CTXIdentity<out CTX> = asIdentity()
+    val exPayload: ExceptionPayload = ExceptionPayload(this)
+
 
     private val deferredQueryError = "DeferredQuery required but not provided"
     private var deferredQueryBacking: DeferredContainer<WhereQuery<E>>? = null

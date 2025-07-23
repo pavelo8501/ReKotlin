@@ -10,8 +10,9 @@ import po.exposify.dto.enums.DTOClassStatus
 import po.exposify.exceptions.InitException
 import po.exposify.scope.service.models.TableCreateMode
 import po.misc.callbacks.Containable
-import po.misc.context.IdentifiableClass
-import po.misc.interfaces.asIdentifiableClass
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
 import po.test.exposify.dto.TestDTOTracker.Companion.updatedById
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.PageEntity
@@ -26,11 +27,12 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestDTOConfiguration : DatabaseTest(), IdentifiableClass {
+class TestDTOConfiguration : DatabaseTest(), CTX {
 
-    override val identity = asIdentifiableClass("TestDTOConfiguration", "TestDTOConfiguration")
-    override val contextName: String
-        get() = identity.componentName
+
+    override val identity: CTXIdentity<out CTX> = asIdentity()
+
+    override val contextName: String get() = "TestDTOConfiguration"
 
     companion object {
         @JvmStatic()

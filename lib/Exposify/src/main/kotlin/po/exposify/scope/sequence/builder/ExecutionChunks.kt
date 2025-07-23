@@ -10,6 +10,11 @@ import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.functions.containers.DeferredContainer
 import po.misc.functions.containers.LambdaContainer
 import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asContext
+import po.misc.context.asIdentity
+import po.misc.context.asSubIdentity
+import po.misc.functions.containers.LambdaHolder
 import po.misc.types.TaggedType
 import po.misc.types.TypeData
 import po.misc.types.interfaces.TagTypedClass
@@ -27,12 +32,14 @@ enum class ChunkType {
 }
 
 
-sealed class ExecutionChunkBase<DTO, D>(): CTX
+sealed class ExecutionChunkBase<DTO, D>() : CTX
         where DTO : ModelDTO, D : DataModel
 {
+
+    override val identity: CTXIdentity<out CTX> = asIdentity()
+
     abstract val chunkType : ChunkType
-    internal val exPayload: ManagedCallSitePayload = ManagedCallSitePayload(this)
-    val withInputValueLambda: LambdaContainer<D> = LambdaContainer(this)
+    val withInputValueLambda: LambdaHolder<D> = LambdaHolder(this)
 
     val healthMonitor: HealthMonitor<ExecutionChunkBase<DTO, D>> = HealthMonitor(this)
 
@@ -53,14 +60,15 @@ sealed class ExecutionChunkBase<DTO, D>(): CTX
 
 sealed class SingleResultChunks<DTO, D>(
     val configurationBlock: SingleResultChunks<DTO, D>.() -> Unit
-):ExecutionChunkBase<DTO, D>(), CTX
+):ExecutionChunkBase<DTO, D>()
         where DTO : ModelDTO, D : DataModel
 {
-    internal val configContainer: LambdaContainer<SingleResultChunks<DTO, D>> = LambdaContainer(this)
+
+    internal val configContainer: LambdaHolder<SingleResultChunks<DTO, D>> = LambdaHolder(this)
 
     var activeResult: ResultSingle<DTO, D, *>? = null
     val resultContainer: DeferredContainer<ResultSingle<DTO, D, *>> = DeferredContainer(this)
-    val withResultContainer: LambdaContainer<ResultSingle<DTO, D, *>> = LambdaContainer(this)
+    val withResultContainer: LambdaHolder<ResultSingle<DTO, D, *>> = LambdaHolder(this)
 
     init {
         configContainer.registerProvider(configurationBlock)
@@ -146,9 +154,9 @@ sealed class ListResultChunks<DTO, D>(
         where DTO : ModelDTO, D : DataModel
 {
     protected var activeResult: ResultList<DTO, D, *>? = null
-    internal val configContainer: LambdaContainer<ListResultChunks<DTO, D>> = LambdaContainer(this)
+    internal val configContainer: LambdaHolder<ListResultChunks<DTO, D>> = LambdaHolder(this)
     val resultContainer: DeferredContainer<ResultList<DTO, D, *>> = DeferredContainer(this)
-    val withResultContainer: LambdaContainer<ResultList<DTO, D, *>> = LambdaContainer(this)
+    val withResultContainer: LambdaHolder<ResultList<DTO, D, *>> = LambdaHolder(this)
 
 
 
@@ -175,6 +183,8 @@ class SelectChunk<DTO, D>(
 ):ListResultChunks<DTO, D>(configBlock), TagTypedClass<SelectChunk<DTO, D>, ChunkTag>
         where DTO: ModelDTO, D : DataModel
 {
+
+
 
     override val chunkType: ChunkType = ChunkType.OutputType
     override val contextName: String get() = "SelectChunk"

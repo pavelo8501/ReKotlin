@@ -57,5 +57,5 @@ fun <DTO, D, E, V: Any>  CommonDTO<DTO, D, E>.serializedBinding(
 ): SerializedDelegate<DTO, D, E, V>
     where DTO: ModelDTO, D: DataModel, E: LongEntity{
 
-    return SerializedDelegate(this, dataProperty, entityProperty, emptyList())
+    return SerializedDelegate(this, dataProperty, entityProperty)
 }

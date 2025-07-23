@@ -7,6 +7,7 @@ import po.misc.functions.interfaces.FunctionalClass
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asContext
+import po.misc.context.asSubIdentity
 import po.misc.exceptions.ExceptionPayload
 import po.misc.types.getOrManaged
 
@@ -25,8 +26,7 @@ sealed class BasicFunctionContainer<T: Any, R: Any?, V: Any?>(
   val hooks: ReactiveHooks<BasicFunctionContainer<T, R, V>, V> = ReactiveHooks()
 ):  FunctionalClass<V>, CTX, BasicHooks<BasicFunctionContainer<T, R, V>, V> by hooks{
 
-    override val identity : CTXIdentity<BasicFunctionContainer<T, R, V>> = asContext(parentContext = holder)
-
+    override val identity : CTXIdentity<BasicFunctionContainer<T, R, V>> = asSubIdentity(this, holder)
 
     /**
      * Hook manager for this container.

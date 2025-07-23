@@ -1,9 +1,9 @@
 package po.exposify.dto.enums
 
-import po.misc.interfaces.Named
 
 
-enum class Classes(override val moduleName: String):Named{
+
+enum class Classes(val moduleName: String){
     CommonDTO("CommonDTO"),
     DTOClass("DTOClass"),
     RootClass("RootClass");

@@ -16,36 +16,33 @@ import po.exposify.dto.components.result.toResult
 import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.exceptions.managedPayload
 import po.exposify.exceptions.operationsException
 import po.lognotify.TasksManaged
 import po.lognotify.classes.notification.LoggerDataProcessor
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
-import po.misc.context.Identifiable
 import po.misc.context.asIdentity
+import po.misc.context.asSubIdentity
 
 
 sealed class ExecutionContext<DTO, DATA, ENTITY>(
    val dtoClass: DTOBase<DTO, DATA, ENTITY>
-): TasksManaged
-        where DTO: ModelDTO, DATA : DataModel, ENTITY: LongEntity
+): TasksManaged where DTO: ModelDTO, DATA : DataModel, ENTITY: LongEntity
 {
 
-    override val contextName: String = "ExecutionProvider"
+    override val identity: CTXIdentity<out CTX> = asSubIdentity(this, dtoClass)
+
     abstract val logger: LoggerDataProcessor
     private val daoService: DAOService<DTO, DATA, ENTITY> get() = dtoClass.config.daoService
 
     fun insert(data: DATA): ResultSingle<DTO, DATA, ENTITY> {
-        println("$contextName insert triggered with data ${data.id}")
         val operation = CrudOperation.Insert
         if (dtoClass is RootDTO){
            val dto = dtoClass.newDTO().hub.loadHierarchyByData(data, dtoClass)
-            return dto.toResult(operation)
+           return dto.toResult(operation)
         } else {
-           throw operationsException(managedPayload("Setup misconfiguration", ExceptionCode.ABNORMAL_STATE))
+            throw operationsException("Setup misconfiguration", ExceptionCode.ABNORMAL_STATE, this)
         }
     }
 
@@ -56,8 +53,8 @@ sealed class ExecutionContext<DTO, DATA, ENTITY>(
             if(result != null){
                 dtoClass.newDTO().hub.loadHierarchyByEntity(result, dtoClass).toResult(operation)
             }else{
-                val message = "Entity with provided id :${id} not found"
-                dtoClass.shallowDTO().toResult(OperationsException(message, ExceptionCode.DB_CRUD_FAILURE, null), operation)
+                val exception = operationsException("Entity with provided id :${id} not found",  ExceptionCode.DB_CRUD_FAILURE, this)
+                dtoClass.shallowDTO().toResult(exception, operation)
             }
         }
     }
@@ -70,9 +67,9 @@ sealed class ExecutionContext<DTO, DATA, ENTITY>(
             dtoClass.newDTO().hub.loadHierarchyByEntity(entity, dtoClass).toResult(operation)
         } else {
             val queryStr = conditions.build().toSqlString()
-            val message =
-                "Unable to find ${dtoClass.dtoType} for query $queryStr"
-            dtoClass.shallowDTO().toResult(OperationsException(message, ExceptionCode.DB_CRUD_FAILURE, null), operation)
+            val message = "Unable to find ${dtoClass.dtoType} for query $queryStr"
+            val exception = operationsException("Unable to find ${dtoClass.dtoType} for query $queryStr", ExceptionCode.DB_CRUD_FAILURE, this)
+            dtoClass.shallowDTO().toResult(exception, operation)
         }
     }
 
@@ -180,8 +177,6 @@ fun <DTO: ModelDTO, D: DataModel, E:LongEntity> RootDTO<DTO, D, E>.createProvide
 ):RootExecutionContext<DTO, D, E> {
     return RootExecutionContext(this)
 }
-
-
 
 class DTOExecutionContext<DTO, D, E, F, FD, FE>(
     dtoClass: DTOBase<DTO, D, E>,

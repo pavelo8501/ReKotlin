@@ -6,8 +6,8 @@ import po.misc.collections.StaticTypeKey
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.throwManaged
 import po.misc.context.CTX
-import po.misc.context.asIdentity
-import po.misc.context.subIdentity
+import po.misc.context.CTXIdentity
+import po.misc.context.asSubIdentity
 import po.misc.types.TypeData
 import po.misc.types.castOrManaged
 import po.misc.types.safeCast
@@ -29,7 +29,15 @@ class CallbackManager<E: Enum<E>>(
         val routedContainersCount: Int
     )
 
-    override val identity  = subIdentity<CallbackManager<*>>(this,  emitter)
+    override val identity: CTXIdentity<CallbackManager<*>>
+
+    init {
+        try {
+            identity = asSubIdentity(this, emitter)
+        }catch (th: Throwable){
+            throw th
+        }
+    }
 
 
    //val identity: Identifiable = identifiable("CallbackManager", emitter.context)

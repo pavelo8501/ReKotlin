@@ -12,6 +12,7 @@ import po.exposify.dto.components.bindings.property_binder.delegates.parentRefer
 import po.exposify.dto.components.bindings.property_binder.delegates.serializedBinding
 import po.exposify.dto.components.bindings.relation_binder.delegates.oneToManyOf
 import po.exposify.dto.configuration.configuration
+import po.exposify.dto.dtoOf
 import po.exposify.scope.sequence.builder.UpdateSingle
 import po.exposify.scope.sequence.launcher.SwitchSingeDescriptor
 import po.test.exposify.setup.ClassData
@@ -69,7 +70,7 @@ class SectionDTO(): CommonDTO<SectionDTO, Section, SectionEntity>(SectionDTO) {
         SectionEntity::contentBlocks,
         ContentBlockEntity::section)
 
-    companion object: DTOClass<SectionDTO, Section, SectionEntity>(SectionDTO::class, PageDTO){
+    companion object: DTOClass<SectionDTO, Section, SectionEntity>(dtoOf<SectionDTO>(), PageDTO){
 
        internal val UPDATE = SwitchSingeDescriptor(this, PageDTO.PICK, UpdateSingle)
 

@@ -46,7 +46,7 @@ fun <DTO, D, E> DTOBase<DTO, D, E>.setupValidation(
                                 it.updateStatus(DelegateStatus.Initialized)
                             }
                         }
-                        conditionTrue(foreign.foreignClass.identity.sourceName, "Attached foreign not configured"){
+                        conditionTrue(foreign.foreignClass.identity.identifiedByName, "Attached foreign not configured"){
                             foreign.foreignClass.status == DTOClassStatus.Initialized
                         }
                     }
@@ -89,11 +89,11 @@ fun <DTO, D, E> DTOBase<DTO, D, E>.setupValidation(
         }
     }
     reports.forEach { report ->
-        handler.logFormatted(report) {
+        logger.logFormatted(report) {
             echo(ValidationReport.Header)
             getRecords().forEach { record -> record.echo(ReportRecord.GeneralTemplate) }
             echo(ValidationReport.Footer)
         }
     }
-    reports.finalCheckStatus()
+   return reports.finalCheckStatus()
 }

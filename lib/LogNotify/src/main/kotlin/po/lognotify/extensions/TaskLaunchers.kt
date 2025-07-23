@@ -202,9 +202,16 @@ inline fun <T: TasksManaged, reified R: Any?> T.runTask(
 
     val taskContainer: TaskContainer<T, R> = TaskContainer.create<T, R>(newTask)
     taskContainer.classInfoProvider.registerProvider { overallInfo<R>(ClassRole.Result) }
-    val lambdaResult = taskContainer.controlledRun {
+
+    val lambdaResult = try {
         block.invoke(taskContainer)
+    }catch (th: Throwable){
+        throw th
     }
+
+//    val lambdaResult = taskContainer.controlledRun {
+//        block.invoke(taskContainer)
+//    }
    return onTaskResult(newTask, lambdaResult)
 }
 
