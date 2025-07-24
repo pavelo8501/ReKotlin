@@ -1,6 +1,6 @@
-package po.lognotify.classes.notification
+package po.lognotify.notification
 
-import po.lognotify.classes.notification.models.TaskData
+import po.lognotify.notification.models.TaskData
 
 
 interface LoggerContract {

@@ -13,6 +13,10 @@ class TaskRegistry<T: CTX, R>(
     val hierarchyRoot: RootTask<T, R>
 ) {
     val tasks: MutableMap<TaskKey, Task<*, *>> = mutableMapOf()
+
+    val totalCount: Int get() = tasks.size + 1
+    val childCount: Int get() = tasks.size
+
     fun registerChild(task: Task<*, *>) {
         tasks[task.key] = task
         dispatcher.notifyUpdate(TaskDispatcher.UpdateType.OnTaskCreated, task)
@@ -66,9 +70,6 @@ class TaskRegistry<T: CTX, R>(
         }
     }
 
-    fun taskCount(): Int {
-       return tasks.size + 1
-    }
 
     fun getActiveTask(): TaskBase<*, *>{
        val found =  tasks.values.firstOrNull { it.executionStatus == ExecutionStatus.Active }

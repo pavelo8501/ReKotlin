@@ -2,7 +2,7 @@ package po.misc.data.printable
 
 import po.misc.collections.StaticTypeKey
 import po.misc.data.styles.SpecialChars
-import po.misc.functions.dsl.DSLBuilder
+import po.misc.functions.dsl.DSLConstructor
 import po.misc.functions.dsl.DSLContainer
 import po.misc.functions.dsl.dslBuilder
 import po.misc.types.getOrManaged
@@ -20,6 +20,12 @@ abstract class PrintableCompanion<T : PrintableBase<T>>(private val classProvide
         if(!metaDataInitialized){
             typeKeyBacking = StaticTypeKey.Companion.createTypeKey(classProvider.invoke())
         }
+    }
+
+    fun createTemplate2(dslLambda: DSLConstructor<T, String>.()-> Unit): Template2<T>{
+        val template =  Template2<T>()
+        template.dslConstructor.build(dslLambda)
+        return template
     }
 
     fun createTemplate(

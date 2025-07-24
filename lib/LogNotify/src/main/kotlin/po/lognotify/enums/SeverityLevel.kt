@@ -1,7 +1,6 @@
 package po.lognotify.enums
 
 enum class SeverityLevel (val severityLevelId: Int) {
-    SYS_INFO(1), // Task header/footer
     LOG(1),
     INFO(2), // Messages
     WARNING(3), // Yet non-critical exception occurrences, other code anomalies

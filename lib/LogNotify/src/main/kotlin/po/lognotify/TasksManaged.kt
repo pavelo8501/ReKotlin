@@ -3,7 +3,8 @@ package po.lognotify
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import po.lognotify.classes.notification.NotifierHub
+import po.lognotify.enums.SeverityLevel
+import po.lognotify.notification.NotifierHub
 import po.lognotify.tasks.TaskHandler
 import po.lognotify.models.TaskDispatcher
 import po.lognotify.models.TaskDispatcher.UpdateType
@@ -34,9 +35,8 @@ interface TasksManaged : CTX {
         }
 
     fun <T : PrintableBase<T>> log(data: T, template: PrintableTemplateBase<T>) {
-        logHandler.dispatcher.getActiveDataProcessor().log(data, template)
+        logHandler.dispatcher.getActiveDataProcessor().log(data, SeverityLevel.LOG)
     }
-
 
 
 

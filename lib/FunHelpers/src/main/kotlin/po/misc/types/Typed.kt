@@ -16,6 +16,7 @@ sealed interface Typed<T: Any>: ComparableType<T>{
     val kType: KType
 }
 
+@Deprecated("Replace by TypeData", level= DeprecationLevel.WARNING)
 data class TypeRecord<T: Any>(
     val type : ValueBased,
     override val kClass: KClass<T>,
@@ -31,11 +32,9 @@ data class TypeRecord<T: Any>(
     fun  toTypeData(): TypeData<T>{
         return TypeData(kClass, kType)
     }
-
     fun toStaticTypeKey(): StaticTypeKey<T>{
         return  StaticTypeKey<T>(kClass)
     }
-
     companion object{
         inline fun <reified T: Any> createRecord(element: ValueBased):TypeRecord<T>{
            return TypeRecord(element, T::class, typeOf<T>())
@@ -47,30 +46,23 @@ data class TypeRecord<T: Any>(
     }
 }
 
-open class TypeData<T: Any>(
-    override val kClass: KClass<T>,
-    override val kType: KType,
-):Typed<T>, ComparableType<T>{
+open class TypeData<T: Any>(override val kClass: KClass<T>, override val kType: KType):Typed<T>, ComparableType<T> {
 
     val simpleName : String get() = kClass.simpleName.toString()
     val qualifiedName: String get() = kClass.qualifiedName.toString()
+    override val typeName: String
+        get() = normalizedSimpleString()
 
     override fun hashCode(): Int {
        return kType.hashCode()
     }
-
     override fun equals(other: Any?): Boolean {
         return other is TypeData<*> &&
                 this.kType == other.kType
     }
-
-    override val typeName: String
-        get() = normalizedSimpleString()
-
     override fun toString(): String {
         return "TypeData<$typeName>"
     }
-
     fun normalizedSimpleString(): String {
         val classifier = kType.classifier as? KClass<*> ?: return "Unknown"
         val typeArgs = kType.arguments.joinToString(", ") { arg ->
@@ -126,11 +118,8 @@ data class TaggedType<T: Any, E: Enum<E>>(
     override val enumTag: EnumTag<E>
 ):Typed<T>, ComparableType<T>, Tagged<E>{
 
-
     override val kClass: KClass<T> get() = typeData.kClass
     override val kType: KType   get() = typeData.kType
-
-
 
     val simpleName : String get() = kClass.simpleName.toString()
     val qualifiedName: String get() = kClass.qualifiedName.toString()
@@ -172,7 +161,6 @@ data class TaggedType<T: Any, E: Enum<E>>(
     }
 
     companion object{
-
         /**
          * Creates a [TaggedType] from the reified type [T] and enum tag [E], optionally providing an alias.
          *

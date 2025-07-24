@@ -1,15 +1,16 @@
 package po.lognotify.action
 
 
-import po.lognotify.classes.notification.models.ActionData
+import po.lognotify.notification.models.ActionData
 import po.lognotify.anotations.LogOnFault
-import po.lognotify.common.LogInstance
+import po.lognotify.common.LNInstance
 import po.lognotify.tasks.TaskHandler
 import po.lognotify.models.TaskKey
 import po.lognotify.tasks.ExecutionStatus
 import po.lognotify.tasks.TaskBase
 import po.lognotify.tasks.models.TaskConfig
 import po.misc.context.CTX
+import po.misc.context.CTXIdentity
 import po.misc.context.asSubIdentity
 import po.misc.data.printable.knowntypes.PropertyData
 import po.misc.exceptions.ManagedException
@@ -18,21 +19,21 @@ import po.misc.reflection.properties.takePropertySnapshot
 import po.misc.time.ExecutionTimeStamp
 import kotlin.reflect.KType
 
-class ActionSpan<T, R: Any?>(
+class ActionSpan<T : CTX, R: Any?>(
     val actionName: String,
-    val taskHandler: TaskHandler<*>,
     override val receiver: T,
-): LogInstance<T>  where T: CTX {
+    internal val task: TaskBase<*, *>,
+): LNInstance<T> {
 
-    override val identity = asSubIdentity(this, receiver)
+    override val identity:  CTXIdentity<ActionSpan<T, R>>  = asSubIdentity(this, receiver)
 
     override val contextName: String
         get() = "ActionSpan"
 
-    override val config: TaskConfig get() = taskHandler.taskConfig
+    override val config: TaskConfig get() = task.config
+    val inTask: TaskKey get()=   task.key
 
-    val inTask: TaskKey get()= taskHandler.task.key
-    val taskBase : TaskBase<*, *> get() = taskHandler.task
+    override val header: String get() = "AS $actionName in Context[${receiver.contextName}]"
 
 
     override var executionStatus : ExecutionStatus = ExecutionStatus.Active
@@ -58,9 +59,8 @@ class ActionSpan<T, R: Any?>(
 
     fun createData(): ActionData {
         val data = ActionData(
-            actionSpan = this,
             actionName = actionName,
-            status = executionStatus,
+            actionStatus = executionStatus,
             propertySnapshot = createPropertySnapshot(),
         )
         return data
@@ -98,6 +98,6 @@ class ActionSpan<T, R: Any?>(
     }
 
     override fun toString(): String {
-        return createData().formattedString
+        return header
     }
 }

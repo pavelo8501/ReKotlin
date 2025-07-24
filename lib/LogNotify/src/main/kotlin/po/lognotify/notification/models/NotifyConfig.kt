@@ -1,19 +1,46 @@
-package po.lognotify.classes.notification.models
+package po.lognotify.notification.models
 
 import po.misc.collections.StaticTypeKey
 import po.misc.data.printable.PrintableCompanion
 
 
+
+/**
+ * Defines the verbosity level of console output during task execution.
+ * This enum is used to control how much information is printed to the console,
+ * ranging from full output to selective muting of specific types of messages.
+ */
+enum class ConsoleBehaviour{
+
+    /**
+     * Print all output including task headers, events, and info logs.
+     * This is the most verbose mode.
+     */
+    FullPrint,
+
+    /**
+    * Suppress all console output completely.
+    * No headers, footers, or events will be printed.
+    */
+    Mute,
+
+    /**
+     * Suppress task headers and footers, but still allow event logs to be printed.
+     * Useful for reducing clutter while retaining meaningful logs.
+     */
+    MuteNoEvents,
+
+    /**
+     * Suppress event logs with severity level `INFO`.
+     * Warnings and errors are still printed. Task headers and footers are also printed.
+     */
+    MuteInfo,
+}
+
 data class NotifyConfig(
     var console : ConsoleBehaviour = ConsoleBehaviour.FullPrint,
     var debugAll:DebugOptions = DebugOptions.Listed
 ){
-    enum class ConsoleBehaviour{
-        FullPrint, //Print everything
-        Mute, //Mute everything
-        MuteNoEvents, //Mute task header/footer printout without any events
-        MuteInfo, // Mute events with severity level info
-    }
 
     enum class DebugOptions{
         Listed,

@@ -1,10 +1,11 @@
 package po.lognotify.exceptions
 
 import po.lognotify.TasksManaged
-import po.lognotify.classes.notification.models.ErrorSnapshot
+import po.lognotify.notification.models.ErrorSnapshot
 import po.lognotify.common.containers.RunnableContainer
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.tasks.ExecutionStatus
+import po.lognotify.tasks.TaskBase
 import po.misc.data.printable.knowntypes.PropertyData
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
@@ -53,23 +54,26 @@ internal fun <T: TasksManaged, R: Any?> handleException(
         }
     } else {
         val exceptionHandler = container.effectiveTask.config.exceptionHandler
-        var exceptionData : ExceptionData2? = null
         val payload = container.source.toPayload{
             handler = exceptionHandler
-            exceptionData =  provideCause(exception)
         }
         val managed = ManagedException(payload)
-        val backtraceData = container.provideBackTrace()
-        exceptionData?.let {
-            it.provideAuxData(backtraceData)
-            managed.addExceptionData(it)
-        }
         managed.setPropertySnapshot(snapshot)
         container.effectiveTask.dataProcessor.error(managed)
         return managed
     }
 }
 
+
+fun TaskBase<*, *>.provideBackTrace(): ErrorSnapshot{
+    val compiledReport = createTaskData{
+        val selectedSpans = actionSpans.selectUntil {
+            (it.executionStatus == ExecutionStatus.Failing) || (it.executionStatus == ExecutionStatus.Faulty)
+        }
+        selectedSpans.map { it.createData() }
+    }
+    return compiledReport
+}
 
 
 fun <T: TasksManaged, R: Any?> RunnableContainer<T, R>.provideBackTrace(): ErrorSnapshot{

@@ -2,9 +2,9 @@ package po.lognotify.common.containers
 
 import po.lognotify.TasksManaged
 import po.lognotify.action.ActionSpan
-import po.lognotify.classes.notification.LoggerContract
-import po.lognotify.classes.notification.LoggerDataProcessor
-import po.lognotify.common.LogInstance
+import po.lognotify.common.LNInstance
+import po.lognotify.notification.LoggerContract
+import po.lognotify.notification.LoggerDataProcessor
 import po.lognotify.execution.ControlledExecution
 import po.lognotify.tasks.ExecutionStatus
 import po.lognotify.tasks.RootTask
@@ -14,13 +14,12 @@ import po.lognotify.tasks.models.TaskConfig
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.exceptions.ExceptionPayload
-import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.functions.containers.DeferredContainer
 import po.misc.reflection.classes.ClassInfo
 
 
 sealed class RunnableContainer<T: CTX, R: Any?>(
-   val source : LogInstance<T>,
+   internal val source : LNInstance<T>,
    val notifier: LoggerDataProcessor
 ): ControlledExecution, LoggerContract by notifier{
 
@@ -114,11 +113,11 @@ class TaskContainer<T: CTX, R: Any?>(
 
 class ActionContainer<T: TasksManaged, R: Any?>(
     val actionSpan: ActionSpan<T, R>
-): RunnableContainer<T, R>(actionSpan, actionSpan.taskHandler.dataProcessor) {
+): RunnableContainer<T, R>(actionSpan, actionSpan.task.dataProcessor) {
 
 
-    override val effectiveTask: TaskBase<*, *> get() = actionSpan.taskBase
-    override val taskHandler: TaskHandler<*> get() = actionSpan.taskHandler
+    override val effectiveTask: TaskBase<*, *> get() = actionSpan.task
+    override val taskHandler: TaskHandler<*> get() = actionSpan.task.handler
     override val taskConfig: TaskConfig = taskHandler.taskConfig
     override val effectiveActionSpan: ActionSpan<*, *> get() = actionSpan
 

@@ -10,14 +10,17 @@ import po.misc.data.printable.Printable
 import po.misc.types.safeCast
 
 abstract class DataProcessorBase<T:PrintableBase<T>>(
-    val topEmitter: DataProcessorBase<*>?,
-    val emitter: EmittableFlow<T>?
+    val topProcessor: DataProcessorBase<T>?,
+    val flowEmitter: EmittableFlow<T>?
 )
 {
     @PublishedApi
     internal val recordList: MutableList<PrintableBase<*>> = mutableListOf()
+
+    abstract val records: MutableList<T>
+    val recordsCount : Int get() = records.size
+
     private val activeRecord: PrintableBase<*>? get() = recordList.lastOrNull()
-    val recordsCount : Int get() = recordList.size
 
     var globalMuteCondition:  ((ComposableData)-> Boolean)? = null
     var muteCondition: ((Printable)-> Boolean)? = null
@@ -28,7 +31,7 @@ abstract class DataProcessorBase<T:PrintableBase<T>>(
     private val debugWhiteList: MutableMap<Int, StaticTypeKey<*>> = mutableMapOf()
 
     init {
-        topEmitter?.hooks?.debugListUpdated{ topEmittersList->
+        topProcessor?.hooks?.debugListUpdated{ topEmittersList->
             updateDebugWhiteList(topEmittersList)
         }
     }
@@ -36,14 +39,8 @@ abstract class DataProcessorBase<T:PrintableBase<T>>(
     private fun addData(record: PrintableBase<*>){
         recordList.add(record)
     }
-    private fun acceptForwarded(record:  PrintableBase<*>){
-        activeRecord?.let {
-            it.addChild(record)
-            hooks.onChildAttached?.invoke(record, it)
-        }?:run {
-            recordList.add(record)
-        }
-    }
+
+    abstract fun onChildDataReceived(childRecords:List<T>)
 
     protected fun updateDebugWhiteList(whiteList: MutableMap<Int, StaticTypeKey<*>>){
         debugWhiteList.clear()
@@ -113,12 +110,9 @@ abstract class DataProcessorBase<T:PrintableBase<T>>(
     }
 
     fun forwardOrEmmit(data: T){
-        topEmitter?.acceptForwarded(data)
-        emitter?.emitData(data)
-    }
 
-    fun provideMuteCondition(muteCondition: (ComposableData)-> Boolean) {
-        globalMuteCondition = muteCondition
+        topProcessor?.onChildDataReceived(records)
+        flowEmitter?.emitData(data)
     }
 
     @JvmName("provideMuteConditionTyped")
@@ -129,8 +123,14 @@ abstract class DataProcessorBase<T:PrintableBase<T>>(
 }
 
 class DataProcessor<T: PrintableBase<T>>(
-    topEmitter: DataProcessorBase<*>?,
+    topEmitter: DataProcessorBase<T>?,
     emitter: EmittableFlow<T>? = null
 ):DataProcessorBase<T>(topEmitter, emitter){
+
+    override val records: MutableList<T> = mutableListOf()
+
+    override fun onChildDataReceived(childRecords: List<T>) {
+        records.addAll(childRecords)
+    }
 
 }

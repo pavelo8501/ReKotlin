@@ -3,7 +3,6 @@ package po.test.exposify.crud
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.assertAll
 import po.auth.extensions.generatePassword
-import po.exposify.dto.components.query.WhereQuery
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.Pages
 import po.test.exposify.setup.dtos.PageDTO
@@ -18,7 +17,7 @@ import po.exposify.common.events.DTOData
 import po.exposify.dto.components.query.deferredQuery
 import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
-import po.lognotify.classes.notification.models.NotifyConfig
+import po.lognotify.notification.models.NotifyConfig
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity

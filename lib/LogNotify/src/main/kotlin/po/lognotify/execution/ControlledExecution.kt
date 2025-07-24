@@ -46,7 +46,7 @@ internal interface ControlledExecution : TasksManaged {
     }
 
     fun <T : TasksManaged, R : Any?>  RunnableContainer<T, R>.printHierarchy(){
-       val text = effectiveActionSpan?.taskBase.toString() +
+       val text = effectiveActionSpan?.task.toString() +
         effectiveTask.actionSpans.joinToString(separator = SpecialChars.NewLine.char) {
             it.toString()
         }

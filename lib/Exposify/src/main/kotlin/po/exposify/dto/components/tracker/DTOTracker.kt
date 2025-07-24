@@ -11,13 +11,11 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.lognotify.TasksManaged
 import po.misc.callbacks.CallbackManager
-import po.misc.callbacks.Containable
 import po.misc.callbacks.builders.callbackBuilder
 import po.misc.callbacks.builders.createPayload
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.data.printable.printableProxy
-import po.misc.context.Identifiable
 import po.misc.context.asSubIdentity
 import po.misc.lookups.HierarchyNode
 import po.misc.lookups.transformNode
@@ -31,12 +29,8 @@ class DTOTracker<DTO: ModelDTO, D: DataModel, E: LongEntity>(
 ):  MeasuredContext, TrackableDTO, TasksManaged{
 
     override val identity: CTXIdentity<DTOTracker<DTO, D, E>> = asSubIdentity(this, dto)
-
-
     override val executionTimeStamp: ExecutionTimeStamp = ExecutionTimeStamp(dto.completeName, "-1")
-
     @PublishedApi internal var config : TrackerConfig = TrackerConfig()
-
     var activeRecord : TrackerRecord = TrackerRecord(this, CrudOperation.Create, dto.completeName)
         private set
 
@@ -78,7 +72,6 @@ class DTOTracker<DTO: ModelDTO, D: DataModel, E: LongEntity>(
     private fun onComplete(){
         notifier.trigger(DTOEvents.OnCRUDComplete, this)
     }
-
 
     fun resolveHierarchy(): HierarchyNode<TrackableDTO>{
         val dtoNode =   dto.resolveHierarchy()

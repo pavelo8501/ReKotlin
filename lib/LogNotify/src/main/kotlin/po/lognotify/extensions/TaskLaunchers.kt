@@ -80,7 +80,7 @@ inline fun <reified T: TasksManaged, R: Any?> T.runTaskBlocking(
    val result = runBlocking {
        val moduleName: String = this::class.simpleName?:config.moduleName
        val dispatcher = TasksManaged.LogNotify.taskDispatcher
-       val newTask = dispatcher.createHierarchyRoot<T, R>(taskName, moduleName, effectiveConfig, this@runTaskBlocking)
+       val newTask = dispatcher.createHierarchyRoot<T, R>(taskName, moduleName, this@runTaskBlocking, effectiveConfig)
        when(config.launcherType){
            is LauncherType.AsyncLauncher -> {
                (config.launcherType as LauncherType.AsyncLauncher).RunCoroutineHolder(newTask, config.dispatcher){
@@ -142,7 +142,7 @@ suspend inline fun <reified T: TasksManaged, R: Any?> T.runTaskAsync(
     val receiver = this
     val moduleName: String = this::class.simpleName ?: config.moduleName
     val dispatcher = TasksManaged.LogNotify.taskDispatcher
-    val newTask = dispatcher.createHierarchyRoot<T, R>(taskName, moduleName, effectiveConfig, this)
+    val newTask = dispatcher.createHierarchyRoot<T, R>(taskName, moduleName, this, effectiveConfig)
     return when (config.launcherType) {
         is LauncherType.AsyncLauncher -> {
             (config.launcherType as LauncherType.AsyncLauncher).RunCoroutineHolder(newTask, config.dispatcher) {
@@ -190,9 +190,9 @@ inline fun <T: TasksManaged, reified R: Any?> T.runTask(
             config
         }
 
-        activeTask.createChild(taskName, moduleName, configToUse, this)
+        activeTask.createChild(taskName, moduleName, this, configToUse)
     } else {
-        dispatcher.createHierarchyRoot(taskName, moduleName, config, this)
+        dispatcher.createHierarchyRoot(taskName, moduleName, this, config)
     }
     newTask.start()
     if (debugProxy != null) {

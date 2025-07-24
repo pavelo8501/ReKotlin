@@ -1,8 +1,9 @@
 package po.lognotify.tasks
 
 import po.lognotify.action.ActionSpan
-import po.lognotify.classes.notification.LoggerDataProcessor
-import po.lognotify.classes.notification.models.TaskData
+import po.lognotify.enums.SeverityLevel
+import po.lognotify.notification.LoggerDataProcessor
+import po.lognotify.notification.models.TaskData
 import po.lognotify.tasks.interfaces.HandledTask
 import po.lognotify.tasks.models.TaskConfig
 import po.lognotify.models.TaskDispatcher
@@ -13,7 +14,6 @@ import po.misc.data.printable.PrintableTemplateBase
 import po.misc.data.printable.Printable
 import po.misc.data.printable.PrintableCompanion
 import po.misc.exceptions.ManagedException
-import po.misc.context.Identifiable
 
 class TaskHandler<R: Any?>(
     val task : TaskBase<*, R>,
@@ -28,7 +28,9 @@ class TaskHandler<R: Any?>(
         dataProcessor.info(message)
     }
 
-    fun <T2: PrintableBase<T2>> log(data: T2, template: PrintableTemplateBase<T2>):T2 = dataProcessor.log(data, template)
+    fun <T2: PrintableBase<T2>> log(data: T2, template: PrintableTemplateBase<T2>):T2 =
+        dataProcessor.log(data, SeverityLevel.LOG)
+
     fun <T2: PrintableBase<T2>> debug(data: T2, dataClass: PrintableCompanion<T2>, template: PrintableTemplateBase<T2>):T2
         = dataProcessor.debug(data, dataClass, template)
 

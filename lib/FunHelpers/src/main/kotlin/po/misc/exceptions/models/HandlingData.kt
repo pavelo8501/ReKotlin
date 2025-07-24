@@ -65,15 +65,7 @@ class ExceptionData2(
         private set
 
     fun addStackTrace(stackTrace: List<StackTraceElement>):ExceptionData2{
-        if(producer != null){
-            thisStackTraceElement =  producer.identity.parentIdentity?.let {parentIdentity->
-                stackTrace.firstOrNull { it.className == parentIdentity.classQualifiedName }
-            }?:run {
-                stackTrace.firstOrNull { it.className == producer?.identity?.classQualifiedName }
-            }
-        }else{
-            stackTraceList = stackTrace
-        }
+        stackTraceList = stackTrace
         return this
     }
 

@@ -1,7 +1,7 @@
 package po.lognotify.debug
 
 import po.lognotify.TasksManaged
-import po.lognotify.classes.notification.LoggerDataProcessor
+import po.lognotify.notification.LoggerDataProcessor
 import po.lognotify.debug.interfaces.DebugProvider
 import po.lognotify.debug.models.CaptureBlock
 import po.lognotify.debug.models.DebugParams

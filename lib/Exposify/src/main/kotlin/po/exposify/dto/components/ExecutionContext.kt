@@ -19,7 +19,7 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.operationsException
 import po.lognotify.TasksManaged
-import po.lognotify.classes.notification.LoggerDataProcessor
+import po.lognotify.notification.LoggerDataProcessor
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity

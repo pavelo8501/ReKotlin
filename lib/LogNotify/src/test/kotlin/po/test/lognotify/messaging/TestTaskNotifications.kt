@@ -1,8 +1,8 @@
 package po.test.lognotify.messaging
 
 import org.junit.jupiter.api.Test
-import po.lognotify.classes.notification.NotifierHub
-import po.lognotify.classes.notification.models.TaskData
+import po.lognotify.notification.NotifierHub
+import po.lognotify.notification.models.TaskData
 import po.lognotify.tasks.models.TaskConfig
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.extensions.runTask
@@ -74,9 +74,7 @@ class TestTaskNotifications : FakeTasksManaged {
 
         runTask("Task1", TaskConfig(initiator = "TestInstance")) {
 
-            val startEvent = taskHandler.dataProcessor.registerStart()
             val stopEvent =  taskHandler.dataProcessor.registerStop()
-
             val info = taskHandler.info("Info message")
             val warning = taskHandler.warn("Info message")
             val warning2 = taskHandler.warn(ManagedException("Exception Message"), "Additional message")
@@ -84,7 +82,6 @@ class TestTaskNotifications : FakeTasksManaged {
             assertEquals(SeverityLevel.INFO, info.severity, "Severity mismatch")
             assertEquals(SeverityLevel.WARNING, warning.severity, "Severity mismatch")
             assertEquals(SeverityLevel.EXCEPTION, warning2.severity, "Severity mismatch")
-            assertEquals(SeverityLevel.INFO, startEvent.severity,"Severity mismatch")
             assertEquals(SeverityLevel.INFO, stopEvent.severity, "Severity mismatch")
         }
     }

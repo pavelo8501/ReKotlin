@@ -9,9 +9,8 @@ import po.auth.extensions.generatePassword
 import po.exposify.common.events.ContextData
 import po.exposify.common.events.DTOData
 import po.exposify.scope.service.models.TableCreateMode
-import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
-import po.lognotify.classes.notification.models.NotifyConfig
+import po.lognotify.notification.models.NotifyConfig
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity

@@ -5,6 +5,7 @@ import po.misc.data.printable.knowntypes.PropertyData
 import po.misc.exceptions.models.ExceptionData
 import po.misc.context.CTX
 import po.misc.exceptions.models.ExceptionData2
+import po.misc.types.currentCallerTrace
 
 
 enum class HandlerType(val value: Int) {
@@ -20,10 +21,10 @@ enum class HandlerType(val value: Int) {
 }
 
 open class ManagedException(
-    message: String,
+    open val msg: String,
     open val code: Enum<*>? = null,
-    original : Throwable? = null,
-) : Throwable(message, original), ManageableException<ManagedException>{
+    original : Throwable? = null
+) : Throwable(msg, original), ManageableException<ManagedException>{
 
     enum class ExceptionEvent{
         Thrown,
@@ -51,11 +52,16 @@ open class ManagedException(
 
     init {
 
-       addExceptionData(payload?.toDataWithTrace(stackTrace.toList()) ?: ExceptionData2(ExceptionEvent.Thrown, message, null))
+      // addExceptionData(payload?.toDataWithTrace(stackTrace.toList()) ?: ExceptionData2(ExceptionEvent.Thrown, msg, null))
     }
 
     private fun getExceptionDataByEvent(event:ExceptionEvent):ExceptionData?{
        return handlingData.firstOrNull { it.event == event }
+    }
+
+    fun createTrace(methodName: String): List<StackTraceElement>{
+       val trace = currentCallerTrace(methodName)
+       return trace
     }
 
     fun addExceptionData(
@@ -65,6 +71,19 @@ open class ManagedException(
         exceptionDataBacking.add(data)
         return  this
     }
+
+    fun addExceptionData(
+        context: CTX,
+        callingMethodName: String
+    ):ManagedException{
+        val trace = currentCallerTrace(callingMethodName)
+        val data = ExceptionData2(ExceptionEvent.Thrown, msg, context)
+        data.addStackTrace(trace)
+        exceptionDataBacking.add(data)
+        return this
+    }
+
+
 
     fun setHandler(
         handlerType: HandlerType,

@@ -2,8 +2,8 @@ package po.lognotify.models
 
 import po.lognotify.TasksManaged.LogNotify.defaultContext
 import po.lognotify.TasksManaged.LogNotify.taskDispatcher
-import po.lognotify.classes.notification.LoggerDataProcessor
-import po.lognotify.classes.notification.NotifierHub
+import po.lognotify.notification.LoggerDataProcessor
+import po.lognotify.notification.NotifierHub
 import po.lognotify.tasks.ExecutionStatus
 import po.lognotify.tasks.RootTask
 import po.lognotify.tasks.TaskBase
@@ -58,7 +58,7 @@ class TaskDispatcher(val notifierHub: NotifierHub) : UpdatableTasks, CTX{
     }
 
     internal fun createDefaultTask(): RootTask<TaskDispatcher, Unit> {
-        val task = createHierarchyRoot<TaskDispatcher, Unit>("Default", "LogNotify", TaskConfig(), this)
+        val task = createHierarchyRoot<TaskDispatcher, Unit>("Default", "LogNotify", this, TaskConfig(isDefault = true))
         val warningMessage =
             """No active tasks in context, taskHandler() has created a default task to avoid crash.
         Make sure that logger tasks were started before calling this method.
@@ -72,10 +72,21 @@ class TaskDispatcher(val notifierHub: NotifierHub) : UpdatableTasks, CTX{
     internal fun <T : CTX, R> createHierarchyRoot(
         name: String,
         moduleName: String,
-        config: TaskConfig,
-        receiver:T
+        receiver:T,
+        config: TaskConfig = TaskConfig(isDefault = true),
     ): RootTask<T, R>{
         val newTask = RootTask<T, R>(TaskKey(name, 0, moduleName), config, defaultContext(name), taskDispatcher, receiver)
+        taskDispatcher.addRootTask(newTask)
+        return newTask
+    }
+
+    @PublishedApi
+    internal fun <T : CTX, R> createHierarchyRoot(
+        name: String,
+        receiver:T,
+        config: TaskConfig = TaskConfig(isDefault = true),
+    ): RootTask<T, R>{
+        val newTask = RootTask<T, R>(TaskKey(name, 0, receiver.identity.identifiedByName), config, defaultContext(name), taskDispatcher, receiver)
         taskDispatcher.addRootTask(newTask)
         return newTask
     }
@@ -102,7 +113,7 @@ class TaskDispatcher(val notifierHub: NotifierHub) : UpdatableTasks, CTX{
             activeTaskName = task.key.taskName,
             activeTaskNestingLevel = task.key.nestingLevel,
             topTasksCount = taskHierarchy.size,
-            totalTasksCount = taskHierarchy.values.sumOf { it.subTasksCount},
+            totalTasksCount = taskHierarchy.values.sumOf { it.registry.totalCount},
             coroutineInfo = task.coroutineInfo
         )
         callbackRegistry.trigger(handler, stats)

@@ -5,7 +5,7 @@ import org.jetbrains.exposed.sql.Transaction
 import org.jetbrains.exposed.sql.statements.StatementContext
 import org.jetbrains.exposed.sql.statements.expandArgs
 import po.lognotify.TasksManaged
-import po.lognotify.classes.notification.LoggerDataProcessor
+import po.lognotify.notification.LoggerDataProcessor
 import po.lognotify.debug.DebugProxy
 import po.lognotify.debug.models.DebugParams
 import po.misc.context.CTX

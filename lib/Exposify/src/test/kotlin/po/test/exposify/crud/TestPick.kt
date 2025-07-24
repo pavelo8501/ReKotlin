@@ -1,6 +1,5 @@
 package po.test.exposify.crud
 
-import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.assertAll
 import po.auth.extensions.generatePassword
 import po.test.exposify.setup.DatabaseTest

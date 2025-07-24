@@ -125,24 +125,6 @@ inline fun <reified T: Any> Any?.castOrThrow(
 }
 
 
-//inline fun <T: Any> Any?.castTypedOrThrow(
-//    ctx: TypedContext<T>,
-//    exceptionProvider: (message: String, original: Throwable)-> Throwable,
-//):T {
-//    return try {
-//        ctx.typeData.kClass.cast(this)
-//    } catch (e: ClassCastException) {
-//        val thisCtx = this
-//        val message = if(thisCtx != null){
-//            "Unable to cast ${thisCtx::class.simpleName.toString()} to ${ctx.typeData.kClass.simpleName}. ${e.message}"
-//        }else{
-//            "Unable to cast null to ${ctx.typeData.kClass.simpleName}"
-//        }
-//        val exception = exceptionProvider(message, e)
-//        throw exception
-//    }
-//}
-
 
 inline fun <T: Any> Any?.castOrThrow(
     kClass: KClass<T>,

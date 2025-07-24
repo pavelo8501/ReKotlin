@@ -15,7 +15,9 @@ inline fun <T: TasksManaged, reified R : Any?>  T.runInlineAction(
     crossinline block: RunnableContainer<T, R>.()->R
 ):R {
     val taskHandler = taskHandler()
-    val newActionSpan = ActionSpan<T, R>(actionName, taskHandler, this)
+
+    val newActionSpan = ActionSpan<T, R>(actionName, this, taskHandler.task)
+
     taskHandler.task.addActionSpan(newActionSpan)
     val container =  ActionContainer.create(newActionSpan)
     container.classInfoProvider.registerProvider { overallInfo<R>(ClassRole.Result) }
@@ -31,7 +33,8 @@ fun <T:TasksManaged, R: Any?> T.runAction(
 ):R {
 
     val taskHandler = taskHandler()
-    val newActionSpan = ActionSpan<T, R>(actionName, taskHandler, this)
+
+    val newActionSpan = ActionSpan<T, R>(actionName, this, taskHandler.task)
     newActionSpan.resultType = resultType
     taskHandler.task.addActionSpan(newActionSpan)
     val container = ActionContainer.create(newActionSpan)

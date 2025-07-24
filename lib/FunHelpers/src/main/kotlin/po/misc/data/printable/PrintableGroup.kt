@@ -3,6 +3,7 @@ package po.misc.data.printable
 import po.misc.data.json.JsonHolder
 import po.misc.data.styles.SpecialChars
 
+
 abstract class PrintableGroup<T1: PrintableBase<T1>, T2:  PrintableBase<T2>>(
     val groupHost:T1,
     var hostDefaultTemplate: PrintableTemplateBase<T1>,
@@ -22,7 +23,6 @@ abstract class PrintableGroup<T1: PrintableBase<T1>, T2:  PrintableBase<T2>>(
 
     private val recordsBacking: MutableList<T2> = mutableListOf()
     val records: List<T2> = recordsBacking
-    val childCount: Int  get() = records.size
 
     fun getHostAndJoin():T1{
         groupHost.addChildren(records)
@@ -30,9 +30,16 @@ abstract class PrintableGroup<T1: PrintableBase<T1>, T2:  PrintableBase<T2>>(
     }
 
     var childProcessLambda: (T2.(PrintableGroup<T1, T2>)-> Unit)? = null
+
     fun processChild(block:T2.(PrintableGroup<T1, T2>)-> Unit){
         childProcessLambda = block
     }
+
+    private var newChildCallback : (T2.()-> Unit)? = null
+    fun onNewChild(callback:T2.()-> Unit){
+        newChildCallback = callback
+    }
+
 
     fun finalize(block:T1.()-> Unit){
         groupHost.block()
@@ -56,10 +63,12 @@ abstract class PrintableGroup<T1: PrintableBase<T1>, T2:  PrintableBase<T2>>(
     }
 
     fun addRecord(printable: T2):PrintableGroup<T1,T2>{
-        childProcessLambda?.invoke(printable, this)
+        newChildCallback?.invoke(printable)
         recordsBacking.add(printable)
         return  this
     }
+
+    fun clear(): Unit = recordsBacking.clear()
 
     override fun echo() {
         println(formattedString)

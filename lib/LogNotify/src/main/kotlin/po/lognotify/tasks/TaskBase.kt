@@ -4,11 +4,11 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
-import po.lognotify.classes.notification.models.ActionData
+import po.lognotify.notification.models.ActionData
 import po.lognotify.action.ActionSpan
-import po.lognotify.classes.notification.LoggerDataProcessor
-import po.lognotify.classes.notification.models.ErrorSnapshot
-import po.lognotify.common.LogInstance
+import po.lognotify.common.LNInstance
+import po.lognotify.notification.LoggerDataProcessor
+import po.lognotify.notification.models.ErrorSnapshot
 import po.lognotify.tasks.interfaces.ResultantTask
 import po.lognotify.tasks.models.TaskConfig
 import po.lognotify.common.result.TaskResult
@@ -23,10 +23,9 @@ import po.misc.callbacks.builders.callbackManager
 import po.misc.coroutines.CoroutineHolder
 import po.misc.coroutines.CoroutineInfo
 import po.misc.data.processors.FlowEmitter
-import po.misc.data.styles.Colour
-import po.misc.data.styles.colorize
 import po.misc.exceptions.ManagedException
 import po.misc.context.CTX
+import po.misc.context.CTXIdentity
 import po.misc.context.asSubIdentity
 import po.misc.reflection.classes.ClassInfo
 import po.misc.time.ExecutionTimeStamp
@@ -48,7 +47,7 @@ sealed class TaskBase<T: CTX, R: Any?>(
     override val config: TaskConfig,
     dispatcher: TaskDispatcher,
     override val receiver: T,
-): StaticHelper, MeasuredContext, ResultantTask<T, R>, LogInstance<T> {
+): StaticHelper, MeasuredContext, ResultantTask<T, R>, LNInstance<T>{
 
     abstract var taskResult: TaskResult<R>?
     abstract val coroutineContext: CoroutineContext
@@ -58,8 +57,8 @@ sealed class TaskBase<T: CTX, R: Any?>(
     override val executionTimeStamp: ExecutionTimeStamp = ExecutionTimeStamp(key.taskName, key.taskId.toString())
     abstract override val handler: TaskHandler<R>
     internal val actionSpans: MutableList<ActionSpan<*, *>> = mutableListOf()
-    abstract val header: String
-    val footer: String get() = "Footer"
+    abstract override val header: String
+    val footer: String get() = "Completed in ${executionTimeStamp.elapsed}"
 
     abstract fun start(): TaskBase<T, R>
     abstract fun complete(): TaskBase<T, R>
@@ -68,16 +67,8 @@ sealed class TaskBase<T: CTX, R: Any?>(
     protected var taskStatus: ExecutionStatus = ExecutionStatus.Active
     override val executionStatus: ExecutionStatus get() = taskStatus
 
-
-
     internal fun lookUpRoot(): RootTask<*, *> {
         return registry.hierarchyRoot
-    }
-
-
-
-    override fun toString(): String {
-       return dataProcessor.activeGroup?.groupHost?.formattedString?:"-----"
     }
 
     fun notifyUpdate(handler: TaskDispatcher.UpdateType) {
@@ -126,22 +117,20 @@ sealed class TaskBase<T: CTX, R: Any?>(
 
     fun createTaskData(builder: TaskBase<* , *>.()-> List<ActionData>): ErrorSnapshot{
         val result = this.builder()
-
-        val taskData = ErrorSnapshot.errorSnapshotBuilder.build(this)
-
-        taskData.actionSpanRecords = result
-        return taskData
+        val snapshot =  ErrorSnapshot(
+            taskHeader = header,
+            taskStatus = executionStatus
+        )
+        snapshot.actionRecords = result
+        return snapshot
     }
 
-//    fun createTaskData(actionRecords: List<ActionData>? = null): TaskData{
-//        return actionRecords?.let {
-//             TaskData(this).apply {
-//                actionSpanRecords = actionRecords
-//            }
-//        }?:run {
-//            TaskData(this)
-//        }
-//    }
+    override fun toString(): String {
+        return  when(this){
+            is RootTask-> "(R) ${key.taskName}"
+            is Task-> "(${key.nestingLevel}) ${key.taskName}"
+        }
+    }
 }
 
 class RootTask<T: CTX, R: Any?>(
@@ -152,16 +141,17 @@ class RootTask<T: CTX, R: Any?>(
     receiver: T,
 ):TaskBase<T, R>(key, config, dispatcher, receiver), CoroutineHolder{
 
-    override val identity = asSubIdentity(this, receiver)
+    override val identity:  CTXIdentity<RootTask<T, R>> = asSubIdentity(this, receiver)
 
     override val dataProcessor: LoggerDataProcessor = LoggerDataProcessor(this, null, FlowEmitter())
+
     override var taskResult : TaskResult<R>?  =  null
     override val registry: TaskRegistry<T, R> = TaskRegistry(dispatcher, this)
     override val callbackRegistry = callbackManager<TaskDispatcher.UpdateType>()
     override val handler: TaskHandler<R> = TaskHandler(this, dataProcessor)
-    override val header: String get()= "(R)[${key.taskName}] | Module[${key.moduleName}]".colorize(Colour.BLUE)
 
-    val subTasksCount : Int get() = registry.taskCount()
+    override val header: String get()= "$this | Module: ${key.moduleName}"
+
     var isComplete: Boolean = false
     override val coroutineInfo : CoroutineInfo = CoroutineInfo.createInfo(coroutineContext)
 
@@ -183,18 +173,17 @@ class RootTask<T: CTX, R: Any?>(
 
     override fun start(): TaskBase<T, R> {
         startTimer()
-        dataProcessor.registerStart()
         return this
     }
     fun start(onEscalation: ((ManagedException)-> Unit)? = null):RootTask<T, R>{
         escalationCallback = onEscalation
         startTimer()
-        dataProcessor.registerStart()
         return this
     }
 
     fun onChildCreated(childTask: Task<*, *>){
         notifyUpdate(TaskDispatcher.UpdateType.OnTaskUpdated)
+        registry.registerChild(childTask)
         dispatcher.notifyUpdate(TaskDispatcher.UpdateType.OnTaskUpdated, this)
     }
 
@@ -228,23 +217,24 @@ class Task<T: CTX,  R: Any?>(
 ):TaskBase<T, R>(key, config, hierarchyRoot.dispatcher, receiver), ResultantTask<T, R>{
 
 
-    override val identity = asSubIdentity(this, receiver)
+    override val identity: CTXIdentity<Task<T, R>> = asSubIdentity(this, receiver)
+    override val dataProcessor: LoggerDataProcessor = LoggerDataProcessor(this, parentTask.dataProcessor, null)
 
-    override val dataProcessor: LoggerDataProcessor = LoggerDataProcessor(this, hierarchyRoot.dataProcessor, null)
     override val coroutineContext: CoroutineContext get() = hierarchyRoot.coroutineContext
     override var taskResult : TaskResult<R>?  =  null
     override val registry: TaskRegistry<*, *> get() = hierarchyRoot.registry
     override val callbackRegistry =  callbackManager<TaskDispatcher.UpdateType>()
     override val handler: TaskHandler<R> = TaskHandler<R>(this, dataProcessor)
     override val coroutineInfo : CoroutineInfo = CoroutineInfo.createInfo(coroutineContext)
-    override val header: String get() = "(${key.nestingLevel})[${key.taskName}] | Module[${key.moduleName}]".colorize(Colour.BLUE)
+
+    override val header: String get() = "$this | Module: ${key.moduleName}"
+
     fun notifyRootCancellation(exception: ManagedException?) {
         hierarchyRoot.commitSuicide(exception)
     }
 
     override fun start():Task<T, R>{
         startTimer()
-        dataProcessor.registerStart()
         return this
     }
     override fun complete():Task<T, R>{

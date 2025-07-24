@@ -40,8 +40,6 @@ fun <T : Any> T?.getOrThrow(
     }
 }
 
-
-
 internal fun currentCallerTrace(methodName: String): List<StackTraceElement> {
     return Thread.currentThread().stackTrace
         .takeFromMatch({ it.methodName == methodName }, 2)
@@ -103,14 +101,6 @@ fun <T : Any> T?.getOrManaged(
         val message = "Unable to return object of class: $className. Object is null."
         throwManaged(message)
     }
-}
-
-inline fun <reified T, reified U> initializeContexts(
-    receiverInstance: T,
-    paramInstance: U,
-    block: T.(U) -> Unit
-) {
-    receiverInstance.block(paramInstance)
 }
 
 fun Any?.isNull(): Boolean{

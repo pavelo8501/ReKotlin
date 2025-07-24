@@ -1,4 +1,4 @@
-package po.lognotify.classes.notification.enums
+package po.lognotify.notification.enums
 
 import po.misc.interfaces.ValueBased
 

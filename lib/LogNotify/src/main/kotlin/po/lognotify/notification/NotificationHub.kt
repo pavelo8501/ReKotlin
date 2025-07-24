@@ -1,16 +1,14 @@
-package po.lognotify.classes.notification
+package po.lognotify.notification
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import po.lognotify.classes.notification.models.NotifyConfig
-import po.lognotify.classes.notification.models.TaskData
+import po.lognotify.notification.models.NotifyConfig
+import po.lognotify.notification.models.TaskData
 import po.lognotify.tasks.RootTask
 import po.misc.callbacks.builders.callbackManager
 import po.misc.context.CTX
-import po.misc.context.CTXIdentity
 import po.misc.data.printable.PrintableBase
 import po.misc.data.processors.DataProcessorBase
-import po.misc.context.Identifiable
 import po.misc.context.asIdentity
 import po.misc.interfaces.ValueBased
 import po.misc.registries.callback.TypedCallbackRegistry
@@ -27,7 +25,13 @@ class NotifierHub(
     override val identity = asIdentity()
 
     private val subNotifiers = mutableSetOf<LoggerDataProcessor>()
-   // private val collectorJobs = mutableMapOf<LoggerDataProcessor, Job>()
+    override val records: MutableList<TaskData> = mutableListOf()
+
+    override fun onChildDataReceived(childRecords: List<TaskData>) {
+
+    }
+
+    // private val collectorJobs = mutableMapOf<LoggerDataProcessor, Job>()
 
     private val notificator: TypedCallbackRegistry<PrintableBase<*>, Unit> = TypedCallbackRegistry()
     private val notifier = callbackManager<Event>()
@@ -39,9 +43,8 @@ class NotifierHub(
 
     internal fun register(rootTask: RootTask<*,*>){
         subNotifiers.add(rootTask.dataProcessor)
-        rootTask.dataProcessor.config = sharedConfig
         val job = CoroutineScope(Dispatchers.Default)
-        rootTask.dataProcessor.emitter?.subscribeToDataEmissions(job){
+        rootTask.dataProcessor.flowEmitter?.subscribeToDataEmissions(job){
             notificator.triggerForAll(Event.DataReceived, it)
         }
     }

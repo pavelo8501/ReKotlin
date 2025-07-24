@@ -2,6 +2,8 @@ package po.lognotify.tasks.models
 
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import po.lognotify.notification.models.ConsoleBehaviour
+import po.lognotify.notification.models.NotifyConfig
 import po.misc.coroutines.LauncherType
 import po.misc.exceptions.HandlerType
 
@@ -22,4 +24,12 @@ data class TaskConfig (
     var dispatcher: CoroutineDispatcher = Dispatchers.Default,
     var launcherType: LauncherType = LauncherType.AsyncLauncher,
     @PublishedApi internal val isDefault: Boolean = false
-)
+){
+
+   internal val notifConfig:NotifyConfig = NotifyConfig()
+
+    fun setConsoleBehaviour(consoleBehaviour:  ConsoleBehaviour){
+        notifConfig.console = consoleBehaviour
+    }
+
+}

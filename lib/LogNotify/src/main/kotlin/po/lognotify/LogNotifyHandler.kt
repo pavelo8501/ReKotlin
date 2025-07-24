@@ -1,8 +1,8 @@
 package po.lognotify
 
-import po.lognotify.classes.notification.LoggerDataProcessor
-import po.lognotify.classes.notification.NotifierHub
-import po.lognotify.classes.notification.models.NotifyConfig
+import po.lognotify.notification.LoggerDataProcessor
+import po.lognotify.notification.NotifierHub
+import po.lognotify.notification.models.NotifyConfig
 import po.lognotify.models.TaskDispatcher
 
 class LogNotifyHandler internal constructor(val dispatcher: TaskDispatcher) {

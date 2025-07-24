@@ -1,9 +1,11 @@
 package po.lognotify.interfaces
 
 import po.lognotify.TasksManaged
+import po.lognotify.models.TaskDispatcher
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
-import po.misc.context.asContext
+
+import po.misc.context.asIdentity
 
 /**
  * A singleton test context used to simulate a real [CTX] in unit or integration tests.
@@ -13,8 +15,8 @@ import po.misc.context.asContext
  * @see CTX
  * @see CTXIdentity
  */
-object FakeContext: CTX{
-    override val identity = asContext()
+internal object FakeContext: CTX{
+    override val identity = asIdentity()
 }
 
 /**
@@ -27,5 +29,8 @@ object FakeContext: CTX{
  * @see FakeContext
  */
 internal interface FakeTasksManaged : TasksManaged {
+
+    val dispatcher: TaskDispatcher get() = TasksManaged.LogNotify.taskDispatcher
+
     override val identity: CTXIdentity<FakeContext> get() = FakeContext.identity
 }

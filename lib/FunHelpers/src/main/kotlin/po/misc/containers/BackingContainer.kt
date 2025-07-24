@@ -2,6 +2,7 @@ package po.misc.containers
 
 import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.exceptions.ManagedException
+import po.misc.functions.common.Fallback
 import po.misc.functions.containers.Notifier
 import po.misc.functions.containers.NullableProvider
 import po.misc.functions.containers.Provider
@@ -51,7 +52,7 @@ open class BackingContainer<T: Any>(
 }
 
 class LazyBackingContainer<T: Any>(
-    private var initialValue:T? = null
+    initialValue:T? = null
 ){
     var notifier : Notifier<T>? = null
     val isValueAvailable: Boolean get() = backingValue != null
@@ -78,6 +79,14 @@ class LazyBackingContainer<T: Any>(
 
     fun getValue():T?{
         return backingValue
+    }
+
+    fun getWithFallback(fallback: Fallback<T>):T{
+        val value = backingValue
+        if(value != null){
+            return value
+        }
+        return fallback.initiateFallback()
     }
 
     fun reset() {
