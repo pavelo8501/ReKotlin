@@ -12,17 +12,8 @@ interface CTX{
 
     val identity: CTXIdentity<out  CTX>
 
-    val contextName: String get() {
-        return if(identity != null){
-            identity.identifiedByName
-        }else{
-            "N/A"
-        }
-    }
-
+    val contextName: String get() = identity.identifiedByName
     val completeName: String get() = identity.completeName
-   // val classQualifiedName: String get() = identity.classQualifiedName
-   // val parentIdentity:CTXIdentity<*>? get() = identity.parentIdentity
 }
 
 /**

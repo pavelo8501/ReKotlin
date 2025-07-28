@@ -3,10 +3,13 @@ package po.lognotify.notification.models
 import po.lognotify.tasks.models.TaskConfig
 import po.lognotify.enums.SeverityLevel
 import po.lognotify.tasks.ExecutionStatus
+import po.misc.context.CTX
+import po.misc.data.helpers.textIfNotNull
 import po.misc.data.printable.PrintableBase
-import po.misc.data.printable.PrintableCompanion
+import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.printable.PrintableGroup
-import po.misc.data.printable.Template2
+import po.misc.data.printable.companion.Template
+import po.misc.data.printable.companion.nextLine
 import po.misc.data.styles.colorize
 import po.misc.data.styles.Colour
 import po.misc.data.text.applyIfNotEmpty
@@ -28,14 +31,22 @@ class LogEvent(
     val message: String,
     val severity: SeverityLevel
 
-): PrintableBase<LogEvent>(Message){
+): PrintableBase<LogEvent>(this){
     override val self: LogEvent = this
+
+    var arbitraryContext: CTX? = null
+        private set
+
+    fun setArbitraryContext(context: CTX):LogEvent{
+        arbitraryContext = context
+        return  this
+    }
 
     var exceptionRecord:ExceptionRecord? = null
 
     companion object: PrintableCompanion<LogEvent>({LogEvent::class}) {
 
-        val Message : Template2<LogEvent> = createTemplate2 {
+        val Message : Template<LogEvent> = createTemplate {
             nextBlock {
                val message = when(severity){
                     SeverityLevel.INFO, SeverityLevel.LOG -> message.colorize(Colour.GREEN)
@@ -56,23 +67,26 @@ class LogEvent(
 class ExceptionRecord(
     val message: String,
     val firstRegisteredInTask: String,
-    val stackTraceElement: StackTraceElement?
-
-): PrintableBase<ExceptionRecord>(Default) {
+    val methodThrowing:StackTraceElement?,
+    val throwingCallSite:StackTraceElement?,
+    val actionSpans: List<ActionData>? = null
+): PrintableBase<ExceptionRecord>(this) {
 
     override val self: ExceptionRecord = this
 
     companion object : PrintableCompanion<ExceptionRecord>({ ExceptionRecord::class }) {
-
-        val Default: Template2<ExceptionRecord> = createTemplate2 {
-            nextBlock{
+        val Default: Template<ExceptionRecord> = createTemplate {
+            nextLine{
                 message.colorize(Colour.RED)
             }
-            nextBlock{
+            nextLine{
                 "First registered: $firstRegisteredInTask"
             }
-            nextBlock{
-                stackTraceElement?.toString()?:""
+            nextLine{
+                methodThrowing.textIfNotNull<StackTraceElement>{ "MethodThrowing: $it" }
+            }
+            nextLine {
+                throwingCallSite.textIfNotNull<StackTraceElement> { "ThrowingCallSite: $it" }
             }
         }
     }
@@ -86,7 +100,7 @@ class TaskData(
     val config: TaskConfig,
     val timeStamp: ExecutionTimeStamp,
     val severity: SeverityLevel = SeverityLevel.INFO,
-) : PrintableBase<TaskData>(Header) {
+) : PrintableBase<TaskData>(this) {
     override val self: TaskData = this
 
     val events:TaskEvents = TaskEvents(this)
@@ -94,7 +108,8 @@ class TaskData(
 
 
     companion object : PrintableCompanion<TaskData>({ TaskData::class }) {
-        val Header: Template2<TaskData> = createTemplate2 {
+        val Header: Template<TaskData> = createTemplate {
+
             nextBlock { handler ->
                 handler.applyToResult { row -> "[ $row ]" }
                 val status = when (executionStatus) {
@@ -105,7 +120,7 @@ class TaskData(
                 "$taskHeader | Status: ".colorize(Colour.BLUE) + status + "".colorize(Colour.BLUE)
             }
         }
-        val Footer: Template2<TaskData> = createTemplate2 {
+        val Footer: Template<TaskData> = createTemplate {
             nextBlock { handler ->
                 handler.applyToResult { row -> "[ $row ]" }
                 taskFooter.colorize(Colour.BLUE)

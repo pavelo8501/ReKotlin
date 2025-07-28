@@ -1,81 +1,94 @@
 package po.misc.exceptions
 
+import po.misc.collections.takeFromMatch
 import po.misc.context.CTX
-import po.misc.data.helpers.wrapByDelimiter
-import po.misc.exceptions.models.ExceptionData
-import po.misc.context.Identifiable
+import po.misc.exceptions.models.StackFrameMeta
 
 
-fun CTX.managedException(message: String, source: Enum<*>?): ManagedException{
-
-    val exceptionMessage = "$message @ $completeName"
-    val payload =   toPayload {
-        this.message = exceptionMessage
-        this.code = source
-    }
-    return  ManagedException(payload)
+internal fun  Throwable.currentCallerTrace(methodName: String): List<StackTraceElement> {
+    return stackTrace.takeFromMatch(2){ it.methodName == methodName }
 }
 
-fun CTX.managedException(cause: Throwable): ManagedException{
-    val payload = toPayload(cause)
-    return  ManagedException(payload)
-}
-
-
-fun throwManaged(message: String, handler : HandlerType?, source: Enum<*>? , original: Throwable?): Nothing{
-    if(handler == null){
-        val exception =  ManagedException(message)
-        throw exception
-    }else{
-        val exception =  ManagedException(message)
-        exception.handler = handler
-        throw exception
-    }
-}
-
-fun throwManaged(message: String, handler : HandlerType? = null): Nothing{
-    if(handler == null){
-        throw ManagedException(message)
-    }else{
-      val exception =  ManagedException(message)
-        exception.handler = handler
-        throw exception
-    }
-}
-
-inline fun <reified EX: ManagedException, S: Enum<S>> throwManageable(
+fun throwManaged(
     message: String,
-    source: S? = null,
-    context: CTX? = null
+    callingContext: Any,
+    code: Enum<*>? = null,
+    handler : HandlerType? = null,
 ): Nothing{
-    val managedException : EX = ManageableException.build<EX, S>(message, source)
-    if(context != null){
-        managedException.throwSelf(context, ManagedException.ExceptionEvent.Thrown)
-    }else{
-        throw  managedException
-    }
+    val methodName = "throwManaged"
+    val payload =  ManagedPayload(message, methodName, callingContext)
+    throw ManagedException(payload.setCode(code).setHandler(handler))
+}
+
+fun throwManaged(
+    message: String,
+    handler : HandlerType,
+    callingContext: Any
+): Nothing{
+    val methodName = "throwManaged"
+    val payload =  ManagedPayload(message, methodName, callingContext)
+    throw ManagedException(payload.setHandler(handler))
 }
 
 
-fun Throwable.toManaged(ctx: CTX, handler: HandlerType): ManagedException{
-
-   val payload =  ctx.toPayload{  }
-   return  ManagedException(payload)
+fun throwManaged(
+    message: String,
+    callingContext: Any
+): Nothing{
+    val methodName = "throwManaged"
+    val payload =  ManagedPayload(message, methodName, callingContext)
+    throw ManagedException(payload)
 }
 
-fun Throwable.toManaged(payload: ExceptionPayload): ManagedException{
-    val exceptionMessage = "$message @ ${payload.producer?.completeName}"
-    payload.message = exceptionMessage
-    val managed = ManagedException(payload)
-    payload.handler?.let {
-        managed.handler = it
-    }
+fun <S: Enum<S>> throwException(
+    message: String,
+    handler : HandlerType,
+    callingContext: Any,
+    exceptionProvider: (ManagedCallSitePayload)-> Throwable
+): Nothing{
+    val methodName = "throwException"
+    val payload =  ManagedPayload(message, methodName, callingContext)
+    throw exceptionProvider.invoke(payload.setHandler(handler))
+}
+
+fun <S: Enum<S>> throwException(
+    message: String,
+    callingContext: Any,
+    code: S? = null,
+    handler : HandlerType? = null,
+    exceptionProvider: (ManagedCallSitePayload)-> Throwable
+): Nothing{
+    val methodName = "throwException"
+    val payload =  ManagedPayload(message, methodName, callingContext)
+    val completePayload = payload.setCode(code).setHandler(handler)
+    throw exceptionProvider.invoke(completePayload)
+}
+
+
+inline fun <S: Enum<S>> throwException(
+    message: String,
+    callingContext: Any,
+    exceptionProvider: (ManagedCallSitePayload)-> Throwable
+): Nothing{
+    val methodName = "throwManageable"
+    val payload = ManagedPayload(message, methodName, callingContext)
+    throw exceptionProvider.invoke(payload)
+}
+
+fun Throwable.toManaged(): ManagedException{
+    val managed = ManagedException(this.throwableToText(), null, this)
     return managed
 }
 
-inline fun <reified EX: ManagedException, S: Enum<S>> Throwable.toManageable(ctx: CTX, source: S): EX{
-    val exceptionMessage = "$message @ ${ctx.completeName}"
-    return ManageableException.build<EX, S>(exceptionMessage, source, this)
+
+fun <EX: ManagedException, S: Enum<S>> Throwable.toManageable(
+    message: String,
+    callingContext: CTX,
+    exceptionProvider: (ManagedCallSitePayload)-> EX
+): EX{
+    val methodName = "toManageable"
+    val payload = ManagedPayload(message, methodName, callingContext)
+    return exceptionProvider.invoke( payload.setCause(this))
 }
 
 fun Throwable.toInfoString(): String{
@@ -85,11 +98,11 @@ fun Throwable.toInfoString(): String{
     return "$base: $msg$cause"
 }
 
-fun ManagedException.waypointInfo(): String{
-  val resultStr =  handlingData.joinToString(" -> "){ "$it" }
-       .wrapByDelimiter(delimiter =  "->", maxLineLength = 200)
-    return resultStr
-}
+//fun ManagedException.waypointInfo(): String{
+//  val resultStr =  handlingData.joinToString(" -> "){ "$it" }
+//       .wrapByDelimiter(delimiter =  "->", maxLineLength = 200)
+//    return resultStr
+//}
 
 fun  Throwable.throwableToText(): String{
    return if(this.message != null){
@@ -97,4 +110,56 @@ fun  Throwable.throwableToText(): String{
     }else{
         this.javaClass.simpleName.toString()
     }
+}
+
+internal fun String.isLikelyUserCode(): Boolean {
+    return this.isNotBlank() &&
+            !startsWith("kotlin") &&
+            !startsWith("java") &&
+            !startsWith("sun") &&
+            !startsWith("jdk") &&
+            !startsWith("org.jetbrains")
+}
+
+fun Throwable.extractCallSiteMeta(
+    methodName: String,
+    framesCount: Int = 2,
+    helperPackagePrefixes: List<String> = listOf("po.misc", "kotlin", "java")
+): List<StackFrameMeta> {
+
+    val frames = stackTrace.takeFromMatch<StackTraceElement>(framesCount){ it.methodName  ==  methodName}
+
+   return frames.map {stackTraceElement->
+        val classPackage = stackTraceElement.className.substringBeforeLast('.', missingDelimiterValue = "")
+        val isHelper = helperPackagePrefixes.any { prefix -> stackTraceElement.className.startsWith(prefix) }
+        val isUser = !isHelper && classPackage.isLikelyUserCode()
+        StackFrameMeta(
+            className = stackTraceElement.className,
+            methodName = stackTraceElement.methodName,
+            lineNumber = stackTraceElement.lineNumber,
+            classPackage = classPackage,
+            isHelperMethod = isHelper,
+            isUserCode = isUser
+        )
+    }
+//
+//
+//    val frame = trace.dropWhile {
+//        it.className.startsWith("kotlin.") ||
+//                it.className.startsWith("java.") ||
+//                it.methodName == methodName
+//    }.firstOrNull() ?: trace.first()
+//
+//    val classPackage = frame.className.substringBeforeLast('.', missingDelimiterValue = "")
+//    val isHelper = helperPackagePrefixes.any { frame.className.startsWith(it) }
+//    val isUser = !isHelper && !classPackage.startsWith("kotlin") && !classPackage.startsWith("java")
+//
+//    return StackFrameMeta(
+//        className = frame.className,
+//        methodName = frame.methodName,
+//        lineNumber = frame.lineNumber,
+//        classPackage = classPackage,
+//        isHelperMethod = isHelper,
+//        isUserCode = isUser
+//    )
 }

@@ -2,8 +2,7 @@ package po.test.misc.reflection
 
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
-import po.misc.context.Identifiable
-import po.misc.context.asContext
+import po.misc.context.asIdentity
 
 class TestPropertyIO {
 
@@ -11,7 +10,7 @@ class TestPropertyIO {
     data class DBEntity(var field1: String)
     class Source(var field1: String = "field1"): CTX{
 
-        override val identity: CTXIdentity<out CTX> = asContext()
+        override val identity: CTXIdentity<out CTX> = asIdentity()
 
         override val contextName: String
             get() = "Source"

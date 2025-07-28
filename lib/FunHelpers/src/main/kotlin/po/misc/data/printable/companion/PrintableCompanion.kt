@@ -1,16 +1,14 @@
-package po.misc.data.printable
+package po.misc.data.printable.companion
 
 import po.misc.collections.StaticTypeKey
-import po.misc.data.styles.SpecialChars
+import po.misc.data.printable.PrintableBase
 import po.misc.functions.dsl.DSLConstructor
-import po.misc.functions.dsl.DSLContainer
-import po.misc.functions.dsl.dslBuilder
 import po.misc.types.getOrManaged
 import kotlin.reflect.KClass
 
 abstract class PrintableCompanion<T : PrintableBase<T>>(private val classProvider: ()-> KClass<T>) {
-
     private var typeKeyBacking: StaticTypeKey<T>? = null
+    val printableClass: KClass<T> by lazy { classProvider() }
     val typeKey: StaticTypeKey<T> get() = typeKeyBacking.getOrManaged("typeKey")
 
     val metaDataInitialized: Boolean
@@ -22,20 +20,13 @@ abstract class PrintableCompanion<T : PrintableBase<T>>(private val classProvide
         }
     }
 
-    fun createTemplate2(dslLambda: DSLConstructor<T, String>.()-> Unit): Template2<T>{
-        val template =  Template2<T>()
+    val templates : MutableList<PrintableTemplateBase<T>>  = mutableListOf()
+
+    fun createTemplate(dslLambda: DSLConstructor<T, String>.()-> Unit): Template<T> {
+        val template = Template<T>()
         template.dslConstructor.build(dslLambda)
+        templates.add(template)
         return template
-    }
-
-    fun createTemplate(
-        separator: String = SpecialChars.NewLine.char,
-        block: DSLContainer<T, String>.() -> Unit
-    ): Template<T>{
-      val template =  Template<T>(separator)
-      template.dslBuilder(block)
-
-      return  template
     }
 
 }

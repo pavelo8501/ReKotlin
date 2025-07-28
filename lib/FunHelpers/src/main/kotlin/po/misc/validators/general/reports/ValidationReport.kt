@@ -2,7 +2,9 @@ package po.misc.validators.general.reports
 
 import po.misc.context.CTX
 import po.misc.data.printable.PrintableBase
-import po.misc.data.printable.PrintableTemplate
+import po.misc.data.printable.companion.PrintableCompanion
+import po.misc.data.printable.companion.PrintableTemplate
+import po.misc.data.printable.companion.nextLine
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.data.templates.matchTemplate
@@ -14,10 +16,7 @@ import kotlin.collections.forEach
 data class ValidationReport(
     val producer: CTX,
     private  var validationName: String,
-): PrintableBase<ValidationReport>(Header) {
-
-   // override val itemId : ValueBased = toValueBased(0)
-   // override val producer: Identifiable = asIdentifiable("ValidationReport", "ValidationReport")
+): PrintableBase<ValidationReport>(this) {
 
     override val self: ValidationReport = this
 
@@ -38,7 +37,6 @@ data class ValidationReport(
        return children.filterIsInstance<ReportRecord>()
     }
 
-
     val overallResult : CheckStatus
         get(){
             val isFailed  =  getRecords().any { it.result == CheckStatus.FAILED }
@@ -47,8 +45,6 @@ data class ValidationReport(
             }
             return CheckStatus.PASSED
         }
-
-
     val hasFailures: Boolean get() = getRecords().any { it.result == CheckStatus.FAILED }
 
     fun printReport(): String = buildString {
@@ -57,19 +53,22 @@ data class ValidationReport(
         super.echo(Footer)
     }
 
-    companion object{
+    companion object: PrintableCompanion<ValidationReport>({ValidationReport::class}){
 
-        val Header : PrintableTemplate<ValidationReport> = PrintableTemplate(){
-            "Validating $validationName".colorize(Colour.BLUE)
+        val Header = createTemplate {
+            nextLine {
+                "Validating $validationName".colorize(Colour.BLUE)
+            }
         }
-
-        val Footer : PrintableTemplate<ValidationReport> = PrintableTemplate{
-            """Overall Result: ${overallResult.name.matchTemplate(
-                templateRule(overallResult.name.colorize(Colour.GREEN)){overallResult == CheckStatus.PASSED},
-                templateRule(overallResult.name.colorize(Colour.RED)){overallResult == CheckStatus.FAILED},
-                templateRule(overallResult.name.colorize(Colour.YELLOW)){overallResult == CheckStatus.WARNING}
-            )}
+        val Footer = createTemplate {
+            nextLine {
+                """Overall Result: ${overallResult.name.matchTemplate(
+                    templateRule(overallResult.name.colorize(Colour.GREEN)){overallResult == CheckStatus.PASSED},
+                    templateRule(overallResult.name.colorize(Colour.RED)){overallResult == CheckStatus.FAILED},
+                    templateRule(overallResult.name.colorize(Colour.YELLOW)){overallResult == CheckStatus.WARNING}
+                )}
             """.trimMargin().colorize(Colour.BLUE)
+            }
         }
     }
 }

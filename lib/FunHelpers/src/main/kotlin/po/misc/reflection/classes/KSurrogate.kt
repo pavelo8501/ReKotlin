@@ -62,7 +62,7 @@ class KSurrogate<T: CTX>(
     }
 
     fun <V: Any> registerGroup(group: PropertyGroup<T, V>): PropertyGroup<T, Any> {
-        val casted = group.castOrManaged<PropertyGroup<T, Any>>()
+        val casted = group.castOrManaged<PropertyGroup<T, Any>>(this)
 
         notifier.trigger(SurrogateEvents.GroupCreated, group)
 

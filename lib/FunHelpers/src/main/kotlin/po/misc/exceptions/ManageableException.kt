@@ -6,9 +6,6 @@ import kotlin.reflect.full.companionObjectInstance
 
 sealed interface ManageableException<E:ManagedException> {
 
-   // fun setHandler(handlerType: HandlerType, context: CTX): E
-   // fun addHandlingData(data: ExceptionData):E
-
     interface Builder<E> {
         fun build(message: String, source:  Enum<*>?, original : Throwable?): E
     }

@@ -1,16 +1,16 @@
 package po.test.misc.data
 
 import org.junit.jupiter.api.Test
-import po.misc.context.CTX
-import po.misc.context.asContext
 import po.misc.data.printable.PrintableBase
-import po.misc.data.printable.PrintableCompanion
-import po.misc.data.printable.Template
+import po.misc.data.printable.companion.PrintableCompanion
+import po.misc.data.printable.companion.Template
+import po.misc.data.printable.companion.nextLine
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.data.styles.text
 import po.misc.data.templates.matchTemplate
 import po.misc.data.templates.templateRule
+import po.misc.functions.dsl.helpers.nextBlock
 import kotlin.test.assertEquals
 
 class TestPrintableTemplate {
@@ -28,24 +28,21 @@ class TestPrintableTemplate {
         val description : String = "description",
         val newClass: NEWClas = NEWClas(),
         val intValue: Int = 200
-    ): PrintableBase<PrintableRecord>(Printable){
+    ): PrintableBase<PrintableRecord>(this){
 
         override val self: PrintableRecord = this
 
         companion object: PrintableCompanion<PrintableRecord>({PrintableRecord::class}){
 
             val Printable : Template<PrintableRecord> = createTemplate{
-                next {
+                nextLine {
                     personalName
                 }
-                next {
+                nextLine {
                     "ssflsdkfjlof"
                 }
-                with({ it.newClass }){
-                    next {
-                        name
-
-                    }
+                nextBlock({ it.newClass }){
+                    name
                 }
             }
         }
@@ -56,7 +53,7 @@ class TestPrintableTemplate {
 
             val record1 = PrintableRecord("personalName")
             record1.echo()
-            assertEquals(PrintableRecord.Printable,  record1.defaultTemplate, "Template was not persisted")
+            assertEquals(PrintableRecord.Printable,  record1.activeTemplate, "Template was not persisted")
             assertEquals("personalName", record1.formattedString)
     }
 

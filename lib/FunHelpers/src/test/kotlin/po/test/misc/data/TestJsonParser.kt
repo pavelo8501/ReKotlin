@@ -1,9 +1,8 @@
 package po.test.misc.data
 
 import org.junit.jupiter.api.Test
-import po.misc.context.CTX
 import po.misc.data.printable.PrintableBase
-import po.misc.data.printable.PrintableTemplate
+import po.misc.data.printable.companion.PrintableTemplate
 import po.misc.data.helpers.emptyOnNull
 import po.misc.data.json.IntDefaultProvider
 import po.misc.data.json.JasonStringSerializable
@@ -12,12 +11,13 @@ import po.misc.data.json.JsonDescriptor
 import po.misc.data.json.StringDefaultProvider
 import po.misc.data.json.TrimmedQuotedStringProvider
 import po.misc.data.json.jsonDelegatePart
+import po.misc.data.printable.companion.PrintableCompanion
+import po.misc.data.printable.companion.nextLine
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
 import po.misc.data.templates.matchTemplate
 import po.misc.data.templates.templateRule
-import po.misc.context.asContext
 import po.misc.time.ExecutionTimeStamp
 
 
@@ -32,16 +32,17 @@ class TestJsonParser {
         val timeStamp: ExecutionTimeStamp,
         val message: String,
         val severity: Int,
-    ) : PrintableBase<TaskDataLocal>(Message), JasonStringSerializable {
+    ) : PrintableBase<TaskDataLocal>(this), JasonStringSerializable {
 
         override val self: TaskDataLocal = this
 
         override fun toJson(): String {
-            return  serialize(this)
+            return descriptor.serialize(this)
         }
 
-        companion object : JsonDescriptor<TaskDataLocal>() {
+        companion object : PrintableCompanion<TaskDataLocal>({TaskDataLocal::class}){
 
+        class Descriptor: JsonDescriptor<TaskDataLocal>(){
             val nestingLevel: Int by JsonDelegate(TaskDataLocal::nestingLevel, IntDefaultProvider)
             val taskName: String by JsonDelegate(TaskDataLocal::taskName, TrimmedQuotedStringProvider)
             val timeStamp : String  by  jsonDelegatePart<JsonDescriptor<TaskDataLocal>,  ExecutionTimeStamp, TaskDataLocal>(
@@ -52,6 +53,8 @@ class TestJsonParser {
             )
             val message: String by JsonDelegate(TaskDataLocal::message, StringDefaultProvider)
             val severity: Int by JsonDelegate(TaskDataLocal::severity, IntDefaultProvider)
+        }
+         val descriptor =  Descriptor()
 
             val nestingFormatter: TaskDataLocal.() -> String = {
                 matchTemplate(
@@ -73,39 +76,53 @@ class TestJsonParser {
                 )
             }
 
-            val Header: PrintableTemplate<TaskDataLocal> = PrintableTemplate() {
-                SpecialChars.NewLine.char + prefix.invoke(
-                    this,
-                    "Start"
-                ) + "${contextName.emptyOnNull("by ")}]".colorize(Colour.BLUE)
+            val Footer = createTemplate {
+                nextLine{
+                    "${prefix} ${ timeStamp.endTime}  Elapsed: ${timeStamp.elapsed}".colorize(Colour.BLUE)
+                }
             }
 
-            val Footer: PrintableTemplate<TaskDataLocal> = PrintableTemplate() {
-                prefix.invoke(this, "Stop") +
-                        " | $currentTime] Elapsed: ${timeStamp.elapsed}".colorize(Colour.BLUE)
+            val Header = createTemplate {
+                nextLine {
+                    SpecialChars.NewLine.char + prefix.invoke(
+                        this,
+                        "Start"
+                    ) + "${contextName.emptyOnNull("by ")}]".colorize(Colour.BLUE)
+                }
             }
 
-            val Message: PrintableTemplate<TaskDataLocal> = PrintableTemplate() {
-                "${prefix.invoke(this, "")} ${messageFormatter.invoke(this)}"
+            val Message = createTemplate {
+                nextLine {
+                    "${prefix.invoke(this, "")} ${messageFormatter.invoke(this)}"
+                }
             }
 
-            val Debug: PrintableTemplate<TaskDataLocal> = PrintableTemplate() {
-                "${prefix.invoke(this, "")} ${message.colorize(Colour.GREEN)}"
+            val Debug = createTemplate {
+                nextLine {
+                    "${prefix.invoke(this, "")} ${message.colorize(Colour.GREEN)}"
+                }
             }
         }
     }
 
     data class ValidationRep(
         var validationName: String
-    ): PrintableBase<ValidationRep>(Main), JasonStringSerializable {
+    ): PrintableBase<ValidationRep>(this), JasonStringSerializable {
         override val self: ValidationRep = this
         override fun toJson(): String {
-            return serialize(this)
+            return validationReportDescriptor.serialize(this)
         }
 
-        companion object :JsonDescriptor<ValidationRep>() {
-            val validationName: String by JsonDelegate<ValidationRep, String>(ValidationRep::validationName, StringDefaultProvider)
-            val Main  : PrintableTemplate<ValidationRep> = PrintableTemplate()
+        companion object : PrintableCompanion<ValidationRep>({ValidationRep::class}) {
+            class ValidationReportDescriptor: JsonDescriptor<ValidationRep>(){
+                val validationName: String by JsonDelegate<ValidationRep, String>(ValidationRep::validationName, StringDefaultProvider)
+            }
+            val validationReportDescriptor = ValidationReportDescriptor()
+            val Main = createTemplate {
+                nextLine {
+                    validationName
+                }
+            }
         }
     }
 
@@ -132,7 +149,7 @@ class TestJsonParser {
         task.addChild(report3)
         task.addChild(report4)
 
-        val output = TaskDataLocal.serialize(task)
+        val output = TaskDataLocal.descriptor.serialize(task)
 
         println(output)
         assertTrue(output.contains("TestTask"), "Output does not contain TestTask")

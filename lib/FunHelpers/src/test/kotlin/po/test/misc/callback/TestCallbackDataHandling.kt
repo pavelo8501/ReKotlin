@@ -3,20 +3,20 @@ package po.test.misc.callback
 import org.junit.jupiter.api.Test
 import po.misc.callbacks.CallbackManager
 import po.misc.context.CTX
-import po.misc.context.asContext
+import po.misc.context.asIdentity
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
 class TestCallbackDataHandling: CTX {
 
 
-    override val identity = asContext()
+    override val identity = asIdentity()
 
     class FirstHoldingClass: CTX {
         enum class Event{ OnInit, OnRouted  }
 
 
-        override val identity = asContext()
+        override val identity = asIdentity()
 
         val notifier = CallbackManager(enumClass = Event::class.java, emitter = this)
         val initialPayload = CallbackManager.createPayload<Event, Int>(notifier, Event.OnInit)
@@ -26,7 +26,7 @@ class TestCallbackDataHandling: CTX {
     class SecondHoldingClass: CTX {
         enum class Event{ OnData }
 
-        override val identity = asContext()
+        override val identity = asIdentity()
 
         val notifier = CallbackManager(enumClass = Event::class.java, emitter = this)
         val dispatcherPayload = CallbackManager.createPayload<Event, String>(notifier, Event.OnData)

@@ -1,7 +1,6 @@
 package po.misc.validators.general
 
 import po.misc.context.CTX
-import po.misc.context.Identifiable
 import po.misc.types.castOrManaged
 import po.misc.validators.general.models.CheckStatus
 import po.misc.validators.general.reports.ReportRecord
@@ -33,7 +32,6 @@ sealed class ValidationContainerBase<T: Any>(
     internal fun <T2 : Any> reassignValidatable(validatable: T2) {
         this.validatable = validatable as T
     }
-
 
 }
 
@@ -123,9 +121,6 @@ fun <T: Any> Validator.sequentialValidation(
     }
 }
 
-
-
-
 /***
  * Overload for reassignment of validatable :T
  * copies everything from the parent container
@@ -135,7 +130,7 @@ fun <T: Any> ValidationContainerBase<*>.validation(
     validatorBlock: ValidationContainer<T>.(validatable:(T))-> Unit
 ): ValidationContainer<T> {
     reassignValidatable(validatable)
-    val casted = this.castOrManaged<ValidationContainer<T>>()
+    val casted = this.castOrManaged<ValidationContainer<T>>(this)
     validatorBlock.invoke(casted, validatable)
     validator.validations.add(casted)
     return casted

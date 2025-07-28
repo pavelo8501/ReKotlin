@@ -3,74 +3,64 @@ package po.misc.exceptions
 import po.misc.data.helpers.textIfNull
 import po.misc.context.CTX
 import po.misc.data.printable.PrintableBase
-import po.misc.exceptions.models.ExceptionData2
+import po.misc.exceptions.models.StackFrameMeta
 
 interface ManagedCallSitePayload{
-    var producer: CTX?
-    var handler: HandlerType?
     val message: String
-    var code: Enum<*>?
-    var cause: Throwable?
+    val code: Enum<*>?
+    val handler: HandlerType?
+    val cause: Throwable?
+    var methodName: String
+    var context: CTX?
     var description: String?
-    fun valueFailure(parameterName: String, parameterTypeName: String):ManagedCallSitePayload
-    fun toDataWithTrace(stackTrace: List<StackTraceElement>): ExceptionData2
-    fun addDescription(message: String):ManagedCallSitePayload
-    fun create(producer: CTX, message: String = ""):ExceptionPayload{
-        return ExceptionPayload(producer,  message)
-    }
+
+
+    fun setHandler(handler: HandlerType?):ManagedCallSitePayload
+    fun setCode(code: Enum<*>?):ManagedCallSitePayload
+    fun setCause(cause: Throwable?):ManagedCallSitePayload
 }
-
-
 
 class ManagedPayload(
-    val contextName: String,
     override val message: String,
-    val trace: List<StackTraceElement>,
+    override var methodName: String,
 ):ManagedCallSitePayload{
-    var targetObject: String? = null
 
+    override var context: CTX? = null
     override var handler: HandlerType? = null
+        private set
+
     override var code: Enum<*>? = null
+        private set
+
     override var cause: Throwable? = null
+        private set
+
     override var description: String? = null
 
-    override var producer: CTX? = null
+    var contextNameBacking: String = "N/A"
+    val contextName: String = contextNameBacking
 
-    constructor(
-        callingContext: CTX,
-        message: String,
-        trace: List<StackTraceElement>
-    ): this(contextName = callingContext.contextName, message = message, trace = trace){
-        producer = callingContext
+    constructor(message: String, methodName: String,  callingContext: Any): this(message = message, methodName = methodName){
+        if(callingContext is CTX){
+            context = callingContext
+        }else{
+            contextNameBacking = callingContext::class.qualifiedName?:"N/A"
+        }
     }
 
-    override fun valueFailure(parameterName: String, parameterTypeName: String):ManagedCallSitePayload{
+    override fun setCause(cause: Throwable?):ManagedPayload{
+        this.cause = cause
         return this
     }
 
-    override fun addDescription(message: String):ManagedCallSitePayload{
-        description = message
+    override fun setHandler(handler: HandlerType?):ManagedPayload{
+        this.handler = handler
         return this
     }
 
-    override fun create(producer: CTX, message: String):ExceptionPayload{
-        return ExceptionPayload(producer,  message)
-    }
-
-    override fun toDataWithTrace(stackTrace: List<StackTraceElement>): ExceptionData2{
-        return ExceptionData2(
-            ManagedException.ExceptionEvent.Thrown,
-            message,
-            producer
-        ).addStackTrace(stackTrace)
-    }
-
-    internal fun toData(auxData:  PrintableBase<*>? = null): ExceptionData2{
-        return ExceptionData2(
-            ManagedException.ExceptionEvent.Thrown,
-            message,
-            producer,
-        ).provideAuxData(auxData)
+    override fun setCode(code: Enum<*>?):ManagedPayload{
+        this.code = code
+        return  this
     }
 
     override fun toString(): String {
@@ -78,99 +68,19 @@ class ManagedPayload(
     }
 }
 
-
-class ExceptionPayload(
-    override var producer: CTX?,
-    override var message: String = "",
-    override var handler: HandlerType? = null,
-    override var code: Enum<*>? = null,
-    override var cause: Throwable? = null
-):ManagedCallSitePayload{
-    var targetObject: String? = null
-
-
-
-
-    override var description: String? = null
-
-    fun message(msg: String):ExceptionPayload{
-        message = msg
-        return this
-    }
-
-    override fun valueFailure(parameterName: String, parameterTypeName: String):ExceptionPayload{
-        message = "$parameterName : $parameterTypeName"
-        return this
-    }
-
-    override fun addDescription(message: String):ExceptionPayload{
-        description = message
-        return this
-    }
-
-    fun messageAndCode(msg: String, code: Enum<*>):ExceptionPayload{
-       return ExceptionPayload(producer,  msg, handler, code)
-    }
-
-    fun method(methodName: String, expectedResult: String):ExceptionPayload{
-        message =  "$methodName:$expectedResult"
-        return this
-    }
-
-    fun provideDescription(methodName: String, reason: String, result: String){
-        description +=  "In method: $methodName. Reason:${reason}. Result:${result}"
-    }
-
-    fun provideCode(exceptionCode: Enum<*>):ExceptionPayload{
-        code = exceptionCode
-        return this
-    }
-
-    fun provideCause(exception: Throwable):ExceptionData2{
-        cause = exception
-        message = exception.throwableToText()
-        return ExceptionData2(
-            ManagedException.ExceptionEvent.Thrown,
-            message,
-            producer
-        ).addStackTrace(exception.stackTrace.toList())
-    }
-
-    override fun toDataWithTrace(stackTrace: List<StackTraceElement>): ExceptionData2{
-        return ExceptionData2(
-            ManagedException.ExceptionEvent.Thrown,
-            message,
-            producer
-        ).addStackTrace(stackTrace)
-    }
-
-    internal fun toData(auxData:  PrintableBase<*>? = null): ExceptionData2{
-        return ExceptionData2(
-            ManagedException.ExceptionEvent.Thrown,
-            message,
-            producer,
-        ).provideAuxData(auxData)
-    }
-
-    override fun toString(): String {
-        return message.textIfNull("")
-    }
-}
-
-
-fun CTX.toPayload(block: ExceptionPayload.()-> Unit):ExceptionPayload{
-    val payload = ExceptionPayload(this)
+fun CTX.toPayload(message: String, methodName: String, block: ManagedPayload.()-> Unit):ManagedPayload{
+    val payload = ManagedPayload(message, methodName, this)
     payload.block()
     return payload
 }
 
-fun CTX.toPayload(message: String):ExceptionPayload{
-    val payload = ExceptionPayload(this, message)
+fun CTX.toPayload(message: String, methodName: String):ManagedPayload{
+    val payload = ManagedPayload(message, methodName, this)
     return payload
 }
 
-fun CTX.toPayload(cause: Throwable):ExceptionPayload{
-    val payload = ExceptionPayload(this, cause = cause)
+fun CTX.toPayload(methodName: String, cause: Throwable):ManagedPayload{
+    val payload = ManagedPayload(cause.throwableToText(), methodName, this)
     return payload
 }
 

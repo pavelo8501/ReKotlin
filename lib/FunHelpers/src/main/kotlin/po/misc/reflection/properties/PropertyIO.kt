@@ -4,11 +4,8 @@ import po.misc.collections.SlidingBuffer
 import po.misc.collections.StaticTypeKey
 import po.misc.data.delegates.ComposableProperty
 import po.misc.data.helpers.textIfNull
-import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.context.CTX
-import po.misc.context.asContext
 import po.misc.context.asIdentity
-import po.misc.exceptions.ExceptionPayload
 import po.misc.exceptions.toPayload
 import po.misc.reflection.objects.Composed
 import po.misc.reflection.properties.models.PropertyUpdate
@@ -54,7 +51,7 @@ sealed class PropertyIOBase<T: Any, V: Any>(
 
     protected var receiverBacking: T? = null
     var receiver: T
-        get() = receiverBacking.getOrManaged("receiver @ PropertyIO")
+        get() = receiverBacking.getOrManaged(Any::class, this)
         set(value) {
             if (receiverBacking == null) {
                 receiverBacking = value
@@ -70,14 +67,10 @@ sealed class PropertyIOBase<T: Any, V: Any>(
     }
 
     protected val asKMutableProperty: KMutableProperty1<T, V> by lazy {
-        propertyInfo.property.castOrManaged()
+        propertyInfo.property.castOrManaged(this)
     }
     protected val asKProperty: KProperty1<T, V> by lazy {
-        propertyInfo.property.castOrManaged()
-    }
-
-    private fun payload(message: String): ExceptionPayload{
-      return  toPayload { message }
+        propertyInfo.property.castOrManaged(this)
     }
 
     fun initialize(dataObject:T){
@@ -102,13 +95,14 @@ sealed class PropertyIOBase<T: Any, V: Any>(
 
     fun getValue(): V {
         return  buffer.getValue()?:run {
-           val type =  propertyInfo.valueTypeData.getOrManaged(payload("Default result unavailable. No valueTypeData"))
-           getDefaultForType(type).getOrManaged(payload("No default result for type ${type.kType}") )
+           val type =  propertyInfo.valueTypeData.getOrManaged(this)
+
+           getDefaultForType(type).getOrManaged(propertyInfo.receiverClass, this)
         }
     }
 
     fun readCurrentValue(): V {
-        return currentValue.getOrManaged("PropertyIO")
+        return currentValue.getOrManaged(propertyInfo.returnType::class,  this)
     }
 
     fun updateHistory(): List<PropertyUpdate<V>>{

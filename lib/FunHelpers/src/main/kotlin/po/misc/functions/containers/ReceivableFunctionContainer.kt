@@ -1,9 +1,6 @@
 package po.misc.functions.containers
 
-import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.context.CTX
-import po.misc.exceptions.ExceptionPayload
-import po.misc.exceptions.toPayload
 import po.misc.types.getOrManaged
 
 sealed class ReceivableFunctionContainer<T: Any, P, R: Any?, V: Any>(
@@ -13,20 +10,17 @@ sealed class ReceivableFunctionContainer<T: Any, P, R: Any?, V: Any>(
 
    // val identity: Identifiable = identifiable("ReceivableFunctionContainer", context)
 
-    protected val exceptionPayload: ExceptionPayload = context.toPayload("")
     abstract val parameter: P
-
 
     protected var receiverBacking: T? = null
     protected val receiver:T  get() {
-        return receiverBacking.getOrManaged(exceptionPayload.method("receiver get()", "receiverBacking:T"))
+        return receiverBacking.getOrManaged(Any::class, this)
     }
 
     open fun provideReceiver(value:T):ReceivableFunctionContainer<T, P, R, V>{
         receiverBacking = value
         return this
     }
-
 }
 
 
@@ -37,7 +31,7 @@ class LazyContainerWithReceiver<T: Any, P, R:Any>(
 
 
     private  var parameterBacking: P? = null
-    override val parameter: P get() =  parameterBacking.getOrManaged(exceptionPayload.method("parameter get()", "parameter<P>"))
+    override val parameter: P get() =  parameterBacking.getOrManaged(this)
 
     override fun provideReceiver(value:T): LazyContainerWithReceiver<T, P, R>{
         receiverBacking = value

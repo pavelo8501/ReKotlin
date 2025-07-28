@@ -4,13 +4,14 @@ import org.junit.jupiter.api.Test
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.data.printable.PrintableBase
-import po.misc.data.printable.PrintableTemplate
+import po.misc.data.printable.companion.PrintableTemplate
 import po.misc.data.printable.printableProxy
 import po.misc.data.processors.DataProcessor
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
-import po.misc.context.asContext
 import po.misc.context.asIdentity
+import po.misc.data.printable.companion.PrintableCompanion
+import po.misc.data.printable.companion.nextLine
 
 import po.test.misc.data.TestLogProxy.ArbitraryData.Companion.Template2
 import kotlin.test.assertNotNull
@@ -27,12 +28,19 @@ class TestLogProxy: CTX {
         val personalName: String,
         val content : String,
         val componentName: String = "Some name",
-    ): PrintableBase<TopDataItem>(TopTemplate){
+    ): PrintableBase<TopDataItem>(this){
+
+
         override val self: TopDataItem = this
 
 
-        companion object{
-            val TopTemplate: PrintableTemplate<TopDataItem> = PrintableTemplate(){"TopTemplate->$content"}
+        companion object: PrintableCompanion<TopDataItem>({TopDataItem::class}){
+
+            val TopTemplate = createTemplate {
+                nextLine {
+                    "TopTemplate->$content"
+                }
+            }
         }
     }
 
@@ -40,14 +48,17 @@ class TestLogProxy: CTX {
         val personalName: String,
         val componentName: String = "Some name",
         val message: String
-    ): PrintableBase<ArbitraryData>(Template2){
+    ): PrintableBase<ArbitraryData>(this){
 
         override val self: ArbitraryData = this
 
 
-        companion object{
-            val Template2: PrintableTemplate<ArbitraryData> = PrintableTemplate<ArbitraryData>(){
-                "Template2-> $personalName | Message ->  ${message.colorize(Colour.RED)}"
+        companion object: PrintableCompanion<ArbitraryData>({ArbitraryData::class}){
+
+            val Template2 =createTemplate {
+                nextLine {
+                    "Template2-> $personalName | Message ->  ${message.colorize(Colour.RED)}"
+                }
             }
         }
     }
@@ -59,7 +70,8 @@ class TestLogProxy: CTX {
 
         val warning = printableProxy(this, Template2){
             val data = ArbitraryData(contextName, "TestLogProxy", it.message)
-            dataProcessor.logData(data, data.defaultTemplate)
+
+            dataProcessor.logData(data, Template2)
         }
 
         warning.logMessage("test str")

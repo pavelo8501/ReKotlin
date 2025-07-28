@@ -4,7 +4,6 @@ package po.lognotify.action
 import po.lognotify.notification.models.ActionData
 import po.lognotify.anotations.LogOnFault
 import po.lognotify.common.LNInstance
-import po.lognotify.tasks.TaskHandler
 import po.lognotify.models.TaskKey
 import po.lognotify.tasks.ExecutionStatus
 import po.lognotify.tasks.TaskBase
@@ -46,11 +45,17 @@ class ActionSpan<T : CTX, R: Any?>(
     var failedClassInfo: ClassInfo<R>? = null
     private var onExceptionCallback: ((ActionSpan<T, R>)-> Unit)? = null
 
-    internal var resultType: KType? = null
+
+    var resultType: KType? = null
+        private set
 
     fun onException(callback:(ActionSpan<T, R>)-> Unit){
         onExceptionCallback = callback
         changeStatus(ExecutionStatus.Faulty)
+    }
+
+    fun setResultType(kType:KType){
+        resultType = kType
     }
 
     override fun changeStatus(status:ExecutionStatus){
@@ -69,6 +74,14 @@ class ActionSpan<T : CTX, R: Any?>(
 
     fun createPropertySnapshot(): List<PropertyData>{
        return takePropertySnapshot<T, LogOnFault>(receiver)
+    }
+
+    private var propertySnapshotBacking : List<PropertyData> = listOf()
+    val propertySnapshot : List<PropertyData> get() = propertySnapshotBacking
+
+    fun addPropertySnapshot(snapshot: List<PropertyData>):List<PropertyData>{
+        propertySnapshotBacking = snapshot
+        return snapshot
     }
 
     fun complete(){

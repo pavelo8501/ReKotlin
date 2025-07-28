@@ -72,7 +72,6 @@ class TaskResult<R : Any?>(
 
     fun resultOrException():R {
         throwable?.let {
-            task.dataProcessor.error(it)
             throw it
         }
         return result

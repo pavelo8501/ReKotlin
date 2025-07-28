@@ -19,7 +19,7 @@ fun <T : Any> createPropertyMap(
         classTypeRecord = typeRecord,
         columnMetadata = columnMetadata?:emptyList(),
         propertyMap = typeRecord.kClass.memberProperties.associate {
-          it.name to PropertyRecord(it.name, it.castOrManaged<KProperty<T>>())
+          it.name to PropertyRecord(it.name, it.castOrManaged<KProperty<T>>(it))
     })
 }
 

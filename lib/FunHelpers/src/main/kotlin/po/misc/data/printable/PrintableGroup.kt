@@ -1,6 +1,7 @@
 package po.misc.data.printable
 
 import po.misc.data.json.JsonHolder
+import po.misc.data.printable.companion.PrintableTemplateBase
 import po.misc.data.styles.SpecialChars
 
 

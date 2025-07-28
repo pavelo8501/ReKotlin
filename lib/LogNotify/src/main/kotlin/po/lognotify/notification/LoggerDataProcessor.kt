@@ -8,14 +8,15 @@ import po.lognotify.notification.models.TaskData
 import po.lognotify.tasks.RootTask
 import po.lognotify.tasks.TaskBase
 import po.lognotify.enums.SeverityLevel
-import po.lognotify.exceptions.provideBackTrace
 import po.lognotify.notification.models.ConsoleBehaviour
+import po.lognotify.notification.models.ErrorSnapshot
 import po.lognotify.notification.models.ExceptionRecord
 import po.lognotify.notification.models.TaskEvents
+import po.misc.context.CTX
 import po.misc.data.printable.PrintableBase
-import po.misc.data.printable.PrintableTemplateBase
+import po.misc.data.printable.companion.PrintableTemplateBase
 import po.misc.data.printable.Printable
-import po.misc.data.printable.PrintableCompanion
+import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.processors.DataProcessorBase
 import po.misc.data.processors.FlowEmitter
 import po.misc.exceptions.ManagedException
@@ -30,7 +31,6 @@ class LoggerDataProcessor(
     enum class LoggerProcessorType{RootTask, Task}
 
     val config: NotifyConfig get () = task.config.notifConfig
-
     val processorType: LoggerProcessorType get() {
       return  if(task is RootTask){
             LoggerProcessorType.RootTask
@@ -109,26 +109,23 @@ class LoggerDataProcessor(
         return taskData
     }
 
-    internal fun createExceptionRecord(managed: ManagedException, lnInstance: LNInstance<*>): ExceptionRecord{
-        val snapshot =  task.provideBackTrace()
-        val place = managed.exceptionData.firstOrNull()?.stackTraceList?.lastOrNull()
-        val record = ExceptionRecord(
-            message = managed.throwableToText(),
-            firstRegisteredInTask = snapshot.taskHeader,
-            stackTraceElement = place
-        )
-        val lastLogEvent = taskEvents.records.lastOrNull()
-        if(lastLogEvent != null){
-            lastLogEvent.exceptionRecord = record
-        }else{
-           val newEvent = createLogEvent("Exception Details",  SeverityLevel.EXCEPTION, lnInstance)
-            newEvent.exceptionRecord = record
-            taskEvents.addRecord(newEvent)
+    internal fun addExceptionRecord(snapshot : ErrorSnapshot, managed: ManagedException) {
+
+        records.lastOrNull()?.events?.records?.lastOrNull()?.let { lastRecord ->
+            val firstExRecord = managed.exceptionData.firstOrNull { it.event == ManagedException.ExceptionEvent.Thrown }
+            if (firstExRecord != null) {
+                val firstRecTraces = firstExRecord.stackTraceList
+                val record = ExceptionRecord(
+                    message = managed.throwableToText(),
+                    firstRegisteredInTask = snapshot.taskHeader,
+                    methodThrowing = firstRecTraces.firstOrNull(),
+                    throwingCallSite = firstRecTraces.lastOrNull(),
+                    actionSpans = snapshot.actionRecords
+                )
+                lastRecord.exceptionRecord = record
+            }
         }
-        return record
     }
-
-
     internal fun log(message: String, severity: SeverityLevel, lnInstance: LNInstance<*>): LogEvent{
         val logEvent = createLogEvent(message, severity, lnInstance)
         taskEvents.addRecord(logEvent)
@@ -139,6 +136,15 @@ class LoggerDataProcessor(
         log(message, severity, task)
         return taskData
     }
+
+    fun notify(message: String, severity: SeverityLevel, receiver: CTX): TaskData{
+        val logEvent = createLogEvent(message, severity, task)
+        taskEvents.addRecord(logEvent.setArbitraryContext(receiver))
+        return taskData
+    }
+
+
+
     override fun info(message: String): TaskData {
         log(message, SeverityLevel.INFO, task)
         return taskData
@@ -147,12 +153,10 @@ class LoggerDataProcessor(
         log(message, SeverityLevel.WARNING, task)
         return taskData
     }
+
     fun warn(th: Throwable, message: String): TaskData {
         log("$message ${th.throwableToText()}", SeverityLevel.WARNING, task)
         return taskData
-    }
-    fun error(exception: ManagedException){
-        log(exception.throwableToText(), SeverityLevel.EXCEPTION, task)
     }
 
     fun <T: PrintableBase<T>> log(arbitraryRecord: T, severity: SeverityLevel):T{

@@ -5,7 +5,7 @@ import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.data.delegates.propertyBinding
 import po.misc.context.Identifiable
-import po.misc.context.asContext
+import po.misc.context.asIdentity
 import po.misc.reflection.classes.KSurrogate
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1
@@ -33,7 +33,7 @@ class TestKSurrogate {
 
     class MainObject(): CTX {
 
-        override val identity: CTXIdentity<out CTX> = asContext()
+        override val identity: CTXIdentity<out CTX> = asIdentity()
 
         override val contextName: String get() = "MainObject"
 

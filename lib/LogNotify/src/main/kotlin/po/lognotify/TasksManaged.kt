@@ -8,10 +8,11 @@ import po.lognotify.notification.NotifierHub
 import po.lognotify.tasks.TaskHandler
 import po.lognotify.models.TaskDispatcher
 import po.lognotify.models.TaskDispatcher.UpdateType
+import po.lognotify.notification.models.TaskData
 import po.misc.callbacks.wrapRawCallback
 import po.misc.data.printable.PrintableBase
-import po.misc.data.printable.PrintableTemplateBase
-import po.misc.data.printable.PrintableCompanion
+import po.misc.data.printable.companion.PrintableTemplateBase
+import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.context.CTX
 import kotlin.coroutines.CoroutineContext
 
@@ -34,18 +35,22 @@ interface TasksManaged : CTX {
             return LogNotifyHandler(LogNotify.taskDispatcher)
         }
 
+    val taskHandler: TaskHandler<*> get(){
+        return LogNotify.taskDispatcher.activeTask()?.handler?: LogNotify.taskDispatcher.createDefaultTask().handler
+    }
+
     fun <T : PrintableBase<T>> log(data: T, template: PrintableTemplateBase<T>) {
         logHandler.dispatcher.getActiveDataProcessor().log(data, SeverityLevel.LOG)
     }
 
 
+    fun notify(message: String, severity: SeverityLevel): TaskData{
+       return logHandler.dispatcher.getActiveDataProcessor().notify(message, severity,  this)
+    }
 
     fun <T : PrintableBase<T>> debug(data: T, dataClass: PrintableCompanion<T>, template: PrintableTemplateBase<T>) {
         logHandler.dispatcher.getActiveDataProcessor().debug(data, dataClass, template)
     }
 
-    fun taskHandler(): TaskHandler<*> {
-        return LogNotify.taskDispatcher.activeTask()?.handler?: LogNotify.taskDispatcher.createDefaultTask().handler
-    }
 }
 

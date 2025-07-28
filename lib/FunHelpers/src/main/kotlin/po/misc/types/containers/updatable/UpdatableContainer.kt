@@ -7,11 +7,7 @@ import po.misc.callbacks.builders.createPayload
 import po.misc.context.CTX
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.toManaged
-import po.misc.context.asContext
-import po.misc.context.asIdentity
 import po.misc.context.asSubIdentity
-import po.misc.exceptions.ExceptionPayload
-import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.exceptions.toPayload
 import po.misc.reflection.classes.ClassInfo
 import po.misc.reflection.classes.ClassRole
@@ -66,8 +62,6 @@ class UpdatableContainer<T: CTX, R: Any, V: Any>(
 ): TypedContainer<T>(source, typeData, classInfo), ComplexContainers<T>, DeferredMutation<T, R>, CTX {
 
     override val identity = asSubIdentity(this,  source)
-    val exPayload: ExceptionPayload = toPayload { }
-
 
     override val notifier: CallbackManager<UpdatableEvents> = callbackManager<UpdatableEvents>(
         { createPayload<UpdatableEvents,UpdatableData>(UpdatableEvents.OnArmed) },
@@ -119,7 +113,7 @@ class UpdatableContainer<T: CTX, R: Any, V: Any>(
         }.onFailure {
             event = UpdatableEvents.Failure
 
-            notifier.trigger<ManagedException>(event, it.toManaged(exPayload) )
+            notifier.trigger<ManagedException>(event, it.toManaged() )
         }
     }
 }

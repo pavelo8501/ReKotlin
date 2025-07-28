@@ -1,11 +1,16 @@
 package po.misc.registries.type
 
 import po.misc.interfaces.ValueBased
+import po.misc.types.TypeData
 import po.misc.types.TypeRecord
 import po.misc.types.castOrManaged
+import po.misc.types.getOrManaged
 import po.misc.types.getOrThrow
 import po.misc.types.safeCast
+import kotlin.reflect.KClass
 
+
+@Deprecated("InEfficient", level = DeprecationLevel.WARNING)
 class TypeRegistry {
 
     @PublishedApi
@@ -22,11 +27,9 @@ class TypeRegistry {
         return record
     }
 
-    inline fun <T : Any> getRecord(key: ValueBased, exceptionProvider:(String)-> Throwable): TypeRecord<T> {
-        val consRecord = registry[key]
-            .getOrThrow<TypeRecord<*>>(exceptionProvider)
-        val casted = consRecord.castOrManaged<TypeRecord<T>>(null)
-        return casted
+    inline fun <T : Any> getRecord  (KClass: KClass<T>, exceptionProvider:(String)-> Throwable): TypeData<T> {
+
+        TODO("Refactro or depreciate")
     }
 
     @JvmName("getRecordByValueNullableResult")

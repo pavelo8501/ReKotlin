@@ -3,8 +3,8 @@ package po.misc.data.processors
 
 import po.misc.collections.StaticTypeKey
 import po.misc.data.printable.PrintableBase
-import po.misc.data.printable.PrintableCompanion
-import po.misc.data.printable.PrintableTemplateBase
+import po.misc.data.printable.companion.PrintableCompanion
+import po.misc.data.printable.companion.PrintableTemplateBase
 import po.misc.data.printable.ComposableData
 import po.misc.data.printable.Printable
 import po.misc.types.safeCast
@@ -57,7 +57,7 @@ abstract class DataProcessorBase<T:PrintableBase<T>>(
 
     fun <T: PrintableBase<T>> debugData(arbitraryRecord: T, printableClass: PrintableCompanion<T>, template: PrintableTemplateBase<T>?, debuggable:(T)-> Unit){
         if(template != null){
-            arbitraryRecord.defaultTemplate = template
+            arbitraryRecord.setDefaultTemplate(template)
         }
         if(debugWhiteList.contains(printableClass.typeKey.hashCode())){
             debuggable.invoke(arbitraryRecord)
@@ -66,7 +66,7 @@ abstract class DataProcessorBase<T:PrintableBase<T>>(
 
     fun processRecord(record: T, template: PrintableTemplateBase<T>?){
         if(template != null){
-            record.changeDefaultTemplate(template)
+            record.setDefaultTemplate(template)
         }
         record.outputSource = outputSource
         recordList.add(record)
@@ -85,7 +85,7 @@ abstract class DataProcessorBase<T:PrintableBase<T>>(
      * if not arbitrary data is being added to the list effectively becoming an active item
      */
     fun <T2: PrintableBase<T2>> logData(data:T2, template: PrintableTemplateBase<T2>):T2{
-        data.changeDefaultTemplate(template)
+        data.setDefaultTemplate(template)
         hooks.onArbitraryData?.invoke(data) ?:run {
             activeRecord?.let {
                 it.addChild(data)

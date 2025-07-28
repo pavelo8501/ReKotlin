@@ -1,14 +1,11 @@
 package po.misc.functions.containers
 
-import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.functions.hooks.BasicHooks
 import po.misc.functions.hooks.ReactiveHooks
 import po.misc.functions.interfaces.FunctionalClass
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
-import po.misc.context.asContext
 import po.misc.context.asSubIdentity
-import po.misc.exceptions.ExceptionPayload
 import po.misc.types.getOrManaged
 
 
@@ -33,14 +30,9 @@ sealed class BasicFunctionContainer<T: Any, R: Any?, V: Any?>(
      */
    // override val hooks: ReactiveHooks<BasicFunctionContainer<T, R, V>, V> = ReactiveHooks(this)
 
-    /**
-     * Payload used for enhanced exception reporting during resolution.
-     */
-    protected val exceptionPayload: ExceptionPayload = ExceptionPayload(this)
-
     private var lambdaBacking: ((T)->R)? = null
     protected val lambda: ((T)->R) get(){
-        return lambdaBacking.getOrManaged(exceptionPayload.message("Get lambda"))
+        return lambdaBacking.getOrManaged(this)
     }
     override val isLambdaProvided: Boolean get() = lambdaBacking != null
 
@@ -48,11 +40,11 @@ sealed class BasicFunctionContainer<T: Any, R: Any?, V: Any?>(
 
     protected var resultBacking: R? = null
     protected val  result:R  get() {
-        return resultBacking.getOrManaged(exceptionPayload.method("result get()", "resultBacking:T"))
+        return resultBacking.getOrManaged(this)
     }
 
     private var valueBacking:V? = null
-    open val value: V get() = valueBacking.getOrManaged(exceptionPayload.method("value get()", "valueBacking:V"))
+    open val value: V get() = valueBacking.getOrManaged(this)
     /**
      * The latest externally visible value, if available.
      */
@@ -174,14 +166,14 @@ class LambdaHolder<T: Any>(
 
     private var valueBacking:T? = null
     override val receiver: T
-        get() = valueBacking.getOrManaged(exceptionPayload.method("receiver get()", "receiver<T>"))
+        get() = valueBacking.getOrManaged(Any::class,  this)
 
     /**
      * Returns the last receiver value that was used during resolution.
      * Throws a detailed exception if the receiver is not yet available.
      */
     override val value: T get(){
-        return valueBacking.getOrManaged(exceptionPayload.method("value get()", "receiverBacking:T"))
+        return valueBacking.getOrManaged(Any::class, this)
     }
 
     override fun receiverProvided(value: T) {
@@ -243,7 +235,7 @@ class DeferredContainer<R>(
      * Throws a detailed exception if the result is not yet available.
      */
     override val value: R get(){
-        return resultBacking.getOrManaged(exceptionPayload.method("value get()", "valueBacking:R"))
+        return resultBacking.getOrManaged(this)
     }
 
     /**
@@ -294,10 +286,10 @@ class LazyExecutionContainer<T : Any, R : Any>(
 
 
     private var receiverBacking:T? = null
-    override val receiver: T get() = receiverBacking.getOrManaged(exceptionPayload.method("receiver get()", "receiver:T"))
+    override val receiver: T get() = receiverBacking.getOrManaged(Any::class, this)
 
     override val value: R get(){
-        return resultBacking.getOrManaged(exceptionPayload.method("value get()", "valueBacking:R"))
+        return resultBacking.getOrManaged(Any::class, this)
     }
 
     override fun receiverProvided(value: T) {

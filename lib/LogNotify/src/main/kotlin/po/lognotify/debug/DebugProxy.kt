@@ -7,9 +7,9 @@ import po.lognotify.debug.models.CaptureBlock
 import po.lognotify.debug.models.DebugParams
 import po.lognotify.debug.models.InputParameter
 import po.misc.data.printable.PrintableBase
-import po.misc.data.printable.PrintableCompanion
+import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.context.CTX
-import po.misc.data.printable.PrintableTemplateBase
+import po.misc.data.printable.companion.PrintableTemplateBase
 
 
 open class DebugProxy<T: CTX, P: PrintableBase<P>>(

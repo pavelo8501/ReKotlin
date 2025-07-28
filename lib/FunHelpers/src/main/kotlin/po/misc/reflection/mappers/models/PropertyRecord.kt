@@ -18,7 +18,7 @@ data class PropertyRecord<T: Any>(
 
     fun <R: Any> asKProperty1():KProperty1<T, R>{
         val message = "Unable to cast KProperty<T> to <KProperty1<T, *> in PropertyHelpers.kt"
-        return property.castOrManaged<KProperty1<T, R>>()
+        return property.castOrManaged<KProperty1<T, R>>(this)
     }
 
     companion object{

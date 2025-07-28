@@ -2,56 +2,61 @@ package po.lognotify.extensions
 
 import po.lognotify.TasksManaged
 import po.lognotify.action.ActionSpan
+import po.lognotify.anotations.LogOnFault
 import po.lognotify.common.containers.ActionContainer
 import po.lognotify.common.containers.RunnableContainer
-import po.lognotify.execution.controlledRun
+import po.lognotify.exceptions.handleException
+import po.lognotify.tasks.TaskBase
+import po.misc.containers.withReceiverAndResult
+import po.misc.functions.repeater.models.RepeatStats
+import po.misc.functions.repeater.repeatOnFault
 import po.misc.reflection.classes.ClassRole
 import po.misc.reflection.classes.overallInfo
 import po.misc.reflection.classes.overallInfoFromType
+import po.misc.reflection.properties.takePropertySnapshot
 import kotlin.reflect.KType
 
-inline fun <T: TasksManaged, reified R : Any?>  T.runInlineAction(
+
+@PublishedApi
+internal fun <T: TasksManaged, R: Any?> onFailure(stats: RepeatStats, container: ActionContainer<T, R>){
+    val snapshot = takePropertySnapshot<T, LogOnFault>(container.receiver)
+    container.actionSpan.addPropertySnapshot(snapshot)
+    handleException(stats.exception, container, null)
+}
+
+inline fun <T: TasksManaged, reified R : Any?>  T.runAction(
     actionName: String,
-    crossinline block: RunnableContainer<T, R>.()->R
+    crossinline block: T.()->R
 ):R {
-    val taskHandler = taskHandler()
 
-    val newActionSpan = ActionSpan<T, R>(actionName, this, taskHandler.task)
+    val actionSpan = ActionSpan<T, R>(actionName, this, taskHandler.task)
 
-    taskHandler.task.addActionSpan(newActionSpan)
-    val container =  ActionContainer.create(newActionSpan)
-    container.classInfoProvider.registerProvider { overallInfo<R>(ClassRole.Result) }
-    return container.controlledRun {
-        block.invoke(container as RunnableContainer<T, R>)
+    taskHandler.task.addActionSpan(actionSpan)
+    val actionContainer = ActionContainer.create(actionSpan)
+    actionContainer.classInfoProvider.registerProvider { overallInfo<R>(ClassRole.Result) }
+
+    return repeatOnFault({
+        setMaxAttempts(0).onException { stats -> onFailure(stats, actionContainer) }
+    }){
+        actionContainer.withReceiverAndResult(block)
     }
 }
 
-fun <T:TasksManaged, R: Any?> T.runAction(
+inline fun <T: TasksManaged, R: Any?> T.runAction(
     actionName: String,
     resultType: KType,
-    block: RunnableContainer<T, R>.()->R
+    crossinline block: T.()->R
 ):R {
-
-    val taskHandler = taskHandler()
-
     val newActionSpan = ActionSpan<T, R>(actionName, this, taskHandler.task)
-    newActionSpan.resultType = resultType
+    newActionSpan.setResultType(resultType)
+    newActionSpan
     taskHandler.task.addActionSpan(newActionSpan)
-    val container = ActionContainer.create(newActionSpan)
-    container.classInfoProvider.registerProvider { overallInfoFromType(ClassRole.Result, resultType) }
+    val actionContainer = ActionContainer.create(newActionSpan)
+    actionContainer.classInfoProvider.registerProvider { overallInfoFromType(ClassRole.Result, resultType) }
 
-    return try {
-        block.invoke(container as RunnableContainer<T, R>)
-    }catch (th: Throwable){
-       throw th
+    return repeatOnFault({
+        setMaxAttempts(0).onException { stats -> onFailure(stats, actionContainer) }
+    }){
+        actionContainer.withReceiverAndResult(block)
     }
-
-//    return container.controlledRun{
-//        block.invoke(container as RunnableContainer<T, R>)
-//    }
 }
-
-inline fun <T:TasksManaged, reified R: Any?>  T.action(
-    actionName: String,
-    crossinline block: RunnableContainer<T, R>.()->R
-):R = runInlineAction(actionName, block)

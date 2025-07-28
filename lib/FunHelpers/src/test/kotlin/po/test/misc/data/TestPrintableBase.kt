@@ -1,22 +1,19 @@
 package po.test.misc.data
 
 import org.junit.jupiter.api.Test
-import po.misc.context.CTX
-import po.misc.context.CTXIdentity
 import po.misc.data.console.DateHelper
 import po.misc.data.printable.PrintableBase
-import po.misc.data.printable.PrintableTemplate
 import po.misc.data.styles.colorize
 import po.misc.data.processors.DataProcessor
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.text
-import po.misc.context.asContext
-import po.misc.data.printable.PartsTemplate
+import po.misc.data.printable.companion.PartsTemplate
 import po.misc.interfaces.ValueBased
 import kotlin.test.assertTrue
-import po.misc.data.printable.PrintableCompanion
+import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.printable.PrintableGroup
+import po.misc.data.printable.companion.nextLine
 import kotlin.test.assertNotEquals
 
 
@@ -39,7 +36,7 @@ class TestPrintableBase: DateHelper {
         val componentName: String = "Some name",
         val description : String = "description",
         val intValue: Int = 200
-    ): PrintableBase<Item>(Printable){
+    ): PrintableBase<Item>(this){
 
         override val self: Item = this
 
@@ -48,13 +45,13 @@ class TestPrintableBase: DateHelper {
         companion object: PrintableCompanion<Item>({Item::class}){
 
             val Header = createTemplate(){
-                next {
+                nextLine {
                     "$personalName | $componentName | $description".colorize(Colour.BLUE)
                 }
             }
 
             val Footer = createTemplate(){
-                next {
+                nextLine {
                     "$personalName Value = ${intValue}".colorize(Colour.BLUE)
                 }
             }
@@ -77,7 +74,7 @@ class TestPrintableBase: DateHelper {
         val error: String = "Generic error",
         val module : String = "Module1",
         val handled: Boolean = true,
-    ): PrintableBase<Item2>(Template2){
+    ): PrintableBase<Item2>(this){
 
         override val self: Item2 = this
        // override val itemId: ValueBased = toValueBased(0)
@@ -85,13 +82,13 @@ class TestPrintableBase: DateHelper {
         companion object: PrintableCompanion<Item2>({Item2::class}){
 
             val RegularStr = createTemplate{
-                next {
+                nextLine {
                     "$componentName in $module".colorize(Colour.CYAN)
                 }
             }
 
             val Template2 = createTemplate{
-                next {
+                nextLine {
                     "String2-> $personalName | $module And Value=$handled".colorize(Colour.RED)
                 }
             }

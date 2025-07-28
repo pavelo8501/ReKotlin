@@ -1,10 +1,9 @@
-package po.misc.data.printable
+package po.misc.data.printable.companion
 
+import po.misc.data.printable.Printable
 import po.misc.data.styles.SpecialChars
 import po.misc.functions.dsl.ConstructableDSL
-import po.misc.functions.dsl.DSLBuilder
 import po.misc.functions.dsl.DSLConstructor
-import po.misc.functions.dsl.DSLContainer
 import po.misc.functions.dsl.helpers.dslConstructor
 
 interface PrintableWithTemplate : Printable {
@@ -12,8 +11,11 @@ interface PrintableWithTemplate : Printable {
 }
 
 sealed class PrintableTemplateBase<T: Printable>() {
+
     var templateParts: List<T.() -> String> = listOf()
     var params: TemplateAuxParams? = null
+
+    var isDefaultTemplate: Boolean = false
 
     abstract fun evaluateTemplate(data: T): String
 
@@ -45,18 +47,7 @@ class PartsTemplate<T: Printable>(
     }
 }
 
-class Template<T: Printable>(val delimiter: String):PrintableTemplateBase<T>(), DSLBuilder<T, String> {
-    override val dslContainer: DSLContainer<T, String> = DSLContainer()
-    override fun evaluateTemplate(data: T): String {
-      return  dslContainer.resolve(data){
-            it.joinToString(separator = delimiter) {string-> string }
-        }
-    }
-}
-
-
-class Template2<T: Printable>(
-):PrintableTemplateBase<T>(), ConstructableDSL<T, String> {
+class Template<T: Printable>():PrintableTemplateBase<T>(), ConstructableDSL<T, String> {
 
     var delimiter: String = SpecialChars.NewLine.char
 

@@ -1,7 +1,7 @@
 package po.exposify.common.events
 
 import po.misc.data.printable.PrintableBase
-import po.misc.data.printable.PrintableCompanion
+import po.misc.data.printable.companion.PrintableCompanion
 
 
 

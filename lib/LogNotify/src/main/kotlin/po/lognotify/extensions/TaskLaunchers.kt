@@ -3,7 +3,6 @@ package po.lognotify.extensions
 import kotlinx.coroutines.runBlocking
 import po.lognotify.TasksManaged
 import po.lognotify.anotations.LogOnFault
-import po.lognotify.common.containers.RunnableContainer
 import po.lognotify.common.containers.TaskContainer
 import po.lognotify.tasks.RootTask
 import po.lognotify.tasks.TaskHandler
@@ -15,10 +14,12 @@ import po.lognotify.common.result.createFaultyResult
 import po.lognotify.common.result.onTaskResult
 import po.lognotify.debug.DebugProxy
 import po.lognotify.exceptions.handleException
-import po.lognotify.execution.controlledRun
 import po.lognotify.tasks.TaskBase
+import po.misc.containers.withReceiverAndResult
 import po.misc.coroutines.LauncherType
 import po.misc.data.helpers.emptyAsNull
+import po.misc.functions.repeater.models.RepeatStats
+import po.misc.functions.repeater.repeatOnFault
 import po.misc.reflection.classes.ClassRole
 import po.misc.reflection.classes.overallInfo
 import po.misc.reflection.properties.takePropertySnapshot
@@ -157,6 +158,11 @@ suspend inline fun <reified T: TasksManaged, R: Any?> T.runTaskAsync(
     }
 }
 
+@PublishedApi
+internal fun <T: TasksManaged, R: Any?> onFailure(stats: RepeatStats, task: TaskBase<T, R>){
+
+
+}
 
 /**
  * Starts a root task in a blocking (non-suspending) context with retry support.
@@ -173,7 +179,7 @@ inline fun <T: TasksManaged, reified R: Any?> T.runTask(
     taskName: String,
     config: TaskConfig = TaskConfig(isDefault = true),
     debugProxy: DebugProxy<* , *>? = null,
-    crossinline block: RunnableContainer<T, R>.() -> R,
+    crossinline block: T.() -> R,
 ):  TaskResult<R> {
 
     val moduleName: String = config.moduleName.emptyAsNull() ?: this.contextName
@@ -203,16 +209,23 @@ inline fun <T: TasksManaged, reified R: Any?> T.runTask(
     val taskContainer: TaskContainer<T, R> = TaskContainer.create<T, R>(newTask)
     taskContainer.classInfoProvider.registerProvider { overallInfo<R>(ClassRole.Result) }
 
-    val lambdaResult = try {
-        block.invoke(taskContainer)
-    }catch (th: Throwable){
-        throw th
-    }
 
-//    val lambdaResult = taskContainer.controlledRun {
-//        block.invoke(taskContainer)
+    return repeatOnFault({
+        setMaxAttempts(2).onException{stats ->
+            onFailure(stats, newTask)
+        }
+    }){
+        val lambdaResult = taskContainer.withReceiverAndResult(block)
+        onTaskResult(newTask, lambdaResult)
+    }
+//
+//    return repeatOnFault(
+//        RepeaterConfig(taskContainer.attempts) { stats ->
+//        onFailure(stats, newTask)
+//    }){
+//        val lambdaResult = taskContainer.withReceiverAndResult(block)
+//        onTaskResult(newTask, lambdaResult)
 //    }
-   return onTaskResult(newTask, lambdaResult)
 }
 
 

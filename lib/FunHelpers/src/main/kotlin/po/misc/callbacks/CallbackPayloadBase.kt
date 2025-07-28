@@ -67,7 +67,7 @@ sealed class CallbackPayloadBase<E: Enum<E>, T, R>(
 
     private fun removeContainer(container: CallableContainer<T>){
         if(!containers.values.remove(container)){
-            throwManaged("removeContainer fail. No container ${container::class.simpleName.toString()}")
+            throwManaged("removeContainer fail. No container ${container::class.simpleName.toString()}", this)
         }
     }
 
@@ -75,7 +75,7 @@ sealed class CallbackPayloadBase<E: Enum<E>, T, R>(
         if(containers.containsKey(subscriber)){
             containers.remove(subscriber)
         }else{
-            throwManaged("removeContainer fail. No container for key $subscriber")
+            throwManaged("removeContainer fail. No container for key $subscriber", this)
         }
     }
 

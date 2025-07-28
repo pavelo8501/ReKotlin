@@ -6,10 +6,6 @@ import kotlin.reflect.KType
 import kotlin.reflect.typeOf
 
 
-inline fun <reified T: Any> T.getKType(): KType {
-    return typeOf<T>()
-}
-
 fun KType.asStableString(): String {
     val qualifiedTypeName = classifier?.let {
         (it as? KClass<*>)?.qualifiedName

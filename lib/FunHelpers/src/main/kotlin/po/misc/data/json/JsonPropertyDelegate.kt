@@ -32,7 +32,7 @@ abstract class JsonDelegateBase<T: Any, R: Any>(
     var value: R? = null
 
     fun getJasonString():R{
-       return value.getOrManaged("Value is null")
+       return value.getOrManaged(kProperty::class, this)
     }
 
     fun resolveProperty(property: KProperty<*>){

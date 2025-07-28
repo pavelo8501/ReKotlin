@@ -14,7 +14,6 @@ import po.auth.sessions.models.AuthorizedSession
 import po.misc.types.getOrThrow
 
 
-
 typealias AuthFunction = (suspend (login: String)-> AuthenticationPrincipal?)
 
 class UserAuthenticator(
@@ -24,8 +23,8 @@ class UserAuthenticator(
     var keyBasePath : Path? = null
 
     private var _jwtService : JWTService? = null
-    val jwtService: JWTService get() = _jwtService.getOrThrow<JWTService>(){message->
-        authException(message, AuthErrorCode.UNINITIALIZED)
+    val jwtService: JWTService get() = _jwtService.getOrThrow<JWTService>(JWTService::class, this){payload ->
+        authException(payload.setCode(AuthErrorCode.UNINITIALIZED))
     }
 
     private var lookupFn : (suspend (login: String)-> AuthenticationPrincipal?)? = null
@@ -38,7 +37,7 @@ class UserAuthenticator(
     }
 
     suspend fun authenticate(login: String, password: String, anonymous: AuthorizedSession): AuthenticationPrincipal{
-        val principalLookupFn = lookupFn.getOrThrow<AuthFunction>(){message->
+        val principalLookupFn = lookupFn.getOrThrow<AuthFunction>(Function::class, this){ payload->
             authException("Authenticate function not set", AuthErrorCode.CONFIGURATION_MISSING)
         }
         val principal =  principalLookupFn.invoke(login)

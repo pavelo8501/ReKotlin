@@ -10,7 +10,7 @@ import po.misc.callbacks.builders.managerHooks
 import po.misc.callbacks.builders.requestOnce
 import po.misc.callbacks.builders.withCallbackManager
 import po.misc.context.CTX
-import po.misc.context.asContext
+import po.misc.context.asIdentity
 import po.test.misc.callback.TestCallbackSubscriptions.FirstHoldingClass.Event
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -18,13 +18,13 @@ import kotlin.test.assertNotNull
 class TestCallbackSubscriptions(): CTX {
 
 
-    override val identity = asContext()
+    override val identity = asIdentity()
 
 
     internal class FirstHoldingClass: CTX{
         enum class Event{ OnInit, OnOneShot }
 
-        override val identity = asContext()
+        override val identity = asIdentity()
 
         val notifier = CallbackManager(
             enumClass = Event::class.java,

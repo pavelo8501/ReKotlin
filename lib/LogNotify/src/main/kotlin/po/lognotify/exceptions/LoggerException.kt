@@ -5,6 +5,7 @@ import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.ManageableException
 import po.misc.context.CTX
+import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.types.castOrThrow
 
 class LoggerException(
@@ -12,7 +13,11 @@ class LoggerException(
     original: Throwable? = null
 ) : ManagedException(message, null, original) {
 
-    override var handler: HandlerType = HandlerType.Undefined
+    constructor(payload: ManagedCallSitePayload): this(message = payload.message, original = payload.cause){
+        initFromPayload(payload)
+    }
+
+    override var handler: HandlerType = HandlerType.CancelAll
 
     companion object : ManageableException.Builder<LoggerException> {
         override fun build(message: String, source: Enum<*>?, original: Throwable?): LoggerException {
@@ -22,7 +27,7 @@ class LoggerException(
 }
 
 inline fun <reified T: Any>  Any?.castOrLoggerEx(ctx: CTX):T{
-   return this.castOrThrow<T>(ctx){message->
-       LoggerException(message)
+   return this.castOrThrow<T>(ctx){payload->
+       LoggerException(payload)
    }
 }

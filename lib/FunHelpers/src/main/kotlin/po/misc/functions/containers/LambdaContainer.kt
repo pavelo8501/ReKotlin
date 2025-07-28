@@ -82,7 +82,7 @@ sealed class LambdaContainer<V: Any, R: Any>(
 
 
     protected open var valueBacking : V? = null
-    override val persistedValue: V get() = valueBacking.getOrManaged("value")
+    override val persistedValue: V get() = valueBacking.getOrManaged(Any::class, this)
 
     private var resultBacking : R? = null
     val result:R get()  {

@@ -3,6 +3,7 @@ package po.misc.types
 import po.misc.exceptions.ManagedException
 import po.misc.context.CTX
 import po.misc.context.Identifiable
+import po.misc.exceptions.ManagedCallSitePayload
 import kotlin.reflect.KClass
 
 
@@ -21,18 +22,20 @@ fun <T : Any>  List<Any>.findByTypeFirstOrNull(
 }
 
 
-inline fun <T : Any> List<*>.castListOrThrow(
+fun <T : Any> List<*>.castListOrThrow(
     kClass: KClass<T>,
-    exceptionProvider: (message: String, original: Throwable)-> Throwable,
+    callingContext: Any,
+    exceptionProvider: (ManagedCallSitePayload)-> Throwable,
 ): List<T> {
-    return this.mapNotNull { it.castOrThrow<T>(kClass, exceptionProvider) }
+    return this.map{ it.castOrThrow(kClass, callingContext,  exceptionProvider) }
 }
 
 
 fun <T : Any> List<*>.castListOrManaged(
     kClass: KClass<T>,
+    callingContext: Any,
 ): List<T> {
-    return this.mapNotNull { it.castOrManaged<T>(kClass) }
+    return this.map{ it.castOrManaged(kClass, callingContext) }
 }
 
 
@@ -50,7 +53,7 @@ inline fun <reified BASE : Any, reified E : ManagedException> Any?.castBaseOrThr
         }
         val exception = exceptionProvider(message)
         if(producer != null){
-            exception.throwSelf(producer, ManagedException.ExceptionEvent.Thrown)
+            exception.throwSelf(message,  producer, ManagedException.ExceptionEvent.Thrown)
         }else{
             throw exception
         }

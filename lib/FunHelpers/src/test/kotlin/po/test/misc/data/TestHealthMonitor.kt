@@ -5,7 +5,7 @@ import po.misc.data.monitor.HealthMonitor
 import po.misc.data.monitor.LifecyclePhase
 import po.misc.data.monitor.MonitorAction
 import po.misc.context.CTX
-import po.misc.context.asContext
+import po.misc.context.asIdentity
 import po.test.misc.setup.ControlClass
 import kotlin.test.assertEquals
 
@@ -14,7 +14,7 @@ class TestHealthMonitor {
 
     class Monitored() : ControlClass(), CTX {
 
-        override val identity = asContext()
+        override val identity = asIdentity()
 
         val monitor: HealthMonitor<Monitored> = HealthMonitor(this)
         init {

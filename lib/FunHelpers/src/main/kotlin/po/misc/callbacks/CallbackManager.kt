@@ -60,7 +60,7 @@ class CallbackManager<E: Enum<E>>(
     internal fun <T: Any> registerPayloadInternally(payload: CallbackPayload<E, T> ){
         val found = containerLookup(singleTypeEventMap[payload.eventType]?.safeCast(), payload.typeKey)
         if(found != null){
-            throwManaged("Payload with EventType: ${payload.eventType} and key: ${payload.typeKey} already exists. Critical failure")
+            throwManaged("Payload with EventType: ${payload.eventType} and key: ${payload.typeKey} already exists. Critical failure", this)
         }else{
             payload.hostingManager = this
             val payloadsForEvent = singleTypeEventMap.getOrPut(payload.eventType) { mutableListOf() }
@@ -71,7 +71,7 @@ class CallbackManager<E: Enum<E>>(
     fun <T: Any, R: Any> registerResultPayload(payload: ResultCallbackPayload<E, T, R>){
         val found = containerLookup(resultTypeEventMap[payload.eventType]?.safeCast(), payload.typeKey)
         if(found != null){
-            throwManaged("PayloadWithResult EventType: ${payload.eventType} and key: ${payload.typeKey} already exists. Critical failure")
+            throwManaged("PayloadWithResult EventType: ${payload.eventType} and key: ${payload.typeKey} already exists. Critical failure", this)
         }else{
             payload.hostingManager = this
             val payloadsForEvent = resultTypeEventMap.getOrPut(payload.eventType) { mutableListOf() }
@@ -118,12 +118,12 @@ class CallbackManager<E: Enum<E>>(
         return singleTypeEventMap[eventType]?.let { event ->
             val payload = event.firstOrNull { it.typeKey == key }
             if (payload != null) {
-                payload.castOrManaged<CallbackPayload<E, T>>()
+                payload.castOrManaged<CallbackPayload<E, T>>(this)
             } else {
                 val message = "No event registered for : ${key.typeName}"
                 hooks?.onFailureHook?.invoke(message)
                 if (config.exceptionOnTriggerFailure) {
-                    throwManaged(message)
+                    throwManaged(message, this)
                 }
                 null
             }
@@ -131,7 +131,7 @@ class CallbackManager<E: Enum<E>>(
             val message = "No event registered with name: ${eventType.name}"
             hooks?.onFailureHook?.invoke(message)
             if (config.exceptionOnTriggerFailure) {
-                throwManaged(message)
+                throwManaged(message, this)
             }
             null
         }
@@ -142,7 +142,7 @@ class CallbackManager<E: Enum<E>>(
         eventType:E,
         key:ComparableType<T>
     ): ResultCallbackPayload<E,T,R>?{
-        return resultTypeEventMap[eventType]?.firstOrNull { it.typeKey == key }?.castOrManaged<ResultCallbackPayload<E, T, R>>()
+        return resultTypeEventMap[eventType]?.firstOrNull { it.typeKey == key }?.castOrManaged<ResultCallbackPayload<E, T, R>>(this)
     }
 
     inline fun <reified T: Any> subscribe(
@@ -152,7 +152,7 @@ class CallbackManager<E: Enum<E>>(
     ): Unit {
         val key = StaticTypeKey.createTypeKey<T>()
         payloadLookup(eventType, key)?.subscribe(subscriber, function)?:run {
-            throwManaged("Payload for the given eventType: ${eventType.name} and key: $key not registered")
+            throwManaged("Payload for the given eventType: ${eventType.name} and key: $key not registered", this)
         }
         //getPayload<T>(eventType).getOrManaged(exceptionPayload).subscribe(subscriber, function)
     }
@@ -164,7 +164,7 @@ class CallbackManager<E: Enum<E>>(
     ): Unit {
         val key = StaticTypeKey.createTypeKey<T>()
         payloadLookup(eventType, key)?.request(subscriber, function) ?:run {
-            throwManaged("Payload for the given eventType: ${eventType.name} and key: $key not registered")
+            throwManaged("Payload for the given eventType: ${eventType.name} and key: $key not registered", this)
         }
     }
 
@@ -194,7 +194,7 @@ class CallbackManager<E: Enum<E>>(
                 payload.triggerForAll(value)
             }
         }else{
-            throwManaged("Payload for the given eventType: ${eventType.name} and key: $key not registered")
+            throwManaged("Payload for the given eventType: ${eventType.name} and key: $key not registered", this)
         }
         TODO("Implement callback result logic")
     }

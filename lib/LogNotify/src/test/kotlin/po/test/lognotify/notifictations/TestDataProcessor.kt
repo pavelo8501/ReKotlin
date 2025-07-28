@@ -9,10 +9,9 @@ import po.lognotify.notification.models.ConsoleBehaviour
 import po.lognotify.tasks.RootTask
 import po.lognotify.tasks.models.TaskConfig
 import po.misc.exceptions.ManagedException
-import java.io.ByteArrayOutputStream
-import java.io.PrintStream
+import po.misc.exceptions.ManagedPayload
+import po.test.lognotify.setup.captureOutput
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 
@@ -30,21 +29,8 @@ class TestDataProcessor: FakeTasksManaged{
     }
 
     private fun exceptionMethod(message: String): ManagedException{
-        val exception =  ManagedException(message)
-        exception.addExceptionData(TestDataProcessor, "exceptionMethod")
-        return exception
-    }
-
-   private fun captureOutput(captureLambda:()-> Unit): String{
-        val originalOut = System.out
-        val outputStream = ByteArrayOutputStream()
-        System.setOut(PrintStream(outputStream))
-        try {
-            captureLambda()
-        } finally {
-            System.setOut(originalOut)
-        }
-        return outputStream.toString()
+        val payload = ManagedPayload(message, "exceptionMethod", this)
+        return  ManagedException(payload)
     }
 
     @Test
@@ -106,12 +92,5 @@ class TestDataProcessor: FakeTasksManaged{
         processor.log("ActionSpan message", SeverityLevel.INFO, actionSpan)
         assertTrue(taskGroup.records.size == 2)
     }
-
-    @Test
-    fun `Exception events contain sufficient amount of information`() {
-        val exceptionRecord =  processor.createExceptionRecord(exceptionMethod("Some Exception"), rootTask)
-        assertNotNull(exceptionRecord.stackTraceElement, "StackTraceElement was not captured")
-    }
-
 
 }

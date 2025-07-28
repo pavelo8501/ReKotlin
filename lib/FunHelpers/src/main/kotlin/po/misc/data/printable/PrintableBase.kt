@@ -2,13 +2,17 @@ package po.misc.data.printable
 
 import po.misc.data.console.DateHelper
 import po.misc.data.json.JObject
-import po.misc.data.json.JRecord
 import po.misc.data.json.JsonHolder
-import po.misc.context.CTX
+import po.misc.data.printable.companion.PrintableCompanion
+import po.misc.data.printable.companion.PrintableTemplateBase
 
 abstract class PrintableBase<T>(
-    var defaultTemplate: PrintableTemplateBase<T>
+    private val companion: PrintableCompanion<T>
+   // var defaultTemplate: PrintableTemplateBase<T>
 ): ComposableData, Printable, DateHelper where T:PrintableBase<T> {
+
+
+    private val templateNotFound : (T) -> String = { key->  "[template for data: $key not defined] ${toString()}"}
 
     abstract val self:T
     override var parentRecord: PrintableBase<*>? = null
@@ -19,14 +23,14 @@ abstract class PrintableBase<T>(
 
     override val formattedString : String get(){
         return activeTemplate?.resolve(self) ?:run {
-            defaultTemplate.resolve(self)
+            templateNotFound(self)
         }
     }
 
     internal var jsonHolder : JsonHolder? = null
     internal val jsonObject : JObject
         get() {
-        val hostingClassName =  self::class.simpleName.toString()
+        val hostingClassName = companion.printableClass.simpleName.toString()
         return JObject(hostingClassName)
     }
 
@@ -36,14 +40,17 @@ abstract class PrintableBase<T>(
     internal var muteCondition: ((T) -> Boolean)? = null
     var genericMuteCondition: ((ComposableData)-> Boolean)? = null
 
-    private val templateNotFound : (Printable) -> String = { key-> "[template for data: $key not defined]"}
+
 
     @PublishedApi
     internal var outputSource: ((String)-> Unit)?=null
 
     init {
-        activeTemplate?:run {
+        val defaultTemplate = companion.templates.firstOrNull { it.isDefaultTemplate }
+        if(defaultTemplate != null){
             activeTemplate = defaultTemplate
+        }else{
+            activeTemplate =  companion.templates.firstOrNull()
         }
     }
 
@@ -63,8 +70,8 @@ abstract class PrintableBase<T>(
        return muteCondition?.invoke(self)?:false
     }
 
-    internal fun changeDefaultTemplate(template: PrintableTemplateBase<T>){
-        defaultTemplate = template
+    internal fun setDefaultTemplate(template: PrintableTemplateBase<T>){
+        activeTemplate = template
     }
 
     override fun setParent(parent: PrintableBase<*>) {

@@ -2,11 +2,10 @@ package po.exposify.common.event
 
 import po.exposify.dto.DTOBase
 import po.misc.data.printable.PrintableBase
-import po.misc.data.printable.PrintableCompanion
+import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
-import po.misc.context.Identifiable
-import po.misc.data.printable.Template
+import po.misc.data.printable.companion.Template
 
 data class DTOClassData(
     private val dtoClass: DTOBase<*, *, *>,

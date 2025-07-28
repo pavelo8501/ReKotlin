@@ -26,6 +26,7 @@ internal inline fun <reified T: Any> createInputParameter(index: Int, parameter:
 
 
 inline fun <reified T: Any> DebugProvider.captureProperty(parameter: List<T>):InputParameter{
+
     val list =  InputParameter("Parameter_0", TypeData.create<List<Any>>(), parameter.size, "list")
     parameter.forEachIndexed { index, item->
         val item = InputParameter("Item_$index", TypeData.createByKClass(item::class), 1, item.toString())

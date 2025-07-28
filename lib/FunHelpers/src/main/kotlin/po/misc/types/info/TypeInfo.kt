@@ -1,6 +1,5 @@
 package po.misc.types.info
 
-import po.misc.context.CTX
 import po.misc.types.helpers.normalizedName
 import kotlin.reflect.KType
 import kotlin.reflect.typeOf

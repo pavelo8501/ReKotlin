@@ -6,19 +6,19 @@ import po.misc.callbacks.CallbackManager
 import po.misc.callbacks.builders.callbackManager
 import po.misc.callbacks.models.Configuration
 import po.misc.context.CTX
-import po.misc.context.asContext
+import po.misc.context.asIdentity
 import po.misc.exceptions.ManagedException
 
 
 class TestCallbackConfiguration:  CTX {
 
 
-    override val identity = asContext()
+    override val identity = asIdentity()
 
     internal class FirstHoldingClass(private val callbackConfiguration: Configuration) : CTX{
         enum class Event{ OnInit, OnRouted  }
 
-        override val identity = asContext()
+        override val identity = asIdentity()
 
         val cbManager = callbackManager<Event>(config =  callbackConfiguration)
         val routedPayload = CallbackManager.createPayload<Event, String>(cbManager, Event.OnRouted)

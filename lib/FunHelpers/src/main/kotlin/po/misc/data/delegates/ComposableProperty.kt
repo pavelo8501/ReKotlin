@@ -1,12 +1,7 @@
 package po.misc.data.delegates
 
 import po.misc.context.CTX
-import po.misc.context.asContext
 import po.misc.context.asIdentity
-import po.misc.exceptions.ExceptionPayload
-import po.misc.exceptions.ManagedCallSitePayload
-
-
 import po.misc.reflection.classes.KSurrogate
 import po.misc.reflection.properties.SourcePropertyIO
 import po.misc.reflection.properties.createSourcePropertyIO
@@ -25,10 +20,10 @@ class ComposableProperty<T: CTX, V: Any>(
 
     override val identity = asIdentity()
 
-    val exceptionPayload: ExceptionPayload = ExceptionPayload(this)
+   // val exceptionPayload: ExceptionPayload = ExceptionPayload(this)
 
     private var backingProperty: KProperty1<T, V>? = null
-    private val property: KProperty1<T, V> get() = backingProperty.getOrManaged(exceptionPayload)
+    private val property: KProperty1<T, V> get() = backingProperty.getOrManaged(this)
     private var propertyName: String = backingProperty?.name?:"N/A"
 
     private val propertyIO: SourcePropertyIO<T, V> by lazy {
@@ -36,7 +31,7 @@ class ComposableProperty<T: CTX, V: Any>(
     }
 
     fun resolveProperty(property: KProperty<*>, thisRef:T){
-        backingProperty = property.castOrManaged<KProperty1<T, V>>()
+        backingProperty = property.castOrManaged<KProperty1<T, V>>(this)
         surrogate.setSourceProperty(propertyIO)
     }
 

@@ -1,11 +1,8 @@
 package po.misc.context
 
-import po.misc.types.getKType
 import java.util.UUID
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
-import kotlin.reflect.KTypeProjection
-import kotlin.reflect.full.createType
 import kotlin.reflect.typeOf
 
 /**
@@ -40,19 +37,20 @@ class CTXIdentity<T: CTX> @PublishedApi internal constructor(
 
     val identifiedByName: String get () =  namePattern?.invoke(this) ?: baseName
 
-
-
     /**
      * Hierarchical identity string built from this context and its parents (if any).
      * Format: `Child/Parent/.../Root`
      */
     val completeName: String get() = buildString {
         append(baseName)
-        parentIdentity?.let {
+        parentIdentity?.let { parent ->
             append("/")
-            append(it.completeName)
+            if (parent.kClass != kClass || parent.userDefinedId != userDefinedId) {
+                append(parent.completeName)
+            }
         }
     }
+
     val classQualifiedName: String get() = kClass.qualifiedName?:"Unnamed"
     fun setId(id: Long){
         userDefinedId = id
@@ -80,9 +78,6 @@ class CTXIdentity<T: CTX> @PublishedApi internal constructor(
 }
 
 inline fun <reified T>  asSubIdentity(thisContext: T,  parentContext:CTX, withId: Long? = null): CTXIdentity<T> where T: CTX{
-    require(T::class != parentContext.identity.kClass) {
-        "Parent context must be of a different class than the current context"
-    }
     return try {
         CTXIdentity(thisContext::class as KClass<T>, typeOf<T>(), withId, parentContext)
     }catch (th: Throwable){
@@ -91,7 +86,6 @@ inline fun <reified T>  asSubIdentity(thisContext: T,  parentContext:CTX, withId
 }
 
 fun <T> createIdentity(kClass: KClass<T>, kType: KType, withId: Long? = null): CTXIdentity<out T> where T: CTX {
-
     return try {
         CTXIdentity(kClass, kType, withId)
     }catch (th: Throwable){
@@ -105,17 +99,4 @@ inline fun <reified T>  T.asIdentity(withId: Long? = null): CTXIdentity<T> where
     }catch (th: Throwable){
         throw th
     }
-}
-
-@Deprecated("Because of similarity to withContext", ReplaceWith("asIdentity"), DeprecationLevel.WARNING)
-inline fun <reified T>  T.asContext(): CTXIdentity<T> where T: CTX {
-    return  CTXIdentity(T::class, typeOf<T>())
-}
-
-@Deprecated("Because of similarity to withContext", ReplaceWith("asIdentity"), DeprecationLevel.WARNING)
-inline fun <reified T, reified T2>  T.asContext(parentContext: T2): CTXIdentity<T> where T: CTX, T2: CTX {
-    require(T::class != T2::class) {
-        "Parent context must be of a different class than the current context"
-    }
-    return  CTXIdentity(T::class, typeOf<T>(), null, parentContext)
 }

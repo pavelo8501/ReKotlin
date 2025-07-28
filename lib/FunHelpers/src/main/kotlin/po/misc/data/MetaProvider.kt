@@ -1,7 +1,6 @@
 package po.misc.data
 
 import po.misc.data.MetaData.BuilderData
-import po.misc.types.getKType
 import po.misc.types.safeCast
 import kotlin.Int
 import kotlin.String
@@ -10,6 +9,7 @@ import kotlin.reflect.KProperty
 import kotlin.reflect.KType
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.memberProperties
+import kotlin.reflect.typeOf
 
 
 interface MetaData{
@@ -55,7 +55,7 @@ fun MetaData.collectAnnotatedProperties(): Map<String, Any?> {
 class MetaProvider<T: MetaData>(val modelBuilder : ()-> T){
 
     inline fun <reified S: Any> registerBuilder(noinline builder: T.(S) -> T) {
-        MetaData.Companion.builderMap[S::class.simpleName.toString()] = BuilderData(builder, S::class.getKType())
+        MetaData.Companion.builderMap[S::class.simpleName.toString()] = BuilderData(builder, typeOf<S>())
     }
 }
 

@@ -5,10 +5,7 @@ import po.misc.exceptions.ManagedException
 import po.misc.functions.hooks.DataHooks
 import po.misc.functions.hooks.DataNotifier
 import po.misc.context.CTX
-import po.misc.context.asContext
 import po.misc.context.asIdentity
-import po.misc.exceptions.toManaged
-import po.misc.exceptions.toPayload
 import po.misc.functions.models.Updated
 import po.misc.types.TypeData
 import po.misc.types.getOrManaged
@@ -31,7 +28,7 @@ import kotlin.reflect.KProperty
  * @property receiver  the payload used to report an error when the value is accessed before being set.
  */
 class BackingDelegate<T : Any>(
-    private val typeInfo: TypeInfo,
+    private val typeData: TypeData<T>,
     private val receiver :T ? = null,
     private val configure: (DataHooks<BackingDelegate<T>, T>.() -> Unit)? = null
 ) : ReadWriteProperty<Any?, T>, CTX{
@@ -69,9 +66,7 @@ class BackingDelegate<T : Any>(
      * @throws ManagedException if the value has not been set.
      */
     override fun getValue(thisRef: Any?, property: KProperty<*>): T {
-        return value.getOrManaged(
-            toPayload { valueFailure("value", typeInfo.toString()) }
-        )
+        return value.getOrManaged(typeData.kClass, this)
     }
 
     /**
@@ -90,7 +85,7 @@ class BackingDelegate<T : Any>(
          * @return a new [BackingDelegate] instance.
          */
         inline fun <reified T : Any> create(receiver:T ? = null): BackingDelegate<T> =
-            BackingDelegate(TypeInfo.create<T>(), receiver)
+            BackingDelegate(TypeData.create<T>(), receiver)
 
         /**
          * Creates a [BackingDelegate] for the given type.
@@ -98,8 +93,8 @@ class BackingDelegate<T : Any>(
          * @param typeInfo the [TypeInfo] of the backing value.
          * @return a new [BackingDelegate] instance.
          */
-        fun <T : Any> create(typeInfo: TypeInfo, receiver: T? = null): BackingDelegate<T> =
-            BackingDelegate(typeInfo, receiver)
+        fun <T : Any> create(typeData: TypeData<T>, receiver: T? = null): BackingDelegate<T> =
+            BackingDelegate(typeData, receiver)
 
 
         /**
@@ -111,7 +106,7 @@ class BackingDelegate<T : Any>(
         inline  fun <reified T : Any> withHooks(
             receiver: T? = null,
             noinline configure: DataHooks<BackingDelegate<T>, T>.() -> Unit
-        ): BackingDelegate<T> = BackingDelegate(TypeInfo.create<T>(), receiver, configure)
+        ): BackingDelegate<T> = BackingDelegate(TypeData.create<T>(), receiver, configure)
 
     }
 }

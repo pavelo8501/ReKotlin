@@ -24,7 +24,12 @@ fun <T : Any> Iterable<T>.selectUntil(predicate:(T)-> Boolean): List<T> {
     return emptyList()
 }
 
-fun <T> Array<out T>.takeFromMatch(predicate: (T) -> Boolean, count: Int): List<T> {
+fun <T> Array<out T>.takeFromMatch(count: Int, predicate: (T) -> Boolean): List<T> {
+    return this.dropWhile { !predicate(it) }
+        .take(count)
+}
+
+fun <T> List<T>.takeFromMatch(count: Int, predicate: (T) -> Boolean): List<T> {
     return this.dropWhile { !predicate(it) }
         .take(count)
 }

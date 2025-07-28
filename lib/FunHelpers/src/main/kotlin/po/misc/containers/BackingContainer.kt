@@ -24,7 +24,7 @@ import po.misc.types.getOrManaged
  */
 open class BackingContainer<T: Any>(
     val exPayload: ManagedCallSitePayload,
-    var typeData: Typed<T>? = null,
+    var typeData: Typed<T>,
     private var sourceBacking:T? = null
 ){
 
@@ -33,7 +33,7 @@ open class BackingContainer<T: Any>(
      * @throws ManagedException if the backing value is not available.
      */
     val source:T get(){
-        return sourceBacking.getOrManaged(exPayload.valueFailure("sourceBacking", typeData.toString()))
+        return sourceBacking.getOrManaged(typeData.kClass, this)
     }
 
     /**

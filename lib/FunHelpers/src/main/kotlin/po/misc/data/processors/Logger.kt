@@ -1,6 +1,6 @@
 package po.misc.data.processors
 
-import po.misc.data.printable.PrintableTemplate
+import po.misc.data.printable.companion.PrintableTemplate
 import po.misc.data.printable.PrintableBase
 
 

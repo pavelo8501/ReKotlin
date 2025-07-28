@@ -10,8 +10,8 @@ import po.lognotify.debug.DebugProxy
 import po.lognotify.debug.models.DebugParams
 import po.misc.context.CTX
 import po.misc.data.printable.PrintableBase
-import po.misc.data.printable.PrintableCompanion
-import po.misc.data.printable.PrintableTemplateBase
+import po.misc.data.printable.companion.PrintableCompanion
+import po.misc.data.printable.companion.PrintableTemplateBase
 
 class ExposifyDebugger<T: CTX, P: PrintableBase<P>>(
     receiver:T,

@@ -4,8 +4,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertAll
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
-import po.misc.context.Identifiable
-import po.misc.context.asContext
+import po.misc.context.asIdentity
 import po.misc.interfaces.ValueBased
 import po.misc.registries.callback.CallbackRegistry
 import po.misc.registries.callback.TypedCallbackRegistry
@@ -20,7 +19,7 @@ class TestCallbackRegistry {
     class Component(var sourceName: String
     ) : CTX{
 
-        override val identity: CTXIdentity<out CTX> = asContext()
+        override val identity: CTXIdentity<out CTX> = asIdentity()
          override val contextName: String = "ssss"
     }
 

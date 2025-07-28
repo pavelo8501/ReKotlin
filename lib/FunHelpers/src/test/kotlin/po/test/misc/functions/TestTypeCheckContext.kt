@@ -1,8 +1,7 @@
 package po.test.misc.functions
 
 import org.junit.jupiter.api.Test
-import po.misc.context.asContext
-import po.misc.data.processors.Logger
+import po.misc.context.asIdentity
 import po.misc.functions.checkable.checkAndRun
 import po.misc.functions.checkable.onType
 import po.test.misc.properties.TestBackingDelegate
@@ -14,7 +13,7 @@ import kotlin.test.assertTrue
 
 class TestTypeCheckContext {
    internal class TempClass(): TestLogger{
-        override val identity = asContext()
+        override val identity = asIdentity()
     }
 
     @Test

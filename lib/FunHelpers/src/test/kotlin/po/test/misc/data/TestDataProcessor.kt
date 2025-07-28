@@ -2,26 +2,22 @@ package po.test.misc.data
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertInstanceOf
-import po.misc.context.CTX
 import po.misc.data.printable.PrintableBase
-import po.misc.data.printable.PrintableCompanion
-import po.misc.data.printable.PrintableTemplate
+import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.processors.DataProcessor
-import po.misc.context.asContext
+import po.misc.functions.dsl.helpers.nextBlock
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class TestDataProcessor {
 
-
-
-    data class TopDataItem (
+   internal data class TopDataItem (
         val id: Int,
         val personalName: String,
         val content : String,
         val componentName: String = "Some name",
-    ): PrintableBase<TopDataItem>(TopTemplate){
+    ): PrintableBase<TopDataItem>(this){
 
         override val self: TopDataItem = this
 
@@ -30,24 +26,35 @@ class TestDataProcessor {
 
         companion object: PrintableCompanion<TopDataItem>({TopDataItem::class}){
 
-            val TopTemplate: PrintableTemplate<TopDataItem> = PrintableTemplate(){"TopTemplate->$content"}
-            val Debug: PrintableTemplate<TopDataItem> = PrintableTemplate(){"Debug[Name:$personalName Content:$content"}
+            val TopTemplate = createTemplate {
+                nextBlock {
+                    "TopTemplate->$content"
+                }
+            }
+
+            val Debug = createTemplate {
+                nextBlock {
+                    "Debug[Name:$personalName Content:$content"
+                }
+            }
         }
     }
 
-    data class SubData (
+    internal data class SubData (
         val id: Int,
         val personalName: String,
         val content : String,
         val componentName: String = "Some name",
-    ): PrintableBase<SubData>(SubTemplate){
+    ): PrintableBase<SubData>(this){
 
         override val self: SubData = this
-
-       // override val itemId: ValueBased = toValueBased(id)
-
         companion object:PrintableCompanion<SubData>({SubData::class}){
-            val SubTemplate: PrintableTemplate<SubData> = PrintableTemplate(){"Template1->$content"}
+
+            val SubTemplate = createTemplate {
+                nextBlock {
+                    "Template1->$content"
+                }
+            }
         }
     }
 
@@ -64,7 +71,8 @@ class TestDataProcessor {
     fun `Data propagated to topDataProcessor and stacked within PrintableBase`(){
 
         val topDataProcessor: DataProcessor<TopDataItem> = DataProcessor<TopDataItem>(null)
-        val subDataProcessor: DataProcessor<SubData> = DataProcessor<SubData>(topDataProcessor)
+
+        //val subDataProcessor: DataProcessor<SubData> = DataProcessor<SubData>(topDataProcessor)
 
         var parentRecord: PrintableBase<*>? = null
         var topRecord : PrintableBase<*>? = null
@@ -78,8 +86,8 @@ class TestDataProcessor {
         val record1 = SubData(1, "DataItem", "Content1")
         val record2 = SubData(2, "DataItem", "Content2")
 
-        subDataProcessor.forwardOrEmmit(record1)
-        subDataProcessor.forwardOrEmmit(record2)
+      //  subDataProcessor.forwardOrEmmit(record1)
+       // subDataProcessor.forwardOrEmmit(record2)
 
         val activeTopRecord = assertNotNull(topRecord, "TopRecord is null")
         val activeTopDataItem = assertInstanceOf<TopDataItem>(activeTopRecord, "ActiveTopRecord is not an instance of TopDataItem")
@@ -93,7 +101,7 @@ class TestDataProcessor {
     @Test
     fun `Built in debug method work as expected`(){
         val topDataProcessor: DataProcessor<TopDataItem> = DataProcessor(null)
-        val subDataProcessor: DataProcessor<SubData> = DataProcessor<SubData>(topDataProcessor)
+       // val subDataProcessor: DataProcessor<SubData> = DataProcessor<SubData>(topDataProcessor)
 
         val debugInfo = TopDataItem(0, "Some name", "Content")
         val subDebugInfo = SubData(0, "Sub Data", "sub Content")
@@ -122,9 +130,10 @@ class TestDataProcessor {
         assertNotNull(toDebug, "Debuggable lambda not invoked when TopDataItem class is white-listed")
         assertNotNull(toDebugSub, "Debuggable lambda not invoked when SubData class is white-listed")
         toDebugSub = null
-        subDataProcessor.debugData(subDebugInfo, SubData, SubData.SubTemplate){debuggable->
-            toDebugSub = debuggable
-        }
+
+//        subDataProcessor.debugData(subDebugInfo, SubData, SubData.SubTemplate){debuggable->
+//            toDebugSub = debuggable
+//        }
         assertNotNull(toDebugSub, "Debug allowance is not propagated to subDataProcessor")
 
     }

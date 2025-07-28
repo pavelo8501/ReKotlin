@@ -16,7 +16,7 @@ private fun <T: CTX, R> resultContainerCreation(task: TaskBase<T, R>, result: R)
         if(subTask.executionStatus == ExecutionStatus.Faulty){
             val exception = subTask.taskResult?.throwable
             task.dataProcessor.warn("Exception(${exception?.message}) swallowed by $subTask")
-            val waypointInfo = exception?.handlingData?.flatMap { it.events.items }?.joinToString(" -> ") { "${it.event}(${it.message.emptyOnNull()})" }
+            val waypointInfo = exception?.exceptionData?.map { it  }?.joinToString(" -> ") { "${it}(${it.message.emptyOnNull()})" }
             waypointInfo?.wrapByDelimiter("->").emptyOnNull()
             task.dataProcessor.warn(waypointInfo?.wrapByDelimiter("->").emptyOnNull())
         }
@@ -33,22 +33,11 @@ fun<R: Any?> createFaultyResult(managed: ManagedException, task: TaskBase<*, R>)
     return faultyResult
 }
 
-
 fun<R: Any?> ManagedException.asFaultyResult(task: TaskBase<*, R>): TaskResult<R>{
     val faultyResult = TaskResult(task, throwable = this)
     task.taskResult = faultyResult
     return faultyResult
 }
-
-//fun <R: Any?> ManagedException.asFaultyResult(actionSpan: ActionSpan<*, R>): ActionResult<R>{
-//    val result = ActionResult(actionSpan,  throwable = this)
-//    actionSpan.actionResult = result
-//    return result
-//}
-
-//fun <T: TasksManaged, R: Any?> ActionSpan<T, R>.onActionResult(result: R): ActionResult<R>{
-//   return ActionResult(actionSpan = this, result = result)
-//}
 
 
 fun <T: CTX, R> onTaskResult(task: TaskBase<T, R>, result: R): TaskResult<R>{

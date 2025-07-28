@@ -1,34 +1,72 @@
 package po.test.lognotify.launchers
 
 import org.junit.jupiter.api.Test
-import po.lognotify.TasksManaged
-import po.lognotify.extensions.runAction
-import po.lognotify.extensions.runInlineAction
-import po.lognotify.extensions.runTask
-import po.misc.context.CTX
-import po.misc.context.CTXIdentity
-import po.misc.context.asIdentity
-import kotlin.reflect.typeOf
+import po.lognotify.action.ActionSpan
+import po.lognotify.common.containers.ActionContainer
+import po.lognotify.common.containers.TaskContainer
+import po.lognotify.enums.SeverityLevel
+import po.lognotify.interfaces.FakeTasksManaged
+import po.misc.containers.withReceiverAndResult
+import po.test.lognotify.setup.captureOutput
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
-class TestLaunchers: TasksManaged {
+class TestLaunchers: FakeTasksManaged {
 
-    override val identity: CTXIdentity<out CTX> = asIdentity()
 
-    val property1: String = "TestLaunchers"
+    val testLauncherProperty: String = "TestLauncherProperty"
 
     @Test
     fun `All launch functions preserve access to original context`(){
 
-        val unitType = typeOf<Unit>()
-        runTask<TestLaunchers, Unit>("SomeTask"){
-            assertEquals("TestLaunchers", property1)
+       val inputMessage = "Some message"
+       val taskContainer =  captureOutput<TaskContainer<TestLaunchers, Unit>> {
+             val rootTask = dispatcher.createHierarchyRoot<TestLaunchers, Unit>("Root Task", this)
+             TaskContainer(rootTask)
+        }.result
+        var output: String = ""
+         taskContainer.withReceiverAndResult {
+          output =  captureOutput {
+                notify(inputMessage, SeverityLevel.INFO)
+            }
+            assertIs<TestLaunchers>(this, "This context is lost")
+            assertEquals("TestLauncherProperty", testLauncherProperty, "testLauncherProperty is not accessible")
         }
-        runInlineAction("TestLaunchers"){
-            assertEquals("TestLaunchers", property1)
+        assertTrue(output.contains(inputMessage), "Outer containers method notify is not accessible")
+
+        val inputInsideAction = "Some Message Inside Action"
+        val actionContainer =  captureOutput<ActionContainer<TestLaunchers, Unit>> {
+            val rootTask = dispatcher.createHierarchyRoot<TestLaunchers, Unit>("Root Task", this)
+            val span = ActionSpan<TestLaunchers, Unit>("Span", this,  rootTask)
+            ActionContainer(span)
+        }.result
+
+        actionContainer.withReceiverAndResult {
+            output =  captureOutput {
+                notify(inputInsideAction, SeverityLevel.INFO)
+            }
+
+            assertIs<TestLaunchers>(this, "This context is lost")
+            assertEquals("TestLauncherProperty", testLauncherProperty, "testLauncherProperty is not accessible")
         }
-        runAction("TestLaunchers", unitType){
-            assertEquals("TestLaunchers", property1)
-        }
+        assertTrue(output.contains(inputInsideAction), "Outer containers method notify is not accessible")
+
     }
+
+//
+//    @Test
+//    fun `All launch functions preserve access to original context`(){
+//
+//        val unitType = typeOf<Unit>()
+//        runTask<TestLaunchers, Unit>("SomeTask"){
+//            assertEquals("TestLaunchers", property1)
+//        }
+//        runAction("TestLaunchers"){
+//            assertEquals("TestLaunchers", property1)
+//        }
+//        runAction("TestLaunchers", unitType){
+//            assertEquals("TestLaunchers", property1)
+//        }
+//    }
 }

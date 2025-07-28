@@ -2,7 +2,7 @@ package po.test.lognotify.action
 
 import org.junit.jupiter.api.Test
 import po.lognotify.TasksManaged
-import po.lognotify.extensions.runInlineAction
+import po.lognotify.extensions.runAction
 import po.lognotify.extensions.runTask
 import po.lognotify.interfaces.FakeTasksManaged
 import kotlin.test.assertEquals
@@ -21,7 +21,7 @@ class TestActionSpan: FakeTasksManaged {
           return "Produced:${counter}"
        }
 
-        fun method1() : String = runInlineAction("method1"){
+        fun method1() : String = runAction("method1"){
             privateMethod()
         }
     }

@@ -9,20 +9,20 @@ import po.misc.callbacks.builders.callbackBuilder
 import po.misc.callbacks.builders.createPayload
 import po.misc.callbacks.builders.createPayloadWithResult
 import po.misc.context.CTX
-import po.misc.context.asContext
+import po.misc.context.asIdentity
 import po.misc.exceptions.ManagedException
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
 class TestCallbackRegistration() : CTX {
 
-    override val identity = asContext()
+    override val identity = asIdentity()
     enum class HostEvent{ Unused, UnusedBuilder, UnusedSelfSubscribed }
 
     class FirstHoldingClass : CTX{
         enum class Event{ OnInit }
 
-        override val identity = asContext()
+        override val identity = asIdentity()
 
         val notifier = CallbackManager(
             enumClass = Event::class.java,

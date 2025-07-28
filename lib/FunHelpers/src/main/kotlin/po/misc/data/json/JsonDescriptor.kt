@@ -2,7 +2,7 @@ package po.misc.data.json
 
 import po.misc.data.printable.PrintableBase
 
-open class JsonDescriptor<T: PrintableBase<*>>() {
+open class JsonDescriptor<T: PrintableBase<T>>() {
 
     private var currentValue: T? = null
     private var cachedJson: String = ""

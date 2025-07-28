@@ -9,7 +9,7 @@ import po.lognotify.TasksManaged
 
 import po.lognotify.tasks.models.TaskConfig
 import po.lognotify.common.result.onFailureCause
-import po.lognotify.extensions.runInlineAction
+import po.lognotify.extensions.runAction
 import po.lognotify.extensions.runTask
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
@@ -75,7 +75,7 @@ class TestExceptionHandling: TasksManaged {
     private fun inlineActionNotExpectingResult(
         exception: Throwable?,
         name: String = "inlineActionNotExpectingResult"
-    ): Unit = runInlineAction(name)
+    ): Unit = runAction(name)
     {
         exception?.let {
             throw it
@@ -87,7 +87,7 @@ class TestExceptionHandling: TasksManaged {
     private fun inlineActionThrowing(
         exception: Throwable?,
         name: String = "inlineActionThrowing"
-    ): String = runInlineAction(name)
+    ): String = runAction(name)
     {
         exception?.let {
             throw it
@@ -111,9 +111,6 @@ class TestExceptionHandling: TasksManaged {
             }
         }
 
-         val backTrace =  managed.exceptionData.mapNotNull { it.auxData }
-        assertTrue(backTrace.isNotEmpty())
-
         val withStackTraceElement =  managed.exceptionData.mapNotNull { it.thisStackTraceElement }
         assertTrue(withStackTraceElement.isNotEmpty())
 
@@ -123,10 +120,6 @@ class TestExceptionHandling: TasksManaged {
             if(it.thisStackTraceElement != null){
                 println(it.thisStackTraceElement)
             }
-        }
-
-        backTrace.forEach {
-            it.echo()
         }
     }
 
@@ -151,7 +144,7 @@ class TestExceptionHandling: TasksManaged {
             runTask("EntryTask", TaskConfig(exceptionHandler = HandlerType.CancelAll)){
                 subTaskThrowing(Exception("General"))
             }.onFailureCause {
-                it.throwSelf(this)
+                throw it
             }
         }
     }

@@ -1,20 +1,29 @@
 package po.test.misc.types
 
 import org.junit.jupiter.api.Test
-import po.misc.data.tags.Tagged
 import po.misc.types.TaggedType
 import po.misc.types.TypeData
+import po.test.misc.reflection.TestPropertyHelpers
 import kotlin.test.assertNotEquals
 
-class TestTypedUsability {
+class TestTypeData {
 
-    data class SourceClass1(val str: String = "Default", val longVal: Long = 10L)
-    data class SourceClass2(val str: String = "Default", val longVal: Long = 10L)
+   internal data class SourceClass1(val str: String = "Default", val longVal: Long = 10L)
+   internal data class SourceClass2(val str: String = "Default", val longVal: Long = 10L)
 
     enum class SourceClassType{
         Source1,
         Source2
     }
+
+    internal class ThreeGenericsClass<T1: Any, T2: Any, T3: Any>()
+
+    @Test
+    fun `Type record usage on multi generic classes`(){
+        val typeData = TypeData.create<ThreeGenericsClass<SourceClass1, SourceClass2, TestPropertyHelpers.SourceClass>>()
+        println(typeData.typeName)
+    }
+
 
     @Test
     fun `Type records can be reliably compared`(){

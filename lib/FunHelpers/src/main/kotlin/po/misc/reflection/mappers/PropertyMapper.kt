@@ -1,16 +1,13 @@
 package po.misc.reflection.mappers
 
 import po.misc.exceptions.ManagedException
-import po.misc.context.Identifiable
 import po.misc.interfaces.ValueBased
-import po.misc.reflection.mappers.helpers.toMappingCheckRecords
 import po.misc.reflection.mappers.models.PropertyMapperRecord
 import po.misc.reflection.mappers.models.PropertyRecord
 import po.misc.reflection.properties.toPropertyMap
-import po.misc.types.TypeRecord
+import po.misc.types.TypeData
 import po.misc.types.castBaseOrThrow
 import po.misc.types.castOrManaged
-import po.misc.types.getOrManaged
 import po.misc.types.safeCast
 
 
@@ -21,14 +18,14 @@ class PropertyMapper {
 
 
     inline fun <reified T: Any> applyClass(key: ValueBased): PropertyMapperRecord<T> {
-        val typeRecord = TypeRecord.Companion.createRecord<T>(key)
+        val typeRecord = TypeData.create<T>()
         val propertyMap = toPropertyMap<T>()
         return mappedProperties[key]?.let { existent ->
             val asMutable = existent.propertyMap.toMutableMap()
             propertyMap.forEach { (key, value) ->
                 asMutable[key] = value
             }
-            existent.castOrManaged<PropertyMapperRecord<T>>()
+            existent.castOrManaged<PropertyMapperRecord<T>>(this)
         } ?: run {
             val newRecord = PropertyMapperRecord(typeRecord, propertyMap)
             mappedProperties[key] = newRecord

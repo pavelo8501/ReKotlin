@@ -73,13 +73,13 @@ class ContainingDSLBlock<T: Any, R: Any, PT: Any>(
     }
 
     fun resolveWithParent(inputData: PT) : List<R> {
-        val converted =  extractor?.trigger(inputData)?:throwManaged("resolveWithParent called but no adapter present")
+        val converted =  extractor?.trigger(inputData)?:throwManaged("resolveWithParent called but no adapter present", this)
         return  providers.map {provider->  provider.trigger(converted) }
     }
 
     fun resolveWithParent(inputData:PT,  adapterFn : (List<R>) -> R): R{
         val converted =  extractor?.trigger(inputData) ?:run {
-            throwManaged("resolveWithParent called but no adapter present")
+            throwManaged("resolveWithParent called but no adapter present", this)
         }
         val listResult =  providers.map { it.trigger(converted) }
         return adapterFn.invoke(listResult)

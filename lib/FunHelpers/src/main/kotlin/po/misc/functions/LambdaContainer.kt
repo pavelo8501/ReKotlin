@@ -24,6 +24,6 @@ abstract class LambdaContainer<T, R, E: Enum<E>>(
     }
 
     override fun getData():T{
-        return containerData.getOrManaged("Container's data is null")
+        return containerData.getOrManaged(typedTag.kClass, this)
     }
 }

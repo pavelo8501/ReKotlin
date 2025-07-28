@@ -3,7 +3,7 @@ package po.exposify.common.events
 import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.components.tracker.DTOTracker
 import po.misc.data.printable.PrintableBase
-import po.misc.data.printable.PrintableCompanion
+import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.context.Identifiable
 
 

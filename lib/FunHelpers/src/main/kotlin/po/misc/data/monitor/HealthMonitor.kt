@@ -1,13 +1,13 @@
 package po.misc.data.monitor
 
-import po.misc.data.printable.PrintableTemplate
 import po.misc.data.helpers.emptyOnNull
 import po.misc.data.printable.PrintableBase
-import po.misc.data.printable.PrintableCompanion
+import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
 import po.misc.context.CTX
+import po.misc.functions.dsl.helpers.nextBlock
 import po.misc.reflection.anotations.ManagedProperty
 import po.misc.reflection.properties.takePropertySnapshot
 import po.misc.types.isNotNull
@@ -33,14 +33,16 @@ class HealthMonitor<T: CTX>(
         val parameter: String,
         var value: String = "N/A",
         var message: String? = null
-    ): PrintableBase<Record>(Default){
+    ): PrintableBase<Record>(this){
         override val self: Record = this
         val producer: CTX get() = holder
         val dateTime: LocalTime = LocalTime.now()
 
         companion object: PrintableCompanion<Record>({Record::class}){
-            val Default = PrintableTemplate<Record>(){
-                "${dateTime.toString()} : ${action.name} -> ($parameter = $value) ${message.emptyOnNull()} "
+            val Default = createTemplate{
+                nextBlock{
+                    "${dateTime.toString()} : ${action.name} -> ($parameter = $value) ${message.emptyOnNull()} "
+                }
             }
         }
     }
