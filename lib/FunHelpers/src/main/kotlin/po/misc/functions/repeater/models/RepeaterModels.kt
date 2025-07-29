@@ -43,10 +43,7 @@ class RepeatStats(
     val maxAttempts: Int = config.effectiveRepeats
     val attempt: Int get() = exceptionsBacking.size
 
-    val exception: Throwable
-        get() {
-            return exceptions.lastOrNull() ?: IllegalArgumentException("No exceptions registered")
-        }
+    val exception: Throwable get() = exceptions.lastOrNull() ?: IllegalArgumentException("No exceptions registered")
 
     fun registerException(exception: Throwable): RepeatStats {
         onException?.let { callback ->

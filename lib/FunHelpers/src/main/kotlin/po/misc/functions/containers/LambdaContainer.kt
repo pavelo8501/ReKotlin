@@ -1,20 +1,12 @@
 package po.misc.functions.containers
 
-import po.misc.functions.hooks.Change
+
 import po.misc.functions.models.ContainerMode
 import po.misc.functions.models.LambdaState
 import po.misc.types.getOrManaged
 
 
-data class ContainerResult<T: Any>(
-    override val oldValue: T?,
-    override val  newValue : T
-): Change<T?, T>
 
-
-sealed interface DSLPowered<V: Any, R: Any>{
-    fun operate2(block:V.()->R):R
-}
 
 sealed interface DuplexUnit<V: Any, R: Any>: LambdaUnit<V, R>{
     val function :  Function1<V, R>
@@ -153,7 +145,7 @@ sealed class LambdaContainer<V: Any, R: Any>(
  * @param V The type of value consumed by the lambda.
  * @param lambda The operation to execute when triggered.
  */
-class Notifier<V: Any>(
+open class Notifier<V: Any>(
     override val function: (V) -> Unit,
 ):LambdaContainer<V, Unit>(), NoResultLambda<V>{
 

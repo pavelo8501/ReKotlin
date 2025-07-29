@@ -98,10 +98,10 @@ class KSurrogate<T: CTX>(
 
     override fun toString(): String {
         val text = buildString {
-            append(Colour.makeOfColour(Colour.YELLOW, "class "))
-            append("${classInfo.simpleName} ${Colour.makeOfColour(Colour.YELLOW, "(")} ${SpecialChars.NewLine}")
+            append(Colour.makeOfColour(Colour.Yellow, "class "))
+            append("${classInfo.simpleName} ${Colour.makeOfColour(Colour.Yellow, "(")} ${SpecialChars.NewLine}")
             append(propertyInfo())
-            append("${SpecialChars.NewLine}${Colour.makeOfColour(Colour.YELLOW, ")")}")
+            append("${SpecialChars.NewLine}${Colour.makeOfColour(Colour.Yellow, ")")}")
         }
         return text
     }

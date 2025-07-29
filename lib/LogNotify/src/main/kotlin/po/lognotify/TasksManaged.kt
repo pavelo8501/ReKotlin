@@ -43,6 +43,9 @@ interface TasksManaged : CTX {
         logHandler.dispatcher.getActiveDataProcessor().log(data, SeverityLevel.LOG)
     }
 
+    fun CTX.notify(message: String, severity: SeverityLevel){
+        logHandler.dispatcher.getActiveDataProcessor().notify(message, severity,  this@notify)
+    }
 
     fun notify(message: String, severity: SeverityLevel): TaskData{
        return logHandler.dispatcher.getActiveDataProcessor().notify(message, severity,  this)

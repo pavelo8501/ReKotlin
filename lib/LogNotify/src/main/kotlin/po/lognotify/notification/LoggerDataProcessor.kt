@@ -114,12 +114,11 @@ class LoggerDataProcessor(
         records.lastOrNull()?.events?.records?.lastOrNull()?.let { lastRecord ->
             val firstExRecord = managed.exceptionData.firstOrNull { it.event == ManagedException.ExceptionEvent.Thrown }
             if (firstExRecord != null) {
-                val firstRecTraces = firstExRecord.stackTraceList
                 val record = ExceptionRecord(
                     message = managed.throwableToText(),
                     firstRegisteredInTask = snapshot.taskHeader,
-                    methodThrowing = firstRecTraces.firstOrNull(),
-                    throwingCallSite = firstRecTraces.lastOrNull(),
+                    methodThrowing = firstExRecord.stackTrace.firstOrNull(),
+                    throwingCallSite = firstExRecord.stackTrace.getOrNull(1),
                     actionSpans = snapshot.actionRecords
                 )
                 lastRecord.exceptionRecord = record
@@ -142,8 +141,6 @@ class LoggerDataProcessor(
         taskEvents.addRecord(logEvent.setArbitraryContext(receiver))
         return taskData
     }
-
-
 
     override fun info(message: String): TaskData {
         log(message, SeverityLevel.INFO, task)

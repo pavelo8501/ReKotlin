@@ -21,10 +21,8 @@ import po.lognotify.common.result.onFailureCause
 import po.lognotify.extensions.runTask
 import po.lognotify.extensions.runTaskBlocking
 import po.misc.context.CTXIdentity
-import po.misc.context.asIdentity
 import po.misc.context.asSubIdentity
 import po.misc.exceptions.throwableToText
-import po.misc.exceptions.toManageable
 import po.misc.functions.containers.DeferredContainer
 
 
@@ -46,15 +44,13 @@ class ServiceContext<DTO, DATA, ENTITY>(
     fun truncate() = runTaskBlocking("Truncate") { handler ->
         dtoClass.clearCachedDTOs()
         newSuspendedTransaction {
-            val table = dtoClass.getEntityModel().table
+            val table = dtoClass.entityClass.table
             try {
                 exec("TRUNCATE TABLE ${table.tableName} RESTART IDENTITY CASCADE")
                 handler.info("TRUNCATE TABLE ${table.tableName} RESTART IDENTITY CASCADE Executed")
             } catch (th: Throwable) {
-                val managed = th.toManageable<InitException, ExceptionCode>(
-                    this@ServiceContext,
-                    ExceptionCode.DB_TABLE_CREATION_FAILURE
-                )
+
+                val managed = InitException(th.message.toString(),  ExceptionCode.DB_TABLE_CREATION_FAILURE, this@ServiceContext , th)
                 handler.warn(managed)
             }
         }

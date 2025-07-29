@@ -11,12 +11,14 @@ import po.exposify.dto.RootDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.scope.connection.models.ConnectionInfo
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.models.CommonDTOType
 import po.exposify.scope.connection.controls.CoroutineEmitter
 import po.exposify.scope.connection.controls.UserDispatchManager
 import po.exposify.scope.service.ServiceClass
 import po.exposify.scope.service.ServiceContext
 import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
+import po.lognotify.enums.SeverityLevel
 import po.lognotify.tasks.TaskHandler
 import po.lognotify.extensions.runTask
 import po.misc.context.CTXIdentity
@@ -40,9 +42,7 @@ class ConnectionClass(
         get() = connectionInfo.connection.transactionManager.currentOrNull()?.connection?.isClosed == false
 
     internal val serializerMap = mutableMapOf<String, SerializerInfo<*>>()
-    private  var servicesBacking: MutableMap<String, ServiceClass<*, *, *>> = mutableMapOf()
-    val  services : List<ServiceClass<*, *, *>> get() = servicesBacking.values.toList()
-    private val taskHandler: TaskHandler<*> = taskHandler()
+    private  var servicesBacking: MutableMap<CommonDTOType<*, *, *>, ServiceClass<*, *, *>> = mutableMapOf()
 
     init {
         taskHandler.warn("CONNECTION_CLASS CREATED $completeName")
@@ -60,8 +60,11 @@ class ConnectionClass(
         serializerMap[serialInfo.normalizedKey] = serialInfo
     }
 
-    internal fun <DTO: ModelDTO, D: DataModel, E: LongEntity> getService(name: String): ServiceClass<DTO, D, E>?{
-       return servicesBacking[name]?.safeCast<ServiceClass<DTO, D, E>>()
+    internal fun <DTO: ModelDTO, D: DataModel, E: LongEntity> getService(
+        commonType: CommonDTOType<DTO, D, E>
+    ): ServiceClass<DTO, D, E>?{
+
+       return servicesBacking[commonType]?.safeCast<ServiceClass<DTO, D, E>>()
     }
 
     fun close(){
@@ -78,16 +81,14 @@ class ConnectionClass(
         block: ServiceContext<DTO, D, E>.()->Unit,
     ): Unit where DTO : ModelDTO, D: DataModel, E: LongEntity = runTask("service"){
 
-        val connectionClass = this@ConnectionClass
-
-        val existentService = getService<DTO, D, E>(dtoClass.contextName)
+        val existentService = getService<DTO, D, E>(dtoClass.commonDTOType)
         if(existentService == null){
-            val serviceClass = ServiceClass(dtoClass, connectionClass)
-            info("ServiceClass ${serviceClass.contextName} created")
+            val serviceClass = ServiceClass(dtoClass, this)
+            notify("ServiceClass ${serviceClass.contextName} created", SeverityLevel.INFO)
             serviceClass.initService(dtoClass, createOptions, block)
-            servicesBacking[dtoClass.contextName] = serviceClass
+            servicesBacking[dtoClass.commonDTOType] = serviceClass
         }else{
-            info("Using ServiceClass ${existentService.contextName}")
+            notify("Using ServiceClass ${existentService.contextName}", SeverityLevel.INFO)
             block.invoke(existentService.serviceContext)
         }
     }.resultOrException()

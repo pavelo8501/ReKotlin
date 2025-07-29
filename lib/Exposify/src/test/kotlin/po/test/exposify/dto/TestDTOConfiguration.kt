@@ -77,7 +77,7 @@ class TestDTOConfiguration : DatabaseTest(), CTX {
         }
 
         val pages = pageModelsWithSections(pageCount = 1, sectionsCount = 1, updatedBy = updatedById)
-        PageDTO.onInitialized.request(this, ::onInitialized)
+//        PageDTO.notifier.request(this, ::onInitialized)
         assertDoesNotThrow {
             withConnection {
                 service(PageDTO) {

@@ -1,5 +1,6 @@
 package po.misc.context
 
+import po.misc.types.TypeData
 import java.util.UUID
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
@@ -24,6 +25,8 @@ class CTXIdentity<T: CTX> @PublishedApi internal constructor(
     private var userDefinedId: Long? = null,
     val parentContext: CTX? = null
 ) {
+
+    val typeData: TypeData<T> = TypeData(kClass, kType)
 
     val parentIdentity: CTXIdentity<*>? get() = parentContext?.identity
     val className: String = kClass.simpleName ?: "Unnamed"

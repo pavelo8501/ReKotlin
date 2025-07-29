@@ -14,3 +14,9 @@ enum class DTOStatus {
     Complete,
     Cached
 }
+
+enum class DataStatus {
+    New,
+    Dirty,
+    UpToDate
+}

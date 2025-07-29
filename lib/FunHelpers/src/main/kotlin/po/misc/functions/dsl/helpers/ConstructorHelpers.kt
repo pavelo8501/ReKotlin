@@ -20,9 +20,11 @@ fun <T: Any, R: Any, PT: Any> DSLConstructor<PT, R>.nextBlock(
     block:T.()->R
 ): ContainingDSLBlock<T, R, PT> = addSubBlock(adapter, block)
 
+
+
 fun <T: Any, R: Any, PT: Any> DSLConstructor<PT, R>.nextBlockWithHandler(
     handler: DSLHandler<T, R>,
-    adapter: (PT)->T,
+    adapter: (PT?)->T,
     block:T.(DSLHandler<T, R>)->R
 ): ContainingDSLBlock<T, R, PT> = addSubBlockWithHandler(handler, adapter, block)
 

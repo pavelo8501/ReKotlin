@@ -12,7 +12,11 @@ import po.misc.data.printable.companion.Template
 import po.misc.data.printable.companion.nextLine
 import po.misc.data.styles.colorize
 import po.misc.data.styles.Colour
+import po.misc.data.styles.SpecialChars
 import po.misc.data.text.applyIfNotEmpty
+import po.misc.data.text.stripAfter
+import po.misc.exceptions.models.StackFrameMeta
+import po.misc.exceptions.toStackTraceFormat
 import po.misc.functions.dsl.helpers.nextBlock
 import po.misc.time.ExecutionTimeStamp
 
@@ -30,19 +34,19 @@ class LogEvent(
     val prefix: String,
     val message: String,
     val severity: SeverityLevel
-
 ): PrintableBase<LogEvent>(this){
     override val self: LogEvent = this
 
     var arbitraryContext: CTX? = null
         private set
 
+    var exceptionRecord:ExceptionRecord? = null
+
     fun setArbitraryContext(context: CTX):LogEvent{
         arbitraryContext = context
         return  this
     }
 
-    var exceptionRecord:ExceptionRecord? = null
 
     companion object: PrintableCompanion<LogEvent>({LogEvent::class}) {
 
@@ -50,7 +54,7 @@ class LogEvent(
             nextBlock {
                val message = when(severity){
                     SeverityLevel.INFO, SeverityLevel.LOG -> message.colorize(Colour.GREEN)
-                    SeverityLevel.WARNING -> message.colorize(Colour.YELLOW)
+                    SeverityLevel.WARNING -> message.colorize(Colour.Yellow)
                     SeverityLevel.EXCEPTION-> message.colorize(Colour.RED)
                     SeverityLevel.DEBUG -> message.colorize(Colour.MAGENTA)
                 }
@@ -67,8 +71,8 @@ class LogEvent(
 class ExceptionRecord(
     val message: String,
     val firstRegisteredInTask: String,
-    val methodThrowing:StackTraceElement?,
-    val throwingCallSite:StackTraceElement?,
+    val methodThrowing: StackFrameMeta?,
+    val throwingCallSite:StackFrameMeta?,
     val actionSpans: List<ActionData>? = null
 ): PrintableBase<ExceptionRecord>(this) {
 
@@ -76,17 +80,33 @@ class ExceptionRecord(
 
     companion object : PrintableCompanion<ExceptionRecord>({ ExceptionRecord::class }) {
         val Default: Template<ExceptionRecord> = createTemplate {
-            nextLine{
+
+            nextLine {
                 message.colorize(Colour.RED)
             }
-            nextLine{
+            nextLine {
                 "First registered: $firstRegisteredInTask"
             }
-            nextLine{
-                methodThrowing.textIfNotNull<StackTraceElement>{ "MethodThrowing: $it" }
+            nextLine {
+                methodThrowing.textIfNotNull<StackFrameMeta> { "MethodThrowing: ".colorize(Colour.Yellow) + toStackTraceFormat() }
             }
             nextLine {
-                throwingCallSite.textIfNotNull<StackTraceElement> { "ThrowingCallSite: $it" }
+                val callSite = throwingCallSite
+                if (callSite != null) {
+                    if (callSite.methodName == "invoke") {
+                        """
+                       ${Colour.makeOfColour(Colour.Yellow, "ThrowingCallSite: (actual exception place)")}
+                       ${Colour.makeOfColour(Colour.Gray, "Class Name:")} ${callSite.className.stripAfter('$')}
+                       ${Colour.makeOfColour(Colour.Gray, "Method Name:")} ${callSite.methodName} (Lambda invocation)"
+                       ${Colour.makeOfColour(Colour.Gray, "Reference:")}
+                       ${callSite.toStackTraceFormat()}
+                     """.trimIndent()
+                    } else {
+                        "ThrowingCallSite: (actual exception place)".colorize(Colour.Yellow) + callSite.toStackTraceFormat()
+                    }
+                } else {
+                    SpecialChars.Empty.char
+                }
             }
         }
     }
@@ -107,7 +127,8 @@ class TaskData(
     val arbitraryData: MutableList<PrintableBase<*>> = mutableListOf()
 
 
-    companion object : PrintableCompanion<TaskData>({ TaskData::class }) {
+    companion object : PrintableCompanion<TaskData>({ TaskData::class }){
+
         val Header: Template<TaskData> = createTemplate {
 
             nextBlock { handler ->

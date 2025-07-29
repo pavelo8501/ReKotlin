@@ -6,6 +6,7 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
 import po.exposify.dto.DTOClass
+import po.exposify.dto.components.DTOExecutionContext
 import po.exposify.dto.components.bindings.BindingHub
 import po.exposify.dto.components.bindings.DelegateStatus
 import po.exposify.dto.components.bindings.helpers.newDTO
@@ -19,12 +20,16 @@ import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.helpers.asDTO
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.CommonDTOType
+import po.exposify.exceptions.OperationsException
+import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.castOrInit
 import po.exposify.extensions.getOrOperations
 import po.misc.containers.LazyBackingContainer
 import po.misc.context.CTX
+import po.misc.context.CTXIdentity
 import po.misc.data.SmartLazy
 import po.misc.context.asIdentity
+import po.misc.functions.subscribers.subscribe
 import po.misc.types.TypeData
 import po.misc.types.containers.Multiple
 import po.misc.types.containers.Single
@@ -40,31 +45,28 @@ sealed class RelationDelegate<DTO, D, E, F, FD, FE>(
     protected val hostingDTO : CommonDTO<DTO, D, E>,
     val foreignClass: DTOClass<F, FD, FE>,
     delegateName: String
-): DelegateInterface<DTO, F>, ForeignDelegateInterface, CTX
-        where DTO: ModelDTO, D: DataModel,  E : LongEntity, F: ModelDTO,FD: DataModel, FE: LongEntity
+): DelegateInterface<DTO, D, E>, ForeignDelegateInterface, CTX
+        where DTO : ModelDTO, D : DataModel,  E : LongEntity, F : ModelDTO, FD : DataModel, FE : LongEntity
 {
 
     override var status: DelegateStatus = DelegateStatus.Created
     abstract val cardinality : Cardinality
 
-    override val identity = asIdentity()
+    override val identity: CTXIdentity<RelationDelegate<DTO, D, E, F, FD, FE>> = asIdentity()
 
     override val hostingClass: DTOBase<DTO, D, E> get() = hostingDTO.dtoClass
     protected val tracker: DTOTracker<DTO, D, E> get() = hostingDTO.tracker
    // protected val commonType: CommonDTOType<DTO, D, E> get() = hostingDTO.commonType
 
-
-
-
-    protected val dtoType: TypeData<DTO> = hostingDTO.typeData
+    protected val dtoType: TypeData<DTO> = hostingDTO.commonType.dtoType
+    protected val foreignDTOType: TypeData<F> = foreignClass.commonDTOType.dtoType
 
     protected val ownEntity:E get(){
-        return hostingDTO.entityContainer.source
+        return hostingDTO.entityContainer.getValue(this)
     }
     protected val ownDataModel:D get(){
-        return hostingDTO.dataContainer.source
+        return hostingDTO.dataContainer.getValue(this)
     }
-
 
     protected var onPropertyInitialized: ((KProperty<*>)-> Unit)? = null
     private var propertyParameter : KProperty<F>? = null
@@ -77,6 +79,9 @@ sealed class RelationDelegate<DTO, D, E, F, FD, FE>(
     abstract val childCommonDTOList: List<CommonDTO<F, FD, FE>>
     abstract val bindEntity: Boolean
 
+//    private fun createDTOContext(){
+//        foreignCommon.registerExecutionContext(hostingClass.commonDTOType, DTOExecutionContext(hostingClass, foreignCommon))
+//    }
 
     abstract fun getChild(): SingleOrList<F>
     protected abstract fun save(common: CommonDTO<F, FD, FE>)
@@ -87,9 +92,14 @@ sealed class RelationDelegate<DTO, D, E, F, FD, FE>(
                 propertyParameter = property.castOrInit(this)
                 identity.setNamePattern { property.name }
                 hostingDTO.hub.registerRelationDelegate(this)
-                println("resolveProperty of delegate accessing ${foreignClass.contextName} Hash: ${foreignClass.hashCode()}")
-                foreignClass.commonDTOType.getValue {dtoType->
-                    hostingDTO.registerExecutionContext(dtoType,  hostingDTO.createDTOContext(foreignClass))
+
+                hostingClass.onNewMember.subscribe(this, DTOBase.Events.NewHierarchyMember){
+                    if(it === foreignClass ){
+                        val context = DTOExecutionContext(foreignClass, hostingDTO)
+                        hostingDTO.registerExecutionContext(foreignClass.commonDTOType, context)
+                    }else{
+                       throw OperationsException("DTOExecutionContext creation failed", ExceptionCode.METHOD_MISUSED, this)
+                    }
                 }
                 onPropertyInitialized?.invoke(property)
             }catch (th: Throwable){
@@ -121,12 +131,15 @@ sealed class RelationDelegate<DTO, D, E, F, FD, FE>(
                 val crud =  ifExists.invoke(existent.asDTO())
             }else{
                 val newDto = foreignClass.newDTO()
+               // val context = DTOExecutionContext(foreignClass, hostingDTO)
+             //   hostingDTO.registerExecutionContext(foreignClass.commonDTOType, context)
                 newDto.addTrackerInfo(CrudOperation.Create)
                 save(newDto)
-                newDto.hub.resolveHierarchy(childData, foreignClass.dataType)
+                newDto.hub.resolveHierarchy(childData, newDto.commonType.dataType)
             }
         }
     }
+
     fun createForeignDTOS(entity:E, ifExists:(F)-> CrudOperation){
         val childEntities = extractChildEntities(entity)
         childEntities.forEach { childEntity ->
@@ -174,7 +187,7 @@ class OneToManyDelegate<DTO, D, E, F, FD, FE>(
     }
 
     override fun getChild(): Multiple<F> {
-        val castedList = filterByType(foreignClass.dtoType, dtos)
+        val castedList = filterByType(foreignClass.commonDTOType.dtoType, dtos)
         return Multiple(castedList)
     }
     override fun getChildDTOList(): List<CommonDTO<F, FD, FE>>{
@@ -188,7 +201,7 @@ class OneToManyDelegate<DTO, D, E, F, FD, FE>(
     override fun attachChildDataModel(){
         val childDataList = dataProperty.get(ownDataModel)
         dtos.forEach {
-           val dataModel =  it.dataContainer.source
+           val dataModel =  it.dataContainer.getValue(this)
            childDataList.add(dataModel)
         }
     }
@@ -216,7 +229,7 @@ class OneToManyDelegate<DTO, D, E, F, FD, FE>(
         return this
     }
     operator fun getValue(thisRef: DTO, property: KProperty<*>): List<F> {
-        return filterByType(foreignClass.dtoType, dtos)
+        return filterByType(foreignDTOType, dtos)
     }
 }
 
@@ -266,7 +279,7 @@ class OneToOneDelegate<DTO, D, E, F, FD, FE>(
     }
     override fun attachChildDataModel(){
         childDTOBacking?.let {
-            val childDataModel = it.dataContainer.source
+            val childDataModel = it.dataContainer.getValue(this)
             dataProperty.set(ownDataModel, childDataModel)
         }
     }

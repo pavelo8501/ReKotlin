@@ -6,24 +6,10 @@ import po.exposify.dto.DTOBase
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.extensions.castOrOperations
-import po.exposify.extensions.getOrInit
-import po.misc.interfaces.ValueBased
-import po.misc.reflection.mappers.models.PropertyRecord
-import po.misc.types.TypeRecord
-
-fun <DTO : ModelDTO, D : DataModel, E : LongEntity>  CommonDTO<DTO, D, E>.getPropertyRecord(
-    key : ValueBased,
-    propertyName: String
-): PropertyRecord<*>{
-  return  dtoClass.config.propertyMap.getPropertyRecord(key, propertyName)
-      .getOrInit("Property name $propertyName not found in propertyMap")
-}
-
 
 fun <DTO, D, E> CommonDTO<DTO, D, E>.asDTO():DTO where DTO : ModelDTO, D : DataModel, E : LongEntity{
-    return castOrOperations(typeData.kClass)
+    return castOrOperations(commonType.dtoType.kClass, this)
 }
-
 
 fun <DTO: ModelDTO, D: DataModel, E: LongEntity> DTO.asCommonDTO(
     dtoClass: DTOBase<DTO, D, E>

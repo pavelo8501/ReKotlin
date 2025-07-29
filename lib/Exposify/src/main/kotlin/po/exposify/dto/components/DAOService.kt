@@ -8,9 +8,10 @@ import po.exposify.dto.DTOBase
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dao.classes.ExposifyEntityClass
 import po.exposify.dto.components.query.SimpleQuery
+import po.exposify.dto.models.CommonDTOType
 import po.lognotify.TasksManaged
+import po.lognotify.enums.SeverityLevel
 import po.lognotify.extensions.runAction
-import po.lognotify.extensions.runInlineAction
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
@@ -18,13 +19,12 @@ import kotlin.reflect.full.withNullability
 
 
 class DAOService<DTO, DATA, ENTITY>(
-    val dtoClass: DTOBase<DTO, DATA, ENTITY>
-): TasksManaged   where DTO: ModelDTO, DATA: DataModel, ENTITY : LongEntity {
+    val commonDTOType: CommonDTOType<DTO, DATA, ENTITY>
+): TasksManaged where DTO: ModelDTO, DATA: DataModel, ENTITY : LongEntity {
 
-    override val identity: CTXIdentity<out CTX> = asIdentity()
+    override val identity: CTXIdentity<DAOService<DTO, DATA, ENTITY>> = asIdentity()
 
-    override val contextName: String = "DAOService"
-    val entityModel: ExposifyEntityClass<ENTITY> get() = dtoClass.config.entityModel
+    val entityClass: ExposifyEntityClass<ENTITY> get() = commonDTOType.entityType.entityClass
 
     private fun combineConditions(conditions: Set<Op<Boolean>>): Op<Boolean> {
         return conditions.reduceOrNull { acc, op -> acc and op } ?: Op.TRUE
@@ -35,46 +35,46 @@ class DAOService<DTO, DATA, ENTITY>(
         return conditions
     }
 
-    fun pick(conditions: SimpleQuery): ENTITY? = runAction("Pick", dtoClass.entityType.kType.withNullability(true)) {
+    fun pick(conditions: SimpleQuery): ENTITY? = runAction("Pick", commonDTOType.entityType.kType.withNullability(true)) {
         val opConditions = buildConditions(conditions)
-        val queryResult = entityModel.find(opConditions).firstOrNull()
+        val queryResult = entityClass.find(opConditions).firstOrNull()
         queryResult
     }
 
-    fun pickById(id: Long): ENTITY? = runAction("PickById", dtoClass.entityType.kType.withNullability(true)){
-        val entity = entityModel.findById(id)
+    fun pickById(id: Long): ENTITY? = runAction("PickById", commonDTOType.entityType.kType.withNullability(true)){
+        val entity = entityClass.findById(id)
         if (entity == null) {
-            info("Entity with id: $id not found")
+            notify("Entity with id: $id not found", SeverityLevel.INFO)
         }
         entity
     }
 
-    fun select(): List<ENTITY> = runInlineAction("Select(all)") {
-        entityModel.all().toList()
+    fun select(): List<ENTITY> = runAction("Select(all)") {
+        entityClass.all().toList()
     }
 
-    fun select(conditions: SimpleQuery): List<ENTITY> = runInlineAction("Select") {
+    fun select(conditions: SimpleQuery): List<ENTITY> = runAction("Select") {
         val opConditions = buildConditions(conditions)
-        val result = entityModel.find(opConditions).toList()
-        info("${result.count()} entities selected")
+        val result = entityClass.find(opConditions).toList()
+        notify("${result.count()} entities selected", SeverityLevel.INFO)
         result
     }
 
 
-    fun save(block: (entity: ENTITY) -> Unit): ENTITY = runAction("Save", dtoClass.entityType.kType) {
-        val newEntity = entityModel.new {
+    fun save(block: (entity: ENTITY) -> Unit): ENTITY = runAction("Save", commonDTOType.entityType.kType) {
+        val newEntity = entityClass.new {
             block.invoke(this)
         }
         newEntity
     }
 
     fun update(entityId: Long, updateFn: (newEntity: ENTITY) -> Unit): ENTITY?
-        = runAction("Update", dtoClass.entityType.kType.withNullability(true)){
+        = runAction("Update", commonDTOType.entityType.kType.withNullability(true)){
         val updated = pickById(entityId)?.let { picked ->
             updateFn.invoke(picked)
             picked
         } ?: run {
-            warn("Update failed. Entity with id: ${entityId} for ${dtoClass.completeName} can not be found")
+            notify("Update failed. Entity with id: $entityId for $completeName can not be found", SeverityLevel.WARNING)
             null
         }
         updated

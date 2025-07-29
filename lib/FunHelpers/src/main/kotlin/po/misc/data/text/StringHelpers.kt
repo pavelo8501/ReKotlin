@@ -11,3 +11,10 @@ fun String.applyIfNotEmpty(block:String.()-> String): String{
 fun String?.applyIfNull(block:String.()-> String): String{
     return this?.block()?:""
 }
+
+
+//fun String.stripAfter(char: Char): String = replace(Regex("""\$char.*"""), "")
+
+
+
+fun String.stripAfter(char: Char): String = substringBefore(char)

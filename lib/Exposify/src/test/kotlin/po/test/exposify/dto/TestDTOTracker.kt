@@ -8,6 +8,7 @@ import po.exposify.common.events.DTOData
 import po.exposify.dto.components.result.ResultSingle
 import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
+import po.lognotify.notification.models.ConsoleBehaviour
 import po.lognotify.notification.models.NotifyConfig
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
@@ -36,7 +37,7 @@ class TestDTOTracker: DatabaseTest(), TasksManaged {
     fun setup() = runTest {
 
         logHandler.notifierConfig {
-            console = NotifyConfig.ConsoleBehaviour.MuteNoEvents
+            console = ConsoleBehaviour.MuteNoEvents
             allowDebug(DTOData)
         }
 

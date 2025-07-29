@@ -5,26 +5,28 @@ import po.exposify.dto.components.tracker.DTOTracker
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.context.Identifiable
+import po.misc.data.printable.companion.nextLine
 
 
 data class DTOData(
     private val tracker: DTOTracker<*, *, *>,
     val message: String,
 
-): PrintableBase<DTOData>(Debug){
+): PrintableBase<DTOData>(this){
     override val self: DTOData = this
 
-   // override val itemId: ValueBased = DTOClass
     val currentOperation: CrudOperation get(){
       return  tracker.activeRecord.operation
     }
 
     companion object: PrintableCompanion<DTOData>({DTOData::class}){
+
         val Stats = createTemplate{
-            next { "Active operation: $currentOperation" }
+            nextLine { "Active operation: $currentOperation" }
         }
+
         val Debug = createTemplate{
-            next { message }
+            nextLine{ message }
         }
     }
 }

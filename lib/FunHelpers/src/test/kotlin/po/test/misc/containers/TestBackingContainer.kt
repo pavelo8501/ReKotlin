@@ -4,7 +4,9 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import po.misc.containers.LazyBackingContainer
+import po.misc.functions.common.ExceptionFallback
 import po.misc.functions.common.Fallback
+import po.misc.functions.common.ValueFallback
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -48,10 +50,10 @@ class TestBackingContainer {
 
         val container = LazyBackingContainer<String>()
         assertThrows<Exception> {
-            container.getWithFallback(Fallback("Exception Message") { message -> Exception(message) })
+            container.getWithFallback(ExceptionFallback<String>{ message -> Exception(message) })
         }
         val result = assertDoesNotThrow {
-            container.getWithFallback(Fallback { fallbackValue })
+            container.getWithFallback(ValueFallback { fallbackValue })
         }
         assertEquals(fallbackValue, result)
 

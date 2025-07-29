@@ -117,7 +117,7 @@ class HealthMonitor<T: CTX>(
         val recordsStr: String = records.joinToString(SpecialChars.NewLine.char) {
             it.formattedString
         }
-        val phaseStr = "[${phase.name} of ${source.completeName.colorize(Colour.YELLOW)}] ${SpecialChars.NewLine.char}${recordsStr}"
+        val phaseStr = "[${phase.name} of ${source.completeName.colorize(Colour.Yellow)}] ${SpecialChars.NewLine.char}${recordsStr}"
         return phaseStr
     }
 

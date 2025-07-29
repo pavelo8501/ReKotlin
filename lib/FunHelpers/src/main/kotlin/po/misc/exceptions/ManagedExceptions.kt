@@ -1,6 +1,5 @@
 package po.misc.exceptions
 
-import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.knowntypes.PropertyData
 import po.misc.context.CTX
 import po.misc.exceptions.models.ExceptionData
@@ -20,7 +19,7 @@ open class ManagedException(
     open val msg: String,
     open val code: Enum<*>? = null,
     original : Throwable? = null
-) : Throwable(msg, original), ManageableException<ManagedException>{
+) : Throwable(msg, original){
 
     enum class ExceptionEvent{
         Thrown,
@@ -29,12 +28,11 @@ open class ManagedException(
         Executed
     }
 
-
     private var payloadBacking: ManagedCallSitePayload? = null
     internal val payload:  ManagedCallSitePayload? get() = payloadBacking
 
     val methodName: String? get() = payloadBacking?.methodName
-    val context: CTX? get() = payloadBacking?.context
+    open val context: CTX? get() = payloadBacking?.context
 
     open var handler: HandlerType = HandlerType.CancelAll
         internal set
@@ -47,29 +45,24 @@ open class ManagedException(
         initFromPayload(managedPayload)
     }
 
-    protected fun initFromPayload(payload: ManagedCallSitePayload) {
-        this.payloadBacking = payload
+    protected fun initFromPayload(payload: ManagedCallSitePayload){
+        payloadBacking = payload
 
-        val  stackFrameMeta =  extractCallSiteMeta(payload.methodName, framesCount = 6)
-
+        val stackFrameMeta = extractCallSiteMeta(payload.methodName, framesCount = 3)
         val data = ExceptionData(ExceptionEvent.Thrown, payload.message, payload.context)
+        data.addStackTraceMeta(stackFrameMeta)
         data.addStackTrace(currentCallerTrace(payload.methodName))
         exceptionDataBacking.add(data)
     }
 
-    fun addExceptionData(
-        data: ExceptionData,
-        context: CTX
-    ):ManagedException{
+    fun addExceptionData(data: ExceptionData, context: CTX):ManagedException{
+
         val data = ExceptionData(ExceptionEvent.Thrown, msg, context)
         exceptionDataBacking.add(data)
         return this
     }
 
-    fun setHandler(
-        handlerType: HandlerType,
-        producer: CTX,
-    ): ManagedException {
+    fun setHandler(handlerType: HandlerType, producer: CTX): ManagedException {
         val thisMessage = message ?: ""
         if (exceptionData.isEmpty()) {
             val data = ExceptionData(ExceptionEvent.Thrown, thisMessage, producer)
@@ -85,6 +78,7 @@ open class ManagedException(
         }
         return this
     }
+
     fun throwSelf(methodName: String, producer: CTX, event: ExceptionEvent = ExceptionEvent.Thrown):Nothing {
         val data = ExceptionData(event, message?:"", producer)
         data.addStackTrace(currentCallerTrace(methodName))
@@ -99,13 +93,6 @@ open class ManagedException(
         }
         return this
     }
-
-    companion object : ManageableException.Builder<ManagedException>{
-        override fun build(message: String, source: Enum<*>?, original: Throwable?): ManagedException {
-            return ManagedException(message, null, original)
-        }
-    }
-
 }
 
 

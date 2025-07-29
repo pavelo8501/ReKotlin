@@ -23,6 +23,7 @@ abstract class PrintableCompanion<T : PrintableBase<T>>(private val classProvide
     val templates : MutableList<PrintableTemplateBase<T>>  = mutableListOf()
 
     fun createTemplate(dslLambda: DSLConstructor<T, String>.()-> Unit): Template<T> {
+
         val template = Template<T>()
         template.dslConstructor.build(dslLambda)
         templates.add(template)

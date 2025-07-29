@@ -2,7 +2,6 @@ package po.auth.exceptions
 
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
-import po.misc.exceptions.ManageableException
 import po.misc.exceptions.ManagedCallSitePayload
 
 enum class AuthErrorCode(val value: Int) {

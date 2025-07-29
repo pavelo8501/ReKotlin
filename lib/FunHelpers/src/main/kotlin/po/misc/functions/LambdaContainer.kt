@@ -7,7 +7,7 @@ import po.misc.types.TaggedType
 import po.misc.types.getOrManaged
 
 
-abstract class LambdaContainer<T, R, E: Enum<E>>(
+abstract class TaggedLambdaContainer<T, R, E: Enum<E>>(
     val typedTag: TaggedType<T, E>,
 ): CallableContainer<T, R> where T:Any, R:Any?{
 

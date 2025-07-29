@@ -1,7 +1,7 @@
 package po.misc.data.styles
 
 enum class SpecialChars(val char: String) {
-    NONE(""),
+    Empty(""),
     NewLine("\n");
 
     override fun toString(): String{

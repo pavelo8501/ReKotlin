@@ -16,7 +16,7 @@ package po.misc.containers
  * @receiver A [ReceiverContainer] whose [receiver] will be passed as lambda receiver.
  * @param block The lambda to execute in the [receiver]'s scope.
  */
-inline fun <C:ReceiverContainer<T>,  T: Any> C.withReceiver(block: T.() -> Unit){
+inline fun <C:ReceiverContainer<T>, T: Any> C.withReceiver(block: T.() -> Unit){
     block.invoke(receiver)
 }
 

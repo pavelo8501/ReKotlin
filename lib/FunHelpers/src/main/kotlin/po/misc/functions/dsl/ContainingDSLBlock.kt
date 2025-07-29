@@ -32,6 +32,10 @@ class ContainingDSLBlock<T: Any, R: Any, PT: Any>(
 
     val containerType:DSLContainerType get() = extractor?.let {  DSLContainerType.ForeignReceiver }?: DSLContainerType.OwnReceiver
 
+    var invokeIfAdapterNull: Boolean = false
+        internal set
+
+
     constructor(block: T.(DSLHandler<T,R>)->R, handler: DSLHandler<T,R>,  extractorFn:((PT)->T)?) : this(null, extractorFn){
         dslHandler = handler
         registerAdapter(handler, block)
@@ -43,6 +47,8 @@ class ContainingDSLBlock<T: Any, R: Any, PT: Any>(
             extractor = createExtractor(it)
         }
     }
+
+
 
     private fun registerProvider(block:T.()->R){
         val provider =   DSLProvider(block)
@@ -73,6 +79,7 @@ class ContainingDSLBlock<T: Any, R: Any, PT: Any>(
     }
 
     fun resolveWithParent(inputData: PT) : List<R> {
+
         val converted =  extractor?.trigger(inputData)?:throwManaged("resolveWithParent called but no adapter present", this)
         return  providers.map {provider->  provider.trigger(converted) }
     }

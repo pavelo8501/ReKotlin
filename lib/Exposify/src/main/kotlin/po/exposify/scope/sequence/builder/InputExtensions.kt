@@ -1,6 +1,7 @@
 package po.exposify.scope.sequence.builder
 
 import org.jetbrains.exposed.dao.LongEntity
+import po.exposify.dto.components.bindings.helpers.withDTOContext
 import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.components.result.toResultSingle
@@ -63,14 +64,22 @@ fun <DTO, D, E, F, FD, FE> SwitchChunkContainer<DTO, D, E, F, FD, FE>.update(
 
     val updateChunk = UpdateChunk.create(configurationBlock)
 
-    updateChunk.resultContainer.registerProvider {
-        val inputData = handler.deferredInput.resolve()
-        val executionContext = handler.parentDTO.getExecutionContext(handler.descriptor.dtoClass)
-        executionContext?.updateSingle(inputData, this) ?: run {
-            val exception = operationsException("Execution context not found", ExceptionCode.INVALID_DATA)
-            exception.toResultSingle(CrudOperation.Update, handler.descriptor.dtoClass)
-        }
-    }
-    registerChunk(updateChunk)
-    return updateChunk.resultContainer
+    //updateChunk.resultContainer.registerProvider {
+      //  val inputData = handler.deferredInput.resolve()
+       // val executionContext = handler.parentDTO.getExecutionContext(handler.descriptor.dtoClass.commonDTOType)
+//        parentDTO.withDTOContext(handler.descriptor.dtoClass.commonDTOType){
+//            updateSingle(inputData, this)
+//
+//
+//        }
+//
+//        executionContext?.updateSingle(inputData, this) ?: run {
+//            val exception = operationsException("Execution context not found", ExceptionCode.INVALID_DATA)
+//            exception.toResultSingle(CrudOperation.Update, handler.descriptor.dtoClass)
+//        }
+//    }
+
+   // registerChunk(updateChunk)
+   // return updateChunk.resultContainer
+    TODO("Not yet")
 }

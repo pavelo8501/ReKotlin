@@ -6,6 +6,7 @@ import po.exposify.dto.DTOBase
 import po.exposify.dto.components.DAOService
 import po.exposify.dto.components.DTOFactory
 import po.exposify.dto.components.bindings.property_binder.delegates.AttachedForeignDelegate
+import po.exposify.dto.components.bindings.property_binder.delegates.ComplexDelegate
 import po.exposify.dto.components.bindings.property_binder.delegates.ParentDelegate
 import po.exposify.dto.components.bindings.property_binder.delegates.ResponsiveDelegate
 import po.exposify.dto.components.bindings.relation_binder.delegates.RelationDelegate
@@ -22,8 +23,6 @@ import po.lognotify.TasksManaged
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
-import po.misc.exceptions.ExceptionPayload
-import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.types.TypeData
 import po.misc.types.containers.TypedContainer
 import po.misc.types.containers.toTypeContainer
@@ -46,18 +45,13 @@ class BindingHub<DTO, D, E>(
     val hostingDTO: CommonDTO<DTO, D, E>
 ):  TasksManaged where  DTO : ModelDTO, D: DataModel, E: LongEntity {
 
-    override val identity = asIdentity()
+    override val identity: CTXIdentity<BindingHub<DTO, D, E>> = asIdentity()
 
-
-    private val commonDTOTypeBacking = hostingDTO.commonType.getValue()
-    val commonDTOType:  CommonDTOType<DTO, D, E> get() = commonDTOTypeBacking.getOrOperations(this)
-
+    val commonDTOType:  CommonDTOType<DTO, D, E> get() = hostingDTO.commonType
 
     private val dtoClass: DTOBase<DTO, D, E> get() = hostingDTO.dtoClass
     private val daoService: DAOService<DTO, D, E> get() = hostingDTO.daoService
     private val dtoFactory: DTOFactory<DTO, D, E> get() = hostingDTO.dtoFactory
-
-    private val exPayload: ExceptionPayload = ExceptionPayload(this)
 
     internal val tracker: DTOTracker<DTO, D, E> get() {
         return hostingDTO.tracker
@@ -83,7 +77,7 @@ class BindingHub<DTO, D, E>(
 
     data class ParentParameters<DTO, D, E>(
         val bindingHub: BindingHub<DTO, D, E>,
-        val commonType: TypeData<CommonDTO<DTO, D, E>>,
+        val commonType: CommonDTOType<DTO, D, E>,
         val entity: E
     ) where  DTO : ModelDTO, D : DataModel, E : LongEntity
 
@@ -100,7 +94,7 @@ class BindingHub<DTO, D, E>(
     private fun resolveAttachedForeign(entity: E):D{
         tracker.logDebug("Resolving AttachedForeign[By Entity]", this)
         attachedForeignDelegates.forEach { it.resolveForeign(entity) }
-        return hostingDTO.dataContainer.source
+        return hostingDTO.dataContainer.getValue(this)
     }
     private fun resolveParent(entity: E){
         parentDelegates.forEach {
@@ -136,23 +130,43 @@ class BindingHub<DTO, D, E>(
         return delegate
     }
 
-    internal fun <F : ModelDTO> registerParentDelegate(
-        delegate: ParentDelegate<DTO, D, E, F, *, *>
-    ): ParentDelegate<DTO, D, E, F, *, *> {
+    internal fun <F : ModelDTO> registerComplexDelegate(
+        delegate: ComplexDelegate<DTO, D, E, F, *, *>
+    ): ComplexDelegate<DTO, D, E, F, *, *> {
+        when(delegate){
+            is ParentDelegate -> {
+                parentDelegateMap[delegate.identity] = delegate
+                delegate.updateStatus(DelegateStatus.Registered)
+            }
+            is AttachedForeignDelegate ->{
+                delegate.identity.setId(attachedForeignDelegates.size.toLong() + 1)
 
-        parentDelegateMap[delegate.identity] = delegate
-        delegate.updateStatus(DelegateStatus.Registered)
+                val complete =  delegate.completeName
+
+                attachedForeignDelegateMap[delegate.completeName] = delegate
+                delegate.updateStatus(DelegateStatus.Registered)
+            }
+        }
         return delegate
     }
 
-    internal fun <F : ModelDTO> registerAttachedForeignDelegate(
-        delegate: AttachedForeignDelegate<DTO, D, E, F, *, *>
-    ): AttachedForeignDelegate<DTO, D, E, *, *, *> {
-        delegate.identity.setId(attachedForeignDelegates.size.toLong() + 1)
-        attachedForeignDelegateMap[delegate.completeName] = delegate
-        delegate.updateStatus(DelegateStatus.Registered)
-        return delegate
-    }
+//    internal fun <F : ModelDTO> registerParentDelegate(
+//        delegate: ParentDelegate<DTO, D, E, F, *, *>
+//    ): ParentDelegate<DTO, D, E, F, *, *> {
+//
+//        parentDelegateMap[delegate.identity] = delegate
+//        delegate.updateStatus(DelegateStatus.Registered)
+//        return delegate
+//    }
+//
+//    internal fun <F : ModelDTO> registerAttachedForeignDelegate(
+//        delegate: AttachedForeignDelegate<DTO, D, E, F, *, *>
+//    ): AttachedForeignDelegate<DTO, D, E, *, *, *> {
+//        delegate.identity.setId(attachedForeignDelegates.size.toLong() + 1)
+//        attachedForeignDelegateMap[delegate.completeName] = delegate
+//        delegate.updateStatus(DelegateStatus.Registered)
+//        return delegate
+//    }
 
     internal fun registerResponsiveDelegate(
         delegate: ResponsiveDelegate<DTO, D, E, *>
@@ -219,10 +233,10 @@ class BindingHub<DTO, D, E>(
      * @param foreign Optional foreign parameters to provide parent context to children.
      */
     internal fun <F: ModelDTO, FD: DataModel, FE: LongEntity> updateDTOs(foreign: ParentParameters<F, FD, FE>?){
-        when(hostingDTO.status){
+        when(hostingDTO.dtoStatus){
             DTOStatus.PartialWithData-> {
                 val thisEntity = daoService.save { newEntity ->
-                    hostingDTO.entityContainer.provideSource(newEntity, dtoClass.entityType)
+                    hostingDTO.entityContainer.provideSource(newEntity)
                     updateEntity(newEntity)
                     if (foreign != null) {
                         initializedParentDelegates.forEach { delegate ->
@@ -262,7 +276,7 @@ class BindingHub<DTO, D, E>(
     internal fun resolveHierarchy(data: D, typeData: TypeData<D>){
         val updatedData =  resolveAttachedForeign(data, typeData)
         if (!hostingDTO.dataContainer.isSourceAvailable){
-            hostingDTO.dataContainer.provideSource(updatedData, typeData)
+            hostingDTO.dataContainer.provideSource(updatedData)
         }
         updatePropertiesBy(updatedData)
         relationDelegates.forEach { relation ->
@@ -282,7 +296,7 @@ class BindingHub<DTO, D, E>(
      */
     internal fun resolveHierarchy(entity: E){
         val emptyDataModel = dtoFactory.createDataModel()
-        hostingDTO.dataContainer.provideSource(emptyDataModel, dtoClass.dataType)
+        hostingDTO.dataContainer.provideSource(emptyDataModel)
         resolveAttachedForeign(entity)
         resolveParent(entity)
         updatePropertiesBy(entity)
@@ -306,7 +320,7 @@ class BindingHub<DTO, D, E>(
      */
     fun loadHierarchyByData(data: D, initiator: CTX): CommonDTO<DTO, D, E>{
         tracker.logDebug("loadHierarchyByData on $hostingDTO", initiator)
-        resolveHierarchy(data,  dtoClass.dataType)
+        resolveHierarchy(data,  hostingDTO.commonType.dataType)
         tracker.logDebug("updateDTOs on $hostingDTO initiated by${initiator.contextName}", initiator)
         updateDTOs<DTO, D, E>(null)
         return hostingDTO

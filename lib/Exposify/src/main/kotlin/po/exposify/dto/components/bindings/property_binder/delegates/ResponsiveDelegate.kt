@@ -3,17 +3,16 @@ package po.exposify.dto.components.bindings.property_binder.delegates
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
-import po.exposify.dto.DTOClass
 import po.exposify.dto.components.bindings.BindingHub
 import po.exposify.dto.components.bindings.DelegateStatus
 import po.exposify.dto.components.bindings.interfaces.DelegateInterface
-import po.exposify.dto.helpers.getPropertyRecord
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.dto.models.SourceObject
 import po.exposify.extensions.castOrInit
 import po.exposify.extensions.getOrInit
 import po.exposify.extensions.getOrOperations
+import po.lognotify.TasksManaged
+import po.lognotify.enums.SeverityLevel
 import po.misc.callbacks.CallbackManager
 import po.misc.callbacks.builders.callbackManager
 import po.misc.context.CTX
@@ -29,7 +28,7 @@ import kotlin.reflect.KProperty
 
 sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
     protected val hostingDTO: CommonDTO<DTO, D, E>,
-): ReadWriteProperty<DTO, V>, DelegateInterface<DTO, DTO>, CTX where DTO: ModelDTO, D: DataModel, E: LongEntity
+): ReadWriteProperty<DTO, V>, DelegateInterface<DTO, D, E>, TasksManaged where DTO: ModelDTO, D: DataModel, E: LongEntity
 {
     override var status: DelegateStatus = DelegateStatus.Created
     enum class UpdateType(){
@@ -39,15 +38,15 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
 
     val hub: BindingHub<DTO, D, E> = hostingDTO.hub
 
-    override val hostingClass: DTOBase<DTO, *, *>
+    override val hostingClass: DTOBase<DTO, D, E>
         get() = hostingDTO.dtoClass
 
     protected val dataModel:D get(){
-        return hostingDTO.dataContainer.source
+        return hostingDTO.dataContainer.getValue(this)
     }
 
     protected val entity:E get(){
-        return hostingDTO.entityContainer.source
+        return hostingDTO.entityContainer.getValue(this)
     }
 
     private var propertyParameter : KProperty<V>? = null
@@ -57,8 +56,8 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
         propertyParameter?.name
     }
     var dataPropertyParameter:KMutableProperty1<D, V>? = null
-    val dataProperty:KMutableProperty1<D, V>
-        get() = dataPropertyParameter.getOrOperations(this)
+
+    val dataProperty:KMutableProperty1<D, V> get() = dataPropertyParameter.getOrOperations(this)
 
     var entityPropertyParameter:KMutableProperty1<E, V>? = null
     val entityProperty:KMutableProperty1<E, V>
@@ -68,7 +67,7 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
 
     private var effectiveValue : V? = null
     private val value  : V
-        get() =  effectiveValue.getOrManaged("V")
+        get() =  effectiveValue.getOrManaged(KProperty::class, this)
     val isValueNull : Boolean  get() = effectiveValue == null
     var valueUpdated : Boolean = false
 
@@ -111,6 +110,10 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
         }
     }
 
+    protected fun provideDataProperty(property: KMutableProperty1<D, V>){
+        dataPropertyParameter = property
+    }
+
     /**
      * Updates entity form data model
      */
@@ -129,7 +132,6 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
         dataProperty.set(dataModel, value)
     }
 
-
     operator fun provideDelegate(thisRef: DTO, property: KProperty<*>): ResponsiveDelegate<DTO, D, E, V> {
         resolveProperty(property)
         return this
@@ -138,6 +140,7 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
         resolveProperty(property)
         return value
     }
+
     override fun setValue(thisRef: DTO, property: KProperty<*>, value: V) {
         resolveProperty(property)
         if(effectiveValue != value){
@@ -146,7 +149,8 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
             if(hostingDTO.entityContainer.isSourceAvailable){
                 entityProperty.set(entity, value)
             }else{
-                hostingDTO.logger.dataProcessor.warn("${hostingDTO.completeName} update through delegate set. Entity must have been inserted but its not")
+               val message = "${hostingDTO.completeName} update through delegate set. Entity must have been inserted but its not"
+                notify(message, SeverityLevel.WARNING)
             }
             valueChanged(value)
         }
@@ -185,11 +189,15 @@ class PropertyDelegate<DTO, D, E, V: Any> @PublishedApi internal constructor (
 
     init {
         datProperty?.let {
-            dataPropertyParameter = it
+            provideDataProperty(it)
         }?:run {
             onPropertyInitialized = {
-                dataPropertyParameter =  dto.getPropertyRecord(DTOClass, it.name)
-                    .castOrInit(this)
+
+                //provideDataProperty(dto.getPropertyRecord(DTOClass, it.name))
+
+//                dataPropertyParameter =  dto.getPropertyRecord(DTOClass, it.name)
+//
+//                    .castOrInit(this)
             }
         }
 
@@ -197,8 +205,8 @@ class PropertyDelegate<DTO, D, E, V: Any> @PublishedApi internal constructor (
             entityPropertyParameter = it
         }?:run {
             onPropertyInitialized = {
-                entityPropertyParameter =  dto.getPropertyRecord(SourceObject.Entity, it.name)
-                    .castOrInit(this)
+//                entityPropertyParameter =  dto.getPropertyRecord(SourceObject.Entity, it.name)
+//                    .castOrInit(this)
             }
         }
     }

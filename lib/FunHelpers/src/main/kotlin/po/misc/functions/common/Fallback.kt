@@ -1,33 +1,45 @@
 package po.misc.functions.common
 
+import po.misc.exceptions.ManagedCallSitePayload
+import po.misc.exceptions.ManagedPayload
 
 
-class Fallback<T: Any>(
-    valueFallback:(()-> T)? = null
-){
+interface Fallback<T: Any>{
+    fun provideValue(newValue:T)
+    fun initiateFallback():T
+}
 
-    private var  fallbackWithValue:(()->T)? = null
-    private var  fallbackWithThrowable:((String)-> Throwable)? = null
 
-    var exceptionMessage: String = ""
+class ValueFallback<T: Any>(
+   val valueFallback:()-> T
+): Fallback<T>{
 
-    constructor(message: String,  exceptionProvider:(String)-> Throwable): this(null){
+    private var value:T? = null
 
-        exceptionMessage = message
-        fallbackWithThrowable = exceptionProvider
+    override fun provideValue(newValue:T){
+        value = newValue
     }
 
-    init {
-        fallbackWithValue = valueFallback
-    }
-
-    fun initiateFallback():T{
-        val valueFallback = fallbackWithValue
-        if(valueFallback != null){
-          return  valueFallback.invoke()
+    override fun initiateFallback():T{
+        return value?:run {
+            valueFallback.invoke()
         }
-       throw fallbackWithThrowable?.invoke(exceptionMessage)?:run {
-           throw  IllegalArgumentException("No value for fallback no Exception were provided")
-       }
+    }
+}
+
+class ExceptionFallback<T: Any>(
+   val  exceptionProvider:(ManagedCallSitePayload)-> Throwable
+): Fallback<T>{
+
+    private var value:T? = null
+
+    override fun provideValue(newValue:T){
+        value = newValue
+    }
+
+    override fun initiateFallback(): T{
+        return value?:run {
+            throw exceptionProvider.invoke(ManagedPayload("value null", "initiateFallback", this))
+        }
     }
 }

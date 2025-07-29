@@ -113,7 +113,7 @@ class DTOTracker<DTO: ModelDTO, D: DataModel, E: LongEntity>(
     }
 
     override fun toString(): String {
-        return "DTO(${dto.sourceName}#${dto.id})"
+        return "DTO(${dto.identity.identifiedByName}#${dto.id})"
     }
 
 }

@@ -2,6 +2,7 @@ package po.misc.exceptions
 
 import po.misc.collections.takeFromMatch
 import po.misc.context.CTX
+import po.misc.data.text.stripAfter
 import po.misc.exceptions.models.StackFrameMeta
 
 
@@ -80,17 +81,6 @@ fun Throwable.toManaged(): ManagedException{
     return managed
 }
 
-
-fun <EX: ManagedException, S: Enum<S>> Throwable.toManageable(
-    message: String,
-    callingContext: CTX,
-    exceptionProvider: (ManagedCallSitePayload)-> EX
-): EX{
-    val methodName = "toManageable"
-    val payload = ManagedPayload(message, methodName, callingContext)
-    return exceptionProvider.invoke( payload.setCause(this))
-}
-
 fun Throwable.toInfoString(): String{
     val base = this.javaClass.simpleName
     val msg = message ?: ""
@@ -142,24 +132,22 @@ fun Throwable.extractCallSiteMeta(
             isUserCode = isUser
         )
     }
-//
-//
-//    val frame = trace.dropWhile {
-//        it.className.startsWith("kotlin.") ||
-//                it.className.startsWith("java.") ||
-//                it.methodName == methodName
-//    }.firstOrNull() ?: trace.first()
-//
-//    val classPackage = frame.className.substringBeforeLast('.', missingDelimiterValue = "")
-//    val isHelper = helperPackagePrefixes.any { frame.className.startsWith(it) }
-//    val isUser = !isHelper && !classPackage.startsWith("kotlin") && !classPackage.startsWith("java")
-//
-//    return StackFrameMeta(
-//        className = frame.className,
-//        methodName = frame.methodName,
-//        lineNumber = frame.lineNumber,
-//        classPackage = classPackage,
-//        isHelperMethod = isHelper,
-//        isUserCode = isUser
-//    )
 }
+
+
+fun toStackTraceFormat(fileName: String, lineNumber: Int): String{
+    return "\tat ($fileName:$lineNumber)"
+}
+
+fun classNameToFile(className: String): String{
+    val simpleClassName = className.substringAfterLast('.')
+   return "$simpleClassName.kt"
+}
+
+fun StackFrameMeta.toStackTraceFormat(): String {
+    val simpleClassName = className.substringAfterLast('.')
+    val fileName = "$simpleClassName.kt" // or use `.java` if applicable
+    return "\tat ${className.stripAfter('$')}.$methodName($fileName:$lineNumber)"
+}
+
+

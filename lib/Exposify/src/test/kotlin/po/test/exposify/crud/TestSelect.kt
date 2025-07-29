@@ -17,6 +17,7 @@ import po.exposify.common.events.DTOData
 import po.exposify.dto.components.query.deferredQuery
 import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
+import po.lognotify.notification.models.ConsoleBehaviour
 import po.lognotify.notification.models.NotifyConfig
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
@@ -47,7 +48,7 @@ class TestSelect : DatabaseTest(), TasksManaged {
     @BeforeAll
     fun setup() {
         logHandler.notifierConfig {
-            console = NotifyConfig.ConsoleBehaviour.MuteNoEvents
+            console = ConsoleBehaviour.MuteNoEvents
             allowDebug(ContextData, DTOData)
         }
         val user = User(

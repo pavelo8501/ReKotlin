@@ -1,6 +1,6 @@
-package po.misc.validators.general.reports
+package po.misc.validators.reports
 
-import po.misc.validators.general.models.CheckStatus
+import po.misc.validators.models.CheckStatus
 
 
 fun List<ValidationReport>.finalCheckStatus(): CheckStatus{

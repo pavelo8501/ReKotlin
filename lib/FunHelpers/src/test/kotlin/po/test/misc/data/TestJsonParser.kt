@@ -71,7 +71,7 @@ class TestJsonParser {
             val messageFormatter: TaskDataLocal.() -> String = {
                 matchTemplate(
                     templateRule(message) { severity == 0 },
-                    templateRule(message.colorize(Colour.YELLOW)) { severity == 1 },
+                    templateRule(message.colorize(Colour.Yellow)) { severity == 1 },
                     templateRule(message.colorize(Colour.RED)) { severity == 2 }
                 )
             }

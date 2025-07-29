@@ -63,6 +63,16 @@ fun <DTO, D, E>  List<CommonDTO<DTO, D, E>>.toResult(
     return ResultList(dtoClass, this)
 }
 
+fun <DTO, D, E>  DTOBase<DTO, D, E>.toResult(
+    exception:  ManagedException,
+): ResultSingle<DTO, D, E>
+        where  DTO: ModelDTO, D : DataModel, E : LongEntity {
+
+    return ResultSingle(this).addFailureCause(exception)
+}
+
+
+
 
 fun <DTO, D, E>  ResultList<DTO, D, E>.toResultSingle(): ResultSingle<DTO, D, E>
         where  DTO: ModelDTO, D : DataModel, E : LongEntity{

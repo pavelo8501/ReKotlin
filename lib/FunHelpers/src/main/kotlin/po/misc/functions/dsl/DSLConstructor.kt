@@ -19,15 +19,14 @@ class DSLConstructor<T: Any,  R: Any>(
 
     val  blocksTotalCount : Int get() = dslBlocksBacking.sumOf { it.blocksCount } + subBlocks.sumOf { it.blocksCount }
 
-    fun <T2: Any> addSubBlock(adapter:(T)->T2,  block:T2.()->R):ContainingDSLBlock<T2, R, T> {
+    fun <T2: Any> addSubBlock(adapter:(T)->T2, block:T2.()->R):ContainingDSLBlock<T2, R, T> {
         val subDSLBlock = ContainingDSLBlock(block, adapter)
         subBlocksBacking.add(subDSLBlock)
         return subDSLBlock
     }
 
 
-    fun <T2: Any> addSubBlockWithHandler(handler:DSLHandler<T2,R>,  adapter:(T)->T2, block:T2.(DSLHandler<T2,R>)->R):ContainingDSLBlock<T2, R, T> {
-
+    fun <T2: Any> addSubBlockWithHandler(handler:DSLHandler<T2,R>,  adapter:(T?)->T2, block:T2.(DSLHandler<T2, R>)->R):ContainingDSLBlock<T2, R, T> {
         val subDSLBlock = ContainingDSLBlock(block, handler,  adapter)
         subBlocksBacking.add(subDSLBlock)
         return subDSLBlock

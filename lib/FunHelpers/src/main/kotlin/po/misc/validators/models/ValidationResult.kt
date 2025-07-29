@@ -1,4 +1,4 @@
-package po.misc.validators.general.models
+package po.misc.validators.models
 
 
 enum class CheckStatus {

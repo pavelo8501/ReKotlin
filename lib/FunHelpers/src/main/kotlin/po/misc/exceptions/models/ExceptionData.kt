@@ -20,6 +20,9 @@ class ExceptionData(
     var propertySnapshotBacking:  List<PropertyData> = listOf()
     val propertySnapshot : List<PropertyData> get() = propertySnapshotBacking
 
+    private var stackTraceBacking: List<StackFrameMeta> = listOf()
+    val stackTrace :  List<StackFrameMeta> get() = stackTraceBacking
+
     fun addPropertySnapshot(snapshot:  List<PropertyData>){
         propertySnapshotBacking = snapshot
     }
@@ -28,4 +31,11 @@ class ExceptionData(
         stackTraceList = stackTrace
         return this
     }
+
+    fun addStackTraceMeta(stackFrames: List<StackFrameMeta>):ExceptionData{
+        stackTraceBacking = stackFrames
+        return this
+    }
+
+
 }

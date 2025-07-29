@@ -30,7 +30,7 @@ class ServiceClass<DTO, DATA, ENTITY>(
     internal val connection: Database get() = connectionClass.connection
     val serviceContext: ServiceContext<DTO, DATA, ENTITY> = ServiceContext(this, rootDTOModel)
 
-    val logger : TaskHandler<*> get()= taskHandler()
+    val logger : TaskHandler<*> get()= taskHandler
 
     private var running: Boolean = true
 

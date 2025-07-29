@@ -67,7 +67,7 @@ suspend fun <DTO, D, E, F, FD> launchSwitch(
         println("No switch containers for switchContainer ${switchDescriptor.parameterType}")
         println("Total containers count ${container.chunkCollectionSize}")
     }
-    return activeResult.getOrOperations("activeResult", switchDescriptor)
+    return activeResult.getOrOperations(switchDescriptor)
 }
 
 

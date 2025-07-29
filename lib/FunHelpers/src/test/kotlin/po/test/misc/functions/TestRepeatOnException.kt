@@ -25,7 +25,9 @@ class TestRepeatOnException {
         var actualRepeats = 0
         var repeatCount = 0
 
-        val actualCount = repeatOnFault(RepeaterConfig(projectedRepeats)) {
+        val actualCount = repeatOnFault({
+            setMaxAttempts(projectedRepeats)
+        }) {
             actualRepeats++
 
             repeatCount = if (actualRepeats == 2) {
@@ -45,7 +47,9 @@ class TestRepeatOnException {
         var repeatCount = 0
 
         assertThrows<Exception> {
-            repeatCount = repeatOnFault(RepeaterConfig(projectedRepeats)) {
+            repeatCount = repeatOnFault({
+                setMaxAttempts(projectedRepeats)
+            }) {
                 actualRepeats++
                 repeatCount = doSomething(repeatCount, Exception("Some exception"))
                 repeatCount
@@ -72,7 +76,7 @@ class TestRepeatOnException {
         }
 
         assertThrows<Throwable> {
-            repeatCount = repeatOnFault(repeatConfig) {
+            repeatCount = repeatOnFault( {repeatConfig} ) {
                 actualRepeats++
                 if (lastException != null) {
                     doSomething(repeatCount, lastException)
@@ -102,7 +106,7 @@ class TestRepeatOnException {
         val timestamp = ExecutionTimeStamp("SleepTest", "0")
         timestamp.stopTimer()
         assertThrows<Throwable> {
-            repeatCount = repeatOnFault(repeatConfig) {
+            repeatCount = repeatOnFault({repeatConfig}) {
                 actualRepeats++
                 doSomething(repeatCount, Exception("Some exception"))
                 repeatCount

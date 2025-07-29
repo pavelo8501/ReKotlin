@@ -41,12 +41,12 @@ sealed class SourceObject<T: Any>(override val value: Int): ValueBased{
         }
     }
 
-    object CommonDTOType : SourceObject<CommonDTO<*, *, *>>(4){
-        override var name: String = "commonDTO"
-        fun <T: CommonDTO<* ,* , *>> provideType(record : TypeRecord<T>): CommonDTOType {
-            typeRecord = record.safeCast()
-            name = record.simpleName
-            return this
-        }
-    }
+//    object CommonDTOType : SourceObject<CommonDTO<*, *, *>>(4){
+//        override var name: String = "commonDTO"
+//        fun <T: CommonDTO<* ,* , *>> provideType(record : TypeRecord<T>): CommonDTOType {
+//            typeRecord = record.safeCast()
+//            name = record.simpleName
+//            return this
+//        }
+//    }
 }

@@ -28,8 +28,8 @@ class TaskHandler<R: Any?>(
         dataProcessor.info(message)
     }
 
-    fun <T2: PrintableBase<T2>> log(data: T2, template: PrintableTemplateBase<T2>):T2 =
-        dataProcessor.log(data, SeverityLevel.LOG)
+    fun <T2: PrintableBase<T2>> log(data: T2):T2 = dataProcessor.log(data, SeverityLevel.LOG)
+
 
     fun <T2: PrintableBase<T2>> debug(data: T2, dataClass: PrintableCompanion<T2>, template: PrintableTemplateBase<T2>):T2
         = dataProcessor.debug(data, dataClass, template)

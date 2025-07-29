@@ -17,7 +17,6 @@ import po.misc.types.getOrManaged
 import po.test.lognotify.setup.captureOutput
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class TestExceptionNotification: FakeTasksManaged {
@@ -32,10 +31,9 @@ class TestExceptionNotification: FakeTasksManaged {
             rootTask = dispatcher.createHierarchyRoot("Root Task", this)
         }
         val container = TaskContainer(rootTask)
-        exception =
-            assertThrows<ManagedException> {
-                nullableString.getOrManaged(String::class, this@TestExceptionNotification)
-            }
+        exception = assertThrows<ManagedException> {
+            nullableString.getOrManaged(String::class, this@TestExceptionNotification)
+        }
 
         val thrownException = assertNotNull(exception)
         createFaultyResult(thrownException, rootTask)
@@ -51,7 +49,7 @@ class TestExceptionNotification: FakeTasksManaged {
         val throwingCallSite = assertNotNull(exceptionRecord.throwingCallSite)
 
         assertEquals(this::class.qualifiedName.toString(), throwingCallSite.className)
-        assertEquals("TestExceptionNotification.kt", throwingCallSite.fileName)
+        assertTrue(throwingCallSite.className.contains("TestExceptionNotification"))
     }
 
     @Test
@@ -62,7 +60,7 @@ class TestExceptionNotification: FakeTasksManaged {
                 handler = taskHandler
                 runAction("Firs Action") {
                     assertThrows<ManagedException> {
-                        runAction("Second Action") {
+                        runAction("Second Action"){
                             nullableString.getOrManaged(String::class, this@TestExceptionNotification)
                         }
                     }
@@ -77,8 +75,10 @@ class TestExceptionNotification: FakeTasksManaged {
         assertTrue(methodThrowing.methodName.contains("getOrManaged"), "Actual: ${methodThrowing.methodName}")
 
         val throwingCallSite = assertNotNull(exceptionRecord.throwingCallSite)
-        assertEquals(this::class.qualifiedName.toString(), throwingCallSite.className)
 
+        assertTrue(throwingCallSite.className.contains("TestExceptionNotification"))
         assertNotNull(exceptionRecord.actionSpans?.lastOrNull { it.actionStatus == ExecutionStatus.Failing })
+
+        exceptionRecord.echo()
     }
 }

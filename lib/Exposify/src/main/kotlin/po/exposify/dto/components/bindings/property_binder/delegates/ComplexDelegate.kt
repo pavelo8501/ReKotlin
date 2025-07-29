@@ -3,6 +3,7 @@ package po.exposify.dto.components.bindings.property_binder.delegates
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
+import po.exposify.dto.CommonDTOBase
 import po.exposify.dto.DTOBase
 import po.exposify.dto.RootDTO
 import po.exposify.dto.components.bindings.BindingHub
@@ -10,13 +11,13 @@ import po.exposify.dto.components.bindings.DelegateStatus
 import po.exposify.dto.components.bindings.interfaces.DelegateInterface
 import po.exposify.dto.components.bindings.interfaces.ForeignDelegateInterface
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.dto.models.CommonDTOType
 import po.exposify.extensions.castOrInit
 import po.exposify.extensions.getOrOperations
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asSubIdentity
 import po.misc.data.SmartLazy
+import po.misc.functions.subscribers.subscribe
 import po.misc.types.TypeData
 import po.misc.types.containers.updatable.ActionValue
 import kotlin.getValue
@@ -25,7 +26,7 @@ import kotlin.reflect.KProperty
 
 sealed class ComplexDelegate<DTO, D, E, F, FD,  FE>(
     internal val hostingDTO : CommonDTO<DTO, D, E>,
-): DelegateInterface<DTO, F>, ForeignDelegateInterface, CTX
+): DelegateInterface<DTO, D, E>, ForeignDelegateInterface, CTX
     where D: DataModel, E: LongEntity, DTO : ModelDTO, F: ModelDTO, FD : DataModel,  FE: LongEntity
 {
 
@@ -44,23 +45,26 @@ sealed class ComplexDelegate<DTO, D, E, F, FD,  FE>(
     protected val foreignInitialized: Boolean get() = foreignDTOBacking != null
 
     protected var foreignCommonBacking: CommonDTO<F, FD, FE>? = null
-    val foreignCommon: CommonDTO<F, FD, FE>  get() = foreignCommonBacking.getOrOperations("foreignDTO Backing property", this)
+    val foreignCommon: CommonDTO<F, FD, FE>  get() = foreignCommonBacking.getOrOperations(this)
 
     protected var foreignDTOBacking: F? = null
-    val foreignDTO: F get() = foreignDTOBacking.getOrOperations("ForeignDTO Backing", this)
+    val foreignDTO: F get() = foreignDTOBacking.getOrOperations(foreignClass.commonDTOType.dtoType.kClass, this)
 
+    protected abstract fun onPropertyResolved()
+    protected abstract fun beforeRegistered()
+
+
+    protected  fun provideForeignDTO(dto: CommonDTO<F, FD, FE>){
+        foreignCommonBacking = dto
+        println("Foreign dto saved")
+    }
 
    override fun resolveProperty(property: KProperty<*>){
         if(propertyParameter == null){
             propertyParameter = property.castOrInit<KProperty<F>>(this)
-            when(this){
-                is ParentDelegate ->{
-                    hostingDTO.hub.registerParentDelegate(this)
-                }
-                is AttachedForeignDelegate ->{
-                    hostingDTO.hub.registerAttachedForeignDelegate(this)
-                }
-            }
+            beforeRegistered()
+            hostingDTO.hub.registerComplexDelegate(this)
+            onPropertyResolved()
         }
     }
    override fun updateStatus(status: DelegateStatus) {
@@ -87,9 +91,11 @@ class AttachedForeignDelegate<DTO, D, E, F, FD, FE>(
 ): ComplexDelegate<DTO, D, E, F, FD, FE>(hostingDTO)
     where D: DataModel, E: LongEntity, DTO: ModelDTO, F: ModelDTO, FD: DataModel, FE: LongEntity
 {
-    override val identity: CTXIdentity<out CTX> = asSubIdentity(this, hostingDTO)
+    override val identity: CTXIdentity<AttachedForeignDelegate<DTO, D, E, F, FD, FE>> = asSubIdentity(this, hostingDTO)
 
-        val attachedName: String get() = entityIdProperty.name
+
+
+    val attachedName: String get() = entityIdProperty.name
 
     private fun getForeignDTO(id: Long): F{
         val result = foreignClass.executionContext.pickById(id)
@@ -109,8 +115,7 @@ class AttachedForeignDelegate<DTO, D, E, F, FD, FE>(
     }
 
     internal fun update(){
-
-        dataIdProperty.set(hostingDTO.dataContainer.source, foreignDTO.id)
+        dataIdProperty.set(hostingDTO.dataContainer.getValue(this), foreignDTO.id)
     }
 
     internal fun resolveForeign(entity:E):E{
@@ -125,6 +130,14 @@ class AttachedForeignDelegate<DTO, D, E, F, FD, FE>(
     internal fun update(entity:E){
         entityIdProperty.set(entity, foreignDTO.id)
     }
+
+    override fun onPropertyResolved() {
+        identity.setNamePattern{ "AttachedForeignDelegate[${property.name}]" }
+    }
+    override fun beforeRegistered(){
+
+    }
+
 }
 
 
@@ -141,11 +154,24 @@ class ParentDelegate<DTO, D, E, F, FD, FE>(
     val initialized: Boolean get() = entityBinderBacking != null
     val hub: BindingHub<DTO, D, E> = hostingDTO.hub
 
-    val foreignDTOType: TypeData<F> = foreignClass.dtoType
-    //val commonType: CommonDTOType<F, FD, FE> get() = foreignClass.commonType
+
+    val foreignDTOType: TypeData<F> = foreignClass.commonDTOType.dtoType
 
     internal var entityBinderBacking: ActionValue<E>? = null
     val entityBinder: ActionValue<E> by lazy { entityBinderBacking.getOrOperations(this) }
+
+
+
+    override fun onPropertyResolved() {
+
+    }
+
+    override fun beforeRegistered(){
+        hostingDTO.parentDTO.getUnsafeCasting<CommonDTO<F, FD, FE>>(this, foreignClass.commonDTOType.commonType.kClass) { dto->
+            provideForeignDTO(dto)
+        }
+    }
+
 
     fun assignEntityBinder(binder: ActionValue<E>){
         entityBinderBacking = binder
@@ -157,14 +183,13 @@ class ParentDelegate<DTO, D, E, F, FD, FE>(
     fun assignParentDTO(dto: F){
         foreignDTOBacking = dto
 
-        hostingDTO.notifier.subscribe<CommonDTO<DTO, D, E>>(this, CommonDTO.DTOEvents.OnDTOComplete){
-            val commonDTO = it.getData()
-            val dataModel =  commonDTO.dataContainer.source
+        hostingDTO.onDTOComplete.subscribe(this,  CommonDTOBase.DTOEvents.Initialized){ commonDTO->
+            val dataModel =  commonDTO.dataContainer.getValue(this)
             parentDTOProvider.invoke(dataModel, dto)
         }
 
         if(hostingDTO.dataContainer.isSourceAvailable){
-            parentDTOProvider.invoke(hostingDTO.dataContainer.source, dto)
+            parentDTOProvider.invoke(hostingDTO.dataContainer.getValue(this), dto)
         }
     }
 }

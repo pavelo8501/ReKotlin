@@ -8,6 +8,7 @@ import org.postgresql.util.PGobject
 import po.exposify.DatabaseManager
 import po.misc.serialization.SerializerInfo
 import po.misc.serialization.toSerializerInfo
+import po.misc.types.TypeData
 import kotlin.reflect.KType
 import kotlin.reflect.typeOf
 
@@ -70,6 +71,7 @@ class JsonColumnList<T: Any> @PublishedApi internal constructor(
 ): JsonColumnBase<List<T>>(ListSerializer(serializer)){
 
     override val serializerInfo: SerializerInfo<List<T>>
+
         get() = toSerializerInfo(sourceType , ListSerializer(serializer), true)
     init {
         DatabaseManager.provideSerializer(serializerInfo)

@@ -66,6 +66,7 @@ object DatabaseManager: TasksManaged {
 
     @PublishedApi
     internal fun <T> provideSerializer(serializer: SerializerInfo<T>){
+
         connections.forEach {
             it.registerSerializer(serializer)
         }
@@ -80,7 +81,7 @@ object DatabaseManager: TasksManaged {
       return runTask("openConnection", TaskConfig(attempts = settings.retries, moduleName = "DatabaseManager")) {
          val effectiveConnectionInfo = connectionInfo?:hooks?.onBeforeConnection?.invoke()
          val connection = if(effectiveConnectionInfo == null){
-             connections.firstOrNull().getOrInit("No connection info was provided nor opened connections exist")
+             connections.firstOrNull().getOrInit(this)
           }else{
              val existentConnection =  connections.firstOrNull { it.connectionInfo.key == effectiveConnectionInfo.key }
                existentConnection?.let {
@@ -105,7 +106,7 @@ object DatabaseManager: TasksManaged {
         return runTaskBlocking("openConnectionAsync", TaskConfig(attempts = settings.retries, moduleName = "DatabaseManager")) {
             val effectiveConnectionInfo = connectionInfo?:hooks?.onBeforeConnection?.invoke()
             val connection = if(effectiveConnectionInfo == null){
-                connections.firstOrNull().getOrInit("No connection info was provided nor opened connections exist")
+                connections.firstOrNull().getOrInit(this)
             }else{
                 val existentConnection =  connections.firstOrNull { it.connectionInfo.key == effectiveConnectionInfo.key }
                 existentConnection?.let {

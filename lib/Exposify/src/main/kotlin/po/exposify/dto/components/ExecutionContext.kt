@@ -24,6 +24,7 @@ import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.context.asSubIdentity
+import po.misc.functions.subscribers.subscribe
 
 
 sealed class ExecutionContext<DTO, DATA, ENTITY>(
@@ -33,8 +34,7 @@ sealed class ExecutionContext<DTO, DATA, ENTITY>(
 
     override val identity: CTXIdentity<out CTX> = asSubIdentity(this, dtoClass)
 
-    abstract val logger: LoggerDataProcessor
-    private val daoService: DAOService<DTO, DATA, ENTITY> get() = dtoClass.config.daoService
+    private val daoService: DAOService<DTO, DATA, ENTITY> get() = dtoClass.dtoConfiguration.daoService
 
     fun insert(data: DATA): ResultSingle<DTO, DATA, ENTITY> {
         val operation = CrudOperation.Insert
@@ -49,12 +49,12 @@ sealed class ExecutionContext<DTO, DATA, ENTITY>(
     fun pickById(id: Long): ResultSingle<DTO, DATA, ENTITY> {
         val operation = CrudOperation.Pick
         return dtoClass.lookupDTO(id)?.toResult(operation)?:run {
-            val result = dtoClass.config.daoService.pickById(id)
+            val result = dtoClass.dtoConfiguration.daoService.pickById(id)
             if(result != null){
                 dtoClass.newDTO().hub.loadHierarchyByEntity(result, dtoClass).toResult(operation)
             }else{
                 val exception = operationsException("Entity with provided id :${id} not found",  ExceptionCode.DB_CRUD_FAILURE, this)
-                dtoClass.shallowDTO().toResult(exception, operation)
+                dtoClass.toResult(exception)
             }
         }
     }
@@ -62,20 +62,20 @@ sealed class ExecutionContext<DTO, DATA, ENTITY>(
     fun pick(conditions: SimpleQuery): ResultSingle<DTO, DATA, ENTITY> {
         val operation = CrudOperation.Pick
 
-        val entity = dtoClass.config.daoService.pick(conditions)
+        val entity = dtoClass.dtoConfiguration.daoService.pick(conditions)
         return if (entity != null) {
             dtoClass.newDTO().hub.loadHierarchyByEntity(entity, dtoClass).toResult(operation)
         } else {
             val queryStr = conditions.build().toSqlString()
-            val message = "Unable to find ${dtoClass.dtoType} for query $queryStr"
-            val exception = operationsException("Unable to find ${dtoClass.dtoType} for query $queryStr", ExceptionCode.DB_CRUD_FAILURE, this)
-            dtoClass.shallowDTO().toResult(exception, operation)
+            val message = "Unable to find ${dtoClass.commonDTOType.dtoType} for query $queryStr"
+            val exception = operationsException("Unable to find ${dtoClass.commonDTOType.dtoType} for query $queryStr", ExceptionCode.DB_CRUD_FAILURE, this)
+            dtoClass.toResult(exception)
         }
     }
 
     fun select(): ResultList<DTO, DATA, ENTITY> {
         val operation = CrudOperation.Select
-        val entities =  dtoClass.config.daoService.select()
+        val entities =  dtoClass.dtoConfiguration.daoService.select()
         return entities.map {
             val dto = dtoClass.newDTO()
             dto.hub.loadHierarchyByEntity(it, dtoClass)
@@ -160,11 +160,6 @@ class RootExecutionContext<DTO, D, E>(
 
     override val identity: CTXIdentity<out CTX> = asIdentity()
 
-
-    override val logger: LoggerDataProcessor
-        get() = logHandler.dataProcessor
-
-
     override val contextName: String
         get() = "RootExecutionContext[${sourceContext?.contextName?:super.contextName}]"
 
@@ -178,19 +173,36 @@ fun <DTO: ModelDTO, D: DataModel, E:LongEntity> RootDTO<DTO, D, E>.createProvide
     return RootExecutionContext(this)
 }
 
+
+/**
+ * Here dtoClass is a child class
+ * hostingDTO parent Common DTO
+ */
 class DTOExecutionContext<DTO, D, E, F, FD, FE>(
     dtoClass: DTOBase<DTO, D, E>,
-    private val hostingDTO: CommonDTO<F, FD, FE>,
+    val hostingDTO: CommonDTO<F, FD, FE>,
+    val dtoFactory: CommonDTOFactory<DTO, D, E, F, FD, FE> = CommonDTOFactory(hostingDTO, dtoClass.dtoConfiguration)
 ):ExecutionContext<DTO, D, E>(dtoClass)
         where DTO: ModelDTO, D: DataModel,E: LongEntity, F : ModelDTO, FD : DataModel, FE : LongEntity {
 
-    override val identity: CTXIdentity<out CTX> = asIdentity()
+    override val identity: CTXIdentity<DTOExecutionContext<DTO, D, E, F, FD, FE>> = asSubIdentity(this,  hostingDTO)
+
+
+    init {
+        dtoFactory.onDTOCreated.subscribe(this, DTOFactoryBase.Events.OnCreated, ::onNewDTOCreated)
+    }
+
+    fun onNewDTOCreated(commonDTO: CommonDTO<DTO, D, E>){
+        commonDTO.registerParentDTO(hostingDTO)
+
+        println("Created $commonDTO")
+    }
+
+
 
 //    enum class DTOExecutionEvents{
 //        OnDTOComplete
 //    }
-    override val contextName: String = "DTOExecutionContext"
-    override val logger: LoggerDataProcessor get() = logHandler.dataProcessor
 
 //    internal val notifier: CallbackManager<DTOExecutionEvents> = CallbackManager(DTOExecutionEvents::class.java, this)
 //    internal val onDTOComplete = CallbackManager.createPayload<DTOExecutionEvents, CommonDTO<DTO, D, E>>(

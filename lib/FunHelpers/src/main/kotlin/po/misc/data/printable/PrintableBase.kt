@@ -89,12 +89,11 @@ abstract class PrintableBase<T>(
     }
 
     override fun echo(){
-        if(!shouldMute()) {
-            outputSource?.invoke(formattedString) ?: run {
-                println(formattedString)
-            }
+        outputSource?.invoke(formattedString) ?: run {
+            println(formattedString)
         }
     }
+
     fun echo(template: PrintableTemplateBase<T>){
         if(!shouldMute()){
             val result = template.resolve(self)

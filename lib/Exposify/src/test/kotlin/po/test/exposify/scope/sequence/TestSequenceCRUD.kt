@@ -12,11 +12,12 @@ import po.exposify.common.events.ContextData
 import po.exposify.common.events.DTOData
 import po.exposify.dto.components.query.deferredQuery
 import po.exposify.dto.components.result.ResultList
+import po.exposify.dto.components.result.ResultSingle
 import po.exposify.scope.sequence.builder.*
 import po.exposify.scope.sequence.launcher.launch
 import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
-import po.lognotify.notification.models.NotifyConfig
+import po.lognotify.notification.models.ConsoleBehaviour
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
@@ -52,7 +53,7 @@ class TestSequenceCRUD : DatabaseTest(), TasksManaged {
     fun setup() = runTest {
 
         logHandler.notifierConfig {
-            console = NotifyConfig.ConsoleBehaviour.MuteNoEvents
+            console = ConsoleBehaviour.MuteNoEvents
             allowDebug(ContextData, DTOData)
         }
         val user = User(
@@ -110,7 +111,7 @@ class TestSequenceCRUD : DatabaseTest(), TasksManaged {
         assertEquals(2, selectResult.size, "Selection count mismatch")
     }
 
-    @Test
+
     fun `Sequnenced PICK BY ID execution`() = runTest {
 
         val page: Page = pageModelsWithSections(pageCount = 1, sectionsCount = 2, updatedBy = 1).first()
@@ -121,7 +122,7 @@ class TestSequenceCRUD : DatabaseTest(), TasksManaged {
                 pickById = update(page).getData()?.id?:0L
                 sequenced(PageDTO.PICK) {handler->
                     pickById(handler){
-                        withInputValue {
+                        withInputValue{
                             println("Input Value: $this")
                         }
                         withResult {
@@ -133,14 +134,30 @@ class TestSequenceCRUD : DatabaseTest(), TasksManaged {
             }
         }
         with(session){
-            val pickResult=  launch(PageDTO.PICK, pickById)
-//            val pickResult: ResultSingle<PageDTO, Page, *> = assertDoesNotThrow {
-//                launch(PageDTO.PICK, pickById)
-//            }
+            val pickResult: ResultSingle<PageDTO, Page, *> = assertDoesNotThrow {
+                launch(PageDTO.PICK, pickById)
+            }
             assertNotEquals(0L, pickById, "pickID should not be 0")
             assertEquals(pickById, pickResult.getDTOForced().id, "Picked dto id does not match requested")
         }
     }
+
+    @Test
+    fun `Sequenced UPDATE statement`(){
+
+        val page: Page = pageModelsWithSections(pageCount = 1, sectionsCount = 2, updatedBy = 1).first()
+        withConnection {
+            service(PageDTO) {
+                select()
+                sequenced(PageDTO.PICK) { handler ->
+                    update(handler){
+
+                    }
+                }
+            }
+        }
+    }
+
 
     fun `Simplified sequnence INSERT execution`() = runTest {
 

@@ -5,6 +5,7 @@ import org.junit.jupiter.api.TestInstance
 import po.auth.extensions.generatePassword
 import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
+import po.lognotify.notification.models.ConsoleBehaviour
 import po.lognotify.notification.models.NotifyConfig
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
@@ -32,7 +33,7 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
 
 
         logHandler.notifierConfig {
-            console = NotifyConfig.ConsoleBehaviour.MuteNoEvents
+            console = ConsoleBehaviour.MuteNoEvents
         }
         val user = User(
             id = 0,

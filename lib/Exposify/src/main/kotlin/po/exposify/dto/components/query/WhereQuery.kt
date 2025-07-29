@@ -13,34 +13,24 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.like
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import po.exposify.dto.DTOBase
 
-//class DeferredWhere<T : LongIdTable>(private val block: () -> WhereQuery<T>) {
-//    fun resolve(): WhereQuery<T> = block()
-//}
-//
-//fun <T : LongIdTable> deferredWhere(block: () -> WhereQuery<T>): DeferredWhere<T> =
-//    DeferredWhere(block)
-
 
 class WhereQuery<E>(
    private val dtoClass: DTOBase<*, *, E>
 ): SimpleQuery() where E: LongEntity {
 
-    //override  var expression: Set<Op<Boolean>> = emptySet()
-
     override var expression: MutableList<Op<Boolean>> = mutableListOf()
 
     private fun addCondition(condition: Op<Boolean>) {
         expression.add(condition)
-      //  expression = expression + condition
     }
 
 
     val table: IdTable<Long> get(){
-      return  dtoClass.config.entityModel.table
+      return  dtoClass.entityClass.table
     }
 
     val tableAsLongId: LongIdTable get(){
-        return  dtoClass.config.entityModel.table as LongIdTable
+        return  dtoClass.entityClass.table as LongIdTable
     }
 
     fun byId(id: Long): WhereQuery<E> {

@@ -8,6 +8,8 @@ import po.exposify.dto.components.tracker.DTOTracker
 import po.exposify.dto.helpers.asDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.models.CommonDTOType
+import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.operationsException
 import po.exposify.extensions.getOrOperations
@@ -15,6 +17,7 @@ import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asSubIdentity
 import po.misc.exceptions.ManagedException
+import po.misc.functions.common.ExceptionFallback
 import po.misc.types.castListOrThrow
 
 interface ExposifyResult{
@@ -63,13 +66,13 @@ class ResultList<DTO, D, E> internal constructor(
     }
 
     fun getData(): List<D> {
-        return result.map { it.dataContainer.source }
+        return result.map { it.dataContainer.getValue(this) }
     }
 
     fun getDTO(): List<DTO> {
-        val typeRecord = dtoClass.dtoType
-        return result.castListOrThrow(typeRecord.kClass) { str, th->
-            operationsException(str, ExceptionCode.CAST_FAILURE, dtoClass)
+        val typeRecord = dtoClass.commonDTOType.dtoType
+        return result.castListOrThrow(typeRecord.kClass, this) {payload->
+            operationsException(payload.setCode( ExceptionCode.CAST_FAILURE))
         }
     }
 
@@ -103,6 +106,9 @@ class ResultSingle<DTO, D, E> internal constructor(
 
     val isFaulty: Boolean get() = failureCause != null
 
+    private val resultException = OperationsException("Result not available", ExceptionCode.UNDEFINED, this)
+    private val fallback: ExceptionFallback<CommonDTOType<DTO, D, E>> = ExceptionFallback{ resultException}
+
     val dto: DTO get(){
        return getDTOForced()
     }
@@ -113,11 +119,11 @@ class ResultSingle<DTO, D, E> internal constructor(
     }
 
     fun getData(): D? {
-        return result?.dataContainer?.source
+        return result?.dataContainer?.getValue(this)
     }
 
     fun getDataForced(): D {
-        return getData().getOrOperations("getData",this)
+        return getData().getOrOperations(dtoClass.commonDTOType.dataType.kClass,  this)
     }
 
     internal fun getAsCommonDTO(): CommonDTO<DTO, D, E>? {
@@ -125,7 +131,7 @@ class ResultSingle<DTO, D, E> internal constructor(
     }
 
     internal fun getAsCommonDTOForced(): CommonDTO<DTO, D, E> {
-        return result.getOrOperations("Result", this)
+        return result.getOrOperations(this)
     }
 
     fun getDTO(): DTO? {

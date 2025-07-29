@@ -12,8 +12,9 @@ interface CTX{
 
     val identity: CTXIdentity<out  CTX>
 
-    val contextName: String get() = identity.identifiedByName
+    val contextName: String get() = identity.className
     val completeName: String get() = identity.completeName
+    val identifiedByName: String get() = identity.identifiedByName
 }
 
 /**

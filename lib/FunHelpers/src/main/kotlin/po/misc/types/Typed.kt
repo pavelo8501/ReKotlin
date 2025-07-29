@@ -8,7 +8,7 @@ import kotlin.reflect.KType
 import kotlin.reflect.full.createType
 import kotlin.reflect.typeOf
 
-sealed interface Typed<T: Any>: ComparableType<T>{
+interface Typed<T: Any>: ComparableType<T>{
     override val kClass: KClass<T>
     val kType: KType
 }

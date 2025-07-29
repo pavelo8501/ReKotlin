@@ -6,6 +6,9 @@ import po.exposify.dto.DTOClass
 import po.exposify.dto.RootDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.models.CommonDTOType
+import po.exposify.exceptions.OperationsException
+import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.getOrOperations
 import po.exposify.scope.sequence.builder.ListResultMarker
 import po.exposify.scope.sequence.builder.SequenceChunkContainer
@@ -13,6 +16,7 @@ import po.exposify.scope.sequence.builder.SingleResultMarker
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
+import po.misc.functions.common.ExceptionFallback
 import po.misc.types.TypeData
 
 
@@ -21,10 +25,13 @@ sealed class SequenceDescriptorBase<DTO, D, E>(
 ): CTX  where DTO: ModelDTO, D: DataModel, E: LongEntity{
     abstract override val contextName: String
 
-    override val identity: CTXIdentity<out CTX> = asIdentity()
+    override val identity: CTXIdentity<SequenceDescriptorBase<DTO, D, E>> = asIdentity()
+
+    private val exception = OperationsException("Uninitialized", ExceptionCode.NOT_INITIALIZED, this)
+    private val fallback: ExceptionFallback<CommonDTOType<DTO, D, E>> = ExceptionFallback{ exception }
 
     val parameterType: TypeData<Long> = TypeData.create<Long>()
-    val inputType: TypeData<D> get() = dtoBaseClass.dataType
+    val inputType: TypeData<D> get() = dtoBaseClass.commonDTOType.dataType
 
     var containerBacking: SequenceChunkContainer<DTO, D, E>? = null
     val container:SequenceChunkContainer<DTO, D, E> get() = containerBacking.getOrOperations(this)

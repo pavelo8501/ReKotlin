@@ -8,27 +8,22 @@ import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.extensions.getOrOperations
-import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.functions.containers.DeferredContainer
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
-import po.misc.exceptions.ExceptionPayload
 
 
 sealed class ExecutionHandlerBase<DTO, D, E>(
 ): CTX where DTO: ModelDTO, D: DataModel, E : LongEntity  {
 
-
     override val identity: CTXIdentity<out CTX> = asIdentity()
-    val exPayload: ExceptionPayload = ExceptionPayload(this)
-
 
     private val deferredQueryError = "DeferredQuery required but not provided"
     private var deferredQueryBacking: DeferredContainer<WhereQuery<E>>? = null
     val isWhereQueryAvailable: Boolean get() = deferredQueryBacking != null
     val whereQuery: DeferredContainer<WhereQuery<E>> get() {
-      return deferredQueryBacking.getOrOperations(exPayload.valueFailure("deferredQueryBacking", "DeferredContainer<WhereQuery<E>>"))
+      return deferredQueryBacking.getOrOperations(this)
     }
     internal fun provideWhereQuery(query: DeferredContainer<WhereQuery<E>>){
         deferredQueryBacking = query
@@ -37,7 +32,7 @@ sealed class ExecutionHandlerBase<DTO, D, E>(
     private var deferredParameterBacking: DeferredContainer<Long>? = null
     val isDeferredParameterAvailable: Boolean get() = deferredParameterBacking != null
     val deferredParameter: DeferredContainer<Long> get() {
-        return deferredParameterBacking.getOrOperations(exPayload.valueFailure("deferredParameterBacking", "DeferredContainer<Long>"))
+        return deferredParameterBacking.getOrOperations(this)
     }
     internal fun provideDeferredParameter(parameter: DeferredContainer<Long>){
         deferredParameterBacking = parameter
@@ -53,7 +48,7 @@ class SingleTypeHandler<DTO, D, E> internal constructor():ExecutionHandlerBase<D
     private var deferredInputBacking: DeferredContainer<D>? = null
     val isDeferredInputAvailable: Boolean get() = deferredInputBacking != null
     val deferredInput: DeferredContainer<D> get() {
-        return deferredInputBacking.getOrOperations(exPayload.valueFailure("deferredInputBacking", "DeferredContainer<D>"))
+        return deferredInputBacking.getOrOperations(this)
     }
     internal fun provideDeferredInput(input: DeferredContainer<D>){
         deferredInputBacking = input
@@ -70,7 +65,7 @@ class ListTypeHandler<DTO, D, E> internal constructor():ExecutionHandlerBase<DTO
     private var deferredInputBacking: DeferredContainer<List<D>>? = null
     val isDeferredInputAvailable: Boolean get() = deferredInputBacking != null
     val deferredInput: DeferredContainer<List<D>> get() {
-        return deferredInputBacking.getOrOperations(exPayload.valueFailure("deferredInputBacking", "DeferredContainer<D>"))
+        return deferredInputBacking.getOrOperations(this)
     }
     internal fun provideDeferredInput(input: DeferredContainer<List<D>>){
         deferredInputBacking = input
@@ -88,7 +83,7 @@ internal constructor(
     private var deferredInputBacking: DeferredContainer<D>? = null
     val isDeferredInputAvailable: Boolean get() = deferredInputBacking != null
     val deferredInput: DeferredContainer<D> get() {
-        return deferredInputBacking.getOrOperations(exPayload.valueFailure("deferredInputBacking", "DeferredContainer<D>"))
+        return deferredInputBacking.getOrOperations(this)
     }
     internal fun provideDeferredInput(input: DeferredContainer<D>){
         deferredInputBacking = input

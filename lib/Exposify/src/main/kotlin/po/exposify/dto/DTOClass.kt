@@ -3,14 +3,17 @@ package po.exposify.dto
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.id.IdTable
 import po.exposify.DatabaseManager
+import po.exposify.common.classes.exposifyDebugger
 import po.exposify.common.event.DTOClassData
+import po.exposify.common.events.ContextData
 import po.exposify.dto.components.DTOConfig
 import po.exposify.dto.interfaces.ClassDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dao.classes.ExposifyEntityClass
-import po.exposify.dto.RootDTO
+import po.exposify.dto.components.DTOConfiguration
 import po.exposify.dto.components.ExecutionContext
+import po.exposify.dto.components.bindings.helpers.shallowDTO
 import po.exposify.dto.components.createProvider
 import po.exposify.dto.configuration.setupValidation
 import po.exposify.dto.enums.DTOClassStatus
@@ -18,150 +21,88 @@ import po.exposify.dto.models.CommonDTOType
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.initException
 import po.exposify.extensions.getOrInit
+import po.exposify.extensions.withTransactionIfNone
 import po.exposify.scope.service.ServiceClass
 import po.exposify.scope.service.ServiceContext
 import po.lognotify.TasksManaged
 import po.lognotify.tasks.TaskHandler
 import po.lognotify.debug.debugProxy
-import po.misc.callbacks.CallbackManager
-import po.misc.callbacks.CallbackPayload
-import po.misc.callbacks.builders.callbackManager
-import po.misc.callbacks.models.Configuration
-import po.misc.containers.LazyBackingContainer
+import po.lognotify.enums.SeverityLevel
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
-import po.misc.context.createIdentity
-import po.misc.exceptions.ExceptionPayload
+import po.misc.context.asIdentity
+import po.misc.functions.subscribers.TaggedLambdaRegistry
 import po.misc.interfaces.ValueBased
-import po.misc.serialization.SerializerInfo
-import po.misc.types.TypeData
-import po.misc.types.containers.TypedContainer
-import po.misc.types.toSimpleNormalizedKey
-import po.misc.validators.general.models.CheckStatus
-import kotlin.reflect.KClass
-import kotlin.reflect.KType
-import kotlin.reflect.typeOf
+import po.misc.validators.models.CheckStatus
 
 
 
-class DTOIdentity<DTO: ModelDTO>(
-    val kClass: KClass<DTO>,
-    val kType : KType
-)
-
-inline fun <reified DTO> dtoOf(): DTOIdentity<DTO> where DTO: ModelDTO, DTO: CTX {
-   return DTOIdentity(DTO::class, typeOf<DTO>())
-}
-
-
-sealed class DTOBase<DTO, DATA, ENTITY>(
-    final override val identity: CTXIdentity<out CTX>
-): ClassDTO, TasksManaged where DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity
-
+sealed class DTOBase<DTO, D, E>(
+    internal val commonDTOType:CommonDTOType<DTO, D, E>,
+    val dtoConfiguration:  DTOConfig<DTO, D, E> = DTOConfig(commonDTOType)
+): DTOConfiguration<DTO, D, E> by dtoConfiguration, ClassDTO, TasksManaged where DTO: ModelDTO, D : DataModel, E : LongEntity
 {
     enum class Events(override val value: Int) : ValueBased{
         Initialized(1),
         StatusChanged(2),
-        DelegateRegistrationComplete(11);
+        NewHierarchyMember(3)
     }
 
+    abstract override val identity: CTXIdentity<out CTX>
 
-    val exPayload: ExceptionPayload = ExceptionPayload(this)
-    val config:  DTOConfig<DTO, DATA, ENTITY> by lazy {
-        DTOConfig(this)
-    }
-
-    val notifier :  CallbackManager<Events> = callbackManager<Events>(
-        config = Configuration(exceptionOnTriggerFailure = true)
-    )
-
-    val onStatusChanged: CallbackPayload<Events, DTOBase<DTO, DATA, ENTITY>>
-            = CallbackManager.createPayload<Events, DTOBase<DTO, DATA, ENTITY>>(notifier, Events.StatusChanged)
-
-    val onInitialized: CallbackPayload<Events, DTOBase<DTO, DATA, ENTITY>>
-            = CallbackManager.createPayload<Events, DTOBase<DTO, DATA, ENTITY>>(notifier, Events.Initialized)
+    private val keyType: Class<Events> = Events::class.java
+    internal val onStatusChanged: TaggedLambdaRegistry<Events, DTOBase<DTO, D, E>> = TaggedLambdaRegistry(keyType)
+    internal val onInitialized: TaggedLambdaRegistry<Events, DTOBase<DTO, D, E>> = TaggedLambdaRegistry(keyType)
+    internal val onNewMember: TaggedLambdaRegistry<Events, DTOClass<*, *, *>> = TaggedLambdaRegistry(keyType)
 
     var status: DTOClassStatus = DTOClassStatus.Uninitialized
-        protected set(value) {
-            if(field != value){
-               // info.logMessage("Changed status from ${field.name} to ${value.name}")
-                field = value
-                notifier.trigger(Events.StatusChanged, this)
-            }
-        }
+        private set
 
-    protected val dtoMap : MutableMap<Long, CommonDTO<DTO, DATA, ENTITY>> = mutableMapOf()
+    protected val dtoMap : MutableMap<Long, CommonDTO<DTO, D, E>> = mutableMapOf()
 
     val dtoMapSize: Int get() = dtoMap.size
 
-    internal val logger : TaskHandler<*> get() = taskHandler()
+    internal val logger : TaskHandler<*> get() = taskHandler
 
-//    val warning = printableProxy(this, DTOClassData.Warning){ params->
-//        log(DTOClassData(this, params.message), params.template)
-//    }
-//    val success = printableProxy(this, DTOClassData.Success){ params->
-//        log(DTOClassData(this, params.message), params.template)
-//    }
-//    val info = printableProxy(this, DTOClassData.Info){ params->
-//        log(DTOClassData(this, params.message), params.template)
-//    }
-
-    val debug = debugProxy(this, DTOClassData){
+   internal val debug = debugProxy(this, DTOClassData){
         DTOClassData(this, it.message, status.name, dtoMapSize)
     }
 
-    private val registryExceptionMessage = "Can not find type record in DTOClass"
-
-    abstract val dtoType : TypeData<DTO>
-
-    private var dataTypeBacking: TypeData<DATA>? = null
-    val dataType: TypeData<DATA> get() = dataTypeBacking.getOrInit(exPayload.valueFailure("dataTypeBacking", "TypeRecord<DATA>"))
-    val isDataTypeAvailable: Boolean get() = dataTypeBacking != null
-    fun provideDataType(dataType: TypeData<DATA>){
-        dataTypeBacking = dataType
+    val debugger = exposifyDebugger(this, ContextData){
+        ContextData(it.message)
     }
 
-    private var entityTypeBacking: TypeData<ENTITY>? = null
-    val entityType: TypeData<ENTITY> get() = entityTypeBacking.getOrInit(exPayload.valueFailure("entityTypeBacking", "TypeRecord<ENTITY>"))
-    val isEntityTypeAvailable: Boolean get() = entityTypeBacking != null
-    fun provideEntityType(entityType: TypeData<ENTITY>){
-        entityTypeBacking = entityType
+    val entityClass: ExposifyEntityClass<E> get() = commonDTOType.entityType.entityClass
+
+    abstract val serviceClass: ServiceClass<*, *, *>
+
+    init {
+        withTransactionIfNone(debugger, false){
+            commonDTOType.initializeColumnMetadata()
+        }
     }
-
-    @PublishedApi
-    internal val commonDTOType : LazyBackingContainer<CommonDTOType<DTO, DATA, ENTITY>> = LazyBackingContainer()
-    val isCommonDTOTypeAvailable: Boolean get() = commonDTOType.isValueAvailable
-
-
-//    private var commonTypeBacking: CommonDTOType<DTO, DATA, ENTITY>? = null
-//    val commonType: CommonDTOType<DTO, DATA, ENTITY> get() {
-//        return commonTypeBacking.getOrInit(this)
-//    }
-    //val isCommonDTOTypeAvailable: Boolean get() = commonTypeBacking != null
-//    fun provideCommonDTOType(commonType: CommonDTOType<DTO, DATA, ENTITY>){
-//        println("Type provided for ${commonType.typeName}")
-//        commonTypeBacking = commonType
-//    }
-
-    abstract val serviceClass: ServiceClass<*,*,*>
-
-    //internal var delegateRegistrationForward =  CallbackManager.createPayload<Events, ListData<DTO, DATA, ENTITY>>(notifier, Events.DelegateRegistrationComplete)
 
     abstract fun setup()
 
     @PublishedApi
     internal fun updateStatus(newStatus: DTOClassStatus){
+        this.notify("$this Changed status from ${status.name} to ${newStatus.name}", SeverityLevel.INFO)
+
         status = newStatus
+
+        onStatusChanged.trigger(Events.StatusChanged, this)
+        if(newStatus == DTOClassStatus.Initialized){
+            onInitialized.trigger(Events.Initialized, this)
+        }
     }
 
+
+
     @PublishedApi
-    internal  fun initializationComplete(shallowDTO: CommonDTO<DTO, DATA, ENTITY>){
-        status = DTOClassStatus.PreFlightCheck
-       // info.logMessage("Launching validation sequence")
-        val validationResult = setupValidation(shallowDTO)
+    internal fun initializationComplete(validationResult : CheckStatus){
+
         if(validationResult == CheckStatus.PASSED){
-            status = DTOClassStatus.Initialized
-            notifier.trigger(Events.Initialized, this)
+            updateStatus(DTOClassStatus.Initialized)
         }else{
             val root = findHierarchyRoot()
             DatabaseManager.signalCloseConnection(this, root.serviceClass.connectionClass)
@@ -171,13 +112,13 @@ sealed class DTOBase<DTO, DATA, ENTITY>(
     }
 
     internal fun finalize(){
-      //  warning.logMessage("Finalizing")
+        notify("Finalizing", SeverityLevel.WARNING)
         clearCachedDTOs()
         updateStatus(DTOClassStatus.Uninitialized)
-        config.childClasses.forEach { it.finalize() }
+        dtoConfiguration.childClasses.values.forEach { it.finalize() }
     }
 
-    internal fun registerDTO(dto: CommonDTO<DTO, DATA, ENTITY>){
+    internal fun registerDTO(dto: CommonDTO<DTO, D, E>){
        val usedId = if(dto.id < 1){
            dto.dtoId.id
         }else{
@@ -185,7 +126,7 @@ sealed class DTOBase<DTO, DATA, ENTITY>(
        }
        val exists = dtoMap.containsKey(usedId)
         if(exists){
-        //    warning.logMessage("Given dto with id: ${dto.id} already exist in dtoMap")
+            notify("Given dto with id: ${dto.id} already exist in dtoMap", SeverityLevel.WARNING)
         }
         dtoMap.putIfAbsent(usedId, dto)
     }
@@ -194,24 +135,20 @@ sealed class DTOBase<DTO, DATA, ENTITY>(
         dtoMap.clear()
     }
 
-    internal fun lookupDTO(id: Long): CommonDTO<DTO, DATA, ENTITY>?{
+    internal fun lookupDTO(id: Long): CommonDTO<DTO, D, E>?{
         return dtoMap[id]?:run {
             dtoMap.values.firstOrNull {it.id == id}
         }
     }
-    internal fun lookupDTO(): List<CommonDTO<DTO, DATA, ENTITY>>{
+    internal fun lookupDTO(): List<CommonDTO<DTO, D, E>>{
        return dtoMap.values.toList()
     }
 
     override fun getAssociatedTables(cumulativeList: MutableList<IdTable<Long>>) {
-        cumulativeList.add(config.entityModel.table)
-        config.childClasses.forEach {
+        cumulativeList.add(entityClass.table)
+        dtoConfiguration.childClasses.values.forEach {
             it.getAssociatedTables(cumulativeList)
         }
-    }
-
-    fun getEntityModel(): ExposifyEntityClass<ENTITY> {
-        return config.entityModel
     }
 
     fun findHierarchyRoot(): RootDTO<*, *, *>{
@@ -221,32 +158,18 @@ sealed class DTOBase<DTO, DATA, ENTITY>(
         }
     }
 
-    fun serializerLookup(type: KType): SerializerInfo<*>?{
-        val normalizedKey = type.toSimpleNormalizedKey()
-        when(this){
-            is RootDTO->{
-                val serializersMap = serviceContext.serviceClass.connectionClass.serializerMap
-                return serializersMap[normalizedKey]
-            }
-            is DTOClass ->{
-                findHierarchyRoot().let {hierarchyRoot->
-                    val serializersMap =  hierarchyRoot.serviceContext.serviceClass.connectionClass.serializerMap
-                    return serializersMap[normalizedKey]
-                }
-            }
-        }
-    }
+
+    override fun toString(): String  = identity.identifiedByName
+
 }
 
 abstract class RootDTO<DTO, DATA, ENTITY>(
-    private val clazz: KClass<DTO>,
-    private val kType: KType
-): DTOBase<DTO, DATA, ENTITY>(createIdentity(clazz, kType)), ClassDTO where DTO: ModelDTO, DTO:CTX, DATA: DataModel, ENTITY: LongEntity
+    commonType:CommonDTOType<DTO, DATA, ENTITY>
+): DTOBase<DTO, DATA, ENTITY>(commonType), ClassDTO
+        where DTO: ModelDTO, DTO:CTX, DATA: DataModel, ENTITY: LongEntity
 {
 
-    constructor(dtoIdentity: DTOIdentity<DTO>) : this(dtoIdentity.kClass, dtoIdentity.kType)
-
-    override val dtoType: TypeData<DTO> by lazy { TypeData.createByKClass(clazz) }
+    override val identity: CTXIdentity<RootDTO<DTO, DATA, ENTITY>> = asIdentity()
 
     private var serviceContextParameter: ServiceContext<DTO, DATA, ENTITY>? = null
     @PublishedApi
@@ -258,10 +181,19 @@ abstract class RootDTO<DTO, DATA, ENTITY>(
 
     internal val executionContext: ExecutionContext<DTO, DATA, ENTITY> by lazy { createProvider() }
 
+    init {
+        identity.setNamePattern { "${it.className}[${commonType.dtoType.simpleName}]" }
+    }
+
+    internal fun runValidation(){
+        updateStatus(DTOClassStatus.PreFlightCheck)
+        setupValidation(shallowDTO())
+    }
+
     internal fun initialization(serviceContext: ServiceContext<DTO, DATA, ENTITY>) {
         serviceContextParameter = serviceContext
         if(status == DTOClassStatus.Uninitialized){
-          //  info.logMessage("Launching initialization sequence")
+            notify("Launching initialization sequence", SeverityLevel.INFO)
             setup()
         }
     }
@@ -273,26 +205,32 @@ abstract class RootDTO<DTO, DATA, ENTITY>(
 }
 
 abstract class DTOClass<DTO, DATA, ENTITY>(
-    val clazz: KClass<DTO>,
-    val kType: KType,
+    commonType:CommonDTOType<DTO, DATA, ENTITY>,
     val parentClass: DTOBase<*, *, *>,
-): DTOBase<DTO, DATA, ENTITY>(createIdentity(clazz, kType)), ClassDTO, TasksManaged where DTO: ModelDTO, DATA : DataModel, ENTITY: LongEntity
+): DTOBase<DTO, DATA, ENTITY>(commonType), ClassDTO, TasksManaged where DTO: ModelDTO, DATA : DataModel, ENTITY: LongEntity
 {
-    constructor(dtoIdentity: DTOIdentity<DTO>, parentClass: DTOBase<*, *, *>): this(dtoIdentity.kClass, dtoIdentity.kType, parentClass)
+    override val identity: CTXIdentity<DTOClass<DTO, DATA, ENTITY>> = asIdentity()
 
+    override val serviceClass: ServiceClass<*, *, *> get() =  findHierarchyRoot().serviceClass
 
-    override val dtoType: TypeData<DTO> by lazy {  TypeData.createByKClass(clazz) }
-    internal val parentTypedMap: MutableMap<TypeData<*>, TypedContainer<*>> = mutableMapOf()
+    init {
+        identity.setNamePattern { "${it.className}[${commonType.dtoType.simpleName}]" }
+    }
 
-    override val serviceClass: ServiceClass<*, *, *>
-        get() =  findHierarchyRoot().serviceClass
-
+    internal fun <F: ModelDTO, FD: DataModel, FE: LongEntity> runValidation(
+        parentDTO: CommonDTO<F, FD, FE>
+    ){
+        updateStatus(DTOClassStatus.PreFlightCheck)
+        setupValidation(shallowDTO(parentDTO))
+    }
 
     @PublishedApi
-    internal fun initialization() {
+    internal fun initialization():DTOClass<DTO, DATA, ENTITY> {
         if(status == DTOClassStatus.Uninitialized){
             setup()
         }
+
+        return this
     }
 
     companion object: ValueBased{

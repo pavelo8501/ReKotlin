@@ -6,7 +6,6 @@ import po.misc.context.CTXIdentity
 import po.misc.context.Identifiable
 import po.misc.context.asIdentity
 import po.misc.interfaces.ValueBased
-import po.misc.reflection.mappers.PropertyMapper
 
 class TestPropertyMapper {
 

@@ -1,6 +1,7 @@
 package po.misc.types.containers
 
 import po.misc.types.TypeData
+import po.misc.types.Typed
 import po.misc.types.containers.ThreeTypeRegistry
 import po.misc.types.safeCast
 import kotlin.reflect.KClass

@@ -21,7 +21,7 @@ inline fun <DTO, DATA, ENTITY, reified F, CD,  FE> CommonDTO<DTO, DATA, ENTITY>.
     where DATA:DataModel, ENTITY : LongEntity, DTO : ModelDTO, F: ModelDTO,  CD: DataModel, FE: LongEntity
 {
 
-    val castedOwnDataModel = ownDataModel.castOrManaged<KMutableProperty1<DATA, CD>>()
+    val castedOwnDataModel = ownDataModel.castOrManaged<KMutableProperty1<DATA, CD>>(this)
     return OneToOneDelegate(this, childClass, castedOwnDataModel, ownEntity, foreignEntity)
 }
 
@@ -47,7 +47,7 @@ fun <DTO, D, E, F, FD,  FE> CommonDTO<DTO, D, E>.oneToManyOf(
 ): OneToManyDelegate<DTO, D, E, F, FD, FE>
     where  DTO : ModelDTO, D:DataModel, E: LongEntity, F: ModelDTO,  FD: DataModel, FE: LongEntity
 {
-    val castedOwnDataModels = ownDataModels.castOrManaged<KProperty1<D, MutableList<FD>>>()
+    val castedOwnDataModels = ownDataModels.castOrManaged<KProperty1<D, MutableList<FD>>>(this)
     return OneToManyDelegate(this, childClass, castedOwnDataModels, ownEntities, foreignEntity)
 }
 

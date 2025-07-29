@@ -10,6 +10,7 @@ import po.exposify.common.events.ContextData
 import po.exposify.common.events.DTOData
 import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
+import po.lognotify.notification.models.ConsoleBehaviour
 import po.lognotify.notification.models.NotifyConfig
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
@@ -43,7 +44,7 @@ class TestUpdate : DatabaseTest(), TasksManaged {
     fun setup() = runTest {
 
         logHandler.notifierConfig {
-            console = NotifyConfig.ConsoleBehaviour.MuteNoEvents
+            console = ConsoleBehaviour.MuteNoEvents
             allowDebug(ContextData, DTOData)
         }
         val user = User(

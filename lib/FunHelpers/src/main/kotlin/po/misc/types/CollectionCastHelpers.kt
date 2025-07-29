@@ -4,7 +4,10 @@ import po.misc.exceptions.ManagedException
 import po.misc.context.CTX
 import po.misc.context.Identifiable
 import po.misc.exceptions.ManagedCallSitePayload
+import po.misc.exceptions.ManagedPayload
+import po.misc.exceptions.throwableToText
 import kotlin.reflect.KClass
+import kotlin.reflect.full.cast
 
 
 fun <T : Any> filterByType(
@@ -39,26 +42,56 @@ fun <T : Any> List<*>.castListOrManaged(
 }
 
 
-inline fun <reified BASE : Any, reified E : ManagedException> Any?.castBaseOrThrow(
-    producer: CTX? = null,
-    exceptionProvider: (message: String)-> E,
+fun <BASE : Any> Any?.castBaseOrManaged(
+    kClass : KClass<BASE>,
+    callingContext: Any,
 ): BASE {
-    try {
-        return this as BASE
-    }catch (ex: Throwable){
-        val message = if (this == null) {
-            "Cannot cast null to ${BASE::class.simpleName}"
-        }else{
-            "Cannot cast ${this::class.simpleName} to ${BASE::class.simpleName}"
-        }
-        val exception = exceptionProvider(message)
-        if(producer != null){
-            exception.throwSelf(message,  producer, ManagedException.ExceptionEvent.Thrown)
-        }else{
-            throw exception
+    val methodName = "castBaseOrManaged"
+    var message = "Cast to ${kClass.simpleName} failed."
+    if(this == null){
+        message += "Source object is null"
+        val payload = ManagedPayload(message, methodName, callingContext)
+        throw ManagedException(payload)
+    }else{
+        try {
+            val  casted = kClass.cast(this)
+            return casted
+        }catch (ex: Throwable){
+            val payload = ManagedPayload(ex.throwableToText(), methodName, callingContext)
+            throw ManagedException(payload)
         }
     }
 }
+
+
+fun <BASE : Any> Any?.castBaseOrThrow(
+    kClass : KClass<BASE>,
+    callingContext: Any,
+    exceptionProvider: (payload: ManagedCallSitePayload)-> Throwable,
+): BASE {
+    val methodName = "castBaseOrThrow"
+    var message = "Cast to ${kClass.simpleName} failed."
+    if(this == null){
+        message += "Source object is null"
+        val payload = ManagedPayload(message, methodName, callingContext)
+        throw exceptionProvider.invoke(payload)
+    }else{
+        try {
+            val  casted = kClass.cast(this)
+            return casted
+        }catch (ex: Throwable){
+            val payload = ManagedPayload(ex.throwableToText(), methodName, callingContext)
+           throw exceptionProvider.invoke(payload)
+        }
+    }
+}
+
+inline fun <reified BASE : Any> Any?.castBaseOrThrow(
+    callingContext: Any,
+    noinline exceptionProvider: (ManagedCallSitePayload)-> Throwable,
+): BASE = castBaseOrThrow(BASE::class, callingContext, exceptionProvider)
+
+
 
 inline fun <reified T> Iterable<T>.countEqualsOrException(equalsTo: Int, exception:ManagedException):Iterable<T>{
     val actualCount = this.count()
