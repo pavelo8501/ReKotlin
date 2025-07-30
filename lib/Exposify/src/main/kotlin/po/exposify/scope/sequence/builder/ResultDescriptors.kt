@@ -16,11 +16,3 @@ object PickById:SingleResultMarker()
 sealed class ListResultMarker
 
 object Select:ListResultMarker()
-
-
-
-
-//interface ListDTOResult<DTO: ModelDTO, D: DataModel>{
-//    val result: ResultList<DTO, D, *>?
-//}
-

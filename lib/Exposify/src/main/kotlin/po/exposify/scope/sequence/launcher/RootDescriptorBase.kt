@@ -13,33 +13,33 @@ import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 
 
-sealed class RootDescriptorBase<DTO, D, E>(
-    override val  dtoClass: RootDTO<DTO, D, E>
-): SequenceDescriptor<DTO, D, E>
-        where DTO: ModelDTO, D: DataModel, E: LongEntity
+sealed class RootDescriptorBase<DTO, D>(
+    override val  dtoClass: RootDTO<DTO, D, *>
+): SequenceDescriptor<DTO, D>
+        where DTO: ModelDTO, D: DataModel
 {
-    override val chunksContainerBacking: BackingContainer<SequenceChunkContainer<DTO, D, E>> = backingContainerOf()
+    override val chunksContainerBacking: BackingContainer<SequenceChunkContainer<DTO, D>> = backingContainerOf()
 
     fun  registerChunkContainer(
-        sequenceContainer: SequenceChunkContainer<DTO, D, E>
+        sequenceContainer: SequenceChunkContainer<DTO, D>
     ): Unit = chunksContainerBacking.provideValue(sequenceContainer)
 
 }
 
-class SingleDescriptor<DTO, D, E>(
-    dtoClass: RootDTO<DTO, D, E>,
+class SingleDescriptor<DTO, D>(
+    dtoClass: RootDTO<DTO, D, *>,
     val marker: SingleResultMarker
-): RootDescriptorBase<DTO, D, E>(dtoClass) where DTO: ModelDTO, D: DataModel, E: LongEntity
+): RootDescriptorBase<DTO, D>(dtoClass) where DTO: ModelDTO, D: DataModel
 {
-    override val identity: CTXIdentity<SingleDescriptor<DTO, D, E>> = asIdentity()
+    override val identity: CTXIdentity<SingleDescriptor<DTO, D>> = asIdentity()
 
 
 }
-class ListDescriptor<DTO, D, E>(
-    dtoClass: RootDTO<DTO, D, E>,
-): RootDescriptorBase<DTO, D, E>(dtoClass) where DTO: ModelDTO, D: DataModel, E: LongEntity
+class ListDescriptor<DTO, D>(
+    dtoClass: RootDTO<DTO, D, *>,
+): RootDescriptorBase<DTO, D>(dtoClass) where DTO: ModelDTO, D: DataModel
 {
-    override val identity: CTXIdentity<ListDescriptor<DTO, D, E>> = asIdentity()
+    override val identity: CTXIdentity<ListDescriptor<DTO, D>> = asIdentity()
 
 
 }

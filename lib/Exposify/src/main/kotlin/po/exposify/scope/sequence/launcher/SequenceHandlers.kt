@@ -14,18 +14,19 @@ import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 
 
-sealed class ExecutionHandlerBase<DTO, D, E>(
-): CTX where DTO: ModelDTO, D: DataModel, E : LongEntity  {
+sealed class ExecutionHandlerBase<DTO, D>(
+): CTX where DTO: ModelDTO, D: DataModel  {
 
-    override val identity: CTXIdentity<ExecutionHandlerBase<DTO, D, E>> = asIdentity()
+    override val identity: CTXIdentity<ExecutionHandlerBase<DTO, D>> = asIdentity()
 
     private val deferredQueryError = "DeferredQuery required but not provided"
-    private var deferredQueryBacking: DeferredContainer<WhereQuery<E>>? = null
+    private var deferredQueryBacking: DeferredContainer<WhereQuery<*>>? = null
+
     val isWhereQueryAvailable: Boolean get() = deferredQueryBacking != null
-    val whereQuery: DeferredContainer<WhereQuery<E>> get() {
+    val whereQuery: DeferredContainer<WhereQuery<*>> get() {
       return deferredQueryBacking.getOrOperations(this)
     }
-    internal fun provideWhereQuery(query: DeferredContainer<WhereQuery<E>>){
+    internal fun provideWhereQuery(query: DeferredContainer<WhereQuery<*>>){
         deferredQueryBacking = query
     }
 
@@ -39,11 +40,11 @@ sealed class ExecutionHandlerBase<DTO, D, E>(
     }
 }
 
-class SingleTypeHandler<DTO, D, E> internal constructor():ExecutionHandlerBase<DTO, D, E>()
-        where DTO: ModelDTO, D: DataModel, E: LongEntity
+class SingleTypeHandler<DTO, D> internal constructor():ExecutionHandlerBase<DTO, D>()
+        where DTO: ModelDTO, D: DataModel
 {
-    val descriptor: RootDescriptorBase<DTO, D, E>? = null
-    var result: ResultSingle<DTO, D, E>? = null
+    val descriptor: RootDescriptorBase<DTO, D>? = null
+    var result: ResultSingle<DTO, D>? = null
 
     private var deferredInputBacking: DeferredContainer<D>? = null
     val isDeferredInputAvailable: Boolean get() = deferredInputBacking != null
@@ -56,11 +57,11 @@ class SingleTypeHandler<DTO, D, E> internal constructor():ExecutionHandlerBase<D
 }
 
 
-class ListTypeHandler<DTO, D, E> internal constructor():ExecutionHandlerBase<DTO, D, E>()
-        where DTO : ModelDTO, D : DataModel, E : LongEntity
+class ListTypeHandler<DTO, D> internal constructor():ExecutionHandlerBase<DTO, D>()
+        where DTO : ModelDTO, D : DataModel
 {
-    private var descriptor: ListDescriptor<DTO, D, E>? = null
-    var result: ResultList<DTO, D, E>? = null
+    private var descriptor: ListDescriptor<DTO, D>? = null
+    var result: ResultList<DTO, D>? = null
 
     private var deferredInputBacking: DeferredContainer<List<D>>? = null
     val isDeferredInputAvailable: Boolean get() = deferredInputBacking != null
@@ -72,12 +73,12 @@ class ListTypeHandler<DTO, D, E> internal constructor():ExecutionHandlerBase<DTO
     }
 }
 
-class SingleTypeSwitchHandler<DTO, D, E, F, FD, FE>
+class SingleTypeSwitchHandler<DTO, D, F, FD, >
 internal constructor(
-   val descriptor: SwitchDescriptorBase<DTO, D, E, F>,
-   internal val parentDTO: CommonDTO<F, FD, FE>
-):ExecutionHandlerBase<DTO, D, E>()
-        where DTO: ModelDTO, D: DataModel, E: LongEntity, F: ModelDTO, FD : DataModel, FE : LongEntity
+   val descriptor: SwitchDescriptorBase<DTO, D, F>,
+   internal val parentDTO: CommonDTO<F, FD, *>
+):ExecutionHandlerBase<DTO, D>()
+        where DTO: ModelDTO, D: DataModel, F: ModelDTO, FD : DataModel
 {
 
     private var deferredInputBacking: DeferredContainer<D>? = null

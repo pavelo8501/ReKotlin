@@ -11,10 +11,10 @@ import po.misc.functions.containers.DeferredContainer
 
 
 
-fun <DTO, D, E> SequenceChunkContainer<DTO, D, E>.pickById(
-    handler: SingleTypeHandler<DTO, D, E>,
+fun <DTO, D> SequenceChunkContainer<DTO, D>.pickById(
+    handler: SingleTypeHandler<DTO, D>,
     configurationBlock: SingleResultChunks<DTO, D>.()->  Unit
-): DeferredContainer<ResultSingle<DTO, D, *>> where DTO: ModelDTO, D: DataModel, E : LongEntity
+): DeferredContainer<ResultSingle<DTO, D>> where DTO: ModelDTO, D: DataModel
 {
     val pickByIdChunk = PickByIdChunk.create(configurationBlock)
 
@@ -27,10 +27,10 @@ fun <DTO, D, E> SequenceChunkContainer<DTO, D, E>.pickById(
 }
 
 
-fun <DTO, D, E> SequenceChunkContainer<DTO, D, E>.select(
-    handler: ListTypeHandler<DTO, D, E>,
+fun <DTO, D> SequenceChunkContainer<DTO, D>.select(
+    handler: ListTypeHandler<DTO, D>,
     configurationBlock: ListResultChunks<DTO, D>.()->  Unit
-): DeferredContainer<ResultList<DTO, D, *>> where DTO: ModelDTO, D: DataModel, E : LongEntity
+): DeferredContainer<ResultList<DTO, D>> where DTO: ModelDTO, D: DataModel
 {
     val selectChunk = SelectChunk.create(configurationBlock)
     selectChunk.resultContainer.registerProvider {

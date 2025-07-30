@@ -24,7 +24,7 @@ internal fun <T: ExposifyResult> T.addCrudOperation(operation : CrudOperation):T
 internal fun <EX: ManagedException,  DTO:ModelDTO, D: DataModel, E : LongEntity>  EX.toResultSingle(
     operation : CrudOperation,
     dtoClass: DTOBase<DTO, D, E>
-): ResultSingle<DTO, D, E>{
+): ResultSingle<DTO, D>{
     val result =  ResultSingle(dtoClass).addCrudOperation(operation)
     return  result.addFailureCause(this)
 }
@@ -32,7 +32,7 @@ internal fun <EX: ManagedException,  DTO:ModelDTO, D: DataModel, E : LongEntity>
 internal fun <EX: ManagedException, DTO:ModelDTO, D: DataModel, E : LongEntity>  EX.toResultList(
     operation : CrudOperation,
     dtoClass: DTOBase<DTO, D, E>
-): ResultList<DTO, D, E>{
+): ResultList<DTO, D>{
     val result =  ResultList(dtoClass).addCrudOperation(operation)
     return  result.addFailureCause(this)
 }
@@ -40,7 +40,7 @@ internal fun <EX: ManagedException, DTO:ModelDTO, D: DataModel, E : LongEntity> 
 
 fun <DTO, D, E>  CommonDTO<DTO, D, E>.toResult(
     operation : CrudOperation
-): ResultSingle<DTO,D,E> where  DTO: ModelDTO, D : DataModel, E : LongEntity{
+): ResultSingle<DTO, D> where  DTO: ModelDTO, D : DataModel, E : LongEntity{
     return ResultSingle(dtoClass, this)
         .addCrudOperation(operation)
 }
@@ -48,7 +48,7 @@ fun <DTO, D, E>  CommonDTO<DTO, D, E>.toResult(
 fun <DTO, D, E>  CommonDTO<DTO, D, E>.toResult(
     failureCause: ManagedException,
     operation : CrudOperation
-): ResultSingle<DTO,D,E> where  DTO: ModelDTO, D : DataModel, E : LongEntity{
+): ResultSingle<DTO, D> where  DTO: ModelDTO, D : DataModel, E : LongEntity{
     return ResultSingle(dtoClass)
         .addFailureCause(failureCause)
         .addCrudOperation(operation)
@@ -57,7 +57,7 @@ fun <DTO, D, E>  CommonDTO<DTO, D, E>.toResult(
 fun <DTO, D, E>  List<CommonDTO<DTO, D, E>>.toResult(
     dtoClass: DTOBase<DTO, D, E>,
     operation : CrudOperation
-): ResultList<DTO, D, E>
+): ResultList<DTO, D>
         where  DTO: ModelDTO, D : DataModel, E : LongEntity {
     forEach { it.addTrackerResult(operation) }
     return ResultList(dtoClass, this)
@@ -65,7 +65,7 @@ fun <DTO, D, E>  List<CommonDTO<DTO, D, E>>.toResult(
 
 fun <DTO, D, E>  DTOBase<DTO, D, E>.toResult(
     exception:  ManagedException,
-): ResultSingle<DTO, D, E>
+): ResultSingle<DTO, D>
         where  DTO: ModelDTO, D : DataModel, E : LongEntity {
 
     return ResultSingle(this).addFailureCause(exception)
@@ -73,15 +73,15 @@ fun <DTO, D, E>  DTOBase<DTO, D, E>.toResult(
 
 
 
-fun <DTO, D, E>  ResultList<DTO, D, E>.convertToSingle(): ResultSingle<DTO, D, E>
-        where  DTO: ModelDTO, D : DataModel, E : LongEntity{
+fun <DTO, D>  ResultList<DTO, D>.convertToSingle(): ResultSingle<DTO, D>
+        where  DTO: ModelDTO, D : DataModel{
     val dtoList = this.getAsCommonDTO()
     return  ResultSingle(this.dtoClass, dtoList.firstOrNull())
 }
 
-fun <DTO, D, E>  List<ResultSingle<DTO, D, E>>.toResult(
-   dtoClass: DTOBase<DTO, D, E>
-): ResultList<DTO,D,E> where  DTO: ModelDTO, D : DataModel, E : LongEntity {
+fun <DTO, D>  List<ResultSingle<DTO, D>>.toResult(
+   dtoClass: DTOBase<DTO, D, *>
+): ResultList<DTO, D> where  DTO: ModelDTO, D : DataModel{
     val resultList = ResultList(dtoClass)
     forEach { resultList.appendDto(it) }
     return resultList

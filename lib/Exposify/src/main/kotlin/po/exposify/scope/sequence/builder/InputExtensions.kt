@@ -11,11 +11,11 @@ import po.exposify.scope.sequence.launcher.SingleTypeSwitchHandler
 import po.misc.functions.containers.DeferredContainer
 
 
-fun <DTO, D, E> SequenceChunkContainer<DTO, D, E>.update(
-    handler: SingleTypeHandler<DTO, D, E>,
+fun <DTO, D> SequenceChunkContainer<DTO, D>.update(
+    handler: SingleTypeHandler<DTO, D>,
     configurationBlock: SingleResultChunks<DTO, D>.()->  Unit
-): DeferredContainer<ResultSingle<DTO, D, *>>
-        where DTO: ModelDTO, D: DataModel, E : LongEntity{
+): DeferredContainer<ResultSingle<DTO, D>>
+        where DTO: ModelDTO, D: DataModel{
 
     val updateChunk = UpdateChunk.create(configurationBlock)
     updateChunk.resultContainer.registerProvider{
@@ -27,10 +27,10 @@ fun <DTO, D, E> SequenceChunkContainer<DTO, D, E>.update(
     return updateChunk.resultContainer
 }
 
-fun <DTO, D, E> SequenceChunkContainer<DTO, D, E>.update(
-    handler: ListTypeHandler<DTO, D, E>,
+fun <DTO, D> SequenceChunkContainer<DTO, D>.update(
+    handler: ListTypeHandler<DTO, D>,
     configurationBlock: ListResultChunks<DTO, D>.()->  Unit
-): DeferredContainer<ResultList<DTO, D, *>> where DTO: ModelDTO, D: DataModel, E : LongEntity
+): DeferredContainer<ResultList<DTO, D>> where DTO: ModelDTO, D: DataModel
 {
     val updateListChunk = UpdateListChunk.create(configurationBlock)
     updateListChunk.resultContainer.registerProvider {
@@ -43,18 +43,18 @@ fun <DTO, D, E> SequenceChunkContainer<DTO, D, E>.update(
 }
 
 
-fun <DTO, D, E> SequenceChunkContainer<DTO, D, E>.insert(
-    handler: SingleTypeHandler<DTO, D, E>,
+fun <DTO, D> SequenceChunkContainer<DTO, D>.insert(
+    handler: SingleTypeHandler<DTO, D>,
     configurationBlock: SingleResultChunks<DTO, D>.()->  Unit
-): DeferredContainer<ResultSingle<DTO, D, *>> where DTO : ModelDTO, D : DataModel, E : LongEntity = update(handler, configurationBlock)
+): DeferredContainer<ResultSingle<DTO, D>> where DTO : ModelDTO, D : DataModel = update(handler, configurationBlock)
 
 
 
-fun <DTO, D, E, F, FD, FE> SwitchChunkContainer<DTO, D, E, F, FD, FE>.update(
-    handler: SingleTypeSwitchHandler<DTO, D, E, F, FD, FE>,
+fun <DTO, D, F, FD> SwitchChunkContainer<DTO, D, F, FD>.update(
+    handler: SingleTypeSwitchHandler<DTO, D, F, FD>,
     configurationBlock: SingleResultChunks<DTO, D>.()->  Unit
-): DeferredContainer<ResultSingle<DTO, D, *>>
-        where DTO: ModelDTO, D: DataModel, E: LongEntity, F : ModelDTO, FD: DataModel, FE: LongEntity {
+): DeferredContainer<ResultSingle<DTO, D>>
+        where DTO: ModelDTO, D: DataModel, F : ModelDTO, FD: DataModel{
 
     val updateChunk = UpdateChunk.create(configurationBlock)
 

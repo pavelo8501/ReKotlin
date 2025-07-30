@@ -52,42 +52,42 @@ class ServiceContext<DTO, DATA, ENTITY>(
         notify("$statement Executed")
     }.resultOrException()
 
-    fun pick(conditions: SimpleQuery): ResultSingle<DTO, DATA, ENTITY> =
+    fun pick(conditions: SimpleQuery): ResultSingle<DTO, DATA> =
         runTask("Pick(conditions)") {
             withTransactionRestored(debugger, false){
             executionProvider.pick(conditions)
         }
     }.resultOrException()
 
-    fun pick(conditions: DeferredContainer<WhereQuery<ENTITY>>): ResultSingle<DTO, DATA, ENTITY> =
+    fun pick(conditions: DeferredContainer<WhereQuery<ENTITY>>): ResultSingle<DTO, DATA> =
         runTask("Pick(conditions)") {
             withTransactionRestored (debugger, false) {
                 executionProvider.pick(conditions.resolve())
             }
         }.resultOrException()
 
-    fun pickById(id: Long): ResultSingle<DTO, DATA, ENTITY> =
+    fun pickById(id: Long): ResultSingle<DTO, DATA> =
         runTask("Pick(id)") {
             withTransactionRestored(debugger, false) {
                 executionProvider.pickById(id)
             }
     }.resultOrException()
 
-    fun select(): ResultList<DTO, DATA, ENTITY> =
+    fun select(): ResultList<DTO, DATA> =
         runTask("Select") {
             withTransactionRestored(debugger, false) {
             executionProvider.select()
         }
     }.resultOrException()
 
-    fun select(conditions: DeferredContainer<WhereQuery<ENTITY>>):ResultList<DTO, DATA, ENTITY> =
+    fun select(conditions: DeferredContainer<WhereQuery<ENTITY>>):ResultList<DTO, DATA> =
         runTask("Select(with conditions)") {
             withTransactionRestored(debugger, false) {
                 executionProvider.select(conditions.resolve())
             }
         }.resultOrException()
 
-    fun update(dataModel: DATA): ResultSingle<DTO, DATA, ENTITY> =
+    fun update(dataModel: DATA): ResultSingle<DTO, DATA> =
         runTask("Update"){
             withTransactionRestored(debugger, false) {
             executionProvider.update(dataModel, dtoClass)
@@ -97,7 +97,7 @@ class ServiceContext<DTO, DATA, ENTITY>(
             notify(exception.throwableToText(), SeverityLevel.EXCEPTION)
     } .resultOrException()
 
-    fun update(dataModels: List<DATA>): ResultList<DTO, DATA, ENTITY> =
+    fun update(dataModels: List<DATA>): ResultList<DTO, DATA> =
         runTask("Update") {
             withTransactionRestored(debugger, false) {
             executionProvider.update(dataModels, dtoClass)
@@ -111,16 +111,16 @@ class ServiceContext<DTO, DATA, ENTITY>(
         }
     }.resultOrException()
 
-    fun insert(dataModels: List<DATA>): ResultList<DTO, DATA, ENTITY>{
+    fun insert(dataModels: List<DATA>): ResultList<DTO, DATA>{
         return insert("Insert(List<${dataType.typeName}>)", dataModels)
     }
 
-    fun insert(dataModel: DATA): ResultSingle<DTO, DATA, ENTITY>{
+    fun insert(dataModel: DATA): ResultSingle<DTO, DATA>{
         return insert("Insert(${dataType.typeName})", listOf(dataModel)).convertToSingle()
     }
 
 
-    fun delete(toDelete: DATA): ResultList<DTO, DATA, ENTITY>? =
+    fun delete(toDelete: DATA): ResultList<DTO, DATA>? =
         runTask("Delete"){
             withTransactionRestored(debugger, false) {
             executionProvider.delete(toDelete)

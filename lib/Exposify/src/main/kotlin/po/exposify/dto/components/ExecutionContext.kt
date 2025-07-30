@@ -35,7 +35,7 @@ sealed class ExecutionContext<DTO, DATA, ENTITY>(
 
     private val daoService: DAOService<DTO, DATA, ENTITY> get() = dtoClass.dtoConfiguration.daoService
 
-    fun insert(data: DATA): ResultSingle<DTO, DATA, ENTITY> {
+    fun insert(data: DATA): ResultSingle<DTO, DATA> {
         val operation = CrudOperation.Insert
         if (dtoClass is RootDTO){
            val dto = dtoClass.newDTO().hub.loadHierarchyByData(data, dtoClass)
@@ -45,7 +45,7 @@ sealed class ExecutionContext<DTO, DATA, ENTITY>(
         }
     }
 
-    fun pickById(id: Long): ResultSingle<DTO, DATA, ENTITY> {
+    fun pickById(id: Long): ResultSingle<DTO, DATA> {
         val operation = CrudOperation.Pick
         return dtoClass.lookupDTO(id)?.toResult(operation)?:run {
             val result = dtoClass.dtoConfiguration.daoService.pickById(id)
@@ -58,7 +58,7 @@ sealed class ExecutionContext<DTO, DATA, ENTITY>(
         }
     }
 
-    fun pick(conditions: SimpleQuery): ResultSingle<DTO, DATA, ENTITY> {
+    fun pick(conditions: SimpleQuery): ResultSingle<DTO, DATA> {
         val operation = CrudOperation.Pick
 
         val entity = dtoClass.dtoConfiguration.daoService.pick(conditions)
@@ -72,7 +72,7 @@ sealed class ExecutionContext<DTO, DATA, ENTITY>(
         }
     }
 
-    fun select(): ResultList<DTO, DATA, ENTITY> {
+    fun select(): ResultList<DTO, DATA> {
         val operation = CrudOperation.Select
         val entities =  dtoClass.dtoConfiguration.daoService.select()
         return entities.map {
@@ -81,7 +81,7 @@ sealed class ExecutionContext<DTO, DATA, ENTITY>(
         }.toResult(dtoClass, operation)
     }
 
-    fun select(conditions: SimpleQuery): ResultList<DTO, DATA, ENTITY> {
+    fun select(conditions: SimpleQuery): ResultList<DTO, DATA> {
         val operation = CrudOperation.Select
         val entities = daoService.select(conditions)
         val dtos = entities.map {
@@ -93,7 +93,7 @@ sealed class ExecutionContext<DTO, DATA, ENTITY>(
         return dtos.toResult(dtoClass, operation)
     }
 
-    fun select(conditions: WhereQuery<ENTITY>): ResultList<DTO, DATA, ENTITY> {
+    fun select(conditions: WhereQuery<ENTITY>): ResultList<DTO, DATA> {
         val operation = CrudOperation.Select
         val entities =  daoService.select(conditions)
         val dtos = entities.map {
@@ -105,7 +105,7 @@ sealed class ExecutionContext<DTO, DATA, ENTITY>(
         return dtos.toResult(dtoClass, operation)
     }
 
-    fun update(dataModel: DATA, initiator: CTX): ResultSingle<DTO, DATA, ENTITY> {
+    fun update(dataModel: DATA, initiator: CTX): ResultSingle<DTO, DATA> {
         val operation = CrudOperation.Update
         if (dataModel.id == 0L) {
             return insert(dataModel)
@@ -120,7 +120,7 @@ sealed class ExecutionContext<DTO, DATA, ENTITY>(
         }
     }
 
-    fun updateSingle(dataModel: DATA, initiator: CTX): ResultSingle<DTO, DATA, ENTITY> {
+    fun updateSingle(dataModel: DATA, initiator: CTX): ResultSingle<DTO, DATA> {
         val operation = CrudOperation.Update
         if (dataModel.id == 0L) {
             return insert(dataModel)
@@ -136,11 +136,11 @@ sealed class ExecutionContext<DTO, DATA, ENTITY>(
         }
     }
 
-    fun update(dataModels: List<DATA>,  initiator: CTX): ResultList<DTO, DATA, ENTITY> {
+    fun update(dataModels: List<DATA>,  initiator: CTX): ResultList<DTO, DATA> {
         return dataModels.map { update(it, initiator) }.toResult(dtoClass)
     }
 
-    fun insert(dataModels: List<DATA>): ResultList<DTO, DATA, ENTITY> {
+    fun insert(dataModels: List<DATA>): ResultList<DTO, DATA> {
         val result = dataModels.map { dataModel ->
             dataModel.id = 0
             insert(dataModel)
@@ -148,7 +148,7 @@ sealed class ExecutionContext<DTO, DATA, ENTITY>(
         return result
     }
 
-    fun delete(dataModel: DATA): ResultSingle<DTO, DATA, ENTITY>{
+    fun delete(dataModel: DATA): ResultSingle<DTO, DATA>{
         TODO("Not yet implemented")
     }
 }

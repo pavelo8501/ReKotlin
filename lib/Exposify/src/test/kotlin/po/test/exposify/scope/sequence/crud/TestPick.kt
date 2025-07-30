@@ -70,7 +70,7 @@ class TestPick: DatabaseTest(), TasksManaged {
         val result =  with(mockedSession){
             launch(PageDTO.PICK, idToPick)
         }
-        assertIs<ResultSingle<*, *, *>>(result)
+        assertIs<ResultSingle<*, *>>(result)
         val persistedPage = assertNotNull(result.data)
         assertEquals(idToPick, persistedPage.id)
     }

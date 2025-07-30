@@ -39,38 +39,38 @@ class SequenceContext<DTO, D, E>(
         }
     }
 
-    private fun submitLatestResult(result :  ResultList<DTO, D, E>):ResultList<DTO, D, E>{
+    private fun submitLatestResult(result :  ResultList<DTO, D>):ResultList<DTO, D>{
      //  sequenceHandler.provideFinalResult(result)
        return result
     }
-    private fun submitLatestResult(result :  ResultSingle<DTO, D, E>): ResultSingle<DTO, D, E>{
+    private fun submitLatestResult(result :  ResultSingle<DTO, D>): ResultSingle<DTO, D>{
      //   latestSingleResult = result
       //  sequenceHandler.provideFinalResult(result)
         return result
     }
 
-    fun pick(conditions: SimpleQuery): ResultSingle<DTO, D, E> =
+    fun pick(conditions: SimpleQuery): ResultSingle<DTO, D> =
         runTask("Pick") {
         onFirsRun()
         val result = executionContext.pick(conditions)
         submitLatestResult(result)
     }.resultOrException()
 
-    fun pickById(id: Long): ResultSingle<DTO, D, E> =
+    fun pickById(id: Long): ResultSingle<DTO, D> =
         runTask("PickById") {
         onFirsRun()
         val result = executionContext.pickById(id)
         submitLatestResult(result)
     }.resultOrException()
 
-    fun select(conditions: SimpleQuery):ResultList<DTO, D, E> =
+    fun select(conditions: SimpleQuery):ResultList<DTO, D> =
         runTask("Select") {
         onFirsRun()
         val result = executionContext.select(conditions)
         submitLatestResult(result)
     }.resultOrException()
 
-    fun select():ResultList<DTO, D, E> =
+    fun select():ResultList<DTO, D> =
         runTask("Select") {
         onFirsRun()
         val result = executionContext.select()

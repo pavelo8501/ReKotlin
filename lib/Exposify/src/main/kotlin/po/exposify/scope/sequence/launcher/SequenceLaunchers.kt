@@ -21,13 +21,13 @@ import po.misc.functions.containers.DeferredContainer
 
 
 
-private suspend fun <DTO, D, E> launchExecutionList(
-    launchDescriptor: ListDescriptor<DTO, D, E>,
+private suspend fun <DTO, D> launchExecutionList(
+    launchDescriptor: ListDescriptor<DTO, D>,
     session: AuthorizedSession,
     parameter: Long? = null,
     inputData:List<D>? = null,
-    query: DeferredContainer<WhereQuery<E>>? = null
-): ResultList<DTO, D, E> where DTO: ModelDTO, D:DataModel, E: LongEntity
+    query: DeferredContainer<WhereQuery<*>>? = null
+): ResultList<DTO, D> where DTO: ModelDTO, D:DataModel
 {
     val wrongBranchMsg = "LaunchExecutionResultSingle else branch should have never be reached"
 
@@ -41,7 +41,7 @@ private suspend fun <DTO, D, E> launchExecutionList(
     val emitter = service.requestEmitter(session)
 
     return emitter.dispatchList {
-        var effectiveResult: ResultList<DTO, D, E>? = null
+        var effectiveResult: ResultList<DTO, D>? = null
         withTransactionIfNone(container.debugger, warnIfNoTransaction = false) {
 
             if(query != null){
@@ -73,26 +73,26 @@ private suspend fun <DTO, D, E> launchExecutionList(
 
 
 
-suspend fun <DTO, D, E> AuthorizedSession.launch(
-    launchDescriptor: ListDescriptor<DTO, D, E>,
-    deferredQuery: DeferredContainer<WhereQuery<E>>,
-): ResultList<DTO, D, *> where DTO : ModelDTO, D : DataModel, E: LongEntity {
+suspend fun <DTO, D> AuthorizedSession.launch(
+    launchDescriptor: ListDescriptor<DTO, D>,
+    deferredQuery: DeferredContainer<WhereQuery<*>>,
+): ResultList<DTO, D> where DTO : ModelDTO, D : DataModel{
     return launchExecutionList(launchDescriptor, this,  query = deferredQuery)
 }
 
-suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity> AuthorizedSession.launch(
-    launchDescriptor: ListDescriptor<DTO, D, E>,
-): ResultList<DTO, D, *> = launchExecutionList(launchDescriptor, this)
+suspend fun <DTO: ModelDTO, D: DataModel> AuthorizedSession.launch(
+    launchDescriptor: ListDescriptor<DTO, D>,
+): ResultList<DTO, D> = launchExecutionList(launchDescriptor, this)
 
 
 
-private suspend fun <DTO, D, E> launchExecutionSingle(
-    launchDescriptor: SingleDescriptor<DTO, D, E>,
+private suspend fun <DTO, D> launchExecutionSingle(
+    launchDescriptor: SingleDescriptor<DTO, D>,
     session: AuthorizedSession,
     parameter: Long? = null,
     inputData:D? = null,
-    query: DeferredContainer<WhereQuery<E>>? = null,
-): ResultSingle<DTO, D, E> where DTO : ModelDTO, D : DataModel, E : LongEntity
+    query: DeferredContainer<WhereQuery<*>>? = null,
+): ResultSingle<DTO, D> where DTO : ModelDTO, D : DataModel
 {
     val wrongBranchMsg = "LaunchExecutionResultSingle else branch should have never be reached"
 
@@ -107,7 +107,7 @@ private suspend fun <DTO, D, E> launchExecutionSingle(
 
     val emitter = service.requestEmitter(session)
     return emitter.dispatchSingle {
-        var effectiveResult: ResultSingle<DTO, D, E>? = null
+        var effectiveResult: ResultSingle<DTO, D>? = null
 
         if(parameter != null){
             val deferredParameter = DeferredContainer<Long>(launchDescriptor){ parameter }
@@ -142,12 +142,12 @@ private suspend fun <DTO, D, E> launchExecutionSingle(
     }
 }
 
-suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity> AuthorizedSession.launch(
-    launchDescriptor: SingleDescriptor<DTO, D, E>,
+suspend fun <DTO: ModelDTO, D: DataModel> AuthorizedSession.launch(
+    launchDescriptor: SingleDescriptor<DTO, D>,
     parameter: Long
-): ResultSingle<DTO, D, *> = launchExecutionSingle(launchDescriptor, this, parameter = parameter)
+): ResultSingle<DTO, D> = launchExecutionSingle(launchDescriptor, this, parameter = parameter)
 
-suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity>  AuthorizedSession.launch(
-    launchDescriptor: SingleDescriptor<DTO, D, E>,
+suspend fun <DTO: ModelDTO, D: DataModel>  AuthorizedSession.launch(
+    launchDescriptor: SingleDescriptor<DTO, D>,
     inputData: D,
-): ResultSingle<DTO, D, *> = launchExecutionSingle(launchDescriptor, this,  inputData = inputData)
+): ResultSingle<DTO, D> = launchExecutionSingle(launchDescriptor, this,  inputData = inputData)

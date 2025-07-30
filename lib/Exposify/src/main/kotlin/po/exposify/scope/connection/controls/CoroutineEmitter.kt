@@ -15,7 +15,7 @@ class CoroutineEmitter(
     val session : AuthorizedSession
 ){
 
-    suspend fun <DTO:ModelDTO, D: DataModel, E: LongEntity>dispatchSingle(block:suspend ()-> ResultSingle<DTO,D,E>): ResultSingle<DTO, D, E>{
+    suspend fun <DTO:ModelDTO, D: DataModel>dispatchSingle(block:suspend ()-> ResultSingle<DTO, D>): ResultSingle<DTO, D>{
         return session.runProcess("Sequence dispatch", Dispatchers.IO){
             newSuspendedTransaction(coroutineContext) {
                 block.invoke()
@@ -23,7 +23,7 @@ class CoroutineEmitter(
         }
     }
 
-    suspend fun <DTO:ModelDTO, D: DataModel, E: LongEntity>dispatchList(block:suspend ()-> ResultList<DTO,D,E>): ResultList<DTO, D, E>{
+    suspend fun <DTO:ModelDTO, D: DataModel>dispatchList(block:suspend ()-> ResultList<DTO, D>): ResultList<DTO, D>{
         return session.runProcess("Sequence dispatch", Dispatchers.IO){
             newSuspendedTransaction(coroutineContext) {
                 block.invoke()

@@ -72,7 +72,7 @@ class TestUpdate: DatabaseTest(), TasksManaged {
             launch(PageDTO.Update, updatedPage)
         }
 
-        assertIs<ResultSingle<*, *, *>>(result)
+        assertIs<ResultSingle<*, *>>(result)
         val updatedData = assertNotNull(result.data, "Result failure")
         assertEquals(updateValue, updatedData.name, "Page data was not updated")
         val pageDTO = assertNotNull(result.dto, "Result failure")

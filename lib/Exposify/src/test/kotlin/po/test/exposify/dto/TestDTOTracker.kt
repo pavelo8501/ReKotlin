@@ -58,7 +58,7 @@ class TestDTOTracker: DatabaseTest(), TasksManaged {
     @Test
     fun `Information updated and stored`() = runTest{
 
-        var updateResult : ResultSingle<PageDTO, Page, PageEntity>? = null
+        var updateResult : ResultSingle<PageDTO, Page>? = null
         val page = pagesSectionsContentBlocks(
             pageCount = 1,
             sectionsCount = 1,

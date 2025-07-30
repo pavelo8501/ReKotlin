@@ -38,14 +38,14 @@ sealed class ExecutionChunkBase<DTO, D>() : CTX
 
     val healthMonitor: HealthMonitor<ExecutionChunkBase<DTO, D>> = HealthMonitor(this)
 
-    val switchContainers: MutableMap<TypeData<*>, SwitchChunkContainer<*, *, *, DTO, D, *>> = mutableMapOf()
+    val switchContainers: MutableMap<TypeData<*>, SwitchChunkContainer<*, *, DTO, D>> = mutableMapOf()
 
     abstract fun configure()
 
     fun <FD: DataModel> registerSwitchContainer(
-        container: SwitchChunkContainer<*, *, *, DTO, D, *>,
+        container: SwitchChunkContainer<*, *, DTO, D>,
         foreignDataType: TypeData<FD>,
-    ): SwitchChunkContainer<*, *, *, DTO, D, *> {
+    ): SwitchChunkContainer<*, *, DTO, D> {
         switchContainers.put(foreignDataType, container)
         return container
     }
@@ -60,9 +60,9 @@ sealed class SingleResultChunks<DTO, D>(
 
     internal val configContainer: LambdaHolder<SingleResultChunks<DTO, D>> = LambdaHolder(this)
 
-    var activeResult: ResultSingle<DTO, D, *>? = null
-    val resultContainer: DeferredContainer<ResultSingle<DTO, D, *>> = DeferredContainer(this)
-    val withResultContainer: LambdaHolder<ResultSingle<DTO, D, *>> = LambdaHolder(this)
+    var activeResult: ResultSingle<DTO, D>? = null
+    val resultContainer: DeferredContainer<ResultSingle<DTO, D>> = DeferredContainer(this)
+    val withResultContainer: LambdaHolder<ResultSingle<DTO, D>> = LambdaHolder(this)
 
     init {
         configContainer.registerProvider(configurationBlock)
@@ -80,7 +80,7 @@ sealed class SingleResultChunks<DTO, D>(
 //        return switchContainer
 //    }
 
-    fun computeResult():ResultSingle<DTO, D, *>{
+    fun computeResult():ResultSingle<DTO, D>{
         val result = resultContainer.resolve()
         if(withResultContainer.isLambdaProvided){
             withResultContainer.resolve(result)
@@ -147,16 +147,16 @@ sealed class ListResultChunks<DTO, D>(
 ):ExecutionChunkBase<DTO, D>(), CTX
         where DTO : ModelDTO, D : DataModel
 {
-    protected var activeResult: ResultList<DTO, D, *>? = null
+    protected var activeResult: ResultList<DTO, D>? = null
     internal val configContainer: LambdaHolder<ListResultChunks<DTO, D>> = LambdaHolder(this)
-    val resultContainer: DeferredContainer<ResultList<DTO, D, *>> = DeferredContainer(this)
-    val withResultContainer: LambdaHolder<ResultList<DTO, D, *>> = LambdaHolder(this)
+    val resultContainer: DeferredContainer<ResultList<DTO, D>> = DeferredContainer(this)
+    val withResultContainer: LambdaHolder<ResultList<DTO, D>> = LambdaHolder(this)
 
     init {
         configContainer.registerProvider(configurationBlock)
     }
 
-    fun computeResult():ResultList<DTO, D, *>{
+    fun computeResult():ResultList<DTO, D>{
         val result = resultContainer.resolve()
         if(withResultContainer.isLambdaProvided){
             withResultContainer.resolve(result)

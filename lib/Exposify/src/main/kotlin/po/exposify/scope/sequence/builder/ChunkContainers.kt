@@ -18,9 +18,9 @@ import po.misc.context.asIdentity
 import po.misc.context.asSubIdentity
 import po.misc.types.TypeData
 
-sealed class ChunkContainer<DTO, D, E>(
+sealed class ChunkContainer<DTO, D>(
 
-)  where DTO: ModelDTO, D: DataModel, E: LongEntity{
+)  where DTO: ModelDTO, D: DataModel{
 
     private val executionChunks: MutableList<ExecutionChunkBase<DTO, D>> = mutableListOf()
     val chunks:List<ExecutionChunkBase<DTO, D>> get () = executionChunks.toList()
@@ -41,24 +41,24 @@ sealed class ChunkContainer<DTO, D, E>(
 }
 
 @SequenceDSL
-class SequenceChunkContainer<DTO, D, E>(
-    val execContext: RootExecutionContext<DTO, D, E>,
+class SequenceChunkContainer<DTO, D>(
+    val execContext: RootExecutionContext<DTO, D, *>,
     val providedId: Long = 0
-):ChunkContainer<DTO, D, E>(), TasksManaged where DTO: ModelDTO, D: DataModel, E: LongEntity {
+):ChunkContainer<DTO, D>(), TasksManaged where DTO: ModelDTO, D: DataModel{
 
     override val identity = asIdentity(providedId)
 
 
     internal val debugger = exposifyDebugger(this, ContextData.Companion) { ContextData(it.message) }
 
-    val listTypeHandler:  ListTypeHandler<DTO, D, E> = ListTypeHandler()
-    val singleTypeHandler: SingleTypeHandler<DTO, D, E> = SingleTypeHandler()
+    val listTypeHandler:  ListTypeHandler<DTO, D> = ListTypeHandler()
+    val singleTypeHandler: SingleTypeHandler<DTO, D> = SingleTypeHandler()
 
-    fun <F: ModelDTO, FD : DataModel, FE: LongEntity> singleSwitchContainers(
+    fun <F: ModelDTO, FD : DataModel> singleSwitchContainers(
         typeData: TypeData<FD>,
-    ): List<SwitchChunkContainer<F, FD, FE, DTO, D, E>> {
+    ): List<SwitchChunkContainer<F, FD, DTO, D>> {
         val singleChunksWithSwitch = singleResultChunks.mapNotNull { it.switchContainers[typeData] }
-        return singleChunksWithSwitch.filterIsInstance<SwitchChunkContainer<F, FD, FE, DTO, D, E>>()
+        return singleChunksWithSwitch.filterIsInstance<SwitchChunkContainer<F, FD, DTO, D>>()
 
         //val singleChunksWithSwitch = singleResultChunks.filter { it.switchContainers.isNotEmpty() }
 
@@ -67,18 +67,18 @@ class SequenceChunkContainer<DTO, D, E>(
 
 
 @SwitchDSL
-class SwitchChunkContainer<DTO, D, E, F, FD, FE>(
-    val descriptor:  SwitchDescriptorBase<DTO, D, E, F>,
-    val parentDTO: CommonDTO<F, FD, FE>,
+class SwitchChunkContainer<DTO, D, F, FD>(
+    val descriptor:  SwitchDescriptorBase<DTO, D, F>,
+    val parentDTO: CommonDTO<F, FD, *>,
     val hostingChunk: ExecutionChunkBase<F, FD>,
-): ChunkContainer<DTO, D, E>(), TasksManaged
-        where DTO: ModelDTO, D: DataModel, E : LongEntity, F: ModelDTO, FD: DataModel, FE : LongEntity
+): ChunkContainer<DTO, D>(), TasksManaged
+        where DTO: ModelDTO, D: DataModel, F: ModelDTO, FD: DataModel
 {
     override val identity = asSubIdentity(this, descriptor.dtoClass)
 
     internal val debugger = exposifyDebugger(this, ContextData.Companion){ ContextData(it.message) }
 
-    val singleTypeSwitchHandler: SingleTypeSwitchHandler<DTO, D, E, F, FD, FE> = SingleTypeSwitchHandler(descriptor, parentDTO)
+    val singleTypeSwitchHandler: SingleTypeSwitchHandler<DTO, D, F, FD> = SingleTypeSwitchHandler(descriptor, parentDTO)
 
 }
 

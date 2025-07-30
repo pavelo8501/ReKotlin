@@ -9,8 +9,9 @@ import po.misc.containers.BackingContainer
 import po.misc.context.CTX
 import po.misc.types.TypeData
 
-interface SequenceDescriptor<DTO: ModelDTO, D: DataModel, E: LongEntity> : CTX{
-    val  dtoClass: DTOBase<DTO, D, E>
+
+interface SequenceDescriptor<DTO: ModelDTO, D: DataModel> : CTX{
+    val  dtoClass: DTOBase<DTO, D, *>
     val inputType: TypeData<D> get() = dtoClass.commonDTOType.dataType
-    val chunksContainerBacking: BackingContainer<SequenceChunkContainer<DTO, D, E>>
+    val chunksContainerBacking: BackingContainer<SequenceChunkContainer<DTO, D>>
 }

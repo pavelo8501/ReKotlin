@@ -1,6 +1,5 @@
 package po.exposify.dto.components.result
 
-import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
 import po.exposify.dto.components.tracker.CrudOperation
@@ -40,10 +39,10 @@ sealed class ResultBase<DTO, D, R: Any>(
     val isFaulty: Boolean get() = failureCause != null || result == null
 }
 
-class ResultList<DTO, D, E> internal constructor(
-    override val dtoClass: DTOBase<DTO, D, E>,
-    private var resultBacking : List<CommonDTO<DTO, D, E>> = emptyList()
-):ResultBase<DTO, D, List<CommonDTO<DTO, D, E>>>(dtoClass, resultBacking) where DTO: ModelDTO, D: DataModel, E : LongEntity {
+class ResultList<DTO, D> internal constructor(
+    override val dtoClass: DTOBase<DTO, D, *>,
+    private var resultBacking : List<CommonDTO<DTO, D, *>> = emptyList()
+):ResultBase<DTO, D, List<CommonDTO<DTO, D, *>>>(dtoClass, resultBacking) where DTO: ModelDTO, D: DataModel{
 
     override val identity: CTXIdentity<out CTX> = asSubIdentity(this, dtoClass)
 
@@ -57,37 +56,37 @@ class ResultList<DTO, D, E> internal constructor(
 
     val data: List<D> get() = resultBacking.map { it.dataContainer.getValue(this) }
 
-    fun addResult(list: List<CommonDTO<DTO, D, E>>): ResultList<DTO, D, E> {
+    fun addResult(list: List<CommonDTO<DTO, D, *>>): ResultList<DTO, D> {
         result = list.toMutableList()
         return this
     }
 
-    internal fun appendDto(dto: CommonDTO<DTO, D, E>): ResultList<DTO, D, E> {
+    internal fun appendDto(dto: CommonDTO<DTO, D, *>): ResultList<DTO, D> {
         val mutable = resultBacking.toMutableList()
         mutable.add(dto)
         result = mutable.toList()
         return this
     }
 
-    internal fun appendDto(single: ResultSingle<DTO, D, E>): ResultList<DTO, D, E> {
+    internal fun appendDto(single: ResultSingle<DTO, D>): ResultList<DTO, D> {
         appendDto(single.getAsCommonDTOForced())
         return this
     }
 
-    fun getTrackers(): List<DTOTracker<DTO, D, E>>{
+    fun getTrackers(): List<DTOTracker<DTO, D, *>>{
         return resultBacking.map { it.tracker }
     }
 
-    internal fun getAsCommonDTO(): List<CommonDTO<DTO, D, E>> {
+    internal fun getAsCommonDTO(): List<CommonDTO<DTO, D, *>> {
         return resultBacking
     }
 
 }
 
-class ResultSingle<DTO, D, E> internal constructor(
-    override val dtoClass: DTOBase<DTO, D, E>,
-    private var initialResult: CommonDTO<DTO, D, E>? = null
-): ResultBase<DTO, D, CommonDTO<DTO, D, E>>(dtoClass, initialResult), ExposifyResult where DTO : ModelDTO, D: DataModel, E : LongEntity {
+class ResultSingle<DTO, D> internal constructor(
+    override val dtoClass: DTOBase<DTO, D, *>,
+    private var initialResult: CommonDTO<DTO, D, *>? = null
+): ResultBase<DTO, D, CommonDTO<DTO, D, *>>(dtoClass, initialResult), ExposifyResult where DTO : ModelDTO, D: DataModel{
 
     override val identity: CTXIdentity<out CTX> = asSubIdentity(this, dtoClass)
 
@@ -101,15 +100,15 @@ class ResultSingle<DTO, D, E> internal constructor(
     val dto: DTO? get() = result?.asDTO()
     val data: D? get() = result?.dataContainer?.value
 
-    private fun getCommonForced(): CommonDTO<DTO, D, E>{
+    private fun getCommonForced(): CommonDTO<DTO, D, *>{
       return  result?: throw noResultException
     }
 
-    internal fun getAsCommonDTO(): CommonDTO<DTO, D, E>? {
+    internal fun getAsCommonDTO(): CommonDTO<DTO, D, *>? {
         return result
     }
 
-    internal fun getAsCommonDTOForced(): CommonDTO<DTO, D, E> {
+    internal fun getAsCommonDTOForced(): CommonDTO<DTO, D, *> {
         return result.getOrOperations(this)
     }
 
@@ -122,7 +121,7 @@ class ResultSingle<DTO, D, E> internal constructor(
         return dto.dataContainer.getValue(this)
     }
 
-    fun getTracker():DTOTracker<DTO, D, E>?{
+    fun getTracker():DTOTracker<DTO, D, *>?{
         return result?.tracker
     }
 

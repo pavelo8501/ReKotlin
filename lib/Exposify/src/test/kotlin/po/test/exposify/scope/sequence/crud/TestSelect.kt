@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import po.exposify.dto.components.query.deferredQuery
+import po.exposify.dto.components.query.deferredQuery2
 import po.exposify.dto.components.result.ResultList
 import po.exposify.scope.sequence.builder.select
 import po.exposify.scope.sequence.builder.sequenced
@@ -67,7 +68,7 @@ class TestSelect: DatabaseTest(), TasksManaged  {
     fun `Sequenced SELECT statement`(): TestResult = runTest{
 
         val result = with(mockedSession){ launch(PageDTO.Select) }
-        assertIs<ResultList<*, *, *>>(result)
+        assertIs<ResultList<*, *>>(result)
         assertTrue(!result.isFaulty)
         assertEquals(2, result.dto.size)
     }
@@ -77,7 +78,7 @@ class TestSelect: DatabaseTest(), TasksManaged  {
 
         val queriedPageName = "Page_2"
         val result = with(mockedSession){
-            launch(PageDTO.Select, deferredQuery(PageDTO) { equals(Pages.name, queriedPageName) } )
+            launch(PageDTO.Select, deferredQuery2(PageDTO) { equals(Pages.name, queriedPageName) })
         }
         assertEquals(1, result.dto.size)
         val persistedPage = assertNotNull(result.data.firstOrNull())
