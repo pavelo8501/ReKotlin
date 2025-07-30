@@ -20,7 +20,6 @@ import po.lognotify.TasksManaged
 import po.misc.containers.BackingContainer
 import po.misc.containers.LazyBackingContainer
 import po.misc.containers.ReactiveMap
-import po.misc.containers.TypedBackingContainer
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
@@ -55,7 +54,6 @@ sealed class CommonDTOBase<DTO, D, E>(
     val onStatusUpdated: TaggedLambdaRegistry<DTOEvents, CommonDTO<DTO, D, E>> = TaggedLambdaRegistry(DTOEvents::class.java)
 
     val executionContextMap: ReactiveMap<CommonDTOType<*, *, *>, DTOExecutionContext<*, *, *, DTO, D, E>> = ReactiveMap()
-
     val executionContextsCount: Int get() = executionContextMap.size
 
     init {
@@ -83,7 +81,6 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
    dtoClass: DTOBase<DTO, DATA, ENTITY>
 ): CommonDTOBase<DTO, DATA, ENTITY>(dtoClass) where DTO:ModelDTO,  DATA: DataModel , ENTITY: LongEntity {
 
-
     override val identity: CTXIdentity<CommonDTO<DTO, DATA, ENTITY>> = asIdentity()
 
     override val dtoId : DTOId<DTO> = DTOId(UUID.randomUUID().hashCode().toLong())
@@ -92,8 +89,9 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     override val hub: BindingHub<DTO, DATA, ENTITY> =  BindingHub(this)
 
     val dataContainer : BackingContainer<DATA> = BackingContainer(commonType.dataType)
+
     val entityContainer : BackingContainer<ENTITY> = BackingContainer(commonType.entityType)
-    val parentDTO: TypedBackingContainer<CommonDTO<*, *, *>> = TypedBackingContainer()
+    val parentDTO: LazyBackingContainer<CommonDTO<*, *, *>> = LazyBackingContainer()
 
     init {
         identity.setNamePattern { "CommonDTO[${commonType.dataType.simpleName}#${dtoId.id}]" }
@@ -110,7 +108,6 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
     fun <F: ModelDTO, FD: DataModel, FE: LongEntity> registerParentDTO(dto: CommonDTO<F, FD, FE>){
         parentDTO.provideValue(dto)
     }
-
     private var idBacking: Long = -1L
     override var id: Long = idBacking
         set(value){
@@ -121,7 +118,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
 
     fun updateId(providedId: Long) {
         id = providedId
-        if(dataContainer.isSourceAvailable){
+        if(dataContainer.isValueAvailable){
             dataContainer.getValue(this).id = providedId
         }
     }
@@ -131,7 +128,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
             val entityId = entity.id.value
             updateId(entityId)
         }
-        entityContainer.provideSource(entity)
+        entityContainer.provideValue(entity)
         updateStatus(dtoStatus)
         return entity
     }
@@ -139,7 +136,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         if(data.id != 0L){
             id = data.id
         }
-        dataContainer.provideSource(data)
+        dataContainer.provideValue(data)
         updateStatus(dtoStatus)
         return data
     }

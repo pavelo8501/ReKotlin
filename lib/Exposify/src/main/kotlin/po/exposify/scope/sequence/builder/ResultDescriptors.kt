@@ -10,8 +10,8 @@ sealed class SingleResultMarker
 
 object SelectSingle:SingleResultMarker()
 object InsertSingle:SingleResultMarker()
-object PickById:SingleResultMarker()
 object UpdateSingle:SingleResultMarker()
+object PickById:SingleResultMarker()
 
 sealed class ListResultMarker
 

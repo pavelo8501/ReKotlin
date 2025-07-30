@@ -6,6 +6,7 @@ import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.initException
 import po.exposify.exceptions.operationsException
 import po.misc.context.CTX
+import po.misc.types.TypeData
 import po.misc.types.castOrThrow
 import po.misc.types.getOrThrow
 import kotlin.reflect.KClass
@@ -29,6 +30,15 @@ internal fun <T : Any> T?.getOrOperations(
     callingContext: CTX
 ): T {
     return  getOrThrow(kClass, callingContext){payload->
+        operationsException(payload.setCode(ExceptionCode.VALUE_IS_NULL))
+    }
+}
+
+internal fun <T : Any> T?.getOrOperations(
+    typeData: TypeData<T>,
+    callingContext: CTX
+): T {
+    return  getOrThrow(typeData.kClass, callingContext){payload->
         operationsException(payload.setCode(ExceptionCode.VALUE_IS_NULL))
     }
 }

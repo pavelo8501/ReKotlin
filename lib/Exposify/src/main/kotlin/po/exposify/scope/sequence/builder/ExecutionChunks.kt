@@ -49,7 +49,6 @@ sealed class ExecutionChunkBase<DTO, D>() : CTX
         switchContainers.put(foreignDataType, container)
         return container
     }
-
 }
 
 
@@ -152,8 +151,6 @@ sealed class ListResultChunks<DTO, D>(
     internal val configContainer: LambdaHolder<ListResultChunks<DTO, D>> = LambdaHolder(this)
     val resultContainer: DeferredContainer<ResultList<DTO, D, *>> = DeferredContainer(this)
     val withResultContainer: LambdaHolder<ResultList<DTO, D, *>> = LambdaHolder(this)
-
-
 
     init {
         configContainer.registerProvider(configurationBlock)

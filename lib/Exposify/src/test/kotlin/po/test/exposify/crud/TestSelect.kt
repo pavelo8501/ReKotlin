@@ -93,7 +93,7 @@ class TestSelect : DatabaseTest(), TasksManaged {
                 PageDTO.clearCachedDTOs()
                 truncate()
                 update(initialPage).getDataForced()
-                persistedPages = select().getData()
+                persistedPages = select().data
             }
         }
         assertEquals(1, persistedPages.size, "Selected page count dos not match saved")
@@ -157,8 +157,8 @@ class TestSelect : DatabaseTest(), TasksManaged {
         withConnection {
             service(PageDTO, TableCreateMode.ForceRecreate) {
                 PageDTO.clearCachedDTOs()
-                update(inputPages).getData()
-                persistedPages = select().getData()
+                update(inputPages).data
+                persistedPages = select().data
             }
         }
         val inputSections = inputPages.flatMap { it.sections }
@@ -195,7 +195,7 @@ class TestSelect : DatabaseTest(), TasksManaged {
             service(PageDTO, TableCreateMode.ForceRecreate) {
                 truncate()
                 update(pages)
-                selectedPages = select(deferredQuery(PageDTO){ equals(Pages.langId, 1) }).getData()
+                selectedPages = select(deferredQuery(PageDTO){ equals(Pages.langId, 1) }).data
             }
         }
 
@@ -232,8 +232,8 @@ class TestSelect : DatabaseTest(), TasksManaged {
         withConnection {
             service(PageDTO, TableCreateMode.ForceRecreate){
                 truncate()
-                updated =  update(page).getData()
-                selected = select().getData().firstOrNull()
+                updated =  update(page).data
+                selected = select().data.firstOrNull()
             }
         }
 

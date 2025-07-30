@@ -2,11 +2,9 @@ package po.exposify.scope.sequence.builder
 
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.components.createProvider
 import po.exposify.dto.components.result.ResultBase
 import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
-import po.exposify.dto.helpers.asCommonDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.extensions.castOrOperations
@@ -16,20 +14,16 @@ import po.exposify.scope.sequence.launcher.SingleDescriptor
 import po.exposify.scope.sequence.launcher.SingleTypeHandler
 import po.exposify.scope.sequence.launcher.SingleTypeSwitchHandler
 import po.exposify.scope.sequence.launcher.SwitchSingeDescriptor
-import po.exposify.scope.sequence.models.SequenceParameter
 import po.exposify.scope.service.ServiceContext
 import po.misc.functions.containers.DeferredContainer
-import po.misc.functions.containers.LambdaContainer
-import po.misc.functions.containers.LazyExecutionContainer
 
 
 fun <DTO, D> ExecutionChunkBase<DTO, D>.withResult(
-    block: ResultBase<DTO, D>.()-> Unit
+    block: ResultBase<DTO, D, *>.()-> Unit
 ) where DTO : ModelDTO, D : DataModel{
 
     when(this){
         is SingleResultChunks->{
-
             withResultContainer.registerProvider(block)
         }
         is ListResultChunks->{
@@ -68,7 +62,7 @@ private fun <DTO, D, E> sequencedSingle(
     block: SequenceChunkContainer<DTO, D, E>.(SingleTypeHandler<DTO, D, E>) -> DeferredContainer<ResultSingle<DTO, D, *>>
 ): SequenceChunkContainer<DTO, D, E> where DTO : ModelDTO, D : DataModel, E : LongEntity   {
 
-    val execContext = serviceContext.dtoClass.createProvider()
+    val execContext = serviceContext.dtoClass.executionContext
     val chunkContainer = SequenceChunkContainer(execContext, 100)
     block.invoke(chunkContainer, chunkContainer.singleTypeHandler)
     chunkContainer.chunks.forEach {chunk->
@@ -82,7 +76,7 @@ private fun <DTO, D, E>  sequencedList(
     block: SequenceChunkContainer<DTO, D, E>.(ListTypeHandler<DTO, D, E>) -> DeferredContainer<ResultList<DTO, D, *>>
 ): SequenceChunkContainer<DTO, D, E> where DTO : ModelDTO, D : DataModel, E : LongEntity  {
 
-    val execContext = serviceContext.dtoClass.createProvider()
+    val execContext = serviceContext.dtoClass.executionContext
     val chunkContainer = SequenceChunkContainer(execContext, 300)
     block.invoke(chunkContainer, chunkContainer.listTypeHandler)
     chunkContainer.chunks.forEach {chunk->

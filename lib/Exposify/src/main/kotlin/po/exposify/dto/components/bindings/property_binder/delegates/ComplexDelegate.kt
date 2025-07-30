@@ -159,7 +159,7 @@ class ParentDelegate<DTO, D, E, F, FD, FE>(
     }
 
     override fun beforeRegistered(){
-        hostingDTO.parentDTO.getUnsafeCasting<CommonDTO<F, FD, FE>>(this, foreignClass.commonDTOType.commonType.kClass) { dto->
+        hostingDTO.parentDTO.requestValueCasting<CommonDTO<F, FD, FE>>(this, foreignClass.commonDTOType.commonType.kClass) { dto->
             provideForeignDTO(dto)
         }
     }
@@ -180,7 +180,7 @@ class ParentDelegate<DTO, D, E, F, FD, FE>(
             parentDTOProvider.invoke(dataModel, dto)
         }
 
-        if(hostingDTO.dataContainer.isSourceAvailable){
+        if(hostingDTO.dataContainer.isValueAvailable){
             parentDTOProvider.invoke(hostingDTO.dataContainer.getValue(this), dto)
         }
     }

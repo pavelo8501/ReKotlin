@@ -15,7 +15,6 @@ class ReactiveMap<K: Any, V: Any>(
 
 ): AbstractMutableMap<K, V>(){
 
-
     @PublishedApi
     internal val mapBacking: MutableMap<K, V> = mutableMapOf()
 
@@ -24,11 +23,10 @@ class ReactiveMap<K: Any, V: Any>(
 
     val itemsSize: Int get() = entries.size
 
-    private var exceptionFallback: ExceptionFallback<Nothing>? = null
+    private var exceptionFallback: ExceptionFallback? = null
 
     private val notFoundError: (key:K)->String = {"Element with key $it not found"}
     private val castError: (kClass: KClass<*>)->String = {"Record exist but cast to $it failed"}
-
 
     @PublishedApi
     internal fun proceedWithFallback(key:K): Nothing{
@@ -62,6 +60,6 @@ class ReactiveMap<K: Any, V: Any>(
     }
 
     fun injectFallback(fallback:(ManagedCallSitePayload)-> Throwable){
-        exceptionFallback = ExceptionFallback<Nothing>(fallback)
+        exceptionFallback = ExceptionFallback(fallback)
     }
 }

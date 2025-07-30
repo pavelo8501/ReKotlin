@@ -1,20 +1,14 @@
 package po.exposify.scope.sequence.builder
 
 import org.jetbrains.exposed.dao.LongEntity
-import po.exposify.dto.components.bindings.helpers.withDTOContext
 import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
-import po.exposify.dto.components.result.toResultSingle
-import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.exceptions.operationsException
 import po.exposify.scope.sequence.launcher.ListTypeHandler
 import po.exposify.scope.sequence.launcher.SingleTypeHandler
 import po.exposify.scope.sequence.launcher.SingleTypeSwitchHandler
 import po.misc.functions.containers.DeferredContainer
-
 
 
 fun <DTO, D, E> SequenceChunkContainer<DTO, D, E>.update(
@@ -26,7 +20,8 @@ fun <DTO, D, E> SequenceChunkContainer<DTO, D, E>.update(
     val updateChunk = UpdateChunk.create(configurationBlock)
     updateChunk.resultContainer.registerProvider{
         val inputData =  handler.deferredInput.resolve()
-        execContext.updateSingle(inputData, this)
+        val result = execContext.updateSingle(inputData, this)
+        result
     }
     registerChunk(updateChunk)
     return updateChunk.resultContainer
@@ -35,8 +30,7 @@ fun <DTO, D, E> SequenceChunkContainer<DTO, D, E>.update(
 fun <DTO, D, E> SequenceChunkContainer<DTO, D, E>.update(
     handler: ListTypeHandler<DTO, D, E>,
     configurationBlock: ListResultChunks<DTO, D>.()->  Unit
-): DeferredContainer<ResultList<DTO, D, *>>
-        where DTO: ModelDTO, D: DataModel, E : LongEntity
+): DeferredContainer<ResultList<DTO, D, *>> where DTO: ModelDTO, D: DataModel, E : LongEntity
 {
     val updateListChunk = UpdateListChunk.create(configurationBlock)
     updateListChunk.resultContainer.registerProvider {

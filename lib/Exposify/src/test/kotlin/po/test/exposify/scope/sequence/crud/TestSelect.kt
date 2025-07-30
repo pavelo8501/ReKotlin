@@ -5,9 +5,10 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import po.exposify.dto.components.result.ResultSingle
+import po.exposify.dto.components.query.deferredQuery
+import po.exposify.dto.components.result.ResultList
+import po.exposify.scope.sequence.builder.select
 import po.exposify.scope.sequence.builder.sequenced
-import po.exposify.scope.sequence.builder.update
 import po.exposify.scope.sequence.launcher.launch
 import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
@@ -15,27 +16,28 @@ import po.lognotify.notification.models.ConsoleBehaviour
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.test.exposify.setup.DatabaseTest
+import po.test.exposify.setup.Pages
 import po.test.exposify.setup.dtos.Page
 import po.test.exposify.setup.dtos.PageDTO
 import po.test.exposify.setup.dtos.UserDTO
 import po.test.exposify.setup.mocks.mockPage
+import po.test.exposify.setup.mocks.mockPages
 import po.test.exposify.setup.mocks.mockedSession
 import po.test.exposify.setup.mocks.mockedUser
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
+
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestUpdate: DatabaseTest(), TasksManaged {
+class TestSelect: DatabaseTest(), TasksManaged  {
 
-    override val identity: CTXIdentity<TestUpdate> = asIdentity()
+    override val identity: CTXIdentity<TestSelect> = asIdentity()
 
     companion object{
         @JvmStatic
         var updatedById : Long = 0
-
-        @JvmStatic
-        lateinit var page: Page
     }
     @BeforeAll
     fun setup(){
@@ -48,12 +50,12 @@ class TestUpdate: DatabaseTest(), TasksManaged {
             }
         }
 
-        page = mockPage("Sequenced_UPDATE_mock", updatedById)
         withConnection {
+            val pages: List<Page> = mockPages(quantity = 2){index-> mockPage("Page_$index", updatedById) }
             service(PageDTO) {
-                insert(page)
-                sequenced(PageDTO.Update) { handler ->
-                    update(handler){
+                insert(pages)
+                sequenced(PageDTO.Select) {handler ->
+                    select(handler){
 
                     }
                 }
@@ -62,21 +64,24 @@ class TestUpdate: DatabaseTest(), TasksManaged {
     }
 
     @Test
-    fun `Sequenced UPDATE statement`(): TestResult = runTest{
+    fun `Sequenced SELECT statement`(): TestResult = runTest{
 
-        val updateValue = "DifferentName"
+        val result = with(mockedSession){ launch(PageDTO.Select) }
+        assertIs<ResultList<*, *, *>>(result)
+        assertTrue(!result.isFaulty)
+        assertEquals(2, result.dto.size)
+    }
 
+    @Test
+    fun `Sequenced SELECT statement with query`(): TestResult = runTest{
+
+        val queriedPageName = "Page_2"
         val result = with(mockedSession){
-            val updatedPage = page.copy()
-            updatedPage.name = updateValue
-            launch(PageDTO.Update, updatedPage)
+            launch(PageDTO.Select, deferredQuery(PageDTO) { equals(Pages.name, queriedPageName) } )
         }
-
-        assertIs<ResultSingle<*, *, *>>(result)
-        val updatedData = assertNotNull(result.data, "Result failure")
-        assertEquals(updateValue, updatedData.name, "Page data was not updated")
-        val pageDTO = assertNotNull(result.dto, "Result failure")
-        assertEquals(updateValue, pageDTO.name)
+        assertEquals(1, result.dto.size)
+        val persistedPage = assertNotNull(result.data.firstOrNull())
+        assertEquals(queriedPageName, persistedPage.name)
     }
 
 }

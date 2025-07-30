@@ -29,7 +29,7 @@ class TestPick : DatabaseTest(){
             service(UserDTO, TableCreateMode.Create) {
 
                 val userDataModel =  update(user).getDataForced()
-                 pickedDTO = pickById(userDataModel.id).getDTO() as UserDTO
+                 pickedDTO = pickById(userDataModel.id).dto
             }
         }
 

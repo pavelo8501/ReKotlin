@@ -13,8 +13,8 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dao.classes.ExposifyEntityClass
 import po.exposify.dto.components.DTOConfiguration
 import po.exposify.dto.components.ExecutionContext
+import po.exposify.dto.components.RootExecutionContext
 import po.exposify.dto.components.bindings.helpers.shallowDTO
-import po.exposify.dto.components.createProvider
 import po.exposify.dto.configuration.setupValidation
 import po.exposify.dto.enums.DTOClassStatus
 import po.exposify.dto.models.CommonDTOType
@@ -177,7 +177,7 @@ abstract class RootDTO<DTO, DATA, ENTITY>(
     override val serviceClass: ServiceClass<DTO, DATA, ENTITY>
         get() = serviceContext.serviceClass
 
-    internal val executionContext: ExecutionContext<DTO, DATA, ENTITY> by lazy { createProvider() }
+    internal val executionContext: RootExecutionContext<DTO, DATA, ENTITY> = RootExecutionContext(this)
 
     init {
         identity.setNamePattern { "${it.className}[${commonType.dtoType.simpleName}]" }

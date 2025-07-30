@@ -6,6 +6,7 @@ import po.exposify.dto.components.query.WhereQuery
 import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.operationsException
 import po.exposify.extensions.castOrOperations
@@ -16,6 +17,7 @@ import po.exposify.scope.sequence.builder.SingleResultChunks
 import po.exposify.scope.sequence.builder.SwitchChunkContainer
 import po.exposify.scope.sequence.builder.UpdateChunk
 import po.exposify.scope.sequence.builder.UpdateListChunk
+import po.misc.functions.common.ExceptionFallback
 import po.misc.functions.containers.DeferredContainer
 
 
@@ -27,9 +29,7 @@ fun <DTO, D, E, F, FD> handleDataInputs(
 ) where DTO : ModelDTO, D : DataModel, E: LongEntity,  F : ModelDTO, FD : DataModel {
 
 
-
 }
-
 
 suspend fun <DTO, D, E, F, FD> launchSwitch(
     switchDescriptor: SwitchDescriptorBase<DTO, D, E, F>,
@@ -41,9 +41,20 @@ suspend fun <DTO, D, E, F, FD> launchSwitch(
 
 
     val wrongBranchMsg = "LaunchSwitch else branch should have never be reached"
-    val result = launch(parentDescriptor, parentParameter, session)
-    val container = parentDescriptor.container
+    val result = session.launch(parentDescriptor, parentParameter)
+
+
+    val errorFallback = ExceptionFallback{
+        val noContainerMsg = "No predefined execution for $switchDescriptor"
+        OperationsException(noContainerMsg, ExceptionCode.Sequence_Setup_Failure, switchDescriptor)
+    }
+
+    val container =  switchDescriptor.chunksContainerBacking.getWithFallback(errorFallback)
+    val service =    switchDescriptor.dtoClass.serviceClass
+
     var activeResult: ResultSingle<DTO, D, *>? = null
+
+
     val switchContainers = container.singleSwitchContainers<DTO, D, E>(switchDescriptor.inputType)
     if(switchContainers.isNotEmpty()) {
         switchContainers.forEach { switchContainer ->
@@ -64,7 +75,7 @@ suspend fun <DTO, D, E, F, FD> launchSwitch(
             }
         }
     }else{
-        println("No switch containers for switchContainer ${switchDescriptor.parameterType}")
+        println("No switch containers for switchContainer ")
         println("Total containers count ${container.chunkCollectionSize}")
     }
     return activeResult.getOrOperations(switchDescriptor)

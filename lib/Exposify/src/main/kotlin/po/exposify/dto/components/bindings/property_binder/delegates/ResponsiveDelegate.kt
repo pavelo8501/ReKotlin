@@ -90,12 +90,12 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
     private fun valueChanged(newValue : V){
         valueUpdated = true
         effectiveValue = newValue
+        dataProperty.set(dataModel, newValue)
     }
 
     internal fun updateBy(data:D):V{
         val newValue = dataProperty(data)
         if(effectiveValue != newValue){
-            effectiveValue = newValue
             valueChanged(newValue)
         }
         return newValue
@@ -104,8 +104,6 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
     internal fun updateBy(entity:E){
         val newValue = entityProperty.get(entity)
         if(effectiveValue!= newValue){
-            effectiveValue = newValue
-            dataProperty.set(dataModel, newValue)
             valueChanged(newValue)
         }
     }
@@ -118,9 +116,7 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
      * Updates entity form data model
      */
     internal fun update(entity:E){
-
         val value = effectiveValue?:dataProperty(dataModel)
-
         entityProperty.set(entity, value)
     }
 
@@ -146,7 +142,7 @@ sealed class ResponsiveDelegate<DTO, D, E, V: Any> protected constructor(
         if(effectiveValue != value){
 
             dataProperty.set(dataModel, value)
-            if(hostingDTO.entityContainer.isSourceAvailable){
+            if(hostingDTO.entityContainer.isValueAvailable){
                 entityProperty.set(entity, value)
             }else{
                val message = "${hostingDTO.completeName} update through delegate set. Entity must have been inserted but its not"

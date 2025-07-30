@@ -237,7 +237,7 @@ class BindingHub<DTO, D, E>(
         when(hostingDTO.dtoStatus){
             DTOStatus.PartialWithData-> {
                 val thisEntity = daoService.save { newEntity ->
-                    hostingDTO.entityContainer.provideSource(newEntity)
+                    hostingDTO.entityContainer.provideValue(newEntity)
                     updateEntity(newEntity)
                     if (foreign != null) {
                         initializedParentDelegates.forEach { delegate ->
@@ -276,8 +276,8 @@ class BindingHub<DTO, D, E>(
      */
     internal fun resolveHierarchy(data: D, typeData: TypeData<D>){
         val updatedData =  resolveAttachedForeign(data, typeData)
-        if (!hostingDTO.dataContainer.isSourceAvailable){
-            hostingDTO.dataContainer.provideSource(updatedData)
+        if (!hostingDTO.dataContainer.isValueAvailable){
+            hostingDTO.dataContainer.provideValue(updatedData)
         }
         updatePropertiesBy(updatedData)
         relationDelegates.forEach { relation ->
@@ -297,7 +297,7 @@ class BindingHub<DTO, D, E>(
      */
     internal fun resolveHierarchy(entity: E){
         val emptyDataModel = dtoFactory.createDataModel()
-        hostingDTO.dataContainer.provideSource(emptyDataModel)
+        hostingDTO.dataContainer.provideValue(emptyDataModel)
         resolveAttachedForeign(entity)
         resolveParent(entity)
         updatePropertiesBy(entity)

@@ -8,7 +8,6 @@ import po.exposify.dto.components.tracker.DTOTracker
 import po.exposify.dto.helpers.asDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.dto.models.CommonDTOType
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.operationsException
@@ -17,7 +16,6 @@ import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asSubIdentity
 import po.misc.exceptions.ManagedException
-import po.misc.functions.common.ExceptionFallback
 import po.misc.types.castListOrThrow
 
 interface ExposifyResult{
@@ -29,24 +27,35 @@ interface ExposifyResult{
 }
 
 
+sealed class ResultBase<DTO, D, R: Any>(
+    dtoClass: DTOBase<DTO, D, *>,
+    protected var result: R?
+): ExposifyResult, CTX  where DTO: ModelDTO, D: DataModel{
 
-sealed class ResultBase<DTO, D>(
-    dtoClass: DTOBase<DTO, D, *>
-): CTX  where DTO: ModelDTO, D: DataModel{
 
+    override var failureCause: ManagedException? = null
+    protected val noResultException: ManagedException
+        get() = failureCause?: OperationsException("Result not available", ExceptionCode.UNDEFINED, this)
+
+    val isFaulty: Boolean get() = failureCause != null || result == null
 }
 
 class ResultList<DTO, D, E> internal constructor(
     override val dtoClass: DTOBase<DTO, D, E>,
-    private var result : List<CommonDTO<DTO, D, E>> = emptyList()
-):ResultBase<DTO, D>(dtoClass),  ExposifyResult where DTO: ModelDTO, D: DataModel, E : LongEntity {
+    private var resultBacking : List<CommonDTO<DTO, D, E>> = emptyList()
+):ResultBase<DTO, D, List<CommonDTO<DTO, D, E>>>(dtoClass, resultBacking) where DTO: ModelDTO, D: DataModel, E : LongEntity {
 
     override val identity: CTXIdentity<out CTX> = asSubIdentity(this, dtoClass)
 
     override var resultMessage: String = ""
-    override val size: Int get() = result.size
+    override val size: Int get() = resultBacking.size
     override var activeCRUD: CrudOperation = CrudOperation.Create
-    override var failureCause: ManagedException? = null
+
+    val dto: List<DTO> get() = resultBacking.castListOrThrow(dtoClass.commonDTOType.dtoType.kClass, this){payload->
+        operationsException(payload.setCode( ExceptionCode.CAST_FAILURE))
+    }
+
+    val data: List<D> get() = resultBacking.map { it.dataContainer.getValue(this) }
 
     fun addResult(list: List<CommonDTO<DTO, D, E>>): ResultList<DTO, D, E> {
         result = list.toMutableList()
@@ -54,7 +63,7 @@ class ResultList<DTO, D, E> internal constructor(
     }
 
     internal fun appendDto(dto: CommonDTO<DTO, D, E>): ResultList<DTO, D, E> {
-        val mutable = result.toMutableList()
+        val mutable = resultBacking.toMutableList()
         mutable.add(dto)
         result = mutable.toList()
         return this
@@ -65,35 +74,20 @@ class ResultList<DTO, D, E> internal constructor(
         return this
     }
 
-    fun getData(): List<D> {
-        return result.map { it.dataContainer.getValue(this) }
-    }
-
-    fun getDTO(): List<DTO> {
-        val typeRecord = dtoClass.commonDTOType.dtoType
-        return result.castListOrThrow(typeRecord.kClass, this) {payload->
-            operationsException(payload.setCode( ExceptionCode.CAST_FAILURE))
-        }
-    }
-
     fun getTrackers(): List<DTOTracker<DTO, D, E>>{
-        return result.map { it.tracker }
+        return resultBacking.map { it.tracker }
     }
 
     internal fun getAsCommonDTO(): List<CommonDTO<DTO, D, E>> {
-        return result
+        return resultBacking
     }
 
-    fun setWarningMessage(message: String): ResultList<DTO, D, E>{
-        resultMessage = message
-        return this
-    }
 }
 
 class ResultSingle<DTO, D, E> internal constructor(
     override val dtoClass: DTOBase<DTO, D, E>,
-    private var result: CommonDTO<DTO, D, E>? = null
-): ResultBase<DTO, D>(dtoClass), ExposifyResult where DTO : ModelDTO, D: DataModel, E : LongEntity {
+    private var initialResult: CommonDTO<DTO, D, E>? = null
+): ResultBase<DTO, D, CommonDTO<DTO, D, E>>(dtoClass, initialResult), ExposifyResult where DTO : ModelDTO, D: DataModel, E : LongEntity {
 
     override val identity: CTXIdentity<out CTX> = asSubIdentity(this, dtoClass)
 
@@ -102,28 +96,13 @@ class ResultSingle<DTO, D, E> internal constructor(
         return if(result != null){ 1 }else{ 0 }
     }
     override var activeCRUD: CrudOperation = CrudOperation.Create
-    override var failureCause: ManagedException? = null
 
-    val isFaulty: Boolean get() = failureCause != null
 
-    private val resultException = OperationsException("Result not available", ExceptionCode.UNDEFINED, this)
-    private val fallback: ExceptionFallback<CommonDTOType<DTO, D, E>> = ExceptionFallback{ resultException}
+    val dto: DTO? get() = result?.asDTO()
+    val data: D? get() = result?.dataContainer?.value
 
-    val dto: DTO get(){
-       return getDTOForced()
-    }
-
-    internal fun appendDto(dtoToAppend: CommonDTO<DTO, D, E>): ResultSingle<DTO, D, E> {
-        result = dtoToAppend
-        return this
-    }
-
-    fun getData(): D? {
-        return result?.dataContainer?.getValue(this)
-    }
-
-    fun getDataForced(): D {
-        return getData().getOrOperations(dtoClass.commonDTOType.dataType.kClass,  this)
+    private fun getCommonForced(): CommonDTO<DTO, D, E>{
+      return  result?: throw noResultException
     }
 
     internal fun getAsCommonDTO(): CommonDTO<DTO, D, E>? {
@@ -134,38 +113,17 @@ class ResultSingle<DTO, D, E> internal constructor(
         return result.getOrOperations(this)
     }
 
-    fun getDTO(): DTO? {
-        @Suppress("UNCHECKED_CAST")
-        return result as? DTO
+    fun getDTOForced(): DTO {
+        return dto?: throw noResultException
     }
 
-    fun getDTOForced(): DTO {
-       return result?.asDTO() ?:run {
-            val managed = failureCause
-            if(managed != null){
-                throw managed
-            }else{
-                throw operationsException("Result is null with reason unknow", ExceptionCode.DTO_LOOKUP_FAILURE, dtoClass)
-            }
-        }
+    fun getDataForced(): D {
+        val dto = getCommonForced()
+        return dto.dataContainer.getValue(this)
     }
 
     fun getTracker():DTOTracker<DTO, D, E>?{
         return result?.tracker
     }
 
-    fun setWarningMessage(message: String): ResultSingle<DTO, D, E> {
-        resultMessage = message
-        return this
-    }
-
-    fun toResultList(): ResultList<DTO, D, E> {
-        val transform = ResultList(dtoClass)
-        result?.let {
-            transform.addResult(listOf(it))
-        } ?: run {
-            transform.setWarningMessage(resultMessage)
-        }
-        return transform
-    }
 }

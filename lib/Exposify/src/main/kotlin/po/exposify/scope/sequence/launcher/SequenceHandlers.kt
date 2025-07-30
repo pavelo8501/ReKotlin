@@ -85,7 +85,7 @@ internal constructor(
     val deferredInput: DeferredContainer<D> get() {
         return deferredInputBacking.getOrOperations(this)
     }
-    internal fun provideDeferredInput(input: DeferredContainer<D>){
+    internal fun provideDeferredInput(input: DeferredContainer<D>?){
         deferredInputBacking = input
     }
 }

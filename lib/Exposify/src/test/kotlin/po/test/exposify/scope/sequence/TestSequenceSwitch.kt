@@ -28,8 +28,7 @@ import po.test.exposify.setup.pageModelsWithSections
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestSequenceSwitch : DatabaseTest(), TasksManaged {
-
-
+    
     override val identity: CTXIdentity<out CTX> = asIdentity()
 
     val sessionIdentity: TestSessionsContext.SessionIdentity = TestSessionsContext.SessionIdentity("0", "192.169.1.1")
@@ -55,7 +54,7 @@ class TestSequenceSwitch : DatabaseTest(), TasksManaged {
                 update(user)
             }
             service(PageDTO) {
-                pickById = update(page).getData()?.id ?: 0L
+                pickById = update(page).data?.id ?: 0L
 
                 sequenced(PageDTO.PICK) { handler ->
                     pickById(handler) {

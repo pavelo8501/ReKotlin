@@ -7,8 +7,8 @@ import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.exceptions.operationsException
 import po.exposify.extensions.castOrOperations
 import po.exposify.extensions.getOrOperations
 import po.exposify.extensions.withTransactionIfNone
@@ -16,21 +16,28 @@ import po.exposify.scope.sequence.builder.PickByIdChunk
 import po.exposify.scope.sequence.builder.SelectChunk
 import po.exposify.scope.sequence.builder.UpdateChunk
 import po.exposify.scope.sequence.builder.UpdateListChunk
+import po.misc.functions.common.ExceptionFallback
 import po.misc.functions.containers.DeferredContainer
 
 
 
 private suspend fun <DTO, D, E> launchExecutionList(
     launchDescriptor: ListDescriptor<DTO, D, E>,
+    session: AuthorizedSession,
     parameter: Long? = null,
     inputData:List<D>? = null,
-    query: DeferredContainer<WhereQuery<E>>? = null,
-    session: AuthorizedSession
+    query: DeferredContainer<WhereQuery<E>>? = null
 ): ResultList<DTO, D, E> where DTO: ModelDTO, D:DataModel, E: LongEntity
 {
     val wrongBranchMsg = "LaunchExecutionResultSingle else branch should have never be reached"
-    val container =  launchDescriptor.container
-    val service =  launchDescriptor.dtoBaseClass.serviceClass
+
+    val errorFallback = ExceptionFallback{
+        val noContainerMsg = "No predefined execution for $launchDescriptor"
+        OperationsException(noContainerMsg, ExceptionCode.Sequence_Setup_Failure, launchDescriptor)
+    }
+    val container =  launchDescriptor.chunksContainerBacking.getWithFallback(errorFallback)
+    val service =  launchDescriptor.dtoClass.serviceClass
+
     val emitter = service.requestEmitter(session)
 
     return emitter.dispatchList {
@@ -64,34 +71,40 @@ private suspend fun <DTO, D, E> launchExecutionList(
     }
 }
 
-suspend fun <DTO, D, E> launch(
-    launchDescriptor: ListDescriptor<DTO, D, E>,
-    session: AuthorizedSession
-): ResultList<DTO, D, *> where DTO : ModelDTO, D : DataModel, E : LongEntity{
-    return launchExecutionList(launchDescriptor, session = session)
-}
 
-suspend fun <DTO, D, E> launch(
+
+suspend fun <DTO, D, E> AuthorizedSession.launch(
     launchDescriptor: ListDescriptor<DTO, D, E>,
     deferredQuery: DeferredContainer<WhereQuery<E>>,
-    session: AuthorizedSession
 ): ResultList<DTO, D, *> where DTO : ModelDTO, D : DataModel, E: LongEntity {
-    return launchExecutionList(launchDescriptor, query = deferredQuery,  session =  session)
+    return launchExecutionList(launchDescriptor, this,  query = deferredQuery)
 }
+
+suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity> AuthorizedSession.launch(
+    launchDescriptor: ListDescriptor<DTO, D, E>,
+): ResultList<DTO, D, *> = launchExecutionList(launchDescriptor, this)
 
 
 
 private suspend fun <DTO, D, E> launchExecutionSingle(
     launchDescriptor: SingleDescriptor<DTO, D, E>,
+    session: AuthorizedSession,
     parameter: Long? = null,
     inputData:D? = null,
     query: DeferredContainer<WhereQuery<E>>? = null,
-    session: AuthorizedSession
 ): ResultSingle<DTO, D, E> where DTO : ModelDTO, D : DataModel, E : LongEntity
 {
     val wrongBranchMsg = "LaunchExecutionResultSingle else branch should have never be reached"
-    val container =  launchDescriptor.container
-    val service =  launchDescriptor.dtoBaseClass.serviceClass
+
+    val errorFallback = ExceptionFallback{
+        val noContainerMsg = "No predefined execution for $launchDescriptor"
+        OperationsException(noContainerMsg, ExceptionCode.Sequence_Setup_Failure, launchDescriptor)
+    }
+
+    val container =  launchDescriptor.chunksContainerBacking.getWithFallback(errorFallback)
+    val service =  launchDescriptor.dtoClass.serviceClass
+
+
     val emitter = service.requestEmitter(session)
     return emitter.dispatchSingle {
         var effectiveResult: ResultSingle<DTO, D, E>? = null
@@ -100,7 +113,6 @@ private suspend fun <DTO, D, E> launchExecutionSingle(
             val deferredParameter = DeferredContainer<Long>(launchDescriptor){ parameter }
             container.singleTypeHandler.provideDeferredParameter(deferredParameter)
         }
-
         if(inputData != null){
             val deferredInput = DeferredContainer<D>(launchDescriptor){ inputData }
             container.singleTypeHandler.provideDeferredInput(deferredInput)
@@ -130,33 +142,12 @@ private suspend fun <DTO, D, E> launchExecutionSingle(
     }
 }
 
-suspend fun <DTO, D, E>  AuthorizedSession.launch(
+suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity> AuthorizedSession.launch(
     launchDescriptor: SingleDescriptor<DTO, D, E>,
     parameter: Long
-): ResultSingle<DTO, D, *> where DTO: ModelDTO, D:DataModel, E : LongEntity{
-   return launchExecutionSingle<DTO,  D, E>(launchDescriptor =  launchDescriptor, parameter = parameter, session =  this)
-}
+): ResultSingle<DTO, D, *> = launchExecutionSingle(launchDescriptor, this, parameter = parameter)
 
-suspend fun <DTO, D, E> launch(
+suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity>  AuthorizedSession.launch(
     launchDescriptor: SingleDescriptor<DTO, D, E>,
-    parameter: Long,
-    session:AuthorizedSession
-): ResultSingle<DTO, D, *> where DTO: ModelDTO, D:DataModel, E : LongEntity{
-    return launchExecutionSingle(launchDescriptor = launchDescriptor, parameter =  parameter, session =  session)
-}
-
-
-//suspend fun <DTO, D, E>  AuthorizedSession.launch(
-//    launchDescriptor: ParametrizedSingeDescriptor<DTO, D, E>,
-//    parameter: D
-//): ResultSingle<DTO, D, *> where DTO: ModelDTO, D:DataModel, E : LongEntity{
-//    return launchExecutionSingle(launchDescriptor, parameter, this)
-//}
-//
-//suspend fun <DTO, D, E>  launch(
-//    launchDescriptor: ParametrizedSingeDescriptor<DTO, D, E>,
-//    parameter: D,
-//    session: AuthorizedSession
-//): ResultSingle<DTO, D, *> where DTO : ModelDTO, D : DataModel, E : LongEntity{
-//    return launchExecutionSingle(launchDescriptor, parameter, session)
-//}
+    inputData: D,
+): ResultSingle<DTO, D, *> = launchExecutionSingle(launchDescriptor, this,  inputData = inputData)

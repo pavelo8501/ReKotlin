@@ -31,7 +31,6 @@ sealed class ExecutionContext<DTO, DATA, ENTITY>(
    val dtoClass: DTOBase<DTO, DATA, ENTITY>
 ): TasksManaged where DTO: ModelDTO, DATA : DataModel, ENTITY: LongEntity
 {
-
     override val identity: CTXIdentity<out CTX> = asSubIdentity(this, dtoClass)
 
     private val daoService: DAOService<DTO, DATA, ENTITY> get() = dtoClass.dtoConfiguration.daoService
@@ -129,7 +128,8 @@ sealed class ExecutionContext<DTO, DATA, ENTITY>(
         val existentDto = dtoClass.lookupDTO(dataModel.id)
 
         return if (existentDto != null) {
-            existentDto.hub.updatePropertiesBy(dataModel).toResult(operation)
+            val updatedDTO =  existentDto.hub.updatePropertiesBy(dataModel)
+            updatedDTO.toResult(operation)
         } else {
             val dto = dtoClass.newDTO()
             dto.hub.loadHierarchyByData(dataModel, initiator).toResult(operation)
@@ -154,23 +154,12 @@ sealed class ExecutionContext<DTO, DATA, ENTITY>(
 }
 
 class RootExecutionContext<DTO, D, E>(
-   rootClass: RootDTO<DTO, D, E>,
-   var sourceContext: CTX? = null
+   rootClass: RootDTO<DTO, D, E>
 ):ExecutionContext<DTO, D, E>(rootClass) where DTO: ModelDTO , D: DataModel, E: LongEntity {
 
-    override val identity: CTXIdentity<out CTX> = asIdentity()
+    override val identity: CTXIdentity<RootExecutionContext<DTO, D, E>> = asSubIdentity(this, rootClass)
 
-    override val contextName: String
-        get() = "RootExecutionContext[${sourceContext?.contextName?:super.contextName}]"
-
-    override fun toString(): String{
-        return contextName
-    }
-}
-
-fun <DTO: ModelDTO, D: DataModel, E:LongEntity> RootDTO<DTO, D, E>.createProvider(
-):RootExecutionContext<DTO, D, E> {
-    return RootExecutionContext(this)
+    override fun toString(): String = completeName
 }
 
 
@@ -187,58 +176,21 @@ class DTOExecutionContext<DTO, D, E, F, FD, FE>(
 
     override val identity: CTXIdentity<DTOExecutionContext<DTO, D, E, F, FD, FE>> = asSubIdentity(this,  hostingDTO)
 
-
     init {
         dtoFactory.onDTOCreated.subscribe(this, DTOFactoryBase.Events.OnCreated, ::onNewDTOCreated)
     }
 
     fun onNewDTOCreated(commonDTO: CommonDTO<DTO, D, E>){
         commonDTO.registerParentDTO(hostingDTO)
-
         println("Created $commonDTO")
     }
 
-
-
-//    enum class DTOExecutionEvents{
-//        OnDTOComplete
-//    }
-
-//    internal val notifier: CallbackManager<DTOExecutionEvents> = CallbackManager(DTOExecutionEvents::class.java, this)
-//    internal val onDTOComplete = CallbackManager.createPayload<DTOExecutionEvents, CommonDTO<DTO, D, E>>(
-//        notifier,
-//        DTOExecutionEvents.OnDTOComplete
-//    )
-
-//    internal var entityBacking:E? = null
-//    internal fun getEntity(initiated: CtxId):E{
-//        return  entityBacking.getOrOperations("EntityBacking", initiated)
-//    }
-//
-//    private var dataModelBacking: D? = null
-//    internal fun provideDataModel(dataModel:D, initiated: CtxId){
-//        dataModelBacking = dataModel
-//    }
-//    internal fun getDataModel(initiated: CtxId):D{
-//      return  dataModelBacking.getOrOperations("DataModelBacking", initiated)
-//    }
-//    internal fun getDataModelOrNull():D?{
-//        return dataModelBacking
-//    }
-//    internal fun notifyDTOComplete(dto: CommonDTO<DTO, D, E>){
-//        onDTOComplete.triggerForAll(dto)
-//    }
-
-//    internal val tracker: DTOTracker<DTO, D, E> = dto.tracker
-//    internal val hub : BindingHub<DTO, D, E> get() = dto.hub
-
+    override fun toString(): String = completeName
 }
 
-
 internal fun <DTO, D, E, F, FD, FE> CommonDTO<F, FD, FE>.createDTOContext(
-    dtoClass: DTOClass<DTO, D, E>,
+    dtoClass: DTOClass<DTO, D, E>
 ):DTOExecutionContext<DTO, D, E, F, FD, FE>
-where DTO: ModelDTO, D: DataModel, E:LongEntity, F : ModelDTO, FD : DataModel, FE : LongEntity
-{
+where DTO: ModelDTO, D: DataModel, E:LongEntity, F : ModelDTO, FD : DataModel, FE : LongEntity {
     return DTOExecutionContext(dtoClass, this)
 }

@@ -28,7 +28,6 @@ class TestSequenceContext : DatabaseTest(), TasksManaged {
         val session = TestSessionsContext.SessionIdentity("0", "192.169.1.1")
     }
 
-
     fun setup() = runTest {
 
 
