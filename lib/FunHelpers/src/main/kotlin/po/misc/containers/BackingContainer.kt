@@ -144,7 +144,6 @@ class TypedBackingContainer<V: Any>(
     initialValue:V? = null
 ):BackingContainerBase<V>() {
 
-
     val registry: LambdaRegistry<V> = LambdaRegistry()
 
     val isValueAvailable: Boolean get() = backingValue != null
@@ -155,7 +154,6 @@ class TypedBackingContainer<V: Any>(
         println("provideValue ${value::class.simpleName}")
         registry.trigger(registry.defaultKey, value)
     }
-
 
     fun <V2: Any>  getUnsafeCasting(
         subscriber: CTX,

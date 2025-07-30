@@ -10,6 +10,7 @@ import po.lognotify.tasks.TaskBase
 import po.lognotify.tasks.interfaces.ResultantTask
 import po.lognotify.tasks.interfaces.UpdatableTasks
 import po.lognotify.tasks.models.TaskConfig
+import po.lognotify.tasks.warn
 import po.misc.callbacks.CallbackManager
 import po.misc.callbacks.Containable
 import po.misc.callbacks.builders.callbackManager
@@ -63,7 +64,7 @@ class TaskDispatcher(val notifierHub: NotifierHub) : UpdatableTasks, CTX{
             """No active tasks in context, taskHandler() has created a default task to avoid crash.
         Make sure that logger tasks were started before calling this method.
         """.trimMargin()
-        task.dataProcessor.warn(warningMessage)
+        task.warn(warningMessage)
         return task
     }
 

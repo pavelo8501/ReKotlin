@@ -12,6 +12,7 @@ import po.misc.context.CTX
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.printable.companion.PrintableTemplateBase
+import po.misc.data.processors.SeverityLevel
 
 class ExposifyDebugger<T: CTX, P: PrintableBase<P>>(
     receiver:T,
@@ -25,7 +26,7 @@ class ExposifyDebugger<T: CTX, P: PrintableBase<P>>(
         super<DebugProxy>.notify(sqlText)
     }
 
-    fun warn(message: String) = dataProcessor.warn(message)
+    fun warn(message: String): Unit = dataProcessor.notify(message, SeverityLevel.WARNING, receiver)
 }
 
 fun <T: CTX, P: PrintableBase<P>> TasksManaged.exposifyDebugger(

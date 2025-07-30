@@ -73,8 +73,7 @@ fun <DTO, D, E>  DTOBase<DTO, D, E>.toResult(
 
 
 
-
-fun <DTO, D, E>  ResultList<DTO, D, E>.toResultSingle(): ResultSingle<DTO, D, E>
+fun <DTO, D, E>  ResultList<DTO, D, E>.convertToSingle(): ResultSingle<DTO, D, E>
         where  DTO: ModelDTO, D : DataModel, E : LongEntity{
     val dtoList = this.getAsCommonDTO()
     return  ResultSingle(this.dtoClass, dtoList.firstOrNull())

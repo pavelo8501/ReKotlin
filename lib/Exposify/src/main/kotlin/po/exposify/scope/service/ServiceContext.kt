@@ -3,6 +3,7 @@ package po.exposify.scope.service
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import po.exposify.common.classes.ExposifyDebugger
 import po.exposify.common.classes.exposifyDebugger
 import po.exposify.common.events.ContextData
 import po.exposify.dto.interfaces.DataModel
@@ -12,6 +13,7 @@ import po.exposify.dto.components.query.SimpleQuery
 import po.exposify.dto.components.query.WhereQuery
 import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
+import po.exposify.dto.components.result.convertToSingle
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.InitException
 import po.exposify.exceptions.enums.ExceptionCode
@@ -22,8 +24,10 @@ import po.lognotify.extensions.runTask
 import po.lognotify.extensions.runTaskBlocking
 import po.misc.context.CTXIdentity
 import po.misc.context.asSubIdentity
+import po.misc.data.processors.SeverityLevel
 import po.misc.exceptions.throwableToText
 import po.misc.functions.containers.DeferredContainer
+import po.misc.types.TypeData
 
 
 class ServiceContext<DTO, DATA, ENTITY>(
@@ -31,29 +35,21 @@ class ServiceContext<DTO, DATA, ENTITY>(
     val dtoClass: RootDTO<DTO, DATA, ENTITY>,
 ): TasksManaged where DTO : ModelDTO, DATA: DataModel,  ENTITY: LongEntity {
 
-
     override val identity: CTXIdentity<ServiceContext<DTO, DATA, ENTITY>> = asSubIdentity(this, dtoClass)
 
     private val executionProvider: ExecutionContext<DTO, DATA, ENTITY> get() = dtoClass.executionContext
     private val dbConnection: Database get() = serviceClass.connection
+    private val dataType: TypeData<DATA> = dtoClass.commonDTOType.dataType
 
-    val debugger = exposifyDebugger(this, ContextData){
+    val debugger: ExposifyDebugger<ServiceContext<DTO, DATA, ENTITY>, ContextData> = exposifyDebugger(this, ContextData){
         ContextData(it.message)
     }
 
-    fun truncate() = runTaskBlocking("Truncate") { handler ->
+    fun truncate(): Unit = runTaskBlocking("Truncate") { handler ->
         dtoClass.clearCachedDTOs()
-        newSuspendedTransaction {
-            val table = dtoClass.entityClass.table
-            try {
-                exec("TRUNCATE TABLE ${table.tableName} RESTART IDENTITY CASCADE")
-                handler.info("TRUNCATE TABLE ${table.tableName} RESTART IDENTITY CASCADE Executed")
-            } catch (th: Throwable) {
-
-                val managed = InitException(th.message.toString(),  ExceptionCode.DB_TABLE_CREATION_FAILURE, this@ServiceContext , th)
-                handler.warn(managed)
-            }
-        }
+        val statement = "TRUNCATE TABLE ${dtoClass.entityClass.table} RESTART IDENTITY CASCADE"
+        newSuspendedTransaction { exec(statement) }
+        notify("$statement Executed")
     }.resultOrException()
 
     fun pick(conditions: SimpleQuery): ResultSingle<DTO, DATA, ENTITY> =
@@ -92,16 +88,13 @@ class ServiceContext<DTO, DATA, ENTITY>(
         }.resultOrException()
 
     fun update(dataModel: DATA): ResultSingle<DTO, DATA, ENTITY> =
-        runTask("Update") {
-
-
-
+        runTask("Update"){
             withTransactionRestored(debugger, false) {
             executionProvider.update(dataModel, dtoClass)
         }
 
     }.onFailureCause { exception->
-            println(exception.throwableToText())
+            notify(exception.throwableToText(), SeverityLevel.EXCEPTION)
     } .resultOrException()
 
     fun update(dataModels: List<DATA>): ResultList<DTO, DATA, ENTITY> =
@@ -111,12 +104,21 @@ class ServiceContext<DTO, DATA, ENTITY>(
         }
     }.resultOrException()
 
-    fun insert(dataModels: List<DATA>): ResultList<DTO, DATA, ENTITY> =
-        runTask("Insert") {
-            withTransactionRestored(debugger, false) {
-                executionProvider.insert(dataModels)
-            }
-        }.resultOrException()
+
+    private fun insert(taskName: String, dataModels: List<DATA>) = runTask(taskName) {
+        withTransactionRestored(debugger, false){
+            executionProvider.insert(dataModels)
+        }
+    }.resultOrException()
+
+    fun insert(dataModels: List<DATA>): ResultList<DTO, DATA, ENTITY>{
+        return insert("Insert(List<${dataType.typeName}>)", dataModels)
+    }
+
+    fun insert(dataModel: DATA): ResultSingle<DTO, DATA, ENTITY>{
+        return insert("Insert(${dataType.typeName})", listOf(dataModel)).convertToSingle()
+    }
+
 
     fun delete(toDelete: DATA): ResultList<DTO, DATA, ENTITY>? =
         runTask("Delete"){

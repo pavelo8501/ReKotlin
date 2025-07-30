@@ -1,7 +1,6 @@
 package po.lognotify.notification.models
 
 import po.lognotify.tasks.models.TaskConfig
-import po.lognotify.enums.SeverityLevel
 import po.lognotify.tasks.ExecutionStatus
 import po.misc.context.CTX
 import po.misc.data.helpers.textIfNotNull
@@ -10,6 +9,7 @@ import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.printable.PrintableGroup
 import po.misc.data.printable.companion.Template
 import po.misc.data.printable.companion.nextLine
+import po.misc.data.processors.SeverityLevel
 import po.misc.data.styles.colorize
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars

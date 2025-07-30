@@ -23,6 +23,7 @@ import po.lognotify.TasksManaged
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
+import po.misc.data.processors.SeverityLevel
 import po.misc.types.TypeData
 import po.misc.types.containers.TypedContainer
 import po.misc.types.containers.toTypeContainer
@@ -222,7 +223,7 @@ class BindingHub<DTO, D, E>(
             val container = dto.toTypeContainer(typeData)
             containerizedParentMap.put(typeData, container)
         } else {
-            hostingDTO.logHandler.dataProcessor.warn("AssignParent no delegates found for type ${typeData.simpleName}")
+            notify("AssignParent no delegates found for type ${typeData.simpleName}", SeverityLevel.WARNING)
         }
     }
 

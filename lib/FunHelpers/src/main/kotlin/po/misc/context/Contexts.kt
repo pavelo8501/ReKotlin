@@ -1,5 +1,8 @@
 package po.misc.context
 
+import po.misc.data.printable.PrintableBase
+import po.misc.data.printable.companion.PrintableTemplateBase
+import po.misc.data.processors.Logger
 
 
 /**
@@ -10,11 +13,12 @@ package po.misc.context
  */
 interface CTX{
 
-    val identity: CTXIdentity<out  CTX>
+    val identity: CTXIdentity<out CTX>
 
     val contextName: String get() = identity.className
     val completeName: String get() = identity.completeName
     val identifiedByName: String get() = identity.identifiedByName
+
 }
 
 /**
@@ -28,30 +32,6 @@ interface CTX{
 interface Identifiable<T: Identifiable<T>>: CTX {
     override val identity: CTXIdentity<T>
 }
-
-
-//interface Identifiable {
-//    val sourceName: String
-//    val context: CTX
-//   // val contextName: String get() = context.contextName
-//
-//    /**
-//     * A derived hierarchical name composed of the [context]'s name and this [sourceName].
-//     */
-//
-//    val completeName: String get() {
-//      return  context?.let {
-//            "${it.contextName}<$sourceName>"
-//        }?:run {
-//            sourceName
-//        }
-//    }
-//}
-//
-//@Deprecated("To be depreciated", ReplaceWith("CTX"),  DeprecationLevel.WARNING)
-//interface CtxId:Identifiable {
-//    override val sourceName: String
-//}
 
 
 

@@ -39,8 +39,6 @@ class TestSequenceCRUD : DatabaseTest(), TasksManaged {
 
     override val identity: CTXIdentity<out CTX> = asIdentity()
 
-    override val contextName: String = "TestSequenceCRUD"
-
     private val sessionIdentity = TestSessionsContext.SessionIdentity("0", "192.169.1.1")
     val session :  AuthorizedSession = session(sessionIdentity)
 
@@ -141,23 +139,6 @@ class TestSequenceCRUD : DatabaseTest(), TasksManaged {
             assertEquals(pickById, pickResult.getDTOForced().id, "Picked dto id does not match requested")
         }
     }
-
-    @Test
-    fun `Sequenced UPDATE statement`(){
-
-        val page: Page = pageModelsWithSections(pageCount = 1, sectionsCount = 2, updatedBy = 1).first()
-        withConnection {
-            service(PageDTO) {
-                select()
-                sequenced(PageDTO.PICK) { handler ->
-                    update(handler){
-
-                    }
-                }
-            }
-        }
-    }
-
 
     fun `Simplified sequnence INSERT execution`() = runTest {
 

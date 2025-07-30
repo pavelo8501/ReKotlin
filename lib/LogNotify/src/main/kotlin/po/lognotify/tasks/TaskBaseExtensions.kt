@@ -1,9 +1,9 @@
 package po.lognotify.tasks
 
-import po.lognotify.enums.SeverityLevel
 import po.lognotify.tasks.models.TaskConfig
 import po.lognotify.models.TaskKey
 import po.misc.context.CTX
+import po.misc.data.processors.SeverityLevel
 
 fun createTaskKey(name: String, moduleName: String, nestingLevel: Int = 0): TaskKey{
     return TaskKey(name, nestingLevel, moduleName)
@@ -55,8 +55,6 @@ fun <T: CTX, R: Any?>  TaskBase<*, *>.createChild(
 }
 
 
-internal fun <T: CTX, R: Any?>  TaskBase<T, R>.log(message: String, severity: SeverityLevel){
-    dataProcessor.log(message, severity, this)
-}
+
 
 

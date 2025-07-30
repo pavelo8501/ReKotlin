@@ -4,10 +4,10 @@ import org.junit.jupiter.api.Test
 import po.lognotify.notification.NotifierHub
 import po.lognotify.notification.models.TaskData
 import po.lognotify.tasks.models.TaskConfig
-import po.lognotify.enums.SeverityLevel
 import po.lognotify.extensions.runTask
 import po.lognotify.interfaces.FakeTasksManaged
 import po.misc.data.printable.PrintableBase
+import po.misc.data.processors.SeverityLevel
 import po.misc.exceptions.ManagedException
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

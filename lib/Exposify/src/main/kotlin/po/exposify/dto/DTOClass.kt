@@ -27,10 +27,10 @@ import po.exposify.scope.service.ServiceContext
 import po.lognotify.TasksManaged
 import po.lognotify.tasks.TaskHandler
 import po.lognotify.debug.debugProxy
-import po.lognotify.enums.SeverityLevel
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
+import po.misc.data.processors.SeverityLevel
 import po.misc.functions.subscribers.TaggedLambdaRegistry
 import po.misc.interfaces.ValueBased
 import po.misc.validators.models.CheckStatus
@@ -95,8 +95,6 @@ sealed class DTOBase<DTO, D, E>(
             onInitialized.trigger(Events.Initialized, this)
         }
     }
-
-
 
     @PublishedApi
     internal fun initializationComplete(validationResult : CheckStatus){

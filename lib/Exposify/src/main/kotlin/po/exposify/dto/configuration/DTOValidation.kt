@@ -8,6 +8,7 @@ import po.exposify.dto.components.bindings.DelegateStatus
 import po.exposify.dto.components.bindings.interfaces.DelegateInterface
 import po.exposify.dto.components.bindings.property_binder.delegates.ParentDelegate
 import po.exposify.dto.components.bindings.property_binder.delegates.ResponsiveDelegate
+import po.exposify.dto.components.bindings.relation_binder.delegates.RelationDelegate
 import po.exposify.dto.enums.DTOClassStatus
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
@@ -36,7 +37,7 @@ fun <DTO, D, E> DTOBase<DTO, D, E>.setupValidation(
         val foreignKeys = dtoClass.commonDTOType.entityType.tableColumnMap.getData().filter { it.columnData.isForeignKey }
         val mandatoryFields : List<ColumnPropertyData> = dtoClass.commonDTOType.entityType.tableColumnMap.getData().filter { it.columnData.isMandatory }
 
-        val relation = validatableDTO.hub.relationDelegates
+        val relationDelegates :List<RelationDelegate<DTO, D, E, *, *, *>> = validatableDTO.hub.relationDelegates
         val attachedForeign =  validatableDTO.hub.attachedForeignDelegates
         val parentDelegates : List<ParentDelegate<DTO, D, E, *, *, *>> = validatableDTO.hub.parentDelegates
         val responsive : List<ResponsiveDelegate<DTO, D, E, *>> = bindingHub.responsiveDelegates
@@ -78,10 +79,10 @@ fun <DTO, D, E> DTOBase<DTO, D, E>.setupValidation(
             }
         }
 
-        reports.forEach { logger.log(it) }
+        reports.forEach { log(it) }
 
         if(overallResult == CheckStatus.PASSED){
-            bindingHub.relationDelegates.forEach {relation->
+            relationDelegates.forEach {relation->
                 val newMember = dtoConfiguration.addHierarchMember(dtoClass, relation.foreignClass.initialization())
                 newMember.runValidation(validatableDTO)
             }

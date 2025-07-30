@@ -5,7 +5,5 @@ import po.misc.exceptions.ManagedException
 
 interface ObservedContext: CTX{
 
-
-
     val exceptionOutput: ((ManagedException)-> Unit)?
 }

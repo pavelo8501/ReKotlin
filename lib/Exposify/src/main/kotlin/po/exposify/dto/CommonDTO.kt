@@ -24,6 +24,7 @@ import po.misc.containers.TypedBackingContainer
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
+import po.misc.data.processors.SeverityLevel
 import po.misc.functions.subscribers.TaggedLambdaRegistry
 import java.util.UUID
 
@@ -145,7 +146,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
 
     internal fun updateStatus(status: DTOStatus){
         if(dtoStatus == status){
-            logHandler.dataProcessor.warn("DTO{$this} new status ${dtoStatus.name} while existing status ${status.name}")
+            notify("DTO{$this} new status ${dtoStatus.name} while existing status ${status.name}", SeverityLevel.WARNING)
         }
         when(dtoStatus){
             DTOStatus.Complete->{

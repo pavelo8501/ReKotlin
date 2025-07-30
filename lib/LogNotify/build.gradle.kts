@@ -38,6 +38,12 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
+kotlin {
+    compilerOptions{
+        freeCompilerArgs.add("-Xcontext-sensitive-resolution")
+    }
+}
+
 publishing {
     publications {
         create<MavenPublication>("mavenJava") {

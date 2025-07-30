@@ -18,12 +18,11 @@ import po.exposify.scope.service.ServiceClass
 import po.exposify.scope.service.ServiceContext
 import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
-import po.lognotify.enums.SeverityLevel
-import po.lognotify.tasks.TaskHandler
 import po.lognotify.extensions.runTask
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.coroutines.CoroutineInfo
+import po.misc.data.processors.SeverityLevel
 import po.misc.serialization.SerializerInfo
 import po.misc.types.safeCast
 import kotlin.coroutines.coroutineContext
@@ -45,7 +44,7 @@ class ConnectionClass(
     private  var servicesBacking: MutableMap<CommonDTOType<*, *, *>, ServiceClass<*, *, *>> = mutableMapOf()
 
     init {
-        taskHandler.warn("CONNECTION_CLASS CREATED $completeName")
+        notify("CONNECTION_CLASS CREATED $completeName")
     }
 
     internal suspend fun requestEmitter(session: AuthorizedSession): CoroutineEmitter {
@@ -56,7 +55,7 @@ class ConnectionClass(
     }
 
     internal fun registerSerializer(serialInfo: SerializerInfo<*>){
-        taskHandler.info("CONNECTION_CLASS SERIALIZER REGISTRY NEW SERIALIZER NORMALIZED_NAME: ${serialInfo.normalizedKey}")
+        notify("CONNECTION_CLASS SERIALIZER REGISTRY NEW SERIALIZER NORMALIZED_NAME: ${serialInfo.normalizedKey}")
         serializerMap[serialInfo.normalizedKey] = serialInfo
     }
 
@@ -68,7 +67,7 @@ class ConnectionClass(
     }
 
     fun close(){
-        taskHandler.info("Closing connection: ${connection.name}")
+        notify("Closing connection: ${connection.name}")
         TransactionManager.closeAndUnregister(database = connection)
         servicesBacking.values.forEach {
             it.deinitializeService()

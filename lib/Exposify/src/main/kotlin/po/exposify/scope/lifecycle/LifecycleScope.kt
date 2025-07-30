@@ -2,6 +2,11 @@ package po.exposify.scope.lifecycle
 
 import kotlinx.coroutines.CoroutineScope
 
+interface LifecycleScope: CoroutineScope {
+    val lifecycleManager: LifecycleManager
+
+}
+
 class LifecycleManager {
     private val cleanupHooks = mutableListOf<() -> Unit>()
     private val initHooks = mutableListOf<() -> Unit>()
@@ -24,7 +29,3 @@ class LifecycleManager {
     }
 }
 
-interface LifecycleScope: CoroutineScope {
-    val lifecycleManager: LifecycleManager
-
-}

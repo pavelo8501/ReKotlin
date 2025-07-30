@@ -15,6 +15,7 @@ import po.exposify.scope.connection.controls.CoroutineEmitter
 import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.tasks.TaskHandler
+import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 
 class ServiceClass<DTO, DATA, ENTITY>(
@@ -23,7 +24,7 @@ class ServiceClass<DTO, DATA, ENTITY>(
 ):  TasksManaged  where  DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity {
 
 
-    override val identity = asIdentity()
+    override val identity: CTXIdentity<ServiceClass<DTO, DATA, ENTITY>> = asIdentity()
 
     private var tableRecreationList: List<IdTable<Long>>? = null
 
@@ -39,15 +40,14 @@ class ServiceClass<DTO, DATA, ENTITY>(
             TableCreateMode.Create -> {
                 val tableList = mutableListOf<IdTable<Long>>()
                 rootDTOModel.getAssociatedTables(tableList)
-
-                logger.info("Creating tables TableCreateMode.CREATE")
+                notify("Creating tables TableCreateMode.CREATE")
                 tableList.forEach {table->
                     if (!table.exists()) {
-                        logger.info("Creating table ${table.tableName}")
+                        notify("Creating table ${table.tableName}")
                         SchemaUtils.create(table)
-                        logger.info("${table.tableName} created")
+                        notify("${table.tableName} created")
                     }else{
-                        logger.info("Table ${table.tableName} skip. Already exists")
+                        notify("Table ${table.tableName} skip. Already exists")
                     }
                 }
             }
@@ -57,13 +57,13 @@ class ServiceClass<DTO, DATA, ENTITY>(
                     rootDTOModel.getAssociatedTables(newList)
                     newList.reversed()
                 }
-                logger.info("Dropping tables  TableCreateMode.FORCE_RECREATE  ${tableList.joinToString(", "){it.tableName} }")
+                notify("Dropping tables  TableCreateMode.FORCE_RECREATE  ${tableList.joinToString(", "){it.tableName} }")
                 SchemaUtils.drop(*tableList.toTypedArray<IdTable<Long>>(), inBatch = true)
-                logger.info("Dropped. Recreating")
+                notify("Dropped. Recreating")
                 tableList.forEach {table->
-                    logger.info("Creating table ${table.tableName}")
+                    notify("Creating table ${table.tableName}")
                     SchemaUtils.create(table)
-                    logger.info("${table.tableName} created")
+                    notify("${table.tableName} created")
                 }
             }
         }

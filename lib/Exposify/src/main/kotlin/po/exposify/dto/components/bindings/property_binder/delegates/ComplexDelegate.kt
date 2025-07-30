@@ -6,7 +6,6 @@ import po.exposify.dto.CommonDTO
 import po.exposify.dto.CommonDTOBase
 import po.exposify.dto.DTOBase
 import po.exposify.dto.RootDTO
-import po.exposify.dto.components.bindings.BindingHub
 import po.exposify.dto.components.bindings.DelegateStatus
 import po.exposify.dto.components.bindings.interfaces.DelegateInterface
 import po.exposify.dto.components.bindings.interfaces.ForeignDelegateInterface
@@ -56,7 +55,7 @@ sealed class ComplexDelegate<DTO, D, E, F, FD,  FE>(
 
     protected  fun provideForeignDTO(dto: CommonDTO<F, FD, FE>){
         foreignCommonBacking = dto
-        println("Foreign dto saved")
+        updateStatus(DelegateStatus.Initialized)
     }
 
    override fun resolveProperty(property: KProperty<*>){
@@ -92,8 +91,6 @@ class AttachedForeignDelegate<DTO, D, E, F, FD, FE>(
     where D: DataModel, E: LongEntity, DTO: ModelDTO, F: ModelDTO, FD: DataModel, FE: LongEntity
 {
     override val identity: CTXIdentity<AttachedForeignDelegate<DTO, D, E, F, FD, FE>> = asSubIdentity(this, hostingDTO)
-
-
 
     val attachedName: String get() = entityIdProperty.name
 
@@ -152,15 +149,10 @@ class ParentDelegate<DTO, D, E, F, FD, FE>(
     override val identity: CTXIdentity<out CTX> = asSubIdentity(this, hostingDTO)
 
     val initialized: Boolean get() = entityBinderBacking != null
-    val hub: BindingHub<DTO, D, E> = hostingDTO.hub
-
-
     val foreignDTOType: TypeData<F> = foreignClass.commonDTOType.dtoType
 
     internal var entityBinderBacking: ActionValue<E>? = null
     val entityBinder: ActionValue<E> by lazy { entityBinderBacking.getOrOperations(this) }
-
-
 
     override fun onPropertyResolved() {
 
@@ -172,10 +164,10 @@ class ParentDelegate<DTO, D, E, F, FD, FE>(
         }
     }
 
-
     fun assignEntityBinder(binder: ActionValue<E>){
         entityBinderBacking = binder
     }
+
     fun resolve(entity:E) {
         entityBinder.provideValue(entity)
     }

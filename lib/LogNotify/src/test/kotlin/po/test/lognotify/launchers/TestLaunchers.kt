@@ -4,9 +4,9 @@ import org.junit.jupiter.api.Test
 import po.lognotify.action.ActionSpan
 import po.lognotify.common.containers.ActionContainer
 import po.lognotify.common.containers.TaskContainer
-import po.lognotify.enums.SeverityLevel
 import po.lognotify.interfaces.FakeTasksManaged
 import po.misc.containers.withReceiverAndResult
+import po.misc.data.processors.SeverityLevel
 import po.test.lognotify.setup.captureOutput
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -54,19 +54,4 @@ class TestLaunchers: FakeTasksManaged {
 
     }
 
-//
-//    @Test
-//    fun `All launch functions preserve access to original context`(){
-//
-//        val unitType = typeOf<Unit>()
-//        runTask<TestLaunchers, Unit>("SomeTask"){
-//            assertEquals("TestLaunchers", property1)
-//        }
-//        runAction("TestLaunchers"){
-//            assertEquals("TestLaunchers", property1)
-//        }
-//        runAction("TestLaunchers", unitType){
-//            assertEquals("TestLaunchers", property1)
-//        }
-//    }
 }

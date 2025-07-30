@@ -205,7 +205,6 @@ class RootTask<T: CTX, R: Any?>(
         dispatcher.removeRootTask(this)
         throw managed
     }
-
 }
 
 class Task<T: CTX,  R: Any?>(

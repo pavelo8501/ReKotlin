@@ -1,4 +1,5 @@
-package po.lognotify.enums
+package po.misc.data.processors
+
 
 enum class SeverityLevel (val severityLevelId: Int) {
     LOG(1),
@@ -8,7 +9,7 @@ enum class SeverityLevel (val severityLevelId: Int) {
     DEBUG(5);
 
     companion object {
-         val emojis : Map<Int, String> = mapOf(1 to "ℹ️",  2  to "⚠️", 3  to  "❌", 4 to "ℹ️")
+        val emojis : Map<Int, String> = mapOf(1 to "ℹ️",  2  to "⚠️", 3  to  "❌", 4 to "ℹ️")
         fun fromValue(severityLevelId: Int): SeverityLevel? {
             entries.firstOrNull { it.severityLevelId == severityLevelId }?.let {
                 return it

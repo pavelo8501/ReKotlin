@@ -4,6 +4,7 @@ import po.lognotify.tasks.ExecutionStatus
 import po.lognotify.tasks.RootTask
 import po.lognotify.tasks.Task
 import po.lognotify.tasks.TaskBase
+import po.lognotify.tasks.warn
 import po.misc.data.helpers.emptyOnNull
 import po.misc.data.helpers.wrapByDelimiter
 import po.misc.exceptions.ManagedException
@@ -15,10 +16,10 @@ private fun <T: CTX, R> resultContainerCreation(task: TaskBase<T, R>, result: R)
     task.registry.getFirstSubTask(task)?.let {subTask->
         if(subTask.executionStatus == ExecutionStatus.Faulty){
             val exception = subTask.taskResult?.throwable
-            task.dataProcessor.warn("Exception(${exception?.message}) swallowed by $subTask")
+            task.warn("Exception(${exception?.message}) swallowed by $subTask")
             val waypointInfo = exception?.exceptionData?.map { it  }?.joinToString(" -> ") { "${it}(${it.message.emptyOnNull()})" }
             waypointInfo?.wrapByDelimiter("->").emptyOnNull()
-            task.dataProcessor.warn(waypointInfo?.wrapByDelimiter("->").emptyOnNull())
+            task.warn(waypointInfo?.wrapByDelimiter("->").emptyOnNull())
         }
     }
     val result = TaskResult(task, result = result, throwable = null)
@@ -48,7 +49,7 @@ fun <T: CTX, R> onTaskResult(task: TaskBase<T, R>, result: R): TaskResult<R>{
                    val childException = task.checkChildResult(result)
                    if(childException != null){
                        val subTask = task.registry.getFirstSubTask(task)
-                       task.dataProcessor.warn("Exception ${childException.throwableToText()} swallowed by $subTask}")
+                       task.warn("Exception ${childException.throwableToText()} swallowed by $subTask}")
                        createFaultyResult(childException, task)
                    }else{
                        task.dataProcessor.debug("SubTask has no faults. Why this branch called I don't know","ResultHelpers|onTaskResult")
@@ -59,7 +60,7 @@ fun <T: CTX, R> onTaskResult(task: TaskBase<T, R>, result: R): TaskResult<R>{
                     val childException = task.checkChildResult(result)
                     if(childException != null){
                         val subTask = task.registry.getFirstSubTask(task)
-                        task.dataProcessor.warn("Exception ${childException.throwableToText()} swallowed by $subTask}")
+                        task.warn("Exception ${childException.throwableToText()} swallowed by $subTask}")
                         createFaultyResult(childException, task)
                     }else{
                         task.dataProcessor.debug("SubTask has no faults. Why this branch called I don't know","ResultHelpers|onTaskResult")

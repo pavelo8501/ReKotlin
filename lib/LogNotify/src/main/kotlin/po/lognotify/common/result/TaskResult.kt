@@ -2,6 +2,8 @@ package po.lognotify.common.result
 
 import po.lognotify.tasks.ExecutionStatus
 import po.lognotify.tasks.TaskBase
+import po.lognotify.tasks.info
+import po.lognotify.tasks.warn
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.throwableToText
 import po.misc.reflection.classes.ClassInfo
@@ -64,7 +66,7 @@ class TaskResult<R : Any?>(
         task.dataProcessor.debug("Handled onFail registered","${personalName}|onFail")
         throwable?.let {
             task.changeStatus(ExecutionStatus.Faulty)
-            task.dataProcessor.info("Handled ${it.throwableToText()} by onFail")
+            task.info("Handled ${it.throwableToText()} by onFail")
             callback.invoke(it)
         }
         return this
@@ -91,7 +93,7 @@ class TaskResult<R : Any?>(
         onHandleFailure = handleFailureCallback
         return throwable?.let { managed ->
             val message = "Handled ${managed.throwableToText()} by onHandleFailure. Fallback result provided"
-            task.dataProcessor.warn(message)
+            task.warn(message)
             provideResult(handleFailureCallback.invoke(managed))
         } ?: result
     }
@@ -111,37 +113,8 @@ class TaskResult<R : Any?>(
         return  this
     }
 
-
     override fun provideClassInfo(info: ClassInfo<R>){
         classInfo = info
     }
 
 }
-//
-//class ActionResult<R : Any?>(
-//    @PublishedApi internal val actionSpan: ActionSpan<*, R>,
-//    var result: R,
-//    var throwable: ManagedException? = null
-//): ExecutionResult<R>{
-//
-//    @Suppress("UNCHECKED_CAST")
-//    constructor(actionSpan: ActionSpan<*, R>, throwable: ManagedException): this(actionSpan, null as R, throwable){
-//        provideThrowable(throwable)
-//    }
-//
-//    override var isSuccess : Boolean = true
-//    override var classInfo: ClassInfo<R>? = null
-//
-//
-//    fun provideThrowable(th: ManagedException): ActionResult<R>{
-//        isSuccess = false
-//        throwable = th
-//        return  this
-//    }
-//
-//    override fun provideClassInfo(info: ClassInfo<R>){
-//        classInfo = info
-//    }
-//
-//}
-

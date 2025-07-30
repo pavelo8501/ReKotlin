@@ -64,6 +64,10 @@ data class NotifyConfig(
         }
     }
 
+    fun setConsoleBehaviour(behaviour: ConsoleBehaviour){
+        console = behaviour
+    }
+
 //    fun inShowDebugList(debugTemplate: DebugTemplate<*>): Boolean{
 //        return showDebugList.any { it == debugTemplate }
 //    }

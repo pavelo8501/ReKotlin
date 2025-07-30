@@ -7,7 +7,6 @@ import po.lognotify.notification.models.NotifyConfig
 import po.lognotify.notification.models.TaskData
 import po.lognotify.tasks.RootTask
 import po.lognotify.tasks.TaskBase
-import po.lognotify.enums.SeverityLevel
 import po.lognotify.notification.models.ConsoleBehaviour
 import po.lognotify.notification.models.ErrorSnapshot
 import po.lognotify.notification.models.ExceptionRecord
@@ -19,6 +18,7 @@ import po.misc.data.printable.Printable
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.processors.DataProcessorBase
 import po.misc.data.processors.FlowEmitter
+import po.misc.data.processors.SeverityLevel
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.throwableToText
 
@@ -26,7 +26,7 @@ class LoggerDataProcessor(
     val task : TaskBase<*, *>,
     parent: LoggerDataProcessor?,
     emitter: FlowEmitter<TaskData>?,
-) : DataProcessorBase<TaskData>(parent, emitter), LoggerContract {
+) : DataProcessorBase<TaskData>(parent, emitter), LogDataProcessorContract{
 
     enum class LoggerProcessorType{RootTask, Task}
 
@@ -91,9 +91,7 @@ class LoggerDataProcessor(
                     data.echo()
                 }
             }
-            else -> {
-                data.echo()
-            }
+            else -> data.echo()
         }
     }
 
@@ -125,47 +123,23 @@ class LoggerDataProcessor(
             }
         }
     }
-    internal fun log(message: String, severity: SeverityLevel, lnInstance: LNInstance<*>): LogEvent{
+
+    internal fun notify(message: String, severity: SeverityLevel, lnInstance: LNInstance<*>): LogEvent{
         val logEvent = createLogEvent(message, severity, lnInstance)
         taskEvents.addRecord(logEvent)
         return logEvent
     }
 
-    internal fun notify(message: String, severity: SeverityLevel): TaskData{
-        log(message, severity, task)
-        return taskData
-    }
-
-    fun notify(message: String, severity: SeverityLevel, receiver: CTX): TaskData{
-        val logEvent = createLogEvent(message, severity, task)
-        taskEvents.addRecord(logEvent.setArbitraryContext(receiver))
-        return taskData
-    }
-
-    override fun info(message: String): TaskData {
-        log(message, SeverityLevel.INFO, task)
-        return taskData
-    }
-    override fun warn(message: String): TaskData {
-        log(message, SeverityLevel.WARNING, task)
-        return taskData
-    }
-
-    fun warn(th: Throwable, message: String): TaskData {
-        log("$message ${th.throwableToText()}", SeverityLevel.WARNING, task)
-        return taskData
-    }
-
-    fun <T: PrintableBase<T>> log(arbitraryRecord: T, severity: SeverityLevel):T{
+    override fun log(arbitraryRecord: PrintableBase<*>, severity: SeverityLevel, emitter: Any){
         consoleOutput(arbitraryRecord, severity)
         taskData.arbitraryData.add(arbitraryRecord)
-        return arbitraryRecord
     }
 
-    fun <T: PrintableBase<T>> log(arbitraryRecord: T):T{
-        consoleOutput(arbitraryRecord, SeverityLevel.LOG)
-        taskData.arbitraryData.add(arbitraryRecord)
-        return arbitraryRecord
+    override fun notify(message: String, severity: SeverityLevel, emitter: Any){
+        val logEvent = createLogEvent(message, severity, task)
+        when(emitter){
+            is CTX-> taskEvents.addRecord(logEvent.setArbitraryContext(emitter))
+        }
     }
 
     @PublishedApi

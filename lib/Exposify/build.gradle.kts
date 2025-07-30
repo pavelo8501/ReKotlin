@@ -21,6 +21,12 @@ plugins {
 group = "po.exposify"
 version = exposifyVersion
 
+kotlin {
+    compilerOptions{
+        freeCompilerArgs.add("-Xcontext-sensitive-resolution")
+    }
+}
+
 detekt {
     toolVersion = "1.23.7"
     config.setFrom(files("$rootDir/config/detekt/detekt.yml"))

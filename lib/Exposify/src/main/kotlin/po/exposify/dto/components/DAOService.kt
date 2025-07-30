@@ -4,17 +4,15 @@ import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.and
 import po.exposify.dto.interfaces.DataModel
-import po.exposify.dto.DTOBase
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dao.classes.ExposifyEntityClass
 import po.exposify.dto.components.query.SimpleQuery
 import po.exposify.dto.models.CommonDTOType
 import po.lognotify.TasksManaged
-import po.lognotify.enums.SeverityLevel
 import po.lognotify.extensions.runAction
-import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
+import po.misc.data.processors.SeverityLevel
 import kotlin.reflect.full.withNullability
 
 

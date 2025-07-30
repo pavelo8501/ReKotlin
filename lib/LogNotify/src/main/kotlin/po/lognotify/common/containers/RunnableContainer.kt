@@ -3,9 +3,9 @@ package po.lognotify.common.containers
 import po.lognotify.TasksManaged
 import po.lognotify.action.ActionSpan
 import po.lognotify.common.LNInstance
-import po.lognotify.notification.LoggerContract
 import po.lognotify.notification.LoggerDataProcessor
 import po.lognotify.execution.ControlledExecution
+import po.lognotify.notification.LogDataProcessorContract
 import po.lognotify.tasks.ExecutionStatus
 import po.lognotify.tasks.RootTask
 import po.lognotify.tasks.TaskBase
@@ -22,7 +22,7 @@ sealed class RunnableContainer<T: TasksManaged, R: Any?>(
     internal val source : LNInstance<T>,
     override val receiver:T,
     val notifier: LoggerDataProcessor
-):  ControlledExecution, ReceiverContainer<T>, TasksManaged by  receiver,   LoggerContract by notifier{
+):  ControlledExecution, ReceiverContainer<T>, TasksManaged by  receiver, LogDataProcessorContract by notifier{
 
     override val identity: CTXIdentity<out CTX>
         get() = source.identity

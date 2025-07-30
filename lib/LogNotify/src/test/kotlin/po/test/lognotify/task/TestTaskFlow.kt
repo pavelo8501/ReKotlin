@@ -4,10 +4,10 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
-
 import po.lognotify.tasks.models.TaskConfig
 import po.lognotify.extensions.runTask
 import po.lognotify.interfaces.FakeTasksManaged
+import po.misc.data.processors.SeverityLevel
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
 import kotlin.test.assertEquals
@@ -43,7 +43,7 @@ class TestTaskFlow: FakeTasksManaged {
     @Test
     fun `Default root task is created to avoid crash and warning issued`(){
         assertDoesNotThrow {
-            logHandler.dataProcessor.info("Some message")
+            notify("Some message", SeverityLevel.LOG)
         }
     }
 

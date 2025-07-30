@@ -12,13 +12,13 @@ import po.exposify.extensions.castOrInit
 import po.exposify.extensions.getOrInit
 import po.exposify.extensions.getOrOperations
 import po.lognotify.TasksManaged
-import po.lognotify.enums.SeverityLevel
 import po.misc.callbacks.CallbackManager
 import po.misc.callbacks.builders.callbackManager
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asSubIdentity
 import po.misc.data.SmartLazy
+import po.misc.data.processors.SeverityLevel
 import po.misc.reflection.properties.models.PropertyUpdate
 import po.misc.types.getOrManaged
 import kotlin.Any

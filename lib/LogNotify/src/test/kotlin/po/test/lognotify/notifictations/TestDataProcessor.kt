@@ -3,11 +3,11 @@ package po.test.lognotify.notifictations
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import po.lognotify.action.ActionSpan
-import po.lognotify.enums.SeverityLevel
 import po.lognotify.interfaces.FakeTasksManaged
 import po.lognotify.notification.models.ConsoleBehaviour
 import po.lognotify.tasks.RootTask
 import po.lognotify.tasks.models.TaskConfig
+import po.misc.data.processors.SeverityLevel
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.ManagedPayload
 import po.test.lognotify.setup.captureOutput

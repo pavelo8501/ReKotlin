@@ -17,7 +17,7 @@ import po.misc.context.asIdentity
 sealed class ExecutionHandlerBase<DTO, D, E>(
 ): CTX where DTO: ModelDTO, D: DataModel, E : LongEntity  {
 
-    override val identity: CTXIdentity<out CTX> = asIdentity()
+    override val identity: CTXIdentity<ExecutionHandlerBase<DTO, D, E>> = asIdentity()
 
     private val deferredQueryError = "DeferredQuery required but not provided"
     private var deferredQueryBacking: DeferredContainer<WhereQuery<E>>? = null

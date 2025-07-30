@@ -8,7 +8,6 @@ import po.misc.data.printable.companion.PrintableTemplateBase
 
 abstract class PrintableBase<T>(
     private val companion: PrintableCompanion<T>
-   // var defaultTemplate: PrintableTemplateBase<T>
 ): ComposableData, Printable, DateHelper where T:PrintableBase<T> {
 
 
@@ -19,8 +18,8 @@ abstract class PrintableBase<T>(
     override var children: List<PrintableBase<*>> = listOf()
 
     var activeTemplate:  PrintableTemplateBase<T>? = null
-    val templates: MutableList<PrintableTemplateBase<T>> = mutableListOf<PrintableTemplateBase<T>>()
-
+    private val templatesBacking: MutableList<PrintableTemplateBase<T>> = mutableListOf<PrintableTemplateBase<T>>()
+    val templates :List<PrintableTemplateBase<T>> = templatesBacking
     override val formattedString : String get(){
         return activeTemplate?.resolve(self) ?:run {
             templateNotFound(self)
@@ -46,20 +45,13 @@ abstract class PrintableBase<T>(
     internal var outputSource: ((String)-> Unit)?=null
 
     init {
+        templatesBacking.addAll(companion.templates)
         val defaultTemplate = companion.templates.firstOrNull { it.isDefaultTemplate }
         if(defaultTemplate != null){
             activeTemplate = defaultTemplate
         }else{
             activeTemplate =  companion.templates.firstOrNull()
         }
-    }
-
-    private fun formatString(stringProvider: T.()-> String): String{
-       return stringProvider.invoke(self)
-    }
-
-    private fun formatString(template: PrintableTemplateBase<T>): String{
-        return template.evaluateTemplate(self)
     }
 
     private fun shouldMute(): Boolean{
@@ -70,22 +62,12 @@ abstract class PrintableBase<T>(
        return muteCondition?.invoke(self)?:false
     }
 
-    internal fun setDefaultTemplate(template: PrintableTemplateBase<T>){
+    fun setDefaultTemplate(template: PrintableTemplateBase<T>){
         activeTemplate = template
     }
 
     override fun setParent(parent: PrintableBase<*>) {
         parentRecord = parent
-    }
-
-    fun addTemplate(vararg template: PrintableTemplateBase<T>){
-        template.forEach {
-            templates.add(it)
-        }
-    }
-
-    fun templatedString(template: PrintableTemplateBase<T>): String{
-        return template.resolve(self)
     }
 
     override fun echo(){
