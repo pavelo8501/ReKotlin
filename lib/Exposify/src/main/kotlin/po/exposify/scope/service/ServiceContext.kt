@@ -9,6 +9,7 @@ import po.exposify.common.events.ContextData
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.RootDTO
 import po.exposify.dto.components.ExecutionContext
+import po.exposify.dto.components.RootExecutionContext
 import po.exposify.dto.components.query.SimpleQuery
 import po.exposify.dto.components.query.WhereQuery
 import po.exposify.dto.components.result.ResultList
@@ -37,7 +38,7 @@ class ServiceContext<DTO, DATA, ENTITY>(
 
     override val identity: CTXIdentity<ServiceContext<DTO, DATA, ENTITY>> = asSubIdentity(this, dtoClass)
 
-    private val executionProvider: ExecutionContext<DTO, DATA, ENTITY> get() = dtoClass.executionContext
+    private val executionProvider: RootExecutionContext<DTO, DATA, ENTITY> get() = dtoClass.executionContext
     private val dbConnection: Database get() = serviceClass.connection
     private val dataType: TypeData<DATA> = dtoClass.commonDTOType.dataType
 
@@ -80,7 +81,7 @@ class ServiceContext<DTO, DATA, ENTITY>(
         }
     }.resultOrException()
 
-    fun select(conditions: DeferredContainer<WhereQuery<ENTITY>>):ResultList<DTO, DATA> =
+    fun select(conditions: DeferredContainer<WhereQuery<*>>):ResultList<DTO, DATA> =
         runTask("Select(with conditions)") {
             withTransactionRestored(debugger, false) {
                 executionProvider.select(conditions.resolve())

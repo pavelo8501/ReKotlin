@@ -11,7 +11,7 @@ data class DTOClassData(
     private val dtoClass: DTOBase<*, *, *>,
     val message: String,
     val status : String = dtoClass.status.name,
-    val cachedDtoCount : Int = dtoClass.dtoMapSize,
+    val cachedDtoCount : Int = dtoClass.dtoConfiguration.dtoMap.size,
 ): PrintableBase<DTOClassData>(this){
     override val self: DTOClassData = this
 

@@ -13,18 +13,7 @@ fun <E: LongEntity> whereQuery(dtoClass: DTOBase<*, *, E>, builder:WhereQuery<E>
     return query
 }
 
-fun <DTO: ModelDTO, D: DataModel, E: LongEntity> deferredQuery(
-    dtoClass: DTOBase<DTO, D, E>,
-    builder:WhereQuery<E>.()-> Unit
-): DeferredContainer<WhereQuery<E>> {
-
-    return DeferredContainer(dtoClass){
-        whereQuery(dtoClass, builder)
-    }
-}
-
-
-fun <DTO: ModelDTO, D: DataModel> deferredQuery2(
+fun <DTO: ModelDTO, D: DataModel> deferredQuery(
     dtoClass: DTOBase<DTO, D, *>,
     builder:WhereQuery<*>.()-> Unit
 ): DeferredContainer<WhereQuery<*>> {

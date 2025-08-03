@@ -31,14 +31,33 @@ class CTXIdentity<T: CTX> @PublishedApi internal constructor(
     val parentIdentity: CTXIdentity<*>? get() = parentContext?.identity
     val className: String = kClass.simpleName ?: "Unnamed"
 
+    private var nameLockedByUserBacking: Boolean = false
     private val uuid: UUID  = UUID.randomUUID()
-    private var namePattern: ((CTXIdentity<T>)-> String)? = null
     private val baseName: String get() = userDefinedId?.let { "$className#$it" } ?: className
 
+    private var identifiedByNameBacking: String = ""
+
+    val nameLockedByUser: Boolean get() = nameLockedByUserBacking
     val numericId: Long  by lazy { userDefinedId?: run { uuid.mostSignificantBits xor uuid.leastSignificantBits } }
     val isIdUsedDefined: Boolean get() = userDefinedId != null
 
-    val identifiedByName: String get () =  namePattern?.invoke(this) ?: baseName
+    val identifiedByName: String get () {
+        return if(nameLockedByUserBacking){
+             identifiedByNameBacking
+        }else   {
+            baseName
+        }
+    }
+
+    val detailedDump: String  get(){
+        return buildString {
+            appendLine(identifiedByName)
+            appendLine("Type Parameters: ${typeData.typeName}")
+            appendLine("numericId : $numericId")
+            appendLine("Id User Defined : $isIdUsedDefined")
+            appendLine("Hash Code : ${hashCode()}")
+        }
+    }
 
     /**
      * Hierarchical identity string built from this context and its parents (if any).
@@ -60,7 +79,10 @@ class CTXIdentity<T: CTX> @PublishedApi internal constructor(
     }
 
     fun setNamePattern(builder:(CTXIdentity<T>)-> String){
-        namePattern = builder
+        if(!nameLockedByUserBacking){
+            identifiedByNameBacking = builder.invoke(this)
+            nameLockedByUserBacking = true
+        }
     }
 
     override fun toString(): String = completeName

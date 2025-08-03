@@ -15,7 +15,7 @@ internal fun initException(payload: ManagedCallSitePayload): InitException{
 }
 
 @PublishedApi
-internal fun initException(message: String, exceptionCode: ExceptionCode,  context: CTX): InitException{
+internal fun initException(message: String, exceptionCode: ExceptionCode, context: CTX): InitException{
     val methodName: String = "initException"
     val payload = ManagedPayload(message, methodName, context)
     return InitException(payload.setCode(exceptionCode))

@@ -14,7 +14,7 @@ enum class DSLContainerType{
 
 
 @DSLBlockMarker
-class ContainingDSLBlock<T: Any, R: Any, PT: Any>(
+open class ContainingDSLBlock<T: Any, R: Any, PT: Any>(
     private val block: (T.()->R)?,
     private val extractorFn:((PT)->T)? = null
 ) {
@@ -47,8 +47,6 @@ class ContainingDSLBlock<T: Any, R: Any, PT: Any>(
             extractor = createExtractor(it)
         }
     }
-
-
 
     private fun registerProvider(block:T.()->R){
         val provider =   DSLProvider(block)

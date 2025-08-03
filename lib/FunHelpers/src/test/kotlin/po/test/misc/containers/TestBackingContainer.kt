@@ -7,6 +7,7 @@ import po.misc.containers.LazyBackingContainer
 import po.misc.functions.common.ExceptionFallback
 import po.misc.functions.common.Fallback
 import po.misc.functions.common.ValueFallback
+import po.misc.types.TypeData
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -21,10 +22,10 @@ class TestBackingContainer {
         val expectedResult = "Result"
         var triggerCount: Int = 0
 
-        val container = LazyBackingContainer<String>()
+        val container = LazyBackingContainer<String>(TypeData.create())
 
         var actualResult1 = ""
-        container.getValue {
+        container.requestValue(this){
             actualResult1 = it
             triggerCount++
         }
@@ -36,7 +37,7 @@ class TestBackingContainer {
         assertTrue(triggerCount == 1)
 
         var actualResult2 = ""
-        container.getValue {
+        container.requestValue(this) {
             actualResult2 = it
         }
         assertEquals(expectedResult, actualResult2)
@@ -48,9 +49,11 @@ class TestBackingContainer {
 
         val fallbackValue: String = "FallbackValue"
 
-        val container = LazyBackingContainer<String>()
+        val container = LazyBackingContainer<String>(TypeData.create())
         assertThrows<Exception> {
-            container.getWithFallback(ExceptionFallback<String>{ message -> Exception(message) })
+            container.getWithFallback(ExceptionFallback{ payload ->
+                Exception(payload.message)
+            })
         }
         val result = assertDoesNotThrow {
             container.getWithFallback(ValueFallback { fallbackValue })

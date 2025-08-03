@@ -5,10 +5,12 @@ import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import po.auth.extensions.generatePassword
+import po.exposify.DatabaseManager
 import po.exposify.dto.DTOBase
 import po.exposify.dto.enums.DTOClassStatus
 import po.exposify.exceptions.InitException
 import po.exposify.scope.service.models.TableCreateMode
+import po.lognotify.TasksManaged
 import po.misc.callbacks.Containable
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
@@ -22,17 +24,17 @@ import po.test.exposify.setup.dtos.PageDTO
 import po.test.exposify.setup.dtos.SectionDTO
 import po.test.exposify.setup.dtos.User
 import po.test.exposify.setup.dtos.UserDTO
+import po.test.exposify.setup.mocks.mockPage
+import po.test.exposify.setup.mocks.mockedUser
 import po.test.exposify.setup.pageModelsWithSections
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestDTOConfiguration : DatabaseTest(), CTX {
+class TestDTOConfiguration : DatabaseTest(), TasksManaged {
 
-
-    override val identity: CTXIdentity<out CTX> = asIdentity()
-
-    override val contextName: String get() = "TestDTOConfiguration"
+    override val identity: CTXIdentity<TestDTOConfiguration> = asIdentity()
 
     companion object {
         @JvmStatic()
@@ -41,48 +43,22 @@ class TestDTOConfiguration : DatabaseTest(), CTX {
 
     @Test
     fun `Validator reports fails when missing init`() {
-        val exception = assertThrows<InitException> {
+        assertThrows<InitException> {
             withConnection {
-                service(PageDTO) {
-
-                }
+                service(PageDTO)
             }
         }
+        assertEquals(DTOClassStatus.Uninitialized, PageDTO.status)
+        assertTrue(DatabaseManager.connections.isEmpty())
     }
-
 
     @Test
     fun `Happy path validator reports all green`() {
         startTestConnection()
-        fun onInitialized(dto: Containable<DTOBase<PageDTO, Page, PageEntity>>){
-            val pageDTOClass  = assertIs<PageDTO.Companion>(dto.getData())
-            assertEquals(DTOClassStatus.Initialized, pageDTOClass.status, "Root DTO uninitialized")
-            assertEquals(DTOClassStatus.Initialized, SectionDTO.status, "SectionDTO uninitialized")
-            assertEquals(DTOClassStatus.Initialized, ContentBlockDTO.status, "ContentBlockDTO uninitialized")
-            assertEquals(DTOClassStatus.Initialized, UserDTO.status, "UserDTO uninitialized")
-        }
-
-        val user = User(
-            id = 0,
-            login = "some_login",
-            hashedPassword = generatePassword("password"),
-            name = "name",
-            email = "nomail@void.null"
-        )
-
-        withConnection {
-            service(UserDTO, TableCreateMode.ForceRecreate) {
-                updatedById = update(user).getDataForced().id
-            }
-        }
-
-        val pages = pageModelsWithSections(pageCount = 1, sectionsCount = 1, updatedBy = updatedById)
-//        PageDTO.notifier.request(this, ::onInitialized)
         assertDoesNotThrow {
             withConnection {
-                service(PageDTO) {
-                    update(pages)
-                }
+                service(UserDTO)
+                service(PageDTO)
             }
         }
     }

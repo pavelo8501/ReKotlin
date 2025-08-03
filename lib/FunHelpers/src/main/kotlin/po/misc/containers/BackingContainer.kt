@@ -8,9 +8,10 @@ import po.misc.exceptions.ManagedException
 import po.misc.exceptions.ManagedPayload
 import po.misc.functions.common.ExceptionFallback
 import po.misc.functions.common.Fallback
-import po.misc.functions.containers.Notifier
-import po.misc.functions.subscribers.DefaultEvent
-import po.misc.functions.subscribers.LambdaRegistry
+import po.misc.functions.hooks.Change
+import po.misc.functions.hooks.ChangeHook
+import po.misc.functions.hooks.models.ValueUpdate
+import po.misc.functions.registries.NotifierRegistry
 import po.misc.types.TypeData
 import po.misc.types.Typed
 import po.misc.types.castOrManaged
@@ -20,9 +21,9 @@ import kotlin.reflect.KClass
 
 
 
-sealed class BackingContainerBase<T: Any>(): LogEmitter{
+sealed class BackingContainerBase<T: Any>(val typeData: Typed<T>, ): LogEmitter{
 
-    internal open var backingValue: T? = null
+    protected open var backingValue: T? = null
 
     /**
      * Returns the current source value.
@@ -35,8 +36,29 @@ sealed class BackingContainerBase<T: Any>(): LogEmitter{
      */
     val isValueAvailable: Boolean get() = backingValue != null
 
-    abstract fun getValue(callingContext: Any):T
+    private var exceptionFallback: ExceptionFallback? = null
+    private val callbackRegistry = NotifierRegistry<T>()
 
+    protected var changedHook: ChangeHook<T> = ChangeHook()
+
+    private fun getValueWithFallback(callingContext: Any): T {
+        val currentValue = value
+        if (currentValue != null) {
+            return currentValue
+        } else {
+            val payload = ManagedPayload("value is null", "getValueWithFallback", callingContext)
+            exceptionFallback?.exceptionProvider?.invoke(payload)
+        }
+        return value.getOrManaged(typeData.kClass, callingContext)
+    }
+
+    fun provideFallback(fallback: ExceptionFallback) {
+        exceptionFallback = fallback
+    }
+
+    fun getValue(callingContext: Any): T {
+        return getValueWithFallback(callingContext)
+    }
 
     fun <T2: Any> getWithFallback(fallback: Fallback<T2>):T{
         val value = backingValue
@@ -56,16 +78,30 @@ sealed class BackingContainerBase<T: Any>(): LogEmitter{
         return castedFallbackValue
     }
 
+    fun requestValue(subscriber: Any,  callback: (T)-> Unit){
+        value?.let {
+            callback.invoke(it)
+        }?:run {
+            val index = callbackRegistry.size+ 1L
+            callbackRegistry.subscribe(index,  subscriber, callback)
+        }
+    }
+
     /**
      * Sets or replaces the backing source value.
      * @param value the value to assign as the backing source.
      */
     open fun provideValue(value:T){
+        val oldValue = this.value
         backingValue = value
+        callbackRegistry.triggerAll(value)
+        callbackRegistry.clear()
+        changedHook.trigger(ValueUpdate(oldValue, value))
     }
 
     fun reset() {
         backingValue = null
+        callbackRegistry.clear()
     }
 }
 
@@ -83,32 +119,14 @@ sealed class BackingContainerBase<T: Any>(): LogEmitter{
  * @constructor Creates a [BackingContainer] with optional initial [sourceBacking].
  */
 open class BackingContainer<T: Any>(
-    val typeData: Typed<T>,
-): BackingContainerBase<T>() {
+    typeData: Typed<T>,
+): BackingContainerBase<T>(typeData) {
 
-    private var exceptionFallback: ExceptionFallback? = null
-
-    private fun getValueWithFallback(callingContext: Any): T {
-        val currentValue = value
-        if (currentValue != null) {
-            return currentValue
-        } else {
-            val payload = ManagedPayload("value is null", "getValueWithFallback", callingContext)
-            exceptionFallback?.exceptionProvider?.invoke(payload)
-        }
-        return value.getOrManaged(typeData.kClass, callingContext)
-    }
-
-    override fun getValue(callingContext: Any): T {
-        return getValueWithFallback(callingContext)
-    }
-
-    fun provideFallback(fallback: ExceptionFallback) {
-        exceptionFallback = fallback
+    fun onValueSet(callback:(Change<T?, T>)-> Unit){
+        changedHook.subscribe(callback)
     }
 
     companion object {
-
         inline fun <reified T : Any> create(initialValue: T? = null): BackingContainer<T> {
             val container = BackingContainer(TypeData.create<T>())
             if (initialValue != null) {
@@ -124,44 +142,71 @@ inline fun <reified T: Any> backingContainerOf():BackingContainer<T>{
 }
 
 
-
 class LazyBackingContainer<T: Any>(
-    initialValue:T? = null
-):BackingContainerBase<T>() {
 
-    var notifier : Notifier<T>? = null
+    typeData: Typed<T>,
+    initialValue:T? = null
+):BackingContainerBase<T>(typeData) {
+
+    var lockedForEdit: Boolean = false
+        private set
 
     override var backingValue: T? = initialValue
-    val registry: LambdaRegistry<T> = LambdaRegistry()
+    val registry: NotifierRegistry<T> = NotifierRegistry()
 
-
-    override fun getValue(callingContext: Any): T {
-        TODO("Not yet implemented")
+    fun onValueSet(callback:(Change<T?, T>)-> Unit){
+        changedHook.subscribe(callback)
     }
-
-    fun <T2: Any>  requestValueCasting(
-        subscriber: CTX,
-        kClass: KClass<T2>,
-        callback : (T2) -> Unit
-    ){
-        notify("requestValueCasting")
+    fun requestValue(subscriber: CTX, callback:(T)-> Unit){
         val value = backingValue
-        if(value != null){
-            notify("value != null invoking")
-            val casted = value.safeCast(kClass)
-            if(casted != null){
-                callback.invoke(casted)
-            }else{
-                notify("Cast to ${kClass.simpleName} failed wount invoke", SeverityLevel.WARNING)
-            }
+        if (value != null) {
+            callback.invoke(value)
         }else{
-            println("Subscribing")
-            registry.subscribe(subscriber.identity.numericId,  subscriber,  callback as (T) -> Unit)
+
+            if(!lockedForEdit){
+                registry.subscribe(subscriber.identity.numericId, subscriber, callback)
+            }
         }
     }
 
-   override fun provideValue(value: T) {
-       super.provideValue(value)
-       registry.trigger(DefaultEvent.Default, value)
+    fun testNotify2(subscriber: CTX, message: String){
+        subscriber.notify(message)
     }
+
+
+
+    fun <T2 : Any> requestValueCasting(
+        subscriber: CTX,
+        kClass: KClass<T2>,
+        callback: (T2) -> Unit
+    ) {
+        subscriber.notify("requestValueCasting")
+        val value = backingValue
+        if (value != null) {
+            notify("value != null invoking")
+            val casted = value.safeCast(kClass)
+            if (casted != null) {
+                callback.invoke(casted)
+            } else {
+                notify("Cast to ${kClass.simpleName} failed wount invoke", SeverityLevel.WARNING)
+            }
+        } else {
+            println("Subscribing")
+            registry.subscribe(subscriber.identity.numericId, subscriber, callback as (T) -> Unit)
+        }
+    }
+
+    override fun provideValue(value: T) {
+        if(!lockedForEdit){
+            super.provideValue(value)
+            registry.triggerAll(value)
+            lockedForEdit = true
+            registry.clear()
+        }
+    }
+}
+
+
+inline fun <reified T: Any> lazyBackingOf(initialValue:T? = null):LazyBackingContainer<T>{
+    return LazyBackingContainer(TypeData.create<T>(), initialValue)
 }

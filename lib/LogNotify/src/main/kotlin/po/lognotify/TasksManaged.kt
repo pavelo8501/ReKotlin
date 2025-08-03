@@ -16,7 +16,7 @@ import po.misc.data.logging.LogEmitter
 import po.misc.data.processors.SeverityLevel
 import kotlin.coroutines.CoroutineContext
 
-interface TasksManaged : CTX, LogEmitter {
+interface TasksManaged : CTX {
 
     object LogNotify {
         val taskDispatcher: TaskDispatcher = TaskDispatcher(NotifierHub())
@@ -30,8 +30,16 @@ interface TasksManaged : CTX, LogEmitter {
             taskDispatcher.onTaskComplete(handler, wrapRawCallback(callback))
     }
 
-    override val datLogger: (PrintableBase<*>, SeverityLevel, Any) -> Unit get() = logHandler.logger::log
-    override val messageLogger: (String, SeverityLevel, Any) -> Unit get() = logHandler.logger::notify
+   // override val datLogger: (PrintableBase<*>, SeverityLevel, Any) -> Unit get() = logHandler.logger::log
+
+    override val messageLogger: (String, SeverityLevel, Any) -> Unit get() = {message, severity, context->
+        logHandler.logger.notify(message, severity, context)
+    }
+
+
+    override val datLogger: (PrintableBase<*>, SeverityLevel, Any) -> Unit get() = {printable, severity, context->
+        logHandler.logger.log(printable, severity, context)
+    }
 
     val logHandler: LogNotifyHandler
         get() = LogNotifyHandler(LogNotify.taskDispatcher)

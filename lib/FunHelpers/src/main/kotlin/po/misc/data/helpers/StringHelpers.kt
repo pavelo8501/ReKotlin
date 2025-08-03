@@ -32,10 +32,9 @@ fun String.withMargin(vMargin: Int): String{
 }
 
 
-
-fun String?.emptyOnNull(prefix: String = ""): String{
+fun String?.emptyOnNull(alternativeText: String = ""): String{
     if(this != null){
-        return "$prefix${this}"
+        return "$alternativeText${this}"
     }
     return ""
 }
@@ -69,11 +68,10 @@ fun Any?.textIfNull(fallbackText: String, textProvider: (Any)-> String): String{
 }
 
 
-fun Any?.textIfNull(fallbackText: String): String{
+fun Any?.textIfNull(text: String): String{
     return this?.let {
         this.toString()
-
-    }?:fallbackText
+    }?:text
 }
 
 fun <T> T?.toTemplate(transform: T.() -> String): String =

@@ -6,64 +6,93 @@ import po.lognotify.tasks.info
 import po.lognotify.tasks.warn
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.throwableToText
+import po.misc.functions.containers.Notifier
+import po.misc.functions.containers.lambdaAsNotifier
 import po.misc.reflection.classes.ClassInfo
 
-
-sealed interface ExecutionResult<R : Any?>{
-    var isSuccess : Boolean
+sealed interface ExecutionResult<R : Any?> {
+    var isSuccess: Boolean
     var classInfo: ClassInfo<R>?
-    fun provideClassInfo(info: ClassInfo<R>)
 
+    fun provideClassInfo(info: ClassInfo<R>)
 }
 
 class TaskResult<R : Any?>(
     @PublishedApi internal val task: TaskBase<*, R>,
-    var result: R,
-    var throwable: ManagedException? = null
-): ExecutionResult<R>{
-
-    val taskName: String get () = task.key.taskName
+    internal var result: R,
+    @PublishedApi
+    internal var throwable: ManagedException? = null,
+) : ExecutionResult<R> {
+    val taskName: String get() = task.key.taskName
 
     @Suppress("UNCHECKED_CAST")
-    constructor(task: TaskBase<*, R>, throwable: ManagedException): this(task, null as R, throwable){
+    constructor(task: TaskBase<*, R>, throwable: ManagedException) : this(task, null as R, throwable) {
         provideThrowable(throwable)
     }
+
     private val personalName: String = "TaskResult"
-    override var isSuccess : Boolean = true
+    override var isSuccess: Boolean = true
 
     override var classInfo: ClassInfo<R>? = null
 
     val isResult: Boolean
-        get(){ return result != null }
+        get() {
+            return result != null
+        }
 
-    val hasThrowable: Boolean get(){
-        return throwable!=null
+    val hasThrowable: Boolean get() {
+        return throwable != null
+    }
+    val hasGuardConditions: Boolean get() = !(onFailFn == null && exHandlingCallback == null)
+
+    val collectedErrors: MutableList<Throwable> = mutableListOf()
+
+    private var beforeFaultyResultRequested: Notifier<ManagedException>? = null
+
+    @PublishedApi
+    internal fun collectException(throwable: Throwable) {
+        val previous = collectedErrors.lastOrNull()
+        previous?.let { previous ->
+            if (throwable === previous) {
+                task.warn("Provided same exception")
+            } else {
+                collectedErrors.add(throwable)
+            }
+        } ?: collectedErrors.add(throwable)
     }
 
-    private fun provideResult(newResult:R):R{
-        result = newResult
-        return result
+//    private fun provideResult(newResult: R): R {
+//        result = newResult
+//        return result
+//    }
+
+    private var onCompleteFn: ((TaskResult<R>) -> Unit)? = null
+
+    @PublishedApi
+    internal fun subscribeBeforeFault(callback: (ManagedException) -> Unit) {
+        beforeFaultyResultRequested = lambdaAsNotifier<ManagedException>(callback)
     }
 
-    private var onCompleteFn: ((TaskResult<R>)->Unit)? = null
-    fun onComplete(block: (TaskResult<R>)->Unit): TaskResult<R>{
+    fun onComplete(block: (TaskResult<R>) -> Unit): TaskResult<R> {
         onCompleteFn = block
         block.invoke(this)
         return this
     }
 
     private var onResultFn: ((R) -> Unit)? = null
-    fun onResult(block: (R)->Unit): TaskResult<R> {
+
+    fun onResult(block: (R) -> Unit): TaskResult<R> {
         onResultFn = block
-        if(result != null){
+        if (result != null) {
             block.invoke(result)
         }
         return this
     }
 
     private var onFailFn: ((ManagedException) -> Unit)? = null
-    fun onFail(callback: (ManagedException)->Unit): TaskResult<R> {
-        task.dataProcessor.debug("Handled onFail registered","${personalName}|onFail")
+
+    fun onFail(callback: (ManagedException) -> Unit): TaskResult<R> {
+        task.dataProcessor.debug("Handled onFail registered", "$personalName|onFail")
         throwable?.let {
             task.changeStatus(ExecutionStatus.Faulty)
             task.info("Handled ${it.throwableToText()} by onFail")
@@ -72,49 +101,55 @@ class TaskResult<R : Any?>(
         return this
     }
 
-    fun resultOrException():R {
-        throwable?.let {
-            throw it
+    fun resultOrException(): R {
+        val managed = throwable
+        if (managed != null) {
+            beforeFaultyResultRequested?.trigger(managed)
+            throw managed
         }
         return result
     }
 
-    private var exHandlingCallback: (suspend ()-> R)? = null
-    suspend fun handleException( resultCallback: suspend ()-> R){
+    private var exHandlingCallback: (suspend () -> R)? = null
+
+    suspend fun handleException(resultCallback: suspend () -> R) {
         exHandlingCallback = resultCallback
         throwable?.let {
             result = resultCallback()
-            task.dataProcessor.debug("Faulty result handled silently", "${personalName}|handleException")
+            task.dataProcessor.debug("Faulty result handled silently", "$personalName|handleException")
         }
     }
 
-    private var onHandleFailure: ((ManagedException?)-> R)? = null
-    fun handleFailure(handleFailureCallback: (ManagedException?)-> R):R {
+    private var onHandleFailure: ((ManagedException?) -> R)? = null
+
+    fun handleFailure(handleFailureCallback: (ManagedException?) -> R): R {
         onHandleFailure = handleFailureCallback
         return throwable?.let { managed ->
             val message = "Handled ${managed.throwableToText()} by onHandleFailure. Fallback result provided"
             task.warn(message)
-            provideResult(handleFailureCallback.invoke(managed))
-        } ?: result
+            handleFailureCallback.invoke(managed)
+        } ?: run {
+            result
+        }
     }
 
-    internal fun provideThrowable(th: ManagedException): TaskResult<R>{
+    internal fun provideThrowable(th: ManagedException): TaskResult<R> {
+        collectException(th)
         isSuccess = false
         task.changeStatus(ExecutionStatus.Failing)
         exHandlingCallback?.let {
-            task.dataProcessor.debug("Faulty result handled silently", "${personalName}|handleException")
+            task.dataProcessor.debug("Faulty result handled silently", "$personalName|handleException")
             onCompleteFn?.invoke(this)
-        }?:run {
+        } ?: run {
             throwable = th
-            if(onFailFn != null){
+            if (onFailFn != null) {
                 onFailFn?.invoke(th)
             }
         }
-        return  this
+        return this
     }
 
-    override fun provideClassInfo(info: ClassInfo<R>){
+    override fun provideClassInfo(info: ClassInfo<R>) {
         classInfo = info
     }
-
 }

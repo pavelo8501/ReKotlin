@@ -1,6 +1,5 @@
 package po.exposify.dto.enums
 
-
 enum class DTOClassStatus {
     Uninitialized,
     PreFlightCheck,
@@ -12,11 +11,12 @@ enum class DTOStatus {
     PartialWithData,
     PartialWithEntity,
     Complete,
-    Cached
+    Cached,
 }
 
 enum class DataStatus {
     New,
     Dirty,
-    UpToDate
+    UpToDate,
+    PreflightCheckMock,
 }

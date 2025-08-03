@@ -25,12 +25,15 @@ import po.misc.time.MeasuredContext
 import po.misc.time.startTimer
 
 class DTOTracker<DTO: ModelDTO, D: DataModel, E: LongEntity>(
-    internal val dto : CommonDTO<DTO, D, E>
-):  MeasuredContext, TrackableDTO, TasksManaged{
+    internal val dto : CommonDTO<DTO, D, E>):  MeasuredContext, TrackableDTO, TasksManaged
+{
 
     override val identity: CTXIdentity<DTOTracker<DTO, D, E>> = asSubIdentity(this, dto)
     override val executionTimeStamp: ExecutionTimeStamp = ExecutionTimeStamp(dto.completeName, "-1")
-    @PublishedApi internal var config : TrackerConfig = TrackerConfig()
+    @PublishedApi internal var config : TrackerConfig<*> = TrackerConfig()
+
+    val tag: Enum<*>? get() = config.optionalTag
+
     var activeRecord : TrackerRecord = TrackerRecord(this, CrudOperation.Create, dto.completeName)
         private set
 
@@ -40,17 +43,12 @@ class DTOTracker<DTO: ModelDTO, D: DataModel, E: LongEntity>(
         debug(DTOData(this, params.message), DTOData, params.template)
     }
 
-    internal val notifier: CallbackManager<DTOEvents> = callbackBuilder<DTOEvents> {
-        createPayload<DTOEvents, DTOTracker<DTO, *, *>>(DTOEvents.RootDtosCreated)
-        createPayload<DTOEvents, DTOTracker<DTO, *, *>>(DTOEvents.OnUpdate)
-        createPayload<DTOEvents, DTOTracker<DTO, *, *>>(DTOEvents.OnCRUDComplete)
-    }
-
     internal fun dtoIdUpdated(id: Long){
         identity.setId(id)
     }
 
-    fun updateConfig(trackerConfig:TrackerConfig){
+    fun updateConfig(trackerConfig:TrackerConfig<*>){
+
         config = trackerConfig
     }
 
@@ -67,10 +65,10 @@ class DTOTracker<DTO: ModelDTO, D: DataModel, E: LongEntity>(
     }
 
     private fun onStart(){
-        notifier.trigger(DTOEvents.OnUpdate, this)
+
     }
     private fun onComplete(){
-        notifier.trigger(DTOEvents.OnCRUDComplete, this)
+
     }
 
     fun resolveHierarchy(): HierarchyNode<TrackableDTO>{

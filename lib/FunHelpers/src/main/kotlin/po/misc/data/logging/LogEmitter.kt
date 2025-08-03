@@ -31,9 +31,11 @@ interface LogEmitter {
      *
      * @see PrintableBase
      */
-    val datLogger: (PrintableBase<*>, SeverityLevel, Any) -> Unit get() =  {data, severity, context->
+    val datLogger: (data:PrintableBase<*>, severity:SeverityLevel, emitter:Any) -> Unit get() =  {data,_,_->
         data.echo()
     }
+
+
 
     /**
      * Function responsible for logging plain text messages.
@@ -45,7 +47,7 @@ interface LogEmitter {
      * @param severity The severity level of the message.
      * @param emitter The object that emitted the log (may or may not be a [CTX]).
      */
-    val messageLogger: (String, SeverityLevel, Any) -> Unit get() =  { message, _, _ ->
+    val messageLogger: (message:String, severity:SeverityLevel, emitter:Any) -> Unit get() =  { message, _, _ ->
         println(message)
     }
 
@@ -58,8 +60,11 @@ interface LogEmitter {
      * @param message The message to be logged.
      * @param severity The severity level of the log message (defaults to [SeverityLevel.INFO]).
      */
-    fun Any.notify(message: String, severity: SeverityLevel = SeverityLevel.INFO){
-        messageLogger.invoke(message, severity, this@notify)
+    fun Any.notify(message: String, severity: SeverityLevel = SeverityLevel.INFO) {
+        when (this) {
+            is LogEmitter -> this.messageLogger(message, severity, this)
+            else -> println(message)
+        }
     }
 
     /**
@@ -69,9 +74,13 @@ interface LogEmitter {
      * Logging backends may inspect the emitter type if contextual data is required.
      *
      * @param data The structured data to be logged.
-     * @param severity The severity level of the log message (defaults to [SeverityLevel.LOG]).
+     * @param severity The severity level of the log message (defaults to [SeverityLevel.INFO]).
      */
-    fun <T: PrintableBase<T>> Any.log(data: T, severity: SeverityLevel = SeverityLevel.LOG){
-        datLogger.invoke(data, severity, this@log)
+    fun <T: PrintableBase<T>> Any.log(data: T, severity: SeverityLevel = SeverityLevel.INFO) {
+        when (this) {
+            is LogEmitter -> this.datLogger(data, severity, this)
+            else ->data.echo()
+        }
     }
+
 }

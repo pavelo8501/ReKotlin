@@ -6,8 +6,7 @@ import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import po.lognotify.TasksManaged
-
-import po.lognotify.tasks.models.TaskConfig
+import po.lognotify.common.configuration.TaskConfig
 import po.lognotify.common.result.onFailureCause
 import po.lognotify.extensions.runAction
 import po.lognotify.extensions.runTask
@@ -21,103 +20,117 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestExceptionHandling: TasksManaged {
-
-
+class TestExceptionHandling : TasksManaged {
     override val identity: CTXIdentity<out CTX> = asIdentity()
 
     override val contextName: String = "TestExceptionHandling"
 
-    companion object{
+    companion object {
         @JvmStatic
-        var subTaskNotExpectingResultHitCount : Int = 0
+        var subTaskNotExpectingResultHitCount: Int = 0
+
         @JvmStatic
         var throwingInlineActionHitCount: Int = 0
+
         @JvmStatic
         var inlineActionThrowingHitCount: Int = 0
     }
 
     @BeforeEach
-    fun dropCounters(){
+    fun dropCounters() {
         subTaskNotExpectingResultHitCount = 0
         throwingInlineActionHitCount = 0
         inlineActionThrowingHitCount = 0
     }
 
-    private fun subTaskThrowing(exception: Throwable?, outputValue: String = "subTaskThrowing"): String = runTask(outputValue){
-        exception?.let { throw it }
-        outputValue
-    }.resultOrException()
+    private fun subTaskThrowing(
+        exception: Throwable?,
+        outputValue: String = "subTaskThrowing",
+    ): String =
+        runTask(outputValue) {
+            exception?.let { throw it }
+            outputValue
+        }.resultOrException()
 
-
-    private fun subTaskSwallowing(exception: Throwable, outputValue: Int = 10) = runTask("subTaskSwallowing"){
+    private fun subTaskSwallowing(
+        exception: Throwable,
+        outputValue: Int = 10,
+    ) = runTask("subTaskSwallowing") {
         throw exception
         outputValue
     }.onFail {
-
     }
 
-    private fun subTaskNotExpectingResult(exception: Throwable, shouldThrow: Boolean): Unit = runTask("subTaskNotExpectingResult"){
-        if(shouldThrow){
+    private fun subTaskNotExpectingResult(
+        exception: Throwable,
+        shouldThrow: Boolean,
+    ): Unit =
+        runTask("subTaskNotExpectingResult") {
+            if (shouldThrow) {
+                throw exception
+            }
+            subTaskNotExpectingResultHitCount++
+            Unit
+        }.resultOrException()
+
+    private fun subTaskDefaultProvided(
+        exception: Throwable,
+        outputValue: Int = 10,
+    ): Int =
+        runTask("subTaskIntResult") {
             throw exception
+            outputValue
+        }.handleFailure { exception ->
+            10
         }
-        subTaskNotExpectingResultHitCount ++
-        Unit
-    }.resultOrException()
-
-   private fun subTaskDefaultProvided(exception: Throwable, outputValue: Int = 10): Int = runTask("subTaskIntResult"){
-       throw  exception
-       outputValue
-    }.handleFailure{exception->
-        10
-    }
 
     private fun inlineActionNotExpectingResult(
         exception: Throwable?,
-        name: String = "inlineActionNotExpectingResult"
-    ): Unit = runAction(name)
-    {
-        exception?.let {
-            throw it
+        name: String = "inlineActionNotExpectingResult",
+    ): Unit =
+        runAction(name) {
+            exception?.let {
+                throw it
+            }
+            throwingInlineActionHitCount++
+            Unit
         }
-        throwingInlineActionHitCount ++
-        Unit
-    }
 
     private fun inlineActionThrowing(
         exception: Throwable?,
-        name: String = "inlineActionThrowing"
-    ): String = runAction(name)
-    {
-        exception?.let {
-            throw it
+        name: String = "inlineActionThrowing",
+    ): String =
+        runAction(name) {
+            exception?.let {
+                throw it
+            }
+            inlineActionThrowingHitCount++
+            name
         }
-        inlineActionThrowingHitCount ++
-        name
-    }
 
     @Test
     fun `Deeply nested exception reveal thorough trace info`() {
         val exception = Exception("General")
-        val managed = assertThrows<ManagedException> {
-            runTask("EntryTask", TaskConfig(exceptionHandler = HandlerType.SkipSelf, delayMs = 10)) {
-                runTask("subTaskThrowing"){
-                    for (i in 1..9) {
-                        inlineActionNotExpectingResult(null, "Inline#${i}")
+        val managed =
+            assertThrows<ManagedException> {
+                runTask("EntryTask", TaskConfig(exceptionHandler = HandlerType.SkipSelf, delayMs = 10)) {
+                    runTask("subTaskThrowing") {
+                        for (i in 1..9) {
+                            inlineActionNotExpectingResult(null, "Inline#$i")
+                        }
+                        inlineActionThrowing(exception)
+                        "subTaskThrowing"
                     }
-                    inlineActionThrowing(exception)
-                    "subTaskThrowing"
                 }
             }
-        }
 
-        val withStackTraceElement =  managed.exceptionData.mapNotNull { it.thisStackTraceElement }
+        val withStackTraceElement = managed.exceptionData.mapNotNull { it.thisStackTraceElement }
         assertTrue(withStackTraceElement.isNotEmpty())
 
         val statusThrown = managed.exceptionData.filter { it.event == ManagedException.ExceptionEvent.Thrown }
         assertTrue(statusThrown.isNotEmpty())
         statusThrown.forEach {
-            if(it.thisStackTraceElement != null){
+            if (it.thisStackTraceElement != null) {
                 println(it.thisStackTraceElement)
             }
         }
@@ -138,10 +151,9 @@ class TestExceptionHandling: TasksManaged {
         assertEquals(0, throwingInlineActionHitCount)
     }
 
-
     fun `If starting task default handler Cancel_All exception is brought to the entry point`() {
         assertThrows<ManagedException> {
-            runTask("EntryTask", TaskConfig(exceptionHandler = HandlerType.CancelAll)){
+            runTask("EntryTask", TaskConfig(exceptionHandler = HandlerType.CancelAll)) {
                 subTaskThrowing(Exception("General"))
             }.onFailureCause {
                 throw it
@@ -150,12 +162,12 @@ class TestExceptionHandling: TasksManaged {
     }
 
     fun `Exception thrown in sub task root does not handle`() {
-        val outerException = assertThrows<ManagedException> {
-            runTask("RootTask") { subTaskThrowing(Exception("General")) }
-        }
+        val outerException =
+            assertThrows<ManagedException> {
+                runTask("RootTask") { subTaskThrowing(Exception("General")) }
+            }
         assertNotNull(outerException, "RootTask swallowed exception")
     }
-
 
     fun `Exception thrown in sub task and swallowed`() {
         val exception = Exception("General")
@@ -164,15 +176,14 @@ class TestExceptionHandling: TasksManaged {
         }
     }
 
-
     fun `Exception thrown in bottom sub task handled by top sub task root does not throw`() {
         val exception = Exception("General")
-        val result = assertDoesNotThrow {
-            runTask("RootTask") {
-                subTaskDefaultProvided(exception)
-            }.resultOrException()
-        }
+        val result =
+            assertDoesNotThrow {
+                runTask("RootTask") {
+                    subTaskDefaultProvided(exception)
+                }.resultOrException()
+            }
         assertEquals(10, result, "Fallback value does not match")
     }
-
 }

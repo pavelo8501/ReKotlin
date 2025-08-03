@@ -8,6 +8,7 @@ import org.jetbrains.exposed.sql.transactions.transactionManager
 import po.auth.sessions.models.AuthorizedSession
 import po.exposify.DatabaseManager
 import po.exposify.dto.RootDTO
+import po.exposify.dto.enums.DTOClassStatus
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.scope.connection.models.ConnectionInfo
 import po.exposify.dto.interfaces.ModelDTO
@@ -33,7 +34,7 @@ class ConnectionClass(
     val connection: Database,
 ): TasksManaged {
 
-    override val identity :  CTXIdentity<ConnectionClass> = asIdentity()
+    override val identity:  CTXIdentity<ConnectionClass> = asIdentity()
 
     private val dispatchManager = UserDispatchManager()
 
@@ -77,19 +78,33 @@ class ConnectionClass(
     fun <DTO, D, E> service(
         dtoClass : RootDTO<DTO, D, E>,
         createOptions : TableCreateMode = TableCreateMode.Create,
-        block: ServiceContext<DTO, D, E>.()->Unit,
+        block: (ServiceContext<DTO, D, E>.()->Unit)? = null
     ): Unit where DTO : ModelDTO, D: DataModel, E: LongEntity = runTask("service"){
 
         val existentService = getService<DTO, D, E>(dtoClass.commonDTOType)
-        if(existentService == null){
+        if(existentService != null){
+            if(dtoClass.status != DTOClassStatus.Initialized){
+                existentService.initService(dtoClass, createOptions, block)
+            }else{
+                block?.invoke(existentService.serviceContext)
+            }
+            notify("Using ServiceClass ${existentService.contextName}", SeverityLevel.INFO)
+        }else{
             val serviceClass = ServiceClass(dtoClass, this)
             notify("ServiceClass ${serviceClass.contextName} created", SeverityLevel.INFO)
             serviceClass.initService(dtoClass, createOptions, block)
             servicesBacking[dtoClass.commonDTOType] = serviceClass
-        }else{
-            notify("Using ServiceClass ${existentService.contextName}", SeverityLevel.INFO)
-            block.invoke(existentService.serviceContext)
         }
+
+//        if(existentService == null){
+//            val serviceClass = ServiceClass(dtoClass, this)
+//            notify("ServiceClass ${serviceClass.contextName} created", SeverityLevel.INFO)
+//            serviceClass.initService(dtoClass, createOptions, block)
+//            servicesBacking[dtoClass.commonDTOType] = serviceClass
+//        }else{
+//            notify("Using ServiceClass ${existentService.contextName}", SeverityLevel.INFO)
+//            block.invoke(existentService.serviceContext)
+//        }
     }.resultOrException()
 
     fun clearServices(){

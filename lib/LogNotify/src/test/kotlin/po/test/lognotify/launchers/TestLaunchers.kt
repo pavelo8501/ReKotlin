@@ -38,7 +38,7 @@ class TestLaunchers: FakeTasksManaged {
         val inputInsideAction = "Some Message Inside Action"
         val actionContainer =  captureOutput<ActionContainer<TestLaunchers, Unit>> {
             val rootTask = dispatcher.createHierarchyRoot<TestLaunchers, Unit>("Root Task", this)
-            val span = ActionSpan<TestLaunchers, Unit>("Span", this,  rootTask)
+            val span =  rootTask.createActionSpan<TestLaunchers, Unit>("Span", this)
             ActionContainer(span)
         }.result
 

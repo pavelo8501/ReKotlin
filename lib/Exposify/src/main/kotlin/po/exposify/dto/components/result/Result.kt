@@ -15,46 +15,53 @@ import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asSubIdentity
 import po.misc.exceptions.ManagedException
+import po.misc.types.TypeData
 import po.misc.types.castListOrThrow
 
-interface ExposifyResult{
+interface ExposifyResult {
     val dtoClass: DTOBase<*, *, *>
     val resultMessage: String
-    val size : Int
+    val size: Int
     var activeCRUD: CrudOperation
     var failureCause: ManagedException?
 }
 
-
-sealed class ResultBase<DTO, D, R: Any>(
+sealed class ResultBase<DTO, D, R : Any>(
     dtoClass: DTOBase<DTO, D, *>,
-    protected var result: R?
-): ExposifyResult, CTX  where DTO: ModelDTO, D: DataModel{
-
+    protected var result: R?,
+) : ExposifyResult,
+    CTX where DTO : ModelDTO, D : DataModel {
+    protected val dtoType: TypeData<DTO> = dtoClass.commonDTOType.dtoType
+    protected val dataType: TypeData<D> = dtoClass.commonDTOType.dataType
 
     override var failureCause: ManagedException? = null
     protected val noResultException: ManagedException
-        get() = failureCause?: OperationsException("Result not available", ExceptionCode.UNDEFINED, this)
+        get() = failureCause ?: OperationsException("Result not available", ExceptionCode.UNDEFINED, this)
 
     val isFaulty: Boolean get() = failureCause != null || result == null
 }
 
 class ResultList<DTO, D> internal constructor(
     override val dtoClass: DTOBase<DTO, D, *>,
-    private var resultBacking : List<CommonDTO<DTO, D, *>> = emptyList()
-):ResultBase<DTO, D, List<CommonDTO<DTO, D, *>>>(dtoClass, resultBacking) where DTO: ModelDTO, D: DataModel{
-
-    override val identity: CTXIdentity<out CTX> = asSubIdentity(this, dtoClass)
+    private var resultBacking: MutableList<CommonDTO<DTO, D, *>> = mutableListOf(),
+) : ResultBase<DTO, D, List<CommonDTO<DTO, D, *>>>(dtoClass, resultBacking) where DTO : ModelDTO, D : DataModel {
+    override val identity: CTXIdentity<ResultList<DTO, D>> = asSubIdentity(this, dtoClass)
 
     override var resultMessage: String = ""
     override val size: Int get() = resultBacking.size
     override var activeCRUD: CrudOperation = CrudOperation.Create
 
-    val dto: List<DTO> get() = resultBacking.castListOrThrow(dtoClass.commonDTOType.dtoType.kClass, this){payload->
-        operationsException(payload.setCode( ExceptionCode.CAST_FAILURE))
-    }
-
+    val dto: List<DTO> get() =
+        resultBacking.castListOrThrow(dtoClass.commonDTOType.dtoType.kClass, this) { payload ->
+            operationsException(payload.setCode(ExceptionCode.CAST_FAILURE))
+        }
     val data: List<D> get() = resultBacking.map { it.dataContainer.getValue(this) }
+
+    internal val commonDTO: List<CommonDTO<DTO, D, *>> get() = resultBacking
+
+    init {
+        identity.setNamePattern { "ResultList<${dtoType.typeName}, ${dataType.typeName}>" }
+    }
 
     fun addResult(list: List<CommonDTO<DTO, D, *>>): ResultList<DTO, D> {
         result = list.toMutableList()
@@ -62,67 +69,60 @@ class ResultList<DTO, D> internal constructor(
     }
 
     internal fun appendDto(dto: CommonDTO<DTO, D, *>): ResultList<DTO, D> {
-        val mutable = resultBacking.toMutableList()
-        mutable.add(dto)
-        result = mutable.toList()
+        resultBacking.add(dto)
         return this
     }
 
     internal fun appendDto(single: ResultSingle<DTO, D>): ResultList<DTO, D> {
-        appendDto(single.getAsCommonDTOForced())
+        appendDto(single.getAsCommonDTO())
         return this
     }
 
-    fun getTrackers(): List<DTOTracker<DTO, D, *>>{
-        return resultBacking.map { it.tracker }
-    }
+    fun getTrackers(): List<DTOTracker<DTO, D, *>> = resultBacking.map { it.tracker }
 
-    internal fun getAsCommonDTO(): List<CommonDTO<DTO, D, *>> {
-        return resultBacking
-    }
+    internal fun getAsCommonDTO(): List<CommonDTO<DTO, D, *>> = resultBacking
 
+    override fun toString(): String = identifiedByName
 }
 
 class ResultSingle<DTO, D> internal constructor(
     override val dtoClass: DTOBase<DTO, D, *>,
-    private var initialResult: CommonDTO<DTO, D, *>? = null
-): ResultBase<DTO, D, CommonDTO<DTO, D, *>>(dtoClass, initialResult), ExposifyResult where DTO : ModelDTO, D: DataModel{
-
-    override val identity: CTXIdentity<out CTX> = asSubIdentity(this, dtoClass)
+    private var initialResult: CommonDTO<DTO, D, *>? = null,
+) : ResultBase<DTO, D, CommonDTO<DTO, D, *>>(dtoClass, initialResult),
+    ExposifyResult where DTO : ModelDTO, D : DataModel {
+    override val identity: CTXIdentity<ResultSingle<DTO, D>> = asSubIdentity(this, dtoClass)
 
     override var resultMessage: String = ""
-    override val size: Int get()  {
-        return if(result != null){ 1 }else{ 0 }
+    override val size: Int get() {
+        return if (result != null) {
+            1
+        } else {
+            0
+        }
     }
     override var activeCRUD: CrudOperation = CrudOperation.Create
-
 
     val dto: DTO? get() = result?.asDTO()
     val data: D? get() = result?.dataContainer?.value
 
-    private fun getCommonForced(): CommonDTO<DTO, D, *>{
-      return  result?: throw noResultException
+    init {
+        identity.setNamePattern { "ResultSingle<${dtoType.typeName}, ${dataType.typeName}>" }
     }
 
-    internal fun getAsCommonDTO(): CommonDTO<DTO, D, *>? {
-        return result
-    }
+    private fun getCommonForced(): CommonDTO<DTO, D, *> = result ?: throw noResultException
 
-    internal fun getAsCommonDTOForced(): CommonDTO<DTO, D, *> {
-        return result.getOrOperations(this)
-    }
+    internal val commonDTO: CommonDTO<DTO, D, *>? get() = result
 
-    fun getDTOForced(): DTO {
-        return dto?: throw noResultException
-    }
+    internal fun getAsCommonDTO(): CommonDTO<DTO, D, *> = result.getOrOperations(this)
+
+    fun getDTOForced(): DTO = dto ?: throw noResultException
 
     fun getDataForced(): D {
         val dto = getCommonForced()
         return dto.dataContainer.getValue(this)
     }
 
-    fun getTracker():DTOTracker<DTO, D, *>?{
-        return result?.tracker
-    }
+    fun getTracker(): DTOTracker<DTO, D, *>? = result?.tracker
 
+    override fun toString(): String = identifiedByName
 }

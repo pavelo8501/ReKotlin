@@ -6,11 +6,10 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import po.exposify.dto.components.query.deferredQuery
-import po.exposify.dto.components.query.deferredQuery2
 import po.exposify.dto.components.result.ResultList
-import po.exposify.scope.sequence.builder.select
 import po.exposify.scope.sequence.builder.sequenced
 import po.exposify.scope.sequence.launcher.launch
+import po.exposify.scope.sequence.runtime.select
 import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.notification.models.ConsoleBehaviour
@@ -30,18 +29,19 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestSelect: DatabaseTest(), TasksManaged  {
-
+class TestSelect :
+    DatabaseTest(),
+    TasksManaged {
     override val identity: CTXIdentity<TestSelect> = asIdentity()
 
-    companion object{
+    companion object {
         @JvmStatic
-        var updatedById : Long = 0
+        var updatedById: Long = 0
     }
+
     @BeforeAll
-    fun setup(){
+    fun setup() {
         logHandler.notifierConfig {
             setConsoleBehaviour(ConsoleBehaviour.MuteNoEvents)
         }
@@ -52,12 +52,11 @@ class TestSelect: DatabaseTest(), TasksManaged  {
         }
 
         withConnection {
-            val pages: List<Page> = mockPages(quantity = 2){index-> mockPage("Page_$index", updatedById) }
+            val pages: List<Page> = mockPages(quantity = 2) { index -> mockPage("Page_$index", updatedById) }
             service(PageDTO) {
                 insert(pages)
-                sequenced(PageDTO.Select) {handler ->
-                    select(handler){
-
+                sequenced(PageDTO.Select) { handler ->
+                    select(handler) {
                     }
                 }
             }
@@ -65,24 +64,24 @@ class TestSelect: DatabaseTest(), TasksManaged  {
     }
 
     @Test
-    fun `Sequenced SELECT statement`(): TestResult = runTest{
-
-        val result = with(mockedSession){ launch(PageDTO.Select) }
-        assertIs<ResultList<*, *>>(result)
-        assertTrue(!result.isFaulty)
-        assertEquals(2, result.dto.size)
-    }
+    fun `Sequenced SELECT statement`(): TestResult =
+        runTest {
+            val result = with(mockedSession) { launch(PageDTO.Select) }
+            assertIs<ResultList<*, *>>(result)
+            assertTrue(!result.isFaulty)
+            assertEquals(2, result.dto.size)
+        }
 
     @Test
-    fun `Sequenced SELECT statement with query`(): TestResult = runTest{
-
-        val queriedPageName = "Page_2"
-        val result = with(mockedSession){
-            launch(PageDTO.Select, deferredQuery2(PageDTO) { equals(Pages.name, queriedPageName) })
+    fun `Sequenced SELECT statement with query`(): TestResult =
+        runTest {
+            val queriedPageName = "Page_2"
+            val result =
+                with(mockedSession) {
+                    launch(PageDTO.Select, deferredQuery(PageDTO) { equals(Pages.name, queriedPageName) })
+                }
+            assertEquals(1, result.dto.size)
+            val persistedPage = assertNotNull(result.data.firstOrNull())
+            assertEquals(queriedPageName, persistedPage.name)
         }
-        assertEquals(1, result.dto.size)
-        val persistedPage = assertNotNull(result.data.firstOrNull())
-        assertEquals(queriedPageName, persistedPage.name)
-    }
-
 }

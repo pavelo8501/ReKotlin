@@ -1,6 +1,7 @@
 package po.misc.validators.validators
 
 import po.misc.data.helpers.emptyOnNull
+import po.misc.exceptions.throwableToText
 import po.misc.types.getOrManaged
 import po.misc.validators.SequentialContainer
 import po.misc.validators.ValidationContainer
@@ -85,14 +86,13 @@ fun <T: Any> ValidationContainerBase<T, Boolean>.conditionTrue(
     }
 }
 
-fun <T: Any, R: Any?> ValidationContainerBase<T, R>.conditionNotNull(
+fun <T: Any, R> ValidationContainerBase<T, R>.conditionNotNull(
     checkName: String,
     failureMessage: String?= null,
-    predicate: (T)-> R,
-): R? {
+    predicate: (T)-> R?,
+):R? {
 
     return  try {
-
         predicate.invoke(nowValidating)?.let {result->
             validationReport.addRecord(ValidationRecord.success(this, checkName))
             notifySuccess<T, R>(result, this)
@@ -102,14 +102,14 @@ fun <T: Any, R: Any?> ValidationContainerBase<T, R>.conditionNotNull(
             null
         }
     }catch (ex: Throwable){
-        validationReport.addRecord(ValidationRecord.fail(this, checkName, ex))
+        validationReport.addRecord(ValidationRecord.fail(this, checkName, failureMessage?:ex.throwableToText()))
         notifyException(ex, nowValidating, this)
         return null
     }
 }
 
 
-inline fun <reified T: Any, R: Any?> ValidationContainerBase<T, R>.doesNotThrow(
+inline fun <reified T: Any, R> ValidationContainerBase<T, R>.doesNotThrow(
     checkName: String,
     failureMessage: String? = null,
     noinline  block: (T)-> R,
@@ -128,7 +128,7 @@ inline fun <reified T: Any, R: Any?> ValidationContainerBase<T, R>.doesNotThrow(
         }
 
     }catch (ex: Throwable){
-        validationReport.addRecord(ValidationRecord.fail(this, checkName, ex))
+        validationReport.addRecord(ValidationRecord.fail(this, checkName, failureMessage?:ex.throwableToText()))
         notifyException(ex, nowValidating, this)
         return null
     }

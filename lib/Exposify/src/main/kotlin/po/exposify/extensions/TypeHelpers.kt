@@ -12,6 +12,7 @@ import po.misc.types.getOrThrow
 import kotlin.reflect.KClass
 
 
+@PublishedApi
 internal fun <T: Any> Any?.castOrOperations(
     kClass: KClass<T>,
     callingContext: CTX

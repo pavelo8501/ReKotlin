@@ -9,7 +9,7 @@ import po.misc.context.CTX
  * @param V The input value type the lambda expects.
  * @param R The result type the lambda produces.
  */
-interface LambdaUnit<V: Any, R: Any>: LambdaContainerState<V>{
+interface LambdaUnit<V: Any, R>: LambdaContainerState<V>{
 
     /**
      * Triggers the lambda without passing a value (assumes it was provided earlier).

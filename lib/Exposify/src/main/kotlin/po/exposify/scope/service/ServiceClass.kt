@@ -81,13 +81,13 @@ class ServiceClass<DTO, DATA, ENTITY>(
     internal fun initService(
         rootDTOModel: RootDTO<DTO, DATA, ENTITY>,
         serviceCreateOption: TableCreateMode = TableCreateMode.Create,
-        block:  ServiceContext<DTO, DATA, ENTITY>.()->Unit
+        block:  (ServiceContext<DTO, DATA, ENTITY>.()->Unit)? = null
     ): ServiceContext<DTO, DATA, ENTITY>{
         withTransactionIfNone(serviceContext.debugger, false){
             if(running){
                 rootDTOModel.initialization(serviceContext)
                 prepareTables(serviceCreateOption)
-                serviceContext.block()
+                block?.invoke(serviceContext)
             }
         }
         return serviceContext

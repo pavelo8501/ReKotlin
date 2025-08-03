@@ -3,11 +3,17 @@ package po.test.exposify.scope.session
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.TestInstance
 import po.auth.sessions.interfaces.SessionIdentified
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
 import po.test.exposify.setup.DatabaseTest
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestSessionsContext : DatabaseTest()  {
+
     class SessionIdentity(override val sessionID: String, override val remoteAddress: String): SessionIdentified
+
+    override val identity: CTXIdentity<TestSessionsContext> = asIdentity()
 
     companion object{
         @JvmStatic()

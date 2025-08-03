@@ -14,7 +14,7 @@ import po.misc.types.TypeData
 
 interface ModelDTO: DataModel, CTX {
     val cardinality: Cardinality
-    val hub: BindingHub<*, *, *>
+    val bindingHub: BindingHub<*, *, *>
     val daoService : DAOService<*, *, *>
     val dtoFactory: DTOFactory<*, *, *>
     val tracker: DTOTracker<*, *, *>

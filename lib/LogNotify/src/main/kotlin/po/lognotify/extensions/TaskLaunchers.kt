@@ -1,23 +1,23 @@
 package po.lognotify.extensions
 
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import po.lognotify.TasksManaged
 import po.lognotify.anotations.LogOnFault
+import po.lognotify.common.configuration.TaskConfig
+import po.lognotify.common.configuration.TaskType
 import po.lognotify.common.containers.TaskContainer
-import po.lognotify.tasks.RootTask
-import po.lognotify.tasks.TaskHandler
-import po.lognotify.tasks.createChild
-import po.lognotify.tasks.models.TaskConfig
-import po.lognotify.tasks.models.TaskOptions
 import po.lognotify.common.result.TaskResult
 import po.lognotify.common.result.createFaultyResult
 import po.lognotify.common.result.onTaskResult
 import po.lognotify.debug.DebugProxy
 import po.lognotify.exceptions.handleException
+import po.lognotify.tasks.RootTask
 import po.lognotify.tasks.TaskBase
+import po.lognotify.tasks.TaskHandler
+import po.lognotify.tasks.createChild
 import po.misc.containers.withReceiverAndResult
 import po.misc.coroutines.LauncherType
-import po.misc.data.helpers.emptyAsNull
 import po.misc.functions.repeater.models.RepeatStats
 import po.misc.functions.repeater.repeatOnFault
 import po.misc.reflection.classes.ClassRole
@@ -25,21 +25,24 @@ import po.misc.reflection.classes.overallInfo
 import po.misc.reflection.properties.takePropertySnapshot
 
 @PublishedApi
-internal suspend fun <T: TasksManaged, R: Any?> taskRunner(receiver :T, newTask: RootTask<T, R>, block: suspend T.(TaskHandler<R>)-> R): TaskResult<R>{
-  return  try{
-      newTask.start()
-      val value =  block.invoke(receiver, newTask.handler)
-      val result = onTaskResult<T,R>(newTask, value)
-      result
-    }catch (throwable: Throwable){
-      val snapshot = takePropertySnapshot<T, LogOnFault>(receiver)
-      val container = TaskContainer.create<T, R>(newTask)
-      val managed = handleException(throwable, container, snapshot)
-      createFaultyResult(managed, newTask)
-    }finally {
-      newTask.complete()
+internal suspend fun <T : TasksManaged, R : Any?> taskRunner(
+    receiver: T,
+    newTask: RootTask<T, R>,
+    block: suspend T.(TaskHandler<R>) -> R,
+): TaskResult<R> =
+    try {
+        newTask.start()
+        val value = block.invoke(receiver, newTask.handler)
+        val result = onTaskResult<T, R>(newTask, value)
+        newTask.complete()
+        result
+    } catch (throwable: Throwable) {
+        val snapshot = takePropertySnapshot<T, LogOnFault>(receiver)
+        val container = TaskContainer.create<T, R>(newTask)
+        val managed = handleException(throwable, container, snapshot)
+        createFaultyResult(managed, newTask)
+        newTask.complete(managed)
     }
-}
 
 /**
  * Runs a managed root task in a blocking manner using [runBlocking].
@@ -65,36 +68,36 @@ internal suspend fun <T: TasksManaged, R: Any?> taskRunner(receiver :T, newTask:
  * @see TaskConfig
  * @see LauncherType
  */
-inline fun <reified T: TasksManaged, R: Any?> T.runTaskBlocking(
+inline fun <reified T : TasksManaged, R : Any?> T.runTaskBlocking(
     taskName: String,
-    config: TaskConfig = TaskConfig(isDefault = true, options = TaskOptions.RunAsRootTask),
-    noinline block: suspend T.(TaskHandler<R>)-> R,
+    config: TaskConfig = TaskConfig(isDefault = true, taskType = TaskType.AsRootTask),
+    noinline block: suspend T.(TaskHandler<R>) -> R,
 ): TaskResult<R> {
-
     var effectiveConfig = config
     val rootTask = TasksManaged.LogNotify.taskDispatcher.activeRootTask()
-    if(rootTask != null && config.isDefault){
+    if (rootTask != null && config.isDefault) {
         effectiveConfig = rootTask.config
     }
 
-   val receiver = this
-   val result = runBlocking {
-       val moduleName: String = this::class.simpleName?:config.moduleName
-       val dispatcher = TasksManaged.LogNotify.taskDispatcher
-       val newTask = dispatcher.createHierarchyRoot<T, R>(taskName, moduleName, this@runTaskBlocking, effectiveConfig)
-       when(config.launcherType){
-           is LauncherType.AsyncLauncher -> {
-               (config.launcherType as LauncherType.AsyncLauncher).RunCoroutineHolder(newTask, config.dispatcher){
-                  taskRunner(receiver, newTask, block)
-               }
-           }
-           is LauncherType.ConcurrentLauncher -> {
-               (config.launcherType as LauncherType.ConcurrentLauncher).RunCoroutineHolder(newTask, config.dispatcher){
-                   taskRunner(receiver, newTask, block)
-               }
-           }
-       }
-    }
+    val receiver = this
+    val result =
+        runBlocking {
+            val dispatcher = TasksManaged.LogNotify.taskDispatcher
+            val newTask = dispatcher.createHierarchyRoot<T, R>(taskName, contextName, this@runTaskBlocking, effectiveConfig)
+            val launcherType = config.launchOptions.launcherType
+            when (launcherType) {
+                is LauncherType.AsyncLauncher -> {
+                    (launcherType).RunCoroutineHolder(newTask, config.launchOptions.coroutineDispatcher) {
+                        taskRunner(receiver, newTask, block)
+                    }
+                }
+                is LauncherType.ConcurrentLauncher -> {
+                    (launcherType).RunCoroutineHolder(newTask, config.launchOptions.coroutineDispatcher) {
+                        taskRunner(receiver, newTask, block)
+                    }
+                }
+            }
+        }
     return result
 }
 
@@ -125,43 +128,36 @@ inline fun <reified T: TasksManaged, R: Any?> T.runTaskBlocking(
  * @see TaskConfig
  * @see LauncherType
  */
-suspend inline fun <reified T: TasksManaged, R: Any?> T.runTaskAsync(
+suspend inline fun <reified T : TasksManaged, R : Any?> T.runTaskAsync(
     taskName: String,
-    config: TaskConfig = TaskConfig(
-        isDefault = true,
-        options = TaskOptions.RunAsRootTask
-    ),
-    noinline block: suspend T.(TaskHandler<R>)-> R,
+    config: TaskConfig =
+        TaskConfig(
+            isDefault = true,
+            taskType = TaskType.AsRootTask,
+        ),
+    noinline block: suspend T.(TaskHandler<R>) -> R,
 ): TaskResult<R> {
-
     var effectiveConfig = config
     val rootTask = TasksManaged.LogNotify.taskDispatcher.activeRootTask()
-    if(rootTask != null && config.isDefault){
+    if (rootTask != null && config.isDefault) {
         effectiveConfig = rootTask.config
     }
-
     val receiver = this
-    val moduleName: String = this::class.simpleName ?: config.moduleName
     val dispatcher = TasksManaged.LogNotify.taskDispatcher
-    val newTask = dispatcher.createHierarchyRoot<T, R>(taskName, moduleName, this, effectiveConfig)
-    return when (config.launcherType) {
+    val newTask = dispatcher.createHierarchyRoot<T, R>(taskName, contextName, this, effectiveConfig)
+    val launcherType = config.launchOptions.launcherType
+    return when (launcherType) {
         is LauncherType.AsyncLauncher -> {
-            (config.launcherType as LauncherType.AsyncLauncher).RunCoroutineHolder(newTask, config.dispatcher) {
+            (launcherType).RunCoroutineHolder(newTask, config.launchOptions.coroutineDispatcher) {
                 taskRunner(receiver, newTask, block)
             }
         }
         is LauncherType.ConcurrentLauncher -> {
-            (config.launcherType as LauncherType.ConcurrentLauncher).RunCoroutineHolder(newTask, config.dispatcher) {
+            (launcherType).RunCoroutineHolder(newTask, config.launchOptions.coroutineDispatcher) {
                 taskRunner(receiver, newTask, block)
             }
         }
     }
-}
-
-@PublishedApi
-internal fun <T: TasksManaged, R: Any?> onFailure(stats: RepeatStats, task: TaskBase<T, R>){
-
-
 }
 
 /**
@@ -175,31 +171,30 @@ internal fun <T: TasksManaged, R: Any?> onFailure(stats: RepeatStats, task: Task
  * @param block The block to execute with contextual receivers [T] and [TaskHandler].
  * @return The result of the task, wrapped in [TaskResult].
  */
-inline fun <T: TasksManaged, reified R: Any?> T.runTask(
+inline fun <T : TasksManaged, reified R : Any?> T.runTask(
     taskName: String,
     config: TaskConfig = TaskConfig(isDefault = true),
-    debugProxy: DebugProxy<* , *>? = null,
+    debugProxy: DebugProxy<*, *>? = null,
     crossinline block: T.() -> R,
-):  TaskResult<R> {
-
-    val moduleName: String = config.moduleName.emptyAsNull() ?: this.contextName
-
+): TaskResult<R> {
     val dispatcher = TasksManaged.LogNotify.taskDispatcher
     val activeTask = dispatcher.activeTask()
 
     val shouldCopyConfig: Boolean = config.isDefault
 
-    val newTask: TaskBase<T, R> = if (config.options != TaskOptions.RunAsRootTask && activeTask != null) {
-        val configToUse = if (shouldCopyConfig) {
-            activeTask.config.copy()
-        } else {
-            config
-        }
+    val newTask: TaskBase<T, R> =
+        if (config.taskType != TaskType.AsRootTask && activeTask != null) {
+            val configToUse =
+                if (shouldCopyConfig) {
+                    activeTask.config.copy()
+                } else {
+                    config
+                }
 
-        activeTask.createChild(taskName, moduleName, this, configToUse)
-    } else {
-        dispatcher.createHierarchyRoot(taskName, moduleName, this, config)
-    }
+            activeTask.createChild(taskName, contextName, this, configToUse)
+        } else {
+            dispatcher.createHierarchyRoot(taskName, contextName, this, config)
+        }
     newTask.start()
     if (debugProxy != null) {
         debugProxy.provideDataProcessor(newTask.dataProcessor)
@@ -209,27 +204,20 @@ inline fun <T: TasksManaged, reified R: Any?> T.runTask(
     val taskContainer: TaskContainer<T, R> = TaskContainer.create<T, R>(newTask)
     taskContainer.classInfoProvider.registerProvider { overallInfo<R>(ClassRole.Result) }
 
+    val result =
+        repeatOnFault({
+            setMaxAttempts(config.attempts).onException { stats ->
+                val exception = handleException(stats.exception, taskContainer, null)
+                taskContainer.sourceTask.taskResult?.collectException(exception) ?: run {
 
-    return repeatOnFault({
-        setMaxAttempts(2).onException{stats ->
-            onFailure(stats, newTask)
+                    val result = createFaultyResult(exception, taskContainer.sourceTask)
+                    taskContainer.sourceTask.complete(exception)
+                }
+            }
+        }) {
+            val lambdaResult = taskContainer.withReceiverAndResult(block)
+            onTaskResult(newTask, lambdaResult)
         }
-    }){
-        val lambdaResult = taskContainer.withReceiverAndResult(block)
-        onTaskResult(newTask, lambdaResult)
-    }
-//
-//    return repeatOnFault(
-//        RepeaterConfig(taskContainer.attempts) { stats ->
-//        onFailure(stats, newTask)
-//    }){
-//        val lambdaResult = taskContainer.withReceiverAndResult(block)
-//        onTaskResult(newTask, lambdaResult)
-//    }
+
+    return result
 }
-
-
-
-
-
-

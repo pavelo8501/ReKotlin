@@ -8,15 +8,17 @@ import po.misc.validators.models.CheckStatus
 import po.misc.validators.reports.ValidationReport
 import kotlin.reflect.KClass
 
-sealed class ValidationContainerBase<T: Any, R: Any?>(
+sealed class ValidationContainerBase<T: Any?, R: Any?>(
     val validationName: String,
     internal val validator: Validator
 ) {
 
-    private var nowValidatingKClass: KClass<out T>? = null
+    private var nowValidatingKClass: KClass<*>? = null
+
     private var validatableBacking:T? = null
     @PublishedApi
     internal open val validatable:T? = null
+
 
     val nowValidating:T  get() {
        return validatableBacking?:validatable.getOrManaged(nowValidatingKClass?: Any::class,  this)
@@ -34,7 +36,9 @@ sealed class ValidationContainerBase<T: Any, R: Any?>(
 
     internal fun provideValidatable(record:T){
         if(nowValidatingKClass == null){
-            nowValidatingKClass = record::class
+            if(record != null){
+                nowValidatingKClass = record::class
+            }
         }
         validatableBacking = record
     }

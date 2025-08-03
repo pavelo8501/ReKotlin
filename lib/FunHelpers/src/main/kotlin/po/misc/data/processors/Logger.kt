@@ -23,7 +23,7 @@ interface Logger{
      *                 If `null`, a default or implicit format may be used.
      */
 
-    fun <T: PrintableBase<T>> CTX.log(data: T, severity: SeverityLevel = SeverityLevel.LOG)
+    fun <T: PrintableBase<T>> CTX.log(data: T, severity: SeverityLevel = SeverityLevel.INFO)
 }
 
 /**

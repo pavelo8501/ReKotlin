@@ -51,7 +51,7 @@ interface DSLExecutable<T: Any, R : Any> {
     fun <T2 : Any> with(valueProvider: (T)-> T2, subConstructLambda: DSLContainer<T2, R>.() -> Unit)
 }
 
-sealed interface DSLExecutableBlock<T: Any, R: Any>: DSLStorage2<T, R>{
+sealed interface DSLExecutableBlock<T: Any, R: Any>{
 
 }
 

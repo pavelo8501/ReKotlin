@@ -8,7 +8,7 @@ import kotlin.reflect.KClass
 
 
 sealed class TypeRegistry{
-    abstract  val allTypes: List<TypeData<*>>
+    abstract  val allTypes: List<Typed<*>>
     fun <T: Any> findType(kClass: KClass<T>): TypeData<T>?{
        val found =  allTypes.firstOrNull { it.kClass == kClass }
        return found?.safeCast<TypeData<T>>()
@@ -21,16 +21,16 @@ sealed class TypeRegistry{
 }
 
 class TwoTypes<T1: Any, T2: Any>(
-    val typeData1: TypeData<T1>,
-    val typeData2: TypeData<T2>,
+    val typeData1: Typed<T1>,
+    val typeData2: Typed<T2>,
 )
 
 abstract class TwoTypeRegistry<T1: Any, T2: Any>(
-   private val typeParameter1: TypeData<T1>,
-   private val typeParameter2: TypeData<T2>
+   private val typeParameter1: Typed<T1>,
+   private val typeParameter2: Typed<T2>
 ):TypeRegistry(){
 
-    override val allTypes: List<TypeData<*>> get() = listOf(typeParameter1, typeParameter2)
+    override val allTypes: List<Typed<*>> get() = listOf(typeParameter1, typeParameter2)
 
     internal constructor(twoTypes:TwoTypes<T1, T2>): this(twoTypes.typeData1, twoTypes.typeData2)
 

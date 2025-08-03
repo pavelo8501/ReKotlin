@@ -7,8 +7,8 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import po.exposify.dto.components.result.ResultSingle
 import po.exposify.scope.sequence.builder.sequenced
-import po.exposify.scope.sequence.builder.update
 import po.exposify.scope.sequence.launcher.launch
+import po.exposify.scope.sequence.runtime.update
 import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.notification.models.ConsoleBehaviour
@@ -19,6 +19,7 @@ import po.test.exposify.setup.dtos.Page
 import po.test.exposify.setup.dtos.PageDTO
 import po.test.exposify.setup.dtos.UserDTO
 import po.test.exposify.setup.mocks.mockPage
+import po.test.exposify.setup.mocks.mockSections
 import po.test.exposify.setup.mocks.mockedSession
 import po.test.exposify.setup.mocks.mockedUser
 import kotlin.test.assertEquals
@@ -26,19 +27,21 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestUpdate: DatabaseTest(), TasksManaged {
-
+class TestUpdate :
+    DatabaseTest(),
+    TasksManaged {
     override val identity: CTXIdentity<TestUpdate> = asIdentity()
 
-    companion object{
+    companion object {
         @JvmStatic
-        var updatedById : Long = 0
+        var updatedById: Long = 0
 
         @JvmStatic
         lateinit var page: Page
     }
+
     @BeforeAll
-    fun setup(){
+    fun setup() {
         logHandler.notifierConfig {
             setConsoleBehaviour(ConsoleBehaviour.MuteNoEvents)
         }
@@ -53,7 +56,7 @@ class TestUpdate: DatabaseTest(), TasksManaged {
             service(PageDTO) {
                 insert(page)
                 sequenced(PageDTO.Update) { handler ->
-                    update(handler){
+                    update(handler) {
 
                     }
                 }
@@ -62,21 +65,36 @@ class TestUpdate: DatabaseTest(), TasksManaged {
     }
 
     @Test
-    fun `Sequenced UPDATE statement`(): TestResult = runTest{
-
+    fun `Sequenced UPDATE statement`(): TestResult = runTest {
         val updateValue = "DifferentName"
 
-        val result = with(mockedSession){
-            val updatedPage = page.copy()
-            updatedPage.name = updateValue
-            launch(PageDTO.Update, updatedPage)
-        }
+        val result =
+            with(mockedSession) {
+                val updatedPage = page.copy()
+                updatedPage.name = updateValue
+                launch(PageDTO.Update, updatedPage)
+            }
 
         assertIs<ResultSingle<*, *>>(result)
         val updatedData = assertNotNull(result.data, "Result failure")
         assertEquals(updateValue, updatedData.name, "Page data was not updated")
         val pageDTO = assertNotNull(result.dto, "Result failure")
         assertEquals(updateValue, pageDTO.name)
+    }
+
+
+    @Test
+    fun `Sequenced UPDATE with switch statement `(): TestResult = runTest {
+
+        val sections = mockSections(page.id, updatedById, 10){str->
+            this.name = "${name}_$str"
+            this.description = "Mocked section#$str"
+        }
+        val result = with(mockedSession) {
+          //  launchSwitching(SectionDTO.UpdateList, page.toInputType(), sections)
+
+        }
+
     }
 
 }

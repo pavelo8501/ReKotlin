@@ -28,11 +28,7 @@ class TestPropertyMapper {
     @Test
     fun `Property map`(){
 
-        val sourceClass = SourceClass()
-        val propertyMap = PropertyMapper()
-        propertyMap.applyClass<ID>(ID.CLASS_1)
-        propertyMap.mappedProperties
-        val a = propertyMap.mappedProperties
+
     }
 
 }

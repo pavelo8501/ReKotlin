@@ -77,6 +77,7 @@ fun <T: Any> TypeData<T>.getDefaultForType(): T? {
     return result?.safeCast(this.kClass)
 }
 
+
 inline fun <T: Any> T?.letOrException(ex : ManagedException, block: (T)-> T){
     if(this != null){
         block(this)

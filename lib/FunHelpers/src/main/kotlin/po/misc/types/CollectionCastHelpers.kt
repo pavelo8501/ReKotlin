@@ -33,6 +33,13 @@ fun <T : Any> List<*>.castListOrThrow(
     return this.map{ it.castOrThrow(kClass, callingContext,  exceptionProvider) }
 }
 
+inline fun <reified T : Any> List<*>.castListOrThrow(
+    callingContext: Any,
+    noinline exceptionProvider: (ManagedCallSitePayload)-> Throwable,
+): List<T> {
+    return this.map{ it.castOrThrow(T::class, callingContext,  exceptionProvider) }
+}
+
 
 fun <T : Any> List<*>.castListOrManaged(
     kClass: KClass<T>,
@@ -40,6 +47,10 @@ fun <T : Any> List<*>.castListOrManaged(
 ): List<T> {
     return this.map{ it.castOrManaged(kClass, callingContext) }
 }
+
+inline fun <reified T : Any> List<*>.castListOrManaged(
+    callingContext: Any,
+): List<T> = castListOrManaged(T::class, callingContext)
 
 
 fun <BASE : Any> Any?.castBaseOrManaged(

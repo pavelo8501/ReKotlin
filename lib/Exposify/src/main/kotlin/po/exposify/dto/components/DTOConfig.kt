@@ -2,6 +2,7 @@ package po.exposify.dto.components
 
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.DatabaseManager
+import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.DTOClass
@@ -26,6 +27,10 @@ interface DTOConfiguration<DTO: ModelDTO, D: DataModel,  E : LongEntity> {
     ):DTOClass<F, FD, FE>
 
     fun serializerLookup(type: KType): SerializerInfo<*>?
+    fun registerDTO(dto: CommonDTO<DTO, D, E>)
+    fun clearCachedDTOs()
+    fun lookupDTO():List<CommonDTO<DTO, D, E>>
+    fun lookupDTO(id: Long): CommonDTO<DTO, D, E>?
 }
 
 
@@ -40,9 +45,12 @@ class DTOConfig<DTO, D, E>(
     internal val daoService: DAOService<DTO, D, E> = DAOService(commonDTOType)
 
     internal var trackerConfigModified: Boolean = false
-    val trackerConfig: TrackerConfig = TrackerConfig()
+    val trackerConfig: TrackerConfig<*> = TrackerConfig()
     val childClasses: MutableMap<CommonDTOType<*, *, *>, DTOClass<*, *, *>> = mutableMapOf()
     val connectionClass: ConnectionClass? get() = DatabaseManager.connections.firstOrNull()
+
+    val dtoMap : MutableMap<Long, CommonDTO<DTO, D, E>> = mutableMapOf()
+    val dtoMapSize: Int get() = dtoMap.size
 
     override fun serializerLookup(type: KType): SerializerInfo<*>? {
         val normalizedKey = type.toSimpleNormalizedKey()
@@ -67,8 +75,36 @@ class DTOConfig<DTO, D, E>(
         return childMember
     }
 
-    fun applyTrackerConfig(configurator: TrackerConfig.() -> Unit) {
+    override fun registerDTO(dto: CommonDTO<DTO, D, E>){
+        val usedId = if(dto.id < 1){
+            dto.dtoId.id
+        }else{
+            dto.id
+        }
+        val exists = dtoMap.containsKey(usedId)
+        if(exists){
+            notify("Given dto with id: ${dto.id} already exist in dtoMap", SeverityLevel.WARNING)
+        }
+        dtoMap.putIfAbsent(usedId, dto)
+    }
+
+    override fun clearCachedDTOs(){
+        dtoMap.clear()
+    }
+
+    override fun lookupDTO(id: Long): CommonDTO<DTO, D, E>?{
+        return dtoMap[id]?:run {
+            dtoMap.values.firstOrNull {it.id == id}
+        }
+    }
+    override fun lookupDTO(): List<CommonDTO<DTO, D, E>>{
+        return dtoMap.values.toList()
+    }
+
+
+    fun applyTrackerConfig(configurator: TrackerConfig<*>.() -> Unit) {
         trackerConfigModified = true
+        dtoMap.values.forEach { it.tracker.config.configurator() }
         configurator.invoke(trackerConfig)
     }
 

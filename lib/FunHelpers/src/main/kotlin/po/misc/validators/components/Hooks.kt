@@ -4,7 +4,7 @@ import po.misc.validators.SequentialContainer
 import po.misc.validators.models.CheckStatus
 
 
-sealed class  ValidatorHooks<T: Any>(){
+sealed class  ValidatorHooks<T: Any?>(){
 
     internal var validationSuccess: ((CheckStatus)-> Unit)? = null
     internal var validationFailure: ((CheckStatus)-> Unit)? = null
@@ -17,7 +17,7 @@ sealed class  ValidatorHooks<T: Any>(){
     }
 }
 
-class BaseHooks<T: Any>(): ValidatorHooks<T>(){
+class BaseHooks<T: Any?>(): ValidatorHooks<T>(){
 
 }
 

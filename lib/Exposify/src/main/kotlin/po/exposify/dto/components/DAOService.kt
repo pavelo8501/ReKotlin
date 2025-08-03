@@ -3,10 +3,10 @@ package po.exposify.dto.components
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.and
-import po.exposify.dto.interfaces.DataModel
-import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dao.classes.ExposifyEntityClass
 import po.exposify.dto.components.query.SimpleQuery
+import po.exposify.dto.interfaces.DataModel
+import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.CommonDTOType
 import po.lognotify.TasksManaged
 import po.lognotify.extensions.runAction
@@ -15,66 +15,71 @@ import po.misc.context.asIdentity
 import po.misc.data.processors.SeverityLevel
 import kotlin.reflect.full.withNullability
 
-
 class DAOService<DTO, DATA, ENTITY>(
-    val commonDTOType: CommonDTOType<DTO, DATA, ENTITY>
-): TasksManaged where DTO: ModelDTO, DATA: DataModel, ENTITY : LongEntity {
-
+    val commonDTOType: CommonDTOType<DTO, DATA, ENTITY>,
+) : TasksManaged where DTO : ModelDTO, DATA : DataModel, ENTITY : LongEntity {
     override val identity: CTXIdentity<DAOService<DTO, DATA, ENTITY>> = asIdentity()
 
     val entityClass: ExposifyEntityClass<ENTITY> get() = commonDTOType.entityType.entityClass
 
-    private fun combineConditions(conditions: Set<Op<Boolean>>): Op<Boolean> {
-        return conditions.reduceOrNull { acc, op -> acc and op } ?: Op.TRUE
-    }
+    private fun combineConditions(conditions: Set<Op<Boolean>>): Op<Boolean> = conditions.reduceOrNull { acc, op -> acc and op } ?: Op.TRUE
 
     private fun buildConditions(conditions: SimpleQuery): Op<Boolean> {
         val conditions = conditions.build()
         return conditions
     }
 
-    fun pick(conditions: SimpleQuery): ENTITY? = runAction("Pick", commonDTOType.entityType.kType.withNullability(true)) {
-        val opConditions = buildConditions(conditions)
-        val queryResult = entityClass.find(opConditions).firstOrNull()
-        queryResult
-    }
-
-    fun pickById(id: Long): ENTITY? = runAction("PickById", commonDTOType.entityType.kType.withNullability(true)){
-        val entity = entityClass.findById(id)
-        if (entity == null) {
-            notify("Entity with id: $id not found", SeverityLevel.INFO)
+    fun pick(conditions: SimpleQuery): ENTITY? =
+        runAction("Pick", commonDTOType.entityType.kType.withNullability(true)) {
+            val opConditions = buildConditions(conditions)
+            val queryResult = entityClass.find(opConditions).firstOrNull()
+            queryResult
         }
-        entity
-    }
 
-    fun select(): List<ENTITY> = runAction("Select(all)") {
-        entityClass.all().toList()
-    }
-
-    fun select(conditions: SimpleQuery): List<ENTITY> = runAction("Select") {
-        val opConditions = buildConditions(conditions)
-        val result = entityClass.find(opConditions).toList()
-        notify("${result.count()} entities selected", SeverityLevel.INFO)
-        result
-    }
-
-
-    fun save(block: (entity: ENTITY) -> Unit): ENTITY = runAction("Save", commonDTOType.entityType.kType) {
-        val newEntity = entityClass.new {
-            block.invoke(this)
+    fun pickById(id: Long): ENTITY? =
+        runAction("PickById", commonDTOType.entityType.kType.withNullability(true)) {
+            val entity = entityClass.findById(id)
+            if (entity == null) {
+                notify("Entity with id: $id not found", SeverityLevel.INFO)
+            }
+            entity
         }
-        newEntity
-    }
 
-    fun update(entityId: Long, updateFn: (newEntity: ENTITY) -> Unit): ENTITY?
-        = runAction("Update", commonDTOType.entityType.kType.withNullability(true)){
-        val updated = pickById(entityId)?.let { picked ->
-            updateFn.invoke(picked)
-            picked
-        } ?: run {
-            notify("Update failed. Entity with id: $entityId for $completeName can not be found", SeverityLevel.WARNING)
-            null
+    fun select(): List<ENTITY> =
+        runAction("Select(all)") {
+            entityClass.all().toList()
         }
-        updated
-    }
+
+    fun select(conditions: SimpleQuery): List<ENTITY> =
+        runAction("Select") {
+            val opConditions = buildConditions(conditions)
+            val result = entityClass.find(opConditions).toList()
+            notify("${result.count()} entities selected", SeverityLevel.INFO)
+            result
+        }
+
+    fun save(block: (entity: ENTITY) -> Unit): ENTITY =
+        runAction("Save", commonDTOType.entityType.kType) {
+            val newEntity =
+                entityClass.new {
+                    block.invoke(this)
+                }
+            newEntity
+        }
+
+    fun update(
+        entityId: Long,
+        updateFn: (newEntity: ENTITY) -> Unit,
+    ): ENTITY? =
+        runAction("Update", commonDTOType.entityType.kType.withNullability(true)) {
+            val updated =
+                pickById(entityId)?.let { picked ->
+                    updateFn.invoke(picked)
+                    picked
+                } ?: run {
+                    notify("Update failed. Entity with id: $entityId for $completeName can not be found", SeverityLevel.WARNING)
+                    null
+                }
+            updated
+        }
 }

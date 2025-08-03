@@ -1,9 +1,16 @@
 package po.misc.containers
 
+import po.misc.data.language.LanguageFile
+import po.misc.data.language.MessageBundle
 import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.ManagedPayload
 import po.misc.functions.common.ExceptionFallback
+import po.misc.functions.hooks.ChangeHook
+import po.misc.functions.hooks.DataHooks
+import po.misc.functions.hooks.ErrorHook
+import po.misc.functions.hooks.models.ErrorData
+import po.misc.functions.models.Updated
 import po.misc.types.Typed
 import po.misc.types.castOrManaged
 import po.misc.types.getOrManaged
@@ -22,30 +29,35 @@ class ReactiveMap<K: Any, V: Any>(
         get() = mapBacking.entries
 
     val itemsSize: Int get() = entries.size
+    val onErrorHook: ErrorHook<ReactiveMap<K, V>> = ErrorHook()
+    val onNewEntryHook: ChangeHook<V> = ChangeHook()
 
     private var exceptionFallback: ExceptionFallback? = null
-
-    private val notFoundError: (key:K)->String = {"Element with key $it not found"}
-    private val castError: (kClass: KClass<*>)->String = {"Record exist but cast to $it failed"}
+    var onExceptionSnapshot:(()-> String)? = null
 
     @PublishedApi
     internal fun proceedWithFallback(key:K): Nothing{
-        val payload = ManagedPayload(notFoundError(key), "proceedWithFallback",  this)
+        val payload = ManagedPayload(MessageBundle.get("NotFoundError", key), "proceedWithFallback",  this)
         throw  exceptionFallback?.exceptionProvider?.invoke(payload)?: run {
-            throw ManagedException(notFoundError(key))
+            throw ManagedException(MessageBundle.get("NotFoundError", key))
         }
     }
 
     @PublishedApi
     internal fun proceedWithFallback(kClass: KClass<*>): Nothing{
 
-        val payload = ManagedPayload(castError(kClass), "proceedWithFallback",  this)
-        throw  exceptionFallback?.exceptionProvider?.invoke(payload)?: run {
-            throw ManagedException(castError(kClass))
+        val payload = ManagedPayload(MessageBundle.get("CastError", kClass), "proceedWithFallback",  this)
+        val exception =  exceptionFallback?.exceptionProvider?.invoke(payload)?: run {
+             ManagedException(MessageBundle.get("CastError", kClass))
         }
+        onErrorHook.trigger(ErrorData(this, exception, onExceptionSnapshot?.invoke()?:""))
+        throw exception
     }
 
     override fun put(key: K, value: V): V? {
+        val previous = mapBacking.put(key, value)
+        onNewEntryHook.trigger(Updated(previous, value))
+
         return mapBacking.put(key, value)
     }
 

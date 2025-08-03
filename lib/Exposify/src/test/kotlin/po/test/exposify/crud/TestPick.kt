@@ -7,11 +7,16 @@ import po.test.exposify.setup.dtos.User
 import po.test.exposify.setup.dtos.UserDTO
 import org.junit.jupiter.api.Test
 import po.exposify.scope.service.models.TableCreateMode
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 
 class TestPick : DatabaseTest(){
+
+    override val identity: CTXIdentity<TestPick> = asIdentity()
 
     @Test
     fun `user updates and pick`(){

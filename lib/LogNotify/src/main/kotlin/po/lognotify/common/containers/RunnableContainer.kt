@@ -3,49 +3,48 @@ package po.lognotify.common.containers
 import po.lognotify.TasksManaged
 import po.lognotify.action.ActionSpan
 import po.lognotify.common.LNInstance
-import po.lognotify.notification.LoggerDataProcessor
-import po.lognotify.execution.ControlledExecution
+import po.lognotify.common.configuration.TaskConfig
+import po.lognotify.exceptions.ExceptionBehaviour
 import po.lognotify.notification.LogDataProcessorContract
+import po.lognotify.notification.LoggerDataProcessor
 import po.lognotify.tasks.ExecutionStatus
 import po.lognotify.tasks.RootTask
 import po.lognotify.tasks.TaskBase
 import po.lognotify.tasks.TaskHandler
-import po.lognotify.tasks.models.TaskConfig
 import po.misc.containers.ReceiverContainer
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.functions.containers.DeferredContainer
 import po.misc.reflection.classes.ClassInfo
 
-
-sealed class RunnableContainer<T: TasksManaged, R: Any?>(
-    internal val source : LNInstance<T>,
-    override val receiver:T,
-    val notifier: LoggerDataProcessor
-):  ControlledExecution, ReceiverContainer<T>, TasksManaged by  receiver, LogDataProcessorContract by notifier{
-
+sealed class RunnableContainer<T : TasksManaged, R : Any?>(
+    internal val source: LNInstance<T>,
+    override val receiver: T,
+    val notifier: LoggerDataProcessor,
+) : ReceiverContainer<T>,
+    TasksManaged by receiver,
+    LogDataProcessorContract by notifier {
     override val identity: CTXIdentity<out CTX>
         get() = source.identity
-
 
     override val contextName: String get() = receiver.contextName
     var verboseMode: Boolean = false
 
     abstract val classInfoProvider: DeferredContainer<ClassInfo<R>>
     val attempts: Int get() {
-      return  when(this){
+        return when (this) {
             is TaskContainer<*, *> -> {
                 this.sourceTask.config.attempts
             }
-            is  ActionContainer->{
+            is ActionContainer -> {
                 1
             }
         }
     }
-    private var resultBacking : R? = null
+    private var resultBacking: R? = null
 
     abstract val effectiveTask: TaskBase<*, *>
-    abstract val effectiveActionSpan: ActionSpan<* , *>?
+    abstract val effectiveActionSpan: ActionSpan<*, *>?
     abstract override val taskHandler: TaskHandler<*>
     abstract val taskConfig: TaskConfig
 
@@ -53,43 +52,40 @@ sealed class RunnableContainer<T: TasksManaged, R: Any?>(
     var resultNullable: Boolean? = null
     var classInfo: ClassInfo<*>? = null
 
-    fun notifyResult(){
-        when(this){
+    fun notifyResult() {
+        when (this) {
             is ActionContainer<*, *> -> {
                 actionSpan.shortName
             }
 
             is TaskContainer<*, *> -> {
-
             }
         }
     }
-    fun onResultResolved(result:R){
+
+    fun onResultResolved(result: R) {
         resultBacking = result
         notifyResult()
     }
 
-    fun notifySourceIsFailing(){
+    fun notifySourceIsFailing() {
         source.changeStatus(ExecutionStatus.Failing)
     }
 
-    fun <R2> estimateReturnNullability(classInfo : ClassInfo<R2>): Boolean{
-       if(classInfo.acceptsNull){
-           resultNullable = true
-       }else{
-           resultNullable = false
-       }
+    fun <R2> estimateReturnNullability(classInfo: ClassInfo<R2>): Boolean {
+        if (classInfo.acceptsNull) {
+            resultNullable = true
+        } else {
+            resultNullable = false
+        }
         this.classInfo = classInfo
-        return resultNullable?:false
+        return resultNullable ?: false
     }
 }
 
-
-class TaskContainer<T: TasksManaged, R: Any?>(
+class TaskContainer<T : TasksManaged, R : Any?>(
     val sourceTask: TaskBase<T, R>,
-): RunnableContainer<T, R>(sourceTask, sourceTask.receiver, sourceTask.dataProcessor) {
-
-
+) : RunnableContainer<T, R>(sourceTask, sourceTask.receiver, sourceTask.dataProcessor) {
     override val effectiveTask: TaskBase<T, R> get() = sourceTask
     override val taskHandler: TaskHandler<R> get() = sourceTask.handler
     override val taskConfig: TaskConfig = sourceTask.config
@@ -99,19 +95,14 @@ class TaskContainer<T: TasksManaged, R: Any?>(
     override val classInfoProvider: DeferredContainer<ClassInfo<R>> = DeferredContainer(sourceTask)
 
     companion object {
-        fun <T: TasksManaged, R: Any?> create(
-            task: TaskBase<T, R>
-        ): TaskContainer<T,R>{
-            return TaskContainer(task)
-        }
+        fun <T : TasksManaged, R : Any?> create(task: TaskBase<T, R>): TaskContainer<T, R> = TaskContainer(task)
     }
 }
 
-class ActionContainer<T: TasksManaged, R: Any?>(
-    val actionSpan: ActionSpan<T, R>
-): RunnableContainer<T, R>(actionSpan, actionSpan.receiver,  actionSpan.task.dataProcessor) {
-
-
+class ActionContainer<T : TasksManaged, R : Any?>(
+    val actionSpan: ActionSpan<T, R>,
+) : RunnableContainer<T, R>(actionSpan, actionSpan.receiver, actionSpan.task.dataProcessor),
+    ExceptionBehaviour {
     override val effectiveTask: TaskBase<*, *> get() = actionSpan.task
     override val taskHandler: TaskHandler<*> get() = actionSpan.task.handler
     override val taskConfig: TaskConfig = taskHandler.taskConfig
@@ -120,11 +111,6 @@ class ActionContainer<T: TasksManaged, R: Any?>(
     override val classInfoProvider: DeferredContainer<ClassInfo<R>> = DeferredContainer(actionSpan)
 
     companion object {
-        fun <T: TasksManaged, R: Any?> create(
-            actionSpan: ActionSpan<T, R>,
-        ): ActionContainer<T, R>{
-            return ActionContainer(actionSpan)
-        }
+        fun <T : TasksManaged, R : Any?> create(actionSpan: ActionSpan<T, R>): ActionContainer<T, R> = ActionContainer(actionSpan)
     }
 }
-

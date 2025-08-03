@@ -1,106 +1,267 @@
 package po.exposify.scope.sequence.launcher
 
-import org.jetbrains.exposed.dao.LongEntity
 import po.auth.sessions.models.AuthorizedSession
 import po.exposify.dto.components.query.WhereQuery
+import po.exposify.dto.components.result.ResultBase
+import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
+import po.exposify.dto.components.result.toResultList
+import po.exposify.dto.components.result.toResultSingle
+import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.exceptions.operationsException
-import po.exposify.extensions.castOrOperations
-import po.exposify.extensions.getOrOperations
-import po.exposify.scope.sequence.builder.SingleResultChunks
+import po.exposify.exceptions.initException
+import po.exposify.extensions.withSuspendedTransactionIfNone
+import po.exposify.scope.sequence.builder.PickChunk
+import po.exposify.scope.sequence.builder.SelectChunk
+import po.exposify.scope.sequence.builder.SingleDescriptor
 import po.exposify.scope.sequence.builder.SwitchChunkContainer
+import po.exposify.scope.sequence.builder.SwitchDescriptorBase
+import po.exposify.scope.sequence.builder.SwitchListDescriptor
+import po.exposify.scope.sequence.builder.SwitchSingeDescriptor
 import po.exposify.scope.sequence.builder.UpdateChunk
-import po.misc.functions.common.ExceptionFallback
+import po.exposify.scope.sequence.builder.UpdateListChunk
+import po.exposify.scope.sequence.inputs.InputBase
+import po.exposify.scope.sequence.inputs.DataInput
+import po.exposify.scope.sequence.inputs.ListDataInput
+import po.exposify.scope.sequence.inputs.ParameterInput
+import po.exposify.scope.sequence.inputs.QueryInput
 import po.misc.functions.containers.DeferredContainer
+import po.misc.types.castOrManaged
+import po.misc.types.getOrManaged
+import po.misc.types.safeCast
 
 
-fun <DTO, D, E, F, FD> handleDataInputs(
-    container: SwitchChunkContainer<DTO, D, F, FD>,
-    parameter: Long? = null,
-    inputData:D? = null,
-    query: DeferredContainer<WhereQuery<E>>? = null,
-) where DTO : ModelDTO, D : DataModel, E: LongEntity,  F : ModelDTO, FD : DataModel {
-
-
-}
-
-
-//suspend fun <DTO, D, F, FD> launchSwitch(
-//    switchDescriptor: SwitchDescriptorBase<DTO, D, F>,
-//    input: D,
-//    parentDescriptor: SingleDescriptor<F, FD>,
-//    parentParameter: Long,
-//    session: AuthorizedSession
-//): ResultSingle<DTO, D> where DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel {
-//
-//    val wrongBranchMsg = "LaunchSwitch else branch should have never be reached"
-//    val result = session.launch(parentDescriptor, parentParameter)
 //
 //
-//    val errorFallback = ExceptionFallback{
-//        val noContainerMsg = "No predefined execution for $switchDescriptor"
-//        OperationsException(noContainerMsg, ExceptionCode.Sequence_Setup_Failure, switchDescriptor)
-//    }
+//private suspend fun <DTO, D, F, FD, I> launchSwitchSingle(
+//    switchDescriptor: SwitchSingeDescriptor<DTO, D, F, FD>,
+//    session: AuthorizedSession,
+//    parentInput: InputType<*>,
+//    input: InputType<I>,
+//): ResultSingle<DTO, D> where DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel, I : Any {
+//    val errorFallback =
+//        ExceptionFallback {
+//            val noContainerMsg = "No predefined execution for $switchDescriptor"
+//            OperationsException(noContainerMsg, ExceptionCode.Sequence_Setup_Failure, switchDescriptor)
+//        }
+//    val container = switchDescriptor.chunksBacking.getWithFallback(errorFallback)
+//    val castedContainer = container.castOrOperations<SwitchChunkContainer<DTO, D, F, FD>>(container)
+//    val emitter = switchDescriptor.dtoClass.serviceClass.requestEmitter(session)
+//    val emitterResult =
+//        emitter.dispatchSingle {
+//            println("Entered emitter block")
+//            var effectiveResult: ResultSingle<DTO, D>? = null
 //
-//    val container =  switchDescriptor.chunksContainerBacking.getWithFallback(errorFallback)
-//    val service =    switchDescriptor.dtoClass.serviceClass
+//            withSuspendedTransactionIfNone(castedContainer.debugger, warnIfNoTransaction = false) {
 //
-//    var activeResult: ResultSingle<DTO, D>? = null
 //
-//    val switchContainers = container.singleSwitchContainers<DTO, D>(switchDescriptor.inputType)
-//    if(switchContainers.isNotEmpty()) {
-//        switchContainers.forEach { switchContainer ->
+//                castedContainer.parentContainer.singleResultChunks.forEach { parentChunk ->
+//                    val parentResult = parentChunk.trigger(parentInput.castOrOperations(switchDescriptor))
 //
-//            handleDataInputs(switchContainer, inputData = input)
-//            switchContainer.chunks.forEach { chunk ->
-//                when (chunk) {
-//                    is SingleResultChunks<*, *>->{
-//                        val updateChunk = chunk.castOrOperations<UpdateChunk<DTO, D>>(switchDescriptor)
-//                        updateChunk.healthMonitor.print()
-//                        activeResult = updateChunk.computeResult()
+//                    castedContainer.singleResultChunks.forEach { singleResultChunk ->
+//                    effectiveResult =  when (input) {
+//                            is DataInput -> {
+//                                singleResultChunk.triggerSwitch(
+//                                    parentResult,
+//                                    switchDescriptor.dtoClass,
+//                                    input.castOrOperations(switchDescriptor),
+//                                )
+//                            }
+//                            is ParameterInput -> {
+//                                singleResultChunk.triggerSwitch(
+//                                    parentResult,
+//                                    switchDescriptor.dtoClass,
+//                                    input.castOrOperations(switchDescriptor),
+//                                )
+//                            }
+//                            is QueryInput -> {
+//                                singleResultChunk.triggerSwitch(
+//                                    parentResult,
+//                                    switchDescriptor.dtoClass,
+//                                    input.castOrOperations(switchDescriptor),
+//                                )
+//                            }
+//                        }
 //                    }
-//                    else -> {
-//                        throw switchDescriptor.operationsException(wrongBranchMsg, ExceptionCode.ABNORMAL_STATE)
+//                }
+//                effectiveResult.getOrOperations(switchDescriptor)
+//            }
+//        }
+//    return emitterResult
+//}
+//
+//private suspend fun <DTO, D, F, FD, I> launchSwitchList(
+//    switchDescriptor: SwitchListDescriptor<DTO, D, F, FD>,
+//    session: AuthorizedSession,
+//    input: ListInputType<I>,
+//    parentInput: InputType<*>,
+//): ResultList<DTO, D> where DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel, I : Any {
+//
+//    val container = switchDescriptor.chunksBacking.getWithFallback(switchDescriptor.errorFallback)
+//    val casted = container.castOrOperations<SwitchChunkContainer<DTO, D, F, FD>>(container)
+//    val emitter = switchDescriptor.dtoClass.serviceClass.requestEmitter(session)
+//
+//    val emitterResult = emitter.dispatchList {
+//        var effectiveResult: ResultList<DTO, D>? = null
+//        withSuspendedTransactionIfNone(container.debugger, warnIfNoTransaction = false) {
+//
+//            casted.parentContainer.singleResultChunks.forEach { parentChunk ->
+//                val parentResult = parentChunk.trigger(parentInput.castOrOperations(switchDescriptor))
+//                casted.listResultChunks.forEach { listChunk ->
+//                    effectiveResult = when (listChunk) {
+//                        is UpdateListChunk -> {
+//                            listChunk.updateListSwitching(
+//                                parentResult,
+//                                switchDescriptor.dtoClass,
+//                                input.castOrOperations(switchDescriptor)
+//                            )
+//                        }
+//
+//                        is SelectChunk -> {
+//                            TODO()
+//                        }
 //                    }
 //                }
 //            }
 //        }
-//    }else{
-//        println("No switch containers for switchContainer ")
-//        println("Total containers count ${container.chunkCollectionSize}")
+//        effectiveResult.getOrOperations(switchDescriptor)
 //    }
-//    return activeResult.getOrOperations(switchDescriptor)
+//    return emitterResult
 //}
 
 
-suspend fun <DTO, D, F, FD> launchSwitchSingle(
-    switchDescriptor: SwitchSingeDescriptor<DTO, D, F>,
-    parentDescriptor:SequenceDescriptor<F, FD>,
-    session: AuthorizedSession,
-    inputData: D? = null,
-    parameter: Long? = null,
-): ResultSingle<DTO, D> where DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel {
+private fun <DTO:ModelDTO, D:DataModel> returnContainerNotFound(
+    descriptor: SwitchListDescriptor<DTO, D, *, *>
+): ResultList<DTO, D>{
+    val message = "Unable to process $descriptor. No switchDTO statement found"
+    val badSetup =  descriptor.initException(message, ExceptionCode.BAD_DTO_SETUP)
+    return badSetup.toResultList(descriptor.dtoClass)
+}
 
-    TODO("Not yet")
+private fun <DTO:ModelDTO, D:DataModel> returnContainerNotFound(
+    descriptor: SwitchDescriptorBase<DTO, D, *, *>
+): ResultBase<DTO, D, *>{
+    val message = "Unable to process $descriptor. No switchDTO statement found"
+    val badSetup =  descriptor.initException(message, ExceptionCode.BAD_DTO_SETUP)
+    return when(descriptor){
+        is SwitchListDescriptor -> badSetup.toResultList(descriptor.dtoClass)
+        is SwitchSingeDescriptor-> badSetup.toResultSingle(descriptor.dtoClass)
+    }
 }
 
 
-suspend fun <DTO: ModelDTO, D: DataModel, F: ModelDTO, FD: DataModel> AuthorizedSession.launch(
-    switchDescriptor: SwitchSingeDescriptor<DTO, D, F>,
-    parentDescriptor:SequenceDescriptor<F, FD>,
-    parameter: Long
-): ResultSingle<DTO, D> = launchSwitchSingle(switchDescriptor, parentDescriptor, this,  parameter = parameter)
+private suspend fun <DTO, D, F, FD> launchSwitch(
+    session:AuthorizedSession,
+    descriptor: SwitchDescriptorBase<DTO, D,  F, FD>,
+    inputData: InputBase<DTO, *>,
+    parentInput: InputBase<F, *>
+): ResultBase<DTO, D, *> where DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel {
+
+    val container =  descriptor.containerBacking.value
+    if(container == null){
+        return  returnContainerNotFound(descriptor)
+    }
+
+    val castedContainer = container.castOrManaged<SwitchChunkContainer<DTO, D, F, FD>>(session)
+    var effectiveResult: ResultBase<DTO, D, *>? = null
+
+    withSuspendedTransactionIfNone(descriptor.dtoClass.debugger, false){
+        if (parentInput.descriptor is SingleDescriptor) {
+            val parentResult = launchExecutionSingle(session, parentInput.descriptor, parentInput)
+            when (inputData) {
+                is DataInput -> {
+                    val chunksAcceptingDataInput =
+                        castedContainer.singleResultChunks.filterIsInstance<UpdateChunk<DTO, D>>()
+                    val input = inputData.getValue(descriptor.dtoClass.commonDTOType.dataType)
+                    chunksAcceptingDataInput.forEach { chunk ->
+                        effectiveResult = chunk.updateSwitching(parentResult, descriptor.dtoClass, input)
+                    }
+                }
+
+                is ParameterInput -> {
+                    val chunksAcceptingLong = castedContainer.singleResultChunks.filterIsInstance<PickChunk<DTO, D>>()
+                    val input = inputData.value
+                    chunksAcceptingLong.forEach { chunk ->
+                        effectiveResult = chunk.pickSwitching(parentResult, descriptor.dtoClass, input)
+                    }
+                }
+
+                is ListDataInput<*, *> -> {
+                    val input = inputData.getValue(descriptor.dtoClass.commonDTOType.dataType)
+                    val chunksAcceptingDataList =
+                        castedContainer.listResultChunks.filterIsInstance<UpdateListChunk<DTO, D>>()
+                    chunksAcceptingDataList.forEach { chunk ->
+                        effectiveResult = chunk.updateSwitching(parentResult, descriptor.dtoClass, input)
+                    }
+                }
+                is QueryInput<*, *> -> {
+                    if(descriptor is SwitchSingeDescriptor){
+                        val chunks = castedContainer.singleResultChunks.filterIsInstance<PickChunk<DTO, D>>()
+                        chunks.forEach { chunk ->
+                            effectiveResult = chunk.pickSwitching(parentResult, descriptor.dtoClass, inputData.value)
+                        }
+                    }else{
+                        val chunks = castedContainer.listResultChunks.filterIsInstance<SelectChunk<DTO, D>>()
+                        chunks.forEach { chunk ->
+                            effectiveResult = chunk.selectSwitching(parentResult, descriptor.dtoClass, inputData.value)
+                        }
+                    }
+                }
+            }
+        }else{
+            TODO("Not yet supported")
+        }
+    }
+    return effectiveResult.getOrManaged(ResultBase::class)
+}
 
 
-suspend fun <DTO: ModelDTO, D: DataModel, F: ModelDTO, FD: DataModel>  AuthorizedSession.launch(
-    switchDescriptor: SwitchSingeDescriptor<DTO, D, F>,
-    parentDescriptor:SequenceDescriptor<F, FD>,
-    inputData: D,
-): ResultSingle<DTO, D> = launchSwitchSingle(switchDescriptor, parentDescriptor,this, inputData = inputData)
+
+suspend fun <DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel> AuthorizedSession.launchSwitching(
+    switchDescriptor: SwitchSingeDescriptor<DTO, D, F, FD>,
+    id: Long,
+    parentInput: InputBase<F, *>,
+): ResultSingle<DTO, D> {
+    val input = ParameterInput(id, switchDescriptor)
+    val result = launchSwitch<DTO, D, F, FD>(this, switchDescriptor, input, parentInput)
+    result as ResultSingle<DTO, D>
+    return result
+}
 
 
+suspend fun <DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel> AuthorizedSession.launchSwitching(
+    switchDescriptor: SwitchSingeDescriptor<DTO, D, F, FD>,
+    dataModel: D,
+    parentInput: InputBase<F, *>,
+): ResultSingle<DTO, D>{
+    val input =  DataInput(dataModel, switchDescriptor)
+    val result = launchSwitch<DTO, D, F, FD>(this, switchDescriptor, input as InputBase<DTO, D>, parentInput)
+    result as ResultSingle<DTO, D>
+    return result
+}
 
+suspend fun <DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel> AuthorizedSession.launchSwitching(
+    switchDescriptor: SwitchListDescriptor<DTO, D, F, FD>,
+    inputData: List<D>,
+    parentInput: InputBase<F, *>,
+): ResultList<DTO, D>
+{
+    val input = ListDataInput(inputData, switchDescriptor)
+    val result = launchSwitch(this, switchDescriptor, input, parentInput)
+    result as ResultList<DTO, D>
+    return result
+}
+
+suspend fun <DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel> AuthorizedSession.launchSwitching(
+    switchDescriptor: SwitchListDescriptor<DTO, D, F, FD>,
+    whereQuery: DeferredContainer<WhereQuery<*>>,
+    parentInput: InputBase<F, *>,
+): ResultList<DTO, D>
+{
+    val input = QueryInput(whereQuery, switchDescriptor)
+    val result = launchSwitch<DTO, D, F, FD>(this, switchDescriptor, input, parentInput)
+    result as ResultList<DTO, D>
+    return result
+}

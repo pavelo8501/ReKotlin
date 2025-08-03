@@ -42,7 +42,6 @@ class ReactiveHooks<S: CTX, V: Any?>(private var source: S? = null): BasicHooks<
         withResolvedValueHook?.invoke(result)
     }
 
-
     private var onChangeHook: ((old: V?, new: V) -> Unit)? = null
     override fun onChange(onChange: (V?, V) -> Unit){
         onChangeHook = onChange

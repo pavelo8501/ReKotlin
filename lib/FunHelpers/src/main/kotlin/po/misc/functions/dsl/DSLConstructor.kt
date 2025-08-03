@@ -3,7 +3,7 @@ package po.misc.functions.dsl
 import po.misc.functions.dsl.handlers.DSLHandler
 
 
-class DSLConstructor<T: Any,  R: Any>(
+open class DSLConstructor<T: Any,  R: Any>(
     private val constructLambda: (DSLConstructor<T,R>.()-> Unit)? = null
 ){
 

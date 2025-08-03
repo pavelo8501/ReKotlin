@@ -17,7 +17,9 @@ inline fun <reified DTO,  reified D, reified E> DTOBase<DTO, D, E>.configuration
         block.invoke(dtoConfiguration)
         if(this is RootDTO<DTO, D, E>){
             updateStatus(DTOClassStatus.PreFlightCheck)
+
             val result =  setupValidation(shallowDTO())
+
             initializationComplete(result)
         }else{
             updateStatus(DTOClassStatus.PreFlightCheck)

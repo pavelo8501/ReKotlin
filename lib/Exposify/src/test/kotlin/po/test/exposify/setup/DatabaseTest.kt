@@ -6,15 +6,18 @@ import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import po.exposify.DatabaseManager
 import po.exposify.common.classes.dbHooks
+import po.exposify.extensions.getOrInit
 import po.exposify.scope.connection.models.ConnectionInfo
 import po.exposify.scope.connection.ConnectionClass
 import po.exposify.scope.connection.models.ConnectionSettings
+import po.lognotify.TasksManaged
 import po.misc.context.Identifiable
+import po.test.exposify.setup.dtos.User
+import po.test.exposify.setup.dtos.UserDTO
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers
-abstract class DatabaseTest(){
-
+abstract class DatabaseTest(): TasksManaged{
 
 
     companion object {
@@ -29,6 +32,15 @@ abstract class DatabaseTest(){
         connectionClass =  startTestConnection()
     }
 
+    fun persistUser(user: User): UserDTO{
+        var userDTO: UserDTO? = null
+        withConnection {
+            service(UserDTO){
+                userDTO = insert(user).dto
+            }
+        }
+        return userDTO.getOrInit(this)
+    }
 
     fun withConnection(block: ConnectionClass.()-> Unit){
         connectionClass?.let {
@@ -39,36 +51,40 @@ abstract class DatabaseTest(){
     }
 
 
-    fun startTestConnection(muteContainer: Boolean = true):ConnectionClass{
-        System.setProperty("org.testcontainers.reuse.enable", "true")
-        if (muteContainer) {
-            System.setProperty("org.slf4j.simpleLogger.log.org.testcontainers", "ERROR")
-        }
-        val connectionHooks  = dbHooks{
-            beforeConnection {
-                if(postgres.isRunning){
-                    println("Stopping running container ${postgres.containerName} before new launch")
-                    DatabaseManager.closeAllConnections()
-                    postgres.stop()
+    fun startTestConnection(muteContainer: Boolean = true):ConnectionClass {
+        val existentConnection = DatabaseManager.connections.firstOrNull()
+        if (existentConnection == null) {
+            System.setProperty("org.testcontainers.reuse.enable", "true")
+            if (muteContainer) {
+                System.setProperty("org.slf4j.simpleLogger.log.org.testcontainers", "ERROR")
+            }
+            val connectionHooks = dbHooks {
+                beforeConnection {
+                    if (postgres.isRunning) {
+                        println("Stopping running container ${postgres.containerName} before new launch")
+                        DatabaseManager.closeAllConnections()
+                        postgres.stop()
+                    }
+                    postgres.start()
+                    println("Trying to connect...")
+                    ConnectionInfo(
+                        jdbcUrl = postgres.jdbcUrl,
+                        dbName = postgres.databaseName,
+                        user = postgres.username,
+                        pwd = postgres.password,
+                        driver = postgres.driverClassName
+                    )
                 }
-                postgres.start()
-                println("Trying to connect...")
-                ConnectionInfo(
-                    jdbcUrl = postgres.jdbcUrl,
-                    dbName = postgres.databaseName,
-                    user = postgres.username,
-                    pwd = postgres.password,
-                    driver = postgres.driverClassName
-                )
-            }
 
-            newConnection {
-                println("Opening new connection")
+                newConnection {
+                    println("Opening new connection")
+                }
+                existentConnection { println("Reusing: ${it.completeName}") }
             }
-            existentConnection { println("Reusing: ${it.completeName}") }
+            return DatabaseManager.openConnection(null, ConnectionSettings(retries = 5), hooks = connectionHooks)
+        } else {
+            return existentConnection
         }
-        val connection = DatabaseManager.openConnection(null, ConnectionSettings(retries = 5), hooks = connectionHooks )
-        return connection
     }
 
     suspend fun startTestConnectionAsync(muteContainer: Boolean = true) {

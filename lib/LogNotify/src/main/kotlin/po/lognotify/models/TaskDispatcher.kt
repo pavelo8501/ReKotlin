@@ -2,6 +2,7 @@ package po.lognotify.models
 
 import po.lognotify.TasksManaged.LogNotify.defaultContext
 import po.lognotify.TasksManaged.LogNotify.taskDispatcher
+import po.lognotify.common.configuration.TaskConfig
 import po.lognotify.notification.LoggerDataProcessor
 import po.lognotify.notification.NotifierHub
 import po.lognotify.tasks.ExecutionStatus
@@ -9,30 +10,30 @@ import po.lognotify.tasks.RootTask
 import po.lognotify.tasks.TaskBase
 import po.lognotify.tasks.interfaces.ResultantTask
 import po.lognotify.tasks.interfaces.UpdatableTasks
-import po.lognotify.tasks.models.TaskConfig
 import po.lognotify.tasks.warn
 import po.misc.callbacks.CallbackManager
 import po.misc.callbacks.Containable
 import po.misc.callbacks.builders.callbackManager
-import po.misc.coroutines.CoroutineInfo
 import po.misc.context.CTX
 import po.misc.context.asIdentity
+import po.misc.coroutines.CoroutineInfo
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.set
 
-
-class TaskDispatcher(val notifierHub: NotifierHub) : UpdatableTasks, CTX{
-
-    enum class UpdateType{
+class TaskDispatcher(
+    val notifierHub: NotifierHub,
+) : UpdatableTasks,
+    CTX {
+    enum class UpdateType {
         OnDataReceived,
         OnTaskCreated,
         OnTaskStart,
         OnTaskUpdated,
-        OnTaskComplete
+        OnTaskComplete,
     }
 
-    data class LoggerStats (
-        val activeTask : ResultantTask<*, *>,
+    data class LoggerStats(
+        val activeTask: ResultantTask<*, *>,
         val activeTaskName: String,
         val activeTaskNestingLevel: Int,
         val topTasksCount: Int,
@@ -42,40 +43,39 @@ class TaskDispatcher(val notifierHub: NotifierHub) : UpdatableTasks, CTX{
 
     override val identity = asIdentity()
 
-    internal val callbackRegistry = callbackManager<UpdateType>(
-        { CallbackManager.createPayload<UpdateType, LoggerStats>(this,  UpdateType.OnTaskCreated) },
-        { CallbackManager.createPayload<UpdateType, LoggerStats>(this,  UpdateType.OnTaskStart) },
-        { CallbackManager.createPayload<UpdateType, LoggerStats>(this,  UpdateType.OnTaskUpdated) },
-        { CallbackManager.createPayload<UpdateType, LoggerStats>(this,  UpdateType.OnTaskComplete) }
-    )
+    internal val callbackRegistry =
+        callbackManager<UpdateType>(
+            { CallbackManager.createPayload<UpdateType, LoggerStats>(this, UpdateType.OnTaskCreated) },
+            { CallbackManager.createPayload<UpdateType, LoggerStats>(this, UpdateType.OnTaskStart) },
+            { CallbackManager.createPayload<UpdateType, LoggerStats>(this, UpdateType.OnTaskUpdated) },
+            { CallbackManager.createPayload<UpdateType, LoggerStats>(this, UpdateType.OnTaskComplete) },
+        )
+
     init {
-        notifierHub.hooks.debugListUpdated {debugWhiteList->
+        notifierHub.hooks.debugListUpdated { debugWhiteList ->
             notifierHub.sharedConfig.updateDebugWhiteList(debugWhiteList)
         }
     }
 
-    fun getActiveDataProcessor(): LoggerDataProcessor{
-        return activeTask()?.dataProcessor?:createDefaultTask().dataProcessor
-    }
+    fun getActiveDataProcessor(): LoggerDataProcessor = activeTask()?.dataProcessor ?: createDefaultTask().dataProcessor
 
     internal fun createDefaultTask(): RootTask<TaskDispatcher, Unit> {
         val task = createHierarchyRoot<TaskDispatcher, Unit>("Default", "LogNotify", this, TaskConfig(isDefault = true))
         val warningMessage =
             """No active tasks in context, taskHandler() has created a default task to avoid crash.
         Make sure that logger tasks were started before calling this method.
-        """.trimMargin()
+            """.trimMargin()
         task.warn(warningMessage)
         return task
     }
-
 
     @PublishedApi
     internal fun <T : CTX, R> createHierarchyRoot(
         name: String,
         moduleName: String,
-        receiver:T,
+        receiver: T,
         config: TaskConfig = TaskConfig(isDefault = true),
-    ): RootTask<T, R>{
+    ): RootTask<T, R> {
         val newTask = RootTask<T, R>(TaskKey(name, 0, moduleName), config, defaultContext(name), taskDispatcher, receiver)
         taskDispatcher.addRootTask(newTask)
         return newTask
@@ -84,41 +84,50 @@ class TaskDispatcher(val notifierHub: NotifierHub) : UpdatableTasks, CTX{
     @PublishedApi
     internal fun <T : CTX, R> createHierarchyRoot(
         name: String,
-        receiver:T,
+        receiver: T,
         config: TaskConfig = TaskConfig(isDefault = true),
-    ): RootTask<T, R>{
-        val newTask = RootTask<T, R>(TaskKey(name, 0, receiver.identity.identifiedByName), config, defaultContext(name), taskDispatcher, receiver)
+    ): RootTask<T, R> {
+        val newTask =
+            RootTask<T, R>(TaskKey(name, 0, receiver.identity.identifiedByName), config, defaultContext(name), taskDispatcher, receiver)
         taskDispatcher.addRootTask(newTask)
         return newTask
     }
 
-
     internal val taskHierarchy = ConcurrentHashMap<TaskKey, RootTask<*, *>>()
-   // internal val callbackRegistry : MutableMap<UpdateType, (LoggerStats)-> Unit> = mutableMapOf()
+    // internal val callbackRegistry : MutableMap<UpdateType, (LoggerStats)-> Unit> = mutableMapOf()
 
-    internal fun getTasks(): List<TaskBase<*, *>>{
-        return taskHierarchy.values.toList()
-    }
+    internal fun getTasks(): List<TaskBase<*, *>> = taskHierarchy.values.toList()
 
-    fun onTaskCreated(handler: UpdateType, callback: (Containable<LoggerStats>) -> Unit) {
+    fun onTaskCreated(
+        handler: UpdateType,
+        callback: (Containable<LoggerStats>) -> Unit,
+    ) {
         callbackRegistry.subscribe<LoggerStats>(this, UpdateType.OnTaskCreated, callback)
     }
 
-    fun onTaskComplete(handler: UpdateType, callback: (Containable<LoggerStats>) -> Unit) {
+    fun onTaskComplete(
+        handler: UpdateType,
+        callback: (Containable<LoggerStats>) -> Unit,
+    ) {
         callbackRegistry.subscribe<LoggerStats>(this, UpdateType.OnTaskComplete, callback)
     }
 
-    override fun notifyUpdate(handler: UpdateType, task: ResultantTask<*, *>) {
-        val stats = LoggerStats(
-            activeTask = task,
-            activeTaskName = task.key.taskName,
-            activeTaskNestingLevel = task.key.nestingLevel,
-            topTasksCount = taskHierarchy.size,
-            totalTasksCount = taskHierarchy.values.sumOf { it.registry.totalCount},
-            coroutineInfo = task.coroutineInfo
-        )
+    override fun notifyUpdate(
+        handler: UpdateType,
+        task: ResultantTask<*, *>,
+    ) {
+        val stats =
+            LoggerStats(
+                activeTask = task,
+                activeTaskName = task.key.taskName,
+                activeTaskNestingLevel = task.key.nestingLevel,
+                topTasksCount = taskHierarchy.size,
+                totalTasksCount = taskHierarchy.values.sumOf { it.registry.totalCount },
+                coroutineInfo = task.coroutineInfo,
+            )
         callbackRegistry.trigger(handler, stats)
     }
+
     fun addRootTask(task: RootTask<*, *>) {
         taskHierarchy[task.key] = task
         notifierHub.register(task)
@@ -126,23 +135,27 @@ class TaskDispatcher(val notifierHub: NotifierHub) : UpdatableTasks, CTX{
         notifyUpdate(UpdateType.OnTaskCreated, task)
         notifyUpdate(UpdateType.OnTaskStart, task)
     }
+
     fun removeRootTask(task: RootTask<*, *>) {
         taskHierarchy.remove(task.key)
         notifierHub.unregister(task)
         notifyUpdate(UpdateType.OnTaskComplete, task)
     }
-    fun activeRootTask(): RootTask<*, *>?{
-      return taskHierarchy.values.firstOrNull { !it.isComplete }
-    }
-    fun activeTask(): TaskBase<*, *>?{
+
+    fun activeRootTask(): RootTask<*, *>? = taskHierarchy.values.firstOrNull { !it.isComplete }
+
+    fun activeTask(): TaskBase<*, *>? {
         val activeRootTask = taskHierarchy.values.firstOrNull { it.executionStatus == ExecutionStatus.Active }
         return activeRootTask?.registry?.getActiveTask()
     }
-    fun activeTasks(): List<TaskBase<*, *>>{
-        return  taskHierarchy.values.filter { it.executionStatus == ExecutionStatus.Active }
-    }
 
-    fun keyLookup(name: String, nestingLevel: Int): TaskKey?{
-        return taskHierarchy.keys.firstOrNull { it.taskName == name  && it.nestingLevel == nestingLevel}
-    }
+    fun activeTasks(): List<TaskBase<*, *>> = taskHierarchy.values.filter { it.executionStatus == ExecutionStatus.Active }
+
+    fun keyLookup(
+        name: String,
+        nestingLevel: Int,
+    ): TaskKey? =
+        taskHierarchy.keys.firstOrNull {
+            it.taskName == name && it.nestingLevel == nestingLevel
+        }
 }

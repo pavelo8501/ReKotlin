@@ -1,13 +1,22 @@
 package po.lognotify.common
 
+import po.lognotify.common.configuration.TaskConfig
 import po.lognotify.tasks.ExecutionStatus
-import po.lognotify.tasks.models.TaskConfig
+import po.lognotify.tasks.RootTask
 import po.misc.context.CTX
+import po.misc.exceptions.ManagedException
 
-internal interface LNInstance<T: CTX> : CTX{
+interface LNInstance<T : CTX> : CTX {
     val receiver: T
     val header: String
     val config: TaskConfig
     val executionStatus: ExecutionStatus
-    fun changeStatus(status:ExecutionStatus)
+    val nestingLevel: Int
+    val rootTask: RootTask<*, *>
+
+    fun changeStatus(status: ExecutionStatus)
+
+    fun complete(): LNInstance<*>
+
+    fun complete(exception: ManagedException): Nothing
 }

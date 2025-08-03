@@ -27,18 +27,14 @@ fun <R> repeatOnFault(
 ):R{
     val finalConfig = RepeaterConfig().apply(config)
     val repeatStats = RepeatStats(finalConfig)
-
-    var result:R? = null
-
     while (repeatStats.attempt <= repeatStats.maxAttempts){
         try {
-            result = block.invoke()
-            break
+            return block.invoke()
         }catch (th: Throwable){
             repeatStats.registerException(th)
         }
     }
-   return result?: throw repeatStats.exception
+    throw repeatStats.exception
 }
 
 
@@ -58,7 +54,7 @@ fun <R> repeatOnFault(
 suspend fun <R> repeatOnFaultSuspending(
     config: RepeaterConfig,
     block:suspend ()->R
-):R{
+):R?{
     val repeatStats = RepeatStats(config)
     while (repeatStats.attempt < repeatStats.maxAttempts){
         try {
