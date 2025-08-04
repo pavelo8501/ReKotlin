@@ -3,6 +3,8 @@ package po.misc.functions.registries
 import po.misc.context.CTX
 import po.misc.functions.containers.Notifier
 import po.misc.functions.registries.models.RegistrySubscription
+import po.misc.functions.registries.models.Subscription
+import po.misc.functions.registries.models.SuspendSubscription
 import po.misc.functions.registries.models.TaggedSubscription
 import java.util.EnumMap
 import kotlin.reflect.KClass
@@ -74,12 +76,13 @@ class TaggedNotifierRegistry<E: Enum<E>,  V: Any>(
     }
 
     fun subscribe(event:E,  subscriberId: Long, subscriber: Any, callback:(V)-> Unit): TaggedSubscription<V>{
-        val subscription: TaggedSubscription<V> = TaggedSubscription(subscriberId, subscriber::class, callback)
+        val subscription: TaggedSubscription<V> = Subscription(subscriberId, subscriber::class, callback)
         notifiers.getOrPut(event) { mutableListOf() }.add(subscription)
         return subscription
     }
-    fun subscribe(event:E,  subscriber: Any, callback:(V)-> Unit):TaggedSubscription<V> =
-        subscribe(event,  nextId(event), subscriber, callback)
+    
+//    fun subscribe(event:E,  subscriber: Any, callback:(V)-> Unit):TaggedSubscription<V> =
+//        subscribe(event,  nextId(event), subscriber, callback)
 
 
     override fun clear() {
@@ -104,7 +107,8 @@ fun <E: Enum<E>, V: Any>  TaggedNotifierRegistry<E, V>.subscribe(
 fun <E: Enum<E>, V: Any>  TaggedNotifierRegistry<E, V>.subscribe(
     event:E,
     context: CTX,
-    callback:(V)-> Unit
+    callback: (V)-> Unit
 ){
     subscribe(event, context.identity.numericId, context.identity.kClass, callback)
 }
+

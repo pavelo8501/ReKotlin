@@ -35,6 +35,7 @@ private suspend fun <DTO, D, I> launchExecutionList(
             val noContainerMsg = "No predefined execution for $descriptor"
             OperationsException(noContainerMsg, ExceptionCode.Sequence_Setup_Failure, descriptor)
         }
+
     val container = descriptor.containerBacking.getWithFallback(errorFallback)
     val castedContainer = container.castOrOperations<SequenceChunkContainer<DTO, D>>(descriptor)
 
@@ -43,6 +44,7 @@ private suspend fun <DTO, D, I> launchExecutionList(
 
     return emitter.dispatchList {
         var effectiveResult: ResultList<DTO, D>? = null
+
         withSuspendedTransactionIfNone(container.debugger, warnIfNoTransaction = false) {
             castedContainer.listResultChunks.forEach { chunk ->
                 if(input is ListDataInput<*,*>) {

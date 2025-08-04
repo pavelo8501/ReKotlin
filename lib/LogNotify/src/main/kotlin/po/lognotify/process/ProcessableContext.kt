@@ -1,6 +1,7 @@
 package po.lognotify.process
 
 
+import po.lognotify.interfaces.LoggerProcess
 import po.misc.data.printable.PrintableBase
 import po.misc.context.Identifiable
 import kotlin.coroutines.CoroutineContext
@@ -10,10 +11,10 @@ interface ProcessableContext<out E: CoroutineContext.Element> : CoroutineContext
     val name : String
     val identifiedAs: String
 
-    var getLoggerProcess:  (()-> LoggerProcess<*, *>)?
+    var getLoggerProcess:  (()-> LoggerProcess<*>)?
 
-    fun onProcessStart(session: LoggerProcess<*, *>)
-    fun onProcessEnd(session: LoggerProcess<*, *>)
+    fun onProcessStart(session: LoggerProcess<*>)
+    fun onProcessEnd(session: LoggerProcess<*>)
 }
 
 

@@ -65,7 +65,7 @@ class ResultHandler<V : Any, R> {
  * @param V The input value type.
  * @param R The output result type.
  */
-sealed class LambdaContainer<V : Any, R>(
+abstract class LambdaUnitBase<V : Any, R>(
     val config: LambdaUnitConfig? = null,
 ) : LambdaUnit<V, R> {
     abstract override val identifiedAs: String
@@ -160,7 +160,7 @@ sealed class LambdaContainer<V : Any, R>(
  */
 open class Notifier<V : Any>(
     override var function: (V) -> Unit,
-) : LambdaContainer<V, Unit>(),
+) : LambdaUnitBase<V, Unit>(),
     NoResultLambda<V> {
     override val identifiedAs: String get() = "Producer<V>"
 
@@ -186,7 +186,7 @@ open class Notifier<V : Any>(
 open class Notifier2<V : Any>(
     private val preSavedPayload: LambdaPayload<V>,
     var function: (LambdaPayload<V>) -> Unit,
-) : LambdaContainer<V, Unit>() {
+) : LambdaUnitBase<V, Unit>() {
     override val identifiedAs: String get() = "Producer<V>"
 
     override fun trigger(value: V) {
@@ -231,7 +231,7 @@ fun <V1 : Any, V2 : Any> asSafeNotifier(function: (DoublePayload<V1, V2>) -> Uni
  */
 class Provider<R : Any>(
     override val function: () -> R,
-) : LambdaContainer<Unit, R>(),
+) : LambdaUnitBase<Unit, R>(),
     DeferredUnit<R> {
     override val identifiedAs: String get() = "Provider<R>"
 
@@ -248,7 +248,7 @@ class Provider<R : Any>(
 
 class NullableProvider<R : Any>(
     private val initialLambda: (() -> R)? = null,
-) : LambdaContainer<Unit, R>(),
+) : LambdaUnitBase<Unit, R>(),
     DeferredUnit<R> {
     var isUserDefinedFunction: Boolean = false
         private set
@@ -289,7 +289,7 @@ class NullableProvider<R : Any>(
 
 class DSLProvider<T : Any, R : Any>(
     override val function: T.() -> R,
-) : LambdaContainer<T, R>(),
+) : LambdaUnitBase<T, R>(),
     DuplexUnit<T, R> {
     override val identifiedAs: String get() = "DSLProvider<T, R>"
     override val resultHandler: ResultHandler<T, R> = ResultHandler()
@@ -312,7 +312,7 @@ class DSLProvider<T : Any, R : Any>(
  */
 class Evaluator<V : Any>(
     override val function: (V) -> Boolean,
-) : LambdaContainer<V, Boolean>(),
+) : LambdaUnitBase<V, Boolean>(),
     DuplexUnit<V, Boolean> {
     override val identifiedAs: String get() = "Evaluator<V>"
     override val resultHandler: ResultHandler<V, Boolean> = ResultHandler()
@@ -337,7 +337,7 @@ class Evaluator<V : Any>(
  */
 class Adapter<V : Any, R : Any>(
     override val function: (V) -> R,
-) : LambdaContainer<V, R>(),
+) : LambdaUnitBase<V, R>(),
     DuplexUnit<V, R> {
     override val identifiedAs: String get() = "Adapter<V, R>"
     override val resultHandler: ResultHandler<V, R> = ResultHandler()
@@ -353,7 +353,7 @@ class Adapter<V : Any, R : Any>(
 class DSLAdapter<T : Any, P : Any, R : Any>(
     val parameter: P,
     override val function: T.(P) -> R,
-) : LambdaContainer<T, R>(),
+) : LambdaUnitBase<T, R>(),
     ParametrizedUnit<T, P, R> {
     override val identifiedAs: String get() = "DSLProvider<T, R>"
     override val resultHandler: ResultHandler<T, R> = ResultHandler()

@@ -29,7 +29,6 @@ internal fun <T: TasksManaged, R: Any?> handleException(
             null
         }
     }
-
     if (exception is ManagedException) {
         exception.setPropertySnapshot(snapshot)
         return  when (exception.handler) {
@@ -39,7 +38,7 @@ internal fun <T: TasksManaged, R: Any?> handleException(
                 if(exData != null){
                     container.source.changeStatus(ExecutionStatus.Failing)
                     container.notify(exception.throwableToText(), SeverityLevel.EXCEPTION, container.source)
-                    container.notifier.addExceptionRecord(container.effectiveTask.createErrorSnapshot(), exception)
+                    container.notifier.addErrorRecord(container.effectiveTask.createErrorSnapshot(), exception)
                 }
 
                 if (container.isRoot) {
@@ -62,7 +61,7 @@ internal fun <T: TasksManaged, R: Any?> handleException(
                     container.source.changeStatus(ExecutionStatus.Failing)
                     container.notify(exception.throwableToText(), SeverityLevel.EXCEPTION, container.source)
                     val errorSnapshot = container.effectiveTask.createErrorSnapshot()
-                    container.notifier.addExceptionRecord(errorSnapshot, exception)
+                    container.notifier.addErrorRecord(errorSnapshot, exception)
                 }
                 val message = "Reached RootTask<${container.effectiveTask}>"
                 val data =  ExceptionData(ManagedException.ExceptionEvent.Executed,message,   container.source)
@@ -74,11 +73,10 @@ internal fun <T: TasksManaged, R: Any?> handleException(
         container.source.changeStatus(ExecutionStatus.Failing)
         managed.setHandler(container.effectiveTask.config.exceptionHandler, container.source)
         container.notify(exception.throwableToText(), SeverityLevel.EXCEPTION, container.source)
-        container.notifier.addExceptionRecord(container.effectiveTask.createErrorSnapshot(), managed)
+        container.notifier.addErrorRecord(container.effectiveTask.createErrorSnapshot(), managed)
         return managed
     }
 }
-
 
 internal fun TaskBase<*, *>.createErrorSnapshot(): ErrorSnapshot{
     val compiledReport = createTaskData{

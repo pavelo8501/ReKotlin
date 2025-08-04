@@ -3,9 +3,9 @@ package po.test.lognotify.task
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import po.lognotify.common.configuration.TaskConfig
-import po.lognotify.extensions.runAction
-import po.lognotify.extensions.runTask
-import po.lognotify.interfaces.FakeTasksManaged
+import po.lognotify.launchers.runAction
+import po.lognotify.launchers.runTask
+import po.test.lognotify.setup.FakeTasksManaged
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
 import po.test.lognotify.result.TestExceptionHandling.Companion.inlineActionThrowingHitCount

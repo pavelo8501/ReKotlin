@@ -9,32 +9,44 @@ import po.misc.functions.dsl.helpers.nextBlock
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertSame
+import kotlin.test.assertTrue
 
 class TestDataProcessor {
 
-   internal data class TopDataItem (
+   internal data class TopData (
         val id: Int,
         val personalName: String,
         val content : String,
         val componentName: String = "Some name",
-    ): PrintableBase<TopDataItem>(this){
+    ): PrintableBase<TopData>(this){
 
-        override val self: TopDataItem = this
+        override val self: TopData = this
 
-        //override val producer: CTX = identifiable(personalName, null).context
-    //    override val itemId: ValueBased = toValueBased(id)
-
-        companion object: PrintableCompanion<TopDataItem>({TopDataItem::class}){
-
+        companion object: PrintableCompanion<TopData>({TopData::class}){
             val TopTemplate = createTemplate {
                 nextBlock {
                     "TopTemplate->$content"
                 }
             }
-
             val Debug = createTemplate {
                 nextBlock {
                     "Debug[Name:$personalName Content:$content"
+                }
+            }
+        }
+    }
+
+    internal data class ForeignData (
+        val id: Int,
+        val personalName: String,
+        val content : String
+    ): PrintableBase<ForeignData>(this){
+        override val self: ForeignData = this
+        companion object:PrintableCompanion<ForeignData>({ForeignData::class}){
+            val Template = createTemplate {
+                nextBlock {
+                    "Template1->$content"
                 }
             }
         }
@@ -46,10 +58,8 @@ class TestDataProcessor {
         val content : String,
         val componentName: String = "Some name",
     ): PrintableBase<SubData>(this){
-
         override val self: SubData = this
         companion object:PrintableCompanion<SubData>({SubData::class}){
-
             val SubTemplate = createTemplate {
                 nextBlock {
                     "Template1->$content"
@@ -58,83 +68,81 @@ class TestDataProcessor {
         }
     }
 
-    @Test
-    fun `DataProcessor templated string`(){
+    private fun createTopData(id: Int): TopData{
+      return  TopData(id, "TopData_$id", "Content_$id")
+    }
 
-        val topDataProcessor: DataProcessor<TopDataItem> = DataProcessor<TopDataItem>(null)
-
-        val subRecord = SubData(1, "Name", "subRecord content")
-        topDataProcessor.logData<SubData>(subRecord, SubData.SubTemplate)
+    private fun createForeignData(id: Int): ForeignData{
+        return  ForeignData(id, "ForeignData_$id", "ForeignData_$id")
     }
 
     @Test
-    fun `Data propagated to topDataProcessor and stacked within PrintableBase`(){
+    fun `Arbitrary data stacked properly`(){
+        val dataProcessor: DataProcessor<TopData> = DataProcessor(null)
+        val topData1 = createTopData(1)
+        val topData2 = createTopData(2)
 
-        val topDataProcessor: DataProcessor<TopDataItem> = DataProcessor<TopDataItem>(null)
+        dataProcessor.addData(topData1)
+        dataProcessor.addData(topData2)
 
-        //val subDataProcessor: DataProcessor<SubData> = DataProcessor<SubData>(topDataProcessor)
+        val foreignData1 = createForeignData(1)
+        val foreignData2 = createForeignData(2)
 
-        var parentRecord: PrintableBase<*>? = null
-        var topRecord : PrintableBase<*>? = null
+        dataProcessor.addArbitraryData(foreignData1)
+        dataProcessor.addArbitraryData(foreignData2)
 
-        topDataProcessor.hooks.dataReceived{topRecord = it }
-        topDataProcessor.hooks.childAttached {childRec, record -> parentRecord = record   }
-
-        val newTopRecord = TopDataItem(1, "TopDataItem", "TopDataItem_Content1")
-        topDataProcessor.processRecord(newTopRecord, TopDataItem.TopTemplate)
-
-        val record1 = SubData(1, "DataItem", "Content1")
-        val record2 = SubData(2, "DataItem", "Content2")
-
-      //  subDataProcessor.forwardOrEmmit(record1)
-       // subDataProcessor.forwardOrEmmit(record2)
-
-        val activeTopRecord = assertNotNull(topRecord, "TopRecord is null")
-        val activeTopDataItem = assertInstanceOf<TopDataItem>(activeTopRecord, "ActiveTopRecord is not an instance of TopDataItem")
-        assertEquals("TopDataItem_Content1", activeTopDataItem.content, "Wrong content in activeTopDataItem")
-
-        val processedData = assertNotNull(parentRecord, "ParentRecord is null")
-        assertEquals(2, processedData.children.size, "Child records were not attached")
+        assertEquals(2, dataProcessor.records.size)
+        assertSame(topData2, dataProcessor.activeRecord)
+        assertEquals(2, topData2.arbitraryMap.totalSize)
     }
-
 
     @Test
-    fun `Built in debug method work as expected`(){
-        val topDataProcessor: DataProcessor<TopDataItem> = DataProcessor(null)
-       // val subDataProcessor: DataProcessor<SubData> = DataProcessor<SubData>(topDataProcessor)
+    fun `Data records propagation from bottom to top work as expected`(){
 
-        val debugInfo = TopDataItem(0, "Some name", "Content")
-        val subDebugInfo = SubData(0, "Sub Data", "sub Content")
-        var toDebug:TopDataItem? = null
-        var toDebugSub: SubData? = null
+        val topProcessor: DataProcessor<TopData> = DataProcessor(null)
+        val subProcessor : DataProcessor<TopData> = DataProcessor(topProcessor)
 
-        topDataProcessor.debugData(debugInfo, TopDataItem, TopDataItem.Debug){debuggable->
-            toDebug = debuggable
-        }
-        assertNull(toDebug, "Debuggable lambda invoked while not registered")
+        val subData = createTopData(1)
+        val subData2 = createTopData(2)
 
-        topDataProcessor.allowDebug(TopDataItem)
-        topDataProcessor.debugData(debugInfo, TopDataItem, TopDataItem.Debug){debuggable->
-            toDebug = debuggable
-            debuggable.echo()
-        }
-        assertNotNull(toDebug, "Debuggable lambda not invoked when class is white-listed")
-        toDebug = null
-        topDataProcessor.allowDebug(SubData)
-        topDataProcessor.debugData(debugInfo, TopDataItem, TopDataItem.Debug){debuggable->
-            toDebug = debuggable
-        }
-        topDataProcessor.debugData(subDebugInfo, SubData, SubData.SubTemplate){ debuggable->
-            toDebugSub = debuggable
-        }
-        assertNotNull(toDebug, "Debuggable lambda not invoked when TopDataItem class is white-listed")
-        assertNotNull(toDebugSub, "Debuggable lambda not invoked when SubData class is white-listed")
-        toDebugSub = null
+        subProcessor.addData(subData)
+        subProcessor.addData(subData2)
 
-//        subDataProcessor.debugData(subDebugInfo, SubData, SubData.SubTemplate){debuggable->
-//            toDebugSub = debuggable
-//        }
-        assertNotNull(toDebugSub, "Debug allowance is not propagated to subDataProcessor")
+        assertEquals(2, topProcessor.records.size)
+        assertEquals(2, subProcessor.records.size)
+
+        assertSame(subData, topProcessor.records[0])
+        assertSame(subData2, topProcessor.records[1])
+
+        assertSame(subData, subProcessor.records[0])
+        assertSame(subData2, subProcessor.records[1])
+    }
+
+    @Test
+    fun `Check processors hierarchical hooks usage`(){
+
+        val topProcessor: DataProcessor<TopData> = DataProcessor()
+        val subProcessor : DataProcessor<TopData> = DataProcessor(topProcessor)
+
+        val subData = createTopData(1)
+        val subData2 = createTopData(2)
+
+        val dataReceivedList: MutableList<Any> = mutableListOf()
+        topProcessor.onDataReceived {
+            dataReceivedList.add(it)
+        }
+
+        val subDataReceivedList: MutableList<TopData> = mutableListOf()
+        topProcessor.onSubDataReceived {data, processor->
+            assertSame(subProcessor, processor)
+            subDataReceivedList.add(data)
+        }
+        subProcessor.addData(subData)
+        subProcessor.addData(subData2)
+
+        assertTrue(dataReceivedList.isEmpty())
+        assertEquals(2, subDataReceivedList.size)
 
     }
+
 }

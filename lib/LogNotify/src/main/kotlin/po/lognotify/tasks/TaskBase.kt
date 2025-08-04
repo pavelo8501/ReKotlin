@@ -11,15 +11,16 @@ import po.lognotify.common.configuration.TaskConfig
 import po.lognotify.common.result.TaskResult
 import po.lognotify.common.result.createFaultyResult
 import po.lognotify.helpers.StaticHelper
+import po.lognotify.models.LoggerStats
 import po.lognotify.models.SpanKey
 import po.lognotify.models.TaskDispatcher
-import po.lognotify.models.TaskDispatcher.LoggerStats
 import po.lognotify.models.TaskKey
 import po.lognotify.models.TaskRegistry
 import po.lognotify.notification.LoggerDataProcessor
 import po.lognotify.notification.models.ActionData
 import po.lognotify.notification.models.ErrorSnapshot
 import po.lognotify.notification.models.FailureReasoning
+import po.lognotify.process.processInScope
 import po.lognotify.tasks.interfaces.ResultantTask
 import po.misc.callbacks.CallbackManager
 import po.misc.callbacks.builders.callbackManager
@@ -49,10 +50,8 @@ sealed class TaskBase<T : CTX, R : Any?>(
     override val config: TaskConfig,
     dispatcher: TaskDispatcher,
     override val receiver: T,
-) : StaticHelper,
-    MeasuredContext,
-    ResultantTask<T, R>,
-    LNInstance<T> {
+) : StaticHelper, MeasuredContext, ResultantTask<T, R>, LNInstance<T> {
+
     abstract var taskResult: TaskResult<R>?
     abstract val coroutineContext: CoroutineContext
     abstract val registry: TaskRegistry<*, *>
@@ -67,9 +66,7 @@ sealed class TaskBase<T : CTX, R : Any?>(
     val footer: String get() = "Completed in ${executionTimeStamp.elapsed}"
 
     abstract fun start(): TaskBase<T, R>
-
     abstract override fun complete(): LNInstance<*>
-
     abstract override fun complete(exception: ManagedException): Nothing
 
     protected var taskStatus: ExecutionStatus = ExecutionStatus.Active
@@ -152,7 +149,7 @@ class RootTask<T : CTX, R : Any?>(
     CoroutineHolder {
     override val identity: CTXIdentity<RootTask<T, R>> = asSubIdentity(this, receiver)
 
-    override val dataProcessor: LoggerDataProcessor = LoggerDataProcessor(this, null, FlowEmitter())
+    override val dataProcessor: LoggerDataProcessor = LoggerDataProcessor(this, null)
 
     override var taskResult: TaskResult<R>? = null
     override val registry: TaskRegistry<T, R> = TaskRegistry(dispatcher, this)
@@ -231,7 +228,7 @@ class Task<T : CTX, R : Any?>(
 ) : TaskBase<T, R>(key, config, hierarchyRoot.dispatcher, receiver),
     ResultantTask<T, R> {
     override val identity: CTXIdentity<Task<T, R>> = asSubIdentity(this, receiver)
-    override val dataProcessor: LoggerDataProcessor = LoggerDataProcessor(this, parentTask.dataProcessor, null)
+    override val dataProcessor: LoggerDataProcessor = LoggerDataProcessor(this, parentTask.dataProcessor)
 
     override val coroutineContext: CoroutineContext get() = hierarchyRoot.coroutineContext
     override var taskResult: TaskResult<R>? = null

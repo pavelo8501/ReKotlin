@@ -1,28 +1,21 @@
 package po.misc.data.processors
 
-import po.misc.collections.StaticTypeKey
 import po.misc.data.printable.PrintableBase
 
-class ProcessorHooks<T: PrintableBase<T>>() {
+class ProcessorHooks<T: PrintableBase<T>> : DataProcessingHooks<T> {
 
-    internal var onDataReceived: ((T) -> Unit)? = null
-    fun dataReceived(hook: (T)-> Unit){
-        onDataReceived = hook
+    internal var dataReceived: ((T) -> Unit)? = null
+    override fun onDataReceived(dataReceivedCallback: (T)-> Unit){
+        dataReceived = dataReceivedCallback
     }
 
-    internal var onArbitraryData: ((PrintableBase<*>)-> Unit)? = null
-    fun arbitraryDataReceived(hook: (PrintableBase<*>)-> Unit){
-        onArbitraryData = hook
+    internal var subDataReceived: ((T, DataProcessorBase<T>) -> Unit)? = null
+    override fun onSubDataReceived(subDataReceivedCallback: (T, DataProcessorBase<T>)-> Unit){
+        subDataReceived = subDataReceivedCallback
     }
 
-    internal var onChildAttached : ((childRecord:PrintableBase<*>, parentRecord:PrintableBase<*>) -> Unit)? = null
-    fun childAttached(hook: (childRecord:PrintableBase<*>, parentRecord:PrintableBase<*>) -> Unit){
-        onChildAttached = hook
+    internal var arbitraryDataReceived: ((PrintableBase<*>)-> Unit)? = null
+    override fun onArbitraryDataReceived(arbitraryDataReceivedCallback: (PrintableBase<*>)-> Unit){
+        arbitraryDataReceived = arbitraryDataReceivedCallback
     }
-
-    internal var onDebugListUpdated:((MutableMap<Int, StaticTypeKey<*>>)-> Unit)? = null
-    fun debugListUpdated(hook: (MutableMap<Int, StaticTypeKey<*>>)-> Unit){
-        onDebugListUpdated = hook
-    }
-
 }

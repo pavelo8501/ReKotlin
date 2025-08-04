@@ -3,85 +3,69 @@ package po.lognotify.notification
 import po.lognotify.action.ActionSpan
 import po.lognotify.common.LNInstance
 import po.lognotify.notification.models.ConsoleBehaviour
+import po.lognotify.notification.models.ErrorRecord
 import po.lognotify.notification.models.ErrorSnapshot
-import po.lognotify.notification.models.ExceptionRecord
-import po.lognotify.notification.models.LogEvent
 import po.lognotify.notification.models.NotifyConfig
-import po.lognotify.notification.models.TaskData
-import po.lognotify.notification.models.TaskEvents
+import po.lognotify.notification.models.LogData
+import po.lognotify.notification.models.TaskEvent
 import po.lognotify.tasks.RootTask
 import po.lognotify.tasks.TaskBase
 import po.misc.context.CTX
+import po.misc.coroutines.HotFlowEmitter
 import po.misc.data.printable.Printable
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.printable.companion.PrintableTemplateBase
 import po.misc.data.processors.DataProcessorBase
-import po.misc.data.processors.FlowEmitter
 import po.misc.data.processors.SeverityLevel
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.throwableToText
 
+
 class LoggerDataProcessor(
     val task: TaskBase<*, *>,
-    parent: LoggerDataProcessor?,
-    emitter: FlowEmitter<TaskData>?,
-) : DataProcessorBase<TaskData>(parent, emitter),
-    LogDataProcessorContract {
-    enum class LoggerProcessorType { RootTask, Task }
+    parent: LoggerDataProcessor?
+) : DataProcessorBase<LogData>(parent), LogDataProcessorContract {
 
     val config: NotifyConfig get() = task.config.notifConfig
-    val processorType: LoggerProcessorType get() {
-        return if (task is RootTask) {
-            LoggerProcessorType.RootTask
-        } else {
-            LoggerProcessorType.Task
-        }
-    }
+    val isRoot: Boolean get() = task is RootTask
 
-    override val records: MutableList<TaskData> = mutableListOf()
+    var  flowEmitter: HotFlowEmitter<LogData>? = null
 
-    internal val taskData: TaskData =
-        TaskData(
+    internal val taskData: LogData =
+        LogData(
             taskHeader = task.header,
             config = task.config,
             timeStamp = task.executionTimeStamp,
-            severity = SeverityLevel.INFO,
             executionStatus = task.executionStatus,
             taskFooter = task.footer,
         )
 
-    internal val taskEvents: TaskEvents get() = taskData.events
-
     init {
-        records.add(taskData)
-        taskEvents.onNewChild(::onNewLogEvent)
+        if(isRoot){
+            flowEmitter = HotFlowEmitter<LogData>()
+        }
+        addData(taskData)
+        flowEmitter?.emitData(taskData)
+
+        taskData.events.onNewRecord(::onNewTaskEvent)
+
         if (config.console != ConsoleBehaviour.Mute && config.console != ConsoleBehaviour.MuteNoEvents) {
-            taskData.echo(TaskData.Header)
+            taskData.echo(LogData.Header)
         }
         updateDebugWhiteList(config.debugWhiteList)
     }
 
-    override fun onChildDataReceived(childRecords: List<TaskData>) {
-        records.addAll(childRecords)
-    }
-
-    private fun onNewLogEvent(logEvent: LogEvent) {
-        consoleOutput(logEvent, logEvent.severity)
+    private fun onNewTaskEvent(taskEvent: TaskEvent) {
+        consoleOutput(taskEvent, taskEvent.severity)
     }
 
     private fun createLogEvent(
+        emitterName: String,
         message: String,
         severity: SeverityLevel,
-        lnInstance: LNInstance<*>,
-    ): LogEvent {
-        val prefix =
-            when (lnInstance) {
-                is TaskBase<*, *> -> ""
-                is ActionSpan<*, *> -> lnInstance.header
-                else -> "Unknown emitter"
-            }
-        return LogEvent(prefix, message, severity)
+    ): TaskEvent {
+        return TaskEvent(emitterName, message, severity)
     }
 
     private fun consoleOutput(
@@ -90,7 +74,7 @@ class LoggerDataProcessor(
     ) {
         when (config.console) {
             ConsoleBehaviour.MuteNoEvents -> {
-                taskData.echo(TaskData.Header)
+                taskData.echo(LogData.Header)
                 data.echo()
             }
             ConsoleBehaviour.MuteInfo -> {
@@ -103,46 +87,52 @@ class LoggerDataProcessor(
     }
 
     @PublishedApi
-    internal fun registerStop(): TaskData {
+    internal fun registerStop(): LogData {
         if (config.console != ConsoleBehaviour.Mute && config.console != ConsoleBehaviour.MuteNoEvents) {
-            taskData.echo(TaskData.Header)
-        } else if (config.console != ConsoleBehaviour.MuteNoEvents && taskEvents.records.isNotEmpty()) {
-            taskData.echo(TaskData.Footer)
+            taskData.echo(LogData.Header)
+        } else if (config.console != ConsoleBehaviour.MuteNoEvents && taskData.events.records.isNotEmpty()) {
+            taskData.echo(LogData.Footer)
         }
-        taskEvents.echo()
-        forwardOrEmmit(taskData)
-        flowEmitter?.stopBroadcast()
+        taskData.events.echo()
+        flowEmitter?.let {
+            it.emitData(taskData)
+            it.stopBroadcast()
+        }
         return taskData
     }
 
-    internal fun addExceptionRecord(
+    internal fun addErrorRecord(
         snapshot: ErrorSnapshot,
         managed: ManagedException,
     ) {
-        records.lastOrNull()?.events?.records?.lastOrNull()?.let { lastRecord ->
-            val firstExRecord = managed.exceptionData.firstOrNull { it.event == ManagedException.ExceptionEvent.Thrown }
-            if (firstExRecord != null) {
-                val record =
-                    ExceptionRecord(
-                        message = managed.throwableToText(),
-                        firstRegisteredInTask = snapshot.taskHeader,
-                        methodThrowing = firstExRecord.stackTrace.firstOrNull(),
-                        throwingCallSite = firstExRecord.stackTrace.getOrNull(1),
-                        actionSpans = snapshot.actionRecords,
-                    )
-                record.echo()
-                lastRecord.exceptionRecord = record
-            }
+        val firstExRecord = managed.exceptionData.firstOrNull { it.event == ManagedException.ExceptionEvent.Thrown }
+        if (firstExRecord != null) {
+            val record =
+                ErrorRecord(
+                    message = managed.throwableToText(),
+                    firstRegisteredInTask = snapshot.taskHeader,
+                    methodThrowing = firstExRecord.stackTrace.firstOrNull(),
+                    throwingCallSite = firstExRecord.stackTrace.getOrNull(1),
+                    actionSpans = snapshot.actionRecords,
+                )
+            record.echo()
+            taskData.errors.addRecord(record)
         }
     }
 
-    internal fun notify(
+    internal fun report(
         message: String,
         severity: SeverityLevel,
         lnInstance: LNInstance<*>,
-    ): LogEvent {
-        val logEvent = createLogEvent(message, severity, lnInstance)
-        taskEvents.addRecord(logEvent)
+    ): TaskEvent {
+
+       val emitterName = when (lnInstance) {
+            is TaskBase<*, *> -> ""
+            is ActionSpan<*, *> -> lnInstance.header
+            else -> "Unknown emitter"
+        }
+        val logEvent = createLogEvent(emitterName,  message, severity)
+        taskData.events.addRecord(logEvent)
         return logEvent
     }
 
@@ -152,18 +142,19 @@ class LoggerDataProcessor(
         emitter: Any,
     ) {
         consoleOutput(arbitraryRecord, severity)
-        taskData.arbitraryData.add(arbitraryRecord)
+        taskData.addArbitraryRecord(arbitraryRecord)
     }
 
     override fun notify(
         message: String,
         severity: SeverityLevel,
         emitter: Any,
-    ) {
-        val logEvent = createLogEvent(message, severity, task)
-        when (emitter) {
-            is CTX -> taskEvents.addRecord(logEvent.setArbitraryContext(emitter))
+    ){
+        val logEvent = when (emitter) {
+            is CTX -> createLogEvent(emitter.identifiedByName,  message, severity)
+            else -> createLogEvent(emitter::class.simpleName.toString(),  message, severity)
         }
+        taskData.events.addRecord(logEvent)
     }
 
     @PublishedApi
@@ -171,9 +162,8 @@ class LoggerDataProcessor(
         message: String,
         methodName: String,
     ) {
-        val logEvent = createLogEvent("$message @ $methodName in $task", SeverityLevel.DEBUG, task)
+        val logEvent = createLogEvent(task.header,"$message @ $methodName in $task", SeverityLevel.DEBUG)
     }
-
     private fun <T : PrintableBase<T>> debugRecord(arbitraryRecord: T) {
         val actionSpan = task.activeActionSpan()
     }
@@ -202,4 +192,5 @@ class LoggerDataProcessor(
         asPrintable.echo()
         // forwardOrEmmit(createData("Forwarding", SeverityLevel.LOG))
     }
+
 }

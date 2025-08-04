@@ -29,7 +29,7 @@ class TestPrintableBase: DateHelper {
      * composition rules.
      *
      */
-    val processor: DataProcessor<Item> = DataProcessor<Item>(null,null)
+    val processor: DataProcessor<Item> = DataProcessor<Item>(null)
 
     data class Item (
         val personalName: String,

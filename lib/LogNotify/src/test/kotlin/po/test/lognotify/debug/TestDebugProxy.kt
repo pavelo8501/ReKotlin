@@ -1,6 +1,6 @@
 package po.test.lognotify.debug
 
-import po.lognotify.interfaces.FakeTasksManaged
+import po.test.lognotify.setup.FakeTasksManaged
 import po.misc.context.CTX
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.companion.PrintableCompanion

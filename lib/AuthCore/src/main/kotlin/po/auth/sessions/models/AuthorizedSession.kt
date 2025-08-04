@@ -12,8 +12,12 @@ import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.auth.sessions.enumerators.SessionType
 import po.auth.sessions.interfaces.EmmitableSession
 import po.auth.sessions.interfaces.SessionIdentified
-import po.lognotify.process.LoggerProcess
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
 import po.misc.coroutines.CoroutineHolder
+import po.misc.data.logging.LogCollector
+import po.misc.data.printable.PrintableBase
 import po.misc.types.castOrManaged
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -22,7 +26,9 @@ import kotlin.coroutines.CoroutineContext
 class AuthorizedSession internal constructor(
     override val remoteAddress: String,
     val authenticator: UserAuthenticator,
-):  CoroutineContext.Element,  EmmitableSession, SessionIdentified, CoroutineHolder {
+):  CoroutineContext.Element,  EmmitableSession, SessionIdentified, CoroutineHolder, CTX, LogCollector {
+
+    override val identity: CTXIdentity<AuthorizedSession> = asIdentity()
 
     var principal : AuthenticationPrincipal? = null
     override var sessionType: SessionType = SessionType.ANONYMOUS
@@ -38,6 +44,9 @@ class AuthorizedSession internal constructor(
 
     //var getLoggerProcess: (() -> LoggProcess<*> )? = null
 
+    private val logRecordsBacking: MutableList<PrintableBase<*>> = mutableListOf()
+    val logRecords: List<PrintableBase<*>> = logRecordsBacking
+
     override val sessionID: String = UUID.randomUUID().toString()
 
     override val sessionContext: CoroutineContext
@@ -45,7 +54,6 @@ class AuthorizedSession internal constructor(
 
     override val coroutineContext: CoroutineContext
         get() = scope.coroutineContext
-
 
     val identifiedAs: String get() = sessionID
     val name: String get() =  coroutineName
@@ -144,6 +152,10 @@ class AuthorizedSession internal constructor(
                 call.coroutineContext
             }
         }
+    }
+
+    override fun provideData(record: PrintableBase<*>) {
+        logRecordsBacking.add(record)
     }
 
 

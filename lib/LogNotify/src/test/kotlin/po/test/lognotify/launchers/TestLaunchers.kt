@@ -1,10 +1,9 @@
 package po.test.lognotify.launchers
 
 import org.junit.jupiter.api.Test
-import po.lognotify.action.ActionSpan
 import po.lognotify.common.containers.ActionContainer
 import po.lognotify.common.containers.TaskContainer
-import po.lognotify.interfaces.FakeTasksManaged
+import po.test.lognotify.setup.FakeTasksManaged
 import po.misc.containers.withReceiverAndResult
 import po.misc.data.processors.SeverityLevel
 import po.test.lognotify.setup.captureOutput
@@ -14,7 +13,6 @@ import kotlin.test.assertTrue
 
 class TestLaunchers: FakeTasksManaged {
 
-
     val testLauncherProperty: String = "TestLauncherProperty"
 
     @Test
@@ -22,7 +20,7 @@ class TestLaunchers: FakeTasksManaged {
 
        val inputMessage = "Some message"
        val taskContainer =  captureOutput<TaskContainer<TestLaunchers, Unit>> {
-             val rootTask = dispatcher.createHierarchyRoot<TestLaunchers, Unit>("Root Task", this)
+             val rootTask = mockedDispatcher.createHierarchyRoot<TestLaunchers, Unit>("Root Task", this)
              TaskContainer(rootTask)
         }.result
         var output: String = ""
@@ -37,7 +35,7 @@ class TestLaunchers: FakeTasksManaged {
 
         val inputInsideAction = "Some Message Inside Action"
         val actionContainer =  captureOutput<ActionContainer<TestLaunchers, Unit>> {
-            val rootTask = dispatcher.createHierarchyRoot<TestLaunchers, Unit>("Root Task", this)
+            val rootTask = mockedDispatcher.createHierarchyRoot<TestLaunchers, Unit>("Root Task", this)
             val span =  rootTask.createActionSpan<TestLaunchers, Unit>("Span", this)
             ActionContainer(span)
         }.result
@@ -46,12 +44,10 @@ class TestLaunchers: FakeTasksManaged {
             output =  captureOutput {
                 notify(inputInsideAction, SeverityLevel.INFO)
             }
-
             assertIs<TestLaunchers>(this, "This context is lost")
             assertEquals("TestLauncherProperty", testLauncherProperty, "testLauncherProperty is not accessible")
         }
         assertTrue(output.contains(inputInsideAction), "Outer containers method notify is not accessible")
-
     }
 
 }

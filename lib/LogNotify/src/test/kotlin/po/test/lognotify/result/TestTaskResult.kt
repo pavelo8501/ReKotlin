@@ -6,11 +6,10 @@ import org.junit.jupiter.api.assertAll
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertInstanceOf
 import org.junit.jupiter.api.assertThrows
-import po.lognotify.TasksManaged
 import po.lognotify.common.result.TaskResult
 import po.lognotify.common.result.resultOrNull
-import po.lognotify.extensions.runTaskAsync
-import po.lognotify.interfaces.FakeTasksManaged
+import po.lognotify.launchers.runTaskAsync
+import po.test.lognotify.setup.FakeTasksManaged
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull

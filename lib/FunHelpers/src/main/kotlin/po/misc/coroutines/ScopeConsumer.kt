@@ -22,7 +22,7 @@ sealed class LauncherType(){
 
         object ConcurrentLauncher : LauncherType(){
             @Suppress("FunctionName")
-            suspend fun <R> RunCoroutineHolder(
+            suspend fun < R> RunCoroutineHolder(
                 context: CoroutineHolder,
                 dispatcher: CoroutineDispatcher = Dispatchers.Default,
                 block: suspend CoroutineScope.() -> R
@@ -36,5 +36,4 @@ sealed class LauncherType(){
 
 interface CoroutineHolder{
     val coroutineContext : CoroutineContext
-
 }

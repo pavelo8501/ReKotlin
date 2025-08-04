@@ -21,9 +21,9 @@ sealed class RunnableContainer<T : TasksManaged, R : Any?>(
     internal val source: LNInstance<T>,
     override val receiver: T,
     val notifier: LoggerDataProcessor,
-) : ReceiverContainer<T>,
-    TasksManaged by receiver,
-    LogDataProcessorContract by notifier {
+) : ReceiverContainer<T>, TasksManaged by receiver, LogDataProcessorContract by notifier {
+
+
     override val identity: CTXIdentity<out CTX>
         get() = source.identity
 
@@ -86,6 +86,7 @@ sealed class RunnableContainer<T : TasksManaged, R : Any?>(
 class TaskContainer<T : TasksManaged, R : Any?>(
     val sourceTask: TaskBase<T, R>,
 ) : RunnableContainer<T, R>(sourceTask, sourceTask.receiver, sourceTask.dataProcessor) {
+
     override val effectiveTask: TaskBase<T, R> get() = sourceTask
     override val taskHandler: TaskHandler<R> get() = sourceTask.handler
     override val taskConfig: TaskConfig = sourceTask.config

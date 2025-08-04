@@ -1,11 +1,15 @@
-package po.lognotify.interfaces
+package po.test.lognotify.setup
 
+import po.lognotify.LogNotifyHandler
 import po.lognotify.TasksManaged
 import po.lognotify.models.TaskDispatcher
+import po.lognotify.notification.NotifierHub
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 
 import po.misc.context.asIdentity
+import po.misc.data.printable.PrintableBase
+import po.misc.data.processors.SeverityLevel
 
 /**
  * A singleton test context used to simulate a real [CTX] in unit or integration tests.
@@ -30,7 +34,15 @@ internal object FakeContext: CTX{
  */
 internal interface FakeTasksManaged : TasksManaged {
 
-    val dispatcher: TaskDispatcher get() = TasksManaged.LogNotify.taskDispatcher
-
     override val identity: CTXIdentity<FakeContext> get() = FakeContext.identity
+
+    val mockedDispatcher get() = TasksManaged.LogNotify.taskDispatcher
+
+    override val messageLogger: (String, SeverityLevel, Any) -> Unit get() = {message, severity, context->
+        logHandler.logger.notify(message, severity, context)
+    }
+    override val datLogger: (PrintableBase<*>, SeverityLevel, Any) -> Unit get() = {printable, severity, context->
+        logHandler.logger.log(printable, severity, context)
+    }
+
 }

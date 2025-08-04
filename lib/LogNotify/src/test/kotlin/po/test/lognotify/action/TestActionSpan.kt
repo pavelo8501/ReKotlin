@@ -1,10 +1,9 @@
 package po.test.lognotify.action
 
 import org.junit.jupiter.api.Test
-import po.lognotify.TasksManaged
-import po.lognotify.extensions.runAction
-import po.lognotify.extensions.runTask
-import po.lognotify.interfaces.FakeTasksManaged
+import po.lognotify.launchers.runAction
+import po.lognotify.launchers.runTask
+import po.test.lognotify.setup.FakeTasksManaged
 import kotlin.test.assertEquals
 
 class TestActionSpan: FakeTasksManaged {

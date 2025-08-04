@@ -17,9 +17,7 @@ data class CoroutineInfo(
     val topLevelKeys : List<String>
 ){
 
-
     companion object{
-
         fun createInfo(coroutineContext: CoroutineContext?):CoroutineInfo{
             return  if(coroutineContext != null){
                 val hashCode = coroutineContext.hashCode()
@@ -42,8 +40,10 @@ data class CoroutineInfo(
     }
 }
 
+fun CoroutineContext.coroutineInfo():CoroutineInfo{
+   return CoroutineInfo.createInfo(this)
+}
 
-
-suspend fun CoroutineScope.getCoroutineInfo():CoroutineInfo {
+fun CoroutineScope.coroutineInfo():CoroutineInfo {
     return  CoroutineInfo.createInfo(coroutineContext)
 }

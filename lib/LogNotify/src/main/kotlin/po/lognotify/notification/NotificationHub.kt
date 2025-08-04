@@ -3,7 +3,7 @@ package po.lognotify.notification
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import po.lognotify.notification.models.NotifyConfig
-import po.lognotify.notification.models.TaskData
+import po.lognotify.notification.models.LogData
 import po.lognotify.tasks.RootTask
 import po.misc.callbacks.builders.callbackManager
 import po.misc.context.CTX
@@ -16,7 +16,7 @@ import po.misc.registries.callback.TypedCallbackRegistry
 
 class NotifierHub(
     val sharedConfig : NotifyConfig = NotifyConfig()
-): DataProcessorBase<TaskData>(null, null), CTX {
+): DataProcessorBase<LogData>(null), CTX {
 
     enum class Event(override val value: Int): ValueBased{
         DataReceived(1)
@@ -25,17 +25,11 @@ class NotifierHub(
     override val identity = asIdentity()
 
     private val subNotifiers = mutableSetOf<LoggerDataProcessor>()
-    override val records: MutableList<TaskData> = mutableListOf()
-
-    override fun onChildDataReceived(childRecords: List<TaskData>) {
-
-    }
 
     // private val collectorJobs = mutableMapOf<LoggerDataProcessor, Job>()
 
     private val notificator: TypedCallbackRegistry<PrintableBase<*>, Unit> = TypedCallbackRegistry()
     private val notifier = callbackManager<Event>()
-
 
     fun subscribe(subscriber: CTX, eventType:Event, callback: (PrintableBase<*>)-> Unit){
         notificator.subscribe(subscriber, eventType, callback)

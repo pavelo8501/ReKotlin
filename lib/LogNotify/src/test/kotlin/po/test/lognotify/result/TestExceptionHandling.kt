@@ -8,8 +8,8 @@ import org.junit.jupiter.api.assertThrows
 import po.lognotify.TasksManaged
 import po.lognotify.common.configuration.TaskConfig
 import po.lognotify.common.result.onFailureCause
-import po.lognotify.extensions.runAction
-import po.lognotify.extensions.runTask
+import po.lognotify.launchers.runAction
+import po.lognotify.launchers.runTask
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity

@@ -11,7 +11,7 @@ import po.test.exposify.setup.DatabaseTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestSessionsContext : DatabaseTest()  {
 
-    class SessionIdentity(override val sessionID: String, override val remoteAddress: String): SessionIdentified
+
 
     override val identity: CTXIdentity<TestSessionsContext> = asIdentity()
 

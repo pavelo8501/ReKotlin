@@ -20,33 +20,16 @@ import po.misc.exceptions.toStackTraceFormat
 import po.misc.functions.dsl.helpers.nextBlock
 import po.misc.time.ExecutionTimeStamp
 
-class TaskEvents(
-    taskData: TaskData,
-) : PrintableGroup<TaskData, LogEvent>(taskData, TaskData.Header, LogEvent.Message) {
-    init {
-        setFooter(TaskData.Footer)
-    }
-}
 
-class LogEvent(
-    val prefix: String,
+class TaskEvent(
+    var emitterName: String,
     val message: String,
     val severity: SeverityLevel,
-) : PrintableBase<LogEvent>(this) {
-    override val self: LogEvent = this
+) : PrintableBase<TaskEvent>(this) {
+    override val self: TaskEvent = this
 
-    var arbitraryContext: CTX? = null
-        private set
-
-    var exceptionRecord: ExceptionRecord? = null
-
-    fun setArbitraryContext(context: CTX): LogEvent {
-        arbitraryContext = context
-        return this
-    }
-
-    companion object : PrintableCompanion<LogEvent>({ LogEvent::class }) {
-        val Message: Template<LogEvent> =
+    companion object : PrintableCompanion<TaskEvent>({ TaskEvent::class }) {
+        val Message: Template<TaskEvent> =
             createTemplate {
                 nextBlock {
                     val message =
@@ -56,28 +39,32 @@ class LogEvent(
                             SeverityLevel.EXCEPTION -> message.colorize(Colour.RED)
                             SeverityLevel.DEBUG -> message.colorize(Colour.MAGENTA)
                         }
-                    "${prefix.applyIfNotEmpty { colorize(Colour.CYAN) + " -> " }}$message"
-                }
-                nextBlock {
-                    exceptionRecord?.formattedString ?: ""
+                    "${emitterName.applyIfNotEmpty { colorize(Colour.CYAN) + " -> " }}$message"
                 }
             }
     }
 }
 
-class ExceptionRecord(
+class TaskEvents(
+    taskData: LogData,
+) : PrintableGroup<LogData, TaskEvent>(taskData, LogData.Header, TaskEvent.Message) {
+    init {
+        setFooter(LogData.Footer)
+    }
+}
+
+class ErrorRecord(
     val message: String,
     val firstRegisteredInTask: String,
     val methodThrowing: StackFrameMeta?,
     val throwingCallSite: StackFrameMeta?,
     val actionSpans: List<ActionData>? = null,
-) : PrintableBase<ExceptionRecord>(this) {
-    override val self: ExceptionRecord = this
+) : PrintableBase<ErrorRecord>(this) {
+    override val self: ErrorRecord = this
 
-    companion object : PrintableCompanion<ExceptionRecord>({ ExceptionRecord::class }) {
-        val Default: Template<ExceptionRecord> =
+    companion object : PrintableCompanion<ErrorRecord>({ ErrorRecord::class }) {
+        val Default: Template<ErrorRecord> =
             createTemplate {
-
                 nextLine {
                     message.colorize(Colour.RED)
                 }
@@ -109,23 +96,35 @@ class ExceptionRecord(
     }
 }
 
-class TaskData(
+class TaskErrors(taskData: LogData): PrintableGroup<LogData, ErrorRecord>(taskData, LogData.Header, ErrorRecord.Default)
+
+
+class LogData(
     val executionStatus: ExecutionStatus,
     val taskHeader: String,
     val taskFooter: String,
     val config: TaskConfig,
     val timeStamp: ExecutionTimeStamp,
-    val severity: SeverityLevel = SeverityLevel.INFO,
-) : PrintableBase<TaskData>(this) {
-    override val self: TaskData = this
+) : PrintableBase<LogData>(this) {
+    override val self: LogData = this
 
     val events: TaskEvents = TaskEvents(this)
-    val arbitraryData: MutableList<PrintableBase<*>> = mutableListOf()
+    val errors: TaskErrors = TaskErrors(this)
 
-    companion object : PrintableCompanion<TaskData>({ TaskData::class }) {
-        val Header: Template<TaskData> =
+    val overallSeverity: SeverityLevel get(){
+        if(errors.records.isNotEmpty()){
+            return SeverityLevel.EXCEPTION
+        }
+        return events.records
+            .map { it.severity }
+            .maxByOrNull { it.level } ?: SeverityLevel.INFO
+    }
+
+    override fun toString(): String = formattedString
+
+    companion object : PrintableCompanion<LogData>({ LogData::class }) {
+        val Header: Template<LogData> =
             createTemplate {
-
                 nextBlock { handler ->
                     handler.applyToResult { row -> "[ $row ]" }
                     val status =
@@ -137,7 +136,7 @@ class TaskData(
                     "$taskHeader | Status: ".colorize(Colour.BLUE) + status + "".colorize(Colour.BLUE)
                 }
             }
-        val Footer: Template<TaskData> =
+        val Footer: Template<LogData> =
             createTemplate {
                 nextBlock { handler ->
                     handler.applyToResult { row -> "[ $row ]" }

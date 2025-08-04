@@ -10,7 +10,6 @@ import po.misc.context.CTX
  * @param R The result type the lambda produces.
  */
 interface LambdaUnit<V: Any, R>: LambdaContainerState<V>{
-
     /**
      * Triggers the lambda without passing a value (assumes it was provided earlier).
      */
@@ -25,6 +24,8 @@ interface LambdaUnit<V: Any, R>: LambdaContainerState<V>{
      */
     fun provideValue(value: V)
 }
+
+
 
 
 

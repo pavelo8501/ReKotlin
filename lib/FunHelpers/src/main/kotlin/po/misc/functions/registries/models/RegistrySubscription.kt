@@ -16,16 +16,31 @@ class RegistrySubscription<V: Any>(
     }
 }
 
-class TaggedSubscription<V: Any>(
+interface TaggedSubscription<V: Any>:LambdaSubscriber<V>{
+    val subscriberClass: KClass<*>
+}
+
+class Subscription<V: Any>(
     override val subscriberID: Long,
-    val subscriberClass: KClass<*>,
+    override val subscriberClass: KClass<*>,
     val function: (V)->Unit
-): LambdaSubscriber<V>{
+): TaggedSubscription<V>{
     val notifier: LambdaUnit<V, Unit> = Notifier(function)
 
     override fun trigger(value: V) {
         notifier.trigger(value)
     }
-
 }
+
+class SuspendSubscription<V: Any>(
+    override val subscriberID: Long,
+    override val subscriberClass: KClass<*>,
+    val notifier: LambdaUnit<V, Unit>
+): TaggedSubscription<V>{
+
+    override fun trigger(value: V) {
+        notifier.trigger(value)
+    }
+}
+
 

@@ -26,11 +26,5 @@ interface ResultantTask<T, R : Any?> : MeasuredContext {
     val dataProcessor: LoggerDataProcessor
 }
 
-interface UpdatableTasks {
-    fun notifyUpdate(
-        handler: UpdateType,
-        task: ResultantTask<*, *>,
-    )
-}
 
 interface HandledTask<R : Any?>

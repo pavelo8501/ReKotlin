@@ -18,8 +18,12 @@ class LoggerException(
     override var handler: HandlerType = HandlerType.CancelAll
 }
 
-inline fun <reified T: Any>  Any?.castOrLoggerEx(ctx: CTX):T{
-   return this.castOrThrow<T>(ctx){payload->
-       LoggerException(payload)
-   }
+
+internal inline fun <reified T: Any> T?.getOrLoggerException(message: String):T{
+    if(this != null){
+        return this
+    }else{
+        val ex  = LoggerException(message)
+        throw ex
+    }
 }

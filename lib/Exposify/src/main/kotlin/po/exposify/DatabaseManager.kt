@@ -11,12 +11,11 @@ import po.exposify.scope.connection.models.ConnectionInfo
 import po.exposify.scope.connection.models.ConnectionSettings
 import po.lognotify.TasksManaged
 import po.lognotify.common.configuration.TaskConfig
-import po.lognotify.extensions.runTask
-import po.lognotify.extensions.runTaskBlocking
+import po.lognotify.launchers.runTask
+import po.lognotify.launchers.runTaskBlocking
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
-import po.misc.data.processors.SeverityLevel
 import po.misc.exceptions.throwableToText
 import po.misc.serialization.SerializerInfo
 

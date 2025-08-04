@@ -14,7 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import po.lognotify.TasksManaged
-import po.lognotify.extensions.runTaskBlocking
+import po.lognotify.launchers.runTaskBlocking
 import po.misc.types.getOrThrow
 import po.restwraptor.scope.ConfigContext
 import po.restwraptor.scope.CoreContext

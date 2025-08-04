@@ -13,7 +13,7 @@ import po.exposify.exceptions.operationsException
 import po.exposify.extensions.castOrOperations
 import po.lognotify.TasksManaged
 import po.lognotify.anotations.LogOnFault
-import po.lognotify.extensions.runAction
+import po.lognotify.launchers.runAction
 import po.misc.callbacks.CallbackManager
 import po.misc.callbacks.builders.callbackManager
 import po.misc.context.CTX

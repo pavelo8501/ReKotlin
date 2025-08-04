@@ -1,4 +1,4 @@
-package po.misc.data.processors
+package po.misc.coroutines
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -9,11 +9,9 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
-import po.misc.coroutines.EmittableFlow
-import po.misc.data.printable.PrintableBase
 
 
-class FlowEmitter<T>(): EmittableFlow<T> where T: PrintableBase<T>{
+class HotFlowEmitter<T>(): EmittableFlow<T> where T: Any{
 
     private val internalScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 

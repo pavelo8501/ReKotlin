@@ -1,9 +1,8 @@
 package po.test.lognotify.debug
 
 import org.junit.jupiter.api.Test
-import po.lognotify.TasksManaged
-import po.lognotify.extensions.runTaskBlocking
-import po.lognotify.interfaces.FakeTasksManaged
+import po.lognotify.launchers.runTaskBlocking
+import po.test.lognotify.setup.FakeTasksManaged
 
 class TestQuickLogger() : FakeTasksManaged {
 

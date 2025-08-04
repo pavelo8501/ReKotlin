@@ -5,10 +5,11 @@ import kotlinx.coroutines.delay
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertAll
 import po.lognotify.common.configuration.TaskConfig
-import po.lognotify.extensions.runTask
-import po.lognotify.extensions.runTaskAsync
-import po.lognotify.extensions.runTaskBlocking
-import po.lognotify.interfaces.FakeTasksManaged
+import po.lognotify.launchers.runTask
+import po.lognotify.launchers.runTaskAsync
+import po.lognotify.launchers.runTaskBlocking
+import po.test.lognotify.setup.FakeTasksManaged
+import po.lognotify.models.LoggerStats
 import po.lognotify.models.TaskDispatcher
 import po.lognotify.tasks.TaskHandler
 import kotlin.test.assertEquals
@@ -60,9 +61,9 @@ class TestTaskBase : FakeTasksManaged {
     @Test
     fun `Task hierarchy creation in asynchronous mode`() {
         val receiverClass = ReceiverClass()
-        val taskStats = mutableListOf<TaskDispatcher.LoggerStats>()
+        val taskStats = mutableListOf<LoggerStats>()
 
-        logHandler.dispatcher.onTaskCreated(TaskDispatcher.UpdateType.OnTaskCreated) { taskStats.add(it.getData()) }
+        logHandler.dispatcher.onTaskUpdate(TaskDispatcher.UpdateType.OnTaskCreated) { taskStats.add(it.getData()) }
 
         receiverClass.function1(input = 1, childCount = 10)
 
@@ -75,7 +76,7 @@ class TestTaskBase : FakeTasksManaged {
         )
 
         taskStats.clear()
-        logHandler.dispatcher.onTaskCreated(TaskDispatcher.UpdateType.OnTaskCreated) {
+        logHandler.dispatcher.onTaskUpdate(TaskDispatcher.UpdateType.OnTaskCreated) {
             taskStats.add(it.getData())
         }
 

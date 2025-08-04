@@ -2,9 +2,8 @@ package po.test.lognotify.notifictations
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import po.lognotify.action.ActionSpan
 import po.lognotify.common.configuration.TaskConfig
-import po.lognotify.interfaces.FakeTasksManaged
+import po.test.lognotify.setup.FakeTasksManaged
 import po.lognotify.notification.models.ConsoleBehaviour
 import po.lognotify.tasks.RootTask
 import po.misc.data.processors.SeverityLevel
@@ -15,11 +14,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestDataProcessor : FakeTasksManaged {
+class LoggerDataProcessor : FakeTasksManaged {
+
+
     companion object : FakeTasksManaged {
         @JvmStatic
         val rootTask: RootTask<Companion, Unit> =
-            dispatcher.createHierarchyRoot<Companion, Unit>("TestTask", "TestDataProcessor", this)
+            mockedDispatcher.createHierarchyRoot<Companion, Unit>("TestTask", "TestDataProcessor", this)
 
         @JvmStatic
         internal val processor = rootTask.dataProcessor
@@ -37,19 +38,19 @@ class TestDataProcessor : FakeTasksManaged {
 
         val fullMuteOutput =
             captureOutput {
-                dispatcher.createHierarchyRoot<TestDataProcessor, Unit>("MutedEventsTask", "TestDataProcessor", this, config)
+                mockedDispatcher.createHierarchyRoot<LoggerDataProcessor, Unit>("MutedEventsTask", "TestDataProcessor", this, config)
             }
         assertTrue(fullMuteOutput.isEmpty())
 
         config.setConsoleBehaviour(ConsoleBehaviour.MuteNoEvents)
         val muteNoEventsSilent =
             captureOutput {
-                dispatcher.createHierarchyRoot<TestDataProcessor, Unit>("MutedEventsTask", "TestDataProcessor", this, config)
+                mockedDispatcher.createHierarchyRoot<LoggerDataProcessor, Unit>("MutedEventsTask", "TestDataProcessor", this, config)
             }
         assertTrue(muteNoEventsSilent.isEmpty())
 
-        val muteNoEventsTask: RootTask<TestDataProcessor, Unit> =
-            dispatcher.createHierarchyRoot("MuteNoEventsTask", "TestDataProcessor", this, config)
+        val muteNoEventsTask: RootTask<LoggerDataProcessor, Unit> =
+            mockedDispatcher.createHierarchyRoot("MuteNoEventsTask", "TestDataProcessor", this, config)
         val processor = muteNoEventsTask.dataProcessor
 
         var output =
@@ -59,14 +60,14 @@ class TestDataProcessor : FakeTasksManaged {
         assertTrue(output.contains("MuteNoEventsTask") && output.contains("UnmuteEvent"))
 
         config.setConsoleBehaviour(ConsoleBehaviour.MuteInfo)
-        val muteInfoTask: RootTask<TestDataProcessor, Unit> =
-            dispatcher.createHierarchyRoot("MutedInfoTask", "TestDataProcessor", this, config)
+        val muteInfoTask: RootTask<LoggerDataProcessor, Unit> =
+            mockedDispatcher.createHierarchyRoot("MutedInfoTask", "TestDataProcessor", this, config)
         output =
             captureOutput {
                 muteInfoTask.dataProcessor.notify("MutedInfo", SeverityLevel.INFO, muteInfoTask)
             }
         assertTrue(output.isEmpty())
-        assertEquals(1, muteInfoTask.dataProcessor.taskEvents.records.size)
+        assertEquals(1, muteInfoTask.dataProcessor.taskData.events.records.size)
 
         output =
             captureOutput {
@@ -77,7 +78,7 @@ class TestDataProcessor : FakeTasksManaged {
 
     @Test
     fun `TaskEvents(group) saves LogEvents as expected`() {
-        val taskGroup = processor.taskEvents
+        val taskGroup = processor.taskData.events
         taskGroup.clear()
         processor.notify("Info message", SeverityLevel.INFO, rootTask)
         processor.notify("Warning message", SeverityLevel.WARNING, rootTask)
@@ -88,8 +89,8 @@ class TestDataProcessor : FakeTasksManaged {
 
     @Test
     fun `TaskEvents(group) saves LogEvents from all logger instances`() {
-        val actionSpan = rootTask.createActionSpan<Companion, Unit>("TestTask", TestDataProcessor)
-        val taskGroup = processor.taskEvents
+        val actionSpan = rootTask.createActionSpan<Companion, Unit>("TestTask", LoggerDataProcessor)
+        val taskGroup = processor.taskData.events
         processor.notify("Info message", SeverityLevel.INFO, rootTask)
         processor.notify("ActionSpan message", SeverityLevel.INFO, actionSpan)
         assertTrue(taskGroup.records.size == 2)

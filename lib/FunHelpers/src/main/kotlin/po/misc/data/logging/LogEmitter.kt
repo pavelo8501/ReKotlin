@@ -35,8 +35,6 @@ interface LogEmitter {
         data.echo()
     }
 
-
-
     /**
      * Function responsible for logging plain text messages.
      *
@@ -62,8 +60,12 @@ interface LogEmitter {
      */
     fun Any.notify(message: String, severity: SeverityLevel = SeverityLevel.INFO) {
         when (this) {
-            is LogEmitter -> this.messageLogger(message, severity, this)
-            else -> println(message)
+            is LogEmitter -> {
+                this.messageLogger(message, severity, this)
+            }
+            else -> {
+                println(message)
+            }
         }
     }
 

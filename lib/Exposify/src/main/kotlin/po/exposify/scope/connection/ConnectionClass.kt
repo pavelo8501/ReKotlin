@@ -19,7 +19,7 @@ import po.exposify.scope.service.ServiceClass
 import po.exposify.scope.service.ServiceContext
 import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
-import po.lognotify.extensions.runTask
+import po.lognotify.launchers.runTask
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.coroutines.CoroutineInfo

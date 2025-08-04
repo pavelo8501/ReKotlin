@@ -13,7 +13,7 @@ import kotlinx.serialization.json.Json
 import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.auth.models.CryptoRsaKeys
 import po.lognotify.TasksManaged
-import po.lognotify.extensions.subTask
+import po.lognotify.launchers.subTask
 import po.restwraptor.RestWrapTor
 import po.restwraptor.models.configuration.ApiConfig
 import po.restwraptor.models.configuration.AuthConfig

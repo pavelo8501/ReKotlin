@@ -3,6 +3,7 @@ package po.lognotify
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import po.lognotify.models.LoggerStats
 import po.lognotify.notification.NotifierHub
 import po.lognotify.tasks.TaskHandler
 import po.lognotify.models.TaskDispatcher
@@ -20,42 +21,19 @@ interface TasksManaged : CTX {
 
     object LogNotify {
         val taskDispatcher: TaskDispatcher = TaskDispatcher(NotifierHub())
-        internal fun defaultContext(name: String): CoroutineContext =
-            SupervisorJob() + Dispatchers.Default + CoroutineName(name)
-
-        fun onTaskCreated(handler: UpdateType, callback: (TaskDispatcher.LoggerStats) -> Unit): Unit =
-            taskDispatcher.onTaskCreated(handler, wrapRawCallback(callback))
-
-        fun onTaskComplete(handler: UpdateType, callback: (TaskDispatcher.LoggerStats) -> Unit): Unit =
-            taskDispatcher.onTaskComplete(handler, wrapRawCallback(callback))
     }
-
-   // override val datLogger: (PrintableBase<*>, SeverityLevel, Any) -> Unit get() = logHandler.logger::log
+    val logHandler: LogNotifyHandler
+        get() = LogNotifyHandler(LogNotify.taskDispatcher)
 
     override val messageLogger: (String, SeverityLevel, Any) -> Unit get() = {message, severity, context->
         logHandler.logger.notify(message, severity, context)
     }
-
-
     override val datLogger: (PrintableBase<*>, SeverityLevel, Any) -> Unit get() = {printable, severity, context->
         logHandler.logger.log(printable, severity, context)
     }
 
-    val logHandler: LogNotifyHandler
-        get() = LogNotifyHandler(LogNotify.taskDispatcher)
-
-
     val taskHandler: TaskHandler<*>
         get() = LogNotify.taskDispatcher.activeTask()?.handler?: LogNotify.taskDispatcher.createDefaultTask().handler
-
-
-//    override fun <T : PrintableBase<T>> CTX.log(data: T, severity: SeverityLevel) {
-//        logHandler.dispatcher.getActiveDataProcessor().log(data, severity, this@log)
-//    }
-//
-//    fun CTX.notify(message: String, severity: SeverityLevel = SeverityLevel.INFO){
-//        logHandler.logger.notify(message, severity, this@notify)
-//    }
 
     fun <T : PrintableBase<T>> debug(data: T, dataClass: PrintableCompanion<T>, template: PrintableTemplateBase<T>) {
         logHandler.dispatcher.getActiveDataProcessor().debug(data, dataClass, template)

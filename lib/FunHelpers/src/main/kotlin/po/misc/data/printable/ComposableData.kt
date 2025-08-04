@@ -1,11 +1,11 @@
 package po.misc.data.printable
 
 import po.misc.context.CTX
+import po.misc.data.printable.grouping.ArbitraryDataMap
 import po.misc.interfaces.ValueBased
 
 interface ComposableData {
-    val children: List<ComposableData>
-    val parentRecord: Printable? get() = null
+    val arbitraryMap: ArbitraryDataMap<PrintableBase<*>>
     val type: ValueBased? get() = null
-    fun setParent(parent: PrintableBase<*>)
+    fun setParent(parent: PrintableBase<*>):PrintableBase<*>
 }

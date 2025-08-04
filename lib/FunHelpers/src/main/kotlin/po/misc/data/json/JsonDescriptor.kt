@@ -23,8 +23,9 @@ open class JsonDescriptor<T: PrintableBase<T>>() {
 
     fun checkChild(value: T): List<JObject> {
         val entries : MutableList<JObject> = mutableListOf()
-        if (value.children.isNotEmpty()) {
-            value.children.forEach {
+
+        if (value.arbitraryRecords.isNotEmpty()) {
+            value.arbitraryRecords.forEach {
                 entries.add(it.jsonObject)
             }
         }

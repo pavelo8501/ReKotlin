@@ -16,7 +16,6 @@ class TestLambdaContainer {
 
     val controlClass = ControlClass()
 
-
     @Test
     fun `NullableProvider dispose work as expected`(){
 
@@ -82,9 +81,8 @@ class TestLambdaContainer {
     @Test
     fun `DSLAdapter work as expected`() {
 
-        data class ParameterClass(
-            val paramString: String = "Param"
-        )
+        data class ParameterClass(val paramString: String = "Param")
+
         val parameter = ParameterClass()
         val dslAdapter = DSLAdapter<ControlClass, ParameterClass, String>(parameter) { param ->
             property1 + param.paramString

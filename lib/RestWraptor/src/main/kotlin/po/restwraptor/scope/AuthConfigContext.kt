@@ -13,10 +13,9 @@ import po.auth.authentication.jwt.JWTService
 import po.auth.authentication.jwt.models.JwtConfig
 import po.auth.models.CryptoRsaKeys
 import po.lognotify.TasksManaged
-import po.lognotify.extensions.subTask
+import po.lognotify.launchers.subTask
 import po.restwraptor.extensions.respondUnauthorized
 import po.restwraptor.extensions.withSession
-import po.restwraptor.models.configuration.AuthConfig
 import po.restwraptor.interfaces.StringHelper
 import po.restwraptor.models.configuration.WraptorConfig
 import po.restwraptor.routes.configureAuthRoutes

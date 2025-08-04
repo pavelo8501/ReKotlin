@@ -12,6 +12,7 @@ import po.misc.functions.containers.then
 class TestFlowAdapter {
 
     val step1 = FlowAdapter<String, Int> { it.length }
+
     val step2 = FlowAdapter<Int, Boolean> { it > 5 }
 
     @OptIn(ExperimentalCoroutinesApi::class)

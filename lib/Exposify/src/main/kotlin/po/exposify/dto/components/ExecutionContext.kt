@@ -22,7 +22,7 @@ import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.operationsException
 import po.exposify.extensions.castOrOperations
 import po.lognotify.TasksManaged
-import po.lognotify.extensions.runTaskAsync
+import po.lognotify.launchers.runTaskAsync
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asSubIdentity

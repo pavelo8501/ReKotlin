@@ -7,7 +7,6 @@ sealed class ReceivableFunctionContainer<T: Any, P, R: Any?, V: Any>(
     context: CTX,
     val initialLambda: (T.(P)-> R)? = null
 ){
-
    // val identity: Identifiable = identifiable("ReceivableFunctionContainer", context)
 
     abstract val parameter: P
@@ -22,7 +21,6 @@ sealed class ReceivableFunctionContainer<T: Any, P, R: Any?, V: Any>(
         return this
     }
 }
-
 
 class LazyContainerWithReceiver<T: Any, P, R:Any>(
     private val holder: CTX,

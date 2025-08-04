@@ -7,7 +7,6 @@ import io.ktor.server.routing.Routing
 import io.ktor.server.routing.get
 import io.ktor.server.routing.options
 import io.ktor.server.routing.route
-import po.lognotify.extensions.runTask
 import po.restwraptor.enums.EnvironmentType
 import po.restwraptor.extensions.toUrl
 import po.restwraptor.models.response.ApiResponse

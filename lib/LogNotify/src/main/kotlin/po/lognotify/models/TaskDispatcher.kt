@@ -1,29 +1,41 @@
 package po.lognotify.models
 
-import po.lognotify.TasksManaged.LogNotify.defaultContext
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import po.lognotify.TasksManaged
 import po.lognotify.TasksManaged.LogNotify.taskDispatcher
 import po.lognotify.common.configuration.TaskConfig
 import po.lognotify.notification.LoggerDataProcessor
 import po.lognotify.notification.NotifierHub
+import po.lognotify.process.processInScope
 import po.lognotify.tasks.ExecutionStatus
 import po.lognotify.tasks.RootTask
 import po.lognotify.tasks.TaskBase
-import po.lognotify.tasks.interfaces.ResultantTask
-import po.lognotify.tasks.interfaces.UpdatableTasks
 import po.lognotify.tasks.warn
 import po.misc.callbacks.CallbackManager
 import po.misc.callbacks.Containable
 import po.misc.callbacks.builders.callbackManager
 import po.misc.context.CTX
+import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.coroutines.CoroutineInfo
+import po.misc.functions.registries.taggedRegistryOf
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.set
+import kotlin.coroutines.CoroutineContext
 
-class TaskDispatcher(
-    val notifierHub: NotifierHub,
-) : UpdatableTasks,
-    CTX {
+data class LoggerStats(
+    val activeTask: TaskBase<*, *>,
+    val activeTaskName: String,
+    val activeTaskNestingLevel: Int,
+    val topTasksCount: Int,
+    val totalTasksCount: Int,
+    val coroutineInfo: CoroutineInfo,
+)
+
+class TaskDispatcher(val notifierHub: NotifierHub): CTX {
+
     enum class UpdateType {
         OnDataReceived,
         OnTaskCreated,
@@ -32,16 +44,10 @@ class TaskDispatcher(
         OnTaskComplete,
     }
 
-    data class LoggerStats(
-        val activeTask: ResultantTask<*, *>,
-        val activeTaskName: String,
-        val activeTaskNestingLevel: Int,
-        val topTasksCount: Int,
-        val totalTasksCount: Int,
-        val coroutineInfo: CoroutineInfo,
-    )
 
-    override val identity = asIdentity()
+    override val identity: CTXIdentity<TaskDispatcher> = asIdentity()
+
+    val dispatcherUpdates = taggedRegistryOf<UpdateType, LoggerStats>()
 
     internal val callbackRegistry =
         callbackManager<UpdateType>(
@@ -51,13 +57,24 @@ class TaskDispatcher(
             { CallbackManager.createPayload<UpdateType, LoggerStats>(this, UpdateType.OnTaskComplete) },
         )
 
-    init {
-        notifierHub.hooks.debugListUpdated { debugWhiteList ->
-            notifierHub.sharedConfig.updateDebugWhiteList(debugWhiteList)
-        }
+    private fun createLoggerStats(
+        task: TaskBase<*, *>,
+        taskHierarchy:  ConcurrentHashMap<TaskKey, RootTask<*, *>>
+    ):LoggerStats{
+        return LoggerStats(
+            activeTask = task,
+            activeTaskName = task.key.taskName,
+            activeTaskNestingLevel = task.key.nestingLevel,
+            topTasksCount = taskHierarchy.size,
+            totalTasksCount = taskHierarchy.values.sumOf { it.registry.totalCount },
+            coroutineInfo = task.coroutineInfo,
+        )
     }
 
     fun getActiveDataProcessor(): LoggerDataProcessor = activeTask()?.dataProcessor ?: createDefaultTask().dataProcessor
+
+    internal fun defaultContext(name: String): CoroutineContext =
+        SupervisorJob() + Dispatchers.Default + CoroutineName(name)
 
     internal fun createDefaultTask(): RootTask<TaskDispatcher, Unit> {
         val task = createHierarchyRoot<TaskDispatcher, Unit>("Default", "LogNotify", this, TaskConfig(isDefault = true))
@@ -70,6 +87,20 @@ class TaskDispatcher(
     }
 
     @PublishedApi
+    internal suspend fun <T: TasksManaged, R> createRoot(
+        name: String,
+        moduleName: String,
+        receiver: T,
+        config: TaskConfig = TaskConfig(isDefault = true),
+    ): RootTask<T, R>{
+        val newTask = RootTask<T, R>(TaskKey(name, 0, moduleName), config, defaultContext(name), taskDispatcher, receiver)
+        addRootTask(newTask)
+        processInScope()?.observeTask(newTask)
+        dispatcherUpdates.trigger(UpdateType.OnTaskCreated, createLoggerStats(newTask, taskHierarchy))
+       return newTask
+    }
+
+    @PublishedApi
     internal fun <T : CTX, R> createHierarchyRoot(
         name: String,
         moduleName: String,
@@ -77,7 +108,8 @@ class TaskDispatcher(
         config: TaskConfig = TaskConfig(isDefault = true),
     ): RootTask<T, R> {
         val newTask = RootTask<T, R>(TaskKey(name, 0, moduleName), config, defaultContext(name), taskDispatcher, receiver)
-        taskDispatcher.addRootTask(newTask)
+        addRootTask(newTask)
+
         return newTask
     }
 
@@ -89,7 +121,8 @@ class TaskDispatcher(
     ): RootTask<T, R> {
         val newTask =
             RootTask<T, R>(TaskKey(name, 0, receiver.identity.identifiedByName), config, defaultContext(name), taskDispatcher, receiver)
-        taskDispatcher.addRootTask(newTask)
+        addRootTask(newTask)
+
         return newTask
     }
 
@@ -98,7 +131,8 @@ class TaskDispatcher(
 
     internal fun getTasks(): List<TaskBase<*, *>> = taskHierarchy.values.toList()
 
-    fun onTaskCreated(
+
+    fun onTaskUpdate(
         handler: UpdateType,
         callback: (Containable<LoggerStats>) -> Unit,
     ) {
@@ -112,19 +146,11 @@ class TaskDispatcher(
         callbackRegistry.subscribe<LoggerStats>(this, UpdateType.OnTaskComplete, callback)
     }
 
-    override fun notifyUpdate(
+    fun notifyUpdate(
         handler: UpdateType,
-        task: ResultantTask<*, *>,
+        task: TaskBase<*, *>,
     ) {
-        val stats =
-            LoggerStats(
-                activeTask = task,
-                activeTaskName = task.key.taskName,
-                activeTaskNestingLevel = task.key.nestingLevel,
-                topTasksCount = taskHierarchy.size,
-                totalTasksCount = taskHierarchy.values.sumOf { it.registry.totalCount },
-                coroutineInfo = task.coroutineInfo,
-            )
+        val stats = createLoggerStats(task, taskHierarchy)
         callbackRegistry.trigger(handler, stats)
     }
 

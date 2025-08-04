@@ -1,9 +1,8 @@
-package po.test.exposify.setup.mocks
+package po.test.lognotify.setup
 
 import po.auth.extensions.session
 import po.auth.sessions.interfaces.SessionIdentified
 import po.auth.sessions.models.AuthorizedSession
-import po.test.exposify.scope.session.TestSessionsContext
 
 
 class SessionIdentity(override val sessionID: String, override val remoteAddress: String): SessionIdentified
@@ -13,5 +12,5 @@ val mockedSession :  AuthorizedSession = session(sessionIdentity)
 
 internal fun newMockedSession():AuthorizedSession{
     val sessionIdentity = SessionIdentity("0", "192.169.1.1")
-   return session(sessionIdentity)
+    return session(sessionIdentity)
 }

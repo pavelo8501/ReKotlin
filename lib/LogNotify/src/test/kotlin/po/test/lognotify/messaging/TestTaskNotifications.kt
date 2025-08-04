@@ -2,14 +2,12 @@ package po.test.lognotify.messaging
 
 import org.junit.jupiter.api.Test
 import po.lognotify.common.configuration.TaskConfig
-import po.lognotify.extensions.runTask
-import po.lognotify.interfaces.FakeTasksManaged
+import po.lognotify.launchers.runTask
+import po.test.lognotify.setup.FakeTasksManaged
 import po.lognotify.notification.NotifierHub
-import po.lognotify.notification.models.TaskData
+import po.lognotify.notification.models.LogData
 import po.misc.data.printable.PrintableBase
 import po.misc.data.processors.SeverityLevel
-import po.misc.exceptions.ManagedException
-import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -23,15 +21,16 @@ class TestTaskNotifications : FakeTasksManaged {
         }
         runTask("RootTaskNoDebug") {
         }
-        assertFalse(notifications.any { (it as TaskData).severity == SeverityLevel.DEBUG }, "Some of notifications are of type DEBUG")
+        assertFalse(notifications.any { (it as LogData).overallSeverity == SeverityLevel.DEBUG }, "Some of notifications are of type DEBUG")
+
         notifications.clear()
 
         logHandler.notifierConfig {
-            allowDebug(TaskData)
+            allowDebug(LogData)
         }
         runTask("RootTaskWithDebug") {
         }
-        assertTrue(notifications.any { (it as TaskData).severity == SeverityLevel.DEBUG }, "None of the notifications are of type DEBUG")
+        assertTrue(notifications.any { (it as LogData).overallSeverity == SeverityLevel.DEBUG }, "None of the notifications are of type DEBUG")
     }
 
     fun `Exception info displayed correctly lambdas expect NonNullable`() {

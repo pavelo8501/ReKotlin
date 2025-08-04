@@ -5,17 +5,21 @@ import po.misc.data.json.JObject
 import po.misc.data.json.JsonHolder
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.printable.companion.PrintableTemplateBase
+import po.misc.data.printable.grouping.ArbitraryDataMap
+import po.misc.data.printable.grouping.ArbitraryKey
+import kotlin.reflect.KClass
 
 abstract class PrintableBase<T>(
     private val companion: PrintableCompanion<T>
 ): ComposableData, Printable, DateHelper where T:PrintableBase<T> {
 
-
     private val templateNotFound : (T) -> String = { key->  "[template for data: $key not defined] ${toString()}"}
 
     abstract val self:T
-    override var parentRecord: PrintableBase<*>? = null
-    override var children: List<PrintableBase<*>> = listOf()
+    override val arbitraryMap: ArbitraryDataMap<PrintableBase<*>> = ArbitraryDataMap()
+    val arbitraryRecords: List<PrintableBase<*>> get() = arbitraryMap.flatMap { it.value }
+
+    var parentRecord:PrintableBase<*>? = null
 
     var activeTemplate:  PrintableTemplateBase<T>? = null
     private val templatesBacking: MutableList<PrintableTemplateBase<T>> = mutableListOf<PrintableTemplateBase<T>>()
@@ -25,6 +29,8 @@ abstract class PrintableBase<T>(
             templateNotFound(self)
         }
     }
+
+    val ownClass: KClass<T> get() = companion.printableClass
 
     internal var jsonHolder : JsonHolder? = null
     internal val jsonObject : JObject
@@ -38,7 +44,6 @@ abstract class PrintableBase<T>(
     @PublishedApi
     internal var muteCondition: ((T) -> Boolean)? = null
     var genericMuteCondition: ((ComposableData)-> Boolean)? = null
-
 
 
     @PublishedApi
@@ -66,10 +71,6 @@ abstract class PrintableBase<T>(
         activeTemplate = template
     }
 
-    override fun setParent(parent: PrintableBase<*>) {
-        parentRecord = parent
-    }
-
     override fun echo(){
         outputSource?.invoke(formattedString) ?: run {
             println(formattedString)
@@ -85,13 +86,28 @@ abstract class PrintableBase<T>(
         }
     }
 
-    fun addChild(record: PrintableBase<*>){
-        record.setParent(self as PrintableBase<*>)
-        children = children.toMutableList().apply { add(record) }
+    override fun setParent(parent: PrintableBase<*>): PrintableBase<*> {
+        parentRecord = parent
+        return this
     }
-    fun addChildren(records:List<PrintableBase<*>>){
-        records.map { it.setParent(self as PrintableBase<*>)}
-        children = records
+
+    fun addArbitraryRecord(record: PrintableBase<*>): ArbitraryKey {
+       record.setParent(this)
+       return arbitraryMap.putPrintable(record)
+    }
+
+    fun addArbitraryRecord(record: PrintableBase<*>, prefixBuilder:(PrintableBase<*>)-> String): ArbitraryKey{
+        record.setParent(this)
+       return arbitraryMap.putPrintable(record, prefixBuilder)
+    }
+
+    fun <T2: PrintableBase<T2>> addArbitraryRecords(records: List<T2>): ArbitraryKey?{
+        if (records.isEmpty()) return null
+        val key = arbitraryMap.putPrintable(records[0].setParent(this))
+        if (records.size > 1) {
+            records.subList(1, records.size).forEach { arbitraryMap.putPrintable(it.setParent(this)) }
+        }
+        return key
     }
 
     fun setGenericMute(condition:(ComposableData)-> Boolean){
@@ -104,10 +120,10 @@ abstract class PrintableBase<T>(
 
     fun printTree(level: Int = 0, template: T .() -> String) {
         println("  ".repeat(level) + template(self))
-        children.forEach {
-            @Suppress("UNCHECKED_CAST")
-            (it as? PrintableBase<T>)?.printTree(level + 1, template)
-        }
+//        children.forEach {
+//            @Suppress("UNCHECKED_CAST")
+//            (it as? PrintableBase<T>)?.printTree(level + 1, template)
+//        }
     }
 
     override fun defaultsToJson(): JsonHolder? {

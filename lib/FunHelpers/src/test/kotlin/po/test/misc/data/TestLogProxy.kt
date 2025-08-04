@@ -76,7 +76,7 @@ class TestLogProxy: CTX {
 
         warning.logMessage("test str")
         var received  : PrintableBase<*>? = null
-        dataProcessor.hooks.arbitraryDataReceived {
+        dataProcessor.hooks.onArbitraryDataReceived {
             it.echo()
             received  = it
         }

@@ -52,9 +52,16 @@ fun String?.emptyAsNull(): String?{
     return null
 }
 
+fun String?.emptyIfNullOrText(textProvider:(String)->String): String{
+    return if(this == null){
+        ""
+    }else{
+        textProvider.invoke(this)
+    }
+}
+
 
 fun <T: Any>  Any?.textIfNotNull(textOnNull: String = "", sourceProvider: T.()-> String): String{
-
     return this?.let {
         @Suppress("UNCHECKED_CAST")
         sourceProvider.invoke(it as T)

@@ -25,11 +25,6 @@ abstract class PrintableGroup<T1: PrintableBase<T1>, T2:  PrintableBase<T2>>(
     private val recordsBacking: MutableList<T2> = mutableListOf()
     val records: List<T2> = recordsBacking
 
-    fun getHostAndJoin():T1{
-        groupHost.addChildren(records)
-        return groupHost
-    }
-
     var childProcessLambda: (T2.(PrintableGroup<T1, T2>)-> Unit)? = null
 
     fun processChild(block:T2.(PrintableGroup<T1, T2>)-> Unit){
@@ -37,10 +32,10 @@ abstract class PrintableGroup<T1: PrintableBase<T1>, T2:  PrintableBase<T2>>(
     }
 
     private var newChildCallback : (T2.()-> Unit)? = null
-    fun onNewChild(callback:T2.()-> Unit){
+
+    fun onNewRecord(callback:T2.()-> Unit){
         newChildCallback = callback
     }
-
 
     fun finalize(block:T1.()-> Unit){
         groupHost.block()

@@ -5,9 +5,9 @@ import org.junit.jupiter.api.assertThrows
 import po.lognotify.common.containers.TaskContainer
 import po.lognotify.common.result.createFaultyResult
 import po.lognotify.exceptions.handleException
-import po.lognotify.extensions.runAction
-import po.lognotify.extensions.runTask
-import po.lognotify.interfaces.FakeTasksManaged
+import po.lognotify.launchers.runAction
+import po.lognotify.launchers.runTask
+import po.test.lognotify.setup.FakeTasksManaged
 import po.lognotify.notification.LoggerDataProcessor
 import po.lognotify.tasks.ExecutionStatus
 import po.lognotify.tasks.RootTask
@@ -28,7 +28,7 @@ class TestExceptionNotification: FakeTasksManaged {
         var exception: ManagedException? = null
         lateinit var rootTask: RootTask<TestExceptionNotification, Unit>
         captureOutput {
-            rootTask = dispatcher.createHierarchyRoot("Root Task", this)
+            rootTask = mockedDispatcher.createHierarchyRoot("Root Task", this)
         }
         val container = TaskContainer(rootTask)
         exception = assertThrows<ManagedException> {
@@ -40,7 +40,7 @@ class TestExceptionNotification: FakeTasksManaged {
         handleException(thrownException, container, null)
         val firstMessage = assertNotNull(rootTask.dataProcessor.records.firstOrNull())
 
-        val exceptionRecord = assertNotNull(firstMessage.events.records.firstOrNull()?.exceptionRecord)
+        val exceptionRecord = assertNotNull(firstMessage.errors.records.firstOrNull())
         assertEquals(rootTask.header, exceptionRecord.firstRegisteredInTask)
 
         val methodThrowing = assertNotNull(exceptionRecord.methodThrowing)
@@ -69,7 +69,7 @@ class TestExceptionNotification: FakeTasksManaged {
         }
         val taskDataProcessor: LoggerDataProcessor = handler.dataProcessor
         val firstMessage = assertNotNull(taskDataProcessor.records.firstOrNull())
-        val exceptionRecord = assertNotNull(firstMessage.events.records.firstOrNull()?.exceptionRecord)
+        val exceptionRecord = assertNotNull(firstMessage.errors.records.firstOrNull())
         assertEquals(handler.task.header, exceptionRecord.firstRegisteredInTask)
         val methodThrowing = assertNotNull(exceptionRecord.methodThrowing)
         assertTrue(methodThrowing.methodName.contains("getOrManaged"), "Actual: ${methodThrowing.methodName}")

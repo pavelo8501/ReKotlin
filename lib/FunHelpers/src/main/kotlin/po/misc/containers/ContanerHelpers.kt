@@ -33,3 +33,7 @@ inline fun <C:ReceiverContainer<T>, T: Any> C.withReceiver(block: T.() -> Unit){
 inline fun <C:ReceiverContainer<T>,  T: Any, R> C.withReceiverAndResult(block: T.() -> R):R{
    return block.invoke(receiver)
 }
+
+suspend fun <C:ReceiverContainer<T>,  T: Any, R> C.withReceiverSuspended(block: suspend T.() -> R):R{
+    return block.invoke(receiver)
+}

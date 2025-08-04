@@ -9,7 +9,7 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.CommonDTOType
 import po.lognotify.TasksManaged
-import po.lognotify.extensions.runAction
+import po.lognotify.launchers.runAction
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.data.processors.SeverityLevel
