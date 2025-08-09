@@ -4,8 +4,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import po.lognotify.exceptions.getOrLoggerException
-import po.lognotify.interfaces.LoggerProcess
-import po.lognotify.process.LoggerProcessImplementation
+import po.lognotify.process.LoggerProcess
+import po.lognotify.process.Process
 import po.misc.context.CTX
 import po.misc.coroutines.CoroutineHolder
 import po.misc.coroutines.LauncherType
@@ -14,7 +14,7 @@ import kotlin.coroutines.CoroutineContext
 
 
 private suspend fun <T, R> executeProcess(
-    process: LoggerProcessImplementation<T>,
+    process: Process<T>,
     dispatcher: CoroutineDispatcher,
     block: suspend LoggerProcess<T>.()-> R,
 ):R where T: CoroutineHolder, T: CTX, T: LogCollector{
@@ -43,7 +43,7 @@ suspend fun <T, R> T.runProcess(
 
    val element =  this.coroutineContext[contextKey]
    val notNullElement = element.getOrLoggerException("CoroutineElement is null for key provided : $contextKey")
-   val process = LoggerProcessImplementation<T>(identifiedByName,this, notNullElement)
+   val process = Process<T>(identifiedByName,this, notNullElement)
    return executeProcess(process, dispatcher, block)
 }
 
@@ -56,7 +56,7 @@ suspend fun <T, R> runProcess(
 
     val element = receiver.coroutineContext[contextKey]
     val notNullElement = element.getOrLoggerException("CoroutineElement is null for key provided : $contextKey")
-    val process = LoggerProcessImplementation<T>(receiver.identifiedByName, receiver, notNullElement)
+    val process = Process<T>(receiver.identifiedByName, receiver, notNullElement)
     return executeProcess(process, dispatcher, block)
 
 }

@@ -55,9 +55,6 @@ fun <DTO, D, E> DTOBase<DTO, D, E>.setupValidation(
                     onConditionSuccess { delegate ->
                         (delegate as DelegateInterface<DTO, D, E>).updateStatus(DelegateStatus.Initialized)
                     }
-                    onConditionFailure { column ->
-                        println(column.property.name)
-                    }
                 }
                 conditionNotNull(field.property.name, "Entity required, but missing") {
                     responsive.firstOrNull { field.compareAndGet(it.property.name) != null }

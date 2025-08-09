@@ -3,7 +3,6 @@ package po.test.exposify.setup.mocks
 import po.auth.extensions.session
 import po.auth.sessions.interfaces.SessionIdentified
 import po.auth.sessions.models.AuthorizedSession
-import po.test.exposify.scope.session.TestSessionsContext
 
 
 class SessionIdentity(override val sessionID: String, override val remoteAddress: String): SessionIdentified

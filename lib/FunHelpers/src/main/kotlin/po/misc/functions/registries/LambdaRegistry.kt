@@ -4,11 +4,9 @@ import po.misc.context.CTX
 import po.misc.functions.containers.Notifier
 import po.misc.functions.registries.models.RegistrySubscription
 import po.misc.functions.registries.models.Subscription
-import po.misc.functions.registries.models.SuspendSubscription
 import po.misc.functions.registries.models.TaggedSubscription
 import java.util.EnumMap
 import kotlin.reflect.KClass
-
 
 sealed class LambdaRegistryBase<K: Any,  V: Any>(){
 
@@ -21,8 +19,6 @@ sealed class LambdaRegistryBase<K: Any,  V: Any>(){
     fun triggerAll(value:V){
         notifiers.values.flatMap { it }.forEach { it.trigger(value) }
     }
-
-
     abstract fun clear()
 }
 
@@ -36,10 +32,8 @@ class NotifierRegistry<V: Any>():LambdaRegistryBase<KClass<*>, V>() {
         return subscription
     }
 
-
     fun subscribe(subscriberId: Long, context: CTX, callback:(V)-> Unit):LambdaSubscriber<V> =
         subscribe(subscriberId, context.identity.kClass, callback)
-
 
     override fun clear() {
         notifiers.clear()
@@ -64,7 +58,6 @@ class TaggedNotifierRegistry<E: Enum<E>,  V: Any>(
        return (notifiers[event]?.maxOfOrNull { it.subscriberID } ?: 0L) +1
     }
 
-
     fun trigger(event:E, subscriberId: Long, subscriberClass: KClass<*>, value:V){
         notifiers[event]
             ?.firstOrNull { it.subscriberID == subscriberId && it.subscriberClass == subscriberClass }
@@ -80,10 +73,6 @@ class TaggedNotifierRegistry<E: Enum<E>,  V: Any>(
         notifiers.getOrPut(event) { mutableListOf() }.add(subscription)
         return subscription
     }
-    
-//    fun subscribe(event:E,  subscriber: Any, callback:(V)-> Unit):TaggedSubscription<V> =
-//        subscribe(event,  nextId(event), subscriber, callback)
-
 
     override fun clear() {
         notifiers.clear()

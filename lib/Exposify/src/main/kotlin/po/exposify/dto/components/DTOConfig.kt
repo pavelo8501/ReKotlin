@@ -69,7 +69,7 @@ class DTOConfig<DTO, D, E>(
         if (childClasses.contains(childMember.commonDTOType)) {
             notify("childClasses map contains key ${childMember.commonDTOType}", SeverityLevel.WARNING)
         } else {
-            parent.onNewMember.trigger(DTOBase.Events.NewHierarchyMember, childMember)
+            parent.onNewMember.trigger(childMember)
             childClasses.put(childMember.commonDTOType, childMember)
         }
         return childMember

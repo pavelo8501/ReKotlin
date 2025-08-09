@@ -6,3 +6,7 @@ interface LambdaSubscriber<V: Any> {
     val subscriberID: Long
     fun trigger(value:V)
 }
+
+interface SubscriptionKey<K: Any> {
+
+}

@@ -14,7 +14,6 @@ import po.exposify.scope.connection.ConnectionClass
 import po.exposify.scope.connection.controls.CoroutineEmitter
 import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
-import po.lognotify.tasks.TaskHandler
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 
@@ -23,7 +22,6 @@ class ServiceClass<DTO, DATA, ENTITY>(
     @PublishedApi internal val connectionClass : ConnectionClass
 ):  TasksManaged  where  DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity {
 
-
     override val identity: CTXIdentity<ServiceClass<DTO, DATA, ENTITY>> = asIdentity()
 
     private var tableRecreationList: List<IdTable<Long>>? = null
@@ -31,9 +29,8 @@ class ServiceClass<DTO, DATA, ENTITY>(
     internal val connection: Database get() = connectionClass.connection
     val serviceContext: ServiceContext<DTO, DATA, ENTITY> = ServiceContext(this, rootDTOModel)
 
-    val logger : TaskHandler<*> get()= taskHandler
-
     private var running: Boolean = true
+
 
     private fun prepareTables(createOption: TableCreateMode) {
         when (createOption) {

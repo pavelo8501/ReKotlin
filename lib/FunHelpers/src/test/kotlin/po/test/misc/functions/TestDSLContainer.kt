@@ -1,96 +1,61 @@
 package po.test.misc.functions
 
 import org.junit.jupiter.api.Test
-import po.misc.functions.containers.NullableProvider
-import po.misc.functions.dsl.DSLBuilder
-import po.misc.functions.dsl.DSLContainer
-import po.misc.functions.dsl.dslBuilder
-import po.test.misc.functions.TestDSLContainer.TestDSLControlClass
-import po.test.misc.setup.ControlClass
+import po.misc.containers.Containable
+import po.misc.containers.ReceiverContainer
+import po.misc.functions.dsl.DSLBuildingBlock
+import po.misc.functions.dsl.runOnReceiver
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 
-class TestDSLContainer() : DSLBuilder<TestDSLControlClass, String> {
 
+class TestDSLContainer{
 
-    override val dslContainer: DSLContainer<TestDSLControlClass, String> = DSLContainer()
-
-    class TestDSLSubClass(val property : String)
-
-    class TestDSLControlClass(val subClassProperty : TestDSLSubClass):ControlClass()
-
-    class Starter():DSLBuilder<TestDSLControlClass, String>{
-        override val dslContainer: DSLContainer<TestDSLControlClass, String> = DSLContainer()
-
+    internal class Receiver: DSLBuildingBlock{
+        var string: String = ""
+        val receivers2: MutableList<Receiver2> = mutableListOf()
+    }
+    internal class Receiver2:DSLBuildingBlock{
+        var otherString: String = ""
     }
 
-
-
-    @Test
-    fun `DSLContainer preEvaluate self constructing lambda, structure being created`() {
-
-        val dslContainer = DSLContainer<TestDSLControlClass, String> {
-
-            next { property1 }
-            next { property3 }
-            with({ it.subClassProperty }) {
-                next { property }
-            }
+    internal class DSLBlock<T: Any> (
+        override val receiver: T
+    ): ReceiverContainer<T>{
+        fun createWithBuilder(builder:T.()-> Unit):T{
+           receiver.builder()
+           return receiver
         }
-        dslContainer.build()
-
-        assertEquals(1, dslContainer.subContainersCount, "\"with\" method does not persist container")
-        assertEquals(2, dslContainer.dslBlocks.size, "\"next\" method does not persist dslBlocks")
-        assertEquals(3, dslContainer.dslBlocksTotalSize, "Total dslBlockCount mismatch")
+    }
+    internal fun <T: DSLBuildingBlock> T.createReceiver2(block: Receiver2.()-> Unit): T{
+        Receiver2().apply(block)
+        return  this
     }
 
     @Test
-    fun `DSLContainer resolves pre saved lambda with actual data correctly`(){
+    fun `DSL container swaps context`(){
 
-        val sourceClass = TestDSLControlClass(subClassProperty = TestDSLSubClass("subClassProperty"))
-        val dslContainer = DSLContainer<TestDSLControlClass, String>{
-            next {
-                property1
+        val inputValue = "Some Value"
+        val inputValue2 = "Some Value2"
+        val receiver1 = Receiver()
+        val dslBlock : DSLBlock<Receiver> = DSLBlock(receiver1)
+
+        val result =  dslBlock.createWithBuilder {
+            runOnReceiver {
+                string = inputValue
             }
-            with({ it.subClassProperty }){
-                next {
-                    property
-                }
-            }
-        }
-        dslContainer.build()
-
-        val resultAsList = dslContainer.resolve(sourceClass)
-        assertEquals(2, resultAsList.size, "resolve method failed")
-
-        val testClass = TestDSLControlClass(subClassProperty = TestDSLSubClass("SubTest"))
-        testClass.property1 = "Test"
-
-        val convertedResult = dslContainer.resolve(testClass){list->
-            list.joinToString(separator = "/") { it }
-        }
-        assertEquals("Test/SubTest", convertedResult, "Resulting string mismatch")
-    }
-
-    @Test
-    fun `DSLContainer convenience function work as expected`(){
-
-        val testClass = TestDSLControlClass(subClassProperty = TestDSLSubClass("SubTest"))
-        testClass.property1 = "Test"
-         dslBuilder {
-            next {
-                property1
-            }
-            with({ it.subClassProperty }){
-                next {
-                    property
-                }
+            createReceiver2 {
+                otherString = inputValue2
+                receivers2.add(this)
             }
         }
-        val convertedResult = dslContainer.resolve(testClass){list->
-            list.joinToString(separator = "/") { it }
-        }
-        assertEquals("Test/SubTest", convertedResult, "Resulting string mismatch")
+
+        assertIs<Receiver>(result)
+        assertEquals(inputValue, result.string)
+        val receiver2 = assertNotNull(result.receivers2[0])
+        assertEquals(inputValue2, receiver2.otherString)
+
     }
 
 }

@@ -12,13 +12,13 @@ import po.exposify.dto.components.bindings.DelegateStatus
 import po.exposify.dto.components.bindings.helpers.newDTO
 import po.exposify.dto.components.bindings.helpers.withDTOContext
 import po.exposify.dto.components.bindings.interfaces.DelegateInterface
-import po.exposify.dto.components.bindings.interfaces.ForeignDelegateInterface
 import po.exposify.dto.components.createDTOContext
 import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.components.tracker.DTOTracker
 import po.exposify.dto.components.tracker.extensions.addTrackerInfo
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.helpers.asDTO
+import po.exposify.dto.helpers.warning
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
@@ -29,9 +29,9 @@ import po.lognotify.TasksManaged
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.data.processors.SeverityLevel
+import po.misc.functions.registries.require
 import po.misc.functions.registries.subscribe
 import po.misc.types.TypeData
-import po.misc.types.containers.updatable.ActionValue
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty
 import kotlin.reflect.KProperty1
@@ -40,7 +40,7 @@ import kotlin.reflect.KProperty1
 sealed class RelationDelegate<DTO, D, E, F, FD, FE>(
     protected val hostingDTO : CommonDTO<DTO, D, E>,
     val foreignClass: DTOClass<F, FD, FE>
-): DelegateInterface<DTO, D, E>, ForeignDelegateInterface, TasksManaged
+): DelegateInterface<DTO, D, E>, TasksManaged
         where DTO : ModelDTO, D : DataModel,  E : LongEntity, F : ModelDTO, FD : DataModel, FE : LongEntity
 {
 
@@ -50,7 +50,6 @@ sealed class RelationDelegate<DTO, D, E, F, FD, FE>(
 
     override val hostingClass: DTOBase<DTO, D, E> get() = hostingDTO.dtoClass
     protected val tracker: DTOTracker<DTO, D, E> get() = hostingDTO.tracker
-   // protected val commonType: CommonDTOType<DTO, D, E> get() = hostingDTO.commonType
 
     protected val dtoType: TypeData<DTO> = hostingDTO.commonType.dtoType
 
@@ -61,8 +60,6 @@ sealed class RelationDelegate<DTO, D, E, F, FD, FE>(
         return hostingDTO.dataContainer.getValue(this)
     }
 
-   // protected var onPropertyInitialized: ((KProperty<*>)-> Unit)? = null
-
     private var propertyBacking : KProperty<F>? = null
     val property: KProperty<F> get() = propertyBacking.getOrOperations(this)
     
@@ -70,9 +67,7 @@ sealed class RelationDelegate<DTO, D, E, F, FD, FE>(
       return  childCommonDTOList.map { it.bindingHub }
     }
     abstract val childCommonDTOList: List<CommonDTO<F, FD, FE>>
-    abstract val bindEntity: Boolean
 
-   // abstract fun getChild(): SingleOrList<F>
     protected abstract fun save(common: CommonDTO<F, FD, FE>)
     protected abstract fun save(common: CommonDTO<F, FD, FE>, data: FD)
     protected abstract fun save(dto: F)
@@ -80,12 +75,13 @@ sealed class RelationDelegate<DTO, D, E, F, FD, FE>(
     override fun resolveProperty(property: KProperty<*>){
         propertyBacking = property.castOrInit(this)
 
-        hostingDTO.onIdResolved.subscribe(this){
+
+       subscribe(hostingDTO.onIdResolved){
             when(this){
                 is OneToManyDelegate->{
                     identity.setNamePattern {"${it.identifiedByName} ${property.name} : ${foreignClass.identifiedByName}" }
                 }
-                is OneToOneDelegate<*, *, *, *, *, *> ->{
+                is OneToOneDelegate ->{
                     identity.setNamePattern {"${it.identifiedByName} ${property.name} : ${foreignClass.identifiedByName}" }
                 }
             }
@@ -94,19 +90,32 @@ sealed class RelationDelegate<DTO, D, E, F, FD, FE>(
 
         hostingDTO.createDTOContext(foreignClass, foreignClass.commonDTOType)
 
-
-        hostingClass.onNewMember.subscribe(this){
-            if(it === foreignClass ){
+        require(hostingClass.onNewMember){
+            if(it === foreignClass){
                 if(!hostingDTO.hasExecutionContext(foreignClass.commonDTOType)){
                     val context = DTOExecutionContext(foreignClass, hostingDTO)
                     hostingDTO.registerExecutionContext(foreignClass.commonDTOType, context)
+                    notify("Reusing context")
                 }else{
-                    notify("Context already created", SeverityLevel.WARNING)
+                    warning("Context already created")
                 }
             }else{
                 throw OperationsException("DTOExecutionContext creation failed", ExceptionCode.METHOD_MISUSED, this)
             }
         }
+
+//        subscribe(hostingClass.onNewMember){
+//            if(it === foreignClass ){
+//                if(!hostingDTO.hasExecutionContext(foreignClass.commonDTOType)){
+//                    val context = DTOExecutionContext(foreignClass, hostingDTO)
+//                    hostingDTO.registerExecutionContext(foreignClass.commonDTOType, context)
+//                }else{
+//                    notify("Context already created", SeverityLevel.WARNING)
+//                }
+//            }else{
+//                throw OperationsException("DTOExecutionContext creation failed", ExceptionCode.METHOD_MISUSED, this)
+//            }
+//        }
     }
     override fun updateStatus(status: DelegateStatus) {
         this.status = status
@@ -114,7 +123,6 @@ sealed class RelationDelegate<DTO, D, E, F, FD, FE>(
     abstract fun extractChildDataModels(data:D):List<FD>
     abstract fun attachChildDataModel()
     abstract fun extractChildEntities(entity:E):List<FE>
-   // protected abstract fun getChildDTOList(): List<CommonDTO<F, FD, FE>>
 
     private fun getExistentDTO(id: Long): CommonDTO<F,FD, FE>?{
         if(id != 0L){
@@ -170,25 +178,12 @@ class OneToManyDelegate<DTO, D, E, F, FD, FE>(
 {
 
     override val identity: CTXIdentity<OneToManyDelegate<DTO, D, E, F, FD, FE>> = asIdentity()
-
     override val cardinality : Cardinality = Cardinality.ONE_TO_MANY
-
 
     private val dtos : MutableList<F> = mutableListOf()
 
     override val childCommonDTOList: List<CommonDTO<F, FD, FE>> get(){
         return dtos.filterIsInstance<CommonDTO<F, FD, FE>>()
-    }
-
-    override var bindEntity: Boolean = true
-    private val entityBinder: ActionValue<FE> = ActionValue(this){
-        if(bindEntity){
-            val data = it.getData()
-            val childEntity = data.value
-            ownOnForeignEntityProperty.set(childEntity, ownEntity)
-            tracker.logDebug("Entity binding created", this)
-        }
-
     }
 
     override fun extractChildDataModels(data:D): List<FD> {
@@ -214,11 +209,9 @@ class OneToManyDelegate<DTO, D, E, F, FD, FE>(
 
 
     override fun save(common: CommonDTO<F, FD, FE>){
-        bindEntity = true
         commonDTOSave(common)
     }
     override fun save(common: CommonDTO<F, FD, FE>, data:FD){
-        bindEntity = false
         commonDTOSave(common)
     }
     override fun save(dto: F){
@@ -258,25 +251,6 @@ class OneToOneDelegate<DTO, D, E, F, FD, FE>(
         }?:emptyList()
     }
 
-    override var bindEntity: Boolean = true
-    private val entityBinder: ActionValue<FE> = ActionValue(this){
-        if(bindEntity){
-            val data = it.getData()
-            val childEntity = data.value
-            ownOnForeignEntityProperty.set(childEntity, ownEntity)
-            tracker.logDebug("Entity binding created", this)
-        }
-    }
-
-//    override fun getChild(): Single<F> {
-//        return Single(childDTO)
-//    }
-//    override fun getChildDTOList(): List<CommonDTO<F, FD, FE>> {
-//        return childDTOBacking?.let {
-//            listOf(it)
-//        }?:emptyList()
-//    }
-
     override fun extractChildDataModels(data: D): List<FD> {
         return listOf(dataProperty.get(data))
     }
@@ -296,11 +270,9 @@ class OneToOneDelegate<DTO, D, E, F, FD, FE>(
     }
 
     override fun save(common: CommonDTO<F, FD, FE>){
-        bindEntity = true
         dtoSave(common)
     }
     override fun save(common: CommonDTO<F, FD, FE>, data:FD){
-        bindEntity = false
         dtoSave(common)
     }
 

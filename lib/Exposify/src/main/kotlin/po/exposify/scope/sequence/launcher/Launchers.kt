@@ -17,6 +17,7 @@ import po.exposify.scope.sequence.builder.SequenceChunkContainer
 import po.exposify.scope.sequence.builder.SingleDescriptor
 import po.exposify.scope.sequence.inputs.CommonInputType
 import po.exposify.scope.sequence.inputs.DataInput
+import po.exposify.scope.sequence.inputs.InputBase
 import po.exposify.scope.sequence.inputs.ListDataInput
 import po.exposify.scope.sequence.inputs.ParameterInput
 import po.exposify.scope.sequence.inputs.QueryInput

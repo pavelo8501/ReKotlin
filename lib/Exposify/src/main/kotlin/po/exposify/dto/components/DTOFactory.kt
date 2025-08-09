@@ -20,8 +20,8 @@ import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.context.asSubIdentity
-import po.misc.functions.registries.TaggedLambdaRegistry
-import po.misc.functions.registries.lambdaRegistryOf
+import po.misc.functions.registries.TaggedNotifierRegistry
+import po.misc.functions.registries.taggedRegistryOf
 import po.misc.interfaces.ValueBased
 import po.misc.serialization.SerializerInfo
 import po.misc.types.TypeData
@@ -172,7 +172,7 @@ class CommonDTOFactory<DTO, D, E, F, FD, FE>(
     where DTO : ModelDTO, D : DataModel, E : LongEntity, F : ModelDTO, FD : DataModel, FE : LongEntity {
     override val identity: CTXIdentity<CommonDTOFactory<DTO, D, E, F, FD, FE>> = asSubIdentity(this, hostingDTO)
 
-    val onDTOCreated: TaggedLambdaRegistry<Events, CommonDTO<DTO, D, E>> = lambdaRegistryOf(Events.OnCreated)
+    val onDTOCreated: TaggedNotifierRegistry<Events, CommonDTO<DTO, D, E>> = taggedRegistryOf()
 
     private fun dtoPostCreation(dto: CommonDTO<DTO, D, E>): CommonDTO<DTO, D, E> =
         runAction("dtoPostCreation", commonDTOType.dtoType.kType) {

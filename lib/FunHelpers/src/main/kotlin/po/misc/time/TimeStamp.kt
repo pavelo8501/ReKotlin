@@ -20,7 +20,6 @@ data class ExecutionTimeStamp(val name: String, var id: String) {
         return this
     }
 
-
     private var onStartFn : ((ExecutionTimeStamp)-> Unit)? = null
     fun onStart(onStartFn : (ExecutionTimeStamp)-> Unit){
         this.onStartFn = onStartFn
@@ -28,7 +27,6 @@ data class ExecutionTimeStamp(val name: String, var id: String) {
 
     private var onStopFn : ((ExecutionTimeStamp)-> Unit)? = null
     fun onStop(onStopFn : (ExecutionTimeStamp)-> Unit){
-
         this.onStopFn = onStopFn
     }
 }

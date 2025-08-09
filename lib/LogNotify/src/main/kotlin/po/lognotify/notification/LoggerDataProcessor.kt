@@ -36,9 +36,7 @@ class LoggerDataProcessor(
         LogData(
             taskHeader = task.header,
             config = task.config,
-            timeStamp = task.executionTimeStamp,
             executionStatus = task.executionStatus,
-            taskFooter = task.footer,
         )
 
     init {
@@ -88,12 +86,13 @@ class LoggerDataProcessor(
 
     @PublishedApi
     internal fun registerStop(): LogData {
+
         if (config.console != ConsoleBehaviour.Mute && config.console != ConsoleBehaviour.MuteNoEvents) {
-            taskData.echo(LogData.Header)
+            taskData.taskFooter = task.footer
+            taskData.echo(LogData.Footer)
         } else if (config.console != ConsoleBehaviour.MuteNoEvents && taskData.events.records.isNotEmpty()) {
             taskData.echo(LogData.Footer)
         }
-        taskData.events.echo()
         flowEmitter?.let {
             it.emitData(taskData)
             it.stopBroadcast()

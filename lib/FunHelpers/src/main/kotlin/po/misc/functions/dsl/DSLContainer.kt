@@ -2,7 +2,6 @@ package po.misc.functions.dsl
 
 import po.misc.functions.containers.Adapter
 import po.misc.functions.containers.DSLProvider
-import po.misc.functions.containers.LambdaUnit
 
 import po.misc.types.safeCast
 
@@ -46,13 +45,9 @@ class DSLContainer<T, R>(
     }
 
     fun build(block: DSLBlock<T, R>): DSLContainer<T, R> {
-
         this.constructLambda?.invoke(this)
         return this
     }
-
-
-
     fun build(lambda: DSLContainer<T, R>.() -> Unit): DSLContainer<T, R> {
        lambda.invoke(this)
        return this

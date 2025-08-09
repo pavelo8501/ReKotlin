@@ -1,5 +1,7 @@
 package po.exposify.scope.sequence.launcher
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.asFlow
 import po.auth.sessions.models.AuthorizedSession
 import po.exposify.dto.components.query.WhereQuery
 import po.exposify.dto.components.result.ResultBase
@@ -13,6 +15,7 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.initException
 import po.exposify.extensions.withSuspendedTransactionIfNone
+import po.exposify.scope.sequence.builder.ListDescriptor
 import po.exposify.scope.sequence.builder.PickChunk
 import po.exposify.scope.sequence.builder.SelectChunk
 import po.exposify.scope.sequence.builder.SingleDescriptor
@@ -27,109 +30,10 @@ import po.exposify.scope.sequence.inputs.DataInput
 import po.exposify.scope.sequence.inputs.ListDataInput
 import po.exposify.scope.sequence.inputs.ParameterInput
 import po.exposify.scope.sequence.inputs.QueryInput
+import po.exposify.scope.service.ServiceContext
 import po.misc.functions.containers.DeferredContainer
 import po.misc.types.castOrManaged
 import po.misc.types.getOrManaged
-import po.misc.types.safeCast
-
-
-//
-//
-//private suspend fun <DTO, D, F, FD, I> launchSwitchSingle(
-//    switchDescriptor: SwitchSingeDescriptor<DTO, D, F, FD>,
-//    session: AuthorizedSession,
-//    parentInput: InputType<*>,
-//    input: InputType<I>,
-//): ResultSingle<DTO, D> where DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel, I : Any {
-//    val errorFallback =
-//        ExceptionFallback {
-//            val noContainerMsg = "No predefined execution for $switchDescriptor"
-//            OperationsException(noContainerMsg, ExceptionCode.Sequence_Setup_Failure, switchDescriptor)
-//        }
-//    val container = switchDescriptor.chunksBacking.getWithFallback(errorFallback)
-//    val castedContainer = container.castOrOperations<SwitchChunkContainer<DTO, D, F, FD>>(container)
-//    val emitter = switchDescriptor.dtoClass.serviceClass.requestEmitter(session)
-//    val emitterResult =
-//        emitter.dispatchSingle {
-//            println("Entered emitter block")
-//            var effectiveResult: ResultSingle<DTO, D>? = null
-//
-//            withSuspendedTransactionIfNone(castedContainer.debugger, warnIfNoTransaction = false) {
-//
-//
-//                castedContainer.parentContainer.singleResultChunks.forEach { parentChunk ->
-//                    val parentResult = parentChunk.trigger(parentInput.castOrOperations(switchDescriptor))
-//
-//                    castedContainer.singleResultChunks.forEach { singleResultChunk ->
-//                    effectiveResult =  when (input) {
-//                            is DataInput -> {
-//                                singleResultChunk.triggerSwitch(
-//                                    parentResult,
-//                                    switchDescriptor.dtoClass,
-//                                    input.castOrOperations(switchDescriptor),
-//                                )
-//                            }
-//                            is ParameterInput -> {
-//                                singleResultChunk.triggerSwitch(
-//                                    parentResult,
-//                                    switchDescriptor.dtoClass,
-//                                    input.castOrOperations(switchDescriptor),
-//                                )
-//                            }
-//                            is QueryInput -> {
-//                                singleResultChunk.triggerSwitch(
-//                                    parentResult,
-//                                    switchDescriptor.dtoClass,
-//                                    input.castOrOperations(switchDescriptor),
-//                                )
-//                            }
-//                        }
-//                    }
-//                }
-//                effectiveResult.getOrOperations(switchDescriptor)
-//            }
-//        }
-//    return emitterResult
-//}
-//
-//private suspend fun <DTO, D, F, FD, I> launchSwitchList(
-//    switchDescriptor: SwitchListDescriptor<DTO, D, F, FD>,
-//    session: AuthorizedSession,
-//    input: ListInputType<I>,
-//    parentInput: InputType<*>,
-//): ResultList<DTO, D> where DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel, I : Any {
-//
-//    val container = switchDescriptor.chunksBacking.getWithFallback(switchDescriptor.errorFallback)
-//    val casted = container.castOrOperations<SwitchChunkContainer<DTO, D, F, FD>>(container)
-//    val emitter = switchDescriptor.dtoClass.serviceClass.requestEmitter(session)
-//
-//    val emitterResult = emitter.dispatchList {
-//        var effectiveResult: ResultList<DTO, D>? = null
-//        withSuspendedTransactionIfNone(container.debugger, warnIfNoTransaction = false) {
-//
-//            casted.parentContainer.singleResultChunks.forEach { parentChunk ->
-//                val parentResult = parentChunk.trigger(parentInput.castOrOperations(switchDescriptor))
-//                casted.listResultChunks.forEach { listChunk ->
-//                    effectiveResult = when (listChunk) {
-//                        is UpdateListChunk -> {
-//                            listChunk.updateListSwitching(
-//                                parentResult,
-//                                switchDescriptor.dtoClass,
-//                                input.castOrOperations(switchDescriptor)
-//                            )
-//                        }
-//
-//                        is SelectChunk -> {
-//                            TODO()
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//        effectiveResult.getOrOperations(switchDescriptor)
-//    }
-//    return emitterResult
-//}
 
 
 private fun <DTO:ModelDTO, D:DataModel> returnContainerNotFound(
@@ -151,7 +55,6 @@ private fun <DTO:ModelDTO, D:DataModel> returnContainerNotFound(
     }
 }
 
-
 private suspend fun <DTO, D, F, FD> launchSwitch(
     session:AuthorizedSession,
     descriptor: SwitchDescriptorBase<DTO, D,  F, FD>,
@@ -169,6 +72,7 @@ private suspend fun <DTO, D, F, FD> launchSwitch(
 
     withSuspendedTransactionIfNone(descriptor.dtoClass.debugger, false){
         if (parentInput.descriptor is SingleDescriptor) {
+
             val parentResult = launchExecutionSingle(session, parentInput.descriptor, parentInput)
             when (inputData) {
                 is DataInput -> {
@@ -265,3 +169,4 @@ suspend fun <DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel> Author
     result as ResultList<DTO, D>
     return result
 }
+

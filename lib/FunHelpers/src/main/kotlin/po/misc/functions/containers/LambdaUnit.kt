@@ -11,11 +11,6 @@ import po.misc.context.CTX
  */
 interface LambdaUnit<V: Any, R>: LambdaContainerState<V>{
     /**
-     * Triggers the lambda without passing a value (assumes it was provided earlier).
-     */
-   // fun trigger():R
-
-    /**
      * Triggers the lambda using the given [value].
      */
     fun trigger(value: V):R

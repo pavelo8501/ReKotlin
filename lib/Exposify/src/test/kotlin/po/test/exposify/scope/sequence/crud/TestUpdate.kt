@@ -86,7 +86,7 @@ class TestUpdate :
     @Test
     fun `Sequenced UPDATE with switch statement `(): TestResult = runTest {
 
-        val sections = mockSections(page.id, updatedById, 10){str->
+        val sections = mockSections(page, 10){str->
             this.name = "${name}_$str"
             this.description = "Mocked section#$str"
         }

@@ -71,7 +71,8 @@ class TestLogProxy: CTX {
         val warning = printableProxy(this, Template2){
             val data = ArbitraryData(contextName, "TestLogProxy", it.message)
 
-            dataProcessor.logData(data, Template2)
+            data.setDefaultTemplate(Template2)
+            dataProcessor.log(data)
         }
 
         warning.logMessage("test str")

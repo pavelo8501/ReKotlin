@@ -9,6 +9,7 @@ import po.auth.sessions.models.AuthorizedSession
 import po.exposify.DatabaseManager
 import po.exposify.dto.RootDTO
 import po.exposify.dto.enums.DTOClassStatus
+import po.exposify.dto.helpers.warning
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.scope.connection.models.ConnectionInfo
 import po.exposify.dto.interfaces.ModelDTO
@@ -88,10 +89,11 @@ class ConnectionClass(
             }else{
                 block?.invoke(existentService.serviceContext)
             }
-            notify("Using ServiceClass ${existentService.contextName}", SeverityLevel.INFO)
+            warning("Fake warning")
+            notify("Using ServiceClass ${existentService.contextName}")
         }else{
             val serviceClass = ServiceClass(dtoClass, this)
-            notify("ServiceClass ${serviceClass.contextName} created", SeverityLevel.INFO)
+            notify("ServiceClass ${serviceClass.contextName} created")
             serviceClass.initService(dtoClass, createOptions, block)
             servicesBacking[dtoClass.commonDTOType] = serviceClass
         }

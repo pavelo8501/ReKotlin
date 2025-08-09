@@ -67,7 +67,7 @@ class ResultHandler<V : Any, R> {
  */
 abstract class LambdaUnitBase<V : Any, R>(
     val config: LambdaUnitConfig? = null,
-) : LambdaUnit<V, R> {
+) : LambdaUnit<V, R>{
     abstract override val identifiedAs: String
 
     private var stateBacking: LambdaState = LambdaState.Idle

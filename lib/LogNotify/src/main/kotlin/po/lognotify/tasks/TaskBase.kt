@@ -20,7 +20,6 @@ import po.lognotify.notification.LoggerDataProcessor
 import po.lognotify.notification.models.ActionData
 import po.lognotify.notification.models.ErrorSnapshot
 import po.lognotify.notification.models.FailureReasoning
-import po.lognotify.process.processInScope
 import po.lognotify.tasks.interfaces.ResultantTask
 import po.misc.callbacks.CallbackManager
 import po.misc.callbacks.builders.callbackManager
@@ -29,7 +28,6 @@ import po.misc.context.CTXIdentity
 import po.misc.context.asSubIdentity
 import po.misc.coroutines.CoroutineHolder
 import po.misc.coroutines.CoroutineInfo
-import po.misc.data.processors.FlowEmitter
 import po.misc.exceptions.ManagedException
 import po.misc.reflection.classes.ClassInfo
 import po.misc.time.ExecutionTimeStamp
@@ -50,7 +48,7 @@ sealed class TaskBase<T : CTX, R : Any?>(
     override val config: TaskConfig,
     dispatcher: TaskDispatcher,
     override val receiver: T,
-) : StaticHelper, MeasuredContext, ResultantTask<T, R>, LNInstance<T> {
+) : StaticHelper, ResultantTask<T, R>, LNInstance<T> {
 
     abstract var taskResult: TaskResult<R>?
     abstract val coroutineContext: CoroutineContext
@@ -63,7 +61,7 @@ sealed class TaskBase<T : CTX, R : Any?>(
     override val nestingLevel: Int get() = key.nestingLevel
 
     abstract override val header: String
-    val footer: String get() = "Completed in ${executionTimeStamp.elapsed}"
+    val footer: String get() = "[${key.taskName}  Completed in ${executionTimeStamp.elapsed}]"
 
     abstract fun start(): TaskBase<T, R>
     abstract override fun complete(): LNInstance<*>
@@ -200,7 +198,7 @@ class RootTask<T : CTX, R : Any?>(
     }
 
     override fun complete(): LNInstance<*> {
-        stopTimer()
+        executionTimeStamp.stopTimer()
         isComplete = true
         dataProcessor.registerStop()
         dispatcher.removeRootTask(this)
@@ -208,7 +206,7 @@ class RootTask<T : CTX, R : Any?>(
     }
 
     override fun complete(exception: ManagedException): Nothing {
-        stopTimer()
+        executionTimeStamp.stopTimer()
         registry.setChildTasksStatus(ExecutionStatus.Faulty, this)
         changeStatus(ExecutionStatus.Failing)
         taskResult = createFaultyResult(exception, this)
@@ -244,18 +242,18 @@ class Task<T : CTX, R : Any?>(
     }
 
     override fun start(): Task<T, R> {
-        startTimer()
+        executionTimeStamp.startTimer()
         return this
     }
 
     override fun complete(): Task<T, R> {
-        stopTimer()
+        executionTimeStamp.stopTimer()
         dataProcessor.registerStop()
         return this
     }
 
     override fun complete(exception: ManagedException): Nothing {
-        stopTimer()
+        executionTimeStamp.stopTimer()
         registry.setChildTasksStatus(ExecutionStatus.Faulty, this)
         changeStatus(ExecutionStatus.Failing)
         taskResult = createFaultyResult(exception, this)

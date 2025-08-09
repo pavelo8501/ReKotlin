@@ -1,9 +1,6 @@
 package po.misc.context
 
 import po.misc.data.logging.LogEmitter
-import po.misc.data.printable.PrintableBase
-import po.misc.data.printable.companion.PrintableTemplateBase
-import po.misc.data.processors.Logger
 
 /**
  * Base interface for any context-aware component.

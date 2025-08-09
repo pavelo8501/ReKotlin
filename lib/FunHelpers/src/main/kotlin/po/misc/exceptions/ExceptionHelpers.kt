@@ -88,12 +88,6 @@ fun Throwable.toInfoString(): String{
     return "$base: $msg$cause"
 }
 
-//fun ManagedException.waypointInfo(): String{
-//  val resultStr =  handlingData.joinToString(" -> "){ "$it" }
-//       .wrapByDelimiter(delimiter =  "->", maxLineLength = 200)
-//    return resultStr
-//}
-
 fun  Throwable.throwableToText(): String{
    return if(this.message != null){
         this.message.toString()

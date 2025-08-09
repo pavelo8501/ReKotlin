@@ -25,7 +25,7 @@ import po.test.exposify.setup.SectionEntity
 data class Section(
     override var id: Long = 0L,
     var name: String = "",
-    var description: String,
+    var description: String = "",
     @SerialName("json_ld")
     var jsonLd: String = "",
     @SerialName("class_list")
@@ -45,6 +45,8 @@ data class Section(
 }
 
 class SectionDTO : CommonDTO<SectionDTO, Section, SectionEntity>(SectionDTO) {
+
+
     var name: String by binding(Section::name, SectionEntity::name)
     var description: String by binding(Section::description, SectionEntity::description)
     var jsonLd: String by binding(Section::jsonLd, SectionEntity::jsonLd)

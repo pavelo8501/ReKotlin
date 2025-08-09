@@ -69,10 +69,5 @@ class TestCTXIdentity: CTX {
         }
 
         assertEquals("${subClass2.identity.completeName}[$inputID2]", subClass2.identity.identifiedByName)
-
     }
-
-
-
-
 }

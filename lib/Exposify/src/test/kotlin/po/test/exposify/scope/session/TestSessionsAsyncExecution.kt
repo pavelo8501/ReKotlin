@@ -28,10 +28,6 @@ class TestSessionsAsyncExecution : DatabaseTest(), TasksManaged {
                 null
             }
         }
-
-        @JvmStatic
-        val session = TestSessionsContext.SessionIdentity("0", "192.169.1.1")
-
     }
 
 

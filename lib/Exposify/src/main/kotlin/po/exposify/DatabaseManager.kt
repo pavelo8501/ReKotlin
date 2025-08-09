@@ -86,6 +86,7 @@ object DatabaseManager : TasksManaged {
         hooks: DBManagerHooks? = null,
     ): ConnectionClass =
         runTask("openConnection", TaskConfig(attempts = settings.retries)) {
+            notify("Trying to connect...")
             val effectiveConnectionInfo = connectionInfo ?: hooks?.onBeforeConnection?.invoke()
             val connection =
                 if (effectiveConnectionInfo == null) {
@@ -102,6 +103,7 @@ object DatabaseManager : TasksManaged {
                         newConnection
                     }
                 }
+            notify("Connection open")
             connection
         }.resultOrException()
 

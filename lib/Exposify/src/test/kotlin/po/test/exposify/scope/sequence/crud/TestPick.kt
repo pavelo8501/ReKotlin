@@ -28,6 +28,8 @@ import po.test.exposify.setup.mocks.mockPage
 import po.test.exposify.setup.mocks.mockPages
 import po.test.exposify.setup.mocks.mockedSession
 import po.test.exposify.setup.mocks.mockedUser
+import po.test.exposify.setup.mocks.withContentBlocks
+import po.test.exposify.setup.mocks.withSections
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
@@ -43,8 +45,9 @@ class TestPick :
     companion object {
         @JvmStatic
         var updatedById: Long = 0
+
         @JvmStatic
-        var persistedPages: MutableList<Page> =  mutableListOf()
+        var persistedPages: MutableList<Page> = mutableListOf()
     }
 
     @BeforeAll
@@ -60,11 +63,11 @@ class TestPick :
 
         withConnection {
             val pages: List<Page> =
-                mockPages(quantity = 10) { index ->
-                    mockPage(name = "page_$index", updatedById)
+                mockPages(updatedBy =  updatedById, quantity = 10) { index ->
+                    name =  "page_$index"
                 }
             service(PageDTO) {
-               val pages =  insert(pages).data
+                val pages = insert(pages).data
                 persistedPages.addAll(pages)
                 sequenced(PageDTO.Pick) { handler ->
                     pickById(handler) {
@@ -80,11 +83,10 @@ class TestPick :
     }
 
     @AfterAll
-    fun cleanResults(){
+    fun cleanResults() {
         persistedPages.clear()
     }
 
-    @Test
     fun `Sequenced PICK by id statement`(): TestResult =
         runTest {
             val idToPick = 1L
@@ -103,15 +105,32 @@ class TestPick :
             assertEquals(idToPick, persistedPage.id, "Page id not updated")
         }
 
+    fun `Sequenced PICK with query statement`(): TestResult = runTest {
+        val queriedPageName = "page_8"
+        val result =
+            with(mockedSession) {
+                launch(PageDTO.Pick, deferredQuery(PageDTO) { equals(Pages.name, queriedPageName) })
+            }
+        val persistedPage = assertNotNull(result.data)
+        assertEquals(queriedPageName, persistedPage.name)
+    }
+
     @Test
-    fun `Sequenced PICK with query statement`(): TestResult =
-        runTest {
-            val queriedPageName = "page_8"
-            val result =
-                with(mockedSession) {
-                    launch(PageDTO.Pick, deferredQuery(PageDTO) { equals(Pages.name, queriedPageName) })
+    fun `Sequenced PICK with`(): TestResult = runTest {
+
+       val pages = mockPages(updatedById,  quantity =  2){
+            name = "Name"
+            withSections(quantity =  4){index->
+                name = "Section_$index"
+                withContentBlocks(2){index->
+                    name = "ContentBlock_$index"
                 }
-            val persistedPage = assertNotNull(result.data)
-            assertEquals(queriedPageName, persistedPage.name)
+            }
         }
+        assertEquals(2, pages.size)
+        val section = assertNotNull(pages[0].sections.lastOrNull())
+        val contentBlock  = assertNotNull(section.contentBlocks.lastOrNull())
+        println(contentBlock)
+    }
+
 }

@@ -15,6 +15,7 @@ import po.exposify.dto.helpers.dtoOf
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.scope.sequence.builder.ListDescriptor
 import po.exposify.scope.sequence.builder.SingleDescriptor
+import po.misc.containers.Containable
 import po.test.exposify.setup.PageEntity
 import po.test.exposify.setup.SectionEntity
 
@@ -31,15 +32,16 @@ data class Page(
     var sections: MutableList<Section> = mutableListOf()
 }
 
+
 class PageDTO : CommonDTO<PageDTO, Page, PageEntity>(this) {
+
+
     var name: String by binding(Page::name, PageEntity::name)
     var langId: Int by binding(Page::langId, PageEntity::langId)
     var updated: LocalDateTime by binding(Page::updated, PageEntity::updated)
 
-    var updatedBy: Long = 0
-
     val user by attachedReference(UserDTO, Page::updatedBy, PageEntity::updatedBy) { user ->
-        updatedBy = user.id
+
     }
 
     val sections: List<SectionDTO> by oneToManyOf(SectionDTO, Page::sections, PageEntity::sections, SectionEntity::page)
@@ -49,8 +51,6 @@ class PageDTO : CommonDTO<PageDTO, Page, PageEntity>(this) {
         val Update = SingleDescriptor(this)
         val Pick =   SingleDescriptor(this)
         val Select = ListDescriptor(this)
-
-        // val launcher: LaunchConfigurator<PageDTO, ResultSingle<PageDTO,*,*>> = launch(this)
 
         override fun setup() {
             configuration {

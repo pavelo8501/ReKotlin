@@ -24,7 +24,6 @@ class UserEntity  (id: EntityID<Long>) : LongEntity(id){
 
 class PageEntity(id: EntityID<Long>) : LongEntity(id) {
     companion object : ExposifyEntityClass<PageEntity>(Pages)
-
     var name by Pages.name
     var langId by Pages.langId
     var updated by Pages.updated

@@ -1,6 +1,5 @@
 package po.misc.data.printable
 
-import po.misc.context.CTX
 import po.misc.data.printable.grouping.ArbitraryDataMap
 import po.misc.interfaces.ValueBased
 

@@ -26,11 +26,7 @@ abstract class DatabaseTest(): TasksManaged{
         val postgres = PostgreSQLContainer("postgres:15")
     }
 
-    var connectionClass: ConnectionClass? = null
-
-    init {
-        connectionClass =  startTestConnection()
-    }
+    val connectionClass: ConnectionClass =  startTestConnection()
 
     fun persistUser(user: User): UserDTO{
         var userDTO: UserDTO? = null
@@ -43,11 +39,7 @@ abstract class DatabaseTest(): TasksManaged{
     }
 
     fun withConnection(block: ConnectionClass.()-> Unit){
-        connectionClass?.let {
-            block.invoke(it)
-        }?:run {
-            throw IllegalStateException("connectionClass is null in abstract class DatabaseTest")
-        }
+        block.invoke(connectionClass)
     }
 
 
@@ -66,7 +58,6 @@ abstract class DatabaseTest(): TasksManaged{
                         postgres.stop()
                     }
                     postgres.start()
-                    println("Trying to connect...")
                     ConnectionInfo(
                         jdbcUrl = postgres.jdbcUrl,
                         dbName = postgres.databaseName,
@@ -74,10 +65,6 @@ abstract class DatabaseTest(): TasksManaged{
                         pwd = postgres.password,
                         driver = postgres.driverClassName
                     )
-                }
-
-                newConnection {
-                    println("Opening new connection")
                 }
                 existentConnection { println("Reusing: ${it.completeName}") }
             }

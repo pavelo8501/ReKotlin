@@ -6,7 +6,6 @@ import po.exposify.dto.DTOBase
 import po.exposify.dto.RootDTO
 import po.exposify.dto.components.bindings.DelegateStatus
 import po.exposify.dto.components.bindings.interfaces.DelegateInterface
-import po.exposify.dto.components.bindings.interfaces.ForeignDelegateInterface
 import po.exposify.dto.helpers.asDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
@@ -28,7 +27,7 @@ import kotlin.reflect.KProperty
 
 sealed class ComplexDelegate<DTO, D, E, F, FD, FE>(
     internal val hostingDTO: CommonDTO<DTO, D, E>,
-) : DelegateInterface<DTO, D, E>, ForeignDelegateInterface, TasksManaged
+) : DelegateInterface<DTO, D, E>, TasksManaged
     where D : DataModel, E : LongEntity, DTO : ModelDTO, F : ModelDTO, FD : DataModel, FE : LongEntity {
 
     override var status: DelegateStatus = DelegateStatus.Created
@@ -113,12 +112,11 @@ class AttachedForeignDelegate<DTO, D, E, F, FD, FE>(
 
     fun resolveForeign(data: D): D {
         val foreignId: Long = dataIdProperty.get(data)
-        val dto =
-            if (!foreignInitialized) {
-                getForeignDTO(foreignId)
-            } else {
-                foreignDTO
-            }
+        if (!foreignInitialized) {
+            getForeignDTO(foreignId)
+        } else {
+            foreignDTO
+        }
         return data
     }
 
@@ -164,6 +162,7 @@ class ParentDelegate<DTO, D, E, F, FD, FE>(
     val entityBinder: ActionValue<E> by lazy { entityBinderBacking.getOrOperations(this) }
 
     override fun onPropertyResolved() {
+
     }
 
     override fun beforeRegistered() {
@@ -172,30 +171,10 @@ class ParentDelegate<DTO, D, E, F, FD, FE>(
         }
     }
 
-    fun assignEntityBinder(binder: ActionValue<E>) {
-        entityBinderBacking = binder
-    }
-
-    fun resolve(entity: E) {
-        entityBinder.provideValue(entity)
-    }
-
     fun resolveParent(commonDTO: CommonDTO<F, FD, FE>){
         provideForeignDTO(commonDTO)
         hostingDTO.dataContainer.requestValue(this){
             parentDTOProvider.invoke(it, commonDTO.asDTO())
         }
     }
-
-//    fun assignParentDTO(commonDTO: CommonDTO<F, FD, FE>) {
-//        provideForeignDTO(commonDTO)
-//       // val entity = commonDTO.entityContainer.value
-////        if (entity != null) {
-////            entityProperty.set(hostingDTO.entityContainer.value!!, entity)
-////        }
-//
-//        if (hostingDTO.dataContainer.isValueAvailable) {
-//            parentDTOProvider.invoke(hostingDTO.dataContainer.getValue(this), foreignDTO)
-//        }
-//    }
 }

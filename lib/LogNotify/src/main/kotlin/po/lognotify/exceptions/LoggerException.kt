@@ -18,7 +18,7 @@ class LoggerException(
     override var handler: HandlerType = HandlerType.CancelAll
 }
 
-
+@PublishedApi
 internal inline fun <reified T: Any> T?.getOrLoggerException(message: String):T{
     if(this != null){
         return this

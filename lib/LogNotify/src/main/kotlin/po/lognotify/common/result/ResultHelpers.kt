@@ -27,17 +27,18 @@ private fun <T: CTX, R> resultContainerCreation(task: TaskBase<T, R>, result: R)
    return result
 }
 
-
-fun<R: Any?> createFaultyResult(managed: ManagedException, task: TaskBase<*, R>): TaskResult<R>{
+@PublishedApi
+internal fun<R: Any?> createFaultyResult(managed: ManagedException, task: TaskBase<*, R>): TaskResult<R>{
     val faultyResult = TaskResult(task, throwable = managed)
     task.taskResult = faultyResult
     return faultyResult
 }
 
-fun<R: Any?> ManagedException.asFaultyResult(task: TaskBase<*, R>): TaskResult<R>{
-    val faultyResult = TaskResult(task, throwable = this)
-    task.taskResult = faultyResult
-    return faultyResult
+@PublishedApi
+internal fun <R> createTaskResult(result: R, task: TaskBase<*, R>): TaskResult<R>{
+    val result = TaskResult(task, result = result, throwable = null)
+   task.taskResult =result
+   return result
 }
 
 

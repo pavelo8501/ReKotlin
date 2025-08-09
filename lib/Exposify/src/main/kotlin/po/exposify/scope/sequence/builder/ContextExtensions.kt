@@ -1,5 +1,6 @@
 package po.exposify.scope.sequence.builder
 
+import kotlinx.coroutines.flow.Flow
 import po.exposify.dto.components.result.ResultBase
 import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
@@ -71,3 +72,4 @@ fun <DTO, D> ServiceContext<DTO, D, *>.sequenced(
     val chunkContainer = sequencedList(launchDescriptor, block)
     launchDescriptor.registerChunkContainer(chunkContainer)
 }
+

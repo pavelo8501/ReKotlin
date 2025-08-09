@@ -169,12 +169,6 @@ class LazyBackingContainer<T: Any>(
         }
     }
 
-    fun testNotify2(subscriber: CTX, message: String){
-        subscriber.notify(message)
-    }
-
-
-
     fun <T2 : Any> requestValueCasting(
         subscriber: CTX,
         kClass: KClass<T2>,
@@ -190,8 +184,7 @@ class LazyBackingContainer<T: Any>(
             } else {
                 notify("Cast to ${kClass.simpleName} failed wount invoke", SeverityLevel.WARNING)
             }
-        } else {
-            println("Subscribing")
+        }else{
             registry.subscribe(subscriber.identity.numericId, subscriber, callback as (T) -> Unit)
         }
     }

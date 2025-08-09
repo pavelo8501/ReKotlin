@@ -37,5 +37,4 @@ class ExceptionData(
         return this
     }
 
-
 }

@@ -143,11 +143,10 @@ class TestJsonParser {
         val report2 = ValidationRep("UserValidation")
         val report3 = ValidationRep("UserValidation")
         val report4 = ValidationRep("UserValidation")
-
-        task.addChild(report1)
-        task.addChild(report2)
-        task.addChild(report3)
-        task.addChild(report4)
+        task.addArbitraryRecord(report1)
+        task.addArbitraryRecord(report2)
+        task.addArbitraryRecord(report3)
+        task.addArbitraryRecord(report4)
 
         val output = TaskDataLocal.descriptor.serialize(task)
 
@@ -182,7 +181,7 @@ class TestJsonParser {
             tasks.add(task)
         }
 
-        rootTask.addChildren(tasks)
+        tasks.forEach { rootTask.addArbitraryRecord(it) }
         rootTask.toJson()
     }
 }

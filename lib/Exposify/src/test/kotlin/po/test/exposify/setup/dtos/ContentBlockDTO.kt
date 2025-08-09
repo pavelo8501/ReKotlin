@@ -36,7 +36,9 @@ data class ContentBlock(
     var updated: LocalDateTime = ContentBlockDTO.nowTime()
 }
 
+
 class ContentBlockDTO : CommonDTO<ContentBlockDTO, ContentBlock, ContentBlockEntity>(ContentBlockDTO) {
+
     var name: String by binding(ContentBlock::name, ContentBlockEntity::name)
     var content: String by binding(ContentBlock::content, ContentBlockEntity::content)
     var tag: String by binding(ContentBlock::tag, ContentBlockEntity::tag)

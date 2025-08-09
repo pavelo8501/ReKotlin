@@ -52,7 +52,7 @@ class TestSelect :
         }
 
         withConnection {
-            val pages: List<Page> = mockPages(quantity = 2) { index -> mockPage("Page_$index", updatedById) }
+            val pages: List<Page> = mockPages(updatedBy = updatedById, quantity = 2) { index -> "Page_$index" }
             service(PageDTO) {
                 insert(pages)
                 sequenced(PageDTO.Select) { handler ->

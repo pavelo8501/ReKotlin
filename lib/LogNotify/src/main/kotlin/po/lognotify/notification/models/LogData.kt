@@ -102,11 +102,12 @@ class TaskErrors(taskData: LogData): PrintableGroup<LogData, ErrorRecord>(taskDa
 class LogData(
     val executionStatus: ExecutionStatus,
     val taskHeader: String,
-    val taskFooter: String,
-    val config: TaskConfig,
-    val timeStamp: ExecutionTimeStamp,
+    val config: TaskConfig
 ) : PrintableBase<LogData>(this) {
     override val self: LogData = this
+
+    var elapsed: String = "N/A"
+    var taskFooter: String = "N/A"
 
     val events: TaskEvents = TaskEvents(this)
     val errors: TaskErrors = TaskErrors(this)
@@ -138,9 +139,12 @@ class LogData(
             }
         val Footer: Template<LogData> =
             createTemplate {
-                nextBlock { handler ->
-                    handler.applyToResult { row -> "[ $row ]" }
-                    taskFooter.colorize(Colour.BLUE)
+                nextBlock {
+                    when(overallSeverity){
+                        SeverityLevel.WARNING-> taskFooter.colorize(Colour.Yellow)
+                        SeverityLevel.INFO, SeverityLevel.DEBUG -> taskFooter.colorize(Colour.BLUE)
+                        SeverityLevel.EXCEPTION -> taskFooter.colorize(Colour.RED)
+                    }
                 }
             }
     }

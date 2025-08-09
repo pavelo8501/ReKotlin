@@ -23,13 +23,11 @@ import po.exposify.extensions.withTransactionIfNone
 import po.exposify.scope.service.ServiceClass
 import po.exposify.scope.service.ServiceContext
 import po.lognotify.TasksManaged
-import po.lognotify.tasks.TaskHandler
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.data.processors.SeverityLevel
-import po.misc.functions.registries.TaggedLambdaRegistry
-import po.misc.functions.registries.lambdaRegistryOf
+import po.misc.functions.registries.taggedRegistryOf
 import po.misc.interfaces.ValueBased
 import po.misc.validators.models.CheckStatus
 
@@ -49,21 +47,14 @@ sealed class DTOBase<DTO, D, E>(
 
     abstract override val identity: CTXIdentity<out CTX>
 
-    internal val onStatusChanged: TaggedLambdaRegistry<Events, DTOBase<DTO, D, E>> =
-        lambdaRegistryOf(Events.StatusChanged)
-
-    internal val onInitialized: TaggedLambdaRegistry<Events, DTOBase<DTO, D, E>> =
-        lambdaRegistryOf(Events.Initialized)
-
-    internal val onNewMember: TaggedLambdaRegistry<Events, DTOClass<*, *, *>> =
-        lambdaRegistryOf(Events.NewHierarchyMember)
+    internal val onStatusChanged  = taggedRegistryOf<Events, DTOBase<DTO, D, E>>(Events.StatusChanged)
+    internal val onInitialized = taggedRegistryOf<Events, DTOBase<DTO, D, E>>(Events.Initialized)
+    internal val onNewMember = taggedRegistryOf<Events, DTOClass<*, *, *>>(Events.NewHierarchyMember)
 
     var status: DTOClassStatus = DTOClassStatus.Uninitialized
         private set
 
-    internal val logger: TaskHandler<*> get() = taskHandler
-
-    val debugger =
+    internal val debugger =
         exposifyDebugger(this, ContextData) {
             ContextData(it.message)
         }
@@ -86,9 +77,9 @@ sealed class DTOBase<DTO, D, E>(
 
         status = newStatus
 
-        onStatusChanged.trigger(Events.StatusChanged, this)
+        onStatusChanged.trigger(this)
         if (newStatus == DTOClassStatus.Initialized) {
-            onInitialized.trigger(Events.Initialized, this)
+            onInitialized.trigger(this)
         }
     }
 
