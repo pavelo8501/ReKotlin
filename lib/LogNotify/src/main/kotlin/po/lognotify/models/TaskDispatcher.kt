@@ -3,11 +3,14 @@ package po.lognotify.models
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.currentCoroutineContext
 import po.lognotify.TasksManaged
 import po.lognotify.TasksManaged.LogNotify.taskDispatcher
 import po.lognotify.common.configuration.TaskConfig
 import po.lognotify.notification.LoggerDataProcessor
 import po.lognotify.notification.NotifierHub
+import po.lognotify.process.Process
+import po.lognotify.process.ProcessKey
 import po.lognotify.process.processInScope
 import po.lognotify.tasks.ExecutionStatus
 import po.lognotify.tasks.RootTask
@@ -48,16 +51,12 @@ class TaskDispatcher(val notifierHub: NotifierHub): CTX {
 
     override val identity: CTXIdentity<TaskDispatcher> = asIdentity()
 
-    val dispatcherUpdates =  emitterAwareRegistryOf<TaskDispatcher, UpdateType, LoggerStats>()
+    internal val notifier =  emitterAwareRegistryOf<TaskDispatcher, UpdateType, LoggerStats>()
 
+    internal val taskHierarchy = ConcurrentHashMap<TaskKey, RootTask<*, *>>()
+    internal val processRegistry = ConcurrentHashMap<ProcessKey<*>, Process<*>>()
+    internal fun getTasks(): List<TaskBase<*, *>> = taskHierarchy.values.toList()
 
-    internal val callbackRegistry =
-        callbackManager<UpdateType>(
-            { CallbackManager.createPayload<UpdateType, LoggerStats>(this, UpdateType.OnTaskCreated) },
-            { CallbackManager.createPayload<UpdateType, LoggerStats>(this, UpdateType.OnTaskStart) },
-            { CallbackManager.createPayload<UpdateType, LoggerStats>(this, UpdateType.OnTaskUpdated) },
-            { CallbackManager.createPayload<UpdateType, LoggerStats>(this, UpdateType.OnTaskComplete) },
-        )
 
     private fun createLoggerStats(
         task: TaskBase<*, *>,
@@ -95,10 +94,15 @@ class TaskDispatcher(val notifierHub: NotifierHub): CTX {
         receiver: T,
         config: TaskConfig = TaskConfig(isDefault = true),
     ): RootTask<T, R>{
+
+
+        val process = processRegistry.values.firstOrNull()
         val newTask = RootTask<T, R>(TaskKey(name, 0, moduleName), config, defaultContext(name), taskDispatcher, receiver)
+        if(process != null){
+            newTask.updateContext(process.coroutineContext)
+        }
         addRootTask(newTask)
-        processInScope()?.observeTask(newTask)
-        dispatcherUpdates.trigger(UpdateType.OnTaskCreated, createLoggerStats(newTask, taskHierarchy))
+        notifier.trigger(UpdateType.OnTaskCreated, createLoggerStats(newTask, taskHierarchy))
        return newTask
     }
 
@@ -109,9 +113,13 @@ class TaskDispatcher(val notifierHub: NotifierHub): CTX {
         receiver: T,
         config: TaskConfig = TaskConfig(isDefault = true),
     ): RootTask<T, R> {
-        val newTask = RootTask<T, R>(TaskKey(name, 0, moduleName), config, defaultContext(name), taskDispatcher, receiver)
-        addRootTask(newTask)
 
+        val newTask = RootTask<T, R>(TaskKey(name, 0, moduleName), config, defaultContext(name), taskDispatcher, receiver)
+        val process = processRegistry.values.firstOrNull()
+        if(process != null){
+            newTask.updateContext(process.coroutineContext)
+        }
+        addRootTask(newTask)
         return newTask
     }
 
@@ -128,32 +136,31 @@ class TaskDispatcher(val notifierHub: NotifierHub): CTX {
         return newTask
     }
 
-    internal val taskHierarchy = ConcurrentHashMap<TaskKey, RootTask<*, *>>()
-    // internal val callbackRegistry : MutableMap<UpdateType, (LoggerStats)-> Unit> = mutableMapOf()
-
-    internal fun getTasks(): List<TaskBase<*, *>> = taskHierarchy.values.toList()
-
+    fun registerProcess(process: Process<*>) {
+        processRegistry[process.processKey] = process
+    }
 
     fun onTaskUpdate(
         handler: UpdateType,
-        callback: (Containable<LoggerStats>) -> Unit,
+        callback: (LoggerStats) -> Unit,
     ) {
-        callbackRegistry.subscribe<LoggerStats>(this, UpdateType.OnTaskCreated, callback)
+        notifier.subscribe(UpdateType.OnTaskCreated, this::class,  callback)
     }
 
-    fun onTaskComplete(
-        handler: UpdateType,
-        callback: (Containable<LoggerStats>) -> Unit,
-    ) {
-        callbackRegistry.subscribe<LoggerStats>(this, UpdateType.OnTaskComplete, callback)
-    }
+//    fun onTaskComplete(
+//        handler: UpdateType,
+//        callback: (Containable<LoggerStats>) -> Unit,
+//    ) {
+//        notifier.subscribe(UpdateType.OnTaskComplete,  this,  callback)
+//    }
+
 
     fun notifyUpdate(
         handler: UpdateType,
         task: TaskBase<*, *>,
     ) {
         val stats = createLoggerStats(task, taskHierarchy)
-        callbackRegistry.trigger(handler, stats)
+        notifier.trigger(handler, stats)
     }
 
     fun addRootTask(task: RootTask<*, *>) {

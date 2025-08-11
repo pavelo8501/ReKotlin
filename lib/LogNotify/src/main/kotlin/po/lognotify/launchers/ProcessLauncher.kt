@@ -1,26 +1,29 @@
 package po.lognotify.launchers
 
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import po.lognotify.exceptions.getOrLoggerException
+import po.lognotify.TasksManaged
 import po.lognotify.process.LoggerProcess
 import po.lognotify.process.Process
+import po.lognotify.process.ProcessKey
 import po.misc.context.CTX
-import po.misc.coroutines.CoroutineHolder
 import po.misc.coroutines.LauncherType
 import po.misc.data.logging.LogCollector
+import java.util.UUID
 import kotlin.coroutines.CoroutineContext
 
-
-private suspend fun <T, R> executeProcess(
+@PublishedApi
+internal suspend fun <T, R> executeProcess(
     process: Process<T>,
     dispatcher: CoroutineDispatcher,
     block: suspend LoggerProcess<T>.()-> R,
-):R where T: CoroutineHolder, T: CTX, T: LogCollector{
+):R where T: CTX, T: LogCollector, T: CoroutineContext.Element{
 
     return LauncherType.ConcurrentLauncher.RunCoroutineHolder(process, dispatcher) {
         val job = process.coroutineContext[Job]
+
         job?.invokeOnCompletion { cause ->
             if (cause == null) {
                 println("Coroutine completed normally")
@@ -35,28 +38,26 @@ private suspend fun <T, R> executeProcess(
 }
 
 @JvmName("runProcessAttached")
-suspend fun <T, R> T.runProcess(
-    contextKey:CoroutineContext.Key<*>,
+suspend inline fun <reified T, R> T.runProcess(
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
-    block: suspend LoggerProcess<T>.()-> R,
-):R where T: CoroutineHolder, T: CTX, T: LogCollector{
+    noinline block: suspend LoggerProcess<T>.()-> R,
+):R where T: CTX, T: LogCollector, T: CoroutineContext.Element{
 
-   val element =  this.coroutineContext[contextKey]
-   val notNullElement = element.getOrLoggerException("CoroutineElement is null for key provided : $contextKey")
-   val process = Process<T>(identifiedByName,this, notNullElement)
+   val processKey = ProcessKey.create<T>("Process#${UUID.randomUUID()}", CoroutineName(identity.identifiedByName))
+   val process = Process<T>(processKey,this)
+    TasksManaged.LogNotify.taskDispatcher.registerProcess(process)
    return executeProcess(process, dispatcher, block)
 }
 
-suspend fun <T, R> runProcess(
+suspend inline fun <reified T, R> runProcess(
     receiver: T,
-    contextKey:CoroutineContext.Key<*>,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
-    block: suspend LoggerProcess<T>.()-> R,
-):R where T: CoroutineHolder, T: CTX, T: LogCollector{
+    noinline block: suspend LoggerProcess<T>.()-> R,
+):R where T: CTX, T: LogCollector, T: CoroutineContext.Element{
 
-    val element = receiver.coroutineContext[contextKey]
-    val notNullElement = element.getOrLoggerException("CoroutineElement is null for key provided : $contextKey")
-    val process = Process<T>(receiver.identifiedByName, receiver, notNullElement)
+    val processKey = ProcessKey.create<T>("Process#${UUID.randomUUID()}", CoroutineName(receiver.identity.identifiedByName))
+    val process = Process<T>(processKey,  receiver)
+    TasksManaged.LogNotify.taskDispatcher.registerProcess(process)
     return executeProcess(process, dispatcher, block)
 
 }

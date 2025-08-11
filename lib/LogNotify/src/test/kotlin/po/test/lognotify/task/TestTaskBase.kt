@@ -63,7 +63,7 @@ class TestTaskBase : FakeTasksManaged {
         val receiverClass = ReceiverClass()
         val taskStats = mutableListOf<LoggerStats>()
 
-        logHandler.dispatcher.onTaskUpdate(TaskDispatcher.UpdateType.OnTaskCreated) { taskStats.add(it.getData()) }
+        logHandler.dispatcher.onTaskUpdate(TaskDispatcher.UpdateType.OnTaskCreated) {  }
 
         receiverClass.function1(input = 1, childCount = 10)
 
@@ -77,7 +77,7 @@ class TestTaskBase : FakeTasksManaged {
 
         taskStats.clear()
         logHandler.dispatcher.onTaskUpdate(TaskDispatcher.UpdateType.OnTaskCreated) {
-            taskStats.add(it.getData())
+
         }
 
         val topTaskName = "TopTask"
@@ -108,7 +108,7 @@ class TestTaskBase : FakeTasksManaged {
         assertAll(
             "Root tasks executed in parallel",
             { assertNotEquals(rootTask1.key.taskId, rootTask2.key.taskId, "This is same task") },
-            { assertNotEquals(rootTask1Coroutine.name, rootTask2Coroutine.name, "Coroutine name is the same") },
+            { assertNotEquals(rootTask1Coroutine.coroutineName, rootTask2Coroutine.coroutineName, "Coroutine name is the same") },
             { assertNotEquals(rootTask1Coroutine.hashCode, rootTask2Coroutine.hashCode, "This is the same coroutine") },
             { assertEquals("DefaultScheduler", topTaskCoroutine.dispatcherName, "Wrong dispatcher used.") },
         )

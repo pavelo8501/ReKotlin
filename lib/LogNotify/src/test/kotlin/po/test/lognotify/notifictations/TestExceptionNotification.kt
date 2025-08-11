@@ -48,8 +48,8 @@ class TestExceptionNotification: FakeTasksManaged {
 
         val throwingCallSite = assertNotNull(exceptionRecord.throwingCallSite)
 
-        assertEquals(this::class.qualifiedName.toString(), throwingCallSite.className)
-        assertTrue(throwingCallSite.className.contains("TestExceptionNotification"))
+        assertEquals(this::class.qualifiedName.toString(), throwingCallSite.fileName)
+        assertTrue(throwingCallSite.fileName.contains("TestExceptionNotification"))
     }
 
     @Test
@@ -76,7 +76,7 @@ class TestExceptionNotification: FakeTasksManaged {
 
         val throwingCallSite = assertNotNull(exceptionRecord.throwingCallSite)
 
-        assertTrue(throwingCallSite.className.contains("TestExceptionNotification"))
+        assertTrue(throwingCallSite.fileName.contains("TestExceptionNotification"))
         assertNotNull(exceptionRecord.actionSpans?.lastOrNull { it.actionStatus == ExecutionStatus.Failing })
 
         exceptionRecord.echo()

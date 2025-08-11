@@ -15,15 +15,16 @@ import kotlin.coroutines.CoroutineContext
 
 
 class Process<T>(
-    val processName: String,
+    val processKey: ProcessKey<T>,
     override val receiver: T,
-    val contextElement : CoroutineContext.Element,
-): LoggerProcess<T>, CoroutineContext.Element, CoroutineHolder, CTX where T: CTX, T: LogCollector{
+): LoggerProcess<T>, CoroutineContext.Element, CoroutineHolder, CTX where T: CTX, T: LogCollector, T: CoroutineContext.Element{
 
     override val identity: CTXIdentity<Process<T>> = asIdentity()
 
+    val processName: String = processKey.processName
+
     override val key: CoroutineContext.Key<Process<*>> = Key
-    val scope: CoroutineScope = CoroutineScope(this + contextElement)
+    val scope: CoroutineScope = CoroutineScope(this + receiver + processKey.coroutineName)
     override val coroutineContext: CoroutineContext get() = scope.coroutineContext
 
     val timeStamp: ExecutionTimeStamp = ExecutionTimeStamp(processName, "LoggerProcess")
@@ -47,5 +48,9 @@ class Process<T>(
             }
         }
     }
+
+    override fun <T: CoroutineContext.Element> getCoroutineElement(key: CoroutineContext.Key<T>): T? =
+        coroutineContext[key]
+
     companion object Key : CoroutineContext.Key<Process<*>>
 }

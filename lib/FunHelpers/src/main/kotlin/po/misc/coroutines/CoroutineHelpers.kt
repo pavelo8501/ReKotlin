@@ -4,18 +4,31 @@ package po.misc.coroutines
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import po.misc.data.styles.SpecialChars
 import kotlin.coroutines.ContinuationInterceptor
 import kotlin.coroutines.CoroutineContext
 
 
 data class CoroutineInfo(
-    val name: String,
+    val coroutineName: String,
     val hashCode: Int,
     val dispatcherName: String,
     val jobStatus: String,
     val childJobCount: Int,
     val topLevelKeys : List<String>
 ){
+
+    override fun toString(): String {
+        val keys = topLevelKeys.joinToString(prefix = "Top level keys:[", separator = "/", postfix = "]") { it }
+        return buildString {
+            appendLine("Coroutine Name: $coroutineName")
+            appendLine("Dispatcher Name: $dispatcherName")
+            appendLine("Job Status: $jobStatus")
+            appendLine("Job Status: $jobStatus")
+            appendLine("Child Jobs: $childJobCount")
+            appendLine(keys)
+        }
+    }
 
     companion object{
         fun createInfo(coroutineContext: CoroutineContext?):CoroutineInfo{

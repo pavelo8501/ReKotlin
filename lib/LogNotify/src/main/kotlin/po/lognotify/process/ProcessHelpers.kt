@@ -1,6 +1,11 @@
 package po.lognotify.process
 
-import kotlin.coroutines.coroutineContext
+import po.misc.context.CTX
+import kotlin.coroutines.CoroutineContext
 
 
-internal suspend fun processInScope(): Process<*>? = coroutineContext[Process]
+fun  CoroutineContext.processInScope(): Process<*>? = this[Process]
+
+fun CTX.processInScope(context: CoroutineContext): Process<*>? {
+   return context[Process]
+}

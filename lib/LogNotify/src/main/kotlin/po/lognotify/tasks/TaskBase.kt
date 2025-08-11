@@ -48,10 +48,10 @@ sealed class TaskBase<T : CTX, R : Any?>(
     override val config: TaskConfig,
     dispatcher: TaskDispatcher,
     override val receiver: T,
-) : StaticHelper, ResultantTask<T, R>, LNInstance<T> {
+) : StaticHelper, ResultantTask<T, R>, LNInstance<T>, CoroutineHolder {
 
     abstract var taskResult: TaskResult<R>?
-    abstract val coroutineContext: CoroutineContext
+    abstract override val coroutineContext: CoroutineContext
     abstract val registry: TaskRegistry<*, *>
     abstract val callbackRegistry: CallbackManager<TaskDispatcher.UpdateType>
     abstract override val dataProcessor: LoggerDataProcessor
@@ -140,12 +140,16 @@ sealed class TaskBase<T : CTX, R : Any?>(
 class RootTask<T : CTX, R : Any?>(
     key: TaskKey,
     config: TaskConfig,
-    override val coroutineContext: CoroutineContext,
+     val initialContext: CoroutineContext,
     val dispatcher: TaskDispatcher,
     receiver: T,
-) : TaskBase<T, R>(key, config, dispatcher, receiver),
-    CoroutineHolder {
+) : TaskBase<T, R>(key, config, dispatcher, receiver){
+
+
     override val identity: CTXIdentity<RootTask<T, R>> = asSubIdentity(this, receiver)
+
+    override var coroutineContext: CoroutineContext  = initialContext
+        internal set
 
     override val dataProcessor: LoggerDataProcessor = LoggerDataProcessor(this, null)
 
@@ -178,6 +182,10 @@ class RootTask<T : CTX, R : Any?>(
             dataProcessor.debug("Cancelling Context ${coroutineContext[CoroutineName]?.name ?: "Unknown"}", "RootTask(commitSuicide)")
             coroutineContext.cancel(cancellation)
         }
+    }
+
+    internal fun updateContext(context: CoroutineContext){
+        coroutineContext = context
     }
 
     override fun start(): TaskBase<T, R> {
