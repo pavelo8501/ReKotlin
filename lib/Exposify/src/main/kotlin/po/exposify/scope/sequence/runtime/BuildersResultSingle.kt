@@ -18,20 +18,20 @@ fun <DTO, D> SequenceChunkContainer<DTO, D>.pickById(
 ): DeferredContainer<ResultSingle<DTO, D>> where DTO : ModelDTO, D : DataModel {
     val pickByIdChunk = PickChunk(handler.descriptor.dtoClass.commonDTOType, configurationBlock)
 
-    pickByIdChunk.subscribeParameter { parameter ->
-        val result = descriptor.dtoClass.executionContext.pickById(parameter)
-        println("Chunk $pickByIdChunk Initiated by parameter: $parameter")
-        println("Result received $result")
-        result
-    }
-
-    pickByIdChunk.subscribeQuery { queryContainer ->
-        val query = queryContainer.resolve()
-        val result = descriptor.dtoClass.executionContext.pick(query)
-        println("Chunk $pickByIdChunk Initiated by query: $query")
-        println("Result received $result")
-        result
-    }
+//    pickByIdChunk.subscribeParameter { parameter ->
+//        val result = descriptor.dtoClass.executionContext.pickById(parameter)
+//        println("Chunk $pickByIdChunk Initiated by parameter: $parameter")
+//        println("Result received $result")
+//        result
+//    }
+//
+//    pickByIdChunk.subscribeQuery { queryContainer ->
+//        val query = queryContainer.resolve()
+//        val result = descriptor.dtoClass.executionContext.pick(query)
+//        println("Chunk $pickByIdChunk Initiated by query: $query")
+//        println("Result received $result")
+//        result
+//    }
     registerChunk(pickByIdChunk)
     return pickByIdChunk.resultContainer
 }
@@ -41,12 +41,13 @@ fun <DTO, D> SequenceChunkContainer<DTO, D>.update(
     configurationBlock: SingleResultChunks<DTO, D>.() -> Unit,
 ): DeferredContainer<ResultSingle<DTO, D>> where DTO : ModelDTO, D : DataModel {
     val updateChunk = UpdateChunk(handler.descriptor.dtoClass.commonDTOType, configurationBlock)
-    updateChunk.subscribeData { dataInput ->
-        val result = descriptor.dtoClass.executionContext.update(dataInput, updateChunk)
-        println("Chunk $updateChunk Initiated by data: $dataInput")
-        println("Result received $result")
-        result
-    }
+
+//    updateChunk.subscribeData { dataInput ->
+//        val result = descriptor.dtoClass.executionContext.update(dataInput, updateChunk)
+//        println("Chunk $updateChunk Initiated by data: $dataInput")
+//        println("Result received $result")
+//        result
+//    }
     registerChunk(updateChunk)
     return updateChunk.resultContainer
 }

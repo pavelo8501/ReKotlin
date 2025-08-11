@@ -1,10 +1,14 @@
 package po.exposify.scope.sequence.builder
 
+import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
+import po.exposify.dto.DTOClass
 import po.exposify.dto.RootDTO
 import po.exposify.dto.components.bindings.helpers.withDTOContext
+import po.exposify.dto.components.bindings.helpers.withDTOContextCreating
 import po.exposify.dto.components.query.SimpleQuery
 import po.exposify.dto.components.query.WhereQuery
+import po.exposify.dto.components.result.ResultBase
 import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.components.result.toResultList
@@ -228,37 +232,30 @@ class PickChunk<DTO, D>(
             ownDTOClass.executionContext.pick(conditions)
         }.resultOrException()
 
-    suspend fun pickById(
-        ownDTOClass: RootDTO<DTO, D, *>,
-        id: Long
-    ): ResultSingle<DTO, D> =
-        runTaskAsync("pickById") {
-            ownDTOClass.executionContext.pickById(id)
-        }.resultOrException()
+    suspend fun pickById(ownDTOClass: RootDTO<DTO, D, *>, id: Long): ResultSingle<DTO, D> =
+        ownDTOClass.executionContext.pick(id)
 
-    suspend fun <F : ModelDTO, FD : DataModel> pickSwitching(
+
+    fun <F : ModelDTO, FD : DataModel> pickSwitching(
         parentResult: ResultSingle<F, FD>,
-        ownDTOClass: DTOBase<DTO, D, *>,
+        ownDTOClass: DTOClass<DTO, D, *>,
         parameter: Long,
-    ): ResultSingle<DTO, D> =
-        runTaskAsync("pickSwitching") {
-            parentResult.getAsCommonDTO().withDTOContext(ownDTOClass.commonDTOType) {
-                pickById(parameter)
-            }
-        }.resultOrException()
+    ): ResultSingle<DTO, D> {
+        return withDTOContextCreating(parentResult.getAsCommonDTO(), ownDTOClass) {
+            pick(parameter)
+        }
+    }
 
 
-    suspend fun <F : ModelDTO, FD : DataModel> pickSwitching(
+    fun <F : ModelDTO, FD : DataModel> pickSwitching(
         parentResult: ResultSingle<F, FD>,
-        ownDTOClass: DTOBase<DTO, D, *>,
+        ownDTOClass: DTOClass<DTO, D, *>,
         whereQuery: DeferredContainer<WhereQuery<*>>,
-    ): ResultSingle<DTO, D> =
-        runTaskAsync("pickSwitching") {
-            parentResult.getAsCommonDTO().withDTOContext(ownDTOClass.commonDTOType) {
-                pick(whereQuery.resolve())
-            }
-        }.resultOrException()
-
+    ): ResultSingle<DTO, D> {
+        return withDTOContextCreating(parentResult.getAsCommonDTO(), ownDTOClass) {
+            pick(whereQuery.resolve())
+        }
+    }
 }
 
 class UpdateChunk<DTO, D>(
@@ -273,25 +270,24 @@ class UpdateChunk<DTO, D>(
         identity.setNamePattern { "UpdateChunk<${commonDTOType.dtoType.typeName}, ${commonDTOType.dataType.typeName}>" }
     }
 
-
-    suspend fun update(dtoClass: RootDTO<DTO, D, *>, input:D): ResultSingle<DTO, D> =
-        runTaskAsync("update") {
-            dtoClass.executionContext.update(input, this)
-        }.resultOrException()
+    suspend fun update(
+        dtoClass: RootDTO<DTO, D, *>,
+        input: D
+    ): ResultSingle<DTO, D> = dtoClass.executionContext.update(input)
 
 
     suspend fun <F : ModelDTO, FD : DataModel> updateSwitching(
         parentResult: ResultSingle<F, FD>,
-        ownDTOClass: DTOBase<DTO, D, *>,
-        input:D
+        ownDTOClass: DTOClass<DTO, D, *>,
+        input: D
     ): ResultSingle<DTO, D> =
         runTaskAsync("updateSwitching") {
-            val result = parentResult.getAsCommonDTO().withDTOContext(ownDTOClass.commonDTOType) {
-                    update(input, this)
-                }
+
+            val result = withDTOContextCreating(parentResult.getAsCommonDTO(), ownDTOClass) {
+                update(input, this, null)
+            }
             result
         }.resultOrException()
-
 }
 
 class SelectChunk<DTO, D>(
@@ -311,34 +307,32 @@ class SelectChunk<DTO, D>(
             dtoClass.executionContext.select()
         }.resultOrException()
 
-    suspend fun select(dtoClass: RootDTO<DTO, D, *>, query:  DeferredContainer<WhereQuery<*>>): ResultList<DTO, D> =
+    suspend fun select(dtoClass: RootDTO<DTO, D, *>, query: DeferredContainer<WhereQuery<*>>): ResultList<DTO, D> =
         runTaskAsync("update(query)") {
             dtoClass.executionContext.select(query.resolve())
         }.resultOrException()
 
 
+    fun <F : ModelDTO, FD : DataModel> selectSwitching(
+        parentDTO: CommonDTO<F, FD, *>,
+        ownDTOClass: DTOClass<DTO, D, *>
 
-    suspend fun <F : ModelDTO, FD : DataModel> selectSwitching(
-        parentResult: ResultSingle<F, FD>,
-        ownDTOClass: DTOBase<DTO, D, *>
-    ): ResultList<DTO, D> =
-        runTaskAsync("pickSwitching") {
-            parentResult.getAsCommonDTO().withDTOContext(ownDTOClass.commonDTOType) {
-                select()
-            }
-        }.resultOrException()
+    ): ResultList<DTO, D> {
 
-    suspend fun <F : ModelDTO, FD : DataModel> selectSwitching(
-        parentResult: ResultSingle<F, FD>,
-        ownDTOClass: DTOBase<DTO, D, *>,
+        return withDTOContextCreating(parentDTO, ownDTOClass) {
+            select()
+        }
+    }
+
+    fun <F : ModelDTO, FD : DataModel> selectSwitching(
+        parentResult: CommonDTO<F, FD, *>,
+        ownDTOClass: DTOClass<DTO, D, *>,
         whereQuery: DeferredContainer<WhereQuery<*>>,
-    ): ResultList<DTO, D> =
-        runTaskAsync("pickSwitching") {
-            parentResult.getAsCommonDTO().withDTOContext(ownDTOClass.commonDTOType) {
-                select(whereQuery.resolve())
-            }
-        }.resultOrException()
-
+    ): ResultList<DTO, D> {
+        return withDTOContextCreating(parentResult,  ownDTOClass) {
+            select(whereQuery.resolve())
+        }
+    }
 }
 
 class UpdateListChunk<DTO, D>(
@@ -354,19 +348,20 @@ class UpdateListChunk<DTO, D>(
         identity.setNamePattern { "UpdateListChunk<${commonDTOType.dtoType.typeName}, ${commonDTOType.dataType.typeName}>" }
     }
 
-    suspend fun update(dtoClass: RootDTO<DTO, D, *>, input: List<D>): ResultList<DTO, D> =
-        runTaskAsync("update") {
-            dtoClass.executionContext.update(input, this)
-        }.resultOrException()
+    suspend fun update(
+        dtoClass: RootDTO<DTO, D, *>,
+        input: List<D>
+    ): ResultList<DTO, D> = dtoClass.executionContext.update(input)
+
 
     suspend fun <F : ModelDTO, FD : DataModel> updateSwitching(
         parentResult: ResultSingle<F, FD>,
-        ownDTOClass: DTOBase<DTO, D, *>,
+        ownDTOClass: DTOClass<DTO, D, *>,
         input:List<D>
     ): ResultList<DTO, D> =
         runTaskAsync("updateSwitching") {
-            val result = parentResult.getAsCommonDTO().withDTOContext(ownDTOClass.commonDTOType) {
-                update(input, this)
+            val result = withDTOContextCreating(parentResult.getAsCommonDTO(),  ownDTOClass) {
+                update(input, this, null)
             }
             result
         }.resultOrException()

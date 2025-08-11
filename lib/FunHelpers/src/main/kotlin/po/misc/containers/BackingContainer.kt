@@ -5,12 +5,12 @@ import po.misc.data.logging.LogEmitter
 import po.misc.data.processors.SeverityLevel
 import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.exceptions.ManagedException
-import po.misc.exceptions.ManagedPayload
 import po.misc.functions.common.ExceptionFallback
 import po.misc.functions.common.Fallback
 import po.misc.functions.hooks.Change
 import po.misc.functions.hooks.ChangeHook
 import po.misc.functions.hooks.models.ValueUpdate
+import po.misc.functions.models.NotificationConfig
 import po.misc.functions.registries.NotifierRegistry
 import po.misc.types.TypeData
 import po.misc.types.Typed
@@ -37,7 +37,7 @@ sealed class BackingContainerBase<T: Any>(val typeData: Typed<T>, ): LogEmitter{
     val isValueAvailable: Boolean get() = backingValue != null
 
     private var exceptionFallback: ExceptionFallback? = null
-    private val callbackRegistry = NotifierRegistry<T>()
+    private val registry = NotifierRegistry<T>()
 
     protected var changedHook: ChangeHook<T> = ChangeHook()
 
@@ -46,10 +46,21 @@ sealed class BackingContainerBase<T: Any>(val typeData: Typed<T>, ): LogEmitter{
         if (currentValue != null) {
             return currentValue
         } else {
-            val payload = ManagedPayload("value is null", "getValueWithFallback", callingContext)
-            exceptionFallback?.exceptionProvider?.invoke(payload)
+            exceptionFallback?.exceptionProvider?.invoke()
         }
         return value.getOrManaged(typeData.kClass, callingContext)
+    }
+
+    private val valueNullMsg: (String)-> String = {name->
+        "Context $name is trying to access uninitialized value in $this"
+    }
+
+    private fun notifyValueNull(callingContext: Any){
+       val msg = when(callingContext){
+            is CTX-> valueNullMsg(callingContext.identifiedByName)
+            else ->  valueNullMsg(callingContext::class.simpleName.toString())
+        }
+        callingContext.notify(msg, SeverityLevel.WARNING)
     }
 
     fun provideFallback(fallback: ExceptionFallback) {
@@ -57,7 +68,10 @@ sealed class BackingContainerBase<T: Any>(val typeData: Typed<T>, ): LogEmitter{
     }
 
     fun getValue(callingContext: Any): T {
-        return getValueWithFallback(callingContext)
+        value?:run {
+            notifyValueNull(callingContext)
+        }
+        return value.getOrManaged(typeData.kClass, callingContext)
     }
 
     fun <T2: Any> getWithFallback(fallback: Fallback<T2>):T{
@@ -82,8 +96,8 @@ sealed class BackingContainerBase<T: Any>(val typeData: Typed<T>, ): LogEmitter{
         value?.let {
             callback.invoke(it)
         }?:run {
-            val index = callbackRegistry.size+ 1L
-            callbackRegistry.subscribe(index,  subscriber, callback)
+            val index = registry.subscriptionsCount + 1L
+            registry.subscribe(subscriber, index, callback)
         }
     }
 
@@ -91,17 +105,18 @@ sealed class BackingContainerBase<T: Any>(val typeData: Typed<T>, ): LogEmitter{
      * Sets or replaces the backing source value.
      * @param value the value to assign as the backing source.
      */
-    open fun provideValue(value:T){
+    open fun provideValue(value:T):BackingContainerBase<T>{
         val oldValue = this.value
         backingValue = value
-        callbackRegistry.triggerAll(value)
-        callbackRegistry.clear()
+        registry.trigger(value)
+        registry.clear()
         changedHook.trigger(ValueUpdate(oldValue, value))
+        return this
     }
 
     fun reset() {
         backingValue = null
-        callbackRegistry.clear()
+        registry.clear()
     }
 }
 
@@ -126,7 +141,10 @@ open class BackingContainer<T: Any>(
         changedHook.subscribe(callback)
     }
 
-    companion object {
+
+    override fun toString(): String = "BackingContainer<${typeData.typeName}>"
+
+        companion object {
         inline fun <reified T : Any> create(initialValue: T? = null): BackingContainer<T> {
             val container = BackingContainer(TypeData.create<T>())
             if (initialValue != null) {
@@ -137,35 +155,33 @@ open class BackingContainer<T: Any>(
     }
 }
 
+
 inline fun <reified T: Any> backingContainerOf():BackingContainer<T>{
    return BackingContainer(TypeData.create<T>())
 }
 
 
-class LazyBackingContainer<T: Any>(
-
-    typeData: Typed<T>,
-    initialValue:T? = null
+class LazyContainer<T: Any>(
+    typeData: Typed<T>
 ):BackingContainerBase<T>(typeData) {
 
     var lockedForEdit: Boolean = false
         private set
 
-    override var backingValue: T? = initialValue
+    override var backingValue: T? = null
     val registry: NotifierRegistry<T> = NotifierRegistry()
+
+    internal var notifierConfig: NotificationConfig = NotificationConfig()
 
     fun onValueSet(callback:(Change<T?, T>)-> Unit){
         changedHook.subscribe(callback)
     }
-    fun requestValue(subscriber: CTX, callback:(T)-> Unit){
-        val value = backingValue
-        if (value != null) {
-            callback.invoke(value)
-        }else{
 
-            if(!lockedForEdit){
-                registry.subscribe(subscriber.identity.numericId, subscriber, callback)
-            }
+    fun requestValue(subscriber: CTX, callback:(T)-> Unit){
+        backingValue?.let {
+            callback.invoke(it)
+        }?:run {
+            registry.subscribe(subscriber, callback)
         }
     }
 
@@ -185,21 +201,44 @@ class LazyBackingContainer<T: Any>(
                 notify("Cast to ${kClass.simpleName} failed wount invoke", SeverityLevel.WARNING)
             }
         }else{
-            registry.subscribe(subscriber.identity.numericId, subscriber, callback as (T) -> Unit)
+            registry.subscribe(subscriber, subscriber.identity.numericId, callback as (T) -> Unit)
         }
     }
 
-    override fun provideValue(value: T) {
+    override fun provideValue(value: T):LazyContainer<T> {
         if(!lockedForEdit){
             super.provideValue(value)
-            registry.triggerAll(value)
+            registry.trigger(value)
             lockedForEdit = true
             registry.clear()
+        }else{
+
         }
+        return this
     }
 }
 
+inline fun <reified T: Any> lazyContainerOf(
+    configBuilder:NotificationConfig.()-> Unit
+):LazyContainer<T>{
 
-inline fun <reified T: Any> lazyBackingOf(initialValue:T? = null):LazyBackingContainer<T>{
-    return LazyBackingContainer(TypeData.create<T>(), initialValue)
+   val config = NotificationConfig()
+    config.configBuilder()
+    val container = LazyContainer(TypeData.create<T>())
+
+
+
+    return container
+}
+
+
+inline fun <reified T: Any> lazyContainerOf(
+    initialValue:T? = null
+):LazyContainer<T>{
+
+    val container = LazyContainer(TypeData.create<T>())
+    initialValue?.let {
+        container.provideValue(it)
+    }
+    return container
 }

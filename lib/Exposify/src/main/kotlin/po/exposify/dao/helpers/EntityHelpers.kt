@@ -1,5 +1,6 @@
 package po.exposify.dao.helpers
 
+import org.jetbrains.exposed.dao.Entity
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dao.classes.ExposifyEntityClass
 import po.exposify.exceptions.enums.ExceptionCode
@@ -25,4 +26,12 @@ inline fun <reified E : LongEntity> getExposifyEntityCompanion(
             callingContext
         )
     }
+}
+
+
+internal fun Entity<*>.hasChanges(): Boolean {
+    val field = this::class.java.superclass.getDeclaredField("writeValues")
+    field.isAccessible = true
+    val writeValues = field.get(this) as Map<*, *>
+    return writeValues.isNotEmpty()
 }

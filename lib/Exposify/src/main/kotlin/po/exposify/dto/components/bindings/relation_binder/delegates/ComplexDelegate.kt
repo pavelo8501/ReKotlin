@@ -16,6 +16,8 @@ import po.exposify.extensions.castOrInit
 import po.exposify.extensions.castOrOperations
 import po.exposify.extensions.getOrOperations
 import po.lognotify.TasksManaged
+import po.misc.containers.LazyContainer
+import po.misc.containers.lazyContainerOf
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asSubIdentity
@@ -41,22 +43,27 @@ sealed class ComplexDelegate<DTO, D, E, F, FD, FE>(
     }
 
     abstract val foreignClass: DTOBase<F, FD, FE>
-    protected val foreignInitialized: Boolean get() = foreignCommonBacking != null
+
     val foreignCommonDTOType: CommonDTOType<F, FD, FE> get() = foreignClass.commonDTOType
 
-    private var foreignCommonBacking: CommonDTO<F, FD, FE>? = null
-    val foreignCommon: CommonDTO<F, FD, FE> get() = foreignCommonBacking.getOrOperations(this)
+   // private var foreignCommonBacking: CommonDTO<F, FD, FE>? = null
+   // val foreignCommon: CommonDTO<F, FD, FE> get() = foreignCommonBacking.getOrOperations(this)
 
-    val foreignDTO: F get() = foreignCommonBacking.getOrOperations(this).asDTO()
+    val lazyForeignDTO : LazyContainer<CommonDTO<F, FD, FE>> = lazyContainerOf<CommonDTO<F, FD, FE>>()
+
+    val foreignInitialized: Boolean get() = lazyForeignDTO.value != null
+   // protected val backingAccessFallback = ExceptionFallback { operationsException("Result unavailable", ExceptionCode.ABNORMAL_STATE) }
+   // val foreignDTO: F get() = foreignCommonBacking.getOrOperations(this).asDTO()
 
     protected abstract fun onPropertyResolved()
 
     protected abstract fun beforeRegistered()
 
     protected fun provideForeignDTO(commonDTO: CommonDTO<F, FD, FE>): CommonDTO<F, FD, FE> {
-        foreignCommonBacking = commonDTO
+        lazyForeignDTO.provideValue(commonDTO)
+      //  foreignCommonBacking = commonDTO
         updateStatus(DelegateStatus.Initialized)
-        return foreignCommon
+        return commonDTO
     }
 
     override fun resolveProperty(property: KProperty<*>) {
@@ -85,7 +92,7 @@ sealed class ComplexDelegate<DTO, D, E, F, FD, FE>(
         property: KProperty<*>,
     ): F {
         resolveProperty(property)
-        return foreignDTO
+        return lazyForeignDTO.getValue(this).asDTO()
     }
 }
 
@@ -102,26 +109,31 @@ class AttachedForeignDelegate<DTO, D, E, F, FD, FE>(
     val attachedName: String get() = entityIdProperty.name
 
     private fun getForeignDTO(id: Long): CommonDTO<F, FD, FE> {
-        val result = foreignClass.executionContext.pickById(id)
-        return result.commonDTO?.let {
+
+      return  foreignClass.executionContext.dtoLookup(id)?.let {
             val foreignDTO = provideForeignDTO(it.castOrOperations(this))
             foreignDTOCallback.invoke(foreignDTO.asDTO())
             foreignDTO
-        } ?: throw result.failureCause ?: OperationsException("Result unavailable", ExceptionCode.CAST_FAILURE, this)
+        } ?:run {
+            throw OperationsException("Result unavailable", ExceptionCode.CAST_FAILURE, this)
+        }
     }
 
-    fun resolveForeign(data: D): D {
+    fun resolveForeign(data: D, entityToUpdate:E?): D {
         val foreignId: Long = dataIdProperty.get(data)
         if (!foreignInitialized) {
-            getForeignDTO(foreignId)
+           val foreignCommonDTO = getForeignDTO(foreignId)
+            if(entityToUpdate != null){
+                entityIdProperty.set(entityToUpdate, foreignId)
+            }
         } else {
-            foreignDTO
+            lazyForeignDTO.getValue(this)
         }
         return data
     }
 
     internal fun update() {
-        dataIdProperty.set(hostingDTO.dataContainer.getValue(this), foreignDTO.id)
+        dataIdProperty.set(hostingDTO.dataContainer.getValue(this), lazyForeignDTO.getValue(this).id)
     }
 
     internal fun resolveForeign(entity: E): E {
@@ -130,13 +142,14 @@ class AttachedForeignDelegate<DTO, D, E, F, FD, FE>(
             if (!foreignInitialized) {
                 getForeignDTO(foreignId)
             } else {
-                foreignDTO
+                lazyForeignDTO.getValue(this)
             }
         return entity
     }
 
     internal fun update(entity: E) {
-        entityIdProperty.set(entity, foreignDTO.id)
+
+        entityIdProperty.set(entity, lazyForeignDTO.getValue(this).id)
     }
 
     override fun onPropertyResolved() {
@@ -169,6 +182,12 @@ class ParentDelegate<DTO, D, E, F, FD, FE>(
         hostingDTO.parentDTO.requestValueCasting<CommonDTO<F, FD, FE>>(this, foreignClass.commonDTOType.commonType.kClass) { dto ->
             provideForeignDTO(dto)
         }
+    }
+
+    fun bindEntity(entity: E, callingContext: CTX) {
+        val foreignEntity = lazyForeignDTO.getValue(callingContext).entityContainer.getValue(callingContext)
+        entityProperty.set(entity, foreignEntity)
+
     }
 
     fun resolveParent(commonDTO: CommonDTO<F, FD, FE>){

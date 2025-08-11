@@ -9,7 +9,6 @@ import po.auth.sessions.models.AuthorizedSession
 import po.exposify.DatabaseManager
 import po.exposify.dto.RootDTO
 import po.exposify.dto.enums.DTOClassStatus
-import po.exposify.dto.helpers.warning
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.scope.connection.models.ConnectionInfo
 import po.exposify.dto.interfaces.ModelDTO
@@ -24,10 +23,10 @@ import po.lognotify.launchers.runTask
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.coroutines.CoroutineInfo
-import po.misc.data.processors.SeverityLevel
 import po.misc.serialization.SerializerInfo
 import po.misc.types.safeCast
 import kotlin.coroutines.coroutineContext
+
 
 class ConnectionClass(
     internal val databaseManager : DatabaseManager,
@@ -82,14 +81,13 @@ class ConnectionClass(
         block: (ServiceContext<DTO, D, E>.()->Unit)? = null
     ): Unit where DTO : ModelDTO, D: DataModel, E: LongEntity = runTask("service"){
 
-        val existentService = getService<DTO, D, E>(dtoClass.commonDTOType)
+        val existentService = getService(dtoClass.commonDTOType)
         if(existentService != null){
             if(dtoClass.status != DTOClassStatus.Initialized){
                 existentService.initService(dtoClass, createOptions, block)
             }else{
                 block?.invoke(existentService.serviceContext)
             }
-            warning("Fake warning")
             notify("Using ServiceClass ${existentService.contextName}")
         }else{
             val serviceClass = ServiceClass(dtoClass, this)

@@ -80,7 +80,7 @@ class ErrorRecord(
                         if (callSite.methodName == "invoke") {
                             """
                             ${Colour.makeOfColour(Colour.Yellow, "ThrowingCallSite: (actual exception place)")}
-                            ${Colour.makeOfColour(Colour.Gray, "Class Name:")} ${callSite.className.stripAfter('$')}
+                            ${Colour.makeOfColour(Colour.Gray, "Class Name:")} ${callSite.fileName.stripAfter('$')}
                             ${Colour.makeOfColour(Colour.Gray, "Method Name:")} ${callSite.methodName} (Lambda invocation)"
                             ${Colour.makeOfColour(Colour.Gray, "Reference:")}
                             ${callSite.toStackTraceFormat()}
@@ -97,7 +97,7 @@ class ErrorRecord(
 }
 
 class TaskErrors(taskData: LogData): PrintableGroup<LogData, ErrorRecord>(taskData, LogData.Header, ErrorRecord.Default)
-
+class DebugRecords(taskData: LogData): PrintableGroup<LogData, DebugData>(taskData, LogData.Header, DebugData.Default)
 
 class LogData(
     val executionStatus: ExecutionStatus,
@@ -111,6 +111,7 @@ class LogData(
 
     val events: TaskEvents = TaskEvents(this)
     val errors: TaskErrors = TaskErrors(this)
+    val debugRecords: DebugRecords = DebugRecords(this)
 
     val overallSeverity: SeverityLevel get(){
         if(errors.records.isNotEmpty()){

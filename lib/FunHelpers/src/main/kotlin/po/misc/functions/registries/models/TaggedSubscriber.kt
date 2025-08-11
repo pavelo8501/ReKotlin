@@ -1,6 +1,7 @@
 package po.misc.functions.registries.models
 
 import po.misc.functions.registries.RegistryKey
+import po.misc.types.helpers.simpleOrNan
 import kotlin.reflect.KClass
 
 
@@ -17,10 +18,14 @@ class TaggedSubscriber<E: Enum<E>>(
         return this
     }
 
-    override fun matchesWildcard(other: TaggedSubscriber<*>): Boolean {
-        return enumTag == other.enumTag &&
-                kClass == other.kClass &&
-                (subscriberID == other.subscriberID || subscriberID == 0L || other.subscriberID == 0L)
+    override fun matchesWildcard(other: RegistryKey): Boolean {
+        return if (other is TaggedSubscriber<*>){
+            enumTag == other.enumTag
+                    && kClass == other.kClass
+                    && (subscriberID == other.subscriberID || subscriberID == 0L || other.subscriberID == 0L)
+        }else{
+            false
+        }
     }
 
     override fun equals(other: Any?): Boolean {
@@ -36,6 +41,7 @@ class TaggedSubscriber<E: Enum<E>>(
         return result
     }
 
-    override fun toString(): String =
-        "Subscription[tag=${enumTag.name}, kClass=${kClass.simpleName?:"N/A"}, requireOnce=$requireOnce]"
+    override fun toString(): String {
+        return "Subscription[tag=${enumTag.name}, kClass=${kClass.simpleName?:"N/A"}, requireOnce=$requireOnce]"
+    }
 }

@@ -11,6 +11,7 @@ import po.exposify.dto.components.bindings.relation_binder.delegates.attachedRef
 import po.exposify.dto.components.bindings.relation_binder.delegates.oneToManyOf
 import po.exposify.dto.components.bindings.relation_binder.delegates.parentReference
 import po.exposify.dto.configuration.configuration
+import po.exposify.dto.enums.TrackerTags
 import po.exposify.dto.helpers.dtoOf
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.scope.sequence.builder.SwitchListDescriptor
@@ -73,6 +74,7 @@ class SectionDTO : CommonDTO<SectionDTO, Section, SectionEntity>(SectionDTO) {
 
     companion object : DTOClass<SectionDTO, Section, SectionEntity>(dtoOf(SectionDTO), PageDTO) {
 
+        internal val Select = SwitchListDescriptor(this, PageDTO)
         internal val Update = SwitchSingeDescriptor(this, PageDTO)
         internal val Pick = SwitchSingeDescriptor(this, PageDTO)
 
@@ -82,8 +84,10 @@ class SectionDTO : CommonDTO<SectionDTO, Section, SectionEntity>(SectionDTO) {
             configuration {
                 applyTrackerConfig {
                     aliasName = "SECTION"
+                    optionalTag = TrackerTags.Section
                     observeProperties = true
                     observeRelationBindings = true
+                    setTag(TrackerTags.Section)
                 }
             }
         }

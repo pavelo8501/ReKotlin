@@ -8,6 +8,8 @@ import po.exposify.dto.components.bindings.DelegateStatus
 import po.exposify.dto.components.bindings.interfaces.DelegateInterface
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.exceptions.operationsException
 import po.exposify.extensions.castOrInit
 import po.exposify.extensions.getOrInit
 import po.exposify.extensions.getOrOperations
@@ -67,16 +69,15 @@ sealed class ResponsiveDelegate<DTO, D, E, V : Any> protected constructor(
     private var effectiveValue: V? = null
     private val value: V
         get() = effectiveValue.getOrManaged(KProperty::class, this)
-    val isValueNull: Boolean get() = effectiveValue == null
-    var valueUpdated: Boolean = false
 
-    // abstract val propertyChecks : List<MappingCheck<V>>
+    val isValueNull: Boolean get() = effectiveValue == null
+
+    var valueUpdated: Boolean = false
 
     override fun resolveProperty(property: KProperty<*>) {
         if (propertyParameter == null) {
             propertyParameter = property.castOrInit(this)
-            identity.setNamePattern { property.name }
-
+            identity.setNamePattern { "ResponsiveDelegate[${hostingDTO.identifiedByName}, ${property.name}]" }
             hostingDTO.bindingHub.registerResponsiveDelegate(this)
             onPropertyInitialized?.invoke(property)
         }
@@ -92,10 +93,13 @@ sealed class ResponsiveDelegate<DTO, D, E, V : Any> protected constructor(
         dataProperty.set(dataModel, newValue)
     }
 
-    internal fun updateBy(data: D): V {
+    internal fun updateBy(data: D, withEntity:E?): V {
         val newValue = dataProperty(data)
         if (effectiveValue != newValue) {
             valueChanged(newValue)
+            if(withEntity != null){
+                entityProperty.set(withEntity, newValue)
+            }
         }
         return newValue
     }
@@ -135,20 +139,21 @@ sealed class ResponsiveDelegate<DTO, D, E, V : Any> protected constructor(
         return this
     }
 
-    override fun getValue(
-        thisRef: DTO,
-        property: KProperty<*>,
-    ): V {
-        resolveProperty(property)
-        return value
+    override fun getValue(thisRef: DTO, property: KProperty<*>): V {
+        val result = effectiveValue
+        if (result == null) {
+            val dataModel = hostingDTO.dataContainer.value
+            if (dataModel == null) {
+                throw operationsException("Value and data model uninitialized", ExceptionCode.ABNORMAL_STATE)
+            } else {
+                return effectiveValue ?: dataProperty.get(dataModel)
+            }
+        }
+        return result
     }
 
-    override fun setValue(
-        thisRef: DTO,
-        property: KProperty<*>,
-        value: V,
-    ) {
-        resolveProperty(property)
+    override fun setValue(thisRef: DTO, property: KProperty<*>, value: V) {
+
         if (effectiveValue != value) {
             dataProperty.set(dataModel, value)
             if (hostingDTO.entityContainer.isValueAvailable) {

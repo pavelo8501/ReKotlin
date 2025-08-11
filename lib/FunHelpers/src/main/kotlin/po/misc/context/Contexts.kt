@@ -9,6 +9,7 @@ import po.misc.data.logging.LogEmitter
  * including optional parent context information for hierarchical resolution.
  */
 interface CTX : LogEmitter {
+
     val identity: CTXIdentity<out CTX>
 
     val contextName: String get() = identity.className

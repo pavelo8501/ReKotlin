@@ -56,7 +56,6 @@ open class ManagedException(
     }
 
     fun addExceptionData(data: ExceptionData, context: CTX):ManagedException{
-
         val data = ExceptionData(ExceptionEvent.Thrown, msg, context)
         exceptionDataBacking.add(data)
         return this

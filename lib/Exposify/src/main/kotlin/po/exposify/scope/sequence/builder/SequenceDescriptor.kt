@@ -10,5 +10,7 @@ import po.misc.types.TypeData
 interface SequenceDescriptor<DTO : ModelDTO, D : DataModel> : CTX {
     val dtoClass: DTOBase<DTO, D, *>
     val inputType: TypeData<D> get() = dtoClass.commonDTOType.dataType
-    val containerBacking: BackingContainer<ChunkContainer<DTO, D>>
+   // val containerBacking: BackingContainer<ChunkContainer<DTO, D>>
+
+    fun getContainer():ChunkContainer<DTO, D>
 }

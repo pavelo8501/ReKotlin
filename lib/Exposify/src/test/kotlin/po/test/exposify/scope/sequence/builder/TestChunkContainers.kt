@@ -51,7 +51,7 @@ class TestChunkContainers : DatabaseTest(), TasksManaged {
         val topContainer = assertNotNull(selectDescriptor.containerBacking.value)
         val pageSelectContainer = assertIs<SequenceChunkContainer<PageDTO, Page>>(topContainer)
         val sectionUpdateDescriptor = SectionDTO.Update
-        val subContainer = assertNotNull(sectionUpdateDescriptor.containerBacking.value)
+        val subContainer = assertNotNull(sectionUpdateDescriptor.switchContainerBacking.value)
         val sectionUpdateContainer = assertIs<SwitchChunkContainer<SectionDTO, Section, PageDTO, Page>>(subContainer)
         assertSame(pageSelectContainer, sectionUpdateContainer.parentContainer)
         assertEquals(1, subContainer.chunks.size)

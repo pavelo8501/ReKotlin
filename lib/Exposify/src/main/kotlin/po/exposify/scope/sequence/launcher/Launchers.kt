@@ -8,6 +8,7 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.extensions.castOrInit
 import po.exposify.extensions.castOrOperations
 import po.exposify.extensions.getOrOperations
 import po.exposify.extensions.withSuspendedTransactionIfNone
@@ -18,9 +19,11 @@ import po.exposify.scope.sequence.builder.SingleDescriptor
 import po.exposify.scope.sequence.inputs.CommonInputType
 import po.exposify.scope.sequence.inputs.DataInput
 import po.exposify.scope.sequence.inputs.InputBase
+import po.exposify.scope.sequence.inputs.InputType
 import po.exposify.scope.sequence.inputs.ListDataInput
 import po.exposify.scope.sequence.inputs.ParameterInput
 import po.exposify.scope.sequence.inputs.QueryInput
+import po.exposify.scope.sequence.inputs.SingleInputType
 import po.misc.functions.common.ExceptionFallback
 import po.misc.functions.containers.DeferredContainer
 
@@ -46,7 +49,6 @@ private suspend fun <DTO, D, I> launchExecutionList(
     return emitter.dispatchList {
         var effectiveResult: ResultList<DTO, D>? = null
 
-        withSuspendedTransactionIfNone(container.debugger, warnIfNoTransaction = false) {
             castedContainer.listResultChunks.forEach { chunk ->
                 if(input is ListDataInput<*,*>) {
                     effectiveResult =
@@ -59,7 +61,7 @@ private suspend fun <DTO, D, I> launchExecutionList(
                     effectiveResult =  chunk.triggerList(descriptor.dtoClass)
                 }
             }
-        }
+
         effectiveResult.getOrOperations(descriptor)
     }
 }
@@ -80,10 +82,10 @@ suspend fun <DTO, D> AuthorizedSession.launch(
 
 
 
-internal suspend fun <DTO, D, I : Any> launchExecutionSingle(
+internal suspend fun <DTO, D> launchExecutionSingle(
     session: AuthorizedSession,
     descriptor: RootDescriptorBase<DTO, D>,
-    input: CommonInputType<I>,
+    input: CommonInputType<*>,
 ): ResultSingle<DTO, D> where DTO : ModelDTO, D : DataModel {
     val wrongBranchMsg = "LaunchExecutionResultSingle else branch should have never be reached"
 
@@ -102,19 +104,26 @@ internal suspend fun <DTO, D, I : Any> launchExecutionSingle(
         var effectiveResult: ResultSingle<DTO, D>? = null
         castedContainer.singleResultChunks.forEach { chunk ->
             if(input is DataInput<*,*>) {
-                effectiveResult =
-                    chunk.triggerSingle(descriptor.dtoClass, input.getValue(descriptor.dtoClass.commonDTOType.dataType))
+                val value = input.getValue(descriptor.dtoClass.commonDTOType.dataType)
+                effectiveResult = chunk.triggerSingle(descriptor.dtoClass, value)
             }
             if(input is QueryInput<*,*>) {
                 effectiveResult = chunk.triggerSingle(descriptor.dtoClass, input.value)
             }
-            if(input is ParameterInput<*>) {
+            if(input is ParameterInput<*, *>) {
                 effectiveResult =  chunk.triggerSingle(descriptor.dtoClass, input.value)
             }
         }
         effectiveResult.getOrOperations(descriptor)
     }
 }
+
+
+
+suspend fun <DTO : ModelDTO, D : DataModel> AuthorizedSession.launch(
+    input: SingleInputType<DTO, D, *>
+): ResultSingle<DTO, D> = launchExecutionSingle(this, input.descriptor.castOrInit<RootDescriptorBase<DTO, D>>(input.descriptor), input)
+
 
 suspend fun <DTO : ModelDTO, D : DataModel> AuthorizedSession.launch(
     launchDescriptor: SingleDescriptor<DTO, D>,
@@ -130,3 +139,13 @@ suspend fun <DTO : ModelDTO, D : DataModel> AuthorizedSession.launch(
     launchDescriptor: SingleDescriptor<DTO, D>,
     deferredQuery: DeferredContainer<WhereQuery<*>>,
 ): ResultSingle<DTO, D> = launchExecutionSingle(this, launchDescriptor, QueryInput(deferredQuery, launchDescriptor))
+
+
+
+suspend fun <DTO : ModelDTO, D : DataModel, R> AuthorizedSession.launch(
+    input: SingleInputType<DTO, D, *>,
+    block: suspend ResultSingle<DTO, D>.()-> R
+):R {
+   val result =  launchExecutionSingle(this, input.descriptor.castOrInit<RootDescriptorBase<DTO, D>>(input.descriptor), input)
+   return result.block()
+}

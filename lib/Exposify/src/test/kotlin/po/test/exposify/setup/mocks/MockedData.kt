@@ -15,7 +15,7 @@ import javax.sound.midi.Receiver
 
 val mockedUser : User  = User(0, "some_login", generatePassword("password"), "user_mock", "nomail@void.null")
 
-val mockedPage: Page = mockPage("Page Mock", 0)
+val mockedPage: Page = mockPage("Page Mock", 1)
 
 fun mockPage(name: String, updatedBy : Long): Page{
    return Page(name = name, langId = 1, updatedBy = updatedBy)

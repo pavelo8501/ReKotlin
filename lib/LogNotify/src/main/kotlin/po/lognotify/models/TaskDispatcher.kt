@@ -20,6 +20,7 @@ import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.coroutines.CoroutineInfo
+import po.misc.functions.registries.emitterAwareRegistryOf
 import po.misc.functions.registries.taggedRegistryOf
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.set
@@ -47,7 +48,8 @@ class TaskDispatcher(val notifierHub: NotifierHub): CTX {
 
     override val identity: CTXIdentity<TaskDispatcher> = asIdentity()
 
-    val dispatcherUpdates = taggedRegistryOf<UpdateType, LoggerStats>()
+    val dispatcherUpdates =  emitterAwareRegistryOf<TaskDispatcher, UpdateType, LoggerStats>()
+
 
     internal val callbackRegistry =
         callbackManager<UpdateType>(

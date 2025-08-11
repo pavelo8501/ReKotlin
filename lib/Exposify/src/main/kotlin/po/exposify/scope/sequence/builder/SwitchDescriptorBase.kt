@@ -8,6 +8,7 @@ import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.scope.sequence.builder.SequenceDescriptor
 import po.misc.containers.BackingContainer
+import po.misc.containers.BackingContainerBase
 import po.misc.containers.backingContainerOf
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
@@ -18,10 +19,20 @@ sealed class SwitchDescriptorBase<DTO, D, F, FD>(
     val parentDTOClass: DTOBase<F, FD, *>,
 ) : SequenceDescriptor<DTO, D>
     where DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel {
-    override val containerBacking: BackingContainer<ChunkContainer<DTO, D>> = backingContainerOf()
 
-    fun registerChunkContainer(sequenceContainer: SwitchChunkContainer<DTO, D, F, FD>) =
-        containerBacking.provideValue(sequenceContainer)
+
+   // override val containerBacking: BackingContainer<ChunkContainer<DTO, D>> = backingContainerOf()
+
+    val switchContainerBacking:BackingContainer<SwitchChunkContainer<DTO, D, F, FD>> = backingContainerOf()
+
+    fun registerChunkContainer(
+        container: SwitchChunkContainer<DTO, D, F, FD>
+    ): BackingContainerBase<SwitchChunkContainer<DTO, D, F, FD>> = switchContainerBacking.provideValue(container)
+
+    override fun getContainer(): ChunkContainer<DTO, D> {
+       return switchContainerBacking.getValue(this)
+    }
+
 }
 
 class SwitchSingeDescriptor<DTO, D, F, FD>(
@@ -37,11 +48,6 @@ class SwitchListDescriptor<DTO, D, F, FD>(
 ) : SwitchDescriptorBase<DTO, D, F, FD>(dtoClass, parentDTOClass) where DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel {
     override val identity: CTXIdentity<SwitchListDescriptor<DTO, D, F, FD>> = asIdentity()
 
-    val errorFallback =
 
-        ExceptionFallback {
-            val noContainerMsg = "No predefined execution for $this"
-            OperationsException(noContainerMsg, ExceptionCode.Sequence_Setup_Failure, this)
-        }
 
 }

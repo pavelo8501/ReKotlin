@@ -1,12 +1,15 @@
 package po.exposify.scope.sequence.launcher
 
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import po.auth.sessions.models.AuthorizedSession
+import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.query.WhereQuery
 import po.exposify.dto.components.result.ResultBase
 import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
+import po.exposify.dto.components.result.toResult
 import po.exposify.dto.components.result.toResultList
 import po.exposify.dto.components.result.toResultSingle
 import po.exposify.dto.components.tracker.CrudOperation
@@ -14,9 +17,12 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.initException
+import po.exposify.exceptions.operationsException
+import po.exposify.extensions.getOrOperations
 import po.exposify.extensions.withSuspendedTransactionIfNone
 import po.exposify.scope.sequence.builder.ListDescriptor
 import po.exposify.scope.sequence.builder.PickChunk
+import po.exposify.scope.sequence.builder.RootDescriptorBase
 import po.exposify.scope.sequence.builder.SelectChunk
 import po.exposify.scope.sequence.builder.SingleDescriptor
 import po.exposify.scope.sequence.builder.SwitchChunkContainer
@@ -28,8 +34,13 @@ import po.exposify.scope.sequence.builder.UpdateListChunk
 import po.exposify.scope.sequence.inputs.InputBase
 import po.exposify.scope.sequence.inputs.DataInput
 import po.exposify.scope.sequence.inputs.ListDataInput
+import po.exposify.scope.sequence.inputs.ListInputType
 import po.exposify.scope.sequence.inputs.ParameterInput
 import po.exposify.scope.sequence.inputs.QueryInput
+import po.exposify.scope.sequence.inputs.SelectAllInput
+import po.exposify.scope.sequence.inputs.SingleInputType
+import po.exposify.scope.sequence.inputs.SwitchInputBase
+import po.exposify.scope.sequence.inputs.SwitchListInput
 import po.exposify.scope.service.ServiceContext
 import po.misc.functions.containers.DeferredContainer
 import po.misc.types.castOrManaged
@@ -58,65 +69,64 @@ private fun <DTO:ModelDTO, D:DataModel> returnContainerNotFound(
 private suspend fun <DTO, D, F, FD> launchSwitch(
     session:AuthorizedSession,
     descriptor: SwitchDescriptorBase<DTO, D,  F, FD>,
-    inputData: InputBase<DTO, *>,
-    parentInput: InputBase<F, *>
+    inputData: InputBase<DTO, D, *>,
+    parentInput: InputBase<F, *, *>
 ): ResultBase<DTO, D, *> where DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel {
 
-    val container =  descriptor.containerBacking.value
-    if(container == null){
-        return  returnContainerNotFound(descriptor)
-    }
 
-    val castedContainer = container.castOrManaged<SwitchChunkContainer<DTO, D, F, FD>>(session)
+    val inputNotSupported = operationsException("parentInput must be of type RootDescriptorBase", ExceptionCode.BAD_DTO_SETUP, descriptor)
+
+    val container = descriptor.switchContainerBacking.value ?: return returnContainerNotFound(descriptor)
     var effectiveResult: ResultBase<DTO, D, *>? = null
 
-    withSuspendedTransactionIfNone(descriptor.dtoClass.debugger, false){
-        if (parentInput.descriptor is SingleDescriptor) {
 
-            val parentResult = launchExecutionSingle(session, parentInput.descriptor, parentInput)
-            when (inputData) {
-                is DataInput -> {
-                    val chunksAcceptingDataInput =
-                        castedContainer.singleResultChunks.filterIsInstance<UpdateChunk<DTO, D>>()
-                    val input = inputData.getValue(descriptor.dtoClass.commonDTOType.dataType)
-                    chunksAcceptingDataInput.forEach { chunk ->
-                        effectiveResult = chunk.updateSwitching(parentResult, descriptor.dtoClass, input)
-                    }
-                }
+    if (parentInput.descriptor is  RootDescriptorBase) {
 
-                is ParameterInput -> {
-                    val chunksAcceptingLong = castedContainer.singleResultChunks.filterIsInstance<PickChunk<DTO, D>>()
-                    val input = inputData.value
-                    chunksAcceptingLong.forEach { chunk ->
-                        effectiveResult = chunk.pickSwitching(parentResult, descriptor.dtoClass, input)
-                    }
-                }
+        val parentResult = launchExecutionSingle(session, parentInput.descriptor as RootDescriptorBase<out Any?, out Any?>, parentInput)
 
-                is ListDataInput<*, *> -> {
-                    val input = inputData.getValue(descriptor.dtoClass.commonDTOType.dataType)
-                    val chunksAcceptingDataList =
-                        castedContainer.listResultChunks.filterIsInstance<UpdateListChunk<DTO, D>>()
-                    chunksAcceptingDataList.forEach { chunk ->
-                        effectiveResult = chunk.updateSwitching(parentResult, descriptor.dtoClass, input)
-                    }
+        when (inputData) {
+            is DataInput <*, *> -> {
+                val chunksAcceptingDataInput =
+                    container.singleResultChunks.filterIsInstance<UpdateChunk<DTO, D>>()
+                val input = inputData.getValue(descriptor.dtoClass.commonDTOType.dataType)
+                chunksAcceptingDataInput.forEach { chunk ->
+                    effectiveResult = chunk.updateSwitching(parentResult, descriptor.dtoClass, input)
                 }
-                is QueryInput<*, *> -> {
-                    if(descriptor is SwitchSingeDescriptor){
-                        val chunks = castedContainer.singleResultChunks.filterIsInstance<PickChunk<DTO, D>>()
-                        chunks.forEach { chunk ->
-                            effectiveResult = chunk.pickSwitching(parentResult, descriptor.dtoClass, inputData.value)
-                        }
-                    }else{
-                        val chunks = castedContainer.listResultChunks.filterIsInstance<SelectChunk<DTO, D>>()
-                        chunks.forEach { chunk ->
-                            effectiveResult = chunk.selectSwitching(parentResult, descriptor.dtoClass, inputData.value)
-                        }
+            }
+
+            is ParameterInput<*, *> -> {
+                val chunksAcceptingLong = container.singleResultChunks.filterIsInstance<PickChunk<DTO, D>>()
+                val input = inputData.value
+                chunksAcceptingLong.forEach { chunk ->
+                    effectiveResult = chunk.pickSwitching(parentResult, descriptor.dtoClass, input)
+                }
+            }
+
+            is ListDataInput<*, *> -> {
+                val input = inputData.getValue(descriptor.dtoClass.commonDTOType.dataType)
+                val chunksAcceptingDataList =
+                    container.listResultChunks.filterIsInstance<UpdateListChunk<DTO, D>>()
+                chunksAcceptingDataList.forEach { chunk ->
+                    effectiveResult = chunk.updateSwitching(parentResult, descriptor.dtoClass, input)
+                }
+            }
+
+            is QueryInput<*, *> -> {
+                if (descriptor is SwitchSingeDescriptor) {
+                    val chunks = container.singleResultChunks.filterIsInstance<PickChunk<DTO, D>>()
+                    chunks.forEach { chunk ->
+                        effectiveResult = chunk.pickSwitching(parentResult, descriptor.dtoClass, inputData.value)
+                    }
+                } else {
+                    val chunks = container.listResultChunks.filterIsInstance<SelectChunk<DTO, D>>()
+                    chunks.forEach { chunk ->
+                       // effectiveResult = chunk.selectSwitching(parentResult, descriptor.dtoClass, inputData.value)
                     }
                 }
             }
-        }else{
-            TODO("Not yet supported")
         }
+    } else {
+        effectiveResult = descriptor.dtoClass.toResult(inputNotSupported)
     }
     return effectiveResult.getOrManaged(ResultBase::class)
 }
@@ -126,7 +136,7 @@ private suspend fun <DTO, D, F, FD> launchSwitch(
 suspend fun <DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel> AuthorizedSession.launchSwitching(
     switchDescriptor: SwitchSingeDescriptor<DTO, D, F, FD>,
     id: Long,
-    parentInput: InputBase<F, *>,
+    parentInput: InputBase<F, *, *>,
 ): ResultSingle<DTO, D> {
     val input = ParameterInput(id, switchDescriptor)
     val result = launchSwitch<DTO, D, F, FD>(this, switchDescriptor, input, parentInput)
@@ -138,18 +148,29 @@ suspend fun <DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel> Author
 suspend fun <DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel> AuthorizedSession.launchSwitching(
     switchDescriptor: SwitchSingeDescriptor<DTO, D, F, FD>,
     dataModel: D,
-    parentInput: InputBase<F, *>,
+    parentInput: InputBase<F, *, *>,
 ): ResultSingle<DTO, D>{
     val input =  DataInput(dataModel, switchDescriptor)
-    val result = launchSwitch<DTO, D, F, FD>(this, switchDescriptor, input as InputBase<DTO, D>, parentInput)
+    val result = launchSwitch<DTO, D, F, FD>(this, switchDescriptor, input as InputBase<DTO, D, D>, parentInput)
     result as ResultSingle<DTO, D>
     return result
 }
 
+//suspend fun <DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel> AuthorizedSession.launchSwitching(
+//    switchDescriptor: SwitchListDescriptor<DTO, D, F, FD>,
+//    input: ListInputType<DTO, D, *>,
+//    parentInput: InputBase<F, D, *>,
+//): ResultList<DTO, D>
+//{
+//    val result = launchSwitch(this, switchDescriptor, input as InputBase<DTO, D, *>, parentInput)
+//    result as ResultList<DTO, D>
+//    return result
+//}
+
 suspend fun <DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel> AuthorizedSession.launchSwitching(
     switchDescriptor: SwitchListDescriptor<DTO, D, F, FD>,
     inputData: List<D>,
-    parentInput: InputBase<F, *>,
+    parentInput: InputBase<F, *, *>,
 ): ResultList<DTO, D>
 {
     val input = ListDataInput(inputData, switchDescriptor)
@@ -161,7 +182,7 @@ suspend fun <DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel> Author
 suspend fun <DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel> AuthorizedSession.launchSwitching(
     switchDescriptor: SwitchListDescriptor<DTO, D, F, FD>,
     whereQuery: DeferredContainer<WhereQuery<*>>,
-    parentInput: InputBase<F, *>,
+    parentInput: InputBase<F, *, *>,
 ): ResultList<DTO, D>
 {
     val input = QueryInput(whereQuery, switchDescriptor)
@@ -169,4 +190,47 @@ suspend fun <DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel> Author
     result as ResultList<DTO, D>
     return result
 }
+
+
+private suspend fun <DTO, D, F, FD> launchSwitch2(
+    input: SwitchInputBase<DTO, D, F, FD, *>,
+    parentResult: CommonDTO<F, FD, *>
+): ResultBase<DTO, D, *> where DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel {
+
+    if (input.session is AuthorizedSession){
+        println(input.session)
+    }
+
+
+    var effectiveResult: ResultBase<DTO, D, *>? = null
+
+    when(input.descriptor){
+        is SwitchListDescriptor<*, *, *, *> -> {
+            val listInput = input.castOrManaged<SwitchListInput<DTO, D, F, FD, *>>(input)
+            when(listInput){
+                is SelectAllInput<*, *, *, *> -> {
+                   val container = listInput.descriptor.switchContainerBacking.getValue(input)
+                    val chunks = container.listResultChunks.filterIsInstance<SelectChunk<DTO, D>>()
+                    chunks.forEach { chunk->
+                        effectiveResult =  chunk.selectSwitching(parentResult,  listInput.descriptor.dtoClass)
+                    }
+                }
+            }
+        }
+        is SwitchSingeDescriptor<*, *, *, *> ->{
+
+        }
+    }
+
+    return effectiveResult.getOrManaged(ResultBase::class)
+}
+
+
+suspend fun <DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel> ResultSingle<F, FD>.launchSwitching(
+    input: SwitchListInput<DTO, D, F, FD, *>
+): ResultList<DTO, D>{
+    val result = getAsCommonDTO()
+    return launchSwitch2(input as SwitchInputBase<DTO, D, F, FD, *>, result) as ResultList<DTO, D>
+}
+
 

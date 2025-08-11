@@ -16,18 +16,18 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.CommonDTOType
 import po.exposify.dto.models.DTOId
-import po.exposify.exceptions.OperationsException
+import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.exceptions.operationsException
 import po.lognotify.TasksManaged
 import po.misc.containers.BackingContainer
-import po.misc.containers.LazyBackingContainer
+import po.misc.containers.LazyContainer
 import po.misc.containers.ReactiveMap
-import po.misc.containers.lazyBackingOf
+import po.misc.containers.lazyContainerOf
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.data.processors.SeverityLevel
 import po.misc.exceptions.throwableToText
 import po.misc.functions.hooks.Change
-import po.misc.functions.models.NotificationConfig
 import po.misc.functions.registries.TaggedRegistry
 import po.misc.functions.registries.taggedRegistryOf
 import java.util.UUID
@@ -58,44 +58,19 @@ sealed class CommonDTOBase<DTO, D, E>(
     override val daoService: DAOService<DTO, D, E> get() = dtoClassConfig.daoService
     override val dtoFactory: DTOFactory<DTO, D, E> get() = dtoClassConfig.dtoFactory
 
-    private val taggedConfig = NotificationConfig(warnNoSubscriber = true)
+
 
     val onDTOComplete: TaggedRegistry<DTOEvents, CommonDTO<DTO, D, E>> = taggedRegistryOf(DTOEvents.Initialized)
     val onStatusUpdated: TaggedRegistry<DTOEvents, CommonDTO<DTO, D, E>> = taggedRegistryOf(DTOEvents.StatusUpdated)
-    val onIdResolved: TaggedRegistry<DTOEvents, CommonDTO<DTO, D, E>> = taggedRegistryOf(DTOEvents.IdResolved)
+    val onIdResolved: TaggedRegistry<DTOEvents, CommonDTO<DTO, D, E>> = taggedRegistryOf(DTOEvents.IdResolved){
+        warnNoSubscriber(false)
+    }
 
-   // val onDTOComplete: TaggedNotifier<DTOEvents, CommonDTO<DTO, D, E>> = taggedNotifierOf(DTOEvents.Initialized)
-   // val onStatusUpdated: TaggedNotifier<DTOEvents, CommonDTO<DTO, D, E>> = taggedNotifierOf(DTOEvents.StatusUpdated)
-   // val onIdResolved: TaggedNotifier<DTOEvents, CommonDTO<DTO, D, E>> = taggedNotifierOf(DTOEvents.IdResolved)
+    val dataContainer: LazyContainer<D> = LazyContainer(commonType.dataType)
+    val entityContainer: BackingContainer<E> = BackingContainer(commonType.entityType)
 
-    val executionContextMap: ReactiveMap<CommonDTOType<*, *, *>, DTOExecutionContext<*, *, *, DTO, D, E>> = ReactiveMap()
+    val executionContextMap: ReactiveMap<CommonDTOType<*, *, *>, DTOExecutionContext<*, *, *, DTO, D, *>> = ReactiveMap()
     val executionContextsCount: Int get() = executionContextMap.size
-
-    fun updateDataStatus(status: DataStatus){
-        dataStatus = status
-    }
-
-    init {
-        onIdResolved.provideConfig(taggedConfig)
-        executionContextMap.onErrorHook.subscribe {
-            warning(it.toString())
-        }
-        executionContextMap.injectFallback { OperationsException(it) }
-    }
-}
-
-abstract class CommonDTO<DTO, DATA, ENTITY>(
-    dtoClass: DTOBase<DTO, DATA, ENTITY>,
-) : CommonDTOBase<DTO, DATA, ENTITY>(dtoClass) where DTO : ModelDTO, DATA : DataModel, ENTITY : LongEntity {
-    override val identity: CTXIdentity<CommonDTO<DTO, DATA, ENTITY>> = asIdentity()
-
-    override val tracker: DTOTracker<DTO, DATA, ENTITY> = DTOTracker(this)
-    override val bindingHub: BindingHub<DTO, DATA, ENTITY> = BindingHub(this)
-
-    val dataContainer: BackingContainer<DATA> = BackingContainer(commonType.dataType)
-    val entityContainer: BackingContainer<ENTITY> = BackingContainer(commonType.entityType)
-
-    val parentDTO: LazyBackingContainer<CommonDTO<*, *, *>> = lazyBackingOf()
 
     var idBacking: Long = -1L
     override var id: Long
@@ -108,12 +83,13 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
             }
         }
 
-    init {
-        entityContainer.onValueSet(::entityChanged)
-        dataContainer.onValueSet(::dataModelChanged)
-    }
 
-    private fun calculateStatus(): DTOStatus {
+    protected fun calculateStatus(): DTOStatus {
+
+        if(dataStatus == DataStatus.PreflightCheckMock && dataContainer.isValueAvailable){
+            return DTOStatus.Complete
+        }
+
         var resultingStatus: DTOStatus = DTOStatus.Uninitialized
         if (dataContainer.isValueAvailable && entityContainer.isValueAvailable) {
             resultingStatus = DTOStatus.Complete
@@ -127,7 +103,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         return resultingStatus
     }
 
-    private fun updateDtoId(newID: Long) {
+    protected fun updateDtoId(newID: Long) {
         if (newID > 0) {
             idBacking = newID
             dataContainer.value?.let { dataModel ->
@@ -138,11 +114,48 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
             identity.setNamePattern {
                 "${commonType.dtoType.typeName}#$idBacking"
             }
-            onIdResolved.trigger(this)
+            if(this is CommonDTO){
+                onIdResolved.trigger(this)
+            }
         } else {
             notify("Trying to update id with value $newID ", SeverityLevel.WARNING)
         }
     }
+
+    fun updateDataStatus(status: DataStatus):CommonDTO<DTO, D, E>{
+        dataStatus = status
+        if(status == DataStatus.PreflightCheckMock){
+            calculateStatus()
+            updateDtoId(1)
+        }
+        return this as CommonDTO<DTO, D, E>
+    }
+
+    init {
+        executionContextMap.onErrorHook.subscribe {
+            warning(it.toString())
+        }
+        executionContextMap.injectFallback { operationsException("Requested execution context not created/saved", ExceptionCode.ABNORMAL_STATE) }
+    }
+}
+
+abstract class CommonDTO<DTO, DATA, ENTITY>(
+    dtoClass: DTOBase<DTO, DATA, ENTITY>,
+) : CommonDTOBase<DTO, DATA, ENTITY>(dtoClass) where DTO : ModelDTO, DATA : DataModel, ENTITY : LongEntity {
+    override val identity: CTXIdentity<CommonDTO<DTO, DATA, ENTITY>> = asIdentity()
+
+    override val tracker: DTOTracker<DTO, DATA, ENTITY> = DTOTracker(this)
+    override val bindingHub: BindingHub<DTO, DATA, ENTITY> = BindingHub(this)
+
+
+
+    val parentDTO: LazyContainer<CommonDTO<*, *, *>> = lazyContainerOf()
+
+    init {
+        entityContainer.onValueSet(::entityChanged)
+        dataContainer.onValueSet(::dataModelChanged)
+    }
+
 
     private fun entityChanged(change: Change<ENTITY?, ENTITY>) {
         try {
@@ -179,7 +192,7 @@ abstract class CommonDTO<DTO, DATA, ENTITY>(
         commonType: CommonDTOType<F, FD, FE>,
         context: DTOExecutionContext<F, FD, FE, DTO, DATA, ENTITY>,
     ) {
-        executionContextMap.put(commonType, context)
+        executionContextMap[commonType] = context
     }
 
     /**

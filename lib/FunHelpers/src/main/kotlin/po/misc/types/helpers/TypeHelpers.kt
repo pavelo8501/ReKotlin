@@ -20,3 +20,7 @@ fun  KType.normalizedName(): String {
         "$baseName$nullableSuffix"
     }
 }
+
+fun KClass<*>.simpleOrNan(): String{
+    return simpleName?:"N/A"
+}

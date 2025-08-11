@@ -1,19 +1,15 @@
 package po.exposify.scope.sequence.runtime
 
 import po.exposify.dto.components.result.ResultList
-import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.scope.sequence.builder.ListResultChunks
 import po.exposify.scope.sequence.builder.SelectChunk
 import po.exposify.scope.sequence.builder.SequenceChunkContainer
-import po.exposify.scope.sequence.builder.SingleResultChunks
 import po.exposify.scope.sequence.builder.SwitchChunkContainer
-import po.exposify.scope.sequence.builder.UpdateChunk
 import po.exposify.scope.sequence.builder.UpdateListChunk
 import po.exposify.scope.sequence.launcher.ListTypeHandler
 import po.exposify.scope.sequence.launcher.ListTypeSwitchHandler
-import po.exposify.scope.sequence.launcher.SingleTypeSwitchHandler
 import po.misc.functions.containers.DeferredContainer
 
 
@@ -22,15 +18,9 @@ fun <DTO, D> SequenceChunkContainer<DTO, D>.update(
     handler: ListTypeHandler<DTO, D>,
     configurationBlock: ListResultChunks<DTO, D>.() -> Unit,
 ): DeferredContainer<ResultList<DTO, D>> where DTO : ModelDTO, D : DataModel {
-    val updateListChunk = UpdateListChunk(handler.descriptor.dtoClass.commonDTOType, configurationBlock)
-    updateListChunk.subscribeListData { dataInput ->
-        descriptor.dtoClass.executionContext.update(dataInput, updateListChunk)
-    }
 
-    updateListChunk.resultContainer.registerProvider {
-        val inputData = handler.deferredInput.resolve()
-        descriptor.dtoClass.executionContext.update(inputData, this)
-    }
+    val updateListChunk = UpdateListChunk(handler.descriptor.dtoClass.commonDTOType, configurationBlock)
+
     registerChunk(updateListChunk)
     return updateListChunk.resultContainer
 }
@@ -40,18 +30,18 @@ fun <DTO, D> SequenceChunkContainer<DTO, D>.select(
     configurationBlock: ListResultChunks<DTO, D>.() -> Unit,
 ): DeferredContainer<ResultList<DTO, D>> where DTO : ModelDTO, D : DataModel {
     val selectChunk = SelectChunk(handler.descriptor.dtoClass.commonDTOType, configurationBlock)
-    selectChunk.subscribeNoParam {
-        val result = descriptor.dtoClass.executionContext.select()
-        println("Chunk $selectChunk Initiated by subscribeData")
-        println("Result received $result")
-        result
-    }
-    selectChunk.subscribeQuery { query ->
-        val result = descriptor.dtoClass.executionContext.select(query.resolve())
-        println("Chunk $selectChunk Initiated by query $query")
-        println("Result received $result")
-        result
-    }
+
+    registerChunk(selectChunk)
+    return selectChunk.resultContainer
+}
+
+fun <DTO, D, F, FD> SwitchChunkContainer<DTO, D, F, FD>.select(
+    handler: ListTypeSwitchHandler<DTO, D, F, FD>,
+    configurationBlock: ListResultChunks<DTO, D>.() -> Unit,
+): DeferredContainer<ResultList<DTO, D>>
+        where DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel
+{
+    val selectChunk = SelectChunk(handler.descriptor.dtoClass.commonDTOType, configurationBlock)
     registerChunk(selectChunk)
     return selectChunk.resultContainer
 }

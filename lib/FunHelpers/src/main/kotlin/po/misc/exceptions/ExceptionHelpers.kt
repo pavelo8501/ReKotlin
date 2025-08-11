@@ -97,6 +97,7 @@ fun  Throwable.throwableToText(): String{
 }
 
 internal fun String.isLikelyUserCode(): Boolean {
+
     return this.isNotBlank() &&
             !startsWith("kotlin") &&
             !startsWith("java") &&
@@ -118,7 +119,8 @@ fun Throwable.extractCallSiteMeta(
         val isHelper = helperPackagePrefixes.any { prefix -> stackTraceElement.className.startsWith(prefix) }
         val isUser = !isHelper && classPackage.isLikelyUserCode()
         StackFrameMeta(
-            className = stackTraceElement.className,
+            fileName = stackTraceElement.className,
+            simpleClassName = stackTraceElement.javaClass.simpleName,
             methodName = stackTraceElement.methodName,
             lineNumber = stackTraceElement.lineNumber,
             classPackage = classPackage,
@@ -139,9 +141,9 @@ fun classNameToFile(className: String): String{
 }
 
 fun StackFrameMeta.toStackTraceFormat(): String {
-    val simpleClassName = className.substringAfterLast('.')
+    val simpleClassName = fileName.substringAfterLast('.')
     val fileName = "$simpleClassName.kt" // or use `.java` if applicable
-    return "\tat ${className.stripAfter('$')}.$methodName($fileName:$lineNumber)"
+    return "\tat ${fileName.stripAfter('$')}.$methodName($fileName:$lineNumber)"
 }
 
 

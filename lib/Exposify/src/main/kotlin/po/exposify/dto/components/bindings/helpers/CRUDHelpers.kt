@@ -6,56 +6,125 @@ import po.exposify.dto.DTOBase
 import po.exposify.dto.DTOClass
 import po.exposify.dto.RootDTO
 import po.exposify.dto.components.DTOExecutionContext
-import po.exposify.dto.components.result.ResultList
-import po.exposify.dto.components.result.ResultSingle
-import po.exposify.dto.components.result.toResult
-import po.exposify.dto.components.tracker.CrudOperation
-import po.exposify.dto.components.tracker.extensions.addTrackerInfo
-import po.exposify.dto.enums.Cardinality
-import po.exposify.dto.enums.DTOStatus
 import po.exposify.dto.enums.DataStatus
-import po.exposify.dto.helpers.restoreDTOTypes
+import po.exposify.dto.helpers.notification
+import po.exposify.dto.helpers.warning
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.CommonDTOType
+import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.exceptions.operationsException
+import po.exposify.extensions.castOrOperations
 
 @PublishedApi
 internal fun <DTO : ModelDTO, D : DataModel, E : LongEntity> RootDTO<DTO, D, E>.shallowDTO(): CommonDTO<DTO, D, E> {
-    val dto = dtoConfiguration.dtoFactory.createDto()
+    val emptyModel = dtoConfiguration.dtoFactory.createDataModel()
+    val dto = dtoConfiguration.dtoFactory.createDto(emptyModel)
+
     dto.updateDataStatus(DataStatus.PreflightCheckMock)
     return dto
 }
 
 @Suppress("ktlint:standard:max-line-length")
-internal fun <DTO : ModelDTO, D : DataModel, E : LongEntity, F : ModelDTO, FD : DataModel, FE : LongEntity> DTOClass<DTO, D, E>.shallowDTO(
-    parentDTO: CommonDTO<F, FD, FE>,
-): CommonDTO<DTO, D, E> =
-    parentDTO.withDTOContext(commonDTOType) {
+internal fun <DTO : ModelDTO, D : DataModel, E : LongEntity, F : ModelDTO, FD : DataModel, FE : LongEntity> CommonDTO<DTO, D, E>.shallowDTO(
+    dtoClass: DTOClass<F, FD, FE>,
+
+): CommonDTO<F, FD, FE> {
+
+    val parentDTO = this
+
+    return withDTOContextCreating<DTO, D, E, F, FD, FE, CommonDTO<F, FD, FE>>(dtoClass) {
         val newDTO = dtoFactory.createDto()
         newDTO.registerParentDTO(parentDTO)
-
         newDTO.updateDataStatus(DataStatus.PreflightCheckMock)
-        val restored: CommonDTO<DTO, D, E> = restoreDTOTypes(newDTO)
-        restored
+        newDTO
     }
+}
 
 internal fun <DTO : ModelDTO, D : DataModel, E : LongEntity> DTOBase<DTO, D, E>.newDTO(): CommonDTO<DTO, D, E> {
-    val dto = dtoConfiguration.dtoFactory.createDto()
+    val emptyDataModel = dtoConfiguration.dtoFactory.createDataModel()
+    val dto = dtoConfiguration.dtoFactory.createDto(emptyDataModel)
     return dto
 }
 
-inline fun <DTO, D, F, FD, R> CommonDTO<DTO, D, *>.withDTOContext(
+internal fun <DTO : ModelDTO, D : DataModel, E : LongEntity> DTOBase<DTO, D, E>.newDTO(dataModel:D): CommonDTO<DTO, D, E> {
+    val dto = dtoConfiguration.dtoFactory.createDto(dataModel)
+    return dto
+}
+
+
+internal fun <F, FD, FE, DTO, D, E> CommonDTO<DTO, D, E>.createDTOContext(
+    dtoClass: DTOClass<F, FD, FE>
+): DTOExecutionContext<F, FD, FE, DTO, D, E>
+        where DTO : ModelDTO, D : DataModel, E : LongEntity, F : ModelDTO, FD : DataModel, FE : LongEntity {
+    val newContext = DTOExecutionContext(dtoClass, this)
+    registerExecutionContext(dtoClass.commonDTOType, newContext)
+    return newContext
+}
+
+internal inline fun <DTO, D, F, FD, R> CommonDTO<DTO, D, *>.withDTOContext(
     commonDTOType: CommonDTOType<F, FD, *>,
+    throwIfNull: Boolean = false,
     block: DTOExecutionContext<F, FD, *, DTO, D, *>.() -> R,
-): R where DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel, R : Any {
-    val context = executionContextMap.getUnsafeCasting<DTOExecutionContext<F, FD, *, DTO, D, *>>(commonDTOType)
+): R? where DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel, R : Any {
+
+    val context = executionContextMap[commonDTOType]
+    if(context == null && throwIfNull){
+       throw operationsException("DTOContext for key $commonDTOType not found", ExceptionCode.BAD_DTO_SETUP)
+    }
+
+    if(context != null){
+        val casted = context.castOrOperations<DTOExecutionContext<F, FD, *, DTO, D, *>>(this)
+        return block.invoke(casted)
+    }else{
+        warning("DTOContext for key $commonDTOType not found")
+        return null
+    }
+}
+
+inline fun <DTO, D, E, F, FD, FE, R> withDTOContext(
+    context :  DTOExecutionContext<F, FD, E, DTO, D, FE,>,
+    block: DTOExecutionContext<F, FD, E, DTO, D, FE>.() -> R,
+): R where DTO : ModelDTO, D : DataModel, E: LongEntity, F : ModelDTO, FD : DataModel, FE:LongEntity, R : Any {
+
     return block.invoke(context)
 }
 
-suspend fun <DTO, D, F, FD, R> CommonDTO<DTO, D, *>.withDTOContextSuspending(
-    commonDTOType: CommonDTOType<F, FD, *>,
-    block: suspend DTOExecutionContext<F, FD, *, DTO, D, *>.() -> R,
-): R where DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel, R : Any {
-    val context = executionContextMap.getUnsafeCasting<DTOExecutionContext<F, FD, *, DTO, D, *>>(commonDTOType)
-    return block.invoke(context)
+
+internal inline fun <DTO, D, E, F, FD, FE, R>  CommonDTO<DTO, D, E>.withDTOContextCreating(
+    dtoClass:DTOClass<F, FD, FE>,
+    block: DTOExecutionContext<F, FD, FE, DTO, D, E>.() -> R,
+): R where DTO : ModelDTO, D : DataModel, E: LongEntity, F : ModelDTO, FD : DataModel, FE:LongEntity, R : Any {
+   val context = executionContextMap[dtoClass.commonDTOType]
+   return if(context != null){
+        val casted = context.castOrOperations<DTOExecutionContext<F, FD, FE, DTO, D, E>>(this)
+        notify("Reusing context from ExecutionContextMap of $this")
+        block.invoke(casted)
+    }else{
+       val newContext = this.createDTOContext(dtoClass)
+        executionContextMap[dtoClass.commonDTOType] = newContext
+        notify("Created new  ExecutionContext for $dtoClass")
+        block.invoke(newContext)
+    }
 }
+
+@JvmName("withDTOContextCreatingNoEntity")
+internal inline fun <DTO, D, F, FD, R>  withDTOContextCreating(
+    hostingDTO: CommonDTO<DTO, D, *>,
+    dtoClass:DTOClass<F, FD, *>,
+    block: DTOExecutionContext<F, FD, *, DTO, D, *>.() -> R,
+): R where DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel, R : Any {
+
+    val context = hostingDTO.executionContextMap[dtoClass.commonDTOType]
+    return if(context != null){
+        val casted = context.castOrOperations<DTOExecutionContext<F, FD, *, DTO, D, *>>(hostingDTO)
+        hostingDTO.notification("Reusing context from ExecutionContextMap of $hostingDTO")
+        block.invoke(casted)
+    }else{
+        val newContext = hostingDTO.createDTOContext(dtoClass)
+        hostingDTO.executionContextMap[dtoClass.commonDTOType] = newContext
+        hostingDTO.notification("Created new  ExecutionContext for $dtoClass")
+        block.invoke(newContext)
+    }
+}
+

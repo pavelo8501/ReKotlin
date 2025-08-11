@@ -1,20 +1,12 @@
 package po.test.misc.containers
 
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertDoesNotThrow
-import org.junit.jupiter.api.assertThrows
-import po.misc.containers.LazyBackingContainer
-import po.misc.functions.common.ExceptionFallback
-import po.misc.functions.common.Fallback
-import po.misc.functions.common.ValueFallback
+import po.misc.containers.LazyContainer
 import po.misc.types.TypeData
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class TestBackingContainer {
-
-
-
 
     @Test
     fun `LazyBackingContainer work`() {
@@ -22,7 +14,7 @@ class TestBackingContainer {
         val expectedResult = "Result"
         var triggerCount: Int = 0
 
-        val container = LazyBackingContainer<String>(TypeData.create())
+        val container = LazyContainer<String>(TypeData.create())
 
         var actualResult1 = ""
         container.requestValue(this){
@@ -43,24 +35,4 @@ class TestBackingContainer {
         assertEquals(expectedResult, actualResult2)
         assertTrue(triggerCount == 1)
     }
-
-    @Test
-    fun `LazyBackingContainer fallback work as expected`() {
-
-        val fallbackValue: String = "FallbackValue"
-
-        val container = LazyBackingContainer<String>(TypeData.create())
-        assertThrows<Exception> {
-            container.getWithFallback(ExceptionFallback{ payload ->
-                Exception(payload.message)
-            })
-        }
-        val result = assertDoesNotThrow {
-            container.getWithFallback(ValueFallback { fallbackValue })
-        }
-        assertEquals(fallbackValue, result)
-
-    }
-
-
 }

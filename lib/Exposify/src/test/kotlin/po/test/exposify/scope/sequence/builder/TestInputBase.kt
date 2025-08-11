@@ -28,7 +28,7 @@ class TestInputBase:DatabaseTest(), TasksManaged {
         val rootUpdateContainer = SequenceChunkContainer(PageDTO.Update)
         val rootPickContainer = SequenceChunkContainer(PageDTO.Pick)
 
-        lateinit var parameterInput: ParameterInput<SectionDTO>
+        lateinit var parameterInput: ParameterInput<SectionDTO, Section>
         lateinit var dataInput: DataInput<SectionDTO, Section>
 
         with(mockedSession){

@@ -36,16 +36,14 @@ class ReactiveMap<K: Any, V: Any>(
 
     @PublishedApi
     internal fun proceedWithFallback(key:K): Nothing{
-        val payload = ManagedPayload(MessageBundle.get("NotFoundError", key), "proceedWithFallback",  this)
-        throw  exceptionFallback?.exceptionProvider?.invoke(payload)?: run {
+        throw  exceptionFallback?.exceptionProvider?.invoke()?: run {
             throw ManagedException(MessageBundle.get("NotFoundError", key))
         }
     }
 
     @PublishedApi
     internal fun proceedWithFallback(kClass: KClass<*>): Nothing{
-        val payload = ManagedPayload(MessageBundle.get("CastError", kClass), "proceedWithFallback",  this)
-        val exception =  exceptionFallback?.exceptionProvider?.invoke(payload)?: run {
+        val exception =  exceptionFallback?.exceptionProvider?.invoke()?: run {
              ManagedException(MessageBundle.get("CastError", kClass))
         }
         onErrorHook.trigger(ErrorData(this, exception, onExceptionSnapshot?.invoke()?:""))
@@ -66,7 +64,7 @@ class ReactiveMap<K: Any, V: Any>(
         val kClass = V::class
         return result.safeCast(kClass)?:proceedWithFallback(kClass)
     }
-    fun injectFallback(fallback:(ManagedCallSitePayload)-> Throwable){
+    fun injectFallback(fallback:()-> Throwable){
         exceptionFallback = ExceptionFallback(fallback)
     }
 }

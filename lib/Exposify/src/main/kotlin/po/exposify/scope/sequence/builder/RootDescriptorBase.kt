@@ -5,6 +5,7 @@ import po.exposify.dto.RootDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.misc.containers.BackingContainer
+import po.misc.containers.BackingContainerBase
 import po.misc.containers.backingContainerOf
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
@@ -15,10 +16,16 @@ sealed class RootDescriptorBase<DTO, D>(
     override val dtoClass: RootDTO<DTO, D, *>,
 ) : SequenceDescriptor<DTO, D>
     where DTO : ModelDTO, D : DataModel {
-    override val containerBacking: BackingContainer<ChunkContainer<DTO, D>> = backingContainerOf()
 
-    fun registerChunkContainer(sequenceContainer: SequenceChunkContainer<DTO, D>): Unit =
-        containerBacking.provideValue(sequenceContainer)
+    val containerBacking: BackingContainer<SequenceChunkContainer<DTO, D>> = backingContainerOf()
+
+    override fun getContainer(): ChunkContainer<DTO, D> {
+       return containerBacking.getValue(this)
+    }
+
+    fun registerChunkContainer(
+        sequenceContainer: SequenceChunkContainer<DTO, D>
+    ): BackingContainerBase<SequenceChunkContainer<DTO, D>> = containerBacking.provideValue(sequenceContainer)
 }
 
 class SingleDescriptor<DTO, D>(

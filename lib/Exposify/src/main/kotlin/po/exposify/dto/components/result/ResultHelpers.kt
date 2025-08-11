@@ -7,6 +7,9 @@ import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.components.tracker.extensions.addTrackerResult
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.exceptions.operationsException
+import po.misc.context.CTX
 import po.misc.exceptions.ManagedException
 import kotlin.collections.forEach
 
@@ -44,12 +47,23 @@ internal fun <EX: ManagedException, DTO:ModelDTO, D: DataModel>  EX.toResultList
 }
 
 
-fun <DTO, D, E>  CommonDTO<DTO, D, E>.toResult(
-    operation : CrudOperation
+fun <DTO, D, E>  DTOBase<DTO, D, E>.toResult(
+    commonDTO: CommonDTO<DTO, D, E>?
 ): ResultSingle<DTO, D> where  DTO: ModelDTO, D : DataModel, E : LongEntity{
-    return ResultSingle(dtoClass, this)
-        .addCrudOperation(operation)
+   return if(commonDTO != null){
+        ResultSingle(this,  commonDTO)
+    }else{
+        ResultSingle(this).addFailureCause(operationsException("Not found", ExceptionCode.DTO_LOOKUP_FAILURE, this))
+    }
 }
+
+fun <DTO, D, E>  DTOBase<DTO, D, E>.toResult(
+    commonDTO: List<CommonDTO<DTO, D, E>>
+): ResultList<DTO, D> where  DTO: ModelDTO, D : DataModel, E : LongEntity{
+   return ResultList(this, commonDTO.toMutableList())
+}
+
+
 
 fun <DTO, D, E>  CommonDTO<DTO, D, E>.toResult(
     failureCause: ManagedException,

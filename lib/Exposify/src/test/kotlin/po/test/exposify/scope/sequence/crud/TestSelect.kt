@@ -52,11 +52,12 @@ class TestSelect :
         }
 
         withConnection {
-            val pages: List<Page> = mockPages(updatedBy = updatedById, quantity = 2) { index -> "Page_$index" }
+            val pages: List<Page> = mockPages(updatedById, quantity = 10) { index -> name = "Page_$index" }
             service(PageDTO) {
                 insert(pages)
                 sequenced(PageDTO.Select) { handler ->
                     select(handler) {
+
                     }
                 }
             }
@@ -64,24 +65,21 @@ class TestSelect :
     }
 
     @Test
-    fun `Sequenced SELECT statement`(): TestResult =
-        runTest {
-            val result = with(mockedSession) { launch(PageDTO.Select) }
-            assertIs<ResultList<*, *>>(result)
-            assertTrue(!result.isFaulty)
-            assertEquals(2, result.dto.size)
-        }
+    fun `Sequenced SELECT statement`(): TestResult = runTest {
+        val result = with(mockedSession) { launch(PageDTO.Select) }
+        assertIs<ResultList<*, *>>(result)
+        assertTrue(!result.isFaulty)
+        assertEquals(10, result.dto.size)
+    }
 
     @Test
-    fun `Sequenced SELECT statement with query`(): TestResult =
-        runTest {
-            val queriedPageName = "Page_2"
-            val result =
-                with(mockedSession) {
-                    launch(PageDTO.Select, deferredQuery(PageDTO) { equals(Pages.name, queriedPageName) })
-                }
-            assertEquals(1, result.dto.size)
-            val persistedPage = assertNotNull(result.data.firstOrNull())
-            assertEquals(queriedPageName, persistedPage.name)
+    fun `Sequenced SELECT statement with query`(): TestResult = runTest {
+        val queriedPageName = "Page_2"
+        val result = with(mockedSession) {
+            launch(PageDTO.Select, deferredQuery(PageDTO) { equals(Pages.name, queriedPageName) })
         }
+        assertEquals(1, result.dto.size)
+        val persistedPage = assertNotNull(result.data.firstOrNull())
+        assertEquals(queriedPageName, persistedPage.name)
+    }
 }

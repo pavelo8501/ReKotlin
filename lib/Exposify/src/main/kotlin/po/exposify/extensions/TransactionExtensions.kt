@@ -1,6 +1,7 @@
 package po.exposify.extensions
 
 import kotlinx.coroutines.Dispatchers
+import org.jetbrains.exposed.sql.Transaction
 import org.jetbrains.exposed.sql.addLogger
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
@@ -9,10 +10,10 @@ import po.exposify.common.classes.ExposifyDebugger
 import po.misc.context.CTX
 
 
-suspend fun <T> withSuspendedTransactionIfNone(
+suspend fun <T: CTX, R> T.withSuspendedTransactionIfNone(
     logDataProcessor: ExposifyDebugger<*,*>,
     warnIfNoTransaction: Boolean,
-    block: suspend () -> T): T {
+    block: suspend T.() -> R): R {
     return if (TransactionManager.currentOrNull() == null || TransactionManager.current().connection.isClosed) {
        if(warnIfNoTransaction){ logDataProcessor.warn("Transaction lost context. Restoring") }
         newSuspendedTransaction(Dispatchers.IO) {
@@ -23,6 +24,8 @@ suspend fun <T> withSuspendedTransactionIfNone(
         block()
     }
 }
+
+
 
 fun <T> withTransactionIfNone(
     logDataProcessor: ExposifyDebugger<*,*>,
@@ -62,6 +65,9 @@ block: T.() -> R
     }
 }
 
+fun currentTransaction(): Transaction?{
+   return TransactionManager.currentOrNull()
+}
 
 fun isTransactionReady(): Boolean {
     return TransactionManager.currentOrNull()?.connection?.isClosed?.not() == true

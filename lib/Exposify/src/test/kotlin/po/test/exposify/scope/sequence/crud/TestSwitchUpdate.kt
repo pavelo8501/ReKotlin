@@ -19,7 +19,6 @@ import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.dtos.ContentBlock
-import po.test.exposify.setup.dtos.ContentBlockDTO
 import po.test.exposify.setup.dtos.Page
 import po.test.exposify.setup.dtos.PageDTO
 import po.test.exposify.setup.dtos.SectionDTO
@@ -64,7 +63,8 @@ class TestSwitchUpdate: DatabaseTest(), TasksManaged {
 
                 persistedPages.addAll(insert(pages).data)
 
-                sequenced(PageDTO.Pick) { handler ->
+                sequenced(PageDTO.Pick) {handler ->
+
                     pickById(handler) {
                         switchDTO(SectionDTO.Update) { switchHandler ->
                             update(switchHandler) {
@@ -99,6 +99,7 @@ class TestSwitchUpdate: DatabaseTest(), TasksManaged {
         assertTrue(!result.isFaulty)
     }
 
+
     @Test
     fun `Sequenced PICK with switch statement multi input`(): TestResult = runTest {
         val page = assertNotNull(persistedPages.firstOrNull { it.id == 8L })
@@ -127,11 +128,10 @@ class TestSwitchUpdate: DatabaseTest(), TasksManaged {
             }
         }
         assertTrue(sections.firstOrNull()?.contentBlocks?.isNotEmpty()?:false)
-
         val result = with(mockedSession) {
-            launchSwitching(SectionDTO.UpdateList, sections, withInput(8L, PageDTO.Pick))
-        }
+            launchSwitching(SectionDTO.UpdateList, sections, withInput(PageDTO.Pick, page.id))
 
+        }
         assertTrue(!result.isFaulty)
         assertEquals(2, result.dto.size)
 

@@ -28,7 +28,7 @@ class ValueFallback<T: Any>(
 }
 
 class ExceptionFallback(
-   val  exceptionProvider:(ManagedCallSitePayload)-> Throwable
+   val  exceptionProvider:()-> Throwable
 ): Fallback<Nothing>{
 
     override fun provideValue(newValue:Nothing){
@@ -36,6 +36,6 @@ class ExceptionFallback(
     }
 
     override fun initiateFallback(): Nothing{
-        throw exceptionProvider.invoke(ManagedPayload("value null", "initiateFallback", this))
+        throw exceptionProvider.invoke()
     }
 }

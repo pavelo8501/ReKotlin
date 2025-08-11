@@ -5,7 +5,7 @@ import po.misc.data.processors.SeverityLevel
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 
-internal fun <T : Any?> T.notifyIfNull(
+internal fun <T : Any?> T.warnIfNull(
     message: String,
     context: Any,
     severity: SeverityLevel = SeverityLevel.WARNING,
@@ -23,6 +23,9 @@ internal fun <T : Any?> T.notifyIfNull(
     return this
 }
 
+internal fun  TasksManaged.notification(
+    message: String,
+): Unit = notify(message)
 
 internal fun  TasksManaged.warning(
      message: String,

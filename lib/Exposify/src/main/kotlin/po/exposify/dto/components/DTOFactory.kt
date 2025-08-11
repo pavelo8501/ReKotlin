@@ -20,7 +20,8 @@ import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.context.asSubIdentity
-import po.misc.functions.registries.TaggedNotifierRegistry
+import po.misc.functions.registries.NotifierRegistry
+import po.misc.functions.registries.TaggedRegistry
 import po.misc.functions.registries.taggedRegistryOf
 import po.misc.interfaces.ValueBased
 import po.misc.serialization.SerializerInfo
@@ -110,7 +111,7 @@ sealed class DTOFactoryBase<DTO, D, E>(
             dataModel
         }
 
-    abstract fun createDto(withDataModel: D? = null): CommonDTO<DTO, D, E>
+    abstract fun createDto(byDataModel: D? = null): CommonDTO<DTO, D, E>
 }
 
 class DTOFactory<DTO, D, E>(
@@ -138,13 +139,13 @@ class DTOFactory<DTO, D, E>(
      * @input dataModel:  DATA?
      * @return DTOFunctions<DATA, ENTITY> or null
      * */
-    override fun createDto(withDataModel: D?): CommonDTO<DTO, D, E> =
+    override fun createDto(byDataModel: D?): CommonDTO<DTO, D, E> =
         runAction("Create DTO", dtoType.kType) {
             dtoBlueprint.setExternalParamLookupFn { param ->
                 when (param.name) {
                     "dataModel" -> {
-                        if (withDataModel != null) {
-                            withDataModel
+                        if (byDataModel != null) {
+                            byDataModel
                         } else {
                             val result = createDataModel()
                             result
@@ -159,7 +160,9 @@ class DTOFactory<DTO, D, E>(
             }
             val newDto = dtoBlueprint.getConstructor().callBy(dtoBlueprint.getConstructorArgs())
             val asCommonDTO = newDto.castOrOperations<CommonDTO<DTO, D, E>>(this)
-
+            if (byDataModel != null) {
+                asCommonDTO.dataContainer.provideValue(byDataModel)
+            }
             notifier.trigger(Events.OnCreated, asCommonDTO)
             dtoPostCreation(asCommonDTO)
         }
@@ -172,7 +175,7 @@ class CommonDTOFactory<DTO, D, E, F, FD, FE>(
     where DTO : ModelDTO, D : DataModel, E : LongEntity, F : ModelDTO, FD : DataModel, FE : LongEntity {
     override val identity: CTXIdentity<CommonDTOFactory<DTO, D, E, F, FD, FE>> = asSubIdentity(this, hostingDTO)
 
-    val onDTOCreated: TaggedNotifierRegistry<Events, CommonDTO<DTO, D, E>> = taggedRegistryOf()
+    val onDTOCreated: TaggedRegistry<Events, CommonDTO<DTO, D, E>> = taggedRegistryOf<Events, CommonDTO<DTO, D, E>>(Events.OnCreated)
 
     private fun dtoPostCreation(dto: CommonDTO<DTO, D, E>): CommonDTO<DTO, D, E> =
         runAction("dtoPostCreation", commonDTOType.dtoType.kType) {
@@ -195,13 +198,13 @@ class CommonDTOFactory<DTO, D, E, F, FD, FE>(
      * @input dataModel:  DATA?
      * @return DTOFunctions<DATA, ENTITY> or null
      * */
-    override fun createDto(withDataModel: D?): CommonDTO<DTO, D, E> =
+    override fun createDto(byDataModel: D?): CommonDTO<DTO, D, E> =
         runAction("Create DTO", dtoType.kType) {
             dtoBlueprint.setExternalParamLookupFn { param ->
                 when (param.name) {
                     "dataModel" -> {
-                        if (withDataModel != null) {
-                            withDataModel
+                        if (byDataModel != null) {
+                            byDataModel
                         } else {
                             val result = createDataModel()
                             result
@@ -215,8 +218,8 @@ class CommonDTOFactory<DTO, D, E, F, FD, FE>(
             }
             val newDto = dtoBlueprint.getConstructor().callBy(dtoBlueprint.getConstructorArgs())
             val asCommonDTO = newDto.castOrOperations<CommonDTO<DTO, D, E>>(this)
-            if (withDataModel != null) {
-                asCommonDTO.dataContainer.provideValue(withDataModel)
+            if (byDataModel != null) {
+                asCommonDTO.dataContainer.provideValue(byDataModel)
             }
             notifier.trigger(Events.OnCreated, asCommonDTO)
             dtoPostCreation(asCommonDTO)

@@ -31,6 +31,8 @@ inline fun <reified BASE : Any> Any?.safeBaseCast(): BASE? {
 }
 
 
+
+
 fun <T: Any> Any?.castOrManaged(
     kClass: KClass<T>,
     callingContext: Any,

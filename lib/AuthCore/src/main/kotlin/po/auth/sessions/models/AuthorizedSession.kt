@@ -86,8 +86,13 @@ class AuthorizedSession internal constructor(
         }
 
     val sessionStore: ConcurrentHashMap<SessionKey<*>, Any?> =  ConcurrentHashMap<SessionKey<*>, Any?>()
+
     val roundTripStore: ConcurrentHashMap<RoundTripKey<*>, Any?> = ConcurrentHashMap<RoundTripKey<*>, Any?>()
+
     val externalStore :ConcurrentHashMap<ExternalKey<*>, Any?>  = ConcurrentHashMap<ExternalKey<*>, Any?>()
+
+
+
 
     fun getAttributeKeys():List<SessionKey<*>>{
         return sessionStore.keys.toList()
@@ -120,7 +125,7 @@ class AuthorizedSession internal constructor(
         externalStore[ExternalKey(name, T::class)] = value
     }
 
-    internal inline fun <reified T: Any> getExternalRef(name: String): T? {
+    inline fun <reified T: Any> getExternalRef(name: String): T? {
         externalStore.keys.firstOrNull{ it.name ==  name}?.let { key ->
             val sessionParam = externalStore[key].castOrManaged<T>("SessionStore item not found by key")
             return sessionParam

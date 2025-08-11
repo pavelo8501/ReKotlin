@@ -55,12 +55,12 @@ class PageDTO : CommonDTO<PageDTO, Page, PageEntity>(this) {
         override fun setup() {
             configuration {
                 applyTrackerConfig {
-                    optionalTag = TrackerTags.PageDto
+                    optionalTag = TrackerTags.Page
                     aliasName = "page"
                     observeProperties = true
                     observeRelationBindings = true
                     trackerTag = TrackerTag.BreakPoint
-                    setTag(TrackerTags.PageDto)
+                    setTag(TrackerTags.Page)
                 }
             }
         }

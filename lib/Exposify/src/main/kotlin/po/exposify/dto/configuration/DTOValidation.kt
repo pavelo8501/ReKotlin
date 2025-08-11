@@ -67,7 +67,7 @@ fun <DTO, D, E> DTOBase<DTO, D, E>.setupValidation(
                 }
                 parentDelegates.forEach { parentDelegate ->
                     conditionNotNull("Parent DTO resolved", "Parent DTO not defined") {
-                        parentDelegate.foreignCommon
+                        parentDelegate.lazyForeignDTO.value
                     }
                 }
             }

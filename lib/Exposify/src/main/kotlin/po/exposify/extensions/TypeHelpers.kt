@@ -22,15 +22,16 @@ internal fun <T: Any> Any?.castOrOperations(
     }
 }
 
+@PublishedApi
 internal inline fun <reified T: Any> Any?.castOrOperations(
     callingContext: CTX
 ): T  = castOrOperations(T::class, callingContext)
 
 internal fun <T : Any> T?.getOrOperations(
-    kClass: KClass<T>,
+    kClass: KClass<*>,
     callingContext: CTX
 ): T {
-    return  getOrThrow(kClass, callingContext){payload->
+    return getOrThrow(kClass, callingContext){payload->
         operationsException(payload.setCode(ExceptionCode.VALUE_IS_NULL))
     }
 }

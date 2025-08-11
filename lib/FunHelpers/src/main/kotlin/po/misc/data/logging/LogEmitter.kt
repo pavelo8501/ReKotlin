@@ -1,8 +1,11 @@
 package po.misc.data.logging
 
 import po.misc.context.CTX
+import po.misc.data.printable.Printable
 import po.misc.data.printable.PrintableBase
+import po.misc.data.printable.companion.PrintableTemplateBase
 import po.misc.data.processors.SeverityLevel
+import po.misc.debugging.DebugTopic
 
 
 /**
@@ -83,6 +86,10 @@ interface LogEmitter {
             is LogEmitter -> this.datLogger(data, severity, this)
             else ->data.echo()
         }
+    }
+
+    fun <T: Printable> CTX.debug(message: String, template: PrintableTemplateBase<T>? = null, topic: DebugTopic = DebugTopic.General){
+        println(message)
     }
 
 }

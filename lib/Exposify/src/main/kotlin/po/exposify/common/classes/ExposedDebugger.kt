@@ -30,6 +30,10 @@ class ExposifyDebugger<T : CTX, P : PrintableBase<P>>(
         super<DebugProxy>.notify(sqlText)
     }
 
+    fun logSql(msg: String) {
+        dataProcessor.notify(msg, SeverityLevel.INFO, receiver)
+    }
+
     fun warn(message: String): Unit = dataProcessor.notify(message, SeverityLevel.WARNING, receiver)
 }
 

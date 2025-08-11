@@ -13,17 +13,13 @@ import po.exposify.dto.components.query.SimpleQuery
 import po.exposify.dto.components.query.WhereQuery
 import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
-import po.exposify.dto.components.result.convertToSingle
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.extensions.withTransactionRestored
 import po.lognotify.TasksManaged
-import po.lognotify.common.result.onFailureCause
 import po.lognotify.launchers.runTask
 import po.lognotify.launchers.runTaskBlocking
 import po.misc.context.CTXIdentity
 import po.misc.context.asSubIdentity
-import po.misc.data.processors.SeverityLevel
-import po.misc.exceptions.throwableToText
 import po.misc.functions.containers.DeferredContainer
 import po.misc.types.TypeData
 
@@ -51,71 +47,45 @@ class ServiceContext<DTO, DATA, ENTITY>(
     }.resultOrException()
 
     fun pick(conditions: SimpleQuery): ResultSingle<DTO, DATA> =
-        runTask("Pick(conditions)") {
-            withTransactionRestored(debugger, false){
+        runTaskBlocking("Pick<SimpleQuery>") {
             executionProvider.pick(conditions)
-        }
     }.resultOrException()
 
     fun pick(conditions: DeferredContainer<WhereQuery<ENTITY>>): ResultSingle<DTO, DATA> =
-        runTask("Pick(conditions)") {
-            withTransactionRestored (debugger, false) {
-                executionProvider.pick(conditions.resolve())
-            }
+        runTaskBlocking("Pick<WhereQuery>") {
+            executionProvider.pick(conditions.resolve())
         }.resultOrException()
 
-    fun pickById(id: Long): ResultSingle<DTO, DATA> =
-        runTask("Pick(id)") {
-            withTransactionRestored(debugger, false) {
-                executionProvider.pickById(id)
-            }
+    fun pickById(id: Long): ResultSingle<DTO, DATA> = runTaskBlocking("Pick($id)") {
+        executionProvider.pick(id)
     }.resultOrException()
 
     fun select(): ResultList<DTO, DATA> =
-        runTask("Select") {
-            withTransactionRestored(debugger, false) {
+        runTaskBlocking("Select") {
             executionProvider.select()
-        }
     }.resultOrException()
 
-    fun select(conditions: DeferredContainer<WhereQuery<*>>):ResultList<DTO, DATA> =
-        runTask("Select(with conditions)") {
-            withTransactionRestored(debugger, false) {
-                executionProvider.select(conditions.resolve())
-            }
-        }.resultOrException()
+    fun select(conditions: DeferredContainer<WhereQuery<*>>):ResultList<DTO, DATA> = runTaskBlocking("Select(with conditions)") {
+        executionProvider.select(conditions.resolve())
+    }.resultOrException()
 
-    fun update(dataModel: DATA): ResultSingle<DTO, DATA> =
-        runTask("Update"){
-            withTransactionRestored(debugger, false) {
-            executionProvider.update(dataModel, dtoClass)
-        }
-
-    }.onFailureCause { exception->
-            notify(exception.throwableToText(), SeverityLevel.EXCEPTION)
-    } .resultOrException()
-
-    fun update(dataModels: List<DATA>): ResultList<DTO, DATA> =
-        runTask("Update") {
-            withTransactionRestored(debugger, false) {
-            executionProvider.update(dataModels, dtoClass)
-        }
+    fun insert(dataModels: List<DATA>): ResultList<DTO, DATA> = runTaskBlocking("Insert") {
+        executionProvider.insert(dataModels)
     }.resultOrException()
 
 
-    private fun insert(taskName: String, dataModels: List<DATA>) = runTask(taskName) {
-        withTransactionRestored(debugger, false){
-            executionProvider.insert(dataModels)
-        }
+    fun insert(dataModel: DATA): ResultSingle<DTO, DATA> = runTaskBlocking("Insert"){
+        executionProvider.insert(dataModel)
     }.resultOrException()
 
-    fun insert(dataModels: List<DATA>): ResultList<DTO, DATA>{
-        return insert("Insert(List<${dataType.typeName}>)", dataModels)
-    }
 
-    fun insert(dataModel: DATA): ResultSingle<DTO, DATA>{
-        return insert("Insert(${dataType.typeName})", listOf(dataModel)).convertToSingle()
-    }
+    fun update(dataModel: DATA): ResultSingle<DTO, DATA> = runTaskBlocking("Update"){
+            executionProvider.update(dataModel)
+    }.resultOrException()
+
+    fun update(dataModels: List<DATA>): ResultList<DTO, DATA> = runTaskBlocking("Update") {
+        executionProvider.update(dataModels)
+    }.resultOrException()
 
 
     fun delete(toDelete: DATA): ResultList<DTO, DATA>? =

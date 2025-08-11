@@ -57,6 +57,7 @@ internal fun operationsException(
     return OperationsException(payload.setCode(exceptionCode))
 }
 
+
 internal fun <T: CTX> T.operationsException(
     message: String,
     code: ExceptionCode

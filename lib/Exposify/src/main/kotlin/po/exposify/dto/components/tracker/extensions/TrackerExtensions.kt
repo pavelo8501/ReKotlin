@@ -52,7 +52,7 @@ fun <DTO: ModelDTO, D: DataModel, E : LongEntity> CommonDTO<DTO, D, E>.resolveHi
             .map { (type, group) ->
                 val children = group
                     .flatMap { it.bindingHub.relationDelegates.flatMap {
-                            delegate -> delegate.childCommonDTOList } }
+                            delegate -> delegate.childDTOS } }
 
                 val child = traverse(children)
                 val groupAsList = group.toList()
@@ -62,7 +62,7 @@ fun <DTO: ModelDTO, D: DataModel, E : LongEntity> CommonDTO<DTO, D, E>.resolveHi
     }
     val rootNode = HierarchyNode<ModelDTO>(commonType.dtoType, mutableListOf(asDTO()))
     val firstLevelChildren = bindingHub.relationDelegates
-        .flatMap { it.childCommonDTOList }
+        .flatMap { it.childDTOS }
     rootNode.children += traverse(firstLevelChildren)
     return rootNode
 }

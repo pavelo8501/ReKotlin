@@ -7,6 +7,7 @@ import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.printable.companion.PrintableTemplateBase
 import po.misc.data.printable.grouping.ArbitraryDataMap
 import po.misc.data.printable.grouping.ArbitraryKey
+import po.misc.types.safeCast
 import kotlin.reflect.KClass
 
 abstract class PrintableBase<T>(
@@ -69,6 +70,13 @@ abstract class PrintableBase<T>(
 
     fun setDefaultTemplate(template: PrintableTemplateBase<T>){
         activeTemplate = template
+    }
+
+    fun trySetDefaultTemplate(template: PrintableTemplateBase<*>){
+        val casted = template.safeCast<PrintableTemplateBase<T>>()
+        if(casted != null){
+            activeTemplate = casted
+        }
     }
 
     override fun echo(){

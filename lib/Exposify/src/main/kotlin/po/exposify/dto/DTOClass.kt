@@ -175,8 +175,7 @@ abstract class DTOClass<DTO, DATA, ENTITY>(
 
     internal fun <F : ModelDTO, FD : DataModel, FE : LongEntity> runValidation(parentDTO: CommonDTO<F, FD, FE>) {
         updateStatus(DTOClassStatus.PreFlightCheck)
-
-        setupValidation(shallowDTO(parentDTO))
+        setupValidation(parentDTO.shallowDTO(this))
     }
 
     @PublishedApi

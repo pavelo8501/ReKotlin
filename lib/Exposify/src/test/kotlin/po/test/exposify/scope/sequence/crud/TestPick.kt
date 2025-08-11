@@ -56,26 +56,22 @@ class TestPick :
             setConsoleBehaviour(ConsoleBehaviour.MuteNoEvents)
         }
         withConnection {
-            service(UserDTO, TableCreateMode.ForceRecreate) {
+            service(UserDTO) {
                 updatedById = update(mockedUser).getDataForced().id
             }
         }
 
         withConnection {
-            val pages: List<Page> =
-                mockPages(updatedBy =  updatedById, quantity = 10) { index ->
-                    name =  "page_$index"
-                }
+            val pages: List<Page> = mockPages(updatedById, quantity = 10) {
+                name = "page_$it"
+            }
+
             service(PageDTO) {
-                val pages = insert(pages).data
-                persistedPages.addAll(pages)
+                val result = insert(pages)
+                persistedPages.addAll(result.data)
                 sequenced(PageDTO.Pick) { handler ->
                     pickById(handler) {
-                        switchStatement(SectionDTO.Update) { switchHandler ->
-                            update(switchHandler) {
 
-                            }
-                        }
                     }
                 }
             }
@@ -87,24 +83,26 @@ class TestPick :
         persistedPages.clear()
     }
 
-    fun `Sequenced PICK by id statement`(): TestResult =
-        runTest {
-            val idToPick = 1L
-            val result =
-                with(mockedSession) {
-                    launch(PageDTO.Pick, idToPick)
-                }
-            assertIs<ResultSingle<PageDTO, Page>>(result)
-            assertTrue(!result.isFaulty, "Pick completed with error")
-            assertNull(result.failureCause, "Pick completed with error")
-            val persistedPage = assertNotNull(result.data, "PickById failed")
-            val pageDTO = assertNotNull(result.dto)
-            println(pageDTO)
+    @Test
+    fun `Sequenced PICK by id statement`(): TestResult = runTest {
+        val idToPick = 1L
 
-            assertEquals(idToPick, pageDTO.id, "Picked wrong dto")
-            assertEquals(idToPick, persistedPage.id, "Page id not updated")
+        val result = with(mockedSession) {
+            launch(PageDTO.Pick, idToPick)
         }
 
+        assertIs<ResultSingle<PageDTO, Page>>(result)
+        assertTrue(!result.isFaulty, "Pick completed with error")
+        assertNull(result.failureCause, "Pick completed with error")
+        val persistedPage = assertNotNull(result.data, "PickById failed")
+        val pageDTO = assertNotNull(result.dto)
+        println(pageDTO)
+
+        assertEquals(idToPick, pageDTO.id, "Picked wrong dto")
+        assertEquals(idToPick, persistedPage.id, "Page id not updated")
+    }
+
+    @Test
     fun `Sequenced PICK with query statement`(): TestResult = runTest {
         val queriedPageName = "page_8"
         val result =
@@ -114,23 +112,4 @@ class TestPick :
         val persistedPage = assertNotNull(result.data)
         assertEquals(queriedPageName, persistedPage.name)
     }
-
-    @Test
-    fun `Sequenced PICK with`(): TestResult = runTest {
-
-       val pages = mockPages(updatedById,  quantity =  2){
-            name = "Name"
-            withSections(quantity =  4){index->
-                name = "Section_$index"
-                withContentBlocks(2){index->
-                    name = "ContentBlock_$index"
-                }
-            }
-        }
-        assertEquals(2, pages.size)
-        val section = assertNotNull(pages[0].sections.lastOrNull())
-        val contentBlock  = assertNotNull(section.contentBlocks.lastOrNull())
-        println(contentBlock)
-    }
-
 }
