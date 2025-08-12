@@ -19,8 +19,8 @@ class ExposifyDebugger<T : CTX, P : PrintableBase<P>>(
     printableClass: PrintableCompanion<P>,
     val dataProcessor: LoggerDataProcessor,
     dataProvider: (DebugParams<P>) -> P,
-) : DebugProxy<T, P>(receiver, printableClass, dataProcessor, dataProvider),
-    SqlLogger {
+) : DebugProxy<T, P>(receiver, printableClass, dataProcessor, dataProvider), SqlLogger
+{
     override fun log(
         context: StatementContext,
         transaction: Transaction,

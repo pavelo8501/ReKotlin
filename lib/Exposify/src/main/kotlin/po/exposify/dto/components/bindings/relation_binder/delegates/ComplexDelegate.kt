@@ -179,8 +179,9 @@ class ParentDelegate<DTO, D, E, F, FD, FE>(
     }
 
     override fun beforeRegistered() {
-        hostingDTO.parentDTO.requestValueCasting<CommonDTO<F, FD, FE>>(this, foreignClass.commonDTOType.commonType.kClass) { dto ->
-            provideForeignDTO(dto)
+        hostingDTO.parentDTO.requestValue(this) { dto ->
+            val casted = dto.castOrOperations(foreignClass.commonDTOType.commonType.kClass, this)
+            provideForeignDTO(casted)
         }
     }
 

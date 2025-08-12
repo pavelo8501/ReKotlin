@@ -8,24 +8,42 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import org.jetbrains.exposed.sql.transactions.transaction
 import po.exposify.common.classes.ExposifyDebugger
 import po.misc.context.CTX
+import kotlin.coroutines.CoroutineContext
 
 
-suspend fun <T: CTX, R> T.withSuspendedTransactionIfNone(
-    logDataProcessor: ExposifyDebugger<*,*>,
+private suspend fun <T : CTX, R> T.runWithNewTransaction(
+    logDataProcessor: ExposifyDebugger<*, *>,
     warnIfNoTransaction: Boolean,
-    block: suspend T.() -> R): R {
-    return if (TransactionManager.currentOrNull() == null || TransactionManager.current().connection.isClosed) {
-       if(warnIfNoTransaction){ logDataProcessor.warn("Transaction lost context. Restoring") }
-        newSuspendedTransaction(Dispatchers.IO) {
-            addLogger(logDataProcessor)
-            block()
-        }
-    } else {
-        block()
+    coroutineContext: CoroutineContext,
+    block: suspend T.() -> R
+): R = newSuspendedTransaction(coroutineContext) {
+    if (warnIfNoTransaction) {
+        logDataProcessor.warn("Transaction lost context. Restoring")
     }
+    addLogger(logDataProcessor)
+    block()
 }
 
+suspend fun <T : CTX, R> T.withSuspendedTransactionIfNone(
+    logDataProcessor: ExposifyDebugger<*, *>,
+    warnIfNoTransaction: Boolean,
+    block: suspend T.() -> R
+): R = if (TransactionManager.currentOrNull()?.connection?.isClosed != false) {
+    runWithNewTransaction(logDataProcessor, warnIfNoTransaction, Dispatchers.IO, block)
+} else {
+    block()
+}
 
+suspend fun <T : CTX, R> T.withSuspendedTransactionIfNone(
+    logDataProcessor: ExposifyDebugger<*, *>,
+    warnIfNoTransaction: Boolean,
+    coroutineContext: CoroutineContext,
+    block: suspend T.() -> R
+): R = if (TransactionManager.currentOrNull()?.connection?.isClosed != false) {
+    runWithNewTransaction(logDataProcessor, warnIfNoTransaction, coroutineContext, block)
+} else {
+    block()
+}
 
 fun <T> withTransactionIfNone(
     logDataProcessor: ExposifyDebugger<*,*>,

@@ -24,3 +24,13 @@ fun <DTO: ModelDTO, D: DataModel, E: LongEntity> AuthorizedSession.withHooks(
    setExternalRef("hooks", builtPack)
    return builtPack
 }
+
+fun <DTO: ModelDTO, D: DataModel, E: LongEntity> AuthorizedSession.withListHooks(
+    dtoClass: DTOBase<DTO, D, E>,
+    builder: SubscriptionPack<List<CommonDTO<DTO, D, E>>>.()-> Unit
+): SubscriptionPack<List<CommonDTO<DTO, D, E>>> {
+    val builtPack = buildSubscriptions(dtoClass.commonDTOType.dtoType.kClass, builder)
+    setExternalRef("listHooks", builtPack)
+    return builtPack
+}
+

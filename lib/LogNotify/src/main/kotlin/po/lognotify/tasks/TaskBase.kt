@@ -61,7 +61,7 @@ sealed class TaskBase<T : CTX, R : Any?>(
     override val nestingLevel: Int get() = key.nestingLevel
 
     abstract override val header: String
-    val footer: String get() = "[${key.taskName}  Completed in ${executionTimeStamp.elapsed}]"
+    val footer: String get() = "$this  Completed in ${executionTimeStamp.elapsed}]"
 
     abstract fun start(): TaskBase<T, R>
     abstract override fun complete(): LNInstance<*>
@@ -206,6 +206,7 @@ class RootTask<T : CTX, R : Any?>(
     }
 
     override fun complete(): LNInstance<*> {
+        changeStatus(ExecutionStatus.Complete)
         executionTimeStamp.stopTimer()
         isComplete = true
         dataProcessor.registerStop()
@@ -255,6 +256,7 @@ class Task<T : CTX, R : Any?>(
     }
 
     override fun complete(): Task<T, R> {
+        changeStatus(ExecutionStatus.Complete)
         executionTimeStamp.stopTimer()
         dataProcessor.registerStop()
         return this

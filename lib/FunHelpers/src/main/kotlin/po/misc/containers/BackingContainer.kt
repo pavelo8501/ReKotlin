@@ -185,25 +185,27 @@ class LazyContainer<T: Any>(
         }
     }
 
-    fun <T2 : Any> requestValueCasting(
-        subscriber: CTX,
-        kClass: KClass<T2>,
-        callback: (T2) -> Unit
-    ) {
-        subscriber.notify("requestValueCasting")
-        val value = backingValue
-        if (value != null) {
-            notify("value != null invoking")
-            val casted = value.safeCast(kClass)
-            if (casted != null) {
-                callback.invoke(casted)
-            } else {
-                notify("Cast to ${kClass.simpleName} failed wount invoke", SeverityLevel.WARNING)
-            }
-        }else{
-            registry.subscribe(subscriber, subscriber.identity.numericId, callback as (T) -> Unit)
-        }
-    }
+    
+
+//    fun <T2 : Any> requestValueCasting(
+//        subscriber: CTX,
+//        kClass: KClass<T2>,
+//        callback: (T2) -> Unit
+//    ) {
+//        subscriber.notify("requestValueCasting")
+//        val value = backingValue
+//        if (value != null) {
+//            notify("value != null invoking")
+//            val casted = value.safeCast(kClass)
+//            if (casted != null) {
+//                callback.invoke(casted)
+//            } else {
+//                notify("Cast to ${kClass.simpleName} failed wount invoke", SeverityLevel.WARNING)
+//            }
+//        }else{
+//            registry.subscribe(subscriber, subscriber.identity.numericId, callback as (T) -> Unit)
+//        }
+//    }
 
     override fun provideValue(value: T):LazyContainer<T> {
         if(!lockedForEdit){

@@ -119,6 +119,30 @@ fun String.wrapByDelimiter(
 }
 
 
+fun String.applyIfNotEmpty(block:String.()-> String): String{
+    if(this.isNotEmpty()){
+        return this.block()
+    }
+    return this
+}
+
+fun String?.applyIfNull(block:String.()-> String): String{
+    return this?.block()?:""
+}
+
+fun String.stripAfter(char: Char): String = substringBefore(char)
+
+fun String.output(){
+    println(this)
+}
+
+fun Array<String>.output(){
+    iterator().forEach {
+        println(it)
+    }
+}
+
+
 
 
 

@@ -32,20 +32,19 @@ open class JsonDescriptor<T: PrintableBase<T>>() {
         return entries
     }
 
-    fun serialize(value: T): String {
-        jsonHolder = value.jsonHolder
-        value.defaultsToJson()?.let {defaultHolder->
-            jsonDelegates.forEach {
-                val jRecord = it.toJson(value)
-                defaultHolder.addRecord(jRecord)
-            }
-            provideReceiver(value)?.jsonObject?.let { jObject->
-                defaultHolder.addJsonObject(jObject)
-            }
-            jsonHolder = defaultHolder
-        }
-        println(jsonHolder)
-        return cachedJson
-    }
-
+//    fun serialize(value: T): String {
+//        jsonHolder = value.jsonHolder
+//        value.defaultsToJson()?.let {defaultHolder->
+//            jsonDelegates.forEach {
+//                val jRecord = it.toJson(value)
+//                defaultHolder.addRecord(jRecord)
+//            }
+//            provideReceiver(value)?.jsonObject?.let { jObject->
+//                defaultHolder.addJsonObject(jObject)
+//            }
+//            jsonHolder = defaultHolder
+//        }
+//        println(jsonHolder)
+//        return cachedJson
+//    }
 }

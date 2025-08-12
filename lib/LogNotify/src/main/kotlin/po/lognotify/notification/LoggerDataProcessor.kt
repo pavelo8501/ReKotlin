@@ -90,7 +90,7 @@ class LoggerDataProcessor(
 
     @PublishedApi
     internal fun registerStop(): LogData {
-
+        taskData.executionStatus = task.executionStatus
         if (config.console != ConsoleBehaviour.Mute && config.console != ConsoleBehaviour.MuteNoEvents) {
             taskData.taskFooter = task.footer
             taskData.echo(LogData.Footer)

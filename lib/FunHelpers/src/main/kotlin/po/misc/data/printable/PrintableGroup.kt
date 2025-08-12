@@ -15,9 +15,9 @@ abstract class PrintableGroup<T1: PrintableBase<T1>, T2:  PrintableBase<T2>>(
        return createFormatedString()
     }
 
-    override fun defaultsToJson(): JsonHolder? {
-       return null
-    }
+//    override fun defaultsToJson(): JsonHolder? {
+//       return null
+//    }
 
     var headerTemplate: PrintableTemplateBase<T1> = hostDefaultTemplate
     var footerTemplate: PrintableTemplateBase<T1>? = null

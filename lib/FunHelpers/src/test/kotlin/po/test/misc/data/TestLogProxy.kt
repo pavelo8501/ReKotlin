@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.data.printable.PrintableBase
-import po.misc.data.printable.companion.PrintableTemplate
 import po.misc.data.printable.printableProxy
 import po.misc.data.processors.DataProcessor
 import po.misc.data.styles.Colour

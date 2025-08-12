@@ -282,9 +282,8 @@ class UpdateChunk<DTO, D>(
         input: D
     ): ResultSingle<DTO, D> =
         runTaskAsync("updateSwitching") {
-
             val result = withDTOContextCreating(parentResult.getAsCommonDTO(), ownDTOClass) {
-                update(input, this, null)
+                update(input, this)
             }
             result
         }.resultOrException()
@@ -361,7 +360,7 @@ class UpdateListChunk<DTO, D>(
     ): ResultList<DTO, D> =
         runTaskAsync("updateSwitching") {
             val result = withDTOContextCreating(parentResult.getAsCommonDTO(),  ownDTOClass) {
-                update(input, this, null)
+                update(input, this)
             }
             result
         }.resultOrException()

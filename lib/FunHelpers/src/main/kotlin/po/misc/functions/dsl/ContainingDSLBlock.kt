@@ -1,16 +1,21 @@
 package po.misc.functions.dsl
 
+import po.misc.data.json.models.JsonObject
+import po.misc.data.printable.PrintableBase
 import po.misc.exceptions.throwManaged
 import po.misc.functions.containers.Adapter
 import po.misc.functions.containers.DSLAdapter
 import po.misc.functions.containers.DSLProvider
 import po.misc.functions.dsl.handlers.DSLHandler
+import po.misc.functions.dsl.helpers.nextBlock
 import kotlin.collections.mutableListOf
 
 enum class DSLContainerType{
     OwnReceiver,
     ForeignReceiver
 }
+
+
 
 
 @DSLBlockMarker
@@ -34,7 +39,6 @@ open class ContainingDSLBlock<T: Any, R: Any, PT: Any>(
 
     var invokeIfAdapterNull: Boolean = false
         internal set
-
 
     constructor(block: T.(DSLHandler<T,R>)->R, handler: DSLHandler<T,R>,  extractorFn:((PT)->T)?) : this(null, extractorFn){
         dslHandler = handler

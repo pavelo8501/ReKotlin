@@ -5,6 +5,6 @@ import po.misc.data.json.JsonHolder
 interface Printable {
     val formattedString : String
     fun echo()
-    fun defaultsToJson(): JsonHolder?
+    //fun defaultsToJson(): JsonHolder?
 }
 

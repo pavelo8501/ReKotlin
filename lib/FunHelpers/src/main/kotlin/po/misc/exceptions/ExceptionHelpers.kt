@@ -1,8 +1,7 @@
 package po.misc.exceptions
 
 import po.misc.collections.takeFromMatch
-import po.misc.context.CTX
-import po.misc.data.text.stripAfter
+import po.misc.data.helpers.stripAfter
 import po.misc.exceptions.models.StackFrameMeta
 
 

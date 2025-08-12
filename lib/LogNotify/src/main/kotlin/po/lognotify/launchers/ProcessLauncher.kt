@@ -8,6 +8,7 @@ import po.lognotify.TasksManaged
 import po.lognotify.process.LoggerProcess
 import po.lognotify.process.Process
 import po.lognotify.process.ProcessKey
+import po.lognotify.process.createProcess
 import po.misc.context.CTX
 import po.misc.coroutines.LauncherType
 import po.misc.data.logging.LogCollector
@@ -43,8 +44,7 @@ suspend inline fun <reified T, R> T.runProcess(
     noinline block: suspend LoggerProcess<T>.()-> R,
 ):R where T: CTX, T: LogCollector, T: CoroutineContext.Element{
 
-   val processKey = ProcessKey.create<T>("Process#${UUID.randomUUID()}", CoroutineName(identity.identifiedByName))
-   val process = Process<T>(processKey,this)
+    val process = createProcess(this)
     TasksManaged.LogNotify.taskDispatcher.registerProcess(process)
    return executeProcess(process, dispatcher, block)
 }
@@ -55,8 +55,7 @@ suspend inline fun <reified T, R> runProcess(
     noinline block: suspend LoggerProcess<T>.()-> R,
 ):R where T: CTX, T: LogCollector, T: CoroutineContext.Element{
 
-    val processKey = ProcessKey.create<T>("Process#${UUID.randomUUID()}", CoroutineName(receiver.identity.identifiedByName))
-    val process = Process<T>(processKey,  receiver)
+    val process = createProcess(receiver)
     TasksManaged.LogNotify.taskDispatcher.registerProcess(process)
     return executeProcess(process, dispatcher, block)
 

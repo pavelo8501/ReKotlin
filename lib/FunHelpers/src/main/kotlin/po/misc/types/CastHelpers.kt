@@ -45,10 +45,11 @@ fun <T: Any> Any?.castOrManaged(
         val payload = ManagedPayload(message, methodName, callingContext)
         throw  ManagedException(payload)
     }else{
+        val operation = "Casting ${this::class} to ${kClass.simpleName}"
         return  try {
             kClass.cast(this)
         } catch (e: ClassCastException) {
-            val payload = ManagedPayload(e.throwableToText(), methodName, callingContext)
+            val payload = ManagedPayload("$operation ${e.throwableToText()}", methodName, callingContext)
             throw ManagedException(payload.setCause(e))
         }
     }

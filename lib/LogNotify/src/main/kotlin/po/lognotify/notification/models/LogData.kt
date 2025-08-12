@@ -2,23 +2,25 @@ package po.lognotify.notification.models
 
 import po.lognotify.common.configuration.TaskConfig
 import po.lognotify.tasks.ExecutionStatus
-import po.misc.context.CTX
+import po.misc.data.helpers.applyIfNotEmpty
+import po.misc.data.helpers.stripAfter
 import po.misc.data.helpers.textIfNotNull
+import po.misc.data.json.JsonDescriptor2
+import po.misc.data.json.extensions.buildSubArray
+import po.misc.data.json.models.JsonArray
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.PrintableGroup
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.printable.companion.Template
 import po.misc.data.printable.companion.nextLine
+import po.misc.data.printable.json.JsonReady
 import po.misc.data.processors.SeverityLevel
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
-import po.misc.data.text.applyIfNotEmpty
-import po.misc.data.text.stripAfter
 import po.misc.exceptions.models.StackFrameMeta
 import po.misc.exceptions.toStackTraceFormat
 import po.misc.functions.dsl.helpers.nextBlock
-import po.misc.time.ExecutionTimeStamp
 
 
 class TaskEvent(
@@ -63,36 +65,36 @@ class ErrorRecord(
     override val self: ErrorRecord = this
 
     companion object : PrintableCompanion<ErrorRecord>({ ErrorRecord::class }) {
-        val Default: Template<ErrorRecord> =
-            createTemplate {
-                nextLine {
-                    message.colorize(Colour.RED)
-                }
-                nextLine {
-                    "First registered: $firstRegisteredInTask"
-                }
-                nextLine {
-                    methodThrowing.textIfNotNull<StackFrameMeta> { "MethodThrowing: ".colorize(Colour.Yellow) + toStackTraceFormat() }
-                }
-                nextLine {
-                    val callSite = throwingCallSite
-                    if (callSite != null) {
-                        if (callSite.methodName == "invoke") {
-                            """
+        val Default: Template<ErrorRecord> = createTemplate {
+            nextLine {
+                message.colorize(Colour.RED)
+            }
+            nextLine {
+                "First registered: $firstRegisteredInTask"
+            }
+            nextLine {
+                methodThrowing.textIfNotNull<StackFrameMeta> { "MethodThrowing: ".colorize(Colour.Yellow) + toStackTraceFormat() }
+            }
+            nextLine {
+                val callSite = throwingCallSite
+                if (callSite != null) {
+                    if (callSite.methodName == "invoke") {
+                        """
                             ${Colour.makeOfColour(Colour.Yellow, "ThrowingCallSite: (actual exception place)")}
                             ${Colour.makeOfColour(Colour.Gray, "Class Name:")} ${callSite.fileName.stripAfter('$')}
-                            ${Colour.makeOfColour(Colour.Gray, "Method Name:")} ${callSite.methodName} (Lambda invocation)"
+                            ${Colour.makeOfColour(Colour.Gray, "Method Name:")
+                        } ${callSite.methodName} (Lambda invocation)"
                             ${Colour.makeOfColour(Colour.Gray, "Reference:")}
                             ${callSite.toStackTraceFormat()}
                             """.trimIndent()
-                        } else {
-                            "ThrowingCallSite: (actual exception place)".colorize(Colour.Yellow) + callSite.toStackTraceFormat()
-                        }
                     } else {
-                        SpecialChars.Empty.char
+                        "ThrowingCallSite: (actual exception place)".colorize(Colour.Yellow) + callSite.toStackTraceFormat()
                     }
+                } else {
+                    SpecialChars.Empty.char
                 }
             }
+        }
     }
 }
 
@@ -100,10 +102,10 @@ class TaskErrors(taskData: LogData): PrintableGroup<LogData, ErrorRecord>(taskDa
 class DebugRecords(taskData: LogData): PrintableGroup<LogData, DebugData>(taskData, LogData.Header, DebugData.Default)
 
 class LogData(
-    val executionStatus: ExecutionStatus,
+    var executionStatus: ExecutionStatus,
     val taskHeader: String,
     val config: TaskConfig
-) : PrintableBase<LogData>(this) {
+) : PrintableBase<LogData>(this), JsonReady<LogData> {
     override val self: LogData = this
 
     var elapsed: String = "N/A"
@@ -113,40 +115,44 @@ class LogData(
     val errors: TaskErrors = TaskErrors(this)
     val debugRecords: DebugRecords = DebugRecords(this)
 
-    val overallSeverity: SeverityLevel get(){
-        if(errors.records.isNotEmpty()){
-            return SeverityLevel.EXCEPTION
+    val taskEvents: List<TaskEvent> get() = events.records
+
+    val overallSeverity: SeverityLevel
+        get() {
+            if (errors.records.isNotEmpty()) {
+                return SeverityLevel.EXCEPTION
+            }
+            return events.records
+                .map { it.severity }
+                .maxByOrNull { it.level } ?: SeverityLevel.INFO
         }
-        return events.records
-            .map { it.severity }
-            .maxByOrNull { it.level } ?: SeverityLevel.INFO
-    }
 
     override fun toString(): String = formattedString
 
     companion object : PrintableCompanion<LogData>({ LogData::class }) {
-        val Header: Template<LogData> =
-            createTemplate {
-                nextBlock { handler ->
-                    handler.applyToResult { row -> "[ $row ]" }
-                    val status =
-                        when (executionStatus) {
-                            ExecutionStatus.Complete -> executionStatus.name.colorize(Colour.GREEN)
-                            ExecutionStatus.Active -> executionStatus.name.colorize(Colour.BRIGHT_WHITE)
-                            ExecutionStatus.Failing, ExecutionStatus.Faulty -> executionStatus.name.colorize(Colour.RED)
-                        }
-                    "$taskHeader | Status: ".colorize(Colour.BLUE) + status + "".colorize(Colour.BLUE)
-                }
+        val Header: Template<LogData> = createTemplate {
+            nextBlock { handler ->
+                handler.applyToResult { row -> "[ $row ]".colorize(Colour.BLUE) }
+                "Start $taskHeader"
             }
-        val Footer: Template<LogData> =
-            createTemplate {
-                nextBlock {
-                    when(overallSeverity){
-                        SeverityLevel.WARNING-> taskFooter.colorize(Colour.Yellow)
-                        SeverityLevel.INFO, SeverityLevel.DEBUG -> taskFooter.colorize(Colour.BLUE)
-                        SeverityLevel.EXCEPTION -> taskFooter.colorize(Colour.RED)
-                    }
+        }
+
+        val Footer: Template<LogData> = createTemplate {
+            nextBlock {
+                val status = when (executionStatus) {
+                    ExecutionStatus.Complete -> executionStatus.name.colorize(Colour.GREEN)
+                    ExecutionStatus.Active -> executionStatus.name.colorize(Colour.BRIGHT_WHITE)
+                    ExecutionStatus.Failing, ExecutionStatus.Faulty -> executionStatus.name.colorize(Colour.RED)
                 }
+               "${Colour.makeOfColour(Colour.BLUE, "[Stop $taskFooter | Status:")} $status ${Colour.makeOfColour(Colour.BLUE, "]")}"
             }
+        }
+
+        val json: JsonDescriptor2<LogData> = JsonDescriptor2<LogData>(this){
+            createObject(LogData::taskHeader, LogData::executionStatus, LogData::elapsed, LogData::taskFooter)
+            buildSubArray(TaskEvent::class, LogData::taskEvents){
+                createObject(TaskEvent::severity, TaskEvent::message)
+            }
+        }
     }
 }

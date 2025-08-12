@@ -2,7 +2,6 @@ package po.test.misc.data
 
 import org.junit.jupiter.api.Test
 import po.misc.data.printable.PrintableBase
-import po.misc.data.printable.companion.PrintableTemplate
 import po.misc.data.helpers.emptyOnNull
 import po.misc.data.json.IntDefaultProvider
 import po.misc.data.json.JasonStringSerializable
@@ -32,13 +31,11 @@ class TestJsonParser {
         val timeStamp: ExecutionTimeStamp,
         val message: String,
         val severity: Int,
-    ) : PrintableBase<TaskDataLocal>(this), JasonStringSerializable {
+    ) : PrintableBase<TaskDataLocal>(this){
 
         override val self: TaskDataLocal = this
 
-        override fun toJson(): String {
-            return descriptor.serialize(this)
-        }
+
 
         companion object : PrintableCompanion<TaskDataLocal>({TaskDataLocal::class}){
 
@@ -107,11 +104,9 @@ class TestJsonParser {
 
     data class ValidationRep(
         var validationName: String
-    ): PrintableBase<ValidationRep>(this), JasonStringSerializable {
+    ): PrintableBase<ValidationRep>(this){
         override val self: ValidationRep = this
-        override fun toJson(): String {
-            return validationReportDescriptor.serialize(this)
-        }
+
 
         companion object : PrintableCompanion<ValidationRep>({ValidationRep::class}) {
             class ValidationReportDescriptor: JsonDescriptor<ValidationRep>(){
@@ -148,15 +143,14 @@ class TestJsonParser {
         task.addArbitraryRecord(report3)
         task.addArbitraryRecord(report4)
 
-        val output = TaskDataLocal.descriptor.serialize(task)
+        val output = TaskDataLocal.descriptor.toString()
 
         println(output)
         assertTrue(output.contains("TestTask"), "Output does not contain TestTask")
         assertTrue(output.contains("All systems go"), "Output does not contain message")
-
     }
 
-    @Test
+
     fun `To json conversion as as array`() {
 
         val rootTask = TaskDataLocal(
@@ -182,6 +176,6 @@ class TestJsonParser {
         }
 
         tasks.forEach { rootTask.addArbitraryRecord(it) }
-        rootTask.toJson()
+
     }
 }

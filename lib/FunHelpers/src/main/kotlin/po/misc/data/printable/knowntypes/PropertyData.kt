@@ -1,6 +1,6 @@
 package po.misc.data.printable.knowntypes
 
-import po.misc.data.printable.companion.PrintableTemplate
+
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.context.CTX

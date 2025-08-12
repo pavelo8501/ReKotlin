@@ -11,7 +11,7 @@ import po.misc.types.safeCast
 import kotlin.reflect.KClass
 
 abstract class PrintableBase<T>(
-    private val companion: PrintableCompanion<T>
+   val companion: PrintableCompanion<T>
 ): ComposableData, Printable, DateHelper where T:PrintableBase<T> {
 
     private val templateNotFound : (T) -> String = { key->  "[template for data: $key not defined] ${toString()}"}
@@ -134,12 +134,12 @@ abstract class PrintableBase<T>(
 //        }
     }
 
-    override fun defaultsToJson(): JsonHolder? {
-        if(parentRecord?.jsonHolder == null){
-            val holder = JsonHolder()
-            holder.addJsonObject(jsonObject)
-            jsonHolder = holder
-        }
-        return jsonHolder
-    }
+//    override fun defaultsToJson(): JsonHolder? {
+//        if(parentRecord?.jsonHolder == null){
+//            val holder = JsonHolder()
+//            holder.addJsonObject(jsonObject)
+//            jsonHolder = holder
+//        }
+//        return jsonHolder
+//    }
 }

@@ -1,5 +1,6 @@
 package po.exposify.dto.components.result
 
+import po.auth.sessions.models.AuthorizedSession
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
 import po.exposify.dto.components.tracker.CrudOperation
@@ -38,7 +39,15 @@ sealed class ResultBase<DTO, D, R : Any>(
     protected val noResultException: ManagedException
         get() = failureCause ?: OperationsException("Result not available", ExceptionCode.UNDEFINED, this)
 
+    var authorizedSession: AuthorizedSession? = null
+        private set
+
     val isFaulty: Boolean get() = failureCause != null || result == null
+
+    fun saveSession(session: AuthorizedSession?){
+        authorizedSession = session
+    }
+
 }
 
 class ResultList<DTO, D> internal constructor(

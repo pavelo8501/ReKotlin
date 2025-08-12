@@ -3,7 +3,6 @@ package po.lognotify.models
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.currentCoroutineContext
 import po.lognotify.TasksManaged
 import po.lognotify.TasksManaged.LogNotify.taskDispatcher
 import po.lognotify.common.configuration.TaskConfig
@@ -11,20 +10,17 @@ import po.lognotify.notification.LoggerDataProcessor
 import po.lognotify.notification.NotifierHub
 import po.lognotify.process.Process
 import po.lognotify.process.ProcessKey
-import po.lognotify.process.processInScope
 import po.lognotify.tasks.ExecutionStatus
 import po.lognotify.tasks.RootTask
 import po.lognotify.tasks.TaskBase
 import po.lognotify.tasks.warn
-import po.misc.callbacks.CallbackManager
-import po.misc.callbacks.Containable
-import po.misc.callbacks.builders.callbackManager
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.coroutines.CoroutineInfo
+import po.misc.data.logging.LogCollector
 import po.misc.functions.registries.emitterAwareRegistryOf
-import po.misc.functions.registries.taggedRegistryOf
+import po.misc.types.safeCast
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.set
 import kotlin.coroutines.CoroutineContext
@@ -183,6 +179,18 @@ class TaskDispatcher(val notifierHub: NotifierHub): CTX {
         val activeRootTask = taskHierarchy.values.firstOrNull { it.executionStatus == ExecutionStatus.Active }
         return activeRootTask?.registry?.getActiveTask()
     }
+
+    fun <T> lookUpProcess(
+        processKey: ProcessKey<T>
+    ): Process<T>? where  T: CTX, T: LogCollector, T: CoroutineContext.Element{
+        val process = processRegistry[processKey]
+        return process?.safeCast<Process<T>>()
+    }
+
+    fun activeProcess(): Process<*>?{
+        return processRegistry.values.firstOrNull()
+    }
+
 
     fun activeTasks(): List<TaskBase<*, *>> = taskHierarchy.values.filter { it.executionStatus == ExecutionStatus.Active }
 

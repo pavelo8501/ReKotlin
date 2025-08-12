@@ -21,11 +21,11 @@ fun mockPage(name: String, updatedBy : Long): Page{
    return Page(name = name, langId = 1, updatedBy = updatedBy)
 }
 
-fun mockPages(updatedBy: Long, quantity: Int, builder: Page.(Int)-> Unit): List<Page>{
+fun mockPages(updatedBy: Long, quantity: Int, builder:(Page.(Int)-> Unit)? = null): List<Page>{
     val result: MutableList<Page> = mutableListOf()
     for (i in 1..quantity) {
-        val page = mockPage("",  updatedBy = updatedBy)
-        builder.invoke(page, i)
+        val page = mockPage("default_$i",  updatedBy = updatedBy)
+        builder?.invoke(page, i)
         result.add(page)
     }
     return result
@@ -60,6 +60,12 @@ fun mockSections(page: Page, count: Int, builder:Section.(String)-> Unit): List<
     return result
 }
 
+
+fun mockSection(page: Page, name: String, description: String):Section {
+    val section = Section(name = name, description = description, langId = 1, updatedBy = page.updatedBy, pageId = page.id)
+    return section
+}
+
 fun Section.withContentBlocks(quantity: Int, block: ContentBlock.(Int)-> Unit){
     for (i in 1..quantity) {
         val contentBlock = createContentBlock( emptyList(),  emptyList(), langId, id)
@@ -75,6 +81,26 @@ fun Page.withSections(quantity: Int, block: Section.(Int)-> Unit){
         block.invoke(section, i)
         sections.add(section)
     }
+}
+
+fun mockContentBlock(
+    section: Section,
+    name: String,
+    content: String,
+    classList: List<ClassData> = emptyList(),
+    metaTags: List<MetaData> = emptyList()
+):ContentBlock {
+    val contentBlock = ContentBlock(
+        name = name,
+        content = content,
+        langId = section.langId,
+        sectionId = section.id,
+        tag = "",
+        jsonLd = "",
+        classList = classList,
+        metaTags = metaTags
+    )
+    return contentBlock
 }
 
 

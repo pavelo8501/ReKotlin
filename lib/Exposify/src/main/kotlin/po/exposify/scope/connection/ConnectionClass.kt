@@ -1,5 +1,6 @@
 package po.exposify.scope.connection
 
+import kotlinx.coroutines.currentCoroutineContext
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.name
@@ -50,7 +51,7 @@ class ConnectionClass(
 
     internal suspend fun requestEmitter(session: AuthorizedSession): CoroutineEmitter {
         val result = dispatchManager.enqueue(session.sessionID) {
-            CoroutineEmitter("CoroutineEmitter${CoroutineInfo.createInfo(coroutineContext).name}", session)
+            CoroutineEmitter("CoroutineEmitter${CoroutineInfo.createInfo(currentCoroutineContext()).coroutineName}", session)
         }
         return result
     }

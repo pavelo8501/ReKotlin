@@ -13,7 +13,7 @@ import po.lognotify.common.result.onTaskResult
 import po.lognotify.debug.DebugProxy
 import po.lognotify.exceptions.getOrLoggerException
 import po.lognotify.exceptions.handleException
-import po.lognotify.process.processInScope
+import po.lognotify.process.processInContext
 import po.lognotify.tasks.RootTask
 import po.lognotify.tasks.TaskBase
 import po.lognotify.tasks.TaskHandler
@@ -83,7 +83,7 @@ inline fun <reified T : TasksManaged, R : Any?> T.runTaskBlocking(
     return runBlocking {
         val dispatcher = TasksManaged.LogNotify.taskDispatcher
         val newTask: RootTask<T, R> = dispatcher.createRoot<T, R>(taskName, contextName, this@runTaskBlocking, config)
-        processInScope(newTask.coroutineContext)?.observeTask(newTask)
+        processInContext(newTask.coroutineContext)?.observeTask(newTask)
         taskRunner(config.launchOptions.launcherType as TaskLauncher, newTask, block)
     }
 }
@@ -130,13 +130,18 @@ suspend inline fun <reified T : TasksManaged, R : Any?> T.runTaskAsync(
         rootTask.createChild<T, R>(taskName, this, effectiveConfig)
     }else{
         val rootTask = TasksManaged.LogNotify.taskDispatcher.createRoot<T, R>(taskName, contextName, this, config)
-        processInScope(rootTask.coroutineContext)?.observeTask(rootTask)
+        processInContext(rootTask.coroutineContext)?.observeTask(rootTask)
         rootTask
     }
 
   return  taskRunner(config.launchOptions.launcherType as TaskLauncher, newTask, block)
 
 }
+
+
+
+
+
 
 /**
  * Starts a root task in a blocking (non-suspending) context with retry support.
@@ -182,20 +187,19 @@ inline fun <T : TasksManaged, reified R : Any?> T.runTask(
     val taskContainer: TaskContainer<T, R> = TaskContainer.create<T, R>(newTask)
     taskContainer.classInfoProvider.registerProvider { overallInfo<R>(ClassRole.Result) }
 
-    repeatOnFault({
-            setMaxAttempts(config.attempts).onException { stats ->
-                val exception = handleException(stats.exception, taskContainer, null)
-                taskContainer.sourceTask.taskResult?.collectException(exception) ?: run {
-                    createFaultyResult(exception, taskContainer.sourceTask)
-                    taskContainer.sourceTask.complete(exception)
-                }
+    val result = repeatOnFault({
+        setMaxAttempts(config.attempts).onException { stats ->
+            val exception = handleException(stats.exception, taskContainer, null)
+            taskContainer.sourceTask.taskResult?.collectException(exception) ?: run {
+                createFaultyResult(exception, taskContainer.sourceTask)
+                taskContainer.sourceTask.complete(exception)
             }
-        }){
-          //  val lambdaResult = taskContainer.withReceiverAndResult(block)
-            val lambdaResult = this.block()
-            createTaskResult(lambdaResult, newTask)
-            newTask.complete()
-            newTask.stopTimer()
         }
-    return newTask.taskResult.getOrLoggerException("Task result creation failure")
+    }){
+        val lambdaResult = this.block()
+        createTaskResult(lambdaResult, newTask)
+    }
+
+    newTask.complete()
+    return result
 }
