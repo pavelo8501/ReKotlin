@@ -1,6 +1,6 @@
 package po.misc.data.printable.grouping
 
-import po.misc.data.helpers.emptyOnNull
+import po.misc.data.helpers.replaceIfNull
 import po.misc.data.printable.PrintableBase
 import kotlin.reflect.KClass
 
@@ -14,7 +14,7 @@ class ArbitraryKey(val ownClass: KClass<*>) {
         return other is ArbitraryKey &&
                 ownClass == other.ownClass
     }
-    override fun toString(): String = "${ownClass.simpleName}${postfix.emptyOnNull()}"
+    override fun toString(): String = "${ownClass.simpleName}${postfix.replaceIfNull()}"
 }
 
 class ArbitraryDataMap<V: PrintableBase<*>>(): AbstractMutableMap<ArbitraryKey, MutableList<V>>(){

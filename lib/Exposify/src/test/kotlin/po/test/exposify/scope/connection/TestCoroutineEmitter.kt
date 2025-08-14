@@ -8,6 +8,7 @@ import po.exposify.dto.components.result.toResultSingle
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.operationsException
 import po.lognotify.TasksManaged
+import po.lognotify.launchers.runProcess
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.test.exposify.setup.DatabaseTest
@@ -25,11 +26,21 @@ class TestCoroutineEmitter: DatabaseTest(), TasksManaged  {
 
         var session: AuthorizedSession? = null
         with(mockedSession){
-            val emitter = connectionClass.requestEmitter(mockedSession)
-            assertSame(mockedSession, emitter.session)
-            emitter.dispatchSingle {
-                session = coroutineContext[AuthorizedSession]
-                operationsException("TestCase", ExceptionCode.INVALID_DATA).toResultSingle(PageDTO)
+            runProcess(this){
+                val emitter = connectionClass.requestEmitter(it)
+                assertSame(mockedSession, emitter.process.receiver)
+                emitter.dispatchSingle {
+                    session = coroutineContext[AuthorizedSession]
+                    operationsException("TestCase", ExceptionCode.INVALID_DATA).toResultSingle(PageDTO)
+                }
+            }
+            runProcess(this) {
+                val emitter = connectionClass.requestEmitter(it)
+                assertSame(mockedSession, emitter.process.receiver)
+                emitter.dispatchSingle {
+                    session = coroutineContext[AuthorizedSession]
+                    operationsException("TestCase", ExceptionCode.INVALID_DATA).toResultSingle(PageDTO)
+                }
             }
         }
         assertNotNull(session)

@@ -1,7 +1,5 @@
 package po.exposify.scope.connection.controls
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.currentCoroutineContext
 import po.auth.sessions.models.AuthorizedSession
 import po.exposify.common.classes.ExposifyDebugger
 import po.exposify.common.classes.exposifyDebugger
@@ -12,14 +10,13 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.extensions.withSuspendedTransactionIfNone
 import po.lognotify.TasksManaged
-import po.lognotify.launchers.runProcess
+import po.lognotify.process.Process
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
-import po.misc.coroutines.coroutineInfo
 
 class CoroutineEmitter(
     val name: String,
-    val session : AuthorizedSession
+    val process : Process<AuthorizedSession>
 ): TasksManaged {
 
     override val identity: CTXIdentity<CoroutineEmitter> = asIdentity()
@@ -27,19 +24,20 @@ class CoroutineEmitter(
     val debugger: ExposifyDebugger<CoroutineEmitter, ContextData> =
         exposifyDebugger(this, ContextData) { ContextData(it.message) }
 
+    suspend fun <R>dispatch(block:suspend ()-> R): R{
+        return withSuspendedTransactionIfNone(debugger, warnIfNoTransaction = false, process.coroutineContext){
+            block.invoke()
+        }
+    }
     suspend fun <DTO:ModelDTO, D: DataModel>dispatchSingle(block:suspend ()-> ResultSingle<DTO, D>): ResultSingle<DTO, D>{
-        return runProcess(session, Dispatchers.IO){
-            withSuspendedTransactionIfNone(debugger, warnIfNoTransaction = false, currentCoroutineContext()){
-                block.invoke()
-            }
+        return  withSuspendedTransactionIfNone(debugger, warnIfNoTransaction = false, process.coroutineContext){
+            block.invoke()
         }
     }
 
     suspend fun <DTO:ModelDTO, D: DataModel>dispatchList(block:suspend ()-> ResultList<DTO, D>): ResultList<DTO, D>{
-        return runProcess(session,  Dispatchers.IO){
-            withSuspendedTransactionIfNone(debugger, warnIfNoTransaction = false, currentCoroutineContext()){
-                block.invoke()
-            }
+        return  withSuspendedTransactionIfNone(debugger, warnIfNoTransaction = false, process.coroutineContext){
+            block.invoke()
         }
     }
 }

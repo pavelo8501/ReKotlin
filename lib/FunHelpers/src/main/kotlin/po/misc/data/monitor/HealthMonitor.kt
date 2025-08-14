@@ -1,12 +1,12 @@
 package po.misc.data.monitor
 
-import po.misc.data.helpers.emptyOnNull
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
 import po.misc.context.CTX
+import po.misc.data.helpers.replaceIfNull
 import po.misc.functions.dsl.helpers.nextBlock
 import po.misc.reflection.anotations.ManagedProperty
 import po.misc.reflection.properties.takePropertySnapshot
@@ -41,7 +41,7 @@ class HealthMonitor<T: CTX>(
         companion object: PrintableCompanion<Record>({Record::class}){
             val Default = createTemplate{
                 nextBlock{
-                    "${dateTime.toString()} : ${action.name} -> ($parameter = $value) ${message.emptyOnNull()} "
+                    "${dateTime.toString()} : ${action.name} -> ($parameter = $value) ${message.replaceIfNull()} "
                 }
             }
         }

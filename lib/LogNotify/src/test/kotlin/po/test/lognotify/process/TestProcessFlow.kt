@@ -24,25 +24,11 @@ import kotlin.test.assertTrue
 class TestProcessFlow : FakeTasksManaged {
 
     @Test
-    fun `Process launcher keeps reference to original session object`(): TestResult = runTest {
-        mockedSession.runProcess{
-            println(coroutineContext.coroutineInfo())
-            val session = assertNotNull(coroutineContext[AuthorizedSession])
-            assertSame(mockedSession, session)
-        }
-
-        runProcess(mockedSession) {
-            val session = assertNotNull(coroutineContext[AuthorizedSession])
-            assertSame(mockedSession, session)
-        }
-    }
-
-    @Test
     fun `Process receives updates from underlying tasks and forward to receiver`(): TestResult = runTest {
         val dataReceived: MutableList<PrintableBase<*>> = mutableListOf()
         runProcess(mockedSession) {
 
-            onDataReceived { dataReceived.add(it) }
+            onDataReceived{ dataReceived.add(it) }
             runTaskAsync("Task1"){
 
             }
@@ -59,7 +45,7 @@ class TestProcessFlow : FakeTasksManaged {
     fun `Process coroutine elements delegated get work as expected`(): TestResult = runTest {
 
         var element: Any? = null
-        mockedSession.runProcess{
+        runProcess(mockedSession){
             element =  getCoroutineElement(AuthorizedSession)
         }
         val session = assertNotNull(element)
@@ -73,7 +59,7 @@ class TestProcessFlow : FakeTasksManaged {
         var blockingCoroutineName: CoroutineName? = null
         var asyncCoroutineName: CoroutineName? = null
 
-        mockedSession.runProcess{
+        runProcess(mockedSession){
             processCoroutineName = currentCoroutineContext()[CoroutineName]
 
             runTaskBlocking("Blocking task"){

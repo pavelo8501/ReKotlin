@@ -1,39 +1,32 @@
 package po.misc.functions.dsl
 
-
-
-
-
+import po.misc.functions.dsl.handlers.DefaultDSLHandler
+import po.misc.functions.dsl.handlers.HandlerBase
+import po.misc.functions.registries.DSLRegistry
+import po.misc.types.TypeData
 
 
 @DSLBlockMarker
-abstract class DSLBlockBase2<T: Any>(
-    private val block: DSLBlockBase2<T>.(T)-> Unit
-){
-    val subBlocks = mutableListOf<DSLBlockBase2<T>>()
+open class ContainingDSLBlock2<T: Any, P: Any>(
+    val typeData: TypeData<T>,
+    private val block: T.(P)-> Unit,
+) {
 
+    private val notifierRegistry: DSLRegistry<T, HandlerBase<T>> = DSLRegistry(this, typeData, DefaultDSLHandler(typeData))
 
+    val notifierCount : Int get() = notifierRegistry.subscriptionsCount
 
+    val containerType:DSLContainerType get() =  DSLContainerType.OwnReceiver
+
+    var invokeIfAdapterNull: Boolean = false
+        internal set
 
 }
 
-
-class BuilderDSLBlock<T: Any>(
-    private val block: DSLBlockBase2<T>.(T)-> Unit
-):DSLBlockBase2<T>(block){
-
-}
-
-
-class DSLConstructor2<T: Any>(
-    private val constructLambda: DSLConstructor2<T>.(T)-> Unit
+class DSLConstructor2<T: Any,  R: Any>(
+    private val constructLambda: (DSLConstructor2<T,R>.()-> Unit)? = null
 ){
 
-    val dslBlocks = mutableListOf<DSLBlockBase2<T>>()
-
-    fun createBlock(block:DSLBlockBase2<T>.(T)-> Unit){
-        dslBlocks.add(BuilderDSLBlock(block))
-    }
 
 }
 

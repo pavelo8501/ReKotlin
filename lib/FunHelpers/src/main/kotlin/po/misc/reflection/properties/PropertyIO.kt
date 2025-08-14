@@ -3,10 +3,9 @@ package po.misc.reflection.properties
 import po.misc.collections.SlidingBuffer
 import po.misc.collections.StaticTypeKey
 import po.misc.data.delegates.ComposableProperty
-import po.misc.data.helpers.textIfNull
 import po.misc.context.CTX
 import po.misc.context.asIdentity
-import po.misc.exceptions.toPayload
+import po.misc.data.helpers.replaceIfNull
 import po.misc.reflection.objects.Composed
 import po.misc.reflection.properties.models.PropertyUpdate
 import po.misc.types.castOrManaged
@@ -128,7 +127,7 @@ class SourcePropertyIO<T: Any, V: Any>(
     val propertySlots: PropertyGroup<Any, V> = PropertyGroup()
 
     override fun toString(): String{
-        val typeName : String = propertyInfo.valueTypeData?.typeName.textIfNull("Unit")
+        val typeName : String = propertyInfo.valueTypeData?.typeName.replaceIfNull("Unit")
         val result = "${ioType.value} $propertyName :$typeName get() = ${getValue()}"
         return result
     }

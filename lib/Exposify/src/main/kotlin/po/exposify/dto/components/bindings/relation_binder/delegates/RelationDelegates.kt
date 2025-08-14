@@ -31,8 +31,8 @@ import po.lognotify.TasksManaged
 import po.misc.collections.hasExactlyOne
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
-import po.misc.functions.registries.require
-import po.misc.functions.registries.subscribe
+import po.misc.functions.registries.builders.require
+import po.misc.functions.registries.builders.subscribe
 import po.misc.types.TypeData
 import po.misc.types.castListOrManaged
 import kotlin.reflect.KMutableProperty1

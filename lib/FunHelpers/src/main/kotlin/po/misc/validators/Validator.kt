@@ -9,7 +9,6 @@ import po.misc.validators.reports.ValidationReport
 class Validator(
    private val validating: Any
 ) {
-
     val validatingCTXName: String get() {
         return if (validating is CTX) {
             validating.identifiedByName
@@ -33,7 +32,6 @@ class Validator(
            return CheckStatus.FAILED
        }
     }
-
     var validationPrefix: String = ""
 
     fun build(

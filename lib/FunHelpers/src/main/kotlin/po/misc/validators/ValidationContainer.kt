@@ -19,13 +19,9 @@ sealed class ValidationContainerBase<T: Any?, R: Any?>(
     @PublishedApi
     internal open val validatable:T? = null
 
-
     val nowValidating:T  get() {
        return validatableBacking?:validatable.getOrManaged(nowValidatingKClass?: Any::class,  this)
     }
-
-
-
 
     internal var lastResult:R? = null
         private set
@@ -46,10 +42,8 @@ sealed class ValidationContainerBase<T: Any?, R: Any?>(
     internal open val hooks : ValidatorHooks<T> = BaseHooks()
     val overallStatus: CheckStatus get() = validationReport.overallResult
 
-
     @PublishedApi
     internal val validationReport: ValidationReport = ValidationReport(validator.validatingCTXName, validationName)
-
 
     internal fun validationComplete(): ValidationContainerBase<T, R>{
         if(overallStatus == CheckStatus.PASSED){

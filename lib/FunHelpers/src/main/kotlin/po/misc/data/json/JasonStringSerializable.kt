@@ -1,5 +1,7 @@
 package po.misc.data.json
 
+import po.misc.data.helpers.jsonEscape
+
 interface JasonStringSerializable {
     fun toJson(): String
 }
@@ -28,8 +30,7 @@ fun formatJsonSafe(value: Any?): String {
     return when (value) {
         null -> "null"
         is Number, is Boolean -> value.toString()
-        is String -> "\"${value.replace("\"", "\\\"")}\""
-        is JasonStringSerializable -> toJsonLike(value)
+        is String ->   "\"${value.jsonEscape().replace("\"", "\\\"")}\""
         else -> "\"${value.toString().replace("\"", "\\\"")}\""
     }
 }

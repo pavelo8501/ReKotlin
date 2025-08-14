@@ -1,14 +1,19 @@
 package po.test.lognotify.setup
 
-import po.lognotify.LogNotifyHandler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import po.lognotify.TasksManaged
-import po.lognotify.models.TaskDispatcher
-import po.lognotify.notification.NotifierHub
+import po.lognotify.common.configuration.TaskConfig
+import po.lognotify.dispatcher.createHierarchyRoot
+import po.lognotify.tasks.RootTask
+import po.lognotify.tasks.Task
+import po.lognotify.tasks.TaskBase
+import po.lognotify.tasks.createChildTask
+import po.lognotify.tasks.generateRootKey
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 
 import po.misc.context.asIdentity
-import po.misc.data.printable.PrintableBase
 import po.misc.data.processors.SeverityLevel
 
 /**
@@ -38,11 +43,19 @@ internal interface FakeTasksManaged : TasksManaged {
 
     val mockedDispatcher get() = TasksManaged.LogNotify.taskDispatcher
 
+    val mockScope: CoroutineScope get() =  CoroutineScope(Dispatchers.Default)
+
     override val messageLogger: (String, SeverityLevel, Any) -> Unit get() = {message, severity, context->
         logHandler.logger.notify(message, severity, context)
     }
-    override val datLogger: (PrintableBase<*>, SeverityLevel, Any) -> Unit get() = {printable, severity, context->
-        logHandler.logger.log(printable, severity, context)
+
+    fun <T: FakeTasksManaged> T.mockRootTask(name: String = "root_task"): RootTask<T, Unit>{
+        return createHierarchyRoot(name, this, TaskConfig())
     }
+
+    fun  <T: FakeTasksManaged> TaskBase<T, *>.mockChildTask(name: String, config: TaskConfig = TaskConfig()): Task<T, Unit>{
+       return  this.createChildTask(name, this.receiver, config)
+    }
+
 
 }

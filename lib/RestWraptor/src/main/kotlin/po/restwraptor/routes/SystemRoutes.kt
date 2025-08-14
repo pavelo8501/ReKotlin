@@ -8,36 +8,36 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.options
 import io.ktor.server.routing.route
 import po.restwraptor.enums.EnvironmentType
-import po.restwraptor.extensions.toUrl
-import po.restwraptor.models.response.ApiResponse
-import po.restwraptor.scope.ConfigContext
 import po.restwraptor.extensions.respondNotFound
+import po.restwraptor.interfaces.WraptorResponse
+import po.restwraptor.scope.ConfigContext
 
-fun Routing.configureSystemRoutes(baseURL: String, configContext: ConfigContext) {
+fun Routing.configureSystemRoutes(configContext: ConfigContext, responseProvider:()-> WraptorResponse<*>) {
 
     val wraptor = configContext.wraptor
-
-    val statusUrl = toUrl(baseURL, "status")
-    options(statusUrl) {
+    
+    options(withBaseUrl("status")) {
         call.response.header("Access-Control-Allow-Origin", "*")
         call.respondText("OK")
     }
-    get(statusUrl) {
+    get(withBaseUrl("status")) {
         call.respond(wraptor.status().toString())
     }
-    val statusJsonUrl = toUrl(baseURL, "status-json")
-    get(statusJsonUrl) {
+
+    get(withBaseUrl("status-json")) {
         val responseStatus: String = "OK"
-        call.respond(ApiResponse(responseStatus))
+        call.respond(responseProvider)
     }
     route("{...}") {
         handle {
             if (configContext.apiConfig.environment != EnvironmentType.PROD) {
                 call.respondNotFound(
-                    wraptor.getRoutes().map { ("Path: ${it.path}  Method: ${it.selector} IsSecured: ${it.isSecured} ") }
+                    wraptor.getRoutes().map { ("Path: ${it.path}  Method: ${it.selector} IsSecured: ${it.isSecured} ") },
+                    responseProvider
                 )
             } else {
-                call.respondNotFound(listOf("Oops! This path does not exist."))
+                call.respondNotFound(listOf("Oops! This path does not exist."), responseProvider)
+
             }
         }
     }

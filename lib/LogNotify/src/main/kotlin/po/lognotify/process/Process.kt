@@ -1,51 +1,82 @@
 package po.lognotify.process
 
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import po.lognotify.notification.models.LogData
-import po.lognotify.tasks.RootTask
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
-import po.misc.coroutines.CoroutineHolder
-import po.misc.data.logging.LogCollector
-import po.misc.data.printable.PrintableBase
+import po.misc.coroutines.HotFlowEmitter
+import po.misc.data.helpers.output
+import po.misc.functions.registries.builders.notifierRegistryOf
+import po.misc.functions.registries.builders.subscribe
+import po.misc.functions.registries.builders.taggedRegistryOf
+import po.misc.interfaces.Processable
 import po.misc.time.ExecutionTimeStamp
 import kotlin.coroutines.CoroutineContext
 
 
+enum class ProcessEvents{
+    DataReceived
+}
+
+enum class ProcessStatus{
+    Active,
+    Complete
+}
+
 class Process<T>(
     val processKey: ProcessKey<T>,
-    override val receiver: T,
-): LoggerProcess<T>, CoroutineContext.Element, CoroutineHolder, CTX where T: CTX, T: LogCollector, T: CoroutineContext.Element{
+    val receiver: T,
+    val dispatcher: CoroutineDispatcher,
+): LoggerProcess<T> where T: Processable{
+
 
     override val identity: CTXIdentity<Process<T>> = asIdentity()
+    override val handler: ProcessHandler = ProcessHandler(this)
+
+    private val listenerScope =  CoroutineScope(CoroutineName("Listener"))
 
     val processName: String = processKey.processName
+    var status:ProcessStatus = ProcessStatus.Active
 
     override val key: CoroutineContext.Key<Process<*>> = Key
-    val scope: CoroutineScope = CoroutineScope(this + receiver + processKey.coroutineName)
-    override val coroutineContext: CoroutineContext get() = scope.coroutineContext
+    override val scope: CoroutineScope = CoroutineScope(this + dispatcher  + receiver + processKey.coroutineName)
+    val coroutineContext: CoroutineContext get() = scope.coroutineContext
 
     val timeStamp: ExecutionTimeStamp = ExecutionTimeStamp(processName, "LoggerProcess")
     var onDataReceived: ((LogData)-> Unit)? = null
+
+    internal val onComplete = notifierRegistryOf<Process<*>>(ProcessStatus.Complete)
+    internal val dataNotifier = taggedRegistryOf<ProcessEvents, LogData>()
 
     init {
         timeStamp.startTimer()
     }
 
-    override fun onDataReceived(callback: (PrintableBase<*>) -> Unit) {
+    private fun processDataReceived(data : LogData){
+        "processDataReceived".output()
+        receiver.provideData(data)
+        onDataReceived?.invoke(data)
+    }
+
+    internal fun <R> complete(result:R):R{
+        status = ProcessStatus.Complete
+        onComplete.trigger(this)
+        onComplete.clear()
+        dataNotifier.clear()
+        return result
+    }
+
+    override fun CTX.onDataReceived(callback: (LogData) -> Unit) {
+        this@onDataReceived.subscribe(ProcessEvents.DataReceived, dataNotifier, callback)
         onDataReceived = callback
     }
 
-    fun observeTask(task: RootTask<*, *>) {
-        val flowEmitter = task.dataProcessor.flowEmitter
-        if(flowEmitter != null){
-            val listenerScope =  CoroutineScope(CoroutineName("Listener"))
-            flowEmitter.subscribeToDataEmissions(listenerScope){data->
-                receiver.provideData(data)
-                onDataReceived?.invoke(data)
-            }
+    fun observeTask(flowEmitter: HotFlowEmitter<LogData>) {
+        flowEmitter.collectEmissions(listenerScope) { data ->
+            processDataReceived(data)
         }
     }
 

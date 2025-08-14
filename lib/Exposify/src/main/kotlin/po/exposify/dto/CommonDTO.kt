@@ -22,6 +22,7 @@ import po.lognotify.TasksManaged
 import po.misc.containers.BackingContainer
 import po.misc.containers.LazyContainer
 import po.misc.containers.ReactiveMap
+import po.misc.containers.backingContainerOf
 import po.misc.containers.lazyContainerOf
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
@@ -29,7 +30,7 @@ import po.misc.data.processors.SeverityLevel
 import po.misc.exceptions.throwableToText
 import po.misc.functions.hooks.Change
 import po.misc.functions.registries.TaggedRegistry
-import po.misc.functions.registries.taggedRegistryOf
+import po.misc.functions.registries.builders.taggedRegistryOf
 import java.util.UUID
 
 sealed class CommonDTOBase<DTO, D, E>(
@@ -60,14 +61,14 @@ sealed class CommonDTOBase<DTO, D, E>(
 
 
 
-    val onDTOComplete: TaggedRegistry<DTOEvents, CommonDTO<DTO, D, E>> = taggedRegistryOf(DTOEvents.Initialized)
-    val onStatusUpdated: TaggedRegistry<DTOEvents, CommonDTO<DTO, D, E>> = taggedRegistryOf(DTOEvents.StatusUpdated)
-    val onIdResolved: TaggedRegistry<DTOEvents, CommonDTO<DTO, D, E>> = taggedRegistryOf(DTOEvents.IdResolved){
-        warnNoSubscriber(false)
+    val onDTOComplete: TaggedRegistry<DTOEvents, CommonDTO<DTO, D, E>> by lazy { taggedRegistryOf(DTOEvents.Initialized) }
+    val onStatusUpdated: TaggedRegistry<DTOEvents, CommonDTO<DTO, D, E>> by lazy{ taggedRegistryOf(DTOEvents.StatusUpdated) }
+    val onIdResolved: TaggedRegistry<DTOEvents, CommonDTO<DTO, D, E>> by lazy {
+        taggedRegistryOf(DTOEvents.IdResolved){ warnNoSubscriber(false) }
     }
 
-    val dataContainer: LazyContainer<D> = LazyContainer(commonType.dataType)
-    val entityContainer: BackingContainer<E> = BackingContainer(commonType.entityType)
+    val dataContainer: LazyContainer<D> =  lazyContainerOf(commonType.dataType)
+    val entityContainer: BackingContainer<E> = backingContainerOf(commonType.entityType)
 
     val executionContextMap: ReactiveMap<CommonDTOType<*, *, *>, DTOExecutionContext<*, *, *, DTO, D, *>> = ReactiveMap()
     val executionContextsCount: Int get() = executionContextMap.size

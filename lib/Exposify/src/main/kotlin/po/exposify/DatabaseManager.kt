@@ -83,6 +83,16 @@ object DatabaseManager : TasksManaged {
     fun openConnection(
         connectionInfo: ConnectionInfo?,
         settings: ConnectionSettings = ConnectionSettings(5),
+        hookBuilder: DBManagerHooks.()-> Unit
+    ): ConnectionClass{
+        val hooks = DBManagerHooks()
+        hooks.hookBuilder()
+        return openConnection(connectionInfo, settings, hooks)
+    }
+
+    fun openConnection(
+        connectionInfo: ConnectionInfo?,
+        settings: ConnectionSettings = ConnectionSettings(5),
         hooks: DBManagerHooks? = null,
     ): ConnectionClass =
         runTask("openConnection", TaskConfig(attempts = settings.retries)) {

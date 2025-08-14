@@ -29,10 +29,16 @@ fun <T> Array<out T>.takeFromMatch(count: Int, predicate: (T) -> Boolean): List<
         .take(count)
 }
 
-fun <T> Array<T>.takeFromLastMatching(count: Int, predicate: (T) -> Boolean): List<T> {
+fun <T> Array<T>.takeFromLastMatching(count: Int,  predicate: (T) -> Boolean): List<T> {
     val lastIndex = (this.size - 1 downTo 0).firstOrNull { predicate(this[it]) } ?: return emptyList()
     val endIndexExclusive = (lastIndex + count).coerceAtMost(this.size)
     return this.slice(lastIndex until endIndexExclusive)
+}
+
+fun <T> Array<T>.takeFromLastMatching(count: Int, shifting: Int,  predicate: (T) -> Boolean): List<T> {
+    val lastIndex = (this.size - 1 downTo 0).firstOrNull { predicate(this[it]) } ?: return emptyList()
+    val endIndexExclusive = (lastIndex + count).coerceAtMost(this.size)
+    return this.slice(lastIndex+ shifting until endIndexExclusive - shifting)
 }
 
 

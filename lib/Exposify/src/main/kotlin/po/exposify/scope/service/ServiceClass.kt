@@ -14,6 +14,7 @@ import po.exposify.scope.connection.ConnectionClass
 import po.exposify.scope.connection.controls.CoroutineEmitter
 import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
+import po.lognotify.process.Process
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 
@@ -89,7 +90,7 @@ class ServiceClass<DTO, DATA, ENTITY>(
         }
         return serviceContext
     }
-    internal suspend fun requestEmitter(session: AuthorizedSession): CoroutineEmitter =
-        connectionClass.requestEmitter(session)
+    internal suspend fun requestEmitter(process: Process<AuthorizedSession>): CoroutineEmitter =
+        connectionClass.requestEmitter(process)
 
 }

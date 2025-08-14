@@ -1,5 +1,6 @@
 package po.test.exposify.scope.session
 
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -17,6 +18,10 @@ import po.lognotify.launchers.runProcess
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
+import po.misc.data.helpers.indentText
+import po.misc.data.helpers.output
+import po.misc.data.helpers.withIndent
+import po.misc.data.printable.PrintableBase
 import po.misc.functions.registries.addHook
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.dtos.PageDTO
@@ -28,6 +33,7 @@ import po.test.exposify.setup.mocks.mockPages
 import po.test.exposify.setup.mocks.mockedPage
 import po.test.exposify.setup.mocks.mockedSession
 import po.test.exposify.setup.mocks.mockedUser
+import po.test.exposify.setup.mocks.newMockedSession
 import po.test.exposify.setup.mocks.withSections
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -38,12 +44,9 @@ class TestSessionProcess : DatabaseTest(), TasksManaged {
 
     override val identity: CTXIdentity<TestSessionProcess> = asIdentity()
 
-
     companion object {
-
         @JvmStatic
         var updatedBy: Long = 0
-
     }
 
     @BeforeAll
@@ -54,9 +57,16 @@ class TestSessionProcess : DatabaseTest(), TasksManaged {
                 updatedBy = result.getDataForced().id
             }
         }
+
+        val mockPages = mockPages(updatedBy, 2){
+            withSections(10){
+                name = "section_$it"
+                description = "description_$it"
+            }
+        }
         withConnection {
             service(PageDTO){
-
+                update(mockPages)
             }
         }
     }
@@ -67,16 +77,6 @@ class TestSessionProcess : DatabaseTest(), TasksManaged {
         val sectionsCount = 10
         var pickCallbackTriggered = false
         var selectCallbackSize: Int = 0
-
-        val mockPages = mockPages(updatedBy, 2){
-            withSections(sectionsCount){
-                name = "section_$it"
-                description = "description_$it"
-            }
-        }
-        with(mockedSession){
-            update(PageDTO, mockPages)
-        }
 
         with(mockedSession){
             withHooks(PageDTO){
@@ -89,13 +89,27 @@ class TestSessionProcess : DatabaseTest(), TasksManaged {
                     selectCallbackSize = dtos.size
                 }
             }
-            val result = pick(PageDTO, 1L) {
+            val result = pick(PageDTO, 1L){
                 select(SectionDTO)
             }
             val sections = assertNotNull(result.dto)
-            assertEquals(sectionsCount, sections.size)
-            assertEquals(sectionsCount, selectCallbackSize)
+            assertEquals(sectionsCount, sections.size, "Sections selected")
+            assertEquals(sectionsCount, selectCallbackSize, "Sections selected by hook")
             assertTrue(pickCallbackTriggered)
         }
+    }
+
+
+    fun `Session stores data produced during CRUD calls`() = runTest {
+
+        var selectCallbackSize: Int = 0
+        val logRecords = mutableListOf<PrintableBase<*>>()
+        with(newMockedSession){
+            select(PageDTO)
+            logRecords.addAll(extractLogRecords())
+            delay(1000)
+        }
+        delay(1000)
+        assertTrue(logRecords.isNotEmpty())
     }
 }

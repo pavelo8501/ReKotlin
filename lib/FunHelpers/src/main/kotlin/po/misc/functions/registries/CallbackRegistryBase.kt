@@ -1,13 +1,18 @@
 package po.misc.functions.registries
 
+import po.misc.containers.BackingContainer
+import po.misc.containers.backingContainerOf
 import po.misc.context.CTX
 import po.misc.data.logging.LogEmitter
 import po.misc.data.processors.SeverityLevel
+import po.misc.functions.containers.DSLNotifier
+import po.misc.functions.containers.LambdaUnit
 import po.misc.functions.containers.Notifier
 import po.misc.functions.models.NotificationConfig
 import po.misc.functions.registries.models.SimpleSubscriber
 import po.misc.functions.registries.models.TaggedSubscriber
 import po.misc.types.TypeData
+import po.misc.types.TypeRecord
 import po.misc.types.castListOrManaged
 import po.misc.types.helpers.simpleOrNan
 import po.misc.types.safeCast
@@ -15,12 +20,18 @@ import kotlin.collections.set
 import kotlin.reflect.KClass
 
 
-sealed class CallbackRegistryBase<V: Any>(
-    protected val identifiedAs: String
+sealed class CallbackRegistryBase<V: Any, R: Any>(
+    protected val name: String
 ): LogEmitter{
 
     @PublishedApi
     internal var notifierConfig: NotificationConfig = NotificationConfig()
+
+   // protected var  emitterTypeBacking : TypeData<*>? = null
+   // protected open val emitterType : TypeData<*>? = null
+
+    //protected val emitterTypeBacking: BackingContainer<TypeData<*>> = backingContainerOf()
+    protected abstract val emitterType : TypeData<*>?
 
     protected val noLambdaMsg: ( name:String)-> String = {name->
         "$name Unable to trigger. Lambda is null"
@@ -28,33 +39,35 @@ sealed class CallbackRegistryBase<V: Any>(
     protected val subscriptionOverwrittenMsg: ( name:String)-> String = {name->
         "$name Lambda overwritten"
     }
-    protected val subscriptionFailedMsg: (subscriberName: String, emitterName:String)-> String = {subscriberName, emitterName->
+    protected val subscriptionFailedMsg: (String, String)-> String = {subscriberName, emitterName->
         "No subscription made for $subscriberName. While trying to subscribe for $emitterName emissions"
     }
-    protected var owningContext: CTX? = null
+    internal var owningContext: CTX? = null
 
-    protected val notifiers: MutableMap<RegistryKey, Notifier<V>> = mutableMapOf()
+
+    protected open val notifiers: MutableMap<RegistryKey, LambdaUnit<V, R>> = mutableMapOf()
+
     val subscriptionsCount: Int get() = notifiers.size
     val requireOnceCount: Int get() = notifiers.keys.count { it.requireOnce }
     val permanentCount: Int get() = notifiers.keys.count { !it.requireOnce }
 
     protected fun notifyNoLambda(){
         if(notifierConfig.warnNoSubscriber){
-            owningContext?.notify(noLambdaMsg(identifiedAs), SeverityLevel.WARNING)?:run {
-                notify(noLambdaMsg(identifiedAs), SeverityLevel.WARNING)
+            owningContext?.notify(noLambdaMsg(name), SeverityLevel.WARNING)?:run {
+                notify(noLambdaMsg(name), SeverityLevel.WARNING)
             }
         }
     }
     protected fun notifyLambdaOverwritten(){
         if(notifierConfig.warnSubscriptionOverwritten){
-            owningContext?.notify(subscriptionOverwrittenMsg(identifiedAs), SeverityLevel.WARNING)?:run {
-                notify(subscriptionOverwrittenMsg(identifiedAs), SeverityLevel.WARNING)
+            owningContext?.notify(subscriptionOverwrittenMsg(name), SeverityLevel.WARNING)?:run {
+                notify(subscriptionOverwrittenMsg(name), SeverityLevel.WARNING)
             }
         }
     }
 
 
-    fun provideConfig(config: NotificationConfig):CallbackRegistryBase<V>{
+    fun provideConfig(config: NotificationConfig):CallbackRegistryBase<V, *>{
         notifierConfig = config
         return this
     }
@@ -85,19 +98,49 @@ sealed class CallbackRegistryBase<V: Any>(
             toRemove.forEach(notifiers::remove)
         }
     }
-
     fun clear() {
         notifiers.clear()
     }
 }
 
 class NotifierRegistry<V: Any>(
+    val emitter: Any,
+    private val identifiedBy: String
+):CallbackRegistryBase<V, Unit>("NotifierRegistry[$identifiedBy]"){
 
-):CallbackRegistryBase<V>("NotifierRegistry"){
+    override val emitterType: TypeData<*>? by lazy {
+        if(emitter is CTX){
+            emitter.identity.typeData
+        }else{
+            null
+        }
+    }
 
+    init {
+        if(emitter is CTX){
+            owningContext = emitter
+        }
+    }
 
     private fun createKey(kClass: KClass<*>, requireOnce: Boolean = false): SimpleSubscriber{
         return SimpleSubscriber(kClass, requireOnce)
+    }
+
+    fun require(subscriber: KClass<*>, callback: (V) -> Unit) {
+        val subscriptionKey = createKey(subscriber, true)
+        if (notifiers.containsKey(subscriptionKey)) {
+            notifyLambdaOverwritten()
+        }
+        notifiers[subscriptionKey] = Notifier(callback)
+    }
+
+    fun require(subscriber: KClass<*>, id: Long, callback: (V) -> Unit) {
+        val subscriptionKey = createKey(subscriber, true)
+        subscriptionKey.setID(id)
+        if (notifiers.containsKey(subscriptionKey)) {
+            notifyLambdaOverwritten()
+        }
+        notifiers[subscriptionKey] = Notifier(callback)
     }
 
     fun subscribe(subscriber: Any, subscriberId: Long, callback:(V)-> Unit){
@@ -111,6 +154,7 @@ class NotifierRegistry<V: Any>(
 
     fun subscribe(subscriber: Any, callback:(V)-> Unit){
         val key = createKey(subscriber::class)
+        key.setID(notifiers.size + 1L)
         if(notifiers.containsKey(key)){
             notifyLambdaOverwritten()
         }
@@ -129,159 +173,97 @@ class NotifierRegistry<V: Any>(
 
 }
 
-class TaggedRegistry<E: Enum<E>, V: Any>(
-    internal val tagClass: Class<E>,
-    internal val presetKey: E? = null
-): CallbackRegistryBase<V>("TaggedRegistry<${tagClass.name}>") {
+class DSLRegistry<T: Any, P: Any>(
+   val emitter: Any,
+   val typeData: TypeData<T>,
+   val parameter:P
+):CallbackRegistryBase<T, Unit>("NotifierRegistry"){
 
-    private fun createKey(tag:E,  kClass: KClass<*>, requireOnce: Boolean = false): TaggedSubscriber<E>{
-       return TaggedSubscriber(tag, kClass, requireOnce)
+    override val emitterType: TypeData<*>? by lazy {
+        if(emitter is CTX){
+            emitter.identity.typeData
+        }else{
+            null
+        }
     }
 
-    @PublishedApi
-    internal fun setContext(context: CTX):TaggedRegistry<E, V>{
-        owningContext = context
-        return this
+    private fun createKey(kClass: KClass<*>, requireOnce: Boolean = false): SimpleSubscriber{
+        return SimpleSubscriber(kClass, requireOnce)
     }
 
-    fun trigger(tag:E, kClass: KClass<*>, id: Long, value: V) {
-        val key = createKey(tag, kClass).setID(id)
+    fun require(subscriber: KClass<*>, callback: (T) -> Unit) {
+        val subscriptionKey = createKey(subscriber, true)
+        if (notifiers.containsKey(subscriptionKey)) {
+            notifyLambdaOverwritten()
+        }
+        notifiers[subscriptionKey] = Notifier(callback)
+    }
+
+    fun require(subscriber: KClass<*>, id: Long, callback: (T) -> Unit) {
+        val subscriptionKey = createKey(subscriber, true)
+        subscriptionKey.setID(id)
+        if (notifiers.containsKey(subscriptionKey)) {
+            notifyLambdaOverwritten()
+        }
+        notifiers[subscriptionKey] = Notifier(callback)
+    }
+
+    fun subscribe(subscriber: Any, subscriberId: Long, callback: T.(P)-> Unit){
+        val key = createKey(subscriber::class)
+        key.setID(subscriberId)
+        if(notifiers.containsKey(key)){
+            notifyLambdaOverwritten()
+        }
+        notifiers[key] = DSLNotifier(typeData, parameter, callback)
+    }
+
+    fun subscribe(subscriber: Any, callback: T.(P)-> Unit){
+        val key = createKey(subscriber::class)
+        key.setID(notifiers.size + 1L)
+        if(notifiers.containsKey(key)){
+            notifyLambdaOverwritten()
+        }
+        notifiers[key] = DSLNotifier(typeData, parameter, callback)
+    }
+
+    fun trigger(kClass: KClass<*>, value: T) {
+        val key = createKey(kClass)
         trigger(key, value)
     }
 
-    fun trigger(kClass: KClass<*>, value: V) {
-        val probe = SimpleSubscriber(kClass, false).setID(0L)
-        val foundKey = notifiers.keys.firstOrNull { it.matchesWildcard(probe) }
-        foundKey?.let { notifiers[it]?.trigger(value) }?:run {
-            notifyNoLambda()
-        }
-    }
-
-    fun trigger(tag:E, value: V) {
-        val keys = notifiers.keys.filterIsInstance<TaggedSubscriber<E>>()
-        keys.filter { it.enumTag ==  tag}.forEach {foundKey->
-            trigger(foundKey, value)
-        }
-    }
-
-    fun require(tag:E, kClass: KClass<*>, callback: (V) -> Unit){
-        val subscriptionKey = createKey(tag, kClass, true)
-        if(notifiers.containsKey(subscriptionKey)){
-            notifyLambdaOverwritten()
-        }
-        notifiers[subscriptionKey] = Notifier(callback)
-    }
-
-    fun require(tag: E, kClass: KClass<*>, id: Long, callback: (V) -> Unit){
-        val subscriptionKey = createKey(tag, kClass, true).setID(id)
-        if(notifiers.containsKey(subscriptionKey)){
-            notifyLambdaOverwritten()
-        }
-        notifiers[subscriptionKey] = Notifier(callback)
-    }
-
-    fun subscribe(tag: E,  kClass: KClass<*>, callback: (V) -> Unit){
-        val subscriptionKey = createKey(tag, kClass)
-        if(notifiers.containsKey(subscriptionKey)){
-            notifyLambdaOverwritten()
-        }
-        notifiers[subscriptionKey] = Notifier(callback)
-    }
-
-    fun subscribe(tag: E, kClass: KClass<*>, id: Long, callback: (V) -> Unit){
-        val subscriptionKey = createKey(tag, kClass).setID(id)
-
-        if(notifiers.containsKey(subscriptionKey)){
-            notifyLambdaOverwritten()
-        }
-        notifiers[subscriptionKey] = Notifier(callback)
+    fun trigger(kClass: KClass<*>, id: Long, value: T) {
+        val key = createKey(kClass).setID(id)
+        trigger(key, value)
     }
 }
 
-class EmitterAwareRegistry<S: Any, E: Enum<E>, V: Any>(
-    val emitterClass: TypeData<S>,
-    val tagClass: Class<E>
-): CallbackRegistryBase<V>("EmitterAwareRegistry<${tagClass.name}>")
-{
-    private fun createKey(tag:E, subscriberClass: KClass<*>, requireOnce: Boolean = false): TaggedSubscriber<E>{
-        return TaggedSubscriber(tag, subscriberClass, requireOnce)
-    }
+class TaggedRegistry<E: Enum<E>, V: Any>(
+    val emitter: Any,
+    internal val tagClass: Class<E>,
+    internal val presetKey: E? = null
+): CallbackRegistryBase<V, Unit>("TaggedRegistry<${tagClass.name}>") {
 
-    private fun notifySubscriptionFailed(subscriber: String, targetClass: String){
-        if(notifierConfig.warnSubscriptionFailed){
-            owningContext?.notify(subscriptionFailedMsg(subscriber, targetClass), SeverityLevel.WARNING)?:run {
-                notify(subscriptionFailedMsg(subscriber, targetClass), SeverityLevel.WARNING)
+
+    var emitterTypeBacking: TypeData<*>? = null
+
+    override val emitterType: TypeData<*>? by lazy {
+        emitterTypeBacking?:run {
+            if(emitter is CTX){
+                emitter.identity.typeData
+            }else{
+                emitterTypeBacking
             }
         }
     }
 
-    @PublishedApi
-    internal fun setContext(context: CTX):EmitterAwareRegistry<S, E, V>{
-        owningContext = context
-        return this
-    }
-
-    fun trigger(tag:E, subscriberClass: KClass<*>, id: Long, value: V) {
-        val probe = TaggedSubscriber(tag, subscriberClass, false).setID(id)
-        val foundKey = notifiers.keys.firstOrNull { it.matchesWildcard(probe) }
-        if(foundKey != null){
-            trigger(foundKey, value)
-        }else{
-            notifyNoLambda()
+    init {
+        if(emitter is CTX){
+            owningContext = emitter
         }
     }
 
-    fun trigger(tag:E, subscriberClass: KClass<*>,  value: V) {
-        val probe = TaggedSubscriber(tag, subscriberClass, false).setID(0L)
-        val foundKey = notifiers.keys.firstOrNull { it.matchesWildcard(probe) }
-        if(foundKey != null){
-            trigger(foundKey, value)
-        }else{
-            notifyNoLambda()
-        }
-    }
-
-    fun trigger(tag:E, value: V) {
-        val keys = notifiers.keys.filterIsInstance<TaggedSubscriber<E>>()
-        keys.filter { it.enumTag ==  tag}.forEach {foundKey->
-            trigger(foundKey, value)
-        }
-    }
-
-    fun require(tag:E, subscriberClass: KClass<*>, callback: (V) -> Unit){
-        val subscriptionKey = createKey(tag, subscriberClass, true)
-        if(notifiers.containsKey(subscriptionKey)){
-            notifyLambdaOverwritten()
-        }
-        notifiers[subscriptionKey] = Notifier(callback)
-    }
-
-    fun require(tag:E, subscriberClass: KClass<*>, id: Long, callback: (V) -> Unit){
-        val subscriptionKey = createKey(tag, subscriberClass, true).setID(id)
-        if(notifiers.containsKey(subscriptionKey)){
-            notifyLambdaOverwritten()
-        }
-        notifiers[subscriptionKey] = Notifier(callback)
-    }
-
-    fun subscribe(tag:E, subscriberClass: KClass<*>, callback: (V) -> Unit){
-        val subscriptionKey = createKey(tag, subscriberClass)
-        if(notifiers.containsKey(subscriptionKey)){
-            notifyLambdaOverwritten()
-        }
-        notifiers[subscriptionKey] = Notifier(callback)
-    }
-
-    fun trySubscribe(tag:E, subscriberClass: KClass<*>, targetClass: KClass<*>, callback: (V) -> Unit){
-        if(targetClass == emitterClass.kClass){
-            val subscriptionKey = createKey(tag, subscriberClass)
-            if(notifiers.containsKey(subscriptionKey)){
-                notifyLambdaOverwritten()
-            }
-            notifiers[subscriptionKey] = Notifier(callback)
-        }else{
-            notifySubscriptionFailed(subscriberClass::class.simpleOrNan(), targetClass.simpleOrNan())
-        }
+    private fun createKey(tag: E, kClass: KClass<*>, requireOnce: Boolean = false): TaggedSubscriber<E> {
+        return TaggedSubscriber(tag, kClass, requireOnce)
     }
 
     private fun proceedSubscription(bulkSubscriptions: EmitterSubscriptions<*>){
@@ -290,7 +272,6 @@ class EmitterAwareRegistry<S: Any, E: Enum<E>, V: Any>(
             casted.subscriptions.forEach {subscription->
                 @Suppress("UNCHECKED_CAST")
                 val asTagged = subscription.first as TaggedSubscriber<E>
-
                 if(asTagged.requireOnce){
                     require(asTagged.enumTag, asTagged.kClass, subscription.second)
                 }else{
@@ -302,16 +283,211 @@ class EmitterAwareRegistry<S: Any, E: Enum<E>, V: Any>(
         }
     }
 
+    private fun notifySubscriptionFailed(subscriber: String, targetClass: String){
+        if(notifierConfig.warnSubscriptionFailed){
+            owningContext?.notify(subscriptionFailedMsg(subscriber, targetClass), SeverityLevel.WARNING)?:run {
+                notify(subscriptionFailedMsg(subscriber, targetClass), SeverityLevel.WARNING)
+            }
+        }
+    }
+
+    fun identifiedByType(typeData: TypeData<*>):TaggedRegistry<E, V>{
+        emitterTypeBacking = typeData
+        return this
+    }
+
+    fun trigger(tag: E, kClass: KClass<*>, id: Long, value: V) {
+        val key = createKey(tag, kClass).setID(id)
+        trigger(key, value)
+    }
+
+    fun trigger(kClass: KClass<*>, value: V) {
+        val probe = SimpleSubscriber(kClass, false).setID(0L)
+        val foundKey = notifiers.keys.firstOrNull { it.matchesWildcard(probe) }
+        foundKey?.let { notifiers[it]?.trigger(value) } ?: run {
+            notifyNoLambda()
+        }
+    }
+
+    fun trigger(tag: E, value: V) {
+        val keys = notifiers.keys.filterIsInstance<TaggedSubscriber<E>>()
+        keys.filter { it.enumTag == tag }.forEach { foundKey ->
+            trigger(foundKey, value)
+        }
+    }
+
+    fun require(tag: E, kClass: KClass<*>, callback: (V) -> Unit) {
+        val subscriptionKey = createKey(tag, kClass, true)
+        if (notifiers.containsKey(subscriptionKey)) {
+            notifyLambdaOverwritten()
+        }
+        notifiers[subscriptionKey] = Notifier(callback)
+    }
+
+    fun require(tag: E, kClass: KClass<*>, id: Long, callback: (V) -> Unit) {
+        val subscriptionKey = createKey(tag, kClass, true).setID(id)
+        if (notifiers.containsKey(subscriptionKey)) {
+            notifyLambdaOverwritten()
+        }
+        notifiers[subscriptionKey] = Notifier(callback)
+    }
+
+    fun subscribe(tag: E, kClass: KClass<*>, callback: (V) -> Unit) {
+        val subscriptionKey = createKey(tag, kClass)
+        if (notifiers.containsKey(subscriptionKey)) {
+            notifyLambdaOverwritten()
+        }
+        notifiers[subscriptionKey] = Notifier(callback)
+    }
+
+    fun subscribe(tag: E, kClass: KClass<*>, id: Long, callback: (V) -> Unit) {
+        val subscriptionKey = createKey(tag, kClass).setID(id)
+
+        if (notifiers.containsKey(subscriptionKey)) {
+            notifyLambdaOverwritten()
+        }
+        notifiers[subscriptionKey] = Notifier(callback)
+    }
+
     fun trySubscribe(pack: SubscriptionPack<*>){
         when(pack){
             is EmitterSubscriptions->{
-                if(pack.targetEmitter == emitterClass.kClass){
+                if(pack.targetEmitter == emitterType){
                     proceedSubscription(pack)
                 }else{
-                    notifySubscriptionFailed(pack.subscriber.simpleOrNan(), pack.targetEmitter.simpleOrNan())
+                    notifySubscriptionFailed(pack.subscriber.simpleOrNan(), pack.targetEmitter.typeName)
                 }
             }
         }
     }
 
+//    @Suppress("UNCHECKED_CAST")
+//    companion object {
+//        inline operator fun <reified S : Any, reified E : Enum<E>, V : Any> invoke(
+//            emitter: S,
+//            presetKey: E?
+//        ): TaggedRegistry<E, V> {
+//
+//            return TaggedRegistry(emitter, E::class.java,  presetKey)
+//        }
+//    }
 }
+
+//
+//class EmitterAwareRegistry<S: Any, E: Enum<E>, V: Any>(
+//    val emitterClass: TypeData<S>,
+//    val tagClass: Class<E>
+//): CallbackRegistryBase<V, Unit>("EmitterAwareRegistry<${tagClass.name}>")
+//{
+//    private fun createKey(tag:E, subscriberClass: KClass<*>, requireOnce: Boolean = false): TaggedSubscriber<E>{
+//        return TaggedSubscriber(tag, subscriberClass, requireOnce)
+//    }
+//
+//    private fun notifySubscriptionFailed(subscriber: String, targetClass: String){
+//        if(notifierConfig.warnSubscriptionFailed){
+//            owningContext?.notify(subscriptionFailedMsg(subscriber, targetClass), SeverityLevel.WARNING)?:run {
+//                notify(subscriptionFailedMsg(subscriber, targetClass), SeverityLevel.WARNING)
+//            }
+//        }
+//    }
+//
+//    @PublishedApi
+//    internal fun setContext(context: CTX):EmitterAwareRegistry<S, E, V>{
+//        owningContext = context
+//        return this
+//    }
+//
+//    fun trigger(tag:E, subscriberClass: KClass<*>, id: Long, value: V) {
+//        val probe = TaggedSubscriber(tag, subscriberClass, false).setID(id)
+//        val foundKey = notifiers.keys.firstOrNull { it.matchesWildcard(probe) }
+//        if(foundKey != null){
+//            trigger(foundKey, value)
+//        }else{
+//            notifyNoLambda()
+//        }
+//    }
+//
+//    fun trigger(tag:E, subscriberClass: KClass<*>,  value: V) {
+//        val probe = TaggedSubscriber(tag, subscriberClass, false).setID(0L)
+//        val foundKey = notifiers.keys.firstOrNull { it.matchesWildcard(probe) }
+//        if(foundKey != null){
+//            trigger(foundKey, value)
+//        }else{
+//            notifyNoLambda()
+//        }
+//    }
+//
+//    fun trigger(tag:E, value: V) {
+//        val keys = notifiers.keys.filterIsInstance<TaggedSubscriber<E>>()
+//        keys.filter { it.enumTag ==  tag}.forEach {foundKey->
+//            trigger(foundKey, value)
+//        }
+//    }
+//
+//    fun require(tag:E, subscriberClass: KClass<*>, callback: (V) -> Unit){
+//        val subscriptionKey = createKey(tag, subscriberClass, true)
+//        if(notifiers.containsKey(subscriptionKey)){
+//            notifyLambdaOverwritten()
+//        }
+//        notifiers[subscriptionKey] = Notifier(callback)
+//    }
+//
+//    fun require(tag:E, subscriberClass: KClass<*>, id: Long, callback: (V) -> Unit){
+//        val subscriptionKey = createKey(tag, subscriberClass, true).setID(id)
+//        if(notifiers.containsKey(subscriptionKey)){
+//            notifyLambdaOverwritten()
+//        }
+//        notifiers[subscriptionKey] = Notifier(callback)
+//    }
+//
+//    fun subscribe(tag:E, subscriberClass: KClass<*>, callback: (V) -> Unit){
+//        val subscriptionKey = createKey(tag, subscriberClass)
+//        if(notifiers.containsKey(subscriptionKey)){
+//            notifyLambdaOverwritten()
+//        }
+//        notifiers[subscriptionKey] = Notifier(callback)
+//    }
+//
+//    fun trySubscribe(tag:E, subscriberClass: KClass<*>, targetClass: KClass<*>, callback: (V) -> Unit){
+//        if(targetClass == emitterClass.kClass){
+//            val subscriptionKey = createKey(tag, subscriberClass)
+//            if(notifiers.containsKey(subscriptionKey)){
+//                notifyLambdaOverwritten()
+//            }
+//            notifiers[subscriptionKey] = Notifier(callback)
+//        }else{
+//            notifySubscriptionFailed(subscriberClass::class.simpleOrNan(), targetClass.simpleOrNan())
+//        }
+//    }
+//
+//    private fun proceedSubscription(bulkSubscriptions: EmitterSubscriptions<*>){
+//        val casted = bulkSubscriptions.safeCast<EmitterSubscriptions<V>>()
+//        if(casted != null){
+//            casted.subscriptions.forEach {subscription->
+//                @Suppress("UNCHECKED_CAST")
+//                val asTagged = subscription.first as TaggedSubscriber<E>
+//
+//                if(asTagged.requireOnce){
+//                    require(asTagged.enumTag, asTagged.kClass, subscription.second)
+//                }else{
+//                    subscribe(asTagged.enumTag, asTagged.kClass, subscription.second)
+//                }
+//            }
+//        }else{
+//            notify("bulkSubscriptions cast failure", SeverityLevel.WARNING)
+//        }
+//    }
+//
+//    fun trySubscribe(pack: SubscriptionPack<*>){
+//        when(pack){
+//            is EmitterSubscriptions->{
+//                if(pack.targetEmitter == emitterClass.kClass){
+//                    proceedSubscription(pack)
+//                }else{
+//                    notifySubscriptionFailed(pack.subscriber.simpleOrNan(), pack.targetEmitter.simpleOrNan())
+//                }
+//            }
+//        }
+//    }
+
+//}

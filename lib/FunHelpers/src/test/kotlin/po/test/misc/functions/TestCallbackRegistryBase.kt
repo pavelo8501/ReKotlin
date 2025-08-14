@@ -8,9 +8,9 @@ import po.misc.functions.registries.addHook
 import po.misc.functions.registries.buildSubscriptions
 import po.misc.functions.registries.emitterAwareRegistryOf
 import po.misc.functions.registries.models.TaggedSubscriber
-import po.misc.functions.registries.require
-import po.misc.functions.registries.subscribe
-import po.misc.functions.registries.taggedRegistryOf
+import po.misc.functions.registries.builders.require
+import po.misc.functions.registries.builders.subscribe
+import po.misc.functions.registries.builders.taggedRegistryOf
 import po.test.misc.setup.ControlClass
 import po.test.misc.setup.captureOutput
 import kotlin.test.assertEquals

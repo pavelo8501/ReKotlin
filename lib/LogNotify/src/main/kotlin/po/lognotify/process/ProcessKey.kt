@@ -3,6 +3,7 @@ package po.lognotify.process
 import kotlinx.coroutines.CoroutineName
 import po.misc.context.CTX
 import po.misc.data.logging.LogCollector
+import po.misc.interfaces.Processable
 import po.misc.types.TypeData
 import java.util.UUID
 import kotlin.coroutines.CoroutineContext
@@ -11,7 +12,7 @@ import kotlin.coroutines.CoroutineContext
 class ProcessKey<T>(
     val coroutineName: CoroutineName,
     val typeData: TypeData<Process<T>>
-) : Comparable<ProcessKey<*>> where T: CTX, T: LogCollector, T: CoroutineContext.Element {
+) : Comparable<ProcessKey<*>> where T: Processable {
 
     val processName: String = "Process#${UUID.randomUUID()}"
 
@@ -31,7 +32,7 @@ class ProcessKey<T>(
     companion object{
         inline fun <reified T> create(
             coroutineName: CoroutineName,
-        ): ProcessKey<T> where  T: CTX, T: LogCollector, T: CoroutineContext.Element{
+        ): ProcessKey<T> where  T: Processable{
            val typeData = TypeData.create<Process<T>>()
            return ProcessKey(coroutineName, typeData)
         }

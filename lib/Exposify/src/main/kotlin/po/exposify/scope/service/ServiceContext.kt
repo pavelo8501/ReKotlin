@@ -39,7 +39,7 @@ class ServiceContext<DTO, DATA, ENTITY>(
         ContextData(it.message)
     }
 
-    fun truncate(): Unit = runTaskBlocking("Truncate") { handler ->
+    fun truncate(): Unit = runTaskBlocking("Truncate") {
         dtoClass.clearCachedDTOs()
         val statement = "TRUNCATE TABLE ${dtoClass.entityClass.table} RESTART IDENTITY CASCADE"
         newSuspendedTransaction { exec(statement) }

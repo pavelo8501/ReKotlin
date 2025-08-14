@@ -15,12 +15,11 @@ internal fun  CoroutineContext.sessionInScope(): AuthorizedSession?{
     return this[AuthorizedSession]
 }
 
-
 fun <DTO: ModelDTO, D: DataModel, E: LongEntity> AuthorizedSession.withHooks(
     dtoClass: DTOBase<DTO, D, E>,
     builder: SubscriptionPack<CommonDTO<DTO, D, E>>.()-> Unit
 ): SubscriptionPack<CommonDTO<DTO, D, E>> {
-   val builtPack = buildSubscriptions(dtoClass.commonDTOType.dtoType.kClass, builder)
+   val builtPack = buildSubscriptions(dtoClass.commonDTOType.dtoType, builder)
    setExternalRef("hooks", builtPack)
    return builtPack
 }
@@ -29,7 +28,7 @@ fun <DTO: ModelDTO, D: DataModel, E: LongEntity> AuthorizedSession.withListHooks
     dtoClass: DTOBase<DTO, D, E>,
     builder: SubscriptionPack<List<CommonDTO<DTO, D, E>>>.()-> Unit
 ): SubscriptionPack<List<CommonDTO<DTO, D, E>>> {
-    val builtPack = buildSubscriptions(dtoClass.commonDTOType.dtoType.kClass, builder)
+    val builtPack = buildSubscriptions(dtoClass.commonDTOType.dtoType, builder)
     setExternalRef("listHooks", builtPack)
     return builtPack
 }

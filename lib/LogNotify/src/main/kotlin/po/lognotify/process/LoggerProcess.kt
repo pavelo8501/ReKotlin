@@ -1,18 +1,19 @@
 package po.lognotify.process
 
-import po.misc.containers.ReceiverContainer
+import kotlinx.coroutines.CoroutineScope
+import po.lognotify.notification.models.LogData
 import po.misc.context.CTX
 import po.misc.coroutines.CoroutineHolder
-import po.misc.data.logging.LogCollector
-import po.misc.data.printable.PrintableBase
+import po.misc.interfaces.Processable
 import kotlin.coroutines.CoroutineContext
 
-interface LoggerProcess<T>: ReceiverContainer<T>, CoroutineHolder where T: CTX,  T: LogCollector{
-    override val receiver: T
-    override val coroutineContext: CoroutineContext
 
-    fun onDataReceived(callback: (PrintableBase<*>)-> Unit)
+interface LoggerProcess<T>: CoroutineHolder, CoroutineContext.Element, CTX where T : Processable{
 
+    val handler:ProcessHandler
+    override val scope: CoroutineScope
+
+    fun CTX.onDataReceived(callback: (LogData)-> Unit)
     fun <T: CoroutineContext.Element> getCoroutineElement(key: CoroutineContext.Key<T>): T?
 
 }

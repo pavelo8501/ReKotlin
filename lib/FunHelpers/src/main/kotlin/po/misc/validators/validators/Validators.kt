@@ -1,6 +1,6 @@
 package po.misc.validators.validators
 
-import po.misc.data.helpers.emptyOnNull
+import po.misc.data.helpers.replaceIfNull
 import po.misc.exceptions.throwableToText
 import po.misc.types.getOrManaged
 import po.misc.validators.SequentialContainer
@@ -75,7 +75,7 @@ fun <T: Any> ValidationContainerBase<T, Boolean>.conditionTrue(
             validationReport.addRecord(ValidationRecord.success(this,checkName))
             notifySuccess(true, this)
         }else{
-            validationReport.addRecord(ValidationRecord.fail(this, checkName, failureMessage.emptyOnNull()))
+            validationReport.addRecord(ValidationRecord.fail(this, checkName, failureMessage.replaceIfNull()))
             notifyFail(nowValidating, this)
             false
         }
@@ -97,7 +97,7 @@ fun <T: Any, R> ValidationContainerBase<T, R>.conditionNotNull(
             validationReport.addRecord(ValidationRecord.success(this, checkName))
             notifySuccess<T, R>(result, this)
         }?:run {
-            validationReport.addRecord(ValidationRecord.fail(this, checkName, failureMessage.emptyOnNull()))
+            validationReport.addRecord(ValidationRecord.fail(this, checkName, failureMessage.replaceIfNull()))
             notifyFail(nowValidating, this)
             null
         }
@@ -148,7 +148,7 @@ fun <T : Any> ValidationContainer<T, Boolean>.conditionAnyTrue(
             notifySuccess<T, Boolean>(true, this)
             true
         } else {
-            validationReport.addRecord(ValidationRecord.fail(this, checkName, failureMessage.emptyOnNull()))
+            validationReport.addRecord(ValidationRecord.fail(this, checkName, failureMessage.replaceIfNull()))
             notifyFail<T>(nowValidating, this)
             false
         }

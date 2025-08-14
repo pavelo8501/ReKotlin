@@ -2,6 +2,7 @@ package po.lognotify.tasks
 
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import po.lognotify.TasksManaged
@@ -10,10 +11,9 @@ import po.lognotify.common.LNInstance
 import po.lognotify.common.configuration.TaskConfig
 import po.lognotify.common.result.TaskResult
 import po.lognotify.common.result.createFaultyResult
-import po.lognotify.helpers.StaticHelper
-import po.lognotify.models.LoggerStats
+import po.lognotify.dispatcher.LoggerStats
 import po.lognotify.models.SpanKey
-import po.lognotify.models.TaskDispatcher
+import po.lognotify.dispatcher.TaskDispatcher
 import po.lognotify.models.TaskKey
 import po.lognotify.models.TaskRegistry
 import po.lognotify.notification.LoggerDataProcessor
@@ -31,9 +31,7 @@ import po.misc.coroutines.CoroutineInfo
 import po.misc.exceptions.ManagedException
 import po.misc.reflection.classes.ClassInfo
 import po.misc.time.ExecutionTimeStamp
-import po.misc.time.MeasuredContext
 import po.misc.time.startTimer
-import po.misc.time.stopTimer
 import kotlin.coroutines.CoroutineContext
 
 enum class ExecutionStatus {
@@ -48,10 +46,10 @@ sealed class TaskBase<T : CTX, R : Any?>(
     override val config: TaskConfig,
     dispatcher: TaskDispatcher,
     override val receiver: T,
-) : StaticHelper, ResultantTask<T, R>, LNInstance<T>, CoroutineHolder {
+): ResultantTask<T, R>, LNInstance<T>{
 
-    abstract var taskResult: TaskResult<R>?
-    abstract override val coroutineContext: CoroutineContext
+    abstract var taskResult: TaskResult<T, R>?
+    abstract val coroutineContext: CoroutineContext
     abstract val registry: TaskRegistry<*, *>
     abstract val callbackRegistry: CallbackManager<TaskDispatcher.UpdateType>
     abstract override val dataProcessor: LoggerDataProcessor
@@ -89,7 +87,7 @@ sealed class TaskBase<T : CTX, R : Any?>(
         taskStatus = status
     }
 
-    fun checkChildResult(childResult: TaskResult<*>): ManagedException? =
+    fun checkChildResult(childResult: TaskResult<*, *>): ManagedException? =
         childResult.throwable?.let { exception ->
             val childTask = childResult.task
             childTask.taskStatus = ExecutionStatus.Faulty
@@ -140,20 +138,19 @@ sealed class TaskBase<T : CTX, R : Any?>(
 class RootTask<T : CTX, R : Any?>(
     key: TaskKey,
     config: TaskConfig,
-     val initialContext: CoroutineContext,
     val dispatcher: TaskDispatcher,
+    override val scope: CoroutineScope,
     receiver: T,
-) : TaskBase<T, R>(key, config, dispatcher, receiver){
-
+) : TaskBase<T, R>(key, config, dispatcher, receiver), CoroutineHolder{
 
     override val identity: CTXIdentity<RootTask<T, R>> = asSubIdentity(this, receiver)
 
-    override var coroutineContext: CoroutineContext  = initialContext
+    override var coroutineContext: CoroutineContext  = scope.coroutineContext
         internal set
 
     override val dataProcessor: LoggerDataProcessor = LoggerDataProcessor(this, null)
 
-    override var taskResult: TaskResult<R>? = null
+    override var taskResult: TaskResult<T, R>? = null
     override val registry: TaskRegistry<T, R> = TaskRegistry(dispatcher, this)
     override val callbackRegistry = callbackManager<TaskDispatcher.UpdateType>()
     override val handler: TaskHandler<R> = TaskHandler(this, dataProcessor)
@@ -185,7 +182,7 @@ class RootTask<T : CTX, R : Any?>(
     }
 
     internal fun updateContext(context: CoroutineContext){
-        coroutineContext = context
+
     }
 
     override fun start(): TaskBase<T, R> {
@@ -238,7 +235,7 @@ class Task<T : CTX, R : Any?>(
     override val dataProcessor: LoggerDataProcessor = LoggerDataProcessor(this, parentTask.dataProcessor)
 
     override val coroutineContext: CoroutineContext get() = hierarchyRoot.coroutineContext
-    override var taskResult: TaskResult<R>? = null
+    override var taskResult: TaskResult<T, R>? = null
     override val registry: TaskRegistry<*, *> get() = hierarchyRoot.registry
     override val callbackRegistry = callbackManager<TaskDispatcher.UpdateType>()
     override val handler: TaskHandler<R> = TaskHandler<R>(this, dataProcessor)

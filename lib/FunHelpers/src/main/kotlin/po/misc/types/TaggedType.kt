@@ -1,7 +1,7 @@
 package po.misc.types
 
 import po.misc.collections.ComparableType
-import po.misc.data.helpers.emptyAsNull
+import po.misc.data.helpers.replaceIfNull
 import po.misc.data.tags.EnumTag
 import po.misc.data.tags.Tagged
 import kotlin.reflect.KClass
@@ -53,7 +53,7 @@ data class TaggedType<T: Any, E: Enum<E>>(
     override val typeName: String
         get() = normalizedSimpleString()
 
-    override val alias: String = enumTag.alias.emptyAsNull()?:typeName
+    override val alias: String = enumTag.alias.replaceIfNull(typeName)
 
     override fun toString(): String {
         return "TaggedType<$typeName, ${enumTag.value.name}>"

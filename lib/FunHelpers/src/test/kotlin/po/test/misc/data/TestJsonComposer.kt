@@ -9,15 +9,20 @@ import po.misc.types.TypeData
 
 class TestJsonComposer {
 
-    internal data class NestedData(
-        val otherName: String = "SomeName"
+    internal data class NestedData1(
+        val nested1Name: String = "nested1NameString"
+    )
+
+    internal data class NestedData2(
+        val nested2Name: String = "nested2NameString"
     )
 
 
     internal class Data(
         val name: String,
         val value: Int,
-        val nested: List<NestedData> = listOf(NestedData(), NestedData("SomeName2"))
+        val nested: List<NestedData1> = listOf(NestedData1(), NestedData1("SomeName2")),
+        val nested2: List<NestedData2> = listOf(NestedData2())
     ) : PrintableBase<Data>(this) {
 
         override val self = this
@@ -28,19 +33,18 @@ class TestJsonComposer {
     }
 
     @Test
-    fun `Json dsl composer creates appropriate structure`() {
+    fun `JsonObject creates appropriate formatting`() {
 
         val data = Data("name_property", 1)
-        val jsonObject = JsonObject(TypeData.create<Data>())
+        val jsonObject = JsonObject<Data, Data>(TypeData.create<Data>())
 
         jsonObject.createRecord(Data::name)
         jsonObject.createRecord(Data::value)
-
-        jsonObject.createList(Data::nested,  NestedData::otherName)
+        jsonObject.createObject(Data::nested,   NestedData1::nested1Name)
+        jsonObject.createObject(Data::nested2,  NestedData2::nested2Name)
 
         val jsonOutput = jsonObject.toJson(data)
         jsonOutput.output()
-
     }
 
 }

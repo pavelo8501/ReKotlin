@@ -6,8 +6,9 @@ import po.misc.functions.models.SafePayloadContainers
 import po.misc.functions.payloads.DoublePayload
 import po.misc.functions.payloads.LambdaPayload
 import po.misc.functions.payloads.SafePayload
+import po.misc.types.TypeData
 import po.misc.types.getOrManaged
-
+import kotlin.reflect.KClass
 
 
 sealed interface DuplexUnit<V : Any, R> : LambdaUnit<V, R> {
@@ -183,42 +184,31 @@ open class Notifier<V : Any>(
     }
 }
 
-open class Notifier2<V : Any>(
-    private val preSavedPayload: LambdaPayload<V>,
-    var function: (LambdaPayload<V>) -> Unit,
-) : LambdaUnitBase<V, Unit>() {
-    override val identifiedAs: String get() = "Producer<V>"
-
-    override fun trigger(value: V) {
-        when (preSavedPayload) {
-            is SafePayload<*> -> {
-                try {
-                    val payload = SafePayloadContainers(value, null)
-                    function.invoke(payload as SafePayloadContainers<V>)
-                } catch (th: Throwable) {
-                    val payload = SafePayloadContainers(null, th)
-                    function.invoke(payload as SafePayloadContainers<V>)
-                }
-            }
-            else -> {}
-        }
-        changeState(LambdaState.Complete)
-    }
-
-    fun triggerUnsubscribing(value: V) {
-        trigger(value)
-        unsubscribe()
-    }
-
-    fun unsubscribe() {
-        clearCached()
-        function = {}
-    }
-}
-
 fun <V : Any> lambdaAsNotifier(function: (V) -> Unit): Notifier<V> = Notifier(function)
 
-fun <V1 : Any, V2 : Any> asSafeNotifier(function: (DoublePayload<V1, V2>) -> Unit): Notifier<DoublePayload<V1, V2>> = Notifier(function)
+class DSLNotifier<T : Any, P : Any>(
+    val typeData: TypeData<T>,
+    val parameter: P,
+    override val function: T.(P) -> Unit,
+) : LambdaUnitBase<T, Unit>(),
+    ParametrizedUnit<T, P, Unit> {
+    override val identifiedAs: String get() = "DSLProvider<T, R>"
+    override val resultHandler: ResultHandler<T, Unit> = ResultHandler()
+    var modifiedResult:T? = null
+
+    override fun trigger(value: T): Unit {
+        val result = function.invoke(value, parameter)
+        modifiedResult = value
+        resultHandler.provideResult(result, this)
+        return result
+    }
+
+    fun getModified(callingContext: Any):T{
+       return modifiedResult.getOrManaged(typeData.kClass, callingContext)
+    }
+
+}
+
 
 /**
  * A simple implementation of [ResponsiveContainer] that produces a value without requiring input.
@@ -364,3 +354,5 @@ class DSLAdapter<T : Any, P : Any, R : Any>(
         return result
     }
 }
+
+

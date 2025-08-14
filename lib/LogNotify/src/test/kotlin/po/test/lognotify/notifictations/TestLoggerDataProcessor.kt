@@ -14,13 +14,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class LoggerDataProcessor : FakeTasksManaged {
+class TestLoggerDataProcessor : FakeTasksManaged {
 
 
     companion object : FakeTasksManaged {
         @JvmStatic
-        val rootTask: RootTask<Companion, Unit> =
-            mockedDispatcher.createHierarchyRoot<Companion, Unit>("TestTask", "TestDataProcessor", this)
+
+        val rootTask: RootTask<Companion, Unit> = mockRootTask("TestTask")
 
         @JvmStatic
         internal val processor = rootTask.dataProcessor
@@ -38,19 +38,19 @@ class LoggerDataProcessor : FakeTasksManaged {
 
         val fullMuteOutput =
             captureOutput {
-                mockedDispatcher.createHierarchyRoot<LoggerDataProcessor, Unit>("MutedEventsTask", "TestDataProcessor", this, config)
+                mockRootTask("MutedEventsTask")
             }
         assertTrue(fullMuteOutput.isEmpty())
 
         config.setConsoleBehaviour(ConsoleBehaviour.MuteNoEvents)
         val muteNoEventsSilent =
             captureOutput {
-                mockedDispatcher.createHierarchyRoot<LoggerDataProcessor, Unit>("MutedEventsTask", "TestDataProcessor", this, config)
+                mockRootTask("MutedEventsTask")
             }
         assertTrue(muteNoEventsSilent.isEmpty())
 
-        val muteNoEventsTask: RootTask<LoggerDataProcessor, Unit> =
-            mockedDispatcher.createHierarchyRoot("MuteNoEventsTask", "TestDataProcessor", this, config)
+        val muteNoEventsTask: RootTask<TestLoggerDataProcessor, Unit> =
+            mockRootTask("MuteNoEventsTask")
         val processor = muteNoEventsTask.dataProcessor
 
         var output =
@@ -60,8 +60,8 @@ class LoggerDataProcessor : FakeTasksManaged {
         assertTrue(output.contains("MuteNoEventsTask") && output.contains("UnmuteEvent"))
 
         config.setConsoleBehaviour(ConsoleBehaviour.MuteInfo)
-        val muteInfoTask: RootTask<LoggerDataProcessor, Unit> =
-            mockedDispatcher.createHierarchyRoot("MutedInfoTask", "TestDataProcessor", this, config)
+        val muteInfoTask: RootTask<TestLoggerDataProcessor, Unit> =
+            mockRootTask("MutedInfoTask")
         output =
             captureOutput {
                 muteInfoTask.dataProcessor.notify("MutedInfo", SeverityLevel.INFO, muteInfoTask)
@@ -89,7 +89,7 @@ class LoggerDataProcessor : FakeTasksManaged {
 
     @Test
     fun `TaskEvents(group) saves LogEvents from all logger instances`() {
-        val actionSpan = rootTask.createActionSpan<Companion, Unit>("TestTask", LoggerDataProcessor)
+        val actionSpan = rootTask.createActionSpan<Companion, Unit>("TestTask", TestLoggerDataProcessor)
         val taskGroup = processor.taskData.events
         processor.notify("Info message", SeverityLevel.INFO, rootTask)
         processor.notify("ActionSpan message", SeverityLevel.INFO, actionSpan)

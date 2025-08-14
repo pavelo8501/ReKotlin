@@ -8,34 +8,46 @@ import io.ktor.server.application.install
 import io.ktor.server.application.pluginOrNull
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.cors.routing.CORS
+import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
 import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.auth.models.CryptoRsaKeys
 import po.lognotify.TasksManaged
-import po.lognotify.launchers.subTask
+import po.lognotify.launchers.runAction
+import po.misc.containers.BackingContainer
+import po.misc.containers.backingContainerOf
+import po.misc.context.CTXIdentity
+import po.misc.context.asSubIdentity
 import po.restwraptor.RestWrapTor
+import po.restwraptor.interfaces.WraptorResponse
 import po.restwraptor.models.configuration.ApiConfig
 import po.restwraptor.models.configuration.AuthConfig
 import po.restwraptor.models.configuration.WraptorConfig
 import po.restwraptor.plugins.CoreAuthApplicationPlugin
 import po.restwraptor.plugins.RateLimiterPlugin
+import po.restwraptor.routes.ManagedRoute
 import po.restwraptor.routes.configureSystemRoutes
 
-interface ConfigContextInterface{
-    suspend fun setupAuthentication(
-        cryptoKeys: CryptoRsaKeys,
-        userLookupFn: suspend ((login: String)-> AuthenticationPrincipal?),
-        configFn  : (suspend AuthConfigContext.()-> Unit)? = null)
-}
+//interface ConfigContextInterface{
+//    fun setupAuthentication(
+//        cryptoKeys: CryptoRsaKeys,
+//        userLookupFn: ((login: String)-> AuthenticationPrincipal?),
+//        configFn  : (AuthConfigContext.()-> Unit)? = null)
+//}
+
+
 
 class ConfigContext(
     internal val wraptor : RestWrapTor,
-    private val wrapConfig : WraptorConfig,
+    internal val application: Application
+): TasksManaged{
 
-    ): ConfigContextInterface, TasksManaged{
+    val wrapConfig : WraptorConfig = WraptorConfig()
+    val coreContext: CoreContext = CoreContext(application, wraptor)
 
-    override val contextName: String = "ConfigContext"
+    override val identity: CTXIdentity<ConfigContext> = asSubIdentity(this, wraptor)
+    internal val responseProvider: BackingContainer<()-> WraptorResponse<*>> = backingContainerOf()
 
     var apiConfig : ApiConfig
         get()  {return  wrapConfig.apiConfig}
@@ -49,19 +61,18 @@ class ConfigContext(
             wrapConfig.authConfig = value
         }
 
-    private val application : Application  by lazy { wraptor.application }
-    private val authContext  : AuthConfigContext  by lazy { AuthConfigContext(application, wrapConfig) }
+    private val authContext  : AuthConfigContext = AuthConfigContext(application, wrapConfig)
 
     internal val jsonFormatter : Json = Json {
         isLenient = true
         encodeDefaults = true
     }
 
-    private suspend fun configCors(app: Application):Application{
-        subTask("ConfigCors") {handler->
+    private fun configCors(app: Application):Application{
+        runAction("ConfigCors"){
             app.apply {
                 if (pluginOrNull(CORS) != null) {
-                    handler.info("CORS installation skipped. Custom CORS already installed")
+                    notify("CORS installation skipped. Custom CORS already installed")
                 } else {
                     install(CORS) {
                         allowNonSimpleContentTypes
@@ -76,40 +87,41 @@ class ConfigContext(
                         allowCredentials = true
                         anyHost()
                     }
-                    handler.info("CORS installed")
+                    notify("CORS installed")
                 }
             }
         }
 
         return app
     }
-    private suspend fun configContentNegotiation(app: Application):Application{
-        subTask("ConfigContentNegotiation") { handler ->
+    private fun configContentNegotiation(app: Application):Application{
+        runAction("ConfigContentNegotiation"){
             app.apply {
                 if (this.pluginOrNull(ContentNegotiation) != null) {
-                    handler.info("ContentNegotiation installation skipped. Custom ContentNegotiation already installed")
+                    notify("ContentNegotiation installation skipped. Custom ContentNegotiation already installed")
                 } else {
-                    handler.info("Installing Default ContentNegotiation")
+                    notify("Installing Default ContentNegotiation")
                     install(ContentNegotiation) {
                         json(jsonFormatter)
                     }
-                    handler.info("Default ContentNegotiation installed")
+                    notify("Default ContentNegotiation installed")
                 }
             }
         }
         return app
     }
-    private suspend fun configRateLimiter(app: Application):Application{
-        subTask("ConfigRateLimiter") { handler ->
+    private fun configRateLimiter(app: Application):Application{
+
+        runAction("ConfigRateLimiter") {
             app.apply {
                 if (this.pluginOrNull(RateLimiterPlugin) != null) {
-                    handler.info("RateLimiter installation skipped. Custom RateLimiter already installed")
+                    notify("RateLimiter installation skipped. Custom RateLimiter already installed")
                 } else {
                     install(RateLimiterPlugin) {
                         requestsPerMinute = 60
                         suspendInSeconds = 60
                     }
-                    handler.info("RateLimiter installed")
+                    notify("RateLimiter installed")
                 }
             }
         }
@@ -117,52 +129,46 @@ class ConfigContext(
     }
 
 
+    private var authConfigFn:  (AuthConfigContext.()-> Unit)? = null
 
-   // private var userLookupFn: (suspend(login: String)-> AuthenticationPrincipal?)? = null
-    private var authConfigFn:  (suspend AuthConfigContext.()-> Unit)? = null
-
-    fun applyApiConfig(config: ApiConfig){
-        wrapConfig.apiConfig = config
-    }
-    fun applyAuthConfig(config: AuthConfig){
-        wrapConfig.authConfig = config
+    fun registerResponseProvider(provider:()-> WraptorResponse<*>){
+        responseProvider.provideValue(provider)
     }
 
-    var applicationConfigFn : (Application.()-> Unit)? = null
-    fun setupApplication(appConfigFn : Application.()-> Unit){
-        applicationConfigFn  = appConfigFn
-    }
-    override suspend fun setupAuthentication(
-        cryptoKeys: CryptoRsaKeys,
-        userLookupFn: suspend ((login: String)-> AuthenticationPrincipal?),
-        configFn  : (suspend AuthConfigContext.()-> Unit)?){
-        authContext.setupAuthentication(cryptoKeys,userLookupFn)
-        authConfigFn = configFn
-    }
-
-    private suspend fun installCoreAuth(app: Application){
-        subTask("InstallCoreAuth"){handler ->
-            app.apply {
-                install(CoreAuthApplicationPlugin) {
-                    headerName = HttpHeaders.Authorization
-                    pluginKey =  wrapConfig.authConfig.jwtServiceName
-                }
-                handler.info("CoreAuthPlugin Plugin installed")
-            }
+    fun mangedRoutes(builder: ManagedRoute.()-> Unit){
+        application.routing {
+            ManagedRoute(this).builder()
         }
     }
 
-    internal suspend fun initialize(builderFn: (suspend  ConfigContext.()-> Unit)?): Application{
-        builderFn?.invoke(this)
+    fun setupAuthentication(
+        cryptoKeys: CryptoRsaKeys,
+        userLookupFn: (suspend (login: String)-> AuthenticationPrincipal?),
+        configFn : (AuthConfigContext.()-> Unit)? = null
+    ){
+        authContext.setupAuthentication(cryptoKeys,responseProvider.getValue(this),  userLookupFn)
+        authConfigFn = configFn
+    }
+
+    private fun installCoreAuth(app: Application)= runAction("InstallCoreAuth") {
+        app.apply {
+            install(CoreAuthApplicationPlugin) {
+                headerName = HttpHeaders.Authorization
+                pluginKey = wrapConfig.authConfig.jwtServiceName
+            }
+            notify("CoreAuthPlugin Plugin installed")
+        }
+    }
+
+    internal fun initialize(): Application{
         installCoreAuth(application)
-        applicationConfigFn?.invoke(application)
-        subTask("Initialization"){
+        runAction("Initialization"){
             if(apiConfig.cors){ configCors(application) }
             if(apiConfig.contentNegotiation){ configContentNegotiation(application) }
             if(apiConfig.rateLimiting){ configRateLimiter(application) }
             if (apiConfig.systemRouts) {
                 application.routing {
-                    configureSystemRoutes(apiConfig.baseApiRoute, this@ConfigContext)
+                    configureSystemRoutes(this@ConfigContext, responseProvider.getValue(this))
                 }
             }
         }

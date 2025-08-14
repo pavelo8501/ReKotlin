@@ -16,15 +16,12 @@ import po.misc.types.TypeData
 import po.misc.types.Typed
 import po.misc.types.castOrManaged
 import po.misc.types.getOrManaged
-import po.misc.types.safeCast
-import kotlin.reflect.KClass
 
 
-
-sealed class BackingContainerBase<T: Any>(val typeData: Typed<T>, ): LogEmitter{
-
+sealed class BackingContainerBase<T: Any>(
+    private val owner: Any,
+    val typeData: Typed<T>,): LogEmitter{
     protected open var backingValue: T? = null
-
     /**
      * Returns the current source value.
      * @throws ManagedException if the backing value is not available.
@@ -37,7 +34,7 @@ sealed class BackingContainerBase<T: Any>(val typeData: Typed<T>, ): LogEmitter{
     val isValueAvailable: Boolean get() = backingValue != null
 
     private var exceptionFallback: ExceptionFallback? = null
-    private val registry = NotifierRegistry<T>()
+    private val registry = NotifierRegistry<T>(owner, "BackingContainer")
 
     protected var changedHook: ChangeHook<T> = ChangeHook()
 
@@ -134,8 +131,9 @@ sealed class BackingContainerBase<T: Any>(val typeData: Typed<T>, ): LogEmitter{
  * @constructor Creates a [BackingContainer] with optional initial [sourceBacking].
  */
 open class BackingContainer<T: Any>(
+    owner: Any,
     typeData: Typed<T>,
-): BackingContainerBase<T>(typeData) {
+): BackingContainerBase<T>(owner, typeData) {
 
     fun onValueSet(callback:(Change<T?, T>)-> Unit){
         changedHook.subscribe(callback)
@@ -145,8 +143,10 @@ open class BackingContainer<T: Any>(
     override fun toString(): String = "BackingContainer<${typeData.typeName}>"
 
         companion object {
-        inline fun <reified T : Any> create(initialValue: T? = null): BackingContainer<T> {
-            val container = BackingContainer(TypeData.create<T>())
+
+
+        inline fun <reified T : Any>  create(owner: Any,  initialValue: T? = null): BackingContainer<T> {
+            val container = BackingContainer(owner, TypeData.create<T>())
             if (initialValue != null) {
                 container.provideValue(initialValue)
             }
@@ -156,20 +156,27 @@ open class BackingContainer<T: Any>(
 }
 
 
-inline fun <reified T: Any> backingContainerOf():BackingContainer<T>{
-   return BackingContainer(TypeData.create<T>())
+inline fun <reified T: Any> Any.backingContainerOf():BackingContainer<T>{
+   return BackingContainer(this, TypeData.create<T>())
+}
+
+fun <T: Any> Any.backingContainerOf(
+    typeData: TypeData<T>
+):BackingContainer<T>{
+    return BackingContainer(this, typeData)
 }
 
 
 class LazyContainer<T: Any>(
+    private val owner: Any,
     typeData: Typed<T>
-):BackingContainerBase<T>(typeData) {
+):BackingContainerBase<T>(owner, typeData) {
 
     var lockedForEdit: Boolean = false
         private set
 
     override var backingValue: T? = null
-    val registry: NotifierRegistry<T> = NotifierRegistry()
+    val registry: NotifierRegistry<T> = NotifierRegistry(owner, "LazyContainer")
 
     internal var notifierConfig: NotificationConfig = NotificationConfig()
 
@@ -185,28 +192,6 @@ class LazyContainer<T: Any>(
         }
     }
 
-    
-
-//    fun <T2 : Any> requestValueCasting(
-//        subscriber: CTX,
-//        kClass: KClass<T2>,
-//        callback: (T2) -> Unit
-//    ) {
-//        subscriber.notify("requestValueCasting")
-//        val value = backingValue
-//        if (value != null) {
-//            notify("value != null invoking")
-//            val casted = value.safeCast(kClass)
-//            if (casted != null) {
-//                callback.invoke(casted)
-//            } else {
-//                notify("Cast to ${kClass.simpleName} failed wount invoke", SeverityLevel.WARNING)
-//            }
-//        }else{
-//            registry.subscribe(subscriber, subscriber.identity.numericId, callback as (T) -> Unit)
-//        }
-//    }
-
     override fun provideValue(value: T):LazyContainer<T> {
         if(!lockedForEdit){
             super.provideValue(value)
@@ -220,25 +205,33 @@ class LazyContainer<T: Any>(
     }
 }
 
-inline fun <reified T: Any> lazyContainerOf(
+inline fun <reified T: Any> Any.lazyContainerOf(
     configBuilder:NotificationConfig.()-> Unit
 ):LazyContainer<T>{
 
    val config = NotificationConfig()
     config.configBuilder()
-    val container = LazyContainer(TypeData.create<T>())
-
-
+    val container = LazyContainer(this, TypeData.create<T>())
 
     return container
 }
 
 
-inline fun <reified T: Any> lazyContainerOf(
+inline fun <reified T: Any> Any.lazyContainerOf(
     initialValue:T? = null
 ):LazyContainer<T>{
+    val container = LazyContainer(this, TypeData.create<T>())
+    initialValue?.let {
+        container.provideValue(it)
+    }
+    return container
+}
 
-    val container = LazyContainer(TypeData.create<T>())
+fun <T: Any> Any.lazyContainerOf(
+    typeData: TypeData<T>,
+    initialValue:T? = null
+):LazyContainer<T>{
+    val container = LazyContainer(this, typeData)
     initialValue?.let {
         container.provideValue(it)
     }

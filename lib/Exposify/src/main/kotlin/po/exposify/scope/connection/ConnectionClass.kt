@@ -21,6 +21,7 @@ import po.exposify.scope.service.ServiceContext
 import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.launchers.runTask
+import po.lognotify.process.Process
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.coroutines.CoroutineInfo
@@ -49,9 +50,9 @@ class ConnectionClass(
         notify("CONNECTION_CLASS CREATED $completeName")
     }
 
-    internal suspend fun requestEmitter(session: AuthorizedSession): CoroutineEmitter {
-        val result = dispatchManager.enqueue(session.sessionID) {
-            CoroutineEmitter("CoroutineEmitter${CoroutineInfo.createInfo(currentCoroutineContext()).coroutineName}", session)
+    internal suspend fun requestEmitter(process: Process<AuthorizedSession>): CoroutineEmitter {
+        val result = dispatchManager.enqueue(process.receiver.sessionID) {
+            CoroutineEmitter("CoroutineEmitter${CoroutineInfo.createInfo(currentCoroutineContext()).coroutineName}", process)
         }
         return result
     }

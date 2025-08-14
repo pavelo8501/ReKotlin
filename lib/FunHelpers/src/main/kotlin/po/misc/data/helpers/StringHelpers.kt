@@ -1,96 +1,15 @@
 package po.misc.data.helpers
 
-import po.misc.data.styles.SpecialChars
-
-fun makeIndention(message: String, indentionCount: Int, indentionSymbol: String = " "): String {
-    val indent = indentionSymbol.repeat(indentionCount)
-    return "$indent $message"
-}
-
-fun String.withIndention(indentionCount: Int, indentionSymbol: String = " "): String{
-    return makeIndention(this, indentionCount, indentionSymbol)
-}
-
-private fun makeMargins(text: String, topMargin: Int, bottomMargin: Int): String{
-    var result = ""
-    for(i in 1..topMargin){
-        result+= SpecialChars.NewLine
-    }
-    result += text
-    for(i in 1..bottomMargin){
-        result+= SpecialChars.NewLine
-    }
-   return result
-}
-
-fun String.withMargin(topMargin: Int, bottomMargin: Int): String{
-    return makeMargins(this, topMargin, bottomMargin)
-}
-
-fun String.withMargin(vMargin: Int): String{
-    return makeMargins(this, vMargin, vMargin)
-}
+import po.misc.context.CTX
+import po.misc.data.styles.Colour
+import po.misc.data.styles.colorize
+import kotlin.text.StringBuilder
 
 
-fun String?.emptyOnNull(alternativeText: String = ""): String{
-    if(this != null){
-        return "$alternativeText${this}"
-    }
-    return ""
-}
-
-fun String.ifNotEmpty(string: String):String{
-    return if (this.isNotEmpty()){
-        string
-    }else{
-        ""
-    }
-}
-
-fun String?.emptyAsNull(): String?{
-    if(this != null && this.count() > 0){ return this }
-    return null
-}
-
-fun String?.emptyIfNullOrText(textProvider:(String)->String): String{
-    return if(this == null){
-        ""
-    }else{
-        textProvider.invoke(this)
-    }
-}
-
-
-fun <T: Any>  Any?.textIfNotNull(textOnNull: String = "", sourceProvider: T.()-> String): String{
-    return this?.let {
-        @Suppress("UNCHECKED_CAST")
-        sourceProvider.invoke(it as T)
-    }?:textOnNull
-}
-
-fun Any?.textIfNull(fallbackText: String, textProvider: (Any)-> String): String{
-   return this?.let {
-        textProvider.invoke(it)
-    }?:fallbackText
-}
-
-
-fun Any?.textIfNull(text: String): String{
+fun Any?.replaceIfNull(text: String = ""): String{
     return this?.let {
         this.toString()
     }?:text
-}
-
-fun <T> T?.toTemplate(transform: T.() -> String): String =
-    this?.let(transform) ?: ""
-
-fun <T> List<T?>.toTemplate(
-    separator: String = "\n",
-    transform: T.() -> String
-): String {
-    return this
-        .filterNotNull()
-        .joinToString(separator = separator) { it.transform() }
 }
 
 fun String.wrapByDelimiter(
@@ -126,20 +45,51 @@ fun String.applyIfNotEmpty(block:String.()-> String): String{
     return this
 }
 
-fun String?.applyIfNull(block:String.()-> String): String{
-    return this?.block()?:""
+fun <T: Any> T?.toStringIfNotNull(textIfNull: String? = null , builder:(T)-> String): String{
+    return if(this == null){
+        textIfNull?:toString()
+    }else{
+        builder.invoke(this)
+    }
 }
 
 fun String.stripAfter(char: Char): String = substringBefore(char)
 
-fun String.output(){
-    println(this)
+fun Any.output(colour: Colour? = null){
+    val classString = when(this){
+        is CTX->identifiedByName
+        else -> this.toString()
+    }
+    if(colour != null){
+        println(classString.colorize(colour))
+    }else{
+        println(classString)
+    }
 }
 
-fun Array<String>.output(){
+fun Array<Any>.output(colour: Colour? = null){
     iterator().forEach {
-        println(it)
+        it.output(colour)
     }
+}
+
+fun List<Any>.output(colour: Colour? = null){
+    forEach {
+        it.output(colour)
+    }
+}
+
+fun <T> Iterable<T>.joinWithIndent(
+    count: Int,
+    indentChar: CharSequence = " ",
+    separator: CharSequence = ", ",
+    prefix: CharSequence = "",
+    postfix: CharSequence = "",
+    limit: Int = -1,
+    truncated: CharSequence = "...",
+    transform: ((T) -> CharSequence)? = null
+): String {
+   return joinToString(separator, prefix, postfix, limit, truncated, transform).withIndent(count, indentChar)
 }
 
 

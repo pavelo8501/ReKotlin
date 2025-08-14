@@ -18,6 +18,7 @@ class LaunchOptions(
     internal var launcherType: LauncherType = LauncherType.AsyncLauncher,
     @PublishedApi
     internal var coroutineDispatcher: CoroutineDispatcher = Dispatchers.Default,
+
     internal val forConfig: TaskConfig,
 ) {
     internal var taskOptions: TaskType = TaskType.Nested

@@ -67,7 +67,6 @@ dependencies {
 
     api(project(":lib:AuthCore"))
     api(project(":lib:LogNotify"))
-    api(project(":lib:FunHelpers"))
 
     testImplementation("org.testcontainers:testcontainers:$testContainerVersion")
     testImplementation("org.testcontainers:postgresql:$testContainerVersion")

@@ -4,6 +4,7 @@ import po.lognotify.tasks.ExecutionStatus
 import po.lognotify.tasks.TaskBase
 import po.lognotify.tasks.info
 import po.lognotify.tasks.warn
+import po.misc.context.CTX
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.throwableToText
 import po.misc.functions.containers.Notifier
@@ -17,8 +18,8 @@ sealed interface ExecutionResult<R : Any?> {
     fun provideClassInfo(info: ClassInfo<R>)
 }
 
-class TaskResult<R : Any?>(
-    @PublishedApi internal val task: TaskBase<*, R>,
+class TaskResult<T: CTX,  R : Any?>(
+    @PublishedApi internal val task: TaskBase<T, R>,
     internal var result: R,
     @PublishedApi
     internal var throwable: ManagedException? = null,
@@ -26,7 +27,7 @@ class TaskResult<R : Any?>(
     val taskName: String get() = task.key.taskName
 
     @Suppress("UNCHECKED_CAST")
-    constructor(task: TaskBase<*, R>, throwable: ManagedException) : this(task, null as R, throwable) {
+    constructor(task: TaskBase<T, R>, throwable: ManagedException) : this(task, null as R, throwable) {
         provideThrowable(throwable)
     }
 
@@ -66,14 +67,14 @@ class TaskResult<R : Any?>(
 //        return result
 //    }
 
-    private var onCompleteFn: ((TaskResult<R>) -> Unit)? = null
+    private var onCompleteFn: ((TaskResult<T, R>) -> Unit)? = null
 
     @PublishedApi
     internal fun subscribeBeforeFault(callback: (ManagedException) -> Unit) {
         beforeFaultyResultRequested = lambdaAsNotifier<ManagedException>(callback)
     }
 
-    fun onComplete(block: (TaskResult<R>) -> Unit): TaskResult<R> {
+    fun onComplete(block: (TaskResult<T, R>) -> Unit): TaskResult<T, R> {
         onCompleteFn = block
         block.invoke(this)
         return this
@@ -81,7 +82,7 @@ class TaskResult<R : Any?>(
 
     private var onResultFn: ((R) -> Unit)? = null
 
-    fun onResult(block: (R) -> Unit): TaskResult<R> {
+    fun onResult(block: (R) -> Unit): TaskResult<T, R> {
         onResultFn = block
         if (result != null) {
             block.invoke(result)
@@ -91,7 +92,7 @@ class TaskResult<R : Any?>(
 
     private var onFailFn: ((ManagedException) -> Unit)? = null
 
-    fun onFail(callback: (ManagedException) -> Unit): TaskResult<R> {
+    fun onFail(callback: (ManagedException) -> Unit): TaskResult<T, R> {
         task.dataProcessor.debug("Handled onFail registered", "$personalName|onFail")
         throwable?.let {
             task.changeStatus(ExecutionStatus.Faulty)
@@ -133,7 +134,7 @@ class TaskResult<R : Any?>(
         }
     }
 
-    internal fun provideThrowable(th: ManagedException): TaskResult<R> {
+    internal fun provideThrowable(th: ManagedException): TaskResult<T, R> {
         collectException(th)
         isSuccess = false
         task.changeStatus(ExecutionStatus.Failing)

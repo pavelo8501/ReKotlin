@@ -1,9 +1,7 @@
 package po.misc.exceptions
 
-import po.misc.data.helpers.textIfNull
 import po.misc.context.CTX
-import po.misc.data.printable.PrintableBase
-import po.misc.exceptions.models.StackFrameMeta
+import po.misc.data.helpers.replaceIfNull
 
 interface ManagedCallSitePayload{
     val message: String
@@ -64,7 +62,7 @@ class ManagedPayload(
     }
 
     override fun toString(): String {
-        return message.textIfNull("")
+        return message.replaceIfNull()
     }
 }
 

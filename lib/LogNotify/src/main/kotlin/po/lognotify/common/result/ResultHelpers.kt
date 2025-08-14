@@ -5,21 +5,21 @@ import po.lognotify.tasks.RootTask
 import po.lognotify.tasks.Task
 import po.lognotify.tasks.TaskBase
 import po.lognotify.tasks.warn
-import po.misc.data.helpers.emptyOnNull
 import po.misc.data.helpers.wrapByDelimiter
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.throwableToText
 import po.misc.context.CTX
+import po.misc.data.helpers.replaceIfNull
 import kotlin.collections.joinToString
 
-private fun <T: CTX, R> resultContainerCreation(task: TaskBase<T, R>, result: R): TaskResult<R>{
+private fun <T: CTX, R> resultContainerCreation(task: TaskBase<T, R>, result: R): TaskResult<T, R>{
     task.registry.getFirstSubTask(task)?.let {subTask->
         if(subTask.executionStatus == ExecutionStatus.Faulty){
             val exception = subTask.taskResult?.throwable
             task.warn("Exception(${exception?.message}) swallowed by $subTask")
-            val waypointInfo = exception?.exceptionData?.map { it  }?.joinToString(" -> ") { "${it}(${it.message.emptyOnNull()})" }
-            waypointInfo?.wrapByDelimiter("->").emptyOnNull()
-            task.warn(waypointInfo?.wrapByDelimiter("->").emptyOnNull())
+            val waypointInfo = exception?.exceptionData?.map { it  }?.joinToString(" -> ") { "${it}(${it.message.replaceIfNull()})" }
+            waypointInfo?.wrapByDelimiter("->").replaceIfNull()
+            task.warn(waypointInfo?.wrapByDelimiter("->").replaceIfNull())
         }
     }
     val result = TaskResult(task, result = result, throwable = null)
@@ -28,23 +28,23 @@ private fun <T: CTX, R> resultContainerCreation(task: TaskBase<T, R>, result: R)
 }
 
 @PublishedApi
-internal fun<R: Any?> createFaultyResult(managed: ManagedException, task: TaskBase<*, R>): TaskResult<R>{
+internal fun<T: CTX, R: Any?> createFaultyResult(managed: ManagedException, task: TaskBase<T, R>): TaskResult<T, R>{
     val faultyResult = TaskResult(task, throwable = managed)
     task.taskResult = faultyResult
     return faultyResult
 }
 
 @PublishedApi
-internal fun <R> createTaskResult(result: R, task: TaskBase<*, R>): TaskResult<R>{
+internal fun <T: CTX, R> createTaskResult(result: R, task: TaskBase<T, R>): TaskResult<T, R>{
     val result = TaskResult(task, result = result, throwable = null)
-   task.taskResult =result
+   task.taskResult = result
    return result
 }
 
 
-fun <T: CTX, R> onTaskResult(task: TaskBase<T, R>, result: R): TaskResult<R>{
+fun <T: CTX, R> onTaskResult(task: TaskBase<T, R>, result: R): TaskResult<T, R>{
   return  when(result){
-        is TaskResult<*> -> {
+        is TaskResult<*, *> -> {
             when(result.task){
                 is RootTask->{
                    val childException = task.checkChildResult(result)
@@ -77,18 +77,17 @@ fun <T: CTX, R> onTaskResult(task: TaskBase<T, R>, result: R): TaskResult<R>{
     }
 }
 
-inline fun <R: Any?> TaskResult<R>.onFailureCause(block: (ManagedException) -> Unit): TaskResult<R> {
+inline fun <T: CTX,  R: Any?> TaskResult<T, R>.onFailureCause(block: T.(ManagedException) -> Unit): TaskResult<T, R> {
     throwable?.let {
-
-        block.invoke(it)
+        block.invoke(task.receiver, it)
     }
     return this
 }
 
-fun <R: Any?> TaskResult<R>.toKotlinResult(): Result<R?> =
+fun <T: CTX, R: Any?> TaskResult<T, R>.toKotlinResult(): Result<R?> =
     runCatching {  this.resultOrException() }
 
 
-fun <R: Any?> TaskResult<R>.resultOrNull():R?{
+fun <T: CTX, R: Any?> TaskResult<T, R>.resultOrNull():R?{
    return this.result
 }

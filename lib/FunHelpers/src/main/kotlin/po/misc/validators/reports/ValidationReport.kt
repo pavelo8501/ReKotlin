@@ -54,6 +54,7 @@ class ValidationReport(
     }
 
     override fun echo() {
+
         validationRecords.echo()
     }
 

@@ -1,7 +1,7 @@
 package po.misc.data.printable.companion
 
 import po.misc.collections.StaticTypeKey
-import po.misc.data.json.JsonDescriptor2
+import po.misc.data.json.JsonDescriptor
 import po.misc.data.json.JsonDescriptorBase
 import po.misc.data.json.models.JsonObject
 import po.misc.data.printable.PrintableBase
@@ -33,6 +33,14 @@ abstract class PrintableCompanion<T : PrintableBase<T>>(private val classProvide
         templates.add(template)
         return template
     }
+
+    fun buildJsonDescriptor(builder: JsonObject<T, T>.()-> Unit): JsonDescriptor<T> {
+       val descriptor = JsonDescriptor(this, builder)
+        jsonDescriptor = descriptor
+        descriptor.build()
+        return descriptor
+    }
+
 
 //    fun buildJson(dslLambda: DSLConstructor<T, JsonObject<T>>.()-> Unit): JsonDescriptor2<T> {
 //        val descriptor = JsonDescriptor2<T>()

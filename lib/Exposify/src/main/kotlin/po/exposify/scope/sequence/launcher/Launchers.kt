@@ -24,6 +24,7 @@ import po.exposify.scope.sequence.inputs.ListDataInput
 import po.exposify.scope.sequence.inputs.ParameterInput
 import po.exposify.scope.sequence.inputs.QueryInput
 import po.exposify.scope.sequence.inputs.SingleInputType
+import po.lognotify.launchers.runProcess
 import po.misc.functions.common.ExceptionFallback
 import po.misc.functions.containers.DeferredContainer
 
@@ -44,25 +45,26 @@ private suspend fun <DTO, D, I> launchExecutionList(
     val castedContainer = container.castOrOperations<SequenceChunkContainer<DTO, D>>(descriptor)
 
     val service = descriptor.dtoClass.serviceClass
-    val emitter = service.requestEmitter(session)
+    return runProcess(session){
+        val emitter = service.requestEmitter(it)
+         emitter.dispatchList {
+                var effectiveResult: ResultList<DTO, D>? = null
 
-    return emitter.dispatchList {
-        var effectiveResult: ResultList<DTO, D>? = null
+                castedContainer.listResultChunks.forEach { chunk ->
+                    if(input is ListDataInput<*,*>) {
+                        effectiveResult =
+                            chunk.triggerList(descriptor.dtoClass, input.getValue(descriptor.dtoClass.commonDTOType.dataType))
+                    }
+                    if(input is QueryInput<*,*>) {
+                        effectiveResult = chunk.triggerList(descriptor.dtoClass, input.value)
+                    }
+                    if(input == null){
+                        effectiveResult =  chunk.triggerList(descriptor.dtoClass)
+                    }
+                }
 
-            castedContainer.listResultChunks.forEach { chunk ->
-                if(input is ListDataInput<*,*>) {
-                    effectiveResult =
-                        chunk.triggerList(descriptor.dtoClass, input.getValue(descriptor.dtoClass.commonDTOType.dataType))
-                }
-                if(input is QueryInput<*,*>) {
-                    effectiveResult = chunk.triggerList(descriptor.dtoClass, input.value)
-                }
-                if(input == null){
-                    effectiveResult =  chunk.triggerList(descriptor.dtoClass)
-                }
+                effectiveResult.getOrOperations(descriptor)
             }
-
-        effectiveResult.getOrOperations(descriptor)
     }
 }
 
@@ -99,22 +101,24 @@ internal suspend fun <DTO, D> launchExecutionSingle(
     val castedContainer = container.castOrOperations<SequenceChunkContainer<DTO, D>>(descriptor)
 
     val service = descriptor.dtoClass.serviceClass
-    val emitter = service.requestEmitter(session)
-    return emitter.dispatchSingle {
-        var effectiveResult: ResultSingle<DTO, D>? = null
-        castedContainer.singleResultChunks.forEach { chunk ->
-            if(input is DataInput<*,*>) {
-                val value = input.getValue(descriptor.dtoClass.commonDTOType.dataType)
-                effectiveResult = chunk.triggerSingle(descriptor.dtoClass, value)
+    return  runProcess(session){
+        val emitter = service.requestEmitter(it)
+        emitter.dispatchSingle {
+            var effectiveResult: ResultSingle<DTO, D>? = null
+            castedContainer.singleResultChunks.forEach { chunk ->
+                if(input is DataInput<*,*>) {
+                    val value = input.getValue(descriptor.dtoClass.commonDTOType.dataType)
+                    effectiveResult = chunk.triggerSingle(descriptor.dtoClass, value)
+                }
+                if(input is QueryInput<*,*>) {
+                    effectiveResult = chunk.triggerSingle(descriptor.dtoClass, input.value)
+                }
+                if(input is ParameterInput<*, *>) {
+                    effectiveResult =  chunk.triggerSingle(descriptor.dtoClass, input.value)
+                }
             }
-            if(input is QueryInput<*,*>) {
-                effectiveResult = chunk.triggerSingle(descriptor.dtoClass, input.value)
-            }
-            if(input is ParameterInput<*, *>) {
-                effectiveResult =  chunk.triggerSingle(descriptor.dtoClass, input.value)
-            }
+            effectiveResult.getOrOperations(descriptor)
         }
-        effectiveResult.getOrOperations(descriptor)
     }
 }
 

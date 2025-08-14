@@ -9,8 +9,8 @@ import po.lognotify.launchers.runTask
 import po.lognotify.launchers.runTaskAsync
 import po.lognotify.launchers.runTaskBlocking
 import po.test.lognotify.setup.FakeTasksManaged
-import po.lognotify.models.LoggerStats
-import po.lognotify.models.TaskDispatcher
+import po.lognotify.dispatcher.LoggerStats
+import po.lognotify.dispatcher.TaskDispatcher
 import po.lognotify.tasks.TaskHandler
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -31,10 +31,10 @@ class TestTaskBase : FakeTasksManaged {
         fun function1(
             input: Int,
             childCount: Int,
-            callback: ((TaskHandler<Int>) -> Unit)? = null,
+            callback: ((TaskHandler<*>) -> Unit)? = null,
         ): Int =
-            runTaskBlocking("task_function1") { handler ->
-                callback?.invoke(handler)
+            runTaskBlocking("task_function1") {
+                callback?.invoke(taskHandler)
                 for (i in 1..childCount) {
                     childTask(i.toString())
                 }

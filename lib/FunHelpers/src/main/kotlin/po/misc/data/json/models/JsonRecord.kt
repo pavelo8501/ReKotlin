@@ -1,5 +1,6 @@
 package po.misc.data.json.models
 
+import po.misc.data.helpers.jsonEscape
 import po.misc.data.json.formatJsonSafe
 import po.misc.types.TypeData
 import kotlin.reflect.KProperty1
@@ -14,7 +15,7 @@ class JsonRecord<T: Any, V: Any>(
         return formatJsonSafe(value)
     }
 
-    fun toJson(receiver: T): String{
+    fun recordToJson(receiver: T): String{
         val formattedValue = getValueJsonSafe(property.get(receiver))
         return "\"${key}\":${formattedValue}"
     }

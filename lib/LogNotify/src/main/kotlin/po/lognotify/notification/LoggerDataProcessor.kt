@@ -13,6 +13,7 @@ import po.lognotify.tasks.RootTask
 import po.lognotify.tasks.TaskBase
 import po.misc.context.CTX
 import po.misc.coroutines.HotFlowEmitter
+import po.misc.data.helpers.output
 import po.misc.data.printable.Printable
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.companion.PrintableCompanion
@@ -49,8 +50,8 @@ class LoggerDataProcessor(
         }
         addData(taskData)
         flowEmitter?.emitData(taskData)
-
         taskData.events.onNewRecord(::onNewTaskEvent)
+        onSubDataReceived(::onSubLogReceived)
 
         if (config.console != ConsoleBehaviour.Mute && config.console != ConsoleBehaviour.MuteNoEvents) {
             taskData.echo(LogData.Header)
@@ -60,6 +61,10 @@ class LoggerDataProcessor(
 
     private fun onNewTaskEvent(taskEvent: TaskEvent) {
         consoleOutput(taskEvent, taskEvent.severity)
+    }
+
+    private fun onSubLogReceived(data: LogData, subProcessor:DataProcessorBase<LogData>) {
+        flowEmitter?.emitData(data)
     }
 
     private fun createLogEvent(
@@ -97,10 +102,7 @@ class LoggerDataProcessor(
         } else if (config.console != ConsoleBehaviour.MuteNoEvents && taskData.events.records.isNotEmpty()) {
             taskData.echo(LogData.Footer)
         }
-        flowEmitter?.let {
-            it.emitData(taskData)
-            it.stopBroadcast()
-        }
+        flowEmitter?.stopBroadcast()
         return taskData
     }
 
@@ -123,6 +125,9 @@ class LoggerDataProcessor(
         }
     }
 
+    /**
+     * Same as log but for internal usage not to mix contexts
+     * */
     internal fun report(
         message: String,
         severity: SeverityLevel,
@@ -172,8 +177,8 @@ class LoggerDataProcessor(
 
         val newData = DebugData(
             message = message,
-            contextName =  debugFrame.inContext.identifiedByName,
-            completeContextName =  debugFrame.inContext.completeName,
+            contextName =  debugFrame.contextName,
+            completeContextName =  debugFrame.completeName,
             stackMeta = debugFrame.frameMeta
         )
         newData.setTopic(topic)
@@ -190,8 +195,6 @@ class LoggerDataProcessor(
         taskData.debugRecords.addRecord(newData)
     }
 
-
-
     @PublishedApi
     internal fun debug(
         message: String,
@@ -202,8 +205,6 @@ class LoggerDataProcessor(
     private fun <T : PrintableBase<T>> debugRecord(arbitraryRecord: T) {
         val actionSpan = task.activeActionSpan()
     }
-
-
 
     fun <T : PrintableBase<T>> debug(
         arbitraryRecord: T,
@@ -227,7 +228,6 @@ class LoggerDataProcessor(
         buildString { data.printFn(this) }
         val asPrintable = data as PrintableBase<*>
         asPrintable.echo()
-        // forwardOrEmmit(createData("Forwarding", SeverityLevel.LOG))
     }
 
 }

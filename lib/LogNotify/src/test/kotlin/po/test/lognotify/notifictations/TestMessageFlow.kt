@@ -1,17 +1,15 @@
 package po.test.lognotify.notifictations
 
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
-import po.lognotify.TasksManaged
 import po.lognotify.common.configuration.TaskConfig
 import po.test.lognotify.setup.FakeTasksManaged
 import po.lognotify.notification.models.ConsoleBehaviour
 import po.lognotify.notification.models.LogData
-import po.lognotify.tasks.RootTask
-import po.lognotify.tasks.createChild
 import po.lognotify.tasks.info
-import po.misc.context.CTX
-import po.misc.context.CTXIdentity
-import po.misc.context.asIdentity
 import po.misc.data.processors.SeverityLevel
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -19,15 +17,16 @@ import kotlin.test.assertNotNull
 
 class TestMessageFlow : FakeTasksManaged {
 
+    val listenerScope = CoroutineScope(CoroutineName("Listener"))
+
     @Test
     fun `Events propagation chain work as expected`() {
         val loggedMessage = "Logged in ChildTask"
         val config = TaskConfig()
         config.setConsoleBehaviour(ConsoleBehaviour.Mute)
-        val topTask: RootTask<TestMessageFlow, Unit> = TasksManaged.LogNotify.taskDispatcher.createHierarchyRoot("TopTask", "TestDataProcessor", this, config)
-
-        val childTask1 = topTask.createChild<TestMessageFlow, Unit>("ChildTask1", this)
-        val childTask2 = childTask1.createChild<TestMessageFlow, Unit>("ChildTask2", this)
+        val topTask = mockRootTask("TopTask")
+        val childTask1 = topTask.mockChildTask("ChildTask1")
+        val childTask2 = childTask1.mockChildTask("ChildTask2")
 
         childTask2.info(loggedMessage)
 
@@ -46,5 +45,22 @@ class TestMessageFlow : FakeTasksManaged {
         val record = assertNotNull(topTask.dataProcessor.records.lastOrNull())
         val childRecord = assertNotNull(record.events.records.firstOrNull { it.severity == SeverityLevel.INFO })
         assertEquals(loggedMessage, childRecord.message)
+    }
+
+
+    @Test
+    fun `Task emitter propagate events properly`() = runTest {
+
+        val collectedData = mutableListOf<LogData>()
+        val rootTask = mockRootTask()
+        val emitter = assertNotNull( rootTask.dataProcessor.flowEmitter)
+        emitter.collectEmissions(listenerScope){
+            collectedData.add(it)
+        }
+        val task1 = rootTask.mockChildTask("Task1")
+        delay(100)
+        val task2 = task1.mockChildTask("Task2")
+        delay(100)
+        assertEquals(collectedData.size, 3)
     }
 }

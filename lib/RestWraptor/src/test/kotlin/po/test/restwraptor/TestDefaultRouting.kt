@@ -35,7 +35,7 @@ import po.restwraptor.extensions.authSessionOrNull
 import po.restwraptor.extensions.respondBadRequest
 import po.restwraptor.extensions.respondInternal
 import po.restwraptor.extensions.respondUnauthorized
-import po.restwraptor.extensions.withBaseUrl
+import po.restwraptor.routes.withBaseUrl
 import po.restwraptor.models.request.LoginRequest
 import po.restwraptor.models.response.ApiResponse
 

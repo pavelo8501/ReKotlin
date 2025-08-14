@@ -5,7 +5,7 @@ import kotlinx.coroutines.Job
 
 
 interface EmittableFlow<T: Any>{
-    fun subscribeToDataEmissions(scope: CoroutineScope, collector: suspend (T) -> Unit): Job
+    fun collectEmissions(scope: CoroutineScope, collector: suspend (T) -> Unit): Job
     fun stopBroadcast()
     fun emitData(data: T)
 }

@@ -1,7 +1,6 @@
 package po.lognotify.tasks.interfaces
 
 import po.lognotify.common.configuration.TaskConfig
-import po.lognotify.models.TaskDispatcher.UpdateType
 import po.lognotify.models.TaskKey
 import po.lognotify.models.TaskRegistry
 import po.lognotify.notification.LoggerDataProcessor

@@ -1,30 +1,22 @@
 package po.lognotify.launchers
 
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.runBlocking
 import po.lognotify.TasksManaged
 import po.lognotify.process.LoggerProcess
 import po.lognotify.process.Process
-import po.lognotify.process.ProcessKey
 import po.lognotify.process.createProcess
-import po.misc.context.CTX
 import po.misc.coroutines.LauncherType
-import po.misc.data.logging.LogCollector
-import java.util.UUID
-import kotlin.coroutines.CoroutineContext
+import po.misc.interfaces.Processable
 
 @PublishedApi
 internal suspend fun <T, R> executeProcess(
     process: Process<T>,
-    dispatcher: CoroutineDispatcher,
-    block: suspend LoggerProcess<T>.()-> R,
-):R where T: CTX, T: LogCollector, T: CoroutineContext.Element{
-
-    return LauncherType.ConcurrentLauncher.RunCoroutineHolder(process, dispatcher) {
+    block: suspend LoggerProcess<T>.(Process<T>)-> R,
+):R where T: Processable = LauncherType.ConcurrentLauncher.RunCoroutineHolder(process) {
         val job = process.coroutineContext[Job]
-
         job?.invokeOnCompletion { cause ->
             if (cause == null) {
                 println("Coroutine completed normally")
@@ -34,29 +26,32 @@ internal suspend fun <T, R> executeProcess(
         }?:run {
             println("No Job found")
         }
-        process.block()
+        val result = process.block(process)
+        process.complete(result)
     }
-}
-
-@JvmName("runProcessAttached")
-suspend inline fun <reified T, R> T.runProcess(
-    dispatcher: CoroutineDispatcher = Dispatchers.Default,
-    noinline block: suspend LoggerProcess<T>.()-> R,
-):R where T: CTX, T: LogCollector, T: CoroutineContext.Element{
-
-    val process = createProcess(this)
-    TasksManaged.LogNotify.taskDispatcher.registerProcess(process)
-   return executeProcess(process, dispatcher, block)
-}
 
 suspend inline fun <reified T, R> runProcess(
     receiver: T,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
-    noinline block: suspend LoggerProcess<T>.()-> R,
-):R where T: CTX, T: LogCollector, T: CoroutineContext.Element{
+    noinline block: suspend LoggerProcess<T>.(Process<T>)-> R,
+):R where T: Processable{
 
-    val process = createProcess(receiver)
+    val process = createProcess(receiver, dispatcher)
     TasksManaged.LogNotify.taskDispatcher.registerProcess(process)
-    return executeProcess(process, dispatcher, block)
-
+    return executeProcess(process, block)
 }
+
+
+inline fun <reified T, R> runProcessBlocking(
+    receiver: T,
+    dispatcher: CoroutineDispatcher = Dispatchers.Default,
+    noinline block: suspend LoggerProcess<T>.(Process<T>)-> R,
+):R where T: Processable{
+    val process = createProcess(receiver, dispatcher)
+    TasksManaged.LogNotify.taskDispatcher.registerProcess(process)
+    return runBlocking {
+        executeProcess(process, block)
+    }
+}
+
+

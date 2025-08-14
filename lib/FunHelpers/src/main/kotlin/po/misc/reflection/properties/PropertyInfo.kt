@@ -2,15 +2,12 @@ package po.misc.reflection.properties
 
 
 import po.misc.collections.StaticTypeKey
-import po.misc.data.helpers.textIfNull
 import po.misc.types.TypeData
-import po.misc.types.toSimpleNormalizedKey
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
 import kotlin.reflect.KType
 import kotlin.reflect.KVisibility
-import kotlin.reflect.typeOf
 
 class StaticTypeToken<T : Any>(
     val value: T,

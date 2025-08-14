@@ -20,8 +20,8 @@ class TestLaunchers: FakeTasksManaged {
 
        val inputMessage = "Some message"
        val taskContainer =  captureOutput<TaskContainer<TestLaunchers, Unit>> {
-             val rootTask = mockedDispatcher.createHierarchyRoot<TestLaunchers, Unit>("Root Task", this)
-             TaskContainer(rootTask)
+           val rootTask = mockRootTask("Root Task")
+            TaskContainer(rootTask)
         }.result
         var output: String = ""
          taskContainer.withReceiverAndResult {
@@ -35,7 +35,7 @@ class TestLaunchers: FakeTasksManaged {
 
         val inputInsideAction = "Some Message Inside Action"
         val actionContainer =  captureOutput<ActionContainer<TestLaunchers, Unit>> {
-            val rootTask = mockedDispatcher.createHierarchyRoot<TestLaunchers, Unit>("Root Task", this)
+            val rootTask = mockRootTask("Root Task")
             val span =  rootTask.createActionSpan<TestLaunchers, Unit>("Span", this)
             ActionContainer(span)
         }.result

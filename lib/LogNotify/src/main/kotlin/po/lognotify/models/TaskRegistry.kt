@@ -1,6 +1,7 @@
 package po.lognotify.models
 
 
+import po.lognotify.dispatcher.TaskDispatcher
 import po.lognotify.tasks.ExecutionStatus
 import po.lognotify.tasks.RootTask
 import po.lognotify.tasks.Task

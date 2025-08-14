@@ -65,7 +65,7 @@ val JWTPlugin: ApplicationPlugin<JWTPluginConfig> = createApplicationPlugin(
     }
 
     on(MonitoringEvent(ApplicationStarted)) { application ->
-        application.getWraptorRoutes(){list->
+        application.getWraptorRoutes(this){list->
             securedRoutes.addAll(list.filter { it.isSecured })
         }
     }
@@ -78,7 +78,6 @@ val JWTPlugin: ApplicationPlugin<JWTPluginConfig> = createApplicationPlugin(
             val jwtToken = service.tokenRepository.resolve(sessionId).getOrManaged("Token not found in repository")
             val validatedToken = service.isNotExpired(jwtToken) {
                 service.tokenRepository.invalidate(jwtToken.sessionId)
-                call.respondUnauthorized("Session expired", HttpStatusCode.Unauthorized.value)
                 return@isNotExpired
             }
             validatedToken

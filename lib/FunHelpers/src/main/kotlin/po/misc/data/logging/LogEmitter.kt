@@ -34,9 +34,9 @@ interface LogEmitter {
      *
      * @see PrintableBase
      */
-    val datLogger: (data:PrintableBase<*>, severity:SeverityLevel, emitter:Any) -> Unit get() =  {data,_,_->
-        data.echo()
-    }
+//    val datLogger: (data:PrintableBase<*>, severity:SeverityLevel, emitter:Any) -> Unit get() =  {data,_,_->
+//        data.echo()
+//    }
 
     /**
      * Function responsible for logging plain text messages.
@@ -81,12 +81,17 @@ interface LogEmitter {
      * @param data The structured data to be logged.
      * @param severity The severity level of the log message (defaults to [SeverityLevel.INFO]).
      */
-    fun <T: PrintableBase<T>> Any.log(data: T, severity: SeverityLevel = SeverityLevel.INFO) {
-        when (this) {
-            is LogEmitter -> this.datLogger(data, severity, this)
-            else ->data.echo()
-        }
+//    fun <T: PrintableBase<T>> Any.log(data: T, severity: SeverityLevel = SeverityLevel.INFO) {
+//        when (this) {
+//            is LogEmitter -> this.datLogger(data, severity, this)
+//            else ->data.echo()
+//        }
+//    }
+
+    fun  Any.log(data: PrintableBase<*>, severity: SeverityLevel = SeverityLevel.INFO) {
+        data.echo()
     }
+
 
     fun <T: Printable> CTX.debug(message: String, template: PrintableTemplateBase<T>? = null, topic: DebugTopic = DebugTopic.General){
         println(message)

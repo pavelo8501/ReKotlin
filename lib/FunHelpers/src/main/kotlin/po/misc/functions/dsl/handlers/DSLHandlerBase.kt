@@ -1,6 +1,7 @@
 package po.misc.functions.dsl.handlers
 
 import po.misc.functions.dsl.DSLConstructor
+import po.misc.types.TypeData
 
 
 abstract class DSLHandlerBase<T: Any, R: Any>(
@@ -16,9 +17,36 @@ abstract class DSLHandlerBase<T: Any, R: Any>(
     internal fun transformResult(result:R):R{
        return resultModification?.invoke(result)?:result
     }
-
 }
 
 class DSLHandler<T: Any, R: Any>(
     constructor: DSLConstructor<T, R>
 ): DSLHandlerBase<T, R>(constructor)
+
+
+
+abstract class HandlerBase<T: Any>(
+  val typeData: TypeData<T>
+) {
+
+    protected val modifications: MutableList<(T)-> T> = mutableListOf()
+
+    fun applyToResult(modification: (T)-> T) {
+        modifications.add(modification)
+    }
+
+    fun trigger(result:T):T{
+        var resultingModification:T? = null
+        modifications.forEach {
+            resultingModification =  it.invoke(result)
+        }
+        modifications.clear()
+        return resultingModification?:result
+    }
+}
+
+class DefaultDSLHandler<T: Any>(
+    typeData: TypeData<T>
+):HandlerBase<T>(typeData){
+
+}

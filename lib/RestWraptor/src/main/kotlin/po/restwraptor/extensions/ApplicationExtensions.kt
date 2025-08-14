@@ -1,6 +1,8 @@
 package po.restwraptor.extensions
 
 import io.ktor.server.application.Application
+import po.misc.context.CTX
+import po.misc.types.getOrManaged
 import po.misc.types.getOrThrow
 import po.restwraptor.RestWrapTor
 import po.restwraptor.RestWrapTorKey
@@ -30,10 +32,14 @@ fun Application.getRestWrapTor(): RestWrapTor? {
     return attributes.getOrNull(RestWrapTorKey)
 }
 
+fun Application.getWrapTorForced(): RestWrapTor {
+    return attributes.getOrNull(RestWrapTorKey).getOrManaged(this)
+}
 
 
-fun Application.getWraptorRoutes(callback: (List<WraptorRoute>)-> Unit ){
-   val wraptor =  getRestWrapTor().getOrThrow<RestWrapTor, ConfigurationException>(null) {_->
+
+fun Application.getWraptorRoutes(callingContext: Any,  callback: (List<WraptorRoute>)-> Unit){
+   val wraptor =  getRestWrapTor().getOrThrow(callingContext) {_->
        ConfigurationException("Wraptor not found in Application registry", ExceptionCodes.KEY_REGISTRATION)
    }
    wraptor.getRoutes(callback)

@@ -2,8 +2,8 @@ package po.lognotify.tasks
 
 import po.lognotify.action.ActionSpan
 import po.lognotify.common.configuration.TaskConfig
-import po.lognotify.models.LoggerStats
-import po.lognotify.models.TaskDispatcher
+import po.lognotify.dispatcher.LoggerStats
+import po.lognotify.dispatcher.TaskDispatcher
 import po.lognotify.notification.LoggerDataProcessor
 import po.lognotify.tasks.interfaces.HandledTask
 import po.misc.callbacks.wrapRawCallback

@@ -18,6 +18,7 @@ import po.misc.context.asIdentity
 import po.misc.coroutines.CoroutineHolder
 import po.misc.data.logging.LogCollector
 import po.misc.data.printable.PrintableBase
+import po.misc.interfaces.Processable
 import po.misc.types.castOrManaged
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -26,7 +27,7 @@ import kotlin.coroutines.CoroutineContext
 class AuthorizedSession internal constructor(
     override val remoteAddress: String,
     val authenticator: UserAuthenticator,
-):  CoroutineContext.Element,  EmmitableSession, SessionIdentified, CoroutineHolder, CTX, LogCollector {
+): EmmitableSession, SessionIdentified, Processable {
 
     override val identity: CTXIdentity<AuthorizedSession> = asIdentity()
 
@@ -52,8 +53,7 @@ class AuthorizedSession internal constructor(
     override val sessionContext: CoroutineContext
         get() = scope.coroutineContext
 
-    override val coroutineContext: CoroutineContext
-        get() = scope.coroutineContext
+    val coroutineContext: CoroutineContext get() = scope.coroutineContext
 
     val identifiedAs: String get() = sessionID
     val name: String get() =  coroutineName
@@ -91,12 +91,10 @@ class AuthorizedSession internal constructor(
 
     val externalStore :ConcurrentHashMap<ExternalKey<*>, Any?>  = ConcurrentHashMap<ExternalKey<*>, Any?>()
 
-
-
-
     fun getAttributeKeys():List<SessionKey<*>>{
         return sessionStore.keys.toList()
     }
+
     inline  fun <reified T: Any> setSessionAttr(name: String, value: T) {
         sessionStore[SessionKey(name, T::class)] = value
     }
@@ -163,6 +161,19 @@ class AuthorizedSession internal constructor(
         logRecordsBacking.add(record)
     }
 
+    fun extractLogRecords(filtering:((PrintableBase<*>)-> Boolean)? = null): List<PrintableBase<*>> {
+        val resultingList = mutableListOf<PrintableBase<*>>()
+        return if (filtering != null) {
+            logRecordsBacking.forEach { record ->
+                if (filtering.invoke(record)) {
+                    resultingList.add(record)
+                }
+            }
+            resultingList
+        } else {
+            logRecordsBacking
+        }
+    }
 
     companion object AuthorizedSessionKey : CoroutineContext.Key<AuthorizedSession>
 

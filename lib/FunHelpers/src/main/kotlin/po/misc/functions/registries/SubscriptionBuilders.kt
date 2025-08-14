@@ -2,11 +2,11 @@ package po.misc.functions.registries
 
 import po.misc.context.CTX
 import po.misc.functions.registries.models.TaggedSubscriber
-import kotlin.reflect.KClass
+import po.misc.types.TypeData
 
 
 fun <V: Any> CTX.buildSubscriptions(
-    targetEmitter: KClass<*>,
+    targetEmitter: TypeData<*>,
     builder: SubscriptionPack<V>.()-> Unit
 ):SubscriptionPack<V>{
     val pack = EmitterSubscriptions<V>(identity.kClass, targetEmitter)

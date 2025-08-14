@@ -60,3 +60,4 @@ open class DSLConstructor<T: Any,  R: Any>(
         return adapterFn.invoke(listResult)
     }
 }
+

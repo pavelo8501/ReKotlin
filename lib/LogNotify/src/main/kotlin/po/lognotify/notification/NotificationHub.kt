@@ -38,7 +38,7 @@ class NotifierHub(
     internal fun register(rootTask: RootTask<*,*>){
         subNotifiers.add(rootTask.dataProcessor)
         val job = CoroutineScope(Dispatchers.Default)
-        rootTask.dataProcessor.flowEmitter?.subscribeToDataEmissions(job){
+        rootTask.dataProcessor.flowEmitter?.collectEmissions(job){
             notificator.triggerForAll(Event.DataReceived, it)
         }
     }

@@ -4,10 +4,8 @@ import po.lognotify.common.configuration.TaskConfig
 import po.lognotify.tasks.ExecutionStatus
 import po.misc.data.helpers.applyIfNotEmpty
 import po.misc.data.helpers.stripAfter
-import po.misc.data.helpers.textIfNotNull
-import po.misc.data.json.JsonDescriptor2
-import po.misc.data.json.extensions.buildSubArray
-import po.misc.data.json.models.JsonArray
+import po.misc.data.helpers.toStringIfNotNull
+import po.misc.data.json.JsonDescriptor
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.PrintableGroup
 import po.misc.data.printable.companion.PrintableCompanion
@@ -73,7 +71,7 @@ class ErrorRecord(
                 "First registered: $firstRegisteredInTask"
             }
             nextLine {
-                methodThrowing.textIfNotNull<StackFrameMeta> { "MethodThrowing: ".colorize(Colour.Yellow) + toStackTraceFormat() }
+                methodThrowing.toStringIfNotNull {"MethodThrowing: ".colorize(Colour.Yellow)+ it.toStackTraceFormat() }
             }
             nextLine {
                 val callSite = throwingCallSite
@@ -148,11 +146,18 @@ class LogData(
             }
         }
 
-        val json: JsonDescriptor2<LogData> = JsonDescriptor2<LogData>(this){
-            createObject(LogData::taskHeader, LogData::executionStatus, LogData::elapsed, LogData::taskFooter)
-            buildSubArray(TaskEvent::class, LogData::taskEvents){
-                createObject(TaskEvent::severity, TaskEvent::message)
-            }
+        val json: JsonDescriptor<LogData> = buildJsonDescriptor {
+            createRecord(LogData::taskHeader)
+            createRecord(LogData::executionStatus)
+            createObject(LogData::taskEvents, TaskEvent::message)
         }
+
+//        val json: JsonDescriptor<LogData> = JsonDescriptor<LogData>(this){
+//
+//            createObject(LogData::taskHeader, LogData::executionStatus, LogData::elapsed, LogData::taskFooter)
+//            buildSubArray(TaskEvent::class, LogData::taskEvents){
+//                createObject(TaskEvent::severity, TaskEvent::message)
+//            }
+//        }
     }
 }

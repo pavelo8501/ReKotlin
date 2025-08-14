@@ -27,7 +27,10 @@ import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.data.processors.SeverityLevel
-import po.misc.functions.registries.taggedRegistryOf
+import po.misc.functions.registries.NotifierRegistry
+import po.misc.functions.registries.TaggedRegistry
+import po.misc.functions.registries.builders.notifierRegistryOf
+import po.misc.functions.registries.builders.taggedRegistryOf
 import po.misc.interfaces.ValueBased
 import po.misc.validators.models.CheckStatus
 
@@ -47,9 +50,9 @@ sealed class DTOBase<DTO, D, E>(
 
     abstract override val identity: CTXIdentity<out CTX>
 
-    internal val onStatusChanged  = taggedRegistryOf<Events, DTOBase<DTO, D, E>>(Events.StatusChanged)
-    internal val onInitialized = taggedRegistryOf<Events, DTOBase<DTO, D, E>>(Events.Initialized)
-    internal val onNewMember = taggedRegistryOf<Events, DTOClass<*, *, *>>(Events.NewHierarchyMember)
+    internal val onStatusChanged : NotifierRegistry<DTOBase<DTO, D, E>> by lazy{ notifierRegistryOf(Events.StatusChanged) }
+    internal val onInitialized : NotifierRegistry<DTOBase<DTO, D, E>> by lazy{ notifierRegistryOf(Events.Initialized) }
+    internal val onNewMember : NotifierRegistry<DTOClass<*, *, *>> by lazy { notifierRegistryOf(Events.NewHierarchyMember) }
 
     var status: DTOClassStatus = DTOClassStatus.Uninitialized
         private set

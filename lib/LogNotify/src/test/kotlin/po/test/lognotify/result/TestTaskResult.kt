@@ -76,7 +76,7 @@ class TestTaskResult: FakeTasksManaged {
             }
             assertEquals(123, triggeredAndResulted, "OnResult returned wrong value")
 
-            var onCompleteResult: TaskResult<*>? = null
+            var onCompleteResult: TaskResult<*, *>? = null
             runTaskAsync("OnComplete"){
                 val nullableResult : Int? = null
                 nullableResult
@@ -85,8 +85,8 @@ class TestTaskResult: FakeTasksManaged {
             }
             assertAll("OnComplete triggers on nullable, not throwing",
                 { assertNotNull(onCompleteResult, "onResultTriggered never reached") },
-                { assertInstanceOf<TaskResult<Int?>>(onCompleteResult, "onComplete returned wrong result") },
-                { assertTrue(onCompleteResult is TaskResult<*>, "onComplete returned wrong result") }
+                { assertInstanceOf<TaskResult<*, Int?>>(onCompleteResult, "onComplete returned wrong result") },
+                { assertTrue(onCompleteResult is TaskResult<*, *>, "onComplete returned wrong result") }
              )
         }
         val exception =  assertNotNull(swallowedException, "onFail never reached")

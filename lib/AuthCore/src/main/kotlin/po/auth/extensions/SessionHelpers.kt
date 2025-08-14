@@ -1,6 +1,7 @@
 package po.auth.extensions
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.withContext
 import po.auth.AuthSessionManager
 import po.auth.sessions.interfaces.SessionIdentified
@@ -20,7 +21,7 @@ suspend fun withSessionContext(
     sessionIdentity: SessionIdentified,
     block: suspend CoroutineScope.() -> Unit
 ) {
-    val session =  coroutineContext[AuthorizedSession]?: AuthSessionManager.getOrCreateSession(sessionIdentity)
+    val session =  currentCoroutineContext()[AuthorizedSession]?: AuthSessionManager.getOrCreateSession(sessionIdentity)
     withContext(session.sessionScope().coroutineContext, block)
 }
 
@@ -43,7 +44,7 @@ suspend fun <R> withSessionSuspended(
     sessionIdentity : SessionIdentified,
     block: suspend AuthorizedSession.() -> R
 ):R {
-   return coroutineContext[AuthorizedSession]?.let {
+   return currentCoroutineContext()[AuthorizedSession]?.let {
         block.invoke(it)
     }?:run {
        block.invoke(AuthSessionManager.getOrCreateSession(sessionIdentity))
@@ -52,7 +53,7 @@ suspend fun <R> withSessionSuspended(
 
 
 suspend fun CoroutineScope.currentSession(): AuthorizedSession?{
-    return coroutineContext[AuthorizedSession]
+   return currentCoroutineContext()[AuthorizedSession]
 }
 
 

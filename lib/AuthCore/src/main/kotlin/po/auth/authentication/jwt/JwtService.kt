@@ -28,7 +28,7 @@ class JWTService(
 
     val tokenRepository = InMemoryTokenStore()
 
-    suspend fun setAuthenticationFn(userLookupFn : (suspend (login: String)-> AuthenticationPrincipal?)){
+    fun setAuthenticationFn(userLookupFn : (suspend (login: String)-> AuthenticationPrincipal?)){
         AuthSessionManager.registerAuthenticator(userLookupFn)
     }
 
@@ -42,7 +42,7 @@ class JWTService(
         return token.removePrefix("Bearer").trim()
     }
 
-    suspend fun generateToken(principal: AuthenticationPrincipal,  session : AuthorizedSession): JwtToken {
+    fun generateToken(principal: AuthenticationPrincipal,  session : AuthorizedSession): JwtToken {
        val serialized = principal.asJson()
        val token = JWT.create()
             .withAudience(config.audience)

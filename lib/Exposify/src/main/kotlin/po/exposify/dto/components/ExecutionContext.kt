@@ -34,13 +34,14 @@ import po.lognotify.launchers.runTask
 import po.lognotify.launchers.runTaskAsync
 import po.lognotify.process.Process
 import po.lognotify.process.activeProcess
+import po.lognotify.process.loggerProcess
 import po.misc.collections.hasExactlyOne
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asSubIdentity
-import po.misc.functions.registries.EmitterAwareRegistry
+import po.misc.data.helpers.output
 import po.misc.functions.registries.SubscriptionPack
-import po.misc.functions.registries.buildRegistry
+import po.misc.functions.registries.builders.taggedRegistryOf
 import po.misc.types.castListOrManaged
 import kotlin.coroutines.CoroutineContext
 
@@ -70,8 +71,8 @@ sealed class ExecutionContext<DTO, D, E>(
 
     override val identity: CTXIdentity<out CTX> = asSubIdentity(this, dtoClass)
 
-    protected val notifier: EmitterAwareRegistry<DTO, ContextEvents, CommonDTO<DTO, D, E>> = buildRegistry(dtoClass.commonDTOType.dtoType)
-    protected val listNotifier: EmitterAwareRegistry<DTO, ContextListEvents, List<CommonDTO<DTO, D, E>>> = buildRegistry(dtoClass.commonDTOType.dtoType)
+    internal val notifier = taggedRegistryOf<ContextEvents, CommonDTO<DTO, D, E>>()
+    internal val listNotifier = taggedRegistryOf<ContextListEvents, List<CommonDTO<DTO, D, E>>>()
 
     private val daoService: DAOService<DTO, D, E> get() = dtoClass.dtoConfiguration.daoService
     protected val dataModelTypeName: String = dtoClass.commonDTOType.dataType.typeName
@@ -88,6 +89,11 @@ sealed class ExecutionContext<DTO, D, E>(
 
     protected val abnormalState: ExceptionCode = ExceptionCode.ABNORMAL_STATE
     protected val methodMisuse: ExceptionCode =  ExceptionCode.METHOD_MISUSED
+
+    init {
+        notifier.identifiedByType(dtoClass.commonDTOType.dtoType)
+        listNotifier.identifiedByType(dtoClass.commonDTOType.dtoType)
+    }
 
     protected fun restoreDTOWildcard(entities: List<*>):List<CommonDTO<DTO, D, E>> {
         entities.firstOrNull()?.let {
@@ -154,30 +160,30 @@ class RootExecutionContext<DTO, D, E>(
 ) : ExecutionContext<DTO, D, E>(dtoClass) where DTO : ModelDTO, D : DataModel, E : LongEntity {
     override val identity: CTXIdentity<RootExecutionContext<DTO, D, E>> = asSubIdentity(this, dtoClass)
 
-    private val daoService get() =  dtoClass.dtoConfiguration.daoService
+    private val daoService get() = dtoClass.dtoConfiguration.daoService
 
     init {
         identity.setNamePattern { "RootExecutionContext[${dtoClass.identifiedByName}]" }
     }
 
-    private fun tryGettingHooksFromContext(context: CoroutineContext?):SubscriptionPack<CommonDTO<DTO, D, E>>?{
-      return context?.sessionInScope()?.getExternalRef<SubscriptionPack<CommonDTO<DTO, D, E>>>("hooks")
+    private fun tryGettingHooksFromContext(context: CoroutineContext?): SubscriptionPack<CommonDTO<DTO, D, E>>? {
+        return context?.sessionInScope()?.getExternalRef<SubscriptionPack<CommonDTO<DTO, D, E>>>("hooks")
     }
 
-    private fun dtoLookup(entity: E): CommonDTO<DTO, D, E>{
+    private fun dtoLookup(entity: E): CommonDTO<DTO, D, E> {
         var existent = dtoClass.lookupDTO(entity.id.value)
-        if(existent == null){
-            existent  = restoreDTOS(listOf(entity)).hasExactlyOne {
+        if (existent == null) {
+            existent = restoreDTOS(listOf(entity)).hasExactlyOne {
                 operationsException(wrongRestoreListSizeMsg, abnormalState)
             }
         }
         return existent
     }
 
-    internal fun dtoLookup(id: Long): CommonDTO<DTO, D, E>?{
+    internal fun dtoLookup(id: Long): CommonDTO<DTO, D, E>? {
         var existent = dtoClass.lookupDTO(id)
-        if(existent == null){
-            dtoClass.dtoConfiguration.daoService.pickById(id)?.let {entity->
+        if (existent == null) {
+            dtoClass.dtoConfiguration.daoService.pickById(id)?.let { entity ->
                 val commonDTOList = restoreDTOS(listOf(entity))
                 existent = commonDTOList.hasExactlyOne { operationsException(wrongRestoreListSizeMsg, abnormalState) }
             }
@@ -185,9 +191,9 @@ class RootExecutionContext<DTO, D, E>(
         return existent
     }
 
-    private fun runInsert(dataModels: List<D>, initialOperation:CrudOperation): List<CommonDTO<DTO, D, E>>{
+    private fun runInsert(dataModels: List<D>, initialOperation: CrudOperation): List<CommonDTO<DTO, D, E>> {
         val result = mutableListOf<CommonDTO<DTO, D, E>>()
-        dataModels.forEach {data->
+        dataModels.forEach { data ->
             val commonDTO = dtoClass.newDTO(data)
             if (commonDTO.dataStatus != DataStatus.PreflightCheckMock) {
                 val persistedEntity = commonDTO.daoService.save { entity ->
@@ -198,8 +204,8 @@ class RootExecutionContext<DTO, D, E>(
                 commonDTO.entityContainer.provideValue(persistedEntity)
 
                 val childDataList = commonDTO.bindingHub.extractChildData(data)
-                childDataList.forEach {childData->
-                    commonDTO.withDTOContextCreating(childData.foreignDTO){
+                childDataList.forEach { childData ->
+                    commonDTO.withDTOContextCreating(childData.foreignDTO) {
                         insertWildcard(childData.dataModels, this)
                     }
                 }
@@ -209,135 +215,157 @@ class RootExecutionContext<DTO, D, E>(
         return result
     }
 
-    private fun runUpdate(dataModels: List<D>, initialOperation:CrudOperation): List<CommonDTO<DTO, D, E>>{
+    private fun runUpdate(dataModels: List<D>, initialOperation: CrudOperation): List<CommonDTO<DTO, D, E>> {
         val result = mutableListOf<CommonDTO<DTO, D, E>>()
 
-        dataModels.forEach {data->
+        dataModels.forEach { data ->
             val commonDTO = dtoLookup(data.id)
             if (commonDTO != null) {
                 val childDataList = commonDTO.bindingHub.extractChildData(data)
                 childDataList.forEach { childData ->
-                    commonDTO.withDTOContextCreating(childData.foreignDTO){
+                    commonDTO.withDTOContextCreating(childData.foreignDTO) {
                         updateWildcard(childData.dataModels, this)
                     }
                 }
                 result.add(commonDTO)
-            }else {
+            } else {
                 warning("DTO for data model $data not found")
             }
         }
         return result
     }
 
-    suspend fun select(): ResultList<DTO, D> = runTaskAsync("select(All)"){
-        val operation = CrudOperation.Select
-        val resultingList = mutableListOf<CommonDTO<DTO, D, E>>()
-        daoService.select().forEach {entity->
-           val commonDTO = dtoLookup(entity)
-            resultingList.add(commonDTO)
+    suspend fun select(): ResultList<DTO, D> = runTaskAsync("select(All)") {
+        withSuspendedTransactionIfNone(dtoClass.debugger, false, currentCoroutineContext()) {
+            val operation = CrudOperation.Select
+            val resultingList = mutableListOf<CommonDTO<DTO, D, E>>()
+            daoService.select().forEach { entity ->
+                val commonDTO = dtoLookup(entity)
+                resultingList.add(commonDTO)
+            }
+            dtoClass.toResult(resultingList)
         }
-        dtoClass.toResult(resultingList)
-
     }.resultOrException()
 
-    suspend fun select(conditions: SimpleQuery): ResultList<DTO, D> = runTaskAsync("select<SimpleQuery>"){
-        val operation = CrudOperation.Select
-        val resultingList = mutableListOf<CommonDTO<DTO, D, E>>()
-        daoService.select(conditions).forEach {entity->
-            val commonDTO = dtoLookup(entity)
-            resultingList.add(commonDTO)
+    suspend fun select(conditions: SimpleQuery): ResultList<DTO, D> = runTaskAsync("select<SimpleQuery>") {
+        withSuspendedTransactionIfNone(dtoClass.debugger, false, currentCoroutineContext()) {
+            val operation = CrudOperation.Select
+            val resultingList = mutableListOf<CommonDTO<DTO, D, E>>()
+            daoService.select(conditions).forEach { entity ->
+                val commonDTO = dtoLookup(entity)
+                resultingList.add(commonDTO)
+            }
+            dtoClass.toResult(resultingList)
         }
-        dtoClass.toResult(resultingList)
     }.resultOrException()
 
-    suspend fun pick(id: Long): ResultSingle<DTO, D> = runTaskAsync("Pick<$id>"){
-        trySubscribingHooks(currentCoroutineContext()[Process])
-         val operation = CrudOperation.Pick
-         val commonDTO = dtoLookup(id)
-         commonDTO?.let { notifier.trigger(ContextEvents.PickComplete, it) }
-         dtoClass.toResult(commonDTO)
-    }.resultOrException()
-
-    suspend fun pick(conditions: SimpleQuery): ResultSingle<DTO, D> = runTaskAsync("Pick<SimpleQuery>"){
-        trySubscribingHooks(currentCoroutineContext()[Process])
-        val operation = CrudOperation.Pick
-        daoService.pick(conditions)?.let {entity->
-            val commonDTO = dtoLookup(entity.id.value)
+    suspend fun pick(id: Long): ResultSingle<DTO, D> = runTaskAsync("Pick<$id>") {
+        withSuspendedTransactionIfNone(dtoClass.debugger, false, currentCoroutineContext()) {
+            trySubscribingHooks(currentCoroutineContext()[Process])
+            val operation = CrudOperation.Pick
+            val commonDTO = dtoLookup(id)
             commonDTO?.let { notifier.trigger(ContextEvents.PickComplete, it) }
             dtoClass.toResult(commonDTO)
-        }?:run {
-            val notFound = operationsException(notFoundByQueryMsg(conditions.build().toSqlString()), ExceptionCode.DTO_LOOKUP_FAILURE)
-            dtoClass.toResult(notFound)
         }
     }.resultOrException()
 
-    suspend fun insert(data: D): ResultSingle<DTO, D> = runTaskAsync("Insert<$dataModelTypeName>"){
-        trySubscribingHooks(currentCoroutineContext()[Process])
-        withSuspendedTransactionIfNone(dtoClass.debugger, warnIfNoTransaction =  false) {
-            val operation = CrudOperation.Insert
-            if (data.id != 0L) {
-                operationsException(insertHasNon0IdMsg, methodMisuse)
-            }
-            val commonDTO = runInsert(listOf(data), operation).hasExactlyOne {
-                operationsException(wrongListSizeMsg, abnormalState)
+    suspend fun pick(conditions: SimpleQuery): ResultSingle<DTO, D> = runTaskAsync("Pick<SimpleQuery>") {
+        withSuspendedTransactionIfNone(dtoClass.debugger, false, currentCoroutineContext()) {
+            currentCoroutineContext().loggerProcess()?.let {
+                it.dispatcher.hashCode().output()
+                trySubscribingHooks(it)
             }
 
-            notifier.trigger(ContextEvents.InsertComplete, commonDTO)
-            dtoClass.toResult(commonDTO)
+            val operation = CrudOperation.Pick
+            daoService.pick(conditions)?.let { entity ->
+                val commonDTO = dtoLookup(entity.id.value)
+                commonDTO?.let { notifier.trigger(ContextEvents.PickComplete, it) }
+                dtoClass.toResult(commonDTO)
+            } ?: run {
+                val notFound = operationsException(
+                    notFoundByQueryMsg(conditions.build().toSqlString()),
+                    ExceptionCode.DTO_LOOKUP_FAILURE
+                )
+                dtoClass.toResult(notFound)
+            }
         }
     }.resultOrException()
 
-    suspend fun insert(dataModels: List<D>): ResultList<DTO, D> = runTaskAsync("Insert<List<$dataModelTypeName>>"){
-        trySubscribingHooks(currentCoroutineContext()[Process])
-        withSuspendedTransactionIfNone(dtoClass.debugger, warnIfNoTransaction =  false) {
-            val operation = CrudOperation.Insert
-            val split = splitInputData(dataModels)
-            if (split.updateList.isNotEmpty()) {
-                operationsException(insertHasNon0IdMsg, ExceptionCode.METHOD_MISUSED)
+    suspend fun insert(data: D): ResultSingle<DTO, D> = runTaskAsync("Insert<$dataModelTypeName>") {
+        withSuspendedTransactionIfNone(dtoClass.debugger, false, currentCoroutineContext()) {
+            trySubscribingHooks(currentCoroutineContext()[Process])
+            withSuspendedTransactionIfNone(dtoClass.debugger, warnIfNoTransaction = false) {
+                val operation = CrudOperation.Insert
+                if (data.id != 0L) {
+                    operationsException(insertHasNon0IdMsg, methodMisuse)
+                }
+                val commonDTO = runInsert(listOf(data), operation).hasExactlyOne {
+                    operationsException(wrongListSizeMsg, abnormalState)
+                }
+
+                notifier.trigger(ContextEvents.InsertComplete, commonDTO)
+                dtoClass.toResult(commonDTO)
             }
-            val resultingList = runInsert(split.insertList, operation)
-            listNotifier.trigger(ContextListEvents.InsertComplete, resultingList)
-            resultingList.toResult(dtoClass, operation)
         }
     }.resultOrException()
 
-    suspend fun update(dataModel: D): ResultSingle<DTO, D> = runTaskAsync("Update<List<$dataModelTypeName>>"){
-        trySubscribingHooks(currentCoroutineContext()[Process])
-        withSuspendedTransactionIfNone(dtoClass.debugger, warnIfNoTransaction =  false) {
-            val operation = CrudOperation.Update
-            val resultingList = mutableListOf<CommonDTO<DTO, D, E>>()
-
-            if (dataModel.id == 0L) {
-                val res = runInsert(listOf(dataModel), operation)
-                resultingList.addAll(res)
-            } else {
-                val res = runUpdate(listOf(dataModel), operation)
-                resultingList.addAll(res)
+    suspend fun insert(dataModels: List<D>): ResultList<DTO, D> = runTaskAsync("Insert<List<$dataModelTypeName>>") {
+        withSuspendedTransactionIfNone(dtoClass.debugger, false, currentCoroutineContext()) {
+            trySubscribingHooks(currentCoroutineContext()[Process])
+            withSuspendedTransactionIfNone(dtoClass.debugger, warnIfNoTransaction = false) {
+                val operation = CrudOperation.Insert
+                val split = splitInputData(dataModels)
+                if (split.updateList.isNotEmpty()) {
+                    operationsException(insertHasNon0IdMsg, ExceptionCode.METHOD_MISUSED)
+                }
+                val resultingList = runInsert(split.insertList, operation)
+                listNotifier.trigger(ContextListEvents.InsertComplete, resultingList)
+                resultingList.toResult(dtoClass, operation)
             }
-            val commonDTO = resultingList.hasExactlyOne { operationsException(wrongListSizeMsg, ExceptionCode.ABNORMAL_STATE) }
-            notifier.trigger(ContextEvents.UpdateComplete, commonDTO)
-            dtoClass.toResult(commonDTO)
+        }
+    }.resultOrException()
+
+    suspend fun update(dataModel: D): ResultSingle<DTO, D> = runTaskAsync("Update<List<$dataModelTypeName>>") {
+        withSuspendedTransactionIfNone(dtoClass.debugger, false, currentCoroutineContext()) {
+            trySubscribingHooks(currentCoroutineContext()[Process])
+            withSuspendedTransactionIfNone(dtoClass.debugger, warnIfNoTransaction = false) {
+                val operation = CrudOperation.Update
+                val resultingList = mutableListOf<CommonDTO<DTO, D, E>>()
+                if (dataModel.id == 0L) {
+                    val res = runInsert(listOf(dataModel), operation)
+                    resultingList.addAll(res)
+                } else {
+                    val res = runUpdate(listOf(dataModel), operation)
+                    resultingList.addAll(res)
+                }
+                val commonDTO =
+                    resultingList.hasExactlyOne { operationsException(wrongListSizeMsg, ExceptionCode.ABNORMAL_STATE) }
+                notifier.trigger(ContextEvents.UpdateComplete, commonDTO)
+                dtoClass.toResult(commonDTO)
+            }
         }
     }.resultOrException()
 
     suspend fun update(dataModels: List<D>): ResultList<DTO, D> = runTaskAsync("Update<List<$dataModelTypeName>>") {
-        trySubscribingHooks(currentCoroutineContext()[Process])
-        withSuspendedTransactionIfNone(dtoClass.debugger, warnIfNoTransaction =  false) {
-            val operation = CrudOperation.Update
-            val split = splitInputData(dataModels)
+        withSuspendedTransactionIfNone(dtoClass.debugger, false, currentCoroutineContext()) {
+            trySubscribingHooks(currentCoroutineContext()[Process])
+            withSuspendedTransactionIfNone(dtoClass.debugger, warnIfNoTransaction = false) {
+                val operation = CrudOperation.Update
+                val split = splitInputData(dataModels)
 
-            val resultingList = mutableListOf<CommonDTO<DTO, D, E>>()
+                val resultingList = mutableListOf<CommonDTO<DTO, D, E>>()
 
-            if (split.insertList.isNotEmpty()) {
-                val res = runInsert(split.insertList, operation)
-                resultingList.addAll(res)
+                if (split.insertList.isNotEmpty()) {
+                    val res = runInsert(split.insertList, operation)
+                    resultingList.addAll(res)
+                }
+                if (split.updateList.isNotEmpty()) {
+                    val res = runUpdate(split.updateList, operation)
+                    resultingList.addAll(res)
+                }
+                listNotifier.trigger(ContextListEvents.UpdateComplete, resultingList)
+                resultingList.toResult(dtoClass, operation)
             }
-            if (split.updateList.isNotEmpty()) {
-                val res = runUpdate(split.updateList, operation)
-                resultingList.addAll(res)
-            }
-            listNotifier.trigger(ContextListEvents.UpdateComplete, resultingList)
-            resultingList.toResult(dtoClass, operation)
         }
     }.resultOrException()
 
@@ -360,7 +388,6 @@ class DTOExecutionContext<DTO, D, E, F, FD, FE>(
     init {
         identity.setNamePattern { "DTOExecutionContext[${hostingDTO.identifiedByName}]" }
     }
-
 
     fun dtoLookup(entity: E): CommonDTO<DTO, D, E>{
         var existent =  hostingDTO.bindingHub.lookUpChild(entity.id.value, dtoClass.commonDTOType)
@@ -417,7 +444,6 @@ class DTOExecutionContext<DTO, D, E, F, FD, FE>(
     private fun runUpdate(dataModels: List<D>, initialOperation:CrudOperation, initiator: CTX):  List<CommonDTO<DTO, D, E>> {
         val result = mutableListOf<CommonDTO<DTO, D, E>>()
         dataModels.forEach {data->
-
             val commonDTO = dtoLookup(data.id)
             if (commonDTO != null) {
                 val storedEntity = commonDTO.entityContainer.getValue(this)
@@ -451,8 +477,7 @@ class DTOExecutionContext<DTO, D, E, F, FD, FE>(
     }.resultOrException()
 
     fun select(): ResultList<DTO, D> = runTask("select(All)") {
-        val process = activeProcess()
-        trySubscribingListHooks(process)
+        trySubscribingListHooks(activeProcess())
         withTransactionIfNone(dtoClass.debugger, warnIfNoTransaction = false) {
             val operation = CrudOperation.Select
             val resultingList = mutableListOf<CommonDTO<DTO, D, E>>()
@@ -465,43 +490,54 @@ class DTOExecutionContext<DTO, D, E, F, FD, FE>(
     }.resultOrException()
 
     fun pick(id: Long): ResultSingle<DTO, D> = runTask("Pick<$id>") {
-       dtoClass.toResult(dtoLookup(id))
+        trySubscribingHooks(activeProcess())
+        withTransactionIfNone(dtoClass.debugger, warnIfNoTransaction = true) {
+            dtoClass.toResult(dtoLookup(id))
+        }
     }.resultOrException()
 
     fun pick(conditions: SimpleQuery): ResultSingle<DTO, D> = runTask("Pick<SimpleQuery>") {
-
-        daoService.pick(conditions)?.let {entity->
-            dtoClass.toResult(dtoLookup(entity))
-        }?:run {
-            val notFound = operationsException(notFoundByQueryMsg(conditions.build().toSqlString()), ExceptionCode.DTO_LOOKUP_FAILURE)
-            dtoClass.toResult(notFound)
+        trySubscribingHooks(activeProcess())
+        withTransactionIfNone(dtoClass.debugger, warnIfNoTransaction = true) {
+            daoService.pick(conditions)?.let { entity ->
+                dtoClass.toResult(dtoLookup(entity))
+            } ?: run {
+                val notFound = operationsException(
+                    notFoundByQueryMsg(conditions.build().toSqlString()),
+                    ExceptionCode.DTO_LOOKUP_FAILURE
+                )
+                dtoClass.toResult(notFound)
+            }
         }
     }.resultOrException()
 
     fun insert(dataModel: D, initiator: CTX): ResultSingle<DTO, D> = runTask("insert<$dataModelTypeName>"){
         trySubscribingHooks(activeProcess())
-
-        val operation = CrudOperation.Insert
-        if (dataModel.id != 0L) {
-            throw operationsException(insertHasNon0IdMsg, methodMisuse)
+        withTransactionIfNone(dtoClass.debugger, warnIfNoTransaction = true) {
+            val operation = CrudOperation.Insert
+            if (dataModel.id != 0L) {
+                throw operationsException(insertHasNon0IdMsg, methodMisuse)
+            }
+            val resultingList = runInsert(listOf(dataModel), operation, initiator)
+            val commonDTO = resultingList.hasExactlyOne { operationsException(wrongListSizeMsg, abnormalState) }
+            notifier.trigger(ContextEvents.InsertComplete, commonDTO)
+            dtoClass.toResult(commonDTO)
         }
-        val resultingList = runInsert(listOf(dataModel), operation,  initiator)
-        val commonDTO =  resultingList.hasExactlyOne {  operationsException(wrongListSizeMsg, abnormalState) }
-        notifier.trigger(ContextEvents.InsertComplete, commonDTO)
-        dtoClass.toResult(commonDTO)
     }.resultOrException()
 
     fun insert(dataModels: List<D>, initiator: CTX): ResultList<DTO, D> = runTask("Insert<List<$dataModelTypeName>>") {
         trySubscribingListHooks(activeProcess())
-        val operation = CrudOperation.Insert
-        val split = splitInputData(dataModels)
+        withTransactionIfNone(dtoClass.debugger, warnIfNoTransaction = true) {
+            val operation = CrudOperation.Insert
+            val split = splitInputData(dataModels)
 
-        if (split.updateList.isNotEmpty()) {
-            operationsException(insertHasNon0IdMsg, methodMisuse)
+            if (split.updateList.isNotEmpty()) {
+                operationsException(insertHasNon0IdMsg, methodMisuse)
+            }
+            val resultingList = runInsert(split.insertList, operation, initiator)
+            listNotifier.trigger(ContextListEvents.InsertComplete, resultingList)
+            resultingList.toResult(dtoClass, operation)
         }
-        val resultingList = runInsert(split.insertList, operation, initiator)
-        listNotifier.trigger(ContextListEvents.InsertComplete, resultingList)
-        resultingList.toResult(dtoClass, operation)
     }.resultOrException()
 
     internal fun insertWildcard(dataModels: List<*>, initiator: CTX): ResultList<DTO, D> {
@@ -515,9 +551,7 @@ class DTOExecutionContext<DTO, D, E, F, FD, FE>(
     }
 
     fun update(dataModel: D, initiator: CTX): ResultSingle<DTO, D> = runTask("Update<$dataModelTypeName>"){
-
-        withTransactionIfNone(dtoClass.debugger, warnIfNoTransaction = false) {
-
+        withTransactionIfNone(dtoClass.debugger, warnIfNoTransaction = true) {
             val operation = CrudOperation.Update
             val resultingList = mutableListOf<CommonDTO<DTO, D, E>>()
             if (dataModel.id == 0L) {
@@ -535,8 +569,7 @@ class DTOExecutionContext<DTO, D, E, F, FD, FE>(
 
     fun update(dataModels: List<D>, initiator: CTX): ResultList<DTO, D> = runTask("Update<List<${dataModelTypeName}>>"){
         trySubscribingListHooks(activeProcess())
-
-        withTransactionIfNone(dtoClass.debugger, warnIfNoTransaction = false) {
+        withTransactionIfNone(dtoClass.debugger, warnIfNoTransaction = true) {
             val operation = CrudOperation.Update
             val split = splitInputData(dataModels)
             val resultingList = mutableListOf<CommonDTO<DTO, D, E>>()

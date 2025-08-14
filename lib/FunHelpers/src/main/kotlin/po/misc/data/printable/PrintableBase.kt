@@ -18,7 +18,7 @@ abstract class PrintableBase<T>(
 
     abstract val self:T
     override val arbitraryMap: ArbitraryDataMap<PrintableBase<*>> = ArbitraryDataMap()
-    val arbitraryRecords: List<PrintableBase<*>> get() = arbitraryMap.flatMap { it.value }
+    val arbitraryRecordsFlattened: List<PrintableBase<*>> get() = arbitraryMap.flatMap { it.value }
 
     var parentRecord:PrintableBase<*>? = null
 
@@ -48,7 +48,7 @@ abstract class PrintableBase<T>(
 
 
     @PublishedApi
-    internal var outputSource: ((String)-> Unit)?=null
+    internal var outputSource: ((String)-> Unit)? = null
 
     init {
         templatesBacking.addAll(companion.templates)
@@ -80,18 +80,12 @@ abstract class PrintableBase<T>(
     }
 
     override fun echo(){
-        outputSource?.invoke(formattedString) ?: run {
-            println(formattedString)
-        }
+        println(formattedString)
     }
 
     fun echo(template: PrintableTemplateBase<T>){
-        if(!shouldMute()){
-            val result = template.resolve(self)
-            outputSource?.invoke(result)?:run {
-                println(result)
-            }
-        }
+        val result = template.resolve(self)
+        println(result)
     }
 
     override fun setParent(parent: PrintableBase<*>): PrintableBase<*> {
@@ -126,20 +120,4 @@ abstract class PrintableBase<T>(
         muteCondition = condition
     }
 
-    fun printTree(level: Int = 0, template: T .() -> String) {
-        println("  ".repeat(level) + template(self))
-//        children.forEach {
-//            @Suppress("UNCHECKED_CAST")
-//            (it as? PrintableBase<T>)?.printTree(level + 1, template)
-//        }
-    }
-
-//    override fun defaultsToJson(): JsonHolder? {
-//        if(parentRecord?.jsonHolder == null){
-//            val holder = JsonHolder()
-//            holder.addJsonObject(jsonObject)
-//            jsonHolder = holder
-//        }
-//        return jsonHolder
-//    }
 }

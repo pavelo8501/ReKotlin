@@ -28,12 +28,19 @@ repositories {
 
 dependencies {
 
-    implementation("io.ktor:ktor-server-auth-jwt:$ktorVersion")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
-    implementation("org.jetbrains.kotlinx:kotlinx-io-core:$kotlinxIOVersion")
-    implementation("com.squareup.okio:okio:$okioVersion")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinSerializationVersion")
-    implementation("at.favre.lib:bcrypt:$bcryptVersion")
+   // implementation("io.ktor:ktor-server-auth-jwt:$ktorVersion")
+   // implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
+   // implementation("org.jetbrains.kotlinx:kotlinx-io-core:$kotlinxIOVersion")
+    //implementation("com.squareup.okio:okio:$okioVersion")
+   // implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinSerializationVersion")
+   // implementation("at.favre.lib:bcrypt:$bcryptVersion")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-io-core:${kotlinxIOVersion}")
+    implementation("io.ktor:ktor-server-auth-jwt:${ktorVersion}")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${kotlinSerializationVersion}")
+    api("com.squareup.okio:okio:${okioVersion}")
+    api("at.favre.lib:bcrypt:$bcryptVersion")
+
     api(project(":lib:LogNotify"))
     api(project(":lib:FunHelpers"))
 

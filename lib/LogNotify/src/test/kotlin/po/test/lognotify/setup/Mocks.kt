@@ -10,7 +10,13 @@ class SessionIdentity(override val sessionID: String, override val remoteAddress
 private val sessionIdentity = SessionIdentity("0", "192.169.1.1")
 val mockedSession :  AuthorizedSession = session(sessionIdentity)
 
-internal fun newMockedSession():AuthorizedSession{
-    val sessionIdentity = SessionIdentity("0", "192.169.1.1")
-    return session(sessionIdentity)
-}
+
+val newMockedSession: AuthorizedSession get() = session(sessionIdentity)
+
+
+
+
+//internal fun newMockedSession():AuthorizedSession{
+//    val sessionIdentity = SessionIdentity("0", "192.169.1.1")
+//    return session(sessionIdentity)
+//}

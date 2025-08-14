@@ -1,13 +1,15 @@
 package po.lognotify.models
 
 import po.misc.collections.CompositeKey
+import java.util.UUID
 
 class TaskKey(
     val taskName: String,
     val nestingLevel: Int,
     val moduleName: String,
 ) : Comparable<TaskKey> {
-    internal val taskId: Int = System.currentTimeMillis().toInt()
+
+    val taskId: UUID = UUID.randomUUID()
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -15,14 +17,13 @@ class TaskKey(
         return taskId == other.taskId
     }
 
-    override fun hashCode(): Int = taskId
+    override fun hashCode(): Int = taskId.hashCode()
 
     override fun compareTo(other: TaskKey): Int =
         compareValuesBy(
-            this,
-            other,
+            this, other,
             { it.nestingLevel },
-            { it.taskId },
+            { it.taskId.toString() }
         )
 
     override fun toString(): String {

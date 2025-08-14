@@ -14,11 +14,9 @@ class CoreAuthPluginConfiguration {
     var headerName : String = HttpHeaders.Authorization
     var pluginKey: String = "jwt-auth"
 }
-
 val CoreAuthApplicationPlugin = createApplicationPlugin(
     name = "CoreAuthApplicationPlugin",
     createConfiguration =  ::CoreAuthPluginConfiguration
-
 ){
 
     val headerName = pluginConfig.headerName
@@ -36,7 +34,7 @@ val CoreAuthApplicationPlugin = createApplicationPlugin(
     }
 
     on(MonitoringEvent(ApplicationStarted)) { application ->
-        application.getWraptorRoutes(){
+        application.getWraptorRoutes(this){
             securedRoutes.addAll(it.filter { it.isSecured  })
         }
     }

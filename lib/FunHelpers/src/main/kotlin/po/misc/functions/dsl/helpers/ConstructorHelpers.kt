@@ -15,6 +15,8 @@ fun <T: Any, R: Any> DSLConstructor<T, R>.nextBlock(
 ): ContainingDSLBlock<T, R, T> = addBlock(block)
 
 
+
+
 fun <T: Any, R: Any, PT: Any> DSLConstructor<PT, R>.nextBlock(
     adapter: (PT)->T,
     block:T.()->R

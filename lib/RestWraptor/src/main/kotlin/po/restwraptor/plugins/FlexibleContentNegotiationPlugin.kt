@@ -49,8 +49,8 @@ val FlexibleContentNegotiationPlugin = createApplicationPlugin("FlexibleContentN
         transformBody {
            val transformBodyContext = this
            val byteReadChannel = it
-           val type = transformBodyContext.requestedType.getOrThrow<TypeInfo, ConfigurationException>(null){msg->
-               configException(msg, ExceptionCodes.VALUE_IS_NULL)
+           val type = transformBodyContext.requestedType.getOrThrow(this){msg->
+               configException(msg.message, ExceptionCodes.VALUE_IS_NULL)
            }
 
            val byteChannel = it.toString()

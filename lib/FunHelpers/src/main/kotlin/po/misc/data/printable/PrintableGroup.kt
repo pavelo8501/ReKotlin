@@ -15,10 +15,6 @@ abstract class PrintableGroup<T1: PrintableBase<T1>, T2:  PrintableBase<T2>>(
        return createFormatedString()
     }
 
-//    override fun defaultsToJson(): JsonHolder? {
-//       return null
-//    }
-
     var headerTemplate: PrintableTemplateBase<T1> = hostDefaultTemplate
     var footerTemplate: PrintableTemplateBase<T1>? = null
 
@@ -32,7 +28,6 @@ abstract class PrintableGroup<T1: PrintableBase<T1>, T2:  PrintableBase<T2>>(
     }
 
     private var newChildCallback : (T2.()-> Unit)? = null
-
     fun onNewRecord(callback:T2.()-> Unit){
         newChildCallback = callback
     }

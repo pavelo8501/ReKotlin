@@ -24,7 +24,7 @@ class FlowEmitter<T>(): EmittableFlow<T> where T: PrintableBase<T>{
         onBufferOverflow = BufferOverflow.SUSPEND
     )
     private val notifications: SharedFlow<T> = notificationFlow.asSharedFlow()
-    override fun subscribeToDataEmissions(scope: CoroutineScope, collector: suspend (T) -> Unit): Job {
+    override fun collectEmissions(scope: CoroutineScope, collector: suspend (T) -> Unit): Job {
         val job = scope.launch {
             notifications.collect(collector)
         }

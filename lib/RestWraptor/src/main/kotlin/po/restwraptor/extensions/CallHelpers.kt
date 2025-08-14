@@ -8,7 +8,10 @@ import io.ktor.util.toMap
 import kotlinx.coroutines.withContext
 import po.auth.AuthSessionManager
 import po.auth.authentication.authenticator.models.AuthenticationData
+import po.auth.extensions.session
+import po.auth.models.SessionDefaultIdentity
 import po.auth.sessions.models.AuthorizedSession
+import po.misc.context.CTX
 import po.misc.types.getOrThrow
 import po.restwraptor.enums.WraptorHeaders
 import po.restwraptor.exceptions.ConfigurationException
@@ -48,10 +51,34 @@ fun <T :ApplicationCall>  T.authSessionOrNull():AuthorizedSession?{
     return session
 }
 
-suspend fun <T :ApplicationCall, R>  T.withSession(block : suspend AuthorizedSession.()-> R):R{
+private fun createDefaultSession(): AuthorizedSession{
+
+    val identity: SessionDefaultIdentity = SessionDefaultIdentity()
+   return session(identity)
+
+}
+
+
+suspend fun <T :ApplicationCall, R>  T.withSessionOrDefault(
+    block:suspend AuthorizedSession.()-> R
+):R {
+    val authorizedSessionKey = AttributeKey<AuthorizedSession>("AuthSession")
+    return attributes.takeOrNull(authorizedSessionKey)?.let {
+        block.invoke(it)
+    } ?: run {
+        block.invoke(createDefaultSession())
+    }
+}
+
+
+
+suspend fun <T :ApplicationCall, R>  T.withSession(
+    callingContext: Any,
+    block : suspend AuthorizedSession.()-> R
+):R{
    val authorizedSessionKey = AttributeKey<AuthorizedSession>("AuthSession")
    val session =  attributes.takeOrNull(authorizedSessionKey)
-   val checked = session.getOrThrow<AuthorizedSession, ConfigurationException>(null){message->
+   val checked = session.getOrThrow(callingContext){message->
        ConfigurationException("$message Session missing", ExceptionCodes.GENERAL_AUTH_CONFIG_FAILURE)
    }
    return withContext(this.coroutineContext){

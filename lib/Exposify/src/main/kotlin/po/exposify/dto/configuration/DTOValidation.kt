@@ -78,7 +78,9 @@ fun <DTO, D, E> DTOBase<DTO, D, E>.setupValidation(
                 }
             }
 
-            reports.forEach { log(it) }
+            reports.forEach {
+                log(it)
+            }
 
             if (overallResult == CheckStatus.PASSED) {
                 relationDelegates.forEach { relation ->

@@ -28,7 +28,7 @@ class TestExceptionNotification: FakeTasksManaged {
         var exception: ManagedException? = null
         lateinit var rootTask: RootTask<TestExceptionNotification, Unit>
         captureOutput {
-            rootTask = mockedDispatcher.createHierarchyRoot("Root Task", this)
+            rootTask = mockRootTask("Root Task")
         }
         val container = TaskContainer(rootTask)
         exception = assertThrows<ManagedException> {

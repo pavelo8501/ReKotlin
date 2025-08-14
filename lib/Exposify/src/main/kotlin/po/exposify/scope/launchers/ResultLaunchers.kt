@@ -32,7 +32,9 @@ fun <DTO: ModelDTO, D: DataModel, E: LongEntity, F: ModelDTO, FD: DataModel> Res
 fun <DTO: ModelDTO, D: DataModel, E: LongEntity, F: ModelDTO, FD: DataModel> ResultSingle<F, FD>.select(
     dtoClass: DTOClass<DTO, D, E>
 ): ResultList<DTO, D>{
+
    return withDTOContextCreating(getAsCommonDTO(), dtoClass){
+
         select()
     }
 }

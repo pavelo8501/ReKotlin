@@ -1,11 +1,13 @@
-package po.lognotify.models
+package po.lognotify.dispatcher
 
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import po.lognotify.TasksManaged
 import po.lognotify.TasksManaged.LogNotify.taskDispatcher
 import po.lognotify.common.configuration.TaskConfig
+import po.lognotify.models.TaskKey
 import po.lognotify.notification.LoggerDataProcessor
 import po.lognotify.notification.NotifierHub
 import po.lognotify.process.Process
@@ -13,13 +15,17 @@ import po.lognotify.process.ProcessKey
 import po.lognotify.tasks.ExecutionStatus
 import po.lognotify.tasks.RootTask
 import po.lognotify.tasks.TaskBase
+import po.lognotify.tasks.generateRootKey
 import po.lognotify.tasks.warn
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.coroutines.CoroutineInfo
-import po.misc.data.logging.LogCollector
-import po.misc.functions.registries.emitterAwareRegistryOf
+import po.misc.data.helpers.output
+import po.misc.data.styles.Colour
+import po.misc.functions.registries.builders.subscribe
+import po.misc.functions.registries.builders.taggedRegistryOf
+import po.misc.interfaces.Processable
 import po.misc.types.safeCast
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.set
@@ -47,7 +53,7 @@ class TaskDispatcher(val notifierHub: NotifierHub): CTX {
 
     override val identity: CTXIdentity<TaskDispatcher> = asIdentity()
 
-    internal val notifier =  emitterAwareRegistryOf<TaskDispatcher, UpdateType, LoggerStats>()
+    internal val notifier =  taggedRegistryOf<UpdateType, LoggerStats>()
 
     internal val taskHierarchy = ConcurrentHashMap<TaskKey, RootTask<*, *>>()
     internal val processRegistry = ConcurrentHashMap<ProcessKey<*>, Process<*>>()
@@ -74,7 +80,7 @@ class TaskDispatcher(val notifierHub: NotifierHub): CTX {
         SupervisorJob() + Dispatchers.Default + CoroutineName(name)
 
     internal fun createDefaultTask(): RootTask<TaskDispatcher, Unit> {
-        val task = createHierarchyRoot<TaskDispatcher, Unit>("Default", "LogNotify", this, TaskConfig(isDefault = true))
+        val task = createHierarchyRoot<TaskDispatcher, Unit>("Default", this, TaskConfig(isDefault = true))
         val warningMessage =
             """No active tasks in context, taskHandler() has created a default task to avoid crash.
         Make sure that logger tasks were started before calling this method.
@@ -83,57 +89,51 @@ class TaskDispatcher(val notifierHub: NotifierHub): CTX {
         return task
     }
 
+//    @PublishedApi
+//    internal suspend fun <T: TasksManaged, R> createRoot(
+//        name: String,
+//        receiver: T,
+//        config: TaskConfig,
+//    ): RootTask<T, R>{
+//        val taskKey = generateRootKey(name, receiver)
+//        val scope = assignCoroutineScope(name, config.launchOptions.coroutineDispatcher)
+//        val newTask = RootTask<T, R>(taskKey, config, taskDispatcher, scope, receiver)
+//        addRootTask(newTask)
+//        notifier.trigger(UpdateType.OnTaskCreated, createLoggerStats(newTask, taskHierarchy))
+//       return newTask
+//    }
+
     @PublishedApi
-    internal suspend fun <T: TasksManaged, R> createRoot(
+    internal fun <T : CTX, R> createHierarchyRoot(
         name: String,
-        moduleName: String,
         receiver: T,
-        config: TaskConfig = TaskConfig(isDefault = true),
-    ): RootTask<T, R>{
-
-
-        val process = processRegistry.values.firstOrNull()
-        val newTask = RootTask<T, R>(TaskKey(name, 0, moduleName), config, defaultContext(name), taskDispatcher, receiver)
-        if(process != null){
-            newTask.updateContext(process.coroutineContext)
-        }
+        config: TaskConfig,
+    ): RootTask<T, R> {
+        val taskKey = generateRootKey(name, receiver)
+        val scope = assignCoroutineScope(name, config.launchOptions.coroutineDispatcher)
+        val newTask = RootTask<T, R>(taskKey, config, taskDispatcher, scope, receiver)
         addRootTask(newTask)
         notifier.trigger(UpdateType.OnTaskCreated, createLoggerStats(newTask, taskHierarchy))
-       return newTask
+        return newTask
     }
 
     @PublishedApi
-    internal fun <T : CTX, R> createHierarchyRoot(
-        name: String,
-        moduleName: String,
-        receiver: T,
-        config: TaskConfig = TaskConfig(isDefault = true),
-    ): RootTask<T, R> {
-
-        val newTask = RootTask<T, R>(TaskKey(name, 0, moduleName), config, defaultContext(name), taskDispatcher, receiver)
-        val process = processRegistry.values.firstOrNull()
-        if(process != null){
-            newTask.updateContext(process.coroutineContext)
+    internal fun registerProcess(process: Process<*>) {
+        "Regestring process ${process.identifiedByName}".output(Colour.GREEN)
+        subscribe(process.onComplete){
+            "Closing process ${it.identifiedByName}".output(Colour.RED)
+            processRegistry.remove(it.processKey)
         }
-        addRootTask(newTask)
-        return newTask
-    }
-
-    @PublishedApi
-    internal fun <T : CTX, R> createHierarchyRoot(
-        name: String,
-        receiver: T,
-        config: TaskConfig = TaskConfig(isDefault = true),
-    ): RootTask<T, R> {
-        val newTask =
-            RootTask<T, R>(TaskKey(name, 0, receiver.identity.identifiedByName), config, defaultContext(name), taskDispatcher, receiver)
-        addRootTask(newTask)
-
-        return newTask
-    }
-
-    fun registerProcess(process: Process<*>) {
         processRegistry[process.processKey] = process
+    }
+
+    fun assignCoroutineScope(
+        coroutineName: String,
+        dispatcher: CoroutineDispatcher
+    ): CoroutineScope{
+        return activeProcess()?.scope ?:run {
+            CoroutineScope(SupervisorJob() + dispatcher +  CoroutineName(coroutineName))
+        }
     }
 
     fun onTaskUpdate(
@@ -142,14 +142,6 @@ class TaskDispatcher(val notifierHub: NotifierHub): CTX {
     ) {
         notifier.subscribe(UpdateType.OnTaskCreated, this::class,  callback)
     }
-
-//    fun onTaskComplete(
-//        handler: UpdateType,
-//        callback: (Containable<LoggerStats>) -> Unit,
-//    ) {
-//        notifier.subscribe(UpdateType.OnTaskComplete,  this,  callback)
-//    }
-
 
     fun notifyUpdate(
         handler: UpdateType,
@@ -182,7 +174,7 @@ class TaskDispatcher(val notifierHub: NotifierHub): CTX {
 
     fun <T> lookUpProcess(
         processKey: ProcessKey<T>
-    ): Process<T>? where  T: CTX, T: LogCollector, T: CoroutineContext.Element{
+    ): Process<T>? where  T: Processable{
         val process = processRegistry[processKey]
         return process?.safeCast<Process<T>>()
     }
@@ -190,7 +182,6 @@ class TaskDispatcher(val notifierHub: NotifierHub): CTX {
     fun activeProcess(): Process<*>?{
         return processRegistry.values.firstOrNull()
     }
-
 
     fun activeTasks(): List<TaskBase<*, *>> = taskHierarchy.values.filter { it.executionStatus == ExecutionStatus.Active }
 
