@@ -15,17 +15,11 @@ import po.misc.debugging.DebugTopic
 interface TasksManaged : CTX {
 
     object LogNotify {
-        val taskDispatcher: TaskDispatcher = TaskDispatcher(NotifierHub())
+       @PublishedApi
+       internal val taskDispatcher: TaskDispatcher = TaskDispatcher(NotifierHub())
     }
     val logHandler: LogNotifyHandler
         get() = LogNotifyHandler(LogNotify.taskDispatcher)
-
-    override val messageLogger: (String, SeverityLevel, Any) -> Unit get() = {message, severity, context->
-        logHandler.logger.notify(message, severity, context)
-    }
-//    override val datLogger: (PrintableBase<*>, SeverityLevel, Any) -> Unit get() = {printable, severity, context->
-//        logHandler.logger.log(printable, severity, context)
-//    }
 
     val taskHandler: TaskHandler<*>
         get() = LogNotify.taskDispatcher.activeTask()?.handler?: LogNotify.taskDispatcher.createDefaultTask().handler
@@ -34,13 +28,17 @@ interface TasksManaged : CTX {
         logHandler.logger.log(data,  severity, this@log)
     }
 
+    override fun Any.notify(message: String, severity: SeverityLevel){
+        logHandler.logger.notify(this@notify,  message,  severity)
+    }
+
     override fun <T: Printable> CTX.debug(message: String, template: PrintableTemplateBase<T>?, topic: DebugTopic){
         logHandler.logger.debug(message,  this, topic, template)
     }
 
      fun CTX.debug(message: String, template: PrintableTemplateBase<DebugData>?){
         logHandler.logger.debug(message,  this, DebugTopic.General, template)
-    }
+     }
 
 
     fun <T : PrintableBase<T>> debug(data: T, dataClass: PrintableCompanion<T>, template: PrintableTemplateBase<T>) {

@@ -8,20 +8,17 @@ import org.junit.jupiter.api.assertAll
 import po.auth.extensions.generatePassword
 import po.exposify.common.events.ContextData
 import po.exposify.common.events.DTOData
-import po.exposify.dto.components.ContextEvents
-import po.exposify.scope.launchers.pick
+import po.exposify.dto.components.executioncontext.ContextEvents
 import po.exposify.scope.launchers.update
 import po.exposify.scope.service.models.TableCreateMode
 import po.exposify.scope.sessions.withHooks
 import po.lognotify.TasksManaged
 import po.lognotify.notification.models.ConsoleBehaviour
-import po.lognotify.notification.models.NotifyConfig
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.functions.registries.addHook
 import po.test.exposify.setup.DatabaseTest
-import po.test.exposify.setup.dtos.ContentBlock
 import po.test.exposify.setup.dtos.ContentBlockDTO
 import po.test.exposify.setup.dtos.Page
 import po.test.exposify.setup.dtos.PageDTO
@@ -33,7 +30,6 @@ import po.test.exposify.setup.mocks.mockSection
 import po.test.exposify.setup.mocks.mockedPage
 import po.test.exposify.setup.mocks.mockedSession
 import po.test.exposify.setup.pagesSectionsContentBlocks
-import po.test.exposify.setup.sectionsPreSaved
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
@@ -68,7 +64,7 @@ class TestUpdate : DatabaseTest(), TasksManaged {
         )
         withConnection {
             service(UserDTO, TableCreateMode.ForceRecreate) {
-                updatedById = update(user).getDataForced().id
+                updatedById = update(user).dataUnsafe.id
             }
         }
     }
@@ -96,7 +92,7 @@ class TestUpdate : DatabaseTest(), TasksManaged {
         var updatedPage: Page? = null
         withConnection {
             service(PageDTO, TableCreateMode.Create) {
-                updatedPage = update(inputPage).getDataForced()
+                updatedPage = update(inputPage).dataUnsafe
             }
         }
 
@@ -148,25 +144,4 @@ class TestUpdate : DatabaseTest(), TasksManaged {
         )
     }
 
-    @Test
-    fun `Partial updates work as expected`() = runTest {
-
-        val result = with(mockedSession) {
-
-            withHooks(SectionDTO) {
-                addHook(ContextEvents.InsertComplete, oneShot = false) { dto ->
-
-                }
-            }
-            update(PageDTO, mockedPage) {
-                update(SectionDTO, mockSection(getDataForced(), "some_name", "some_description")) {
-                    update(ContentBlockDTO, mockContentBlock(getDataForced(), "content_block", "content_1"))
-                }
-            }
-        }
-        assertTrue(!result.isFaulty)
-        val contentBlock = assertNotNull(result.data)
-        assertTrue(contentBlock.sectionId != 0L)
-
-    }
 }

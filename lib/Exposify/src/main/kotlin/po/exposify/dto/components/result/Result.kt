@@ -18,6 +18,7 @@ import po.misc.context.asSubIdentity
 import po.misc.exceptions.ManagedException
 import po.misc.types.TypeData
 import po.misc.types.castListOrThrow
+import kotlin.collections.getValue
 
 interface ExposifyResult {
     val dtoClass: DTOBase<*, *, *>
@@ -35,16 +36,16 @@ sealed class ResultBase<DTO, D, R : Any>(
     protected val dtoType: TypeData<DTO> = dtoClass.commonDTOType.dtoType
     protected val dataType: TypeData<D> = dtoClass.commonDTOType.dataType
 
+    protected val noResultNoExceptionMsg: String get() = "Result class has no data nor registered exception"
+    val abnormalState: ExceptionCode = ExceptionCode.ABNORMAL_STATE
     override var failureCause: ManagedException? = null
-    protected val noResultException: ManagedException
-        get() = failureCause ?: OperationsException("Result not available", ExceptionCode.UNDEFINED, this)
 
     var authorizedSession: AuthorizedSession? = null
         private set
 
     val isFaulty: Boolean get() = failureCause != null || result == null
 
-    fun saveSession(session: AuthorizedSession?){
+    internal fun saveSession(session: AuthorizedSession?){
         authorizedSession = session
     }
 
@@ -64,9 +65,23 @@ class ResultList<DTO, D> internal constructor(
         resultBacking.castListOrThrow(dtoClass.commonDTOType.dtoType.kClass, this) { payload ->
             operationsException(payload.setCode(ExceptionCode.CAST_FAILURE))
         }
-    val data: List<D> get() = resultBacking.map { it.dataContainer.getValue(this) }
 
-    internal val commonDTO: List<CommonDTO<DTO, D, *>> get() = resultBacking
+    val data: List<D> get() {
+        try {
+            failureCause?.let { throw it }
+          return  resultBacking.map { it.dataContainer.getValue(this) }
+        }catch (th: Throwable){
+            if(th is ManagedException){ failureCause = th }
+            return emptyList()
+        }
+    }
+    val dataUnsafe: List<D> get() {
+        try {
+           return resultBacking.map { it.dataContainer.getValue(this) }
+        }catch (th: Throwable){
+            throw failureCause?:th
+        }
+    }
 
     init {
         identity.setNamePattern { "ResultList<${dtoType.typeName}, ${dataType.typeName}>" }
@@ -76,7 +91,6 @@ class ResultList<DTO, D> internal constructor(
         result = list.toMutableList()
         return this
     }
-
     internal fun appendDto(dto: CommonDTO<DTO, D, *>): ResultList<DTO, D> {
         resultBacking.add(dto)
         return this
@@ -113,24 +127,26 @@ class ResultSingle<DTO, D> internal constructor(
 
     val dto: DTO? get() = result?.asDTO()
     val data: D? get() = result?.dataContainer?.value
+    val dataUnsafe:D get() =
+            result?.dataContainer?.value
+                ?: throw failureCause
+                    ?: operationsException(noResultNoExceptionMsg, abnormalState)
+
+    internal val commonDTO: CommonDTO<DTO, D, *>? = result
 
     init {
         identity.setNamePattern { "ResultSingle<${dtoType.typeName}, ${dataType.typeName}>" }
     }
 
-    private fun getCommonForced(): CommonDTO<DTO, D, *> = result ?: throw noResultException
 
-    internal val commonDTO: CommonDTO<DTO, D, *>? get() = result
-
-    internal fun getAsCommonDTO(): CommonDTO<DTO, D, *> = result.getOrOperations(this)
-
-    fun getDTOForced(): DTO = dto ?: throw noResultException
-
-    fun getDataForced(): D {
-        val dto = getCommonForced()
-        return dto.dataContainer.getValue(this)
+    internal fun getAsCommonDTO(): CommonDTO<DTO, D, *> = result?:run {
+        throw failureCause?:operationsException(noResultNoExceptionMsg,abnormalState)
     }
 
+    fun getDTOForced(): DTO {
+        return dto ?: throw failureCause?:operationsException(noResultNoExceptionMsg, abnormalState)
+
+    }
     fun getTracker(): DTOTracker<DTO, D, *>? = result?.tracker
 
     override fun toString(): String = identifiedByName

@@ -5,13 +5,11 @@ import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
 import po.exposify.dto.RootDTO
 import po.exposify.dto.components.bindings.DelegateStatus
-import po.exposify.dto.components.bindings.interfaces.DelegateInterface
 import po.exposify.dto.helpers.asDTO
+import po.exposify.dto.helpers.warning
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.CommonDTOType
-import po.exposify.exceptions.OperationsException
-import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.extensions.castOrInit
 import po.exposify.extensions.castOrOperations
 import po.exposify.extensions.getOrOperations
@@ -19,63 +17,45 @@ import po.lognotify.TasksManaged
 import po.misc.containers.LazyContainer
 import po.misc.containers.lazyContainerOf
 import po.misc.context.CTX
-import po.misc.context.CTXIdentity
 import po.misc.context.asSubIdentity
 import po.misc.data.SmartLazy
-import po.misc.types.containers.updatable.ActionValue
+import po.misc.data.helpers.output
+import po.misc.data.styles.Colour
 import kotlin.getValue
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty
 
+
 sealed class ComplexDelegate<DTO, D, E, F, FD, FE>(
+    val dtoBase: DTOBase<F, FD, FE>,
     internal val hostingDTO: CommonDTO<DTO, D, E>,
-) : DelegateInterface<DTO, D, E>, TasksManaged
-    where D : DataModel, E : LongEntity, DTO : ModelDTO, F : ModelDTO, FD : DataModel, FE : LongEntity {
+) : TasksManaged where D : DataModel, E : LongEntity, DTO : ModelDTO, F : ModelDTO, FD : DataModel, FE : LongEntity
+{
+    var status: DelegateStatus = DelegateStatus.Created
 
-    override var status: DelegateStatus = DelegateStatus.Created
-    override val hostingClass: DTOBase<DTO, D, E>
-        get() = hostingDTO.dtoClass
+    val commonDTOType: CommonDTOType<F, FD, FE> get() = dtoBase.commonDTOType
 
-    private var propertyParameter: KProperty<F>? = null
-    val property: KProperty<F> get() = propertyParameter.getOrOperations(this)
+    private var propertyParameter: KProperty<DTO>? = null
+    val property: KProperty<DTO> get() = propertyParameter.getOrOperations(this)
     val name: String by SmartLazy("Uninitialized") {
         propertyParameter?.name
     }
 
-    abstract val foreignClass: DTOBase<F, FD, FE>
+    protected open val commonDTOContainer : LazyContainer<CommonDTO<F, FD, FE>> = lazyContainerOf<CommonDTO<F, FD, FE>>()
 
-    val foreignCommonDTOType: CommonDTOType<F, FD, FE> get() = foreignClass.commonDTOType
 
-   // private var foreignCommonBacking: CommonDTO<F, FD, FE>? = null
-   // val foreignCommon: CommonDTO<F, FD, FE> get() = foreignCommonBacking.getOrOperations(this)
-
-    val lazyForeignDTO : LazyContainer<CommonDTO<F, FD, FE>> = lazyContainerOf<CommonDTO<F, FD, FE>>()
-
-    val foreignInitialized: Boolean get() = lazyForeignDTO.value != null
-   // protected val backingAccessFallback = ExceptionFallback { operationsException("Result unavailable", ExceptionCode.ABNORMAL_STATE) }
-   // val foreignDTO: F get() = foreignCommonBacking.getOrOperations(this).asDTO()
-
-    protected abstract fun onPropertyResolved()
 
     protected abstract fun beforeRegistered()
 
-    protected fun provideForeignDTO(commonDTO: CommonDTO<F, FD, FE>): CommonDTO<F, FD, FE> {
-        lazyForeignDTO.provideValue(commonDTO)
-      //  foreignCommonBacking = commonDTO
-        updateStatus(DelegateStatus.Initialized)
-        return commonDTO
+    fun resolveProperty(property: KProperty<*>) {
+        propertyParameter = property.castOrInit<KProperty<DTO>>(this)
+
+
+        beforeRegistered()
+        hostingDTO.bindingHub.registerComplexDelegate(this)
     }
 
-    override fun resolveProperty(property: KProperty<*>) {
-        if (propertyParameter == null) {
-            propertyParameter = property.castOrInit<KProperty<F>>(this)
-            beforeRegistered()
-            hostingDTO.bindingHub.registerComplexDelegate(this)
-            onPropertyResolved()
-        }
-    }
-
-    override fun updateStatus(status: DelegateStatus) {
+    fun updateStatus(status: DelegateStatus) {
         this.status = status
     }
 
@@ -91,110 +71,100 @@ sealed class ComplexDelegate<DTO, D, E, F, FD, FE>(
         thisRef: DTO,
         property: KProperty<*>,
     ): F {
-        resolveProperty(property)
-        return lazyForeignDTO.getValue(this).asDTO()
+        return commonDTOContainer.getValue(this).asDTO()
     }
 }
 
+
+
 class AttachedForeignDelegate<DTO, D, E, F, FD, FE>(
     hostingDTO: CommonDTO<DTO, D, E>,
-    override val foreignClass: RootDTO<F, FD, FE>,
+    val dtoClass: RootDTO<F, FD, FE>,
     val dataIdProperty: KMutableProperty1<D, Long>,
     val entityIdProperty: KMutableProperty1<E, Long>,
-    val foreignDTOCallback: (F) -> Unit,
-) : ComplexDelegate<DTO, D, E, F, FD, FE>(hostingDTO)
-    where D : DataModel, E : LongEntity, DTO : ModelDTO, F : ModelDTO, FD : DataModel, FE : LongEntity {
-    override val identity: CTXIdentity<AttachedForeignDelegate<DTO, D, E, F, FD, FE>> = asSubIdentity(this, hostingDTO)
+    val foreignDTOCallback: ((F) -> Unit)?
+) : ComplexDelegate<DTO, D, E, F, FD, FE>(dtoClass, hostingDTO)
+    where D : DataModel, E : LongEntity, DTO : ModelDTO, F : ModelDTO, FD : DataModel, FE : LongEntity
+{
+     override val identity = asSubIdentity(this, hostingDTO)
 
-    val attachedName: String get() = entityIdProperty.name
+     val attachedName: String get() = entityIdProperty.name
 
-    private fun getForeignDTO(id: Long): CommonDTO<F, FD, FE> {
+    fun resolve(commonDTO : CommonDTO<F, FD, FE>){
+        commonDTOContainer.provideValue(commonDTO)
+        val dataModel = hostingDTO.dataContainer.getValue(this)
+        dataIdProperty.set(dataModel, 1)
+    }
 
-      return  foreignClass.executionContext.dtoLookup(id)?.let {
-            val foreignDTO = provideForeignDTO(it.castOrOperations(this))
-            foreignDTOCallback.invoke(foreignDTO.asDTO())
-            foreignDTO
-        } ?:run {
-            throw OperationsException("Result unavailable", ExceptionCode.CAST_FAILURE, this)
+    fun resolve(dataModel : D) {
+        val lookupId = dataIdProperty.get(dataModel)
+        dtoClass.executionContext.dtoLookupInExistent(lookupId)?.let {
+            commonDTOContainer.provideValue(it)
         }
     }
 
-    fun resolveForeign(data: D, entityToUpdate:E?): D {
-        val foreignId: Long = dataIdProperty.get(data)
-        if (!foreignInitialized) {
-           val foreignCommonDTO = getForeignDTO(foreignId)
-            if(entityToUpdate != null){
-                entityIdProperty.set(entityToUpdate, foreignId)
-            }
-        } else {
-            lazyForeignDTO.getValue(this)
+    fun resolve(entity : E) {
+        val lookupId = entityIdProperty.get(entity)
+        dtoClass.executionContext.dtoLookupInExistent(lookupId)?.let {dto->
+             val casted = dto.castOrOperations<CommonDTO<F, FD, FE>>(this)
+             commonDTOContainer.provideValue(casted)
         }
-        return data
     }
 
-    internal fun update() {
-        dataIdProperty.set(hostingDTO.dataContainer.getValue(this), lazyForeignDTO.getValue(this).id)
+    fun updateEntity(callingContext: CTX,  entity: E) {
+        entityIdProperty.set(entity, commonDTOContainer.getValue(this).id)
     }
 
-    internal fun resolveForeign(entity: E): E {
-        val foreignId: Long = entityIdProperty.get(entity)
-        val dto =
-            if (!foreignInitialized) {
-                getForeignDTO(foreignId)
-            } else {
-                lazyForeignDTO.getValue(this)
-            }
-        return entity
+    fun updateDataModel(callingContext: CTX) {
+        val dataModel =  hostingDTO.dataContainer.getValue(this)
+        val resolvedDTO =  commonDTOContainer.getValue(this)
+        dataIdProperty.set(dataModel, resolvedDTO.id)
     }
 
-    internal fun update(entity: E) {
-
-        entityIdProperty.set(entity, lazyForeignDTO.getValue(this).id)
-    }
-
-    override fun onPropertyResolved() {
-        identity.setNamePattern { "AttachedForeignDelegate[${property.name}]" }
-    }
 
     override fun beforeRegistered() {
+       // identity.setNamePattern { "AttachedForeignDelegate[${property.name}]" }
     }
 }
 
 class ParentDelegate<DTO, D, E, F, FD, FE>(
     hostingDTO: CommonDTO<DTO, D, E>,
-    override val foreignClass: DTOBase<F, FD, FE>,
+    val dtoClass: DTOBase<F, FD, FE>,
     val entityProperty: KMutableProperty1<E, FE>,
     val parentDTOProvider: D.(F) -> Unit,
-) : ComplexDelegate<DTO, D, E, F, FD, FE>(hostingDTO)
+) : ComplexDelegate<DTO, D, E, F, FD, FE>(dtoClass, hostingDTO)
     where DTO : ModelDTO, D : DataModel, E : LongEntity, F : ModelDTO, FD : DataModel, FE : LongEntity {
-    override val identity: CTXIdentity<out CTX> = asSubIdentity(this, hostingDTO)
 
-    val initialized: Boolean get() = entityBinderBacking != null
+    override val identity  = asSubIdentity(this, hostingDTO)
 
-    internal var entityBinderBacking: ActionValue<E>? = null
-    val entityBinder: ActionValue<E> by lazy { entityBinderBacking.getOrOperations(this) }
 
-    override fun onPropertyResolved() {
+//    override val commonDTOContainer: LazyContainer<CommonDTO<F, FD, FE>>
+//        get() = hostingDTO.parentDTOContainer.castOrOperations(this)
+//
 
+    fun resolve(commonDTO : CommonDTO<F, FD, FE>){
+        hostingDTO.parentDTOContainer.provideValue(commonDTO)
+
+        commonDTOContainer.provideValue(commonDTO)
+        val dataModel = hostingDTO.dataContainer.getValue(this)
+        parentDTOProvider.invoke(dataModel, commonDTO.asDTO())
+    }
+
+    fun updateEntity(callingContext: CTX,  entity: E){
+        if(commonDTOContainer.value == null){
+            warning("$identifiedByName commonDTO not resolved. updateEntity skipped")
+        }else {
+            val commonDTO = commonDTOContainer.getValue(callingContext)
+            val parentEntity = commonDTO.entityContainer.getValue(this)
+            entityProperty.set(entity, parentEntity)
+        }
     }
 
     override fun beforeRegistered() {
-        hostingDTO.parentDTO.requestValue(this) { dto ->
-            val casted = dto.castOrOperations(foreignClass.commonDTOType.commonType.kClass, this)
-            provideForeignDTO(casted)
-        }
-    }
-
-    fun bindEntity(entity: E, callingContext: CTX) {
-        val foreignEntity = lazyForeignDTO.getValue(callingContext).entityContainer.getValue(callingContext)
-        entityProperty.set(entity, foreignEntity)
 
     }
 
-    fun resolveParent(commonDTO: CommonDTO<F, FD, FE>){
-        provideForeignDTO(commonDTO)
-        hostingDTO.dataContainer.requestValue(this){
-            parentDTOProvider.invoke(it, commonDTO.asDTO())
-        }
+    fun bindEntity(callingContext: CTX, rootEntity: E, childEntity:FE) {
+        //entityProperty.set(childEntity, rootEntity)
     }
 }

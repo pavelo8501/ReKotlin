@@ -6,11 +6,11 @@ import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.functions.registries.addHook
 import po.misc.functions.registries.buildSubscriptions
-import po.misc.functions.registries.emitterAwareRegistryOf
 import po.misc.functions.registries.models.TaggedSubscriber
 import po.misc.functions.registries.builders.require
 import po.misc.functions.registries.builders.subscribe
 import po.misc.functions.registries.builders.taggedRegistryOf
+import po.misc.types.TypeData
 import po.test.misc.setup.ControlClass
 import po.test.misc.setup.captureOutput
 import kotlin.test.assertEquals
@@ -91,61 +91,11 @@ class TestCallbackRegistryBase: CTX {
     }
 
 
-    fun `EmitterAwareRegistry creation and usage`() {
-        val inputString1 = "TestInput"
-        var oNSomethingResult: String? = null
-        var oNCreateResult: String? = null
-
-        val registry = emitterAwareRegistryOf<TestCallbackRegistryBase, TestEvents, String>()
-        println(registry.emitterClass.typeName)
-        registry.subscribe(TestEvents.OnSomething, this::class) {
-            oNSomethingResult = it
-        }
-        registry.subscribe(TestEvents.OnCreate, this::class) {
-            oNCreateResult = it
-        }
-        registry.trigger(TestEvents.OnCreate, this::class,   inputString1)
-        assertNull(oNSomethingResult)
-
-        registry.trigger(TestEvents.OnCreate, this::class,   inputString1)
-        val resultString = assertNotNull(oNCreateResult)
-        assertEquals(inputString1, resultString)
-    }
-
-
-    fun `EmitterAwareRegistry failed and successful subscriptions`() {
-        val registry = emitterAwareRegistryOf<TestCallbackRegistryBase, TestEvents, String>()
-        val output = captureOutput {
-            registry.trySubscribe(TestEvents.OnCreate, this::class, ControlClass::class) {}
-        }
-        assertTrue(output.contains("No subscription made for"))
-        assertEquals(0, registry.subscriptionsCount)
-
-        registry.trySubscribe(TestEvents.OnCreate, this::class, TestCallbackRegistryBase::class) {}
-        assertEquals(1, registry.subscriptionsCount)
-    }
-
-    @Test
-    fun `EmitterAwareRegistry Require type subscription work as expected`() {
-        var triggerCount = 0
-        var result: String? = null
-        val registry = emitterAwareRegistryOf<TestCallbackRegistryBase, TestEvents, String>()
-        registry.require(TestEvents.OnCreate, this::class){
-            triggerCount++
-            result = it
-        }
-        for(i in 1..10){
-            registry.trigger(TestEvents.OnCreate, this::class, "value_$i")
-        }
-        assertEquals(1, triggerCount)
-        val resultString = assertNotNull(result)
-        assertEquals("value_1",resultString)
-    }
 
     @Test
     fun `Subscription pack builder`() {
 
-        val hooks = buildSubscriptions<String>(this::class) {
+        val hooks = buildSubscriptions<String>(TypeData.create<TestCallbackRegistryBase>()) {
             addHook(TestEvents.OnCreate, oneShot = false){}
             addHook(TestEvents.OnSomething, oneShot = true){}
         }
@@ -163,11 +113,11 @@ class TestCallbackRegistryBase: CTX {
 
     @Test
     fun `Subscription pack binding to EmitterAwareRegistry`() {
-        val hooks = buildSubscriptions<String>(this::class) {
+        val hooks = buildSubscriptions<String>(TypeData.create<TestCallbackRegistryBase>()) {
             addHook(TestEvents.OnCreate, oneShot = false){}
             addHook(TestEvents.OnSomething, oneShot = true){}
         }
-        val registry = emitterAwareRegistryOf<TestCallbackRegistryBase, TestEvents, String>()
+        val registry = taggedRegistryOf<TestEvents, String>()
         registry.trySubscribe(hooks)
         assertEquals(2, registry.subscriptionsCount)
         assertEquals(1, registry.requireOnceCount)

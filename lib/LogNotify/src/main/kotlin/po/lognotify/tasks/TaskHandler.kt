@@ -27,10 +27,6 @@ class TaskHandler<R : Any?>(
         severity: SeverityLevel = SeverityLevel.INFO,
     ) = dataProcessor.log(data, severity, this)
 
-    fun CTX.notify(
-        message: String,
-        severity: SeverityLevel = SeverityLevel.INFO,
-    ) = dataProcessor.notify(message, severity, this)
 
     fun <T2 : PrintableBase<T2>> debug(
         data: T2,

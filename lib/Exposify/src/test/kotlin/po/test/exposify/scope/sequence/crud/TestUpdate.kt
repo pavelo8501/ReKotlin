@@ -2,11 +2,10 @@ package po.test.exposify.scope.sequence.crud
 
 import kotlinx.coroutines.test.TestResult
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import po.exposify.dto.components.ContextEvents
+import po.exposify.dto.components.executioncontext.ContextEvents
 import po.exposify.dto.components.result.ResultSingle
 import po.exposify.scope.sequence.builder.sequenced
 import po.exposify.scope.sequence.inputs.withInput
@@ -16,10 +15,8 @@ import po.exposify.scope.service.models.TableCreateMode
 import po.exposify.scope.sessions.withHooks
 import po.lognotify.TasksManaged
 import po.lognotify.notification.models.ConsoleBehaviour
-import po.lognotify.notification.models.DebugData
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
-import po.misc.debugging.DebugTopic
 import po.misc.functions.registries.addHook
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.dtos.Page
@@ -28,7 +25,6 @@ import po.test.exposify.setup.dtos.SectionDTO
 import po.test.exposify.setup.dtos.UserDTO
 import po.test.exposify.setup.mocks.mockPage
 import po.test.exposify.setup.mocks.mockPages
-import po.test.exposify.setup.mocks.mockSections
 import po.test.exposify.setup.mocks.mockedPage
 import po.test.exposify.setup.mocks.mockedSession
 import po.test.exposify.setup.mocks.mockedUser
@@ -59,7 +55,7 @@ class TestUpdate : DatabaseTest(), TasksManaged {
         }
         withConnection {
             service(UserDTO, TableCreateMode.ForceRecreate) {
-                updatedById = update(mockedUser).getDataForced().id
+                updatedById = update(mockedUser).dataUnsafe.id
             }
         }
 

@@ -24,7 +24,7 @@ fun mockPage(name: String, updatedBy : Long): Page{
 fun mockPages(updatedBy: Long, quantity: Int, builder:(Page.(Int)-> Unit)? = null): List<Page>{
     val result: MutableList<Page> = mutableListOf()
     for (i in 1..quantity) {
-        val page = mockPage("default_$i",  updatedBy = updatedBy)
+        val page = mockPage("page_$i",  updatedBy = updatedBy)
         builder?.invoke(page, i)
         result.add(page)
     }
@@ -42,10 +42,6 @@ fun mockSection(pageId: Long, name: String, description: String, updatedBy : Lon
         updatedBy = updatedBy,
         pageId = pageId
     )
-}
-
-private fun createContentBlock(classList:  List<ClassData>, metaTags: List<MetaData>, langId: Int, sectionId: Long): ContentBlock{
-   return ContentBlock(id = 0, name = "", content = "", tag= "", jsonLd = "", classList = classList, metaTags = metaTags, langId =  langId,  sectionId = sectionId)
 }
 
 
@@ -66,20 +62,45 @@ fun mockSection(page: Page, name: String, description: String):Section {
     return section
 }
 
-fun Section.withContentBlocks(quantity: Int, block: ContentBlock.(Int)-> Unit){
+fun Page.withSections(
+    quantity: Int,
+    classList: List<ClassData> = emptyList(),
+    metaTags: List<MetaData> = emptyList(),
+
+    block: (Section.(Int)-> Unit)? = null){
     for (i in 1..quantity) {
-        val contentBlock = createContentBlock( emptyList(),  emptyList(), langId, id)
-        block.invoke(contentBlock, i)
-        contentBlocks.add(contentBlock)
+        val section = Section(
+            0,
+            "section_${i}_${name}",
+            "description_${i}_${name}",
+            jsonLd = "",
+            classList = classList,
+            metaTags =  metaTags,
+            pageId = this.id,
+            langId = 1,
+            updatedBy = updatedBy
+        )
+        block?.invoke(section, i)
+        sections.add(section)
     }
 }
 
-fun Page.withSections(quantity: Int, block: Section.(Int)-> Unit){
-
+fun Section.withContentBlocks(
+    quantity: Int,
+    classList: List<ClassData> = emptyList(),
+    metaTags: List<MetaData> = emptyList(),
+    block: (ContentBlock.(Int)-> Unit)? = null
+){
     for (i in 1..quantity) {
-        val section = Section(id = 0, pageId = this.id, langId = 1, updatedBy = updatedBy)
-        block.invoke(section, i)
-        sections.add(section)
+        val contentBlock =  mockContentBlock(
+            section = this,
+            name = "content_block_$i",
+            content = "content_block_content_${i}_${this.name}",
+            classList = classList,
+            metaTags = metaTags,
+        )
+        block?.invoke(contentBlock, i)
+        contentBlocks.add(contentBlock)
     }
 }
 

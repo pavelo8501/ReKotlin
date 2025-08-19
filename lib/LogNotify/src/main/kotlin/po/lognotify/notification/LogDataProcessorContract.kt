@@ -6,5 +6,5 @@ import po.misc.data.processors.SeverityLevel
 
 interface LogDataProcessorContract {
     fun log(arbitraryRecord: PrintableBase<*>, severity: SeverityLevel, emitter: Any)
-    fun notify(message: String, severity: SeverityLevel, emitter: Any)
+    fun notify(emittingContext: Any, message: String, severity: SeverityLevel)
 }

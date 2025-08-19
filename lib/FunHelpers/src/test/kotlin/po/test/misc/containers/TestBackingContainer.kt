@@ -14,7 +14,7 @@ class TestBackingContainer {
         val expectedResult = "Result"
         var triggerCount: Int = 0
 
-        val container = LazyContainer<String>(TypeData.create())
+        val container = LazyContainer<String>(this, TypeData.create())
 
         var actualResult1 = ""
         container.requestValue(this){

@@ -31,10 +31,10 @@ class ExposifyDebugger<T : CTX, P : PrintableBase<P>>(
     }
 
     fun logSql(msg: String) {
-        dataProcessor.notify(msg, SeverityLevel.INFO, receiver)
+        dataProcessor.notify(receiver, msg, SeverityLevel.INFO)
     }
 
-    fun warn(message: String): Unit = dataProcessor.notify(message, SeverityLevel.WARNING, receiver)
+    fun warn(message: String): Unit = dataProcessor.notify(receiver, message, SeverityLevel.WARNING)
 }
 
 fun <T : CTX, P : PrintableBase<P>> TasksManaged.exposifyDebugger(

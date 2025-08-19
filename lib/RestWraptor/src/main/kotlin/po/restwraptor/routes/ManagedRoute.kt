@@ -8,9 +8,12 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
+import po.auth.sessions.models.AuthorizedSession
 import po.lognotify.TasksManaged
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
+import po.restwraptor.extensions.currentSessionOrNew
+import po.restwraptor.extensions.withSessionOrDefault
 import po.restwraptor.scope.ConfigContext
 
 
@@ -30,17 +33,21 @@ class ManagedRoute(
 
     override val identity: CTXIdentity<ManagedRoute> = asIdentity()
 
-     fun managedGet(vararg pathParts:String, body: suspend RoutingContext.() -> Unit){
+     fun managedGet(vararg pathParts:String, body: suspend RoutingContext.(AuthorizedSession) -> Unit){
         val result = partsToUrl(pathParts.toList(),  routeGroupPath)
-        routing.get(result, body)
+        routing.get(result){
+            body(this, call.currentSessionOrNew())
+        }
     }
 
-    fun managedPost(vararg pathParts:String, body: suspend RoutingContext.() -> Unit){
+    fun managedPost(vararg pathParts:String, body: suspend RoutingContext.(AuthorizedSession) -> Unit){
         val result = partsToUrl(pathParts.toList(),  routeGroupPath)
-        routing.post(result, body)
+        routing.post(result){
+            body(this, call.currentSessionOrNew())
+        }
     }
 
-    fun managedWrongPath(body: suspend RoutingContext.() -> Unit){
+    fun managedWrongPath(body: suspend RoutingContext.(AuthorizedSession) -> Unit){
         routing.post("{...}", body)
     }
 }

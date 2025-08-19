@@ -1,6 +1,7 @@
 package po.misc.data.helpers
 
 import po.misc.context.CTX
+import po.misc.data.PrettyPrint
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import kotlin.text.StringBuilder
@@ -56,11 +57,18 @@ fun <T: Any> T?.toStringIfNotNull(textIfNull: String? = null , builder:(T)-> Str
 fun String.stripAfter(char: Char): String = substringBefore(char)
 
 fun Any.output(colour: Colour? = null){
+
+    var isPrettyPrint: Boolean = false
     val classString = when(this){
+        is Enum<*>-> name
         is CTX->identifiedByName
+        is PrettyPrint-> {
+            isPrettyPrint = true
+            formattedString
+        }
         else -> this.toString()
     }
-    if(colour != null){
+    if(colour != null && !isPrettyPrint){
         println(classString.colorize(colour))
     }else{
         println(classString)

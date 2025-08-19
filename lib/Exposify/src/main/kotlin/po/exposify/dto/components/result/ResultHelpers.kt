@@ -64,7 +64,6 @@ fun <DTO, D, E>  DTOBase<DTO, D, E>.toResult(
 }
 
 
-
 fun <DTO, D, E>  CommonDTO<DTO, D, E>.toResult(
     failureCause: ManagedException,
     operation : CrudOperation
@@ -73,6 +72,7 @@ fun <DTO, D, E>  CommonDTO<DTO, D, E>.toResult(
         .addFailureCause(failureCause)
         .addCrudOperation(operation)
 }
+
 
 fun <DTO, D, E>  List<CommonDTO<DTO, D, E>>.toResult(
     dtoClass: DTOBase<DTO, D, E>,
@@ -90,7 +90,6 @@ fun <DTO, D, E>  DTOBase<DTO, D, E>.toResult(
 
     return ResultSingle(this).addFailureCause(exception)
 }
-
 
 
 fun <DTO, D>  ResultList<DTO, D>.convertToSingle(): ResultSingle<DTO, D>

@@ -4,7 +4,6 @@ import po.misc.context.CTX
 import po.misc.exceptions.ManagedException
 import po.misc.functions.models.NotificationConfig
 import po.misc.functions.registries.TaggedRegistry
-import po.misc.types.TypeData
 import po.misc.types.getOrThrow
 
 
@@ -24,24 +23,6 @@ inline fun <reified E: Enum<E>, V: Any> Any.taggedRegistryOf(
     notifier.notifierConfig.configBuilder()
     return notifier
 }
-
-//inline fun <reified E: Enum<E>, V: Any> taggedRegistryFor(
-//    owner:Any,
-//    tag: E? = null
-//): TaggedRegistry<E, V> {
-//    val notifier = TaggedRegistry<E, V>(owner, E::class.java, tag)
-//    return notifier
-//}
-//
-//inline fun <reified E: Enum<E>, V: Any> taggedRegistryFor(
-//    owner:Any,
-//    tag: E? = null,
-//    configBuilder: NotificationConfig.()-> Unit
-//): TaggedRegistry<E, V> {
-//    val notifier = TaggedRegistry<E, V>(owner,  E::class.java, tag)
-//    notifier.notifierConfig.configBuilder()
-//    return notifier
-//}
 
 fun <E: Enum<E>, V: Any> CTX.subscribe(registry: TaggedRegistry<E, V>, callback: (V) -> Unit) {
     val exception =  ManagedException("If no key provided registry must have been configured with default key")

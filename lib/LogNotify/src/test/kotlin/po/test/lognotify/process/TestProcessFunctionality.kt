@@ -43,4 +43,6 @@ class TestProcessFunctionality: FakeTasksManaged {
         val dataInSession = assertNotNull(session.extractLogRecords().firstOrNull())
         assertEquals(dataFromProcess, dataInSession)
     }
+
+
 }

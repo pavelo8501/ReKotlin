@@ -6,10 +6,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import po.lognotify.common.configuration.TaskConfig
+import po.lognotify.notification.information
 import po.test.lognotify.setup.FakeTasksManaged
 import po.lognotify.notification.models.ConsoleBehaviour
 import po.lognotify.notification.models.LogData
-import po.lognotify.tasks.info
 import po.misc.data.processors.SeverityLevel
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -28,7 +28,7 @@ class TestMessageFlow : FakeTasksManaged {
         val childTask1 = topTask.mockChildTask("ChildTask1")
         val childTask2 = childTask1.mockChildTask("ChildTask2")
 
-        childTask2.info(loggedMessage)
+        childTask2.information(loggedMessage)
 
         assertEquals(3, topTask.dataProcessor.records.size)
         assertIs<LogData>(topTask.dataProcessor.records[0])

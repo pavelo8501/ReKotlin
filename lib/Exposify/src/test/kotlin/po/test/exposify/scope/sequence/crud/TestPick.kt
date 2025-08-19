@@ -57,7 +57,7 @@ class TestPick :
         }
         withConnection {
             service(UserDTO) {
-                updatedById = update(mockedUser).getDataForced().id
+                updatedById = update(mockedUser).dataUnsafe.id
             }
         }
 

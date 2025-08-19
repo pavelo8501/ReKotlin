@@ -1,6 +1,10 @@
 package po.misc.context
 
 import po.misc.data.logging.LogEmitter
+import po.misc.data.processors.SeverityLevel
+import po.misc.data.styles.SpecialChars
+import kotlin.reflect.KType
+import kotlin.reflect.full.starProjectedType
 
 /**
  * Base interface for any context-aware component.
@@ -12,10 +16,19 @@ interface CTX : LogEmitter {
 
     val identity: CTXIdentity<out CTX>
 
-    val contextName: String get() = identity.className
-    val completeName: String get() = identity.completeName
-    val identifiedByName: String get() = identity.identifiedByName
-    val detailedDump: String get() = identity.detailedDump
+    private fun getIdentityWithFallback():CTXIdentity<out CTX>{
+        val errorMsg = "identity requested while not constructed. Providing fake one." + SpecialChars.NewLine.char +
+        "Most common reason is initialization of identity dependant properties in abstract class"
+       return identity?:run {
+           notify(errorMsg, SeverityLevel.WARNING)
+           CTXIdentity(CTX::class,  CTX::class.starProjectedType, 0, )
+       }
+    }
+
+    val contextName: String get() = getIdentityWithFallback().className
+    val completeName: String get() = getIdentityWithFallback().completeName
+    val identifiedByName: String get() = getIdentityWithFallback().identifiedByName
+    val detailedDump: String get() = getIdentityWithFallback().detailedDump
 }
 
 /**

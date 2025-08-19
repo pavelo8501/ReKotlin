@@ -39,8 +39,7 @@ class TestPick : DatabaseTest(){
 
         withConnection{
             service(UserDTO, TableCreateMode.Create) {
-
-                val userDataModel =  update(user).getDataForced()
+                val userDataModel =  update(user).dataUnsafe
                  pickedDTO = pickById(userDataModel.id).dto
             }
         }

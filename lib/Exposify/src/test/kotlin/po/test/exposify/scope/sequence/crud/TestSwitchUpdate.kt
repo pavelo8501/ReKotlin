@@ -52,7 +52,7 @@ class TestSwitchUpdate: DatabaseTest(), TasksManaged {
     fun setup() {
         withConnection {
             service(UserDTO, TableCreateMode.ForceRecreate) {
-                updatedById = update(mockedUser).getDataForced().id
+                updatedById = update(mockedUser).dataUnsafe.id
             }
         }
 

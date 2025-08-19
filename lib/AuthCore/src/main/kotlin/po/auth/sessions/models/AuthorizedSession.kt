@@ -1,24 +1,17 @@
 package po.auth.sessions.models
 
-import io.ktor.server.application.ApplicationCall
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.async
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import po.auth.authentication.authenticator.UserAuthenticator
 import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.auth.sessions.enumerators.SessionType
 import po.auth.sessions.interfaces.EmmitableSession
 import po.auth.sessions.interfaces.SessionIdentified
-import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
-import po.misc.coroutines.CoroutineHolder
-import po.misc.data.logging.LogCollector
 import po.misc.data.printable.PrintableBase
 import po.misc.interfaces.Processable
+import po.misc.time.ExecutionTimeStamp
 import po.misc.types.castOrManaged
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -30,49 +23,29 @@ class AuthorizedSession internal constructor(
 ): EmmitableSession, SessionIdentified, Processable {
 
     override val identity: CTXIdentity<AuthorizedSession> = asIdentity()
+    val timeStamp: ExecutionTimeStamp = ExecutionTimeStamp()
 
     var principal : AuthenticationPrincipal? = null
     override var sessionType: SessionType = SessionType.ANONYMOUS
         private set
 
-    val coroutineName : String get() {
-        return if(sessionType == SessionType.ANONYMOUS){
-            "AnonymousSession"
-        }else{
-            "AuthenticatedSession"
-        }
-    }
-
-    //var getLoggerProcess: (() -> LoggProcess<*> )? = null
-
-    private val logRecordsBacking: MutableList<PrintableBase<*>> = mutableListOf()
+    @PublishedApi
+    internal val logRecordsBacking: MutableList<PrintableBase<*>> = mutableListOf()
     val logRecords: List<PrintableBase<*>> = logRecordsBacking
 
     override val sessionID: String = UUID.randomUUID().toString()
 
-    override val sessionContext: CoroutineContext
-        get() = scope.coroutineContext
+    override val sessionContext: CoroutineContext get() = scope.coroutineContext
+    override val scope: CoroutineScope by lazy { CoroutineScope(CoroutineName(identifiedByName) + this) }
 
     val coroutineContext: CoroutineContext get() = scope.coroutineContext
 
-    val identifiedAs: String get() = sessionID
-    val name: String get() =  coroutineName
-    private val scope: CoroutineScope = CoroutineScope(CoroutineName(coroutineName) + this)
-
-
-//    fun onProcessStart(session: LoggerProcess<*, *>) {
-//        println("onProcessStart emitted with sessionId ${session.identified}")
-//    }
-//
-//    fun onProcessEnd(session: LoggerProcess<*, *>) {
-//        println("onProcessEnd emitted with sessionId ${session.identified}")
-//    }
-
-    override fun sessionScope(): CoroutineScope{
-        println("Redispatched session $sessionID")
-        return scope
+    init {
+        identity.setNamePattern {
+             timeStamp.provideNameAndId(sessionType.sessionName, sessionID)
+            "${sessionType.sessionName}[$sessionID]"
+        }
     }
-
     override fun onProcessStart(session: EmmitableSession) {
 
     }
@@ -80,10 +53,7 @@ class AuthorizedSession internal constructor(
 
     }
 
-    override val key: CoroutineContext.Key<AuthorizedSession>
-        get() {
-            return AuthorizedSessionKey
-        }
+    override val key: CoroutineContext.Key<AuthorizedSession> get() = AuthorizedSessionKey
 
     val sessionStore: ConcurrentHashMap<SessionKey<*>, Any?> =  ConcurrentHashMap<SessionKey<*>, Any?>()
 
@@ -119,12 +89,12 @@ class AuthorizedSession internal constructor(
         return null
     }
 
-    inline  fun <reified T: Any> setExternalRef(name: String, value: T) {
-        externalStore[ExternalKey(name, T::class)] = value
+    inline  fun <reified T: Any> setExternalRef(identifiedBy: Any, value: T) {
+        externalStore[ExternalKey(identifiedBy.toString(), T::class)] = value
     }
 
-    inline fun <reified T: Any> getExternalRef(name: String): T? {
-        externalStore.keys.firstOrNull{ it.name ==  name}?.let { key ->
+    inline fun <reified T: Any> getExternalRef(identifiedBy: Any): T? {
+        externalStore.keys.firstOrNull{ it.name ==  identifiedBy.toString()}?.let { key ->
             val sessionParam = externalStore[key].castOrManaged<T>("SessionStore item not found by key")
             return sessionParam
         }
@@ -141,24 +111,25 @@ class AuthorizedSession internal constructor(
         return this
     }
 
-    suspend fun <T,R> useContext(context: CoroutineContext, receiver: T,  block: suspend T.() -> R){
-        withContext(context) {
-            async(start = CoroutineStart.UNDISPATCHED) {
-                block.invoke(receiver)
-            }
-        }
-    }
-
-    suspend fun reLaunch(call: ApplicationCall){
-        withContext(this){
-            launch {
-                call.coroutineContext
-            }
-        }
-    }
-
     override fun provideData(record: PrintableBase<*>) {
         logRecordsBacking.add(record)
+    }
+
+   inline fun <reified T: PrintableBase<T>> extractLog(
+       noinline filtering:((T)-> Boolean)? = null
+   ): List<T> {
+        val resultingList = mutableListOf<T>()
+        return if (filtering != null) {
+            val filtered = logRecordsBacking.filterIsInstance<T>()
+            filtered.forEach { record ->
+                if (filtering.invoke(record)) {
+                    resultingList.add(record)
+                }
+            }
+            resultingList
+        } else {
+            logRecordsBacking.filterIsInstance<T>()
+        }
     }
 
     fun extractLogRecords(filtering:((PrintableBase<*>)-> Boolean)? = null): List<PrintableBase<*>> {

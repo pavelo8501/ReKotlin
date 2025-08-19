@@ -5,6 +5,7 @@ import po.lognotify.common.LNInstance
 import po.lognotify.common.configuration.TaskConfig
 import po.lognotify.models.SpanKey
 import po.lognotify.models.TaskKey
+import po.lognotify.notification.LoggerDataProcessor
 import po.lognotify.notification.models.ActionData
 import po.lognotify.tasks.ExecutionStatus
 import po.lognotify.tasks.RootTask
@@ -35,6 +36,8 @@ class ActionSpan<T : CTX, R : Any?>(
 
     override val nestingLevel: Int get() = spanKey.nestingLevel
     override val rootTask: RootTask<*, *> get() = task.rootTask
+
+    override val dataProcessor: LoggerDataProcessor get() = task.dataProcessor
 
     override val header: String get() = "AS $actionName in Context[${receiver.contextName}]"
 

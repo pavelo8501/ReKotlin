@@ -1,5 +1,10 @@
 package po.exposify.extensions
 
+import org.jetbrains.exposed.dao.LongEntity
+import po.exposify.dto.CommonDTO
+import po.exposify.dto.interfaces.DataModel
+import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.models.CommonDTOType
 import po.exposify.exceptions.InitException
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
@@ -26,6 +31,13 @@ internal fun <T: Any> Any?.castOrOperations(
 internal inline fun <reified T: Any> Any?.castOrOperations(
     callingContext: CTX
 ): T  = castOrOperations(T::class, callingContext)
+
+@PublishedApi
+internal fun <DTO: ModelDTO, D: DataModel, E: LongEntity> CommonDTO<*,*,*>?.castOrOperations(
+    commonDTOType: CommonDTOType<DTO, D, E>,
+    callingContext: CTX
+): CommonDTO<DTO, D, E>  = castOrOperations(commonDTOType.commonType.kClass , callingContext)
+
 
 internal fun <T : Any> T?.getOrOperations(
     kClass: KClass<*>,

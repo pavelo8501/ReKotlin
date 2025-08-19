@@ -6,9 +6,10 @@ import po.exposify.DatabaseManager
 import po.exposify.common.classes.exposifyDebugger
 import po.exposify.common.events.ContextData
 import po.exposify.dao.classes.ExposifyEntityClass
+import po.exposify.dao.transaction.withTransactionIfNone
 import po.exposify.dto.components.DTOConfig
 import po.exposify.dto.components.DTOConfiguration
-import po.exposify.dto.components.RootExecutionContext
+import po.exposify.dto.components.executioncontext.RootExecutionContext
 import po.exposify.dto.components.bindings.helpers.shallowDTO
 import po.exposify.dto.configuration.setupValidation
 import po.exposify.dto.enums.DTOClassStatus
@@ -19,7 +20,6 @@ import po.exposify.dto.models.CommonDTOType
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.initException
 import po.exposify.extensions.getOrInit
-import po.exposify.extensions.withTransactionIfNone
 import po.exposify.scope.service.ServiceClass
 import po.exposify.scope.service.ServiceContext
 import po.lognotify.TasksManaged
@@ -28,9 +28,7 @@ import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.data.processors.SeverityLevel
 import po.misc.functions.registries.NotifierRegistry
-import po.misc.functions.registries.TaggedRegistry
 import po.misc.functions.registries.builders.notifierRegistryOf
-import po.misc.functions.registries.builders.taggedRegistryOf
 import po.misc.interfaces.ValueBased
 import po.misc.validators.models.CheckStatus
 
@@ -40,6 +38,7 @@ sealed class DTOBase<DTO, D, E>(
 ) : DTOConfiguration<DTO, D, E> by dtoConfiguration,
     ClassDTO,
     TasksManaged where DTO : ModelDTO, D : DataModel, E : LongEntity {
+
     enum class Events(
         override val value: Int,
     ) : ValueBased {
@@ -52,7 +51,7 @@ sealed class DTOBase<DTO, D, E>(
 
     internal val onStatusChanged : NotifierRegistry<DTOBase<DTO, D, E>> by lazy{ notifierRegistryOf(Events.StatusChanged) }
     internal val onInitialized : NotifierRegistry<DTOBase<DTO, D, E>> by lazy{ notifierRegistryOf(Events.Initialized) }
-    internal val onNewMember : NotifierRegistry<DTOClass<*, *, *>> by lazy { notifierRegistryOf(Events.NewHierarchyMember) }
+    internal val onNewMember : NotifierRegistry<DTOBase<*, *, *>> by lazy { notifierRegistryOf(Events.NewHierarchyMember) }
 
     var status: DTOClassStatus = DTOClassStatus.Uninitialized
         private set
@@ -70,6 +69,8 @@ sealed class DTOBase<DTO, D, E>(
         withTransactionIfNone(debugger, false) {
             commonDTOType.initializeColumnMetadata()
         }
+        val thisDTO = this
+
     }
 
     abstract fun setup()
@@ -100,7 +101,9 @@ sealed class DTOBase<DTO, D, E>(
 
     internal fun finalize() {
         notify("Finalizing", SeverityLevel.WARNING)
-        clearCachedDTOs()
+        if(this is RootDTO) {
+            clearCachedDTOs()
+        }
         updateStatus(DTOClassStatus.Uninitialized)
         dtoConfiguration.childClasses.values.forEach { it.finalize() }
     }
@@ -111,6 +114,15 @@ sealed class DTOBase<DTO, D, E>(
             it.getAssociatedTables(cumulativeList)
         }
     }
+
+    @PublishedApi
+    internal fun initialization(): DTOBase<DTO, D, E> {
+        if (status == DTOClassStatus.Uninitialized) {
+            setup()
+        }
+        return this
+    }
+
 
     fun findHierarchyRoot(): RootDTO<*, *, *> =
         when (this) {
@@ -137,11 +149,15 @@ abstract class RootDTO<DTO, DATA, ENTITY>(
     override val serviceClass: ServiceClass<DTO, DATA, ENTITY>
         get() = serviceContext.serviceClass
 
-    internal val executionContext: RootExecutionContext<DTO, DATA, ENTITY> = RootExecutionContext(this)
+    internal val executionContext: RootExecutionContext<DTO, DATA, ENTITY> by lazy {
+        RootExecutionContext(this)
+    }
 
     init {
         identity.setNamePattern { "${it.className}[${commonType.dtoType.simpleName}]" }
     }
+
+
 
     internal fun runValidation() {
         updateStatus(DTOClassStatus.PreFlightCheck)
@@ -155,10 +171,8 @@ abstract class RootDTO<DTO, DATA, ENTITY>(
             setup()
         }
     }
-
-    companion object : ValueBased {
-        override val value: Int
-            get() = 1
+    fun clearCachedDTOs(){
+        executionContext.dtoList.clear()
     }
 }
 
@@ -176,22 +190,11 @@ abstract class DTOClass<DTO, DATA, ENTITY>(
         identity.setNamePattern { "${it.className}[${commonType.dtoType.simpleName}]" }
     }
 
+
+
     internal fun <F : ModelDTO, FD : DataModel, FE : LongEntity> runValidation(parentDTO: CommonDTO<F, FD, FE>) {
         updateStatus(DTOClassStatus.PreFlightCheck)
         setupValidation(parentDTO.shallowDTO(this))
     }
 
-    @PublishedApi
-    internal fun initialization(): DTOClass<DTO, DATA, ENTITY> {
-        if (status == DTOClassStatus.Uninitialized) {
-            setup()
-        }
-
-        return this
-    }
-
-    companion object : ValueBased {
-        override val value: Int
-            get() = 2
-    }
 }

@@ -1,12 +1,11 @@
 package po.misc.data.json.models
 
-import po.misc.data.helpers.jsonEscape
 import po.misc.data.json.formatJsonSafe
 import po.misc.types.TypeData
 import kotlin.reflect.KProperty1
 
 class JsonRecord<T: Any, V: Any>(
-    typeData: TypeData<T>,
+    val typeData: TypeData<T>,
     val property: KProperty1<T, V>
 ){
     val key: String = property.name
@@ -21,6 +20,7 @@ class JsonRecord<T: Any, V: Any>(
     }
 
     companion object{
+
         inline fun <reified T: Any, V: Any> create(
             property: KProperty1<T, V>
         ):JsonRecord<T, V>{

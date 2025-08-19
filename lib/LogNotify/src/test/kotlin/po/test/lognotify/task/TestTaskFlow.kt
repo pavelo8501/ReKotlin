@@ -1,37 +1,40 @@
 package po.test.lognotify.task
 
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import po.lognotify.common.configuration.TaskConfig
+import po.lognotify.common.configuration.TaskType
 import po.lognotify.launchers.runTask
+import po.lognotify.tasks.RootTask
 import po.test.lognotify.setup.FakeTasksManaged
 import po.misc.data.processors.SeverityLevel
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestTaskFlow : FakeTasksManaged {
-    override val contextName: String = "TestTaskFlow"
+
 
     companion object {
         @JvmStatic
         var retryCount: Int = 0
     }
 
-    fun subTask(
-        th: Throwable?,
-        retries: Int,
-    ): Int =
-        runTask("SubTask", TaskConfig(attempts = retries)) {
-            retryCount++
-            if (th != null) {
-                throw th
-            }
-            10
-        }.resultOrException()
+    @AfterEach
+    fun reset(){
+        retryCount = 0
+    }
+
+    fun subTask(th: Throwable?, retries: Int): Int = runTask("SubTask", TaskConfig(attempts = retries)) {
+        retryCount++
+        if (th != null) { throw th }
+        10
+    }.resultOrException()
 
     @Test
     fun `Task delay and retry logic work as expected`() {
@@ -53,7 +56,7 @@ class TestTaskFlow : FakeTasksManaged {
     }
 
     @Test
-    fun `Consequent tasks inherit task configuration if not explicitly overriden`() {
+    fun `Consequent tasks inherit task configuration if not explicitly overwritten`() {
         var taskConfig: TaskConfig? = null
         val entryTaskConfig = TaskConfig(exceptionHandler = HandlerType.CancelAll)
         runTask<TestTaskFlow, Unit>("Entry task", entryTaskConfig) {
@@ -65,4 +68,15 @@ class TestTaskFlow : FakeTasksManaged {
         }
         assertEquals(entryTaskConfig, taskConfig)
     }
+
+    @Test
+    fun `Task crated as root if stated in config`() {
+        val taskConfig = TaskConfig(taskType = TaskType.AsRootTask)
+        val rootTask =  mockRootTask()
+        val newRoot = rootTask.mockChildTask("child_should_be_root", taskConfig)
+        assertIs<RootTask<TestTaskFlow, Unit>>(newRoot)
+
+    }
+
+
 }

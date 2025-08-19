@@ -98,6 +98,18 @@ sealed class BackingContainerBase<T: Any>(
         }
     }
 
+    fun  requestValueAwaiting(
+        subscriber: Any,  callback: (T)-> Unit
+    ):(T)-> Unit {
+        value?.let {
+            callback.invoke(it)
+        }?:run {
+            val index = registry.subscriptionsCount + 1L
+            registry.subscribe(subscriber, index, callback)
+        }
+       return callback
+    }
+
     /**
      * Sets or replaces the backing source value.
      * @param value the value to assign as the backing source.
@@ -195,11 +207,11 @@ class LazyContainer<T: Any>(
     override fun provideValue(value: T):LazyContainer<T> {
         if(!lockedForEdit){
             super.provideValue(value)
-            registry.trigger(value)
+            if(registry.subscriptionsCount> 0){
+                registry.trigger(value)
+            }
             lockedForEdit = true
             registry.clear()
-        }else{
-
         }
         return this
     }

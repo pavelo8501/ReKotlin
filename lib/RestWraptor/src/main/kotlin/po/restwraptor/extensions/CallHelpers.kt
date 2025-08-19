@@ -59,7 +59,7 @@ private fun createDefaultSession(): AuthorizedSession{
 }
 
 
-suspend fun <T :ApplicationCall, R>  T.withSessionOrDefault(
+suspend fun <T :ApplicationCall, R> T.withSessionOrDefault(
     block:suspend AuthorizedSession.()-> R
 ):R {
     val authorizedSessionKey = AttributeKey<AuthorizedSession>("AuthSession")
@@ -68,6 +68,14 @@ suspend fun <T :ApplicationCall, R>  T.withSessionOrDefault(
     } ?: run {
         block.invoke(createDefaultSession())
     }
+}
+
+fun <T :ApplicationCall> T.currentSessionOrNew():AuthorizedSession {
+    val authorizedSessionKey = AttributeKey<AuthorizedSession>("AuthSession")
+    return attributes.takeOrNull(authorizedSessionKey) ?: run {
+        createDefaultSession()
+    }
+
 }
 
 

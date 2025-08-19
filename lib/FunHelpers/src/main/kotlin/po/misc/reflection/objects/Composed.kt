@@ -8,7 +8,7 @@ import kotlin.reflect.KType
 
 interface Composed {
 
-    fun <V: Any> getDefaultForType(typeData: TypeData<V>): V? {
+    fun <T: Any> getDefaultForType(typeData: TypeData<T>): T? {
         val result = when (typeData.kType.classifier) {
             Int::class -> -1
             String::class -> "Default"
@@ -21,4 +21,5 @@ interface Composed {
         }
         return  result?.safeCast(typeData.kClass)
     }
+
 }

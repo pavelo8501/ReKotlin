@@ -6,10 +6,10 @@ import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.exists
 import po.auth.sessions.models.AuthorizedSession
+import po.exposify.dao.transaction.withTransactionIfNone
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.RootDTO
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.extensions.withTransactionIfNone
 import po.exposify.scope.connection.ConnectionClass
 import po.exposify.scope.connection.controls.CoroutineEmitter
 import po.exposify.scope.service.models.TableCreateMode

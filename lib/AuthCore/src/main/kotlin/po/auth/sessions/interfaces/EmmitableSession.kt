@@ -7,7 +7,6 @@ import kotlin.coroutines.CoroutineContext
 interface  EmmitableSession  :  SessionLifecycleCallback {
     val sessionID: String
     val sessionType: SessionType
-
+    val scope: CoroutineScope
     val sessionContext: CoroutineContext
-    fun sessionScope(): CoroutineScope
 }

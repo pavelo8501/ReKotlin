@@ -19,7 +19,6 @@ import po.misc.data.printable.printableProxy
 import po.misc.context.asSubIdentity
 import po.misc.lookups.HierarchyNode
 import po.misc.lookups.transformNode
-import po.misc.reflection.properties.models.PropertyUpdate
 import po.misc.time.ExecutionTimeStamp
 import po.misc.time.MeasuredContext
 import po.misc.time.startTimer
@@ -79,9 +78,9 @@ class DTOTracker<DTO: ModelDTO, D: DataModel, E: LongEntity>(
         return transformed
     }
 
-    fun propertyUpdated(update: List<PropertyUpdate<*>>){
-        activeRecord.setPropertyUpdate(update)
-    }
+//    fun propertyUpdated(update: List<PropertyUpdate<*>>){
+//        activeRecord.setPropertyUpdate(update)
+//    }
 
     fun addTrackInfo(operation:CrudOperation, module: CTX? = null):DTOTracker<DTO, D, E>{
         finalizeLast()

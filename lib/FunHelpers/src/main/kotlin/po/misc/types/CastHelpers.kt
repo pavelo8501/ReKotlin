@@ -1,5 +1,6 @@
 package po.misc.types
 
+import po.misc.context.CTX
 import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.ManagedPayload
@@ -30,14 +31,10 @@ inline fun <reified BASE : Any> Any?.safeBaseCast(): BASE? {
     }
 }
 
-
-
-
 fun <T: Any> Any?.castOrManaged(
     kClass: KClass<T>,
     callingContext: Any,
 ):T {
-
     val methodName = "castOrManaged"
     var message = "Cast to ${kClass.simpleName} failed."
     if(this == null){
@@ -83,3 +80,18 @@ inline fun <reified T: Any> Any?.castOrThrow(
     callingContext: Any,
     noinline exceptionProvider: (ManagedCallSitePayload)-> Throwable,
 ): T = castOrThrow(T::class, callingContext, exceptionProvider)
+
+
+inline fun <reified T: Any, R> withCasted(objectToCast: Any, block:T.()->R):R?{
+    val castedValue = objectToCast.safeCast<T>()
+   return if(castedValue != null){
+        block.invoke(castedValue)
+    }else{
+        null
+    }
+}
+
+inline fun <reified T: Any, R> CTX.withCastedOrManaged(objectToCast: Any, block:T.()->R):R{
+    val castedValue = objectToCast.castOrManaged<T>(this)
+    return block.invoke(castedValue)
+}

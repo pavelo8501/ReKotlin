@@ -76,13 +76,6 @@ open class RestWrapTor(
     var appHash: Int = 0
         private set
 
-//    private var _application: Application? = null
-//    internal val application: Application
-//        get() = _application.getOrThrow<Application, ConfigurationException>(null){message->
-//            ConfigurationException(message, ExceptionCodes.GENERAL_CONFIG_FAILURE)
-//        }
-    // internal val applicationBacking2: LazyContainer<Application> = lazyContainerOf()
-
     internal val configContextBacking: LazyContainer<ConfigContext> = lazyContainerOf()
     internal val applicationRegistry = notifierRegistryOf<Application>()
     internal val configRegistry = notifierRegistryOf<ConfigContext>()

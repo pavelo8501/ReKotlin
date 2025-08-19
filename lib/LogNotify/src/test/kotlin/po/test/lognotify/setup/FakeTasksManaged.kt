@@ -6,10 +6,8 @@ import po.lognotify.TasksManaged
 import po.lognotify.common.configuration.TaskConfig
 import po.lognotify.dispatcher.createHierarchyRoot
 import po.lognotify.tasks.RootTask
-import po.lognotify.tasks.Task
 import po.lognotify.tasks.TaskBase
-import po.lognotify.tasks.createChildTask
-import po.lognotify.tasks.generateRootKey
+import po.lognotify.tasks.createTask
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 
@@ -40,22 +38,14 @@ internal object FakeContext: CTX{
 internal interface FakeTasksManaged : TasksManaged {
 
     override val identity: CTXIdentity<FakeContext> get() = FakeContext.identity
-
     val mockedDispatcher get() = TasksManaged.LogNotify.taskDispatcher
-
     val mockScope: CoroutineScope get() =  CoroutineScope(Dispatchers.Default)
-
-    override val messageLogger: (String, SeverityLevel, Any) -> Unit get() = {message, severity, context->
-        logHandler.logger.notify(message, severity, context)
-    }
 
     fun <T: FakeTasksManaged> T.mockRootTask(name: String = "root_task"): RootTask<T, Unit>{
         return createHierarchyRoot(name, this, TaskConfig())
     }
 
-    fun  <T: FakeTasksManaged> TaskBase<T, *>.mockChildTask(name: String, config: TaskConfig = TaskConfig()): Task<T, Unit>{
-       return  this.createChildTask(name, this.receiver, config)
+    fun  <T: FakeTasksManaged> TaskBase<T, *>.mockChildTask(name: String, config: TaskConfig = TaskConfig()): TaskBase<T, Unit>{
+       return  createTask(name, this.receiver, config)
     }
-
-
 }

@@ -9,22 +9,21 @@ import po.auth.sessions.models.AuthorizedSession
 import kotlin.coroutines.coroutineContext
 
 
-fun session(identifyData: SessionIdentified): AuthorizedSession
-    = AuthSessionManager.authenticator.authorize(identifyData)
+fun session(identifyData: SessionIdentified): AuthorizedSession =
+    AuthSessionManager.authenticator.authorize(identifyData)
 
 suspend fun withSessionContext(
     session: AuthorizedSession,
     block: suspend CoroutineScope.() -> Unit
-) = withContext(session.sessionScope().coroutineContext, block)
+) = withContext(session.coroutineContext, block)
 
 suspend fun withSessionContext(
     sessionIdentity: SessionIdentified,
     block: suspend CoroutineScope.() -> Unit
 ) {
     val session =  currentCoroutineContext()[AuthorizedSession]?: AuthSessionManager.getOrCreateSession(sessionIdentity)
-    withContext(session.sessionScope().coroutineContext, block)
+    withContext(session.coroutineContext, block)
 }
-
 
 fun<R> withSession(
     session: AuthorizedSession,
@@ -51,15 +50,6 @@ suspend fun <R> withSessionSuspended(
    }
 }
 
-
 suspend fun CoroutineScope.currentSession(): AuthorizedSession?{
    return currentCoroutineContext()[AuthorizedSession]
 }
-
-
-//suspend fun withSession(identity: String, identifiedBy: IdentifiedBy,  block: suspend AuthorizedSession.() -> Unit){
-//    val session = AuthSessionManager.getActiveSessions().firstOrNull{ it.sessionId == identity }.getOrThrow("Session for id: $identity not found",
-//        ErrorCodes.SESSION_NOT_FOUND)
-//    withContext(session) { session.block() }
-//}
-

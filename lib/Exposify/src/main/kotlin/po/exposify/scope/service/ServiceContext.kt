@@ -8,13 +8,12 @@ import po.exposify.common.classes.exposifyDebugger
 import po.exposify.common.events.ContextData
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.RootDTO
-import po.exposify.dto.components.RootExecutionContext
+import po.exposify.dto.components.executioncontext.RootExecutionContext
 import po.exposify.dto.components.query.SimpleQuery
 import po.exposify.dto.components.query.WhereQuery
 import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.extensions.withTransactionRestored
 import po.lognotify.TasksManaged
 import po.lognotify.launchers.runTask
 import po.lognotify.launchers.runTaskBlocking
@@ -80,7 +79,8 @@ class ServiceContext<DTO, DATA, ENTITY>(
 
 
     fun update(dataModel: DATA): ResultSingle<DTO, DATA> = runTaskBlocking("Update"){
-            executionProvider.update(dataModel)
+          val result =  executionProvider.update(dataModel)
+           result
     }.resultOrException()
 
     fun update(dataModels: List<DATA>): ResultList<DTO, DATA> = runTaskBlocking("Update") {
@@ -88,12 +88,8 @@ class ServiceContext<DTO, DATA, ENTITY>(
     }.resultOrException()
 
 
-    fun delete(toDelete: DATA): ResultList<DTO, DATA>? =
-        runTask("Delete"){
-            withTransactionRestored(debugger, false) {
-            executionProvider.delete(toDelete)
-        }
-        null
+    fun delete(toDelete: DATA): ResultSingle<DTO, DATA> = runTaskBlocking("Delete"){
+        executionProvider.delete(toDelete)
     }.resultOrException()
 
 }

@@ -11,15 +11,17 @@ import po.misc.context.CTX
 import kotlin.coroutines.CoroutineContext
 
 
-private suspend fun <T : CTX, R> T.runWithNewTransaction(
+private suspend fun <T : CTX, R> T.runWithNewSuspendedTransaction(
     logDataProcessor: ExposifyDebugger<*, *>,
     warnIfNoTransaction: Boolean,
     coroutineContext: CoroutineContext,
     block: suspend T.() -> R
 ): R = newSuspendedTransaction(coroutineContext) {
+
     if (warnIfNoTransaction) {
         logDataProcessor.warn("Transaction lost context. Restoring")
     }
+
     addLogger(logDataProcessor)
     block()
 }
@@ -29,7 +31,7 @@ suspend fun <T : CTX, R> T.withSuspendedTransactionIfNone(
     warnIfNoTransaction: Boolean,
     block: suspend T.() -> R
 ): R = if (TransactionManager.currentOrNull()?.connection?.isClosed != false) {
-    runWithNewTransaction(logDataProcessor, warnIfNoTransaction, Dispatchers.IO, block)
+    runWithNewSuspendedTransaction(logDataProcessor, warnIfNoTransaction, Dispatchers.IO, block)
 } else {
     block()
 }
@@ -40,47 +42,9 @@ suspend fun <T : CTX, R> T.withSuspendedTransactionIfNone(
     coroutineContext: CoroutineContext,
     block: suspend T.() -> R
 ): R = if (TransactionManager.currentOrNull()?.connection?.isClosed != false) {
-    runWithNewTransaction(logDataProcessor, warnIfNoTransaction, coroutineContext, block)
+    runWithNewSuspendedTransaction(logDataProcessor, warnIfNoTransaction, coroutineContext, block)
 } else {
     block()
-}
-
-fun <T> withTransactionIfNone(
-    logDataProcessor: ExposifyDebugger<*,*>,
-    warnIfNoTransaction: Boolean,
-    block: () -> T): T {
-    return if (TransactionManager.currentOrNull() == null || TransactionManager.current().connection.isClosed) {
-        if(warnIfNoTransaction){
-            logDataProcessor.warn("Transaction lost context. Restoring")
-        }
-        transaction {
-            addLogger(logDataProcessor)
-            block()
-        }
-    } else {
-        block()
-    }
-}
-
-fun <T, R> T.withTransactionRestored(
-logDataProcessor: ExposifyDebugger<*, *>,
-warnIfNoTransaction: Boolean = true,
-block: T.() -> R
-): R where T: CTX, R: Any? {
-
-    val context = this@withTransactionRestored
-
-    return if (TransactionManager.currentOrNull()?.connection?.isClosed != false) {
-        if (warnIfNoTransaction) {
-            logDataProcessor.warn("Transaction lost context. Restoring")
-        }
-        transaction {
-            addLogger(logDataProcessor)
-            block(context)
-        }
-    } else {
-        block(context)
-    }
 }
 
 fun currentTransaction(): Transaction?{

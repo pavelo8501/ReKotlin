@@ -3,6 +3,8 @@ package po.lognotify.exceptions
 import po.lognotify.TasksManaged
 import po.lognotify.notification.models.ErrorSnapshot
 import po.lognotify.common.containers.RunnableContainer
+import po.lognotify.notification.error
+import po.lognotify.notification.warning
 import po.lognotify.tasks.ExecutionStatus
 import po.lognotify.tasks.TaskBase
 import po.misc.data.printable.knowntypes.PropertyData
@@ -10,7 +12,6 @@ import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.models.ExceptionData
 import po.misc.collections.selectUntil
-import po.misc.data.processors.SeverityLevel
 import po.misc.exceptions.throwableToText
 import po.misc.exceptions.toManaged
 
@@ -37,19 +38,19 @@ internal fun <T: TasksManaged, R: Any?> handleException(
                 val exData  = firstOccurred(exception)
                 if(exData != null){
                     container.source.changeStatus(ExecutionStatus.Failing)
-                    container.notify(exception.throwableToText(), SeverityLevel.EXCEPTION, container.source)
+
+                    container.source.warning(exception.throwableToText())
                     container.notifier.addErrorRecord(container.effectiveTask.createErrorSnapshot(), exception)
                 }
 
                 if (container.isRoot) {
                     val message = "Exception reached top. escalating"
-
-                    container.notify(message, SeverityLevel.EXCEPTION, container.source)
+                    container.source.error(message)
                     val exceptionData = ExceptionData(ManagedException.ExceptionEvent.Executed, message, container.source)
                     throw exception.addExceptionData(exceptionData, container.source)
                 } else {
                     val message = "Rethrowing"
-                    container.notify(message, SeverityLevel.WARNING, container.source)
+                    container.source.warning(message)
                     val exceptionData =
                         ExceptionData(ManagedException.ExceptionEvent.Rethrown, message, container.source)
                     return exception.addExceptionData(exceptionData, container.source)
@@ -59,7 +60,7 @@ internal fun <T: TasksManaged, R: Any?> handleException(
                 val exData  = firstOccurred(exception)
                 if(exData != null){
                     container.source.changeStatus(ExecutionStatus.Failing)
-                    container.notify(exception.throwableToText(), SeverityLevel.EXCEPTION, container.source)
+                    container.source.error(exception.throwableToText())
                     val errorSnapshot = container.effectiveTask.createErrorSnapshot()
                     container.notifier.addErrorRecord(errorSnapshot, exception)
                 }
@@ -72,7 +73,7 @@ internal fun <T: TasksManaged, R: Any?> handleException(
         val managed = exception.toManaged()
         container.source.changeStatus(ExecutionStatus.Failing)
         managed.setHandler(container.effectiveTask.config.exceptionHandler, container.source)
-        container.notify(exception.throwableToText(), SeverityLevel.EXCEPTION, container.source)
+        container.source.error(exception.throwableToText())
         container.notifier.addErrorRecord(container.effectiveTask.createErrorSnapshot(), managed)
         return managed
     }

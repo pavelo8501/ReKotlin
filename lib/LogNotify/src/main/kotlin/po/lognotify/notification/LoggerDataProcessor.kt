@@ -125,25 +125,6 @@ class LoggerDataProcessor(
         }
     }
 
-    /**
-     * Same as log but for internal usage not to mix contexts
-     * */
-    internal fun report(
-        message: String,
-        severity: SeverityLevel,
-        lnInstance: LNInstance<*>,
-    ): TaskEvent {
-
-       val emitterName = when (lnInstance) {
-            is TaskBase<*, *> -> ""
-            is ActionSpan<*, *> -> lnInstance.header
-            else -> "Unknown emitter"
-        }
-        val logEvent = createLogEvent(emitterName,  message, severity)
-        taskData.events.addRecord(logEvent)
-        return logEvent
-    }
-
     override fun log(
         arbitraryRecord: PrintableBase<*>,
         severity: SeverityLevel,
@@ -153,18 +134,21 @@ class LoggerDataProcessor(
         taskData.addArbitraryRecord(arbitraryRecord)
     }
 
-    override fun notify(
-        message: String,
-        severity: SeverityLevel,
-        emitter: Any,
-    ){
-        val logEvent = when (emitter) {
-            is CTX -> createLogEvent(emitter.identifiedByName,  message, severity)
-            else -> createLogEvent(emitter::class.simpleName.toString(),  message, severity)
+    override fun notify(emittingContext: Any, message: String, severity: SeverityLevel){
+        val logEvent = when (emittingContext) {
+            is LNInstance<*> -> {
+                val emitterName = when(emittingContext) {
+                    is TaskBase<*, *> -> ""
+                    is ActionSpan<*, *> -> emittingContext.header
+                    else -> "Unknown emitter"
+                }
+                createLogEvent(emitterName,  message, severity)
+            }
+            is CTX -> createLogEvent(emittingContext.identifiedByName,  message, severity)
+            else -> createLogEvent(emittingContext::class.simpleName.toString(),  message, severity)
         }
         taskData.events.addRecord(logEvent)
     }
-
 
     fun <T: Printable> debug(
         message: String,

@@ -4,22 +4,24 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Dispatchers
 import po.lognotify.TasksManaged
-import po.misc.data.helpers.output
 import po.misc.interfaces.Processable
+import po.misc.types.safeCast
 import kotlin.coroutines.CoroutineContext
-
 
 fun  CoroutineContext.loggerProcess(): Process<*>? = this[Process]
 
-fun processInContext(context: CoroutineContext): Process<*>? {
-   return context[Process]
+inline fun <reified T: Processable> CoroutineContext.process(): Process<T>? {
+   return this[Process]?.safeCast<Process<T>>()
+}
+
+inline  fun <reified T: Processable> processInContext(context: CoroutineContext): Process<T>? {
+    return context[Process]?.safeCast<Process<T>>()
 }
 
 inline fun <reified T> createProcess(
     receiver:T,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
 ):Process<T> where T:Processable{
-
    val key = ProcessKey.create<T>(CoroutineName(receiver.identity.identifiedByName))
    return Process(key,receiver, dispatcher)
 }
@@ -30,10 +32,8 @@ fun <T> TasksManaged.processLookUp(
    return logHandler.dispatcher.lookUpProcess(processKey)
 }
 
-fun  TasksManaged.activeProcess(): Process<*>?{
-    logHandler.dispatcher.hashCode().output()
-    return logHandler.dispatcher.activeProcess()
+inline fun <reified T: Processable> TasksManaged.activeProcess(): Process<T>?{
+    return logHandler.dispatcher.activeProcess()?.safeCast<Process<T>>()
 }
-
 
 

@@ -29,8 +29,8 @@ sealed class CallbackRegistryBase<V: Any, R: Any>(
 
    // protected var  emitterTypeBacking : TypeData<*>? = null
    // protected open val emitterType : TypeData<*>? = null
-
     //protected val emitterTypeBacking: BackingContainer<TypeData<*>> = backingContainerOf()
+
     protected abstract val emitterType : TypeData<*>?
 
     protected val noLambdaMsg: ( name:String)-> String = {name->

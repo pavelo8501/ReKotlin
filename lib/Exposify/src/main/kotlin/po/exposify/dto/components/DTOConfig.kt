@@ -9,12 +9,14 @@ import po.exposify.dto.DTOClass
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.components.tracker.models.TrackerConfig
 import po.exposify.dto.models.CommonDTOType
+import po.exposify.extensions.castOrOperations
 import po.exposify.scope.connection.ConnectionClass
 import po.lognotify.TasksManaged
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.data.processors.SeverityLevel
 import po.misc.serialization.SerializerInfo
+import po.misc.types.TypeData
 import po.misc.types.toSimpleNormalizedKey
 import kotlin.reflect.KType
 
@@ -23,12 +25,12 @@ interface DTOConfiguration<DTO: ModelDTO, D: DataModel,  E : LongEntity> {
 
     fun <F: ModelDTO, FD: DataModel, FE: LongEntity> addHierarchMember(
         parent: DTOBase<DTO, D, E>,
-        childMember: DTOClass<F, FD, FE>
+        childMember: DTOBase<F, FD, FE>
     ):DTOClass<F, FD, FE>
 
     fun serializerLookup(type: KType): SerializerInfo<*>?
     fun registerDTO(dto: CommonDTO<DTO, D, E>)
-    fun clearCachedDTOs()
+   // fun clearCachedDTOs()
     fun lookupDTO():List<CommonDTO<DTO, D, E>>
     fun lookupDTO(id: Long): CommonDTO<DTO, D, E>?
 }
@@ -46,11 +48,25 @@ class DTOConfig<DTO, D, E>(
 
     internal var trackerConfigModified: Boolean = false
     val trackerConfig: TrackerConfig<*> = TrackerConfig()
-    val childClasses: MutableMap<CommonDTOType<*, *, *>, DTOClass<*, *, *>> = mutableMapOf()
+    val childClasses: MutableMap<CommonDTOType<*, *, *>, DTOBase<*, *, *>> = mutableMapOf()
     val connectionClass: ConnectionClass? get() = DatabaseManager.connections.firstOrNull()
 
     val dtoMap : MutableMap<Long, CommonDTO<DTO, D, E>> = mutableMapOf()
     val dtoMapSize: Int get() = dtoMap.size
+
+
+    override fun <F : ModelDTO, FD : DataModel, FE : LongEntity> addHierarchMember(
+        parent: DTOBase<DTO, D, E>,
+        childMember: DTOBase<F, FD, FE>
+    ): DTOClass<F, FD, FE> {
+        if (childClasses.contains(childMember.commonDTOType)) {
+            notify("childClasses map contains key ${childMember.commonDTOType}", SeverityLevel.WARNING)
+        } else {
+            parent.onNewMember.trigger(childMember)
+            childClasses.put(childMember.commonDTOType, childMember)
+        }
+        return childMember.castOrOperations(this)
+    }
 
     override fun serializerLookup(type: KType): SerializerInfo<*>? {
         val normalizedKey = type.toSimpleNormalizedKey()
@@ -61,19 +77,6 @@ class DTOConfig<DTO, D, E>(
         return null
     }
 
-    override fun <F : ModelDTO, FD : DataModel, FE : LongEntity> addHierarchMember(
-        parent: DTOBase<DTO, D, E>,
-        childMember: DTOClass<F, FD, FE>
-    ): DTOClass<F, FD, FE> {
-
-        if (childClasses.contains(childMember.commonDTOType)) {
-            notify("childClasses map contains key ${childMember.commonDTOType}", SeverityLevel.WARNING)
-        } else {
-            parent.onNewMember.trigger(childMember)
-            childClasses.put(childMember.commonDTOType, childMember)
-        }
-        return childMember
-    }
 
     override fun registerDTO(dto: CommonDTO<DTO, D, E>){
         val usedId = if(dto.id < 1){
@@ -86,10 +89,6 @@ class DTOConfig<DTO, D, E>(
             notify("Given dto with id: ${dto.id} already exist in dtoMap", SeverityLevel.WARNING)
         }
         dtoMap.putIfAbsent(usedId, dto)
-    }
-
-    override fun clearCachedDTOs(){
-        dtoMap.clear()
     }
 
     override fun lookupDTO(id: Long): CommonDTO<DTO, D, E>?{

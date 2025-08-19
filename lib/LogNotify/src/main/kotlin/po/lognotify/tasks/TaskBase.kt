@@ -44,7 +44,7 @@ enum class ExecutionStatus {
 sealed class TaskBase<T : CTX, R : Any?>(
     override val key: TaskKey,
     override val config: TaskConfig,
-    dispatcher: TaskDispatcher,
+    val dispatcher: TaskDispatcher,
     override val receiver: T,
 ): ResultantTask<T, R>, LNInstance<T>{
 
@@ -88,7 +88,7 @@ sealed class TaskBase<T : CTX, R : Any?>(
     }
 
     fun checkChildResult(childResult: TaskResult<*, *>): ManagedException? =
-        childResult.throwable?.let { exception ->
+        childResult.exception?.let { exception ->
             val childTask = childResult.task
             childTask.taskStatus = ExecutionStatus.Faulty
             exception
@@ -103,7 +103,6 @@ sealed class TaskBase<T : CTX, R : Any?>(
         actionSpans.add(actionSpan)
         return actionSpan
     }
-
     fun activeActionSpan(): ActionSpan<*, *>? = actionSpans.firstOrNull { it.executionStatus == ExecutionStatus.Active }
 
     fun checkIfCanBeSkipped(classInfo: ClassInfo<R>?): Boolean {
@@ -128,6 +127,25 @@ sealed class TaskBase<T : CTX, R : Any?>(
         return snapshot
     }
 
+    fun collectException(throwable: Throwable){
+        var result = taskResult
+        if(result == null){
+            result = TaskResult(this)
+            taskResult = result
+        }
+        changeStatus(ExecutionStatus.Failing)
+        result.collectThrowable(throwable)
+    }
+    fun <R> complete(result:R):R {
+        changeStatus(ExecutionStatus.Complete)
+        executionTimeStamp.stopTimer()
+        dataProcessor.registerStop()
+        if(this is RootTask){
+            dispatcher.removeRootTask(this)
+        }
+        return result
+    }
+
     override fun toString(): String =
         when (this) {
             is RootTask -> "(R) ${key.taskName}"
@@ -138,7 +156,7 @@ sealed class TaskBase<T : CTX, R : Any?>(
 class RootTask<T : CTX, R : Any?>(
     key: TaskKey,
     config: TaskConfig,
-    val dispatcher: TaskDispatcher,
+    dispatcher: TaskDispatcher,
     override val scope: CoroutineScope,
     receiver: T,
 ) : TaskBase<T, R>(key, config, dispatcher, receiver), CoroutineHolder{
@@ -205,7 +223,6 @@ class RootTask<T : CTX, R : Any?>(
     override fun complete(): LNInstance<*> {
         changeStatus(ExecutionStatus.Complete)
         executionTimeStamp.stopTimer()
-        isComplete = true
         dataProcessor.registerStop()
         dispatcher.removeRootTask(this)
         return this
@@ -216,7 +233,6 @@ class RootTask<T : CTX, R : Any?>(
         registry.setChildTasksStatus(ExecutionStatus.Faulty, this)
         changeStatus(ExecutionStatus.Failing)
         taskResult = createFaultyResult(exception, this)
-        isComplete = true
         dataProcessor.registerStop()
         dispatcher.removeRootTask(this)
         throw exception

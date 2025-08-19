@@ -3,52 +3,88 @@ package po.exposify.dto.components.bindings.property_binder.delegates
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
-import po.exposify.dto.components.bindings.BindingHub
 import po.exposify.dto.components.bindings.DelegateStatus
 import po.exposify.dto.components.bindings.interfaces.DelegateInterface
+import po.exposify.dto.helpers.warning
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.exceptions.operationsException
 import po.exposify.extensions.castOrInit
 import po.exposify.extensions.getOrInit
-import po.exposify.extensions.getOrOperations
 import po.lognotify.TasksManaged
-import po.misc.callbacks.CallbackManager
-import po.misc.callbacks.builders.callbackManager
+import po.misc.collections.BufferAction
+import po.misc.collections.BufferItem
+import po.misc.collections.BufferItemStatus
+import po.misc.collections.SlidingBuffer
+import po.misc.collections.addToBuffer
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asSubIdentity
 import po.misc.data.SmartLazy
-import po.misc.data.processors.SeverityLevel
-import po.misc.reflection.properties.models.PropertyUpdate
-import po.misc.types.getOrManaged
+import po.misc.types.TypeData
 import kotlin.Any
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty
 
+
+enum class DataType{
+    DataModel,
+    Entity
+}
+
+data class AuxBufferParam(
+    val externalCall: Boolean,
+    var initial: Boolean,
+){
+
+    var updateByData: DataType = DataType.DataModel
+    var updatingEntity: Boolean = false
+
+
+    fun <E: LongEntity> updateByData(entity: E?):AuxBufferParam{
+        if(entity != null){
+            updatingEntity = true
+        }
+        updateByData = DataType.DataModel
+        initial = false
+        return this
+    }
+
+    fun updateByEntity():AuxBufferParam{
+        updateByData = DataType.Entity
+        initial = false
+        updatingEntity = true
+        return this
+    }
+}
+
+internal fun newInternalParam(
+    initial: Boolean = false
+):AuxBufferParam{
+  return  AuxBufferParam(externalCall = false, initial =  initial)
+}
+
+internal fun newExternalParam(
+    initial: Boolean = false
+):AuxBufferParam{
+    return  AuxBufferParam(externalCall = true, initial =  initial)
+}
+
 sealed class ResponsiveDelegate<DTO, D, E, V : Any> protected constructor(
     protected val hostingDTO: CommonDTO<DTO, D, E>,
+    protected val dataProperty: KMutableProperty1<D, V>,
+    protected val entityProperty: KMutableProperty1<E, V>,
+    protected val typeData: TypeData<V>,
 ) : ReadWriteProperty<DTO, V>,
     DelegateInterface<DTO, D, E>,
     TasksManaged where DTO : ModelDTO, D : DataModel, E : LongEntity {
+
     override var status: DelegateStatus = DelegateStatus.Created
 
-    enum class UpdateType {
-        PropertyUpdated,
-    }
+    val dtoClass : DTOBase<DTO, D, E> = hostingDTO.dtoClass
 
-    override val hostingClass: DTOBase<DTO, D, E>
-        get() = hostingDTO.dtoClass
+    internal val buffer: SlidingBuffer<V, AuxBufferParam> = SlidingBuffer(this, typeData)
 
-    protected val dataModel: D get() {
-        return hostingDTO.dataContainer.getValue(this)
-    }
-
-    protected val entity: E get() {
-        return hostingDTO.entityContainer.getValue(this)
-    }
 
     private var propertyParameter: KProperty<V>? = null
     val property: KProperty<V> get() = propertyParameter.getOrInit(this)
@@ -56,30 +92,65 @@ sealed class ResponsiveDelegate<DTO, D, E, V : Any> protected constructor(
     val name: String by SmartLazy("Uninitialized") {
         propertyParameter?.name
     }
-    var dataPropertyParameter: KMutableProperty1<D, V>? = null
 
-    val dataProperty: KMutableProperty1<D, V> get() = dataPropertyParameter.getOrOperations(this)
+    protected fun onValueCommit(value:V){
 
-    var entityPropertyParameter: KMutableProperty1<E, V>? = null
-    val entityProperty: KMutableProperty1<E, V>
-        get() = entityPropertyParameter.getOrOperations(this)
+        hostingDTO.dataContainer.value?.let {dataModel->
+            val dataValue = dataProperty.get(dataModel)
+            if(dataValue != value){
+                dataProperty.set(dataModel, value)
+            }
+        }
 
-    protected var onPropertyInitialized: ((KProperty<*>) -> Unit)? = null
 
-    private var effectiveValue: V? = null
-    private val value: V
-        get() = effectiveValue.getOrManaged(KProperty::class, this)
+        hostingDTO.entityContainer.value?.let {
+            entityProperty.set(it, value)
+        }
+    }
 
-    val isValueNull: Boolean get() = effectiveValue == null
+    protected fun onDataSubmitted(item:(BufferItem<V, AuxBufferParam>)): BufferAction{
+        var result: BufferAction
+        item.parameter?.let {auxParam->
+            if(auxParam.externalCall){
+                return BufferAction.Buffer
+            }
 
-    var valueUpdated: Boolean = false
+            when(auxParam.updateByData){
+                DataType.Entity -> {
+                    val dataModel = hostingDTO.dataContainer.getValue(this)
+                    dataProperty.set(dataModel, item.value)
+                    return   BufferAction.Commit
+                }
+                DataType.DataModel->{
+                    return  BufferAction.Commit
+                }
+            }
+        }
+       if(item.itemStatus != BufferItemStatus.SameAsRecent){
+           result =   BufferAction.Commit
+          BufferAction.Commit
+        }else{
+           result = BufferAction.Buffer
+        }
+        return result
+    }
 
-    override fun resolveProperty(property: KProperty<*>) {
-        if (propertyParameter == null) {
-            propertyParameter = property.castOrInit(this)
-            identity.setNamePattern { "ResponsiveDelegate[${hostingDTO.identifiedByName}, ${property.name}]" }
+    protected fun onSameDataSubmitted(item:(BufferItem<V, AuxBufferParam>)): BufferAction{
+       warning("dataValue ${item.value} Re-Submitted")
+       return BufferAction.Ignore
+    }
+
+    fun resolveProperty(property: KProperty<*>) {
+        propertyParameter = property.castOrInit(this)
+        identity.setNamePattern { "ResponsiveDelegate[${hostingDTO.identifiedByName}, ${property.name}]" }
+
+        buffer.onCommit(::onValueCommit)
+        buffer.onValueReceived(::onDataSubmitted)
+        buffer.onSameAsRecent(::onSameDataSubmitted)
+        hostingDTO.dataContainer.requestValue(this){dataModel->
+            val value = dataProperty.get(dataModel)
+            addToBuffer(buffer, value, newInternalParam())
             hostingDTO.bindingHub.registerResponsiveDelegate(this)
-            onPropertyInitialized?.invoke(property)
         }
     }
 
@@ -87,86 +158,49 @@ sealed class ResponsiveDelegate<DTO, D, E, V : Any> protected constructor(
         this.status = status
     }
 
-    private fun valueChanged(newValue: V) {
-        valueUpdated = true
-        effectiveValue = newValue
-        dataProperty.set(dataModel, newValue)
+    internal fun updateBy(
+        callingContext: CTX,
+        entity: E
+    ):V {
+        val value = entityProperty.get(entity)
+        val param = newInternalParam().updateByEntity()
+        callingContext.addToBuffer(buffer, value, param)
+        return value
     }
 
-    internal fun updateBy(data: D, withEntity:E?): V {
-        val newValue = dataProperty(data)
-        if (effectiveValue != newValue) {
-            valueChanged(newValue)
-            if(withEntity != null){
-                entityProperty.set(withEntity, newValue)
-            }
-        }
-        return newValue
+    internal fun updateBy(
+        callingContext: CTX,
+        dataModel: D
+    ):V {
+        val value = dataProperty.get(dataModel)
+        val param = newInternalParam().updateByData(null)
+        callingContext.addToBuffer(buffer, value, param)
+        return value
     }
 
-    internal fun updateBy(entity: E) {
-        val newValue = entityProperty.get(entity)
-        if (effectiveValue != newValue) {
-            valueChanged(newValue)
-        }
-    }
-
-    protected fun provideDataProperty(property: KMutableProperty1<D, V>) {
-        dataPropertyParameter = property
-    }
-
-    /**
-     * Updates entity form data model
-     */
-    internal fun updateEntityWithPropertyValues(entity: E) {
-        val value = effectiveValue ?: dataProperty(dataModel)
+    internal fun updateEntity(
+        callingContext: CTX,
+        entity: E
+    ) {
+        val dataModel = hostingDTO.dataContainer.getValue(this)
+        val value =  dataProperty.get(dataModel)
         entityProperty.set(entity, value)
     }
 
-    /**
-     * Updates data model  form pre-saved entity
-     */
-    internal fun updateData() {
-        val value = effectiveValue ?: entityProperty(entity)
-        dataProperty.set(dataModel, value)
-    }
-
-    operator fun provideDelegate(
-        thisRef: DTO,
-        property: KProperty<*>,
-    ): ResponsiveDelegate<DTO, D, E, V> {
+    operator fun provideDelegate(thisRef: DTO, property: KProperty<*>): ResponsiveDelegate<DTO, D, E, V> {
         resolveProperty(property)
         return this
     }
 
     override fun getValue(thisRef: DTO, property: KProperty<*>): V {
-        val result = effectiveValue
-        if (result == null) {
-            val dataModel = hostingDTO.dataContainer.value
-            if (dataModel == null) {
-                throw operationsException("Value and data model uninitialized", ExceptionCode.ABNORMAL_STATE)
-            } else {
-                return effectiveValue ?: dataProperty.get(dataModel)
-            }
-        }
-        return result
+        return  buffer.getValue(this)
     }
 
     override fun setValue(thisRef: DTO, property: KProperty<*>, value: V) {
-
-        if (effectiveValue != value) {
-            dataProperty.set(dataModel, value)
-            if (hostingDTO.entityContainer.isValueAvailable) {
-                entityProperty.set(entity, value)
-            } else {
-                val message = "${hostingDTO.completeName} update through delegate set. Entity must have been inserted but its not"
-                notify(message, SeverityLevel.WARNING)
-            }
-            valueChanged(value)
-        }
+        addToBuffer(buffer, value, newExternalParam())
     }
 
-    override fun toString(): String = "$name = $effectiveValue"
+    override fun toString(): String = "$name = ${buffer.value?:"N/A"}"
 }
 
 class SerializedDelegate<DTO, D, E, V : Any>
@@ -175,50 +209,34 @@ class SerializedDelegate<DTO, D, E, V : Any>
         dto: CommonDTO<DTO, D, E>,
         serializedDataProperty: KMutableProperty1<D, V>,
         serializedEntityProperty: KMutableProperty1<E, V>,
-    ) : ResponsiveDelegate<DTO, D, E, V>(dto) where DTO : ModelDTO, D : DataModel, E : LongEntity {
+        typeData: TypeData<V>
+    ) : ResponsiveDelegate<DTO, D, E, V>(dto,serializedDataProperty, serializedEntityProperty,  typeData) where DTO : ModelDTO, D : DataModel, E : LongEntity {
     override val identity: CTXIdentity<out CTX> = asSubIdentity(this, dto)
 
-    init {
-        dataPropertyParameter = serializedDataProperty
-        entityPropertyParameter = serializedEntityProperty
-    }
+//    init {
+//        dataPropertyContainer.provideValue(serializedDataProperty)
+//        entityPropertyContainer.provideValue(serializedEntityProperty)
+//    }
 }
 
 class PropertyDelegate<DTO, D, E, V : Any>
     @PublishedApi
     internal constructor(
         dto: CommonDTO<DTO, D, E>,
-        datProperty: KMutableProperty1<D, V>?,
-        entProperty: KMutableProperty1<E, V>?,
-    ) : ResponsiveDelegate<DTO, D, E, V>(dto) where DTO : ModelDTO, D : DataModel, E : LongEntity {
-    override val identity: CTXIdentity<out CTX> = asSubIdentity(this, dto)
+        dataProperty: KMutableProperty1<D, V>,
+        entityProperty: KMutableProperty1<E, V>,
+        typeData: TypeData<V>
+    ) : ResponsiveDelegate<DTO, D, E, V>(dto, dataProperty,entityProperty, typeData) where DTO : ModelDTO, D : DataModel, E : LongEntity {
 
-    val notifier: CallbackManager<UpdateType> =
-        callbackManager(
-            { CallbackManager.createPayload<UpdateType, List<PropertyUpdate<V>>>(this, UpdateType.PropertyUpdated) },
-        )
 
-    init {
-        datProperty?.let {
-            provideDataProperty(it)
-        } ?: run {
-            onPropertyInitialized = {
+    override val identity: CTXIdentity<PropertyDelegate<DTO, D, E, V>> = asSubIdentity(this, dto)
 
-                // provideDataProperty(dto.getPropertyRecord(DTOClass, it.name))
-
-//                dataPropertyParameter =  dto.getPropertyRecord(DTOClass, it.name)
-//
-//                    .castOrInit(this)
-            }
-        }
-
-        entProperty?.let {
-            entityPropertyParameter = it
-        } ?: run {
-            onPropertyInitialized = {
-//                entityPropertyParameter =  dto.getPropertyRecord(SourceObject.Entity, it.name)
-//                    .castOrInit(this)
-            }
-        }
-    }
+//    init {
+//        if(dataProperty != null){
+//            dataPropertyContainer.provideValue(dataProperty)
+//        }
+//        if(entityProperty != null){
+//            entityPropertyContainer.provideValue(entityProperty)
+//        }
+//    }
 }

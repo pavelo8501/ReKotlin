@@ -7,7 +7,6 @@ import po.misc.context.CTX
 import po.misc.context.asIdentity
 import po.misc.data.helpers.replaceIfNull
 import po.misc.reflection.objects.Composed
-import po.misc.reflection.properties.models.PropertyUpdate
 import po.misc.types.castOrManaged
 import po.misc.types.getOrManaged
 import kotlin.reflect.KClass
@@ -57,12 +56,12 @@ sealed class PropertyIOBase<T: Any, V: Any>(
             }
         }
 
-    val buffer: SlidingBuffer<PropertyUpdate<V>, V> = SlidingBuffer(5) {
-        PropertyUpdate(propertyName, it)
-    }
+//    val buffer: SlidingBuffer<PropertyUpdate<V>, V> = SlidingBuffer(5) {
+//        PropertyUpdate(propertyName, it)
+//    }
 
     init {
-        currentValue?.let { buffer.add(it) }
+       // currentValue?.let { buffer.add(it) }
     }
 
     protected val asKMutableProperty: KMutableProperty1<T, V> by lazy {
@@ -74,7 +73,7 @@ sealed class PropertyIOBase<T: Any, V: Any>(
 
     fun initialize(dataObject:T){
         receiver = dataObject
-        buffer.add(asKProperty.get(dataObject))
+       // buffer.add(asKProperty.get(dataObject))
     }
 
     fun provideReceiver(receiver: T) {
@@ -85,28 +84,26 @@ sealed class PropertyIOBase<T: Any, V: Any>(
         return asKProperty.get(receiver)
     }
     fun setValue(value: V) {
-        buffer.addIfDifferent(value) {
-            if (ioType == PropertyIOType.RW) {
-                asKMutableProperty.set(receiver, it)
-            }
-        }
+//        buffer.addIfDifferent(value) {
+//            if (ioType == PropertyIOType.RW) {
+//                asKMutableProperty.set(receiver, it)
+//            }
+//        }
     }
 
     fun getValue(): V {
-        return  buffer.getValue()?:run {
-           val type =  propertyInfo.valueTypeData.getOrManaged(this)
-
-           getDefaultForType(type).getOrManaged(propertyInfo.receiverClass, this)
-        }
+//        return  buffer.getValue()?:run {
+//           val type =  propertyInfo.valueTypeData.getOrManaged(this)
+//
+//           getDefaultForType(type).getOrManaged(propertyInfo.receiverClass, this)
+//        }
+        TODO("Remove")
     }
 
     fun readCurrentValue(): V {
         return currentValue.getOrManaged(propertyInfo.returnType::class,  this)
     }
 
-    fun updateHistory(): List<PropertyUpdate<V>>{
-       return buffer.toList()
-    }
 
     fun <R: Any>  returnIfReceiver(receiver: R):PropertyIOBase<T, V>?{
      return  if(propertyInfo.typeKey.isInstanceOfType(receiver)){

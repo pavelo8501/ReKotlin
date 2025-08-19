@@ -47,7 +47,6 @@ data class Section(
 
 class SectionDTO : CommonDTO<SectionDTO, Section, SectionEntity>(SectionDTO) {
 
-
     var name: String by binding(Section::name, SectionEntity::name)
     var description: String by binding(Section::description, SectionEntity::description)
     var jsonLd: String by binding(Section::jsonLd, SectionEntity::jsonLd)
@@ -58,9 +57,10 @@ class SectionDTO : CommonDTO<SectionDTO, Section, SectionEntity>(SectionDTO) {
 
     var updatedBy: Long = 0
 
-    val user: UserDTO by attachedReference(UserDTO, Section::updatedBy, SectionEntity::updatedBy) { user ->
-        updatedBy = user.id
-    }
+
+    val  a = SectionEntity::page
+
+    val user: UserDTO by attachedReference(UserDTO, Section::updatedBy, SectionEntity::updatedBy)
     val page: PageDTO by parentReference(PageDTO, SectionEntity::page) { page ->
         pageId = page.id
     }

@@ -1,7 +1,5 @@
 package po.exposify.dto.components.tracker
 
-import po.misc.reflection.properties.models.PropertyUpdate
-
 
 data class TrackerRecord(
     val component: DTOTracker<*, *, *>,
@@ -15,12 +13,12 @@ data class TrackerRecord(
     val endTime: Long get() = component.executionTimeStamp.endTime
     val elapsed: Float get() = component.executionTimeStamp.elapsed
 
-    val updates: MutableList<PropertyUpdate<*>> = mutableListOf()
+   // val updates: MutableList<PropertyUpdate<*>> = mutableListOf()
 
 
-    fun setPropertyUpdate(update: List<PropertyUpdate<*>>){
-        updates.addAll(updates)
-    }
+//    fun setPropertyUpdate(update: List<PropertyUpdate<*>>){
+//        updates.addAll(updates)
+//    }
 
     fun finalizeRecord(){
         trackResult = 1

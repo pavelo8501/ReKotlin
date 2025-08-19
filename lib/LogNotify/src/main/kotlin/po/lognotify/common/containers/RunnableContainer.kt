@@ -14,6 +14,7 @@ import po.lognotify.tasks.TaskHandler
 import po.misc.containers.ReceiverContainer
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
+import po.misc.data.processors.SeverityLevel
 import po.misc.functions.containers.DeferredContainer
 import po.misc.reflection.classes.ClassInfo
 
@@ -21,11 +22,9 @@ sealed class RunnableContainer<T : TasksManaged, R : Any?>(
     internal val source: LNInstance<T>,
     override val receiver: T,
     val notifier: LoggerDataProcessor,
-) : ReceiverContainer<T>, TasksManaged by receiver, LogDataProcessorContract by notifier {
+) : ReceiverContainer<T>, TasksManaged by receiver{
 
-
-    override val identity: CTXIdentity<out CTX>
-        get() = source.identity
+    override val identity: CTXIdentity<out CTX> get() = source.identity
 
     override val contextName: String get() = receiver.contextName
     var verboseMode: Boolean = false
@@ -57,7 +56,6 @@ sealed class RunnableContainer<T : TasksManaged, R : Any?>(
             is ActionContainer<*, *> -> {
                 actionSpan.shortName
             }
-
             is TaskContainer<*, *> -> {
             }
         }

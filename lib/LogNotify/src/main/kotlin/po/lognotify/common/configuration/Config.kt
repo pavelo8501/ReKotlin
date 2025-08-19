@@ -18,11 +18,8 @@ class LaunchOptions(
     internal var launcherType: LauncherType = LauncherType.AsyncLauncher,
     @PublishedApi
     internal var coroutineDispatcher: CoroutineDispatcher = Dispatchers.Default,
-
     internal val forConfig: TaskConfig,
 ) {
-    internal var taskOptions: TaskType = TaskType.Nested
-
     fun setDispatcher(dispatcher: CoroutineDispatcher): TaskConfig {
         coroutineDispatcher = dispatcher
         return forConfig
@@ -33,8 +30,8 @@ class LaunchOptions(
         return forConfig
     }
 
-    fun setTaskType(options: TaskType): TaskConfig {
-        taskOptions = options
+    fun setTaskType(taskType: TaskType): TaskConfig {
+        forConfig.taskType = taskType
         return forConfig
     }
 }

@@ -4,8 +4,8 @@ import po.lognotify.TasksManaged
 import po.lognotify.common.configuration.TaskConfig
 import po.lognotify.exceptions.getOrLoggerException
 import po.lognotify.process.loggerProcess
-import po.lognotify.process.processInContext
 import po.lognotify.tasks.RootTask
+import po.lognotify.tasks.TaskBase
 import po.misc.context.CTX
 
 
@@ -36,3 +36,6 @@ internal fun <T: CTX, R> createHierarchyRoot(
 
 @PublishedApi
 internal fun activeRootTask():RootTask<*, *>? = TasksManaged.LogNotify.taskDispatcher.activeRootTask()
+
+@PublishedApi
+internal fun activeTask(): TaskBase<*, *>? = TasksManaged.LogNotify.taskDispatcher.activeTask()

@@ -173,40 +173,43 @@ sealed class ListResultChunks<DTO, D>(
     }
 
     suspend fun triggerList(dtoClass: RootDTO<DTO, D, *>, dataModels: List<D>): ResultList<DTO, D> {
-        return when (this) {
-            is SelectChunk -> {
-                val exception =  operationsException("triggerList method wrong usage", ExceptionCode.ABNORMAL_STATE)
-                exception.toResultList(dtoClass, CrudOperation.Pick)
-            }
-            is UpdateListChunk -> {
-                update(dtoClass, dataModels)
-            }
-        }
+        TODO("Part of refactro")
+//        return when (this) {
+//            is SelectChunk -> {
+//                val exception =  operationsException("triggerList method wrong usage", ExceptionCode.ABNORMAL_STATE)
+//                exception.toResultList(dtoClass, CrudOperation.Pick)
+//            }
+//            is UpdateListChunk -> {
+//                update(dtoClass, dataModels)
+//            }
+//        }
     }
 
     suspend fun triggerList(dtoClass: RootDTO<DTO, D, *>,  query: DeferredContainer<WhereQuery<*>>): ResultList<DTO, D> {
-        return when (this) {
-            is SelectChunk -> {
-                select(dtoClass, query)
-            }
-
-            is UpdateListChunk<*, *> -> {
-                val exception =  operationsException("triggerList method wrong usage", ExceptionCode.ABNORMAL_STATE)
-                exception.toResultList(dtoClass, CrudOperation.Pick)
-            }
-        }
+        TODO("Part of refactro")
+//        return when (this) {
+//            is SelectChunk -> {
+//                select(dtoClass, query)
+//            }
+//
+//            is UpdateListChunk<*, *> -> {
+//                val exception =  operationsException("triggerList method wrong usage", ExceptionCode.ABNORMAL_STATE)
+//                exception.toResultList(dtoClass, CrudOperation.Pick)
+//            }
+//        }
     }
 
     suspend fun triggerList(dtoClass: RootDTO<DTO, D, *>): ResultList<DTO, D> {
-        return when (this) {
-            is SelectChunk -> {
-                select(dtoClass)
-            }
-            is UpdateListChunk<*, *> -> {
-                val exception =  operationsException("triggerList method wrong usage", ExceptionCode.ABNORMAL_STATE)
-                exception.toResultList(dtoClass, CrudOperation.Pick)
-            }
-        }
+        TODO("Part of refactro")
+//        return when (this) {
+//            is SelectChunk -> {
+//                select(dtoClass)
+//            }
+//            is UpdateListChunk<*, *> -> {
+//                val exception =  operationsException("triggerList method wrong usage", ExceptionCode.ABNORMAL_STATE)
+//                exception.toResultList(dtoClass, CrudOperation.Pick)
+//            }
+//        }
     }
 
 }
@@ -241,9 +244,10 @@ class PickChunk<DTO, D>(
         ownDTOClass: DTOClass<DTO, D, *>,
         parameter: Long,
     ): ResultSingle<DTO, D> {
-        return withDTOContextCreating(parentResult.getAsCommonDTO(), ownDTOClass) {
-            pick(parameter)
-        }
+        TODO("Part of refactro")
+//        return withDTOContextCreating(parentResult.getAsCommonDTO(), ownDTOClass) {
+//            pick(parameter)
+//        }
     }
 
 
@@ -252,9 +256,10 @@ class PickChunk<DTO, D>(
         ownDTOClass: DTOClass<DTO, D, *>,
         whereQuery: DeferredContainer<WhereQuery<*>>,
     ): ResultSingle<DTO, D> {
-        return withDTOContextCreating(parentResult.getAsCommonDTO(), ownDTOClass) {
-            pick(whereQuery.resolve())
-        }
+        TODO("Part of refactro")
+//        return withDTOContextCreating(parentResult.getAsCommonDTO(), ownDTOClass) {
+//            pick(whereQuery.resolve())
+//        }
     }
 }
 
@@ -280,13 +285,13 @@ class UpdateChunk<DTO, D>(
         parentResult: ResultSingle<F, FD>,
         ownDTOClass: DTOClass<DTO, D, *>,
         input: D
-    ): ResultSingle<DTO, D> =
-        runTaskAsync("updateSwitching") {
-            val result = withDTOContextCreating(parentResult.getAsCommonDTO(), ownDTOClass) {
-                update(input, this)
-            }
-            result
-        }.resultOrException()
+    ): ResultSingle<DTO, D> {
+        TODO("Part of refactro")
+//            val result = withDTOContextCreating(parentResult.getAsCommonDTO(), ownDTOClass) {
+//                update(input, this)
+//            }
+//            result
+//        }
 }
 
 class SelectChunk<DTO, D>(
@@ -317,10 +322,10 @@ class SelectChunk<DTO, D>(
         ownDTOClass: DTOClass<DTO, D, *>
 
     ): ResultList<DTO, D> {
-
-        return withDTOContextCreating(parentDTO, ownDTOClass) {
-            select()
-        }
+        TODO("Part of refactro")
+//        return withDTOContextCreating(parentDTO, ownDTOClass) {
+//            select()
+//        }
     }
 
     fun <F : ModelDTO, FD : DataModel> selectSwitching(
@@ -328,9 +333,11 @@ class SelectChunk<DTO, D>(
         ownDTOClass: DTOClass<DTO, D, *>,
         whereQuery: DeferredContainer<WhereQuery<*>>,
     ): ResultList<DTO, D> {
-        return withDTOContextCreating(parentResult,  ownDTOClass) {
-            select(whereQuery.resolve())
-        }
+        TODO("Part of refactro")
+
+//        return withDTOContextCreating(parentResult,  ownDTOClass) {
+//            select(whereQuery.resolve())
+//        }
     }
 }
 
@@ -356,13 +363,15 @@ class UpdateListChunk<DTO, D>(
     suspend fun <F : ModelDTO, FD : DataModel> updateSwitching(
         parentResult: ResultSingle<F, FD>,
         ownDTOClass: DTOClass<DTO, D, *>,
-        input:List<D>
-    ): ResultList<DTO, D> =
-        runTaskAsync("updateSwitching") {
-            val result = withDTOContextCreating(parentResult.getAsCommonDTO(),  ownDTOClass) {
-                update(input, this)
-            }
-            result
-        }.resultOrException()
+        input: List<D>
+    ): ResultList<DTO, D> {
+        TODO("Part of refactro")
+
+//        val result = withDTOContextCreating(parentResult.getAsCommonDTO(), ownDTOClass) {
+//            update(input, this)
+//        }
+//        result
+    }
+}
 
 }

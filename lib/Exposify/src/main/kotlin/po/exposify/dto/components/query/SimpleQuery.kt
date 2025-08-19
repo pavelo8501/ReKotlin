@@ -1,17 +1,8 @@
 package po.exposify.dto.components.query
 
-import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.QueryBuilder
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.and
-import po.exposify.dto.RootDTO
-import po.exposify.dto.components.ExecutionContext
-import po.exposify.dto.components.result.ResultSingle
-import po.exposify.dto.components.result.toResult
-import po.exposify.dto.components.tracker.CrudOperation
-import po.exposify.dto.interfaces.DataModel
-import po.exposify.dto.interfaces.ModelDTO
 
 
 fun Op<Boolean>.toSqlString(): String {

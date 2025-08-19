@@ -8,7 +8,6 @@ import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.coroutines.HotFlowEmitter
-import po.misc.data.helpers.output
 import po.misc.functions.registries.builders.notifierRegistryOf
 import po.misc.functions.registries.builders.subscribe
 import po.misc.functions.registries.builders.taggedRegistryOf
@@ -32,8 +31,8 @@ class Process<T>(
     val dispatcher: CoroutineDispatcher,
 ): LoggerProcess<T> where T: Processable{
 
-
     override val identity: CTXIdentity<Process<T>> = asIdentity()
+
     override val handler: ProcessHandler = ProcessHandler(this)
 
     private val listenerScope =  CoroutineScope(CoroutineName("Listener"))
@@ -46,9 +45,8 @@ class Process<T>(
     val coroutineContext: CoroutineContext get() = scope.coroutineContext
 
     val timeStamp: ExecutionTimeStamp = ExecutionTimeStamp(processName, "LoggerProcess")
-    var onDataReceived: ((LogData)-> Unit)? = null
 
-    internal val onComplete = notifierRegistryOf<Process<*>>(ProcessStatus.Complete)
+    internal val onComplete = notifierRegistryOf<Process<T>>(ProcessStatus.Complete)
     internal val dataNotifier = taggedRegistryOf<ProcessEvents, LogData>()
 
     init {
@@ -56,9 +54,8 @@ class Process<T>(
     }
 
     private fun processDataReceived(data : LogData){
-        "processDataReceived".output()
         receiver.provideData(data)
-        onDataReceived?.invoke(data)
+        dataNotifier.trigger(data)
     }
 
     internal fun <R> complete(result:R):R{
@@ -69,10 +66,8 @@ class Process<T>(
         return result
     }
 
-    override fun CTX.onDataReceived(callback: (LogData) -> Unit) {
-        this@onDataReceived.subscribe(ProcessEvents.DataReceived, dataNotifier, callback)
-        onDataReceived = callback
-    }
+    override fun CTX.onDataReceived(callback: (LogData) -> Unit): Unit =
+        subscribe(ProcessEvents.DataReceived, dataNotifier, callback)
 
     fun observeTask(flowEmitter: HotFlowEmitter<LogData>) {
         flowEmitter.collectEmissions(listenerScope) { data ->

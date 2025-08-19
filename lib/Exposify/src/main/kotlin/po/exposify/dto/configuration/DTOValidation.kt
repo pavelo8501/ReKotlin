@@ -39,10 +39,10 @@ fun <DTO, D, E> DTOBase<DTO, D, E>.setupValidation(
                     it.columnData.isMandatory
                 }
 
-            val relationDelegates: List<RelationDelegate<DTO, D, E, *, *, *>> = validatableDTO.bindingHub.relationDelegates
-            val attachedForeign = validatableDTO.bindingHub.attachedForeignDelegates
-            val parentDelegates: List<ParentDelegate<DTO, D, E, *, *, *>> = validatableDTO.bindingHub.parentDelegates
-            val responsive: List<ResponsiveDelegate<DTO, D, E, *>> = bindingHub.responsiveDelegates
+            val relationDelegates  = validatableDTO.bindingHub.relationDelegateMap.values
+            val attachedForeign = validatableDTO.bindingHub.attachedForeignMap.values.toList()
+            val parentDelegates = validatableDTO.bindingHub.parentDelegateMap.values
+            val responsive: List<ResponsiveDelegate<DTO, D, E, *>> = bindingHub.responsiveDelegateMap.values.toList()
 
             val attachedNames = attachedForeign.map { it.attachedName }.toSet()
             val filteredMandatory =
@@ -65,16 +65,16 @@ fun <DTO, D, E> DTOBase<DTO, D, E>.setupValidation(
                 conditionNotNull(foreignKey.columnData.columnName, "Foreign key not configured") {
                     parentDelegates.firstOrNull { it.name == foreignKey.columnData.columnName }
                 }
-                parentDelegates.forEach { parentDelegate ->
-                    conditionNotNull("Parent DTO resolved", "Parent DTO not defined") {
-                        parentDelegate.lazyForeignDTO.value
-                    }
-                }
+//                parentDelegates.forEach { parentDelegate ->
+//                    conditionNotNull("Parent DTO resolved", "Parent DTO not defined") {
+//                        parentDelegate.commonDTO
+//                    }
+//                }
             }
 
             sequentialValidation(ValidationCheck.AttachedForeign.value, attachedForeign) { foreign ->
                 conditionTrue(foreign.contextName, "Attached foreign not configured") {
-                    foreign.foreignClass.status == DTOClassStatus.Initialized
+                    foreign.dtoBase.status == DTOClassStatus.Initialized
                 }
             }
 
@@ -83,8 +83,11 @@ fun <DTO, D, E> DTOBase<DTO, D, E>.setupValidation(
             }
 
             if (overallResult == CheckStatus.PASSED) {
+
                 relationDelegates.forEach { relation ->
-                    val newMember = dtoConfiguration.addHierarchMember(dtoClass, relation.foreignClass.initialization())
+                    val aa = relation.dtoClass.initialization()
+
+                    val newMember = dtoConfiguration.addHierarchMember(dtoClass, relation.dtoClass)
                     newMember.runValidation(validatableDTO)
                 }
             }

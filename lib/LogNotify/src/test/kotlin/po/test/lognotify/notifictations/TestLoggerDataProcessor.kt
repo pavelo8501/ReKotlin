@@ -53,25 +53,22 @@ class TestLoggerDataProcessor : FakeTasksManaged {
             mockRootTask("MuteNoEventsTask")
         val processor = muteNoEventsTask.dataProcessor
 
-        var output =
-            captureOutput {
-                processor.notify("UnmuteEvent", SeverityLevel.INFO, muteNoEventsTask)
+        var output = captureOutput {
+                processor.notify(muteNoEventsTask, "UnmuteEvent", SeverityLevel.INFO)
             }
         assertTrue(output.contains("MuteNoEventsTask") && output.contains("UnmuteEvent"))
 
         config.setConsoleBehaviour(ConsoleBehaviour.MuteInfo)
         val muteInfoTask: RootTask<TestLoggerDataProcessor, Unit> =
             mockRootTask("MutedInfoTask")
-        output =
-            captureOutput {
-                muteInfoTask.dataProcessor.notify("MutedInfo", SeverityLevel.INFO, muteInfoTask)
+        output = captureOutput {
+                muteInfoTask.dataProcessor.notify(muteInfoTask, "MutedInfo", SeverityLevel.INFO)
             }
         assertTrue(output.isEmpty())
         assertEquals(1, muteInfoTask.dataProcessor.taskData.events.records.size)
 
-        output =
-            captureOutput {
-                muteInfoTask.dataProcessor.notify("UnMutableWarning", SeverityLevel.WARNING, muteInfoTask)
+        output = captureOutput {
+                muteInfoTask.dataProcessor.notify(muteInfoTask, "UnMutableWarning", SeverityLevel.WARNING)
             }
         assertTrue(output.contains("UnMutableWarning"))
     }
@@ -80,8 +77,8 @@ class TestLoggerDataProcessor : FakeTasksManaged {
     fun `TaskEvents(group) saves LogEvents as expected`() {
         val taskGroup = processor.taskData.events
         taskGroup.clear()
-        processor.notify("Info message", SeverityLevel.INFO, rootTask)
-        processor.notify("Warning message", SeverityLevel.WARNING, rootTask)
+        processor.notify(rootTask, "Info message", SeverityLevel.INFO)
+        processor.notify(rootTask, "Warning message", SeverityLevel.WARNING)
         assertTrue(taskGroup.groupHost.taskHeader.isNotEmpty())
         assertTrue(taskGroup.groupHost.taskFooter.isNotEmpty())
         assertEquals(2, taskGroup.records.size)
@@ -91,8 +88,8 @@ class TestLoggerDataProcessor : FakeTasksManaged {
     fun `TaskEvents(group) saves LogEvents from all logger instances`() {
         val actionSpan = rootTask.createActionSpan<Companion, Unit>("TestTask", TestLoggerDataProcessor)
         val taskGroup = processor.taskData.events
-        processor.notify("Info message", SeverityLevel.INFO, rootTask)
-        processor.notify("ActionSpan message", SeverityLevel.INFO, actionSpan)
+        processor.notify(rootTask, "Info message", SeverityLevel.INFO)
+        processor.notify(actionSpan, "ActionSpan message", SeverityLevel.INFO)
         assertTrue(taskGroup.records.size == 2)
     }
 }

@@ -50,7 +50,7 @@ class TestDTOTracker: DatabaseTest(), TasksManaged {
         )
         withConnection{
             service(UserDTO, TableCreateMode.ForceRecreate) {
-                updatedById = update(user).getDataForced().id
+                updatedById = update(user).dataUnsafe.id
             }
         }
     }

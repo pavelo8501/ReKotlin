@@ -35,7 +35,6 @@ data class Page(
 
 class PageDTO : CommonDTO<PageDTO, Page, PageEntity>(this) {
 
-
     var name: String by binding(Page::name, PageEntity::name)
     var langId: Int by binding(Page::langId, PageEntity::langId)
     var updated: LocalDateTime by binding(Page::updated, PageEntity::updated)
@@ -47,6 +46,7 @@ class PageDTO : CommonDTO<PageDTO, Page, PageEntity>(this) {
     val sections: List<SectionDTO> by oneToManyOf(SectionDTO, Page::sections, PageEntity::sections, SectionEntity::page)
 
     companion object : RootDTO<PageDTO, Page, PageEntity>(dtoOf(PageDTO)) {
+
         val INSERT = SingleDescriptor(this)
         val Update = SingleDescriptor(this)
         val Pick =   SingleDescriptor(this)

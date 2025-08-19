@@ -5,32 +5,22 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import po.auth.authentication.authenticator.models.AuthenticationPrincipal
-import po.exposify.dto.components.ContextEvents
-import po.exposify.dto.components.ContextListEvents
+import po.exposify.dto.components.executioncontext.ContextEvents
+import po.exposify.dto.components.executioncontext.ContextListEvents
 import po.exposify.scope.launchers.pick
 import po.exposify.scope.launchers.select
-import po.exposify.scope.launchers.update
 import po.exposify.scope.sessions.withHooks
 import po.exposify.scope.sessions.withListHooks
 import po.lognotify.TasksManaged
-import po.lognotify.launchers.runProcess
-import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
-import po.misc.data.helpers.indentText
-import po.misc.data.helpers.output
-import po.misc.data.helpers.withIndent
 import po.misc.data.printable.PrintableBase
 import po.misc.functions.registries.addHook
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.dtos.PageDTO
-import po.test.exposify.setup.dtos.Section
 import po.test.exposify.setup.dtos.SectionDTO
-import po.test.exposify.setup.dtos.User
 import po.test.exposify.setup.dtos.UserDTO
 import po.test.exposify.setup.mocks.mockPages
-import po.test.exposify.setup.mocks.mockedPage
 import po.test.exposify.setup.mocks.mockedSession
 import po.test.exposify.setup.mocks.mockedUser
 import po.test.exposify.setup.mocks.newMockedSession
@@ -54,7 +44,7 @@ class TestSessionProcess : DatabaseTest(), TasksManaged {
         withConnection {
             service(UserDTO) {
                 val result = update(mockedUser)
-                updatedBy = result.getDataForced().id
+                updatedBy = result.dataUnsafe.id
             }
         }
 
@@ -99,7 +89,7 @@ class TestSessionProcess : DatabaseTest(), TasksManaged {
         }
     }
 
-
+    @Test
     fun `Session stores data produced during CRUD calls`() = runTest {
 
         var selectCallbackSize: Int = 0

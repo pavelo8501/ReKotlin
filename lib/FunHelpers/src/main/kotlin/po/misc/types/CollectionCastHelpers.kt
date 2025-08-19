@@ -40,7 +40,6 @@ inline fun <reified T : Any> List<*>.castListOrThrow(
     return this.map{ it.castOrThrow(T::class, callingContext,  exceptionProvider) }
 }
 
-
 fun <T : Any> List<*>.castListOrManaged(
     kClass: KClass<T>,
     callingContext: Any,

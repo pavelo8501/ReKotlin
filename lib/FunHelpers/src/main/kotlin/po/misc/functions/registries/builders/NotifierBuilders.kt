@@ -1,24 +1,23 @@
 package po.misc.functions.registries.builders
 
 import po.misc.context.CTX
-import po.misc.exceptions.ManagedException
 import po.misc.functions.models.NotificationConfig
 import po.misc.functions.registries.NotifierRegistry
-import po.misc.functions.registries.TaggedRegistry
-import po.misc.types.getOrThrow
 
 
 fun <V: Any> Any.notifierRegistryOf(
-    identifiedBy: Any,
+    identifiedBy: Any? = null,
     configBuilder: (NotificationConfig.()-> Unit)? = null
 ): NotifierRegistry<V> {
 
-    val registry = when(identifiedBy){
+    val identified = identifiedBy?:this
+
+    val registry = when(identified){
         is Enum<*>->{
-            NotifierRegistry<V>(this, identifiedBy.name)
+            NotifierRegistry<V>(this, identified.name)
         }
         else -> {
-            NotifierRegistry<V>(this, identifiedBy.toString())
+            NotifierRegistry<V>(this, identified.toString())
         }
     }
     configBuilder?.invoke(registry.notifierConfig)

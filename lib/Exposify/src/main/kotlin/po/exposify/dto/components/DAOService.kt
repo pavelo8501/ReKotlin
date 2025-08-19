@@ -17,7 +17,9 @@ import po.lognotify.TasksManaged
 import po.lognotify.launchers.runAction
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
+import po.misc.data.helpers.output
 import po.misc.data.processors.SeverityLevel
+import po.misc.data.styles.Colour
 import kotlin.reflect.full.withNullability
 
 class DAOService<DTO, DATA, ENTITY>(
@@ -64,11 +66,11 @@ class DAOService<DTO, DATA, ENTITY>(
             result
         }
 
-    fun save(block: (entity: ENTITY) -> Unit): ENTITY = runAction("Save", commonDTOType.entityType.kType) {
+    fun save(block: (entity: ENTITY) -> Unit): ENTITY {
         val newEntity = entityClass.new {
             block.invoke(this)
         }
-        newEntity
+       return newEntity
     }
 
 

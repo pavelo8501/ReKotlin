@@ -47,7 +47,7 @@ class TestSelect :
         }
         withConnection {
             service(UserDTO, TableCreateMode.ForceRecreate) {
-                updatedById = update(mockedUser).getDataForced().id
+                updatedById = update(mockedUser).dataUnsafe.id
             }
         }
 
@@ -66,7 +66,9 @@ class TestSelect :
 
     @Test
     fun `Sequenced SELECT statement`(): TestResult = runTest {
-        val result = with(mockedSession) { launch(PageDTO.Select) }
+        val result = with(mockedSession) {
+            launch(PageDTO.Select)
+        }
         assertIs<ResultList<*, *>>(result)
         assertTrue(!result.isFaulty)
         assertEquals(10, result.dto.size)

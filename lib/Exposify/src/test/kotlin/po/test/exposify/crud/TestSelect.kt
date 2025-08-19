@@ -18,7 +18,6 @@ import po.exposify.dto.components.query.deferredQuery
 import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
 import po.lognotify.notification.models.ConsoleBehaviour
-import po.lognotify.notification.models.NotifyConfig
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
@@ -60,7 +59,7 @@ class TestSelect : DatabaseTest(), TasksManaged {
         )
         withConnection {
             service(UserDTO, TableCreateMode.ForceRecreate) {
-                updatedById = update(user).getDataForced().id
+                updatedById = update(user).dataUnsafe.id
             }
         }
     }
@@ -92,7 +91,7 @@ class TestSelect : DatabaseTest(), TasksManaged {
             service(PageDTO, TableCreateMode.ForceRecreate) {
                 PageDTO.clearCachedDTOs()
                 truncate()
-                update(initialPage).getDataForced()
+                update(initialPage).dataUnsafe
                 persistedPages = select().data
             }
         }
@@ -242,8 +241,8 @@ class TestSelect : DatabaseTest(), TasksManaged {
 
         assertNotEquals(0, updatedPage.id)
         assertEquals(updatedPage.id, selectedPage.id, "Page id mismatch")
-        assertTrue(updatedPage.sections.size == 2, "Sections empty in updated")
-        assertTrue(selectedPage.sections.size == 2, "Sections empty in selected")
+        assertEquals(2, updatedPage.sections.size, "Sections empty in updated")
+        assertEquals(2, selectedPage.sections.size,  "Sections empty in selected")
         assertEquals(controlName, updatedPage.sections.first().name, "Name property on Sections was not updated")
         assertEquals(controlName, selectedPage.sections.first().name, "Name property on Sections was not updated on Select")
         val updatedFirstSection = updatedPage.sections.first()
