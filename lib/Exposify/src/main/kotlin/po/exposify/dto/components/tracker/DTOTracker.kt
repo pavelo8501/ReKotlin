@@ -1,94 +1,103 @@
 package po.exposify.dto.components.tracker
 
+import org.jetbrains.exposed.dao.LongEntity
+import po.exposify.common.events.DTOData
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.components.bindings.property_binder.interfaces.ObservableData
+import po.exposify.dto.components.tracker.extensions.resolveHierarchy
 import po.exposify.dto.components.tracker.interfaces.TrackableDTO
-import po.exposify.dto.enums.Components
+import po.exposify.dto.components.tracker.models.DTOEvents
+import po.exposify.dto.components.tracker.models.TrackerConfig
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.misc.interfaces.Identifiable
-import po.misc.interfaces.IdentifiableContext
-import po.misc.interfaces.asIdentifiable
+import po.lognotify.TasksManaged
+import po.misc.callbacks.CallbackManager
+import po.misc.callbacks.builders.callbackBuilder
+import po.misc.callbacks.builders.createPayload
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.data.printable.printableProxy
+import po.misc.context.asSubIdentity
+import po.misc.lookups.HierarchyNode
+import po.misc.lookups.transformNode
 import po.misc.time.ExecutionTimeStamp
 import po.misc.time.MeasuredContext
 import po.misc.time.startTimer
-import po.misc.time.stopTimer
 
+class DTOTracker<DTO: ModelDTO, D: DataModel, E: LongEntity>(
+    internal val dto : CommonDTO<DTO, D, E>):  MeasuredContext, TrackableDTO, TasksManaged
+{
 
-class DTOTracker<DTO: ModelDTO, DATA: DataModel>(
-    internal val dto : CommonDTO<DTO, DATA, *>,
-   @PublishedApi internal val config : TrackerConfig = TrackerConfig(),
-):  MeasuredContext, TrackableDTO{
+    override val identity: CTXIdentity<DTOTracker<DTO, D, E>> = asSubIdentity(this, dto)
+    override val executionTimeStamp: ExecutionTimeStamp = ExecutionTimeStamp(dto.completeName, "-1")
+    @PublishedApi internal var config : TrackerConfig<*> = TrackerConfig()
 
-    override val executionTimeStamp: ExecutionTimeStamp = ExecutionTimeStamp(dto.completeName, dto.id.toString())
-    override var sourceName: String = dto.sourceName
-    override val contextName: String = "DTOTracker"
+    val tag: Enum<*>? get() = config.optionalTag
 
-    private var activeRecord : TrackerRecord = TrackerRecord(this, dto.id, CrudOperation.Create, dto.completeName)
-    private val trackRecords : MutableList<TrackerRecord> = mutableListOf()
+    var activeRecord : TrackerRecord = TrackerRecord(this, CrudOperation.Create, dto.completeName)
+        private set
 
-
-
-    override val records : List<ObservableData> get() = trackRecords.toList()
+    val trackRecords : MutableList<TrackerRecord> = mutableListOf(activeRecord)
     override val childTrackers : MutableList<TrackableDTO> = mutableListOf()
+    private val debug = printableProxy(this, DTOData.Debug){ params->
+        debug(DTOData(this, params.message), DTOData, params.template)
+    }
+
+    internal fun dtoIdUpdated(id: Long){
+        identity.setId(id)
+    }
+
+    fun updateConfig(trackerConfig:TrackerConfig<*>){
+
+        config = trackerConfig
+    }
+
+    internal fun logDebug(message: String, byContext: CTX){
+        val toDebugMsg = "$message by ${byContext.contextName}"
+        debug.logMessage(toDebugMsg)
+    }
 
     private fun finalizeLast(){
-        activeRecord.finalize(dto,stopTimer())
+        executionTimeStamp.stopTimer()
+        activeRecord.finalizeRecord()
+        trackRecords.add(activeRecord)
+        if(trackRecords.size > 1){ onComplete() }
     }
 
-    fun propertyUpdated(update: ObservableData){
-        activeRecord.addAction(update)
+    private fun onStart(){
+
     }
-    fun relationPropertyUpdated(update: ObservableData){
-        activeRecord.addAction(update)
+    private fun onComplete(){
+
     }
-    fun addTrackInfo(operation:CrudOperation, module: IdentifiableContext? = null):DTOTracker<DTO, DATA>{
-        if(activeRecord.operation == CrudOperation.Initialize){
-            addTrackResult(CrudOperation.Initialize)
+
+    fun resolveHierarchy(): HierarchyNode<TrackableDTO>{
+        val dtoNode =   dto.resolveHierarchy()
+        val transformed = transformNode(dtoNode){dto ->
+            (dto).tracker as TrackableDTO
         }
-        activeRecord = TrackerRecord(this, dto.id, operation, module?.contextName?:"")
-        trackRecords.add(activeRecord)
-        return startTimer()
+        return transformed
+    }
+
+//    fun propertyUpdated(update: List<PropertyUpdate<*>>){
+//        activeRecord.setPropertyUpdate(update)
+//    }
+
+    fun addTrackInfo(operation:CrudOperation, module: CTX? = null):DTOTracker<DTO, D, E>{
+        finalizeLast()
+        if(activeRecord.operation != CrudOperation.Create){ onStart() }
+        activeRecord = TrackerRecord(this, operation, module?.contextName?:"")
+        debug.logMessage("Active CRUD: $activeRecord", DTOData.Stats)
+        startTimer()
+        return this
     }
 
     fun addTrackResult(operation:CrudOperation? = null) {
-
-        trackRecords.firstOrNull { it.operation == operation }?.finalize(dto, stopTimer())?:finalizeLast()
-    }
-
-
-    private fun collectTrackersInto(parentDto : CommonDTO<*, *, *>) {
-//        parentDto.getDtoRepositories().forEach {repo->
-//            when(repo){
-//                is SingleRepository->{
-//                    repo.getDTO().let {
-//                        parentDto.tracker.childTrackers.add(it.tracker)
-//                        collectTrackersInto(it)
-//                    }
-//                }
-//                is MultipleRepository->{
-//                    val list =  repo.getDTO()
-//                    if(list.isNotEmpty()){
-//                        list.forEach {
-//                            parentDto.tracker.childTrackers.add(it.tracker)
-//                            collectTrackersInto(it)
-//                        }
-//                    }
-//                }
-//            }
-//        }
-
-        TODO("Awaiting refactor")
-    }
-
-    fun collectTrackers(): TrackableDTO {
-       // collectTrackersInto(this.dto)
-        return this
+        trackRecords.firstOrNull { it.operation == operation }?.finalizeRecord()?:finalizeLast()
     }
 
     fun TrackableDTO.getTrace(indent: String = "", isLast: Boolean = true): String {
         val connector = if (indent.isEmpty()) "" else if (isLast) "└── " else "├── "
-        val line = "$indent$connector[$completeName] (${records.size} changes)"
+        val line = "$indent$connector[$completeName] (${trackRecords.size} changes)"
         val nextIndent = indent + if (isLast) "    " else "│   "
         val childLines = childTrackers.mapIndexed { index, child ->
             child.getTrace(nextIndent, index == childTrackers.lastIndex)
@@ -98,6 +107,10 @@ class DTOTracker<DTO: ModelDTO, DATA: DataModel>(
 
     fun printTrace(){
         println(getTrace())
+    }
+
+    override fun toString(): String {
+        return "DTO(${dto.identity.identifiedByName}#${dto.id})"
     }
 
 }

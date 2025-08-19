@@ -2,95 +2,86 @@ package po.exposify.dto.components
 
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.dao.LongEntity
-import po.exposify.dto.interfaces.DataModel
 import po.exposify.common.classes.ClassBlueprint
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.DTOBase
-import po.exposify.dto.components.tracker.CrudOperation
-import po.exposify.dto.components.tracker.DTOTracker
-import po.exposify.dto.components.tracker.extensions.addTrackerInfo
+import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.dto.models.SourceObject
+import po.exposify.dto.models.CommonDTOType
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.exceptions.operationsException
 import po.exposify.extensions.castOrOperations
 import po.lognotify.TasksManaged
 import po.lognotify.anotations.LogOnFault
-import po.lognotify.classes.action.InlineAction
-import po.lognotify.classes.task.TaskHandler
-import po.lognotify.extensions.subTask
-import po.misc.callbacks.manager.CallbackManager
-import po.misc.callbacks.manager.builders.callbackManager
-import po.misc.interfaces.IdentifiableClass
+import po.lognotify.launchers.runAction
+import po.misc.callbacks.CallbackManager
+import po.misc.callbacks.builders.callbackManager
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
+import po.misc.context.asSubIdentity
+import po.misc.functions.registries.TaggedRegistry
+import po.misc.functions.registries.builders.taggedRegistryOf
 import po.misc.interfaces.ValueBased
-import po.misc.interfaces.asIdentifiableClass
-import po.misc.types.TypeRecord
-import po.misc.registries.type.TypeRegistry
 import po.misc.serialization.SerializerInfo
+import po.misc.types.TypeData
 import kotlin.reflect.KType
 
-class DTOFactory<DTO, DATA, ENTITY>(
-    private val dtoClass: DTOBase<DTO, DATA, ENTITY>
-): IdentifiableClass, InlineAction where DTO : ModelDTO, DATA: DataModel, ENTITY: LongEntity {
-
-    enum class Events(override val value: Int) : ValueBased{
+sealed class DTOFactoryBase<DTO, D, E>(
+    protected val dtoConfiguration: DTOConfig<DTO, D, E>,
+) : TasksManaged where DTO : ModelDTO, D : DataModel, E : LongEntity {
+    enum class Events(
+        override val value: Int,
+    ) : ValueBased {
         OnCreated(1),
-        OnInitialized(2)
+        OnInitialized(2),
     }
 
-    override val identity = asIdentifiableClass("DTOFactory", dtoClass.completeName)
-    override val contextName : String get()= identity.componentName
+    protected val eventTypeKey: Class<Events> = Events::class.java
+    protected val commonDTOType: CommonDTOType<DTO, D, E> get() = dtoConfiguration.commonDTOType
+    abstract override val identity: CTXIdentity<out CTX>
 
-    val notifier = callbackManager<Events>(
-        { CallbackManager.createPayload<Events, CommonDTO<DTO, DATA, ENTITY>>(it, Events.OnInitialized) }
-    )
-    val onCreatedPayload = CallbackManager.createPayload<Events, CommonDTO<DTO, DATA, ENTITY>>(notifier, Events.OnCreated)
+    val dtoType: TypeData<DTO> get() = commonDTOType.dtoType
+    val dataType: TypeData<D> get() = commonDTOType.dataType
 
-    val  dataType : TypeRecord<DATA> get() =  dtoClass.dataType
-    val  dtoType: TypeRecord<DTO> get() = dtoClass.dtoType
+    val notifier =
+        callbackManager<Events>(
+            { CallbackManager.createPayload<Events, CommonDTO<DTO, D, E>>(this, Events.OnInitialized) },
+        )
 
-    val config: DTOConfig<DTO, DATA, ENTITY>
-        get() = dtoClass.config
+    val onCreatedPayload =
+        CallbackManager.createPayload<Events, CommonDTO<DTO, D, E>>(notifier, Events.OnCreated)
 
-    internal val dataBlueprint: ClassBlueprint<DATA> = ClassBlueprint(dataType.clazz)
-    val dtoBlueprint: ClassBlueprint<DTO> = ClassBlueprint(dtoType.clazz)
+    internal val dataBlueprint: ClassBlueprint<D> = ClassBlueprint(commonDTOType.dataType.kClass)
+    val dtoBlueprint: ClassBlueprint<DTO> = ClassBlueprint(commonDTOType.dtoType.kClass)
 
-    var dataModelBuilderFn: (() -> DATA)? = null
+    var dataModelBuilderFn: (() -> D)? = null
 
     @LogOnFault
     val typedSerializers: MutableMap<String, SerializerInfo<*>> = mutableMapOf()
 
-    fun setDataModelConstructor(dataModelBuilder: (() -> DATA)) {
+    fun setDataModelConstructor(dataModelBuilder: (() -> D)) {
         dataModelBuilderFn = dataModelBuilder
     }
 
-    fun serializerLookup(propertyName: String, type: KType):SerializerInfo<*>?{
-
-        return if(typedSerializers.containsKey(propertyName)){
-            typedSerializers[propertyName]
-        }else{
-            dtoClass.serializerLookup(type)?.let {
-                typedSerializers[propertyName] = it
-                it
-            }
+    fun serializerLookup(
+        propertyName: String,
+        type: KType,
+    ): SerializerInfo<*>? {
+        return typedSerializers.getOrPut(propertyName) {
+            dtoConfiguration.serializerLookup(type)
+                ?: return null
         }
-    }
 
-    fun dtoPostCreation(dto: CommonDTO<DTO, DATA, ENTITY>): CommonDTO<DTO, DATA, ENTITY> =
-        subTask("dtoPostCreation") { handler ->
-            val result = if (config.trackerConfigModified) {
-                dto.initialize(DTOTracker(dto, config.trackerConfig))
-                dto.addTrackerInfo(CrudOperation.Initialize, this)
-            } else {
-                dto.addTrackerInfo(CrudOperation.Initialize, this)
-                dto.initialize()
-                notifier.trigger(Events.OnInitialized, dto)
-                dto
-            }
-            result
-        }.onFail {
-            val a = 10
-        } .resultOrException()
+//        return if (typedSerializers.containsKey(propertyName)) {
+//            typedSerializers[propertyName]
+//        } else {
+//            dtoConfiguration.serializerLookup(type)?.let {
+//                typedSerializers[propertyName] = it
+//                it
+//            }
+//        }
+    }
 
     /**
      * Create new instance of DatModel injectable to the specific DTOFunctions<DATA, ENTITY> described by generics set
@@ -98,23 +89,47 @@ class DTOFactory<DTO, DATA, ENTITY>(
      * @input constructFn : (() -> DATA)? = null
      * @return DATA
      * */
-    fun createDataModel(): DATA = subTask("Create DataModel") { handler ->
-        val constructFn = dataModelBuilderFn
-        val dataModel = if (constructFn != null) {
-            constructFn.invoke()
-        } else {
-            dataBlueprint.setExternalParamLookupFn { param ->
-                serializerLookup(param.name.toString(),  param.type)?.let {
-                    Json.Default.decodeFromString(it.serializer, "[]")
-                }?:run {
-                   throw OperationsException("Requested parameter name: ${param.name} $completeName", ExceptionCode.FACTORY_CREATE_FAILURE, null)
+    fun createDataModel(): D =
+        runAction("Create DataModel", dataType.kType) {
+            val constructFn = dataModelBuilderFn
+            val dataModel =
+                if (constructFn != null) {
+                    constructFn.invoke()
+                } else {
+                    dataBlueprint.setExternalParamLookupFn { param ->
+                        serializerLookup(param.name.toString(), param.type)?.let {
+                            Json.Default.decodeFromString(it.serializer, "[]")
+                        } ?: run {
+                            val errorMsg = "Constructor param ${param.name} not found"
+                            throw operationsException(errorMsg, ExceptionCode.REFLECTION_ERROR, this)
+                        }
+                    }
+                    val result = dataBlueprint.getConstructor().callBy(dataBlueprint.getConstructorArgs())
+                    result
                 }
-            }
-            val result = dataBlueprint.getConstructor().callBy(dataBlueprint.getConstructorArgs())
+            dataModel
+        }
+
+    abstract fun createDto(byDataModel: D? = null): CommonDTO<DTO, D, E>
+}
+
+class DTOFactory<DTO, D, E>(
+    dtoConfiguration: DTOConfig<DTO, D, E>,
+) : DTOFactoryBase<DTO, D, E>(dtoConfiguration) where DTO : ModelDTO, D : DataModel, E : LongEntity {
+    override val identity: CTXIdentity<DTOFactory<DTO, D, E>> = asIdentity()
+
+    private fun dtoPostCreation(dto: CommonDTO<DTO, D, E>): CommonDTO<DTO, D, E> =
+        runAction("dtoPostCreation", commonDTOType.dtoType.kType) {
+            val result =
+                if (dtoConfiguration.trackerConfigModified) {
+                    dto.initialize(dtoConfiguration.trackerConfig)
+                } else {
+                    dto.initialize()
+                    notifier.trigger(Events.OnInitialized, dto)
+                    dto
+                }
             result
         }
-        dataModel
-    }.resultOrException()
 
     /**
      * Create new instance of  DTOFunctions
@@ -123,29 +138,89 @@ class DTOFactory<DTO, DATA, ENTITY>(
      * @input dataModel:  DATA?
      * @return DTOFunctions<DATA, ENTITY> or null
      * */
-    fun createDto(withDataModel: DATA? = null): CommonDTO<DTO, DATA, ENTITY> =
-        subTask("Create DTO") { handler ->
+    override fun createDto(byDataModel: D?): CommonDTO<DTO, D, E> =
+        runAction("Create DTO", dtoType.kType) {
             dtoBlueprint.setExternalParamLookupFn { param ->
                 when (param.name) {
                     "dataModel" -> {
-                        if(withDataModel != null){
-                            withDataModel
-                        }else{
+                        if (byDataModel != null) {
+                            byDataModel
+                        } else {
+                            val result = createDataModel()
+                            result
+                        }
+                    }
+
+                    else -> {
+                        val errorMessage = "Parameter ${param.name} unavailable when creating dataModel"
+                        throw OperationsException(errorMessage, ExceptionCode.REFLECTION_ERROR, this, null)
+                    }
+                }
+            }
+            val newDto = dtoBlueprint.getConstructor().callBy(dtoBlueprint.getConstructorArgs())
+            val asCommonDTO = newDto.castOrOperations<CommonDTO<DTO, D, E>>(this)
+            if (byDataModel != null) {
+                asCommonDTO.dataContainer.provideValue(byDataModel)
+            }
+            notifier.trigger(Events.OnCreated, asCommonDTO)
+            dtoPostCreation(asCommonDTO)
+        }
+}
+
+class CommonDTOFactory<DTO, D, E, F, FD, FE>(
+    dtoConfiguration: DTOConfig<DTO, D, E>,
+    hostingDTO: CommonDTO<F, FD, FE>,
+) : DTOFactoryBase<DTO, D, E>(dtoConfiguration)
+    where DTO : ModelDTO, D : DataModel, E : LongEntity, F : ModelDTO, FD : DataModel, FE : LongEntity {
+    override val identity: CTXIdentity<CommonDTOFactory<DTO, D, E, F, FD, FE>> = asSubIdentity(this, hostingDTO)
+
+    val onDTOCreated: TaggedRegistry<Events, CommonDTO<DTO, D, E>> = taggedRegistryOf<Events, CommonDTO<DTO, D, E>>(Events.OnCreated)
+
+    private fun dtoPostCreation(dto: CommonDTO<DTO, D, E>): CommonDTO<DTO, D, E> =
+        runAction("dtoPostCreation", commonDTOType.dtoType.kType) {
+            val result =
+                if (dtoConfiguration.trackerConfigModified) {
+                    dto.initialize(dtoConfiguration.trackerConfig)
+                } else {
+                    dto.initialize()
+                    notifier.trigger(Events.OnInitialized, dto)
+                    dto
+                }
+            onDTOCreated.trigger(Events.OnCreated, dto)
+            result
+        }
+
+    /**
+     * Create new instance of  DTOFunctions
+     * if input param dataModel provided use it as an injection into constructor
+     * if not then create new DataModel instance with default parameters i.e. no data will be preserved
+     * @input dataModel:  DATA?
+     * @return DTOFunctions<DATA, ENTITY> or null
+     * */
+    override fun createDto(byDataModel: D?): CommonDTO<DTO, D, E> =
+        runAction("Create DTO", dtoType.kType) {
+            dtoBlueprint.setExternalParamLookupFn { param ->
+                when (param.name) {
+                    "dataModel" -> {
+                        if (byDataModel != null) {
+                            byDataModel
+                        } else {
                             val result = createDataModel()
                             result
                         }
                     }
                     else -> {
-                        throw OperationsException(
-                            "Parameter ${param.name} unavailable when creating dataModel",
-                            ExceptionCode.VALUE_NOT_FOUND, null
-                        )
+                        val errorMessage = "Parameter ${param.name} unavailable when creating dataModel"
+                        throw OperationsException(errorMessage, ExceptionCode.REFLECTION_ERROR, this, null)
                     }
                 }
             }
             val newDto = dtoBlueprint.getConstructor().callBy(dtoBlueprint.getConstructorArgs())
-                .castOrOperations<CommonDTO<DTO, DATA, ENTITY>>(this)
-            notifier.trigger(Events.OnCreated, newDto)
-            dtoPostCreation(newDto)
-        }.resultOrException()
+            val asCommonDTO = newDto.castOrOperations<CommonDTO<DTO, D, E>>(this)
+            if (byDataModel != null) {
+                asCommonDTO.dataContainer.provideValue(byDataModel)
+            }
+            notifier.trigger(Events.OnCreated, asCommonDTO)
+            dtoPostCreation(asCommonDTO)
+        }
 }

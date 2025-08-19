@@ -1,13 +1,10 @@
 package po.misc.types
 
 import kotlin.reflect.KClass
+import kotlin.reflect.KClassifier
 import kotlin.reflect.KType
 import kotlin.reflect.typeOf
 
-
-inline fun <reified T: Any> T.getKType(): KType {
-    return typeOf<T>()
-}
 
 fun KType.asStableString(): String {
     val qualifiedTypeName = classifier?.let {
@@ -30,4 +27,10 @@ fun KType.toSimpleNormalizedKey(): String {
         }
         else -> classifier.toString()
     }
+}
+
+fun  KClassifier?.simplifiedName(): String{
+   return this?.let {
+        (it as KClass<*>).simpleName.toString()
+    }?:"Null"
 }

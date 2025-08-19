@@ -43,11 +43,7 @@ class TestPropertyHelpers {
 
     @Test
     fun `Property info fully initialized`(){
-
         val instance = SourceClass()
-
-
-
     }
 
 
@@ -68,7 +64,6 @@ class TestPropertyHelpers {
 
         assertEquals(3, transformedMap.size)
         assertInstanceOf<CheckedPropertyRecord>(transformedMap.values.firstOrNull())
-
     }
 
 }

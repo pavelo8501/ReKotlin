@@ -5,63 +5,70 @@ import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.exists
-import org.jetbrains.exposed.sql.transactions.transaction
 import po.auth.sessions.models.AuthorizedSession
+import po.exposify.dao.transaction.withTransactionIfNone
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.RootDTO
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.scope.connection.ConnectionClass
 import po.exposify.scope.connection.controls.CoroutineEmitter
-import po.exposify.scope.service.enums.TableCreateMode
+import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
-import po.lognotify.classes.task.TaskHandler
-import po.lognotify.lastTaskHandler
-import po.misc.interfaces.IdentifiableClass
-import po.misc.interfaces.asIdentifiableClass
+import po.lognotify.process.Process
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
 
 class ServiceClass<DTO, DATA, ENTITY>(
     private val rootDTOModel: RootDTO<DTO, DATA, ENTITY>,
-    @PublishedApi internal val connectionClass : ConnectionClass,
-    private val serviceCreateOption: TableCreateMode = TableCreateMode.CREATE,
-):  TasksManaged, IdentifiableClass  where  DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity {
+    @PublishedApi internal val connectionClass : ConnectionClass
+):  TasksManaged  where  DTO: ModelDTO, DATA : DataModel, ENTITY : LongEntity {
 
-    private val serviceContext: ServiceContext<DTO, DATA, ENTITY> = ServiceContext(this, rootDTOModel)
+    override val identity: CTXIdentity<ServiceClass<DTO, DATA, ENTITY>> = asIdentity()
+
+    private var tableRecreationList: List<IdTable<Long>>? = null
+
     internal val connection: Database get() = connectionClass.connection
-    val logger : TaskHandler<*> get()= lastTaskHandler()
-
-    override val identity = asIdentifiableClass("ServiceClass", rootDTOModel.completeName)
+    val serviceContext: ServiceContext<DTO, DATA, ENTITY> = ServiceContext(this, rootDTOModel)
 
     private var running: Boolean = true
 
-    private fun prepareTables(serviceCreateOption: TableCreateMode) {
-        val tableList = mutableListOf<IdTable<Long>>()
-        rootDTOModel.getAssociatedTables(tableList)
-        val dropStatement =  rootDTOModel.config.entityModel.sourceTable.dropStatement()
-        when (serviceCreateOption) {
-            TableCreateMode.CREATE -> {
-                logger.info("Creating tables TableCreateMode.CREATE")
+
+    private fun prepareTables(createOption: TableCreateMode) {
+        when (createOption) {
+            TableCreateMode.Create -> {
+                val tableList = mutableListOf<IdTable<Long>>()
+                rootDTOModel.getAssociatedTables(tableList)
+                notify("Creating tables TableCreateMode.CREATE")
                 tableList.forEach {table->
                     if (!table.exists()) {
-                        logger.info("Creating table ${table.tableName}")
+                        notify("Creating table ${table.tableName}")
                         SchemaUtils.create(table)
-                        logger.info("${table.tableName} created")
+                        notify("${table.tableName} created")
                     }else{
-                        logger.info("Table ${table.tableName} skip. Already exists")
+                        notify("Table ${table.tableName} skip. Already exists")
                     }
                 }
             }
-            TableCreateMode.FORCE_RECREATE -> {
-                val backwards = tableList.reversed()
-                logger.info("Dropping tables  TableCreateMode.FORCE_RECREATE  ${backwards.onEach { "${it.tableName}, " }}")
-                SchemaUtils.drop(*backwards.toTypedArray<IdTable<Long>>(), inBatch = true)
-                logger.info("Dropped. Recreating")
+            TableCreateMode.ForceRecreate -> {
+                val tableList = TableCreateMode.ForceRecreate.tables.ifEmpty {
+                    val newList = mutableListOf<IdTable<Long>>()
+                    rootDTOModel.getAssociatedTables(newList)
+                    newList.reversed()
+                }
+                notify("Dropping tables  TableCreateMode.FORCE_RECREATE  ${tableList.joinToString(", "){it.tableName} }")
+                SchemaUtils.drop(*tableList.toTypedArray<IdTable<Long>>(), inBatch = true)
+                notify("Dropped. Recreating")
                 tableList.forEach {table->
-                    logger.info("Creating table ${table.tableName}")
+                    notify("Creating table ${table.tableName}")
                     SchemaUtils.create(table)
-                    logger.info("${table.tableName} created")
+                    notify("${table.tableName} created")
                 }
             }
         }
+    }
+
+    internal fun recreateUsing(tables: List<IdTable<Long>>){
+        tableRecreationList = tables
     }
 
     internal fun deinitializeService(){
@@ -69,22 +76,21 @@ class ServiceClass<DTO, DATA, ENTITY>(
         rootDTOModel.finalize()
     }
 
-    internal fun initService(rootDTOModel: RootDTO<DTO, DATA, ENTITY>){
-        transaction {
+    internal fun initService(
+        rootDTOModel: RootDTO<DTO, DATA, ENTITY>,
+        serviceCreateOption: TableCreateMode = TableCreateMode.Create,
+        block:  (ServiceContext<DTO, DATA, ENTITY>.()->Unit)? = null
+    ): ServiceContext<DTO, DATA, ENTITY>{
+        withTransactionIfNone(serviceContext.debugger, false){
             if(running){
                 rootDTOModel.initialization(serviceContext)
                 prepareTables(serviceCreateOption)
+                block?.invoke(serviceContext)
             }
         }
+        return serviceContext
     }
-
-
-    internal fun runServiceContext(block:  ServiceContext<DTO, DATA, ENTITY>.()->Unit){
-        println("Before   ServiceContext invoked (runServiceContext)")
-        serviceContext.block()
-    }
-
-    internal suspend fun requestEmitter(session: AuthorizedSession): CoroutineEmitter
-        = connectionClass.requestEmitter(session)
+    internal suspend fun requestEmitter(process: Process<AuthorizedSession>): CoroutineEmitter =
+        connectionClass.requestEmitter(process)
 
 }

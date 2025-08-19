@@ -2,6 +2,7 @@ package po.exposify.dto.components.bindings.relation_binder.delegates
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.sql.SizedIterable
+import po.exposify.dao.transaction.withTransactionIfNone
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
@@ -9,199 +10,256 @@ import po.exposify.dto.DTOClass
 import po.exposify.dto.components.bindings.DelegateStatus
 import po.exposify.dto.components.bindings.helpers.newDTO
 import po.exposify.dto.components.bindings.interfaces.DelegateInterface
-import po.exposify.dto.components.bindings.interfaces.ForeignDelegateInterface
 import po.exposify.dto.components.tracker.CrudOperation
-import po.exposify.dto.components.tracker.extensions.addTrackerInfo
 import po.exposify.dto.enums.Cardinality
+import po.exposify.dto.helpers.asDTO
+import po.exposify.dto.helpers.checkDtoId
+import po.exposify.dto.helpers.warning
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.exceptions.InitException
 import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.exceptions.initException
+import po.exposify.exceptions.operationsException
 import po.exposify.extensions.castOrInit
+import po.exposify.extensions.castOrOperations
 import po.exposify.extensions.getOrOperations
-import po.lognotify.classes.action.InlineAction
-import po.lognotify.classes.action.runInlineAction
-import po.misc.data.SmartLazy
-import po.misc.interfaces.IdentifiableClass
-import po.misc.interfaces.asIdentifiableClass
-import po.misc.types.TypeRecord
-import po.misc.types.castOrThrow
+import po.lognotify.TasksManaged
+import po.misc.collections.exactlyOneOrThrow
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
+import po.misc.functions.registries.builders.require
+import po.misc.functions.registries.builders.subscribe
+import po.misc.types.castListOrManaged
+import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty
 import kotlin.reflect.KProperty1
 
 
-sealed class RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V: Any>(
-    val hostingDTO : CommonDTO<DTO, DATA, ENTITY>,
-    override val foreignClass: DTOClass<F_DTO, FD, FE>,
-    val foreignEntityProperty: KMutableProperty1<FE, ENTITY>
-): DelegateInterface<DTO, F_DTO>, ForeignDelegateInterface, IdentifiableClass, InlineAction
-        where DTO: ModelDTO, DATA: DataModel,  ENTITY : LongEntity,
-              F_DTO: ModelDTO, FD: DataModel,  FE: LongEntity
-{
+/**
+ * Here hostingDTO is Parent dto instance
+ * dtoClass is own(child) to hosting dto  class
+ */
 
-    override var status: DelegateStatus = DelegateStatus.Created
+sealed class RelationDelegate<DTO, D, E, F, FD, FE, R>(
+    protected val hostingDTO : CommonDTO<DTO, D, E>,
+    val dtoClass: DTOClass<F, FD, FE>
+):TasksManaged where DTO : ModelDTO, D : DataModel,  E : LongEntity, F : ModelDTO, FD : DataModel, FE : LongEntity {
+
+    abstract val entityProperty: KProperty<*>
+    var status: DelegateStatus = DelegateStatus.Created
     abstract val cardinality : Cardinality
 
-    override val hostingClass: DTOBase<DTO, *, *>
-        get() = hostingDTO.dtoClass
+    val hostingDTOClass: DTOBase<DTO, D, E> get() = hostingDTO.dtoClass
 
-    protected var onPropertyInitialized: ((KProperty<*>)-> Unit)? = null
-    private var propertyParameter : KProperty<F_DTO>? = null
-    val property: KProperty<F_DTO> get() = propertyParameter.getOrOperations(this)
-    val name : String by SmartLazy("Uninitialized"){ propertyParameter?.name }
-    override val identity = asIdentifiableClass("RelationDelegate", hostingDTO.sourceName)
+    protected val abnormalState:ExceptionCode = ExceptionCode.ABNORMAL_STATE
 
-    protected val dtoType : TypeRecord<DTO> get() =  hostingDTO.dtoType
-    protected val childType : TypeRecord<F_DTO> get() = foreignClass.dtoType
+    protected val commonDTOSBacking: MutableList<CommonDTO<F, FD, FE>> = mutableListOf()
+    val commonDTOS : List<CommonDTO<F, FD, FE>> get() = commonDTOSBacking
 
-    abstract fun getEffectiveValue():V
-    protected abstract fun getChildDTOs(): List<CommonDTO<F_DTO, FD, FE>>
-    abstract fun getPropertyData(data:DATA):List<FD>
-    abstract fun getEntityData(entity:ENTITY):List<FE>
-    protected abstract fun saveDto(dto:CommonDTO<F_DTO, FD, FE>, updateData: Boolean = false)
-    protected abstract fun saveDto(dto: CommonDTO<F_DTO, FD, FE>, entity:FE)
-
-    operator fun getValue(thisRef: DTO, property: KProperty<*>): V {
-        resolveProperty(property)
-        return getEffectiveValue()
+    protected val wrongListSize: (listName: String, context: String)-> String ={listName, context->
+        "$listName should contain exactly 1 record in $context"
     }
-    operator fun provideDelegate(thisRef: DTO, property: KProperty<*>): RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, V> {
-        resolveProperty(property)
-        return this
+    protected val idNotSetMsg: (dto: CommonDTO<*, *, *>, context: String)-> String = {dto, context ->
+        "Registering DTO : $dto with unassigned id in $context"
     }
-    override fun resolveProperty(property: KProperty<*>){
-        if(propertyParameter == null){
-            propertyParameter = property.castOrInit(this)
-            identity.updateSourceName(property.name)
-            hostingDTO.bindingHub.setRelationBinding<F_DTO>(this)
-            onPropertyInitialized?.invoke(property)
+    protected val dtoWithSameIdExistsMsg: (dto: CommonDTO<*, *, *>, context: String)-> String = {dto, context ->
+        "DTO with same id: ${dto.id} already present in the collection in $context"
+    }
+
+    private var propertyBacking : KProperty<R>? = null
+    val property: KProperty<R> get() = propertyBacking.getOrOperations(this)
+
+    internal abstract val delegateName: String
+
+    internal abstract val result:R
+
+    protected abstract fun beforeRegistered()
+    protected abstract fun getDataModels():List<FD>
+    protected abstract fun getEntities(sourceEntity:E?):List<FE>
+
+    private fun checkIfAlreadyExists(
+        common: CommonDTO<F, FD, FE>
+    ){
+        val existentSameId = commonDTOSBacking.firstOrNull { it.id ==  common.id}
+        if(existentSameId != null){
+            warning(dtoWithSameIdExistsMsg(existentSameId, identifiedByName))
         }
     }
 
-    override fun updateStatus(status: DelegateStatus) {
+    internal fun extractDataModels(): List<FD>{
+       return  getDataModels()
+    }
+
+    internal fun extractEntities(sourceEntity:E? = null): List<FE>{
+        return withTransactionIfNone(dtoClass.debugger, false){
+            getEntities(sourceEntity)
+        }
+    }
+
+    fun createDTOS(existentProvider:(CommonDTO<F, FD, FE>)-> Unit): List<CommonDTO<F, FD, FE>>{
+       val newDTOList = mutableListOf<CommonDTO<F, FD, FE>>()
+       val dataModels =  getDataModels()
+        dataModels.forEach { dataModel->
+            val existent = getExistentDTO(dataModel.id)
+            if(existent != null){
+                existentProvider.invoke(existent)
+            }else{
+               val commonDTO =  dtoClass.newDTO(dataModel)
+                commonDTO.bindingHub.resolveAttachedForeign(this, dataModel)
+                commonDTOSave(commonDTO)
+                newDTOList.add(commonDTO)
+            }
+        }
+        return newDTOList
+    }
+
+    fun createDTO(dataModel :FD): CommonDTO<F, FD, FE>{
+        val commonDTO =  dtoClass.newDTO(dataModel)
+        commonDTO.bindingHub.resolveAttachedForeign(this, dataModel)
+        commonDTOSave(commonDTO)
+        return commonDTO
+    }
+
+    fun createDTOS(parentEntity : E, constructHierarchy: Boolean = false): List<CommonDTO<F, FD, FE>>{
+        val resultingList = mutableListOf<CommonDTO<F, FD, FE>>()
+        extractEntities(parentEntity).forEach {entity->
+            val commonDTO =  dtoClass.newDTO()
+            commonDTO.bindingHub.resolveAttachedForeign(this, entity)
+            commonDTO.bindingHub.updateByEntity(entity)
+            commonDTOSave(commonDTO)
+            resultingList.add(commonDTO)
+
+        }
+        return resultingList
+    }
+
+    protected fun commonDTOSave(
+        commonDTO: CommonDTO<F, FD, FE>
+    ){
+        commonDTO.cardinality = cardinality
+
+        commonDTO.bindingHub.resolveParent(hostingDTO)
+
+        commonDTOSBacking.add(commonDTO)
+    }
+
+    fun resolveProperty(
+        property: KProperty<*>
+    ){
+        propertyBacking = property.castOrInit(this)
+        beforeRegistered()
+        hostingDTO.bindingHub.registerRelationDelegate(this)
+    }
+
+    fun updateStatus(status: DelegateStatus) {
         this.status = status
     }
 
-    fun updateBy(data:DATA) = runInlineAction("updateByData") {
-        val childDtoList = getChildDTOs()
-        getPropertyData(data).forEach { data ->
-            val existent = childDtoList.find { it.id == data.id }
-            if (existent != null) {
-                existent.bindingHub.update(data)
-            }else{
-                val newDto = foreignClass.newDTO(data)
-                newDto.addTrackerInfo(CrudOperation.Insert, this)
-                val insertedEntity = newDto.daoService.save {
-                    newDto.bindingHub.update(it)
-                    foreignEntityProperty.set(it, hostingDTO.getEntity())
-                }
-                newDto.provideEntity(insertedEntity)
-                foreignClass.registerDTO(newDto)
-                saveDto(newDto)
-                newDto.bindingHub.create()
-            }
+    abstract fun onParentResolved(parentDTO: CommonDTO<F, FD, FE>)
+
+    private fun getExistentDTO(id: Long): CommonDTO<F, FD, FE>?{
+        if(id != 0L){
+           return commonDTOS.firstOrNull { it.id == id }
         }
+        return null
     }
 
-    fun createByEntity(entity:ENTITY) = runInlineAction("selectByEntity") {
-        val foreignEntities =  getEntityData(entity)
-        foreignEntities.forEach { entity->
-            val newDto = foreignClass.config.dtoFactory.createDto()
-            newDto.bindingHub.select(entity)
-            saveDto(newDto, true)
-        }
+    operator fun getValue(thisRef:DTO, property: KProperty<*>): R {
+        return result
     }
+
+    operator fun provideDelegate(thisRef: DTO, property: KProperty<*>): RelationDelegate<DTO, D, E, F, FD, FE, R> {
+        resolveProperty(property)
+        return this
+    }
+
 }
 
 
-class OneToManyDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>(
-    dto : CommonDTO<DTO, DATA, ENTITY>,
-    childModel: DTOClass<F_DTO, FD, FE>,
-    val dataProperty: KProperty1<DATA, MutableList<FD>>,
-    val entitiesProperty: KProperty1<ENTITY, SizedIterable<FE>>,
-    foreignEntityProperty: KMutableProperty1<FE, ENTITY>,
-) : RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, List<F_DTO>>(dto, childModel, foreignEntityProperty)
-        where DTO : ModelDTO, DATA : DataModel, ENTITY : LongEntity,
-              F_DTO: ModelDTO,  FD : DataModel, FE : LongEntity
+class OneToManyDelegate<DTO, D, E, F, FD, FE>(
+    hostingDTO : CommonDTO<DTO, D, E>,
+    dtoClass: DTOClass<F, FD, FE>,
+    val dataProperty: KProperty1<D, MutableList<FD>>,
+    override val entityProperty: KProperty1<E, SizedIterable<FE>>,
+    val ownOnForeignEntityProperty: KMutableProperty1<FE, E>,
+): RelationDelegate<DTO, D, E, F, FD, FE, List<F>>(hostingDTO, dtoClass)
+        where DTO : ModelDTO, D : DataModel, E : LongEntity, F: ModelDTO,  FD : DataModel, FE : LongEntity
 {
 
+    override val identity: CTXIdentity<OneToManyDelegate<DTO, D, E, F, FD, FE>> = asIdentity()
     override val cardinality : Cardinality = Cardinality.ONE_TO_MANY
 
-    private val dtos : MutableList<CommonDTO<F_DTO, FD, FE>> = mutableListOf()
-    override fun getEffectiveValue(): List<F_DTO> {
-        return dtos.map {
-            it.castOrThrow<F_DTO, InitException>(childType.clazz, this) {msg-> initException(msg, ExceptionCode.CAST_FAILURE) }
+    override val delegateName: String get() =  "OneToManyDelegate[${property.name}]"
+    override val result:List<F> get() = commonDTOS.castListOrManaged(dtoClass.commonDTOType.dtoType.kClass, this)
+
+    override fun beforeRegistered() {
+        require(hostingDTO.onIdResolved){
+            identity.setNamePattern {"${it.identifiedByName} ${property.name} : ${hostingDTOClass.identifiedByName}" }
         }
     }
 
-    override fun getChildDTOs(): List<CommonDTO<F_DTO, FD, FE>> {
-        return dtos.toList()
+    override fun getDataModels(): List<FD> {
+       val hostingDTODataModel =  hostingDTO.dataContainer.getValue(this)
+       return dataProperty.get(hostingDTODataModel)
     }
 
-    override fun getPropertyData(data:DATA): List<FD> {
-        return dataProperty.get(data)
-    }
-    override fun getEntityData(entity: ENTITY): List<FE> {
-        return entitiesProperty.get(entity).toList()
-    }
-
-    override fun saveDto(dto: CommonDTO<F_DTO, FD, FE>, entity:FE){
-        dto.bindingHub.setParent(hostingDTO)
-        dto.finalizeCreation(entity, cardinality)
-        dtos.add(dto)
+    override fun getEntities(sourceEntity:E?): List<FE> {
+        val parentEntity = sourceEntity?:hostingDTO.entityContainer.getValue(this)
+        val entityList = entityProperty.get(parentEntity)
+        return entityList.toList()
     }
 
-    override fun saveDto(dto: CommonDTO<F_DTO, FD, FE>, updateData: Boolean) {
-        dto.bindingHub.setParent(hostingDTO)
-        dtos.add(dto)
-        if(updateData){
-           val mutable = dataProperty.get(hostingDTO.dataModel)
-            mutable.add(dto.dataModel)
-        }
+    override fun onParentResolved(parentDTO: CommonDTO<F, FD, FE>) {
+        identity.setNamePattern {"${it.identifiedByName} ${property.name} : ${hostingDTOClass.identifiedByName}" }
     }
 }
 
 
-class OneToOneDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE>(
-    dto : CommonDTO<DTO, DATA, ENTITY>,
-    childModel: DTOClass<F_DTO, FD, FE>,
-    val dataProperty: KMutableProperty1<DATA, FD>,
-    val entityProperty: KMutableProperty1<ENTITY, FE>,
-    foreignEntityProperty: KMutableProperty1<FE, ENTITY>,
-) : RelationDelegate<DTO, DATA, ENTITY, F_DTO, FD, FE, F_DTO>(dto, childModel, foreignEntityProperty)
-        where DTO : ModelDTO, DATA : DataModel, ENTITY : LongEntity,
-              F_DTO: ModelDTO,  FD : DataModel, FE : LongEntity {
+class OneToOneDelegate<DTO, D, E, F, FD, FE>(
+    hostingDTO : CommonDTO<DTO, D, E>,
+    dtoClass: DTOClass<F, FD, FE>,
+    val dataProperty: KMutableProperty1<D, FD?>,
+    override val entityProperty: KMutableProperty1<E, FE>,
+    val ownOnForeignEntityProperty: KMutableProperty1<E, FE>,
+) : RelationDelegate<DTO, D, E, F, FD, FE, F>(hostingDTO, dtoClass)
+        where DTO : ModelDTO, D : DataModel, E : LongEntity, F: ModelDTO,  FD : DataModel, FE : LongEntity
+{
 
+    override val identity: CTXIdentity<OneToOneDelegate<DTO, D, E, F, FD, FE>> = asIdentity()
     override val cardinality : Cardinality = Cardinality.ONE_TO_ONE
 
-    private var childDTO : CommonDTO<F_DTO, FD, FE>? = null
-    override fun getEffectiveValue(): F_DTO {
-        return childDTO.castOrThrow<F_DTO, InitException>(childType.clazz, this){msg-> initException(msg, ExceptionCode.CAST_FAILURE) }
-    }
 
-    override fun getChildDTOs(): List<CommonDTO<F_DTO, FD, FE>> {
-       return childDTO?.let { listOf(it) }?:emptyList()
-    }
-    override fun getPropertyData(data: DATA): List<FD> {
-        return listOf(dataProperty.get(data))
-    }
-    override fun getEntityData(entity: ENTITY): List<FE> {
-      return listOf(entityProperty.get(entity))
-    }
-
-    override fun saveDto(dto: CommonDTO<F_DTO, FD, FE>, entity:FE) {
-        dto.bindingHub.setParent(hostingDTO)
-        dto.finalizeCreation(entity, cardinality)
-        childDTO = dto
-    }
-
-    override fun saveDto(dto: CommonDTO<F_DTO, FD, FE>, updateData: Boolean) {
-        dto.bindingHub.setParent(hostingDTO)
-        childDTO = dto
-        if(updateData){
-            dataProperty.set(hostingDTO.dataModel, dto.dataModel)
+    override val delegateName: String get() = "OneToOneDelegate[${property.name}]"
+    override val result:F get() = commonDTOS.first().asDTO()
+    override fun beforeRegistered() {
+        require(hostingDTO.onIdResolved){
+            identity.setNamePattern {"${it.identifiedByName} ${property.name} : ${hostingDTOClass.identifiedByName}" }
         }
     }
+
+    override fun getDataModels(): List<FD> {
+        val hostingDTODataModel =  hostingDTO.dataContainer.getValue(this)
+        val dataModel = dataProperty.get(hostingDTODataModel)
+        return dataModel?.let {
+            listOf(it)
+        }?:run {
+            emptyList()
+        }
+    }
+
+    override fun getEntities(sourceEntity: E?): List<FE> {
+        val parentEntity = sourceEntity?:hostingDTO.entityContainer.getValue(this)
+        val result = entityProperty.get(parentEntity)
+        return listOf(result)
+    }
+
+    internal val childDTO: CommonDTO<F, FD, FE> get() = commonDTOS.exactlyOneOrThrow {
+        operationsException(wrongListSize("childDTOS", identifiedByName), abnormalState)
+    }
+
+
+    override fun onParentResolved(parentDTO: CommonDTO<F, FD, FE>) {
+        TODO("Not yet implemented")
+    }
+
 
 }

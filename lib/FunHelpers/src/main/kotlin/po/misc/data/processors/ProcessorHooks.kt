@@ -1,18 +1,21 @@
 package po.misc.data.processors
 
-import po.misc.data.PrintableBase
+import po.misc.data.printable.PrintableBase
 
-class ProcessorHooks<T: PrintableBase<T>>(
-   internal var onData: ((T) -> Unit)? = null,
-   internal var onArbitraryData: ((PrintableBase<*>)-> Unit)? = null
-) {
+class ProcessorHooks<T: PrintableBase<T>> : DataProcessingHooks<T> {
 
-    fun dataReceived(hook: (T)-> Unit){
-        onData = hook
+    internal var dataReceived: ((T) -> Unit)? = null
+    override fun onDataReceived(dataReceivedCallback: (T)-> Unit){
+        dataReceived = dataReceivedCallback
     }
 
-    fun arbitraryDataReceived(hook: (PrintableBase<*>)-> Unit){
-        onArbitraryData = hook
+    internal var subDataReceived: ((T, DataProcessorBase<T>) -> Unit)? = null
+    override fun onSubDataReceived(subDataReceivedCallback: (T, DataProcessorBase<T>)-> Unit){
+        subDataReceived = subDataReceivedCallback
     }
 
+    internal var arbitraryDataReceived: ((PrintableBase<*>)-> Unit)? = null
+    override fun onArbitraryDataReceived(arbitraryDataReceivedCallback: (PrintableBase<*>)-> Unit){
+        arbitraryDataReceived = arbitraryDataReceivedCallback
+    }
 }

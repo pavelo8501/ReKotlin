@@ -1,131 +1,223 @@
 package po.exposify.dto
 
 import org.jetbrains.exposed.dao.LongEntity
+import po.exposify.dao.transaction.withTransactionIfNone
 import po.exposify.dto.components.DAOService
-import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.components.DTOConfig
+import po.exposify.dto.components.executioncontext.DTOExecutionContext
 import po.exposify.dto.components.DTOFactory
 import po.exposify.dto.components.bindings.BindingHub
+import po.exposify.dto.components.bindings.RelationDelegateKey
+import po.exposify.dto.components.bindings.relation_binder.delegates.RelationDelegate
 import po.exposify.dto.components.tracker.DTOTracker
+import po.exposify.dto.components.tracker.models.TrackerConfig
 import po.exposify.dto.enums.Cardinality
+import po.exposify.dto.enums.DTOStatus
+import po.exposify.dto.enums.DataStatus
+import po.exposify.dto.helpers.warning
+import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.dto.enums.DTOInitStatus
+import po.exposify.dto.models.CommonDTOType
 import po.exposify.dto.models.DTOId
-import po.exposify.dto.models.SourceObject
-import po.exposify.exceptions.InitException
-import po.exposify.exceptions.initException
-import po.exposify.exceptions.throwOperations
-import po.exposify.extensions.castOrOperations
-import po.exposify.extensions.getOrOperations
-import po.lognotify.classes.task.TaskHandler
-import po.misc.interfaces.Identifiable
-import po.misc.interfaces.ValueBased
-import po.misc.registries.callback.TypedCallbackRegistry
-import po.misc.registries.type.TypeRegistry
-import po.misc.types.TypeRecord
+import po.exposify.exceptions.enums.ExceptionCode
+import po.exposify.exceptions.operationsException
+import po.lognotify.TasksManaged
+import po.misc.containers.BackingContainer
+import po.misc.containers.LazyContainer
+import po.misc.containers.ReactiveMap
+import po.misc.containers.backingContainerOf
+import po.misc.containers.lazyContainerOf
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
+import po.misc.data.processors.SeverityLevel
+import po.misc.exceptions.throwableToText
+import po.misc.functions.hooks.Change
+import po.misc.functions.registries.TaggedRegistry
+import po.misc.functions.registries.builders.taggedRegistryOf
 import java.util.UUID
 
-abstract class CommonDTO<DTO, DATA, ENTITY>(
-   val dtoClass: DTOBase<DTO, DATA, ENTITY>
-): Identifiable,  ModelDTO where DTO : ModelDTO,  DATA: DataModel , ENTITY: LongEntity {
-
-    override val objectId: Long
-        get() = 0
-
-    override val dtoType :TypeRecord<DTO> get() = dtoClass.dtoType
-    val dtoClassConfig: DTOConfig<DTO, DATA, ENTITY> get() =   dtoClass.config.castOrOperations<DTOConfig<DTO, DATA, ENTITY>>(this)
-
-    val dtoId : DTOId<DTO> = DTOId(UUID.randomUUID().hashCode().toLong())
-    override val contextName: String
-        get() = "CommonDTO[${sourceName}#${dtoId.id}]"
-    override var sourceName: String = dtoType.simpleName
-
-    val registry: TypeRegistry get() {
-        return dtoClass.config.registry
+sealed class CommonDTOBase<DTO, D, E>(
+    val dtoClass: DTOBase<DTO, D, E>,
+) : ModelDTO,
+    TasksManaged where DTO : ModelDTO, D : DataModel, E : LongEntity {
+    enum class DTOEvents {
+        Initialized,
+        StatusUpdated,
+        IdResolved,
     }
-    abstract override val dataModel: DATA
 
-    val entityType: TypeRecord<ENTITY>
-        get() = registry.getRecord<ENTITY, InitException>(SourceObject.Entity){ initException(it, ExceptionCode.ABNORMAL_STATE) }
-    val dataType:  TypeRecord<DATA>
-        get() = registry.getRecord<DATA, InitException>(SourceObject.Data){ initException(it, ExceptionCode.ABNORMAL_STATE) }
+    var dataStatus: DataStatus = DataStatus.New
+        private set
 
-    val logger : TaskHandler<*> get()= dtoClass.logger
+    var dtoStatus: DTOStatus = DTOStatus.Uninitialized
+        protected set
 
     override var cardinality: Cardinality = Cardinality.ONE_TO_MANY
+    override val dtoId: DTOId<DTO> = DTOId(UUID.randomUUID().hashCode().toLong())
 
-    override val daoService: DAOService<DTO, DATA, ENTITY> get() = dtoClassConfig.daoService
-    override val dtoFactory: DTOFactory<DTO, DATA, ENTITY> get() = dtoClassConfig.dtoFactory
+    protected val dtoClassConfig: DTOConfig<DTO, D, E> get() = dtoClass.dtoConfiguration
 
-    private var entityParameter: ENTITY? = null
-    val isEntityInserted: Boolean get() = entityParameter != null
+    override val commonType: CommonDTOType<DTO, D, E> by lazy { dtoClass.commonDTOType.copy() }
 
-    @PublishedApi
-    internal val bindingHub: BindingHub<DTO, DATA, ENTITY> = BindingHub(this)
+    override val daoService: DAOService<DTO, D, E> get() = dtoClassConfig.daoService
+    override val dtoFactory: DTOFactory<DTO, D, E> get() = dtoClassConfig.dtoFactory
 
-    var onInitializationStatusChange: ((CommonDTO<DTO, DATA, ENTITY>) -> Unit)? = null
-    var initStatus: DTOInitStatus = DTOInitStatus.UNINITIALIZED
+
+    val onDTOComplete: TaggedRegistry<DTOEvents, CommonDTO<DTO, D, E>> by lazy { taggedRegistryOf(DTOEvents.Initialized) }
+    val onStatusUpdated: TaggedRegistry<DTOEvents, CommonDTO<DTO, D, E>> by lazy{ taggedRegistryOf(DTOEvents.StatusUpdated) }
+    val onIdResolved: TaggedRegistry<DTOEvents, CommonDTO<DTO, D, E>> by lazy {
+        taggedRegistryOf(DTOEvents.IdResolved){ warnNoSubscriber(false) }
+    }
+
+    val dataContainer: LazyContainer<D> =  lazyContainerOf(commonType.dataType)
+
+    val entityContainer: BackingContainer<E> = backingContainerOf(commonType.entityType)
+    
+    var idBacking: Long = -1L
+    override var id: Long
+        get() = idBacking
         set(value) {
-            if (value != field) {
-                field = value
-                onInitializationStatusChange?.invoke(this)
+            if (value != idBacking) {
+                idBacking = value
+            } else {
+                warning("Setting same id $value")
             }
         }
 
-    override var id: Long
-        get() = dataModel.id
-        set(value){ dataModel.id = value }
 
-    internal var trackerParameter: DTOTracker<DTO, DATA>? = null
-    override val tracker: DTOTracker<DTO, DATA>
-        get() {
-            return trackerParameter ?: DTOTracker(this)
+    protected fun calculateStatus(): DTOStatus {
+        if(dataStatus == DataStatus.PreflightCheckMock && dataContainer.isValueAvailable){
+            return DTOStatus.Complete
         }
+        var resultingStatus: DTOStatus = DTOStatus.Uninitialized
+        if (dataContainer.isValueAvailable && entityContainer.isValueAvailable) {
+            resultingStatus = DTOStatus.Complete
+        }
+        if (dataContainer.isValueAvailable && !entityContainer.isValueAvailable) {
+            resultingStatus = DTOStatus.PartialWithData
+        }
+        if (!dataContainer.isValueAvailable && entityContainer.isValueAvailable) {
+            resultingStatus = DTOStatus.PartialWithEntity
+        }
+        return resultingStatus
+    }
 
-    override fun compareTo(other: Long): Int {
-        val comparison = objectId.compareTo(other)
-        if (comparison != 0) {
-            return objectId.toInt()
+    protected fun updateDtoId(newID: Long) {
+        if (newID > 0) {
+            idBacking = newID
+            dataContainer.value?.let { dataModel ->
+                dataModel.id = newID
+            } ?: run {
+                notify("Unable to update id on dataModel. Container empty", SeverityLevel.WARNING)
+            }
+            identity.setNamePattern {
+                "${commonType.dtoType.typeName}#$idBacking"
+            }
+
+            if(this is CommonDTO){
+              //  onIdResolved.trigger(this)
+            }
         } else {
-            return 0
+            notify("Trying to update id with value $newID ", SeverityLevel.WARNING)
         }
     }
 
-    override fun updateId(id: Long) {
-
-    }
-
-    internal fun getEntity():ENTITY{
-        return entityParameter?:throwOperations("Requesting entity while not inserted", ExceptionCode.METHOD_MISUSED,  this)
-    }
-
-    internal fun finalizeCreation(entity: ENTITY, cardinality: Cardinality): ENTITY {
-        if(entityParameter != null){
-
-            logger.warn("finalizeCreation. Updating entityParameter when it is already set")
+    fun updateDataStatus(status: DataStatus):CommonDTO<DTO, D, E>{
+        dataStatus = status
+        if(status == DataStatus.PreflightCheckMock){
+            calculateStatus()
+            updateDtoId(1)
         }
-        entityParameter = entity
-        dataModel.id = entity.id.value
-        this.cardinality = cardinality
-        initStatus = DTOInitStatus.INITIALIZED
-        return entity
+        return this as CommonDTO<DTO, D, E>
+    }
+}
+
+abstract class CommonDTO<DTO, D, E>(
+    dtoClass: DTOBase<DTO, D, E>,
+) : CommonDTOBase<DTO, D, E>(dtoClass) where DTO : ModelDTO, D : DataModel, E : LongEntity {
+    override val identity: CTXIdentity<CommonDTO<DTO, D, E>> = asIdentity()
+
+    override val tracker: DTOTracker<DTO, D, E> = DTOTracker(this)
+    override val bindingHub: BindingHub<DTO, D, E> = BindingHub(this)
+
+    val parentDTOContainer: LazyContainer<CommonDTO<*, *, *>> = lazyContainerOf()
+
+    val executionContextMap: ReactiveMap<DTOClass<*, *, *>, DTOExecutionContext<DTO, D, E, *, *, *>> = ReactiveMap()
+    val executionContextsCount: Int get() = executionContextMap.size
+    val relations: Map<RelationDelegateKey<*, *, *>, RelationDelegate<DTO, D, E, *, *, *, *>> get() = bindingHub.relationDelegateMap
+
+    
+    init {
+        entityContainer.onValueSet(::entityChanged)
+        dataContainer.onValueSet(::dataModelChanged)
+        executionContextMap.onErrorHook.subscribe { warning(it.toString()) }
+        executionContextMap.injectFallback { operationsException("Requested execution context not created/saved", ExceptionCode.ABNORMAL_STATE) }
     }
 
-    internal fun provideEntity(entity: ENTITY): ENTITY {
-        if(entityParameter != null){
-            logger.warn("provideEntity. Updating entityParameter when it is already set")
+
+    private fun entityChanged(change: Change<E?, E>) {
+
+        try {
+            val entityId = change.newValue.id.value
+            updateDtoId(entityId)
+        } catch (th: Throwable) {
+            if (th !is IllegalStateException) {
+                println(th.throwableToText())
+            }
         }
-        entityParameter = entity
-        dataModel.id = entity.id.value
-        return entity
+        updateStatus()
     }
 
-    internal fun initialize(tracker: DTOTracker<DTO, DATA>? = null): CommonDTO<DTO, DATA, ENTITY> {
-        if (tracker != null) {
-            trackerParameter = tracker
+    private fun dataModelChanged(change: Change<D?, D>) {
+        updateStatus()
+    }
+
+    fun <F: ModelDTO, FD: DataModel, FE: LongEntity> createExecutionContext(
+        childClass: DTOClass<F, FD, FE>,
+    ):DTOExecutionContext<DTO, D, E, F, FD, FE>{
+        val newContext : DTOExecutionContext<DTO, D, E, F, FD, FE> = DTOExecutionContext(this, childClass)
+        childClass.commonDTOType
+        executionContextMap[childClass] = newContext
+        return newContext
+    }
+
+    fun  updateStatus() {
+        val newStatus = calculateStatus()
+        if (dtoStatus != newStatus) {
+            dtoStatus = newStatus
+            onStatusUpdated.trigger(this)
+            if (newStatus == DTOStatus.Complete) {
+                onDTOComplete.trigger(this)
+            }
+        } else {
+            if (newStatus != DTOStatus.Complete) {
+                notify("DTO{$this} new status ${newStatus.name} while existing status ${dtoStatus.name}", SeverityLevel.WARNING)
+            }
         }
-        initStatus = DTOInitStatus.PARTIAL_WITH_DATA
+    }
+
+    internal suspend fun saveDTO(rootClass: RootDTO<DTO, D, E>){
+        rootClass.executionContext.restoreDTO(this)
+    }
+
+    fun flush(){
+        withTransactionIfNone(dtoClass.debugger, false){
+            bindingHub.responsiveDelegateMap.values.forEach {
+                it.buffer.flush()
+            }
+        }
+    }
+
+
+    fun <F : ModelDTO, FD : DataModel, FE : LongEntity> hasExecutionContext(commonType: DTOClass<F, FD, FE>): Boolean =
+        executionContextMap.containsKey(commonType)
+
+    internal fun initialize(trackerConfig: TrackerConfig<*>? = null): CommonDTO<DTO, D, E> {
+        if (trackerConfig != null) {
+          //  tracker.updateConfig(trackerConfig)
+        }
         return this
     }
+
+    override fun toString(): String = "${commonType.dtoType.typeName} ${bindingHub.dtoStateDump} ${bindingHub.dtoRelationDump}"
 }

@@ -9,8 +9,6 @@ data class ApiConfig(
     var cors: Boolean = true,
     var contentNegotiation: Boolean = true,
     var systemRouts : Boolean = true,
-    var baseApiRoute : String = "",
-    var baseServiceRoute : String = ""
 ) {
     private var _rateLimiterConfig: RateLimiterConfig? = null
     var rateLimiterConfig: RateLimiterConfig = RateLimiterConfig()

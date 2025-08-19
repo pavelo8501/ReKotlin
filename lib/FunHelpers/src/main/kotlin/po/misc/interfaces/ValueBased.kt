@@ -7,10 +7,7 @@ interface ValueBased{
     val value: Int
 }
 
-
-
-abstract class ValueBasedClass(override val value: Int): ValueBased{
-
+abstract class ValueBase(override val value: Int): ValueBased{
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is ValueBased) return false
@@ -20,15 +17,10 @@ abstract class ValueBasedClass(override val value: Int): ValueBased{
     override fun hashCode(): Int {
         return 31 * value.hashCode()
     }
-//
-//    override fun compareTo(other: CompositeKey): Int {
-//        val componentComparison = component.completeName.compareTo(other.component.completeName)
-//        return if (componentComparison != 0) componentComparison
-//        else type.value.compareTo(other.type.value)
-//    }
-
 }
 
+class ValueBasedClass(value: Int): ValueBase(value)
+
 fun toValueBased(value: Int):ValueBasedClass{
-   return object : ValueBasedClass(value){}
+   return ValueBasedClass(value)
 }

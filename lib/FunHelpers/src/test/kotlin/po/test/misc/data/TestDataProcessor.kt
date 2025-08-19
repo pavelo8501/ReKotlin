@@ -2,86 +2,147 @@ package po.test.misc.data
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertInstanceOf
-import po.misc.data.PrintableBase
-import po.misc.data.console.PrintableTemplate
+import po.misc.data.printable.PrintableBase
+import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.processors.DataProcessor
-import po.misc.interfaces.Identifiable
-import po.misc.interfaces.ValueBased
-import po.misc.interfaces.asIdentifiable
-import po.misc.interfaces.toValueBased
+import po.misc.functions.dsl.helpers.nextBlock
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertSame
+import kotlin.test.assertTrue
 
 class TestDataProcessor {
 
-    data class TopDataItem (
+   internal data class TopData (
         val id: Int,
         val personalName: String,
         val content : String,
         val componentName: String = "Some name",
-    ): PrintableBase<TopDataItem>(TopTemplate){
+    ): PrintableBase<TopData>(this){
 
-        override val self: TopDataItem = this
+        override val self: TopData = this
 
-        override val emitter: Identifiable = asIdentifiable(personalName, componentName)
-        override val itemId: ValueBased = toValueBased(id)
-
-        companion object{
-            val TopTemplate: PrintableTemplate<TopDataItem> = PrintableTemplate("TopTemplate"){"TopTemplate->$content"}
+        companion object: PrintableCompanion<TopData>({TopData::class}){
+            val TopTemplate = createTemplate {
+                nextBlock {
+                    "TopTemplate->$content"
+                }
+            }
+            val Debug = createTemplate {
+                nextBlock {
+                    "Debug[Name:$personalName Content:$content"
+                }
+            }
         }
     }
 
-    data class SubData (
+    internal data class ForeignData (
+        val id: Int,
+        val personalName: String,
+        val content : String
+    ): PrintableBase<ForeignData>(this){
+        override val self: ForeignData = this
+        companion object:PrintableCompanion<ForeignData>({ForeignData::class}){
+            val Template = createTemplate {
+                nextBlock {
+                    "Template1->$content"
+                }
+            }
+        }
+    }
+
+    internal data class SubData (
         val id: Int,
         val personalName: String,
         val content : String,
         val componentName: String = "Some name",
-    ): PrintableBase<SubData>(SubTemplate){
-
+    ): PrintableBase<SubData>(this){
         override val self: SubData = this
-
-        override val emitter: Identifiable = asIdentifiable(personalName, componentName)
-        override val itemId: ValueBased = toValueBased(id)
-
-        companion object{
-            val SubTemplate: PrintableTemplate<SubData> = PrintableTemplate("SubTemplate"){"Template1->$content"}
+        companion object:PrintableCompanion<SubData>({SubData::class}){
+            val SubTemplate = createTemplate {
+                nextBlock {
+                    "Template1->$content"
+                }
+            }
         }
     }
 
-    val topDataProcessor: DataProcessor<TopDataItem> = DataProcessor<TopDataItem>()
-    val subDataProcessor: DataProcessor<SubData> = DataProcessor<SubData>(topDataProcessor)
+    private fun createTopData(id: Int): TopData{
+      return  TopData(id, "TopData_$id", "Content_$id")
+    }
 
-    @Test
-    fun `DataProcessor templated string`(){
-        val subRecord = SubData(1, "Name", "subRecord content")
-        topDataProcessor.logData<SubData>(subRecord, SubData.SubTemplate)
+    private fun createForeignData(id: Int): ForeignData{
+        return  ForeignData(id, "ForeignData_$id", "ForeignData_$id")
     }
 
     @Test
-    fun `Data propagated to topDataProcessor and stacked within PrintableBase`(){
+    fun `Arbitrary data stacked properly`(){
+        val dataProcessor: DataProcessor<TopData> = DataProcessor(null)
+        val topData1 = createTopData(1)
+        val topData2 = createTopData(2)
 
-        var parentRecord: TopDataItem? = null
-        var topRecord : PrintableBase<*>? = null
+        dataProcessor.addData(topData1)
+        dataProcessor.addData(topData2)
 
-        topDataProcessor.hooks.dataReceived{topRecord = it }
-        topDataProcessor.onChildAttached{childRec, record -> parentRecord = record }
+        val foreignData1 = createForeignData(1)
+        val foreignData2 = createForeignData(2)
 
-        val newTopRecord = TopDataItem(1, "TopDataItem", "TopDataItem_Content1")
-        topDataProcessor.processRecord(newTopRecord, TopDataItem.TopTemplate)
+        dataProcessor.addArbitraryData(foreignData1)
+        dataProcessor.addArbitraryData(foreignData2)
 
-        val record1 = SubData(1, "DataItem", "Content1")
-        val record2 = SubData(2, "DataItem", "Content2")
-
-        subDataProcessor.forwardTop(record1)
-        subDataProcessor.forwardTop(record2)
-
-        val activeTopRecord = assertNotNull(topRecord, "TopRecord is null")
-        val activeTopDataItem = assertInstanceOf<TopDataItem>(activeTopRecord, "ActiveTopRecord is not an instance of TopDataItem")
-        assertEquals("TopDataItem_Content1", activeTopDataItem.content, "Wrong content in activeTopDataItem")
-
-        val processedData = assertNotNull(parentRecord, "ParentRecord is null")
-        assertEquals(2, processedData.children.size, "Child records were not attached")
+        assertEquals(2, dataProcessor.records.size)
+        assertSame(topData2, dataProcessor.activeRecord)
+        assertEquals(2, topData2.arbitraryMap.totalSize)
     }
 
+    @Test
+    fun `Data records propagation from bottom to top work as expected`(){
+
+        val topProcessor: DataProcessor<TopData> = DataProcessor(null)
+        val subProcessor : DataProcessor<TopData> = DataProcessor(topProcessor)
+
+        val subData = createTopData(1)
+        val subData2 = createTopData(2)
+
+        subProcessor.addData(subData)
+        subProcessor.addData(subData2)
+
+        assertEquals(2, topProcessor.records.size)
+        assertEquals(2, subProcessor.records.size)
+
+        assertSame(subData, topProcessor.records[0])
+        assertSame(subData2, topProcessor.records[1])
+
+        assertSame(subData, subProcessor.records[0])
+        assertSame(subData2, subProcessor.records[1])
+    }
+
+    @Test
+    fun `Check processors hierarchical hooks usage`(){
+
+        val topProcessor: DataProcessor<TopData> = DataProcessor()
+        val subProcessor : DataProcessor<TopData> = DataProcessor(topProcessor)
+
+        val subData = createTopData(1)
+        val subData2 = createTopData(2)
+
+        val dataReceivedList: MutableList<Any> = mutableListOf()
+        topProcessor.onDataReceived {
+            dataReceivedList.add(it)
+        }
+
+        val subDataReceivedList: MutableList<TopData> = mutableListOf()
+        topProcessor.onSubDataReceived {data, processor->
+            assertSame(subProcessor, processor)
+            subDataReceivedList.add(data)
+        }
+        subProcessor.addData(subData)
+        subProcessor.addData(subData2)
+
+        assertTrue(dataReceivedList.isEmpty())
+        assertEquals(2, subDataReceivedList.size)
+
+    }
 
 }

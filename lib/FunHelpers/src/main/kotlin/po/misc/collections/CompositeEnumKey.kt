@@ -1,10 +1,11 @@
 package po.misc.collections
 
-import po.misc.interfaces.Identifiable
+import po.misc.context.CTX
+import po.misc.context.Identifiable
 
 class CompositeEnumKey<E: Enum<E>>(
     private val enumKey: E,
-    private val source: Identifiable,
+    private val source: CTX,
 ): Comparable<CompositeEnumKey<E>> {
 
     fun getEnumParameter():E{
@@ -14,7 +15,7 @@ class CompositeEnumKey<E: Enum<E>>(
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is CompositeEnumKey<E>) return false
-        return source.completeName == other.source.completeName &&
+        return source.contextName == other.source.completeName &&
                 enumKey == other.enumKey
     }
     override fun hashCode(): Int {
@@ -27,11 +28,11 @@ class CompositeEnumKey<E: Enum<E>>(
     override fun toString(): String = "CompositeKey(${source.completeName}, $enumKey)"
 
     companion object{
-        fun <E: Enum<E>> generateKey(key:E, source: Identifiable):CompositeEnumKey<E>{
+        fun <E: Enum<E>> generateKey(key:E, source: CTX):CompositeEnumKey<E>{
             return CompositeEnumKey(key, source)
         }
 
-        fun <E: Enum<E>> Identifiable.generateKey(key:E):CompositeEnumKey<E>{
+        fun <E: Enum<E>> CTX.generateKey(key:E):CompositeEnumKey<E>{
             return CompositeEnumKey(key, this)
         }
     }

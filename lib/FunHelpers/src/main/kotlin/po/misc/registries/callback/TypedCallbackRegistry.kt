@@ -1,7 +1,8 @@
 package po.misc.registries.callback
 
 import po.misc.collections.CompositeKey
-import po.misc.interfaces.Identifiable
+import po.misc.context.CTX
+import po.misc.context.Identifiable
 import po.misc.interfaces.ValueBased
 
 
@@ -15,12 +16,12 @@ open class TypedCallbackRegistry<T, R>(){
     private val subscriptions = mutableMapOf<CompositeKey, TypedCallback<T, R>>()
     val unTriggered= mutableMapOf<ValueBased, T>()
 
-    var onNewSubscription: ((ValueBased, Identifiable)-> Unit)? = null
-    var onKeyOverwrite: ((key: String, Identifiable)-> Unit)? = null
-    var onBeforeTrigger: ((ValueBased, Identifiable, T)-> Unit)? = null
+    var onNewSubscription: ((ValueBased, CTX)-> Unit)? = null
+    var onKeyOverwrite: ((key: String, CTX)-> Unit)? = null
+    var onBeforeTrigger: ((ValueBased, CTX, T)-> Unit)? = null
     var onAfterTriggered: ((triggerCount:Int)-> Unit)? = null
 
-    fun subscribe(component: Identifiable, type: ValueBased,  callback : (T)-> R) {
+    fun subscribe(component: CTX, type: ValueBased,  callback : (T)-> R) {
 
         onNewSubscription?.invoke(type, component)
 
@@ -52,7 +53,7 @@ open class TypedCallbackRegistry<T, R>(){
         onAfterTriggered?.invoke(triggersCount)
     }
 
-    fun trigger(component: Identifiable, type: ValueBased, value:T) {
+    fun trigger(component: CTX, type: ValueBased, value:T) {
         val key = CompositeKey(component, type)
         subscriptions[key]?.let { callbackContainer->
             onBeforeTrigger?.invoke(key.type, key.component, value)
@@ -67,7 +68,7 @@ open class TypedCallbackRegistry<T, R>(){
     fun hasSubscribersFor(type: ValueBased): Boolean =
         subscriptions.keys.any { it.type == type }
 
-    fun clear(component: Identifiable? = null, type: ValueBased? = null) {
+    fun clear(component: CTX? = null, type: ValueBased? = null) {
         when {
             component != null && type != null -> subscriptions.remove(CompositeKey(component, type))
             component != null -> subscriptions.keys.removeIf { it.component == component }

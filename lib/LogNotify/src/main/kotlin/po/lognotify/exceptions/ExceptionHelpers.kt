@@ -1,65 +1,90 @@
 package po.lognotify.exceptions
 
-import po.lognotify.TaskProcessor
 import po.lognotify.TasksManaged
-import po.lognotify.anotations.LogOnFault
-import po.lognotify.classes.action.InlineAction
-import po.lognotify.classes.task.RootTask
-import po.lognotify.classes.task.Task
-import po.lognotify.classes.task.TaskBase
-import po.lognotify.process.ProcessableContext
+import po.lognotify.notification.models.ErrorSnapshot
+import po.lognotify.common.containers.RunnableContainer
+import po.lognotify.notification.error
+import po.lognotify.notification.warning
+import po.lognotify.tasks.ExecutionStatus
+import po.lognotify.tasks.TaskBase
+import po.misc.data.printable.knowntypes.PropertyData
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
-import po.misc.exceptions.name
-import po.misc.exceptions.toInfoString
-import po.misc.exceptions.waypointInfo
-import po.misc.interfaces.IdentifiableContext
-import po.misc.types.castOrThrow
-import kotlin.reflect.KProperty1
-import kotlin.reflect.full.findAnnotation
-import kotlin.reflect.full.memberProperties
-import kotlin.reflect.full.staticProperties
+import po.misc.exceptions.models.ExceptionData
+import po.misc.collections.selectUntil
+import po.misc.exceptions.throwableToText
+import po.misc.exceptions.toManaged
 
 
 @PublishedApi
-internal fun handleException(
+internal fun <T: TasksManaged, R: Any?> handleException(
     exception: Throwable,
-    task: TaskBase<*, *>,
-    snapshot: Map<String, Any?>?,
-    action: InlineAction? = null
+    container: RunnableContainer<T, R>,
+    snapshot: List<PropertyData>?
 ): ManagedException {
+    fun firstOccurred(managed: ManagedException): ExceptionData?{
+        val firesRecord = managed.exceptionData.firstOrNull()
+       return if(firesRecord != null &&  managed.exceptionData.size == 1){
+            firesRecord
+        }else{
+            null
+        }
+    }
     if (exception is ManagedException) {
         exception.setPropertySnapshot(snapshot)
-        return   when (exception.handler) {
-            HandlerType.SkipSelf ->{
-                val taskData = task.dataProcessor.error(exception)
-                exception.addHandlingData(taskData.emitter,ManagedException.ExceptionEvent.Rethrown, taskData.message)
-            }
-            HandlerType.Undefined ->{
-                val exceptionHandler = task.config.exceptionHandler
-                if(action != null){
-                    exception.setHandler(exceptionHandler, action)
-                }else{
-                    exception.setHandler(exceptionHandler, task)
+        return  when (exception.handler) {
+            HandlerType.SkipSelf -> {
+
+                val exData  = firstOccurred(exception)
+                if(exData != null){
+                    container.source.changeStatus(ExecutionStatus.Failing)
+
+                    container.source.warning(exception.throwableToText())
+                    container.notifier.addErrorRecord(container.effectiveTask.createErrorSnapshot(), exception)
                 }
-                task.dataProcessor.error(exception)
-                exception
+
+                if (container.isRoot) {
+                    val message = "Exception reached top. escalating"
+                    container.source.error(message)
+                    val exceptionData = ExceptionData(ManagedException.ExceptionEvent.Executed, message, container.source)
+                    throw exception.addExceptionData(exceptionData, container.source)
+                } else {
+                    val message = "Rethrowing"
+                    container.source.warning(message)
+                    val exceptionData =
+                        ExceptionData(ManagedException.ExceptionEvent.Rethrown, message, container.source)
+                    return exception.addExceptionData(exceptionData, container.source)
+                }
             }
             HandlerType.CancelAll ->{
-                if(task is RootTask){
-                    exception.addHandlingData(task,  ManagedException.ExceptionEvent.Thrown)
+                val exData  = firstOccurred(exception)
+                if(exData != null){
+                    container.source.changeStatus(ExecutionStatus.Failing)
+                    container.source.error(exception.throwableToText())
+                    val errorSnapshot = container.effectiveTask.createErrorSnapshot()
+                    container.notifier.addErrorRecord(errorSnapshot, exception)
                 }
-                exception
+                val message = "Reached RootTask<${container.effectiveTask}>"
+                val data =  ExceptionData(ManagedException.ExceptionEvent.Executed,message,   container.source)
+                exception.addExceptionData(data,  container.source)
             }
         }
     } else {
-        val exceptionHandler = task.config.exceptionHandler
-        val managed = ManagedException(exception.message.toString(),null, exception)
-            .setHandler(exceptionHandler, task)
-            .addHandlingData(task, ManagedException.ExceptionEvent.Registered, exception.message.toString())
-            .setPropertySnapshot(snapshot)
-        task.dataProcessor.error(managed)
+        val managed = exception.toManaged()
+        container.source.changeStatus(ExecutionStatus.Failing)
+        managed.setHandler(container.effectiveTask.config.exceptionHandler, container.source)
+        container.source.error(exception.throwableToText())
+        container.notifier.addErrorRecord(container.effectiveTask.createErrorSnapshot(), managed)
         return managed
     }
 }
 
+internal fun TaskBase<*, *>.createErrorSnapshot(): ErrorSnapshot{
+    val compiledReport = createTaskData{
+        val selectedSpans = actionSpans.selectUntil {
+            (it.executionStatus == ExecutionStatus.Failing) || (it.executionStatus == ExecutionStatus.Faulty)
+        }
+        selectedSpans.map { it.createData() }
+    }
+    return compiledReport
+}

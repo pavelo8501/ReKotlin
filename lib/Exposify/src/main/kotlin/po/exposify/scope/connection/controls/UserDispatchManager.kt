@@ -9,7 +9,6 @@ class UserDispatchManager {
         val mutex = synchronized(userLocks) {
             userLocks.getOrPut(sessionId) { Mutex() }
         }
-
         return mutex.withLock {
             block()
         }

@@ -1,96 +1,49 @@
 package po.lognotify
 
-import kotlinx.coroutines.CoroutineName
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import po.lognotify.classes.notification.LoggerDataProcessor
-import po.lognotify.classes.notification.NotifierHub
-import po.lognotify.classes.task.RootTask
-import po.lognotify.classes.task.TaskHandler
-import po.lognotify.classes.task.models.TaskConfig
-import po.lognotify.extensions.getOrLoggerException
-import po.lognotify.logging.LoggingService
-import po.lognotify.models.TaskDispatcher
-import po.lognotify.models.TaskDispatcher.UpdateType
-import po.lognotify.models.TaskKey
-import po.misc.callbacks.manager.wrapRawCallback
-import po.misc.data.PrintableBase
-import po.misc.data.console.PrintableTemplateBase
-import po.misc.data.interfaces.Printable
-import po.misc.exceptions.throwManaged
-import po.misc.interfaces.IdentifiableContext
-import kotlin.coroutines.CoroutineContext
+import po.lognotify.notification.NotifierHub
+import po.lognotify.tasks.TaskHandler
+import po.lognotify.dispatcher.TaskDispatcher
+import po.lognotify.notification.models.DebugData
+import po.misc.data.printable.PrintableBase
+import po.misc.data.printable.companion.PrintableTemplateBase
+import po.misc.data.printable.companion.PrintableCompanion
+import po.misc.context.CTX
+import po.misc.data.printable.Printable
+import po.misc.data.processors.SeverityLevel
+import po.misc.debugging.DebugTopic
 
-
-interface LoggableContext: IdentifiableContext{
-
-
-    val logHandler:  LoggerDataProcessor get() {
-      return TasksManaged.LogNotify.taskDispatcher.activeRootTask()?.dataProcessor?:run {
-          throwManaged("dataProcessor not found")
-      }
-    }
-
-    fun<T: PrintableBase<T>> log(record: T, template: PrintableTemplateBase<T>): T{
-        logHandler.log(record, template)
-        return record
-    }
-
-    fun<T: PrintableBase<T>> info(record:  T, template: PrintableTemplateBase<T>){
-        logHandler.log(record, template)
-    }
-}
-
-
-interface TasksManaged :  LoggableContext {
+interface TasksManaged : CTX {
 
     object LogNotify {
-        val logger : LoggingService = LoggingService()
-        val taskDispatcher: TaskDispatcher = TaskDispatcher(NotifierHub())
+       @PublishedApi
+       internal val taskDispatcher: TaskDispatcher = TaskDispatcher(NotifierHub())
+    }
+    val logHandler: LogNotifyHandler
+        get() = LogNotifyHandler(LogNotify.taskDispatcher)
 
-        internal fun defaultContext(name: String): CoroutineContext =
-            SupervisorJob() + Dispatchers.Default + CoroutineName(name)
+    val taskHandler: TaskHandler<*>
+        get() = LogNotify.taskDispatcher.activeTask()?.handler?: LogNotify.taskDispatcher.createDefaultTask().handler
 
-        fun onTaskCreated(handler: UpdateType, callback: (TaskDispatcher.LoggerStats) -> Unit): Unit
-            = taskDispatcher.onTaskCreated(handler, wrapRawCallback(callback))
-        fun onTaskComplete(handler: UpdateType, callback: (TaskDispatcher.LoggerStats) -> Unit): Unit
-            = taskDispatcher.onTaskComplete(handler, wrapRawCallback(callback))
-
-        @PublishedApi
-        internal fun <T, R> createHierarchyRoot(
-            name: String,
-            moduleName: String,
-            config: TaskConfig,
-            receiver:T
-        ): RootTask<T, R>
-        {
-            val newTask = RootTask<T, R>(TaskKey(name, 0, moduleName), config, defaultContext(name), taskDispatcher, receiver)
-            taskDispatcher.addRootTask(newTask)
-            return newTask
-        }
+    override fun Any.log(data: PrintableBase<*>, severity: SeverityLevel){
+        logHandler.logger.log(data,  severity, this@log)
     }
 
+    override fun Any.notify(message: String, severity: SeverityLevel){
+        logHandler.logger.notify(this@notify,  message,  severity)
+    }
 
-   fun activeTaskHandler(): TaskHandler<*>{
-        val message = """lastTaskHandler() resulted in failure. Unable to get task handler. No active tasks in context.
-        Make sure that logger tasks were started before calling this method.
-    """.trimMargin()
+    override fun <T: Printable> CTX.debug(message: String, template: PrintableTemplateBase<T>?, topic: DebugTopic){
+        logHandler.logger.debug(message,  this, topic, template)
+    }
 
-        val availableRoot =  LogNotify.taskDispatcher.activeRootTask().getOrLoggerException(message)
-        return availableRoot.registry.getLastSubTask()?.handler?:availableRoot.handler
+     fun CTX.debug(message: String, template: PrintableTemplateBase<DebugData>?){
+        logHandler.logger.debug(message,  this, DebugTopic.General, template)
+     }
+
+
+    fun <T : PrintableBase<T>> debug(data: T, dataClass: PrintableCompanion<T>, template: PrintableTemplateBase<T>) {
+        logHandler.dispatcher.getActiveDataProcessor().debug(data, dataClass, template)
     }
 
 }
 
-fun  TasksManaged.logNotify(): LogNotifyHandler{
-    return  LogNotifyHandler(TasksManaged.LogNotify.taskDispatcher)
-}
-
-fun  TasksManaged.lastTaskHandler(): TaskHandler<*>{
-    val message = """lastTaskHandler() resulted in failure. Unable to get task handler. No active tasks in context.
-        Make sure that logger tasks were started before calling this method.
-    """.trimMargin()
-
-    val availableRoot =  TasksManaged.LogNotify.taskDispatcher.activeRootTask().getOrLoggerException(message)
-    return availableRoot.registry.getLastSubTask()?.handler?:availableRoot.handler
-}

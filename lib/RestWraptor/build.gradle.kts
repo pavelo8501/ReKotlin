@@ -23,18 +23,17 @@ repositories {
 dependencies {
 
 
-    implementation("io.ktor:ktor-server-core:$ktorVersion")
-    implementation("io.ktor:ktor-server-netty:$ktorVersion")
-    implementation("io.ktor:ktor-server-status-pages:$ktorVersion")
-    implementation("io.ktor:ktor-server-auth-jwt:$ktorVersion")
+    api("io.ktor:ktor-server-core:$ktorVersion")
+    api("io.ktor:ktor-server-netty:$ktorVersion")
+    api("io.ktor:ktor-server-status-pages:$ktorVersion")
+    api("io.ktor:ktor-server-auth-jwt:$ktorVersion")
+    api("io.ktor:ktor-server-content-negotiation:$ktorVersion")
+    api("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
+    api("io.ktor:ktor-server-call-logging:${ktorVersion}")
+    api("io.ktor:ktor-server-cors:${ktorVersion}")
+    api("org.jetbrains.kotlinx:kotlinx-serialization-json:${kotlinSerializationVersion}")
 
-    implementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
-    implementation("io.ktor:ktor-server-call-logging:${ktorVersion}")
-
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinSerializationVersion")
-    implementation("io.ktor:ktor-server-cors:$ktorVersion")
-    implementation("org.slf4j:slf4j-api:2.0.17")
+    //implementation("org.slf4j:slf4j-api:2.0.17")
 
     api(project(":lib:AuthCore"))
     api(project(":lib:LogNotify"))

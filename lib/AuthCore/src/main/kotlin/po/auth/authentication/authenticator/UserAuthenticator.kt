@@ -2,6 +2,7 @@ package po.auth.authentication.authenticator
 
 import at.favre.lib.crypto.bcrypt.BCrypt
 import okio.Path
+
 import po.auth.authentication.authenticator.interfaces.AuthenticationProvider
 import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.auth.exceptions.AuthException
@@ -24,8 +25,8 @@ class UserAuthenticator(
     var keyBasePath : Path? = null
 
     private var _jwtService : JWTService? = null
-    val jwtService: JWTService get() = _jwtService.getOrThrow<JWTService, AuthException>(null){message->
-        authException(message, AuthErrorCode.UNINITIALIZED)
+    val jwtService: JWTService get() = _jwtService.getOrThrow<JWTService>(JWTService::class, this){payload ->
+        authException(payload.setCode(AuthErrorCode.UNINITIALIZED))
     }
 
     private var lookupFn : (suspend (login: String)-> AuthenticationPrincipal?)? = null
@@ -38,7 +39,7 @@ class UserAuthenticator(
     }
 
     suspend fun authenticate(login: String, password: String, anonymous: AuthorizedSession): AuthenticationPrincipal{
-        val principalLookupFn = lookupFn.getOrThrow<AuthFunction, AuthException>(null){message->
+        val principalLookupFn = lookupFn.getOrThrow<AuthFunction>(Function::class, this){ payload->
             authException("Authenticate function not set", AuthErrorCode.CONFIGURATION_MISSING)
         }
         val principal =  principalLookupFn.invoke(login)
@@ -56,7 +57,7 @@ class UserAuthenticator(
         _jwtService = service
     }
 
-    override suspend fun authorize(authData: SessionIdentified): AuthorizedSession {
+    override fun authorize(authData: SessionIdentified): AuthorizedSession {
         val existentSession = factory.sessionLookUp(authData.sessionID)
         return existentSession ?: factory.createAnonymousSession(authData, this)
     }

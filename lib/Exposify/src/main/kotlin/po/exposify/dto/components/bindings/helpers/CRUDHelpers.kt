@@ -3,111 +3,107 @@ package po.exposify.dto.components.bindings.helpers
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
+import po.exposify.dto.DTOClass
 import po.exposify.dto.RootDTO
-import po.exposify.dto.components.result.ResultList
-import po.exposify.dto.components.result.ResultSingle
-import po.exposify.dto.components.result.toResult
-import po.exposify.dto.components.tracker.CrudOperation
-import po.exposify.dto.components.tracker.extensions.addTrackerInfo
-import po.exposify.dto.enums.Cardinality
+import po.exposify.dto.annotations.ExecutionContextLauncher
+import po.exposify.dto.components.executioncontext.DTOExecutionContext
+import po.exposify.dto.enums.DataStatus
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
+import po.misc.types.safeCast
 
 
-fun <DTO: ModelDTO, D: DataModel, E: LongEntity> DTOBase<DTO, D, E>.shallowDTO():CommonDTO<DTO, D, E> {
-    return config.dtoFactory.createDto()
-}
+internal fun <DTO, D, E, F, FD, FE> CommonDTO<DTO, D, E>.shallowDTO(
+    dtoClass: DTOClass<F, FD, FE>,
+): CommonDTO<F, FD, FE>
+where DTO : ModelDTO, D : DataModel, E : LongEntity, F : ModelDTO, FD : DataModel, FE : LongEntity {
 
-fun  <DTO: ModelDTO, D: DataModel, E: LongEntity> DTOBase<DTO, D, E>.newDTO(
-    data: D
-):CommonDTO<DTO, D, E>{
-    return config.dtoFactory.createDto(data)
-}
-
-fun  <DTO: ModelDTO, D: DataModel, E: LongEntity> DTOBase<DTO, D, E>.newDTO(
-    dataList: List<D>
-):List<CommonDTO<DTO, D, E>> = dataList.map { newDTO(it) }
-
-fun <DTO: ModelDTO, D: DataModel,  E: LongEntity>  DTOBase<DTO, D, E>.newDTO(
-    entity:E
-): CommonDTO<DTO,D,E>{
-   val dto = config.dtoFactory.createDto()
-    dto.provideEntity(entity)
-    return  dto
-}
-
-
-internal fun  <DTO: ModelDTO, D: DataModel,  E: LongEntity> List<E>.select(
-    dtoClass:DTOBase<DTO, D, E>,
-    operation : CrudOperation
-): ResultList<DTO, D, E>
-{
-    val result :  MutableList<CommonDTO<DTO, D, E>> = mutableListOf()
-    forEach { entity ->
-        val createdDTO =  dtoClass.config.dtoFactory.createDto()
-        createdDTO.bindingHub.select(entity)
-        result.add(createdDTO)
+    val parentDTO = this
+    return withDTOContextCreating(dtoClass){
+        val newDTO = dtoClass.newDTO(DataStatus.PreflightCheckMock)
+        newDTO.bindingHub.resolveParent(parentDTO)
+        newDTO
     }
-    return  result.toResult(dtoClass, operation)
+}
+
+internal fun <DTO : ModelDTO, D : DataModel, E : LongEntity> DTOBase<DTO, D, E>.newDTO(
+    dataStatus:DataStatus = DataStatus.New
+): CommonDTO<DTO, D, E> {
+    val emptyDataModel = dtoConfiguration.dtoFactory.createDataModel()
+    val dto = dtoConfiguration.dtoFactory.createDto(emptyDataModel)
+    dto.updateDataStatus(dataStatus)
+    return dto
 }
 
 
-internal fun  <DTO: ModelDTO, D: DataModel,  E: LongEntity> E.select(
-    dtoClass:DTOBase<DTO, D, E>,
-    operation : CrudOperation
-): ResultSingle<DTO, D, E>
-{
-    val createdDTO =  dtoClass.config.dtoFactory.createDto()
-    createdDTO.bindingHub.select(this)
-    return  createdDTO.toResult(operation)
+internal fun <DTO : ModelDTO, D : DataModel, E : LongEntity> DTOBase<DTO, D, E>.newDTO(dataModel:D): CommonDTO<DTO, D, E> {
+    val dto = dtoConfiguration.dtoFactory.createDto(dataModel)
+    return dto
 }
 
+@PublishedApi
+internal fun <DTO : ModelDTO, D : DataModel, E : LongEntity> RootDTO<DTO, D, E>.shallowDTO(
 
-/***
- * createByData Entry point for DTO hierarchy creation
- */
- internal fun  <DTO: ModelDTO, D: DataModel, E: LongEntity> RootDTO<DTO, D, E>.createDTO(
-    data:D,
-    operation: CrudOperation
- ):CommonDTO<DTO, D, E>
- {
-    val newDto = config.dtoFactory.createDto(data)
-    newDto.bindingHub.create()
-    return newDto
-}
+): CommonDTO<DTO, D, E> = newDTO(DataStatus.PreflightCheckMock)
 
 
-//fun <DTO: ModelDTO, D: DataModel,  E: LongEntity>  DTOBase<DTO, D, E>.createDTO(
-//    entities : List<E>,
-//    operation: CrudOperation,
-//): List<CommonDTO<DTO,D,E>>{
-//    val result :  MutableList<CommonDTO<DTO,D,E>> = mutableListOf()
-//    entities.forEach {entity->
-//        val created = createDTO(entity, operation)
-//        result.add(created)
+
+
+//internal fun <DTO, D, E, F, FD, FE> CommonDTO<DTO, D, E>.createContext(
+//    dtoClass: DTOClass<F, FD, FE>
+//): DTOExecutionContext<DTO, D, E, F, FD, FE>
+//        where DTO : ModelDTO, D : DataModel, E : LongEntity, F : ModelDTO, FD : DataModel, FE : LongEntity
+//{
+//            this.createExecutionContext()
+//    val newContext = DTOExecutionContext(dtoClass, this)
+//    registerExecutionContext(dtoClass.commonDTOType, newContext)
+//    return newContext
+//}
+
+//internal inline fun <DTO, D, F, FD, R> CommonDTO<DTO, D, *>.withDTOContext(
+//    commonDTOType: CommonDTOType<F, FD, *>,
+//    throwIfNull: Boolean = false,
+//    block: DTOExecutionContext<F, FD, *, DTO, D, *>.() -> R,
+//): R? where DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel, R : Any {
+//
+//    val context = executionContextMap[commonDTOType]
+//    if(context == null && throwIfNull){
+//       throw operationsException("DTOContext for key $commonDTOType not found", ExceptionCode.BAD_DTO_SETUP)
 //    }
-//    return result.toList()
+//
+//    if(context != null){
+//        val casted = context.castOrOperations<DTOExecutionContext<F, FD, *, DTO, D, *>>(this)
+//        return block.invoke(casted)
+//    }else{
+//        warning("DTOContext for key $commonDTOType not found")
+//        return null
+//    }
 //}
 
 
-//fun <DTO: ModelDTO, D: DataModel,  E: LongEntity>  DTOBase<DTO, D, E>.createDTO(
-//    entity : E,
-//    operation: CrudOperation,
-//): CommonDTO<DTO,D,E>{
-//    val created =  newDTO(entity)
-//    created.bindingHub.insert(entity)
-//    return created
-//}
+@ExecutionContextLauncher()
+inline fun <DTO, D, E, F, FD, FE, R> withDTOContext(
+    context :  DTOExecutionContext<F, FD, E, DTO, D, FE,>,
+    block: DTOExecutionContext<F, FD, E, DTO, D, FE>.() -> R,
+): R where DTO : ModelDTO, D : DataModel, E: LongEntity, F : ModelDTO, FD : DataModel, FE:LongEntity, R : Any {
 
-
-fun <DTO: ModelDTO, D: DataModel,  E: LongEntity> CommonDTO<DTO,D,E>.updateFromData(
-    data: D,
-    operation: CrudOperation
-): ResultSingle<DTO, D, E> {
-    bindingHub.update(data)
-    return toResult(operation)
+    return block.invoke(context)
 }
 
+@ExecutionContextLauncher()
+internal inline fun <DTO, D, E, F, FD, FE, R>  CommonDTO<DTO, D, E>.withDTOContextCreating(
+    dtoClass:DTOClass<F, FD, FE>,
+    block: DTOExecutionContext<DTO, D, E, F, FD, FE>.(CommonDTO<DTO, D, E>) -> R,
+): R where DTO : ModelDTO, D : DataModel, E: LongEntity, F : ModelDTO, FD : DataModel, FE:LongEntity, R : Any {
 
-
-
+   val context =  executionContextMap[dtoClass]?.safeCast<DTOExecutionContext<DTO, D, E, F, FD, FE>>()
+   return context?.let {inContext->
+        notify("Reusing existent context:  ${inContext.identifiedByName}")
+        block.invoke(inContext, this)
+    }?:run {
+        notify("Creating new DTOContext for $identifiedByName")
+        val newContext =  createExecutionContext(dtoClass)
+        executionContextMap[dtoClass] = newContext
+        block.invoke(newContext, this)
+    }
+}

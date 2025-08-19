@@ -1,55 +1,43 @@
 package po.exposify.scope.connection.controls
 
-import kotlinx.coroutines.Dispatchers
-import org.jetbrains.exposed.dao.LongEntity
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import po.auth.sessions.models.AuthorizedSession
+import po.exposify.common.classes.ExposifyDebugger
+import po.exposify.common.classes.exposifyDebugger
+import po.exposify.common.events.ContextData
 import po.exposify.dto.components.result.ResultList
+import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.dto.interfaces.RunnableContext
-import po.exposify.scope.sequence.classes.ClassSequenceHandler
-import po.exposify.scope.sequence.classes.RootSequenceHandler
-import po.lognotify.process.runProcess
-
+import po.exposify.extensions.withSuspendedTransactionIfNone
+import po.lognotify.TasksManaged
+import po.lognotify.process.Process
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
 
 class CoroutineEmitter(
     val name: String,
-    val session : AuthorizedSession
-){
-    suspend fun <DTO, D, E>dispatchRoot(rootHandler : RootSequenceHandler<DTO, D, E>): ResultList<DTO, D, E>
-            where DTO : ModelDTO,  D: DataModel, E: LongEntity {
-        return session.runProcess("Sequence dispatched by ${rootHandler.dtoRoot.completeName}", Dispatchers.IO) {
-            newSuspendedTransaction(coroutineContext) {
-                val runnableContext = RunnableContext.runInfo(session)
-                rootHandler.handlerConfig.onStartCallback?.invoke(runnableContext)
-                val result = rootHandler.launch(runnableContext)
-                rootHandler.handlerConfig.onCompleteCallback?.invoke(runnableContext)
-                result
-            }
+    val process : Process<AuthorizedSession>
+): TasksManaged {
+
+    override val identity: CTXIdentity<CoroutineEmitter> = asIdentity()
+
+    val debugger: ExposifyDebugger<CoroutineEmitter, ContextData> =
+        exposifyDebugger(this, ContextData) { ContextData(it.message) }
+
+    suspend fun <R>dispatch(block:suspend ()-> R): R{
+        return withSuspendedTransactionIfNone(debugger, warnIfNoTransaction = false, process.coroutineContext){
+            block.invoke()
+        }
+    }
+    suspend fun <DTO:ModelDTO, D: DataModel>dispatchSingle(block:suspend ()-> ResultSingle<DTO, D>): ResultSingle<DTO, D>{
+        return  withSuspendedTransactionIfNone(debugger, warnIfNoTransaction = false, process.coroutineContext){
+            block.invoke()
         }
     }
 
-    suspend fun <DTO:ModelDTO, D: DataModel, E: LongEntity, F: ModelDTO, FD: DataModel, FE: LongEntity>dispatchChild(
-        classHandler: ClassSequenceHandler<DTO, D, E, F, FD, FE>
-    ): ResultList<DTO, D, E>{
-        return session.runProcess("Sequence dispatched by ${classHandler.dtoClass.completeName}", Dispatchers.IO) {
-            newSuspendedTransaction(coroutineContext){
-                    val runnableContext = RunnableContext.runInfo(session)
-                    classHandler.handlerConfig.onStartCallback?.invoke(runnableContext)
-                    classHandler.handlerConfig.rootHandler.launch(runnableContext)
-                    val result = classHandler.finalResult
-                    classHandler.handlerConfig.onCompleteCallback?.invoke(runnableContext)
-                    result
-                }
-        }
-    }
-
-    suspend fun <DTO:ModelDTO, D: DataModel, E: LongEntity>dispatch(block:suspend ()-> ResultList<DTO,D,E>): ResultList<DTO, D, E>{
-        return session.runProcess("Sequence dispatch", Dispatchers.IO){
-            newSuspendedTransaction(coroutineContext) {
-                block.invoke()
-            }
+    suspend fun <DTO:ModelDTO, D: DataModel>dispatchList(block:suspend ()-> ResultList<DTO, D>): ResultList<DTO, D>{
+        return  withSuspendedTransactionIfNone(debugger, warnIfNoTransaction = false, process.coroutineContext){
+            block.invoke()
         }
     }
 }

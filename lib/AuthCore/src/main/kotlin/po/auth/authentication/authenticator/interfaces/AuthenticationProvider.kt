@@ -7,5 +7,5 @@ import po.auth.sessions.models.AuthorizedSession
  * Interface for authenticating a call and generating a user session.
  */
 interface AuthenticationProvider {
-    suspend fun authorize(authData: SessionIdentified):  AuthorizedSession
+    fun authorize(authData: SessionIdentified):  AuthorizedSession
 }

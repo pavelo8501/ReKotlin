@@ -19,6 +19,7 @@ enum class Emoji(val symbol: String) {
     UNLOCK("🔓"),
     LIGHTBULB("💡"),
     HAMMER("🔨"),
+    HammerAndPick("⚒️"),
     MAGNET("🧲"),
     PENCIL("✏️"),
     NOTEBOOK("📒"),
@@ -29,6 +30,10 @@ enum class Emoji(val symbol: String) {
     BLUE_CIRCLE("🔵"),
     BLACK_CIRCLE("⚫"),
     WHITE_CIRCLE("⚪");
+
+    override fun toString(): String {
+        return symbol
+    }
 
     companion object {
         fun fromValue(symbol: String): Emoji {

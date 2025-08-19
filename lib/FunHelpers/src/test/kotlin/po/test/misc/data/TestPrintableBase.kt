@@ -1,17 +1,21 @@
 package po.test.misc.data
 
+import org.junit.jupiter.api.Test
 import po.misc.data.console.DateHelper
-import po.misc.data.PrintableBase
-import po.misc.data.console.PrintableTemplate
+import po.misc.data.printable.PrintableBase
 import po.misc.data.styles.colorize
 import po.misc.data.processors.DataProcessor
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.text
-import po.misc.interfaces.Identifiable
+import po.misc.data.printable.companion.PartsTemplate
 import po.misc.interfaces.ValueBased
-import po.misc.interfaces.asIdentifiable
-import po.misc.interfaces.toValueBased
+import kotlin.test.assertTrue
+import po.misc.data.printable.companion.PrintableCompanion
+import po.misc.data.printable.PrintableGroup
+import po.misc.data.printable.companion.nextLine
+import kotlin.test.assertNotEquals
+
 
 class TestPrintableBase: DateHelper {
 
@@ -25,23 +29,34 @@ class TestPrintableBase: DateHelper {
      * composition rules.
      *
      */
-    val processor: DataProcessor<Item> = DataProcessor<Item>()
+    val processor: DataProcessor<Item> = DataProcessor<Item>(null)
 
     data class Item (
         val personalName: String,
         val componentName: String = "Some name",
         val description : String = "description",
         val intValue: Int = 200
-    ): PrintableBase<Item>(Printable){
+    ): PrintableBase<Item>(this){
 
         override val self: Item = this
 
-        override val emitter: Identifiable = asIdentifiable(personalName, componentName)
-        override val itemId: ValueBased = toValueBased(0)
+      //  override val itemId: ValueBased = toValueBased(0)
 
-        companion object{
-            val Printable: PrintableTemplate<Item> = PrintableTemplate(
-                templateName = "Printable",
+        companion object: PrintableCompanion<Item>({Item::class}){
+
+            val Header = createTemplate(){
+                nextLine {
+                    "$personalName | $componentName | $description".colorize(Colour.BLUE)
+                }
+            }
+
+            val Footer = createTemplate(){
+                nextLine {
+                    "$personalName Value = ${intValue}".colorize(Colour.BLUE)
+                }
+            }
+
+            val Printable: PartsTemplate<Item> = PartsTemplate(
                 delimiter = SpecialChars.NewLine.char,
                 { Colour.RED text "String1->  $personalName |"},
                 {"$description And Value=$intValue"}
@@ -59,85 +74,56 @@ class TestPrintableBase: DateHelper {
         val error: String = "Generic error",
         val module : String = "Module1",
         val handled: Boolean = true,
-    ): PrintableBase<Item2>(Template2){
+    ): PrintableBase<Item2>(this){
 
         override val self: Item2 = this
-        override val emitter: Identifiable = asIdentifiable(personalName, componentName)
-        override val itemId: ValueBased = toValueBased(0)
+       // override val itemId: ValueBased = toValueBased(0)
 
-        companion object{
-            val Template2: PrintableTemplate<Item2> = PrintableTemplate<Item2>("Template2"){
-                "String2-> $personalName | $module And Value=$handled".colorize(Colour.RED)
+        companion object: PrintableCompanion<Item2>({Item2::class}){
+
+            val RegularStr = createTemplate{
+                nextLine {
+                    "$componentName in $module".colorize(Colour.CYAN)
+                }
+            }
+
+            val Template2 = createTemplate{
+                nextLine {
+                    "String2-> $personalName | $module And Value=$handled".colorize(Colour.RED)
+                }
             }
         }
     }
 
+    class ItemGroup(
+        groupHost:Item,
+    ) : PrintableGroup<Item, Item2>(groupHost, Item.Header, Item2.RegularStr)
 
-//
-//    @Test
-//    fun `Test processor creates data`(){
-//         var created : PrintableBase<*>? = null
-//         processor.registerEvent<Item>(Events.Info){
-//             created = it
-//
-//        }
-//        info("Some message")
-//        assertNotNull(created, "Record to be created is null")
-//    }
-//
-//    @Test
-//    fun `Data processor able to apply mute conditions dynamically`(){
-//
-//        processor.provideMuteCondition {
-//            it.itemId.value == 1
-//        }
-//
-//        processor.provideMuteCondition<Item2> {
-//            it.error == "NewError"
-//        }
-//
-//        val item1 = Item(personalName = "Item 1", description = "Description3")
-//        val item2 = Item2(personalName = "Item 2", error = "NewError")
-//
-//        val message1 = processor.processRecord(item1, null)
-//        val message2 = processor.processRecord(item2, null)
-//        assertNull(message1)
-//        assertNull(message2)
-//    }
-//
-//    @Test
-//    fun `Assert Data processor able to obtain templated data from records`(){
-//        val item1 = Item(personalName =  "Item 1", description = "Description3")
-//        val item2 = Item2(personalName = "Item 2")
-//
-//        val message1 = processor.processRecord(item1, Item.Printable)
-//        val message2 = processor.processRecord(item2, Item2.Template2)
-//
-//        assertEquals(2, processor.recordsCount, "Records not saved")
-//        assertTrue(message1?.contains("String1->")?:false, "Output in message1 is different. Actual: $message1")
-//        assertTrue(message2?.contains("String2->")?:false, "Output in message2 is different")
-//    }
-//
-//    @Test
-//    fun `Composition for instances`(){
-//        val item =  Item(personalName = "Item 1", description = "Description3")
-//        val item2List  : MutableList<Item2> = mutableListOf()
-//
-//        for(i in 1 .. 5){
-//            item2List.add(Item2(personalName =  "Item2 $i"))
-//        }
-//        item.addChildren(item2List.toList())
-//        assertEquals(5, item.children.size, "Child count mismatch")
-//        assertFalse(item.children.any { it.parentRecord == null })
-//    }
-//
-//    @Test
-//    fun `Data processor able to operate on  PrintableBase instances`(){
-//        val item1 =  Item(personalName =  "Item 1", description = "Description3")
-//        val item2 = Item2(personalName = "Item 2")
-//
-//        processor.processRecord(item1, null)
-//        processor.processRecord(item2, null)
-//        assertEquals(2, processor.recordsCount, "items cont mismatch")
-//    }
+    @Test
+    fun `Test printable group`(){
+
+        val item = Item("groupHost")
+        val group1 = ItemGroup(item)
+        group1.setHeader(Item.Header)
+        group1.setFooter(Item.Footer)
+
+        for(i in 1..11){
+            val childItem = Item2("childItem_${i}", componentName = "Component#${i}")
+            group1.addRecord(childItem, )
+        }
+        val string = group1.formattedString
+        assertTrue(string.contains("Component#3"))
+        println(string)
+
+    }
+
+    @Test
+    fun `Printable metadata properly initialized`(){
+        val item = Item("name")
+        val item2 = Item2("name")
+        assertTrue(Item.metaDataInitialized)
+        assertTrue(Item2.metaDataInitialized)
+        assertNotEquals(Item.typeKey.hashCode(), Item2.typeKey.hashCode(), "Keys are the same")
+    }
+
 }

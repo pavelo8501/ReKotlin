@@ -1,7 +1,7 @@
 package po.misc.serialization
 
 import kotlinx.serialization.KSerializer
-import po.misc.types.getKType
+import po.misc.types.TypeData
 import po.misc.types.toSimpleNormalizedKey
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
@@ -13,7 +13,8 @@ inline fun <reified T> KSerializer<T>.toSerializerInfo(
 ): SerializerInfo<T> {
     val type =  typeOf<T>()
     val key = type.toSimpleNormalizedKey()
-    return SerializerInfo(key, this, type, isListSerializer)
+    val typeData: TypeData<KSerializer<T>> = TypeData(this::class as KClass<KSerializer<T>> , type)
+    return SerializerInfo(typeData, key, this, type, isListSerializer)
 }
 
 fun <T: Any> toSerializerInfo(
@@ -21,6 +22,6 @@ fun <T: Any> toSerializerInfo(
     serializer: KSerializer<T>,
     isListSerializer: Boolean
 ): SerializerInfo<T> {
-    val key = type.toSimpleNormalizedKey()
-    return SerializerInfo(key, serializer, type, isListSerializer)
+    val typeData: TypeData<KSerializer<T>> = TypeData(serializer::class as KClass<KSerializer<T>> , type)
+    return SerializerInfo(typeData, type.toSimpleNormalizedKey(), serializer, type, isListSerializer)
 }

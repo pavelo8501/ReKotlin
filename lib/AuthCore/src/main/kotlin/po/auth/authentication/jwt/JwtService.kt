@@ -14,14 +14,13 @@ import po.auth.authentication.jwt.models.JwtToken
 import po.auth.authentication.jwt.repositories.InMemoryTokenStore
 import po.auth.sessions.models.AuthorizedSession
 import po.lognotify.TasksManaged
+import po.misc.context.Identifiable
 import java.time.Instant
 import java.util.Date
 
 class JWTService(
     private var config : JwtConfig
-): TasksManaged {
-
-    override val contextName: String = "JWTService"
+){
 
     var name: String = ""
     val realm: String
@@ -29,7 +28,7 @@ class JWTService(
 
     val tokenRepository = InMemoryTokenStore()
 
-    suspend fun setAuthenticationFn(userLookupFn : (suspend (login: String)-> AuthenticationPrincipal?)){
+    fun setAuthenticationFn(userLookupFn : (suspend (login: String)-> AuthenticationPrincipal?)){
         AuthSessionManager.registerAuthenticator(userLookupFn)
     }
 
@@ -43,7 +42,7 @@ class JWTService(
         return token.removePrefix("Bearer").trim()
     }
 
-    suspend fun generateToken(principal: AuthenticationPrincipal,  session : AuthorizedSession): JwtToken {
+    fun generateToken(principal: AuthenticationPrincipal,  session : AuthorizedSession): JwtToken {
        val serialized = principal.asJson()
        val token = JWT.create()
             .withAudience(config.audience)

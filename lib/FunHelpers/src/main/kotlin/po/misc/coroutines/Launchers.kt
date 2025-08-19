@@ -12,7 +12,7 @@ import kotlinx.coroutines.withContext
 suspend fun <T : CoroutineHolder, R> T.RunAsync(
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
     block: suspend CoroutineScope.() -> R
-): R = withContext(this.coroutineContext + dispatcher) {
+): R = withContext(this.scope.coroutineContext) {
     block()
 }
 
@@ -21,7 +21,7 @@ suspend fun <T : CoroutineHolder, R> T.RunConcurrent(
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
     block: suspend CoroutineScope.() -> R
 ): R {
-    return  CoroutineScope(this.coroutineContext + dispatcher).async(start = CoroutineStart.UNDISPATCHED) {
+    return  CoroutineScope(this.scope.coroutineContext + dispatcher).async(start = CoroutineStart.UNDISPATCHED) {
         block()
     }.await()
 }
@@ -36,6 +36,6 @@ data class LauncherPayload<T, P, R>(
 suspend fun <T : CoroutineHolder, REC, P, R> T.RunAsync(
     payload: LauncherPayload<REC, P, R>,
     block: suspend CoroutineScope.() -> R
-): R = withContext(this.coroutineContext) {
+): R = withContext(this.scope.coroutineContext) {
     block()
 }

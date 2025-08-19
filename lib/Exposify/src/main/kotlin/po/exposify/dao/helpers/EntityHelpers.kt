@@ -1,27 +1,37 @@
 package po.exposify.dao.helpers
 
+import org.jetbrains.exposed.dao.Entity
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dao.classes.ExposifyEntityClass
-import po.exposify.exceptions.InitException
 import po.exposify.exceptions.enums.ExceptionCode
-import po.misc.exceptions.ManageableException
-import po.misc.exceptions.ManagedException
-import po.misc.exceptions.throwManageable
+import po.exposify.exceptions.initException
+import po.exposify.exceptions.operationsException
+import po.misc.context.CTX
 import po.misc.types.castBaseOrThrow
-import po.misc.types.castOrThrow
 import kotlin.reflect.full.companionObjectInstance
 
-inline fun <reified E : LongEntity, reified EX : ManagedException> getExposifyEntityCompanion(): ExposifyEntityClass<E> {
+inline fun <reified E : LongEntity> getExposifyEntityCompanion(
+    callingContext: Any
+): ExposifyEntityClass<E> {
     val companion = E::class.companionObjectInstance
     if (companion != null) {
-        val casted = companion.castBaseOrThrow<ExposifyEntityClass<E>, EX>(null) {
-            ManageableException.build<EX, ExceptionCode>(it, ExceptionCode.REFLECTION_ERROR)
+        val a = "stop"
+        return companion.castBaseOrThrow<ExposifyEntityClass<E>>(callingContext) { payload ->
+            initException(payload.setCode(ExceptionCode.REFLECTION_ERROR))
         }
-        return casted
     } else {
-        throwManageable<EX, ExceptionCode>(
+        throw operationsException(
             "Missing companion object for ${E::class.simpleName}",
-            ExceptionCode.REFLECTION_ERROR
+            ExceptionCode.REFLECTION_ERROR,
+            callingContext
         )
     }
+}
+
+
+internal fun Entity<*>.hasChanges(): Boolean {
+    val field = this::class.java.superclass.getDeclaredField("writeValues")
+    field.isAccessible = true
+    val writeValues = field.get(this) as Map<*, *>
+    return writeValues.isNotEmpty()
 }

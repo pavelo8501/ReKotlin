@@ -30,10 +30,10 @@ import po.auth.extensions.setKeyBasePath
 import po.restwraptor.RestWrapTor
 import po.restwraptor.enums.WraptorHeaders
 import po.restwraptor.extensions.asBearer
-import po.restwraptor.extensions.jwtSecured
+import po.restwraptor.routes.jwtSecured
 import po.restwraptor.extensions.respondBadRequest
 import po.restwraptor.extensions.stripBearer
-import po.restwraptor.extensions.withBaseUrl
+import po.restwraptor.routes.withBaseUrl
 import po.restwraptor.models.request.LoginRequest
 import po.restwraptor.models.response.ApiResponse
 import kotlin.test.assertEquals

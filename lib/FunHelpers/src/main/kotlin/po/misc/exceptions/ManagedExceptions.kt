@@ -1,102 +1,97 @@
 package po.misc.exceptions
 
-import po.misc.interfaces.IdentifiableContext
+import po.misc.data.printable.knowntypes.PropertyData
+import po.misc.context.CTX
+import po.misc.exceptions.models.ExceptionData
 
 enum class HandlerType(val value: Int) {
-    Undefined(0),
     SkipSelf(1),
     CancelAll(2);
+
     companion object {
         fun fromValue(value: Int): HandlerType {
-            entries.firstOrNull { it.value == value }?.let {
-                return it
-            }
-            return Undefined
+            return entries.firstOrNull { it.value == value } ?:CancelAll
         }
     }
 }
 
 open class ManagedException(
-    internal var msg: String,
-    val source: Enum<*>? = null,
-    original : Throwable? = null,
-) : Throwable(msg, original), ManageableException<ManagedException>{
+    open val msg: String,
+    open val code: Enum<*>? = null,
+    original : Throwable? = null
+) : Throwable(msg, original){
 
     enum class ExceptionEvent{
-        Registered,
+        Thrown,
         HandlerChanged,
         Rethrown,
-        Thrown
+        Executed
     }
 
-    data class HandlingData(
-       val wayPoint: IdentifiableContext,
-       val event: ExceptionEvent,
-       val message: String? = null
-    ){
-        override fun toString(): String {
-            return when (event) {
-                ExceptionEvent.Registered -> {
-                    "First registered in ${wayPoint.contextName}"
-                }
-                ExceptionEvent.Thrown -> {
-                    "Thrown in ${wayPoint.contextName}"
-                }
-                else -> {
-                    "$wayPoint[${event.name}]"
-                }
-            }
-        }
-    }
+    private var payloadBacking: ManagedCallSitePayload? = null
+    internal val payload:  ManagedCallSitePayload? get() = payloadBacking
 
-    open var handler  : HandlerType = HandlerType.Undefined
-        internal set
-    override var propertySnapshot :  Map<String, Any?> = emptyMap()
-    var handlingData: List<HandlingData> = listOf()
+    val methodName: String? get() = payloadBacking?.methodName
+    open val context: CTX? get() = payloadBacking?.context
+
+    open var handler: HandlerType = HandlerType.CancelAll
         internal set
 
-    internal fun setMessage(message: String){
-        msg = message
+    internal val exceptionDataBacking: MutableList<ExceptionData> = mutableListOf()
+    val exceptionData: List<ExceptionData> = exceptionDataBacking
+
+
+    constructor(managedPayload: ManagedCallSitePayload): this(managedPayload.message, managedPayload.code, managedPayload.cause){
+        initFromPayload(managedPayload)
     }
 
-    override fun addHandlingData(
-        waypoint: IdentifiableContext,
-        event: ExceptionEvent,
-        message: String?
-    ): ManagedException{
-       handlingData = handlingData.toMutableList().apply { add(HandlingData(waypoint,event, message) ) }
-       return this
+    protected fun initFromPayload(payload: ManagedCallSitePayload){
+        payloadBacking = payload
+
+        val stackFrameMeta = extractCallSiteMeta(payload.methodName, framesCount = 3)
+        val data = ExceptionData(ExceptionEvent.Thrown, payload.message, payload.context)
+        data.addStackTraceMeta(stackFrameMeta)
+        data.addStackTrace(currentCallerTrace(payload.methodName))
+        exceptionDataBacking.add(data)
     }
-    override fun setHandler(
-        handlerType: HandlerType,
-        wayPoint: IdentifiableContext
-    ): ManagedException{
-        if(handlingData.isEmpty()){
-            addHandlingData(wayPoint, ExceptionEvent.Registered)
-        }else{
-            addHandlingData(wayPoint, ExceptionEvent.HandlerChanged)
-        }
-        handler = handlerType
+
+    fun addExceptionData(data: ExceptionData, context: CTX):ManagedException{
+        val data = ExceptionData(ExceptionEvent.Thrown, msg, context)
+        exceptionDataBacking.add(data)
         return this
     }
-    override fun throwSelf(wayPoint: IdentifiableContext):Nothing {
-        addHandlingData(wayPoint, ExceptionEvent.Thrown)
+
+    fun setHandler(handlerType: HandlerType, producer: CTX): ManagedException {
+        val thisMessage = message ?: ""
+        if (exceptionData.isEmpty()) {
+            val data = ExceptionData(ExceptionEvent.Thrown, thisMessage, producer)
+            data.addStackTrace(stackTrace.toList())
+            exceptionDataBacking.add(data)
+        } else {
+            val data =
+                ExceptionData(ExceptionEvent.HandlerChanged, thisMessage, producer)
+            exceptionDataBacking.add(data)
+        }
+        if (handler != handlerType) {
+            handler = handlerType
+        }
+        return this
+    }
+
+    fun throwSelf(methodName: String, producer: CTX, event: ExceptionEvent = ExceptionEvent.Thrown):Nothing {
+        val data = ExceptionData(event, message?:"", producer)
+        data.addStackTrace(currentCallerTrace(methodName))
+        exceptionDataBacking.add(data)
         throw this
     }
 
-    fun setPropertySnapshot(snapshot: Map<String, Any?>?):ManagedException{
+    fun setPropertySnapshot(snapshot: List<PropertyData>?):ManagedException{
         if(snapshot != null){
-            propertySnapshot = snapshot
+            val lastData = exceptionData.lastOrNull()
+            lastData?.addPropertySnapshot(snapshot)
         }
         return this
     }
-
-    companion object : ManageableException.Builder<ManagedException> {
-        override fun build(message: String, source: Enum<*>?,  original: Throwable?): ManagedException {
-            return ManagedException(message, null, original)
-        }
-    }
-
 }
 
 

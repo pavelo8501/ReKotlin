@@ -1,6 +1,6 @@
 package po.lognotify.models
 
-import po.lognotify.enums.SeverityLevel
+import po.misc.data.processors.SeverityLevel
 
 
 data class LogRecord(

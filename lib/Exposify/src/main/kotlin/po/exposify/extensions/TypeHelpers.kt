@@ -1,82 +1,91 @@
 package po.exposify.extensions
 
+import org.jetbrains.exposed.dao.LongEntity
+import po.exposify.dto.CommonDTO
+import po.exposify.dto.interfaces.DataModel
+import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.models.CommonDTOType
 import po.exposify.exceptions.InitException
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.initException
 import po.exposify.exceptions.operationsException
-import po.misc.exceptions.ManagedException
-import po.misc.interfaces.IdentifiableContext
+import po.misc.context.CTX
+import po.misc.types.TypeData
 import po.misc.types.castOrThrow
 import po.misc.types.getOrThrow
+import kotlin.reflect.KClass
 
-internal inline fun <reified T: Any> Any?.castOrOperations(ctx: IdentifiableContext? = null ): T {
-   return this.castOrThrow<T, OperationsException>(ctx){
-       operationsException(it, ExceptionCode.CAST_FAILURE, ctx)
-   }
-}
 
 @PublishedApi
-internal inline fun <reified T: Any> Any?.castOrInit(ctx: IdentifiableContext? = null): T
-{
-    return this.castOrThrow<T, InitException>(ctx){
-        initException(it, ExceptionCode.CAST_FAILURE)
-    }
-}
-
-internal inline fun <reified T: Any> Any.castLetOrInit(block: (T)->T): T {
-    try {
-       val result =  this.castOrThrow<T, InitException>(null){
-           initException(it,  ExceptionCode.CAST_FAILURE)
-       }
-       return block.invoke(result)
-    }catch (ex: Throwable){
-        throw  ex
-    }
-}
-
-
-internal inline fun <reified T : Any> T?.getOrOperations(ctx: IdentifiableContext? = null): T {
-   return this.getOrThrow<T, OperationsException>(ctx){
-       operationsException(it, ExceptionCode.VALUE_IS_NULL)
-   }
-}
-
-internal fun <T : Any> T?.getOrOperations(className: String, ctx: IdentifiableContext? = null): T {
-    if(this != null){
-        return this
-    }else{
-       throw operationsException("$className is null", ExceptionCode.VALUE_IS_NULL, ctx)
+internal fun <T: Any> Any?.castOrOperations(
+    kClass: KClass<T>,
+    callingContext: CTX
+): T {
+    return this.castOrThrow(kClass, callingContext){payload->
+        OperationsException(payload)
     }
 }
 
 @PublishedApi
-internal inline fun <reified T : Any> T?.getOrInit(ctx: IdentifiableContext? = null): T {
-    return this.getOrThrow<T, InitException>(ctx){
-        initException(it, ExceptionCode.VALUE_IS_NULL)
+internal inline fun <reified T: Any> Any?.castOrOperations(
+    callingContext: CTX
+): T  = castOrOperations(T::class, callingContext)
+
+@PublishedApi
+internal fun <DTO: ModelDTO, D: DataModel, E: LongEntity> CommonDTO<*,*,*>?.castOrOperations(
+    commonDTOType: CommonDTOType<DTO, D, E>,
+    callingContext: CTX
+): CommonDTO<DTO, D, E>  = castOrOperations(commonDTOType.commonType.kClass , callingContext)
+
+
+internal fun <T : Any> T?.getOrOperations(
+    kClass: KClass<*>,
+    callingContext: CTX
+): T {
+    return getOrThrow(kClass, callingContext){payload->
+        operationsException(payload.setCode(ExceptionCode.VALUE_IS_NULL))
     }
 }
 
-internal fun <T : Any> T?.getOrInit(className: String, ctx: IdentifiableContext? = null): T {
-    if(this != null){
-        return this
-    }else{
-        throw initException("$className is null", ExceptionCode.VALUE_IS_NULL, ctx)
+internal fun <T : Any> T?.getOrOperations(
+    typeData: TypeData<T>,
+    callingContext: CTX
+): T {
+    return  getOrThrow(typeData.kClass, callingContext){payload->
+        operationsException(payload.setCode(ExceptionCode.VALUE_IS_NULL))
     }
 }
 
-fun <T: Any?, E: ManagedException> T.testOrThrow(exception : E, predicate: (T) -> Boolean): T{
-    if (predicate(this)){
-        return this
-    }else{
-        throw exception
+internal inline fun <reified T : Any> T?.getOrOperations(
+    callingContext: CTX
+): T = getOrOperations(T::class, callingContext)
+
+
+internal fun <T: Any> Any?.castOrInit(
+    kClass: KClass<T>,
+    callingContext: CTX
+): T {
+    return this.castOrThrow(kClass, callingContext){payload->
+        InitException(payload)
     }
 }
 
-inline fun <T: Any> T?.letOrThrow(ex : OperationsException, block: (T)-> T): Unit{
-    if(this != null){
-        block(this)
-    } else {
-        throw ex
+internal inline fun <reified T: Any> Any?.castOrInit(
+    callingContext: CTX
+): T = castOrInit(T::class, callingContext)
+
+
+internal fun <T : Any> T?.getOrInit(
+    kClass: KClass<T>,
+    callingContext: CTX
+): T {
+    return  getOrThrow(kClass, callingContext){payload->
+        initException(payload.setCode(ExceptionCode.VALUE_IS_NULL))
     }
 }
+
+internal inline fun <reified T : Any> T?.getOrInit(
+    callingContext: CTX
+): T = getOrInit(T::class, callingContext)
+

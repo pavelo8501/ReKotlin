@@ -1,28 +1,33 @@
 package po.test.misc.callback
 
 import org.junit.jupiter.api.Test
-import po.misc.callbacks.manager.CallbackManager
-import po.misc.interfaces.IdentifiableClass
-import po.misc.interfaces.IdentifiableContext
-import po.misc.interfaces.asIdentifiableClass
+import po.misc.callbacks.CallbackManager
+import po.misc.context.CTX
+import po.misc.context.asIdentity
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
-class TestCallbackDataHandling: IdentifiableClass {
+class TestCallbackDataHandling: CTX {
 
-    override val identity = asIdentifiableClass("TestCallbackDataHandling", "Test")
 
-    class FirstHoldingClass: IdentifiableContext{
+    override val identity = asIdentity()
+
+    class FirstHoldingClass: CTX {
         enum class Event{ OnInit, OnRouted  }
-        override val contextName: String = "FirstHoldingClass"
+
+
+        override val identity = asIdentity()
+
         val notifier = CallbackManager(enumClass = Event::class.java, emitter = this)
         val initialPayload = CallbackManager.createPayload<Event, Int>(notifier, Event.OnInit)
         val routedPayload = CallbackManager.createPayload<Event, String>(notifier, Event.OnRouted)
     }
 
-    class SecondHoldingClass: IdentifiableContext {
+    class SecondHoldingClass: CTX {
         enum class Event{ OnData }
-        override val contextName: String = "SecondHoldingClass"
+
+        override val identity = asIdentity()
+
         val notifier = CallbackManager(enumClass = Event::class.java, emitter = this)
         val dispatcherPayload = CallbackManager.createPayload<Event, String>(notifier, Event.OnData)
     }

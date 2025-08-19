@@ -1,16 +1,23 @@
 package po.lognotify.models
 
 
-import po.lognotify.classes.task.RootTask
-import po.lognotify.classes.task.Task
-import po.lognotify.classes.task.TaskBase
-import po.lognotify.classes.task.interfaces.ResultantTask
+import po.lognotify.dispatcher.TaskDispatcher
+import po.lognotify.tasks.ExecutionStatus
+import po.lognotify.tasks.RootTask
+import po.lognotify.tasks.Task
+import po.lognotify.tasks.TaskBase
+import po.lognotify.tasks.interfaces.ResultantTask
+import po.misc.context.CTX
 
-class TaskRegistry<T, R>(
+class TaskRegistry<T: CTX, R>(
     val dispatcher: TaskDispatcher,
     val hierarchyRoot: RootTask<T, R>
 ) {
     val tasks: MutableMap<TaskKey, Task<*, *>> = mutableMapOf()
+
+    val totalCount: Int get() = tasks.size + 1
+    val childCount: Int get() = tasks.size
+
     fun registerChild(task: Task<*, *>) {
         tasks[task.key] = task
         dispatcher.notifyUpdate(TaskDispatcher.UpdateType.OnTaskCreated, task)
@@ -20,10 +27,10 @@ class TaskRegistry<T, R>(
         return tasks.values.lastOrNull()
     }
 
-    fun setChildTasksStatus(status: TaskBase.TaskStatus, taskCalling: TaskBase<*,*>){
+    fun setChildTasksStatus(status: ExecutionStatus, taskCalling: TaskBase<*,*>){
         val subTasks = getSubTasks(taskCalling)
         subTasks.forEach {
-            it.taskStatus = status
+            it.changeStatus(status)
         }
     }
 
@@ -64,7 +71,10 @@ class TaskRegistry<T, R>(
         }
     }
 
-    fun taskCount(): Int {
-       return tasks.size + 1
+
+    fun getActiveTask(): TaskBase<*, *>{
+       val found =  tasks.values.firstOrNull { it.executionStatus == ExecutionStatus.Active }
+       if(found == null){ return  hierarchyRoot }
+       return found
     }
 }

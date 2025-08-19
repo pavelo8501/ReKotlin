@@ -2,28 +2,29 @@ package po.test.misc.callback
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
-import po.misc.callbacks.manager.CallbackManager
-import po.misc.callbacks.manager.Containable
-import po.misc.callbacks.manager.builders.callbackManager
-import po.misc.callbacks.manager.builders.listen
-import po.misc.callbacks.manager.builders.managerHooks
-import po.misc.callbacks.manager.builders.requestOnce
-import po.misc.callbacks.manager.builders.withCallbackManager
-import po.misc.interfaces.IdentifiableClass
-import po.misc.interfaces.IdentifiableContext
-import po.misc.interfaces.asIdentifiableClass
+import po.misc.callbacks.CallbackManager
+import po.misc.callbacks.Containable
+import po.misc.callbacks.builders.callbackManager
+import po.misc.callbacks.builders.listen
+import po.misc.callbacks.builders.managerHooks
+import po.misc.callbacks.builders.requestOnce
+import po.misc.callbacks.builders.withCallbackManager
+import po.misc.context.CTX
+import po.misc.context.asIdentity
 import po.test.misc.callback.TestCallbackSubscriptions.FirstHoldingClass.Event
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
-class TestCallbackSubscriptions() : IdentifiableClass {
+class TestCallbackSubscriptions(): CTX {
 
-    override val contextName: String = "TestCallbackSubscriptions"
-    override val identity = asIdentifiableClass("TestCallbackDataHandling", "Test")
 
-    class FirstHoldingClass: IdentifiableContext{
+    override val identity = asIdentity()
+
+
+    internal class FirstHoldingClass: CTX{
         enum class Event{ OnInit, OnOneShot }
-        override val contextName: String = "FirstHoldingClass"
+
+        override val identity = asIdentity()
 
         val notifier = CallbackManager(
             enumClass = Event::class.java,
@@ -47,9 +48,9 @@ class TestCallbackSubscriptions() : IdentifiableClass {
     @Test
     fun `DSL type subscriptions  work as expected`(){
         val manager = callbackManager<Event>(
-            { CallbackManager.createPayload<Event, Int>(it, Event.OnInit) },
-            { CallbackManager.createPayload<Event, Boolean>(it, Event.OnInit) } ,
-            { CallbackManager.createPayload<Event, Int>(it, Event.OnOneShot) }
+            { CallbackManager.createPayload<Event, Int>(this, Event.OnInit) },
+            { CallbackManager.createPayload<Event, Boolean>(this, Event.OnInit) } ,
+            { CallbackManager.createPayload<Event, Int>(this, Event.OnOneShot) }
         )
         var managerInfo = manager.getStats()
         assertEquals(2, managerInfo.eventTypesCount, "Registered event count should be 1")
@@ -82,13 +83,13 @@ class TestCallbackSubscriptions() : IdentifiableClass {
             beforeTrigger{
                 beforeTriggerSubscriberName =  it.subscriber.completeName
                 beforeTriggerEventName = it.eventType.name
-                beforeTriggerEmitterName = it.emitter.contextName
+                beforeTriggerEmitterName = it.emitter.completeName
             }
             afterTriggered{
-                afterTriggeredEmitterName =  it.emitter.contextName
+                afterTriggeredEmitterName =  it.emitter.completeName
             }
             newSubscription{
-                newSubscriptionEmitterName = it.emitter.contextName
+                newSubscriptionEmitterName = it.emitter.completeName
             }
         }
         manager.subscribe<Int>(this, Event.OnInit){
@@ -98,7 +99,7 @@ class TestCallbackSubscriptions() : IdentifiableClass {
         assertNotNull(manager.hooks, "managerHooks extension do not install hooks")
         assertEquals(completeName, beforeTriggerSubscriberName)
         assertEquals("OnInit", beforeTriggerEventName)
-        assertEquals(manager.sourceName, newSubscriptionEmitterName, "Wrong callback manager context name")
+        assertEquals(manager.contextName, newSubscriptionEmitterName, "Wrong callback manager context name")
         assertEquals(newSubscriptionEmitterName, beforeTriggerEmitterName)
         assertEquals(beforeTriggerEmitterName, afterTriggeredEmitterName, "afterTriggeredEmitterName does not match")
         assertEquals(completeName,  receivedContainer.subscriber.completeName)

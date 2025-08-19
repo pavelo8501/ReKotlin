@@ -2,7 +2,7 @@ package po.auth.exceptions
 
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
-import po.misc.exceptions.ManageableException
+import po.misc.exceptions.ManagedCallSitePayload
 
 enum class AuthErrorCode(val value: Int) {
     UNDEFINED(0),
@@ -42,16 +42,14 @@ enum class AuthErrorCode(val value: Int) {
 
 class AuthException(
     override var message: String,
-    val code: AuthErrorCode,
+    override val code: AuthErrorCode,
     original : Throwable? = null
 ) : ManagedException(message, code, original){
 
     override var handler : HandlerType = HandlerType.CancelAll
 
-    companion object : ManageableException.Builder<AuthException> {
-        override fun build(message: String, source: Enum<*>?, original : Throwable?): AuthException {
-            val exCode = AuthErrorCode.getByValue(source?.ordinal?:0)
-            return AuthException(message, exCode, original)
-        }
+    constructor(authPayload: ManagedCallSitePayload) : this(authPayload.message, authPayload.code as AuthErrorCode, authPayload.cause){
+        initFromPayload(authPayload)
     }
+
 }

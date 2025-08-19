@@ -43,7 +43,9 @@ enum class ExceptionCode(val value: Int) {
     FACTORY_CREATE_FAILURE(6001),
 
     //Internal Errors and misuse
-    METHOD_MISUSED(7001);
+    METHOD_MISUSED(7001),
+
+    Sequence_Setup_Failure(8001);
 
     companion object {
         fun getByValue(value: Int): ExceptionCode {

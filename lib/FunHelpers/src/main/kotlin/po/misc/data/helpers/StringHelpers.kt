@@ -1,56 +1,16 @@
 package po.misc.data.helpers
 
-fun makeIndention(message: String, indentionCount: Int, indentionSymbol: String = " "): String {
-    val indent = indentionSymbol.repeat(indentionCount)
-    return "$indent $message"
-}
-
-fun String.withIndention(indentionCount: Int, indentionSymbol: String = " "): String{
-    return makeIndention(this, indentionCount, indentionSymbol)
-}
-
-fun String?.emptyOnNull(prefix: String = ""): String{
-    if(this != null){
-        return "$prefix${this}"
-    }
-    return ""
-}
-
-fun String.ifNotEmpty(string: String):String{
-    return if (this.isNotEmpty()){
-        string
-    }else{
-        ""
-    }
-}
+import po.misc.context.CTX
+import po.misc.data.PrettyPrint
+import po.misc.data.styles.Colour
+import po.misc.data.styles.colorize
+import kotlin.text.StringBuilder
 
 
-fun <T: Any>  Any?.textIfNotNull(textOnNull: String = "", sourceProvider: T.()-> String): String{
-
+fun Any?.replaceIfNull(text: String = ""): String{
     return this?.let {
-        @Suppress("UNCHECKED_CAST")
-        sourceProvider.invoke(it as T)
-    }?:textOnNull
-}
-
-fun Any?.textIfNull(fallbackText: String, textProvider: (Any)-> String): String{
-
-   return this?.let {
-        textProvider.invoke(it)
-    }?:fallbackText
-}
-
-fun <T> T?.toTemplate(transform: T.() -> String): String =
-    this?.let(transform) ?: ""
-
-
-fun <T> List<T?>.toTemplate(
-    separator: String = "\n",
-    transform: T.() -> String
-): String {
-    return this
-        .filterNotNull()
-        .joinToString(separator = separator) { it.transform() }
+        this.toString()
+    }?:text
 }
 
 fun String.wrapByDelimiter(
@@ -76,6 +36,68 @@ fun String.wrapByDelimiter(
         result.appendLine(currentLine.toString().trim())
     }
     return result.toString()
+}
+
+
+fun String.applyIfNotEmpty(block:String.()-> String): String{
+    if(this.isNotEmpty()){
+        return this.block()
+    }
+    return this
+}
+
+fun <T: Any> T?.toStringIfNotNull(textIfNull: String? = null , builder:(T)-> String): String{
+    return if(this == null){
+        textIfNull?:toString()
+    }else{
+        builder.invoke(this)
+    }
+}
+
+fun String.stripAfter(char: Char): String = substringBefore(char)
+
+fun Any.output(colour: Colour? = null){
+
+    var isPrettyPrint: Boolean = false
+    val classString = when(this){
+        is Enum<*>-> name
+        is CTX->identifiedByName
+        is PrettyPrint-> {
+            isPrettyPrint = true
+            formattedString
+        }
+        else -> this.toString()
+    }
+    if(colour != null && !isPrettyPrint){
+        println(classString.colorize(colour))
+    }else{
+        println(classString)
+    }
+}
+
+fun Array<Any>.output(colour: Colour? = null){
+    iterator().forEach {
+        it.output(colour)
+    }
+}
+
+fun List<Any>.output(colour: Colour? = null){
+    forEach {
+        it.output(colour)
+    }
+}
+
+fun <T> Iterable<T>.joinWithIndent(
+    count: Int,
+    indentChar: CharSequence = " ",
+    separator: CharSequence = ", ",
+    prefix: CharSequence = "",
+    postfix: CharSequence = "",
+    limit: Int = -1,
+    truncated: CharSequence = "...",
+    transform: ((T) -> CharSequence)? = null
+): String {
+   return joinToString(separator, prefix, postfix, limit, truncated, transform).withIndent(count, indentChar)
 }
 
 

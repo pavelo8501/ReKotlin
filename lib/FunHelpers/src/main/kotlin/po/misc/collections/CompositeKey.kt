@@ -1,10 +1,11 @@
 package po.misc.collections
 
-import po.misc.interfaces.Identifiable
+import po.misc.context.CTX
+import po.misc.context.Identifiable
 import po.misc.interfaces.ValueBased
 
 class CompositeKey (
-    val component: Identifiable,
+    val component: CTX,
     val type: ValueBased
 ):Comparable<CompositeKey> {
 
@@ -18,14 +19,14 @@ class CompositeKey (
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is CompositeKey) return false
-        return component.sourceName == other.component.sourceName &&
-                component.sourceName == other.component.sourceName &&
+        return component.completeName == other.component.completeName &&
+                component.completeName == other.component.completeName &&
                 type.value == other.type.value
     }
 
     override fun hashCode(): Int {
-        var result = component.sourceName.hashCode()
-        result = 31 * result + component.sourceName.hashCode()
+        var result = component.completeName.hashCode()
+        result = 31 * result + component.completeName.hashCode()
         result = 31 * result + type.value.hashCode()
         return result
     }

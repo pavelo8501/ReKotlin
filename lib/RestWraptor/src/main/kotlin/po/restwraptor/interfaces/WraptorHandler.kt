@@ -7,9 +7,12 @@ import po.restwraptor.models.configuration.ApiConfig
 import po.restwraptor.models.server.WraptorRoute
 
 interface WraptorHandler {
+
+    val wraptorRoutes: List<WraptorRoute>
+    val rootPath: String
     fun stop(gracePeriod: Long = 5000)
     fun getRoutes(callback : ((List<WraptorRoute>)-> Unit)? = null):List<WraptorRoute>
     fun getConnectors(callback : (List<EngineConnectorConfig>)-> Unit )
-    fun getConfig(): ApiConfig
+   // fun getConfig(): ApiConfig
 
 }

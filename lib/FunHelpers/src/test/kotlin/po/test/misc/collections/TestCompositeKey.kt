@@ -2,7 +2,8 @@ package po.test.misc.collections
 
 import org.junit.jupiter.api.Test
 import po.misc.collections.CompositeEnumKey
-import po.misc.interfaces.Identifiable
+import po.misc.context.CTX
+import po.misc.context.asIdentity
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
@@ -14,16 +15,21 @@ class TestCompositeKey {
         Value1,
         Value2
     }
-    class SourceObject(override var sourceName: String) : Identifiable{
-        override val contextName: String = "SomeName1"
+    class SourceObject(var sourceName: String) : CTX{
+
+        override val identity = asIdentity()
+
     }
 
-    class SameAsSourceObject(override var sourceName: String) : Identifiable{
+    class SameAsSourceObject(var sourceName: String) : CTX{
         override val contextName: String = "SomeName1"
+        override val identity = asIdentity()
     }
 
-    class SourceObject2(override var sourceName: String): Identifiable{
+    class SourceObject2(var sourceName: String): CTX{
         override val contextName: String = "SomeName2"
+
+        override val identity = asIdentity()
     }
 
     val sourceObject : SourceObject = SourceObject("SomeName1Complete")

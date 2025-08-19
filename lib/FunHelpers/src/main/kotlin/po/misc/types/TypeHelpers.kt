@@ -1,80 +1,59 @@
 package po.misc.types
 
-import po.misc.callbacks.manager.CallbackPayload
-import po.misc.data.helpers.emptyOnNull
-import po.misc.data.helpers.textIfNull
+import po.misc.collections.takeFromMatch
 import po.misc.exceptions.ManagedException
-import po.misc.exceptions.ManageableException
-import po.misc.exceptions.ManagedCallsitePayload
-import po.misc.exceptions.managedException
-import po.misc.exceptions.throwManaged
-import po.misc.interfaces.IdentifiableContext
+import po.misc.exceptions.ManagedCallSitePayload
+import po.misc.exceptions.ManagedPayload
+import po.misc.exceptions.extractCallSiteMeta
+import java.time.LocalDateTime
 import kotlin.reflect.KClass
-import kotlin.reflect.KType
-import kotlin.reflect.typeOf
 
 
 inline fun <T1 : Any, R : Any> safeLet(p1: T1?, block: (T1) -> R?): R? {
     return if (p1 != null) block(p1) else null
 }
 
-inline fun <reified T : Any, reified E: ManagedException> T?.getOrThrow(
-    ctx: IdentifiableContext? = null,
-    exceptionProvider:(String)->E
-):T {
-    if(this != null){
-        return this
-    }else{
-        val message = "Expected class ${T::class.simpleName} is null"
-        val exception =  exceptionProvider(message)
-        if(ctx != null){
-            exception.throwSelf(ctx)
-        }else{
-            throw exception
-        }
-    }
-}
 
-
-fun <T : Any> T?.getOrManaged(
-    payload: ManagedCallsitePayload
+fun <T: Any> T?.getOrThrow(
+    expectedClass: KClass<*>,
+    callingContext: Any,
+    exceptionProvider: (ManagedCallSitePayload)-> Throwable,
 ):T {
+    val methodName = "getOrThrow"
     if(this == null){
-        var message = "${payload.message}. getOrManaged returned null. ${payload.targetObject.textIfNull(""){ "Target object: ${it}"}}"
-        message += payload.description
-
-        val managed = payload.ctx.managedException(message, payload.source, payload.cause)
-        payload.outputOverride?.invoke(managed)?: run {  throwManaged(message, payload.handler, payload.source, payload.cause)}
-       throw managed
+        val message = "Expected: ${expectedClass.simpleName}. Result is null"
+        val payload = ManagedPayload(message, methodName, callingContext)
+        throw exceptionProvider.invoke(payload)
     }else{
         return this
     }
 }
+
+inline fun <reified T: Any> T?.getOrThrow(
+    callingContext: Any,
+    noinline exceptionProvider: (ManagedCallSitePayload)-> Throwable
+):T = getOrThrow(T::class, callingContext, exceptionProvider)
+
 
 
 fun <T : Any> T?.getOrManaged(
-    className: String,
-    ctx: IdentifiableContext? = null
+    expectedClass: KClass<*>,
+    callingContext: Any,
 ):T {
-    if(this != null){
-        return this
+    val methodName = "getOrManaged"
+    if(this == null){
+        val message = "Expected: ${expectedClass.simpleName}. Result is null"
+        val payload = ManagedPayload(message, methodName, callingContext)
+        throw ManagedException(payload)
     }else{
-        val message = "Unable to return object of class: $className. Object is null."
-        throwManaged(message)
+        return this
     }
 }
 
-inline fun <reified T, reified U> initializeContexts(
-    receiverInstance: T,
-    paramInstance: U,
-    block: T.(U) -> Unit
-) {
-    receiverInstance.block(paramInstance)
-}
+inline fun <reified T: Any> T?.getOrManaged(
+    callingContext: Any
+):T = getOrManaged(T::class, callingContext)
 
-inline fun <reified T: Any> T.getType(): KClass<T> {
-    return T::class
-}
 
 fun Any?.isNull(): Boolean{
     return this == null
@@ -82,4 +61,35 @@ fun Any?.isNull(): Boolean{
 
 fun Any?.isNotNull(): Boolean{
     return this != null
+}
+
+fun <T: Any> TypeData<T>.getDefaultForType(): T? {
+    val result = when (this.kType.classifier) {
+        Int::class -> -1
+        String::class -> "Default"
+        Boolean::class -> false
+        Long::class -> -1L
+        LocalDateTime::class -> {
+            LocalDateTime.now()
+        }
+        else -> null
+    }
+    return result?.safeCast(this.kClass)
+}
+
+
+inline fun <T: Any> T?.letOrException(ex : ManagedException, block: (T)-> T){
+    if(this != null){
+        block(this)
+    } else {
+        throw ex
+    }
+}
+
+fun <T: Any?, E: ManagedException> T.testOrException( exception : E, predicate: (T) -> Boolean): T{
+    if (predicate(this)){
+        return this
+    }else{
+        throw exception
+    }
 }

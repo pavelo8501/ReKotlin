@@ -1,9 +1,11 @@
 package po.misc.reflection.properties
 
+import po.misc.collections.SlidingBuffer
 import po.misc.collections.StaticTypeKey
 import po.misc.data.delegates.ComposableProperty
-import po.misc.data.helpers.makeIndention
-import po.misc.data.styles.SpecialChars
+import po.misc.context.CTX
+import po.misc.context.asIdentity
+import po.misc.data.helpers.replaceIfNull
 import po.misc.reflection.objects.Composed
 import po.misc.types.castOrManaged
 import po.misc.types.getOrManaged
@@ -11,206 +13,211 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
 
-interface DataBuffer{
-   val currentValue: Any?
-   val bufferedValue: Any?
-   val isDifferent: Boolean
-}
 
-sealed class PropertyIOBase<T: Composed, V: Any>(
-    protected  val propertyInfo: PropertyInfo<T, V>,
-    protected  val valueClass: KClass<V>,
+sealed class PropertyIOBase<T: Any, V: Any>(
+    val propertyInfo: PropertyInfo<T, V>,
     val propertyType: PropertyType,
-    var currentValue: V
-){
-    enum class PropertyType{
+    private var currentValue: V?
+): Composed, CTX {
+
+    enum class PropertyType {
         Computed,
         StaticallySet,
         DelegateProvided
     }
-    enum class PropertyIOType(val value: String){
+
+    enum class PropertyIOType(val value: String) {
         ReadOnly("val"),
         RW("var")
     }
-    val ioType: PropertyIOType = PropertyIOType.RW
+
+    override val contextName: String get() = "PropertyIOBase[$propertyName]"
+
+    override val identity = asIdentity()
+
+
+    val ioType: PropertyIOType get(){
+       return if(propertyInfo.mutable){
+            PropertyIOType.RW
+        }else{
+            PropertyIOType.ReadOnly
+        }
+    }
     val typeKey: StaticTypeKey<T> = propertyInfo.typeKey
     val resultTypeKey: StaticTypeKey<V>? = propertyInfo.returnTypeKey
     val propertyName: String = propertyInfo.propertyName
 
-    protected var receiverBacking:T? = null
-    var receiver:T
-        get() = receiverBacking.getOrManaged("receiver @ PropertyIO ${valueClass.simpleName}")
-        set(value) { if(receiverBacking == null){ receiverBacking =value } }
+    protected var receiverBacking: T? = null
+    var receiver: T
+        get() = receiverBacking.getOrManaged(Any::class, this)
+        set(value) {
+            if (receiverBacking == null) {
+                receiverBacking = value
+            }
+        }
 
-    var bufferedValue: V? = null
-    val isDifferent: Boolean  get() = currentValue != bufferedValue
-    val isBufferNull: Boolean get() = bufferedValue == null
+//    val buffer: SlidingBuffer<PropertyUpdate<V>, V> = SlidingBuffer(5) {
+//        PropertyUpdate(propertyName, it)
+//    }
 
-    protected val propertyStr: String
-        get() = "Object(${propertyInfo.clazz.simpleName}) ${ioType.value} ${propertyName}:${resultTypeKey?.typeName} = $currentValue ${SpecialChars.NewLine}"
-
-    abstract fun initialize(dataObject:T)
-    abstract fun writeValue(dataObject:T, value:V)
-    abstract fun setValue(value:V)
-    abstract fun flushBuffer()
-
-    protected  val asKMutableProperty: KMutableProperty1<T, V> by lazy {
-        propertyInfo.property.castOrManaged()
-    }
-    protected val asKProperty: KProperty1<T,V> by lazy {
-        propertyInfo.property.castOrManaged()
+    init {
+       // currentValue?.let { buffer.add(it) }
     }
 
-    fun provideReceiver(receiver: T){
+    protected val asKMutableProperty: KMutableProperty1<T, V> by lazy {
+        propertyInfo.property.castOrManaged(this)
+    }
+    protected val asKProperty: KProperty1<T, V> by lazy {
+        propertyInfo.property.castOrManaged(this)
+    }
+
+    fun initialize(dataObject:T){
+        receiver = dataObject
+       // buffer.add(asKProperty.get(dataObject))
+    }
+
+    fun provideReceiver(receiver: T) {
         receiverBacking = receiver
     }
 
-    fun getValue():V{
-        return currentValue
+    fun extractValue(receiver: T): V {
+        return asKProperty.get(receiver)
     }
-    fun  readCurrentValue():V{
-        return  currentValue.getOrManaged("PropertyIO")
+    fun setValue(value: V) {
+//        buffer.addIfDifferent(value) {
+//            if (ioType == PropertyIOType.RW) {
+//                asKMutableProperty.set(receiver, it)
+//            }
+//        }
+    }
+
+    fun getValue(): V {
+//        return  buffer.getValue()?:run {
+//           val type =  propertyInfo.valueTypeData.getOrManaged(this)
+//
+//           getDefaultForType(type).getOrManaged(propertyInfo.receiverClass, this)
+//        }
+        TODO("Remove")
+    }
+
+    fun readCurrentValue(): V {
+        return currentValue.getOrManaged(propertyInfo.returnType::class,  this)
+    }
+
+
+    fun <R: Any>  returnIfReceiver(receiver: R):PropertyIOBase<T, V>?{
+     return  if(propertyInfo.typeKey.isInstanceOfType(receiver)){
+           return this
+       }else{
+           null
+       }
     }
 }
 
-class SourcePropertyIO<T: Composed, V: Any>(
+class SourcePropertyIO<T: Any, V: Any>(
     propertyInfo: PropertyInfo<T, V>,
-    valueClass: KClass<V>,
     propertyType: PropertyType,
-    currentValue: V
-):PropertyIOBase<T,V>(propertyInfo, valueClass, propertyType, currentValue), DataBuffer {
+):PropertyIOBase<T, V>(propertyInfo, propertyType, null){
 
-   internal val auxDataProperty: MutableMap<StaticTypeKey<*>, PropertyIO<*, V>> = mutableMapOf()
+    internal val auxDataProperty: MutableMap<StaticTypeKey<*>, PropertyIO<*, V>> = mutableMapOf()
 
-    private fun setValueInternal(value:V){
-        currentValue = value
-        bufferedValue = value
-    }
-
-    private fun onAuxPropertyChange(receiver: Composed, value:V): Unit{
-        if(value != currentValue){
-            setValueInternal(value)
-        }
-    }
-
-    fun attachAuxDataProperty(property:  PropertyIO<*, V>){
-        println("$property attached to -> ${this}")
-        property.onValueChanged = ::onAuxPropertyChange
-        auxDataProperty[property.typeKey] = property
-    }
+    val propertySlots: PropertyGroup<Any, V> = PropertyGroup()
 
     override fun toString(): String{
-        var propertiesStr = "SourceProperty[${propertyName}](Value : ${currentValue}, Buffered: ${bufferedValue})${SpecialChars.NewLine}"
-        propertiesStr += "AuxDataProperties[${auxDataProperty.size}]"
-       val formattedChild =  auxDataProperty.values.joinToString(
-            separator = SpecialChars.NewLine.toString(),
-            prefix = makeIndention("",4,"-") )
-        propertiesStr += formattedChild
-        return propertiesStr
-    }
-
-    override fun initialize(dataObject: T) {
-        receiver = dataObject
-        bufferedValue = asKProperty.get(dataObject)
-        bufferedValue?.let {
-            currentValue = it
-        }
-    }
-
-    override fun writeValue(dataObject: T, value: V) {
-
-    }
-
-    override fun setValue(value:V){
-        bufferedValue = value
-        currentValue = value
-    }
-
-    override fun flushBuffer(){
-        bufferedValue?.let {
-            currentValue = it
-        }
+        val typeName : String = propertyInfo.valueTypeData?.typeName.replaceIfNull("Unit")
+        val result = "${ioType.value} $propertyName :$typeName get() = ${getValue()}"
+        return result
     }
 
 }
 
-class PropertyIO<T: Composed, V: Any>(
+
+class PropertyIO<T: Any, V: Any>(
     propertyInfo: PropertyInfo<T, V>,
-    valueClass: KClass<V>,
     propertyType: PropertyType,
-    currentValue: V
-):PropertyIOBase<T,V>(propertyInfo, valueClass, propertyType, currentValue) {
+    currentValue: V?
+):PropertyIOBase<T,V>(propertyInfo, propertyType, currentValue) {
 
     internal var onValueChanged:(T.(V)-> Unit)? = null
 
     private fun updateValue(value:V){
         asKMutableProperty.set(receiver, value)
-        currentValue = value
         onValueChanged?.invoke(receiver, value)
     }
 
-    override fun initialize(dataObject:T){
-        receiver = dataObject
-        bufferedValue = asKProperty.get(dataObject)
-
-    }
-
-    override fun writeValue(dataObject:T, value:V){
-        if(ioType == PropertyIOType.RW){
-            if(currentValue != value){
-                updateValue(value)
-            }
-        }
-    }
-    override fun setValue(value:V){
-        currentValue = value
-        bufferedValue = value
-        if(ioType == PropertyIOType.RW){
-            asKMutableProperty.set(receiver, value)
-        }
-    }
-
-    override fun flushBuffer(){
-        bufferedValue?.let {
-            currentValue = it
-            updateValue(it)
-        }
-    }
-
     override fun toString(): String{
-       return "Property[${propertyName}](Value : ${currentValue}, Buffered: ${bufferedValue})"
+       return "Property[${propertyName}](Value : ${getValue()}"
     }
 }
 
-fun <E: Enum<E>, T: Composed, V: Any>  ComposableProperty<T, V, E>.createPropertyIO(
+fun <E: Enum<E>, T, V: Any> ComposableProperty<T, V>.createPropertyIO(
     receiver:T,
-    property: KProperty1<T, V>,
-    clazz: KClass<V>,
-    value:V
-):SourcePropertyIO<T, V>{
-    val property = SourcePropertyIO(property.toPropertyInfo(receiver::class as KClass<T>), clazz, PropertyIOBase.PropertyType.DelegateProvided, value)
+    property: KProperty1<T, V>
+
+):SourcePropertyIO<T, V> where T : Composed, T: CTX{
+    val propertyInfo = property.toPropertyInfo(receiver::class as KClass<T>)
+    val property = SourcePropertyIO(propertyInfo, PropertyIOBase.PropertyType.DelegateProvided)
     property.provideReceiver(receiver)
     return property
 }
 
+fun <T: CTX,  V: Any> createSourcePropertyIO(
+    receiver:T,
+    property: KProperty1<T, V>,
+    valueClass: KClass<V>,
+):SourcePropertyIO<T, V>{
 
-fun <T: Composed,  V: Any> KProperty1<T, V>.createPropertyIO(
-    clazz: KClass<T>,
-    resultClazz: KClass<V>,
-    value:V
-):PropertyIO<T, V>{
-    val property = this.toPropertyInfo(clazz)
-    property.returnTypeKey = StaticTypeKey.createTypeKey(resultClazz)
-    return PropertyIO(property, resultClazz, PropertyIOBase.PropertyType.Computed, value)
+    val propertyInfo =  when(property){
+        is KMutableProperty1-> property.toPropertyInfo(receiver::class as KClass<T>)
+        else -> property.toPropertyInfo(receiver::class as KClass<T>)
+    }
+    propertyInfo.setValueClass(valueClass)
+    val propertyIO = SourcePropertyIO(propertyInfo, PropertyIOBase.PropertyType.Computed)
+    propertyIO.receiver = receiver
+    return propertyIO
 }
 
-fun <T: Composed,  V: Any> PropertyInfo<T, V>.createPropertyIO(
-    clazz: KClass<V>,
-    type: PropertyIOBase.PropertyType,
-    initialValue:V
+
+fun <T: Any, V: Any> createPropertyIO(
+    property: KProperty1<T, V>,
+    receiver:T,
+    initialValue:V? = null
 ):PropertyIO<T, V>{
-   return initialValue.let {
-       this.returnTypeKey = StaticTypeKey.createTypeKey(it::class as KClass<V>)
-       PropertyIO(this, clazz, type, it)
-   }
+
+    val propertyInfo =  when(property){
+        is KMutableProperty1->{
+            property.toPropertyInfo(receiver::class as KClass<T>)
+        }else -> {
+            property.toPropertyInfo(receiver::class as KClass<T>)
+        }
+    }
+    initialValue?.let {
+        val valueClass = it::class as KClass<V>
+        propertyInfo.setValueClass(valueClass)
+    }
+    val propertyIO = PropertyIO(propertyInfo, PropertyIOBase.PropertyType.Computed, initialValue)
+    propertyIO.receiver = receiver
+    return propertyIO
+}
+
+
+
+fun <T: Any,  V: Any> createPropertyIO(
+    property: KProperty1<T, V>,
+    clazz: KClass<T>,
+    initialValue:V? = null
+):PropertyIO<T, V>{
+
+    val propertyInfo =  when(property){
+        is KMutableProperty1->{
+             property.toPropertyInfo(clazz)
+        }else -> {
+             property.toPropertyInfo(clazz)
+        }
+    }
+    initialValue?.let {
+        val valueClass = it::class as KClass<V>
+        propertyInfo.setValueClass(valueClass)
+    }
+    return PropertyIO(propertyInfo, PropertyIOBase.PropertyType.Computed, initialValue)
 }

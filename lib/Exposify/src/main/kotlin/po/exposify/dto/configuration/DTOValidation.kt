@@ -1,105 +1,96 @@
 package po.exposify.dto.configuration
 
 import org.jetbrains.exposed.dao.LongEntity
-import org.jetbrains.exposed.dao.withHook
+import po.exposify.dao.models.ColumnPropertyData
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
 import po.exposify.dto.components.bindings.DelegateStatus
+import po.exposify.dto.components.bindings.interfaces.DelegateInterface
+import po.exposify.dto.components.bindings.property_binder.delegates.ResponsiveDelegate
+import po.exposify.dto.components.bindings.relation_binder.delegates.ParentDelegate
+import po.exposify.dto.components.bindings.relation_binder.delegates.RelationDelegate
 import po.exposify.dto.enums.DTOClassStatus
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.dto.models.SourceObject
 import po.exposify.exceptions.InitException
-import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.exceptions.initAbnormal
-import po.exposify.exceptions.operationsException
-import po.lognotify.classes.action.runInlineAction
-import po.misc.validators.general.Validator
-import po.misc.validators.general.models.CheckStatus
-import po.misc.validators.general.reports.ReportRecord
-import po.misc.validators.general.reports.ValidationReport
-import po.misc.validators.general.reports.finalCheckStatus
-import po.misc.validators.general.sequentialValidation
-import po.misc.validators.general.validation
-import po.misc.validators.general.validators.conditionTrue
-import po.misc.validators.general.validators.validatorHooks
+import po.misc.validators.Validator
+import po.misc.validators.components.validatorHooks
+import po.misc.validators.models.CheckStatus
+import po.misc.validators.reports.finalCheckStatus
+import po.misc.validators.sequentialValidation
+import po.misc.validators.validators.conditionNotNull
+import po.misc.validators.validators.conditionTrue
 
 fun <DTO, D, E> DTOBase<DTO, D, E>.setupValidation(
-    validatableDTO : CommonDTO<DTO, D, E>
-): CheckStatus  where DTO: ModelDTO, D: DataModel, E: LongEntity
-        = runInlineAction("setupValidation") { handler ->
+    validatableDTO: CommonDTO<DTO, D, E>,
+): CheckStatus where DTO : ModelDTO, D : DataModel, E : LongEntity {
+    val dtoClass = this
     val bindingHub = validatableDTO.bindingHub
-    val validator = Validator()
-    val entityRecord =  config.propertyMap.getMapperRecord<E, InitException>(SourceObject.Entity){ initAbnormal(it, this) }
-    val responsiveDelegates = bindingHub.getResponsiveDelegates()
-    val relationsDelegates  = bindingHub.getRelationDelegates()
-    val parentDelegates = bindingHub.getParentDelegates()
-    val attachedForeignDelegates = bindingHub.getAttachedForeignDelegates()
-    val validationSequence = sequenceOf(
-        ValidationCheck.AttachedForeign,
-        ValidationCheck.MandatoryProperties,
-        ValidationCheck.ForeignKeys,
-    )
+    val validator = Validator(validatableDTO.dtoClass)
 
-    val reports = validator.validate(completeName, this) {
-        validationSequence.forEach {validation->
-            when (validation) {
-                ValidationCheck.AttachedForeign->{
-                    sequentialValidation(validation.value, attachedForeignDelegates){foreign->
-                        validatorHooks {
-                            onSuccess {
-                                it.updateStatus(DelegateStatus.Initialized)
-                            }
-                        }
-                        conditionTrue(foreign.foreignClass.identity.sourceName, "Attached foreign not configured"){
-                            foreign.foreignClass.status == DTOClassStatus.Initialized
-                        }
+    val reports = validator.build {
+            val foreignKeys = dtoClass.commonDTOType.entityType.tableColumnMap
+                .getData()
+                .filter { it.columnData.isForeignKey }
+
+            val mandatoryFields: List<ColumnPropertyData> =
+                dtoClass.commonDTOType.entityType.tableColumnMap.getData().filter {
+                    it.columnData.isMandatory
+                }
+
+            val relationDelegates  = validatableDTO.bindingHub.relationDelegateMap.values
+            val attachedForeign = validatableDTO.bindingHub.attachedForeignMap.values.toList()
+            val parentDelegates = validatableDTO.bindingHub.parentDelegateMap.values
+            val responsive: List<ResponsiveDelegate<DTO, D, E, *>> = bindingHub.responsiveDelegateMap.values.toList()
+
+            val attachedNames = attachedForeign.map { it.attachedName }.toSet()
+            val filteredMandatory =
+                mandatoryFields
+                    .filter { field -> field.property.name !in attachedNames }
+                    .distinctBy { it.property.name }
+
+            sequentialValidation(ValidationCheck.MandatoryProperties.value, filteredMandatory) { field ->
+                validatorHooks {
+                    onConditionSuccess { delegate ->
+                        (delegate as DelegateInterface<DTO, D, E>).updateStatus(DelegateStatus.Initialized)
                     }
                 }
-                ValidationCheck.MandatoryProperties->{
-                    val mandatoryFields = entityRecord.columnMetadata.filter { !it.isNullable && !it.hasDefault && !it.isPrimaryKey && !it.isForeignKey }
-                    sequentialValidation(validation.value, mandatoryFields){ field->
-                        validatorHooks {
-                            onResult {
-                                if(it == CheckStatus.PASSED){
-                                    responsiveDelegates.forEach {delegate->
-                                        delegate.updateStatus(DelegateStatus.Initialized)
-                                    }
-                                }
-                            }
-                        }
-                        conditionTrue(field.columnName, "Entity non nullable, no defaults. But missing") {
-                            mandatoryFieldsSetup(field, responsiveDelegates, attachedForeignDelegates) != null
-                        }
-                    }
+                conditionNotNull(field.property.name, "Entity required, but missing") {
+                    responsive.firstOrNull { field.compareAndGet(it.property.name) != null }
                 }
-                ValidationCheck.ForeignKeys->{
-                    val foreignKeys = entityRecord.columnMetadata.filter { it.isForeignKey }
-                    sequentialValidation(validation.value, foreignKeys){foreignKey->
-                        validatorHooks {
-                            onResult {
-                                if(it == CheckStatus.PASSED){
-                                    parentDelegates.forEach {delegate->
-                                        delegate.updateStatus(DelegateStatus.Initialized)
-                                    }
-                                }
-                            }
-                        }
-                        conditionTrue(foreignKey.columnName, "Foreign key not configured"){
-                            parentInitialized(foreignKey, parentDelegates)
-                        }
-                    }
+            }
+
+            sequentialValidation(ValidationCheck.ForeignKeys.value, foreignKeys) { foreignKey ->
+                conditionNotNull(foreignKey.columnData.columnName, "Foreign key not configured") {
+                    parentDelegates.firstOrNull { it.name == foreignKey.columnData.columnName }
+                }
+//                parentDelegates.forEach { parentDelegate ->
+//                    conditionNotNull("Parent DTO resolved", "Parent DTO not defined") {
+//                        parentDelegate.commonDTO
+//                    }
+//                }
+            }
+
+            sequentialValidation(ValidationCheck.AttachedForeign.value, attachedForeign) { foreign ->
+                conditionTrue(foreign.contextName, "Attached foreign not configured") {
+                    foreign.dtoBase.status == DTOClassStatus.Initialized
+                }
+            }
+
+            reports.forEach {
+                log(it)
+            }
+
+            if (overallResult == CheckStatus.PASSED) {
+
+                relationDelegates.forEach { relation ->
+                    val aa = relation.dtoClass.initialization()
+
+                    val newMember = dtoConfiguration.addHierarchMember(dtoClass, relation.dtoClass)
+                    newMember.runValidation(validatableDTO)
                 }
             }
         }
-    }
-    reports.forEach { report ->
-        handler.logFormatted(report) {
-            echo(ValidationReport.Header)
-            getRecords().forEach { record -> record.echo(ReportRecord.GeneralTemplate) }
-            echo(ValidationReport.Footer)
-        }
-    }
-    reports.finalCheckStatus()
+    return reports.finalCheckStatus()
 }

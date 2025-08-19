@@ -6,7 +6,7 @@ import po.misc.data.styles.SpecialChars
  * Base interface for all structured JSON items.
  * Represents either a JSON record, object, or array.
  */
-sealed interface JsonItem{
+interface JsonItem{
     val idRecord: JsonIDRecord
 }
 
@@ -99,7 +99,7 @@ class JObject(
  *
  * @param holder Optional parent holder to which this array is linked.
  */
-class JsonArray(
+class JArray(
     val holder: JsonHolder?
 ):JsonItem {
 
@@ -149,18 +149,18 @@ class JsonArray(
  *
  * @property activeArray The current array being built into
  */
-class JsonHolder(var activeArray: JsonArray = JsonArray(null)) {
+class JsonHolder(var activeArray: JArray = JArray(null)) {
 
-    private val jsonArrays: MutableList<JsonArray> = mutableListOf()
+    private val jsonArrays: MutableList<JArray> = mutableListOf()
 
     /**
      * Finalizes the current array and starts a new one.
      * @return the newly created active array
      */
-    fun startNewArray(): JsonArray {
+    fun startNewArray(): JArray {
         activeArray.setHostingHolder(this)
         jsonArrays.add(activeArray)
-        activeArray = JsonArray(this)
+        activeArray = JArray(this)
         return activeArray
     }
 

@@ -3,236 +3,263 @@ package po.exposify.dto.components.bindings
 import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
-import po.exposify.dto.RootDTO
+import po.exposify.dto.DTOClass
 import po.exposify.dto.components.DAOService
 import po.exposify.dto.components.DTOFactory
-import po.exposify.dto.components.bindings.interfaces.DelegateInterface
-import po.exposify.dto.components.bindings.property_binder.delegates.AttachedForeignDelegate
-import po.exposify.dto.components.bindings.property_binder.delegates.ParentDelegate
 import po.exposify.dto.components.bindings.property_binder.delegates.ResponsiveDelegate
+import po.exposify.dto.components.bindings.relation_binder.delegates.AttachedForeignDelegate
+import po.exposify.dto.components.bindings.relation_binder.delegates.ComplexDelegate
+import po.exposify.dto.components.bindings.relation_binder.delegates.ParentDelegate
 import po.exposify.dto.components.bindings.relation_binder.delegates.RelationDelegate
+import po.exposify.dto.components.tracker.DTOTracker
 import po.exposify.dto.enums.Cardinality
+import po.exposify.dto.helpers.warnIfNull
+import po.exposify.dto.helpers.warning
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
+import po.exposify.dto.models.CommonDTOType
 import po.exposify.extensions.castOrOperations
-import po.lognotify.classes.action.InlineAction
-import po.lognotify.classes.action.runInlineAction
-import po.misc.callbacks.manager.builders.bridgeFrom
-import po.misc.callbacks.manager.builders.callbackBuilder
-import po.misc.callbacks.manager.builders.createPayload
-import po.misc.callbacks.manager.builders.managerHooks
-import po.misc.interfaces.Identifiable
-import po.misc.interfaces.IdentifiableClass
-import po.misc.interfaces.ValueBased
-import po.misc.interfaces.asIdentifiable
-import po.misc.interfaces.asIdentifiableClass
-import po.misc.reflection.mappers.models.PropertyContainer
-import po.misc.reflection.properties.toRecord
-import po.misc.types.castOrManaged
+
+import po.exposify.extensions.getOrOperations
+import po.lognotify.TasksManaged
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
+import po.misc.data.helpers.output
+import po.misc.data.styles.Colour
+import po.misc.types.safeCast
 
 
+
+data class RelationDelegateKey<DTO, D, E>(
+    val dtoClass: DTOBase<DTO, D, E>,
+    val cardinality: Cardinality
+) where DTO : ModelDTO, D : DataModel, E : LongEntity
+
+
+data class RelationDelegatesContainer<DTO, D, E>(
+    val hostingDTO: CommonDTO<DTO, D, E>,
+
+) where DTO : ModelDTO, D : DataModel, E : LongEntity{
+    val delegates   = mutableListOf<RelationDelegate<DTO, D, E, *, *, *, *>>()
+}
+
+
+
+/**
+ * The BindingHub acts as the central mediator between a DTO and its properties, relationships, and parent bindings.
+ *
+ * It provides mechanisms for:
+ * - syncing entity and data model values into responsive delegates
+ * - assigning parent DTOs via matching `ParentDelegate`s
+ * - updating related child DTOs
+ * - initializing full DTO hierarchies from either data models or entities
+ *
+ * This class is designed to support recursive DTO tree building in both directions
+ * (from data -> entity and from entity -> data) and coordinate parent/child relationships.
+ */
 class BindingHub<DTO, D, E>(
     val hostingDTO: CommonDTO<DTO, D, E>,
-    val identifiable: Identifiable = asIdentifiable(hostingDTO.sourceName, "BindingHub")
-): IdentifiableClass, InlineAction
-        where  DTO : ModelDTO, D: DataModel, E: LongEntity
-{
-    internal data class NotificationData<DTO : ModelDTO,D:DataModel, E: LongEntity,  F_DTO : ModelDTO>(
-        val self: BindingHub<DTO, D, E>,
-        val delegateName: String,
-        val propertyRecord: PropertyContainer<Any>,
-        val delegate: DelegateInterface<DTO, F_DTO>
-    )
+) : TasksManaged where DTO : ModelDTO, D : DataModel, E : LongEntity {
 
-    internal data class ListData<DTO, D, E>(
-        val hostingDTO: CommonDTO<DTO, D, E>,
-        val delegates: List<DelegateInterface<DTO, *>>
-    ) where  DTO : ModelDTO, D : DataModel, E : LongEntity
+    override val identity: CTXIdentity<BindingHub<DTO, D, E>> = asIdentity()
+    val commonDTOType: CommonDTOType<DTO, D, E> get() = hostingDTO.commonType
+    internal val hostingFactory: DTOFactory<DTO, D, E> get() = hostingDTO.dtoFactory
+    internal val hostingDAO: DAOService<DTO, D, E> get() = hostingDTO.daoService
 
-    enum class Event(override val value: Int) : ValueBased {
-        DelegateRegistered(10),
-        DelegateRegistrationComplete(11)
-    }
-
-    override val identity = asIdentifiableClass("DTOFactory", hostingDTO.sourceName)
-
-    internal val notifier = callbackBuilder<Event> {
-        createPayload<Event, NotificationData<DTO,D,E, *>>(Event.DelegateRegistered)
-        createPayload<Event,ListData<DTO, D, E>>(Event.DelegateRegistrationComplete){
-            bridgeFrom(dtoClass.delegateRegistrationForward)
+    internal val tracker: DTOTracker<DTO, D, E>
+        get() {
+            return hostingDTO.tracker
         }
-    }
 
-
-
-    val dtoClass: DTOBase<DTO, D, E> get() = hostingDTO.dtoClass
-    val daoService: DAOService<DTO, D, E> get() = hostingDTO.daoService
-    val dtoFactory: DTOFactory<DTO, D, E> get() = hostingDTO.dtoFactory
-
-    private val responsiveDelegates: MutableMap<String, ResponsiveDelegate<DTO, D, E, *>> = mutableMapOf()
-    private val attachedForeignDelegates: MutableMap<String, AttachedForeignDelegate<DTO, D, E, *, *, *>> =
+    internal val responsiveDelegateMap: MutableMap<String, ResponsiveDelegate<DTO, D, E, *>> = mutableMapOf()
+    internal val attachedForeignMap: MutableMap<DTOBase<*, *, *>, AttachedForeignDelegate<DTO, D, E, *, *, *>> =
         mutableMapOf()
-    private val parentDelegates: MutableMap<String, ParentDelegate<DTO, D, E, *, *, *>> = mutableMapOf()
-    private val relationDelegates: MutableMap<String, RelationDelegate<DTO, D, E, *, *, *, *>> = mutableMapOf()
 
-    init {
-        notifier.managerHooks{
-            newSubscription {
-                println(it)
-            }
-            beforeTrigger {
-                println(it)
-            }
+    internal val parentDelegateMap: MutableMap<DTOBase<*, *, *>, ParentDelegate<DTO, D, E, *, *, *>> = mutableMapOf()
+    internal val relationDelegateMap: MutableMap<RelationDelegateKey<*, *, *>, RelationDelegate<DTO, D, E, *, *, *, *>> = mutableMapOf()
+
+
+    internal val dtoStateDump: String
+        get() {
+            val parameters =
+                responsiveDelegateMap.values.joinToString(separator = "; ", postfix = " ]") {
+                    it.toString()
+                }
+            return "[ id = ${hostingDTO.id} $parameters"
         }
 
-        dtoFactory.onCreatedPayload.subscribe(this){
-            onDtoInitialized(it.getData())
+    internal val dtoRelationDump: String get() {
+        var resultString = ""
+        relationDelegateMap.forEach {(key, value)->
+            resultString +=  " ${value.property.name}[${key.cardinality.name}](${value.commonDTOS.size})"
         }
+        return resultString
     }
 
-    fun onDtoInitialized(dto: CommonDTO<DTO, D, E>) {
-        dtoClass.delegateRegistrationForward.triggerForAll(ListData(dto,  combinedList()))
 
-        //notifier.trigger(Event.DelegateRegistrationComplete, ListData(dto,  combinedList()))
+
+    internal fun <F : ModelDTO, FD : DataModel, FE : LongEntity> getParentDelegateByType(
+        dtoType: CommonDTOType<F, FD, FE>,
+    ): ParentDelegate<DTO, D, E, F, FD, FE>? {
+
+        val delegate = parentDelegateMap.values.firstOrNull { it.commonDTOType == dtoType }
+        delegate.warnIfNull("No parent delegate found for type: ${dtoType.dtoType.typeName}", this)
+        return delegate?.safeCast()
     }
 
-    private fun combinedList(): List<DelegateInterface<DTO, *>> {
-        val result: MutableList<DelegateInterface<DTO, *>> = mutableListOf()
-        result.addAll(responsiveDelegates.values)
-        result.addAll(attachedForeignDelegates.values)
-        result.addAll(parentDelegates.values)
-        result.addAll(relationDelegates.values)
-        return result.toList()
+
+    internal fun <F : ModelDTO, FD : DataModel, FE : LongEntity> getAttachedForeignDelegateByType(
+        dtoType: CommonDTOType<F, FD, FE>,
+    ): AttachedForeignDelegate<DTO, D, E, F, FD, FE>? {
+        val delegate = attachedForeignMap.values.firstOrNull { it.commonDTOType == dtoType }
+        delegate.warnIfNull("No parent delegate found for type: ${dtoType.dtoType.typeName}", this)
+        return delegate?.safeCast()
     }
 
-    fun <F_DTO: ModelDTO> setRelationBinding(
-        delegate: RelationDelegate<DTO, D, E, F_DTO, *, *, *>
-    ): RelationDelegate<DTO, D, E, *, *, *, *> {
-        delegate.identity.provideId(relationDelegates.size+1)
-        relationDelegates[delegate.completeName] = delegate
+    internal fun <F : ModelDTO, FD : DataModel, FE : LongEntity> getRelationDelegateByType(
+        dtoType: CommonDTOType<F, FD, FE>,
+    ): RelationDelegate<DTO, D, E, F, FD, FE, *>? {
+        val delegate = relationDelegateMap.values.firstOrNull { it.hostingDTOClass.commonDTOType == dtoType }
+        delegate.warnIfNull("No relation delegate found for type: ${dtoType.dtoType.typeName}", this)
+        return delegate?.safeCast()
+    }
+    internal fun <F : ModelDTO, FD : DataModel, FE : LongEntity> getRelationByTypeThrowing(
+        dtoType: CommonDTOType<F, FD, FE>,
+    ): RelationDelegate<DTO, D, E, F, FD, FE, *> = getRelationDelegateByType(dtoType).getOrOperations(this)
+
+
+    internal fun <F : ModelDTO, FD : DataModel, FE : LongEntity> registerRelationDelegate(
+        delegate: RelationDelegate<DTO, D, E, F, FD, FE, *>,
+    ): RelationDelegate<DTO, D, E, F, FD, FE, *> {
+        relationDelegateMap[RelationDelegateKey(delegate.dtoClass, delegate.cardinality)] = delegate
         delegate.updateStatus(DelegateStatus.Registered)
-        val notificationData =
-            NotificationData(this, delegate.completeName, delegate.property.toRecord(), delegate as  DelegateInterface<DTO, F_DTO>)
-
-        notifier.trigger(Event.DelegateRegistered, notificationData)
-
         return delegate
     }
 
+    internal fun  <F : ModelDTO, FD : DataModel, FE : LongEntity> registerComplexDelegate(
+        delegate: ComplexDelegate<DTO, D, E,  F, FD, FE>,
+    ): ComplexDelegate<DTO, D, E,  F, FD, FE> {
 
-    fun <F_DTO: ModelDTO> setParentDelegate(
-        delegate: ParentDelegate<DTO, D, E, F_DTO, *, *>
-    ): ParentDelegate<DTO, D, E, F_DTO, *, *> {
-        delegate.identity.provideId(parentDelegates.size+1)
-        parentDelegates[delegate.completeName] = delegate
-        delegate.updateStatus(DelegateStatus.Registered)
-        val notificationData =
-            NotificationData(this, delegate.completeName, delegate.property.toRecord(), delegate.castOrOperations<DelegateInterface<DTO, F_DTO>>(this))
-        notifier.trigger(Event.DelegateRegistered, notificationData)
+        when (delegate) {
+            is ParentDelegate -> {
+                parentDelegateMap[delegate.dtoClass] = delegate
+                delegate.updateStatus(DelegateStatus.Registered)
+            }
+
+            is AttachedForeignDelegate -> {
+                attachedForeignMap[delegate.dtoClass] = delegate
+                delegate.updateStatus(DelegateStatus.Registered)
+            }
+        }
         return delegate
     }
 
-    fun <F_DTO: ModelDTO> setAttachedForeignDelegate(
-        delegate: AttachedForeignDelegate<DTO, D, E, F_DTO, *, *>
-    ): AttachedForeignDelegate<DTO, D, E, *, *, *> {
-        delegate.identity.provideId(attachedForeignDelegates.size+1)
-        attachedForeignDelegates[delegate.completeName] = delegate
-        delegate.updateStatus(DelegateStatus.Registered)
-        val notificationData =
-            NotificationData(this, delegate.completeName, delegate.property.toRecord(), delegate.castOrOperations<DelegateInterface<DTO, F_DTO>>(this))
-        notifier.trigger(Event.DelegateRegistered, notificationData)
-        return delegate
-    }
-
-
-    fun setResponsiveDelegate(
+    internal fun registerResponsiveDelegate(
         delegate: ResponsiveDelegate<DTO, D, E, *>
+
     ): ResponsiveDelegate<DTO, D, E, *> {
-        delegate.identity.provideId(responsiveDelegates.size+1)
-        responsiveDelegates[delegate.completeName] = delegate
+
+        delegate.identity.setId(responsiveDelegateMap.values.size.toLong() + 1)
+        responsiveDelegateMap[delegate.completeName] = delegate
         delegate.updateStatus(DelegateStatus.Registered)
         return delegate
     }
 
-    fun getResponsiveDelegates(): List<ResponsiveDelegate<DTO, D, E, *>> {
-        return this.responsiveDelegates.values.toList()
-    }
 
-    fun getRelationDelegates(cardinality: Cardinality = Cardinality.ONE_TO_MANY): List<RelationDelegate<DTO, D, E, *, *, *, *>> {
-        return this.relationDelegates.values.filter { it.cardinality == cardinality }.toList()
-    }
-
-    fun getAttachedForeignDelegates(): List<AttachedForeignDelegate<DTO, D, E, *, *, *>> {
-        return attachedForeignDelegates.values.toList()
-    }
-
-    fun getParentDelegates(): List<ParentDelegate<DTO, D, E, *, *, *>> {
-        return parentDelegates.values.toList()
+    internal fun  getRelationDelegatesPacked(
+    ): RelationDelegatesContainer<DTO, D, E>{
+        val pack = RelationDelegatesContainer(hostingDTO)
+        relationDelegateMap.values.forEach {
+            pack.delegates.add(it)
+        }
+        return pack
     }
 
 
-    internal fun update(entity: E) = runInlineAction("update") {
-        responsiveDelegates.values.forEach { responsiveDelegate ->
-            responsiveDelegate.update(entity)
+    internal fun <F : ModelDTO, FD : DataModel, FE : LongEntity> getRelationDelegates(
+        dtoClass: DTOBase<F, FD, FE>,
+    ): List<RelationDelegate<DTO, D, E, F, FD, FE, *>>{
+
+        if(dtoClass == hostingDTO.dtoClass){
+            warning("getRelationDelegates by $dtoClass on dto of class ${hostingDTO.dtoClass}")
         }
-        attachedForeignDelegates.values.forEach {attached->
-            attached.resolveForeign(hostingDTO.dataModel, entity)
+
+        val result = mutableListOf<RelationDelegate<DTO, D, E, F, FD, FE, *>>()
+        val oneToOne =  relationDelegateMap[RelationDelegateKey(dtoClass, Cardinality.ONE_TO_ONE)]
+        if(oneToOne != null){
+            result.add(oneToOne.castOrOperations(this))
+        }
+        val oneToMany =  relationDelegateMap[RelationDelegateKey(dtoClass, Cardinality.ONE_TO_MANY)]
+        if(oneToMany != null){
+            result.add(oneToMany.castOrOperations(this))
+        }
+        return result
+    }
+
+    internal fun updateByData(dataModel: D) {
+        responsiveDelegateMap.values.forEach { responsiveDelegate ->
+            responsiveDelegate.updateBy(this, dataModel)
         }
     }
 
-
-    internal fun update(data: D){
-        responsiveDelegates.values.forEach { responsiveDelegate ->
-            responsiveDelegate.updateBy(data)
+    internal fun updateByEntity(entity: E) {
+        responsiveDelegateMap.values.forEach { responsiveDelegate ->
+            responsiveDelegate.updateBy(this, entity)
         }
-        getRelationDelegates(hostingDTO.cardinality).forEach {delegate->
-            delegate.updateBy(data)
+        attachedForeignMap.values.forEach { attachedForeignDelegate->
+            attachedForeignDelegate.updateDataModel(this)
+        }
+        hostingDTO.entityContainer.provideValue(entity)
+    }
+
+    internal fun updateEntity(entity: E) {
+        responsiveDelegateMap.values.forEach { responsiveDelegate ->
+            responsiveDelegate.updateEntity(this, entity)
+        }
+        attachedForeignMap.values.forEach {attachedForeignDelegate->
+            attachedForeignDelegate.updateEntity(this, entity)
+        }
+        parentDelegateMap.values.forEach {parentDelegate->
+            parentDelegate.updateEntity(this, entity)
         }
     }
 
-    internal fun create(){
-        if(dtoClass is RootDTO){
-            val newEntity =  daoService.save {
-                update(it)
-            }
-            hostingDTO.provideEntity(newEntity)
-            dtoClass.registerDTO(hostingDTO)
-
-            val relationDelegates = getRelationDelegates(Cardinality.ONE_TO_MANY)
-            relationDelegates.forEach {delegateC->
-                delegateC.updateBy(hostingDTO.dataModel)
-            }
-        }else{
-            val relationDelegates = getRelationDelegates(hostingDTO.cardinality)
-            relationDelegates.forEach {
-                it.updateBy(hostingDTO.dataModel)
-            }
+    internal fun <F : ModelDTO, FD : DataModel, FE : LongEntity> resolveParent(
+        commonDTO: CommonDTO<F, FD, FE>
+    ){
+        val found = parentDelegateMap[commonDTO.dtoClass]
+        found?.castOrOperations<ParentDelegate<DTO, D, E, F, FD, FE>>(this)?.resolve(commonDTO) ?:run {
+            warning("No parent delegate found for: ${commonDTO.dtoClass}")
         }
     }
 
-    internal fun select(entity:E){
-        hostingDTO.provideEntity(entity)
-        responsiveDelegates.values.forEach {
-            it.updateBy(entity)
-        }
-        attachedForeignDelegates.values.forEach {attachedForeign->
-            attachedForeign.resolveForeign(entity)
-        }
-        val delegates = if (dtoClass is RootDTO) {
-            getRelationDelegates(Cardinality.ONE_TO_MANY)
-        } else {
-            getRelationDelegates(hostingDTO.cardinality)
-        }
-        delegates.forEach {
-            it.createByEntity(entity)
+    internal fun resolveAttachedForeign(
+        callingContext: CTX,
+        dataModel: D
+    ){
+        attachedForeignMap.values.forEach {attachedForeignDelegate->
+            attachedForeignDelegate.resolve(dataModel)
         }
     }
 
-    internal fun <F_DTO: ModelDTO, FD : DataModel, FE: LongEntity>  setParent(parentDTO: CommonDTO<F_DTO, FD, FE>){
-        parentDelegates.forEach { (key, value)->
-           if(value.foreignClass == parentDTO.dtoClass){
-               value.resolveForeign(parentDTO)
-           }
+    internal fun resolveAttachedForeign(
+        callingContext: CTX,
+        entity: E
+    ){
+        attachedForeignMap.values.forEach {attachedForeignDelegate->
+            attachedForeignDelegate.resolve(entity)
+        }
+    }
+
+    internal fun <F: ModelDTO, FD: DataModel, FE: LongEntity> resolveAttachedForeign(
+        callingContext: CTX,
+        commonDTO: CommonDTO<F, FD, FE>
+    ) {
+        val found =  attachedForeignMap[commonDTO.dtoClass]
+        found?.castOrOperations<AttachedForeignDelegate<DTO, D, E, F, FD, FE>>(callingContext)?.resolve(commonDTO) ?:run {
+            warning("No relation delegate found for type: ${commonDTO.dtoClass}")
         }
     }
 }
+

@@ -4,10 +4,12 @@ import org.jetbrains.exposed.dao.LongEntity
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.components.tracker.interfaces.TrackableDTO
+import po.exposify.dto.helpers.asDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.misc.interfaces.Identifiable
-import po.misc.interfaces.IdentifiableContext
+import po.misc.context.CTX
+import po.misc.context.Identifiable
+import po.misc.lookups.HierarchyNode
 
 fun TrackableDTO.collectTrackerTree(): TrackableDTONode {
     val rootNode = TrackableDTONode(this)
@@ -31,9 +33,8 @@ data class TrackableDTONode(
 
 fun <DTO: ModelDTO, D: DataModel, E: LongEntity> CommonDTO<DTO, D, E>.addTrackerInfo(
     operation:CrudOperation,
-    moduleName: IdentifiableContext
 ):CommonDTO<DTO, D, E>{
-    tracker.addTrackInfo(operation, moduleName)
+    tracker.addTrackInfo(operation)
     return this
 }
 
@@ -42,4 +43,26 @@ fun <DTO: ModelDTO, D: DataModel, E : LongEntity> CommonDTO<DTO, D, E>.addTracke
 ):CommonDTO<DTO, D, E>{
     tracker.addTrackResult(operation)
     return this
+}
+
+fun <DTO: ModelDTO, D: DataModel, E : LongEntity> CommonDTO<DTO, D, E>.resolveHierarchy(): HierarchyNode<ModelDTO> {
+
+    fun traverse(dtos: List<ModelDTO>): List<HierarchyNode<ModelDTO>> {
+        return dtos.groupBy { it.commonType.dtoType }
+            .map { (type, group) ->
+                val children = group
+                    .flatMap { it.bindingHub.relationDelegateMap.values.flatMap {
+                            delegate -> delegate.commonDTOS } }
+
+                val child = traverse(children)
+                val groupAsList = group.toList()
+
+                HierarchyNode(commonType.dtoType, groupAsList).addChildNodes(child)
+            }
+    }
+    val rootNode = HierarchyNode<ModelDTO>(commonType.dtoType, mutableListOf(asDTO()))
+    val firstLevelChildren = bindingHub.relationDelegateMap.values
+        .flatMap { it.commonDTOS }
+    rootNode.children += traverse(firstLevelChildren)
+    return rootNode
 }

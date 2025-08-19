@@ -3,26 +3,26 @@ package po.test.misc.callback
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
-import po.misc.callbacks.manager.CallbackManager
-import po.misc.callbacks.manager.builders.bridgeFrom
-import po.misc.callbacks.manager.builders.callbackBuilder
-import po.misc.callbacks.manager.builders.createPayload
-import po.misc.callbacks.manager.builders.createPayloadWithResult
+import po.misc.callbacks.CallbackManager
+import po.misc.callbacks.builders.bridgeFrom
+import po.misc.callbacks.builders.callbackBuilder
+import po.misc.callbacks.builders.createPayload
+import po.misc.callbacks.builders.createPayloadWithResult
+import po.misc.context.CTX
+import po.misc.context.asIdentity
 import po.misc.exceptions.ManagedException
-import po.misc.interfaces.IdentifiableClass
-import po.misc.interfaces.IdentifiableContext
-import po.misc.interfaces.asIdentifiableClass
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
-class TestCallbackRegistration() : IdentifiableClass {
+class TestCallbackRegistration() : CTX {
 
-    override val identity = asIdentifiableClass("TestCallbackDataHandling", "Test")
+    override val identity = asIdentity()
     enum class HostEvent{ Unused, UnusedBuilder, UnusedSelfSubscribed }
 
-    class FirstHoldingClass: IdentifiableContext{
+    class FirstHoldingClass : CTX{
         enum class Event{ OnInit }
-        override val contextName: String = "HoldingClass"
+
+        override val identity = asIdentity()
 
         val notifier = CallbackManager(
             enumClass = Event::class.java,

@@ -6,22 +6,17 @@ import org.junit.jupiter.api.assertAll
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertInstanceOf
 import org.junit.jupiter.api.assertThrows
-import po.lognotify.classes.task.models.TaskConfig
-import po.lognotify.classes.task.result.TaskResult
-import po.lognotify.classes.task.result.resultOrNull
-import po.lognotify.extensions.runTask
-import po.lognotify.extensions.runTaskAsync
-import po.lognotify.extensions.subTask
-import po.misc.exceptions.HandlerType
-import po.misc.interfaces.IdentifiableContext
+import po.lognotify.common.result.TaskResult
+import po.lognotify.common.result.resultOrNull
+import po.lognotify.launchers.runTaskAsync
+import po.test.lognotify.setup.FakeTasksManaged
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class TestTaskResult: IdentifiableContext {
-
+class TestTaskResult: FakeTasksManaged {
 
     override val contextName: String
         get() = "TestTaskResult"
@@ -37,9 +32,6 @@ class TestTaskResult: IdentifiableContext {
     suspend fun nullableResultResultOrNull(name: String, value: Int?): Int? = runTaskAsync(name) {
         value
     }.resultOrNull()
-
-
-
 
     @Test
     fun `Container returns result as expected`() = runTest {
@@ -84,7 +76,7 @@ class TestTaskResult: IdentifiableContext {
             }
             assertEquals(123, triggeredAndResulted, "OnResult returned wrong value")
 
-            var onCompleteResult: TaskResult<*>? = null
+            var onCompleteResult: TaskResult<*, *>? = null
             runTaskAsync("OnComplete"){
                 val nullableResult : Int? = null
                 nullableResult
@@ -93,8 +85,8 @@ class TestTaskResult: IdentifiableContext {
             }
             assertAll("OnComplete triggers on nullable, not throwing",
                 { assertNotNull(onCompleteResult, "onResultTriggered never reached") },
-                { assertInstanceOf<TaskResult<Int?>>(onCompleteResult, "onComplete returned wrong result") },
-                { assertTrue(onCompleteResult is TaskResult<*>, "onComplete returned wrong result") }
+                { assertInstanceOf<TaskResult<*, Int?>>(onCompleteResult, "onComplete returned wrong result") },
+                { assertTrue(onCompleteResult is TaskResult<*, *>, "onComplete returned wrong result") }
              )
         }
         val exception =  assertNotNull(swallowedException, "onFail never reached")

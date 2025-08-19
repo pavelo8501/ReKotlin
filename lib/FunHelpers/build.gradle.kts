@@ -5,11 +5,12 @@ val kotlinSerializationVersion: String by project
 val exposedVersion: String by project
 val hikaricpVersion: String by project
 val mysqlVersion: String by project
-val junitVersion:String by project
-val coroutinesVersion:String by project
-val logNotifyVersion:String by project
+val junitVersion: String by project
+val coroutinesVersion: String by project
+val logNotifyVersion: String by project
 val funHelpersVersion: String by project
 
+val typesafeVersion: String by project
 
 plugins {
     kotlin("jvm")
@@ -25,9 +26,10 @@ repositories {
 
 dependencies {
 
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${kotlinSerializationVersion}")
-    implementation("org.jetbrains.kotlin:kotlin-reflect:${kotlinReflectVersion}")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${coroutinesVersion}")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinSerializationVersion")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinReflectVersion")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
+    implementation("com.typesafe:config:$typesafeVersion")
 
     testImplementation("org.jetbrains.kotlin:kotlin-test:$kotlinVersion")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion")
@@ -35,6 +37,12 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xcontext-sensitive-resolution")
+    }
 }
 
 publishing {

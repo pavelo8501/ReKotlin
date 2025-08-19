@@ -13,37 +13,45 @@ import po.auth.authentication.jwt.JWTService
 import po.auth.authentication.jwt.models.JwtConfig
 import po.auth.models.CryptoRsaKeys
 import po.lognotify.TasksManaged
-import po.lognotify.extensions.subTask
+import po.lognotify.launchers.runAction
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
 import po.restwraptor.extensions.respondUnauthorized
 import po.restwraptor.extensions.withSession
-import po.restwraptor.models.configuration.AuthConfig
-import po.restwraptor.interfaces.StringHelper
+import po.restwraptor.interfaces.WraptorResponse
 import po.restwraptor.models.configuration.WraptorConfig
 import po.restwraptor.routes.configureAuthRoutes
+import po.restwraptor.routes.partsToUrl
 
 class AuthConfigContext(
     private val application : Application,
     private val wraptorConfig: WraptorConfig,
-): StringHelper, TasksManaged{
+): TasksManaged{
+
+    override val identity: CTXIdentity<AuthConfigContext> = asIdentity()
 
     override val contextName: String = "AuthConfigContext"
     private val authConfig get() = wraptorConfig.authConfig
 
-    private suspend fun installJWTAuthentication(jwtService: JWTService,  app: Application){
+    private fun installJWTAuthentication(
+        jwtService: JWTService,
+        app: Application,
+        responseProvider:()-> WraptorResponse<*>
+    ){
         app.apply {
-            subTask("InstallJWTAuthentication") {handler->
+            runAction("InstallJWTAuthentication"){
                 if (this@apply.pluginOrNull(Authentication) != null) {
-                    handler.info("Authentication installation skipped. Custom Authentication already installed")
+                    notify("Authentication installation skipped. Custom Authentication already installed")
                 } else {
                     install(Authentication) {
                         jwt(authConfig.jwtServiceName) {
                             verifier(jwtService.getVerifier())
                             validate { credential ->
-                              val principal = withSession {
+                              val principal = withSession(this) {
                                     val jwtToken = jwtService.tokenRepository.resolve(sessionID)
                                     jwtService.isNotExpired(jwtToken){
-                                        handler.info("Token not found in repository")
-                                        respondUnauthorized("Session expired", HttpStatusCode.Unauthorized.value)
+                                        notify("Token not found in repository")
+                                        respondUnauthorized("Session expired", HttpStatusCode.Unauthorized.value, responseProvider)
                                     }
                                     jwtService.validateToken(jwtToken)
                                 }
@@ -51,17 +59,18 @@ class AuthConfigContext(
                             }
                         }
                     }
-                    handler.info("JWT Authentication Plugin installed")
+                    notify("JWT Authentication Plugin installed")
                 }
             }
         }
     }
 
-    internal suspend fun setupAuthentication(
+    internal fun setupAuthentication(
         cryptoKeys: CryptoRsaKeys,
+        responseProvider:()-> WraptorResponse<*>,
         userLookupFn: (suspend (login: String)-> AuthenticationPrincipal?)
     ){
-        subTask("JWT Token Config") {handler->
+        runAction("JWT Token Config") {
             authConfig.privateKey = cryptoKeys.privateKey
             authConfig.publicKey = cryptoKeys.publicKey
             authConfig.wellKnownPath = null
@@ -77,12 +86,12 @@ class AuthConfigContext(
             val service = AuthSessionManager.initJwtService(config)
             service.setAuthenticationFn(userLookupFn)
 
-            installJWTAuthentication(service, application)
+            installJWTAuthentication(service, application, responseProvider)
             if(authConfig.defaultSecurityRouts) {
                 application.routing {
-                    configureAuthRoutes(toUrl(wraptorConfig.apiConfig.baseApiRoute, authConfig.authRoutePrefix), this@AuthConfigContext)
+                    configureAuthRoutes(partsToUrl(listOf(authConfig.authRoutePrefix)), this@AuthConfigContext)
                 }
-                handler.info("AuthRoutes configured")
+                notify("AuthRoutes configured")
             }
         }
     }

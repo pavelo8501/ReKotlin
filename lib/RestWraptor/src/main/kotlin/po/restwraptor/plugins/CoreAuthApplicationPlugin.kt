@@ -4,7 +4,6 @@ import io.ktor.http.HttpHeaders
 import io.ktor.server.application.ApplicationStarted
 import io.ktor.server.application.createApplicationPlugin
 import io.ktor.server.application.hooks.MonitoringEvent
-import po.lognotify.extensions.runTask
 import po.restwraptor.extensions.getWraptorRoutes
 import po.restwraptor.extensions.resolveSessionFromHeader
 import po.restwraptor.extensions.sessionToAttributes
@@ -15,11 +14,9 @@ class CoreAuthPluginConfiguration {
     var headerName : String = HttpHeaders.Authorization
     var pluginKey: String = "jwt-auth"
 }
-
 val CoreAuthApplicationPlugin = createApplicationPlugin(
     name = "CoreAuthApplicationPlugin",
     createConfiguration =  ::CoreAuthPluginConfiguration
-
 ){
 
     val headerName = pluginConfig.headerName
@@ -37,7 +34,7 @@ val CoreAuthApplicationPlugin = createApplicationPlugin(
     }
 
     on(MonitoringEvent(ApplicationStarted)) { application ->
-        application.getWraptorRoutes(){
+        application.getWraptorRoutes(this){
             securedRoutes.addAll(it.filter { it.isSecured  })
         }
     }

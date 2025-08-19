@@ -10,6 +10,8 @@ import po.auth.sessions.interfaces.ManagedSession
 import po.auth.sessions.interfaces.SessionIdentified
 import po.auth.sessions.models.AuthorizedSession
 import po.lognotify.TasksManaged
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.coroutineContext
 
@@ -20,6 +22,8 @@ import kotlin.coroutines.coroutineContext
 object AuthSessionManager : ManagedSession, TasksManaged {
 
     override val contextName: String = "AuthSessionManager"
+
+    override val identity: CTXIdentity<AuthSessionManager> = asIdentity()
 
     private val internalStore : ConcurrentHashMap<String, String> = ConcurrentHashMap<String, String>()
     private val factory : SessionFactory = SessionFactory(this, internalStore)

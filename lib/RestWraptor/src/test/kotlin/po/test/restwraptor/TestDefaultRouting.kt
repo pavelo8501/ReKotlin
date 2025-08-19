@@ -25,7 +25,7 @@ import po.auth.extensions.authenticate
 import po.auth.extensions.readCryptoRsaKeys
 import po.auth.extensions.setKeyBasePath
 import po.auth.sessions.models.AuthorizedSession
-import po.lognotify.extensions.runTask
+import po.lognotify.launchers.runTask
 import po.misc.exceptions.HandlerType
 import po.misc.types.getOrThrow
 import po.restwraptor.RestWrapTor
@@ -35,7 +35,7 @@ import po.restwraptor.extensions.authSessionOrNull
 import po.restwraptor.extensions.respondBadRequest
 import po.restwraptor.extensions.respondInternal
 import po.restwraptor.extensions.respondUnauthorized
-import po.restwraptor.extensions.withBaseUrl
+import po.restwraptor.routes.withBaseUrl
 import po.restwraptor.models.request.LoginRequest
 import po.restwraptor.models.response.ApiResponse
 

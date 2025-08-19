@@ -1,89 +1,19 @@
 package po.lognotify.process
 
+import kotlinx.coroutines.CoroutineScope
+import po.lognotify.notification.models.LogData
+import po.misc.context.CTX
 import po.misc.coroutines.CoroutineHolder
-import po.misc.interfaces.Identifiable
-import po.misc.interfaces.asIdentifiable
-import po.misc.time.ExecutionTimeStamp
+import po.misc.interfaces.Processable
+import kotlin.coroutines.CoroutineContext
 
 
-class LoggerProcess<T, R>(
-    val processName: String,
-    val ctx: T,
-    val block: suspend T.()->R
-) where T: CoroutineHolder {
+interface LoggerProcess<T>: CoroutineHolder, CoroutineContext.Element, CTX where T : Processable{
 
-    val identified :  Identifiable = asIdentifiable(processName, "LoggerProcess")
-    val executionTimeStamp: ExecutionTimeStamp = ExecutionTimeStamp(processName, "LoggerProcess")
+    val handler:ProcessHandler
+    override val scope: CoroutineScope
 
-    suspend fun launchProcess():R{
-       return block.invoke(ctx)
-    }
+    fun CTX.onDataReceived(callback: (LogData)-> Unit)
+    fun <T: CoroutineContext.Element> getCoroutineElement(key: CoroutineContext.Key<T>): T?
 
 }
-
-
-//
-//class LoggProcess<E: ProcessableContext<*>>(
-//    private val holder: ProcessableContext<E>,
-//    private val context: CoroutineContext
-//) : CoroutineContext.Element, MeasuredContext {
-//
-//    val identifiedAs : String get() = holder.identifiedAs
-//    val name : String get() = holder.name
-//
-//    var coroutineInfo : CoroutineInfo = CoroutineInfo.createInfo(context)
-//    private val listenerJobs = mutableMapOf<TaskKey, Job>()
-//
-//    override val executionTimeStamp: ExecutionTimeStamp = ExecutionTimeStamp(name, identifiedAs)
-//
-//    init {
-//        initialize()
-//    }
-//
-//    suspend fun getCoroutineInfo(): CoroutineInfo{
-//        return CoroutineInfo.createInfo(coroutineContext)
-//    }
-//
-//    suspend fun startRun(context: CoroutineContext){
-//        coroutineInfo = CoroutineInfo.createInfo(context)
-//    }
-//
-//    fun stopRun(): LoggProcess<E>{
-//        return this
-//    }
-//
-//    fun initialize(){
-//        executionTimeStamp.onStart {
-//
-//        }
-//
-//        executionTimeStamp.onStop {
-//
-//        }
-//        holder.getLoggerProcess = {
-//            this
-//        }
-//    }
-//    suspend fun observeTask(task: RootTask<*, *>) {
-//
-//        TODO("Not yet refactored")
-//
-////        holder.onProcessStart(this)
-////        CoroutineScope(CoroutineName("Listener")).launch {
-////            task.notifier.collect { notification ->
-////                holder.onNotification(notification)
-////            }
-////        }
-//    }
-//    fun stopTaskObservation(task: RootTask<*, *>) {
-//        val job = listenerJobs[task.key]
-//        job?.invokeOnCompletion {
-//            listenerJobs.remove(task.key)
-//        }
-//        holder.onProcessEnd(this)
-//    }
-//    override val key: CoroutineContext.Key<LoggProcess<*>> = Key
-//    companion object Key : CoroutineContext.Key<LoggProcess<*>>
-//}
-
-

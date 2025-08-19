@@ -1,56 +1,55 @@
 package po.exposify.extensions
 
 import kotlinx.coroutines.Dispatchers
-import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.Transaction
+import org.jetbrains.exposed.sql.addLogger
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.jetbrains.exposed.sql.transactions.experimental.suspendedTransactionAsync
 import org.jetbrains.exposed.sql.transactions.transaction
-import po.lognotify.classes.task.TaskHandler
+import po.exposify.common.classes.ExposifyDebugger
+import po.misc.context.CTX
 import kotlin.coroutines.CoroutineContext
 
-suspend fun <T> withSuspendedTransactionIfNone(
-    db: Database,
-    context: CoroutineContext = Dispatchers.IO,
-    block: suspend () -> T
-): T {
-    return if (TransactionManager.currentOrNull() == null || TransactionManager.current().connection.isClosed) {
-        newSuspendedTransaction(context, db) { block() }
-    } else {
-        block()
+
+private suspend fun <T : CTX, R> T.runWithNewSuspendedTransaction(
+    logDataProcessor: ExposifyDebugger<*, *>,
+    warnIfNoTransaction: Boolean,
+    coroutineContext: CoroutineContext,
+    block: suspend T.() -> R
+): R = newSuspendedTransaction(coroutineContext) {
+
+    if (warnIfNoTransaction) {
+        logDataProcessor.warn("Transaction lost context. Restoring")
     }
+
+    addLogger(logDataProcessor)
+    block()
 }
 
-
-suspend fun <T> withSuspendedTransactionIfNone(block: suspend () -> T): T {
-    return if (TransactionManager.currentOrNull() == null || TransactionManager.current().connection.isClosed) {
-        newSuspendedTransaction(Dispatchers.IO) { block() }
-    } else {
-        block()
-    }
+suspend fun <T : CTX, R> T.withSuspendedTransactionIfNone(
+    logDataProcessor: ExposifyDebugger<*, *>,
+    warnIfNoTransaction: Boolean,
+    block: suspend T.() -> R
+): R = if (TransactionManager.currentOrNull()?.connection?.isClosed != false) {
+    runWithNewSuspendedTransaction(logDataProcessor, warnIfNoTransaction, Dispatchers.IO, block)
+} else {
+    block()
 }
 
-
-suspend fun <T> withSuspendedTransactionIfNone(taskHandler : TaskHandler<*>, block: suspend () -> T): T {
-    return if (TransactionManager.currentOrNull() == null || TransactionManager.current().connection.isClosed) {
-        taskHandler.warn("Transaction lost context. Restoring")
-        newSuspendedTransaction(Dispatchers.IO) { block() }
-    } else {
-        block()
-    }
+suspend fun <T : CTX, R> T.withSuspendedTransactionIfNone(
+    logDataProcessor: ExposifyDebugger<*, *>,
+    warnIfNoTransaction: Boolean,
+    coroutineContext: CoroutineContext,
+    block: suspend T.() -> R
+): R = if (TransactionManager.currentOrNull()?.connection?.isClosed != false) {
+    runWithNewSuspendedTransaction(logDataProcessor, warnIfNoTransaction, coroutineContext, block)
+} else {
+    block()
 }
 
-fun <T> withTransactionIfNone(taskHandler : TaskHandler<*>, block: () -> T): T {
-    return if (TransactionManager.currentOrNull() == null || TransactionManager.current().connection.isClosed) {
-        taskHandler.warn("Transaction lost context. Restoring")
-        transaction {
-            block()
-        }
-    } else {
-        block()
-    }
+fun currentTransaction(): Transaction?{
+   return TransactionManager.currentOrNull()
 }
-
 
 fun isTransactionReady(): Boolean {
     return TransactionManager.currentOrNull()?.connection?.isClosed?.not() == true

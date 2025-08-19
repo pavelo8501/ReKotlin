@@ -1,11 +1,5 @@
 package po.test.restwraptor
 
-import io.ktor.client.call.body
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
-import io.ktor.http.ContentType
-import io.ktor.http.HttpStatusCode
-import io.ktor.http.contentType
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
@@ -17,10 +11,8 @@ import po.auth.extensions.readCryptoRsaKeys
 import po.auth.extensions.setKeyBasePath
 import po.restwraptor.RestWrapTor
 import po.restwraptor.enums.RouteSelector
-import po.restwraptor.extensions.jwtSecured
-import po.restwraptor.models.response.ApiResponse
+import po.restwraptor.routes.jwtSecured
 import po.restwraptor.models.server.WraptorRoute
-import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 

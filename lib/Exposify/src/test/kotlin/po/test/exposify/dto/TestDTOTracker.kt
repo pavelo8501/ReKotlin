@@ -4,11 +4,15 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import po.auth.extensions.generatePassword
+import po.exposify.common.events.DTOData
 import po.exposify.dto.components.result.ResultSingle
-import po.exposify.scope.service.enums.TableCreateMode
+import po.exposify.scope.service.models.TableCreateMode
 import po.lognotify.TasksManaged
-import po.lognotify.classes.notification.models.ConsoleBehaviour
-import po.lognotify.logNotify
+import po.lognotify.notification.models.ConsoleBehaviour
+import po.lognotify.notification.models.NotifyConfig
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
 import po.test.exposify.setup.DatabaseTest
 import po.test.exposify.setup.PageEntity
 import po.test.exposify.setup.dtos.Page
@@ -21,6 +25,7 @@ import kotlin.test.assertTrue
 
 class TestDTOTracker: DatabaseTest(), TasksManaged {
 
+    override val identity: CTXIdentity<out CTX> =  asIdentity()
     override val contextName: String = "TestDTOTracker"
 
     companion object{
@@ -31,7 +36,10 @@ class TestDTOTracker: DatabaseTest(), TasksManaged {
     @BeforeAll
     fun setup() = runTest {
 
-        logNotify().notifierConfig { console = ConsoleBehaviour.MuteNoEvents }
+        logHandler.notifierConfig {
+            console = ConsoleBehaviour.MuteNoEvents
+            allowDebug(DTOData)
+        }
 
         val user = User(
             id = 0,
@@ -41,8 +49,8 @@ class TestDTOTracker: DatabaseTest(), TasksManaged {
             email = "nomail@void.null"
         )
         withConnection{
-            service(UserDTO, TableCreateMode.FORCE_RECREATE) {
-                updatedById = update(user).getDataForced().id
+            service(UserDTO, TableCreateMode.ForceRecreate) {
+                updatedById = update(user).dataUnsafe.id
             }
         }
     }
@@ -50,11 +58,11 @@ class TestDTOTracker: DatabaseTest(), TasksManaged {
     @Test
     fun `Information updated and stored`() = runTest{
 
-        var updateResult : ResultSingle<PageDTO, Page, PageEntity>? = null
+        var updateResult : ResultSingle<PageDTO, Page>? = null
         val page = pagesSectionsContentBlocks(
             pageCount = 1,
             sectionsCount = 1,
-            contentBlocksCount = 1,
+            contentBlocksCount = 2,
             updatedBy = updatedById).first()
 
         withConnection{
@@ -64,11 +72,9 @@ class TestDTOTracker: DatabaseTest(), TasksManaged {
         }
         val pageDTOResult = assertNotNull(updateResult)
 
-        val tracker = assertNotNull(pageDTOResult.getDTO()?.tracker, "Tracker is missing on DTO")
-        assertTrue(tracker.records.isNotEmpty() ,"No records present")
-        val trackers =  pageDTOResult.getTrackerInfo()
-        assertTrue(trackers.records.isNotEmpty(), "Tracker returned empty list")
-        assertTrue(trackers.childTrackers.isNotEmpty(), "Tracker has no child records")
+        val tracker = assertNotNull(pageDTOResult.getTracker(), "Tracker is missing on DTO")
+        val hierarchy =  tracker.resolveHierarchy()
+        assertTrue(tracker.trackRecords.isNotEmpty() ,"No records present")
         tracker.printTrace()
     }
 

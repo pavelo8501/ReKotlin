@@ -1,13 +1,11 @@
 package po.misc.types
 
-import po.misc.data.helpers.emptyOnNull
-import po.misc.exceptions.HandlerType
-import po.misc.exceptions.ManageableException
+import po.misc.context.CTX
+import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.exceptions.ManagedException
-import po.misc.exceptions.throwManaged
-import po.misc.interfaces.IdentifiableContext
+import po.misc.exceptions.ManagedPayload
+import po.misc.exceptions.throwableToText
 import kotlin.reflect.KClass
-import kotlin.reflect.KType
 import kotlin.reflect.cast
 
 
@@ -21,7 +19,7 @@ fun <T: Any> Any.safeCast(
     return try {
         kClass.cast(this)
     } catch (e: ClassCastException) {
-       null
+        null
     }
 }
 
@@ -33,93 +31,67 @@ inline fun <reified BASE : Any> Any?.safeBaseCast(): BASE? {
     }
 }
 
-inline fun <reified T: Any> Any?.castOrManaged(
-    message: String? = null,
-    handler: HandlerType = HandlerType.SkipSelf
-): T {
-    if(this == null){
-        throwManaged("${message.emptyOnNull()}. Unable to cast null to ${T::class.simpleName}", handler)
-    }else{
-        val result =  this as? T
-        if(result != null){
-            return result
-        }else{
-            val effectiveMessage = "${message.emptyOnNull()}. Unable to cast ${this::class.simpleName} to  ${T::class.simpleName}"
-            throwManaged(effectiveMessage, handler)
-        }
-    }
-}
-
-inline fun <reified T: Any, E: ManagedException> Any?.castOrThrow(
-    ctx: IdentifiableContext? = null,
-    exceptionProvider: (message: String)-> E,
-): T {
-    val result =  this as? T
-    if(result != null){
-        return result
-    }else{
-        val message =   if(this == null){
-            "Unable to cast null to ${T::class.simpleName}"
-        }else{
-            "Unable to cast ${this::class.simpleName} to  ${T::class.simpleName}"
-        }
-        val exception = exceptionProvider(message)
-        if(ctx != null){
-            exception.throwSelf(ctx)
-        }else{
-            throw exception
-        }
-    }
-}
-
-inline fun <T: Any, reified E: ManagedException> Any?.castOrThrow(
+fun <T: Any> Any?.castOrManaged(
     kClass: KClass<T>,
-    ctx: IdentifiableContext? = null,
-    exceptionProvider: (message: String)-> E,
+    callingContext: Any,
+):T {
+    val methodName = "castOrManaged"
+    var message = "Cast to ${kClass.simpleName} failed."
+    if(this == null){
+        message += "Source object is null"
+        val payload = ManagedPayload(message, methodName, callingContext)
+        throw  ManagedException(payload)
+    }else{
+        val operation = "Casting ${this::class} to ${kClass.simpleName}"
+        return  try {
+            kClass.cast(this)
+        } catch (e: ClassCastException) {
+            val payload = ManagedPayload("$operation ${e.throwableToText()}", methodName, callingContext)
+            throw ManagedException(payload.setCause(e))
+        }
+    }
+}
+
+inline fun <reified T: Any> Any?.castOrManaged(
+    callingContext: Any,
+): T  = castOrManaged(T::class, callingContext)
+
+
+fun <T: Any> Any?.castOrThrow(
+    kClass: KClass<T>,
+    callingContext: Any,
+    exceptionProvider: (ManagedCallSitePayload)-> Throwable,
 ): T {
-    return try {
+    val methodName = "castOrThrow"
+    if (this == null) {
+        val message = "Cast to ${kClass.simpleName} failed. Source object is null"
+        val payload = ManagedPayload(message, methodName, callingContext)
+        throw exceptionProvider(payload)
+    }
+   return try {
         kClass.cast(this)
     } catch (e: ClassCastException) {
-        val thisCtx = this
-        val message = if(thisCtx != null){
-            "Unable to cast ${thisCtx::class.simpleName.toString()} to ${kClass.simpleName}"
-        }else{
-            "Unable to cast null to ${kClass.simpleName}"
-        }
-        val exception = exceptionProvider(message)
-        if(ctx != null){
-            exception.throwSelf(ctx)
-        }else{
-            throw exception
-        }
+        val payload = ManagedPayload(e.throwableToText(), methodName, callingContext)
+        throw exceptionProvider(payload.setCause(e))
     }
 }
 
-inline fun <T : Any, reified E: ManagedException> List<*>.castListOrThrow(
-    kClass: KClass<T>,
-    ctx: IdentifiableContext? = null,
-    exceptionProvider: (message: String)-> E,
-): List<T> {
-    return this.mapNotNull { it.castOrThrow<T, E>(kClass, ctx, exceptionProvider) }
+inline fun <reified T: Any> Any?.castOrThrow(
+    callingContext: Any,
+    noinline exceptionProvider: (ManagedCallSitePayload)-> Throwable,
+): T = castOrThrow(T::class, callingContext, exceptionProvider)
+
+
+inline fun <reified T: Any, R> withCasted(objectToCast: Any, block:T.()->R):R?{
+    val castedValue = objectToCast.safeCast<T>()
+   return if(castedValue != null){
+        block.invoke(castedValue)
+    }else{
+        null
+    }
 }
 
-inline fun <reified BASE : Any, reified E : ManagedException> Any?.castBaseOrThrow(
-    ctx: IdentifiableContext? = null,
-    exceptionProvider: (message: String)-> E,
-): BASE {
-    try {
-        return this as BASE
-    }catch (ex: Throwable){
-        val message = if (this == null) {
-            "Cannot cast null to ${BASE::class.simpleName}"
-        }else{
-            "Cannot cast ${this::class.simpleName} to ${BASE::class.simpleName}"
-        }
-        val exception = exceptionProvider(message)
-        if(ctx != null){
-            exception.throwSelf(ctx)
-        }else{
-            throw exception
-        }
-    }
+inline fun <reified T: Any, R> CTX.withCastedOrManaged(objectToCast: Any, block:T.()->R):R{
+    val castedValue = objectToCast.castOrManaged<T>(this)
+    return block.invoke(castedValue)
 }

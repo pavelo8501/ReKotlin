@@ -1,7 +1,8 @@
 package po.exposify.dto.configuration
 
 enum class ValidationCheck(val value: String) {
-    MandatoryProperties("Validating mandatory properties"),
     ForeignKeys("Validating foreign keys"),
-    AttachedForeign("Attached foreign initialized")
+    MandatoryProperties("Validating mandatory properties"),
+    AttachedForeign("Attached foreign initialized"),
+    ParentReferences("Parent references")
 }

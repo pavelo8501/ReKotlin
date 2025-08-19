@@ -14,49 +14,79 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import po.lognotify.TasksManaged
-import po.lognotify.extensions.runTaskBlocking
+import po.lognotify.launchers.runTask
+import po.lognotify.launchers.runTaskAsync
+import po.misc.containers.LazyContainer
+import po.misc.containers.lazyContainerOf
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
+import po.misc.functions.registries.builders.notifierRegistryOf
 import po.misc.types.getOrThrow
 import po.restwraptor.scope.ConfigContext
-import po.restwraptor.scope.CoreContext
+
 import po.restwraptor.enums.EnvironmentType
 import po.restwraptor.exceptions.ConfigurationException
 import po.restwraptor.exceptions.ExceptionCodes
 import po.restwraptor.interfaces.WraptorHandler
-import po.restwraptor.models.configuration.ApiConfig
+import po.restwraptor.interfaces.WraptorResponse
 import po.restwraptor.models.configuration.WraptorConfig
 import po.restwraptor.models.info.WraptorStatus
 import po.restwraptor.models.server.WraptorRoute
 
 val RestWrapTorKey = AttributeKey<RestWrapTor>("RestWrapTorInstance")
 
+
+object RestWraptorServer:RestWrapTor() {
+
+}
+
+fun configureWraptor(builder : (ConfigContext.() -> Unit)){
+    RestWraptorServer.config(RestWraptorServer, builder)
+}
+
+fun configureApplication(builder : (Application.() -> Unit)){
+    RestWraptorServer.configureApplication(builder)
+}
+
+
+fun runWraptor(
+    host: String = "0.0.0.0",
+    port: Int = 8080,
+    wait: Boolean = true,
+    onStarted : ((WraptorHandler)-> Unit)? = null
+): Unit = RestWraptorServer.start(host, port, wait, onStarted)
+
+
+
 /**
  * **RestWrapTor** - A wrapper for managing Ktor applications with configurable settings and lifecycle hooks.
  * This class simplifies Ktor application initialization, configuration, and server management.
  * @property appConfigFn (Optional) Function to apply additional configurations to the application.
  */
-class RestWrapTor(
-    private var appConfigFn : ( suspend ConfigContext.() -> Unit)? = null
-): WraptorHandler, TasksManaged
-{
+open class RestWrapTor(
+    internal val builder : (ConfigContext.() -> Unit)? = null
+): WraptorHandler, TasksManaged {
 
-    override val contextName: String = "RestWrapTor"
-    private val personalName : String = "RestWrapTor"
+    override val identity: CTXIdentity<RestWrapTor> = asIdentity()
 
     /**
      * Stores the **unique hash** of the application instance.
      * Used to verify if the application instance remains the same.
      */
-    var appHash : Int  =  0
+    var appHash: Int = 0
         private set
 
-    private var _application: Application? = null
-    internal val application: Application
-        get() = _application.getOrThrow<Application, ConfigurationException>(null){message->
-            ConfigurationException(message, ExceptionCodes.GENERAL_CONFIG_FAILURE)
-        }
+    internal val configContextBacking: LazyContainer<ConfigContext> = lazyContainerOf()
+    internal val applicationRegistry = notifierRegistryOf<Application>()
+    internal val configRegistry = notifierRegistryOf<ConfigContext>()
+    internal var preSavedApplication: Application? = null
 
     /** The embedded Ktor server instance. */
-    private lateinit var  embeddedServer : EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>
+    private lateinit var embeddedServer: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>
+
+    final override val wraptorRoutes: List<WraptorRoute> get() = getRoutes()
+    final override val rootPath: String get() = configContextBacking.value?.application?.rootPath ?: "N/A"
+
 
     val connectors: MutableList<String> = mutableListOf<String>()
 
@@ -69,22 +99,22 @@ class RestWrapTor(
         private set
 
     /** Internal configuration settings for `RestWrapTor`. */
-    internal var wrapConfig  = WraptorConfig()
+    internal var wrapConfig = WraptorConfig()
 
-    private val authConfig  get() = wrapConfig.authConfig
-    private val apiConfig  get() = wrapConfig.apiConfig
+    private val authConfig get() = wrapConfig.authConfig
+    private val apiConfig get() = wrapConfig.apiConfig
 
     /** Context for handling application configuration. */
-    private val configContext : ConfigContext = ConfigContext(this, wrapConfig)
+    // private val configContext : ConfigContext = ConfigContext(this, wrapConfig)
 
 
-    private var hasCoreContext : CoreContext? = null
-    private val coreContext : CoreContext
-        get(){ return hasCoreContext?:throw ConfigurationException("Core context accessed before init", ExceptionCodes.VALUE_IS_NULL, null)}
+//    private var hasCoreContext : CoreContext? = null
+//    private val coreContext : CoreContext
+//        get(){ return hasCoreContext?:throw ConfigurationException("Core context accessed before init", ExceptionCodes.VALUE_IS_NULL, null)}
 
 
     /** The attribute key used to store this instance inside the `Application.attributes`. */
-    lateinit var thisKey :  AttributeKey<RestWrapTor>
+    lateinit var thisKey: AttributeKey<RestWrapTor>
 
     /** The host address for the server. Defaults to `0.0.0.0`. */
     private var host: String = "0.0.0.0"
@@ -96,40 +126,33 @@ class RestWrapTor(
     private var wait: Boolean = true
 
     /** Callback function triggered when the server starts successfully. */
-    private var onServerStartedCallback : ((WraptorHandler)-> Unit)?  = null
+    private var onServerStartedCallback: ((WraptorHandler) -> Unit)? = null
 
     private val serviceScope = CoroutineScope(Dispatchers.IO + CoroutineName("WrapTor service"))
 
-    private fun engineStarted(engine: ApplicationEngine){
-        runTaskBlocking("EngineStarted"){
-            engine.resolvedConnectors().forEach {
-                connectors.add("${it.type}|${it.host}:${it.port}")
-            }
+    init {
+        builder?.let {
+            configRegistry.subscribe(this, it)
         }
     }
 
-    fun useApp(app: Application, configFn : suspend ConfigContext.() -> Unit){
-        _application = app
-        appConfigFn = configFn
-        setupConfig(application)
+    private suspend fun engineStarted(engine: ApplicationEngine) = runTaskAsync("EngineStarted") {
+        engine.resolvedConnectors().forEach {
+            connectors.add("${it.type}|${it.host}:${it.port}")
+        }
     }
 
     /**
      * Registers this `RestWrapTor` instance in `Application.attributes`.
      */
-    private fun registerSelf(): AttributeKey<RestWrapTor>?{
+    private fun registerSelf(application: Application): AttributeKey<RestWrapTor>? {
         if (!application.attributes.contains(RestWrapTorKey)) {
             application.attributes.put(RestWrapTorKey, this)
             thisKey = RestWrapTorKey
             return thisKey
-        }else{
+        } else {
             return null
         }
-    }
-
-    /** Hook executed after the server starts successfully. */
-   suspend fun  afterServerStart(){
-        onServerStartedCallback?.invoke(this)
     }
 
     /**
@@ -137,60 +160,31 @@ class RestWrapTor(
      * @return A list of `WraptorRoute` objects representing the registered routes.
      */
 
-    private var getRoutesCallback : (((List<WraptorRoute>)-> Unit)?) = null
-    override fun getRoutes(callback : ((List<WraptorRoute>)-> Unit)?):List<WraptorRoute>{
-        getRoutesCallback  = callback
-        if(hasCoreContext != null){
-            val routes = coreContext.getWraptorRoutes()
-            callback?.invoke(routes)
-            return coreContext.getWraptorRoutes()
-        }else{
-            return emptyList()
+    private var getRoutesCallback: (((List<WraptorRoute>) -> Unit)?) = null
+
+    private fun applyConfig(app: Application) {
+        val config = ConfigContext(this, app)
+        applicationRegistry.trigger(config.application)
+        configRegistry.trigger(config)
+        config.initialize()
+        configContextBacking.provideValue(config)
+    }
+
+    private fun setupConfig(app: Application) = runTask("Configuration") {
+        app.monitor.subscribe(ServerReady) {
+            onServerStartedCallback?.invoke(this)
         }
-    }
-
-    suspend fun getRoutes():List<WraptorRoute>{
-        return coreContext.getWraptorRoutes()
-    }
-
-    override fun getConnectors(callback : (List<EngineConnectorConfig>)-> Unit ){
-        callback.invoke(embeddedServer.engineConfig.connectors.toList())
-    }
-
-    /**
-     * Retrieves the current `Application` instance.
-     * @return The `Application` instance associated with this `RestWrapTor`.
-     */
-    fun getApp(): Application{
-        return application
-    }
-
-    /**
-     * Retrieves the server's API configuration.
-     * @return An `ApiConfig` object representing the server's configuration, or default if uninitialized.
-     */
-    override fun getConfig(): ApiConfig{
-        return configContext.apiConfig
-    }
-
-
-    private fun setupConfig(app : Application) {
-        runTaskBlocking("Configuration"){handler->
-            _application = app
-            hasCoreContext  = CoreContext(app, this)
-            handler.info("App hash before appBuilderFn invoked ${System.identityHashCode(this)}")
-            application.monitor.subscribe(ServerReady) {
-                onServerStartedCallback?.invoke(this)
-            }
-            registerSelf().getOrThrow<AttributeKey<RestWrapTor>, ConfigurationException>(null){_->
-                ConfigurationException("RestWrapTor Registration inside Application failed", ExceptionCodes.KEY_REGISTRATION)
-            }
-            configContext.initialize(appConfigFn)
-            appHash = System.identityHashCode(application)
-            handler.info("App hash of the WrapTor configured app $appHash")
-            initialized = true
-            getRoutesCallback?.invoke(coreContext.getWraptorRoutes())
+        registerSelf(app).getOrThrow(this) { _ ->
+            ConfigurationException(
+                "RestWrapTor Registration inside Application failed",
+                ExceptionCodes.KEY_REGISTRATION
+            )
         }
+        applyConfig(app)
+        appHash = System.identityHashCode(app)
+        notify("App hash of the WrapTor configured app $appHash")
+        initialized = true
+        getRoutesCallback?.invoke(getRoutes())
     }
 
     /**
@@ -201,15 +195,62 @@ class RestWrapTor(
      *
      * @param wait If `true`, the server will block execution until manually stopped.
      */
-    private fun  launchRest(wait: Boolean = true){
-        embeddedServer = embeddedServer(Netty, port, host){
+    private fun launchRest(wait: Boolean = true) {
+        embeddedServer = embeddedServer(Netty, port, host) {
             setupConfig(this)
         }
         embeddedServer.start(wait)
     }
 
-    override fun stop(gracePeriod: Long){
-        application.engine.stop(gracePeriod)
+
+    /**
+     * Used for Test environments
+     */
+    internal fun configWithApp(app: Application, builder: ConfigContext.() -> Unit) {
+        preSavedApplication = app
+        configRegistry.subscribe(this, builder)
+    }
+
+    internal fun config(callingContext: Any, builder: ConfigContext.() -> Unit) {
+        configRegistry.subscribe(callingContext, builder)
+    }
+
+    override fun getRoutes(callback: ((List<WraptorRoute>) -> Unit)?): List<WraptorRoute> {
+        getRoutesCallback = callback
+        val routes = configContextBacking.getValue(this).coreContext.getWraptorRoutes()
+        callback?.invoke(routes)
+        return routes
+    }
+
+    override fun getConnectors(callback: (List<EngineConnectorConfig>) -> Unit) {
+        callback.invoke(embeddedServer.engineConfig.connectors.toList())
+    }
+
+    fun setWraptorResponse(provider:()-> WraptorResponse<*>){
+        configContextBacking.requestValue(this){config->
+            config.registerResponseProvider(provider)
+        }
+    }
+
+    fun configureApplication(builder: Application.() -> Unit) {
+        applicationRegistry.subscribe(this, builder)
+    }
+
+    fun getRoutes(): List<WraptorRoute> {
+        return configContextBacking.getValue(this).coreContext.getWraptorRoutes()
+    }
+
+
+    /**
+     * Retrieves the current `Application` instance.
+     * @return The `Application` instance associated with this `RestWrapTor`.
+     */
+    fun getApp(): Application {
+        return configContextBacking.getValue(this).application
+    }
+
+    override fun stop(gracePeriod: Long) {
+        configContextBacking.getValue(this).application.engine.stop(gracePeriod)
     }
 
     /**
@@ -221,7 +262,12 @@ class RestWrapTor(
      *
      * @throws IllegalStateException If the server is already initialized or improperly configured.
      */
-    fun start(host: String = "0.0.0.0", port: Int = 8080,  wait: Boolean = true, onStarted : ((WraptorHandler)-> Unit) ? = null){
+    fun start(
+        host: String = "0.0.0.0",
+        port: Int = 8080,
+        wait: Boolean = true,
+        onStarted: ((WraptorHandler) -> Unit)? = null
+    ) {
         this.onServerStartedCallback = onStarted
         this.host = host.ifBlank { this.host }
         this.port = port
@@ -239,18 +285,17 @@ class RestWrapTor(
         }
         val thisApp = getApp()
         val isProduction = this.wrapConfig.apiConfig.environment == EnvironmentType.PROD
-        val allRoutes = coreContext.getWraptorRoutes()
+        val allRoutes = getRoutes()
 
-        return  WraptorStatus(
+        return WraptorStatus(
             true,
             activeConnectors,
             thisApp.rootPath,
             isProduction,
             emptyList(),
             emptyList(),
-            allRoutes.filter { it.isSecured  == false },
-            allRoutes.filter { it.isSecured  == true },
-            )
+            allRoutes.filter { it.isSecured == false },
+            allRoutes.filter { it.isSecured == true },
+        )
     }
-
 }
