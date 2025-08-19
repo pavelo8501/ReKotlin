@@ -12,6 +12,7 @@ import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.auth.extensions.readCryptoRsaKeys
 import po.auth.extensions.setKeyBasePath
 import po.restwraptor.RestWrapTor
+import po.restwraptor.configureWraptor
 import po.restwraptor.enums.EnvironmentType
 import po.restwraptor.enums.RouteSelector
 import po.restwraptor.extensions.getWraptorRoutes
@@ -31,9 +32,10 @@ class TestRestWraptorGeneralConfig {
         val keyPath = setKeyBasePath("src/test/demo_keys")
         val server = RestWrapTor()
         application {
-            server.useApp(this){
-                apiConfig.baseApiRoute = "backend"
+
+            configureWraptor(server){
                 setupAuthentication(keyPath.readCryptoRsaKeys("ktor.pk8", "ktor.spki"), ::userLookUp)
+                rootPath =  "backend"
             }
         }
         startApplication()
@@ -67,14 +69,15 @@ class TestRestWraptorGeneralConfig {
         )
         val keyPath = setKeyBasePath("src/test/demo_keys")
         application{
-            server.useApp(this){
-                apiConfig.baseApiRoute = "backend/"
-                apiConfig.environment = EnvironmentType.BUILD
-                applyApiConfig(apiConfig)
-            }
+            configureWraptor(server){
 
+                rootPath = "backend/"
+                apiConfig.environment = EnvironmentType.BUILD
+
+            }
+            
             configHit = true
-            getWraptorRoutes(){
+            getWraptorRoutes(this){
                 routes = it
             }
             corsPlugin = this.pluginOrNull(CORS)

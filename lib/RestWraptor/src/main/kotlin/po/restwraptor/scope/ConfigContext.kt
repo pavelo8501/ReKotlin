@@ -24,6 +24,7 @@ import po.restwraptor.interfaces.WraptorResponse
 import po.restwraptor.models.configuration.ApiConfig
 import po.restwraptor.models.configuration.AuthConfig
 import po.restwraptor.models.configuration.WraptorConfig
+import po.restwraptor.models.response.DefaultResponse
 import po.restwraptor.plugins.CoreAuthApplicationPlugin
 import po.restwraptor.plugins.RateLimiterPlugin
 import po.restwraptor.routes.ManagedRoute
@@ -66,6 +67,10 @@ class ConfigContext(
     internal val jsonFormatter : Json = Json {
         isLenient = true
         encodeDefaults = true
+    }
+
+    init {
+        responseProvider.provideValue({  DefaultResponse("") })
     }
 
     private fun configCors(app: Application):Application{

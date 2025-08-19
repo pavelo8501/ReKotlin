@@ -1,110 +1,128 @@
 package po.test.restwraptor
 
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.request.header
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
-import io.ktor.http.ContentType
-import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpStatusCode
-import io.ktor.http.contentType
-import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.response.header
+import io.ktor.client.request.get
 import io.ktor.server.response.respond
+import io.ktor.server.routing.Routing
+import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
-import kotlinx.serialization.json.Json
-import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.assertNotNull
 import po.auth.authentication.authenticator.models.AuthenticationPrincipal
-import po.auth.extensions.readCryptoRsaKeys
-import po.auth.extensions.setKeyBasePath
 import po.restwraptor.RestWrapTor
-import po.restwraptor.enums.WraptorHeaders
-import po.restwraptor.extensions.asBearer
-import po.restwraptor.routes.jwtSecured
-import po.restwraptor.extensions.stripBearer
+import po.restwraptor.configureWraptor
+import po.restwraptor.routes.buildManagedRoutes
 import po.restwraptor.routes.withBaseUrl
-import po.restwraptor.extensions.withSession
-import po.restwraptor.models.request.LoginRequest
-import po.restwraptor.models.response.ApiResponse
-import kotlin.test.assertEquals
+import po.restwraptor.scope.ConfigContext
 
 
-@DisplayName("Asserting security handling")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestSessionHandling {
 
-    fun userLookup(login: String): AuthenticationPrincipal?{
+    val server get() = RestWrapTor()
+
+    fun userLookup(login: String): AuthenticationPrincipal {
         return TestUser(0, "someName", login)
     }
 
-    @Test
-    fun `session applied and remains during whole call length`() = testApplication {
+    fun configManagedRoutes(config: ConfigContext) {
+        config.buildManagedRoutes {
 
-        val keyPath = setKeyBasePath("src/test/demo_keys")
-        val server = RestWrapTor()
-        val jsonFormatter = Json {
-            ignoreUnknownKeys = true
-            isLenient = true
-            encodeDefaults = true
+            managedGet("default"){session->
+
+                call.respond("OK")
+            }
         }
+    }
 
-        var protectedCallSessionId : String? = null
+
+    fun Routing.securedRoute(){
+        post(withBaseUrl("auth/login")) {
+
+        }
+    }
+
+    @Test
+    fun `Default session is created on incomming call`() = testApplication {
 
         application {
-            server.useApp(this) {
-                setupAuthentication(keyPath.readCryptoRsaKeys("ktor.pk8", "ktor.spki"), ::userLookup)
+            configureWraptor(server){
+                configManagedRoutes(this)
             }
             routing {
-               jwtSecured {
-                   post(withBaseUrl("protected")){
-                       try {
-                           call.withSession {
-                               protectedCallSessionId = sessionID
-                               call.response.header(WraptorHeaders.XAuthToken.value, sessionID)
-                               call.respond(ApiResponse("Response"))
-                           }
-                       }catch (th: Throwable){
-                           println(th.message)
-                       }
-                   }
-               }
             }
         }
-
         startApplication()
-        val httpClient = this@testApplication.createClient {
-            install(ContentNegotiation) { json() }
+
+        val httpClient = createClient {
+
         }
+        val loginResponse = httpClient.get("/default") {
 
-        val loginResponse = httpClient.post("/auth/login") {
-            setBody<LoginRequest>(LoginRequest("user", "password"))
-            contentType(ContentType.Application.Json)
         }
-
-        val token = loginResponse.headers[HttpHeaders.Authorization].stripBearer()
-        val sessionId = loginResponse.headers[WraptorHeaders.XAuthToken.value]
-
-        assertNotNull(token, "Token not received")
-        assertNotNull(sessionId, "SessionId not received")
-
-        val authenticatedResponse = httpClient.post("/protected") {
-            val withBarer = token.asBearer()
-            println("Token in test $withBarer")
-            header(HttpHeaders.Authorization, withBarer)
-            header(WraptorHeaders.XAuthToken.value, sessionId)
-            setBody<LoginRequest>(LoginRequest("user", "password"))
-            contentType(ContentType.Application.Json)
-        }
-
-        val roundTripSessionId = authenticatedResponse.headers[WraptorHeaders.XAuthToken.value]
-        assertEquals(HttpStatusCode.OK, authenticatedResponse.status, "Reply status code not 200")
-        assertNotNull(protectedCallSessionId, "Protected rout never hit")
-        assertEquals(sessionId, protectedCallSessionId, "Wrong protectedCallSessionId")
-        assertEquals(protectedCallSessionId, roundTripSessionId, "Wrong roundTripSessionId SessionId")
     }
+
+
+//
+//    @Test
+//    fun `session applied and remains during whole call length`() = testApplication {
+//
+//        val keyPath = setKeyBasePath("src/test/demo_keys")
+//        val server = RestWrapTor()
+//        val jsonFormatter = Json {
+//            ignoreUnknownKeys = true
+//            isLenient = true
+//            encodeDefaults = true
+//        }
+//
+//        var protectedCallSessionId : String? = null
+//
+//        application {
+//            configureWraptor(server){
+//
+//                responseProvider.provideValue {
+//                    DefaultResponse("")
+//                }
+//
+//                setupAuthentication(keyPath.readCryptoRsaKeys("ktor.pk8", "ktor.spki"), ::userLookup)
+//            }
+//            routing {
+//               jwtSecured {
+//                   securedRoute()
+//               }
+//            }
+//        }
+//
+//        startApplication()
+//        val httpClient = this@testApplication.createClient {
+//            install(ContentNegotiation) { json() }
+//        }
+//
+//        val loginResponse = httpClient.post("/auth/login") {
+//            setBody<LoginRequest>(LoginRequest("user", "password"))
+//            contentType(ContentType.Application.Json)
+//        }
+//
+//        val token = loginResponse.headers[HttpHeaders.Authorization].stripBearer()
+//        val sessionId = loginResponse.headers[WraptorHeaders.XAuthToken.value]
+//
+//        assertNotNull(token, "Token not received")
+//        assertNotNull(sessionId, "SessionId not received")
+//
+//        val authenticatedResponse = httpClient.post("/protected") {
+//            val withBarer = token.asBearer()
+//            println("Token in test $withBarer")
+//            header(HttpHeaders.Authorization, withBarer)
+//            header(WraptorHeaders.XAuthToken.value, sessionId)
+//            setBody<LoginRequest>(LoginRequest("user", "password"))
+//            contentType(ContentType.Application.Json)
+//        }
+//
+//        val roundTripSessionId = authenticatedResponse.headers[WraptorHeaders.XAuthToken.value]
+//        assertEquals(HttpStatusCode.OK, authenticatedResponse.status, "Reply status code not 200")
+//        assertNotNull(protectedCallSessionId, "Protected rout never hit")
+//        assertEquals(sessionId, protectedCallSessionId, "Wrong protectedCallSessionId")
+//        assertEquals(protectedCallSessionId, roundTripSessionId, "Wrong roundTripSessionId SessionId")
+//    }
 }

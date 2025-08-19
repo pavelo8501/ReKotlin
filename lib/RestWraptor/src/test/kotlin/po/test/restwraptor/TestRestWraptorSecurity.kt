@@ -28,6 +28,7 @@ import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.auth.extensions.readCryptoRsaKeys
 import po.auth.extensions.setKeyBasePath
 import po.restwraptor.RestWrapTor
+import po.restwraptor.configureWraptor
 import po.restwraptor.enums.WraptorHeaders
 import po.restwraptor.extensions.asBearer
 import po.restwraptor.routes.jwtSecured
@@ -35,7 +36,7 @@ import po.restwraptor.extensions.respondBadRequest
 import po.restwraptor.extensions.stripBearer
 import po.restwraptor.routes.withBaseUrl
 import po.restwraptor.models.request.LoginRequest
-import po.restwraptor.models.response.ApiResponse
+import po.restwraptor.models.response.DefaultResponse
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
@@ -63,9 +64,11 @@ class TestRestWraptorSecurity {
         post(withBaseUrl("public")) {
             val receivedBody =  call.receive<String>()
             if(receivedBody == "HELO"){
-                call.respond(ApiResponse("EHLO"))
+                call.respond(DefaultResponse("EHLO"))
             }else{
-                respondBadRequest("Expected HELO. Got:$receivedBody")
+                respondBadRequest("Expected HELO. Got:$receivedBody"){
+                    DefaultResponse("")
+                }
             }
         }
     }
@@ -75,9 +78,11 @@ class TestRestWraptorSecurity {
                 println("Call hit /protected")
                 val receivedBody =  call.receive<String>()
                 if(receivedBody == "HELO"){
-                    call.respond(ApiResponse("EHLO"))
+                    call.respond(DefaultResponse("EHLO"))
                 }else{
-                    respondBadRequest("Expected HELO. Got:$receivedBody")
+                    respondBadRequest("Expected HELO. Got:$receivedBody"){
+                        DefaultResponse("")
+                    }
                 }
             }
         }
@@ -110,7 +115,7 @@ class TestRestWraptorSecurity {
         val keyPath = setKeyBasePath("src/test/demo_keys")
         val server = RestWrapTor()
         application {
-            server.useApp(this){
+            configureWraptor(server){
                 setupAuthentication(keyPath.readCryptoRsaKeys("ktor.pk8", "ktor.spki"), ::userLookUp)
             }
             routing { publicRoutes(); protectedRoutes() }
@@ -126,7 +131,7 @@ class TestRestWraptorSecurity {
             contentType(ContentType.Application.Json)
         }
 
-        val publicResponseMessage =  publicResponse.body<ApiResponse<String>>().data
+        val publicResponseMessage =  publicResponse.body<DefaultResponse<String>>().data
         assertEquals(HttpStatusCode.OK, publicResponse.status, "Call did not pass through")
         assertEquals("EHLO", publicResponseMessage, "Wrong response")
 
@@ -142,7 +147,7 @@ class TestRestWraptorSecurity {
         }
 
         val sessionId = loginResponse.headers[WraptorHeaders.XAuthToken.value]
-        val token =  loginResponse.body<ApiResponse<String>>().data.stripBearer()
+        val token =  loginResponse.body<DefaultResponse<String>>().data.stripBearer()
 
         assertAll(
             {assertEquals(HttpStatusCode.OK, loginResponse.status, "Reply status code not 200")},
@@ -158,7 +163,7 @@ class TestRestWraptorSecurity {
             setBody<String>("HELO")
             contentType(ContentType.Application.Json)
         }
-        val responseMessage =  protectedSuccess.body<ApiResponse<String>>().data
+        val responseMessage =  protectedSuccess.body<DefaultResponse<String>>().data
         assertEquals(HttpStatusCode.OK, protectedSuccess.status, "Reply status code not 200")
         assertEquals("EHLO", responseMessage,  "Wrong reply message")
     }
@@ -168,7 +173,8 @@ class TestRestWraptorSecurity {
 
         val server = RestWrapTor()
         application {
-            server.useApp(this){
+
+            configureWraptor(server){
                 setupAuthentication(keyPath.readCryptoRsaKeys("ktor.pk8", "ktor.spki"), ::userLookUp)
             }
             routing { publicRoutes(); protectedRoutes() }
@@ -182,7 +188,7 @@ class TestRestWraptorSecurity {
             contentType(ContentType.Application.Json)
         }
 
-        val body = wrongLoginResponse.body<ApiResponse<JsonElement>>()
+        val body = wrongLoginResponse.body<DefaultResponse<JsonElement>>()
         assertAll(
             "Wrong login sent",
             {assertEquals(HttpStatusCode.Unauthorized, wrongLoginResponse.status, "wrong reply status code")},

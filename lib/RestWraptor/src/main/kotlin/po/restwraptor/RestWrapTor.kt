@@ -31,6 +31,7 @@ import po.restwraptor.interfaces.WraptorHandler
 import po.restwraptor.interfaces.WraptorResponse
 import po.restwraptor.models.configuration.WraptorConfig
 import po.restwraptor.models.info.WraptorStatus
+import po.restwraptor.models.response.DefaultResponse
 import po.restwraptor.models.server.WraptorRoute
 
 val RestWrapTorKey = AttributeKey<RestWrapTor>("RestWrapTorInstance")
@@ -42,6 +43,13 @@ object RestWraptorServer:RestWrapTor() {
 
 fun configureWraptor(builder : (ConfigContext.() -> Unit)){
     RestWraptorServer.config(RestWraptorServer, builder)
+}
+
+fun Application.configureWraptor(
+    wrapTor: RestWrapTor,
+    builder : (ConfigContext.() -> Unit)){
+    wrapTor.config(this, builder)
+    wrapTor.setupConfig(this)
 }
 
 fun configureApplication(builder : (Application.() -> Unit)){
@@ -170,7 +178,8 @@ open class RestWrapTor(
         configContextBacking.provideValue(config)
     }
 
-    private fun setupConfig(app: Application) = runTask("Configuration") {
+    internal fun setupConfig(app: Application) = runTask("Configuration") {
+
         app.monitor.subscribe(ServerReady) {
             onServerStartedCallback?.invoke(this)
         }

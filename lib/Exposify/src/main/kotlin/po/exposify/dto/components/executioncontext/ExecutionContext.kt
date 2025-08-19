@@ -564,6 +564,7 @@ class DTOExecutionContext<DTO, D, E, F, FD, FE>(
         trySubscribingHooks(activeProcess())
         withTransactionIfNone(dtoClass.debugger, warnIfNoTransaction = true) {
             val commonDTO =  lookupExistent(id)
+
             dtoClass.toResult(commonDTO)
         }
     }.resultOrException()
