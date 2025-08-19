@@ -23,7 +23,6 @@ import po.misc.context.asIdentity
 import po.misc.functions.registries.builders.notifierRegistryOf
 import po.misc.types.getOrThrow
 import po.restwraptor.scope.ConfigContext
-
 import po.restwraptor.enums.EnvironmentType
 import po.restwraptor.exceptions.ConfigurationException
 import po.restwraptor.exceptions.ExceptionCodes
@@ -31,7 +30,6 @@ import po.restwraptor.interfaces.WraptorHandler
 import po.restwraptor.interfaces.WraptorResponse
 import po.restwraptor.models.configuration.WraptorConfig
 import po.restwraptor.models.info.WraptorStatus
-import po.restwraptor.models.response.DefaultResponse
 import po.restwraptor.models.server.WraptorRoute
 
 val RestWrapTorKey = AttributeKey<RestWrapTor>("RestWrapTorInstance")

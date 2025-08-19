@@ -6,7 +6,6 @@ import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.application.hooks.MonitoringEvent
 import io.ktor.server.auth.AuthenticationChecked
 import po.restwraptor.extensions.getWraptorRoutes
-import po.restwraptor.extensions.resolveSessionFromHeader
 import po.restwraptor.models.server.WraptorRoute
 
 class CoreAuthRoutePluginConf {
@@ -30,11 +29,11 @@ val CoreAuthRoutePlugin = createRouteScopedPlugin(
     }
 
     on(AuthenticationChecked) { call ->
-        resolveSessionFromHeader(call)
+       // resolveSessionFromHeader(call)
     }
 
     onCall{call->
-         resolveSessionFromHeader(call)
+       //  resolveSessionFromHeader(call)
     }
 
     on(MonitoringEvent(ApplicationStarted)) { application ->

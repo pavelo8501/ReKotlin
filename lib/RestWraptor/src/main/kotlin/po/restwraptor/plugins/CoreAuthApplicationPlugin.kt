@@ -5,8 +5,6 @@ import io.ktor.server.application.ApplicationStarted
 import io.ktor.server.application.createApplicationPlugin
 import io.ktor.server.application.hooks.MonitoringEvent
 import po.restwraptor.extensions.getWraptorRoutes
-import po.restwraptor.extensions.resolveSessionFromHeader
-import po.restwraptor.extensions.sessionToAttributes
 import po.restwraptor.models.server.WraptorRoute
 
 
@@ -29,8 +27,9 @@ val CoreAuthApplicationPlugin = createApplicationPlugin(
     }
 
     onCall{call->
-        val session = resolveSessionFromHeader(call)
-        call.sessionToAttributes(session)
+
+       // val session = resolveSessionFromHeader(call)
+        //call.sessionToAttributes(session)
     }
 
     on(MonitoringEvent(ApplicationStarted)) { application ->

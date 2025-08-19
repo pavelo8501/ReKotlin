@@ -60,12 +60,12 @@ fun Any.output(colour: Colour? = null){
 
     var isPrettyPrint: Boolean = false
     val classString = when(this){
-        is Enum<*>-> name
-        is CTX->identifiedByName
         is PrettyPrint-> {
             isPrettyPrint = true
             formattedString
         }
+        is Enum<*>-> name
+        is CTX->identifiedByName
         else -> this.toString()
     }
     if(colour != null && !isPrettyPrint){

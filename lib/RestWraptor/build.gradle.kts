@@ -29,7 +29,7 @@ dependencies {
     api("io.ktor:ktor-server-auth-jwt:$ktorVersion")
     api("io.ktor:ktor-server-content-negotiation:$ktorVersion")
     api("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
-    api("io.ktor:ktor-server-call-logging:${ktorVersion}")
+   // api("io.ktor:ktor-server-call-logging:${ktorVersion}")
     api("io.ktor:ktor-server-cors:${ktorVersion}")
     api("org.jetbrains.kotlinx:kotlinx-serialization-json:${kotlinSerializationVersion}")
 
@@ -45,7 +45,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion")
     testImplementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
     testImplementation("com.squareup.okio:okio:${okioVersion}")
-    testImplementation("io.ktor:ktor-server-call-logging:${ktorVersion}")
+   // testImplementation("io.ktor:ktor-server-call-logging:${ktorVersion}")
     testImplementation("org.slf4j:slf4j-api:2.0.17")
 
     testImplementation("org.junit.jupiter:junit-jupiter:$junitVersion")

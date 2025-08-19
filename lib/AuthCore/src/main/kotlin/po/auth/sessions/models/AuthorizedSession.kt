@@ -4,12 +4,17 @@ import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import po.auth.authentication.authenticator.UserAuthenticator
 import po.auth.authentication.authenticator.models.AuthenticationPrincipal
+import po.auth.models.RoundTripData
+import po.auth.models.SessionOrigin
 import po.auth.sessions.enumerators.SessionType
 import po.auth.sessions.interfaces.EmmitableSession
 import po.auth.sessions.interfaces.SessionIdentified
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
+import po.misc.data.PrettyPrint
 import po.misc.data.printable.PrintableBase
+import po.misc.data.styles.Colour
+import po.misc.data.styles.colorize
 import po.misc.interfaces.Processable
 import po.misc.time.ExecutionTimeStamp
 import po.misc.types.castOrManaged
@@ -18,11 +23,14 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.CoroutineContext
 
 class AuthorizedSession internal constructor(
-    override val remoteAddress: String,
-    val authenticator: UserAuthenticator,
-): EmmitableSession, SessionIdentified, Processable {
+    val identifier: SessionIdentified
+): EmmitableSession, SessionIdentified, Processable, PrettyPrint {
 
     override val identity: CTXIdentity<AuthorizedSession> = asIdentity()
+
+    override val ip: String = identifier.ip
+    override val userAgent: String = identifier.userAgent
+
     val timeStamp: ExecutionTimeStamp = ExecutionTimeStamp()
 
     var principal : AuthenticationPrincipal? = null
@@ -40,26 +48,39 @@ class AuthorizedSession internal constructor(
 
     val coroutineContext: CoroutineContext get() = scope.coroutineContext
 
+    val sessionStore: ConcurrentHashMap<SessionKey<*>, Any?> =  ConcurrentHashMap<SessionKey<*>, Any?>()
+    val roundTripStore: ConcurrentHashMap<RoundTripKey<*>, Any?> = ConcurrentHashMap<RoundTripKey<*>, Any?>()
+    val externalStore :ConcurrentHashMap<ExternalKey<*>, Any?>  = ConcurrentHashMap<ExternalKey<*>, Any?>()
+
+    val roundTripInfo = mutableListOf<RoundTripData>()
+
+
     init {
         identity.setNamePattern {
              timeStamp.provideNameAndId(sessionType.sessionName, sessionID)
             "${sessionType.sessionName}[$sessionID]"
         }
     }
-    override fun onProcessStart(session: EmmitableSession) {
 
+    private fun addRoundTripInfo(optionalString: String = ""){
+        val newInfo = roundTripInfo.lastOrNull()?.let {
+            RoundTripData(it.count + 1, it.origin, optionalString)
+        }?:run {
+            RoundTripData(0, SessionOrigin.ReCreated, optionalString)
+        }
+        roundTripInfo.add(newInfo)
     }
-    override fun onProcessEnd(session: EmmitableSession) {
 
+    fun onRoundTripStart(optionalString: String = "") {
+        addRoundTripInfo(optionalString)
+    }
+
+    fun onRoundTripEnd(optionalString: String = "") {
+
+        roundTripStore.values.clear()
     }
 
     override val key: CoroutineContext.Key<AuthorizedSession> get() = AuthorizedSessionKey
-
-    val sessionStore: ConcurrentHashMap<SessionKey<*>, Any?> =  ConcurrentHashMap<SessionKey<*>, Any?>()
-
-    val roundTripStore: ConcurrentHashMap<RoundTripKey<*>, Any?> = ConcurrentHashMap<RoundTripKey<*>, Any?>()
-
-    val externalStore :ConcurrentHashMap<ExternalKey<*>, Any?>  = ConcurrentHashMap<ExternalKey<*>, Any?>()
 
     fun getAttributeKeys():List<SessionKey<*>>{
         return sessionStore.keys.toList()
@@ -145,6 +166,27 @@ class AuthorizedSession internal constructor(
             logRecordsBacking
         }
     }
+
+
+    override val formattedString: String get() {
+        val type = when(sessionType){
+            SessionType.USER_AUTHENTICATED->{
+                "Authenticated".colorize(Colour.GREEN)
+            }
+            SessionType.ANONYMOUS->{
+                "Anonymous".colorize(Colour.BRIGHT_YELLOW)
+            }
+        }
+        return buildString {
+            appendLine(Colour.makeOfColour(Colour.CYAN, "Session: " ) + type)
+            appendLine(Colour.makeOfColour(Colour.CYAN, "Session Id: ") + sessionID.colorize(Colour.BRIGHT_WHITE) )
+            appendLine(Colour.makeOfColour(Colour.CYAN, "Identified by IP: ") +identifier.ip.colorize(Colour.BRIGHT_WHITE ) )
+            appendLine( Colour.makeOfColour(Colour.CYAN, "Identified by client: ") + identifier.userAgent.colorize(Colour.BRIGHT_WHITE) )
+        }
+    }
+
+    override fun toString(): String = identity.identifiedByName
+
 
     companion object AuthorizedSessionKey : CoroutineContext.Key<AuthorizedSession>
 

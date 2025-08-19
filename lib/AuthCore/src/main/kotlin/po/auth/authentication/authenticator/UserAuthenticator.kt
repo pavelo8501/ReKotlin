@@ -14,8 +14,6 @@ import po.auth.sessions.interfaces.SessionIdentified
 import po.auth.sessions.models.AuthorizedSession
 import po.misc.types.getOrThrow
 
-
-
 typealias AuthFunction = (suspend (login: String)-> AuthenticationPrincipal?)
 
 class UserAuthenticator(
@@ -58,13 +56,15 @@ class UserAuthenticator(
     }
 
     override fun authorize(authData: SessionIdentified): AuthorizedSession {
-        val existentSession = factory.sessionLookUp(authData.sessionID)
-        return existentSession ?: factory.createAnonymousSession(authData, this)
+
+
+        val existentSession = factory.sessionLookUp(authData)
+        return existentSession ?: factory.createAnonymousSession(authData)
     }
 
     fun authorizeSync(authData: SessionIdentified): AuthorizedSession {
-        val existentSession = factory.sessionLookUp(authData.sessionID)
-        return existentSession ?: factory.createAnonymousSession(authData, this)
+        val existentSession = factory.sessionLookUp(authData)
+        return existentSession ?: factory.createAnonymousSession(authData)
     }
 
 }

@@ -6,15 +6,18 @@ import po.auth.sessions.models.AuthorizedSession
 import java.util.UUID
 
 
-class SessionIdentity(override val sessionID: String, override val remoteAddress: String): SessionIdentified
+class SessionIdentity(
+    override val ip: String,
+    override val userAgent: String,
+): SessionIdentified
 
-private val sessionIdentity = SessionIdentity("0", "192.169.1.1")
+private val sessionIdentity = SessionIdentity("192.169.1.1", "0")
 val mockedSession :  AuthorizedSession = session(sessionIdentity)
 
-val newMockedSession:AuthorizedSession get() = session(SessionIdentity(UUID.randomUUID().toString(), "192.169.1.1"))
+val newMockedSession:AuthorizedSession get() = session(SessionIdentity( "192.169.1.1", UUID.randomUUID().toString()))
 
 
 internal fun newMockedSession():AuthorizedSession{
-    val sessionIdentity = SessionIdentity("0", "192.169.1.1")
+    val sessionIdentity = SessionIdentity("192.169.1.1", "0")
    return session(sessionIdentity)
 }

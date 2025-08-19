@@ -10,6 +10,8 @@ import io.ktor.server.testing.testApplication
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import po.auth.authentication.authenticator.models.AuthenticationPrincipal
+import po.misc.data.helpers.output
+import po.misc.data.styles.Colour
 import po.restwraptor.RestWrapTor
 import po.restwraptor.configureWraptor
 import po.restwraptor.routes.buildManagedRoutes
@@ -28,14 +30,22 @@ class TestSessionHandling {
 
     fun configManagedRoutes(config: ConfigContext) {
         config.buildManagedRoutes {
-
             managedGet("default"){session->
+                call.respond("OK")
+            }
+
+            managedGet("default2"){session->
+
+                session.output()
+                session.roundTripInfo.forEach {
+                    it.output(Colour.CYAN)
+                }
 
                 call.respond("OK")
             }
         }
-    }
 
+    }
 
     fun Routing.securedRoute(){
         post(withBaseUrl("auth/login")) {
@@ -58,9 +68,14 @@ class TestSessionHandling {
         val httpClient = createClient {
 
         }
-        val loginResponse = httpClient.get("/default") {
+        val defaultResponse = httpClient.get("/default") {
+        }
+
+        val defaultResponse2 = httpClient.get("/default2") {
 
         }
+
+
     }
 
 

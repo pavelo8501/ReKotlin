@@ -25,18 +25,11 @@ import po.restwraptor.models.configuration.ApiConfig
 import po.restwraptor.models.configuration.AuthConfig
 import po.restwraptor.models.configuration.WraptorConfig
 import po.restwraptor.models.response.DefaultResponse
+import po.restwraptor.plugins.CallInterceptorPlugin
 import po.restwraptor.plugins.CoreAuthApplicationPlugin
 import po.restwraptor.plugins.RateLimiterPlugin
 import po.restwraptor.routes.ManagedRoute
 import po.restwraptor.routes.configureSystemRoutes
-
-//interface ConfigContextInterface{
-//    fun setupAuthentication(
-//        cryptoKeys: CryptoRsaKeys,
-//        userLookupFn: ((login: String)-> AuthenticationPrincipal?),
-//        configFn  : (AuthConfigContext.()-> Unit)? = null)
-//}
-
 
 
 class ConfigContext(
@@ -133,6 +126,18 @@ class ConfigContext(
         return app
     }
 
+    private fun configCallInterceptor(
+        app: Application
+    ):Application =  runAction("ConfigCallInterceptor"){
+        app.apply {
+            install(CallInterceptorPlugin){
+
+                notify("ConfigCallInterceptor installed")
+            }
+        }
+        app
+    }
+
 
     private var authConfigFn:  (AuthConfigContext.()-> Unit)? = null
 
@@ -165,9 +170,13 @@ class ConfigContext(
         }
     }
 
-    internal fun initialize(): Application{
+    internal fun initialize(
+    ): Application = runAction("Initialization"){
+
+        configCallInterceptor(application)
+
         installCoreAuth(application)
-        runAction("Initialization"){
+
             if(apiConfig.cors){ configCors(application) }
             if(apiConfig.contentNegotiation){ configContentNegotiation(application) }
             if(apiConfig.rateLimiting){ configRateLimiter(application) }
@@ -176,8 +185,7 @@ class ConfigContext(
                     configureSystemRoutes(this@ConfigContext, responseProvider.getValue(this))
                 }
             }
-        }
         authConfigFn?.invoke(authContext)
-        return application
+        application
     }
 }

@@ -7,8 +7,8 @@ import po.auth.sessions.interfaces.SessionIdentified
  * Context passed into authentication provider.
  */
 data class AuthenticationData(
-    override val sessionID: String,
-    override val remoteAddress: String,
+    override val ip: String,
+    override val userAgent: String,
     val headers: Map<String, String>,
     val requestUri: String,
     val authHeaderValue: String,
