@@ -8,7 +8,7 @@ import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.extensions.withSuspendedTransactionIfNone
+import po.exposify.dao.transaction.withSuspendedTransactionIfNone
 import po.lognotify.TasksManaged
 import po.lognotify.process.Process
 import po.misc.context.CTXIdentity

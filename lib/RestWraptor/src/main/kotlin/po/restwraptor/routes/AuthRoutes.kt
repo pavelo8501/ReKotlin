@@ -22,8 +22,8 @@ fun Routing.configureAuthRoutes(authPrefix: String,  authConfigContext: AuthConf
 
     val personalName = "AuthRoutes"
     val loginRoute = "login"
-    post(withBaseUrl(authPrefix, loginRoute)) {
 
+    post(withBaseUrl(authPrefix, loginRoute)) {
         val session = call.authSessionOrNull()
             .getOrThrow(this){
                 authException("Session can not be located", AuthErrorCode.SESSION_NOT_FOUND)

@@ -27,19 +27,23 @@ class TestCoroutineEmitter: DatabaseTest(), TasksManaged  {
         var session: AuthorizedSession? = null
         with(mockedSession){
             runProcess(this){
-                val emitter = connectionClass.requestEmitter(it)
-                assertSame(mockedSession, emitter.process.receiver)
-                emitter.dispatchSingle {
-                    session = coroutineContext[AuthorizedSession]
-                    operationsException("TestCase", ExceptionCode.INVALID_DATA).toResultSingle(PageDTO)
+                withConnectionSuspend {
+                    val emitter = requestEmitter(it)
+                    assertSame(mockedSession, emitter.process.receiver)
+                    emitter.dispatchSingle {
+                        session = coroutineContext[AuthorizedSession]
+                        operationsException("TestCase", ExceptionCode.INVALID_DATA).toResultSingle(PageDTO)
+                    }
                 }
             }
             runProcess(this) {
-                val emitter = connectionClass.requestEmitter(it)
-                assertSame(mockedSession, emitter.process.receiver)
-                emitter.dispatchSingle {
-                    session = coroutineContext[AuthorizedSession]
-                    operationsException("TestCase", ExceptionCode.INVALID_DATA).toResultSingle(PageDTO)
+                withConnectionSuspend{
+                    val emitter = requestEmitter(it)
+                    assertSame(mockedSession, emitter.process.receiver)
+                    emitter.dispatchSingle {
+                        session = coroutineContext[AuthorizedSession]
+                        operationsException("TestCase", ExceptionCode.INVALID_DATA).toResultSingle(PageDTO)
+                    }
                 }
             }
         }

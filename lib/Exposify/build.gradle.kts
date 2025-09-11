@@ -59,9 +59,9 @@ dependencies {
     api("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
     api("org.jetbrains.exposed:exposed-dao:$exposedVersion")
     api("org.jetbrains.exposed:exposed-kotlin-datetime:$exposedVersion")
+    api("com.zaxxer:HikariCP:$hikaricpVersion")
 
     implementation("at.favre.lib:bcrypt:$bcryptVersion")
-    implementation("com.zaxxer:HikariCP:$hikaricpVersion")
     implementation("org.postgresql:postgresql:$postgresVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinSerializationVersion")
 

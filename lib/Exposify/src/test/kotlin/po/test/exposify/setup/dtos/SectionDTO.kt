@@ -68,8 +68,7 @@ class SectionDTO : CommonDTO<SectionDTO, Section, SectionEntity>(SectionDTO) {
     val contentBlocks: List<ContentBlockDTO> by oneToManyOf(
         ContentBlockDTO,
         Section::contentBlocks,
-        SectionEntity::contentBlocks,
-        ContentBlockEntity::section,
+        SectionEntity::contentBlocks
     )
 
     companion object : DTOClass<SectionDTO, Section, SectionEntity>(dtoOf(SectionDTO), PageDTO) {

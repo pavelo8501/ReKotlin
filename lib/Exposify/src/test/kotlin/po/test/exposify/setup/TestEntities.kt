@@ -8,7 +8,7 @@ import po.exposify.dao.classes.ExposifyEntityClass
 
 class TestsItemEntity (id: EntityID<Long>) : LongEntity(id){
     companion object : ExposifyEntityClass<TestsItemEntity>(TestsItems)
-    var name by Users.name
+    var name by TestsItems.name
 }
 
 class UserEntity  (id: EntityID<Long>) : LongEntity(id){

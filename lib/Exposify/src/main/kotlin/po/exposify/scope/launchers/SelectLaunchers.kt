@@ -21,7 +21,6 @@ suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity>  AuthorizedSession.sele
         val emitter = dtoClass.serviceContext.serviceClass.requestEmitter(it)
         emitter.dispatchList {
             dtoClass.executionContext.select()
-
         }
     }
 }

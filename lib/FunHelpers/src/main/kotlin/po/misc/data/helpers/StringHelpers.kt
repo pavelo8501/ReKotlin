@@ -56,34 +56,63 @@ fun <T: Any> T?.toStringIfNotNull(textIfNull: String? = null , builder:(T)-> Str
 
 fun String.stripAfter(char: Char): String = substringBefore(char)
 
-fun Any.output(colour: Colour? = null){
+private fun outputCreator(
+    target: Any,
+    prefixText: String,
+    colour: Colour?,
+    outputForwarder:((String)-> Unit)?
+){
 
     var isPrettyPrint: Boolean = false
-    val classString = when(this){
+    val classString = when(target){
         is PrettyPrint-> {
             isPrettyPrint = true
-            formattedString
+            target.formattedString
         }
-        is Enum<*>-> name
-        is CTX->identifiedByName
-        else -> this.toString()
+        is Enum<*>-> target.name
+        is CTX-> target.identifiedByName
+        else -> target.toString()
     }
+
+    val outputString = "$prefixText $classString"
+
     if(colour != null && !isPrettyPrint){
-        println(classString.colorize(colour))
+        val colorized = outputString.colorize(colour)
+        outputForwarder?.invoke(colorized)?: println(colorized)
     }else{
-        println(classString)
+        outputForwarder?.invoke(outputString)?:println(outputString)
     }
 }
 
-fun Array<Any>.output(colour: Colour? = null){
+
+fun Any.output(colour: Colour? = null, outputForwarder:((String)-> Unit)? = null){
+    outputCreator(this, "",  colour, outputForwarder)
+}
+
+
+fun Any.output(
+    prefix: String,
+    colour: Colour? = null,
+    outputForwarder:((String)-> Unit)? = null
+){
+    outputCreator(this, prefix, colour, outputForwarder)
+}
+
+fun Array<Any>.output(colour: Colour? = null, outputForwarder:((String)-> Unit)? = null){
     iterator().forEach {
-        it.output(colour)
+        outputCreator(it, "", colour, outputForwarder)
     }
 }
 
-fun List<Any>.output(colour: Colour? = null){
+fun List<Any>.output(prefix: String, colour: Colour? = null, outputForwarder:((String)-> Unit)? = null){
     forEach {
-        it.output(colour)
+        outputCreator(it, prefix, colour, outputForwarder)
+    }
+}
+
+fun List<Any>.output(colour: Colour? = null, outputForwarder:((String)-> Unit)? = null){
+    forEach {
+        outputCreator(it,  "", colour, outputForwarder)
     }
 }
 

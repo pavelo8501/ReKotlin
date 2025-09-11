@@ -11,23 +11,4 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.misc.functions.containers.DeferredContainer
 
 
-fun <DTO: ModelDTO, D: DataModel,  E: LongEntity, F: ModelDTO, FD: DataModel> ResultSingle<F, FD>.pick(
-    dtoClass: DTOClass<DTO, D, E>,
-    id: Long
-): ResultSingle<DTO, D>{
-    TODO("Part of refactor")
-//    return withDTOContextCreating(getAsCommonDTO(), dtoClass){
-//        pick(id)
-//    }
-}
-
-fun <DTO: ModelDTO, D: DataModel, E: LongEntity, F: ModelDTO, FD: DataModel> ResultSingle<F, FD>.pick(
-    dtoClass: DTOClass<DTO, D, E>,
-    whereQuery: DeferredContainer<WhereQuery<E>>
-): ResultSingle<DTO, D>{
-    TODO("Part of refactor")
-//    return withDTOContextCreating(getAsCommonDTO(), dtoClass){
-//        pick(whereQuery.resolve())
-//    }
-}
 

@@ -75,9 +75,7 @@ sealed class ResponsiveDelegate<DTO, D, E, V : Any> protected constructor(
     protected val dataProperty: KMutableProperty1<D, V>,
     protected val entityProperty: KMutableProperty1<E, V>,
     protected val typeData: TypeData<V>,
-) : ReadWriteProperty<DTO, V>,
-    DelegateInterface<DTO, D, E>,
-    TasksManaged where DTO : ModelDTO, D : DataModel, E : LongEntity {
+) : ReadWriteProperty<DTO, V>, DelegateInterface<DTO, D, E>, TasksManaged where DTO : ModelDTO, D : DataModel, E : LongEntity {
 
     override var status: DelegateStatus = DelegateStatus.Created
 
@@ -102,7 +100,6 @@ sealed class ResponsiveDelegate<DTO, D, E, V : Any> protected constructor(
             }
         }
 
-
         hostingDTO.entityContainer.value?.let {
             entityProperty.set(it, value)
         }
@@ -114,7 +111,6 @@ sealed class ResponsiveDelegate<DTO, D, E, V : Any> protected constructor(
             if(auxParam.externalCall){
                 return BufferAction.Buffer
             }
-
             when(auxParam.updateByData){
                 DataType.Entity -> {
                     val dataModel = hostingDTO.dataContainer.getValue(this)
@@ -213,10 +209,6 @@ class SerializedDelegate<DTO, D, E, V : Any>
     ) : ResponsiveDelegate<DTO, D, E, V>(dto,serializedDataProperty, serializedEntityProperty,  typeData) where DTO : ModelDTO, D : DataModel, E : LongEntity {
     override val identity: CTXIdentity<out CTX> = asSubIdentity(this, dto)
 
-//    init {
-//        dataPropertyContainer.provideValue(serializedDataProperty)
-//        entityPropertyContainer.provideValue(serializedEntityProperty)
-//    }
 }
 
 class PropertyDelegate<DTO, D, E, V : Any>
@@ -231,12 +223,4 @@ class PropertyDelegate<DTO, D, E, V : Any>
 
     override val identity: CTXIdentity<PropertyDelegate<DTO, D, E, V>> = asSubIdentity(this, dto)
 
-//    init {
-//        if(dataProperty != null){
-//            dataPropertyContainer.provideValue(dataProperty)
-//        }
-//        if(entityProperty != null){
-//            entityPropertyContainer.provideValue(entityProperty)
-//        }
-//    }
 }

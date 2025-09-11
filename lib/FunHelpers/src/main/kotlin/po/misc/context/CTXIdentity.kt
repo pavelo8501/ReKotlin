@@ -1,5 +1,6 @@
 package po.misc.context
 
+import kotlinx.serialization.Contextual
 import po.misc.types.TypeData
 import java.util.UUID
 import kotlin.reflect.KClass
@@ -17,6 +18,8 @@ import kotlin.reflect.typeOf
  * @property kType The full type information including generics.
  * @property parentContext Optional parent context used for hierarchical resolution.
  */
+
+
 class CTXIdentity<T: CTX> @PublishedApi internal constructor(
     @PublishedApi
     internal val kClass: KClass<T>,
@@ -83,6 +86,10 @@ class CTXIdentity<T: CTX> @PublishedApi internal constructor(
             identifiedByNameBacking = builder.invoke(this)
             nameLockedByUserBacking = true
         }
+    }
+
+    fun strictComparison(identity: CTXIdentity<*>): Boolean{
+        return identity.kClass == kClass && identity.numericId == numericId
     }
 
     override fun toString(): String = completeName

@@ -8,6 +8,7 @@ import io.ktor.server.engine.EngineConnectorConfig
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.netty.NettyApplicationEngine
+import io.ktor.server.routing.routing
 import io.ktor.util.AttributeKey
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
@@ -31,6 +32,7 @@ import po.restwraptor.interfaces.WraptorResponse
 import po.restwraptor.models.configuration.WraptorConfig
 import po.restwraptor.models.info.WraptorStatus
 import po.restwraptor.models.server.WraptorRoute
+import po.restwraptor.routes.ManagedRouting
 
 val RestWrapTorKey = AttributeKey<RestWrapTor>("RestWrapTorInstance")
 
@@ -61,7 +63,6 @@ fun runWraptor(
     wait: Boolean = true,
     onStarted : ((WraptorHandler)-> Unit)? = null
 ): Unit = RestWraptorServer.start(host, port, wait, onStarted)
-
 
 
 /**
@@ -170,8 +171,14 @@ open class RestWrapTor(
 
     private fun applyConfig(app: Application) {
         val config = ConfigContext(this, app)
+
         applicationRegistry.trigger(config.application)
         configRegistry.trigger(config)
+//        app.routing {
+//            val routing = ManagedRouting()
+//            config.managedRoutesRegistry.trigger(routing)
+//            routing.provideRouteKtorRouting(this)
+//        }
         config.initialize()
         configContextBacking.provideValue(config)
     }

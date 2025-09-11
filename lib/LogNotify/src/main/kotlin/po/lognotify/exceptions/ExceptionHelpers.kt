@@ -6,6 +6,8 @@ import po.lognotify.common.containers.RunnableContainer
 import po.lognotify.notification.error
 import po.lognotify.notification.warning
 import po.lognotify.tasks.ExecutionStatus
+import po.lognotify.tasks.RootTask
+import po.lognotify.tasks.Task
 import po.lognotify.tasks.TaskBase
 import po.misc.data.printable.knowntypes.PropertyData
 import po.misc.exceptions.HandlerType
@@ -32,9 +34,13 @@ internal fun <T: TasksManaged, R: Any?> handleException(
     }
     if (exception is ManagedException) {
         exception.setPropertySnapshot(snapshot)
+
+        if(isManagedFirstOccurred(container.effectiveTask, exception)){
+            container.notifier.addErrorRecord(container.effectiveTask.createErrorSnapshot(), exception)
+        }
+
         return  when (exception.handler) {
             HandlerType.SkipSelf -> {
-
                 val exData  = firstOccurred(exception)
                 if(exData != null){
                     container.source.changeStatus(ExecutionStatus.Failing)
@@ -47,7 +53,9 @@ internal fun <T: TasksManaged, R: Any?> handleException(
                     val message = "Exception reached top. escalating"
                     container.source.error(message)
                     val exceptionData = ExceptionData(ManagedException.ExceptionEvent.Executed, message, container.source)
-                    throw exception.addExceptionData(exceptionData, container.source)
+                    exception.addExceptionData(exceptionData, container.source)
+                   // throw exception.addExceptionData(exceptionData, container.source)
+                    return exception
                 } else {
                     val message = "Rethrowing"
                     container.source.warning(message)
@@ -61,8 +69,6 @@ internal fun <T: TasksManaged, R: Any?> handleException(
                 if(exData != null){
                     container.source.changeStatus(ExecutionStatus.Failing)
                     container.source.error(exception.throwableToText())
-                    val errorSnapshot = container.effectiveTask.createErrorSnapshot()
-                    container.notifier.addErrorRecord(errorSnapshot, exception)
                 }
                 val message = "Reached RootTask<${container.effectiveTask}>"
                 val data =  ExceptionData(ManagedException.ExceptionEvent.Executed,message,   container.source)
@@ -76,6 +82,29 @@ internal fun <T: TasksManaged, R: Any?> handleException(
         container.source.error(exception.throwableToText())
         container.notifier.addErrorRecord(container.effectiveTask.createErrorSnapshot(), managed)
         return managed
+    }
+}
+
+internal fun isManagedFirstOccurred(task: TaskBase<*, *>, managed: ManagedException): Boolean{
+   return if(task.executionStatus  == ExecutionStatus.Active || task.executionStatus  == ExecutionStatus.Complete){
+      val faultyTask = task.registry.tasks.values.firstOrNull {
+           it.executionStatus ==  ExecutionStatus.Failing || it.executionStatus ==  ExecutionStatus.Faulty
+       }
+       faultyTask == null
+    }else{
+        false
+    }
+}
+
+@PublishedApi
+internal fun failRationale(task: TaskBase<*, *>, managed: ManagedException): FailHandlingRationale{
+    return  when(task){
+        is RootTask->{
+            FailHandlingRationale(isRootTask =  true, coroutineOwner=  false, 0, managed)
+        }
+        is Task<*, *> -> {
+            FailHandlingRationale(isRootTask = false, coroutineOwner = false, task.key.nestingLevel, managed)
+        }
     }
 }
 

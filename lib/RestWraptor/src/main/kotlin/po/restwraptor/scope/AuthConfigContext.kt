@@ -26,7 +26,7 @@ import po.restwraptor.routes.partsToUrl
 class AuthConfigContext(
     private val application : Application,
     private val wraptorConfig: WraptorConfig,
-): TasksManaged{
+): TasksManaged {
 
     override val identity: CTXIdentity<AuthConfigContext> = asIdentity()
 
@@ -36,63 +36,63 @@ class AuthConfigContext(
     private fun installJWTAuthentication(
         jwtService: JWTService,
         app: Application,
-        responseProvider:()-> WraptorResponse<*>
-    ){
+        responseProvider: () -> WraptorResponse<*>
+    ) = runAction("InstallJWTAuthentication") {
         app.apply {
-            runAction("InstallJWTAuthentication"){
-                if (this@apply.pluginOrNull(Authentication) != null) {
-                    notify("Authentication installation skipped. Custom Authentication already installed")
-                } else {
-                    install(Authentication) {
-                        jwt(authConfig.jwtServiceName) {
-                            verifier(jwtService.getVerifier())
-                            validate { credential ->
-                              val principal = withSession(this) {
-                                    val jwtToken = jwtService.tokenRepository.resolve(sessionID)
-                                    jwtService.isNotExpired(jwtToken){
-                                        notify("Token not found in repository")
-                                        respondUnauthorized("Session expired", HttpStatusCode.Unauthorized.value, responseProvider)
-                                    }
-                                    jwtService.validateToken(jwtToken)
+            if (this@apply.pluginOrNull(Authentication) != null) {
+                notify("Authentication installation skipped. Custom Authentication already installed")
+            } else {
+                install(Authentication) {
+                    jwt(authConfig.jwtServiceName) {
+                        verifier(jwtService.getVerifier())
+                        validate { credential ->
+                            val principal = withSession(this) {
+                                val jwtToken = jwtService.tokenRepository.resolve(sessionID)
+                                jwtService.isNotExpired(jwtToken) {
+                                    notify("Token not found in repository")
+                                    respondUnauthorized(
+                                        "Session expired",
+                                        HttpStatusCode.Unauthorized.value,
+                                        responseProvider
+                                    )
                                 }
-                                principal
+                                jwtService.validateToken(jwtToken)
                             }
+                            principal
                         }
                     }
-                    notify("JWT Authentication Plugin installed")
                 }
+                notify("JWT Authentication Plugin installed")
             }
         }
     }
 
     internal fun setupAuthentication(
         cryptoKeys: CryptoRsaKeys,
-        responseProvider:()-> WraptorResponse<*>,
-        userLookupFn: (suspend (login: String)-> AuthenticationPrincipal?)
-    ){
-        runAction("JWT Token Config") {
-            authConfig.privateKey = cryptoKeys.privateKey
-            authConfig.publicKey = cryptoKeys.publicKey
-            authConfig.wellKnownPath = null
+        responseProvider: () -> WraptorResponse<*>,
+        userLookupFn: (suspend (login: String) -> AuthenticationPrincipal?)
+    ) = runAction("JWT Token Config") {
+        authConfig.privateKey = cryptoKeys.privateKey
+        authConfig.publicKey = cryptoKeys.publicKey
+        authConfig.wellKnownPath = null
 
-            val config = JwtConfig(
-                realm = "ktor app",
-                audience = "jwt-audience",
-                issuer = "http://127.0.0.1",
-                secret = "secret",
-                privateKey = cryptoKeys.asRSAPrivate(),
-                publicKey =  cryptoKeys.asRSAPublic()
-            )
-            val service = AuthSessionManager.initJwtService(config)
-            service.setAuthenticationFn(userLookupFn)
+        val config = JwtConfig(
+            realm = "ktor app",
+            audience = "jwt-audience",
+            issuer = "http://127.0.0.1",
+            secret = "secret",
+            privateKey = cryptoKeys.asRSAPrivate(),
+            publicKey = cryptoKeys.asRSAPublic()
+        )
+        val service = AuthSessionManager.initJwtService(config)
+        service.setAuthenticationFn(userLookupFn)
 
-            installJWTAuthentication(service, application, responseProvider)
-            if(authConfig.defaultSecurityRouts) {
-                application.routing {
-                    configureAuthRoutes(partsToUrl(listOf(authConfig.authRoutePrefix)), this@AuthConfigContext)
-                }
-                notify("AuthRoutes configured")
+        installJWTAuthentication(service, application, responseProvider)
+        if (authConfig.defaultSecurityRouts) {
+            application.routing {
+                configureAuthRoutes(partsToUrl(listOf(authConfig.authRoutePrefix)), this@AuthConfigContext)
             }
+            notify("AuthRoutes configured")
         }
     }
 }

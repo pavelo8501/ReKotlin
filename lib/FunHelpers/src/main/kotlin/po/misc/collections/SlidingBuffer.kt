@@ -203,7 +203,7 @@ open class SlidingBuffer<T: Any, P: Any>(
             }else{
                 info(resultDemandedBeforeInitMsg(typeData, true))
             }
-            default.getOrManaged(typeData.kClass, callingContext)
+            default.getOrManaged(callingContext, Any::class)
         }
     }
     fun add(data: T,  parameter:P? = null) {
@@ -266,10 +266,12 @@ open class SlidingBuffer<T: Any, P: Any>(
 
 fun <T: Any, P: Any> Any.addToBuffer(
     buffer:SlidingBuffer<T, P>,
-    value:T,
+    value:T?,
     parameter:P? = null
-):T{
-    buffer.addWithCalling(this, value, parameter)
+):T?{
+    if(value != null){
+        buffer.addWithCalling(this, value, parameter)
+    }
    return value
 }
 

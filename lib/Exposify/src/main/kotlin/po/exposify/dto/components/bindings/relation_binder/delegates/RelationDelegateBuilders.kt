@@ -13,18 +13,15 @@ import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
 
 
-fun <F, FD,  FE, DTO, D, E> CommonDTO<F, FD,  FE>.oneToOneOf(
+fun <DTO, D, E, F, FD, FE> CommonDTO<DTO, D, E>.oneToOneOf(
     dtoClass: DTOClass<F, FD,  FE>,
     ownDataModel: KMutableProperty1<D, out FD?>,
-    ownEntity: KMutableProperty1<FE, E>,
-    foreignEntity: KMutableProperty1<E, FE>
-): OneToOneDelegate<F, FD,  FE, DTO, D, E>
+    ownEntity: KMutableProperty1<E, FE>
+): OneToOneDelegate<DTO, D, E, F, FD, FE>
         where  DTO : ModelDTO, D:DataModel, E: LongEntity, F: ModelDTO,  FD: DataModel, FE: LongEntity
 {
-    TODO("Refactor")
-  //  val castedOwnDataModel = ownDataModel.castOrManaged<KMutableProperty1<FD, D?>>(this)
-
-   // return OneToOneDelegate(this , dtoClass, castedOwnDataModel, ownEntity, foreignEntity)
+    val castedOwnDataModel = ownDataModel.castOrManaged<KMutableProperty1<D, FD?>>(this)
+    return OneToOneDelegate(this , dtoClass, castedOwnDataModel, ownEntity)
 }
 
 
@@ -44,13 +41,12 @@ fun <F, FD,  FE, DTO, D, E> CommonDTO<F, FD,  FE>.oneToOneOf(
 fun <DTO, D, E, F, FD, FE> CommonDTO<DTO, D, E>.oneToManyOf(
     dtoClass: DTOClass<F, FD,  FE>,
     ownDataModels: KProperty1<D, MutableList<out FD>>,
-    ownEntities: KProperty1<E, SizedIterable<FE>>,
-    foreignEntity: KMutableProperty1<FE, out E>
+    ownEntities: KProperty1<E, SizedIterable<FE>>
 ): OneToManyDelegate<DTO, D, E, F, FD, FE>
     where  DTO : ModelDTO, D:DataModel, E: LongEntity, F: ModelDTO,  FD: DataModel, FE: LongEntity
 {
     val castedOwnDataModels = ownDataModels.castOrManaged<KProperty1<D, MutableList<FD>>>(this)
 
-    return OneToManyDelegate(this, dtoClass, castedOwnDataModels, ownEntities, foreignEntity.castOrOperations(dtoClass))
+    return OneToManyDelegate(this, dtoClass, castedOwnDataModels, ownEntities)
 }
 

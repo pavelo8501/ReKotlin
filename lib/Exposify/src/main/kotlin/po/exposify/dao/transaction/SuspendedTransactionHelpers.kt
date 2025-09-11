@@ -1,11 +1,10 @@
-package po.exposify.extensions
+package po.exposify.dao.transaction
 
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.Transaction
 import org.jetbrains.exposed.sql.addLogger
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.jetbrains.exposed.sql.transactions.transaction
 import po.exposify.common.classes.ExposifyDebugger
 import po.misc.context.CTX
 import kotlin.coroutines.CoroutineContext

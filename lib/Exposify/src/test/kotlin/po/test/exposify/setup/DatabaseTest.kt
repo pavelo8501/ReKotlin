@@ -17,7 +17,7 @@ import po.test.exposify.setup.dtos.UserDTO
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers
-abstract class DatabaseTest(): TasksManaged{
+abstract class DatabaseTest(val startImmediately: Boolean = true): TasksManaged{
 
 
     companion object {
@@ -26,7 +26,12 @@ abstract class DatabaseTest(): TasksManaged{
         val postgres = PostgreSQLContainer("postgres:15")
     }
 
-    val connectionClass: ConnectionClass =  startTestConnection()
+    var connectionClass: ConnectionClass? = null
+    init {
+        if(startImmediately){
+            connectionClass = startTestConnection()
+        }
+    }
 
     fun persistUser(user: User): UserDTO{
         var userDTO: UserDTO? = null
@@ -38,8 +43,29 @@ abstract class DatabaseTest(): TasksManaged{
         return userDTO.getOrInit(this)
     }
 
-    fun withConnection(block: ConnectionClass.()-> Unit){
-        block.invoke(connectionClass)
+    fun withConnection(block: ConnectionClass.()-> Unit): ConnectionClass{
+        var connection = connectionClass
+        if(connection != null){
+            block.invoke(connection)
+        }else{
+            connection = startTestConnection()
+            block.invoke(connection)
+            connectionClass = connection
+        }
+        return connection
+    }
+
+
+    suspend fun withConnectionSuspend(block:suspend ConnectionClass.()-> Unit):ConnectionClass{
+        var connection = connectionClass
+        if(connection != null){
+            block.invoke(connection)
+        }else{
+            connection = startTestConnection()
+            block.invoke(connection)
+            connectionClass = connection
+        }
+        return connection
     }
 
 
@@ -95,7 +121,6 @@ abstract class DatabaseTest(): TasksManaged{
             }
             existentConnection { println("Reusing: ${it.completeName}") }
         }
-        val connection = DatabaseManager.openConnectionAsync(null, ConnectionSettings(retries = 5), hooks = connectionHooks )
-        connection
+        DatabaseManager.openConnectionAsync(null, ConnectionSettings(retries = 5), hooks = connectionHooks )
     }
 }

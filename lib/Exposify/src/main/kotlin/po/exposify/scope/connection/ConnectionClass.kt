@@ -11,7 +11,6 @@ import po.exposify.DatabaseManager
 import po.exposify.dto.RootDTO
 import po.exposify.dto.enums.DTOClassStatus
 import po.exposify.dto.interfaces.DataModel
-import po.exposify.scope.connection.models.ConnectionInfo
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.CommonDTOType
 import po.exposify.scope.connection.controls.CoroutineEmitter
@@ -27,24 +26,21 @@ import po.misc.context.asIdentity
 import po.misc.coroutines.CoroutineInfo
 import po.misc.serialization.SerializerInfo
 import po.misc.types.safeCast
-import kotlin.coroutines.coroutineContext
 
 
 class ConnectionClass(
     internal val databaseManager : DatabaseManager,
-    val connectionInfo: ConnectionInfo,
     val connection: Database,
 ): TasksManaged {
 
     override val identity:  CTXIdentity<ConnectionClass> = asIdentity()
-
     private val dispatchManager = UserDispatchManager()
 
     val isConnectionOpen: Boolean
-        get() = connectionInfo.connection.transactionManager.currentOrNull()?.connection?.isClosed == false
+        get() = connection.transactionManager.currentOrNull()?.connection?.isClosed == false
 
     internal val serializerMap = mutableMapOf<String, SerializerInfo<*>>()
-    private  var servicesBacking: MutableMap<CommonDTOType<*, *, *>, ServiceClass<*, *, *>> = mutableMapOf()
+    internal  var services: MutableMap<CommonDTOType<*, *, *>, ServiceClass<*, *, *>> = mutableMapOf()
 
     init {
         notify("CONNECTION_CLASS CREATED $completeName")
@@ -66,13 +62,13 @@ class ConnectionClass(
         commonType: CommonDTOType<DTO, D, E>
     ): ServiceClass<DTO, D, E>?{
 
-       return servicesBacking[commonType]?.safeCast<ServiceClass<DTO, D, E>>()
+       return services[commonType]?.safeCast<ServiceClass<DTO, D, E>>()
     }
 
     fun close(){
         notify("Closing connection: ${connection.name}")
         TransactionManager.closeAndUnregister(database = connection)
-        servicesBacking.values.forEach {
+        services.values.forEach {
             it.deinitializeService()
         }
     }
@@ -95,7 +91,7 @@ class ConnectionClass(
             val serviceClass = ServiceClass(dtoClass, this)
             notify("ServiceClass ${serviceClass.contextName} created")
             serviceClass.initService(dtoClass, createOptions, block)
-            servicesBacking[dtoClass.commonDTOType] = serviceClass
+            services[dtoClass.commonDTOType] = serviceClass
         }
 
 //        if(existentService == null){
@@ -110,6 +106,6 @@ class ConnectionClass(
     }.resultOrException()
 
     fun clearServices(){
-        servicesBacking.clear()
+        services.clear()
     }
 }

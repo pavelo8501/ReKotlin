@@ -78,7 +78,7 @@ abstract class LambdaUnitBase<V : Any, R>(
     override val containerMode: ContainerMode get() = effectiveConfig.containerMode
 
     protected open var valueBacking: V? = null
-    override val persistedValue: V get() = valueBacking.getOrManaged(Any::class, this)
+    override val persistedValue: V get() = valueBacking.getOrManaged(this, Any::class)
 
     private var resultBacking: R? = null
     val result: R get() {
@@ -204,7 +204,7 @@ class DSLNotifier<T : Any, P : Any>(
     }
 
     fun getModified(callingContext: Any):T{
-       return modifiedResult.getOrManaged(typeData.kClass, callingContext)
+       return modifiedResult.getOrManaged(callingContext, typeData.kClass)
     }
 
 }

@@ -29,30 +29,38 @@ fun <T: Any> T?.getOrThrow(
     }
 }
 
-inline fun <reified T: Any> T?.getOrThrow(
+inline fun <reified T> T?.getOrThrow(
     callingContext: Any,
     noinline exceptionProvider: (ManagedCallSitePayload)-> Throwable
 ):T = getOrThrow(T::class, callingContext, exceptionProvider)
 
 
-
-fun <T : Any> T?.getOrManaged(
-    expectedClass: KClass<*>,
+@PublishedApi
+@JvmName("getOrManagedImplementation")
+internal fun <T> getOrManaged(
+    receiver: T?,
     callingContext: Any,
-):T {
+    expectedClass: KClass<*>,
+): T{
     val methodName = "getOrManaged"
-    if(this == null){
+    if(receiver == null){
         val message = "Expected: ${expectedClass.simpleName}. Result is null"
         val payload = ManagedPayload(message, methodName, callingContext)
         throw ManagedException(payload)
     }else{
-        return this
+        return receiver
     }
 }
 
-inline fun <reified T: Any> T?.getOrManaged(
+fun <T> T?.getOrManaged(
+    callingContext: Any,
+    expectedClass: KClass<*>,
+):T = getOrManaged(this, callingContext,  expectedClass)
+
+
+inline fun <reified T> T?.getOrManaged(
     callingContext: Any
-):T = getOrManaged(T::class, callingContext)
+):T = getOrManaged(this,  callingContext, T::class)
 
 
 fun Any?.isNull(): Boolean{

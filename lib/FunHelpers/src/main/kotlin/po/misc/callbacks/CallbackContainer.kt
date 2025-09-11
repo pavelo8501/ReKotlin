@@ -65,7 +65,7 @@ class RoutedWithConversionContainer<T1, T2> internal constructor(
     }
 
     override fun getData():T1{
-        return containerData.getOrManaged(Any::class, this)
+        return containerData.getOrManaged(this, Any::class)
     }
 }
 
@@ -106,7 +106,7 @@ class RoutedContainer<T> internal constructor(
         callback.invoke(this)
     }
     override fun getData():T{
-        return containerData.getOrManaged(Any::class, "Container's data is null")
+        return containerData.getOrManaged(this, Any::class)
     }
 }
 
@@ -136,7 +136,7 @@ class CallbackContainer<T> internal constructor (
     }
 
     override fun getData():T{
-        return containerData.getOrManaged(Any::class, this)
+        return containerData.getOrManaged(this, Any::class)
     }
 }
 

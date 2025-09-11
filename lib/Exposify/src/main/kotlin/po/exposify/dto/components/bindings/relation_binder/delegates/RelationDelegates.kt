@@ -10,6 +10,7 @@ import po.exposify.dto.DTOClass
 import po.exposify.dto.components.bindings.DelegateStatus
 import po.exposify.dto.components.bindings.helpers.newDTO
 import po.exposify.dto.components.bindings.interfaces.DelegateInterface
+import po.exposify.dto.components.executioncontext.SplitLists
 import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.enums.Cardinality
 import po.exposify.dto.helpers.asDTO
@@ -25,6 +26,8 @@ import po.lognotify.TasksManaged
 import po.misc.collections.exactlyOneOrThrow
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
+import po.misc.data.helpers.output
+import po.misc.data.styles.Colour
 import po.misc.functions.registries.builders.require
 import po.misc.functions.registries.builders.subscribe
 import po.misc.types.castListOrManaged
@@ -75,15 +78,22 @@ sealed class RelationDelegate<DTO, D, E, F, FD, FE, R>(
     protected abstract fun beforeRegistered()
     protected abstract fun getDataModels():List<FD>
     protected abstract fun getEntities(sourceEntity:E?):List<FE>
+    protected abstract fun applyToDataModel(dtoList: List<CommonDTO<F, FD, FE>>)
+
+    internal abstract fun applyDataModels()
 
     private fun checkIfAlreadyExists(
         common: CommonDTO<F, FD, FE>
-    ){
+    ): Boolean{
         val existentSameId = commonDTOSBacking.firstOrNull { it.id ==  common.id}
         if(existentSameId != null){
             warning(dtoWithSameIdExistsMsg(existentSameId, identifiedByName))
+            return true
+        }else{
+            return false
         }
     }
+
 
     internal fun extractDataModels(): List<FD>{
        return  getDataModels()
@@ -119,26 +129,46 @@ sealed class RelationDelegate<DTO, D, E, F, FD, FE, R>(
         return commonDTO
     }
 
-    fun createDTOS(parentEntity : E, constructHierarchy: Boolean = false): List<CommonDTO<F, FD, FE>>{
+    fun createDTOS(
+        parentEntity: E,
+        existentProvider:((CommonDTO<F, FD, FE>)-> Unit)? = null
+    ): List<CommonDTO<F, FD, FE>>{
+
         val resultingList = mutableListOf<CommonDTO<F, FD, FE>>()
         extractEntities(parentEntity).forEach {entity->
             val commonDTO =  dtoClass.newDTO()
+
             commonDTO.bindingHub.resolveAttachedForeign(this, entity)
             commonDTO.bindingHub.updateByEntity(entity)
             commonDTOSave(commonDTO)
             resultingList.add(commonDTO)
-
         }
         return resultingList
     }
+
+    fun storeDTOS(
+        commonDTOS: List<CommonDTO<F, FD, FE>>
+    ):  List<CommonDTO<F, FD, FE>>{
+        val existentList = mutableListOf<CommonDTO<F, FD, FE>>()
+
+        commonDTOS.forEach {
+           if(!checkIfAlreadyExists(it)){
+               commonDTOSave(it)
+           }else{
+               existentList.add(it)
+           }
+        }
+        applyToDataModel(existentList)
+        return existentList
+    }
+
+
 
     protected fun commonDTOSave(
         commonDTO: CommonDTO<F, FD, FE>
     ){
         commonDTO.cardinality = cardinality
-
         commonDTO.bindingHub.resolveParent(hostingDTO)
-
         commonDTOSBacking.add(commonDTO)
     }
 
@@ -179,8 +209,7 @@ class OneToManyDelegate<DTO, D, E, F, FD, FE>(
     hostingDTO : CommonDTO<DTO, D, E>,
     dtoClass: DTOClass<F, FD, FE>,
     val dataProperty: KProperty1<D, MutableList<FD>>,
-    override val entityProperty: KProperty1<E, SizedIterable<FE>>,
-    val ownOnForeignEntityProperty: KMutableProperty1<FE, E>,
+    override val entityProperty: KProperty1<E, SizedIterable<FE>>
 ): RelationDelegate<DTO, D, E, F, FD, FE, List<F>>(hostingDTO, dtoClass)
         where DTO : ModelDTO, D : DataModel, E : LongEntity, F: ModelDTO,  FD : DataModel, FE : LongEntity
 {
@@ -208,6 +237,26 @@ class OneToManyDelegate<DTO, D, E, F, FD, FE>(
         return entityList.toList()
     }
 
+    override fun applyToDataModel(dtoList: List<CommonDTO<F, FD, FE>>) {
+        val existing = dataProperty.get(hostingDTO.dataContainer.getValue(this))
+        val existingIds = existing.map { it.id }.toSet()
+        val uniqueDtos = dtoList.filter { dto ->
+            dto.id !in existingIds
+        }
+        val dataModels =  uniqueDtos.map { it.dataContainer.getValue(this) }
+        existing.addAll(dataModels)
+    }
+
+    override fun applyDataModels() {
+        val existing = dataProperty.get(hostingDTO.dataContainer.getValue(this))
+        val existingIds = existing.map { it.id }.toSet()
+        val uniqueDtos = commonDTOS.filter { dto ->
+            dto.id !in existingIds
+        }
+        val dataModels =  uniqueDtos.map { it.dataContainer.getValue(this) }
+        existing.addAll(dataModels)
+    }
+
     override fun onParentResolved(parentDTO: CommonDTO<F, FD, FE>) {
         identity.setNamePattern {"${it.identifiedByName} ${property.name} : ${hostingDTOClass.identifiedByName}" }
     }
@@ -218,8 +267,7 @@ class OneToOneDelegate<DTO, D, E, F, FD, FE>(
     hostingDTO : CommonDTO<DTO, D, E>,
     dtoClass: DTOClass<F, FD, FE>,
     val dataProperty: KMutableProperty1<D, FD?>,
-    override val entityProperty: KMutableProperty1<E, FE>,
-    val ownOnForeignEntityProperty: KMutableProperty1<E, FE>,
+    override val entityProperty: KMutableProperty1<E, FE>
 ) : RelationDelegate<DTO, D, E, F, FD, FE, F>(hostingDTO, dtoClass)
         where DTO : ModelDTO, D : DataModel, E : LongEntity, F: ModelDTO,  FD : DataModel, FE : LongEntity
 {
@@ -252,13 +300,27 @@ class OneToOneDelegate<DTO, D, E, F, FD, FE>(
         return listOf(result)
     }
 
+    override fun applyToDataModel(dtoList: List<CommonDTO<F, FD, FE>>) {
+       val found =  dtoList.firstOrNull{ it.cardinality == cardinality }
+        found?.let {
+           val dataModel =  it.dataContainer.getValue(this)
+            dataProperty.set(hostingDTO.dataContainer.getValue(this),  dataModel)
+        }
+    }
+
+    override fun applyDataModels() {
+        commonDTOS.firstOrNull()?.let {
+           val dataModel =  it.dataContainer.getValue(this)
+            dataProperty.set(hostingDTO.dataContainer.getValue(this), dataModel)
+        }
+    }
+
     internal val childDTO: CommonDTO<F, FD, FE> get() = commonDTOS.exactlyOneOrThrow {
         operationsException(wrongListSize("childDTOS", identifiedByName), abnormalState)
     }
 
-
     override fun onParentResolved(parentDTO: CommonDTO<F, FD, FE>) {
-        TODO("Not yet implemented")
+        identity.setNamePattern {"${it.identifiedByName} ${property.name} : ${hostingDTOClass.identifiedByName}" }
     }
 
 

@@ -18,7 +18,10 @@ import po.lognotify.TasksManaged
 import po.lognotify.launchers.runTask
 import po.lognotify.launchers.runTaskBlocking
 import po.misc.context.CTXIdentity
+import po.misc.context.Identifiable
 import po.misc.context.asSubIdentity
+import po.misc.data.helpers.output
+import po.misc.data.styles.Colour
 import po.misc.functions.containers.DeferredContainer
 import po.misc.types.TypeData
 
@@ -30,13 +33,45 @@ class ServiceContext<DTO, DATA, ENTITY>(
 
     override val identity: CTXIdentity<ServiceContext<DTO, DATA, ENTITY>> = asSubIdentity(this, dtoClass)
 
-    private val executionProvider: RootExecutionContext<DTO, DATA, ENTITY> get() = dtoClass.executionContext
+    internal val executionProvider: RootExecutionContext<DTO, DATA, ENTITY> get() = dtoClass.executionContext
     private val dbConnection: Database get() = serviceClass.connection
-    private val dataType: TypeData<DATA> = dtoClass.commonDTOType.dataType
+
+    private val trackingList = mutableMapOf<CTXIdentity<*>, (DTO)-> Unit>()
+
+    internal val dataType: TypeData<DATA> = dtoClass.commonDTOType.dataType
 
     val debugger: ExposifyDebugger<ServiceContext<DTO, DATA, ENTITY>, ContextData> = exposifyDebugger(this, ContextData){
         ContextData(it.message)
     }
+
+    internal fun setTracking(identity: CTXIdentity<*>, callback: suspend (DTO)-> Unit){
+        executionProvider.setTracking(identity, callback)
+    }
+
+    private fun afterUpdated(result:  ResultSingle<DTO, DATA>): ResultSingle<DTO, DATA>{
+        result.data?.let {
+            if(it is Identifiable<*>){
+                "found in result data".output(Colour.GREEN)
+                trackingList[it.identity]?.let {
+                    "comparison by identity work with result data".output(Colour.GREEN)
+                }
+            }
+        }
+        return result
+    }
+
+    private fun beforeUpdated(dataModel:  DATA): DATA{
+        if(dataModel is Identifiable<*>){
+           "found".output(Colour.GREEN)
+            trackingList[dataModel.identity]?.let {
+                "comparison by identity work".output(Colour.GREEN)
+            }
+        }
+        return dataModel
+    }
+
+    private fun beforeUpdated(dataList:  List<DATA>) = dataList.forEach { beforeUpdated(it) }
+
 
     fun truncate(): Unit = runTaskBlocking("Truncate") {
         dtoClass.clearCachedDTOs()
@@ -64,11 +99,12 @@ class ServiceContext<DTO, DATA, ENTITY>(
             executionProvider.select()
     }.resultOrException()
 
-    fun select(conditions: DeferredContainer<WhereQuery<*>>):ResultList<DTO, DATA> = runTaskBlocking("Select(with conditions)") {
+    fun select(conditions: DeferredContainer<WhereQuery<ENTITY>>):ResultList<DTO, DATA> = runTaskBlocking("Select(with conditions)") {
         executionProvider.select(conditions.resolve())
     }.resultOrException()
 
     fun insert(dataModels: List<DATA>): ResultList<DTO, DATA> = runTaskBlocking("Insert") {
+        beforeUpdated(dataModels)
         executionProvider.insert(dataModels)
     }.resultOrException()
 
@@ -79,11 +115,14 @@ class ServiceContext<DTO, DATA, ENTITY>(
 
 
     fun update(dataModel: DATA): ResultSingle<DTO, DATA> = runTaskBlocking("Update"){
-          val result =  executionProvider.update(dataModel)
-           result
+        beforeUpdated(dataModel)
+        val result =  executionProvider.update(dataModel)
+        afterUpdated(result)
+        result
     }.resultOrException()
 
     fun update(dataModels: List<DATA>): ResultList<DTO, DATA> = runTaskBlocking("Update") {
+        beforeUpdated(dataModels)
         executionProvider.update(dataModels)
     }.resultOrException()
 

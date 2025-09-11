@@ -31,7 +31,10 @@ class CoreContext(private val app : Application, private val wraptor: RestWrapTo
             return false
         }
 
-        fun traverseChildren(node: RoutingNode, parentSecured: Boolean = false){
+        fun traverseChildren(
+            node: RoutingNode,
+            parentSecured: Boolean = false
+        ){
             var isSecured = parentSecured
             if(parentSecured == false){
                 isSecured = isRouteSecured(node)
@@ -56,17 +59,5 @@ class CoreContext(private val app : Application, private val wraptor: RestWrapTo
         }
         return  existentWraptorRoutes
     }
-
-//    fun List<WraptorRoute>.toList(){
-//        val  result = mutableListOf<String>()
-//        val unsecured = this.filter { it.isSecured == false }
-//        val secured = this.filter { it.isSecured == true }
-//
-//        result.add("This server defines ${unsecured.count()} public endpoint and ${secured.count()} secure ")
-//        wraptor.connectors.forEach {connector->
-//            unsecured.forEach {result.add("Endpoint ${connector}${it.path} ${it.selector}  isSecured:${it.isSecured}") }
-//        }
-//
-//    }
 
 }

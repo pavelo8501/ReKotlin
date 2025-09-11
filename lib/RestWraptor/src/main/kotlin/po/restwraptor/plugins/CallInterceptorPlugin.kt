@@ -14,40 +14,30 @@ import po.restwraptor.session.toAttributes
 val CallInterceptorPlugin = createApplicationPlugin(
     name = "CallInterceptorPlugin",
     createConfiguration =  ::PluginConfiguration
-){
-
+) {
     pluginConfig.apply {
 
         onCall { call ->
-            try{
-                val info = call.callerInfo()
-                val session =  getOrNewSession(info)
-                session.onRoundTripStart(info.route)
-                call.toAttributes(session)
+            val info = call.callerInfo()
+            val session = getOrNewSession(info)
+            session.onRoundTripStart(info.route)
+            call.toAttributes(session)
 
-                val headers = call.request.headers
-                headers.forEach { name, values ->  println("${name} : ${values}") }
-                val uri = call.request.uri
-                if (uri.endsWith("/") && uri != "/") {
-                    call.respondRedirect(uri.removeSuffix("/"))
-                    return@onCall
-                }
-            } catch (e: Exception) {
-                val a = e.message
+            val headers = call.request.headers
+            headers.forEach { name, values -> println("$name : $values") }
+            val uri = call.request.uri
+            if (uri.endsWith("/") && uri != "/") {
+                call.respondRedirect(uri.removeSuffix("/"))
+                return@onCall
             }
         }
 
-       onCallRespond { call ->
-           val info = call.callerInfo()
-           call.sessionFromAttributes()?.let {session->
-
-               session.onRoundTripEnd(info.route)
-           }
-       }
-
-//        on(ResponseSent) { call ->
-//
-//        }
+        onCallRespond { call ->
+            val info = call.callerInfo()
+            call.sessionFromAttributes()?.let { session ->
+                session.onRoundTripEnd(info.route)
+            }
+        }
     }
 }
 

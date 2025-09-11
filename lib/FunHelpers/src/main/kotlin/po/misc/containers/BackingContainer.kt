@@ -45,7 +45,7 @@ sealed class BackingContainerBase<T: Any>(
         } else {
             exceptionFallback?.exceptionProvider?.invoke()
         }
-        return value.getOrManaged(typeData.kClass, callingContext)
+        return value.getOrManaged(callingContext, typeData.kClass)
     }
 
     private val valueNullMsg: (String)-> String = {name->
@@ -68,7 +68,7 @@ sealed class BackingContainerBase<T: Any>(
         value?:run {
             notifyValueNull(callingContext)
         }
-        return value.getOrManaged(typeData.kClass, callingContext)
+        return value.getOrManaged(callingContext, typeData.kClass)
     }
 
     fun <T2: Any> getWithFallback(fallback: Fallback<T2>):T{

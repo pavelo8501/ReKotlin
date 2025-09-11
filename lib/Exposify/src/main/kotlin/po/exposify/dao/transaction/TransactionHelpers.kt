@@ -6,8 +6,9 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import po.exposify.common.classes.ExposifyDebugger
 import po.misc.context.CTX
 
+
 fun <T: CTX, R>  T.withTransactionIfNone(
-    logDataProcessor: ExposifyDebugger<*,*>,
+    logDataProcessor: ExposifyDebugger<*, *>,
     warnIfNoTransaction: Boolean,
     block: T.() -> R
 ): R =
@@ -16,9 +17,17 @@ fun <T: CTX, R>  T.withTransactionIfNone(
             logDataProcessor.warn("Transaction lost context. Restoring")
         }
         transaction{
-           addLogger(logDataProcessor)
-           block()
+            addLogger(logDataProcessor)
+            block()
         }
     } else {
         block()
     }
+
+
+
+
+fun <T: CTX, R>  T.withTransactionIfNone(
+    logDataProcessor: ExposifyDebugger<*, *>,
+    block: T.() -> R
+): R = withTransactionIfNone(logDataProcessor, false, block)

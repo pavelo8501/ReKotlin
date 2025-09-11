@@ -197,7 +197,8 @@ abstract class CommonDTO<DTO, D, E>(
     }
 
     internal suspend fun saveDTO(rootClass: RootDTO<DTO, D, E>){
-        rootClass.executionContext.restoreDTO(this)
+
+        rootClass.executionContext.restoreDTO(dataContainer.getValue(this))
     }
 
     fun flush(){

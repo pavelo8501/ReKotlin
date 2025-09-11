@@ -4,6 +4,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.withContext
 import po.auth.AuthSessionManager
+import po.auth.sessions.interfaces.ManagedSession
 import po.auth.sessions.interfaces.SessionIdentified
 import po.auth.sessions.models.AuthorizedSession
 import kotlin.coroutines.coroutineContext
@@ -25,30 +26,13 @@ suspend fun withSessionContext(
     withContext(session.coroutineContext, block)
 }
 
-fun<R> withSession(
-    session: AuthorizedSession,
+inline fun <R> AuthorizedSession.runWithSession(
     block: AuthorizedSession.() -> R
 ):R{
-    return block.invoke(session)
+   return block()
 }
 
-fun <R> withSession(
-    sessionIdentity : SessionIdentified,
-    block:  AuthorizedSession.() -> R
-):R {
-   return block.invoke(AuthSessionManager.getOrCreateSessionSync(sessionIdentity))
-}
 
-suspend fun <R> withSessionSuspended(
-    sessionIdentity : SessionIdentified,
-    block: suspend AuthorizedSession.() -> R
-):R {
-   return currentCoroutineContext()[AuthorizedSession]?.let {
-        block.invoke(it)
-    }?:run {
-       block.invoke(AuthSessionManager.getOrCreateSession(sessionIdentity))
-   }
-}
 
 suspend fun CoroutineScope.currentSession(): AuthorizedSession?{
    return currentCoroutineContext()[AuthorizedSession]

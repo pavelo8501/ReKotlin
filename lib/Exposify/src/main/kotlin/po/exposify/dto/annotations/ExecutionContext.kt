@@ -10,4 +10,8 @@ annotation class ExecutionContextDSL
 annotation class ExecutionContextLauncher
 
 
+@DslMarker
+annotation class DTOExecutionContextHelpers
+
+
 

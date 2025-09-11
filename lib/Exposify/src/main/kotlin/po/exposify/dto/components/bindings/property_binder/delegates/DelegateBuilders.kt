@@ -18,25 +18,6 @@ inline fun <DTO, D, E, reified V: Any>  CommonDTO<DTO, D, E>.binding(
     return propertyDelegate
 }
 
-
-//inline fun <DTO, D, E, reified V: Any>  CommonDTO<DTO, D, E>.binding(
-//    dataProperty:KMutableProperty1<D, V>,
-//): PropertyDelegate<DTO, D, E, V> where  DTO: ModelDTO, D:DataModel, E : LongEntity
-//{
-//    val typeData = TypeData.create<V>()
-//    val propertyDelegate = PropertyDelegate(this, dataProperty, null, typeData)
-//    return propertyDelegate
-//}
-//
-//inline fun <DTO, D, E, reified V: Any>  CommonDTO<DTO, D, E>.binding(
-//
-//): PropertyDelegate<DTO, D, E, V> where  DTO: ModelDTO, D:DataModel, E : LongEntity
-//{
-//    val typeData = TypeData.create<V>()
-//    val propertyDelegate = PropertyDelegate<DTO, D, E, V>(this, null, null, typeData)
-//    return propertyDelegate
-//}
-
 inline fun <DTO, D, E, reified V: Any>  CommonDTO<DTO, D, E>.serializedBinding(
     dataProperty:KMutableProperty1<D, V>,
     entityProperty:KMutableProperty1<E, V>,

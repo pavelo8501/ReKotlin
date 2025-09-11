@@ -11,15 +11,13 @@ import po.exposify.dto.components.query.SimpleQuery
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.CommonDTOType
-import po.exposify.extensions.currentTransaction
-import po.exposify.extensions.withSuspendedTransactionIfNone
+import po.exposify.dao.transaction.currentTransaction
+import po.exposify.dto.models.EntityType
 import po.lognotify.TasksManaged
 import po.lognotify.launchers.runAction
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
-import po.misc.data.helpers.output
 import po.misc.data.processors.SeverityLevel
-import po.misc.data.styles.Colour
 import kotlin.reflect.full.withNullability
 
 class DAOService<DTO, DATA, ENTITY>(
@@ -28,7 +26,7 @@ class DAOService<DTO, DATA, ENTITY>(
     override val identity: CTXIdentity<DAOService<DTO, DATA, ENTITY>> = asIdentity()
 
     val entityClass: ExposifyEntityClass<ENTITY> get() = commonDTOType.entityType.entityClass
-    private val entityType get() = commonDTOType.entityType
+    val entityType: EntityType<ENTITY> get() = commonDTOType.entityType
 
     private fun combineConditions(conditions: Set<Op<Boolean>>): Op<Boolean> = conditions.reduceOrNull { acc, op -> acc and op } ?: Op.TRUE
 

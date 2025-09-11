@@ -4,11 +4,13 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import po.exposify.dto.components.query.queryBuilder
 import po.exposify.scope.launchers.pick
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.test.exposify.setup.DatabaseTest
+import po.test.exposify.setup.Pages
 import po.test.exposify.setup.dtos.Page
 import po.test.exposify.setup.dtos.PageDTO
 import po.test.exposify.setup.dtos.UserDTO
@@ -41,8 +43,8 @@ class TestDSLPick: DatabaseTest() {
                 updatedById = update(mockedUser).dataUnsafe.id
             }
         }
-        val pages = mockPages(updatedById, 1) {
-            withSections(2)
+        val pages = mockPages(updatedById, 2) {
+            withSections(4)
         }
         withConnection {
             service(PageDTO) {
@@ -51,20 +53,27 @@ class TestDSLPick: DatabaseTest() {
         }
     }
 
-
     @Test
     fun `Pick statement`() = runTest(timeout = Duration.parse("600s")){
 
         val page = persistedPages.first()
-
         PageDTO.clearCachedDTOs()
         val result =  with(newMockedSession){
             pick(PageDTO, page.id)
         }
-
         val pickedPage = assertNotNull(result.dataUnsafe)
         assertEquals(page, pickedPage)
+    }
 
+    @Test
+    fun `Pick statement by query`() = runTest(timeout = Duration.parse("600s")){
+
+        val result =  with(newMockedSession){
+            val query = PageDTO.queryBuilder { equals(Pages.name, "page_2") }
+            pick(PageDTO,  query)
+        }
+        val page = assertNotNull(result.data)
+        assertEquals("page_2",  page.name)
     }
 
 }

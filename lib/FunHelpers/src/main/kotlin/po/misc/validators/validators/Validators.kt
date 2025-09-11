@@ -115,7 +115,7 @@ inline fun <reified T: Any, R> ValidationContainerBase<T, R>.doesNotThrow(
     noinline  block: (T)-> R,
 ): R? {
     return  try {
-        val validating = validatable.getOrManaged(T::class,  this)
+        val validating = validatable.getOrManaged(this)
 
         block.invoke(validating)?.let {result->
             notifySuccess<T, R>(result, this)

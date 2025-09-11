@@ -66,7 +66,7 @@ class BackingDelegate<T : Any>(
      * @throws ManagedException if the value has not been set.
      */
     override fun getValue(thisRef: Any?, property: KProperty<*>): T {
-        return value.getOrManaged(typeData.kClass, this)
+        return value.getOrManaged(this, typeData.kClass)
     }
 
     /**

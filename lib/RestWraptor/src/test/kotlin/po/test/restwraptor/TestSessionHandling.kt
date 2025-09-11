@@ -3,7 +3,6 @@ package po.test.restwraptor
 import io.ktor.client.request.get
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Routing
-import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
@@ -14,7 +13,7 @@ import po.misc.data.helpers.output
 import po.misc.data.styles.Colour
 import po.restwraptor.RestWrapTor
 import po.restwraptor.configureWraptor
-import po.restwraptor.routes.buildManagedRoutes
+import po.restwraptor.routes.ManagedRouting
 import po.restwraptor.routes.withBaseUrl
 import po.restwraptor.scope.ConfigContext
 
@@ -28,8 +27,9 @@ class TestSessionHandling {
         return TestUser(0, "someName", login)
     }
 
-    fun configManagedRoutes(config: ConfigContext) {
-        config.buildManagedRoutes {
+    fun ManagedRouting.configManagedRoutes() {
+
+        managedRoutes {
             managedGet("default"){session->
                 call.respond("OK")
             }
@@ -44,7 +44,6 @@ class TestSessionHandling {
                 call.respond("OK")
             }
         }
-
     }
 
     fun Routing.securedRoute(){
@@ -58,7 +57,9 @@ class TestSessionHandling {
 
         application {
             configureWraptor(server){
-                configManagedRoutes(this)
+                setupRoutes {
+                    configManagedRoutes()
+                }
             }
             routing {
             }

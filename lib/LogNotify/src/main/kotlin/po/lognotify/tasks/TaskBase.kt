@@ -46,7 +46,7 @@ sealed class TaskBase<T : CTX, R : Any?>(
     override val config: TaskConfig,
     val dispatcher: TaskDispatcher,
     override val receiver: T,
-): ResultantTask<T, R>, LNInstance<T>{
+): ResultantTask<T, R>, LNInstance<T> {
 
     abstract var taskResult: TaskResult<T, R>?
     abstract val coroutineContext: CoroutineContext
@@ -63,7 +63,8 @@ sealed class TaskBase<T : CTX, R : Any?>(
 
     abstract fun start(): TaskBase<T, R>
     abstract override fun complete(): LNInstance<*>
-    abstract override fun complete(exception: ManagedException): Nothing
+
+    abstract override fun complete(exception: ManagedException)
 
     protected var taskStatus: ExecutionStatus = ExecutionStatus.Active
     override val executionStatus: ExecutionStatus get() = taskStatus
@@ -228,14 +229,13 @@ class RootTask<T : CTX, R : Any?>(
         return this
     }
 
-    override fun complete(exception: ManagedException): Nothing {
+    override fun complete(exception: ManagedException){
         executionTimeStamp.stopTimer()
         registry.setChildTasksStatus(ExecutionStatus.Faulty, this)
         changeStatus(ExecutionStatus.Failing)
-        taskResult = createFaultyResult(exception, this)
+       // taskResult = createFaultyResult(exception, this)
         dataProcessor.registerStop()
         dispatcher.removeRootTask(this)
-        throw exception
     }
 }
 
@@ -275,12 +275,11 @@ class Task<T : CTX, R : Any?>(
         return this
     }
 
-    override fun complete(exception: ManagedException): Nothing {
+    override fun complete(exception: ManagedException) {
         executionTimeStamp.stopTimer()
         registry.setChildTasksStatus(ExecutionStatus.Faulty, this)
         changeStatus(ExecutionStatus.Failing)
-        taskResult = createFaultyResult(exception, this)
+       // taskResult = createFaultyResult(exception, this)
         dataProcessor.registerStop()
-        throw exception
     }
 }

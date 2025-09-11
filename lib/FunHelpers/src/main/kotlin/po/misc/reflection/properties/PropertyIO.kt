@@ -49,7 +49,7 @@ sealed class PropertyIOBase<T: Any, V: Any>(
 
     protected var receiverBacking: T? = null
     var receiver: T
-        get() = receiverBacking.getOrManaged(Any::class, this)
+        get() = receiverBacking.getOrManaged(this, Any::class)
         set(value) {
             if (receiverBacking == null) {
                 receiverBacking = value
@@ -101,7 +101,7 @@ sealed class PropertyIOBase<T: Any, V: Any>(
     }
 
     fun readCurrentValue(): V {
-        return currentValue.getOrManaged(propertyInfo.returnType::class,  this)
+        return currentValue.getOrManaged(this, propertyInfo.returnType::class)
     }
 
 
