@@ -2,6 +2,7 @@ package po.exposify.scope.launchers
 
 import org.jetbrains.exposed.dao.LongEntity
 import po.auth.sessions.models.AuthorizedSession
+import po.auth.sessions.models.SessionBase
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOClass
 import po.exposify.dto.RootDTO
@@ -13,7 +14,7 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.lognotify.launchers.runProcess
 
 
-suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity>  AuthorizedSession.insert(
+suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity>  SessionBase.insert(
     dtoClass:RootDTO<DTO, D, E>,
     dataModels: List<D>
 ): ResultList<DTO, D>{
@@ -26,7 +27,7 @@ suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity>  AuthorizedSession.inse
     }
 }
 
-suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity>  AuthorizedSession.insert(
+suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity>  SessionBase.insert(
     dtoClass:RootDTO<DTO, D, E>,
     dataModel:D
 ): ResultSingle<DTO, D>{

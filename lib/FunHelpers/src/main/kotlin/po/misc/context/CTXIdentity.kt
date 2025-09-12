@@ -29,6 +29,12 @@ class CTXIdentity<T: CTX> @PublishedApi internal constructor(
     val parentContext: CTX? = null
 ) {
 
+    constructor(
+        typeData: TypeData<T>,
+        userDefinedId: Long? = null,
+        parentContext: CTX? = null
+    ): this(typeData.kClass, typeData.kType, userDefinedId, parentContext)
+
     val typeData: TypeData<T> = TypeData(kClass, kType)
 
     val parentIdentity: CTXIdentity<*>? get() = parentContext?.identity
@@ -109,9 +115,17 @@ class CTXIdentity<T: CTX> @PublishedApi internal constructor(
 
 }
 
-inline fun <reified T>  asSubIdentity(thisContext: T,  parentContext:CTX, withId: Long? = null): CTXIdentity<T> where T: CTX{
+inline fun <reified T> asSubIdentity(parentContext:CTX, withId: Long? = null): CTXIdentity<T> where T: CTX{
     return try {
-        CTXIdentity(thisContext::class as KClass<T>, typeOf<T>(), withId, parentContext)
+        CTXIdentity(T::class,  typeOf<T>(), withId, parentContext)
+    }catch (th: Throwable){
+        throw th
+    }
+}
+
+fun <T: CTX>  T.asSubIdentity(typeData: TypeData<T>, parentContext:CTX,  withId: Long? = null): CTXIdentity<T>{
+    return try {
+        CTXIdentity(typeData, withId, parentContext)
     }catch (th: Throwable){
         throw th
     }
@@ -124,6 +138,15 @@ fun <T> createIdentity(kClass: KClass<T>, kType: KType, withId: Long? = null): C
         throw th
     }
 }
+
+fun <T>  CTX.asIdentity(typeData: TypeData<T>, withId: Long? = null): CTXIdentity<T> where T: CTX {
+    return try {
+        CTXIdentity(typeData, withId)
+    }catch (th: Throwable){
+        throw th
+    }
+}
+
 
 inline fun <reified T>  T.asIdentity(withId: Long? = null): CTXIdentity<T> where T: CTX {
     return try {

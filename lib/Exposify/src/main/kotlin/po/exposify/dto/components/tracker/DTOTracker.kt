@@ -27,7 +27,7 @@ class DTOTracker<DTO: ModelDTO, D: DataModel, E: LongEntity>(
     internal val dto : CommonDTO<DTO, D, E>):  MeasuredContext, TrackableDTO, TasksManaged
 {
 
-    override val identity: CTXIdentity<DTOTracker<DTO, D, E>> = asSubIdentity(this, dto)
+    override val identity: CTXIdentity<DTOTracker<DTO, D, E>> = asSubIdentity(dto)
     override val executionTimeStamp: ExecutionTimeStamp = ExecutionTimeStamp(dto.completeName, "-1")
     @PublishedApi internal var config : TrackerConfig<*> = TrackerConfig()
 

@@ -31,7 +31,7 @@ class ServiceContext<DTO, DATA, ENTITY>(
     val dtoClass: RootDTO<DTO, DATA, ENTITY>,
 ): TasksManaged where DTO : ModelDTO, DATA: DataModel,  ENTITY: LongEntity {
 
-    override val identity: CTXIdentity<ServiceContext<DTO, DATA, ENTITY>> = asSubIdentity(this, dtoClass)
+    override val identity: CTXIdentity<ServiceContext<DTO, DATA, ENTITY>> get() = asSubIdentity(dtoClass)
 
     internal val executionProvider: RootExecutionContext<DTO, DATA, ENTITY> get() = dtoClass.executionContext
     private val dbConnection: Database get() = serviceClass.connection

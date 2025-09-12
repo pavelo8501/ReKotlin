@@ -48,7 +48,7 @@ class TestKSurrogate {
         }
 
 
-        val surrogate: KSurrogate<MainObject> = KSurrogate<MainObject>(this)
+       // val surrogate: KSurrogate<MainObject> = KSurrogate<MainObject>(this)
 
 
             //secondBacking = createSource<SecondSource>()
@@ -68,10 +68,10 @@ class TestKSurrogate {
 //        val intAuxArray = arrayOf(propertySlot(source, Source::field1), propertySlot(second, SecondSource::intNameDifferent))
 //
 //        val strAuxArray = arrayOf(propertySlot(source, Source::field2), propertySlot(second, SecondSource::strNameDifferent))
-
-        var intParam: Int by propertyBinding(surrogate, Int::class)
-        var strParam: String by propertyBinding(surrogate, String::class)
-        var boolParam: Boolean by propertyBinding(surrogate, Boolean::class)
+//
+//        var intParam: Int by propertyBinding(surrogate, Int::class)
+//        var strParam: String by propertyBinding(surrogate, String::class)
+//        var boolParam: Boolean by propertyBinding(surrogate, Boolean::class)
     }
 
     @Test

@@ -7,6 +7,7 @@ import org.jetbrains.exposed.sql.name
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transactionManager
 import po.auth.sessions.models.AuthorizedSession
+import po.auth.sessions.models.SessionBase
 import po.exposify.DatabaseManager
 import po.exposify.dto.RootDTO
 import po.exposify.dto.enums.DTOClassStatus
@@ -46,7 +47,7 @@ class ConnectionClass(
         notify("CONNECTION_CLASS CREATED $completeName")
     }
 
-    internal suspend fun requestEmitter(process: Process<AuthorizedSession>): CoroutineEmitter {
+    internal suspend fun requestEmitter(process: Process<SessionBase>): CoroutineEmitter {
         val result = dispatchManager.enqueue(process.receiver.sessionID) {
             CoroutineEmitter("CoroutineEmitter${CoroutineInfo.createInfo(currentCoroutineContext()).coroutineName}", process)
         }

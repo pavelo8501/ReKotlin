@@ -14,7 +14,7 @@ class TestCTXIdentity: CTX {
     override val identity: CTXIdentity<out CTX> = asIdentity()
 
     internal class SubContext(private val testClass: TestCTXIdentity): CTX{
-        override val identity: CTXIdentity<out CTX> = asSubIdentity(this, testClass)
+        override val identity: CTXIdentity<out CTX> = asSubIdentity(testClass)
     }
 
     @Test

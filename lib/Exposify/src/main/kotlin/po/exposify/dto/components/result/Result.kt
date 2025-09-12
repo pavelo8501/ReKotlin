@@ -1,6 +1,7 @@
 package po.exposify.dto.components.result
 
 import po.auth.sessions.models.AuthorizedSession
+import po.auth.sessions.models.SessionBase
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
 import po.exposify.dto.components.tracker.CrudOperation
@@ -40,12 +41,12 @@ sealed class ResultBase<DTO, D, R : Any>(
     val abnormalState: ExceptionCode = ExceptionCode.ABNORMAL_STATE
     override var failureCause: ManagedException? = null
 
-    var authorizedSession: AuthorizedSession? = null
+    var authorizedSession: SessionBase? = null
         private set
 
     val isFaulty: Boolean get() = failureCause != null || result == null
 
-    internal fun saveSession(session: AuthorizedSession?){
+    internal fun saveSession(session: SessionBase?){
         authorizedSession = session
     }
 
@@ -55,7 +56,7 @@ class ResultList<DTO, D> internal constructor(
     override val dtoClass: DTOBase<DTO, D, *>,
     private var resultBacking: MutableList<CommonDTO<DTO, D, *>> = mutableListOf(),
 ) : ResultBase<DTO, D, List<CommonDTO<DTO, D, *>>>(dtoClass, resultBacking) where DTO : ModelDTO, D : DataModel {
-    override val identity: CTXIdentity<ResultList<DTO, D>> = asSubIdentity(this, dtoClass)
+    override val identity: CTXIdentity<ResultList<DTO, D>> get() =  asSubIdentity(dtoClass)
 
     override var resultMessage: String = ""
     override val size: Int get() = resultBacking.size
@@ -113,7 +114,7 @@ class ResultSingle<DTO, D> internal constructor(
     private var initialResult: CommonDTO<DTO, D, *>? = null,
 ) : ResultBase<DTO, D, CommonDTO<DTO, D, *>>(dtoClass, initialResult),
     ExposifyResult where DTO : ModelDTO, D : DataModel {
-    override val identity: CTXIdentity<ResultSingle<DTO, D>> = asSubIdentity(this, dtoClass)
+    override val identity: CTXIdentity<ResultSingle<DTO, D>> get() =  asSubIdentity(dtoClass)
 
     override var resultMessage: String = ""
     override val size: Int get() {

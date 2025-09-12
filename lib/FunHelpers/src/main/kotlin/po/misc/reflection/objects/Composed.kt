@@ -1,10 +1,8 @@
 package po.misc.reflection.objects
 
 import po.misc.types.TypeData
-import po.misc.types.TypeRecord
 import po.misc.types.safeCast
 import java.time.LocalDateTime
-import kotlin.reflect.KType
 
 interface Composed {
 

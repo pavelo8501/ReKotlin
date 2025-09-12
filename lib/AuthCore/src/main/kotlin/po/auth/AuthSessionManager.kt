@@ -15,7 +15,9 @@ import po.auth.sessions.classes.SessionFactory
 import po.auth.sessions.interfaces.ManagedSession
 import po.auth.sessions.interfaces.SessionIdentified
 import po.auth.sessions.models.AuthorizedSession
+import po.auth.sessions.models.ScopedSession
 import po.lognotify.TasksManaged
+import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import java.util.concurrent.ConcurrentHashMap
@@ -35,9 +37,15 @@ object AuthSessionManager : ManagedSession, TasksManaged {
 
     var activeSessions: MutableMap<SessionStoreKey, AuthorizedSession> = mutableMapOf()
 
-
     var authenticator : UserAuthenticator = UserAuthenticator(factory)
         private set
+
+    val activescopedSessions = mutableListOf<ScopedSession<*>>()
+
+    fun <T: CTX> registerScopedSession(session:  ScopedSession<T>):ScopedSession<T> {
+        activescopedSessions.add(session)
+        return session
+    }
 
     fun registerAuthenticator(lookupFn: suspend (login: String)-> AuthenticationPrincipal?) {
         authenticator.setAuthenticator(lookupFn)

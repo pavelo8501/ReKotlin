@@ -8,6 +8,9 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.serializer
 import po.lognotify.TasksManaged
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
 import po.misc.types.safeCast
 import po.wswraptor.components.serializationfactory.interfaces.SerializeFactoryInterface
 import po.wswraptor.components.serializationfactory.models.SerializerContainer
@@ -22,6 +25,7 @@ class SerializationFactory<T: WSMessage<*>>(
     private val baseClass: KClass<T>,
 ) : TasksManaged, SerializeFactoryInterface {
 
+    override val identity: CTXIdentity<out CTX> =  asIdentity()
 
     val repository =  mutableMapOf<String, SerializerContainer<*>>()
     @OptIn(ExperimentalSerializationApi::class)
@@ -33,9 +37,7 @@ class SerializationFactory<T: WSMessage<*>>(
     }
 
     private fun <P: Any> getContainer(resourceName: String): SerializerContainer<P>{
-
-          return  repository[resourceName] as SerializerContainer<P>
-
+          return  repository[resourceName]
     }
     private fun <P: Any>getContainer(type: TypeInfo): SerializerContainer<P> {
         repository.values.firstOrNull { it.typeInfo == type }?.let {

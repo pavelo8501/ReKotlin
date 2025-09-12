@@ -6,6 +6,7 @@ import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.exists
 import po.auth.sessions.models.AuthorizedSession
+import po.auth.sessions.models.SessionBase
 import po.exposify.dao.transaction.withTransactionIfNone
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.RootDTO
@@ -90,7 +91,7 @@ class ServiceClass<DTO, DATA, ENTITY>(
         }
         return serviceContext
     }
-    internal suspend fun requestEmitter(process: Process<AuthorizedSession>): CoroutineEmitter =
+    internal suspend fun requestEmitter(process: Process<SessionBase>): CoroutineEmitter =
         connectionClass.requestEmitter(process)
 
 }

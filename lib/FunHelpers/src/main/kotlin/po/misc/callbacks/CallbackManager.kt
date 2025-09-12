@@ -33,7 +33,7 @@ class CallbackManager<E: Enum<E>>(
 
     init {
         try {
-            identity = asSubIdentity(this, emitter)
+            identity = asSubIdentity(emitter)
         }catch (th: Throwable){
             throw th
         }

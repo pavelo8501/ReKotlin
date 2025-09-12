@@ -1,6 +1,7 @@
 package po.exposify.scope.sequence.launcher
 
 import po.auth.sessions.models.AuthorizedSession
+import po.auth.sessions.models.SessionBase
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.components.query.WhereQuery
 import po.exposify.dto.components.result.ResultBase
@@ -48,7 +49,7 @@ private fun <DTO:ModelDTO, D:DataModel> returnContainerNotFound(
 }
 
 private suspend fun <DTO, D, F, FD> launchSwitch(
-    session:AuthorizedSession,
+    session:SessionBase,
     descriptor: SwitchDescriptorBase<DTO, D,  F, FD>,
     inputData: InputBase<DTO, D, *>,
     parentInput: InputBase<F, *, *>
@@ -114,7 +115,7 @@ private suspend fun <DTO, D, F, FD> launchSwitch(
 
 
 
-suspend fun <DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel> AuthorizedSession.launchSwitching(
+suspend fun <DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel> SessionBase.launchSwitching(
     switchDescriptor: SwitchSingeDescriptor<DTO, D, F, FD>,
     id: Long,
     parentInput: InputBase<F, *, *>,
@@ -126,7 +127,7 @@ suspend fun <DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel> Author
 }
 
 
-suspend fun <DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel> AuthorizedSession.launchSwitching(
+suspend fun <DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel> SessionBase.launchSwitching(
     switchDescriptor: SwitchSingeDescriptor<DTO, D, F, FD>,
     dataModel: D,
     parentInput: InputBase<F, *, *>,
@@ -148,7 +149,7 @@ suspend fun <DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel> Author
 //    return result
 //}
 
-suspend fun <DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel> AuthorizedSession.launchSwitching(
+suspend fun <DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel> SessionBase.launchSwitching(
     switchDescriptor: SwitchListDescriptor<DTO, D, F, FD>,
     inputData: List<D>,
     parentInput: InputBase<F, *, *>,
@@ -160,7 +161,7 @@ suspend fun <DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel> Author
     return result
 }
 
-suspend fun <DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel> AuthorizedSession.launchSwitching(
+suspend fun <DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel> SessionBase.launchSwitching(
     switchDescriptor: SwitchListDescriptor<DTO, D, F, FD>,
     whereQuery: DeferredContainer<WhereQuery<*>>,
     parentInput: InputBase<F, *, *>,

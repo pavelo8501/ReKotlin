@@ -26,6 +26,7 @@ class SurrogateHooks<T: CTX>(): WithSurrogateHooks<T>{
 
 class KSurrogate<T: CTX>(
     val receiver:T,
+    val classRecord : TypeData<T>,
     val hooks:SurrogateHooks<T> = SurrogateHooks()
 ):AbstractMutableMap<String, SourcePropertyIO<T, Any>>(), WithSurrogateHooks<T> by hooks, CTX {
 
@@ -35,9 +36,11 @@ class KSurrogate<T: CTX>(
         SourcePropertyInitialized
     }
 
-    override val identity:  CTXIdentity<KSurrogate<T>> = asSubIdentity(this, receiver)
+    override val identity:  CTXIdentity<KSurrogate<T>> = asSubIdentity(receiver)
 
-    val classRecord = TypeData.createByKClass(receiver::class)
+    //val classRecord = TypeData.createByKClass(receiver::class)
+
+
     val classInfo = overallInfoFromType<T>(ClassRole.Receiver, classRecord.kType)
 
 

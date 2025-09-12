@@ -131,12 +131,10 @@ sealed class ExecutionContext<DTO, D, E>(
             is ResultSingle->{
                 result.data?.let {
                     if(it is Identifiable<*>){
-
                         val found = trackingList.firstOrNull { stored ->
                             stored.first.strictComparison(it.identity)
                         }
                         if (found != null) {
-                            "comparison by identity work with result data".output(Colour.GREEN)
                             trackingList.remove(found)
                             found.second.invoke(result.getDTOForced())
                         }
@@ -151,9 +149,7 @@ sealed class ExecutionContext<DTO, D, E>(
                             stored.first.strictComparison(data.identity)
                         }
                         if (found != null) {
-                            "comparison by identity work with result data".output(Colour.GREEN)
                             trackingList.remove(found)
-
                             val dto =  result.dto.firstOrNull { it.id ==  data.id}.getOrManaged(this, ModelDTO::class)
                             found.second.invoke(dto)
                         }
@@ -211,7 +207,7 @@ class RootExecutionContext<DTO, D, E>(
 ) : ExecutionContext<DTO, D, E>(dtoClass) where DTO : ModelDTO, D : DataModel, E : LongEntity
 {
 
-    override val identity: CTXIdentity<RootExecutionContext<DTO, D, E>> = asSubIdentity(this, dtoClass)
+    override val identity: CTXIdentity<RootExecutionContext<DTO, D, E>> = asSubIdentity(dtoClass)
     private val taskConfig = TaskConfig(taskType = TaskType.AsRootTask)
 
     init {
@@ -457,7 +453,7 @@ class DTOExecutionContext<DTO, D, E, F, FD, FE>(
     val dtoClass: DTOClass<F, FD, FE>,
 ) : ExecutionContext<F, FD, FE>(dtoClass), TasksManaged
     where DTO : ModelDTO, D : DataModel, E : LongEntity, F : ModelDTO, FD : DataModel, FE : LongEntity {
-    override val identity: CTXIdentity<DTOExecutionContext<DTO, D, E, F, FD, FE>> = asSubIdentity(this, hostDTO)
+    override val identity: CTXIdentity<DTOExecutionContext<DTO, D, E, F, FD, FE>> = asSubIdentity(hostDTO)
 
     init {
         identity.setNamePattern {

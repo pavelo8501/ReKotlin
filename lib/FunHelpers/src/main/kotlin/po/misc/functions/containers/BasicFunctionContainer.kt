@@ -23,7 +23,7 @@ sealed class BasicFunctionContainer<T: Any, R: Any?, V: Any?>(
   val hooks: ReactiveHooks<BasicFunctionContainer<T, R, V>, V> = ReactiveHooks()
 ):  FunctionalClass<V>, CTX, BasicHooks<BasicFunctionContainer<T, R, V>, V> by hooks{
 
-    override val identity : CTXIdentity<BasicFunctionContainer<T, R, V>> = asSubIdentity(this, holder)
+    override val identity : CTXIdentity<BasicFunctionContainer<T, R, V>> = asSubIdentity(holder)
 
     /**
      * Hook manager for this container.

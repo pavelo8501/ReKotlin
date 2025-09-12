@@ -6,6 +6,4 @@ import kotlin.coroutines.CoroutineContext
 
 interface Processable:  CoroutineContext.Element, CTX {
     fun provideData(record: PrintableBase<*>)
-
-
 }

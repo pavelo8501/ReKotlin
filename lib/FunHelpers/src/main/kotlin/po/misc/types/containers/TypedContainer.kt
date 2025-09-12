@@ -18,7 +18,7 @@ interface TypedClass<T: Any>{
 
 open class TypedContainer<T: Any>(
     override val receiver:T,
-    override val typeData: Typed<T>,
+    override val typeData: TypeData<T>,
     val classInfo: ClassInfo<T>
 ): Single<T>(receiver), TypedClass<T>, Comparable<TypedContainer<*>>, ComplexContainers<T>{
 

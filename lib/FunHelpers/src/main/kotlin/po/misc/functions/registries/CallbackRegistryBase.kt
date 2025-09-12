@@ -1,7 +1,5 @@
 package po.misc.functions.registries
 
-import po.misc.containers.BackingContainer
-import po.misc.containers.backingContainerOf
 import po.misc.context.CTX
 import po.misc.data.logging.LogEmitter
 import po.misc.data.processors.SeverityLevel
@@ -12,8 +10,6 @@ import po.misc.functions.models.NotificationConfig
 import po.misc.functions.registries.models.SimpleSubscriber
 import po.misc.functions.registries.models.TaggedSubscriber
 import po.misc.types.TypeData
-import po.misc.types.TypeRecord
-import po.misc.types.castListOrManaged
 import po.misc.types.helpers.simpleOrNan
 import po.misc.types.safeCast
 import kotlin.collections.set

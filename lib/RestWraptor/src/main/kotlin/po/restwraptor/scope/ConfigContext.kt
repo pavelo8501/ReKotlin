@@ -42,7 +42,7 @@ class ConfigContext(
     val wrapConfig: WraptorConfig = WraptorConfig()
     val coreContext: CoreContext = CoreContext(application, wraptor)
 
-    override val identity: CTXIdentity<ConfigContext> = asSubIdentity(this, wraptor)
+    override val identity: CTXIdentity<ConfigContext> = asSubIdentity(wraptor)
     internal val responseProvider: BackingContainer<() -> WraptorResponse<*>> = backingContainerOf()
 
     var apiConfig: ApiConfig

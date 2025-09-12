@@ -7,8 +7,9 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.routing.Routing
 import io.ktor.server.routing.routing
 import po.lognotify.TasksManaged
-import po.restwraptor.scope.ConfigContext
-import po.restwraptor.scope.ConfigContextInterface
+import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
 import po.restwraptor.models.configuration.ApiConfig
 import po.wswraptor.models.configuration.WsApiConfig
 import po.wswraptor.plugins.HeadersPlugin
@@ -17,6 +18,8 @@ class WSConfigContext(
     val app: Application,
     val wsConfig: WsApiConfig? = null
 ):TasksManaged{
+
+    override val identity: CTXIdentity<out CTX> = asIdentity()
 
     val wsApiConfig  = wsConfig?: WsApiConfig()
 
@@ -69,4 +72,6 @@ class WSConfigContext(
     fun setupApplication(block: Application.()->Unit){
         app.block()
     }
+
+
 }

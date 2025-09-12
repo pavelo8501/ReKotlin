@@ -20,6 +20,8 @@ import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asSubIdentity
 import po.misc.data.SmartLazy
+import po.misc.data.helpers.output
+import po.misc.data.styles.Colour
 import po.misc.types.TypeData
 import kotlin.Any
 import kotlin.properties.ReadWriteProperty
@@ -82,7 +84,6 @@ sealed class ResponsiveDelegate<DTO, D, E, V : Any> protected constructor(
     val dtoClass : DTOBase<DTO, D, E> = hostingDTO.dtoClass
 
     internal val buffer: SlidingBuffer<V, AuxBufferParam> = SlidingBuffer(this, typeData)
-
 
     private var propertyParameter: KProperty<V>? = null
     val property: KProperty<V> get() = propertyParameter.getOrInit(this)
@@ -179,6 +180,7 @@ sealed class ResponsiveDelegate<DTO, D, E, V : Any> protected constructor(
         entity: E
     ) {
         val dataModel = hostingDTO.dataContainer.getValue(this)
+        "updateEntity by data model".output(Colour.MAGENTA)
         val value =  dataProperty.get(dataModel)
         entityProperty.set(entity, value)
     }
@@ -207,7 +209,7 @@ class SerializedDelegate<DTO, D, E, V : Any>
         serializedEntityProperty: KMutableProperty1<E, V>,
         typeData: TypeData<V>
     ) : ResponsiveDelegate<DTO, D, E, V>(dto,serializedDataProperty, serializedEntityProperty,  typeData) where DTO : ModelDTO, D : DataModel, E : LongEntity {
-    override val identity: CTXIdentity<out CTX> = asSubIdentity(this, dto)
+    override val identity: CTXIdentity<ResponsiveDelegate<DTO, D, E, V>>  = asSubIdentity(dto)
 
 }
 
@@ -221,6 +223,6 @@ class PropertyDelegate<DTO, D, E, V : Any>
     ) : ResponsiveDelegate<DTO, D, E, V>(dto, dataProperty,entityProperty, typeData) where DTO : ModelDTO, D : DataModel, E : LongEntity {
 
 
-    override val identity: CTXIdentity<PropertyDelegate<DTO, D, E, V>> = asSubIdentity(this, dto)
+    override val identity: CTXIdentity<PropertyDelegate<DTO, D, E, V>> = asSubIdentity(dto)
 
 }

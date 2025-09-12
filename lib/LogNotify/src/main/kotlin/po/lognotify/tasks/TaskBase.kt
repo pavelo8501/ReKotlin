@@ -162,7 +162,7 @@ class RootTask<T : CTX, R : Any?>(
     receiver: T,
 ) : TaskBase<T, R>(key, config, dispatcher, receiver), CoroutineHolder{
 
-    override val identity: CTXIdentity<RootTask<T, R>> = asSubIdentity(this, receiver)
+    override val identity: CTXIdentity<RootTask<T, R>> = asSubIdentity(receiver)
 
     override var coroutineContext: CoroutineContext  = scope.coroutineContext
         internal set
@@ -247,7 +247,7 @@ class Task<T : CTX, R : Any?>(
     receiver: T,
 ) : TaskBase<T, R>(key, config, hierarchyRoot.dispatcher, receiver),
     ResultantTask<T, R> {
-    override val identity: CTXIdentity<Task<T, R>> = asSubIdentity(this, receiver)
+    override val identity: CTXIdentity<Task<T, R>> get() =  asSubIdentity(receiver)
     override val dataProcessor: LoggerDataProcessor = LoggerDataProcessor(this, parentTask.dataProcessor)
 
     override val coroutineContext: CoroutineContext get() = hierarchyRoot.coroutineContext

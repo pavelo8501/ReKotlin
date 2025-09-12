@@ -17,6 +17,7 @@ import po.lognotify.TasksManaged
 import po.misc.containers.LazyContainer
 import po.misc.containers.lazyContainerOf
 import po.misc.context.CTX
+import po.misc.context.CTXIdentity
 import po.misc.context.asSubIdentity
 import po.misc.data.SmartLazy
 import po.misc.data.helpers.output
@@ -86,7 +87,7 @@ class AttachedForeignDelegate<DTO, D, E, F, FD, FE>(
 ) : ComplexDelegate<DTO, D, E, F, FD, FE>(dtoClass, hostingDTO)
     where D : DataModel, E : LongEntity, DTO : ModelDTO, F : ModelDTO, FD : DataModel, FE : LongEntity
 {
-     override val identity = asSubIdentity(this, hostingDTO)
+    override val identity get() = asSubIdentity<ComplexDelegate<DTO, D, E, F, FD, FE>>(hostingDTO)
 
      val attachedName: String get() = entityIdProperty.name
 
@@ -136,7 +137,7 @@ class ParentDelegate<DTO, D, E, F, FD, FE>(
 ) : ComplexDelegate<DTO, D, E, F, FD, FE>(dtoClass, hostingDTO)
     where DTO : ModelDTO, D : DataModel, E : LongEntity, F : ModelDTO, FD : DataModel, FE : LongEntity {
 
-    override val identity  = asSubIdentity(this, hostingDTO)
+    override val identity: CTXIdentity<ComplexDelegate<DTO, D, E, F, FD, FE>>  = asSubIdentity(hostingDTO)
 
     fun resolve(commonDTO : CommonDTO<F, FD, FE>){
         hostingDTO.parentDTOContainer.provideValue(commonDTO)

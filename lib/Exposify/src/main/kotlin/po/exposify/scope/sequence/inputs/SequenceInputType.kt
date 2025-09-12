@@ -2,6 +2,7 @@ package po.exposify.scope.sequence.inputs
 
 import org.jetbrains.exposed.dao.LongEntity
 import po.auth.sessions.models.AuthorizedSession
+import po.auth.sessions.models.SessionBase
 import po.exposify.dto.DTOBase
 import po.exposify.dto.components.query.WhereQuery
 import po.exposify.dto.interfaces.DataModel
@@ -56,7 +57,7 @@ class ParameterInput<DTO: ModelDTO, D: DataModel>(
 }
 
 
-fun <DTO: ModelDTO, D: DataModel> AuthorizedSession.withInput(descriptor:SequenceDescriptor<DTO, D>, input: Long):ParameterInput<DTO, D>{
+fun <DTO: ModelDTO, D: DataModel> SessionBase.withInput(descriptor:SequenceDescriptor<DTO, D>, input: Long):ParameterInput<DTO, D>{
    return ParameterInput(input, descriptor)
 }
 
@@ -74,7 +75,7 @@ class DataInput<DTO: ModelDTO, D: DataModel>(
     }
 }
 
-fun <DTO: ModelDTO, D: DataModel> AuthorizedSession.withInput(descriptor:SequenceDescriptor<DTO, D>, input: D):DataInput<DTO, D>{
+fun <DTO: ModelDTO, D: DataModel> SessionBase.withInput(descriptor:SequenceDescriptor<DTO, D>, input: D):DataInput<DTO, D>{
     return DataInput(input, descriptor)
 }
 
@@ -91,7 +92,7 @@ class ListDataInput<DTO: ModelDTO, D: DataModel>(
     }
 }
 
-fun <DTO: ModelDTO, D: DataModel> AuthorizedSession.withInput(
+fun <DTO: ModelDTO, D: DataModel> SessionBase.withInput(
     descriptor:SequenceDescriptor<DTO, D>,
     input: List<D>
 ):ListDataInput<DTO, D>{
@@ -111,14 +112,14 @@ class QueryInput<DTO: ModelDTO, D: DataModel>(
     }
 }
 
-fun <DTO: ModelDTO, D: DataModel> AuthorizedSession.withInput(
+fun <DTO: ModelDTO, D: DataModel> SessionBase.withInput(
     input: DeferredContainer<WhereQuery<*>>,
     descriptor: SingleDescriptor<DTO, D>
 ):QueryInput<DTO, D> {
     return QueryInput(input, descriptor)
 }
 
-fun <DTO: ModelDTO, D: DataModel> AuthorizedSession.withInput(
+fun <DTO: ModelDTO, D: DataModel> SessionBase.withInput(
     input: DeferredContainer<WhereQuery<*>>,
     descriptor: ListDescriptor<DTO, D>
 ):QueryInput<DTO, D> {

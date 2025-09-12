@@ -2,6 +2,7 @@ package po.exposify.scope.launchers
 
 import org.jetbrains.exposed.dao.LongEntity
 import po.auth.sessions.models.AuthorizedSession
+import po.auth.sessions.models.SessionBase
 import po.exposify.dto.DTOClass
 import po.exposify.dto.RootDTO
 import po.exposify.dto.components.bindings.helpers.withDTOContextCreating
@@ -13,7 +14,7 @@ import po.lognotify.launchers.runProcess
 import po.misc.functions.containers.DeferredContainer
 
 
-suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity> AuthorizedSession.pick(
+suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity> SessionBase.pick(
     dtoClass: RootDTO<DTO, D, E>,
     id: Long
 ): ResultSingle<DTO, D>{
@@ -26,7 +27,7 @@ suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity> AuthorizedSession.pick(
     }
 }
 
-suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity> AuthorizedSession.pick(
+suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity> SessionBase.pick(
     dtoClass:RootDTO<DTO, D, E>,
     query: DeferredContainer<WhereQuery<E>>
 ): ResultSingle<DTO, D> {
@@ -38,7 +39,7 @@ suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity> AuthorizedSession.pick(
     }
 }
 
-suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity, R> AuthorizedSession.pick(
+suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity, R> SessionBase.pick(
     dtoClass:RootDTO<DTO, D, E>,
     query: DeferredContainer<WhereQuery<E>>,
     block:ResultSingle<DTO, D>.()-> R
@@ -57,7 +58,7 @@ suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity, R> AuthorizedSession.pi
 
 
 
-suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity, R> AuthorizedSession.pick(
+suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity, R> SessionBase.pick(
     dtoClass:RootDTO<DTO, D, E>,
     id: Long,
     block:ResultSingle<DTO, D>.()-> R

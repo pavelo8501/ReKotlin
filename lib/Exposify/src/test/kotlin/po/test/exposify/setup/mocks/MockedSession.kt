@@ -3,6 +3,7 @@ package po.test.exposify.setup.mocks
 import po.auth.extensions.session
 import po.auth.sessions.interfaces.SessionIdentified
 import po.auth.sessions.models.AuthorizedSession
+import po.auth.sessions.models.SessionBase
 import java.util.UUID
 
 
@@ -12,12 +13,12 @@ class SessionIdentity(
 ): SessionIdentified
 
 private val sessionIdentity = SessionIdentity("192.169.1.1", "0")
-val mockedSession :  AuthorizedSession = session(sessionIdentity)
+val mockedSession :  SessionBase = session(sessionIdentity)
 
-val newMockedSession:AuthorizedSession get() = session(SessionIdentity( "192.169.1.1", UUID.randomUUID().toString()))
+val newMockedSession:SessionBase get() = session(SessionIdentity( "192.169.1.1", UUID.randomUUID().toString()))
 
 
-internal fun newMockedSession():AuthorizedSession{
+internal fun newMockedSession():SessionBase{
     val sessionIdentity = SessionIdentity("192.169.1.1", "0")
    return session(sessionIdentity)
 }

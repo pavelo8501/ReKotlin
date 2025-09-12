@@ -172,7 +172,7 @@ class CommonDTOFactory<DTO, D, E, F, FD, FE>(
     hostingDTO: CommonDTO<F, FD, FE>,
 ) : DTOFactoryBase<DTO, D, E>(dtoConfiguration)
     where DTO : ModelDTO, D : DataModel, E : LongEntity, F : ModelDTO, FD : DataModel, FE : LongEntity {
-    override val identity: CTXIdentity<CommonDTOFactory<DTO, D, E, F, FD, FE>> = asSubIdentity(this, hostingDTO)
+    override val identity: CTXIdentity<CommonDTOFactory<DTO, D, E, F, FD, FE>> = asSubIdentity(hostingDTO)
 
     val onDTOCreated: TaggedRegistry<Events, CommonDTO<DTO, D, E>> = taggedRegistryOf<Events, CommonDTO<DTO, D, E>>(Events.OnCreated)
 

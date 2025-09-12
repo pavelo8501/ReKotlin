@@ -7,6 +7,7 @@ import po.auth.AuthSessionManager
 import po.auth.sessions.interfaces.ManagedSession
 import po.auth.sessions.interfaces.SessionIdentified
 import po.auth.sessions.models.AuthorizedSession
+import po.auth.sessions.models.SessionBase
 import kotlin.coroutines.coroutineContext
 
 
@@ -26,14 +27,14 @@ suspend fun withSessionContext(
     withContext(session.coroutineContext, block)
 }
 
-inline fun <R> AuthorizedSession.runWithSession(
-    block: AuthorizedSession.() -> R
+inline fun <R> SessionBase.runWithSession(
+    block: SessionBase.() -> R
 ):R{
    return block()
 }
 
 
 
-suspend fun CoroutineScope.currentSession(): AuthorizedSession?{
+suspend fun CoroutineScope.currentSession(): SessionBase?{
    return currentCoroutineContext()[AuthorizedSession]
 }

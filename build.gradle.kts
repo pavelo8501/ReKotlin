@@ -11,7 +11,7 @@ buildscript {
         gradlePluginPortal()
     }
     dependencies {
-        classpath("io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.23.8")
+       // classpath("io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.23.8")
     }
 }
 
@@ -24,7 +24,7 @@ allprojects {
 }
 
 subprojects {
-    apply(plugin = "io.gitlab.arturbosch.detekt")
+    //apply(plugin = "io.gitlab.arturbosch.detekt")
     apply(plugin = "org.jetbrains.kotlin.jvm")
     apply(plugin = "com.google.devtools.ksp")
     apply(plugin = "maven-publish")

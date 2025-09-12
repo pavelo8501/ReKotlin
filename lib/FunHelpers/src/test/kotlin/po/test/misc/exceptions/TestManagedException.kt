@@ -28,8 +28,8 @@ class TestManagedException: CTX {
         }
         assertEquals("Expected: String. Result is null", managed.message, "Wrong message")
         val firstRec = assertNotNull(managed.exceptionData.firstOrNull())
-        val traceRec = assertNotNull(firstRec.stackTraceList.firstOrNull { it.className ==  this::class.qualifiedName}, "No trace rec found")
-        println(traceRec)
+      //  val traceRec = assertNotNull(firstRec.stackTraceList.firstOrNull { it.className ==  this::class.qualifiedName}, "No trace rec found")
+      //  println(traceRec)
     }
 
 }

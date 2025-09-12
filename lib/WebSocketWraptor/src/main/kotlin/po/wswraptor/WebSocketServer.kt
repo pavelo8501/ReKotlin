@@ -3,13 +3,11 @@ package po.wswraptor
 import io.ktor.server.application.Application
 import io.ktor.server.routing.Routing
 import io.ktor.server.websocket.webSocket
-import po.restwraptor.RestServer
 import po.restwraptor.RestWrapTor
 import po.wswraptor.classes.WSConfigContext
 import po.wswraptor.models.configuration.WsApiConfig
 import po.wswraptor.routing.WSRoute
 import po.wswraptor.services.ConnectionService
-import java.util.Collections
 
 inline fun Routing.webSocket(
         path: String,

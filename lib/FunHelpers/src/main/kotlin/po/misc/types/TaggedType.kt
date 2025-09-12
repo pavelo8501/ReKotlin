@@ -96,32 +96,5 @@ data class TaggedType<T: Any, E: Enum<E>>(
             val typeData =  TypeData.create<T>()
             return TaggedType(typeData, tagRecord)
         }
-
-        /**
-         * Creates a [TaggedType] from an explicit [KClass] and enum tag [E], optionally providing an alias.
-         *
-         * This method is recommended when the type [T] is not available as a reified generic or when dynamic
-         * creation is necessary.
-         *
-         * **Note**: Make sure to pass both the class and the enum value. Forgetting the enum may result in
-         * incorrect or missing tagging.
-         *
-         * Example usage:
-         * ```
-         * val tag = TaggedType.create(MyDTO::class, MyEnum.INSERT)
-         * ```
-         *
-         * @param clazz The Kotlin class for type [T]
-         * @param enumTag The enum constant to tag this type with
-         * @param alias Optional alias string; defaults to the computed [typeName] if not provided
-         */
-        fun <T: Any, E: Enum<E>> create(clazz: KClass<T>, enumTag:E, alias: String? = null):TaggedType<T, E>{
-            val type =  clazz.createType()
-            val javaClass =  enumTag::class.java as Class<E>
-            val tagRecord = EnumTag(enumTag, javaClass)
-            alias?.let { tagRecord.alias = it }
-            val typeData =  TypeData.createByKClass(clazz)
-            return TaggedType(typeData, tagRecord)
-        }
     }
 }

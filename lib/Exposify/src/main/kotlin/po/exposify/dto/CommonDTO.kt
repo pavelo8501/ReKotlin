@@ -156,7 +156,6 @@ abstract class CommonDTO<DTO, D, E>(
 
 
     private fun entityChanged(change: Change<E?, E>) {
-
         try {
             val entityId = change.newValue.id.value
             updateDtoId(entityId)
@@ -197,7 +196,6 @@ abstract class CommonDTO<DTO, D, E>(
     }
 
     internal suspend fun saveDTO(rootClass: RootDTO<DTO, D, E>){
-
         rootClass.executionContext.restoreDTO(dataContainer.getValue(this))
     }
 
@@ -207,6 +205,7 @@ abstract class CommonDTO<DTO, D, E>(
                 it.buffer.flush()
             }
         }
+        updateDataStatus(DataStatus.UpToDate)
     }
 
 

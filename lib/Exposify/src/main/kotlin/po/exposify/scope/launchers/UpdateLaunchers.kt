@@ -2,6 +2,7 @@ package po.exposify.scope.launchers
 
 import org.jetbrains.exposed.dao.LongEntity
 import po.auth.sessions.models.AuthorizedSession
+import po.auth.sessions.models.SessionBase
 import po.exposify.dto.DTOClass
 import po.exposify.dto.RootDTO
 import po.exposify.dto.components.bindings.helpers.withDTOContextCreating
@@ -12,7 +13,7 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.lognotify.launchers.runProcess
 
 
-suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity>  AuthorizedSession.update(
+suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity>  SessionBase.update(
     dtoClass:RootDTO<DTO, D, E>,
     list: List<D>
 ): ResultList<DTO, D>{
@@ -25,7 +26,7 @@ suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity>  AuthorizedSession.upda
     }
 }
 
-suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity>  AuthorizedSession.update(
+suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity>  SessionBase.update(
     dtoClass:RootDTO<DTO, D, E>,
     dataModel: D
 ): ResultSingle<DTO, D> = runProcess(this) {
@@ -35,7 +36,7 @@ suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity>  AuthorizedSession.upda
     }
 }
 
-suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity, R>  AuthorizedSession.update(
+suspend fun <DTO: ModelDTO, D: DataModel, E: LongEntity, R>  SessionBase.update(
     dtoClass:RootDTO<DTO, D, E>,
     dataModel: D,
     block:ResultSingle<DTO, D>.()-> R
