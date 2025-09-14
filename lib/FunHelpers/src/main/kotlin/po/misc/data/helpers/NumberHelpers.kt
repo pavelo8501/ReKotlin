@@ -13,15 +13,15 @@ inline fun <R> String?.whenIsLong(action:(Long)->R):R?{
     return null
 }
 
-inline fun <R> String?.longOrManaged(action:(Long)->R):R{
+inline fun <R> String?.longOrManaged(callingContext: Any,  action:(Long)->R):R{
     if(this != null){
         return  toLongOrNull()?.let {
             action.invoke(it)
         }?:run {
-           throw ManagedException("Expected long but got $this")
+           throw ManagedException(callingContext, "Expected long but got $this")
         }
     }
-    throw ManagedException("Expected long but got null")
+    throw ManagedException(callingContext, "Expected long but got null")
 }
 
 inline fun <T: Any, R> T.longOrManaged(param1:String?,  action: T.(Long)->R):R{

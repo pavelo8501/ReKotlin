@@ -56,7 +56,7 @@ class ActionValue<V>(
 }
 
 class UpdatableContainer<T: CTX, R: Any, V: Any>(
-    source:T,
+    val source:T,
     typeData: TypeData<T>,
     containerTypeData: TypeData<UpdatableContainer<T, R, V>>,
     classInfo: ClassInfo<T>,
@@ -104,7 +104,7 @@ class UpdatableContainer<T: CTX, R: Any, V: Any>(
             notifier.trigger<UpdatableData>(UpdatableEvents.UpdateInvoked, createData(controlMessage, true, event))
         }?:run {
             val message = "triggerUpdateModification failed. ModificationLambda not provided"
-            notifier.trigger<ManagedException>(UpdatableEvents.Failure, ManagedException(message) )
+            notifier.trigger<ManagedException>(UpdatableEvents.Failure, ManagedException(source, message) )
         }
     }
 
@@ -117,7 +117,7 @@ class UpdatableContainer<T: CTX, R: Any, V: Any>(
         }.onFailure {
             event = UpdatableEvents.Failure
 
-            notifier.trigger<ManagedException>(event, it.toManaged() )
+            notifier.trigger<ManagedException>(event, it.toManaged(this) )
         }
     }
 }

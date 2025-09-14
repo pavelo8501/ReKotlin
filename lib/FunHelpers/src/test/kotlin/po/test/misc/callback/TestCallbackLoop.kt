@@ -4,12 +4,13 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import po.misc.callbacks.loop.CallbackLoop
+import po.misc.callbacks.loop.LoopConfig
 import po.misc.callbacks.loop.LoopStats
-import po.misc.context.CTXIdentity
-import po.misc.context.asIdentity
-import po.misc.coroutines.ScopedElementBase
+import po.misc.callbacks.loop.models.DefaultOutput
+import po.misc.callbacks.loop.models.OutputGroup
+import po.misc.callbacks.loop.models.OutputItem
 import po.misc.data.helpers.output
-import kotlin.coroutines.CoroutineContext
+import po.misc.data.logging.Verbosity
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
@@ -25,7 +26,7 @@ class TestCallbackLoop {
         val updates: List<Update>
     )
 
-    var callbackLoop: CallbackLoop<Response, List<Update>>? = null
+    var callbackLoop: CallbackLoop<Response, DefaultOutput>? = null
 
     fun createUpdates(count: Long = 5): List<Update> {
         val result = mutableListOf<Update>()
@@ -39,21 +40,27 @@ class TestCallbackLoop {
         return result
     }
 
-    suspend fun simulateInput(lastUpdate: List<Update>?): Response {
+    suspend fun simulateInput(): Response {
         return Response(
             updates = createUpdates()
         )
     }
 
-    fun simulatePreProcess(response: Response): Map<Long, List<Update>> {
-        return response.updates.groupBy { it.groupId.toLong() }
+    fun simulateModification(response: Response): DefaultOutput {
+        val updates = response.updates.orEmpty()
+        val groups = updates.groupBy { it.groupId.toLong() }
+        val outputGroups = groups.map { (groupId, groupedUpdates) ->
+            OutputGroup(
+                id = groupId,
+                output = groupedUpdates.map { update ->
+                    OutputItem(update.groupId.toLong(), update.name)
+                }
+            )
+        }
+        return DefaultOutput(outputGroups)
     }
 
-    fun simulateModification(response: Response): Map<Any, List<Update>> {
-        return response.updates.groupBy { it.groupId.toLong() }
-    }
-
-    suspend fun loopOutput(output: Map.Entry<Any, List<Update>>) {
+    suspend fun loopOutput(output: DefaultOutput) {
         output.output()
         callbackLoop?.stop()
     }
@@ -64,7 +71,7 @@ class TestCallbackLoop {
 
         var onLoopData: Any? = null
 
-        callbackLoop = CallbackLoop<Response, List<Update>> {
+        callbackLoop = CallbackLoop<Response, DefaultOutput>(LoopConfig(verbosity = Verbosity.Warnings)) {
             callbacks.onRequest(::simulateInput)
             callbacks.onModification(::simulateModification)
             callbacks.onResponse(::loopOutput)
@@ -76,7 +83,7 @@ class TestCallbackLoop {
         assertDoesNotThrow {
             callbackLoop!!.startBlocking()
         }
-        assertIs<LoopStats<List<Update>>>(onLoopData)
+        assertIs<DefaultOutput>(onLoopData)
     }
 
     @Test
@@ -84,7 +91,7 @@ class TestCallbackLoop {
 
         var loopOutputCounter: Int = 0
 
-        val loop = CallbackLoop<Response, List<Update>> {
+        val loop = CallbackLoop<Response, DefaultOutput> {
             callbacks.onRequest(::simulateInput)
             callbacks.onModification(::simulateModification)
             callbacks.onResponse(::loopOutput)

@@ -25,13 +25,13 @@ inline fun <reified E: Enum<E>, V: Any> Any.taggedRegistryOf(
 }
 
 fun <E: Enum<E>, V: Any> CTX.subscribe(registry: TaggedRegistry<E, V>, callback: (V) -> Unit) {
-    val exception =  ManagedException("If no key provided registry must have been configured with default key")
+    val exception =  ManagedException(this, "If no key provided registry must have been configured with default key")
     val key = registry.presetKey.getOrThrow(registry.tagClass.kotlin, this) {exception }
     registry.subscribe(key, identity.kClass, identity.numericId, callback)
 }
 
 fun <E: Enum<E>, V: Any> CTX.require(registry: TaggedRegistry<E, V>, callback: (V) -> Unit){
-    val exception =  ManagedException("If no key provided registry must have been configured with default key")
+    val exception =  ManagedException(this, "If no key provided registry must have been configured with default key")
     val key = registry.presetKey.getOrThrow(registry.tagClass.kotlin, this) { exception }
     registry.require(key, this.identity.kClass,  identity.numericId, callback)
 }

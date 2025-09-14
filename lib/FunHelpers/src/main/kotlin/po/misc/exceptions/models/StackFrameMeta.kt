@@ -1,5 +1,14 @@
 package po.misc.exceptions.models
 
+import kotlin.reflect.KClass
+
+data class ExceptionTrace(
+    val kClass: KClass<*>,
+    val stackFrames: List<StackFrameMeta>,
+){
+    val bestPick:StackFrameMeta? get() = stackFrames.firstOrNull()
+}
+
 data class StackFrameMeta(
     val fileName: String,
     val simpleClassName: String,
@@ -7,9 +16,15 @@ data class StackFrameMeta(
     val lineNumber: Int,
     val classPackage: String,
     val isHelperMethod: Boolean,
-    val isUserCode: Boolean
+    val isUserCode: Boolean,
+    val stackTraceElement: StackTraceElement? = null
 ){
 
+    val normalizedMethodName: String
+        get() = methodName
+            .replace(Regex("""lambda\$\d+"""), "[lambda]")
+            .replace('_', ' ')
+            .replace('$', '.')
 
     override fun toString(): String {
        return buildString {
@@ -22,6 +37,5 @@ data class StackFrameMeta(
             appendLine("Is user code: $isUserCode")
         }
     }
-
 }
 

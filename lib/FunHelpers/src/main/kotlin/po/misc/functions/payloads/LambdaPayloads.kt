@@ -1,6 +1,7 @@
 package po.misc.functions.payloads
 
 import po.misc.exceptions.ManagedException
+import po.misc.exceptions.TraceableContext
 
 
 sealed interface LambdaPayload<T> {
@@ -12,11 +13,12 @@ interface SafePayload<V: Any>: LambdaPayload<V> {
 
     val value:V?
     val throwable: Throwable?
+    val host: TraceableContext
 
     val isValue: Boolean get() = value != null
     val isThrowable: Boolean get() = throwable != null
 
-    val resultOrThrow: V get() = value?: throw throwable?: ManagedException("Both result and throwable are null")
+    val resultOrThrow: V get() = value?: throw throwable?: ManagedException(host, "Both result and throwable are null")
 
 }
 

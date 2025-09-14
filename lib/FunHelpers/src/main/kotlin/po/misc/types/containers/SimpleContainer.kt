@@ -28,7 +28,7 @@ open class Single<T: Any>(val value: T): SingleOrList<T>{
             @Suppress("UNCHECKED_CAST")
             return list as List<T2>
         }
-        val casted = list.castListOrManaged(typeData.kClass, this)
+        val casted = list.castListOrManaged(this, typeData.kClass)
         status = SingleOrList.CastStatus.Casted
         return casted
     }
@@ -47,7 +47,7 @@ open class Multiple<T: Any>(val values: List<T>): SingleOrList<T>{
             @Suppress("UNCHECKED_CAST")
             return list as List<T2>
         }
-        val casted = list.castListOrManaged(typeData.kClass, this)
+        val casted = list.castListOrManaged(this, typeData.kClass)
         status = SingleOrList.CastStatus.Casted
         return casted
     }

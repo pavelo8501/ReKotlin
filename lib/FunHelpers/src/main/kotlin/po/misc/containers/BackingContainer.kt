@@ -80,7 +80,7 @@ sealed class BackingContainerBase<T: Any>(
 
        val castedFallbackValue = when(this){
             is BackingContainer->{
-                fallbackValue.castOrManaged(typeData.kClass, this)
+                fallbackValue.castOrManaged(this, typeData.kClass)
             }
             else -> {
                 TODO("else branch of getWithFallback not yet implemented")

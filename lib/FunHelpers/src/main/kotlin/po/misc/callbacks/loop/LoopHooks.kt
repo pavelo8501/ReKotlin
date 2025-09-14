@@ -1,16 +1,16 @@
 package po.misc.callbacks.loop
 
 
-interface LoopHooks<T1: Any, T2: Any>{
+interface LoopHooks<T1: Any, T2: ModifiedOutput>{
     fun onError(callback: (Throwable)-> Unit)
-    fun onLoop(callback: ConcurrentLoopBase<T1, T2>.(LoopStats<T2>)-> Unit)
+    fun onLoop(callback: ConcurrentLoopBase<T1, T2>.(LoopStats)-> Unit)
 
-    fun triggerOnLoop(loopStats: LoopStats<T2>)
+    fun triggerOnLoop(loopStats: LoopStats)
     fun triggerOnError(th: Throwable)
 
 }
 
-class BaseHooks<T1: Any, T2: Any>(
+class BaseHooks<T1: Any, T2: ModifiedOutput>(
    internal val loop: ConcurrentLoopBase<T1, T2>
 ): LoopHooks<T1, T2> {
 
@@ -22,18 +22,18 @@ class BaseHooks<T1: Any, T2: Any>(
         onErrorCallback?.invoke(th)
     }
 
-    internal var onLoopCallback : (ConcurrentLoopBase<T1, T2>.(LoopStats<T2>)-> Unit)? = null
-    override fun onLoop(callback: ConcurrentLoopBase<T1, T2>.(LoopStats<T2>)-> Unit){
+    internal var onLoopCallback : (ConcurrentLoopBase<T1, T2>.(LoopStats)-> Unit)? = null
+    override fun onLoop(callback: ConcurrentLoopBase<T1, T2>.(LoopStats)-> Unit){
         onLoopCallback = callback
     }
-    override fun triggerOnLoop(loopStats: LoopStats<T2>){
+    override fun triggerOnLoop(loopStats: LoopStats){
         onLoopCallback?.invoke(loop, loopStats)
     }
 }
 
-class CallbackHooks<T1: Any, T2: Any>(
+class CallbackHooks<T1: Any, T2: ModifiedOutput>(
     internal val loop: CallbackLoop<T1, T2>,
-    internal val callbacks: LoopCallbacks<T1, T2>
+    val callbacks: LoopCallbacks<T1, T2>
 ): LoopHooks<T1, T2> {
 
     internal var onErrorCallback : ((Throwable)-> Unit)? = null
@@ -41,12 +41,12 @@ class CallbackHooks<T1: Any, T2: Any>(
         onErrorCallback = callback
     }
 
-    internal var onLoopCallback : (ConcurrentLoopBase<T1, T2>.(LoopStats<T2>)-> Unit)? = null
-    override fun onLoop(callback: ConcurrentLoopBase<T1, T2>.(LoopStats<T2>)-> Unit){
+    internal var onLoopCallback : (ConcurrentLoopBase<T1, T2>.(LoopStats)-> Unit)? = null
+    override fun onLoop(callback: ConcurrentLoopBase<T1, T2>.(LoopStats)-> Unit){
         onLoopCallback = callback
     }
 
-    override fun triggerOnLoop(loopStats: LoopStats<T2>) {
+    override fun triggerOnLoop(loopStats: LoopStats) {
         onLoopCallback?.invoke(loop, loopStats)
     }
 

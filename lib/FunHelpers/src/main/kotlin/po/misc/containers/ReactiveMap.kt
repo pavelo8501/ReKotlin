@@ -37,14 +37,14 @@ class ReactiveMap<K: Any, V: Any>(
     @PublishedApi
     internal fun proceedWithFallback(key:K): Nothing{
         throw  exceptionFallback?.exceptionProvider?.invoke()?: run {
-            throw ManagedException(MessageBundle.get("NotFoundError", key))
+            throw ManagedException(this, MessageBundle.get("NotFoundError", key))
         }
     }
 
     @PublishedApi
     internal fun proceedWithFallback(kClass: KClass<*>): Nothing{
         val exception =  exceptionFallback?.exceptionProvider?.invoke()?: run {
-             ManagedException(MessageBundle.get("CastError", kClass))
+             ManagedException(this, MessageBundle.get("CastError", kClass))
         }
         onErrorHook.trigger(ErrorData(this, exception, onExceptionSnapshot?.invoke()?:""))
         throw exception

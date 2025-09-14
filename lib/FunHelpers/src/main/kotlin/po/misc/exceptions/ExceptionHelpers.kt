@@ -4,30 +4,8 @@ import po.misc.collections.takeFromMatch
 import po.misc.data.helpers.stripAfter
 import po.misc.exceptions.models.StackFrameMeta
 
-
 internal fun  Throwable.currentCallerTrace(methodName: String): List<StackTraceElement> {
     return stackTrace.takeFromMatch(2){ it.methodName == methodName }
-}
-
-fun throwManaged(
-    message: String,
-    callingContext: Any,
-    code: Enum<*>? = null,
-    handler : HandlerType? = null,
-): Nothing{
-    val methodName = "throwManaged"
-    val payload =  ManagedPayload(message, methodName, callingContext)
-    throw ManagedException(payload.setCode(code).setHandler(handler))
-}
-
-fun throwManaged(
-    message: String,
-    handler : HandlerType,
-    callingContext: Any
-): Nothing{
-    val methodName = "throwManaged"
-    val payload =  ManagedPayload(message, methodName, callingContext)
-    throw ManagedException(payload.setHandler(handler))
 }
 
 
@@ -65,7 +43,7 @@ fun <S: Enum<S>> throwException(
 }
 
 
-inline fun <S: Enum<S>> throwException(
+inline fun <S: Enum<S>> TraceableContext.throwException(
     message: String,
     callingContext: Any,
     exceptionProvider: (ManagedCallSitePayload)-> Throwable
@@ -75,8 +53,9 @@ inline fun <S: Enum<S>> throwException(
     throw exceptionProvider.invoke(payload)
 }
 
-fun Throwable.toManaged(): ManagedException{
-    val managed = ManagedException(this.throwableToText(), null, this)
+fun Throwable.toManaged(context: TraceableContext): ManagedException{
+
+    val managed = ManagedException(context, message = throwableToText(), code = null, cause = this)
     return managed
 }
 
@@ -96,7 +75,6 @@ fun  Throwable.throwableToText(): String{
 }
 
 internal fun String.isLikelyUserCode(): Boolean {
-
     return this.isNotBlank() &&
             !startsWith("kotlin") &&
             !startsWith("java") &&
@@ -104,6 +82,49 @@ internal fun String.isLikelyUserCode(): Boolean {
             !startsWith("jdk") &&
             !startsWith("org.jetbrains")
 }
+
+
+//
+// fun <TH: Throwable>  TH.toStackFrameMeta(
+//     throwingClass: Any
+// ):List<StackFrameMeta>{
+//
+//     val kClass: KClass<*> = throwingClass::class
+//
+//   return  extractCallSiteMetaByClass(kClass.qualifiedName?:"", 3)
+//}
+//
+//fun Throwable.extractCallSiteMetaByClass(
+//    className: String,
+//    framesCount: Int = 2,
+//    helperPackagePrefixes: List<String> = listOf("po.misc", "kotlin", "java")
+//): List<StackFrameMeta> {
+//
+//    val frames = stackTrace.takeFromMatch<StackTraceElement>(framesCount){ it.className ==  className}
+//
+//    return frames.map {stackTraceElement->
+//        val classPackage = stackTraceElement.className.substringBeforeLast('.', missingDelimiterValue = "")
+//        val isHelper = helperPackagePrefixes.any { prefix ->
+//            classPackage == prefix || classPackage.startsWith("$prefix.")
+//        }
+//
+//        val isUser = !isHelper && classPackage.isLikelyUserCode()
+//
+//        StackFrameMeta(
+//            fileName = stackTraceElement.className,
+//            simpleClassName = stackTraceElement.javaClass.simpleName,
+//            methodName = stackTraceElement.methodName,
+//            lineNumber = stackTraceElement.lineNumber,
+//            classPackage = classPackage,
+//            isHelperMethod = isHelper,
+//            isUserCode = isUser,
+//            stackTraceElement = stackTraceElement
+//        )
+//    }
+//}
+//
+
+
 
 fun Throwable.extractCallSiteMeta(
     methodName: String,

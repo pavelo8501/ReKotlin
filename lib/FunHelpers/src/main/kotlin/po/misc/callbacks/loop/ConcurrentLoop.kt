@@ -8,9 +8,12 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import po.misc.data.helpers.output
+import po.misc.data.logging.LogEmitter
+import po.misc.data.logging.LogEmitterClass
 import po.misc.data.styles.Colour
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.throwableToText
+import kotlin.time.Duration
 import kotlin.time.DurationUnit
 
 
@@ -23,16 +26,22 @@ interface ConcurrentLoop<REQUEST : Any, UPDATE : Any> {
 }
 
 
+interface ModifiedOutput {
+    val size: Int
+}
 
-abstract class ConcurrentLoopBase<I: Any, UPDATE: Any>(
+
+abstract class ConcurrentLoopBase<INPUT: Any, OUTPUT: ModifiedOutput>(
     override val config: LoopConfig,
-    val withHooks: (LoopHooks<I, UPDATE>.()->Unit)? = null
-):ConcurrentLoop<I, UPDATE> {
+    val withHooks: (LoopHooks<INPUT, OUTPUT>.()->Unit)? = null
+):ConcurrentLoop<INPUT, OUTPUT> {
 
-    abstract val loopHooks: LoopHooks<I, UPDATE>
+    abstract val loopHooks: LoopHooks<INPUT, OUTPUT>
 
     val stopMessage: String = "Stopped loop since no request/response callback provided"
-    val stats: LoopStats<UPDATE> = LoopStats()
+    val stats: LoopStats = LoopStats()
+
+    val emitter: LogEmitterClass = LogEmitterClass(this)
 
     protected var listenerScope = CoroutineScope(SupervisorJob() + CoroutineName("connector_listener"))
 
@@ -43,17 +52,19 @@ abstract class ConcurrentLoopBase<I: Any, UPDATE: Any>(
 
     init {
         withHooks?.invoke(loopHooks)
+
     }
 
-    abstract suspend fun requestCall():I
-    abstract fun modificationCall(input: I): Map<Any, UPDATE>
-    abstract suspend fun responseCall(output:   Map.Entry<Any, UPDATE>)
+    abstract suspend fun requestCall():INPUT
+    abstract fun modificationCall(input: INPUT): OUTPUT
+    abstract suspend fun responseCall(output: OUTPUT)
 
-    private fun calculateDelay(): Long{
-        if( stats.inBoostMode){
-            return  config.requestDelay.toLong(DurationUnit.SECONDS) / 2
+    private fun calculateDelay(): Duration {
+        return if (stats.inBoostMode) {
+            config.requestDelay / 2
+        } else {
+            config.requestDelay
         }
-        return  config.requestDelay.toLong(DurationUnit.SECONDS)
     }
 
     private fun startBoost(){
@@ -83,30 +94,31 @@ abstract class ConcurrentLoopBase<I: Any, UPDATE: Any>(
         }.await()
     }
 
-    private suspend fun handlePreProcessed(preProcessed:  Map<Any, UPDATE>){
-        preProcessed.forEach { item ->
-            responseCall(item)
-        }
-        stats.totalProcessedCount += preProcessed.values.size
-        stats.perLoopProcessedCount = preProcessed.values.size
-        stats.lastUpdateProcessed = preProcessed.values.lastOrNull()
+    private fun updateStats(preProcessed: OUTPUT){
+        stats.totalProcessedCount += preProcessed.size
+        stats.perLoopProcessedCount = preProcessed.size
     }
 
     private  suspend fun runLoop() {
         active = true
         while (active) {
             try {
+                val delay = calculateDelay()
+                emitter.info("Starting new loop #${stats.loopsCount} with delay of: $delay")
                 val requestedData = requestCall()
                 val modifiedData = modificationCall(requestedData)
-                if (modifiedData.isNotEmpty()) {
-                    handlePreProcessed(modifiedData)
+                emitter.info("Modified data size: ${modifiedData.size}")
+                if (modifiedData.size > 0) {
+                    updateStats(modifiedData)
+                    emitter.info("Emitting response")
+                    responseCall(modifiedData)
                     startBoost()
                 } else {
                     decreaseBoost()
                 }
+                emitter.info("Loop complete")
                 stats.loopsCount ++
                 loopHooks.triggerOnLoop(stats.copy())
-                val delay = calculateDelay()
                 delay(delay)
             } catch (th: Throwable) {
                 if (th is ManagedException) {

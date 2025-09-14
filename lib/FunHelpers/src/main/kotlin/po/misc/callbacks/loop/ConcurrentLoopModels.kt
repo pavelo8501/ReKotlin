@@ -1,19 +1,20 @@
 package po.misc.callbacks.loop
 
 import po.misc.data.PrettyPrint
+import po.misc.data.logging.Verbosity
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 data class LoopConfig(
     var boostWindowSize: Int = 10,
-    var requestDelay: Duration = 10.seconds
+    var requestDelay: Duration = 10.seconds,
+    var verbosity: Verbosity = Verbosity.Info
 )
 
-data class LoopStats<UPDATE: Any>(
-    var lastUpdateProcessed: UPDATE? = null,
+data class LoopStats(
     var perLoopProcessedCount: Int = 0,
     var totalProcessedCount: Long = 0,
-    var loopsCount: Long = 0L,
+    var loopsCount: Long = 1L,
     var inBoostMode: Boolean = false
 ): PrettyPrint{
 

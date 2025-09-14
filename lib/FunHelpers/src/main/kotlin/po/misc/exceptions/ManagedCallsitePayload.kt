@@ -2,6 +2,7 @@ package po.misc.exceptions
 
 import po.misc.context.CTX
 import po.misc.data.helpers.replaceIfNull
+import po.misc.exceptions.models.ExceptionTrace
 
 interface ManagedCallSitePayload{
     val message: String
@@ -9,9 +10,9 @@ interface ManagedCallSitePayload{
     val handler: HandlerType?
     val cause: Throwable?
     var methodName: String
-    var context: CTX?
+  //  var context: CTX?
     var description: String?
-
+    val context:  Any
 
     fun setHandler(handler: HandlerType?):ManagedCallSitePayload
     fun setCode(code: Enum<*>?):ManagedCallSitePayload
@@ -21,9 +22,10 @@ interface ManagedCallSitePayload{
 class ManagedPayload(
     override val message: String,
     override var methodName: String,
+    override val context:  Any
 ):ManagedCallSitePayload{
 
-    override var context: CTX? = null
+   // override var context: CTX? = null
     override var handler: HandlerType? = null
         private set
 
@@ -38,11 +40,12 @@ class ManagedPayload(
     var contextNameBacking: String = "N/A"
     val contextName: String = contextNameBacking
 
-    constructor(message: String, methodName: String,  callingContext: Any): this(message = message, methodName = methodName){
-        if(callingContext is CTX){
-            context = callingContext
+    init {
+
+        contextNameBacking = if(context is CTX){
+            context.identifiedByName
         }else{
-            contextNameBacking = callingContext::class.qualifiedName?:"N/A"
+            context::class.qualifiedName?:"N/A"
         }
     }
 

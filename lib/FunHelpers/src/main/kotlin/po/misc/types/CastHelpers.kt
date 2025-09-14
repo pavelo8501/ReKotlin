@@ -32,8 +32,8 @@ inline fun <reified BASE : Any> Any?.safeBaseCast(): BASE? {
 }
 
 fun <T: Any> Any?.castOrManaged(
-    kClass: KClass<T>,
     callingContext: Any,
+    kClass: KClass<T>,
 ):T {
     val methodName = "castOrManaged"
     var message = "Cast to ${kClass.simpleName} failed."
@@ -54,7 +54,7 @@ fun <T: Any> Any?.castOrManaged(
 
 inline fun <reified T: Any> Any?.castOrManaged(
     callingContext: Any,
-): T  = castOrManaged(T::class, callingContext)
+): T  = castOrManaged(callingContext, T::class)
 
 
 fun <T: Any> Any?.castOrThrow(

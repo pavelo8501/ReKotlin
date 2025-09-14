@@ -11,6 +11,7 @@ import po.misc.debugging.DebugTopic
 
 
 interface LogEmitter {
+
     fun Any.notify(message: String, severity: SeverityLevel = SeverityLevel.INFO) {
         when(severity){
             SeverityLevel.INFO-> message.output(Colour.GREEN)
@@ -23,6 +24,6 @@ interface LogEmitter {
         data.echo()
     }
     fun <T: Printable> CTX.debug(message: String, template: PrintableTemplateBase<T>? = null, topic: DebugTopic = DebugTopic.General){
-        println(message)
+        message.output()
     }
 }

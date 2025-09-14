@@ -25,9 +25,38 @@ fun <T : Any>  List<Any>.findByTypeFirstOrNull(
 }
 
 
-fun <T : Any> List<*>.castListOrThrow(
-    kClass: KClass<T>,
+inline fun <reified T : Any> List<*>.castListSafe(
+    callingContext: Any
+): List<T> {
+    return this.mapNotNull{
+        try {
+            it.castOrManaged(callingContext)
+        }catch (th: Throwable){
+            null
+        }
+
+    }
+}
+
+fun <T : Any> List<*>.castListSafe(
     callingContext: Any,
+    kClass: KClass<T>,
+): List<T> {
+    return this.mapNotNull{
+        try {
+            it.castOrManaged(callingContext, kClass)
+        }catch (th: Throwable){
+            null
+        }
+
+    }
+}
+
+
+
+fun <T : Any> List<*>.castListOrThrow(
+    callingContext: Any,
+    kClass: KClass<T>,
     exceptionProvider: (ManagedCallSitePayload)-> Throwable,
 ): List<T> {
     return this.map{ it.castOrThrow(kClass, callingContext,  exceptionProvider) }
@@ -41,20 +70,20 @@ inline fun <reified T : Any> List<*>.castListOrThrow(
 }
 
 fun <T : Any> List<*>.castListOrManaged(
-    kClass: KClass<T>,
     callingContext: Any,
+    kClass: KClass<T>,
 ): List<T> {
-    return this.map{ it.castOrManaged(kClass, callingContext) }
+    return this.map{ it.castOrManaged(callingContext, kClass) }
 }
 
 inline fun <reified T : Any> List<*>.castListOrManaged(
     callingContext: Any,
-): List<T> = castListOrManaged(T::class, callingContext)
+): List<T> = castListOrManaged(callingContext, T::class)
 
 
 fun <BASE : Any> Any?.castBaseOrManaged(
-    kClass : KClass<BASE>,
     callingContext: Any,
+    kClass : KClass<BASE>,
 ): BASE {
     val methodName = "castBaseOrManaged"
     var message = "Cast to ${kClass.simpleName} failed."

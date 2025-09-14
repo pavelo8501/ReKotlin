@@ -10,7 +10,6 @@ import kotlin.test.assertEquals
 
 class TestPropertyHelpers {
 
-
     class CheckedPropertyRecord(
         val propertyRecord : PropertyContainer<*>,
         var checked: Boolean = false

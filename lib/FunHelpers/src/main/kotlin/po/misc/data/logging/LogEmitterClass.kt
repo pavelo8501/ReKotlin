@@ -1,21 +1,48 @@
 package po.misc.data.logging
 
+
 import po.misc.data.processors.SeverityLevel
 
-class LogEmitterClass(
-    val host: Any
-) : EmittableClass {
+enum class Verbosity{
+    Info,
+    Warnings,
+}
+
+ class EmitterConfig {
+
+     var verbosity: Verbosity = Verbosity.Info
+         private set
+
+     fun setVerbosity(verbosity: Verbosity): EmitterConfig {
+         this.verbosity = verbosity
+         return this
+     }
+ }
+
+
+open class LogEmitterClass(
+    val host: Any,
+    val configurator:(EmitterConfig.()-> Unit)? = null
+): EmittableClass {
+
+    val config : EmitterConfig = EmitterConfig()
+    val verbosity: Verbosity get() = config.verbosity
+
+    init {
+        configurator?.invoke(config)
+    }
+
+    override fun info(message: String){
+        if(verbosity != Verbosity.Warnings){
+            host.notify(message)
+        }
+    }
 
     override fun warn(message: String){
         host.notify(message, SeverityLevel.WARNING)
     }
-    override fun info(message: String){
-        host.notify(message)
-    }
+
     override fun error(message: String){
         host.notify(message, SeverityLevel.EXCEPTION)
     }
-
-
-
 }

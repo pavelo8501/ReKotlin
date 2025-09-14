@@ -3,6 +3,7 @@ package po.exposify.exceptions
 import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.misc.context.CTX
+import po.misc.exceptions.ExceptionHandler
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedCallSitePayload
 
@@ -12,18 +13,19 @@ import po.misc.exceptions.ManagedException
 class InitException(
     override val msg: String,
     override val code: ExceptionCode?,
-    val callingContext: CTX?,
+    context: ExceptionHandler,
     override val cause: Throwable? = null,
-): ManagedException(msg, code, cause) {
+): ManagedException(msg, code, context, cause) {
 
     override var handler: HandlerType = HandlerType.CancelAll
-    override val context: CTX? get() = callingContext
+   // override val context: CTX? get() = callingContext
 
     constructor(
         payload: ManagedCallSitePayload
     ): this(
         msg = payload.message,
         code = payload.code as ExceptionCode,
+
         cause = payload.cause,
         callingContext = payload.context,
     ){
