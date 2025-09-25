@@ -42,10 +42,10 @@ open class BufferItem<T: Any, P: Any>(
 
     override val formattedString: String get() {
         val colorizedType = when(itemStatus){
-            Commited-> { itemStatus.name.colorize(Colour.GREEN) }
-            SameAsRecent->{ itemStatus.name.colorize(Colour.MAGENTA) }
+            Commited-> { itemStatus.name.colorize(Colour.Green) }
+            SameAsRecent->{ itemStatus.name.colorize(Colour.Magenta) }
             Buffered->{ itemStatus.name.colorize(Colour.Yellow) }
-            Unresolved ->{ itemStatus.name.colorize(Colour.RED) }
+            Unresolved ->{ itemStatus.name.colorize(Colour.Red) }
         }
         return "Value: $value Item type: $colorizedType"
     }
@@ -70,7 +70,7 @@ open class SlidingBuffer<T: Any, P: Any>(
         else -> host::class.simpleOrNan()
     }
     val typeName: String by lazy {
-        "<${typeData.typeName}>".colorize(Colour.BRIGHT_BLUE)
+        "<${typeData.typeName}>".colorize(Colour.BlueBright)
     }
 
     protected val identifiedAs: String by lazy {

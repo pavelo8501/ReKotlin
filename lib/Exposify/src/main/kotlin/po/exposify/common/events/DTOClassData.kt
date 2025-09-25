@@ -22,10 +22,10 @@ data class DTOClassData(
             return "DTO: ${data.dtoClass.identity}. Status:${data.status}"
         }
         val Info = createTemplate{
-            nextLine { "${identity(this)}: Message: ${message.colorize(Colour.BRIGHT_WHITE)}" }
+            nextLine { "${identity(this)}: Message: ${message.colorize(Colour.WhiteBright)}" }
         }
         val Success = createTemplate {
-            nextLine { "${identity(this)}: Message: ${message.colorize(Colour.GREEN)}" }
+            nextLine { "${identity(this)}: Message: ${message.colorize(Colour.Green)}" }
         }
         val Warning = createTemplate {
             nextLine { "${identity(this)}: Message: ${message.colorize(Colour.Yellow)}" }

@@ -293,11 +293,11 @@ class RootExecutionContext<DTO, D, E>(
             entities.forEach { entity ->
                 val existent =   dtoList.firstOrNull { it.id == entity.id.value }
                 if(existent != null){
-                    "Selected existent".output(Colour.MAGENTA)
-                    existent.output(Colour.MAGENTA)
+                    "Selected existent".output(Colour.Magenta)
+                    existent.output(Colour.Magenta)
                     resultingList.add(existent)
                 }else{
-                    "Initiating restore process for entity type: {${daoService.entityType.typeName}}  id: ${entity.id.value}".output(Colour.MAGENTA)
+                    "Initiating restore process for entity type: {${daoService.entityType.typeName}}  id: ${entity.id.value}".output(Colour.Magenta)
                    val commonDTO = dtoClass.newDTO()
                     withDTOHub(commonDTO){
                         resolveAttachedForeign(this, entity)
@@ -518,7 +518,7 @@ class DTOExecutionContext<DTO, D, E, F, FD, FE>(
     }.resultOrException()
 
     fun insert(initiator: CTX): ResultList<F, FD> {
-        "Insert now in context $identifiedByName".output(Colour.BRIGHT_CYAN)
+        "Insert now in context $identifiedByName".output(Colour.CyanBright)
         val result = insertChildBinding(initiator)
         result.forEach { commonDTO ->
             withDTOHub(commonDTO) {
@@ -552,7 +552,7 @@ class DTOExecutionContext<DTO, D, E, F, FD, FE>(
                                         this
                                     )
                                 val castedList = delegate.extractDataModels()
-                                    .castListOrManaged(casted.dtoClass.commonDTOType.dataType.kClass, this)
+                                    .castListOrManaged(this, casted.dtoClass.commonDTOType.dataType.kClass)
                                 casted.insert(this, castedList)
                             }
                         }
@@ -637,7 +637,7 @@ class DTOExecutionContext<DTO, D, E, F, FD, FE>(
                 }
                 getRelationDelegates(dtoClass).forEach { relationDelegate ->
                     val newDtos = relationDelegate.createDTOS { existent ->
-                        "Existent triggered in update(Sub). Triggered existent $existent".output(Colour.CYAN)
+                        "Existent triggered in update(Sub). Triggered existent $existent".output(Colour.Cyan)
                     }
                     newDtos.forEach { newDTO ->
                         withDTOHub(newDTO) {

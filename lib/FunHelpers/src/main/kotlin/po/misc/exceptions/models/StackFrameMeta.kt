@@ -5,8 +5,16 @@ import kotlin.reflect.KClass
 data class ExceptionTrace(
     val kClass: KClass<*>,
     val stackFrames: List<StackFrameMeta>,
+    var bestPick:StackFrameMeta
 ){
-    val bestPick:StackFrameMeta? get() = stackFrames.firstOrNull()
+
+    var ctxName: String = ""
+
+    fun addKnownContextData(name: String):ExceptionTrace{
+        ctxName =name
+        return this
+    }
+
 }
 
 data class StackFrameMeta(

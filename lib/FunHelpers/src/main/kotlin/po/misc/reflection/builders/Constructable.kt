@@ -3,6 +3,7 @@ package po.misc.reflection.builders
 import po.misc.reflection.anotations.AnnotationContainer
 import po.misc.reflection.anotations.annotatedProperties
 import po.misc.types.castOrManaged
+import kotlin.reflect.KClass
 
 
 interface Constructable<T: Any>{
@@ -17,9 +18,15 @@ abstract class ConstructableClass<T: Any> (
 
     var containerBacking: AnnotationContainer<T, Annotation>? = null
 
-    inline fun <reified A: Annotation> buildPropertyContainer():AnnotationContainer<T, A> {
+    inline fun <reified A: Annotation> buildPropertyContainer(readValues: Boolean = false):AnnotationContainer<T, A> {
         if (containerBacking == null) {
-            val container = builder().annotatedProperties<Any, Annotation>()
+            val receiver =  builder()
+            val container = if(!readValues){
+                val kClass = receiver::class
+                kClass.annotatedProperties<T, Annotation>(null)
+            }else{
+                annotatedProperties<Any, Annotation>(receiver)
+            }
             containerBacking = container.castOrManaged<AnnotationContainer<T, Annotation>>(this)
         }
         return containerBacking.castOrManaged<AnnotationContainer<T, A>>(this)

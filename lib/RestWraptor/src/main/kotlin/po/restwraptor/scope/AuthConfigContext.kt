@@ -16,6 +16,7 @@ import po.lognotify.TasksManaged
 import po.lognotify.launchers.runAction
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
+import po.restwraptor.RestWraptorServer
 import po.restwraptor.extensions.respondUnauthorized
 import po.restwraptor.extensions.withSession
 import po.restwraptor.interfaces.WraptorResponse
@@ -46,7 +47,7 @@ class AuthConfigContext(
                     jwt(authConfig.jwtServiceName) {
                         verifier(jwtService.getVerifier())
                         validate { credential ->
-                            val principal = withSession(this) {
+                            val principal = withSession(RestWraptorServer) {
                                 val jwtToken = jwtService.tokenRepository.resolve(sessionID)
                                 jwtService.isNotExpired(jwtToken) {
                                     notify("Token not found in repository")

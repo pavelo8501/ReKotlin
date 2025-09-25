@@ -17,7 +17,7 @@ fun <R> withDefaultConnection(block: ConnectionClass.()-> R):R {
     return if (connectionClass != null) {
         connectionClass.block()
     } else {
-        throw InitException("No active connections registered", ExceptionCode.NOT_INITIALIZED, DatabaseManager)
+        throw InitException(DatabaseManager, "No active connections registered", ExceptionCode.NOT_INITIALIZED)
     }
 }
 
@@ -27,7 +27,7 @@ fun <DTO: ModelDTO, D: DataModel, R> DTOBase<DTO, D, *>.withServiceContext(block
     if(context != null){
        return context.block()
     }else{
-        throw InitException("No active context found for type $identifiedByName", ExceptionCode.NOT_INITIALIZED, DatabaseManager)
+        throw InitException(DatabaseManager, "No active context found for type $identifiedByName", ExceptionCode.NOT_INITIALIZED)
     }
 }
 

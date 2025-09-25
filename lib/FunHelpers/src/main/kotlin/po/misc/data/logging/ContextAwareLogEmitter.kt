@@ -50,50 +50,60 @@ import po.misc.exceptions.metaFrameTrace
  * - Maps WARNING → [warn], INFO → [info], others → prints directly.
  */
 class ContextAwareLogEmitter(
-    val awareHost: ContextAware,
+    override val host: ContextAware,
     configurator:(EmitterConfig.()-> Unit)? = null
-): LogEmitterClass(awareHost, configurator){
+): LogEmitterClass(host, configurator){
 
-    val contextName: String get() = "[${awareHost.identifiedByName}]#${awareHost.identity.numericId}"
+    val contextName: String get() = "[${host.identifiedByName}]#${host.identity.numericId}"
 
-    private fun createWarningData(message: String, location: String): ContextMessage{
+    init {
+        configurator?.invoke(config)
+    }
+
+
+    private fun createData(severityLevel: SeverityLevel, methodName: String,  message: String): ContextMessage{
         return ContextMessage(
             contextName = contextName,
-            methodName = location,
+            methodName = methodName,
             message = message,
-            severityLevel = SeverityLevel.WARNING
+            subject = "",
+            severityLevel = severityLevel
         )
     }
 
-    private fun createData(message: String, severityLevel: SeverityLevel): ContextMessage{
+    private fun createData(severityLevel: SeverityLevel, methodName: String, subject: String,  message: String): ContextMessage{
         return ContextMessage(
-          contextName = contextName,
-          methodName = "",
-          message = message,
-          severityLevel = severityLevel
+            contextName = contextName,
+            methodName = methodName,
+            subject = subject,
+            message = message,
+            severityLevel = severityLevel
         )
     }
 
     /** Logs a warning message with detailed stack info. Relatively expensive. */
     override fun warn(message: String){
-        val trace = awareHost.metaFrameTrace()
+        val trace = host.metaFrameTrace()
         val data = trace.bestPick?.let {
-            createWarningData(message, it.methodName)
+            createData(SeverityLevel.WARNING, it.methodName, message)
         }?:run {
-            createWarningData(message, "")
+            createData(SeverityLevel.WARNING, "", message)
         }
         data.setDefaultTemplate(ContextMessage.Warning)
         data.echo()
     }
 
     override fun info(message: String, ){
-       val data = createData(message, SeverityLevel.INFO)
+       val data = createData(SeverityLevel.INFO, "", message)
         data.setDefaultTemplate(ContextMessage.Message)
         data.echo()
     }
 
-    fun debug(message: String,  topic: DebugTopic){
-
+    fun debug(methodName: String, message: String,  topic: DebugTopic = DebugTopic.General){
+        val data =  ContextMessage(contextName, methodName, topic.name, message, SeverityLevel.DEBUG)
+        data.setDefaultTemplate(ContextMessage.Debug)
+        config.onMessageCallback?.invoke(data)
+        data.echo()
     }
 
     fun notify(message: String, severityLevel: SeverityLevel) {

@@ -71,7 +71,7 @@ class DataInput<DTO: ModelDTO, D: DataModel>(
     override val inputType: InputType = InputType.Single
 
     fun <D: DataModel> getValue(typeData: TypeData<D>):D{
-        return value.castOrManaged(typeData.kClass, this)
+        return value.castOrManaged(this, typeData.kClass)
     }
 }
 
@@ -88,7 +88,7 @@ class ListDataInput<DTO: ModelDTO, D: DataModel>(
     override val dtoClass: DTOBase<DTO, D, *> = descriptor.dtoClass
 
     fun <D: DataModel> getValue(typeData: TypeData<D>): List<D> {
-        return value.castListOrManaged(typeData.kClass, this)
+        return value.castListOrManaged(this, typeData.kClass)
     }
 }
 

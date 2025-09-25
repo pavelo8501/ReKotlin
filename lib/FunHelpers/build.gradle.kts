@@ -41,10 +41,10 @@ dependencies {
 
 kotlin {
     compilerOptions {
-        languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_3)
+      //  languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_3)
         freeCompilerArgs.add("-Xcontext-sensitive-resolution")
-        freeCompilerArgs.add("-Xdata-flow-based-exhaustiveness")
-        freeCompilerArgs.add("-Xallow-reified-type-in-catch")
+      //  freeCompilerArgs.add("-Xdata-flow-based-exhaustiveness")
+      //  freeCompilerArgs.add("-Xallow-reified-type-in-catch")
     }
 }
 

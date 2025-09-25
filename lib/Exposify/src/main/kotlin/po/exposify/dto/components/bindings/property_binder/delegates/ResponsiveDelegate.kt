@@ -180,7 +180,7 @@ sealed class ResponsiveDelegate<DTO, D, E, V : Any> protected constructor(
         entity: E
     ) {
         val dataModel = hostingDTO.dataContainer.getValue(this)
-        "updateEntity by data model".output(Colour.MAGENTA)
+        "updateEntity by data model".output(Colour.Magenta)
         val value =  dataProperty.get(dataModel)
         entityProperty.set(entity, value)
     }

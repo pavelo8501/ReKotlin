@@ -34,12 +34,12 @@ class TaskEvent(
                 nextBlock {
                     val message =
                         when (severity) {
-                            SeverityLevel.INFO -> message.colorize(Colour.GREEN)
+                            SeverityLevel.INFO -> message.colorize(Colour.Green)
                             SeverityLevel.WARNING -> message.colorize(Colour.Yellow)
-                            SeverityLevel.EXCEPTION -> message.colorize(Colour.RED)
-                            SeverityLevel.DEBUG -> message.colorize(Colour.MAGENTA)
+                            SeverityLevel.EXCEPTION -> message.colorize(Colour.Red)
+                            SeverityLevel.DEBUG -> message.colorize(Colour.Magenta)
                         }
-                    "${emitterName.applyIfNotEmpty { colorize(Colour.CYAN) + " -> " }}$message"
+                    "${emitterName.applyIfNotEmpty { colorize(Colour.Cyan) + " -> " }}$message"
                 }
             }
     }
@@ -65,7 +65,7 @@ class ErrorRecord(
     companion object : PrintableCompanion<ErrorRecord>({ ErrorRecord::class }) {
         val Default: Template<ErrorRecord> = createTemplate {
             nextLine {
-                message.colorize(Colour.RED)
+                message.colorize(Colour.Red)
             }
             nextLine {
                 "First registered: $firstRegisteredInTask"
@@ -130,7 +130,7 @@ class LogData(
     companion object : PrintableCompanion<LogData>({ LogData::class }) {
         val Header: Template<LogData> = createTemplate {
             nextBlock { handler ->
-                handler.applyToResult { row -> "[ $row ]".colorize(Colour.BLUE) }
+                handler.applyToResult { row -> "[ $row ]".colorize(Colour.Blue) }
                 "Start $taskHeader"
             }
         }
@@ -138,11 +138,11 @@ class LogData(
         val Footer: Template<LogData> = createTemplate {
             nextBlock {
                 val status = when (executionStatus) {
-                    ExecutionStatus.Complete -> executionStatus.name.colorize(Colour.GREEN)
-                    ExecutionStatus.Active -> executionStatus.name.colorize(Colour.BRIGHT_WHITE)
-                    ExecutionStatus.Failing, ExecutionStatus.Faulty -> executionStatus.name.colorize(Colour.RED)
+                    ExecutionStatus.Complete -> executionStatus.name.colorize(Colour.Green)
+                    ExecutionStatus.Active -> executionStatus.name.colorize(Colour.WhiteBright)
+                    ExecutionStatus.Failing, ExecutionStatus.Faulty -> executionStatus.name.colorize(Colour.Red)
                 }
-               "${Colour.makeOfColour(Colour.BLUE, "[Stop $taskFooter | Status:")} $status ${Colour.makeOfColour(Colour.BLUE, "]")}"
+               "${Colour.makeOfColour(Colour.Blue, "[Stop $taskFooter | Status:")} $status ${Colour.makeOfColour(Colour.Blue, "]")}"
             }
         }
 

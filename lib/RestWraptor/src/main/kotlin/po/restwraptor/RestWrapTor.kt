@@ -21,6 +21,7 @@ import po.misc.containers.LazyContainer
 import po.misc.containers.lazyContainerOf
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
+import po.misc.exceptions.TraceableContext
 import po.misc.functions.registries.builders.notifierRegistryOf
 import po.misc.types.getOrThrow
 import po.restwraptor.scope.ConfigContext
@@ -37,9 +38,15 @@ import po.restwraptor.routes.ManagedRouting
 val RestWrapTorKey = AttributeKey<RestWrapTor>("RestWrapTorInstance")
 
 
-object RestWraptorServer:RestWrapTor() {
+interface WraptorContext : TraceableContext
+
+object RestWraptorServer:RestWrapTor(), WraptorContext {
 
 }
+
+
+
+
 
 fun configureWraptor(builder : (ConfigContext.() -> Unit)){
     RestWraptorServer.config(RestWraptorServer, builder)
@@ -72,7 +79,7 @@ fun runWraptor(
  */
 open class RestWrapTor(
     internal val builder : (ConfigContext.() -> Unit)? = null
-): WraptorHandler, TasksManaged {
+): WraptorHandler, TasksManaged, TraceableContext {
 
     override val identity: CTXIdentity<RestWrapTor> = asIdentity()
 
@@ -190,6 +197,7 @@ open class RestWrapTor(
         }
         registerSelf(app).getOrThrow(this) { _ ->
             ConfigurationException(
+                this,
                 "RestWrapTor Registration inside Application failed",
                 ExceptionCodes.KEY_REGISTRATION
             )

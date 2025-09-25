@@ -13,7 +13,8 @@ import kotlin.io.path.exists
 
 data class WriteOptions(
     val overwriteExistent: Boolean = true,
-    val createSubfolders: Boolean = true
+    val createSubfolders: Boolean = true,
+    val throwOnFileExists: Boolean = false
 )
 
 data class FileIOError(
@@ -22,7 +23,7 @@ data class FileIOError(
 ): PrettyPrint{
 
     override val formattedString: String
-        get() = this.toString().colorize(Colour.RED)
+        get() = this.toString().colorize(Colour.Red)
 
     override fun toString(): String {
         return "FileWriteError"+ SpecialChars.NewLine.char + "${throwable.throwableToText()} for Path: $path"
@@ -30,7 +31,7 @@ data class FileIOError(
 }
 
 class FileIOHooks{
-    internal var onErrorCallback: ((FileIOError) -> Unit)? = null
+    var onErrorCallback: ((FileIOError) -> Unit)? = null
     fun onError(callback: (FileIOError) -> Unit){
         onErrorCallback = callback
     }
@@ -40,7 +41,7 @@ class FileIOHooks{
 private fun writeFile(
     relativePath: String,
     content: String,
-    options: WriteOptions = WriteOptions()
+    options: WriteOptions
 ):FileIOError?{
 
     return try {
@@ -52,7 +53,11 @@ private fun writeFile(
         }
 
         if (pathToFile.exists() && !options.overwriteExistent) {
-            throw IOException("File already exists: $relativePath")
+            if(options.throwOnFileExists){
+                throw IOException("File already exists: $relativePath")
+            }else{
+                return null
+            }
         }
 
         Files.writeString(pathToFile, content)
@@ -87,7 +92,7 @@ fun String.writeFileContent(
 private fun writeFile(
     relativePath: String,
     byteArray: ByteArray,
-    options: WriteOptions = WriteOptions()
+    options: WriteOptions
 ):FileIOError?{
     return try {
         val pathToFile = Path(System.getProperty("user.dir"), relativePath)
@@ -97,7 +102,11 @@ private fun writeFile(
             directory.createDirectories()
         }
         if (pathToFile.exists() && !options.overwriteExistent) {
-            throw IOException("File already exists: $relativePath")
+            if(options.throwOnFileExists) {
+                throw IOException("File already exists: $relativePath")
+            }else{
+                return null
+            }
         }
         Files.write(pathToFile, byteArray)
         null

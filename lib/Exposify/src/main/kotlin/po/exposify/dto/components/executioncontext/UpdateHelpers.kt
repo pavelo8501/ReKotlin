@@ -28,7 +28,7 @@ fun <DTO, D,  E, F, FD, FE>  DTOExecutionContext<DTO, D,  E, F, FD, FE>.insertCh
     withHostDTOHub {
         getRelationDelegates(dtoClass).withEachDelegate {
             val dtoList = createDTOS { existent ->
-                "existent triggered $existent".output(Colour.CYAN)
+                "existent triggered $existent".output(Colour.Cyan)
             }
             dtoList.forEach { commonDTO ->
                 withDTOHub(commonDTO) {
@@ -54,7 +54,7 @@ fun <DTO, D,  E, F, FD, FE>  DTOExecutionContext<DTO, D,  E, F, FD, FE>.reloadBy
     withHostDTOHub {
         getRelationDelegates(dtoClass).withEachDelegate {
             val dtoList =createDTOS(entity){existent ->
-               "reloadByEntity existent triggered $existent".output(Colour.CYAN)
+               "reloadByEntity existent triggered $existent".output(Colour.Cyan)
             }
             resultingList.addAll(dtoList)
         }

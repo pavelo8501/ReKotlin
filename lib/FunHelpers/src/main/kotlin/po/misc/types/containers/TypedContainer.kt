@@ -13,7 +13,7 @@ import kotlin.reflect.KTypeParameter
 
 interface TypedClass<T: Any>{
     val receiver:T
-    val typeData: Typed<T>
+    val typeData: TypeData<T>
 }
 
 open class TypedContainer<T: Any>(
@@ -25,7 +25,7 @@ open class TypedContainer<T: Any>(
     internal val typeName: String = typeData.kClass.java.typeName
     private val cachedHash: Int = typeName.hashCode()
 
-    fun compareType(other: Typed<*>): Boolean{
+    fun compareType(other: TypeData<*>): Boolean{
         return typeData.kClass == other.kClass
     }
 

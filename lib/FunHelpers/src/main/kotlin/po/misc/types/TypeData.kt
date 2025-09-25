@@ -9,8 +9,8 @@ import kotlin.reflect.typeOf
 
 open class TypeData<T: Any>(
     override val kClass: KClass<T>,
-    override val kType: KType
-):Typed<T>, ComparableType<T> {
+    val kType: KType
+): ComparableType<T> {
 
     val simpleName : String get() = kClass.simpleName.toString()
     val qualifiedName: String get() = kClass.qualifiedName.toString()

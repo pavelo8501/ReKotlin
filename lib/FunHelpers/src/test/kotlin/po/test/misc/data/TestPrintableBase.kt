@@ -46,19 +46,19 @@ class TestPrintableBase: DateHelper {
 
             val Header = createTemplate(){
                 nextLine {
-                    "$personalName | $componentName | $description".colorize(Colour.BLUE)
+                    "$personalName | $componentName | $description".colorize(Colour.Blue)
                 }
             }
 
             val Footer = createTemplate(){
                 nextLine {
-                    "$personalName Value = ${intValue}".colorize(Colour.BLUE)
+                    "$personalName Value = ${intValue}".colorize(Colour.Blue)
                 }
             }
 
             val Printable: PartsTemplate<Item> = PartsTemplate(
                 delimiter = SpecialChars.NewLine.char,
-                { Colour.RED text "String1->  $personalName |"},
+                { Colour.Red text "String1->  $personalName |"},
                 {"$description And Value=$intValue"}
             )
         }
@@ -83,13 +83,13 @@ class TestPrintableBase: DateHelper {
 
             val RegularStr = createTemplate{
                 nextLine {
-                    "$componentName in $module".colorize(Colour.CYAN)
+                    "$componentName in $module".colorize(Colour.Cyan)
                 }
             }
 
             val Template2 = createTemplate{
                 nextLine {
-                    "String2-> $personalName | $module And Value=$handled".colorize(Colour.RED)
+                    "String2-> $personalName | $module And Value=$handled".colorize(Colour.Red)
                 }
             }
         }

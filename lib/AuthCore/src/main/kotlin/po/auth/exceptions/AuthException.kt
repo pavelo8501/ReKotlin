@@ -1,5 +1,6 @@
 package po.auth.exceptions
 
+import po.auth.AuthSessionManager
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.ManagedCallSitePayload
@@ -44,7 +45,7 @@ class AuthException(
     override var message: String,
     override val code: AuthErrorCode,
     original : Throwable? = null
-) : ManagedException(message, code, original){
+) : ManagedException(AuthSessionManager, message, code, original){
 
     override var handler : HandlerType = HandlerType.CancelAll
 

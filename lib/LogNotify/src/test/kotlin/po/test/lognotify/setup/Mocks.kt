@@ -5,7 +5,7 @@ import po.auth.sessions.interfaces.SessionIdentified
 import po.auth.sessions.models.AuthorizedSession
 
 
-class SessionIdentity(override val sessionID: String, override val remoteAddress: String): SessionIdentified
+class SessionIdentity(override val ip: String, override val userAgent: String): SessionIdentified
 
 private val sessionIdentity = SessionIdentity("0", "192.169.1.1")
 val mockedSession :  AuthorizedSession = session(sessionIdentity)

@@ -123,7 +123,7 @@ abstract class ConcurrentLoopBase<INPUT: Any, OUTPUT: ModifiedOutput>(
             } catch (th: Throwable) {
                 if (th is ManagedException) {
                     val message =
-                        "Error polling connector: ${th.throwableToText()}. $stopMessage".output(Colour.RED)
+                        "Error polling connector: ${th.throwableToText()}. $stopMessage".output(Colour.Red)
                 }
                 loopHooks.triggerOnError(th)
                 active = false

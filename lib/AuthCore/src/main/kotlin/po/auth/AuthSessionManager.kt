@@ -40,9 +40,9 @@ object AuthSessionManager : ManagedSession, TasksManaged {
     var authenticator : UserAuthenticator = UserAuthenticator(factory)
         private set
 
-    val activescopedSessions = mutableListOf<ScopedSession<*>>()
+    val activescopedSessions = mutableListOf<ScopedSession>()
 
-    fun <T: CTX> registerScopedSession(session:  ScopedSession<T>):ScopedSession<T> {
+    fun registerScopedSession(session: ScopedSession):ScopedSession {
         activescopedSessions.add(session)
         return session
     }

@@ -129,7 +129,7 @@ class HealthMonitor<T: CTX>(
         val phases =  healthJournal.keys.joinToString(separator = SpecialChars.NewLine.char.repeat(2)) {
             phaseReport(it)
         }
-        val report = "${Colour.makeOfColour(Colour.BLUE, "Activity report")} for (${source.completeName}) ${SpecialChars.NewLine}$phases"
+        val report = "${Colour.makeOfColour(Colour.Blue, "Activity report")} for (${source.completeName}) ${SpecialChars.NewLine}$phases"
         return  report
     }
 
@@ -142,7 +142,7 @@ class HealthMonitor<T: CTX>(
         val result = predicate.invoke(source)
         if(result){
            val record = prebuildRecord(MonitorAction.TestedParameter, parameter).also {
-                it.message = "Crash is inevitable. Printing report".colorize(Colour.RED)
+                it.message = "Crash is inevitable. Printing report".colorize(Colour.Red)
             }
             prepareForCrash(record)
         }else{

@@ -7,6 +7,7 @@ import io.ktor.server.routing.Routing
 import io.ktor.server.routing.application
 import po.misc.types.getOrThrow
 import po.restwraptor.RestWrapTor
+import po.restwraptor.RestWraptorServer
 import po.restwraptor.exceptions.ExceptionCodes
 import po.restwraptor.exceptions.configException
 import po.restwraptor.extensions.getRestWrapTor
@@ -39,7 +40,8 @@ fun Route.withBaseUrl(vararg pathParts:String): String = partsToUrl(pathParts.to
 
 fun Routing.jwtSecured(block: Route.() -> Unit){
     val wraptor =  application.getRestWrapTor().getOrThrow(this) {_->
-        configException("Wraptor not found in Application registry", ExceptionCodes.KEY_REGISTRATION)
+
+        RestWraptorServer.configException("Wraptor not found in Application registry", ExceptionCodes.KEY_REGISTRATION)
     }
     val serviceName : String =  wraptor.wrapConfig.authConfig.jwtServiceName
 

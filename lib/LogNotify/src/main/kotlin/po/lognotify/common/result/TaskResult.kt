@@ -138,7 +138,7 @@ class TaskResult<T: CTX, R>(
             beforeFaultyResultRequested?.trigger(managed)
             throw managed
         }
-        return result.getOrLoggerException("No exception no result")
+        return result.getOrLoggerException(task, "No exception no result")
     }
 
     private var exHandlingCallback: (suspend () -> R)? = null
@@ -161,7 +161,7 @@ class TaskResult<T: CTX, R>(
             task.warning(message)
             handleFailureCallback.invoke(managed)
         } ?: run {
-            result.getOrLoggerException("No exception no result")
+            result.getOrLoggerException(task, "No exception no result")
         }
     }
 

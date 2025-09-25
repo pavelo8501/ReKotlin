@@ -114,7 +114,6 @@ class TestConstructable {
             container.updateConverting(testable, updateList)
         }
         assertTrue(success)
-
         val enum =  Pair("varEnum", ForTest.Yep)
         container.updateConverting(testable, enum)
         assertEquals(ForTest.Yep, testable.varEnum)

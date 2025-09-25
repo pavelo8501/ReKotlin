@@ -13,6 +13,7 @@ import po.auth.sessions.models.AuthorizedSession
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
+import po.misc.context.asSubIdentity
 import po.misc.data.PrettyPrint
 import po.misc.data.printable.PrintableBase
 import po.misc.data.styles.Colour
@@ -172,17 +173,17 @@ class AuthorizedSession internal constructor(
     override val formattedString: String get() {
         val type = when(sessionType){
             SessionType.USER_AUTHENTICATED->{
-                "Authenticated".colorize(Colour.GREEN)
+                "Authenticated".colorize(Colour.Green)
             }
             SessionType.ANONYMOUS->{
-                "Anonymous".colorize(Colour.BRIGHT_YELLOW)
+                "Anonymous".colorize(Colour.YellowBright)
             }
         }
         return buildString {
-            appendLine(Colour.makeOfColour(Colour.CYAN, "Session: " ) + type)
-            appendLine(Colour.makeOfColour(Colour.CYAN, "Session Id: ") + sessionID.colorize(Colour.BRIGHT_WHITE) )
-            appendLine(Colour.makeOfColour(Colour.CYAN, "Identified by IP: ") +identifier.ip.colorize(Colour.BRIGHT_WHITE ) )
-            appendLine( Colour.makeOfColour(Colour.CYAN, "Identified by client: ") + identifier.userAgent.colorize(Colour.BRIGHT_WHITE) )
+            appendLine(Colour.makeOfColour(Colour.Cyan, "Session: " ) + type)
+            appendLine(Colour.makeOfColour(Colour.Cyan, "Session Id: ") + sessionID.colorize(Colour.WhiteBright) )
+            appendLine(Colour.makeOfColour(Colour.Cyan, "Identified by IP: ") +identifier.ip.colorize(Colour.WhiteBright ) )
+            appendLine( Colour.makeOfColour(Colour.Cyan, "Identified by client: ") + identifier.userAgent.colorize(Colour.WhiteBright) )
         }
     }
 
@@ -198,14 +199,15 @@ class AuthorizedSession internal constructor(
 }
 
 
-class ScopedSession <T: CTX>(
-    override val identity: CTXIdentity<T>
+class ScopedSession(
+    val ctx: CTX
 ): SessionBase(){
+
     override val formattedString: String = ""
+    override val identity: CTXIdentity<ScopedSession> = asSubIdentity(ctx)
 
-
-    override val key: CoroutineContext.Key<ScopedSession<*>> get() = Key
-    companion object Key : CoroutineContext.Key<ScopedSession<*>>
+    override val key: CoroutineContext.Key<ScopedSession> get() = Key
+    companion object Key : CoroutineContext.Key<ScopedSession>
 
 }
 

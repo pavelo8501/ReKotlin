@@ -36,7 +36,7 @@ private suspend fun <DTO, D, I> launchExecutionList(
     val errorFallback =
         ExceptionFallback {
             val noContainerMsg = "No predefined execution for $descriptor"
-            OperationsException(noContainerMsg, ExceptionCode.Sequence_Setup_Failure, descriptor)
+            OperationsException(descriptor, noContainerMsg, ExceptionCode.Sequence_Setup_Failure)
         }
 
     val container = descriptor.containerBacking.getWithFallback(errorFallback)
@@ -92,7 +92,7 @@ internal suspend fun <DTO, D> launchExecutionSingle(
     val errorFallback =
         ExceptionFallback {
             val noContainerMsg = "No predefined execution for $descriptor"
-            OperationsException(noContainerMsg, ExceptionCode.Sequence_Setup_Failure, descriptor)
+            OperationsException(descriptor, noContainerMsg, ExceptionCode.Sequence_Setup_Failure)
         }
 
     val container = descriptor.containerBacking.getWithFallback(errorFallback)

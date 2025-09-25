@@ -153,7 +153,7 @@ class DTOFactory<DTO, D, E>(
 
                     else -> {
                         val errorMessage = "Parameter ${param.name} unavailable when creating dataModel"
-                        throw OperationsException(errorMessage, ExceptionCode.REFLECTION_ERROR, this, null)
+                        throw OperationsException(this, errorMessage, ExceptionCode.REFLECTION_ERROR)
                     }
                 }
             }
@@ -211,7 +211,7 @@ class CommonDTOFactory<DTO, D, E, F, FD, FE>(
                     }
                     else -> {
                         val errorMessage = "Parameter ${param.name} unavailable when creating dataModel"
-                        throw OperationsException(errorMessage, ExceptionCode.REFLECTION_ERROR, this, null)
+                        throw OperationsException(this, errorMessage, ExceptionCode.REFLECTION_ERROR)
                     }
                 }
             }

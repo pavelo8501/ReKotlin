@@ -63,7 +63,7 @@ class ResultList<DTO, D> internal constructor(
     override var activeCRUD: CrudOperation = CrudOperation.Create
 
     val dto: List<DTO> get() =
-        resultBacking.castListOrThrow(dtoClass.commonDTOType.dtoType.kClass, this) { payload ->
+        resultBacking.castListOrThrow(this, dtoClass.commonDTOType.dtoType.kClass) { payload ->
             operationsException(payload.setCode(ExceptionCode.CAST_FAILURE))
         }
 

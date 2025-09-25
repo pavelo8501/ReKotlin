@@ -5,6 +5,8 @@ import io.ktor.server.application.ApplicationStarted
 import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.application.hooks.MonitoringEvent
 import io.ktor.server.auth.AuthenticationChecked
+import po.misc.exceptions.TraceableContext
+import po.restwraptor.RestWraptorServer
 import po.restwraptor.extensions.getWraptorRoutes
 import po.restwraptor.models.server.WraptorRoute
 
@@ -13,6 +15,8 @@ class CoreAuthRoutePluginConf {
     var headerName: String = HttpHeaders.Authorization
     var pluginKey : String = "jwt-auth-route"
 }
+
+class WraptorContext(): TraceableContext
 
 val CoreAuthRoutePlugin = createRouteScopedPlugin(
     name = "CoreAuthRoutePlugin",
@@ -37,7 +41,7 @@ val CoreAuthRoutePlugin = createRouteScopedPlugin(
     }
 
     on(MonitoringEvent(ApplicationStarted)) { application ->
-        application.getWraptorRoutes(this){
+        application.getWraptorRoutes(RestWraptorServer){
             securedRoutes.addAll(it.filter {it.isSecured })
         }
     }

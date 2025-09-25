@@ -1,6 +1,8 @@
 package po.misc.data.logging
 
 import po.misc.context.CTX
+import po.misc.context.CTXIdentity
+import po.misc.context.asIdentity
 
 import po.misc.data.printable.Printable
 import po.misc.data.printable.PrintableBase
@@ -60,6 +62,16 @@ interface ContextAware : LogEmitter, CTX {
 
     val emitter: ContextAwareLogEmitter
 
+    val emitterSafe: ContextAwareLogEmitter get() {
+        @Suppress("UNNECESSARY_SAFE_CALL", "REDUNDANT_NULLABLE")
+       return emitter?.let {
+            it
+        }?:run {
+            FakeCtx.emitter
+        }
+    }
+
+
     fun info(message: String){
         emitter.info(message)
     }
@@ -75,7 +87,11 @@ interface ContextAware : LogEmitter, CTX {
         emitter.log(data, severity)
     }
     override fun <T: Printable> CTX.debug(message: String, template: PrintableTemplateBase<T>?, topic: DebugTopic){
-        emitter.debug(message, topic)
+        emitter.debug("", message, topic)
+    }
+
+    fun debug(methodName: String,  message: String, topic: DebugTopic = DebugTopic.General){
+        emitter.debug(methodName, message, topic)
     }
 
     object ExceptionLocator : ExceptionLocatorBase(){
@@ -86,4 +102,9 @@ interface ContextAware : LogEmitter, CTX {
             HelperPackage("java")
         )
     }
+}
+
+internal object FakeCtx: ContextAware{
+    override val identity: CTXIdentity<FakeCtx> = asIdentity()
+    override val emitter: ContextAwareLogEmitter = ContextAwareLogEmitter(this)
 }

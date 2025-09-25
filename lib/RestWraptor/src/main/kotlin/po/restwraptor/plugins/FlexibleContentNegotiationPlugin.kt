@@ -9,6 +9,7 @@ import kotlinx.serialization.serializer
 import kotlinx.serialization.*
 import kotlinx.serialization.builtins.ListSerializer
 import po.misc.types.getOrThrow
+import po.restwraptor.RestWraptorServer
 import po.restwraptor.exceptions.ConfigurationException
 import po.restwraptor.exceptions.ExceptionCodes
 import po.restwraptor.exceptions.configException
@@ -50,7 +51,7 @@ val FlexibleContentNegotiationPlugin = createApplicationPlugin("FlexibleContentN
            val transformBodyContext = this
            val byteReadChannel = it
            val type = transformBodyContext.requestedType.getOrThrow(this){msg->
-               configException(msg.message, ExceptionCodes.VALUE_IS_NULL)
+               RestWraptorServer.configException(msg.message, ExceptionCodes.VALUE_IS_NULL)
            }
 
            val byteChannel = it.toString()

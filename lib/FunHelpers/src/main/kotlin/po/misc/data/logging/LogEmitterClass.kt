@@ -1,6 +1,7 @@
 package po.misc.data.logging
 
 
+import po.misc.data.logging.models.ContextMessage
 import po.misc.data.processors.SeverityLevel
 
 enum class Verbosity{
@@ -17,11 +18,18 @@ enum class Verbosity{
          this.verbosity = verbosity
          return this
      }
+
+     internal var onMessageCallback: ((ContextMessage)-> Unit)? = null
+     fun onMessage(callback: (ContextMessage)-> Unit):EmitterConfig{
+         onMessageCallback = callback
+         return this
+     }
+
  }
 
 
 open class LogEmitterClass(
-    val host: Any,
+    open val host: Any,
     val configurator:(EmitterConfig.()-> Unit)? = null
 ): EmittableClass {
 

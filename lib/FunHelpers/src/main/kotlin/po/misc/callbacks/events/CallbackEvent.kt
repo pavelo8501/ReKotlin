@@ -1,107 +1,225 @@
 package po.misc.callbacks.events
 
+import po.misc.exceptions.ManagedException
+import po.misc.exceptions.TraceableContext
 import po.misc.types.TypeData
-import kotlin.reflect.KClass
+import kotlin.Boolean
 
 
-interface EventHost
+/**
+ * Builder API for registering callbacks on events.
+ *
+ * @param H the type of the host that owns the event (e.g. a UI component or context).
+ * @param T the type of data emitted with the event (must be [EventData] for unhosted events).
+ * @param R the return type of the callback (commonly `Unit`).
+ *
+ * Provides two registration methods:
+ * - [onEvent] for synchronous callbacks
+ * - [onEventSuspending] for suspending callbacks
+ *
+ * Example:
+ * ```
+ * eventOf<ClickData> {
+ *     onEvent { println("Clicked at ${it.x}, ${it.y}") }
+ *     onEventSuspending { delay(100); println("Async click handled") }
+ * }
+ * ```
+ */
+sealed interface HostedEventBuilder<H, T, R>  where H: EventHost{
+
+    fun onEvent(callback: H.(T)-> R)
+    fun onEventSuspending(callback: suspend H.(T)-> R)
+}
 
 
+sealed interface EventBuilder<T, R>{
+    fun onEvent(callback: (T)-> R)
+    fun onEventSuspending(callback: suspend (T)-> R)
+}
 
-class CallbackEvent<T: EventHost, R>(
-   internal val host:T
-) {
+
+sealed class CallbackEventBase<H, T, R>(
+    val  paramType: TypeData<T>
+): TraceableContext where H: Any, T: Any  {
+
+
+    internal var result:R? = null
+    fun getLastResult():R?{
+        return  result
+    }
+
+    abstract val listeners : EventListeners<T>
+    protected val validators: MutableList<ValidatableEvent> = mutableListOf()
+
+    internal open var onEventCallback: ((T)-> R)? = null
+
+    val event: Boolean get() = onEventCallback  != null
 
     internal var onEventSuspendedCallback: (suspend (T)-> R)? = null
-    internal var onEventCallback: ((T)-> R)? = null
+    val eventSuspended: Boolean get() = onEventSuspendedCallback  != null
 
-    var result:R? = null
 
-    fun onEventSuspending(callback: suspend (T)-> R){
+    protected fun isValid(value: Validatable,  throws: Boolean): Boolean =
+        validators.all { it.validate(value, throws) }
+
+    //abstract fun trigger(value: T): Boolean
+   // abstract fun trigger(value: T, validator: Validatable, validationThrows: Boolean = false): Boolean
+    //abstract suspend fun triggerSuspending(value: T):Boolean
+   // abstract suspend fun triggerSuspending(value: T, validator: Validatable, validationThrows: Boolean = false):Boolean
+
+
+    protected fun throwIfValidatorsEmpty(){
+        if(validators.isEmpty()){
+            throw ManagedException(this, "Validation will always fail. No Validators present")
+        }
+    }
+
+    /**
+     * Triggers all synchronous event callbacks with the given [value],
+     * validating against [validator] if provided.
+     *
+     * @param value the event data to dispatch.
+     * @param validator a validation context to check before firing.
+     * @param validationThrows if `true`, throws an exception when no validators are present
+     *                         or validation fails. If `false`, silently skips triggering.
+     * @return `true` if any callback was triggered, `false` otherwise.
+     */
+    fun trigger(value: T): Boolean{
+        var triggered = false
+        onEventCallback?.let {
+            result = it.invoke(value)
+            listeners.notifyTriggered(value)
+            triggered = true
+        }
+        return triggered
+    }
+
+    fun trigger(value: T, validator: Validatable, validationThrows: Boolean = false): Boolean{
+        var triggered = false
+        if(validationThrows){
+            throwIfValidatorsEmpty()
+        }
+        if(isValid(validator, validationThrows)){
+            triggered = trigger(value)
+        }
+        return triggered
+    }
+
+    /**
+     * Triggers all suspending event callbacks with the given [value],
+     * validating against [validator] if provided.
+     *
+     * @param value the event data to dispatch.
+     * @param validator a validation context to check before firing.
+     * @param validationThrows if `true`, throws an exception when no validators are present
+     *                         or validation fails. If `false`, silently skips triggering.
+     * @return `true` if any callback was triggered, `false` otherwise.
+     */
+    suspend fun triggerSuspending(value: T): Boolean{
+        var triggered = false
+        onEventSuspendedCallback?.let {
+            result = it.invoke(value)
+            listeners.notifyTriggered(value)
+            triggered = true
+        }
+        return triggered
+    }
+
+
+    suspend fun triggerSuspending(value: T, validator: Validatable, validationThrows: Boolean =  false):Boolean{
+        var triggered = false
+        if(validationThrows){
+            throwIfValidatorsEmpty()
+        }
+        if(isValid(validator, validationThrows)){
+            triggered = triggerSuspending(value)
+        }
+        return triggered
+    }
+
+
+    /**
+     * Triggers both synchronous and suspending event callbacks with the given [value].
+     *
+     * If [validator] is provided:
+     * - Validation is performed independently for each pipeline (sync and suspend).
+     * - If validation fails:
+     *   - When [validationThrows] is `true` (default inside [trigger]/[triggerSuspending]),
+     *     an exception is thrown.
+     *   - When `false`, the pipeline simply skips execution.
+     *
+     * Execution order:
+     * 1. Synchronous callbacks ([trigger]) are fired first.
+     * 2. Suspending callbacks ([triggerSuspending]) are fired next.
+     *
+     * If [validator] is `null`, both pipelines run without validation.
+     *
+     * @param value the event data to dispatch to handlers.
+     * @param validator optional validator applied to each pipeline.
+     *
+     * @see trigger
+     * @see triggerSuspending
+     */
+    suspend fun triggerBoth(value: T, validator: Validatable?) {
+        if(validator != null){
+            trigger(value, validator, validationThrows = true)
+            triggerSuspending(value, validator, validationThrows = true)
+        }else{
+            trigger(value)
+            triggerSuspending(value)
+        }
+    }
+
+    /**
+     * Adds a validator that will be consulted before triggering events.
+     *
+     * All registered validators must pass (or at least one, depending on [isValid] logic)
+     * in order for the event to be dispatched.
+     *
+     * @param validator the validation rule to add.
+     */
+    fun addValidator(validator: ValidatableEvent) {
+        validators.add(validator)
+    }
+
+}
+
+
+open class CallbackEvent<T: Any, R>(
+    paramType: TypeData<T>
+): CallbackEventBase<Unit, T, R>(paramType),EventBuilder<T, R>{
+
+    override val  listeners : EventListeners<T> by lazy { EventListeners() }
+
+    override fun onEvent(callback: (T)-> R){
+        onEventCallback = callback
+    }
+
+    override fun onEventSuspending(callback: suspend (T)-> R){
         onEventSuspendedCallback = callback
     }
 
-    fun onEvent(callback: (T)-> R){
-        onEventCallback = callback
-    }
-
-    suspend fun triggerSuspending(){
-        result = onEventSuspendedCallback?.invoke(host)
-    }
-
-    fun trigger(){
-        result = onEventCallback?.invoke(host)
-    }
 }
 
+open class ParametrizedEvent<H, T, R>(
+    val  host: H,
+    paramType: TypeData<T>
+): CallbackEventBase<H, T, R>(paramType), HostedEventBuilder<H, T, R> where H: EventHost, T: Any {
 
-fun <T: EventHost> T.createEvent(
-    callback: ((T)-> Unit)? = null
-):CallbackEvent<T, Unit>{
-
-    val event = CallbackEvent<T, Unit>(this)
-    callback?.let {
-        event.onEvent(it)
-    }
-  return  event
-}
-
-fun <T: EventHost> T.suspendableEvent(
-    callback: (suspend (T)-> Unit)? = null
-):CallbackEvent<T, Unit>{
-    val event = CallbackEvent<T, Unit>(this)
-    callback?.let {
-        event.onEventSuspending(it)
-    }
-    return  event
-}
+    override val  listeners : EventListeners<T> by lazy {  EventListeners() }
 
 
-class CallbackNotifier<H, T, R>(
-    val  host:H,
-    val  typeData: TypeData<T>
-) where H: EventHost, T: Any  {
-
-    var result:R? = null
-
-    internal var onEventCallbackSuspending: (suspend H.(T)-> R)? = null
-    internal var onEventCallback: (H.(T)-> R)? = null
-
-    fun onEventSuspending(callback:suspend H.(T)-> R){
-        onEventCallbackSuspending = callback
-    }
-    fun onEvent(callback: H.(T)-> R){
-        onEventCallback = callback
+    override fun onEvent(callback: H.(T) -> R) {
+        super.onEventCallback = {param->
+            callback.invoke(host, param)
+        }
     }
 
-    suspend fun triggerSuspending(value: T){
-        result = onEventCallbackSuspending?.invoke(host, value)
+    override fun onEventSuspending(callback: suspend H.(T) -> R){
+        super.onEventSuspendedCallback = {param->
+            callback.invoke(host, param)
+        }
     }
 
-    fun trigger(value: T){
-        result = onEventCallback?.invoke(host, value)
-    }
-}
-
-inline fun <H: EventHost, reified T: Any> H.suspendableNotification(
-    kClass: KClass<T>,
-    noinline callback: (suspend H.(T)-> Unit)? = null
-):CallbackNotifier<H, T, Unit>{
-    val notifier = CallbackNotifier<H, T, Unit>(this, TypeData.create())
-    callback?.let {
-        notifier.onEventSuspending(it)
-    }
-    return  notifier
-}
-
-inline fun <H: EventHost, reified T: Any> H.createNotification(
-    kClass: KClass<T>,
-    noinline callback: (H.(T)-> Unit)? = null
-):CallbackNotifier<H, T, Unit>{
-    val notifier =  CallbackNotifier<H, T, Unit>(this, TypeData.create())
-    callback?.let {
-        notifier.onEvent(it)
-    }
-    return  notifier
 }
 

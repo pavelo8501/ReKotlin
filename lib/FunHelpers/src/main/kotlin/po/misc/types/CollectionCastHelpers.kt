@@ -1,8 +1,6 @@
 package po.misc.types
 
 import po.misc.exceptions.ManagedException
-import po.misc.context.CTX
-import po.misc.context.Identifiable
 import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.exceptions.ManagedPayload
 import po.misc.exceptions.throwableToText
@@ -10,45 +8,55 @@ import kotlin.reflect.KClass
 import kotlin.reflect.full.cast
 
 
-fun <T : Any> filterByType(
-     typeData: Typed<T>,
-     list:  List<Any>
+
+
+inline fun <reified T: DoubleTyped<T1, T2>, reified T1: Any, reified T2: Any> List<DoubleTyped<*, *>>.typedFilter(): List<T> {
+    val result = mutableListOf<T>()
+    val typeData1 = TypeData.create<T1>()
+    val typeData2 = TypeData.create<T2>()
+
+    val filtered = filter { it.parameter1 == typeData1 && it.parameter2 == typeData2}
+    for (filteredItem in filtered){
+        filteredItem.safeCast<T>()?.let {
+            result.add(it)
+        }
+    }
+    return result
+}
+
+inline fun <reified T: DoubleTyped<T1, T2>, T1: Any, T2: Any> List<DoubleTyped<*, *>>.typedFilter(
+    typeData1 : TypeData<T1>,
+    typeData2 : TypeData<T2>
 ): List<T> {
-    return list.mapNotNull {it.safeCast(typeData.kClass) }
+    val result = mutableListOf<T>()
+    val filtered = filter { it.parameter1 == typeData1 && it.parameter2 == typeData2}
+    for (filteredItem in filtered){
+        filteredItem.safeCast<T>()?.let {
+            result.add(it)
+        }
+    }
+    return result
 }
 
 
+
 fun <T : Any>  List<Any>.findByTypeFirstOrNull(
-    typeData: Typed<T>,
+    typeData: TypeData<T>,
 ):T? {
     return firstNotNullOfOrNull { it.safeCast(typeData.kClass) }
 }
 
-
-inline fun <reified T : Any> List<*>.castListSafe(
-    callingContext: Any
+fun <T : Any> List<*>.castListSafe(
+    kClass: KClass<T>
 ): List<T> {
     return this.mapNotNull{
-        try {
-            it.castOrManaged(callingContext)
-        }catch (th: Throwable){
-            null
-        }
-
+        it?.safeCast(kClass)
     }
 }
 
-fun <T : Any> List<*>.castListSafe(
-    callingContext: Any,
-    kClass: KClass<T>,
-): List<T> {
+inline fun <reified T : Any> List<*>.castListSafe(): List<T> {
     return this.mapNotNull{
-        try {
-            it.castOrManaged(callingContext, kClass)
-        }catch (th: Throwable){
-            null
-        }
-
+        it?.safeCast()
     }
 }
 
@@ -132,10 +140,9 @@ inline fun <reified BASE : Any> Any?.castBaseOrThrow(
 
 
 
-inline fun <reified T> Iterable<T>.countEqualsOrException(equalsTo: Int, exception:ManagedException):Iterable<T>{
-    val actualCount = this.count()
-    if(actualCount != equalsTo){
-        throw exception
+inline fun <reified T> Iterable<T>.equalOrThrow(size: Int, exceptionProvider:()-> Throwable):Iterable<T>{
+    if(this.count() != size){
+        throw exceptionProvider()
     }else{
         return this
     }

@@ -26,14 +26,8 @@ fun <T: Any> toPropertyMap(clazz: KClass<T>):Map<String, PropertyInfo<T, Any>> {
 }
 
 
-inline fun <reified T, reified P> KProperty1<T, P>.testMutability(
-): KMutableProperty1<T, P>?{
-    return try {
-        castOrManaged<KMutableProperty1<T, P>>(this)
-    }catch (th: Throwable){
-        th.throwableToText().output()
-        null
-    }
+fun <T,  P> KProperty1<T, P>.testMutability(): KMutableProperty1<T, P>?{
+    return  safeCast<KMutableProperty1<T, P>>()
 }
 
 
@@ -132,47 +126,9 @@ fun <T: Any> KMutableProperty1<T, Any>.updateConverting(receiver: T, value: Any)
         this.set(receiver, converted)
         true
     } catch (th: Throwable) {
-        th.throwableToText().output(Colour.BRIGHT_RED)
+        th.throwableToText().output(Colour.RedBright)
         false
     }
 }
-
-//
-//fun <T: Any> KMutableProperty1<T, Any>.updateConverting(receiver:T,  value: Any): Boolean {
-//    val classifier = returnType.classifier
-//    try {
-//        if (classifier == value::class) {
-//            this.set(receiver, value)
-//            return true
-//        } else {
-//            val input = value.toString()
-//            when (classifier) {
-//                Int::class -> set(receiver, input.toInt())
-//                String::class -> set(receiver, input)
-//                Boolean::class -> set(receiver, input.toBooleanStrictOrNull() ?: false)
-//                Long::class -> set(receiver, input.toLong())
-//                LocalDateTime::class -> set(receiver, LocalDateTime.parse(input))
-//                is KClass<*> -> {
-//                    if (classifier.java.isEnum) {
-//                        @Suppress("UNCHECKED_CAST")
-//                        val result = java.lang.Enum.valueOf(classifier.java as Class<out Enum<*>>, input)
-//                        set(receiver, result)
-//                    } else {
-//                        throw IllegalArgumentException("Unsupported type: $classifier")
-//                    }
-//                }
-//                else -> throw IllegalArgumentException("Unknown type: $classifier for input$input")
-//            }
-//            return true
-//        }
-//    }catch (th: Throwable){
-//        th.throwableToText().output(Colour.BRIGHT_RED)
-//        return false
-//    }
-//}
-
-
-
-
 
 

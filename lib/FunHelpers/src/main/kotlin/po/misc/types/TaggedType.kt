@@ -32,10 +32,10 @@ import kotlin.reflect.full.createType
 data class TaggedType<T: Any, E: Enum<E>>(
     val typeData: TypeData<T>,
     override val enumTag: EnumTag<E>
-):Typed<T>, ComparableType<T>, Tagged<E>{
+): ComparableType<T>, Tagged<E>{
 
     override val kClass: KClass<T> get() = typeData.kClass
-    override val kType: KType   get() = typeData.kType
+    val kType: KType   get() = typeData.kType
 
     val simpleName : String get() = kClass.simpleName.toString()
     val qualifiedName: String get() = kClass.qualifiedName.toString()

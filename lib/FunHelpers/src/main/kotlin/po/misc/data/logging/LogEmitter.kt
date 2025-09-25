@@ -14,10 +14,10 @@ interface LogEmitter {
 
     fun Any.notify(message: String, severity: SeverityLevel = SeverityLevel.INFO) {
         when(severity){
-            SeverityLevel.INFO-> message.output(Colour.GREEN)
+            SeverityLevel.INFO-> message.output(Colour.Green)
             SeverityLevel.WARNING-> message.output(Colour.Yellow)
-            SeverityLevel.EXCEPTION-> message.output(Colour.RED)
-            SeverityLevel.DEBUG-> message.output(Colour.BRIGHT_WHITE)
+            SeverityLevel.EXCEPTION-> message.output(Colour.Red)
+            SeverityLevel.DEBUG-> message.output(Colour.WhiteBright)
         }
     }
     fun  Any.log(data: PrintableBase<*>, severity: SeverityLevel = SeverityLevel.INFO) {

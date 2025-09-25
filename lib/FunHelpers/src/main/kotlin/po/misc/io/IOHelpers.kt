@@ -32,6 +32,7 @@ fun readFileContent(
     relativePath: String,
     withHooks: FileIOHooks.()-> Unit
 ):ByteArray?{
+
     val hooks = FileIOHooks().apply(withHooks)
     try {
        return readFileContent(relativePath)
@@ -43,6 +44,8 @@ fun readFileContent(
 
 
 fun ByteArray.readToString(charset: Charset = Charsets.UTF_8): String = toString(charset)
+
+fun ByteArray.bytesToText(charset: Charset = Charsets.UTF_8): String = toString(charset)
 
 
 fun readResourceContent(path: String): String {

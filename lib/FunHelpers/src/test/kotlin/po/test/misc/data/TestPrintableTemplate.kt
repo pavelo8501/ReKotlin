@@ -61,8 +61,8 @@ class TestPrintableTemplate {
     fun `Text colorization`(){
 
         val unstyled: String = "Simple text"
-        val colorized = unstyled.colorize(Colour.CYAN)
-        val colorized2 = Colour.BLUE text unstyled
+        val colorized = unstyled.colorize(Colour.Cyan)
+        val colorized2 = Colour.Blue text unstyled
 
         println(colorized)
         println(colorized2)

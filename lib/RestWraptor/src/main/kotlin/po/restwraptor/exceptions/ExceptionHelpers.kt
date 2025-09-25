@@ -1,5 +1,8 @@
 package po.restwraptor.exceptions
 
-internal fun configException(message: String, code: ExceptionCodes, original: Throwable? = null): ConfigurationException{
-  return  ConfigurationException(message, code, original)
+import po.misc.exceptions.TraceableContext
+
+
+internal fun TraceableContext.configException( message: String, code: ExceptionCodes, original: Throwable? = null): ConfigurationException{
+  return  ConfigurationException(this, message, code, original)
 }

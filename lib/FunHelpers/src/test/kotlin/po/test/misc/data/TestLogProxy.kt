@@ -56,7 +56,7 @@ class TestLogProxy: CTX {
 
             val Template2 =createTemplate {
                 nextLine {
-                    "Template2-> $personalName | Message ->  ${message.colorize(Colour.RED)}"
+                    "Template2-> $personalName | Message ->  ${message.colorize(Colour.Red)}"
                 }
             }
         }

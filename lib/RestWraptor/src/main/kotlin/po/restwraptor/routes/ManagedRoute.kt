@@ -59,11 +59,11 @@ class ManagedRoute(
 
              routing.get(result){
                  val session =  call.sessionFromAttributes()?.let {
-                     "Using existent session".output(Colour.GREEN)
+                     "Using existent session".output(Colour.Green)
                      it.output()
                      it
                  }?:run {
-                     "ReCreating session".output(Colour.CYAN)
+                     "ReCreating session".output(Colour.Cyan)
                      getOrNewSession(call.callerInfo())
                  }
                  body(this, session)
@@ -78,11 +78,11 @@ class ManagedRoute(
         routing.requestValue(this) { routing ->
             routing.post(result) {
                 val session = call.sessionFromAttributes()?.let {
-                    "Using existent".output(Colour.GREEN)
+                    "Using existent".output(Colour.Green)
                     it.output()
                     it
                 } ?: run {
-                    "ReCreating session".output(Colour.CYAN)
+                    "ReCreating session".output(Colour.Cyan)
                     getOrNewSession(call.callerInfo())
                 }
                 body(this, session)

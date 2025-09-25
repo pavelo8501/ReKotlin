@@ -51,9 +51,9 @@ class ServiceContext<DTO, DATA, ENTITY>(
     private fun afterUpdated(result:  ResultSingle<DTO, DATA>): ResultSingle<DTO, DATA>{
         result.data?.let {
             if(it is Identifiable<*>){
-                "found in result data".output(Colour.GREEN)
+                "found in result data".output(Colour.Green)
                 trackingList[it.identity]?.let {
-                    "comparison by identity work with result data".output(Colour.GREEN)
+                    "comparison by identity work with result data".output(Colour.Green)
                 }
             }
         }
@@ -62,9 +62,9 @@ class ServiceContext<DTO, DATA, ENTITY>(
 
     private fun beforeUpdated(dataModel:  DATA): DATA{
         if(dataModel is Identifiable<*>){
-           "found".output(Colour.GREEN)
+           "found".output(Colour.Green)
             trackingList[dataModel.identity]?.let {
-                "comparison by identity work".output(Colour.GREEN)
+                "comparison by identity work".output(Colour.Green)
             }
         }
         return dataModel

@@ -1,7 +1,11 @@
 package po.misc.exceptions
 
 import po.misc.collections.takeFromMatch
+import po.misc.data.helpers.replaceIfNull
 import po.misc.data.helpers.stripAfter
+import po.misc.data.styles.Colour
+import po.misc.data.styles.SpecialChars
+import po.misc.data.styles.colorize
 import po.misc.exceptions.models.StackFrameMeta
 
 internal fun  Throwable.currentCallerTrace(methodName: String): List<StackTraceElement> {
@@ -67,10 +71,10 @@ fun Throwable.toInfoString(): String{
 }
 
 fun  Throwable.throwableToText(): String{
-   return if(this.message != null){
-        this.message.toString()
-    }else{
-        this.javaClass.simpleName.toString()
+    val throwable = this
+    return buildString {
+        appendLine("Exception<${throwable.javaClass.simpleName}>".colorize(Colour.RedBright))
+        appendLine("Message:".colorize(Colour.Cyan) + message.replaceIfNull("-").colorize(Colour.Magenta))
     }
 }
 

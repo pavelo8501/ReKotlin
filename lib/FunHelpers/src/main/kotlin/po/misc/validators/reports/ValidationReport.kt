@@ -63,7 +63,7 @@ class ValidationReport(
 
         val Header: Template<ValidationReport> = createTemplate {
             nextLine {
-                "Validating $validatingContextName".colorize(Colour.BLUE)
+                "Validating $validatingContextName".colorize(Colour.Blue)
             }
             nextLine {
                 validationName
@@ -73,12 +73,12 @@ class ValidationReport(
             nextLine {
                 """Overall Result: ${
                     overallResult.name.matchTemplate(
-                        templateRule(overallResult.name.colorize(Colour.GREEN)) { overallResult == CheckStatus.PASSED },
-                        templateRule(overallResult.name.colorize(Colour.RED)) { overallResult == CheckStatus.FAILED },
+                        templateRule(overallResult.name.colorize(Colour.Green)) { overallResult == CheckStatus.PASSED },
+                        templateRule(overallResult.name.colorize(Colour.Red)) { overallResult == CheckStatus.FAILED },
                         templateRule(overallResult.name.colorize(Colour.Yellow)) { overallResult == CheckStatus.WARNING }
                     )
                 }
-            """.trimMargin().colorize(Colour.BLUE)
+            """.trimMargin().colorize(Colour.Blue)
             }
         }
     }

@@ -218,7 +218,7 @@ class OneToManyDelegate<DTO, D, E, F, FD, FE>(
     override val cardinality : Cardinality = Cardinality.ONE_TO_MANY
 
     override val delegateName: String get() =  "OneToManyDelegate[${property.name}]"
-    override val result:List<F> get() = commonDTOS.castListOrManaged(dtoClass.commonDTOType.dtoType.kClass, this)
+    override val result:List<F> get() = commonDTOS.castListOrManaged(this, dtoClass.commonDTOType.dtoType.kClass)
 
     override fun beforeRegistered() {
         require(hostingDTO.onIdResolved){

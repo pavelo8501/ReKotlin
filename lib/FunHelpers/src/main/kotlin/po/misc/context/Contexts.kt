@@ -1,9 +1,11 @@
 package po.misc.context
 
+import po.misc.data.helpers.output
 import po.misc.data.logging.LogEmitter
-import po.misc.data.processors.SeverityLevel
 import po.misc.data.styles.SpecialChars
+import po.misc.exceptions.ContextTracer
 import po.misc.exceptions.TraceableContext
+import po.misc.exceptions.models.CTXResolutionFlag
 import kotlin.reflect.full.starProjectedType
 
 /**
@@ -44,15 +46,19 @@ import kotlin.reflect.full.starProjectedType
  */
 interface CTX : LogEmitter, TraceableContext {
 
+
     val identity: CTXIdentity<out CTX>
+
+
 
     private fun getIdentityWithFallback():CTXIdentity<out CTX>{
         val errorMsg = "identity requested while not constructed. Providing fake one." + SpecialChars.NewLine.char +
         "Most common reason is initialization of identity dependant properties in abstract class"
        @Suppress("USELESS_ELVIS")
        return identity?:run {
-           notify(errorMsg, SeverityLevel.WARNING)
-           CTXIdentity(CTX::class,  CTX::class.starProjectedType, 0, )
+          val trace = ContextTracer(this,  CTXResolutionFlag.NoResolution, errorMsg)
+           trace.output()
+           CTXIdentity(CTX::class,  CTX::class.starProjectedType, 0)
        }
     }
 

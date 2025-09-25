@@ -32,7 +32,7 @@ class TestExceptionNotification: FakeTasksManaged {
         }
         val container = TaskContainer(rootTask)
         exception = assertThrows<ManagedException> {
-            nullableString.getOrManaged(String::class, this@TestExceptionNotification)
+            nullableString.getOrManaged(this@TestExceptionNotification, String::class)
         }
 
         val thrownException = assertNotNull(exception)
@@ -61,7 +61,7 @@ class TestExceptionNotification: FakeTasksManaged {
                 runAction("Firs Action") {
                     assertThrows<ManagedException> {
                         runAction("Second Action"){
-                            nullableString.getOrManaged(String::class, this@TestExceptionNotification)
+                            nullableString.getOrManaged(this@TestExceptionNotification, String::class)
                         }
                     }
                 }

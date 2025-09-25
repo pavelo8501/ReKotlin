@@ -12,18 +12,21 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
+import po.misc.context.asSubIdentity
 import kotlin.coroutines.CoroutineContext
 
 
 abstract class ScopedElementBase<T> (
+
     val dispatcher: CoroutineDispatcher = Dispatchers.Default
-): CTX, CoroutineContext.Element  where T: ScopedElementBase<T>{
+): CTX,  CoroutineContext.Element  where T: ScopedElementBase<T>, T : CTX{
 
     abstract override val identity: CTXIdentity<T>
     abstract override val key: CoroutineContext.Key<T>
 
-    open val scope: CoroutineScope =
-        CoroutineScope(SupervisorJob() + this + dispatcher + CoroutineName(identifiedByName))
+    open val scope: CoroutineScope by lazy {
+        CoroutineScope(SupervisorJob() + this + dispatcher + CoroutineName(identity.identifiedByName))
+    }
 
     val coroutineContext: CoroutineContext get() = scope.coroutineContext
 
@@ -32,40 +35,21 @@ abstract class ScopedElementBase<T> (
     }
 }
 
-suspend  fun <T: ScopedElementBase<T>, R> T.runElementAwait(
-    block: suspend CoroutineScope.() -> R
-): R {
+suspend  fun <T, R> T.runElementAwait(
+    block: suspend CoroutineScope.(T) -> R
+): R where  T: ScopedElementBase<T>, T : CTX  {
     return scope.async(start = CoroutineStart.UNDISPATCHED) {
-        block()
+        val receiver = this@runElementAwait
+        block(receiver)
     }.await()
 }
 
-fun <T: ScopedElementBase<T>> T.runElementAsync(
-    block: suspend CoroutineScope.() -> Unit
-): Job{
+fun <T> T.runElementAsync(
+    block: suspend CoroutineScope.(T) -> Unit
+): Job  where  T: ScopedElementBase<T>, T : CTX {
     return scope.launch(start = CoroutineStart.UNDISPATCHED) {
-        block()
+        val receiver = this@runElementAsync
+        block(receiver)
     }
 }
-
-
-
-//val CoroutineContext.scopedElement get() = this[ScopedElementBase]
-//
-//fun CoroutineContext.scopedElement(): Any? {
-//
-//    val element = this[ScopedElementBase]
-//    return element?.safeCast<Any>()
-//}
-//
-//inline  fun <reified T: ScopedElementBase<T>> CoroutineContext.scopedElementInContext():T? {
-//    try {
-//       val asCompanion = T::class.companionObjectInstance  as T
-//        val element =  this[asCompanion.key]
-//        return element
-//    }catch (th: Throwable){
-//        th.throwableToText().output()
-//    }
-//    return null
-//}
 

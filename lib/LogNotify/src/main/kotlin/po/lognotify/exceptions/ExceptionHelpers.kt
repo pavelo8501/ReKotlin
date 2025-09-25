@@ -76,7 +76,7 @@ internal fun <T: TasksManaged, R: Any?> handleException(
             }
         }
     } else {
-        val managed = exception.toManaged()
+        val managed = exception.toManaged(container.source.receiver)
         container.source.changeStatus(ExecutionStatus.Failing)
         managed.setHandler(container.effectiveTask.config.exceptionHandler, container.source)
         container.source.error(exception.throwableToText())

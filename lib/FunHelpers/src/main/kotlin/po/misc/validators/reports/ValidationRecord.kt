@@ -38,8 +38,8 @@ class ValidationRecord internal constructor(
             nextLine {
                 "Check:$recordName Status:${
                     result.name.matchTemplate(
-                        templateRule(result.name.colorize(Colour.GREEN)) { result == CheckStatus.PASSED },
-                        templateRule(result.name.colorize(Colour.RED)) { result == CheckStatus.FAILED },
+                        templateRule(result.name.colorize(Colour.Green)) { result == CheckStatus.PASSED },
+                        templateRule(result.name.colorize(Colour.Red)) { result == CheckStatus.FAILED },
                         templateRule(result.name.colorize(Colour.Yellow)) { result == CheckStatus.WARNING })
                 }".withIndent(4, "-") + message.replaceIfNull()
             }

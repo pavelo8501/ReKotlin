@@ -8,3 +8,15 @@ fun <T: Any> List<T>.exactlyOneOrThrow(exceptionProvider:()-> Throwable):T{
         return this[0]
     }
 }
+
+fun <T: Any> T?.asList(): List<T>{
+
+   return if (this != null){
+        listOf(this)
+    }else{
+        emptyList<T>()
+    }
+}
+
+
+

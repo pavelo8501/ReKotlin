@@ -4,6 +4,9 @@ import po.misc.context.CTX
 import po.misc.data.PrettyPrint
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
+import po.misc.exceptions.TrackableException
+import po.misc.exceptions.models.ExceptionTrace
+import po.misc.exceptions.throwableToText
 import kotlin.text.StringBuilder
 
 
@@ -74,8 +77,11 @@ private fun outputCreator(
         else -> target.toString()
     }
 
-    val outputString = "$prefixText $classString"
-
+    val outputString = if(prefixText.isBlank()){
+        classString
+    }else{
+        "$prefixText $classString"
+    }
     if(colour != null && !isPrettyPrint){
         val colorized = outputString.colorize(colour)
         outputForwarder?.invoke(colorized)?: println(colorized)
@@ -88,6 +94,38 @@ private fun outputCreator(
 fun Any.output(colour: Colour? = null, outputForwarder:((String)-> Unit)? = null){
     outputCreator(this, "",  colour, outputForwarder)
 }
+
+//fun TrackableException.output(){
+//    val asThrowable = this as Throwable
+//    val bestPickStr = this.exceptionTrace.bestPick.let {
+//        buildString {
+//            appendLine(asThrowable.throwableToText().colorize(Colour.RedBright))
+//            appendLine("Thrown in".colorize(Colour.YellowBright))
+//            appendLine("ClassName: ${it.simpleClassName}".colorize(Colour.YellowBright))
+//            appendLine("Method Name: ${it.methodName}".colorize(Colour.YellowBright))
+//            appendLine("Line nr: ${it.lineNumber}".colorize(Colour.YellowBright))
+//        }
+//    }
+//    println(bestPickStr)
+//}
+
+fun Throwable.output(){
+    val text = if(this is TrackableException){
+         exceptionTrace.bestPick.let {
+            buildString {
+                appendLine(throwableToText().colorize(Colour.RedBright))
+                appendLine("Thrown in".colorize(Colour.YellowBright))
+                appendLine("ClassName: ${it.simpleClassName}".colorize(Colour.YellowBright))
+                appendLine("Method Name: ${it.methodName}".colorize(Colour.YellowBright))
+                appendLine("Line nr: ${it.lineNumber}".colorize(Colour.YellowBright))
+            }
+        }
+    }else{
+        throwableToText()
+    }
+    println(text)
+}
+
 
 
 fun Any.output(

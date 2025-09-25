@@ -12,6 +12,7 @@ import po.auth.extensions.session
 import po.auth.models.SessionDefaultIdentity
 import po.auth.sessions.models.AuthorizedSession
 import po.misc.context.CTX
+import po.misc.exceptions.TraceableContext
 import po.misc.types.getOrThrow
 import po.restwraptor.enums.WraptorHeaders
 import po.restwraptor.exceptions.ConfigurationException
@@ -61,13 +62,13 @@ fun <T :ApplicationCall> T.currentSessionOrNew():AuthorizedSession {
 }
 
 suspend fun <T :ApplicationCall, R>  T.withSession(
-    callingContext: Any,
+    context: TraceableContext,
     block : suspend AuthorizedSession.()-> R
 ):R{
    val authorizedSessionKey = AttributeKey<AuthorizedSession>("AuthSession")
    val session =  attributes.takeOrNull(authorizedSessionKey)
-   val checked = session.getOrThrow(callingContext){message->
-       ConfigurationException("$message Session missing", ExceptionCodes.GENERAL_AUTH_CONFIG_FAILURE)
+   val checked = session.getOrThrow(context){message->
+       ConfigurationException(context, "$message Session missing", ExceptionCodes.GENERAL_AUTH_CONFIG_FAILURE)
    }
    return withContext(this.coroutineContext){
         block(checked)

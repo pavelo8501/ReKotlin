@@ -20,7 +20,8 @@ import po.misc.types.getOrManaged
 
 sealed class BackingContainerBase<T: Any>(
     private val owner: Any,
-    val typeData: Typed<T>,): LogEmitter{
+    val typeData: TypeData<T>
+): LogEmitter{
     protected open var backingValue: T? = null
     /**
      * Returns the current source value.
@@ -144,7 +145,7 @@ sealed class BackingContainerBase<T: Any>(
  */
 open class BackingContainer<T: Any>(
     owner: Any,
-    typeData: Typed<T>,
+    typeData: TypeData<T>,
 ): BackingContainerBase<T>(owner, typeData) {
 
     fun onValueSet(callback:(Change<T?, T>)-> Unit){
@@ -181,7 +182,7 @@ fun <T: Any> Any.backingContainerOf(
 
 class LazyContainer<T: Any>(
     private val owner: Any,
-    typeData: Typed<T>
+    typeData: TypeData<T>
 ):BackingContainerBase<T>(owner, typeData) {
 
     var lockedForEdit: Boolean = false
