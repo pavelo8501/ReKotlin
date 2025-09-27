@@ -3,6 +3,8 @@ package po.misc.exceptions
 import po.misc.collections.selectUntil
 import po.misc.collections.takeFromMatch
 import po.misc.context.CTX
+import po.misc.context.TraceableContext
+import po.misc.data.helpers.output
 import po.misc.exceptions.models.CTXResolutionFlag
 import po.misc.exceptions.models.ExceptionTrace
 import po.misc.exceptions.models.StackFrameMeta
@@ -36,10 +38,10 @@ fun classifyPackage(
 private fun buildExceptionTrace(
     throwable:  Throwable,
     kClass: KClass<*>,
-    emitter:TraceableContext?,
+    emitter: TraceableContext?,
     framesCount: Int = 3,
     flag: CTXResolutionFlag = CTXResolutionFlag.Resolvable
-): ExceptionTrace{
+): ExceptionTrace {
     fun traceElementToMeta(ste: StackTraceElement): StackFrameMeta {
         val classPackage = ste.className.substringBeforeLast('.', missingDelimiterValue = "")
         val role = classifyPackage(classPackage)
@@ -54,19 +56,22 @@ private fun buildExceptionTrace(
             stackTraceElement = ste
         )
     }
-    fun resolveAsTraceable(ctx: TraceableContext, trace: ExceptionTrace){
-        if(ctx != TraceableContext.NonResolvable){
-            when(ctx){
-                is CTX->{
+
+
+    fun resolveAsTraceable(ctx: TraceableContext, trace: ExceptionTrace) {
+        if (ctx != TraceableContext.NonResolvable) {
+            when (ctx) {
+                is CTX -> {
                     trace.addKnownContextData(ctx.identifiedByName)
                 }
             }
         }
     }
-    fun tryResolveEmitter(trace: ExceptionTrace,  emitter: Any?):ExceptionTrace{
-        if(emitter != null){
-            when(emitter){
-                is TraceableContext ->{
+
+    fun tryResolveEmitter(trace: ExceptionTrace, emitter: Any?): ExceptionTrace {
+        if (emitter != null) {
+            when (emitter) {
+                is TraceableContext -> {
                     resolveAsTraceable(emitter, trace)
                 }
             }
@@ -74,24 +79,23 @@ private fun buildExceptionTrace(
         return trace
     }
 
+
     val filteredPick = throwable.stackTrace.toList().selectUntil {
         it.className == kClass.java.name
     }
-
     val reversedReduced = filteredPick.drop((filteredPick.size - framesCount).coerceAtLeast(0))
-
     val metaList = if (reversedReduced.isNotEmpty()) {
-        val result =  reversedReduced.map { ste ->
+        val result = reversedReduced.map { ste ->
             traceElementToMeta(ste)
         }
         ExceptionTrace(kClass, result, result.first())
     } else {
         ExceptionTrace(kClass, emptyList(), traceElementToMeta(throwable.stackTrace.first()))
     }
-    if(flag == CTXResolutionFlag.Resolvable){
-      return  tryResolveEmitter(metaList, emitter)
+    if (flag == CTXResolutionFlag.Resolvable) {
+        return tryResolveEmitter(metaList, emitter)
     }
-    return  metaList
+    return metaList
 }
 
 /**

@@ -24,7 +24,6 @@ enum class Verbosity{
          onMessageCallback = callback
          return this
      }
-
  }
 
 

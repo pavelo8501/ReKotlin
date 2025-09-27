@@ -47,10 +47,8 @@ abstract class DataProcessorBase<T:PrintableBase<T>>(
         debugWhiteList.putAll(whiteList)
     }
 
-    fun allowDebug(vararg printableClass: PrintableCompanion<*>){
-        printableClass.forEach {
-            debugWhiteList[it.typeKey.hashCode()] = it.typeKey
-        }
+    fun clearData(){
+        recordsBacking.clear()
     }
 
     fun <T: PrintableBase<T>> debugData(

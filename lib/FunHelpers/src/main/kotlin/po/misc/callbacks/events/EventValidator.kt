@@ -1,7 +1,7 @@
 package po.misc.callbacks.events
 
 import po.misc.exceptions.ManagedException
-import po.misc.exceptions.TraceableContext
+import po.misc.context.TraceableContext
 import po.misc.types.TypeData
 import po.misc.types.helpers.simpleOrNan
 import po.misc.types.safeCast

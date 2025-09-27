@@ -2,8 +2,10 @@ package po.misc.exceptions
 
 import po.misc.data.printable.knowntypes.PropertyData
 import po.misc.context.CTX
+import po.misc.context.TraceableContext
 import po.misc.exceptions.models.ExceptionData
 import po.misc.exceptions.models.ExceptionTrace
+import kotlin.reflect.KClass
 
 enum class HandlerType(val value: Int) {
     SkipSelf(1),
@@ -15,13 +17,6 @@ enum class HandlerType(val value: Int) {
     }
 }
 
-
-interface TrackableException {
-    val exceptionTrace: ExceptionTrace
-}
-
-
-
 /**
  * A managed application exception that carries:
  * - [msg]   → Human-readable description
@@ -30,7 +25,7 @@ interface TrackableException {
  *
  * ## Migration Note
  * - For now [context] accepts [Any], but in the `init` block we enforce that
- *   it implements [TraceableContext].
+ *   it implements [po.misc.context.TraceableContext].
  * - This allows gradual transition: existing call sites compile,
  *   but runtime validation ensures correct usage.
  * - Later the constructor signature can be narrowed to `TraceableContext`
@@ -42,10 +37,10 @@ interface TrackableException {
  * throw ManagedException("Something failed", MyErrorCode.FATAL, MyContext())
  * ```
  *
- * @see TraceableContext Marker interface for objects that can be used as exception context
+ * @see po.misc.context.TraceableContext Marker interface for objects that can be used as exception context
  */
 open class ManagedException(
-    open val context: Any,
+    val context: Any,
     override val message: String,
     open val code: Enum<*>? = null,
     override val  cause : Throwable? = null
@@ -58,31 +53,22 @@ open class ManagedException(
         Executed
     }
 
+    override val contextClass: KClass<*> = context::class
+
+    override val self: Throwable
+        get() = this
+
 
     private var payloadBacking: ManagedCallSitePayload? = null
     val exceptionData: MutableList<ExceptionData> =  mutableListOf()
     internal val payload:  ManagedCallSitePayload? get() = payloadBacking
     val methodName: String? get() = payloadBacking?.methodName
-   // open val context: CTX? get() = payloadBacking?.context
 
     open var handler: HandlerType = HandlerType.CancelAll
         internal set
 
     override val exceptionTrace: ExceptionTrace = createMeta(context)
 
-    init {
-//        val original = super.fillInStackTrace().stackTrace
-//        val injected = trace?.stackFrames?.map {
-//            StackTraceElement(
-//                it.simpleClassName,
-//                trace.injectedAsAny as String,
-//                it.fileName,
-//                it.lineNumber,
-//            )
-//        } ?: emptyList()
-//        stackTrace = (injected + original).toTypedArray()
-
-    }
 
     constructor(managedPayload: ManagedCallSitePayload):
             this(
@@ -138,13 +124,6 @@ open class ManagedException(
         return this
     }
 
-    fun throwSelf(methodName: String, producer: CTX, event: ExceptionEvent = ExceptionEvent.Thrown):Nothing {
-        val data = ExceptionData(event, message, producer)
-        data.addStackTrace(currentCallerTrace(methodName))
-        exceptionData.add(data)
-        throw this
-    }
-
     fun setPropertySnapshot(snapshot: List<PropertyData>?):ManagedException{
         if(snapshot != null){
             val lastData = exceptionData.lastOrNull()
@@ -153,5 +132,19 @@ open class ManagedException(
         return this
     }
 }
+
+
+fun <T:TraceableContext> T.managedException(message: String): ManagedException{
+  return  ManagedException(this, message, null)
+}
+
+fun <T:TraceableContext> T.managedException(message: String, code: Enum<*>): ManagedException{
+    return  ManagedException(this, message, code)
+}
+
+fun <T:TraceableContext> T.managedException(message: String, code: Enum<*>?, cause: Throwable?): ManagedException{
+    return  ManagedException(this, message, code, cause)
+}
+
 
 

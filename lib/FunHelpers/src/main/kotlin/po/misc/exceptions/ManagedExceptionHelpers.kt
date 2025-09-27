@@ -1,8 +1,13 @@
 package po.misc.exceptions
 
+import kotlinx.coroutines.currentCoroutineContext
+import po.misc.coroutines.CoroutineInfo
+import po.misc.coroutines.coroutineInfo
+import po.misc.data.helpers.output
 import po.misc.data.logging.ContextAware
 import po.misc.data.logging.ContextAware.ExceptionLocator
 import po.misc.exceptions.models.ExceptionTrace
+import kotlin.reflect.KClass
 
 
 /**
@@ -106,4 +111,43 @@ inline fun <reified TH> ContextAware.raiseException(
 inline fun <reified TH> ContextAware.registerExceptionBuilder(
     noinline provider:(String)->TH
 ): Unit where TH: TrackableException, TH: Throwable = ExceptionLocator.registerExceptionBuilder(provider)
+
+
+
+
+inline fun <reified TH: Throwable> ContextAware.registerHandler(
+    noinline block: (TH)-> Unit
+): Boolean = ExceptionLocator.registerHandler<TH>(block)
+
+
+
+inline fun <reified TH: Throwable, reified T: Any> ContextAware.registerHandler(
+    parameter: T,
+    noinline block: suspend (TH)-> Unit
+): Boolean = ExceptionLocator.registerHandler<TH, T>(ThrowableContainer(parameter, block))
+
+
+
+inline fun <R: Any> ContextAware.delegateIfThrow(block:()-> R):R?{
+    try {
+      return  block()
+    }catch (th: Throwable){
+        ExceptionLocator.handle(th)
+        return null
+    }
+}
+
+suspend fun <R: Any> ContextAware.delegateIfThrow(methodName: String,  block: suspend ()-> R):R?{
+
+    try {
+      return  block()
+    }catch (th: Throwable){
+        if(th is TrackableScopedException){
+            th.coroutineInfo = th.contextClass.coroutineInfo(methodName)
+        }
+        ExceptionLocator.handleSuspending(th)
+        return null
+    }
+}
+
 

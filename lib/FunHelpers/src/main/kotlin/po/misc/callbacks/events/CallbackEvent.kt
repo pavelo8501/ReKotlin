@@ -1,7 +1,7 @@
 package po.misc.callbacks.events
 
 import po.misc.exceptions.ManagedException
-import po.misc.exceptions.TraceableContext
+import po.misc.context.TraceableContext
 import po.misc.types.TypeData
 import kotlin.Boolean
 
@@ -62,12 +62,6 @@ sealed class CallbackEventBase<H, T, R>(
     protected fun isValid(value: Validatable,  throws: Boolean): Boolean =
         validators.all { it.validate(value, throws) }
 
-    //abstract fun trigger(value: T): Boolean
-   // abstract fun trigger(value: T, validator: Validatable, validationThrows: Boolean = false): Boolean
-    //abstract suspend fun triggerSuspending(value: T):Boolean
-   // abstract suspend fun triggerSuspending(value: T, validator: Validatable, validationThrows: Boolean = false):Boolean
-
-
     protected fun throwIfValidatorsEmpty(){
         if(validators.isEmpty()){
             throw ManagedException(this, "Validation will always fail. No Validators present")
@@ -84,23 +78,30 @@ sealed class CallbackEventBase<H, T, R>(
      *                         or validation fails. If `false`, silently skips triggering.
      * @return `true` if any callback was triggered, `false` otherwise.
      */
-    fun trigger(value: T): Boolean{
+    fun trigger(value: T, notifyListeners: Boolean = true): Boolean{
         var triggered = false
         onEventCallback?.let {
             result = it.invoke(value)
-            listeners.notifyTriggered(value)
             triggered = true
+        }
+        if(notifyListeners){
+            listeners.notifyTriggered(value)
         }
         return triggered
     }
 
-    fun trigger(value: T, validator: Validatable, validationThrows: Boolean = false): Boolean{
+    fun trigger(
+        value: T,
+        validator: Validatable,
+        validationThrows: Boolean = false,
+        notifyListeners: Boolean = true,
+    ): Boolean{
         var triggered = false
         if(validationThrows){
             throwIfValidatorsEmpty()
         }
         if(isValid(validator, validationThrows)){
-            triggered = trigger(value)
+            triggered = trigger(value, notifyListeners)
         }
         return triggered
     }
@@ -119,14 +120,17 @@ sealed class CallbackEventBase<H, T, R>(
         var triggered = false
         onEventSuspendedCallback?.let {
             result = it.invoke(value)
-            listeners.notifyTriggered(value)
             triggered = true
         }
+        listeners.notifyTriggered(value, true)
         return triggered
     }
 
 
-    suspend fun triggerSuspending(value: T, validator: Validatable, validationThrows: Boolean =  false):Boolean{
+    suspend fun triggerSuspending(
+        value: T, validator: Validatable,
+        validationThrows: Boolean =  false,
+    ):Boolean{
         var triggered = false
         if(validationThrows){
             throwIfValidatorsEmpty()
@@ -162,10 +166,10 @@ sealed class CallbackEventBase<H, T, R>(
      */
     suspend fun triggerBoth(value: T, validator: Validatable?) {
         if(validator != null){
-            trigger(value, validator, validationThrows = true)
+            trigger(value, validator, validationThrows = true, notifyListeners =  false)
             triggerSuspending(value, validator, validationThrows = true)
         }else{
-            trigger(value)
+            trigger(value, notifyListeners =  false)
             triggerSuspending(value)
         }
     }
@@ -188,13 +192,10 @@ sealed class CallbackEventBase<H, T, R>(
 open class CallbackEvent<T: Any, R>(
     paramType: TypeData<T>
 ): CallbackEventBase<Unit, T, R>(paramType),EventBuilder<T, R>{
-
     override val  listeners : EventListeners<T> by lazy { EventListeners() }
-
     override fun onEvent(callback: (T)-> R){
         onEventCallback = callback
     }
-
     override fun onEventSuspending(callback: suspend (T)-> R){
         onEventSuspendedCallback = callback
     }

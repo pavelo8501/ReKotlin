@@ -3,7 +3,7 @@ package po.misc.callbacks.events
 import po.misc.data.helpers.output
 import po.misc.data.styles.Colour
 import po.misc.types.TypeData
-
+import po.misc.types.TypedObject
 
 
 sealed interface TypedParameters
@@ -44,6 +44,23 @@ inline fun <reified L: Any, T: Any> EventHost.listenTriggered(
 ){
     event.listeners.onEventTriggered(listener, onTriggered)
 }
+
+
+fun <T: Any> TypedObject.listenTriggeredSuspended(
+    event:  CallbackEventBase<*, T, *>,
+    onTriggered: suspend (T)-> Unit
+){
+    event.listeners.onTriggeredSuspending(this, onTriggered)
+}
+
+
+fun <T: Any> TypedObject.listenTriggered(
+    event:  CallbackEventBase<*, T, *>,
+    onTriggered: (T)-> Unit
+){
+    event.listeners.onEventTriggered(this, onTriggered)
+}
+
 
 /**
  * Creates a [TypeData] descriptor for the current type [T].

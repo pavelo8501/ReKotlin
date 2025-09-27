@@ -2,9 +2,11 @@ package po.misc.data.helpers
 
 import po.misc.context.CTX
 import po.misc.data.PrettyPrint
+import po.misc.data.printable.PrintableBase
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.exceptions.TrackableException
+import po.misc.exceptions.TrackableScopedException
 import po.misc.exceptions.models.ExceptionTrace
 import po.misc.exceptions.throwableToText
 import kotlin.text.StringBuilder
@@ -64,8 +66,7 @@ private fun outputCreator(
     prefixText: String,
     colour: Colour?,
     outputForwarder:((String)-> Unit)?
-){
-
+): String{
     var isPrettyPrint: Boolean = false
     val classString = when(target){
         is PrettyPrint-> {
@@ -82,36 +83,25 @@ private fun outputCreator(
     }else{
         "$prefixText $classString"
     }
-    if(colour != null && !isPrettyPrint){
-        val colorized = outputString.colorize(colour)
-        outputForwarder?.invoke(colorized)?: println(colorized)
-    }else{
-        outputForwarder?.invoke(outputString)?:println(outputString)
-    }
-}
 
+    return  if(colour != null && !isPrettyPrint){
+        val colorized = outputString.colorize(colour)
+        outputForwarder?.invoke(colorized)?.toString()?: colorized
+    }else{
+        outputForwarder?.invoke(outputString)?.toString()?:outputString
+    }
+
+}
 
 fun Any.output(colour: Colour? = null, outputForwarder:((String)-> Unit)? = null){
-    outputCreator(this, "",  colour, outputForwarder)
+   val output = outputCreator(this, "",  colour, outputForwarder)
+   println(output)
 }
 
-//fun TrackableException.output(){
-//    val asThrowable = this as Throwable
-//    val bestPickStr = this.exceptionTrace.bestPick.let {
-//        buildString {
-//            appendLine(asThrowable.throwableToText().colorize(Colour.RedBright))
-//            appendLine("Thrown in".colorize(Colour.YellowBright))
-//            appendLine("ClassName: ${it.simpleClassName}".colorize(Colour.YellowBright))
-//            appendLine("Method Name: ${it.methodName}".colorize(Colour.YellowBright))
-//            appendLine("Line nr: ${it.lineNumber}".colorize(Colour.YellowBright))
-//        }
-//    }
-//    println(bestPickStr)
-//}
-
 fun Throwable.output(){
-    val text = if(this is TrackableException){
-         exceptionTrace.bestPick.let {
+
+    fun exceptionTraceToFormated(exceptionTrace : ExceptionTrace): String{
+      return  exceptionTrace.bestPick.let {
             buildString {
                 appendLine(throwableToText().colorize(Colour.RedBright))
                 appendLine("Thrown in".colorize(Colour.YellowBright))
@@ -120,12 +110,27 @@ fun Throwable.output(){
                 appendLine("Line nr: ${it.lineNumber}".colorize(Colour.YellowBright))
             }
         }
-    }else{
-        throwableToText()
+    }
+
+
+    val text =  when(this){
+        is TrackableScopedException->{
+           val trace =  exceptionTraceToFormated(exceptionTrace)
+           val coroutineString = coroutineInfo?.output()
+            buildString {
+                appendLine(trace)
+                appendLine(coroutineString)
+            }
+        }
+        is TrackableException->{
+            exceptionTraceToFormated(exceptionTrace)
+        }
+        else -> {
+            throwableToText()
+        }
     }
     println(text)
 }
-
 
 
 fun Any.output(

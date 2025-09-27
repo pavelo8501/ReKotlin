@@ -13,11 +13,12 @@ import kotlinx.coroutines.launch
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asSubIdentity
+import po.misc.data.helpers.output
+import po.misc.data.styles.Colour
 import kotlin.coroutines.CoroutineContext
 
 
 abstract class ScopedElementBase<T> (
-
     val dispatcher: CoroutineDispatcher = Dispatchers.Default
 ): CTX,  CoroutineContext.Element  where T: ScopedElementBase<T>, T : CTX{
 
@@ -40,7 +41,14 @@ suspend  fun <T, R> T.runElementAwait(
 ): R where  T: ScopedElementBase<T>, T : CTX  {
     return scope.async(start = CoroutineStart.UNDISPATCHED) {
         val receiver = this@runElementAwait
-        block(receiver)
+        try {
+            block(receiver)
+        }catch (th: Throwable){
+            th.output()
+            "Caught in runElementAwait of ScopedElementBase".output(Colour.BlueBright)
+            throw th
+        }
+
     }.await()
 }
 
@@ -49,7 +57,14 @@ fun <T> T.runElementAsync(
 ): Job  where  T: ScopedElementBase<T>, T : CTX {
     return scope.launch(start = CoroutineStart.UNDISPATCHED) {
         val receiver = this@runElementAsync
-        block(receiver)
+        try {
+            block(receiver)
+        }catch (th: Throwable){
+            th.output()
+            "Caught in runElementAsync of ScopedElementBase".output(Colour.BlueBright)
+            throw th
+        }
+
     }
 }
 

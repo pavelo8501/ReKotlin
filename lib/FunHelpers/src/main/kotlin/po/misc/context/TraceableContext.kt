@@ -1,7 +1,4 @@
-package po.misc.exceptions
-
-
-
+package po.misc.context
 
 interface TraceableContext  {
 

@@ -1,12 +1,32 @@
 package po.misc.exceptions
 
+import po.misc.context.TraceableContext
+import po.misc.coroutines.CoroutineInfo
 import po.misc.data.helpers.output
+import po.misc.data.styles.Colour
 import po.misc.exceptions.models.ExceptionTrace
+import po.misc.types.helpers.simpleOrNan
+import po.misc.types.safeCast
 import kotlin.reflect.KClass
 
 data class HelperPackage(
     val name: String
 )
+
+
+interface ThrowableLambda<TH: Throwable,  T: Any>{
+    val data: T
+    val lambda: suspend (TH) -> Unit
+
+}
+
+data class ThrowableContainer<TH: Throwable, T: Any>(
+    override val data: T,
+    override val lambda: suspend (TH) -> Unit
+):ThrowableLambda<TH, T>
+
+
+
 
 abstract class ExceptionLocatorBase{
 
@@ -28,6 +48,13 @@ abstract class ExceptionLocatorBase{
 
     @PublishedApi
     internal val exceptionBuilderRegistry: MutableMap<KClass<*>, (String) -> Throwable> = mutableMapOf()
+
+    @PublishedApi
+    internal val handlers: MutableMap<KClass<out Throwable>, (Throwable) -> Unit> = mutableMapOf()
+
+    @PublishedApi
+    internal val suspendedHandlers: MutableMap<KClass<out Throwable>, ThrowableLambda<Throwable, *>> = mutableMapOf()
+
 
     inline fun <reified TH> registerExceptionBuilder(
        noinline provider: (String)-> TH
@@ -85,6 +112,60 @@ abstract class ExceptionLocatorBase{
         }
         traceProvider.invoke(trace)
         throw exception
+    }
+
+
+
+    inline fun <reified TH: Throwable> registerHandler(noinline handler: (TH)-> Unit): Boolean {
+
+        val castedHandler = handler.safeCast<(Throwable)-> Unit>()
+        return castedHandler?.let {
+            handlers[TH::class] = it
+            "Handler registered for (${TH::class.simpleOrNan()})->Unit".output(Colour.GreenBright)
+            true
+        }?:run {
+            "Cast of handler (${TH::class.simpleOrNan()})->Unit  to (Throwable)->Unit failed".output(Colour.YellowBright)
+            false
+        }
+    }
+
+
+
+    inline fun <reified TH: Throwable, reified T: Any> registerHandler(
+        handler: ThrowableLambda<TH, T>
+    ): Boolean {
+
+       return handler.safeCast<ThrowableLambda<Throwable, *>>()?.let { casted->
+            suspendedHandlers[TH::class] = casted
+           "Handler registered for ThrowableLambda<${TH::class.simpleOrNan()}, ${T::class}>".output(Colour.GreenBright)
+            true
+        }?:run {
+           "Cast failure for ThrowableLambda<${TH::class.simpleOrNan()}, ${T::class}>".output(Colour.YellowBright)
+            false
+        }
+    }
+
+
+    fun <TH: Throwable> handle(throwable:TH){
+        val handlerFound =  handlers[throwable::class]
+        if(handlerFound != null){
+            "Handler for   ${throwable::class.simpleOrNan()} found. Invoking".output(Colour.GreenBright)
+            handlerFound.invoke(throwable)
+        }else{
+            "No handler registered for  ${throwable::class.simpleOrNan()}. Rethrowing".output(Colour.YellowBright)
+            throw throwable
+        }
+    }
+
+    suspend fun  <TH: Throwable> handleSuspending(throwable:TH){
+        val handlerFound =  suspendedHandlers[throwable::class]
+        if(handlerFound != null){
+            "Handler for  suspended lambda  ${throwable::class.simpleOrNan()} found. Invoking".output(Colour.GreenBright)
+            handlerFound.lambda.invoke(throwable)
+        }else{
+            "No handler registered for suspended lambda  ${throwable::class.simpleOrNan()}. Rethrowing".output(Colour.YellowBright)
+            throw throwable
+        }
     }
 
     fun register(throwable: Throwable){

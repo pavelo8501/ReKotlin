@@ -81,7 +81,7 @@ class TestCallbackLoop {
             }
         }
         assertDoesNotThrow {
-            callbackLoop!!.startBlocking()
+            callbackLoop!!.start()
         }
         assertIs<DefaultOutput>(onLoopData)
     }
@@ -104,7 +104,7 @@ class TestCallbackLoop {
             }
         }
 
-        loop.startBlocking()
+        loop.startAndWait()
         assertEquals(3, loopOutputCounter)
     }
 }

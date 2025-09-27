@@ -20,8 +20,8 @@ import kotlin.time.DurationUnit
 interface ConcurrentLoop<REQUEST : Any, UPDATE : Any> {
     val config: LoopConfig
 
-    fun startAsync()
-    suspend fun startBlocking()
+    fun start(scope: CoroutineScope? = null)
+    suspend fun startAndWait(scope: CoroutineScope? = null)
     fun stop()
 }
 
@@ -46,6 +46,7 @@ abstract class ConcurrentLoopBase<INPUT: Any, OUTPUT: ModifiedOutput>(
     protected var listenerScope = CoroutineScope(SupervisorJob() + CoroutineName("connector_listener"))
 
     private var loopJob: Job? = null
+
     private var boostedPollingLeft = config.boostWindowSize
     private var active: Boolean = false
 
@@ -81,17 +82,20 @@ abstract class ConcurrentLoopBase<INPUT: Any, OUTPUT: ModifiedOutput>(
         }
     }
 
-    override fun startAsync() {
+    override fun start(scope: CoroutineScope?) {
+        scope?.let { listenerScope = it }
         active = true
         loopJob = listenerScope.launch {
             runLoop()
         }
     }
-    override suspend fun startBlocking() {
+    override suspend fun startAndWait(scope: CoroutineScope?) {
+        scope?.let { listenerScope = it }
         active = true
-        listenerScope.async {
+        loopJob = listenerScope.launch {
             runLoop()
-        }.await()
+        }
+        loopJob?.join()
     }
 
     private fun updateStats(preProcessed: OUTPUT){
@@ -117,16 +121,16 @@ abstract class ConcurrentLoopBase<INPUT: Any, OUTPUT: ModifiedOutput>(
                     decreaseBoost()
                 }
                 emitter.info("Loop complete")
-                stats.loopsCount ++
+                stats.loopsCount++
                 loopHooks.triggerOnLoop(stats.copy())
                 delay(delay)
-            } catch (th: Throwable) {
-                if (th is ManagedException) {
-                    val message =
-                        "Error polling connector: ${th.throwableToText()}. $stopMessage".output(Colour.Red)
-                }
+            }catch (th: Throwable){
+                val message = "Error polling connector: ${th.throwableToText()}. $stopMessage".output(Colour.Red)
+                "Error polling connector".output(Colour.Red)
+                th.output()
                 loopHooks.triggerOnError(th)
                 active = false
+                throw th
             }
         }
     }

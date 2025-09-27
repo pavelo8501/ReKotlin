@@ -1,20 +1,27 @@
 package po.misc.data.printable
 
+import po.misc.data.PrettyPrint
 import po.misc.data.console.DateHelper
+import po.misc.data.helpers.output
 import po.misc.data.json.JObject
 import po.misc.data.json.JsonHolder
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.printable.companion.PrintableTemplateBase
 import po.misc.data.printable.grouping.ArbitraryDataMap
 import po.misc.data.printable.grouping.ArbitraryKey
+import po.misc.data.styles.Colour
+import po.misc.data.styles.colorize
+import po.misc.types.helpers.simpleOrNan
 import po.misc.types.safeCast
 import kotlin.reflect.KClass
 
 abstract class PrintableBase<T>(
    val companion: PrintableCompanion<T>
-): ComposableData, Printable, DateHelper where T:PrintableBase<T> {
+): ComposableData, Printable, DateHelper, PrettyPrint where T:PrintableBase<T> {
 
-    private val templateNotFound : (T) -> String = { key->  "[template for data: $key not defined] ${toString()}"}
+    private val templateNotFound : (T) -> String = { key->
+        "[template for data: $key not defined] ${companion.printableClass.simpleOrNan()}".colorize(Colour.Red)
+    }
 
     abstract val self:T
     override val arbitraryMap: ArbitraryDataMap<PrintableBase<*>> = ArbitraryDataMap()
@@ -68,6 +75,7 @@ abstract class PrintableBase<T>(
        return muteCondition?.invoke(self)?:false
     }
 
+
     fun setDefaultTemplate(template: PrintableTemplateBase<T>){
         activeTemplate = template
     }
@@ -79,9 +87,7 @@ abstract class PrintableBase<T>(
         }
     }
 
-    override fun echo(){
-        println(formattedString)
-    }
+    override fun echo(): Unit = output()
 
     fun echo(template: PrintableTemplateBase<T>){
         val result = template.resolve(self)

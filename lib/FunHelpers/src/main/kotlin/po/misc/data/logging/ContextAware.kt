@@ -71,7 +71,6 @@ interface ContextAware : LogEmitter, CTX {
         }
     }
 
-
     fun info(message: String){
         emitter.info(message)
     }
@@ -79,6 +78,7 @@ interface ContextAware : LogEmitter, CTX {
     fun warn(message: String){
         emitter.warn(message)
     }
+
 
     override fun Any.notify(message: String, severity: SeverityLevel) {
         emitter.notify(message,  severity)
@@ -103,6 +103,8 @@ interface ContextAware : LogEmitter, CTX {
         )
     }
 }
+
+
 
 internal object FakeCtx: ContextAware{
     override val identity: CTXIdentity<FakeCtx> = asIdentity()

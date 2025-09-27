@@ -15,6 +15,10 @@ interface DateHelper{
     val currentTime: String
         get() = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))
 
+
+    val nowTime: String
+        get() = currentTime
+
     val currentDateTime: String
         get() = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
 

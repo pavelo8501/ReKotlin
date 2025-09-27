@@ -5,6 +5,7 @@ import po.misc.data.logging.models.ContextMessage
 import po.misc.data.processors.SeverityLevel
 import po.misc.debugging.DebugTopic
 import po.misc.exceptions.metaFrameTrace
+import po.misc.types.helpers.simpleOrNan
 
 
 /**
@@ -84,16 +85,32 @@ class ContextAwareLogEmitter(
     /** Logs a warning message with detailed stack info. Relatively expensive. */
     override fun warn(message: String){
         val trace = host.metaFrameTrace()
-        val data = trace.bestPick?.let {
-            createData(SeverityLevel.WARNING, it.methodName, message)
-        }?:run {
-            createData(SeverityLevel.WARNING, "", message)
-        }
+        val data =   createData(SeverityLevel.WARNING, trace.bestPick.methodName, message)
         data.setDefaultTemplate(ContextMessage.Warning)
         data.echo()
     }
 
-    override fun info(message: String, ){
+
+   private  fun infoWithResolution (message: String,  producedBy: Any):ContextMessage{
+
+     val name =  when(producedBy){
+           is ContextAware ->{
+               producedBy.identifiedByName
+           }
+           is Any->{
+               "${producedBy::class.simpleOrNan()}  on behalf of $contextName"
+           }
+       }
+      return  ContextMessage(
+            contextName = name,
+            methodName = "",
+            subject = "",
+            message = message,
+            severityLevel = SeverityLevel.INFO
+        )
+    }
+
+    override fun info(message: String){
        val data = createData(SeverityLevel.INFO, "", message)
         data.setDefaultTemplate(ContextMessage.Message)
         data.echo()
@@ -104,6 +121,11 @@ class ContextAwareLogEmitter(
         data.setDefaultTemplate(ContextMessage.Debug)
         config.onMessageCallback?.invoke(data)
         data.echo()
+    }
+
+    fun <T: Any> notify2(receiver: T, message: String) {
+        val data = infoWithResolution(message, receiver)
+        data.output()
     }
 
     fun notify(message: String, severityLevel: SeverityLevel) {

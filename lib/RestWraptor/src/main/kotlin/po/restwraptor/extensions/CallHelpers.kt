@@ -12,7 +12,7 @@ import po.auth.extensions.session
 import po.auth.models.SessionDefaultIdentity
 import po.auth.sessions.models.AuthorizedSession
 import po.misc.context.CTX
-import po.misc.exceptions.TraceableContext
+import po.misc.context.TraceableContext
 import po.misc.types.getOrThrow
 import po.restwraptor.enums.WraptorHeaders
 import po.restwraptor.exceptions.ConfigurationException

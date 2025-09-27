@@ -6,7 +6,7 @@ import po.misc.context.asIdentity
 import po.misc.data.logging.ContextAware
 import po.misc.data.logging.logEmitter
 import po.misc.exceptions.ManagedException
-import po.misc.exceptions.TraceableContext
+import po.misc.context.TraceableContext
 import po.misc.exceptions.TrackableException
 import po.misc.exceptions.metaFrameTrace
 import po.misc.exceptions.models.ExceptionTrace
@@ -14,6 +14,7 @@ import po.misc.exceptions.models.StackFrameMeta
 import po.misc.exceptions.raiseException
 import po.misc.exceptions.raiseManagedException
 import po.misc.exceptions.registerExceptionBuilder
+import kotlin.reflect.KClass
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
@@ -26,7 +27,9 @@ class TestContextExceptions: ContextAware {
     var trace: ExceptionTrace? = null
 
     class SomeException(val context: TraceableContext): Throwable("SomeException"), TrackableException {
-        override val exceptionTrace: ExceptionTrace = metaFrameTrace(context)
+        override val contextClass: KClass<*> = context::class
+        override val exceptionTrace: ExceptionTrace = metaFrameTrace(contextClass)
+        override val self = this
     }
 
     @Test

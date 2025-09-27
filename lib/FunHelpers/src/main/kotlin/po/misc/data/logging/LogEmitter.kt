@@ -1,6 +1,7 @@
 package po.misc.data.logging
 
 import po.misc.context.CTX
+import po.misc.context.TraceableContext
 import po.misc.data.helpers.output
 import po.misc.data.printable.Printable
 import po.misc.data.printable.PrintableBase
@@ -10,7 +11,12 @@ import po.misc.data.styles.Colour
 import po.misc.debugging.DebugTopic
 
 
-interface LogEmitter {
+interface LogEmitter: TraceableContext {
+
+
+    fun info(message: String, subject: String? = null){
+        println(message)
+    }
 
     fun Any.notify(message: String, severity: SeverityLevel = SeverityLevel.INFO) {
         when(severity){

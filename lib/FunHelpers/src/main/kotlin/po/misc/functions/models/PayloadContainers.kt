@@ -1,6 +1,6 @@
 package po.misc.functions.models
 
-import po.misc.exceptions.TraceableContext
+import po.misc.context.TraceableContext
 import po.misc.functions.payloads.DoublePayload
 import po.misc.functions.payloads.SafePayload
 

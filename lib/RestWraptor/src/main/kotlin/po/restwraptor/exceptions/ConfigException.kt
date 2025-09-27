@@ -2,7 +2,7 @@ package po.restwraptor.exceptions
 
 
 import po.misc.exceptions.ManagedException
-import po.misc.exceptions.TraceableContext
+import po.misc.context.TraceableContext
 
 
 class ConfigurationException(

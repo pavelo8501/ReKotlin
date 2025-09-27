@@ -7,8 +7,6 @@ import org.junit.jupiter.api.assertThrows
 import po.misc.callbacks.events.EventHost
 import po.misc.callbacks.events.EventValidator
 import po.misc.callbacks.events.Validatable
-import po.misc.callbacks.events.createEvent
-import po.misc.callbacks.events.createTypeData
 import po.misc.callbacks.events.eventOf
 import po.misc.data.helpers.output
 import po.misc.exceptions.ManagedException

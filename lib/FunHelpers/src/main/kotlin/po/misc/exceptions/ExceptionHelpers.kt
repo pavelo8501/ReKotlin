@@ -1,6 +1,7 @@
 package po.misc.exceptions
 
 import po.misc.collections.takeFromMatch
+import po.misc.context.TraceableContext
 import po.misc.data.helpers.replaceIfNull
 import po.misc.data.helpers.stripAfter
 import po.misc.data.styles.Colour
@@ -86,47 +87,6 @@ internal fun String.isLikelyUserCode(): Boolean {
             !startsWith("jdk") &&
             !startsWith("org.jetbrains")
 }
-
-
-//
-// fun <TH: Throwable>  TH.toStackFrameMeta(
-//     throwingClass: Any
-// ):List<StackFrameMeta>{
-//
-//     val kClass: KClass<*> = throwingClass::class
-//
-//   return  extractCallSiteMetaByClass(kClass.qualifiedName?:"", 3)
-//}
-//
-//fun Throwable.extractCallSiteMetaByClass(
-//    className: String,
-//    framesCount: Int = 2,
-//    helperPackagePrefixes: List<String> = listOf("po.misc", "kotlin", "java")
-//): List<StackFrameMeta> {
-//
-//    val frames = stackTrace.takeFromMatch<StackTraceElement>(framesCount){ it.className ==  className}
-//
-//    return frames.map {stackTraceElement->
-//        val classPackage = stackTraceElement.className.substringBeforeLast('.', missingDelimiterValue = "")
-//        val isHelper = helperPackagePrefixes.any { prefix ->
-//            classPackage == prefix || classPackage.startsWith("$prefix.")
-//        }
-//
-//        val isUser = !isHelper && classPackage.isLikelyUserCode()
-//
-//        StackFrameMeta(
-//            fileName = stackTraceElement.className,
-//            simpleClassName = stackTraceElement.javaClass.simpleName,
-//            methodName = stackTraceElement.methodName,
-//            lineNumber = stackTraceElement.lineNumber,
-//            classPackage = classPackage,
-//            isHelperMethod = isHelper,
-//            isUserCode = isUser,
-//            stackTraceElement = stackTraceElement
-//        )
-//    }
-//}
-//
 
 
 

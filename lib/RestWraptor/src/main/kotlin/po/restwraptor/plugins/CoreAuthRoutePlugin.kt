@@ -5,7 +5,7 @@ import io.ktor.server.application.ApplicationStarted
 import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.application.hooks.MonitoringEvent
 import io.ktor.server.auth.AuthenticationChecked
-import po.misc.exceptions.TraceableContext
+import po.misc.context.TraceableContext
 import po.restwraptor.RestWraptorServer
 import po.restwraptor.extensions.getWraptorRoutes
 import po.restwraptor.models.server.WraptorRoute
