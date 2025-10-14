@@ -45,14 +45,21 @@ fun Throwable.extractTrace(): ExceptionTrace {
 }
 
 fun Throwable.extractTrace(context: TraceableContext): ExceptionTrace {
-
+    val takeForAnalysis = 30
     val contextClass = context::class
-    val frames =  stackTrace.take(20).toMeta()
-
+    val frames =  stackTrace.take(takeForAnalysis).toMeta()
     val convertedToMeta = frames.takeFromMatch(5) {
             it.simpleClassName.equals(contextClass.simpleOrAnon, ignoreCase = true)
         }
-    return  ExceptionTrace(this.throwableToText(), convertedToMeta, contextClass)
+    return if(convertedToMeta.isEmpty()){
+        "extractTrace selected first $takeForAnalysis frames for analysis, but was unable to find any records for $contextClass" +
+        "Using first $takeForAnalysis as fallback. Exception location is unreliable"
+        val trace = ExceptionTrace(this.throwableToText(), frames, contextClass)
+        trace.reliable = false
+        trace
+    }else{
+        ExceptionTrace(this.throwableToText(), convertedToMeta, contextClass)
+    }
 }
 
 

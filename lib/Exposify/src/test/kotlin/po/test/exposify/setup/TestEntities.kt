@@ -44,6 +44,9 @@ class SectionEntity(id: EntityID<Long>) : LongEntity(id) {
     val contentBlocks by ContentBlockEntity referrersOn ContentBlocks.section
 }
 
+
+
+
 class ContentBlockEntity(id: EntityID<Long>) : LongEntity(id) {
     companion object : ExposifyEntityClass<ContentBlockEntity>(ContentBlocks)
 

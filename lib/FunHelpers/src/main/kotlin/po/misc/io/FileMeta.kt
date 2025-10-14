@@ -4,9 +4,8 @@ import java.io.File
 import java.time.Instant
 
 interface FileMetaData{
-
     val fileName: String
-    val path: String
+    val relativePath: String
     val size: Long
     val lastModified: Instant
     val file: File
@@ -15,10 +14,11 @@ interface FileMetaData{
 }
 
 data class FileMeta(
+    override val relativePath: String,
     override val file: File
 ): FileMetaData{
 
-    override val path: String = file.path
+
     override val size: Long = file.length()
     override val lastModified: Instant =  Instant.ofEpochMilli(file.lastModified())
 

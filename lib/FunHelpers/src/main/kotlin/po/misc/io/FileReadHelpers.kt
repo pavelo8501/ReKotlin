@@ -33,6 +33,7 @@ fun fileExists(relativePath: String): FileMeta?{
     return try {
         if (file.exists() && file.isFile) {
             FileMeta(
+                relativePath,
                 file
             )
         } else null
@@ -53,7 +54,7 @@ fun readFileContent(
 
 fun readFile(relativePath: String): LocalFile{
     val file = File(System.getProperty("user.dir"), relativePath)
-    return  LocalFile(file.readBytes(), FileMeta(file))
+    return  LocalFile(file.readBytes(), FileMeta(relativePath, file))
 }
 
 

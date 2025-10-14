@@ -14,6 +14,8 @@ data class ExceptionTrace(
 ): PrettyPrint{
 
 
+    var reliable: Boolean = true
+        internal set
     var bestPick:StackFrameMeta = stackFrames.first()
     var ctxName: String = ""
 

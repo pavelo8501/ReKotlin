@@ -158,7 +158,7 @@ fun writeFile(
             throw IOException("File already exists: $relativePath")
         }
         file.writeBytes(bytes)
-        return  LocalFile(bytes, FileMeta(file))
+        return  LocalFile(bytes, FileMeta(relativePath, file))
 }
 
 inline fun <R: Any> writeFile(
