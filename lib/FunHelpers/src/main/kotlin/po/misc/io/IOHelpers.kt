@@ -1,18 +1,20 @@
 package po.misc.io
 
 
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
 
+fun Any.toSafePathName(fallbackName: String? = null): String{
+    val asString = toString()
 
-fun readFileContent(relativePath: String): String {
-    val path: Path = Paths.get(System.getProperty("user.dir")).resolve(relativePath)
-    return Files.readString(path)
-}
+    val converted = asString
+        .lowercase()
+        .replace("[^a-z0-9_-]".toRegex(), "_")
+        .replace("_+".toRegex(), "_")
+        .trim('_')
 
-fun readResourceContent(path: String): String {
-    return object {}.javaClass.classLoader.getResource(path)
-        ?.readText()
-        ?: error("Resource not found: $path")
+    return converted.ifBlank {
+        fallbackName ?: run {
+            val failMessage = "$asString can not be conferted to safe file name. And no fallback name provided"
+            throw IllegalArgumentException(failMessage)
+        }
+    }
 }

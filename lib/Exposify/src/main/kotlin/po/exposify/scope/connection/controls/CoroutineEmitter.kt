@@ -1,6 +1,7 @@
 package po.exposify.scope.connection.controls
 
 import po.auth.sessions.models.AuthorizedSession
+import po.auth.sessions.models.SessionBase
 import po.exposify.common.classes.ExposifyDebugger
 import po.exposify.common.classes.exposifyDebugger
 import po.exposify.common.events.ContextData
@@ -8,7 +9,7 @@ import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.extensions.withSuspendedTransactionIfNone
+import po.exposify.dao.transaction.withSuspendedTransactionIfNone
 import po.lognotify.TasksManaged
 import po.lognotify.process.Process
 import po.misc.context.CTXIdentity
@@ -16,7 +17,7 @@ import po.misc.context.asIdentity
 
 class CoroutineEmitter(
     val name: String,
-    val process : Process<AuthorizedSession>
+    val process : Process<SessionBase>
 ): TasksManaged {
 
     override val identity: CTXIdentity<CoroutineEmitter> = asIdentity()

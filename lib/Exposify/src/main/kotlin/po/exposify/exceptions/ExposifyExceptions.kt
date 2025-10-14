@@ -1,31 +1,29 @@
 package po.exposify.exceptions
 
-import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
-import po.misc.context.CTX
 import po.misc.exceptions.HandlerType
-import po.misc.exceptions.ManagedCallSitePayload
+import po.misc.exceptions.ThrowableCallSitePayload
 
 import po.misc.exceptions.ManagedException
 
 
 class InitException(
-    override val msg: String,
+    context: Any,
+    message: String,
     override val code: ExceptionCode?,
-    val callingContext: CTX?,
     override val cause: Throwable? = null,
-): ManagedException(msg, code, cause) {
+): ManagedException(context, message, code, cause) {
 
     override var handler: HandlerType = HandlerType.CancelAll
-    override val context: CTX? get() = callingContext
+   // override val context: CTX? get() = callingContext
 
     constructor(
-        payload: ManagedCallSitePayload
+        payload: ThrowableCallSitePayload
     ): this(
-        msg = payload.message,
+        message = payload.message,
         code = payload.code as ExceptionCode,
         cause = payload.cause,
-        callingContext = payload.context,
+        context = payload.context,
     ){
         initFromPayload(payload)
     }
@@ -33,23 +31,23 @@ class InitException(
 }
 
 class OperationsException(
-    override val msg: String,
+    context: Any,
+    message: String,
     override val code: ExceptionCode?,
-    val callingContext: CTX?,
     override val cause: Throwable? = null,
-) : ManagedException (msg, code) {
+) : ManagedException (context,  message, code) {
 
 
     override var handler: HandlerType = HandlerType.CancelAll
-    override val context: CTX? get() = callingContext
+
 
     constructor(
-        payload: ManagedCallSitePayload
+        payload: ThrowableCallSitePayload
     ): this(
-        msg = payload.message,
+        message = payload.message,
         code = payload.code as ExceptionCode,
         cause = payload.cause,
-        callingContext = payload.context
+        context = payload.context
     ){
         initFromPayload(payload)
     }

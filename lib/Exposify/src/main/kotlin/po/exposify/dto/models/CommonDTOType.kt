@@ -1,13 +1,5 @@
 package po.exposify.dto.models
 
-import org.jetbrains.exposed.dao.LongEntity
-import po.exposify.dto.CommonDTO
-import po.exposify.dto.interfaces.DataModel
-import po.exposify.dto.interfaces.ModelDTO
-import po.misc.types.TypeData
-import kotlin.reflect.KClass
-import kotlin.reflect.KType
-
 
 //class CommonDTOType<DTO: ModelDTO, D: DataModel, E: LongEntity>(
 //    kClass: KClass<CommonDTO<DTO, D, E>>,

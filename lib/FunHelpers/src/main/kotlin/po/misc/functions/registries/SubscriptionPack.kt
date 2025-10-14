@@ -1,7 +1,8 @@
 package po.misc.functions.registries
 
 import po.misc.functions.registries.models.TaggedSubscriber
-import po.misc.types.TypeData
+import po.misc.types.token.TypeToken
+import po.misc.types.type_data.TypeData
 import kotlin.reflect.KClass
 
 
@@ -12,7 +13,7 @@ sealed interface SubscriptionPack<V: Any>{
 
 class EmitterSubscriptions<V: Any>(
     override val subscriber: KClass<*>,
-    val targetEmitter: TypeData<*>
+    val targetEmitter: TypeToken<*>
 ):SubscriptionPack<V>{
 
     val subscriptionsBacking: MutableList<Pair<TaggedSubscriber<*>, (V)-> Unit>> = mutableListOf()

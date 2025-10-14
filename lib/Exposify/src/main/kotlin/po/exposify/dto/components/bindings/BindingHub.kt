@@ -97,8 +97,6 @@ class BindingHub<DTO, D, E>(
         return resultString
     }
 
-
-
     internal fun <F : ModelDTO, FD : DataModel, FE : LongEntity> getParentDelegateByType(
         dtoType: CommonDTOType<F, FD, FE>,
     ): ParentDelegate<DTO, D, E, F, FD, FE>? {
@@ -231,6 +229,12 @@ class BindingHub<DTO, D, E>(
         val found = parentDelegateMap[commonDTO.dtoClass]
         found?.castOrOperations<ParentDelegate<DTO, D, E, F, FD, FE>>(this)?.resolve(commonDTO) ?:run {
             warning("No parent delegate found for: ${commonDTO.dtoClass}")
+        }
+    }
+
+    fun applyDataModels(){
+        relationDelegateMap.values.forEach {
+            it.applyDataModels()
         }
     }
 

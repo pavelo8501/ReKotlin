@@ -4,9 +4,9 @@ import po.misc.collections.ComparableType
 import po.misc.data.helpers.replaceIfNull
 import po.misc.data.tags.EnumTag
 import po.misc.data.tags.Tagged
+import po.misc.types.type_data.TypeData
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
-import kotlin.reflect.full.createType
 
 
 /**
@@ -32,10 +32,10 @@ import kotlin.reflect.full.createType
 data class TaggedType<T: Any, E: Enum<E>>(
     val typeData: TypeData<T>,
     override val enumTag: EnumTag<E>
-):Typed<T>, ComparableType<T>, Tagged<E>{
+): ComparableType<T>, Tagged<E>{
 
     override val kClass: KClass<T> get() = typeData.kClass
-    override val kType: KType   get() = typeData.kType
+    val kType: KType   get() = typeData.kType
 
     val simpleName : String get() = kClass.simpleName.toString()
     val qualifiedName: String get() = kClass.qualifiedName.toString()
@@ -94,33 +94,6 @@ data class TaggedType<T: Any, E: Enum<E>>(
             val tagRecord = EnumTag(enumTag, E::class.java)
             alias?.let { tagRecord.alias = it }
             val typeData =  TypeData.create<T>()
-            return TaggedType(typeData, tagRecord)
-        }
-
-        /**
-         * Creates a [TaggedType] from an explicit [KClass] and enum tag [E], optionally providing an alias.
-         *
-         * This method is recommended when the type [T] is not available as a reified generic or when dynamic
-         * creation is necessary.
-         *
-         * **Note**: Make sure to pass both the class and the enum value. Forgetting the enum may result in
-         * incorrect or missing tagging.
-         *
-         * Example usage:
-         * ```
-         * val tag = TaggedType.create(MyDTO::class, MyEnum.INSERT)
-         * ```
-         *
-         * @param clazz The Kotlin class for type [T]
-         * @param enumTag The enum constant to tag this type with
-         * @param alias Optional alias string; defaults to the computed [typeName] if not provided
-         */
-        fun <T: Any, E: Enum<E>> create(clazz: KClass<T>, enumTag:E, alias: String? = null):TaggedType<T, E>{
-            val type =  clazz.createType()
-            val javaClass =  enumTag::class.java as Class<E>
-            val tagRecord = EnumTag(enumTag, javaClass)
-            alias?.let { tagRecord.alias = it }
-            val typeData =  TypeData.createByKClass(clazz)
             return TaggedType(typeData, tagRecord)
         }
     }

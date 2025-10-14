@@ -1,33 +1,15 @@
 package po.misc.exceptions
 
 import po.misc.collections.takeFromMatch
+import po.misc.context.TraceableContext
+import po.misc.data.helpers.replaceIfNull
 import po.misc.data.helpers.stripAfter
-import po.misc.exceptions.models.StackFrameMeta
-
+import po.misc.data.styles.Colour
+import po.misc.data.styles.colorize
+import po.misc.exceptions.stack_trace.StackFrameMeta
 
 internal fun  Throwable.currentCallerTrace(methodName: String): List<StackTraceElement> {
     return stackTrace.takeFromMatch(2){ it.methodName == methodName }
-}
-
-fun throwManaged(
-    message: String,
-    callingContext: Any,
-    code: Enum<*>? = null,
-    handler : HandlerType? = null,
-): Nothing{
-    val methodName = "throwManaged"
-    val payload =  ManagedPayload(message, methodName, callingContext)
-    throw ManagedException(payload.setCode(code).setHandler(handler))
-}
-
-fun throwManaged(
-    message: String,
-    handler : HandlerType,
-    callingContext: Any
-): Nothing{
-    val methodName = "throwManaged"
-    val payload =  ManagedPayload(message, methodName, callingContext)
-    throw ManagedException(payload.setHandler(handler))
 }
 
 
@@ -44,7 +26,7 @@ fun <S: Enum<S>> throwException(
     message: String,
     handler : HandlerType,
     callingContext: Any,
-    exceptionProvider: (ManagedCallSitePayload)-> Throwable
+    exceptionProvider: (ThrowableCallSitePayload)-> Throwable
 ): Nothing{
     val methodName = "throwException"
     val payload =  ManagedPayload(message, methodName, callingContext)
@@ -56,7 +38,7 @@ fun <S: Enum<S>> throwException(
     callingContext: Any,
     code: S? = null,
     handler : HandlerType? = null,
-    exceptionProvider: (ManagedCallSitePayload)-> Throwable
+    exceptionProvider: (ThrowableCallSitePayload)-> Throwable
 ): Nothing{
     val methodName = "throwException"
     val payload =  ManagedPayload(message, methodName, callingContext)
@@ -65,18 +47,9 @@ fun <S: Enum<S>> throwException(
 }
 
 
-inline fun <S: Enum<S>> throwException(
-    message: String,
-    callingContext: Any,
-    exceptionProvider: (ManagedCallSitePayload)-> Throwable
-): Nothing{
-    val methodName = "throwManageable"
-    val payload = ManagedPayload(message, methodName, callingContext)
-    throw exceptionProvider.invoke(payload)
-}
+fun Throwable.toManaged(context: TraceableContext): ManagedException{
 
-fun Throwable.toManaged(): ManagedException{
-    val managed = ManagedException(this.throwableToText(), null, this)
+    val managed = ManagedException(context, message = throwableToText(), code = null, cause = this)
     return managed
 }
 
@@ -88,15 +61,15 @@ fun Throwable.toInfoString(): String{
 }
 
 fun  Throwable.throwableToText(): String{
-   return if(this.message != null){
-        this.message.toString()
-    }else{
-        this.javaClass.simpleName.toString()
+
+    return buildString {
+        appendLine(this@throwableToText.javaClass.simpleName)
+        appendLine("Message: " +  message.replaceIfNull("-") )
     }
 }
 
-internal fun String.isLikelyUserCode(): Boolean {
 
+internal fun String.isLikelyUserCode(): Boolean {
     return this.isNotBlank() &&
             !startsWith("kotlin") &&
             !startsWith("java") &&

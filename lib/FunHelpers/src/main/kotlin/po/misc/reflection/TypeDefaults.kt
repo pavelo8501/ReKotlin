@@ -1,15 +1,16 @@
 package po.misc.reflection
 
-import po.misc.types.TypeData
+import po.misc.types.type_data.TypeData
 import po.misc.types.safeCast
+import po.misc.types.token.TypeToken
 import java.time.LocalDateTime
+import kotlin.reflect.KClass
 
-interface TypeDefaults<T: Any> {
 
-    val typeData: TypeData<T>
+interface TypeDefaults{
 
-    fun <T: Any> getDefaultForType(typeData: TypeData<T>): T? {
-        val result = when (typeData.kType.classifier) {
+    fun  defaultForClass(kClass: KClass<*>): Any? {
+      val result =  when (kClass) {
             Int::class -> -1
             String::class -> "Default"
             Boolean::class -> false
@@ -19,12 +20,30 @@ interface TypeDefaults<T: Any> {
             }
             else -> null
         }
-        return  result?.safeCast(typeData.kClass)
+        return result
     }
 
-    fun getDefault(): T?{
-      return  getDefaultForType(typeData)
-    }
+//    fun <T: Any> getDefaultForType(typeData: TypeToken<T>): T? {
+//
+//        val result = when (typeData.kType.classifier) {
+//            Int::class -> -1
+//            String::class -> "Default"
+//            Boolean::class -> false
+//            Long::class -> -1L
+//            LocalDateTime::class -> {
+//                LocalDateTime.now()
+//            }
+//            else -> null
+//        }
+//        return  result?.safeCast(typeData.kClass)
+//    }
+//
+//    fun getDefault(): T?{
+//      return  getDefaultForType(typeData)
+//    }
+}
 
-
+fun <T: Any>  TypeDefaults.defaultForType(kClass : KClass<T>):T?{
+    val result =  defaultForClass(kClass)
+    return result?.safeCast(kClass)
 }

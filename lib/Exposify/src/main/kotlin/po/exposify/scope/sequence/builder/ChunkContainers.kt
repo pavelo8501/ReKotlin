@@ -43,14 +43,14 @@ sealed class ChunkContainer<DTO, D>(
         }
     }
 
-    override fun toString(): String = identity.detailedDump
+    override fun toString(): String = identity.detailedDump.toString()
 }
 
 @SequenceDSL
 class SequenceChunkContainer<DTO, D>(
     val descriptor: RootDescriptorBase<DTO, D>,
 ) : ChunkContainer<DTO, D>(descriptor, descriptor) where DTO : ModelDTO, D : DataModel {
-    override val identity: CTXIdentity<SequenceChunkContainer<DTO, D>> = asSubIdentity(this, descriptor)
+    override val identity: CTXIdentity<SequenceChunkContainer<DTO, D>> get() =  asSubIdentity(descriptor)
 
     val listTypeHandler: ListTypeHandler<DTO, D> = ListTypeHandler(descriptor)
     val singleTypeHandler: SingleTypeHandler<DTO, D> = SingleTypeHandler(descriptor)
@@ -63,7 +63,7 @@ class SwitchChunkContainer<DTO, D, F, FD>(
 ) : ChunkContainer<DTO, D>(descriptor, parentContainer.rootDescriptor),
     TasksManaged
     where DTO : ModelDTO, D : DataModel, F : ModelDTO, FD : DataModel {
-    override val identity: CTXIdentity<SwitchChunkContainer<DTO, D, F, FD>> = asSubIdentity(this, descriptor)
+    override val identity: CTXIdentity<SwitchChunkContainer<DTO, D, F, FD>> = asSubIdentity(descriptor)
     val resultBacking: BackingContainer<ResultSingle<F, FD>> = backingContainerOf()
 
     val listHandler: ListTypeSwitchHandler<DTO, D, F, FD> = ListTypeSwitchHandler(descriptor)

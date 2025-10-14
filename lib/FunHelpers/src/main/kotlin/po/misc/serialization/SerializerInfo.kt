@@ -1,7 +1,7 @@
 package po.misc.serialization
 
 import kotlinx.serialization.KSerializer
-import po.misc.types.TypeData
+import po.misc.types.type_data.TypeData
 import kotlin.reflect.KType
 
 data class SerializerInfo<T>(

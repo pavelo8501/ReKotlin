@@ -1,7 +1,7 @@
 package po.exposify.scope.sequence.inputs
 
 import org.jetbrains.exposed.dao.LongEntity
-import po.auth.sessions.models.AuthorizedSession
+import po.auth.sessions.models.SessionBase
 import po.exposify.dto.DTOBase
 import po.exposify.dto.components.query.WhereQuery
 import po.exposify.dto.interfaces.DataModel
@@ -9,11 +9,11 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.scope.sequence.builder.ListDescriptor
 import po.exposify.scope.sequence.builder.SequenceDescriptor
 import po.exposify.scope.sequence.builder.SingleDescriptor
-import po.exposify.scope.sequence.builder.SwitchDescriptorBase
 import po.misc.functions.containers.DeferredContainer
-import po.misc.types.TypeData
+import po.misc.types.type_data.TypeData
 import po.misc.types.castListOrManaged
 import po.misc.types.castOrManaged
+import po.misc.types.token.TypeToken
 
 
 enum class InputType{
@@ -56,7 +56,7 @@ class ParameterInput<DTO: ModelDTO, D: DataModel>(
 }
 
 
-fun <DTO: ModelDTO, D: DataModel> AuthorizedSession.withInput(descriptor:SequenceDescriptor<DTO, D>, input: Long):ParameterInput<DTO, D>{
+fun <DTO: ModelDTO, D: DataModel> SessionBase.withInput(descriptor:SequenceDescriptor<DTO, D>, input: Long):ParameterInput<DTO, D>{
    return ParameterInput(input, descriptor)
 }
 
@@ -69,12 +69,12 @@ class DataInput<DTO: ModelDTO, D: DataModel>(
     override val dtoClass: DTOBase<DTO, D, *> = descriptor.dtoClass
     override val inputType: InputType = InputType.Single
 
-    fun <D: DataModel> getValue(typeData: TypeData<D>):D{
-        return value.castOrManaged(typeData.kClass, this)
+    fun <D: DataModel> getValue(typeData: TypeToken<D>):D{
+        return value.castOrManaged(this, typeData.kClass)
     }
 }
 
-fun <DTO: ModelDTO, D: DataModel> AuthorizedSession.withInput(descriptor:SequenceDescriptor<DTO, D>, input: D):DataInput<DTO, D>{
+fun <DTO: ModelDTO, D: DataModel> SessionBase.withInput(descriptor:SequenceDescriptor<DTO, D>, input: D):DataInput<DTO, D>{
     return DataInput(input, descriptor)
 }
 
@@ -86,12 +86,12 @@ class ListDataInput<DTO: ModelDTO, D: DataModel>(
     override val inputType: InputType = InputType.List
     override val dtoClass: DTOBase<DTO, D, *> = descriptor.dtoClass
 
-    fun <D: DataModel> getValue(typeData: TypeData<D>): List<D> {
-        return value.castListOrManaged(typeData.kClass, this)
+    fun <D: DataModel> getValue(typeData: TypeToken<D>): List<D> {
+        return value.castListOrManaged(this, typeData.kClass)
     }
 }
 
-fun <DTO: ModelDTO, D: DataModel> AuthorizedSession.withInput(
+fun <DTO: ModelDTO, D: DataModel> SessionBase.withInput(
     descriptor:SequenceDescriptor<DTO, D>,
     input: List<D>
 ):ListDataInput<DTO, D>{
@@ -106,19 +106,19 @@ class QueryInput<DTO: ModelDTO, D: DataModel>(
     override val dtoClass: DTOBase<DTO, D, *>  = descriptor.dtoClass
     override var inputType: InputType = InputType.Single
 
-    fun <E: LongEntity> getValue(typeData: TypeData<E>): DeferredContainer<WhereQuery<E>> {
+    fun <E: LongEntity> getValue(typeData: TypeToken<E>): DeferredContainer<WhereQuery<E>> {
         return  value.castOrManaged(this)
     }
 }
 
-fun <DTO: ModelDTO, D: DataModel> AuthorizedSession.withInput(
+fun <DTO: ModelDTO, D: DataModel> SessionBase.withInput(
     input: DeferredContainer<WhereQuery<*>>,
     descriptor: SingleDescriptor<DTO, D>
 ):QueryInput<DTO, D> {
     return QueryInput(input, descriptor)
 }
 
-fun <DTO: ModelDTO, D: DataModel> AuthorizedSession.withInput(
+fun <DTO: ModelDTO, D: DataModel> SessionBase.withInput(
     input: DeferredContainer<WhereQuery<*>>,
     descriptor: ListDescriptor<DTO, D>
 ):QueryInput<DTO, D> {

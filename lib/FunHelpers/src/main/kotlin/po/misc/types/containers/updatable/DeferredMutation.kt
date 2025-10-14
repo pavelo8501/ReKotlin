@@ -11,7 +11,5 @@ interface DeferredMutation<T : Any, R : Any>: CTX {
     val notifier: CallbackManager<UpdatableEvents>
     fun triggerUpdate(value: R)
     fun triggerUpdate(controlMessage: String)
-    fun compareType(other: Typed<*>): Boolean
-
-
+    //fun compareType(other: Typed<*>): Boolean
 }

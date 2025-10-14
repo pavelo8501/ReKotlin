@@ -1,8 +1,7 @@
 package po.misc.types.containers
 
-import po.misc.types.TypeData
+import po.misc.types.type_data.TypeData
 import po.misc.types.castListOrManaged
-import po.misc.types.castListOrThrow
 
 
 sealed interface SingleOrList<T: Any>{
@@ -28,13 +27,14 @@ open class Single<T: Any>(val value: T): SingleOrList<T>{
             @Suppress("UNCHECKED_CAST")
             return list as List<T2>
         }
-        val casted = list.castListOrManaged(typeData.kClass, this)
+        val casted = list.castListOrManaged(this, typeData.kClass)
         status = SingleOrList.CastStatus.Casted
         return casted
     }
 }
 
 open class Multiple<T: Any>(val values: List<T>): SingleOrList<T>{
+
     var status: SingleOrList.CastStatus = SingleOrList.CastStatus.NotCasted
         private set
 
@@ -47,7 +47,7 @@ open class Multiple<T: Any>(val values: List<T>): SingleOrList<T>{
             @Suppress("UNCHECKED_CAST")
             return list as List<T2>
         }
-        val casted = list.castListOrManaged(typeData.kClass, this)
+        val casted = list.castListOrManaged(this, typeData.kClass)
         status = SingleOrList.CastStatus.Casted
         return casted
     }

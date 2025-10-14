@@ -1,5 +1,7 @@
 package po.lognotify.common.result
 
+import po.lognotify.exceptions.ActionResult
+import po.lognotify.exceptions.FailHandlingRationale
 import po.lognotify.notification.warning
 import po.lognotify.tasks.ExecutionStatus
 import po.lognotify.tasks.RootTask
@@ -29,13 +31,20 @@ private fun <T: CTX, R> resultContainerCreation(task: TaskBase<T, R>, result: R)
 }
 
 @PublishedApi
-internal fun<T: CTX, R: Any?> createFaultyResult(managed: ManagedException, task: TaskBase<T, R>): TaskResult<T, R>{
+internal fun<T: CTX, R: Any?> createFaultyResult(
+    managed: ManagedException,
+    task: TaskBase<T, R>,
+    rationale: FailHandlingRationale? = null
+): TaskResult<T, R>{
 
    val existentResult = task.taskResult
    return if(existentResult != null){
         existentResult.provideException(managed)
+       rationale?.let { existentResult.rationaleList.add(it) }
+       existentResult
     }else{
         val newResult  = TaskResult(task, managed)
+        rationale?.let { newResult.rationaleList.add(it) }
         task.taskResult = newResult
         newResult
     }
@@ -89,8 +98,11 @@ fun <T: CTX, R> onTaskResult(task: TaskBase<T, R>, result: R): TaskResult<T, R>{
     }
 }
 
-inline fun <T: CTX,  R: Any?> TaskResult<T, R>.onFailureCause(block: T.(ManagedException) -> Unit): TaskResult<T, R> {
+inline fun <T: CTX,  R: Any?> TaskResult<T, R>.onFailureCause(
+    block: T.(ManagedException) -> Unit
+): TaskResult<T, R> {
     exception?.let {
+         fallbackInAction(ActionResult.HandledByOnFailureCause)
         block.invoke(task.receiver, it)
     }
     return this

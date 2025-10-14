@@ -1,12 +1,9 @@
 package po.lognotify.process
 
 import kotlinx.coroutines.CoroutineName
-import po.misc.context.CTX
-import po.misc.data.logging.LogCollector
 import po.misc.interfaces.Processable
-import po.misc.types.TypeData
+import po.misc.types.type_data.TypeData
 import java.util.UUID
-import kotlin.coroutines.CoroutineContext
 
 
 class ProcessKey<T>(

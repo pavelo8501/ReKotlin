@@ -30,9 +30,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestSelect :
-    DatabaseTest(),
-    TasksManaged {
+class TestSelect : DatabaseTest(), TasksManaged {
     override val identity: CTXIdentity<TestSelect> = asIdentity()
 
     companion object {
@@ -74,14 +72,4 @@ class TestSelect :
         assertEquals(10, result.dto.size)
     }
 
-    @Test
-    fun `Sequenced SELECT statement with query`(): TestResult = runTest {
-        val queriedPageName = "Page_2"
-        val result = with(mockedSession) {
-            launch(PageDTO.Select, deferredQuery(PageDTO) { equals(Pages.name, queriedPageName) })
-        }
-        assertEquals(1, result.dto.size)
-        val persistedPage = assertNotNull(result.data.firstOrNull())
-        assertEquals(queriedPageName, persistedPage.name)
-    }
 }

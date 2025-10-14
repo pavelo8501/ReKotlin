@@ -4,12 +4,20 @@ import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import po.auth.authentication.authenticator.UserAuthenticator
 import po.auth.authentication.authenticator.models.AuthenticationPrincipal
+import po.auth.models.RoundTripData
+import po.auth.models.SessionOrigin
 import po.auth.sessions.enumerators.SessionType
 import po.auth.sessions.interfaces.EmmitableSession
 import po.auth.sessions.interfaces.SessionIdentified
+import po.auth.sessions.models.AuthorizedSession
+import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
+import po.misc.context.asSubIdentity
+import po.misc.data.PrettyPrint
 import po.misc.data.printable.PrintableBase
+import po.misc.data.styles.Colour
+import po.misc.data.styles.colorize
 import po.misc.interfaces.Processable
 import po.misc.time.ExecutionTimeStamp
 import po.misc.types.castOrManaged
@@ -17,49 +25,51 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.CoroutineContext
 
-class AuthorizedSession internal constructor(
-    override val remoteAddress: String,
-    val authenticator: UserAuthenticator,
-): EmmitableSession, SessionIdentified, Processable {
 
-    override val identity: CTXIdentity<AuthorizedSession> = asIdentity()
+
+sealed class SessionBase constructor(
+
+):  PrettyPrint, Processable {
+
     val timeStamp: ExecutionTimeStamp = ExecutionTimeStamp()
 
     var principal : AuthenticationPrincipal? = null
-    override var sessionType: SessionType = SessionType.ANONYMOUS
+    var sessionType: SessionType = SessionType.ANONYMOUS
         private set
 
     @PublishedApi
     internal val logRecordsBacking: MutableList<PrintableBase<*>> = mutableListOf()
     val logRecords: List<PrintableBase<*>> = logRecordsBacking
 
-    override val sessionID: String = UUID.randomUUID().toString()
-
-    override val sessionContext: CoroutineContext get() = scope.coroutineContext
-    override val scope: CoroutineScope by lazy { CoroutineScope(CoroutineName(identifiedByName) + this) }
-
-    val coroutineContext: CoroutineContext get() = scope.coroutineContext
-
-    init {
-        identity.setNamePattern {
-             timeStamp.provideNameAndId(sessionType.sessionName, sessionID)
-            "${sessionType.sessionName}[$sessionID]"
-        }
-    }
-    override fun onProcessStart(session: EmmitableSession) {
-
-    }
-    override fun onProcessEnd(session: EmmitableSession) {
-
-    }
-
-    override val key: CoroutineContext.Key<AuthorizedSession> get() = AuthorizedSessionKey
-
     val sessionStore: ConcurrentHashMap<SessionKey<*>, Any?> =  ConcurrentHashMap<SessionKey<*>, Any?>()
-
     val roundTripStore: ConcurrentHashMap<RoundTripKey<*>, Any?> = ConcurrentHashMap<RoundTripKey<*>, Any?>()
-
     val externalStore :ConcurrentHashMap<ExternalKey<*>, Any?>  = ConcurrentHashMap<ExternalKey<*>, Any?>()
+
+    val roundTripInfo = mutableListOf<RoundTripData>()
+    val sessionID: String = UUID.randomUUID().toString()
+
+    abstract override val key: CoroutineContext.Key<*>
+
+    override fun provideData(record: PrintableBase<*>) {
+        logRecordsBacking.add(record)
+    }
+
+    private fun addRoundTripInfo(optionalString: String = ""){
+        val newInfo = roundTripInfo.lastOrNull()?.let {
+            RoundTripData(it.count + 1, it.origin, optionalString)
+        }?:run {
+            RoundTripData(0, SessionOrigin.ReCreated, optionalString)
+        }
+        roundTripInfo.add(newInfo)
+    }
+
+    fun onRoundTripStart(optionalString: String = "") {
+        addRoundTripInfo(optionalString)
+    }
+
+    fun onRoundTripEnd(optionalString: String = "") {
+        roundTripStore.values.clear()
+    }
 
     fun getAttributeKeys():List<SessionKey<*>>{
         return sessionStore.keys.toList()
@@ -105,14 +115,10 @@ class AuthorizedSession internal constructor(
        setExternalRef(T::class.simpleName.toString(), value)
    }
 
-    fun providePrincipal(authenticationPrincipal: AuthenticationPrincipal):AuthorizedSession {
+    fun providePrincipal(authenticationPrincipal: AuthenticationPrincipal):SessionBase {
         principal = authenticationPrincipal
         sessionType  = SessionType.USER_AUTHENTICATED
         return this
-    }
-
-    override fun provideData(record: PrintableBase<*>) {
-        logRecordsBacking.add(record)
     }
 
    inline fun <reified T: PrintableBase<T>> extractLog(
@@ -146,9 +152,65 @@ class AuthorizedSession internal constructor(
         }
     }
 
+}
+
+class AuthorizedSession internal constructor(
+   val identifier: SessionIdentified,
+): SessionBase(),  EmmitableSession, SessionIdentified, Processable, PrettyPrint {
+
+    override val identity: CTXIdentity<AuthorizedSession> = asIdentity()
+
+    override val scope: CoroutineScope by lazy { CoroutineScope(CoroutineName(identifiedByName) + this) }
+    override val sessionContext: CoroutineContext get() = scope.coroutineContext
+    val coroutineContext: CoroutineContext get() = scope.coroutineContext
+
+
+    override val key: CoroutineContext.Key<AuthorizedSession> get() = AuthorizedSessionKey
+
+    override val ip: String = identifier.ip
+    override val userAgent: String = identifier.userAgent
+
+    override val formattedString: String get() {
+        val type = when(sessionType){
+            SessionType.USER_AUTHENTICATED->{
+                "Authenticated".colorize(Colour.Green)
+            }
+            SessionType.ANONYMOUS->{
+                "Anonymous".colorize(Colour.YellowBright)
+            }
+        }
+        return buildString {
+            appendLine(Colour.makeOfColour(Colour.Cyan, "Session: " ) + type)
+            appendLine(Colour.makeOfColour(Colour.Cyan, "Session Id: ") + sessionID.colorize(Colour.WhiteBright) )
+            appendLine(Colour.makeOfColour(Colour.Cyan, "Identified by IP: ") +identifier.ip.colorize(Colour.WhiteBright ) )
+            appendLine( Colour.makeOfColour(Colour.Cyan, "Identified by client: ") + identifier.userAgent.colorize(Colour.WhiteBright) )
+        }
+    }
+
+    init {
+        identity.setNamePattern {
+            timeStamp.provideNameAndId(sessionType.sessionName, sessionID)
+            "${sessionType.sessionName}[$sessionID]"
+        }
+    }
+
+
     companion object AuthorizedSessionKey : CoroutineContext.Key<AuthorizedSession>
+}
+
+
+class ScopedSession(
+    val ctx: CTX
+): SessionBase(){
+
+    override val formattedString: String = ""
+    override val identity: CTXIdentity<ScopedSession> = asSubIdentity(ctx)
+
+    override val key: CoroutineContext.Key<ScopedSession> get() = Key
+    companion object Key : CoroutineContext.Key<ScopedSession>
 
 }
+
 
 
 

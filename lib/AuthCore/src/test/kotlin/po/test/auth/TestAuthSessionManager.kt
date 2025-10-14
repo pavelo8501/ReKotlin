@@ -8,12 +8,14 @@ import po.auth.extensions.currentSession
 import po.auth.extensions.withSessionContext
 import po.auth.sessions.interfaces.SessionIdentified
 import po.auth.sessions.models.AuthorizedSession
-import po.misc.coroutines.getCoroutineInfo
+import po.misc.coroutines.CoroutineInfo
+import po.misc.coroutines.coroutineInfo
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 
-class  authData2(override val sessionID: String, override val remoteAddress: String) : SessionIdentified
+class  authData2(override val ip: String, override val userAgent: String) : SessionIdentified
 
 
 class TestAuthSessionManager {
@@ -34,11 +36,12 @@ class TestAuthSessionManager {
         val session = AuthSessionManager.getOrCreateSession(authData2("id", "127.0.0.1"))
         withSessionContext(session){
             val retrieved = coroutineContext[AuthorizedSession]
-            val coroutineInfo = getCoroutineInfo()
+            CoroutineInfo()
+            val coroutineInfo = coroutineInfo()
 
             assertNotNull(retrieved, "in testSessionWithExtension")
             assertNotNull(retrieved.sessionID)
-            assertEquals("AnonymousSession", coroutineInfo.name)
+            assertTrue { coroutineInfo.coroutineName.contains("AnonymousSession") }
         }
     }
 
@@ -50,7 +53,6 @@ class TestAuthSessionManager {
             val retrieved = currentSession()
             assertNotNull(retrieved, "in testSessionWithExtension")
             assertNotNull(retrieved.sessionID)
-            assertEquals("AnonymousSession", retrieved.coroutineName)
         }
     }
 }

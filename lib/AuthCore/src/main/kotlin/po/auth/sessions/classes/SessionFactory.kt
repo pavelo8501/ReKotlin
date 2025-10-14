@@ -2,6 +2,8 @@ package po.auth.sessions.classes
 
 import po.auth.AuthSessionManager
 import po.auth.authentication.authenticator.UserAuthenticator
+import po.auth.models.RoundTripData
+import po.auth.models.SessionOrigin
 import po.auth.sessions.enumerators.SessionType
 import po.auth.sessions.interfaces.SessionIdentified
 import po.auth.sessions.models.AuthorizedSession
@@ -14,17 +16,17 @@ class SessionFactory(
     private  val internalStorage : ConcurrentHashMap<String, String>
 ){
 
-    private val activeSessions : ConcurrentHashMap<String, AuthorizedSession> = ConcurrentHashMap<String, AuthorizedSession>()
-    fun sessionLookUp(sessionId: String):AuthorizedSession?{
-        return activeSessions[sessionId]
+    private val activeSessions : ConcurrentHashMap<SessionIdentified, AuthorizedSession> = ConcurrentHashMap<SessionIdentified, AuthorizedSession>()
+    fun sessionLookUp(authData: SessionIdentified):AuthorizedSession?{
+        return activeSessions[authData]
     }
     fun listAnonymous(): List<AuthorizedSession>{
         return activeSessions.values.filter { it.sessionType == SessionType.ANONYMOUS}
     }
-    fun createAnonymousSession(authData : SessionIdentified,  authenticator : UserAuthenticator): AuthorizedSession{
-       val anonSession = AuthorizedSession(authData.remoteAddress, authenticator)
-       activeSessions[anonSession.sessionID] = anonSession
-       return anonSession
+    fun createAnonymousSession(authData : SessionIdentified): AuthorizedSession{
+        val session = AuthorizedSession(authData)
+        session.roundTripInfo.add(RoundTripData(0, SessionOrigin.ReCreated))
+       return  AuthorizedSession(authData)
     }
 
 }

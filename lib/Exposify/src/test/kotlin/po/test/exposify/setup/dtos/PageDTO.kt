@@ -43,7 +43,7 @@ class PageDTO : CommonDTO<PageDTO, Page, PageEntity>(this) {
 
     }
 
-    val sections: List<SectionDTO> by oneToManyOf(SectionDTO, Page::sections, PageEntity::sections, SectionEntity::page)
+    val sections: List<SectionDTO> by oneToManyOf(SectionDTO, Page::sections, PageEntity::sections)
 
     companion object : RootDTO<PageDTO, Page, PageEntity>(dtoOf(PageDTO)) {
 

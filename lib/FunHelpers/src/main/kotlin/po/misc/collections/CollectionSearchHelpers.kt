@@ -13,9 +13,11 @@ fun <C : MutableCollection<in R>, R> Iterable<*>.selectToInstance(destination: C
     return destination
 }
 
-fun <T : Any> Iterable<T>.selectUntil(predicate:(T)-> Boolean): List<T> {
+
+
+fun <T : Any> Iterable<T>.selectUntil(startingIndex: Int = 0,  predicate:(T)-> Boolean): List<T> {
     val resultingList = mutableListOf<T>()
-    for (element in this) {
+    for (element in drop(startingIndex)) {
         resultingList.add(element)
         if (predicate(element)) {
             return resultingList
@@ -24,9 +26,15 @@ fun <T : Any> Iterable<T>.selectUntil(predicate:(T)-> Boolean): List<T> {
     return emptyList()
 }
 
+fun <T : Any> Array<T>.selectUntil(
+    startingIndex: Int = 0,
+    predicate:(T)-> Boolean
+): List<T> = toList().selectUntil(startingIndex, predicate)
+
+
 fun <T> Array<out T>.takeFromMatch(count: Int, predicate: (T) -> Boolean): List<T> {
     return this.dropWhile { !predicate(it) }
-        .take(count)
+        .take(count+1)
 }
 
 fun <T> Array<T>.takeFromLastMatching(count: Int,  predicate: (T) -> Boolean): List<T> {
@@ -45,5 +53,5 @@ fun <T> Array<T>.takeFromLastMatching(count: Int, shifting: Int,  predicate: (T)
 
 fun <T> List<T>.takeFromMatch(count: Int, predicate: (T) -> Boolean): List<T> {
     return this.dropWhile { !predicate(it) }
-        .take(count)
+        .take(count+1)
 }

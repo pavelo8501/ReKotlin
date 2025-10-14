@@ -39,7 +39,7 @@ class TestDSLSelect: DatabaseTest() {
                 updatedById = update(mockedUser).dataUnsafe.id
             }
         }
-        val pages = mockPages(updatedById, 1) {
+        val pages = mockPages(updatedById, 3) {
             withSections(2){
                 withContentBlocks(2)
             }
@@ -53,13 +53,14 @@ class TestDSLSelect: DatabaseTest() {
     }
 
     @Test
-    fun `Select statement`() = runTest {
+    fun `Select statement`() = runTest(timeout = Duration.parse("600s")) {
 
+        PageDTO.clearCachedDTOs()
         val result = with(newMockedSession) {
             select(PageDTO)
         }
+        assertEquals(3, result.data.size)
 
-        assertEquals(1, result.data.size)
         val page = assertNotNull(result.data.firstOrNull())
         assertNotEquals(0, page.id)
         assertEquals(updatedById, page.updatedBy, "User id update failure for Page data")
@@ -67,13 +68,15 @@ class TestDSLSelect: DatabaseTest() {
 
         val lastSection = assertNotNull(page.sections.lastOrNull())
         assertNotEquals(0, lastSection.id)
-
         assertEquals(updatedById, lastSection.updatedBy, "User update failure")
-
         assertEquals(1L, lastSection.pageId, "Page reference update failure")
+
+        assertEquals(2, lastSection.contentBlocks.size)
+        val lastContent = assertNotNull(lastSection.contentBlocks.lastOrNull())
+
+
     }
 
-    @Test
     fun `Select statement folowed after PickById`() = runTest(timeout = Duration.parse("600s")) {
 
         val result = with(newMockedSession) {

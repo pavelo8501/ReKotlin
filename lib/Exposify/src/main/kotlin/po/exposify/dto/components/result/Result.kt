@@ -1,6 +1,6 @@
 package po.exposify.dto.components.result
 
-import po.auth.sessions.models.AuthorizedSession
+import po.auth.sessions.models.SessionBase
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
 import po.exposify.dto.components.tracker.CrudOperation
@@ -8,17 +8,15 @@ import po.exposify.dto.components.tracker.DTOTracker
 import po.exposify.dto.helpers.asDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.operationsException
-import po.exposify.extensions.getOrOperations
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asSubIdentity
 import po.misc.exceptions.ManagedException
-import po.misc.types.TypeData
+import po.misc.types.type_data.TypeData
 import po.misc.types.castListOrThrow
-import kotlin.collections.getValue
+import po.misc.types.token.TypeToken
 
 interface ExposifyResult {
     val dtoClass: DTOBase<*, *, *>
@@ -33,19 +31,19 @@ sealed class ResultBase<DTO, D, R : Any>(
     protected var result: R?,
 ) : ExposifyResult,
     CTX where DTO : ModelDTO, D : DataModel {
-    protected val dtoType: TypeData<DTO> = dtoClass.commonDTOType.dtoType
-    protected val dataType: TypeData<D> = dtoClass.commonDTOType.dataType
+    protected val dtoType: TypeToken<DTO> = dtoClass.commonDTOType.dtoType
+    protected val dataType: TypeToken<D> = dtoClass.commonDTOType.dataType
 
     protected val noResultNoExceptionMsg: String get() = "Result class has no data nor registered exception"
     val abnormalState: ExceptionCode = ExceptionCode.ABNORMAL_STATE
     override var failureCause: ManagedException? = null
 
-    var authorizedSession: AuthorizedSession? = null
+    var authorizedSession: SessionBase? = null
         private set
 
     val isFaulty: Boolean get() = failureCause != null || result == null
 
-    internal fun saveSession(session: AuthorizedSession?){
+    internal fun saveSession(session: SessionBase?){
         authorizedSession = session
     }
 
@@ -55,14 +53,14 @@ class ResultList<DTO, D> internal constructor(
     override val dtoClass: DTOBase<DTO, D, *>,
     private var resultBacking: MutableList<CommonDTO<DTO, D, *>> = mutableListOf(),
 ) : ResultBase<DTO, D, List<CommonDTO<DTO, D, *>>>(dtoClass, resultBacking) where DTO : ModelDTO, D : DataModel {
-    override val identity: CTXIdentity<ResultList<DTO, D>> = asSubIdentity(this, dtoClass)
+    override val identity: CTXIdentity<ResultList<DTO, D>> get() =  asSubIdentity(dtoClass)
 
     override var resultMessage: String = ""
     override val size: Int get() = resultBacking.size
     override var activeCRUD: CrudOperation = CrudOperation.Create
 
     val dto: List<DTO> get() =
-        resultBacking.castListOrThrow(dtoClass.commonDTOType.dtoType.kClass, this) { payload ->
+        resultBacking.castListOrThrow(this, dtoClass.commonDTOType.dtoType.kClass) { payload ->
             operationsException(payload.setCode(ExceptionCode.CAST_FAILURE))
         }
 
@@ -113,7 +111,7 @@ class ResultSingle<DTO, D> internal constructor(
     private var initialResult: CommonDTO<DTO, D, *>? = null,
 ) : ResultBase<DTO, D, CommonDTO<DTO, D, *>>(dtoClass, initialResult),
     ExposifyResult where DTO : ModelDTO, D : DataModel {
-    override val identity: CTXIdentity<ResultSingle<DTO, D>> = asSubIdentity(this, dtoClass)
+    override val identity: CTXIdentity<ResultSingle<DTO, D>> get() =  asSubIdentity(dtoClass)
 
     override var resultMessage: String = ""
     override val size: Int get() {

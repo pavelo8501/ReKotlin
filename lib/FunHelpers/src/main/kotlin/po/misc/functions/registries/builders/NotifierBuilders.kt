@@ -35,5 +35,5 @@ fun <V: Any> CTX.require(
     registry: NotifierRegistry<V>,
     callback: (V) -> Unit){
 
-    registry.require(identity.kClass,  identity.numericId, callback)
+    registry.require(identity.typeData.kClass,  identity.numericId, callback)
 }

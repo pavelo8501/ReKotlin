@@ -18,8 +18,6 @@ interface LNInstance<T : CTX> : CTX {
     val dataProcessor: LoggerDataProcessor
 
     fun changeStatus(status: ExecutionStatus)
-
     fun complete(): LNInstance<*>
-
-    fun complete(exception: ManagedException): Nothing
+    fun complete(exception: ManagedException)
 }

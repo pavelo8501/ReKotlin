@@ -12,6 +12,7 @@ import po.auth.extensions.session
 import po.auth.models.SessionDefaultIdentity
 import po.auth.sessions.models.AuthorizedSession
 import po.misc.context.CTX
+import po.misc.context.TraceableContext
 import po.misc.types.getOrThrow
 import po.restwraptor.enums.WraptorHeaders
 import po.restwraptor.exceptions.ConfigurationException
@@ -32,18 +33,14 @@ fun ApplicationCall.authData(): AuthenticationData{
         )
 }
 
-suspend fun resolveSessionFromHeader(call: ApplicationCall): AuthorizedSession{
-    val authData = call.authData()
-    val session = AuthSessionManager.getOrCreateSession(authData)
-    call.sessionToAttributes(session)
-    return session
-}
+//suspend fun resolveSessionFromHeader(call: ApplicationCall): AuthorizedSession{
+//    val authData = call.authData()
+//    val session = AuthSessionManager.getOrCreateSession(authData)
+//    call.sessionToAttributes(session)
+//    return session
+//}
+//
 
-fun <T :ApplicationCall>  T.sessionToAttributes(session: AuthorizedSession): AttributeKey<AuthorizedSession>{
-    val key =  AttributeKey<AuthorizedSession>("AuthSession")
-    attributes.put(key, session)
-    return key
-}
 
 fun <T :ApplicationCall>  T.authSessionOrNull():AuthorizedSession?{
     val authorizedSessionKey = AttributeKey<AuthorizedSession>("AuthSession")
@@ -52,22 +49,9 @@ fun <T :ApplicationCall>  T.authSessionOrNull():AuthorizedSession?{
 }
 
 private fun createDefaultSession(): AuthorizedSession{
-
     val identity: SessionDefaultIdentity = SessionDefaultIdentity()
    return session(identity)
 
-}
-
-
-suspend fun <T :ApplicationCall, R> T.withSessionOrDefault(
-    block:suspend AuthorizedSession.()-> R
-):R {
-    val authorizedSessionKey = AttributeKey<AuthorizedSession>("AuthSession")
-    return attributes.takeOrNull(authorizedSessionKey)?.let {
-        block.invoke(it)
-    } ?: run {
-        block.invoke(createDefaultSession())
-    }
 }
 
 fun <T :ApplicationCall> T.currentSessionOrNew():AuthorizedSession {
@@ -75,19 +59,16 @@ fun <T :ApplicationCall> T.currentSessionOrNew():AuthorizedSession {
     return attributes.takeOrNull(authorizedSessionKey) ?: run {
         createDefaultSession()
     }
-
 }
 
-
-
 suspend fun <T :ApplicationCall, R>  T.withSession(
-    callingContext: Any,
+    context: TraceableContext,
     block : suspend AuthorizedSession.()-> R
 ):R{
    val authorizedSessionKey = AttributeKey<AuthorizedSession>("AuthSession")
    val session =  attributes.takeOrNull(authorizedSessionKey)
-   val checked = session.getOrThrow(callingContext){message->
-       ConfigurationException("$message Session missing", ExceptionCodes.GENERAL_AUTH_CONFIG_FAILURE)
+   val checked = session.getOrThrow(context){message->
+       ConfigurationException(context, "$message Session missing", ExceptionCodes.GENERAL_AUTH_CONFIG_FAILURE)
    }
    return withContext(this.coroutineContext){
         block(checked)

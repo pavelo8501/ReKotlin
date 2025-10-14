@@ -8,6 +8,7 @@ import io.ktor.server.engine.EngineConnectorConfig
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.netty.NettyApplicationEngine
+import io.ktor.server.routing.routing
 import io.ktor.util.AttributeKey
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
@@ -20,10 +21,10 @@ import po.misc.containers.LazyContainer
 import po.misc.containers.lazyContainerOf
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
+import po.misc.context.TraceableContext
 import po.misc.functions.registries.builders.notifierRegistryOf
 import po.misc.types.getOrThrow
 import po.restwraptor.scope.ConfigContext
-
 import po.restwraptor.enums.EnvironmentType
 import po.restwraptor.exceptions.ConfigurationException
 import po.restwraptor.exceptions.ExceptionCodes
@@ -31,15 +32,21 @@ import po.restwraptor.interfaces.WraptorHandler
 import po.restwraptor.interfaces.WraptorResponse
 import po.restwraptor.models.configuration.WraptorConfig
 import po.restwraptor.models.info.WraptorStatus
-import po.restwraptor.models.response.DefaultResponse
 import po.restwraptor.models.server.WraptorRoute
+import po.restwraptor.routes.ManagedRouting
 
 val RestWrapTorKey = AttributeKey<RestWrapTor>("RestWrapTorInstance")
 
 
-object RestWraptorServer:RestWrapTor() {
+interface WraptorContext : TraceableContext
+
+object RestWraptorServer:RestWrapTor(), WraptorContext {
 
 }
+
+
+
+
 
 fun configureWraptor(builder : (ConfigContext.() -> Unit)){
     RestWraptorServer.config(RestWraptorServer, builder)
@@ -65,7 +72,6 @@ fun runWraptor(
 ): Unit = RestWraptorServer.start(host, port, wait, onStarted)
 
 
-
 /**
  * **RestWrapTor** - A wrapper for managing Ktor applications with configurable settings and lifecycle hooks.
  * This class simplifies Ktor application initialization, configuration, and server management.
@@ -73,7 +79,7 @@ fun runWraptor(
  */
 open class RestWrapTor(
     internal val builder : (ConfigContext.() -> Unit)? = null
-): WraptorHandler, TasksManaged {
+): WraptorHandler, TasksManaged, TraceableContext {
 
     override val identity: CTXIdentity<RestWrapTor> = asIdentity()
 
@@ -172,8 +178,14 @@ open class RestWrapTor(
 
     private fun applyConfig(app: Application) {
         val config = ConfigContext(this, app)
+
         applicationRegistry.trigger(config.application)
         configRegistry.trigger(config)
+//        app.routing {
+//            val routing = ManagedRouting()
+//            config.managedRoutesRegistry.trigger(routing)
+//            routing.provideRouteKtorRouting(this)
+//        }
         config.initialize()
         configContextBacking.provideValue(config)
     }
@@ -185,6 +197,7 @@ open class RestWrapTor(
         }
         registerSelf(app).getOrThrow(this) { _ ->
             ConfigurationException(
+                this,
                 "RestWrapTor Registration inside Application failed",
                 ExceptionCodes.KEY_REGISTRATION
             )

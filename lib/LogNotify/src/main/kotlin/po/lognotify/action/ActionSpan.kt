@@ -26,7 +26,7 @@ class ActionSpan<T : CTX, R : Any?>(
     override val receiver: T,
     internal val task: TaskBase<*, *>,
 ) : LNInstance<T> {
-    override val identity: CTXIdentity<ActionSpan<T, R>> = asSubIdentity(this, receiver)
+    override val identity: CTXIdentity<ActionSpan<T, R>> = asSubIdentity(receiver)
 
     override val contextName: String
         get() = "ActionSpan"

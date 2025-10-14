@@ -73,7 +73,7 @@ class HealthMonitor<T: CTX>(
         val snapshot = takePropertySnapshot<T, ManagedProperty>(source)
         if(snapshot.isNotEmpty()){
             println("Before crash  property snapshot")
-           val snapshotStr =  snapshot.joinToString(separator = SpecialChars.NewLine.char) { "val ${it.propertyName} = ${it.value}" }
+           val snapshotStr =  snapshot.joinToString(separator = SpecialChars.newLine) { "val ${it.propertyName} = ${it.value}" }
             println(snapshotStr)
         }
     }
@@ -114,10 +114,10 @@ class HealthMonitor<T: CTX>(
 
     fun phaseReport(phase:LifecyclePhase): String{
         val records = records(phase)
-        val recordsStr: String = records.joinToString(SpecialChars.NewLine.char) {
+        val recordsStr: String = records.joinToString(SpecialChars.newLine) {
             it.formattedString
         }
-        val phaseStr = "[${phase.name} of ${source.completeName.colorize(Colour.Yellow)}] ${SpecialChars.NewLine.char}${recordsStr}"
+        val phaseStr = "[${phase.name} of ${source.completeName.colorize(Colour.Yellow)}] ${SpecialChars.newLine}${recordsStr}"
         return phaseStr
     }
 
@@ -126,10 +126,10 @@ class HealthMonitor<T: CTX>(
     }
 
     fun report(): String{
-        val phases =  healthJournal.keys.joinToString(separator = SpecialChars.NewLine.char.repeat(2)) {
+        val phases =  healthJournal.keys.joinToString(separator = SpecialChars.newLine.repeat(2)) {
             phaseReport(it)
         }
-        val report = "${Colour.makeOfColour(Colour.BLUE, "Activity report")} for (${source.completeName}) ${SpecialChars.NewLine}$phases"
+        val report = "${Colour.makeOfColour(Colour.Blue, "Activity report")} for (${source.completeName}) ${SpecialChars.newLine}$phases"
         return  report
     }
 
@@ -142,7 +142,7 @@ class HealthMonitor<T: CTX>(
         val result = predicate.invoke(source)
         if(result){
            val record = prebuildRecord(MonitorAction.TestedParameter, parameter).also {
-                it.message = "Crash is inevitable. Printing report".colorize(Colour.RED)
+                it.message = "Crash is inevitable. Printing report".colorize(Colour.Red)
             }
             prepareForCrash(record)
         }else{

@@ -1,0 +1,55 @@
+package po.misc.types.type_data
+
+import po.misc.collections.ComparableType
+import po.misc.context.Component
+import po.misc.data.logging.Verbosity
+
+import kotlin.reflect.KClass
+import kotlin.reflect.KType
+import kotlin.reflect.typeOf
+
+
+interface TypeDataCommon<T: Any>{
+    val kClass: KClass<T>
+    val kType: KType
+}
+
+@Deprecated("Switch to TypeToken")
+class TypeData<T: Any> @PublishedApi internal constructor (
+    override val kClass: KClass<T>,
+    override val kType: KType
+): ComparableType<T>, TypeDataCommon<T>, Component {
+
+    val simpleName : String get() = kClass.simpleName?:"Unknown"
+    val qualifiedName: String get() = kClass.qualifiedName?:"Unknown"
+    val typeData : TypeParameterData =  kType.toTypeParameterData()
+    val tParamKClasses: List<KClass<*>> = typeData.children.mapNotNull { it.kClass }
+    val children: List<TypeData<*>> =  listOf(this as TypeData<*>)
+
+    override val verbosity: Verbosity = Verbosity.Info
+    override val componentName: String = toString()
+
+    override val typeName: String = simpleName + children.joinToString(prefix = "<", separator = " ,", postfix = ">") {
+        it.typeName
+    }
+
+    override fun hashCode(): Int = kType.hashCode()
+
+    override fun equals(other: Any?): Boolean {
+        return other is TypeData<*> &&
+                this.kType == other.kType
+    }
+
+    override fun toString(): String = "TypeData<$typeName>"
+
+    companion object{
+        inline operator fun <reified T: Any> invoke(targetClas : KClass<out T>):TypeData<T>{
+           val data = TypeData(T::class, typeOf<T>())
+           return data
+        }
+        inline fun <reified T: Any> create():TypeData<T>{
+            return TypeData(T::class, typeOf<T>())
+        }
+    }
+}
+

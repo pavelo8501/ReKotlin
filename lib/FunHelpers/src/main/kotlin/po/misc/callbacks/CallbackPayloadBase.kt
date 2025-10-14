@@ -1,17 +1,15 @@
 package po.misc.callbacks
 
 import po.misc.callbacks.components.PayloadAnalyzer
-import po.misc.collections.ComparableType
-import po.misc.collections.StaticTypeKey
 import po.misc.context.CTX
 import po.misc.exceptions.throwManaged
-import po.misc.context.Identifiable
 import po.misc.types.getOrManaged
+import po.misc.types.type_data.TypeData
 
 
 sealed class CallbackPayloadBase<E: Enum<E>, T, R>(
     val eventType: E,
-    val typeKey : ComparableType<T>
+    val typeKey : TypeData<T>
 ) where T:Any, R: Any {
 
     internal val analyzer = PayloadAnalyzer(this)
@@ -165,7 +163,7 @@ sealed class CallbackPayloadBase<E: Enum<E>, T, R>(
 
 class CallbackPayload<E: Enum<E>, T>(
     eventType : E,
-    typeKey : ComparableType<T>
+    typeKey : TypeData<T>
 ): CallbackPayloadBase<E, T, Unit>(eventType, typeKey) where T:Any {
     override val withResult: Boolean = false
 
@@ -174,13 +172,13 @@ class CallbackPayload<E: Enum<E>, T>(
        inline fun <E: Enum<E>, reified T: Any> createPayload(
             eventType:E
         ):CallbackPayload<E, T>{
-           val typeKey = StaticTypeKey.createTypeKey<T>()
+           val typeKey = TypeData.create<T>()
            return CallbackPayload(eventType, typeKey)
         }
 
         fun <E: Enum<E>, T: Any> createPayload(
             eventType:E,
-            typeKey: StaticTypeKey<T>
+            typeKey: TypeData<T>
         ):CallbackPayload<E, T>{
             return CallbackPayload(eventType, typeKey)
         }
@@ -189,8 +187,8 @@ class CallbackPayload<E: Enum<E>, T>(
 
 class ResultCallbackPayload<E: Enum<E>, T, R>(
     eventType : E,
-    typeKey : StaticTypeKey<T>,
-    val resultTypeKey:StaticTypeKey<R>
+    typeKey : TypeData<T>,
+    val resultTypeKey:TypeData<R>
 ): CallbackPayloadBase<E, T, R>(eventType,typeKey) where T:Any, R:Any {
     override val withResult: Boolean = true
     /**

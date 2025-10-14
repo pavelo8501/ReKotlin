@@ -1,31 +1,30 @@
 package po.misc.types.containers
 
-import po.misc.collections.StaticTypeKey
 import po.misc.reflection.classes.ClassInfo
 import po.misc.reflection.classes.ClassRole
 import po.misc.reflection.classes.overallInfo
 import po.misc.reflection.classes.overallInfoFromType
-import po.misc.types.TypeData
-import po.misc.types.Typed
+import po.misc.types.type_data.TypeData
+import po.misc.types.token.TypeToken
 import kotlin.reflect.KClass
 import kotlin.reflect.KTypeParameter
 
 
 interface TypedClass<T: Any>{
     val receiver:T
-    val typeData: Typed<T>
+    val typeData: TypeToken<T>
 }
 
 open class TypedContainer<T: Any>(
     override val receiver:T,
-    override val typeData: Typed<T>,
+    override val typeData: TypeToken<T>,
     val classInfo: ClassInfo<T>
 ): Single<T>(receiver), TypedClass<T>, Comparable<TypedContainer<*>>, ComplexContainers<T>{
 
     internal val typeName: String = typeData.kClass.java.typeName
     private val cachedHash: Int = typeName.hashCode()
 
-    fun compareType(other: Typed<*>): Boolean{
+    fun compareType(other: TypeData<*>): Boolean{
         return typeData.kClass == other.kClass
     }
 
@@ -54,17 +53,17 @@ open class TypedContainer<T: Any>(
     }
 
     override fun equals(other: Any?): Boolean {
-        return other is StaticTypeKey<*> &&
+        return other is TypeToken<*> &&
                 this.typeName == other.typeName
     }
     override fun hashCode(): Int = cachedHash
 }
 
 inline fun <reified T: Any> T.toTypeContainer():TypedContainer<T>{
-   return TypedContainer(this, TypeData.create<T>(), overallInfo(ClassRole.Receiver))
+   return TypedContainer(this, TypeToken.create<T>(), overallInfo(ClassRole.Receiver))
 }
 
-fun <T: Any> T.toTypeContainer(container: TypeData<T>):TypedContainer<T>{
+fun <T: Any> T.toTypeContainer(container: TypeToken<T>):TypedContainer<T>{
     val info = overallInfoFromType<T>(ClassRole.Receiver, container.kType)
     return TypedContainer(this, container, info)
 }

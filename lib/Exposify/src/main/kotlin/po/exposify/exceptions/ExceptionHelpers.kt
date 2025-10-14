@@ -2,13 +2,13 @@ package po.exposify.exceptions
 
 import po.exposify.exceptions.enums.ExceptionCode
 import po.misc.context.CTX
-import po.misc.exceptions.ManagedCallSitePayload
+import po.misc.exceptions.ThrowableCallSitePayload
 import po.misc.exceptions.ManagedPayload
 
 
 
 @PublishedApi
-internal fun initException(payload: ManagedCallSitePayload): InitException{
+internal fun initException(payload: ThrowableCallSitePayload): InitException{
     payload.methodName = "initException"
     val exception = InitException(payload)
     return exception
@@ -40,7 +40,7 @@ internal fun badDTOSetup(
 
 @PublishedApi
 internal fun operationsException(
-    payload: ManagedCallSitePayload
+    payload: ThrowableCallSitePayload
 ): OperationsException{
     payload.methodName = "operationsException"
     return OperationsException(payload)

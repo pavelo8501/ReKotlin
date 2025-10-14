@@ -6,12 +6,11 @@ import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.name
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transactionManager
-import po.auth.sessions.models.AuthorizedSession
+import po.auth.sessions.models.SessionBase
 import po.exposify.DatabaseManager
 import po.exposify.dto.RootDTO
 import po.exposify.dto.enums.DTOClassStatus
 import po.exposify.dto.interfaces.DataModel
-import po.exposify.scope.connection.models.ConnectionInfo
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.CommonDTOType
 import po.exposify.scope.connection.controls.CoroutineEmitter
@@ -26,31 +25,30 @@ import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.coroutines.CoroutineInfo
 import po.misc.serialization.SerializerInfo
+import po.misc.types.type_data.TypeData
 import po.misc.types.safeCast
-import kotlin.coroutines.coroutineContext
 
 
 class ConnectionClass(
     internal val databaseManager : DatabaseManager,
-    val connectionInfo: ConnectionInfo,
     val connection: Database,
 ): TasksManaged {
 
     override val identity:  CTXIdentity<ConnectionClass> = asIdentity()
-
     private val dispatchManager = UserDispatchManager()
 
     val isConnectionOpen: Boolean
-        get() = connectionInfo.connection.transactionManager.currentOrNull()?.connection?.isClosed == false
+        get() = connection.transactionManager.currentOrNull()?.connection?.isClosed == false
 
     internal val serializerMap = mutableMapOf<String, SerializerInfo<*>>()
-    private  var servicesBacking: MutableMap<CommonDTOType<*, *, *>, ServiceClass<*, *, *>> = mutableMapOf()
+    internal val servicesBacking: MutableMap<CommonDTOType<*, *, *>, ServiceClass<*, *, *>> = mutableMapOf()
+    val services: Map<CommonDTOType<*, *, *>, ServiceClass<*, *, *>> get() = servicesBacking
 
     init {
         notify("CONNECTION_CLASS CREATED $completeName")
     }
 
-    internal suspend fun requestEmitter(process: Process<AuthorizedSession>): CoroutineEmitter {
+    internal suspend fun requestEmitter(process: Process<SessionBase>): CoroutineEmitter {
         val result = dispatchManager.enqueue(process.receiver.sessionID) {
             CoroutineEmitter("CoroutineEmitter${CoroutineInfo.createInfo(currentCoroutineContext()).coroutineName}", process)
         }
@@ -66,13 +64,21 @@ class ConnectionClass(
         commonType: CommonDTOType<DTO, D, E>
     ): ServiceClass<DTO, D, E>?{
 
-       return servicesBacking[commonType]?.safeCast<ServiceClass<DTO, D, E>>()
+       return services[commonType]?.safeCast<ServiceClass<DTO, D, E>>()
     }
+
+    fun getServiceByDataModelType(
+        dataModelTypeData: TypeData<*>
+    ): ServiceContext<*, *, *> ? {
+       val  connection = servicesBacking.values.firstOrNull{ it.serviceContext.dataType == dataModelTypeData }
+       return connection?.serviceContext
+    }
+
 
     fun close(){
         notify("Closing connection: ${connection.name}")
         TransactionManager.closeAndUnregister(database = connection)
-        servicesBacking.values.forEach {
+        services.values.forEach {
             it.deinitializeService()
         }
     }
@@ -97,16 +103,6 @@ class ConnectionClass(
             serviceClass.initService(dtoClass, createOptions, block)
             servicesBacking[dtoClass.commonDTOType] = serviceClass
         }
-
-//        if(existentService == null){
-//            val serviceClass = ServiceClass(dtoClass, this)
-//            notify("ServiceClass ${serviceClass.contextName} created", SeverityLevel.INFO)
-//            serviceClass.initService(dtoClass, createOptions, block)
-//            servicesBacking[dtoClass.commonDTOType] = serviceClass
-//        }else{
-//            notify("Using ServiceClass ${existentService.contextName}", SeverityLevel.INFO)
-//            block.invoke(existentService.serviceContext)
-//        }
     }.resultOrException()
 
     fun clearServices(){

@@ -7,7 +7,7 @@ import po.misc.context.Identifiable
 
 fun CTX.throwConfiguration(message: String, code: ExceptionCodes, handler : HandlerType = HandlerType.CancelAll): Nothing{
 
-   val exception =  ConfigurationException(message, code, null)
+   val exception =  ConfigurationException(this,  message, code, null)
    exception.setHandler(handler, this)
    throw  exception
 }

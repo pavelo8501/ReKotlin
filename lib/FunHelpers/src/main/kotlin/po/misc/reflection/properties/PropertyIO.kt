@@ -49,7 +49,7 @@ sealed class PropertyIOBase<T: Any, V: Any>(
 
     protected var receiverBacking: T? = null
     var receiver: T
-        get() = receiverBacking.getOrManaged(Any::class, this)
+        get() = receiverBacking.getOrManaged(this, Any::class)
         set(value) {
             if (receiverBacking == null) {
                 receiverBacking = value
@@ -101,7 +101,7 @@ sealed class PropertyIOBase<T: Any, V: Any>(
     }
 
     fun readCurrentValue(): V {
-        return currentValue.getOrManaged(propertyInfo.returnType::class,  this)
+        return currentValue.getOrManaged(this, propertyInfo.returnType::class)
     }
 
 
@@ -155,6 +155,7 @@ fun <E: Enum<E>, T, V: Any> ComposableProperty<T, V>.createPropertyIO(
     property: KProperty1<T, V>
 
 ):SourcePropertyIO<T, V> where T : Composed, T: CTX{
+    @Suppress("UNCHECKED_CAST")
     val propertyInfo = property.toPropertyInfo(receiver::class as KClass<T>)
     val property = SourcePropertyIO(propertyInfo, PropertyIOBase.PropertyType.DelegateProvided)
     property.provideReceiver(receiver)
@@ -166,7 +167,7 @@ fun <T: CTX,  V: Any> createSourcePropertyIO(
     property: KProperty1<T, V>,
     valueClass: KClass<V>,
 ):SourcePropertyIO<T, V>{
-
+    @Suppress("UNCHECKED_CAST")
     val propertyInfo =  when(property){
         is KMutableProperty1-> property.toPropertyInfo(receiver::class as KClass<T>)
         else -> property.toPropertyInfo(receiver::class as KClass<T>)
@@ -186,12 +187,15 @@ fun <T: Any, V: Any> createPropertyIO(
 
     val propertyInfo =  when(property){
         is KMutableProperty1->{
+            @Suppress("UNCHECKED_CAST")
             property.toPropertyInfo(receiver::class as KClass<T>)
         }else -> {
+            @Suppress("UNCHECKED_CAST")
             property.toPropertyInfo(receiver::class as KClass<T>)
         }
     }
     initialValue?.let {
+        @Suppress("UNCHECKED_CAST")
         val valueClass = it::class as KClass<V>
         propertyInfo.setValueClass(valueClass)
     }
@@ -216,6 +220,7 @@ fun <T: Any,  V: Any> createPropertyIO(
         }
     }
     initialValue?.let {
+        @Suppress("UNCHECKED_CAST")
         val valueClass = it::class as KClass<V>
         propertyInfo.setValueClass(valueClass)
     }

@@ -1,6 +1,8 @@
 package po.misc.context
 
-import po.misc.types.TypeData
+import po.misc.context.models.IdentityData
+import po.misc.types.token.TypeToken
+import po.misc.types.type_data.TypeData
 import java.util.UUID
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
@@ -17,23 +19,20 @@ import kotlin.reflect.typeOf
  * @property kType The full type information including generics.
  * @property parentContext Optional parent context used for hierarchical resolution.
  */
+
+
 class CTXIdentity<T: CTX> @PublishedApi internal constructor(
-    @PublishedApi
-    internal val kClass: KClass<T>,
-    @PublishedApi
-    internal val kType: KType,
+    val typeData: TypeToken<T>,
     private var userDefinedId: Long? = null,
     val parentContext: CTX? = null
 ) {
 
-    val typeData: TypeData<T> = TypeData(kClass, kType)
-
     val parentIdentity: CTXIdentity<*>? get() = parentContext?.identity
-    val className: String = kClass.simpleName ?: "Unnamed"
+    val className: String = typeData.kClass.simpleName ?: "Unnamed"
 
     private var nameLockedByUserBacking: Boolean = false
-    private val uuid: UUID  = UUID.randomUUID()
-    private val baseName: String get() = userDefinedId?.let { "$className#$it" } ?: className
+    val uuid: UUID  = UUID.randomUUID()
+    val baseName: String get() = userDefinedId?.let { "$className#$it" } ?: className
 
     private var identifiedByNameBacking: String = ""
 
@@ -49,14 +48,15 @@ class CTXIdentity<T: CTX> @PublishedApi internal constructor(
         }
     }
 
-    val detailedDump: String  get(){
-        return buildString {
-            appendLine(identifiedByName)
-            appendLine("Type Parameters: ${typeData.typeName}")
-            appendLine("numericId : $numericId")
-            appendLine("Id User Defined : $isIdUsedDefined")
-            appendLine("Hash Code : ${hashCode()}")
-        }
+    val detailedDump: IdentityData  get(){
+        return IdentityData(
+            identifiedByName,
+            uuid.toString(),
+            typeData.typeName,
+            numericId,
+            isIdUsedDefined,
+            hashCode()
+        )
     }
 
     /**
@@ -67,13 +67,13 @@ class CTXIdentity<T: CTX> @PublishedApi internal constructor(
         append(baseName)
         parentIdentity?.let { parent ->
             append("/")
-            if (parent.kClass != kClass || parent.userDefinedId != userDefinedId) {
+            if (parent.typeData.kClass != typeData.kClass || parent.userDefinedId != userDefinedId) {
                 append(parent.completeName)
             }
         }
     }
 
-    val classQualifiedName: String get() = kClass.qualifiedName?:"Unnamed"
+    val classQualifiedName: String get() = typeData.kClass.qualifiedName?:"Unnamed"
     fun setId(id: Long){
         userDefinedId = id
     }
@@ -85,11 +85,15 @@ class CTXIdentity<T: CTX> @PublishedApi internal constructor(
         }
     }
 
+    fun strictComparison(identity: CTXIdentity<*>): Boolean{
+        return identity.typeData.kClass == typeData.kClass && identity.numericId == numericId
+    }
+
     override fun toString(): String = completeName
 
     override fun hashCode(): Int {
-        var result = kClass.hashCode()
-        result = 31 * result + kType.hashCode()
+        var result = typeData.kClass.hashCode()
+        result = 31 * result + typeData.kType.hashCode()
         result = 31 * result + (parentContext?.hashCode() ?: 0)
         return result
     }
@@ -97,30 +101,39 @@ class CTXIdentity<T: CTX> @PublishedApi internal constructor(
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is CTXIdentity<*>) return false
-        return kClass == other.kClass && kType == other.kType
+        return typeData.kClass == other.typeData.kClass && typeData.kType == other.typeData.kType
     }
 
 }
 
-inline fun <reified T>  asSubIdentity(thisContext: T,  parentContext:CTX, withId: Long? = null): CTXIdentity<T> where T: CTX{
+inline fun <reified T> asSubIdentity(parentContext:CTX, withId: Long? = null): CTXIdentity<T> where T: CTX{
     return try {
-        CTXIdentity(thisContext::class as KClass<T>, typeOf<T>(), withId, parentContext)
+        CTXIdentity(TypeToken.create<T>(), withId, parentContext)
     }catch (th: Throwable){
         throw th
     }
 }
 
-fun <T> createIdentity(kClass: KClass<T>, kType: KType, withId: Long? = null): CTXIdentity<out T> where T: CTX {
+fun <T: CTX>  T.asSubIdentity(typeData: TypeToken<T>, parentContext:CTX,  withId: Long? = null): CTXIdentity<T>{
     return try {
-        CTXIdentity(kClass, kType, withId)
+        CTXIdentity(typeData, withId, parentContext)
     }catch (th: Throwable){
         throw th
     }
 }
+
+fun <T>  T.asIdentity(typeData: TypeToken<T>, withId: Long? = null): CTXIdentity<T> where T: CTX {
+    return try {
+        CTXIdentity(typeData, withId)
+    }catch (th: Throwable){
+        throw th
+    }
+}
+
 
 inline fun <reified T>  T.asIdentity(withId: Long? = null): CTXIdentity<T> where T: CTX {
     return try {
-        CTXIdentity(T::class, typeOf<T>(), withId)
+        CTXIdentity(TypeToken.create<T>(), withId)
     }catch (th: Throwable){
         throw th
     }

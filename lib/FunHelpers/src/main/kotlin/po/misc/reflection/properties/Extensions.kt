@@ -27,10 +27,11 @@ inline fun <T: CTX, reified A: Annotation>  takePropertySnapshot(obj: T): List<P
     return propertySnapshot.toList()
 }
 
-
 fun KClass<*>.findAllAnnotated(): List<KProperty<*>> {
   val result =  memberProperties.filter {
         it.hasAnnotation<Composable>()
     } + memberProperties.mapNotNull { (it.returnType.classifier as? KClass<*>)?.findAllAnnotated() }.flatten()
    return result
 }
+
+

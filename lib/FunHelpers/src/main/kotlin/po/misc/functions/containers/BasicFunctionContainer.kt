@@ -23,7 +23,7 @@ sealed class BasicFunctionContainer<T: Any, R: Any?, V: Any?>(
   val hooks: ReactiveHooks<BasicFunctionContainer<T, R, V>, V> = ReactiveHooks()
 ):  FunctionalClass<V>, CTX, BasicHooks<BasicFunctionContainer<T, R, V>, V> by hooks{
 
-    override val identity : CTXIdentity<BasicFunctionContainer<T, R, V>> = asSubIdentity(this, holder)
+    override val identity : CTXIdentity<BasicFunctionContainer<T, R, V>> = asSubIdentity(holder)
 
     /**
      * Hook manager for this container.
@@ -166,14 +166,14 @@ class LambdaHolder<T: Any>(
 
     private var valueBacking:T? = null
     override val receiver: T
-        get() = valueBacking.getOrManaged(Any::class,  this)
+        get() = valueBacking.getOrManaged(this, Any::class)
 
     /**
      * Returns the last receiver value that was used during resolution.
      * Throws a detailed exception if the receiver is not yet available.
      */
     override val value: T get(){
-        return valueBacking.getOrManaged(Any::class, this)
+        return valueBacking.getOrManaged(this, Any::class)
     }
 
     override fun receiverProvided(value: T) {
@@ -288,10 +288,10 @@ class LazyExecutionContainer<T : Any, R : Any>(
 
 
     private var receiverBacking:T? = null
-    override val receiver: T get() = receiverBacking.getOrManaged(Any::class, this)
+    override val receiver: T get() = receiverBacking.getOrManaged(this, Any::class)
 
     override val value: R get(){
-        return resultBacking.getOrManaged(Any::class, this)
+        return resultBacking.getOrManaged(this, Any::class)
     }
 
     override fun receiverProvided(value: T) {

@@ -15,6 +15,7 @@ import po.lognotify.debug.DebugProxy
 import po.lognotify.dispatcher.activeRootTask
 import po.lognotify.dispatcher.activeTask
 import po.lognotify.dispatcher.createHierarchyRoot
+import po.lognotify.exceptions.failRationale
 import po.lognotify.exceptions.handleException
 import po.lognotify.tasks.RootTask
 import po.lognotify.tasks.Task
@@ -51,8 +52,10 @@ internal suspend fun <T : TasksManaged, R : Any?> taskRunner(
         val snapshot = takePropertySnapshot<T, LogOnFault>(newTask.receiver)
         val container = TaskContainer.create<T, R>(newTask)
         val managed = handleException(throwable, container, snapshot)
-        createFaultyResult(managed, newTask)
+         val rationale = failRationale(container.sourceTask, managed)
+        val faultyResult =  createFaultyResult(managed, newTask, rationale)
         newTask.complete(managed)
+        faultyResult
     }
 
 
@@ -127,7 +130,7 @@ suspend inline fun <reified T : TasksManaged, R : Any?> T.runTaskAsync(
     noinline block: suspend T.() -> R,
 ): TaskResult<T, R> {
 
-    val activeRoot = activeRootTask()
+   val activeRoot = activeRootTask()
    val newTask = activeRoot.createTask<T , R>(taskName, this, config)
    return taskRunner(newTask){
         block(newTask.receiver)
@@ -167,14 +170,17 @@ inline fun <T : TasksManaged, reified R : Any?> T.runTask(
             taskContainer.sourceTask.collectException(stats.exception)
             if(stats.isLastAttempt){
                 val managed = handleException(stats.exception, taskContainer, null)
-                createFaultyResult(managed, taskContainer.sourceTask)
+                val rationale = failRationale(taskContainer.sourceTask, managed)
+                createFaultyResult(managed, taskContainer.sourceTask, rationale)
                 taskContainer.sourceTask.complete(managed)
             }
         }
     }){
         val lambdaResult = this.block()
-        createTaskResult(lambdaResult, newTask)
+        val result = createTaskResult(lambdaResult, newTask)
+        newTask.complete()
+        result
     }
-    newTask.complete()
+
     return result
 }

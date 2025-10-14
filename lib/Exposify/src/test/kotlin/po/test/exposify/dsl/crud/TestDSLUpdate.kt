@@ -7,28 +7,33 @@ import org.junit.jupiter.api.Order
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestMethodOrder
+import po.auth.extensions.runWithSession
 import po.exposify.scope.launchers.pick
+import po.exposify.scope.launchers.select
 import po.exposify.scope.launchers.update
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
+import po.test.exposify.setup.ClassData
 import po.test.exposify.setup.DatabaseTest
+import po.test.exposify.setup.dtos.ContentBlock
+import po.test.exposify.setup.dtos.ContentBlockDTO
 import po.test.exposify.setup.dtos.PageDTO
 import po.test.exposify.setup.dtos.SectionDTO
 import po.test.exposify.setup.dtos.UserDTO
 import po.test.exposify.setup.mocks.mockPages
 import po.test.exposify.setup.mocks.mockedUser
 import po.test.exposify.setup.mocks.newMockedSession
+import po.test.exposify.setup.mocks.withContentBlocks
 import po.test.exposify.setup.mocks.withSections
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 import kotlin.time.Duration
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation::class)
 class TestDSLUpdate: DatabaseTest() {
-
-
 
     override val identity: CTXIdentity<TestDSLUpdate> = asIdentity()
 
@@ -49,7 +54,12 @@ class TestDSLUpdate: DatabaseTest() {
                 updatedById = update(mockedUser).dataUnsafe.id
             }
         }
-        val pages = mockPages(updatedById, 1)
+        val pages = mockPages(updatedById, 3){index->
+            langId = index+1
+            withSections(2){
+                withContentBlocks(2)
+            }
+        }
 
         withConnection {
             service(PageDTO) {
@@ -73,7 +83,7 @@ class TestDSLUpdate: DatabaseTest() {
         }
 
         val page = result.dataUnsafe
-        assertEquals(2, page.sections.size)
+        assertEquals(4, page.sections.size)
         val lastSection = assertNotNull(page.sections.lastOrNull())
 
         val inputLastSection = assertNotNull(pageDataModel.sections.lastOrNull())
@@ -118,5 +128,44 @@ class TestDSLUpdate: DatabaseTest() {
         assertEquals("updated_name_0", firstSection.name)
     }
 
+    @Test
+    @Order(4)
+    fun `Deep nested update after PickById and consequtive select`() = runTest(timeout = Duration.parse("600s")) {
 
+        val page = pageDtos.first().dataContainer.getValue(this)
+        val contentBlockToUpdate = page.sections.first().contentBlocks.first()
+        val newContentBlock = ContentBlock(
+            id = contentBlockToUpdate.id,
+            name = contentBlockToUpdate.name,
+            content = contentBlockToUpdate.content,
+            tag = contentBlockToUpdate.tag,
+            jsonLd = contentBlockToUpdate.jsonLd,
+            langId = contentBlockToUpdate.langId,
+            metaTags = contentBlockToUpdate.metaTags,
+            sectionId = contentBlockToUpdate.sectionId,
+            classList = listOf(ClassData(1, "UpdatedValue"))
+        )
+
+        contentBlockToUpdate.classList
+        val session = newMockedSession
+        val result = session.runWithSession {
+            pick(PageDTO, page.id) {
+                pick(SectionDTO, contentBlockToUpdate.sectionId) {
+                    update(ContentBlockDTO, newContentBlock)
+                }
+            }
+        }
+        val persistedContentBlock = assertNotNull(result.data)
+        val persistedClassItem = assertNotNull(persistedContentBlock.classList.firstOrNull())
+        assertEquals("UpdatedValue", persistedClassItem.value)
+
+        val pageSelectResult = session.runWithSession {
+            select(PageDTO)
+        }
+
+        val firstPage = assertNotNull(pageSelectResult.data.firstOrNull())
+        val firstSection =  assertNotNull(firstPage.sections.firstOrNull(), "Section list after select is empty")
+        val firstContentBlock  =  assertNotNull(firstSection.contentBlocks.firstOrNull())
+        assertEquals("UpdatedValue", firstContentBlock.classList.firstOrNull()?.value?:"None")
+    }
 }

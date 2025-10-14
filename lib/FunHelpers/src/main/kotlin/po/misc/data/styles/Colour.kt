@@ -1,45 +1,80 @@
 package po.misc.data.styles
 
-enum class Colour(val colourStr: String) {
-    RED("\u001B[31m"),
+enum class Colour(val code: String) {
+    Default(""),
+    Red("\u001B[31m"),
     Yellow("\u001B[33m"),
-    GREEN("\u001B[32m"),
+    Green("\u001B[32m"),
     Gray("\u001B[90m"),
-    BLUE("\u001B[34m"),
-    MAGENTA("\u001B[35m"),
-    CYAN("\u001B[36m"),
-    WHITE("\u001B[37m"),
-    RESET("\u001B[0m"),
-    BRIGHT_BLACK("\u001B[90m"),
-    BRIGHT_RED("\u001B[91m"),
-    BRIGHT_GREEN("\u001B[92m"),
-    BRIGHT_YELLOW("\u001B[93m"),
-    BRIGHT_BLUE("\u001B[94m"),
-    BRIGHT_MAGENTA("\u001B[95m"),
-    BRIGHT_CYAN("\u001B[96m"),
-    BRIGHT_WHITE("\u001B[97m"),
-
-    RED_BG("\u001B[41m"),
-    GREEN_BG("\u001B[42m"),
-    YELLOW_BG("\u001B[43m"),
-    BLUE_BG("\u001B[44m"),
-    MAGENTA_BG("\u001B[45m"),
-    CYAN_BG("\u001B[46m"),
-    WHITE_BG("\u001B[47m");
-
+    Blue("\u001B[34m"),
+    Magenta("\u001B[35m"),
+    Cyan("\u001B[36m"),
+    White("\u001B[37m"),
+    BlackBright("\u001B[90m"),
+    RedBright("\u001B[91m"),
+    GreenBright("\u001B[92m"),
+    YellowBright("\u001B[93m"),
+    BlueBright("\u001B[94m"),
+    MagentaBright("\u001B[95m"),
+    CyanBright("\u001B[96m"),
+    WhiteBright("\u001B[97m"),
+    RESET("\u001B[0m");
 
     companion object {
         fun fromValue(colourStr: String): Colour {
-            entries.firstOrNull { it.colourStr == colourStr }?.let {
+            entries.firstOrNull { it.code == colourStr }?.let {
                 return it
             }
             return RESET
         }
+
+        fun fontColour(text: String, color: Colour): String{
+            return "${color.code}$text${RESET.code}"
+        }
+
         fun makeOfColour(color: Colour,  text: String): String {
             return if (text.contains("\u001B[")) {
                 text
             } else {
-                "${color.colourStr}$text${RESET.colourStr}"
+                "${color.code}$text${RESET.code}"
+            }
+        }
+    }
+}
+
+enum class BGColour(val code: String) {
+
+    Red("\u001B[41m"),
+    Green("\u001B[42m"),
+    Yellow("\u001B[43m"),
+    Blue("\u001B[44m"),
+    Magenta("\u001B[45m"),
+    Cyan("\u001B[46m"),
+    White("\u001B[47m"),
+    RESET("\u001B[0m");
+
+    companion object {
+        fun fromValue(colourStr: String): BGColour {
+            entries.firstOrNull { it.code == colourStr }?.let {
+                return it
+            }
+            return RESET
+        }
+
+        fun makeOfColour(bgColour: BGColour, text: String): String {
+            return if (text.contains("\u001B[")) {
+                text
+            } else {
+                "${bgColour.code}$text${RESET.code}"
+            }
+        }
+
+
+        fun makeOfColour(bgColour: BGColour, colour: Colour, text: String): String {
+            return if (text.contains("\u001B[")) {
+                text
+            } else {
+                "${bgColour.code}${colour.code}$text${RESET.code}"
             }
         }
     }

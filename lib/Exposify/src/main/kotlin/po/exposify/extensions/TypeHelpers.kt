@@ -11,7 +11,7 @@ import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.initException
 import po.exposify.exceptions.operationsException
 import po.misc.context.CTX
-import po.misc.types.TypeData
+import po.misc.types.type_data.TypeData
 import po.misc.types.castOrThrow
 import po.misc.types.getOrThrow
 import kotlin.reflect.KClass
@@ -22,7 +22,7 @@ internal fun <T: Any> Any?.castOrOperations(
     kClass: KClass<T>,
     callingContext: CTX
 ): T {
-    return this.castOrThrow(kClass, callingContext){payload->
+    return this.castOrThrow(callingContext, kClass){payload->
         OperationsException(payload)
     }
 }
@@ -43,7 +43,7 @@ internal fun <T : Any> T?.getOrOperations(
     kClass: KClass<*>,
     callingContext: CTX
 ): T {
-    return getOrThrow(kClass, callingContext){payload->
+    return getOrThrow(callingContext, kClass){payload->
         operationsException(payload.setCode(ExceptionCode.VALUE_IS_NULL))
     }
 }
@@ -52,7 +52,7 @@ internal fun <T : Any> T?.getOrOperations(
     typeData: TypeData<T>,
     callingContext: CTX
 ): T {
-    return  getOrThrow(typeData.kClass, callingContext){payload->
+    return  getOrThrow(callingContext, typeData.kClass){payload->
         operationsException(payload.setCode(ExceptionCode.VALUE_IS_NULL))
     }
 }
@@ -66,7 +66,7 @@ internal fun <T: Any> Any?.castOrInit(
     kClass: KClass<T>,
     callingContext: CTX
 ): T {
-    return this.castOrThrow(kClass, callingContext){payload->
+    return this.castOrThrow(callingContext, kClass){payload->
         InitException(payload)
     }
 }
@@ -80,7 +80,7 @@ internal fun <T : Any> T?.getOrInit(
     kClass: KClass<T>,
     callingContext: CTX
 ): T {
-    return  getOrThrow(kClass, callingContext){payload->
+    return  getOrThrow(callingContext, kClass){payload->
         initException(payload.setCode(ExceptionCode.VALUE_IS_NULL))
     }
 }

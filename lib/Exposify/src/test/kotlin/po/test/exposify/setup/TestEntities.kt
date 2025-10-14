@@ -6,10 +6,7 @@ import org.jetbrains.exposed.dao.id.EntityID
 import po.exposify.dao.classes.ExposifyEntityClass
 
 
-class TestsItemEntity (id: EntityID<Long>) : LongEntity(id){
-    companion object : ExposifyEntityClass<TestsItemEntity>(TestsItems)
-    var name by Users.name
-}
+
 
 class UserEntity  (id: EntityID<Long>) : LongEntity(id){
     companion object : ExposifyEntityClass<UserEntity>(Users)

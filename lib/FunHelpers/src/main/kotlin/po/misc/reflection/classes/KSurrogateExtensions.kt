@@ -1,7 +1,7 @@
 package po.misc.reflection.classes
 
 import po.misc.context.CTX
-import po.misc.context.Identifiable
+import po.misc.types.type_data.TypeData
 
 import kotlin.reflect.KClass
 
@@ -24,7 +24,7 @@ inline fun <reified T: CTX> createSurrogate(
     block: KSurrogate<T>.()-> Unit
 ): KSurrogate<T>{
   // val container = KSurrogate(KSurrogate(receiver, SurrogateHooks()))
-   val surrogate =   KSurrogate(receiver)
+   val surrogate =   KSurrogate(receiver, TypeData.create<T>())
    block.invoke(surrogate)
    return surrogate
 }

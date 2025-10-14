@@ -1,53 +1,98 @@
 package po.restwraptor.routes
 
-
-import io.ktor.server.routing.Route
 import io.ktor.server.routing.Routing
 import io.ktor.server.routing.RoutingContext
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
-import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
+import po.auth.getOrNewSession
 import po.auth.sessions.models.AuthorizedSession
 import po.lognotify.TasksManaged
+import po.misc.containers.LazyContainer
+import po.misc.containers.lazyContainerOf
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
-import po.restwraptor.extensions.currentSessionOrNew
-import po.restwraptor.extensions.withSessionOrDefault
-import po.restwraptor.scope.ConfigContext
+import po.misc.data.helpers.output
+import po.misc.data.styles.Colour
+import po.restwraptor.calls.callerInfo
+import po.restwraptor.session.sessionFromAttributes
 
 
-fun  ConfigContext.buildManagedRoutes(
-    routeGroupPath: String? = null,
-    builder:ManagedRoute.()-> Unit
-){
-    application.routing {
-        ManagedRoute(this, routeGroupPath).builder()
+
+class ManagedRouting(){
+    val routes = mutableListOf<ManagedRoute>()
+    internal fun provideRouteKtorRouting(routing:  Routing){
+        routes.forEach {
+            it.routing.provideValue(routing)
+        }
     }
+
+    fun managedRoutes(routeGroupPath: String,  block:ManagedRoute.()-> Unit){
+       val managed =  ManagedRoute(routeGroupPath)
+        managed.block()
+        routes.add(managed)
+    }
+
+    fun managedRoutes(block:ManagedRoute.()-> Unit){
+        val managed =  ManagedRoute(null)
+        managed.block()
+        routes.add(managed)
+    }
+
 }
 
+
 class ManagedRoute(
-    private val routing: Routing,
     private val routeGroupPath: String? = null
 ): TasksManaged {
+
+
+    internal val routing: LazyContainer<Routing> = lazyContainerOf()
 
     override val identity: CTXIdentity<ManagedRoute> = asIdentity()
 
      fun managedGet(vararg pathParts:String, body: suspend RoutingContext.(AuthorizedSession) -> Unit){
+
         val result = partsToUrl(pathParts.toList(),  routeGroupPath)
-        routing.get(result){
-            body(this, call.currentSessionOrNew())
+
+         routing.requestValue(this){routing->
+
+             routing.get(result){
+                 val session =  call.sessionFromAttributes()?.let {
+                     "Using existent session".output(Colour.Green)
+                     it.output()
+                     it
+                 }?:run {
+                     "ReCreating session".output(Colour.Cyan)
+                     getOrNewSession(call.callerInfo())
+                 }
+                 body(this, session)
+             }
+
+         }
+    }
+
+    fun managedPost(vararg pathParts:String, body: suspend RoutingContext.(AuthorizedSession) -> Unit) {
+        val result = partsToUrl(pathParts.toList(), routeGroupPath)
+
+        routing.requestValue(this) { routing ->
+            routing.post(result) {
+                val session = call.sessionFromAttributes()?.let {
+                    "Using existent".output(Colour.Green)
+                    it.output()
+                    it
+                } ?: run {
+                    "ReCreating session".output(Colour.Cyan)
+                    getOrNewSession(call.callerInfo())
+                }
+                body(this, session)
+            }
         }
     }
 
-    fun managedPost(vararg pathParts:String, body: suspend RoutingContext.(AuthorizedSession) -> Unit){
-        val result = partsToUrl(pathParts.toList(),  routeGroupPath)
-        routing.post(result){
-            body(this, call.currentSessionOrNew())
+    fun managedWrongPath(body: suspend RoutingContext.(AuthorizedSession) -> Unit) {
+        routing.requestValue(this) { routing ->
+            routing.post("{...}", body)
         }
-    }
-
-    fun managedWrongPath(body: suspend RoutingContext.(AuthorizedSession) -> Unit){
-        routing.post("{...}", body)
     }
 }

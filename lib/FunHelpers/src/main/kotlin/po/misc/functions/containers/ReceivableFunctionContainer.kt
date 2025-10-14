@@ -13,7 +13,7 @@ sealed class ReceivableFunctionContainer<T: Any, P, R: Any?, V: Any>(
 
     protected var receiverBacking: T? = null
     protected val receiver:T  get() {
-        return receiverBacking.getOrManaged(Any::class, this)
+        return receiverBacking.getOrManaged(this, Any::class)
     }
 
     open fun provideReceiver(value:T):ReceivableFunctionContainer<T, P, R, V>{

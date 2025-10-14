@@ -28,6 +28,7 @@ fun Routing.configureSystemRoutes(configContext: ConfigContext, responseProvider
         val responseStatus: String = "OK"
         call.respond(responseProvider)
     }
+
     route("{...}") {
         handle {
             if (configContext.apiConfig.environment != EnvironmentType.PROD) {

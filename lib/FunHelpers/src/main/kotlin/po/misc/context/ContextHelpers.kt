@@ -11,7 +11,7 @@ fun <T : CTX> T.whoAreYou(block: T.() -> Unit) {
     val info =
         buildString {
             appendLine()
-            appendLine(detailedDump.colorize(Colour.CYAN))
+            appendLine(detailedDump.colorize(Colour.Cyan))
         }
     println(info)
     block()

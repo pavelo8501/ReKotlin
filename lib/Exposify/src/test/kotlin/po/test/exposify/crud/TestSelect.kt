@@ -90,7 +90,7 @@ class TestSelect : DatabaseTest(), TasksManaged {
         withConnection {
             service(PageDTO, TableCreateMode.ForceRecreate) {
                 PageDTO.clearCachedDTOs()
-                truncate()
+                truncate() //This method fails
                 update(initialPage).dataUnsafe
                 persistedPages = select().data
             }

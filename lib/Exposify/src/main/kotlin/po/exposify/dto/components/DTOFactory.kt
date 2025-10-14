@@ -24,7 +24,8 @@ import po.misc.functions.registries.TaggedRegistry
 import po.misc.functions.registries.builders.taggedRegistryOf
 import po.misc.interfaces.ValueBased
 import po.misc.serialization.SerializerInfo
-import po.misc.types.TypeData
+import po.misc.types.token.TypeToken
+import po.misc.types.type_data.TypeData
 import kotlin.reflect.KType
 
 sealed class DTOFactoryBase<DTO, D, E>(
@@ -41,8 +42,8 @@ sealed class DTOFactoryBase<DTO, D, E>(
     protected val commonDTOType: CommonDTOType<DTO, D, E> get() = dtoConfiguration.commonDTOType
     abstract override val identity: CTXIdentity<out CTX>
 
-    val dtoType: TypeData<DTO> get() = commonDTOType.dtoType
-    val dataType: TypeData<D> get() = commonDTOType.dataType
+    val dtoType: TypeToken<DTO> get() = commonDTOType.dtoType
+    val dataType: TypeToken<D> get() = commonDTOType.dataType
 
     val notifier =
         callbackManager<Events>(
@@ -153,7 +154,7 @@ class DTOFactory<DTO, D, E>(
 
                     else -> {
                         val errorMessage = "Parameter ${param.name} unavailable when creating dataModel"
-                        throw OperationsException(errorMessage, ExceptionCode.REFLECTION_ERROR, this, null)
+                        throw OperationsException(this, errorMessage, ExceptionCode.REFLECTION_ERROR)
                     }
                 }
             }
@@ -172,7 +173,7 @@ class CommonDTOFactory<DTO, D, E, F, FD, FE>(
     hostingDTO: CommonDTO<F, FD, FE>,
 ) : DTOFactoryBase<DTO, D, E>(dtoConfiguration)
     where DTO : ModelDTO, D : DataModel, E : LongEntity, F : ModelDTO, FD : DataModel, FE : LongEntity {
-    override val identity: CTXIdentity<CommonDTOFactory<DTO, D, E, F, FD, FE>> = asSubIdentity(this, hostingDTO)
+    override val identity: CTXIdentity<CommonDTOFactory<DTO, D, E, F, FD, FE>> = asSubIdentity(hostingDTO)
 
     val onDTOCreated: TaggedRegistry<Events, CommonDTO<DTO, D, E>> = taggedRegistryOf<Events, CommonDTO<DTO, D, E>>(Events.OnCreated)
 
@@ -211,7 +212,7 @@ class CommonDTOFactory<DTO, D, E, F, FD, FE>(
                     }
                     else -> {
                         val errorMessage = "Parameter ${param.name} unavailable when creating dataModel"
-                        throw OperationsException(errorMessage, ExceptionCode.REFLECTION_ERROR, this, null)
+                        throw OperationsException(this, errorMessage, ExceptionCode.REFLECTION_ERROR)
                     }
                 }
             }

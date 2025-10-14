@@ -1,10 +1,11 @@
 package po.misc.types
 
-import po.misc.collections.takeFromMatch
+import po.misc.context.TraceableContext
+import po.misc.exceptions.ExceptionPayload
 import po.misc.exceptions.ManagedException
-import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.exceptions.ManagedPayload
-import po.misc.exceptions.extractCallSiteMeta
+import po.misc.types.helpers.simpleOrAnon
+import po.misc.types.type_data.TypeData
 import java.time.LocalDateTime
 import kotlin.reflect.KClass
 
@@ -13,46 +14,93 @@ inline fun <T1 : Any, R : Any> safeLet(p1: T1?, block: (T1) -> R?): R? {
     return if (p1 != null) block(p1) else null
 }
 
-
+/**
+* Ensures that a nullable receiver is not `null`, otherwise throws a custom exception.
+*
+* This variant allows passing any object as runtime context and optionally an explicit `expectedClass`
+* to produce clear diagnostic messages. If the receiver is `null`, an [ExceptionPayload] is constructed
+* and passed to [exceptionProvider], which is responsible for instantiating and returning a Throwable.
+*
+* @param context The object representing execution context (e.g., service, DTO, handler).
+*                Used to enrich the exception payload. Prefer implementing [TraceableContext].
+* @param expectedClass Optional explicit class expected for the receiver.
+*                      If omitted, a readable fallback message is used.
+* @param exceptionProvider A factory function that transforms the generated [ExceptionPayload]
+*                          into a concrete [Throwable] to be thrown.
+*
+* @return The non-null receiver value.
+*
+* @throws Throwable As returned from [exceptionProvider], if the receiver is `null`.
+*
+* @sample
+* val value: String? = null
+* value.getOrThrow(this, String::class) { payload ->
+    *     IllegalStateException(payload.message)
+    * }
+*/
 fun <T: Any> T?.getOrThrow(
-    expectedClass: KClass<*>,
-    callingContext: Any,
-    exceptionProvider: (ManagedCallSitePayload)-> Throwable,
+    context: Any,
+    expectedClass: KClass<*>? = null,
+    exceptionProvider: (ExceptionPayload)-> Throwable,
 ):T {
     val methodName = "getOrThrow"
     if(this == null){
-        val message = "Expected: ${expectedClass.simpleName}. Result is null"
-        val payload = ManagedPayload(message, methodName, callingContext)
+        val className = expectedClass?.simpleOrAnon?:"ExpectedClass not specified"
+        val message = "Expected $className got null."
+        val payload = ExceptionPayload(message, methodName, helperMethodName = true,  context)
         throw exceptionProvider.invoke(payload)
     }else{
         return this
     }
 }
 
+/**
+ * Reified overload of [getOrThrow] that infers the expected type automatically.
+ *
+ * Designed for use with traceable contexts, this overload removes boilerplate by:
+ * - Inferring `expectedClass` from `T`
+ * - Encouraging structured context via [TraceableContext]
+ *
+ * @param context A strongly-typed execution context implementing [TraceableContext]
+ * @param exceptionProvider A factory that converts the generated [ExceptionPayload]
+ *                          into a concrete [Throwable] to be thrown.
+ *
+ * @return The non-null receiver value.
+ *
+ * @throws Throwable As produced by [exceptionProvider], if receiver is `null`.
+ */
 inline fun <reified T: Any> T?.getOrThrow(
+    context: TraceableContext,
+    noinline exceptionProvider: (ExceptionPayload)-> Throwable
+):T = getOrThrow(context, T::class, exceptionProvider)
+
+
+@PublishedApi
+@JvmName("getOrManagedImplementation")
+internal fun <T> getOrManaged(
+    receiver: T?,
     callingContext: Any,
-    noinline exceptionProvider: (ManagedCallSitePayload)-> Throwable
-):T = getOrThrow(T::class, callingContext, exceptionProvider)
-
-
-
-fun <T : Any> T?.getOrManaged(
     expectedClass: KClass<*>,
-    callingContext: Any,
-):T {
+): T{
     val methodName = "getOrManaged"
-    if(this == null){
+    if(receiver == null){
         val message = "Expected: ${expectedClass.simpleName}. Result is null"
         val payload = ManagedPayload(message, methodName, callingContext)
         throw ManagedException(payload)
     }else{
-        return this
+        return receiver
     }
 }
 
-inline fun <reified T: Any> T?.getOrManaged(
+fun <T> T?.getOrManaged(
+    callingContext: Any,
+    expectedClass: KClass<*>,
+):T = getOrManaged(this, callingContext,  expectedClass)
+
+
+inline fun <reified T> T?.getOrManaged(
     callingContext: Any
-):T = getOrManaged(T::class, callingContext)
+):T = getOrManaged(this,  callingContext, T::class)
 
 
 fun Any?.isNull(): Boolean{
@@ -75,21 +123,4 @@ fun <T: Any> TypeData<T>.getDefaultForType(): T? {
         else -> null
     }
     return result?.safeCast(this.kClass)
-}
-
-
-inline fun <T: Any> T?.letOrException(ex : ManagedException, block: (T)-> T){
-    if(this != null){
-        block(this)
-    } else {
-        throw ex
-    }
-}
-
-fun <T: Any?, E: ManagedException> T.testOrException( exception : E, predicate: (T) -> Boolean): T{
-    if (predicate(this)){
-        return this
-    }else{
-        throw exception
-    }
 }

@@ -1,2 +1,7 @@
 /dev_data
 /report-root
+
+dev_data/
+build/
+assets/
+files/

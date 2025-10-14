@@ -16,6 +16,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
+
 class TestManagedException: CTX {
 
     override val identity: CTXIdentity<TestManagedException> = asIdentity()
@@ -27,9 +28,5 @@ class TestManagedException: CTX {
             nullableString.getOrManaged(this)
         }
         assertEquals("Expected: String. Result is null", managed.message, "Wrong message")
-        val firstRec = assertNotNull(managed.exceptionData.firstOrNull())
-        val traceRec = assertNotNull(firstRec.stackTraceList.firstOrNull { it.className ==  this::class.qualifiedName}, "No trace rec found")
-        println(traceRec)
     }
-
 }

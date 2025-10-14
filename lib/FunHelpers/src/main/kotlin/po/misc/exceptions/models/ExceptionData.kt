@@ -3,8 +3,9 @@ package po.misc.exceptions.models
 import po.misc.exceptions.ManagedException.ExceptionEvent
 import po.misc.context.CTX
 import po.misc.data.printable.knowntypes.PropertyData
+import po.misc.exceptions.stack_trace.StackFrameMeta
 
-
+@Deprecated("ExceptionTrace already contains all information needed")
 class ExceptionData(
     val event: ExceptionEvent,
     val message: String,
@@ -36,5 +37,4 @@ class ExceptionData(
         stackTraceBacking = stackFrames
         return this
     }
-
 }

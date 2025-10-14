@@ -5,7 +5,7 @@ import po.misc.data.helpers.output
 import po.misc.data.json.models.JsonObject
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.companion.PrintableCompanion
-import po.misc.types.TypeData
+import po.misc.types.type_data.TypeData
 
 class TestJsonComposer {
 

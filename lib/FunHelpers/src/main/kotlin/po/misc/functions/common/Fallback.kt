@@ -1,6 +1,6 @@
 package po.misc.functions.common
 
-import po.misc.exceptions.ManagedCallSitePayload
+import po.misc.exceptions.ThrowableCallSitePayload
 import po.misc.exceptions.ManagedPayload
 
 

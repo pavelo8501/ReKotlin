@@ -29,7 +29,7 @@ fun indentText(
     vararg lineBuilder:() -> String
 ): String{
 
-   val result = lineBuilder.joinToString(separator = SpecialChars.NewLine.char) { lineProvider->
+   val result = lineBuilder.joinToString(separator = SpecialChars.newLine) { lineProvider->
         lineProvider.invoke().withIndent(count, indentionChar)
     }
    return result

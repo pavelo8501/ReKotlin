@@ -2,7 +2,7 @@ package po.misc.reflection.properties
 
 
 import po.misc.collections.StaticTypeKey
-import po.misc.types.TypeData
+import po.misc.types.type_data.TypeData
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
@@ -26,15 +26,12 @@ data class PropertyInfo<T: Any, V: Any>(
     val returnType: KType = property.returnType
     val visibility: KVisibility? = property.visibility
 
-    val typeData : TypeData<T> = TypeData.createByKClass(receiverClass)
-
     var valueTypeData: TypeData<V>? = null
     var returnTypeKey: StaticTypeKey<V>? = null
     var returnTypeToken : StaticTypeToken<V>? = null
 
     fun setValueClass(clazz: KClass<V>): PropertyInfo<T, V>{
         valueClass = clazz
-        valueTypeData = TypeData.createByKClass(clazz)
         returnTypeKey = StaticTypeKey.createTypeKey(clazz)
         return this
     }
@@ -44,9 +41,11 @@ data class PropertyInfo<T: Any, V: Any>(
            return PropertyInfo(kProperty1, mutable, receiverClass)
         }
         fun <T: Any, V: Any> create(kProperty1: KProperty1<T, V>, mutable: Boolean, instance: T):PropertyInfo<T, V>{
+            @Suppress("Unchecked_Cast")
             val clazz =  instance::class as KClass<T>
             val property = PropertyInfo(kProperty1, mutable, clazz)
             kProperty1.get(instance).let {
+                @Suppress("Unchecked_Cast")
                 val resultClass =  it::class as KClass<V>
                 property.setValueClass(resultClass)
                 val staticTypeKey = StaticTypeKey<V>(resultClass)

@@ -42,7 +42,7 @@ abstract class PrintableGroup<T1: PrintableBase<T1>, T2:  PrintableBase<T2>>(
         val childStrings = recordsBacking.map { childrenDefaultTemplate.resolve(it) }
         result.addAll(childStrings)
         result.add(footerTemplate?.resolve(groupHost) ?: "")
-        return result.joinToString(separator = SpecialChars.NewLine.char) { it }
+        return result.joinToString(separator = SpecialChars.newLine) { it }
     }
 
     fun setHeader(header: PrintableTemplateBase<T1>){

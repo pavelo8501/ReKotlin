@@ -4,6 +4,7 @@ import kotlinx.coroutines.test.TestResult
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import po.auth.sessions.models.AuthorizedSession
+import po.auth.sessions.models.SessionBase
 import po.exposify.dto.components.result.toResultSingle
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.operationsException
@@ -24,22 +25,26 @@ class TestCoroutineEmitter: DatabaseTest(), TasksManaged  {
     @Test
     fun `Emitter uses correct coroutine context`(): TestResult = runTest{
 
-        var session: AuthorizedSession? = null
+        var session: SessionBase? = null
         with(mockedSession){
             runProcess(this){
-                val emitter = connectionClass.requestEmitter(it)
-                assertSame(mockedSession, emitter.process.receiver)
-                emitter.dispatchSingle {
-                    session = coroutineContext[AuthorizedSession]
-                    operationsException("TestCase", ExceptionCode.INVALID_DATA).toResultSingle(PageDTO)
+                withConnectionSuspend {
+                    val emitter = requestEmitter(it)
+                    assertSame(mockedSession, emitter.process.receiver)
+                    emitter.dispatchSingle {
+                        session = coroutineContext[AuthorizedSession]
+                        operationsException("TestCase", ExceptionCode.INVALID_DATA).toResultSingle(PageDTO)
+                    }
                 }
             }
             runProcess(this) {
-                val emitter = connectionClass.requestEmitter(it)
-                assertSame(mockedSession, emitter.process.receiver)
-                emitter.dispatchSingle {
-                    session = coroutineContext[AuthorizedSession]
-                    operationsException("TestCase", ExceptionCode.INVALID_DATA).toResultSingle(PageDTO)
+                withConnectionSuspend{
+                    val emitter = requestEmitter(it)
+                    assertSame(mockedSession, emitter.process.receiver)
+                    emitter.dispatchSingle {
+                        session = coroutineContext[AuthorizedSession]
+                        operationsException("TestCase", ExceptionCode.INVALID_DATA).toResultSingle(PageDTO)
+                    }
                 }
             }
         }

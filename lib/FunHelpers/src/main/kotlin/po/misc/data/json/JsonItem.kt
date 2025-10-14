@@ -203,7 +203,7 @@ class JsonHolder(var activeArray: JArray = JArray(null)) {
         return if (printStrings.size == 1) {
             printStrings[0]
         } else {
-            printStrings.joinToString(separator = ",", postfix = SpecialChars.NewLine.toString())
+            printStrings.joinToString(separator = ",", postfix = SpecialChars.newLine.toString())
         }
     }
 }

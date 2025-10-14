@@ -1,10 +1,15 @@
 package po.lognotify.common.result
 
+import po.lognotify.exceptions.ActionResult
+import po.lognotify.exceptions.FailAction
+import po.lognotify.exceptions.FailHandlingRationale
 import po.lognotify.exceptions.getOrLoggerException
 import po.lognotify.notification.warning
 import po.lognotify.tasks.ExecutionStatus
 import po.lognotify.tasks.TaskBase
 import po.misc.context.CTX
+import po.misc.data.helpers.output
+import po.misc.data.styles.Colour
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.throwableToText
 import po.misc.functions.containers.Notifier
@@ -44,10 +49,17 @@ class TaskResult<T: CTX, R>(
 
     val hasGuardConditions: Boolean get() = !(onFailFn == null && exHandlingCallback == null)
 
+    val  rationaleList = mutableListOf<FailHandlingRationale>()
+
     val collectedErrors: MutableList<Throwable> = mutableListOf()
 
     private var onCompleteFn: ((TaskResult<T, R>) -> Unit)? = null
     private var beforeFaultyResultRequested: Notifier<ManagedException>? = null
+
+    @PublishedApi
+    internal fun fallbackInAction(action: ActionResult){
+        rationaleList.lastOrNull()?.setAction(action)
+    }
 
     @PublishedApi
     internal fun collectThrowable(throwable: Throwable) {
@@ -61,15 +73,18 @@ class TaskResult<T: CTX, R>(
 
     @PublishedApi
     internal fun subscribeBeforeFault(callback: (ManagedException) -> Unit) {
+        //"subscribeBeforeFault call".output(Colour.CYAN)
         beforeFaultyResultRequested = lambdaAsNotifier<ManagedException>(callback)
     }
 
     internal fun provideResult(newResult: R): TaskResult<T, R> {
+       // "provideResult call".output(Colour.CYAN)
         result = newResult
         return this
     }
 
     internal fun provideException(th: ManagedException): TaskResult<T, R> {
+      //  "provideException call".output(Colour.CYAN)
         collectThrowable(th)
         isSuccess = false
         task.changeStatus(ExecutionStatus.Failing)
@@ -86,6 +101,7 @@ class TaskResult<T: CTX, R>(
     }
 
     fun onComplete(block: (TaskResult<T, R>) -> Unit): TaskResult<T, R> {
+       // "onComplete call".output(Colour.CYAN)
         onCompleteFn = block
         block.invoke(this)
         return this
@@ -94,6 +110,7 @@ class TaskResult<T: CTX, R>(
     private var onResultFn: ((R) -> Unit)? = null
 
     fun onResult(block: (R) -> Unit): TaskResult<T, R> {
+      //  "onResult call".output(Colour.CYAN)
         onResultFn = block
         result?.let {
             block.invoke(it)
@@ -104,6 +121,7 @@ class TaskResult<T: CTX, R>(
     private var onFailFn: ((ManagedException) -> Unit)? = null
 
     fun onFail(callback: (ManagedException) -> Unit): TaskResult<T, R> {
+       // "onFail callback set".output(Colour.CYAN)
         task.dataProcessor.debug("Handled onFail registered", "$personalName|onFail")
         exception?.let {
             task.changeStatus(ExecutionStatus.Faulty)
@@ -114,12 +132,13 @@ class TaskResult<T: CTX, R>(
     }
 
     fun resultOrException(): R {
+       // "resultOrException call".output(Colour.CYAN)
         val managed = exception
         if (managed != null) {
             beforeFaultyResultRequested?.trigger(managed)
             throw managed
         }
-        return result.getOrLoggerException("No exception no result")
+        return result.getOrLoggerException(task, "No exception no result")
     }
 
     private var exHandlingCallback: (suspend () -> R)? = null
@@ -135,17 +154,16 @@ class TaskResult<T: CTX, R>(
     private var onHandleFailure: ((ManagedException?) -> R)? = null
 
     fun handleFailure(handleFailureCallback: (ManagedException?) -> R): R {
+       // "handleFailure call".output(Colour.CYAN)
         onHandleFailure = handleFailureCallback
         return exception?.let { managed ->
             val message = "Handled ${managed.throwableToText()} by onHandleFailure. Fallback result provided"
             task.warning(message)
             handleFailureCallback.invoke(managed)
         } ?: run {
-            result.getOrLoggerException("No exception no result")
+            result.getOrLoggerException(task, "No exception no result")
         }
     }
-
-
 
     override fun provideClassInfo(info: ClassInfo<R>) {
         classInfo = info

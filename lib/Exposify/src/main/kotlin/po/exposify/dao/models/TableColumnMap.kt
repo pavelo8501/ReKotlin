@@ -18,7 +18,7 @@ data class ColumnPropertyData(
     fun compareAndGet(lookUpName: String):ColumnPropertyData?{
 
         if(mapKey != columnData.columnName){
-           throw OperationsException("name != columnData.columnName", ExceptionCode.ABNORMAL_STATE, null)
+           throw OperationsException(this, "name != columnData.columnName", ExceptionCode.ABNORMAL_STATE)
         }
 
         if(columnData.columnName == lookUpName){

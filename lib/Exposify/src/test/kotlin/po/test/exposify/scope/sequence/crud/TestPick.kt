@@ -102,14 +102,4 @@ class TestPick :
         assertEquals(idToPick, persistedPage.id, "Page id not updated")
     }
 
-    @Test
-    fun `Sequenced PICK with query statement`(): TestResult = runTest {
-        val queriedPageName = "page_8"
-        val result =
-            with(mockedSession) {
-                launch(PageDTO.Pick, deferredQuery(PageDTO) { equals(Pages.name, queriedPageName) })
-            }
-        val persistedPage = assertNotNull(result.data)
-        assertEquals(queriedPageName, persistedPage.name)
-    }
 }

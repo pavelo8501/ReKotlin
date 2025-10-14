@@ -7,6 +7,11 @@ enum class WraptorHeaders(val value: String) {
     Auth("Authorization"),
     XAuthToken("X-Auth-Token");
 
+
+    override fun toString(): String {
+        return value
+    }
+
     companion object {
         fun fromValue(value: String): WraptorHeaders {
             WraptorHeaders.entries.firstOrNull { it.value.lowercase() == value.lowercase() }?.let {

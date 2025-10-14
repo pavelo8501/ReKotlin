@@ -17,6 +17,7 @@ import po.lognotify.TasksManaged
 import po.misc.containers.LazyContainer
 import po.misc.containers.lazyContainerOf
 import po.misc.context.CTX
+import po.misc.context.CTXIdentity
 import po.misc.context.asSubIdentity
 import po.misc.data.SmartLazy
 import po.misc.data.helpers.output
@@ -86,7 +87,7 @@ class AttachedForeignDelegate<DTO, D, E, F, FD, FE>(
 ) : ComplexDelegate<DTO, D, E, F, FD, FE>(dtoClass, hostingDTO)
     where D : DataModel, E : LongEntity, DTO : ModelDTO, F : ModelDTO, FD : DataModel, FE : LongEntity
 {
-     override val identity = asSubIdentity(this, hostingDTO)
+    override val identity get() = asSubIdentity<ComplexDelegate<DTO, D, E, F, FD, FE>>(hostingDTO)
 
      val attachedName: String get() = entityIdProperty.name
 
@@ -98,16 +99,17 @@ class AttachedForeignDelegate<DTO, D, E, F, FD, FE>(
 
     fun resolve(dataModel : D) {
         val lookupId = dataIdProperty.get(dataModel)
-        dtoClass.executionContext.dtoLookupInExistent(lookupId)?.let {
-            commonDTOContainer.provideValue(it)
+        dtoClass.dtoConfiguration.daoService.pickById(lookupId)?.let {
+            val commonDTO = dtoClass.executionContext.restoreDTO(it)
+            commonDTOContainer.provideValue(commonDTO)
         }
     }
 
     fun resolve(entity : E) {
         val lookupId = entityIdProperty.get(entity)
-        dtoClass.executionContext.dtoLookupInExistent(lookupId)?.let {dto->
-             val casted = dto.castOrOperations<CommonDTO<F, FD, FE>>(this)
-             commonDTOContainer.provideValue(casted)
+        dtoClass.dtoConfiguration.daoService.pickById(lookupId)?.let {
+            val commonDTO = dtoClass.executionContext.restoreDTO(it)
+            commonDTOContainer.provideValue(commonDTO)
         }
     }
 
@@ -135,16 +137,10 @@ class ParentDelegate<DTO, D, E, F, FD, FE>(
 ) : ComplexDelegate<DTO, D, E, F, FD, FE>(dtoClass, hostingDTO)
     where DTO : ModelDTO, D : DataModel, E : LongEntity, F : ModelDTO, FD : DataModel, FE : LongEntity {
 
-    override val identity  = asSubIdentity(this, hostingDTO)
-
-
-//    override val commonDTOContainer: LazyContainer<CommonDTO<F, FD, FE>>
-//        get() = hostingDTO.parentDTOContainer.castOrOperations(this)
-//
+    override val identity: CTXIdentity<ComplexDelegate<DTO, D, E, F, FD, FE>>  = asSubIdentity(hostingDTO)
 
     fun resolve(commonDTO : CommonDTO<F, FD, FE>){
         hostingDTO.parentDTOContainer.provideValue(commonDTO)
-
         commonDTOContainer.provideValue(commonDTO)
         val dataModel = hostingDTO.dataContainer.getValue(this)
         parentDTOProvider.invoke(dataModel, commonDTO.asDTO())

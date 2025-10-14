@@ -2,6 +2,7 @@ package po.restwraptor.extensions
 
 import io.ktor.server.application.Application
 import po.misc.context.CTX
+import po.misc.context.TraceableContext
 import po.misc.types.getOrManaged
 import po.misc.types.getOrThrow
 import po.restwraptor.RestWrapTor
@@ -38,9 +39,9 @@ fun Application.getWrapTorForced(): RestWrapTor {
 
 
 
-fun Application.getWraptorRoutes(callingContext: Any,  callback: (List<WraptorRoute>)-> Unit){
+fun Application.getWraptorRoutes(callingContext: TraceableContext, callback: (List<WraptorRoute>)-> Unit){
    val wraptor =  getRestWrapTor().getOrThrow(callingContext) {_->
-       ConfigurationException("Wraptor not found in Application registry", ExceptionCodes.KEY_REGISTRATION)
+       ConfigurationException(callingContext, "Wraptor not found in Application registry", ExceptionCodes.KEY_REGISTRATION)
    }
    wraptor.getRoutes(callback)
 }

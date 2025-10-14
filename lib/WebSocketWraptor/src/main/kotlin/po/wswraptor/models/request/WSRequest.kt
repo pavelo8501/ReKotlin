@@ -2,7 +2,7 @@ package po.wswraptor.models.request
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.KSerializer
-import po.wswraptor.components.serializationfactory.SerializationFactory
+
 
 @Serializable
 enum class ApiRequestAction(val value: Int){
@@ -34,11 +34,11 @@ data class WSRequest<P: Any>(
         fun <T: Any>getSerializer(payloadSerializer : KSerializer<T>): KSerializer<WSRequest<T>>{
             return WSRequest.serializer(payloadSerializer)
         }
-        inline fun <reified T : WSRequest<Any>> createFactory(
-
-        ): SerializationFactory<T> {
-            return SerializationFactory(T::class)
-        }
+//        inline fun <reified T : WSRequest<Any>> createFactory(
+//
+//        ): SerializationFactory<T> {
+//            return SerializationFactory(T::class)
+//        }
     }
 }
 
