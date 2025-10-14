@@ -2,7 +2,7 @@ package po.lognotify.debug.extensions
 
 import po.lognotify.debug.interfaces.DebugProvider
 import po.lognotify.debug.models.InputParameter
-import po.misc.types.TypeData
+import po.misc.types.type_data.TypeData
 import po.misc.types.safeCast
 
 
@@ -29,7 +29,8 @@ inline fun <reified T: Any> DebugProvider.captureProperty(parameter: List<T>):In
 
     val list =  InputParameter("Parameter_0", TypeData.create<List<Any>>(), parameter.size, "list")
     parameter.forEachIndexed { index, item->
-        val item = InputParameter("Item_$index", TypeData.createByKClass(item::class), 1, item.toString())
+
+        val item = InputParameter("Item_$index", TypeData.create<T>(), 1, item.toString())
         list.addListParameter(item)
     }
     inputParams.add(list)
@@ -42,7 +43,7 @@ inline fun <reified T: Any> DebugProvider.captureProperty(parameter: T):InputPar
             return captureProperty(it)
         }
     }
-    val inputParameter = InputParameter("Parameter_${inputParams.size}", TypeData.createByKClass(parameter::class), 1, parameter.toString())
+    val inputParameter = InputParameter("Parameter_${inputParams.size}", TypeData.create<T>(), 1, parameter.toString())
     inputParams.add(inputParameter)
     return inputParameter
 }

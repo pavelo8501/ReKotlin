@@ -1,7 +1,6 @@
 package po.test.misc.data.logging
 
 import org.junit.jupiter.api.Test
-import po.misc.data.helpers.output
 import po.misc.data.logging.LogEmitter
 import po.misc.data.logging.processor.LogProcessor
 import kotlin.test.assertEquals
@@ -18,15 +17,15 @@ class TestLogProcessorMsgBus: LogEmitter  {
 
         internal val siblingsProcessor = LogProcessor(this,  parentProcessor)
 
-        override fun info(message: String, subject: String?) {
-            siblingsProcessor.info(message, subject)
+        override fun info(subject: String, text: String) {
+            siblingsProcessor.info(text, subject)
         }
     }
 
     @Test
     fun `Messages propagate as expected`(){
         val someObject = CompositionSibling(processor)
-        someObject.info("Some info")
+        someObject.info("Some info", "Some info")
         assertEquals(1, someObject.siblingsProcessor.records.size)
         val fromSibling =  assertNotNull(processor.records.firstOrNull())
         val parentContext = assertNotNull(fromSibling.parentContext)

@@ -9,17 +9,16 @@ import po.misc.context.CTXIdentity
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.toManaged
 import po.misc.context.asSubIdentity
-import po.misc.exceptions.toPayload
 import po.misc.reflection.classes.ClassInfo
 import po.misc.reflection.classes.ClassRole
 import po.misc.reflection.classes.overallInfo
 import po.misc.reflection.classes.overallInfoFromType
-import po.misc.types.TypeData
-import po.misc.types.Typed
+import po.misc.types.type_data.TypeData
 import po.misc.types.containers.ComplexContainers
 import po.misc.types.containers.TypedContainer
 import po.misc.types.containers.updatable.models.UpdatableData
 import po.misc.types.containers.updatable.models.UpdatableEvents
+import po.misc.types.token.TypeToken
 import kotlin.reflect.KMutableProperty1
 
 
@@ -57,8 +56,8 @@ class ActionValue<V>(
 
 class UpdatableContainer<T: CTX, R: Any, V: Any>(
     val source:T,
-    typeData: TypeData<T>,
-    containerTypeData: TypeData<UpdatableContainer<T, R, V>>,
+    typeData: TypeToken<T>,
+    containerTypeData: TypeToken<UpdatableContainer<T, R, V>>,
     classInfo: ClassInfo<T>,
     val property: KMutableProperty1<R, V>,
     val dataLambda:(T)-> V
@@ -128,14 +127,14 @@ inline fun <reified T: CTX, reified R: Any, reified V: Any> T.toUpdatableContain
     noinline  dataLambda:(T)-> V
 ):UpdatableContainer<T, R, V>{
 
-    val containerData = TypeData.create<UpdatableContainer<T, R, V>>()
+    val containerData = TypeToken.create<UpdatableContainer<T, R, V>>()
 
-    return UpdatableContainer(this, TypeData.create<T>(),containerData,  overallInfo(ClassRole.Receiver), property, dataLambda)
+    return UpdatableContainer(this, TypeToken.create<T>(), containerData,  overallInfo(ClassRole.Receiver), property, dataLambda)
 }
 
 fun <T: CTX, R: Any, V: Any> T.toUpdatableContainer(
-    typeData: TypeData<T>,
-    containerTypeData: TypeData<UpdatableContainer<T, R, V>>,
+    typeData: TypeToken<T>,
+    containerTypeData: TypeToken<UpdatableContainer<T, R, V>>,
     property: KMutableProperty1<R, V>,
     dataLambda:(T)-> V
 ):UpdatableContainer<T, R, V>{

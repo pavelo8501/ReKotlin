@@ -50,9 +50,10 @@ import po.misc.data.helpers.output
 import po.misc.data.styles.Colour
 import po.misc.functions.registries.SubscriptionPack
 import po.misc.functions.registries.builders.taggedRegistryOf
-import po.misc.types.TypeData
+import po.misc.types.type_data.TypeData
 import po.misc.types.castListOrManaged
 import po.misc.types.getOrManaged
+import po.misc.types.token.TypeToken
 
 enum class ContextEvents{
     PickComplete,
@@ -97,7 +98,7 @@ sealed class ExecutionContext<DTO, D, E>(
     protected val daoService: DAOService<DTO, D, E> get() = dtoClass.dtoConfiguration.daoService
     protected val dtoFactory: DTOFactory<DTO, D, E> by lazy { DTOFactory(dtoClass.dtoConfiguration) }
 
-    protected val  dataType: TypeData<D> get() = dtoClass.commonDTOType.dataType
+    protected val  dataType: TypeToken<D> get() = dtoClass.commonDTOType.dataType
 
     internal val insertHasNon0IdMsg: String = "Insert statement dataModels must not contain data with id other than 0"
     internal val wrongListSizeMsg: String = "Resulting list count must be exactly 1"
@@ -297,7 +298,7 @@ class RootExecutionContext<DTO, D, E>(
                     existent.output(Colour.Magenta)
                     resultingList.add(existent)
                 }else{
-                    "Initiating restore process for entity type: {${daoService.entityType.typeName}}  id: ${entity.id.value}".output(Colour.Magenta)
+                    "Initiating restore process for entity type: {${daoService.entityType}}  id: ${entity.id.value}".output(Colour.Magenta)
                    val commonDTO = dtoClass.newDTO()
                     withDTOHub(commonDTO){
                         resolveAttachedForeign(this, entity)

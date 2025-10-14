@@ -24,7 +24,8 @@ import po.misc.functions.registries.TaggedRegistry
 import po.misc.functions.registries.builders.taggedRegistryOf
 import po.misc.interfaces.ValueBased
 import po.misc.serialization.SerializerInfo
-import po.misc.types.TypeData
+import po.misc.types.token.TypeToken
+import po.misc.types.type_data.TypeData
 import kotlin.reflect.KType
 
 sealed class DTOFactoryBase<DTO, D, E>(
@@ -41,8 +42,8 @@ sealed class DTOFactoryBase<DTO, D, E>(
     protected val commonDTOType: CommonDTOType<DTO, D, E> get() = dtoConfiguration.commonDTOType
     abstract override val identity: CTXIdentity<out CTX>
 
-    val dtoType: TypeData<DTO> get() = commonDTOType.dtoType
-    val dataType: TypeData<D> get() = commonDTOType.dataType
+    val dtoType: TypeToken<DTO> get() = commonDTOType.dtoType
+    val dataType: TypeToken<D> get() = commonDTOType.dataType
 
     val notifier =
         callbackManager<Events>(

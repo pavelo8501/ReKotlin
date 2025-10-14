@@ -1,13 +1,13 @@
 package po.misc.properties.delegates
 
-import po.misc.exceptions.ManagedCallSitePayload
+import po.misc.exceptions.ThrowableCallSitePayload
 import po.misc.exceptions.ManagedException
 import po.misc.functions.hooks.DataHooks
 import po.misc.functions.hooks.DataNotifier
 import po.misc.context.CTX
 import po.misc.context.asIdentity
 import po.misc.functions.models.Updated
-import po.misc.types.TypeData
+import po.misc.types.type_data.TypeData
 import po.misc.types.getOrManaged
 import po.misc.types.info.TypeInfo
 import kotlin.properties.ReadWriteProperty
@@ -19,7 +19,7 @@ import kotlin.reflect.KProperty
  *
  * This delegate is intended for scenarios where a value must be externally provided
  * before it is accessed. If the value is accessed before being set, a failure is reported
- * using the supplied [ManagedCallSitePayload].
+ * using the supplied [ThrowableCallSitePayload].
  *
  * Useful in dependency wiring, reactive graphs, and systems with controlled lifecycle stages.
  *

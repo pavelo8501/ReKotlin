@@ -8,7 +8,7 @@ import po.misc.exceptions.throwManaged
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asSubIdentity
-import po.misc.types.TypeData
+import po.misc.types.type_data.TypeData
 import po.misc.types.castOrManaged
 import po.misc.types.safeCast
 import java.util.EnumMap
@@ -51,7 +51,7 @@ class CallbackManager<E: Enum<E>>(
 
     private fun <T: Any> containerLookup(
         eventMap:  MutableList<CallbackPayloadBase<E, *, *>>?,
-        typedKey: ComparableType<T>
+        typedKey: TypeData<T>
     ): CallbackPayloadBase<E, *, *>?{
         return eventMap?.firstOrNull { it.typeKey == typedKey }
     }
@@ -217,7 +217,7 @@ class CallbackManager<E: Enum<E>>(
             manager: CallbackManager<E>,
             eventType:E,
         ): CallbackPayload<E, T>{
-            val typeKey = StaticTypeKey.createTypeKey<T>()
+            val typeKey = TypeData.create<T>()
             val payload =  CallbackPayload(eventType, typeKey)
             manager.registerPayloadInternally(payload)
             return payload
@@ -237,9 +237,8 @@ class CallbackManager<E: Enum<E>>(
             manager: CallbackManager<E>,
             eventType:E,
         ): ResultCallbackPayload<E, T, R>{
-            val typeKey = StaticTypeKey.createTypeKey<T>()
-            val resultTypeKey = StaticTypeKey.createTypeKey<R>()
-
+            val typeKey = TypeData.create<T>()
+            val resultTypeKey = TypeData.create<R>()
             val payload = ResultCallbackPayload(eventType, typeKey, resultTypeKey)
             manager.registerResultPayload(payload)
             return payload

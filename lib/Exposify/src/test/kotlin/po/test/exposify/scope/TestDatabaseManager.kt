@@ -46,16 +46,11 @@ class TestDatabaseManager : DatabaseTest() {
     fun `Identity data model can be safely tracked`(){
 
         var foundDto: Any? = null
-
         var triggerCount: Int = 0
 
-        val testItem2 = TestItem(0, "ShouldNotReact")
-        val testItem = TestItem(0, "TestItem")
+        val testItem2 = TestItem(0, "ShouldNotReact", null)
+        val testItem = TestItem(0, "TestItem", "Value")
 
-        testItem.respondOnUpdate<TestItem, TestItemDTO>(connClass){
-            triggerCount ++
-            foundDto = it
-        }
         TestItemDTO.withServiceContext {
             update(testItem)
             update(testItem2)
@@ -64,7 +59,6 @@ class TestDatabaseManager : DatabaseTest() {
         assertEquals(testItem.name,  dto.name)
         assertEquals(1, triggerCount)
     }
-
 
     fun `Open connection blocking with retries`(){
         withConnection{

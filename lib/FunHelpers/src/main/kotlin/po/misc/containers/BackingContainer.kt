@@ -3,7 +3,6 @@ package po.misc.containers
 import po.misc.context.CTX
 import po.misc.data.logging.LogEmitter
 import po.misc.data.processors.SeverityLevel
-import po.misc.exceptions.ManagedCallSitePayload
 import po.misc.exceptions.ManagedException
 import po.misc.functions.common.ExceptionFallback
 import po.misc.functions.common.Fallback
@@ -12,15 +11,14 @@ import po.misc.functions.hooks.ChangeHook
 import po.misc.functions.hooks.models.ValueUpdate
 import po.misc.functions.models.NotificationConfig
 import po.misc.functions.registries.NotifierRegistry
-import po.misc.types.TypeData
-import po.misc.types.Typed
 import po.misc.types.castOrManaged
 import po.misc.types.getOrManaged
+import po.misc.types.token.TypeToken
 
 
 sealed class BackingContainerBase<T: Any>(
     private val owner: Any,
-    val typeData: TypeData<T>
+    val typeData: TypeToken<T>
 ): LogEmitter{
     protected open var backingValue: T? = null
     /**
@@ -136,7 +134,7 @@ sealed class BackingContainerBase<T: Any>(
  *
  * This class is typically used in systems where the backing value is not immediately available
  * but will be provided later via [provideSource]. Attempts to access [source] before the value
- * is set will trigger a failure via the [ManagedCallSitePayload].
+ * is set will trigger a failure via the [ThrowableCallSitePayload].
  *
  * @param T the type of the backing value.
  * @property exPayload a payload used to report failures if the source is accessed prematurely.
@@ -145,7 +143,7 @@ sealed class BackingContainerBase<T: Any>(
  */
 open class BackingContainer<T: Any>(
     owner: Any,
-    typeData: TypeData<T>,
+    typeData: TypeToken<T>,
 ): BackingContainerBase<T>(owner, typeData) {
 
     fun onValueSet(callback:(Change<T?, T>)-> Unit){
@@ -159,7 +157,7 @@ open class BackingContainer<T: Any>(
 
 
         inline fun <reified T : Any>  create(owner: Any,  initialValue: T? = null): BackingContainer<T> {
-            val container = BackingContainer(owner, TypeData.create<T>())
+            val container = BackingContainer(owner, TypeToken.create<T>())
             if (initialValue != null) {
                 container.provideValue(initialValue)
             }
@@ -170,11 +168,11 @@ open class BackingContainer<T: Any>(
 
 
 inline fun <reified T: Any> Any.backingContainerOf():BackingContainer<T>{
-   return BackingContainer(this, TypeData.create<T>())
+   return BackingContainer(this, TypeToken.create<T>())
 }
 
 fun <T: Any> Any.backingContainerOf(
-    typeData: TypeData<T>
+    typeData: TypeToken<T>
 ):BackingContainer<T>{
     return BackingContainer(this, typeData)
 }
@@ -182,7 +180,7 @@ fun <T: Any> Any.backingContainerOf(
 
 class LazyContainer<T: Any>(
     private val owner: Any,
-    typeData: TypeData<T>
+    typeData: TypeToken<T>
 ):BackingContainerBase<T>(owner, typeData) {
 
     var lockedForEdit: Boolean = false
@@ -224,8 +222,7 @@ inline fun <reified T: Any> Any.lazyContainerOf(
 
    val config = NotificationConfig()
     config.configBuilder()
-    val container = LazyContainer(this, TypeData.create<T>())
-
+    val container = LazyContainer(this, TypeToken.create<T>())
     return container
 }
 
@@ -233,7 +230,7 @@ inline fun <reified T: Any> Any.lazyContainerOf(
 inline fun <reified T: Any> Any.lazyContainerOf(
     initialValue:T? = null
 ):LazyContainer<T>{
-    val container = LazyContainer(this, TypeData.create<T>())
+    val container = LazyContainer(this, TypeToken.create<T>())
     initialValue?.let {
         container.provideValue(it)
     }
@@ -241,7 +238,7 @@ inline fun <reified T: Any> Any.lazyContainerOf(
 }
 
 fun <T: Any> Any.lazyContainerOf(
-    typeData: TypeData<T>,
+    typeData: TypeToken<T>,
     initialValue:T? = null
 ):LazyContainer<T>{
     val container = LazyContainer(this, typeData)

@@ -6,7 +6,7 @@ import po.misc.data.printable.companion.Template
 import po.misc.data.printable.companion.nextLine
 import po.misc.debugging.DebugTopic
 import po.misc.debugging.toConsoleLink
-import po.misc.exceptions.models.StackFrameMeta
+import po.misc.exceptions.stack_trace.StackFrameMeta
 import po.misc.functions.dsl.helpers.nextBlock
 
 

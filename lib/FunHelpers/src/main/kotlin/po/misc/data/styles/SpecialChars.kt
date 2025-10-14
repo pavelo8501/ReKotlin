@@ -1,10 +1,28 @@
 package po.misc.data.styles
 
-enum class SpecialChars(val char: String) {
-    Empty(""),
-    NewLine("\n");
+import po.misc.data.HasValue
 
-    override fun toString(): String{
-        return char
-    }
+//enum class SpecialChars(override val value: String): HasValue{
+//    Empty(""),
+//    NewLine("\n");
+//
+//    override fun toString(): String{
+//        return value
+//    }
+//
+//    fun getChar(): String{
+//        return value
+//    }
+//
+//    operator fun get(char: SpecialChars): String{
+//        return char.value
+//    }
+//}
+
+
+object SpecialChars{
+    const val empty: String = ""
+    const val newLine: String = "\n"
 }
+
+

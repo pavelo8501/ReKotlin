@@ -3,7 +3,7 @@ package po.misc.data.json.models
 
 import po.misc.data.helpers.withIndent
 import po.misc.functions.dsl.DSLBlockMarker
-import po.misc.types.TypeData
+import po.misc.types.type_data.TypeData
 import kotlin.reflect.KProperty1
 
 internal inline fun <T: Any>  JsonObject<*, T>.doWithNested(

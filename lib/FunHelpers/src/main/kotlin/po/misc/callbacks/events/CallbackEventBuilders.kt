@@ -1,6 +1,6 @@
 package po.misc.callbacks.events
 
-import po.misc.types.TypeData
+import po.misc.types.token.TypeToken
 
 
 /**
@@ -17,7 +17,7 @@ import po.misc.types.TypeData
  * ```
  */
 fun <T : Any> createEvent(
-    itParamType: TypeData<T>,
+    itParamType: TypeToken<T>,
     builder: (EventBuilder<T, Unit>.() -> Unit)? = null
 ): CallbackEvent<T, Unit> {
     val event = CallbackEvent<T, Unit>(itParamType)
@@ -30,7 +30,7 @@ fun <T : Any> createEvent(
  */
 inline fun <reified T : Any> eventOf(
     noinline builder: (EventBuilder<T, Unit>.() -> Unit)? = null
-): CallbackEvent<T, Unit> = createEvent(TypeData.create<T>(), builder)
+): CallbackEvent<T, Unit> = createEvent(TypeToken.create<T>(), builder)
 
 
 
@@ -50,7 +50,7 @@ inline fun <reified T : Any> eventOf(
  * ```
  */
 fun <H: EventHost, T: Any> H.createEvent(
-    itParamType: TypeData<T>,
+    itParamType: TypeToken<T>,
     builder: (HostedEventBuilder<H, T, Unit>.() -> Unit)? = null
 ): ParametrizedEvent<H, T, Unit> {
     val event = ParametrizedEvent<H, T, Unit>(this, itParamType)
@@ -62,6 +62,37 @@ fun <H: EventHost, T: Any> H.createEvent(
  * Inline shortcut for [createEvent] using reified payload type.
  */
 inline fun <H: EventHost, reified T: Any> H.eventOf(
-
     noinline builder: (HostedEventBuilder<H, T, Unit>.() -> Unit)? = null
-): ParametrizedEvent<H, T, Unit> = createEvent(TypeData.create<T>(), builder)
+): ParametrizedEvent<H, T, Unit> = createEvent(TypeToken.create<T>(), builder)
+
+
+fun <H: EventHost, T: Any, R: Any> H.buildHostedEventOf(
+    parameterType: TypeToken<T>,
+    resultType: TypeToken<R>,
+    builder: HostedEvent<H, T, R>.() -> Unit
+): HostedEvent<H, T, R> {
+    val event = HostedEvent(this, parameterType, resultType)
+    event.builder()
+    return event
+}
+
+inline fun <H: EventHost, reified T: Any, reified R: Any> H.buildHostedEventOf(
+    noinline builder: HostedEvent<H, T, R>.() -> Unit
+): HostedEvent<H, T, R> = buildHostedEventOf(TypeToken.create<T>(), TypeToken.create<R>(), builder)
+
+
+fun <H: EventHost, T: Any, R: Any> H.createHostedEventOf(
+    parameterType: TypeToken<T>,
+    resultType: TypeToken<R>
+): HostedEvent<H, T, R> {
+    val event = HostedEvent(this, parameterType, resultType)
+    return event
+}
+
+inline fun <H: EventHost, reified T: Any, reified R: Any> H.createHostedEventOf(): HostedEvent<H, T, R> =
+    createHostedEventOf( TypeToken.create<T>(), TypeToken.create<R>())
+
+
+
+
+

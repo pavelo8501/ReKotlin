@@ -2,13 +2,9 @@ package po.misc.functions.containers
 
 import po.misc.functions.models.ContainerMode
 import po.misc.functions.models.LambdaState
-import po.misc.functions.models.SafePayloadContainers
-import po.misc.functions.payloads.DoublePayload
-import po.misc.functions.payloads.LambdaPayload
-import po.misc.functions.payloads.SafePayload
-import po.misc.types.TypeData
+import po.misc.types.type_data.TypeData
 import po.misc.types.getOrManaged
-import kotlin.reflect.KClass
+import po.misc.types.token.TypeToken
 
 
 sealed interface DuplexUnit<V : Any, R> : LambdaUnit<V, R> {
@@ -187,7 +183,7 @@ open class Notifier<V : Any>(
 fun <V : Any> lambdaAsNotifier(function: (V) -> Unit): Notifier<V> = Notifier(function)
 
 class DSLNotifier<T : Any, P : Any>(
-    val typeData: TypeData<T>,
+    val typeData: TypeToken<T>,
     val parameter: P,
     override val function: T.(P) -> Unit,
 ) : LambdaUnitBase<T, Unit>(),

@@ -10,14 +10,13 @@ import po.misc.functions.registries.models.TaggedSubscriber
 import po.misc.functions.registries.builders.require
 import po.misc.functions.registries.builders.subscribe
 import po.misc.functions.registries.builders.taggedRegistryOf
-import po.misc.types.TypeData
+import po.misc.types.token.TypeToken
+import po.misc.types.type_data.TypeData
 import po.test.misc.setup.ControlClass
-import po.test.misc.setup.captureOutput
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 class TestCallbackRegistryBase: CTX {
 
@@ -31,22 +30,28 @@ class TestCallbackRegistryBase: CTX {
 
     @Test
     fun `Only one subscription is created per class and triggers only for class subscribing`() {
-
-        val inputString = "TestInput"
-        val onCreate = taggedRegistryOf<TestEvents, String>(TestEvents.OnCreate)
-
         var result: String? = null
+        val inputString = "TestInput"
+        val onCreate = taggedRegistryOf<TestEvents, String>(TestEvents.OnCreate){
+
+
+        }
         for (i in 1..10) {
             subscribe(onCreate) { value ->
                 result = value
             }
         }
 
+
+
         onCreate.trigger(ControlClass::class, inputString)
         assertEquals(1, onCreate.subscriptionsCount)
         assertNull(result)
 
         onCreate.trigger(TestCallbackRegistryBase::class, inputString)
+
+
+
         val resultString = assertNotNull(result)
         assertEquals(inputString, resultString)
     }
@@ -95,7 +100,7 @@ class TestCallbackRegistryBase: CTX {
     @Test
     fun `Subscription pack builder`() {
 
-        val hooks = buildSubscriptions<String>(TypeData.create<TestCallbackRegistryBase>()) {
+        val hooks = buildSubscriptions<String>(TypeToken.create<TestCallbackRegistryBase>()) {
             addHook(TestEvents.OnCreate, oneShot = false){}
             addHook(TestEvents.OnSomething, oneShot = true){}
         }
@@ -113,7 +118,7 @@ class TestCallbackRegistryBase: CTX {
 
     @Test
     fun `Subscription pack binding to EmitterAwareRegistry`() {
-        val hooks = buildSubscriptions<String>(TypeData.create<TestCallbackRegistryBase>()) {
+        val hooks = buildSubscriptions<String>(TypeToken.create<TestCallbackRegistryBase>()) {
             addHook(TestEvents.OnCreate, oneShot = false){}
             addHook(TestEvents.OnSomething, oneShot = true){}
         }

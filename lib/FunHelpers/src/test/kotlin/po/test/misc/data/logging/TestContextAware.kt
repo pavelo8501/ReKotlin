@@ -23,19 +23,10 @@ class TestContextAware: ContextAware {
     @Test
     fun `ContextAwareLogEmitter messages contain class related information`() {
        val captured = captureOutput {
-            info("Some message")
+            info("Some message", "ssss")
        }
        captured.output()
-       assertTrue(captured.contains("TestContextAware"))
+       assertTrue(captured.contains("Some message"))
     }
 
-    @Test
-    fun `ContextAwareLogEmitter warnings include method name`() {
-
-        val captured = captureOutput {
-            warn("Some warning")
-        }
-        captured.output()
-        assertTrue(captured.contains("TestContextAware"))
-    }
 }

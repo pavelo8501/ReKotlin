@@ -15,9 +15,7 @@ fun tables(): List<LongIdTable>{
     return  listOf(Pages, Sections)
 }
 
-object TestsItems : LongIdTable("tests_items", "id") {
-    val name = varchar("name",128)
-}
+
 
 object Users : LongIdTable("api_users", "id") {
     val name = varchar("name",128)

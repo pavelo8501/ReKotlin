@@ -1,7 +1,6 @@
 package po.misc.data.printable
 
 import po.misc.data.PrettyPrint
-import po.misc.data.console.DateHelper
 import po.misc.data.helpers.output
 import po.misc.data.json.JObject
 import po.misc.data.json.JsonHolder
@@ -11,13 +10,14 @@ import po.misc.data.printable.grouping.ArbitraryDataMap
 import po.misc.data.printable.grouping.ArbitraryKey
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
+import po.misc.time.TimeHelper
 import po.misc.types.helpers.simpleOrNan
 import po.misc.types.safeCast
 import kotlin.reflect.KClass
 
 abstract class PrintableBase<T>(
    val companion: PrintableCompanion<T>
-): ComposableData, Printable, DateHelper, PrettyPrint where T:PrintableBase<T> {
+): ComposableData, Printable, TimeHelper, PrettyPrint where T:PrintableBase<T> {
 
     private val templateNotFound : (T) -> String = { key->
         "[template for data: $key not defined] ${companion.printableClass.simpleOrNan()}".colorize(Colour.Red)

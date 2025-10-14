@@ -8,7 +8,6 @@ import org.postgresql.util.PGobject
 import po.exposify.DatabaseManager
 import po.misc.serialization.SerializerInfo
 import po.misc.serialization.toSerializerInfo
-import po.misc.types.TypeData
 import kotlin.reflect.KType
 import kotlin.reflect.typeOf
 

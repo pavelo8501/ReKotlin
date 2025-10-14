@@ -2,10 +2,11 @@ package po.misc.debugging
 
 import po.misc.collections.takeFromLastMatching
 import po.misc.context.CTX
+import po.misc.context.TraceableContext
 import po.misc.data.helpers.output
 import po.misc.data.helpers.stripAfter
 import po.misc.exceptions.isLikelyUserCode
-import po.misc.exceptions.models.StackFrameMeta
+import po.misc.exceptions.stack_trace.StackFrameMeta
 import po.misc.types.helpers.simpleOrNan
 
 
@@ -23,9 +24,9 @@ private fun listFramesFrames(shift: Int, methodName: String? = null): List<Stack
     return  filtered.map { it.toFrameMeta() }
 }
 
-fun CTX.createDebugFrame(methodName: String? = null):DebugFrame{
+fun CTX.createDebugFrame(methodName: String? = null):DebugFrameData{
     val frameMetaList = listFramesFrames(methodName?:"createDebugFrame")
-    return DebugFrame(frameMetaList, this)
+    return DebugFrameData(this)
 }
 
 
@@ -54,7 +55,6 @@ fun StackFrameMeta.toConsoleLink(): String {
 }
 
 fun <T: Any> T?.checkNullability(printout:((T?)-> String)? = null){
-
     var text = ""
     if(this != null){
         text = "Tested object of class ${this::class.simpleOrNan()} is not null"
@@ -66,5 +66,23 @@ fun <T: Any> T?.checkNullability(printout:((T?)-> String)? = null){
     text.output()
 
     listFramesFrames(1, "checkNullability").first().output()
+}
 
+
+
+
+fun TraceableContext.identityData(): DebugFrameData{
+    val kClass = this::class
+    val simpleName =kClass.simpleOrNan()
+    var hash: Int = 0
+   return when(this){
+        is CTX -> {
+            DebugFrameData(this)
+        }
+        is TraceableContext->{
+            hash = this.hashCode()
+            DebugFrameData(simpleName, numericId = hash.toLong())
+        }
+
+    }
 }

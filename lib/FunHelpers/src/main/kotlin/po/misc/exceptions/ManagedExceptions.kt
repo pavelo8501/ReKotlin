@@ -3,8 +3,10 @@ package po.misc.exceptions
 import po.misc.data.printable.knowntypes.PropertyData
 import po.misc.context.CTX
 import po.misc.context.TraceableContext
+import po.misc.coroutines.CoroutineInfo
 import po.misc.exceptions.models.ExceptionData
-import po.misc.exceptions.models.ExceptionTrace
+import po.misc.exceptions.stack_trace.ExceptionTrace
+import po.misc.exceptions.trackable.TrackableException
 import kotlin.reflect.KClass
 
 enum class HandlerType(val value: Int) {
@@ -44,7 +46,7 @@ open class ManagedException(
     override val message: String,
     open val code: Enum<*>? = null,
     override val  cause : Throwable? = null
-) : Throwable(message, cause), TrackableException{
+) : Throwable(message, cause), TrackableException {
 
     enum class ExceptionEvent{
         Thrown,
@@ -54,14 +56,15 @@ open class ManagedException(
     }
 
     override val contextClass: KClass<*> = context::class
+    override var coroutineInfo: CoroutineInfo? = null
 
     override val self: Throwable
         get() = this
 
 
-    private var payloadBacking: ManagedCallSitePayload? = null
+    private var payloadBacking: ThrowableCallSitePayload? = null
     val exceptionData: MutableList<ExceptionData> =  mutableListOf()
-    internal val payload:  ManagedCallSitePayload? get() = payloadBacking
+    internal val payload:  ThrowableCallSitePayload? get() = payloadBacking
     val methodName: String? get() = payloadBacking?.methodName
 
     open var handler: HandlerType = HandlerType.CancelAll
@@ -70,7 +73,7 @@ open class ManagedException(
     override val exceptionTrace: ExceptionTrace = createMeta(context)
 
 
-    constructor(managedPayload: ManagedCallSitePayload):
+    constructor(managedPayload: ThrowableCallSitePayload):
             this(
                 managedPayload.context,
                 managedPayload.message,
@@ -92,7 +95,7 @@ open class ManagedException(
         }
     }
 
-    protected fun initFromPayload(payload: ManagedCallSitePayload){
+    protected fun initFromPayload(payload: ThrowableCallSitePayload){
         payloadBacking = payload
 
         val stackFrameMeta = extractCallSiteMeta(payload.methodName, framesCount = 3)

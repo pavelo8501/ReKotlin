@@ -5,9 +5,8 @@ import po.misc.context.TraceableContext
 import po.misc.data.helpers.replaceIfNull
 import po.misc.data.helpers.stripAfter
 import po.misc.data.styles.Colour
-import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
-import po.misc.exceptions.models.StackFrameMeta
+import po.misc.exceptions.stack_trace.StackFrameMeta
 
 internal fun  Throwable.currentCallerTrace(methodName: String): List<StackTraceElement> {
     return stackTrace.takeFromMatch(2){ it.methodName == methodName }
@@ -27,7 +26,7 @@ fun <S: Enum<S>> throwException(
     message: String,
     handler : HandlerType,
     callingContext: Any,
-    exceptionProvider: (ManagedCallSitePayload)-> Throwable
+    exceptionProvider: (ThrowableCallSitePayload)-> Throwable
 ): Nothing{
     val methodName = "throwException"
     val payload =  ManagedPayload(message, methodName, callingContext)
@@ -39,7 +38,7 @@ fun <S: Enum<S>> throwException(
     callingContext: Any,
     code: S? = null,
     handler : HandlerType? = null,
-    exceptionProvider: (ManagedCallSitePayload)-> Throwable
+    exceptionProvider: (ThrowableCallSitePayload)-> Throwable
 ): Nothing{
     val methodName = "throwException"
     val payload =  ManagedPayload(message, methodName, callingContext)
@@ -47,16 +46,6 @@ fun <S: Enum<S>> throwException(
     throw exceptionProvider.invoke(completePayload)
 }
 
-
-inline fun <S: Enum<S>> TraceableContext.throwException(
-    message: String,
-    callingContext: Any,
-    exceptionProvider: (ManagedCallSitePayload)-> Throwable
-): Nothing{
-    val methodName = "throwManageable"
-    val payload = ManagedPayload(message, methodName, callingContext)
-    throw exceptionProvider.invoke(payload)
-}
 
 fun Throwable.toManaged(context: TraceableContext): ManagedException{
 
@@ -72,12 +61,13 @@ fun Throwable.toInfoString(): String{
 }
 
 fun  Throwable.throwableToText(): String{
-    val throwable = this
+
     return buildString {
-        appendLine("Exception<${throwable.javaClass.simpleName}>".colorize(Colour.RedBright))
-        appendLine("Message:".colorize(Colour.Cyan) + message.replaceIfNull("-").colorize(Colour.Magenta))
+        appendLine(this@throwableToText.javaClass.simpleName)
+        appendLine("Message: " +  message.replaceIfNull("-") )
     }
 }
+
 
 internal fun String.isLikelyUserCode(): Boolean {
     return this.isNotBlank() &&
@@ -87,8 +77,6 @@ internal fun String.isLikelyUserCode(): Boolean {
             !startsWith("jdk") &&
             !startsWith("org.jetbrains")
 }
-
-
 
 fun Throwable.extractCallSiteMeta(
     methodName: String,

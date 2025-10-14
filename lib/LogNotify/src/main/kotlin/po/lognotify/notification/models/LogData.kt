@@ -16,7 +16,7 @@ import po.misc.data.processors.SeverityLevel
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
-import po.misc.exceptions.models.StackFrameMeta
+import po.misc.exceptions.stack_trace.StackFrameMeta
 import po.misc.exceptions.toStackTraceFormat
 import po.misc.functions.dsl.helpers.nextBlock
 

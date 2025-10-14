@@ -1,8 +1,7 @@
 package po.misc.types.containers
 
-import po.misc.types.TypeData
+import po.misc.types.type_data.TypeData
 import po.misc.types.castListOrManaged
-import po.misc.types.castListOrThrow
 
 
 sealed interface SingleOrList<T: Any>{
@@ -35,6 +34,7 @@ open class Single<T: Any>(val value: T): SingleOrList<T>{
 }
 
 open class Multiple<T: Any>(val values: List<T>): SingleOrList<T>{
+
     var status: SingleOrList.CastStatus = SingleOrList.CastStatus.NotCasted
         private set
 

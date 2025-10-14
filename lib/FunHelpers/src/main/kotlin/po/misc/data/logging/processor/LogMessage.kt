@@ -23,7 +23,7 @@ class LogMessage(
     var parentContext: LogEmitter? = null
 
     override val self: LogMessage = this
-    override val time: String = nowTime
+    override val time: String = dateFormated(nowLocalDateTime())
 
     init {
         setDefaultTemplate(Message)
@@ -37,6 +37,15 @@ class LogMessage(
             }
             nextLine {
                 message
+            }
+        }
+        val Warning: Template<LogMessage> = createTemplate {
+            nextLine {
+                val methodName = methodName.toStringIfNotNull("") { "Exec : $it" }
+                "[$className # $classID $methodName @ $time] -> ".colorize(Colour.Blue) + subject.colorize(Colour.Yellow)
+            }
+            nextLine {
+                message.colorize(Colour.Yellow)
             }
         }
     }

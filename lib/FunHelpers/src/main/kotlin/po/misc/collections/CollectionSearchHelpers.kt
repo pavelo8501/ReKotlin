@@ -33,9 +33,8 @@ fun <T : Any> Array<T>.selectUntil(
 
 
 fun <T> Array<out T>.takeFromMatch(count: Int, predicate: (T) -> Boolean): List<T> {
-
     return this.dropWhile { !predicate(it) }
-        .take(count)
+        .take(count+1)
 }
 
 fun <T> Array<T>.takeFromLastMatching(count: Int,  predicate: (T) -> Boolean): List<T> {
@@ -54,5 +53,5 @@ fun <T> Array<T>.takeFromLastMatching(count: Int, shifting: Int,  predicate: (T)
 
 fun <T> List<T>.takeFromMatch(count: Int, predicate: (T) -> Boolean): List<T> {
     return this.dropWhile { !predicate(it) }
-        .take(count)
+        .take(count+1)
 }

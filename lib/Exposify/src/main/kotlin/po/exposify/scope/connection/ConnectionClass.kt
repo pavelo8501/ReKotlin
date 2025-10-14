@@ -6,7 +6,6 @@ import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.name
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transactionManager
-import po.auth.sessions.models.AuthorizedSession
 import po.auth.sessions.models.SessionBase
 import po.exposify.DatabaseManager
 import po.exposify.dto.RootDTO
@@ -26,6 +25,7 @@ import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.coroutines.CoroutineInfo
 import po.misc.serialization.SerializerInfo
+import po.misc.types.type_data.TypeData
 import po.misc.types.safeCast
 
 
@@ -41,7 +41,8 @@ class ConnectionClass(
         get() = connection.transactionManager.currentOrNull()?.connection?.isClosed == false
 
     internal val serializerMap = mutableMapOf<String, SerializerInfo<*>>()
-    internal  var services: MutableMap<CommonDTOType<*, *, *>, ServiceClass<*, *, *>> = mutableMapOf()
+    internal val servicesBacking: MutableMap<CommonDTOType<*, *, *>, ServiceClass<*, *, *>> = mutableMapOf()
+    val services: Map<CommonDTOType<*, *, *>, ServiceClass<*, *, *>> get() = servicesBacking
 
     init {
         notify("CONNECTION_CLASS CREATED $completeName")
@@ -65,6 +66,14 @@ class ConnectionClass(
 
        return services[commonType]?.safeCast<ServiceClass<DTO, D, E>>()
     }
+
+    fun getServiceByDataModelType(
+        dataModelTypeData: TypeData<*>
+    ): ServiceContext<*, *, *> ? {
+       val  connection = servicesBacking.values.firstOrNull{ it.serviceContext.dataType == dataModelTypeData }
+       return connection?.serviceContext
+    }
+
 
     fun close(){
         notify("Closing connection: ${connection.name}")
@@ -92,21 +101,11 @@ class ConnectionClass(
             val serviceClass = ServiceClass(dtoClass, this)
             notify("ServiceClass ${serviceClass.contextName} created")
             serviceClass.initService(dtoClass, createOptions, block)
-            services[dtoClass.commonDTOType] = serviceClass
+            servicesBacking[dtoClass.commonDTOType] = serviceClass
         }
-
-//        if(existentService == null){
-//            val serviceClass = ServiceClass(dtoClass, this)
-//            notify("ServiceClass ${serviceClass.contextName} created", SeverityLevel.INFO)
-//            serviceClass.initService(dtoClass, createOptions, block)
-//            servicesBacking[dtoClass.commonDTOType] = serviceClass
-//        }else{
-//            notify("Using ServiceClass ${existentService.contextName}", SeverityLevel.INFO)
-//            block.invoke(existentService.serviceContext)
-//        }
     }.resultOrException()
 
     fun clearServices(){
-        services.clear()
+        servicesBacking.clear()
     }
 }

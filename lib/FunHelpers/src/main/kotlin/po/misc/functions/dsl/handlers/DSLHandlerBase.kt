@@ -1,7 +1,8 @@
 package po.misc.functions.dsl.handlers
 
 import po.misc.functions.dsl.DSLConstructor
-import po.misc.types.TypeData
+import po.misc.types.token.TypeToken
+import po.misc.types.type_data.TypeData
 
 
 abstract class DSLHandlerBase<T: Any, R: Any>(
@@ -26,9 +27,8 @@ class DSLHandler<T: Any, R: Any>(
 
 
 abstract class HandlerBase<T: Any>(
-  val typeData: TypeData<T>
+  val typeData: TypeToken<T>
 ) {
-
     protected val modifications: MutableList<(T)-> T> = mutableListOf()
 
     fun applyToResult(modification: (T)-> T) {
@@ -46,7 +46,7 @@ abstract class HandlerBase<T: Any>(
 }
 
 class DefaultDSLHandler<T: Any>(
-    typeData: TypeData<T>
+    typeData: TypeToken<T>
 ):HandlerBase<T>(typeData){
 
 }

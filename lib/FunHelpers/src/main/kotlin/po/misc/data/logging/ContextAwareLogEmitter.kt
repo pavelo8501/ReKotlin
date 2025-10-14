@@ -92,7 +92,6 @@ class ContextAwareLogEmitter(
 
 
    private  fun infoWithResolution (message: String,  producedBy: Any):ContextMessage{
-
      val name =  when(producedBy){
            is ContextAware ->{
                producedBy.identifiedByName

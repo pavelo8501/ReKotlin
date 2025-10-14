@@ -1,6 +1,6 @@
 package po.misc.reflection.objects
 
-import po.misc.types.TypeData
+import po.misc.types.type_data.TypeData
 import po.misc.types.safeCast
 import java.time.LocalDateTime
 

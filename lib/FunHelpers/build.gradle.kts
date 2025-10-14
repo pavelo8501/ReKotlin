@@ -9,11 +9,11 @@ val junitVersion: String by project
 val coroutinesVersion: String by project
 val logNotifyVersion: String by project
 val funHelpersVersion: String by project
-
 val typesafeVersion: String by project
 
 plugins {
     kotlin("jvm")
+    kotlin("plugin.serialization") version "1.9.22"
 }
 
 group = "po.misc"
@@ -25,7 +25,6 @@ repositories {
 }
 
 dependencies {
-
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinSerializationVersion")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinReflectVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
@@ -41,10 +40,7 @@ dependencies {
 
 kotlin {
     compilerOptions {
-      //  languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_3)
         freeCompilerArgs.add("-Xcontext-sensitive-resolution")
-      //  freeCompilerArgs.add("-Xdata-flow-based-exhaustiveness")
-      //  freeCompilerArgs.add("-Xallow-reified-type-in-catch")
     }
 }
 
@@ -57,6 +53,11 @@ publishing {
             version = funHelpersVersion
         }
     }
+}
+
+java {
+    withSourcesJar()
+    withJavadocJar()
 }
 
 tasks.withType<Test> {

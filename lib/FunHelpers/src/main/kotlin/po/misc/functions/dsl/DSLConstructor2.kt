@@ -3,12 +3,13 @@ package po.misc.functions.dsl
 import po.misc.functions.dsl.handlers.DefaultDSLHandler
 import po.misc.functions.dsl.handlers.HandlerBase
 import po.misc.functions.registries.DSLRegistry
-import po.misc.types.TypeData
+import po.misc.types.token.TypeToken
+import po.misc.types.type_data.TypeData
 
 
 @DSLBlockMarker
 open class ContainingDSLBlock2<T: Any, P: Any>(
-    val typeData: TypeData<T>,
+    val typeData: TypeToken<T>,
     private val block: T.(P)-> Unit,
 ) {
 

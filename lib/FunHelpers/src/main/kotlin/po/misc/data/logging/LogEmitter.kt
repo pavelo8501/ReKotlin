@@ -14,10 +14,6 @@ import po.misc.debugging.DebugTopic
 interface LogEmitter: TraceableContext {
 
 
-    fun info(message: String, subject: String? = null){
-        println(message)
-    }
-
     fun Any.notify(message: String, severity: SeverityLevel = SeverityLevel.INFO) {
         when(severity){
             SeverityLevel.INFO-> message.output(Colour.Green)

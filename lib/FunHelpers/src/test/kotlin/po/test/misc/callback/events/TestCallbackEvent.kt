@@ -10,7 +10,7 @@ import po.misc.callbacks.events.Validatable
 import po.misc.callbacks.events.eventOf
 import po.misc.data.helpers.output
 import po.misc.exceptions.ManagedException
-import po.misc.types.TypeData
+import po.misc.types.token.TypeToken
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
@@ -29,7 +29,7 @@ class TestCallbackEvent: EventHost {
 
     class StrValidator(
         validatorFn: (ValidatableString)-> Boolean
-    ): EventValidator<ValidatableString>(TypeData.create<ValidatableString>(), validatorFn)
+    ): EventValidator<ValidatableString>(TypeToken.create<ValidatableString>(), validatorFn)
 
     val testValue: String = "TestValue"
 
@@ -86,13 +86,13 @@ class TestCallbackEvent: EventHost {
         }
 
         val falseValidatable = ValidatableString("Nope")
-        var triggered = click.trigger(data, falseValidatable)
-        assertFalse { triggered }
+         click.trigger(data, falseValidatable)
+
         assertNull(triggerResult)
 
         val trueValidatable = ValidatableString("valid")
-        triggered = click.trigger(data, trueValidatable)
-        assertTrue { triggered }
+         click.trigger(data, trueValidatable)
+        assertNotNull(triggerResult) 
         assertIs<Data1>(triggerResult)
     }
 

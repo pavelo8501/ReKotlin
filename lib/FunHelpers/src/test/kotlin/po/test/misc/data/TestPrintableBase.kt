@@ -1,7 +1,6 @@
 package po.test.misc.data
 
 import org.junit.jupiter.api.Test
-import po.misc.data.console.DateHelper
 import po.misc.data.printable.PrintableBase
 import po.misc.data.styles.colorize
 import po.misc.data.processors.DataProcessor
@@ -14,10 +13,11 @@ import kotlin.test.assertTrue
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.printable.PrintableGroup
 import po.misc.data.printable.companion.nextLine
+import po.misc.time.TimeHelper
 import kotlin.test.assertNotEquals
 
 
-class TestPrintableBase: DateHelper {
+class TestPrintableBase: TimeHelper {
 
     enum class Events(override val value: Int) : ValueBased{
         Info(1),
@@ -57,7 +57,7 @@ class TestPrintableBase: DateHelper {
             }
 
             val Printable: PartsTemplate<Item> = PartsTemplate(
-                delimiter = SpecialChars.NewLine.char,
+                delimiter = SpecialChars.newLine,
                 { Colour.Red text "String1->  $personalName |"},
                 {"$description And Value=$intValue"}
             )

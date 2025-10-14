@@ -109,6 +109,12 @@ tasks.jar {
     }
 }
 
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
+
 tasks.named<Test>("test") {
     useJUnitPlatform()
 }

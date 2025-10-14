@@ -20,6 +20,8 @@ inline fun <reified T: Any> toPropertyMap(): Map<String, PropertyRecord<T>>
     = T::class.memberProperties.associate {it.name to PropertyRecord.create(it)}
 
 
+
+
 fun <T: Any> toPropertyMap(clazz: KClass<T>):Map<String, PropertyInfo<T, Any>> {
     val propertyInfoList = clazz.memberProperties.mapNotNull { it.safeCast<KProperty1<T, Any>>()?.toPropertyInfo(clazz)}
     return  propertyInfoList.associateBy{ it.propertyName }
@@ -67,7 +69,7 @@ inline fun <T: Any, reified P : Any>  T.findMutableOfType(kClass: KClass<P>):Lis
     return mutablePropertyLookup(kClass)
 }
 
-inline fun <reified T: Any, reified P : Any>  findMutableOfType(): List<KMutableProperty1<T, P>> = mutablePropertyLookup<T, P>()
+inline fun <reified T: Any, reified P : Any> findMutableOfType(): List<KMutableProperty1<T, P>> = mutablePropertyLookup<T, P>()
 
 
 inline fun <T: Any, reified P : Any>  T.findPropertiesOfType(kClass: KClass<P>): List<KProperty1<T, P>> {

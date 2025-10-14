@@ -1,17 +1,12 @@
 package po.exposify.scope.sequence.builder
 
 import po.exposify.dto.CommonDTO
-import po.exposify.dto.DTOBase
 import po.exposify.dto.DTOClass
 import po.exposify.dto.RootDTO
-import po.exposify.dto.components.bindings.helpers.withDTOContext
-import po.exposify.dto.components.bindings.helpers.withDTOContextCreating
 import po.exposify.dto.components.query.SimpleQuery
 import po.exposify.dto.components.query.WhereQuery
-import po.exposify.dto.components.result.ResultBase
 import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
-import po.exposify.dto.components.result.toResultList
 import po.exposify.dto.components.result.toResultSingle
 import po.exposify.dto.components.tracker.CrudOperation
 import po.exposify.dto.interfaces.DataModel
@@ -26,7 +21,7 @@ import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.functions.containers.DeferredContainer
 import po.misc.functions.containers.LambdaHolder
-import po.misc.types.TypeData
+import po.misc.types.type_data.TypeData
 
 
 enum class ChunkType {

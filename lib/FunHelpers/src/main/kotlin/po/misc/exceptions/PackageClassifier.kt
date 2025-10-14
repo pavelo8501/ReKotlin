@@ -4,10 +4,9 @@ import po.misc.collections.selectUntil
 import po.misc.collections.takeFromMatch
 import po.misc.context.CTX
 import po.misc.context.TraceableContext
-import po.misc.data.helpers.output
 import po.misc.exceptions.models.CTXResolutionFlag
-import po.misc.exceptions.models.ExceptionTrace
-import po.misc.exceptions.models.StackFrameMeta
+import po.misc.exceptions.stack_trace.ExceptionTrace
+import po.misc.exceptions.stack_trace.StackFrameMeta
 import kotlin.reflect.KClass
 
 
@@ -16,6 +15,17 @@ enum class PackageRole {
     User,
     Unknown
 }
+
+//internal fun String.isLikelyUserCode(): Boolean {
+//    return this.isNotBlank() &&
+//            !startsWith("kotlin") &&
+//            !startsWith("java") &&
+//            !startsWith("sun") &&
+//            !startsWith("jdk") &&
+//            !startsWith("org.jetbrains")
+//}
+
+
 
 fun classifyPackage(
     classPackage: String,
@@ -34,7 +44,6 @@ fun classifyPackage(
 }
 
 
-
 private fun buildExceptionTrace(
     throwable:  Throwable,
     kClass: KClass<*>,
@@ -42,6 +51,7 @@ private fun buildExceptionTrace(
     framesCount: Int = 3,
     flag: CTXResolutionFlag = CTXResolutionFlag.Resolvable
 ): ExceptionTrace {
+
     fun traceElementToMeta(ste: StackTraceElement): StackFrameMeta {
         val classPackage = ste.className.substringBeforeLast('.', missingDelimiterValue = "")
         val role = classifyPackage(classPackage)
@@ -88,9 +98,9 @@ private fun buildExceptionTrace(
         val result = reversedReduced.map { ste ->
             traceElementToMeta(ste)
         }
-        ExceptionTrace(kClass, result, result.first())
+        ExceptionTrace(throwable, result,  kClass)
     } else {
-        ExceptionTrace(kClass, emptyList(), traceElementToMeta(throwable.stackTrace.first()))
+        ExceptionTrace(throwable, emptyList(), kClass).setBestPick(traceElementToMeta(throwable.stackTrace.first()))
     }
     if (flag == CTXResolutionFlag.Resolvable) {
         return tryResolveEmitter(metaList, emitter)
@@ -134,10 +144,13 @@ fun TraceableContext.metaFrameTrace(
  * ```
  */
 fun Throwable.metaFrameTrace(
-    context: TraceableContext,
+    contextClass: KClass<*>,
     framesCount: Int = 3,
     flag: CTXResolutionFlag = CTXResolutionFlag.Resolvable
-): ExceptionTrace = buildExceptionTrace(this, context::class, context, framesCount, flag)
+): ExceptionTrace = buildExceptionTrace(this, contextClass, null, framesCount, flag)
+
+
+
 
 
 /**
@@ -165,3 +178,47 @@ fun Throwable.metaFrameTrace(
     kClass: KClass<*>,
     framesCount: Int = 3,
 ): ExceptionTrace  = buildExceptionTrace(this, kClass, null, framesCount, CTXResolutionFlag.NoResolution)
+
+
+
+/**
+ * Creates an [ExceptionTrace] from this [Throwable], scoped to the given [kClass].
+ *
+ * This is a convenience wrapper around [buildExceptionTrace] that extracts
+ * a structured trace of stack frames for use in [po.misc.exceptions.trackable.TrackableException] implementations.
+ *
+ * ## Parameters
+ * - [kClass] → The class used as an anchor to locate the relevant starting point
+ *   in the stack trace.
+ * - [framesCount] → Number of frames to capture starting from the match (default = 3).
+ *
+ * ## Behavior
+ * - Reads the stack trace from the receiver [Throwable].
+ * - Finds the first frame whose class name matches [kClass.qualifiedName].
+ * - From that point, extracts up to [framesCount] frames.
+ * - Converts each [StackTraceElement] into a [StackFrameMeta],
+ *   marking packages as `Helper` or `User`.
+ *
+ * ## Typical Usage
+ * Used when implementing [po.misc.exceptions.trackable.TrackableException.exceptionTrace] to provide
+ * a structured and consistent representation of the originating context.
+ *
+ * ### Example
+ * ```kotlin
+ * class ContextTracer(
+ *     val context: TraceableContext,
+ *     val flag: CTXResolutionFlag,
+ *     override val message: String? = null
+ * ) : Throwable("TraceableContext$message"), TrackableException {
+ *
+ *     override val self: ContextTracer = this
+ *     override val contextClass: KClass<*> = context::class
+ *     override val exceptionTrace: ExceptionTrace = createTrace(contextClass)
+ * }
+ * ```
+ */
+fun Throwable.createTrace(
+    kClass: KClass<*>,
+    framesCount: Int = 3,
+): ExceptionTrace  = buildExceptionTrace(this, kClass, null, framesCount, CTXResolutionFlag.NoResolution)
+

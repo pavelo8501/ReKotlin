@@ -16,7 +16,6 @@ import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.data.processors.SeverityLevel
 import po.misc.serialization.SerializerInfo
-import po.misc.types.TypeData
 import po.misc.types.toSimpleNormalizedKey
 import kotlin.reflect.KType
 

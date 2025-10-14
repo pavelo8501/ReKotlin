@@ -3,16 +3,19 @@ package po.misc.callbacks.events
 import po.misc.context.CTX
 import po.misc.data.helpers.output
 import po.misc.data.styles.Colour
-import po.misc.types.TypeData
-import po.misc.types.TypedObject
+import po.misc.types.Tokenized
+import po.misc.types.TypeProvider
+import po.misc.types.type_data.TypeData
 import po.misc.types.helpers.simpleOrNan
+import po.misc.types.type_data.TypeDataCommon
+import po.misc.types.token.TypeToken
 import java.util.concurrent.atomic.AtomicLong
 
 
 @PublishedApi
 internal class ListenerKey(
     val id: Long,
-    val type: TypeData<*>
+    val type: TypeToken<*>
 ){
 
     var listenerName: String = ""
@@ -52,10 +55,10 @@ class EventListeners<T: Any> {
 
     inline fun <reified L : Any> onEventTriggered(listener: L, noinline onTriggered: (T) -> Unit) {
 
-        onEventTriggered(listener, TypeData.create<L>(),  onTriggered)
+        onEventTriggered(listener, TypeToken.create<L>(),  onTriggered)
     }
 
-    fun onEventTriggered(listener: TypedObject, onTriggered: (T) -> Unit) {
+    fun onEventTriggered(listener: TypeProvider, onTriggered: (T) -> Unit) {
         when (listener) {
             is CTX -> {
                 val identity = listener.identity
@@ -74,7 +77,7 @@ class EventListeners<T: Any> {
         }
     }
 
-    fun onTriggeredSuspending(listener: TypedObject, onTriggered: suspend (T) -> Unit) {
+    fun onTriggeredSuspending(listener: TypeProvider, onTriggered: suspend (T) -> Unit) {
 
         when (listener) {
             is CTX -> {
@@ -93,7 +96,7 @@ class EventListeners<T: Any> {
         }
     }
 
-    fun <L : Any> onEventTriggered(listener: L, typeData: TypeData<L>, onTriggered: (T) -> Unit) {
+    fun <L : Any> onEventTriggered(listener: L, typeData: TypeToken<L>, onTriggered: (T) -> Unit) {
         val key = when (listener) {
             is CTX -> {
                 val identity = listener.identity

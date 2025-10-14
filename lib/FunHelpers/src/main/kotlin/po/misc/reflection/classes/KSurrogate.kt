@@ -9,7 +9,7 @@ import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.reflection.properties.PropertyGroup
 import po.misc.reflection.properties.SourcePropertyIO
-import po.misc.types.TypeData
+import po.misc.types.type_data.TypeData
 import po.misc.types.castOrManaged
 
 
@@ -96,15 +96,15 @@ class KSurrogate<T: CTX>(
 
     fun propertyInfo(): String {
         val properties = backingMap.values.map { it.toString() }
-        return properties.joinToString(separator = SpecialChars.NewLine.toString())
+        return properties.joinToString(separator = SpecialChars.newLine)
     }
 
     override fun toString(): String {
         val text = buildString {
             append(Colour.makeOfColour(Colour.Yellow, "class "))
-            append("${classInfo.simpleName} ${Colour.makeOfColour(Colour.Yellow, "(")} ${SpecialChars.NewLine}")
+            append("${classInfo.simpleName} ${Colour.makeOfColour(Colour.Yellow, "(")} ${SpecialChars.newLine}")
             append(propertyInfo())
-            append("${SpecialChars.NewLine}${Colour.makeOfColour(Colour.Yellow, ")")}")
+            append("${SpecialChars.newLine}${Colour.makeOfColour(Colour.Yellow, ")")}")
         }
         return text
     }

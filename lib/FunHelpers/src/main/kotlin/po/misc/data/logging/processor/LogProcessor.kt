@@ -10,6 +10,7 @@ import po.misc.data.processors.DataProcessorBase
 import po.misc.data.processors.SeverityLevel
 import po.misc.debugging.DebugTopic
 import po.misc.exceptions.ManagedException
+import po.misc.exceptions.metaFrameTrace
 import po.misc.exceptions.throwableToText
 import po.misc.types.helpers.simpleOrNan
 
@@ -44,6 +45,17 @@ class LogProcessor(
             is CTX -> context.identity.numericId
             else -> context.hashCode().toLong()
         }
+    }
+
+    private fun createLogMessage(anythingToLog: Any, severity:SeverityLevel,  subject: String?): LogMessage{
+        return LogMessage(
+            className = resolveClassName(host),
+            methodName = "N/A",
+            classID = resolveClassID(host),
+            severity = severity,
+            subject = subject ?: "N/A",
+            message = anythingToLog.toString()
+        )
     }
 
     private fun extractFromException(throwable: Throwable, debugTopic: DebugTopic?):LogMessage {
@@ -97,6 +109,7 @@ class LogProcessor(
             subject = subject ?: "N/A",
             message = message
         )
+        logMessage.setDefaultTemplate(LogMessage.Warning)
         addData(logMessage)
         logMessage.output()
     }
@@ -107,4 +120,40 @@ class LogProcessor(
         logMessage.output()
     }
 
+    fun debug(anythingToLog:Any, debugTopic: DebugTopic = DebugTopic.General){
+        val logMessage = createLogMessage(anythingToLog, SeverityLevel.DEBUG,  debugTopic.name)
+        addData(logMessage)
+        logMessage.output()
+    }
+
+
+    fun debug(
+        anythingToLog:Any,
+        subject: String,
+        withTrace: Boolean = false,
+        debugTopic: DebugTopic = DebugTopic.General
+    ){
+        val logMessage = createLogMessage(anythingToLog, SeverityLevel.DEBUG, "${debugTopic.name} $subject")
+        addData(logMessage)
+        logMessage.output()
+        if(withTrace){
+           val trace = host.metaFrameTrace(3)
+           trace.output()
+        }
+    }
+
+    fun warnThis(anythingToLog:Any, subject: String? = null){
+        val logMessage = LogMessage(
+            className = resolveClassName(host),
+            methodName = "N/A",
+            classID = resolveClassID(host),
+            severity = SeverityLevel.WARNING,
+            subject = subject ?: "N/A",
+            message = anythingToLog.toString()
+        )
+        logMessage.setDefaultTemplate(LogMessage.Warning)
+        addData(logMessage)
+        logMessage.output()
+    }
 }
+

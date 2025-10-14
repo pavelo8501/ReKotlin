@@ -39,13 +39,13 @@ class ContextMessage(
     companion object : PrintableCompanion<ContextMessage>({ ContextMessage::class }) {
         val Message: Template<ContextMessage> = createTemplate {
             nextBlock {
-                val header = "[$contextName  @ $currentDateTime] ->".colorize(Colour.Blue)
+                val header = "[$contextName  @ ${nowLocalDateTime()}] ->".colorize(Colour.Blue)
                 "$header $colorizedMessage"
             }
         }
         val Warning: Template<ContextMessage> = createTemplate {
             nextBlock {
-                val header ="${Emoji.WARNING}[$contextName @ $currentDateTime] ->".colorize(Colour.Blue)
+                val header ="${Emoji.WARNING}[$contextName @ ${nowLocalDateTime()}] ->".colorize(Colour.Blue)
                 "$header  $colorizedMessage"
             }
         }
@@ -53,7 +53,7 @@ class ContextMessage(
         val Debug: Template<ContextMessage> = createTemplate {
             nextLine {
                 val debugBadge = colorize(BGColour.Yellow, Colour.BlackBright){ "DEBUG" }
-                debugBadge + " [$contextName @ $currentDateTime]".colorize(Colour.Blue)
+                debugBadge + " [$contextName @ ${nowLocalDateTime()}]".colorize(Colour.Blue)
             }
             nextLine {
                "${Colour.makeOfColour(Colour.Cyan, "Method:")}  $methodName"

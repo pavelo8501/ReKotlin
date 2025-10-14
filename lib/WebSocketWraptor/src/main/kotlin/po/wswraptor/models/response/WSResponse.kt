@@ -2,9 +2,8 @@ package po.wswraptor.models.response
 
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
+
 import kotlinx.serialization.json.Json
-import po.wswraptor.components.serializationfactory.SerializationFactory
 import po.wswraptor.models.request.ApiRequestAction
 import po.wswraptor.models.request.WSMessage
 import po.wswraptor.models.request.WSMessageBase
@@ -46,16 +45,16 @@ data class WSResponse<P: Any>(
         return this
     }
 
-    fun <T: Any>getSerializer(payloadSerializer : KSerializer<T>) = Companion.getSerializer(payloadSerializer)
+  //  fun <T: Any>getSerializer(payloadSerializer : KSerializer<T>) = Companion.getSerializer(payloadSerializer)
 
-    companion object {
-        fun <T: Any>getSerializer(payloadSerializer : KSerializer<T>): KSerializer<WSResponse<T>>{
-            return WSResponse.serializer(payloadSerializer)
-        }
-        inline fun <reified T : WSResponse<Any>> createFactory(
-        ): SerializationFactory<T> {
-            return SerializationFactory(T::class)
-        }
-    }
+//    companion object {
+//        fun <T: Any>getSerializer(payloadSerializer : KSerializer<T>): KSerializer<WSResponse<T>>{
+//            return WSResponse.serializer(payloadSerializer)
+//        }
+//        inline fun <reified T : WSResponse<Any>> createFactory(
+//        ): SerializationFactory<T> {
+//            return SerializationFactory(T::class)
+//        }
+//    }
 
 }

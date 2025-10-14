@@ -1,7 +1,7 @@
 package po.misc.data
 
-interface PrettyPrint {
 
+interface PrettyPrint: TextBuilder {
     val formattedString: String
 
 }

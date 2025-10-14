@@ -9,19 +9,22 @@ import po.exposify.dto.DTOBase
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.misc.interfaces.Copyable
-import po.misc.types.TypeData
+import po.misc.types.Tokenized
 import po.misc.types.Typed
+import po.misc.types.type_data.TypeData
 import po.misc.types.containers.ThreeTypeRegistry
+import po.misc.types.token.TypeToken
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
-import kotlin.reflect.typeOf
 
 
 class EntityType<E: LongEntity>(
-    kClass: KClass<E>,
-    kType: KType,
-    val entityClass: ExposifyEntityClass<E>
-): TypeData<E>(kClass, kType){
+    val entityClass: ExposifyEntityClass<E>,
+    override val typeToken: TypeToken<E>,
+): Tokenized<E> {
+
+    val kClass: KClass<E> get() = typeToken.kClass
+    val kType: KType get() = typeToken.kType
 
 
     var  tableColumnMap: TableColumnMap =  TableColumnMap()
@@ -33,7 +36,7 @@ class EntityType<E: LongEntity>(
     }
 
     fun copy():EntityType<E>{
-        return EntityType(kClass, kType, entityClass).also {
+        return EntityType(entityClass, typeToken).also {
             it.tableColumnMap = tableColumnMap.copy()
         }
     }
@@ -42,19 +45,20 @@ class EntityType<E: LongEntity>(
         inline fun <reified E: LongEntity> create(
             entityClass: ExposifyEntityClass<E>
         ):EntityType<E>{
-           return EntityType(E::class, typeOf<E>(), entityClass)
+           return EntityType(entityClass, TypeToken.create())
         }
     }
 }
 
 class CommonDTOType<DTO: ModelDTO, D: DataModel,  E: LongEntity>(
-    val dtoType: TypeData<DTO>,
-    val dataType: TypeData<D>,
+    val dtoType: TypeToken<DTO>,
+    val dataType: TypeToken<D>,
+    val entityTypeData: TypeToken<E>,
     val entityType: EntityType<E>,
-    val commonType: TypeData<CommonDTO<DTO,  D, E>>,
-    private val dtoBaseType:TypeData<DTOBase<DTO, D, E>>,
+    val commonType: TypeToken<CommonDTO<DTO,  D, E>>,
+    private val dtoBaseType:TypeToken<DTOBase<DTO, D, E>>,
 
-): ThreeTypeRegistry<DTO, D, E>(dtoType, dataType, entityType), Copyable<CommonDTOType<DTO, D, E>>{
+): ThreeTypeRegistry<DTO, D, E>(dtoType, dataType,   entityTypeData), Copyable<CommonDTOType<DTO, D, E>>{
 
     val baseKClass: KClass<DTOBase<DTO, D, E>> get() = dtoBaseType.kClass
     val baseKType: KType get() = dtoBaseType.kType
@@ -66,10 +70,10 @@ class CommonDTOType<DTO: ModelDTO, D: DataModel,  E: LongEntity>(
 
     override fun copy(): CommonDTOType<DTO, D, E> {
         val newEntityType = entityType.copy()
-        return CommonDTOType(dtoType, dataType, newEntityType, commonType,  dtoBaseType)
+        return CommonDTOType(dtoType, dataType,entityTypeData,  newEntityType, commonType,  dtoBaseType)
     }
 
-    override fun toString(): String = "CommonDTOType<${dtoType.typeName}, ${dataType.typeName}, ${entityType.typeName}>"
+    override fun toString(): String = "CommonDTOType<${dtoType.typeName}, ${dataType.typeName}, ${entityType}>"
 
 
     companion object {
@@ -79,15 +83,16 @@ class CommonDTOType<DTO: ModelDTO, D: DataModel,  E: LongEntity>(
 
             val entityClass = getExposifyEntityCompanion<E>(this)
             val entityType = EntityType.create<E>(entityClass)
-            val dtoBaseType: TypeData<DTOBase<DTO, D, E>> = TypeData.create()
+            val dtoBaseType: TypeToken<DTOBase<DTO, D, E>> = TypeToken.create()
             println("DTOBaseType ${dtoBaseType.typeName}")
-            val commonType = TypeData.create<CommonDTO<DTO, D, E>>()
+            val commonType = TypeToken.create<CommonDTO<DTO, D, E>>()
             return CommonDTOType(
-                dtoType = TypeData.create<DTO>(),
-                dataType = TypeData.create<D>(),
+                dtoType = TypeToken.create<DTO>(),
+                dataType = TypeToken.create<D>(),
                 entityType = entityType,
                 commonType = commonType,
-                dtoBaseType = dtoBaseType
+                dtoBaseType = dtoBaseType,
+                entityTypeData = TypeToken.create<E>()
             )
         }
     }

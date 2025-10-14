@@ -15,7 +15,6 @@ import po.exposify.dto.components.result.ResultList
 import po.exposify.dto.components.result.ResultSingle
 import po.exposify.dto.interfaces.ModelDTO
 import po.lognotify.TasksManaged
-import po.lognotify.launchers.runTask
 import po.lognotify.launchers.runTaskBlocking
 import po.misc.context.CTXIdentity
 import po.misc.context.Identifiable
@@ -23,7 +22,8 @@ import po.misc.context.asSubIdentity
 import po.misc.data.helpers.output
 import po.misc.data.styles.Colour
 import po.misc.functions.containers.DeferredContainer
-import po.misc.types.TypeData
+import po.misc.types.token.TypeToken
+import po.misc.types.type_data.TypeData
 
 
 class ServiceContext<DTO, DATA, ENTITY>(
@@ -38,7 +38,7 @@ class ServiceContext<DTO, DATA, ENTITY>(
 
     private val trackingList = mutableMapOf<CTXIdentity<*>, (DTO)-> Unit>()
 
-    internal val dataType: TypeData<DATA> = dtoClass.commonDTOType.dataType
+    internal val dataType: TypeToken<DATA> = dtoClass.commonDTOType.dataType
 
     val debugger: ExposifyDebugger<ServiceContext<DTO, DATA, ENTITY>, ContextData> = exposifyDebugger(this, ContextData){
         ContextData(it.message)
@@ -75,7 +75,8 @@ class ServiceContext<DTO, DATA, ENTITY>(
 
     fun truncate(): Unit = runTaskBlocking("Truncate") {
         dtoClass.clearCachedDTOs()
-        val statement = "TRUNCATE TABLE ${dtoClass.entityClass.table} RESTART IDENTITY CASCADE"
+        val tableName = dtoClass.entityClass.table.tableName
+        val statement = "TRUNCATE TABLE $tableName RESTART IDENTITY CASCADE"
         newSuspendedTransaction { exec(statement) }
         notify("$statement Executed")
     }.resultOrException()

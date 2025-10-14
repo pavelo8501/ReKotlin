@@ -30,6 +30,7 @@ class SimpleSubscriber(
     }
 
     override fun matchesWildcard(other: RegistryKey): Boolean {
+
         var result = false
         if(other is SimpleSubscriber){
             if(kClassMatch(other.kClass) && (idMatch(other.subscriberID) || subscriberID == 0L || otherId0(other.subscriberID))){

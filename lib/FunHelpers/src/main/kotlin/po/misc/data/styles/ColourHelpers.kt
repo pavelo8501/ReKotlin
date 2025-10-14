@@ -1,9 +1,10 @@
 package po.misc.data.styles
 
+import po.misc.data.styles.Colour.RESET
+
 
 fun String.colorize(colour: Colour): String{
-    val result = Colour.makeOfColour(colour, this)
-    return result
+    return "${colour.code}$this${RESET.code}"
 }
 
 fun  <T: Any> T.colorize(colour: Colour, textBuilder: (T)-> Any): String{

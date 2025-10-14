@@ -2,16 +2,20 @@ package po.misc.time
 
 
 import java.time.Instant
+import kotlin.time.Duration
 
 
-class ExecutionTimeStamp(): TimeHelper {
+class ExecutionTimeStamp(
+
+): TimeHelper {
 
     var name: String = ""
         private set
+
     var id: String? = ""
         private set
 
-    constructor(name: String, id: String):this(){
+    constructor(name: String, id: String = name):this(){
         this.name = name
         this.id = id
     }
@@ -25,6 +29,18 @@ class ExecutionTimeStamp(): TimeHelper {
 
     var elapsed: Float = 0.0F
         private set
+
+    val completeIn: Duration get() {
+       return startTimeUtc?.let {start->
+            endTimeUtc?.let {
+                start.havePassed(it)
+            }?:run {
+                Duration.INFINITE
+            }
+        }?:run {
+            Duration.INFINITE
+        }
+    }
 
     fun stopTimer(): ExecutionTimeStamp {
         endTimeUtc = nowTimeUtc()

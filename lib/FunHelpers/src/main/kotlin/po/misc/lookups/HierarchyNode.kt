@@ -1,10 +1,11 @@
 package po.misc.lookups
 
-import po.misc.types.TypeData
+import po.misc.types.token.TypeToken
+import po.misc.types.type_data.TypeData
 
 
 data class HierarchyNode<T: Any> (
-    val type: TypeData<*>,
+    val type: TypeToken<*>,
     val items: List<T>,
 ){
     val children: MutableList<HierarchyNode<*>> = mutableListOf()

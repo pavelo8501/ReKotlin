@@ -2,7 +2,7 @@ package po.exposify.exceptions
 
 import po.exposify.exceptions.enums.ExceptionCode
 import po.misc.exceptions.HandlerType
-import po.misc.exceptions.ManagedCallSitePayload
+import po.misc.exceptions.ThrowableCallSitePayload
 
 import po.misc.exceptions.ManagedException
 
@@ -18,7 +18,7 @@ class InitException(
    // override val context: CTX? get() = callingContext
 
     constructor(
-        payload: ManagedCallSitePayload
+        payload: ThrowableCallSitePayload
     ): this(
         message = payload.message,
         code = payload.code as ExceptionCode,
@@ -42,7 +42,7 @@ class OperationsException(
 
 
     constructor(
-        payload: ManagedCallSitePayload
+        payload: ThrowableCallSitePayload
     ): this(
         message = payload.message,
         code = payload.code as ExceptionCode,

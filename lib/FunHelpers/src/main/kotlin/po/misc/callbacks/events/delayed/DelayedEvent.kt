@@ -7,7 +7,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import po.misc.callbacks.events.EventHost
-import po.misc.types.TypeData
+import po.misc.types.token.TypeToken
 
 
 enum class DelayedStatus{
@@ -18,7 +18,7 @@ enum class DelayedStatus{
 
 class DelayedEvent<H, T>(
     val host: H,
-    paramType: TypeData<T>,
+    paramType: TypeToken<T>,
     private val delayedEventScope: CoroutineScope  = CoroutineScope(Dispatchers.IO)
 ) where H: EventHost, T: Any {
 

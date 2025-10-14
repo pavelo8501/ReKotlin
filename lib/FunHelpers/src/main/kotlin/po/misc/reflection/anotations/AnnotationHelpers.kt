@@ -89,7 +89,6 @@ open class AnnotationContainer<T: Any,  A : Annotation>(
         propertyPairsBacking.add(pair)
         return this
     }
-
 }
 
 inline fun <reified T: Any, reified A : Annotation> annotatedProperties(receiver:T?): AnnotationContainer<T, A> {
@@ -119,6 +118,7 @@ inline fun <reified T: Any, reified A : Annotation> annotatedProperties(receiver
     }
     return container
 }
+
 
 inline fun <T: Any, reified A : Annotation>  KClass<out T>.annotatedProperties(receiver:T?): AnnotationContainer<T, A> {
     val container = AnnotationContainer<T, A>()

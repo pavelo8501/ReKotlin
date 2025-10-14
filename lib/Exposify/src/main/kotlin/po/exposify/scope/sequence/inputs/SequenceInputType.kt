@@ -1,7 +1,6 @@
 package po.exposify.scope.sequence.inputs
 
 import org.jetbrains.exposed.dao.LongEntity
-import po.auth.sessions.models.AuthorizedSession
 import po.auth.sessions.models.SessionBase
 import po.exposify.dto.DTOBase
 import po.exposify.dto.components.query.WhereQuery
@@ -10,11 +9,11 @@ import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.scope.sequence.builder.ListDescriptor
 import po.exposify.scope.sequence.builder.SequenceDescriptor
 import po.exposify.scope.sequence.builder.SingleDescriptor
-import po.exposify.scope.sequence.builder.SwitchDescriptorBase
 import po.misc.functions.containers.DeferredContainer
-import po.misc.types.TypeData
+import po.misc.types.type_data.TypeData
 import po.misc.types.castListOrManaged
 import po.misc.types.castOrManaged
+import po.misc.types.token.TypeToken
 
 
 enum class InputType{
@@ -70,7 +69,7 @@ class DataInput<DTO: ModelDTO, D: DataModel>(
     override val dtoClass: DTOBase<DTO, D, *> = descriptor.dtoClass
     override val inputType: InputType = InputType.Single
 
-    fun <D: DataModel> getValue(typeData: TypeData<D>):D{
+    fun <D: DataModel> getValue(typeData: TypeToken<D>):D{
         return value.castOrManaged(this, typeData.kClass)
     }
 }
@@ -87,7 +86,7 @@ class ListDataInput<DTO: ModelDTO, D: DataModel>(
     override val inputType: InputType = InputType.List
     override val dtoClass: DTOBase<DTO, D, *> = descriptor.dtoClass
 
-    fun <D: DataModel> getValue(typeData: TypeData<D>): List<D> {
+    fun <D: DataModel> getValue(typeData: TypeToken<D>): List<D> {
         return value.castListOrManaged(this, typeData.kClass)
     }
 }
@@ -107,7 +106,7 @@ class QueryInput<DTO: ModelDTO, D: DataModel>(
     override val dtoClass: DTOBase<DTO, D, *>  = descriptor.dtoClass
     override var inputType: InputType = InputType.Single
 
-    fun <E: LongEntity> getValue(typeData: TypeData<E>): DeferredContainer<WhereQuery<E>> {
+    fun <E: LongEntity> getValue(typeData: TypeToken<E>): DeferredContainer<WhereQuery<E>> {
         return  value.castOrManaged(this)
     }
 }

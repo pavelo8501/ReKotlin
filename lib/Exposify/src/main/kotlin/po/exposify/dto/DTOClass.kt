@@ -32,12 +32,10 @@ import po.misc.functions.registries.builders.notifierRegistryOf
 import po.misc.interfaces.ValueBased
 import po.misc.validators.models.CheckStatus
 
-sealed class DTOBase<DTO, D, E>(
-    internal val commonDTOType: CommonDTOType<DTO, D, E>,
+sealed class DTOBase<DTO: ModelDTO, D: DataModel, E: LongEntity>(
+    val commonDTOType: CommonDTOType<DTO, D, E>,
     val dtoConfiguration: DTOConfig<DTO, D, E> = DTOConfig(commonDTOType),
-) : DTOConfiguration<DTO, D, E> by dtoConfiguration,
-    ClassDTO,
-    TasksManaged where DTO : ModelDTO, D : DataModel, E : LongEntity {
+) : DTOConfiguration<DTO, D, E> by dtoConfiguration, ClassDTO, TasksManaged {
 
     enum class Events(
         override val value: Int,
@@ -70,7 +68,6 @@ sealed class DTOBase<DTO, D, E>(
             commonDTOType.initializeColumnMetadata()
         }
         val thisDTO = this
-
     }
 
     abstract fun setup()
@@ -123,7 +120,6 @@ sealed class DTOBase<DTO, D, E>(
         return this
     }
 
-
     fun findHierarchyRoot(): RootDTO<*, *, *> =
         when (this) {
             is RootDTO -> this
@@ -135,9 +131,10 @@ sealed class DTOBase<DTO, D, E>(
 
 abstract class RootDTO<DTO, DATA, ENTITY>(
     commonType: CommonDTOType<DTO, DATA, ENTITY>,
-) : DTOBase<DTO, DATA, ENTITY>(commonType),
-    ClassDTO
+) : DTOBase<DTO, DATA, ENTITY>(commonType), ClassDTO
+
     where DTO : ModelDTO, DTO : CTX, DATA : DataModel, ENTITY : LongEntity {
+
     override val identity: CTXIdentity<RootDTO<DTO, DATA, ENTITY>> = asIdentity()
 
     private var serviceContextParameter: ServiceContext<DTO, DATA, ENTITY>? = null
@@ -176,21 +173,19 @@ abstract class RootDTO<DTO, DATA, ENTITY>(
     }
 }
 
-abstract class DTOClass<DTO, DATA, ENTITY>(
-    commonType: CommonDTOType<DTO, DATA, ENTITY>,
+abstract class DTOClass<DTO, D, E>(
+    commonType: CommonDTOType<DTO, D, E>,
     val parentClass: DTOBase<*, *, *>,
-) : DTOBase<DTO, DATA, ENTITY>(commonType),
+) : DTOBase<DTO, D, E>(commonType),
     ClassDTO,
-    TasksManaged where DTO : ModelDTO, DATA : DataModel, ENTITY : LongEntity {
-    override val identity: CTXIdentity<DTOClass<DTO, DATA, ENTITY>> = asIdentity()
+    TasksManaged where DTO : ModelDTO, D : DataModel, E : LongEntity {
+    override val identity: CTXIdentity<DTOClass<DTO, D, E>> = asIdentity()
 
     override val serviceClass: ServiceClass<*, *, *> get() = findHierarchyRoot().serviceClass
 
     init {
         identity.setNamePattern { "${it.className}[${commonType.dtoType.simpleName}]" }
     }
-
-
 
     internal fun <F : ModelDTO, FD : DataModel, FE : LongEntity> runValidation(parentDTO: CommonDTO<F, FD, FE>) {
         updateStatus(DTOClassStatus.PreFlightCheck)

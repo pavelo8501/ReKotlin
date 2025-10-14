@@ -43,7 +43,7 @@ sealed class ChunkContainer<DTO, D>(
         }
     }
 
-    override fun toString(): String = identity.detailedDump
+    override fun toString(): String = identity.detailedDump.toString()
 }
 
 @SequenceDSL

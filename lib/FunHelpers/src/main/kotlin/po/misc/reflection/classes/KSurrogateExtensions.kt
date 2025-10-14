@@ -1,8 +1,7 @@
 package po.misc.reflection.classes
 
 import po.misc.context.CTX
-import po.misc.context.Identifiable
-import po.misc.types.TypeData
+import po.misc.types.type_data.TypeData
 
 import kotlin.reflect.KClass
 

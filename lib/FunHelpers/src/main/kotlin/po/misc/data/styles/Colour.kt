@@ -1,6 +1,7 @@
 package po.misc.data.styles
 
 enum class Colour(val code: String) {
+    Default(""),
     Red("\u001B[31m"),
     Yellow("\u001B[33m"),
     Green("\u001B[32m"),
@@ -26,6 +27,11 @@ enum class Colour(val code: String) {
             }
             return RESET
         }
+
+        fun fontColour(text: String, color: Colour): String{
+            return "${color.code}$text${RESET.code}"
+        }
+
         fun makeOfColour(color: Colour,  text: String): String {
             return if (text.contains("\u001B[")) {
                 text

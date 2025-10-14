@@ -162,7 +162,7 @@ class LoggerDataProcessor(
         val newData = DebugData(
             message = message,
             contextName =  debugFrame.contextName,
-            completeContextName =  debugFrame.completeName,
+            completeContextName =  debugFrame.contextName,
             stackMeta = debugFrame.frameMeta
         )
         newData.setTopic(topic)

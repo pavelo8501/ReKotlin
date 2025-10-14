@@ -11,17 +11,15 @@ import po.misc.data.helpers.output
 import po.misc.data.logging.ContextAware
 import po.misc.data.logging.ContextAwareLogEmitter
 import po.misc.data.logging.logEmitter
-import po.misc.exceptions.TrackableException
-import po.misc.exceptions.TrackableScopedException
-import po.misc.exceptions.delegateIfThrow
+import po.misc.exceptions.trackable.TrackableException
+import po.misc.exceptions.handling.Suspended
+import po.misc.exceptions.handling.delegateIfThrow
+import po.misc.exceptions.handling.registerHandler
 import po.misc.exceptions.metaFrameTrace
-import po.misc.exceptions.models.CTXResolutionFlag
-import po.misc.exceptions.models.ExceptionTrace
-import po.misc.exceptions.registerHandler
+import po.misc.exceptions.stack_trace.ExceptionTrace
 import kotlin.reflect.KClass
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
-import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class TestExceptionHandlers() : ContextAware {
@@ -34,9 +32,10 @@ class TestExceptionHandlers() : ContextAware {
         override val contextClass: KClass<*> get() = context::class
         override val exceptionTrace: ExceptionTrace = metaFrameTrace(contextClass)
         override val self: SimpleTrackableException = this
+        override var coroutineInfo: CoroutineInfo? = null
     }
 
-    class ScopedException(val context: Any, message: String): Throwable(message), TrackableScopedException{
+    class ScopedException(val context: Any, message: String): Throwable(message), TrackableException{
         override val contextClass: KClass<*> get() = context::class
         override val exceptionTrace: ExceptionTrace = metaFrameTrace(context::class, 5)
         override val self: ScopedException = this
@@ -51,7 +50,7 @@ class TestExceptionHandlers() : ContextAware {
             }
         }
         suspend fun <TH: Throwable> suspendingThrowingBlock(exception: TH){
-            channel.delegateIfThrow("suspendingThrowingBlock") {
+            channel.delegateIfThrow(Suspended) {
                 throw exception
             }
         }
@@ -60,12 +59,17 @@ class TestExceptionHandlers() : ContextAware {
     @Test
     fun `Instantiation Functions`(){
         var registerHandlerLambda: Any? = null
+
+
         registerHandler<SimpleTrackableException> { exception->
-            registerHandlerLambda = exception
+            exception.output()
+            throw exception
+
         }
         var handledBySuspendableLambda: Any? = null
-        registerHandler<SimpleTrackableException, String>("Some string"){exception->
-            handledBySuspendableLambda = exception
+        registerHandler<SimpleTrackableException>(){exception->
+            exception.output()
+            throw exception
         }
         assertDoesNotThrow {
             val thrower = ObjectDelegating(this)
@@ -80,11 +84,13 @@ class TestExceptionHandlers() : ContextAware {
 
         var registerHandlerLambda: Any? = null
         registerHandler<SimpleTrackableException> { exception->
-            registerHandlerLambda = exception
+            exception.output()
+            throw exception
         }
         var handledBySuspendableLambda: Any? = null
-        registerHandler<SimpleTrackableException, String>("Some string"){exception->
-            handledBySuspendableLambda = exception
+        registerHandler<SimpleTrackableException>(){exception->
+            exception.output()
+            throw exception
         }
 
         assertDoesNotThrow {
@@ -93,7 +99,9 @@ class TestExceptionHandlers() : ContextAware {
         }
 
         assertDoesNotThrow {
-            delegateIfThrow<SimpleTrackableException>("delegateIfThrow") {
+
+            delegateIfThrow<SimpleTrackableException>(Suspended) {
+
                 throw SimpleTrackableException(this@TestExceptionHandlers, "Suspending")
             }
         }
@@ -104,53 +112,45 @@ class TestExceptionHandlers() : ContextAware {
     }
 
     @Test
-    fun `Different exceptions caught as expected`() = runTest{
+    fun `Different exceptions caught as expected`() = runTest {
 
 
-        var  genericExceptionLambda: Any? = null
-        registerHandler<Exception, String>("Exception"){ exception->
+        var genericExceptionLambda: Any? = null
+        registerHandler<Exception>() { exception ->
             genericExceptionLambda = exception
+            exception.output()
+            throw exception
         }
 
 
         var handledBySuspendableLambda: Any? = null
-        registerHandler<SimpleTrackableException, String>("SimpleTrackableException"){exception->
+        registerHandler<SimpleTrackableException>() { exception ->
             handledBySuspendableLambda = exception
+            exception.output()
+            throw exception
         }
 
         var handledByScopedLambda: Any? = null
-        registerHandler<ScopedException, String>("SimpleTrackableException"){exception->
+        registerHandler<ScopedException>() { exception ->
             handledByScopedLambda = exception
+            exception.output()
+            throw exception
         }
 
         assertDoesNotThrow {
-            delegateIfThrow<String>("delegateIfThrow") {
+            delegateIfThrow<String>(Suspended) {
                 throw Exception("Exception")
             }
         }
         assertDoesNotThrow {
-            delegateIfThrow<SimpleTrackableException>("delegateIfThrow") {
+            delegateIfThrow<SimpleTrackableException>(Suspended) {
                 throw SimpleTrackableException(this@TestExceptionHandlers, "Suspending")
             }
         }
         assertDoesNotThrow {
-            delegateIfThrow("Different exceptions caught as expected"){
+            delegateIfThrow(Suspended) {
                 throw ScopedException(this@TestExceptionHandlers, "ScopedExceptionSuspending")
             }
         }
-
-        assertIs<Exception>(genericExceptionLambda)
-        val simpleTrackable = assertNotNull(handledBySuspendableLambda)
-        assertIs<SimpleTrackableException>(simpleTrackable)
-        val scoped =assertNotNull(handledByScopedLambda)
-        assertIs<ScopedException>(scoped)
-        scoped.output()
-        assertEquals("Suspending", simpleTrackable.message)
-        assertEquals("ScopedExceptionSuspending", scoped.message)
     }
-
-
-
-
-
 }

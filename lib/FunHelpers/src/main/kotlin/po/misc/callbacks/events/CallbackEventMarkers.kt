@@ -1,9 +1,9 @@
 package po.misc.callbacks.events
 
-import po.misc.data.helpers.output
-import po.misc.data.styles.Colour
-import po.misc.types.TypeData
-import po.misc.types.TypedObject
+import po.misc.types.TypeProvider
+import po.misc.types.type_data.TypeData
+import po.misc.types.type_data.TypeDataCommon
+import po.misc.types.token.TypeToken
 
 
 sealed interface TypedParameters
@@ -46,7 +46,7 @@ inline fun <reified L: Any, T: Any> EventHost.listenTriggered(
 }
 
 
-fun <T: Any> TypedObject.listenTriggeredSuspended(
+fun <T: Any> TypeProvider.listenTriggeredSuspended(
     event:  CallbackEventBase<*, T, *>,
     onTriggered: suspend (T)-> Unit
 ){
@@ -54,7 +54,7 @@ fun <T: Any> TypedObject.listenTriggeredSuspended(
 }
 
 
-fun <T: Any> TypedObject.listenTriggered(
+fun <T: Any> TypeDataCommon<*>.listenTriggered(
     event:  CallbackEventBase<*, T, *>,
     onTriggered: (T)-> Unit
 ){
@@ -73,11 +73,11 @@ fun <T: Any> TypedObject.listenTriggered(
  * val typeData = myEvent.createTypeData()
  * ```
  */
-inline fun <reified T: TypedParameters> T.createTypeData(): TypeData<T>{
-   return TypeData.create<T>()
+inline fun <reified T: TypedParameters> T.createTypeData(): TypeToken<T>{
+   return TypeToken.create<T>()
 }
 
-inline fun <reified T: Any> EventHost.typeDataOf(): TypeData<T>{
-    return TypeData.create<T>()
+inline fun <reified T: Any> EventHost.typeDataOf(): TypeToken<T>{
+    return TypeToken.create<T>()
 }
 

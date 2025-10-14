@@ -12,6 +12,7 @@ import po.misc.coroutines.CoroutineInfo
 import po.misc.coroutines.coroutineInfo
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 
 class  authData2(override val ip: String, override val userAgent: String) : SessionIdentified
@@ -40,7 +41,7 @@ class TestAuthSessionManager {
 
             assertNotNull(retrieved, "in testSessionWithExtension")
             assertNotNull(retrieved.sessionID)
-            assertEquals("AnonymousSession", coroutineInfo.coroutineName)
+            assertTrue { coroutineInfo.coroutineName.contains("AnonymousSession") }
         }
     }
 

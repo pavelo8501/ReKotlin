@@ -9,9 +9,10 @@ import po.misc.functions.containers.Notifier
 import po.misc.functions.models.NotificationConfig
 import po.misc.functions.registries.models.SimpleSubscriber
 import po.misc.functions.registries.models.TaggedSubscriber
-import po.misc.types.TypeData
+import po.misc.types.type_data.TypeData
 import po.misc.types.helpers.simpleOrNan
 import po.misc.types.safeCast
+import po.misc.types.token.TypeToken
 import kotlin.collections.set
 import kotlin.reflect.KClass
 
@@ -27,7 +28,7 @@ sealed class CallbackRegistryBase<V: Any, R: Any>(
    // protected open val emitterType : TypeData<*>? = null
     //protected val emitterTypeBacking: BackingContainer<TypeData<*>> = backingContainerOf()
 
-    protected abstract val emitterType : TypeData<*>?
+    protected abstract val emitterType : TypeToken<*>?
 
     protected val noLambdaMsg: ( name:String)-> String = {name->
         "$name Unable to trigger. Lambda is null"
@@ -104,7 +105,7 @@ class NotifierRegistry<V: Any>(
     private val identifiedBy: String
 ):CallbackRegistryBase<V, Unit>("NotifierRegistry[$identifiedBy]"){
 
-    override val emitterType: TypeData<*>? by lazy {
+    override val emitterType: TypeToken<*>? by lazy {
         if(emitter is CTX){
             emitter.identity.typeData
         }else{
@@ -171,11 +172,11 @@ class NotifierRegistry<V: Any>(
 
 class DSLRegistry<T: Any, P: Any>(
    val emitter: Any,
-   val typeData: TypeData<T>,
+   val typeData: TypeToken<T>,
    val parameter:P
 ):CallbackRegistryBase<T, Unit>("NotifierRegistry"){
 
-    override val emitterType: TypeData<*>? by lazy {
+    override val emitterType: TypeToken<*>? by lazy {
         if(emitter is CTX){
             emitter.identity.typeData
         }else{
@@ -240,9 +241,9 @@ class TaggedRegistry<E: Enum<E>, V: Any>(
 ): CallbackRegistryBase<V, Unit>("TaggedRegistry<${tagClass.name}>") {
 
 
-    var emitterTypeBacking: TypeData<*>? = null
+    var emitterTypeBacking: TypeToken<*>? = null
 
-    override val emitterType: TypeData<*>? by lazy {
+    override val emitterType: TypeToken<*>? by lazy {
         emitterTypeBacking?:run {
             if(emitter is CTX){
                 emitter.identity.typeData
@@ -287,7 +288,7 @@ class TaggedRegistry<E: Enum<E>, V: Any>(
         }
     }
 
-    fun identifiedByType(typeData: TypeData<*>):TaggedRegistry<E, V>{
+    fun identifiedByType(typeData: TypeToken<*>):TaggedRegistry<E, V>{
         emitterTypeBacking = typeData
         return this
     }
@@ -299,7 +300,9 @@ class TaggedRegistry<E: Enum<E>, V: Any>(
 
     fun trigger(kClass: KClass<*>, value: V) {
         val probe = SimpleSubscriber(kClass, false).setID(0L)
-        val foundKey = notifiers.keys.firstOrNull { it.matchesWildcard(probe) }
+        val foundKey = notifiers.keys.firstOrNull {
+            it.matchesWildcard(probe)
+        }
         foundKey?.let { notifiers[it]?.trigger(value) } ?: run {
             notifyNoLambda()
         }

@@ -28,7 +28,7 @@ class PartsTemplate<T: Printable>(
 }
 
 class Template<T: Printable>():PrintableTemplateBase<T>(), ConstructableDSL<T, String> {
-    var delimiter: String = SpecialChars.NewLine.char
+    var delimiter: String = SpecialChars.newLine
     internal val dslConstructor: DSLConstructor<T, String> = dslConstructor()
 
     override fun evaluateTemplate(data: T): String {

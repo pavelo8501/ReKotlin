@@ -2,14 +2,15 @@ package po.misc.functions.registries
 
 import po.misc.context.CTX
 import po.misc.functions.registries.models.TaggedSubscriber
-import po.misc.types.TypeData
+import po.misc.types.token.TypeToken
+import po.misc.types.type_data.TypeData
 
 
 fun <V: Any> CTX.buildSubscriptions(
-    targetEmitter: TypeData<*>,
+    targetEmitter: TypeToken<*>,
     builder: SubscriptionPack<V>.()-> Unit
 ):SubscriptionPack<V>{
-    val pack = EmitterSubscriptions<V>(identity.kClass, targetEmitter)
+    val pack = EmitterSubscriptions<V>(identity.typeData.kClass, targetEmitter)
     pack.builder()
    return pack
 }

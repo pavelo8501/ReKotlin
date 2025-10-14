@@ -1,8 +1,12 @@
 package po.misc.callbacks.events
 
+import po.misc.context.Component
 import po.misc.exceptions.ManagedException
 import po.misc.context.TraceableContext
-import po.misc.types.TypeData
+import po.misc.data.logging.Verbosity
+import po.misc.exceptions.handling.Suspended
+import po.misc.types.helpers.simpleOrNan
+import po.misc.types.token.TypeToken
 import kotlin.Boolean
 
 
@@ -26,39 +30,35 @@ import kotlin.Boolean
  * ```
  */
 sealed interface HostedEventBuilder<H, T, R>  where H: EventHost{
-
     fun onEvent(callback: H.(T)-> R)
     fun onEventSuspending(callback: suspend H.(T)-> R)
 }
-
 
 sealed interface EventBuilder<T, R>{
     fun onEvent(callback: (T)-> R)
     fun onEventSuspending(callback: suspend (T)-> R)
 }
 
-
 sealed class CallbackEventBase<H, T, R>(
-    val  paramType: TypeData<T>
-): TraceableContext where H: Any, T: Any  {
+    val  paramType: TypeToken<T>
+): Component where H: Any, T: Any  {
 
-
-    internal var result:R? = null
-    fun getLastResult():R?{
-        return  result
-    }
-
-    abstract val listeners : EventListeners<T>
+    internal var currentResult:R? = null
     protected val validators: MutableList<ValidatableEvent> = mutableListOf()
 
     internal open var onEventCallback: ((T)-> R)? = null
+    internal var onEventSuspendedCallback: (suspend (T)-> R?)? = null
+
+    override var verbosity: Verbosity = Verbosity.Info
 
     val event: Boolean get() = onEventCallback  != null
-
-    internal var onEventSuspendedCallback: (suspend (T)-> R)? = null
     val eventSuspended: Boolean get() = onEventSuspendedCallback  != null
 
+    abstract val listeners : EventListeners<T>
 
+    fun getLastResult():R?{
+        return  currentResult
+    }
     protected fun isValid(value: Validatable,  throws: Boolean): Boolean =
         validators.all { it.validate(value, throws) }
 
@@ -66,6 +66,24 @@ sealed class CallbackEventBase<H, T, R>(
         if(validators.isEmpty()){
             throw ManagedException(this, "Validation will always fail. No Validators present")
         }
+    }
+
+    protected fun invokeIfAvailable(value: T, warningIfUnavailable: String? = null): Boolean{
+        if(!event && warningIfUnavailable != null){
+            warn(warningIfUnavailable, "trigger")
+        }
+        val callback = onEventCallback ?: return false
+        currentResult = callback(value)
+        return true
+    }
+
+    protected suspend fun invokeIfAvailable(value: T, suspended: Suspended): Boolean{
+        if(!eventSuspended){
+            warn("Suspended callback not defined", "trigger(Suspended)")
+        }
+        val callback = onEventSuspendedCallback ?: return false
+        currentResult = callback(value)
+        return true
     }
 
     /**
@@ -78,33 +96,28 @@ sealed class CallbackEventBase<H, T, R>(
      *                         or validation fails. If `false`, silently skips triggering.
      * @return `true` if any callback was triggered, `false` otherwise.
      */
-    fun trigger(value: T, notifyListeners: Boolean = true): Boolean{
-        var triggered = false
-        onEventCallback?.let {
-            result = it.invoke(value)
-            triggered = true
-        }
-        if(notifyListeners){
+    fun trigger(value: T): R?{
+        if(invokeIfAvailable(value)){
             listeners.notifyTriggered(value)
+            return currentResult
         }
-        return triggered
+        return null
     }
 
     fun trigger(
         value: T,
         validator: Validatable,
         validationThrows: Boolean = false,
-        notifyListeners: Boolean = true,
-    ): Boolean{
-        var triggered = false
+    ): R? {
         if(validationThrows){
             throwIfValidatorsEmpty()
         }
         if(isValid(validator, validationThrows)){
-            triggered = trigger(value, notifyListeners)
+            return trigger(value)
         }
-        return triggered
+        return null
     }
+
 
     /**
      * Triggers all suspending event callbacks with the given [value],
@@ -116,16 +129,14 @@ sealed class CallbackEventBase<H, T, R>(
      *                         or validation fails. If `false`, silently skips triggering.
      * @return `true` if any callback was triggered, `false` otherwise.
      */
-    suspend fun triggerSuspending(value: T): Boolean{
-        var triggered = false
-        onEventSuspendedCallback?.let {
-            result = it.invoke(value)
-            triggered = true
-        }
-        listeners.notifyTriggered(value, true)
-        return triggered
+    suspend fun triggerSuspending(value: T): R?{
+       if(invokeIfAvailable(value, Suspended)){
+           listeners.notifyTriggered(value, true)
+           return currentResult
+       }else{
+           return null
+       }
     }
-
 
     suspend fun triggerSuspending(
         value: T, validator: Validatable,
@@ -136,11 +147,10 @@ sealed class CallbackEventBase<H, T, R>(
             throwIfValidatorsEmpty()
         }
         if(isValid(validator, validationThrows)){
-            triggered = triggerSuspending(value)
+            triggered = invokeIfAvailable(value, Suspended)
         }
         return triggered
     }
-
 
     /**
      * Triggers both synchronous and suspending event callbacks with the given [value].
@@ -166,10 +176,10 @@ sealed class CallbackEventBase<H, T, R>(
      */
     suspend fun triggerBoth(value: T, validator: Validatable?) {
         if(validator != null){
-            trigger(value, validator, validationThrows = true, notifyListeners =  false)
+            trigger(value, validator, validationThrows = true)
             triggerSuspending(value, validator, validationThrows = true)
         }else{
-            trigger(value, notifyListeners =  false)
+            trigger(value)
             triggerSuspending(value)
         }
     }
@@ -185,13 +195,14 @@ sealed class CallbackEventBase<H, T, R>(
     fun addValidator(validator: ValidatableEvent) {
         validators.add(validator)
     }
-
 }
 
-
 open class CallbackEvent<T: Any, R>(
-    paramType: TypeData<T>
+    paramType: TypeToken<T>
 ): CallbackEventBase<Unit, T, R>(paramType),EventBuilder<T, R>{
+
+    override val componentName: String = "CallbackEvent<${paramType.typeName}>"
+
     override val  listeners : EventListeners<T> by lazy { EventListeners() }
     override fun onEvent(callback: (T)-> R){
         onEventCallback = callback
@@ -199,27 +210,53 @@ open class CallbackEvent<T: Any, R>(
     override fun onEventSuspending(callback: suspend (T)-> R){
         onEventSuspendedCallback = callback
     }
-
 }
-
 open class ParametrizedEvent<H, T, R>(
-    val  host: H,
-    paramType: TypeData<T>
+    val host: H,
+    paramType: TypeToken<T>
 ): CallbackEventBase<H, T, R>(paramType), HostedEventBuilder<H, T, R> where H: EventHost, T: Any {
 
+    override val componentName: String = "ParametrizedEvent<${host::class.simpleOrNan()}, ${paramType.typeName}>"
+
     override val  listeners : EventListeners<T> by lazy {  EventListeners() }
-
-
     override fun onEvent(callback: H.(T) -> R) {
         super.onEventCallback = {param->
             callback.invoke(host, param)
         }
     }
-
     override fun onEventSuspending(callback: suspend H.(T) -> R){
         super.onEventSuspendedCallback = {param->
             callback.invoke(host, param)
         }
+    }
+}
+
+class HostedEvent<H, T, R>(
+    internal val host: H,
+    paramType: TypeToken<T>,
+    val resultType: TypeToken<R>
+): CallbackEventBase<H, T, R>(paramType), HostedEventBuilder<H, T, R> where H: EventHost, T: Any, R: Any {
+
+    override val componentName: String = "HostedEvent<${host::class.simpleOrNan()}, ${paramType.typeName}>"
+    override val listeners : EventListeners<T> by lazy {  EventListeners() }
+
+    override fun onEvent(callback: H.(T) -> R){
+        notify("callback  H.(T) -> R assigned", "onEvent")
+        super.onEventCallback = {param->
+            callback.invoke(host, param)
+        }
+    }
+    fun onEvent(suspended: Suspended, callback: suspend H.(T) -> R?){
+        notify("callback suspend H.(T) -> R assigned", "onEvent(Suspended)")
+        super.onEventSuspendedCallback = {param->
+            callback.invoke(host, param)
+        }
+    }
+    override fun onEventSuspending(callback: suspend H.(T) -> R): Unit = onEvent(Suspended ,callback)
+
+    suspend fun trigger(value: T, suspended: Suspended):R?{
+        invokeIfAvailable(value)
+        return triggerSuspending(value)
     }
 
 }

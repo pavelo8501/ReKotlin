@@ -1,6 +1,5 @@
 package po.exposify.dto.components.result
 
-import po.auth.sessions.models.AuthorizedSession
 import po.auth.sessions.models.SessionBase
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.DTOBase
@@ -9,17 +8,15 @@ import po.exposify.dto.components.tracker.DTOTracker
 import po.exposify.dto.helpers.asDTO
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.exceptions.OperationsException
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.operationsException
-import po.exposify.extensions.getOrOperations
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asSubIdentity
 import po.misc.exceptions.ManagedException
-import po.misc.types.TypeData
+import po.misc.types.type_data.TypeData
 import po.misc.types.castListOrThrow
-import kotlin.collections.getValue
+import po.misc.types.token.TypeToken
 
 interface ExposifyResult {
     val dtoClass: DTOBase<*, *, *>
@@ -34,8 +31,8 @@ sealed class ResultBase<DTO, D, R : Any>(
     protected var result: R?,
 ) : ExposifyResult,
     CTX where DTO : ModelDTO, D : DataModel {
-    protected val dtoType: TypeData<DTO> = dtoClass.commonDTOType.dtoType
-    protected val dataType: TypeData<D> = dtoClass.commonDTOType.dataType
+    protected val dtoType: TypeToken<DTO> = dtoClass.commonDTOType.dtoType
+    protected val dataType: TypeToken<D> = dtoClass.commonDTOType.dataType
 
     protected val noResultNoExceptionMsg: String get() = "Result class has no data nor registered exception"
     val abnormalState: ExceptionCode = ExceptionCode.ABNORMAL_STATE

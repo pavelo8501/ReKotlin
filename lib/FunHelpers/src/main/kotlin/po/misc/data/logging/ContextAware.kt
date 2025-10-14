@@ -71,13 +71,13 @@ interface ContextAware : LogEmitter, CTX {
         }
     }
 
-    fun info(message: String){
-        emitter.info(message)
-    }
-
-    fun warn(message: String){
-        emitter.warn(message)
-    }
+//    fun info(message: String){
+//        emitter.info(message)
+//    }
+//
+//    fun warn(message: String){
+//        emitter.warn(message)
+//    }
 
 
     override fun Any.notify(message: String, severity: SeverityLevel) {

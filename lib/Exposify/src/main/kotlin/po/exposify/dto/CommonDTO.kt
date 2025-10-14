@@ -29,12 +29,16 @@ import po.misc.containers.backingContainerOf
 import po.misc.containers.lazyContainerOf
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
+import po.misc.data.helpers.output
 import po.misc.data.processors.SeverityLevel
 import po.misc.exceptions.throwableToText
 import po.misc.functions.hooks.Change
 import po.misc.functions.registries.TaggedRegistry
 import po.misc.functions.registries.builders.taggedRegistryOf
+import po.misc.types.helpers.simpleOrNan
+import po.misc.types.safeCast
 import java.util.UUID
+import kotlin.reflect.KClass
 
 sealed class CommonDTOBase<DTO, D, E>(
     val dtoClass: DTOBase<DTO, D, E>,
@@ -71,7 +75,7 @@ sealed class CommonDTOBase<DTO, D, E>(
 
     val dataContainer: LazyContainer<D> =  lazyContainerOf(commonType.dataType)
 
-    val entityContainer: BackingContainer<E> = backingContainerOf(commonType.entityType)
+    val entityContainer: BackingContainer<E> = backingContainerOf(commonType.entityType.typeToken)
     
     var idBacking: Long = -1L
     override var id: Long
@@ -199,7 +203,7 @@ abstract class CommonDTO<DTO, D, E>(
         rootClass.executionContext.restoreDTO(dataContainer.getValue(this))
     }
 
-    fun flush(){
+    override fun flush(){
         withTransactionIfNone(dtoClass.debugger, false){
             bindingHub.responsiveDelegateMap.values.forEach {
                 it.buffer.flush()
@@ -207,7 +211,19 @@ abstract class CommonDTO<DTO, D, E>(
         }
         updateDataStatus(DataStatus.UpToDate)
     }
-
+   override fun flush(dataModel: DataModel): Boolean{
+       val dataClass = dtoClass.commonDTOType.dataType.kClass
+      return  dataModel.safeCast<D>(dataClass)?.let {
+            bindingHub.updateByData(it)
+            true
+        }?:run {
+           val providedClass = dataModel::class as KClass<*>
+           val errMsg = "Unable to update persistence layer by data model provided. " +
+                    "Expecting ${dataClass.simpleOrNan()}, got ${providedClass.simpleOrNan()}"
+            warning(errMsg)
+            false
+        }
+    }
 
     fun <F : ModelDTO, FD : DataModel, FE : LongEntity> hasExecutionContext(commonType: DTOClass<F, FD, FE>): Boolean =
         executionContextMap.containsKey(commonType)

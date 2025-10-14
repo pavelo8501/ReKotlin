@@ -3,7 +3,7 @@ package po.auth.exceptions
 import po.auth.AuthSessionManager
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
-import po.misc.exceptions.ManagedCallSitePayload
+import po.misc.exceptions.ThrowableCallSitePayload
 
 enum class AuthErrorCode(val value: Int) {
     UNDEFINED(0),
@@ -49,7 +49,7 @@ class AuthException(
 
     override var handler : HandlerType = HandlerType.CancelAll
 
-    constructor(authPayload: ManagedCallSitePayload) : this(authPayload.message, authPayload.code as AuthErrorCode, authPayload.cause){
+    constructor(authPayload: ThrowableCallSitePayload) : this(authPayload.message, authPayload.code as AuthErrorCode, authPayload.cause){
         initFromPayload(authPayload)
     }
 
