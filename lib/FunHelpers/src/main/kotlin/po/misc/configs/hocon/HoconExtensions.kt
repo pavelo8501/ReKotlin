@@ -1,6 +1,7 @@
 package po.misc.configs.hocon
 
 import com.typesafe.config.Config
+import com.typesafe.config.ConfigValueType
 import po.misc.data.helpers.output
 import po.misc.data.styles.Colour
 import po.misc.reflection.primitives.IntClass
@@ -71,6 +72,29 @@ fun <D: Any> Config.mapToByKeys(
 
 
     for ((rawKey, value) in entrySet()) {
+
+        val valueType = value.valueType()
+        when(valueType){
+            ConfigValueType.NUMBER ->{
+
+            }
+            ConfigValueType.OBJECT -> {
+
+            }
+            ConfigValueType.LIST -> {
+
+            }
+            ConfigValueType.BOOLEAN -> {
+
+            }
+            ConfigValueType.NULL -> {
+
+            }
+            ConfigValueType.STRING -> {
+
+            }
+        }
+
         val property = properties[rawKey]?: continue
         val classOfValue = property.returnType.classifier as? KClass<*>
         val primitive = PrimitiveClass.ofClass(classOfValue)

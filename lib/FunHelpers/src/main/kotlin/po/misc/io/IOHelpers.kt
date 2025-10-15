@@ -2,9 +2,8 @@ package po.misc.io
 
 
 
-fun Any.toSafePathName(fallbackName: String? = null): String{
+fun String.toSafePathName(fallbackName: String? = null): String{
     val asString = toString()
-
     val converted = asString
         .lowercase()
         .replace("[^a-z0-9_-]".toRegex(), "_")
@@ -18,3 +17,12 @@ fun Any.toSafePathName(fallbackName: String? = null): String{
         }
     }
 }
+
+fun Enum<*>.toSafePathName(fallbackName: String? = null): String = name.toSafePathName()
+
+fun buildRelativePath(vararg pathChunks: String): String{
+    return pathChunks.joinToString(separator = "/") {
+        it.toSafePathName()
+    }
+}
+

@@ -1,8 +1,9 @@
-package po.test.misc.configs
+package po.test.misc.configs.hocon
 
 import com.typesafe.config.ConfigFactory
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
+import po.misc.configs.assets.AssetsKeyConfig
 import po.misc.configs.hocon.mapTo
 import po.misc.configs.hocon.mapToByKeys
 import po.misc.io.captureOutput
@@ -11,10 +12,11 @@ import kotlin.test.assertTrue
 
 class TestHoconMapper {
 
-    data class DefaultConfig(
-        var name: String = "",
-        var value: Int = 0,
-    )
+   internal data class DefaultConfig(
+       var name: String = "",
+       var value: Int = 0,
+       override var assetsPath: String = ""
+   ): AssetsKeyConfig
 
     data class MisusedConfig(
         val name: String = "",
@@ -22,26 +24,10 @@ class TestHoconMapper {
     )
 
     @Test
-    fun  `Data models properties can be safely mapped to config`(){
-        val configData = DefaultConfig()
-        val config = ConfigFactory.load()
-        assertDoesNotThrow{
-            config.getString("app.name")
-        }
-        val processed = assertDoesNotThrow {
-            config.mapTo(configData){propertyName->
-                "app.$propertyName"
-            }
-        }
-        assertEquals("Some name", processed.name)
-        assertEquals(10, processed.value)
-    }
-
-    @Test
     fun  `Config keys can be safely mapped to data models properties`(){
         val config = ConfigFactory.load().getConfig("app")
         val configModel = DefaultConfig()
-        assertDoesNotThrow{
+        assertDoesNotThrow {
             config.mapToByKeys(configModel)
         }
 
@@ -56,7 +42,7 @@ class TestHoconMapper {
         val config = ConfigFactory.load().getConfig("app")
         val configModel = MisusedConfig()
         val output = captureOutput {
-            assertDoesNotThrow{
+            assertDoesNotThrow {
                 config.mapToByKeys(configModel)
             }
         }
@@ -65,5 +51,21 @@ class TestHoconMapper {
         }
         assertEquals("", configModel.name)
         assertEquals(10, configModel.value)
+    }
+
+    @Test
+    fun  `Data models properties can be safely mapped to config`(){
+        val configData = DefaultConfig()
+        val config = ConfigFactory.load()
+        assertDoesNotThrow {
+            config.getString("app.name")
+        }
+        val processed = assertDoesNotThrow {
+            config.mapTo(configData) { propertyName ->
+                "app.$propertyName"
+            }
+        }
+        assertEquals("Some name", processed.name)
+        assertEquals(10, processed.value)
     }
 }

@@ -7,24 +7,50 @@ import po.misc.data.logging.Verbosity
 import po.misc.functions.Throwing
 import po.misc.io.FileMetaData
 import po.misc.io.WriteOptions
-import po.misc.io.fileExists
+import po.misc.io.readFile
 import po.misc.io.readToString
+import po.misc.io.toSafePathName
 import po.misc.io.writeFileContent
+import po.misc.io.writeToFile
 
 
 /**
  * @param basePath relative path to the root folder
  */
 class AssetManager(
-    val basePath: String,
+    basePath: String,
     val jsonEncoder: Json,
-    val config: Config = Config()
 ): Component {
 
-    data class Config(
-        val recreateKeysChanged: Boolean = true,
-        val verbosity: Verbosity = Verbosity.Info
-    )
+    data class ConfigData(
+        override var basePath: String,
+        override var recreateKeysChanged: Boolean = true,
+        override var verbosity: Verbosity = Verbosity.Info
+    ): Config{
+
+        fun setBasePath(relativePath: String):ConfigData{
+            basePath = relativePath
+            return this
+        }
+
+    }
+
+    var config: ConfigData = ConfigData(basePath = basePath)
+
+    constructor(basePath: String, jsonEncoder: Json, configBuilder: AssetsConfigurator.()-> Unit):this("", jsonEncoder){
+       val configurator = AssetsConfigurator()
+        configurator.config.basePath = basePath
+        configBuilder.invoke( configurator)
+        config = configurator.config
+    }
+
+    constructor(assetsConfig: AssetsKeyConfig, jsonEncoder: Json, configBuilder: AssetsConfigurator.()-> Unit):this("", jsonEncoder){
+        val configurator = AssetsConfigurator()
+        configurator.fromAssetsConfig(assetsConfig)
+        configBuilder.invoke(configurator)
+        config = configurator.config
+    }
+
 
     override val verbosity: Verbosity get() =  config.verbosity
 
@@ -33,67 +59,97 @@ class AssetManager(
     private val operationsSubject: String = "$componentName Update"
     private val registries = mutableMapOf<String, AssetRegistry>()
 
-    private fun normalizeRegistryName(category: String): String{
-       return category.trim().lowercase().trim(' ')
+    internal fun createPath(category: String): String{
+       return "${config.basePath}/${category.toSafePathName()}.json"
     }
 
-    private fun tryLoadRegistry(registry: AssetRegistry): AssetRegistry? {
-        return try {
-            val pathToFile = "${basePath}/${registry.categoryAsFileName}.json"
-            val recreated = fileExists(pathToFile)?.let {
-                val bytes = it.readFile()
-                val jsonString = bytes.readToString()
-                jsonEncoder.decodeFromString<AssetRegistry>(jsonString)
-            } ?: run {
+    /**
+     * If loaded by category no callbacks assigned
+     */
+    private fun loadRegistry(category: String, noCache: Boolean): AssetRegistry {
+        val normalized = category.toSafePathName()
+        val existent = registries[normalized]
+
+        if(noCache && existent != null) {
+            registries.remove(normalized)
+        }
+        if(!noCache && existent != null) {
+            return  existent
+        }
+        val pathToFile =  createPath(normalized)
+        val jsonString =  readFile(pathToFile).readBytes().readToString()
+        val decoded =   jsonEncoder.decodeFromString<AssetRegistry>(jsonString)
+        info(initSubject, "${decoded.category} loaded")
+        return decoded
+    }
+
+    private fun loadRegistry(registry: AssetRegistry, noCache: Boolean): AssetRegistry {
+        val name =  registry.category.toSafePathName()
+        val loaded = try {
+                loadRegistry(name, noCache)
+            } catch (th: NullPointerException) {
                 jsonEncoder.encodeToString(registry)
-                    .writeFileContent(pathToFile, WriteOptions(overwriteExistent = false, createSubfolders = true))
-                registry
-            }
-            info(initSubject, "${recreated.category} loaded")
-            recreated
-        }catch (serializationException: SerializationException){
-          return  if(serializationException.message?.contains("Encountered an unknown key")?:false){
-                val pathToFile = "${basePath}/${registry.categoryAsFileName}.json"
-               warn(operationsSubject, "Recreating registry")
-               val fileWriteResult = jsonEncoder.encodeToString(registry)
-                    .writeFileContent(pathToFile, WriteOptions(overwriteExistent = true, createSubfolders = true))
-               if(fileWriteResult){
-                   registry
-               }else{
-                   null
-               }
-            }else{
-                null
-            }
+                    .writeFileContent(name, WriteOptions(overwriteExistent = false, createSubfolders = true))
+                 registry
+            } catch (serializationException: SerializationException) {
+                val encounteredMessage = serializationException.message ?: ""
+                if (encounteredMessage.contains("Encountered an unknown key")) {
+                    val pathToFile = createPath(name)
+                    warn(operationsSubject, "Recreating registry")
+                    val encoded = jsonEncoder.encodeToString(registry)
+                    encoded.toByteArray()
+                        .writeToFile(pathToFile, WriteOptions(overwriteExistent = true, createSubfolders = true))
+                    registry
+                } else {
+                    warn(serializationException)
+                    throw serializationException
+                }
+        } catch (th: Throwable) {
+            warn(th)
+            throw th
+        }
+
+        loaded.assets.forEach {
+            registry.assets[it.key] =it.value
+        }
+        registry.updated = ::registryUpdated
+        registry.erased = ::tryWriteRegistry
+        return  registry
+    }
+
+    internal fun tryLoadRegistry(category: String):AssetRegistry?{
+        return try {
+            return  loadRegistry(category, noCache = false)
         }catch (th: Throwable){
             warn(th)
             null
         }
     }
 
-    private fun loadRegistry(registry: AssetRegistry): AssetRegistry {
+    private fun tryLoadRegistry(registry: AssetRegistry, noCache: Boolean): AssetRegistry? {
         return try {
-            val pathToFile = "${basePath}/${registry.categoryAsFileName}.json"
-            val recreated = fileExists(pathToFile)?.let {
-                val bytes = it.readFile()
-                val jsonString = bytes.readToString()
-                jsonEncoder.decodeFromString<AssetRegistry>(jsonString)
-            } ?: run {
-                jsonEncoder.encodeToString(registry)
-                    .writeFileContent(pathToFile, WriteOptions(overwriteExistent = false, createSubfolders = true))
-                registry
-            }
-            info(initSubject, "${recreated.category} loaded")
-            recreated
+            loadRegistry(registry, noCache)
         }catch (th: Throwable){
             warn(th)
-            throw th
+            null
+        }
+    }
+
+    private fun tryWriteRegistry(registry: AssetRegistry): Boolean{
+        return try {
+            val pathToFile = createPath(registry.category)
+            jsonEncoder.encodeToString(registry)
+                .writeFileContent(pathToFile, WriteOptions(overwriteExistent = true, createSubfolders = false))
+            true
+        }catch (th: Throwable){
+            warn(th)
+            false
         }
     }
 
     private fun registryUpdated(registry: AssetRegistry): Boolean{
         try {
-            val pathToFile = "${basePath}/${registry.categoryAsFileName}.json"
+            val pathToFile = createPath(registry.category)
             val jsonString = jsonEncoder.encodeToString(registry)
             jsonString.writeFileContent(pathToFile, WriteOptions(overwriteExistent = true, createSubfolders = true))
             info(operationsSubject, "Registry saved")
@@ -105,10 +161,9 @@ class AssetManager(
     }
 
     fun applyRegistry(registry: AssetRegistry):AssetRegistry?{
-       val loaded = tryLoadRegistry(registry)
+       val loaded = tryLoadRegistry(registry, true)
        if(loaded != null){
            registries[loaded.category] = loaded
-           loaded.updated = ::registryUpdated
        }
        return loaded
     }
@@ -118,14 +173,29 @@ class AssetManager(
     }
 
     fun applyRegistry(registry: AssetRegistry, throwing: Throwing):AssetRegistry{
-        val loaded =  loadRegistry(registry)
+        val loaded =  loadRegistry(registry, true)
         registries[loaded.category] = loaded
-        loaded.updated = ::registryUpdated
         return loaded
     }
 
+    fun applyRegistry(registry: AssetRegistry, builder: AssetRegistry.()-> Unit):AssetRegistry?{
+       val registry = applyRegistry(registry)
+       if(registry != null){
+           registry.builder()
+           return  registry
+       }else{
+           return null
+       }
+    }
+
+    fun applyRegistry(registry: AssetRegistry, throwing: Throwing, builder: AssetRegistry.()-> Unit):AssetRegistry{
+        val registry = applyRegistry(registry, throwing)
+        registry.builder()
+        return registry
+    }
+
     fun createOrLoad(name: String,  category: String, fileMeta: FileMetaData): Asset?{
-        val normalizedCategory = normalizeRegistryName(category)
+        val normalizedCategory = category.toSafePathName()
         val registry = registries[normalizedCategory]
         return if(registry != null){
             registry[name] ?:run {
@@ -140,5 +210,18 @@ class AssetManager(
     fun createOrLoad(name: String, category: Enum<*>, fileMeta: FileMetaData): Asset?
         = createOrLoad(name, category.name, fileMeta)
 
+    fun purge(registry: AssetRegistry):AssetRegistry?{
+        val registry =  tryLoadRegistry(registry, false)
+        if(registry != null){
+            registry.purge()
+            registries[registry.category] = registry
+            return registry
+        }
+        return registry
+    }
+
+    companion object{
+
+    }
 
 }
