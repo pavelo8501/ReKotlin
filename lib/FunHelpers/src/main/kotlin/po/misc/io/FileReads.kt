@@ -155,31 +155,14 @@ fun <T: Any> readSourced(
  *
  * @see SourcedFile
  */
-fun <T: Any> readSourced(
+inline fun <reified T: Any> readSourced(
     relativePath: String,
     charset: Charset,
-    provider: (String)-> T
+    noinline provider: (String)-> T
 ):SourcedFile<T>{
     val file = readFile(relativePath)
-    fun transform(bytes: ByteArray):T{
-       return provider.invoke(bytes.readToString(charset))
-    }
-    return SourcedFile<T>(file, ::transform)
+    return SourcedFile<T>(file, { bytes-> provider.invoke(bytes.readToString(charset))  } )
 }
-
-//fun <T: Any> String.readSourced(
-//    relativePath: String,
-//    provider: (String)-> T
-//):SourcedFile<T>{
-//
-//    val file = readFile(relativePath)
-//    val lambdaTransform: (ByteArray) -> T = {bytes->
-//        provider.invoke(this)
-//    }
-//    return SourcedFile<T>(file, lambdaTransform)
-//}
-
-
 
 
 fun readResourceContent(path: String): String {

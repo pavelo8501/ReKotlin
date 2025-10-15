@@ -26,3 +26,7 @@ fun buildRelativePath(vararg pathChunks: String): String{
     }
 }
 
+fun String.stripFileExtension(): String{
+   return replaceAfter('.', "").toSafePathName()
+}
+

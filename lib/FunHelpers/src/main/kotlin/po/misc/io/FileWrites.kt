@@ -92,14 +92,14 @@ class FileIOHooks2<R: Any>{
 
 class WriteFileHooks<R: Any>{
 
-    internal var onErrorCallback: ((Throwable) -> Unit)? = null
-    fun onError(callback: (Throwable) -> Unit){
+    internal var onErrorCallback: ((Throwable) -> R?)? = null
+    fun onError(callback: (Throwable) -> R?){
         onErrorCallback = callback
     }
 
     @PublishedApi
-    internal fun triggerError(throwable: Throwable){
-        onErrorCallback?.invoke(throwable)
+    internal fun triggerError(throwable: Throwable):R?{
+        return  onErrorCallback?.invoke(throwable)
     }
 
     internal var success: ((LocalFile) -> R)? = null
@@ -221,8 +221,7 @@ inline fun <R: Any> writeFile(
         val localFile = writeFile(relativePath, bytes, options)
         return  hooks.triggerSuccess(localFile)
     }catch (th: Throwable){
-        hooks.triggerError(th)
-        return null
+        return hooks.triggerError(th)
     }
 }
 

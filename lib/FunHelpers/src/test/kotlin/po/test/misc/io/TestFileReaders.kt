@@ -49,7 +49,6 @@ class TestFileReaders {
             json.decodeFromString<DataPayload>(it)
         }
         assertEquals("image.json", sourced.fileName)
-
     }
 
 }
