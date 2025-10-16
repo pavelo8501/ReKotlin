@@ -13,7 +13,7 @@ interface ComparableType<T: Any>{
 }
 
 
-@Deprecated("Change to TypeData")
+@Deprecated("Change to TypeToken")
 class StaticTypeKey<T: Any> @PublishedApi internal constructor(
     override val kClass: KClass<T>
 ):ComparableType<T> {

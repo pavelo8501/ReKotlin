@@ -13,12 +13,13 @@ import po.misc.types.token.TypeToken
 import kotlin.reflect.KClass
 
 
-interface HoconResolvable<T: Any>{
+interface HoconResolvable<T: HoconResolvable<T>>{
     val resolver: HoconConfigResolver<T>
     
 }
 
-class HoconConfigResolver<T: Any>(
+class HoconConfigResolver<T: HoconResolvable<T>>(
+
     val typeToken: TypeToken<T>
 ){
 
@@ -67,8 +68,13 @@ fun <T: Any> Config.parseValue(name: String, hoconPrimitive: HoconPrimitives<T>)
                 Exception("$name can not be cast to ${ hoconPrimitive.primitiveClass.kClass.simpleOrAnon}")
             }
         }
-        is HoconNumber->{
+        is HoconInt->{
             getNumber(name).castOrThrow<T>(hoconPrimitive,  hoconPrimitive.primitiveClass.kClass){
+                Exception("$name can not be cast to ${hoconPrimitive.primitiveClass.kClass.simpleOrAnon}")
+            }
+        }
+        is HoconLong->{
+            getLong(name).castOrThrow<T>(hoconPrimitive,  hoconPrimitive.primitiveClass.kClass){
                 Exception("$name can not be cast to ${hoconPrimitive.primitiveClass.kClass.simpleOrAnon}")
             }
         }
@@ -96,10 +102,16 @@ fun <T: Any> Config.parseList(name: String,  hoconPrimitive: HoconPrimitives<T>)
     }
 }
 
-fun <T: HoconResolvable<T>> T.readConfig(factory:  Config){
+
+fun <T: HoconResolvable<T>> T.applyConfig(factory:  Config){
     resolver.readConfig(this, factory)
 }
 
-inline fun <reified T: Any> HoconResolvable<T>.createResolver():HoconConfigResolver<T>{
+@Deprecated("Change to applyConfig")
+fun <T: HoconResolvable<T>> T.readConfig(factory:  Config) = applyConfig(factory)
+
+
+
+inline fun <reified T: HoconResolvable<T>> T.createResolver():HoconConfigResolver<T>{
     return HoconConfigResolver(TypeToken.create<T>())
 }

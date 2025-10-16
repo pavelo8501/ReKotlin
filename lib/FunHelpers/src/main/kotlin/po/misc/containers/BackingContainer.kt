@@ -150,13 +150,12 @@ open class BackingContainer<T: Any>(
         changedHook.subscribe(callback)
     }
 
-
     override fun toString(): String = "BackingContainer<${typeData.typeName}>"
 
         companion object {
-
-
-        inline fun <reified T : Any>  create(owner: Any,  initialValue: T? = null): BackingContainer<T> {
+        inline fun <reified T : Any>  create(
+            owner: Any,  initialValue: T? = null
+        ): BackingContainer<T> {
             val container = BackingContainer(owner, TypeToken.create<T>())
             if (initialValue != null) {
                 container.provideValue(initialValue)

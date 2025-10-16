@@ -1,29 +1,29 @@
 package po.test.misc.configs.hocon
 
 import com.typesafe.config.ConfigFactory
-import com.typesafe.config.ConfigValueType
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import po.misc.configs.assets.AssetsKeyConfig
 import po.misc.configs.hocon.HoconBoolean
-import po.misc.configs.hocon.HoconList
-import po.misc.configs.hocon.HoconListProperty
+import po.misc.configs.hocon.HoconInt
+import po.misc.configs.hocon.HoconLong
 import po.misc.configs.hocon.HoconNullable
-import po.misc.configs.hocon.HoconNumber
 import po.misc.configs.hocon.HoconResolvable
 import po.misc.configs.hocon.HoconString
+import po.misc.configs.hocon.applyConfig
 import po.misc.configs.hocon.createResolver
 import po.misc.configs.hocon.hoconListProperty
 import po.misc.configs.hocon.hoconNestedProperty
 import po.misc.configs.hocon.hoconProperty
+import po.misc.configs.hocon.hoconTransforming
 import po.misc.configs.hocon.mapTo
 import po.misc.configs.hocon.mapToByKeys
-import po.misc.configs.hocon.readConfig
 import po.misc.io.captureOutput
-import po.misc.types.token.TypeToken
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 class TestHoconMapper {
 
@@ -40,12 +40,21 @@ class TestHoconMapper {
 
     internal class NestedConfig(): HoconResolvable<NestedConfig>{
         override val resolver =  createResolver()
-        val number : Int by hoconProperty(HoconNumber)
+
+        val requestTimeOut by hoconProperty(HoconLong)
+
+        val socketTimeout by hoconTransforming(HoconLong){
+            it.milliseconds
+        }
+
+        val number  by hoconProperty(HoconInt)
         val boolean : Boolean by hoconProperty(HoconBoolean)
     }
 
     internal class Config(): HoconResolvable<Config>{
         override val resolver =  createResolver()
+
+
         val categories by hoconListProperty<Config, String>()
         val nested: NestedConfig  by hoconNestedProperty(NestedConfig())
         val assetsPath : String by hoconProperty(HoconString)
@@ -60,7 +69,7 @@ class TestHoconMapper {
 
         val config = Config()
 
-        config.readConfig(factory)
+        config.applyConfig(factory)
 
         assertEquals("/var/data/assets", config.assetsPath)
         assertNull(config.nullableParam)

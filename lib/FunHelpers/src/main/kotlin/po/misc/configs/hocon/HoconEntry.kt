@@ -9,23 +9,26 @@ import po.misc.types.token.TypeToken
 import kotlin.reflect.KProperty
 
 
-sealed class HoconEntryBase<T: Any, V: Any>(
-    val resolver: HoconConfigResolver<T>,
-    val property: KProperty<*>,
+sealed class HoconEntryBase<T: HoconResolvable<T>, V: Any>(
+    val receiver: T,
     val hoconPrimitive:  HoconPrimitives<V>
 ): Component {
+
+    var property: KProperty<*>? = null
+
+    val name: String get() =  property?.name?:"Undefined"
+
 
     override var verbosity: Verbosity = Verbosity.Info
     abstract override val componentName: String
 
     //internal var resolver: HoconConfigResolver<T>? = null
-    val receiverType: TypeToken<T> get() = resolver.typeToken
+    protected val resolver:  HoconConfigResolver<T> get() = receiver.resolver
+    val receiverType: TypeToken<T> get() = receiver.resolver.typeToken
     val valueTypeToken: TypeToken<V> get() = hoconPrimitive.typeToken
 
     var value:V? = null
         internal set
-
-    val name: String = property.name
 
     protected val valueTypeName: String get() = valueTypeToken.typeName
     protected val formatMessage : (HoconEntryBase<*, *>, String) -> String = {entry, text->
@@ -41,10 +44,13 @@ sealed class HoconEntryBase<T: Any, V: Any>(
         onValueAvailable = callback
     }
     abstract fun readConfig(configModel: T, config: Config)
+
     protected fun checkRawValue(configModel: T, config: Config, required: Boolean):V?{
          val found = config.hasPath(name)
+
+
         if (!found && required) {
-            val msg =formatMessage(this, "$name is required but missing")
+            val msg = formatMessage(this, "$name is required but missing")
             throw managedException(msg)
         }
         if(!found){
@@ -62,60 +68,59 @@ sealed class HoconEntryBase<T: Any, V: Any>(
         return  parsedValue
     }
 
-    fun registerInResolver(entry: HoconEntryBase<T, V>){
-        resolver.register(entry)
+
+    fun initialize(delegateProperty: KProperty<*>){
+        property = delegateProperty
+        resolver.register(this)
     }
 
     override fun toString(): String = componentName
 }
 
-class HoconEntry<T: Any, V: Any>(
-    resolver: HoconConfigResolver<T>,
-    property: KProperty<*>,
+class HoconEntry<T: HoconResolvable<T>, V: Any>(
+    receiver: T,
     hoconPrimitive:  HoconPrimitives<V>,
     val mandatory: Boolean
-): HoconEntryBase<T, V>(resolver, property, hoconPrimitive) {
-    override val componentName: String get() =  "HoconNestedEntry<${receiverType.typeName}, $valueTypeName>[${property.name}]"
-    init {
-        registerInResolver(this)
-    }
+): HoconEntryBase<T, V>(receiver, hoconPrimitive) {
+
+
+    override val componentName: String get() =  "HoconNestedEntry<${receiverType.typeName}, $valueTypeName>[${name}]"
+
     override fun readConfig(configModel: T, config: Config) {
+
         checkRawValue(configModel, config, mandatory)
     }
 }
 
-class HoconNullableEntry<T: Any, V: Any>(
-    resolver: HoconConfigResolver<T>,
-    property: KProperty<*>,
+class HoconNullableEntry<T: HoconResolvable<T>, V: Any>(
+    receiver: T,
     hoconPrimitive:  HoconPrimitives<V>,
-): HoconEntryBase<T, V>(resolver, property, hoconPrimitive) {
+): HoconEntryBase<T, V>(receiver,  hoconPrimitive) {
     val hoconNullable = HoconNullable
-    override val componentName: String = "HoconNullableEntry<${receiverType.typeName}, ${valueTypeName}>[${property.name}]"
-    init {
-        registerInResolver(this)
-    }
+    override val componentName: String = "HoconNullableEntry<${receiverType.typeName}, ${valueTypeName}>[${name}]"
+
+
+
     override fun readConfig(configModel: T, config: Config) {
         checkRawValue(configModel, config, false)
     }
 }
 
-class HoconNestedEntry<T: Any, V: HoconResolvable<V>>(
-    resolver: HoconConfigResolver<T>,
-    property: KProperty<*>,
+class HoconNestedEntry<T: HoconResolvable<T>, V: HoconResolvable<V>>(
+    receiver: T,
     hoconPrimitive: HoconPrimitives<Any>,
     val nestedClass: V,
-): HoconEntryBase<T, Any>(resolver, property, hoconPrimitive) {
-    override val componentName: String = "HoconNestedEntry<${receiverType.typeName}, ${typeToken.typeName}>[${property.name}]"
+): HoconEntryBase<T, Any>(receiver, hoconPrimitive) {
+    override val componentName: String = "HoconNestedEntry<${receiverType.typeName}, ${typeToken.typeName}>[${name}]"
     val nestedResolver: HoconConfigResolver<V> get() = nestedClass.resolver
     val typeToken: TypeToken<V> get() = nestedClass.resolver.typeToken
 
     init {
-        resolver.register(this)
         resolver.registerMember(nestedClass)
     }
 
     private  fun forwardConfig(config: Config) {
-        nestedClass.readConfig(config)
+        nestedClass.applyConfig(config)
     }
     override fun readConfig(configModel: T, config: Config) {
         if (!config.hasPath(name)) {
@@ -127,20 +132,16 @@ class HoconNestedEntry<T: Any, V: HoconResolvable<V>>(
     }
 }
 
-class HoconListEntry<T: Any, V: Any>(
-    resolver: HoconConfigResolver<T>,
-    property: KProperty<*>,
+class HoconListEntry<T: HoconResolvable<T>, V: Any>(
+    receiver: T,
     hoconPrimitive:  HoconPrimitives<V>,
-): HoconEntryBase<T, V>(resolver, property, hoconPrimitive) {
+): HoconEntryBase<T, V>(receiver, hoconPrimitive) {
 
-    override val componentName: String = "HoconListEntry<${receiverType.typeName}, ${valueTypeName}>[${property.name}]"
+    override val componentName: String = "HoconListEntry<${receiverType.typeName}, ${valueTypeName}>[${name}]"
 
     var listValue: List<V> = emptyList()
 
 
-    init {
-        registerInResolver(this)
-    }
 
     override fun readConfig(configModel: T, config: Config){
         val found = config.hasPath(name)

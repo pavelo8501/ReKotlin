@@ -89,7 +89,7 @@ class ErrorRecord(
                         "ThrowingCallSite: (actual exception place)".colorize(Colour.Yellow) + callSite.toStackTraceFormat()
                     }
                 } else {
-                    SpecialChars.Empty.char
+                    SpecialChars.empty
                 }
             }
         }

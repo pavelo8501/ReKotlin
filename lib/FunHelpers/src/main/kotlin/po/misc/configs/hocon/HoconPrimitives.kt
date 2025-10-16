@@ -3,6 +3,7 @@ package po.misc.configs.hocon
 import com.typesafe.config.ConfigValueType
 import po.misc.reflection.primitives.BooleanClass
 import po.misc.reflection.primitives.IntClass
+import po.misc.reflection.primitives.LongClass
 import po.misc.reflection.primitives.PrimitiveClass
 import po.misc.reflection.primitives.StringClass
 import po.misc.reflection.primitives.WildCardClass
@@ -22,11 +23,19 @@ object HoconString : HoconPrimitives<String>{
     override val typeToken: TypeToken<String> = TypeToken.create()
 }
 
-object HoconNumber : HoconPrimitives<Int>{
+object HoconInt : HoconPrimitives<Int>{
     override val primitiveClass: IntClass = IntClass
     override val hoconType:  ConfigValueType = ConfigValueType.NUMBER
     override val typeToken: TypeToken<Int> = TypeToken.create()
 }
+
+
+object HoconLong : HoconPrimitives<Long>{
+    override val primitiveClass: LongClass = LongClass
+    override val hoconType:  ConfigValueType = ConfigValueType.NUMBER
+    override val typeToken: TypeToken<Long> = TypeToken.create()
+}
+
 
 object HoconBoolean : HoconPrimitives<Boolean>{
     override val primitiveClass: BooleanClass = BooleanClass
@@ -53,7 +62,5 @@ object HoconList : HoconPrimitives<String>{
     override val hoconType:  ConfigValueType = ConfigValueType.LIST
     override val typeToken: TypeToken<String> = TypeToken.create()
 }
-
-
 
 object HoconNullable

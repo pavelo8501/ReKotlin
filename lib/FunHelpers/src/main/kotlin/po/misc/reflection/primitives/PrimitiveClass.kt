@@ -24,8 +24,6 @@ sealed interface PrimitiveClass<T: Any>: TraceableContext{
          val byClass: Map<KClass<out Any>, PrimitiveClass<*>> = all.associateBy { it.kClass }
 
         fun ofClass(kClass: KClass<*>?): PrimitiveClass<*>? = byClass[kClass]
-
-
     }
 }
 

@@ -4,6 +4,7 @@ import po.misc.collections.StaticTypeKey
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.printable.companion.PrintableTemplateBase
+import po.misc.types.token.TypeToken
 
 
 abstract class DataProcessorBase<T:PrintableBase<T>>(
@@ -17,7 +18,7 @@ abstract class DataProcessorBase<T:PrintableBase<T>>(
     val recordsCount : Int get() = recordsBacking.size
     val activeRecord: T? get() = recordsBacking.lastOrNull()
 
-    private val debugWhiteList: MutableMap<Int, StaticTypeKey<*>> = mutableMapOf()
+    private val debugWhiteList: MutableMap<Int, TypeToken<*>> = mutableMapOf()
 
     init {
         topProcessor?.let {
@@ -42,7 +43,7 @@ abstract class DataProcessorBase<T:PrintableBase<T>>(
         activeRecord?.arbitraryMap?.putPrintable(record)
     }
 
-    protected fun updateDebugWhiteList(whiteList: MutableMap<Int, StaticTypeKey<*>>){
+    protected fun updateDebugWhiteList(whiteList: MutableMap<Int, TypeToken<*>>){
         debugWhiteList.clear()
         debugWhiteList.putAll(whiteList)
     }
