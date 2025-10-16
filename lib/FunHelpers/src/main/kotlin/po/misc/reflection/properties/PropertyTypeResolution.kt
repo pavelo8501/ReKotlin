@@ -13,6 +13,7 @@ import po.misc.reflection.primitives.LocalDateTimeClass
 import po.misc.reflection.primitives.LongClass
 import po.misc.reflection.primitives.PrimitiveClass
 import po.misc.reflection.primitives.StringClass
+import po.misc.reflection.primitives.WildCardClass
 import po.misc.types.castOrManaged
 import po.misc.types.helpers.simpleOrNan
 import po.misc.types.safeCast
@@ -115,6 +116,10 @@ fun <T: Any> KProperty1<T, *>.toTypedContainer(
                 ReadOnlyStringProperty(this.castOrManaged(this))
             }
         }
+
+       WildCardClass -> {
+           TODO("Do no")
+       }
     }
 }
 

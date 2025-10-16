@@ -55,7 +55,6 @@ fun <D: Any> Config.mapTo(dataObject:D, keyNameProvider:(String)-> String):D{
 fun <D: Any> Config.mapToByKeys(
     dataObject: D,
 ){
-
     fun warnIfContainerReadOnly(container:  PropertySimpleTypeContainer<D>?) {
         if (container != null) {
             if (!container::class.isSubclassOf(MutableProperty::class)) {
@@ -68,8 +67,6 @@ fun <D: Any> Config.mapToByKeys(
 
     val kClass = dataObject::class.castOrManaged<KClass<D>>(this)
     val properties = kClass.memberProperties.associateBy { it.name  }
-
-
 
     for ((rawKey, value) in entrySet()) {
 

@@ -5,6 +5,7 @@ import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
 import po.misc.exceptions.ManagedException
+import po.misc.exceptions.stack_trace.extractTrace
 
 interface Component : TraceableContext{
     val verbosity: Verbosity
@@ -36,7 +37,9 @@ interface Component : TraceableContext{
 }
 
 fun Component.managedException(message: String): ManagedException{
-   return ManagedException(this, message)
+    val exception =  ManagedException(this, message)
+    exception.extractTrace(this)
+    return exception
 }
 
 

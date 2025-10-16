@@ -281,3 +281,8 @@ inline fun <reified T: Any> List<*>.filterByTypeWhere(
     vararg typeTokens: TypeToken<*>,
     predicate: (T)-> Boolean
 ): List<T> = filterByType<T>(mandatoryOne, *typeTokens).filter(predicate)
+
+
+@JvmName("filterByTypeNonReifiedByToken")
+fun <T: Any> List<*>.filterByType(typeToken: TypeToken<T>): List<T>
+        = typedFiltrator<T>(this, typeToken.kClass, emptyList())

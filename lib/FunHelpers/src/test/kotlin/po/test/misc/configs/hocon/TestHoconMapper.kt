@@ -1,13 +1,28 @@
 package po.test.misc.configs.hocon
 
 import com.typesafe.config.ConfigFactory
+import com.typesafe.config.ConfigValueType
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import po.misc.configs.assets.AssetsKeyConfig
+import po.misc.configs.hocon.HoconBoolean
+import po.misc.configs.hocon.HoconList
+import po.misc.configs.hocon.HoconListProperty
+import po.misc.configs.hocon.HoconNullable
+import po.misc.configs.hocon.HoconNumber
+import po.misc.configs.hocon.HoconResolvable
+import po.misc.configs.hocon.HoconString
+import po.misc.configs.hocon.createResolver
+import po.misc.configs.hocon.hoconListProperty
+import po.misc.configs.hocon.hoconNestedProperty
+import po.misc.configs.hocon.hoconProperty
 import po.misc.configs.hocon.mapTo
 import po.misc.configs.hocon.mapToByKeys
+import po.misc.configs.hocon.readConfig
 import po.misc.io.captureOutput
+import po.misc.types.token.TypeToken
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class TestHoconMapper {
@@ -23,6 +38,38 @@ class TestHoconMapper {
         var value: Int = 0,
     )
 
+    internal class NestedConfig(): HoconResolvable<NestedConfig>{
+        override val resolver =  createResolver()
+        val number : Int by hoconProperty(HoconNumber)
+        val boolean : Boolean by hoconProperty(HoconBoolean)
+    }
+
+    internal class Config(): HoconResolvable<Config>{
+        override val resolver =  createResolver()
+        val categories by hoconListProperty<Config, String>()
+        val nested: NestedConfig  by hoconNestedProperty(NestedConfig())
+        val assetsPath : String by hoconProperty(HoconString)
+        val optional : String by hoconProperty(HoconString, mandatory = false)
+        val nullableParam : String?  by hoconProperty(HoconNullable, HoconString)
+    }
+
+    @Test
+    fun `Hocon property delegate`(){
+
+        val factory = ConfigFactory.load().getConfig("app")
+
+        val config = Config()
+
+        config.readConfig(factory)
+
+        assertEquals("/var/data/assets", config.assetsPath)
+        assertNull(config.nullableParam)
+        assertEquals("Optional value", config.optional)
+        assertEquals(42, config.nested.number)
+        assertEquals(true, config.nested.boolean)
+        assertEquals(3, config.categories.size)
+    }
+
     @Test
     fun  `Config keys can be safely mapped to data models properties`(){
         val config = ConfigFactory.load().getConfig("app")
@@ -35,10 +82,8 @@ class TestHoconMapper {
         assertEquals(10, configModel.value)
     }
 
-
     @Test
     fun  `Config keys mapping produce warning if write is impossible`(){
-
         val config = ConfigFactory.load().getConfig("app")
         val configModel = MisusedConfig()
         val output = captureOutput {
