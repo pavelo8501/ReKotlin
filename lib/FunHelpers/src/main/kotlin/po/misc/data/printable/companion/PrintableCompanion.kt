@@ -1,28 +1,22 @@
 package po.misc.data.printable.companion
 
-import po.misc.collections.StaticTypeKey
 import po.misc.data.json.JsonDescriptor
 import po.misc.data.json.JsonDescriptorBase
 import po.misc.data.json.models.JsonObject
-import po.misc.data.printable.PrintableBase
+import po.misc.data.printable.Printable
 import po.misc.functions.dsl.DSLConstructor
-import po.misc.types.getOrManaged
+import po.misc.types.token.Tokenized
 import po.misc.types.token.TypeToken
-import kotlin.reflect.KClass
 
-abstract class PrintableCompanion<T : PrintableBase<T>>(private val classProvider: ()-> KClass<T>) {
-    private var typeKeyBacking: TypeToken<T>? = null
-    val printableClass: KClass<T> by lazy { classProvider() }
-    val typeKey: TypeToken<T> get() = typeKeyBacking.getOrManaged("typeKey")
+
+abstract class PrintableCompanion<T : Printable>(
+   override  val typeToken: TypeToken<T>
+): Tokenized<T>{
 
     val metaDataInitialized: Boolean
-        get() = typeKeyBacking != null
+        get() = true
 
     internal var jsonDescriptor: JsonDescriptorBase<T>? = null
-
-    init {
-
-    }
 
     val templates : MutableList<PrintableTemplateBase<T>>  = mutableListOf()
 
@@ -39,7 +33,6 @@ abstract class PrintableCompanion<T : PrintableBase<T>>(private val classProvide
         descriptor.build()
         return descriptor
     }
-
 
 //    fun buildJson(dslLambda: DSLConstructor<T, JsonObject<T>>.()-> Unit): JsonDescriptor2<T> {
 //        val descriptor = JsonDescriptor2<T>()

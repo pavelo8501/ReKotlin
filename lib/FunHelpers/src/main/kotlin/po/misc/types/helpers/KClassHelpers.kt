@@ -21,5 +21,5 @@ data class KClassParam(
 
 
 fun KClass<*>.toKeyParams():KClassParam{
-    return KClassParam(simpleOrNan(), qualifiedName?:"N/A", hashCode(), typeParameters.size)
+    return KClassParam(simpleOrAnon, qualifiedName?:"N/A", hashCode(), typeParameters.size)
 }

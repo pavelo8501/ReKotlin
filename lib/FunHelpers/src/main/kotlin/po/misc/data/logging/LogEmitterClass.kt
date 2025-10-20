@@ -1,16 +1,17 @@
 package po.misc.data.logging
 
 
+import po.misc.context.tracable.NotificationTopic
 import po.misc.data.logging.models.ContextMessage
 import po.misc.data.processors.SeverityLevel
 
-enum class Verbosity{
-    Info,
-    Warnings,
+enum class Verbosity(val minTopic: NotificationTopic){
+    Debug(NotificationTopic.Debug),
+    Info(NotificationTopic.Info),
+    Warnings(NotificationTopic.Warning)
 }
 
  class EmitterConfig {
-
      var verbosity: Verbosity = Verbosity.Info
          private set
 

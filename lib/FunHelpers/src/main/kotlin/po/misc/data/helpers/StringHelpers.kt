@@ -1,25 +1,18 @@
 package po.misc.data.helpers
 
 import po.misc.context.CTX
-import po.misc.context.Component
-import po.misc.context.TraceableContext
+import po.misc.context.tracable.TraceableContext
 import po.misc.data.PrettyPrint
 import po.misc.data.strings.StringFormatter
 import po.misc.data.strings.stringify
-import po.misc.data.strings.stringifyThis
-import po.misc.data.strings.textColorizer
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.exceptions.trackable.TrackableException
 import po.misc.exceptions.stack_trace.ExceptionTrace
 import po.misc.exceptions.throwableToText
 import po.misc.types.helpers.KClassParam
-import po.misc.types.helpers.simpleOrNan
 import po.misc.types.helpers.toKeyParams
 import kotlin.collections.forEach
-import kotlin.reflect.KClass
-import kotlin.reflect.KTypeParameter
-import kotlin.reflect.full.starProjectedType
 import kotlin.text.StringBuilder
 
 
@@ -63,9 +56,10 @@ fun Any.output(
     colour: Colour? = null,
     transform: (String)-> String
 ){
+
     val formated = stringify(colour, transform)
     if(prefix.isNotBlank()){
-        println( textColorizer(prefix, colour))
+        println(Colour.applyColour(prefix, colour))
         print(formated.toString())
     }else{
         formated.output()
@@ -80,7 +74,7 @@ fun List<Any>.output(
     transform: (String)-> String
 ){
     if(prefix.isNotBlank()){
-        println(textColorizer(prefix, colour))
+        println(Colour.applyColour(prefix, colour))
     }
     forEach {
         it.stringify(colour, transform).output()
@@ -92,13 +86,12 @@ fun List<Any>.output(
     colour: Colour? = null
 ){
     if(prefix.isNotBlank()){
-        println(textColorizer(prefix, colour))
+        println(Colour.applyColour(prefix, colour))
     }
     forEach {
         it.stringify(colour).output()
     }
 }
-
 
 
 fun <T: Any> T.output(debugProvider: DebugProvider): KClassParam{
@@ -157,6 +150,7 @@ fun <T: Any> T?.toStringIfNotNull(textIfNull: String? = null , builder:(T)-> Str
 
 fun String.stripAfter(char: Char): String = substringBefore(char)
 
+
 private fun outputCreator(
     target: Any,
     colour: Colour?,
@@ -185,56 +179,6 @@ private fun outputCreator(
 }
 
 
-private fun outputKnownClasses(source: Any): Boolean{
-    var outputStr = ""
-    when(source){
-        is KClass<*>->{
-            outputStr = buildString {
-                appendLine("KClass<${source.simpleOrNan()}>")
-            }
-        }
-        is KTypeParameter->{
-            outputStr = buildString {
-                appendLine("KTypeParameter[${source.name}]")
-                appendLine("Is reified:" + source.isReified)
-                appendLine("Upper Bounds:" + source.upperBounds)
-                appendLine("StarProjectedType:" + source.starProjectedType)
-            }
-        }
-    }
-  return  if(outputStr.isNotBlank()){
-        println(outputStr)
-        true
-    }else{
-        false
-    }
-}
-
-
-//fun Any.output(colour: Colour? = null, outputForwarder:((String)-> String)? = null) {
-//    println("")
-//    if(outputKnownClasses(this)){
-//        return
-//    }
-//    outputForwarder?.let {
-//       val string = it.invoke(this.toString())
-//        outputCreator(string, colour = colour, null)
-//    }?:run {
-//
-//        outputCreator(this, colour = colour, null)
-//    }
-//}
-
-//fun <T: Component>  T.output(colour: Colour? = null, outputForwarder:((T)-> String)? = null) {
-//    outputForwarder?.let {
-//        val string = it.invoke(this)
-//        outputCreator(string, colour = colour, null)
-//    }?:run {
-//        outputCreator(this, colour = colour, null)
-//    }
-//}
-
-
 fun Throwable.output(){
 
     fun exceptionTraceToFormated(exceptionTrace : ExceptionTrace): String{
@@ -248,8 +192,6 @@ fun Throwable.output(){
             }
         }
     }
-
-
     val text =  when(this){
         is TrackableException->{
            val trace =  exceptionTraceToFormated(exceptionTrace)
@@ -266,21 +208,6 @@ fun Throwable.output(){
     println(text)
 }
 
-//fun Array<Any>.output(colour: Colour? = null, outputForwarder:((String)-> String)? = null){
-//    iterator().forEach {
-//
-//        outputCreator(it, colour, outputForwarder)
-//    }
-//}
-
-
-//fun <T: Any>  List<T>.output(prefix: String, colour: Colour? = null, outputForwarder:((T)-> String)? = null){
-//
-//    forEach {
-//        outputForwarder?.invoke(it)
-//        outputCreator(it, colour, null)
-//    }
-//}
 
 @JvmName("outputTraceableContext")
 fun <T: TraceableContext> List<T>.output(provider: OutputProvider= SyncPrint, outputBuilder:T.()-> String){

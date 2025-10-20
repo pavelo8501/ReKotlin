@@ -11,6 +11,7 @@ import po.misc.data.styles.text
 import po.misc.data.templates.matchTemplate
 import po.misc.data.templates.templateRule
 import po.misc.functions.dsl.helpers.nextBlock
+import po.misc.types.token.TypeToken
 import kotlin.test.assertEquals
 
 class TestPrintableTemplate {
@@ -32,7 +33,7 @@ class TestPrintableTemplate {
 
         override val self: PrintableRecord = this
 
-        companion object: PrintableCompanion<PrintableRecord>({PrintableRecord::class}){
+        companion object: PrintableCompanion<PrintableRecord>(TypeToken.create()){
 
             val Printable : Template<PrintableRecord> = createTemplate{
                 nextLine {

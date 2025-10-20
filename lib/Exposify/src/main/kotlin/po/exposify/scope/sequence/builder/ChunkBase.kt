@@ -21,7 +21,7 @@ import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.functions.containers.DeferredContainer
 import po.misc.functions.containers.LambdaHolder
-import po.misc.types.type_data.TypeData
+import po.misc.types.token.TypeToken
 
 
 enum class ChunkType {
@@ -34,7 +34,7 @@ sealed class ChunkBase<DTO, D, R> : CTX where DTO : ModelDTO, D : DataModel, R :
     abstract val chunkType: ChunkType
     val withInputValueLambda: LambdaHolder<D> = LambdaHolder(this)
 
-    val switchContainers: MutableMap<TypeData<*>, SwitchChunkContainer<*, *, DTO, D>> = mutableMapOf()
+    val switchContainers: MutableMap<TypeToken<*>, SwitchChunkContainer<*, *, DTO, D>> = mutableMapOf()
 
     var parameterCallback: ((Long) -> R)? = null
 
@@ -163,10 +163,6 @@ sealed class ListResultChunks<DTO, D>(
         configContainer.resolve(this)
     }
 
-    fun dataInputProvided(dataInput: List<D>): ResultList<DTO, D> {
-        TODO("Not yet")
-    }
-
     suspend fun triggerList(dtoClass: RootDTO<DTO, D, *>, dataModels: List<D>): ResultList<DTO, D> {
         TODO("Part of refactro")
 //        return when (this) {
@@ -221,7 +217,6 @@ class PickChunk<DTO, D>(
         identity.setNamePattern { "PickChunk<${commonDTOType.dtoType.typeName}, ${commonDTOType.dataType.typeName}>" }
     }
 
-
     suspend fun pick(
         ownDTOClass: RootDTO<DTO, D, *>,
         conditions: SimpleQuery
@@ -233,29 +228,6 @@ class PickChunk<DTO, D>(
     suspend fun pickById(ownDTOClass: RootDTO<DTO, D, *>, id: Long): ResultSingle<DTO, D> =
         ownDTOClass.executionContext.pick(id)
 
-
-    fun <F : ModelDTO, FD : DataModel> pickSwitching(
-        parentResult: ResultSingle<F, FD>,
-        ownDTOClass: DTOClass<DTO, D, *>,
-        parameter: Long,
-    ): ResultSingle<DTO, D> {
-        TODO("Part of refactro")
-//        return withDTOContextCreating(parentResult.getAsCommonDTO(), ownDTOClass) {
-//            pick(parameter)
-//        }
-    }
-
-
-    fun <F : ModelDTO, FD : DataModel> pickSwitching(
-        parentResult: ResultSingle<F, FD>,
-        ownDTOClass: DTOClass<DTO, D, *>,
-        whereQuery: DeferredContainer<WhereQuery<*>>,
-    ): ResultSingle<DTO, D> {
-        TODO("Part of refactro")
-//        return withDTOContextCreating(parentResult.getAsCommonDTO(), ownDTOClass) {
-//            pick(whereQuery.resolve())
-//        }
-    }
 }
 
 class UpdateChunk<DTO, D>(
@@ -275,18 +247,6 @@ class UpdateChunk<DTO, D>(
         input: D
     ): ResultSingle<DTO, D> = dtoClass.executionContext.update(input)
 
-
-    suspend fun <F : ModelDTO, FD : DataModel> updateSwitching(
-        parentResult: ResultSingle<F, FD>,
-        ownDTOClass: DTOClass<DTO, D, *>,
-        input: D
-    ): ResultSingle<DTO, D> {
-        TODO("Part of refactro")
-//            val result = withDTOContextCreating(parentResult.getAsCommonDTO(), ownDTOClass) {
-//                update(input, this)
-//            }
-//            result
-//        }
 }
 
 class SelectChunk<DTO, D>(
@@ -310,30 +270,6 @@ class SelectChunk<DTO, D>(
         runTaskAsync("update(query)") {
             dtoClass.executionContext.select(query.resolve())
         }.resultOrException()
-
-
-    fun <F : ModelDTO, FD : DataModel> selectSwitching(
-        parentDTO: CommonDTO<F, FD, *>,
-        ownDTOClass: DTOClass<DTO, D, *>
-
-    ): ResultList<DTO, D> {
-        TODO("Part of refactro")
-//        return withDTOContextCreating(parentDTO, ownDTOClass) {
-//            select()
-//        }
-    }
-
-    fun <F : ModelDTO, FD : DataModel> selectSwitching(
-        parentResult: CommonDTO<F, FD, *>,
-        ownDTOClass: DTOClass<DTO, D, *>,
-        whereQuery: DeferredContainer<WhereQuery<*>>,
-    ): ResultList<DTO, D> {
-        TODO("Part of refactro")
-
-//        return withDTOContextCreating(parentResult,  ownDTOClass) {
-//            select(whereQuery.resolve())
-//        }
-    }
 }
 
 class UpdateListChunk<DTO, D>(
@@ -349,24 +285,7 @@ class UpdateListChunk<DTO, D>(
         identity.setNamePattern { "UpdateListChunk<${commonDTOType.dtoType.typeName}, ${commonDTOType.dataType.typeName}>" }
     }
 
-    suspend fun update(
-        dtoClass: RootDTO<DTO, D, *>,
-        input: List<D>
-    ): ResultList<DTO, D> = dtoClass.executionContext.update(input)
-
-
-    suspend fun <F : ModelDTO, FD : DataModel> updateSwitching(
-        parentResult: ResultSingle<F, FD>,
-        ownDTOClass: DTOClass<DTO, D, *>,
-        input: List<D>
-    ): ResultList<DTO, D> {
-        TODO("Part of refactro")
-
-//        val result = withDTOContextCreating(parentResult.getAsCommonDTO(), ownDTOClass) {
-//            update(input, this)
-//        }
-//        result
-    }
-}
+    suspend fun update(dtoClass: RootDTO<DTO, D, *>, input: List<D>): ResultList<DTO, D> =
+        dtoClass.executionContext.update(input)
 
 }

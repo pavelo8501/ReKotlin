@@ -9,10 +9,8 @@ import po.exposify.dto.DTOBase
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.misc.interfaces.Copyable
-import po.misc.types.Tokenized
-import po.misc.types.Typed
-import po.misc.types.type_data.TypeData
 import po.misc.types.containers.ThreeTypeRegistry
+import po.misc.types.token.Tokenized
 import po.misc.types.token.TypeToken
 import kotlin.reflect.KClass
 import kotlin.reflect.KType

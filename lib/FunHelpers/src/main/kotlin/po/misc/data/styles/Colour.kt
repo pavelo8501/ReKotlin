@@ -1,5 +1,6 @@
 package po.misc.data.styles
 
+
 enum class Colour(val code: String) {
     Default(""),
     Red("\u001B[31m"),
@@ -21,6 +22,44 @@ enum class Colour(val code: String) {
     RESET("\u001B[0m");
 
     companion object {
+
+        data class AnsiColorSegment(
+            val start: Int,    // index of color code
+            val end: Int,      // index where it is reset
+            val code: String   // the actual ANSI start code like \u001B[31m
+        )
+
+        val ANSI_COLOR_REGEX: Regex = Regex("\\u001B\\[(?!0m)[0-9;]*m")
+        val ANSI_START_REGEX: Regex = Regex("\u001B\\[(?!0m)[0-9;]*m")
+        val ANSI_RESET_REGEX: Regex = Regex("\u001B\\[0m")
+
+        private fun extractColorSegments(text: String): List<AnsiColorSegment> {
+            val segments = mutableListOf<AnsiColorSegment>()
+            val starts = ANSI_START_REGEX.findAll(text).toList()
+            val resets = ANSI_RESET_REGEX.findAll(text).toList()
+            for (startMatch in starts) {
+                val resetMatch = resets.firstOrNull { it.range.first > startMatch.range.first }
+                if (resetMatch != null) {
+                    segments.add(
+                        AnsiColorSegment(
+                            start = startMatch.range.first,
+                            end = resetMatch.range.last + 1,
+                            code = startMatch.value
+                        )
+                    )
+                } else {
+                    segments.add(
+                        AnsiColorSegment(
+                            start = startMatch.range.first,
+                            end = text.length,
+                            code = startMatch.value
+                        )
+                    )
+                }
+            }
+            return segments
+        }
+
         fun fromValue(colourStr: String): Colour {
             entries.firstOrNull { it.code == colourStr }?.let {
                 return it
@@ -28,53 +67,43 @@ enum class Colour(val code: String) {
             return RESET
         }
 
-        fun fontColour(text: String, color: Colour): String{
+        fun colour(text: String, color: Colour): String{
             return "${color.code}$text${RESET.code}"
         }
 
-        fun makeOfColour(color: Colour,  text: String): String {
+        fun applyColour(text: String, colour: Colour?): String{
+            if(colour != null){
+                val segments = extractColorSegments(text)
+                return if(segments.isEmpty()){
+                    Colour.colour(text, colour)
+                }else {
+                    val result = StringBuilder()
+                    var lastIndex = 0
+                    segments.forEach { segment ->
+                        if (segment.start > lastIndex) {
+                            val before = text.substring(lastIndex, segment.start)
+                            result.append(Colour.colour(before, colour))
+                        }
+                        result.append(text.substring(segment.start, segment.end))
+                        lastIndex = segment.end
+                    }
+                    if (lastIndex < text.length) {
+                        val tail = text.substring(lastIndex)
+                        result.append(Colour.colour(tail, colour))
+                    }
+                    result.toString()
+                }
+            }else{
+                return text
+            }
+        }
+
+
+        fun makeOfColour(color: Colour, text: String): String {
             return if (text.contains("\u001B[")) {
                 text
             } else {
                 "${color.code}$text${RESET.code}"
-            }
-        }
-    }
-}
-
-enum class BGColour(val code: String) {
-
-    Red("\u001B[41m"),
-    Green("\u001B[42m"),
-    Yellow("\u001B[43m"),
-    Blue("\u001B[44m"),
-    Magenta("\u001B[45m"),
-    Cyan("\u001B[46m"),
-    White("\u001B[47m"),
-    RESET("\u001B[0m");
-
-    companion object {
-        fun fromValue(colourStr: String): BGColour {
-            entries.firstOrNull { it.code == colourStr }?.let {
-                return it
-            }
-            return RESET
-        }
-
-        fun makeOfColour(bgColour: BGColour, text: String): String {
-            return if (text.contains("\u001B[")) {
-                text
-            } else {
-                "${bgColour.code}$text${RESET.code}"
-            }
-        }
-
-
-        fun makeOfColour(bgColour: BGColour, colour: Colour, text: String): String {
-            return if (text.contains("\u001B[")) {
-                text
-            } else {
-                "${bgColour.code}${colour.code}$text${RESET.code}"
             }
         }
     }

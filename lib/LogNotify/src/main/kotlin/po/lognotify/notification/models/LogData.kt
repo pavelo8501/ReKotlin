@@ -19,6 +19,7 @@ import po.misc.data.styles.colorize
 import po.misc.exceptions.stack_trace.StackFrameMeta
 import po.misc.exceptions.toStackTraceFormat
 import po.misc.functions.dsl.helpers.nextBlock
+import po.misc.types.token.TypeToken
 
 
 class TaskEvent(
@@ -28,7 +29,7 @@ class TaskEvent(
 ) : PrintableBase<TaskEvent>(this) {
     override val self: TaskEvent = this
 
-    companion object : PrintableCompanion<TaskEvent>({ TaskEvent::class }) {
+    companion object : PrintableCompanion<TaskEvent>(TypeToken.create()) {
         val Message: Template<TaskEvent> =
             createTemplate {
                 nextBlock {
@@ -62,7 +63,7 @@ class ErrorRecord(
 ) : PrintableBase<ErrorRecord>(this) {
     override val self: ErrorRecord = this
 
-    companion object : PrintableCompanion<ErrorRecord>({ ErrorRecord::class }) {
+    companion object : PrintableCompanion<ErrorRecord>(TypeToken.create()) {
         val Default: Template<ErrorRecord> = createTemplate {
             nextLine {
                 message.colorize(Colour.Red)
@@ -89,7 +90,7 @@ class ErrorRecord(
                         "ThrowingCallSite: (actual exception place)".colorize(Colour.Yellow) + callSite.toStackTraceFormat()
                     }
                 } else {
-                    SpecialChars.empty
+                    SpecialChars.EMPTY
                 }
             }
         }
@@ -127,7 +128,7 @@ class LogData(
 
     override fun toString(): String = formattedString
 
-    companion object : PrintableCompanion<LogData>({ LogData::class }) {
+    companion object : PrintableCompanion<LogData>(TypeToken.create()) {
         val Header: Template<LogData> = createTemplate {
             nextBlock { handler ->
                 handler.applyToResult { row -> "[ $row ]".colorize(Colour.Blue) }

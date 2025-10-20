@@ -3,9 +3,8 @@ package po.misc.types.helpers
 import po.misc.data.PrettyPrint
 import po.misc.data.helpers.output
 import po.misc.data.styles.SpecialChars
-import po.misc.types.TokenHolder
-import po.misc.types.Tokenized
 import po.misc.types.safeCast
+import po.misc.types.token.TokenHolder
 import po.misc.types.token.TypeToken
 import kotlin.collections.mapNotNull
 import kotlin.reflect.KClass
@@ -29,7 +28,7 @@ data class Filtration(val reifiedClass: KClassParam, val initialCollectionSize: 
             return result
         }
         fun printout(): String{
-            return toString() + SpecialChars.newLine + "Comments: $commentsString"
+            return toString() + SpecialChars.NEW_LINE + "Comments: $commentsString"
         }
         override fun toString(): String {
           return "$name [Result : $result]"
@@ -62,7 +61,7 @@ data class Filtration(val reifiedClass: KClassParam, val initialCollectionSize: 
         return this
     }
     fun printout(): String{
-       return "${toString()} " + SpecialChars.newLine + operations.joinToString(separator = SpecialChars.newLine) {
+       return "${toString()} " + SpecialChars.NEW_LINE + operations.joinToString(separator = SpecialChars.NEW_LINE) {
             it.printout()
         }
     }
@@ -135,7 +134,7 @@ internal fun <T: Any> typedFiltrator(
             val token = candidate.typeToken
             operation.addComment("Candidates tokens type parameters: ${token.inlinedParamsName}")
             val required = typeParameters.sortedBy { it.simpleName }
-            val requiredAsString = required.joinToString(separator = ", ") { it.simpleOrNan() }
+            val requiredAsString = required.joinToString(separator = ", ") { it.simpleOrAnon }
             operation.addComment("Provided type parameters: $requiredAsString")
             operation.registerResult(token.inlinedParamClasses.containsAll(required))
         }
@@ -283,6 +282,14 @@ inline fun <reified T: Any> List<*>.filterByTypeWhere(
 ): List<T> = filterByType<T>(mandatoryOne, *typeTokens).filter(predicate)
 
 
-@JvmName("filterByTypeNonReifiedByToken")
-fun <T: Any> List<*>.filterByType(typeToken: TypeToken<T>): List<T>
-        = typedFiltrator<T>(this, typeToken.kClass, emptyList())
+@JvmName("filterByTypeNonReified")
+fun <T: Any>  List<*>.filterByType(
+    typeToken: TypeToken<T>,
+): List<T> = typedFiltrator<T>(this.toList(), typeToken.kClass, emptyList())
+
+fun <T: Any, P: Any>  Iterable<*>.filterByTypeAndToken(
+    expectedClass: KClass<T>,
+    typeToken: TypeToken<P>,
+): List<T> = typedFiltrator<T>(this.toList(), expectedClass, listOf(typeToken.kClass))
+
+

@@ -9,7 +9,8 @@ import po.misc.data.printable.companion.nextLine
 import po.misc.data.processors.SeverityLevel
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
-import po.misc.functions.dsl.helpers.nextBlock
+import po.misc.types.token.TypeToken
+
 
 class LogMessage(
     override val className: String,
@@ -29,7 +30,7 @@ class LogMessage(
         setDefaultTemplate(Message)
     }
 
-    companion object: PrintableCompanion<LogMessage>({LogMessage::class}){
+    companion object: PrintableCompanion<LogMessage>(TypeToken.create()){
         val Message: Template<LogMessage> = createTemplate {
             nextLine {
                 val methodName = methodName.toStringIfNotNull("") { "Exec : $it" }

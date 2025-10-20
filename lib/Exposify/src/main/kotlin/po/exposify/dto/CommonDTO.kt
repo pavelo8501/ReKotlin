@@ -90,17 +90,17 @@ sealed class CommonDTOBase<DTO, D, E>(
 
 
     protected fun calculateStatus(): DTOStatus {
-        if(dataStatus == DataStatus.PreflightCheckMock && dataContainer.isValueAvailable){
+        if(dataStatus == DataStatus.PreflightCheckMock && dataContainer.isAvailable){
             return DTOStatus.Complete
         }
         var resultingStatus: DTOStatus = DTOStatus.Uninitialized
-        if (dataContainer.isValueAvailable && entityContainer.isValueAvailable) {
+        if (dataContainer.isAvailable && entityContainer.isAvailable) {
             resultingStatus = DTOStatus.Complete
         }
-        if (dataContainer.isValueAvailable && !entityContainer.isValueAvailable) {
+        if (dataContainer.isAvailable && !entityContainer.isAvailable) {
             resultingStatus = DTOStatus.PartialWithData
         }
-        if (!dataContainer.isValueAvailable && entityContainer.isValueAvailable) {
+        if (!dataContainer.isAvailable && entityContainer.isAvailable) {
             resultingStatus = DTOStatus.PartialWithEntity
         }
         return resultingStatus

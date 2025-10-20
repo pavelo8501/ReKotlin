@@ -31,7 +31,5 @@ class TestContextAwareLogEmitter: ContextAware {
 
         assertEquals(methodName, debugMsg.methodName)
         assertEquals("Debug message", debugMsg.message)
-
     }
-
 }

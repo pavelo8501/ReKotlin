@@ -1,7 +1,7 @@
 package po.misc.types.token
 
 import po.misc.types.helpers.simpleNameOr
-import po.misc.types.helpers.simpleOrNan
+import po.misc.types.helpers.simpleOrAnon
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlin.reflect.KTypeParameter
@@ -29,7 +29,7 @@ class TypeSlot(val parameter:KTypeParameter){
             appendLine("Type Parameter: $name")
             appendLine("Class :" + ownClass.simpleNameOr("Not Available"))
             appendLine("IsReified: $isReified")
-            appendLine("Upper bounds: " + (upperBoundsClass.lastOrNull()?.simpleOrNan()?:"Not Available"))
+            appendLine("Upper bounds: " + (upperBoundsClass.lastOrNull()?.simpleOrAnon?:"Not Available"))
         }
     }
 }

@@ -81,7 +81,7 @@ class TestCallbackLoop {
             }
         }
         assertDoesNotThrow {
-            callbackLoop!!.start()
+            callbackLoop!!.startAsync(this)
         }
         assertIs<DefaultOutput>(onLoopData)
     }
@@ -104,7 +104,7 @@ class TestCallbackLoop {
             }
         }
 
-        loop.startAndWait()
+        loop.startSuspending(this)
         assertEquals(3, loopOutputCounter)
     }
 }

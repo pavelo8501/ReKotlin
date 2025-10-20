@@ -6,4 +6,20 @@ sealed interface FunctionType {
 
 }
 
+
+
 object Throwing: FunctionType
+
+
+sealed interface FunctionResultType
+
+
+/**
+ * For overloads with result type of Unit
+ */
+object NoResult: FunctionResultType
+
+/**
+ * For overloads with result type of Nothing
+ */
+object NoReturn: FunctionResultType

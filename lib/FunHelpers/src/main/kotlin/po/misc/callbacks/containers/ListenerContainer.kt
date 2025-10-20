@@ -1,8 +1,7 @@
 package po.misc.callbacks.containers
 
-import po.misc.callbacks.events.CallbackEventBase
 import po.misc.callbacks.events.EventHost
-import po.misc.callbacks.events.ParametrizedEvent
+import po.misc.callbacks.events.HostedEvent
 import po.misc.exceptions.handling.Suspended
 import kotlin.reflect.KClass
 
@@ -17,7 +16,7 @@ interface ListenerContainer<H: Any, T: Any, R: Any>{
 }
 
 
-class EventListeners<H: EventHost, T: Any, R: Any>(val event: ParametrizedEvent<H, T, R>): ListenerContainer<H, T, R>{
+class EventListeners<H: EventHost, T: Any, R: Any>(val event: HostedEvent<H, T, R>): ListenerContainer<H, T, R>{
 
     private val listenersSuspending = mutableMapOf<KClass<*>, suspend H.(T)->R>()
     private val listeners = mutableMapOf<KClass<*>, H.(T)->R>()

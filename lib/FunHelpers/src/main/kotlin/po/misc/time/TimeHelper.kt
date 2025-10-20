@@ -59,6 +59,9 @@ interface TimeHelper {
         return offsetTime.format(DateTimeFormatter.ofPattern("HH:mm:ss"))
     }
 
+
+    fun Instant.hoursFormated(hoursOffset: Int): String =  hoursFormated(this.atOffset(ZoneOffset.ofHours(hoursOffset)))
+
     /**
      * Formats an [Instant] to a full date-time string using `dd-MM-yyyy / HH:mm:ss` in UTC.
      *

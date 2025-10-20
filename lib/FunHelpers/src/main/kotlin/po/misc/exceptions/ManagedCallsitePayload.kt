@@ -1,7 +1,6 @@
 package po.misc.exceptions
 
 import po.misc.context.CTX
-import po.misc.context.TraceableContext
 import po.misc.data.helpers.replaceIfNull
 
 interface ThrowableCallSitePayload{

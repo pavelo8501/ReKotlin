@@ -28,10 +28,8 @@ fun  KType.normalizedName(): String {
  * anonymous or synthetic types.
  */
 val KClass<*>.simpleOrAnon: String get() = simpleName?:"Anonymous"
+val KClass<*>.qualifiedOrAnon: String get() = qualifiedName?:"Anonymous"
 
-fun KClass<*>.simpleOrNan(): String{
-    return simpleName?:"N/A"
-}
 
 fun KClass<*>?.simpleNameOr(default: String): String{
 

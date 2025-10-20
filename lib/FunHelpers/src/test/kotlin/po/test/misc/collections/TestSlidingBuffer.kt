@@ -6,7 +6,7 @@ import po.misc.collections.BufferItemStatus
 import po.misc.collections.SlidingBuffer
 import po.misc.collections.addToBuffer
 import po.misc.data.helpers.output
-import po.test.misc.setup.captureOutput
+import po.misc.io.captureOutput
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -105,7 +105,7 @@ class TestSlidingBuffer {
         }
         output.output()
         buffer.toString().output()
-        assertTrue(output.contains("Received Commit command but no onCommit function"), "Real output: $output")
+        assertTrue(output.output.contains("Received Commit command but no onCommit function"), "Real output: $output")
     }
 
     @Test

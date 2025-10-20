@@ -1,9 +1,14 @@
 package po.misc.configs.assets
 
-import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
-import po.misc.context.Component
+import po.misc.context.component.Component
+import po.misc.context.component.managedException
+import po.misc.data.TextBuilder
 import po.misc.data.logging.Verbosity
+import po.misc.data.styles.Colour
+import po.misc.data.styles.SpecialChars
+import po.misc.data.styles.colorize
+import po.misc.functions.Throwing
 import po.misc.io.deleteFile
 import po.misc.io.toSafePathName
 import kotlin.enums.enumEntries
@@ -60,7 +65,7 @@ inline fun <reified E: Enum<E>> AssetBuilder.buildFromEnum(
 class AssetManager(
     basePath: String,
     val jsonEncoder: Json,
-): Component, AssetBuilder {
+): Component, AssetBuilder, TextBuilder {
 
     data class ConfigData(
         var basePath: String,
@@ -103,10 +108,20 @@ class AssetManager(
         set(value) {  config.verbosity = value }
         get() =  config.verbosity
 
-    override val componentName: String = "AssetManager"
-    private val initSubject: String = "$componentName Initialization"
-    private val operationsSubject: String = "$componentName Update"
+
+    private val initSubject: String = "${componentID.name} Initialization"
+    private val operationsSubject: String = "$componentID Update"
     val registries : List<AssetRegistry> get() = registriesBacking
+
+    private val registriesText: String get() = registries.joinToString(separator = SpecialChars.NEW_LINE) {
+        it.toString()
+    }
+
+    private val notFoundMessage : (String) -> String = {
+        "Registry with $it no found".newLine {
+            "[Registry list]".colorize(Colour.Blue).newLine { registriesText.colorize(Colour.WhiteBright) }
+        }
+    }
 
     internal fun createPath(category: String): String{
        return "${config.basePath}/${category.toSafePathName()}.json"
@@ -150,11 +165,38 @@ class AssetManager(
         }
     }
 
-    fun getByCategory(category: String): AssetRegistry?{
-           return registries.firstOrNull{ it.category == category }
+    fun getRegistry(category: String): AssetRegistry?{
+          return registries.firstOrNull{ it.category == category }
+    }
+    fun getRegistry(category: Enum<*>): AssetRegistry? = getRegistry(category.name)
+
+    fun getRegistry(throwing: Throwing,  category: String): AssetRegistry{
+       return getRegistry(category).getOrThrow {
+            warn("Operations", notFoundMessage(category))
+            managedException("Registry $category not found")
+        }
+    }
+    fun getRegistry(throwing: Throwing, category: Enum<*>): AssetRegistry = getRegistry(throwing, category.name)
+
+    fun withRegistry(category: Enum<*>, block: AssetRegistry.()-> Unit){
+        val registry = getRegistry(category.name)
+        if(registry == null){
+            warn("Operations", notFoundMessage(category.name))
+        }else{
+            registry.block()
+        }
+    }
+    fun withRegistry(throwing: Throwing,category: Enum<*>, block: AssetRegistry.()-> Unit){
+        getRegistry(throwing, category).block()
     }
 
-    fun getByCategory(category: Enum<*>): AssetRegistry? = getByCategory(category.name)
+    fun getAsset(category: Enum<*>, assetName: NamedAsset): Asset?{
+       return getRegistry(category)?.get(assetName)
+    }
+
+    fun getAsset(throwing: Throwing,  category: Enum<*>, assetName: NamedAsset): Asset{
+        return getRegistry(throwing, category).get(throwing, assetName)
+    }
 
     fun purge(category: String) : Boolean{
        return registries.firstOrNull{ it.category ==  category}?.let {

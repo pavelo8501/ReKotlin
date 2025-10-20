@@ -55,7 +55,7 @@ class ManagedRoute(
 
         val result = partsToUrl(pathParts.toList(),  routeGroupPath)
 
-         routing.requestValue(this){routing->
+         routing.getValue(this){routing->
 
              routing.get(result){
                  val session =  call.sessionFromAttributes()?.let {
@@ -75,7 +75,7 @@ class ManagedRoute(
     fun managedPost(vararg pathParts:String, body: suspend RoutingContext.(AuthorizedSession) -> Unit) {
         val result = partsToUrl(pathParts.toList(), routeGroupPath)
 
-        routing.requestValue(this) { routing ->
+        routing.getValue(this) { routing ->
             routing.post(result) {
                 val session = call.sessionFromAttributes()?.let {
                     "Using existent".output(Colour.Green)
@@ -91,7 +91,7 @@ class ManagedRoute(
     }
 
     fun managedWrongPath(body: suspend RoutingContext.(AuthorizedSession) -> Unit) {
-        routing.requestValue(this) { routing ->
+        routing.getValue(this) { routing ->
             routing.post("{...}", body)
         }
     }

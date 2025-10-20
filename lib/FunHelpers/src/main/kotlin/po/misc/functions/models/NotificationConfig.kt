@@ -6,7 +6,6 @@ data class NotificationConfig(
    internal var warnSubscriptionOverwritten: Boolean = true,
    internal var warnSubscriptionFailed: Boolean = true,
    internal var warnOnValueRewrite: Boolean = false,
-
 ) {
 
     fun warnNoSubscriber(flag: Boolean):NotificationConfig{
@@ -28,6 +27,4 @@ data class NotificationConfig(
         warnOnValueRewrite = flag
         return this
     }
-
-
 }

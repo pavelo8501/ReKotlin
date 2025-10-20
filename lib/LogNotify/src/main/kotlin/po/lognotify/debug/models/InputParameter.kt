@@ -18,7 +18,7 @@ data class InputParameter(
     override fun toString(): String {
 
        val paramValue = if(items.isNotEmpty()){
-            items.joinToString(prefix = SpecialChars.newLine.toString()) { it.toString() }
+            items.joinToString(prefix = SpecialChars.NEW_LINE) { it.toString() }
         }else{
            value
        }

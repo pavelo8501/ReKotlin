@@ -5,7 +5,7 @@ import po.misc.data.logging.models.ContextMessage
 import po.misc.data.processors.SeverityLevel
 import po.misc.debugging.DebugTopic
 import po.misc.exceptions.metaFrameTrace
-import po.misc.types.helpers.simpleOrNan
+import po.misc.types.helpers.simpleOrAnon
 
 
 /**
@@ -97,7 +97,7 @@ class ContextAwareLogEmitter(
                producedBy.identifiedByName
            }
            is Any->{
-               "${producedBy::class.simpleOrNan()}  on behalf of $contextName"
+               "${producedBy::class.simpleOrAnon}  on behalf of $contextName"
            }
        }
       return  ContextMessage(

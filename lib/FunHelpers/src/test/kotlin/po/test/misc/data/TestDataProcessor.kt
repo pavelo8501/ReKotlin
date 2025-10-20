@@ -6,6 +6,7 @@ import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.processors.DataProcessor
 import po.misc.functions.dsl.helpers.nextBlock
+import po.misc.types.token.TypeToken
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -23,7 +24,7 @@ class TestDataProcessor {
 
         override val self: TopData = this
 
-        companion object: PrintableCompanion<TopData>({TopData::class}){
+        companion object: PrintableCompanion<TopData>(TypeToken.create()){
             val TopTemplate = createTemplate {
                 nextBlock {
                     "TopTemplate->$content"
@@ -43,7 +44,7 @@ class TestDataProcessor {
         val content : String
     ): PrintableBase<ForeignData>(this){
         override val self: ForeignData = this
-        companion object:PrintableCompanion<ForeignData>({ForeignData::class}){
+        companion object:PrintableCompanion<ForeignData>(TypeToken.create()){
             val Template = createTemplate {
                 nextBlock {
                     "Template1->$content"
@@ -59,7 +60,7 @@ class TestDataProcessor {
         val componentName: String = "Some name",
     ): PrintableBase<SubData>(this){
         override val self: SubData = this
-        companion object:PrintableCompanion<SubData>({SubData::class}){
+        companion object:PrintableCompanion<SubData>(TypeToken.create()){
             val SubTemplate = createTemplate {
                 nextBlock {
                     "Template1->$content"

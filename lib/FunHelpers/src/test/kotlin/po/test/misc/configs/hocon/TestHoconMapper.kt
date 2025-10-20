@@ -2,73 +2,77 @@ package po.test.misc.configs.hocon
 
 import com.typesafe.config.ConfigFactory
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertDoesNotThrow
-import po.misc.configs.assets.AssetsKeyConfig
-import po.misc.configs.hocon.HoconBoolean
-import po.misc.configs.hocon.HoconInt
-import po.misc.configs.hocon.HoconLong
-import po.misc.configs.hocon.HoconNullable
+import po.misc.callbacks.events.EventHost
+import po.misc.configs.hocon.models.HoconBoolean
+import po.misc.configs.hocon.models.HoconInt
+import po.misc.configs.hocon.models.HoconLong
+import po.misc.configs.hocon.models.HoconNullable
 import po.misc.configs.hocon.HoconResolvable
-import po.misc.configs.hocon.HoconString
-import po.misc.configs.hocon.applyConfig
+import po.misc.configs.hocon.builders.onResult
+import po.misc.configs.hocon.models.HoconString
 import po.misc.configs.hocon.createResolver
-import po.misc.configs.hocon.hoconListProperty
-import po.misc.configs.hocon.hoconNestedProperty
-import po.misc.configs.hocon.hoconProperty
-import po.misc.configs.hocon.hoconTransforming
-import po.misc.configs.hocon.mapTo
-import po.misc.configs.hocon.mapToByKeys
-import po.misc.io.captureOutput
+import po.misc.configs.hocon.extensions.applyConfig
+import po.misc.configs.hocon.properties.hoconList
+import po.misc.configs.hocon.properties.hoconNested
+import po.misc.configs.hocon.properties.hoconProperty
+import po.misc.configs.hocon.properties.propertyTransforming
+import po.misc.data.helpers.output
+import po.misc.data.styles.Colour
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
-import kotlin.test.assertTrue
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
-class TestHoconMapper {
+class TestHoconMapper: EventHost {
 
-   internal data class DefaultConfig(
-       var name: String = "",
-       var value: Int = 0,
-       override var assetsPath: String = ""
-   ): AssetsKeyConfig
-
-    data class MisusedConfig(
-        val name: String = "",
-        var value: Int = 0,
-    )
-
-    internal class NestedConfig(): HoconResolvable<NestedConfig>{
-        override val resolver =  createResolver()
-
-        val requestTimeOut by hoconProperty(HoconLong)
-
-        val socketTimeout by hoconTransforming(HoconLong){
-            it.milliseconds
-        }
-
-        val number  by hoconProperty(HoconInt)
-        val boolean : Boolean by hoconProperty(HoconBoolean)
+    internal class New() : HoconResolvable<New> {
+        override val resolver = createResolver()
     }
 
-    internal class Config(): HoconResolvable<Config>{
-        override val resolver =  createResolver()
+    internal class NestedConfig() : HoconResolvable<NestedConfig> {
+        override val resolver = createResolver()
 
+        val requestTimeOut by hoconProperty(HoconLong)
+        val socketTimeout by propertyTransforming(HoconLong) { long ->
+            long.milliseconds
+        }
+        val number by hoconProperty(HoconInt)
+        val boolean: Boolean by hoconProperty(HoconBoolean)
+    }
 
-        val categories by hoconListProperty<Config, String>()
-        val nested: NestedConfig  by hoconNestedProperty(NestedConfig())
-        val assetsPath : String by hoconProperty(HoconString)
-        val optional : String by hoconProperty(HoconString, mandatory = false)
-        val nullableParam : String?  by hoconProperty(HoconNullable, HoconString)
+    internal class Config() : HoconResolvable<Config> {
+        override val resolver = createResolver()
+
+        val categories by hoconList<Config, String>()
+        val nested: NestedConfig by hoconNested(NestedConfig())
+        val assetsPath: String by hoconProperty(HoconString)
+        val optional: String by hoconProperty(HoconString, mandatory = false)
+        val nullableParam: String? by hoconProperty(HoconNullable, HoconString)
+    }
+
+    internal class NewData(val test: TestHoconMapper) : HoconResolvable<NewData> {
+
+        override val resolver = createResolver(test) {
+            onResult(::parameter1) {
+                registerValidator { paramStr ->
+                    paramStr == "something"
+                }
+                onValidationSuccess {
+                    "Print that we are the successors of success".output(Colour.GreenBright)
+                }
+                onValidationFailure {
+                    "Better luck next time".output(Colour.YellowBright)
+                }
+            }
+        }
+        val parameter1: String by hoconProperty(HoconString)
+        val intParam1: Int by hoconProperty(HoconInt, mandatory = false)
     }
 
     @Test
-    fun `Hocon property delegate`(){
+    fun `Hocon property delegate`() {
 
         val factory = ConfigFactory.load().getConfig("app")
-
         val config = Config()
-
         config.applyConfig(factory)
 
         assertEquals("/var/data/assets", config.assetsPath)
@@ -80,46 +84,10 @@ class TestHoconMapper {
     }
 
     @Test
-    fun  `Config keys can be safely mapped to data models properties`(){
-        val config = ConfigFactory.load().getConfig("app")
-        val configModel = DefaultConfig()
-        assertDoesNotThrow {
-            config.mapToByKeys(configModel)
-        }
-
-        assertEquals("Some name", configModel.name)
-        assertEquals(10, configModel.value)
+    fun `Hocon createResolver validatable config builder`() {
+        val factory = ConfigFactory.load().getConfig("app2")
+        val newData = NewData(this)
+        newData.applyConfig(factory)
     }
 
-    @Test
-    fun  `Config keys mapping produce warning if write is impossible`(){
-        val config = ConfigFactory.load().getConfig("app")
-        val configModel = MisusedConfig()
-        val output = captureOutput {
-            assertDoesNotThrow {
-                config.mapToByKeys(configModel)
-            }
-        }
-        assertTrue {
-            output.output.contains("Write operation impossible property")
-        }
-        assertEquals("", configModel.name)
-        assertEquals(10, configModel.value)
-    }
-
-    @Test
-    fun  `Data models properties can be safely mapped to config`(){
-        val configData = DefaultConfig()
-        val config = ConfigFactory.load()
-        assertDoesNotThrow {
-            config.getString("app.name")
-        }
-        val processed = assertDoesNotThrow {
-            config.mapTo(configData) { propertyName ->
-                "app.$propertyName"
-            }
-        }
-        assertEquals("Some name", processed.name)
-        assertEquals(10, processed.value)
-    }
 }

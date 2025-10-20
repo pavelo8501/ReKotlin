@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test
 import po.misc.data.helpers.output
 import po.misc.data.styles.Colour
 import po.misc.debugging.controller.DebugController
-import po.misc.types.helpers.simpleOrNan
+import po.misc.types.helpers.simpleOrAnon
 
 
 interface DebugEnabled{
@@ -13,7 +13,7 @@ interface DebugEnabled{
 
 fun <T: Any, R> DebugEnabled.startDebug(listener: T, block: T.(DebugController<*>)-> R): R{
     val receiverClass = listener::class
-    "DebugEnabledClass invoked lambda with receiver ${receiverClass.simpleOrNan()}".output(Colour.GreenBright)
+    "DebugEnabledClass invoked lambda with receiver ${receiverClass.simpleOrAnon}".output(Colour.GreenBright)
     return  block(listener,  controller)
 }
 

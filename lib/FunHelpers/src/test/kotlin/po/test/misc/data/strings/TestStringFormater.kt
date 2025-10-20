@@ -6,7 +6,6 @@ import po.misc.data.PrettyPrint
 import po.misc.data.helpers.output
 import po.misc.data.strings.stringify
 import po.misc.data.strings.stringifyThis
-import po.misc.data.strings.textColorizer
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import kotlin.test.assertEquals
@@ -35,7 +34,7 @@ class TestStringFormater {
     @Test
     fun `TextColorizer colorize string not breaking previous colorization`(){
         val text = "Some un-colorized part. " + "Coloured inside".colorize(Colour.Magenta) + " Un-colorized tail"
-        textColorizer(text, Colour.CyanBright).output()
+        Colour.applyColour(text, Colour.CyanBright).output()
     }
 
     @Test

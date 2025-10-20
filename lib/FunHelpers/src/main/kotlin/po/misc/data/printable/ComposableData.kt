@@ -4,7 +4,7 @@ import po.misc.data.printable.grouping.ArbitraryDataMap
 import po.misc.interfaces.ValueBased
 
 interface ComposableData {
-    val arbitraryMap: ArbitraryDataMap<PrintableBase<*>>
+    val arbitraryMap: ArbitraryDataMap<Printable>
     val type: ValueBased? get() = null
-    fun setParent(parent: PrintableBase<*>):PrintableBase<*>
+    fun setParent(parent: Printable):Printable
 }

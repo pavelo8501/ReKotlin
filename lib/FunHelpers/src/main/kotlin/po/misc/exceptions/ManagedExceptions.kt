@@ -2,10 +2,11 @@ package po.misc.exceptions
 
 import po.misc.data.printable.knowntypes.PropertyData
 import po.misc.context.CTX
-import po.misc.context.TraceableContext
+import po.misc.context.tracable.TraceableContext
 import po.misc.coroutines.CoroutineInfo
 import po.misc.exceptions.models.ExceptionData
 import po.misc.exceptions.stack_trace.ExceptionTrace
+import po.misc.exceptions.stack_trace.extractTrace
 import po.misc.exceptions.trackable.TrackableException
 import kotlin.reflect.KClass
 
@@ -27,7 +28,7 @@ enum class HandlerType(val value: Int) {
  *
  * ## Migration Note
  * - For now [context] accepts [Any], but in the `init` block we enforce that
- *   it implements [po.misc.context.TraceableContext].
+ *   it implements [TraceableContext].
  * - This allows gradual transition: existing call sites compile,
  *   but runtime validation ensures correct usage.
  * - Later the constructor signature can be narrowed to `TraceableContext`
@@ -39,7 +40,7 @@ enum class HandlerType(val value: Int) {
  * throw ManagedException("Something failed", MyErrorCode.FATAL, MyContext())
  * ```
  *
- * @see po.misc.context.TraceableContext Marker interface for objects that can be used as exception context
+ * @see TraceableContext Marker interface for objects that can be used as exception context
  */
 open class ManagedException(
     val context: Any,
@@ -70,7 +71,7 @@ open class ManagedException(
     open var handler: HandlerType = HandlerType.CancelAll
         internal set
 
-    override val exceptionTrace: ExceptionTrace = createMeta(context)
+    override var exceptionTrace: ExceptionTrace = extractTrace(context)
 
 
     constructor(managedPayload: ThrowableCallSitePayload):
@@ -80,29 +81,11 @@ open class ManagedException(
                 managedPayload.code,
                 managedPayload.cause
             ) {
-        createMeta(managedPayload.context)
         initFromPayload(managedPayload)
     }
 
-    private fun createMeta(callingContext: Any):  ExceptionTrace{
-       return when(callingContext){
-            is TraceableContext -> {
-                metaFrameTrace(callingContext::class)
-            }
-            else -> {
-                metaFrameTrace(callingContext::class)
-            }
-        }
-    }
-
-    protected fun initFromPayload(payload: ThrowableCallSitePayload){
-        payloadBacking = payload
-
-        val stackFrameMeta = extractCallSiteMeta(payload.methodName, framesCount = 3)
-        val data = ExceptionData(ExceptionEvent.Thrown, payload.message, null)
-        data.addStackTraceMeta(stackFrameMeta)
-        data.addStackTrace(currentCallerTrace(payload.methodName))
-        exceptionData.add(data)
+    protected fun initFromPayload(managedPayload: ThrowableCallSitePayload){
+        exceptionTrace = extractTrace(managedPayload)
     }
 
     fun addExceptionData(data: ExceptionData, context: CTX):ManagedException{

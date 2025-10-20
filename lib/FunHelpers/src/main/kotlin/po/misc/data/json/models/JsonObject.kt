@@ -3,7 +3,7 @@ package po.misc.data.json.models
 
 import po.misc.data.helpers.withIndent
 import po.misc.functions.dsl.DSLBlockMarker
-import po.misc.types.type_data.TypeData
+import po.misc.types.token.TypeToken
 import kotlin.reflect.KProperty1
 
 internal inline fun <T: Any>  JsonObject<*, T>.doWithNested(
@@ -14,7 +14,7 @@ internal inline fun <T: Any>  JsonObject<*, T>.doWithNested(
 
 @DSLBlockMarker
 class JsonObject<T: Any, TP: Any>(
-   val typeData: TypeData<T>,
+   val typeData: TypeToken<T>,
    val listProperty: KProperty1<TP, List<T>>? = null
 ){
 
@@ -27,7 +27,7 @@ class JsonObject<T: Any, TP: Any>(
     }
 
     inline fun <reified T2: Any, V: Any> createObject(property: KProperty1<T, List<T2>>,  vararg listProperties: KProperty1<T2, V>){
-        val list = JsonObject<T2, T>(TypeData.create<T2>(), property)
+        val list = JsonObject<T2, T>(TypeToken.create<T2>(), property)
 
         listProperties.forEach {
             list.createRecord(it)

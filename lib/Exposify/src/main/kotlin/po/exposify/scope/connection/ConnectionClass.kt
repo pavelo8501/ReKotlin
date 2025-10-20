@@ -25,8 +25,8 @@ import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.coroutines.CoroutineInfo
 import po.misc.serialization.SerializerInfo
-import po.misc.types.type_data.TypeData
 import po.misc.types.safeCast
+import po.misc.types.token.TypeToken
 
 
 class ConnectionClass(
@@ -68,7 +68,7 @@ class ConnectionClass(
     }
 
     fun getServiceByDataModelType(
-        dataModelTypeData: TypeData<*>
+        dataModelTypeData: TypeToken<*>
     ): ServiceContext<*, *, *> ? {
        val  connection = servicesBacking.values.firstOrNull{ it.serviceContext.dataType == dataModelTypeData }
        return connection?.serviceContext

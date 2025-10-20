@@ -8,6 +8,7 @@ import po.misc.debugging.DebugTopic
 import po.misc.debugging.toConsoleLink
 import po.misc.exceptions.stack_trace.StackFrameMeta
 import po.misc.functions.dsl.helpers.nextBlock
+import po.misc.types.token.TypeToken
 
 
 class DebugData(
@@ -27,7 +28,7 @@ class DebugData(
     }
     override val self: DebugData = this
 
-    companion object : PrintableCompanion<DebugData>({ DebugData::class }) {
+    companion object : PrintableCompanion<DebugData>(TypeToken.create()) {
         val Default: Template<DebugData> = createTemplate {
             nextBlock {
                 "[DEBUG][${debugTopic.name}] in $contextName -> $message"

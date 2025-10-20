@@ -1,8 +1,9 @@
 package po.misc.data.printable
 
-import po.misc.data.json.JsonHolder
 import po.misc.data.printable.companion.PrintableTemplateBase
+import po.misc.data.printable.grouping.ArbitraryDataMap
 import po.misc.data.styles.SpecialChars
+import kotlin.reflect.KClass
 
 
 abstract class PrintableGroup<T1: PrintableBase<T1>, T2:  PrintableBase<T2>>(
@@ -14,6 +15,9 @@ abstract class PrintableGroup<T1: PrintableBase<T1>, T2:  PrintableBase<T2>>(
     override val formattedString: String get() {
        return createFormatedString()
     }
+
+    override val arbitraryMap: ArbitraryDataMap<Printable> = groupHost.arbitraryMap
+    override val ownClass: KClass<out Printable> = groupHost.ownClass
 
     var headerTemplate: PrintableTemplateBase<T1> = hostDefaultTemplate
     var footerTemplate: PrintableTemplateBase<T1>? = null
@@ -42,7 +46,7 @@ abstract class PrintableGroup<T1: PrintableBase<T1>, T2:  PrintableBase<T2>>(
         val childStrings = recordsBacking.map { childrenDefaultTemplate.resolve(it) }
         result.addAll(childStrings)
         result.add(footerTemplate?.resolve(groupHost) ?: "")
-        return result.joinToString(separator = SpecialChars.newLine) { it }
+        return result.joinToString(separator = SpecialChars.NEW_LINE) { it }
     }
 
     fun setHeader(header: PrintableTemplateBase<T1>){

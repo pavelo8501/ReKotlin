@@ -5,7 +5,7 @@ import po.misc.types.type_data.TypeDataCommon
 import po.misc.types.token.TypeToken
 
 
-sealed interface TypeProvider{
+interface TypeProvider{
     val types: List<TypeToken<*>>
 }
 
@@ -15,16 +15,6 @@ interface Typed<T: Any>{
     val types: List<TypeDataCommon<T>> get() = listOf(typeData)
 }
 
-
-
-interface TokenHolder: TypeProvider{
-    val typeToken: TypeToken<*>
-    override val types: List<TypeToken<*>> get() = listOf(typeToken)
-}
-
-interface Tokenized<T: Any> : TokenHolder{
-    override val typeToken: TypeToken<T>
-}
 
 interface DoubleTyped<T1: Any, T2: Any>{
     val parameter1: TypeDataCommon<T1>

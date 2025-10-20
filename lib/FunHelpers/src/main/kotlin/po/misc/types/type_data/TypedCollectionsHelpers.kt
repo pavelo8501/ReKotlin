@@ -2,20 +2,17 @@ package po.misc.types.type_data
 
 import po.misc.data.helpers.output
 import po.misc.data.styles.SpecialChars
-import po.misc.types.TokenHolder
-import po.misc.types.Tokenized
 import po.misc.types.safeCast
+import po.misc.types.token.TokenHolder
 import po.misc.types.token.TypeToken
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlin.reflect.typeOf
 
-
 data class CompareResult(
    val kClass: KClass<*>,
    val kType: KType?
 ){
-
     val testClassName: String = kClass.qualifiedName?:""
     val testedKTypeHash: Int ? = kType?.hashCode()
 
@@ -28,7 +25,7 @@ data class CompareResult(
         return result
     }
     override fun toString(): String {
-        val results = records.joinToString(separator = SpecialChars.newLine) {record->
+        val results = records.joinToString(separator = SpecialChars.NEW_LINE) {record->
             "CompareTo : ${record.compareToClassName} " +
                     "Generic Params: ${record.genericsToString()}" +
                     "KTypeHash: ${record.compareToKTypeHash} Result: ${record.result} " + record.toString()

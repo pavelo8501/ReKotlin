@@ -20,7 +20,6 @@ sealed interface TypedParameters
 interface EventHost : TypedParameters
 
 
-
 /**
  * Registers a listener that will be invoked whenever [event] is triggered.
  *
@@ -73,10 +72,6 @@ fun <T: Any> TypeDataCommon<*>.listenTriggered(
  * val typeData = myEvent.createTypeData()
  * ```
  */
-inline fun <reified T: TypedParameters> T.createTypeData(): TypeToken<T>{
-   return TypeToken.create<T>()
-}
-
 inline fun <reified T: Any> EventHost.typeDataOf(): TypeToken<T>{
     return TypeToken.create<T>()
 }

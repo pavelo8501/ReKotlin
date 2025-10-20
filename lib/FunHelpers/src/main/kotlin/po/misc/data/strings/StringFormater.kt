@@ -20,15 +20,15 @@ sealed class StringFormatter(var string: String){
     }
     override fun toString(): String{
         return if (subFormatters.isNotEmpty()) {
-            subFormatters.joinToString(prefix = string, postfix =SpecialChars.newLine , separator = SpecialChars.newLine) {
+            subFormatters.joinToString(prefix = string, postfix = SpecialChars.NEW_LINE , separator = SpecialChars.NEW_LINE) {
                 it.toString()
             }
         } else {
             string
         }
     }
+
     companion object{
-        
         fun formatKnownTypes(target: Any): String {
             return when(target){
                 is PrettyPrint -> {
@@ -62,11 +62,10 @@ class SimpleFormatter(
 class DSLFormatter(string: String): StringFormatter(string){
 
     private var firstIteration: Boolean = true
-
     private fun appendLine(receiver: Any,  colour: Colour): DSLFormatter{
         val formatedText = formatKnownTypes(receiver)
         val dsl =  DSLFormatter(formatedText)
-        dsl.formatedString = textColorizer(formatedText, colour)
+        dsl.formatedString = Colour.applyColour(formatedText, colour)
         return dsl
     }
 
@@ -92,7 +91,7 @@ internal inline fun stringifyInternal(
     val lambdaResult = transform(StringFormatter.formatKnownTypes(receiver))
 
     return colour?.let {
-        SimpleFormatter(lambdaResult, textColorizer(lambdaResult, it))
+        SimpleFormatter(lambdaResult, Colour.applyColour(lambdaResult, it))
     } ?: SimpleFormatter(lambdaResult)
 }
 
@@ -110,7 +109,7 @@ internal fun stringifyInternal(
 
     val formated = prefixToUse + StringFormatter.formatKnownTypes(receiver)
     return colour?.let {
-        SimpleFormatter(formated, textColorizer(formated, it))
+        SimpleFormatter(formated, Colour.applyColour(formated, it))
     } ?: SimpleFormatter(formated)
 }
 

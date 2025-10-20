@@ -1,21 +1,27 @@
 package po.misc.validators.reports
 
+import po.misc.data.printable.Printable
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.PrintableGroup
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.printable.companion.Template
 import po.misc.data.printable.companion.nextLine
+import po.misc.data.printable.grouping.ArbitraryDataMap
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.data.templates.matchTemplate
 import po.misc.data.templates.templateRule
+import po.misc.types.token.TypeToken
 import po.misc.validators.models.CheckStatus
+import kotlin.reflect.KClass
 
 
 class ValidationRecords(
     val report: ValidationReport
 ): PrintableGroup<ValidationReport, ValidationRecord>(report, ValidationReport.Header, ValidationRecord.Main){
 
+    override val ownClass: KClass<out Printable> = ValidationRecords::class
+    override val arbitraryMap: ArbitraryDataMap<Printable> = ArbitraryDataMap()
 
 }
 
@@ -59,7 +65,7 @@ class ValidationReport(
     }
 
 
-    companion object : PrintableCompanion<ValidationReport>({ ValidationReport::class }) {
+    companion object : PrintableCompanion<ValidationReport>(TypeToken.create()) {
 
         val Header: Template<ValidationReport> = createTemplate {
             nextLine {

@@ -70,6 +70,7 @@ abstract class ExposifyEntityClass<E : LongEntity>(
                 val column = prop.getter.call(table) as Column<*>
                 val metadata = createColumnMetadata(column.name)
                 if(metadata != null){
+                    @Suppress("Unchecked_CAST")
                     tableColumnMap.addColumnMetadataAndProperty(column.name, metadata, prop as KProperty1<IdTable<Long>, *>)
                 }
             }

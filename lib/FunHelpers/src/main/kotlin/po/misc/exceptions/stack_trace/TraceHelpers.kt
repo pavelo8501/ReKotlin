@@ -1,7 +1,7 @@
 package po.misc.exceptions.stack_trace
 
 import po.misc.collections.takeFromMatch
-import po.misc.context.TraceableContext
+import po.misc.context.tracable.TraceableContext
 import po.misc.exceptions.PackageRole
 import po.misc.exceptions.ThrowableCallSitePayload
 import po.misc.exceptions.classifyPackage
@@ -12,10 +12,6 @@ import kotlin.reflect.full.isSubclassOf
 import kotlin.text.substringAfterLast
 
 
-
-private fun analyzeException(){
-
-}
 
 fun StackTraceElement.toMeta(): StackFrameMeta {
     val classPackage = className.substringBeforeLast('.', missingDelimiterValue = "")
@@ -44,9 +40,9 @@ fun Throwable.extractTrace(): ExceptionTrace {
     }
 }
 
-fun Throwable.extractTrace(context: TraceableContext): ExceptionTrace {
+fun Throwable.extractTrace(traceable: TraceableContext): ExceptionTrace {
     val takeForAnalysis = 30
-    val contextClass = context::class
+    val contextClass = traceable::class
     val frames =  stackTrace.take(takeForAnalysis).toMeta()
     val convertedToMeta = frames.takeFromMatch(5) {
             it.simpleClassName.equals(contextClass.simpleOrAnon, ignoreCase = true)
@@ -59,6 +55,13 @@ fun Throwable.extractTrace(context: TraceableContext): ExceptionTrace {
         trace
     }else{
         ExceptionTrace(this.throwableToText(), convertedToMeta, contextClass)
+    }
+}
+
+fun Throwable.extractTrace(context: Any): ExceptionTrace{
+   return when(context){
+        is TraceableContext -> extractTrace(traceable = context)
+        else -> extractTrace()
     }
 }
 

@@ -3,6 +3,8 @@ package po.test.misc.types
 import org.junit.jupiter.api.Test
 import po.misc.data.helpers.output
 import po.misc.data.styles.Colour
+import po.misc.types.helpers.filterByType
+import po.misc.types.helpers.filterByTypeWhere
 import po.misc.types.token.TypeToken
 import po.misc.types.type_data.typedFilter
 import kotlin.test.assertEquals
@@ -67,7 +69,7 @@ class TestTypeToken: TypeTestBase() {
         listOfHolders.addAll(holdersByString)
         assertEquals(2, holdersByString.size)
 
-        val filtrationResult =  listOfHolders.typedFilter<TypeHolder2<ComponentInt, SealedInheritor>>()
+        val filtrationResult =  listOfHolders.filterByType<TypeHolder2<ComponentInt, SealedInheritor>>()
         assertEquals(1, filtrationResult.size)
     }
 
@@ -83,7 +85,7 @@ class TestTypeToken: TypeTestBase() {
         listOfHolders.addAll(holdersByString)
         assertEquals(5, holdersByString.size)
 
-        val result =  listOfHolders.typedFilter<TypeHolder2<ComponentInt, SealedInheritor>>{filterBy->
+        val result =  listOfHolders.filterByTypeWhere<TypeHolder2<ComponentInt, SealedInheritor>>{filterBy->
             filterBy.param1Instance.value <= 2
         }
         assertEquals(2, result.size)
@@ -98,7 +100,7 @@ class TestTypeToken: TypeTestBase() {
         listOfHolders.addAll(holdersByInt)
         assertEquals(4, holdersByInt.size)
 
-        val result = listOfHolders.typedFilter(TypeToken.create<TypeHolder2<ComponentInt, SealedInheritor>>())
+        val result = listOfHolders.filterByType(TypeToken.create<TypeHolder2<ComponentInt, SealedInheritor>>())
         assertEquals(4, result.size)
     }
 

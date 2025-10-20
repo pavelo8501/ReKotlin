@@ -1,7 +1,7 @@
 package po.misc.types
 
 import po.misc.context.CTX
-import po.misc.context.TraceableContext
+import po.misc.context.tracable.TraceableContext
 import po.misc.data.helpers.output
 import po.misc.exceptions.ExceptionPayload
 import po.misc.exceptions.ManagedException

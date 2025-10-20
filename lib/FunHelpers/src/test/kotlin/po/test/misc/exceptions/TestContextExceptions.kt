@@ -6,7 +6,7 @@ import po.misc.context.asIdentity
 import po.misc.data.logging.ContextAware
 import po.misc.data.logging.logEmitter
 import po.misc.exceptions.ManagedException
-import po.misc.context.TraceableContext
+import po.misc.context.tracable.TraceableContext
 import po.misc.coroutines.CoroutineInfo
 import po.misc.exceptions.trackable.TrackableException
 import po.misc.exceptions.metaFrameTrace

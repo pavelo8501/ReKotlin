@@ -1,17 +1,16 @@
 package po.misc.data.processors
 
-import po.misc.collections.StaticTypeKey
+import po.misc.data.printable.Printable
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.printable.companion.PrintableTemplateBase
 import po.misc.types.token.TypeToken
 
 
-abstract class DataProcessorBase<T:PrintableBase<T>>(
+abstract class DataProcessorBase<T: Printable>(
     val topProcessor: DataProcessorBase<T>?,
     val hooks: ProcessorHooks<T>  = ProcessorHooks()
 ): DataProcessingHooks<T> by hooks{
-
 
     private val recordsBacking: MutableList<T> = mutableListOf()
     val records: List<T> get() = recordsBacking
@@ -40,6 +39,7 @@ abstract class DataProcessorBase<T:PrintableBase<T>>(
 
     fun addArbitraryData(record: PrintableBase<*>){
         hooks.arbitraryDataReceived?.invoke(record)
+
         activeRecord?.arbitraryMap?.putPrintable(record)
     }
 
@@ -61,7 +61,7 @@ abstract class DataProcessorBase<T:PrintableBase<T>>(
         if(template != null){
             arbitraryRecord.setDefaultTemplate(template)
         }
-        if(debugWhiteList.contains(printableClass.typeKey.hashCode())){
+        if(debugWhiteList.contains(printableClass.typeToken.hashCode())){
             debuggable.invoke(arbitraryRecord)
         }
     }

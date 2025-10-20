@@ -1,7 +1,7 @@
 package po.misc.functions.registries.models
 
 import po.misc.functions.registries.RegistryKey
-import po.misc.types.helpers.simpleOrNan
+import po.misc.types.helpers.simpleOrAnon
 import kotlin.reflect.KClass
 
 
@@ -51,5 +51,5 @@ class SimpleSubscriber(
         return result
     }
 
-    override fun toString(): String = "SimpleSubscriber[kClass=${kClass.simpleOrNan()}, requireOnce=$requireOnce]"
+    override fun toString(): String = "SimpleSubscriber[kClass=${kClass.simpleOrAnon}, requireOnce=$requireOnce]"
 }

@@ -12,6 +12,7 @@ import po.misc.data.styles.Colour
 import po.misc.data.styles.Emoji
 import po.misc.data.styles.colorize
 import po.misc.functions.dsl.helpers.nextBlock
+import po.misc.types.token.TypeToken
 
 class ContextMessage(
     val contextName: String,
@@ -36,7 +37,7 @@ class ContextMessage(
 
 //    val badge: String = BGColour.makeOfColour(BGColour.Yellow, Colour.BlackBright, "DEBUG")
 
-    companion object : PrintableCompanion<ContextMessage>({ ContextMessage::class }) {
+    companion object : PrintableCompanion<ContextMessage>(TypeToken.create()) {
         val Message: Template<ContextMessage> = createTemplate {
             nextBlock {
                 val header = "[$contextName  @ ${nowLocalDateTime()}] ->".colorize(Colour.Blue)

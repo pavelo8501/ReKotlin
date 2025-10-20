@@ -1,12 +1,15 @@
 package po.misc.callbacks.loop
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import po.misc.data.helpers.output
 import po.misc.data.logging.LogEmitter
 import po.misc.data.logging.LogEmitterClass
@@ -20,8 +23,10 @@ import kotlin.time.DurationUnit
 interface ConcurrentLoop<REQUEST : Any, UPDATE : Any> {
     val config: LoopConfig
 
-    fun start(scope: CoroutineScope? = null)
-    suspend fun startAndWait(scope: CoroutineScope? = null)
+
+    suspend fun startSuspending(scope: CoroutineScope): Job
+    fun startAsync(scope: CoroutineScope): Job
+
     fun stop()
 }
 
@@ -43,13 +48,12 @@ abstract class ConcurrentLoopBase<INPUT: Any, OUTPUT: ModifiedOutput>(
 
     val emitter: LogEmitterClass = LogEmitterClass(this)
 
-    protected var listenerScope = CoroutineScope(SupervisorJob() + CoroutineName("connector_listener"))
+   // protected var listenerScope = CoroutineScope(SupervisorJob() + CoroutineName("connector_listener"))
 
-    private var loopJob: Job? = null
+    private var activeJob: Job? = null
 
     private var boostedPollingLeft = config.boostWindowSize
     private var active: Boolean = false
-
 
     init {
         withHooks?.invoke(loopHooks)
@@ -82,20 +86,24 @@ abstract class ConcurrentLoopBase<INPUT: Any, OUTPUT: ModifiedOutput>(
         }
     }
 
-    override fun start(scope: CoroutineScope?) {
-        scope?.let { listenerScope = it }
+    override fun startAsync(scope: CoroutineScope): Job {
         active = true
-        loopJob = listenerScope.launch {
+        val loopJob = scope.launch {
             runLoop()
         }
+        activeJob = loopJob
+        return loopJob
     }
-    override suspend fun startAndWait(scope: CoroutineScope?) {
-        scope?.let { listenerScope = it }
+
+    override suspend fun startSuspending(scope: CoroutineScope): Job {
         active = true
-        loopJob = listenerScope.launch {
+        val context = currentCoroutineContext()
+        val loopJob = scope.launch {
             runLoop()
         }
-        loopJob?.join()
+        activeJob = loopJob
+        loopJob.join()
+        return loopJob
     }
 
     private fun updateStats(preProcessed: OUTPUT){
@@ -125,19 +133,19 @@ abstract class ConcurrentLoopBase<INPUT: Any, OUTPUT: ModifiedOutput>(
                 loopHooks.triggerOnLoop(stats.copy())
                 delay(delay)
             }catch (th: Throwable){
-                val message = "Error polling connector: ${th.throwableToText()}. $stopMessage".output(Colour.Red)
-                "Error polling connector".output(Colour.Red)
-                th.output()
-                loopHooks.triggerOnError(th)
-                active = false
-                throw th
+                if(th !is CancellationException){
+                    "Error polling connector: ${th.throwableToText()}. $stopMessage".output(Colour.Red)
+                    loopHooks.triggerOnError(th)
+                    active = false
+                    throw th
+                }
             }
         }
     }
 
     override fun stop(){
         active = false
-        loopJob?.cancel()
+        activeJob?.cancel()
     }
 }
 

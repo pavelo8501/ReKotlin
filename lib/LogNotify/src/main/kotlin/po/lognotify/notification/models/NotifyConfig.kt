@@ -59,7 +59,7 @@ data class NotifyConfig(
 
     fun allowDebug(vararg dataClasses: PrintableCompanion<*>){
         dataClasses.forEach {
-            debugWhiteList[it.typeKey.hashCode()] = it.typeKey
+            debugWhiteList[it.typeToken.hashCode()] = it.typeToken
         }
     }
 

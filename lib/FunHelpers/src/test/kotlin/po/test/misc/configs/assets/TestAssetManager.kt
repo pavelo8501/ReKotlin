@@ -35,8 +35,8 @@ class TestAssetManager {
             clearEmptyOnInit = true
             when (category) {
                 AssetCategory.Photo -> {
-                    addAsset(Throwing, readFile(image1Path), name = "no_image")
-                    addAsset(Throwing, readFile("files/photo.png"))
+                    addAsset(readFile(image1Path), name = "no_image")
+                    addAsset(readFile("files/photo.png"), "photo")
                 }
                 AssetCategory.Html -> {
                     addAsset(Throwing, readFile("files/test.html"), name = "test_html_doc")
@@ -48,9 +48,9 @@ class TestAssetManager {
         }
         manager.initialize()
         assertEquals(2,  manager.registries.size)
-        val photos =  assertNotNull(manager.getByCategory(AssetCategory.Photo))
+        val photos =  assertNotNull(manager.getRegistry(AssetCategory.Photo))
         assertEquals(2, photos.size)
-        val html =  assertNotNull(manager.getByCategory(AssetCategory.Html))
+        val html =  assertNotNull(manager.getRegistry(AssetCategory.Html))
         assertEquals(1, html.size)
     }
 
@@ -60,11 +60,11 @@ class TestAssetManager {
         val asset = manager.buildRegistry(AssetCategory.Photo){
             purge()
             addAsset(Throwing, readFile(image1Path), name = "no_image")
-            addAsset(Throwing,readFile("files/photo.png"))
+            addAsset(Throwing,readFile("files/photo.png"), "photo")
             assets
         }
         assertEquals(1,  manager.registries.size)
-        val photos =  assertNotNull(manager.getByCategory(AssetCategory.Photo))
+        val photos =  assertNotNull(manager.getRegistry(AssetCategory.Photo))
         assertEquals(2, photos.size)
         assertEquals(2, asset.size)
     }

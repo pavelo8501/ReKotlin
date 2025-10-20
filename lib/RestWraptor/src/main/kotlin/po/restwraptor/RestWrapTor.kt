@@ -8,7 +8,6 @@ import io.ktor.server.engine.EngineConnectorConfig
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.netty.NettyApplicationEngine
-import io.ktor.server.routing.routing
 import io.ktor.util.AttributeKey
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
@@ -21,7 +20,7 @@ import po.misc.containers.LazyContainer
 import po.misc.containers.lazyContainerOf
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
-import po.misc.context.TraceableContext
+import po.misc.context.tracable.TraceableContext
 import po.misc.functions.registries.builders.notifierRegistryOf
 import po.misc.types.getOrThrow
 import po.restwraptor.scope.ConfigContext
@@ -33,7 +32,6 @@ import po.restwraptor.interfaces.WraptorResponse
 import po.restwraptor.models.configuration.WraptorConfig
 import po.restwraptor.models.info.WraptorStatus
 import po.restwraptor.models.server.WraptorRoute
-import po.restwraptor.routes.ManagedRouting
 
 val RestWrapTorKey = AttributeKey<RestWrapTor>("RestWrapTorInstance")
 
@@ -249,7 +247,7 @@ open class RestWrapTor(
     }
 
     fun setWraptorResponse(provider:()-> WraptorResponse<*>){
-        configContextBacking.requestValue(this){config->
+        configContextBacking.getValue(this){config->
             config.registerResponseProvider(provider)
         }
     }

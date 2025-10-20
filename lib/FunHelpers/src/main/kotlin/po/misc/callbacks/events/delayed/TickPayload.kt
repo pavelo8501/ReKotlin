@@ -1,6 +1,6 @@
 package po.misc.callbacks.events.delayed
 
-import po.misc.types.helpers.simpleOrNan
+import po.misc.types.helpers.simpleOrAnon
 import kotlin.time.Duration
 
 
@@ -11,6 +11,6 @@ data class TickPayload<T: Any>(
     val value: T
 ) {
     val ticksLeft: Int get() = ticksTotal - tick
-    override fun toString(): String  = "Tick<${value::class.simpleOrNan()}>[${tick}/${ticksTotal} delayed by ${delayValue}]"
+    override fun toString(): String  = "Tick<${value::class.simpleOrAnon}>[${tick}/${ticksTotal} delayed by ${delayValue}]"
 
 }

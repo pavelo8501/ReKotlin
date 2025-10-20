@@ -4,13 +4,16 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import po.misc.callbacks.events.EventHost
 import po.misc.callbacks.events.HostedEvent
-import po.misc.callbacks.events.buildHostedEventOf
-import po.misc.callbacks.events.createHostedEventOf
+import po.misc.callbacks.events.event
+import po.misc.callbacks.events.eventOf
 import po.misc.exceptions.handling.Suspended
+import po.misc.functions.NoResult
 import po.misc.types.token.TypeToken
+import po.test.misc.callback.events.TestCallbackEvent.HostedData
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class TestHostedEvent: EventHost {
@@ -33,20 +36,20 @@ class TestHostedEvent: EventHost {
 
     @Test
     fun `Hosted event builder work as expected`() {
-        val builtEvent = buildHostedEventOf{
+        val builtEvent = event{
             onEvent(Suspended) {
                 EventResult(it, 10)
             }
         }
-        val builtWithTokensEvent = buildHostedEventOf(TypeToken.create<String>(), TypeToken.create<EventResult>()){
+        val builtWithTokensEvent = event(TypeToken.create<String>(), TypeToken.create<EventResult>()){
             onEvent(Suspended) {
                 EventResult(it, 10)
             }
         }
 
-        val createEvent = createHostedEventOf<TestHostedEvent, String, EventResult>()
-        val createExplicitParamsEvent : HostedEvent<TestHostedEvent, String, EventResult> = createHostedEventOf()
-        val createWithTokensEvent = createHostedEventOf(TypeToken.create<String>(), TypeToken.create<EventResult>())
+        val createEvent = eventOf<TestHostedEvent, String, EventResult>()
+        val createExplicitParamsEvent : HostedEvent<TestHostedEvent, String, EventResult> = eventOf()
+        val createWithTokensEvent = eventOf(TypeToken.create<String>(), TypeToken.create<EventResult>())
 
         assertEquals(builtEvent.host, createEvent.host)
         assertEquals(builtEvent.paramType, createEvent.paramType)
@@ -67,6 +70,54 @@ class TestHostedEvent: EventHost {
 
         assertTrue { builtEvent.eventSuspended }
         assertFalse { builtEvent.event }
+
+    }
+
+
+    @Test
+    fun `Parametrized event`() {
+
+        var triggered: Any? = null
+        val hosted = HostedData()
+
+        val event =  this.event(NoResult) {
+            onEvent {
+                triggered = it
+            }
+        }
+        event.trigger(hosted)
+    }
+
+    @Test
+    fun `triggerBoth triggers both callbacks or synced`() = runTest {
+
+        var triggered: HostedData? = null
+        var triggeredBySuspended: Any? = null
+
+        val event =  this@TestHostedEvent.event(NoResult) {
+            onEvent {
+                triggered = it
+            }
+            onEvent(Suspended) {
+                triggeredBySuspended = it
+            }
+        }
+        val hosted = HostedData()
+        event.triggerBoth(hosted, null)
+        assertNotNull(triggered)
+        assertNotNull(triggeredBySuspended)
+
+
+        triggered = null
+        triggeredBySuspended = null
+        val event2 =  this@TestHostedEvent.event(NoResult) {
+            onEvent {
+                triggered = it
+            }
+        }
+        event2.triggerBoth(hosted, null)
+        assertNotNull(triggered)
+        assertNull(triggeredBySuspended)
 
     }
 }

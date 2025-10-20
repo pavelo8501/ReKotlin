@@ -2,8 +2,9 @@ package po.test.misc.callback.events
 
 import org.junit.jupiter.api.Test
 import po.misc.callbacks.events.EventHost
-import po.misc.callbacks.events.eventOf
+import po.misc.callbacks.events.event
 import po.misc.callbacks.events.listenTriggered
+import po.misc.functions.NoResult
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
 
@@ -11,7 +12,7 @@ class TestEventListeners: EventHost {
 
     class SomeData(val value: String = "WithSomeValue")
     class ListenerClass()
-    val onSomeEvent = eventOf<EventHost, SomeData>(){
+    val onSomeEvent = event<EventHost, SomeData>(NoResult){
         onEvent {
 
         }

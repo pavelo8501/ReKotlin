@@ -3,7 +3,8 @@ package po.misc.exceptions
 import po.misc.collections.selectUntil
 import po.misc.collections.takeFromMatch
 import po.misc.context.CTX
-import po.misc.context.TraceableContext
+import po.misc.context.tracable.NonResolvable
+import po.misc.context.tracable.TraceableContext
 import po.misc.exceptions.models.CTXResolutionFlag
 import po.misc.exceptions.stack_trace.ExceptionTrace
 import po.misc.exceptions.stack_trace.StackFrameMeta
@@ -69,7 +70,7 @@ private fun buildExceptionTrace(
 
 
     fun resolveAsTraceable(ctx: TraceableContext, trace: ExceptionTrace) {
-        if (ctx != TraceableContext.NonResolvable) {
+        if (ctx != NonResolvable) {
             when (ctx) {
                 is CTX -> {
                     trace.addKnownContextData(ctx.identifiedByName)

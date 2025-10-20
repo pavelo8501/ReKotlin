@@ -96,15 +96,15 @@ class KSurrogate<T: CTX>(
 
     fun propertyInfo(): String {
         val properties = backingMap.values.map { it.toString() }
-        return properties.joinToString(separator = SpecialChars.newLine)
+        return properties.joinToString(separator = SpecialChars.NEW_LINE)
     }
 
     override fun toString(): String {
         val text = buildString {
             append(Colour.makeOfColour(Colour.Yellow, "class "))
-            append("${classInfo.simpleName} ${Colour.makeOfColour(Colour.Yellow, "(")} ${SpecialChars.newLine}")
+            append("${classInfo.simpleName} ${Colour.makeOfColour(Colour.Yellow, "(")} ${SpecialChars.NEW_LINE}")
             append(propertyInfo())
-            append("${SpecialChars.newLine}${Colour.makeOfColour(Colour.Yellow, ")")}")
+            append("${SpecialChars.NEW_LINE}${Colour.makeOfColour(Colour.Yellow, ")")}")
         }
         return text
     }

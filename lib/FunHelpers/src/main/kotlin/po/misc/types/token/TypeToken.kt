@@ -1,15 +1,13 @@
 package po.misc.types.token
 
-import po.misc.context.Component
+import po.misc.context.component.Component
+import po.misc.context.component.ComponentID
+import po.misc.context.component.componentID
 import po.misc.data.logging.Verbosity
 import po.misc.data.styles.SpecialChars
-import po.misc.types.TokenHolder
-import po.misc.types.Tokenized
-import po.misc.types.castOrThrow
-import po.misc.types.helpers.simpleOrNan
+import po.misc.types.helpers.simpleOrAnon
 import po.misc.types.helpers.toKeyParams
 import po.misc.types.type_data.TypeDataCommon
-
 import kotlin.collections.forEach
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
@@ -23,9 +21,9 @@ class TypeToken<T: Any>  @PublishedApi internal constructor(
     val kType: KType
 ): Component {
 
-    override var verbosity: Verbosity = Verbosity.Warnings
 
-    override val componentName: String = "TypeToken[$simpleName]"
+    override val componentID: ComponentID = componentID("TypeToken[$simpleName]", Verbosity.Warnings)
+    val verbosity: Verbosity get() = componentID.verbosity
 
     private val typeSlotsBacking : MutableList<TypeSlot> = mutableListOf()
 
@@ -35,7 +33,7 @@ class TypeToken<T: Any>  @PublishedApi internal constructor(
     private val inlinedParameters: List<KClass<*>> get() = typeSlots.mapNotNull { it.ownClass }
 
     val inlinedParamClasses: List<KClass<*>> get() = inlinedParameters.sortedBy { it.simpleName }
-    val inlinedParamsName : String get() = inlinedParameters.joinToString(separator = ", ") { it.simpleOrNan() }
+    val inlinedParamsName : String get() = inlinedParameters.joinToString(separator = ", ") { it.simpleOrAnon }
 
 
     val simpleName : String get() = kClass.simpleName?:"Unknown"
@@ -101,7 +99,6 @@ class TypeToken<T: Any>  @PublishedApi internal constructor(
     }
 
     internal  fun resolveReifiedForSlot(slot: TypeSlot, reifiedType: KType): Boolean{
-        notify("Processing reifiedType <KType> # $reifiedType", "resolveReifiedForSlot", verbosity)
         return  (reifiedType.classifier as? KClass<*>)?.let {paramClass->
             tryMapByUpperBounds(slot, paramClass)?.let {
                 it.ownReifiedKType = reifiedType
@@ -118,7 +115,7 @@ class TypeToken<T: Any>  @PublishedApi internal constructor(
     fun warnKClassDifferent(other: KClass<*>, methodName: String){
         val line1 = kClass.toKeyParams()
         val line2 = other.toKeyParams()
-        val warnMsg = "Comparison failed when comparing own"+ SpecialChars.newLine + "$line1 to " + "$line2"
+        val warnMsg = "Comparison failed when comparing own"+ SpecialChars.NEW_LINE + "$line1 to " + "$line2"
         warn(warnMsg, methodName)
     }
 
@@ -191,7 +188,7 @@ class TypeToken<T: Any>  @PublishedApi internal constructor(
     }
 
     fun printSlots(){
-        typeSlots.joinToString(separator = SpecialChars.newLine) {
+        typeSlots.joinToString(separator = SpecialChars.NEW_LINE) {
             it.toString()
         }
     }
@@ -218,9 +215,10 @@ class NullableTypeToken<T: Any?>  @PublishedApi internal constructor(
     val kClass: KClass<*>,
     val kType: KType
 ): Component {
-    override var verbosity: Verbosity = Verbosity.Warnings
 
-    override val componentName: String = "TypeToken[$simpleName]"
+
+    override val componentID: ComponentID = componentID("TypeToken[$simpleName]")
+    val verbosity: Verbosity get() = componentID.verbosity
 
     private val typeSlotsBacking : MutableList<TypeSlot> = mutableListOf()
 
@@ -230,7 +228,7 @@ class NullableTypeToken<T: Any?>  @PublishedApi internal constructor(
     private val inlinedParameters: List<KClass<*>> get() = typeSlots.mapNotNull { it.ownClass }
 
     val inlinedParamClasses: List<KClass<*>> get() = inlinedParameters.sortedBy { it.simpleName }
-    val inlinedParamsName : String get() = inlinedParameters.joinToString(separator = ", ") { it.simpleOrNan() }
+    val inlinedParamsName : String get() = inlinedParameters.joinToString(separator = ", ") { it.simpleOrAnon }
 
 
     val simpleName : String get() = kClass.simpleName?:"Unknown"
@@ -273,7 +271,6 @@ class NullableTypeToken<T: Any?>  @PublishedApi internal constructor(
     }
 
     internal  fun resolveReifiedForSlot(slot: TypeSlot, reifiedType: KType): Boolean{
-        notify("Processing reifiedType <KType> # $reifiedType", "resolveReifiedForSlot", verbosity)
         return  (reifiedType.classifier as? KClass<*>)?.let {paramClass->
             tryMapByUpperBounds(slot, paramClass)?.let {
                 it.ownReifiedKType = reifiedType
@@ -290,7 +287,7 @@ class NullableTypeToken<T: Any?>  @PublishedApi internal constructor(
     fun warnKClassDifferent(other: KClass<*>, methodName: String){
         val line1 = kClass.toKeyParams()
         val line2 = other.toKeyParams()
-        val warnMsg = "Comparison failed when comparing own"+ SpecialChars.newLine + "$line1 to " + "$line2"
+        val warnMsg = "Comparison failed when comparing own"+ SpecialChars.NEW_LINE + "$line1 to " + "$line2"
         warn(warnMsg, methodName)
     }
 
@@ -363,7 +360,7 @@ class NullableTypeToken<T: Any?>  @PublishedApi internal constructor(
     }
 
     fun printSlots(){
-        typeSlots.joinToString(separator = SpecialChars.newLine) {
+        typeSlots.joinToString(separator = SpecialChars.NEW_LINE) {
             it.toString()
         }
     }

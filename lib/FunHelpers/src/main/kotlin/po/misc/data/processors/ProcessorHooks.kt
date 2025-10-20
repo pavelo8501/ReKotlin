@@ -1,8 +1,9 @@
 package po.misc.data.processors
 
+import po.misc.data.printable.Printable
 import po.misc.data.printable.PrintableBase
 
-class ProcessorHooks<T: PrintableBase<T>> : DataProcessingHooks<T> {
+class ProcessorHooks<T: Printable> : DataProcessingHooks<T> {
 
     internal var dataReceived: ((T) -> Unit)? = null
     override fun onDataReceived(dataReceivedCallback: (T)-> Unit){

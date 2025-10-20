@@ -1,11 +1,9 @@
 package po.misc.exceptions
 
 import po.misc.collections.takeFromMatch
-import po.misc.context.TraceableContext
+import po.misc.context.tracable.TraceableContext
 import po.misc.data.helpers.replaceIfNull
 import po.misc.data.helpers.stripAfter
-import po.misc.data.styles.Colour
-import po.misc.data.styles.colorize
 import po.misc.exceptions.stack_trace.StackFrameMeta
 
 internal fun  Throwable.currentCallerTrace(methodName: String): List<StackTraceElement> {

@@ -1,7 +1,7 @@
 package po.misc.exceptions.handling
 
 import kotlinx.coroutines.currentCoroutineContext
-import po.misc.context.TraceableContext
+import po.misc.context.tracable.TraceableContext
 import po.misc.coroutines.coroutineInfo
 import po.misc.data.logging.ContextAware
 import po.misc.data.logging.ContextAware.ExceptionLocator
@@ -22,7 +22,7 @@ inline fun <R: Any> TraceableContext.delegateIfThrow(block:()-> R):R{
     try {
         return block()
     }catch (throwable: Throwable){
-        warn(throwable)
+        warn("delegateIfThrow",  throwable)
         ExceptionLocator.throwableRegistry.dispatch(throwable)
     }
 }
@@ -36,7 +36,7 @@ suspend fun <R: Any> TraceableContext.delegateIfThrow(suspended:Suspended, block
             val context =  currentCoroutineContext()
             throwable.coroutineInfo = context.coroutineInfo(throwable.contextClass, exceptionTrace.bestPick.methodName)
         }
-        warn(suspended, throwable)
+        warn("delegateIfThrow",  throwable)
         ExceptionLocator.throwableRegistry.dispatch(throwable, suspended)
     }
 }

@@ -1,7 +1,9 @@
 package po.misc.reflection.properties.typed_property
 
-import po.misc.context.Component
-import po.misc.context.managedException
+import po.misc.context.component.Component
+import po.misc.context.component.ComponentID
+import po.misc.context.component.componentID
+import po.misc.context.component.managedException
 import po.misc.data.logging.Verbosity
 import po.misc.reflection.anotations.AnnotatedProperty
 import po.misc.reflection.primitives.BooleanClass
@@ -79,7 +81,8 @@ sealed interface TypedProperty<T: Any>{
 sealed class MutablePropertyBase<T: Any, V: Any>(
     val property: KMutableProperty1<T, V>
 ):  Component{
-    override var verbosity: Verbosity = Verbosity.Info
+
+    abstract var verbosity: Verbosity
     abstract var wrongValueMsg: String
 
     /**
@@ -135,8 +138,14 @@ class StringTypedProperty<T: Any>(
 ): MutablePropertyBase<T, String>(property),  TypedProperty<T> {
 
     override val primitiveClass: StringClass = StringClass
-    override var verbosity: Verbosity = Verbosity.Info
-    override val componentName: String = "TypedProperty<${typeToken.typeName}, String>"
+
+    override val componentID: ComponentID = componentID("TypedProperty<${typeToken.typeName}, String>")
+    override var verbosity: Verbosity
+        get() =  componentID.verbosity
+        set(value){
+            componentID.verbosity = value
+        }
+
     override var wrongValueMsg: String = "Invalid string value"
 
     override fun updateValue(receiver:T, value: String, throwing: Boolean): Boolean{
@@ -165,8 +174,12 @@ class IntTypedProperty<T: Any>(
 ): MutablePropertyBase<T, Int>(property),   TypedProperty<T>, Component {
     override val primitiveClass: IntClass = IntClass
 
-    override var verbosity: Verbosity = Verbosity.Info
-    override val componentName: String = "TypedProperty<${typeToken.typeName}, Int>"
+    override val componentID: ComponentID = componentID("TypedProperty<${typeToken.typeName}, Int>")
+    override var verbosity: Verbosity
+        get() =  componentID.verbosity
+        set(value){
+            componentID.verbosity = value
+        }
 
     override var wrongValueMsg: String = "Invalid integer value"
 
@@ -204,8 +217,13 @@ class LongTypedProperty<T: Any>(
 ): MutablePropertyBase<T, Long>(property), TypedProperty<T>, Component {
     override val primitiveClass: LongClass = LongClass
 
-    override var verbosity: Verbosity = Verbosity.Info
-    override val componentName: String = "TypedProperty<${typeToken.typeName}, Long>"
+    override val componentID: ComponentID = componentID("TypedProperty<${typeToken.typeName}, Long>")
+    override var verbosity: Verbosity
+        get() =  componentID.verbosity
+        set(value){
+            componentID.verbosity = value
+        }
+
     override var wrongValueMsg: String = "Invalid long value"
 
     override fun updateValue(receiver:T, value: String, throwing: Boolean): Boolean{
@@ -235,9 +253,12 @@ class BooleanTypedProperty<T: Any>(
 ):MutablePropertyBase<T, Boolean>(property),  TypedProperty<T>, Component {
     override val primitiveClass: BooleanClass = BooleanClass
 
-    override var verbosity: Verbosity = Verbosity.Info
-
-    override val componentName: String = "TypedProperty<${typeToken.typeName}, Boolean>"
+    override val componentID: ComponentID = componentID("TypedProperty<${typeToken.typeName}, Boolean>")
+    override var verbosity: Verbosity
+        get() =  componentID.verbosity
+        set(value){
+            componentID.verbosity = value
+        }
 
     /** Message logged or thrown when a value cannot be parsed as boolean. */
     override var wrongValueMsg: String = "Invalid boolean value"

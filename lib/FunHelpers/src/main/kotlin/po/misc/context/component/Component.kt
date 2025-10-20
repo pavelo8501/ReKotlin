@@ -1,0 +1,64 @@
+package po.misc.context.component
+
+import po.misc.context.tracable.Notification
+import po.misc.context.tracable.NotificationTopic
+import po.misc.context.tracable.TraceableContext
+import po.misc.data.logging.LogRecord
+import po.misc.data.logging.Verbosity
+import po.misc.data.styles.Colour
+import po.misc.data.styles.SpecialChars
+import po.misc.data.styles.colorize
+import po.misc.debugging.ClassResolver
+import po.misc.exceptions.ManagedException
+import po.misc.exceptions.stack_trace.extractTrace
+import po.misc.types.helpers.simpleOrAnon
+
+
+/**
+ * Defines a runtime component that participates in structured logging and traceable execution.
+ *
+ * A `Component` extends [TraceableContext] and provides a stable identity, human-readable name,
+ * and configurable verbosity level via [componentID].
+ *
+ * ### Key Responsibilities
+ * - Supplies a unique [componentID] used across logging, error reporting and tracing.
+ * - Provides semantic component naming via [componentName].
+ * - Exposes current logging [verbosity] level inherited from its identifier.
+ * - Supplies message formatting helpers ([infoMessageFormatter], [warnMessageFormatter])
+ *   for consistent visual output in console or file logs.
+ *
+ * ### Identity and Verbosity
+ * By default, [componentID] is lazily computed from the implementing class name and its reflection-based
+ * [ClassInfo]. This identity can be customized or mutated when a component represents a dynamic or
+ * parameterized runtime entity.
+ *
+ * ### Notification Endpoint
+ * A component may emit log or notification data via [notify], which delegates to the underlying
+ * logging system. Implementers are not required to override this behavior unless interception
+ * or transformation of log messages is necessary.
+ *
+ * @see ComponentID for identity structure
+ * @see TraceableContext to distinguish real component context from plain `Any`
+ */
+interface Component : TraceableContext {
+
+    val componentID: ComponentID get() = ComponentID(this::class.simpleOrAnon, ClassResolver.classInfo(this))
+
+
+//    override fun warn(subject: String, text: String){
+//       // notify(text, subject, Verbosity.Warnings)
+//    }
+
+//    fun notify(topic: NotificationTopic, subject: String, text: String): LogRecord = notify(this, topic, subject, text)
+//
+//    fun notify(subject:String,  throwable: Throwable):LogRecord = notify(this, subject, throwable)
+
+}
+
+
+fun Component.managedException(message: String): ManagedException{
+    val exception =  ManagedException(this, message)
+    exception.extractTrace(this)
+    return exception
+}
+

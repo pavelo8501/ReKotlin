@@ -3,11 +3,8 @@ package po.misc.callbacks.events
 import po.misc.context.CTX
 import po.misc.data.helpers.output
 import po.misc.data.styles.Colour
-import po.misc.types.Tokenized
 import po.misc.types.TypeProvider
-import po.misc.types.type_data.TypeData
-import po.misc.types.helpers.simpleOrNan
-import po.misc.types.type_data.TypeDataCommon
+import po.misc.types.helpers.simpleOrAnon
 import po.misc.types.token.TypeToken
 import java.util.concurrent.atomic.AtomicLong
 
@@ -68,7 +65,7 @@ class EventListeners<T: Any> {
 
             else -> {
                 listener.types.firstOrNull()?.let {
-                    val key = ListenerKey(nextId.incrementAndGet(), it).provideName(listener::class.simpleOrNan())
+                    val key = ListenerKey(nextId.incrementAndGet(), it).provideName(listener::class.simpleOrAnon)
                     listenerMap[key] = onTriggered
                 }?:run {
                     "TypedObject in onEventTriggered has no type parameters in its types list".output(Colour.Red)
@@ -87,7 +84,7 @@ class EventListeners<T: Any> {
             }
             else -> {
                 listener.types.firstOrNull()?.let {
-                    val key = ListenerKey(nextId.incrementAndGet(), it).provideName(listener::class.simpleOrNan())
+                    val key = ListenerKey(nextId.incrementAndGet(), it).provideName(listener::class.simpleOrAnon)
                     suspendableListenerMap[key] = onTriggered
                 }?:run {
                     "TypedObject in onEventTriggered has no type parameters in its types list".output(Colour.Red)
@@ -103,20 +100,20 @@ class EventListeners<T: Any> {
                 ListenerKey(identity.numericId, identity.typeData).provideName(identity.identifiedByName)
             }
             else -> {
-                ListenerKey(nextId.incrementAndGet(), typeData).provideName(listener::class.simpleOrNan())
+                ListenerKey(nextId.incrementAndGet(), typeData).provideName(listener::class.simpleOrAnon)
             }
         }
         listenerMap[key] = onTriggered
     }
 
     inline fun <reified T: Any> isListenedBy(): Boolean {
-        val type = TypeData.create<T>()
+        val type = TypeToken.create<T>()
         val found = listenerMap.keys.toList().firstNotNullOfOrNull { it.type == type }
         return found != null
     }
 
 
-    fun isListenedBy(typeData: TypeData<*>): Boolean {
+    fun isListenedBy(typeData: TypeToken<*>): Boolean {
         val found = listenerMap.keys.toList().firstNotNullOfOrNull { it.type == typeData }
         return found != null
     }

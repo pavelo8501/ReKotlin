@@ -15,7 +15,7 @@ import po.misc.reflection.primitives.PrimitiveClass
 import po.misc.reflection.primitives.StringClass
 import po.misc.reflection.primitives.WildCardClass
 import po.misc.types.castOrManaged
-import po.misc.types.helpers.simpleOrNan
+import po.misc.types.helpers.simpleOrAnon
 import po.misc.types.safeCast
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1
@@ -49,7 +49,7 @@ internal fun <T: Any, V: Any> toTypedContainer(
                 LongPropertyContainer<T>(casted)
             }
             else -> {
-                "Unsupported Type ${valueClass.simpleOrNan()}"
+                "Unsupported Type ${valueClass.simpleOrAnon}"
                 null
             }
         }
@@ -177,20 +177,3 @@ inline fun <reified T: Any> KClass<T>.createTypedProperties(): List<PropertySimp
     }
     return result
 }
-
-
-
-//inline fun <reified A: Annotation> buildPropertyContainer(readValues: Boolean = false):AnnotationContainer<T, A> {
-//
-//    if (containerBacking == null) {
-//        val receiver =  builder()
-//        val container = if(!readValues){
-//            val kClass = receiver::class
-//            kClass.annotatedProperties<T, Annotation>(null)
-//        }else{
-//            annotatedProperties<Any, Annotation>(receiver)
-//        }
-//        containerBacking = container.castOrManaged<AnnotationContainer<T, Annotation>>(this)
-//    }
-//    return containerBacking.castOrManaged<AnnotationContainer<T, A>>(this)
-//}

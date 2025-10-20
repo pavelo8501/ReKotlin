@@ -75,7 +75,9 @@ class ConfigContext(
     val managedRouting: ManagedRouting = ManagedRouting()
 
     init {
-        responseProvider.provideValue({ DefaultResponse("") })
+        responseProvider.provideValue{
+            DefaultResponse("")
+        }
     }
 
     private fun configCors(app: Application) = runAction("ConfigCors") {

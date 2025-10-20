@@ -1,6 +1,5 @@
 package po.misc.exceptions.stack_trace
 
-import po.misc.context.TraceableContext
 import po.misc.data.PrettyPrint
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
@@ -12,7 +11,6 @@ data class ExceptionTrace(
     val stackFrames: List<StackFrameMeta>,
     val kClass: KClass<*>? = null
 ): PrettyPrint{
-
 
     var reliable: Boolean = true
         internal set
@@ -67,7 +65,6 @@ data class StackFrameMeta(
     val isUserCode: Boolean,
     val stackTraceElement: StackTraceElement? = null
 ){
-
     val consoleLink: String get() = "$classPackage.$simpleClassName.$methodName($fileName:$lineNumber)"
 
    // override val formattedString: String get() = ""

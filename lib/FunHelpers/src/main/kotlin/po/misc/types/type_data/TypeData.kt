@@ -1,7 +1,9 @@
 package po.misc.types.type_data
 
 import po.misc.collections.ComparableType
-import po.misc.context.Component
+import po.misc.context.component.Component
+import po.misc.context.component.ComponentID
+import po.misc.context.component.componentID
 import po.misc.data.logging.Verbosity
 
 import kotlin.reflect.KClass
@@ -26,8 +28,10 @@ class TypeData<T: Any> @PublishedApi internal constructor (
     val tParamKClasses: List<KClass<*>> = typeData.children.mapNotNull { it.kClass }
     val children: List<TypeData<*>> =  listOf(this as TypeData<*>)
 
-    override val verbosity: Verbosity = Verbosity.Info
-    override val componentName: String = toString()
+
+    override val componentID: ComponentID = componentID("TypeData")
+    val verbosity: Verbosity = Verbosity.Info
+
 
     override val typeName: String = simpleName + children.joinToString(prefix = "<", separator = " ,", postfix = ">") {
         it.typeName

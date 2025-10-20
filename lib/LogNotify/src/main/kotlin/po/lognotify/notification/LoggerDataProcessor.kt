@@ -13,16 +13,13 @@ import po.lognotify.tasks.RootTask
 import po.lognotify.tasks.TaskBase
 import po.misc.context.CTX
 import po.misc.coroutines.HotFlowEmitter
-import po.misc.data.helpers.output
 import po.misc.data.printable.Printable
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.printable.companion.PrintableTemplateBase
-import po.misc.data.printable.companion.Template
 import po.misc.data.processors.DataProcessorBase
 import po.misc.data.processors.SeverityLevel
 import po.misc.debugging.DebugTopic
-import po.misc.debugging.createDebugFrame
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.throwableToText
 
@@ -150,33 +147,35 @@ class LoggerDataProcessor(
         taskData.events.addRecord(logEvent)
     }
 
+    @Deprecated("Refactor and remove", level = DeprecationLevel.WARNING)
     fun <T: Printable> debug(
         message: String,
         callingContext: CTX,
         topic: DebugTopic = DebugTopic.General,
         template: PrintableTemplateBase<T>?
     ){
-       val debugFrame = callingContext.createDebugFrame(methodName = "debug")
-        debugFrame.frameMeta
 
-        val newData = DebugData(
-            message = message,
-            contextName =  debugFrame.contextName,
-            completeContextName =  debugFrame.contextName,
-            stackMeta = debugFrame.frameMeta
-        )
-        newData.setTopic(topic)
-
-        when(template){
-            is PrintableTemplateBase<*> ->{
-                newData.trySetDefaultTemplate(template)
-            }
-            else -> {
-                newData.setDefaultTemplate(DebugData.Default)
-            }
-        }
-        newData.echo()
-        taskData.debugRecords.addRecord(newData)
+//        val debugFrame = callingContext.createDebugFrame(methodName = "debug")
+//        debugFrame.frameMeta
+//
+//        val newData = DebugData(
+//            message = message,
+//            contextName =  debugFrame.contextName,
+//            completeContextName =  debugFrame.contextName,
+//            stackMeta = debugFrame.frameMeta
+//        )
+//        newData.setTopic(topic)
+//
+//        when(template){
+//            is PrintableTemplateBase<*> ->{
+//                newData.trySetDefaultTemplate(template)
+//            }
+//            else -> {
+//                newData.setDefaultTemplate(DebugData.Default)
+//            }
+//        }
+//        newData.echo()
+//        taskData.debugRecords.addRecord(newData)
     }
 
     @PublishedApi

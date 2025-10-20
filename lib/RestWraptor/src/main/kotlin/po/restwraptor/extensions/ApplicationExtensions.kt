@@ -1,8 +1,7 @@
 package po.restwraptor.extensions
 
 import io.ktor.server.application.Application
-import po.misc.context.CTX
-import po.misc.context.TraceableContext
+import po.misc.context.tracable.TraceableContext
 import po.misc.types.getOrManaged
 import po.misc.types.getOrThrow
 import po.restwraptor.RestWrapTor

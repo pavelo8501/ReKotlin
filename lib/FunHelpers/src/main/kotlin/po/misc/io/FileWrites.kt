@@ -29,7 +29,7 @@ data class FileIOError(
         get() = this.toString().colorize(Colour.Red)
 
     override fun toString(): String {
-        return "FileWriteError"+ SpecialChars.newLine + "${throwable.throwableToText()} for Path: $path"
+        return "FileWriteError"+ SpecialChars.NEW_LINE + "${throwable.throwableToText()} for Path: $path"
     }
 }
 

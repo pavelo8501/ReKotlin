@@ -1,6 +1,6 @@
 package po.misc.exceptions
 
-import po.misc.context.TraceableContext
+import po.misc.context.tracable.TraceableContext
 import po.misc.exceptions.handling.ThrowableRegistry
 import po.misc.exceptions.stack_trace.ExceptionTrace
 import po.misc.exceptions.trackable.TrackableException

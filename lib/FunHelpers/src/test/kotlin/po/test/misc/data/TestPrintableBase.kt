@@ -14,6 +14,7 @@ import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.printable.PrintableGroup
 import po.misc.data.printable.companion.nextLine
 import po.misc.time.TimeHelper
+import po.misc.types.token.TypeToken
 import kotlin.test.assertNotEquals
 
 
@@ -42,7 +43,7 @@ class TestPrintableBase: TimeHelper {
 
       //  override val itemId: ValueBased = toValueBased(0)
 
-        companion object: PrintableCompanion<Item>({Item::class}){
+        companion object: PrintableCompanion<Item>(TypeToken.create()){
 
             val Header = createTemplate(){
                 nextLine {
@@ -57,7 +58,7 @@ class TestPrintableBase: TimeHelper {
             }
 
             val Printable: PartsTemplate<Item> = PartsTemplate(
-                delimiter = SpecialChars.newLine,
+                delimiter = SpecialChars.NEW_LINE,
                 { Colour.Red text "String1->  $personalName |"},
                 {"$description And Value=$intValue"}
             )
@@ -79,7 +80,7 @@ class TestPrintableBase: TimeHelper {
         override val self: Item2 = this
        // override val itemId: ValueBased = toValueBased(0)
 
-        companion object: PrintableCompanion<Item2>({Item2::class}){
+        companion object: PrintableCompanion<Item2>(TypeToken.create()){
 
             val RegularStr = createTemplate{
                 nextLine {
@@ -123,7 +124,7 @@ class TestPrintableBase: TimeHelper {
         val item2 = Item2("name")
         assertTrue(Item.metaDataInitialized)
         assertTrue(Item2.metaDataInitialized)
-        assertNotEquals(Item.typeKey.hashCode(), Item2.typeKey.hashCode(), "Keys are the same")
+        assertNotEquals(Item.typeToken.hashCode(), Item2.typeToken.hashCode(), "Keys are the same")
     }
 
 }

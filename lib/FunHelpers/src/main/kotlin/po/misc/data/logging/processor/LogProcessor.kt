@@ -1,159 +1,122 @@
 package po.misc.data.logging.processor
 
-
-import po.misc.context.CTX
-import po.misc.data.helpers.output
-import po.misc.data.logging.EmitterConfig
-import po.misc.data.logging.LogEmitter
-import po.misc.data.logging.Verbosity
-import po.misc.data.processors.DataProcessorBase
-import po.misc.data.processors.SeverityLevel
-import po.misc.debugging.DebugTopic
-import po.misc.exceptions.ManagedException
-import po.misc.exceptions.metaFrameTrace
-import po.misc.exceptions.throwableToText
-import po.misc.types.helpers.simpleOrNan
+import po.misc.context.component.Component
+import po.misc.data.logging.LogProvider
+import po.misc.data.logging.LogRecord
+import po.misc.data.logging.procedural.ProceduralFlow
+import po.misc.data.logging.procedural.ProceduralRecord
+import po.misc.data.processors.DataProcessorBase2
+import po.misc.types.token.Tokenized
+import po.misc.types.token.TypeToken
 
 
-class LogProcessor(
-    val host: LogEmitter,
-    val parentProcessor: DataProcessorBase<LogMessage>? = null,
-    builder:(EmitterConfig.()-> Unit)? = null
-): DataProcessorBase<LogMessage>(parentProcessor){
+class ProceduralLogProcessor<LR: ProceduralRecord>(
+    override val host: Component,
+    val builder: (ProceduralLogProcessor<LR>)->LR
+): DataProcessorBase2<LR>(host) {
 
-    private val config: EmitterConfig = EmitterConfig()
+//
+//    fun <PR: ProceduralRecord,  R> logScope(record: PR,  subject: String, block: ProceduralFlow<PR>.()-> R):R {
+//
+//        val logRecord = builder.invoke(this)
+//        val flow = ProceduralFlow<LR>(host,  subject, logRecord)
+//        val result = flow.block()
+//        logData(logRecord)
+//        return result
+//    }
 
-    init {
-        builder?.invoke(config)
-        composeBaseHooks()
-    }
 
-    private fun composeBaseHooks(){
-        hooks.onSubDataReceived {message, processor->
-            message.parentContext = host
+    override fun outputOrNot(data: LR) {
+        if (data.topic >= verbosity.minTopic) {
+            data.echo()
         }
-    }
-
-    private fun resolveClassName(context: Any): String {
-        return when (context) {
-            is CTX -> context.identifiedByName
-            else -> context::class.simpleOrNan()
-        }
-    }
-    private fun resolveClassID(context: Any): Long {
-        return when (context) {
-            is CTX -> context.identity.numericId
-            else -> context.hashCode().toLong()
-        }
-    }
-
-    private fun createLogMessage(anythingToLog: Any, severity:SeverityLevel,  subject: String?): LogMessage{
-        return LogMessage(
-            className = resolveClassName(host),
-            methodName = "N/A",
-            classID = resolveClassID(host),
-            severity = severity,
-            subject = subject ?: "N/A",
-            message = anythingToLog.toString()
-        )
-    }
-
-    private fun extractFromException(throwable: Throwable, debugTopic: DebugTopic?):LogMessage {
-
-        var className: String? = null
-        var exceptionText = throwable.throwableToText()
-        var methodName: String = "N/A"
-        var classID: Long? = null
-
-        when (throwable) {
-            is ManagedException -> {
-                className = resolveClassName(throwable.context)
-                methodName = throwable.exceptionTrace.bestPick.methodName
-                classID = resolveClassID(throwable.context)
-                throwable.code?.let {
-                    exceptionText += "Code : ${it.name}"
-                }
-            }
-        }
-        return LogMessage(
-            className = className ?: resolveClassName(host),
-            methodName = methodName,
-            classID = classID ?: resolveClassID(host),
-            severity = SeverityLevel.EXCEPTION,
-            subject = debugTopic?.name ?: "Exception",
-            message = exceptionText
-        )
-    }
-
-    fun info(message: String, subject: String? = null) {
-        val logMessage = LogMessage(
-            className = resolveClassName(host),
-            methodName = "N/A",
-            classID = resolveClassID(host),
-            severity = SeverityLevel.INFO,
-            subject = subject ?: "N/A",
-            message = message
-        )
-        addData(logMessage)
-        if(config.verbosity == Verbosity.Info){
-            logMessage.output()
-        }
-    }
-
-    fun warn(message: String, subject: String? = null) {
-        val logMessage = LogMessage(
-            className = resolveClassName(host),
-            methodName = "N/A",
-            classID = resolveClassID(host),
-            severity = SeverityLevel.WARNING,
-            subject = subject ?: "N/A",
-            message = message
-        )
-        logMessage.setDefaultTemplate(LogMessage.Warning)
-        addData(logMessage)
-        logMessage.output()
-    }
-
-    fun log(throwable: Throwable, debugTopic: DebugTopic? = null){
-        val logMessage =  extractFromException(throwable, debugTopic)
-        addData(logMessage)
-        logMessage.output()
-    }
-
-    fun debug(anythingToLog:Any, debugTopic: DebugTopic = DebugTopic.General){
-        val logMessage = createLogMessage(anythingToLog, SeverityLevel.DEBUG,  debugTopic.name)
-        addData(logMessage)
-        logMessage.output()
-    }
-
-
-    fun debug(
-        anythingToLog:Any,
-        subject: String,
-        withTrace: Boolean = false,
-        debugTopic: DebugTopic = DebugTopic.General
-    ){
-        val logMessage = createLogMessage(anythingToLog, SeverityLevel.DEBUG, "${debugTopic.name} $subject")
-        addData(logMessage)
-        logMessage.output()
-        if(withTrace){
-           val trace = host.metaFrameTrace(3)
-           trace.output()
-        }
-    }
-
-    fun warnThis(anythingToLog:Any, subject: String? = null){
-        val logMessage = LogMessage(
-            className = resolveClassName(host),
-            methodName = "N/A",
-            classID = resolveClassID(host),
-            severity = SeverityLevel.WARNING,
-            subject = subject ?: "N/A",
-            message = anythingToLog.toString()
-        )
-        logMessage.setDefaultTemplate(LogMessage.Warning)
-        addData(logMessage)
-        logMessage.output()
     }
 }
+
+
+
+
+class LogProcessor <H: Component,  LR: LogRecord>(
+    override val host: H,
+): DataProcessorBase2<LR>(host) {
+    fun <PR: ProceduralRecord, R> logScope(record: PR,  subject: String, block: ProceduralFlow<H, PR>.()-> R):R {
+        val flow = ProceduralFlow(host,  subject, record)
+        val result = flow.block()
+        @Suppress("Unchecked_Cast")
+        logData(record as LR)
+        return result
+    }
+
+    override fun outputOrNot(data: LR) {
+        if (data.topic >= verbosity.minTopic) {
+            data.echo()
+        }
+    }
+}
+
+/**
+ * Creates a [LogProcessor] for this [LogProvider], inferring record type [LR]
+ * directly from the provider's generic parameter.
+ *
+ * Use this when implementing `LogProvider<LR>`, as the log record type is
+ * already known and does not need to be provided explicitly.
+ *
+ * ### Example
+ * ```
+ * class MyService : LogProvider<MyLogEntry> {
+ *     private val logger = logProcessor()
+ * }
+ * ```
+ *
+ * @receiver A component that implements [LogProvider].
+ * @return A new [LogProcessor] bound to this provider.
+ */
+fun <LR: LogRecord, H: LogProvider<LR>> H.logProcessor(): LogProcessor<H,LR>{
+    return LogProcessor(this)
+}
+
+/**
+ * Creates a [LogProcessor] for a plain [Component] using an explicit [TypeToken].
+ *
+ * Use this overload when the component does **not** implement [LogProvider],
+ * but you still want to produce custom log records of type [LR].
+ *
+ * ### Example
+ * ```
+ * val logger = someComponent.logProcessor(TypeToken.create<MyLogEntry>())
+ * ```
+ *
+ * @param typeToken Token describing the concrete log record type.
+ * @receiver A component that will host the processor.
+ */
+fun <H: Component, LR: LogRecord> H.logProcessor(
+    typeToken: TypeToken<LR>
+): LogProcessor<H, LR>{
+    return LogProcessor(this)
+}
+
+/**
+ * Creates a [LogProcessor] using a [Tokenized] companion to resolve the record type.
+ *
+ * Preferred overload when your log record type implements `Tokenized<LR>`,
+ * providing stronger type safety and cleaner syntax.
+ *
+ * ### Example
+ * ```
+ * data class Notification(...) : LogRecord, Tokenized<Notification> {
+ *     companion object : Tokenized<Notification>
+ * }
+ *
+ * val logger = component.logProcessor(Notification)
+ * ```
+ *
+ * @param tokenized The companion providing [TypeToken] for [LR].
+ * @receiver A component serving as log host.
+ */
+fun <H: Component, LR: LogRecord,> H.logProcessor(
+    tokenized: Tokenized<LR>
+): LogProcessor<H, LR>{
+    return LogProcessor(this)
+}
+
 

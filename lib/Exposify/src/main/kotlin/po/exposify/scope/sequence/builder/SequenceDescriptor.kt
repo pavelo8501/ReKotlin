@@ -5,7 +5,6 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.misc.context.CTX
 import po.misc.types.token.TypeToken
-import po.misc.types.type_data.TypeData
 
 interface SequenceDescriptor<DTO : ModelDTO, D : DataModel> : CTX {
     val dtoClass: DTOBase<DTO, D, *>
