@@ -4,18 +4,19 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import po.misc.context.component.ComponentID
 import po.misc.context.component.componentID
-import po.misc.context.tracable.NotificationTopic
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.helpers.output
 import po.misc.data.logging.LogProvider
+import po.misc.data.logging.Loggable
+import po.misc.data.logging.NotificationTopic
 import po.misc.data.logging.procedural.ProceduralEntry
 import po.misc.data.logging.procedural.ProceduralRecord
 import po.misc.data.logging.processor.LogProcessor
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.companion.PrintableCompanion
-import po.misc.data.printable.grouping.createProperty
 import po.misc.types.token.TypeToken
 import po.test.misc.data.logging.processor.CustomNotification
+import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
@@ -24,7 +25,9 @@ class TestProceduralRecord : LogProvider<CustomNotification> {
     private class TestLogData(
         private val provider: LogProcessor<TestProceduralRecord, TestLogData>,
         override val subject: String
-    ): PrintableBase<TestLogData>(this), ProceduralRecord {
+    ): PrintableBase<TestLogData>(this), ProceduralRecord, Loggable {
+
+        override val created: Instant = Instant.now()
 
         override val self: TestLogData = this
 
@@ -50,7 +53,7 @@ class TestProceduralRecord : LogProvider<CustomNotification> {
 
         val info = TestLogData(provider, "Initializing")
 
-        provider.logScope(info,   "Initializing memory"){
+        provider.logScope(info, "Initializing memory"){
             val step1Result = proceduralStep("Step_1") {
                 val returning: Int = 300
                 returning
@@ -75,4 +78,5 @@ class TestProceduralRecord : LogProvider<CustomNotification> {
         firstRec.output()
         secondRec.output()
     }
+
 }

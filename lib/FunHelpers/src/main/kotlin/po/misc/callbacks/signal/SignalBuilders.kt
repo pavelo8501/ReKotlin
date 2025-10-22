@@ -1,7 +1,7 @@
 package po.misc.callbacks.signal
 
 import po.misc.context.component.ComponentID
-import po.misc.context.component.applyID
+import po.misc.context.component.setName
 import po.misc.functions.NoResult
 import po.misc.types.token.Tokenized
 import po.misc.types.token.TypeToken
@@ -23,11 +23,10 @@ fun <T: Any, R: Any> signalOf(
     name: String? = null
 ): Signal<T, R> {
     val signal = Signal<T, R>(typeToken, resultToken)
-    return name?.let {
-        signal.applyID(ComponentID(name, signal))
-    } ?: run {
-        signal
+    if(name != null){
+        signal.setName(name)
     }
+    return signal
 }
 
 /**
@@ -44,11 +43,11 @@ fun <T: Any> signalOf(
     name: String? = null
 ): Signal<T, Unit> {
     val signal = Signal(typeToken, TypeToken.create<Unit>())
-   return name?.let {
-        signal.applyID(ComponentID(name, signal))
-    }?:run {
-        signal
-   }
+
+    if(name != null){
+        signal.setName(name)
+    }
+    return signal
 }
 
 fun <T: Any, R: Any> Tokenized<T>.signalOf(resultToken: TypeToken<R>): Signal<T, R> = signalOf(this.typeToken, resultToken)

@@ -5,6 +5,7 @@ import po.misc.context.component.Component
 import po.misc.context.component.ComponentID
 import po.misc.context.component.componentID
 import po.misc.data.logging.Verbosity
+import po.misc.types.token.TypeToken
 
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
@@ -40,19 +41,19 @@ class TypeData<T: Any> @PublishedApi internal constructor (
     override fun hashCode(): Int = kType.hashCode()
 
     override fun equals(other: Any?): Boolean {
-        return other is TypeData<*> &&
+        return other is TypeToken<*> &&
                 this.kType == other.kType
     }
 
     override fun toString(): String = "TypeData<$typeName>"
 
     companion object{
-        inline operator fun <reified T: Any> invoke(targetClas : KClass<out T>):TypeData<T>{
-           val data = TypeData(T::class, typeOf<T>())
+        inline operator fun <reified T: Any> invoke(targetClas : KClass<out T>):TypeToken<T>{
+           val data = TypeToken(T::class, typeOf<T>())
            return data
         }
-        inline fun <reified T: Any> create():TypeData<T>{
-            return TypeData(T::class, typeOf<T>())
+        inline fun <reified T: Any> create():TypeToken<T>{
+            return TypeToken(T::class, typeOf<T>())
         }
     }
 }

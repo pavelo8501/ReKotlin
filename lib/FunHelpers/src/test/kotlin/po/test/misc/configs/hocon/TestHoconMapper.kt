@@ -2,13 +2,12 @@ package po.test.misc.configs.hocon
 
 import com.typesafe.config.ConfigFactory
 import org.junit.jupiter.api.Test
-import po.misc.callbacks.events.EventHost
+import po.misc.callbacks.common.EventHost
 import po.misc.configs.hocon.models.HoconBoolean
 import po.misc.configs.hocon.models.HoconInt
 import po.misc.configs.hocon.models.HoconLong
 import po.misc.configs.hocon.models.HoconNullable
 import po.misc.configs.hocon.HoconResolvable
-import po.misc.configs.hocon.builders.onResult
 import po.misc.configs.hocon.models.HoconString
 import po.misc.configs.hocon.createResolver
 import po.misc.configs.hocon.extensions.applyConfig
@@ -50,23 +49,31 @@ class TestHoconMapper: EventHost {
     }
 
     internal class NewData(val test: TestHoconMapper) : HoconResolvable<NewData> {
-
-        override val resolver = createResolver(test) {
-            onResult(::parameter1) {
-                registerValidator { paramStr ->
-                    paramStr == "something"
-                }
-                onValidationSuccess {
-                    "Print that we are the successors of success".output(Colour.GreenBright)
-                }
-                onValidationFailure {
-                    "Better luck next time".output(Colour.YellowBright)
-                }
-            }
-        }
-        val parameter1: String by hoconProperty(HoconString)
-        val intParam1: Int by hoconProperty(HoconInt, mandatory = false)
+        override val resolver = createResolver()
     }
+
+//
+//    internal class NewData(val test: TestHoconMapper) : HoconResolvable<NewData> {
+////
+////        override val resolver = createResolver(test) {
+////
+////
+////
+////            onResult(::parameter1) {
+////                registerValidator { paramStr ->
+////                    paramStr == "something"
+////                }
+////                onValidationSuccess {
+////                    "Print that we are the successors of success".output(Colour.GreenBright)
+////                }
+////                onValidationFailure {
+////                    "Better luck next time".output(Colour.YellowBright)
+////                }
+////            }
+////        }
+//        val parameter1: String by hoconProperty(HoconString)
+//        val intParam1: Int by hoconProperty(HoconInt, mandatory = false)
+//    }
 
     @Test
     fun `Hocon property delegate`() {

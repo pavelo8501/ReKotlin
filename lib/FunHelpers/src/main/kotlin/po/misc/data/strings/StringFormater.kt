@@ -6,6 +6,9 @@ import po.misc.data.PrettyPrint
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
+import kotlin.collections.drop
+import kotlin.collections.first
+import kotlin.collections.isNotEmpty
 
 
 sealed class StringFormatter(var string: String){
@@ -20,9 +23,10 @@ sealed class StringFormatter(var string: String){
     }
     override fun toString(): String{
         return if (subFormatters.isNotEmpty()) {
-            subFormatters.joinToString(prefix = string, postfix = SpecialChars.NEW_LINE , separator = SpecialChars.NEW_LINE) {
+            val subResult = subFormatters.joinToString(prefix = string, postfix = SpecialChars.NEW_LINE , separator = SpecialChars.NEW_LINE) {
                 it.toString()
             }
+            "${string}${SpecialChars.NEW_LINE}${subResult}"
         } else {
             string
         }
@@ -127,6 +131,8 @@ fun Any.stringify(
     return stringifyInternal(this, prefix =  null, colour =  colour)
 }
 
+
+
 fun Any.stringify():SimpleFormatter {
     val formatedText = StringFormatter.formatKnownTypes(this)
     return if (this !is PrettyPrint) {
@@ -142,6 +148,44 @@ inline fun Any.stringify(
     colour: Colour? = null,
     transform: (String)-> String
 ):SimpleFormatter = stringifyInternal(this, colour, transform)
+
+
+@PublishedApi
+internal inline fun stringifyListInternal(
+    list: List<Any>,
+    colour: Colour?,
+    transform: (String)-> String
+):SimpleFormatter {
+
+    return if(list.isNotEmpty()) {
+        val stringFormater =  list.first().stringify(colour, transform)
+        list.drop(1).forEach {
+            stringFormater.addSubStringFormater(it.stringify(colour, transform))
+        }
+        stringFormater
+    }else{
+        SimpleFormatter("empty", "empty")
+    }
+}
+
+@PublishedApi
+internal fun stringifyListInternal(
+    list: List<Any>,
+    colour: Colour?,
+):SimpleFormatter {
+
+    return if(list.isNotEmpty()) {
+        val stringFormater =  list.first().stringify(colour)
+        list.drop(1).forEach {
+            stringFormater.addSubStringFormater(it.stringify(colour))
+        }
+        stringFormater
+    }else{
+        SimpleFormatter("empty", "empty")
+    }
+}
+
+fun List<Any>.stringify():SimpleFormatter = stringifyListInternal(this, colour = null)
 
 
 inline fun List<Any>.stringify(

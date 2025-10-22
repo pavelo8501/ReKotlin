@@ -1,4 +1,4 @@
-package po.misc.callbacks.events.delayed
+package po.misc.callbacks.delayed
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -6,7 +6,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import po.misc.callbacks.events.EventHost
+import po.misc.callbacks.common.EventHost
 import po.misc.types.token.TypeToken
 
 

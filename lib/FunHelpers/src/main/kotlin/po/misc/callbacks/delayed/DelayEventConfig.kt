@@ -1,10 +1,8 @@
-package po.misc.callbacks.events.delayed
+package po.misc.callbacks.delayed
 
-import po.misc.callbacks.events.EventHost
+import po.misc.callbacks.common.EventHost
 import java.time.Instant
 import kotlin.time.Duration
-
-
 
 
 class DelayConfig(

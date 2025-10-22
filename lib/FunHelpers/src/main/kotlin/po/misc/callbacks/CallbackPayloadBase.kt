@@ -4,12 +4,13 @@ import po.misc.callbacks.components.PayloadAnalyzer
 import po.misc.context.CTX
 import po.misc.exceptions.throwManaged
 import po.misc.types.getOrManaged
+import po.misc.types.token.TypeToken
 import po.misc.types.type_data.TypeData
 
 
 sealed class CallbackPayloadBase<E: Enum<E>, T, R>(
     val eventType: E,
-    val typeKey : TypeData<T>
+    val typeKey : TypeToken<T>
 ) where T:Any, R: Any {
 
     internal val analyzer = PayloadAnalyzer(this)
@@ -55,11 +56,9 @@ sealed class CallbackPayloadBase<E: Enum<E>, T, R>(
     }
     private fun triggerIfLeftover(subscriber: CTX, function: (Containable<T>)-> Unit){
         leftoverData.forEach {
-
             val newContainer = CallbackContainer<T>(this, subscriber, 0,  function)
             newContainer.trigger(it)
             leftoverData.remove(it)
-
         }
     }
 
@@ -163,7 +162,7 @@ sealed class CallbackPayloadBase<E: Enum<E>, T, R>(
 
 class CallbackPayload<E: Enum<E>, T>(
     eventType : E,
-    typeKey : TypeData<T>
+    typeKey : TypeToken<T>
 ): CallbackPayloadBase<E, T, Unit>(eventType, typeKey) where T:Any {
     override val withResult: Boolean = false
 
@@ -172,13 +171,13 @@ class CallbackPayload<E: Enum<E>, T>(
        inline fun <E: Enum<E>, reified T: Any> createPayload(
             eventType:E
         ):CallbackPayload<E, T>{
-           val typeKey = TypeData.create<T>()
+           val typeKey = TypeToken.create<T>()
            return CallbackPayload(eventType, typeKey)
         }
 
         fun <E: Enum<E>, T: Any> createPayload(
             eventType:E,
-            typeKey: TypeData<T>
+            typeKey: TypeToken<T>
         ):CallbackPayload<E, T>{
             return CallbackPayload(eventType, typeKey)
         }
@@ -187,8 +186,8 @@ class CallbackPayload<E: Enum<E>, T>(
 
 class ResultCallbackPayload<E: Enum<E>, T, R>(
     eventType : E,
-    typeKey : TypeData<T>,
-    val resultTypeKey:TypeData<R>
+    typeKey : TypeToken<T>,
+    val resultTypeKey:TypeToken<R>
 ): CallbackPayloadBase<E, T, R>(eventType,typeKey) where T:Any, R:Any {
     override val withResult: Boolean = true
     /**

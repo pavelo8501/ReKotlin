@@ -11,6 +11,7 @@ import po.misc.context.asSubIdentity
 import po.misc.types.type_data.TypeData
 import po.misc.types.castOrManaged
 import po.misc.types.safeCast
+import po.misc.types.token.TypeToken
 import java.util.EnumMap
 import kotlin.Any
 
@@ -39,9 +40,7 @@ class CallbackManager<E: Enum<E>>(
         }
     }
 
-
    //val identity: Identifiable = identifiable("CallbackManager", emitter.context)
-
 
     internal val  singleTypeEventMap = EnumMap<E, MutableList<CallbackPayload<E, *,>>>(enumClass)
     internal val  resultTypeEventMap = EnumMap<E, MutableList<ResultCallbackPayload<E, *, *>>>(enumClass)
@@ -51,7 +50,7 @@ class CallbackManager<E: Enum<E>>(
 
     private fun <T: Any> containerLookup(
         eventMap:  MutableList<CallbackPayloadBase<E, *, *>>?,
-        typedKey: TypeData<T>
+        typedKey: TypeToken<T>
     ): CallbackPayloadBase<E, *, *>?{
         return eventMap?.firstOrNull { it.typeKey == typedKey }
     }
@@ -114,7 +113,7 @@ class CallbackManager<E: Enum<E>>(
     }
 
     @PublishedApi
-    internal fun <T: Any> payloadLookup(eventType:E, key:ComparableType<T>):CallbackPayload<E,T>? {
+    internal fun <T: Any> payloadLookup(eventType:E, key:TypeToken<T>):CallbackPayload<E,T>? {
         return singleTypeEventMap[eventType]?.let { event ->
             val payload = event.firstOrNull { it.typeKey == key }
             if (payload != null) {
@@ -150,7 +149,7 @@ class CallbackManager<E: Enum<E>>(
         eventType:E,
         noinline function: (Containable<T>) -> Unit
     ): Unit {
-        val key = StaticTypeKey.createTypeKey<T>()
+        val key = TypeToken.create<T>()
         payloadLookup(eventType, key)?.subscribe(subscriber, function)?:run {
             throwManaged("Payload for the given eventType: ${eventType.name} and key: $key not registered", this)
         }
@@ -162,16 +161,16 @@ class CallbackManager<E: Enum<E>>(
         eventType: E,
         noinline function: (Containable<T>) -> Unit
     ): Unit {
-        val key = StaticTypeKey.createTypeKey<T>()
+        val key = TypeToken.create<T>()
         payloadLookup(eventType, key)?.request(subscriber, function) ?:run {
             throwManaged("Payload for the given eventType: ${eventType.name} and key: $key not registered", this)
         }
     }
 
     inline fun <reified T: Any> trigger(eventType: E, value: T, subscriber: CTX? = null): Unit
-        = trigger(eventType, StaticTypeKey.createTypeKey<T>(), value, subscriber)
+        = trigger(eventType, TypeToken.create<T>(), value, subscriber)
 
-    fun <T: Any> trigger(eventType: E, key: ComparableType<T>, value: T, subscriber: CTX? = null){
+    fun <T: Any> trigger(eventType: E, key: TypeToken<T>, value: T, subscriber: CTX? = null){
         val payload = payloadLookup(eventType, key)
         if(payload != null) {
             subscriber?.let {subscriber->
@@ -217,7 +216,7 @@ class CallbackManager<E: Enum<E>>(
             manager: CallbackManager<E>,
             eventType:E,
         ): CallbackPayload<E, T>{
-            val typeKey = TypeData.create<T>()
+            val typeKey = TypeToken.create<T>()
             val payload =  CallbackPayload(eventType, typeKey)
             manager.registerPayloadInternally(payload)
             return payload
@@ -226,7 +225,7 @@ class CallbackManager<E: Enum<E>>(
         fun <E: Enum<E>, T: Any> createPayload(
             manager: CallbackManager<E>,
             eventType:E,
-            dataType: TypeData<T>,
+            dataType: TypeToken<T>,
         ): CallbackPayload<E, T>{
             val payload =  CallbackPayload(eventType, dataType)
             manager.registerPayloadInternally(payload)
@@ -237,8 +236,8 @@ class CallbackManager<E: Enum<E>>(
             manager: CallbackManager<E>,
             eventType:E,
         ): ResultCallbackPayload<E, T, R>{
-            val typeKey = TypeData.create<T>()
-            val resultTypeKey = TypeData.create<R>()
+            val typeKey = TypeToken.create<T>()
+            val resultTypeKey = TypeToken.create<R>()
             val payload = ResultCallbackPayload(eventType, typeKey, resultTypeKey)
             manager.registerResultPayload(payload)
             return payload

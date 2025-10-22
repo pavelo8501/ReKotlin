@@ -44,9 +44,16 @@ class ComponentID(
         verbosity: Verbosity = Verbosity.Info
     ):this(name, ClassResolver.classInfo(component), verbosity)
 
+    private var usedName = name
     private val typeParamsName: String get() = classInfo.genericInfo.joinToString(separator = ", ") {
         it.formattedString
     }
+
+
+    fun useName(nameToUse: String){
+        usedName = nameToUse
+    }
+
     fun addParamInfo(genericInfo: GenericInfo): ComponentID{
         classInfo.genericInfoBacking.add(genericInfo)
         return this
@@ -57,8 +64,8 @@ class ComponentID(
         return this
     }
 
-    override val formattedString: String get() =  "${name.colorize(Colour.Magenta)} " +
+    override val formattedString: String get() =  "${usedName.colorize(Colour.Magenta)} " +
             classInfo.formattedString
 
-    override fun toString(): String = name + classInfo
+    override fun toString(): String = usedName + classInfo
 }

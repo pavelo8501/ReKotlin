@@ -4,7 +4,6 @@ package po.misc.data.logging.models
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.printable.companion.Template
-import po.misc.data.printable.companion.appendLine
 import po.misc.data.printable.companion.nextLine
 import po.misc.data.processors.SeverityLevel
 import po.misc.data.styles.BGColour
@@ -22,8 +21,7 @@ class ContextMessage(
     val severityLevel: SeverityLevel,
 ) : PrintableBase<ContextMessage>(this){
 
-    override val self: ContextMessage
-        get() = this
+    override val self: ContextMessage get() = this
 
     val colorizedMessage: String
         get() {
@@ -38,6 +36,7 @@ class ContextMessage(
 //    val badge: String = BGColour.makeOfColour(BGColour.Yellow, Colour.BlackBright, "DEBUG")
 
     companion object : PrintableCompanion<ContextMessage>(TypeToken.create()) {
+
         val Message: Template<ContextMessage> = createTemplate {
             nextBlock {
                 val header = "[$contextName  @ ${nowLocalDateTime()}] ->".colorize(Colour.Blue)

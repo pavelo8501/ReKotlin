@@ -1,11 +1,12 @@
 package po.misc.callbacks.signal
 
+import po.misc.callbacks.common.ListenerResult
 import po.misc.collections.lambda_map.LambdaMap
 import po.misc.collections.lambda_map.toCallable
 import po.misc.context.component.Component
 import po.misc.context.tracable.TraceableContext
 import po.misc.context.component.ComponentID
-import po.misc.context.tracable.NotificationTopic
+import po.misc.data.logging.NotificationTopic
 import po.misc.debugging.ClassResolver
 import po.misc.debugging.models.ClassInfo
 import po.misc.exceptions.handling.Suspended
@@ -31,10 +32,7 @@ sealed interface SignalBuilder<T: Any, R: Any>{
 
 }
 
-data class ListenerResult<R: Any>(
-    val listener: TraceableContext,
-    val result: R
-)
+
 
 class Signal<T: Any, R : Any>(
    val paramType: TypeToken<T>,
@@ -51,11 +49,13 @@ class Signal<T: Any, R : Any>(
             "$callbackType initialized for ${ClassResolver.instanceName(context)}"
         }
     }
+
     private val messageKey: (Any) -> String = {
         "$subjectKey for Class: ${it::class.simpleOrAnon} with HashCode:  ${it.hashCode()}"
     }
 
     internal val listeners: LambdaMap<T, R> = LambdaMap()
+
     internal val classInfo: ClassInfo = ClassResolver.classInfo(this)
             .addParamInfo("T", paramType)
                 .addParamInfo("R", resultType)

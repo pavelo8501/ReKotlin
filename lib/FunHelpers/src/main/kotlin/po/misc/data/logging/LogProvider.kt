@@ -21,6 +21,6 @@ import po.misc.context.component.Component
  * @see LogProcessor for log collection and dispatch.
  * @see Component for identity and verbosity management.
  */
-interface LogProvider<LR: LogRecord>: Component
+interface LogProvider<LR: Loggable>: Component
 
 

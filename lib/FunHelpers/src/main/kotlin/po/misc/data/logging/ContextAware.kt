@@ -104,8 +104,6 @@ interface ContextAware : LogEmitter, CTX {
     }
 }
 
-
-
 internal object FakeCtx: ContextAware{
     override val identity: CTXIdentity<FakeCtx> = asIdentity()
     override val emitter: ContextAwareLogEmitter = ContextAwareLogEmitter(this)

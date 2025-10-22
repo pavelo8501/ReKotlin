@@ -4,9 +4,9 @@ import org.junit.jupiter.api.Test
 import po.misc.context.component.Component
 import po.misc.context.component.ComponentID
 import po.misc.context.component.componentID
-import po.misc.context.tracable.Notification
-import po.misc.context.tracable.NotificationTopic
+import po.misc.data.logging.NotificationTopic
 import po.misc.data.logging.Verbosity
+import po.misc.data.logging.models.Notification
 import po.misc.data.logging.processor.LogProcessor
 import po.misc.data.logging.processor.logProcessor
 import po.misc.io.captureOutput
@@ -32,9 +32,11 @@ class TestLogProcessor: Component {
     @Test
     fun `Log processor's console outputs respect host verbosity setting`(){
         componentID.verbosity = Verbosity.Debug
+
         val processor = LogProcessor<TestLogProcessor, Notification>(this)
 
         val debug = notify(NotificationTopic.Debug, "Some subject", notificationText)
+
         var capturedDebug = captureOutput {
             processor.logData(debug)
         }
@@ -92,7 +94,7 @@ class TestLogProcessor: Component {
     @Test
     fun `Log processor stores data disregarding verbosity`(){
 
-        val processor = logProcessor(Notification.Companion)
+        val processor = logProcessor(Notification)
 
         componentID.verbosity = Verbosity.Warnings
         val debug = notify(NotificationTopic.Debug, subject, notificationText)
@@ -128,5 +130,12 @@ class TestLogProcessor: Component {
         assertNotNull(intercepted)
         assertNull(processor.records.firstOrNull { it === info })
     }
+
+    @Test
+    fun `Log processor's conditional output lambda work as expected`(){
+
+
+    }
+
 
 }

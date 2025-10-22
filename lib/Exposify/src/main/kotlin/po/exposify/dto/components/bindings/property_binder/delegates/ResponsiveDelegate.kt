@@ -141,7 +141,7 @@ sealed class ResponsiveDelegate<DTO, D, E, V> protected constructor(
         buffer.onCommit(::onValueCommit)
         buffer.onValueReceived(::onDataSubmitted)
         buffer.onSameAsRecent(::onSameDataSubmitted)
-        hostingDTO.dataContainer.requestValue(this){dataModel->
+        hostingDTO.dataContainer.getValue(this){dataModel->
             val value = dataProperty.get(dataModel)
             buffer.add(value, newInternalParam())
             hostingDTO.bindingHub.registerResponsiveDelegate(this)

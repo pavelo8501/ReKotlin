@@ -29,13 +29,12 @@ import po.misc.containers.backingContainerOf
 import po.misc.containers.lazyContainerOf
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
-import po.misc.data.helpers.output
 import po.misc.data.processors.SeverityLevel
 import po.misc.exceptions.throwableToText
 import po.misc.functions.hooks.Change
 import po.misc.functions.registries.TaggedRegistry
 import po.misc.functions.registries.builders.taggedRegistryOf
-import po.misc.types.helpers.simpleOrNan
+import po.misc.types.helpers.simpleOrAnon
 import po.misc.types.safeCast
 import java.util.UUID
 import kotlin.reflect.KClass
@@ -219,7 +218,7 @@ abstract class CommonDTO<DTO, D, E>(
         }?:run {
            val providedClass = dataModel::class as KClass<*>
            val errMsg = "Unable to update persistence layer by data model provided. " +
-                    "Expecting ${dataClass.simpleOrNan()}, got ${providedClass.simpleOrNan()}"
+                    "Expecting ${dataClass.simpleOrAnon}, got ${providedClass.simpleOrAnon}"
             warning(errMsg)
             false
         }

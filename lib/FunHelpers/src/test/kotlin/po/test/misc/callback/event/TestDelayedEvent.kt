@@ -1,19 +1,20 @@
-package po.test.misc.callback.events
+package po.test.misc.callback.event
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
-import po.misc.callbacks.events.EventHost
-import po.misc.callbacks.events.delayed.DelayConfig
-import po.misc.callbacks.events.delayed.DelayWithTicks
-import po.misc.callbacks.events.delayed.DelayedEvent
-import po.misc.callbacks.events.typeDataOf
+import po.misc.callbacks.common.EventHost
+import po.misc.callbacks.delayed.DelayConfig
+import po.misc.callbacks.delayed.DelayWithTicks
+import po.misc.callbacks.delayed.DelayedEvent
 import po.misc.data.PrettyPrint
 import po.misc.data.helpers.output
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
+import po.misc.types.token.TokenFactory
+import po.misc.types.token.typeToken
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
@@ -21,7 +22,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
-class TestDelayedEvent: EventHost {
+class TestDelayedEvent: EventHost, TokenFactory {
 
     class SomeData(
         val value: String = "Time is up"
@@ -35,7 +36,7 @@ class TestDelayedEvent: EventHost {
     fun `Starting event with no ticks`(){
 
         var dataTriggered: Any? = null
-        val event = DelayedEvent(this@TestDelayedEvent, typeDataOf<SomeData>())
+        val event = DelayedEvent(this@TestDelayedEvent, typeToken<SomeData>() )
         event.onTimer {
             it.output(Colour.Green)
             dataTriggered = it
@@ -52,7 +53,7 @@ class TestDelayedEvent: EventHost {
     fun `Starting event with no ticks async`() = runTest {
 
         var dataTriggered: Any? = null
-        val event = DelayedEvent(this@TestDelayedEvent, typeDataOf<SomeData>(), this@runTest)
+        val event = DelayedEvent(this@TestDelayedEvent, typeToken<SomeData>(), this@runTest)
         event.onTimer {
             it.output(Colour.Green)
             dataTriggered = it
@@ -68,7 +69,7 @@ class TestDelayedEvent: EventHost {
 
         var dataTriggered: Any? = null
         val tickTriggers = mutableListOf<SomeData>()
-        val event = DelayedEvent(this@TestDelayedEvent, typeDataOf<SomeData>(), this@runTest)
+        val event = DelayedEvent(this@TestDelayedEvent, typeToken<SomeData>(), this@runTest)
         event.onTimer {
             it.output(Colour.Green)
             dataTriggered = it
@@ -92,7 +93,7 @@ class TestDelayedEvent: EventHost {
 
         var dataTriggered: Any? = null
         val tickTriggers = mutableListOf<SomeData>()
-        val event = DelayedEvent(this@TestDelayedEvent, typeDataOf<SomeData>(), this@runTest)
+        val event = DelayedEvent(this@TestDelayedEvent, typeToken<SomeData>(), this@runTest)
 
         event.onTimer {
             it.output(Colour.Green)
@@ -118,7 +119,7 @@ class TestDelayedEvent: EventHost {
 
         var dataTriggered: Any? = null
         val tickTriggers = mutableListOf<SomeData>()
-        val event = DelayedEvent(this@TestDelayedEvent, typeDataOf<SomeData>(), this@runTest)
+        val event = DelayedEvent(this@TestDelayedEvent, typeToken<SomeData>(), this@runTest)
 
         event.onTimer {
             it.output(Colour.Green)

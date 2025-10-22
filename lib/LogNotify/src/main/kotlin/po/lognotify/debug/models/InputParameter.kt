@@ -1,11 +1,12 @@
 package po.lognotify.debug.models
 
 import po.misc.data.styles.SpecialChars
+import po.misc.types.token.TypeToken
 import po.misc.types.type_data.TypeData
 
 data class InputParameter(
     val name: String,
-    val typeData: TypeData<*>,
+    val typeData: TypeToken<*>,
     val size:Int = 1,
     val value: String
 ){

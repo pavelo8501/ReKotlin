@@ -6,13 +6,15 @@ import po.misc.callbacks.signal.signal
 import po.misc.callbacks.signal.signalOf
 import po.misc.context.tracable.TraceableContext
 import po.misc.functions.NoResult
-import po.test.misc.callback.events.TestCallbackEvent.Data1
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class TestSignal {
+
+
+    internal class Data1()
 
     internal class Listener(): TraceableContext{
         val hash = hashCode()
@@ -65,7 +67,6 @@ class TestSignal {
     @Test
     fun `Signal usage with a multiple event listeners`(){
         val click = signalOf<Data1>(NoResult)
-
         val listeners = recreateListeners(click)
         val  data = Data1()
         click.trigger(data)

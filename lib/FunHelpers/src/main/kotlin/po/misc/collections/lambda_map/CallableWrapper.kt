@@ -3,6 +3,7 @@ package po.misc.collections.lambda_map
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import po.misc.context.component.Component
+import po.misc.context.tracable.TraceableContext
 import po.misc.data.helpers.output
 import po.misc.data.styles.Colour
 import po.misc.exceptions.handling.Suspended
@@ -41,7 +42,7 @@ class LambdaWithReceiver<H: Any, T: Any, R>(
     }
 }
 
-fun <H: Any, T: Any, R> Function2<H, T, R>.toCallable(receiver:H):LambdaWithReceiver<H, T, R>{
+fun <H: TraceableContext, T: Any, R> Function2<H, T, R>.toCallable(receiver:H):LambdaWithReceiver<H, T, R>{
     return LambdaWithReceiver(receiver, this)
 }
 
@@ -78,7 +79,7 @@ fun <T: Any, R> Component.toCallable(function: suspend (T)->R):SuspendingLambda<
     return SuspendingLambda(function)
 }
 
-class SuspendingLambdaWithReceiver<H: Any, T: Any, R>(
+class SuspendingLambdaWithReceiver<H: TraceableContext, T: Any, R>(
     val receiver:H,
     private val lambda: suspend H.(T)->R
 ):CallableWrapper<T, R>{
@@ -108,6 +109,6 @@ class SuspendingLambdaWithReceiver<H: Any, T: Any, R>(
     }
 }
 
-fun <H: Component, T: Any, R>  H.toCallable(function: suspend H.(T)->R):SuspendingLambdaWithReceiver<H, T, R>{
+fun <H: TraceableContext, T: Any, R>  H.toCallable(function: suspend H.(T)->R):SuspendingLambdaWithReceiver<H, T, R>{
     return SuspendingLambdaWithReceiver(this, function)
 }

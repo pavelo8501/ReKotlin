@@ -4,6 +4,7 @@ import po.misc.collections.ComparableType
 import po.misc.data.helpers.replaceIfNull
 import po.misc.data.tags.EnumTag
 import po.misc.data.tags.Tagged
+import po.misc.types.token.TypeToken
 import po.misc.types.type_data.TypeData
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
@@ -30,7 +31,7 @@ import kotlin.reflect.KType
  * @constructor Creates a [TaggedType] by combining type and tag metadata
  */
 data class TaggedType<T: Any, E: Enum<E>>(
-    val typeData: TypeData<T>,
+    val typeData: TypeToken<T>,
     override val enumTag: EnumTag<E>
 ): ComparableType<T>, Tagged<E>{
 
@@ -93,7 +94,7 @@ data class TaggedType<T: Any, E: Enum<E>>(
         inline fun <reified T: Any, reified E: Enum<E>> create(enumTag:E, alias: String? = null):TaggedType<T, E>{
             val tagRecord = EnumTag(enumTag, E::class.java)
             alias?.let { tagRecord.alias = it }
-            val typeData =  TypeData.create<T>()
+            val typeData =  TypeToken.create<T>()
             return TaggedType(typeData, tagRecord)
         }
     }

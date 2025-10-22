@@ -1,9 +1,9 @@
-package po.test.misc.callback.events
+package po.test.misc.callback.event
 
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
-import po.misc.callbacks.events.EventHost
-import po.misc.callbacks.events.event
+import po.misc.callbacks.common.EventHost
+import po.misc.callbacks.event.event
 import po.misc.exceptions.handling.Suspended
 import po.misc.functions.NoResult
 import kotlin.test.assertIs
@@ -13,16 +13,13 @@ import kotlin.test.assertTrue
 
 class TestValidator: EventHost {
 
-
-    internal class ClassToBeValidated(val parameter: String = "Param1")
+    private class ClassToBeValidated(val parameter: String = "Param1")
 
     @Test
     fun `InvokeValidator usage with  HostedEvent`(){
         val validatableEvent = event<TestValidator, ClassToBeValidated>(NoResult) {
             withValidation {
-                registerValidator {
-                    it.parameter == "Param1"
-                }
+               it.parameter == "Param1"
             }
         }
         assertNotNull(validatableEvent.validator)
@@ -30,21 +27,41 @@ class TestValidator: EventHost {
 
     @Test
     fun `InvokeValidator on success`(){
-        var success: Boolean? = null
+        var success: Boolean = false
         val validatableEvent = event<TestValidator, ClassToBeValidated>(NoResult) {
             withValidation {
-                registerValidator {
-                    it.parameter == "Param1"
-                }
-            }.onValidationSuccess {
+                it.parameter == "Param1"
+            }.onSuccess {
                 success = true
+            }
+        }
+
+        assertNotNull(validatableEvent.validator)
+        val valid = ClassToBeValidated()
+        validatableEvent.triggerValidating(valid)
+
+        assertTrue { success }
+    }
+
+    @Test
+    fun `InvokeValidator on failure`(){
+
+        val success: Any? = null
+        var failure: Any? = null
+        val validatableEvent = event<TestValidator, ClassToBeValidated>(NoResult) {
+            withValidation {
+                it.parameter == "Param"
+            }.onFailure {
+                failure = it
             }
         }
         assertNotNull(validatableEvent.validator)
         val valid = ClassToBeValidated()
         validatableEvent.triggerValidating(valid)
-        assertTrue { success?:false }
+        assertNull(success)
+        assertIs<ClassToBeValidated>(failure)
     }
+
 
     @Test
     fun `InvokeValidator on success suspending`()= runTest{
@@ -52,10 +69,8 @@ class TestValidator: EventHost {
         var success: Boolean? = null
         val validatableEvent = event<TestValidator, ClassToBeValidated>(NoResult) {
             withValidation {
-                registerValidator {
-                    it.parameter == "Param1"
-                }
-            }.onValidationSuccess(Suspended) {
+                it.parameter == "Param1"
+            }.onSuccess(Suspended){
                 success = true
             }
         }
@@ -65,48 +80,18 @@ class TestValidator: EventHost {
         assertTrue { success?:false }
     }
 
-    @Test
-    fun `InvokeValidator on failure`(){
-
-        var success: Any? = null
-        var failure: Any? = null
-        val validatableEvent = event<TestValidator, ClassToBeValidated>(NoResult) {
-            withValidation {
-                registerValidator {
-                    it.parameter == "Param"
-                }
-              onValidationFailure {
-                  failure = it
-                }
-            }.onValidationSuccess {
-                success = true
-            }
-        }
-        assertNotNull(validatableEvent.validator)
-
-        val valid = ClassToBeValidated()
-        validatableEvent.triggerValidating(valid)
-        assertNull(success)
-        assertIs<ClassToBeValidated>(failure)
-    }
 
     @Test
     fun `InvokeValidator on failure suspending`()= runTest{
 
-        var success: Any? = null
+        val success: Any? = null
         var failure: Any? = null
 
         val validatableEvent = event<TestValidator, ClassToBeValidated>(NoResult) {
             withValidation {
-                registerValidator {
-                    it.parameter == "Param"
-                }
-                onValidationFailure(Suspended) {
-                    failure = it
-                }
-
-            }.onValidationSuccess(Suspended) {
-                success = it
+                it.parameter == "Param"
+            }.onFailure(Suspended) {
+                failure = it
             }
         }
         assertNotNull(validatableEvent.validator)
@@ -115,6 +100,5 @@ class TestValidator: EventHost {
         assertNull(success)
         assertIs<ClassToBeValidated>(failure)
     }
-
 
 }

@@ -1,10 +1,9 @@
 package po.misc.data.logging.procedural
 
-import po.misc.context.component.Component
+import po.misc.context.tracable.TraceableContext
 
 
-
-class ProceduralFlow<H: Component, LR: ProceduralRecord>(
+class ProceduralFlow<H: TraceableContext, LR: ProceduralRecord>(
     val host: H,
     val subject: String,
     val logRecord: LR
@@ -17,19 +16,19 @@ class ProceduralFlow<H: Component, LR: ProceduralRecord>(
             }
         }
 
-    private fun formatResult(result: Any?): String{
+    private fun entryResult(result: Any?): ProceduralEntry.EntryResult{
         return if(result == null){
-            "Fail"
+            ProceduralEntry.EntryResult.Negative
         }else{
             when(result){
                 is Boolean ->{
                     if(result){
-                        "OK"
+                        ProceduralEntry.EntryResult.Positive
                     }else{
-                        "Fail"
+                        ProceduralEntry.EntryResult.Negative
                     }
                 }
-                else -> "OK"
+                else ->   ProceduralEntry.EntryResult.Positive
             }
         }
     }
@@ -46,8 +45,8 @@ class ProceduralFlow<H: Component, LR: ProceduralRecord>(
         //Later add formating for throwable
 
         val tempSolutionForBadge = "[SYNC]"
-        val formatedResult = formatResult(blockResult)
-        val record = ProceduralEntry(stepName, tempSolutionForBadge, formatedResult){
+        val entryResult = entryResult(blockResult)
+        val record = ProceduralEntry(stepName, tempSolutionForBadge, entryResult.value, entryResult){
             maxLineReg
         }
         maxLineReg = record.stepBadge.count() + record.stepName.count()

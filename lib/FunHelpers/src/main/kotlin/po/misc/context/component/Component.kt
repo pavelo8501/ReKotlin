@@ -1,13 +1,6 @@
 package po.misc.context.component
 
-import po.misc.context.tracable.Notification
-import po.misc.context.tracable.NotificationTopic
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.logging.LogRecord
-import po.misc.data.logging.Verbosity
-import po.misc.data.styles.Colour
-import po.misc.data.styles.SpecialChars
-import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.stack_trace.extractTrace
@@ -43,15 +36,6 @@ import po.misc.types.helpers.simpleOrAnon
 interface Component : TraceableContext {
 
     val componentID: ComponentID get() = ComponentID(this::class.simpleOrAnon, ClassResolver.classInfo(this))
-
-
-//    override fun warn(subject: String, text: String){
-//       // notify(text, subject, Verbosity.Warnings)
-//    }
-
-//    fun notify(topic: NotificationTopic, subject: String, text: String): LogRecord = notify(this, topic, subject, text)
-//
-//    fun notify(subject:String,  throwable: Throwable):LogRecord = notify(this, subject, throwable)
 
 }
 

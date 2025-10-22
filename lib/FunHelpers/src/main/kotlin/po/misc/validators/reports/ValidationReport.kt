@@ -21,7 +21,6 @@ class ValidationRecords(
 ): PrintableGroup<ValidationReport, ValidationRecord>(report, ValidationReport.Header, ValidationRecord.Main){
 
     override val ownClass: KClass<out Printable> = ValidationRecords::class
-    override val arbitraryMap: ArbitraryDataMap<Printable> = ArbitraryDataMap()
 
 }
 
@@ -44,7 +43,6 @@ class ValidationReport(
         }
 
     val hasFailures: Boolean get() = getRecords().any { it.result == CheckStatus.FAILED }
-
 
     init {
         validationRecords.setFooter(Footer)

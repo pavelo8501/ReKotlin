@@ -2,7 +2,7 @@ package po.misc.configs.hocon.models
 
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigValueType
-import po.misc.callbacks.events.HostedEvent
+import po.misc.callbacks.event.HostedEvent
 import po.misc.configs.hocon.HoconResolvable
 import po.misc.configs.hocon.HoconResolver
 import po.misc.configs.hocon.extensions.applyConfig
@@ -10,7 +10,6 @@ import po.misc.configs.hocon.extensions.parseList
 import po.misc.configs.hocon.extensions.parseValue
 import po.misc.context.component.Component
 import po.misc.context.component.managedException
-import po.misc.data.logging.Verbosity
 import po.misc.types.safeBaseCast
 import po.misc.types.token.TypeToken
 import kotlin.reflect.KProperty

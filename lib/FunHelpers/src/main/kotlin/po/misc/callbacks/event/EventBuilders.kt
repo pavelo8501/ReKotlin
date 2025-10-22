@@ -1,12 +1,15 @@
-package po.misc.callbacks.events
+package po.misc.callbacks.event
 
+import po.misc.callbacks.common.EventHost
+import po.misc.callbacks.signal.Signal
+import po.misc.context.component.setName
 import po.misc.functions.NoResult
 import po.misc.types.token.Tokenized
 import po.misc.types.token.TypeToken
 
 
 /**
- * Creates a hosted [HostedEvent] bound to this [EventHost].
+ * Creates a hosted [po.misc.callbacks.events.HostedEvent] bound to this [po.misc.callbacks.events.EventHost].
  *
  * Unlike standalone [Signal] dispatchers, hosted events are associated with
  * a specific owner component and represent domain-level events such as
@@ -14,15 +17,20 @@ import po.misc.types.token.TypeToken
  *
  * @param parameterType type information for the payload [T].
  * @param resultType type information for the return type [R].
- * @return a new [HostedEvent] owned by this [EventHost].
+ * @return a new [po.misc.callbacks.events.HostedEvent] owned by this [po.misc.callbacks.events.EventHost].
  *
  * @see event for the builder-based variant with handler registration.
  */
 fun <H: EventHost, T: Any, R: Any> H.eventOf(
     parameterType: TypeToken<T>,
     resultType: TypeToken<R>,
+    name: String? = null
 ): HostedEvent<H, T, R> {
-    return  HostedEvent(this, parameterType, resultType)
+    val event = HostedEvent(this, parameterType, resultType)
+    if(name!= null){
+        event.setName(name)
+    }
+    return event
 }
 
 /**
@@ -36,27 +44,36 @@ fun <H: EventHost, T: Any, R: Any> H.eventOf(
 fun <H: EventHost, T: Any> H.eventOf(
     parameterType: TypeToken<T>,
     result: NoResult,
+    name: String? = null
 ): HostedEvent<H, T, Unit> {
-    return HostedEvent(this, parameterType, TypeToken.create<Unit>())
+    val event = HostedEvent(this, parameterType, TypeToken.create<Unit>())
+    if(name!= null){
+        event.setName(name)
+    }
+    return event
 }
 
-fun <H: EventHost, T: Any> H.eventOf(parameter: Tokenized<T>,  result: NoResult): HostedEvent<H, T, Unit>
-        = eventOf(parameter.typeToken, result)
+fun <H: EventHost, T: Any> H.eventOf(parameter: Tokenized<T>, result: NoResult, name: String? = null): HostedEvent<H, T, Unit>
+        = eventOf(parameter.typeToken, result, name)
 
-fun <H: EventHost, T: Any, R: Any> H.eventOf(parameter: Tokenized<T>,  result: Tokenized<R>): HostedEvent<H, T, R>
-        = eventOf(parameter.typeToken, result.typeToken)
+fun <H: EventHost, T: Any, R: Any> H.eventOf(parameter: Tokenized<T>, result: Tokenized<R>, name: String? = null): HostedEvent<H, T, R>
+        = eventOf(parameter.typeToken, result.typeToken, name)
 
 /**
  * Inline shortcut for [eventOf] using reified types for payload and result.
  */
-inline fun <H: EventHost, reified T: Any, reified R: Any> H.eventOf(): HostedEvent<H, T, R>
-    = eventOf(TypeToken.create<T>(), TypeToken.create<R>())
+inline fun <H: EventHost, reified T: Any, reified R: Any> H.eventOf(
+    name: String? = null
+): HostedEvent<H, T, R>
+    = eventOf(TypeToken.create<T>(), TypeToken.create<R>(), name)
 
 /**
  * Inline shortcut for [eventOf] using reified payload type and no result (`Unit`).
  */
-inline fun <H: EventHost, reified T: Any> H.eventOf(result: NoResult): HostedEvent<H, T, Unit>
-        = eventOf(TypeToken.create<T>(), result)
+inline fun <H: EventHost, reified T: Any> H.eventOf(
+    result: NoResult,
+    name: String? = null
+): HostedEvent<H, T, Unit> = eventOf(TypeToken.create<T>(), result, name)
 
 
 /**

@@ -1,6 +1,6 @@
 package po.misc.configs.hocon.builders
 
-import po.misc.callbacks.events.EventHost
+import po.misc.callbacks.common.EventHost
 import po.misc.configs.hocon.HoconConfigurable
 import po.misc.configs.hocon.models.HoconPrimitives
 import po.misc.configs.hocon.HoconResolvable

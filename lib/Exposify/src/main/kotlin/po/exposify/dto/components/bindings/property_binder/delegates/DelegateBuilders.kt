@@ -5,7 +5,6 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.CommonDTO
 import po.exposify.dto.interfaces.ModelDTO
 import po.misc.types.token.TypeToken
-import po.misc.types.type_data.TypeData
 import kotlin.reflect.KMutableProperty1
 
 inline fun <DTO, D, E, reified V: Any>  CommonDTO<DTO, D, E>.binding(

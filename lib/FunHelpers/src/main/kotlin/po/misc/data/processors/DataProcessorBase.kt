@@ -40,7 +40,11 @@ abstract class DataProcessorBase<T: Printable>(
     fun addArbitraryData(record: PrintableBase<*>){
         hooks.arbitraryDataReceived?.invoke(record)
 
-        activeRecord?.arbitraryMap?.putPrintable(record)
+        activeRecord?.let { active->
+            if(active is PrintableBase<*>) {
+                active.arbitraryMap.putPrintable(record)
+            }
+        }
     }
 
     protected fun updateDebugWhiteList(whiteList: MutableMap<Int, TypeToken<*>>){

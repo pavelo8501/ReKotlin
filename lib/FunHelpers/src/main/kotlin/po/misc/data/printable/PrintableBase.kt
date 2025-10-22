@@ -34,6 +34,7 @@ abstract class PrintableBase<T>(
     var activeTemplate:  PrintableTemplateBase<T>? = null
     private val templatesBacking: MutableList<PrintableTemplateBase<T>> = mutableListOf<PrintableTemplateBase<T>>()
     val templates :List<PrintableTemplateBase<T>> = templatesBacking
+
     override val formattedString : String get(){
         return activeTemplate?.resolve(self) ?:run {
             templateNotFound(self)
@@ -88,7 +89,9 @@ abstract class PrintableBase<T>(
         }
     }
 
-    override fun echo(): Unit = output()
+    override fun echo(): Unit{
+        println(formattedString)
+    }
 
     fun echo(template: PrintableTemplateBase<T>){
         val result = template.resolve(self)

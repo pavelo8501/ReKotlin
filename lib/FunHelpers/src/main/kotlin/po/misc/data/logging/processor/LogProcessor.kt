@@ -1,44 +1,15 @@
 package po.misc.data.logging.processor
 
 import po.misc.context.component.Component
-import po.misc.data.logging.LogProvider
-import po.misc.data.logging.LogRecord
+import po.misc.data.logging.Loggable
 import po.misc.data.logging.procedural.ProceduralFlow
 import po.misc.data.logging.procedural.ProceduralRecord
-import po.misc.data.processors.DataProcessorBase2
-import po.misc.types.token.Tokenized
-import po.misc.types.token.TypeToken
 
 
-class ProceduralLogProcessor<LR: ProceduralRecord>(
-    override val host: Component,
-    val builder: (ProceduralLogProcessor<LR>)->LR
-): DataProcessorBase2<LR>(host) {
+class LogProcessor <H: Component, LR: Loggable>(
+    override val host: H
+): LogProcessorBase<LR>(host) {
 
-//
-//    fun <PR: ProceduralRecord,  R> logScope(record: PR,  subject: String, block: ProceduralFlow<PR>.()-> R):R {
-//
-//        val logRecord = builder.invoke(this)
-//        val flow = ProceduralFlow<LR>(host,  subject, logRecord)
-//        val result = flow.block()
-//        logData(logRecord)
-//        return result
-//    }
-
-
-    override fun outputOrNot(data: LR) {
-        if (data.topic >= verbosity.minTopic) {
-            data.echo()
-        }
-    }
-}
-
-
-
-
-class LogProcessor <H: Component,  LR: LogRecord>(
-    override val host: H,
-): DataProcessorBase2<LR>(host) {
     fun <PR: ProceduralRecord, R> logScope(record: PR,  subject: String, block: ProceduralFlow<H, PR>.()-> R):R {
         val flow = ProceduralFlow(host,  subject, record)
         val result = flow.block()
@@ -52,71 +23,6 @@ class LogProcessor <H: Component,  LR: LogRecord>(
             data.echo()
         }
     }
-}
-
-/**
- * Creates a [LogProcessor] for this [LogProvider], inferring record type [LR]
- * directly from the provider's generic parameter.
- *
- * Use this when implementing `LogProvider<LR>`, as the log record type is
- * already known and does not need to be provided explicitly.
- *
- * ### Example
- * ```
- * class MyService : LogProvider<MyLogEntry> {
- *     private val logger = logProcessor()
- * }
- * ```
- *
- * @receiver A component that implements [LogProvider].
- * @return A new [LogProcessor] bound to this provider.
- */
-fun <LR: LogRecord, H: LogProvider<LR>> H.logProcessor(): LogProcessor<H,LR>{
-    return LogProcessor(this)
-}
-
-/**
- * Creates a [LogProcessor] for a plain [Component] using an explicit [TypeToken].
- *
- * Use this overload when the component does **not** implement [LogProvider],
- * but you still want to produce custom log records of type [LR].
- *
- * ### Example
- * ```
- * val logger = someComponent.logProcessor(TypeToken.create<MyLogEntry>())
- * ```
- *
- * @param typeToken Token describing the concrete log record type.
- * @receiver A component that will host the processor.
- */
-fun <H: Component, LR: LogRecord> H.logProcessor(
-    typeToken: TypeToken<LR>
-): LogProcessor<H, LR>{
-    return LogProcessor(this)
-}
-
-/**
- * Creates a [LogProcessor] using a [Tokenized] companion to resolve the record type.
- *
- * Preferred overload when your log record type implements `Tokenized<LR>`,
- * providing stronger type safety and cleaner syntax.
- *
- * ### Example
- * ```
- * data class Notification(...) : LogRecord, Tokenized<Notification> {
- *     companion object : Tokenized<Notification>
- * }
- *
- * val logger = component.logProcessor(Notification)
- * ```
- *
- * @param tokenized The companion providing [TypeToken] for [LR].
- * @receiver A component serving as log host.
- */
-fun <H: Component, LR: LogRecord,> H.logProcessor(
-    tokenized: Tokenized<LR>
-): LogProcessor<H, LR>{
-    return LogProcessor(this)
 }
 
 

@@ -1,4 +1,4 @@
-package po.misc.callbacks.events.delayed
+package po.misc.callbacks.delayed
 
 import po.misc.types.helpers.simpleOrAnon
 import kotlin.time.Duration

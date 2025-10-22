@@ -1,8 +1,8 @@
 package po.misc.configs.hocon
 
 import com.typesafe.config.Config
-import po.misc.callbacks.events.EventHost
-import po.misc.callbacks.events.HostedEvent
+import po.misc.callbacks.common.EventHost
+import po.misc.callbacks.event.HostedEvent
 import po.misc.configs.hocon.builders.ResolverBuilder
 import po.misc.configs.hocon.models.ActivityLog
 import po.misc.configs.hocon.models.HoconEntry
@@ -16,7 +16,6 @@ import po.misc.context.component.Component
 import po.misc.context.component.ComponentID
 import po.misc.context.component.componentID
 import po.misc.data.helpers.output
-import po.misc.data.logging.Verbosity
 import po.misc.data.styles.Colour
 import po.misc.types.helpers.simpleOrAnon
 import po.misc.types.token.TypeToken

@@ -1,7 +1,7 @@
 package po.misc.callbacks.containers
 
-import po.misc.callbacks.events.EventHost
-import po.misc.callbacks.events.HostedEvent
+import po.misc.callbacks.common.EventHost
+import po.misc.callbacks.event.HostedEvent
 import po.misc.exceptions.handling.Suspended
 import kotlin.reflect.KClass
 
