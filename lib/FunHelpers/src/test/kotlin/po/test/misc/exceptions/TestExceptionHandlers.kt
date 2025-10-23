@@ -9,8 +9,6 @@ import po.misc.context.asIdentity
 import po.misc.coroutines.CoroutineInfo
 import po.misc.data.helpers.output
 import po.misc.data.logging.ContextAware
-import po.misc.data.logging.ContextAwareLogEmitter
-import po.misc.data.logging.logEmitter
 import po.misc.exceptions.trackable.TrackableException
 import po.misc.exceptions.handling.Suspended
 import po.misc.exceptions.handling.delegateIfThrow
@@ -24,9 +22,6 @@ import kotlin.test.assertNull
 
 class TestExceptionHandlers() : ContextAware {
 
-
-    override val emitter: ContextAwareLogEmitter = logEmitter()
-    override val identity: CTXIdentity<out CTX> = asIdentity()
 
     class SimpleTrackableException(val context: Any, message: String): Throwable(message), TrackableException{
         override val contextClass: KClass<*> get() = context::class

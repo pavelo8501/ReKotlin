@@ -5,7 +5,7 @@ import po.misc.exceptions.ExceptionPayload
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.ManagedPayload
 import po.misc.types.helpers.simpleOrAnon
-import po.misc.types.type_data.TypeData
+import po.misc.types.token.TypeToken
 import java.time.LocalDateTime
 import kotlin.reflect.KClass
 
@@ -111,7 +111,7 @@ fun Any?.isNotNull(): Boolean{
     return this != null
 }
 
-fun <T: Any> TypeData<T>.getDefaultForType(): T? {
+fun <T: Any> TypeToken<T>.getDefaultForType(): T? {
     val result = when (this.kType.classifier) {
         Int::class -> -1
         String::class -> "Default"

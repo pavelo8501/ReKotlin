@@ -2,11 +2,9 @@ package po.misc.context
 
 import po.misc.context.models.IdentityData
 import po.misc.types.token.TypeToken
-import po.misc.types.type_data.TypeData
 import java.util.UUID
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
-import kotlin.reflect.typeOf
 
 /**
  * Represents a structural identity for a given [CTX] type.

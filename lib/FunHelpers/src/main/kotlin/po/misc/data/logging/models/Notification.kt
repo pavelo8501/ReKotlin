@@ -25,8 +25,9 @@ data class Notification(
     override val text: String
 ): Loggable, TimeHelper, PrettyPrint {
 
-    private val contextName: String  = ClassResolver.instanceName(context)
+    constructor(loggable: Loggable):this(loggable.context, loggable.topic, loggable.subject,loggable.text)
 
+    private val contextName: String  = ClassResolver.instanceName(context)
     override val created: Instant = Instant.now()
     override val ownClass: KClass<out Printable> = typeToken.kClass
 

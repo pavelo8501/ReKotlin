@@ -6,7 +6,6 @@ import po.misc.data.styles.Colour
 import po.misc.types.helpers.filterByType
 import po.misc.types.helpers.filterByTypeWhere
 import po.misc.types.token.TypeToken
-import po.misc.types.type_data.typedFilter
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 

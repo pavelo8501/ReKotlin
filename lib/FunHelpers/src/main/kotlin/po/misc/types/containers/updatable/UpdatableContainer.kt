@@ -13,7 +13,6 @@ import po.misc.reflection.classes.ClassInfo
 import po.misc.reflection.classes.ClassRole
 import po.misc.reflection.classes.overallInfo
 import po.misc.reflection.classes.overallInfoFromType
-import po.misc.types.type_data.TypeData
 import po.misc.types.containers.ComplexContainers
 import po.misc.types.containers.TypedContainer
 import po.misc.types.containers.updatable.models.UpdatableData

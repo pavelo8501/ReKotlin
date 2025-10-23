@@ -11,6 +11,7 @@ import kotlin.coroutines.CoroutineContext
 
 
 interface CallableWrapper<T: Any, R>{
+    val suspended: Suspended?
     fun invoke(value: T):R
     suspend fun invoke(value: T, suspending: Suspended):R
 }
@@ -18,6 +19,9 @@ interface CallableWrapper<T: Any, R>{
 class Lambda<T: Any, R>(
     private val lambda: Function1<T, R>
 ):CallableWrapper<T, R>{
+
+    override val suspended: Suspended? = null
+
     override fun invoke(value: T):R{
         return lambda.invoke(value)
     }
@@ -34,6 +38,9 @@ class LambdaWithReceiver<H: Any, T: Any, R>(
     val receiver:H,
     private val lambda: Function2<H, T, R>
 ):CallableWrapper<T, R>{
+
+    override val suspended: Suspended? = null
+
     override fun invoke(value: T):R{
         return lambda.invoke(receiver, value)
     }
@@ -49,6 +56,8 @@ fun <H: TraceableContext, T: Any, R> Function2<H, T, R>.toCallable(receiver:H):L
 class SuspendingLambda<T: Any, R>(
     private val lambda: suspend (T)->R
 ):CallableWrapper<T, R>{
+
+    override val suspended: Suspended = Suspended
 
     var receiversContext: CoroutineContext? = null
 
@@ -83,6 +92,8 @@ class SuspendingLambdaWithReceiver<H: TraceableContext, T: Any, R>(
     val receiver:H,
     private val lambda: suspend H.(T)->R
 ):CallableWrapper<T, R>{
+
+    override val suspended: Suspended = Suspended
 
     var receiversContext: CoroutineContext? = null
 

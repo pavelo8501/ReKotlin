@@ -2,7 +2,6 @@ package po.misc.types.containers.updatable
 
 import po.misc.callbacks.CallbackManager
 import po.misc.context.CTX
-import po.misc.types.Typed
 import po.misc.types.containers.updatable.models.UpdatableEvents
 
 

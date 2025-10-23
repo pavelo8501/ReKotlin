@@ -10,7 +10,6 @@ internal class LambdaMap<T: Any, R>(): AbstractMutableMap<TraceableContext, Call
     private val mutableMapBacking = mutableMapOf<TraceableContext, CallableWrapper<T, R>>()
     var onKeyOverwritten: ((Any) -> Unit)? = null
 
-
     override val entries: MutableSet<MutableMap.MutableEntry<TraceableContext, CallableWrapper<T, R>>> get() = mutableMapBacking.entries
 
     override fun put(key: TraceableContext, value: CallableWrapper<T, R>): CallableWrapper<T, R>? {

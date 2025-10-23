@@ -6,10 +6,10 @@ import po.misc.exceptions.handling.Suspended
 
 fun <T: Any, R: Any> TraceableContext.listen(
     signa: Signal<T, R>, callback: (T)->R
-) = signa.onEvent(this,  callback)
+) = signa.onSignal(this,  callback)
 
 
 fun <T: Any, R: Any> TraceableContext.listen(
     suspended: Suspended,
     signa: Signal<T, R>, callback: (T)->R
-) = signa.onEvent(this, suspended, callback)
+) = signa.onSignal(this, suspended, callback)

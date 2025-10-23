@@ -13,9 +13,8 @@ import kotlin.reflect.KClass
 interface TraceableContext {
 
 
-    fun notify(notification: Loggable): Loggable{
+    fun notify(notification: Loggable){
         notification.output()
-        return notification
     }
 
     fun notify(topic: NotificationTopic, subject: String, text: String): Loggable {
@@ -27,10 +26,18 @@ interface TraceableContext {
     fun notify(subject: String, throwable: Throwable): Loggable =
         notify(NotificationTopic.Exception, subject, throwable.throwableToText())
 
-    fun info(subject: String, text: String): Loggable = notify(NotificationTopic.Info, subject, text)
-    fun debug(subject: String, text: String): Loggable = notify(NotificationTopic.Debug, subject, text)
-    fun warn(subject: String, text: String): Loggable = notify(NotificationTopic.Info, subject, text)
-    fun warn(subject: String, throwable: Throwable): Loggable = notify(subject, throwable)
+    fun info(subject: String, text: String): Unit {
+        notify(NotificationTopic.Info, subject, text)
+    }
+    fun debug(subject: String, text: String): Unit {
+        notify(NotificationTopic.Debug, subject, text)
+    }
+    fun warn(subject: String, text: String): Unit {
+        notify(NotificationTopic.Info, subject, text)
+    }
+    fun warn(subject: String, throwable: Throwable): Unit {
+        notify(subject, throwable)
+    }
 
     /**
      * Context-bound shorthand for [getOrThrow], automatically using the current [TraceableContext].

@@ -4,6 +4,7 @@ import po.misc.callbacks.common.EventHost
 import po.misc.callbacks.common.EventLogRecord
 import po.misc.callbacks.common.ListenerResult
 import po.misc.callbacks.validator.ReactiveValidator
+import po.misc.collections.lambda_map.CallableWrapper
 import po.misc.collections.lambda_map.LambdaMap
 import po.misc.collections.lambda_map.toCallable
 import po.misc.context.component.Component
@@ -63,6 +64,16 @@ class HostedEvent<H: EventHost, T : Any, R: Any>(
             warn(subjectKey, messageKey(it))
         }
     }
+
+
+    val event : Boolean get() = listeners.values.isEmpty() &&  listeners.values.any {
+        it.suspended == null
+    }
+
+    val eventSuspended: Boolean get() = listeners.values.isEmpty() &&  listeners.values.any {
+            it.suspended == Suspended
+    }
+
 
     fun registerValidator(validator: ReactiveValidator<T>): ReactiveValidator<T>{
         this.validator = validator

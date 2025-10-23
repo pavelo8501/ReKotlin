@@ -7,7 +7,6 @@ import po.misc.functions.hooks.DataNotifier
 import po.misc.context.CTX
 import po.misc.context.asIdentity
 import po.misc.functions.models.Updated
-import po.misc.types.type_data.TypeData
 import po.misc.types.getOrManaged
 import po.misc.types.info.TypeInfo
 import po.misc.types.token.TypeToken

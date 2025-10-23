@@ -4,7 +4,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import po.misc.context.tracable.TraceableContext
 import po.misc.coroutines.coroutineInfo
 import po.misc.data.logging.ContextAware
-import po.misc.data.logging.ContextAware.ExceptionLocator
+import po.misc.exceptions.ExceptionLocator
 import po.misc.exceptions.trackable.TrackableException
 
 

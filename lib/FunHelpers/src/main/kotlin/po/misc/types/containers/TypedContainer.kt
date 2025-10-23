@@ -4,7 +4,6 @@ import po.misc.reflection.classes.ClassInfo
 import po.misc.reflection.classes.ClassRole
 import po.misc.reflection.classes.overallInfo
 import po.misc.reflection.classes.overallInfoFromType
-import po.misc.types.type_data.TypeData
 import po.misc.types.token.TypeToken
 import kotlin.reflect.KClass
 import kotlin.reflect.KTypeParameter
@@ -24,7 +23,7 @@ open class TypedContainer<T: Any>(
     internal val typeName: String = typeData.kClass.java.typeName
     private val cachedHash: Int = typeName.hashCode()
 
-    fun compareType(other: TypeData<*>): Boolean{
+    fun compareType(other: TypeToken<*>): Boolean{
         return typeData.kClass == other.kClass
     }
 

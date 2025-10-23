@@ -3,6 +3,7 @@ package po.misc.io
 import po.misc.data.helpers.output
 import po.misc.exceptions.throwableToText
 import po.misc.time.TimeHelper
+import java.nio.charset.Charset
 import java.time.Instant
 
 
@@ -10,6 +11,8 @@ class LocalFile(
     val bytes: ByteArray,
     val meta: FileMetaData,
 ) : FileMetaData by meta, TimeHelper {
+
+    fun readText(charset: Charset = Charsets.UTF_8): String = file.readText(charset)
 
     override fun readBytes(): ByteArray {
         return bytes

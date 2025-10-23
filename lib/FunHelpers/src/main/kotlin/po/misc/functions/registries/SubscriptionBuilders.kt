@@ -3,7 +3,6 @@ package po.misc.functions.registries
 import po.misc.context.CTX
 import po.misc.functions.registries.models.TaggedSubscriber
 import po.misc.types.token.TypeToken
-import po.misc.types.type_data.TypeData
 
 
 fun <V: Any> CTX.buildSubscriptions(

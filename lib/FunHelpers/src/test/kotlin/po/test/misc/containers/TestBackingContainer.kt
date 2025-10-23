@@ -3,7 +3,6 @@ package po.test.misc.containers
 import org.junit.jupiter.api.Test
 import po.misc.containers.LazyContainer
 import po.misc.types.token.TypeToken
-import po.misc.types.type_data.TypeData
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -18,7 +17,7 @@ class TestBackingContainer {
         val container = LazyContainer<String>(this, TypeToken.create())
 
         var actualResult1 = ""
-        container.requestValue(this){
+        container.getValue(this){
             actualResult1 = it
             triggerCount++
         }
@@ -30,7 +29,7 @@ class TestBackingContainer {
         assertTrue(triggerCount == 1)
 
         var actualResult2 = ""
-        container.requestValue(this) {
+        container.getValue(this) {
             actualResult2 = it
         }
         assertEquals(expectedResult, actualResult2)

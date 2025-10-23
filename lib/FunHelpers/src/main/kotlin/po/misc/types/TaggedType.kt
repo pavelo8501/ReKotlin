@@ -5,7 +5,6 @@ import po.misc.data.helpers.replaceIfNull
 import po.misc.data.tags.EnumTag
 import po.misc.data.tags.Tagged
 import po.misc.types.token.TypeToken
-import po.misc.types.type_data.TypeData
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 

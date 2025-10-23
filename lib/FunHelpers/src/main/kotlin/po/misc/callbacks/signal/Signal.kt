@@ -25,10 +25,10 @@ sealed interface SignalBuilder<T: Any, R: Any>{
         signal.componentID = id
         return id
     }
-    fun onEvent(callback: (T)-> R)
-    fun onEvent(listener: TraceableContext, callback: (T) -> R)
-    fun onEvent(suspended: Suspended, callback: suspend (T)-> R)
-    fun onEvent(listener: TraceableContext, suspended: Suspended, callback: suspend (T) -> R)
+    fun onSignal(callback: (T)-> R)
+    fun onSignal(listener: TraceableContext, callback: (T) -> R)
+    fun onSignal(suspended: Suspended, callback: suspend (T)-> R)
+    fun onSignal(listener: TraceableContext, suspended: Suspended, callback: suspend (T) -> R)
 
 }
 
@@ -69,19 +69,27 @@ class Signal<T: Any, R : Any>(
         }
     }
 
-    override fun onEvent(callback: (T) -> R) {
+    val signal : Boolean get() = listeners.values.isEmpty() &&  listeners.values.any {
+        it.suspended == null
+    }
+
+    val signalSuspended: Boolean get() = listeners.values.isEmpty() &&  listeners.values.any {
+        it.suspended == Suspended
+    }
+
+    override fun onSignal(callback: (T) -> R) {
         notify(NotificationTopic.Debug, subjectReg, messageReg("Lambda", this))
         listeners[this] = callback.toCallable()
     }
-    override fun onEvent(listener: TraceableContext, callback: (T) -> R) {
+    override fun onSignal(listener: TraceableContext, callback: (T) -> R) {
         notify(NotificationTopic.Debug, subjectReg, messageReg("Lambda", listener))
         listeners[listener] = callback.toCallable()
     }
-    override fun onEvent(suspended: Suspended, callback: suspend (T) -> R) {
+    override fun onSignal(suspended: Suspended, callback: suspend (T) -> R) {
         notify(NotificationTopic.Debug, subjectReg, messageReg("Suspending lambda", this))
         listeners[this] = toCallable(callback)
     }
-    override fun onEvent(listener: TraceableContext, suspended: Suspended, callback: suspend (T) -> R) {
+    override fun onSignal(listener: TraceableContext, suspended: Suspended, callback: suspend (T) -> R) {
         notify(NotificationTopic.Debug, subjectReg, messageReg("Suspending lambda", listener))
         listeners[listener] = toCallable(callback)
     }

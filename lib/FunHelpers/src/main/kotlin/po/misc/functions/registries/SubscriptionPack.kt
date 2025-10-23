@@ -2,7 +2,6 @@ package po.misc.functions.registries
 
 import po.misc.functions.registries.models.TaggedSubscriber
 import po.misc.types.token.TypeToken
-import po.misc.types.type_data.TypeData
 import kotlin.reflect.KClass
 
 

@@ -5,7 +5,6 @@ import po.misc.context.CTX
 import po.misc.exceptions.throwManaged
 import po.misc.types.getOrManaged
 import po.misc.types.token.TypeToken
-import po.misc.types.type_data.TypeData
 
 
 sealed class CallbackPayloadBase<E: Enum<E>, T, R>(

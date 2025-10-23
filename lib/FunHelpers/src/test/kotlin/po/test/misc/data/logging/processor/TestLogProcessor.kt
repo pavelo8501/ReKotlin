@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test
 import po.misc.context.component.Component
 import po.misc.context.component.ComponentID
 import po.misc.context.component.componentID
+import po.misc.data.logging.Loggable
 import po.misc.data.logging.NotificationTopic
 import po.misc.data.logging.Verbosity
 import po.misc.data.logging.models.Notification

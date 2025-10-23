@@ -1,10 +1,24 @@
 package po.misc.data.logging.processor
 
 import po.misc.context.component.Component
+import po.misc.context.tracable.TraceableContext
 import po.misc.data.logging.LogProvider
 import po.misc.data.logging.Loggable
+import po.misc.data.logging.models.Notification
 import po.misc.types.token.Tokenized
 import po.misc.types.token.TypeToken
+
+
+
+fun <H: TraceableContext> H.logProcessor(): LogProcessor<H, Notification>{
+    return LogProcessor(this)
+}
+
+fun <H: TraceableContext, LR:Loggable> H.logProcessor(
+    tokenized: Tokenized<LR>
+): LogProcessor<H, Notification>{
+    return LogProcessor(this)
+}
 
 
 /**
@@ -24,7 +38,7 @@ import po.misc.types.token.TypeToken
  * @receiver A component that implements [LogProvider].
  * @return A new [LogProcessor] bound to this provider.
  */
-fun <LR: Loggable, H: LogProvider<LR>> H.logProcessor(): LogProcessor<H, LR>{
+fun <H: LogProvider<LR>, LR: Loggable> H.logProcessor(): LogProcessor<H, LR>{
     return LogProcessor(this)
 }
 
@@ -71,3 +85,5 @@ fun <H: Component, LR: Loggable> H.logProcessor(
 ): LogProcessor<H, LR>{
     return LogProcessor(this)
 }
+
+

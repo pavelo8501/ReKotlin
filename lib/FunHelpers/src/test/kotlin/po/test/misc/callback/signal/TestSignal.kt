@@ -35,9 +35,9 @@ class TestSignal {
             val listener = Listener()
             @Suppress("Unchecked_cast")
             if(R::class == Unit::class){
-                signal.onEvent(listener, listener.function as (Data1) -> R)
+                signal.onSignal(listener, listener.function as (Data1) -> R)
             }else{
-                signal.onEvent(listener, listener.resultingFunction as (Data1) -> R)
+                signal.onSignal(listener, listener.resultingFunction as (Data1) -> R)
             }
             listeners.add(listener)
         }
@@ -48,7 +48,7 @@ class TestSignal {
     fun `Signal simple usage with a listener of its own`(){
         val click = signalOf<Data1>(NoResult)
         var triggered: Any? = null
-        click.onEvent  {
+        click.onSignal  {
             triggered = it
         }
         val  data = Data1()
@@ -56,7 +56,7 @@ class TestSignal {
         assertIs<Data1>(triggered)
         triggered = null
         val presetEvent = signal<Data1>(NoResult) {
-            onEvent {
+            onSignal {
                 triggered = it
             }
         }

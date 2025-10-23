@@ -9,8 +9,6 @@ import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.data.helpers.output
 import po.misc.data.logging.ContextAware
-import po.misc.data.logging.ContextAwareLogEmitter
-import po.misc.data.logging.logEmitter
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.exceptions.createTrace
@@ -36,8 +34,6 @@ fun Throwable.getTrace(block: Throwable.()-> Unit){
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestExceptionHandling() : ContextAware {
 
-    override val emitter: ContextAwareLogEmitter = logEmitter()
-    override val identity: CTXIdentity<out CTX> = asIdentity()
 
     @Test
     fun `Check if trace can be obtained from wide generic exceptions`() {
