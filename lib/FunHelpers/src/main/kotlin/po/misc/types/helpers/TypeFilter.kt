@@ -10,7 +10,10 @@ import kotlin.collections.mapNotNull
 import kotlin.reflect.KClass
 
 
-data class Filtration(val reifiedClass: KClassParam, val initialCollectionSize: Int): PrettyPrint{
+data class Filtration(
+    val reifiedClass: KClassParam,
+    val initialCollectionSize: Int
+): PrettyPrint{
 
     class FilterOperation(val name: String){
         var comment: String = ""
@@ -34,11 +37,8 @@ data class Filtration(val reifiedClass: KClassParam, val initialCollectionSize: 
           return "$name [Result : $result]"
         }
     }
-
     override val formattedString: String get() = printout()
-
     internal val operations = mutableListOf<FilterOperation>()
-
     internal var filtrationSize: Int = initialCollectionSize
 
     fun registerOperation(name: String, comment: String, result: Boolean):FilterOperation{
@@ -60,6 +60,7 @@ data class Filtration(val reifiedClass: KClassParam, val initialCollectionSize: 
         filtrationSize = size
         return this
     }
+
     fun printout(): String{
        return "${toString()} " + SpecialChars.NEW_LINE + operations.joinToString(separator = SpecialChars.NEW_LINE) {
             it.printout()
@@ -132,11 +133,11 @@ internal fun <T: Any> typedFiltrator(
         }
        filtrationData.startOperation("Comparing type parameters provided with token parameters"){operation->
             val token = candidate.typeToken
-            operation.addComment("Candidates tokens type parameters: ${token.inlinedParamsName}")
+            operation.addComment("Candidates tokens type parameters: ${token.inlinedParameters}")
             val required = typeParameters.sortedBy { it.simpleName }
             val requiredAsString = required.joinToString(separator = ", ") { it.simpleOrAnon }
             operation.addComment("Provided type parameters: $requiredAsString")
-            operation.registerResult(token.inlinedParamClasses.containsAll(required))
+            operation.registerResult(token.inlinedParameters.containsAll(required))
         }
     }
     filtrationData.sizeAfterFiltration(typeFiltered.size)
@@ -285,7 +286,8 @@ inline fun <reified T: Any> List<*>.filterByTypeWhere(
 @JvmName("filterByTypeNonReified")
 fun <T: Any>  List<*>.filterByType(
     typeToken: TypeToken<T>,
-): List<T> = typedFiltrator<T>(this.toList(), typeToken.kClass, emptyList())
+): List<T> = typedFiltrator<T>(this.toList(), typeToken.kClass, typeToken.inlinedParameters)
+
 
 fun <T: Any, P: Any>  Iterable<*>.filterByTypeAndToken(
     expectedClass: KClass<T>,

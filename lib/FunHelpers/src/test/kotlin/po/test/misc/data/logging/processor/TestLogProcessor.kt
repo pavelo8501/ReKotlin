@@ -11,6 +11,7 @@ import po.misc.data.logging.models.Notification
 import po.misc.data.logging.processor.LogProcessor
 import po.misc.data.logging.processor.logProcessor
 import po.misc.io.captureOutput
+import po.misc.types.token.TypeToken
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
@@ -34,7 +35,7 @@ class TestLogProcessor: Component {
     fun `Log processor's console outputs respect host verbosity setting`(){
         componentID.verbosity = Verbosity.Debug
 
-        val processor = LogProcessor<TestLogProcessor, Notification>(this)
+        val processor = LogProcessor<TestLogProcessor, Notification>(this, TypeToken.create<Notification>())
 
         val debug = notify(NotificationTopic.Debug, "Some subject", notificationText)
 

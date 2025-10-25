@@ -30,16 +30,17 @@ abstract class LogProcessorBase<T: Printable>(
 
     abstract fun outputOrNot(data: T)
 
-    fun logData(data: T):T{
+    fun logData(data: T, noOutput: Boolean = false):T{
         onRecordInterception?.let {callback->
             callback.invoke(data)
             if(shouldStoreRecords){
                 recordsBacking.add(data)
-                outputOrNot(data)
             }
         }?:run {
             recordsBacking.add(data)
-            outputOrNot(data)
+            if(!noOutput){
+                outputOrNot(data)
+            }
         }
         return data
     }
@@ -48,6 +49,12 @@ abstract class LogProcessorBase<T: Printable>(
         shouldStoreRecords = keepData
         onRecordInterception = callback
     }
+
+    fun dropCollector(){
+        onRecordInterception = null
+        shouldStoreRecords = true
+    }
+
 
     fun clear(){
         recordsBacking.clear()

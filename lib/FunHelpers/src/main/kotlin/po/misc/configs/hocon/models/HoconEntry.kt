@@ -6,72 +6,122 @@ import po.misc.callbacks.event.HostedEvent
 import po.misc.configs.hocon.HoconResolvable
 import po.misc.configs.hocon.HoconResolver
 import po.misc.configs.hocon.extensions.applyConfig
-import po.misc.configs.hocon.extensions.parseList
+import po.misc.configs.hocon.extensions.parseListValue
 import po.misc.configs.hocon.extensions.parseValue
 import po.misc.context.component.Component
+import po.misc.context.component.ComponentID
+import po.misc.context.component.componentID
 import po.misc.context.component.managedException
+import po.misc.data.logging.Loggable
+import po.misc.data.logging.models.Notification
+import po.misc.data.logging.processor.logProcessor
+import po.misc.functions.Nullable
 import po.misc.types.safeBaseCast
 import po.misc.types.token.TypeToken
 import kotlin.reflect.KProperty
 
 
-sealed class HoconEntryBase<T: HoconResolvable<T>, V: Any>(
+sealed class HoconEntryBase<T: HoconResolvable<T>, V>(
     val receiver: T,
-    val hoconPrimitive: HoconPrimitives<V>
+    val hoconPrimitive: HoconPrimitives<V>,
 ): Component {
 
     var property: KProperty<*>? = null
+        protected set
 
     val name: String get() =  property?.name?:"Undefined"
-    abstract val componentName: String
 
-    //internal var resolver: HoconConfigResolver<T>? = null
+    abstract override val componentID: ComponentID
+
     protected val resolver: HoconResolver<T> get() = receiver.resolver
-    val receiverType: TypeToken<T> get() = receiver.resolver.typeToken
+    val receiverType: TypeToken<T> get() = receiver.resolver.configToken
     val valueTypeToken: TypeToken<V> get() = hoconPrimitive.typeToken
+    val nullabilityFromType: Boolean get() = valueTypeToken.isNullable
+    open  val nullable: Boolean get() = property?.returnType?.isMarkedNullable?: nullabilityFromType
 
-    var value:V? = null
-        internal set
+    protected val subjectParsing: String get() = "Parsing $name"
+    protected val criticalFailure: String get() = "Critical failure"
 
-    protected val valueTypeName: String get() = valueTypeToken.typeName
-    protected val formatMessage : (HoconEntryBase<*, *>, String) -> String = {entry, text->
-        "[${entry.componentName}] -> $text"
+    protected val missingValueError: String get() =  "Property $name is non nullable. Value is missing in config file. Check config."
+    protected val wrongTypeError : (ConfigValueType)-> String = {
+        "Property $name is expected to be of type ${valueTypeToken.typeName}. Got $it"
+    }
+    protected val valueAccessError: String get() =  "Property:  ${componentID.componentName} is accessing result value before  assignment"
+
+    var resultBacking:V? = null
+        protected set
+
+    val result:V get() = resultBacking ?:run {
+        if (nullable) {
+            @Suppress("Unchecked_cast")
+            resultBacking as V
+        } else {
+            warn(criticalFailure, valueAccessError)
+            throw managedException(valueAccessError)
+        }
     }
 
-    internal var onValueAvailable: ((V) -> Unit) ? = null
-
-    internal fun valueAvailable(callback: (V) -> Unit){
-        if(onValueAvailable != null){
+    internal val logProcessor = logProcessor()
+    internal var onResultAvailable: ((V) -> Unit) ? = null
+    internal fun resultAvailable(callback: (V) -> Unit){
+        if(onResultAvailable != null){
             warn("Result provider", "OnValueAvailable being overwritten")
         }
-        onValueAvailable = callback
+        onResultAvailable = callback
     }
-    abstract fun readConfig(configModel: T, config: Config):V?
-
-    protected fun checkRawValue(configModel: T, config: Config, required: Boolean):V?{
-        val found = config.hasPath(name)
-        if (!found && required) {
-            val msg = formatMessage(this, "$name is required but missing")
-            throw managedException(msg)
-        }
-        if(!found){
-            return null
-        }
-        val rawValue = config.getValue(name)
-        if (rawValue.valueType() != hoconPrimitive.hoconType) {
-            throw managedException("$name expected ${hoconPrimitive.hoconType} but found ${rawValue.valueType()}")
-        }
-        val parsedValue = config.parseValue<V>(name, hoconPrimitive)
-        val msg = "Value $parsedValue<${hoconPrimitive.hoconType}> for entry: $name parse. Success"
-        info("Value parsed", msg)
-        value = parsedValue
-        onValueAvailable?.invoke(parsedValue)
-        return  parsedValue
+    protected open fun registerResult(parsedResult:V):V{
+        resultBacking = parsedResult
+        onResultAvailable?.invoke(parsedResult)
+        return result
     }
 
+    internal open fun initialize(kProperty: KProperty<*>){
+        property = kProperty
+        resolver.register(this)
+    }
+
+    fun checkType(valueType: ConfigValueType): Boolean{
+       return if (valueType != hoconPrimitive.hoconType) {
+            warn(subjectParsing, "$name expected ${hoconPrimitive.hoconType} but found $valueType")
+            false
+        }else{
+            true
+        }
+    }
+
+   open  fun readConfig(config: Config):V{
+       return if(config.hasPath(name)){
+            val rawValue = config.getValue(name)
+            val valueType = rawValue.valueType()
+            val typeChecked = checkType(valueType)
+            if(!typeChecked){
+                warn(subjectParsing, wrongTypeError(valueType))
+                throw managedException(wrongTypeError(valueType))
+            }
+            val parsedValue =  parseValue(rawValue)
+            registerResult(parsedValue)
+        }else{
+            warn(subjectParsing, missingValueError)
+            throw managedException(missingValueError)
+        }
+    }
+
+    open fun readConfig(config: Config, resultType: Nullable):V?{
+       return if(config.hasPath(name)){
+            val rawValue = config.getValue(name)
+            val typeChecked = checkType(rawValue.valueType())
+            if(!typeChecked){
+                return null
+            }
+           val parsedValue =  parseValue(rawValue)
+           registerResult(parsedValue)
+        }else{
+            null
+        }
+    }
     fun provideValueCheck(event: HostedEvent<*, *, Unit>){
-        event.safeBaseCast<HostedEvent<*, V, Unit>>()?.let {
-            val thisValue = value
+        event.safeBaseCast<HostedEvent<*, V & Any, Unit>>()?.let {
+            val thisValue = resultBacking
             if(thisValue != null){
                it.triggerValidating(thisValue)
             }else{
@@ -79,92 +129,116 @@ sealed class HoconEntryBase<T: HoconResolvable<T>, V: Any>(
             }
         }
     }
-
-    fun initialize(delegateProperty: KProperty<*>){
-        property = delegateProperty
-        resolver.register(this)
+    override fun notify(loggable: Loggable) {
+        val notification = Notification(loggable)
+        logProcessor.logData(notification)
     }
-
-    override fun toString(): String = componentName
+    override fun toString(): String = componentID.componentName
 }
 
-class HoconEntry<T: HoconResolvable<T>, V: Any>(
+class HoconEntry<T: HoconResolvable<T>, V>(
     receiver: T,
     hoconPrimitive: HoconPrimitives<V>,
-    val mandatory: Boolean
 ): HoconEntryBase<T, V>(receiver, hoconPrimitive) {
 
-    override val componentName: String get() =  "HoconEntry<${receiverType.typeName}, $valueTypeName>[${name}]"
-
-    override fun readConfig(configModel: T, config: Config):V? {
-       return checkRawValue(configModel, config, mandatory)
-    }
+    override val componentID: ComponentID = componentID({name}).addParamInfo("T", receiverType).addParamInfo("V", valueTypeToken)
 }
 
-class HoconNullableEntry<T: HoconResolvable<T>, V: Any>(
+class HoconListEntry<T: HoconResolvable<T>, V>(
     receiver: T,
-    hoconPrimitive: HoconPrimitives<V>,
-): HoconEntryBase<T, V>(receiver,  hoconPrimitive) {
-    val hoconNullable = HoconNullable
+    val hoconList: HoconList<V, *>,
+    val hoconEntry:  HoconEntry<T, V>
+): HoconEntryBase<T, V>(receiver, hoconList) {
 
-    override val componentName: String = "HoconNullableEntry<${receiverType.typeName}, ${valueTypeName}>[${name}]"
+    var listValue: List<V> = emptyList()
+    override val componentID: ComponentID = componentID({name}).addParamInfo("T", receiverType).addParamInfo("V", valueTypeToken)
 
-    override fun readConfig(configModel: T, config: Config):V? {
-       return checkRawValue(configModel, config, false)
+   // override val nullable: Boolean get() = hoconList.listTypeToken.isNullable
+
+    fun registerListResult(parsedResult: List<V>): List<V>{
+        listValue =parsedResult
+        return parsedResult
+    }
+
+    fun readListConfig(config: Config, nullable: Nullable): List<V>?{
+       return if(config.hasPath(name)) {
+            val rawValue = config.getValue(name)
+            val valueType = rawValue.valueType()
+            val typeChecked = checkType(valueType)
+            if (!typeChecked) {
+                return null
+            }
+            val parsedValue = parseListValue(rawValue)
+            registerListResult(parsedValue)
+        }else{
+            null
+        }
+    }
+
+    fun readListConfig(config: Config): List<V> {
+        return if (config.hasPath(name)) {
+            val rawValue = config.getValue(name)
+            val valueType = rawValue.valueType()
+            val typeChecked = checkType(valueType)
+            if (!typeChecked) {
+                warn(subjectParsing, wrongTypeError(valueType))
+                throw managedException(wrongTypeError(valueType))
+            }
+            val parsedValue = parseListValue(rawValue)
+            registerListResult(parsedValue)
+        } else {
+            warn(subjectParsing, missingValueError)
+            throw managedException(missingValueError)
+        }
     }
 }
 
 class HoconNestedEntry<T: HoconResolvable<T>, V: HoconResolvable<V>>(
     receiver: T,
-    hoconPrimitive: HoconPrimitives<Any>,
+    hoconPrimitive: HoconObject<V>,
     val nestedClass: V,
-): HoconEntryBase<T, Any>(receiver, hoconPrimitive) {
-    override val componentName: String = "HoconNestedEntry<${receiverType.typeName}, ${typeToken.typeName}>[${name}]"
-    val nestedResolver: HoconResolver<V> get() = nestedClass.resolver
-    val typeToken: TypeToken<V> get() = nestedClass.resolver.typeToken
+): HoconEntryBase<T, V>(receiver, hoconPrimitive) {
 
-    init {
+    override val componentID: ComponentID =
+        componentID({ name }).addParamInfo("T", receiverType).addParamInfo("V", valueTypeToken)
+
+    private val sourceNotProvidedError = "Source not provided.  Property not marked nullable but"
+
+    override fun initialize(kProperty: KProperty<*>) {
+        property = kProperty
         resolver.registerMember(nestedClass)
+        resolver.register(this)
     }
 
-    private  fun forwardConfig(config: Config) {
-        nestedClass.applyConfig(config)
-    }
-    override fun readConfig(configModel: T, config: Config) {
+    override fun readConfig(config: Config): V {
         if (!config.hasPath(name)) {
-            val errMsg = formatMessage(this, "$name is required but missing")
-            throw managedException(errMsg)
-        }
-        val nestedConfig =  config.getConfig(name)
-        forwardConfig(nestedConfig)
-    }
-}
-
-class HoconListEntry<T: HoconResolvable<T>, V: Any>(
-    receiver: T,
-    hoconPrimitive: HoconPrimitives<V>,
-): HoconEntryBase<T, V >(receiver, hoconPrimitive) {
-
-    override val componentName: String = "HoconListEntry<${receiverType.typeName}, ${valueTypeName}>[${name}]"
-    var listValue: List<V> = emptyList()
-
-    override fun readConfig(configModel: T, config: Config):V?{
-        val found = config.hasPath(name)
-        if (!found) {
-            val msg = formatMessage(this, "$name is required but missing")
-            throw managedException(msg)
+            warn(subjectParsing, missingValueError)
+            throw managedException(missingValueError)
         }
         val rawValue = config.getValue(name)
-
-        if(rawValue.valueType() == ConfigValueType.LIST){
-            listValue = config.parseList(name, hoconPrimitive)
-            val msg = "Value List<${hoconPrimitive.hoconType}> for entry: $name  ${listValue.size} records parsed. Success"
-            info("Parsed", msg)
-            listValue
-        }else{
-            throw managedException("$name expected ${hoconPrimitive.hoconType} but found ${rawValue.valueType()}")
+        val valueType = rawValue.valueType()
+        val typeChecked = checkType(valueType)
+        if (!typeChecked) {
+            warn(subjectParsing, wrongTypeError(valueType))
+            throw managedException(wrongTypeError(valueType))
         }
-        return null
+        val config = config.getConfig(name)
+        nestedClass.applyConfig(config)
+        return  nestedClass
+    }
+
+    override fun readConfig(config: Config, resultType: Nullable): V? {
+        if(!config.hasPath(name)){
+            return null
+        }
+        val rawValue = config.getValue(name)
+        val valueType = rawValue.valueType()
+        val typeChecked = checkType(valueType)
+        if (!typeChecked) {
+            return null
+        }
+        val config = config.getConfig(name)
+        nestedClass.applyConfig(config)
+        return nestedClass
     }
 }
-

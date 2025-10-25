@@ -7,21 +7,25 @@ import po.misc.debugging.ClassResolver
 
 fun <T: Component> T.componentID(componentName: String? = null):ComponentID{
     return componentName?.let {
-        ComponentID(it, this)
+        ComponentID(it,  ClassResolver.classInfo(this))
     }?:run {
         ComponentID(ClassResolver.instanceName(this), ClassResolver.classInfo(this))
     }
 }
 
 
-fun <T: Component> T.componentID(componentName: String, verbosity: Verbosity = Verbosity.Info):ComponentID{
-    ComponentID(componentName, this, verbosity)
+fun <T: Component> T.componentID(
+    componentName: String,
+    verbosity: Verbosity = Verbosity.Info
+):ComponentID{
+  return  ComponentID(componentName, ClassResolver.classInfo(this), verbosity)
+}
 
-    return componentName?.let {
-        ComponentID(it, this)
-    }?:run {
-        ComponentID(ClassResolver.instanceName(this), ClassResolver.classInfo(this))
-    }
+fun <T: Component> T.componentID(
+    nameProvider: () ->  String,
+    verbosity: Verbosity = Verbosity.Info
+):ComponentID{
+    return  ComponentID(nameProvider, this, verbosity)
 }
 
 

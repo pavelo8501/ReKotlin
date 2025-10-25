@@ -19,8 +19,9 @@ import kotlin.collections.component2
 sealed interface SignalBuilder<T: Any, R: Any>{
 
     private val signal: Signal<T, R> get() = this as Signal
+
     fun signalName(name: String):ComponentID{
-        val id =  ComponentID(name, signal)
+        val id =  ComponentID(name, ClassResolver.classInfo(signal))
         id.classInfo.genericInfoBacking.addAll(signal.componentID.classInfo.genericInfoBacking)
         signal.componentID = id
         return id
@@ -57,11 +58,7 @@ class Signal<T: Any, R : Any>(
     internal val listeners: LambdaMap<T, R> = LambdaMap()
 
     internal val classInfo: ClassInfo = ClassResolver.classInfo(this)
-            .addParamInfo("T", paramType)
-                .addParamInfo("R", resultType)
-
-    override var componentID: ComponentID = ComponentID("Signal",  classInfo)
-
+    override var componentID: ComponentID = ComponentID("Signal",  classInfo).addParamInfo("T", paramType).addParamInfo("R", resultType)
 
     init {
         listeners.onKeyOverwritten = {

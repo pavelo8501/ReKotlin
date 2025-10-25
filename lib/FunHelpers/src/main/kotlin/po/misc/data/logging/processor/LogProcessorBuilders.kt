@@ -1,7 +1,6 @@
 package po.misc.data.logging.processor
 
 import po.misc.context.component.Component
-import po.misc.context.tracable.TraceableContext
 import po.misc.data.logging.LogProvider
 import po.misc.data.logging.Loggable
 import po.misc.data.logging.models.Notification
@@ -10,15 +9,6 @@ import po.misc.types.token.TypeToken
 
 
 
-fun <H: TraceableContext> H.logProcessor(): LogProcessor<H, Notification>{
-    return LogProcessor(this)
-}
-
-fun <H: TraceableContext, LR:Loggable> H.logProcessor(
-    tokenized: Tokenized<LR>
-): LogProcessor<H, Notification>{
-    return LogProcessor(this)
-}
 
 
 /**
@@ -38,8 +28,15 @@ fun <H: TraceableContext, LR:Loggable> H.logProcessor(
  * @receiver A component that implements [LogProvider].
  * @return A new [LogProcessor] bound to this provider.
  */
-fun <H: LogProvider<LR>, LR: Loggable> H.logProcessor(): LogProcessor<H, LR>{
-    return LogProcessor(this)
+
+inline fun <H: LogProvider<LR>, reified LR: Loggable> H.logProcessor(): LogProcessor<H, LR> =
+    LogProcessor(this, TypeToken.create<LR>())
+
+
+inline fun <H: LogProvider<LR>, reified LR: Loggable> H.logProcessor(
+    noinline provider: (Loggable)-> LR
+): LogProcessor<H, LR>{
+    return LogProcessor(this, TypeToken.create<LR>(), provider)
 }
 
 /**
@@ -59,7 +56,7 @@ fun <H: LogProvider<LR>, LR: Loggable> H.logProcessor(): LogProcessor<H, LR>{
 fun <H: Component, LR: Loggable> H.logProcessor(
     typeToken: TypeToken<LR>
 ): LogProcessor<H, LR>{
-    return LogProcessor(this)
+    return LogProcessor(this, typeToken)
 }
 
 /**
@@ -83,7 +80,12 @@ fun <H: Component, LR: Loggable> H.logProcessor(
 fun <H: Component, LR: Loggable> H.logProcessor(
     tokenized: Tokenized<LR>
 ): LogProcessor<H, LR>{
-    return LogProcessor(this)
+    return LogProcessor(this, tokenized.typeToken)
 }
+
+fun <H: Component> H.logProcessor(): LogProcessor<H, Notification>{
+    return LogProcessor(this, TypeToken.create<Notification>())
+}
+
 
 

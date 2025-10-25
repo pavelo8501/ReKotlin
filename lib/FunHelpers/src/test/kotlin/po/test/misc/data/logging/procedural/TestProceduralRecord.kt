@@ -9,23 +9,25 @@ import po.misc.data.helpers.output
 import po.misc.data.logging.LogProvider
 import po.misc.data.logging.Loggable
 import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.StructuredLoggable
 import po.misc.data.logging.procedural.ProceduralEntry
-import po.misc.data.logging.procedural.ProceduralRecord
+import po.misc.data.logging.procedural.StepResult
 import po.misc.data.logging.processor.LogProcessor
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.companion.PrintableCompanion
+import po.misc.types.token.TokenFactory
 import po.misc.types.token.TypeToken
 import po.test.misc.data.logging.processor.CustomNotification
 import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
-class TestProceduralRecord : LogProvider<CustomNotification> {
+class TestProceduralRecord : LogProvider<CustomNotification>, TokenFactory {
 
     private class TestLogData(
         private val provider: LogProcessor<TestProceduralRecord, TestLogData>,
         override val subject: String
-    ): PrintableBase<TestLogData>(this), ProceduralRecord, Loggable {
+    ): PrintableBase<TestLogData>(this), StructuredLoggable, Loggable {
 
         override val created: Instant = Instant.now()
 
@@ -41,19 +43,19 @@ class TestProceduralRecord : LogProvider<CustomNotification> {
             proceduralRecords.add(record)
         }
 
-        companion object: PrintableCompanion<TestLogData>(TypeToken.Companion.create())
+        companion object: PrintableCompanion<TestLogData>(TypeToken.create<TestLogData>())
     }
 
     override val componentID: ComponentID = componentID("Process # 1")
 
-    private val provider = LogProcessor<TestProceduralRecord, TestLogData>(this)
+    private val provider = LogProcessor<TestProceduralRecord, TestLogData>(this, TypeToken.create())
 
     @Test
     fun `Logging process functionality`() {
 
         val info = TestLogData(provider, "Initializing")
 
-        provider.logScope(info, "Initializing memory"){
+        provider.logScope(info){
             val step1Result = proceduralStep("Step_1") {
                 val returning: Int = 300
                 returning
@@ -74,7 +76,7 @@ class TestProceduralRecord : LogProvider<CustomNotification> {
         val firstRec: ProceduralEntry = logRecord.proceduralRecords.first()
         val secondRec = logRecord.proceduralRecords[1]
         assertEquals("Step_1", firstRec.stepName)
-        assertEquals("Fail", secondRec.stepResult)
+        assertEquals(StepResult.Fail, secondRec.stepResult)
         firstRec.output()
         secondRec.output()
     }

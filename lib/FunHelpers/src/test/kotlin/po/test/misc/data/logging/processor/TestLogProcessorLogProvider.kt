@@ -16,6 +16,7 @@ import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.printable.grouping.PrintableProperty
 import po.misc.data.printable.grouping.createProperty
+import po.misc.debugging.ClassResolver
 import po.misc.types.token.TypeToken
 import java.time.Instant
 import kotlin.test.assertEquals
@@ -41,7 +42,7 @@ class CustomNotification(
 class TestLogProcessorLogProvider: LogProvider<CustomNotification> {
 
     private class SubComponent(name: String):Component {
-        override val componentID: ComponentID = ComponentID(name, this)
+        override val componentID: ComponentID = ComponentID(name, ClassResolver.classInfo(this))
         val processor = logProcessor(Notification)
 
         override fun notify(topic: NotificationTopic, subject: String, text: String): Notification {

@@ -13,6 +13,7 @@ import po.misc.context.component.componentID
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.logging.LogProvider
 import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.Verbosity
 import po.misc.data.logging.processor.logProcessor
 import po.misc.debugging.ClassResolver
 import po.misc.exceptions.handling.Suspended
@@ -52,7 +53,7 @@ class HostedEvent<H: EventHost, T : Any, R: Any>(
 
     internal val listeners: LambdaMap<T, R> = LambdaMap()
 
-    override var componentID: ComponentID = componentID("HostedEvent")
+    override var componentID: ComponentID = componentID("HostedEvent", Verbosity.Warnings)
         .addParamInfo("T",paramType)
             .addParamInfo("R", resultType)
 
@@ -65,15 +66,13 @@ class HostedEvent<H: EventHost, T : Any, R: Any>(
         }
     }
 
-
-    val event : Boolean get() = listeners.values.isEmpty() &&  listeners.values.any {
+    val event : Boolean get() = listeners.values.isNotEmpty() &&  listeners.values.any {
         it.suspended == null
     }
 
-    val eventSuspended: Boolean get() = listeners.values.isEmpty() &&  listeners.values.any {
+    val eventSuspended: Boolean get() = listeners.values.isNotEmpty() &&  listeners.values.any {
             it.suspended == Suspended
     }
-
 
     fun registerValidator(validator: ReactiveValidator<T>): ReactiveValidator<T>{
         this.validator = validator

@@ -182,7 +182,7 @@ class AssetManager(
         get() =  config.verbosity
 
 
-    private val initSubject: String = "${componentID.name} Initialization"
+    private val initSubject: String = "${componentID.componentName} Initialization"
     private val operationsSubject: String = "$componentID Update"
     val registries : List<AssetRegistry> get() = registriesBacking
 
@@ -269,13 +269,17 @@ class AssetManager(
         getRegistry(throwing, category).block()
     }
 
-    fun getAsset(category: Enum<*>, assetName: NamedAsset): Asset?{
-       return getRegistry(category)?.get(assetName)
+    fun getAsset(category: String, assetName: NamedAsset): Asset?{
+        return getRegistry(category)?.get(assetName)
     }
+    fun getAsset(category: Enum<*>, assetName: NamedAsset): Asset? = getAsset(category.name, assetName)
 
-    fun getAsset(throwing: Throwing,  category: Enum<*>, assetName: NamedAsset): Asset {
-        return getRegistry(throwing, category).get(throwing, assetName)
+    fun getAsset(throwing: Throwing,  category: String, assetName: String): Asset{
+        val registry =  getRegistry(throwing, category)
+        return registry.get(throwing, assetName)
     }
+    fun getAsset(throwing: Throwing,  category:  Enum<*>, assetName: NamedAsset): Asset =
+        getAsset(throwing, category.name, assetName.name)
 
     fun purge(category: String) : Boolean{
        return registries.firstOrNull{ it.category ==  category}?.let {

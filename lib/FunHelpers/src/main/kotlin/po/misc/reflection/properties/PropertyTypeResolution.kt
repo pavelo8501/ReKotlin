@@ -116,10 +116,9 @@ fun <T: Any> KProperty1<T, *>.toTypedContainer(
                 ReadOnlyStringProperty(this.castOrManaged(this))
             }
         }
-
-       WildCardClass -> {
-           TODO("Do no")
-       }
+        else ->{
+            TODO("$primitiveClass not supported yet")
+        }
     }
 }
 
@@ -149,14 +148,12 @@ fun <T: Any> KProperty1<T, *>.toTypedContainer(receiver:T): PropertySimpleTypeCo
                     LongPropertyContainer<T>(casted)
                 }
                 else -> {
-                    TODO("Unsupported type")
+                    TODO("$mutableProperty not supported yet")
                 }
             }
         }
     }
 }
-
-
 
 inline fun <reified T: Any> KClass<T>.createTypedProperties(): List<PropertySimpleTypeContainer<T>> {
     val basicClasses = listOf<KClass<*>>(Int::class, Long::class, Boolean::class, String::class)

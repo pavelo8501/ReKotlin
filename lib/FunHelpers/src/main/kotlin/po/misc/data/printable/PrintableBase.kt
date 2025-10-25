@@ -1,12 +1,10 @@
 package po.misc.data.printable
 
 import po.misc.data.PrettyPrint
-import po.misc.data.helpers.output
 import po.misc.data.json.JObject
 import po.misc.data.json.JsonHolder
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.printable.companion.PrintableTemplateBase
-import po.misc.data.printable.companion.Template
 import po.misc.data.printable.grouping.ArbitraryDataMap
 import po.misc.data.printable.grouping.ArbitraryKey
 import po.misc.data.styles.Colour
@@ -15,9 +13,17 @@ import po.misc.time.TimeHelper
 import po.misc.types.safeCast
 import kotlin.reflect.KClass
 
+
+
 abstract class PrintableBase<T>(
    val companion: PrintableCompanion<T>
-): ComposableData, Printable, TimeHelper, PrettyPrint where T:Printable {
+): ComposableData<T>, Printable, TimeHelper, PrettyPrint where T:Printable {
+
+    data class Config(
+        var explicitOutput: Boolean = false
+    )
+
+    val printableConfig: Config = Config()
 
     private val templateNotFound : (T) -> String = { key->
         "[template for data: $key not defined. Using toString()] ${companion.typeToken.simpleName}".colorize(Colour.Yellow)
@@ -25,13 +31,15 @@ abstract class PrintableBase<T>(
 
     abstract val self:T
 
-    override val arbitraryMap: ArbitraryDataMap<Printable> = ArbitraryDataMap()
+   // override val ownClass : KClass<out  T> get() = companion.typeToken.kClass
+    override val arbitraryMap  = ArbitraryDataMap<T>()
 
-    val arbitraryRecordsFlattened: List<Printable> get() = arbitraryMap.flatMap { it.value }
+   // val arbitraryRecordsFlattened: List<Printable> get() = arbitraryMap.flatMap { it.value }
 
     var parentRecord:Printable? = null
 
     var activeTemplate:  PrintableTemplateBase<T>? = null
+
     private val templatesBacking: MutableList<PrintableTemplateBase<T>> = mutableListOf<PrintableTemplateBase<T>>()
     val templates :List<PrintableTemplateBase<T>> = templatesBacking
 
@@ -42,7 +50,7 @@ abstract class PrintableBase<T>(
         }
     }
 
-    override val ownClass: KClass<T> get() = companion.typeToken.kClass
+    val ownClass: KClass<T> get() = companion.typeToken.kClass
 
     internal var jsonHolder : JsonHolder? = null
     internal val jsonObject : JObject
@@ -55,11 +63,7 @@ abstract class PrintableBase<T>(
     internal var mute: Boolean = false
     @PublishedApi
     internal var muteCondition: ((T) -> Boolean)? = null
-    var genericMuteCondition: ((ComposableData)-> Boolean)? = null
-
-
-    @PublishedApi
-    internal var outputSource: ((String)-> Unit)? = null
+    var genericMuteCondition: ((PrintableBase<*>)-> Boolean)? = null
 
     init {
         templatesBacking.addAll(companion.templates)
@@ -89,8 +93,10 @@ abstract class PrintableBase<T>(
         }
     }
 
-    override fun echo(): Unit{
-        println(formattedString)
+    fun echo(): Unit{
+        if(!printableConfig.explicitOutput){
+            println(formattedString)
+        }
     }
 
     fun echo(template: PrintableTemplateBase<T>){
@@ -108,25 +114,7 @@ abstract class PrintableBase<T>(
        return arbitraryMap.putPrintable(record)
     }
 
-    fun addArbitraryRecord(record: PrintableBase<*>, prefixBuilder:(Printable)-> String): ArbitraryKey{
-        record.setParent(this)
-       return arbitraryMap.putPrintable(record, prefixBuilder)
-    }
-
-    fun <T2: PrintableBase<T2>> addArbitraryRecords(records: List<T2>): ArbitraryKey?{
-        if (records.isEmpty()) return null
-        val key = arbitraryMap.putPrintable(records[0].setParent(this))
-        if (records.size > 1) {
-            records.subList(1, records.size).forEach { arbitraryMap.putPrintable(it.setParent(this)) }
-        }
-        return key
-    }
-
-    fun setGenericMute(condition:(ComposableData)-> Boolean){
-        genericMuteCondition = condition
-    }
-
-    fun setMute(condition:((T)-> Boolean)? = null ){
+    fun muteCondition(condition:((T)-> Boolean)? = null ){
         muteCondition = condition
     }
 

@@ -49,7 +49,7 @@ data class CompareToRecord(
     fun fromTypeToken(token: TypeToken<*>){
         compareToClassName = token.kClass.qualifiedName?:""
         compareToKTypeHash = token.kClass.hashCode()
-        genericTypes =  token.inlinedParamClasses.map { it.simpleName?:"" }
+        genericTypes =  token.inlinedParameters.map { it.simpleName?:"" }
         this.token = token
     }
 

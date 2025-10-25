@@ -20,7 +20,7 @@ class ValidationRecords(
     val report: ValidationReport
 ): PrintableGroup<ValidationReport, ValidationRecord>(report, ValidationReport.Header, ValidationRecord.Main){
 
-    override val ownClass: KClass<out Printable> = ValidationRecords::class
+   // override val ownClass: KClass<out Printable> = ValidationRecords::class
 
 }
 
@@ -56,12 +56,6 @@ class ValidationReport(
     fun getRecords(): List<ValidationRecord> {
         return validationRecords.records
     }
-
-    override fun echo() {
-
-        validationRecords.echo()
-    }
-
 
     companion object : PrintableCompanion<ValidationReport>(TypeToken.create()) {
 

@@ -50,7 +50,6 @@ import po.misc.data.helpers.output
 import po.misc.data.styles.Colour
 import po.misc.functions.registries.SubscriptionPack
 import po.misc.functions.registries.builders.taggedRegistryOf
-import po.misc.types.type_data.TypeData
 import po.misc.types.castListOrManaged
 import po.misc.types.getOrManaged
 import po.misc.types.token.TypeToken

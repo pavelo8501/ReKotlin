@@ -25,9 +25,9 @@ fun <H : EventHost, T: Any, R1: Any, R>  HostedEvent<H, T, R1>.logScope(
     topic: NotificationTopic,
     subject: String,
     block: ProceduralFlow<HostedEvent<H, T, R1>, EventLogRecord>.() -> R
-):R{
+): R {
     val eventLog =  EventLogRecord(this, topic, subject, "Start")
-    return processor.logScope(eventLog, subject,  block)
+    return processor.logScope(eventLog, block)
 }
 
 fun <H : EventHost, T: Any, R1: Any, R>  HostedEvent<H, T, R1>.infoScope(

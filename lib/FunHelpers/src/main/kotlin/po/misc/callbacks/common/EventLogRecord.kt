@@ -3,8 +3,8 @@ package po.misc.callbacks.common
 import po.misc.context.component.Component
 import po.misc.data.logging.Loggable
 import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.StructuredLoggable
 import po.misc.data.logging.procedural.ProceduralEntry
-import po.misc.data.logging.procedural.ProceduralRecord
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.printable.companion.nextLine
@@ -18,7 +18,7 @@ class EventLogRecord(
     override val topic: NotificationTopic,
     override val subject: String,
     override val text: String
-): PrintableBase<EventLogRecord>(this), Loggable, ProceduralRecord {
+): PrintableBase<EventLogRecord>(this), Loggable, StructuredLoggable {
 
     override val created: Instant = Instant.now()
 
@@ -37,7 +37,7 @@ class EventLogRecord(
 
        internal val ProceduralTemplate = createTemplate {
             nextLine {
-                context.componentID.name + " - > $subject"
+                context.componentID.componentName + " - > $subject"
             }
             nextLine {
                 records.joinToString(separator = SpecialChars.NEW_LINE) {

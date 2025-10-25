@@ -1,5 +1,8 @@
 package po.misc.data.styles
 
+import po.misc.data.HasValue
+import po.misc.interfaces.ValueBase
+
 
 interface Colorizer {
 
@@ -15,6 +18,16 @@ interface Colorizer {
           negativeCaseColour?.let {
               this.colorize(it)
           }?:this
+        }
+    }
+
+    fun  HasValue.colorizeIf(colour: Colour, negativeCaseColour: Colour? = null,   predicate: ()-> Boolean): String{
+        return  if(predicate.invoke()){
+            this.value.colorize(colour)
+        }else{
+            negativeCaseColour?.let {
+                this.value.colorize(it)
+            }?:this.value
         }
     }
 

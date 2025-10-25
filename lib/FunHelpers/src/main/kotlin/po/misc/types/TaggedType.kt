@@ -1,9 +1,9 @@
 package po.misc.types
 
-import po.misc.collections.ComparableType
 import po.misc.data.helpers.replaceIfNull
 import po.misc.data.tags.EnumTag
 import po.misc.data.tags.Tagged
+import po.misc.types.token.Tokenized
 import po.misc.types.token.TypeToken
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
@@ -30,12 +30,12 @@ import kotlin.reflect.KType
  * @constructor Creates a [TaggedType] by combining type and tag metadata
  */
 data class TaggedType<T: Any, E: Enum<E>>(
-    val typeData: TypeToken<T>,
+    override val typeToken: TypeToken<T>,
     override val enumTag: EnumTag<E>
-): ComparableType<T>, Tagged<E>{
+): Tokenized<T>, Tagged<E>{
 
-    override val kClass: KClass<T> get() = typeData.kClass
-    val kType: KType   get() = typeData.kType
+    val kClass: KClass<T> get() = typeToken.kClass
+    val kType: KType   get() = typeToken.kType
 
     val simpleName : String get() = kClass.simpleName.toString()
     val qualifiedName: String get() = kClass.qualifiedName.toString()
@@ -50,13 +50,11 @@ data class TaggedType<T: Any, E: Enum<E>>(
                 this.enumTag == other.enumTag
     }
 
-    override val typeName: String
-        get() = normalizedSimpleString()
 
-    override val alias: String = enumTag.alias.replaceIfNull(typeName)
+    override val alias: String = enumTag.alias.replaceIfNull(typeToken.typeName)
 
     override fun toString(): String {
-        return "TaggedType<$typeName, ${enumTag.value.name}>"
+        return "TaggedType<$typeToken.typeName, ${enumTag.value.name}>"
     }
 
     fun normalizedSimpleString(): String {

@@ -23,7 +23,7 @@ class TestSignalBuilder : TraceableContext {
         val notify = signal<String, Unit>{
             signalName("notify")
         }
-        assertEquals("notify", notify.componentID.name)
+        assertEquals("notify", notify.componentID.componentName)
         assertNotNull(notify.componentID.classInfo)
         notify.componentID.output()
     }

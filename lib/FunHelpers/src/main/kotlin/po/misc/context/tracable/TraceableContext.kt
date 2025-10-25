@@ -10,31 +10,97 @@ import po.misc.types.castOrThrow
 import po.misc.types.getOrThrow
 import kotlin.reflect.KClass
 
+/**
+ * A base interface representing an execution context capable of emitting traceable events.
+ *
+ * `TraceableContext` defines a common notification and logging layer for components that
+ * participate in observable or traceable processes. It provides structured methods for
+ * emitting messages, warnings, exceptions, and other diagnostic events.
+ *
+ * ### Behavior
+ * By default, [notify] immediately calls [Loggable.output], which prints the message to
+ * the console or the default output sink. However, implementations are encouraged to
+ * override [notify] to introduce context-specific behavior — for instance:
+ *
+ * - Filtering messages by verbosity level
+ * - Redirecting output to a logging subsystem
+ * - Buffering or aggregating notifications
+ *
+ * Overriding **any** `notify` method effectively breaks the default "direct output" chain
+ * and transfers responsibility for message delivery to the implementation.
+ * This is intentional and provides powerful customization hooks.
+ *
+ * ### Example
+ * ```kotlin
+ * class VerboseComponent : TraceableContext {
+ *     override fun notify(loggable: Loggable) {
+ *         if (loggable.topic.priority >= NotificationTopic.Info.priority) {
+ *             loggable.output() // only emit info and above
+ *         }
+ *     }
+ * }
+ * ```
+ *
+ * @see Loggable
+ * @see Notification
+ * @see NotificationTopic
+ */
 interface TraceableContext {
 
-
-    fun notify(notification: Loggable){
-        notification.output()
+    /**
+     * Emits a [Loggable] event to the output.
+     *
+     * By default, this calls [Loggable.output], printing the message immediately.
+     * Overriding this method allows intercepting or transforming notifications
+     * before they are output, or redirecting them to a custom destination.
+     *
+     * **Note:** Overriding this method replaces the default behavior — the message
+     * will no longer be printed to the console unless you explicitly call
+     * [Loggable.output] within your override.
+     */
+    fun notify(loggable: Loggable){
+        loggable.output()
     }
 
+    /**
+     * Creates and emits a [Notification] with a given [topic], [subject], and [text].
+     * Returns the created [Loggable] instance.
+     */
     fun notify(topic: NotificationTopic, subject: String, text: String): Loggable {
        val notification = Notification(this, topic, subject, text)
        notify(notification)
        return notification
     }
 
+    /**
+     * Emits an exception trace as a [NotificationTopic.Exception].
+     * The [Throwable] is converted into a formatted text trace automatically.
+     */
     fun notify(subject: String, throwable: Throwable): Loggable =
         notify(NotificationTopic.Exception, subject, throwable.throwableToText())
 
-    fun info(subject: String, text: String): Unit {
-        notify(NotificationTopic.Info, subject, text)
-    }
+    /**
+     * Emits an informational message.
+     */
+    fun info(subject: String, text: String): Loggable = notify(NotificationTopic.Info, subject, text)
+
+    /**
+     * Emits a debug message. Useful for internal tracing.
+     */
     fun debug(subject: String, text: String): Unit {
         notify(NotificationTopic.Debug, subject, text)
     }
+
+    /**
+     * Emits a warning message.
+     */
     fun warn(subject: String, text: String): Unit {
         notify(NotificationTopic.Info, subject, text)
     }
+
+    /**
+     * Emits a warning message for an exception case.
+     */
     fun warn(subject: String, throwable: Throwable): Unit {
         notify(subject, throwable)
     }

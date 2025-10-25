@@ -54,6 +54,22 @@ fun <T: Any> T?.getOrThrow(
     }
 }
 
+
+fun <T: Any> T?.getOrThrow(
+    expectedClass: KClass<*>? = null,
+):T {
+    val methodName = "getOrThrow"
+    val className = expectedClass?.simpleOrAnon?:"ExpectedClass not specified"
+    val message = "Expected $className got null."
+    if(this == null){
+        throw NullPointerException(message)
+    }else{
+        return this
+    }
+}
+
+
+
 /**
  * Reified overload of [getOrThrow] that infers the expected type automatically.
  *

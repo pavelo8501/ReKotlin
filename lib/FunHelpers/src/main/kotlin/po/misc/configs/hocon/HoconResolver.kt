@@ -1,27 +1,34 @@
 package po.misc.configs.hocon
 
 import com.typesafe.config.Config
+import com.typesafe.config.ConfigOrigin
 import po.misc.callbacks.common.EventHost
 import po.misc.callbacks.event.HostedEvent
 import po.misc.configs.hocon.builders.ResolverBuilder
-import po.misc.configs.hocon.models.ActivityLog
+import po.misc.configs.hocon.builders.ResolverEvents
 import po.misc.configs.hocon.models.HoconEntry
 import po.misc.configs.hocon.models.HoconEntryBase
 import po.misc.configs.hocon.models.HoconListEntry
 import po.misc.configs.hocon.models.HoconNestedEntry
-import po.misc.configs.hocon.models.HoconNullableEntry
 import po.misc.configs.hocon.models.HoconPrimitives
 import po.misc.configs.hocon.models.HoconString
-import po.misc.context.component.Component
 import po.misc.context.component.ComponentID
 import po.misc.context.component.componentID
+import po.misc.context.component.managedException
+import po.misc.context.tracable.TraceableContext
 import po.misc.data.helpers.output
-import po.misc.data.styles.Colour
-import po.misc.types.helpers.simpleOrAnon
+import po.misc.data.logging.LogProvider
+import po.misc.data.logging.Loggable
+import po.misc.data.logging.procedural.ProceduralRecord
+import po.misc.data.logging.procedural.StepTolerance
+import po.misc.data.logging.processor.logProcessor
+import po.misc.functions.Nullable
+import po.misc.types.token.TokenFactory
 import po.misc.types.token.TypeToken
+import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 
-interface HoconResolvable<T: HoconResolvable<T>>{
+interface HoconResolvable<T: HoconResolvable<T>>: TraceableContext, TokenFactory{
     val resolver: HoconResolver<T>
 }
 
@@ -31,65 +38,131 @@ interface HoconConfigurable<T: EventHost, C: HoconResolvable<C>, V: Any> : Hocon
     val hoconPrimitive: HoconPrimitives<V>
 }
 
-class HoconResolver<C: HoconResolvable<C>>(
-    val typeToken: TypeToken<C>
-): EventHost, Component{
 
-    override val componentID: ComponentID = componentID()
+class HoconResolver<C: HoconResolvable<C>>(
+    val configToken: TypeToken<C>,
+): EventHost, LogProvider<ProceduralRecord> {
+
+    private val parsingSubject: (TypeToken<*>) -> String = { "Parsing ${it.typeName}" }
+    override val componentID: ComponentID = componentID().addParamInfo("C", configToken)
+    internal val logProcessor = logProcessor {
+        ProceduralRecord(it)
+    }
 
     @PublishedApi
-    internal val entryResolved: MutableMap<KProperty<*>, HostedEvent<*, *, Unit>> =  mutableMapOf()
+    internal val entryResolved: MutableMap<KProperty<*>, HostedEvent<*, *, Unit>> = mutableMapOf()
+
     @PublishedApi
     internal val members: MutableList<HoconResolver<*>> = mutableListOf()
+
+    internal val memberMap: MutableMap<KClass<out HoconResolvable<*>>, HoconResolvable<*>> = mutableMapOf()
+
     @PublishedApi
-    internal  val entries: MutableList<HoconEntryBase<C, *>> = mutableListOf()
+    internal val entryMap: MutableMap<String,  HoconEntryBase<C, *>> = mutableMapOf()
 
+    val events: ResolverEvents<C> = ResolverEvents(this)
 
-    fun registerMember(resolvable: HoconResolvable<*>): HoconResolver<C>{
+    var nowParsing: NowParsing? = null
+
+    init {
+        if (events.onStart.event) {
+            events.onStart.trigger(Unit)
+        }
+    }
+
+    private fun readComplete() {
+        if (events.onComplete.event) {
+            events.onComplete.trigger(Unit)
+        }
+    }
+
+    override fun notify(loggable: Loggable) {
+        val proceduralLog = ProceduralRecord(loggable)
+        logProcessor.logData(proceduralLog)
+    }
+
+    private fun identifyConfig(hoconFactory: Config): String{
+        nowParsing = NowParsing(hoconFactory.origin())
+        return  nowParsing?.parsing?:""
+    }
+
+    fun registerMember(resolvable: HoconResolvable<*>): HoconResolver<C> {
+        memberMap[resolvable::class] = resolvable
         members.add(resolvable.resolver)
+        resolvable.resolver.logProcessor.collectData(keepData = false) { notification ->
+            logProcessor.logData(notification)
+        }
         return this
     }
 
-    fun register(hoconEntry: HoconEntryBase<C, *>): Boolean{
-        entries.add(hoconEntry)
+    fun register(hoconEntry: HoconEntryBase<C, *>): Boolean {
+        entryMap[hoconEntry.name.lowercase()] = hoconEntry
+        hoconEntry.logProcessor.collectData(keepData = false) { notification ->
+            logProcessor.activeRecord?.procedural?.add(notification.toProceduralEntry())
+        }
         return true
     }
 
+    fun readConfig(hoconFactory: Config) {
+        val parsingMessage : (HoconEntryBase<C, *>)-> String = {
+            "Parsing ${it.name}"
+        }
+        val parsingMessages =  identifyConfig(hoconFactory)
+        val info = info(parsingSubject(configToken), "Parsing $parsingMessages")
 
-    fun readConfig(
-        config: C,
-        hoconFactory: Config
-    ): List<ActivityLog>{
-        for(hoconEntry in entries){
-            "readConfig for for class ${config::class.simpleOrAnon}. Processing entry $hoconEntry".output(Colour.Green)
-            when(hoconEntry){
-                is HoconEntry ->{
-                    hoconEntry.readConfig(config, hoconFactory)
+        logProcessor.logScope(info.toProcedural()) {
+            proceduralStep("Parsing Config") {
+                for (hoconEntry in entryMap.values) {
+                    when (hoconEntry) {
+                        is HoconEntry -> {
+                            if(hoconEntry.nullable){
+                                proceduralStep(parsingMessage(hoconEntry), StepTolerance.ALLOW_NULL) {
+                                    hoconEntry.readConfig(hoconFactory, Nullable)
+                                }
+                            }else{
+                                proceduralStep(parsingMessage(hoconEntry)) {
+                                    hoconEntry.readConfig(hoconFactory)
+                                }
+                            }
+                        }
+                        is HoconListEntry -> {
+                            if(hoconEntry.nullable) {
+                                proceduralStep("Parsing ${hoconEntry.name} List", StepTolerance.ALLOW_NULL, StepTolerance.ALLOW_EMPTY_LIST) {
+                                    hoconEntry.readListConfig(hoconFactory, Nullable)
+                                }
+                            }else{
+                                proceduralStep("Parsing ${hoconEntry.name} List", StepTolerance.ALLOW_EMPTY_LIST) {
+                                    hoconEntry.readListConfig(hoconFactory)
+                                }
+                            }
+                        }
+                        is HoconNestedEntry<*, *> -> {
+                            if(hoconEntry.nullable) {
+                                proceduralStep("Switching to ${hoconEntry.name}", StepTolerance.ALLOW_NULL) {
+                                    hoconEntry.readConfig(hoconFactory, Nullable)
+                                }
+                            }else{
+                                proceduralStep("Switching to ${hoconEntry.name}") {
+                                    hoconEntry.readConfig(hoconFactory)
+                                }
+                            }
+                        }
+                    }
                 }
-                is HoconNullableEntry ->{
-                    hoconEntry.readConfig(config, hoconFactory)
-                }
-                is HoconListEntry ->{
-                    hoconEntry.readConfig(config, hoconFactory)
-                }
-                is HoconNestedEntry<*, *> ->{
-                    hoconEntry.readConfig(config, hoconFactory)
+                entryResolved.forEach { (key, value) ->
+                    val selectedByPropertyName = entryMap[key.name]
+                    if (selectedByPropertyName != null) {
+                        selectedByPropertyName.provideValueCheck(value)
+                    } else {
+                        "Property as key $key  not equals to ".output()
+                        entryMap.values.forEach { it.property?.output() }
+                    }
                 }
             }
         }
-        entryResolved.forEach {(key, value)->
-            val selectedByPropertyName = entries.firstOrNull { it.property?.name ==  key.name}
-            if(selectedByPropertyName != null){
-                selectedByPropertyName.provideValueCheck(value)
-            }else{
-                "Property as key $key  not equals to ".output()
-                entries.forEach { it.property?.output() }
-            }
-        }
-        return emptyList()
+        readComplete()
     }
 }
-
 
 inline fun <reified T: HoconResolvable<T>> T.createResolver():HoconResolver<T>{
     return HoconResolver(TypeToken.create<T>())
@@ -99,7 +172,7 @@ inline fun <T: EventHost, reified C: HoconResolvable<C>> C.createResolver(
     receiver:T,
     noinline block: ResolverBuilder<T, C, String>.() -> Unit
 ):HoconResolver<C>{
-    val builderContainer = ResolverBuilder(receiver, createResolver(), HoconString)
+    val builderContainer = ResolverBuilder(receiver, createResolver(), HoconString.Companion)
     builderContainer.block()
     return  builderContainer.resolver
 }

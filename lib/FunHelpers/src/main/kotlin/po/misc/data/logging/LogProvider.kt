@@ -1,6 +1,8 @@
 package po.misc.data.logging
 
 import po.misc.context.component.Component
+import po.misc.data.logging.models.Notification
+import po.misc.data.logging.procedural.ProceduralEntry
 
 
 /**
@@ -21,6 +23,14 @@ import po.misc.context.component.Component
  * @see LogProcessor for log collection and dispatch.
  * @see Component for identity and verbosity management.
  */
-interface LogProvider<LR: Loggable>: Component
+interface LogProvider<LR: Loggable>: Component{
+
+
+    fun Notification.toProceduralEntry(stepBadge: String? = null): ProceduralEntry{
+       val badge = stepBadge?:"[${subject.take(4).uppercase()}]"
+       return  ProceduralEntry(text, badge)
+    }
+
+}
 
 

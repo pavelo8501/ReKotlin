@@ -1,6 +1,5 @@
 package po.lognotify.notification.models
 
-import po.misc.collections.StaticTypeKey
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.types.token.TypeToken
 

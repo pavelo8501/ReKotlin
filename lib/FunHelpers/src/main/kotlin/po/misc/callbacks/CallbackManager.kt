@@ -1,8 +1,6 @@
 package po.misc.callbacks
 
 import po.misc.callbacks.models.Configuration
-import po.misc.collections.ComparableType
-import po.misc.collections.StaticTypeKey
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.throwManaged
 import po.misc.context.CTX
@@ -135,13 +133,13 @@ class CallbackManager<E: Enum<E>>(
         }
     }
 
-    @PublishedApi
-    internal fun <T: Any, R: Any> resultPayloadLookup(
-        eventType:E,
-        key:ComparableType<T>
-    ): ResultCallbackPayload<E,T,R>?{
-        return resultTypeEventMap[eventType]?.firstOrNull { it.typeKey == key }?.castOrManaged<ResultCallbackPayload<E, T, R>>(this)
-    }
+//    @PublishedApi
+//    internal fun <T: Any, R: Any> resultPayloadLookup(
+//        eventType:E,
+//        key:ComparableType<T>
+//    ): ResultCallbackPayload<E,T,R>?{
+//        return resultTypeEventMap[eventType]?.firstOrNull { it.typeKey == key }?.castOrManaged<ResultCallbackPayload<E, T, R>>(this)
+//    }
 
     inline fun <reified T: Any> subscribe(
         subscriber: CTX,
@@ -180,22 +178,22 @@ class CallbackManager<E: Enum<E>>(
         }
     }
 
-    inline fun <reified T: Any, R: Any> triggerAndExpect(eventType: E, value: T, subscriber: CTX? = null): R
-            =triggerAndExpect(eventType, StaticTypeKey.createTypeKey<T>(), value, subscriber)
+//    inline fun <reified T: Any, R: Any> triggerAndExpect(eventType: E, value: T, subscriber: CTX? = null): R
+//            =triggerAndExpect(eventType, StaticTypeKey.createTypeKey<T>(), value, subscriber)
 
-    fun <T: Any, R: Any> triggerAndExpect(eventType: E, key: ComparableType<T>, value: T, subscriber: CTX? = null):R {
-        val payload = resultPayloadLookup<T,R>(eventType, key)
-        if(payload != null) {
-            subscriber?.let { subscriber ->
-                payload.trigger(subscriber, value)
-            }?:run {
-                payload.triggerForAll(value)
-            }
-        }else{
-            throwManaged("Payload for the given eventType: ${eventType.name} and key: $key not registered", this)
-        }
-        TODO("Implement callback result logic")
-    }
+//    fun <T: Any, R: Any> triggerAndExpect(eventType: E, key: ComparableType<T>, value: T, subscriber: CTX? = null):R {
+//        val payload = resultPayloadLookup<T,R>(eventType, key)
+//        if(payload != null) {
+//            subscriber?.let { subscriber ->
+//                payload.trigger(subscriber, value)
+//            }?:run {
+//                payload.triggerForAll(value)
+//            }
+//        }else{
+//            throwManaged("Payload for the given eventType: ${eventType.name} and key: $key not registered", this)
+//        }
+//        TODO("Implement callback result logic")
+//    }
 
     fun <E2 : Enum<E2>, T: Any> bridge(
         subscribingPayload: CallbackPayload<E2, T>,

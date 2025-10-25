@@ -3,6 +3,7 @@ package po.misc.data.strings
 import po.misc.context.CTX
 import po.misc.data.HasValue
 import po.misc.data.PrettyPrint
+import po.misc.data.TextContaining
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
@@ -40,8 +41,8 @@ sealed class StringFormatter(var string: String){
                 }
                 is CTX -> { target.identifiedByName }
                 is Enum<*> -> {
-                    if(target is HasValue){
-                        "${target.name}: ${target.value}"
+                    if(target is TextContaining){
+                        "${target.name}: ${target.asText()}"
                     }else{
                         target.name
                     }

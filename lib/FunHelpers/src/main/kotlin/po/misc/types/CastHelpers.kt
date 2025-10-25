@@ -104,6 +104,21 @@ fun <T: Any> Any?.castOrThrow(
     }
 }
 
+
+fun <T: Any> Any?.castOrThrow(
+    kClass: KClass<T>,
+):T {
+    val methodName = "castOrThrow"
+    val nullChecked = getOrThrow(kClass)
+    return try {
+        kClass.cast(nullChecked)
+    } catch (th: ClassCastException) {
+        throw th
+    }
+}
+
+
+
 /**
  * Reified overload of [castOrThrow] using an inferred type [T] and traceable context.
  *
@@ -119,6 +134,8 @@ inline fun <reified T: Any> Any?.castOrThrow(
     noinline exceptionProvider: (ExceptionPayload)-> Throwable,
 ): T = castOrThrow(context, T::class, exceptionProvider)
 
+
+inline fun <reified T: Any> Any?.castOrThrow(): T = castOrThrow(T::class)
 
 
 fun <T: Any> Any?.castOrManaged(

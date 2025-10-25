@@ -24,6 +24,7 @@ internal fun <T: TasksManaged, R: Any?> handleException(
     container: RunnableContainer<T, R>,
     snapshot: List<PropertyData>?
 ): ManagedException {
+
     fun firstOccurred(managed: ManagedException): ExceptionData?{
         val firesRecord = managed.exceptionData.firstOrNull()
        return if(firesRecord != null &&  managed.exceptionData.size == 1){

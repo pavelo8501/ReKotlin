@@ -29,7 +29,6 @@ data class Notification(
 
     private val contextName: String  = ClassResolver.instanceName(context)
     override val created: Instant = Instant.now()
-    override val ownClass: KClass<out Printable> = typeToken.kClass
 
     override val formattedString: String get() {
         return "[$contextName @ ${created.hoursFormated(3)}] -> $subject".applyColour(Colour.Blue).newLine {

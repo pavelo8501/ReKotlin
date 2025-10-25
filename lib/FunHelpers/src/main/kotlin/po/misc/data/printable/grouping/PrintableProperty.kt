@@ -57,11 +57,19 @@ class PrintableProperty<M: Printable>(
 }
 
 
-fun <T: Printable> Printable.createProperty(name: String):PrintableProperty<T>{
-   return PrintableProperty<T>(this, name)
+fun <T: Printable> Printable.createProperty(name: String):PrintableProperty<T> =printableProperty(name)
+
+fun <T: Printable> Printable.printableProperty(name: String):PrintableProperty<T>{
+    return PrintableProperty<T>(this, name)
 }
 
-inline fun <reified M: Printable> Printable.createProperty(noinline onNew: PrintableProperty<M>.(M) -> Unit):PrintableProperty<M>{
+inline fun <reified M: Printable> Printable.createProperty(
+    noinline onNew: PrintableProperty<M>.(M) -> Unit
+):PrintableProperty<M> = printableProperty(onNew)
 
+
+inline fun <reified M: Printable> Printable.printableProperty(
+    noinline onNew: PrintableProperty<M>.(M) -> Unit
+):PrintableProperty<M>{
     return PrintableProperty<M>(this, { M::class.simpleOrAnon }, onNew )
 }

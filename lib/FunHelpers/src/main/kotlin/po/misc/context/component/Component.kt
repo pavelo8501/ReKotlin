@@ -1,6 +1,11 @@
 package po.misc.context.component
 
 import po.misc.context.tracable.TraceableContext
+import po.misc.data.helpers.output
+import po.misc.data.logging.Loggable
+import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.models.Notification
+import po.misc.data.logging.procedural.ProceduralRecord
 import po.misc.debugging.ClassResolver
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.stack_trace.extractTrace
@@ -36,6 +41,24 @@ import po.misc.types.helpers.simpleOrAnon
 interface Component : TraceableContext {
 
     val componentID: ComponentID get() = ComponentID(this::class.simpleOrAnon, ClassResolver.classInfo(this))
+
+    override fun notify(loggable: Loggable){
+        if(loggable.topic >= componentID.verbosity.minTopic){
+            loggable.output()
+        }
+    }
+
+    fun notification(topic: NotificationTopic, subject: String, text: String): Notification{
+       return Notification(this, topic, subject, text)
+    }
+
+    fun Loggable.toNotification(): Notification{
+       return Notification(this)
+    }
+
+    fun Loggable.toProcedural(): ProceduralRecord{
+       return ProceduralRecord(this)
+    }
 
 }
 

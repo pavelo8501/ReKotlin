@@ -33,25 +33,34 @@ import po.misc.types.token.TypeToken
  * @property verbosity Controls minimum log level for this component.
  */
 class ComponentID(
-    val name: String,
+    private var name: String?,
     var classInfo: ClassInfo,
     var verbosity: Verbosity = Verbosity.Info,
 ): PrettyPrint {
 
     constructor(
-        name: String,
+        provider: () -> String,
         component: Component,
         verbosity: Verbosity = Verbosity.Info
-    ):this(name, ClassResolver.classInfo(component), verbosity)
-
-    private var usedName = name
-    private val typeParamsName: String get() = classInfo.genericInfo.joinToString(separator = ", ") {
-        it.formattedString
+    ):this(null, ClassResolver.classInfo(component), verbosity){
+        nameProvider = provider
     }
 
+    private var nameProvider : (() -> String)? = null
+
+    private val resolvedName: String by lazy {
+        val nameFromProvider = nameProvider?.invoke()
+        nameFromProvider ?: name ?: classInfo.simpleName
+    }
+
+    val componentName: String get() = resolvedName
+
+    fun updateNameProvider(provider: (() -> String)?) {
+        nameProvider = provider
+    }
 
     fun useName(nameToUse: String){
-        usedName = nameToUse
+        name = nameToUse
     }
 
     fun addParamInfo(genericInfo: GenericInfo): ComponentID{
@@ -60,12 +69,13 @@ class ComponentID(
     }
 
     fun addParamInfo(parameterName: String,  typeToken: TypeToken<*>): ComponentID{
-        classInfo.genericInfoBacking.add(GenericInfo(parameterName, ClassResolver.classInfo(typeToken.kClass)))
+        val info =  classInfo.addParamInfo(parameterName, typeToken)
+        classInfo.genericInfoBacking.add(info)
         return this
     }
 
-    override val formattedString: String get() =  "${usedName.colorize(Colour.Magenta)} " +
+    override val formattedString: String get() =  "${componentName.colorize(Colour.Magenta)} " +
             classInfo.formattedString
 
-    override fun toString(): String = usedName + classInfo
+    override fun toString(): String = componentName + classInfo
 }

@@ -152,13 +152,5 @@ class LogData(
             createRecord(LogData::executionStatus)
             createObject(LogData::taskEvents, TaskEvent::message)
         }
-
-//        val json: JsonDescriptor<LogData> = JsonDescriptor<LogData>(this){
-//
-//            createObject(LogData::taskHeader, LogData::executionStatus, LogData::elapsed, LogData::taskFooter)
-//            buildSubArray(TaskEvent::class, LogData::taskEvents){
-//                createObject(TaskEvent::severity, TaskEvent::message)
-//            }
-//        }
     }
 }

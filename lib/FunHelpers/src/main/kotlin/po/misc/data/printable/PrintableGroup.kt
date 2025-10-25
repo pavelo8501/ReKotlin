@@ -16,8 +16,8 @@ abstract class PrintableGroup<T1: PrintableBase<T1>, T2:  PrintableBase<T2>>(
        return createFormatedString()
     }
 
-    val arbitraryMap: ArbitraryDataMap<Printable> = groupHost.arbitraryMap
-    override val ownClass: KClass<out Printable> = groupHost.ownClass
+   // val arbitraryMap: ArbitraryDataMap<Printable> = groupHost.arbitraryMap
+  //  override val ownClass: KClass<out Printable> = groupHost.ownClass
 
     var headerTemplate: PrintableTemplateBase<T1> = hostDefaultTemplate
     var footerTemplate: PrintableTemplateBase<T1>? = null
@@ -65,7 +65,7 @@ abstract class PrintableGroup<T1: PrintableBase<T1>, T2:  PrintableBase<T2>>(
 
     fun clear(): Unit = recordsBacking.clear()
 
-    override fun echo() {
+    fun echo() {
         println(formattedString)
     }
 

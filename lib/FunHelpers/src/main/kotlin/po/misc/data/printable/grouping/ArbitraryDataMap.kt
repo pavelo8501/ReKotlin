@@ -18,33 +18,34 @@ class ArbitraryKey(val ownClass: KClass<*>) {
     override fun toString(): String = "${ownClass.simpleName}${postfix.replaceIfNull()}"
 }
 
-class ArbitraryDataMap<V: Printable>(): AbstractMutableMap<ArbitraryKey, MutableList<V>>(){
+class ArbitraryDataMap<V: Printable>(): AbstractMutableMap<ArbitraryKey, MutableList<PrintableBase<*>>>(){
 
     @PublishedApi
-    internal val mapBacking: MutableMap<ArbitraryKey, MutableList<V>> = mutableMapOf()
+    internal val mapBacking: MutableMap<ArbitraryKey, MutableList<PrintableBase<*>>> = mutableMapOf()
 
-    override val entries: MutableSet<MutableMap.MutableEntry<ArbitraryKey, MutableList<V>>>
+    override val entries: MutableSet<MutableMap.MutableEntry<ArbitraryKey, MutableList<PrintableBase<*>>>>
         get() = mapBacking.entries
 
     val totalSize: Int get() = mapBacking.values.sumOf {it.size}
 
-    private fun keyFromPrintable(data: V):ArbitraryKey{
+    private fun keyFromPrintable(data: PrintableBase<*>):ArbitraryKey{
        return ArbitraryKey(data.ownClass)
     }
 
-    override fun put(key: ArbitraryKey, value: MutableList<V>): MutableList<V>? {
+    override fun put(key: ArbitraryKey, value: MutableList<PrintableBase<*>>): MutableList<PrintableBase<*>>? {
       return  mapBacking.getOrPut(key){  value }
     }
 
-    fun putPrintable(data: V):ArbitraryKey{
+    fun putPrintable(data: PrintableBase<*>):ArbitraryKey{
         val key = keyFromPrintable(data)
+
         mapBacking[key]?.add(data) ?:run {
            put(key, mutableListOf(data))
         }
         return key
     }
 
-    fun putPrintable(data: V, postfixBuilder:(V)-> String):ArbitraryKey{
+    fun putPrintable(data:  PrintableBase<*>, postfixBuilder:(PrintableBase<*>)-> String):ArbitraryKey{
         val postfix = postfixBuilder(data)
         val key = ArbitraryKey(data.ownClass).apply { this.postfix = postfix }
         mapBacking[key]?.add(data) ?: run {
