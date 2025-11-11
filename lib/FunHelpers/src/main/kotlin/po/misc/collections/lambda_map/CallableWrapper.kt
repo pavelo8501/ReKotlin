@@ -3,123 +3,157 @@ package po.misc.collections.lambda_map
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import po.misc.context.component.Component
+import po.misc.context.component.ComponentID
+import po.misc.context.component.componentID
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.helpers.output
-import po.misc.data.styles.Colour
-import po.misc.exceptions.handling.Suspended
+import po.misc.exceptions.managedException
+import po.misc.functions.CallableOptions
+import po.misc.functions.LambdaOptions
+import po.misc.functions.SuspendedOptions
 import kotlin.coroutines.CoroutineContext
 
 
-interface CallableWrapper<T: Any, R>{
-    val suspended: Suspended?
+interface CallableWrapper<T, R>: Component  {
+    val options: CallableOptions
+    val isSuspended: Boolean
     fun invoke(value: T):R
-    suspend fun invoke(value: T, suspending: Suspended):R
+    suspend fun invokeSuspending(value: T):R
 }
 
 class Lambda<T: Any, R>(
-    private val lambda: Function1<T, R>
+    override val options: LambdaOptions,
+    private val lambda: (T)->R
 ):CallableWrapper<T, R>{
 
-    override val suspended: Suspended? = null
+    constructor(
+        lambda: (T)->R
+    ): this(LambdaOptions.Listen, lambda)
 
+    override val isSuspended: Boolean = false
     override fun invoke(value: T):R{
         return lambda.invoke(value)
     }
-    override suspend fun invoke(value: T, suspending: Suspended):R{
+    override suspend fun invokeSuspending(value: T):R{
         return invoke(value)
     }
-}
-
-fun <T: Any, R> Function1<T, R>.toCallable():Lambda<T, R>{
-    return Lambda(this)
 }
 
 class LambdaWithReceiver<H: Any, T: Any, R>(
     val receiver:H,
-    private val lambda: Function2<H, T, R>
+    override val options: LambdaOptions,
+    private val lambda:H.(T)->R
 ):CallableWrapper<T, R>{
 
-    override val suspended: Suspended? = null
 
+    constructor(
+        receiver:H,
+        lambda:H.(T)->R
+    ): this(receiver, LambdaOptions.Listen, lambda)
+
+   override val isSuspended: Boolean = false
     override fun invoke(value: T):R{
         return lambda.invoke(receiver, value)
     }
-    override suspend fun invoke(value: T, suspending: Suspended):R{
+
+    override suspend fun invokeSuspending(value: T):R{
         return invoke(value)
     }
 }
 
-fun <H: TraceableContext, T: Any, R> Function2<H, T, R>.toCallable(receiver:H):LambdaWithReceiver<H, T, R>{
-    return LambdaWithReceiver(receiver, this)
-}
 
-class SuspendingLambda<T: Any, R>(
+class SuspendingLambda<T, R>(
+    override val options: SuspendedOptions = SuspendedOptions.Listen,
     private val lambda: suspend (T)->R
 ):CallableWrapper<T, R>{
 
-    override val suspended: Suspended = Suspended
+    override val isSuspended: Boolean = true
+    override val componentID: ComponentID = componentID("SuspendingLambda Wrapper")
+    private val subjectInvoke = "Invoke call"
 
     var receiversContext: CoroutineContext? = null
 
-    constructor(context: CoroutineContext, lambda: suspend (T)->R):this(lambda){
+    constructor(
+        context: CoroutineContext,
+        options: SuspendedOptions = SuspendedOptions.Listen,
+        lambda: suspend (T)->R
+    ): this(options, lambda){
         receiversContext = context
     }
 
-    override fun invoke(value: T):R{
-        val errorMsg = "Invoke call  in SuspendingLambda wrapping class, not holding non suspended lambda"
-        errorMsg.output(Colour.Yellow)
+    fun invoke(callingContext: TraceableContext, value: T):R{
+        val warningMsg = "Non suspending invoke call in SuspendingLambda wrapping class"
+        warn(subjectInvoke, warningMsg)
         return receiversContext?.let {context->
             runBlocking {
                 withContext(context){
-                    invoke(value,  Suspended)
+                    invokeSuspending(value)
                 }
             }
         }?:run {
-            throw IllegalArgumentException(errorMsg)
+            val errorMsg = "Impossible to process invoke call in ${componentID.componentName} $warningMsg with no CoroutineContext provided"
+            val exception  = IllegalArgumentException(errorMsg)
+            callingContext.managedException(exception, immediateOutput = true)
+            throw exception
         }
     }
 
-    override suspend fun invoke(value: T, suspending: Suspended):R{
+    override fun invoke(value: T):R = invoke(this, value)
+
+    override suspend fun invokeSuspending(value: T):R{
         return lambda.invoke(value)
     }
 }
 
-fun <T: Any, R> Component.toCallable(function: suspend (T)->R):SuspendingLambda<T, R>{
-    return SuspendingLambda(function)
-}
 
-class SuspendingLambdaWithReceiver<H: TraceableContext, T: Any, R>(
+
+class SuspendingLambdaWithReceiver<H: TraceableContext, T, R>(
     val receiver:H,
+    override val options: SuspendedOptions,
     private val lambda: suspend H.(T)->R
 ):CallableWrapper<T, R>{
 
-    override val suspended: Suspended = Suspended
+    override val isSuspended: Boolean = true
+    override val componentID: ComponentID = componentID("SuspendingLambda Wrapper")
 
+    private val subjectInvoke = "Invoke call"
     var receiversContext: CoroutineContext? = null
 
-    constructor(context: CoroutineContext, receiver:H,  lambda: suspend H.(T)->R):this(receiver, lambda){
+    constructor(
+        receiver:H,
+        lambda: suspend H.(T)->R
+    ):this(receiver, SuspendedOptions.Listen, lambda)
+
+    constructor(
+        context: CoroutineContext,
+        receiver:H,
+        options: SuspendedOptions = SuspendedOptions.Listen,
+        lambda: suspend H.(T)->R
+    ):this(receiver, options, lambda){
         receiversContext = context
     }
 
-    override fun invoke(value: T):R {
-        val errorMsg = "Invoke call  in SuspendingLambda wrapping class, not holding non suspended lambda"
-        errorMsg.output(Colour.Yellow)
+
+    fun invoke(callingContext: TraceableContext, value: T):R {
+        val warningMsg = "Non suspending invoke call in SuspendingLambda wrapping class"
+        warn(subjectInvoke, warningMsg)
+
         return receiversContext?.let { context ->
             runBlocking {
                 withContext(context) {
-                    invoke(value, Suspended)
+                    invokeSuspending(value)
                 }
             }
         } ?: run {
-            throw IllegalArgumentException(errorMsg)
+            val errorMsg = "Impossible to process invoke call in ${componentID.componentName} $warningMsg with no CoroutineContext provided"
+            val exception  = IllegalArgumentException(errorMsg)
+            callingContext.managedException(exception, immediateOutput = true)
+            throw exception
         }
     }
 
-    override suspend fun invoke(value: T, suspending: Suspended):R{
+    override fun invoke(value: T):R = invoke(this, value)
+
+    override suspend fun invokeSuspending(value: T):R{
         return lambda.invoke(receiver, value)
     }
-}
-
-fun <H: TraceableContext, T: Any, R>  H.toCallable(function: suspend H.(T)->R):SuspendingLambdaWithReceiver<H, T, R>{
-    return SuspendingLambdaWithReceiver(this, function)
 }

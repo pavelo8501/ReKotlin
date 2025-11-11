@@ -10,7 +10,6 @@ import po.misc.collections.lambda_map.toCallable
 import po.misc.context.component.Component
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.helpers.output
-import po.misc.exceptions.handling.Suspended
 import po.misc.types.safeCast
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -132,7 +131,7 @@ class TestLambdaMap: Component {
 
         suspend fun trigger(caller: TraceableContext, value: String){
             val mapValue = lambdaMap[caller]
-            mapValue?.invoke(value, Suspended)
+            mapValue?.invokeSuspending(value)
         }
 
         trigger(this@TestLambdaMap, "Something2")
@@ -147,7 +146,7 @@ class TestLambdaMap: Component {
         lambdaMap[this@TestLambdaMap] = lambdaWithReceiver
         suspend fun trigger2(caller: TraceableContext, value: String){
             val mapValue = lambdaMap[caller]
-            mapValue?.invoke(value, Suspended)
+            mapValue?.invokeSuspending(value)
         }
         trigger2(this@TestLambdaMap, "with Receiver")
         assertEquals("with Receiver", notified)

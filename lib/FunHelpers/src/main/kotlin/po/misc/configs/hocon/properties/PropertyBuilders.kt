@@ -26,13 +26,21 @@ inline fun <T: HoconResolvable<T>, reified V: Any, R: Any>  T.hoconProperty(
     hoconPrimitive:  HoconPrimitives<V>,
     noinline transformLambda: (V)->R
 ): HoconTransformProperty<T, V, R> {
+
     val entry =  HoconEntry<T, V>(this, hoconPrimitive)
-    return HoconTransformProperty(this, entry, hoconPrimitive, transformLambda)
+
+    return HoconTransformProperty(this, entry, transformLambda)
 }
 
 inline fun <T: HoconResolvable<T>, reified V: Any, R: Any>  T.hoconProperty(
     noinline transformLambda: (V)->R
-): HoconTransformProperty<T, V, R> = hoconProperty(HoconPrimitives.resolveTokenToPrimitive(tokenOf<V>()), transformLambda)
+): HoconTransformProperty<T, V, R> {
+    val typeToken = tokenOf<V>()
+    val primitive = HoconPrimitives.resolveTokenToPrimitive(typeToken)
+    val entry =  HoconEntry<T, V>(this, primitive)
+    return HoconTransformProperty(this, entry, transformLambda)
+
+}
 
 
 inline fun <reified T: HoconResolvable<T>, reified V, reified V1 : List<V>?> T.listProperty():HoconListProperty<T, V> {

@@ -24,6 +24,7 @@ internal class NestedConfig() : HoconResolvable<NestedConfig> {
     override val resolver = createResolver()
 
     val requestTimeOut: Long by hoconProperty()
+
     val socketTimeout : Duration by hoconProperty() { long: Long ->
         long.milliseconds
     }

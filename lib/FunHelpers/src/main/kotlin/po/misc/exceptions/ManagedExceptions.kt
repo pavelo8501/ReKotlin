@@ -4,7 +4,7 @@ import po.misc.data.printable.knowntypes.PropertyData
 import po.misc.context.CTX
 import po.misc.context.tracable.TraceableContext
 import po.misc.coroutines.CoroutineInfo
-import po.misc.exceptions.models.ExceptionData
+import po.misc.data.helpers.output
 import po.misc.exceptions.stack_trace.ExceptionTrace
 import po.misc.exceptions.stack_trace.extractTrace
 import po.misc.exceptions.trackable.TrackableException
@@ -62,17 +62,15 @@ open class ManagedException(
     override val self: Throwable
         get() = this
 
-
     private var payloadBacking: ThrowableCallSitePayload? = null
-    val exceptionData: MutableList<ExceptionData> =  mutableListOf()
+
     internal val payload:  ThrowableCallSitePayload? get() = payloadBacking
     val methodName: String? get() = payloadBacking?.methodName
 
     open var handler: HandlerType = HandlerType.CancelAll
         internal set
 
-    override var exceptionTrace: ExceptionTrace = extractTrace(context)
-
+    override var exceptionTrace: ExceptionTrace = extractTrace(context, cause)
 
     constructor(managedPayload: ThrowableCallSitePayload):
             this(
@@ -88,22 +86,7 @@ open class ManagedException(
         exceptionTrace = extractTrace(managedPayload)
     }
 
-    fun addExceptionData(data: ExceptionData, context: CTX):ManagedException{
-        val data = ExceptionData(ExceptionEvent.Thrown, message, context)
-        exceptionData.add(data)
-        return this
-    }
-
     fun setHandler(handlerType: HandlerType, producer: CTX): ManagedException {
-        if (exceptionData.isEmpty()) {
-            val data = ExceptionData(ExceptionEvent.Thrown, message, producer)
-            data.addStackTrace(stackTrace.toList())
-            exceptionData.add(data)
-        } else {
-            val data =
-                ExceptionData(ExceptionEvent.HandlerChanged, message, producer)
-            exceptionData.add(data)
-        }
         if (handler != handlerType) {
             handler = handlerType
         }
@@ -111,25 +94,26 @@ open class ManagedException(
     }
 
     fun setPropertySnapshot(snapshot: List<PropertyData>?):ManagedException{
-        if(snapshot != null){
-            val lastData = exceptionData.lastOrNull()
-            lastData?.addPropertySnapshot(snapshot)
-        }
         return this
     }
 }
 
 
-fun <T:TraceableContext> T.managedException(message: String): ManagedException{
-  return  ManagedException(this, message, null)
+fun <T:TraceableContext> T.managedException(message: String, code: Enum<*>? = null, immediateOutput: Boolean = true): ManagedException{
+    val managed =  ManagedException(this, message, code, null)
+    if(immediateOutput){
+        managed.exceptionTrace.output()
+    }
+    return  managed
 }
 
-fun <T:TraceableContext> T.managedException(message: String, code: Enum<*>): ManagedException{
-    return  ManagedException(this, message, code)
-}
-
-fun <T:TraceableContext> T.managedException(message: String, code: Enum<*>?, cause: Throwable?): ManagedException{
-    return  ManagedException(this, message, code, cause)
+fun <T:TraceableContext, TH: Throwable> T.managedException(cause: TH, immediateOutput: Boolean = true): ManagedException {
+    val message = cause.message?:""
+    val managed =  ManagedException(this, message, null, cause)
+    if(immediateOutput){
+        managed.exceptionTrace.output()
+    }
+    return  managed
 }
 
 

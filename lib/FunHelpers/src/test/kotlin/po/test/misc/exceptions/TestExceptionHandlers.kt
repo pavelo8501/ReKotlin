@@ -3,18 +3,15 @@ package po.test.misc.exceptions
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
-import po.misc.context.CTX
-import po.misc.context.CTXIdentity
-import po.misc.context.asIdentity
 import po.misc.coroutines.CoroutineInfo
 import po.misc.data.helpers.output
 import po.misc.data.logging.ContextAware
 import po.misc.exceptions.trackable.TrackableException
-import po.misc.exceptions.handling.Suspended
 import po.misc.exceptions.handling.delegateIfThrow
 import po.misc.exceptions.handling.registerHandler
 import po.misc.exceptions.metaFrameTrace
 import po.misc.exceptions.stack_trace.ExceptionTrace
+import po.misc.functions.LambdaType
 import kotlin.reflect.KClass
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -45,7 +42,7 @@ class TestExceptionHandlers() : ContextAware {
             }
         }
         suspend fun <TH: Throwable> suspendingThrowingBlock(exception: TH){
-            channel.delegateIfThrow(Suspended) {
+            channel.delegateIfThrow(LambdaType.Suspended) {
                 throw exception
             }
         }
@@ -95,7 +92,7 @@ class TestExceptionHandlers() : ContextAware {
 
         assertDoesNotThrow {
 
-            delegateIfThrow<SimpleTrackableException>(Suspended) {
+            delegateIfThrow<SimpleTrackableException>(LambdaType.Suspended) {
 
                 throw SimpleTrackableException(this@TestExceptionHandlers, "Suspending")
             }
@@ -133,17 +130,17 @@ class TestExceptionHandlers() : ContextAware {
         }
 
         assertDoesNotThrow {
-            delegateIfThrow<String>(Suspended) {
+            delegateIfThrow<String>(LambdaType.Suspended) {
                 throw Exception("Exception")
             }
         }
         assertDoesNotThrow {
-            delegateIfThrow<SimpleTrackableException>(Suspended) {
+            delegateIfThrow<SimpleTrackableException>(LambdaType.Suspended) {
                 throw SimpleTrackableException(this@TestExceptionHandlers, "Suspending")
             }
         }
         assertDoesNotThrow {
-            delegateIfThrow(Suspended) {
+            delegateIfThrow(LambdaType.Suspended) {
                 throw ScopedException(this@TestExceptionHandlers, "ScopedExceptionSuspending")
             }
         }

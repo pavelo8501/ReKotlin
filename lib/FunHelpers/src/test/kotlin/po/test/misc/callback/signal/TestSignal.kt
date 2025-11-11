@@ -1,18 +1,22 @@
 package po.test.misc.callback.signal
 
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import po.misc.callbacks.signal.Signal
 import po.misc.callbacks.signal.signal
 import po.misc.callbacks.signal.signalOf
 import po.misc.context.tracable.TraceableContext
+import po.misc.functions.LambdaOptions
+import po.misc.functions.LambdaType
 import po.misc.functions.NoResult
+import po.misc.functions.SuspendedOptions
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class TestSignal {
-
 
     internal class Data1()
 
@@ -115,4 +119,54 @@ class TestSignal {
             assertNull(it.notified)
         }
     }
+
+    @Test
+    fun `Signal options work as expected`(){
+        val listener1 = Listener()
+        val listener2 = Listener()
+
+        val signal = signalOf<Data1>(NoResult)
+        var listener1Triggers = 0
+        signal.onSignal(listener1, LambdaOptions.Promise){
+            listener1Triggers ++
+        }
+
+        var listener2Triggers = 0
+        signal.onSignal(listener2){
+            listener2Triggers ++
+        }
+        repeat(3){
+            val data = Data1()
+            signal.trigger(data)
+        }
+        assertEquals(1, listener1Triggers)
+        assertEquals(3, listener2Triggers)
+        assertEquals(1, signal.listeners.size)
+    }
+
+    @Test
+    fun `Signal suspended options work as expected`() = runTest{
+
+        val listener1 = Listener()
+        val listener2 = Listener()
+
+        val signal = signalOf<Data1>(NoResult)
+        var listener1Triggers = 0
+        signal.onSignal(listener1, SuspendedOptions.Promise){
+            listener1Triggers ++
+        }
+
+        var listener2Triggers = 0
+        signal.onSignal(listener2, LambdaType.Suspended){
+            listener2Triggers ++
+        }
+        repeat(3){
+            val data = Data1()
+            signal.trigger(data, LambdaType.Suspended)
+        }
+        assertEquals(1, listener1Triggers)
+        assertEquals(3, listener2Triggers)
+        assertEquals(1, signal.listeners.size)
+    }
+
 }

@@ -3,7 +3,7 @@ package po.misc.types.token
 import po.misc.types.TypeProvider
 
 
-interface Tokenized<T: Any> : TokenHolder, TokenFactory{
+interface Tokenized<T> : TokenHolder, TokenFactory{
     override val typeToken: TypeToken<T>
 }
 

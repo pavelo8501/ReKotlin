@@ -41,6 +41,7 @@ fun Throwable.extractTrace(): ExceptionTrace {
 }
 
 fun Throwable.extractTrace(traceable: TraceableContext): ExceptionTrace {
+
     val takeForAnalysis = 30
     val contextClass = traceable::class
     val frames =  stackTrace.take(takeForAnalysis).toMeta()
@@ -58,9 +59,14 @@ fun Throwable.extractTrace(traceable: TraceableContext): ExceptionTrace {
     }
 }
 
-fun Throwable.extractTrace(context: Any): ExceptionTrace{
+fun Throwable.extractTrace(context: Any, cause: Throwable? = null): ExceptionTrace{
+
    return when(context){
-        is TraceableContext -> extractTrace(traceable = context)
+        is TraceableContext -> {
+            cause?.extractTrace(traceable = context) ?:run {
+                extractTrace(traceable = context)
+            }
+        }
         else -> extractTrace()
     }
 }

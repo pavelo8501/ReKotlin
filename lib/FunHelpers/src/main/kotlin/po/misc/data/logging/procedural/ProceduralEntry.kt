@@ -8,7 +8,7 @@ data class ProceduralEntry(
     val stepName: String,
     val stepBadge: String,
     val maxLine: (()-> Int)? = null
-): PrettyPrint, Printable{
+): PrettyPrint, Printable {
 
     var stepResult: StepResult = StepResult.InProgress
 
@@ -39,7 +39,8 @@ data class ProceduralEntry(
 
     override fun toString(): String = "$stepBadge $stepNameFormatted $stepResult"
 
-    companion object{
+    companion object {
+
         private fun stepResultForListType(result: List<*>,  tolerances : List<StepTolerance>): StepResult {
             return if (result.isEmpty() && tolerances.any { it ==   StepTolerance.ALLOW_EMPTY_LIST } ) {
                 StepResult.OK
@@ -47,6 +48,7 @@ data class ProceduralEntry(
                 StepResult.Fail
             }
         }
+
         private fun stepResultForBoolean(result: Boolean, tolerances : List<StepTolerance>): StepResult{
           return  if(!result && tolerances.any { it ==  StepTolerance.ALLOW_FALSE}  ){
               StepResult.OK

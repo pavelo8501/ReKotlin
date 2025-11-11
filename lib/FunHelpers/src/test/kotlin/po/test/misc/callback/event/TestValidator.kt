@@ -4,7 +4,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import po.misc.callbacks.common.EventHost
 import po.misc.callbacks.event.event
-import po.misc.exceptions.handling.Suspended
+import po.misc.functions.LambdaType
 import po.misc.functions.NoResult
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
@@ -38,7 +38,7 @@ class TestValidator: EventHost {
 
         assertNotNull(validatableEvent.validator)
         val valid = ClassToBeValidated()
-        validatableEvent.triggerValidating(valid)
+        validatableEvent.trigger(valid)
 
         assertTrue { success }
     }
@@ -57,11 +57,10 @@ class TestValidator: EventHost {
         }
         assertNotNull(validatableEvent.validator)
         val valid = ClassToBeValidated()
-        validatableEvent.triggerValidating(valid)
+        validatableEvent.trigger(valid)
         assertNull(success)
         assertIs<ClassToBeValidated>(failure)
     }
-
 
     @Test
     fun `InvokeValidator on success suspending`()= runTest{
@@ -70,13 +69,13 @@ class TestValidator: EventHost {
         val validatableEvent = event<TestValidator, ClassToBeValidated>(NoResult) {
             withValidation {
                 it.parameter == "Param1"
-            }.onSuccess(Suspended){
+            }.onSuccess(LambdaType.Suspended){
                 success = true
             }
         }
         assertNotNull(validatableEvent.validator)
         val valid = ClassToBeValidated()
-        validatableEvent.triggerValidating(valid, Suspended)
+        validatableEvent.trigger(valid, LambdaType.Suspended)
         assertTrue { success?:false }
     }
 
@@ -90,13 +89,13 @@ class TestValidator: EventHost {
         val validatableEvent = event<TestValidator, ClassToBeValidated>(NoResult) {
             withValidation {
                 it.parameter == "Param"
-            }.onFailure(Suspended) {
+            }.onFailure(LambdaType.Suspended) {
                 failure = it
             }
         }
         assertNotNull(validatableEvent.validator)
         val valid = ClassToBeValidated()
-        validatableEvent.triggerValidating(valid, Suspended)
+        validatableEvent.trigger(valid, LambdaType.Suspended)
         assertNull(success)
         assertIs<ClassToBeValidated>(failure)
     }

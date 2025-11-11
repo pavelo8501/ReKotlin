@@ -28,9 +28,8 @@ data class ExceptionTrace(
     )
 
     override val formattedString: String =  exceptionName.colorize(Colour.Red).newLine {
-        bestPick.toString()
+        bestPick.formattedString
     }
-
 
     init {
         require(stackFrames.isNotEmpty()) { "stackFrames must contain at least one frame" }
@@ -64,7 +63,7 @@ data class StackFrameMeta(
     val isHelperMethod: Boolean,
     val isUserCode: Boolean,
     val stackTraceElement: StackTraceElement? = null
-){
+): PrettyPrint {
     val consoleLink: String get() = "$classPackage.$simpleClassName.$methodName($fileName:$lineNumber)"
 
    // override val formattedString: String get() = ""
@@ -75,19 +74,9 @@ data class StackFrameMeta(
             .replace('_', ' ')
             .replace('$', '.')
 
-    fun output() {
 
-        val outputString= buildString {
-            appendLine("Simple class name: $simpleClassName")
-            appendLine("Method name: $methodName")
-            appendLine("Line number: $lineNumber")
-            appendLine(consoleLink)
-        }
-        println(outputString)
-    }
-
-    override fun toString(): String {
-       return buildString {
+    override val formattedString: String get() {
+        return buildString {
             appendLine("File name: $fileName")
             appendLine("Simple class name: $simpleClassName")
             appendLine("Method name: $methodName")
@@ -95,7 +84,23 @@ data class StackFrameMeta(
             appendLine("Class package: $classPackage")
             appendLine("Is helper method: $isHelperMethod")
             appendLine("Is user code: $isUserCode")
+            appendLine(consoleLink)
         }
+    }
+
+
+//    fun output() {
+//        val outputString = buildString {
+//            appendLine("Simple class name: $simpleClassName")
+//            appendLine("Method name: $methodName")
+//            appendLine("Line number: $lineNumber")
+//            appendLine(consoleLink)
+//        }
+//        println(outputString)
+//    }
+
+    override fun toString(): String {
+        return "File name: $fileName Simple class name: $simpleClassName Method name: $methodName"
     }
 }
 

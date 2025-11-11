@@ -2,14 +2,19 @@ package po.misc.data.helpers
 
 import po.misc.context.CTX
 import po.misc.context.tracable.TraceableContext
+import po.misc.data.Identify
+import po.misc.data.OutputBehaviour
 import po.misc.data.PrettyPrint
+import po.misc.data.Timestamp
 import po.misc.data.strings.StringFormatter
 import po.misc.data.strings.stringify
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
+import po.misc.debugging.ClassResolver
 import po.misc.exceptions.trackable.TrackableException
 import po.misc.exceptions.stack_trace.ExceptionTrace
 import po.misc.exceptions.throwableToText
+import po.misc.time.TimeHelper
 import po.misc.types.helpers.KClassParam
 import po.misc.types.helpers.toKeyParams
 import kotlin.collections.forEach
@@ -29,7 +34,43 @@ sealed interface DebugProvider{
 object IdentifyIt :DebugProvider
 
 
-fun Any.output(){
+class OutputHelper<T>(
+    val receiver: T,
+    val receiverClosure: OutputHelper<T>.(T)-> Unit
+): TimeHelper, ClassResolver{
+
+    init {
+        receiverClosure.invoke(this, receiver)
+    }
+
+}
+
+internal fun Any.outputInternal(
+    colour: Colour? = null
+){
+    val formated = stringify(colour)
+    formated.output()
+}
+
+
+fun Any.output(
+    onReceiver: OutputBehaviour? = null
+){
+    onReceiver?.let {behaviour->
+        OutputHelper(this){receiver->
+            when(behaviour){
+                is Identify -> {
+                    nowLocalDateTime().outputInternal()
+                    val string = ClassResolver.classInfo(receiver).toString()
+                    println(string)
+                }
+                is Timestamp -> {
+                    nowLocalDateTime().outputInternal()
+                }
+            }
+        }
+    }
+
     println(StringFormatter.formatKnownTypes(this))
 }
 
@@ -44,12 +85,43 @@ fun Any.output(
     formated.output()
 }
 
-fun Any.output(
+
+
+
+fun <T> T.output(
     prefix: String,
     colour: Colour? = null,
-){
+):T {
     stringify(prefix = prefix, colour = colour).output()
+    return this
 }
+
+fun <T> T.output(
+    onReceiver: OutputBehaviour,
+    prefix: String = ""
+): T {
+   return if(this != null){
+       println(prefix)
+       OutputHelper(this){
+            when(onReceiver){
+                is Identify -> {
+                    nowLocalDateTime().outputInternal()
+                    val string = ClassResolver.classInfo(it).toString()
+                    println(string)
+                }
+                is Timestamp -> {
+                    nowLocalDateTime().outputInternal()
+                }
+            }
+        }
+        this
+    }else{
+        println("$prefix Null")
+        this
+    }
+}
+
+
 
 fun Any.output(
     prefix: String,

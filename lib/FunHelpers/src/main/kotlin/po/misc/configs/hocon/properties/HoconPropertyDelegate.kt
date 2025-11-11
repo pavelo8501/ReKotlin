@@ -9,8 +9,10 @@ import po.misc.configs.hocon.models.HoconPrimitives
 import po.misc.context.component.Component
 import po.misc.context.component.ComponentID
 import po.misc.context.component.componentID
+import po.misc.data.Identify
 import po.misc.data.helpers.output
 import po.misc.data.logging.Verbosity
+import po.misc.data.styles.Colour
 import po.misc.exceptions.managedException
 import po.misc.types.getOrThrow
 import po.misc.types.token.TypeToken
@@ -58,27 +60,32 @@ class HoconProperty<T: HoconResolvable<T>, V>(
 class HoconTransformProperty<T: HoconResolvable<T>, V: Any, R>(
     receiver:  T,
     entry: HoconEntry<T, V>,
-    val hoconPrimitive: HoconPrimitives<V>,
     val transformLambda: (V)->R
-): HoconDelegateBase<T, V, R>(receiver, entry,  hoconPrimitive.typeToken){
+): HoconDelegateBase<T, V, R>(receiver, entry,  entry.hoconPrimitive.typeToken) {
 
     override val componentID: ComponentID = entry.componentID
 
-    private val valueRequest: V  get() = value.getOrThrow {
-        val msg = "value accessed before initialization. ${componentID.componentName}"
-        managedException(msg)
+    private var _resultR: R? = null
+        set(value) {
+            if (value != field) {
+                field = value
+            }
+        }
+
+    val transformedResult: R by lazy {
+        _resultR.getOrThrow(this) {
+            managedException("Lazy R tries to construct before init.")
+        }
     }
 
-    private var resultBacking: R? = null
-    val result: R  get() =  resultBacking?:transformLambda(valueRequest)
-
     override fun getValue(thisRef: T, property: KProperty<*>): R {
-        resultBacking ?:run {
-            val result = transformLambda.invoke(value)
-            resultBacking = result
-            result
+        return if (_resultR != null) {
+            transformedResult
+        } else {
+            val transformed = transformLambda.invoke(value)
+            _resultR = transformed
+            transformed
         }
-       return  transformLambda.invoke(value)
     }
 }
 

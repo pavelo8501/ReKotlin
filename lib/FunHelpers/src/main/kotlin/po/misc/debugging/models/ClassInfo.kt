@@ -4,6 +4,7 @@ import po.misc.data.PrettyPrint
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
+import po.misc.types.helpers.simpleOrAnon
 import po.misc.types.token.TypeToken
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
@@ -14,7 +15,6 @@ data class GenericInfo(
     val kType: KType,
     val classInfo: ClassInfo
 ): PrettyPrint{
-
 
     private val classDisplayName: String  get() {
        return if(kType.isMarkedNullable){
@@ -29,12 +29,19 @@ data class GenericInfo(
 }
 
 data class ClassInfo(
-    internal val kClass: KClass<*>,
     val fromInstance: Boolean,
-    val simpleName : String,
-    val qualifiedName: String,
     val hashCode: Int,
+    internal val kClass: KClass<*>,
 ): PrettyPrint{
+
+    var simpleName : String = kClass.simpleOrAnon
+    var qualifiedName: String = kClass.qualifiedName?:"Null"
+
+
+    constructor(fromInstance: Boolean): this(fromInstance,  0, Unit::class){
+        simpleName = "null"
+        qualifiedName = "Null"
+    }
 
     internal val genericInfoBacking = mutableListOf<GenericInfo>()
 
@@ -51,5 +58,12 @@ data class ClassInfo(
        val info = GenericInfo(parameterName, typeToken.kType, ClassResolver.classInfo(typeToken.kClass))
         genericInfoBacking.add(info)
         return info
+    }
+
+    override fun toString(): String {
+        return buildString {
+            appendLine("Qualified: $qualifiedName")
+            appendLine("Hash Code: $hashCode")
+        }
     }
 }

@@ -1,9 +1,9 @@
 package po.misc.data.logging.procedural
 
-import po.misc.collections.asList
 import po.misc.context.component.Component
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.logging.StructuredLoggable
+import po.misc.functions.LambdaType
 
 
 /**
@@ -76,13 +76,50 @@ class ProceduralFlow<H: Component, LR: StructuredLoggable>(
             blockResult as R
         }
     }
-
-
    inline fun <reified T: TraceableContext, R: Any?> proceduralStep(
         stepName: String,
         parameter: T,
        noinline block: H.(T)->R
     ): R = proceduralStep(stepName, StepTolerance.STRICT, parameter =  parameter, block =  block)
+
+
+    suspend fun <T: TraceableContext, R: Any?> proceduralStep(
+        suspended: LambdaType.Suspended,
+        stepName: String,
+        vararg tolerance : StepTolerance,
+        parameter: T,
+        block: suspend H.(T)->R
+    ):R{
+        var inBlockThrowable : Throwable? = null
+        val tempSolutionForBadge = "[SYNC]"
+        val record = ProceduralEntry(stepName, tempSolutionForBadge){
+            maxLineReg
+        }
+        submitEntry(record)
+        val blockResult =  try {
+            block.invoke(host, parameter)
+        }catch (th: Throwable){
+            inBlockThrowable = th
+            null
+        }
+
+        val entryResult = ProceduralEntry.toEntryResult(blockResult, tolerance.toList())
+        record.provideResult(entryResult)
+        maxLineReg = record.stepBadge.count() + record.stepName.count()
+        return  inBlockThrowable?.let {
+            throw  it
+        }?:run {
+            @Suppress("UNCHECKED_CAST")
+            blockResult as R
+        }
+    }
+
+    suspend inline fun <reified T: TraceableContext, R: Any?> proceduralStep(
+        suspending: LambdaType.Suspended,
+        stepName: String,
+        parameter: T,
+        noinline block: suspend H.(T)->R
+    ): R = proceduralStep(suspending, stepName, StepTolerance.STRICT, parameter =  parameter, block =  block)
 
 
 
@@ -119,5 +156,42 @@ class ProceduralFlow<H: Component, LR: StructuredLoggable>(
         stepName: String,
         block: H.()->R
     ):R = proceduralStep(stepName, StepTolerance.STRICT, block =  block)
+
+
+    suspend fun <R: Any?> proceduralStep(
+        suspending: LambdaType.Suspended,
+        stepName: String,
+        vararg tolerance : StepTolerance,
+        block: suspend H.()->R
+    ):R {
+        var inBlockThrowable : Throwable? = null
+        val tempSolutionForBadge = "[SYNC]"
+        val record = ProceduralEntry(stepName, tempSolutionForBadge){
+            maxLineReg
+        }
+        submitEntry(record)
+        val blockResult =  try {
+            block.invoke(host)
+        }catch (th: Throwable){
+            inBlockThrowable = th
+            null
+        }
+        val entryResult = ProceduralEntry.toEntryResult(blockResult, tolerance.toList())
+        record.provideResult(entryResult)
+        maxLineReg = record.stepBadge.count() + record.stepName.count()
+
+        return  inBlockThrowable?.let {
+            throw  it
+        }?:run {
+            @Suppress("UNCHECKED_CAST")
+            blockResult as R
+        }
+    }
+
+   suspend fun <R: Any?> proceduralStep(
+        suspending: LambdaType.Suspended,
+        stepName: String,
+        block: suspend H.()->R
+    ):R = proceduralStep(suspending, stepName, StepTolerance.STRICT, block =  block)
 
 }

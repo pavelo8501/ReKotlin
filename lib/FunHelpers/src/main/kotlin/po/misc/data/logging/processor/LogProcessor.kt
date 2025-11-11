@@ -10,6 +10,7 @@ import po.misc.data.logging.procedural.ProceduralEntry
 import po.misc.data.logging.procedural.ProceduralFlow
 import po.misc.data.logging.procedural.ProceduralRecord
 import po.misc.data.processors.LoggerContext
+import po.misc.functions.LambdaType
 import po.misc.types.token.TypeToken
 import kotlin.reflect.full.isSubclassOf
 
@@ -66,6 +67,25 @@ class LogProcessor <H: Component, LR: Loggable>(
             host.warn(abnormalSubject, "Downcast of record<PR:ProceduralEntryReady> to ${typeToken.typeName} is impossible. Record can not be logged")
         }
         return result
+    }
+
+   suspend fun <PR: StructuredLoggable, R> logScope(
+        suspending: LambdaType.Suspended,
+        record: PR,
+        block: suspend ProceduralFlow<H, PR>.()-> R
+    ):R{
+       val flow = ProceduralFlow(host, record.subject, record)
+       val result = block.invoke(flow)
+       @Suppress("Unchecked_Cast")
+       if(record::class.isSubclassOf(typeToken.kClass)){
+           if(record is ProceduralRecord){
+               record.finalizeRecord()
+           }
+           logData(record as LR)
+       }else{
+           host.warn(abnormalSubject, "Downcast of record<PR:ProceduralEntryReady> to ${typeToken.typeName} is impossible. Record can not be logged")
+       }
+       return result
     }
 
     fun <SL, R> logScope(

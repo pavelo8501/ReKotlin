@@ -1,57 +1,65 @@
 package po.misc.callbacks.event
 
+import po.misc.callbacks.CallableEventBase
 import po.misc.callbacks.common.EventHost
 import po.misc.callbacks.common.EventLogRecord
-import po.misc.callbacks.common.ListenerResult
 import po.misc.callbacks.validator.ReactiveValidator
-import po.misc.collections.lambda_map.CallableWrapper
-import po.misc.collections.lambda_map.LambdaMap
 import po.misc.collections.lambda_map.toCallable
 import po.misc.context.component.Component
 import po.misc.context.component.ComponentID
 import po.misc.context.component.componentID
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.logging.LogProvider
-import po.misc.data.logging.NotificationTopic
 import po.misc.data.logging.Verbosity
 import po.misc.data.logging.processor.logProcessor
-import po.misc.debugging.ClassResolver
-import po.misc.exceptions.handling.Suspended
-import po.misc.types.helpers.simpleOrAnon
+import po.misc.functions.LambdaOptions
+import po.misc.functions.LambdaType
+import po.misc.functions.SuspendedOptions
 import po.misc.types.token.TypeToken
 
-sealed interface HostedEventBuilder<H : EventHost, T: Any, R: Any> {
-    private val thisAsEvent  get() = this as HostedEvent<H, T, R>
+
+
+sealed interface HostedEventBuilder<H : EventHost, T: Any, R> {
+    private val event  get() = this as HostedEvent<H, T, R>
 
     fun onEvent(callback: H.(T) -> R)
     fun onEvent(listener: TraceableContext, callback: H.(T) -> R)
-    fun onEvent(suspended: Suspended, callback: suspend H.(T) -> R)
-    fun onEvent(listener: TraceableContext, suspended: Suspended, callback: suspend H.(T) -> R)
+    fun onEvent(listener: TraceableContext, options: LambdaOptions, callback: H.(T) -> R)
+
+    fun onEvent(suspended: LambdaType.Suspended, callback: suspend H.(T) -> R)
+    fun onEvent(listener: TraceableContext, suspended: LambdaType.Suspended, callback: suspend H.(T) -> R)
+    fun onEvent(listener: TraceableContext, options: SuspendedOptions, callback: suspend H.(T) -> R)
 
     fun withValidation(predicate: (T)-> Boolean):ReactiveValidator<T>{
-        return with(thisAsEvent){
+        return with(event){
             registerValidator(ReactiveValidator(predicate))
         }
     }
 }
 
-class HostedEvent<H: EventHost, T : Any, R: Any>(
+
+/**
+ * A hosted event that manages event listeners and handles event triggering with validation support.
+ *
+ * [HostedEvent] provides a robust event system that:
+ * - Supports both regular and suspending event handlers
+ * - Includes validation for event parameters
+ * - Tracks listeners through [TraceableContext]
+ * - Provides comprehensive logging capabilities
+ * - Supports method chaining through [HostedEventBuilder] interface
+ *
+ * @param H The type of the event host that will receive events
+ * @param T The type of the event parameter passed to listeners
+ * @param R The return type of the event handlers
+ * @property event Returns true if there are any active (non-suspended) event listeners
+ * @property eventSuspended Returns true if there are any suspended event listeners
+ *
+ */
+class HostedEvent<H: EventHost, T : Any, R>(
     internal val host: H,
-    val paramType: TypeToken<T>,
-    val resultType: TypeToken<R>
-): HostedEventBuilder<H, T, R>, Component, LogProvider<EventLogRecord> {
-
-    private val messageReg : (String, TraceableContext)-> String = {callbackType, context->
-        if(context === this){
-            "$callbackType initialized"
-        }else{
-            "$callbackType initialized for ${ClassResolver.instanceName(context)}"
-        }
-    }
-
-    internal var validator: ReactiveValidator<T>? = null
-
-    internal val listeners: LambdaMap<T, R> = LambdaMap()
+    paramType: TypeToken<T>,
+    resultType: TypeToken<R>
+): CallableEventBase<T, R>(),  HostedEventBuilder<H, T, R>, LogProvider<EventLogRecord> {
 
     override var componentID: ComponentID = componentID("HostedEvent", Verbosity.Warnings)
         .addParamInfo("T",paramType)
@@ -59,6 +67,8 @@ class HostedEvent<H: EventHost, T : Any, R: Any>(
 
     internal val processor = logProcessor()
 
+    val event : Boolean get() = listeners.values.any { !it.isSuspended }
+    val eventSuspended: Boolean get() =  listeners.values.any { it.isSuspended }
 
     init {
         listeners.onKeyOverwritten = {
@@ -66,116 +76,74 @@ class HostedEvent<H: EventHost, T : Any, R: Any>(
         }
     }
 
-    val event : Boolean get() = listeners.values.isNotEmpty() &&  listeners.values.any {
-        it.suspended == null
+    /**
+     * Registers a regular event listener with specific options.
+     *
+     * @param listener The traceable context that will own this listener
+     * @param options Configuration options for the listener behavior
+     * @param callback The event handler function that will be called when the event is triggered
+     *
+     * @see LambdaOptions
+     */
+    override fun onEvent(
+        listener: TraceableContext,
+        options: LambdaOptions,
+        callback: H.(T) -> R
+    ){
+        debug(subjectListen, messageReg("Lambda", listener))
+        listeners[listener] = callback.toCallable(host, options)
     }
 
-    val eventSuspended: Boolean get() = listeners.values.isNotEmpty() &&  listeners.values.any {
-            it.suspended == Suspended
+    /**
+     * Registers a regular event listener with default listening options.
+     *
+     * @param listener The traceable context that will own this listener
+     * @param callback The event handler function
+     */
+    override fun onEvent(listener: TraceableContext, callback: H.(T) -> R): Unit = onEvent(listener, LambdaOptions.Listen, callback)
+
+    /**
+     * Registers a regular event listener owned by this event instance.
+     *
+     * @param callback The event handler function
+     */
+    override fun onEvent(callback: H.(T) -> R): Unit = onEvent(this, LambdaOptions.Listen, callback)
+
+    /**
+     * Registers a suspending event listener with specific options.
+     *
+     * @param listener The traceable context that will own this listener
+     * @param options Configuration options for the suspending listener
+     * @param callback The suspending event handler function
+     *
+     * @see SuspendedOptions
+     */
+    override fun onEvent(
+        listener: TraceableContext,
+        options: SuspendedOptions,
+        callback: suspend H.(T) -> R
+    ){
+        debug(subjectListen, messageReg("Suspending lambda", listener))
+        listeners[listener] = host.toCallable(options, callback)
     }
 
-    fun registerValidator(validator: ReactiveValidator<T>): ReactiveValidator<T>{
-        this.validator = validator
-        return validator
-    }
+    /**
+     * Registers a suspending event listener with default listening options.
+     *
+     * @param listener The traceable context that will own this listener
+     * @param suspended Marker parameter to indicate suspending function type
+     * @param callback The suspending event handler function
+     */
+    override fun onEvent(listener: TraceableContext, suspended: LambdaType.Suspended, callback: suspend H.(T) -> R): Unit =
+        onEvent(listener, SuspendedOptions.Listen, callback)
 
-    override fun onEvent(callback: H.(T) -> R){
-        notify(NotificationTopic.Debug, subjectReg, messageReg("Lambda", this))
-        listeners[this] = callback.toCallable(host)
-    }
-    override fun onEvent(listener: TraceableContext, callback: H.(T) -> R) {
-        notify(NotificationTopic.Debug, subjectReg, messageReg("Lambda", listener))
-        listeners[listener] = callback.toCallable(host)
-    }
+    /**
+     * Registers a suspending event listener owned by this event instance.
+     *
+     * @param suspended Marker parameter to indicate suspending function type
+     * @param callback The suspending event handler function
+     */
+    override fun onEvent(suspended: LambdaType.Suspended, callback: suspend H.(T) -> R): Unit =
+        onEvent(this, SuspendedOptions.Listen, callback)
 
-    override fun onEvent(suspended: Suspended, callback: suspend H.(T) -> R) {
-        notify(NotificationTopic.Debug, subjectReg, messageReg("Suspending lambda", this))
-        listeners[this] = host.toCallable(callback)
-    }
-    override fun onEvent(listener: TraceableContext, suspended: Suspended, callback: suspend H.(T) -> R) {
-        notify(NotificationTopic.Debug, subjectReg, messageReg("Suspending lambda", listener))
-        listeners[listener] = host.toCallable(callback)
-    }
-
-    fun trigger(value: T): List<ListenerResult<R>> {
-        return listeners.map { (listener, callable) ->
-            val result = callable.invoke(value)
-            debug(subjectInvoke, messageInvoke(listener))
-            ListenerResult(listener, result)
-        }
-    }
-    fun trigger(forListener: TraceableContext, value: T): R? {
-        val result = listeners[forListener]?.invoke(value)
-        debug(subjectInvoke, messageInvoke(forListener))
-        return result
-    }
-    suspend fun trigger(value: T, suspended: Suspended): List<ListenerResult<R>> {
-        return listeners.map { (listener, callable) ->
-            val result = callable.invoke(value, suspended)
-            debug(subjectInvoke, messageInvoke(listener))
-            ListenerResult(listener, result)
-        }
-    }
-    suspend fun trigger(forListener: TraceableContext, value: T, suspended: Suspended): R? {
-        val result = listeners[forListener]?.invoke(value, suspended)
-        debug(subjectInvoke, messageInvoke(forListener))
-        return result
-    }
-
-    fun triggerValidating(value: T):List<ListenerResult<R>>{
-        val activeValidator = validator
-        if(activeValidator != null){
-            if(activeValidator.validate(value)){
-               return trigger(value)
-            }
-        }
-        return emptyList()
-    }
-    fun triggerValidating(forListener: TraceableContext, value: T):R?{
-        val activeValidator = validator
-        if(activeValidator != null){
-            if(activeValidator.validate(value)){
-                return trigger(forListener, value)
-            }
-        }
-        return null
-    }
-    suspend fun triggerValidating(value: T, suspended: Suspended):List<ListenerResult<R>>{
-        val activeValidator = validator
-        if(activeValidator != null){
-            if(activeValidator.validate(value, suspended)){
-                return trigger(value, suspended)
-            }
-        }
-        return emptyList()
-    }
-    suspend fun triggerValidating(forListener: TraceableContext, value: T, suspended: Suspended):R?{
-        val activeValidator = validator
-        if(activeValidator != null){
-            if(activeValidator.validate(value, suspended)){
-                return trigger(forListener, value, suspended)
-            }
-        }
-        return null
-    }
-
-
-    companion object{
-
-        private val subjectReg : String = "Event initialized"
-        private val subjectKey = "Key overwritten"
-        private val subjectInvoke : String = "Lambda Invoked"
-        private val subjectValidation : String = "Validating"
-
-
-        private val validationError: (String) -> String = { "Validation failed. Reason: $it" }
-
-        private val messageInvoke: (Any) -> String = {
-            "$subjectInvoke for Class: ${it::class.simpleOrAnon} with HashCode: ${it.hashCode()}"
-        }
-
-        private val messageKey: (Any) -> String = {
-            "$subjectKey for Class: ${it::class.simpleOrAnon} with HashCode:  ${it.hashCode()}"
-        }
-    }
 }

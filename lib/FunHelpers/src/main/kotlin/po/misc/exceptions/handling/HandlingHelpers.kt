@@ -6,6 +6,7 @@ import po.misc.coroutines.coroutineInfo
 import po.misc.data.logging.ContextAware
 import po.misc.exceptions.ExceptionLocator
 import po.misc.exceptions.trackable.TrackableException
+import po.misc.functions.LambdaType
 
 
 inline fun <reified TH: Throwable> ContextAware.registerHandler(
@@ -13,9 +14,9 @@ inline fun <reified TH: Throwable> ContextAware.registerHandler(
 ): Unit = ExceptionLocator.throwableRegistry.registerNoReturn<TH>(block)
 
 inline fun <reified TH: Throwable> ContextAware.registerHandler(
-    suspendable:Suspended,
+    suspended:LambdaType.Suspended,
     noinline block: suspend (TH)-> Nothing
-): Unit = ExceptionLocator.throwableRegistry.registerNoReturn<TH>(suspendable, block)
+): Unit = ExceptionLocator.throwableRegistry.registerNoReturn<TH>(suspended, block)
 
 
 inline fun <R: Any> TraceableContext.delegateIfThrow(block:()-> R):R{
@@ -27,7 +28,7 @@ inline fun <R: Any> TraceableContext.delegateIfThrow(block:()-> R):R{
     }
 }
 
-suspend fun <R: Any> TraceableContext.delegateIfThrow(suspended:Suspended, block: suspend ()-> R):R{
+suspend fun <R: Any> TraceableContext.delegateIfThrow(suspended: LambdaType.Suspended, block: suspend ()-> R):R{
     try {
         return block()
     }catch (throwable: Throwable){

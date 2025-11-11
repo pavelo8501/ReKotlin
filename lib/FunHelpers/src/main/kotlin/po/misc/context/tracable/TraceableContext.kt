@@ -95,7 +95,7 @@ interface TraceableContext {
      * Emits a warning message.
      */
     fun warn(subject: String, text: String): Unit {
-        notify(NotificationTopic.Info, subject, text)
+        notify(NotificationTopic.Warning, subject, text)
     }
 
     /**

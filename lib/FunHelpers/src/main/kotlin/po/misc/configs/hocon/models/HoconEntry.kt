@@ -7,6 +7,7 @@ import po.misc.configs.hocon.HoconResolvable
 import po.misc.configs.hocon.HoconResolver
 import po.misc.configs.hocon.extensions.applyConfig
 import po.misc.configs.hocon.extensions.parseListValue
+import po.misc.configs.hocon.extensions.parseNumericValue
 import po.misc.configs.hocon.extensions.parseValue
 import po.misc.context.component.Component
 import po.misc.context.component.ComponentID
@@ -19,6 +20,7 @@ import po.misc.functions.Nullable
 import po.misc.types.safeBaseCast
 import po.misc.types.token.TypeToken
 import kotlin.reflect.KProperty
+import kotlin.reflect.full.isSubclassOf
 
 
 sealed class HoconEntryBase<T: HoconResolvable<T>, V>(
@@ -98,7 +100,11 @@ sealed class HoconEntryBase<T: HoconResolvable<T>, V>(
                 warn(subjectParsing, wrongTypeError(valueType))
                 throw managedException(wrongTypeError(valueType))
             }
-            val parsedValue =  parseValue(rawValue)
+            val parsedValue =  if(valueTypeToken.kClass.isSubclassOf(Number::class)){
+                parseNumericValue(config)
+            }else{
+                parseValue(rawValue)
+            }
             registerResult(parsedValue)
         }else{
             warn(subjectParsing, missingValueError)
@@ -119,11 +125,12 @@ sealed class HoconEntryBase<T: HoconResolvable<T>, V>(
             null
         }
     }
+
     fun provideValueCheck(event: HostedEvent<*, *, Unit>){
         event.safeBaseCast<HostedEvent<*, V & Any, Unit>>()?.let {
             val thisValue = resultBacking
             if(thisValue != null){
-               it.triggerValidating(thisValue)
+               it.trigger(thisValue)
             }else{
                 null
             }

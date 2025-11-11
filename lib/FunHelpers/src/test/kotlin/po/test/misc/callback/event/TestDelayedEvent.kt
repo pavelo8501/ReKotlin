@@ -14,6 +14,7 @@ import po.misc.data.helpers.output
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.types.token.TokenFactory
+import po.misc.types.token.tokenOf
 import po.misc.types.token.typeToken
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -36,7 +37,7 @@ class TestDelayedEvent: EventHost, TokenFactory {
     fun `Starting event with no ticks`(){
 
         var dataTriggered: Any? = null
-        val event = DelayedEvent(this@TestDelayedEvent, typeToken<SomeData>() )
+        val event = DelayedEvent(this@TestDelayedEvent, tokenOf<SomeData>() )
         event.onTimer {
             it.output(Colour.Green)
             dataTriggered = it
@@ -53,7 +54,7 @@ class TestDelayedEvent: EventHost, TokenFactory {
     fun `Starting event with no ticks async`() = runTest {
 
         var dataTriggered: Any? = null
-        val event = DelayedEvent(this@TestDelayedEvent, typeToken<SomeData>(), this@runTest)
+        val event = DelayedEvent(this@TestDelayedEvent, tokenOf<SomeData>(), this@runTest)
         event.onTimer {
             it.output(Colour.Green)
             dataTriggered = it
@@ -69,7 +70,7 @@ class TestDelayedEvent: EventHost, TokenFactory {
 
         var dataTriggered: Any? = null
         val tickTriggers = mutableListOf<SomeData>()
-        val event = DelayedEvent(this@TestDelayedEvent, typeToken<SomeData>(), this@runTest)
+        val event = DelayedEvent(this@TestDelayedEvent, tokenOf<SomeData>(), this@runTest)
         event.onTimer {
             it.output(Colour.Green)
             dataTriggered = it

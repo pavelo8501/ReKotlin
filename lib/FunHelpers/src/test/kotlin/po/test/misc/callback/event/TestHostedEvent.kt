@@ -7,7 +7,6 @@ import po.misc.callbacks.common.EventHost
 import po.misc.callbacks.event.HostedEvent
 import po.misc.callbacks.event.event
 import po.misc.callbacks.event.eventOf
-import po.misc.callbacks.event.infoScope
 import po.misc.callbacks.event.listen
 import po.misc.context.tracable.TraceableContext
 import po.misc.functions.NoResult
@@ -87,25 +86,6 @@ class TestHostedEvent: EventHost {
         listeners.forEach {listener->
             assertIs<DataH>(listener.notified)
         }
-    }
-
-    @Test
-    fun `HostedEvent attached functions and other perks work as expected`(){
-        val click = eventOf<TestHostedEvent, DataH>(NoResult, "click")
-        click.infoScope("HostedEvent attached functions and other perks work as expected"){
-            proceduralStep("Lambda initialized"){
-                listen(click){
-                    triggered = it
-                }
-            }
-            proceduralStep("Lambda Invocation"){
-                click.trigger(DataH())
-            }
-            proceduralStep("Calculating result"){
-                assertNotNull(triggered)
-            }
-        }
-        assertNotNull(triggered, "Control assertion")
     }
 
     @Test

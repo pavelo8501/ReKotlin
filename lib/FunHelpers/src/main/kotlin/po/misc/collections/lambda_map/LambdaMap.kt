@@ -5,8 +5,8 @@ import po.misc.data.helpers.output
 import po.misc.data.styles.Colour
 
 
-internal class LambdaMap<T: Any, R>(): AbstractMutableMap<TraceableContext, CallableWrapper<T, R>>()
-{
+internal class LambdaMap<T: Any, R>(): AbstractMutableMap<TraceableContext, CallableWrapper<T, R>>() {
+
     private val mutableMapBacking = mutableMapOf<TraceableContext, CallableWrapper<T, R>>()
     var onKeyOverwritten: ((Any) -> Unit)? = null
 
@@ -18,7 +18,7 @@ internal class LambdaMap<T: Any, R>(): AbstractMutableMap<TraceableContext, Call
                 callback.invoke(key)
             }
         }
-        return  mutableMapBacking.put(key, value)
+        return mutableMapBacking.put(key, value)
     }
 
     fun <T: Any, R> getCallables(): List<CallableWrapper<T, R>>{

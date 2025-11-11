@@ -27,24 +27,23 @@ interface ClassResolver {
             }
         }
 
-        fun classInfo(receiver: Any): ClassInfo {
-            val kClass = receiver::class
-            return ClassInfo(
-                kClass,
-                true,
-                kClass.simpleOrAnon,
-                kClass.qualifiedOrAnon,
-                hashCode()
-            )
+        fun classInfo(receiver: Any?): ClassInfo {
+            return if(receiver != null){
+                ClassInfo(
+                    fromInstance =  true,
+                    hashCode =  hashCode(),
+                    kClass =  receiver::class,
+                )
+            }else{
+                ClassInfo(fromInstance =  true)
+            }
         }
 
         fun  classInfo(kClass: KClass<*>): ClassInfo {
             return ClassInfo(
-                kClass,
-                false,
-                kClass.simpleOrAnon,
-                kClass.qualifiedOrAnon,
-                hashCode(),
+                fromInstance = false,
+                hashCode = hashCode(),
+                kClass = kClass
             )
         }
     }

@@ -34,7 +34,7 @@ sealed class StringFormatter(var string: String){
     }
 
     companion object{
-        fun formatKnownTypes(target: Any): String {
+        fun formatKnownTypes(target: Any?): String {
             return when(target){
                 is PrettyPrint -> {
                     target.formattedString
@@ -103,7 +103,7 @@ internal inline fun stringifyInternal(
 
 @PublishedApi
 internal fun stringifyInternal(
-    receiver: Any,
+    receiver: Any?,
     prefix: String?,
     colour: Colour?
 ):SimpleFormatter {
@@ -118,7 +118,7 @@ internal fun stringifyInternal(
     } ?: SimpleFormatter(formated)
 }
 
-fun Any.stringify(
+fun Any?.stringify(
     prefix: String,
     colour: Colour? = null
 ):SimpleFormatter {
