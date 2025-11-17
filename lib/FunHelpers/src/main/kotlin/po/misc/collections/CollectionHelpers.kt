@@ -1,5 +1,8 @@
 package po.misc.collections
 
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
+
 
 fun <T: Any> List<T>.exactlyOneOrThrow(exceptionProvider:()-> Throwable):T{
     if(size != 1){
@@ -17,6 +20,7 @@ fun <T: Any> T?.asList(): List<T>{
         emptyList<T>()
     }
 }
+
 
 
 

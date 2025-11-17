@@ -1,8 +1,6 @@
 package po.misc.types.helpers
 
-import po.misc.data.helpers.output
 import po.misc.types.safeCast
-import po.misc.types.token.TokenHolder
 import po.misc.types.token.Tokenized
 import po.misc.types.token.TypeToken
 import kotlin.collections.filterIsInstance
@@ -60,6 +58,7 @@ internal fun <T: Tokenized<*>> tokenizedFiltrator(
     return typeFiltered
 }
 
+
 inline fun <reified T: Tokenized<*>> List<Tokenized<*>>.filterTokenized(
     typeToken: TypeToken<*>
 ): List<T>{
@@ -67,10 +66,32 @@ inline fun <reified T: Tokenized<*>> List<Tokenized<*>>.filterTokenized(
 }
 
 
-inline fun <reified T: Tokenized<TT>, TT: Any> Collection<Tokenized<*>>.filterTokenized(
+inline fun <reified T: Tokenized<*>, TT: Any> Collection<Tokenized<*>>.filterTokenHolder(
     paramClass: KClass<TT>
 ): List<T>{
 
+    val baseClass = T::class
+    val filtered = filterIsInstance<T>()
+    val result = mutableListOf<T>()
+
+    filtered.forEach {tokenized->
+        if(paramClass in tokenized.typeToken.inlinedParameters){
+            result.add(tokenized)
+        }
+    }
+//    val typeFiltered = filtered.mapNotNull { tokenHolder ->
+//        if(tokenHolder.typeToken.strictEquality(baseClass, paramClass)){
+//            tokenHolder
+//        }else{
+//            null
+//        }
+//    }
+    return result
+}
+
+inline fun <reified T: Tokenized<TT>, TT: Any> Collection<Tokenized<*>>.filterTokenized(
+    paramClass: KClass<TT>
+): List<T>{
     val filtered = filterIsInstance<Tokenized<TT>>()
     val typeFiltered = filtered.mapNotNull {tokenHolder->
         if(tokenHolder.typeToken == paramClass){

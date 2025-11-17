@@ -20,7 +20,7 @@ class LogProcessor <H: Component, T: StructuredLoggable>(
     typeToken: TypeToken<T>,
 ): LogProcessorBase<T>(host, typeToken) {
 
-    val loggerName: String get() = "LogProcessor of ${host.name}"
+    val loggerName: String get() = "LogProcessor of ${host.componentName}"
 
     private val dataProcessSubject = "Data Processing"
     private val impossibleToProcess: (String, String) -> String = { method, reason, ->

@@ -31,13 +31,16 @@ class LogMessage(
     override fun track(context: TraceableContext, methodName: String){
         if(tracker == LogTracker.Disabled){ return }
         val info = ClassResolver.classInfo(context)
-        val name= info.instanceName?:info.simpleName
+        val name= info.formattedClassName
         track(name, methodName, formattedString)
     }
+
+
 
     override fun toString(): String = "${topic.name} message by ${context::class.simpleOrAnon} Text: $text"
 
     companion object {
+
         fun track(contextName: String, methodName: String, loggableHeader : String){
             buildString {
                 appendLine(loggableHeader)

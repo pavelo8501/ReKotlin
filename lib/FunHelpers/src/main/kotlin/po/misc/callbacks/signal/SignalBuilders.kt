@@ -10,11 +10,15 @@ internal fun <T: Any> createSignal(
     typeToken: TypeToken<T>,
     name: String? = null
 ): Signal<T, Unit> {
-    val signal = Signal(typeToken, TypeToken.create<Unit>())
-    if(name != null){
-        signal.setName(name)
+
+   val newSignal = if(name != null){
+        val signal =  Signal(typeToken, TypeToken.create<Unit>())
+        signal.componentID.useName(name)
+        signal
+    }else{
+        Signal(typeToken, TypeToken.create<Unit>())
     }
-    return signal
+    return newSignal
 }
 
 @PublishedApi
@@ -22,7 +26,17 @@ internal fun <T: Any, R> createSignal(
     typeToken: TypeToken<T>,
     resultToken: TypeToken<R>,
     name: String? = null
-): Signal<T, R> = createSignal(typeToken, resultToken, name)
+): Signal<T, R> {
+    val newSignal = if(name != null){
+        val signal =  Signal(typeToken, resultToken)
+        signal.componentID.useName(name)
+        signal
+    }else{
+        Signal(typeToken, resultToken)
+    }
+   return newSignal
+
+}
 
 /**
  * Creates a standalone [Signal] without an owner (unbound event).

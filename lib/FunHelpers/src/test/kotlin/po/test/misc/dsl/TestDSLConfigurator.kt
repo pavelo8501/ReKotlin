@@ -4,101 +4,173 @@ import org.junit.jupiter.api.Test
 import po.misc.collections.asList
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.HasNameValue
+import po.misc.data.helpers.output
 import po.misc.dsl.configurator.ConfigPriority
 import po.misc.dsl.configurator.DSLConfigurator
 import po.misc.dsl.configurator.DSLGroup
-import po.misc.dsl.configurator.configurator
+import po.misc.dsl.configurator.DSLParameterGroup
+import po.misc.dsl.configurator.State
+import po.misc.dsl.configurator.dslConfig
+import po.misc.dsl.configurator.dslConfigForContext
+import po.misc.dsl.configurator.dslConfigFromEnum
+import po.misc.types.token.TypeToken
+import po.misc.types.token.tokenOf
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class TestDSLConfigurator: TraceableContext {
 
     private class Configurable: TraceableContext{
         var modifications : Int = 0
+        val appliedStrings = mutableListOf<String>()
+        var nullHits: Int = 0
+        val configsProcessed = mutableListOf<String>()
+
+        val progress = mutableListOf<Pair<State, String>>()
+
+        fun trackProgress(state: State,  configName: String){
+            progress.add(Pair(state, configName))
+        }
+
+    }
+    val config1 = "config_1"
+    val config2 = "config_2"
+
+    @Test
+    fun `DSLConfigurator build samples`(){
+
+        val nullableParamConfig = "nullable parameter config"
+        val configNoParameter = "parameterless config"
+
+        val configurator = dslConfigFromEnum<Configurable, ConfigPriority>()
+
+        val builderBySpecificClass = dslConfig<Configurable>{
+            buildGroup(tokenOf<String>(), ConfigPriority.Top){
+                addConfigurator(config1){stringParameter->
+                }
+            }
+            buildGroup(ConfigPriority.Default){
+                addConfigurator(configNoParameter){
+                }
+            }
+        }
+
+        val contextualBuilder =  dslConfigForContext {
+            buildGroup<String?>(DSLParameterGroup, ConfigPriority.Top){
+                addConfigurator(nullableParamConfig){stringParameter->
+                }
+            }
+            buildGroup(ConfigPriority.Default){
+                addConfigurator(configNoParameter){
+                }
+            }
+        }
+        assertEquals(2, configurator.dslGroups.size)
+        assertEquals(2, builderBySpecificClass.dslGroups.size)
+        assertEquals(2, contextualBuilder.dslGroups.size)
+        val dslGroup = contextualBuilder.dslGroups.entries.firstOrNull { it.value.priority == ConfigPriority.Top }?.value
+        assertNotNull(dslGroup){group->
+            assertTrue { group.parameterType.isNullable }
+        }
     }
 
     @Test
-    fun `DSLConfigurator usage`(){
+    fun `DSLConfigurator handles nullability`(){
 
-        val config = DSLConfigurator<Configurable>(ConfigPriority.Top, ConfigPriority.Default)
-
-        config.addConfigurator(ConfigPriority.Top){ modifications ++ }
-        config.addConfigurator(ConfigPriority.Default){ modifications ++ }
-
-        assertEquals(1, config.groupSize(ConfigPriority.Top))
-        assertEquals(1, config.groupSize(ConfigPriority.Default))
-
+        val configurator = dslConfig<Configurable> {
+            buildGroup(TypeToken.create<String?>(), ConfigPriority.Top){
+                addConfigurator(config1) {param->
+                    if(param != null){
+                        appliedStrings.add("${ConfigPriority.Top.name}_${config1}_$param")
+                    }
+                }
+                addConfigurator {param->
+                    if(param != null){
+                        appliedStrings.add("${ConfigPriority.Top.name}_Anonymous_$param")
+                    }
+                }
+            }
+            buildGroup<String?>(DSLParameterGroup.Companion, ConfigPriority.Default){
+                addConfigurator(config1){param->
+                    if(param != null){
+                        appliedStrings.add("${ConfigPriority.Default.name}_${config1}_$param")
+                    }else{
+                        nullHits ++
+                    }
+                }
+                addConfigurator(config2) {param->
+                    if(param != null){
+                        appliedStrings.add("${ConfigPriority.Default.name}_${config2}_$param")
+                    }else{
+                        nullHits ++
+                    }
+                }
+            }
+        }
         val configurable = Configurable()
-        config.applyConfig(configurable)
-        assertEquals(2, configurable.modifications)
+        val string1 = "String_1"
+        val string2 : String?  = null
+
+        configurator.applyConfig(configurable, string1, ConfigPriority.Top)
+        configurator.applyConfig(configurable, string2, ConfigPriority.Default)
+        assertEquals(2, configurable.appliedStrings.size)
+        assertEquals(2, configurable.nullHits)
+        val str = configurable.appliedStrings.take(2).joinToString(separator = " ") { it }
+        assertTrue {
+            str.contains(string1) &&
+                    str.contains(ConfigPriority.Top.name) &&
+                        str.contains("Anonymous")
+        }
+        configurable.appliedStrings.clear()
+        configurable.nullHits = 0
+        configurator.applyConfig(configurable, string1)
+        assertEquals(4, configurable.appliedStrings.size)
+        assertEquals(0, configurable.nullHits)
+        val secondString = configurable.appliedStrings.take(2).joinToString(separator = " ") { it }
+        val secondStringTail = configurable.appliedStrings.drop(2).take(2).joinToString(separator = " ") { it }
+        assertEquals(str, secondString)
+        assertTrue { secondStringTail.contains(string1) && secondStringTail.contains(ConfigPriority.Default.name) }
     }
 
     @Test
-    fun `DSLConfigurator initialization by groups`(){
-
-
-        class TopGroup: HasNameValue{
-            override val name: String = "Named"
-            override val value: Int = 1
+    fun `Sequential execution`(){
+        val configurator  = dslConfig<Configurable> {
+            buildGroup(ConfigPriority.Top){
+                onStart{tracker->
+                    val name =  "${tracker.configName}_${tracker.state}"
+                    tracker.receiver.configsProcessed.add(name)
+                    tracker.receiver.trackProgress(tracker.state, tracker.configName)
+                }
+                onComplete {tracker->
+                    val name =  "${tracker.configName}_${tracker.state}"
+                    tracker.receiver.configsProcessed.add(name)
+                    tracker.receiver.trackProgress(tracker.state, tracker.configName)
+                }
+                addConfigurator(config1) {param->
+                   appliedStrings.add("${ConfigPriority.Top.name}_${config1}_$param")
+                }
+            }
+            buildGroup(ConfigPriority.Default){
+                onStart{tracker ->
+                    val name =  "${tracker.configName}_${tracker.state}"
+                    tracker.receiver.configsProcessed.add(name)
+                    tracker.receiver.trackProgress(tracker.state, tracker.configName)
+                }
+                onComplete {tracker ->
+                    val name =  "${tracker.configName}_${tracker.state}"
+                    tracker.receiver.configsProcessed.add(name)
+                    tracker.receiver.trackProgress(tracker.state, tracker.configName)
+                }
+                addConfigurator(config2) { param->
+                    appliedStrings.add("${ConfigPriority.Default.name}_${config1}_$param")
+                }
+            }
         }
-
-        val topGroup = TopGroup()
-        val namedGroup = DSLGroup<Configurable>(topGroup)
-        val config = DSLConfigurator<Configurable>(namedGroup.asList())
-
-        config.addConfigurator(ConfigPriority.Top){ modifications ++ }
+        val string1 = "String_1"
         val configurable = Configurable()
-        config.sequence {group->
-            if(group.priority == topGroup){
-
-                group.applyConfig(configurable)
-            }
-        }
-        assertEquals(1, config.groupSize(ConfigPriority.Top))
-        assertEquals(0, config.groupSize(ConfigPriority.Default))
-        assertEquals(1, configurable.modifications)
-    }
-
-    @Test
-    fun `DSLConfigurator initialization enum`(){
-        val config = DSLConfigurator<Configurable, ConfigPriority>()
-        assertEquals(2, config.prioritized.size)
-
-    }
-
-    @Test
-    fun `DSLParametrized group`(){
-
-        var receivedThroughConfig: Any? = null
-        val config = DSLConfigurator<TestDSLConfigurator>()
-        config.addParametrizedGroup<Int>(ConfigPriority.Top){
-            addConfigurator {parameter->
-                receivedThroughConfig = parameter
-            }
-        }
-        config.applyConfig(this, 300)
-        assertEquals(300, receivedThroughConfig)
-    }
-
-    @Test
-    fun `DSLConfigurator builder`(){
-        val config1Name = "config_1"
-        val config2Name = "config_2"
-        val config: DSLConfigurator<TestDSLConfigurator> = configurator(){
-            addGroup(ConfigPriority.Top){
-                addConfigurator(config1Name) {}
-            }
-            addGroup(ConfigPriority.Default){
-                addConfigurator(config2Name) {}
-            }
-        }
-        assertEquals(2, config.prioritized.size)
-        assertEquals(2, config.size)
-        assertNotNull(config.prioritized.values.firstOrNull()){
-            assertEquals(ConfigPriority.Top, it.priority)
-            assertNotNull(it.configurators.firstOrNull()){config->
-                assertEquals(config1Name, config.lambdaName)
-            }
-        }
+        configurator.applyConfig(configurable, string1)
+        assertEquals(8, configurable.progress.size)
+        configurable.progress.output()
     }
 }

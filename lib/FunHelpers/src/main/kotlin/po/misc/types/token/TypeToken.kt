@@ -8,7 +8,6 @@ import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
-import po.misc.debugging.models.GenericInfo
 import po.misc.types.helpers.simpleOrAnon
 import po.misc.types.helpers.toKeyParams
 import po.misc.types.safeCast
@@ -16,7 +15,6 @@ import kotlin.collections.forEach
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlin.reflect.KTypeParameter
-import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.typeOf
 
 
@@ -163,7 +161,7 @@ class TypeToken<T>  @PublishedApi internal constructor(
         return false
     }
 
-    private fun makeStrictEquality(otherClass: KClass<*>, parameters: List<CompereContainer>): Boolean{
+    private fun makeStrictEquality(otherClass: KClass<*>, parameters: List<Pair<KClass<*>, Boolean?>>): Boolean{
         if (kClass != otherClass){
             warnKClassDifferent(otherClass, "stricterEquality")
             return false
@@ -173,7 +171,7 @@ class TypeToken<T>  @PublishedApi internal constructor(
         }
         for (slot in typeSlots){
             parameters.firstOrNull{  it ==  slot.kClass}?.let {
-                if(it.nullable != null &&  slot.isMarkedNullable != it.nullable){
+                if(it.second != null &&  slot.isMarkedNullable != it.second){
                     return false
                 }
             }?:run {
@@ -210,7 +208,8 @@ class TypeToken<T>  @PublishedApi internal constructor(
      * @param other another [TypeToken] or [KClass] to compare against
      * @return `true` if both type and generic arguments (including nullability, when available) match
      */
-    fun strictEquality(other: KClass<*>, vararg typeParameters:KClass<*>): Boolean = makeStrictEquality(other, typeParameters.toList().map { CompereContainer(it, null) })
+    fun strictEquality(other: KClass<*>, vararg typeParameters:KClass<*>): Boolean =
+        makeStrictEquality(other, typeParameters.toList().map { Pair(it, null) })
 
     /**
      * Performs a strict equality check between this [TypeToken] and another type.
@@ -239,7 +238,7 @@ class TypeToken<T>  @PublishedApi internal constructor(
      * @param other another [TypeToken] or [KClass] to compare against
      * @return `true` if both type and generic arguments (including nullability, when available) match
      */
-    fun strictEquality(other: TypeToken<*>): Boolean = makeStrictEquality(other.kClass, other.typeSlots.map { it.toCompareContainer() })
+    fun strictEquality(other: TypeToken<*>): Boolean = makeStrictEquality(other.kClass, other.typeSlots.map { it.toComparePair() })
 
     /**
      * Compares this [TypeToken] to a given base type [baseClass] and its type arguments,
@@ -262,6 +261,20 @@ class TypeToken<T>  @PublishedApi internal constructor(
      * ```
      */
     fun partialEquality(baseClass: KClass<out T & Any>,  vararg parameter: KClass<*>): Boolean{
+        if(this == baseClass){
+            val testAgainst = parameter.toList()
+            testAgainst.forEach {
+                if(it !in inlinedParameters){
+                    return false
+                }
+            }
+            return true
+        }
+        return false
+    }
+
+
+    fun equality(baseClass: KClass<T & Any>, vararg parameter: KClass<*>): Boolean{
         if(this == baseClass){
             val testAgainst = parameter.toList()
             testAgainst.forEach {

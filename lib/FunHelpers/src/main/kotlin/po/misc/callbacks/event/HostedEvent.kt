@@ -5,6 +5,7 @@ import po.misc.callbacks.common.EventHost
 import po.misc.callbacks.common.EventLogRecord
 import po.misc.callbacks.validator.ReactiveValidator
 import po.misc.collections.lambda_map.toCallable
+import po.misc.context.component.Component
 import po.misc.context.component.ComponentID
 import po.misc.context.component.componentID
 import po.misc.context.tracable.TraceableContext
@@ -76,8 +77,10 @@ sealed interface HostedEventBuilder<H : EventHost, T: Any, R> {
     private val event  get() = this as HostedEvent<H, T, R>
 
     fun eventName(name: String):ComponentID{
-        val id =  ComponentID(ClassResolver.classInfo(event), name = name)
-        id.classInfo.genericInfoBacking.addAll(event.componentID.classInfo.genericInfoBacking)
+
+        val id =  ComponentID(event, verbosity = Verbosity.Info, nameProvider = { name } )
+
+       // id.classInfo.genericInfoBacking.addAll(event.componentID.classInfo.genericInfoBacking)
         event.componentID = id
         return id
     }
@@ -119,7 +122,7 @@ class HostedEvent<H: EventHost, T : Any, R>(
     internal val host: H,
     paramType: TypeToken<T>,
     resultType: TypeToken<R>
-): CallableEventBase<T, R>(),  HostedEventBuilder<H, T, R>, LogProvider<EventLogRecord> {
+): CallableEventBase<T, R>(),  HostedEventBuilder<H, T, R>, LogProvider<EventLogRecord>, Component {
 
     override var componentID: ComponentID =
         componentID("HostedEvent", Verbosity.Warnings).addParamInfo("T", paramType).addParamInfo("R", resultType)

@@ -40,7 +40,6 @@ class TestSignal {
         signal: Signal<Data1, R>
     ):List<Listener>{
         val listeners = mutableListOf<Listener>()
-
         for(i in 1..10){
             val listener = Listener()
             @Suppress("Unchecked_cast")
@@ -107,6 +106,7 @@ class TestSignal {
 
     @Test
     fun `Signal with a multiple event listeners and result`(){
+
         val click = signalOf<Data1, Int>()
         val listeners = recreateListeners(click)
         val data = Data1()
@@ -118,9 +118,12 @@ class TestSignal {
 
     @Test
     fun `Signal with multiple event listeners and single triggered`(){
+
         val click = signalOf<Data1, Int>()
         val listeners = recreateListeners(click)
         val data = Data1()
+
+
         val selectedOne = listeners[5]
         val result = click.trigger(selectedOne, data)
         assertEquals(selectedOne.hash, result)

@@ -43,9 +43,9 @@ import po.misc.exceptions.throwableToText
  */
 interface Component : TraceableContext {
 
-    val componentID: ComponentID get() = ComponentID(ClassResolver.classInfo(this))
+    val componentID: ComponentID get() = ComponentID(this)
 
-    val name: String get() = componentID.componentName
+    val componentName: String get() = componentID.componentName
     
     fun notify(logMessage: LogMessage){
         if(logMessage.topic >= componentID.verbosity.minTopic){
@@ -54,7 +54,6 @@ interface Component : TraceableContext {
     }
 
     override fun notify(loggable: Loggable): Unit = notify(loggable.toLogMessage())
-
 
     fun warn(
         subject: String,

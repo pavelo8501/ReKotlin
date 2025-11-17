@@ -81,10 +81,10 @@ sealed interface SignalBuilder<T: Any, R>{
      * @return the newly assigned [ComponentID]
      */
     fun signalName(name: String):ComponentID{
-        val id =  ComponentID(ClassResolver.classInfo(signal), name = name)
-        id.classInfo.genericInfoBacking.addAll(signal.componentID.classInfo.genericInfoBacking)
-        signal.componentID = id
-        return id
+        val componentID = ComponentID(signal , nameProvider = { name } )
+        componentID.classInfo.genericInfoBacking.addAll(signal.componentID.classInfo.genericInfoBacking)
+        signal.componentID = componentID
+        return componentID
     }
 
     /**
@@ -152,10 +152,12 @@ class Signal<T: Any, R>(
    resultType: TypeToken<R>
 ): CallableEventBase<T, R>(), SignalBuilder<T, R>{
 
-    internal val classInfo: ClassInfo = ClassResolver.classInfo(this)
-    override var componentID: ComponentID = ComponentID(classInfo, name = "Signal").addParamInfo("T", paramType).addParamInfo("R", resultType)
+    override var componentID: ComponentID = ComponentID(this, setName =  "Signal")
+        .addParamInfo("T", paramType)
+            .addParamInfo("R", resultType)
 
     val signal : Boolean get() = listeners.values.any { !it.isSuspended }
+
     val signalSuspended: Boolean get() =  listeners.values.any { it.isSuspended }
 
     init {

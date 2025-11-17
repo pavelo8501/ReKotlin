@@ -15,6 +15,8 @@ interface LambdaWrapper<H, T>: Component  {
     val isSuspended: Boolean
     fun apply(receiver: H, value: T)
 }
+
+
 class LambdaConfigurator<H: Any, T>(
     val parameterType: TypeToken<T>,
     override val options: LambdaOptions = LambdaOptions.Listen,

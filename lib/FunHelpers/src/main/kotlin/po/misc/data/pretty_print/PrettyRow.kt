@@ -62,10 +62,9 @@ class PrettyRow(
      *
      * `values.size > cells.size` → extra values rendered after the row.
      */
-    fun render(values: List<String>): String {
+    fun render(values: List<String>, lastBreakLine: Boolean = true): String {
         val cellCount = formattedCells.size
         val result = StringBuilder()
-
         for (i in 0 until cellCount) {
             if (i >= values.size) break
             result.append(formattedCells[i].render(values[i]))
@@ -80,4 +79,7 @@ class PrettyRow(
         return result.toString()
     }
     fun render(vararg values: String): String = render(values.toList())
+
+    fun render(vararg values: Any): String = render(values.map { it.toString() })
+
 }

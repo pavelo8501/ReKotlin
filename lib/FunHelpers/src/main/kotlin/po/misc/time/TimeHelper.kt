@@ -10,6 +10,18 @@ import kotlin.time.Duration.Companion.milliseconds
 
 interface TimeHelper {
 
+    interface DateTimeFormats{
+        val patten: String
+
+        companion object{
+            const val dateTime = "dd.MM.yyyy / HH:mm:ss"
+        }
+    }
+
+    object DateTimeFormat : DateTimeFormats {
+        override val patten: String = DateTimeFormats.dateTime
+    }
+
     /**
      * Returns the current moment in UTC as an [Instant].
      *
@@ -59,6 +71,32 @@ interface TimeHelper {
         return offsetTime.format(DateTimeFormatter.ofPattern("HH:mm:ss"))
     }
 
+    fun Instant.toLocalZoneTime(
+        hoursOffset: Int = 2
+    ): ZonedDateTime {
+       return atZone(ZoneOffset.ofHours(hoursOffset))
+    }
+
+    fun Instant.toLocalDateTime(
+        format : DateTimeFormats = DateTimeFormat,
+        hoursOffset: Int = 2
+    ): String {
+        return atZone(ZoneOffset.ofHours(hoursOffset)).timeFormatted(format)
+    }
+
+    fun Instant.toLocalTime(
+        hoursOffset: Int = 2
+    ): String {
+        return atZone(ZoneOffset.ofHours(hoursOffset)).format(DateTimeFormatter.ofPattern("HH:mm:ss"))
+    }
+
+    fun  ZonedDateTime.format(pattern : String): String{
+        return format(DateTimeFormatter.ofPattern(pattern))
+    }
+
+    fun  ZonedDateTime.timeFormatted(format : DateTimeFormats): String{
+        return format(DateTimeFormatter.ofPattern(format.patten))
+    }
 
     fun Instant.hoursFormated(hoursOffset: Int): String =  hoursFormated(this.atOffset(ZoneOffset.ofHours(hoursOffset)))
 

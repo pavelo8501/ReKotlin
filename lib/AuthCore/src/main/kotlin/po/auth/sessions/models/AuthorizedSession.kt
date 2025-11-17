@@ -16,6 +16,7 @@ import po.misc.context.asIdentity
 import po.misc.context.asSubIdentity
 import po.misc.data.PrettyPrint
 import po.misc.data.printable.PrintableBase
+import po.misc.data.styles.Colorizer
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.interfaces.Processable
@@ -180,10 +181,10 @@ class AuthorizedSession internal constructor(
             }
         }
         return buildString {
-            appendLine(Colour.colour(Colour.Cyan, "Session: " ) + type)
-            appendLine(Colour.colour(Colour.Cyan, "Session Id: ") + sessionID.colorize(Colour.WhiteBright) )
-            appendLine(Colour.colour(Colour.Cyan, "Identified by IP: ") +identifier.ip.colorize(Colour.WhiteBright ) )
-            appendLine(Colour.colour(Colour.Cyan, "Identified by client: ") + identifier.userAgent.colorize(Colour.WhiteBright) )
+            appendLine(Colorizer.colour("Session: ", Colour.Cyan) + type)
+            appendLine(Colorizer.colour("Session Id: ", Colour.Cyan) + sessionID.colorize(Colour.WhiteBright) )
+            appendLine(Colorizer.colour("Identified by IP: ", Colour.Cyan) +identifier.ip.colorize(Colour.WhiteBright ) )
+            appendLine(Colorizer.colour("Identified by client: ", Colour.Cyan) + identifier.userAgent.colorize(Colour.WhiteBright) )
         }
     }
 

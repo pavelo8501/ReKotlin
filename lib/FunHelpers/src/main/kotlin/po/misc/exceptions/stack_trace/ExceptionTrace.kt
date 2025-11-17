@@ -4,7 +4,11 @@ import po.misc.data.PrettyPrint
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.exceptions.throwableToText
+import java.time.Instant
 import kotlin.reflect.KClass
+import kotlin.text.appendLine
+
+
 
 data class ExceptionTrace(
     val exceptionName: String,
@@ -12,7 +16,17 @@ data class ExceptionTrace(
     val kClass: KClass<*>? = null
 ): PrettyPrint{
 
-    var reliable: Boolean = true
+    constructor(
+        exceptionName: String,
+        stackFrames: List<StackFrameMeta>,
+        reliable: Boolean
+    ):this(exceptionName, stackFrames){
+        isReliable = reliable
+    }
+
+    val created: Instant = Instant.now()
+
+    var isReliable: Boolean = true
         internal set
     var bestPick:StackFrameMeta = stackFrames.first()
     var ctxName: String = ""
@@ -52,55 +66,16 @@ data class ExceptionTrace(
             appendLine(bestPick)
         }
     }
-}
 
-data class StackFrameMeta(
-    val fileName: String,
-    val simpleClassName: String,
-    val methodName: String,
-    val lineNumber: Int,
-    val classPackage: String,
-    val isHelperMethod: Boolean,
-    val isUserCode: Boolean,
-    val stackTraceElement: StackTraceElement? = null
-): PrettyPrint {
-    val consoleLink: String get() = "$classPackage.$simpleClassName.$methodName($fileName:$lineNumber)"
-
-   // override val formattedString: String get() = ""
-
-    val normalizedMethodName: String
-        get() = methodName
-            .replace(Regex("""lambda\$\d+"""), "[lambda]")
-            .replace('_', ' ')
-            .replace('$', '.')
-
-
-    override val formattedString: String get() {
-        return buildString {
-            appendLine("File name: $fileName")
-            appendLine("Simple class name: $simpleClassName")
-            appendLine("Method name: $methodName")
-            appendLine("Line number: $lineNumber")
-            appendLine("Class package: $classPackage")
-            appendLine("Is helper method: $isHelperMethod")
-            appendLine("Is user code: $isUserCode")
-            appendLine(consoleLink)
+    companion object {
+        val harshFilter : (StackFrameMeta)-> Boolean = {frame->
+            frame.isUserCode &&
+            !frame.isHelperMethod &&
+            !frame.isInline &&
+            !frame.isLambda &&
+            !frame.isReflection &&
+            !frame.isThreadEntry &&
+            !frame.isCoroutineInternal
         }
     }
-
-
-//    fun output() {
-//        val outputString = buildString {
-//            appendLine("Simple class name: $simpleClassName")
-//            appendLine("Method name: $methodName")
-//            appendLine("Line number: $lineNumber")
-//            appendLine(consoleLink)
-//        }
-//        println(outputString)
-//    }
-
-    override fun toString(): String {
-        return "File name: $fileName Simple class name: $simpleClassName Method name: $methodName"
-    }
 }
-

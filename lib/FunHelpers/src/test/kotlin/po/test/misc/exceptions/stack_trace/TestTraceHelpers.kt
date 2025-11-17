@@ -1,20 +1,25 @@
 package po.test.misc.exceptions.stack_trace
 
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
+import org.junit.jupiter.api.assertThrows
 import po.misc.context.tracable.TraceableContext
+import po.misc.data.helpers.output
 import po.misc.exceptions.ExceptionPayload
 import po.misc.exceptions.stack_trace.ExceptionTrace
 import po.misc.exceptions.stack_trace.extractTrace
 import po.misc.types.helpers.simpleOrAnon
 import kotlin.reflect.cast
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 
 class TestTraceHelpers : TraceableContext {
 
-    val thiCalssName = this::class.simpleOrAnon
+   private  val thiClassName = this::class.simpleOrAnon
 
     internal class TestHelpersSubClass(){
         var nullable: Int? = null
@@ -32,7 +37,6 @@ class TestTraceHelpers : TraceableContext {
             val exception = Exception("Some string")
             return exception.extractTrace(ExceptionPayload("Some string", "na", helperMethodName = false,  testClass))
         }
-
     }
 
     @Test
@@ -41,7 +45,7 @@ class TestTraceHelpers : TraceableContext {
             val exception = Exception("Some string")
             exception.extractTrace()
         }
-        assertEquals(thiCalssName, trace.bestPick.simpleClassName)
+        assertEquals(thiClassName, trace.bestPick.simpleClassName)
         assertEquals(
             "Throwable can be analyzed with acceptable level of precision(no guidelines provided)",
             trace.bestPick.methodName
@@ -56,7 +60,7 @@ class TestTraceHelpers : TraceableContext {
         }
         val traceData = assertNotNull(trace)
         assertEquals(
-            thiCalssName,
+            thiClassName,
             traceData.bestPick.simpleClassName
         )
         assertEquals(
@@ -67,18 +71,58 @@ class TestTraceHelpers : TraceableContext {
 
     @Test
     fun `Throwable can be analyzed when cass name provided (class implementing TrackableContext)`(){
-
         val testHelpersSubClass = TestHelpersSubClass()
         val traceData =   assertDoesNotThrow {
             testHelpersSubClass.traceForParentContext(this)
         }
         assertEquals(
-            thiCalssName,
+            thiClassName,
             traceData.bestPick.simpleClassName
         )
         assertEquals(
             "Throwable can be analyzed when cass name provided (class implementing TrackableContext)",
             traceData.bestPick.methodName
         )
+    }
+
+    @Test
+    fun `extractTrace handles coroutines`() {
+        suspend fun boom() { throw RuntimeException("Boom") }
+        val exception = assertThrows<RuntimeException> {
+            runBlocking {
+                boom()
+            }
+        }
+        val trace = exception.extractTrace()
+        trace.output()
+        assertEquals("boom", trace.bestPick.methodName)
+    }
+
+    @Test
+    fun `extractTrace handles lambda`() {
+        val f = { -> throw RuntimeException("Lambda!") }
+        val ex = assertThrows<RuntimeException> { f() }
+        val trace = ex.extractTrace()
+        assertTrue {
+            trace.bestPick.methodName.contains("f") &&
+                    trace.bestPick.methodName.contains("extractTrace handles lambda")
+        }
+        trace.bestPick.output()
+    }
+
+    @Test
+    fun `extractTrace handles thread entry`() {
+        var ex: Throwable? = null
+        val t = Thread {
+            try {
+                throw RuntimeException("Thread crash")
+            } catch (e: Throwable) {
+                ex = e
+            }
+        }
+        t.start(); t.join()
+        val trace = ex!!.extractTrace()
+        assertNotEquals(trace.bestPick.methodName, "run")
+        trace.bestPick.output()
     }
 }

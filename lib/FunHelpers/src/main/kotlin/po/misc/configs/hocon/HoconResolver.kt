@@ -70,7 +70,7 @@ class HoconResolver<C: HoconResolvable<C>>(
     val parseBadge: GenericBadge = Badge.make("parse")
 
     private val parsingMessage : (HoconEntryBase<*, *>)-> String = {
-        "Parsing ${it.name}"
+        "Parsing ${it.componentName}"
     }
 
     init {
@@ -130,7 +130,7 @@ class HoconResolver<C: HoconResolvable<C>>(
         hoconFactory: Config
     ){
         val tolerance: StepTolerance = if(entry.nullable) StepTolerance.ALLOW_NULL else StepTolerance.STRICT
-        step("Parsing ${entry.name}", parseBadge, tolerance) {
+        step("Parsing ${entry.componentName}", parseBadge, tolerance) {
             entry.readConfig(hoconFactory, Nullable)
         }
     }
@@ -159,7 +159,7 @@ class HoconResolver<C: HoconResolvable<C>>(
         return this
     }
     fun register(hoconEntry: HoconEntryBase<C, *>): Boolean {
-        entryMap[hoconEntry.name.lowercase()] = hoconEntry
+        entryMap[hoconEntry.componentName.lowercase()] = hoconEntry
         return true
     }
 

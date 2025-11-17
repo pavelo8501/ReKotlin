@@ -54,10 +54,11 @@ internal fun Any.outputInternal(
     formated.output()
 }
 
-fun Any.output(){
-    println(StringFormatter.formatKnownTypes(this))
+fun Any?.output(){
+    if(this != null) {
+        println(StringFormatter.formatKnownTypes(this))
+    }
 }
-
 
 fun Any.output(
     behaviour: OutputBehaviour

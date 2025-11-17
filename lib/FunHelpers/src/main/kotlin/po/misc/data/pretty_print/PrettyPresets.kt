@@ -12,33 +12,45 @@ interface PrettyPresets{
     val colour: Colour?
     val background: BGColour?
     val postfix: String get() = ""
-}
 
-object KeyPreset: PrettyPresets{
-    override val align: Align = Align.RIGHT
-    override val style: TextStyle = TextStyle.ITALIC
-    override val colour: Colour = Colour.Gray
-    override val background: BGColour? = null
-    override val postfix: String = SpecialChars.RIGHT_SEMICOLON
-}
 
-object ValuePreset: PrettyPresets{
-    override val align: Align = Align.LEFT
-    override val style: TextStyle? = null
-    override val colour: Colour = Colour.CyanBright
-    override val background: BGColour? = null
-}
+    object KClass : PrettyPresets {
+        override val align: Align = Align.LEFT
+        override val style: TextStyle = TextStyle.BOLD
+        override val colour: Colour = Colour.Green
+        override val background: BGColour? = null
+    }
 
-object InfoPreset : PrettyPresets {
-    override val align: Align = Align.LEFT
-    override val style: TextStyle = TextStyle.ITALIC
-    override val colour: Colour = Colour.GrayLight
-    override val background: BGColour? = null
-}
 
-object SuccessPreset : PrettyPresets {
-    override val align: Align = Align.LEFT
-    override val style: TextStyle = TextStyle.BOLD
-    override val colour: Colour = Colour.GreenBright
-    override val background: BGColour? = null
+    object Key: PrettyPresets{
+        override val align: Align = Align.RIGHT
+        override val style: TextStyle = TextStyle.ITALIC
+        override val colour: Colour = Colour.Gray
+        override val background: BGColour? = null
+        override val postfix: String = SpecialChars.RIGHT_SEMICOLON
+    }
+
+
+    object Value: PrettyPresets{
+        override val align: Align = Align.LEFT
+        override val style: TextStyle? = null
+        override val colour: Colour = Colour.CyanBright
+        override val background: BGColour? = null
+    }
+
+    object Info : PrettyPresets {
+        override val align: Align = Align.LEFT
+        override val style: TextStyle = TextStyle.ITALIC
+        override val colour: Colour = Colour.GrayLight
+        override val background: BGColour? = null
+    }
+
+    object Success : PrettyPresets {
+        override val align: Align = Align.LEFT
+        override val style: TextStyle = TextStyle.BOLD
+        override val colour: Colour = Colour.GreenBright
+        override val background: BGColour? = null
+    }
+
+
 }

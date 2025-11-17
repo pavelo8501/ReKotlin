@@ -1,16 +1,13 @@
 package po.misc.context.component
 
-import po.misc.callbacks.signal.Signal
+import po.misc.context.tracable.TraceableContext
 import po.misc.data.PrettyPrint
-import po.misc.data.logging.Loggable
-import po.misc.data.logging.StructuredLoggable
 import po.misc.data.logging.Verbosity
-import po.misc.data.logging.processor.LogProcessor
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
 import po.misc.debugging.models.ClassInfo
-import po.misc.debugging.models.GenericInfo
+import po.misc.types.token.GenericInfo
 import po.misc.types.token.TypeToken
 
 
@@ -36,34 +33,36 @@ import po.misc.types.token.TypeToken
  * @property verbosity Controls minimum log level for this component.
  */
 class ComponentID(
-    val classInfo: ClassInfo,
+    private val component: Component,
     var verbosity: Verbosity = Verbosity.Info,
-    private var name: String? = null
+    private var setName: String? = null
 ): PrettyPrint {
 
-    constructor(
-        provider: () -> String,
-        component: Component,
-        verbosity: Verbosity = Verbosity.Info
-    ):this(ClassResolver.classInfo(component), verbosity){
-        nameProvider = provider
-    }
+    val classInfo : ClassInfo = ClassResolver.classInfo(component)
+    private var nameProvider : ( () -> String)? = null
 
-    private var nameProvider : (() -> String)? = null
+
+    constructor(
+        component: Component,
+        verbosity: Verbosity = Verbosity.Info,
+        nameProvider: () -> String,
+    ):this(component, verbosity){
+        this.nameProvider = nameProvider
+    }
 
     private val resolvedName: String by lazy {
-        val nameFromProvider = nameProvider?.invoke()
-        nameFromProvider ?: name ?: classInfo.simpleName
+       nameProvider?.invoke()?: classInfo.simpleName
     }
 
-    val componentName: String get() = resolvedName
+    val componentName: String get() = setName?: resolvedName
 
     fun updateNameProvider(provider: (() -> String)?) {
         nameProvider = provider
     }
 
-    fun useName(nameToUse: String){
-        name = nameToUse
+    fun useName(nameToUse: String):ComponentID {
+        setName = nameToUse
+        return this
     }
 
     fun addParamInfo(genericInfo: GenericInfo): ComponentID{

@@ -48,7 +48,7 @@ class CustomNotification(
 class TestLogProvider: LogProvider<CustomNotification> {
 
     private class SubComponent(name: String) : Component {
-        override val componentID: ComponentID = ComponentID(ClassResolver.classInfo(this), name =  name)
+        override val componentID: ComponentID = ComponentID(this, nameProvider = { name })
         val processor = logProcessor()
 
         override fun notify(topic: NotificationTopic, subject: String, text: String): Notification {

@@ -5,7 +5,6 @@ import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.printable.companion.Template
 import po.misc.data.printable.companion.nextLine
 import po.misc.debugging.DebugTopic
-import po.misc.debugging.toConsoleLink
 import po.misc.exceptions.stack_trace.StackFrameMeta
 import po.misc.functions.dsl.helpers.nextBlock
 import po.misc.types.token.TypeToken
@@ -39,7 +38,7 @@ class DebugData(
                 "[DEBUG][${debugTopic.name}] in $contextName, Calling Method:${stackMeta[0].methodName}"
             }
             nextLine {
-                "Call site: ${stackMeta[0].toConsoleLink()}"
+                "Call site: ${stackMeta[0].consoleLink}"
             }
             nextBlock {
                 "-> $message"

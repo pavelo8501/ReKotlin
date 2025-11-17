@@ -55,3 +55,12 @@ fun <T> List<T>.takeFromMatch(count: Int, predicate: (T) -> Boolean): List<T> {
     return this.dropWhile { !predicate(it) }
         .take(count+1)
 }
+
+fun <T> List<T>.indexOfMatch(predicate: (T) -> Boolean): Int {
+    for(i in 1..size){
+        if(predicate(get(i))){
+            return i
+        }
+    }
+    return 0
+}

@@ -3,11 +3,10 @@ package po.test.misc.data.pretty_print
 import org.junit.jupiter.api.Test
 import po.misc.data.helpers.output
 import po.misc.data.pretty_print.DynamicNormalizer
-import po.misc.data.pretty_print.KeyPreset
 import po.misc.data.pretty_print.PrettyCell
+import po.misc.data.pretty_print.PrettyPresets
 import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.TrimNormalizer
-import po.misc.data.pretty_print.ValuePreset
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.TextStyle
@@ -37,14 +36,14 @@ class TestPrettyCell {
 
     @Test
     fun `Styling preset usage`(){
-        val keyCell = PrettyCell(20, KeyPreset)
+        val keyCell = PrettyCell(20, PrettyPresets.Key)
         val rendered = keyCell.render("Some Key")
         assertTrue { rendered.contains(TextStyle.ITALIC.code) }
         assertTrue { rendered.contains(Colour.Gray.code) }
         assertTrue { rendered.contains(SpecialChars.RIGHT_SEMICOLON) }
         rendered.output()
 
-        val valueCell = PrettyCell(20, ValuePreset)
+        val valueCell = PrettyCell(20, PrettyPresets.Value)
         val valueCellRendered = valueCell.render("Some Value")
         assertFalse{ valueCellRendered.contains(TextStyle.ITALIC.code) }
         assertTrue { valueCellRendered.contains(Colour.CyanBright.code) }
@@ -60,7 +59,7 @@ class TestPrettyCell {
             { it.length >= maxSize },
             { it.substring(0, maxSize) }
         )
-        val keyCell = PrettyCell(maxSize, ValuePreset)
+        val keyCell = PrettyCell(maxSize, PrettyPresets.Value)
         keyCell.addTextNormalizer(sizeNormalization)
         val initialString = "Some text that is definitely has more than 5 chars"
         val rendered = keyCell.render(initialString)
@@ -79,7 +78,7 @@ class TestPrettyCell {
             { it.length >= maxSize },
             { it.substring(0, maxSize) }
         )
-        val keyCell = PrettyCell(maxSize, ValuePreset)
+        val keyCell = PrettyCell(maxSize, PrettyPresets.Value)
         keyCell.addTextNormalizer(sizeNormalization)
         val initialString = "Some text that is definitely has more than 5 chars"
         val rendered = keyCell.render(initialString)
