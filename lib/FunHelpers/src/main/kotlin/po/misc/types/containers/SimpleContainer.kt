@@ -1,7 +1,7 @@
 package po.misc.types.containers
 
-import po.misc.types.type_data.TypeData
 import po.misc.types.castListOrManaged
+import po.misc.types.token.TypeToken
 
 
 sealed interface SingleOrList<T: Any>{
@@ -10,7 +10,7 @@ sealed interface SingleOrList<T: Any>{
         Casted
     }
 
-    fun <T2: Any> listOfType(typeData: TypeData<T2>): List<T2>
+    fun <T2: Any> listOfType(typeData: TypeToken<T2>): List<T2>
     fun valueAsList(): List<T>
 }
 
@@ -21,7 +21,7 @@ open class Single<T: Any>(val value: T): SingleOrList<T>{
     override fun valueAsList(): List<T>{
         return listOf(value)
     }
-    override fun <T2: Any> listOfType(typeData: TypeData<T2>): List<T2>{
+    override fun <T2: Any> listOfType(typeData: TypeToken<T2>): List<T2>{
         val list = valueAsList()
         if(status == SingleOrList.CastStatus.Casted){
             @Suppress("UNCHECKED_CAST")
@@ -41,7 +41,7 @@ open class Multiple<T: Any>(val values: List<T>): SingleOrList<T>{
     override fun valueAsList(): List<T>{
         return values
     }
-    override fun <T2: Any> listOfType(typeData: TypeData<T2>): List<T2>{
+    override fun <T2: Any> listOfType(typeData: TypeToken<T2>): List<T2>{
         val list = valueAsList()
         if(status == SingleOrList.CastStatus.Casted){
             @Suppress("UNCHECKED_CAST")

@@ -3,6 +3,6 @@ package po.misc.data.styles
 interface StylableText{
 
     fun String.newLine(): String{
-       return "${this}${SpecialChars.newLine}"
+       return "${this}${SpecialChars.NEW_LINE}"
     }
 }

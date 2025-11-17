@@ -4,4 +4,8 @@
 dev_data/
 build/
 assets/
+assets_images_json
+assets_images_json/
 files/
+temp_files/
+

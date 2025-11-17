@@ -1,6 +1,6 @@
 package po.misc.debugging
 
-import po.misc.context.TraceableContext
+import po.misc.context.tracable.TraceableContext
 
 
 class DebugEvent<T: Any>(

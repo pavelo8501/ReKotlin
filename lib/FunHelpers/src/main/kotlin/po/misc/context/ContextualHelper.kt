@@ -1,6 +1,6 @@
 package po.misc.context
 
-import po.misc.types.helpers.simpleOrNan
+import po.misc.types.helpers.simpleOrAnon
 
 
 data class ContextInfo(
@@ -20,12 +20,11 @@ interface ContextualHelper {
             }
             else ->{
                 ContextInfo(
-                    callingContext::class.simpleOrNan(),
+                    callingContext::class.simpleOrAnon,
                     callingContext.hashCode(),
                     null
                 )
             }
         }
     }
-
 }

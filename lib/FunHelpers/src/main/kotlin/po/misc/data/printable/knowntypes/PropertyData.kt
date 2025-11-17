@@ -5,6 +5,7 @@ import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.context.CTX
 import po.misc.data.printable.companion.nextLine
+import po.misc.types.token.TypeToken
 
 class PropertyData(
     val producer: CTX,
@@ -14,7 +15,7 @@ class PropertyData(
 
     override val self: PropertyData = this
 
-    companion object: PrintableCompanion<PropertyData>({PropertyData::class}){
+    companion object: PrintableCompanion<PropertyData>(TypeToken.create()){
 
         val Property = createTemplate {
             nextLine {

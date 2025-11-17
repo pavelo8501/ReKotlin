@@ -147,3 +147,12 @@ inline fun <T: Any, reified A : Annotation>  KClass<out T>.annotatedProperties(r
     }
     return container
 }
+
+inline fun <reified A: Annotation> Class<*>.hasAnnotation(methodName: String): A?{
+  val method = methods.firstOrNull { it.name == methodName }
+  return  if(method == null){
+        null
+    }else{
+      return method.getAnnotation<A>(A::class.java)
+    }
+}

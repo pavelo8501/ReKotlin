@@ -1,7 +1,7 @@
 package po.misc.data.logging
 
 import po.misc.context.CTX
-import po.misc.context.TraceableContext
+import po.misc.context.tracable.TraceableContext
 import po.misc.data.helpers.output
 import po.misc.data.printable.Printable
 import po.misc.data.printable.PrintableBase
@@ -22,7 +22,8 @@ interface LogEmitter: TraceableContext {
             SeverityLevel.DEBUG-> message.output(Colour.WhiteBright)
         }
     }
-    fun  Any.log(data: PrintableBase<*>, severity: SeverityLevel = SeverityLevel.INFO) {
+
+    fun Any.log(data: PrintableBase<*>, severity: SeverityLevel = SeverityLevel.INFO) {
         data.echo()
     }
     fun <T: Printable> CTX.debug(message: String, template: PrintableTemplateBase<T>? = null, topic: DebugTopic = DebugTopic.General){

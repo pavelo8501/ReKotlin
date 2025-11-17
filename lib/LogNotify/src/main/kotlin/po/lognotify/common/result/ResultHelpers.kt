@@ -20,9 +20,10 @@ private fun <T: CTX, R> resultContainerCreation(task: TaskBase<T, R>, result: R)
             val exception = subTask.taskResult?.exception
 
             task.warning("Exception(${exception?.message}) swallowed by $subTask")
-            val waypointInfo = exception?.exceptionData?.map { it  }?.joinToString(" -> ") { "${it}(${it.message.replaceIfNull()})" }
-            waypointInfo?.wrapByDelimiter("->").replaceIfNull()
-            task.warning(waypointInfo?.wrapByDelimiter("->").replaceIfNull())
+
+         //   val waypointInfo = exception?.exceptionData?.map { it  }?.joinToString(" -> ") { "${it}(${it.message.replaceIfNull()})" }
+           // waypointInfo?.wrapByDelimiter("->").replaceIfNull()
+            //task.warning(waypointInfo?.wrapByDelimiter("->").replaceIfNull())
         }
     }
     val result = TaskResult(task, result)

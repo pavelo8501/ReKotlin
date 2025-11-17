@@ -3,15 +3,17 @@ package po.misc.types.helpers
 import po.misc.data.PrettyPrint
 import po.misc.data.helpers.output
 import po.misc.data.styles.SpecialChars
-import po.misc.types.TokenHolder
-import po.misc.types.Tokenized
 import po.misc.types.safeCast
+import po.misc.types.token.TokenHolder
 import po.misc.types.token.TypeToken
 import kotlin.collections.mapNotNull
 import kotlin.reflect.KClass
 
 
-data class Filtration(val reifiedClass: KClassParam, val initialCollectionSize: Int): PrettyPrint{
+data class Filtration(
+    val reifiedClass: KClassParam,
+    val initialCollectionSize: Int
+): PrettyPrint{
 
     class FilterOperation(val name: String){
         var comment: String = ""
@@ -29,17 +31,14 @@ data class Filtration(val reifiedClass: KClassParam, val initialCollectionSize: 
             return result
         }
         fun printout(): String{
-            return toString() + SpecialChars.newLine + "Comments: $commentsString"
+            return toString() + SpecialChars.NEW_LINE + "Comments: $commentsString"
         }
         override fun toString(): String {
           return "$name [Result : $result]"
         }
     }
-
     override val formattedString: String get() = printout()
-
     internal val operations = mutableListOf<FilterOperation>()
-
     internal var filtrationSize: Int = initialCollectionSize
 
     fun registerOperation(name: String, comment: String, result: Boolean):FilterOperation{
@@ -61,8 +60,9 @@ data class Filtration(val reifiedClass: KClassParam, val initialCollectionSize: 
         filtrationSize = size
         return this
     }
+
     fun printout(): String{
-       return "${toString()} " + SpecialChars.newLine + operations.joinToString(separator = SpecialChars.newLine) {
+       return "${toString()} " + SpecialChars.NEW_LINE + operations.joinToString(separator = SpecialChars.NEW_LINE) {
             it.printout()
         }
     }
@@ -133,11 +133,11 @@ internal fun <T: Any> typedFiltrator(
         }
        filtrationData.startOperation("Comparing type parameters provided with token parameters"){operation->
             val token = candidate.typeToken
-            operation.addComment("Candidates tokens type parameters: ${token.inlinedParamsName}")
+            operation.addComment("Candidates tokens type parameters: ${token.inlinedParameters}")
             val required = typeParameters.sortedBy { it.simpleName }
-            val requiredAsString = required.joinToString(separator = ", ") { it.simpleOrNan() }
+            val requiredAsString = required.joinToString(separator = ", ") { it.simpleOrAnon }
             operation.addComment("Provided type parameters: $requiredAsString")
-            operation.registerResult(token.inlinedParamClasses.containsAll(required))
+            operation.registerResult(token.inlinedParameters.containsAll(required))
         }
     }
     filtrationData.sizeAfterFiltration(typeFiltered.size)
@@ -281,3 +281,17 @@ inline fun <reified T: Any> List<*>.filterByTypeWhere(
     vararg typeTokens: TypeToken<*>,
     predicate: (T)-> Boolean
 ): List<T> = filterByType<T>(mandatoryOne, *typeTokens).filter(predicate)
+
+
+@JvmName("filterByTypeNonReified")
+fun <T: Any>  List<*>.filterByType(
+    typeToken: TypeToken<T>,
+): List<T> = typedFiltrator<T>(this.toList(), typeToken.kClass, typeToken.inlinedParameters)
+
+
+fun <T: Any, P: Any>  Iterable<*>.filterByTypeAndToken(
+    expectedClass: KClass<T>,
+    typeToken: TypeToken<P>,
+): List<T> = typedFiltrator<T>(this.toList(), expectedClass, listOf(typeToken.kClass))
+
+

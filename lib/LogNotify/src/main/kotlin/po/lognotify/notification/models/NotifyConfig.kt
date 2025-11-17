@@ -1,8 +1,7 @@
 package po.lognotify.notification.models
 
-import po.misc.collections.StaticTypeKey
 import po.misc.data.printable.companion.PrintableCompanion
-
+import po.misc.types.token.TypeToken
 
 
 /**
@@ -47,20 +46,19 @@ data class NotifyConfig(
         DebugAll
     }
 
-
    // private val showDebugList : MutableList<DebugTemplate<*>> = mutableListOf()
 
-    var debugWhiteList: MutableMap<Int, StaticTypeKey<*>> = mutableMapOf()
+    var debugWhiteList: MutableMap<Int, TypeToken<*>> = mutableMapOf()
         private set
 
-   internal fun updateDebugWhiteList(whiteList: Map<Int, StaticTypeKey<*>>){
+   internal fun updateDebugWhiteList(whiteList: Map<Int, TypeToken<*>>){
         debugWhiteList.clear()
         debugWhiteList.putAll(whiteList)
     }
 
     fun allowDebug(vararg dataClasses: PrintableCompanion<*>){
         dataClasses.forEach {
-            debugWhiteList[it.typeKey.hashCode()] = it.typeKey
+            debugWhiteList[it.typeToken.hashCode()] = it.typeToken
         }
     }
 

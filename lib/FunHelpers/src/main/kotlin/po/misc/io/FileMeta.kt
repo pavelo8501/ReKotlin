@@ -31,5 +31,4 @@ data class FileMeta(
     fun readFile():ByteArray{
         return file.readBytes()
     }
-
 }

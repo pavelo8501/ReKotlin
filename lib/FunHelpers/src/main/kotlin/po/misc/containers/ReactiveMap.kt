@@ -14,6 +14,7 @@ import kotlin.reflect.KClass
 class ReactiveMap<K: Any, V: Any>(
 
 ): AbstractMutableMap<K, V>(){
+
     @PublishedApi
     internal val mapBacking: MutableMap<K, V> = mutableMapOf()
 
@@ -49,14 +50,18 @@ class ReactiveMap<K: Any, V: Any>(
 
         return mapBacking.put(key, value)
     }
+
     fun getUnsafe(key:K):V{
         return mapBacking[key] ?: proceedWithFallback(key)
     }
+
     inline fun <reified V: Any> getUnsafeCasting(key:K):V{
+
         val result = mapBacking[key] ?: proceedWithFallback(key)
         val kClass = V::class
         return result.safeCast(kClass)?:proceedWithFallback(kClass)
     }
+
     fun injectFallback(fallback:()-> Throwable){
         exceptionFallback = ExceptionFallback(fallback)
     }

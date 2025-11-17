@@ -1,5 +1,6 @@
 package po.misc.data.styles
 
+
 enum class Colour(val code: String) {
     Default(""),
     Red("\u001B[31m"),
@@ -18,64 +19,7 @@ enum class Colour(val code: String) {
     MagentaBright("\u001B[95m"),
     CyanBright("\u001B[96m"),
     WhiteBright("\u001B[97m"),
+    GrayLight("\u001B[90m"),
     RESET("\u001B[0m");
 
-    companion object {
-        fun fromValue(colourStr: String): Colour {
-            entries.firstOrNull { it.code == colourStr }?.let {
-                return it
-            }
-            return RESET
-        }
-
-        fun fontColour(text: String, color: Colour): String{
-            return "${color.code}$text${RESET.code}"
-        }
-
-        fun makeOfColour(color: Colour,  text: String): String {
-            return if (text.contains("\u001B[")) {
-                text
-            } else {
-                "${color.code}$text${RESET.code}"
-            }
-        }
-    }
-}
-
-enum class BGColour(val code: String) {
-
-    Red("\u001B[41m"),
-    Green("\u001B[42m"),
-    Yellow("\u001B[43m"),
-    Blue("\u001B[44m"),
-    Magenta("\u001B[45m"),
-    Cyan("\u001B[46m"),
-    White("\u001B[47m"),
-    RESET("\u001B[0m");
-
-    companion object {
-        fun fromValue(colourStr: String): BGColour {
-            entries.firstOrNull { it.code == colourStr }?.let {
-                return it
-            }
-            return RESET
-        }
-
-        fun makeOfColour(bgColour: BGColour, text: String): String {
-            return if (text.contains("\u001B[")) {
-                text
-            } else {
-                "${bgColour.code}$text${RESET.code}"
-            }
-        }
-
-
-        fun makeOfColour(bgColour: BGColour, colour: Colour, text: String): String {
-            return if (text.contains("\u001B[")) {
-                text
-            } else {
-                "${bgColour.code}${colour.code}$text${RESET.code}"
-            }
-        }
-    }
 }

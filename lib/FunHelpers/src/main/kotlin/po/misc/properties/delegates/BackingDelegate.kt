@@ -7,9 +7,9 @@ import po.misc.functions.hooks.DataNotifier
 import po.misc.context.CTX
 import po.misc.context.asIdentity
 import po.misc.functions.models.Updated
-import po.misc.types.type_data.TypeData
 import po.misc.types.getOrManaged
 import po.misc.types.info.TypeInfo
+import po.misc.types.token.TypeToken
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
@@ -28,7 +28,7 @@ import kotlin.reflect.KProperty
  * @property receiver  the payload used to report an error when the value is accessed before being set.
  */
 class BackingDelegate<T : Any>(
-    private val typeData: TypeData<T>,
+    private val typeData: TypeToken<T>,
     private val receiver :T ? = null,
     private val configure: (DataHooks<BackingDelegate<T>, T>.() -> Unit)? = null
 ) : ReadWriteProperty<Any?, T>, CTX{
@@ -85,7 +85,7 @@ class BackingDelegate<T : Any>(
          * @return a new [BackingDelegate] instance.
          */
         inline fun <reified T : Any> create(receiver:T ? = null): BackingDelegate<T> =
-            BackingDelegate(TypeData.create<T>(), receiver)
+            BackingDelegate(TypeToken.create<T>(), receiver)
 
         /**
          * Creates a [BackingDelegate] for the given type.
@@ -93,7 +93,7 @@ class BackingDelegate<T : Any>(
          * @param typeInfo the [TypeInfo] of the backing value.
          * @return a new [BackingDelegate] instance.
          */
-        fun <T : Any> create(typeData: TypeData<T>, receiver: T? = null): BackingDelegate<T> =
+        fun <T : Any> create(typeData: TypeToken<T>, receiver: T? = null): BackingDelegate<T> =
             BackingDelegate(typeData, receiver)
 
 
@@ -106,7 +106,7 @@ class BackingDelegate<T : Any>(
         inline  fun <reified T : Any> withHooks(
             receiver: T? = null,
             noinline configure: DataHooks<BackingDelegate<T>, T>.() -> Unit
-        ): BackingDelegate<T> = BackingDelegate(TypeData.create<T>(), receiver, configure)
+        ): BackingDelegate<T> = BackingDelegate(TypeToken.create<T>(), receiver, configure)
 
     }
 }

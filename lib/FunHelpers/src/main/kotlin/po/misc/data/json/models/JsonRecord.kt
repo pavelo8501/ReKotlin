@@ -1,11 +1,11 @@
 package po.misc.data.json.models
 
 import po.misc.data.json.formatJsonSafe
-import po.misc.types.type_data.TypeData
+import po.misc.types.token.TypeToken
 import kotlin.reflect.KProperty1
 
 class JsonRecord<T: Any, V: Any>(
-    val typeData: TypeData<T>,
+    val typeData: TypeToken<T>,
     val property: KProperty1<T, V>
 ){
     val key: String = property.name
@@ -24,7 +24,7 @@ class JsonRecord<T: Any, V: Any>(
         inline fun <reified T: Any, V: Any> create(
             property: KProperty1<T, V>
         ):JsonRecord<T, V>{
-            return JsonRecord(TypeData.create<T>(), property)
+            return JsonRecord(TypeToken.create<T>(), property)
         }
     }
 }

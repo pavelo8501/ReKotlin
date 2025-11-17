@@ -10,6 +10,7 @@ import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.data.templates.matchTemplate
 import po.misc.data.templates.templateRule
+import po.misc.types.token.TypeToken
 import po.misc.validators.ValidationContainerBase
 import po.misc.validators.models.CheckStatus
 
@@ -32,7 +33,7 @@ class ValidationRecord internal constructor(
     }
 
 
-    companion object : PrintableCompanion<ValidationRecord>({ ValidationRecord::class }) {
+    companion object : PrintableCompanion<ValidationRecord>(TypeToken.create()) {
 
         val Main: Template<ValidationRecord> = createTemplate {
             nextLine {

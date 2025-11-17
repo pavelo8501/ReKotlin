@@ -9,7 +9,6 @@ import kotlin.reflect.full.cast
 
 
 
-
 fun <T : Any> List<*>.castListSafe(
     kClass: KClass<T>
 ): List<T> {
@@ -23,7 +22,6 @@ inline fun <reified T : Any> List<*>.castListSafe(): List<T> {
         it?.safeCast()
     }
 }
-
 
 
 fun <T : Any> List<*>.castListOrThrow(

@@ -1,7 +1,7 @@
 package po.misc.types.helpers
 
+import po.misc.debugging.ClassResolver
 import kotlin.reflect.KClass
-
 
 data class KClassParam(
     val simpleName : String,
@@ -20,6 +20,18 @@ data class KClassParam(
 }
 
 
+/**
+ * Returns the simple class name or `"Anonymous"` if unavailable.
+ *
+ * Useful for generating human-readable diagnostic messages for
+ * anonymous or synthetic types.
+ */
+val KClass<*>.simpleOrAnon: String get() = simpleName?:"Anonymous"
+
+val KClass<*>.qualifiedOrAnon: String get() = qualifiedName?:"Anonymous"
+
 fun KClass<*>.toKeyParams():KClassParam{
-    return KClassParam(simpleOrNan(), qualifiedName?:"N/A", hashCode(), typeParameters.size)
+    return KClassParam(simpleOrAnon, qualifiedName?:"N/A", hashCode(), typeParameters.size)
 }
+
+val  KClass<out Function<*>>.lambdaName: String  get()  = ClassResolver.classInfo(this).normalizedName

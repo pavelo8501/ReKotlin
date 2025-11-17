@@ -33,7 +33,7 @@ class ExecutionTimeStamp(
     val completeIn: Duration get() {
        return startTimeUtc?.let {start->
             endTimeUtc?.let {
-                start.havePassed(it)
+                start.elapsedSince(it)
             }?:run {
                 Duration.INFINITE
             }

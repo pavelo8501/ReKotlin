@@ -1,38 +1,21 @@
 package po.misc.exceptions.stack_trace
 
 import po.misc.collections.takeFromMatch
-import po.misc.context.TraceableContext
-import po.misc.exceptions.PackageRole
+import po.misc.context.tracable.TraceableContext
+import po.misc.debugging.ClassResolver
+import po.misc.debugging.models.ClassInfo
+import po.misc.exceptions.ContextTracer
+import po.misc.exceptions.classifier.PackageRole
 import po.misc.exceptions.ThrowableCallSitePayload
-import po.misc.exceptions.classifyPackage
+import po.misc.exceptions.classifier.classifyPackage
+import po.misc.exceptions.models.CTXResolutionFlag
+import po.misc.exceptions.stack_trace.extractTrace
 import po.misc.exceptions.throwableToText
+import po.misc.exceptions.trackable.TrackableException
 import po.misc.types.helpers.simpleOrAnon
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
 import kotlin.text.substringAfterLast
-
-
-
-private fun analyzeException(){
-
-}
-
-fun StackTraceElement.toMeta(): StackFrameMeta {
-    val classPackage = className.substringBeforeLast('.', missingDelimiterValue = "")
-    val role = classifyPackage(classPackage)
-    return StackFrameMeta(
-        fileName = this.fileName?:"N/A",
-        simpleClassName = className.substringAfterLast('.'),
-        methodName = methodName,
-        lineNumber = lineNumber,
-        classPackage = classPackage,
-        isHelperMethod = role == PackageRole.Helper,
-        isUserCode = role == PackageRole.User,
-        stackTraceElement = this
-    )
-}
-
-fun List<StackTraceElement>.toMeta(): List<StackFrameMeta> = map { it.toMeta() }
 
 
 fun Throwable.extractTrace(): ExceptionTrace {
@@ -44,9 +27,10 @@ fun Throwable.extractTrace(): ExceptionTrace {
     }
 }
 
-fun Throwable.extractTrace(context: TraceableContext): ExceptionTrace {
+fun Throwable.extractTrace(traceable: TraceableContext): ExceptionTrace {
+
     val takeForAnalysis = 30
-    val contextClass = context::class
+    val contextClass = traceable::class
     val frames =  stackTrace.take(takeForAnalysis).toMeta()
     val convertedToMeta = frames.takeFromMatch(5) {
             it.simpleClassName.equals(contextClass.simpleOrAnon, ignoreCase = true)
@@ -62,6 +46,18 @@ fun Throwable.extractTrace(context: TraceableContext): ExceptionTrace {
     }
 }
 
+fun Throwable.tryExtractTrace(context: Any, cause: Throwable? = null): ExceptionTrace{
+
+   return when(context){
+        is TraceableContext -> {
+
+            cause?.extractTrace(traceable = context) ?:run {
+                extractTrace(traceable = context)
+            }
+        }
+        else -> extractTrace()
+    }
+}
 
 fun Throwable.extractTrace(
     exceptionPayload: ThrowableCallSitePayload
@@ -104,3 +100,17 @@ fun Throwable.extractTrace(
         ExceptionTrace(this,  meta)
     }
 }
+
+
+fun TraceableContext.extractTrace(withClassInfo: Boolean):  ClassInfo {
+    val trace =  ContextTracer(this, CTXResolutionFlag.Resolvable).exceptionTrace
+    val info = ClassResolver.classInfo(this)
+    return info.addTraceInfo(trace.bestPick)
+
+}
+
+fun TraceableContext.extractTrace():  ExceptionTrace {
+   return ContextTracer(this, CTXResolutionFlag.Resolvable).exceptionTrace
+}
+
+

@@ -1,10 +1,14 @@
 package po.misc.data.styles
 
-enum class Emoji(val symbol: String) {
+import po.misc.data.TextContaining
+
+enum class Emoji(val symbol: String): TextContaining {
+
     NONE(""),
     FIRE("🔥"),
     CHECK("✅"),
     CROSS("❌"),
+    EXCLAMATION("❗"),
     INFO("ℹ️"),
     WARNING("⚠️"),
     STAR("⭐"),
@@ -31,17 +35,8 @@ enum class Emoji(val symbol: String) {
     BLACK_CIRCLE("⚫"),
     WHITE_CIRCLE("⚪");
 
-    override fun toString(): String {
-        return symbol
-    }
+    override fun asText(): String =  symbol
+    override fun toString(): String = symbol
 
-    companion object {
-        fun fromValue(symbol: String): Emoji {
-            entries.firstOrNull { it.symbol == symbol }?.let {
-                return it
-            }
-            return NONE
-        }
-    }
 
 }

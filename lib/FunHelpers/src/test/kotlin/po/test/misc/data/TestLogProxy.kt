@@ -11,6 +11,7 @@ import po.misc.data.styles.colorize
 import po.misc.context.asIdentity
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.printable.companion.nextLine
+import po.misc.types.token.TypeToken
 
 import po.test.misc.data.TestLogProxy.ArbitraryData.Companion.Template2
 import kotlin.test.assertNotNull
@@ -33,7 +34,7 @@ class TestLogProxy: CTX {
         override val self: TopDataItem = this
 
 
-        companion object: PrintableCompanion<TopDataItem>({TopDataItem::class}){
+        companion object: PrintableCompanion<TopDataItem>(TypeToken.create()){
 
             val TopTemplate = createTemplate {
                 nextLine {
@@ -52,7 +53,7 @@ class TestLogProxy: CTX {
         override val self: ArbitraryData = this
 
 
-        companion object: PrintableCompanion<ArbitraryData>({ArbitraryData::class}){
+        companion object: PrintableCompanion<ArbitraryData>(TypeToken.create()){
 
             val Template2 =createTemplate {
                 nextLine {

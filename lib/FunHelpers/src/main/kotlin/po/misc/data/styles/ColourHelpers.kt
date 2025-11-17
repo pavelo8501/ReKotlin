@@ -1,39 +1,42 @@
 package po.misc.data.styles
 
+import po.misc.data.HasText
 import po.misc.data.styles.Colour.RESET
 
+fun String.colorize(colour: Colour): String = Colorizer.colour(text =  this, colour = colour, bgColour = null)
 
-fun String.colorize(colour: Colour): String{
-    return "${colour.code}$this${RESET.code}"
+fun String.colorize(bgColour: BGColour): String = Colorizer.colour(this, bgColour)
+fun String.colorize(bgColour: BGColour, colour: Colour): String = Colorizer.colour(this, colour, bgColour)
+
+fun String.applyColour(colour: Colour): String = Colorizer.applyColour(this, colour)
+
+inline fun <T: Any> T.colorize(
+    bgColour: BGColour,
+    colour: Colour,
+    textBuilder: (T)-> Any
+): String = Colorizer.colour(textBuilder(this).toString(), colour, bgColour)
+
+fun  <T: Any> T.colorize(
+    colour: Colour,
+    textBuilder: (T)-> Any
+): String = Colorizer.colour(textBuilder(this).toString(), colour, null)
+
+fun  String.colorizeIf(colour: Colour, negativeCaseColour: Colour? = null,   predicate: ()-> Boolean): String{
+    return  if(predicate.invoke()){
+        Colorizer.colour(this, colour, null)
+    }else{
+        negativeCaseColour?.let {
+            Colorizer.colour(this, it, null)
+        }?:this
+    }
 }
 
-fun  <T: Any> T.colorize(colour: Colour, textBuilder: (T)-> Any): String{
-    val result = Colour.makeOfColour(colour, textBuilder(this).toString())
-    return result
-}
+fun  HasText.colorizeIf(
+    colour: Colour,
+    negativeCaseColour: Colour? = null,
+    predicate: ()-> Boolean
+): String = asText().colorizeIf(colour, negativeCaseColour, predicate)
 
+fun  String.applyColourIf(colour: Colour, predicate: ()-> Boolean): String = colorizeIf(colour, predicate =  predicate)
 
-fun String.colorize(bgColour: BGColour): String{
-    val result = BGColour.makeOfColour(bgColour, this)
-    return result
-}
-
-fun <T: Any> T.colorize(bgColour: BGColour, textBuilder: (T)-> Any): String{
-    val result = BGColour.makeOfColour(bgColour, textBuilder(this).toString())
-    return result
-}
-
-
-fun String.colorize(bgColour: BGColour, colour: Colour): String{
-    val result = BGColour.makeOfColour(bgColour, colour, this)
-    return result
-}
-
-inline fun <T: Any> T.colorize(bgColour: BGColour, colour: Colour, textBuilder: (T)-> Any): String{
-    val result = BGColour.makeOfColour(bgColour,colour,  textBuilder(this).toString())
-    return result
-}
-
-infix fun Colour.text(message: String): String{
-    return Colour.makeOfColour(this, message)
-}
+infix fun Colour.text(message: String): String = Colorizer.colour(message, this, null)

@@ -6,13 +6,11 @@ import io.ktor.server.request.path
 import io.ktor.util.AttributeKey
 import io.ktor.util.toMap
 import kotlinx.coroutines.withContext
-import po.auth.AuthSessionManager
 import po.auth.authentication.authenticator.models.AuthenticationData
 import po.auth.extensions.session
 import po.auth.models.SessionDefaultIdentity
 import po.auth.sessions.models.AuthorizedSession
-import po.misc.context.CTX
-import po.misc.context.TraceableContext
+import po.misc.context.tracable.TraceableContext
 import po.misc.types.getOrThrow
 import po.restwraptor.enums.WraptorHeaders
 import po.restwraptor.exceptions.ConfigurationException

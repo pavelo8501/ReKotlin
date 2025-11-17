@@ -5,9 +5,7 @@ import po.lognotify.common.LNInstance
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
 import po.misc.context.CTX
-import po.misc.exceptions.ThrowableCallSitePayload
-import po.misc.types.castOrThrow
-import po.misc.types.helpers.simpleOrNan
+import po.misc.types.helpers.simpleOrAnon
 
 class LoggerException(
     ctx: CTX,
@@ -33,6 +31,6 @@ internal inline fun <reified T: Any> T?.getOrLoggerException(lnInstance: LNInsta
     if(this != null){
         return this
     }else{
-        throw LoggerException(lnInstance.receiver, "Can not get ${T::class.simpleOrNan()} in ${lnInstance.identifiedByName}")
+        throw LoggerException(lnInstance.receiver, "Can not get ${T::class.simpleOrAnon} in ${lnInstance.identifiedByName}")
     }
 }

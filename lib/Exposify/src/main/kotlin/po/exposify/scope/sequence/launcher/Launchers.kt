@@ -31,6 +31,7 @@ private suspend fun <DTO, D, I> launchExecutionList(
     session: SessionBase,
     input: CommonInputType<I>?,
 ): ResultList<DTO, D> where DTO : ModelDTO, D : DataModel, I : Any {
+
     val wrongBranchMsg = "LaunchExecutionResultSingle else branch should have never be reached"
 
     val errorFallback =
@@ -39,7 +40,8 @@ private suspend fun <DTO, D, I> launchExecutionList(
             OperationsException(descriptor, noContainerMsg, ExceptionCode.Sequence_Setup_Failure)
         }
 
-    val container = descriptor.containerBacking.getWithFallback(errorFallback)
+    val container = descriptor.containerBacking.getValue(descriptor)
+
     val castedContainer = container.castOrOperations<SequenceChunkContainer<DTO, D>>(descriptor)
 
     val service = descriptor.dtoClass.serviceClass
@@ -95,7 +97,7 @@ internal suspend fun <DTO, D> launchExecutionSingle(
             OperationsException(descriptor, noContainerMsg, ExceptionCode.Sequence_Setup_Failure)
         }
 
-    val container = descriptor.containerBacking.getWithFallback(errorFallback)
+    val container = descriptor.containerBacking.getValue(descriptor)
     val castedContainer = container.castOrOperations<SequenceChunkContainer<DTO, D>>(descriptor)
 
     val service = descriptor.dtoClass.serviceClass

@@ -14,7 +14,6 @@ import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asSubIdentity
 import po.misc.exceptions.ManagedException
-import po.misc.types.type_data.TypeData
 import po.misc.types.castListOrThrow
 import po.misc.types.token.TypeToken
 

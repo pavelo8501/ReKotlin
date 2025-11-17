@@ -1,32 +1,18 @@
 package po.test.misc.configs.assets
 
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertDoesNotThrow
-import po.misc.configs.assets.Asset
+import po.misc.configs.assets.asset.Asset
 import po.misc.configs.assets.AssetManager
-import po.misc.configs.assets.AssetRegistry
-import po.misc.functions.Throwing
-import po.misc.io.WriteOptions
+import po.misc.configs.assets.buildFromEnum
+import po.misc.io.deleteAllOrNan
+import po.misc.io.deleteFile
 import po.misc.io.readFile
-import po.misc.io.readFileContent
-import po.misc.io.readToString
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-import kotlin.test.assertNotSame
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class TestAssetManager {
+class TestAssetManager: AssetTest() {
 
-    private val json = Json{
-        prettyPrint = true
-        isLenient = true
-        ignoreUnknownKeys = false
-    }
-
-    @Serializable
     internal enum class AssetCategory{
         Photo,
         Text,
@@ -34,94 +20,75 @@ class TestAssetManager {
         Html
     }
 
-    val registries = listOf(
-        AssetRegistry(AssetCategory.Photo),
-        AssetRegistry(AssetCategory.Text),
-        AssetRegistry(AssetCategory.Config),
-        AssetRegistry(AssetCategory.Html)
-    )
+    private val image1Path = "files/1.png"
+
 
     @Test
-    fun `Asset registries successfully loaded even if file does not exists`(){
-        val photoRegistry = AssetRegistry(AssetCategory.Photo)
-        val manager =  AssetManager("assets", json)
-        val loadedRegistry =  manager.applyRegistry(photoRegistry)
-        assertNotNull(loadedRegistry)
-        assertNotSame(photoRegistry, loadedRegistry)
-    }
+    fun `Registries properly initialized by enum values`(){
+        deleteAllOrNan{
+            addPath(AssetManager.toAssetsPath(basePath, AssetCategory.Photo))
+            addPath(AssetManager.toAssetsPath(basePath, AssetCategory.Html))
+        }
+        val manager = AssetManager(basePath, json)
+        manager.buildFromEnum<AssetCategory> { category ->
+            clearEmptyOnInit = true
+            when (category) {
+                AssetCategory.Photo -> {
+                    addAsset(readFile(image1Path), name = "no_image")
+                    addAsset(readFile("files/photo.png"), "photo")
+                }
+                AssetCategory.Html -> {
+                    addAsset(readFile("files/test.html"), name = "test_html_doc")
+                }
+                else -> {
 
-    @Test
-    fun `Asset added result in registry update and save to FS`(){
-        val photoRegistry = AssetRegistry(AssetCategory.Photo)
-        val manager =  AssetManager("assets", json)
-        val loadedRegistry = assertNotNull(manager.applyRegistry(photoRegistry))
-        val asset = Asset("photo1", "files/1.jpg")
+                }
+            }
+        }
+        assertEquals(2,  manager.registries.size)
+        val photos =  assertNotNull(manager.getRegistry(AssetCategory.Photo))
+        assertEquals(2, photos.assets.size)
+        photos.assets.values.forEach {
+            assertEquals(Asset.State.Updated, it.state)
+        }
 
-        loadedRegistry.add(asset)
-
-        assertEquals(1,  loadedRegistry.assets.size)
-        val jsonString  = assertDoesNotThrow {
-            readFileContent("assets/${AssetCategory.Photo.name.lowercase()}.json").readToString()
+        val html =  assertNotNull(manager.getRegistry(AssetCategory.Html))
+        assertEquals(1, html.assets.size)
+        html.assets.values.forEach {
+            assertEquals(Asset.State.Updated, it.state)
+        }
+        manager.commitChanges()
+        photos.assets.values.forEach {
+            assertEquals(Asset.State.InSync, it.state)
+        }
+        html.assets.values.forEach {
+            assertEquals(Asset.State.InSync, it.state)
         }
         assertTrue {
-            jsonString.contains(asset.name) && jsonString.contains(asset.filePath)
+            val json =  readFile(photos.registryPath).readText()
+            json.contains("no_image")&&
+                    json.contains("photo")
         }
-    }
-
-    @Test
-    fun `Asset Load local files as they should`(){
-        val asset = Asset("photo1", "files/1.png")
-        val file = asset.loadFile()
-        assertNotNull(file)
-    }
-
-    @Test
-    fun `Asset save files updating`(){
-        val asset = Asset("photo1", "files/1.png")
-        var updatedAsset: Asset? = null
-        asset.onUpdated{
-            updatedAsset = it
-        }
-        asset.saveFile(readFileContent("files/photo.png"), WriteOptions(overwriteExistent = true))
-        val updated = assertNotNull(updatedAsset)
-        val fileInfo = assertNotNull(updated.file)
-        assertEquals("1.png", fileInfo.fileName)
-    }
-
-    @Test
-    fun `Manager createOrLoad method does not overwrite existent assets`(){
-        val manager =  AssetManager("assets", json)
-        val registered = manager.applyRegistries(registries)
-        assertEquals(registries.size, registered.size)
-        val registeredAsset =  manager.createOrLoad("no_image", AssetCategory.Photo, readFile("files/1.png"))
-        assertNotNull(registeredAsset)
-
-        val manager2 =  AssetManager("assets", json)
-        manager2.applyRegistries(registries)
-        val registeredAsset2 =  manager2.createOrLoad("no_image", AssetCategory.Photo, readFile("files/photo.png"))
-        val reRegistered = assertNotNull(registeredAsset2)
         assertTrue {
-            reRegistered.filePath.contains("1.png")
+            val json = readFile(html.registryPath).readText()
+            json.contains("test_html_doc")
         }
     }
 
     @Test
-    fun `AssetRegistry builder method does not overwrite existent assets`(){
+    fun `Registries properly initialized by single enum`(){
 
-        val photoRegistry =  registries.first{ it.equals(AssetCategory.Photo) }
-        var asset = photoRegistry.buildOrGet {
-             Asset("no_image", "some path")
+        deleteFile(AssetManager.toAssetsPath(basePath, AssetCategory.Photo))
+
+        val manager = AssetManager(basePath, json)
+        val asset = manager.buildRegistry(AssetCategory.Photo){
+            addAsset(readFile(image1Path), name = "no_image")
+            addAsset(readFile("files/photo.png"), "photo")
+            assets
         }
-        assertNull(asset)
-        val manager = AssetManager("assets", json)
-        val registeredPhoto = manager.applyRegistry(photoRegistry, Throwing)
-        asset = registeredPhoto.buildOrGet {
-            Asset("no_image", "some path")
-        }
-        val registered = assertNotNull(asset)
-        assertTrue {
-            registered.filePath.contains("1.png")
-        }
+        assertEquals(1,  manager.registries.size)
+        val photos =  assertNotNull(manager.getRegistry(AssetCategory.Photo))
+        assertEquals(2, photos.assets.size)
+        assertEquals(2, asset.size)
     }
-
 }

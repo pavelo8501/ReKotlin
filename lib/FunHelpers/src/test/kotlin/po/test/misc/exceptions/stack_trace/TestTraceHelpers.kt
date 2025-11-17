@@ -2,7 +2,7 @@ package po.test.misc.exceptions.stack_trace
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
-import po.misc.context.TraceableContext
+import po.misc.context.tracable.TraceableContext
 import po.misc.exceptions.ExceptionPayload
 import po.misc.exceptions.stack_trace.ExceptionTrace
 import po.misc.exceptions.stack_trace.extractTrace

@@ -11,9 +11,9 @@ import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.initException
 import po.exposify.exceptions.operationsException
 import po.misc.context.CTX
-import po.misc.types.type_data.TypeData
 import po.misc.types.castOrThrow
 import po.misc.types.getOrThrow
+import po.misc.types.token.TypeToken
 import kotlin.reflect.KClass
 
 
@@ -49,7 +49,7 @@ internal fun <T : Any> T?.getOrOperations(
 }
 
 internal fun <T : Any> T?.getOrOperations(
-    typeData: TypeData<T>,
+    typeData: TypeToken<T>,
     callingContext: CTX
 ): T {
     return  getOrThrow(callingContext, typeData.kClass){payload->

@@ -22,20 +22,19 @@ import po.exposify.dto.models.DTOId
 import po.exposify.exceptions.enums.ExceptionCode
 import po.exposify.exceptions.operationsException
 import po.lognotify.TasksManaged
-import po.misc.containers.BackingContainer
-import po.misc.containers.LazyContainer
+import po.misc.containers.backing.BackingContainer
 import po.misc.containers.ReactiveMap
-import po.misc.containers.backingContainerOf
-import po.misc.containers.lazyContainerOf
+import po.misc.containers.backing.backingContainerOf
+import po.misc.containers.lazy.LazyContainer
+import po.misc.containers.lazy.lazyContainerOf
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
-import po.misc.data.helpers.output
 import po.misc.data.processors.SeverityLevel
 import po.misc.exceptions.throwableToText
 import po.misc.functions.hooks.Change
 import po.misc.functions.registries.TaggedRegistry
 import po.misc.functions.registries.builders.taggedRegistryOf
-import po.misc.types.helpers.simpleOrNan
+import po.misc.types.helpers.simpleOrAnon
 import po.misc.types.safeCast
 import java.util.UUID
 import kotlin.reflect.KClass
@@ -73,8 +72,7 @@ sealed class CommonDTOBase<DTO, D, E>(
         taggedRegistryOf(DTOEvents.IdResolved){ warnNoSubscriber(false) }
     }
 
-    val dataContainer: LazyContainer<D> =  lazyContainerOf(commonType.dataType)
-
+    val dataContainer: LazyContainer<D> = lazyContainerOf(commonType.dataType)
     val entityContainer: BackingContainer<E> = backingContainerOf(commonType.entityType.typeToken)
     
     var idBacking: Long = -1L
@@ -90,17 +88,17 @@ sealed class CommonDTOBase<DTO, D, E>(
 
 
     protected fun calculateStatus(): DTOStatus {
-        if(dataStatus == DataStatus.PreflightCheckMock && dataContainer.isValueAvailable){
+        if(dataStatus == DataStatus.PreflightCheckMock && dataContainer.valueAvailable){
             return DTOStatus.Complete
         }
         var resultingStatus: DTOStatus = DTOStatus.Uninitialized
-        if (dataContainer.isValueAvailable && entityContainer.isValueAvailable) {
+        if (dataContainer.valueAvailable && entityContainer.valueAvailable) {
             resultingStatus = DTOStatus.Complete
         }
-        if (dataContainer.isValueAvailable && !entityContainer.isValueAvailable) {
+        if (dataContainer.valueAvailable && !entityContainer.valueAvailable) {
             resultingStatus = DTOStatus.PartialWithData
         }
-        if (!dataContainer.isValueAvailable && entityContainer.isValueAvailable) {
+        if (!dataContainer.valueAvailable && entityContainer.valueAvailable) {
             resultingStatus = DTOStatus.PartialWithEntity
         }
         return resultingStatus
@@ -152,12 +150,11 @@ abstract class CommonDTO<DTO, D, E>(
 
     
     init {
-        entityContainer.onValueSet(::entityChanged)
-        dataContainer.onValueSet(::dataModelChanged)
+        entityContainer.onValueChanged(::entityChanged)
+        dataContainer.valueProvided(this, ::dataModelChanged)
         executionContextMap.onErrorHook.subscribe { warning(it.toString()) }
         executionContextMap.injectFallback { operationsException("Requested execution context not created/saved", ExceptionCode.ABNORMAL_STATE) }
     }
-
 
     private fun entityChanged(change: Change<E?, E>) {
         try {
@@ -171,7 +168,7 @@ abstract class CommonDTO<DTO, D, E>(
         updateStatus()
     }
 
-    private fun dataModelChanged(change: Change<D?, D>) {
+    private fun dataModelChanged(value: D) {
         updateStatus()
     }
 
@@ -219,7 +216,7 @@ abstract class CommonDTO<DTO, D, E>(
         }?:run {
            val providedClass = dataModel::class as KClass<*>
            val errMsg = "Unable to update persistence layer by data model provided. " +
-                    "Expecting ${dataClass.simpleOrNan()}, got ${providedClass.simpleOrNan()}"
+                    "Expecting ${dataClass.simpleOrAnon}, got ${providedClass.simpleOrAnon}"
             warning(errMsg)
             false
         }

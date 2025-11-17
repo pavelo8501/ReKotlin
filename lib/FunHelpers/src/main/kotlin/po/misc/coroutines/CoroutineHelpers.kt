@@ -6,8 +6,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
-import po.misc.data.styles.SpecialChars
-import po.misc.types.helpers.simpleOrNan
+import po.misc.types.helpers.simpleOrAnon
 import kotlin.coroutines.ContinuationInterceptor
 import kotlin.coroutines.CoroutineContext
 import kotlin.reflect.KClass
@@ -100,7 +99,7 @@ fun CoroutineScope.coroutineInfo():CoroutineInfo = coroutineContext.coroutineInf
 
 fun CoroutineContext.coroutineInfo(inClass: KClass<*>, methodName: String):CoroutineInfo{
     val info = CoroutineInfo.createInfo(this)
-    return info.setClassNameMethod(inClass.simpleOrNan(), methodName)
+    return info.setClassNameMethod(inClass.simpleOrAnon, methodName)
 }
 
 

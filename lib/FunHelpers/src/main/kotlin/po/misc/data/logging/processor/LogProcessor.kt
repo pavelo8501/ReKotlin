@@ -1,159 +1,125 @@
 package po.misc.data.logging.processor
 
-
-import po.misc.context.CTX
+import po.misc.context.component.Component
 import po.misc.data.helpers.output
-import po.misc.data.logging.EmitterConfig
-import po.misc.data.logging.LogEmitter
+import po.misc.data.logging.Loggable
+import po.misc.data.logging.StructuredLoggable
 import po.misc.data.logging.Verbosity
-import po.misc.data.processors.DataProcessorBase
-import po.misc.data.processors.SeverityLevel
-import po.misc.debugging.DebugTopic
-import po.misc.exceptions.ManagedException
-import po.misc.exceptions.metaFrameTrace
-import po.misc.exceptions.throwableToText
-import po.misc.types.helpers.simpleOrNan
+import po.misc.data.logging.models.LogMessage
+import po.misc.data.logging.procedural.ProceduralEntry
+import po.misc.data.logging.procedural.ProceduralFlow
+import po.misc.data.logging.procedural.ProceduralRecord
 
+import po.misc.data.styles.Colour
+import po.misc.functions.Suspending
+import po.misc.types.safeCast
+import po.misc.types.token.TypeToken
 
-class LogProcessor(
-    val host: LogEmitter,
-    val parentProcessor: DataProcessorBase<LogMessage>? = null,
-    builder:(EmitterConfig.()-> Unit)? = null
-): DataProcessorBase<LogMessage>(parentProcessor){
+class LogProcessor <H: Component, T: StructuredLoggable>(
+    override val host: H,
+    typeToken: TypeToken<T>,
+): LogProcessorBase<T>(host, typeToken) {
 
-    private val config: EmitterConfig = EmitterConfig()
+    val loggerName: String get() = "LogProcessor of ${host.name}"
 
-    init {
-        builder?.invoke(config)
-        composeBaseHooks()
+    private val dataProcessSubject = "Data Processing"
+    private val impossibleToProcess: (String, String) -> String = { method, reason, ->
+        "Unable to run $method. Reason: $reason"
+    }
+    private var dataBuilder: ((LogMessage) -> T)? = null
+
+    private fun castReCreateOrnNull(logMessage: LogMessage): T? {
+        val casted = logMessage.safeCast(typeToken) ?: run {
+            dataBuilder?.invoke(logMessage)
+        }
+        return casted
     }
 
-    private fun composeBaseHooks(){
-        hooks.onSubDataReceived {message, processor->
-            message.parentContext = host
+    @PublishedApi
+    internal fun createProceduralFlow(proceduralRecord: ProceduralRecord): ProceduralFlow<H> {
+        val flow = ProceduralFlow(this, proceduralRecord)
+        useHandler(flow, LogMessage::class)
+        return flow
+    }
+
+    @PublishedApi
+    internal fun finalizeFlow(record: T, flow: ProceduralFlow<H>){
+        val flowMessage = flow.complete(output = true)
+        flowMessage.logRecords.forEach {
+            record.addRecord(it)
+        }
+        removeDataHandler(LogMessage::class)
+        dropCollector(true)
+        if (verbosity == Verbosity.Debug) {
+            StateSnapshot(this).output("Before record  $record logged")
+        }
+        logData(record, noOutput = true)
+        if (verbosity == Verbosity.Debug) {
+            StateSnapshot(this).output("After record  $record logged")
         }
     }
 
-    private fun resolveClassName(context: Any): String {
-        return when (context) {
-            is CTX -> context.identifiedByName
-            else -> context::class.simpleOrNan()
-        }
-    }
-    private fun resolveClassID(context: Any): Long {
-        return when (context) {
-            is CTX -> context.identity.numericId
-            else -> context.hashCode().toLong()
+    fun finalizeFlow(flow: ProceduralFlow<H>):T{
+      return  activeRecord?.let {
+            finalizeFlow(it, flow)
+            it
+        }?:run {
+            throw IllegalStateException("No activeRecord")
         }
     }
 
-    private fun createLogMessage(anythingToLog: Any, severity:SeverityLevel,  subject: String?): LogMessage{
-        return LogMessage(
-            className = resolveClassName(host),
-            methodName = "N/A",
-            classID = resolveClassID(host),
-            severity = severity,
-            subject = subject ?: "N/A",
-            message = anythingToLog.toString()
-        )
+    fun createProceduralFlow(data: T): ProceduralFlow<H>{
+        ProceduralFlow.createRecord(data)
+        val flow = ProceduralFlow(this,  ProceduralFlow.createRecord(data))
+        activeRecord = data
+        return flow
     }
 
-    private fun extractFromException(throwable: Throwable, debugTopic: DebugTopic?):LogMessage {
-
-        var className: String? = null
-        var exceptionText = throwable.throwableToText()
-        var methodName: String = "N/A"
-        var classID: Long? = null
-
-        when (throwable) {
-            is ManagedException -> {
-                className = resolveClassName(throwable.context)
-                methodName = throwable.exceptionTrace.bestPick.methodName
-                classID = resolveClassID(throwable.context)
-                throwable.code?.let {
-                    exceptionText += "Code : ${it.name}"
-                }
-            }
-        }
-        return LogMessage(
-            className = className ?: resolveClassName(host),
-            methodName = methodName,
-            classID = classID ?: resolveClassID(host),
-            severity = SeverityLevel.EXCEPTION,
-            subject = debugTopic?.name ?: "Exception",
-            message = exceptionText
-        )
+    inline fun <R> proceduralScope(
+        record: T,
+        crossinline block: ProceduralFlow<H>.(ProceduralRecord) -> R
+    ): R {
+        val flow = createProceduralFlow(record)
+        val result = block.invoke(flow, flow.proceduralRecord)
+        finalizeFlow(record, flow)
+        return result
     }
 
-    fun info(message: String, subject: String? = null) {
-        val logMessage = LogMessage(
-            className = resolveClassName(host),
-            methodName = "N/A",
-            classID = resolveClassID(host),
-            severity = SeverityLevel.INFO,
-            subject = subject ?: "N/A",
-            message = message
-        )
-        addData(logMessage)
-        if(config.verbosity == Verbosity.Info){
-            logMessage.output()
+    inline fun <R> proceduralScope(
+        proceduralRecord: ProceduralRecord,
+        crossinline block: ProceduralFlow<H>.(ProceduralRecord) -> R
+    ): R {
+        val flow = createProceduralFlow(proceduralRecord)
+        val result = block.invoke(flow, flow.proceduralRecord)
+        removeDataHandler(LogMessage::class)
+        flow.proceduralRecord.calculateResult()
+        return result
+    }
+
+    suspend fun <R> proceduralScope(
+        suspending: Suspending,
+        record: T,
+        block: suspend ProceduralFlow<H>.(ProceduralRecord) -> R
+    ): R {
+        val flow = createProceduralFlow(record)
+        val result = block.invoke(flow, flow.proceduralRecord)
+        finalizeFlow(record, flow)
+        return result
+    }
+
+    fun useProcedural(proceduralFlow: ProceduralFlow<*>): Unit = useHandler(proceduralFlow, allowOverwrite = true)
+
+
+    override fun outputOrNot(data: Loggable) {
+        if (data.topic >= verbosity.minTopic) {
+            data.output()
         }
     }
 
-    fun warn(message: String, subject: String? = null) {
-        val logMessage = LogMessage(
-            className = resolveClassName(host),
-            methodName = "N/A",
-            classID = resolveClassID(host),
-            severity = SeverityLevel.WARNING,
-            subject = subject ?: "N/A",
-            message = message
-        )
-        logMessage.setDefaultTemplate(LogMessage.Warning)
-        addData(logMessage)
-        logMessage.output()
-    }
-
-    fun log(throwable: Throwable, debugTopic: DebugTopic? = null){
-        val logMessage =  extractFromException(throwable, debugTopic)
-        addData(logMessage)
-        logMessage.output()
-    }
-
-    fun debug(anythingToLog:Any, debugTopic: DebugTopic = DebugTopic.General){
-        val logMessage = createLogMessage(anythingToLog, SeverityLevel.DEBUG,  debugTopic.name)
-        addData(logMessage)
-        logMessage.output()
-    }
-
-
-    fun debug(
-        anythingToLog:Any,
-        subject: String,
-        withTrace: Boolean = false,
-        debugTopic: DebugTopic = DebugTopic.General
-    ){
-        val logMessage = createLogMessage(anythingToLog, SeverityLevel.DEBUG, "${debugTopic.name} $subject")
-        addData(logMessage)
-        logMessage.output()
-        if(withTrace){
-           val trace = host.metaFrameTrace(3)
-           trace.output()
-        }
-    }
-
-    fun warnThis(anythingToLog:Any, subject: String? = null){
-        val logMessage = LogMessage(
-            className = resolveClassName(host),
-            methodName = "N/A",
-            classID = resolveClassID(host),
-            severity = SeverityLevel.WARNING,
-            subject = subject ?: "N/A",
-            message = anythingToLog.toString()
-        )
-        logMessage.setDefaultTemplate(LogMessage.Warning)
-        addData(logMessage)
-        logMessage.output()
+    override fun handleUnAssigned(message: Loggable) {
+        val message = "$loggerName Unable to process loggable message of ${message::class}"
+        message.output(Colour.Yellow)
     }
 }
+
 

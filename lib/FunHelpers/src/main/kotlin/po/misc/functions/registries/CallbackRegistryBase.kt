@@ -9,8 +9,7 @@ import po.misc.functions.containers.Notifier
 import po.misc.functions.models.NotificationConfig
 import po.misc.functions.registries.models.SimpleSubscriber
 import po.misc.functions.registries.models.TaggedSubscriber
-import po.misc.types.type_data.TypeData
-import po.misc.types.helpers.simpleOrNan
+import po.misc.types.helpers.simpleOrAnon
 import po.misc.types.safeCast
 import po.misc.types.token.TypeToken
 import kotlin.collections.set
@@ -354,7 +353,7 @@ class TaggedRegistry<E: Enum<E>, V: Any>(
                 if(pack.targetEmitter == emitterType){
                     proceedSubscription(pack)
                 }else{
-                    notifySubscriptionFailed(pack.subscriber.simpleOrNan(), pack.targetEmitter.typeName)
+                    notifySubscriptionFailed(pack.subscriber.simpleOrAnon, pack.targetEmitter.typeName)
                 }
             }
         }

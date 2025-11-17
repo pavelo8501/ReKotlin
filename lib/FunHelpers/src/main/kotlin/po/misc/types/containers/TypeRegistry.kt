@@ -1,6 +1,5 @@
 package po.misc.types.containers
 
-import po.misc.types.type_data.TypeData
 import po.misc.types.safeCast
 import po.misc.types.token.TypeToken
 import kotlin.reflect.KClass

@@ -4,14 +4,15 @@ package po.misc.data.logging.models
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.printable.companion.Template
-import po.misc.data.printable.companion.appendLine
 import po.misc.data.printable.companion.nextLine
 import po.misc.data.processors.SeverityLevel
 import po.misc.data.styles.BGColour
+import po.misc.data.styles.Colorizer
 import po.misc.data.styles.Colour
 import po.misc.data.styles.Emoji
 import po.misc.data.styles.colorize
 import po.misc.functions.dsl.helpers.nextBlock
+import po.misc.types.token.TypeToken
 
 class ContextMessage(
     val contextName: String,
@@ -19,10 +20,9 @@ class ContextMessage(
     val subject: String,
     val message: String,
     val severityLevel: SeverityLevel,
-) : PrintableBase<ContextMessage>(this){
+) : PrintableBase<ContextMessage>(this), Colorizer{
 
-    override val self: ContextMessage
-        get() = this
+    override val self: ContextMessage get() = this
 
     val colorizedMessage: String
         get() {
@@ -36,7 +36,8 @@ class ContextMessage(
 
 //    val badge: String = BGColour.makeOfColour(BGColour.Yellow, Colour.BlackBright, "DEBUG")
 
-    companion object : PrintableCompanion<ContextMessage>({ ContextMessage::class }) {
+    companion object : PrintableCompanion<ContextMessage>(TypeToken.create()) {
+
         val Message: Template<ContextMessage> = createTemplate {
             nextBlock {
                 val header = "[$contextName  @ ${nowLocalDateTime()}] ->".colorize(Colour.Blue)
@@ -56,13 +57,13 @@ class ContextMessage(
                 debugBadge + " [$contextName @ ${nowLocalDateTime()}]".colorize(Colour.Blue)
             }
             nextLine {
-               "${Colour.makeOfColour(Colour.Cyan, "Method:")}  $methodName"
+               "${colour("Method:", Colour.Cyan)}  $methodName"
             }
             nextLine {
-               "${Colour.makeOfColour(Colour.Cyan,"Topic:")} $subject"
+               "${colour("Topic:", Colour.Cyan)} $subject"
             }
             nextLine {
-                "${Colour.makeOfColour(Colour.Cyan, "Message:")} $colorizedMessage"
+                "${colour("Message:", Colour.Cyan)} $colorizedMessage"
             }
         }
     }

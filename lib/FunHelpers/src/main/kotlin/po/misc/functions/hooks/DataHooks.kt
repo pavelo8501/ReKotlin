@@ -4,7 +4,7 @@ import po.misc.context.CTX
 import po.misc.functions.containers.LambdaUnit
 
 
-interface Change<V1: Any?, V2: Any>{
+interface Change<V1, V2>{
     val oldValue:V1
     val newValue:V2
 }

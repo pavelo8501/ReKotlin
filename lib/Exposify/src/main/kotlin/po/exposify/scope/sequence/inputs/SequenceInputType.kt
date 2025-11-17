@@ -10,7 +10,6 @@ import po.exposify.scope.sequence.builder.ListDescriptor
 import po.exposify.scope.sequence.builder.SequenceDescriptor
 import po.exposify.scope.sequence.builder.SingleDescriptor
 import po.misc.functions.containers.DeferredContainer
-import po.misc.types.type_data.TypeData
 import po.misc.types.castListOrManaged
 import po.misc.types.castOrManaged
 import po.misc.types.token.TypeToken

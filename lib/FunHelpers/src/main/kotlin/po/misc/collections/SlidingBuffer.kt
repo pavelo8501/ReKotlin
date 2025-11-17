@@ -11,9 +11,8 @@ import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
 import po.misc.reflection.TypeDefaults
 import po.misc.reflection.defaultForType
-import po.misc.types.type_data.TypeData
 import po.misc.types.getOrManaged
-import po.misc.types.helpers.simpleOrNan
+import po.misc.types.helpers.simpleOrAnon
 import po.misc.types.token.TypeToken
 import java.time.Instant
 
@@ -82,7 +81,7 @@ open class SlidingBuffer<T: Any, P: Any>(
 
     val hostName: String get() = when(host){
         is CTX-> host.identifiedByName
-        else -> host::class.simpleOrNan()
+        else -> host::class.simpleOrAnon
     }
     val typeName: String by lazy {
         "<${typeData.typeName}>".colorize(Colour.BlueBright)
@@ -93,10 +92,10 @@ open class SlidingBuffer<T: Any, P: Any>(
     }
 
     override val formattedString: String get() {
-        val items =  buffer.joinToString(prefix = "->", separator =  "${SpecialChars.newLine}->") {
+        val items =  buffer.joinToString(prefix = "->", separator =  "${SpecialChars.NEW_LINE}->") {
             "$it @ ${it.created} by ${it.providedBy} with hash: ${it.providedByHash}"
         }
-        return "$identifiedAs ${SpecialChars.newLine}$items"
+        return "$identifiedAs ${SpecialChars.NEW_LINE}$items"
     }
 
     private val buffer = mutableListOf<BufferItem<T, P>>()
@@ -110,7 +109,7 @@ open class SlidingBuffer<T: Any, P: Any>(
     private var sameAsRecent: ((BufferItem<T, P>)-> BufferAction)? = null
 
     protected open val noCommitFunctionMsg: (BufferItem<T, P>) -> String ={
-        "Received Commit command but no onCommit function provided while processing: $it" + SpecialChars.newLine +
+        "Received Commit command but no onCommit function provided while processing: $it" + SpecialChars.NEW_LINE +
         "Stored as ${it.itemStatus.name}"
     }
 
@@ -118,7 +117,7 @@ open class SlidingBuffer<T: Any, P: Any>(
         val resultStr = if(result){
              "Providing default value available for type ${type.typeName}"
         }else{ "Unable to provide default for type${type.typeName}" }
-        "Result demanded before its initialization."+ SpecialChars.newLine + resultStr
+        "Result demanded before its initialization."+ SpecialChars.NEW_LINE + resultStr
     }
 
     private fun removeIfExceeded(){
@@ -252,10 +251,10 @@ open class SlidingBuffer<T: Any, P: Any>(
     }
 
     override fun toString(): String {
-      val items =  buffer.joinToString(prefix = "->", separator =  "${SpecialChars.newLine}->") {
+      val items =  buffer.joinToString(prefix = "->", separator =  "${SpecialChars.NEW_LINE}->") {
           "$it @ ${it.created} by ${it.providedBy} with hash: ${it.providedByHash}"
       }
-       return "$identifiedAs ${SpecialChars.newLine}$items"
+       return "$identifiedAs ${SpecialChars.NEW_LINE}$items"
     }
 
     companion object{
@@ -288,7 +287,7 @@ open class Buffer<T: Any?, P: Any>(
 
     val hostName: String get() = when(host){
         is CTX-> host.identifiedByName
-        else -> host::class.simpleOrNan()
+        else -> host::class.simpleOrAnon
     }
 
     protected val identifiedAs: String by lazy {
@@ -296,10 +295,10 @@ open class Buffer<T: Any?, P: Any>(
     }
 
     override val formattedString: String get() {
-        val items =  buffer.joinToString(prefix = "->", separator =  "${SpecialChars.newLine}->") {
+        val items =  buffer.joinToString(prefix = "->", separator =  "${SpecialChars.NEW_LINE}->") {
             "$it @ ${it.created} by ${it.providedBy} with hash: ${it.providedByHash}"
         }
-        return "$identifiedAs ${SpecialChars.newLine}$items"
+        return "$identifiedAs ${SpecialChars.NEW_LINE}$items"
     }
 
     private val buffer = mutableListOf<BufferItem<T, P>>()
@@ -313,7 +312,7 @@ open class Buffer<T: Any?, P: Any>(
     private var sameAsRecent: ((BufferItem<T, P>)-> BufferAction)? = null
 
     protected open val noCommitFunctionMsg: (BufferItem<T, P>) -> String ={
-        "Received Commit command but no onCommit function provided while processing: $it" + SpecialChars.newLine +
+        "Received Commit command but no onCommit function provided while processing: $it" + SpecialChars.NEW_LINE +
                 "Stored as ${it.itemStatus.name}"
     }
 
@@ -442,10 +441,10 @@ open class Buffer<T: Any?, P: Any>(
     }
 
     override fun toString(): String {
-        val items =  buffer.joinToString(prefix = "->", separator =  "${SpecialChars.newLine}->") {
+        val items =  buffer.joinToString(prefix = "->", separator =  "${SpecialChars.NEW_LINE}->") {
             "$it @ ${it.created} by ${it.providedBy} with hash: ${it.providedByHash}"
         }
-        return "$identifiedAs ${SpecialChars.newLine}$items"
+        return "$identifiedAs ${SpecialChars.NEW_LINE}$items"
     }
 
     companion object{

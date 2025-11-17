@@ -1,7 +1,6 @@
 package po.test.misc.types
 
-import po.misc.types.TokenHolder
-import po.misc.types.Tokenized
+import po.misc.types.token.TokenHolder
 import po.misc.types.token.TypeToken
 
 interface ComponentInterface

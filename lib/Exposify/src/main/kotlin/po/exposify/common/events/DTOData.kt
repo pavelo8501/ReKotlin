@@ -6,6 +6,7 @@ import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.context.Identifiable
 import po.misc.data.printable.companion.nextLine
+import po.misc.types.token.TypeToken
 
 
 data class DTOData(
@@ -19,7 +20,7 @@ data class DTOData(
       return  tracker.activeRecord.operation
     }
 
-    companion object: PrintableCompanion<DTOData>({DTOData::class}){
+    companion object: PrintableCompanion<DTOData>(TypeToken.create()){
 
         val Stats = createTemplate{
             nextLine { "Active operation: $currentOperation" }

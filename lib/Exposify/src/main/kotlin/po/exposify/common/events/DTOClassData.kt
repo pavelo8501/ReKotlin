@@ -6,6 +6,7 @@ import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.data.printable.companion.nextLine
+import po.misc.types.token.TypeToken
 
 data class DTOClassData(
     private val dtoClass: DTOBase<*, *, *>,
@@ -16,7 +17,7 @@ data class DTOClassData(
     override val self: DTOClassData = this
 
 
-    companion object: PrintableCompanion<DTOClassData>({DTOClassData::class}){
+    companion object: PrintableCompanion<DTOClassData>(TypeToken.create()){
 
         fun identity(data:DTOClassData): String{
             return "DTO: ${data.dtoClass.identity}. Status:${data.status}"

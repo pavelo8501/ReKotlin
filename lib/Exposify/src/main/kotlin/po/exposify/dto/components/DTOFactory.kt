@@ -25,7 +25,6 @@ import po.misc.functions.registries.builders.taggedRegistryOf
 import po.misc.interfaces.ValueBased
 import po.misc.serialization.SerializerInfo
 import po.misc.types.token.TypeToken
-import po.misc.types.type_data.TypeData
 import kotlin.reflect.KType
 
 sealed class DTOFactoryBase<DTO, D, E>(

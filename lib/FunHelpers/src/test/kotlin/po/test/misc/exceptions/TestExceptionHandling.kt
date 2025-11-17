@@ -4,40 +4,23 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertThrows
-import po.misc.context.CTX
-import po.misc.context.CTXIdentity
-import po.misc.context.asIdentity
 import po.misc.data.helpers.output
 import po.misc.data.logging.ContextAware
-import po.misc.data.logging.ContextAwareLogEmitter
-import po.misc.data.logging.logEmitter
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
-import po.misc.exceptions.createTrace
 import po.misc.exceptions.handling.delegateIfThrow
 import po.misc.exceptions.handling.registerHandler
-import po.misc.exceptions.metaFrameTrace
-import po.misc.exceptions.stack_trace.ExceptionTrace
+import po.misc.exceptions.stack_trace.extractTrace
+import po.misc.exceptions.stack_trace.tryExtractTrace
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 
-fun Throwable.getTrace():  ExceptionTrace{
-  return  createTrace(TestExceptionHandling::class)
-}
-
-fun Throwable.getTrace(block: Throwable.()-> Unit){
-    this.block()
-}
-
-
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestExceptionHandling() : ContextAware {
 
-    override val emitter: ContextAwareLogEmitter = logEmitter()
-    override val identity: CTXIdentity<out CTX> = asIdentity()
 
     @Test
     fun `Check if trace can be obtained from wide generic exceptions`() {
@@ -46,18 +29,16 @@ class TestExceptionHandling() : ContextAware {
             try {
                 throw Exception("Some text")
             } catch (th: Throwable) {
-                th.getTrace {
-                    metaFrameTrace(TestExceptionHandling::class)?.let {
-                        it.output()
-                        it.stackFrames.output {
-                            it.colorize(Colour.Green)
-                        }
+                th.tryExtractTrace(TestExceptionHandling::class).let {
+                    it.output()
+                    it.stackFrames.output {
+                        it.colorize(Colour.Green)
                     }
                 }
             }
         }
 
-        val result = exception.getTrace()
+        val result = exception.extractTrace()
         assertIs<TestExceptionHandling>(result.kClass)
         assertEquals(3, result.stackFrames.size)
 

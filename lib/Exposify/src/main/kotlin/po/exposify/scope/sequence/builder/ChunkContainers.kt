@@ -13,8 +13,8 @@ import po.exposify.scope.sequence.launcher.ListTypeSwitchHandler
 import po.exposify.scope.sequence.launcher.SingleTypeHandler
 import po.exposify.scope.sequence.launcher.SingleTypeSwitchHandler
 import po.lognotify.TasksManaged
-import po.misc.containers.BackingContainer
-import po.misc.containers.backingContainerOf
+import po.misc.containers.backing.BackingContainer
+import po.misc.containers.backing.backingContainerOf
 import po.misc.context.CTXIdentity
 import po.misc.context.asSubIdentity
 import po.misc.types.castListOrManaged
@@ -70,7 +70,7 @@ class SwitchChunkContainer<DTO, D, F, FD>(
     val singleHandler: SingleTypeSwitchHandler<DTO, D, F, FD> = SingleTypeSwitchHandler(descriptor)
 
     init {
-        resultBacking.onValueSet { change ->
+        resultBacking.onValueChanged { change ->
             println("change")
             println(this)
             println(change)

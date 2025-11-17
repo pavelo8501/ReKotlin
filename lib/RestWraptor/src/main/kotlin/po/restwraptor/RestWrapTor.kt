@@ -8,7 +8,6 @@ import io.ktor.server.engine.EngineConnectorConfig
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.netty.NettyApplicationEngine
-import io.ktor.server.routing.routing
 import io.ktor.util.AttributeKey
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
@@ -17,11 +16,11 @@ import kotlinx.coroutines.async
 import po.lognotify.TasksManaged
 import po.lognotify.launchers.runTask
 import po.lognotify.launchers.runTaskAsync
-import po.misc.containers.LazyContainer
-import po.misc.containers.lazyContainerOf
+import po.misc.containers.lazy.LazyContainer
+import po.misc.containers.lazy.lazyContainerOf
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
-import po.misc.context.TraceableContext
+import po.misc.context.tracable.TraceableContext
 import po.misc.functions.registries.builders.notifierRegistryOf
 import po.misc.types.getOrThrow
 import po.restwraptor.scope.ConfigContext
@@ -33,19 +32,11 @@ import po.restwraptor.interfaces.WraptorResponse
 import po.restwraptor.models.configuration.WraptorConfig
 import po.restwraptor.models.info.WraptorStatus
 import po.restwraptor.models.server.WraptorRoute
-import po.restwraptor.routes.ManagedRouting
 
 val RestWrapTorKey = AttributeKey<RestWrapTor>("RestWrapTorInstance")
 
-
 interface WraptorContext : TraceableContext
-
-object RestWraptorServer:RestWrapTor(), WraptorContext {
-
-}
-
-
-
+object RestWraptorServer:RestWrapTor(), WraptorContext
 
 
 fun configureWraptor(builder : (ConfigContext.() -> Unit)){
@@ -62,7 +53,6 @@ fun Application.configureWraptor(
 fun configureApplication(builder : (Application.() -> Unit)){
     RestWraptorServer.configureApplication(builder)
 }
-
 
 fun runWraptor(
     host: String = "0.0.0.0",
@@ -178,7 +168,6 @@ open class RestWrapTor(
 
     private fun applyConfig(app: Application) {
         val config = ConfigContext(this, app)
-
         applicationRegistry.trigger(config.application)
         configRegistry.trigger(config)
 //        app.routing {
@@ -191,7 +180,6 @@ open class RestWrapTor(
     }
 
     internal fun setupConfig(app: Application) = runTask("Configuration") {
-
         app.monitor.subscribe(ServerReady) {
             onServerStartedCallback?.invoke(this)
         }
@@ -249,7 +237,7 @@ open class RestWrapTor(
     }
 
     fun setWraptorResponse(provider:()-> WraptorResponse<*>){
-        configContextBacking.requestValue(this){config->
+        configContextBacking.getValue(this){config->
             config.registerResponseProvider(provider)
         }
     }
@@ -316,8 +304,8 @@ open class RestWrapTor(
             isProduction,
             emptyList(),
             emptyList(),
-            allRoutes.filter { it.isSecured == false },
-            allRoutes.filter { it.isSecured == true },
+            allRoutes.filter { !it.isSecured },
+            allRoutes.filter { it.isSecured },
         )
     }
 }

@@ -6,7 +6,6 @@ import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.interfaces.ValueBased
-import po.misc.registries.callback.CallbackRegistry
 import po.misc.registries.callback.TypedCallbackRegistry
 import kotlin.test.assertEquals
 

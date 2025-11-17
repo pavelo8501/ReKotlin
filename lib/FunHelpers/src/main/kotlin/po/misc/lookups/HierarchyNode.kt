@@ -1,7 +1,6 @@
 package po.misc.lookups
 
 import po.misc.types.token.TypeToken
-import po.misc.types.type_data.TypeData
 
 
 data class HierarchyNode<T: Any> (

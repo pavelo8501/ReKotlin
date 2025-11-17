@@ -7,10 +7,12 @@ import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
 import po.misc.context.CTX
 import po.misc.data.helpers.replaceIfNull
+import po.misc.data.styles.Colorizer
 import po.misc.functions.dsl.helpers.nextBlock
 import po.misc.reflection.anotations.ManagedProperty
 import po.misc.reflection.properties.takePropertySnapshot
 import po.misc.types.isNotNull
+import po.misc.types.token.TypeToken
 import java.time.LocalTime
 
 enum class MonitorAction{
@@ -38,7 +40,7 @@ class HealthMonitor<T: CTX>(
         val producer: CTX get() = holder
         val dateTime: LocalTime = LocalTime.now()
 
-        companion object: PrintableCompanion<Record>({Record::class}){
+        companion object: PrintableCompanion<Record>(TypeToken.create()){
             val Default = createTemplate{
                 nextBlock{
                     "${dateTime.toString()} : ${action.name} -> ($parameter = $value) ${message.replaceIfNull()} "
@@ -73,7 +75,7 @@ class HealthMonitor<T: CTX>(
         val snapshot = takePropertySnapshot<T, ManagedProperty>(source)
         if(snapshot.isNotEmpty()){
             println("Before crash  property snapshot")
-           val snapshotStr =  snapshot.joinToString(separator = SpecialChars.newLine) { "val ${it.propertyName} = ${it.value}" }
+           val snapshotStr =  snapshot.joinToString(separator = SpecialChars.NEW_LINE) { "val ${it.propertyName} = ${it.value}" }
             println(snapshotStr)
         }
     }
@@ -114,10 +116,10 @@ class HealthMonitor<T: CTX>(
 
     fun phaseReport(phase:LifecyclePhase): String{
         val records = records(phase)
-        val recordsStr: String = records.joinToString(SpecialChars.newLine) {
+        val recordsStr: String = records.joinToString(SpecialChars.NEW_LINE) {
             it.formattedString
         }
-        val phaseStr = "[${phase.name} of ${source.completeName.colorize(Colour.Yellow)}] ${SpecialChars.newLine}${recordsStr}"
+        val phaseStr = "[${phase.name} of ${source.completeName.colorize(Colour.Yellow)}] ${SpecialChars.NEW_LINE}${recordsStr}"
         return phaseStr
     }
 
@@ -126,10 +128,10 @@ class HealthMonitor<T: CTX>(
     }
 
     fun report(): String{
-        val phases =  healthJournal.keys.joinToString(separator = SpecialChars.newLine.repeat(2)) {
+        val phases =  healthJournal.keys.joinToString(separator = SpecialChars.NEW_LINE.repeat(2)) {
             phaseReport(it)
         }
-        val report = "${Colour.makeOfColour(Colour.Blue, "Activity report")} for (${source.completeName}) ${SpecialChars.newLine}$phases"
+        val report = "${Colorizer.colour("Activity report", Colour.Blue)} for (${source.completeName}) ${SpecialChars.NEW_LINE}$phases"
         return  report
     }
 

@@ -19,16 +19,11 @@ import po.misc.collections.BufferClass
 import po.misc.collections.BufferItem
 import po.misc.collections.BufferItemStatus
 import po.misc.collections.SlidingBuffer
-import po.misc.collections.addToBuffer
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asSubIdentity
 import po.misc.data.SmartLazy
-import po.misc.data.helpers.output
-import po.misc.data.styles.Colour
-import po.misc.types.token.NullableTypeToken
 import po.misc.types.token.TypeToken
-import po.misc.types.type_data.TypeData
 import kotlin.Any
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KMutableProperty1
@@ -146,7 +141,7 @@ sealed class ResponsiveDelegate<DTO, D, E, V> protected constructor(
         buffer.onCommit(::onValueCommit)
         buffer.onValueReceived(::onDataSubmitted)
         buffer.onSameAsRecent(::onSameDataSubmitted)
-        hostingDTO.dataContainer.requestValue(this){dataModel->
+        hostingDTO.dataContainer.getValue(this){dataModel->
             val value = dataProperty.get(dataModel)
             buffer.add(value, newInternalParam())
             hostingDTO.bindingHub.registerResponsiveDelegate(this)

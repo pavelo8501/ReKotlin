@@ -6,13 +6,6 @@ import kotlin.reflect.KType
 import kotlin.reflect.typeOf
 
 
-fun KType.asStableString(): String {
-    val qualifiedTypeName = classifier?.let {
-        (it as? KClass<*>)?.qualifiedName
-    } + (if (isMarkedNullable) "?" else "")
-    return qualifiedTypeName
-}
-
 fun KType.toSimpleNormalizedKey(): String {
     val classifier = this.classifier
     return when (classifier) {
@@ -29,8 +22,3 @@ fun KType.toSimpleNormalizedKey(): String {
     }
 }
 
-fun  KClassifier?.simplifiedName(): String{
-   return this?.let {
-        (it as KClass<*>).simpleName.toString()
-    }?:"Null"
-}

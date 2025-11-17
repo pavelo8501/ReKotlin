@@ -2,7 +2,7 @@ package po.test.misc.types
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import po.misc.context.TraceableContext
+import po.misc.context.tracable.TraceableContext
 import po.misc.exceptions.ExceptionPayload
 import po.misc.types.castOrThrow
 import po.misc.types.getOrThrow

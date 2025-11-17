@@ -11,7 +11,6 @@ import po.misc.functions.registries.builders.require
 import po.misc.functions.registries.builders.subscribe
 import po.misc.functions.registries.builders.taggedRegistryOf
 import po.misc.types.token.TypeToken
-import po.misc.types.type_data.TypeData
 import po.test.misc.setup.ControlClass
 import kotlin.test.assertEquals
 import kotlin.test.assertIs

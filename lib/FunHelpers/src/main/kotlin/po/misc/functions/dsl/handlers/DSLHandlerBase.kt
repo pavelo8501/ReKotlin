@@ -2,8 +2,6 @@ package po.misc.functions.dsl.handlers
 
 import po.misc.functions.dsl.DSLConstructor
 import po.misc.types.token.TypeToken
-import po.misc.types.type_data.TypeData
-
 
 abstract class DSLHandlerBase<T: Any, R: Any>(
     private val constructor: DSLConstructor<T, R>

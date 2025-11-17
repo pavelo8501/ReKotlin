@@ -1,6 +1,6 @@
 package po.misc.data.helpers
 
-import po.misc.context.TraceableContext
+import po.misc.context.tracable.TraceableContext
 import po.misc.exceptions.ManagedException
 import po.misc.types.getOrThrow
 

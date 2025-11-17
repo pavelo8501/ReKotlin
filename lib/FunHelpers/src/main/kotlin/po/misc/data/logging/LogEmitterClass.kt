@@ -1,16 +1,10 @@
 package po.misc.data.logging
 
-
 import po.misc.data.logging.models.ContextMessage
 import po.misc.data.processors.SeverityLevel
 
-enum class Verbosity{
-    Info,
-    Warnings,
-}
 
  class EmitterConfig {
-
      var verbosity: Verbosity = Verbosity.Info
          private set
 

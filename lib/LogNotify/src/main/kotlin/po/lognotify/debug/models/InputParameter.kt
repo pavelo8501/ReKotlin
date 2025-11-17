@@ -1,11 +1,11 @@
 package po.lognotify.debug.models
 
 import po.misc.data.styles.SpecialChars
-import po.misc.types.type_data.TypeData
+import po.misc.types.token.TypeToken
 
 data class InputParameter(
     val name: String,
-    val typeData: TypeData<*>,
+    val typeData: TypeToken<*>,
     val size:Int = 1,
     val value: String
 ){
@@ -18,7 +18,7 @@ data class InputParameter(
     override fun toString(): String {
 
        val paramValue = if(items.isNotEmpty()){
-            items.joinToString(prefix = SpecialChars.NewLine.toString()) { it.toString() }
+            items.joinToString(prefix = SpecialChars.NEW_LINE) { it.toString() }
         }else{
            value
        }

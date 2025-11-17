@@ -1,7 +1,7 @@
 package po.misc.functions.payloads
 
 import po.misc.exceptions.ManagedException
-import po.misc.context.TraceableContext
+import po.misc.context.tracable.TraceableContext
 
 
 sealed interface LambdaPayload<T> {

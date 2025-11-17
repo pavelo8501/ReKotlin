@@ -19,6 +19,7 @@ import po.misc.data.styles.colorize
 import po.misc.exceptions.stack_trace.StackFrameMeta
 import po.misc.exceptions.toStackTraceFormat
 import po.misc.functions.dsl.helpers.nextBlock
+import po.misc.types.token.TypeToken
 
 
 class TaskEvent(
@@ -28,7 +29,7 @@ class TaskEvent(
 ) : PrintableBase<TaskEvent>(this) {
     override val self: TaskEvent = this
 
-    companion object : PrintableCompanion<TaskEvent>({ TaskEvent::class }) {
+    companion object : PrintableCompanion<TaskEvent>(TypeToken.create()) {
         val Message: Template<TaskEvent> =
             createTemplate {
                 nextBlock {
@@ -62,7 +63,7 @@ class ErrorRecord(
 ) : PrintableBase<ErrorRecord>(this) {
     override val self: ErrorRecord = this
 
-    companion object : PrintableCompanion<ErrorRecord>({ ErrorRecord::class }) {
+    companion object : PrintableCompanion<ErrorRecord>(TypeToken.create()) {
         val Default: Template<ErrorRecord> = createTemplate {
             nextLine {
                 message.colorize(Colour.Red)
@@ -78,18 +79,18 @@ class ErrorRecord(
                 if (callSite != null) {
                     if (callSite.methodName == "invoke") {
                         """
-                            ${Colour.makeOfColour(Colour.Yellow, "ThrowingCallSite: (actual exception place)")}
-                            ${Colour.makeOfColour(Colour.Gray, "Class Name:")} ${callSite.fileName.stripAfter('$')}
-                            ${Colour.makeOfColour(Colour.Gray, "Method Name:")
+                            ${Colour.colour(Colour.Yellow, "ThrowingCallSite: (actual exception place)")}
+                            ${Colour.colour(Colour.Gray, "Class Name:")} ${callSite.fileName.stripAfter('$')}
+                            ${Colour.colour(Colour.Gray, "Method Name:")
                         } ${callSite.methodName} (Lambda invocation)"
-                            ${Colour.makeOfColour(Colour.Gray, "Reference:")}
+                            ${Colour.colour(Colour.Gray, "Reference:")}
                             ${callSite.toStackTraceFormat()}
                             """.trimIndent()
                     } else {
                         "ThrowingCallSite: (actual exception place)".colorize(Colour.Yellow) + callSite.toStackTraceFormat()
                     }
                 } else {
-                    SpecialChars.Empty.char
+                    SpecialChars.EMPTY
                 }
             }
         }
@@ -127,7 +128,7 @@ class LogData(
 
     override fun toString(): String = formattedString
 
-    companion object : PrintableCompanion<LogData>({ LogData::class }) {
+    companion object : PrintableCompanion<LogData>(TypeToken.create()) {
         val Header: Template<LogData> = createTemplate {
             nextBlock { handler ->
                 handler.applyToResult { row -> "[ $row ]".colorize(Colour.Blue) }
@@ -142,7 +143,7 @@ class LogData(
                     ExecutionStatus.Active -> executionStatus.name.colorize(Colour.WhiteBright)
                     ExecutionStatus.Failing, ExecutionStatus.Faulty -> executionStatus.name.colorize(Colour.Red)
                 }
-               "${Colour.makeOfColour(Colour.Blue, "[Stop $taskFooter | Status:")} $status ${Colour.makeOfColour(Colour.Blue, "]")}"
+               "${Colour.colour(Colour.Blue, "[Stop $taskFooter | Status:")} $status ${Colour.colour(Colour.Blue, "]")}"
             }
         }
 
@@ -151,13 +152,5 @@ class LogData(
             createRecord(LogData::executionStatus)
             createObject(LogData::taskEvents, TaskEvent::message)
         }
-
-//        val json: JsonDescriptor<LogData> = JsonDescriptor<LogData>(this){
-//
-//            createObject(LogData::taskHeader, LogData::executionStatus, LogData::elapsed, LogData::taskFooter)
-//            buildSubArray(TaskEvent::class, LogData::taskEvents){
-//                createObject(TaskEvent::severity, TaskEvent::message)
-//            }
-//        }
     }
 }

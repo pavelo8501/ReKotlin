@@ -8,17 +8,18 @@ import io.ktor.server.application.install
 import io.ktor.server.application.pluginOrNull
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.cors.routing.CORS
-import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
 import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.auth.models.CryptoRsaKeys
 import po.lognotify.TasksManaged
 import po.lognotify.launchers.runAction
-import po.misc.containers.BackingContainer
-import po.misc.containers.backingContainerOf
+import po.misc.containers.BackingContainerBase
+import po.misc.containers.backing.BackingContainer
+import po.misc.containers.backing.backingContainerOf
 import po.misc.context.CTXIdentity
 import po.misc.context.asSubIdentity
+import po.misc.context.tracable.TraceableContext
 import po.misc.functions.registries.builders.notifierRegistryOf
 import po.restwraptor.RestWrapTor
 import po.restwraptor.interfaces.WraptorResponse
@@ -29,7 +30,6 @@ import po.restwraptor.models.response.DefaultResponse
 import po.restwraptor.plugins.CallInterceptorPlugin
 import po.restwraptor.plugins.CoreAuthApplicationPlugin
 import po.restwraptor.plugins.RateLimiterPlugin
-import po.restwraptor.routes.ManagedRoute
 import po.restwraptor.routes.ManagedRouting
 import po.restwraptor.routes.configureSystemRoutes
 
@@ -37,7 +37,7 @@ import po.restwraptor.routes.configureSystemRoutes
 class ConfigContext(
     internal val wraptor : RestWrapTor,
     internal val application: Application
-): TasksManaged {
+): TasksManaged, TraceableContext {
 
     val wrapConfig: WraptorConfig = WraptorConfig()
     val coreContext: CoreContext = CoreContext(application, wraptor)
@@ -75,7 +75,9 @@ class ConfigContext(
     val managedRouting: ManagedRouting = ManagedRouting()
 
     init {
-        responseProvider.provideValue({ DefaultResponse("") })
+        responseProvider.provideValue(BackingContainerBase.EmissionType.EmmitAlways){
+            { DefaultResponse("") }
+        }
     }
 
     private fun configCors(app: Application) = runAction("ConfigCors") {
@@ -175,7 +177,7 @@ class ConfigContext(
         }
         if (apiConfig.systemRouts) {
             application.routing {
-                configureSystemRoutes(this@ConfigContext, responseProvider.getValue(this))
+                configureSystemRoutes(this@ConfigContext, responseProvider.getValue(this@ConfigContext))
             }
         }
         authConfigFn?.invoke(authContext)

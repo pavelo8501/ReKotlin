@@ -5,11 +5,15 @@ import po.misc.data.logging.Verbosity
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
-data class LoopConfig(
+
+
+class LoopConfig(
     var boostWindowSize: Int = 10,
     var requestDelay: Duration = 10.seconds,
     var verbosity: Verbosity = Verbosity.Info
 )
+
+
 
 data class LoopStats(
     var perLoopProcessedCount: Int = 0,

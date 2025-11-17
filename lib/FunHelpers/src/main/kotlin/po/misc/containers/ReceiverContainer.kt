@@ -8,7 +8,6 @@ package po.misc.containers
  * @param T The type of the contained receiver object.
  */
 interface ReceiverContainer<T: Any>{
-
     /** The wrapped receiver whose members will be exposed in scope-aware blocks. */
     val receiver: T
 }

@@ -5,7 +5,7 @@ import po.misc.data.helpers.output
 import po.misc.data.json.models.JsonObject
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.companion.PrintableCompanion
-import po.misc.types.type_data.TypeData
+import po.misc.types.token.TypeToken
 
 class TestJsonComposer {
 
@@ -27,7 +27,7 @@ class TestJsonComposer {
 
         override val self = this
 
-        companion object : PrintableCompanion<Data>({ Data::class }) {
+        companion object : PrintableCompanion<Data>(TypeToken.create()) {
 
         }
     }
@@ -36,7 +36,7 @@ class TestJsonComposer {
     fun `JsonObject creates appropriate formatting`() {
 
         val data = Data("name_property", 1)
-        val jsonObject = JsonObject<Data, Data>(TypeData.create<Data>())
+        val jsonObject = JsonObject<Data, Data>(TypeToken.create<Data>())
 
         jsonObject.createRecord(Data::name)
         jsonObject.createRecord(Data::value)

@@ -1,11 +1,14 @@
 package po.misc.exceptions.handling
 
 import kotlinx.coroutines.currentCoroutineContext
-import po.misc.context.TraceableContext
+import po.misc.context.tracable.TraceableContext
 import po.misc.coroutines.coroutineInfo
 import po.misc.data.logging.ContextAware
-import po.misc.data.logging.ContextAware.ExceptionLocator
+import po.misc.exceptions.ExceptionLocator
+import po.misc.exceptions.stack_trace.extractTrace
+import po.misc.exceptions.stack_trace.tryExtractTrace
 import po.misc.exceptions.trackable.TrackableException
+import po.misc.functions.LambdaType
 
 
 inline fun <reified TH: Throwable> ContextAware.registerHandler(
@@ -13,30 +16,30 @@ inline fun <reified TH: Throwable> ContextAware.registerHandler(
 ): Unit = ExceptionLocator.throwableRegistry.registerNoReturn<TH>(block)
 
 inline fun <reified TH: Throwable> ContextAware.registerHandler(
-    suspendable:Suspended,
+    suspended:LambdaType.Suspended,
     noinline block: suspend (TH)-> Nothing
-): Unit = ExceptionLocator.throwableRegistry.registerNoReturn<TH>(suspendable, block)
+): Unit = ExceptionLocator.throwableRegistry.registerNoReturn<TH>(suspended, block)
 
 
 inline fun <R: Any> TraceableContext.delegateIfThrow(block:()-> R):R{
     try {
         return block()
     }catch (throwable: Throwable){
-        warn(throwable)
+        warn("delegateIfThrow",  throwable)
         ExceptionLocator.throwableRegistry.dispatch(throwable)
     }
 }
 
-suspend fun <R: Any> TraceableContext.delegateIfThrow(suspended:Suspended, block: suspend ()-> R):R{
+suspend fun <R: Any> TraceableContext.delegateIfThrow(suspended: LambdaType.Suspended, block: suspend ()-> R):R{
     try {
         return block()
     }catch (throwable: Throwable){
-        val exceptionTrace = throwable.traceFor(this::class)
+        val exceptionTrace = throwable.tryExtractTrace(this::class)
         if(throwable is TrackableException){
             val context =  currentCoroutineContext()
             throwable.coroutineInfo = context.coroutineInfo(throwable.contextClass, exceptionTrace.bestPick.methodName)
         }
-        warn(suspended, throwable)
+        warn("delegateIfThrow",  throwable)
         ExceptionLocator.throwableRegistry.dispatch(throwable, suspended)
     }
 }

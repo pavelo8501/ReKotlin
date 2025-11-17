@@ -4,15 +4,11 @@ import po.exposify.dto.DTOBase
 import po.exposify.dto.DTOClass
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
-import po.exposify.exceptions.OperationsException
-import po.exposify.exceptions.enums.ExceptionCode
-import po.exposify.scope.sequence.builder.SequenceDescriptor
-import po.misc.containers.BackingContainer
+import po.misc.containers.backing.BackingContainer
 import po.misc.containers.BackingContainerBase
-import po.misc.containers.backingContainerOf
+import po.misc.containers.backing.backingContainerOf
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
-import po.misc.functions.common.ExceptionFallback
 
 sealed class SwitchDescriptorBase<DTO, D, F, FD>(
     override val dtoClass: DTOClass<DTO, D, *>,

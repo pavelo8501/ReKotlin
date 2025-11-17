@@ -3,9 +3,14 @@ package po.misc.data.strings
 import po.misc.context.CTX
 import po.misc.data.HasValue
 import po.misc.data.PrettyPrint
+import po.misc.data.TextContaining
+import po.misc.data.styles.Colorizer
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
+import kotlin.collections.drop
+import kotlin.collections.first
+import kotlin.collections.isNotEmpty
 
 
 sealed class StringFormatter(var string: String){
@@ -20,24 +25,25 @@ sealed class StringFormatter(var string: String){
     }
     override fun toString(): String{
         return if (subFormatters.isNotEmpty()) {
-            subFormatters.joinToString(prefix = string, postfix =SpecialChars.newLine , separator = SpecialChars.newLine) {
+            val subResult = subFormatters.joinToString(prefix = string, postfix = SpecialChars.NEW_LINE , separator = SpecialChars.NEW_LINE) {
                 it.toString()
             }
+            "${string}${SpecialChars.NEW_LINE}${subResult}"
         } else {
             string
         }
     }
+
     companion object{
-        
-        fun formatKnownTypes(target: Any): String {
+        fun formatKnownTypes(target: Any?): String {
             return when(target){
                 is PrettyPrint -> {
                     target.formattedString
                 }
                 is CTX -> { target.identifiedByName }
                 is Enum<*> -> {
-                    if(target is HasValue){
-                        "${target.name}: ${target.value}"
+                    if(target is TextContaining){
+                        "${target.name}: ${target.asText()}"
                     }else{
                         target.name
                     }
@@ -62,11 +68,10 @@ class SimpleFormatter(
 class DSLFormatter(string: String): StringFormatter(string){
 
     private var firstIteration: Boolean = true
-
     private fun appendLine(receiver: Any,  colour: Colour): DSLFormatter{
         val formatedText = formatKnownTypes(receiver)
         val dsl =  DSLFormatter(formatedText)
-        dsl.formatedString = textColorizer(formatedText, colour)
+        dsl.formatedString = Colorizer.applyColour(formatedText, colour)
         return dsl
     }
 
@@ -92,14 +97,14 @@ internal inline fun stringifyInternal(
     val lambdaResult = transform(StringFormatter.formatKnownTypes(receiver))
 
     return colour?.let {
-        SimpleFormatter(lambdaResult, textColorizer(lambdaResult, it))
+        SimpleFormatter(lambdaResult, Colorizer.applyColour(lambdaResult, it))
     } ?: SimpleFormatter(lambdaResult)
 }
 
 
 @PublishedApi
 internal fun stringifyInternal(
-    receiver: Any,
+    receiver: Any?,
     prefix: String?,
     colour: Colour?
 ):SimpleFormatter {
@@ -110,11 +115,11 @@ internal fun stringifyInternal(
 
     val formated = prefixToUse + StringFormatter.formatKnownTypes(receiver)
     return colour?.let {
-        SimpleFormatter(formated, textColorizer(formated, it))
+        SimpleFormatter(formated, Colorizer.applyColour(formated, it))
     } ?: SimpleFormatter(formated)
 }
 
-fun Any.stringify(
+fun Any?.stringify(
     prefix: String,
     colour: Colour? = null
 ):SimpleFormatter {
@@ -127,6 +132,8 @@ fun Any.stringify(
 ):SimpleFormatter {
     return stringifyInternal(this, prefix =  null, colour =  colour)
 }
+
+
 
 fun Any.stringify():SimpleFormatter {
     val formatedText = StringFormatter.formatKnownTypes(this)
@@ -143,6 +150,44 @@ inline fun Any.stringify(
     colour: Colour? = null,
     transform: (String)-> String
 ):SimpleFormatter = stringifyInternal(this, colour, transform)
+
+
+@PublishedApi
+internal inline fun stringifyListInternal(
+    list: List<Any>,
+    colour: Colour?,
+    transform: (String)-> String
+):SimpleFormatter {
+
+    return if(list.isNotEmpty()) {
+        val stringFormater =  list.first().stringify(colour, transform)
+        list.drop(1).forEach {
+            stringFormater.addSubStringFormater(it.stringify(colour, transform))
+        }
+        stringFormater
+    }else{
+        SimpleFormatter("empty", "empty")
+    }
+}
+
+@PublishedApi
+internal fun stringifyListInternal(
+    list: List<Any>,
+    colour: Colour?,
+):SimpleFormatter {
+
+    return if(list.isNotEmpty()) {
+        val stringFormater =  list.first().stringify(colour)
+        list.drop(1).forEach {
+            stringFormater.addSubStringFormater(it.stringify(colour))
+        }
+        stringFormater
+    }else{
+        SimpleFormatter("empty", "empty")
+    }
+}
+
+fun List<Any>.stringify():SimpleFormatter = stringifyListInternal(this, colour = null)
 
 
 inline fun List<Any>.stringify(
