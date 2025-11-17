@@ -4,7 +4,6 @@ import po.misc.context.tracable.TraceableContext
 import po.misc.data.PrettyPrint
 import po.misc.data.logging.Loggable
 import po.misc.data.logging.NotificationTopic
-import po.misc.data.printable.Printable
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
@@ -30,9 +29,17 @@ data class Notification(
     private val contextName: String  = ClassResolver.instanceName(context)
     override val created: Instant = Instant.now()
 
+    private val formattedText: String get() {
+       return when(topic){
+            NotificationTopic.Info,  NotificationTopic.Debug ->  text.colorize(Colour.WhiteBright)
+            NotificationTopic.Warning -> text.colorize(Colour.Yellow)
+            NotificationTopic.Exception -> text.colorize(Colour.Red)
+        }
+    }
+
     override val formattedString: String get() {
-        return "[$contextName @ ${created.hoursFormated(3)}] -> $subject".applyColour(Colour.Blue).newLine {
-            text.colorize(Colour.WhiteBright)
+        return "[$contextName @ ${created.hoursFormated(3)}] -> $subject".colorize(Colour.Blue).newLine {
+            formattedText
         }
     }
 

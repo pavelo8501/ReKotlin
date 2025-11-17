@@ -39,8 +39,6 @@ sealed class HoconDelegateBase<T: HoconResolvable<T>, V, R>(
 
     operator fun provideDelegate(thisRef: T, property: KProperty<*>): HoconDelegateBase<T, V, R> {
         kProperty = property
-        property.returnType.isMarkedNullable.output("KProperty on ${componentID.componentName} Nullable: ")
-
         return this
     }
 }

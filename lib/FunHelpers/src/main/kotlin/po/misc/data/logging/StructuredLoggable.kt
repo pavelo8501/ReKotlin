@@ -1,5 +1,8 @@
 package po.misc.data.logging
 
+import po.misc.context.tracable.TraceableContext
+import po.misc.data.logging.models.LogMessage
+import po.misc.data.logging.parts.KeyValue
 import po.misc.data.logging.procedural.ProceduralEntry
 
 /**
@@ -26,12 +29,35 @@ import po.misc.data.logging.procedural.ProceduralEntry
  * @see ProceduralEntry
  * @see po.misc.data.logging.procedural.ProceduralFlow
  */
-interface StructuredLoggable: Loggable {
+interface StructuredLoggable : Loggable {
+
+    val tracker: Enum<*>?
+    //val entries: MutableList<Loggable>
 
     /**
      * Registers a procedural step or sub-entry within this structured log.
      * @param record the procedural entry describing an individual step
      *               or nested flow that occurred during the operation
      */
-    fun registerRecord(record: ProceduralEntry)
+    fun addRecord(record: Loggable): Boolean
+    fun getRecords(): Collection<Loggable>
+
+    companion object {
+        fun name(loggable: Loggable){
+            KeyValue("LogRecord", loggable.topic.name)
+        }
+    }
+}
+
+fun StructuredLoggable.track(context: TraceableContext, methodName: String){
+    when(this){
+        is LogMessage -> track(context, methodName)
+        is StructuredBase -> track(context, methodName)
+    }
+}
+
+
+interface LoggableTemplate : Loggable{
+    fun add(record: StructuredLoggable): Boolean
+    fun get(): Collection<StructuredLoggable>
 }

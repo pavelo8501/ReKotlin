@@ -12,3 +12,4 @@ interface Loggable : Printable {
     val text: String
     val created: Instant
 }
+

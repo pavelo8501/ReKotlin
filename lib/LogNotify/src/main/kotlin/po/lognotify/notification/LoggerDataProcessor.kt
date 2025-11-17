@@ -107,19 +107,7 @@ class LoggerDataProcessor(
         snapshot: ErrorSnapshot,
         managed: ManagedException,
     ) {
-        val firstExRecord = managed.exceptionData.firstOrNull { it.event == ManagedException.ExceptionEvent.Thrown }
-        if (firstExRecord != null) {
-            val record =
-                ErrorRecord(
-                    message = managed.throwableToText(),
-                    firstRegisteredInTask = snapshot.taskHeader,
-                    methodThrowing = firstExRecord.stackTrace.firstOrNull(),
-                    throwingCallSite = firstExRecord.stackTrace.getOrNull(1),
-                    actionSpans = snapshot.actionRecords,
-                )
-            record.echo()
-            taskData.errors.addRecord(record)
-        }
+
     }
 
     override fun log(

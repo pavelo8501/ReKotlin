@@ -11,17 +11,14 @@ import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.exposify.dto.models.CommonDTOType
 import po.exposify.extensions.castOrInit
-import po.exposify.extensions.castOrOperations
 import po.exposify.extensions.getOrOperations
 import po.lognotify.TasksManaged
-import po.misc.containers.LazyContainer
-import po.misc.containers.lazyContainerOf
+import po.misc.containers.lazy.LazyContainer
+import po.misc.containers.lazy.lazyContainerOf
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asSubIdentity
 import po.misc.data.SmartLazy
-import po.misc.data.helpers.output
-import po.misc.data.styles.Colour
 import kotlin.getValue
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty
@@ -43,8 +40,6 @@ sealed class ComplexDelegate<DTO, D, E, F, FD, FE>(
     }
 
     protected open val commonDTOContainer : LazyContainer<CommonDTO<F, FD, FE>> = lazyContainerOf<CommonDTO<F, FD, FE>>()
-
-
 
     protected abstract fun beforeRegistered()
 

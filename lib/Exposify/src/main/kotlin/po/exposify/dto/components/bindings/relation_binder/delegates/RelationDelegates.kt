@@ -26,6 +26,8 @@ import po.lognotify.TasksManaged
 import po.misc.collections.exactlyOneOrThrow
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
+import po.misc.context.component.Component
+import po.misc.context.tracable.TraceableContext
 import po.misc.data.helpers.output
 import po.misc.data.styles.Colour
 import po.misc.functions.registries.builders.require
@@ -45,7 +47,7 @@ import kotlin.reflect.KProperty1
 sealed class RelationDelegate<DTO, D, E, F, FD, FE, R>(
     protected val hostingDTO : CommonDTO<DTO, D, E>,
     val dtoClass: DTOClass<F, FD, FE>
-):TasksManaged where DTO : ModelDTO, D : DataModel,  E : LongEntity, F : ModelDTO, FD : DataModel, FE : LongEntity {
+):TasksManaged, TraceableContext where DTO : ModelDTO, D : DataModel,  E : LongEntity, F : ModelDTO, FD : DataModel, FE : LongEntity {
 
     abstract val entityProperty: KProperty<*>
     var status: DelegateStatus = DelegateStatus.Created
@@ -205,13 +207,13 @@ sealed class RelationDelegate<DTO, D, E, F, FD, FE, R>(
 }
 
 
-class OneToManyDelegate<DTO, D, E, F, FD, FE>(
+class OneToManyDelegate<DTO: ModelDTO, D: DataModel, E: LongEntity, F, FD, FE>(
     hostingDTO : CommonDTO<DTO, D, E>,
     dtoClass: DTOClass<F, FD, FE>,
     val dataProperty: KProperty1<D, MutableList<FD>>,
     override val entityProperty: KProperty1<E, SizedIterable<FE>>
-): RelationDelegate<DTO, D, E, F, FD, FE, List<F>>(hostingDTO, dtoClass)
-        where DTO : ModelDTO, D : DataModel, E : LongEntity, F: ModelDTO,  FD : DataModel, FE : LongEntity
+): RelationDelegate<DTO, D, E, F, FD, FE, List<F>>(hostingDTO, dtoClass) where  F: ModelDTO,  FD : DataModel, FE : LongEntity
+
 {
 
     override val identity: CTXIdentity<OneToManyDelegate<DTO, D, E, F, FD, FE>> = asIdentity()

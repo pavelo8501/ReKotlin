@@ -79,11 +79,11 @@ class ErrorRecord(
                 if (callSite != null) {
                     if (callSite.methodName == "invoke") {
                         """
-                            ${Colour.makeOfColour(Colour.Yellow, "ThrowingCallSite: (actual exception place)")}
-                            ${Colour.makeOfColour(Colour.Gray, "Class Name:")} ${callSite.fileName.stripAfter('$')}
-                            ${Colour.makeOfColour(Colour.Gray, "Method Name:")
+                            ${Colour.colour(Colour.Yellow, "ThrowingCallSite: (actual exception place)")}
+                            ${Colour.colour(Colour.Gray, "Class Name:")} ${callSite.fileName.stripAfter('$')}
+                            ${Colour.colour(Colour.Gray, "Method Name:")
                         } ${callSite.methodName} (Lambda invocation)"
-                            ${Colour.makeOfColour(Colour.Gray, "Reference:")}
+                            ${Colour.colour(Colour.Gray, "Reference:")}
                             ${callSite.toStackTraceFormat()}
                             """.trimIndent()
                     } else {
@@ -143,7 +143,7 @@ class LogData(
                     ExecutionStatus.Active -> executionStatus.name.colorize(Colour.WhiteBright)
                     ExecutionStatus.Failing, ExecutionStatus.Faulty -> executionStatus.name.colorize(Colour.Red)
                 }
-               "${Colour.makeOfColour(Colour.Blue, "[Stop $taskFooter | Status:")} $status ${Colour.makeOfColour(Colour.Blue, "]")}"
+               "${Colour.colour(Colour.Blue, "[Stop $taskFooter | Status:")} $status ${Colour.colour(Colour.Blue, "]")}"
             }
         }
 

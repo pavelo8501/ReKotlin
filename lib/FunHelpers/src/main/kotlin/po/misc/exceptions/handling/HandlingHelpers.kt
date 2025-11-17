@@ -5,6 +5,8 @@ import po.misc.context.tracable.TraceableContext
 import po.misc.coroutines.coroutineInfo
 import po.misc.data.logging.ContextAware
 import po.misc.exceptions.ExceptionLocator
+import po.misc.exceptions.stack_trace.extractTrace
+import po.misc.exceptions.stack_trace.tryExtractTrace
 import po.misc.exceptions.trackable.TrackableException
 import po.misc.functions.LambdaType
 
@@ -32,7 +34,7 @@ suspend fun <R: Any> TraceableContext.delegateIfThrow(suspended: LambdaType.Susp
     try {
         return block()
     }catch (throwable: Throwable){
-        val exceptionTrace = throwable.traceFor(this::class)
+        val exceptionTrace = throwable.tryExtractTrace(this::class)
         if(throwable is TrackableException){
             val context =  currentCoroutineContext()
             throwable.coroutineInfo = context.coroutineInfo(throwable.contextClass, exceptionTrace.bestPick.methodName)

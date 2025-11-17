@@ -148,10 +148,7 @@ class TypeToken<T>  @PublishedApi internal constructor(
 
             when(other){
                 is TypeToken<*>->{
-                    result =   kClass == other.kClass
-                    if(!result){
-                        warnKClassDifferent(other.kClass, "equals")
-                    }
+                    return kClass == other.kClass && inlinedParameters == other.inlinedParameters
                 }
                 is KClass<*>->{
                     result = kClass == other
@@ -244,6 +241,39 @@ class TypeToken<T>  @PublishedApi internal constructor(
      */
     fun strictEquality(other: TypeToken<*>): Boolean = makeStrictEquality(other.kClass, other.typeSlots.map { it.toCompareContainer() })
 
+    /**
+     * Compares this [TypeToken] to a given base type [baseClass] and its type arguments,
+     * determining whether they represent the same generic structure.
+     *
+     * This function performs a **partial** equality check — meaning it requires the base
+     * class to match exactly, but allows for flexible comparison of type arguments by ensuring
+     * that each [parameter] exists in [inlinedParameters].
+     *
+     * @param baseClass The base [KClass] of the target type to check against.
+     * @param parameter One or more [KClass] values representing expected generic type arguments.
+     * @return `true` if the base class matches and all provided parameters exist in the
+     *         [inlinedParameters]; otherwise, `false`.
+     *
+     * Example:
+     * ```
+     * val token = TypeToken.create<DSLParameterGroup<Test, Int>>()
+     * val matches = token.partialEquality(DSLParameterGroup::class, Int::class)
+     * assertTrue(matches) // ✅
+     * ```
+     */
+    fun partialEquality(baseClass: KClass<out T & Any>,  vararg parameter: KClass<*>): Boolean{
+        if(this == baseClass){
+            val testAgainst = parameter.toList()
+            testAgainst.forEach {
+                if(it !in inlinedParameters){
+                    return false
+                }
+            }
+            return true
+        }
+        return false
+    }
+
     fun printSlots(){
         typeSlots.joinToString(prefix = "[", postfix = "]", separator = ", ") {
             it.toString()
@@ -261,7 +291,6 @@ class TypeToken<T>  @PublishedApi internal constructor(
     }
 
     companion object{
-
 
         inline fun <reified T> create():TypeToken<T>{
             val casted = T::class.safeCast<KClass<T & Any>>()

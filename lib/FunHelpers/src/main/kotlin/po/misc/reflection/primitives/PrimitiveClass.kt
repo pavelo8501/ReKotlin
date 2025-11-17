@@ -46,10 +46,9 @@ abstract class WildCardClass<T>(
 
 }
 
-//object PrimitiveAny: PrimitiveClass<Any>{
-//    override val typeToken: TypeToken<Any> = tokenOf()
-//    val kClass: KClass<Any> = typeToken.kClass
-//}
+object NullClass{
+    val kClass: KClass<NullClass> = NullClass::class
+}
 
 object StringClass: PrimitiveClass<String>{
     override val typeToken: TypeToken<String> = tokenOf()
@@ -85,6 +84,7 @@ object LocalDateTimeClass : PrimitiveClass<LocalDateTime> {
     override val typeToken: TypeToken<LocalDateTime> = tokenOf()
     val kClass: KClass<LocalDateTime> = typeToken.kClass
 }
+
 
 
 

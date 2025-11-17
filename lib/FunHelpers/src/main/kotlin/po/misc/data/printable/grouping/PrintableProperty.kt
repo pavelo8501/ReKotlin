@@ -1,75 +1,111 @@
 package po.misc.data.printable.grouping
 
-import po.misc.collections.ReactiveList
+import po.misc.data.helpers.output
 import po.misc.data.printable.Printable
-import po.misc.types.helpers.simpleOrAnon
+import po.misc.data.styles.Colour
 import kotlin.reflect.KProperty
 
-class PrintableProperty<M: Printable>(
+class PrintableProperty<T: Printable>(
     val host: Printable,
-    private var nameProvider: () -> String,
-    var onNewAdd: (PrintableProperty<M>.(M) -> Unit)? = null
-): AbstractList<M>(){
+    var initialName:String = "",
+    internal var onSubEntry: (PrintableProperty<T>.(T) -> Unit)? = null
+): AbstractMutableList<T>() {
 
-    private val recordsBacking: ReactiveList<M> = ReactiveList{
-        onNewAdd?.invoke(this,  it)
-    }
+    var disableSideEffects: Boolean = false
+
+
+    private var nameProvider: (() -> String)? = null
+    internal val recordsBacking = mutableListOf<T>()
+
 
     override val size: Int get() = recordsBacking.size
 
-    val name: String get() = nameProvider()
+    val name: String get() = nameProvider?.invoke() ?: initialName
 
-    constructor(host: Printable, name: String, onNewAdd: (PrintableProperty<M>.(M) -> Unit)? = null): this(host, {  name } , onNewAdd)
-
-
-    fun add(data: M):M{
-        recordsBacking.add(data)
-        return data
+    private fun newEntry(data: T, noSideEffects: Boolean){
+        if (!disableSideEffects && !noSideEffects) {
+            onSubEntry?.invoke(this, data)
+        }
     }
 
-    fun clear(){
+    fun add(data: T, noSideEffects: Boolean) {
+        newEntry(data, noSideEffects)
+        recordsBacking.add(data)
+    }
+
+    override fun add(index: Int, element: T) {
+        newEntry(element, noSideEffects = false)
+        recordsBacking.add(index, element)
+    }
+
+    fun set(index: Int, element: T, noSideEffects: Boolean): T {
+        newEntry(element, noSideEffects)
+        return recordsBacking.set(index, element)
+    }
+
+    override fun set(index: Int, element: T): T {
+        newEntry(element, noSideEffects = false)
+        return recordsBacking.set(index, element)
+    }
+
+    fun addAll(elements: Collection<T>, noSideEffects: Boolean): Boolean {
+        elements.forEach {
+            add(it, noSideEffects)
+        }
+        return true
+    }
+
+    override fun addAll(elements: Collection<T>): Boolean {
+        return addAll(elements, noSideEffects = false)
+    }
+
+    override fun clear() {
         recordsBacking.clear()
     }
 
-    override fun get(index: Int): M {
-       return recordsBacking[index]
+    override fun get(index: Int): T {
+        return recordsBacking[index]
     }
 
     operator fun provideDelegate(
         thisRef: Printable,
         property: KProperty<*>,
-    ): PrintableProperty<M> {
-
-        nameProvider = {
-            property.name
+    ): PrintableProperty<T> {
+        if (initialName.isBlank()) {
+            initialName = property.name
         }
-
         return this
+    }
+
+    override fun removeAt(index: Int): T {
+        return recordsBacking.removeAt(index)
     }
 
     operator fun getValue(
         thisRef: Printable,
         property: KProperty<*>,
-    ): MutableList<M> {
-        return recordsBacking
+    ): PrintableProperty<T> {
+        return this
     }
-
 }
 
-
-fun <T: Printable> Printable.createProperty(name: String):PrintableProperty<T> =printableProperty(name)
-
-fun <T: Printable> Printable.printableProperty(name: String):PrintableProperty<T>{
-    return PrintableProperty<T>(this, name)
+fun <T: Printable> Printable.printableProperty(
+    useName: String? = null
+):PrintableProperty<T>{
+  return  useName?.let {name->
+        PrintableProperty<T>(this, name)
+    }?:run {
+        PrintableProperty<T>(this)
+    }
 }
 
-inline fun <reified M: Printable> Printable.createProperty(
-    noinline onNew: PrintableProperty<M>.(M) -> Unit
-):PrintableProperty<M> = printableProperty(onNew)
-
-
-inline fun <reified M: Printable> Printable.printableProperty(
-    noinline onNew: PrintableProperty<M>.(M) -> Unit
-):PrintableProperty<M>{
-    return PrintableProperty<M>(this, { M::class.simpleOrAnon }, onNew )
+inline fun <reified T: Printable> Printable.printableProperty(
+    useName: String? = null,
+    noinline onSubEntry: PrintableProperty<T>.(T) -> Unit
+):PrintableProperty<T>{
+   return useName?.let {name->
+       PrintableProperty(this, name,  onSubEntry )
+    }?:run {
+        PrintableProperty(this, onSubEntry = onSubEntry )
+    }
 }

@@ -2,8 +2,9 @@ package po.misc.exceptions.trackable
 
 import po.misc.coroutines.CoroutineInfo
 import po.misc.coroutines.coroutineInfo
-import po.misc.exceptions.metaFrameTrace
 import po.misc.exceptions.stack_trace.ExceptionTrace
+import po.misc.exceptions.stack_trace.extractTrace
+import po.misc.exceptions.stack_trace.tryExtractTrace
 import kotlin.coroutines.CoroutineContext
 import kotlin.reflect.KClass
 
@@ -48,7 +49,7 @@ abstract class TrackableBase(
     override val  contextClass: KClass<*>,
     message: String
 ): Throwable(message),TrackableException{
-    override val exceptionTrace: ExceptionTrace = metaFrameTrace(contextClass)
+    override val exceptionTrace: ExceptionTrace = tryExtractTrace(contextClass)
     override var coroutineInfo: CoroutineInfo? = null
 }
 

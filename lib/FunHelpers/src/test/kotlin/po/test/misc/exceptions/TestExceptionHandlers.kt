@@ -9,8 +9,9 @@ import po.misc.data.logging.ContextAware
 import po.misc.exceptions.trackable.TrackableException
 import po.misc.exceptions.handling.delegateIfThrow
 import po.misc.exceptions.handling.registerHandler
-import po.misc.exceptions.metaFrameTrace
 import po.misc.exceptions.stack_trace.ExceptionTrace
+import po.misc.exceptions.stack_trace.extractTrace
+import po.misc.exceptions.stack_trace.tryExtractTrace
 import po.misc.functions.LambdaType
 import kotlin.reflect.KClass
 import kotlin.test.assertEquals
@@ -22,14 +23,14 @@ class TestExceptionHandlers() : ContextAware {
 
     class SimpleTrackableException(val context: Any, message: String): Throwable(message), TrackableException{
         override val contextClass: KClass<*> get() = context::class
-        override val exceptionTrace: ExceptionTrace = metaFrameTrace(contextClass)
+        override val exceptionTrace: ExceptionTrace = tryExtractTrace(contextClass)
         override val self: SimpleTrackableException = this
         override var coroutineInfo: CoroutineInfo? = null
     }
 
     class ScopedException(val context: Any, message: String): Throwable(message), TrackableException{
         override val contextClass: KClass<*> get() = context::class
-        override val exceptionTrace: ExceptionTrace = metaFrameTrace(context::class, 5)
+        override val exceptionTrace: ExceptionTrace = tryExtractTrace(context::class)
         override val self: ScopedException = this
         override var coroutineInfo: CoroutineInfo? = null
 

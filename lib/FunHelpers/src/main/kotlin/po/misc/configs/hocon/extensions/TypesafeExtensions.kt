@@ -5,17 +5,14 @@ import com.typesafe.config.ConfigValue
 import po.misc.configs.hocon.HoconResolvable
 import po.misc.configs.hocon.models.HoconEntryBase
 import po.misc.configs.hocon.models.HoconListEntry
-import po.misc.context.component.managedException
 import po.misc.data.helpers.output
-import po.misc.data.printable.PrintableBase
-import po.misc.exceptions.throwManaged
+import po.misc.exceptions.managedException
 import po.misc.types.castOrThrow
 import po.misc.types.helpers.simpleOrAnon
 
 
 fun <C: HoconResolvable<C>,  V> HoconEntryBase<C,  V>.parseValue(rawValue: ConfigValue):V {
     val errorMessage =  "$name can not be cast to ${ valueTypeToken.kClass.simpleOrAnon}"
-
     val unwrapped = rawValue.unwrapped()
     unwrapped.output("Unwrapped ")
     val casted = unwrapped.castOrThrow(this, hoconPrimitive.typeToken.kClass){

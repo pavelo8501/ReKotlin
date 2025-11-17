@@ -10,4 +10,5 @@ data class NowParsing(
 ){
     constructor(origin: ConfigOrigin):this(origin.resource(), origin.url(), origin.description(), origin.lineNumber())
     val parsing: String get() = "$resourceName Line: $lineNumber"
+
 }

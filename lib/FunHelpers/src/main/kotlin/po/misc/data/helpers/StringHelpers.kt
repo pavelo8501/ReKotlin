@@ -8,6 +8,7 @@ import po.misc.data.PrettyPrint
 import po.misc.data.Timestamp
 import po.misc.data.strings.StringFormatter
 import po.misc.data.strings.stringify
+import po.misc.data.styles.Colorizer
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
@@ -19,6 +20,7 @@ import po.misc.types.helpers.KClassParam
 import po.misc.types.helpers.toKeyParams
 import kotlin.collections.forEach
 import kotlin.text.StringBuilder
+import kotlin.text.replaceFirstChar
 
 
 sealed interface OutputProvider{
@@ -52,25 +54,26 @@ internal fun Any.outputInternal(
     formated.output()
 }
 
+fun Any.output(){
+    println(StringFormatter.formatKnownTypes(this))
+}
+
 
 fun Any.output(
-    onReceiver: OutputBehaviour? = null
+    behaviour: OutputBehaviour
 ){
-    onReceiver?.let {behaviour->
-        OutputHelper(this){receiver->
-            when(behaviour){
-                is Identify -> {
-                    nowLocalDateTime().outputInternal()
-                    val string = ClassResolver.classInfo(receiver).toString()
-                    println(string)
-                }
-                is Timestamp -> {
-                    nowLocalDateTime().outputInternal()
-                }
+    OutputHelper(this){receiver->
+        when(behaviour){
+            is Identify -> {
+                nowLocalDateTime().outputInternal()
+                val string = ClassResolver.classInfo(receiver).toString()
+                println(string)
+            }
+            is Timestamp -> {
+                nowLocalDateTime().outputInternal()
             }
         }
     }
-
     println(StringFormatter.formatKnownTypes(this))
 }
 
@@ -131,8 +134,13 @@ fun Any.output(
 
     val formated = stringify(colour, transform)
     if(prefix.isNotBlank()){
-        println(Colour.applyColour(prefix, colour))
-        print(formated.toString())
+        if(colour != null){
+            println(Colorizer.colour(prefix, colour))
+            print(formated.toString())
+        }else{
+            println(prefix)
+            print(formated.toString())
+        }
     }else{
         formated.output()
     }
@@ -146,7 +154,11 @@ fun List<Any>.output(
     transform: (String)-> String
 ){
     if(prefix.isNotBlank()){
-        println(Colour.applyColour(prefix, colour))
+        if(colour != null){
+            println(Colorizer.colour(prefix, colour))
+        }else{
+            println(prefix)
+        }
     }
     forEach {
         it.stringify(colour, transform).output()
@@ -158,7 +170,12 @@ fun List<Any>.output(
     colour: Colour? = null
 ){
     if(prefix.isNotBlank()){
-        println(Colour.applyColour(prefix, colour))
+        if(colour !=null){
+            println(Colorizer.applyColour(prefix, colour))
+        }else{
+            println(prefix)
+        }
+
     }
     forEach {
         it.stringify(colour).output()
@@ -320,6 +337,12 @@ fun <T> Iterable<T>.joinWithIndent(
     transform: ((T) -> CharSequence)? = null
 ): String {
    return joinToString(separator, prefix, postfix, limit, truncated, transform).withIndent(count, indentChar)
+}
+
+
+
+fun String.firstCharUppercase(): String{
+    return replaceFirstChar { it.uppercase() }
 }
 
 

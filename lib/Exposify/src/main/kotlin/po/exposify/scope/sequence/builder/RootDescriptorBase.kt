@@ -13,23 +13,22 @@ import kotlin.text.appendLine
 
 sealed class RootDescriptorBase<DTO, D>(
     override val dtoClass: RootDTO<DTO, D, *>,
-) : SequenceDescriptor<DTO, D>
-    where DTO : ModelDTO, D : DataModel {
+) : SequenceDescriptor<DTO, D> where DTO : ModelDTO, D : DataModel {
 
     val containerBacking: BackingContainer<SequenceChunkContainer<DTO, D>> = backingContainerOf()
 
-    override fun getContainer(): ChunkContainer<DTO, D> {
-       return containerBacking.getValue(this)
-    }
+    override fun getContainer(): ChunkContainer<DTO, D> = containerBacking.getValue(this)
 
     fun registerChunkContainer(
         sequenceContainer: SequenceChunkContainer<DTO, D>
     ): BackingContainerBase<SequenceChunkContainer<DTO, D>> = containerBacking.provideValue(sequenceContainer)
+
 }
 
 class SingleDescriptor<DTO, D>(
     dtoClass: RootDTO<DTO, D, *>,
 ) : RootDescriptorBase<DTO, D>(dtoClass) where DTO : ModelDTO, D : DataModel {
+
     override val identity: CTXIdentity<SingleDescriptor<DTO, D>> = asIdentity()
 
     override fun toString(): String =
@@ -42,6 +41,7 @@ class SingleDescriptor<DTO, D>(
 class ListDescriptor<DTO, D>(
     dtoClass: RootDTO<DTO, D, *>,
 ) : RootDescriptorBase<DTO, D>(dtoClass) where DTO : ModelDTO, D : DataModel {
+
     override val identity: CTXIdentity<ListDescriptor<DTO, D>> = asIdentity()
 
     override fun toString(): String =

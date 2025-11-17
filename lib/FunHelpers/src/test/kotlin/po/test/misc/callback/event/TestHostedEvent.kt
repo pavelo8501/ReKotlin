@@ -1,5 +1,6 @@
 package po.test.misc.callback.event
 
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -8,41 +9,49 @@ import po.misc.callbacks.event.HostedEvent
 import po.misc.callbacks.event.event
 import po.misc.callbacks.event.eventOf
 import po.misc.callbacks.event.listen
+import po.misc.callbacks.signal.signalOf
 import po.misc.context.tracable.TraceableContext
+import po.misc.data.helpers.output
+import po.misc.data.styles.Colour
+import po.misc.functions.LambdaOptions
 import po.misc.functions.NoResult
+import po.misc.functions.SuspendedOptions
+import po.test.misc.callback.signal.TestSignal.Data1
+import po.test.misc.callback.signal.TestSignal.Listener
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestHostedEvent: EventHost {
 
-    internal class DataH()
+    internal class Data()
 
     internal class Listener(): TraceableContext{
         val hash = hashCode()
-        var notified: DataH? = null
+        var notified: Data? = null
 
 
-        val function: TestHostedEvent.(DataH) -> Unit = {
+        val function: TestHostedEvent.(Data) -> Unit = {
             notified = it
         }
-        val resultingFunction: TestHostedEvent.(DataH) -> Int = {
+        val resultingFunction: TestHostedEvent.(Data) -> Int = {
             notified = it
             hash
         }
     }
-    internal inline fun <reified R: Any> recreateListeners(event: HostedEvent<TestHostedEvent,  DataH, R>):List<Listener>{
+    internal inline fun <reified R: Any> recreateListeners(event: HostedEvent<TestHostedEvent,  Data, R>):List<Listener>{
 
         val listeners = mutableListOf<Listener>()
         for(i in 1..10){
             val listener = Listener()
             @Suppress("Unchecked_cast")
             if(R::class == Unit::class){
-                event.onEvent(listener, listener.function as TestHostedEvent.(DataH) -> R)
+                event.onEvent(listener, listener.function as TestHostedEvent.(Data) -> R)
             }else{
-                event.onEvent(listener, listener.resultingFunction as TestHostedEvent.(DataH) -> R)
+                event.onEvent(listener, listener.resultingFunction as TestHostedEvent.(Data) -> R)
             }
             listeners.add(listener)
         }
@@ -58,41 +67,41 @@ class TestHostedEvent: EventHost {
     @Test
     fun `HostedEvent simple usage with a listener of its own`(){
 
-        val click = eventOf<TestHostedEvent, DataH>(NoResult)
+        val click = eventOf<TestHostedEvent, Data>(NoResult)
         click.onEvent  {
             triggered = it
         }
-        val  data = DataH()
+        val  data = Data()
         click.trigger(data)
-        assertIs<DataH>(triggered)
+        assertIs<Data>(triggered)
 
         triggered = null
-        val presetEvent = event<TestHostedEvent, DataH>(NoResult) {
+        val presetEvent = event<TestHostedEvent, Data>(NoResult) {
             onEvent {
                 triggered = it
             }
         }
         presetEvent.trigger(data)
-        assertIs<DataH>(triggered)
+        assertIs<Data>(triggered)
     }
 
     @Test
     fun `HostedEvent usage with a multiple event listeners`(){
-        val click = eventOf<TestHostedEvent, DataH>(NoResult)
+        val click = eventOf<TestHostedEvent, Data>(NoResult)
         val listeners = recreateListeners(click)
-        val  data = DataH()
+        val  data = Data()
         click.trigger(data)
         assertEquals(10 ,listeners.size)
         listeners.forEach {listener->
-            assertIs<DataH>(listener.notified)
+            assertIs<Data>(listener.notified)
         }
     }
 
     @Test
     fun `HostedEvent usage with  with a multiple event listeners`(){
-        val click = eventOf<TestHostedEvent, DataH>(NoResult)
+        val click = eventOf<TestHostedEvent, Data>(NoResult)
         val listeners = recreateListeners(click)
-        val  data = DataH()
+        val  data = Data()
         assertEquals(10 ,listeners.size)
         click.trigger(listeners[3], data)
         listeners.take(2).forEach {listener->
@@ -106,9 +115,9 @@ class TestHostedEvent: EventHost {
 
     @Test
     fun `HostedEvent with a multiple event listeners and result`(){
-        val click = eventOf<TestHostedEvent, DataH, Int>()
+        val click = eventOf<TestHostedEvent, Data, Int>()
         val listeners = recreateListeners(click)
-        val data = DataH()
+        val data = Data()
         val results = click.trigger(data)
         results.forEach {result->
             assertNotNull(listeners.firstOrNull{ it.hash ==  result.result} )
@@ -117,15 +126,39 @@ class TestHostedEvent: EventHost {
 
     @Test
     fun `HostedEvent with multiple event listeners and single triggered`(){
-        val click = eventOf<TestHostedEvent, DataH, Int>()
+        val click = eventOf<TestHostedEvent, Data, Int>()
         val listeners = recreateListeners(click)
-        val data = DataH()
+        val data = Data()
         val selectedOne = listeners[5]
         val result = click.trigger(selectedOne, data)
         assertEquals(selectedOne.hash, result)
         listeners.drop(6).forEach {
             assertNull(it.notified)
         }
+    }
+
+    @Test
+    fun `HostedEvent named lambdas`() = runTest{
+
+        val listener1 = Listener()
+        val listener2 = Listener()
+        val event = eventOf<TestHostedEvent, Data>(NoResult)
+        val promise = SuspendedOptions.Promise
+        promise.name = "Named Promise"
+        event.onEvent(listener1, promise){
+
+        }
+        event.onEvent(listener2, LambdaOptions.Listen){
+
+        }
+        val namedPromise = assertNotNull( event.listeners.values.first { it.options ==   SuspendedOptions.Promise} )
+        val generatedListen = assertNotNull( event.listeners.values.first { it.options ==  LambdaOptions.Listen } )
+        assertTrue {
+            namedPromise.lambdaName.contains(promise.name?:"Failure") &&
+                    generatedListen.lambdaName.contains("HostedEvent named lambdas")
+        }
+        namedPromise.lambdaName.output(Colour.Yellow)
+        generatedListen.lambdaName.output(Colour.Cyan)
     }
 
 }

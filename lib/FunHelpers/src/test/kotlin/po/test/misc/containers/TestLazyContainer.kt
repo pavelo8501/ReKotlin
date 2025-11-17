@@ -19,7 +19,6 @@ class TestLazyContainer: TraceableContext {
 
     private val initialValue = "Initial"
     private val anotherValue = "Another"
-
     private class ValueListener: TraceableContext
 
     @Test
@@ -59,7 +58,6 @@ class TestLazyContainer: TraceableContext {
     fun `LazyContainer valueProvided signal work as expected`() {
         val container = lazyContainerOf<String>()
         var triggerCount = 0
-
         for(i in 1..5){
             container.valueProvided(ValueListener()) {
                 triggerCount++
@@ -100,4 +98,21 @@ class TestLazyContainer: TraceableContext {
         assertEquals(anotherValue, container.value)
     }
 
+    @Test
+    fun `Fallback work as expected`(){
+
+        val providedValue = "value"
+        val fallbackValue = "fallback"
+
+        val container = LazyContainer<String>()
+        container.setFallback {
+            fallbackValue
+        }
+        assertEquals(fallbackValue, container.value)
+        
+        container.provideValue(providedValue)
+        assertEquals(providedValue, container.value)
+
+
+    }
 }

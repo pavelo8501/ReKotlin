@@ -67,7 +67,7 @@ inline fun <reified T: Tokenized<*>> List<Tokenized<*>>.filterTokenized(
 }
 
 
-inline fun <reified T: Tokenized<TT>, TT: Any> List<Tokenized<*>>.filterTokenized(
+inline fun <reified T: Tokenized<TT>, TT: Any> Collection<Tokenized<*>>.filterTokenized(
     paramClass: KClass<TT>
 ): List<T>{
 

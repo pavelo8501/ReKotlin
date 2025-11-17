@@ -3,13 +3,23 @@ package po.misc.data.logging.processor
 import po.misc.context.component.Component
 import po.misc.data.logging.LogProvider
 import po.misc.data.logging.Loggable
+import po.misc.data.logging.StructuredLoggable
+import po.misc.data.logging.models.LogMessage
 import po.misc.data.logging.models.Notification
+import po.misc.data.logging.procedural.ProceduralRecord
 import po.misc.types.token.Tokenized
 import po.misc.types.token.TypeToken
+import kotlin.reflect.KClass
 
 
-
-
+@PublishedApi
+ internal fun <H: Component, T: StructuredLoggable> createProcessor(
+    host: H,
+    token:  TypeToken<T>
+ ): LogProcessor<H, T> {
+     val logger =  LogProcessor(host, token)
+     return logger
+ }
 
 /**
  * Creates a [LogProcessor] for this [LogProvider], inferring record type [LR]
@@ -29,15 +39,9 @@ import po.misc.types.token.TypeToken
  * @return A new [LogProcessor] bound to this provider.
  */
 
-inline fun <H: LogProvider<LR>, reified LR: Loggable> H.logProcessor(): LogProcessor<H, LR> =
-    LogProcessor(this, TypeToken.create<LR>())
+inline fun <H: LogProvider<LR>, reified LR: StructuredLoggable> H.logProcessor(): LogProcessor<H, LR> =
+    createProcessor(this, TypeToken.create<LR>())
 
-
-inline fun <H: LogProvider<LR>, reified LR: Loggable> H.logProcessor(
-    noinline provider: (Loggable)-> LR
-): LogProcessor<H, LR>{
-    return LogProcessor(this, TypeToken.create<LR>(), provider)
-}
 
 /**
  * Creates a [LogProcessor] for a plain [Component] using an explicit [TypeToken].
@@ -53,11 +57,9 @@ inline fun <H: LogProvider<LR>, reified LR: Loggable> H.logProcessor(
  * @param typeToken Token describing the concrete log record type.
  * @receiver A component that will host the processor.
  */
-fun <H: Component, LR: Loggable> H.logProcessor(
+fun <H: Component, LR: StructuredLoggable> H.logProcessor(
     typeToken: TypeToken<LR>
-): LogProcessor<H, LR>{
-    return LogProcessor(this, typeToken)
-}
+): LogProcessor<H, LR> = createProcessor(this,  typeToken)
 
 /**
  * Creates a [LogProcessor] using a [Tokenized] companion to resolve the record type.
@@ -77,15 +79,16 @@ fun <H: Component, LR: Loggable> H.logProcessor(
  * @param tokenized The companion providing [TypeToken] for [LR].
  * @receiver A component serving as log host.
  */
-fun <H: Component, LR: Loggable> H.logProcessor(
+fun <H: Component, LR: StructuredLoggable> H.logProcessor(
     tokenized: Tokenized<LR>
-): LogProcessor<H, LR>{
-    return LogProcessor(this, tokenized.typeToken)
-}
+): LogProcessor<H, LR> = createProcessor(this, tokenized.typeToken)
 
-fun <H: Component> H.logProcessor(): LogProcessor<H, Notification>{
-    return LogProcessor(this, TypeToken.create<Notification>())
-}
+
+
+fun <H: Component> H.logProcessor(
+
+): LogProcessor<H, LogMessage> = createProcessor(this, TypeToken.create<LogMessage>())
+
 
 
 

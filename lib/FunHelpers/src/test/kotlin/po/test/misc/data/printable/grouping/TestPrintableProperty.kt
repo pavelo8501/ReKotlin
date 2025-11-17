@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.printable.grouping.PrintableProperty
-import po.misc.data.printable.grouping.createProperty
+import po.misc.data.printable.grouping.printableProperty
 import po.misc.types.token.TypeToken
 import kotlin.test.assertEquals
 
@@ -28,11 +28,11 @@ class TestPrintableProperty {
         val child2 = PrintableProperty<ChildPrintable>(this, "child2"){
             fromCallback.add(it)
         }
-        val child3 = createProperty<ChildPrintable>("child2")
+        val child3 = printableProperty<ChildPrintable>("child2")
 
         var child4PropName: String = ""
 
-        val child4 by createProperty{child: ChildPrintable ->
+        val child4 by printableProperty{child: ChildPrintable ->
             child4PropName = name
         }
 

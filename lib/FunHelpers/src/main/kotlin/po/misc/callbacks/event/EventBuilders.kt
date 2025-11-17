@@ -8,6 +8,35 @@ import po.misc.types.token.Tokenized
 import po.misc.types.token.TypeToken
 
 
+
+@PublishedApi
+internal fun <H: EventHost, T: Any, R> createEvent(
+    host: H,
+    typeToken: TypeToken<T>,
+    resultType: TypeToken<R>,
+    name: String? = null
+): HostedEvent<H, T, R> {
+    val event = HostedEvent(host,  typeToken, resultType)
+    if(name != null){
+        event.setName(name)
+    }
+    return event
+}
+
+
+@PublishedApi
+internal fun <H: EventHost, T: Any> createEvent(
+    host: H,
+    typeToken: TypeToken<T>,
+    name: String? = null
+): HostedEvent<H, T, Unit> {
+    val event = HostedEvent(host,  typeToken, TypeToken.create<Unit>())
+    if(name != null){
+        event.setName(name)
+    }
+    return event
+}
+
 /**
  * Creates a hosted [po.misc.callbacks.events.HostedEvent] bound to this [po.misc.callbacks.events.EventHost].
  *
@@ -21,17 +50,11 @@ import po.misc.types.token.TypeToken
  *
  * @see event for the builder-based variant with handler registration.
  */
-fun <H: EventHost, T: Any, R: Any> H.eventOf(
+fun <H: EventHost, T: Any, R> H.eventOf(
     parameterType: TypeToken<T>,
     resultType: TypeToken<R>,
     name: String? = null
-): HostedEvent<H, T, R> {
-    val event = HostedEvent(this, parameterType, resultType)
-    if(name!= null){
-        event.setName(name)
-    }
-    return event
-}
+): HostedEvent<H, T, R> = createEvent(this, parameterType, resultType, name)
 
 /**
  * Variant of [eventOf] for events that do not return a result (`Unit`).
@@ -45,27 +68,26 @@ fun <H: EventHost, T: Any> H.eventOf(
     parameterType: TypeToken<T>,
     result: NoResult,
     name: String? = null
-): HostedEvent<H, T, Unit> {
-    val event = HostedEvent(this, parameterType, TypeToken.create<Unit>())
-    if(name!= null){
-        event.setName(name)
-    }
-    return event
-}
+): HostedEvent<H, T, Unit> = createEvent(this, parameterType, name)
 
-fun <H: EventHost, T: Any> H.eventOf(parameter: Tokenized<T>, result: NoResult, name: String? = null): HostedEvent<H, T, Unit>
-        = eventOf(parameter.typeToken, result, name)
+fun <H: EventHost, T: Any> H.eventOf(
+    parameter: Tokenized<T>,
+    result: NoResult, name: String? = null
+): HostedEvent<H, T, Unit> = createEvent(this, parameter.typeToken, name)
 
-fun <H: EventHost, T: Any, R: Any> H.eventOf(parameter: Tokenized<T>, result: Tokenized<R>, name: String? = null): HostedEvent<H, T, R>
-        = eventOf(parameter.typeToken, result.typeToken, name)
+
+fun <H: EventHost, T: Any, R> H.eventOf(
+    parameter: Tokenized<T>,
+    result: Tokenized<R>,
+    name: String? = null
+): HostedEvent<H, T, R> = createEvent(this,  parameter.typeToken, result.typeToken, name)
 
 /**
  * Inline shortcut for [eventOf] using reified types for payload and result.
  */
-inline fun <H: EventHost, reified T: Any, reified R: Any> H.eventOf(
+inline fun <H: EventHost, reified T: Any, reified R> H.eventOf(
     name: String? = null
-): HostedEvent<H, T, R>
-    = eventOf(TypeToken.create<T>(), TypeToken.create<R>(), name)
+): HostedEvent<H, T, R> = createEvent(this, TypeToken.create<T>(), TypeToken.create<R>(), name)
 
 /**
  * Inline shortcut for [eventOf] using reified payload type and no result (`Unit`).
@@ -73,7 +95,7 @@ inline fun <H: EventHost, reified T: Any, reified R: Any> H.eventOf(
 inline fun <H: EventHost, reified T: Any> H.eventOf(
     result: NoResult,
     name: String? = null
-): HostedEvent<H, T, Unit> = eventOf(TypeToken.create<T>(), result, name)
+): HostedEvent<H, T, Unit> = createEvent(this,  TypeToken.create<T>(), name)
 
 
 /**
@@ -93,12 +115,12 @@ inline fun <H: EventHost, reified T: Any> H.eventOf(
  * @param resultType type information for the return type [R].
  * @param builder DSL block to configure event handlers.
  */
-fun <H: EventHost, T: Any, R: Any> H.event(
+fun <H: EventHost, T: Any, R> H.event(
     parameterType: TypeToken<T>,
     resultType: TypeToken<R>,
     builder: HostedEventBuilder<H, T, R>.() -> Unit
 ): HostedEvent<H, T, R> {
-    val event = eventOf(parameterType, resultType)
+    val event = createEvent(this, parameterType, resultType)
     event.builder()
     return event
 }
@@ -115,7 +137,7 @@ fun <H: EventHost, T: Any> H.event(
     result: NoResult,
     builder: HostedEventBuilder<H, T, Unit>.() -> Unit
 ): HostedEvent<H, T, Unit> {
-    val event = eventOf(parameterType, result)
+    val event = createEvent(this, parameterType)
     event.builder()
     return event
 }
@@ -123,7 +145,7 @@ fun <H: EventHost, T: Any> H.event(
 /**
  * Inline reified DSL builder for hosted events with payload [T] and result [R].
  */
-inline fun <H: EventHost, reified T: Any, reified R: Any> H.event(
+inline fun <H: EventHost, reified T: Any, reified R> H.event(
     noinline builder: HostedEventBuilder<H, T, R>.() -> Unit
 ): HostedEvent<H, T, R> = event(TypeToken.create<T>(), TypeToken.create<R>(), builder)
 

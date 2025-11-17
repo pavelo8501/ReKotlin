@@ -8,11 +8,11 @@ import po.misc.exceptions.ManagedException
 import po.misc.exceptions.ManagedPayload
 import po.misc.exceptions.stack_trace.extractTrace
 import po.misc.exceptions.throwableToText
+import po.misc.functions.Throwing
 import po.misc.types.helpers.simpleOrAnon
+import po.misc.types.token.TypeToken
 import kotlin.reflect.KClass
 import kotlin.reflect.cast
-
-
 
 
 /**
@@ -48,6 +48,9 @@ fun <T: Any> Any.safeCast(
     }
 }
 
+fun <T> Any.safeCast(token: TypeToken<T>):T? = safeCast(token.kClass)
+
+
 /**
  * Reified inline variant of [safeCast] that infers the target type [T].
  *
@@ -61,8 +64,7 @@ fun <T: Any> Any.safeCast(
  * val x: Any = "Hello"
  * val number: Int? = x.safeCast<Int>()   // returns null, logs error
  */
-inline fun <reified T: Any> Any.safeCast(
-): T? = safeCast(T::class)
+inline fun <reified T: Any> Any.safeCast(): T? = safeCast(T::class)
 
 
 /**
@@ -105,18 +107,17 @@ fun <T: Any> Any?.castOrThrow(
 }
 
 
-fun <T: Any> Any?.castOrThrow(
-    kClass: KClass<T>,
-):T {
+@Throws(ClassCastException::class)
+fun <T: Any> Any?.castOrThrow(kClass: KClass<T>):T {
     val methodName = "castOrThrow"
     val nullChecked = getOrThrow(kClass)
     return try {
         kClass.cast(nullChecked)
-    } catch (th: ClassCastException) {
-        throw th
+    } catch (e: ClassCastException) {
+        e.extractTrace().output()
+        throw e
     }
 }
-
 
 
 /**
@@ -159,9 +160,7 @@ fun <T: Any> Any?.castOrManaged(
     }
 }
 
-inline fun <reified T: Any> Any?.castOrManaged(
-    callingContext: Any,
-): T  = castOrManaged(callingContext, T::class)
+inline fun <reified T: Any> Any?.castOrManaged(callingContext: Any): T  = castOrManaged(callingContext, T::class)
 
 inline fun <reified BASE : Any> Any?.safeBaseCast(): BASE? {
     return when {
@@ -171,16 +170,23 @@ inline fun <reified BASE : Any> Any?.safeBaseCast(): BASE? {
     }
 }
 
-inline fun <reified T: Any, R> withCasted(objectToCast: Any, block:T.()->R):R?{
+@PublishedApi
+internal inline fun <reified T : Any, R> runCasted(
+    objectToCast: Any,
+    crossinline block: T.() -> R
+):R? {
     val castedValue = objectToCast.safeCast<T>()
-   return if(castedValue != null){
+    return if(castedValue != null){
         block.invoke(castedValue)
     }else{
         null
     }
 }
 
-inline fun <reified T: Any, R> CTX.withCastedOrManaged(objectToCast: Any, block:T.()->R):R{
-    val castedValue = objectToCast.castOrManaged<T>(this)
-    return block.invoke(castedValue)
+inline fun <reified T: Any, R> Any.withCasted(crossinline  block:T.() -> R) : R? = runCasted(this, block)
+
+@Throws(ClassCastException::class)
+inline fun <reified T: Any, R> Any.withCasted(throwing: Throwing, crossinline  block:T.() -> R) : R {
+   val casted = castOrThrow(T::class)
+   return block.invoke(casted)
 }

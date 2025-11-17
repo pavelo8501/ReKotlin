@@ -1,25 +1,18 @@
 package po.misc.callbacks.signal
 
 import po.misc.callbacks.CallableEventBase
-import po.misc.callbacks.common.ListenerResult
 import po.misc.callbacks.validator.ReactiveValidator
-import po.misc.collections.lambda_map.CallableWrapper
-import po.misc.collections.lambda_map.LambdaMap
 import po.misc.collections.lambda_map.toCallable
 import po.misc.context.component.Component
 import po.misc.context.tracable.TraceableContext
 import po.misc.context.component.ComponentID
-import po.misc.data.logging.NotificationTopic
 import po.misc.debugging.ClassResolver
 import po.misc.debugging.models.ClassInfo
-import po.misc.functions.CallableOptions
 import po.misc.functions.LambdaOptions
 import po.misc.functions.LambdaType
 import po.misc.functions.SuspendedOptions
-import po.misc.types.helpers.simpleOrAnon
 import po.misc.types.token.TypeToken
-import kotlin.collections.component1
-import kotlin.collections.component2
+
 
 /**
  * Builder interface for configuring and registering listeners on a [Signal].
@@ -88,7 +81,7 @@ sealed interface SignalBuilder<T: Any, R>{
      * @return the newly assigned [ComponentID]
      */
     fun signalName(name: String):ComponentID{
-        val id =  ComponentID(name, ClassResolver.classInfo(signal))
+        val id =  ComponentID(ClassResolver.classInfo(signal), name = name)
         id.classInfo.genericInfoBacking.addAll(signal.componentID.classInfo.genericInfoBacking)
         signal.componentID = id
         return id
@@ -136,7 +129,6 @@ sealed interface SignalBuilder<T: Any, R>{
             registerValidator(ReactiveValidator(predicate))
         }
     }
-
 }
 
 /**
@@ -161,14 +153,14 @@ class Signal<T: Any, R>(
 ): CallableEventBase<T, R>(), SignalBuilder<T, R>{
 
     internal val classInfo: ClassInfo = ClassResolver.classInfo(this)
-    override var componentID: ComponentID = ComponentID("Signal",  classInfo).addParamInfo("T", paramType).addParamInfo("R", resultType)
+    override var componentID: ComponentID = ComponentID(classInfo, name = "Signal").addParamInfo("T", paramType).addParamInfo("R", resultType)
 
     val signal : Boolean get() = listeners.values.any { !it.isSuspended }
     val signalSuspended: Boolean get() =  listeners.values.any { it.isSuspended }
 
     init {
         listeners.onKeyOverwritten = {
-            warn(subjectKey, messageKey(it))
+            warn(subjectKey, messageKey(it) )
         }
     }
 
@@ -181,25 +173,25 @@ class Signal<T: Any, R>(
         options: LambdaOptions,
         callback: (T) -> R
     ){
-        debug(subjectListen, messageReg("Lambda", listener))
+        debug( subjectListen, messageReg("Lambda", listener) )
         listeners[listener] = callback.toCallable(options)
     }
 
     override fun onSignal(
         listener: TraceableContext,
         callback: (T) -> R
-    ): Unit = onSignal(listener, LambdaOptions.Listen, callback)
+    ) : Unit = onSignal(listener, LambdaOptions.Listen, callback)
 
     override fun onSignal(
         callback: (T) -> R
-    ): Unit = onSignal(this, LambdaOptions.Listen, callback)
+    ) : Unit = onSignal(this, LambdaOptions.Listen, callback)
 
     override fun onSignal(
         listener: TraceableContext,
         options: SuspendedOptions,
         callback: suspend (T) -> R
-    ) {
-        debug(subjectListen, messageReg("Suspending lambda", listener))
+    ){
+        debug( subjectListen, messageReg("Suspending lambda", listener) )
         listeners[listener] = toCallable(options, callback)
     }
 
@@ -207,10 +199,10 @@ class Signal<T: Any, R>(
         listener: TraceableContext,
         suspended: LambdaType.Suspended,
         callback: suspend (T) -> R
-    ): Unit = onSignal(listener, SuspendedOptions.Listen, callback)
+    ) : Unit = onSignal(listener, SuspendedOptions.Listen, callback)
 
     override fun onSignal(
         suspended: LambdaType.Suspended,
         callback: suspend (T) -> R
-    ): Unit = onSignal(this, SuspendedOptions.Listen,  callback)
+    ) : Unit = onSignal(this, SuspendedOptions.Listen, callback)
 }

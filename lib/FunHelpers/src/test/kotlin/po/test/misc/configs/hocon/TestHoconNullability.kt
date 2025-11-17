@@ -4,7 +4,7 @@ import com.typesafe.config.ConfigFactory
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import po.misc.configs.hocon.HoconResolvable
-import po.misc.configs.hocon.createResolver
+import po.misc.configs.hocon.builders.resolver
 import po.misc.configs.hocon.extensions.applyConfig
 import po.misc.configs.hocon.properties.hoconNested
 import po.misc.configs.hocon.properties.hoconProperty
@@ -12,29 +12,28 @@ import po.misc.configs.hocon.properties.listProperty
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class TestHoconNullability {
 
     private class NullableConfig: HoconResolvable<NullableConfig> {
-        override val resolver = createResolver()
+        override val resolver = resolver()
 
         val number : Int? by hoconProperty()
         val string: String by hoconProperty()
     }
     private class ListConfig: HoconResolvable<ListConfig> {
-        override val resolver = createResolver()
+        override val resolver = resolver()
         val records : List<String>? by listProperty()
     }
 
     private class Nested: HoconResolvable<Nested> {
-        override val resolver = createResolver()
+        override val resolver = resolver()
         val nestedProperty : String by hoconProperty()
     }
 
     private class NestedHolder: HoconResolvable<NestedHolder> {
-        override val resolver = createResolver()
+        override val resolver = resolver()
 
         val nested : Nested? by hoconNested(Nested())
         val string: String by hoconProperty()

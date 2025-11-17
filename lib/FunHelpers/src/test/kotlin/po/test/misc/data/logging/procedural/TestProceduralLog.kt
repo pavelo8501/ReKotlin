@@ -3,39 +3,42 @@ package po.test.misc.data.logging.procedural
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.assertDoesNotThrow
 import po.misc.context.component.ComponentID
+import po.misc.context.component.asSubject
 import po.misc.context.component.componentID
+import po.misc.context.component.initSubject
+import po.misc.context.component.startProcSubject
 import po.misc.data.logging.LogProvider
 import po.misc.data.logging.NotificationTopic
-import po.misc.data.logging.models.Notification
-import po.misc.data.logging.procedural.ProceduralEntry
-import po.misc.data.logging.procedural.ProceduralFlow
+import po.misc.data.logging.models.LogMessage
 import po.misc.data.logging.procedural.ProceduralRecord
-import po.misc.data.logging.procedural.StepResult
+import po.misc.data.logging.procedural.page
 import po.misc.data.logging.processor.LogProcessor
 import po.misc.data.logging.processor.logProcessor
+import po.test.misc.data.logging.LoggerTestBase
 import kotlin.test.assertEquals
-
+import kotlin.test.assertIs
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertSame
+import kotlin.test.assertTrue
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestProceduralLog: ProceduralTest(), LogProvider<ProceduralRecord> {
+class TestProceduralLog: LoggerTestBase(), LogProvider<LogMessage> {
 
-    override val componentID: ComponentID = componentID("Log Provider")
-    val processor: LogProcessor<TestProceduralLog, ProceduralRecord> = logProcessor{
-        ProceduralRecord(it)
-    }
-    private  val subComponent1 = Component1()
-    private  val subComponent2 = Component2()
+    override val componentID: ComponentID = componentID("Test procedural's  log")
+    val processor: LogProcessor<TestProceduralLog, LogMessage> = logProcessor()
+    private  val subComponent1 = ProceduralTestComponent()
+    private  val subComponent2 = ProceduralTestComponent()
 
-    private fun processNotification(notification: Notification){
-        val procedural = notification.toProceduralEntry()
-        processor.activeOrNew.procedural.add(procedural)
-    }
+    private val step1: String  = "Step_1"
+    private val step1subStep1: String  = "Step_1_1"
+    private val step1subStep2: String  = "Step_1_2"
 
-
-    private fun processProceduralRecord(procedural: ProceduralRecord){
-        processor.logData(procedural)
-    }
+    private val step2: String  = "Step_2"
+    private val step2subStep1: String  = "Step_2_1"
+    private val step2subStep2: String  = "Step_2_2"
 
     @BeforeEach
     fun clearLogs(){
@@ -45,45 +48,87 @@ class TestProceduralLog: ProceduralTest(), LogProvider<ProceduralRecord> {
     }
 
     @Test
-    fun `Simple usage test`(){
-        val startingMessage = notification(NotificationTopic.Info, "Simple Usage", "Start")
-        processor.logRecord(startingMessage)
-        assertEquals(1, processor.records.size)
-        subComponent1.processor.collectData(keepData = false, ::processNotification)
-        subComponent2.processor.collectData(keepData = false, ::processNotification)
-        processor.logScope(processor.activeOrNew){
-            subComponent1.emmitInfo("Process_1")
-            subComponent2.emmitInfo("Process_2")
+    fun `LogMessage successfully translated to ProceduralRecord and back to message`(){
+        val logProcessor :  LogProcessor<TestProceduralLog, LogMessage> = logProcessor()
+        val message = infoMsg(initSubject)
+        var procRecord: ProceduralRecord? = null
+
+        assertDoesNotThrow {
+            logProcessor.proceduralScope(message){ procRecord = it }
         }
-        val firstRecord = processor.records.first()
-        assertEquals(2, firstRecord.procedural.size)
-        assertEquals(0, subComponent1.processor.records.size)
-        assertEquals(0, subComponent2.processor.records.size)
+        assertNotNull(procRecord)
+        assertNotNull(logProcessor.logRecords.firstOrNull()){
+            assertEquals(message.subject, it.subject)
+            assertEquals(message.text, it.text)
+            assertEquals(message.topic, it.topic)
+        }
     }
 
     @Test
-    fun `Hosting component overrides outputs inside step lambda`(){
-        val startingMessage = notification(NotificationTopic.Info, "Simple Usage", "Start")
-        val activeRecord = processor.activeOrNew
-        processor.logScope(activeRecord){
-            proceduralStep("Step_1", logRecord){ record->
-                subComponent1.processor.withProcedural(record){
-                    subComponent1.emmitInfoWithResult("Process_1", true)
+    fun `LogMessages and notifications successfully translated to ProceduralEntries`(){
+
+        val logProcessor :  LogProcessor<TestProceduralLog, LogMessage> = logProcessor()
+        logProcessor.debugMode = true
+        val message = infoMsg(initSubject)
+        var procRecord: ProceduralRecord? = null
+        logProcessor.proceduralScope(message){
+            procRecord = it
+            assertNull(logProcessor.activeUnresolved)
+            logProcessor.log(notification("Subject", "Text"))
+        }
+
+        assertNotNull(procRecord?.entries?.firstOrNull())
+        assertNotNull(logProcessor.logRecords.firstOrNull()){
+           val entry = assertNotNull(it.logRecords.firstOrNull())
+           assertTrue { entry.subject.contains("Subject") }
+        }
+    }
+
+    @Test
+    fun `Foreign component's log emissions are properly registered`(){
+        val logProcessor = logProcessor()
+        val warnText = "Sub component2  Warning"
+        val initMsg = infoMsg(initSubject)
+        val startProcessSubject = subComponent2.startProcSubject("resulting")
+
+        logProcessor.proceduralScope(initMsg){
+            step(step1){ true }
+            step(step2){
+                it.page(subComponent1.processor, subComponent1::listResulting.asSubject){
+                    subComponent1.listResulting(5, warnOnCount = 3)
                 }
-                subComponent1.processor.withProcedural(record){
-                    subComponent1.emmitInfoWithResult("Process_2", false)
-                }
-                subComponent2.processor.withProcedural(record){
-                    subComponent2.emmitInfoWithResult("Process_1", null)
+            }
+
+            page(subComponent2.processor, startProcessSubject){
+                step(step1subStep1){
+                    subComponent2.resulting<String>("Some result"){
+                        warnText
+                    }
+                    "step1subStep1"
                 }
             }
         }
-        assertEquals(1, processor.records.size)
-        val proceduralList =  processor.records.first().procedural
-        assertEquals(1, proceduralList.size)
-        val proceduralRec =  proceduralList.first()
-        assertEquals(StepResult.Fail, proceduralRec.stepResult)
-        assertEquals(3, proceduralRec.subEntries.size)
 
+        assertEquals(1, logProcessor.logRecords.size)
+        assertEquals(0, subComponent1.processor.logRecords.size)
+        assertEquals(0, subComponent2.processor.logRecords.size)
+
+        val initialMessage =  assertNotNull(logProcessor.logRecords.firstOrNull())
+        assertEquals(initMsg.text, initialMessage.text)
+        assertEquals(2, initialMessage.logRecords.size)
+
+        val initSubjectMessage =  assertNotNull(initialMessage.logRecords.firstOrNull())
+        assertIs<LogMessage>(initSubjectMessage)
+
+        val startProcessMessage =  assertNotNull(initialMessage.logRecords[1])
+        assertIs<LogMessage>(startProcessMessage)
+        assertEquals(startProcessSubject.subjectText, startProcessMessage.text)
+
+        val subComponent1Warning = assertNotNull( initSubjectMessage.logRecords.firstOrNull { it.topic == NotificationTopic.Warning })
+        assertEquals(subComponent1,  subComponent1Warning.context)
+
+        val subComponent2Warning =  assertNotNull(startProcessMessage.logRecords.firstOrNull { it.text.contains(warnText) } )
+        assertSame(subComponent2, subComponent2Warning.context)
     }
+
 }

@@ -10,6 +10,7 @@ import po.misc.collections.lambda_map.toCallable
 import po.misc.context.component.Component
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.helpers.output
+import po.misc.functions.SuspendedOptions
 import po.misc.types.safeCast
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -125,7 +126,7 @@ class TestLambdaMap: Component {
             notified = it
             it.output()
         }
-        val lambda = toCallable(suspendedFunction)
+        val lambda = toCallable(SuspendedOptions.Listen, suspendedFunction)
         val lambdaMap = LambdaMap<String, Unit>()
         lambdaMap[this@TestLambdaMap] = lambda
 

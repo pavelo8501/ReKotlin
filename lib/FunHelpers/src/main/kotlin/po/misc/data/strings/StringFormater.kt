@@ -4,6 +4,7 @@ import po.misc.context.CTX
 import po.misc.data.HasValue
 import po.misc.data.PrettyPrint
 import po.misc.data.TextContaining
+import po.misc.data.styles.Colorizer
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
@@ -70,7 +71,7 @@ class DSLFormatter(string: String): StringFormatter(string){
     private fun appendLine(receiver: Any,  colour: Colour): DSLFormatter{
         val formatedText = formatKnownTypes(receiver)
         val dsl =  DSLFormatter(formatedText)
-        dsl.formatedString = Colour.applyColour(formatedText, colour)
+        dsl.formatedString = Colorizer.applyColour(formatedText, colour)
         return dsl
     }
 
@@ -96,7 +97,7 @@ internal inline fun stringifyInternal(
     val lambdaResult = transform(StringFormatter.formatKnownTypes(receiver))
 
     return colour?.let {
-        SimpleFormatter(lambdaResult, Colour.applyColour(lambdaResult, it))
+        SimpleFormatter(lambdaResult, Colorizer.applyColour(lambdaResult, it))
     } ?: SimpleFormatter(lambdaResult)
 }
 
@@ -114,7 +115,7 @@ internal fun stringifyInternal(
 
     val formated = prefixToUse + StringFormatter.formatKnownTypes(receiver)
     return colour?.let {
-        SimpleFormatter(formated, Colour.applyColour(formated, it))
+        SimpleFormatter(formated, Colorizer.applyColour(formated, it))
     } ?: SimpleFormatter(formated)
 }
 

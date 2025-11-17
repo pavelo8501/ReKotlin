@@ -94,7 +94,7 @@ class TestDelayedEvent: EventHost, TokenFactory {
 
         var dataTriggered: Any? = null
         val tickTriggers = mutableListOf<SomeData>()
-        val event = DelayedEvent(this@TestDelayedEvent, typeToken<SomeData>(), this@runTest)
+        val event = DelayedEvent(this@TestDelayedEvent, tokenOf<SomeData>(), this@runTest)
 
         event.onTimer {
             it.output(Colour.Green)
@@ -120,7 +120,7 @@ class TestDelayedEvent: EventHost, TokenFactory {
 
         var dataTriggered: Any? = null
         val tickTriggers = mutableListOf<SomeData>()
-        val event = DelayedEvent(this@TestDelayedEvent, typeToken<SomeData>(), this@runTest)
+        val event = DelayedEvent(this@TestDelayedEvent, tokenOf<SomeData>(), this@runTest)
 
         event.onTimer {
             it.output(Colour.Green)

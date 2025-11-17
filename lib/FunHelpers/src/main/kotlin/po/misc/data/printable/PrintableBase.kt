@@ -22,34 +22,24 @@ abstract class PrintableBase<T>(
     data class Config(
         var explicitOutput: Boolean = false
     )
-
     val printableConfig: Config = Config()
-
     private val templateNotFound : (T) -> String = { key->
         "[template for data: $key not defined. Using toString()] ${companion.typeToken.simpleName}".colorize(Colour.Yellow)
     }
-
     abstract val self:T
 
-   // override val ownClass : KClass<out  T> get() = companion.typeToken.kClass
     override val arbitraryMap  = ArbitraryDataMap<T>()
 
-   // val arbitraryRecordsFlattened: List<Printable> get() = arbitraryMap.flatMap { it.value }
-
     var parentRecord:Printable? = null
-
     var activeTemplate:  PrintableTemplateBase<T>? = null
-
     private val templatesBacking: MutableList<PrintableTemplateBase<T>> = mutableListOf<PrintableTemplateBase<T>>()
     val templates :List<PrintableTemplateBase<T>> = templatesBacking
-
     override val formattedString : String get(){
         return activeTemplate?.resolve(self) ?:run {
             templateNotFound(self)
             toString()
         }
     }
-
     val ownClass: KClass<T> get() = companion.typeToken.kClass
 
     internal var jsonHolder : JsonHolder? = null

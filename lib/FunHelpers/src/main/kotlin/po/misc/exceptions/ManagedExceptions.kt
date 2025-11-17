@@ -2,11 +2,13 @@ package po.misc.exceptions
 
 import po.misc.data.printable.knowntypes.PropertyData
 import po.misc.context.CTX
+import po.misc.context.component.Component
 import po.misc.context.tracable.TraceableContext
 import po.misc.coroutines.CoroutineInfo
 import po.misc.data.helpers.output
 import po.misc.exceptions.stack_trace.ExceptionTrace
 import po.misc.exceptions.stack_trace.extractTrace
+import po.misc.exceptions.stack_trace.tryExtractTrace
 import po.misc.exceptions.trackable.TrackableException
 import kotlin.reflect.KClass
 
@@ -70,7 +72,7 @@ open class ManagedException(
     open var handler: HandlerType = HandlerType.CancelAll
         internal set
 
-    override var exceptionTrace: ExceptionTrace = extractTrace(context, cause)
+    override var exceptionTrace: ExceptionTrace = tryExtractTrace(context, cause)
 
     constructor(managedPayload: ThrowableCallSitePayload):
             this(
@@ -98,7 +100,6 @@ open class ManagedException(
     }
 }
 
-
 fun <T:TraceableContext> T.managedException(message: String, code: Enum<*>? = null, immediateOutput: Boolean = true): ManagedException{
     val managed =  ManagedException(this, message, code, null)
     if(immediateOutput){
@@ -114,6 +115,12 @@ fun <T:TraceableContext, TH: Throwable> T.managedException(cause: TH, immediateO
         managed.exceptionTrace.output()
     }
     return  managed
+}
+
+fun Component.managedException(message: String): ManagedException{
+    val exception =  ManagedException(this, message)
+    exception.extractTrace(this)
+    return exception
 }
 
 

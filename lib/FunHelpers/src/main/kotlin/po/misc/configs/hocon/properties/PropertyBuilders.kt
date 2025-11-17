@@ -8,6 +8,7 @@ import po.misc.configs.hocon.models.HoconPrimitives
 import po.misc.configs.hocon.HoconResolvable
 import po.misc.configs.hocon.models.HoconListPrimitives
 import po.misc.types.token.tokenOf
+import kotlin.reflect.KClass
 
 
 inline fun <T: HoconResolvable<T>, reified V>  T.hoconProperty():HoconProperty<T, V> {
@@ -26,9 +27,7 @@ inline fun <T: HoconResolvable<T>, reified V: Any, R: Any>  T.hoconProperty(
     hoconPrimitive:  HoconPrimitives<V>,
     noinline transformLambda: (V)->R
 ): HoconTransformProperty<T, V, R> {
-
     val entry =  HoconEntry<T, V>(this, hoconPrimitive)
-
     return HoconTransformProperty(this, entry, transformLambda)
 }
 
@@ -39,9 +38,7 @@ inline fun <T: HoconResolvable<T>, reified V: Any, R: Any>  T.hoconProperty(
     val primitive = HoconPrimitives.resolveTokenToPrimitive(typeToken)
     val entry =  HoconEntry<T, V>(this, primitive)
     return HoconTransformProperty(this, entry, transformLambda)
-
 }
-
 
 inline fun <reified T: HoconResolvable<T>, reified V, reified V1 : List<V>?> T.listProperty():HoconListProperty<T, V> {
     val typeToken =  tokenOf<V>()

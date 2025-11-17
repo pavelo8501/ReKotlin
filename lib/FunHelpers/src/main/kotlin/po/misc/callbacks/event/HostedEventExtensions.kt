@@ -30,7 +30,7 @@ import po.misc.functions.SuspendedOptions
  */
 fun <H: EventHost, T: Any, R> TraceableContext.listen(
     event: HostedEvent<H, T, R>,
-    callback: H.(T)->R
+    callback: H.(T) -> R
 ): Unit = event.onEvent(this,  callback)
 
 
@@ -52,7 +52,7 @@ fun <H: EventHost, T: Any, R> TraceableContext.listen(
 fun <H: EventHost, T: Any, R> TraceableContext.listen(
     event: HostedEvent<H, T, R>,
     options: LambdaOptions = LambdaOptions.Listen,
-    callback: H.(T)->R
+    callback: H.(T) -> R
 ): Unit = event.onEvent(this, options,  callback)
 
 
@@ -75,7 +75,7 @@ fun <H: EventHost, T: Any, R> TraceableContext.listen(
 fun <H: EventHost, T: Any, R> TraceableContext.listen(
     event: HostedEvent<H, T, R>,
     options: SuspendedOptions = SuspendedOptions.Listen,
-    callback: suspend H.(T)->R
+    callback: suspend H.(T) -> R
 ): Unit = event.onEvent(this, options,  callback)
 
 /**
@@ -104,7 +104,7 @@ fun <H: EventHost, T: Any, R> TraceableContext.listen(
 fun <H: EventHost, T: Any, R> TraceableContext.listen(
     event: HostedEvent<H, T, R>,
     suspended: LambdaType.Suspended,
-    callback: suspend H.(T)->R
+    callback: suspend H.(T) -> R
 ): Unit = event.onEvent(this, suspended, callback)
 
 

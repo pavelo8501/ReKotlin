@@ -12,6 +12,8 @@ interface BackingBuilder<T: Any>{
     fun provideValue(type : EmissionType = EmissionType.EmmitAlways, valueProvider:() ->T):BackingContainerBase<T>
     fun provideValue(newValue:T, allowOverwrite: Boolean):BackingContainerBase<T>
 
+    fun setFallback(provider: ()->T)
+
     fun buildConfig(block: NotificationConfig.()-> Unit){
         config.block()
     }

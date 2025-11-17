@@ -1,6 +1,5 @@
 package po.misc.callbacks.signal
 
-import po.misc.context.component.ComponentID
 import po.misc.context.component.setName
 import po.misc.functions.NoResult
 import po.misc.types.token.Tokenized
@@ -11,7 +10,6 @@ internal fun <T: Any> createSignal(
     typeToken: TypeToken<T>,
     name: String? = null
 ): Signal<T, Unit> {
-
     val signal = Signal(typeToken, TypeToken.create<Unit>())
     if(name != null){
         signal.setName(name)
@@ -20,18 +18,11 @@ internal fun <T: Any> createSignal(
 }
 
 @PublishedApi
-internal fun <T: Any, R: Any> createSignal(
+internal fun <T: Any, R> createSignal(
     typeToken: TypeToken<T>,
     resultToken: TypeToken<R>,
     name: String? = null
-): Signal<T, R> {
-    val signal = Signal(typeToken, resultToken)
-    if(name != null){
-        signal.setName(name)
-    }
-    return signal
-}
-
+): Signal<T, R> = createSignal(typeToken, resultToken, name)
 
 /**
  * Creates a standalone [Signal] without an owner (unbound event).
@@ -44,17 +35,11 @@ internal fun <T: Any, R: Any> createSignal(
  *
  * @see signal for the DSL builder variant with configuration block.
  */
-fun <T: Any, R: Any> signalOf(
+fun <T: Any, R> signalOf(
     typeToken: TypeToken<T>,
     resultToken: TypeToken<R>,
     name: String? = null
-): Signal<T, R> {
-    val signal = Signal<T, R>(typeToken, resultToken)
-    if(name != null){
-        signal.setName(name)
-    }
-    return signal
-}
+): Signal<T, R> = createSignal(typeToken, resultToken, name)
 
 /**
  * Variant of [signalOf] for signals that do not return a result (`Unit` response).
@@ -68,23 +53,22 @@ fun <T: Any> signalOf(
     typeToken: TypeToken<T>,
     result: NoResult,
     name: String? = null
-): Signal<T, Unit> {
-    val signal = Signal(typeToken, TypeToken.create<Unit>())
-    if(name != null){
-        signal.setName(name)
-    }
-    return signal
-}
+): Signal<T, Unit> = createSignal(typeToken, name)
 
-fun <T: Any, R: Any> Tokenized<T>.signalOf(resultToken: TypeToken<R>): Signal<T, R> = createSignal(typeToken, resultToken)
+fun <T: Any, R: Any> Tokenized<T>.signalOf(
+    resultToken: TypeToken<R>
+): Signal<T, R> = createSignal(typeToken, resultToken)
 
-fun <T: Any> Tokenized<T>.signalOf(result: NoResult): Signal<T, Unit> = createSignal(typeToken)
+fun <T: Any> Tokenized<T>.signalOf(
+    result: NoResult
+): Signal<T, Unit> = createSignal(typeToken)
 
 /**
  * Inline shortcut for [signalOf] using a reified payload type.
  */
-inline fun <reified T: Any, reified R: Any> signalOf(name: String? = null): Signal<T, R> =
-    createSignal(TypeToken.create<T>(), TypeToken.create<R>(), name)
+inline fun <reified T: Any, reified R> signalOf(
+    name: String? = null
+): Signal<T, R> = createSignal(TypeToken.create<T>(), TypeToken.create<R>(), name)
 
 /**
  * Inline shortcut for [signalOf] with no return value (`Unit`).
@@ -109,12 +93,12 @@ inline fun <reified T: Any> signalOf(
  * @param typeToken type information for the input payload [T].
  * @param builder configuration block for registering listeners via [EventBuilder].
  */
-fun <T: Any, R: Any> signal(
+fun <T: Any, R> signal(
     typeToken: TypeToken<T>,
     resultType: TypeToken<R>,
     builder: SignalBuilder<T, R>.() -> Unit
 ): Signal<T, R> {
-    val signal = createSignal<T, R>(typeToken, resultType)
+    val signal = createSignal(typeToken, resultType)
     signal.builder()
     return signal
 }
@@ -140,7 +124,7 @@ fun <T: Any> signal(
 /**
  * Inline reified DSL builder for [Signal] with payload [T] and return [R].
  */
-inline fun <reified T: Any, reified R: Any> signal(
+inline fun <reified T: Any, reified R> signal(
    noinline builder: SignalBuilder<T, R>.() -> Unit
 ): Signal<T, R> = signal(TypeToken.create<T>(), TypeToken.create<R>(), builder)
 

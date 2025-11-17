@@ -2,7 +2,10 @@ package po.misc.context.component
 
 import po.misc.callbacks.signal.Signal
 import po.misc.data.PrettyPrint
+import po.misc.data.logging.Loggable
+import po.misc.data.logging.StructuredLoggable
 import po.misc.data.logging.Verbosity
+import po.misc.data.logging.processor.LogProcessor
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
@@ -33,16 +36,16 @@ import po.misc.types.token.TypeToken
  * @property verbosity Controls minimum log level for this component.
  */
 class ComponentID(
-    private var name: String?,
-    var classInfo: ClassInfo,
+    val classInfo: ClassInfo,
     var verbosity: Verbosity = Verbosity.Info,
+    private var name: String? = null
 ): PrettyPrint {
 
     constructor(
         provider: () -> String,
         component: Component,
         verbosity: Verbosity = Verbosity.Info
-    ):this(null, ClassResolver.classInfo(component), verbosity){
+    ):this(ClassResolver.classInfo(component), verbosity){
         nameProvider = provider
     }
 
@@ -79,3 +82,4 @@ class ComponentID(
 
     override fun toString(): String = componentName + classInfo
 }
+

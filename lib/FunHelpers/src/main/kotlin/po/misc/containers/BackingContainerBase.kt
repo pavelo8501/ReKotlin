@@ -39,55 +39,58 @@ abstract class BackingContainerBase<T : Any>(
 
     override var config: NotificationConfig = NotificationConfig()
 
-    var value: T? = null
-        protected set
+    private var valueBacking: T? = null
+
+    val value: T?
+        get() = valueBacking?:run {
+            fallbackValueProvider?.let {
+                warn(readingValueSubject, "Using fallback to provide result")
+                it.invoke()
+            }
+        }
+
 
     protected val valueProvided: Signal<T, Unit> = signalOf(NoResult)
 
-    protected var provider:(() ->T)? = null
+    protected var provider: (() ->T)? = null
+    protected var fallbackValueProvider :  (() ->T)? = null
+    val fallbackAvailable: Boolean get() =  fallbackValueProvider != null
 
     /**
      * Indicates whether the source backing value has been provided.
      */
-    val valueAvailable: Boolean get() = value != null
+    val valueAvailable: Boolean get() = valueBacking != null
 
     protected open val  valueAccessErrMsg: String = "${this::class.simpleName}'s value<${typeToken.typeName}> accessed before initialization"
 
     protected var changedHook: ChangeHook<T> = ChangeHook()
 
-    private val valueNullMsg: (String)-> String = { name->
+    private val valueNullMsg: (String) -> String = { name->
         "Context $name is trying to access uninitialized value<${typeToken.typeName}> in ${this::class.simpleName}"
     }
 
     protected abstract fun valueAvailable(value:T)
 
     private fun applyValue(newValue:T): T{
-        val oldValue = value
-        value = newValue
+        val oldValue = valueBacking
+        valueBacking = newValue
         changedHook.trigger(ValueUpdate(oldValue, newValue))
         valueProvided.trigger(newValue)
         valueAvailable(newValue)
         return newValue
     }
 
-
     private fun prepareValue():T?{
-        val valueProvider = provider
-        return if(emissionType == EmissionType.EmmitOnce){
-            if(value != null){
-                value
-            }else{
-                valueProvider?.let {
-                    applyValue(it.invoke())
-                }
-            }
-        }else{
-            if(valueProvider != null){
-                applyValue(valueProvider())
-            }else{
-                value
-            }
+        val valueByBacking = valueBacking
+        if(valueByBacking != null){
+            return valueByBacking
         }
+        val valueByProvider = provider?.invoke()
+        if(valueByProvider != null){
+            valueBacking = valueByProvider
+            return valueByProvider
+        }
+        return value
     }
 
     override fun valueProvided(listener: TraceableContext, callback: (T)-> Unit){
@@ -106,7 +109,7 @@ abstract class BackingContainerBase<T : Any>(
      * @throws IllegalStateException if the value has not been provided
      */
     @Throws(IllegalStateException::class)
-     fun getValue(callingContext: TraceableContext):T{
+    fun getValue(callingContext: TraceableContext):T{
         val returnValue = prepareValue()
         if(returnValue != null){
             return returnValue
@@ -136,21 +139,19 @@ abstract class BackingContainerBase<T : Any>(
     }
 
     fun getWithFallback(fallback: ()-> T):T{
-        val returnValue = value
+        val returnValue = valueBacking
         if(returnValue != null){
             return returnValue
         }
         return fallback()
     }
 
-    override fun provideValue(
-        newValue:T,
-        allowOverwrite: Boolean
-    ):BackingContainerBase<T>{
+    override fun provideValue(newValue:T, allowOverwrite: Boolean):BackingContainerBase<T>{
+
         if(allowOverwrite){
             applyValue(newValue)
         }else{
-            if(value == null){
+            if(valueBacking == null){
                 applyValue(newValue)
             }
         }
@@ -170,6 +171,10 @@ abstract class BackingContainerBase<T : Any>(
         return this
     }
 
+    override fun setFallback(provider: ()-> T){
+        fallbackValueProvider = provider
+    }
+
     /**
      * Resets the container to an uninitialized state.
      *
@@ -181,7 +186,7 @@ abstract class BackingContainerBase<T : Any>(
      * After reset, the container behaves exactly as if newly created.
      */
     fun reset() {
-        value = null
+        valueBacking = null
         valueProvided.listeners.clear()
     }
 }

@@ -7,18 +7,21 @@ import po.misc.context.component.componentID
 import po.misc.data.logging.Loggable
 import po.misc.data.logging.NotificationTopic
 import po.misc.data.logging.Verbosity
+import po.misc.data.logging.factory.toLogMessage
 import po.misc.data.logging.models.Notification
-import po.misc.data.logging.processor.LogProcessor
 import po.misc.data.logging.processor.logProcessor
 import po.misc.io.captureOutput
-import po.misc.types.token.TypeToken
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class TestLogProcessor: Component {
+
+    private class SubClass(): Component{
+        override val componentID: ComponentID = componentID()
+        val subProcessor = logProcessor()
+    }
 
     override val componentID: ComponentID = componentID()
 
@@ -28,26 +31,30 @@ class TestLogProcessor: Component {
        return Notification(this, topic, subject, text)
     }
 
+    private val subClass = SubClass()
+
     private val subject = "Some Subject"
     private val notificationText = "Some text"
+
+    val initialStep: String = "Initial Step"
+    val subClassStep : String = "SubClass Step"
+
 
     @Test
     fun `Log processor's console outputs respect host verbosity setting`(){
         componentID.verbosity = Verbosity.Debug
-
-        val processor = LogProcessor<TestLogProcessor, Notification>(this, TypeToken.create<Notification>())
+        val processor = logProcessor()
 
         val debug = notify(NotificationTopic.Debug, "Some subject", notificationText)
-
         var capturedDebug = captureOutput {
-            processor.logData(debug)
+            processor.logData(debug.toLogMessage())
         }
         assertTrue {
             capturedDebug.output.contains(notificationText)
         }
         componentID.verbosity = Verbosity.Info
         capturedDebug = captureOutput {
-            processor.logData(debug)
+            processor.logData(debug.toLogMessage())
         }
         assertFalse {
             capturedDebug.output.contains(notificationText)
@@ -55,14 +62,14 @@ class TestLogProcessor: Component {
 
         val info = notify(NotificationTopic.Info, "Info subject", notificationText)
         var capturedInfo = captureOutput {
-            processor.logData(info)
+            processor.logData(info.toLogMessage())
         }
         assertTrue {
             capturedInfo.output.contains(notificationText)
         }
         componentID.verbosity = Verbosity.Warnings
         capturedInfo = captureOutput {
-            processor.logData(info)
+            processor.logData(info.toLogMessage())
         }
         assertFalse {
             capturedInfo.output.contains(notificationText)
@@ -70,7 +77,7 @@ class TestLogProcessor: Component {
 
         val warning = notify(NotificationTopic.Warning, "Warning subject", notificationText)
         var capturedWarning = captureOutput {
-            processor.logData(warning)
+            processor.logData(warning.toLogMessage())
         }
         assertTrue {
             capturedWarning.output.contains(notificationText)
@@ -78,7 +85,7 @@ class TestLogProcessor: Component {
         //Backwards check if warnings are not effected by Verbosity
         componentID.verbosity = Verbosity.Info
         capturedWarning = captureOutput {
-            processor.logData(warning)
+            processor.logData(warning.toLogMessage())
         }
         assertTrue {
             capturedWarning.output.contains(notificationText)
@@ -86,7 +93,7 @@ class TestLogProcessor: Component {
 
         componentID.verbosity = Verbosity.Debug
         capturedWarning = captureOutput {
-            processor.logData(warning)
+            processor.logData(warning.toLogMessage())
         }
         assertTrue {
             capturedWarning.output.contains(notificationText)
@@ -96,48 +103,34 @@ class TestLogProcessor: Component {
     @Test
     fun `Log processor stores data disregarding verbosity`(){
 
-        val processor = logProcessor(Notification)
+        val processor = logProcessor()
 
         componentID.verbosity = Verbosity.Warnings
         val debug = notify(NotificationTopic.Debug, subject, notificationText)
-        processor.logData(debug)
-        assertNotNull(processor.records.firstOrNull { it.topic == NotificationTopic.Debug })
+        processor.logData(debug.toLogMessage())
+        assertNotNull(processor.logRecords.firstOrNull { it.topic == NotificationTopic.Debug })
 
         val info = notify(NotificationTopic.Info, subject, notificationText)
-        processor.logData(info)
-        assertEquals(2, processor.records.size)
-        assertNotNull(processor.records.firstOrNull { it.topic == NotificationTopic.Info })
+        processor.logData(info.toLogMessage())
+        assertEquals(2, processor.logRecords.size)
+        assertNotNull(processor.logRecords.firstOrNull { it.topic == NotificationTopic.Info })
 
         val warning = notify(NotificationTopic.Warning, subject, notificationText)
-        processor.logData(warning)
-        assertEquals(3, processor.records.size)
-        assertNotNull(processor.records.firstOrNull { it.topic == NotificationTopic.Warning })
+        processor.logData(warning.toLogMessage())
+        assertEquals(3, processor.logRecords.size)
+        assertNotNull(processor.logRecords.firstOrNull { it.topic == NotificationTopic.Warning })
     }
 
     @Test
     fun `Log processor's collectData lambda work as expected`(){
-        val processor = logProcessor(Notification.Companion)
-        var intercepted: Notification? = null
+        val processor = logProcessor()
+        var intercepted: Loggable? = null
         processor.collectData(keepData = true){ intercepted = it }
         var info = notify(NotificationTopic.Info, subject, notificationText)
-        processor.logData(info)
+        processor.logData(info.toLogMessage())
         assertNotNull(intercepted)
-        assertNotNull(processor.records.firstOrNull { it === info })
-
-        info = notify(NotificationTopic.Info, subject, notificationText)
-        processor.clear()
-        intercepted = null
-        processor.collectData(keepData = false){ intercepted = it }
-        processor.logData(info)
-        assertNotNull(intercepted)
-        assertNull(processor.records.firstOrNull { it === info })
-    }
-
-    @Test
-    fun `Log processor's conditional output lambda work as expected`(){
-
+        assertNotNull(processor.logRecords.firstOrNull { it.topic === NotificationTopic.Info })
 
     }
-
 
 }

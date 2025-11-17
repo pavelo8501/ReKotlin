@@ -14,10 +14,12 @@ import po.auth.authentication.authenticator.models.AuthenticationPrincipal
 import po.auth.models.CryptoRsaKeys
 import po.lognotify.TasksManaged
 import po.lognotify.launchers.runAction
+import po.misc.containers.BackingContainerBase
 import po.misc.containers.backing.BackingContainer
 import po.misc.containers.backing.backingContainerOf
 import po.misc.context.CTXIdentity
 import po.misc.context.asSubIdentity
+import po.misc.context.tracable.TraceableContext
 import po.misc.functions.registries.builders.notifierRegistryOf
 import po.restwraptor.RestWrapTor
 import po.restwraptor.interfaces.WraptorResponse
@@ -35,7 +37,7 @@ import po.restwraptor.routes.configureSystemRoutes
 class ConfigContext(
     internal val wraptor : RestWrapTor,
     internal val application: Application
-): TasksManaged {
+): TasksManaged, TraceableContext {
 
     val wrapConfig: WraptorConfig = WraptorConfig()
     val coreContext: CoreContext = CoreContext(application, wraptor)
@@ -73,8 +75,8 @@ class ConfigContext(
     val managedRouting: ManagedRouting = ManagedRouting()
 
     init {
-        responseProvider.provideValue{
-            DefaultResponse("")
+        responseProvider.provideValue(BackingContainerBase.EmissionType.EmmitAlways){
+            { DefaultResponse("") }
         }
     }
 
@@ -175,7 +177,7 @@ class ConfigContext(
         }
         if (apiConfig.systemRouts) {
             application.routing {
-                configureSystemRoutes(this@ConfigContext, responseProvider.getValue(this))
+                configureSystemRoutes(this@ConfigContext, responseProvider.getValue(this@ConfigContext))
             }
         }
         authConfigFn?.invoke(authContext)

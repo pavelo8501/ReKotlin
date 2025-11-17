@@ -70,7 +70,7 @@ class SwitchChunkContainer<DTO, D, F, FD>(
     val singleHandler: SingleTypeSwitchHandler<DTO, D, F, FD> = SingleTypeSwitchHandler(descriptor)
 
     init {
-        resultBacking.onValueSet { change ->
+        resultBacking.onValueChanged { change ->
             println("change")
             println(this)
             println(change)

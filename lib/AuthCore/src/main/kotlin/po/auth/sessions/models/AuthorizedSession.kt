@@ -180,10 +180,10 @@ class AuthorizedSession internal constructor(
             }
         }
         return buildString {
-            appendLine(Colour.makeOfColour(Colour.Cyan, "Session: " ) + type)
-            appendLine(Colour.makeOfColour(Colour.Cyan, "Session Id: ") + sessionID.colorize(Colour.WhiteBright) )
-            appendLine(Colour.makeOfColour(Colour.Cyan, "Identified by IP: ") +identifier.ip.colorize(Colour.WhiteBright ) )
-            appendLine( Colour.makeOfColour(Colour.Cyan, "Identified by client: ") + identifier.userAgent.colorize(Colour.WhiteBright) )
+            appendLine(Colour.colour(Colour.Cyan, "Session: " ) + type)
+            appendLine(Colour.colour(Colour.Cyan, "Session Id: ") + sessionID.colorize(Colour.WhiteBright) )
+            appendLine(Colour.colour(Colour.Cyan, "Identified by IP: ") +identifier.ip.colorize(Colour.WhiteBright ) )
+            appendLine(Colour.colour(Colour.Cyan, "Identified by client: ") + identifier.userAgent.colorize(Colour.WhiteBright) )
         }
     }
 

@@ -4,6 +4,9 @@ import po.misc.data.helpers.output
 import po.misc.data.logging.Loggable
 import po.misc.data.logging.NotificationTopic
 import po.misc.data.logging.models.Notification
+import po.misc.data.logging.log_subject.LogSubject
+import po.misc.data.logging.log_subject.WarningSubject
+import po.misc.data.logging.parts.LogTracker
 import po.misc.exceptions.ExceptionPayload
 import po.misc.exceptions.throwableToText
 import po.misc.types.castOrThrow
@@ -47,6 +50,10 @@ import kotlin.reflect.KClass
  */
 interface TraceableContext {
 
+    fun notification(subject: String, text: String, topic: NotificationTopic = NotificationTopic.Info): Notification{
+        return Notification(this, topic, subject, text)
+    }
+
     /**
      * Emits a [Loggable] event to the output.
      *
@@ -83,27 +90,40 @@ interface TraceableContext {
      * Emits an informational message.
      */
     fun info(subject: String, text: String): Loggable = notify(NotificationTopic.Info, subject, text)
+    fun info(subject: LogSubject): Loggable = notify(NotificationTopic.Info, subject.subjectName,  subject.subjectText)
 
     /**
      * Emits a debug message. Useful for internal tracing.
      */
-    fun debug(subject: String, text: String): Unit {
-        notify(NotificationTopic.Debug, subject, text)
+    fun debug(subject: String, text: String, outputImmediately: Boolean = false): Unit {
+        if(outputImmediately){
+            Notification(this, NotificationTopic.Debug, subject, text).output()
+        }else{
+            notify(NotificationTopic.Debug, subject, text)
+        }
     }
 
     /**
      * Emits a warning message.
      */
-    fun warn(subject: String, text: String): Unit {
-        notify(NotificationTopic.Warning, subject, text)
-    }
+    fun warn(
+        subject: String,
+        text: String,
+    ): Loggable = notify(NotificationTopic.Warning, subject, text)
+
+    fun warn(
+        subject: LogSubject,
+        text: String,
+    ): Loggable = notify(NotificationTopic.Warning, subject.subjectName, subject.subjectText)
 
     /**
      * Emits a warning message for an exception case.
      */
-    fun warn(subject: String, throwable: Throwable): Unit {
-        notify(subject, throwable)
-    }
+    fun warn(
+        subject: String,
+        throwable: Throwable
+    ): Loggable  = notify(subject, throwable)
+
 
     /**
      * Context-bound shorthand for [getOrThrow], automatically using the current [TraceableContext].

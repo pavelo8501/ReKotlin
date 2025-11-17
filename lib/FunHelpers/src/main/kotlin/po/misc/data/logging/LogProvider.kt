@@ -1,8 +1,13 @@
 package po.misc.data.logging
 
 import po.misc.context.component.Component
-import po.misc.data.logging.models.Notification
-import po.misc.data.logging.procedural.ProceduralEntry
+import po.misc.data.logging.log_subject.InfoSubject
+import po.misc.data.logging.log_subject.LogSubject
+import po.misc.data.logging.models.LogMessage
+import po.misc.data.logging.parts.LogTracker
+import po.misc.data.logging.procedural.ProceduralFlow
+import po.misc.data.logging.procedural.ProceduralRecord
+import po.misc.data.logging.processor.LogProcessor
 
 
 /**
@@ -20,17 +25,52 @@ import po.misc.data.logging.procedural.ProceduralEntry
  *
  * @param LR The concrete type of log record produced by this provider.
  *
- * @see LogProcessor for log collection and dispatch.
+ * @see LogProvider for log collection and dispatch.
  * @see Component for identity and verbosity management.
  */
-interface LogProvider<LR: Loggable>: Component{
+interface LogProvider<LR: StructuredLoggable>: Component{
 
 
-    fun Notification.toProceduralEntry(stepBadge: String? = null): ProceduralEntry{
-       val badge = stepBadge?:"[${subject.take(4).uppercase()}]"
-       return  ProceduralEntry(text, badge)
+}
+
+interface LogEmitterNew<H: Component, LR: StructuredLoggable>: Component{
+
+    val logProcessor: LogProcessor<H, LR>
+
+    override fun info(subject: String, text: String): LogMessage{
+       val message = infoMsg(subject, text)
+       logProcessor.log(message)
+       return message
     }
 
+    fun info(subject: InfoSubject, text: String): LogMessage{
+        val message = infoMsg(subject, text)
+        logProcessor.log(message)
+        return message
+    }
+
+    override fun warn(subject: String, text: String, tracker: LogTracker): LogMessage{
+        val warning = warning(subject, text, tracker)
+        logProcessor.log(warning)
+        return warning
+    }
+
+    fun warn(subject: String, throwable: Throwable, tracker: LogTracker = LogTracker.Enabled):LogMessage{
+        val warning =  warning(subject, throwable, tracker)
+        logProcessor.log(warning)
+        return warning
+    }
+}
+
+
+inline fun <SL:  StructuredLoggable, H: Component, R>  LogEmitterNew<H, SL>.proceduralScope(
+    record: SL,
+    crossinline block: ProceduralFlow<H>.(ProceduralRecord)-> R
+):R {
+    val flow =  logProcessor.createProceduralFlow(record)
+    val result =  block.invoke(flow, flow.proceduralRecord)
+    logProcessor.finalizeFlow(record, flow)
+    return result
 }
 
 

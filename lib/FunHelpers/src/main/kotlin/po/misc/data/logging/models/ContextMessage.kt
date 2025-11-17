@@ -7,6 +7,7 @@ import po.misc.data.printable.companion.Template
 import po.misc.data.printable.companion.nextLine
 import po.misc.data.processors.SeverityLevel
 import po.misc.data.styles.BGColour
+import po.misc.data.styles.Colorizer
 import po.misc.data.styles.Colour
 import po.misc.data.styles.Emoji
 import po.misc.data.styles.colorize
@@ -19,7 +20,7 @@ class ContextMessage(
     val subject: String,
     val message: String,
     val severityLevel: SeverityLevel,
-) : PrintableBase<ContextMessage>(this){
+) : PrintableBase<ContextMessage>(this), Colorizer{
 
     override val self: ContextMessage get() = this
 
@@ -56,13 +57,13 @@ class ContextMessage(
                 debugBadge + " [$contextName @ ${nowLocalDateTime()}]".colorize(Colour.Blue)
             }
             nextLine {
-               "${Colour.makeOfColour(Colour.Cyan, "Method:")}  $methodName"
+               "${colour("Method:", Colour.Cyan)}  $methodName"
             }
             nextLine {
-               "${Colour.makeOfColour(Colour.Cyan,"Topic:")} $subject"
+               "${colour("Topic:", Colour.Cyan)} $subject"
             }
             nextLine {
-                "${Colour.makeOfColour(Colour.Cyan, "Message:")} $colorizedMessage"
+                "${colour("Message:", Colour.Cyan)} $colorizedMessage"
             }
         }
     }

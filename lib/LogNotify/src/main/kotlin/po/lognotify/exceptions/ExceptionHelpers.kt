@@ -25,14 +25,6 @@ internal fun <T: TasksManaged, R: Any?> handleException(
     snapshot: List<PropertyData>?
 ): ManagedException {
 
-    fun firstOccurred(managed: ManagedException): ExceptionData?{
-        val firesRecord = managed.exceptionData.firstOrNull()
-       return if(firesRecord != null &&  managed.exceptionData.size == 1){
-            firesRecord
-        }else{
-            null
-        }
-    }
     if (exception is ManagedException) {
         exception.setPropertySnapshot(snapshot)
 
@@ -42,38 +34,18 @@ internal fun <T: TasksManaged, R: Any?> handleException(
 
         return  when (exception.handler) {
             HandlerType.SkipSelf -> {
-                val exData  = firstOccurred(exception)
-                if(exData != null){
-                    container.source.changeStatus(ExecutionStatus.Failing)
-
-                    container.source.warning(exception.throwableToText())
-                    container.notifier.addErrorRecord(container.effectiveTask.createErrorSnapshot(), exception)
-                }
-
                 if (container.isRoot) {
                     val message = "Exception reached top. escalating"
                     container.source.error(message)
-                    val exceptionData = ExceptionData(ManagedException.ExceptionEvent.Executed, message, container.source)
-                    exception.addExceptionData(exceptionData, container.source)
-                   // throw exception.addExceptionData(exceptionData, container.source)
                     return exception
                 } else {
                     val message = "Rethrowing"
                     container.source.warning(message)
-                    val exceptionData =
-                        ExceptionData(ManagedException.ExceptionEvent.Rethrown, message, container.source)
-                    return exception.addExceptionData(exceptionData, container.source)
+                    return exception
                 }
             }
             HandlerType.CancelAll ->{
-                val exData  = firstOccurred(exception)
-                if(exData != null){
-                    container.source.changeStatus(ExecutionStatus.Failing)
-                    container.source.error(exception.throwableToText())
-                }
-                val message = "Reached RootTask<${container.effectiveTask}>"
-                val data =  ExceptionData(ManagedException.ExceptionEvent.Executed,message,   container.source)
-                exception.addExceptionData(data,  container.source)
+                exception
             }
         }
     } else {

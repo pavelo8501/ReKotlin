@@ -55,7 +55,6 @@ abstract class CallableEventBase <T: Any, R>(): Component {
         }
     }
 
-
     protected fun checkRemoval(
         receiver: TraceableContext,
         callable: CallableWrapper<T, R>
@@ -243,6 +242,7 @@ abstract class CallableEventBase <T: Any, R>(): Component {
         suspended: LambdaType.Suspended,
         validator: ValidationProvider<T>
     ):List<ListenerResult<R>>{
+
         if(validator.validate(value, suspended)){
             return trigger(value, suspended)
         }

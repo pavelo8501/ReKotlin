@@ -12,10 +12,10 @@ import po.misc.configs.hocon.extensions.parseValue
 import po.misc.context.component.Component
 import po.misc.context.component.ComponentID
 import po.misc.context.component.componentID
-import po.misc.context.component.managedException
 import po.misc.data.logging.Loggable
-import po.misc.data.logging.models.Notification
+import po.misc.data.logging.factory.toLogMessage
 import po.misc.data.logging.processor.logProcessor
+import po.misc.exceptions.managedException
 import po.misc.functions.Nullable
 import po.misc.types.safeBaseCast
 import po.misc.types.token.TypeToken
@@ -31,7 +31,7 @@ sealed class HoconEntryBase<T: HoconResolvable<T>, V>(
     var property: KProperty<*>? = null
         protected set
 
-    val name: String get() =  property?.name?:"Undefined"
+    override val name: String get() = property?.name?:"Undefined"
 
     abstract override val componentID: ComponentID
 
@@ -137,8 +137,7 @@ sealed class HoconEntryBase<T: HoconResolvable<T>, V>(
         }
     }
     override fun notify(loggable: Loggable) {
-        val notification = Notification(loggable)
-        logProcessor.logData(notification)
+        logProcessor.logData(loggable.toLogMessage())
     }
     override fun toString(): String = componentID.componentName
 }

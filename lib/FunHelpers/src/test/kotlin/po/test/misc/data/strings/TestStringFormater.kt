@@ -1,11 +1,13 @@
 package po.test.misc.data.strings
 
 import org.junit.jupiter.api.Test
+import po.misc.data.HasText
 import po.misc.data.HasValue
 import po.misc.data.PrettyPrint
 import po.misc.data.helpers.output
 import po.misc.data.strings.stringify
 import po.misc.data.strings.stringifyThis
+import po.misc.data.styles.Colorizer
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import kotlin.test.assertEquals
@@ -18,7 +20,7 @@ class TestStringFormater {
     internal enum class Enumerator {
         Enm1
     }
-    internal enum class ValueEnumerator(override val value: String) : HasValue{
+    internal enum class ValueEnumerator(override val value: String) : HasText{
         ValueEnm1("Value 1")
     }
 
@@ -34,7 +36,7 @@ class TestStringFormater {
     @Test
     fun `TextColorizer colorize string not breaking previous colorization`(){
         val text = "Some un-colorized part. " + "Coloured inside".colorize(Colour.Magenta) + " Un-colorized tail"
-        Colour.applyColour(text, Colour.CyanBright).output()
+        Colorizer.applyColour(text, Colour.CyanBright).output()
     }
 
     @Test

@@ -3,8 +3,8 @@ package po.misc.reflection.properties.typed_property
 import po.misc.context.component.Component
 import po.misc.context.component.ComponentID
 import po.misc.context.component.componentID
-import po.misc.context.component.managedException
 import po.misc.data.logging.Verbosity
+import po.misc.exceptions.managedException
 import po.misc.reflection.anotations.AnnotatedProperty
 import po.misc.reflection.primitives.BooleanClass
 import po.misc.reflection.primitives.IntClass

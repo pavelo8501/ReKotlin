@@ -13,7 +13,6 @@ import po.misc.types.safeCast
 import po.misc.types.token.TypeToken
 
 
-
 sealed interface HoconPrimitives<V> {
     val primitiveClass: PrimitiveClass<*>
     val hoconType: ConfigValueType

@@ -14,6 +14,9 @@ sealed interface LambdaType{
     object Suspended
 }
 
+object Suspending: LambdaType
+
+
 /**
  * Base type for all signal listener configuration options.
  *
@@ -34,16 +37,23 @@ sealed interface CallableOptions
  *    correct API method without compiler ambiguity.
  */
 sealed interface SuspendedOptions: CallableOptions{
+
+    val name: String?
+
     /**
      * The listener remains registered after being invoked.
      */
-    object Listen : SuspendedOptions
+    object Listen : SuspendedOptions{
+        override var name: String? = null
+    }
 
     /**
      * The listener is automatically removed after the first successful
      * invocation. Useful for "single-shot" coroutine callbacks.
      */
-    object Promise : SuspendedOptions
+    object Promise : SuspendedOptions{
+        override var name: String? = null
+    }
 }
 
 /**
@@ -56,16 +66,27 @@ sealed interface SuspendedOptions: CallableOptions{
  * lambda callbacks would become ambiguous.
  */
 sealed interface LambdaOptions: CallableOptions{
+
+    val name: String?
+
     /**
      * The listener remains registered after being invoked.
      */
-    object Listen : LambdaOptions
+    object Listen : LambdaOptions{
+        override var name: String? = null
+    }
 
     /**
      * The listener is automatically removed after the first successful
      * invocation. Useful for "single-shot" coroutine callbacks.
      */
-    object Promise : LambdaOptions
+    object Promise : LambdaOptions{
+        override var name: String? = null
+        fun applyName(name: String):Promise{
+            this.name = name
+            return this
+        }
+    }
 }
 
 /**
