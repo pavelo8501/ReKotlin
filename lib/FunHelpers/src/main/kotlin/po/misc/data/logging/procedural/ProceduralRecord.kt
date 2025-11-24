@@ -14,10 +14,16 @@ import po.misc.data.printable.companion.Template
 import po.misc.data.printable.companion.nextLine
 import po.misc.data.printable.grouping.printableProperty
 import po.misc.data.badges.Badge
-import po.misc.data.logging.log_subject.LogSubject
-import po.misc.data.pretty_print.Console120
-import po.misc.data.pretty_print.PrettyCell
-import po.misc.data.pretty_print.PrettyRow
+import po.misc.data.helpers.replaceIfNull
+import po.misc.data.logging.processor.contracts.TemplateActions
+import po.misc.data.logging.processor.parts.StructuredOptions
+import po.misc.data.logging.processor.parts.StructuredProperty
+import po.misc.data.logging.processor.parts.structuredProperty
+import po.misc.data.output.output
+import po.misc.data.pretty_print.cells.PrettyCell
+import po.misc.data.pretty_print.rows.PrettyRow
+import po.misc.data.strings.IndentOptions
+import po.misc.data.strings.stringify
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
@@ -59,170 +65,196 @@ import java.time.Instant
  */
 
 class ProceduralRecord(
-    internal val logMessage: LogMessage
+    override val logRecord: LogMessage,
+    private val topNode: Boolean = true
 ): PrintableBase<ProceduralRecord>(this), ProceduralData,  LoggableTemplate{
 
-    constructor(context: TraceableContext,  logSubject: LogSubject):this(logSubject.toLogMessage(context))
+    constructor(logRecord: StructuredLoggable, topNode: Boolean = true): this(logRecord.toLogMessage(), topNode)
 
-    override val context: TraceableContext = logMessage.context
-    override val subject: String = logMessage.subject
-    override val text: String = logMessage.text
-    override val created: Instant = logMessage.created
+    override val context: TraceableContext = logRecord.context
+    override val subject: String = logRecord.subject
+    override val text: String = logRecord.text
+    override val created: Instant = logRecord.created
+    override val topic: NotificationTopic = logRecord.topic
 
-    override var topic: NotificationTopic = NotificationTopic.Info
+    private var currentIndentLevel: Int = 0
 
-    /**
-     * Creates a new [ProceduralRecord] using an existing [Loggable] as its base.
-     * Copies over the [context], [topic], [subject], [text], and [created]
-     * fields from the provided loggable instance.
-     */
-    constructor(logRecord: Loggable): this(logRecord.toLogMessage())
 
-    var result: ProceduralResult = ProceduralResult.Warning
-    var indentSize: Int = 0
+    val result: ProceduralResult get() {
+       return calculateResult()
+    }
 
     override val self: ProceduralRecord = this
-    val entries: MutableList<ProceduralEntry> = mutableListOf()
+    val proceduralEntries: MutableList<ProceduralEntry> = mutableListOf()
 
     @PublishedApi
     internal var resultPostfix: String = ""
 
-    private val resultText: String = "Overall result ..........."
-
-    val records: MutableList<StructuredLoggable> by printableProperty{loggable->
-        val lastEntry = entries.lastOrNull()
-        if(lastEntry != null){
-            lastEntry.logRecords.add(loggable)
+    private val resultText: String get() {
+       return if(topNode){
+            "Overall result ..........."
         }else{
-            val entry = ProceduralFlow.createEntry(loggable)
-            entry.logRecords.add(loggable)
-            entries.add(entry)
+            "$subject result ..........."
         }
-        logMessage.addRecord(loggable)
     }
+
+
+    internal val structuredOptions = StructuredOptions(this){loggable->
+        val lastEntry = proceduralEntries.lastOrNull()
+        if(lastEntry != null){
+            lastEntry.addRecord(loggable)
+        }else{
+            val entry = ProceduralFlow.createEntry(this@ProceduralRecord, loggable)
+            entry.logRecords.add(loggable)
+            proceduralEntries.add(entry)
+        }
+        logRecord.addRecord(loggable)
+    }
+    val logRecords: MutableList<StructuredLoggable> by structuredProperty(structuredOptions)
+
+
+
+//    val logRecords: MutableList<StructuredLoggable> by printableProperty{loggable->
+//
+//        val lastEntry = proceduralEntries.lastOrNull()
+//        if(lastEntry != null){
+//            lastEntry.addRecord(loggable)
+//        }else{
+//            val entry = ProceduralFlow.createEntry(this@ProceduralRecord, loggable)
+//            entry.logRecords.add(loggable)
+//            proceduralEntries.add(entry)
+//        }
+//        logRecord.addRecord(loggable)
+//    }
+
+
+    val proceduralRecords : List<ProceduralRecord> get() = getRecords().filterIsInstance<ProceduralRecord>()
 
     init {
         printableConfig.explicitOutput = true
     }
 
+    internal fun getStatistics(): String{
+       val result = buildString {
+            appendLine( "Top entries = ${proceduralEntries.size}")
+            appendLine( "Top messages = ${logRecords.size}")
+           proceduralEntries.forEach {
+                it.getStatistics()
+            }
+        }
+       return result
+    }
+
     fun extractMessage():LogMessage{
-        entries.forEach {entry->
+        proceduralEntries.forEach {entry->
             val list = entry.extractMessage()
             list.forEach {loggable->
-                if(logMessage.getRecords().none { it === loggable }){
-                    logMessage.addRecord(loggable)
+                if(logRecord.getRecords().none { it === loggable }){
+                    logRecord.addRecord(loggable)
                 }
             }
         }
-        return logMessage
+        return logRecord
     }
 
-    fun outputRecord(){
+    fun outputRecord(indentionLevel: Int = 0){
+        currentIndentLevel = indentionLevel
         echo(Start)
-        entries.forEach {
-            it.outputEntry()
+        proceduralEntries.forEach {
+            it.outputEntry(indentionLevel)
         }
         echo(Result)
     }
 
-    fun calculateResult(){
-        if(entries.any { it.stepResult is StepResult.Fail }){
-           result =  ProceduralResult.Fail
+    private fun getSubResult():ProceduralResult{
+        if(proceduralRecords.any { it.result == ProceduralResult.Fail }){
+            return ProceduralResult.Fail
         }
-        if(entries.all { it.stepResult is StepResult.OK }){
-            result =  ProceduralResult.Ok
+        if(proceduralRecords.any { it.result == ProceduralResult.Warning }){
+            return ProceduralResult.Warning
         }
+        return ProceduralResult.Ok
     }
 
-    fun registerRecord(record: ProceduralRecord){
-        val lastEntry = entries.lastOrNull()
+    fun calculateResult(): ProceduralResult {
+        proceduralEntries.flatMap { it.proceduralRecords }.forEach {
+            it.calculateResult()
+        }
+        if(proceduralEntries.any { it.stepResult is StepResult.Fail }){
+           return ProceduralResult.Fail
+        }
+        if(proceduralEntries.any { it.stepResult is StepResult.Warning }){
+            return ProceduralResult.Warning
+        }
+
+        val subResult = getSubResult()
+        if(subResult != ProceduralResult.Ok){
+            return subResult
+        }
+        return ProceduralResult.Ok
+    }
+    override fun addRecord(templateRecord: LoggableTemplate){
+        val lastEntry = proceduralEntries.lastOrNull()
         if(lastEntry != null){
-            lastEntry.addRecord(record)
+            logRecord.addRecord(templateRecord.logRecord)
+            lastEntry.addEntry(templateRecord)
         }else{
-            val newEntry = ProceduralFlow.createEntry(record.subject, Badge.Init)
-            newEntry.addRecord(record)
-            entries.add(newEntry)
+            val newEntry = ProceduralFlow.createEntry(this, templateRecord.subject, Badge.Init)
+            newEntry.logRecords.add(templateRecord.logRecord)
+            newEntry.addEntry(templateRecord)
+            proceduralEntries.add(newEntry)
         }
     }
+    override fun getRecords(): List<LoggableTemplate>{
+        val result =  proceduralEntries.flatMap { it.proceduralRecords }
+        return result
+    }
+    override fun getRecord(action : TemplateActions):LoggableTemplate{
+        return when (action) {
+            is LastRegistered -> {
+                val lastProcedural = proceduralRecords.lastOrNull()
+                 lastProcedural?.getRecord(action) ?: this
+            }
+        }
+    }
+    override fun addEntry(entry: ProceduralEntry){
+        proceduralEntries.add(entry)
+    }
+
+    fun registerRecord(record: ProceduralRecord): Unit = addRecord(record)
+
     fun registerEntry(entry: ProceduralData){
         when(entry){
-            is ProceduralRecord -> registerRecord(entry)
-            is ProceduralEntry -> entries.add(entry)
+            is ProceduralRecord ->  addRecord(entry)
+            is ProceduralEntry -> addEntry(entry)
         }
     }
-    override fun add(record: StructuredLoggable): Boolean = records.add(record)
-    override fun get(): List<StructuredLoggable> =  records
+    override fun addMessage(record: StructuredLoggable): Boolean = logRecords.add(record)
+    override fun getMessages(): List<StructuredLoggable> =  logRecords
+
+    override fun toString(): String = "ProceduralRecord [Source message: ${text}]"
+
     companion object: PrintableCompanion<ProceduralRecord>(TypeToken.create()){
         val Start: Template<ProceduralRecord> = createTemplate {
             nextLine {
                 val name =  ClassResolver.instanceName(context)
-                "[${name} @ ${created.hoursFormated(3)}] [$subject]".colorize(Colour.Blue).newLine {
-                    text.colorize(Colour.BlackBright)
+                val resultingText = "[${name} @ ${created.hoursFormated(3)}] [$subject]".colorize(Colour.Blue).newLine {
+                    text.stringify(IndentOptions(currentIndentLevel, " ", colour = Colour.BlackBright)).formatedString
                 }
+                resultingText.stringify(IndentOptions(currentIndentLevel, " ")).formatedString
             }
         }
         val Result: Template<ProceduralRecord> = createTemplate {
             nextLine {
-                when(result){
+                val resultingText = when(result){
                     ProceduralResult.Ok-> "$resultText ${"OK $resultPostfix".colorize(Colour.Green)}"
                     ProceduralResult.Warning -> "$resultText ${"Warning $resultPostfix".colorize(Colour.Yellow)}"
                     ProceduralResult.Fail -> "$resultText ${"Fail $resultPostfix".colorize(Colour.Red)}"
                 }
+                resultingText.stringify(IndentOptions(currentIndentLevel, " ")).formatedString
             }
         }
     }
 }
 
-class ProceduralEntry(val stepBadge: Badge, val stepName: String) : ProceduralData, PrettyPrint {
-
-    constructor(stepBadge: Badge, stepName: String, result: StepResult):this(stepBadge, stepName){
-        stepResult = result
-    }
-
-    private val badgeCell = PrettyCell(width =  5)
-    private val stepNameCell = PrettyCell.build(width = 20){
-        emptySpaceFiller = SpecialChars.DOT
-    }
-    private val resultCell = PrettyCell(width = 2)
-    private val outputRow = PrettyRow(badgeCell, stepNameCell, resultCell, separator = SpecialChars.WHITESPACE)
-
-    internal val proceduralRecords: MutableList<ProceduralRecord> = mutableListOf()
-
-    val created: Instant = Instant.now()
-    var stepResult: StepResult? = null
-
-    val result: Boolean get() = stepResult?.ok?:false
-    val logRecords: MutableList<StructuredLoggable> = mutableListOf()
-
-    override val formattedString: String get() {
-        return outputRow.render(stepBadge.caption, stepName, stepResult?.formattedString?:"N/A")
-    }
-
-    fun extractMessage(): List<StructuredLoggable>{
-        proceduralRecords.forEach {
-            it.extractMessage()
-        }
-        return logRecords
-    }
-
-    fun add(data: StructuredLoggable):ProceduralEntry{
-        logRecords.add(data)
-        return  this
-    }
-
-    fun addRecord(entry: ProceduralRecord): ProceduralEntry{
-        proceduralRecords.add(entry)
-        logRecords.add(entry.logMessage)
-        return this
-    }
-
-    fun outputEntry(){
-        println(formattedString)
-        proceduralRecords.forEach {
-            it.outputRecord()
-        }
-    }
-}
-
-sealed interface ProceduralData
 

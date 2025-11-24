@@ -5,11 +5,11 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.exceptions.ExceptionPayload
 import po.misc.exceptions.stack_trace.ExceptionTrace
 import po.misc.exceptions.stack_trace.extractTrace
-import po.misc.types.helpers.simpleOrAnon
+import po.misc.types.k_class.simpleOrAnon
 import kotlin.reflect.cast
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals

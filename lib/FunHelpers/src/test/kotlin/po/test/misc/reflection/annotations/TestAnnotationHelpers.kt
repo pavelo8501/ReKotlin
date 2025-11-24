@@ -1,7 +1,7 @@
 package po.test.misc.reflection.annotations
 
 import org.junit.jupiter.api.Test
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.reflection.anotations.BuilderProperty
 import po.misc.reflection.anotations.annotatedProperties
 import po.misc.reflection.builders.ConstructableClass

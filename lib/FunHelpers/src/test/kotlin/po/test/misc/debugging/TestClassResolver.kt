@@ -1,7 +1,7 @@
 package po.test.misc.debugging
 
 import org.junit.jupiter.api.Test
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import kotlin.reflect.KClass
 
 class TestClassResolver {

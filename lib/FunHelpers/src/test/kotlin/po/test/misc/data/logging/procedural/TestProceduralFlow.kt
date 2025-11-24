@@ -2,8 +2,7 @@ package po.test.misc.data.logging.procedural
 
 import org.junit.jupiter.api.Test
 import po.misc.context.component.Component
-import po.misc.context.component.asSubject
-import po.misc.data.logging.LogProvider
+import po.misc.context.log_provider.LogProvider
 import po.misc.data.logging.NotificationTopic
 import po.misc.data.logging.factory.toLogMessage
 import po.misc.data.logging.models.LogMessage
@@ -12,8 +11,9 @@ import po.misc.data.logging.procedural.ProceduralFlow
 import po.misc.data.logging.procedural.ProceduralRecord
 import po.misc.data.logging.procedural.ProceduralResult
 import po.misc.data.logging.procedural.page
-import po.misc.data.logging.processor.logProcessor
+import po.misc.data.logging.processor.createLogProcessor
 import po.misc.data.badges.Badge
+import po.misc.data.logging.log_subject.startProcSubject
 import po.test.misc.data.logging.LoggerTestBase
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -22,9 +22,9 @@ import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 
-class TestProceduralFlow : LoggerTestBase(), LogProvider<LogMessage>{
+class TestProceduralFlow : LoggerTestBase(), LogProvider{
 
-   private val logger = logProcessor()
+   override val logProcessor = createLogProcessor()
 
    private val badge = Badge.make("temp")
    private val nestedBadge = Badge.make("nested")
@@ -38,9 +38,9 @@ class TestProceduralFlow : LoggerTestBase(), LogProvider<LogMessage>{
 
     @Test
     fun `Overall result calculation`(){
-
-        val record = ProceduralFlow.createRecord(infoMsg("Subject", "Some text"))
-        val flow = ProceduralFlow(logger, record)
+        val message = infoMsg("Subject", "Some text")
+        val record = ProceduralFlow.toProceduralRecord(message)
+        val flow = ProceduralFlow(logProcessor, record)
         val badge = Badge.make("temp")
         flow.step(step1Name, badge){ true }
         flow.step(step2Name, badge){ false }
@@ -50,14 +50,15 @@ class TestProceduralFlow : LoggerTestBase(), LogProvider<LogMessage>{
 
     @Test
     fun `Procedural step registration work as expected`(){
-        val record = ProceduralFlow.createRecord(infoMsg("Subject", "Some text"))
-        val flow = ProceduralFlow(logger, record)
+        val message = infoMsg("Subject", "Some text")
+        val record = ProceduralFlow.toProceduralRecord(message)
+        val flow = ProceduralFlow(logProcessor, record)
         var procEntry: ProceduralRecord? = null
         flow.processStep(step1Name, badge, tolerance = emptyList()){
             procEntry = it.proceduralRecord
         }
         assertNotNull(procEntry)
-        assertNotNull(record.entries.firstOrNull()){procData->
+        assertNotNull(record.proceduralEntries.firstOrNull()){procData->
             assertIs<ProceduralEntry>(procData)
             assertNotNull(procData.stepResult)
         }
@@ -67,8 +68,8 @@ class TestProceduralFlow : LoggerTestBase(), LogProvider<LogMessage>{
     fun `Procedural page registration work as expected`(){
         val newProcess = "New process"
         val newProcessText = "New process text"
-        val newSubject = ProceduralFlow.createRecord(infoMsg("Subject", "Some text"))
-        val flow = ProceduralFlow(logger, newSubject)
+        val newSubject = ProceduralFlow.toProceduralRecord(infoMsg("Subject", "Some text"))
+        val flow = ProceduralFlow(logProcessor, newSubject)
         var procRec: ProceduralRecord? = null
         var subProcRec : ProceduralRecord? = null
         var receiver: Component? = null
@@ -77,10 +78,8 @@ class TestProceduralFlow : LoggerTestBase(), LogProvider<LogMessage>{
             it.page(outerComponent.processor,  newProcess, newProcessText){
                 receiver = host
                 subProcRec = proceduralRecord
-                step(nestedStep1Name){
-                }
-                step(nestedStep1Name){
-                }
+                step(nestedStep1Name){}
+                step(nestedStep1Name){}
                 step(nestedStep2Name){
                     val warning = outerComponent.notification("Warning", nestedStep2Name + "warning", NotificationTopic.Warning)
                     outerComponent.processor.logData(warning.toLogMessage(), noOutput = true)
@@ -90,15 +89,15 @@ class TestProceduralFlow : LoggerTestBase(), LogProvider<LogMessage>{
         flow.complete(true)
         assertSame(outerComponent, receiver)
         assertNotNull(procRec){record->
-            assertEquals(1, record.entries.size)
+            assertEquals(1, record.proceduralEntries.size)
             assertEquals(newSubject.subject, record.subject)
-            assertNotNull(record.entries.lastOrNull())
+            assertNotNull(record.proceduralEntries.lastOrNull())
         }
         assertNotNull(subProcRec){subProcedural->
-            assertEquals(3, subProcedural.entries.size)
-            assertEquals(nestedStep2Name,  subProcedural.entries.lastOrNull()?.stepName)
+            assertEquals(3, subProcedural.proceduralEntries.size)
+            assertEquals(nestedStep2Name,  subProcedural.proceduralEntries.lastOrNull()?.stepName)
             assertEquals(newProcessText, subProcedural.text)
-            assertNotNull(subProcedural.entries.lastOrNull())
+            assertNotNull(subProcedural.proceduralEntries.lastOrNull())
         }
     }
 
@@ -106,10 +105,10 @@ class TestProceduralFlow : LoggerTestBase(), LogProvider<LogMessage>{
     fun `Page block result correctly interpreted by procedural record`(){
 
         val info = infoMsg("New page", "Some process")
-        val newSubject = ProceduralFlow.createRecord(info)
-        val flow = ProceduralFlow(logger, newSubject)
+        val newSubject = ProceduralFlow.toProceduralRecord(info)
+        val flow = ProceduralFlow(logProcessor, newSubject)
         var result = listOf<Any>()
-        val pageSubject =  outerComponent::startListResulting.asSubject
+        val pageSubject =  startProcSubject(outerComponent::startListResulting)
         flow.processStep(step1Name, badge){
             result = it.page(outerComponent.processor, pageSubject){
                 host.startListResulting(10)
@@ -124,46 +123,43 @@ class TestProceduralFlow : LoggerTestBase(), LogProvider<LogMessage>{
                     entryFromMessage.subject == record.subject
         }
         assertEquals(10, result.size)
-//        assertTrue {
-//            flow.proceduralRecord.resultPostfix.contains("10") &&
-//                    flow.proceduralRecord.resultPostfix.contains("String")
-//        }
     }
 
     @Test
     fun `Warnings properly registered`(){
         val warning = warning("Warning", "Some warning")
-        val newSubject = ProceduralFlow.createRecord(warning)
-        val flow = ProceduralFlow(logger, newSubject)
+        val newSubject = ProceduralFlow.toProceduralRecord(warning)
+        val flow = ProceduralFlow(logProcessor, newSubject)
 
-        logger.useHandler(flow, LogMessage::class)
+        logProcessor.useHandler(flow, LogMessage::class)
         var procRec: ProceduralRecord? = null
 
         flow.processStep(step1Name, badge){
             procRec = it.proceduralRecord
-            logger.logData(warning.toLogMessage())
+            logProcessor.logData(warning.toLogMessage())
         }
         assertNotNull( procRec ){record->
-            val warningMessage = assertNotNull(record.records.firstOrNull())
-            val registeredWarning = assertNotNull( record.records.firstOrNull { it.topic ==  NotificationTopic.Warning } )
+            val warningMessage = assertNotNull(record.logRecords.firstOrNull())
+            val registeredWarning = assertNotNull( record.logRecords.firstOrNull { it.topic ==  NotificationTopic.Warning } )
         }
         flow.complete()
     }
 
     @Test
     fun `Explicitly passed flow work same way as DSL`(){
+        
+        val startMessage = startProcSubject(::`Explicitly passed flow work same way as DSL`).toLogMessage()
 
-        val startMessage = infoMsg(::`Explicitly passed flow work same way as DSL`.asSubject)
-        val logProcessor = logProcessor()
-        val flow = logger.createProceduralFlow(startMessage)
+        val logProcessor = createLogProcessor()
+        val flow = logProcessor.createProceduralFlow(startMessage)
         logProcessor.useProcedural(flow)
         val infoMsg = infoMsg("Message", "Some text")
         logProcessor.logData(infoMsg)
-        val message =  logger.finalizeFlow(flow)
+        val message =  logProcessor.finalizeFlow(flow)
         assertEquals(1, message.logRecords.size)
         assertNotNull( message.logRecords.firstOrNull { it.text ==  infoMsg.text })
 
-        assertEquals(1, logger.logRecords.size)
+        assertEquals(1, logProcessor.logRecords.size)
         assertEquals(0, logProcessor.logRecords.size)
 
     }

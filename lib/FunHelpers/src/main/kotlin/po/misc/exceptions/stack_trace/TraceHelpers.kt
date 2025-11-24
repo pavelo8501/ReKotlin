@@ -2,21 +2,11 @@ package po.misc.exceptions.stack_trace
 
 import po.misc.collections.takeFromMatch
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.helpers.output
-import po.misc.debugging.ClassResolver
-import po.misc.debugging.models.ClassInfo
-import po.misc.exceptions.ContextTracer
-import po.misc.exceptions.classifier.PackageRole
 import po.misc.exceptions.ThrowableCallSitePayload
-import po.misc.exceptions.classifier.classifyPackage
-import po.misc.exceptions.models.CTXResolutionFlag
-import po.misc.exceptions.stack_trace.extractTrace
 import po.misc.exceptions.throwableToText
-import po.misc.exceptions.trackable.TrackableException
-import po.misc.types.helpers.simpleOrAnon
+import po.misc.types.k_class.simpleOrAnon
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
-import kotlin.text.substringAfterLast
 
 
 fun Throwable.extractTrace(

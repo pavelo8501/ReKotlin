@@ -7,28 +7,29 @@ import po.misc.time.TimeHelper
 
 
 class InstanceInfo(
-    val name: String,
+    name: String,
     val instanceHash: Int,
     val classInfo: ClassInfo,
 ): PrettyPrint, TimeHelper {
 
 
-    internal  val traces = mutableListOf<ExceptionTrace>()
+    val className: String get() = classInfo.simpleName
+    val instanceName: String = "$name # $instanceHash"
 
-    override val formattedString: String
-        get() {
-           return buildString {
-                appendLine("${classInfo.formattedString} # $instanceHash")
-                if(traces.isNotEmpty()){
-                    val traceStr =  traces.joinToString {
-                        val time = it.created.toLocalTime()
-                        appendLine("Stack Trace @ $time")
-                        it.bestPick.formattedString
-                    }
-                   appendLine(traceStr)
-                }
-            }
-        }
+    internal  val traces = mutableListOf<ExceptionTrace>()
+    override val formattedString: String get() = buildString {
+       if(traces.isEmpty()){
+           append("${classInfo.formattedString} # $instanceHash")
+       }else{
+           appendLine("${classInfo.formattedString} # $instanceHash")
+            val traceStr =  traces.joinToString {
+               val time = it.created.toLocalTime()
+               appendLine("Stack Trace @ $time")
+               it.bestPick.formattedString
+           }
+           append(traceStr)
+       }
+    }
 
     val latestFrameMeta: StackFrameMeta? get() =  traces.lastOrNull()?.bestPick
 
@@ -37,7 +38,7 @@ class InstanceInfo(
         return this
     }
 
-    override fun toString(): String = name
+    override fun toString(): String = instanceName
 
 }
 

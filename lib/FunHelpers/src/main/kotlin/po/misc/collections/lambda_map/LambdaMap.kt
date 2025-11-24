@@ -1,7 +1,7 @@
 package po.misc.collections.lambda_map
 
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.data.styles.Colour
 
 

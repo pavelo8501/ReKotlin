@@ -1,15 +1,15 @@
 package po.misc.types.token
 
-import po.misc.context.component.Component
-import po.misc.context.component.ComponentID
-import po.misc.context.component.componentID
+import po.misc.context.tracable.TraceableContext
+import po.misc.data.logging.NotificationTopic
 import po.misc.data.logging.Verbosity
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
-import po.misc.types.helpers.simpleOrAnon
-import po.misc.types.helpers.toKeyParams
+import po.misc.types.ClassHierarchyMap
+import po.misc.types.k_class.simpleOrAnon
+import po.misc.types.k_class.toKeyParams
 import po.misc.types.safeCast
 import kotlin.collections.forEach
 import kotlin.reflect.KClass
@@ -88,33 +88,43 @@ import kotlin.reflect.typeOf
  */
 class TypeToken<T>  @PublishedApi internal constructor(
     val kClass: KClass<T & Any>,
-    val kType: KType
-): Component {
+    val kType: KType,
+    val options:  CreateOptions? = null
+): TraceableContext {
 
-    override val componentID: ComponentID = componentID("TypeToken[$simpleName]", Verbosity.Warnings)
 
-    val isNullable: Boolean get() = kType.isMarkedNullable
-    val typeSlots: List<TypeSlot> = tryResolveImmediately(kClass.typeParameters)
-    val inlinedParameters: List<KClass<*>> = typeSlots.map { it.genericInfo.classInfo.kClass }.sortedBy { simpleName }
-
-    val hashCode: Int = kClass.hashCode()
-    val simpleName : String get() {
-       return if(isNullable){
-            "${kClass.simpleOrAnon}?"
-        }else{
-            kClass.simpleOrAnon
-        }
-    }
+   data class CreateOptions(
+        var scanHierarchyDepth: Int = 0,
+        var scanBeforeClass: KClass<*> = Any::class
+    )
 
     private val formatedTypeString: String get() {
-       return if(typeSlots.isNotEmpty()){
+        return if(typeSlots.isNotEmpty()){
             typeSlots.joinToString(prefix = "<", separator = ", ", postfix = ">") {
                 it.formattedString
             }
         }else{ SpecialChars.EMPTY }
     }
 
+    var verbosity: Verbosity = Verbosity.Warnings
+
+    val isNullable: Boolean get() = kType.isMarkedNullable
+    val typeSlots: List<TypeSlot> = tryResolveImmediately(kClass.typeParameters)
+    val inlinedParameters: List<KClass<*>> = typeSlots.map { it.genericInfo.classInfo.kClass }.sortedBy { simpleName }
+
+    val hashCode: Int = kClass.hashCode()
+    val componentName: String get() = "TypeToken[$simpleName]"
+    val simpleName : String get() {
+        return if(isNullable){
+            "${kClass.simpleOrAnon}?"
+        }else{
+            kClass.simpleOrAnon
+        }
+    }
     val typeName: String get() = simpleName.colorize(Colour.Yellow) + formatedTypeString
+
+    val classHierarchyMap: ClassHierarchyMap = ClassHierarchyMap(kClass, options?.scanHierarchyDepth?:0, options?.scanBeforeClass?: Any::class)
+
 
     private fun tryResolveImmediately(typeParameters:  List<KTypeParameter>):List<TypeSlot>{
         val result: MutableList<TypeSlot> = mutableListOf()
@@ -135,7 +145,7 @@ class TypeToken<T>  @PublishedApi internal constructor(
         val line1 = kClass.toKeyParams()
         val line2 = other.toKeyParams()
         val warnMsg = "Comparison failed when comparing own"+ SpecialChars.NEW_LINE + "$line1 to " + "$line2"
-        warn(warnMsg, methodName)
+        notify(warnMsg, methodName, NotificationTopic.Warning)
     }
 
     override fun hashCode(): Int = kClass.hashCode()
@@ -305,27 +315,18 @@ class TypeToken<T>  @PublishedApi internal constructor(
 
     companion object{
 
-        inline fun <reified T> create():TypeToken<T>{
+        inline fun <reified T> create(options:  CreateOptions? = null):TypeToken<T>{
             val casted = T::class.safeCast<KClass<T & Any>>()
             if(casted != null){
-                return  TypeToken<T>(casted,  typeOf<T>())
+                return  TypeToken(casted,  typeOf<T>(), options = options)
             }else{
                 val errMsg = "Impossible to create token for type ${T::class.simpleName}. KClass<T> should be non nullable"
                 throw IllegalArgumentException(errMsg)
             }
         }
 
-        inline fun <T, reified GT: T?> create(baseClass: KClass<T & Any>): TypeToken<T>{
-            return  TypeToken(baseClass, typeOf<GT>())
-        }
-
-        inline fun <reified T, reified GT: T?> createPrecise(): TypeToken<T>{
-            return  T::class.safeCast<KClass<T & Any>>()?.let {
-                TypeToken(it, typeOf<GT>())
-            }?:run {
-                val errMsg = "Impossible to create token for type ${T::class.simpleName}. KClass<T> should be non nullable"
-                throw IllegalArgumentException(errMsg)
-            }
+        inline fun <T, reified GT: T?> create(baseClass: KClass<T & Any>, options:  CreateOptions? = null): TypeToken<T>{
+            return  TypeToken(baseClass, typeOf<GT>(), options = options)
         }
     }
 }

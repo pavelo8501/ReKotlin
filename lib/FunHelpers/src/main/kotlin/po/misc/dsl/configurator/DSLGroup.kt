@@ -2,14 +2,10 @@ package po.misc.dsl.configurator
 
 import po.misc.callbacks.FunctionalHelper
 import po.misc.callbacks.common.EventHost
-import po.misc.callbacks.signal.Signal
-import po.misc.callbacks.signal.listen
-import po.misc.callbacks.signal.signal
-import po.misc.callbacks.signal.signalOf
 import po.misc.collections.lambda_list.LambdaWrapper
+import po.misc.context.tracable.TraceableContext
 import po.misc.data.HasNameValue
-import po.misc.data.HasValue
-import po.misc.functions.NoResult
+import po.misc.dsl.configurator.data.ConfigurationTracker
 import po.misc.types.token.Tokenized
 import po.misc.types.token.TypeToken
 
@@ -32,7 +28,8 @@ internal object Unprioritized: HasNameValue{
  * @param T type of the receiver
  * @param P type of the configuration parameter
  */
-sealed interface DSLConfigurable<T: Any, P>: Tokenized<P>, EventHost, FunctionalHelper {
+sealed interface DSLConfigurable<T: TraceableContext, P>: Tokenized<P>, EventHost, FunctionalHelper {
+    val groupName: String
     val priority: HasNameValue
     val parameterType: TypeToken<P>
     val configurators: List<LambdaWrapper<T, P>>
@@ -42,16 +39,17 @@ sealed interface DSLConfigurable<T: Any, P>: Tokenized<P>, EventHost, Functional
      *
      * Implementations must emit lifecycle events and track progress.
      */
-    fun applyConfig(receiver: T, parameter: P): T
+    fun applyConfig(configurator: DSLConfigurator<T>, receiver: T, parameter: P): T
+
     /** Registers a callback invoked when configuration starts. */
-    fun onStart(callback: (ProgressTracker<T>) -> Unit)
+    //fun onStart(callback: (ConfigurationTracker<T>) -> Unit)
     /** Registers a callback invoked when configuration completes. */
-    fun onComplete(callback: (ProgressTracker<T>) -> Unit)
+   // fun onComplete(callback: (ConfigurationTracker<T>) -> Unit)
     /**
      * Dispatches lifecycle events based on current configuration state.
-     * @see State
+     * @see po.misc.dsl.configurator.data.State
      */
-    fun trigger(tracker: ProgressTracker<T>, state: State)
+    //fun trigger(tracker: ConfigurationTracker<T>, state: State)
 }
 
 /**
@@ -69,71 +67,76 @@ sealed interface DSLConfigurable<T: Any, P>: Tokenized<P>, EventHost, Functional
  * @param T type of the receiver being configured
  * @param P type of parameter passed to configuration lambdas
  */
-sealed class DSLGroupBase<T: Any, P>() : DSLConfigurable<T, P>{
+sealed class DSLGroupBase<T: TraceableContext, P>(
+    override val priority: HasNameValue
+) : DSLConfigurable<T, P>{
+    override val groupName: String get() =  priority.name
+    //internal val onStartSignal: Signal<ConfigurationTracker<T>, Unit> = signalOf()
+    //internal val onCompleteSignal: Signal<ConfigurationTracker<T>, Unit> = signalOf()
 
-    internal val onStartSignal: Signal<ProgressTracker<T>, Unit> = signalOf()
-    internal val onCompleteSignal: Signal<ProgressTracker<T>, Unit> = signalOf()
+    protected fun onConfiguration(configurator: DSLConfigurator<T>,  receiver:T,  wrapper: LambdaWrapper<T, P>){
+        val tracker = ConfigurationTracker(configurator, receiver, this, wrapper)
+        configurator.configurationStep.trigger(tracker)
+    }
+    protected fun afterConfiguration(configurator: DSLConfigurator<T>, receiver:T,  wrapper: LambdaWrapper<T, P>){
+        val tracker = ConfigurationTracker(configurator, receiver, this, wrapper)
+        configurator.configurationStep.trigger(tracker)
+    }
+//    override fun trigger(tracker: ConfigurationTracker<T>, state: State){
+//        when(state){
+//            State.Initialized-> onStartSignal.trigger(tracker)
+//            State.Configurator -> onStartSignal.trigger(tracker)
+//            State.Complete -> onCompleteSignal.trigger(tracker)
+//            State.Failed -> onCompleteSignal.trigger(tracker)
+//        }
+//    }
 
-    protected fun onConfiguration(receiver:T,  wrapper: LambdaWrapper<T, P>){
-        val tracker = ProgressTracker(receiver, this, wrapper)
-        onStartSignal.trigger(tracker)
-    }
-    protected fun afterConfiguration(receiver:T,  wrapper: LambdaWrapper<T, P>){
-        val tracker = ProgressTracker(receiver, this, wrapper)
-        onStartSignal.trigger(tracker)
-    }
-    override fun trigger(tracker: ProgressTracker<T>, state: State){
-        when(state){
-            State.Initialized-> onStartSignal.trigger(tracker)
-            State.Configurator -> onStartSignal.trigger(tracker)
-            State.Complete -> onCompleteSignal.trigger(tracker)
-            State.Failed -> onCompleteSignal.trigger(tracker)
-        }
-    }
-    override fun onStart(callback: (ProgressTracker<T>)-> Unit): Unit = onStartSignal.onSignal(callback)
-    override fun onComplete(callback: (ProgressTracker<T>)-> Unit): Unit =  onCompleteSignal.onSignal(callback)
+    //override fun onStart(callback: (ConfigurationTracker<T>)-> Unit): Unit = onStartSignal.onSignal(callback)
+    //override fun onComplete(callback: (ConfigurationTracker<T>)-> Unit): Unit =  onCompleteSignal.onSignal(callback)
 }
 
-class DSLGroup<T: Any>(
-    override val priority: HasNameValue,
-):DSLGroupBase<T, Unit>(),  DSLConfigurable<T, Unit>{
+class DSLGroup<T: TraceableContext>(
+    priority: HasNameValue,
+):DSLGroupBase<T, Unit>(priority),  DSLConfigurable<T, Unit>{
 
     override val parameterType: TypeToken<Unit> = TypeToken.create()
     override val typeToken: TypeToken<Unit> get() = parameterType
-    val groupName: String = priority.name
     override val configurators : MutableList<LambdaWrapper<T, Unit>> = mutableListOf()
 
-    override fun applyConfig(receiver: T, parameter: Unit):T{
+    override fun applyConfig(configurator: DSLConfigurator<T>, receiver: T, parameter: Unit):T{
         configurators.forEach {wrapper->
-            onConfiguration(receiver, wrapper)
+
+            val tracker = ConfigurationTracker(configurator, receiver, this, wrapper)
+            configurator.configurationStep.trigger(tracker)
             wrapper.apply(receiver, Unit)
-            afterConfiguration(receiver, wrapper)
+            tracker.finalizeStep()
+            configurator.configurationStep.trigger(tracker)
         }
         return receiver
     }
+
+
     fun addConfigurator(optionalName: String? = null,  block: T.(Unit)-> Unit):DSLGroup<T>{
         val configurator = block.toConfigurator<T>(optionalName)
         configurators.add(configurator)
         return this
     }
-    fun applyConfig(receiver: T): T = applyConfig(receiver, Unit)
-
+    fun applyConfig(configurator: DSLConfigurator<T>, receiver: T): T = applyConfig(configurator, receiver, Unit)
 }
 
-class DSLParameterGroup<T: Any, P>(
-    override val priority: HasNameValue,
+class DSLParameterGroup<T: TraceableContext, P>(
+    priority: HasNameValue,
     override val parameterType: TypeToken<P>
-): DSLGroupBase<T, P>(), DSLConfigurable<T, P>{
+): DSLGroupBase<T, P>(priority), DSLConfigurable<T, P>{
 
     override val typeToken: TypeToken<P> get() = parameterType
-    val groupName: String = priority.name
     override val configurators : MutableList<LambdaWrapper<T, P>> = mutableListOf()
 
-    override fun applyConfig(receiver: T, parameter:P):T{
+    override fun applyConfig(configurator: DSLConfigurator<T>, receiver: T, parameter:P):T{
         configurators.forEach {wrapper->
-            onConfiguration(receiver,  wrapper)
+            onConfiguration(configurator, receiver,  wrapper)
             wrapper.apply(receiver, parameter)
-            afterConfiguration(receiver, wrapper)
+            afterConfiguration(configurator, receiver, wrapper)
         }
         return receiver
     }
@@ -142,8 +145,5 @@ class DSLParameterGroup<T: Any, P>(
         configurators.add(configurator)
         return this
     }
-
-    companion object{
-
-    }
+    companion object
 }

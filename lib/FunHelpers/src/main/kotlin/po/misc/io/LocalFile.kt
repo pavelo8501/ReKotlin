@@ -1,6 +1,6 @@
 package po.misc.io
 
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.exceptions.throwableToText
 import po.misc.time.TimeHelper
 import java.nio.charset.Charset

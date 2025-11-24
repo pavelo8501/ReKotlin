@@ -7,13 +7,11 @@ import po.misc.context.tracable.TraceableContext
 import po.misc.debugging.models.ClassInfo
 import po.misc.debugging.models.InstanceInfo
 import po.misc.exceptions.trace
-import po.misc.types.helpers.simpleOrAnon
+import po.misc.types.k_class.simpleOrAnon
 import kotlin.reflect.KClass
 
 
 interface ClassResolver {
-
-
     companion object {
 
         fun instanceName(receiver: Any): String {
@@ -29,7 +27,7 @@ interface ClassResolver {
             }
         }
 
-        fun instanceInfo(receiver: Component): InstanceInfo {
+        fun instanceInfo(receiver: Any): InstanceInfo {
             val name = instanceName(receiver)
             val classInfo = classInfo(receiver)
            return  InstanceInfo(name,receiver.hashCode(),  classInfo)
@@ -76,3 +74,5 @@ interface ClassResolver {
         }
     }
 }
+
+

@@ -2,7 +2,7 @@ package po.misc.data.logging
 
 import po.misc.context.CTX
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.data.printable.Printable
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.companion.PrintableTemplateBase

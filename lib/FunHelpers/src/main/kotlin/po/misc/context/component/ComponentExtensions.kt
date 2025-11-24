@@ -43,25 +43,6 @@ fun <T:Component> T.setName(name: String):T{
 val Component.initSubject: Initialization get() = Initialization.updateText("Initializing ${ClassResolver.instanceName(this)}", null)
 val Component.configSubject: Configuration  get() = Configuration.updateText("Configuring ${ClassResolver.instanceName(this)}")
 
-fun Component.startProcSubject(
-    processName: String,
-    text: String = "",
-    useBadge: Badge? = null
-): StartProcessSubject {
-    return useBadge?.let {
-        StartProcessSubject(processName, text,  it)
-    }?: StartProcessSubject(processName, text)
-}
-
-val KFunction<*>.asSubject: StartProcessSubject get()  {
-   return StartProcessSubject("Start -> ${this.name}")
-}
-
-fun Component.startProcSubject(
-    function: KFunction<*>,
-    text: String = "",
-    useBadge: Badge? = null
-): StartProcessSubject = startProcSubject("Start -> ${function.name}", text, useBadge)
 
 
 

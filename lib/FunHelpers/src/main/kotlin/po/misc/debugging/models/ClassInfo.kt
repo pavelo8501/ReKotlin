@@ -5,7 +5,7 @@ import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
 import po.misc.exceptions.stack_trace.StackFrameMeta
-import po.misc.types.helpers.simpleOrAnon
+import po.misc.types.k_class.simpleOrAnon
 import po.misc.types.token.GenericInfo
 import po.misc.types.token.TypeToken
 import kotlin.reflect.KClass
@@ -14,6 +14,25 @@ import kotlin.reflect.KClass
 data class ClassInfo(
     internal val kClass: KClass<*>,
 ): PrettyPrint{
+
+
+    private val genericParamsFormatted: String get() =
+        if(genericInfo.isNotEmpty()){
+            genericInfo.joinToString(prefix = "<", postfix = ">", separator = ", ") {
+                it.formattedString
+            }
+        }else { "" }
+
+    private val genericParams: String get() =
+        if(genericInfo.isNotEmpty()){
+            genericInfo.joinToString(prefix = "<", postfix = ">", separator = ", ") {
+                it.parameterName
+            }
+        }else { "" }
+
+
+
+    internal val genericInfoBacking = mutableListOf<GenericInfo>()
 
     var isLambda: Boolean = false
     var isSuspended: Boolean = false
@@ -24,10 +43,13 @@ data class ClassInfo(
     private val suspendTag : String get() =  if (isSuspended) "suspend " else ""
     private val receiveTag  : String get() = if (hasReceiver) "with receiver" else ""
 
+
     var simpleName : String = kClass.simpleOrAnon
         private set
     var qualifiedName: String = kClass.qualifiedName?:"Null"
         private set
+
+    val completeName: String get() = "$simpleName$genericParams"
 
     val packageName: String = kClass.java.packageName
 
@@ -39,7 +61,7 @@ data class ClassInfo(
             simpleName
         }
     }
-    internal val genericInfoBacking = mutableListOf<GenericInfo>()
+
 
     val genericInfo: List<GenericInfo> = genericInfoBacking
 
@@ -58,14 +80,9 @@ data class ClassInfo(
     }
 
 
-    private val genericParamsStr: String get() =
-        if(genericInfo.isNotEmpty()){
-            genericInfo.joinToString(prefix = "<", postfix = ">", separator = ", ") {
-                it.formattedString
-            }
-        }else { "" }
+
     
-    val formattedClassName: String = "${simpleName.colorize(Colour.Yellow)}$genericParamsStr"
+    val formattedClassName: String = "${simpleName.colorize(Colour.Yellow)}$genericParamsFormatted"
 
     override val formattedString: String get() = formattedClassName
 

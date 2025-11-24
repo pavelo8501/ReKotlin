@@ -11,7 +11,7 @@ import po.misc.debugging.ClassResolver
 import po.misc.functions.LambdaOptions
 import po.misc.functions.LambdaType
 import po.misc.functions.SuspendedOptions
-import po.misc.types.helpers.simpleOrAnon
+import po.misc.types.k_class.simpleOrAnon
 import kotlin.collections.component1
 import kotlin.collections.component2
 

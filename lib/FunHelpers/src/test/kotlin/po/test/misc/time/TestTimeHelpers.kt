@@ -1,7 +1,7 @@
 package po.test.misc.time
 
 import org.junit.jupiter.api.Test
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.data.styles.Colour
 import po.misc.time.TimeHelper
 import java.time.Instant

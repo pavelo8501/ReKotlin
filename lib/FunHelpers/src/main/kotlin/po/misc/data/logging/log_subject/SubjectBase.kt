@@ -4,7 +4,7 @@ import po.misc.data.logging.NotificationTopic
 import po.misc.data.badges.Badge
 import po.misc.data.logging.parts.LogBadge
 import po.misc.debugging.ClassResolver
-import po.misc.types.helpers.simpleOrAnon
+import po.misc.types.k_class.simpleOrAnon
 
 
 abstract class SubjectBase(
@@ -35,8 +35,10 @@ abstract class SubjectBase(
         return this
     }
 
-    override fun changeBadge(useBadge: Badge): SubjectBase{
-        badge = useBadge
+    override fun changeBadge(useBadge: Badge?): SubjectBase{
+        if(useBadge != null){
+            badge = useBadge
+        }
         return this
     }
 }

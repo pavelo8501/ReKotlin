@@ -8,7 +8,7 @@ import po.misc.configs.hocon.HoconResolvable
 import po.misc.configs.hocon.builders.resolver
 import po.misc.configs.hocon.extensions.applyConfig
 import po.misc.configs.hocon.properties.hoconProperty
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.test.misc.configs.hocon.NewData
 import kotlin.test.assertEquals
 import kotlin.test.assertNull

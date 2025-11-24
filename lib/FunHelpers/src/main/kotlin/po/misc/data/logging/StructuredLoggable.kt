@@ -4,6 +4,7 @@ import po.misc.context.tracable.TraceableContext
 import po.misc.data.logging.models.LogMessage
 import po.misc.data.logging.parts.KeyValue
 import po.misc.data.logging.procedural.ProceduralEntry
+import po.misc.data.logging.processor.contracts.TemplateActions
 
 /**
  * Represents a [Loggable] entity capable of holding structured,
@@ -32,8 +33,6 @@ import po.misc.data.logging.procedural.ProceduralEntry
 interface StructuredLoggable : Loggable {
 
     val tracker: Enum<*>?
-    //val entries: MutableList<Loggable>
-
     /**
      * Registers a procedural step or sub-entry within this structured log.
      * @param record the procedural entry describing an individual step
@@ -49,6 +48,21 @@ interface StructuredLoggable : Loggable {
     }
 }
 
+interface LoggableTemplate : Loggable{
+
+    val logRecord: StructuredLoggable
+
+
+    fun addRecord(templateRecord: LoggableTemplate)
+    fun getRecord(action : TemplateActions = TemplateActions.LastRegistered):LoggableTemplate
+    fun getRecords(): Collection<LoggableTemplate>
+    fun addEntry(entry: ProceduralEntry)
+
+
+    fun addMessage(record: StructuredLoggable): Boolean
+    fun getMessages(): Collection<StructuredLoggable>
+}
+
 fun StructuredLoggable.track(context: TraceableContext, methodName: String){
     when(this){
         is LogMessage -> track(context, methodName)
@@ -56,8 +70,3 @@ fun StructuredLoggable.track(context: TraceableContext, methodName: String){
     }
 }
 
-
-interface LoggableTemplate : Loggable{
-    fun add(record: StructuredLoggable): Boolean
-    fun get(): Collection<StructuredLoggable>
-}

@@ -1,6 +1,6 @@
 package po.misc.callbacks.delayed
 
-import po.misc.types.helpers.simpleOrAnon
+import po.misc.types.k_class.simpleOrAnon
 import kotlin.time.Duration
 
 

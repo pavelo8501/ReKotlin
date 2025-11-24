@@ -23,17 +23,3 @@ open class GenericInfoSubject(
     badge: Badge = Badge.Init
 ) : SubjectBase(badge), InfoSubject
 
-class StartProcessSubject(
-    override val subjectName: String = "Start process",
-    subjectText: String = "",
-    badge: Badge = Badge.Init
-) : GenericInfoSubject(subjectText, badge) {
-
-    fun processName(
-        function: KFunction<*>,
-        useBadge: Badge? = null
-    ):StartProcessSubject{
-        updateText("Start process ${function.name}", useBadge)
-        return this
-    }
-}

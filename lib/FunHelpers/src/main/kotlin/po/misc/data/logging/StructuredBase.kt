@@ -2,11 +2,7 @@ package po.misc.data.logging
 
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.PrettyPrint
-import po.misc.data.pretty_print.PrettyCell
-import po.misc.data.pretty_print.PrettyPresets
-import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.styles.Colour
-import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
 import po.misc.time.TimeHelper
@@ -42,8 +38,8 @@ abstract class StructuredBase(
     override fun getRecords(): List<Loggable> = logRecords.toList()
     override fun toString(): String =
         buildString {
-            appendLine(topic.name)
-            appendLine("Subject: $subject")
-            appendLine("Message: $text")
+            appendLine("Message<${topic.name}> $subject")
+            appendLine(text)
+            appendLine("By: $context")
         }
 }

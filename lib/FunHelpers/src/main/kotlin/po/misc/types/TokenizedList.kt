@@ -3,8 +3,7 @@ package po.misc.types
 import po.misc.types.token.TokenFactory
 import po.misc.types.token.Tokenized
 import po.misc.types.token.TypeToken
-import po.misc.types.token.typeToken
-
+import po.misc.types.token.tokenOf
 
 class TokenizedList<T: Any>(
     val typeToken: TypeToken<T>,
@@ -48,7 +47,7 @@ class TokenizedList<T: Any>(
        inline operator fun <reified T: Any> invoke(
           noinline onEvery: ((T)-> Unit)? = null
        ):TokenizedList<T>{
-          return TokenizedList(typeToken<T>(), onEvery)
+          return TokenizedList(tokenOf<T>(), onEvery)
        }
     }
 }

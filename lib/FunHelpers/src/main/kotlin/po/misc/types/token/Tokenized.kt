@@ -1,7 +1,9 @@
 package po.misc.types.token
 
-import po.misc.types.TypeProvider
 
+interface TypeProvider{
+    val types: List<TypeToken<*>>
+}
 
 interface Tokenized<T> : TokenHolder, TokenFactory{
     override val typeToken: TypeToken<T>

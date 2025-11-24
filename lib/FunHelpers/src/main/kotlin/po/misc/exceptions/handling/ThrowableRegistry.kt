@@ -1,10 +1,10 @@
 package po.misc.exceptions.handling
 
 import po.misc.collections.maps.ClassKeyedMap
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.data.styles.Colour
 import po.misc.functions.LambdaType
-import po.misc.types.helpers.simpleOrAnon
+import po.misc.types.k_class.simpleOrAnon
 import po.misc.types.safeCast
 import kotlin.reflect.KClass
 

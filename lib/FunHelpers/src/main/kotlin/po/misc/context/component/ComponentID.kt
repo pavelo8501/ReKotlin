@@ -2,7 +2,10 @@ package po.misc.context.component
 
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.PrettyPrint
+import po.misc.data.logging.StructuredLoggable
 import po.misc.data.logging.Verbosity
+import po.misc.data.logging.processor.LogProcessor
+import po.misc.data.logging.processor.createLogProcessor
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
@@ -36,11 +39,7 @@ class ComponentID(
     private val component: Component,
     var verbosity: Verbosity = Verbosity.Info,
     private var setName: String? = null
-): PrettyPrint {
-
-    val classInfo : ClassInfo = ClassResolver.classInfo(component)
-    private var nameProvider : ( () -> String)? = null
-
+): PrettyPrint, TraceableContext {
 
     constructor(
         component: Component,
@@ -50,10 +49,25 @@ class ComponentID(
         this.nameProvider = nameProvider
     }
 
+    private var nameResolved: Boolean = false
+    private var nameProvider : ( () -> String)? = null
     private val resolvedName: String by lazy {
-       nameProvider?.invoke()?: classInfo.simpleName
+       val resolved = nameProvider?.invoke()?: classInfo.simpleName
+        nameResolved = true
+        resolved
     }
 
+
+//    internal val logProcessor :LogProcessor<ComponentID, StructuredLoggable> by lazy {
+//        val processor =  LogProcessor(this, TypeToken.create<StructuredLoggable>(), "ComponentID")
+//        if(nameResolved){
+//            processor.useHostName(resolvedName)
+//        }
+//        processor
+//    }
+
+
+    val classInfo : ClassInfo get() = ClassResolver.classInfo(component)
     val componentName: String get() = setName?: resolvedName
 
     fun updateNameProvider(provider: (() -> String)?) {

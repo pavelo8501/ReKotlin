@@ -6,21 +6,20 @@ import org.junit.jupiter.api.TestInstance
 import po.misc.context.component.Component
 import po.misc.context.component.ComponentID
 import po.misc.context.component.componentID
+import po.misc.context.log_provider.LogProvider
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.logging.LogProvider
 import po.misc.data.logging.Loggable
 import po.misc.data.logging.NotificationTopic
 import po.misc.data.logging.StructuredLoggable
 import po.misc.data.logging.factory.toLogMessage
+import po.misc.data.logging.models.LogMessage
 import po.misc.data.logging.models.Notification
 import po.misc.data.logging.parts.LogTracker
-import po.misc.data.logging.procedural.ProceduralRecord
-import po.misc.data.logging.processor.logProcessor
+import po.misc.data.logging.processor.createLogProcessor
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.printable.grouping.PrintableProperty
 import po.misc.data.printable.grouping.printableProperty
-import po.misc.debugging.ClassResolver
 import po.misc.types.token.TypeToken
 import java.time.Instant
 import kotlin.test.assertEquals
@@ -45,15 +44,17 @@ class CustomNotification(
 }
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestLogProvider: LogProvider<CustomNotification> {
+
+class TestLogProvider: LogProvider {
 
     private class SubComponent(name: String) : Component {
         override val componentID: ComponentID = ComponentID(this, nameProvider = { name })
-        val processor = logProcessor()
 
-        override fun notify(topic: NotificationTopic, subject: String, text: String): Notification {
-           val notification = Notification(this,  topic, subject, text)
-           processor.logData(notification.toLogMessage())
+        val logProcessor = createLogProcessor()
+
+        override fun notify(subject: String, text: String, topic: NotificationTopic): Notification {
+           val notification = Notification(this,  subject, text, topic)
+            logProcessor.logData(notification.toLogMessage())
            return notification
         }
     }
@@ -63,35 +64,35 @@ class TestLogProvider: LogProvider<CustomNotification> {
     private val subject = "Some Subject"
     private val notificationText = "Some text"
 
-    private val processor = logProcessor()
+    override val logProcessor = createLogProcessor<TestLogProvider, CustomNotification>(TypeToken.create<CustomNotification>())
 
     private val child1 = SubComponent("child1")
 
-    override fun notify(topic: NotificationTopic, subject: String, text: String):CustomNotification{
+    override fun notify(subject: String, text: String, topic: NotificationTopic):CustomNotification{
         val notification = CustomNotification(this, topic, subject, text)
-        processor.logData(notification)
+        logProcessor.logData(notification)
         return notification
     }
 
     @BeforeAll
     fun checkSetup(){
-        assertNotNull(processor)
+        assertNotNull(logProcessor)
         assertNotNull(componentID)
     }
 
     @Test
     fun `LogProcessor data collection work as expected`(){
 
-        child1.processor.collectData(keepData = false){
-            processor.activeRecord?.subNotifications?.add(it)
+        child1.logProcessor.collectData(keepData = false){
+            logProcessor.activeRecord?.subNotifications?.add(it)
         }
 
-        notify(NotificationTopic.Info, subject, notificationText)
+        notify(subject, notificationText)
 
-        child1.notify(NotificationTopic.Warning, "Some warning", "With text")
+        child1.notify("Some warning", "With text", NotificationTopic.Warning)
 
-        assertEquals(1, processor.logRecords.size)
-        val firstRec = assertNotNull(processor.logRecords.firstOrNull())
+        assertEquals(1, logProcessor.logRecords.size)
+        val firstRec = assertNotNull(logProcessor.logRecords.firstOrNull())
         assertEquals(1, firstRec.subNotifications.size)
         val firstSubNotification = assertNotNull(firstRec.subNotifications.firstOrNull())
         assertEquals(NotificationTopic.Warning, firstSubNotification.topic)

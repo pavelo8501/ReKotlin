@@ -10,7 +10,7 @@ import po.misc.exceptions.managedException
 import po.misc.functions.CallableOptions
 import po.misc.functions.LambdaOptions
 import po.misc.functions.SuspendedOptions
-import po.misc.types.helpers.lambdaName
+import po.misc.types.k_class.lambdaName
 import kotlin.coroutines.CoroutineContext
 
 interface CallableWrapper<T, R>: Component  {
@@ -31,15 +31,11 @@ class Lambda<T, R>(
 
     override val componentID: ComponentID = componentID({ "Lambda $lambdaName" })
 
-    constructor(
-        lambda: (T) -> R
-    ): this(LambdaOptions.Listen, lambda)
+    constructor(lambda: (T) -> R): this(LambdaOptions.Listen, lambda)
 
     override fun invoke(value: T) : R = lambda.invoke(value)
     override suspend fun invokeSuspending(value: T) : R = invoke(value)
 }
-
-
 
 class LambdaWithReceiver<H: TraceableContext, T, R>(
     val receiver : H,
@@ -52,10 +48,7 @@ class LambdaWithReceiver<H: TraceableContext, T, R>(
 
     override val componentID: ComponentID = componentID({ "Lambda $lambdaName" })
 
-    constructor(
-        receiver: H,
-        lambda: H.(T) -> R
-    ) : this(receiver, LambdaOptions.Listen, lambda)
+    constructor(receiver: H, lambda: H.(T) -> R) : this(receiver, LambdaOptions.Listen, lambda)
 
     override fun invoke(value: T): R = lambda.invoke(receiver, value)
     override suspend fun invokeSuspending(value: T) : R = invoke(value)

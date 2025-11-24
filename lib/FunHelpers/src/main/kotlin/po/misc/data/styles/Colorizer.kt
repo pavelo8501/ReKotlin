@@ -47,72 +47,113 @@ interface Colorizer {
             return segments
         }
 
-        private fun makeOfColour(bgColour: BGColour, text: String): String {
-            return "${bgColour.code}$text${BGColour.RESET.code}"
-        }
-
-        private fun makeOfColour(bgColour: BGColour, colour: Colour,  text: String): String {
-            return "${bgColour.code}${colour.code}$text${BGColour.RESET.code}"
-        }
-
-        fun applyColour(text: String, colour: Colour): String {
+        fun applyColour(text: String, colour: Colour, applyIfColorized: Boolean): String {
             val segments = extractColorSegments(text)
-            return if (segments.isEmpty()) {
-                colour(text, colour)
+            if (segments.isEmpty()) {
+                return colour(text, colour)
             } else {
-                val result = StringBuilder()
-                var lastIndex = 0
-                segments.forEach { segment ->
-                    if (segment.start > lastIndex) {
-                        val before = text.substring(lastIndex, segment.start)
-                        result.append(colour(before, colour))
+                return if (applyIfColorized) {
+                    val result = StringBuilder()
+                    var lastIndex = 0
+                    segments.forEach { segment ->
+                        if (segment.start > lastIndex) {
+                            val before = text.substring(lastIndex, segment.start)
+                            result.append(colour(before, colour))
+                        }
+                        result.append(text.substring(segment.start, segment.end))
+                        lastIndex = segment.end
                     }
-                    result.append(text.substring(segment.start, segment.end))
-                    lastIndex = segment.end
+                    if (lastIndex < text.length) {
+                        val tail = text.substring(lastIndex)
+                        result.append(colour(tail, colour))
+                    }
+                    result.toString()
+                } else {
+                    text
                 }
-                if (lastIndex < text.length) {
-                    val tail = text.substring(lastIndex)
-                    result.append(colour(tail, colour))
-                }
-                result.toString()
             }
         }
+        fun applyColour(text: String, colour: Colour): String = applyColour(text, colour, true)
+
+        fun applyColour(text: String, bgColour: BGColour, applyIfColorized: Boolean): String {
+            val segments = extractColorSegments(text)
+            if (segments.isEmpty()) {
+                return colour(text, bgColour)
+            } else {
+                return if (applyIfColorized) {
+                    val result = StringBuilder()
+                    var lastIndex = 0
+                    segments.forEach { segment ->
+                        if (segment.start > lastIndex) {
+                            val before = text.substring(lastIndex, segment.start)
+                            result.append(colour(before, bgColour))
+                        }
+                        result.append(text.substring(segment.start, segment.end))
+                        lastIndex = segment.end
+                    }
+                    if (lastIndex < text.length) {
+                        val tail = text.substring(lastIndex)
+                        result.append(colour(tail, bgColour))
+                    }
+                    result.toString()
+                } else {
+                    text
+                }
+            }
+        }
+        fun applyColour(text: String, bgColour: BGColour): String = applyColour(text, bgColour, true)
+
+
+        fun applyColour(text: String, colour: Colour, bgColour: BGColour?, applyIfColorized: Boolean): String {
+            val segments = extractColorSegments(text)
+            if (segments.isEmpty()) {
+                return  if(bgColour != null){
+                    colour(text, colour, bgColour)
+                }else{
+                    colour(text, colour)
+                }
+            } else {
+                return if (applyIfColorized) {
+                    val result = StringBuilder()
+                    var lastIndex = 0
+                    segments.forEach { segment ->
+                        if (segment.start > lastIndex) {
+                            val before = text.substring(lastIndex, segment.start)
+                            if(bgColour != null){
+                                result.append(colour(before, colour, bgColour))
+                            }else{
+                                result.append(colour(before, colour))
+                            }
+                        }
+                        result.append(text.substring(segment.start, segment.end))
+                        lastIndex = segment.end
+                    }
+                    if (lastIndex < text.length) {
+                        val tail = text.substring(lastIndex)
+                        if(bgColour != null){
+                            result.append(colour(tail, colour, bgColour))
+                        }else{
+                            result.append(colour(tail, colour))
+                        }
+                    }
+                    result.toString()
+                } else {
+                    text
+                }
+            }
+        }
+        
+        fun applyColour(text: String, colour: Colour, bgColour: BGColour?): String = applyColour(text, colour, bgColour, true)
+
 
         fun colour(text: String, colour: Colour): String {
             return "${colour.code}$text${RESET.code}"
         }
-        fun colour(text: String, colour: Colour, bgColour: BGColour?): String {
-            return if(bgColour != null){
-                makeOfColour(bgColour, colour, text)
-            }else{
-                colour(text, colour)
-            }
-        }
         fun colour(text: String, bgColour: BGColour): String {
-            return makeOfColour(bgColour, text)
+            return "${bgColour.code}$text${BGColour.RESET.code}"
         }
-
-        fun applyColour(bgColour: BGColour, text: String): String {
-            val segments = extractColorSegments(text)
-            return if (segments.isEmpty()) {
-                makeOfColour(bgColour, text)
-            } else {
-                val result = StringBuilder()
-                var lastIndex = 0
-                segments.forEach { segment ->
-                    if (segment.start > lastIndex) {
-                        val before = text.substring(lastIndex, segment.start)
-                        result.append(makeOfColour(bgColour, before))
-                    }
-                    result.append(text.substring(segment.start, segment.end))
-                    lastIndex = segment.end
-                }
-                if (lastIndex < text.length) {
-                    val tail = text.substring(lastIndex)
-                    result.append(makeOfColour(bgColour, tail))
-                }
-                result.toString()
-            }
+        fun colour(text: String, colour: Colour, bgColour: BGColour): String {
+            return "${bgColour.code}${colour.code}$text${BGColour.RESET.code}"
         }
     }
 }

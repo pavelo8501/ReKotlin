@@ -1,18 +1,22 @@
 package po.misc.dsl.configurator
 
+import po.misc.callbacks.signal.signalOf
+import po.misc.context.component.ComponentID
+import po.misc.context.component.componentID
 import po.misc.context.component.configSubject
 import po.misc.context.component.initSubject
-import po.misc.context.component.startProcSubject
+import po.misc.context.log_provider.LogProvider
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.HasNameValue
-import po.misc.data.logging.LogProvider
+import po.misc.data.logging.log_subject.startProcSubject
 import po.misc.data.logging.models.LogMessage
 import po.misc.data.logging.processor.LogProcessor
-import po.misc.data.logging.processor.logProcessor
-import po.misc.reflection.primitives.NullClass
-import po.misc.types.helpers.filterTokenized
-import po.misc.types.helpers.safeCast
-import po.misc.types.helpers.simpleOrAnon
+import po.misc.data.logging.processor.createLogProcessor
+import po.misc.debugging.ClassResolver
+import po.misc.dsl.configurator.data.ConfigurationTracker
+import po.misc.dsl.configurator.data.ConfiguratorInfo
+import po.misc.functions.Throwing
+import po.misc.types.k_class.simpleOrAnon
 import po.misc.types.safeCast
 import po.misc.types.token.TokenFactory
 import po.misc.types.token.TypeToken
@@ -31,19 +35,19 @@ import kotlin.reflect.KClass
  */
 class DSLConfigurator<T: TraceableContext>(
     groups: Collection<DSLConfigurable<T, *>>
-): LogProvider<LogMessage>, TokenFactory {
+): LogProvider,  TokenFactory {
 
     constructor(vararg priorities: HasNameValue) : this(priorities.map { DSLGroup<T>(it) })
 
-    val logger: LogProcessor<DSLConfigurator<T>, LogMessage> = logProcessor()
+    override val componentID: ComponentID = componentID()
+
+    override val logProcessor: LogProcessor<DSLConfigurator<T>, LogMessage> = createLogProcessor()
 
     private val subjectApplyConfig = "Apply config"
-
     internal val unprioritized = DSLGroup<T>(Unprioritized)
 
     @PublishedApi
     internal val dslGroups: MutableMap<Int, DSLConfigurable<T, *>> = mutableMapOf()
-
 
     @PublishedApi
     internal val wrongParameter: HasNameValue.(KClass<*>, TypeToken<*>) -> String = { received, expected ->
@@ -51,9 +55,19 @@ class DSLConfigurator<T: TraceableContext>(
                 "DSLGroup is expecting parameter of type ${expected.typeName} DSL for priority $name # $value" +
                 "Got ${received.simpleOrAnon}"
     }
-
     val size: Int get() = dslGroups.values.sumOf { it.configurators.size } + unprioritized.configurators.size
     val groupCount: Int get() = dslGroups.size
+
+    val startConfiguration = startProcSubject("Start configuration")
+
+    internal val configurationStart = signalOf<ConfiguratorInfo<T>, Unit>()
+    internal val configurationComplete = signalOf<ConfiguratorInfo<T>, Unit>()
+    internal val configurationStep = signalOf<ConfigurationTracker<T>, Unit>()
+
+
+    internal val configMessage: (DSLConfigurable<T, *>, T) -> String = { group, receiver ->
+        "Applying configuration group ${group.groupName} to ${ClassResolver.resolveInstance(receiver).instanceName}"
+    }
 
     init {
         groups.toList().forEach {
@@ -61,21 +75,23 @@ class DSLConfigurator<T: TraceableContext>(
         }
     }
 
-    private fun onStart(receiver: T, group: DSLConfigurable<T, *>) {
-        group.trigger(ProgressTracker(receiver, group), State.Initialized)
+    fun onConfigurationStart(callback: ConfiguratorInfo<T>.() -> Unit){
+        configurationStart.onSignal(callback)
     }
-    private fun onComplete(receiver: T, group: DSLConfigurable<T, *>) {
-        group.trigger(ProgressTracker(receiver, group), State.Complete)
+
+    fun onConfigurationComplete(callback: ConfiguratorInfo<T>.() -> Unit){
+        configurationComplete.onSignal(callback)
+    }
+
+    fun onConfiguration(callback: (ConfigurationTracker<T>) -> Unit){
+        configurationStep.onSignal(callback)
     }
 
     fun groupSize(priority: HasNameValue): Int {
         return dslGroups[priority.value]?.configurators?.size ?: 0
     }
 
-    fun addConfigurator(
-        priority: HasNameValue,
-        block: T.() -> Unit
-    ) {
+    fun addConfigurator(priority: HasNameValue, block: T.() -> Unit) {
         dslGroups[priority.value]?.let {
             if (it is DSLGroup) {
                 it.addConfigurator(block = { block.invoke(this) })
@@ -187,24 +203,22 @@ class DSLConfigurator<T: TraceableContext>(
         noinline block: DSLParameterGroup<T, P>.() -> Unit
     ): DSLParameterGroup<T, P> = buildGroup(TypeToken.create<P>(), priority, block)
 
-    internal fun <P> runGroupConfig(receiver: T, parameter: P, group: DSLConfigurable<T, *>) {
-        onStart(receiver, group)
+    internal fun <P> runGroupConfig(configurator: DSLConfigurator<T>, receiver: T, parameter: P, group: DSLConfigurable<T, *>) {
         when (group) {
             is DSLGroup -> {
-                group.applyConfig(receiver, Unit)
+                group.applyConfig(configurator, receiver, Unit)
             }
-
             is DSLParameterGroup -> {
                 if (parameter != null) {
                     val casted = group.safeCast<DSLConfigurable<T, P>>()
                     if (casted != null) {
-                        casted.applyConfig(receiver, parameter)
+                        casted.applyConfig(configurator, receiver, parameter)
                     } else {
                         warn(configSubject, wrongParameter(group.priority, parameter::class, group.parameterType))
                     }
                 } else {
                     group.safeCast<DSLConfigurable<T, Any?>>()?.let {
-                        it.applyConfig(receiver, null)
+                        it.applyConfig(configurator, receiver, null)
                         infoMsg(subjectApplyConfig, "Applying null as a parameter value")
                     } ?: run {
                         warn(subjectApplyConfig, "$group configuration skipp")
@@ -212,52 +226,177 @@ class DSLConfigurator<T: TraceableContext>(
                 }
             }
         }
-        onComplete(receiver, group)
     }
 
-    internal fun <P> runGroupConfig(receiver: T, parameter: P, priority: HasNameValue) {
-        val exists3 = dslGroups[priority.value]
-        if (exists3 != null) {
-            runGroupConfig(receiver, parameter, exists3)
-        } else {
-            warn(subjectApplyConfig, "No DSL group found for name  ${priority.name}")
-        }
-    }
-
-    fun applyConfig(receiver: T): Boolean {
-        val sorted = dslGroups.entries.sortedBy { it.key }
-        val filtered = sorted.mapNotNull { it.value.safeCast<DSLGroup<T>>() }
+    internal fun <P> runGroupConfig(receiver: T, parameter: P, priority: HasNameValue): Throwable? {
         try {
-            filtered.forEach { value ->
-                value.applyConfig(receiver, Unit)
+            val exists = dslGroups[priority.value]
+            if (exists != null) {
+                runGroupConfig(this,  receiver, parameter, exists)
+            } else {
+                warn(subjectApplyConfig, "No DSL group found for name  ${priority.name}")
             }
-            unprioritized.applyConfig(receiver, Unit)
-            return true
+            return null
         } catch (th: Throwable) {
             warn("applyConfig", th)
-            return false
+            return th
         }
     }
+
+    /**
+     * Applies configuration to the given [receiver] only for the DSL group that
+     * matches the specified [priority].
+     *
+     * The underlying configuration block is executed using `runGroupConfig`.
+     * If the DSL group executes without throwing an exception, this method returns `true`.
+     *
+     * If the DSL group throws an exception internally, it is *not* rethrown here.
+     * Instead, the method returns `false` to indicate a failure.
+     *
+     * @param receiver The target object that receives the configuration.
+     * @param priority The name/value pair identifying the DSL group to execute.
+     *
+     * @return `true` if configuration completed successfully, or `false` if the
+     *         priority-group configuration produced an exception.
+     */
     fun applyConfig(receiver: T, priority: HasNameValue): Boolean {
-        runGroupConfig(receiver, Unit, priority)
+        runGroupConfig(receiver, Unit, priority) ?: return true
         return false
     }
 
-    fun <P> applyConfig(receiver: T, parameter: P): Boolean {
-        val sorted = dslGroups.entries.sortedBy { it.key }.map { it.value }
-        sorted.forEach {
-            runGroupConfig(receiver, parameter, it)
+    /**
+     * Applies configuration to the given [receiver] for the DSL group matching
+     * the specified [priority], rethrowing any exception that occurs inside the
+     * configuration block.
+     *
+     * Equivalent to [applyConfig] but enforces strict error propagation:
+     * if `runGroupConfig` returns a non-null [Throwable], it is thrown immediately.
+     *
+     * @param receiver The target object to configure.
+     * @param priority The DSL group to execute.
+     * @param throwing Marker parameter that enables exception propagation.
+     *
+     * @throws Throwable If the priority-based configuration fails.
+     */
+    fun applyConfig(receiver: T, priority: HasNameValue, throwing: Throwing) {
+        runGroupConfig(receiver, Unit, priority)?.let {
+            throw it
         }
+    }
+
+    /**
+     * Applies configuration across all registered DSL groups for the provided [receiver],
+     * in order of ascending priority. Each group is executed via `runGroupConfig`.
+     *
+     * Exceptions produced by individual groups are collected but not rethrown.
+     * If one or more groups fail, the method returns `false`.
+     *
+     * After all prioritized DSL groups are executed, the unprioritized fallback group
+     * (`unprioritized`) is applied.
+     *
+     * @param receiver The target object to configure.
+     *
+     * @return `true` if all prioritized DSL groups succeeded, or `false` if any group
+     *         produced an exception during execution.
+     */
+    fun applyConfig(receiver: T): Boolean {
+        val throwList = mutableListOf<Throwable>()
+        val sorted = dslGroups.entries.sortedBy { it.key }.map { it.value }
+
+        val info = ConfiguratorInfo(this, sorted.size, sorted.sumOf { it.configurators.size })
+        configurationStart.trigger(info)
+
+        sorted.forEach {
+            val thrown = runGroupConfig(receiver, Unit, it.priority)
+            if (thrown != null) {
+                throwList.add(thrown)
+            }
+        }
+        if (throwList.isNotEmpty()) {
+            return false
+        }
+        info.finalizeResult(sorted.size)
+        configurationComplete.trigger(info)
+        unprioritized.applyConfig(this,  receiver, Unit)
         return true
     }
+
+    /**
+     * Applies configuration across all DSL groups for the given [receiver], supplying
+     * an external [parameter] to each group's configuration logic.
+     *
+     * The groups are executed in ascending priority order. Any exception produced by
+     * a group is collected; no exception is thrown during the process.
+     *
+     * @param receiver The target object to configure.
+     * @param parameter The additional parameter to pass into each DSL group.
+     *
+     * @return `true` if all groups executed without exceptions, or `false` if one or
+     *         more DSL groups returned an error.
+     */
+    fun <P> applyConfig(receiver: T, parameter: P): Boolean {
+        val throwList = mutableListOf<Throwable>()
+        val sorted = dslGroups.entries.sortedBy { it.key }.map { it.value }
+        val info = ConfiguratorInfo(this, sorted.size, sorted.sumOf { it.configurators.size })
+        configurationStart.trigger(info)
+
+        sorted.forEach {
+            val thrown = runGroupConfig(receiver, parameter, it.priority)
+            if (thrown != null) {
+                throwList.add(thrown)
+            }
+        }
+        info.finalizeResult(sorted.size)
+        configurationComplete.trigger(info)
+        return throwList.isNotEmpty()
+    }
+
+    /**
+     * Applies configuration to the given [receiver] with the supplied [parameter],
+     * but only for the DSL group identified by [priority].
+     *
+     * If the group executes without error, the method returns `true`.
+     * If the underlying configuration logic produced an exception, this method
+     * returns `false` instead of throwing.
+     *
+     * @param receiver The target object to configure.
+     * @param parameter An optional additional parameter supplied to the DSL group.
+     * @param priority The DSL group identifier.
+     *
+     * @return `true` if the priority-group configuration completed successfully,
+     *         or `false` if it produced an exception.
+     */
     fun <P> applyConfig(receiver: T, parameter: P, priority: HasNameValue): Boolean {
-        runGroupConfig(receiver, parameter, priority)
+        runGroupConfig(receiver, parameter, priority) ?: return true
         return false
+    }
+
+    /**
+     * Applies configuration to the given [receiver] with the supplied [parameter],
+     * for the DSL group identified by [priority]. Exceptions inside the DSL group
+     * are not swallowed — they are rethrown immediately.
+     *
+     * This is the strict variant of the priority-based configurator.
+     *
+     * @param receiver The target of the configuration.
+     * @param parameter The additional argument provided to DSL logic.
+     * @param priority The DSL group to execute.
+     * @param throwing Marker parameter indicating that exceptions should be propagated.
+     *
+     * @throws Throwable If the selected DSL group fails.
+     */
+    fun <P> applyConfig(receiver: T, parameter: P, priority: HasNameValue, throwing: Throwing) {
+        runGroupConfig(receiver, parameter, priority)?.let {
+            throw it
+        }
+    }
+
+    override fun notify(logMessage: LogMessage): LogMessage {
+        logProcessor.logData(logMessage)
+        return logMessage
     }
 
     companion object {
-
-
         inline operator fun <T : TraceableContext, reified E> invoke(): DSLConfigurator<T> where E : HasNameValue, E : Enum<E> {
             val groups = enumEntries<E>().map {
                 DSLGroup<T>(it)

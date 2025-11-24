@@ -3,7 +3,7 @@ package po.test.misc.exceptions.stack_trace
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import po.misc.context.component.Component
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.debugging.models.InstanceInfo
 import po.misc.exceptions.TracerOptions
 import po.misc.exceptions.stack_trace.ExceptionTrace

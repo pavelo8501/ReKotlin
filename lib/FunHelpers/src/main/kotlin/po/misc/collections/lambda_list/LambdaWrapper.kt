@@ -5,7 +5,7 @@ import po.misc.context.component.ComponentID
 import po.misc.context.component.componentID
 import po.misc.functions.CallableOptions
 import po.misc.functions.LambdaOptions
-import po.misc.types.helpers.lambdaName
+import po.misc.types.k_class.lambdaName
 import po.misc.types.token.TypeToken
 
 

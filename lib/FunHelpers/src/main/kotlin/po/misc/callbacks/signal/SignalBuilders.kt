@@ -8,34 +8,18 @@ import po.misc.types.token.TypeToken
 @PublishedApi
 internal fun <T: Any> createSignal(
     typeToken: TypeToken<T>,
-    name: String? = null
+    options: SignalOptions? = null
 ): Signal<T, Unit> {
-
-   val newSignal = if(name != null){
-        val signal =  Signal(typeToken, TypeToken.create<Unit>())
-        signal.componentID.useName(name)
-        signal
-    }else{
-        Signal(typeToken, TypeToken.create<Unit>())
-    }
-    return newSignal
+    return Signal(typeToken, TypeToken.create<Unit>(), options)
 }
 
 @PublishedApi
 internal fun <T: Any, R> createSignal(
     typeToken: TypeToken<T>,
     resultToken: TypeToken<R>,
-    name: String? = null
+    options: SignalOptions? = null
 ): Signal<T, R> {
-    val newSignal = if(name != null){
-        val signal =  Signal(typeToken, resultToken)
-        signal.componentID.useName(name)
-        signal
-    }else{
-        Signal(typeToken, resultToken)
-    }
-   return newSignal
-
+    return Signal(typeToken, resultToken, options)
 }
 
 /**
@@ -52,8 +36,8 @@ internal fun <T: Any, R> createSignal(
 fun <T: Any, R> signalOf(
     typeToken: TypeToken<T>,
     resultToken: TypeToken<R>,
-    name: String? = null
-): Signal<T, R> = createSignal(typeToken, resultToken, name)
+    options: SignalOptions? = null
+): Signal<T, R> = createSignal(typeToken, resultToken, options)
 
 /**
  * Variant of [signalOf] for signals that do not return a result (`Unit` response).
@@ -66,8 +50,8 @@ fun <T: Any, R> signalOf(
 fun <T: Any> signalOf(
     typeToken: TypeToken<T>,
     result: NoResult,
-    name: String? = null
-): Signal<T, Unit> = createSignal(typeToken, name)
+    options: SignalOptions? = null
+): Signal<T, Unit> = createSignal(typeToken, options)
 
 fun <T: Any, R: Any> Tokenized<T>.signalOf(
     resultToken: TypeToken<R>
@@ -81,16 +65,16 @@ fun <T: Any> Tokenized<T>.signalOf(
  * Inline shortcut for [signalOf] using a reified payload type.
  */
 inline fun <reified T: Any, reified R> signalOf(
-    name: String? = null
-): Signal<T, R> = createSignal(TypeToken.create<T>(), TypeToken.create<R>(), name)
+    options: SignalOptions? = null
+): Signal<T, R> = createSignal(TypeToken.create<T>(), TypeToken.create<R>(), options)
 
 /**
  * Inline shortcut for [signalOf] with no return value (`Unit`).
  */
 inline fun <reified T: Any> signalOf(
     result: NoResult,
-    name: String? = null
-): Signal<T, Unit> = createSignal(TypeToken.create<T>(), name)
+    options: SignalOptions? = null
+): Signal<T, Unit> = createSignal(TypeToken.create<T>(), options)
 
 /**
  * Creates and configures a [Signal] using a builder block.

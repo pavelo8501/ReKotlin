@@ -1,6 +1,6 @@
 package po.misc.context.tracable
 
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.data.logging.Loggable
 import po.misc.data.logging.NotificationTopic
 import po.misc.data.logging.models.Notification
@@ -51,7 +51,7 @@ import kotlin.reflect.KClass
 interface TraceableContext {
 
     fun notification(subject: String, text: String, topic: NotificationTopic = NotificationTopic.Info): Notification{
-        return Notification(this, topic, subject, text)
+        return Notification(this, subject, text, topic)
     }
 
     /**
@@ -65,18 +65,34 @@ interface TraceableContext {
      * will no longer be printed to the console unless you explicitly call
      * [Loggable.output] within your override.
      */
-    fun notify(loggable: Loggable){
+    fun notify(loggable: Loggable):Loggable{
         loggable.output()
+        return loggable
     }
 
     /**
      * Creates and emits a [Notification] with a given [topic], [subject], and [text].
      * Returns the created [Loggable] instance.
      */
-    fun notify(topic: NotificationTopic, subject: String, text: String): Loggable {
-       val notification = Notification(this, topic, subject, text)
+    fun notify(subject: String, text: String, topic: NotificationTopic = NotificationTopic.Info): Loggable {
+       val notification = Notification(this,  subject, text, topic)
        notify(notification)
        return notification
+    }
+
+    fun notify(
+        outputImmediately: Boolean,
+        subject: String,
+        text: String,
+        topic: NotificationTopic = NotificationTopic.Info
+    ): Loggable {
+        val notification = Notification(this,  subject, text, topic)
+        if(outputImmediately){
+            notification.output()
+        }else{
+            notify(notification)
+        }
+        return notification
     }
 
     /**
@@ -84,45 +100,7 @@ interface TraceableContext {
      * The [Throwable] is converted into a formatted text trace automatically.
      */
     fun notify(subject: String, throwable: Throwable): Loggable =
-        notify(NotificationTopic.Exception, subject, throwable.throwableToText())
-
-    /**
-     * Emits an informational message.
-     */
-    fun info(subject: String, text: String): Loggable = notify(NotificationTopic.Info, subject, text)
-    fun info(subject: LogSubject): Loggable = notify(NotificationTopic.Info, subject.subjectName,  subject.subjectText)
-
-    /**
-     * Emits a debug message. Useful for internal tracing.
-     */
-    fun debug(subject: String, text: String, outputImmediately: Boolean = false): Unit {
-        if(outputImmediately){
-            Notification(this, NotificationTopic.Debug, subject, text).output()
-        }else{
-            notify(NotificationTopic.Debug, subject, text)
-        }
-    }
-
-    /**
-     * Emits a warning message.
-     */
-    fun warn(
-        subject: String,
-        text: String,
-    ): Loggable = notify(NotificationTopic.Warning, subject, text)
-
-    fun warn(
-        subject: LogSubject,
-        text: String,
-    ): Loggable = notify(NotificationTopic.Warning, subject.subjectName, subject.subjectText)
-
-    /**
-     * Emits a warning message for an exception case.
-     */
-    fun warn(
-        subject: String,
-        throwable: Throwable
-    ): Loggable  = notify(subject, throwable)
+        notify(subject, throwable.throwableToText(), NotificationTopic.Exception)
 
 
     /**
@@ -160,6 +138,4 @@ interface TraceableContext {
         exceptionProvider: (ExceptionPayload)-> Throwable,
     ): T = castOrThrow(this@TraceableContext, kClass, exceptionProvider)
 }
-
-object NonResolvable: TraceableContext
 

@@ -1,18 +1,22 @@
 package po.test.misc.data.logging.procedural
 
 import org.junit.jupiter.api.Test
+import po.misc.context.component.Component
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.logging.procedural.ProceduralEntry
 import po.misc.data.logging.procedural.ProceduralFlow
 import po.misc.data.logging.procedural.StepResult
 import po.misc.data.logging.procedural.StepTolerance
 import po.misc.data.badges.Badge
+import po.misc.data.logging.factory.toLogMessage
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
-class TestProceduralEntry: TraceableContext {
+class TestProceduralEntry: Component {
 
-    val entry = ProceduralEntry(Badge.Init,"step")
+
+    private val record = ProceduralFlow.toProceduralRecord(info("Subject", "Text").toLogMessage())
+    private val entry = ProceduralEntry(Badge.Init, "step", record)
 
     @Test
     fun `Step result correctly analyzed`(){

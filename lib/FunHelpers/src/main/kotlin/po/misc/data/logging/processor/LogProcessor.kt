@@ -1,35 +1,65 @@
 package po.misc.data.logging.processor
 
 import po.misc.context.component.Component
-import po.misc.data.helpers.output
+import po.misc.context.tracable.TraceableContext
+import po.misc.data.output.output
 import po.misc.data.logging.Loggable
 import po.misc.data.logging.StructuredLoggable
 import po.misc.data.logging.Verbosity
 import po.misc.data.logging.models.LogMessage
-import po.misc.data.logging.procedural.ProceduralEntry
 import po.misc.data.logging.procedural.ProceduralFlow
 import po.misc.data.logging.procedural.ProceduralRecord
+import po.misc.data.logging.processor.parts.ProcessorLoader
+import po.misc.data.logging.processor.settings.StateSnapshot
 
 import po.misc.data.styles.Colour
+import po.misc.exceptions.managedException
 import po.misc.functions.Suspending
+import po.misc.functions.Throwing
+import po.misc.types.castOrThrow
+import po.misc.types.k_class.simpleOrAnon
 import po.misc.types.safeCast
 import po.misc.types.token.TypeToken
+import kotlin.reflect.KClass
+
 
 class LogProcessor <H: Component, T: StructuredLoggable>(
-    override val host: H,
-    typeToken: TypeToken<T>,
-): LogProcessorBase<T>(host, typeToken) {
+    val host: H,
+    messageTypeToken: TypeToken<T>,
+    private val useHostName: String? = null
+): LogProcessorBase<T>("LogProcessor", Verbosity.Info, messageTypeToken) {
 
-    val loggerName: String get() = "LogProcessor of ${host.componentName}"
 
     private val dataProcessSubject = "Data Processing"
     private val impossibleToProcess: (String, String) -> String = { method, reason, ->
         "Unable to run $method. Reason: $reason"
     }
+
     private var dataBuilder: ((LogMessage) -> T)? = null
+    var loggerName: String = "LogProcessor"
+        private set
+
+    init {
+        resolveNaming(useHostName)
+    }
+
+    val loader: ProcessorLoader<H, T> = ProcessorLoader(this)
+
+    private fun resolveNaming(useHostName: String?){
+        if(useHostName!= null){
+            hostName = useHostName
+            loggerName = "LogProcessor of $useHostName"
+        }else{
+            if(host.componentID != null){
+                hostName = host.componentID.componentName
+                verbosity = host.componentID.verbosity
+                loggerName = "LogProcessor of $hostName"
+            }
+        }
+    }
 
     private fun castReCreateOrnNull(logMessage: LogMessage): T? {
-        val casted = logMessage.safeCast(typeToken) ?: run {
+        val casted = logMessage.safeCast(messageTypeToken) ?: run {
             dataBuilder?.invoke(logMessage)
         }
         return casted
@@ -43,11 +73,10 @@ class LogProcessor <H: Component, T: StructuredLoggable>(
     }
 
     @PublishedApi
-    internal fun finalizeFlow(record: T, flow: ProceduralFlow<H>){
+    internal fun makeFlowFinalization(record: T, flow: ProceduralFlow<*>):T{
+
         val flowMessage = flow.complete(output = true)
-        flowMessage.logRecords.forEach {
-            record.addRecord(it)
-        }
+
         removeDataHandler(LogMessage::class)
         dropCollector(true)
         if (verbosity == Verbosity.Debug) {
@@ -57,20 +86,51 @@ class LogProcessor <H: Component, T: StructuredLoggable>(
         if (verbosity == Verbosity.Debug) {
             StateSnapshot(this).output("After record  $record logged")
         }
+        return record
     }
 
-    fun finalizeFlow(flow: ProceduralFlow<H>):T{
+    fun <H: Component> newProceduralFlow(
+        record: StructuredLoggable,
+    ): ProceduralFlow<H> {
+        val procedural =  ProceduralFlow.toProceduralRecord(record)
+        val casted = record.castOrThrow<T>(messageTypeToken.kClass)
+        activeRecord = casted
+        val flow = ProceduralFlow(this, procedural)
+        useHandler(flow)
+        return flow.castOrThrow<ProceduralFlow<H>>()
+    }
+
+    fun listDataHandlers(): List<LogHandler> = logForwarder.handlerRegistrations.map { it.handler }
+
+    fun useHostName(name: String){
+        hostName = name
+        loggerName = "LogProcessor of $name"
+    }
+
+    fun finalizeFlow(flow: ProceduralFlow<*>):T{
       return  activeRecord?.let {
-            finalizeFlow(it, flow)
-            it
+          makeFlowFinalization(it, flow)
         }?:run {
             throw IllegalStateException("No activeRecord")
         }
     }
 
+    fun finalizeHandler(handler: LogHandler):T?{
+        return when(handler){
+            is ProceduralFlow<*> ->{
+                finalizeFlow(handler)
+            }
+            else -> {
+                handler.completionSignal.trigger(handler)
+                null
+            }
+        }
+    }
+
     fun createProceduralFlow(data: T): ProceduralFlow<H>{
-        ProceduralFlow.createRecord(data)
-        val flow = ProceduralFlow(this,  ProceduralFlow.createRecord(data))
+        val record = ProceduralFlow.toProceduralRecord(data)
+        val flow = ProceduralFlow(this,  record)
+        useHandler(flow)
         activeRecord = data
         return flow
     }
@@ -81,7 +141,7 @@ class LogProcessor <H: Component, T: StructuredLoggable>(
     ): R {
         val flow = createProceduralFlow(record)
         val result = block.invoke(flow, flow.proceduralRecord)
-        finalizeFlow(record, flow)
+        makeFlowFinalization(record, flow)
         return result
     }
 
@@ -103,11 +163,12 @@ class LogProcessor <H: Component, T: StructuredLoggable>(
     ): R {
         val flow = createProceduralFlow(record)
         val result = block.invoke(flow, flow.proceduralRecord)
-        finalizeFlow(record, flow)
+        makeFlowFinalization(record, flow)
         return result
     }
 
-    fun useProcedural(proceduralFlow: ProceduralFlow<*>): Unit = useHandler(proceduralFlow, allowOverwrite = true)
+    fun useProcedural(proceduralFlow: ProceduralFlow<*>): LogHandler? =
+        useHandler(proceduralFlow)
 
 
     override fun outputOrNot(data: Loggable) {
@@ -119,6 +180,28 @@ class LogProcessor <H: Component, T: StructuredLoggable>(
     override fun handleUnAssigned(message: Loggable) {
         val message = "$loggerName Unable to process loggable message of ${message::class}"
         message.output(Colour.Yellow)
+    }
+
+    inline fun <reified LH: LogHandler> getHandlerOf(): LH?{
+       val handler =  this.logForwarder.getHandler(LH::class)
+        return handler?.castOrThrow<LH>()
+    }
+
+    inline fun <reified LH: LogHandler> getHandlerOf(throwing: Throwing): LH{
+        return  logForwarder.getHandler(LH::class).castOrThrow<LH>()
+    }
+
+
+
+    fun forwardOutputTo(logProcessor: LogProcessor<out Component, out StructuredLoggable>){
+        val myDataClass = messageTypeToken.kClass
+        //logProcessor.logForwarder.dataHandlers.keys.firstOrNull{ myDataClass.isSubclassOf(it) }
+        val handlerFound = logProcessor.logForwarder.getHandlerFor(myDataClass)
+        if(handlerFound != null){
+            useHandler(handlerFound)
+        }else{
+            notify(outputImmediately = true, "forwardOutputTo", "Processed data class is ${myDataClass}. No key found")
+        }
     }
 }
 

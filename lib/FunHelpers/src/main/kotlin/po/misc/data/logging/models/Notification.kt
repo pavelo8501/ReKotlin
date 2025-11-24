@@ -19,12 +19,12 @@ import kotlin.reflect.KClass
  */
 data class Notification(
     override val context: TraceableContext,
-    override val topic: NotificationTopic,
     override val subject: String,
-    override val text: String
+    override val text: String,
+    override val topic: NotificationTopic,
 ): Loggable, TimeHelper, PrettyPrint {
 
-    constructor(loggable: Loggable):this(loggable.context, loggable.topic, loggable.subject,loggable.text)
+    constructor(loggable: Loggable):this(loggable.context, loggable.subject,loggable.text, loggable.topic)
 
     private val contextName: String  = ClassResolver.instanceName(context)
     override val created: Instant = Instant.now()

@@ -8,11 +8,12 @@ import po.misc.collections.lambda_map.toCallable
 import po.misc.context.component.Component
 import po.misc.context.component.ComponentID
 import po.misc.context.component.componentID
+import po.misc.context.log_provider.LogProvider
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.logging.LogProvider
 import po.misc.data.logging.Verbosity
-import po.misc.data.logging.processor.logProcessor
-import po.misc.debugging.ClassResolver
+import po.misc.data.logging.models.LogMessage
+import po.misc.data.logging.processor.LogProcessor
+import po.misc.data.logging.processor.createLogProcessor
 import po.misc.functions.LambdaOptions
 import po.misc.functions.LambdaType
 import po.misc.functions.SuspendedOptions
@@ -122,12 +123,13 @@ class HostedEvent<H: EventHost, T : Any, R>(
     internal val host: H,
     paramType: TypeToken<T>,
     resultType: TypeToken<R>
-): CallableEventBase<T, R>(),  HostedEventBuilder<H, T, R>, LogProvider<EventLogRecord>, Component {
+): CallableEventBase<T, R>(),  HostedEventBuilder<H, T, R>, LogProvider {
 
     override var componentID: ComponentID =
         componentID("HostedEvent", Verbosity.Warnings).addParamInfo("T", paramType).addParamInfo("R", resultType)
 
-    internal val processor = logProcessor()
+    override val logProcessor: LogProcessor<HostedEvent<H, T, R>, LogMessage> = createLogProcessor()
+    
 
     val event: Boolean get() = listeners.values.any { !it.isSuspended }
     val eventSuspended: Boolean get() = listeners.values.any { it.isSuspended }
@@ -152,6 +154,7 @@ class HostedEvent<H: EventHost, T : Any, R>(
         options: LambdaOptions,
         callback: H.(T) -> R
     ) {
+
         debug(subjectListen, messageReg("Lambda", listener))
         listeners[listener] = callback.toCallable(host, options)
     }

@@ -14,21 +14,17 @@ import po.misc.configs.hocon.models.HoconPrimitives
 import po.misc.configs.hocon.models.HoconString
 import po.misc.context.component.ComponentID
 import po.misc.context.component.componentID
-import po.misc.context.component.startProcSubject
+import po.misc.context.log_provider.LogProvider
+import po.misc.context.log_provider.proceduralScope
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.helpers.output
-import po.misc.data.logging.Loggable
-import po.misc.data.logging.factory.toLogMessage
+import po.misc.data.output.output
 import po.misc.data.logging.models.LogMessage
 import po.misc.data.logging.procedural.ProceduralFlow
 import po.misc.data.logging.procedural.StepTolerance
-import po.misc.data.logging.processor.logProcessor
+import po.misc.data.logging.processor.createLogProcessor
 import po.misc.data.badges.Badge
 import po.misc.data.badges.GenericBadge
-import po.misc.data.logging.LogEmitter
-import po.misc.data.logging.LogEmitterNew
-import po.misc.data.logging.proceduralScope
-import po.misc.data.logging.processor.LogProcessor
+import po.misc.data.logging.log_subject.startProcSubject
 import po.misc.functions.Nullable
 import po.misc.types.token.TokenFactory
 import po.misc.types.token.TypeToken
@@ -48,11 +44,13 @@ interface HoconConfigurable<T: EventHost, C: HoconResolvable<C>, V: Any> : Hocon
 
 class HoconResolver<C: HoconResolvable<C>>(
     val configToken: TypeToken<C>,
-): EventHost, LogEmitterNew<HoconResolver<C>, LogMessage> {
+): EventHost, LogProvider {
 
     private val parsingSubject: (TypeToken<*>) -> String = { "Parsing ${it.typeName}" }
+
     override val componentID: ComponentID = componentID().addParamInfo("C", configToken)
-    override val logProcessor: LogProcessor<HoconResolver<C>, LogMessage> = logProcessor()
+
+    override val logProcessor = createLogProcessor()
 
 
     @PublishedApi
@@ -94,8 +92,9 @@ class HoconResolver<C: HoconResolvable<C>>(
         }
     }
 
-    override fun notify(loggable: Loggable) {
-        logProcessor.logData(loggable.toLogMessage())
+    override fun notify(logMessage: LogMessage): LogMessage {
+        logProcessor.logData(logMessage)
+        return logMessage
     }
 
     private fun identifyConfig(hoconFactory: Config): String{
@@ -125,13 +124,16 @@ class HoconResolver<C: HoconResolvable<C>>(
         }
     }
 
-    private fun <C: HoconResolvable<C>> ProceduralFlow<HoconResolver<C>>.processNestedEntry(
+    private fun <C: HoconResolvable<C>> processNestedEntry(
+        flow: ProceduralFlow<HoconResolver<C>>,
         entry: HoconNestedEntry<C, *>,
         hoconFactory: Config
     ){
         val tolerance: StepTolerance = if(entry.nullable) StepTolerance.ALLOW_NULL else StepTolerance.STRICT
-        step("Parsing ${entry.componentName}", parseBadge, tolerance) {
-            entry.readConfig(hoconFactory, Nullable)
+        with(flow){
+            step("Parsing ${entry.componentName}", parseBadge, tolerance) {
+                entry.readConfig(hoconFactory, Nullable)
+            }
         }
     }
 
@@ -143,7 +145,7 @@ class HoconResolver<C: HoconResolvable<C>>(
                     when (hoconEntry) {
                         is HoconEntry ->  processHoconEntry(hoconEntry, hoconFactory)
                         is HoconListEntry -> processListEntry(hoconEntry, hoconFactory)
-                        is HoconNestedEntry<C, *> ->  processNestedEntry(hoconEntry, hoconFactory)
+                        is HoconNestedEntry<C, *> ->  processNestedEntry(this@proceduralScope,  hoconEntry, hoconFactory)
                     }
                 }
             }

@@ -3,7 +3,7 @@ package po.test.misc.types.token
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.types.castOrThrow
 import po.misc.types.token.TokenFactory
 import po.misc.types.token.TypeToken

@@ -1,7 +1,7 @@
 package po.test.misc.data.styles
 
 import org.junit.jupiter.api.Test
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.data.styles.BGColour
 import po.misc.data.badges.Badge
 import po.misc.data.styles.Colour

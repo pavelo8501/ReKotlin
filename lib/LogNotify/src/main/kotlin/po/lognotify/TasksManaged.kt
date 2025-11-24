@@ -32,15 +32,6 @@ interface TasksManaged : CTX {
         logHandler.logger.notify(this@notify,  message,  severity)
     }
 
-    override fun <T: Printable> CTX.debug(message: String, template: PrintableTemplateBase<T>?, topic: DebugTopic){
-        logHandler.logger.debug(message,  this, topic, template)
-    }
-
-     fun CTX.debug(message: String, template: PrintableTemplateBase<DebugData>?){
-        logHandler.logger.debug(message,  this, DebugTopic.General, template)
-     }
-
-
     fun <T : PrintableBase<T>> debug(data: T, dataClass: PrintableCompanion<T>, template: PrintableTemplateBase<T>) {
         logHandler.dispatcher.getActiveDataProcessor().debug(data, dataClass, template)
     }

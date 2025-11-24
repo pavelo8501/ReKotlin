@@ -6,8 +6,11 @@ import po.misc.collections.lambda_map.toCallable
 import po.misc.context.component.Component
 import po.misc.context.tracable.TraceableContext
 import po.misc.context.component.ComponentID
-import po.misc.debugging.ClassResolver
-import po.misc.debugging.models.ClassInfo
+import po.misc.data.logging.StructuredLoggable
+import po.misc.data.logging.models.LogMessage
+import po.misc.data.logging.processor.LogProcessor
+import po.misc.data.logging.processor.createLogProcessor
+import po.misc.data.strings.ifNotBlank
 import po.misc.functions.LambdaOptions
 import po.misc.functions.LambdaType
 import po.misc.functions.SuspendedOptions
@@ -149,12 +152,22 @@ sealed interface SignalBuilder<T: Any, R>{
  */
 class Signal<T: Any, R>(
    paramType: TypeToken<T>,
-   resultType: TypeToken<R>
+   resultType: TypeToken<R>,
+   val options: SignalOptions? = null
 ): CallableEventBase<T, R>(), SignalBuilder<T, R>{
 
-    override var componentID: ComponentID = ComponentID(this, setName =  "Signal")
+    val signalName: String = if(options == null){
+        "Signal"
+    }else{
+        "Signal[${options.name}] ${options.hostName.ifNotBlank { "on $it" }}"
+    }
+
+    override var componentID: ComponentID = ComponentID(this, setName =  signalName)
         .addParamInfo("T", paramType)
             .addParamInfo("R", resultType)
+
+    val logProcessor: LogProcessor<Signal<T, R>, LogMessage> = createLogProcessor()
+
 
     val signal : Boolean get() = listeners.values.any { !it.isSuspended }
 
@@ -175,7 +188,7 @@ class Signal<T: Any, R>(
         options: LambdaOptions,
         callback: (T) -> R
     ){
-        debug( subjectListen, messageReg("Lambda", listener) )
+        debug(subjectListen, messageReg("Lambda", listener) )
         listeners[listener] = callback.toCallable(options)
     }
 
@@ -193,6 +206,7 @@ class Signal<T: Any, R>(
         options: SuspendedOptions,
         callback: suspend (T) -> R
     ){
+
         debug( subjectListen, messageReg("Suspending lambda", listener) )
         listeners[listener] = toCallable(options, callback)
     }
@@ -207,4 +221,12 @@ class Signal<T: Any, R>(
         suspended: LambdaType.Suspended,
         callback: suspend (T) -> R
     ) : Unit = onSignal(this, SuspendedOptions.Listen, callback)
+
+    override fun notify(logMessage: LogMessage): LogMessage {
+        logProcessor.logData(logMessage)
+        return logMessage
+    }
+
+    override fun toString(): String = signalName
+
 }

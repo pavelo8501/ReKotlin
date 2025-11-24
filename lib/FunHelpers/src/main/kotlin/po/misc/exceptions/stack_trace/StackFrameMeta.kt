@@ -1,9 +1,9 @@
 package po.misc.exceptions.stack_trace
 
 import po.misc.data.PrettyPrint
-import po.misc.data.pretty_print.PrettyCell
-import po.misc.data.pretty_print.PrettyPresets
-import po.misc.data.pretty_print.PrettyRow
+import po.misc.data.pretty_print.cells.PrettyCell
+import po.misc.data.pretty_print.presets.PrettyPresets
+import po.misc.data.pretty_print.rows.PrettyRow
 import po.misc.exceptions.classifier.PackageRole
 import po.misc.exceptions.classifier.classifyPackage
 
@@ -38,7 +38,7 @@ data class StackFrameMeta(
 
     // override val formattedString: String get() = ""
 
-    private val printPair = PrettyRow(PrettyCell(10, PrettyPresets.Key), PrettyCell(20, PrettyPresets.Value))
+    private val printPair = PrettyRow(PrettyCell(10, PrettyPresets.Key), PrettyCell(20,  PrettyPresets.Value))
 
 
     private val tillMethodName : String = buildString {

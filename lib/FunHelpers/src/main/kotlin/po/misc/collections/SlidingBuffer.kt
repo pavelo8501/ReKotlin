@@ -12,7 +12,7 @@ import po.misc.data.styles.colorize
 import po.misc.reflection.TypeDefaults
 import po.misc.reflection.defaultForType
 import po.misc.types.getOrManaged
-import po.misc.types.helpers.simpleOrAnon
+import po.misc.types.k_class.simpleOrAnon
 import po.misc.types.token.TypeToken
 import java.time.Instant
 

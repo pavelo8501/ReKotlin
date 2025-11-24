@@ -1,6 +1,6 @@
 package po.misc.context
 
-import po.misc.types.helpers.simpleOrAnon
+import po.misc.types.k_class.simpleOrAnon
 
 
 data class ContextInfo(

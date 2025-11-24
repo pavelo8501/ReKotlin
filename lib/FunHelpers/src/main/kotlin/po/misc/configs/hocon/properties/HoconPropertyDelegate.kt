@@ -5,14 +5,8 @@ import po.misc.configs.hocon.models.HoconEntryBase
 import po.misc.configs.hocon.models.HoconListEntry
 import po.misc.configs.hocon.models.HoconNestedEntry
 import po.misc.configs.hocon.HoconResolvable
-import po.misc.configs.hocon.models.HoconPrimitives
 import po.misc.context.component.Component
 import po.misc.context.component.ComponentID
-import po.misc.context.component.componentID
-import po.misc.data.Identify
-import po.misc.data.helpers.output
-import po.misc.data.logging.Verbosity
-import po.misc.data.styles.Colour
 import po.misc.exceptions.managedException
 import po.misc.types.getOrThrow
 import po.misc.types.token.TypeToken
@@ -86,7 +80,6 @@ class HoconTransformProperty<T: HoconResolvable<T>, V: Any, R>(
         }
     }
 }
-
 
 class HoconListProperty<T: HoconResolvable<T>, V>(
     receiver: T,

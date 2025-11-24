@@ -8,22 +8,33 @@ import po.misc.data.styles.Colorizer
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
+import po.misc.debugging.ClassResolver
+import po.misc.exceptions.throwableToText
 import kotlin.collections.drop
 import kotlin.collections.first
 import kotlin.collections.isNotEmpty
+import kotlin.reflect.KClass
 
 
 sealed class StringFormatter(var string: String){
     open var formatedString: String = string
     internal val subFormatters = mutableListOf<StringFormatter>()
-
     fun output(){
         println(formatedString)
         subFormatters.forEach {
             it.output()
         }
     }
-    override fun toString(): String{
+
+    fun returnFormated(): String {
+        val resultingString = subFormatters.joinToString(prefix = formatedString) {
+            it.returnFormated()
+        }
+        return resultingString
+    }
+
+    override fun toString(): String {
+
         return if (subFormatters.isNotEmpty()) {
             val subResult = subFormatters.joinToString(prefix = string, postfix = SpecialChars.NEW_LINE , separator = SpecialChars.NEW_LINE) {
                 it.toString()
@@ -35,6 +46,35 @@ sealed class StringFormatter(var string: String){
     }
 
     companion object{
+
+        fun formatKnownTypes2(target: Any?): FormatedEntry {
+            return if(target != null){
+                val targetAsString = target.toString()
+                when(target){
+                    is KClass<*> -> {
+                       val info = ClassResolver.classInfo(target)
+                        FormatedEntry(info.simpleName, info.formattedClassName)
+                    }
+                    is PrettyPrint -> FormatedEntry(targetAsString, target.formattedString)
+                    is CTX -> FormatedEntry(targetAsString,  target.identifiedByName)
+                    is Enum<*> -> {
+                        if(target is TextContaining){
+                            FormatedEntry(targetAsString, "${target.name}: ${target.asText()}")
+                        }else{
+                            FormatedEntry(targetAsString)
+                        }
+                    }
+                    is Throwable ->{
+                        FormatedEntry(target.message?:"N/A", target.throwableToText())
+                    }
+                    is String -> FormatedEntry(targetAsString)
+                    else -> FormatedEntry(targetAsString)
+                }
+            }else{
+                FormatedEntry("null")
+            }
+        }
+
         fun formatKnownTypes(target: Any?): String {
             return when(target){
                 is PrettyPrint -> {
@@ -55,10 +95,12 @@ sealed class StringFormatter(var string: String){
     }
 }
 
+
 class SimpleFormatter(
     string: String,
     override var formatedString: String = string
 ): StringFormatter(string) {
+
     fun addSubStringFormater(stringFormater: StringFormatter): SimpleFormatter {
         subFormatters.add(stringFormater)
         return this
@@ -95,7 +137,6 @@ internal inline fun stringifyInternal(
 ):SimpleFormatter {
 
     val lambdaResult = transform(StringFormatter.formatKnownTypes(receiver))
-
     return colour?.let {
         SimpleFormatter(lambdaResult, Colorizer.applyColour(lambdaResult, it))
     } ?: SimpleFormatter(lambdaResult)
@@ -105,45 +146,17 @@ internal inline fun stringifyInternal(
 @PublishedApi
 internal fun stringifyInternal(
     receiver: Any?,
-    prefix: String?,
+    prefix: String = "",
     colour: Colour?
-):SimpleFormatter {
-
-    val prefixToUse = prefix?.let {
-        "$it "
-    }?:""
-
-    val formated = prefixToUse + StringFormatter.formatKnownTypes(receiver)
-    return colour?.let {
-        SimpleFormatter(formated, Colorizer.applyColour(formated, it))
-    } ?: SimpleFormatter(formated)
-}
-
-fun Any?.stringify(
-    prefix: String,
-    colour: Colour? = null
-):SimpleFormatter {
-
-   return stringifyInternal(this, prefix, colour)
-}
-
-fun Any.stringify(
-    colour: Colour? = null
-):SimpleFormatter {
-    return stringifyInternal(this, prefix =  null, colour =  colour)
-}
-
-
-
-fun Any.stringify():SimpleFormatter {
-    val formatedText = StringFormatter.formatKnownTypes(this)
-    return if (this !is PrettyPrint) {
-        SimpleFormatter(formatedText, formatedText)
+): FormatedEntry {
+    return if (receiver != null) {
+        val formated = StringFormatter.formatKnownTypes2(receiver)
+        formated.addPrefix(prefix)
+        formated.colour(colour)
     } else {
-        SimpleFormatter(formatedText, formattedString)
+        FormatedEntry("$prefix null")
     }
 }
-
 
 
 inline fun Any.stringify(
@@ -177,11 +190,12 @@ internal fun stringifyListInternal(
 ):SimpleFormatter {
 
     return if(list.isNotEmpty()) {
-        val stringFormater =  list.first().stringify(colour)
+
+        val stringFormater =  list.first().stringify(prefix = "", colour)
         list.drop(1).forEach {
-            stringFormater.addSubStringFormater(it.stringify(colour))
         }
-        stringFormater
+        SimpleFormatter(stringFormater.text, stringFormater.formatedText)
+
     }else{
         SimpleFormatter("empty", "empty")
     }
@@ -197,7 +211,6 @@ inline fun List<Any>.stringify(
    return if(isNotEmpty()) {
         val stringFormater =  first().stringify(colour, transform)
         drop(1).forEach {
-
             stringFormater.addSubStringFormater( it.stringify(colour, transform))
         }
        stringFormater
@@ -211,11 +224,11 @@ fun List<Any>.stringify(
 ):SimpleFormatter{
   return  if(isNotEmpty()){
         val first = first()
-        val stringFormater = first.stringify(colour)
+        val stringFormater = first.stringify(prefix = "", colour)
         drop(1).forEach {
-            stringFormater.addSubStringFormater( it.stringify(colour) )
+
         }
-        stringFormater
+      SimpleFormatter(stringFormater.text, stringFormater.formatedText)
     }else{
       SimpleFormatter("empty", "empty".colorize(colour))
     }

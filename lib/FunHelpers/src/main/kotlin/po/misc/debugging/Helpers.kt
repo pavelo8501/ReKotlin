@@ -3,7 +3,7 @@ package po.misc.debugging
 import po.misc.context.CTX
 import po.misc.context.tracable.TraceableContext
 
-import po.misc.types.helpers.simpleOrAnon
+import po.misc.types.k_class.simpleOrAnon
 
 
 

@@ -12,9 +12,9 @@ import po.misc.configs.hocon.extensions.parseValue
 import po.misc.context.component.Component
 import po.misc.context.component.ComponentID
 import po.misc.context.component.componentID
-import po.misc.data.logging.Loggable
 import po.misc.data.logging.factory.toLogMessage
-import po.misc.data.logging.processor.logProcessor
+import po.misc.data.logging.models.LogMessage
+import po.misc.data.logging.processor.createLogProcessor
 import po.misc.exceptions.managedException
 import po.misc.functions.Nullable
 import po.misc.types.safeBaseCast
@@ -26,14 +26,17 @@ import kotlin.reflect.full.isSubclassOf
 sealed class HoconEntryBase<T: HoconResolvable<T>, V>(
     val receiver: T,
     val hoconPrimitive: HoconPrimitives<V>,
+
 ): Component {
+
+    abstract override val componentID: ComponentID
+
 
     var property: KProperty<*>? = null
         protected set
 
     override val componentName: String get() = property?.name?:"Undefined"
 
-    abstract override val componentID: ComponentID
 
     protected val resolver: HoconResolver<T> get() = receiver.resolver
     val receiverType: TypeToken<T> get() = receiver.resolver.configToken
@@ -63,7 +66,7 @@ sealed class HoconEntryBase<T: HoconResolvable<T>, V>(
         }
     }
 
-    internal val logProcessor = logProcessor()
+    internal val logProcessor = createLogProcessor()
     internal var onResultAvailable: ((V) -> Unit) ? = null
     internal fun resultAvailable(callback: (V) -> Unit){
         if(onResultAvailable != null){
@@ -136,8 +139,9 @@ sealed class HoconEntryBase<T: HoconResolvable<T>, V>(
             }
         }
     }
-    override fun notify(loggable: Loggable) {
-        logProcessor.logData(loggable.toLogMessage())
+    override fun notify(logMessage: LogMessage): LogMessage {
+        logProcessor.logData(logMessage.toLogMessage())
+        return logMessage
     }
     override fun toString(): String = componentID.componentName
 }
@@ -146,7 +150,6 @@ class HoconEntry<T: HoconResolvable<T>, V>(
     receiver: T,
     hoconPrimitive: HoconPrimitives<V>,
 ): HoconEntryBase<T, V>(receiver, hoconPrimitive) {
-
     override val componentID: ComponentID = componentID({componentName}).addParamInfo("T", receiverType).addParamInfo("V", valueTypeToken)
 }
 
@@ -156,8 +159,8 @@ class HoconListEntry<T: HoconResolvable<T>, V>(
     val hoconEntry:  HoconEntry<T, V>
 ): HoconEntryBase<T, V>(receiver, hoconList) {
 
-    var listValue: List<V> = emptyList()
     override val componentID: ComponentID = componentID({componentName}).addParamInfo("T", receiverType).addParamInfo("V", valueTypeToken)
+    var listValue: List<V> = emptyList()
 
    // override val nullable: Boolean get() = hoconList.listTypeToken.isNullable
 

@@ -1,14 +1,10 @@
 package po.misc.types.token
 
 import po.misc.context.tracable.TraceableContext
+import po.misc.types.token.TypeToken.CreateOptions
 import kotlin.reflect.KClass
 
 interface TokenFactory
-
-
-@Deprecated("Change to tokenOf")
-inline fun <reified T> TokenFactory.typeToken(): TypeToken<T> = tokenOf<T>()
-
 
 /**
  * Creates a [TypeToken] for the reified generic type [T].
@@ -19,8 +15,8 @@ inline fun <reified T> TokenFactory.typeToken(): TypeToken<T> = tokenOf<T>()
  *
  * @return a new [TypeToken] representing type [T].
  */
-inline fun <reified T> TokenFactory.tokenOf(): TypeToken<T>{
-    return TypeToken.create<T>()
+inline fun <reified T> TokenFactory.tokenOf(options:  CreateOptions? = null): TypeToken<T>{
+    return TypeToken.create<T>(options)
 }
 
 /**
@@ -38,8 +34,8 @@ inline fun <reified T> TokenFactory.tokenOf(): TypeToken<T>{
  * @param baseClass the declared upper type that the resulting token should represent.
  * @return a new [TypeToken] representing [T], backed by concrete type [GT].
  */
-inline fun <T, reified GT: T> TokenFactory.tokenOf(baseClass: KClass<T & Any>): TypeToken<T>{
-  return TypeToken.create<T, GT>(baseClass)
+inline fun <T, reified GT: T> TokenFactory.tokenOf(baseClass: KClass<T & Any>, options:  CreateOptions? = null): TypeToken<T>{
+  return TypeToken.create<T, GT>(baseClass, options)
 }
 
 /**
