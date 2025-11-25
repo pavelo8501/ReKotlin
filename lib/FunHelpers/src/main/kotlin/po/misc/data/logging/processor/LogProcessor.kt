@@ -1,7 +1,6 @@
 package po.misc.data.logging.processor
 
 import po.misc.context.component.Component
-import po.misc.context.tracable.TraceableContext
 import po.misc.data.output.output
 import po.misc.data.logging.Loggable
 import po.misc.data.logging.StructuredLoggable
@@ -11,23 +10,19 @@ import po.misc.data.logging.procedural.ProceduralFlow
 import po.misc.data.logging.procedural.ProceduralRecord
 import po.misc.data.logging.processor.parts.ProcessorLoader
 import po.misc.data.logging.processor.settings.StateSnapshot
-
 import po.misc.data.styles.Colour
-import po.misc.exceptions.managedException
 import po.misc.functions.Suspending
 import po.misc.functions.Throwing
 import po.misc.types.castOrThrow
-import po.misc.types.k_class.simpleOrAnon
 import po.misc.types.safeCast
 import po.misc.types.token.TypeToken
-import kotlin.reflect.KClass
 
 
 class LogProcessor <H: Component, T: StructuredLoggable>(
     val host: H,
     messageTypeToken: TypeToken<T>,
     private val useHostName: String? = null
-): LogProcessorBase<T>("LogProcessor", Verbosity.Info, messageTypeToken) {
+): LogProcessorBase<T>("LogProcessor",  messageTypeToken) {
 
 
     private val dataProcessSubject = "Data Processing"
@@ -43,26 +38,21 @@ class LogProcessor <H: Component, T: StructuredLoggable>(
         resolveNaming(useHostName)
     }
 
+    override  var verbosity: Verbosity
+        get() { return host.componentID.verbosity }
+        set(value) {
+            host.componentID.verbosity = value
+        }
+
     val loader: ProcessorLoader<H, T> = ProcessorLoader(this)
 
     private fun resolveNaming(useHostName: String?){
-        if(useHostName!= null){
+        if(useHostName != null){
             hostName = useHostName
             loggerName = "LogProcessor of $useHostName"
-        }else{
-            if(host.componentID != null){
-                hostName = host.componentID.componentName
-                verbosity = host.componentID.verbosity
-                loggerName = "LogProcessor of $hostName"
-            }
+        } else {
+            loggerName = "LogProcessor of ${host.componentName}"
         }
-    }
-
-    private fun castReCreateOrnNull(logMessage: LogMessage): T? {
-        val casted = logMessage.safeCast(messageTypeToken) ?: run {
-            dataBuilder?.invoke(logMessage)
-        }
-        return casted
     }
 
     @PublishedApi
@@ -74,9 +64,7 @@ class LogProcessor <H: Component, T: StructuredLoggable>(
 
     @PublishedApi
     internal fun makeFlowFinalization(record: T, flow: ProceduralFlow<*>):T{
-
-        val flowMessage = flow.complete(output = true)
-
+        flow.complete(output = true)
         removeDataHandler(LogMessage::class)
         dropCollector(true)
         if (verbosity == Verbosity.Debug) {
@@ -98,13 +86,6 @@ class LogProcessor <H: Component, T: StructuredLoggable>(
         val flow = ProceduralFlow(this, procedural)
         useHandler(flow)
         return flow.castOrThrow<ProceduralFlow<H>>()
-    }
-
-    fun listDataHandlers(): List<LogHandler> = logForwarder.handlerRegistrations.map { it.handler }
-
-    fun useHostName(name: String){
-        hostName = name
-        loggerName = "LogProcessor of $name"
     }
 
     fun finalizeFlow(flow: ProceduralFlow<*>):T{
@@ -170,7 +151,6 @@ class LogProcessor <H: Component, T: StructuredLoggable>(
     fun useProcedural(proceduralFlow: ProceduralFlow<*>): LogHandler? =
         useHandler(proceduralFlow)
 
-
     override fun outputOrNot(data: Loggable) {
         if (data.topic >= verbosity.minTopic) {
             data.output()
@@ -190,7 +170,6 @@ class LogProcessor <H: Component, T: StructuredLoggable>(
     inline fun <reified LH: LogHandler> getHandlerOf(throwing: Throwing): LH{
         return  logForwarder.getHandler(LH::class).castOrThrow<LH>()
     }
-
 
 
     fun forwardOutputTo(logProcessor: LogProcessor<out Component, out StructuredLoggable>){

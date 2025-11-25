@@ -1,79 +1,79 @@
 package po.misc.data.pretty_print.cells
 
-import po.misc.data.pretty_print.Align
+import po.misc.data.pretty_print.parts.Align
+import po.misc.data.pretty_print.parts.CommonCellOptions
+import po.misc.data.pretty_print.parts.KeyedCellOptions
 import po.misc.data.pretty_print.presets.KeyedPresets
-import po.misc.data.styles.TextStyle
+import po.misc.data.pretty_print.parts.RenderOptions
+import po.misc.data.strings.FormattedPair
 import po.misc.data.styles.TextStyler
 import kotlin.reflect.KProperty
 
 
 class KeyedCell(width: Int, val cellName: String): PrettyCellBase<KeyedPresets>(width, Align.LEFT), KeyedCellRenderer {
 
-    override var preset: KeyedPresets? = null
-    var property: KProperty<*>? = null
-    var options: KeyedCellOptions = KeyedCellOptions()
-        internal set
-
-    override val builder: (Int, Any) -> PrettyCellBase<KeyedPresets> = Companion.builder
-
     constructor(kProperty: KProperty<*>, cellName: String = kProperty.name) : this(width = 0, cellName) {
         property = kProperty
-        applyPreset(KeyedPresets.Property)
+        options = KeyedCellOptions(KeyedPresets.Property)
     }
 
+    override var preset: KeyedPresets? = null
+    var property: KProperty<*>? = null
+
+    override var options: CommonCellOptions = KeyedCellOptions()
+    val keyedOptions: KeyedCellOptions get() = options as KeyedCellOptions
+
     init {
-        applyOptionSpecials()
+
         textFormatter.formatter = { text, cell ->
             text
         }
         dynamicTextStyler.formatter = { text, cell, ->
-            val styledKey = if (cellName.isNotBlank() && options.showKey) {
-                colorizeKey()
-            } else {
-                ""
+            var keyText = ""
+            if(keyedOptions.showKey){
+                keyText = colorizeKey()
             }
-            val textStyle = preset?.style ?: TextStyle.Regular
-            val valueStyle =
-                TextStyler.style(text, applyColourIfExists = false, textStyle, preset?.colour, preset?.backgroundColour)
-            "$styledKey $valueStyle"
+            val useStyle = keyedOptions.styleOptions.style
+            val useColour = keyedOptions.styleOptions.colour
+            val useBackgroundColour = keyedOptions.styleOptions.backgroundColour
+            val valueStyle = TextStyler.style(text, applyColourIfExists = false, useStyle, useColour, useBackgroundColour)
+            "$keyText $valueStyle"
         }
     }
 
     private fun colorizeKey(): String {
-        val keyTextStyle = preset?.keyStyle ?: TextStyle.Regular
-        return TextStyler.style(cellName, keyTextStyle, preset?.keyColour, preset?.backgroundColour)
+        val useStyle = keyedOptions.keyStyleOptions.style
+        val useColour = keyedOptions.keyStyleOptions.colour
+        val useBackgroundColour = keyedOptions.keyStyleOptions.backgroundColour
+        return TextStyler.style(cellName, useStyle, useColour, useBackgroundColour)
     }
 
-    private fun applyOptionSpecials(){
-        if(options.colour != null){
-            colour = options.colour
-        }
-    }
 
     internal fun applyOptions(options: KeyedCellOptions): KeyedCell{
         this.options = options
-        applyOptionSpecials()
         return this
     }
 
-    fun applyPreset(newPreset: KeyedPresets): KeyedCell {
-        preset = newPreset
+    override fun applyPreset(preset: KeyedPresets): KeyedCell {
+        options = preset.toKeyedOptions(width)
         return this
+    }
+
+    override fun render(formatted: FormattedPair, renderOptions: RenderOptions): String{
+        val usedText = if(renderOptions.usePlain){ formatted.text } else { formatted.formatedText }
+        val modified = staticModifiers.modify(usedText)
+        val formatted = compositeFormatter.format(modified, this)
+        val final = justifyText(formatted,  renderOptions)
+        return final
     }
 
     override fun render(content: String): String {
         val modified = staticModifiers.modify(content)
         val formatted = compositeFormatter.format(modified, this)
-        val usedWidth = width.coerceAtMost(defaults.DEFAULT_WIDTH)
-        val final = applyWidth(formatted, usedWidth)
+        val final = justifyText(formatted,  RenderOptions())
         return final
     }
 
-    companion object {
-
-        val builder: (Int, Any) -> PrettyCellBase<KeyedPresets> = { width, cellName ->
-            KeyedCell(width, cellName.toString())
-        }
-    }
+    companion object
 
 }

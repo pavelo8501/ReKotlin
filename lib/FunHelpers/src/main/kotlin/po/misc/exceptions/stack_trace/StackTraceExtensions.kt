@@ -12,7 +12,6 @@ fun StackTraceElement.toMeta(): StackFrameMeta = StackFrameMeta.create(this)
 fun List<StackTraceElement>.toMeta(): List<StackFrameMeta> = map { StackFrameMeta.create(it) }
 
 fun StackTraceElement.isHelperMethod(): Boolean {
-
     return try {
         val cls = Class.forName(className)
         cls.hasAnnotation<HelperFunction>(methodName) != null

@@ -183,25 +183,9 @@ internal inline fun stringifyListInternal(
     }
 }
 
-@PublishedApi
-internal fun stringifyListInternal(
-    list: List<Any>,
-    colour: Colour?,
-):SimpleFormatter {
 
-    return if(list.isNotEmpty()) {
 
-        val stringFormater =  list.first().stringify(prefix = "", colour)
-        list.drop(1).forEach {
-        }
-        SimpleFormatter(stringFormater.text, stringFormater.formatedText)
 
-    }else{
-        SimpleFormatter("empty", "empty")
-    }
-}
-
-fun List<Any>.stringify():SimpleFormatter = stringifyListInternal(this, colour = null)
 
 
 inline fun List<Any>.stringify(

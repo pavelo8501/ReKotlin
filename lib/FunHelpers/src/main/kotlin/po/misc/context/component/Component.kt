@@ -43,8 +43,12 @@ import po.misc.exceptions.throwableToText
 interface Component : TraceableContext {
 
     val componentID: ComponentID get() = ComponentID(this)
-    val componentName: String get() = componentID.componentName
-    
+
+    val componentName: String get(){
+       val componentIdentification : ComponentID?  = componentID as ComponentID?
+       return componentIdentification?.componentName ?: "Component"
+    }
+
     fun notify(logMessage: LogMessage): StructuredLoggable{
         logMessage.output()
         return logMessage
@@ -65,7 +69,6 @@ interface Component : TraceableContext {
      * Emits a debug message. Useful for internal tracing.
      */
     fun debug(subject: String, text: String, outputImmediately: Boolean = false): LogMessage {
-
         val message =  debugMsg(subject, text)
         if(outputImmediately){
             val message =  debugMsg(subject, text)
@@ -87,7 +90,6 @@ interface Component : TraceableContext {
     fun warn(subject: LogSubject, text: String): LogMessage =  warn(subject.subjectName, text, LogTracker.Enabled)
 
     override fun notify(loggable: Loggable): StructuredLoggable = notify(loggable.toLogMessage())
-
 
     fun message(
         subject: String,
@@ -137,6 +139,12 @@ interface Component : TraceableContext {
         tracker: LogTracker = LogTracker.Enabled
     ): LogMessage{
        return message(subject, throwable.throwableToText(), NotificationTopic.Warning, tracker)
+    }
+
+    companion object {
+
+
+
     }
 }
 

@@ -1,12 +1,28 @@
 package po.misc.data.pretty_print.rows
 
-import po.misc.data.pretty_print.Console80
-import po.misc.data.pretty_print.RenderDefaults
+
+import po.misc.collections.asList
+import po.misc.context.tracable.TraceableContext
+import po.misc.counters.LogJournal
+import po.misc.data.TextBuilder
+import po.misc.data.output.output
+import po.misc.data.pretty_print.parts.Console220
+import po.misc.data.pretty_print.parts.RenderDefaults
+import po.misc.data.pretty_print.cells.ComputedCell
 import po.misc.data.pretty_print.cells.KeyedCell
 import po.misc.data.pretty_print.cells.PrettyCell
 import po.misc.data.pretty_print.cells.PrettyCellBase
+import po.misc.data.pretty_print.cells.StaticCell
+import po.misc.data.pretty_print.parts.PrettyBorders
+import po.misc.data.pretty_print.parts.RenderOptions
+import po.misc.data.pretty_print.parts.RowOptions
+import po.misc.data.pretty_print.presets.RendererPresets
+import po.misc.data.pretty_print.presets.RowPresets
+import po.misc.data.strings.stringify
 import po.misc.data.styles.SpecialChars
+import po.misc.io.captureOutput
 import po.misc.reflection.NameValuePair
+import po.misc.types.castOrThrow
 import kotlin.reflect.KProperty1
 
 /**
@@ -25,82 +41,184 @@ import kotlin.reflect.KProperty1
  * using [outsideCellSeparator].
  */
 class PrettyRow(
-    private val initialCells: List<PrettyCellBase<*>>,
+    private var initialCells: List<PrettyCellBase<*>>,
     val separator: String = " | ",
-){
-
-    enum class InitType{ Manual, Property }
-
-    var defaults: RenderDefaults = Console80
-
-    var initType: InitType = InitType.Manual
-    var outsideCellSeparator: String = " : "
-
+): TraceableContext{
+    enum class Orientation{ Horizontal, Vertical }
+    enum class RendererOperation{ Render, RenderCell }
 
     constructor(vararg cells: PrettyCellBase<*>):this(cells.toList()){
         SpecialChars.CELL_SEPARATOR
     }
-
     constructor(separator: String = " | ", vararg cells: PrettyCellBase<*>):this(cells.toList(), separator)
-
     constructor(container: PrettyDataContainer):this(container.prettyCells, SpecialChars.CELL_SEPARATOR){
         cells = container.prettyCells
     }
 
+    var defaults: RenderDefaults = Console220
+    var outsideCellSeparator: String = " : "
+
+    var options: RowOptions = RowOptions(Console220)
+    val rowBorders : PrettyBorders = PrettyBorders()
+
     var cells: List<PrettyCellBase<*>>
         internal set
+
+    val journal : LogJournal<RendererOperation> = LogJournal(this, RendererOperation.Render)
 
     init {
         cells = computeFormattedCells()
     }
 
-    fun submitCells(list: PrettyCell, initType: InitType){
-        this.initType = initType
-        cells = computeFormattedCells()
-    }
-
     private fun computeFormattedCells(): List<PrettyCellBase<*>> {
         val copied = initialCells.map { cell ->
-            val safeWidth = cell.width.coerceAtMost( defaults.DEFAULT_WIDTH)
             val cellCopy =  when(cell){
-                is PrettyCell -> cell.builder(safeWidth, cell.align)
-                is KeyedCell -> cell.builder(safeWidth, cell.cellName)
-
+                is PrettyCell -> PrettyCell(cell.width, cell.align)
+                is KeyedCell -> KeyedCell(cell.width, cell.cellName)
+                is ComputedCell<*> -> ComputedCell<Any>(cell.width,  null)
+                is StaticCell -> StaticCell(cell.content, cell.width)
             }
             PrettyCellBase.copyKeyParams(cell, cellCopy)
         }
         return copied
     }
+    private fun selectOption(index: Int,  usePlain: Boolean = false): RenderOptions {
+        val lastIndex = cells.size - 1
+        val options = when {
+            index == 0 && cells.size == 1 -> RenderOptions(usePlain, renderLeftBorder = false, false).assignParameters(this)
+            index == 0 && cells.size > 1 -> RenderOptions(usePlain, renderLeftBorder = false, true).assignParameters(this)
 
-    /**
-     * Renders a row by applying each value to its cell.
-     *
-     * `values.size > cells.size` → extra values rendered after the row.
-     */
-    fun render(values: List<String>): String {
-        val cellCount = cells.size
-        val result = StringBuilder()
-        for (i in 0 until cellCount) {
-            if (i >= values.size) break
-                result.append(cells[i].render(values[i]))
-            if (i < cellCount - 1)
-                result.append(separator)
+            index == lastIndex && cells.size == 1 ->  RenderOptions(usePlain, renderLeftBorder = false, false).assignParameters(this)
+            index == lastIndex && cells.size > 1 -> RenderOptions(usePlain, renderLeftBorder = false, false).assignParameters(this)
+
+            cells.size > 1 -> RenderOptions(usePlain, renderLeftBorder = false, true).assignParameters(this)
+            cells.size <= 1 -> RenderOptions(usePlain, renderLeftBorder = true, true).assignParameters(this)
+
+            else -> RenderOptions(usePlain, renderLeftBorder = true, true).assignParameters(this)
         }
-        if (values.size > cellCount) {
-            var  tail = outsideCellSeparator
-            tail += values.drop(cellCount).joinToString(" ")
-            result.append(" ").append(tail)
+        return options
+    }
+
+    private fun runListRenderLessCells(optionsToUse: RowOptions, list: List<Any>, stingBuilder: StringBuilder){
+        val cellsCount = cells.size
+        val noBordersOption = RenderOptions(renderLeftBorder = false, renderRightBorder = false).assignFinalize(this)
+        for (i in 0 until cellsCount) {
+            val options = selectOption(i)
+            val listItem = list[i]
+            if(optionsToUse.orientation == Orientation.Horizontal){
+                val value = renderCell(listItem, cells[i], options)
+                stingBuilder.append(value)
+            }else{
+                val value = renderCell(listItem, cells[i], noBordersOption)
+                stingBuilder.appendLine(value)
+            }
+        }
+        val tailString =  list.drop(cellsCount).joinToString(" ")
+
+        cells.lastOrNull()?.let {
+            val tailResult = it.render(tailString)
+            stingBuilder.append(tailResult)
+        }
+    }
+    private fun runListRenderCellsMoreOrEqual(optionsToUse: RowOptions, list: List<Any>, stingBuilder: StringBuilder) {
+
+        val noBordersOption = RenderOptions(renderLeftBorder = false, renderRightBorder = false).assignFinalize(this)
+        list.forEachIndexed { index, element->
+            val options = selectOption(index)
+            val selectedCell = cells[index]
+            if(optionsToUse.orientation == Orientation.Horizontal){
+                val rendered = renderCell(element, selectedCell, options)
+                stingBuilder.append(rendered)
+            }else{
+                val rendered = renderCell(element, selectedCell, noBordersOption)
+                stingBuilder.appendLine(rendered)
+            }
+        }
+    }
+
+    internal fun <T: Any> renderKeyed(receiver: T, cell: KeyedCell, options: RenderOptions): String{
+        val castedProperty =  cell.property.castOrThrow<KProperty1<T, *>>()
+        val formatted = castedProperty.get(receiver).stringify()
+        val renderResult = cell.render(formatted, options)
+        return renderResult
+    }
+
+    internal fun <T: Any> renderPretty(receiver: T, prettyCell: PrettyCell): String{
+        val result = prettyCell.postfix?:""
+        return result
+    }
+
+    internal fun <T: Any>  renderStatic(receiver: T,  cell: StaticCell, options: RenderOptions): String{
+        journal.addRecord(RendererOperation.RenderCell, "Static cell with options: $options")
+        val formatted = cell.changeContent(receiver).stringify()
+        val renderResult = cell.render(formatted, options)
+        return renderResult
+    }
+
+    internal fun <T: Any> renderComputed(receiver: T, cell: ComputedCell<*>, options: RenderOptions): String{
+        journal.addRecord(RendererOperation.RenderCell, "Computed cell with options: [$options]")
+        val casted = cell.castOrThrow<ComputedCell<T>>()
+        val newReceiver = casted.property?.get(receiver)
+        if(newReceiver != null){
+            val result = casted.lambda?.invoke(casted, newReceiver)
+            val formatted = result.stringify()
+            val renderResult = cell.render(formatted, options)
+            return renderResult
+        }
+        return ""
+    }
+
+    internal fun <T: Any> renderCell(receiver: T, cell: PrettyCellBase<*>, options: RenderOptions): String{
+        return  when(cell){
+            is ComputedCell<*> -> renderComputed(receiver, cell, options)
+            is KeyedCell -> renderKeyed(receiver, cell, options)
+            is StaticCell-> renderStatic(receiver, cell, options)
+            is PrettyCell -> renderPretty(receiver, cell)
+        }
+    }
+
+    internal fun <T: Any> runRender(receiver: T, rowPreset: RowPresets? = null): String {
+        val useOptions = rowPreset?.toOptions(defaults)?:options
+        val cellCount = cells.size
+        journal.addRecord("Cells count $cellCount")
+        val result = StringBuilder()
+        if(cellCount > 0){
+            runListRenderCellsMoreOrEqual(useOptions, receiver.asList(), result)
         }
         return result.toString()
     }
-    fun render(nameValuePair: NameValuePair): String = render(listOf(nameValuePair.name, nameValuePair.value))
-    fun render(vararg values: String): String = render(values.toList())
-    fun render(vararg values: Any): String = render(values.map { it.toString() })
-
-    fun <T: Any> render(receiver: T): String {
-        val withProperties = cells.filterIsInstance<KeyedCell>().filter { it.property != null }
-        val properties = withProperties.map { it.property }.filterIsInstance<KProperty1<Any, *>>()
-        val resultList = properties.map { it.get(receiver).toString() }
-        return render(resultList)
+    internal fun <T: Any> runListRender(list: List<T>, rowPreset: RowPresets? = null): String {
+        val rowOptions = rowPreset?.toOptions(defaults)
+        val optionsToUse = rowOptions?:options
+        val cellsCount = cells.size
+        journal.addRecord("Cells count $cellsCount")
+        val listSize = list.size
+        val result = StringBuilder()
+        when {
+            cellsCount < listSize -> runListRenderLessCells(optionsToUse, list, result)
+            cellsCount >= listSize -> runListRenderCellsMoreOrEqual(optionsToUse, list, result)
+        }
+        return result.toString()
     }
+
+    fun <T: Any> render(receiver: T, rowPreset: RowPresets? = null): String = runRender(receiver, rowPreset)
+
+    fun render(vararg values: Any, rowPreset: RowPresets? = null): String{
+        val valuesList = values.toList()
+        return runListRender(valuesList, rowPreset)
+    }
+    fun render(values: List<String>, rowPreset: RowPresets? = null): String {
+        return runListRender(values, rowPreset)
+    }
+    fun render(nameValuePair: NameValuePair): String = runListRender(listOf(nameValuePair.name, nameValuePair.value))
+
+    fun setCells(newCells: List<PrettyCellBase<*>>){
+        initialCells = newCells
+        computeFormattedCells()
+    }
+    fun applyPreset(preset: RowPresets): PrettyRow{
+        options = preset.toOptions()
+        return this
+    }
+
 }

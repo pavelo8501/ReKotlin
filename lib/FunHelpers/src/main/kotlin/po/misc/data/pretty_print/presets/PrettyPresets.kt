@@ -1,6 +1,9 @@
 package po.misc.data.pretty_print.presets
 
-import po.misc.data.pretty_print.Align
+import po.misc.data.pretty_print.parts.Align
+import po.misc.data.pretty_print.parts.CellOptions
+import po.misc.data.pretty_print.parts.CellOptions.TextStyleOptions
+import po.misc.data.pretty_print.parts.KeyedCellOptions
 import po.misc.data.styles.BGColour
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
@@ -13,6 +16,10 @@ interface StylePresets{
     val colour: Colour?
     val backgroundColour: BGColour?
     val postfix: String?
+
+    fun toOptions(width: Int = 0): CellOptions{
+        return CellOptions(width, align, TextStyleOptions(style, colour, backgroundColour))
+    }
 }
 
 interface PrettyPresets: StylePresets{
@@ -62,7 +69,6 @@ interface PrettyPresets: StylePresets{
         override val backgroundColour: BGColour? = null
         override val postfix: String? = null
     }
-
 }
 
 interface KeyedPresets:  PrettyPresets {
@@ -75,6 +81,21 @@ interface KeyedPresets:  PrettyPresets {
     val keyStyle: TextStyle
     val keyColour: Colour?
     val keyBackgroundColour: BGColour?
+
+    fun toKeyedOptions(width: Int = 0): KeyedCellOptions{
+        val textStyle = styleOption()
+        val keyStyle = keyStyleOption()
+        return KeyedCellOptions(width, align, textStyle, keyStyle)
+    }
+
+    fun styleOption():TextStyleOptions{
+        return TextStyleOptions(style, colour, backgroundColour)
+    }
+
+    fun keyStyleOption():TextStyleOptions{
+       return TextStyleOptions(keyStyle, keyColour, keyBackgroundColour)
+    }
+
 
     object Property: KeyedPresets{
 

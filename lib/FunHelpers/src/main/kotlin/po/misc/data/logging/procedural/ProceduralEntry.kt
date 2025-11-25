@@ -3,6 +3,7 @@ package po.misc.data.logging.procedural
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.PrettyPrint
 import po.misc.data.badges.Badge
+import po.misc.data.helpers.orDefault
 import po.misc.data.helpers.replaceIfNull
 import po.misc.data.logging.LoggableTemplate
 import po.misc.data.logging.StructuredLoggable
@@ -103,7 +104,7 @@ class ProceduralEntry(
         }
     }
     override fun toString(): String =
-        "ProceduralEntry ${parentRecord.replaceIfNull{ "on $it" }} [Procedural count: ${proceduralRecords.size} LogRecords count ${logRecords.size}]"
+        "ProceduralEntry ${parentRecord.orDefault{ "on $it" }} [Procedural count: ${proceduralRecords.size} LogRecords count ${logRecords.size}]"
 
     companion object{
         val defaultBadge : Badge = Badge.Init

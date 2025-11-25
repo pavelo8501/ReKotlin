@@ -8,7 +8,9 @@ import po.misc.data.logging.Loggable
 import po.misc.data.logging.NotificationTopic
 import po.misc.data.logging.Verbosity
 import po.misc.data.logging.factory.toLogMessage
+import po.misc.data.logging.models.LogMessage
 import po.misc.data.logging.models.Notification
+import po.misc.data.logging.processor.LogProcessor
 import po.misc.data.logging.processor.createLogProcessor
 import po.misc.io.captureOutput
 import kotlin.test.assertEquals
@@ -42,8 +44,9 @@ class TestLogProcessor: Component {
 
     @Test
     fun `Log processor's console outputs respect host verbosity setting`(){
+
         componentID.verbosity = Verbosity.Debug
-        val processor = createLogProcessor()
+        val processor : LogProcessor<TestLogProcessor, LogMessage> = createLogProcessor()
 
         val debug = notify("Some subject", notificationText, NotificationTopic.Debug)
         var capturedDebug = captureOutput {
@@ -52,6 +55,7 @@ class TestLogProcessor: Component {
         assertTrue {
             capturedDebug.output.contains(notificationText)
         }
+
         componentID.verbosity = Verbosity.Info
         capturedDebug = captureOutput {
             processor.logData(debug.toLogMessage())
@@ -74,7 +78,8 @@ class TestLogProcessor: Component {
         assertFalse {
             capturedInfo.output.contains(notificationText)
         }
-        val warning = notify("Warning subject", notificationText, NotificationTopic.Info)
+
+        val warning = notify("Warning subject", notificationText, NotificationTopic.Warning)
 
         var capturedWarning = captureOutput {
             processor.logData(warning.toLogMessage())

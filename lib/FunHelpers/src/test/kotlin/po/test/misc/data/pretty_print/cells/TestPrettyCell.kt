@@ -1,19 +1,18 @@
-package po.test.misc.data.pretty_print
+package po.test.misc.data.pretty_print.cells
 
 import org.junit.jupiter.api.Test
 import po.misc.context.component.Component
 import po.misc.data.output.output
 import po.misc.data.pretty_print.cells.PrettyCell
+import po.misc.data.pretty_print.formatters.text_modifiers.ColorModifier
+import po.misc.data.pretty_print.formatters.text_modifiers.TextTrimmer
 import po.misc.data.pretty_print.presets.PrettyPresets
 import po.misc.data.pretty_print.rows.PrettyRow
-import po.misc.data.pretty_print.formatters.ColorModifier
-import po.misc.data.pretty_print.formatters.TextTrimmer
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.TextStyle
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 
 class TestPrettyCell: Component {
 
@@ -46,21 +45,20 @@ class TestPrettyCell: Component {
         assertTrue { rendered.contains(SpecialChars.RIGHT_SEMICOLON) }
         val valueCell = PrettyCell(20).applyPreset(PrettyPresets.Value)
         val valueCellRendered = valueCell.render("Some Value")
-        assertFalse{ valueCellRendered.contains(TextStyle.Italic.code) }
+        assertFalse { valueCellRendered.contains(TextStyle.Italic.code) }
         assertTrue { valueCellRendered.contains(Colour.CyanBright.code) }
     }
 
-
     @Test
-    fun `Pere built text modifier overrides default behaviour`(){
-        val textCell = PrettyCell(width =  20).applyPreset(PrettyPresets.Key)
+    fun `Pre built text modifier overrides default behaviour`(){
+        val textCell = PrettyCell(width = 20).applyPreset(PrettyPresets.Key)
         val condition1 = ColorModifier.ColourCondition("Long", Colour.Red)
         val condition2 = ColorModifier.ColourCondition("Short", Colour.Blue)
-        textCell.applyTextModifiers(TextTrimmer(4, "..."), ColorModifier(condition1, condition2))
+        textCell.addModifiers(TextTrimmer(4, "..."), ColorModifier(condition1, condition2))
         val cellResult = PrettyCell(30)
         val row = PrettyRow(textCell, cellResult)
         val rendered = row.render("Long text to be trimmed", Record.CellResult.AccessPretty)
-        assertTrue{ rendered.contains("Long...") && rendered.contains(Colour.Red.code) }
+        assertTrue { rendered.contains("Long...") && rendered.contains(Colour.Red.code) }
     }
 
 }

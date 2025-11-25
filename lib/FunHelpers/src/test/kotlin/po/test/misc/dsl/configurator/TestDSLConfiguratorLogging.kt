@@ -17,6 +17,7 @@ class TestDSLConfiguratorLogging : TraceableContext{
     }
     private class WorkerClass: LogProvider {
         override val logProcessor = createLogProcessor()
+
         fun produce(count: Int, prefix: String): List<String>{
             val result = mutableListOf<String>()
             for (i in 1..count){
@@ -39,7 +40,6 @@ class TestDSLConfiguratorLogging : TraceableContext{
             onConfigurationStart{
                 startProceduralLog(processName)
                 worker.useLogHandler(this@dslConfig)
-                worker2.useLogHandler(this@dslConfig)
             }
             onConfiguration { tracker ->
                 when(tracker.configStage){
@@ -67,5 +67,38 @@ class TestDSLConfiguratorLogging : TraceableContext{
         val configurable = Configurable()
         val string1 = "String_1"
         configurator.applyConfig(configurable, string1)
+    }
+
+
+    @Test
+    fun `Group selective execution with procedural log enabled`(){
+        val worker = WorkerClass()
+        val configurator = dslConfig<Configurable> {
+            onConfigurationStart{
+                startProceduralLog(processName)
+                worker.useLogHandler(this@dslConfig)
+            }
+            onConfiguration { tracker ->
+                when(tracker.configStage){
+                    ConfigurationTracker.ConfigurationStage.Start -> {
+                        tracker.logStep(tracker.completeName)
+                    }
+                    ConfigurationTracker.ConfigurationStage.Complete -> {
+                        tracker.completeStep(tracker.completeName)
+                    }
+                }
+            }
+            onConfigurationComplete {
+                outputResult()
+            }
+            buildGroup(ConfigPriority.Top) {
+                addConfigurator(config1) { param ->
+                    worker.produce(5, "WorkerClass")
+                }
+            }
+        }
+        val configurable = Configurable()
+        val string1 = "String_1"
+        configurator.applyConfig(configurable, string1, ConfigPriority.Top)
     }
 }

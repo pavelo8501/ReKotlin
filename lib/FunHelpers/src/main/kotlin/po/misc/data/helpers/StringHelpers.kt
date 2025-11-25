@@ -5,18 +5,59 @@ import kotlin.text.replaceFirstChar
 
 
 
-fun Any?.replaceIfNull(text: String = ""): String{
+@Deprecated("Change to orDefault")
+fun Any?.replaceIfNull(replacementText: String = ""): String{
     return this?.let {
         this.toString()
-    }?:text
+    }?:replacementText
 }
 
-fun <T> T?.replaceIfNull(text: String = "", provider: (T) -> String ): String{
+@Deprecated("Change to orDefault")
+fun <T> T?.replaceIfNull(replacementText: String = "", transform: (T) -> String ): String{
     return if(this != null){
-        provider.invoke(this)
+        transform.invoke(this)
     }else{
-        text
+        replacementText
     }
+}
+
+/**
+ * Returns the string representation of this object or a replacement text if the value is `null`.
+ *
+ * This is a convenience extension for nullable `Any` types to safely convert a value to `String`
+ * without needing explicit null checks.
+ *
+ * @param replacementText The text to return if the value is `null`. Defaults to an empty string.
+ * @return The result of `toString()` if not null, otherwise `replacementText`.
+ */
+fun Any?.orDefault(replacementText: String = ""): String{
+    return this?.let {
+        this.toString()
+    }?:replacementText
+}
+
+
+/**
+ * Returns a transformed string representation of this object or a replacement text if the value is `null`.
+ *
+ * This overload allows providing a transformation function to modify non-null values before converting
+ * them to a string. This is useful when custom formatting or value extraction is needed.
+ *
+ * @param replacementText The text to return if the value is `null`. Defaults to an empty string.
+ * @param transform A function applied to the non-null value to produce the output string.
+ * @return The result of `notNullModification(this)` if not null, otherwise `replacementText`.
+ */
+fun <T> T?.orDefault(replacementText: String = "", transform: (T) -> String ): String{
+    return if(this != null){
+        transform.invoke(this)
+    }else{
+        replacementText
+    }
+}
+
+
+fun Char?.orDefault(replacementChar: Char = ' '): Char{
+    return this ?: replacementChar
 }
 
 

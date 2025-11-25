@@ -3,6 +3,7 @@ package po.misc.exceptions.stack_trace
 import po.misc.collections.takeFromMatch
 import po.misc.context.tracable.TraceableContext
 import po.misc.exceptions.ThrowableCallSitePayload
+import po.misc.exceptions.TraceCallSite
 import po.misc.exceptions.throwableToText
 import po.misc.types.k_class.simpleOrAnon
 import kotlin.reflect.KClass
@@ -51,6 +52,8 @@ fun Throwable.extractTrace(
     }
 }
 
+
+
 fun Throwable.extractTrace(analyzeDepth: Int = 10): ExceptionTrace {
     val depth = analyzeDepth.coerceAtLeast(10)
     val frames =  stackTrace.take(depth).toMeta()
@@ -61,6 +64,27 @@ fun Throwable.extractTrace(analyzeDepth: Int = 10): ExceptionTrace {
         ExceptionTrace(throwableToText(), filtered, reliable = true)
     }else{
         ExceptionTrace(throwableToText(), frames, reliable = false)
+    }
+    return trace
+}
+
+
+fun Throwable.extractTrace(options: TraceCallSite,  analyzeDepth: Int = 10): ExceptionTrace {
+    val depth = analyzeDepth.coerceAtLeast(10)
+    val frames =  stackTrace.take(depth).toMeta()
+
+    val index =  frames.indexOfFirst { it.methodName.contains(options.methodName) }
+
+    val filtered = frames.drop(index).takeWhile {frameMeta->
+        frameMeta.isUserCode
+    }.filter {userFramesMeta ->
+        ExceptionTrace.harshFilter(userFramesMeta)
+    }
+
+    val trace = if(filtered.isNotEmpty()){
+        ExceptionTrace(throwableToText(), filtered, reliable = true, type = options.traceType)
+    }else{
+        ExceptionTrace(throwableToText(), frames, reliable = false, type = options.traceType)
     }
     return trace
 }

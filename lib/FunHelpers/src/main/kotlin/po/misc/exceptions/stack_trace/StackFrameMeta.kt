@@ -30,13 +30,9 @@ data class StackFrameMeta(
         TillMethodName,
     }
 
-    // className.startsWith("kotlinx.coroutines")
-
     private var printFormat: PrintFormat = PrintFormat.Full
 
     val consoleLink: String get() = "$classPackage.$simpleClassName.$methodName($fileName:$lineNumber)"
-
-    // override val formattedString: String get() = ""
 
     private val printPair = PrettyRow(PrettyCell(10, PrettyPresets.Key), PrettyCell(20,  PrettyPresets.Value))
 
@@ -78,11 +74,7 @@ data class StackFrameMeta(
     override fun toString(): String {
         return "File name: $fileName Simple class name: $simpleClassName Method name: $methodName"
     }
-
-
     companion object {
-
-
         fun normalizedMethod(methodName: String, className: String): String {
 
             fun nameFromParts(parts: List<String>): String{

@@ -6,6 +6,7 @@ import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
 import po.misc.context.CTX
+import po.misc.data.helpers.orDefault
 import po.misc.data.helpers.replaceIfNull
 import po.misc.data.styles.Colorizer
 import po.misc.functions.dsl.helpers.nextBlock
@@ -43,7 +44,7 @@ class HealthMonitor<T: CTX>(
         companion object: PrintableCompanion<Record>(TypeToken.create()){
             val Default = createTemplate{
                 nextBlock{
-                    "${dateTime.toString()} : ${action.name} -> ($parameter = $value) ${message.replaceIfNull()} "
+                    "${dateTime.toString()} : ${action.name} -> ($parameter = $value) ${message.orDefault()} "
                 }
             }
         }

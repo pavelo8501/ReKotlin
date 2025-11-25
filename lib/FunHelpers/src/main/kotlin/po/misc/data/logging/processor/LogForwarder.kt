@@ -3,6 +3,7 @@ package po.misc.data.logging.processor
 import po.misc.callbacks.signal.listen
 import po.misc.context.tracable.TraceableContext
 import po.misc.counters.AccessJournal
+import po.misc.data.helpers.orDefault
 import po.misc.data.helpers.replaceIfNull
 import po.misc.data.logging.Loggable
 import po.misc.data.logging.NotificationTopic
@@ -34,8 +35,6 @@ class LogForwarder(
         val hierarchyMap: ClassHierarchyMap
     )
 
-   // private val config : ProcessorConfig get() = logProcessor.processorConfig
-
     internal val handlerRegistrations = mutableListOf<HandlerRegistration>()
 
     val accessJournal: AccessJournal<RecordType> = AccessJournal(ClassResolver.instanceInfo(this), RecordType.Lookup)
@@ -47,7 +46,7 @@ class LogForwarder(
             }else{
                 null
             }
-            val text = "$text ${ClassResolver.instanceName(existent)} ${newHandlerName.replaceIfNull("") { " by $it"}}"
+            val text = "$text ${ClassResolver.instanceName(existent)} ${newHandlerName.orDefault("") { " by $it"}}"
             notify(outputImmediately = true, "UseHandler", text, NotificationTopic.Warning)
         }
     }
@@ -116,6 +115,11 @@ class LogForwarder(
             return null
         }
     }
+
+    fun getHandlerFor(data: StructuredLoggable):  LogHandler? {
+        return getHandlerFor(data::class)
+    }
+
 
     /**
      * Overload to lookup handlers by their actual class
@@ -244,6 +248,9 @@ class LogForwarder(
         }
         return false
     }
+
+
+
 
 
     /**

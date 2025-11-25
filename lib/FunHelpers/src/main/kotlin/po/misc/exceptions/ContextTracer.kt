@@ -22,7 +22,6 @@ open class ContextTracer(
     override val contextClass: KClass<*> = context::class
     override var coroutineInfo: CoroutineInfo? = null
     override val exceptionTrace: ExceptionTrace = extractTrace()
-
 }
 
 open class Tracer(
@@ -31,11 +30,10 @@ open class Tracer(
 ): Throwable() {
     val created: Instant = Instant.now()
     fun resolveTrace(context: TraceableContext):ExceptionTrace = extractTrace()
-
 }
 
 interface TracerOptions{
-    object ExceptionTrace : TracerOptions
+    object Trace : TracerOptions
     object InstanceInfo : TracerOptions
 }
 
@@ -44,6 +42,18 @@ fun TraceableContext.trace():  ExceptionTrace{
     val tracer = Tracer()
     return tracer.resolveTrace(this)
 }
+
+fun TraceableContext.trace(options: TraceOptions):  ExceptionTrace{
+
+    val tracer = Tracer()
+   val trace = when(options){
+        is TraceCallSite ->{
+            tracer.extractTrace(options)
+        }
+    }
+    return trace
+}
+
 
 fun TraceableContext.trace(classInfo: TracerOptions.InstanceInfo): InstanceInfo{
     val tracer =  Tracer()

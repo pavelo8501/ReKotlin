@@ -1,5 +1,6 @@
 package po.misc.data.strings
 
+import po.misc.data.helpers.orDefault
 import po.misc.data.helpers.replaceIfNull
 import po.misc.data.styles.Colorizer
 import po.misc.data.styles.Colour
@@ -7,10 +8,16 @@ import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.applyColour
 
 
+interface FormattedPair{
+    val text: String
+    val formatedText: String
+
+}
+
 class FormatedEntry(
     initialText: String,
     initialFormatedText: String = initialText
-) {
+): FormattedPair {
 
     constructor(
         listToFlatten : List<FormatedEntry>
@@ -22,28 +29,25 @@ class FormatedEntry(
         }
     }
 
-
     var recursionLevel: Int = 0
         internal set
 
-    var formatedText: String = initialFormatedText
+    override var formatedText: String = initialFormatedText
         private set
-    var text: String = initialText
+
+    override var text: String = initialText
         private set
 
     internal val formatedRecords = mutableListOf<FormatedEntry>()
-
     val formatedString: String get() = joinFormated()
 
 
-
     internal fun addPrefix(prefix: String?): FormatedEntry{
-        val effectivePrefix = prefix.replaceIfNull("")
+        val effectivePrefix = prefix.orDefault("")
         text = "$effectivePrefix$text"
         formatedText = "$effectivePrefix$formatedText"
         return this
     }
-
 
     fun addFormated(formated: FormatedEntry):FormatedEntry{
         formated.recursionLevel = this.recursionLevel + 1
@@ -132,8 +136,6 @@ class FormatedEntry(
         return resultingString
     }
 
-
-
     fun returnFormated(): String = joinFormated()
 
     fun joinFormattedWithIndent(
@@ -178,5 +180,9 @@ class FormatedEntry(
             formated.textJoinWithIndent(indentionString, listSeparator)
         }
         return resultingString
+    }
+
+    override fun toString(): String {
+        return text
     }
 }

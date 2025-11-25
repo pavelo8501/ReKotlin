@@ -1,11 +1,7 @@
 package po.misc.context.component
 
-import po.misc.context.tracable.TraceableContext
 import po.misc.data.PrettyPrint
-import po.misc.data.logging.StructuredLoggable
 import po.misc.data.logging.Verbosity
-import po.misc.data.logging.processor.LogProcessor
-import po.misc.data.logging.processor.createLogProcessor
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
@@ -31,22 +27,22 @@ import po.misc.types.token.TypeToken
  * if a component instance must represent a logical role (e.g., “DatabasePool#1”) rather
  * than a raw class name.
  *
- * @property name Display name of the component.
- * @property classInfo Structural information used in type-friendly formatting.
+ * @property component Hosting component.
+ * @property setName explicitly provided name for the component
  * @property verbosity Controls minimum log level for this component.
  */
 class ComponentID(
     private val component: Component,
-    var verbosity: Verbosity = Verbosity.Info,
     private var setName: String? = null
-): PrettyPrint, TraceableContext {
+): PrettyPrint {
 
     constructor(
         component: Component,
         verbosity: Verbosity = Verbosity.Info,
         nameProvider: () -> String,
-    ):this(component, verbosity){
+    ):this(component){
         this.nameProvider = nameProvider
+        this.verbosity = verbosity
     }
 
     private var nameResolved: Boolean = false
@@ -57,18 +53,17 @@ class ComponentID(
         resolved
     }
 
+    var verbosity: Verbosity = Verbosity.Info
+        set(value) {
+            if(value != field){
+                field = value
+            }
+        }
 
-//    internal val logProcessor :LogProcessor<ComponentID, StructuredLoggable> by lazy {
-//        val processor =  LogProcessor(this, TypeToken.create<StructuredLoggable>(), "ComponentID")
-//        if(nameResolved){
-//            processor.useHostName(resolvedName)
-//        }
-//        processor
-//    }
+    val classInfo : ClassInfo = ClassResolver.classInfo(component)
 
-
-    val classInfo : ClassInfo get() = ClassResolver.classInfo(component)
     val componentName: String get() = setName?: resolvedName
+
 
     fun updateNameProvider(provider: (() -> String)?) {
         nameProvider = provider

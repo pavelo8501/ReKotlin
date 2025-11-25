@@ -1,15 +1,17 @@
 package po.misc.counters
 
 import po.misc.data.PrettyPrint
-import po.misc.data.pretty_print.cells.KeyedCellOptions
-import po.misc.data.pretty_print.formatters.ColorModifier
+import po.misc.data.pretty_print.parts.KeyedCellOptions
+import po.misc.data.pretty_print.formatters.text_modifiers.ColorModifier
+import po.misc.data.pretty_print.rows.CellContainer
 import po.misc.data.pretty_print.rows.buildPrettyRow
 import po.misc.data.styles.Colour
 import po.misc.time.TimeHelper
+import po.misc.types.token.TypeToken
 import java.time.Instant
 
 data class AccessRecord <E: Enum<E>>(
-    val journal : AccessJournal<E>,
+    val journal : JournalBase<E>,
     val message: String,
 ): PrettyPrint, TimeHelper {
 
@@ -29,7 +31,13 @@ data class AccessRecord <E: Enum<E>>(
         else Colour.RedBright
     }
 
-    private val prettyRow = buildPrettyRow {
+
+    val token :TypeToken<AccessRecord<*>> get() {
+       return TypeToken.create<AccessRecord<*>>()
+    }
+
+    private val prettyRow = buildPrettyRow(CellContainer, token) {
+
         addCell(::formatedTime, KeyedCellOptions(showKey = false, width = 20))
         addCell(::recordType, noKeyOption, ColorModifier(success, failure))
         addCell(::message)

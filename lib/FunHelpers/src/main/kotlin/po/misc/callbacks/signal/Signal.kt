@@ -168,15 +168,15 @@ class Signal<T: Any, R>(
 
     val logProcessor: LogProcessor<Signal<T, R>, LogMessage> = createLogProcessor()
 
-
     val signal : Boolean get() = listeners.values.any { !it.isSuspended }
-
     val signalSuspended: Boolean get() =  listeners.values.any { it.isSuspended }
 
     init {
+
         listeners.onKeyOverwritten = {
             warn(subjectKey, messageKey(it) )
         }
+
     }
 
     /**
@@ -192,35 +192,81 @@ class Signal<T: Any, R>(
         listeners[listener] = callback.toCallable(options)
     }
 
+    /**
+     * Registers a non-suspending listener for this signal.
+     *
+     * @param listener A unique context used as the subscription key.
+     *                 **If you want multiple independent listeners, always provide this parameter.**
+     * @param callback The lambda that will be invoked when the signal fires.
+     * Note:
+     * Using an explicit `listener` ensures the subscription is not overwritten.
+     */
     override fun onSignal(
         listener: TraceableContext,
         callback: (T) -> R
     ) : Unit = onSignal(listener, LambdaOptions.Listen, callback)
 
+    /**
+     * Registers a non-suspending listener using this object as the subscription key.
+     *
+     * Because the key is always `this`, calling this method multiple times will
+     * **overwrite the previous subscription**.
+     *
+     * Use the overload that accepts `listener: TraceableContext` if you need stable,
+     * non-conflicting subscriptions.
+     */
     override fun onSignal(
         callback: (T) -> R
     ) : Unit = onSignal(this, LambdaOptions.Listen, callback)
 
+    /**
+     * Registers a suspending listener for this signal.
+     *
+     * @param listener A unique context used as the subscription key.
+     *                 Provide this when you want the subscription to coexist with others.
+     * @param options  Defines how the suspending lambda behaves (e.g., Listen, Once, etc.).
+     * @param callback The suspending lambda invoked when the signal is emitted.
+     *
+     * This overload guarantees your subscription will not be overwritten unless the
+     * same `listener` instance is reused.
+     */
     override fun onSignal(
         listener: TraceableContext,
         options: SuspendedOptions,
         callback: suspend (T) -> R
     ){
-
         debug( subjectListen, messageReg("Suspending lambda", listener) )
         listeners[listener] = toCallable(options, callback)
     }
 
+    /**
+     * Convenience overload for registering a suspending listener with the default
+     * `SuspendedOptions.Listen` behavior.
+     *
+     * @param listener Unique subscription key.
+     *                 Required to prevent accidental overwriting.
+     * @param callback Suspended lambda executed when the signal is emitted.
+     */
     override fun onSignal(
         listener: TraceableContext,
         suspended: LambdaType.Suspended,
         callback: suspend (T) -> R
     ) : Unit = onSignal(listener, SuspendedOptions.Listen, callback)
 
+    /**
+     * Registers a suspending listener using `this` as the subscription key.
+     *
+     * Because the subscription key is always `this`, repeated calls to this method will
+     * **override the previous suspending listener**.
+     *
+     * Use the overload that takes an explicit `listener: TraceableContext`
+     * to avoid overwriting and allow multiple independent subscriptions.
+     */
     override fun onSignal(
         suspended: LambdaType.Suspended,
         callback: suspend (T) -> R
     ) : Unit = onSignal(this, SuspendedOptions.Listen, callback)
+
 
     override fun notify(logMessage: LogMessage): LogMessage {
         logProcessor.logData(logMessage)

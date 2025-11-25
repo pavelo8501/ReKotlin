@@ -16,6 +16,7 @@ import po.misc.context.component.ComponentID
 import po.misc.context.component.componentID
 import po.misc.context.log_provider.LogProvider
 import po.misc.context.log_provider.proceduralScope
+import po.misc.context.log_provider.withProceduralScope
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.output.output
 import po.misc.data.logging.models.LogMessage
@@ -139,13 +140,13 @@ class HoconResolver<C: HoconResolvable<C>>(
 
     fun readConfig(hoconFactory: Config) {
         val msg = infoMsg(startProcSubject(::readConfig), "Parsing ${configInfo(hoconFactory).parsing}")
-        proceduralScope(msg){
+        withProceduralScope(msg){
             step("Parsing Config", parseBadge) {
                 for (hoconEntry in entryMap.values) {
                     when (hoconEntry) {
                         is HoconEntry ->  processHoconEntry(hoconEntry, hoconFactory)
                         is HoconListEntry -> processListEntry(hoconEntry, hoconFactory)
-                        is HoconNestedEntry<C, *> ->  processNestedEntry(this@proceduralScope,  hoconEntry, hoconFactory)
+                        is HoconNestedEntry<C, *> ->  processNestedEntry(this@withProceduralScope,  hoconEntry, hoconFactory)
                     }
                 }
             }

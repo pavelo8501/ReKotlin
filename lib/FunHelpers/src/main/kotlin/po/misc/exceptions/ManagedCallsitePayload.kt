@@ -1,6 +1,7 @@
 package po.misc.exceptions
 
 import po.misc.context.CTX
+import po.misc.data.helpers.orDefault
 import po.misc.data.helpers.replaceIfNull
 
 interface ThrowableCallSitePayload{
@@ -87,6 +88,6 @@ class ManagedPayload(
         return  this
     }
     override fun toString(): String {
-        return message.replaceIfNull()
+        return message.orDefault()
     }
 }

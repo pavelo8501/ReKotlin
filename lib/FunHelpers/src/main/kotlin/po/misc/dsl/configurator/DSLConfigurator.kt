@@ -203,7 +203,17 @@ class DSLConfigurator<T: TraceableContext>(
         noinline block: DSLParameterGroup<T, P>.() -> Unit
     ): DSLParameterGroup<T, P> = buildGroup(TypeToken.create<P>(), priority, block)
 
-    internal fun <P> runGroupConfig(configurator: DSLConfigurator<T>, receiver: T, parameter: P, group: DSLConfigurable<T, *>) {
+    internal fun <P> runGroupConfig(
+        configurator: DSLConfigurator<T>,
+        receiver: T,
+        parameter: P,
+        group: DSLConfigurable<T, *>,
+        singleLaunch: Boolean
+    ) {
+        val info = ConfiguratorInfo(this, 1, group.configurators.size )
+        if(singleLaunch){
+            configurationStart.trigger(info)
+        }
         when (group) {
             is DSLGroup -> {
                 group.applyConfig(configurator, receiver, Unit)
@@ -226,13 +236,22 @@ class DSLConfigurator<T: TraceableContext>(
                 }
             }
         }
+        if(singleLaunch){
+            info.finalizeResult(1)
+            configurationComplete.trigger(info)
+        }
     }
 
-    internal fun <P> runGroupConfig(receiver: T, parameter: P, priority: HasNameValue): Throwable? {
+    internal fun <P> runGroupConfig(
+        receiver: T,
+        parameter: P,
+        priority: HasNameValue,
+        singleLaunch: Boolean
+    ): Throwable? {
         try {
             val exists = dslGroups[priority.value]
             if (exists != null) {
-                runGroupConfig(this,  receiver, parameter, exists)
+                runGroupConfig(this,  receiver, parameter, exists, singleLaunch)
             } else {
                 warn(subjectApplyConfig, "No DSL group found for name  ${priority.name}")
             }
@@ -260,7 +279,7 @@ class DSLConfigurator<T: TraceableContext>(
      *         priority-group configuration produced an exception.
      */
     fun applyConfig(receiver: T, priority: HasNameValue): Boolean {
-        runGroupConfig(receiver, Unit, priority) ?: return true
+        runGroupConfig(receiver, Unit, priority, singleLaunch = true) ?: return true
         return false
     }
 
@@ -279,7 +298,7 @@ class DSLConfigurator<T: TraceableContext>(
      * @throws Throwable If the priority-based configuration fails.
      */
     fun applyConfig(receiver: T, priority: HasNameValue, throwing: Throwing) {
-        runGroupConfig(receiver, Unit, priority)?.let {
+        runGroupConfig(receiver, Unit, priority, singleLaunch = true)?.let {
             throw it
         }
     }
@@ -307,7 +326,7 @@ class DSLConfigurator<T: TraceableContext>(
         configurationStart.trigger(info)
 
         sorted.forEach {
-            val thrown = runGroupConfig(receiver, Unit, it.priority)
+            val thrown = runGroupConfig(receiver, Unit, it.priority, singleLaunch = false)
             if (thrown != null) {
                 throwList.add(thrown)
             }
@@ -341,7 +360,7 @@ class DSLConfigurator<T: TraceableContext>(
         configurationStart.trigger(info)
 
         sorted.forEach {
-            val thrown = runGroupConfig(receiver, parameter, it.priority)
+            val thrown = runGroupConfig(receiver, parameter, it.priority, singleLaunch = false)
             if (thrown != null) {
                 throwList.add(thrown)
             }
@@ -367,7 +386,7 @@ class DSLConfigurator<T: TraceableContext>(
      *         or `false` if it produced an exception.
      */
     fun <P> applyConfig(receiver: T, parameter: P, priority: HasNameValue): Boolean {
-        runGroupConfig(receiver, parameter, priority) ?: return true
+        runGroupConfig(receiver, parameter, priority, singleLaunch = true) ?: return true
         return false
     }
 
@@ -386,7 +405,7 @@ class DSLConfigurator<T: TraceableContext>(
      * @throws Throwable If the selected DSL group fails.
      */
     fun <P> applyConfig(receiver: T, parameter: P, priority: HasNameValue, throwing: Throwing) {
-        runGroupConfig(receiver, parameter, priority)?.let {
+        runGroupConfig(receiver, parameter, priority, singleLaunch = true)?.let {
             throw it
         }
     }

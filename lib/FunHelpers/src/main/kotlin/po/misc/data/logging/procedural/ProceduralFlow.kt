@@ -138,7 +138,6 @@ class ProceduralFlow<H: Component>(
         }
     }
 
-
     inline fun <R> step(
         stepName: String,
         badge: Badge? = null,
@@ -283,7 +282,4 @@ class ProceduralFlow<H: Component>(
 sealed interface ProcFlowHandler<H: TraceableContext>{
     val host: H
     val proceduralRecord: ProceduralRecord
-
-   // fun infoMsg(subject: String, text: String): LogMessage = host.infoMsg(subject, text)
-   // fun infoMsg(infoSubject: InfoSubject, text: String? = null): LogMessage = host.infoMsg(infoSubject, text)
 }

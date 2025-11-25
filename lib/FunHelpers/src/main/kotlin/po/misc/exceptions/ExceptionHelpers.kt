@@ -1,6 +1,7 @@
 package po.misc.exceptions
 
 import po.misc.context.tracable.TraceableContext
+import po.misc.data.helpers.orDefault
 import po.misc.data.helpers.replaceIfNull
 import po.misc.data.helpers.stripAfter
 import po.misc.exceptions.stack_trace.StackFrameMeta
@@ -47,7 +48,7 @@ fun Throwable.toManaged(context: TraceableContext): ManagedException{
 fun  Throwable.throwableToText(): String{
     return buildString {
         appendLine(this@throwableToText.javaClass.simpleName)
-        appendLine("Message: " +  message.replaceIfNull("-") )
+        appendLine("Message: " +  message.orDefault("-") )
     }
 }
 

@@ -1,4 +1,4 @@
-package po.misc.data.pretty_print
+package po.misc.data.pretty_print.parts
 
 /**
  * Defines horizontal text alignment inside a pretty-print cell.
@@ -18,7 +18,7 @@ enum class Align {
  * Implementations define constraints such as maximum renderable width.
  */
 sealed interface RenderDefaults{
-    val DEFAULT_WIDTH : Int
+    val defaultWidth : Int
 }
 
 /**
@@ -27,7 +27,7 @@ sealed interface RenderDefaults{
  * Suitable for older terminals or compact console views.
  */
 object Console80 : RenderDefaults {
-    override val DEFAULT_WIDTH : Int = 80
+    override val defaultWidth : Int = 80
 }
 
 /**
@@ -36,5 +36,9 @@ object Console80 : RenderDefaults {
  * Suitable for modern terminals with more available horizontal space.
  */
 object Console120 : RenderDefaults {
-    override val DEFAULT_WIDTH : Int = 120
+    override val defaultWidth : Int = 120
+}
+
+object Console220 : RenderDefaults {
+    override val defaultWidth : Int = 220
 }

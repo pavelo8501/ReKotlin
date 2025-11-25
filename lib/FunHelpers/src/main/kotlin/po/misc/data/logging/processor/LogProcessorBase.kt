@@ -22,9 +22,12 @@ import kotlin.reflect.KClass
 
 abstract class LogProcessorBase<T: StructuredLoggable>(
     protected var hostName: String,
-    var verbosity: Verbosity,
     val messageTypeToken: TypeToken<T>,
 ): TraceableContext {
+
+
+    abstract var verbosity: Verbosity
+
 
     val processorConfig = ProcessorConfig()
 
@@ -54,9 +57,7 @@ abstract class LogProcessorBase<T: StructuredLoggable>(
     val logRecords : List<T>  = logRecordsBacking
 
     @PublishedApi
-    internal val logForwarder =  LogForwarder()
-
-   // protected val dataHandlers: MutableMap<KClass<out StructuredLoggable>, LogHandler> = mutableMapOf()
+    internal val logForwarder: LogForwarder =  LogForwarder()
 
     abstract fun outputOrNot(data: Loggable)
     abstract fun handleUnAssigned(message: Loggable)
@@ -65,16 +66,20 @@ abstract class LogProcessorBase<T: StructuredLoggable>(
         "${subject.subjectName} ${subject.subjectText}".output(this)
     }
 
-    private fun storeData(data: T, tryHandle: Boolean= true){
-        if(tryHandle){
-            if(!handleStructured(data) ){
-                logRecordsBacking.add(data)
-                activeRecord = data
-            }
-        }else{
-            logRecordsBacking.add(data)
-            activeRecord = data
-        }
+    private fun storeData(data: T, tryHandle: Boolean = true){
+
+        logRecordsBacking.add(data)
+        activeRecord = data
+
+//        if(tryHandle){
+//            if(!handleStructured(data) ){
+//                logRecordsBacking.add(data)
+//                activeRecord = data
+//            }
+//        }else{
+//            logRecordsBacking.add(data)
+//            activeRecord = data
+//        }
     }
 
     private fun handleStructured(loggable: StructuredLoggable): Boolean{
@@ -136,16 +141,22 @@ abstract class LogProcessorBase<T: StructuredLoggable>(
     fun logData(data: T, noOutput: Boolean = false):T{
 
         val shouldOutput = verbosityLevelMet(data)
+
         if(shouldOutput){
-            if(handleStructured(data)){
+            val handlerExists = logForwarder.getHandlerFor(data)
+            if(handlerExists != null){
+                handlerExists.processRecord(data)
                 return data
-            }
-            if(shouldStoreRecords){
-                storeData(data)
-            }
-            onDataInterception?.invoke(data)
-            if(!noOutput && !generalMute ){
-                outputOrNot(data)
+            }else{
+                if(shouldStoreRecords){
+                    storeData(data)
+                }
+                if(!noOutput && !generalMute ){
+                    outputOrNot(data)
+                }
+                onDataInterception?.let { callback->
+                    callback.invoke(data)
+                }
             }
         }else{
             storeData(data, tryHandle = false)

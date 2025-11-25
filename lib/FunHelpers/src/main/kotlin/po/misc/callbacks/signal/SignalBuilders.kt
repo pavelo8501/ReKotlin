@@ -57,9 +57,14 @@ fun <T: Any, R: Any> Tokenized<T>.signalOf(
     resultToken: TypeToken<R>
 ): Signal<T, R> = createSignal(typeToken, resultToken)
 
+
 fun <T: Any> Tokenized<T>.signalOf(
     result: NoResult
-): Signal<T, Unit> = createSignal(typeToken)
+): Signal<T, Unit>{
+
+  return  createSignal(typeToken)
+
+}
 
 /**
  * Inline shortcut for [signalOf] using a reified payload type.

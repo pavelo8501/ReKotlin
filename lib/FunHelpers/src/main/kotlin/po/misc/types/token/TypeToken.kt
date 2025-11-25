@@ -7,6 +7,7 @@ import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
+import po.misc.types.ClassAware
 import po.misc.types.ClassHierarchyMap
 import po.misc.types.k_class.simpleOrAnon
 import po.misc.types.k_class.toKeyParams
@@ -87,10 +88,10 @@ import kotlin.reflect.typeOf
  * @see ClassResolver
  */
 class TypeToken<T>  @PublishedApi internal constructor(
-    val kClass: KClass<T & Any>,
+    override val kClass: KClass<T & Any>,
     val kType: KType,
     val options:  CreateOptions? = null
-): TraceableContext {
+): ClassAware<T>, TraceableContext {
 
 
    data class CreateOptions(

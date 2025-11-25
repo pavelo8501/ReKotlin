@@ -8,7 +8,7 @@ import po.misc.counters.createAccessJournal
 import po.misc.counters.createRecord
 import po.misc.data.output.output
 import po.misc.data.pretty_print.rows.buildPrettyRow
-import po.misc.data.pretty_print.cells.KeyedCellOptions
+import po.misc.data.pretty_print.parts.KeyedCellOptions
 import po.misc.debugging.ClassResolver
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

@@ -1,6 +1,7 @@
 package po.misc.reflection
 
 import po.misc.exceptions.throwableToText
+import po.misc.types.ClassAware
 import po.misc.types.safeCast
 import po.misc.types.token.TypeToken
 import kotlin.reflect.KClass
@@ -84,6 +85,22 @@ fun <T: Any> T.resolveProperty(
     val kClass = this::class
    return kClass.memberProperties.firstOrNull { it.name == property.name }?.safeCast<KProperty1<T, *>>()
 }
+
+fun <T: Any> resolveProperty(
+    kind: Readonly,
+    kClass: KClass<T>,
+    property: KProperty<*>,
+): KProperty1<T, *>? {
+    return kClass.memberProperties.firstOrNull { it.name == property.name }?.safeCast<KProperty1<T, *>>()
+}
+
+fun <T: Any> resolveProperty(
+    kind: Readonly,
+    classAware: ClassAware<T>,
+    property: KProperty<*>,
+): KProperty1<T, *>? = resolveProperty(kind, classAware.kClass, property)
+
+
 
 /**
  * Attempts to resolve a member property of this object as a mutable [KMutableProperty1].

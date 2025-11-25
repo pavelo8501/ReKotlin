@@ -1,14 +1,13 @@
-package po.test.misc.data.pretty_print
+package po.test.misc.data.pretty_print.cells
 
 import org.junit.jupiter.api.Test
+import po.misc.data.pretty_print.parts.KeyedCellOptions
+import po.misc.data.pretty_print.formatters.text_modifiers.ColorModifier
+import po.misc.data.pretty_print.formatters.text_modifiers.TextTrimmer
 import po.misc.data.pretty_print.rows.buildPrettyRow
-import po.misc.data.pretty_print.cells.KeyedCellOptions
-import po.misc.data.pretty_print.formatters.ColorModifier
-import po.misc.data.pretty_print.formatters.TextTrimmer
 import po.misc.data.styles.Colour
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import kotlin.text.contains
 
 class TestKeyedCell {
 
@@ -68,6 +67,6 @@ class TestKeyedCell {
             addCell(record::result, ColorModifier(condition1, condition2), TextTrimmer(maxLength = 6, "..."))
         }
         val render = prettyRow.render(record)
-        assertFalse{ render.contains("text")  }
+        assertFalse { render.contains("text") }
     }
 }
