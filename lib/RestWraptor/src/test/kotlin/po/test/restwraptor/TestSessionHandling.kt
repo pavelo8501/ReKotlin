@@ -9,7 +9,7 @@ import io.ktor.server.testing.testApplication
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import po.auth.authentication.authenticator.models.AuthenticationPrincipal
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.data.styles.Colour
 import po.restwraptor.RestWrapTor
 import po.restwraptor.configureWraptor

@@ -1,19 +1,21 @@
 package po.test.misc.callback.signal
 
 import org.junit.jupiter.api.Test
+import po.misc.callbacks.signal.SignalOptions
 import po.misc.callbacks.signal.listen
 import po.misc.callbacks.signal.signal
 import po.misc.callbacks.signal.signalOf
+import po.misc.context.component.Component
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.data.logging.Verbosity
 import po.misc.functions.NoResult
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
-class TestSignalBuilder : TraceableContext {
+class TestSignalBuilder : Component {
 
-    internal val logArrival  = signalOf<String>(NoResult, "logArrival")
+    internal val logArrival  = signalOf<String>(NoResult, SignalOptions("logArrival"))
     internal val logWithResult  = signal<String, Int>{
         signalName("logWithResult").verbosity = Verbosity.Debug
     }

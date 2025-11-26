@@ -1,17 +1,16 @@
 package po.misc.context.component
 
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.data.logging.Loggable
 import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.StructuredLoggable
 import po.misc.data.logging.factory.toLogMessage
 import po.misc.data.logging.models.LogMessage
-import po.misc.data.logging.models.Notification
 import po.misc.data.logging.log_subject.DebugSubject
 import po.misc.data.logging.log_subject.InfoSubject
 import po.misc.data.logging.log_subject.LogSubject
 import po.misc.data.logging.parts.LogTracker
-import po.misc.debugging.ClassResolver
 import po.misc.exceptions.throwableToText
 
 
@@ -43,65 +42,82 @@ import po.misc.exceptions.throwableToText
  */
 interface Component : TraceableContext {
 
-    val componentID: ComponentID get() = ComponentID(ClassResolver.classInfo(this))
+    val componentID: ComponentID get() = ComponentID(this)
 
-    val name: String get() = componentID.componentName
-    
-    fun notify(logMessage: LogMessage){
-        if(logMessage.topic >= componentID.verbosity.minTopic){
-            logMessage.output()
-        }
+    val componentName: String get(){
+       val componentIdentification : ComponentID?  = componentID as ComponentID?
+       return componentIdentification?.componentName ?: "Component"
     }
 
-    override fun notify(loggable: Loggable): Unit = notify(loggable.toLogMessage())
+    fun notify(logMessage: LogMessage): StructuredLoggable{
+        logMessage.output()
+        return logMessage
+    }
 
+    fun info(subject: String, text: String): LogMessage{
+        val infoMessage =  infoMsg(subject, text)
+        notify(infoMessage)
+        return infoMessage
+    }
+    fun info(subject: LogSubject): LogMessage {
+        val infoMessage = subject.toLogMessage(this)
+        notify(infoMessage)
+        return infoMessage
+    }
 
-    fun warn(
-        subject: String,
-        text: String,
-        tracker: LogTracker = LogTracker.Enabled
-    ): Loggable {
+    /**
+     * Emits a debug message. Useful for internal tracing.
+     */
+    fun debug(subject: String, text: String, outputImmediately: Boolean = false): LogMessage {
+        val message =  debugMsg(subject, text)
+        if(outputImmediately){
+            val message =  debugMsg(subject, text)
+            message.output()
+        }else{
+            notify(message)
+        }
+        return message
+    }
+
+    fun warn(subject: String, text: String, tracker: LogTracker = LogTracker.Enabled): LogMessage {
         val warningMessage = warning(subject, text,tracker)
         notify(warningMessage)
         return warningMessage
     }
 
-    override fun warn(
-        subject: String,
-        text: String,
-    ): Loggable = warn(subject, text,  LogTracker.Enabled)
+    fun warn(subject: String, throwable: Throwable): LogMessage = warn(subject, throwable.throwableToText(),  LogTracker.Enabled)
+    fun warn(subject: String, text: String): LogMessage = warn(subject, text,  LogTracker.Enabled)
+    fun warn(subject: LogSubject, text: String): LogMessage =  warn(subject.subjectName, text, LogTracker.Enabled)
 
-    override fun warn(
-        subject: LogSubject,
-        text: String,
-    ): Loggable =  warn(subject.subjectName, text, LogTracker.Enabled)
+    override fun notify(loggable: Loggable): StructuredLoggable = notify(loggable.toLogMessage())
 
     fun message(
         subject: String,
         text: String,
-        topic: NotificationTopic = NotificationTopic.Info
+        topic: NotificationTopic = NotificationTopic.Info,
+        tracker: LogTracker = LogTracker.Enabled
     ): LogMessage {
-       return Notification(this, topic, subject, text).toLogMessage()
+        return  LogMessage(this, subject, text, topic, tracker)
     }
 
     fun debugMsg(
         logSubject: DebugSubject,
     ): LogMessage {
-        return LogMessage(this, logSubject.subjectName, logSubject.subjectText, NotificationTopic.Debug, LogTracker.Enabled)
+        return message(logSubject.subjectName, logSubject.subjectText, NotificationTopic.Debug, LogTracker.Enabled)
     }
 
     fun debugMsg(
         subject: String,
         text: String,
     ): LogMessage {
-        return LogMessage(this, subject, text, NotificationTopic.Debug, LogTracker.Enabled)
+        return message(subject, text, NotificationTopic.Debug, LogTracker.Enabled)
     }
 
     fun infoMsg(
         subject: InfoSubject,
         text: String? = null
     ): LogMessage{
-       return LogMessage(this, subject.subjectName, text?:subject.subjectText, NotificationTopic.Info)
+        return message( subject.subjectName, text?:subject.subjectText, NotificationTopic.Info)
     }
 
     fun infoMsg(
@@ -114,7 +130,7 @@ interface Component : TraceableContext {
         text: String,
         tracker: LogTracker = LogTracker.Enabled
     ): LogMessage{
-       return LogMessage(this, subject, text, NotificationTopic.Warning,  tracker)
+        return message(subject, text, NotificationTopic.Warning, tracker)
     }
 
     fun warning(
@@ -122,9 +138,13 @@ interface Component : TraceableContext {
         throwable: Throwable,
         tracker: LogTracker = LogTracker.Enabled
     ): LogMessage{
-        return LogMessage(this, subject, throwable.throwableToText(), NotificationTopic.Warning,  tracker)
+       return message(subject, throwable.throwableToText(), NotificationTopic.Warning, tracker)
     }
 
+    companion object {
 
+
+
+    }
 }
 

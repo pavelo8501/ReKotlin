@@ -13,6 +13,7 @@ import po.misc.data.printable.companion.Template
 import po.misc.data.printable.companion.nextLine
 import po.misc.data.printable.json.JsonReady
 import po.misc.data.processors.SeverityLevel
+import po.misc.data.styles.Colorizer
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
@@ -79,11 +80,11 @@ class ErrorRecord(
                 if (callSite != null) {
                     if (callSite.methodName == "invoke") {
                         """
-                            ${Colour.colour(Colour.Yellow, "ThrowingCallSite: (actual exception place)")}
-                            ${Colour.colour(Colour.Gray, "Class Name:")} ${callSite.fileName.stripAfter('$')}
-                            ${Colour.colour(Colour.Gray, "Method Name:")
+                            ${Colorizer.colour("ThrowingCallSite: (actual exception place)", Colour.Yellow)}
+                            ${Colorizer.colour("Class Name:", Colour.Gray)} ${callSite.fileName.stripAfter('$')}
+                            ${Colorizer.colour("Method Name:", Colour.Gray)
                         } ${callSite.methodName} (Lambda invocation)"
-                            ${Colour.colour(Colour.Gray, "Reference:")}
+                            ${Colorizer.colour("Reference:", Colour.Gray)}
                             ${callSite.toStackTraceFormat()}
                             """.trimIndent()
                     } else {
@@ -143,7 +144,7 @@ class LogData(
                     ExecutionStatus.Active -> executionStatus.name.colorize(Colour.WhiteBright)
                     ExecutionStatus.Failing, ExecutionStatus.Faulty -> executionStatus.name.colorize(Colour.Red)
                 }
-               "${Colour.colour(Colour.Blue, "[Stop $taskFooter | Status:")} $status ${Colour.colour(Colour.Blue, "]")}"
+               "${Colorizer.colour("[Stop $taskFooter | Status:", Colour.Blue)} $status ${Colorizer.colour("]", Colour.Blue)}"
             }
         }
 

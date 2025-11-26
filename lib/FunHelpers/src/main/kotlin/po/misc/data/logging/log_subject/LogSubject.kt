@@ -21,7 +21,7 @@ sealed interface LogSubject : TextContaining {
 
     override fun asText(): String = "${badge?.caption.orEmpty()} $subjectText"
 
-    fun changeBadge(useBadge: Badge): LogSubject
+    fun changeBadge(useBadge: Badge?): LogSubject
     fun changeText(text: String, useBadge: Badge? = null): LogSubject
     fun changeSubject(subject: String, text: String? = null, useBadge: Badge? = null): SubjectBase
 
@@ -31,7 +31,6 @@ sealed interface LogSubject : TextContaining {
         }
     }
 }
-
 
 interface ExceptionSubject: LogSubject{
     override val topic: NotificationTopic get() = NotificationTopic.Exception

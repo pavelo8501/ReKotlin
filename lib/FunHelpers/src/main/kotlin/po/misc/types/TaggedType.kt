@@ -1,5 +1,6 @@
 package po.misc.types
 
+import po.misc.data.helpers.orDefault
 import po.misc.data.helpers.replaceIfNull
 import po.misc.data.tags.EnumTag
 import po.misc.data.tags.Tagged
@@ -51,7 +52,7 @@ data class TaggedType<T: Any, E: Enum<E>>(
     }
 
 
-    override val alias: String = enumTag.alias.replaceIfNull(typeToken.typeName)
+    override val alias: String = enumTag.alias.orDefault(typeToken.typeName)
 
     override fun toString(): String {
         return "TaggedType<$typeToken.typeName, ${enumTag.value.name}>"

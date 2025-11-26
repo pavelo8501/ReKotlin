@@ -1,7 +1,7 @@
 package po.test.lognotify.notifictations
 
 import org.junit.jupiter.api.Test
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.data.printable.json.toJson
 import po.test.lognotify.setup.FakeTasksManaged
 import kotlin.test.assertNotNull

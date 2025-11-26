@@ -17,11 +17,12 @@ import kotlin.test.assertTrue
 class TestHoconNullability {
 
     private class NullableConfig: HoconResolvable<NullableConfig> {
-        override val resolver = resolver()
 
+        override val resolver = resolver()
         val number : Int? by hoconProperty()
         val string: String by hoconProperty()
     }
+
     private class ListConfig: HoconResolvable<ListConfig> {
         override val resolver = resolver()
         val records : List<String>? by listProperty()

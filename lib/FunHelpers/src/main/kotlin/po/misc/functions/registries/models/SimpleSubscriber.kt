@@ -1,7 +1,7 @@
 package po.misc.functions.registries.models
 
 import po.misc.functions.registries.RegistryKey
-import po.misc.types.helpers.simpleOrAnon
+import po.misc.types.k_class.simpleOrAnon
 import kotlin.reflect.KClass
 
 

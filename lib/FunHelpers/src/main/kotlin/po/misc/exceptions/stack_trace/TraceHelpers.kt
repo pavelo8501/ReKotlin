@@ -2,62 +2,13 @@ package po.misc.exceptions.stack_trace
 
 import po.misc.collections.takeFromMatch
 import po.misc.context.tracable.TraceableContext
-import po.misc.debugging.ClassResolver
-import po.misc.debugging.models.ClassInfo
-import po.misc.exceptions.ContextTracer
-import po.misc.exceptions.classifier.PackageRole
 import po.misc.exceptions.ThrowableCallSitePayload
-import po.misc.exceptions.classifier.classifyPackage
-import po.misc.exceptions.models.CTXResolutionFlag
-import po.misc.exceptions.stack_trace.extractTrace
+import po.misc.exceptions.TraceCallSite
 import po.misc.exceptions.throwableToText
-import po.misc.exceptions.trackable.TrackableException
-import po.misc.types.helpers.simpleOrAnon
+import po.misc.types.k_class.simpleOrAnon
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
-import kotlin.text.substringAfterLast
 
-
-fun Throwable.extractTrace(): ExceptionTrace {
-    val meta =  stackTrace.take(5).toMeta()
-    return  meta.firstOrNull { it.isUserCode }?.let {
-        ExceptionTrace(this,  meta).setBestPick(it)
-    }?:run {
-        ExceptionTrace(this,  meta)
-    }
-}
-
-fun Throwable.extractTrace(traceable: TraceableContext): ExceptionTrace {
-
-    val takeForAnalysis = 30
-    val contextClass = traceable::class
-    val frames =  stackTrace.take(takeForAnalysis).toMeta()
-    val convertedToMeta = frames.takeFromMatch(5) {
-            it.simpleClassName.equals(contextClass.simpleOrAnon, ignoreCase = true)
-        }
-    return if(convertedToMeta.isEmpty()){
-        "extractTrace selected first $takeForAnalysis frames for analysis, but was unable to find any records for $contextClass" +
-        "Using first $takeForAnalysis as fallback. Exception location is unreliable"
-        val trace = ExceptionTrace(this.throwableToText(), frames, contextClass)
-        trace.reliable = false
-        trace
-    }else{
-        ExceptionTrace(this.throwableToText(), convertedToMeta, contextClass)
-    }
-}
-
-fun Throwable.tryExtractTrace(context: Any, cause: Throwable? = null): ExceptionTrace{
-
-   return when(context){
-        is TraceableContext -> {
-
-            cause?.extractTrace(traceable = context) ?:run {
-                extractTrace(traceable = context)
-            }
-        }
-        else -> extractTrace()
-    }
-}
 
 fun Throwable.extractTrace(
     exceptionPayload: ThrowableCallSitePayload
@@ -102,15 +53,40 @@ fun Throwable.extractTrace(
 }
 
 
-fun TraceableContext.extractTrace(withClassInfo: Boolean):  ClassInfo {
-    val trace =  ContextTracer(this, CTXResolutionFlag.Resolvable).exceptionTrace
-    val info = ClassResolver.classInfo(this)
-    return info.addTraceInfo(trace.bestPick)
 
+fun Throwable.extractTrace(analyzeDepth: Int = 10): ExceptionTrace {
+    val depth = analyzeDepth.coerceAtLeast(10)
+    val frames =  stackTrace.take(depth).toMeta()
+    val filtered = frames.filter {frameMeta ->
+        ExceptionTrace.harshFilter(frameMeta)
+    }
+    val trace = if(filtered.isNotEmpty()){
+        ExceptionTrace(throwableToText(), filtered, reliable = true)
+    }else{
+        ExceptionTrace(throwableToText(), frames, reliable = false)
+    }
+    return trace
 }
 
-fun TraceableContext.extractTrace():  ExceptionTrace {
-   return ContextTracer(this, CTXResolutionFlag.Resolvable).exceptionTrace
+
+fun Throwable.extractTrace(options: TraceCallSite,  analyzeDepth: Int = 10): ExceptionTrace {
+    val depth = analyzeDepth.coerceAtLeast(10)
+    val frames =  stackTrace.take(depth).toMeta()
+
+    val index =  frames.indexOfFirst { it.methodName.contains(options.methodName) }
+
+    val filtered = frames.drop(index).takeWhile {frameMeta->
+        frameMeta.isUserCode
+    }.filter {userFramesMeta ->
+        ExceptionTrace.harshFilter(userFramesMeta)
+    }
+
+    val trace = if(filtered.isNotEmpty()){
+        ExceptionTrace(throwableToText(), filtered, reliable = true, type = options.traceType)
+    }else{
+        ExceptionTrace(throwableToText(), frames, reliable = false, type = options.traceType)
+    }
+    return trace
 }
 
 

@@ -1,7 +1,7 @@
 package po.test.misc.data.logging.parts
 
 import org.junit.jupiter.api.Test
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.data.logging.parts.ReflectiveTable
 import po.misc.data.logging.parts.ValueSnapshot
 import po.misc.data.logging.parts.reflectiveTable

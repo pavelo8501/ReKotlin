@@ -1,7 +1,7 @@
 package po.test.misc.data
 
 import org.junit.jupiter.api.Test
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.data.json.models.JsonObject
 import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.companion.PrintableCompanion

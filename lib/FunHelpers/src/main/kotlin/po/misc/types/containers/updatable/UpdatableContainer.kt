@@ -21,38 +21,6 @@ import po.misc.types.token.TypeToken
 import kotlin.reflect.KMutableProperty1
 
 
-interface UpdatableClass<T: Any>{
-    val activeValue:T
-    fun update(value:T)
-}
-
-class ActionValue<V>(
-  private val owner: CTX,
-  override val identity: CTXIdentity<out  CTX>,
-  private val actionLambda: (Containable<ActionClassData<V>>)-> Unit
-): ComplexContainers<V>, CTX where V:Any{
-
-    enum class ActionClassEvents{
-        OnValueProvided
-    }
-    data class ActionClassData<V: Any>(val event: ActionClassEvents, val value:V, val exception: ManagedException?){
-        val success: Boolean = exception == null
-    }
-   // override val identity = asSubIdentity<>(owner)
-
-    val actionClassNotifier: CallbackManager<ActionClassEvents> = CallbackManager<ActionClassEvents>(ActionClassEvents::class.java, this)
-    internal val onValuePayload = CallbackManager.createPayload<ActionClassEvents, ActionClassData<V>>(actionClassNotifier, ActionClassEvents.OnValueProvided)
-
-    init {
-        onValuePayload.subscribe(owner, actionLambda)
-    }
-
-    fun provideValue(value: V) {
-        val data = ActionClassData(ActionClassEvents.OnValueProvided, value, null)
-        onValuePayload.triggerForAll(data)
-    }
-}
-
 class UpdatableContainer<T: CTX, R: Any, V: Any>(
     val source:T,
     typeData: TypeToken<T>,
@@ -63,7 +31,6 @@ class UpdatableContainer<T: CTX, R: Any, V: Any>(
 ): TypedContainer<T>(source, typeData, classInfo), ComplexContainers<T>, DeferredMutation<T, R>, CTX {
 
     override val identity = asSubIdentity(containerTypeData,  source)
-
 
     override val notifier: CallbackManager<UpdatableEvents> = callbackManager<UpdatableEvents>(
         { createPayload<UpdatableEvents,UpdatableData>(UpdatableEvents.OnArmed) },
@@ -118,26 +85,4 @@ class UpdatableContainer<T: CTX, R: Any, V: Any>(
             notifier.trigger<ManagedException>(event, it.toManaged(this) )
         }
     }
-}
-
-
-inline fun <reified T: CTX, reified R: Any, reified V: Any> T.toUpdatableContainer(
-    property: KMutableProperty1<R, V>,
-    noinline  dataLambda:(T)-> V
-):UpdatableContainer<T, R, V>{
-
-    val containerData = TypeToken.create<UpdatableContainer<T, R, V>>()
-
-    return UpdatableContainer(this, TypeToken.create<T>(), containerData,  overallInfo(ClassRole.Receiver), property, dataLambda)
-}
-
-fun <T: CTX, R: Any, V: Any> T.toUpdatableContainer(
-    typeData: TypeToken<T>,
-    containerTypeData: TypeToken<UpdatableContainer<T, R, V>>,
-    property: KMutableProperty1<R, V>,
-    dataLambda:(T)-> V
-):UpdatableContainer<T, R, V>{
-   val info = overallInfoFromType<T>(ClassRole.Receiver, typeData.kType)
-
-    return UpdatableContainer(this, typeData, containerTypeData,  info,  property,  dataLambda)
 }

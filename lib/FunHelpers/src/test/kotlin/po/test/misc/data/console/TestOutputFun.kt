@@ -2,7 +2,7 @@ package po.test.misc.data.console
 
 import org.junit.jupiter.api.Test
 import po.misc.data.PrettyPrint
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 

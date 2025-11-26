@@ -135,37 +135,6 @@ class LoggerDataProcessor(
         taskData.events.addRecord(logEvent)
     }
 
-    @Deprecated("Refactor and remove", level = DeprecationLevel.WARNING)
-    fun <T: Printable> debug(
-        message: String,
-        callingContext: CTX,
-        topic: DebugTopic = DebugTopic.General,
-        template: PrintableTemplateBase<T>?
-    ){
-
-//        val debugFrame = callingContext.createDebugFrame(methodName = "debug")
-//        debugFrame.frameMeta
-//
-//        val newData = DebugData(
-//            message = message,
-//            contextName =  debugFrame.contextName,
-//            completeContextName =  debugFrame.contextName,
-//            stackMeta = debugFrame.frameMeta
-//        )
-//        newData.setTopic(topic)
-//
-//        when(template){
-//            is PrintableTemplateBase<*> ->{
-//                newData.trySetDefaultTemplate(template)
-//            }
-//            else -> {
-//                newData.setDefaultTemplate(DebugData.Default)
-//            }
-//        }
-//        newData.echo()
-//        taskData.debugRecords.addRecord(newData)
-    }
-
     @PublishedApi
     internal fun debug(
         message: String,

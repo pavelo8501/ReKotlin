@@ -1,5 +1,6 @@
 package po.misc.callbacks.signal
 
+import po.misc.context.component.Component
 import po.misc.context.tracable.TraceableContext
 import po.misc.functions.LambdaOptions
 import po.misc.functions.LambdaType
@@ -31,11 +32,11 @@ fun <T: Any, R> TraceableContext.listen(
     signal: Signal<T, R>,
     options: LambdaOptions = LambdaOptions.Listen,
     callback: (T)->R
-) = signal.onSignal(this, options,  callback)
+): Unit = signal.onSignal(this, options,  callback)
 
 /**
  * Registers a suspending listener on the given [signal], using this
- * [TraceableContext] as the listener identity.
+ * [Component] as the listener identity.
  *
  * This extension forwards to
  * `signal.onSignal(listener, options, suspend (T) -> R)` and is intended
@@ -78,8 +79,8 @@ fun <T: Any, R> TraceableContext.listen(
  * }
  * ```
  *
- * @param signal the signal to listen to
  * @param suspended explicit marker used to select the suspending overload
+ * @param signal the signal to listen to
  * @param callback the suspending listener function
  */
 fun <T: Any, R> TraceableContext.listen(

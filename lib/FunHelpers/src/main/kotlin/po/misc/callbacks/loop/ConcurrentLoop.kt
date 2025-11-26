@@ -1,23 +1,16 @@
 package po.misc.callbacks.loop
 
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import po.misc.data.helpers.output
-import po.misc.data.logging.LogEmitter
 import po.misc.data.logging.LogEmitterClass
+import po.misc.data.output.output
 import po.misc.data.styles.Colour
-import po.misc.exceptions.ManagedException
 import po.misc.exceptions.throwableToText
 import kotlin.time.Duration
-import kotlin.time.DurationUnit
 
 
 interface ConcurrentLoop<REQUEST : Any, UPDATE : Any> {

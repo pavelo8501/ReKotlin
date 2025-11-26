@@ -1,5 +1,6 @@
 package po.misc.data.printable.grouping
 
+import po.misc.data.helpers.orDefault
 import po.misc.data.helpers.replaceIfNull
 import po.misc.data.printable.Printable
 import po.misc.data.printable.PrintableBase
@@ -15,7 +16,7 @@ class ArbitraryKey(val ownClass: KClass<*>) {
         return other is ArbitraryKey &&
                 ownClass == other.ownClass
     }
-    override fun toString(): String = "${ownClass.simpleName}${postfix.replaceIfNull()}"
+    override fun toString(): String = "${ownClass.simpleName}${postfix.orDefault()}"
 }
 
 class ArbitraryDataMap<V: Printable>(): AbstractMutableMap<ArbitraryKey, MutableList<PrintableBase<*>>>(){

@@ -9,7 +9,7 @@ import po.misc.collections.lambda_map.LambdaWithReceiver
 import po.misc.collections.lambda_map.toCallable
 import po.misc.context.component.Component
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.functions.SuspendedOptions
 import po.misc.types.safeCast
 import kotlin.test.assertEquals

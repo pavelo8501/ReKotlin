@@ -8,7 +8,7 @@ import po.lognotify.notification.warning
 import po.lognotify.tasks.ExecutionStatus
 import po.lognotify.tasks.TaskBase
 import po.misc.context.CTX
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.data.styles.Colour
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.throwableToText

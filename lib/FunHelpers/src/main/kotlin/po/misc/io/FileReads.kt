@@ -1,6 +1,6 @@
 package po.misc.io
 
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import java.io.File
 import java.nio.charset.Charset
 import java.nio.file.Files

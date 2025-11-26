@@ -5,7 +5,7 @@ import io.ktor.server.request.uri
 import io.ktor.server.response.respondRedirect
 import po.auth.authentication.jwt.JWTService
 import po.auth.getOrNewSession
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.data.styles.Colour
 import po.restwraptor.calls.callerInfo
 import po.restwraptor.session.sessionFromAttributes

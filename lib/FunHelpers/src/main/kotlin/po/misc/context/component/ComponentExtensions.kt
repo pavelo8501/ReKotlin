@@ -11,11 +11,13 @@ import po.misc.debugging.ClassResolver
 import kotlin.reflect.KFunction
 
 
-fun <T: Component> T.componentID(componentName: String? = null):ComponentID{
-    return componentName?.let {
-        ComponentID(ClassResolver.classInfo(this), name =  it)
-    }?:run {
-        ComponentID(ClassResolver.classInfo(this), name =  ClassResolver.instanceName(this))
+fun <T: Component> T.componentID(
+    componentName: String? = null
+):ComponentID{
+    return  if(componentName != null){
+        ComponentID(this, nameProvider = { componentName })
+    }else{
+        ComponentID(this)
     }
 }
 
@@ -23,14 +25,14 @@ fun <T: Component> T.componentID(
     componentName: String,
     verbosity: Verbosity = Verbosity.Info
 ):ComponentID{
-  return  ComponentID(ClassResolver.classInfo(this), verbosity, name =  componentName)
+  return  ComponentID(this, verbosity, { componentName })
 }
 
 fun <T: Component> T.componentID(
     nameProvider: () ->  String,
     verbosity: Verbosity = Verbosity.Info
 ):ComponentID {
-    return  ComponentID(nameProvider, this, verbosity)
+    return  ComponentID(this, verbosity, nameProvider =  nameProvider)
 }
 
 fun <T:Component> T.setName(name: String):T{
@@ -41,25 +43,6 @@ fun <T:Component> T.setName(name: String):T{
 val Component.initSubject: Initialization get() = Initialization.updateText("Initializing ${ClassResolver.instanceName(this)}", null)
 val Component.configSubject: Configuration  get() = Configuration.updateText("Configuring ${ClassResolver.instanceName(this)}")
 
-fun Component.startProcSubject(
-    processName: String,
-    text: String = "",
-    useBadge: Badge? = null
-): StartProcessSubject {
-    return useBadge?.let {
-        StartProcessSubject(processName, text,  it)
-    }?: StartProcessSubject(processName, text)
-}
-
-val KFunction<*>.asSubject: StartProcessSubject get()  {
-   return StartProcessSubject("Start -> ${this.name}")
-}
-
-fun Component.startProcSubject(
-    function: KFunction<*>,
-    text: String = "",
-    useBadge: Badge? = null
-): StartProcessSubject = startProcSubject("Start -> ${function.name}", text, useBadge)
 
 
 

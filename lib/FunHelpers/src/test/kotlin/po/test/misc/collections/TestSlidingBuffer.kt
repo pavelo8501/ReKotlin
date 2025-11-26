@@ -5,7 +5,7 @@ import po.misc.collections.BufferAction
 import po.misc.collections.BufferItemStatus
 import po.misc.collections.SlidingBuffer
 import po.misc.collections.addToBuffer
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.io.captureOutput
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

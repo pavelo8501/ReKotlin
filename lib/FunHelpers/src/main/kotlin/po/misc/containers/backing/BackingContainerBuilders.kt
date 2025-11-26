@@ -6,15 +6,15 @@ import po.misc.types.token.TypeToken
 
 
 
-inline fun <reified T: Any> backingContainerOf():BackingContainer<T>{
-    return BackingContainer()
-}
-
 fun <T: Any> backingContainerOf(
     typeData: TypeToken<T>
 ):BackingContainer<T>{
     return BackingContainer(typeData)
 }
+
+inline fun <reified T: Any> backingContainerOf():BackingContainer<T> =
+    backingContainerOf(TypeToken.create<T>())
+
 
 
 inline fun <reified T: Any> backingContainer(

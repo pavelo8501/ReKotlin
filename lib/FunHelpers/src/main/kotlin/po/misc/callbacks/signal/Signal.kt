@@ -6,8 +6,11 @@ import po.misc.collections.lambda_map.toCallable
 import po.misc.context.component.Component
 import po.misc.context.tracable.TraceableContext
 import po.misc.context.component.ComponentID
-import po.misc.debugging.ClassResolver
-import po.misc.debugging.models.ClassInfo
+import po.misc.data.logging.StructuredLoggable
+import po.misc.data.logging.models.LogMessage
+import po.misc.data.logging.processor.LogProcessor
+import po.misc.data.logging.processor.createLogProcessor
+import po.misc.data.strings.ifNotBlank
 import po.misc.functions.LambdaOptions
 import po.misc.functions.LambdaType
 import po.misc.functions.SuspendedOptions
@@ -81,10 +84,10 @@ sealed interface SignalBuilder<T: Any, R>{
      * @return the newly assigned [ComponentID]
      */
     fun signalName(name: String):ComponentID{
-        val id =  ComponentID(ClassResolver.classInfo(signal), name = name)
-        id.classInfo.genericInfoBacking.addAll(signal.componentID.classInfo.genericInfoBacking)
-        signal.componentID = id
-        return id
+        val componentID = ComponentID(signal , nameProvider = { name } )
+        componentID.classInfo.genericInfoBacking.addAll(signal.componentID.classInfo.genericInfoBacking)
+        signal.componentID = componentID
+        return componentID
     }
 
     /**
@@ -149,19 +152,31 @@ sealed interface SignalBuilder<T: Any, R>{
  */
 class Signal<T: Any, R>(
    paramType: TypeToken<T>,
-   resultType: TypeToken<R>
+   resultType: TypeToken<R>,
+   val options: SignalOptions? = null
 ): CallableEventBase<T, R>(), SignalBuilder<T, R>{
 
-    internal val classInfo: ClassInfo = ClassResolver.classInfo(this)
-    override var componentID: ComponentID = ComponentID(classInfo, name = "Signal").addParamInfo("T", paramType).addParamInfo("R", resultType)
+    val signalName: String = if(options == null){
+        "Signal"
+    }else{
+        "Signal[${options.name}] ${options.hostName.ifNotBlank { "on $it" }}"
+    }
+
+    override var componentID: ComponentID = ComponentID(this, setName =  signalName)
+        .addParamInfo("T", paramType)
+            .addParamInfo("R", resultType)
+
+    val logProcessor: LogProcessor<Signal<T, R>, LogMessage> = createLogProcessor()
 
     val signal : Boolean get() = listeners.values.any { !it.isSuspended }
     val signalSuspended: Boolean get() =  listeners.values.any { it.isSuspended }
 
     init {
+
         listeners.onKeyOverwritten = {
             warn(subjectKey, messageKey(it) )
         }
+
     }
 
     /**
@@ -173,19 +188,48 @@ class Signal<T: Any, R>(
         options: LambdaOptions,
         callback: (T) -> R
     ){
-        debug( subjectListen, messageReg("Lambda", listener) )
+        debug(subjectListen, messageReg("Lambda", listener) )
         listeners[listener] = callback.toCallable(options)
     }
 
+    /**
+     * Registers a non-suspending listener for this signal.
+     *
+     * @param listener A unique context used as the subscription key.
+     *                 **If you want multiple independent listeners, always provide this parameter.**
+     * @param callback The lambda that will be invoked when the signal fires.
+     * Note:
+     * Using an explicit `listener` ensures the subscription is not overwritten.
+     */
     override fun onSignal(
         listener: TraceableContext,
         callback: (T) -> R
     ) : Unit = onSignal(listener, LambdaOptions.Listen, callback)
 
+    /**
+     * Registers a non-suspending listener using this object as the subscription key.
+     *
+     * Because the key is always `this`, calling this method multiple times will
+     * **overwrite the previous subscription**.
+     *
+     * Use the overload that accepts `listener: TraceableContext` if you need stable,
+     * non-conflicting subscriptions.
+     */
     override fun onSignal(
         callback: (T) -> R
     ) : Unit = onSignal(this, LambdaOptions.Listen, callback)
 
+    /**
+     * Registers a suspending listener for this signal.
+     *
+     * @param listener A unique context used as the subscription key.
+     *                 Provide this when you want the subscription to coexist with others.
+     * @param options  Defines how the suspending lambda behaves (e.g., Listen, Once, etc.).
+     * @param callback The suspending lambda invoked when the signal is emitted.
+     *
+     * This overload guarantees your subscription will not be overwritten unless the
+     * same `listener` instance is reused.
+     */
     override fun onSignal(
         listener: TraceableContext,
         options: SuspendedOptions,
@@ -195,14 +239,40 @@ class Signal<T: Any, R>(
         listeners[listener] = toCallable(options, callback)
     }
 
+    /**
+     * Convenience overload for registering a suspending listener with the default
+     * `SuspendedOptions.Listen` behavior.
+     *
+     * @param listener Unique subscription key.
+     *                 Required to prevent accidental overwriting.
+     * @param callback Suspended lambda executed when the signal is emitted.
+     */
     override fun onSignal(
         listener: TraceableContext,
         suspended: LambdaType.Suspended,
         callback: suspend (T) -> R
     ) : Unit = onSignal(listener, SuspendedOptions.Listen, callback)
 
+    /**
+     * Registers a suspending listener using `this` as the subscription key.
+     *
+     * Because the subscription key is always `this`, repeated calls to this method will
+     * **override the previous suspending listener**.
+     *
+     * Use the overload that takes an explicit `listener: TraceableContext`
+     * to avoid overwriting and allow multiple independent subscriptions.
+     */
     override fun onSignal(
         suspended: LambdaType.Suspended,
         callback: suspend (T) -> R
     ) : Unit = onSignal(this, SuspendedOptions.Listen, callback)
+
+
+    override fun notify(logMessage: LogMessage): LogMessage {
+        logProcessor.logData(logMessage)
+        return logMessage
+    }
+
+    override fun toString(): String = signalName
+
 }

@@ -12,7 +12,6 @@ import po.lognotify.tasks.TaskBase
 import po.misc.data.printable.knowntypes.PropertyData
 import po.misc.exceptions.HandlerType
 import po.misc.exceptions.ManagedException
-import po.misc.exceptions.models.ExceptionData
 import po.misc.collections.selectUntil
 import po.misc.exceptions.throwableToText
 import po.misc.exceptions.toManaged

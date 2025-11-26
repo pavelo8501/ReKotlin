@@ -6,7 +6,6 @@ import po.misc.types.token.TypeToken
 
 interface FunctionalHelper {
 
-   // fun <H: Any,T> Function2<H, T, Unit>.toConfigurator():LambdaConfigurator<H, T> = LambdaConfigurator(LambdaOptions.Promise, this)
 
     fun <H: Any> Function2<H, Unit, Unit>.toConfigurator(
         optionalName: String? = null

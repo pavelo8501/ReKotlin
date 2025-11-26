@@ -7,8 +7,6 @@ import po.misc.exceptions.throwableToText
 import kotlin.reflect.KClass
 import kotlin.reflect.full.cast
 
-
-
 fun <T : Any> List<*>.castListSafe(
     kClass: KClass<T>
 ): List<T> {

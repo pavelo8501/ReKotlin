@@ -10,12 +10,11 @@ import po.misc.callbacks.delayed.DelayConfig
 import po.misc.callbacks.delayed.DelayWithTicks
 import po.misc.callbacks.delayed.DelayedEvent
 import po.misc.data.PrettyPrint
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.types.token.TokenFactory
 import po.misc.types.token.tokenOf
-import po.misc.types.token.typeToken
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull

@@ -9,7 +9,7 @@ import po.exposify.dto.components.bindings.withHostDTOHub
 import po.exposify.dto.interfaces.DataModel
 import po.exposify.dto.interfaces.ModelDTO
 import po.misc.context.CTX
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.data.styles.Colour
 
 internal fun <D: DataModel> splitData (

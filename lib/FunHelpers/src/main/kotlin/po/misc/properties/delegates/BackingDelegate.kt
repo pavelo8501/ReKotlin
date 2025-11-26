@@ -8,7 +8,6 @@ import po.misc.context.CTX
 import po.misc.context.asIdentity
 import po.misc.functions.models.Updated
 import po.misc.types.getOrManaged
-import po.misc.types.info.TypeInfo
 import po.misc.types.token.TypeToken
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
@@ -24,11 +23,11 @@ import kotlin.reflect.KProperty
  * Useful in dependency wiring, reactive graphs, and systems with controlled lifecycle stages.
  *
  * @param  T the type of the delegated value.
- * @property typeInfo metadata about the expected type, used for more informative error messages.
+ * @property typeToken metadata about the expected type, used for more informative error messages.
  * @property receiver  the payload used to report an error when the value is accessed before being set.
  */
 class BackingDelegate<T : Any>(
-    private val typeData: TypeToken<T>,
+    private val typeToken: TypeToken<T>,
     private val receiver :T ? = null,
     private val configure: (DataHooks<BackingDelegate<T>, T>.() -> Unit)? = null
 ) : ReadWriteProperty<Any?, T>, CTX{
@@ -66,7 +65,7 @@ class BackingDelegate<T : Any>(
      * @throws ManagedException if the value has not been set.
      */
     override fun getValue(thisRef: Any?, property: KProperty<*>): T {
-        return value.getOrManaged(this, typeData.kClass)
+        return value.getOrManaged(this, typeToken.kClass)
     }
 
     /**
@@ -90,7 +89,7 @@ class BackingDelegate<T : Any>(
         /**
          * Creates a [BackingDelegate] for the given type.
          * @param T the type of the backing value.
-         * @param typeInfo the [TypeInfo] of the backing value.
+         * @param typeToken the [TypeToken] of the backing value.
          * @return a new [BackingDelegate] instance.
          */
         fun <T : Any> create(typeData: TypeToken<T>, receiver: T? = null): BackingDelegate<T> =

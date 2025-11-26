@@ -7,7 +7,7 @@ import po.misc.containers.lazy.LazyContainer
 import po.misc.containers.lazy.lazyContainer
 import po.misc.containers.lazy.lazyContainerOf
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.functions.Nullable
 import po.misc.io.captureOutput
 import kotlin.test.assertEquals

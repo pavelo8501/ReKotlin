@@ -17,11 +17,9 @@ import kotlin.test.assertEquals
 class TestPrintableTemplate {
 
 
-
     class NEWClas(
         val name: String = "Stroka"
     )
-
 
     data class PrintableRecord (
         val personalName: String = "personalName",

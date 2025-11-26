@@ -9,7 +9,7 @@ import po.misc.callbacks.loop.LoopStats
 import po.misc.callbacks.loop.models.DefaultOutput
 import po.misc.callbacks.loop.models.OutputGroup
 import po.misc.callbacks.loop.models.OutputItem
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.data.logging.Verbosity
 import kotlin.test.assertEquals
 import kotlin.test.assertIs

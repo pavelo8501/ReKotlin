@@ -1,16 +1,12 @@
 package po.misc.context.component
 
-import po.misc.callbacks.signal.Signal
 import po.misc.data.PrettyPrint
-import po.misc.data.logging.Loggable
-import po.misc.data.logging.StructuredLoggable
 import po.misc.data.logging.Verbosity
-import po.misc.data.logging.processor.LogProcessor
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
 import po.misc.debugging.models.ClassInfo
-import po.misc.debugging.models.GenericInfo
+import po.misc.types.token.GenericInfo
 import po.misc.types.token.TypeToken
 
 
@@ -31,39 +27,51 @@ import po.misc.types.token.TypeToken
  * if a component instance must represent a logical role (e.g., “DatabasePool#1”) rather
  * than a raw class name.
  *
- * @property name Display name of the component.
- * @property classInfo Structural information used in type-friendly formatting.
+ * @property component Hosting component.
+ * @property setName explicitly provided name for the component
  * @property verbosity Controls minimum log level for this component.
  */
 class ComponentID(
-    val classInfo: ClassInfo,
-    var verbosity: Verbosity = Verbosity.Info,
-    private var name: String? = null
+    private val component: Component,
+    private var setName: String? = null
 ): PrettyPrint {
 
     constructor(
-        provider: () -> String,
         component: Component,
-        verbosity: Verbosity = Verbosity.Info
-    ):this(ClassResolver.classInfo(component), verbosity){
-        nameProvider = provider
+        verbosity: Verbosity = Verbosity.Info,
+        nameProvider: () -> String,
+    ):this(component){
+        this.nameProvider = nameProvider
+        this.verbosity = verbosity
     }
 
-    private var nameProvider : (() -> String)? = null
-
+    private var nameResolved: Boolean = false
+    private var nameProvider : ( () -> String)? = null
     private val resolvedName: String by lazy {
-        val nameFromProvider = nameProvider?.invoke()
-        nameFromProvider ?: name ?: classInfo.simpleName
+       val resolved = nameProvider?.invoke()?: classInfo.simpleName
+        nameResolved = true
+        resolved
     }
 
-    val componentName: String get() = resolvedName
+    var verbosity: Verbosity = Verbosity.Info
+        set(value) {
+            if(value != field){
+                field = value
+            }
+        }
+
+    val classInfo : ClassInfo = ClassResolver.classInfo(component)
+
+    val componentName: String get() = setName?: resolvedName
+
 
     fun updateNameProvider(provider: (() -> String)?) {
         nameProvider = provider
     }
 
-    fun useName(nameToUse: String){
-        name = nameToUse
+    fun useName(nameToUse: String):ComponentID {
+        setName = nameToUse
+        return this
     }
 
     fun addParamInfo(genericInfo: GenericInfo): ComponentID{

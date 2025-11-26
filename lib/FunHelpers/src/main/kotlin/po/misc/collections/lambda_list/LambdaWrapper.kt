@@ -5,7 +5,7 @@ import po.misc.context.component.ComponentID
 import po.misc.context.component.componentID
 import po.misc.functions.CallableOptions
 import po.misc.functions.LambdaOptions
-import po.misc.types.helpers.lambdaName
+import po.misc.types.k_class.lambdaName
 import po.misc.types.token.TypeToken
 
 
@@ -15,6 +15,8 @@ interface LambdaWrapper<H, T>: Component  {
     val isSuspended: Boolean
     fun apply(receiver: H, value: T)
 }
+
+
 class LambdaConfigurator<H: Any, T>(
     val parameterType: TypeToken<T>,
     override val options: LambdaOptions = LambdaOptions.Listen,

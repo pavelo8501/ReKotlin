@@ -34,7 +34,7 @@ import po.misc.exceptions.throwableToText
 import po.misc.functions.hooks.Change
 import po.misc.functions.registries.TaggedRegistry
 import po.misc.functions.registries.builders.taggedRegistryOf
-import po.misc.types.helpers.simpleOrAnon
+import po.misc.types.k_class.simpleOrAnon
 import po.misc.types.safeCast
 import java.util.UUID
 import kotlin.reflect.KClass

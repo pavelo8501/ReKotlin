@@ -5,17 +5,16 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertDoesNotThrow
 import po.misc.context.component.ComponentID
-import po.misc.context.component.asSubject
 import po.misc.context.component.componentID
 import po.misc.context.component.initSubject
-import po.misc.context.component.startProcSubject
-import po.misc.data.logging.LogProvider
+import po.misc.context.log_provider.LogProvider
 import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.log_subject.startProcSubject
 import po.misc.data.logging.models.LogMessage
 import po.misc.data.logging.procedural.ProceduralRecord
 import po.misc.data.logging.procedural.page
 import po.misc.data.logging.processor.LogProcessor
-import po.misc.data.logging.processor.logProcessor
+import po.misc.data.logging.processor.createLogProcessor
 import po.test.misc.data.logging.LoggerTestBase
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -25,10 +24,11 @@ import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestProceduralLog: LoggerTestBase(), LogProvider<LogMessage> {
+class TestProceduralLog: LoggerTestBase(), LogProvider {
 
     override val componentID: ComponentID = componentID("Test procedural's  log")
-    val processor: LogProcessor<TestProceduralLog, LogMessage> = logProcessor()
+     override val logProcessor: LogProcessor<TestProceduralLog, LogMessage> = createLogProcessor()
+
     private  val subComponent1 = ProceduralTestComponent()
     private  val subComponent2 = ProceduralTestComponent()
 
@@ -42,14 +42,14 @@ class TestProceduralLog: LoggerTestBase(), LogProvider<LogMessage> {
 
     @BeforeEach
     fun clearLogs(){
-        processor.clear()
+        logProcessor.clear()
         subComponent1.processor.dropCollector()
         subComponent2.processor.dropCollector()
     }
 
     @Test
     fun `LogMessage successfully translated to ProceduralRecord and back to message`(){
-        val logProcessor :  LogProcessor<TestProceduralLog, LogMessage> = logProcessor()
+        val logProcessor :  LogProcessor<TestProceduralLog, LogMessage> = createLogProcessor()
         val message = infoMsg(initSubject)
         var procRecord: ProceduralRecord? = null
 
@@ -67,7 +67,7 @@ class TestProceduralLog: LoggerTestBase(), LogProvider<LogMessage> {
     @Test
     fun `LogMessages and notifications successfully translated to ProceduralEntries`(){
 
-        val logProcessor :  LogProcessor<TestProceduralLog, LogMessage> = logProcessor()
+        val logProcessor :  LogProcessor<TestProceduralLog, LogMessage> = createLogProcessor()
         logProcessor.debugMode = true
         val message = infoMsg(initSubject)
         var procRecord: ProceduralRecord? = null
@@ -77,7 +77,7 @@ class TestProceduralLog: LoggerTestBase(), LogProvider<LogMessage> {
             logProcessor.log(notification("Subject", "Text"))
         }
 
-        assertNotNull(procRecord?.entries?.firstOrNull())
+        assertNotNull(procRecord?.proceduralEntries?.firstOrNull())
         assertNotNull(logProcessor.logRecords.firstOrNull()){
            val entry = assertNotNull(it.logRecords.firstOrNull())
            assertTrue { entry.subject.contains("Subject") }
@@ -86,7 +86,7 @@ class TestProceduralLog: LoggerTestBase(), LogProvider<LogMessage> {
 
     @Test
     fun `Foreign component's log emissions are properly registered`(){
-        val logProcessor = logProcessor()
+        val logProcessor = createLogProcessor()
         val warnText = "Sub component2  Warning"
         val initMsg = infoMsg(initSubject)
         val startProcessSubject = subComponent2.startProcSubject("resulting")
@@ -94,7 +94,8 @@ class TestProceduralLog: LoggerTestBase(), LogProvider<LogMessage> {
         logProcessor.proceduralScope(initMsg){
             step(step1){ true }
             step(step2){
-                it.page(subComponent1.processor, subComponent1::listResulting.asSubject){
+                val subject = subComponent1.startProcSubject(subComponent1::listResulting.name)
+                it.page(subComponent1.processor, subject){
                     subComponent1.listResulting(5, warnOnCount = 3)
                 }
             }

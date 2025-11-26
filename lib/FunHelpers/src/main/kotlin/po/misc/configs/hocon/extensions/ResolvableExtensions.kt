@@ -4,7 +4,7 @@ import com.typesafe.config.Config
 import po.misc.configs.hocon.HoconResolvable
 import po.misc.configs.hocon.HoconResolver
 import po.misc.configs.hocon.builders.ResolverEvents
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 
 
 @JvmName("applyConfigAttached")

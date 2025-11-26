@@ -3,13 +3,14 @@ package po.misc.exceptions
 import po.misc.context.tracable.TraceableContext
 import po.misc.coroutines.CoroutineInfo
 import po.misc.debugging.ClassResolver
-import po.misc.debugging.models.ClassInfo
+import po.misc.debugging.models.InstanceInfo
 import po.misc.exceptions.models.CTXResolutionFlag
 import po.misc.exceptions.stack_trace.ExceptionTrace
 import po.misc.exceptions.stack_trace.extractTrace
 import po.misc.exceptions.trackable.TrackableException
 import java.time.Instant
 import kotlin.reflect.KClass
+import kotlin.reflect.KFunction
 
 
 open class ContextTracer(
@@ -21,23 +22,49 @@ open class ContextTracer(
     override val self: ContextTracer = this
     override val contextClass: KClass<*> = context::class
     override var coroutineInfo: CoroutineInfo? = null
-
-    override val exceptionTrace: ExceptionTrace = extractTrace(context)
+    override val exceptionTrace: ExceptionTrace = extractTrace()
 }
 
-
-class StackTracer(
+open class Tracer(
     override val message: String = "",
     var printImmediately: Boolean = true,
-
 ): Throwable() {
     val created: Instant = Instant.now()
-
-    fun resolveTrace(context: TraceableContext, block: ClassInfo.()-> ClassInfo): ClassInfo{
-       val trace =  extractTrace(context).bestPick
-       val info =  ClassResolver.classInfo(context)
-       return info.addTraceInfo(trace).block()
-    }
-
-
+    fun resolveTrace(context: TraceableContext):ExceptionTrace = extractTrace()
 }
+
+interface TracerOptions{
+    object Trace : TracerOptions
+    object InstanceInfo : TracerOptions
+}
+
+
+fun TraceableContext.trace():  ExceptionTrace{
+    val tracer = Tracer()
+    return tracer.resolveTrace(this)
+}
+
+fun TraceableContext.trace(options: TraceOptions):  ExceptionTrace{
+    val tracer = Tracer()
+   val trace = when(options){
+        is TraceCallSite ->{
+
+            tracer.extractTrace(options)
+        }
+    }
+    return trace
+}
+
+
+fun TraceableContext.trace(classInfo: TracerOptions.InstanceInfo): InstanceInfo{
+    val tracer =  Tracer()
+    val trace =  tracer.resolveTrace(this)
+    val instanceInfo = ClassResolver.resolveInstance(this).addTraceInfo(trace)
+    return instanceInfo
+}
+
+fun TraceableContext.trace(throwable: Throwable): ExceptionTrace{
+    return throwable.extractTrace()
+}
+
+

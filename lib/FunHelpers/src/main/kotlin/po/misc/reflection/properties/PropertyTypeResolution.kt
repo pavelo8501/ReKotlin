@@ -1,10 +1,7 @@
 package po.misc.reflection.properties
 
-import po.misc.data.anotation.Composable
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.data.styles.Colour
-import po.misc.reflection.anotations.AnnotationContainer
-import po.misc.reflection.anotations.annotatedProperties
 import po.misc.reflection.primitives.BooleanClass
 import po.misc.reflection.primitives.DoubleClass
 import po.misc.reflection.primitives.DurationClass
@@ -13,9 +10,8 @@ import po.misc.reflection.primitives.LocalDateTimeClass
 import po.misc.reflection.primitives.LongClass
 import po.misc.reflection.primitives.PrimitiveClass
 import po.misc.reflection.primitives.StringClass
-import po.misc.reflection.primitives.WildCardClass
 import po.misc.types.castOrManaged
-import po.misc.types.helpers.simpleOrAnon
+import po.misc.types.k_class.simpleOrAnon
 import po.misc.types.safeCast
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1

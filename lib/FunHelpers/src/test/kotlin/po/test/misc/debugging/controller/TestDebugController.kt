@@ -1,10 +1,10 @@
 package po.test.misc.debugging.controller
 
 import org.junit.jupiter.api.Test
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.data.styles.Colour
 import po.misc.debugging.controller.DebugController
-import po.misc.types.helpers.simpleOrAnon
+import po.misc.types.k_class.simpleOrAnon
 
 
 interface DebugEnabled{

@@ -1,18 +1,41 @@
 package po.misc.exceptions.stack_trace
 
+import po.misc.collections.selectUntil
 import po.misc.data.PrettyPrint
+import po.misc.data.output.output
+import po.misc.data.pretty_print.parts.RowOptions
+import po.misc.data.pretty_print.presets.RowPresets
+import po.misc.data.pretty_print.rows.CellContainer
+import po.misc.data.pretty_print.rows.PrettyRow
+import po.misc.data.pretty_print.rows.buildPrettyRow
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
+import po.misc.exceptions.TraceOptions
 import po.misc.exceptions.throwableToText
+import java.time.Instant
 import kotlin.reflect.KClass
+import kotlin.text.appendLine
+
 
 data class ExceptionTrace(
     val exceptionName: String,
     val stackFrames: List<StackFrameMeta>,
-    val kClass: KClass<*>? = null
+    val kClass: KClass<*>? = null,
+    val type:  TraceOptions.TraceType = TraceOptions.TraceType.Default
 ): PrettyPrint{
 
-    var reliable: Boolean = true
+    constructor(
+        exceptionName: String,
+        stackFrames: List<StackFrameMeta>,
+        reliable: Boolean,
+        type:  TraceOptions.TraceType = TraceOptions.TraceType.Default
+    ):this(exceptionName, stackFrames, type = type){
+        isReliable = reliable
+    }
+
+    val created: Instant = Instant.now()
+
+    var isReliable: Boolean = true
         internal set
     var bestPick:StackFrameMeta = stackFrames.first()
     var ctxName: String = ""
@@ -26,6 +49,24 @@ data class ExceptionTrace(
         stackFrames,
         contextClass
     )
+
+
+    val callSiteReport: PrettyRow = buildPrettyRow<CallSiteReport> {
+        addCell("Call site trace report")
+        addCell("Caller trace snapshot")
+        addCell(CallSiteReport::callerTraceMeta){
+            it.methodName
+        }
+        addCell("Registration place snapshot")
+        addCell(CallSiteReport::registrationTraceMeta){
+            it.methodName
+        }
+    }
+
+    fun printCallSite(){
+        val report = callSiteReport(this)
+        callSiteReport.render(report, RowPresets.VerticalRow).output()
+    }
 
     override val formattedString: String =  exceptionName.colorize(Colour.Red).newLine {
         bestPick.formattedString
@@ -52,55 +93,38 @@ data class ExceptionTrace(
             appendLine(bestPick)
         }
     }
-}
 
-data class StackFrameMeta(
-    val fileName: String,
-    val simpleClassName: String,
-    val methodName: String,
-    val lineNumber: Int,
-    val classPackage: String,
-    val isHelperMethod: Boolean,
-    val isUserCode: Boolean,
-    val stackTraceElement: StackTraceElement? = null
-): PrettyPrint {
-    val consoleLink: String get() = "$classPackage.$simpleClassName.$methodName($fileName:$lineNumber)"
-
-   // override val formattedString: String get() = ""
-
-    val normalizedMethodName: String
-        get() = methodName
-            .replace(Regex("""lambda\$\d+"""), "[lambda]")
-            .replace('_', ' ')
-            .replace('$', '.')
-
-
-    override val formattedString: String get() {
-        return buildString {
-            appendLine("File name: $fileName")
-            appendLine("Simple class name: $simpleClassName")
-            appendLine("Method name: $methodName")
-            appendLine("Line number: $lineNumber")
-            appendLine("Class package: $classPackage")
-            appendLine("Is helper method: $isHelperMethod")
-            appendLine("Is user code: $isUserCode")
-            appendLine(consoleLink)
+    companion object {
+        val harshFilter : (StackFrameMeta)-> Boolean = {frame->
+            frame.isUserCode &&
+            !frame.isHelperMethod &&
+            !frame.isInline &&
+            !frame.isLambda &&
+            !frame.isReflection &&
+            !frame.isThreadEntry &&
+            !frame.isCoroutineInternal
         }
-    }
 
+        fun callSiteReport(exceptionTrace: ExceptionTrace):CallSiteReport{
 
-//    fun output() {
-//        val outputString = buildString {
-//            appendLine("Simple class name: $simpleClassName")
-//            appendLine("Method name: $methodName")
-//            appendLine("Line number: $lineNumber")
-//            appendLine(consoleLink)
-//        }
-//        println(outputString)
-//    }
+           return when{
+                exceptionTrace.stackFrames.size <=2 ->{
+                    CallSiteReport(exceptionTrace.stackFrames.last(), exceptionTrace.stackFrames.first())
+                }
+                exceptionTrace.stackFrames.size > 2 ->{
+                    val first = exceptionTrace.stackFrames.first()
+                    val last = exceptionTrace.stackFrames.last()
+                    val selected = exceptionTrace.stackFrames.drop(1).take(exceptionTrace.stackFrames.size - 2)
+                    val reversed = selected.asReversed()
+                    CallSiteReport(last, first, reversed)
+                }
+                else -> {
+                    val msg = "callSiteReport creation failure." +
+                            "exceptionTrace.stackFrames count ${exceptionTrace.stackFrames.size}"
+                    throw IllegalArgumentException(msg)
+                }
+            }
+        }
 
-    override fun toString(): String {
-        return "File name: $fileName Simple class name: $simpleClassName Method name: $methodName"
     }
 }
-

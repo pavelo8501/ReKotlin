@@ -1,9 +1,8 @@
 package po.misc.data.printable.grouping
 
-import po.misc.data.helpers.output
 import po.misc.data.printable.Printable
-import po.misc.data.styles.Colour
 import kotlin.reflect.KProperty
+
 
 class PrintableProperty<T: Printable>(
     val host: Printable,
@@ -13,10 +12,8 @@ class PrintableProperty<T: Printable>(
 
     var disableSideEffects: Boolean = false
 
-
     private var nameProvider: (() -> String)? = null
     internal val recordsBacking = mutableListOf<T>()
-
 
     override val size: Int get() = recordsBacking.size
 
@@ -67,6 +64,10 @@ class PrintableProperty<T: Printable>(
         return recordsBacking[index]
     }
 
+    override fun removeAt(index: Int): T {
+        return recordsBacking.removeAt(index)
+    }
+
     operator fun provideDelegate(
         thisRef: Printable,
         property: KProperty<*>,
@@ -75,10 +76,6 @@ class PrintableProperty<T: Printable>(
             initialName = property.name
         }
         return this
-    }
-
-    override fun removeAt(index: Int): T {
-        return recordsBacking.removeAt(index)
     }
 
     operator fun getValue(

@@ -2,15 +2,15 @@ package po.test.misc.data.strings
 
 import org.junit.jupiter.api.Test
 import po.misc.data.HasText
-import po.misc.data.HasValue
 import po.misc.data.PrettyPrint
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.data.strings.stringify
 import po.misc.data.strings.stringifyThis
 import po.misc.data.styles.Colorizer
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class TestStringFormater {
@@ -31,6 +31,66 @@ class TestStringFormater {
     internal class PrettifiedClass(val value: String = "string value"): PrettyPrint{
         override val formattedString: String = value.colorize(Colour.Yellow)
         override fun toString(): String =  value
+    }
+
+    private class RecursiveClass(
+        val text: String = "Some text"
+    ): PrettyPrint {
+
+        override val formattedString: String
+            get() = text.colorize(Colour.Magenta)
+
+       override fun toString(): String = text
+
+       val list = mutableListOf<RecursiveClass>()
+
+        fun addSubClass(text: String):RecursiveClass{
+            val new = RecursiveClass(text)
+            list.add(new)
+            return new
+        }
+
+        fun addToList(text: String):RecursiveClass{
+            val new = RecursiveClass(text)
+            list.add(new)
+            return this
+        }
+    }
+
+    @Test
+    fun `Recursive strings by property`(){
+
+        val recursive = RecursiveClass("Initial")
+        val level1 =  recursive.addSubClass("Entry 1")
+
+        level1.addToList("Entry 1_1")
+        val lastRecordEntry1Text = "Entry 1_2"
+        level1.addToList(lastRecordEntry1Text)
+
+        val entry2 = recursive.addSubClass("Entry 2")
+        entry2.addToList("Entry 2_1")
+        val lastRecordEntry2Text = "Entry 2_2"
+        entry2.addToList(lastRecordEntry2Text)
+
+        val result = recursive.stringify(RecursiveClass::list)
+
+        assertEquals(2, result.formatedRecords.size)
+        assertNotNull(result.formatedRecords.lastOrNull()){formated->
+            assertNotNull(formated.formatedRecords.lastOrNull()){lastEntry->
+                assertEquals(lastRecordEntry2Text, lastEntry.text)
+                assertTrue {
+                    lastEntry.formatedText.contains(Colour.Magenta.code)
+                }
+            }
+        }
+        val resultingString = result.joinText()
+        resultingString.output()
+        val resultingString2 = result.joinFormattedWithIndent("-")
+        resultingString2.output()
+
+        val formated = result.joinFormattedWithIndent("-")
+        formated.output()
+
     }
 
     @Test

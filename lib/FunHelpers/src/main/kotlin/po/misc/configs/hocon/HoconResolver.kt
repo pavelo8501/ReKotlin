@@ -14,21 +14,18 @@ import po.misc.configs.hocon.models.HoconPrimitives
 import po.misc.configs.hocon.models.HoconString
 import po.misc.context.component.ComponentID
 import po.misc.context.component.componentID
-import po.misc.context.component.startProcSubject
+import po.misc.context.log_provider.LogProvider
+import po.misc.context.log_provider.proceduralScope
+import po.misc.context.log_provider.withProceduralScope
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.helpers.output
-import po.misc.data.logging.Loggable
-import po.misc.data.logging.factory.toLogMessage
+import po.misc.data.output.output
 import po.misc.data.logging.models.LogMessage
 import po.misc.data.logging.procedural.ProceduralFlow
 import po.misc.data.logging.procedural.StepTolerance
-import po.misc.data.logging.processor.logProcessor
+import po.misc.data.logging.processor.createLogProcessor
 import po.misc.data.badges.Badge
 import po.misc.data.badges.GenericBadge
-import po.misc.data.logging.LogEmitter
-import po.misc.data.logging.LogEmitterNew
-import po.misc.data.logging.proceduralScope
-import po.misc.data.logging.processor.LogProcessor
+import po.misc.data.logging.log_subject.startProcSubject
 import po.misc.functions.Nullable
 import po.misc.types.token.TokenFactory
 import po.misc.types.token.TypeToken
@@ -45,32 +42,25 @@ interface HoconConfigurable<T: EventHost, C: HoconResolvable<C>, V: Any> : Hocon
     val hoconPrimitive: HoconPrimitives<V>
 }
 
-
 class HoconResolver<C: HoconResolvable<C>>(
     val configToken: TypeToken<C>,
-): EventHost, LogEmitterNew<HoconResolver<C>, LogMessage> {
+): EventHost, LogProvider {
 
-    private val parsingSubject: (TypeToken<*>) -> String = { "Parsing ${it.typeName}" }
     override val componentID: ComponentID = componentID().addParamInfo("C", configToken)
-    override val logProcessor: LogProcessor<HoconResolver<C>, LogMessage> = logProcessor()
-
+    override val logProcessor = createLogProcessor()
 
     @PublishedApi
     internal val entryResolved: MutableMap<KProperty<*>, HostedEvent<*, *, Unit>> = mutableMapOf()
-
     internal val memberMap: MutableMap<KClass<out HoconResolvable<*>>, HoconResolvable<*>> = mutableMapOf()
-
     @PublishedApi
     internal val entryMap: MutableMap<String,  HoconEntryBase<C, *>> = mutableMapOf()
 
-    val events: ResolverEvents<C> = ResolverEvents(this)
-
-    var nowParsing: NowParsing? = null
-
-    val parseBadge: GenericBadge = Badge.make("parse")
-
+    private val parsingSubject: (TypeToken<*>) -> String = { "Parsing ${it.typeName}" }
+    private val events: ResolverEvents<C> = ResolverEvents(this)
+    private var nowParsing: NowParsing? = null
+    private val parseBadge: GenericBadge = Badge.make("parse")
     private val parsingMessage : (HoconEntryBase<*, *>)-> String = {
-        "Parsing ${it.name}"
+        "Parsing ${it.componentName}"
     }
 
     init {
@@ -94,8 +84,9 @@ class HoconResolver<C: HoconResolvable<C>>(
         }
     }
 
-    override fun notify(loggable: Loggable) {
-        logProcessor.logData(loggable.toLogMessage())
+    override fun notify(logMessage: LogMessage): LogMessage {
+        logProcessor.logData(logMessage)
+        return logMessage
     }
 
     private fun identifyConfig(hoconFactory: Config): String{
@@ -103,10 +94,7 @@ class HoconResolver<C: HoconResolvable<C>>(
         return  nowParsing?.parsing?:""
     }
 
-    private fun <C: HoconResolvable<C>> processHoconEntry(
-        hoconEntry: HoconEntry<C, *>,
-        hoconFactory: Config
-    ){
+    private fun <C: HoconResolvable<C>> processHoconEntry(hoconEntry: HoconEntry<C, *>, hoconFactory: Config){
         if(hoconEntry.nullable){
             hoconEntry.readConfig(hoconFactory, Nullable)
         }else{
@@ -114,10 +102,7 @@ class HoconResolver<C: HoconResolvable<C>>(
         }
     }
 
-    private fun <C: HoconResolvable<C>> processListEntry(
-        hoconEntry: HoconListEntry<C, *>,
-        hoconFactory: Config
-    ){
+    private fun <C: HoconResolvable<C>> processListEntry(hoconEntry: HoconListEntry<C, *>, hoconFactory: Config){
         if(hoconEntry.nullable) {
             hoconEntry.readListConfig(hoconFactory, Nullable)
         }else{
@@ -125,25 +110,28 @@ class HoconResolver<C: HoconResolvable<C>>(
         }
     }
 
-    private fun <C: HoconResolvable<C>> ProceduralFlow<HoconResolver<C>>.processNestedEntry(
+    private fun <C: HoconResolvable<C>> processNestedEntry(
+        flow: ProceduralFlow<HoconResolver<C>>,
         entry: HoconNestedEntry<C, *>,
         hoconFactory: Config
     ){
         val tolerance: StepTolerance = if(entry.nullable) StepTolerance.ALLOW_NULL else StepTolerance.STRICT
-        step("Parsing ${entry.name}", parseBadge, tolerance) {
-            entry.readConfig(hoconFactory, Nullable)
+        with(flow){
+            step("Parsing ${entry.componentName}", parseBadge, tolerance) {
+                entry.readConfig(hoconFactory, Nullable)
+            }
         }
     }
 
     fun readConfig(hoconFactory: Config) {
         val msg = infoMsg(startProcSubject(::readConfig), "Parsing ${configInfo(hoconFactory).parsing}")
-        proceduralScope(msg){
+        withProceduralScope(msg){
             step("Parsing Config", parseBadge) {
                 for (hoconEntry in entryMap.values) {
                     when (hoconEntry) {
                         is HoconEntry ->  processHoconEntry(hoconEntry, hoconFactory)
                         is HoconListEntry -> processListEntry(hoconEntry, hoconFactory)
-                        is HoconNestedEntry<C, *> ->  processNestedEntry(hoconEntry, hoconFactory)
+                        is HoconNestedEntry<C, *> ->  processNestedEntry(this@withProceduralScope,  hoconEntry, hoconFactory)
                     }
                 }
             }
@@ -159,25 +147,22 @@ class HoconResolver<C: HoconResolvable<C>>(
         return this
     }
     fun register(hoconEntry: HoconEntryBase<C, *>): Boolean {
-        entryMap[hoconEntry.name.lowercase()] = hoconEntry
+        entryMap[hoconEntry.componentName.lowercase()] = hoconEntry
         return true
     }
 
     companion object {
-
         fun configInfo(hoconFactory: Config): NowParsing{
            return NowParsing(hoconFactory.origin())
         }
     }
 }
 
-
 @Deprecated("Change to resolver()")
 inline fun <T: EventHost, reified C: HoconResolvable<C>> C.createResolver(
     receiver:T,
     noinline block: ResolverBuilder<T, C, String>.() -> Unit
 ):HoconResolver<C>{
-
     val builderContainer = ResolverBuilder(receiver, resolver(), HoconString.Companion)
     builderContainer.block()
     return  builderContainer.resolver

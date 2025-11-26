@@ -4,7 +4,6 @@ import po.misc.context.tracable.TraceableContext
 import po.misc.exceptions.handling.ThrowableRegistry
 import po.misc.exceptions.stack_trace.ExceptionTrace
 import po.misc.exceptions.stack_trace.extractTrace
-import po.misc.exceptions.stack_trace.tryExtractTrace
 import po.misc.exceptions.trackable.TrackableException
 import kotlin.reflect.KClass
 
@@ -65,7 +64,7 @@ abstract class ExceptionLocatorBase{
         }
        when(exception){
             is TrackableException ->  register(exception.exceptionTrace)
-            is Throwable ->  exception.tryExtractTrace(context::class)
+            is Throwable ->  exception.extractTrace()
         }
         throw exception
     }
@@ -82,7 +81,7 @@ abstract class ExceptionLocatorBase{
 
         val trace =  when(exception){
             is TrackableException ->  register(exception.exceptionTrace)
-            is Throwable ->  exception.tryExtractTrace(context::class)
+            is Throwable ->  exception.extractTrace()
         }
         traceProvider.invoke(trace)
         throw exception

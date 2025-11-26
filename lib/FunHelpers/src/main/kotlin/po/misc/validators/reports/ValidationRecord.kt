@@ -1,5 +1,6 @@
 package po.misc.validators.reports
 
+import po.misc.data.helpers.orDefault
 import po.misc.data.helpers.replaceIfNull
 import po.misc.data.helpers.withIndent
 import po.misc.data.printable.PrintableBase
@@ -42,7 +43,7 @@ class ValidationRecord internal constructor(
                         templateRule(result.name.colorize(Colour.Green)) { result == CheckStatus.PASSED },
                         templateRule(result.name.colorize(Colour.Red)) { result == CheckStatus.FAILED },
                         templateRule(result.name.colorize(Colour.Yellow)) { result == CheckStatus.WARNING })
-                }".withIndent(4, "-") + message.replaceIfNull()
+                }".withIndent(4, "-") + message.orDefault()
             }
         }
 

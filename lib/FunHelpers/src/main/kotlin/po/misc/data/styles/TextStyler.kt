@@ -24,6 +24,47 @@ interface TextStyler {
             }
             return if (codes.isEmpty()) text else "$codes$text${Colour.RESET.code}"
         }
+
+
+        fun style(
+            text: String,
+            applyColourIfExists: Boolean,
+            style: TextStyle = TextStyle.Regular,
+            colour: Colour? = null,
+            background: BGColour? = null
+        ): String {
+
+            val colorized = if (colour != null) {
+                Colorizer.applyColour(text, colour, background, applyColourIfExists)
+            } else if (background != null) {
+                Colorizer.applyColour(text, background, applyColourIfExists)
+            } else {
+                text
+            }
+            return "${style.code}$colorized"
+        }
+
+
+        fun style(
+            text: String,
+            style: TextStyle = TextStyle.Regular,
+            color: Colour,
+            applyColourIfExists: Boolean = false
+        ): String {
+            val text =  Colorizer.applyColour(text, color, applyColourIfExists)
+            return "${style.code}$text"
+        }
+
+        fun style(
+            text: String,
+            style: TextStyle = TextStyle.Regular,
+            color: Colour,
+            background: BGColour,
+            applyColourIfExists: Boolean = false
+        ): String {
+            val text =  Colorizer.applyColour(text, color, background, applyColourIfExists)
+            return "${style.code}$text"
+        }
     }
 }
 

@@ -88,6 +88,7 @@ class BackingContainer<T: Any>(
         inline operator fun <reified T : Any> invoke(
             initialValue: T? = null
         ): BackingContainer<T> {
+
             val container = BackingContainer(TypeToken.create<T>())
             if (initialValue != null) {
                 container.provideValue(initialValue, true)

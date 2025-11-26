@@ -1,8 +1,11 @@
 package po.misc.types.helpers
 
 import po.misc.data.PrettyPrint
-import po.misc.data.helpers.output
+import po.misc.data.output.output
 import po.misc.data.styles.SpecialChars
+import po.misc.types.k_class.KClassParam
+import po.misc.types.k_class.simpleOrAnon
+import po.misc.types.k_class.toKeyParams
 import po.misc.types.safeCast
 import po.misc.types.token.TokenHolder
 import po.misc.types.token.TypeToken

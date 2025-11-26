@@ -4,7 +4,7 @@ import po.misc.context.tracable.TraceableContext
 import po.misc.exceptions.ExceptionPayload
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.ManagedPayload
-import po.misc.types.helpers.simpleOrAnon
+import po.misc.types.k_class.simpleOrAnon
 import po.misc.types.token.TypeToken
 import java.time.LocalDateTime
 import kotlin.reflect.KClass
@@ -55,7 +55,24 @@ fun <T: Any> T?.getOrThrow(
 }
 
 
+
+
 fun <T: Any> T?.getOrThrow(
+    expectedClass: KClass<*>? = null,
+):T {
+    val methodName = "getOrThrow"
+    val className = expectedClass?.simpleOrAnon?:"ExpectedClass not specified"
+    val message = "Expected $className got null."
+    if(this == null){
+        throw NullPointerException(message)
+    }else{
+        return this
+    }
+}
+
+
+fun <T: Any> T?.getOrThrow(
+    context: TraceableContext,
     expectedClass: KClass<*>? = null,
 ):T {
     val methodName = "getOrThrow"
