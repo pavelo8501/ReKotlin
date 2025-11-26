@@ -19,7 +19,6 @@ class TestExceptionTrace: TraceableContext {
         val report =  ExceptionTrace.callSiteReport(trace)
         report.output()
 
-
     }
 
 }

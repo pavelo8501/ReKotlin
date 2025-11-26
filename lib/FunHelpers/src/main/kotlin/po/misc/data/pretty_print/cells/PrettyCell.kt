@@ -19,27 +19,26 @@ import po.misc.data.styles.TextStyler
  *
  * A [PrettyCell] is *lightweight* and stateless; rendering happens per input.
  */
-class PrettyCell(width: Int, align: Align = Align.LEFT): PrettyCellBase<PrettyPresets>(width, align), CellRenderer{
+class PrettyCell(
+    width: Int
+): PrettyCellBase<PrettyPresets>(width), CellRenderer {
 
-    constructor(width: Int, presets: PrettyPresets):this(width, Align.LEFT){
-        preset = presets
+    constructor(width: Int, presets: PrettyPresets):this(width){
+        applyPreset(presets)
     }
 
-    override var preset: PrettyPresets? = null
+
+
+
+   // override var preset: PrettyPresets? = null
+
 
     init {
-        applyPresetSpecials()
-        dynamicTextStyler.formatter = { text, cell, ->
-            val textStyle = preset?.style?: TextStyle.Regular
-            TextStyler.style(text, applyColourIfExists = false,  textStyle, preset?.colour, preset?.backgroundColour)
-        }
-    }
-
-    private fun applyPresetSpecials(){
-        val usedPreset = preset
-        if(usedPreset != null && usedPreset.postfix != null){
-            postfix = usedPreset.postfix?:""
-        }
+//        dynamicTextStyler.formatter = { text, cell, ->
+//
+//            val textStyle = preset?.style?: TextStyle.Regular
+//            TextStyler.style(text, applyColourIfExists = false,  textStyle, preset?.colour, preset?.backgroundColour)
+//        }
     }
 
     override fun applyPreset(preset: PrettyPresets): PrettyCell{

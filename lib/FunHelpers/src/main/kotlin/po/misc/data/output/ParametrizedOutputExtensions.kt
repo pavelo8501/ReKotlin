@@ -10,8 +10,6 @@ import po.misc.types.k_class.KClassParam
 import po.misc.types.k_class.toKeyParams
 
 
-
-
 fun Any.output(
     option: IndentOptions
 ){

@@ -2,6 +2,7 @@ package po.misc.reflection
 
 import po.misc.exceptions.throwableToText
 import po.misc.types.ClassAware
+import po.misc.types.memberProperties
 import po.misc.types.safeCast
 import po.misc.types.token.TypeToken
 import kotlin.reflect.KClass
@@ -99,6 +100,36 @@ fun <T: Any> resolveProperty(
     classAware: ClassAware<T>,
     property: KProperty<*>,
 ): KProperty1<T, *>? = resolveProperty(kind, classAware.kClass, property)
+
+
+
+fun <T: Any> KProperty<*>.resolveTypedProperty(
+    kind: Readonly,
+    receiverClass: KClass<*>,
+    returnType: ClassAware<T>,
+): KProperty1<Any, T>?{
+
+   return receiverClass.memberProperties.firstOrNull { it.name == this.name }?.let {found->
+       val casted = found.safeCast<KProperty1<Any, T>>()
+       casted
+    }?:run {
+        null
+    }
+}
+
+fun <T: Any> KProperty<*>.resolveTypedProperty(
+    kind: Readonly,
+    receiverClass: ClassAware<*>,
+    returnType: ClassAware<T>,
+): KProperty1<Any, T>?{
+
+    return receiverClass.memberProperties.firstOrNull { it.name == this.name }?.let {found->
+        val casted = found.safeCast<KProperty1<Any, T>>()
+        casted
+    }?:run {
+        null
+    }
+}
 
 
 

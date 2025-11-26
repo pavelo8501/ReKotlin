@@ -45,7 +45,7 @@ class ProceduralEntry(
     private val stepNameCell =  PrettyCell(20)
 
     private val resultCell = PrettyCell(width = 2)
-    private val outputRow = PrettyRow(SpecialChars.WHITESPACE, badgeCell, stepNameCell, resultCell)
+    private val outputRow = PrettyRow(badgeCell, stepNameCell, resultCell)
 
     internal val proceduralRecords: MutableList<ProceduralRecord> = mutableListOf()
 

@@ -64,10 +64,10 @@ class DynamicTextStyler<P: StylePresets>(
     override val formatterName: String = "DynamicTextStyler"
 
     override var formatter: (String, PrettyCellBase<P>) -> String = { text, cell->
-        val textStyle = cell.style
-        val colour: Colour? = cell.colour
-        val backGround: BGColour? = cell.backgroundColour
-        TextStyler.style(text, textStyle, colour, backGround)
+        val useTextStyle = cell.options.styleOptions.style
+        val useColour: Colour? = cell.options.styleOptions.colour
+        val useBackgroundColour: BGColour? =  cell.options.styleOptions.backgroundColour
+        TextStyler.style(text, useTextStyle, useColour, useBackgroundColour)
     }
 
     init {

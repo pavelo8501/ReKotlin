@@ -10,14 +10,13 @@ import po.misc.data.styles.TextStyler
 import kotlin.reflect.KProperty
 
 
-class KeyedCell(width: Int, val cellName: String): PrettyCellBase<KeyedPresets>(width, Align.LEFT), KeyedCellRenderer {
+class KeyedCell(width: Int, val cellName: String): PrettyCellBase<KeyedPresets>(width), KeyedCellRenderer {
 
     constructor(kProperty: KProperty<*>, cellName: String = kProperty.name) : this(width = 0, cellName) {
         property = kProperty
         options = KeyedCellOptions(KeyedPresets.Property)
     }
 
-    override var preset: KeyedPresets? = null
     var property: KProperty<*>? = null
 
     override var options: CommonCellOptions = KeyedCellOptions()
@@ -67,10 +66,10 @@ class KeyedCell(width: Int, val cellName: String): PrettyCellBase<KeyedPresets>(
         return final
     }
 
-    override fun render(content: String): String {
+    override fun render(content: String, renderOptions: RenderOptions): String {
         val modified = staticModifiers.modify(content)
         val formatted = compositeFormatter.format(modified, this)
-        val final = justifyText(formatted,  RenderOptions())
+        val final = justifyText(formatted,  renderOptions)
         return final
     }
 

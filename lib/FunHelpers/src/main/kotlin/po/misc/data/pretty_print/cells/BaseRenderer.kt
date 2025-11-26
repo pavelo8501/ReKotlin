@@ -11,20 +11,22 @@ import po.misc.data.styles.Colorizer
 
 
 interface BaseRenderer <P : StylePresets> : Colorizer {
-    var preset : P?
+
     val options: CommonCellOptions
 
-    fun render(content: String): String
+    fun render(content: String, renderOptions: RenderOptions): String
     fun render(formatted: FormattedPair, renderOptions: RenderOptions): String
     fun addModifiers(vararg modifiers: TextModifier)
 }
 
 interface CellRenderer :  BaseRenderer<PrettyPresets>{
-    override var preset : PrettyPresets?
+   // override var preset : PrettyPresets?
 }
 
 interface KeyedCellRenderer : BaseRenderer<KeyedPresets> {
-    override var preset : KeyedPresets?
+   // override var preset : KeyedPresets?
+
+
 }
 
 

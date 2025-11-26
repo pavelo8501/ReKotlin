@@ -13,6 +13,8 @@ import kotlin.reflect.jvm.javaGetter
 interface ReflectiveAssassin{
 
     companion object{
+
+
         internal fun brutForcePropertyName(
             propName: String,
             lookupResult: PropertyLookup,
@@ -55,8 +57,12 @@ interface ReflectiveAssassin{
             }
         }
 
-        internal fun playDirty(receiver: Any, prop: KProperty<*>, lookup: PropertyLookup): Any? {
-
+        @PublishedApi
+        internal fun playDirty(
+            receiver: Any,
+            prop: KProperty<*>,
+            lookup: PropertyLookup
+        ): Any? {
             val kClass = receiver::class
             val jClass = kClass.java
 
@@ -65,7 +71,6 @@ interface ReflectiveAssassin{
                 prop.javaGetter?.let { add(it) }
                 prop.javaField?.let { add(it) }
             }
-
             for (candidate in candidates) {
                 try {
                     candidate.isAccessible = true

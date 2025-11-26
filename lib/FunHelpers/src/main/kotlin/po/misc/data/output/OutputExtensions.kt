@@ -75,20 +75,28 @@ fun Any?.output(prefix: String, colour: Colour? = null): Unit = outputInternal(t
 
 fun Any?.output(context: TraceableContext, colour: Colour? = null): Unit = outputInternal(context = context, receiver = this, colour =  colour)
 
-fun Any.output(prefix: String, colour: Colour? = null, transform: (String)-> String){
-    val formated = stringify(colour, transform)
-    if(prefix.isNotBlank()){
-        if(colour != null){
-            println(Colorizer.colour(prefix, colour))
-            print(formated.toString())
-        }else{
-            println(prefix)
-            print(formated.toString())
-        }
-    }else{
-        formated.output()
-    }
+//fun Any.output(prefix: String, colour: Colour? = null, transform: (String)-> String){
+//    val formated = stringify(colour, transform)
+//    if(prefix.isNotBlank()){
+//        if(colour != null){
+//            println(Colorizer.colour(prefix, colour))
+//            print(formated.toString())
+//        }else{
+//            println(prefix)
+//            print(formated.toString())
+//        }
+//    }else{
+//        formated.output()
+//    }
+//}
+
+fun <T: Any> T.output(prefix: String = "", transform: (T)-> Any){
+     val result = transform.invoke(this)
+     val formatted =  result.stringify()
+     println(formatted.addPrefix(prefix).formatedString)
 }
+
+
 
 
 fun Throwable.output(){

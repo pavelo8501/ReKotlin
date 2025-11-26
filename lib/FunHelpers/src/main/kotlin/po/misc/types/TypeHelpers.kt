@@ -55,7 +55,24 @@ fun <T: Any> T?.getOrThrow(
 }
 
 
+
+
 fun <T: Any> T?.getOrThrow(
+    expectedClass: KClass<*>? = null,
+):T {
+    val methodName = "getOrThrow"
+    val className = expectedClass?.simpleOrAnon?:"ExpectedClass not specified"
+    val message = "Expected $className got null."
+    if(this == null){
+        throw NullPointerException(message)
+    }else{
+        return this
+    }
+}
+
+
+fun <T: Any> T?.getOrThrow(
+    context: TraceableContext,
     expectedClass: KClass<*>? = null,
 ):T {
     val methodName = "getOrThrow"

@@ -15,15 +15,16 @@ class PrettyBorders(
         return "$left$content$right"
     }
 
-    fun renderLeft(content: String,  postfixRight: String = " "): String{
+    fun renderLeft(content: String,  postfixRight: String = ""): String{
         return "$left$content$postfixRight"
     }
-    fun renderRight(content: String, prefixLeft: String = " "): String{
-        return "$prefixLeft$content$right"
+
+    fun renderRight(content: String, postfixRight: String = " "): String{
+        return "$content$right$postfixRight"
     }
 
     fun render(content: String, options: RenderOptions): String{
-        return when{
+        return when {
             options.renderLeftBorder && options.renderRightBorder -> render(content)
             options.renderLeftBorder -> renderLeft(content)
             options.renderRightBorder -> renderRight(content)

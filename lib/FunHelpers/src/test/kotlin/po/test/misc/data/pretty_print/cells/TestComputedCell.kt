@@ -2,7 +2,7 @@ package po.test.misc.data.pretty_print.cells
 
 import org.junit.jupiter.api.Test
 import po.misc.data.output.output
-import po.misc.data.pretty_print.rows.PrettyRow
+import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.rows.buildPrettyRow
 import kotlin.test.assertTrue
 
@@ -29,7 +29,7 @@ class TestComputedCell {
         }
         val subClassText = "Report subclass parameter"
         val report = ReportClass(subClassText)
-        val renderedText =  prettyRow.render(report, PrettyRow.Orientation.Horizontal)
+        val renderedText =  prettyRow.render(report, Orientation.Horizontal)
         renderedText.output()
         assertTrue { renderedText.contains(subClassText) }
 

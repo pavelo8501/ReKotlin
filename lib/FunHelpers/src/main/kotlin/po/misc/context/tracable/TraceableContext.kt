@@ -122,6 +122,7 @@ interface TraceableContext {
         exceptionProvider: (ExceptionPayload)-> Throwable
     ): T = getOrThrow(this@TraceableContext, expectedClass, exceptionProvider)
 
+
     /**
      * Context-bound shorthand for [castOrThrow], automatically binding this [TraceableContext]
      * as exception origin.

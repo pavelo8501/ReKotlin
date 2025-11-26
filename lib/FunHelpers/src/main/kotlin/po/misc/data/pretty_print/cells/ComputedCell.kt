@@ -9,8 +9,7 @@ class ComputedCell<T: Any>(
     width: Int,
     var property: KProperty1<Any, T>? = null,
     var lambda: (ComputedCell<T>.(T)-> Any)? = null
-): PrettyCellBase<KeyedPresets>(width, Align.LEFT), KeyedCellRenderer  {
+): PrettyCellBase<KeyedPresets>(width), KeyedCellRenderer  {
 
-    override var preset: KeyedPresets? = null
 
 }

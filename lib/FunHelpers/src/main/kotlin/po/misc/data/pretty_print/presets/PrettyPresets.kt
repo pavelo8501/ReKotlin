@@ -69,6 +69,15 @@ interface PrettyPresets: StylePresets{
         override val backgroundColour: BGColour? = null
         override val postfix: String? = null
     }
+
+    object Header : PrettyPresets {
+        override val align: Align = Align.CENTER
+        override val style: TextStyle = TextStyle.Bold
+        override val colour: Colour = Colour.Blue
+        override val backgroundColour: BGColour = BGColour.White
+        override val postfix: String? = null
+    }
+
 }
 
 interface KeyedPresets:  PrettyPresets {
@@ -87,15 +96,12 @@ interface KeyedPresets:  PrettyPresets {
         val keyStyle = keyStyleOption()
         return KeyedCellOptions(width, align, textStyle, keyStyle)
     }
-
     fun styleOption():TextStyleOptions{
         return TextStyleOptions(style, colour, backgroundColour)
     }
-
     fun keyStyleOption():TextStyleOptions{
        return TextStyleOptions(keyStyle, keyColour, keyBackgroundColour)
     }
-
 
     object Property: KeyedPresets{
 

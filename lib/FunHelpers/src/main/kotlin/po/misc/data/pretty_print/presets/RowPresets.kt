@@ -1,9 +1,9 @@
 package po.misc.data.pretty_print.presets
 
 import po.misc.data.pretty_print.parts.Console220
+import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.parts.RenderDefaults
 import po.misc.data.pretty_print.parts.RowOptions
-import po.misc.data.pretty_print.rows.PrettyRow.Orientation
 
 
 interface RowPresets{

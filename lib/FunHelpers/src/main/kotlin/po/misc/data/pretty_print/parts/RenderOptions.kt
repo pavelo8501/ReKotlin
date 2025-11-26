@@ -1,9 +1,13 @@
 package po.misc.data.pretty_print.parts
 
+import po.misc.data.pretty_print.cells.PrettyCellBase
+import po.misc.data.pretty_print.presets.PrettyPresets
 import po.misc.data.pretty_print.presets.RendererPresets
 import po.misc.data.pretty_print.rows.PrettyRow
+import po.misc.data.pretty_print.rows.PrettyRowBase
 
 class RenderOptions(
+    val orientation: Orientation,
     val usePlain: Boolean = false,
     val renderLeftBorder: Boolean = true,
     val renderRightBorder: Boolean = true,
@@ -14,7 +18,7 @@ class RenderOptions(
         usePlain: Boolean = false,
         renderLeftBorder: Boolean = true,
         renderRightBorder: Boolean = true
-    ):this(usePlain, renderLeftBorder, renderRightBorder){
+    ):this(preset.orientation, usePlain, renderLeftBorder, renderRightBorder){
         ensureOutputIntegrity = preset.outputIntegrity
     }
 
@@ -36,8 +40,22 @@ class RenderOptions(
         internal set
 
 
+    fun isLastCell(index: Int): Boolean{
+      return index == cellsCount - 1
+    }
 
-    fun assignParameters(prettyRow: PrettyRow):RenderOptions{
+    fun isLastCell(cell: PrettyCellBase<*>): Boolean{
+        return cell.index == cellsCount - 1
+    }
+
+    fun isFirstCell(index: Int): Boolean{
+        return index == 0
+    }
+    fun isFirstCell(cell: PrettyCellBase<*>): Boolean{
+        return cell.index == 0
+    }
+
+    fun assignParameters(prettyRow: PrettyRowBase):RenderOptions{
         if(canRecalculate){
             rowMaxSize = prettyRow.options.rowSize
             cellsCount = prettyRow.cells.size
@@ -45,7 +63,7 @@ class RenderOptions(
         return this
     }
 
-    fun assignFinalize(prettyRow: PrettyRow):RenderOptions{
+    fun assignFinalize(prettyRow: PrettyRowBase):RenderOptions{
         rowMaxSize = prettyRow.options.rowSize
         cellsCount = prettyRow.cells.size
         canRecalculate = false

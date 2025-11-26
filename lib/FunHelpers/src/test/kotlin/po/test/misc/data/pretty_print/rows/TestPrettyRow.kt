@@ -4,15 +4,20 @@ import org.junit.jupiter.api.Test
 import po.misc.collections.repeatBuild
 import po.misc.context.component.Component
 import po.misc.data.PrettyPrint
+import po.misc.data.count
+import po.misc.data.output.output
+import po.misc.data.pretty_print.PrettyBuilder
 import po.misc.data.pretty_print.cells.StaticCell
+import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.presets.RowPresets
 import po.misc.data.pretty_print.rows.PrettyRow
+import po.misc.data.splitLines
+import po.misc.data.styles.SpecialChars
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 
-class TestPrettyRow : Component{
-
+class TestPrettyRow : Component, PrettyBuilder{
 
     private class PrintableRecord(
         val name: String = "PersonalName",
@@ -30,6 +35,53 @@ class TestPrettyRow : Component{
     private val cell2Text = "Cell text 2"
     private val cell3Text = "Cell text 3"
     private val cell4Text = "Cell text 4"
+
+    private val noGapsText1 = "text_1"
+    private val noGapsText2 = "text_2"
+    private val noGapsText3 = "text_3"
+
+
+    @Test
+    fun `Horizontal render with 1 cell work as expected`(){
+
+        val static = noGapsText1.toStatic()
+        val prettyRow = PrettyRow(static)
+        val record = PrintableRecord()
+        val render =  prettyRow.render(record)
+        val lines = render.splitLines()
+        assertEquals(1, lines.size)
+        assertEquals(0,  render.count(SpecialChars.WHITESPACE), "Single cell should not have surrounding whitespaces")
+    }
+
+    @Test
+    fun `Horizontal render with 2 cells work as expected`(){
+        val static = noGapsText1.toStatic()
+        val static2 = noGapsText2.toStatic()
+        val record = PrintableRecord()
+        val prettyRow = PrettyRow(static, static2)
+        val render =  prettyRow.render(record)
+        val lines = render.splitLines()
+        assertEquals(1, lines.size)
+        assertEquals(1, render.count{ it == '|' }, "Two cell render should have 1 separator" )
+        assertEquals(2,  render.count(SpecialChars.WHITESPACE), "Two cell render should have 2 spaces")
+    }
+
+    @Test
+    fun `Horizontal render with multiple cells work as expected`(){
+
+        val static = noGapsText1.toStatic()
+        val static2 = noGapsText2.toStatic()
+        val static3 = noGapsText3.toStatic()
+
+        val record = PrintableRecord()
+        val prettyRow = PrettyRow(static, static2, static3)
+        val render =  prettyRow.render(record)
+        val lines = render.splitLines()
+        render.output()
+        assertEquals(1, lines.size)
+        assertEquals(2, render.count{ it == '|' }, "3 cell render should have 2 separator" )
+        assertEquals(4,  render.count(SpecialChars.WHITESPACE), "3 cell render should have 4 spaces")
+    }
 
     @Test
     fun `Row vararg renderer  work as expected`(){
@@ -111,10 +163,10 @@ class TestPrettyRow : Component{
         }
         val prettyRow = PrettyRow(staticCells)
         prettyRow.render(cell1Text, RowPresets.VerticalRow)
-        assertEquals(PrettyRow.Orientation.Horizontal,  prettyRow.options.orientation)
+        assertEquals(Orientation.Horizontal,  prettyRow.options.orientation)
         prettyRow.applyPreset(RowPresets.VerticalRow)
-        assertEquals(PrettyRow.Orientation.Vertical,  prettyRow.options.orientation)
-
+        assertEquals(Orientation.Vertical,  prettyRow.options.orientation)
     }
+
 }
 

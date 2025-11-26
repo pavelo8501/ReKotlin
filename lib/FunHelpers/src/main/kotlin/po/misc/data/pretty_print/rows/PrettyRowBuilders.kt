@@ -11,6 +11,7 @@ import po.misc.data.pretty_print.grid.PrettyGrid
 import po.misc.data.pretty_print.parts.CommonCellOptions
 import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.presets.KeyedPresets
+import po.misc.data.pretty_print.presets.PrettyPresets
 import po.misc.data.styles.Colour
 import po.misc.reflection.Readonly
 import po.misc.reflection.resolveProperty
@@ -57,12 +58,10 @@ sealed class  CellContainerBase<T: Any>(
         }
     }
 
-    fun <C: PrettyCellBase<*>> storeCell(cell : C):C{
+    fun <C: PrettyCellBase<*>> storeCell(cell : C): C {
         prettyCellsBacking.add(cell)
         return cell
     }
-
-    //builderAction: StringBuilder.() -> Unit
 
     internal fun addStaticCell(
         content: Any,
@@ -72,8 +71,11 @@ sealed class  CellContainerBase<T: Any>(
         if(options != null){
             cell.options = options
         }
-        return storeCell(cell)
+        storeCell(cell)
+
+        return cell
     }
+    fun addCell(content: Any, preset: PrettyPresets):StaticCell = addStaticCell(content, preset.toOptions())
     fun addCell(content: Any, options: CommonCellOptions? = null): StaticCell = addStaticCell(content, options)
     fun addCell(
         staticCell: StaticCell.Companion,
@@ -124,82 +126,6 @@ class CellContainer<T: Any>(typeToken:  TypeToken<T>): CellContainerBase<T>(type
 class CellReceiverContainer<T: Any>(val receiver: T, typeToken:  TypeToken<T>): CellContainerBase<T>(typeToken){
     companion object
 }
-
-//
-//class ReadOnlyPropertyContainer<T: Any>(val receiver: T): PrettyDataContainer {
-//    enum class PropertyType{
-//        KProperty1,
-//        KProperty0
-//    }
-//    var propertyType: PropertyType = PropertyType.KProperty0
-//
-//    internal val prettyCellsBacking = mutableListOf<PrettyCellBase<*>>()
-//    override val prettyCells : List<PrettyCellBase<*>> get() = prettyCellsBacking
-//
-//    internal fun addPropertyCell(property: KProperty<Any>,  options: KeyedCellOptions): KeyedCell {
-//        val cell = when(property){
-//            is KProperty1<*, *>->{
-//                propertyType = PropertyType.KProperty1
-//                val cell = KeyedCell(property)
-//                prettyCellsBacking.add(cell)
-//                cell
-//            }
-//            is KProperty0<*>->{
-//                receiver.resolveProperty(Readonly, property)?.let {
-//                    propertyType = PropertyType.KProperty1
-//                    val cell = KeyedCell(it)
-//                    prettyCellsBacking.add(cell)
-//                    cell
-//                }?:run {
-//                    propertyType = PropertyType.KProperty0
-//                    val cell = KeyedCell(property)
-//                    prettyCellsBacking.add(cell)
-//                    "property ${property.name} can not be cased to KProperty1<* , *>".output(Colour.Yellow)
-//                    cell
-//                }
-//            }
-//            else -> {
-//                throw IllegalStateException("property type ${property::class} unsupported")
-//            }
-//        }
-//        return cell.applyOptions(options)
-//    }
-//
-//    fun addCell(content: Any): StaticCell {
-//        val cell =  StaticCell(content)
-//        prettyCellsBacking.add(cell)
-//        return cell
-//    }
-//
-//    fun addCell(key: String, property: KProperty<Any>): KeyedCell {
-//        return addPropertyCell(property, KeyedCellOptions(useKeyName = key))
-//    }
-//
-//    fun addCell(property: KProperty<Any>, options: KeyedCellOptions = KeyedCellOptions()): KeyedCell {
-//        return addPropertyCell(property, options)
-//    }
-//
-//    fun addCell(property: KProperty<Any>, options: KeyedCellOptions = KeyedCellOptions(), vararg modifiers: TextModifier): KeyedCell {
-//        val cell = addCell(property, options)
-//        cell.staticModifiers.addModifiers(modifiers.toList())
-//        return cell
-//    }
-//
-//    fun addCell(property: KProperty<Any>, vararg modifiers: TextModifier): KeyedCell {
-//        val cell = addCell(property)
-//        cell.staticModifiers.addModifiers(modifiers.toList())
-//        return cell
-//    }
-//    companion object
-//}
-
-//inline fun <reified T: Any> T.buildPrettyRow2(builder: ReadOnlyPropertyContainer<T>.(T)-> Unit): PrettyRow {
-//    val constructor = ReadOnlyPropertyContainer(this)
-//    builder.invoke(constructor, this)
-//    val realRow = PrettyRow(constructor)
-//    return realRow
-//}
-
 
 inline fun <reified T: Any> T.buildPrettyRow(builder: CellReceiverContainer<T>.(T)-> Unit): PrettyRow {
     val constructor = CellReceiverContainer<T>(this, TypeToken.create())

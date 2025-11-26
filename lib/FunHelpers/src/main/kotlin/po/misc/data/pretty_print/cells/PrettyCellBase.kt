@@ -1,8 +1,7 @@
 package po.misc.data.pretty_print.cells
 
+import po.misc.data.output.output
 import po.misc.data.pretty_print.parts.Align
-import po.misc.data.pretty_print.parts.Console80
-import po.misc.data.pretty_print.parts.RenderDefaults
 import po.misc.data.pretty_print.formatters.CompositeFormatter
 import po.misc.data.pretty_print.formatters.DynamicTextFormatter
 import po.misc.data.pretty_print.formatters.DynamicTextStyler
@@ -11,82 +10,94 @@ import po.misc.data.pretty_print.formatters.text_modifiers.StaticModifiers
 import po.misc.data.pretty_print.formatters.text_modifiers.TextModifier
 import po.misc.data.pretty_print.parts.CellOptions
 import po.misc.data.pretty_print.parts.CommonCellOptions
+import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.parts.PrettyBorders
 import po.misc.data.pretty_print.presets.StylePresets
 import po.misc.data.pretty_print.parts.RenderOptions
 import po.misc.data.strings.FormattedPair
-import po.misc.data.styles.BGColour
-import po.misc.data.styles.Colour
-import po.misc.data.styles.TextStyle
 import po.misc.data.styles.TextStyler
 
 sealed class PrettyCellBase<P: StylePresets>(
     val width: Int,
-    var align: Align = Align.LEFT
-) : BaseRenderer<P> {
+) : BaseRenderer<P>{
+
+    var index: Int = 0
+        internal set
 
     val staticModifiers : StaticModifiers = StaticModifiers()
-
-    var colour: Colour? = null
-    var backgroundColour: BGColour? = null
-
-    var style: TextStyle = TextStyle.Regular
     var postfix: String? = null
 
-    var defaults: RenderDefaults = Console80
-
     val borders : PrettyBorders = PrettyBorders('|', '|')
+
     override var options : CommonCellOptions = CellOptions()
         internal set
 
     val textFormatter: DynamicTextFormatter<P> = DynamicTextFormatter{ text, cell, ->
-        val presetPostfix = preset?.postfix
-        val resultingPostfix = postfix?:presetPostfix
-        if(resultingPostfix != null){
-            "$text $resultingPostfix"
+        if(postfix != null){
+            "$text$postfix"
         }else{
             text
         }
     }
     val dynamicTextStyler: DynamicTextStyler<P> = DynamicTextStyler{ text, cell, ->
-        val textStyle = cell.style
-        val useColour = cell.options.styleOptions.colour
-        val backGround: BGColour? = cell.backgroundColour
-        TextStyler.style(text, applyColourIfExists = false, style =  textStyle, colour =  useColour, backGround)
+        val useStyle = options.styleOptions.style
+        val useColour = options.styleOptions.colour
+        val useBackgroundColour = options.styleOptions.backgroundColour
+        TextStyler.style(text, applyColourIfExists = false, useStyle, useColour, useBackgroundColour)
     }
     val compositeFormatter: CompositeFormatter<P> = CompositeFormatter(textFormatter, dynamicTextStyler)
 
-    private fun calculateEffectiveWidth(cellWidth: Int, rowMaxWidth: Int, cellsCount: Int): Int{
-        if(cellWidth == 0){
-            if(cellsCount <= 1){
-                return rowMaxWidth
-            }else{
-                return rowMaxWidth / cellsCount
+    private fun calculateEffectiveWidth(renderOptions: RenderOptions): Int{
+        val cellWidth = options.width
+        val cellsCount = renderOptions.cellsCount
+        val rowMaxWidth = renderOptions.rowMaxSize
+        val orientation = renderOptions.orientation
+        val align = options.alignment
+
+        val cellAverageWidth: Int = rowMaxWidth / cellsCount
+
+        if(cellWidth != 0 ){
+            return cellWidth
+        }
+        return  when {
+            align == Align.CENTER ->{
+                cellAverageWidth
+            }
+            align != Align.CENTER  ->{
+                0
+            }
+            else ->  {
+                0
             }
         }
-        return cellWidth
     }
     protected fun justifyText(text: String, renderOptions: RenderOptions): String {
-        val useWidth =  calculateEffectiveWidth(options.width, renderOptions.rowMaxSize,  renderOptions.cellsCount)
+        val useWidth =  calculateEffectiveWidth(renderOptions)
         val useAlignment = options.alignment
         val useFiller = options.spaceFiller
 
-        val aligned = when (useAlignment) {
-            Align.LEFT -> {
-                text.padEnd(useWidth, useFiller)
-            }
-            Align.RIGHT -> {
-                text.padStart(useWidth, useFiller)
-            }
-            Align.CENTER -> {
-                val filletString = useFiller.toString()
-                val diff = useWidth - text.length
-                val left = diff / 2
-                val right = diff - left
-                filletString.repeat(left) + text + filletString.repeat(right)
+        val aligned =  if(renderOptions.orientation == Orientation.Vertical){
+            text
+        }else{
+            when (useAlignment) {
+                Align.LEFT -> {
+                    text.padEnd(useWidth, useFiller)
+                }
+                Align.RIGHT -> {
+                    text.padStart(useWidth, useFiller)
+                }
+                Align.CENTER -> {
+                    val fillerString = useFiller.toString()
+                    val diff = useWidth - text.length
+                    val left =  (diff / 2).coerceAtLeast(0)
+                    val right = (diff - left).coerceAtLeast(0)
+                    fillerString.repeat(left) + text + fillerString.repeat(right)
+                }
             }
         }
-        return borders.render(aligned, renderOptions)
+
+        val bordered = borders.render(aligned, renderOptions)
+        return bordered
     }
 
     open fun applyPreset(preset: P):PrettyCellBase<P>{
@@ -108,10 +119,10 @@ sealed class PrettyCellBase<P: StylePresets>(
         staticModifiers.addModifier(dynamicColourModifier)
     }
 
-    override fun render(content: String): String {
+    override fun render(content: String, renderOptions: RenderOptions): String {
         val modified =  staticModifiers.modify(content)
         val formatted =  compositeFormatter.format(modified, this)
-        val final = justifyText(formatted,  RenderOptions())
+        val final = justifyText(formatted,  renderOptions)
         return final
     }
     override fun render(formatted: FormattedPair, renderOptions: RenderOptions): String {
@@ -121,6 +132,8 @@ sealed class PrettyCellBase<P: StylePresets>(
         val final = justifyText(formatted,  renderOptions)
         return final
     }
+
+    fun render(content: String): String = render(content, RenderOptions(Orientation.Horizontal, false))
 
     companion object {
 
@@ -132,16 +145,9 @@ sealed class PrettyCellBase<P: StylePresets>(
         fun copyKeyParams(source: PrettyCellBase<*>, target: PrettyCellBase<*>):PrettyCellBase<*>{
             target.postfix = source.postfix
             target.options = source.options
-            target.colour = source.colour
-            target.backgroundColour = source.backgroundColour
-            target.style = source.style
             target.staticModifiers.addModifiers(source.staticModifiers.modifiers)
             when(source){
-                is PrettyCell if target is PrettyCell ->{
-                    target.preset = source.preset
-                }
                 is KeyedCell if target is KeyedCell -> {
-                    target.preset = source.preset
                     target.property = source.property
                 }
                 is ComputedCell<*> if target is ComputedCell<*> -> {
@@ -151,7 +157,6 @@ sealed class PrettyCellBase<P: StylePresets>(
             }
             return target
         }
-
         fun <T:PrettyCellBase<P>, P: StylePresets> copyParameters(source:T, target :T):T{
             target.staticModifiers.clear()
             target.staticModifiers.addModifiers(source.staticModifiers.modifiers)
