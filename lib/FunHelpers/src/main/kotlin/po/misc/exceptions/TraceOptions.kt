@@ -5,20 +5,22 @@ import kotlin.reflect.KFunction
 
 
 sealed interface TraceOptions{
-
     enum class TraceType{ Default, CallSite }
-
     val traceType:TraceType
 }
 
 open class TraceCallSite(var methodName: String): TraceOptions{
 
-    override val traceType:TraceType = TraceType.CallSite
+    constructor(function : KFunction<*>):this(function.name){
+        kFunction = function
+    }
 
-    constructor(function : KFunction<*>):this(function.name)
+    override val traceType:TraceType = TraceType.CallSite
+    var kFunction : KFunction<*>? = null
 
     fun provideMethodName(name: String): TraceCallSite{
         methodName = name
         return this
     }
+
 }

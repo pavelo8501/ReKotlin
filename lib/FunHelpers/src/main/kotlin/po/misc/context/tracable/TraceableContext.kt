@@ -8,6 +8,7 @@ import po.misc.data.logging.log_subject.LogSubject
 import po.misc.data.logging.log_subject.WarningSubject
 import po.misc.data.logging.parts.LogTracker
 import po.misc.exceptions.ExceptionPayload
+import po.misc.exceptions.StackTracer
 import po.misc.exceptions.throwableToText
 import po.misc.types.castOrThrow
 import po.misc.types.getOrThrow
@@ -48,7 +49,7 @@ import kotlin.reflect.KClass
  * @see Notification
  * @see NotificationTopic
  */
-interface TraceableContext {
+interface TraceableContext  : StackTracer {
 
     fun notification(subject: String, text: String, topic: NotificationTopic = NotificationTopic.Info): Notification{
         return Notification(this, subject, text, topic)

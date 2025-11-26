@@ -10,6 +10,7 @@ import po.misc.exceptions.stack_trace.extractTrace
 import po.misc.exceptions.trackable.TrackableException
 import java.time.Instant
 import kotlin.reflect.KClass
+import kotlin.reflect.KFunction
 
 
 open class ContextTracer(
@@ -44,10 +45,10 @@ fun TraceableContext.trace():  ExceptionTrace{
 }
 
 fun TraceableContext.trace(options: TraceOptions):  ExceptionTrace{
-
     val tracer = Tracer()
    val trace = when(options){
         is TraceCallSite ->{
+
             tracer.extractTrace(options)
         }
     }

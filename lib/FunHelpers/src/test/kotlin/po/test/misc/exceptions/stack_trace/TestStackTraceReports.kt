@@ -7,36 +7,52 @@ import po.misc.exceptions.TraceCallSite
 import po.misc.exceptions.stack_trace.CallSiteReport
 import po.misc.exceptions.stack_trace.ExceptionTrace
 import po.misc.exceptions.trace
+import po.test.misc.exceptions.setup.TraceNotifier
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class TestStackTraceReports {
 
-    class SubClass(): TraceableContext{
-        fun onMethod(){
-            val trace : ExceptionTrace = trace(TraceCallSite(::onMethod))
-            trace.printCallSite()
-        }
-        fun createTrace():  ExceptionTrace{
-            return  trace(TraceCallSite(::createTrace))
+    class SubClass() : TraceableContext {
+        fun createTrace(): ExceptionTrace {
+            return trace(TraceCallSite(::createTrace))
         }
     }
 
+    private val notifier = TraceNotifier(notifyOnValue = 300)
+
+
+    fun intermediaryMethod(value: Int): ExceptionTrace? {
+        return notifier.notifyOrNot(value)
+    }
+
     @Test
-    fun `Call site report work as expected`(){
+    fun `Call site report work as expected`() {
+        val thisFunName = ::`Call site report work as expected`.name
+        val registeredFunName = SubClass::createTrace.name
         val subClass = SubClass()
         val trace = subClass.createTrace()
-        val report :  CallSiteReport =  ExceptionTrace.callSiteReport(trace)
-        val render =  report.callSiteReport.render(report)
+        val report: CallSiteReport = ExceptionTrace.callSiteReport(trace)
+        val render = report.callSiteReport.render(report)
         render.output()
-        assertTrue {
-            render.contains("createTrace")
-        }
+        assertTrue { render.contains(registeredFunName) && render.contains(thisFunName) }
     }
 
     @Test
-    fun `Function call can be resolved to an actual call-site`() {
-        val subClass = SubClass()
-        subClass.onMethod()
+    fun `Call site report render hops as expected`() {
+
+        val stackTrace = intermediaryMethod(300)
+        assertNotNull(stackTrace)
+        val report = ExceptionTrace.callSiteReport(stackTrace)
+
+        val reportRender = report.callSiteReport.render(report)
+        assertEquals(1, report.hopFrames.size)
+
+        reportRender.output()
+
     }
 
+
 }
+

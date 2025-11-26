@@ -1,18 +1,15 @@
 package po.misc.data.pretty_print.rows
 
-import po.misc.data.output.output
 import po.misc.data.pretty_print.cells.ComputedCell
 import po.misc.data.pretty_print.cells.PrettyCellBase
 import po.misc.data.pretty_print.cells.KeyedCell
 import po.misc.data.pretty_print.parts.KeyedCellOptions
 import po.misc.data.pretty_print.cells.StaticCell
 import po.misc.data.pretty_print.formatters.text_modifiers.TextModifier
-import po.misc.data.pretty_print.grid.PrettyGrid
 import po.misc.data.pretty_print.parts.CommonCellOptions
 import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.presets.KeyedPresets
 import po.misc.data.pretty_print.presets.PrettyPresets
-import po.misc.data.styles.Colour
 import po.misc.reflection.Readonly
 import po.misc.reflection.resolveProperty
 import po.misc.types.castOrThrow
@@ -138,7 +135,7 @@ inline fun <reified T: Any> T.buildPrettyRow(
     container: CellReceiverContainer.Companion,
     rowOptions: RowOptions? = null,
     noinline builder: CellReceiverContainer<T>.(T)-> Unit
-): PrettyRow =  PrettyGrid.createPrettyRowBuilding(this, TypeToken.create<T>(), rowOptions,  builder)
+): PrettyRow =  PrettyRow.buildRow(this, TypeToken.create<T>(), rowOptions,  builder)
 
 
 fun <T: Any> T.buildPrettyRow(
@@ -146,26 +143,26 @@ fun <T: Any> T.buildPrettyRow(
     typeToken: TypeToken<T>,
     rowOptions: RowOptions? = null,
     builder: CellReceiverContainer<T>.(T)-> Unit
-): PrettyRow = PrettyGrid.createPrettyRowBuilding(this, typeToken, rowOptions,  builder)
+): PrettyRow =  PrettyRow.buildRow(this, typeToken, rowOptions,  builder)
 
 
 inline fun <reified T: Any> buildPrettyRow(
     rowOptions: RowOptions? = null,
     noinline builder: CellContainer<T>.()-> Unit
-): PrettyRow =  PrettyGrid.createPrettyRowBuilding(TypeToken.create<T>(), rowOptions, builder)
+): PrettyRow =   PrettyRow.buildRow(TypeToken.create<T>(), rowOptions, builder)
 
 inline fun <reified T: Any> buildPrettyRow(
     container: CellContainer.Companion,
     rowOptions: RowOptions? = null,
     noinline builder: CellContainer<T>.()-> Unit
-): PrettyRow = PrettyGrid.createPrettyRowBuilding(TypeToken.create<T>(), rowOptions,  builder =  builder)
+): PrettyRow =  PrettyRow.buildRow(TypeToken.create<T>(), rowOptions,  builder =  builder)
 
 fun <T: Any> buildPrettyRow(
     container: CellContainer.Companion,
     typeToken: TypeToken<T>,
     rowOptions: RowOptions? = null,
     builder: CellContainer<T>.()-> Unit
-): PrettyRow = PrettyGrid.createPrettyRowBuilding(typeToken, rowOptions, builder)
+): PrettyRow =  PrettyRow.buildRow(typeToken, rowOptions, builder)
 
 
 

@@ -5,30 +5,16 @@ import po.misc.data.output.output
 import po.misc.data.pretty_print.parts.Align
 import po.misc.data.pretty_print.cells.KeyedCell
 import po.misc.data.pretty_print.grid.buildPrettyGrid
-import po.misc.data.pretty_print.grid.prettyGrid
 import po.misc.data.pretty_print.parts.CellOptions
+import po.misc.data.pretty_print.presets.PrettyPresets
 import po.misc.data.pretty_print.presets.RowPresets
 import po.misc.data.styles.Colour
-import po.misc.types.isNotNull
+import po.test.misc.data.pretty_print.setup.PrettyTestBase
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 
-class TestPrettyGrid {
-
-
-    private class PrintableRecordSubClass(
-        val subName: String = "PrintableRecordSubClass",
-        val subComponent: String = "PrintableRecordSubClass component",
-    )
-
-    private class PrintableRecord(
-        val name: String = "PersonalName",
-        val component: String = "Component name ",
-        val description: String = "Some description of the component",
-        val subClass: PrintableRecordSubClass = PrintableRecordSubClass()
-    )
+class TestPrettyGrid : PrettyTestBase() {
 
     @Test
     fun `Grid builder function usage`() {
@@ -73,7 +59,6 @@ class TestPrettyGrid {
 
     @Test
     fun `Grid builder with context transition`() {
-
         val prettyGrid = buildPrettyGrid<PrintableRecord> {
             buildRow {
                 addCell("Static")
@@ -94,8 +79,46 @@ class TestPrettyGrid {
         val record = PrintableRecord()
         val render = prettyGrid.render(record)
         render.output()
+    }
+
+    @Test
+    fun `PrettyGrid  with context transition rendering`() {
+
+        val prettyGrid = buildPrettyGrid<PrintableRecord> {
+            buildRow {
+                addCell("Static", PrettyPresets.Header)
+            }
+            buildRow(PrintableRecord::subClass, RowPresets.VerticalRow) {
+                addCell(PrintableRecordSubClass::subName)
+                addCell(PrintableRecordSubClass::subComponent)
+            }
+        }
+        val record = PrintableRecord()
+        val render =  prettyGrid.render(record)
+        render.output()
 
     }
 
+    @Test
+    fun `PrettyGrid  with context switch`(){
+
+        val prettyGrid = buildPrettyGrid<PrintableRecord> {
+            buildRow {
+                addCell("Static")
+            }
+            buildRows(PrintableRecord::elements){
+                addCell(PrintableElement::elementName)
+            }
+        }
+
+        assertEquals(2, prettyGrid.prettyRows.size)
+        prettyGrid.prettyRows.last().let {
+            assertEquals(1, it.cells.size)
+        }
+        val record = createRecord()
+        val render = prettyGrid.render(record)
+        render.output()
+
+    }
 
 }

@@ -1,10 +1,8 @@
 package po.misc.data.pretty_print.rows
 
-
-import po.misc.collections.asList
+import po.misc.collections.indexed.Indexed
 import po.misc.context.tracable.TraceableContext
 import po.misc.counters.LogJournal
-import po.misc.data.output.output
 import po.misc.data.pretty_print.RenderableElement
 import po.misc.data.pretty_print.parts.Console220
 import po.misc.data.pretty_print.parts.RenderDefaults
@@ -13,15 +11,13 @@ import po.misc.data.pretty_print.cells.KeyedCell
 import po.misc.data.pretty_print.cells.PrettyCell
 import po.misc.data.pretty_print.cells.PrettyCellBase
 import po.misc.data.pretty_print.cells.StaticCell
-import po.misc.data.pretty_print.grid.PrettyGrid.Companion.createTransitionRowBuilding
 import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.parts.PrettyBorders
 import po.misc.data.pretty_print.parts.RenderOptions
 import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.presets.RowPresets
-import po.misc.data.pretty_print.rows.PrettyRow
+import po.misc.data.pretty_print.rows.TransitionRow
 import po.misc.data.strings.stringify
-import po.misc.data.styles.SpecialChars
 import po.misc.reflection.NameValuePair
 import po.misc.reflection.Readonly
 import po.misc.reflection.getBrutForced
@@ -50,9 +46,18 @@ import kotlin.reflect.KProperty1
 
 sealed class PrettyRowBase(
     private var initialCells: List<PrettyCellBase<*>>,
-): TraceableContext{
+): TraceableContext, Indexed {
 
     enum class RendererOperation{ Render, RenderCell }
+
+    var myIndex: Int = 0
+        private set
+    var ofCount: Int = 0
+        private set
+
+    val isFirst: Boolean get() = myIndex == 0
+    val isLast: Boolean get() = myIndex == ofCount - 1
+
 
     var defaults: RenderDefaults = Console220
     var options: RowOptions = RowOptions(Console220)
@@ -241,22 +246,60 @@ sealed class PrettyRowBase(
         }
         setCells(newList)
     }
-
-
     fun applyPreset(preset: RowPresets): PrettyRowBase{
         options = preset.toOptions()
         return this
+    }
+
+    override fun setIndex(index: Int, ofSize: Int) {
+        myIndex = index
+        ofCount = ofSize
     }
 }
 
 class PrettyRow(
     initialCells: List<PrettyCellBase<*>>,
 ): PrettyRowBase(initialCells){
-
     constructor(vararg cells: PrettyCellBase<*>):this(cells.toList())
     constructor(container: PrettyDataContainer):this(container.prettyCells){
         setCells(container.prettyCells)
     }
+
+    companion object{
+
+        @PublishedApi
+        internal fun <T : Any> buildRow(
+            token: TypeToken<T>,
+            rowOptions: RowOptions? = null,
+            builder: CellContainer<T>.() -> Unit
+        ): PrettyRow {
+            val constructor = CellContainer<T>(token)
+            builder.invoke(constructor)
+            val realRow = PrettyRow(constructor)
+            if (rowOptions != null) {
+                realRow.options = rowOptions
+            }
+            return realRow
+        }
+
+        @PublishedApi
+        internal fun <T : Any> buildRow(
+            receiver: T,
+            token: TypeToken<T>,
+            rowOptions: RowOptions? = null,
+            builder: CellReceiverContainer<T>.(T) -> Unit
+        ): PrettyRow {
+            val constructor = CellReceiverContainer<T>(receiver, token)
+            builder.invoke(constructor, receiver)
+            val realRow = PrettyRow(constructor)
+            if (rowOptions != null) {
+                realRow.options = rowOptions
+            }
+            return realRow
+        }
+
+    }
+
 }
 
 class TransitionRow<T: Any>(
@@ -302,45 +345,86 @@ class TransitionRow<T: Any>(
         }
         return transition.invoke()
     }
+    companion object{
+
+        @PublishedApi
+        internal inline fun <reified T1 : Any> buildRow(
+            property: KProperty<T1>,
+            parentClass: KClass<*>,
+            rowOptions: RowPresets? = null,
+            noinline builder: CellContainer<T1>.() -> Unit
+        ): TransitionRow<T1> {
+            val token = TypeToken.create<T1>()
+            val options = rowOptions?.toOptions()
+
+            return property.resolveTypedProperty(Readonly, parentClass, token)?.let { kProperty1->
+                val constructor = CellContainer<T1>(token)
+                builder.invoke(constructor)
+                val realRow = TransitionRow<T1>(token, kProperty1, constructor)
+                if(options != null){
+                    realRow.options = options
+                }
+                realRow
+            } ?: run {
+                val errMsg = "switchProperty ${property.name} can not be resolved on class ${parentClass.simpleName}"
+                throw IllegalArgumentException(errMsg)
+            }
+        }
+
+        @PublishedApi
+        internal inline fun <reified T1 : Any> buildRow(
+            property: KProperty<T1>,
+            parentToken: TypeToken<*>,
+            preset: RowPresets? = null,
+            noinline builder: CellContainer<T1>.() -> Unit
+        ): TransitionRow<T1> =  buildRow(property, parentToken.kClass, preset, builder)
+
+    }
+}
+
+
+class ListContainingRow<T: Any>(
+    override val typeToken: TypeToken<Collection<T>>,
+    val property: KProperty1<Any, Collection<T>>,
+    initialCells: List<PrettyCellBase<*>> = emptyList()
+): PrettyRowBase(initialCells), RenderableElement<Collection<T>>, TraceableContext {
+
+    constructor(
+        token: TypeToken<Collection<T>>,
+        property: KProperty1<Any, Collection<T>>,
+        container: PrettyDataContainer
+    ):this(token, property){
+        setCells(container.prettyCells)
+    }
+
+    override fun resolveReceiver(parentReceiver: Any): Collection<T> {
+       return property.get(parentReceiver)
+    }
 
     companion object{
 
-        fun <T : Any> buildRow(
-            switchProperty: KProperty1<Any, T>,
-            token: TypeToken<T>,
-            rowOptions: RowOptions? = null,
-            builder: CellContainer<T>.() -> Unit
-        ): TransitionRow<T> {
-            val constructor = CellContainer<T>(token)
-            builder.invoke(constructor)
-            val realRow = TransitionRow<T>(token, switchProperty, constructor)
-            if (rowOptions != null) {
-                realRow.options = rowOptions
-            }
-            return realRow
-        }
+        @PublishedApi
+        internal inline fun <reified T1 : Any> buildRow(
+            property: KProperty<Collection<T1>>,
+            parentToken: TypeToken<*>,
+            preset: RowPresets? = null,
+            noinline builder: CellContainer<Collection<T1>>.() -> Unit
+        ) : ListContainingRow<T1> {
+            val token = TypeToken.create<Collection<T1>>()
+            val options = preset?.toOptions()
 
-        inline fun <reified T: Any> buildRow(
-            switchProperty: KProperty1<Any, T>,
-            rowOptions: RowOptions? = null,
-            noinline builder: CellContainer<T>.() -> Unit
-        ): TransitionRow<T> = buildRow(switchProperty,TypeToken.create<T>(), rowOptions, builder)
-
-
-        inline fun <reified T : Any> buildRow(
-            switchProperty: KProperty<T>,
-            parentClass: KClass<*>,
-            rowOptions: RowPresets? = null,
-            noinline builder: CellContainer<T>.() -> Unit
-        ): TransitionRow<T> {
-            val token = TypeToken.create<T>()
-            val options = rowOptions?.toOptions()
-            return switchProperty.resolveTypedProperty(Readonly, parentClass, token)?.let { kProperty1 ->
-                buildRow(kProperty1, options, builder)
-            }?:run {
-                val errMsg = "switchProperty ${switchProperty.name} can not be resolved on class ${parentClass.simpleName}"
+            val resolved = property.resolveTypedProperty(Readonly, parentToken, token)
+            if (resolved == null) {
+                val errMsg = "switchProperty ${property.name} can not be resolved on class ${parentToken.simpleName}"
                 throw IllegalArgumentException(errMsg)
             }
+            val container = CellContainer(token)
+            builder.invoke(container)
+            val row = ListContainingRow(token, resolved, container)
+            if (options != null) {
+                row.options = options
+            }
+            return row
         }
     }
 }

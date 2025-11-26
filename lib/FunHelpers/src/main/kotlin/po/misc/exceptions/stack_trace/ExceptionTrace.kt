@@ -1,5 +1,6 @@
 package po.misc.exceptions.stack_trace
 
+import po.misc.collections.selectUntil
 import po.misc.data.PrettyPrint
 import po.misc.data.output.output
 import po.misc.data.pretty_print.parts.RowOptions
@@ -105,8 +106,24 @@ data class ExceptionTrace(
         }
 
         fun callSiteReport(exceptionTrace: ExceptionTrace):CallSiteReport{
-            val report = CallSiteReport(exceptionTrace.stackFrames.last(), exceptionTrace.stackFrames.first())
-            return report
+
+           return when{
+                exceptionTrace.stackFrames.size <=2 ->{
+                    CallSiteReport(exceptionTrace.stackFrames.last(), exceptionTrace.stackFrames.first())
+                }
+                exceptionTrace.stackFrames.size > 2 ->{
+                    val first = exceptionTrace.stackFrames.first()
+                    val last = exceptionTrace.stackFrames.last()
+                    val selected = exceptionTrace.stackFrames.drop(1).take(exceptionTrace.stackFrames.size - 2)
+                    val reversed = selected.asReversed()
+                    CallSiteReport(last, first, reversed)
+                }
+                else -> {
+                    val msg = "callSiteReport creation failure." +
+                            "exceptionTrace.stackFrames count ${exceptionTrace.stackFrames.size}"
+                    throw IllegalArgumentException(msg)
+                }
+            }
         }
 
     }

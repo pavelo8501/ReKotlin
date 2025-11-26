@@ -73,8 +73,8 @@ interface PrettyPresets: StylePresets{
     object Header : PrettyPresets {
         override val align: Align = Align.CENTER
         override val style: TextStyle = TextStyle.Bold
-        override val colour: Colour = Colour.Blue
-        override val backgroundColour: BGColour = BGColour.White
+        override val colour: Colour = Colour.BlackBright
+        override val backgroundColour: BGColour = BGColour.Cyan
         override val postfix: String? = null
     }
 
