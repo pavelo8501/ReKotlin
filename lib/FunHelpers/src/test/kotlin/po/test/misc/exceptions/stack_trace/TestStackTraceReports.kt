@@ -22,7 +22,6 @@ class TestStackTraceReports {
 
     private val notifier = TraceNotifier(notifyOnValue = 300)
 
-
     fun intermediaryMethod(value: Int): ExceptionTrace? {
         return notifier.notifyOrNot(value)
     }
@@ -41,18 +40,14 @@ class TestStackTraceReports {
 
     @Test
     fun `Call site report render hops as expected`() {
-
         val stackTrace = intermediaryMethod(300)
         assertNotNull(stackTrace)
         val report = ExceptionTrace.callSiteReport(stackTrace)
 
         val reportRender = report.callSiteReport.render(report)
         assertEquals(1, report.hopFrames.size)
-
         reportRender.output()
-
     }
-
 
 }
 

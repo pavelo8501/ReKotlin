@@ -2,6 +2,8 @@ package po.test.misc.data
 
 import org.junit.jupiter.api.Test
 import po.misc.data.messageAssembler
+import po.misc.data.output.output
+import po.misc.data.toDisplayName
 import kotlin.test.assertEquals
 
 class TestTextHelpers {
@@ -27,6 +29,15 @@ class TestTextHelpers {
         assertEquals(msg, result)
         val result2 =  otherFunction("First", "Message", "with", "number 20")
         assertEquals(result, result2)
+    }
+
+    @Test
+    fun `RoDisplayName extension`(){
+        val shouldBecome = "Some property"
+        val propertyName = "someProperty"
+        val converted =  propertyName.toDisplayName()
+        assertEquals(shouldBecome, converted)
+        converted.output()
     }
 
 

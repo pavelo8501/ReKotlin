@@ -83,7 +83,6 @@ class TestPrettyGrid : PrettyTestBase() {
 
     @Test
     fun `PrettyGrid  with context transition rendering`() {
-
         val prettyGrid = buildPrettyGrid<PrintableRecord> {
             buildRow {
                 addCell("Static", PrettyPresets.Header)
@@ -96,7 +95,6 @@ class TestPrettyGrid : PrettyTestBase() {
         val record = PrintableRecord()
         val render =  prettyGrid.render(record)
         render.output()
-
     }
 
     @Test

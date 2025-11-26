@@ -86,6 +86,9 @@ class PrettyGrid<T: Any>(
                       stringBuilder.appendLine(render)
                     }
                 }
+                else -> {
+
+                }
             }
             when{
                 row.isFirst  ->  stringBuilder.appendLine(render)
@@ -96,10 +99,10 @@ class PrettyGrid<T: Any>(
         }
         return stringBuilder.toString()
     }
-
 }
 
-inline fun <reified T: Any> buildPrettyGrid( builder: PrettyGrid<T>.() -> Unit):PrettyGrid<T>{
+
+inline fun <reified T: Any> buildPrettyGrid(builder: PrettyGrid<T>.() -> Unit):PrettyGrid<T>{
     val token = TypeToken.create<T>()
     val grid = PrettyGrid<T>(token)
     builder.invoke(grid)

@@ -42,32 +42,23 @@ interface HoconConfigurable<T: EventHost, C: HoconResolvable<C>, V: Any> : Hocon
     val hoconPrimitive: HoconPrimitives<V>
 }
 
-
 class HoconResolver<C: HoconResolvable<C>>(
     val configToken: TypeToken<C>,
 ): EventHost, LogProvider {
 
-    private val parsingSubject: (TypeToken<*>) -> String = { "Parsing ${it.typeName}" }
-
     override val componentID: ComponentID = componentID().addParamInfo("C", configToken)
-
     override val logProcessor = createLogProcessor()
-
 
     @PublishedApi
     internal val entryResolved: MutableMap<KProperty<*>, HostedEvent<*, *, Unit>> = mutableMapOf()
-
     internal val memberMap: MutableMap<KClass<out HoconResolvable<*>>, HoconResolvable<*>> = mutableMapOf()
-
     @PublishedApi
     internal val entryMap: MutableMap<String,  HoconEntryBase<C, *>> = mutableMapOf()
 
-    val events: ResolverEvents<C> = ResolverEvents(this)
-
-    var nowParsing: NowParsing? = null
-
-    val parseBadge: GenericBadge = Badge.make("parse")
-
+    private val parsingSubject: (TypeToken<*>) -> String = { "Parsing ${it.typeName}" }
+    private val events: ResolverEvents<C> = ResolverEvents(this)
+    private var nowParsing: NowParsing? = null
+    private val parseBadge: GenericBadge = Badge.make("parse")
     private val parsingMessage : (HoconEntryBase<*, *>)-> String = {
         "Parsing ${it.componentName}"
     }
@@ -103,10 +94,7 @@ class HoconResolver<C: HoconResolvable<C>>(
         return  nowParsing?.parsing?:""
     }
 
-    private fun <C: HoconResolvable<C>> processHoconEntry(
-        hoconEntry: HoconEntry<C, *>,
-        hoconFactory: Config
-    ){
+    private fun <C: HoconResolvable<C>> processHoconEntry(hoconEntry: HoconEntry<C, *>, hoconFactory: Config){
         if(hoconEntry.nullable){
             hoconEntry.readConfig(hoconFactory, Nullable)
         }else{
@@ -114,10 +102,7 @@ class HoconResolver<C: HoconResolvable<C>>(
         }
     }
 
-    private fun <C: HoconResolvable<C>> processListEntry(
-        hoconEntry: HoconListEntry<C, *>,
-        hoconFactory: Config
-    ){
+    private fun <C: HoconResolvable<C>> processListEntry(hoconEntry: HoconListEntry<C, *>, hoconFactory: Config){
         if(hoconEntry.nullable) {
             hoconEntry.readListConfig(hoconFactory, Nullable)
         }else{
@@ -167,20 +152,17 @@ class HoconResolver<C: HoconResolvable<C>>(
     }
 
     companion object {
-
         fun configInfo(hoconFactory: Config): NowParsing{
            return NowParsing(hoconFactory.origin())
         }
     }
 }
 
-
 @Deprecated("Change to resolver()")
 inline fun <T: EventHost, reified C: HoconResolvable<C>> C.createResolver(
     receiver:T,
     noinline block: ResolverBuilder<T, C, String>.() -> Unit
 ):HoconResolver<C>{
-
     val builderContainer = ResolverBuilder(receiver, resolver(), HoconString.Companion)
     builderContainer.block()
     return  builderContainer.resolver

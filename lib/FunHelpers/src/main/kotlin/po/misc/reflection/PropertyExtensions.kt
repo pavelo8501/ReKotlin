@@ -1,5 +1,6 @@
 package po.misc.reflection
 
+import po.misc.data.toDisplayName
 import po.misc.exceptions.throwableToText
 import po.misc.types.ClassAware
 import po.misc.types.memberProperties
@@ -18,9 +19,13 @@ val  KProperty0<Any>.nameValuePair : NameValuePair get() {
     return NameValuePair(this.name, value.toString())
 }
 
-
 val <T: Any> KProperty1<T, Any>.nameValuePair: Pair<String,  KProperty1<T, Any>>   get() {
     return  Pair(this.name, this)
+}
+
+
+val KProperty<*>.displayName: String  get() {
+    return this.name.toDisplayName()
 }
 
 

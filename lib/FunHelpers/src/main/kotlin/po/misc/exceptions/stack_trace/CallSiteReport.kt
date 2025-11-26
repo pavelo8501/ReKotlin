@@ -18,7 +18,6 @@ data class CallSiteReport(
     val reportType:  TraceOptions.TraceType = TraceOptions.TraceType.CallSite
 
     val callSiteReport: PrettyGrid<CallSiteReport> = buildPrettyGrid{
-
         buildRow {
             addCell("Call site trace report", PrettyPresets.Header)
         }
@@ -36,17 +35,13 @@ data class CallSiteReport(
             buildRow {
                 addCell("Registered hops", PrettyPresets.Info)
             }
-            hopFrames.forEach { hopFrame->
-
-                hopFrame.buildPrettyRow {
-                    addCell(hopFrame::methodName)
-                    addCell(hopFrame::lineNumber)
-                    addCell(hopFrame::simpleClassName)
-                    addCell(hopFrame::consoleLink)
-                }
+            buildRows(::hopFrames, RowPresets.VerticalRow){
+                addCell(StackFrameMeta::methodName)
+                addCell(StackFrameMeta::lineNumber)
+                addCell(StackFrameMeta::simpleClassName)
+                addCell(StackFrameMeta::consoleLink)
             }
         }
-
         buildRow {
             addCell("Registration place snapshot", PrettyPresets.Info)
         }

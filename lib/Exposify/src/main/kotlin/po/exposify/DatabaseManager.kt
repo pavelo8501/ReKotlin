@@ -27,18 +27,8 @@ import po.misc.types.safeCast
 import kotlin.reflect.KClass
 
 object DatabaseManager : TasksManaged {
-    override val contextName: String = "DatabaseManager"
-
-    override val identity: CTXIdentity<out CTX> = asIdentity()
 
     private var connectionUpdated: ((String, Boolean) -> Unit)? = null
-    internal val connections = mutableListOf<ConnectionClass>()
-
-    internal fun addConnection(connection: ConnectionClass) {
-        connections.add(connection)
-    }
-
-
     private fun <DTO: ModelDTO> serviceByDataClass(dataModelClass : KClass<*>, connectionClass: ConnectionClass): ServiceClass<DTO, *, *>?{
         val serviceKey =  connectionClass.services.keys.firstOrNull { it.dataType.kClass == dataModelClass }
         if(serviceKey != null){
@@ -47,15 +37,13 @@ object DatabaseManager : TasksManaged {
         return null
     }
 
-    fun <D, DTO: ModelDTO> notifyOnUpdated(
-        identity: CTXIdentity<D>,
-        connectionClass: ConnectionClass,
-        callback: (DTO)-> Unit
-    ) where D: DataModel, D: Identifiable<D>{
-        serviceByDataClass<DTO>(identity.typeData.kClass, connectionClass)?.let {service->
-            service.serviceContext.setTracking(identity as CTXIdentity<*>, callback)
-        }
+    override val contextName: String = "DatabaseManager"
+    override val identity: CTXIdentity<out CTX> = asIdentity()
+
+    internal fun addConnection(connection: ConnectionClass) {
+        connections.add(connection)
     }
+    internal val connections = mutableListOf<ConnectionClass>()
 
     private fun tryConnect(connectionInfo: ConnectionInfo, hooks: DBManagerHooks?): ConnectionClass {
         try {
@@ -85,11 +73,7 @@ object DatabaseManager : TasksManaged {
             throw th
         }
     }
-
-    private fun tryConnect(
-        connectionConfig: ConnectionConfig,
-        hooks: DBManagerHooks?,
-    ): ConnectionClass {
+    private fun tryConnect(connectionConfig: ConnectionConfig, hooks: DBManagerHooks?): ConnectionClass {
         try {
             val newConnection = Database.connect(connectionConfig.hikariDataSource)
             val connectionClass = ConnectionClass(this, newConnection)
@@ -106,6 +90,7 @@ object DatabaseManager : TasksManaged {
         }
     }
 
+
     @PublishedApi
     internal fun signalCloseConnection(
         issuer: CTX,
@@ -121,6 +106,15 @@ object DatabaseManager : TasksManaged {
         connections.forEach {
             it.registerSerializer(serializer)
         }
+    }
+
+    fun <D, DTO: ModelDTO> notifyOnUpdated(
+        identity: CTXIdentity<D>,
+        connectionClass: ConnectionClass,
+        callback: (DTO)-> Unit
+    ) where D: DataModel, D: Identifiable<D>{
+        val service = serviceByDataClass<DTO>(identity.typeData.kClass, connectionClass)
+        service?.serviceContext?.setTracking(identity as CTXIdentity<*>, callback)
     }
 
     fun openConnection(

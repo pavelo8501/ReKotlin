@@ -17,9 +17,9 @@ import kotlin.reflect.jvm.jvmErasure
 
 abstract class ExposifyEntityClass<E : LongEntity>(
     val  sourceTable : IdTable<Long>,
-    private val  entityTypeE: Class<E>? = null,
-    private val  entityCtorE: ((EntityID<Long>) -> E)? = null
-) : LongEntityClass<E>(sourceTable, entityTypeE, entityCtorE), EntityDTO {
+    private val  entityType: Class<E>? = null,
+    private val  entityCtor: ((EntityID<Long>) -> E)? = null
+) : LongEntityClass<E>(sourceTable, entityType, entityCtor), EntityDTO {
 
     val <E : LongEntity> ExposifyEntityClass<E>.entityTable: IdTable<Long>
         get() = this.sourceTable

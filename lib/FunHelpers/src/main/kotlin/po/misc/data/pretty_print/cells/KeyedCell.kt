@@ -7,12 +7,13 @@ import po.misc.data.pretty_print.presets.KeyedPresets
 import po.misc.data.pretty_print.parts.RenderOptions
 import po.misc.data.strings.FormattedPair
 import po.misc.data.styles.TextStyler
+import po.misc.reflection.displayName
 import kotlin.reflect.KProperty
 
 
 class KeyedCell(width: Int, val cellName: String): PrettyCellBase<KeyedPresets>(width), KeyedCellRenderer {
 
-    constructor(kProperty: KProperty<*>, cellName: String = kProperty.name) : this(width = 0, cellName) {
+    constructor(kProperty: KProperty<*>, cellName: String = kProperty.displayName) : this(width = 0, cellName) {
         property = kProperty
         options = KeyedCellOptions(KeyedPresets.Property)
     }
@@ -20,6 +21,8 @@ class KeyedCell(width: Int, val cellName: String): PrettyCellBase<KeyedPresets>(
     var property: KProperty<*>? = null
 
     override var options: CommonCellOptions = KeyedCellOptions()
+
+
     val keyedOptions: KeyedCellOptions get() = options as KeyedCellOptions
 
     init {
