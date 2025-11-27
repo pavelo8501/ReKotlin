@@ -1,12 +1,14 @@
-package po.misc.exceptions.stack_trace
+package po.misc.debugging.stack_tracer
 
 import po.misc.data.PrettyPrint
 import po.misc.data.pretty_print.cells.PrettyCell
 import po.misc.data.pretty_print.presets.PrettyPresets
 import po.misc.data.pretty_print.rows.PrettyRow
-import po.misc.exceptions.classifier.PackageRole
-import po.misc.exceptions.classifier.classifyPackage
-
+import po.misc.debugging.classifier.KnownHelpers
+import po.misc.debugging.classifier.PackageClassifier
+import po.misc.debugging.classifier.SimplePackageClassifier
+import po.misc.debugging.normalizedMethodName
+import po.misc.types.k_class.simpleOrAnon
 
 data class StackFrameMeta(
     val fileName: String,
@@ -14,8 +16,7 @@ data class StackFrameMeta(
     val methodName: String,
     val lineNumber: Int,
     val classPackage: String,
-    val isHelperMethod: Boolean,
-    val isUserCode: Boolean,
+    val packageRole: PackageClassifier.PackageRole,
     val isReflection: Boolean,
     val isThreadEntry: Boolean,
     val isCoroutineInternal: Boolean,
@@ -24,18 +25,17 @@ data class StackFrameMeta(
     val stackTraceElement: StackTraceElement? = null
 ): PrettyPrint {
 
-    enum class PrintFormat{
-        Full,
-        Complete,
-        TillMethodName,
-    }
+    enum class PrintFormat{ Full, Complete, TillMethodName}
+
+    val isHelperMethod: Boolean get() = packageRole == PackageClassifier.PackageRole.Helper
+    val isUserCode: Boolean get() = packageRole != PackageClassifier.PackageRole.System
+
 
     private var printFormat: PrintFormat = PrintFormat.Full
 
     val consoleLink: String get() = "$classPackage.$simpleClassName.$methodName($fileName:$lineNumber)"
 
-    private val printPair = PrettyRow(PrettyCell(10, PrettyPresets.Key), PrettyCell(20,  PrettyPresets.Value))
-
+    private val printPair = PrettyRow(PrettyCell(10, PrettyPresets.Key), PrettyCell(20, PrettyPresets.Value))
 
     private val tillMethodName : String = buildString {
         appendLine(printPair.render("File name", fileName))
@@ -55,7 +55,7 @@ data class StackFrameMeta(
         return this
     }
 
-    override val formattedString: String get()  =  buildString {
+    override val formattedString: String get() = buildString {
         when(printFormat){
             PrintFormat.Full ->{
                 appendLine(consoleLink)
@@ -72,55 +72,45 @@ data class StackFrameMeta(
         }
     }
     override fun toString(): String {
-        return "File name: $fileName Simple class name: $simpleClassName Method name: $methodName"
+        val name = this::class.simpleOrAnon
+        return "$name [File name: $fileName, Simple class name: $simpleClassName, "+
+        "Method name: $methodName,  Is helper: $isHelperMethod]"
     }
     companion object {
-        fun normalizedMethod(methodName: String, className: String): String {
 
-            fun nameFromParts(parts: List<String>): String{
-               return when{
-                    parts.size >= 4 ->{
-                        val owner = parts[parts.size - 3].replace("_", " ")
-                        val lambdaName = parts[parts.size - 2]
-                        return "Lambda -> $lambdaName on $owner"
-                    }
-                   parts.size >= 3 ->{
-                       val owner = parts.first().replace("_", " ")
-                       val lambdaIndex = parts[parts.size - 1]
-                       return "Lambda -> Anonymous # $lambdaIndex on $owner"
-                   }
-                    parts.isEmpty() -> {
-                        "Lambda -> ${parts.first()}"
-                    }
-                    else -> "Lambda"
-                }
-            }
 
-            val lambdaRegex = Regex("""lambda\$(.*?)\$\d+""")
-            lambdaRegex.find(methodName)?.let { match ->
-                val owner = match.groupValues[1].replace("_", " ")
-                return "Lambda -> ${methodName.substringAfterLast('$')} on $owner"
-            }
-            if( methodName.contains("lambda")){
-                val parts = methodName.split("$")
-                return nameFromParts(parts)
-            }
-            if (methodName == "invoke" || methodName == "invokeSuspend") {
-                val parts = className.split("$")
-                return nameFromParts(parts)
-            }
-            if (methodName.startsWith("access$")) {
-                return "Synthetic -> ${methodName.substringAfter("access$")}"
-            }
-            return methodName.substringAfterLast('$')
+        internal fun create(element: StackTraceElement, classifier: PackageClassifier):StackFrameMeta{
+            val className = element.className
+            val simpleClasName = className.substringAfterLast('.')
+            val normalizedName = element.normalizedMethodName()
+            val classPackage = className.substringBeforeLast('.', missingDelimiterValue = "")
+            val packageRole = classifier.resolvePackageRole(element)
+
+            return StackFrameMeta(
+                fileName = element.fileName?:"N/A",
+                simpleClassName = simpleClasName,
+                methodName = normalizedName,
+                lineNumber = element.lineNumber,
+                classPackage = classPackage,
+                packageRole = packageRole,
+                isReflection =  className.startsWith("java.lang.reflect"),
+                isThreadEntry =  className == "java.lang.Thread" && element.methodName.contains("run"),
+                isCoroutineInternal = className.startsWith("kotlinx.coroutines"),
+                isInline =  element.methodName.contains($$"$inline$") || className.contains($$"$inlined$"),
+                isLambda =  element.methodName.contains($$"$lambda") || className.contains($$"$Lambda$"),
+                stackTraceElement = element
+            )
         }
 
         fun create(traceElement: StackTraceElement): StackFrameMeta{
+
+            val classifier = SimplePackageClassifier(KnownHelpers)
+
             val className = traceElement.className
             val simpleClasName = className.substringAfterLast('.')
-            val normalizedName = normalizedMethod(traceElement.methodName, simpleClasName)
+            val normalizedName = traceElement.normalizedMethodName()
             val classPackage = className.substringBeforeLast('.', missingDelimiterValue = "")
-            val role = classifyPackage(classPackage)
+            val packageRole = classifier.resolvePackageRole(traceElement)
 
             return StackFrameMeta(
                 fileName = traceElement.fileName?:"N/A",
@@ -128,8 +118,7 @@ data class StackFrameMeta(
                 methodName = normalizedName,
                 lineNumber = traceElement.lineNumber,
                 classPackage = classPackage,
-                isHelperMethod = role == PackageRole.Helper,
-                isUserCode = role == PackageRole.User,
+                packageRole = packageRole,
                 isReflection =  className.startsWith("java.lang.reflect"),
                 isThreadEntry =  className == "java.lang.Thread" && traceElement.methodName.contains("run"),
                 isCoroutineInternal = className.startsWith("kotlinx.coroutines"),
@@ -138,6 +127,5 @@ data class StackFrameMeta(
                 stackTraceElement = traceElement
             )
         }
-
     }
 }

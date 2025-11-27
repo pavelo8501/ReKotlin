@@ -41,19 +41,6 @@ class StaticCell(
         return this
     }
 
-    override fun render(content: String, renderOptions: RenderOptions): String {
-        val entry = content.stringify()
-        val usedText = if(renderOptions.usePlain){
-            entry.text
-        } else {
-            entry.formatedText
-        }
-        val modified =  staticModifiers.modify(usedText)
-        val formatted =  compositeFormatter.format(modified, this)
-        val final = justifyText(formatted,  renderOptions)
-        return final
-    }
-
     fun render(renderOptions: RenderOptions): String {
         val entry = content.stringify()
         val usedText = if(renderOptions.usePlain){
@@ -67,6 +54,19 @@ class StaticCell(
         return final
     }
     fun render(): String = render(RenderOptions(Orientation.Horizontal, false))
+
+    override fun render(content: String, renderOptions: RenderOptions): String {
+        val entry = content.stringify()
+        val usedText = if(renderOptions.usePlain){
+            entry.text
+        } else {
+            entry.formatedText
+        }
+        val modified =  staticModifiers.modify(usedText)
+        val formatted =  compositeFormatter.format(modified, this)
+        val final = justifyText(formatted,  renderOptions)
+        return final
+    }
 
     override fun toString(): String = "StaticCell [Width: ${options.width}]"
 

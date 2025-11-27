@@ -55,15 +55,12 @@ sealed class  CellContainerBase<T: Any>(
         }
     }
 
-    fun <C: PrettyCellBase<*>> storeCell(cell : C): C {
+    internal fun <C: PrettyCellBase<*>> storeCell(cell : C): C {
         prettyCellsBacking.add(cell)
         return cell
     }
 
-    internal fun addStaticCell(
-        content: Any,
-        options: CommonCellOptions? = null
-    ): StaticCell{
+    internal fun addStaticCell(content: Any, options: CommonCellOptions? = null): StaticCell{
         val cell = StaticCell(content)
         if(options != null){
             cell.options = options
@@ -83,16 +80,13 @@ sealed class  CellContainerBase<T: Any>(
        return cell.buildText(builderAction)
     }
 
-    fun <T: Any> addCell(property: KProperty<T>,  lambda: ComputedCell<T>.(T)-> Any):ComputedCell<T>{
+    fun <T: Any> addCell(property: KProperty<T>,  lambda: ComputedCell<T>.(T)-> Any) : ComputedCell<T>{
         val transformed = transformToKProperty1(property)
         val cell = ComputedCell<T>(20,  transformed, lambda)
         return storeCell(cell)
     }
 
-    internal fun addKeyedCell(
-        property: KProperty<Any>,
-        options: KeyedCellOptions? = null
-    ): KeyedCell {
+    internal fun addKeyedCell(property: KProperty<Any>, options: KeyedCellOptions? = null): KeyedCell {
         val transformed = transformToKProperty1(property)
         val cell = KeyedCell(transformed)
         if(options != null){
@@ -137,14 +131,12 @@ inline fun <reified T: Any> T.buildPrettyRow(
     noinline builder: CellReceiverContainer<T>.(T)-> Unit
 ): PrettyRow =  PrettyRow.buildRow(this, TypeToken.create<T>(), rowOptions,  builder)
 
-
 fun <T: Any> T.buildPrettyRow(
     container: CellReceiverContainer.Companion,
     typeToken: TypeToken<T>,
     rowOptions: RowOptions? = null,
     builder: CellReceiverContainer<T>.(T)-> Unit
 ): PrettyRow =  PrettyRow.buildRow(this, typeToken, rowOptions,  builder)
-
 
 inline fun <reified T: Any> buildPrettyRow(
     rowOptions: RowOptions? = null,

@@ -10,8 +10,10 @@ import po.misc.exceptions.managedException
 import po.misc.functions.CallableOptions
 import po.misc.functions.LambdaOptions
 import po.misc.functions.SuspendedOptions
-import po.misc.types.k_class.lambdaName
+import po.misc.types.k_function.lambdaName
+import po.misc.types.k_function.receiverClass
 import kotlin.coroutines.CoroutineContext
+import kotlin.reflect.KFunction
 
 interface CallableWrapper<T, R>: Component  {
     val lambdaName: String

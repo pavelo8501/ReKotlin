@@ -16,7 +16,7 @@ class TestStackTraceReports {
 
     class SubClass() : TraceableContext {
         fun createTrace(): ExceptionTrace {
-            return trace(TraceCallSite(::createTrace))
+            return trace(TraceCallSite("TestStackTraceReports", ::createTrace))
         }
     }
 

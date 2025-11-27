@@ -1,7 +1,7 @@
 package po.misc.debugging
 
 import po.misc.context.CTX
-import po.misc.exceptions.stack_trace.StackFrameMeta
+import po.misc.debugging.stack_tracer.StackFrameMeta
 
 
 interface DebugFrame{

@@ -2,8 +2,13 @@ package po.misc.exceptions.stack_trace
 
 import po.misc.collections.takeFromMatch
 import po.misc.context.tracable.TraceableContext
+import po.misc.debugging.classifier.PackageClassifier
+import po.misc.debugging.stack_tracer.StackFrameMeta
+import po.misc.debugging.stack_tracer.TraceResolver
+import po.misc.debugging.toFrameMeta
 import po.misc.exceptions.ThrowableCallSitePayload
 import po.misc.exceptions.TraceCallSite
+import po.misc.exceptions.TraceOptions
 import po.misc.exceptions.throwableToText
 import po.misc.types.k_class.simpleOrAnon
 import kotlin.reflect.KClass
@@ -20,7 +25,7 @@ fun Throwable.extractTrace(
         helperMethodName: String?,
     ): List<StackFrameMeta> {
 
-        val convertedToMeta = elements.take(5).toMeta()
+        val convertedToMeta = elements.take(5).toFrameMeta(null)
         val searchResult = if (helperMethodName != null) {
             //If its a helper than we will star searching from methods name
              val selected = convertedToMeta.takeFromMatch(5) {
@@ -46,17 +51,15 @@ fun Throwable.extractTrace(
     }
     return if(contextClass.isSubclassOf(TraceableContext::class)){
         @Suppress("UNCHECKED_CAST")
-        ExceptionTrace(this,  meta, contextClass  as KClass<out TraceableContext>)
+        ExceptionTrace(this,  meta)
     }else{
         ExceptionTrace(this,  meta)
     }
 }
 
-
-
 fun Throwable.extractTrace(analyzeDepth: Int = 10): ExceptionTrace {
     val depth = analyzeDepth.coerceAtLeast(10)
-    val frames =  stackTrace.take(depth).toMeta()
+    val frames =  stackTrace.take(depth).toFrameMeta(null)
     val filtered = frames.filter {frameMeta ->
         ExceptionTrace.harshFilter(frameMeta)
     }
@@ -68,19 +71,26 @@ fun Throwable.extractTrace(analyzeDepth: Int = 10): ExceptionTrace {
     return trace
 }
 
+fun Throwable.extractTrace(
+    options: TraceOptions,
+    analyzeDepth: Int = 20,
+    classifier:  PackageClassifier? = null
+): ExceptionTrace {
 
-fun Throwable.extractTrace(options: TraceCallSite,  analyzeDepth: Int = 10): ExceptionTrace {
     val depth = analyzeDepth.coerceAtLeast(10)
-    val frames =  stackTrace.take(depth).toMeta()
-
-    val index =  frames.indexOfFirst { it.methodName.contains(options.methodName) }
-
-    val filtered = frames.drop(index).takeWhile {frameMeta->
+    val frames =  stackTrace.take(depth).toFrameMeta(classifier)
+    val methodName = options.methodName
+    val index =  if(methodName != null){
+        frames.indexOfFirst { it.methodName.contains(methodName) }
+    }else{
+        frames.indexOfFirst { it.simpleClassName == options.className }
+    }
+    val userCodeMetas =  frames.drop(index).takeWhile { frameMeta ->
         frameMeta.isUserCode
-    }.filter {userFramesMeta ->
+    }
+    val filtered = userCodeMetas.filter {userFramesMeta ->
         ExceptionTrace.harshFilter(userFramesMeta)
     }
-
     val trace = if(filtered.isNotEmpty()){
         ExceptionTrace(throwableToText(), filtered, reliable = true, type = options.traceType)
     }else{

@@ -5,22 +5,27 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import po.misc.context.tracable.TraceableContext
+import po.misc.data.output.ToString
 import po.misc.data.output.output
 import po.misc.exceptions.ExceptionPayload
+import po.misc.exceptions.TraceCallSite
+import po.misc.exceptions.Tracer
+import po.misc.exceptions.stack_trace.CallSiteReport
 import po.misc.exceptions.stack_trace.ExceptionTrace
 import po.misc.exceptions.stack_trace.extractTrace
 import po.misc.types.k_class.simpleOrAnon
 import kotlin.reflect.cast
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 
 class TestTraceHelpers : TraceableContext {
 
-   private  val thiClassName = this::class.simpleOrAnon
-
+    private  val thiClassName = this::class.simpleOrAnon
     internal class TestHelpersSubClass(){
         var nullable: Int? = null
 
@@ -38,6 +43,24 @@ class TestTraceHelpers : TraceableContext {
             return exception.extractTrace(ExceptionPayload("Some string", "na", helperMethodName = false,  testClass))
         }
     }
+
+
+    fun createExceptionTrace(useMethod: String? = null): ExceptionTrace{
+        if(useMethod != null){
+          return  Tracer().extractTrace(TraceCallSite(thiClassName, methodName = useMethod))
+        }
+        return Tracer().extractTrace(TraceCallSite(thiClassName, methodName = null))
+    }
+
+    @Test
+    fun `Trace option modify behaviour as expected`() {
+        val trace = createExceptionTrace()
+        assertNotNull(trace.frameMetas.firstOrNull { it.methodName == "createExceptionTrace" })
+        val byMethodName = createExceptionTrace("Trace option modify behaviour as expected")
+        assertNotNull(byMethodName.frameMetas.firstOrNull { it.methodName == "Trace option modify behaviour as expected" })
+        assertNull(byMethodName.frameMetas.firstOrNull { it.methodName == "createExceptionTrace" } )
+    }
+
 
     @Test
     fun `Throwable can be analyzed with acceptable level of precision(no guidelines provided)`(){
@@ -59,14 +82,8 @@ class TestTraceHelpers : TraceableContext {
             testHelpersSubClass.castNotThrowing(10)
         }
         val traceData = assertNotNull(trace)
-        assertEquals(
-            thiClassName,
-            traceData.bestPick.simpleClassName
-        )
-        assertEquals(
-            "Throwable can be analyzed when  helpers method name provided",
-            traceData.bestPick.methodName
-        )
+        assertEquals(thiClassName, traceData.bestPick.simpleClassName)
+        assertEquals("Throwable can be analyzed when  helpers method name provided", traceData.bestPick.methodName)
     }
 
     @Test

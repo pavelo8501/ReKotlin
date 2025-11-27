@@ -14,8 +14,7 @@ class TestClassResolver {
 
     fun Any.attachedFun() {
 
-       val wildcard =   this::class as KClass<*>
-
+       val wildcard =   this::class
 
         wildcard.simpleName?.output("Simple:")
         wildcard.qualifiedName?.output("Qualified:")

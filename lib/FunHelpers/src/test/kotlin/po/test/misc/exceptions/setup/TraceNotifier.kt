@@ -8,7 +8,7 @@ class TraceNotifier(var notifyOnValue: Int,  var name: String = "TraceNotifier")
 
     fun notifyOrNot(value: Int): ExceptionTrace?{
         if(notifyOnValue == value){
-            val trace  = ::notifyOrNot.trace()
+            val trace  = ::notifyOrNot.createTrace()
             return trace
         }else{
             return null

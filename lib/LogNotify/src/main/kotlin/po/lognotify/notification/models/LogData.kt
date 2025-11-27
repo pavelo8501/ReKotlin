@@ -17,7 +17,7 @@ import po.misc.data.styles.Colorizer
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
-import po.misc.exceptions.stack_trace.StackFrameMeta
+import po.misc.debugging.stack_tracer.StackFrameMeta
 import po.misc.exceptions.toStackTraceFormat
 import po.misc.functions.dsl.helpers.nextBlock
 import po.misc.types.token.TypeToken

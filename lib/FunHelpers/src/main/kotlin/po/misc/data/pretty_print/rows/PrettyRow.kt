@@ -58,7 +58,6 @@ abstract class PrettyRowBase(
     val isFirst: Boolean get() = myIndex == 0
     val isLast: Boolean get() = myIndex == ofCount - 1
 
-
     var defaults: RenderDefaults = Console220
     var options: RowOptions = RowOptions(Console220)
 
@@ -66,6 +65,7 @@ abstract class PrettyRowBase(
 
     internal val cellsBacking: MutableList<PrettyCellBase<*>> = mutableListOf()
     val cells : List<PrettyCellBase<*>> get() = cellsBacking
+
     val journal : LogJournal<RendererOperation> = LogJournal(this, RendererOperation.Render)
 
     init {
@@ -147,8 +147,7 @@ abstract class PrettyRowBase(
         val result = prettyCell.postfix?:""
         return result
     }
-
-    private fun <T: Any>  renderStatic(receiver: T,  cell: StaticCell, options: RenderOptions): String{
+    private fun <T: Any> renderStatic(receiver: T,  cell: StaticCell, options: RenderOptions): String{
         journal.addRecord(RendererOperation.RenderCell, "Static cell with options: $options")
         val renderResult = if(cell.lockContent){
             cell.render(options)
@@ -297,9 +296,7 @@ class PrettyRow(
             }
             return realRow
         }
-
     }
-
 }
 
 

@@ -3,8 +3,10 @@ package po.misc.data.output
 
 
 sealed interface OutputBehaviour
+
 object Identify : OutputBehaviour
 object Timestamp : OutputBehaviour
+object ToString : OutputBehaviour
 
 sealed interface OutputResultBehaviour
 object Pass : OutputResultBehaviour

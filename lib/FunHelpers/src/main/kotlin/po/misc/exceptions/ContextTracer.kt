@@ -30,6 +30,9 @@ open class Tracer(
     var printImmediately: Boolean = true,
 ): Throwable() {
     val created: Instant = Instant.now()
+
+    val firstTraceElement : StackTraceElement get() = stackTrace.first()
+
     fun resolveTrace(context: TraceableContext):ExceptionTrace = extractTrace()
 }
 
@@ -40,8 +43,7 @@ interface TracerOptions{
 
 
 fun TraceableContext.trace():  ExceptionTrace{
-    val tracer = Tracer()
-    return tracer.resolveTrace(this)
+    return Tracer().extractTrace()
 }
 
 fun TraceableContext.trace(options: TraceOptions):  ExceptionTrace{

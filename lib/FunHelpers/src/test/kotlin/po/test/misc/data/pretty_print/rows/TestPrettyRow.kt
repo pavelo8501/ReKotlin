@@ -69,7 +69,7 @@ class TestPrettyRow : Component, PrettyBuilder{
     @Test
     fun `Horizontal render with multiple cells work as expected`(){
 
-        val static = noGapsText1.toStatic()
+        val static : StaticCell = noGapsText1.toStatic()
         val static2 = noGapsText2.toStatic()
         val static3 = noGapsText3.toStatic()
 

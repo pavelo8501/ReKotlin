@@ -6,15 +6,8 @@ import po.misc.exceptions.ManagedException
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
-import po.misc.data.printable.PrintableBase
-import po.misc.data.printable.companion.PrintableCompanion
-import po.misc.exceptions.ManagedPayload
-import po.misc.exceptions.throwManaged
 import po.misc.types.getOrManaged
 import kotlin.test.assertEquals
-import kotlin.test.assertIs
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 
 
 class TestManagedException: CTX {

@@ -5,7 +5,7 @@ import po.misc.data.pretty_print.grid.PrettyGrid
 import po.misc.data.pretty_print.grid.buildPrettyGrid
 import po.misc.data.pretty_print.presets.PrettyPresets
 import po.misc.data.pretty_print.presets.RowPresets
-import po.misc.data.pretty_print.rows.buildPrettyRow
+import po.misc.debugging.stack_tracer.StackFrameMeta
 import po.misc.exceptions.TraceOptions
 
 

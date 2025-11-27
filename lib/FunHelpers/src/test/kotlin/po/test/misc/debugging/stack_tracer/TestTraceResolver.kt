@@ -2,44 +2,51 @@ package po.test.misc.debugging.stack_tracer
 
 import po.misc.context.component.Component
 import po.misc.data.logging.NotificationTopic
-import po.misc.data.logging.NotificationTopic2
 import po.misc.data.logging.StructuredLoggable
 import po.misc.data.logging.models.LogMessage
+import po.misc.debugging.classifier.HelperRecord
 import po.misc.debugging.stack_tracer.TraceResolver
-import po.misc.exceptions.stack_trace.ExceptionTrace
+import po.misc.exceptions.stack_trace.CallSiteReport
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
 class TestTraceResolver : Component {
 
-    private val topic: NotificationTopic2 = NotificationTopic2.Debug
-    private var traceResolved: ExceptionTrace? = null
-    private val resolver = TraceResolver(this) {
-        traceResolved = it
-    }
-    fun changeCode() {
-        topic.changeCode(10)
+    private var callSiteReport: CallSiteReport? = null
+
+    private var resolver = TraceResolver(this, HelperRecord("TestTraceResolver", "debug")) {
+        callSiteReport = it
     }
     override fun notify(logMessage: LogMessage): StructuredLoggable {
         resolver.process(logMessage)
         return logMessage
     }
-
+    private fun intermediaryMethod(){
+        debug("Some subject", "Some text")
+    }
     @Test
-    fun `New topic usage`() {
-        changeCode()
-        assertEquals(10, topic.code)
-        val topic2: NotificationTopic2 = topic.copy(20)
-        assertEquals(10, topic.code)
-        assertEquals(20, topic2.code)
+    fun `TraceResolver creates call-site report correctly`() {
+        resolver.resolveTraceWhen(NotificationTopic.Debug)
+        intermediaryMethod()
+        assertNotNull(callSiteReport){
+            assertEquals(0, it.hopFrames.size)
+        }
     }
 
     @Test
-    fun `Stack resolver usage`() {
+    fun `Call site report with 1 hop frame`() {
+        resolver = TraceResolver(this)
+        var thisReport : CallSiteReport? = null
         resolver.resolveTraceWhen(NotificationTopic.Debug)
-        debug("Some subject", "Some text")
-        assertNotNull(traceResolved)
+        resolver.traceResolved.onSignal {
+            thisReport = it
+        }
+        intermediaryMethod()
+        assertNotNull(thisReport){report->
+            assertEquals(1, report.hopFrames.size)
+            assertEquals("intermediaryMethod", report.hopFrames.first().methodName)
+        }
     }
 
 }

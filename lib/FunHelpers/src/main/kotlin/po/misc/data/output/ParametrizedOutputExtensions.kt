@@ -1,10 +1,12 @@
 package po.misc.data.output
 
+import po.misc.data.helpers.orDefault
 import po.misc.data.strings.IndentOptions
 import po.misc.data.strings.ListDirection
 import po.misc.data.strings.StringFormatter
 import po.misc.data.strings.stringify
 import po.misc.data.styles.Colour
+import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
 import po.misc.types.k_class.KClassParam
 import po.misc.types.k_class.toKeyParams
@@ -28,28 +30,26 @@ fun <T: Any> T.output(debugProvider: DebugProvider): KClassParam{
 }
 
 
-fun <T> T.output(
-    onReceiver: OutputBehaviour,
-    prefix: String = ""
-): T {
-    return if(this != null){
-        println(prefix)
-        OutputHelper(this){
-            when(onReceiver){
-                is Identify -> {
-                    outputInternal(nowLocalDateTime())
-                    val string = ClassResolver.classInfo(it).toString()
-                    println(string)
-                }
-                is Timestamp -> {
-                    outputInternal(nowLocalDateTime())
-                }
-            }
+fun Any.output(
+    behaviour: OutputBehaviour,
+    prefix: String? = null
+){
+    val ownPrefix = "Output -> ".colorize(Colour.Blue)
+    val prefixStr = prefix.orDefault { "$it " }
+    val receiver = this
+    val refactorNotImpl = "Not implemented"
+    when(behaviour){
+        is ToString -> {
+            val receiverStr = receiver.toString()
+            val resultStr = "$ownPrefix$prefixStr$receiverStr"
+            println(resultStr)
         }
-        this
-    }else{
-        println("$prefix Null")
-        this
+        is Identify -> {
+            println(refactorNotImpl)
+        }
+        is Timestamp -> {
+          println(refactorNotImpl)
+        }
     }
 }
 
@@ -61,21 +61,3 @@ fun <T: Any, R> T.output(pass:Pass,  colour: Colour? = null, selector: T.() ->R)
     outputInternal(this, colour = colour)
     return selector(this)
 }
-
-fun Any.output(behaviour: OutputBehaviour){
-    OutputHelper(this){receiver->
-        when(behaviour){
-            is Identify -> {
-                outputInternal(nowLocalDateTime())
-                val string = ClassResolver.classInfo(receiver).toString()
-                println(string)
-            }
-            is Timestamp -> {
-                outputInternal(nowLocalDateTime())
-            }
-        }
-    }
-    println(StringFormatter.formatKnownTypes(this))
-}
-
-

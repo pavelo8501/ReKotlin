@@ -2,7 +2,7 @@ package po.misc.debugging.models
 
 import po.misc.data.PrettyPrint
 import po.misc.exceptions.stack_trace.ExceptionTrace
-import po.misc.exceptions.stack_trace.StackFrameMeta
+import po.misc.debugging.stack_tracer.StackFrameMeta
 import po.misc.time.TimeHelper
 
 

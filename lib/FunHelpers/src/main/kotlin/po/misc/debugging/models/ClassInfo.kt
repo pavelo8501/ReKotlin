@@ -4,7 +4,7 @@ import po.misc.data.PrettyPrint
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
-import po.misc.exceptions.stack_trace.StackFrameMeta
+import po.misc.debugging.stack_tracer.StackFrameMeta
 import po.misc.types.k_class.simpleOrAnon
 import po.misc.types.token.GenericInfo
 import po.misc.types.token.TypeToken

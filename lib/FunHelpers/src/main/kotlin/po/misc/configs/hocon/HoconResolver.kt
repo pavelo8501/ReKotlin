@@ -56,12 +56,14 @@ class HoconResolver<C: HoconResolvable<C>>(
     internal val entryMap: MutableMap<String,  HoconEntryBase<C, *>> = mutableMapOf()
 
     private val parsingSubject: (TypeToken<*>) -> String = { "Parsing ${it.typeName}" }
-    private val events: ResolverEvents<C> = ResolverEvents(this)
+
     private var nowParsing: NowParsing? = null
     private val parseBadge: GenericBadge = Badge.make("parse")
     private val parsingMessage : (HoconEntryBase<*, *>)-> String = {
         "Parsing ${it.componentName}"
     }
+
+    val events: ResolverEvents<C> = ResolverEvents(this)
 
     init {
         if (events.onStart.event) {

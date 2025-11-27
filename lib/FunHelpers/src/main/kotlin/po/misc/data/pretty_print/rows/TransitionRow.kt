@@ -18,21 +18,13 @@ class TransitionRow<T: Any>(
     override val typeToken: TypeToken<T>,
     initialCells: List<PrettyCellBase<*>> = emptyList()
 ): PrettyRowBase(initialCells), RenderableElement<T>, TraceableContext {
-    constructor(typeToken: TypeToken<T>, vararg cells: PrettyCellBase<*>):this(typeToken, cells.toList())
 
-    constructor(
-        token: TypeToken<T>,
-        property: KProperty1<Any, T>,
-        container: PrettyDataContainer
-    ):this(token){
+    constructor(typeToken: TypeToken<T>, vararg cells: PrettyCellBase<*>):this(typeToken, cells.toList())
+    constructor(token: TypeToken<T>, property: KProperty1<Any, T>, container: PrettyDataContainer):this(token){
         setCells(container.prettyCells)
         transitionPropertyBacking = property
     }
-    constructor(
-        token: TypeToken<T>,
-        transitionLambda: () -> T,
-        container: PrettyDataContainer
-    ):this(token){
+    constructor(token: TypeToken<T>, transitionLambda: () -> T, container: PrettyDataContainer):this(token){
         setCells(container.prettyCells)
         transitionBacking = transitionLambda
     }
@@ -50,13 +42,13 @@ class TransitionRow<T: Any>(
     fun provideTransition(provider: () -> T){
         transitionBacking = provider
     }
-
     override fun resolveReceiver(parentReceiver:Any):T{
         if(transitionPropertyBacking != null){
             return transitionProperty.getBrutForced(typeToken, parentReceiver)
         }
         return transition.invoke()
     }
+
     companion object{
 
         @PublishedApi

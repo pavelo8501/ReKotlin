@@ -110,9 +110,8 @@ class TestPrettyGrid : PrettyTestBase() {
         }
 
         assertEquals(2, prettyGrid.prettyRows.size)
-        prettyGrid.prettyRows.last().let {
-            assertEquals(1, it.cells.size)
-        }
+        assertEquals(1, prettyGrid.prettyRows.last().cells.size)
+
         val record = createRecord()
         val render = prettyGrid.render(record)
         render.output()

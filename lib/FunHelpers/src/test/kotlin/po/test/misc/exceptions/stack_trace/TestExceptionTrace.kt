@@ -24,10 +24,10 @@ class TestExceptionTrace: TraceableContext {
     fun `Call site stackTrace work as expected`() {
         val stackTrace = notifier.notifyOrNot(300)
         assertNotNull(stackTrace) { exTrace ->
-            assertEquals(2, exTrace.stackFrames.size)
+            assertEquals(2, exTrace.frameMetas.size)
         }
-        val registered = stackTrace.stackFrames.first()
-        val initiated = stackTrace.stackFrames.last()
+        val registered = stackTrace.frameMetas.first()
+        val initiated = stackTrace.frameMetas.last()
         assertEquals("notifyOrNot", registered.methodName)
         assertEquals("Call site stackTrace work as expected", initiated.methodName)
     }
@@ -39,15 +39,15 @@ class TestExceptionTrace: TraceableContext {
         val hopMethodName = ::intermediaryMethod.name
 
         val stackTrace = intermediaryMethod(300)
-        assertNotNull(stackTrace) { exTrace ->
-            assertEquals(3, exTrace.stackFrames.size)
+        assertNotNull(stackTrace) { exTrace : ExceptionTrace ->
+            assertEquals(3, exTrace.frameMetas.size)
         }
-        val registered = stackTrace.stackFrames.first()
-        val initiated = stackTrace.stackFrames.last()
+        val registered = stackTrace.frameMetas.first()
+        val initiated = stackTrace.frameMetas.last()
         assertEquals("notifyOrNot", registered.methodName)
         assertEquals(thisMethodName, initiated.methodName)
 
-        val hopFrame = stackTrace.stackFrames[1]
+        val hopFrame = stackTrace.frameMetas[1]
         assertEquals(hopMethodName, hopFrame.methodName)
     }
 
@@ -60,14 +60,14 @@ class TestExceptionTrace: TraceableContext {
 
         val thisMethodName = ::`Call site stackTrace with multiple hops and callback`.name
         assertNotNull(stackTrace) { exTrace ->
-            assertEquals(3, exTrace.stackFrames.size)
+            assertEquals(3, exTrace.frameMetas.size)
         }
-        val registered = stackTrace.stackFrames.first()
-        val initiated = stackTrace.stackFrames.last()
+        val registered = stackTrace.frameMetas.first()
+        val initiated = stackTrace.frameMetas.last()
         assertEquals("notifyOrNot", registered.methodName)
         assertEquals(thisMethodName, initiated.methodName)
 
-        val hopFrame = stackTrace.stackFrames[1]
+        val hopFrame = stackTrace.frameMetas[1]
         assertEquals("callbackMethod", hopFrame.methodName)
     }
 
@@ -76,13 +76,13 @@ class TestExceptionTrace: TraceableContext {
         val thisMethodName = ::`Call site stackTrace with multiple hops and extension`.name
         val stackTrace = notifier.notifyOrNotExtension(300)
         assertNotNull(stackTrace) { exTrace ->
-            assertEquals(3, exTrace.stackFrames.size)
+            assertEquals(3, exTrace.frameMetas.size)
         }
-        val registered = stackTrace.stackFrames.first()
-        val initiated = stackTrace.stackFrames.last()
+        val registered = stackTrace.frameMetas.first()
+        val initiated = stackTrace.frameMetas.last()
         assertEquals("notifyOrNot", registered.methodName)
         assertEquals(thisMethodName, initiated.methodName)
-        val hopFrame = stackTrace.stackFrames[1]
+        val hopFrame = stackTrace.frameMetas[1]
         assertEquals("notifyOrNotExtension", hopFrame.methodName)
     }
 

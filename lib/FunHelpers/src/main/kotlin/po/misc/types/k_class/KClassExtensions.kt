@@ -17,8 +17,6 @@ fun KClass<*>.toKeyParams():KClassParam{
     return KClassParam(simpleOrAnon, qualifiedName?:"N/A", hashCode(), typeParameters.size)
 }
 
-val  KClass<out Function<*>>.lambdaName: String  get()  = ClassResolver.classInfo(this).normalizedName
-
 fun KClass<*>?.simpleNameOr(default: String): String{
     return if(this != null){
         simpleName?:default

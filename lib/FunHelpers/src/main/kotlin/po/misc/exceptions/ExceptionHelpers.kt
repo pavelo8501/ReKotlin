@@ -2,9 +2,8 @@ package po.misc.exceptions
 
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.helpers.orDefault
-import po.misc.data.helpers.replaceIfNull
 import po.misc.data.helpers.stripAfter
-import po.misc.exceptions.stack_trace.StackFrameMeta
+import po.misc.debugging.stack_tracer.StackFrameMeta
 
 
 fun throwManaged(

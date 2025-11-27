@@ -1,0 +1,89 @@
+package po.misc.debugging
+
+import po.misc.data.output.output
+import po.misc.data.styles.Colour
+import po.misc.debugging.classifier.PackageClassifier
+import po.misc.exceptions.ExceptionPayload
+import po.misc.debugging.stack_tracer.StackFrameMeta
+import po.misc.exceptions.stack_trace.extractTrace
+import po.misc.reflection.anotations.HelperFunction
+import po.misc.reflection.anotations.hasAnnotation
+
+
+fun StackTraceElement.normalizedMethodName(): String {
+
+    fun nameFromParts(parts: List<String>): String{
+        return when{
+            parts.size >= 4 ->{
+                val owner = parts[parts.size - 3].replace("_", " ")
+                val lambdaName = parts[parts.size - 2]
+                return "Lambda -> $lambdaName on $owner"
+            }
+            parts.size >= 3 ->{
+                val owner = parts.first().replace("_", " ")
+                val lambdaIndex = parts[parts.size - 1]
+                return "Lambda -> Anonymous # $lambdaIndex on $owner"
+            }
+            parts.isEmpty() -> {
+                "Lambda -> ${parts.first()}"
+            }
+            else -> "Lambda"
+        }
+    }
+
+    val lambdaRegex = Regex("""lambda\$(.*?)\$\d+""")
+
+    lambdaRegex.find(methodName)?.let { match ->
+        val owner = match.groupValues[1].replace("_", " ")
+        return "Lambda -> ${methodName.substringAfterLast('$')} on $owner"
+    }
+
+    if( methodName.contains("lambda")){
+        val parts = methodName.split("$")
+        return nameFromParts(parts)
+    }
+    if (methodName == "invoke" || methodName == "invokeSuspend") {
+        val parts = className.split("$")
+        return nameFromParts(parts)
+    }
+    if (methodName.startsWith("access$")) {
+        return "Synthetic -> ${methodName.substringAfter("access$")}"
+    }
+    return methodName.substringAfterLast('$')
+}
+
+fun StackTraceElement.checkIfHelperFunctionAnnotated(): Boolean {
+    return try {
+        val cls = Class.forName(className)
+        cls.hasAnnotation<HelperFunction>(methodName) != null
+    }catch (notFound: ClassNotFoundException){
+        notFound.output(Colour.Yellow)
+        false
+    }catch (th: Throwable){
+        val payload = ExceptionPayload(th.message?:"Not found", "isHelperMethod", true, this)
+        th.extractTrace(payload).output()
+        throw th
+    }
+}
+
+fun StackTraceElement.toFrameMeta(classifier: PackageClassifier? = null): StackFrameMeta{
+    return if(classifier != null){
+        StackFrameMeta.create(this, classifier)
+    }else{
+        StackFrameMeta.create(this)
+    }
+}
+
+fun Collection<StackTraceElement>.toFrameMeta(classifier: PackageClassifier?): List<StackFrameMeta>{
+    val result = mutableListOf<StackFrameMeta>()
+    val stackTraceElements = this.toList()
+    for(element in stackTraceElements){
+        val rawFrameMeta = element.toFrameMeta(classifier)
+        result.add(rawFrameMeta)
+    }
+    return result
+}
+
+fun Array<StackTraceElement>.toFrameMeta(classifier: PackageClassifier?): List<StackFrameMeta>{
+    return toList().toFrameMeta(classifier)
+}
