@@ -4,8 +4,8 @@ import po.misc.data.PrettyFormatted
 import po.misc.data.PrettyPrint
 import po.misc.data.pretty_print.grid.PrettyGrid
 import po.misc.data.pretty_print.grid.buildPrettyGrid
+import po.misc.data.pretty_print.parts.CellRender
 import po.misc.data.pretty_print.parts.Orientation
-import po.misc.data.pretty_print.parts.RenderOptions
 import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.debugging.classifier.PackageClassifier
 import po.misc.types.k_class.simpleOrAnon
@@ -32,7 +32,7 @@ data class StackFrameMeta(
 
     val consoleLink: String get() = "$classPackage.$simpleClassName.$methodName($fileName:$lineNumber)"
 
-    override val formattedString: String get() = frameMetaTemplate.render(this, RenderOptions(Template.Short))
+    override val formattedString: String get() = frameMetaTemplate.render(this, CellRender(Template.Short))
 
     override fun formatted(sections: Collection<Enum<*>>?): String {
         return if(sections != null){
@@ -40,7 +40,7 @@ data class StackFrameMeta(
                 add(Template.Short)
                 addAll(sections)
             }
-            frameMetaTemplate.render(this, RenderOptions(list))
+            frameMetaTemplate.render(this, CellRender(list))
         }else{
             formattedString
         }

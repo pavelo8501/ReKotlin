@@ -1,8 +1,8 @@
 package po.misc.data.pretty_print.rows
 
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.pretty_print.RenderableElement
 import po.misc.data.pretty_print.cells.PrettyCellBase
+import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.presets.RowPresets
 import po.misc.reflection.Readonly
 import po.misc.reflection.getBrutForced
@@ -38,35 +38,49 @@ import kotlin.reflect.KProperty1
  * @param initialCells list of cells that form this row
  * @param id optional identifier for selective rendering
  */
-class TransitionRow<T: Any>(
+class TransitionRow<PR: Any,  T: Any>(
     val typeToken: TypeToken<T>,
+    property: KProperty1<PR, T>?,
     initialCells: List<PrettyCellBase<*>> = emptyList(),
-    id: Enum<*>? = null,
-): PrettyRowBase(id, initialCells),  TraceableContext {
-
-    constructor(
-        typeToken: TypeToken<T>,
-        vararg cells: PrettyCellBase<*>
-    ):this(typeToken, cells.toList())
+    options: RowOptions = RowOptions()
+): PrettyRowBase<T>(initialCells, options),  TraceableContext {
 
     constructor(
         token: TypeToken<T>,
-        property: KProperty1<Any, T>,
-        container: PrettyDataContainer
-    ):this(token, container.cells,  container.id){
-        transitionPropertyBacking = property
-    }
+        initialCells: List<PrettyCellBase<*>>,
+    ):this(token, null, initialCells)
+
     constructor(
         token: TypeToken<T>,
-        container: PrettyDataContainer,
+        property: KProperty1<PR, T>,
+        container: PrettyDataContainer<T>
+    ):this(token, property, container.cells,  container.options)
+
+    constructor(
+        token: TypeToken<T>,
+        container: PrettyDataContainer<T>,
         provider: () -> T
-    ):this(token, container.cells, container.id){
+    ):this(token, null, container.cells, container.options){
         providerBacking = provider
     }
 
+    constructor(
+        token: TypeToken<T>,
+        row : PrettyRowBase<*>,
+        provider: () -> T
+    ):this(token, null, row.cells, row.options){
+        providerBacking = provider
+    }
 
-    internal var  transitionPropertyBacking: KProperty1<Any, T>? = null
-    val  transitionProperty: KProperty1<Any, T> get() {
+    override var id: Enum<*>?
+
+        get() = options.id
+        set(value) {
+            options.id = value
+        }
+
+    internal var  transitionPropertyBacking: KProperty1<PR, T>? = null
+    val  transitionProperty: KProperty1<PR, T> get() {
         return transitionPropertyBacking.getOrThrow(KProperty1::class)
     }
 
@@ -75,33 +89,43 @@ class TransitionRow<T: Any>(
         return providerBacking.getOrThrow(this)
     }
 
+    init {
+        transitionPropertyBacking = property
+    }
+
     fun provideTransition(provider: () -> T){
         providerBacking = provider
     }
 
-    fun resolveReceiver(parentReceiver:Any):T{
+    fun resolveReceiver(parentReceiver:PR):T{
         if(transitionPropertyBacking != null){
             return transitionProperty.getBrutForced(typeToken, parentReceiver)
         }
         return provider.invoke()
     }
 
+
+    fun render(parentReceiver:PR, renderOnlyList:  List<Enum<*>>): String{
+        val receiver = resolveReceiver(parentReceiver)
+        return  runRender(receiver, rowOptions = null, renderOnlyList)
+    }
+
     companion object{
 
         @PublishedApi
-        internal inline fun <reified T1 : Any> buildRow(
+        internal inline fun <T: Any, reified T1: Any> buildRow(
             property: KProperty<T1>,
-            parentClass: KClass<*>,
-            rowOptions: RowPresets? = null,
+            parentClass: KClass<T>,
+            rowPresets: RowPresets? = null,
             noinline builder: CellContainer<T1>.() -> Unit
-        ): TransitionRow<T1> {
+        ): TransitionRow<T, T1> {
             val token = TypeToken.create<T1>()
-            val options = rowOptions?.toOptions()
+            val options = rowPresets?.toOptions()
 
             return property.resolveTypedProperty(Readonly, parentClass, token)?.let { kProperty1->
                 val constructor = CellContainer<T1>(token)
                 builder.invoke(constructor)
-                val realRow = TransitionRow<T1>(token, kProperty1, constructor)
+                val realRow = TransitionRow<T, T1>(token, kProperty1, constructor)
                 if(options != null){
                     realRow.options = options
                 }
@@ -113,12 +137,12 @@ class TransitionRow<T: Any>(
         }
 
         @PublishedApi
-        internal inline fun <reified T1 : Any> buildRow(
+        internal inline fun <T: Any, reified T1 : Any> buildRow(
             property: KProperty<T1>,
-            parentToken: TypeToken<*>,
+            parentToken: TypeToken<T>,
             preset: RowPresets? = null,
             noinline builder: CellContainer<T1>.() -> Unit
-        ): TransitionRow<T1> =  buildRow(property, parentToken.kClass, preset, builder)
+        ): TransitionRow<T, T1> =  buildRow(property, parentToken.kClass, preset, builder)
 
     }
 }

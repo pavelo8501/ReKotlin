@@ -1,14 +1,14 @@
 package po.test.misc.data.pretty_print.grid
 
 import org.junit.jupiter.api.Test
-import po.misc.data.output.output
 import po.misc.data.pretty_print.parts.Align
 import po.misc.data.pretty_print.cells.KeyedCell
 import po.misc.data.pretty_print.grid.buildPrettyGrid
 import po.misc.data.pretty_print.parts.CellOptions
+import po.misc.data.pretty_print.parts.CellRender
 import po.misc.data.pretty_print.parts.Orientation
-import po.misc.data.pretty_print.parts.RenderOptions
 import po.misc.data.pretty_print.parts.RowOptions
+import po.misc.data.pretty_print.parts.RowRender
 import po.misc.data.pretty_print.presets.PrettyPresets
 import po.misc.data.pretty_print.presets.RowPresets
 import po.misc.data.styles.Colour
@@ -126,7 +126,7 @@ class TestPrettyGrid : PrettyTestBase() {
             }
         }
         val record = createRecord()
-        var render = prettyGrid.render(record, RenderOptions(Template.Template1))
+        var render = prettyGrid.render(record, RowRender(Template.Template1))
         assertTrue {  render.contains(cell1Text) && render.contains(cell2Text) }
         assertFalse { render.contains(cell3Text) }
 
@@ -139,12 +139,12 @@ class TestPrettyGrid : PrettyTestBase() {
                 addCell(cell3Text)
             }
         }
-        render = prettyGrid.render(record, RenderOptions(Template.Template1, CellTemplate.Cell2))
+        render = prettyGrid.render(record, RowRender(Template.Template1, CellTemplate.Cell2))
 
         assertTrue {  render.contains(cell1Text) && render.contains(cell2Text) }
         assertFalse { render.contains(cell3Text) }
 
-        render = prettyGrid.render(record, RenderOptions(Template.Template1))
+        render = prettyGrid.render(record, CellRender(Template.Template1))
         assertTrue {  render.contains(cell1Text) }
         assertFalse { render.contains(cell2Text) && render.contains(cell3Text) }
     }

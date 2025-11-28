@@ -1,7 +1,6 @@
 package po.misc.data.pretty_print.parts
 
 import po.misc.data.helpers.orDefault
-import po.misc.data.pretty_print.parts.RenderOptions
 
 class PrettyBorders(
     var leftBorder: Char? = null,
@@ -23,7 +22,7 @@ class PrettyBorders(
         return "$content$right$postfixRight"
     }
 
-    fun render(content: String, options: RenderOptions): String{
+    fun render(content: String, options: CommonRenderOptions): String{
         return when {
             options.renderLeftBorder && options.renderRightBorder -> render(content)
             options.renderLeftBorder -> renderLeft(content)

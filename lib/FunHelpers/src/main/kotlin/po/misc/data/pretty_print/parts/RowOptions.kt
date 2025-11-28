@@ -17,6 +17,13 @@ class RowOptions(
         rowSize = renderDefault.defaultWidth
     }
 
+    constructor(
+        id : Enum<*>,
+        orientation : Orientation = Orientation.Horizontal,
+    ):this(orientation, id)
+
+
+
     var rowSize: Int  = Console220.defaultWidth
         internal set
 

@@ -14,7 +14,6 @@ interface ReflectiveAssassin{
 
     companion object{
 
-
         internal fun brutForcePropertyName(
             propName: String,
             lookupResult: PropertyLookup,

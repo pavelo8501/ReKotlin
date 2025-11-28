@@ -3,6 +3,7 @@ package po.misc.exceptions
 import po.misc.context.tracable.TraceableContext
 import po.misc.exceptions.TraceOptions.TraceType
 import po.misc.types.k_class.simpleOrAnon
+import po.misc.types.k_function.receiverClasName
 import po.misc.types.k_function.receiverClass
 import kotlin.reflect.KFunction
 
@@ -16,7 +17,8 @@ sealed interface TraceOptions{
 
 open class TraceCallSite(override var className: String,  override var methodName: String?): TraceOptions{
 
-    constructor(function : KFunction<TraceableContext>):this(function.receiverClass.simpleOrAnon, function.name)
+    constructor(function : KFunction<*>):this(function.receiverClasName, function.name)
+
     constructor(className: String, function : KFunction<*>):this(className, function.name){
         kFunction = function
     }

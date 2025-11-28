@@ -19,14 +19,16 @@ import kotlin.reflect.KProperty0
 import kotlin.reflect.KProperty1
 
 
-interface PrettyDataContainer{
-    val id: Enum<*>?
+interface PrettyDataContainer<T: Any>{
+    val typeToken: TypeToken<T>
+    val options: RowOptions
     val cells : List<PrettyCellBase<*>>
+    val id: Enum<*>? get() = options.id
 }
 
 sealed class  CellContainerBase<T: Any>(
-    val typeToken:  TypeToken<T>
-): PrettyDataContainer{
+    override val typeToken:  TypeToken<T>
+): PrettyDataContainer<T>{
     enum class PropertyKind{ KProperty1, KProperty0 }
 
     var propertyKind: PropertyKind = PropertyKind.KProperty0
@@ -100,12 +102,14 @@ sealed class  CellContainerBase<T: Any>(
         cell.staticModifiers.addModifiers(modifiers)
         return storeCell(cell)
     }
+
     fun addCell(property: KProperty<Any>, options: KeyedCellOptions? = null): KeyedCell = addKeyedCell(property, options)
+
     fun addCell(property: KProperty<Any>, preset: KeyedPresets): KeyedCell  = addKeyedCell(property, KeyedCellOptions(preset))
     fun addCell(property: KProperty<Any>, options: KeyedCellOptions, vararg modifiers: TextModifier): KeyedCell =
         addKeyedCell(property, options, modifiers.toList())
     fun addCell(property: KProperty<Any>, vararg modifiers: TextModifier): KeyedCell =
-        addCell(property, modifiers = modifiers)
+        addKeyedCell(property, modifiers = modifiers.toList())
 
     fun addCells(property: KProperty<Any>, vararg properties: KProperty<Any>, options: KeyedCellOptions? = null): List<KeyedCell>{
         val result = mutableListOf<KeyedCell>()
@@ -125,8 +129,8 @@ sealed class  CellContainerBase<T: Any>(
 }
 
 class CellContainer<T: Any>(
-   typeToken:  TypeToken<T>,
-   override val id: Enum<*>? = null,
+    typeToken:  TypeToken<T>,
+    override val options: RowOptions = RowOptions()
 ): CellContainerBase<T>(typeToken){
     companion object
 }
@@ -134,15 +138,16 @@ class CellContainer<T: Any>(
 class CellReceiverContainer<T: Any>(
     val receiver: T,
     typeToken:  TypeToken<T>,
-    override val id: Enum<*>? = null,
+    override val options: RowOptions = RowOptions()
 ): CellContainerBase<T>(typeToken){
     companion object
 }
 
-inline fun <reified T: Any> T.buildPrettyRow(builder: CellReceiverContainer<T>.(T)-> Unit): PrettyRow {
-    val constructor = CellReceiverContainer<T>(this, TypeToken.create())
+inline fun <reified T: Any> T.buildPrettyRow(builder: CellReceiverContainer<T>.(T)-> Unit): PrettyRow<T> {
+
+    val constructor = CellReceiverContainer<T>(this, TypeToken.create(), RowOptions())
     builder.invoke(constructor, this)
-    val realRow = PrettyRow(constructor)
+    val realRow = PrettyRow<T>(constructor)
     return realRow
 }
 
@@ -150,27 +155,27 @@ inline fun <reified T: Any> T.buildPrettyRowForContext(
     container: CellReceiverContainer.Companion,
     rowOptions: RowOptions? = null,
     noinline builder: CellReceiverContainer<T>.(T)-> Unit
-): PrettyRow =  PrettyRow.buildRowForContext(this, TypeToken.create<T>(), rowOptions,  builder)
+): PrettyRow<T> =  PrettyRow.buildRowForContext(this, TypeToken.create<T>(), rowOptions,  builder)
 
 fun <T: Any> T.buildPrettyRowForContext(
     container: CellReceiverContainer.Companion,
     typeToken: TypeToken<T>,
     rowOptions: RowOptions? = null,
     builder: CellReceiverContainer<T>.(T)-> Unit
-): PrettyRow =  PrettyRow.buildRowForContext(this, typeToken, rowOptions,  builder)
+): PrettyRow<T> =  PrettyRow.buildRowForContext(this, typeToken, rowOptions,  builder)
 
 
 
 inline fun <reified T: Any> buildPrettyRow(
     rowOptions: RowOptions? = null,
     noinline builder: CellContainer<T>.()-> Unit
-): PrettyRow =   PrettyRow.buildRow(TypeToken.create<T>(), rowOptions, builder)
+): PrettyRow<T> =   PrettyRow.buildRow(TypeToken.create<T>(), rowOptions, builder)
 
 inline fun <reified T: Any> buildPrettyRow(
     container: CellContainer.Companion,
     rowOptions: RowOptions? = null,
     noinline builder: CellContainer<T>.()-> Unit
-): PrettyRow =  PrettyRow.buildRow(TypeToken.create<T>(), rowOptions,  builder =  builder)
+): PrettyRow<T> =  PrettyRow.buildRow(TypeToken.create<T>(), rowOptions,  builder =  builder)
 
 
 

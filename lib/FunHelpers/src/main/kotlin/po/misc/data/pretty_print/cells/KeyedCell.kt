@@ -1,10 +1,9 @@
 package po.misc.data.pretty_print.cells
 
-import po.misc.data.pretty_print.parts.Align
 import po.misc.data.pretty_print.parts.CommonCellOptions
+import po.misc.data.pretty_print.parts.CommonRenderOptions
 import po.misc.data.pretty_print.parts.KeyedCellOptions
 import po.misc.data.pretty_print.presets.KeyedPresets
-import po.misc.data.pretty_print.parts.RenderOptions
 import po.misc.data.strings.FormattedPair
 import po.misc.data.styles.TextStyler
 import po.misc.reflection.displayName
@@ -61,7 +60,7 @@ class KeyedCell(width: Int, val cellName: String): PrettyCellBase<KeyedPresets>(
         return this
     }
 
-    override fun render(formatted: FormattedPair, renderOptions: RenderOptions): String{
+    override fun render(formatted: FormattedPair, renderOptions: CommonRenderOptions): String{
         val usedText = if(renderOptions.usePlain){ formatted.text } else { formatted.formatedText }
         val modified = staticModifiers.modify(usedText)
         val formatted = compositeFormatter.format(modified, this)
@@ -69,7 +68,7 @@ class KeyedCell(width: Int, val cellName: String): PrettyCellBase<KeyedPresets>(
         return final
     }
 
-    override fun render(content: String, renderOptions: RenderOptions): String {
+    override fun render(content: String, renderOptions: CommonRenderOptions): String {
         val modified = staticModifiers.modify(content)
         val formatted = compositeFormatter.format(modified, this)
         val final = justifyText(formatted,  renderOptions)

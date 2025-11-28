@@ -1,8 +1,9 @@
 package po.misc.data.pretty_print.cells
 
+import po.misc.data.pretty_print.parts.CellRender
+import po.misc.data.pretty_print.parts.CommonRenderOptions
 import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.presets.PrettyPresets
-import po.misc.data.pretty_print.parts.RenderOptions
 import po.misc.data.strings.stringify
 import po.misc.types.isNotNull
 
@@ -41,7 +42,7 @@ class StaticCell(
         return this
     }
 
-    fun render(renderOptions: RenderOptions): String {
+    fun render(renderOptions: CommonRenderOptions): String {
         val entry = content.stringify()
         val usedText = if(renderOptions.usePlain){
             entry.text
@@ -53,9 +54,9 @@ class StaticCell(
         val final = justifyText(formatted,  renderOptions)
         return final
     }
-    fun render(): String = render(RenderOptions(Orientation.Horizontal, false))
+    fun render(): String = render(CellRender(Orientation.Horizontal))
 
-    override fun render(content: String, renderOptions: RenderOptions): String {
+    override fun render(content: String, renderOptions: CommonRenderOptions): String {
         val entry = content.stringify()
         val usedText = if(renderOptions.usePlain){
             entry.text

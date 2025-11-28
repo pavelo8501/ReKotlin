@@ -1,6 +1,7 @@
 package po.test.misc.data.pretty_print.rows
 
 import org.junit.jupiter.api.Test
+import po.misc.collections.asList
 import po.misc.data.count
 import po.misc.data.output.output
 import po.misc.data.pretty_print.cells.StaticCell
@@ -35,7 +36,10 @@ class TestTransitionRow {
         val prettyRow = PrettyRow(staticCell)
 
         val staticCellOnTransitional = StaticCell("Some static cell on transitional")
-        val transitional = TransitionRow(TypeToken.create<PrintableRecordSubClass>(), staticCellOnTransitional)
+        val transitional = TransitionRow<PrintableRecordSubClass, PrintableRecordSubClass>(
+            TypeToken.create<PrintableRecordSubClass>(),
+            staticCellOnTransitional.asList()
+        )
 
         prettyGrid.addRow(prettyRow)
         prettyGrid.addRow(transitional)

@@ -3,7 +3,6 @@ package po.misc.data.pretty_print.rows
 import po.misc.collections.indexed.Indexed
 import po.misc.context.tracable.TraceableContext
 import po.misc.counters.LogJournal
-import po.misc.data.pretty_print.RenderableElement
 import po.misc.data.pretty_print.parts.Console220
 import po.misc.data.pretty_print.parts.RenderDefaults
 import po.misc.data.pretty_print.cells.ComputedCell
@@ -11,22 +10,16 @@ import po.misc.data.pretty_print.cells.KeyedCell
 import po.misc.data.pretty_print.cells.PrettyCell
 import po.misc.data.pretty_print.cells.PrettyCellBase
 import po.misc.data.pretty_print.cells.StaticCell
+import po.misc.data.pretty_print.parts.CellRender
 import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.parts.PrettyBorders
-import po.misc.data.pretty_print.parts.RenderOptions
+import po.misc.data.pretty_print.parts.RowLoader
 import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.presets.RowPresets
-import po.misc.data.pretty_print.rows.TransitionRow
 import po.misc.data.strings.stringify
 import po.misc.reflection.NameValuePair
-import po.misc.reflection.Readonly
-import po.misc.reflection.getBrutForced
-import po.misc.reflection.resolveTypedProperty
 import po.misc.types.castOrThrow
-import po.misc.types.getOrThrow
 import po.misc.types.token.TypeToken
-import kotlin.reflect.KClass
-import kotlin.reflect.KProperty
 import kotlin.reflect.KProperty1
 
 /**
@@ -46,14 +39,12 @@ import kotlin.reflect.KProperty1
  * - [TransitionRow] - row with a nested receiver derived from the parent receiver
  * - [ListContainingRow] - row that renders once per element of a collection
  */
-abstract class PrettyRowBase(
-    useId: Enum<*>? = null,
+abstract class PrettyRowBase<T: Any>(
     private var initialCells: List<PrettyCellBase<*>>,
-): PrettyDataContainer, TraceableContext, Indexed {
+    var options: RowOptions = RowOptions(Console220),
+):  TraceableContext, Indexed {
 
     enum class RendererOperation{ Render, RenderCell }
-
-    internal val cellsBacking: MutableList<PrettyCellBase<*>> = mutableListOf()
 
     var myIndex: Int = 0
         private set
@@ -64,44 +55,45 @@ abstract class PrettyRowBase(
     val isLast: Boolean get() = myIndex == ofCount - 1
 
     var defaults: RenderDefaults = Console220
-    var options: RowOptions = RowOptions(Console220)
+    //var options: RowOptions = RowOptions(Console220)
     val rowBorders : PrettyBorders = PrettyBorders()
-    override var id : Enum<*>?
-        get() = options.id
-        set(value) {
-            value?.let { options.id = it }
-        }
 
-    override val cells : List<PrettyCellBase<*>> get() = cellsBacking
+    abstract var id : Enum<*>?
+//    var id : Enum<*>?
+//        get() = options.id
+//        set(value) {
+//            value?.let { options.id = it }
+//        }
+
+    internal val cellsBacking: MutableList<PrettyCellBase<*>> = mutableListOf()
+    val cells : List<PrettyCellBase<*>> get() = cellsBacking
+
     val journal : LogJournal<RendererOperation> = LogJournal(this, RendererOperation.Render)
 
     init {
-        if(useId != null){
-            options.id = useId
-        }
         setCells(initialCells)
     }
 
-    private fun selectOption(cell: PrettyCellBase<*>, rowOption: RowOptions): RenderOptions{
+    private fun selectOption(cell: PrettyCellBase<*>, rowOption: RowOptions): CellRender{
         val lastIndex = cells.size - 1
         val index = cell.index
         val orientation = rowOption.orientation
         val usePlain = false
 
         if(orientation == Orientation.Vertical){
-           return RenderOptions(orientation =  orientation, renderLeftBorder = false, renderRightBorder = false).assignFinalize(this)
+           return CellRender(orientation =  orientation, renderLeftBorder = false, renderRightBorder = false).assignFinalize(this)
         }
         val options = when {
-            index == 0 && cells.size == 1 -> RenderOptions(orientation, usePlain, renderLeftBorder = false, false).assignParameters(this)
-            index == 0 && cells.size > 1 -> RenderOptions(orientation, usePlain, renderLeftBorder = false, true).assignParameters(this)
+            index == 0 && cells.size == 1 -> CellRender(orientation, usePlain, renderLeftBorder = false, false).assignParameters(this)
+            index == 0 && cells.size > 1 -> CellRender(orientation, usePlain, renderLeftBorder = false, true).assignParameters(this)
 
-            index == lastIndex && cells.size == 1 ->  RenderOptions(orientation, usePlain, renderLeftBorder = false, false).assignParameters(this)
-            index == lastIndex && cells.size > 1 -> RenderOptions(orientation,usePlain, renderLeftBorder = false, false).assignParameters(this)
+            index == lastIndex && cells.size == 1 ->  CellRender(orientation, usePlain, renderLeftBorder = false, false).assignParameters(this)
+            index == lastIndex && cells.size > 1 -> CellRender(orientation,usePlain, renderLeftBorder = false, false).assignParameters(this)
 
-            cells.size > 1 -> RenderOptions(orientation, usePlain, renderLeftBorder = false, true).assignParameters(this)
-            cells.size <= 1 -> RenderOptions(orientation, usePlain, renderLeftBorder = true, true).assignParameters(this)
+            cells.size > 1 -> CellRender(orientation, usePlain, renderLeftBorder = false, true).assignParameters(this)
+            cells.size <= 1 -> CellRender(orientation, usePlain, renderLeftBorder = true, true).assignParameters(this)
 
-            else -> RenderOptions(orientation, usePlain, renderLeftBorder = true, true).assignParameters(this)
+            else -> CellRender(orientation, usePlain, renderLeftBorder = true, true).assignParameters(this)
         }
         return options
     }
@@ -130,7 +122,7 @@ abstract class PrettyRowBase(
         }
     }
     private fun runListRenderCellsMoreOrEqual(rowOptions: RowOptions, list: List<Any>, stingBuilder: StringBuilder) {
-        val noBordersOption = RenderOptions(orientation =  rowOptions.orientation, renderLeftBorder = false, renderRightBorder = false).assignFinalize(this)
+        val noBordersOption = CellRender(orientation =  rowOptions.orientation, renderLeftBorder = false, renderRightBorder = false).assignFinalize(this)
         list.forEachIndexed { index, element->
             val selectedCell = cells[index]
 
@@ -146,7 +138,7 @@ abstract class PrettyRowBase(
         }
     }
 
-    private fun <T: Any> renderKeyed(receiver: T, cell: KeyedCell, options: RenderOptions): String{
+    private fun <T: Any> renderKeyed(receiver: T, cell: KeyedCell, options: CellRender): String{
         val castedProperty =  cell.property.castOrThrow<KProperty1<T, *>>()
         val formatted = castedProperty.get(receiver).stringify()
         val renderResult = cell.render(formatted, options)
@@ -156,7 +148,7 @@ abstract class PrettyRowBase(
         val result = prettyCell.postfix?:""
         return result
     }
-    private fun <T: Any> renderStatic(receiver: T,  cell: StaticCell, options: RenderOptions): String{
+    private fun <T: Any> renderStatic(receiver: T,  cell: StaticCell, options: CellRender): String{
         journal.addRecord(RendererOperation.RenderCell, "Static cell with options: $options")
         val renderResult = if(cell.lockContent){
             cell.render(options)
@@ -166,7 +158,7 @@ abstract class PrettyRowBase(
         }
         return renderResult
     }
-    private fun <T: Any> renderComputed(receiver: T, cell: ComputedCell<*>, options: RenderOptions): String{
+    private fun <T: Any> renderComputed(receiver: T, cell: ComputedCell<*>, options: CellRender): String{
         journal.addRecord(RendererOperation.RenderCell, "Computed cell with options: [$options]")
         val casted = cell.castOrThrow<ComputedCell<T>>()
         val newReceiver = casted.property?.get(receiver)
@@ -179,7 +171,7 @@ abstract class PrettyRowBase(
         return ""
     }
 
-    internal fun <T: Any> renderCell(receiver: T, cell: PrettyCellBase<*>, options: RenderOptions): String{
+    internal fun <T: Any> renderCell(receiver: T, cell: PrettyCellBase<*>, options: CellRender): String{
         return  when(cell){
             is ComputedCell<*> -> renderComputed(receiver, cell, options)
             is KeyedCell -> renderKeyed(receiver, cell, options)
@@ -302,7 +294,7 @@ abstract class PrettyRowBase(
         }
         setCells(newList)
     }
-    fun applyPreset(preset: RowPresets): PrettyRowBase{
+    fun applyPreset(preset: RowPresets): PrettyRowBase<T>{
         options = preset.toOptions()
         return this
     }
@@ -322,22 +314,40 @@ abstract class PrettyRowBase(
  * @param cells the cells that form this row
  * @param id optional identifier for selective rendering
  */
-class PrettyRow(
-    cells: List<PrettyCellBase<*>>,
-    id: Enum<*>? = null,
-): PrettyRowBase(id, cells){
+class PrettyRow<T: Any>(
+    val  typeToken: TypeToken<T>,
+    cells: List<PrettyCellBase<*>> = emptyList(),
+    options: RowOptions = RowOptions(Console220),
+): PrettyRowBase<T>(cells,options){
 
-    constructor(vararg cells: PrettyCellBase<*>,  id: Enum<*>? = null):this(cells.toList(), id  = id)
-    constructor(container: PrettyDataContainer):this(container.cells, id =  container.id)
+   // constructor(vararg cells: PrettyCellBase<*>, options: RowOptions = RowOptions(Console220)):this(cells.toList(), options)
 
+    constructor(container: PrettyDataContainer<T>):this(container.typeToken,  container.cells,  container.options)
+
+    val loader: RowLoader<T> = RowLoader<T>()
+    override var id: Enum<*>?
+        get() = options.id
+        set(value) {
+            options.id = value
+        }
     companion object{
+
+        operator fun invoke(vararg cells: PrettyCellBase<*>):PrettyRow<String>{
+            val  typeToken: TypeToken<String> = TypeToken.create()
+            return PrettyRow(typeToken, cells.toList())
+        }
+
+        operator fun invoke(cells: List<PrettyCellBase<*>>):PrettyRow<String>{
+            val  typeToken: TypeToken<String> = TypeToken.create()
+            return PrettyRow(typeToken, cells)
+        }
 
         @PublishedApi
         internal fun <T : Any> buildRow(
             token: TypeToken<T>,
             rowOptions: RowOptions? = null,
             builder: CellContainer<T>.() -> Unit
-        ): PrettyRow {
+        ): PrettyRow<T> {
             val constructor = CellContainer<T>(token)
             builder.invoke(constructor)
             val realRow = PrettyRow(constructor)
@@ -353,7 +363,7 @@ class PrettyRow(
             token: TypeToken<T>,
             rowOptions: RowOptions? = null,
             builder: CellReceiverContainer<T>.(T) -> Unit
-        ): PrettyRow {
+        ): PrettyRow<T> {
             val constructor = CellReceiverContainer<T>(receiver, token)
             builder.invoke(constructor, receiver)
             val realRow = PrettyRow(constructor)
@@ -364,6 +374,8 @@ class PrettyRow(
         }
     }
 }
+
+
 
 
 

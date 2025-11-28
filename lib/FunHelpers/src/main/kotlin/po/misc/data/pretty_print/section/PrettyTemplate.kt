@@ -27,7 +27,7 @@ open class PrettyTemplate<T: Any>(
     val prettyGrid: PrettyGrid<T>,
     override val identification: Enum<*>? = null
 ):PrettySection<T> {
-    override val prettyRows: List<PrettyRowBase> get() = prettyGrid.prettyRows
+    override val prettyRows: List<PrettyRowBase<*>> get() = prettyGrid.prettyRows
 
     init {
         prettyGrid.identification = identification

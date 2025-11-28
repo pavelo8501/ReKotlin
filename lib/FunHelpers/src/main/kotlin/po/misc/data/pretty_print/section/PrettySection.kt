@@ -33,7 +33,7 @@ interface PrettySection<T: Any>{
     /**
      * Rows of the section, in the order they will be rendered.
      */
-    val prettyRows: List<PrettyRowBase>
+    val prettyRows: List<PrettyRowBase<*>>
 
     /**
      * Renders the given [receiver] to a formatted multi-line string.

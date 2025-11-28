@@ -9,11 +9,12 @@ import po.misc.data.pretty_print.formatters.text_modifiers.DynamicColourModifier
 import po.misc.data.pretty_print.formatters.text_modifiers.StaticModifiers
 import po.misc.data.pretty_print.formatters.text_modifiers.TextModifier
 import po.misc.data.pretty_print.parts.CellOptions
+import po.misc.data.pretty_print.parts.CellRender
 import po.misc.data.pretty_print.parts.CommonCellOptions
+import po.misc.data.pretty_print.parts.CommonRenderOptions
 import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.parts.PrettyBorders
 import po.misc.data.pretty_print.presets.StylePresets
-import po.misc.data.pretty_print.parts.RenderOptions
 import po.misc.data.strings.FormattedPair
 import po.misc.data.styles.TextStyler
 
@@ -47,11 +48,10 @@ sealed class PrettyCellBase<P: StylePresets>(
     }
     val compositeFormatter: CompositeFormatter<P> = CompositeFormatter(textFormatter, dynamicTextStyler)
 
-    private fun calculateEffectiveWidth(renderOptions: RenderOptions): Int{
+    private fun calculateEffectiveWidth(renderOptions: CommonRenderOptions): Int{
         val cellWidth = options.width
         val cellsCount = renderOptions.cellsCount
         val rowMaxWidth = renderOptions.rowMaxSize
-        val orientation = renderOptions.orientation
         val align = options.alignment
 
         val cellAverageWidth: Int = rowMaxWidth / cellsCount
@@ -71,7 +71,7 @@ sealed class PrettyCellBase<P: StylePresets>(
             }
         }
     }
-    protected fun justifyText(text: String, renderOptions: RenderOptions): String {
+    protected fun justifyText(text: String, renderOptions: CommonRenderOptions): String {
         val useWidth =  calculateEffectiveWidth(renderOptions)
         val useAlignment = options.alignment
         val useFiller = options.spaceFiller
@@ -119,13 +119,13 @@ sealed class PrettyCellBase<P: StylePresets>(
         staticModifiers.addModifier(dynamicColourModifier)
     }
 
-    override fun render(content: String, renderOptions: RenderOptions): String {
+    override fun render(content: String, renderOptions: CommonRenderOptions): String {
         val modified =  staticModifiers.modify(content)
         val formatted =  compositeFormatter.format(modified, this)
         val final = justifyText(formatted,  renderOptions)
         return final
     }
-    override fun render(formatted: FormattedPair, renderOptions: RenderOptions): String {
+    override fun render(formatted: FormattedPair, renderOptions: CommonRenderOptions): String {
         val usedText = if(renderOptions.usePlain){ formatted.text } else { formatted.formatedText }
         val modified =  staticModifiers.modify(usedText)
         val formatted =  compositeFormatter.format(modified, this)
@@ -133,7 +133,7 @@ sealed class PrettyCellBase<P: StylePresets>(
         return final
     }
 
-    fun render(content: String): String = render(content, RenderOptions(Orientation.Horizontal, false))
+    fun render(content: String): String = render(content, CellRender(Orientation.Horizontal))
 
     companion object {
 
