@@ -6,13 +6,18 @@ import po.misc.data.pretty_print.parts.Align
 import po.misc.data.pretty_print.cells.KeyedCell
 import po.misc.data.pretty_print.grid.buildPrettyGrid
 import po.misc.data.pretty_print.parts.CellOptions
+import po.misc.data.pretty_print.parts.Orientation
+import po.misc.data.pretty_print.parts.RenderOptions
+import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.presets.PrettyPresets
 import po.misc.data.pretty_print.presets.RowPresets
 import po.misc.data.styles.Colour
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class TestPrettyGrid : PrettyTestBase() {
 
@@ -52,9 +57,6 @@ class TestPrettyGrid : PrettyTestBase() {
             assertIs<KeyedCell>(keyedCell)
             assertEquals(Colour.GreenBright, keyedCell.keyedOptions.styleOptions.colour)
         }
-        val record = PrintableRecord()
-        val rendered = prettyGrid.render(record)
-        rendered.output()
     }
 
     @Test
@@ -76,9 +78,6 @@ class TestPrettyGrid : PrettyTestBase() {
                 assertNotNull(cell.property)
             }
         }
-        val record = PrintableRecord()
-        val render = prettyGrid.render(record)
-        render.output()
     }
 
     @Test
@@ -94,12 +93,10 @@ class TestPrettyGrid : PrettyTestBase() {
         }
         val record = PrintableRecord()
         val render =  prettyGrid.render(record)
-        render.output()
     }
 
     @Test
     fun `PrettyGrid  with context switch`(){
-
         val prettyGrid = buildPrettyGrid<PrintableRecord> {
             buildRow {
                 addCell("Static")
@@ -108,14 +105,48 @@ class TestPrettyGrid : PrettyTestBase() {
                 addCell(PrintableElement::elementName)
             }
         }
-
         assertEquals(2, prettyGrid.prettyRows.size)
         assertEquals(1, prettyGrid.prettyRows.last().cells.size)
+    }
 
+    @Test
+    fun `Using specific template id to control render`(){
+
+        val cell1Text = "Static cell 1 on first row"
+        val cell2Text = "Second Static cell on first row"
+        val cell3Text = "First Static cell on second row"
+
+        var prettyGrid = buildPrettyGrid<PrintableRecord> {
+            buildRow(RowOptions(Orientation.Horizontal, id = Template.Template1)) {
+                addCell(cell1Text)
+                addCell(cell2Text)
+            }
+            buildRow(RowOptions(Orientation.Horizontal, id = Template.Template2)){
+                addCell(cell3Text)
+            }
+        }
         val record = createRecord()
-        val render = prettyGrid.render(record)
-        render.output()
+        var render = prettyGrid.render(record, RenderOptions(Template.Template1))
+        assertTrue {  render.contains(cell1Text) && render.contains(cell2Text) }
+        assertFalse { render.contains(cell3Text) }
 
+        prettyGrid = buildPrettyGrid<PrintableRecord> {
+            buildRow(RowOptions(Orientation.Horizontal, id = Template.Template1)) {
+                addCell(cell1Text)
+                addCell(cell2Text, CellOptions(CellTemplate.Cell2))
+            }
+            buildRow(RowOptions(Orientation.Horizontal, id = Template.Template2)){
+                addCell(cell3Text)
+            }
+        }
+        render = prettyGrid.render(record, RenderOptions(Template.Template1, CellTemplate.Cell2))
+
+        assertTrue {  render.contains(cell1Text) && render.contains(cell2Text) }
+        assertFalse { render.contains(cell3Text) }
+
+        render = prettyGrid.render(record, RenderOptions(Template.Template1))
+        assertTrue {  render.contains(cell1Text) }
+        assertFalse { render.contains(cell2Text) && render.contains(cell3Text) }
     }
 
 }

@@ -5,6 +5,7 @@ import po.misc.data.pretty_print.parts.KeyedCellOptions
 import po.misc.data.pretty_print.formatters.text_modifiers.ColorModifier
 import po.misc.data.pretty_print.rows.CellContainer
 import po.misc.data.pretty_print.rows.buildPrettyRow
+import po.misc.data.pretty_print.rows.buildPrettyRowForContext
 import po.misc.data.styles.Colour
 import po.misc.time.TimeHelper
 import po.misc.types.token.TypeToken
@@ -31,13 +32,7 @@ data class AccessRecord <E: Enum<E>>(
         else Colour.RedBright
     }
 
-
-    val token :TypeToken<AccessRecord<*>> get() {
-       return TypeToken.create<AccessRecord<*>>()
-    }
-
-    private val prettyRow = buildPrettyRow(CellContainer, token) {
-
+    private val prettyRow = buildPrettyRow<AccessRecord<*>>(CellContainer) {
         addCell(::formatedTime, KeyedCellOptions(showKey = false, width = 20))
         addCell(::recordType, noKeyOption, ColorModifier(success, failure))
         addCell(::message)

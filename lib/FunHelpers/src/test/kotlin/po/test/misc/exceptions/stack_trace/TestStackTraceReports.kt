@@ -19,7 +19,6 @@ class TestStackTraceReports {
             return trace(TraceCallSite("TestStackTraceReports", ::createTrace))
         }
     }
-
     private val notifier = TraceNotifier(notifyOnValue = 300)
 
     fun intermediaryMethod(value: Int): ExceptionTrace? {
@@ -33,7 +32,8 @@ class TestStackTraceReports {
         val subClass = SubClass()
         val trace = subClass.createTrace()
         val report: CallSiteReport = ExceptionTrace.callSiteReport(trace)
-        val render = report.callSiteReport.render(report)
+        val render = report.formattedString
+
         render.output()
         assertTrue { render.contains(registeredFunName) && render.contains(thisFunName) }
     }
@@ -43,8 +43,7 @@ class TestStackTraceReports {
         val stackTrace = intermediaryMethod(300)
         assertNotNull(stackTrace)
         val report = ExceptionTrace.callSiteReport(stackTrace)
-
-        val reportRender = report.callSiteReport.render(report)
+        val reportRender = report.formattedString
         assertEquals(1, report.hopFrames.size)
         reportRender.output()
     }

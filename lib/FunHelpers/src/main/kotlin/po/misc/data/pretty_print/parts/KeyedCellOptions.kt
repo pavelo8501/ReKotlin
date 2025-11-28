@@ -13,10 +13,9 @@ data class KeyedCellOptions(
     val showKey: Boolean = true,
     val useKeyName: String? = null,
     private val emptySpaceFiller: Char? = null,
-): CommonCellOptions{
+    override val id: Enum<*>? = null,
+    ): CommonCellOptions {
 
-
-    constructor(preset: KeyedPresets):this(width = 0, preset.align, preset.styleOption(), preset.keyStyleOption() )
-
+    constructor(preset: KeyedPresets, id: Enum<*>? = null):this(width = 0, preset.align, preset.styleOption(), preset.keyStyleOption(), id = id)
     override val spaceFiller: Char get() = emptySpaceFiller.orDefault()
 }

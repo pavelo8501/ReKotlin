@@ -6,9 +6,14 @@ enum class Orientation{ Horizontal, Vertical }
 
 class RowOptions(
     var orientation : Orientation = Orientation.Horizontal,
+    var id : Enum<*>? = null
 ){
 
-    constructor(renderDefault : RenderDefaults, orientation : Orientation = Orientation.Horizontal):this(orientation){
+    constructor(
+        renderDefault : RenderDefaults,
+        orientation : Orientation = Orientation.Horizontal,
+        id : Enum<*>? = null
+    ):this(orientation, id){
         rowSize = renderDefault.defaultWidth
     }
 

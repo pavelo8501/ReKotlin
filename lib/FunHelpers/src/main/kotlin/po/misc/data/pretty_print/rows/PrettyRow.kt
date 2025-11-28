@@ -30,25 +30,30 @@ import kotlin.reflect.KProperty
 import kotlin.reflect.KProperty1
 
 /**
- * Represents a row of formatted cells that can render an ordered list of values.
+ * Base class for all pretty-printing row types.
  *
- * Typical usage:
- * ```
- * val row = PrettyRow(
- *     PrettyCell(10, KeyPreset),
- *     PrettyCell(20, ValuePreset)
- * )
- * println(row.render(listOf("Name", "John Doe")))
- * ```
+ * A row represents a single logical rendering block that contains one or more
+ * [PrettyCellBase] elements. Each row knows:
  *
- * Extra values exceeding the number of cells are appended after the row
+ * - its identification tag ([id]) for selective rendering
+ * - its initial cell structure
+ * - its ability to render itself against:
+ *      - an object receiver (via reflection)
+ *      - a precomputed list of string values
+ *
+ * Subclasses provide specialized behavior:
+ * - [PrettyRow] - standard row
+ * - [TransitionRow] - row with a nested receiver derived from the parent receiver
+ * - [ListContainingRow] - row that renders once per element of a collection
  */
-
 abstract class PrettyRowBase(
+    useId: Enum<*>? = null,
     private var initialCells: List<PrettyCellBase<*>>,
-): TraceableContext, Indexed {
+): PrettyDataContainer, TraceableContext, Indexed {
 
     enum class RendererOperation{ Render, RenderCell }
+
+    internal val cellsBacking: MutableList<PrettyCellBase<*>> = mutableListOf()
 
     var myIndex: Int = 0
         private set
@@ -60,15 +65,20 @@ abstract class PrettyRowBase(
 
     var defaults: RenderDefaults = Console220
     var options: RowOptions = RowOptions(Console220)
-
     val rowBorders : PrettyBorders = PrettyBorders()
+    override var id : Enum<*>?
+        get() = options.id
+        set(value) {
+            value?.let { options.id = it }
+        }
 
-    internal val cellsBacking: MutableList<PrettyCellBase<*>> = mutableListOf()
-    val cells : List<PrettyCellBase<*>> get() = cellsBacking
-
+    override val cells : List<PrettyCellBase<*>> get() = cellsBacking
     val journal : LogJournal<RendererOperation> = LogJournal(this, RendererOperation.Render)
 
     init {
+        if(useId != null){
+            options.id = useId
+        }
         setCells(initialCells)
     }
 
@@ -79,7 +89,7 @@ abstract class PrettyRowBase(
         val usePlain = false
 
         if(orientation == Orientation.Vertical){
-           return RenderOptions(orientation, renderLeftBorder = false, renderRightBorder = false).assignFinalize(this)
+           return RenderOptions(orientation =  orientation, renderLeftBorder = false, renderRightBorder = false).assignFinalize(this)
         }
         val options = when {
             index == 0 && cells.size == 1 -> RenderOptions(orientation, usePlain, renderLeftBorder = false, false).assignParameters(this)
@@ -120,8 +130,7 @@ abstract class PrettyRowBase(
         }
     }
     private fun runListRenderCellsMoreOrEqual(rowOptions: RowOptions, list: List<Any>, stingBuilder: StringBuilder) {
-
-        val noBordersOption = RenderOptions(rowOptions.orientation, renderLeftBorder = false, renderRightBorder = false).assignFinalize(this)
+        val noBordersOption = RenderOptions(orientation =  rowOptions.orientation, renderLeftBorder = false, renderRightBorder = false).assignFinalize(this)
         list.forEachIndexed { index, element->
             val selectedCell = cells[index]
 
@@ -179,13 +188,26 @@ abstract class PrettyRowBase(
         }
     }
 
-    internal fun <T: Any> runRender(receiver: T, rowPreset: RowPresets? = null): String {
-        val useRowOptions = rowPreset?.toOptions(defaults) ?: options
-        val cellCount = cells.size
+    internal fun <T: Any> runRender(
+        receiver: T,
+        rowOptions: RowOptions?,
+        renderNamedOnly: List<Enum<*>> = emptyList()
+    ): String {
+
+       val cellsToRender =  if(renderNamedOnly.isNotEmpty()){
+            val cellsWithIds = cells.filter { it.options.id == null || it.options.id in renderNamedOnly }
+            cellsWithIds
+        }else{
+            cells
+        }
+
+        val useRowOptions = rowOptions?: options
+        val cellCount = cellsToRender.size
+        val cellsToTake = (cellCount - 1).coerceAtLeast(0)
         journal.addRecord("Cells count $cellCount")
         val result = StringBuilder()
 
-        cells.take(cellCount - 1).forEach {cell->
+        cellsToRender.take(cellsToTake).forEach {cell->
             val options = selectOption(cell, useRowOptions)
             if (useRowOptions.orientation == Orientation.Horizontal) {
                 val rendered = renderCell(receiver, cell, options)
@@ -195,7 +217,7 @@ abstract class PrettyRowBase(
                 result.appendLine(rendered)
             }
         }
-        cells.lastOrNull()?.let {lastCell->
+        cellsToRender.lastOrNull()?.let {lastCell->
             val options = selectOption(lastCell, useRowOptions)
             val rendered = renderCell(receiver, lastCell, options)
             result.append(rendered)
@@ -203,8 +225,7 @@ abstract class PrettyRowBase(
         return result.toString()
     }
 
-    internal fun <T: Any> runListRender(list: List<T>, rowPreset: RowPresets? = null): String {
-        val rowOptions = rowPreset?.toOptions(defaults)
+    internal fun <T: Any> runListRender(list: List<T>, rowOptions: RowOptions? = null): String {
         val optionsToUse = rowOptions?:options
         val cellsCount = cells.size
         journal.addRecord("Cells count $cellsCount")
@@ -217,18 +238,54 @@ abstract class PrettyRowBase(
         return result.toString()
     }
 
-    fun <T: Any> render(receiver: T, rowPreset: RowPresets? = null): String = runRender(receiver, rowPreset)
+    /**
+     * Renders this row using a typed receiver.
+     *
+     * If [rowPreset] is provided, it will be converted into [RowOptions]
+     * and applied during rendering.
+     *
+     * @param receiver the object used to populate the row's cells
+     * @param rowPreset optional preset controlling styling and layout
+     * @return the rendered row text
+     */
+    fun <T: Any> render(receiver: T, rowPreset: RowPresets? = null): String{
+        return if(rowPreset != null){
+            runRender(receiver, rowPreset.toOptions())
+        }else{
+            runRender(receiver, null)
+        }
+    }
 
     fun render(value: Any,  vararg values: Any, rowPreset: RowPresets? = null): String{
         val valuesList = buildList {
             add(value)
             addAll(values.toList())
         }
-        return runListRender(valuesList, rowPreset)
+        return if(rowPreset != null){
+            runListRender(valuesList,  rowPreset.toOptions())
+        }else{
+            runListRender(valuesList)
+        }
     }
+
+    /**
+     * Renders this row from a preformatted list of string values.
+     *
+     * Useful for manual rendering or special cases where reflective access
+     * is not desired.
+     *
+     * @param values the formatted values to render in this row
+     * @param rowPreset optional preset controlling styling and layout
+     * @return rendered row text
+     */
     fun render(values: List<String>, rowPreset: RowPresets? = null): String {
-        return runListRender(values, rowPreset)
+        return if(rowPreset != null){
+            runListRender(values,  rowPreset.toOptions())
+        }else{
+            runListRender(values)
+        }
     }
+
     fun render(nameValuePair: NameValuePair): String = runListRender(listOf(nameValuePair.name, nameValuePair.value))
 
     fun setCells(newCells: List<PrettyCellBase<*>>){
@@ -256,13 +313,22 @@ abstract class PrettyRowBase(
     }
 }
 
+/**
+ * A standard pretty-printing row.
+ *
+ * This row uses the receiver object passed during rendering and renders its
+ * cells directly against that object (no nesting or list expansion).
+ *
+ * @param cells the cells that form this row
+ * @param id optional identifier for selective rendering
+ */
 class PrettyRow(
-    initialCells: List<PrettyCellBase<*>>,
-): PrettyRowBase(initialCells){
-    constructor(vararg cells: PrettyCellBase<*>):this(cells.toList())
-    constructor(container: PrettyDataContainer):this(container.prettyCells){
-        setCells(container.prettyCells)
-    }
+    cells: List<PrettyCellBase<*>>,
+    id: Enum<*>? = null,
+): PrettyRowBase(id, cells){
+
+    constructor(vararg cells: PrettyCellBase<*>,  id: Enum<*>? = null):this(cells.toList(), id  = id)
+    constructor(container: PrettyDataContainer):this(container.cells, id =  container.id)
 
     companion object{
 
@@ -282,7 +348,7 @@ class PrettyRow(
         }
 
         @PublishedApi
-        internal fun <T : Any> buildRow(
+        internal fun <T : Any> buildRowForContext(
             receiver: T,
             token: TypeToken<T>,
             rowOptions: RowOptions? = null,

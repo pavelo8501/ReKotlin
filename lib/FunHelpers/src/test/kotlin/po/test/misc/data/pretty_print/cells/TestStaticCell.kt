@@ -8,6 +8,7 @@ import po.misc.data.pretty_print.parts.Align
 import po.misc.data.pretty_print.presets.PrettyPresets
 import po.misc.data.pretty_print.rows.CellReceiverContainer
 import po.misc.data.pretty_print.rows.buildPrettyRow
+import po.misc.data.pretty_print.rows.buildPrettyRowForContext
 import po.misc.data.styles.Colour
 import po.misc.data.styles.TextStyle
 import kotlin.test.assertEquals
@@ -28,7 +29,7 @@ class TestStaticCell {
             appendLine("line 2")
         }
         assertTrue { cell.text.contains(text1) }
-        val prettyRow = buildPrettyRow(CellReceiverContainer) {
+        val prettyRow = buildPrettyRowForContext(CellReceiverContainer) {
             addCell(StaticCell){
                 appendLine(text1)
                 appendLine("line 2")

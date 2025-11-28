@@ -13,40 +13,77 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 import kotlin.reflect.KProperty1
 
-
+/**
+ * A row whose receiver is not the main object but a nested property.
+ *
+ * `TransitionRow` receives:
+ *
+ * - a [typeToken] describing the nested receiver type
+ * - an optional [id]
+ * - an initial set of cells
+ *
+ * During rendering, a nested object is resolved (via `resolveReceiver(...)`)
+ * and used to populate the row.
+ *
+ * Example:
+ * ```
+ * TransitionRow(User::address) {
+ *     addCell(Address::street)
+ *     addCell(Address::city)
+ * }
+ * ```
+ *
+ * @param T the nested receiver type for this row
+ * @param typeToken runtime type information for the nested receiver
+ * @param initialCells list of cells that form this row
+ * @param id optional identifier for selective rendering
+ */
 class TransitionRow<T: Any>(
-    override val typeToken: TypeToken<T>,
-    initialCells: List<PrettyCellBase<*>> = emptyList()
-): PrettyRowBase(initialCells), RenderableElement<T>, TraceableContext {
+    val typeToken: TypeToken<T>,
+    initialCells: List<PrettyCellBase<*>> = emptyList(),
+    id: Enum<*>? = null,
+): PrettyRowBase(id, initialCells),  TraceableContext {
 
-    constructor(typeToken: TypeToken<T>, vararg cells: PrettyCellBase<*>):this(typeToken, cells.toList())
-    constructor(token: TypeToken<T>, property: KProperty1<Any, T>, container: PrettyDataContainer):this(token){
-        setCells(container.prettyCells)
+    constructor(
+        typeToken: TypeToken<T>,
+        vararg cells: PrettyCellBase<*>
+    ):this(typeToken, cells.toList())
+
+    constructor(
+        token: TypeToken<T>,
+        property: KProperty1<Any, T>,
+        container: PrettyDataContainer
+    ):this(token, container.cells,  container.id){
         transitionPropertyBacking = property
     }
-    constructor(token: TypeToken<T>, transitionLambda: () -> T, container: PrettyDataContainer):this(token){
-        setCells(container.prettyCells)
-        transitionBacking = transitionLambda
+    constructor(
+        token: TypeToken<T>,
+        container: PrettyDataContainer,
+        provider: () -> T
+    ):this(token, container.cells, container.id){
+        providerBacking = provider
     }
+
 
     internal var  transitionPropertyBacking: KProperty1<Any, T>? = null
     val  transitionProperty: KProperty1<Any, T> get() {
         return transitionPropertyBacking.getOrThrow(KProperty1::class)
     }
 
-    internal var transitionBacking: (() -> T)? = null
-    val transition: () -> T get() {
-        return transitionBacking.getOrThrow(this)
+    internal var providerBacking: (() -> T)? = null
+    val provider: () -> T get() {
+        return providerBacking.getOrThrow(this)
     }
 
     fun provideTransition(provider: () -> T){
-        transitionBacking = provider
+        providerBacking = provider
     }
-    override fun resolveReceiver(parentReceiver:Any):T{
+
+    fun resolveReceiver(parentReceiver:Any):T{
         if(transitionPropertyBacking != null){
             return transitionProperty.getBrutForced(typeToken, parentReceiver)
         }
-        return transition.invoke()
+        return provider.invoke()
     }
 
     companion object{

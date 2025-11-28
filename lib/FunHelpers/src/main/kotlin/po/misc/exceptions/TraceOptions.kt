@@ -9,11 +9,9 @@ import kotlin.reflect.KFunction
 
 sealed interface TraceOptions{
     enum class TraceType{ Default, CallSite }
-
     val traceType:TraceType
     val className: String
     val methodName: String?
-
 }
 
 open class TraceCallSite(override var className: String,  override var methodName: String?): TraceOptions{
@@ -26,10 +24,6 @@ open class TraceCallSite(override var className: String,  override var methodNam
     override val traceType:TraceType = TraceType.CallSite
 
     var kFunction : KFunction<*>? = null
-
-    init {
-        kFunction?.name
-    }
 
     fun provideMethodName(name: String): TraceCallSite{
         methodName = name

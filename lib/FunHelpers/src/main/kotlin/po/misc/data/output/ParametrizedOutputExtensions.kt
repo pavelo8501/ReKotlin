@@ -1,5 +1,6 @@
 package po.misc.data.output
 
+import po.misc.data.PrettyFormatted
 import po.misc.data.helpers.orDefault
 import po.misc.data.strings.IndentOptions
 import po.misc.data.strings.ListDirection
@@ -8,6 +9,7 @@ import po.misc.data.strings.stringify
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
+import po.misc.debugging.stack_tracer.StackFrameMeta
 import po.misc.types.k_class.KClassParam
 import po.misc.types.k_class.toKeyParams
 
@@ -60,4 +62,13 @@ fun <T: Any> T.output(pass:Pass, colour: Colour? = null): T {
 fun <T: Any, R> T.output(pass:Pass,  colour: Colour? = null, selector: T.() ->R): R {
     outputInternal(this, colour = colour)
     return selector(this)
+}
+
+fun PrettyFormatted.output(vararg section: Enum<*>){
+    val formated =  if(section.isNotEmpty()){
+        formatted(section.toList())
+    }else{
+        formatted()
+    }
+    println(formated)
 }

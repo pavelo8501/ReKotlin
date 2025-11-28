@@ -2,6 +2,8 @@ package po.test.misc.data.pretty_print.setup
 
 abstract class PrettyTestBase {
 
+    enum class Template { Template1, Template2 }
+    enum class CellTemplate { Cell1, Cell2 }
 
     class PrintableElement(
         val elementName: String,
@@ -19,7 +21,6 @@ abstract class PrettyTestBase {
         val subClass: PrintableRecordSubClass = PrintableRecordSubClass(),
         var elements: List<PrintableElement> = emptyList()
     ){
-
         init {
             elements = listOf(PrintableElement("Element 1"), PrintableElement("Element 2"))
         }

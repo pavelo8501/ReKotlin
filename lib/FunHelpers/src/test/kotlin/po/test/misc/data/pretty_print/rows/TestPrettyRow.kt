@@ -3,6 +3,7 @@ package po.test.misc.data.pretty_print.rows
 import org.junit.jupiter.api.Test
 import po.misc.collections.repeatBuild
 import po.misc.context.component.Component
+import po.misc.counters.createRecord
 import po.misc.data.PrettyPrint
 import po.misc.data.count
 import po.misc.data.output.output
@@ -11,25 +12,27 @@ import po.misc.data.pretty_print.cells.StaticCell
 import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.presets.RowPresets
 import po.misc.data.pretty_print.rows.PrettyRow
+import po.misc.data.pretty_print.rows.buildPrettyRow
 import po.misc.data.splitLines
 import po.misc.data.styles.SpecialChars
+import po.test.misc.data.pretty_print.setup.PrettyTestBase
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 
-class TestPrettyRow : Component, PrettyBuilder{
+class TestPrettyRow : PrettyTestBase(),  PrettyBuilder{
 
-    private class PrintableRecord(
-        val name: String = "PersonalName",
-        val component: String = "Component name ",
-        val description: String = "Some description of the component",
-    ): PrettyPrint {
-        override val formattedString: String get() = "name : $name component: $component description : $description"
-
-        override fun toString(): String {
-           return "$name $component $description"
-        }
-    }
+//    private class PrintableRecord(
+//        val name: String = "PersonalName",
+//        val component: String = "Component name ",
+//        val description: String = "Some description of the component",
+//    ): PrettyPrint {
+//        override val formattedString: String get() = "name : $name component: $component description : $description"
+//
+//        override fun toString(): String {
+//           return "$name $component $description"
+//        }
+//    }
 
     private val cell1Text = "Cell text 1"
     private val cell2Text = "Cell text 2"
@@ -39,7 +42,6 @@ class TestPrettyRow : Component, PrettyBuilder{
     private val noGapsText1 = "text_1"
     private val noGapsText2 = "text_2"
     private val noGapsText3 = "text_3"
-
 
     @Test
     fun `Horizontal render with 1 cell work as expected`(){
@@ -96,7 +98,7 @@ class TestPrettyRow : Component, PrettyBuilder{
             StaticCell()
         }
         prettyRow.setCells(staticCells)
-        assertEquals(4, prettyRow.cells.size)
+        assertEquals(2, prettyRow.cells.size)
         val renderLessCells = prettyRow.render(cell1Text, cell2Text, cell3Text, cell4Text)
         assertTrue { renderLessCells.contains(cell1Text) && renderLessCells.contains(cell2Text) }
         assertTrue { renderLessCells.contains(cell3Text) && renderLessCells.contains(cell4Text) }
@@ -124,7 +126,7 @@ class TestPrettyRow : Component, PrettyBuilder{
             add(cell4Text)
         }
         prettyRow.setCells(staticCells)
-        assertEquals(4, prettyRow.cells.size)
+        assertEquals(2, prettyRow.cells.size)
         val renderLessCells = prettyRow.render(inputList)
         assertTrue { renderLessCells.contains(cell1Text) && renderLessCells.contains(cell2Text) }
         assertTrue { renderLessCells.contains(cell3Text) && renderLessCells.contains(cell4Text) }
@@ -167,6 +169,17 @@ class TestPrettyRow : Component, PrettyBuilder{
         prettyRow.applyPreset(RowPresets.VerticalRow)
         assertEquals(Orientation.Vertical,  prettyRow.options.orientation)
     }
+
+
+    @Test
+    fun `Building row by multiple entries`(){
+        val prettyRow = buildPrettyRow<PrintableRecord> {
+            addCells(PrintableRecord::name, PrintableRecord::component)
+        }
+        assertEquals(2, prettyRow.cells.size)
+
+    }
+
 
 }
 

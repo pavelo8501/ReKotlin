@@ -36,6 +36,7 @@ class TestTransitionRow {
 
         val staticCellOnTransitional = StaticCell("Some static cell on transitional")
         val transitional = TransitionRow(TypeToken.create<PrintableRecordSubClass>(), staticCellOnTransitional)
+
         prettyGrid.addRow(prettyRow)
         prettyGrid.addRow(transitional)
 
@@ -45,8 +46,9 @@ class TestTransitionRow {
         }
         val render =  prettyGrid.render(record)
         val lines = render.splitLines()
+        render.output()
         assertEquals(1, transitional.cells.size)
-        assertEquals(2, lines.size)
+        assertEquals(3, lines.size)
     }
 
     @Test
@@ -62,8 +64,7 @@ class TestTransitionRow {
         val split = render.splitLines()
         assertEquals(2, split.size)
         split.forEach {
-            assertEquals(1, it.count(SpecialChars.WHITESPACE))
+            assertEquals(2, it.count(SpecialChars.WHITESPACE))
         }
     }
-
 }

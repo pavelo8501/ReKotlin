@@ -25,6 +25,7 @@ class TestTraceResolver : Component {
     private fun intermediaryMethod(){
         debug("Some subject", "Some text")
     }
+
     @Test
     fun `TraceResolver creates call-site report correctly`() {
         resolver.resolveTraceWhen(NotificationTopic.Debug)

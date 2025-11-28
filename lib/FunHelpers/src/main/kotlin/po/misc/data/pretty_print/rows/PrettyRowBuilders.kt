@@ -20,7 +20,8 @@ import kotlin.reflect.KProperty1
 
 
 interface PrettyDataContainer{
-    val prettyCells : List<PrettyCellBase<*>>
+    val id: Enum<*>?
+    val cells : List<PrettyCellBase<*>>
 }
 
 sealed class  CellContainerBase<T: Any>(
@@ -31,7 +32,7 @@ sealed class  CellContainerBase<T: Any>(
     var propertyKind: PropertyKind = PropertyKind.KProperty0
 
     internal val prettyCellsBacking = mutableListOf<PrettyCellBase<*>>()
-    override val prettyCells : List<PrettyCellBase<*>> get() = prettyCellsBacking
+    override val cells : List<PrettyCellBase<*>> get() = prettyCellsBacking
 
     internal fun <T: Any> transformToKProperty1(property: KProperty<T>): KProperty1<Any, T> {
 
@@ -86,35 +87,55 @@ sealed class  CellContainerBase<T: Any>(
         return storeCell(cell)
     }
 
-    internal fun addKeyedCell(property: KProperty<Any>, options: KeyedCellOptions? = null): KeyedCell {
+    internal fun addKeyedCell(
+        property: KProperty<Any>,
+        options: KeyedCellOptions? = null,
+        modifiers: List<TextModifier> = emptyList()
+    ): KeyedCell {
         val transformed = transformToKProperty1(property)
         val cell = KeyedCell(transformed)
         if(options != null){
             cell.applyOptions(options)
         }
+        cell.staticModifiers.addModifiers(modifiers)
         return storeCell(cell)
     }
     fun addCell(property: KProperty<Any>, options: KeyedCellOptions? = null): KeyedCell = addKeyedCell(property, options)
     fun addCell(property: KProperty<Any>, preset: KeyedPresets): KeyedCell  = addKeyedCell(property, KeyedCellOptions(preset))
-
-    fun addCell(property: KProperty<Any>, options: KeyedCellOptions, vararg modifiers: TextModifier): KeyedCell {
-        val transformed = transformToKProperty1(property)
-        val cell = KeyedCell(transformed)
-        cell.staticModifiers.addModifiers(modifiers.toList())
-        cell.applyOptions(options)
-        cell.staticModifiers.addModifiers(modifiers.toList())
-        return cell
-    }
-
+    fun addCell(property: KProperty<Any>, options: KeyedCellOptions, vararg modifiers: TextModifier): KeyedCell =
+        addKeyedCell(property, options, modifiers.toList())
     fun addCell(property: KProperty<Any>, vararg modifiers: TextModifier): KeyedCell =
-        addCell(property, options = KeyedCellOptions(), modifiers = modifiers)
+        addCell(property, modifiers = modifiers)
+
+    fun addCells(property: KProperty<Any>, vararg properties: KProperty<Any>, options: KeyedCellOptions? = null): List<KeyedCell>{
+        val result = mutableListOf<KeyedCell>()
+        val list = buildList {
+            add(property)
+            addAll(properties.toList())
+        }
+        list.forEach {
+            val cellAdded = addKeyedCell(it, options)
+            result.add(cellAdded)
+        }
+        return result
+    }
+    fun addCells(property: KProperty<Any>, vararg properties: KProperty<Any>, preset: KeyedPresets): List<KeyedCell> =
+        addCells(property, *properties, options = KeyedCellOptions(preset))
+
 }
 
-class CellContainer<T: Any>(typeToken:  TypeToken<T>): CellContainerBase<T>(typeToken){
+class CellContainer<T: Any>(
+   typeToken:  TypeToken<T>,
+   override val id: Enum<*>? = null,
+): CellContainerBase<T>(typeToken){
     companion object
 }
 
-class CellReceiverContainer<T: Any>(val receiver: T, typeToken:  TypeToken<T>): CellContainerBase<T>(typeToken){
+class CellReceiverContainer<T: Any>(
+    val receiver: T,
+    typeToken:  TypeToken<T>,
+    override val id: Enum<*>? = null,
+): CellContainerBase<T>(typeToken){
     companion object
 }
 
@@ -125,18 +146,20 @@ inline fun <reified T: Any> T.buildPrettyRow(builder: CellReceiverContainer<T>.(
     return realRow
 }
 
-inline fun <reified T: Any> T.buildPrettyRow(
+inline fun <reified T: Any> T.buildPrettyRowForContext(
     container: CellReceiverContainer.Companion,
     rowOptions: RowOptions? = null,
     noinline builder: CellReceiverContainer<T>.(T)-> Unit
-): PrettyRow =  PrettyRow.buildRow(this, TypeToken.create<T>(), rowOptions,  builder)
+): PrettyRow =  PrettyRow.buildRowForContext(this, TypeToken.create<T>(), rowOptions,  builder)
 
-fun <T: Any> T.buildPrettyRow(
+fun <T: Any> T.buildPrettyRowForContext(
     container: CellReceiverContainer.Companion,
     typeToken: TypeToken<T>,
     rowOptions: RowOptions? = null,
     builder: CellReceiverContainer<T>.(T)-> Unit
-): PrettyRow =  PrettyRow.buildRow(this, typeToken, rowOptions,  builder)
+): PrettyRow =  PrettyRow.buildRowForContext(this, typeToken, rowOptions,  builder)
+
+
 
 inline fun <reified T: Any> buildPrettyRow(
     rowOptions: RowOptions? = null,
@@ -149,12 +172,14 @@ inline fun <reified T: Any> buildPrettyRow(
     noinline builder: CellContainer<T>.()-> Unit
 ): PrettyRow =  PrettyRow.buildRow(TypeToken.create<T>(), rowOptions,  builder =  builder)
 
-fun <T: Any> buildPrettyRow(
-    container: CellContainer.Companion,
-    typeToken: TypeToken<T>,
-    rowOptions: RowOptions? = null,
-    builder: CellContainer<T>.()-> Unit
-): PrettyRow =  PrettyRow.buildRow(typeToken, rowOptions, builder)
+
+
+//fun <T: Any> buildPrettyRow(
+//    container: CellContainer.Companion,
+//    typeToken: TypeToken<T>,
+//    rowOptions: RowOptions? = null,
+//    builder: CellContainer<T>.()-> Unit
+//): PrettyRow =  PrettyRow.buildRow(typeToken, rowOptions, builder)
 
 
 

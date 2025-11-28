@@ -3,30 +3,63 @@ package po.misc.debugging.classifier
 import po.misc.debugging.classifier.PackageClassifier.PackageRole
 import po.misc.debugging.normalizedMethodName
 
-
+/**
+ * Classifies stack trace elements into semantic package roles such as:
+ * - [PackageRole.Helper] – internal utility/helper infrastructure
+ * - [PackageRole.User] – user-facing or application code
+ * - [PackageRole.System] – JVM/Kotlin standard library or platform code
+ * - [PackageRole.Unknown] – could not be reliably determined
+ *
+ * A classifier implementation is used by tracing or logging systems to
+ * distinguish “noise” stack frames from meaningful user frames.
+ */
 interface PackageClassifier{
+
+    /**
+     * Defines how a stack trace element should be classified.
+     */
     enum class PackageRole { Helper, User, System, Unknown }
 
+    /**
+     * If `true`, classes ending with the Kotlin-generated `Kt` postfix
+     * (e.g. `FileNameKt`) will always be treated as [PackageRole.Helper].
+     *
+     * This is useful when top-level functions represent internal utilities.
+     */
     var ktPostfixAsHelper: Boolean
 
+    /**
+     * Determines the role of a given [StackTraceElement].
+     *
+     * @param element the stack trace element to classify
+     * @return the identified [PackageRole] based on package, class, or method heuristics
+     */
     fun resolvePackageRole(element: StackTraceElement):PackageRole
 }
 
-class HelperRecord(
-    val helperClassName: String,
-    vararg helperMethodName : String
-){
-    val helperMethodNames: List<String> = helperMethodName.toList()
-
-    fun methodNameListed(methodName: String): Boolean{
-        return methodName in helperMethodNames
-    }
-}
-
+/**
+ * A simple implementation of [PackageClassifier] that classifies stack trace
+ * elements using:
+ *
+ * 1. System package prefixes (e.g. `kotlin.*`, `java.*`, `sun.*`)
+ * 2. Explicit helper class/method annotations via [HelperRecord]
+ * 3. The optional `Kt` postfix rule for Kotlin-generated top-level classes
+ *
+ * This classifier is suitable for tracing/logging frameworks that need
+ * coarse-grained separation between:
+ * - user-facing stack frames,
+ * - helper/infrastructure frames,
+ * - system-level frames.
+ *
+ * @constructor provides an optional initial list of helper class records
+ */
 open class SimplePackageClassifier(
     vararg helperClass: HelperRecord
 ):PackageClassifier {
 
+    /**
+     * Secondary constructor that accepts a [HelperClassList].
+     */
     constructor(helpersList:  HelperClassList):this(){
         helperClassRecords = helpersList.classRecords.toMutableList()
     }
@@ -34,6 +67,11 @@ open class SimplePackageClassifier(
     private var helperClassRecords : MutableList<HelperRecord> = helperClass.toMutableList()
 
     override var ktPostfixAsHelper: Boolean = true
+
+    /**
+     * A list of well-known package prefixes that always map to
+     * [PackageClassifier.PackageRole.System].
+     */
     val definitelyNotUserPrefixes: List<String> = listOf("kotlin", "java", "sun", "jdk", "org.jetbrains")
 
     private fun filterOutNotUser(element: StackTraceElement): PackageRole{
