@@ -2,6 +2,7 @@ package po.misc.data.strings
 
 import po.misc.context.CTX
 import po.misc.data.HasValue
+import po.misc.data.PrettyFormatted
 import po.misc.data.PrettyPrint
 import po.misc.data.TextContaining
 import po.misc.data.styles.Colorizer
@@ -47,6 +48,8 @@ sealed class StringFormatter(var string: String){
 
     companion object{
 
+
+
         fun formatKnownTypes2(target: Any?): FormatedEntry {
             return if(target != null){
                 val targetAsString = target.toString()
@@ -54,6 +57,11 @@ sealed class StringFormatter(var string: String){
                     is KClass<*> -> {
                        val info = ClassResolver.classInfo(target)
                         FormatedEntry(info.simpleName, info.formattedClassName)
+                    }
+                    is PrettyFormatted -> {
+                        FormatedEntry(targetAsString).also {
+                            it.overflowPrevention = true
+                        }
                     }
                     is PrettyPrint -> FormatedEntry(targetAsString, target.formattedString)
                     is CTX -> FormatedEntry(targetAsString,  target.identifiedByName)

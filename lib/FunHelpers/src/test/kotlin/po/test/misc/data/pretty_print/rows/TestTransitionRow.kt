@@ -6,7 +6,7 @@ import po.misc.data.count
 import po.misc.data.output.output
 import po.misc.data.pretty_print.cells.StaticCell
 import po.misc.data.pretty_print.grid.PrettyGrid
-import po.misc.data.pretty_print.presets.RowPresets
+import po.misc.data.pretty_print.parts.RowPresets
 import po.misc.data.pretty_print.rows.PrettyRow
 import po.misc.data.pretty_print.rows.TransitionRow
 import po.misc.data.splitLines
@@ -41,8 +41,8 @@ class TestTransitionRow {
             staticCellOnTransitional.asList()
         )
 
-        prettyGrid.addRow(prettyRow)
-        prettyGrid.addRow(transitional)
+        prettyGrid.addRenderBlock(prettyRow)
+        prettyGrid.addRenderBlock(transitional)
 
         val record = PrintableRecord()
         transitional.provideTransition {
@@ -58,7 +58,7 @@ class TestTransitionRow {
     @Test
     fun `Vertical row rendered as expected`() {
         val record = PrintableRecord()
-        val row = TransitionRow.buildRow(PrintableRecord::subClass, PrintableRecord::class, RowPresets.VerticalRow) {
+        val row = TransitionRow.buildRow(PrintableRecord::subClass, PrintableRecord::class, RowPresets.Vertical) {
             addCell(PrintableRecordSubClass::subName)
             addCell(PrintableRecordSubClass::subComponent)
         }

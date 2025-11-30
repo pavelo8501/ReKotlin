@@ -1,20 +1,20 @@
-package po.misc.counters
+package po.misc.counters.records
 
+import po.misc.counters.JournalBase
 import po.misc.data.PrettyPrint
-import po.misc.data.pretty_print.parts.KeyedCellOptions
+import po.misc.data.pretty_print.Templated
 import po.misc.data.pretty_print.formatters.text_modifiers.ColorModifier
+import po.misc.data.pretty_print.parts.KeyedCellOptions
 import po.misc.data.pretty_print.rows.CellContainer
 import po.misc.data.pretty_print.rows.buildPrettyRow
-import po.misc.data.pretty_print.rows.buildPrettyRowForContext
 import po.misc.data.styles.Colour
 import po.misc.time.TimeHelper
-import po.misc.types.token.TypeToken
 import java.time.Instant
 
 data class AccessRecord <E: Enum<E>>(
+    override val message: String,
     val journal : JournalBase<E>,
-    val message: String,
-): PrettyPrint, TimeHelper {
+): JournalEntry<E>, PrettyPrint, TimeHelper, Templated {
 
     val hostName : String get() =  journal.hostInstanceInfo.instanceName
 
@@ -27,17 +27,17 @@ data class AccessRecord <E: Enum<E>>(
     private val noKeyOption = KeyedCellOptions(showKey = false)
     private val success = ColorModifier.ColourCondition("Success", Colour.GreenBright)
     private val failure = ColorModifier.ColourCondition("Failure", Colour.RedBright)
-    private val dynamicCondition = ColorModifier{
-        if(recordSuccess)Colour.GreenBright
+    private val dynamicCondition = ColorModifier {
+        if (recordSuccess) Colour.GreenBright
         else Colour.RedBright
     }
 
-    private val prettyRow = buildPrettyRow<AccessRecord<*>>(CellContainer) {
+    private val prettyRow = buildPrettyRow<AccessRecord<*>>(CellContainer.Companion) {
         addCell(::formatedTime, KeyedCellOptions(showKey = false, width = 20))
-        addCell(::recordType, noKeyOption, ColorModifier(success, failure))
+        addCell(::entryType, noKeyOption, ColorModifier(success, failure))
         addCell(::message)
         addCell(::hostName)
-        addCell(::reasoning, KeyedCellOptions(showKey = false),  dynamicCondition)
+        addCell(::reasoning, KeyedCellOptions(showKey = false), dynamicCondition)
     }
 
     override val formattedString: String get() = prettyRow.render(this)
@@ -45,20 +45,20 @@ data class AccessRecord <E: Enum<E>>(
     var reasoning: String = ""
         private set
 
-    var recordType: E = journal.defaultRecordType
-        private set
+    override var entryType: E = journal.defaultRecordType
+        internal set
 
     var active: Boolean = true
         private set
 
 
     fun changeRecordType(type: E): AccessRecord<E>{
-        recordType = type
+        entryType = type
         return this
     }
 
-    fun resultOK(successType: E,  message: String? = null){
-        recordType = successType
+    override fun resultOK(successType: E, message: String?){
+        entryType = successType
         active = false
         recordSuccess = true
         message?.let {
@@ -66,8 +66,8 @@ data class AccessRecord <E: Enum<E>>(
         }
     }
 
-    fun resultFailure(failureType: E,  reason: String){
-        recordType = failureType
+    override fun resultFailure(failureType: E, reason: String){
+        entryType = failureType
         active = false
         recordSuccess = false
         reasoning = reason

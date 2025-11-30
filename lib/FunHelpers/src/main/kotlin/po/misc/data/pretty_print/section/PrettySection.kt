@@ -1,7 +1,6 @@
 package po.misc.data.pretty_print.section
-
-import po.misc.data.pretty_print.parts.CommonRenderOptions
-import po.misc.data.pretty_print.rows.PrettyRowBase
+import po.misc.data.pretty_print.parts.RowRender
+import po.misc.data.pretty_print.rows.PrettyRow
 import po.misc.types.token.TypeToken
 
 
@@ -25,15 +24,15 @@ interface PrettySection<T: Any>{
     val typeToken: TypeToken<T>
 
     /**
-     * Identification label that can be used in selective rendering,
+     * id label that can be used in selective rendering,
      * e.g., via [po.misc.data.pretty_print.parts.RenderOptions].
      */
-    val identification: Enum<*>?
+    val ids: List<Enum<*>>
 
     /**
      * Rows of the section, in the order they will be rendered.
      */
-    val prettyRows: List<PrettyRowBase<*>>
+    val prettyRows: List<PrettyRow<*>>
 
     /**
      * Renders the given [receiver] to a formatted multi-line string.
@@ -41,5 +40,5 @@ interface PrettySection<T: Any>{
      * @param receiver the object used to populate rows during rendering
      * @param options optional rendering configuration
      */
-    fun render(receiver: T, options: CommonRenderOptions? = null): String
+    fun render(receiver: T, renderOptions: RowRender? = null): String
 }

@@ -4,7 +4,7 @@ import po.misc.collections.asList
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.pretty_print.RenderableElement
 import po.misc.data.pretty_print.parts.RowOptions
-import po.misc.data.pretty_print.presets.RowPresets
+import po.misc.data.pretty_print.parts.RowPresets
 import po.misc.data.pretty_print.section.PrettySection
 import po.misc.reflection.Readonly
 import po.misc.reflection.resolveTypedProperty
@@ -37,11 +37,11 @@ import kotlin.reflect.KProperty1
  * @param initialCells cells that define the structure of each list row
  */
 class ListContainingRow<PR: Any,  T: Any>(
-    override val typeToken: TypeToken<T>,
+    typeToken: TypeToken<T>,
     val prettyRows : List<PrettyRowBase<*>>,
     property: KProperty1<PR, Collection<T>>?,
     options: RowOptions = RowOptions()
-): PrettyRowBase<T>( initialCells = emptyList(), options), RenderableElement<PR, T>, TraceableContext {
+): PrettyRowBase<T>(typeToken,  initialCells = emptyList(), options),  RenderableElement<PR, Collection<T>>, TraceableContext {
 
     constructor(
         token: TypeToken<T>,
@@ -56,6 +56,8 @@ class ListContainingRow<PR: Any,  T: Any>(
     ):this(token, container.prettyRows, property = null){
         providerBacking = provider
     }
+
+    override val ids: List<Enum<*>> get() = prettyRows.mapNotNull { it.id }
 
     internal var  transitionPropertyBacking: KProperty1<PR, Collection<T>>? = null
     val  transitionProperty: KProperty1<PR, Collection<T>> get() {
@@ -95,12 +97,6 @@ class ListContainingRow<PR: Any,  T: Any>(
         }
         return provider.invoke()
     }
-
-    override var id: Enum<*>?
-        get() = options.id
-        set(value) {
-            options.id = value
-        }
 
     companion object{
 

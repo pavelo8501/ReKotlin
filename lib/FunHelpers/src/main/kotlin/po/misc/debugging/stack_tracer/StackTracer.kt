@@ -23,6 +23,7 @@ interface StackTracer {
     fun  KClass<out TraceableContext>.createTrace(classifier: PackageClassifier? = null):  ExceptionTrace{
         return  traceCallSite(this, null,  classifier)
     }
+
     companion object : StackTracerClass()
 }
 

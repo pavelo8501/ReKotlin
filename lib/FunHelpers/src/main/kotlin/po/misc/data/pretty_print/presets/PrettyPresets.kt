@@ -104,9 +104,7 @@ interface KeyedPresets:  PrettyPresets {
     }
 
     object Property: KeyedPresets{
-
         override val align: Align = Align.LEFT
-
         override val keyStyle: TextStyle = TextStyle.Italic
         override val keyColour: Colour = Colour.Magenta
         override val keyBackgroundColour: BGColour? = null

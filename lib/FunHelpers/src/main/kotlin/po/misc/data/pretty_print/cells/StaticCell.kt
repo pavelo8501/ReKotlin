@@ -1,17 +1,20 @@
 package po.misc.data.pretty_print.cells
 
+import po.misc.data.pretty_print.parts.CellOptions
 import po.misc.data.pretty_print.parts.CellRender
 import po.misc.data.pretty_print.parts.CommonRenderOptions
 import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.presets.PrettyPresets
+import po.misc.data.strings.classParam
+import po.misc.data.strings.classProperty
 import po.misc.data.strings.stringify
 import po.misc.types.isNotNull
 
 
 class StaticCell(
     var content: Any? = null,
-    width: Int = content?.toString()?.length?:0
-): PrettyCellBase<PrettyPresets>(width), CellRenderer{
+    options: CellOptions = CellOptions()
+): PrettyCellBase<PrettyPresets>(options), CellRenderer{
 
     val text: String get() = content.stringify().toString()
 
@@ -69,7 +72,13 @@ class StaticCell(
         return final
     }
 
-    override fun toString(): String = "StaticCell [Width: ${options.width}]"
-
+    override fun toString(): String {
+        return buildString {
+            appendLine("StaticCell")
+            classParam("id", options.id)
+            classParam("width", options.width)
+            classProperty(::lockContent)
+        }
+    }
     companion object
 }

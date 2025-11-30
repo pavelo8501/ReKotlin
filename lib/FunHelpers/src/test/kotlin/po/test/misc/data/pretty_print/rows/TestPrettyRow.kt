@@ -2,15 +2,12 @@ package po.test.misc.data.pretty_print.rows
 
 import org.junit.jupiter.api.Test
 import po.misc.collections.repeatBuild
-import po.misc.context.component.Component
-import po.misc.counters.createRecord
-import po.misc.data.PrettyPrint
 import po.misc.data.count
 import po.misc.data.output.output
 import po.misc.data.pretty_print.PrettyBuilder
 import po.misc.data.pretty_print.cells.StaticCell
 import po.misc.data.pretty_print.parts.Orientation
-import po.misc.data.pretty_print.presets.RowPresets
+import po.misc.data.pretty_print.parts.RowPresets
 import po.misc.data.pretty_print.rows.PrettyRow
 import po.misc.data.pretty_print.rows.buildPrettyRow
 import po.misc.data.splitLines
@@ -21,18 +18,6 @@ import kotlin.test.assertTrue
 
 
 class TestPrettyRow : PrettyTestBase(),  PrettyBuilder{
-
-//    private class PrintableRecord(
-//        val name: String = "PersonalName",
-//        val component: String = "Component name ",
-//        val description: String = "Some description of the component",
-//    ): PrettyPrint {
-//        override val formattedString: String get() = "name : $name component: $component description : $description"
-//
-//        override fun toString(): String {
-//           return "$name $component $description"
-//        }
-//    }
 
     private val cell1Text = "Cell text 1"
     private val cell2Text = "Cell text 2"
@@ -137,7 +122,7 @@ class TestPrettyRow : PrettyTestBase(),  PrettyBuilder{
 
         val printableRecord = PrintableRecord()
         val  staticCells = 2.repeatBuild {
-            StaticCell()
+            StaticCell(printableRecord.name)
         }
         val prettyRow = PrettyRow(staticCells)
         val render = prettyRow.render(printableRecord)
@@ -164,12 +149,11 @@ class TestPrettyRow : PrettyTestBase(),  PrettyBuilder{
             StaticCell()
         }
         val prettyRow = PrettyRow(staticCells)
-        prettyRow.render(cell1Text, RowPresets.VerticalRow)
+        prettyRow.render(cell1Text, RowPresets.Vertical)
         assertEquals(Orientation.Horizontal,  prettyRow.options.orientation)
-        prettyRow.applyPreset(RowPresets.VerticalRow)
+        prettyRow.applyPreset(RowPresets.Vertical)
         assertEquals(Orientation.Vertical,  prettyRow.options.orientation)
     }
-
 
     @Test
     fun `Building row by multiple entries`(){
@@ -177,9 +161,7 @@ class TestPrettyRow : PrettyTestBase(),  PrettyBuilder{
             addCells(PrintableRecord::name, PrintableRecord::component)
         }
         assertEquals(2, prettyRow.cells.size)
-
     }
-
 
 }
 

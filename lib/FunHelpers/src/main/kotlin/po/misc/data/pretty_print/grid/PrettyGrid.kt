@@ -1,59 +1,55 @@
 package po.misc.data.pretty_print.grid
 
-import po.misc.collections.indexed.IndexedList
-import po.misc.collections.indexed.indexedListOf
 import po.misc.data.output.output
+import po.misc.data.pretty_print.RenderableElement
 import po.misc.data.pretty_print.parts.CommonRenderOptions
+import po.misc.data.pretty_print.parts.ReceiverListLoader
 import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.parts.RowRender
-import po.misc.data.pretty_print.presets.RowPresets
+import po.misc.data.pretty_print.parts.RowPresets
 import po.misc.data.pretty_print.rows.CellContainer
 import po.misc.data.pretty_print.rows.ListContainingRow
 import po.misc.data.pretty_print.rows.PrettyRow
 import po.misc.data.pretty_print.rows.PrettyRowBase
+import po.misc.data.pretty_print.rows.RowBuilder
+import po.misc.data.pretty_print.rows.RowBuilderClass
 import po.misc.data.pretty_print.rows.TransitionRow
 import po.misc.data.pretty_print.section.PrettySection
 import po.misc.data.styles.Colour
-import po.misc.reflection.Readonly
-import po.misc.reflection.resolveProperty
-import po.misc.reflection.resolveTypedProperty
+import po.misc.data.styles.SpecialChars
 import po.misc.types.safeCast
 import po.misc.types.token.TokenFactory
 import po.misc.types.token.TypeToken
 import po.misc.types.token.tokenOf
+import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
+import kotlin.reflect.KProperty1
 
-/**
- * A container for building and rendering a pretty-printing grid.
- *
- * `PrettyGrid` represents a collection of rows that can render an object of type [T]
- * into human-readable formatted text. Rows may be:
- *
- * - regular rows (`PrettyRow`)
- * - transition rows (`TransitionRow`) used for nested rendering via templates
- * - list rows (`ListContainingRow`) used to render collections
- *
- * The grid supports:
- * - declarative DSL building (`buildRow`, `buildRows`)
- * - row identification through enum IDs
- * - template embedding via `useTemplate`
- * - selective rendering via [RenderOptions]
- *
- * @param T the receiver type used when rendering this grid.
- * @property typeToken runtime type information used for reflective cell rendering.
- */
-class PrettyGrid<T: Any>(
+
+sealed class PrettyGridBase<T: Any>(
     override val typeToken :TypeToken<T>,
-) : PrettySection<T>, TokenFactory{
-
-    internal val prettyRowsBacking: IndexedList<PrettyRowBase<*>> = indexedListOf()
+    val options: RowOptions,
+    val builders: RowBuilder<T> = RowBuilderClass(typeToken)
+) :PrettySection<T>, TokenFactory, RowBuilder<T> by  builders  {
 
     /**
      * Public read-only view of all rows in the grid.
      *
      * Rows appear in the same order they were added or constructed via the DSL.
      */
-    override val prettyRows: List<PrettyRowBase<*>> get() = prettyRowsBacking
+    override val prettyRows: List<PrettyRow<*>>
+        get() {
+            val resultingList = mutableListOf<PrettyRow<*>>()
+            renderBlocks.forEach { renderBlock ->
+                when (renderBlock) {
+                    is PrettyRow<*> -> resultingList.add(renderBlock)
+                    is PrettyPromiseGrid<*, *> -> {
+                        resultingList.addAll(renderBlock.prettyRows)
+                    }
+                }
+            }
+            return resultingList
+        }
 
     /**
      * Identification tag for the grid.
@@ -61,44 +57,31 @@ class PrettyGrid<T: Any>(
      * Assigning this also propagates the identifier to every row in the grid.
      * This enables selective rendering using [RenderOptions].
      */
-    override var identification: Enum<*>? = null
-        set(value) {
-            field = value
-            prettyRows.forEach {
-                it.id = value
-            }
+    override val ids: List<Enum<*>> get() = prettyRows.mapNotNull { it.id }
+
+
+    protected fun renderParameterOrDefault(renderParam: RowRender?): RowRender {
+        return renderParam ?: RowRender(options)
+    }
+
+    inline fun <reified T : PrettyRowBase<*>> getRows(): List<T> {
+        return prettyRows.filterIsInstance<T>()
+    }
+
+    fun <V : Any> getRowsNotOfType(typeToken: TypeToken<V>): List<PrettyRowBase<*>> {
+        val result = prettyRows.filter {
+            it.typeToken != typeToken
         }
-
-    /**
-     * Adds a fully constructed row to this grid.
-     *
-     * @param newRow a row instance to append
-     * @return this grid instance for chaining
-     */
-    fun addRow(newRow: PrettyRowBase<*>): PrettyGrid<T> {
-        prettyRowsBacking.add(newRow)
-        return this
+        return result
     }
 
-    /**
-     * Builds a new row using a DSL-style builder.
-     *
-     * @param rowOptions configuration for orientation, styling, and identification
-     * @param builder the lambda that defines this row's cells
-     */
-    fun buildRow(rowOptions: RowOptions? = null, builder: CellContainer<T>.() -> Unit) {
-        val newRow = PrettyRow.buildRow(typeToken, rowOptions, builder)
-        addRow(newRow)
+    inline fun <reified T : RenderableElement<*, *>> getRenderable(): List<T> {
+        return renderBlocks.filterIsInstance<T>()
     }
 
-    /**
-     * Builds a row from a preset row configuration.
-     *
-     * @param rowOptions a preset that can be converted into [RowOptions]
-     * @param builder the lambda describing cell contents
-     */
-    fun buildRow(rowOptions: RowPresets, builder: CellContainer<T>.() -> Unit): Unit =
-        buildRow(rowOptions.toOptions(), builder)
+    fun getAllRows(): List<PrettyRowBase<*>> {
+        return prettyRows
+    }
 
     /**
      * Builds a transition row bound to a property of [T].
@@ -121,11 +104,10 @@ class PrettyGrid<T: Any>(
         property: KProperty<T1>,
         preset: RowPresets? = null,
         noinline builder: CellContainer<T1>.() -> Unit
-    ) : Unit {
-       val row = TransitionRow.buildRow(property, typeToken, preset, builder)
-       addRow(row)
+    ): Unit {
+        val row = TransitionRow.buildRow(property, typeToken, preset, builder)
+        addRenderBlock(row)
     }
-
 
     /**
      * Builds a row that renders every element inside a collection property.
@@ -142,20 +124,17 @@ class PrettyGrid<T: Any>(
      * @param preset optional styling preset
      * @param builder row cell builder executed for each list element
      */
-    inline fun <reified T1 : Any> buildRows(
-        property: KProperty<Collection<T1>>,
+    inline fun <reified T: Any, reified V : Any> buildRows(
+        property: KProperty1<T,  Collection<V>>,
         rowPresets: RowPresets? = null,
-        noinline builder: CellContainer<T1>.() -> Unit
-    ) : Unit {
-        val token = tokenOf<T1>()
-        resolveTypedProperty<Any, Collection<T1>>(Readonly, typeToken.kClass,  property)?.let { resolved->
-            val options = rowPresets?.toOptions()
-            val row = PrettyRow.buildRow(token, options, builder)
-            row.loader.provideCollectionProperty(resolved)
-            addRow(row)
-        }
+        noinline builder: CellContainer<V>.() -> Unit
+    ): Unit {
+        val token = tokenOf<V>()
+        val options = rowPresets?.toOptions()?:options
+        val row = PrettyRow.buildRow(token, options, builder)
+        row.listLoader =  ReceiverListLoader(token, property)
+        addRenderBlock(row)
     }
-
 
 
     /**
@@ -178,10 +157,10 @@ class PrettyGrid<T: Any>(
      * @param template The section whose rows should be reused.
      * @param receiverProvider A lambda returning the receiver instance that the template applies to.
      */
-    fun <T1 : Any> useTemplate(template: PrettySection<T1>, receiverProvider: ()-> T1 ){
+    fun <T1 : Any> useTemplate(template: PrettySection<T1>, receiverProvider: () -> T1) {
         template.prettyRows.forEach { row ->
-            val transitionRow = TransitionRow<T,  T1>(template.typeToken,  row, receiverProvider)
-            addRow(transitionRow)
+            val transitionRow = TransitionRow<T, T1>(template.typeToken, row, receiverProvider)
+            addRenderBlock(transitionRow)
         }
     }
 
@@ -193,9 +172,9 @@ class PrettyGrid<T: Any>(
      *
      * @param template a compatible pretty-printing template
      */
-    fun useTemplate(template: PrettySection<T>){
-        template.prettyRows.forEach {row ->
-            addRow(row)
+    fun useTemplate(template: PrettySection<T>) {
+        template.prettyRows.forEach { row ->
+            addRenderBlock(row)
         }
     }
 
@@ -219,9 +198,90 @@ class PrettyGrid<T: Any>(
      * @param template The section whose rows should be reused.
      * @param receiverProvider A lambda returning a collection of receivers that this template applies to.
      */
-    inline fun <reified T1 : Any> useTemplateForList(template: PrettySection<T1>, noinline receiverProvider: ()-> Collection<T1>){
+    inline fun <reified T1 : Any> useTemplateForList(
+        template: PrettySection<T1>,
+        noinline receiverProvider: () -> Collection<T1>
+    ) {
         val listContainingRow = ListContainingRow(template.typeToken, template, receiverProvider)
-        addRow(listContainingRow)
+        addRenderBlock(listContainingRow)
+    }
+
+    private fun checkShouldRender(row: RenderableElement<*, *>, options: CommonRenderOptions): Boolean {
+        return if (options !is RowRender) {
+            true
+        } else {
+            if (options.renderOnly.isEmpty()) {
+                true
+            } else {
+                row.ids.any { it in options.renderOnly}
+            }
+        }
+    }
+
+    private fun renderRow(row: PrettyRow<*>, receiver: T, renderOptions: RowRender): String{
+        val typeChecked = row.safeCast<PrettyRow<T>>()
+        if (typeChecked != null) {
+            val loader =  typeChecked.listLoader
+            if(loader == null){
+                return typeChecked.render(receiver, renderOptions)
+            }else{
+                val result = loader.tryResolveReceiver(receiver)
+                if(result != null){
+                    return row.renderList(result, renderOptions)
+                }
+            }
+        }else{
+            val loader =  row.listLoader
+            if(loader != null){
+                val result = loader.tryResolveReceiver(receiver)
+                if(result != null){
+                   return row.render(result)
+                }
+            }
+        }
+        return ""
+    }
+    private fun renderTransitionRow(row: TransitionRow<*, *>, receiver: T, options: RowRender): String {
+        val typeChecked = row.safeCast<TransitionRow<T, *>>()
+        if (typeChecked == null) {
+            "TransitionRow ${row.id?.name ?: row} was not rendered".output(Colour.Yellow)
+            return SpecialChars.EMPTY
+        }
+        return typeChecked.render(receiver, options)
+    }
+    private fun renderListContainingRow(row: ListContainingRow<*, *>, receiver: T, options: RowRender): String {
+        val typeChecked = row.safeCast<ListContainingRow<T, *>>()
+        if (typeChecked == null) {
+            "TransitionRow ${row.id?.name ?: row} was not rendered".output(Colour.Yellow)
+            return SpecialChars.EMPTY
+        }
+        return typeChecked.render(receiver, options)
+    }
+    private fun renderPromiseRows(row: PrettyPromiseGrid<*, *>, receiver: T, options: RowRender): String {
+        val typeChecked = row.safeCast<PrettyPromiseGrid<T, *>>()
+        if (typeChecked == null) {
+            "TransitionRow $row was not rendered".output(Colour.Yellow)
+            return SpecialChars.EMPTY
+        }
+        return typeChecked.renderTemplate(receiver, options)
+    }
+
+    protected fun renderAll(receiver: T, renderOptions: RowRender?): String {
+        val stringBuilder = StringBuilder()
+        for (renderBlock in renderBlocks) {
+            val useRender = renderParameterOrDefault(renderOptions)
+            val shouldRender = checkShouldRender(renderBlock, useRender)
+            if (!shouldRender) continue
+            val renderedString = when (renderBlock) {
+                is PrettyRow -> renderRow(renderBlock, receiver, useRender)
+                is TransitionRow<*, *> -> renderTransitionRow(renderBlock, receiver, useRender)
+                is ListContainingRow<*, *> -> renderListContainingRow(renderBlock, receiver, useRender)
+                is PrettyPromiseGrid<*, *> -> renderPromiseRows(renderBlock, receiver, useRender)
+                else -> ""
+            }
+            stringBuilder.appendLine(renderedString)
+        }
+        return stringBuilder.toString()
     }
 
     /**
@@ -241,64 +301,150 @@ class PrettyGrid<T: Any>(
      * @param options optional configuration controlling which rows/cells to output
      * @return the formatted string representation of the grid
      */
-    override fun render(receiver: T, options: CommonRenderOptions?): String {
-        val stringBuilder = StringBuilder()
-        for (renderRow in prettyRows){
-            val shouldRender =  if(options == null){
-                true
-            }else{
-                if(options !is RowRender){
-                    true
-                }else{
-                    renderRow.id in options.renderOnly
-                }
-            }
-            if(!shouldRender) continue
-            val printExtraBreakSpace = options?.rowNoGap?:true
-            if(!renderRow.isFirst && !printExtraBreakSpace){
-                stringBuilder.appendLine("")
-            }
-            val renderOnlyList = options?.renderOnly?:emptyList()
-            when (renderRow){
-                is PrettyRow -> {
-                    val render = renderRow.runRender(receiver, rowOptions = null, renderOnlyList)
-                    stringBuilder.appendLine(render)
-                }
-                is TransitionRow<*, *> -> {
-                    renderRow.safeCast<TransitionRow<T, *>>()?.let {typeChecked->
-                        val render =  typeChecked.render(receiver, renderOnlyList)
-                        stringBuilder.appendLine(render)
-                    }?:run {
-                        "TransitionRow ${renderRow.id?.name?:renderRow} was not rendered".output(Colour.Yellow)
-                    }
-                }
-                is ListContainingRow<*, *> -> {
-                    renderRow.safeCast<ListContainingRow<T, *>>()?.let {typeChecked->
-                        val render =  typeChecked.render(receiver, renderOnlyList)
-                        stringBuilder.appendLine(render)
-                    }?:run {
-                        "ListContainingRow ${renderRow.id?.name?:renderRow} was not rendered".output(Colour.Yellow)
-                    }
-                }
-            }
-        }
-        return stringBuilder.toString()
+    override fun render(receiver: T, renderOptions: RowRender?): String {
+       return renderAll(receiver, renderOptions)
     }
 }
 
-inline fun <reified T: Any> buildPrettyGrid(builder: PrettyGrid<T>.() -> Unit):PrettyGrid<T>{
-    val token = TypeToken.create<T>()
-    val grid = PrettyGrid<T>(token)
-    builder.invoke(grid)
-    return grid
+/**
+ * A container for building and rendering a pretty-printing grid.
+ *
+ * `PrettyGrid` represents a collection of rows that can render an object of type [T]
+ * into human-readable formatted text. Rows may be:
+ *
+ * - regular rows (`PrettyRow`)
+ * - transition rows (`TransitionRow`) used for nested rendering via templates
+ * - list rows (`ListContainingRow`) used to render collections
+ *
+ * The grid supports:
+ * - declarative DSL building (`buildRow`, `buildRows`)
+ * - row identification through enum IDs
+ * - template embedding via `useTemplate`
+ * - selective rendering via [RenderOptions]
+ *
+ * @param T the receiver type used when rendering this grid.
+ * @property typeToken runtime type information used for reflective cell rendering.
+ */
+class PrettyGrid<T: Any>(
+   typeToken :TypeToken<T>,
+   options: RowOptions = RowOptions(),
+) : PrettyGridBase<T>(typeToken, options){
+
+    fun <T1: Any> useTemplate(promiseGrid: PrettyPromiseGrid<T, T1>){
+        addRenderBlock(promiseGrid)
+    }
 }
 
-inline fun <reified T: Any> T.buildGridForContext(builder: PrettyGrid<T>.() -> Unit):PrettyGrid<T>{
-    val token = TypeToken.create<T>()
-    val grid = PrettyGrid<T>(token)
-    builder.invoke(grid)
-    return grid
+/**
+ * Represents a reusable, promise-based grid template for rendering a collection property
+ * of a receiver type [T].
+ *
+ * A [PrettyPromiseGrid] does not immediately contain rows. Instead, it stores:
+ *  - a [TypeToken] describing the element type [V]
+ *  - a reference to the collection property (via [ReceiverListLoader])
+ *  - a template builder (`onReceiverAvailable`) that describes how rows and cells
+ *    should be generated from the element list
+ *
+ * When [processReceiver] is called:
+ *  1) the loader extracts the collection from the given receiver
+ *  2) the template builder is executed on this grid instance
+ *  3) rows are produced and accumulated inside the grid
+ *
+ * This allows you to define a rendering template once and reuse it for any number
+ * of receivers of type [T], making it ideal for reusable views, logging tables,
+ * reporting, and DSL-driven UI.
+ *
+ * @param typeToken Reflection token describing the element type.
+ * @param property Property on [T] that provides the collection to render.
+ * @param options Default row options applied during row creation.
+ * @param onReceiverAvailable Template builder invoked once a receiver’s data is available.
+ */
+class PrettyPromiseGrid<T: Any, V: Any>(
+    typeToken :TypeToken<T>,
+    val valueToken: TypeToken<V>,
+    property: KProperty1<T,  Collection<V>>,
+    options: RowOptions = RowOptions(),
+    val onReceiverAvailable:  PrettyPromiseGrid<T, V>.(List<V>)-> Unit
+
+) : PrettyGridBase<V>(valueToken, options), RenderableElement<T, List<V>>{
+
+    val loader: ReceiverListLoader<T, V> = ReceiverListLoader(valueToken, property)
+
+    override val ids: List<Enum<*>> get() = prettyRows.mapNotNull { it.id }
+
+    init {
+        loader.provideBuilder(onReceiverAvailable)
+    }
+
+    /**
+     * Builds grid rows for the given list of receiver items.
+     *
+     * For each element in the list:
+     *  - a [CellReceiverContainer] is created
+     *  - the caller’s [builder] block defines how cells are added
+     *  - a final row is produced via [toPrettyRow] and added to the grid
+     *
+     * This is the low-level mechanism behind grid row construction.
+     *
+     * @param receiverList The list of items to be transformed into rows.
+     * @param options Row configuration.
+     * @param builder Cell construction block.
+     */
+    fun buildRow(receiverList: List<V>, options: RowOptions, builder: CellContainer<V>.()-> Unit){
+        val container =  CellContainer(valueToken, options)
+        container.builder()
+        val row = PrettyRow(container)
+        addRenderBlock(row)
+    }
+
+    fun buildRow(receiverList: List<V>, builder: CellContainer<V>.()-> Unit): Unit =
+        buildRow(receiverList, options, builder)
+
+
+    fun buildRenderTemplate(receiver: T): List<PrettyRow<*>>{
+        loader.resolveTemplate(receiver, this)
+        return prettyRows
+    }
+
+    fun renderAsList(receiver: T, renderParam: RowRender? = null): List<String>{
+        val resultList = mutableListOf<String>()
+        val renderParam = renderParameterOrDefault(renderParam)
+        val receivedList =  loader.resolveTemplate(receiver, this)
+
+        prettyRows.forEach { row ->
+            if(row.typeToken != typeToken){
+               val render =  row.render(receiver)
+               resultList.add(render)
+            }else{
+                val result =  row.render(receiver)
+                resultList.add(result)
+            }
+        }
+        return resultList
+    }
+
+    override fun render(receiver: V, renderOptions: RowRender?): String{
+        return renderAll(receiver, renderOptions)
+    }
+
+    fun renderTemplate(receiver: T, renderOptions: RowRender? = null): String{
+        val resultList = loader.resolveTemplate(receiver, this)
+        return resultList.joinToString(separator = SpecialChars.NEW_LINE) {result  ->
+            renderAll(result, renderOptions)
+        }
+    }
+
+    override fun toString(): String {
+       return "PrettyPromiseGrid[Rows: ${prettyRows.size} Render blocks: ${renderBlocks.size}]"
+    }
+
+    override fun resolveReceiver(parent: T): List<V> {
+        return loader.resolveReceiver(parent)
+    }
 }
+
+
+
 
 
 

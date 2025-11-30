@@ -19,11 +19,11 @@ interface ClassResolver {
                 is Component -> {
                     val nullableComponentID: ComponentID? =  receiver.componentID as ComponentID?
                     nullableComponentID?.componentName ?:run {
-                        receiver::class.simpleOrAnon
+                        "${receiver::class.simpleOrAnon} #${receiver.hashCode()}"
                     }
                 }
                 is CTX -> receiver.identifiedByName
-                else -> receiver::class.simpleOrAnon
+                else -> "${receiver::class.simpleOrAnon} #${receiver.hashCode()}"
             }
         }
 

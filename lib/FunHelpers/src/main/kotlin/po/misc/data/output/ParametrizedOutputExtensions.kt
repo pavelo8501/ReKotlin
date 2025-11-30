@@ -17,6 +17,7 @@ import po.misc.types.k_class.toKeyParams
 fun Any.output(
     option: IndentOptions
 ){
+    checkDispatcher()
     val result = stringify(option)
     result.formatedString
     //val joinedString = result.joinFormated(direction)
@@ -25,6 +26,7 @@ fun Any.output(
 
 
 fun <T: Any> T.output(debugProvider: DebugProvider): KClassParam{
+    checkDispatcher()
     val thisClass  =  this::class
     val params = thisClass.toKeyParams()
     params.output()
@@ -36,6 +38,7 @@ fun Any.output(
     behaviour: OutputBehaviour,
     prefix: String? = null
 ){
+    checkDispatcher()
     val ownPrefix = "Output -> ".colorize(Colour.Blue)
     val prefixStr = prefix.orDefault { "$it " }
     val receiver = this
@@ -65,6 +68,7 @@ fun <T: Any, R> T.output(pass:Pass,  colour: Colour? = null, selector: T.() ->R)
 }
 
 fun PrettyFormatted.output(vararg section: Enum<*>){
+    checkDispatcher()
     val formated =  if(section.isNotEmpty()){
         formatted(section.toList())
     }else{

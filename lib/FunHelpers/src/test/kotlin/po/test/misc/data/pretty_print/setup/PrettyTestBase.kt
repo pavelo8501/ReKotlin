@@ -1,5 +1,7 @@
 package po.test.misc.data.pretty_print.setup
 
+import po.misc.collections.repeatBuild
+
 abstract class PrettyTestBase {
 
     enum class Template { Template1, Template2 }
@@ -22,9 +24,19 @@ abstract class PrettyTestBase {
         var elements: List<PrintableElement> = emptyList()
     ){
         init {
-            elements = listOf(PrintableElement("Element 1"), PrintableElement("Element 2"))
+            if(elements.isEmpty()) {
+                elements = listOf(PrintableElement("Element 1"), PrintableElement("Element 2"))
+            }
         }
     }
+
+    fun createRecord(elementsCount : Int):PrintableRecord{
+       val elements =  elementsCount.repeatBuild {
+            PrintableElement("Element $it")
+        }
+       return PrintableRecord(elements = elements)
+    }
+
 
     fun createRecord():PrintableRecord{
         return PrintableRecord()

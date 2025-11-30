@@ -10,6 +10,7 @@ import po.misc.data.logging.StructuredLoggable
 import po.misc.data.logging.models.LogMessage
 import po.misc.data.logging.processor.LogProcessor
 import po.misc.data.logging.processor.createLogProcessor
+import po.misc.data.output.outputDispatcher
 import po.misc.data.strings.ifNotBlank
 import po.misc.functions.LambdaOptions
 import po.misc.functions.LambdaType
@@ -172,11 +173,9 @@ class Signal<T: Any, R>(
     val signalSuspended: Boolean get() =  listeners.values.any { it.isSuspended }
 
     init {
-
         listeners.onKeyOverwritten = {
             warn(subjectKey, messageKey(it) )
         }
-
     }
 
     /**

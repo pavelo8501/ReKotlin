@@ -24,8 +24,6 @@ class AccessJournal<E: Enum<E>>(
 
 }
 
-
-
 //class AccessJournal<E: Enum<E>>(
 //    val hostInstanceInfo: InstanceInfo,
 //    val defaultRecordType: E

@@ -1,9 +1,11 @@
 package po.misc.data.pretty_print.rows
 
+import po.misc.collections.asList
 import po.misc.context.tracable.TraceableContext
+import po.misc.data.pretty_print.RenderableElement
 import po.misc.data.pretty_print.cells.PrettyCellBase
 import po.misc.data.pretty_print.parts.RowOptions
-import po.misc.data.pretty_print.presets.RowPresets
+import po.misc.data.pretty_print.parts.RowPresets
 import po.misc.reflection.Readonly
 import po.misc.reflection.getBrutForced
 import po.misc.reflection.resolveTypedProperty
@@ -39,11 +41,11 @@ import kotlin.reflect.KProperty1
  * @param id optional identifier for selective rendering
  */
 class TransitionRow<PR: Any,  T: Any>(
-    val typeToken: TypeToken<T>,
+    typeToken: TypeToken<T>,
     property: KProperty1<PR, T>?,
     initialCells: List<PrettyCellBase<*>> = emptyList(),
     options: RowOptions = RowOptions()
-): PrettyRowBase<T>(initialCells, options),  TraceableContext {
+): PrettyRowBase<T>(typeToken, initialCells, options),  RenderableElement<PR, T>, TraceableContext {
 
     constructor(
         token: TypeToken<T>,
@@ -53,12 +55,12 @@ class TransitionRow<PR: Any,  T: Any>(
     constructor(
         token: TypeToken<T>,
         property: KProperty1<PR, T>,
-        container: PrettyDataContainer<T>
+        container: CellContainerBase<T>
     ):this(token, property, container.cells,  container.options)
 
     constructor(
         token: TypeToken<T>,
-        container: PrettyDataContainer<T>,
+        container: CellContainerBase<T>,
         provider: () -> T
     ):this(token, null, container.cells, container.options){
         providerBacking = provider
@@ -72,14 +74,9 @@ class TransitionRow<PR: Any,  T: Any>(
         providerBacking = provider
     }
 
-    override var id: Enum<*>?
+    override val ids: List<Enum<*>> get() = options.id?.asList()?:emptyList()
 
-        get() = options.id
-        set(value) {
-            options.id = value
-        }
-
-    internal var  transitionPropertyBacking: KProperty1<PR, T>? = null
+    internal var transitionPropertyBacking: KProperty1<PR, T>? = null
     val  transitionProperty: KProperty1<PR, T> get() {
         return transitionPropertyBacking.getOrThrow(KProperty1::class)
     }
@@ -97,19 +94,17 @@ class TransitionRow<PR: Any,  T: Any>(
         providerBacking = provider
     }
 
-    fun resolveReceiver(parentReceiver:PR):T{
+    override fun resolveReceiver(parent:PR):T{
+
         if(transitionPropertyBacking != null){
-            return transitionProperty.getBrutForced(typeToken, parentReceiver)
+            return transitionProperty.getBrutForced(typeToken, parent)
         }
         return provider.invoke()
     }
-
-
     fun render(parentReceiver:PR, renderOnlyList:  List<Enum<*>>): String{
         val receiver = resolveReceiver(parentReceiver)
         return  runRender(receiver, rowOptions = null, renderOnlyList)
     }
-
     companion object{
 
         @PublishedApi
@@ -146,3 +141,7 @@ class TransitionRow<PR: Any,  T: Any>(
 
     }
 }
+
+
+
+

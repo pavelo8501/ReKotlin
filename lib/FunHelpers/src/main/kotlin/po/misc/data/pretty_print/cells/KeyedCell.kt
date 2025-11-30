@@ -1,31 +1,34 @@
 package po.misc.data.pretty_print.cells
 
-import po.misc.data.pretty_print.parts.CommonCellOptions
 import po.misc.data.pretty_print.parts.CommonRenderOptions
 import po.misc.data.pretty_print.parts.KeyedCellOptions
 import po.misc.data.pretty_print.presets.KeyedPresets
 import po.misc.data.strings.FormattedPair
+import po.misc.data.strings.classParam
+import po.misc.data.strings.classProperty
 import po.misc.data.styles.TextStyler
 import po.misc.reflection.displayName
 import kotlin.reflect.KProperty
 
 
-class KeyedCell(width: Int, val cellName: String): PrettyCellBase<KeyedPresets>(width), KeyedCellRenderer {
+class KeyedCell(
+    val cellName: String,
+    options: KeyedCellOptions = KeyedCellOptions(KeyedPresets.Property),
+): PrettyCellBase<KeyedPresets>(options), KeyedCellRenderer {
 
-    constructor(kProperty: KProperty<*>, cellName: String = kProperty.displayName) : this(width = 0, cellName) {
+    constructor(
+        kProperty: KProperty<*>,
+        cellName: String = kProperty.displayName,
+        options: KeyedCellOptions = KeyedCellOptions(KeyedPresets.Property)
+    ) : this(cellName, options) {
         property = kProperty
-        options = KeyedCellOptions(KeyedPresets.Property)
     }
 
     var property: KProperty<*>? = null
 
-    override var options: CommonCellOptions = KeyedCellOptions()
-
-
     val keyedOptions: KeyedCellOptions get() = options as KeyedCellOptions
 
     init {
-
         textFormatter.formatter = { text, cell ->
             text
         }
@@ -49,14 +52,13 @@ class KeyedCell(width: Int, val cellName: String): PrettyCellBase<KeyedPresets>(
         return TextStyler.style(cellName, useStyle, useColour, useBackgroundColour)
     }
 
-
     internal fun applyOptions(options: KeyedCellOptions): KeyedCell{
         this.options = options
         return this
     }
 
     override fun applyPreset(preset: KeyedPresets): KeyedCell {
-        options = preset.toKeyedOptions(width)
+        options = preset.toKeyedOptions(options.width)
         return this
     }
 
@@ -73,6 +75,15 @@ class KeyedCell(width: Int, val cellName: String): PrettyCellBase<KeyedPresets>(
         val formatted = compositeFormatter.format(modified, this)
         val final = justifyText(formatted,  renderOptions)
         return final
+    }
+
+    override fun toString(): String {
+        return buildString {
+            appendLine("KeyedCell")
+            classParam("id", options.id)
+            classParam("width", options.width)
+            classProperty(::cellName)
+        }
     }
 
     companion object

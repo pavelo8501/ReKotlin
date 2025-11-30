@@ -1,6 +1,5 @@
 package po.misc.data.pretty_print.cells
 
-import po.misc.data.output.output
 import po.misc.data.pretty_print.parts.Align
 import po.misc.data.pretty_print.formatters.CompositeFormatter
 import po.misc.data.pretty_print.formatters.DynamicTextFormatter
@@ -8,7 +7,6 @@ import po.misc.data.pretty_print.formatters.DynamicTextStyler
 import po.misc.data.pretty_print.formatters.text_modifiers.DynamicColourModifier
 import po.misc.data.pretty_print.formatters.text_modifiers.StaticModifiers
 import po.misc.data.pretty_print.formatters.text_modifiers.TextModifier
-import po.misc.data.pretty_print.parts.CellOptions
 import po.misc.data.pretty_print.parts.CellRender
 import po.misc.data.pretty_print.parts.CommonCellOptions
 import po.misc.data.pretty_print.parts.CommonRenderOptions
@@ -18,9 +16,10 @@ import po.misc.data.pretty_print.presets.StylePresets
 import po.misc.data.strings.FormattedPair
 import po.misc.data.styles.TextStyler
 
+
 sealed class PrettyCellBase<P: StylePresets>(
-    val width: Int,
-) : BaseRenderer<P>{
+    override var options : CommonCellOptions
+) : BaseRenderer<P> {
 
     var index: Int = 0
         internal set
@@ -29,9 +28,6 @@ sealed class PrettyCellBase<P: StylePresets>(
     var postfix: String? = null
 
     val borders : PrettyBorders = PrettyBorders('|', '|')
-
-    override var options : CommonCellOptions = CellOptions()
-        internal set
 
     val textFormatter: DynamicTextFormatter<P> = DynamicTextFormatter{ text, cell, ->
         if(postfix != null){
@@ -101,7 +97,7 @@ sealed class PrettyCellBase<P: StylePresets>(
     }
 
     open fun applyPreset(preset: P):PrettyCellBase<P>{
-        options =  preset.toOptions(width)
+        options =  preset.toOptions()
         return this
     }
 

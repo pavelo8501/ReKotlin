@@ -2,13 +2,13 @@ package po.test.misc.data.pretty_print.cells
 
 import org.junit.jupiter.api.Test
 import po.misc.data.output.output
+import po.misc.data.pretty_print.Templated
 import po.misc.data.pretty_print.cells.PrettyCellBase
 import po.misc.data.pretty_print.cells.StaticCell
 import po.misc.data.pretty_print.parts.Align
 import po.misc.data.pretty_print.presets.PrettyPresets
 import po.misc.data.pretty_print.rows.CellReceiverContainer
 import po.misc.data.pretty_print.rows.buildPrettyRow
-import po.misc.data.pretty_print.rows.buildPrettyRowForContext
 import po.misc.data.styles.Colour
 import po.misc.data.styles.TextStyle
 import kotlin.test.assertEquals
@@ -16,7 +16,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-class TestStaticCell {
+class TestStaticCell : Templated{
 
     private val text1 = "line 1"
 
@@ -29,7 +29,7 @@ class TestStaticCell {
             appendLine("line 2")
         }
         assertTrue { cell.text.contains(text1) }
-        val prettyRow = buildPrettyRowForContext(CellReceiverContainer) {
+        val prettyRow = buildPrettyRow {
             addCell(StaticCell){
                 appendLine(text1)
                 appendLine("line 2")

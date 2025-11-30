@@ -3,6 +3,7 @@ package po.misc.reflection
 import po.misc.data.toDisplayName
 import po.misc.exceptions.throwableToText
 import po.misc.types.ClassAware
+import po.misc.types.castOrThrow
 import po.misc.types.memberProperties
 import po.misc.types.safeCast
 import po.misc.types.token.TypeToken
@@ -206,6 +207,27 @@ inline fun <reified T: Any, reified V: Any> resolveTypedProperty(
     classAware: ClassAware<*>,
     property: KProperty<V>,
 ): KProperty1<T, V>? = resolveTypedProperty(kind, classAware.kClass, property)
+
+
+inline fun <reified T: Any, V: Any> resolveTypedProperty(
+    kind: Readonly,
+    property: KProperty<V>,
+    kClass: KClass<*>,
+    typeToken: TypeToken<V>,
+): KProperty1<T, V>? {
+
+    val prop = kClass.memberProperties.firstOrNull { it.name == property.name }
+    if(prop == null){
+        return null
+    }
+    return with(prop){
+        returnClassOrNull(typeToken)?.let {
+            safeCast<KProperty1<T, V>>()
+        }
+    }
+}
+
+
 
 
 

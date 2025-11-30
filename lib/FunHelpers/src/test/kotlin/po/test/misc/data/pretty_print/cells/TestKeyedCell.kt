@@ -1,6 +1,7 @@
 package po.test.misc.data.pretty_print.cells
 
 import org.junit.jupiter.api.Test
+import po.misc.data.pretty_print.Templated
 import po.misc.data.pretty_print.parts.KeyedCellOptions
 import po.misc.data.pretty_print.formatters.text_modifiers.ColorModifier
 import po.misc.data.pretty_print.formatters.text_modifiers.TextTrimmer
@@ -14,7 +15,7 @@ class TestKeyedCell {
     class KeyedRecord (
         val text: String,
         val result: PrettyCellResult = PrettyCellResult.AccessPretty
-    ){
+    ): Templated{
         enum class PrettyCellResult { AccessPretty, ReadPretty }
     }
 

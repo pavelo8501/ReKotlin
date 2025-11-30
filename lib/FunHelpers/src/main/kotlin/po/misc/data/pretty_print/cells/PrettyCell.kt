@@ -1,10 +1,18 @@
 package po.misc.data.pretty_print.cells
 
+import po.misc.data.helpers.orDefault
 import po.misc.data.pretty_print.parts.Align
 import po.misc.data.pretty_print.presets.PrettyPresets
 import po.misc.data.pretty_print.formatters.StringNormalizer
+import po.misc.data.pretty_print.parts.CellOptions
+import po.misc.data.strings.classParam
 import po.misc.data.styles.TextStyle
 import po.misc.data.styles.TextStyler
+import po.misc.data.toDisplayName
+import po.misc.debugging.ClassResolver
+import po.misc.reflection.displayName
+import kotlin.reflect.KClass
+import kotlin.reflect.KProperty0
 
 /**
  * A single formatted cell used for pretty-printing aligned and styled text.
@@ -20,33 +28,23 @@ import po.misc.data.styles.TextStyler
  * A [PrettyCell] is *lightweight* and stateless; rendering happens per input.
  */
 class PrettyCell(
-    width: Int
-): PrettyCellBase<PrettyPresets>(width), CellRenderer {
+    options: CellOptions = CellOptions()
+): PrettyCellBase<PrettyPresets>(options), CellRenderer {
 
-    constructor(width: Int, presets: PrettyPresets):this(width){
-        applyPreset(presets)
-    }
-
-
-
-
-   // override var preset: PrettyPresets? = null
-
-
-    init {
-//        dynamicTextStyler.formatter = { text, cell, ->
-//
-//            val textStyle = preset?.style?: TextStyle.Regular
-//            TextStyler.style(text, applyColourIfExists = false,  textStyle, preset?.colour, preset?.backgroundColour)
-//        }
-    }
-
+    constructor(width: Int):this(CellOptions(width))
+    constructor(presets: PrettyPresets, width: Int = 0):this(presets.toOptions(width))
     override fun applyPreset(preset: PrettyPresets): PrettyCell{
-        options = preset.toOptions(width)
+        options = preset.toOptions()
         return this
     }
 
+    override fun toString(): String {
+       return buildString {
+            appendLine("PrettyCell")
+            classParam("id", options.id)
+            classParam("width", options.width)
+        }
+    }
     companion object
-
 }
 

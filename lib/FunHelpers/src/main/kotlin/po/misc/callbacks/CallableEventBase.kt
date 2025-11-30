@@ -8,6 +8,7 @@ import po.misc.collections.lambda_map.LambdaMap
 import po.misc.context.component.Component
 import po.misc.context.tracable.TraceableContext
 import po.misc.debugging.ClassResolver
+import po.misc.debugging.stack_tracer.TraceResolver
 import po.misc.functions.LambdaOptions
 import po.misc.functions.LambdaType
 import po.misc.functions.SuspendedOptions
@@ -32,7 +33,7 @@ import kotlin.collections.component2
  */
 abstract class CallableEventBase <T: Any, R>(): Component {
 
-    internal val listeners: LambdaMap<T, R> = LambdaMap()
+    internal val listeners: LambdaMap<T, R> = LambdaMap(this)
     internal var validator: ReactiveValidator<T>? = null
 
     protected val subjectKey: String = "Key overwritten"

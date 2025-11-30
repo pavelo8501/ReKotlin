@@ -2,6 +2,9 @@ package po.misc.reflection
 
 import po.misc.types.ClassAware
 import po.misc.types.castOrThrow
+import po.misc.types.safeCast
+import po.misc.types.safeClassCast
+import po.misc.types.token.TypeToken
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.IllegalCallableAccessException
@@ -44,3 +47,11 @@ fun <T: Any,  V: Any> KProperty1<T, V>.getBrutForced(
     receiver: T,
     failureReporting: ( (PropertyLookup)-> Unit)? = null
 ):V = getBrutForced(returnClass.kClass, receiver, failureReporting)
+
+
+fun <T: Any> KProperty1<out Any, *>.returnClassOrNull(
+    typeToken: TypeToken<T>
+): KClass<T>?{
+    val returnClass = returnType.classifier as? KClass<*> ?: return null
+    return returnClass.safeClassCast(typeToken)
+}

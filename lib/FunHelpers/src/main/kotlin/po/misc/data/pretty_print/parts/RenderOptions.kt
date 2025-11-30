@@ -12,6 +12,8 @@ sealed class CommonRenderOptions(
 ){
     abstract var rowNoGap: Boolean
 
+    var renderNamedOnly: Boolean = false
+
     var canRecalculate: Boolean = true
         internal set
 
@@ -25,7 +27,6 @@ sealed class CommonRenderOptions(
         cellsCount = count
         return this
     }
-
 }
 
 class RowRender(
@@ -64,6 +65,9 @@ class RowRender(
         rowNoGap: Boolean = true,
     ):this(orientation, usePlain, renderLeftBorder, renderRightBorder, rowNoGap, renderOnly.toList())
 
+    constructor(
+        rowOptions: RowOptions
+    ):this(rowOptions.orientation, rowOptions.usePlain)
 
     override fun toString(): String {
        return buildString {
@@ -103,14 +107,14 @@ class CellRender(
 
     fun assignParameters(prettyRow: PrettyRowBase<*>):CellRender{
         if(canRecalculate){
-            rowMaxSize = prettyRow.options.rowSize
+            rowMaxSize = prettyRow.options.render.defaultWidth
             cellsCount = prettyRow.cells.size
         }
         return this
     }
 
     fun assignFinalize(prettyRow: PrettyRowBase<*>):CellRender{
-        rowMaxSize = prettyRow.options.rowSize
+        rowMaxSize = prettyRow.options.render.defaultWidth
         cellsCount = prettyRow.cells.size
         canRecalculate = false
         return this

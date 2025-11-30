@@ -1,13 +1,6 @@
-package po.misc.data.pretty_print.presets
+package po.misc.data.pretty_print.parts
 
-import po.misc.data.pretty_print.parts.Console220
-import po.misc.data.pretty_print.parts.Orientation
-import po.misc.data.pretty_print.parts.RenderDefaults
-import po.misc.data.pretty_print.parts.RowOptions
-
-
-interface RowPresets{
-
+interface RowPresets : RowConfig{
     val orientation : Orientation
 
     fun toOptions(default:  RenderDefaults? = null): RowOptions{
@@ -18,11 +11,20 @@ interface RowPresets{
         }
     }
 
-    object VerticalRow : RowPresets{
+    object Vertical: RowPresets{
         override val orientation : Orientation = Orientation.Vertical
     }
-    object HorizontalRow : RowPresets{
+
+    object Horizontal : RowPresets{
         override val orientation : Orientation = Orientation.Horizontal
+    }
+
+    object HeadedVertical : RowPresets{
+        override val orientation : Orientation = Orientation.Vertical
+    }
+
+    object HeadedHorizontal : RowPresets{
+        override val orientation : Orientation = Orientation.Vertical
     }
 
 }

@@ -40,7 +40,7 @@ class TestTraceResolver : Component {
         resolver = TraceResolver(this)
         var thisReport : CallSiteReport? = null
         resolver.resolveTraceWhen(NotificationTopic.Debug)
-        resolver.traceResolved.onSignal {
+        resolver.traceResolved {
             thisReport = it
         }
         intermediaryMethod()
@@ -49,5 +49,4 @@ class TestTraceResolver : Component {
             assertEquals("intermediaryMethod", report.hopFrames.first().methodName)
         }
     }
-
 }

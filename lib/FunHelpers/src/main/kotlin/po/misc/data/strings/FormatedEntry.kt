@@ -29,6 +29,9 @@ class FormatedEntry(
         }
     }
 
+    var overflowPrevention: Boolean = false
+        internal set
+
     var recursionLevel: Int = 0
         internal set
 

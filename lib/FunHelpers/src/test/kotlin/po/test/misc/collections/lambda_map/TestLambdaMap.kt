@@ -56,7 +56,7 @@ class TestLambdaMap: Component {
             it.output()
         }
         val lambda = Lambda(function)
-        val lambdaMap = LambdaMap<String, Unit>()
+        val lambdaMap = LambdaMap<String, Unit>(this)
         lambdaMap[this] = lambda
 
         assertTrue(lambdaMap.entries.isNotEmpty())
@@ -74,7 +74,7 @@ class TestLambdaMap: Component {
             it.output()
         }
         val lambda = Lambda(function)
-        val lambdaMap = LambdaMap<String, Unit>()
+        val lambdaMap = LambdaMap<String, Unit>(this)
         var notified: Boolean = false
         lambdaMap.onKeyOverwritten = {
             assertSame(this, it)
@@ -94,7 +94,7 @@ class TestLambdaMap: Component {
             it.output()
         }
         val lambda = Lambda(function)
-        val lambdaMap = LambdaMap<String, Unit>()
+        val lambdaMap = LambdaMap<String, Unit>(this)
         lambdaMap[this] = lambda
 
         fun trigger(caller: Any, value: String){
@@ -127,7 +127,7 @@ class TestLambdaMap: Component {
             it.output()
         }
         val lambda = toCallable(SuspendedOptions.Listen, suspendedFunction)
-        val lambdaMap = LambdaMap<String, Unit>()
+        val lambdaMap = LambdaMap<String, Unit>(this@TestLambdaMap)
         lambdaMap[this@TestLambdaMap] = lambda
 
         suspend fun trigger(caller: TraceableContext, value: String){
@@ -156,7 +156,7 @@ class TestLambdaMap: Component {
     @Test
     fun `All listeners being mapped receive function call`(){
 
-        val lambdaMap = LambdaMap<String, Unit>()
+        val lambdaMap = LambdaMap<String, Unit>(this)
         for(i in 1..10){
             val listener = Listener()
             lambdaMap[listener] = listener.function.toCallable()
@@ -181,7 +181,7 @@ class TestLambdaMap: Component {
 
     @Test
     fun `Maps get all functionality`(){
-        val lambdaMap = LambdaMap<String, Unit>()
+        val lambdaMap = LambdaMap<String, Unit>(this)
 
         for(i in 1..10){
             val listener = Listener()

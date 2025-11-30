@@ -7,6 +7,9 @@ import po.misc.data.styles.Colorizer
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
+import po.misc.debugging.stack_tracer.StackFrameMeta
+import po.misc.debugging.toFrameMeta
+import po.misc.exceptions.Tracer
 import po.misc.exceptions.stack_trace.ExceptionTrace
 import po.misc.exceptions.throwableToText
 import po.misc.exceptions.trackable.TrackableException
@@ -23,14 +26,27 @@ class OutputHelper<T>(
 }
 
 
+internal fun checkDispatcher(){
+
+    if(OutputDispatcher.identifyOutput){
+        val frame : StackFrameMeta = Tracer().firstTraceElement.toFrameMeta()
+        println(frame.consoleLink)
+    }
+}
+
+fun outputDispatcher(block: OutputDispatcher.()-> Unit){
+    block.invoke(OutputDispatcher)
+}
+
+
 @PublishedApi
 internal fun outputInternal(
     receiver: Any?,
     prefix: String = "",
     colour: Colour? = null
 ) {
+    checkDispatcher()
     val effectivePrefix = prefix.ifNotBlank {"$it "}
-
     if (receiver != null) {
          if(receiver is List<*>){
              receiver.output(prefix = prefix, colour = colour)
@@ -48,8 +64,8 @@ internal fun outputInternal(
     prefix: String = "",
     colour: Colour? = null
 ){
+    checkDispatcher()
     val info = ClassResolver.instanceInfo(context)
-
     if(receiver != null){
          when(receiver){
             is List<*> -> {

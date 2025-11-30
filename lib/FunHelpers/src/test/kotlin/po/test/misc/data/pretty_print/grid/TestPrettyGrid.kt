@@ -1,6 +1,7 @@
 package po.test.misc.data.pretty_print.grid
 
 import org.junit.jupiter.api.Test
+import po.misc.data.output.output
 import po.misc.data.pretty_print.parts.Align
 import po.misc.data.pretty_print.cells.KeyedCell
 import po.misc.data.pretty_print.grid.buildPrettyGrid
@@ -10,7 +11,7 @@ import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.parts.RowRender
 import po.misc.data.pretty_print.presets.PrettyPresets
-import po.misc.data.pretty_print.presets.RowPresets
+import po.misc.data.pretty_print.parts.RowPresets
 import po.misc.data.styles.Colour
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
 import kotlin.test.assertEquals
@@ -34,7 +35,7 @@ class TestPrettyGrid : PrettyTestBase() {
             buildRow {
                 addCell(textRow2)
             }
-            buildRow(RowPresets.VerticalRow) {
+            buildRow(RowPresets.Vertical) {
                 addCell(PrintableRecord::name)
                 addCell(PrintableRecord::component)
                 addCell(PrintableRecord::description)
@@ -65,7 +66,7 @@ class TestPrettyGrid : PrettyTestBase() {
             buildRow {
                 addCell("Static")
             }
-            buildRow(PrintableRecord::subClass, RowPresets.VerticalRow) {
+            buildRow(PrintableRecord::subClass, RowPresets.Vertical) {
                 addCell(PrintableRecordSubClass::subName)
                 addCell(PrintableRecordSubClass::subComponent)
             }
@@ -81,21 +82,6 @@ class TestPrettyGrid : PrettyTestBase() {
     }
 
     @Test
-    fun `PrettyGrid  with context transition rendering`() {
-        val prettyGrid = buildPrettyGrid<PrintableRecord> {
-            buildRow {
-                addCell("Static", PrettyPresets.Header)
-            }
-            buildRow(PrintableRecord::subClass, RowPresets.VerticalRow) {
-                addCell(PrintableRecordSubClass::subName)
-                addCell(PrintableRecordSubClass::subComponent)
-            }
-        }
-        val record = PrintableRecord()
-        val render =  prettyGrid.render(record)
-    }
-
-    @Test
     fun `PrettyGrid  with context switch`(){
         val prettyGrid = buildPrettyGrid<PrintableRecord> {
             buildRow {
@@ -107,6 +93,10 @@ class TestPrettyGrid : PrettyTestBase() {
         }
         assertEquals(2, prettyGrid.prettyRows.size)
         assertEquals(1, prettyGrid.prettyRows.last().cells.size)
+        val record = createRecord()
+        val render =  prettyGrid.render(record)
+        render.output()
+
     }
 
     @Test
@@ -144,9 +134,8 @@ class TestPrettyGrid : PrettyTestBase() {
         assertTrue {  render.contains(cell1Text) && render.contains(cell2Text) }
         assertFalse { render.contains(cell3Text) }
 
-        render = prettyGrid.render(record, CellRender(Template.Template1))
+        render = prettyGrid.render(record, RowRender(Template.Template1))
         assertTrue {  render.contains(cell1Text) }
         assertFalse { render.contains(cell2Text) && render.contains(cell3Text) }
     }
-
 }

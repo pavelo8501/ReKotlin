@@ -6,7 +6,7 @@ import po.misc.data.pretty_print.parts.CellOptions
 import po.misc.data.pretty_print.parts.CellRender
 import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.parts.RowRender
-import po.misc.data.pretty_print.presets.RowPresets
+import po.misc.data.pretty_print.parts.RowPresets
 import po.misc.data.pretty_print.section.PrettyTemplate
 import po.misc.debugging.stack_tracer.StackFrameMeta
 import po.misc.debugging.toFrameMeta
@@ -26,11 +26,10 @@ class TestPrettyTemplate : PrettyTestBase() {
     enum class Identification { Template1, Template2 }
 
     private val prettyGrid = buildPrettyGrid<StackFrameMeta> {
-
         buildRow {
             addCell("Header")
         }
-        buildRow(RowPresets.VerticalRow) {
+        buildRow(RowPresets.Vertical) {
             addCell(StackFrameMeta::methodName)
             addCell(StackFrameMeta::lineNumber)
             addCell(StackFrameMeta::simpleClassName)
@@ -56,7 +55,7 @@ class TestPrettyTemplate : PrettyTestBase() {
     @Test
     fun `Templating rows render can be switched on or off by identification parameter`() {
         val gridForTemplate = buildPrettyGrid<PrintableRecord> {
-            buildRow(RowPresets.VerticalRow) {
+            buildRow(RowPresets.Vertical) {
                 addCell("Checking templating")
                 addCell(PrintableRecord::name)
             }
@@ -87,18 +86,18 @@ class TestPrettyTemplate : PrettyTestBase() {
         val cell1Text = "Cell with id Cell1"
         val cell2Text = "Cell with id Cell2"
         val grid = buildPrettyGrid<PrintableRecord> {
-            buildRow(RowPresets.VerticalRow) {
+            buildRow(RowPresets.Vertical) {
                 addCell(noIdText)
                 addCell(cell1Text, CellOptions(CellTemplate.Cell1))
                 addCell(cell2Text, CellOptions(CellTemplate.Cell2))
             }
         }
         val record = createRecord()
-        var hostingGridRender = grid.render(record, CellRender(CellTemplate.Cell1))
+        var hostingGridRender = grid.render(record, RowRender(CellTemplate.Cell1))
         assertTrue { hostingGridRender.contains(noIdText) &&  hostingGridRender.contains(cell1Text)}
         assertFalse { hostingGridRender.contains(cell2Text) }
 
-        hostingGridRender = grid.render(record, CellRender(CellTemplate.Cell2))
+        hostingGridRender = grid.render(record, RowRender(CellTemplate.Cell2))
         assertTrue { hostingGridRender.contains(noIdText) &&  hostingGridRender.contains(cell2Text)}
         assertFalse { hostingGridRender.contains(cell1Text) }
     }
@@ -106,7 +105,7 @@ class TestPrettyTemplate : PrettyTestBase() {
     @Test
     fun `Using grid as a template itself`() {
         val gridAsTemplate = buildPrettyGrid<PrintableRecord> {
-            buildRow(RowPresets.VerticalRow) {
+            buildRow(RowPresets.Vertical) {
                 addCell("Checking templating")
                 addCell(PrintableRecord::name)
             }
@@ -156,6 +155,5 @@ class TestPrettyTemplate : PrettyTestBase() {
         val getTraceMetaCount = render.split("getTraceMeta").size - 1
         assertEquals(2, getTraceMetaCount)
     }
-
 
 }

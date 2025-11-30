@@ -1,8 +1,11 @@
 package po.misc.data.pretty_print.section
 
+import po.misc.data.output.output
 import po.misc.data.pretty_print.grid.PrettyGrid
 import po.misc.data.pretty_print.parts.CommonRenderOptions
-import po.misc.data.pretty_print.rows.PrettyRowBase
+import po.misc.data.pretty_print.parts.RowRender
+import po.misc.data.pretty_print.rows.PrettyRow
+import po.misc.data.styles.Colour
 import po.misc.types.token.TypeToken
 
 
@@ -25,18 +28,23 @@ import po.misc.types.token.TypeToken
 open class PrettyTemplate<T: Any>(
     override val typeToken: TypeToken<T>,
     val prettyGrid: PrettyGrid<T>,
-    override val identification: Enum<*>? = null
+    vararg val id: Enum<*>
 ):PrettySection<T> {
-    override val prettyRows: List<PrettyRowBase<*>> get() = prettyGrid.prettyRows
+
+    override val prettyRows: List<PrettyRow<*>> get() = prettyGrid.prettyRows
+    override val ids: List<Enum<*>> get() = prettyGrid.ids
 
     init {
-        prettyGrid.identification = identification
+        if(id.isNotEmpty()){
+            
+        }
     }
 
     /**
      * Delegates rendering to the underlying [prettyGrid].
      */
-    override fun render(receiver: T, options: CommonRenderOptions?): String {
-        return prettyGrid.render(receiver, options)
+    override fun render(receiver: T, renderOptions: RowRender?): String {
+        "PrettyTemplate renderOld".output(Colour.Red)
+        return prettyGrid.render(receiver, renderOptions)
     }
 }

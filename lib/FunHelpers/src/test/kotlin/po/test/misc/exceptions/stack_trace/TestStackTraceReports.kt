@@ -57,7 +57,6 @@ class TestStackTraceReports {
         val reportRender = report.formattedString
         assertEquals(2, report.hopFrames.size)
         reportRender.output()
-
     }
 
 }

@@ -23,8 +23,8 @@ data class StateSnapshot(
 ): PrettyPrint{
 
 
-    private val keySlot = PrettyCell(10, PrettyPresets.Key)
-    private val valueSlot = PrettyCell(10,PrettyPresets.Value)
+    private val keySlot = PrettyCell(PrettyPresets.Key, 10)
+    private val valueSlot = PrettyCell(PrettyPresets.Value, 10)
 
     private val prettyRow = PrettyRow(keySlot, valueSlot)
 
