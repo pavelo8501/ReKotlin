@@ -57,8 +57,7 @@ class RowBuilderClass<T: Any>(
     override fun buildRow(rowOptions: RowOptions?, builder: CellContainer<T>.() -> Unit) {
         val newRow = PrettyRow.buildRow(typeToken, rowOptions, builder)
         addRenderBlock(newRow)
-        onRenderElementCallback?.invoke(newRow)
-        // gridBase.addRenderBlock(newRow)
+        renderBlocsBacking.add(newRow)
     }
 
     /**

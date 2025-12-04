@@ -14,6 +14,8 @@ val typesafeVersion: String by project
 plugins {
     kotlin("jvm")
     kotlin("plugin.serialization") version "1.9.22"
+    `maven-publish`
+    signing
 }
 
 group = "po.misc"
@@ -22,6 +24,15 @@ version = funHelpersVersion
 repositories {
     mavenCentral()
     mavenLocal()
+    maven {
+        name = "sonatype"
+        // S01
+        setUrl("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
+        credentials {
+            username = project.findProperty("gpr.user") as String? ?: System.getenv("SONATYPE_USERNAME")
+            password = project.findProperty("gpr.key") as String? ?: System.getenv("SONATYPE_PASSWORD")
+        }
+    }
 }
 
 dependencies {
@@ -44,16 +55,55 @@ kotlin {
     }
 }
 
+//publishing {
+//    publications {
+//        create<MavenPublication>("mavenJava") {
+//            from(components["java"]) // This publishes the main Java/Kotlin component
+//            groupId = "po.misc"
+//            artifactId = "funhelpers"
+//            version = funHelpersVersion
+//        }
+//    }
+//}
+
 publishing {
     publications {
         create<MavenPublication>("mavenJava") {
-            from(components["java"]) // This publishes the main Java/Kotlin component
-            groupId = "po.misc"
+            groupId = "io.github.pavelo8501"
             artifactId = "funhelpers"
             version = funHelpersVersion
+
+            from(components["java"])
+
+            pom {
+                name.set("FunHelpers")
+                description.set("Your library description")
+                url.set("https://github.com/pavelo8501/ReKotlin/tree/main/lib/FunHelpers")
+
+                licenses {
+                    license {
+                        name.set("The MIT License")
+                        url.set("https://opensource.org/licenses/MIT")
+                    }
+                }
+                developers {
+                    developer {
+                        id.set("pavelo8501")
+                        name.set("Pavel Olshansky")
+                        email.set("pavelo8501@gmail.com")
+                    }
+                }
+                scm {
+                    connection.set("scm:git:git://github.com/pavelo8501/ReKotlin.git")
+                    developerConnection.set("git@github.com:pavelo8501/ReKotlin.git")
+                    url.set("https://github.com/pavelo8501/ReKotlin")
+                }
+
+            }
         }
     }
 }
+
 
 java {
     withSourcesJar()

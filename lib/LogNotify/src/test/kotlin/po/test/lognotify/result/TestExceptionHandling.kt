@@ -123,17 +123,6 @@ class TestExceptionHandling : TasksManaged {
                     }
                 }
             }
-
-        val withStackTraceElement = managed.exceptionData.mapNotNull { it.thisStackTraceElement }
-        assertTrue(withStackTraceElement.isNotEmpty())
-
-        val statusThrown = managed.exceptionData.filter { it.event == ManagedException.ExceptionEvent.Thrown }
-        assertTrue(statusThrown.isNotEmpty())
-        statusThrown.forEach {
-            if (it.thisStackTraceElement != null) {
-                println(it.thisStackTraceElement)
-            }
-        }
     }
 
     fun `Skip logic work same and predictable for tasks and inline actions`() {

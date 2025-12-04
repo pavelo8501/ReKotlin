@@ -74,7 +74,7 @@ class TestDSLUpdate: DatabaseTest() {
     fun `Update statement updates page and inserts additional sections`() = runTest(timeout = Duration.parse("600s")){
 
         val pageToUpdate = pageDtos.first()
-        val pageDataModel = pageToUpdate.dataContainer.getValue(this)
+        val pageDataModel = pageToUpdate.dataContainer.getValue(this@TestDSLUpdate)
         with(pageDataModel){
             withSections(2)
         }
@@ -132,7 +132,7 @@ class TestDSLUpdate: DatabaseTest() {
     @Order(4)
     fun `Deep nested update after PickById and consequtive select`() = runTest(timeout = Duration.parse("600s")) {
 
-        val page = pageDtos.first().dataContainer.getValue(this)
+        val page = pageDtos.first().dataContainer.getValue(this@TestDSLUpdate)
         val contentBlockToUpdate = page.sections.first().contentBlocks.first()
         val newContentBlock = ContentBlock(
             id = contentBlockToUpdate.id,

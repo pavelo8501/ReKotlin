@@ -30,7 +30,6 @@ class TestComplexDelegate: DatabaseTest() {
                 user =  update(mockedUser).getDTOForced()
             }
             service(PageDTO){
-
             }
         }
     }
@@ -45,7 +44,7 @@ class TestComplexDelegate: DatabaseTest() {
         val newName = "other_name"
         asDTO.name = newName
         asDTO.flush()
-        val dataModel = asDTO.dataContainer.getValue(this)
+        val dataModel = asDTO.dataContainer.getValue(this@TestComplexDelegate)
         assertEquals(newName, dataModel.name)
     }
 }

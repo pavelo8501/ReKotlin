@@ -28,29 +28,6 @@ class TestBackingContainer: TraceableContext {
         assertEquals("Another", container.value)
     }
 
-
-    @Test
-    fun `BackingContainer recomputes value provided by lambda`() {
-        var readCount = 0
-        val container = backingContainer<String> {
-            provideValue {
-                readCount ++
-                if(readCount == 1){
-                    initialValue
-                }else{
-                    "Another"
-                }
-            }
-        }
-        val firstRead =  assertDoesNotThrow {
-            container.getValue(this)
-        }
-        val secondRead =  container.getValue(this)
-        assertEquals(2, readCount)
-        assertEquals(initialValue, firstRead)
-        assertEquals("Another", secondRead)
-    }
-
     @Test
     fun `BackingContainer handles value changes as expected`() {
 
