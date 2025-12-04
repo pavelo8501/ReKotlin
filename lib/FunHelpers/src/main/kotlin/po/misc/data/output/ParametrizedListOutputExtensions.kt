@@ -11,6 +11,7 @@ fun Collection<Any>.output(
     option: IndentOptions,
     direction: ListDirection = ListDirection.Vertical
 ){
+    checkDispatcher()
     val result = stringify(option)
     val joinedString = result.joinFormated(direction)
     println(joinedString)
@@ -21,6 +22,7 @@ fun Collection<Any>.output(
     behaviour: OutputBehaviour,
     prefix: String? = null
 ){
+    checkDispatcher()
     val ownPrefix = "Output -> ".colorize(Colour.Blue)
     println(ownPrefix)
     if(prefix != null){

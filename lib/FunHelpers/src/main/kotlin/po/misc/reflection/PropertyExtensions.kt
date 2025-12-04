@@ -3,6 +3,7 @@ package po.misc.reflection
 import po.misc.data.toDisplayName
 import po.misc.exceptions.throwableToText
 import po.misc.types.ClassAware
+import po.misc.types.castOrThrow
 import po.misc.types.memberProperties
 import po.misc.types.safeCast
 import po.misc.types.token.TypeToken
@@ -108,28 +109,29 @@ fun <T: Any> resolveProperty(
 
 
 
-fun <T: Any> KProperty<*>.resolveTypedProperty(
+
+fun <T: Any, V: Any> KProperty<*>.resolveTypedProperty(
     kind: Readonly,
-    receiverClass: KClass<*>,
-    returnType: ClassAware<T>,
-): KProperty1<Any, T>?{
+    receiverClass: KClass<T>,
+    returnType: ClassAware<V>,
+): KProperty1<T, V>?{
 
    return receiverClass.memberProperties.firstOrNull { it.name == this.name }?.let {found->
-       val casted = found.safeCast<KProperty1<Any, T>>()
+       val casted = found.safeCast<KProperty1<T, V>>()
        casted
     }?:run {
         null
     }
 }
 
-fun <T: Any> KProperty<*>.resolveTypedProperty(
+fun <T: Any, V: Any> KProperty<*>.resolveTypedProperty(
     kind: Readonly,
-    receiverClass: ClassAware<*>,
-    returnType: ClassAware<T>,
-): KProperty1<Any, T>?{
+    receiverClass: ClassAware<T>,
+    returnType: ClassAware<V>,
+): KProperty1<T, V>?{
 
     return receiverClass.memberProperties.firstOrNull { it.name == this.name }?.let {found->
-        val casted = found.safeCast<KProperty1<Any, T>>()
+        val casted = found.safeCast<KProperty1<T, V>>()
         casted
     }?:run {
         null
@@ -152,6 +154,80 @@ fun <T: Any> T.resolveProperty(
     val kClass = this::class
     return kClass.memberProperties.firstOrNull { it.name == property.name }?.safeCast<KMutableProperty1<T, *>>()
 }
+
+/**
+ * Attempts to resolve a property with the same name as [property] on the given [kClass]
+ * and safely cast it to a strongly typed `KProperty1<T, V>`.
+ *
+ * This is useful when the source [property] originates from a different class
+ * (e.g., when mapping DTOs or performing reflective copies) but you want to
+ * obtain a type-safe reference to the corresponding property on [kClass] without
+ * falling back to `KProperty1<Any, V>`.
+ *
+ * The function:
+ *  - searches for a member property named like [property]
+ *  - checks its runtime type
+ *  - returns it as `KProperty1<T, V>` if compatible
+ *  - otherwise returns `null`
+ *
+ * @param T The expected receiver type of the resolved property.
+ * @param V The property value type.
+ * @param kind A marker used for resolving read-only vs mutable behaviours.
+ * @param kClass The class on which the matching property is searched.
+ * @param property The property whose name and type signature are used for resolution.
+ *
+ * @return A safely casted `KProperty1<T, V>` if a compatible property is found,
+ *         or `null` if the property does not exist or is not type-compatible.
+ */
+inline fun <reified T: Any, reified V: Any> resolveTypedProperty(
+    kind: Readonly,
+    kClass: KClass<*>,
+    property: KProperty<V>,
+): KProperty1<T, V>? {
+    return kClass.memberProperties.firstOrNull { it.name == property.name }?.safeCast<KProperty1<T, V>>()
+}
+
+/**
+ * Overload of [resolveTypedProperty] that accepts a [ClassAware] wrapper instead
+ * of a direct [KClass]. Useful when the caller already operates on class-aware
+ * structures in the mapping system.
+ *
+ * Delegates to [resolveTypedProperty] using [ClassAware.kClass].
+ *
+ * @param T The expected receiver type of the resolved property.
+ * @param V The property value type.
+ * @param kind A marker used for resolving read-only vs mutable behaviours.
+ * @param classAware Wrapper providing access to the underlying [KClass] instance.
+ * @param property The property whose name and type signature are used for resolution.
+ *
+ * @return A safely casted `KProperty1<T, V>` or `null`.
+ */
+inline fun <reified T: Any, reified V: Any> resolveTypedProperty(
+    kind: Readonly,
+    classAware: ClassAware<*>,
+    property: KProperty<V>,
+): KProperty1<T, V>? = resolveTypedProperty(kind, classAware.kClass, property)
+
+
+inline fun <reified T: Any, V: Any> resolveTypedProperty(
+    kind: Readonly,
+    property: KProperty<V>,
+    kClass: KClass<*>,
+    typeToken: TypeToken<V>,
+): KProperty1<T, V>? {
+
+    val prop = kClass.memberProperties.firstOrNull { it.name == property.name }
+    if(prop == null){
+        return null
+    }
+    return with(prop){
+        returnClassOrNull(typeToken)?.let {
+            safeCast<KProperty1<T, V>>()
+        }
+    }
+}
+
+
 
 
 

@@ -6,13 +6,24 @@ enum class Orientation{ Horizontal, Vertical }
 
 class RowOptions(
     var orientation : Orientation = Orientation.Horizontal,
-){
+    var id : Enum<*>? = null
+): RowConfig{
 
-    constructor(renderDefault : RenderDefaults, orientation : Orientation = Orientation.Horizontal):this(orientation){
-        rowSize = renderDefault.defaultWidth
+    constructor(
+        renderDefault : RenderDefaults,
+        orientation : Orientation = Orientation.Horizontal,
+        id : Enum<*>? = null
+    ):this(orientation, id){
+        render = renderDefault
     }
 
-    var rowSize: Int  = Console220.defaultWidth
+    constructor(
+        id : Enum<*>,
+        orientation : Orientation = Orientation.Horizontal,
+    ):this(orientation, id)
+
+    var usePlain: Boolean = false
+    var render:  RenderDefaults  = Console220
         internal set
 
 }

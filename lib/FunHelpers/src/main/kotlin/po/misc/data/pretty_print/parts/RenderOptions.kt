@@ -1,26 +1,18 @@
 package po.misc.data.pretty_print.parts
 
-import po.misc.data.pretty_print.cells.PrettyCellBase
-import po.misc.data.pretty_print.presets.PrettyPresets
 import po.misc.data.pretty_print.presets.RendererPresets
-import po.misc.data.pretty_print.rows.PrettyRow
 import po.misc.data.pretty_print.rows.PrettyRowBase
 
-class RenderOptions(
-    val orientation: Orientation,
+sealed class CommonRenderOptions(
     val usePlain: Boolean = false,
+    val orientation: Orientation = Orientation.Horizontal,
     val renderLeftBorder: Boolean = true,
     val renderRightBorder: Boolean = true,
+    val renderOnly: List<Enum<*>>,
 ){
+    abstract var rowNoGap: Boolean
 
-    constructor(
-        preset: RendererPresets,
-        usePlain: Boolean = false,
-        renderLeftBorder: Boolean = true,
-        renderRightBorder: Boolean = true
-    ):this(preset.orientation, usePlain, renderLeftBorder, renderRightBorder){
-        ensureOutputIntegrity = preset.outputIntegrity
-    }
+    var renderNamedOnly: Boolean = false
 
     var canRecalculate: Boolean = true
         internal set
@@ -31,44 +23,51 @@ class RenderOptions(
     var cellsCount: Int = 1
         internal set
 
-    fun setCellCount(count: Int):RenderOptions{
+    fun setCellCount(count: Int): CommonRenderOptions{
         cellsCount = count
         return this
     }
+}
 
-    var ensureOutputIntegrity: Boolean = false
-        internal set
+class RowRender(
+    orientation: Orientation,
+    usePlain: Boolean = false,
+    renderLeftBorder: Boolean = true,
+    renderRightBorder: Boolean = true,
+    override var rowNoGap: Boolean = true,
+    renderOnly: List<Enum<*>> = emptyList()
+):CommonRenderOptions(usePlain, orientation, renderLeftBorder, renderRightBorder, renderOnly) {
 
+    constructor(
+        preset: RendererPresets,
+        usePlain: Boolean = false,
+        renderLeftBorder: Boolean = true,
+        renderRightBorder: Boolean = true,
+        rowNoGap: Boolean = true,
+        renderOnly: List<Enum<*>> = emptyList()
+    ):this(preset.orientation, usePlain, renderLeftBorder, renderRightBorder, rowNoGap,  renderOnly)
 
-    fun isLastCell(index: Int): Boolean{
-      return index == cellsCount - 1
-    }
+    constructor(
+        vararg renderOnly: Enum<*>,
+        orientation: Orientation = Orientation.Horizontal,
+        usePlain: Boolean = false,
+        renderLeftBorder: Boolean = true,
+        renderRightBorder: Boolean = true,
+        rowNoGap: Boolean = true,
+    ):this(orientation, usePlain, renderLeftBorder, renderRightBorder, rowNoGap,  renderOnly.toList())
 
-    fun isLastCell(cell: PrettyCellBase<*>): Boolean{
-        return cell.index == cellsCount - 1
-    }
+    constructor(
+        renderOnly: Collection<Enum<*>>,
+        orientation: Orientation = Orientation.Horizontal,
+        usePlain: Boolean = false,
+        renderLeftBorder: Boolean = true,
+        renderRightBorder: Boolean = true,
+        rowNoGap: Boolean = true,
+    ):this(orientation, usePlain, renderLeftBorder, renderRightBorder, rowNoGap, renderOnly.toList())
 
-    fun isFirstCell(index: Int): Boolean{
-        return index == 0
-    }
-    fun isFirstCell(cell: PrettyCellBase<*>): Boolean{
-        return cell.index == 0
-    }
-
-    fun assignParameters(prettyRow: PrettyRowBase):RenderOptions{
-        if(canRecalculate){
-            rowMaxSize = prettyRow.options.rowSize
-            cellsCount = prettyRow.cells.size
-        }
-        return this
-    }
-
-    fun assignFinalize(prettyRow: PrettyRowBase):RenderOptions{
-        rowMaxSize = prettyRow.options.rowSize
-        cellsCount = prettyRow.cells.size
-        canRecalculate = false
-        return this
-    }
+    constructor(
+        rowOptions: RowOptions
+    ):this(rowOptions.orientation, rowOptions.usePlain)
 
     override fun toString(): String {
        return buildString {
@@ -78,3 +77,48 @@ class RenderOptions(
         }
     }
 }
+
+class CellRender(
+    orientation: Orientation = Orientation.Horizontal,
+    usePlain: Boolean = false,
+    renderLeftBorder: Boolean = true,
+    renderRightBorder: Boolean = true,
+    renderOnly: List<Enum<*>> = emptyList(),
+):CommonRenderOptions(usePlain, orientation,renderLeftBorder, renderRightBorder, renderOnly) {
+
+    override var rowNoGap: Boolean = true
+
+    constructor(
+        vararg renderOnly: Enum<*>,
+        orientation: Orientation = Orientation.Horizontal,
+        usePlain: Boolean = false,
+        renderLeftBorder: Boolean = true,
+        renderRightBorder: Boolean = true,
+    ):this(orientation, usePlain, renderLeftBorder, renderRightBorder, renderOnly.toList())
+
+    constructor(
+        renderOnly: List<Enum<*>>,
+        orientation: Orientation = Orientation.Horizontal,
+        usePlain: Boolean = false,
+        renderLeftBorder: Boolean = true,
+        renderRightBorder: Boolean = true,
+    ):this(orientation, usePlain, renderLeftBorder, renderRightBorder, renderOnly.toList())
+
+
+    fun assignParameters(prettyRow: PrettyRowBase<*>):CellRender{
+        if(canRecalculate){
+            rowMaxSize = prettyRow.options.render.defaultWidth
+            cellsCount = prettyRow.cells.size
+        }
+        return this
+    }
+
+    fun assignFinalize(prettyRow: PrettyRowBase<*>):CellRender{
+        rowMaxSize = prettyRow.options.render.defaultWidth
+        cellsCount = prettyRow.cells.size
+        canRecalculate = false
+        return this
+    }
+
+}
+

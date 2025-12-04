@@ -2,11 +2,13 @@ package po.test.misc.data.pretty_print.cells
 
 import org.junit.jupiter.api.Test
 import po.misc.data.output.output
+import po.misc.data.pretty_print.cells.ComputedCell
 import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.rows.buildPrettyRow
+import po.test.misc.data.pretty_print.setup.PrettyTestBase
 import kotlin.test.assertTrue
 
-class TestComputedCell {
+class TestComputedCell : PrettyTestBase() {
 
     private class ReportSubclass(val parameter: String = "Report subclass parameter")
 
@@ -21,7 +23,6 @@ class TestComputedCell {
 
     @Test
     fun `ComputedCell rendering as expected`(){
-
         val prettyRow = buildPrettyRow<ReportClass> {
             addCell(ReportClass::subParameter){
                 it.parameter
@@ -32,7 +33,18 @@ class TestComputedCell {
         val renderedText =  prettyRow.render(report, Orientation.Horizontal)
         renderedText.output()
         assertTrue { renderedText.contains(subClassText) }
+    }
 
+    @Test
+    fun `ComputedCell with no property`(){
+        val prettyRow = buildPrettyRow<PrintableRecord> {
+            addCell{
+
+            }
+            addCell(ReportClass::subParameter){
+                it.parameter
+            }
+        }
 
     }
 

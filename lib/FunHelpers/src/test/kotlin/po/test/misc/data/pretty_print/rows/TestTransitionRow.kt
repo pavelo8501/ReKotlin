@@ -1,11 +1,12 @@
 package po.test.misc.data.pretty_print.rows
 
 import org.junit.jupiter.api.Test
+import po.misc.collections.asList
 import po.misc.data.count
 import po.misc.data.output.output
 import po.misc.data.pretty_print.cells.StaticCell
 import po.misc.data.pretty_print.grid.PrettyGrid
-import po.misc.data.pretty_print.presets.RowPresets
+import po.misc.data.pretty_print.parts.RowPresets
 import po.misc.data.pretty_print.rows.PrettyRow
 import po.misc.data.pretty_print.rows.TransitionRow
 import po.misc.data.splitLines
@@ -35,9 +36,13 @@ class TestTransitionRow {
         val prettyRow = PrettyRow(staticCell)
 
         val staticCellOnTransitional = StaticCell("Some static cell on transitional")
-        val transitional = TransitionRow(TypeToken.create<PrintableRecordSubClass>(), staticCellOnTransitional)
-        prettyGrid.addRow(prettyRow)
-        prettyGrid.addRow(transitional)
+        val transitional = TransitionRow<PrintableRecordSubClass, PrintableRecordSubClass>(
+            TypeToken.create<PrintableRecordSubClass>(),
+            staticCellOnTransitional.asList()
+        )
+
+        prettyGrid.addRenderBlock(prettyRow)
+        prettyGrid.addRenderBlock(transitional)
 
         val record = PrintableRecord()
         transitional.provideTransition {
@@ -45,14 +50,15 @@ class TestTransitionRow {
         }
         val render =  prettyGrid.render(record)
         val lines = render.splitLines()
+        render.output()
         assertEquals(1, transitional.cells.size)
-        assertEquals(2, lines.size)
+        assertEquals(3, lines.size)
     }
 
     @Test
     fun `Vertical row rendered as expected`() {
         val record = PrintableRecord()
-        val row = TransitionRow.buildRow(PrintableRecord::subClass, PrintableRecord::class, RowPresets.VerticalRow) {
+        val row = TransitionRow.buildRow(PrintableRecord::subClass, PrintableRecord::class, RowPresets.Vertical) {
             addCell(PrintableRecordSubClass::subName)
             addCell(PrintableRecordSubClass::subComponent)
         }
@@ -62,8 +68,7 @@ class TestTransitionRow {
         val split = render.splitLines()
         assertEquals(2, split.size)
         split.forEach {
-            assertEquals(1, it.count(SpecialChars.WHITESPACE))
+            assertEquals(2, it.count(SpecialChars.WHITESPACE))
         }
     }
-
 }

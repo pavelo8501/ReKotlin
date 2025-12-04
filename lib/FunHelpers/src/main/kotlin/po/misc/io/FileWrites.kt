@@ -20,14 +20,9 @@ data class WriteOptions(
     val throwOnFileExists: Boolean = false
 )
 
-data class FileIOError(
-    val throwable:Throwable,
-    val path: String
-): PrettyPrint{
+data class FileIOError(val throwable:Throwable, val path: String): PrettyPrint{
 
-    override val formattedString: String
-        get() = this.toString().colorize(Colour.Red)
-
+    override val formattedString: String get() = this.toString().colorize(Colour.Red)
     override fun toString(): String {
         return "FileWriteError"+ SpecialChars.NEW_LINE + "${throwable.throwableToText()} for Path: $path"
     }
@@ -65,33 +60,7 @@ class FileIOHooks{
     }
 }
 
-
-class FileIOHooks2<R: Any>{
-    internal var onErrorCallback: ((FileIOError) -> Unit)? = null
-    fun onError(callback: (FileIOError) -> Unit){
-        onErrorCallback = callback
-    }
-    fun triggerError(error:FileIOError): Boolean{
-        return onErrorCallback?.let {
-            it.invoke(error)
-            true
-        }?:false
-    }
-
-    internal var onResultCallback: ((FileMeta) -> R)? = null
-
-    fun onResult(callback: (FileMeta) -> R): Unit{
-        onResultCallback = callback
-    }
-
-    fun triggerOnResult(file: FileMeta): R {
-      return  onResultCallback.getOrManaged(this).invoke(file)
-    }
-}
-
-
 class WriteFileHooks<R: Any>{
-
     internal var onErrorCallback: ((Throwable) -> R?)? = null
     fun onError(callback: (Throwable) -> R?){
         onErrorCallback = callback
@@ -142,6 +111,32 @@ private fun writeFileContents(
     }
 }
 
+private fun writeFileContent(
+    relativePath: String,
+    byteArray: ByteArray,
+    options: WriteOptions
+):FileIOError?{
+    return try {
+        val pathToFile = Path(System.getProperty("user.dir"), relativePath)
+        val directory = pathToFile.parent
+
+        if (!directory.exists() && options.createSubfolders) {
+            directory.createDirectories()
+        }
+        if (pathToFile.exists() && !options.overwriteExistent) {
+            if(options.throwOnFileExists) {
+                throw IOException("File already exists: $relativePath")
+            }else{
+                return null
+            }
+        }
+        Files.write(pathToFile, byteArray)
+        null
+    } catch (th: Throwable) {
+        FileIOError(th, relativePath)
+    }
+}
+
 
 /**
  * Writes raw [bytes] to a file located at [relativePath], rooted at the JVM working directory (`user.dir`).
@@ -176,6 +171,9 @@ fun writeFile(
 
         if (!directory.exists() && options.createSubfolders) {
             directory.createDirectories()
+        }
+        if (pathToFile.exists() && !options.overwriteExistent && !options.throwOnFileExists) {
+            return  LocalFile(bytes, FileMeta(relativePath, file))
         }
 
         if (pathToFile.exists() && !options.overwriteExistent) {
@@ -269,8 +267,8 @@ inline fun <R: Any> ByteArray.writeToFile(
  */
 fun String.writeToFile(
     relativePath: String,
+    options: WriteOptions = WriteOptions(),
     charset: Charset = Charsets.UTF_8,
-    options: WriteOptions = WriteOptions()
 ):LocalFile = writeFile(relativePath, toByteArray(charset),  options)
 
 /**
@@ -286,8 +284,8 @@ fun String.writeToFile(
  */
 inline fun <R: Any> String.writeToFile(
     relativePath: String,
-    charset: Charset = Charsets.UTF_8,
     options: WriteOptions = WriteOptions(),
+    charset: Charset = Charsets.UTF_8,
     writeFileHooks: WriteFileHooks<R>.() ->  Unit
 ):R? = writeFile<R>(relativePath, toByteArray(charset),  options, writeFileHooks)
 
@@ -338,38 +336,6 @@ inline fun <reified T: Any> T.writeSourced(
 
 
 
-fun String.writeFileContent(
-    relativePath: String,
-    options: WriteOptions = WriteOptions()
-): Boolean {
-    return writeFileContents(relativePath, this, options) == null
-}
-
-private fun writeFileContent(
-    relativePath: String,
-    byteArray: ByteArray,
-    options: WriteOptions
-):FileIOError?{
-    return try {
-        val pathToFile = Path(System.getProperty("user.dir"), relativePath)
-        val directory = pathToFile.parent
-
-        if (!directory.exists() && options.createSubfolders) {
-            directory.createDirectories()
-        }
-        if (pathToFile.exists() && !options.overwriteExistent) {
-            if(options.throwOnFileExists) {
-                throw IOException("File already exists: $relativePath")
-            }else{
-                return null
-            }
-        }
-        Files.write(pathToFile, byteArray)
-        null
-    } catch (th: Throwable) {
-        FileIOError(th, relativePath)
-    }
-}
 
 fun ByteArray.writeFileContent(
     relativePath: String,

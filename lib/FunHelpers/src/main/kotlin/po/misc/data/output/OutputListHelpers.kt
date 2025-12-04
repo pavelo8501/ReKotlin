@@ -34,6 +34,7 @@ fun <T: Any> List<T>.output(
     colour: Colour? = null,
     transform: StringBuilder.(T)-> Any
 ) {
+    checkDispatcher()
     if (prefix.isNotBlank()) {
         if (colour != null) {
             println(Colorizer.colour(prefix, colour))
@@ -55,6 +56,7 @@ fun <T: Any> List<T>.output(
 
 @JvmName("outputTraceableContext")
 fun <T: TraceableContext> List<T>.output(provider: OutputProvider = SyncPrint, outputBuilder:T.()-> String){
+    checkDispatcher()
     val lines = mutableListOf<String>()
     forEach {
         when(provider){
@@ -75,6 +77,7 @@ fun <T: TraceableContext> List<T>.output(provider: OutputProvider = SyncPrint, o
 }
 
 fun <T: Any> List<T>.output(provider: OutputProvider, outputForwarder:(T)-> String){
+    checkDispatcher()
     val result =  joinToString {
         outputForwarder.invoke(it)
     }

@@ -77,13 +77,14 @@ fun Throwable.extractTrace(
     classifier:  PackageClassifier? = null
 ): ExceptionTrace {
 
-    val depth = analyzeDepth.coerceAtLeast(10)
+    val depth = analyzeDepth.coerceAtLeast(20)
     val frames =  stackTrace.take(depth).toFrameMeta(classifier)
     val methodName = options.methodName
+
     val index =  if(methodName != null){
-        frames.indexOfFirst { it.methodName.contains(methodName) }
+        frames.indexOfFirst { it.methodName.contains(methodName) }.coerceAtLeast(0)
     }else{
-        frames.indexOfFirst { it.simpleClassName == options.className }
+        frames.indexOfFirst { it.simpleClassName == options.className }.coerceAtLeast(0)
     }
     val userCodeMetas =  frames.drop(index).takeWhile { frameMeta ->
         frameMeta.isUserCode

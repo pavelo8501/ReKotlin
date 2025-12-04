@@ -12,6 +12,7 @@ interface CommonCellOptions{
     val spaceFiller: Char
     val alignment: Align
     val styleOptions: TextStyleOptions
+    val id: Enum<*>?
 }
 
 class CellOptions(
@@ -19,6 +20,7 @@ class CellOptions(
     override val alignment: Align = Align.LEFT,
     override val styleOptions: TextStyleOptions = TextStyleOptions(),
     private val emptySpaceFiller: Char? = null,
+    override val id: Enum<*>? = null
 ): CommonCellOptions {
 
     class TextStyleOptions(
@@ -26,8 +28,8 @@ class CellOptions(
         val colour: Colour? = null,
         val backgroundColour: BGColour? = null,
     )
-
     constructor(alignment: Align):this(width =0, alignment)
+    constructor(id: Enum<*>, alignment: Align = Align.LEFT):this(width =0, alignment, id = id)
     constructor(alignment: Align, colour: Colour):this(width = 0, alignment, TextStyleOptions(colour = colour))
 
     override val spaceFiller: Char get() = emptySpaceFiller.orDefault()

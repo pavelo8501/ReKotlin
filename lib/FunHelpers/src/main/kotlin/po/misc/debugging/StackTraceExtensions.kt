@@ -2,7 +2,9 @@ package po.misc.debugging
 
 import po.misc.data.output.output
 import po.misc.data.styles.Colour
+import po.misc.debugging.classifier.KnownHelpers
 import po.misc.debugging.classifier.PackageClassifier
+import po.misc.debugging.classifier.SimplePackageClassifier
 import po.misc.exceptions.ExceptionPayload
 import po.misc.debugging.stack_tracer.StackFrameMeta
 import po.misc.exceptions.stack_trace.extractTrace
@@ -67,11 +69,46 @@ fun StackTraceElement.checkIfHelperFunctionAnnotated(): Boolean {
 }
 
 fun StackTraceElement.toFrameMeta(classifier: PackageClassifier? = null): StackFrameMeta{
-    return if(classifier != null){
-        StackFrameMeta.create(this, classifier)
-    }else{
-        StackFrameMeta.create(this)
+
+
+    val useClassifier = try {
+
+        classifier?:run {
+            SimplePackageClassifier(KnownHelpers)
+        }
+    }catch (th: Throwable){
+        th.output()
+        throw th
     }
+
+    val className = className
+    val simpleClasName = className.substringAfterLast('.')
+    val normalizedName = normalizedMethodName()
+    val classPackage = className.substringBeforeLast('.', missingDelimiterValue = "")
+    val packageRole = useClassifier.resolvePackageRole(this)
+
+
+    val meta = try {
+        StackFrameMeta(
+            fileName = fileName?:"N/A",
+            simpleClassName = simpleClasName,
+            methodName = normalizedName,
+            lineNumber = lineNumber,
+            classPackage = classPackage,
+            packageRole = packageRole,
+            isReflection =  className.startsWith("java.lang.reflect"),
+            isThreadEntry =  className == "java.lang.Thread" && methodName.contains("run"),
+            isCoroutineInternal = className.startsWith("kotlinx.coroutines"),
+            isInline =  methodName.contains($$"$inline$") || className.contains($$"$inlined$"),
+            isLambda =  methodName.contains($$"$lambda") || className.contains($$"$Lambda$"),
+            stackTraceElement = this
+        )
+    }catch (th: Throwable){
+        th.output()
+        throw th
+    }
+    return meta
+
 }
 
 fun Collection<StackTraceElement>.toFrameMeta(classifier: PackageClassifier?): List<StackFrameMeta>{

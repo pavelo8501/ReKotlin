@@ -5,7 +5,9 @@ import po.misc.data.logging.processor.LogProcessor
 import po.misc.data.pretty_print.cells.PrettyCell
 import po.misc.data.pretty_print.presets.PrettyPresets
 import po.misc.data.pretty_print.rows.PrettyRow
+import po.misc.reflection.NameValuePair
 import po.misc.reflection.nameValuePair
+import po.misc.types.token.TypeToken
 import kotlin.reflect.KClass
 
 
@@ -21,11 +23,10 @@ data class StateSnapshot(
 ): PrettyPrint{
 
 
-    private val keySlot = PrettyCell(10, PrettyPresets.Key)
-    private val valueSlot = PrettyCell(10,PrettyPresets.Value)
+    private val keySlot = PrettyCell(PrettyPresets.Key, 10)
+    private val valueSlot = PrettyCell(PrettyPresets.Value, 10)
 
     private val prettyRow = PrettyRow(keySlot, valueSlot)
-
 
     override val formattedString: String
         get() =  buildString {

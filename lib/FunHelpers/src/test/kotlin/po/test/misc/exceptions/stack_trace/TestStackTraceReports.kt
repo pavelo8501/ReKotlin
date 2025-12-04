@@ -19,11 +19,14 @@ class TestStackTraceReports {
             return trace(TraceCallSite("TestStackTraceReports", ::createTrace))
         }
     }
-
     private val notifier = TraceNotifier(notifyOnValue = 300)
 
     fun intermediaryMethod(value: Int): ExceptionTrace? {
         return notifier.notifyOrNot(value)
+    }
+
+    fun intermediaryMethod2(value: Int): ExceptionTrace? {
+        return intermediaryMethod(value)
     }
 
     @Test
@@ -33,8 +36,7 @@ class TestStackTraceReports {
         val subClass = SubClass()
         val trace = subClass.createTrace()
         val report: CallSiteReport = ExceptionTrace.callSiteReport(trace)
-        val render = report.callSiteReport.render(report)
-        render.output()
+        val render = report.formattedString
         assertTrue { render.contains(registeredFunName) && render.contains(thisFunName) }
     }
 
@@ -43,9 +45,17 @@ class TestStackTraceReports {
         val stackTrace = intermediaryMethod(300)
         assertNotNull(stackTrace)
         val report = ExceptionTrace.callSiteReport(stackTrace)
-
-        val reportRender = report.callSiteReport.render(report)
+        val reportRender = report.formattedString
         assertEquals(1, report.hopFrames.size)
+    }
+
+    @Test
+    fun `Call site report render multiple hops as expected`() {
+        val stackTrace = intermediaryMethod2(300)
+        assertNotNull(stackTrace)
+        val report = ExceptionTrace.callSiteReport(stackTrace)
+        val reportRender = report.formattedString
+        assertEquals(2, report.hopFrames.size)
         reportRender.output()
     }
 
