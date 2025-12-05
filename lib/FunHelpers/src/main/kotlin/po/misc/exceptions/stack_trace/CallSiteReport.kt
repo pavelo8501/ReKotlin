@@ -17,28 +17,28 @@ data class CallSiteReport(
 
     val reportType:  TraceOptions.TraceType = TraceOptions.TraceType.CallSite
 
-    val report: PrettyGrid<CallSiteReport> = buildPrettyGrid{
+    val report  = buildPrettyGrid<CallSiteReport>{
         buildRow {
-            addCell("Call site trace report", PrettyPresets.Header)
-        }
-        buildRow {
-            addCell("Caller trace snapshot", PrettyPresets.Info)
-        }
-        useTemplate(StackFrameMeta.frameMetaTemplate){
-            callerTraceMeta
+           // addCell("Call site trace report", PrettyPresets.Header)
         }
         buildRow {
-            addCell("Registered hops", PrettyPresets.Info)
+          //  addCell("Caller trace snapshot", PrettyPresets.Info)
         }
-        useTemplateForList(StackFrameMeta.frameMetaTemplate){
-            hopFrames
-        }
+//        useTemplate(StackFrameMeta.frameMetaTemplate){
+//            callerTraceMeta
+//        }
         buildRow {
-            addCell("Registration place snapshot", PrettyPresets.Info)
+           // addCell("Registered hops", PrettyPresets.Info)
         }
-        useTemplate(StackFrameMeta.frameMetaTemplate){
-            registrationTraceMeta
+//        useTemplateForList(StackFrameMeta.frameMetaTemplate){
+//            hopFrames
+//        }
+        buildRow {
+          //  addCell("Registration place snapshot", PrettyPresets.Info)
         }
+//        useTemplate(StackFrameMeta.frameMetaTemplate){
+//            registrationTraceMeta
+//        }
     }
     override val formattedString: String get() = report.render(this)
 

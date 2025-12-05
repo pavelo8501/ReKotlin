@@ -57,7 +57,7 @@ class ProceduralEntry(
     val logRecords: MutableList<StructuredLoggable> = mutableListOf()
 
     override val formattedString: String get() {
-        return outputRow.render(stepBadge.caption, stepName, stepResult?.formattedString?:"N/A")
+        return outputRow.renderAny(stepBadge.caption, stepName, stepResult?.formattedString?:"N/A")
     }
 
     internal fun getStatistics(): String{

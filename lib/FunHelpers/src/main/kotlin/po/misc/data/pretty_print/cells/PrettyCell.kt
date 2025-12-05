@@ -5,7 +5,11 @@ import po.misc.data.pretty_print.parts.Align
 import po.misc.data.pretty_print.presets.PrettyPresets
 import po.misc.data.pretty_print.formatters.StringNormalizer
 import po.misc.data.pretty_print.parts.CellOptions
+import po.misc.data.pretty_print.parts.CommonCellOptions
+import po.misc.data.pretty_print.parts.PrettyHelper
+import po.misc.data.pretty_print.rows.PrettyRow
 import po.misc.data.strings.classParam
+import po.misc.data.strings.stringify
 import po.misc.data.styles.TextStyle
 import po.misc.data.styles.TextStyler
 import po.misc.data.toDisplayName
@@ -28,21 +32,36 @@ import kotlin.reflect.KProperty0
  * A [PrettyCell] is *lightweight* and stateless; rendering happens per input.
  */
 class PrettyCell(
-    options: CellOptions = CellOptions()
-): PrettyCellBase<PrettyPresets>(options), CellRenderer {
+    options: CellOptions = CellOptions(),
+    row: PrettyRow<*>? = null
+): PrettyCellBase<PrettyPresets>(options, row), CellRenderer {
 
-    constructor(width: Int):this(CellOptions(width))
-    constructor(presets: PrettyPresets, width: Int = 0):this(presets.toOptions(width))
+    constructor(presets: PrettyPresets):this(presets.toOptions())
+    constructor(width: Int,  row: PrettyRow<*>? = null):this(CellOptions(width), row)
+
     override fun applyPreset(preset: PrettyPresets): PrettyCell{
-        options = preset.toOptions()
+        cellOptions = preset.toOptions()
         return this
+    }
+
+    fun render(content: Any, commonOptions: CommonCellOptions?): String {
+        val options = commonOptions?:cellOptions
+        val text = if(options.usePlain){
+            content.toString()
+        }else{
+            content.stringify().formatedString
+        }
+        val modified =  staticModifiers.modify(text)
+        val formatted =  compositeFormatter.format(modified, this)
+        val final = justifyText(formatted,  options)
+        return final
     }
 
     override fun toString(): String {
        return buildString {
             appendLine("PrettyCell")
-            classParam("id", options.id)
-            classParam("width", options.width)
+            classParam("id", cellOptions.id)
+            classParam("width", cellOptions.width)
         }
     }
     companion object

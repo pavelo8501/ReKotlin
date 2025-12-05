@@ -38,13 +38,13 @@ class TestAccessJournal: Component, Templated {
         val record: AccessRecord<TestAccess> = instance1.createRecord(accessJournal)
         val noKeyOption = KeyedCellOptions(showKey = false)
         val prettyRow = record.buildPrettyRow { journal ->
-            addCell(journal::formatedTime, noKeyOption)
-            addCell(journal::message)
-            addCell(journal::hostName)
-            addCell(journal::entryType, noKeyOption)
+           // addCell(journal::formatedTime, noKeyOption)
+          //  addCell(journal::message)
+          //  addCell(journal::hostName)
+          //  addCell(journal::entryType, noKeyOption)
         }
         assertEquals(4, prettyRow.cells.size)
-        val result = prettyRow.render(record)
+        val result = prettyRow.renderAny(record)
         result.output()
         assertTrue { result.contains(record.message) }
     }

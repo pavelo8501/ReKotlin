@@ -31,34 +31,34 @@ class TestPrettyGrid : PrettyTestBase() {
         val cell3Text = "First Static cell on second row"
 
         var prettyGrid = buildPrettyGrid<PrintableRecord> {
-            buildRow(RowOptions(Orientation.Horizontal, id = Template.Template1)) {
+            buildRow(RowOptions(Template.Template1, Orientation.Horizontal)) {
                 addCell(cell1Text)
                 addCell(cell2Text)
             }
-            buildRow(RowOptions(Orientation.Horizontal, id = Template.Template2)){
+            buildRow(RowOptions(Template.Template2, Orientation.Horizontal)){
                 addCell(cell3Text)
             }
         }
         val record = createRecord()
-        var render = prettyGrid.render(record, RowRender(Template.Template1))
+        var render = prettyGrid.render(record, RowOptions(Template.Template1))
         assertTrue {  render.contains(cell1Text) && render.contains(cell2Text) }
         assertFalse { render.contains(cell3Text) }
 
         prettyGrid = buildPrettyGrid<PrintableRecord> {
-            buildRow(RowOptions(Orientation.Horizontal, id = Template.Template1)) {
+            buildRow(RowOptions(Template.Template1, Orientation.Horizontal)) {
                 addCell(cell1Text)
                 addCell(cell2Text, CellOptions(CellTemplate.Cell2))
             }
-            buildRow(RowOptions(Orientation.Horizontal, id = Template.Template2)){
+            buildRow(RowOptions(Template.Template2, Orientation.Horizontal)){
                 addCell(cell3Text)
             }
         }
-        render = prettyGrid.render(record, RowRender(Template.Template1, CellTemplate.Cell2))
+        render = prettyGrid.render(record, RowOptions(Template.Template1, CellTemplate.Cell2))
 
         assertTrue {  render.contains(cell1Text) && render.contains(cell2Text) }
         assertFalse { render.contains(cell3Text) }
 
-        render = prettyGrid.render(record, RowRender(Template.Template1))
+        render = prettyGrid.render(record, RowOptions(Template.Template1))
         assertTrue {  render.contains(cell1Text) }
         assertFalse { render.contains(cell2Text) && render.contains(cell3Text) }
     }

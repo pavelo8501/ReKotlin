@@ -2,8 +2,6 @@ package po.misc.counters.records
 
 import po.misc.counters.LogJournal
 import po.misc.counters.records.LogJournalEntry.RecordType
-import po.misc.data.pretty_print.grid.PrettyGrid
-import po.misc.data.pretty_print.grid.PrettyPromiseGrid
 import po.misc.data.pretty_print.grid.buildPrettyGrid
 import po.misc.data.pretty_print.parts.CellOptions
 import po.misc.data.pretty_print.parts.KeyedCellOptions
@@ -27,7 +25,9 @@ class LogJournalEntry(
 
     val hostName: String = logJournal.hostInstanceInfo.instanceName
     val formatedTime: String = created.hoursFormated(2)
+
     override val formattedString: String get() =  logJournalReport.render(this)
+
     val comments: MutableList<Comment> = mutableListOf()
 
 
@@ -49,27 +49,26 @@ class LogJournalEntry(
           showKey = false,
           styleOptions = CellOptions.TextStyleOptions(colour = Colour.Blue)
         )
-        val commentsTemplate: PrettyPromiseGrid<LogJournalEntry, Comment> = buildPrettyGrid(LogJournalEntry::comments) { list ->
-            buildRow(list){
-                addCell(Comment::text)
-                addCell{
+//        val commentsTemplate: PrettyPromiseGrid<LogJournalEntry, Comment> = buildPrettyGrid(LogJournalEntry::comments) { list ->
+//
+//            buildRow(list){
+//                addCell(Comment::text)
+//                addCell{
+//
+//                }
+//            }
+//        }
 
-                }
-            }
-        }
 
-        val logJournalReport: PrettyGrid<LogJournalEntry> = buildPrettyGrid<LogJournalEntry>{
+        val logJournalReport = buildPrettyGrid<LogJournalEntry>{
             buildRow(RowPresets.Horizontal) {
 
-                addCell(LogJournalEntry::created){
-
-                }
                 addCell(LogJournalEntry::formatedTime, timeStyle)
                 addCell(LogJournalEntry::entryType)
                 addCell(LogJournalEntry::message)
                 addCell(LogJournalEntry::hostName)
             }
-            useTemplate(commentsTemplate)
+            //useTemplate(commentsTemplate)
         }
     }
 }

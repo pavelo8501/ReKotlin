@@ -28,7 +28,7 @@ data class StackFrameMeta(
 
     enum class Template { Short,  ConsoleLink }
 
-    private var reportRender = frameMetaTemplate.render(this, RowRender(Template.Short))
+    private var reportRender = frameMetaTemplate.render(this, RowOptions(Template.Short))
 
     val isHelperMethod: Boolean get() = packageRole == PackageClassifier.PackageRole.Helper
     val isUserCode: Boolean get() = packageRole != PackageClassifier.PackageRole.System
@@ -39,7 +39,7 @@ data class StackFrameMeta(
 
     private fun reRender(sections: List<Enum<*>>):String{
         if(sections.isNotEmpty()){
-            reportRender = frameMetaTemplate.render(this, RowRender(sections))
+            reportRender = frameMetaTemplate.render(this, RowOptions().renderOnly(sections))
         }
        return reportRender
     }
@@ -63,10 +63,10 @@ data class StackFrameMeta(
 
     companion object {
 
-        val frameMetaTemplate: PrettyGrid<StackFrameMeta> = buildPrettyGrid {
+        val frameMetaTemplate = buildPrettyGrid<StackFrameMeta> {
 
             buildRow(RowOptions(Orientation.Vertical,  Template.Short)){
-                addCells(StackFrameMeta::methodName, StackFrameMeta::lineNumber, StackFrameMeta::simpleClassName)
+               // addCells(StackFrameMeta::methodName, StackFrameMeta::lineNumber, StackFrameMeta::simpleClassName)
             }
             buildRow(RowOptions(Orientation.Vertical,  Template.ConsoleLink)) {
                 addCell(StackFrameMeta::consoleLink)

@@ -32,15 +32,15 @@ data class AccessRecord <E: Enum<E>>(
         else Colour.RedBright
     }
 
-    private val prettyRow = buildPrettyRow<AccessRecord<*>>(CellContainer.Companion) {
-        addCell(::formatedTime, KeyedCellOptions(showKey = false, width = 20))
-        addCell(::entryType, noKeyOption, ColorModifier(success, failure))
-        addCell(::message)
-        addCell(::hostName)
-        addCell(::reasoning, KeyedCellOptions(showKey = false), dynamicCondition)
-    }
+  //  private val prettyRow = buildPrettyRow<AccessRecord<*>>(CellContainer.Companion) {
+//        addCell(::formatedTime, KeyedCellOptions(showKey = false, width = 20))
+//        addCell(::entryType, noKeyOption, ColorModifier(success, failure))
+//        addCell(::message)
+//        addCell(::hostName)
+//        addCell(::reasoning, KeyedCellOptions(showKey = false), dynamicCondition)
+  //  }
 
-    override val formattedString: String get() = prettyRow.render(this)
+    override val formattedString: String get() = this.toString()
 
     var reasoning: String = ""
         private set

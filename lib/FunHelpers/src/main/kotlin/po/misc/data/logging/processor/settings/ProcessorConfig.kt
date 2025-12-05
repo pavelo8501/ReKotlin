@@ -23,20 +23,20 @@ data class StateSnapshot(
 ): PrettyPrint{
 
 
-    private val keySlot = PrettyCell(PrettyPresets.Key, 10)
-    private val valueSlot = PrettyCell(PrettyPresets.Value, 10)
+    private val keySlot = PrettyCell(PrettyPresets.Key)
+    private val valueSlot = PrettyCell(PrettyPresets.Value)
 
     private val prettyRow = PrettyRow(keySlot, valueSlot)
 
     override val formattedString: String
         get() =  buildString {
-            append(prettyRow.render(::name.nameValuePair))
-            appendLine(prettyRow.render(::name.nameValuePair))
-            appendLine(prettyRow.render(::loggedMessageCount.nameValuePair))
-            appendLine(prettyRow.render(::shouldStoreRecords.nameValuePair))
-            appendLine(prettyRow.render(::hasActiveRecord.nameValuePair))
-            appendLine(prettyRow.render(::hasActiveUnresolved.nameValuePair))
-            appendLine(prettyRow.render(::activeDataHandlers.nameValuePair))
+//            append(prettyRow.render(::name.nameValuePair))
+//            appendLine(prettyRow.render(::name.nameValuePair))
+//            appendLine(prettyRow.render(::loggedMessageCount.nameValuePair))
+//            appendLine(prettyRow.render(::shouldStoreRecords.nameValuePair))
+//            appendLine(prettyRow.render(::hasActiveRecord.nameValuePair))
+//            appendLine(prettyRow.render(::hasActiveUnresolved.nameValuePair))
+//            appendLine(prettyRow.render(::activeDataHandlers.nameValuePair))
     }
 
 }

@@ -7,18 +7,22 @@ import po.misc.data.pretty_print.formatters.DynamicTextStyler
 import po.misc.data.pretty_print.formatters.text_modifiers.DynamicColourModifier
 import po.misc.data.pretty_print.formatters.text_modifiers.StaticModifiers
 import po.misc.data.pretty_print.formatters.text_modifiers.TextModifier
+import po.misc.data.pretty_print.parts.CellOptions
 import po.misc.data.pretty_print.parts.CellRender
 import po.misc.data.pretty_print.parts.CommonCellOptions
 import po.misc.data.pretty_print.parts.CommonRenderOptions
 import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.parts.PrettyBorders
+import po.misc.data.pretty_print.parts.PrettyHelper
 import po.misc.data.pretty_print.presets.StylePresets
+import po.misc.data.pretty_print.rows.PrettyRow
 import po.misc.data.strings.FormattedPair
 import po.misc.data.styles.TextStyler
 
 
 sealed class PrettyCellBase<P: StylePresets>(
-    override var options : CommonCellOptions
+    override var cellOptions : CommonCellOptions,
+    val row: PrettyRow<*>?
 ) : BaseRenderer<P> {
 
     var index: Int = 0
@@ -37,18 +41,19 @@ sealed class PrettyCellBase<P: StylePresets>(
         }
     }
     val dynamicTextStyler: DynamicTextStyler<P> = DynamicTextStyler{ text, cell, ->
-        val useStyle = options.styleOptions.style
-        val useColour = options.styleOptions.colour
-        val useBackgroundColour = options.styleOptions.backgroundColour
+        val useStyle = cellOptions.styleOptions.style
+        val useColour = cellOptions.styleOptions.colour
+        val useBackgroundColour = cellOptions.styleOptions.backgroundColour
         TextStyler.style(text, applyColourIfExists = false, useStyle, useColour, useBackgroundColour)
     }
     val compositeFormatter: CompositeFormatter<P> = CompositeFormatter(textFormatter, dynamicTextStyler)
 
-    private fun calculateEffectiveWidth(renderOptions: CommonRenderOptions): Int{
-        val cellWidth = options.width
-        val cellsCount = renderOptions.cellsCount
-        val rowMaxWidth = renderOptions.rowMaxSize
-        val align = options.alignment
+    private fun calculateEffectiveWidth(renderOptions: CommonCellOptions): Int{
+        val cellWidth = cellOptions.width
+        val cellsCount =  row?.cells?.size?:1
+
+        val rowMaxWidth = 0
+        val align = cellOptions.alignment
 
         val cellAverageWidth: Int = rowMaxWidth / cellsCount
 
@@ -67,10 +72,10 @@ sealed class PrettyCellBase<P: StylePresets>(
             }
         }
     }
-    protected fun justifyText(text: String, renderOptions: CommonRenderOptions): String {
+    protected fun justifyText(text: String, renderOptions: CommonCellOptions): String {
         val useWidth =  calculateEffectiveWidth(renderOptions)
-        val useAlignment = options.alignment
-        val useFiller = options.spaceFiller
+        val useAlignment = cellOptions.alignment
+        val useFiller = cellOptions.spaceFiller
 
         val aligned =  if(renderOptions.orientation == Orientation.Vertical){
             text
@@ -91,13 +96,12 @@ sealed class PrettyCellBase<P: StylePresets>(
                 }
             }
         }
-
         val bordered = borders.render(aligned, renderOptions)
         return bordered
     }
 
     open fun applyPreset(preset: P):PrettyCellBase<P>{
-        options =  preset.toOptions()
+        cellOptions =  preset.toOptions()
         return this
     }
 
@@ -115,48 +119,53 @@ sealed class PrettyCellBase<P: StylePresets>(
         staticModifiers.addModifier(dynamicColourModifier)
     }
 
-    override fun render(content: String, renderOptions: CommonRenderOptions): String {
+    override fun render(content: String, commonOptions: CommonCellOptions?): String {
+        val options = PrettyHelper.toCellOptionsOrDefault(commonOptions, PrettyHelper.toCellOptions(cellOptions))
         val modified =  staticModifiers.modify(content)
         val formatted =  compositeFormatter.format(modified, this)
-        val final = justifyText(formatted,  renderOptions)
-        return final
-    }
-    override fun render(formatted: FormattedPair, renderOptions: CommonRenderOptions): String {
-        val usedText = if(renderOptions.usePlain){ formatted.text } else { formatted.formatedText }
-        val modified =  staticModifiers.modify(usedText)
-        val formatted =  compositeFormatter.format(modified, this)
-        val final = justifyText(formatted,  renderOptions)
+        val final = justifyText(formatted,  options)
         return final
     }
 
-    fun render(content: String): String = render(content, CellRender(Orientation.Horizontal))
+    override fun render(formatted: FormattedPair, commonOptions: CommonCellOptions?): String {
+        val usePlain = true
+        val options = PrettyHelper.toCellOptionsOrDefault(commonOptions, PrettyHelper.toCellOptions(cellOptions))
+        val usedText = if(usePlain){ formatted.text } else { formatted.formatedText }
+        val modified =  staticModifiers.modify(usedText)
+        val formatted =  compositeFormatter.format(modified, this)
+        val final = justifyText(formatted,  options)
+        return final
+    }
+
+    fun render(content: String): String = render(content, CellOptions(Orientation.Horizontal))
 
     companion object {
 
-        fun build(width: Int, builder: PrettyCell.()-> Unit ): PrettyCell{
-            val cell = PrettyCell(width)
-            cell.builder()
-            return cell
-        }
-        fun copyKeyParams(source: PrettyCellBase<*>, target: PrettyCellBase<*>):PrettyCellBase<*>{
-            target.postfix = source.postfix
-            target.options = source.options
-            target.staticModifiers.addModifiers(source.staticModifiers.modifiers)
-            when(source){
-                is KeyedCell if target is KeyedCell -> {
-                    target.property = source.property
-                }
-                is ComputedCell<*> if target is ComputedCell<*> -> {
-                    target
-                }
-                else -> { }
-            }
-            return target
-        }
+//        fun build(width: Int, builder: PrettyCell.()-> Unit ): PrettyCell{
+//            val cell = PrettyCell(width)
+//            cell.builder()
+//            return cell
+//        }
+
+//        fun copyKeyParams(source: PrettyCellBase<*>, target: PrettyCellBase<*>):PrettyCellBase<*>{
+//            target.postfix = source.postfix
+//            target.options = source.options
+//            target.staticModifiers.addModifiers(source.staticModifiers.modifiers)
+//            when(source){
+//                is KeyedCell if target is KeyedCell -> {
+//                    target.property = source.property
+//                }
+//                is ComputedCell<*> if target is ComputedCell<*> -> {
+//                    target
+//                }
+//                else -> { }
+//            }
+//            return target
+//        }
         fun <T:PrettyCellBase<P>, P: StylePresets> copyParameters(source:T, target :T):T{
             target.staticModifiers.clear()
             target.staticModifiers.addModifiers(source.staticModifiers.modifiers)
-            target.options = source.options
+            target.cellOptions = source.cellOptions
             return target
         }
     }

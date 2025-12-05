@@ -30,10 +30,10 @@ class TestStaticCell : Templated{
         }
         assertTrue { cell.text.contains(text1) }
         val prettyRow = buildPrettyRow {
-            addCell(StaticCell){
-                appendLine(text1)
-                appendLine("line 2")
-            }
+//            addCell(StaticCell){
+//                appendLine(text1)
+//                appendLine("line 2")
+//            }
         }
         assertNotNull(prettyRow.cells.firstOrNull()){cell->
             assertIs<StaticCell>(cell)
@@ -73,9 +73,9 @@ class TestStaticCell : Templated{
     fun `StaticCell presets applied correctly`(){
         val cell = StaticCell(text1)
         cell.applyPreset(PrettyPresets.Success)
-        assertEquals(Align.LEFT, cell.options.alignment)
-        assertEquals(TextStyle.Bold, cell.options.styleOptions.style)
-        assertEquals(Colour.GreenBright, cell.options.styleOptions.colour)
+        assertEquals(Align.LEFT, cell.cellOptions.alignment)
+        assertEquals(TextStyle.Bold, cell.cellOptions.styleOptions.style)
+        assertEquals(Colour.GreenBright, cell.cellOptions.styleOptions.colour)
     }
 
 }

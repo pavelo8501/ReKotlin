@@ -1,7 +1,7 @@
 package po.misc.data.pretty_print.parts
 
 import po.misc.data.pretty_print.presets.RendererPresets
-import po.misc.data.pretty_print.rows.PrettyRowBase
+import po.misc.data.pretty_print.rows.PrettyRow
 
 sealed class CommonRenderOptions(
     val usePlain: Boolean = false,
@@ -105,7 +105,7 @@ class CellRender(
     ):this(orientation, usePlain, renderLeftBorder, renderRightBorder, renderOnly.toList())
 
 
-    fun assignParameters(prettyRow: PrettyRowBase<*>):CellRender{
+    fun assignParameters(prettyRow: PrettyRow<*>):CellRender{
         if(canRecalculate){
             rowMaxSize = prettyRow.options.render.defaultWidth
             cellsCount = prettyRow.cells.size
@@ -113,7 +113,7 @@ class CellRender(
         return this
     }
 
-    fun assignFinalize(prettyRow: PrettyRowBase<*>):CellRender{
+    fun assignFinalize(prettyRow: PrettyRow<*>):CellRender{
         rowMaxSize = prettyRow.options.render.defaultWidth
         cellsCount = prettyRow.cells.size
         canRecalculate = false

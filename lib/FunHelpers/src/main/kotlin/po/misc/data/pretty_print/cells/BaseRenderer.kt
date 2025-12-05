@@ -9,13 +9,10 @@ import po.misc.data.pretty_print.presets.StylePresets
 import po.misc.data.strings.FormattedPair
 import po.misc.data.styles.Colorizer
 
-
 interface BaseRenderer <P : StylePresets> : Colorizer {
-
-    val options: CommonCellOptions
-
-    fun render(content: String, renderOptions: CommonRenderOptions): String
-    fun render(formatted: FormattedPair, renderOptions: CommonRenderOptions): String
+    val cellOptions: CommonCellOptions
+    fun render(content: String, commonOptions: CommonCellOptions? = null): String
+    fun render(formatted: FormattedPair, commonOptions: CommonCellOptions? = null): String
     fun addModifiers(vararg modifiers: TextModifier)
 }
 

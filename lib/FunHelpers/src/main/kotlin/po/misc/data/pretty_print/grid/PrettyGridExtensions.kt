@@ -1,6 +1,7 @@
 package po.misc.data.pretty_print.grid
 
 import po.misc.data.pretty_print.cells.StaticCell
+import po.misc.data.pretty_print.parts.PrettyHelper
 import po.misc.data.pretty_print.parts.RowConfig
 import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.parts.RowPresets
@@ -30,19 +31,14 @@ import po.misc.data.pretty_print.rows.PrettyRow
  */
 fun <T: Any> PrettyGridBase<T>.addHeadedRow(
     text: String,
-    rowConfig: RowConfig = RowPresets.HeadedVertical,
-    cellPreset: PrettyPresets = PrettyPresets.Header,
-):  PrettyRow<*> {
-    cellPreset.toOptions()
-    val staticCell = StaticCell(text, cellPreset.toOptions())
-    val realRow = PrettyRow(staticCell)
-    val options = when (rowConfig) {
-        is RowPresets -> rowConfig.toOptions()
-        is RowOptions -> rowConfig
-    }
-    realRow.setRowOptions(options)
-    addRenderBlock(realRow)
-    return realRow
+    rowPreset: RowPresets = RowPresets.HeadedVertical,
+):  PrettyRow<T> {
+    val options = rowPreset.toOptions()
+    val container = CellContainer(typeToken, options)
+    container.addCell(text)
+    val row = container.prettyRow
+    addRow(row)
+    return row
 }
 
 /**
@@ -69,20 +65,13 @@ fun <T: Any> PrettyGridBase<T>.addHeadedRow(
  */
 fun <T: Any> PrettyGridBase<T>.buildHeadedRow(
     text: String,
-    rowConfig: RowConfig = RowPresets.HeadedVertical,
-    cellPreset: PrettyPresets = PrettyPresets.Header,
+    rowPreset: RowPresets = RowPresets.HeadedVertical,
     builder: CellContainer<T>.() -> Unit
 ){
-    val constructor = CellContainer<T>(typeToken)
-    cellPreset.toOptions()
-    val staticCell = StaticCell(text, cellPreset.toOptions())
-    constructor.storeCell(staticCell)
-    builder.invoke(constructor)
-    val realRow = PrettyRow(constructor)
-    val options = when (rowConfig) {
-        is RowPresets -> rowConfig.toOptions()
-        is RowOptions -> rowConfig
-    }
-    realRow.setRowOptions(options)
-    addRenderBlock(realRow)
+    val options = rowPreset.toOptions()
+    val container = CellContainer<T>(typeToken, options)
+    container.addCell(text)
+    container.buildRow(builder)
+    val row = container.prettyRow
+    addRow(row)
 }

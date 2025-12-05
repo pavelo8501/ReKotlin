@@ -2,6 +2,7 @@ package po.misc.data.pretty_print.rows
 
 import po.misc.data.pretty_print.Templated
 import po.misc.data.pretty_print.grid.PrettyGrid
+import po.misc.data.pretty_print.parts.PrettyHelper
 import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.types.token.TypeToken
 
@@ -13,21 +14,13 @@ inline fun <reified T: Templated> T.buildPrettyGrid(builder: PrettyGrid<T>.() ->
     return grid
 }
 
-inline fun <reified T: Templated> T.buildPrettyRow(builder: CellReceiverContainer<T>.(T)-> Unit): PrettyRow<T> {
-    val constructor = CellReceiverContainer<T>(this, TypeToken.create(), RowOptions())
-    builder.invoke(constructor, this)
-    val realRow = PrettyRow<T>(constructor)
-    return realRow
-}
-
 inline fun <reified T: Templated> T.buildPrettyRow(
     rowOptions: RowOptions? = null,
-    noinline builder: CellReceiverContainer<T>.(T)-> Unit
-): PrettyRow<T> =  PrettyRow.buildRowForContext(this, TypeToken.create<T>(), rowOptions,  builder)
-
-
-fun <T: Templated> T.buildPrettyRow(
-    typeToken: TypeToken<T>,
-    rowOptions: RowOptions? = null,
-    builder: CellReceiverContainer<T>.(T)-> Unit
-): PrettyRow<T> =  PrettyRow.buildRowForContext(this, typeToken, rowOptions,  builder)
+    builder: CellReceiverContainer<T, T>.(T)-> Unit
+): PrettyRow<T> {
+    val options = PrettyHelper.toRowOptionsOrDefault(rowOptions)
+    val token = TypeToken.create<T>()
+    val container = CellReceiverContainer<T, T>(token, token,  options)
+    val realRow = PrettyRow<T>(container)
+    return realRow
+}

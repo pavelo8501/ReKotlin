@@ -18,7 +18,7 @@ abstract class PrettyTestBase {
 
     class PrintableRecord(
         val name: String = "PersonalName",
-        val component: String = "Component name ",
+        val component: String = "Component name",
         val description: String = "Some description of the component",
         val subClass: PrintableRecordSubClass = PrintableRecordSubClass(),
         var elements: List<PrintableElement> = emptyList()

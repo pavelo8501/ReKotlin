@@ -1,4 +1,5 @@
 package po.misc.data.pretty_print.section
+import po.misc.data.pretty_print.parts.CommonRowOptions
 import po.misc.data.pretty_print.parts.RowRender
 import po.misc.data.pretty_print.rows.PrettyRow
 import po.misc.types.token.TypeToken
@@ -32,7 +33,7 @@ interface PrettySection<T: Any>{
     /**
      * Rows of the section, in the order they will be rendered.
      */
-    val prettyRows: List<PrettyRow<*>>
+    val rows: List<PrettyRow<*>>
 
     /**
      * Renders the given [receiver] to a formatted multi-line string.
@@ -40,5 +41,5 @@ interface PrettySection<T: Any>{
      * @param receiver the object used to populate rows during rendering
      * @param options optional rendering configuration
      */
-    fun render(receiver: T, renderOptions: RowRender? = null): String
+    fun render(receiver: T, opts: CommonRowOptions? = null): String
 }

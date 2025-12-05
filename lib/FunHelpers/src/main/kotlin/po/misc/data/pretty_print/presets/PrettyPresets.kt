@@ -4,6 +4,7 @@ import po.misc.data.pretty_print.parts.Align
 import po.misc.data.pretty_print.parts.CellOptions
 import po.misc.data.pretty_print.parts.CellOptions.TextStyleOptions
 import po.misc.data.pretty_print.parts.KeyedCellOptions
+import po.misc.data.pretty_print.parts.PrettyOptions
 import po.misc.data.styles.BGColour
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
@@ -90,6 +91,11 @@ interface KeyedPresets:  PrettyPresets {
     val keyStyle: TextStyle
     val keyColour: Colour?
     val keyBackgroundColour: BGColour?
+
+    fun toCellOptions(width: Int = 0): CellOptions{
+        val textStyle = styleOption()
+        return  CellOptions(width = width, align, textStyle)
+    }
 
     fun toKeyedOptions(width: Int = 0): KeyedCellOptions{
         val textStyle = styleOption()

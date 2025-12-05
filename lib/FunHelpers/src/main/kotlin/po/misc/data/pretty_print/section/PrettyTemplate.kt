@@ -2,7 +2,9 @@ package po.misc.data.pretty_print.section
 
 import po.misc.data.output.output
 import po.misc.data.pretty_print.grid.PrettyGrid
+import po.misc.data.pretty_print.parts.CommonCellOptions
 import po.misc.data.pretty_print.parts.CommonRenderOptions
+import po.misc.data.pretty_print.parts.CommonRowOptions
 import po.misc.data.pretty_print.parts.RowRender
 import po.misc.data.pretty_print.rows.PrettyRow
 import po.misc.data.styles.Colour
@@ -31,7 +33,7 @@ open class PrettyTemplate<T: Any>(
     vararg val id: Enum<*>
 ):PrettySection<T> {
 
-    override val prettyRows: List<PrettyRow<*>> get() = prettyGrid.prettyRows
+    override val rows: List<PrettyRow<*>> get() = prettyGrid.rows
     override val ids: List<Enum<*>> get() = prettyGrid.ids
 
     init {
@@ -43,7 +45,7 @@ open class PrettyTemplate<T: Any>(
     /**
      * Delegates rendering to the underlying [prettyGrid].
      */
-    override fun render(receiver: T, renderOptions: RowRender?): String {
+    override fun render(receiver: T, renderOptions: CommonRowOptions?): String {
         "PrettyTemplate renderOld".output(Colour.Red)
         return prettyGrid.render(receiver, renderOptions)
     }
