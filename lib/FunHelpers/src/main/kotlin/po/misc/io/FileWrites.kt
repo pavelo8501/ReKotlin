@@ -17,7 +17,7 @@ import kotlin.io.path.exists
 data class WriteOptions(
     val overwriteExistent: Boolean = false,
     val createSubfolders: Boolean = true,
-    val throwOnFileExists: Boolean = false
+    val throwIfFileExists: Boolean = false
 )
 
 data class FileIOError(val throwable:Throwable, val path: String): PrettyPrint{
@@ -97,7 +97,7 @@ private fun writeFileContents(
         }
 
         if (pathToFile.exists() && !options.overwriteExistent) {
-            if(options.throwOnFileExists){
+            if(options.throwIfFileExists){
                 throw IOException("File already exists: $relativePath")
             }else{
                 return null
@@ -123,8 +123,8 @@ private fun writeFileContent(
         if (!directory.exists() && options.createSubfolders) {
             directory.createDirectories()
         }
-        if (pathToFile.exists() && !options.overwriteExistent) {
-            if(options.throwOnFileExists) {
+        if (pathToFile.exists() && !options.throwIfFileExists) {
+            if(options.throwIfFileExists) {
                 throw IOException("File already exists: $relativePath")
             }else{
                 return null
@@ -172,11 +172,11 @@ fun writeFile(
         if (!directory.exists() && options.createSubfolders) {
             directory.createDirectories()
         }
-        if (pathToFile.exists() && !options.overwriteExistent && !options.throwOnFileExists) {
+        if (pathToFile.exists() && !options.overwriteExistent) {
             return  LocalFile(bytes, FileMeta(relativePath, file))
         }
 
-        if (pathToFile.exists() && !options.overwriteExistent) {
+        if (pathToFile.exists() && options.throwIfFileExists) {
             throw IOException("File already exists: $relativePath")
         }
         file.writeBytes(bytes)

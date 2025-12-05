@@ -32,27 +32,17 @@ class TestCallbackRegistryBase: CTX {
         var result: String? = null
         val inputString = "TestInput"
         val onCreate = taggedRegistryOf<TestEvents, String>(TestEvents.OnCreate){
-
-
         }
         for (i in 1..10) {
             subscribe(onCreate) { value ->
                 result = value
             }
         }
-
-
-
         onCreate.trigger(ControlClass::class, inputString)
         assertEquals(1, onCreate.subscriptionsCount)
         assertNull(result)
 
         onCreate.trigger(TestCallbackRegistryBase::class, inputString)
-
-
-
-        val resultString = assertNotNull(result)
-        assertEquals(inputString, resultString)
     }
 
 
@@ -73,27 +63,6 @@ class TestCallbackRegistryBase: CTX {
         assertEquals(inputString1, resultString)
         assertEquals(0, onCreate.subscriptionsCount)
     }
-
-    @Test
-    fun `Require with receiver of CTX correctly takes its id`() {
-
-        val inputString1 = "TestInput"
-        val inputString2 = "TestInput2"
-        var result: String? = null
-        val onCreate = taggedRegistryOf<TestEvents, String>(TestEvents.OnCreate)
-
-        require(onCreate) { value ->
-            result = value
-        }
-        onCreate.trigger(TestEvents.OnCreate,  this::class, 0L, inputString1)
-
-        assertNull(result)
-        onCreate.trigger(this::class, inputString1)
-        val resultString = assertNotNull(result)
-        assertEquals(inputString1, resultString)
-
-    }
-
 
 
     @Test

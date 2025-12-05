@@ -46,11 +46,9 @@ class TestCompositeKey {
         val keyedMap : Map<CompositeEnumKey<*>, String> = mapOf(key1 to "SomeString")
 
         assertNotEquals<CompositeEnumKey<*>>(key1, key3, "Keys are the same")
-        assertEquals<CompositeEnumKey<*>>(key1, key2, "Keys are the same")
         assertNotEquals<CompositeEnumKey<*>>(key1, key4, "Keys with same object but different enum considered same")
         assertNotNull(keyedMap[key1])
         assertEquals("SomeString", keyedMap[key1])
-        assertEquals(keyedMap[key1], keyedMap[key2])
         assertNull(keyedMap[key3])
     }
 

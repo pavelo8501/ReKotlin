@@ -93,19 +93,9 @@ data class WSApiRequest< T :ApiRequestDataType>(
     var data : T?,
 
 ):WSApiRequestBaseContext{
-
-
     var requestJson : String = ""
-
     var dataAsJson : JsonElement? = null
-
     fun setSourceJson(json: String){
         requestJson = json
     }
-
-    fun <R>toResponse(result:R): WSApiResponse<R>{
-        val response = WSApiResponse<R>(this as WSApiRequest<ApiRequestDataType>, result)
-        return response
-    }
-
 }

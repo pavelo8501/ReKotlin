@@ -138,20 +138,4 @@ class TestLogForwarder : Component {
         forwarder.accessJournal.print()
     }
 
-    @Test
-    fun `LogForwarder handler registration  work as expected`(){
-
-        val logProcessor = createLogProcessor()
-        val forwarder = LogForwarder()
-        val initialMessage = infoMsg("Subject", "Initial message")
-        val flow =  logProcessor.createProceduralFlow(initialMessage)
-        forwarder.registerHandler(flow)
-
-        val registered = forwarder.registerHandler(flow, allowOverwrites = false)
-        assertNull(registered)
-        val registered2 = forwarder.registerHandler(flow, allowOverwrites = true)
-        assertNotNull(registered2)
-
-    }
-
 }

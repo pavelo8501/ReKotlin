@@ -57,16 +57,16 @@ dependencies {
 
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("mavenJava") {
-            from(components["java"]) // This publishes the main Java/Kotlin component
-            groupId = "po.restwraptor"
-            artifactId = "restwraptor"
-            version = restWraptorVersion
-        }
-    }
-}
+//publishing {
+//    publications {
+//        create<MavenPublication>("mavenJava") {
+//            from(components["java"]) // This publishes the main Java/Kotlin component
+//            groupId = "po.restwraptor"
+//            artifactId = "restwraptor"
+//            version = restWraptorVersion
+//        }
+//    }
+//}
 
 tasks.test {
     useJUnitPlatform()

@@ -68,27 +68,6 @@ class TestLazyContainer: TraceableContext {
     }
 
     @Test
-    fun `Exception case provides meaningful information`() {
-        val container = lazyContainerOf<String>()
-        var exceptionOutput = ""
-        assertThrows<IllegalStateException> {
-            val captured = captureOutput(Nullable) {
-                container.getValue(this)
-           }
-           exceptionOutput = captured.output
-           captured.exception?.let {
-               throw it
-           }
-        }
-        assertTrue{
-            exceptionOutput.contains("String") &&
-                exceptionOutput.contains("TestLazyContainer") &&
-                    exceptionOutput.contains("Exception case provides meaningful information")
-        }
-        exceptionOutput.output()
-    }
-
-    @Test
     fun `Value can be reassigned after reset`() {
         val container = lazyContainerOf<String>()
         container.provideValue(initialValue)

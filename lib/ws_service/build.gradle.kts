@@ -49,28 +49,28 @@ dependencies {
 }
 
 
-publishing {
-    apply(plugin = "maven-publish")
-    repositories {
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/pavelo8501/ReKotlin")
-            credentials {
-                username = project.findProperty("gpr.user") as String? ?: System.getenv("GITHUB_USERNAME")
-                password = project.findProperty("gpr.key") as String? ?: System.getenv("GITHUB_TOKEN")
-            }
-        }
-    }
-
-    publications {
-        register<MavenPublication>("gpr") {
-            artifact(tasks["shadowJar"])
-            groupId = "com.github.pavelo8501"
-            artifactId = "ws-api-wrapper"
-            version = wsServerVersion
-        }
-    }
-}
+//publishing {
+//    apply(plugin = "maven-publish")
+//    repositories {
+//        maven {
+//            name = "GitHubPackages"
+//            url = uri("https://maven.pkg.github.com/pavelo8501/ReKotlin")
+//            credentials {
+//                username = project.findProperty("gpr.user") as String? ?: System.getenv("GITHUB_USERNAME")
+//                password = project.findProperty("gpr.key") as String? ?: System.getenv("GITHUB_TOKEN")
+//            }
+//        }
+//    }
+//
+//    publications {
+//        register<MavenPublication>("gpr") {
+//            artifact(tasks["shadowJar"])
+//            groupId = "com.github.pavelo8501"
+//            artifactId = "ws-api-wrapper"
+//            version = wsServerVersion
+//        }
+//    }
+//}
 
 tasks.named<Test>("test") {
     useJUnitPlatform()

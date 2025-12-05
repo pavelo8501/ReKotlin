@@ -18,7 +18,7 @@ plugins {
     signing
 }
 
-group = "po.misc"
+group = "io.github.pavelo8501"
 version = funHelpersVersion
 
 repositories {
@@ -26,11 +26,16 @@ repositories {
     mavenLocal()
     maven {
         name = "sonatype"
-        // S01
-        setUrl("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
+        val releasesRepoUrl = uri("https://central.sonatype.com/api/v1/publisher/maven/releases")
+        val snapshotsRepoUrl = uri("https://central.sonatype.com/api/v1/publisher/maven/snapshots")
+        url = if (version.toString().endsWith("SNAPSHOT", ignoreCase = true)) {
+            snapshotsRepoUrl
+        } else {
+            releasesRepoUrl
+        }
         credentials {
-            username = project.findProperty("gpr.user") as String? ?: System.getenv("SONATYPE_USERNAME")
-            password = project.findProperty("gpr.key") as String? ?: System.getenv("SONATYPE_PASSWORD")
+            username = project.findProperty("sonatypeUsername")?.toString()
+            password = project.findProperty("sonatypeUsername")?.toString()
         }
     }
 }
@@ -78,7 +83,7 @@ publishing {
             pom {
                 name.set("FunHelpers")
                 description.set("Your library description")
-                url.set("https://github.com/pavelo8501/ReKotlin/tree/main/lib/FunHelpers")
+                url.set("https://github.com/pavelo8501/ReKotlin")
 
                 licenses {
                     license {
@@ -102,8 +107,43 @@ publishing {
             }
         }
     }
+    repositories {
+        maven {
+            name = "sonatype"
+            // S01
+            setUrl("https://central.sonatype.com/api/v1/publisher/maven/releases")
+            credentials {
+                username = project.findProperty("sonatypeUsername")?.toString() ?: ""
+                password = project.findProperty("sonatypeUsername")?.toString() ?: ""
+            }
+        }
+    }
 }
 
+signing {
+    val gpgExe = File("C:\\Program Files (x86)\\GnuPG\\bin\\gpg.exe")
+    if (gpgExe.exists()) {
+        useGpgCmd()
+    } else {
+        println("GPG not found at: $gpgExe")
+        val signingKeyId: String? by project
+        val signingKey: String? by project
+        val signingPassword: String? by project
+
+        if (signingKey != null && signingKeyId != null) {
+            useInMemoryPgpKeys(signingKeyId, signingKey, signingPassword)
+        }
+        useGpgCmd()
+        sign(publishing.publications["mavenJava"])
+    }
+}
+
+
+
+tasks.withType<Javadoc> {
+    isFailOnError = false
+    (options as StandardJavadocDocletOptions).addBooleanOption("Xdoclint:none", true)
+}
 
 java {
     withSourcesJar()
@@ -112,4 +152,10 @@ java {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+tasks.withType<PublishToMavenRepository> {
+    dependsOn("test")
+    doFirst{
+    }
 }

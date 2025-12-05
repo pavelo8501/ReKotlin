@@ -118,28 +118,23 @@ class PolymorphicJsonConverter (private val connectionService: ConnectionService
         value: Any?) : Frame {
 
         try {
-
             if (value == null) {
                 throw Exception("Response value is null")
             }
-
             val kType = typeInfo.kotlinType
             if (kType == null) {
                 throw Exception("Unsupported response type")
             }
-
             val serializer = serializer(kType)
-
             @Suppress("UNCHECKED_CAST")
             val wsApiResponseSerializer = WSApiResponse.serializer(serializer)
-
+            @Suppress("UNCHECKED_CAST")
             val responseJson = jsonFormat.encodeToString(wsApiResponseSerializer, value as WSApiResponse<Any?>)
 
             return Frame.Text(responseJson)
         }catch (e:Exception){
             throw e
         }
-
     }
 
     override fun isApplicable(frame: Frame): Boolean {

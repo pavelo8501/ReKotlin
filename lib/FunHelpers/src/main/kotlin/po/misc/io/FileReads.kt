@@ -1,6 +1,8 @@
 package po.misc.io
 
 import po.misc.data.output.output
+import po.misc.functions.Throwing
+import po.misc.types.getOrThrow
 import java.io.File
 import java.nio.charset.Charset
 import java.nio.file.Files
@@ -107,6 +109,24 @@ fun <R: Any> readFile(
     } catch (th: Throwable) {
        hooks.triggerError(th)
        return null
+    }
+}
+
+fun <R: Any> readFile(
+    relativePath: String,
+    throwing: Throwing,
+    withHooks:  ReadFileHooks<R>.()-> Unit
+):R{
+    val localFile =  readFile(relativePath)
+    val hooks =  ReadFileHooks<R>()
+    try {
+
+        withHooks.invoke(hooks)
+        val result = hooks.triggerSuccess(localFile)
+        return result.getOrThrow()
+    } catch (th: Throwable) {
+        hooks.triggerError(th)
+        throw th
     }
 }
 

@@ -1,18 +1,20 @@
 
+val rekotlin : String by project
+
 plugins {
     kotlin("jvm") version "2.2.20"
     id("com.google.devtools.ksp")
     id("maven-publish")
+    signing
 }
+
 
 buildscript {
     repositories {
         mavenCentral()
         gradlePluginPortal()
     }
-    dependencies {
-       // classpath("io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.23.8")
-    }
+
 }
 
 allprojects {
@@ -37,3 +39,11 @@ subprojects {
         }
     }
 }
+
+
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
+

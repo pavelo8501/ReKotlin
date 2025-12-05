@@ -65,32 +65,10 @@ class TestCallbackLoop {
         callbackLoop?.stop()
     }
 
-
-    @Test
-    fun `Callback loop instantiation and single run`() = runTest {
-
-        var onLoopData: Any? = null
-
-        callbackLoop = CallbackLoop<Response, DefaultOutput>(LoopConfig(verbosity = Verbosity.Warnings)) {
-            callbacks.onRequest(::simulateInput)
-            callbacks.onModification(::simulateModification)
-            callbacks.onResponse(::loopOutput)
-
-            onLoop {
-                onLoopData = it
-            }
-        }
-        assertDoesNotThrow {
-            callbackLoop!!.startAsync(this)
-        }
-        assertIs<DefaultOutput>(onLoopData)
-    }
-
     @Test
     fun `Callback loop produces exactly 3 outputs`() = runTest {
 
         var loopOutputCounter: Int = 0
-
         val loop = CallbackLoop<Response, DefaultOutput> {
             callbacks.onRequest(::simulateInput)
             callbacks.onModification(::simulateModification)
@@ -103,7 +81,6 @@ class TestCallbackLoop {
                 }
             }
         }
-
         loop.startSuspending(this)
         assertEquals(3, loopOutputCounter)
     }

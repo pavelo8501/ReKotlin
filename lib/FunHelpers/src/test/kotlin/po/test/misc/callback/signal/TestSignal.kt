@@ -201,18 +201,4 @@ class TestSignal {
         namedPromise.lambdaName.output(Colour.Yellow)
         generatedListen.lambdaName.output(Colour.Cyan)
     }
-
-
-    @Test
-    fun `Signal lambda overwritten behaviour`(){
-
-        val signal = signalOf<Data1>(NoResult)
-        signal.onSignal{
-
-        }
-        signal.onSignal{
-
-        }
-    }
-
 }

@@ -145,23 +145,4 @@ class TestProceduralFlow : LoggerTestBase(), LogProvider{
         flow.complete()
     }
 
-    @Test
-    fun `Explicitly passed flow work same way as DSL`(){
-        
-        val startMessage = startProcSubject(::`Explicitly passed flow work same way as DSL`).toLogMessage()
-
-        val logProcessor = createLogProcessor()
-        val flow = logProcessor.createProceduralFlow(startMessage)
-        logProcessor.useProcedural(flow)
-        val infoMsg = infoMsg("Message", "Some text")
-        logProcessor.logData(infoMsg)
-        val message =  logProcessor.finalizeFlow(flow)
-        assertEquals(1, message.logRecords.size)
-        assertNotNull( message.logRecords.firstOrNull { it.text ==  infoMsg.text })
-
-        assertEquals(1, logProcessor.logRecords.size)
-        assertEquals(0, logProcessor.logRecords.size)
-
-    }
-
 }

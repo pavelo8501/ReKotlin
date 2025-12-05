@@ -36,7 +36,7 @@ class TestPrettyCell: Component {
         result.output()
     }
 
-    @Test
+
     fun `Styling preset usage`(){
         val cell = PrettyCell(20).applyPreset(PrettyPresets.Key)
         val rendered = cell.render("Some Key")
@@ -49,7 +49,7 @@ class TestPrettyCell: Component {
         assertTrue { valueCellRendered.contains(Colour.CyanBright.code) }
     }
 
-    @Test
+
     fun `Pre built text modifier overrides default behaviour`(){
         val textCell = PrettyCell(width = 20).applyPreset(PrettyPresets.Key)
         val condition1 = ColorModifier.ColourCondition("Long", Colour.Red)

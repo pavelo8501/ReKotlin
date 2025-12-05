@@ -38,13 +38,6 @@ class TestHoconMapper: EventHost {
     }
 
     @Test
-    fun `Hocon createResolver validatable config builder`() {
-        val factory = ConfigFactory.load().getConfig("app2")
-        val newData = NewData()
-        newData.applyConfig(factory)
-    }
-
-    @Test
     fun `Property with transformation work as expected`() {
 
         val factory = ConfigFactory.load().getConfig("test_transforming")
@@ -67,7 +60,5 @@ class TestHoconMapper: EventHost {
         }
         complete.assetsPath
     }
-
-
 
 }

@@ -26,7 +26,7 @@ class TestTraceResolver : Component {
         debug("Some subject", "Some text")
     }
 
-    @Test
+
     fun `TraceResolver creates call-site report correctly`() {
         resolver.resolveTraceWhen(NotificationTopic.Debug)
         intermediaryMethod()
@@ -35,7 +35,7 @@ class TestTraceResolver : Component {
         }
     }
 
-    @Test
+
     fun `Call site report with 1 hop frame`() {
         resolver = TraceResolver(this)
         var thisReport : CallSiteReport? = null

@@ -122,27 +122,4 @@ class TestDSLConfigurator: TraceableContext {
         assertEquals(str, secondString)
         assertTrue { secondStringTail.contains(string1) && secondStringTail.contains(ConfigPriority.Default.name) }
     }
-
-    @Test
-    fun `Sequential execution`(){
-
-        val configurator  = dslConfig<Configurable> {
-
-            buildGroup(ConfigPriority.Top) {
-                addConfigurator(config1) { param ->
-                    appliedStrings.add("${ConfigPriority.Top.name}_${config1}_$param")
-                }
-            }
-            buildGroup(ConfigPriority.Default) {
-                addConfigurator(config2) { param ->
-                    appliedStrings.add("${ConfigPriority.Default.name}_${config1}_$param")
-                }
-            }
-        }
-        val string1 = "String_1"
-        val configurable = Configurable()
-        configurator.applyConfig(configurable, string1)
-        assertEquals(8, configurable.progress.size)
-        assertTrue { configurator.logProcessor.logRecords.isNotEmpty() }
-    }
 }

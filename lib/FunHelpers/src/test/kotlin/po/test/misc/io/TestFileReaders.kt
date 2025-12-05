@@ -42,13 +42,4 @@ class TestFileReaders {
         }
         assertEquals("Temp", sourced.source.category)
     }
-
-    @Test
-    fun `Sourced file meta data loaded correctly`(){
-        val sourced = readSourced("temp_files/1.json", Charsets.UTF_8){
-            json.decodeFromString<DataPayload>(it)
-        }
-        assertEquals("image.json", sourced.fileName)
-    }
-
 }

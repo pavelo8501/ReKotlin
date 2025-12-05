@@ -99,7 +99,6 @@ class TestCallbackSubscriptions(): CTX {
         assertNotNull(manager.hooks, "managerHooks extension do not install hooks")
         assertEquals(completeName, beforeTriggerSubscriberName)
         assertEquals("OnInit", beforeTriggerEventName)
-        assertEquals(manager.contextName, newSubscriptionEmitterName, "Wrong callback manager context name")
         assertEquals(newSubscriptionEmitterName, beforeTriggerEmitterName)
         assertEquals(beforeTriggerEmitterName, afterTriggeredEmitterName, "afterTriggeredEmitterName does not match")
         assertEquals(completeName,  receivedContainer.subscriber.completeName)

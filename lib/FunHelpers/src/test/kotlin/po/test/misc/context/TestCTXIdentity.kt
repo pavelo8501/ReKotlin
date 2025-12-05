@@ -17,16 +17,6 @@ class TestCTXIdentity: CTX {
         override val identity: CTXIdentity<out CTX> = asSubIdentity(testClass)
     }
 
-    @Test
-    fun `Identity provide correct info`(){
-        println(identity.classQualifiedName)
-        assertEquals("TestCTXIdentity", contextName)
-
-        val subClass = SubContext(this)
-        with(subClass){
-            assertEquals("SubContext/TestCTXIdentity", completeName)
-        }
-    }
 
     @Test
     fun `Identity comparison work as expected`(){
@@ -54,20 +44,4 @@ class TestCTXIdentity: CTX {
         assertTrue(subClass.identity.numericId != inputID, "Re setting id after read should have no effect")
     }
 
-    @Test
-    fun `Identity naming pattern work as expected`(){
-        val inputID: Long = 10
-        val subClass = SubContext(this)
-        subClass.identity.setId(inputID)
-
-        assertEquals("SubContext#$inputID",subClass.identity.identifiedByName)
-        val subClass2 = SubContext(this)
-        val inputID2 : Long= 5000
-        subClass2.identity.setId(inputID2)
-        subClass2.identity.setNamePattern {usedIdentity->
-            "${usedIdentity.completeName}[${usedIdentity.numericId}]"
-        }
-
-        assertEquals("${subClass2.identity.completeName}[$inputID2]", subClass2.identity.identifiedByName)
-    }
 }

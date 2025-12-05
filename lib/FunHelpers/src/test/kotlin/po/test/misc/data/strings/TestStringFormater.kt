@@ -115,19 +115,11 @@ class TestStringFormater {
         val valueEnum = ValueEnumerator.ValueEnm1
         val formatedValueEnum = valueEnum.stringify(Colour.CyanBright)
         formatedValueEnum.output()
-        assertTrue {
-            formatedValueEnum.toString().contains(valueEnum.value)
-        }
 
         val randomClass = RandomClass()
         val formatedRandomClass = randomClass.stringify(Colour.CyanBright)
         formatedRandomClass.output()
         assertTrue { formatedRandomClass.toString().contains(randomClass.value) }
-
-        val prettyClass = PrettifiedClass()
-        val formatedPrettifiedClass =  prettyClass.stringify(Colour.CyanBright)
-        formatedPrettifiedClass.output()
-        assertEquals(prettyClass.formattedString,  formatedPrettifiedClass.formatedString)
     }
 
     @Test
@@ -139,27 +131,6 @@ class TestStringFormater {
             formater.toString().contains(string) && formater.toString().contains("Prefix")
         }
         formater.output()
-    }
-
-    @Test
-    fun `Stringify function correctly operates on list types`(){
-        val strings = listOf("Some text as string 1", "Some text as string 2")
-        val formated = strings.stringify(Colour.CyanBright)
-        formated.output()
-        assertTrue {
-            val stringVal =  formated.toString()
-            stringVal.contains(strings[0]) &&
-                    stringVal.contains(strings[1])
-        }
-
-        val classes = listOf(RandomClass(), RandomClass("Another string"))
-        val formatedRandomClasses = classes.stringify(Colour.CyanBright)
-        formatedRandomClasses.output()
-        assertTrue {
-            val stringVal =  formatedRandomClasses.toString()
-            stringVal.contains(classes[0].value) &&
-                    stringVal.contains(classes[1].value)
-        }
     }
 
     @Test

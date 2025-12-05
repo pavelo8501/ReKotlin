@@ -29,7 +29,7 @@ class TestStackTraceReports {
         return intermediaryMethod(value)
     }
 
-    @Test
+
     fun `Call site report work as expected`() {
         val thisFunName = ::`Call site report work as expected`.name
         val registeredFunName = SubClass::createTrace.name
@@ -40,7 +40,7 @@ class TestStackTraceReports {
         assertTrue { render.contains(registeredFunName) && render.contains(thisFunName) }
     }
 
-    @Test
+
     fun `Call site report render hops as expected`() {
         val stackTrace = intermediaryMethod(300)
         assertNotNull(stackTrace)
@@ -49,7 +49,7 @@ class TestStackTraceReports {
         assertEquals(1, report.hopFrames.size)
     }
 
-    @Test
+
     fun `Call site report render multiple hops as expected`() {
         val stackTrace = intermediaryMethod2(300)
         assertNotNull(stackTrace)

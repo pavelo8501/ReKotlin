@@ -47,16 +47,13 @@ class TestPrintableTemplate {
         }
     }
 
-    @Test
-    fun `DSL Builder saves lambda for deferred calculation`(){
 
+    fun `DSL Builder saves lambda for deferred calculation`(){
             val record1 = PrintableRecord("personalName")
             record1.echo()
             assertEquals(PrintableRecord.Printable,  record1.activeTemplate, "Template was not persisted")
             assertEquals("personalName", record1.formattedString)
     }
-
-
     fun `Text colorization`(){
 
         val unstyled: String = "Simple text"

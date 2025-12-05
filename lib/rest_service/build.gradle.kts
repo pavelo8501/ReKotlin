@@ -57,28 +57,28 @@ dependencies {
 
 
 
-publishing {
-    apply(plugin = "maven-publish")
-    repositories {
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/pavelo8501/ReKotlin")
-            credentials {
-                username = project.findProperty("gpr.user") as String? ?: System.getenv("GITHUB_USERNAME")
-                password = project.findProperty("gpr.key") as String? ?: System.getenv("GITHUB_TOKEN")
-            }
-        }
-    }
-
-    publications {
-        register<MavenPublication>("gpr") {
-            from(components["java"])
-            groupId = "com.github.pavelo8501"
-            artifactId = "rest-api-wrapper"
-            version = restServerVersion
-        }
-    }
-}
+//publishing {
+//    apply(plugin = "maven-publish")
+//    repositories {
+//        maven {
+//            name = "GitHubPackages"
+//            url = uri("https://maven.pkg.github.com/pavelo8501/ReKotlin")
+//            credentials {
+//                username = project.findProperty("gpr.user") as String? ?: System.getenv("GITHUB_USERNAME")
+//                password = project.findProperty("gpr.key") as String? ?: System.getenv("GITHUB_TOKEN")
+//            }
+//        }
+//    }
+//
+//    publications {
+//        register<MavenPublication>("gpr") {
+//            from(components["java"])
+//            groupId = "com.github.pavelo8501"
+//            artifactId = "rest-api-wrapper"
+//            version = restServerVersion
+//        }
+//    }
+//}
 
 
 tasks.jar {
