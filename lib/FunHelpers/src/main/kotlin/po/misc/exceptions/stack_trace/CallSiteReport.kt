@@ -1,10 +1,7 @@
 package po.misc.exceptions.stack_trace
 
 import po.misc.data.PrettyPrint
-import po.misc.data.pretty_print.grid.PrettyGrid
 import po.misc.data.pretty_print.grid.buildPrettyGrid
-import po.misc.data.pretty_print.presets.PrettyPresets
-import po.misc.data.pretty_print.parts.RowPresets
 import po.misc.debugging.stack_tracer.StackFrameMeta
 import po.misc.exceptions.TraceOptions
 

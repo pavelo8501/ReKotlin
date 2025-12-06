@@ -18,7 +18,7 @@ inline fun <reified T: Templated> T.buildPrettyRow(
     rowOptions: RowOptions? = null,
     noinline builder: CellContainer<T>.()-> Unit
 ): PrettyRow<T> {
-    val options = PrettyHelper.toRowOptionsOrDefault(rowOptions)
+    val options = PrettyHelper.toRowOptions(rowOptions)
     val token = TypeToken.create<T>()
     val container = CellContainer<T>(token, options)
     return container.buildRow(builder)

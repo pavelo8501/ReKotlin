@@ -4,47 +4,48 @@ import po.misc.data.pretty_print.cells.ComputedCell
 import po.misc.data.pretty_print.cells.PrettyCellBase
 import po.misc.data.pretty_print.cells.KeyedCell
 import po.misc.data.pretty_print.cells.PrettyCell
-import po.misc.data.pretty_print.parts.KeyedCellOptions
 import po.misc.data.pretty_print.cells.StaticCell
-import po.misc.data.pretty_print.formatters.text_modifiers.TextModifier
 import po.misc.data.pretty_print.grid.PrettyValueGrid
-import po.misc.data.pretty_print.parts.CellOptions
 import po.misc.data.pretty_print.parts.CommonCellOptions
-import po.misc.data.pretty_print.parts.CommonRowOptions
 import po.misc.data.pretty_print.parts.PrettyHelper
 import po.misc.data.pretty_print.parts.RowOptions
-import po.misc.data.pretty_print.presets.KeyedPresets
-import po.misc.data.pretty_print.presets.PrettyPresets
-import po.misc.reflection.Readonly
-import po.misc.reflection.resolveProperty
-import po.misc.types.castOrThrow
+import po.misc.types.token.TokenFactory
 import po.misc.types.token.TypeToken
-import kotlin.reflect.KClass
-import kotlin.reflect.KProperty
-import kotlin.reflect.KProperty0
+import po.misc.types.token.tokenOf
 import kotlin.reflect.KProperty1
 
 sealed class CellContainerBase<T: Any>(
     val typeToken:  TypeToken<T>,
     val options: RowOptions
-){
-    internal val prettyCellsBacking = mutableListOf<PrettyCellBase<*>>()
-    val cells : List<PrettyCellBase<*>> get() = prettyCellsBacking
+): TokenFactory{
 
-    internal fun <C: PrettyCellBase<*>> storeCell(cell : C): C {
+
+    internal val prettyCellsBacking = mutableListOf<PrettyCellBase>()
+    val cells : List<PrettyCellBase> get() = prettyCellsBacking
+
+    abstract val prettyRow: PrettyRow<T>
+
+    @PublishedApi
+    internal fun <C: PrettyCellBase> storeCell(cell : C): C {
         prettyCellsBacking.add(cell)
         return cell
+    }
+
+    fun buildCell(opt: CommonCellOptions? = null, builderAction: StringBuilder.()-> Unit): StaticCell {
+        val options = PrettyHelper.toOptionsOrNull(opt)
+        val cell = StaticCell(prettyRow).applyOptions(options).buildText(builderAction)
+        return storeCell(cell)
     }
 }
 
 class CellContainer<T: Any>(
     typeToken: TypeToken<T>,
     options: RowOptions
-): CellContainerBase<T>(typeToken, options){
+): CellContainerBase<T>(typeToken, options) {
 
-    internal val prettyRow = PrettyRow<T>(typeToken,  cells, options)
+    override val prettyRow: PrettyRow<T> = PrettyRow(typeToken, cells, options)
 
-    fun buildRow(builder: CellContainer<T>.()-> Unit): PrettyRow<T>{
+    fun buildRow(builder: CellContainer<T>.() -> Unit): PrettyRow<T> {
         builder.invoke(this)
         prettyRow.setCells(cells)
         return prettyRow
@@ -52,54 +53,56 @@ class CellContainer<T: Any>(
 
     fun addCell(
         content: String,
-        cellOptions: CommonCellOptions? = null
-    ): StaticCell{
-        val options = PrettyHelper.toCellOptionsOrDefault(cellOptions,  options)
-        val cell = StaticCell(content, options, prettyRow)
-        return  storeCell(cell)
+        opt: CommonCellOptions? = null
+    ): StaticCell {
+        val options = PrettyHelper.toOptionsOrNull(opt)
+
+        val cell = StaticCell(content, prettyRow).applyOptions(options)
+        return storeCell(cell)
     }
 
     fun addCell(
         property: KProperty1<T, Any>,
-        options: CommonCellOptions? = null,
+        opt: CommonCellOptions? = null,
     ): KeyedCell<T> {
-        val cellOptions =  PrettyHelper.toKeyedCellOptionsOrDefault(options)
-        val cell = KeyedCell(typeToken, property, cellOptions, prettyRow)
+        val options = PrettyHelper.toKeyedOptionsOrNull(opt)
+        val cell = KeyedCell(typeToken, property, prettyRow).applyOptions(options)
         return storeCell(cell)
     }
 
-    fun <V: Any> addCell(
+    inline fun <reified V : Any> addCell(
         property: KProperty1<T, V>,
-        cellOptions: CommonCellOptions? = null,
-        action: ComputedCell<T, V>.(V)-> Any,
+        opt: CommonCellOptions? = null,
+        noinline action: ComputedCell<T, V>.(V) -> Any,
     ): ComputedCell<T, V> {
-        val cellOptions =  PrettyHelper.toCellOptionsOrDefault(cellOptions, options)
-        val computedCell = ComputedCell(typeToken, property, cellOptions, prettyRow, action)
+        val cellOptions = PrettyHelper.toOptionsOrNull(opt)
+        val valueToken = tokenOf<V>()
+        val computedCell = ComputedCell(typeToken, valueToken, prettyRow, property, action)
         return storeCell(computedCell)
     }
 
-    fun addCell(
-        cellOptions: CommonCellOptions? = null
-    ): PrettyCell{
-        val options = PrettyHelper.toCellOptionsOrDefault(cellOptions,  options)
-        val cell = PrettyCell(options, prettyRow)
-        return  storeCell(cell)
+    fun addCell(opt: CommonCellOptions? = null): PrettyCell {
+        val options = PrettyHelper.toOptionsOrNull(opt)
+        val cell = PrettyCell(prettyRow).applyOptions(options)
+        return storeCell(cell)
     }
 
     fun addCells(
         firstProperty: KProperty1<T, Any>,
-        vararg property : KProperty1<T, Any>,
+        vararg property: KProperty1<T, Any>,
         cellOptions: CommonCellOptions? = null
-    ): List<KeyedCell<T>>{
-        val options = PrettyHelper.toKeyedCellOptionsOrDefault(cellOptions)
+    ): List<KeyedCell<T>> {
+        val options = PrettyHelper.toKeyedOptions(cellOptions)
         val list = buildList {
             add(firstProperty)
             addAll(property.toList())
         }
-        val cells = list.map { KeyedCell(typeToken, it, options) }
+        val cells = list.map { KeyedCell(typeToken, it, prettyRow).applyOptions(options) }
         prettyCellsBacking.addAll(cells)
-        return  cells
+        return cells
     }
+
+
 
 
     companion object
@@ -109,10 +112,9 @@ class CellReceiverContainer<T: Any, V: Any>(
     val hostTypeToken: TypeToken<T>,
     val  valueToken: TypeToken<V>,
     options: RowOptions
-): CellContainerBase<V>(valueToken, PrettyHelper.toRowOptionsOrDefault(options)){
+): CellContainerBase<V>(valueToken, PrettyHelper.toRowOptions(options)){
 
-    @PublishedApi
-    internal val prettyRow: PrettyRow<V> = PrettyRow<V>(typeToken,  cells, options)
+    override val prettyRow: PrettyRow<V> = PrettyRow<V>(typeToken,  cells, options)
 
     fun buildRow(
         builder: CellReceiverContainer<T, V>.()-> Unit
@@ -151,8 +153,8 @@ class CellReceiverContainer<T: Any, V: Any>(
         property: KProperty1<V, Any>,
         options: CommonCellOptions? = null
     ): KeyedCell<V> {
-        val cellOptions =  PrettyHelper.toKeyedCellOptionsOrDefault(options)
-        val cell = KeyedCell(typeToken, property, cellOptions)
+        val cellOptions = PrettyHelper.toKeyedOptionsOrNull(options)
+        val cell = KeyedCell(typeToken, property, prettyRow).applyOptions(cellOptions)
         return storeCell(cell)
     }
 

@@ -4,8 +4,9 @@ import po.misc.counters.LogJournal
 import po.misc.counters.records.LogJournalEntry.RecordType
 import po.misc.data.pretty_print.grid.buildPrettyGrid
 import po.misc.data.pretty_print.parts.CellOptions
-import po.misc.data.pretty_print.parts.KeyedCellOptions
+import po.misc.data.pretty_print.parts.KeyedOptions
 import po.misc.data.pretty_print.parts.RowPresets
+import po.misc.data.pretty_print.parts.TextStyleOptions
 import po.misc.data.styles.Colour
 import po.misc.time.TimeHelper
 import java.time.Instant
@@ -45,9 +46,9 @@ class LogJournalEntry(
 
     companion object{
 
-        private val timeStyle =  KeyedCellOptions(
+        private val timeStyle = KeyedOptions(
           showKey = false,
-          styleOptions = CellOptions.TextStyleOptions(colour = Colour.Blue)
+          styleOptions = TextStyleOptions(colour = Colour.Blue)
         )
 //        val commentsTemplate: PrettyPromiseGrid<LogJournalEntry, Comment> = buildPrettyGrid(LogJournalEntry::comments) { list ->
 //

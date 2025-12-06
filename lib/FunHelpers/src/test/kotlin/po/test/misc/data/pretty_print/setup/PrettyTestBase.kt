@@ -1,6 +1,10 @@
 package po.test.misc.data.pretty_print.setup
 
 import po.misc.collections.repeatBuild
+import po.misc.data.PrettyPrint
+import po.misc.data.strings.appendGroup
+import po.misc.data.styles.Colour
+import po.misc.data.styles.colorize
 
 abstract class PrettyTestBase {
 
@@ -14,7 +18,18 @@ abstract class PrettyTestBase {
     class PrintableRecordSubClass(
         val subName: String = "PrintableRecordSubClass",
         val subComponent: String = "PrintableRecordSubClass component",
-    )
+    ): PrettyPrint{
+
+        private val string: String =  buildString {
+            appendGroup("[", "]", ::subName, ::subComponent)
+        }
+
+        override val formattedString: String
+            get() = string.colorize(Colour.Blue)
+
+        override fun toString(): String =
+            string
+    }
 
     class PrintableRecord(
         val name: String = "PersonalName",

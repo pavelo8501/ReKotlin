@@ -1,11 +1,6 @@
 package po.misc.data.pretty_print.grid
 
-import po.misc.data.pretty_print.cells.StaticCell
-import po.misc.data.pretty_print.parts.PrettyHelper
-import po.misc.data.pretty_print.parts.RowConfig
-import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.parts.RowPresets
-import po.misc.data.pretty_print.presets.PrettyPresets
 import po.misc.data.pretty_print.rows.CellContainer
 import po.misc.data.pretty_print.rows.PrettyRow
 
@@ -33,7 +28,7 @@ fun <T: Any> PrettyGridBase<T>.addHeadedRow(
     text: String,
     rowPreset: RowPresets = RowPresets.HeadedVertical,
 ):  PrettyRow<T> {
-    val options = rowPreset.toOptions()
+    val options = rowPreset.asRowOptions()
     val container = CellContainer(typeToken, options)
     container.addCell(text)
     val row = container.prettyRow
@@ -68,7 +63,7 @@ fun <T: Any> PrettyGridBase<T>.buildHeadedRow(
     rowPreset: RowPresets = RowPresets.HeadedVertical,
     builder: CellContainer<T>.() -> Unit
 ){
-    val options = rowPreset.toOptions()
+    val options = rowPreset.asRowOptions()
     val container = CellContainer<T>(typeToken, options)
     container.addCell(text)
     container.buildRow(builder)

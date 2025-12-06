@@ -3,11 +3,8 @@ package po.misc.data.logging.processor.settings
 import po.misc.data.PrettyPrint
 import po.misc.data.logging.processor.LogProcessor
 import po.misc.data.pretty_print.cells.PrettyCell
-import po.misc.data.pretty_print.presets.PrettyPresets
+import po.misc.data.pretty_print.parts.CellPresets
 import po.misc.data.pretty_print.rows.PrettyRow
-import po.misc.reflection.NameValuePair
-import po.misc.reflection.nameValuePair
-import po.misc.types.token.TypeToken
 import kotlin.reflect.KClass
 
 
@@ -22,9 +19,8 @@ data class StateSnapshot(
     val activeDataHandlers: List<KClass<*>>  = processor.logForwarder.handlerRegistrations.map { it.baseClassHandled }
 ): PrettyPrint{
 
-
-    private val keySlot = PrettyCell(PrettyPresets.Key)
-    private val valueSlot = PrettyCell(PrettyPresets.Value)
+    private val keySlot = PrettyCell(CellPresets.Key)
+    private val valueSlot = PrettyCell(CellPresets.Value)
 
     private val prettyRow = PrettyRow(keySlot, valueSlot)
 

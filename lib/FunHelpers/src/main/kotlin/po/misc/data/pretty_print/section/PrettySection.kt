@@ -1,6 +1,5 @@
 package po.misc.data.pretty_print.section
 import po.misc.data.pretty_print.parts.CommonRowOptions
-import po.misc.data.pretty_print.parts.RowRender
 import po.misc.data.pretty_print.rows.PrettyRow
 import po.misc.types.token.TypeToken
 

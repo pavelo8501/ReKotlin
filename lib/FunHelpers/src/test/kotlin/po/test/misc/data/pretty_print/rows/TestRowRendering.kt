@@ -1,6 +1,7 @@
 package po.test.misc.data.pretty_print.rows
 
 import po.misc.data.PrettyPrint
+import po.misc.data.output.output
 import po.misc.data.pretty_print.cells.ComputedCell
 import po.misc.data.pretty_print.cells.KeyedCell
 import po.misc.data.pretty_print.cells.StaticCell
@@ -20,14 +21,10 @@ class TestRowRendering : PrettyTestBase(){
         val text: String = "SomeText",
         val value: Int = 10
     ): PrettyPrint{
-
         private val completeTex = "${text}_${value}"
-
         override val formattedString: String get() = completeTex.colorize(Colour.Green)
-
         override fun toString(): String = completeTex
     }
-
 
     private val headerText = "Header"
 
@@ -53,6 +50,7 @@ class TestRowRendering : PrettyTestBase(){
         val render =  row.render(record)
         assertTrue { render.contains(headerText) }
         assertTrue { render.contains("Name") && render.contains(record.name) }
+        render.output()
     }
 
     @Test
@@ -79,7 +77,7 @@ class TestRowRendering : PrettyTestBase(){
         }
         assertNotNull(row.cells.getOrNull(2)) { thirdCell ->
             assertIs<ComputedCell<PrintableRecord, String>>(thirdCell)
-            assertNotNull(thirdCell.property)
+            assertTrue(thirdCell.singleLoader.hasProperty)
             assertNotNull(thirdCell.row){firstCellRow->
                 assertSame(row, firstCellRow)
             }

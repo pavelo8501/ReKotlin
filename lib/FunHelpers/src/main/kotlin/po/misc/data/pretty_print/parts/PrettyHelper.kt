@@ -1,85 +1,46 @@
 package po.misc.data.pretty_print.parts
 
-import po.misc.data.pretty_print.presets.PrettyPresets
-
-interface PrettyHelper {
-
+@PublishedApi
+internal interface PrettyHelper {
     companion object {
 
-        fun toRowOptions(commonRowOptions: CommonRowOptions): RowOptions {
-            return when (commonRowOptions) {
-                is RowOptions -> commonRowOptions
-                is RowPresets -> commonRowOptions.toOptions()
-            }
-        }
-        fun toRowOptionsOrDefault(commonRowOptions: CommonRowOptions?): RowOptions {
-            if(commonRowOptions == null){
-               return RowOptions()
-            }
-            return toRowOptions(commonRowOptions)
-        }
 
-        fun toRowOptionsOrDefault(commonRowOptions: CommonRowOptions?, defaultOptions: RowOptions): RowOptions {
-            if(commonRowOptions == null){
-                return defaultOptions
+        fun toRowOptions(input: CommonRowOptions): RowOptions =
+            when (input) {
+                is RowOptions -> input
+                is RowPresets -> input.asRowOptions()
             }
-            return toRowOptions(commonRowOptions)
-        }
+        fun toRowOptions(input: CommonRowOptions?, default : RowOptions = RowOptions()): RowOptions =
+            input?.let(::toRowOptions) ?: default
 
+        fun toOptions(input: PrettyOptions): Options =
+             when (input) {
+                is Options->  input
+                else -> input.asOptions()
+            }
+        fun toOptions(input: PrettyOptions?, default: Options = Options()): Options =
+            input?.let(::toOptions) ?: default
 
-        fun toCellOptions(commonCellOptions: CommonCellOptions): CellOptions {
-            return when (commonCellOptions) {
-                is CellOptions -> commonCellOptions
-                is PrettyPresets -> commonCellOptions.toOptions()
-                is KeyedCellOptions -> commonCellOptions.toCellOptions()
-            }
-        }
-        fun toCellOptionsOrDefault(commonCellOptions: CommonCellOptions?,  defaultValue: CellOptions? = null): CellOptions {
-            if(commonCellOptions == null){
-                return defaultValue?: CellOptions()
-            }
-            return  toCellOptions(commonCellOptions)
-        }
-
-        fun toCellOptions(commonRowOptions: CommonRowOptions): CellOptions {
-            return when (commonRowOptions) {
-                is RowOptions -> CellOptions(commonRowOptions)
-                is RowPresets -> CellOptions(commonRowOptions.toOptions())
-            }
-        }
-        fun toCellOptionsOrDefault(commonRowOptions: CommonRowOptions?, defaultValue: RowOptions? = null): CellOptions {
-            if(commonRowOptions == null){
-                return  CellOptions(defaultValue?: RowOptions(Orientation.Horizontal))
-            }
-            return toCellOptions(commonRowOptions)
-        }
-
-        fun toCellOptionsOrNull(commonRowOptions: CommonRowOptions?): CellOptions? {
-            if(commonRowOptions == null){
+        fun toOptionsOrNull(input: PrettyOptions?): Options? {
+            if(input == null){
                 return null
             }
-            return toCellOptions(commonRowOptions)
+            return toOptions(input)
         }
-
-        fun toCellOptionsOrDefault(commonCellOptions: CommonCellOptions?, defaultValue: RowOptions? = null): CellOptions {
+        fun toKeyedOptions(input: CommonCellOptions): KeyedOptions =
+            when (input) {
+                is KeyedOptions -> input
+                is KeyedPresets -> input.toOptions()
+                is CellPresets -> KeyedOptions(input.toOptions())
+                is CellOptions -> KeyedOptions(input)
+            }
+        fun toKeyedOptions(input: CommonCellOptions?, default: KeyedOptions = KeyedOptions()): KeyedOptions =
+            input?.let(::toKeyedOptions) ?: default
+        fun toKeyedOptionsOrNull(commonCellOptions: CommonCellOptions?): KeyedOptions? {
             if(commonCellOptions == null){
-                return  CellOptions(defaultValue?: RowOptions(Orientation.Horizontal))
+                return null
             }
-            return toCellOptions(commonCellOptions)
+            return toKeyedOptions(commonCellOptions)
         }
-
-        fun toKeyedCellOptions(commonCellOptions: CommonCellOptions): KeyedCellOptions {
-            return when (commonCellOptions) {
-                is KeyedCellOptions -> commonCellOptions
-                is CellOptions -> KeyedCellOptions(commonCellOptions)
-            }
-        }
-        fun toKeyedCellOptionsOrDefault(commonCellOptions: CommonCellOptions?, defaultValue: KeyedCellOptions? = null): KeyedCellOptions {
-            if(commonCellOptions == null){
-               return defaultValue?: KeyedCellOptions()
-            }
-            return toKeyedCellOptions(commonCellOptions)
-        }
-
     }
 }

@@ -1,15 +1,11 @@
 package po.misc.data.pretty_print.parts
 
 
-interface RowPresets : CommonRowOptions, RowConfig{
-
+interface RowPresets : CommonRowOptions{
     override val orientation : Orientation
 
-    fun toOptions(default:  RenderDefaults): RowOptions{
-        return RowOptions(default, orientation)
-    }
-
-    fun toOptions():RowOptions{
+    override fun asOptions(): Options = asOptions()
+    override fun asRowOptions():RowOptions{
        return RowOptions(orientation)
     }
 
@@ -24,9 +20,7 @@ interface RowPresets : CommonRowOptions, RowConfig{
     object HeadedVertical : RowPresets{
         override val orientation : Orientation = Orientation.Vertical
     }
-
     object HeadedHorizontal : RowPresets{
         override val orientation : Orientation = Orientation.Vertical
     }
-
 }

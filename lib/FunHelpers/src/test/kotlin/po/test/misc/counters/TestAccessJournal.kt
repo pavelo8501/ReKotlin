@@ -3,13 +3,12 @@ package po.test.misc.counters
 import org.junit.jupiter.api.Test
 import po.misc.context.component.Component
 import po.misc.counters.AccessJournal
-import po.misc.counters.JournalBase
 import po.misc.counters.records.AccessRecord
 import po.misc.counters.createAccessJournal
 import po.misc.counters.createRecord
 import po.misc.data.output.output
 import po.misc.data.pretty_print.Templated
-import po.misc.data.pretty_print.parts.KeyedCellOptions
+import po.misc.data.pretty_print.parts.KeyedOptions
 import po.misc.data.pretty_print.rows.buildPrettyRow
 import po.misc.debugging.ClassResolver
 import kotlin.test.assertEquals
@@ -37,7 +36,7 @@ class TestAccessJournal: Component, Templated {
         val accessJournal = createAccessJournal(TestAccess.Access)
         val instance1 = Instance1()
         val record: AccessRecord<TestAccess> = instance1.createRecord(accessJournal)
-        val noKeyOption = KeyedCellOptions(showKey = false)
+        val noKeyOption = KeyedOptions(showKey = false)
         val prettyRow = buildPrettyRow<AccessRecord<TestAccess>> {
             addCell(AccessRecord<TestAccess>::formatedTime, noKeyOption)
             addCell(AccessRecord<TestAccess>::message)

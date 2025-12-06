@@ -22,8 +22,7 @@ class PrettyBorders(
         return "$content$right$postfixRight"
     }
 
-    fun render(content: String, options: CommonCellOptions): String{
-
+    fun render(content: String, options: CellOptions): String{
         return when {
             options.renderLeftBorder && options.renderRightBorder -> render(content)
             options.renderLeftBorder -> renderLeft(content)

@@ -51,7 +51,7 @@ class RowContainer<T: Any>(
         rowOptions: CommonRowOptions? = null,
         noinline builder: CellReceiverContainer<T, V>.() -> Unit
     ){
-        val options = PrettyHelper.toRowOptionsOrDefault(rowOptions, options)
+        val options = PrettyHelper.toRowOptions(rowOptions, options)
         val container =  CellReceiverContainer(typeToken, tokenOf<V>(), options)
         val valueGrid = container.buildGrid(property, builder)
         prettyGrid.addRenderBlock(valueGrid)
@@ -62,7 +62,7 @@ class RowContainer<T: Any>(
         rowOptions: CommonRowOptions? = null,
         noinline builder: CellReceiverContainer<T, V>.() -> Unit
     ){
-        val options = PrettyHelper.toRowOptionsOrDefault(rowOptions, options)
+        val options = PrettyHelper.toRowOptions(rowOptions, options)
         val container =  CellReceiverContainer(typeToken,  tokenOf<V>(), options)
         val valueGrid = container.buildGrid(property, builder)
         prettyGrid.addRenderBlock(valueGrid)
@@ -183,7 +183,7 @@ class RowValueContainer<T: Any, V: Any>(
         rowOptions: CommonRowOptions? = null,
         builder: CellReceiverContainer<T, V>.() -> Unit
     ){
-        val options = PrettyHelper.toRowOptionsOrDefault(rowOptions, options)
+        val options = PrettyHelper.toRowOptions(rowOptions, options)
         val cellContainer = CellReceiverContainer<T, V>(typeToken, valueToken, options)
         val row =  cellContainer.buildRow(builder)
         valueGrid.addRow(row)

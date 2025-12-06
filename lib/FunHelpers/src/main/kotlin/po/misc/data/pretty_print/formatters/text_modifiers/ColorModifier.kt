@@ -5,7 +5,10 @@ import po.misc.data.styles.Colour
 import po.misc.data.styles.applyColour
 
 
-open class ColorModifier(vararg val conditions: ColourCondition): TextModifier {
+open class ColorModifier(
+    vararg val conditions: ColourCondition
+): TextModifier {
+
     var provider: (()-> Colour?)? = null
 
     constructor(colourProvider: ()-> Colour?):this()
@@ -54,6 +57,11 @@ open class ColorModifier(vararg val conditions: ColourCondition): TextModifier {
         }else{
             modifyByConditions(text, conditionsList)
         }
+    }
+
+    override fun match(text: String): Boolean {
+       val result = conditionsList.any { it.match == text}
+       return result
     }
 }
 

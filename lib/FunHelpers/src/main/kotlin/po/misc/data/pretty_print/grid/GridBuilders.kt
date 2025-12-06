@@ -10,7 +10,7 @@ inline fun <reified T: Any> buildPrettyGrid(
     rowOptions: CommonRowOptions? = null,
     noinline builder: RowContainer<T>.() -> Unit
 ): PrettyGrid<T>{
-    val options = PrettyHelper.toRowOptionsOrDefault(rowOptions)
+    val options = PrettyHelper.toRowOptions(rowOptions)
     val token = TypeToken.create<T>()
     val container = RowContainer(token, options)
     return container.buildGrid(builder)
@@ -22,7 +22,7 @@ inline fun <reified T: Any, reified V: Any> buildPrettyGrid(
     rowOptions: CommonRowOptions? = null,
     noinline builder: RowValueContainer<T, V>.() -> Unit
 ):  PrettyValueGrid<T, V> {
-    val options = PrettyHelper.toRowOptionsOrDefault(rowOptions)
+    val options = PrettyHelper.toRowOptions(rowOptions)
     val container = RowValueContainer( TypeToken.create<T>(),  TypeToken.create<V>(), options)
     container.buildGrid(property, builder)
     return container.valueGrid
@@ -35,7 +35,7 @@ inline fun <reified T: Any, V: List<VT>, reified VT: Any> buildPrettyGridList(
     rowOptions: CommonRowOptions? = null,
     noinline builder: RowValueContainer<T, VT>.() -> Unit
 ):  PrettyValueGrid<T, VT>{
-    val options = PrettyHelper.toRowOptionsOrDefault(rowOptions)
+    val options = PrettyHelper.toRowOptions(rowOptions)
     val token = TypeToken.create<T>()
     val valueToken = TypeToken.create<VT>()
     val container = RowValueContainer(token, valueToken, options)
@@ -48,7 +48,7 @@ inline fun <reified T: Any,  reified V: Templated> V.buildPrettyGrid(
     rowOptions: CommonRowOptions? = null,
     noinline builder: RowValueContainer<T, V>.(ValueLoader<T, V>) -> Unit
 ):  PrettyValueGrid<T, V>{
-    val options = PrettyHelper.toRowOptionsOrDefault(rowOptions)
+    val options = PrettyHelper.toRowOptions(rowOptions)
     val token = TypeToken.create<V>()
     val container = RowValueContainer(grid.typeToken,  token,  options)
     val provider = { this }

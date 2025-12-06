@@ -1,23 +1,20 @@
 package po.misc.data.pretty_print.cells
 
 import po.misc.data.pretty_print.parts.CellOptions
-import po.misc.data.pretty_print.parts.CellRender
 import po.misc.data.pretty_print.parts.CommonCellOptions
+import po.misc.data.pretty_print.parts.Options
 import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.parts.PrettyHelper
-import po.misc.data.pretty_print.presets.PrettyPresets
 import po.misc.data.pretty_print.rows.PrettyRow
-import po.misc.data.strings.classParam
-import po.misc.data.strings.classProperty
 import po.misc.data.strings.stringify
 import po.misc.types.isNotNull
+import kotlin.text.append
 
 
 class StaticCell(
     var content: Any? = null,
-    cellOptions: CellOptions = CellOptions(),
     row: PrettyRow<*>? = null
-): PrettyCellBase<PrettyPresets>(cellOptions, row), CellRenderer{
+): PrettyCellBase(Options(), row){
 
     val text: String get() = content.stringify().toString()
 
@@ -28,6 +25,13 @@ class StaticCell(
         if(content.isNotNull()){
             lockContent = true
         }
+    }
+
+    override fun applyOptions(opt: CommonCellOptions?): StaticCell {
+        opt?.let {
+            cellOptions = PrettyHelper.toOptions(it)
+        }
+        return this
     }
 
     fun changeContent(newContent: Any):StaticCell{
@@ -48,7 +52,7 @@ class StaticCell(
         return this
     }
 
-    fun render(renderOptions: CommonCellOptions? = null): String {
+    fun render(renderOptions: CellOptions? = null): String {
         val useOptions = renderOptions?:cellOptions
         val entry = content.stringify()
         val usedText = if(useOptions.usePlain){
@@ -61,10 +65,10 @@ class StaticCell(
         val final = justifyText(formatted,  useOptions)
         return final
     }
-    fun render(): String = render(CellOptions(Orientation.Horizontal))
+    fun render(): String = render(Options(Orientation.Horizontal))
 
     override fun render(content: String, commonOptions: CommonCellOptions?): String {
-        val options = PrettyHelper.toCellOptionsOrDefault(commonOptions, cellOptions as CellOptions)
+        val options = PrettyHelper.toOptions(commonOptions, cellOptions as Options)
         val entry = content.stringify()
         val usedText = if(options.usePlain){
             entry.text
@@ -80,9 +84,9 @@ class StaticCell(
     override fun toString(): String {
         return buildString {
             appendLine("StaticCell")
-            classParam("id", cellOptions.id)
-            classParam("width", cellOptions.width)
-            classProperty(::lockContent)
+            append("id", cellOptions.id)
+            append("width", cellOptions.width)
+            append(::lockContent)
         }
     }
     companion object

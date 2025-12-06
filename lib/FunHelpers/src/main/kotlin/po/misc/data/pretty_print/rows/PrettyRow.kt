@@ -34,7 +34,7 @@ import po.misc.types.token.TypeToken
  */
 class PrettyRow<T: Any>(
     val typeToken: TypeToken<T>,
-    private var initialCells: List<PrettyCellBase<*>>,
+    private var initialCells: List<PrettyCellBase>,
     var options: RowOptions = RowOptions(RenderDefaults.Console220),
 ): RenderableElement<T, T>, TraceableContext, Indexed{
 
@@ -48,8 +48,8 @@ class PrettyRow<T: Any>(
 
     override val ids: List<Enum<*>> get() = options.id?.asList()?:emptyList()
 
-    internal val cellsBacking: MutableList<PrettyCellBase<*>> = mutableListOf()
-    val cells : List<PrettyCellBase<*>> get() = cellsBacking
+    internal val cellsBacking: MutableList<PrettyCellBase> = mutableListOf()
+    val cells : List<PrettyCellBase> get() = cellsBacking
 
     var myIndex: Int = 0
         private set
@@ -63,6 +63,10 @@ class PrettyRow<T: Any>(
     val staticCells: List<StaticCell> get() = cellsBacking.filterIsInstance<StaticCell>()
     val keyedCells: List<KeyedCell<*>> get() = cellsBacking.filterIsInstance<KeyedCell<*>>()
     val computedCells: List<ComputedCell<*, *>> get() = cellsBacking.filterIsInstance<ComputedCell<*, *>>()
+
+    val size: Int get() = cells.size
+    val rowMaxWidth: Int get()  = cells.maxOf { it.cellOptions.width }
+
 
     val journal : LogJournal = LogJournal(this)
 
@@ -79,7 +83,7 @@ class PrettyRow<T: Any>(
 
     fun renderAsList(receiver: T, rowOptions: CommonRowOptions?): List<String> {
 
-        fun renderSelection(receiver:T,  cell: PrettyCellBase<*>, cellOptions: CellOptions?): String {
+        fun renderSelection(receiver:T,  cell: PrettyCellBase, cellOptions: CellOptions?): String {
             return when (cell) {
                 is ReceiverAwareCell<*> -> {
                     val casted = cell.safeCast<ReceiverAwareCell<T>>()
@@ -90,7 +94,7 @@ class PrettyRow<T: Any>(
             }
         }
         val resultList = mutableListOf<String>()
-        val options = PrettyHelper.toCellOptionsOrNull(rowOptions)
+        val options = PrettyHelper.toOptionsOrNull(rowOptions)
         val cellsToRender = cells
         val cellCount = cellsToRender.size
         val cellsToTake = (cellCount - 1).coerceAtLeast(0)
@@ -142,7 +146,7 @@ class PrettyRow<T: Any>(
         }
 
         val resultList = mutableListOf<String>()
-        val options = PrettyHelper.toCellOptionsOrNull(rowOptions)
+        val options = PrettyHelper.toOptionsOrNull(rowOptions)
 
         val valuesList = values.toList()
         valuesList.forEach {value->
@@ -165,7 +169,7 @@ class PrettyRow<T: Any>(
         return render(values.toList(), rowOptions)
     }
 
-    fun setCells(newCells: List<PrettyCellBase<*>>){
+    fun setCells(newCells: List<PrettyCellBase>){
         cellsBacking.clear()
         newCells.forEachIndexed { index, cell->
             cell.index = index
@@ -173,7 +177,13 @@ class PrettyRow<T: Any>(
         }
     }
 
-    fun setCells(cell:  PrettyCellBase<*>,  vararg newCells: PrettyCellBase<*>): Unit{
+    fun applyOptions(opt: CommonRowOptions? ){
+        opt?.let {
+            it
+        }
+    }
+
+    fun setCells(cell:  PrettyCellBase,  vararg newCells: PrettyCellBase): Unit{
         val newList = buildList {
             add(cell)
             addAll(newCells.toList())
@@ -181,10 +191,6 @@ class PrettyRow<T: Any>(
         setCells(newList)
     }
 
-    fun applyPreset(preset: RowPresets): PrettyRow<T>{
-        options = preset.toOptions()
-        return this
-    }
 
     fun setRowOptions(newOptions: RowOptions?):PrettyRow<T>{
         if(newOptions!= null){
@@ -199,12 +205,12 @@ class PrettyRow<T: Any>(
     }
 
     companion object{
-        operator fun invoke(vararg cells: PrettyCellBase<*>):PrettyRow<String>{
+        operator fun invoke(vararg cells: PrettyCellBase):PrettyRow<String>{
             val  typeToken: TypeToken<String> = TypeToken.create()
             return PrettyRow(typeToken, cells.toList())
         }
 
-        operator fun invoke(cells: List<PrettyCellBase<*>>):PrettyRow<String>{
+        operator fun invoke(cells: List<PrettyCellBase>):PrettyRow<String>{
             val  typeToken: TypeToken<String> = TypeToken.create()
             return PrettyRow(typeToken, cells)
         }

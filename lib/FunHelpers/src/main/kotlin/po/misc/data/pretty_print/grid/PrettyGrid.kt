@@ -61,7 +61,7 @@ class PrettyGrid<T: Any>(
     override fun render(receiver: T, opts: CommonRowOptions?): String {
         val stringBuilder = StringBuilder()
         for (renderBlock in renderBlocks) {
-            val useRender = PrettyHelper.toRowOptionsOrDefault(opts, options)
+            val useRender = PrettyHelper.toRowOptions(opts, options)
             val shouldRender = checkShouldRender(renderBlock, useRender)
             if (!shouldRender) continue
             when (renderBlock) {
@@ -98,7 +98,7 @@ class PrettyValueGrid<T: Any, V: Any>(
     override fun render(receiver: V, opts: CommonRowOptions?): String {
         val stringBuilder = StringBuilder()
         for (row in rows) {
-            val useRender = PrettyHelper.toRowOptionsOrDefault(opts, options)
+            val useRender = PrettyHelper.toRowOptions(opts, options)
             val shouldRender = checkShouldRender(row, useRender)
             if (!shouldRender) continue
             val render = row.render(receiver, opts)

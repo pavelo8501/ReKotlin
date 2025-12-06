@@ -151,7 +151,7 @@ class TestPrettyRow : PrettyTestBase(),  PrettyBuilder{
         val prettyRow = PrettyRow(staticCells)
         prettyRow.render(cell1Text, RowPresets.Vertical)
         assertEquals(Orientation.Horizontal,  prettyRow.options.orientation)
-        prettyRow.applyPreset(RowPresets.Vertical)
+        prettyRow.applyOptions(RowPresets.Vertical)
         assertEquals(Orientation.Vertical,  prettyRow.options.orientation)
     }
 

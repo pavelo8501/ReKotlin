@@ -12,7 +12,7 @@ fun <T: Any> buildPrettyRow(
     commonOptions: CommonRowOptions? = null,
     builder: CellContainer<T>.()-> Unit
 ): PrettyRow<T> {
-    val options = PrettyHelper.toRowOptionsOrDefault(commonOptions)
+    val options = PrettyHelper.toRowOptions(commonOptions)
     val container = CellContainer(typeToken, options)
     return  container.buildRow(builder)
 }
@@ -31,7 +31,7 @@ fun <T: Any, V: Any> buildPrettyRow(
     rowOptions: CommonRowOptions? = null,
     builder: CellReceiverContainer<T, V>.()-> Unit
 ):  PrettyRow<V>{
-    val options = PrettyHelper.toRowOptionsOrDefault(rowOptions)
+    val options = PrettyHelper.toRowOptions(rowOptions)
     val receiverContainer = CellReceiverContainer(typeToken, valueToken, options)
     builder.invoke(receiverContainer)
     val grid =  PrettyValueGrid(typeToken, valueToken, options)

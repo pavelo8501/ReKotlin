@@ -5,8 +5,7 @@ enum class Orientation{ Horizontal, Vertical }
 
 sealed interface CommonRowOptions: PrettyOptions{
     val  orientation : Orientation
-
-
+    fun asRowOptions():RowOptions
 }
 
 class RowOptions(
@@ -21,9 +20,6 @@ class RowOptions(
         id = rowId
         render = renderDefault
     }
-
-  //  constructor(id: Enum<*>, orientation : Orientation = Orientation.Horizontal):this(orientation, id)
-
     constructor(rowId: Enum<*>, vararg renderId:  Enum<*>, orientation : Orientation = Orientation.Horizontal):this(orientation = orientation){
         id = rowId
         renderOnlyList = renderId.toList()
@@ -34,6 +30,9 @@ class RowOptions(
     var usePlain: Boolean = false
     var render:  RenderDefaults  = Console220
         internal set
+
+    override fun asOptions(): Options = Options(this)
+    override fun asRowOptions():RowOptions = this
 
     fun renderOnly(list: List<Enum<*>>):RowOptions{
         renderOnlyList = list

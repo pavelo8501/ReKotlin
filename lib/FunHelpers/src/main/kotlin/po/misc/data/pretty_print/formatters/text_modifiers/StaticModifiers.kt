@@ -24,8 +24,10 @@ class StaticModifiers(){
     }
     fun modify(content: String): String{
         var modified = content
-        modifiers.forEach {
-            modified = it.modify(modified)
+        for (modifier in modifiers){
+           if(modifier.match(content)){
+               modified =  modifier.modify(content)
+           }
         }
         return modified
     }

@@ -4,9 +4,8 @@ import po.misc.counters.JournalBase
 import po.misc.data.PrettyPrint
 import po.misc.data.pretty_print.Templated
 import po.misc.data.pretty_print.formatters.text_modifiers.ColorModifier
-import po.misc.data.pretty_print.parts.KeyedCellOptions
-import po.misc.data.pretty_print.rows.CellContainer
-import po.misc.data.pretty_print.rows.buildPrettyRow
+import po.misc.data.pretty_print.parts.KeyedOptions
+
 import po.misc.data.styles.Colour
 import po.misc.time.TimeHelper
 import java.time.Instant
@@ -24,7 +23,7 @@ data class AccessRecord <E: Enum<E>>(
 
     private var recordSuccess: Boolean = false
 
-    private val noKeyOption = KeyedCellOptions(showKey = false)
+    private val noKeyOption = KeyedOptions(showKey = false)
     private val success = ColorModifier.ColourCondition("Success", Colour.GreenBright)
     private val failure = ColorModifier.ColourCondition("Failure", Colour.RedBright)
     private val dynamicCondition = ColorModifier {

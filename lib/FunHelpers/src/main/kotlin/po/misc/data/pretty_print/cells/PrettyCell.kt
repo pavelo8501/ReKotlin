@@ -1,22 +1,14 @@
 package po.misc.data.pretty_print.cells
 
-import po.misc.data.helpers.orDefault
-import po.misc.data.pretty_print.parts.Align
-import po.misc.data.pretty_print.presets.PrettyPresets
 import po.misc.data.pretty_print.formatters.StringNormalizer
 import po.misc.data.pretty_print.parts.CellOptions
+import po.misc.data.pretty_print.parts.CellPresets
 import po.misc.data.pretty_print.parts.CommonCellOptions
+import po.misc.data.pretty_print.parts.Options
 import po.misc.data.pretty_print.parts.PrettyHelper
 import po.misc.data.pretty_print.rows.PrettyRow
-import po.misc.data.strings.classParam
 import po.misc.data.strings.stringify
-import po.misc.data.styles.TextStyle
-import po.misc.data.styles.TextStyler
-import po.misc.data.toDisplayName
-import po.misc.debugging.ClassResolver
-import po.misc.reflection.displayName
-import kotlin.reflect.KClass
-import kotlin.reflect.KProperty0
+import kotlin.text.append
 
 /**
  * A single formatted cell used for pretty-printing aligned and styled text.
@@ -32,38 +24,52 @@ import kotlin.reflect.KProperty0
  * A [PrettyCell] is *lightweight* and stateless; rendering happens per input.
  */
 class PrettyCell(
-    options: CellOptions = CellOptions(),
     row: PrettyRow<*>? = null
-): PrettyCellBase<PrettyPresets>(options, row), CellRenderer {
+): PrettyCellBase(prettyCellOptions, row){
 
-    constructor(presets: PrettyPresets):this(presets.toOptions())
-    constructor(width: Int,  row: PrettyRow<*>? = null):this(CellOptions(width), row)
+    
+    constructor(presets: CellPresets):this(){
+        applyOptions( presets.toOptions())
+    }
 
-    override fun applyPreset(preset: PrettyPresets): PrettyCell{
-        cellOptions = preset.toOptions()
+    constructor(width: Int,  row: PrettyRow<*>? = null):this(row){
+        applyOptions(Options(width))
+    }
+
+    override fun applyOptions(opt: CommonCellOptions?): PrettyCell{
+        opt?.let {
+            cellOptions = PrettyHelper.toOptions(it)
+        }
         return this
     }
 
-    fun render(content: Any, commonOptions: CommonCellOptions?): String {
-        val options = commonOptions?:cellOptions
-        val text = if(options.usePlain){
+    fun render(content: Any, commonOptions: CellOptions? = null): String {
+
+        applyOptions(commonOptions)
+        val text = if(cellOptions.usePlain){
             content.toString()
         }else{
             content.stringify().formatedString
         }
+
         val modified =  staticModifiers.modify(text)
         val formatted =  compositeFormatter.format(modified, this)
-        val final = justifyText(formatted,  options)
+        val final = justifyText(formatted,  cellOptions)
         return final
     }
 
     override fun toString(): String {
        return buildString {
-            appendLine("PrettyCell")
-            classParam("id", cellOptions.id)
-            classParam("width", cellOptions.width)
+           append("PrettyCell")
+           append("id", cellOptions.id)
+           append("width", cellOptions.width)
         }
     }
-    companion object
+    companion object{
+
+        val prettyCellOptions: Options = Options().build {
+            usePlain = false
+        }
+    }
 }
 
