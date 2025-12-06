@@ -7,6 +7,7 @@ import po.misc.data.pretty_print.cells.PrettyCell
 import po.misc.data.pretty_print.parts.KeyedCellOptions
 import po.misc.data.pretty_print.cells.StaticCell
 import po.misc.data.pretty_print.formatters.text_modifiers.TextModifier
+import po.misc.data.pretty_print.grid.PrettyValueGrid
 import po.misc.data.pretty_print.parts.CellOptions
 import po.misc.data.pretty_print.parts.CommonCellOptions
 import po.misc.data.pretty_print.parts.CommonRowOptions
@@ -27,7 +28,6 @@ sealed class CellContainerBase<T: Any>(
     val typeToken:  TypeToken<T>,
     val options: RowOptions
 ){
-    
     internal val prettyCellsBacking = mutableListOf<PrettyCellBase<*>>()
     val cells : List<PrettyCellBase<*>> get() = prettyCellsBacking
 
@@ -35,7 +35,6 @@ sealed class CellContainerBase<T: Any>(
         prettyCellsBacking.add(cell)
         return cell
     }
-
 }
 
 class CellContainer<T: Any>(
@@ -87,14 +86,66 @@ class CellContainer<T: Any>(
         return  storeCell(cell)
     }
 
+    fun addCells(
+        firstProperty: KProperty1<T, Any>,
+        vararg property : KProperty1<T, Any>,
+        cellOptions: CommonCellOptions? = null
+    ): List<KeyedCell<T>>{
+        val options = PrettyHelper.toKeyedCellOptionsOrDefault(cellOptions)
+        val list = buildList {
+            add(firstProperty)
+            addAll(property.toList())
+        }
+        val cells = list.map { KeyedCell(typeToken, it, options) }
+        prettyCellsBacking.addAll(cells)
+        return  cells
+    }
+
+
     companion object
 }
 
 class CellReceiverContainer<T: Any, V: Any>(
     val hostTypeToken: TypeToken<T>,
-    valueToken: TypeToken<V>,
-    options: CommonRowOptions?
+    val  valueToken: TypeToken<V>,
+    options: RowOptions
 ): CellContainerBase<V>(valueToken, PrettyHelper.toRowOptionsOrDefault(options)){
+
+    @PublishedApi
+    internal val prettyRow: PrettyRow<V> = PrettyRow<V>(typeToken,  cells, options)
+
+    fun buildRow(
+        builder: CellReceiverContainer<T, V>.()-> Unit
+    ): PrettyRow<V>{
+        builder.invoke(this)
+        prettyRow.setCells(cells)
+        return prettyRow
+    }
+
+    fun buildGrid(
+        property: KProperty1<T, V>,
+        builder: CellReceiverContainer<T, V>.()-> Unit
+    ): PrettyValueGrid<T, V>{
+        builder.invoke(this)
+        prettyRow.setCells(cells)
+        val grid = PrettyValueGrid(hostTypeToken, typeToken)
+        grid.addRow(prettyRow)
+        grid.singleLoader.setReadOnlyProperty(property)
+        return grid
+    }
+
+    @JvmName("buildGridList")
+    fun buildGrid(
+        property: KProperty1<T, List<V>>,
+        builder: CellReceiverContainer<T, V>.()-> Unit
+    ): PrettyValueGrid<T, V>{
+        builder.invoke(this)
+        prettyRow.setCells(cells)
+        val grid = PrettyValueGrid(hostTypeToken, typeToken)
+        grid.addRow(prettyRow)
+        grid.listLoader.setReadOnlyProperty(property)
+        return grid
+    }
 
     fun addCell(
         property: KProperty1<V, Any>,
@@ -103,11 +154,6 @@ class CellReceiverContainer<T: Any, V: Any>(
         val cellOptions =  PrettyHelper.toKeyedCellOptionsOrDefault(options)
         val cell = KeyedCell(typeToken, property, cellOptions)
         return storeCell(cell)
-    }
-
-    fun buildRow(builder: CellReceiverContainer<T, V>.()-> Unit): PrettyRow<V>{
-        builder.invoke(this)
-        return PrettyRow<V>(typeToken,  cells, options)
     }
 
     companion object

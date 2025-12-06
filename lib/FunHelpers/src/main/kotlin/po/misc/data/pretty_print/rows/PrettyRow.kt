@@ -13,8 +13,8 @@ import po.misc.data.pretty_print.cells.ReceiverAwareCell
 import po.misc.data.pretty_print.cells.StaticCell
 import po.misc.data.pretty_print.parts.CellOptions
 import po.misc.data.pretty_print.parts.CommonRowOptions
-import po.misc.data.pretty_print.parts.Console220
 import po.misc.data.pretty_print.parts.PrettyHelper
+import po.misc.data.pretty_print.parts.RenderDefaults
 import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.parts.RowPresets
 import po.misc.data.strings.stringify
@@ -35,7 +35,7 @@ import po.misc.types.token.TypeToken
 class PrettyRow<T: Any>(
     val typeToken: TypeToken<T>,
     private var initialCells: List<PrettyCellBase<*>>,
-    var options: RowOptions = RowOptions(Console220),
+    var options: RowOptions = RowOptions(RenderDefaults.Console220),
 ): RenderableElement<T, T>, TraceableContext, Indexed{
 
     constructor(container: CellContainerBase<T>):this(container.typeToken,  container.cells,  container.options)
@@ -48,7 +48,6 @@ class PrettyRow<T: Any>(
 
     override val ids: List<Enum<*>> get() = options.id?.asList()?:emptyList()
 
-
     internal val cellsBacking: MutableList<PrettyCellBase<*>> = mutableListOf()
     val cells : List<PrettyCellBase<*>> get() = cellsBacking
 
@@ -59,7 +58,6 @@ class PrettyRow<T: Any>(
 
     val isFirst: Boolean get() = myIndex == 0
     val isLast: Boolean get() = myIndex == ofCount - 1
-
 
     val prettyCells: List<PrettyCell> get() = cellsBacking.filterIsInstance<PrettyCell>()
     val staticCells: List<StaticCell> get() = cellsBacking.filterIsInstance<StaticCell>()
@@ -148,6 +146,7 @@ class PrettyRow<T: Any>(
 
         val valuesList = values.toList()
         valuesList.forEach {value->
+
             if(value::class == typeToken.kClass){
                 val render = render(value as T, rowOptions)
                 resultList.add(render)
@@ -214,36 +213,5 @@ class PrettyRow<T: Any>(
             val  typeToken: TypeToken<T> = TypeToken.create()
             return PrettyRow(typeToken, cells.toList())
         }
-//
-//        @PublishedApi
-//        internal fun <T : Any> buildRow(
-//            token: TypeToken<T>,
-//            rowOptions: RowOptions? = null,
-//            builder: CellContainer<T>.() -> Unit
-//        ): PrettyRow<T> {
-//            val constructor = CellContainer<T>(token)
-//            builder.invoke(constructor)
-//            val realRow = PrettyRow(constructor)
-//            if (rowOptions != null) {
-//                realRow.options = rowOptions
-//            }
-//            return realRow
-//        }
-
-//        @PublishedApi
-//        internal fun <T : Any> buildRowForContext(
-//            receiver: T,
-//            token: TypeToken<T>,
-//            rowOptions: RowOptions? = null,
-//            builder: CellReceiverContainer<T>.(T) -> Unit
-//        ): PrettyRow<T> {
-//            val constructor = CellReceiverContainer<T>(receiver, token)
-//            builder.invoke(constructor, receiver)
-//            val realRow = PrettyRow(constructor)
-//            if (rowOptions != null) {
-//                realRow.options = rowOptions
-//            }
-//            return realRow
-//        }
     }
 }

@@ -1,12 +1,12 @@
 package po.test.misc.data.pretty_print.grid
 
-import po.misc.data.pretty_print.grid.PrettyGrid
 import po.misc.data.pretty_print.grid.PrettyValueGrid
 import po.misc.data.pretty_print.grid.buildPrettyGrid
 import po.misc.data.pretty_print.grid.buildPrettyGridList
 import po.misc.data.pretty_print.rows.PrettyRow
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 
@@ -25,6 +25,12 @@ class TestGridComposition : PrettyTestBase(){
     private val elementGrid = buildPrettyGrid<PrintableElement>{
         buildRow {
             addCell(PrintableElement::elementName)
+        }
+    }
+
+    private val subClassGrid = buildPrettyGrid<PrintableRecordSubClass>{
+        buildRow {
+            addCell(PrintableRecordSubClass::subName)
         }
     }
 
@@ -53,13 +59,26 @@ class TestGridComposition : PrettyTestBase(){
 
     @Test
     fun `Grid accepts another  PrettyGrid as template if transition property provided`(){
-
         val grid = buildPrettyGrid<PrintableRecord> {
-            useTemplate(elementGrid, PrintableRecord::elements)
+            useTemplate(subClassGrid, PrintableRecord::subClass)
+        }
+        assertNotNull(grid.renderBlocks.firstOrNull()) { renderBlock ->
+            assertIs<PrettyValueGrid<PrintableRecord, PrintableRecordSubClass>>(renderBlock)
+            assertEquals(PrintableRecordSubClass::class, renderBlock.typeToken.kClass)
+            assertNotNull(renderBlock.singleLoader.propertyBacking)
+            assertEquals(1, renderBlock.rows.size)
+        }
+    }
+
+    @Test
+    fun `Grid accepts another  PrettyGrid as template if list transition property provided`(){
+        val grid = buildPrettyGrid<PrintableRecord> {
+            useListTemplate(elementGrid, PrintableRecord::elements)
         }
         assertNotNull(grid.renderBlocks.firstOrNull()) { renderBlock ->
             assertIs<PrettyValueGrid<PrintableRecord, PrintableElement>>(renderBlock)
             assertNotNull(renderBlock.listLoader.propertyBacking)
+            assertEquals(1, renderBlock.rows.size)
         }
     }
 }

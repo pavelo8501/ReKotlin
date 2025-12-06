@@ -13,32 +13,24 @@ enum class Align {
 }
 
 /**
- * Base contract for output environment defaults used by pretty-printing.
- *
- * Implementations define constraints such as maximum renderable width.
- */
-sealed interface RenderDefaults{
-    val defaultWidth : Int
-}
-
-/**
- * A safe default environment for output with reduced width (80 chars).
- *
- * Suitable for older terminals or compact console views.
- */
-object Console80 : RenderDefaults {
-    override val defaultWidth : Int = 80
-}
-
-/**
- * A wide console environment (120 chars).
- *
- * Suitable for modern terminals with more available horizontal space.
- */
-object Console120 : RenderDefaults {
-    override val defaultWidth : Int = 120
-}
-
-object Console220 : RenderDefaults {
-    override val defaultWidth : Int = 220
+* Base contract for output environment defaults used by pretty-printing.
+*
+* Implementations define constraints such as maximum renderable width.
+*/
+enum class RenderDefaults(val value: Int) {
+    /**
+     * A safe default environment for output with reduced width (80 chars).
+     * Suitable for older terminals or compact console views.
+     */
+    Console80(80),
+    /**
+     * A wide console environment (120 chars).
+     * Suitable for modern terminals with more available horizontal space.
+     */
+    Console120(120),
+    /**
+     * A wide console environment (220 chars).
+     * Suitable for modern terminals with more available horizontal space.
+     */
+    Console220(220)
 }

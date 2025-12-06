@@ -12,7 +12,6 @@ import po.misc.data.pretty_print.section.PrettySection
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.functions.Throwing
-import po.misc.types.safeCast
 import po.misc.types.token.TokenFactory
 import po.misc.types.token.TypeToken
 
@@ -20,7 +19,8 @@ import po.misc.types.token.TypeToken
 sealed class PrettyGridBase<T: Any>(
     override val typeToken :TypeToken<T>,
     var options: RowOptions,
-) :PrettySection<T>, TokenFactory{
+) :PrettySection<T>, TokenFactory
+{
 
     protected  val rowsBacking: MutableList<PrettyRow<T>> = mutableListOf()
     override val rows: List<PrettyRow<T>> get() = rowsBacking
@@ -40,10 +40,12 @@ sealed class PrettyGridBase<T: Any>(
 class PrettyGrid<T: Any>(
     typeToken :TypeToken<T>,
     options: CommonRowOptions = RowOptions(),
-) : PrettyGridBase<T>(typeToken, PrettyHelper.toRowOptions(options)){
-
+) : PrettyGridBase<T>(typeToken, PrettyHelper.toRowOptions(options))
+{
     internal val renderBlocksBacking: MutableList<RenderableElement<T, *>> = mutableListOf()
     val renderBlocks: List<RenderableElement<T, *>> get() = renderBlocksBacking
+
+    internal val singleLoader: ValueLoader<T, T> = ValueLoader("ReceiverGrid", typeToken, typeToken)
 
     fun addRenderBlock(newRenderBlock: RenderableElement<T, *>): PrettyGrid<T>{
         renderBlocksBacking.add(newRenderBlock)
@@ -83,11 +85,12 @@ class PrettyValueGrid<T: Any, V: Any>(
     val hostTypeToken :TypeToken<T>,
     valueToken: TypeToken<V>,
     options: CommonRowOptions = RowOptions(),
-) : PrettyGridBase<V>(valueToken, PrettyHelper.toRowOptions(options)), RenderableElement<T, V>{
+) : PrettyGridBase<V>(valueToken, PrettyHelper.toRowOptions(options)), RenderableElement<T, V>
+{
 
     internal val singleLoader: ValueLoader<T, V> = ValueLoader("ReceiverGrid", hostTypeToken, typeToken)
-    internal val listLoader = ListValueLoader("ReceiverGrid", hostTypeToken, typeToken)
 
+    internal val listLoader = ListValueLoader("ReceiverGrid", hostTypeToken, typeToken)
 
     override fun renderOnHost(host: T, opts: CommonRowOptions?): String =
         render(host, opts)
@@ -114,6 +117,7 @@ class PrettyValueGrid<T: Any, V: Any>(
             val stringBuilder = StringBuilder()
             val values = listLoader.resolveValue(receiver, Throwing)
             for (value in values){
+                valuesAction?.invoke(value)
                 val render = render(value, opts)
                 stringBuilder.appendLine(render)
             }

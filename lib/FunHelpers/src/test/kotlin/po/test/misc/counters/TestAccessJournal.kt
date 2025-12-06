@@ -3,6 +3,7 @@ package po.test.misc.counters
 import org.junit.jupiter.api.Test
 import po.misc.context.component.Component
 import po.misc.counters.AccessJournal
+import po.misc.counters.JournalBase
 import po.misc.counters.records.AccessRecord
 import po.misc.counters.createAccessJournal
 import po.misc.counters.createRecord
@@ -37,11 +38,11 @@ class TestAccessJournal: Component, Templated {
         val instance1 = Instance1()
         val record: AccessRecord<TestAccess> = instance1.createRecord(accessJournal)
         val noKeyOption = KeyedCellOptions(showKey = false)
-        val prettyRow = record.buildPrettyRow { journal ->
-           // addCell(journal::formatedTime, noKeyOption)
-          //  addCell(journal::message)
-          //  addCell(journal::hostName)
-          //  addCell(journal::entryType, noKeyOption)
+        val prettyRow = buildPrettyRow<AccessRecord<TestAccess>> {
+            addCell(AccessRecord<TestAccess>::formatedTime, noKeyOption)
+            addCell(AccessRecord<TestAccess>::message)
+            addCell(AccessRecord<TestAccess>::hostName)
+            addCell(AccessRecord<TestAccess>::entryType, noKeyOption)
         }
         assertEquals(4, prettyRow.cells.size)
         val result = prettyRow.renderAny(record)

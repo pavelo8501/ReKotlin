@@ -1,6 +1,8 @@
 package po.test.misc.data.pretty_print.grid
 
+import po.misc.data.pretty_print.Templated
 import po.misc.data.pretty_print.cells.KeyedCell
+import po.misc.data.pretty_print.grid.PrettyValueGrid
 import po.misc.data.pretty_print.grid.buildPrettyGrid
 import po.misc.data.pretty_print.grid.buildPrettyGridList
 import po.misc.data.pretty_print.rows.PrettyRow
@@ -11,7 +13,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-class TestRowContainer : PrettyTestBase() {
+class TestRowContainer : PrettyTestBase(), Templated {
 
     @Test
     fun `Row container's grid builder work as expected`() {
@@ -58,4 +60,61 @@ class TestRowContainer : PrettyTestBase() {
         }
         assertTrue{ grid.listLoader.hasProperty }
     }
+
+    @Test
+    fun ` RowContainer's build row correctly creates nested row with transition`(){
+        val grid = buildPrettyGrid<PrintableRecord> {
+            buildRow {
+                addCell(PrintableRecord::name)
+            }
+            buildRow(PrintableRecord::subClass){
+                addCell(PrintableRecordSubClass::subName)
+            }
+        }
+        assertNotNull(grid.rows.firstOrNull()) { firstRow ->
+            val prettyRow = assertIs<PrettyRow<PrintableRecord>>(firstRow)
+            val firstCell = assertNotNull(prettyRow.cells.firstOrNull())
+            assertIs<KeyedCell<PrintableRecord>>(firstCell)
+            assertEquals(PrintableRecord::class, firstCell.typeToken.kClass)
+        }
+        assertEquals(1, grid.rows.size)
+        assertNotNull(grid.renderBlocks.getOrNull(1)) { renderBlock ->
+            val prettyGrid = assertIs<PrettyValueGrid<PrintableRecord, PrintableRecordSubClass>>(renderBlock)
+            assertNotNull(prettyGrid.singleLoader.propertyBacking)
+            assertNotNull(prettyGrid.rows.firstOrNull()){prettyRow->
+                val firstCell = assertNotNull(prettyRow.cells.firstOrNull())
+                assertIs<KeyedCell<PrintableRecordSubClass>>(firstCell)
+                assertEquals(PrintableRecordSubClass::class, firstCell.typeToken.kClass)
+            }
+        }
+    }
+
+    @Test
+    fun ` RowContainer's buildRowList correctly creates nested row with transition`(){
+        val grid = buildPrettyGrid<PrintableRecord> {
+            buildRow {
+                addCell(PrintableRecord::name)
+            }
+            buildRowList(PrintableRecord::elements){
+                addCell(PrintableElement::elementName)
+            }
+        }
+        assertNotNull(grid.rows.firstOrNull()) { firstRow ->
+            val prettyRow = assertIs<PrettyRow<PrintableRecord>>(firstRow)
+            val firstCell = assertNotNull(prettyRow.cells.firstOrNull())
+            assertIs<KeyedCell<PrintableRecord>>(firstCell)
+            assertEquals(PrintableRecord::class, firstCell.typeToken.kClass)
+        }
+        assertEquals(1, grid.rows.size)
+        assertNotNull(grid.renderBlocks.getOrNull(1)) { renderBlock ->
+            val prettyGrid = assertIs<PrettyValueGrid<PrintableRecord, PrintableElement>>(renderBlock)
+            assertNotNull(prettyGrid.listLoader.propertyBacking)
+            assertNotNull(prettyGrid.rows.firstOrNull()){prettyRow->
+                val firstCell = assertNotNull(prettyRow.cells.firstOrNull())
+                assertIs<KeyedCell<PrintableElement>>(firstCell)
+                assertEquals(PrintableElement::class, firstCell.typeToken.kClass)
+            }
+        }
+    }
+
 }

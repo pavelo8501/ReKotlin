@@ -52,7 +52,6 @@ fun KProperty1<Any, *>.readValueAsString(receiver: Any, onFailureAction : ((Prop
 }
 
 
-
 inline fun <reified T: Any> KProperty0<*>.tryResolveToReadOnly(): KProperty1<T, *>? {
     val kClass = T::class
     return kClass.memberProperties.firstOrNull { it.name == this.name }

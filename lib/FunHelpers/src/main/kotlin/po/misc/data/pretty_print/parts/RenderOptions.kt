@@ -107,14 +107,14 @@ class CellRender(
 
     fun assignParameters(prettyRow: PrettyRow<*>):CellRender{
         if(canRecalculate){
-            rowMaxSize = prettyRow.options.render.defaultWidth
+            rowMaxSize = prettyRow.options.render.value
             cellsCount = prettyRow.cells.size
         }
         return this
     }
 
     fun assignFinalize(prettyRow: PrettyRow<*>):CellRender{
-        rowMaxSize = prettyRow.options.render.defaultWidth
+        rowMaxSize = prettyRow.options.render.value
         cellsCount = prettyRow.cells.size
         canRecalculate = false
         return this

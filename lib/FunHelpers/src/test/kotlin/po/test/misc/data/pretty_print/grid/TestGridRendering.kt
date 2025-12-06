@@ -15,7 +15,6 @@ class TestGridRendering : PrettyTestBase(){
             addCell(PrintableRecordSubClass::subName)
         }
     }
-
     private val elementGrid = buildPrettyGrid<PrintableElement>{
         buildRow {
             addCell(PrintableElement::elementName)
@@ -48,7 +47,6 @@ class TestGridRendering : PrettyTestBase(){
         val render =  grid.render(record)
         assertTrue { render.contains(headerText) }
         assertTrue { render.contains(subName) }
-        render.output()
     }
 
     @Test
@@ -58,8 +56,14 @@ class TestGridRendering : PrettyTestBase(){
             buildRow {
                 addCell(headerText)
             }
-          //  useTemplate(elementGrid, PrintableRecord::elements)
+            useListTemplate(elementGrid, PrintableRecord::elements)
         }
+        val record = createRecord()
+        val elementName = record.elements.first().elementName
+        val render =  grid.render(record)
+        render.output()
+        assertTrue { render.contains(headerText) }
+        assertTrue { render.contains(elementName) }
 
     }
 

@@ -16,11 +16,10 @@ inline fun <reified T: Templated> T.buildPrettyGrid(builder: PrettyGrid<T>.() ->
 
 inline fun <reified T: Templated> T.buildPrettyRow(
     rowOptions: RowOptions? = null,
-    builder: CellReceiverContainer<T, T>.(T)-> Unit
+    noinline builder: CellContainer<T>.()-> Unit
 ): PrettyRow<T> {
     val options = PrettyHelper.toRowOptionsOrDefault(rowOptions)
     val token = TypeToken.create<T>()
-    val container = CellReceiverContainer<T, T>(token, token,  options)
-    val realRow = PrettyRow<T>(container)
-    return realRow
+    val container = CellContainer<T>(token, options)
+    return container.buildRow(builder)
 }
