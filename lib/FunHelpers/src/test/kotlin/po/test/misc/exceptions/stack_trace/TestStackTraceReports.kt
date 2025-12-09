@@ -1,12 +1,11 @@
 package po.test.misc.exceptions.stack_trace
 
-import org.junit.jupiter.api.Test
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.output.output
-import po.misc.exceptions.TraceCallSite
-import po.misc.exceptions.stack_trace.CallSiteReport
-import po.misc.exceptions.stack_trace.ExceptionTrace
-import po.misc.exceptions.trace
+import po.misc.debugging.stack_tracer.CallSite
+import po.misc.exceptions.extractTrace
+import po.misc.debugging.stack_tracer.reports.CallSiteReport
+import po.misc.debugging.stack_tracer.ExceptionTrace
 import po.test.misc.exceptions.setup.TraceNotifier
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -16,9 +15,10 @@ class TestStackTraceReports {
 
     class SubClass() : TraceableContext {
         fun createTrace(): ExceptionTrace {
-            return trace(TraceCallSite("TestStackTraceReports", ::createTrace))
+            return extractTrace(CallSite("TestStackTraceReports", ::createTrace))
         }
     }
+
     private val notifier = TraceNotifier(notifyOnValue = 300)
 
     fun intermediaryMethod(value: Int): ExceptionTrace? {

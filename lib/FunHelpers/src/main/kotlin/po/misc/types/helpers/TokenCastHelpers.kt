@@ -1,7 +1,7 @@
 package po.misc.types.helpers
 
 import po.misc.data.output.output
-import po.misc.exceptions.stack_trace.extractTrace
+import po.misc.debugging.stack_tracer.extractTrace
 import po.misc.exceptions.throwableToText
 import po.misc.types.token.Tokenized
 import po.misc.types.token.TypeToken

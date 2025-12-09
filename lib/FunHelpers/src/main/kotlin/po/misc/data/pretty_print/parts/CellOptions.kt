@@ -21,7 +21,6 @@ sealed interface CellOptions: CommonCellOptions{
     val id: Enum<*>?
 
     var usePlain: Boolean
-    val orientation: Orientation
     val renderLeftBorder: Boolean
     val renderRightBorder: Boolean
 }
@@ -37,13 +36,7 @@ data class TextStyleOptions(
     var style: TextStyle = TextStyle.Regular,
     var colour: Colour? = null,
     var backgroundColour: BGColour? = null,
-){
-
-    fun copy():TextStyleOptions{
-        return TextStyleOptions(style, colour, backgroundColour)
-    }
-
-}
+)
 
 /**
  * Standard implementation of [CellOptions].
@@ -58,31 +51,37 @@ data class TextStyleOptions(
  * - constructing from row-level options such as [CommonRowOptions].
  */
 class Options(
-    override val width: Int = 0,
-    override val alignment: Align = Align.LEFT,
-    override val styleOptions: TextStyleOptions = TextStyleOptions(),
-    private val emptySpaceFiller: Char? = null,
-    override val id: Enum<*>? = null
+    override var width: Int = 0,
+    override var alignment: Align = Align.LEFT,
+    override var styleOptions: TextStyleOptions = TextStyleOptions(),
+    private  val emptySpaceFiller: Char? = null,
+    override var id: Enum<*>? = null
 ): CellOptions {
 
     constructor(alignment: Align):this(width =0, alignment)
     constructor(id: Enum<*>, alignment: Align = Align.LEFT):this(width =0, alignment, id = id)
     constructor(alignment: Align, colour: Colour):this(width = 0, alignment, TextStyleOptions(colour = colour))
-
-    constructor(commonRowOptions: CommonRowOptions):this(){
-        orientation = commonRowOptions.orientation
-    }
     constructor(keyedOptions: KeyedOptions):this(
         keyedOptions.width,
         keyedOptions.alignment,
         keyedOptions.styleOptions,
-        id= keyedOptions.id
+        id = keyedOptions.id
     )
+    constructor(rowOptions: RowOptions): this(){
+        val cellOptions = rowOptions.cellOptions
+        if(cellOptions != null){
+            width = cellOptions.width
+            alignment = cellOptions.alignment
+            styleOptions = cellOptions.styleOptions
+            id = cellOptions.id
+        }
+        usePlain = rowOptions.usePlain
+    }
+
     override var usePlain: Boolean = true
     override val spaceFiller: Char get() = emptySpaceFiller.orDefault()
-    override var orientation: Orientation = Orientation.Horizontal
-    var cellsCount: Int = 1
 
+    var cellsCount: Int = 1
     override var renderLeftBorder: Boolean = true
     override var renderRightBorder: Boolean = true
 
@@ -117,17 +116,16 @@ data class KeyedOptions(
     override val id: Enum<*>? = null
 ): CellOptions {
 
-    constructor(preset: KeyedPresets, id: Enum<*>? = null):this(width = 0, preset.align, preset.styleOptions.copy(), preset.keyStyleOptions.copy(), id = id)
+    constructor(preset: KeyedPresets, id: Enum<*>? = null):this(width = 0, preset.align, preset.styleOptions, preset.keyStyleOptions, id = id)
+    constructor(cellOptions: CellOptions):this(cellOptions.width, cellOptions.alignment, cellOptions.styleOptions){
+        usePlain = cellOptions.usePlain
 
-    constructor(cellOptions: CellOptions):this(cellOptions.width, cellOptions.alignment, cellOptions.styleOptions)
+    }
+
     override val spaceFiller: Char get() = emptySpaceFiller.orDefault()
-
-
-    override var orientation: Orientation = Orientation.Horizontal
     override var usePlain: Boolean = false
     override var renderLeftBorder: Boolean = true
     override var renderRightBorder: Boolean = true
 
     override fun asOptions(): Options = Options(this)
-
 }

@@ -1,8 +1,6 @@
 package po.misc.data
 
-import po.misc.data.pretty_print.section.PrettySection
-import kotlin.reflect.KProperty0
-import kotlin.reflect.KProperty1
+
 
 
 interface PrettyPrint: TextBuilder {
@@ -10,8 +8,9 @@ interface PrettyPrint: TextBuilder {
 }
 
 interface PrettyFormatted {
-    fun formatted(sections: Collection<Enum<*>>? = null): String
-    fun formatted(vararg sections: Enum<*>): String = formatted(sections.toList())
+
+    fun formatted(renderOnly: List<Enum<*>>? = null): String
+    fun formatted(vararg renderOnly: Enum<*>): String = formatted(renderOnly.toList())
 }
 
 

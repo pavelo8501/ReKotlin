@@ -1,7 +1,10 @@
 package po.misc.data.pretty_print.rows
 
+import po.misc.callbacks.signal.Signal
+import po.misc.callbacks.signal.signalOf
 import po.misc.collections.asList
 import po.misc.collections.indexed.Indexed
+import po.misc.collections.reactive_list.ReactiveList
 import po.misc.context.tracable.TraceableContext
 import po.misc.counters.LogJournal
 import po.misc.data.pretty_print.RenderableElement
@@ -13,10 +16,13 @@ import po.misc.data.pretty_print.cells.ReceiverAwareCell
 import po.misc.data.pretty_print.cells.StaticCell
 import po.misc.data.pretty_print.parts.CellOptions
 import po.misc.data.pretty_print.parts.CommonRowOptions
+import po.misc.data.pretty_print.parts.Options
+import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.parts.PrettyHelper
 import po.misc.data.pretty_print.parts.RenderDefaults
 import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.parts.RowPresets
+import po.misc.data.pretty_print.parts.rows.RowParams
 import po.misc.data.strings.stringify
 import po.misc.data.styles.SpecialChars
 import po.misc.types.safeCast
@@ -34,99 +40,111 @@ import po.misc.types.token.TypeToken
  */
 class PrettyRow<T: Any>(
     val typeToken: TypeToken<T>,
-    private var initialCells: List<PrettyCellBase>,
-    var options: RowOptions = RowOptions(RenderDefaults.Console220),
-): RenderableElement<T, T>, TraceableContext, Indexed{
+    override var options: RowOptions = RowOptions(RenderDefaults.Console220),
+    initialCells: List<PrettyCellBase> = emptyList(),
+): RenderableElement<T>, TraceableContext{
 
-    constructor(container: CellContainerBase<T>):this(container.typeToken,  container.cells,  container.options)
+    constructor(container: RowContainerBase<T, T>):this(container.typeToken, container.options,  container.cells)
 
-    var id : Enum<*>?
-        get() = options.id
+    private val cellsBacking: MutableList<PrettyCellBase> = mutableListOf()
+
+    override var id : Enum<*>?
+        get() = options.rowId
         set(value) {
-            options.id = value
+            options.rowId = value
         }
 
-    override val ids: List<Enum<*>> get() = options.id?.asList()?:emptyList()
-
-    internal val cellsBacking: MutableList<PrettyCellBase> = mutableListOf()
-    val cells : List<PrettyCellBase> get() = cellsBacking
-
-    var myIndex: Int = 0
-        private set
-    var ofCount: Int = 0
-        private set
-
-    val isFirst: Boolean get() = myIndex == 0
-    val isLast: Boolean get() = myIndex == ofCount - 1
+    var orientation: Orientation
+        get() =  options.orientation
+        set(value) {
+            options.orientation = value
+        }
 
     val prettyCells: List<PrettyCell> get() = cellsBacking.filterIsInstance<PrettyCell>()
     val staticCells: List<StaticCell> get() = cellsBacking.filterIsInstance<StaticCell>()
     val keyedCells: List<KeyedCell<*>> get() = cellsBacking.filterIsInstance<KeyedCell<*>>()
     val computedCells: List<ComputedCell<*, *>> get() = cellsBacking.filterIsInstance<ComputedCell<*, *>>()
+    val cells : List<PrettyCellBase> get() = cellsBacking
 
     val size: Int get() = cells.size
     val rowMaxWidth: Int get()  = cells.maxOf { it.cellOptions.width }
 
-
-    val journal : LogJournal = LogJournal(this)
+    val beforeRowRender: Signal<RowParams<T>, Unit> = signalOf<RowParams<T>, Unit>()
+    val afterRowRender: Signal<RowParams<T>, Unit> = signalOf<RowParams<T>, Unit>()
 
     init {
         setCells(initialCells)
     }
 
-    override fun toString(): String {
-        val prettyCells = "PrettyCells: ${prettyCells.size}"
-        val keyedCells = "PrettyCells: ${keyedCells.size}"
-        val staticCells = "PrettyCells: ${staticCells.size}"
-        return "PrettyRow[Total: ${cells.size},$prettyCells,$staticCells, $keyedCells ]"
-    }
-
-    fun renderAsList(receiver: T, rowOptions: CommonRowOptions?): List<String> {
-
-        fun renderSelection(receiver:T,  cell: PrettyCellBase, cellOptions: CellOptions?): String {
-            return when (cell) {
-                is ReceiverAwareCell<*> -> {
-                    val casted = cell.safeCast<ReceiverAwareCell<T>>()
-                    casted?.render(receiver, cellOptions) ?: ""
-                }
-                is StaticCell -> cell.render(cellOptions)
-                else -> cell.render(receiver.stringify().formatedText, cellOptions)
+    private fun renderSelection(receiver:T, cell: PrettyCellBase, cellOptions: CellOptions?): String {
+        return when (cell) {
+            is ReceiverAwareCell<*> -> {
+                val casted = cell.safeCast<ReceiverAwareCell<T>>()
+                casted?.render(receiver, cellOptions) ?: ""
             }
+            is StaticCell -> cell.render(cellOptions)
+            else -> cell.render(receiver.stringify().formatedText, cellOptions)
         }
-        val resultList = mutableListOf<String>()
-        val options = PrettyHelper.toOptionsOrNull(rowOptions)
-        val cellsToRender = cells
-        val cellCount = cellsToRender.size
-        val cellsToTake = (cellCount - 1).coerceAtLeast(0)
-
-        cellsToRender.take(cellsToTake).forEach {cell->
-            val render =   renderSelection(receiver, cell, options)
-            resultList.add(render)
-        }
-        cellsToRender.lastOrNull()?.let {lastCell->
-            val render =   renderSelection(receiver, lastCell, options)
-            resultList.add(render)
-        }
-        return resultList
     }
+
 
     /**
      * Renders this row using a typed receiver.
      *
-     * If [commonRowOptions] is provided, it will be converted into [CellOptions]
+     * If [opts] is provided, it will be converted into [CellOptions]
      * and applied during rendering.
      *
      * @param receiver the object used to populate the row's cells
-     * @param commonRowOptions optional preset controlling styling and layout
+     * @param opts optional preset controlling styling and layout
      * @return the rendered row text
      */
-    fun render(receiver: T, commonRowOptions: CommonRowOptions? = null):String{
-        val renderedList = renderAsList(receiver, commonRowOptions)
-        return renderedList.joinToString(separator = SpecialChars.EMPTY)
-    }
+    fun render(
+        receiver: T,
+        opts: CommonRowOptions? = null,
+        optionsBuilder: (RowOptions.()-> Unit)? = null
+    ):String{
 
+        val resultList = mutableListOf<String>()
+        val useOptions = PrettyHelper.toRowOptions(options, opts)
+        optionsBuilder?.invoke(useOptions)
+        orientation = useOptions.orientation
+
+     //   val cellOptions = PrettyHelper.toOptions(useOptions)
+        val cellsToRender = cells
+        val cellCount = cellsToRender.size
+        val cellsToTake = (cellCount - 1).coerceAtLeast(0)
+        beforeRowRender.trigger(RowParams(this, useOptions))
+        cellsToRender.take(cellsToTake).forEach {cell->
+            val render =  renderSelection(receiver, cell, null)
+            resultList.add(render)
+        }
+        cellsToRender.lastOrNull()?.let {lastCell->
+            val render = renderSelection(receiver, lastCell, null)
+            resultList.add(render)
+        }
+        val render = if(orientation == Orientation.Vertical){
+            resultList.joinToString(separator = SpecialChars.NEW_LINE)
+        }else{
+            resultList.joinToString(separator = SpecialChars.EMPTY)
+        }
+        afterRowRender.trigger(RowParams(this, useOptions, render))
+        return render
+    }
     override fun renderOnHost(host: T, opts: CommonRowOptions?): String {
         return render(host, opts)
+    }
+
+    fun render(
+        receiverList: List<T>,
+        opts: CommonRowOptions? = null,
+        optionsBuilder: (RowOptions.()-> Unit)? = null
+    ):String{
+        val useOptions = PrettyHelper.toRowOptions(opts, options)
+        optionsBuilder?.invoke(useOptions)
+        orientation = useOptions.orientation
+
+        val resultList =  receiverList.map { render(it, null) }
+        return resultList.joinToString(separator = SpecialChars.NEW_LINE)
     }
 
     /**
@@ -136,23 +154,23 @@ class PrettyRow<T: Any>(
      * is not desired.
      *
      * @param values the formatted values to render in this row
-     * @param rowPreset optional preset controlling styling and layout
+     * @param opts optional preset controlling styling and layout
      * @return rendered row text
      */
-    fun render(values: List<Any>, rowOptions: CommonRowOptions? = null): String {
-
+    fun render(values: List<Any>, opts: CommonRowOptions? = null): String {
         fun renderPrettyCell(receiver: Any, cell: PrettyCell, cellOptions: CellOptions?): String {
             return cell.render(receiver, cellOptions)
         }
-
         val resultList = mutableListOf<String>()
-        val options = PrettyHelper.toOptionsOrNull(rowOptions)
-
+        val options = PrettyHelper.toOptionsOrNull(opts)
+       // val cellsToRender = cells
+       // val cellCount = cellsToRender.size
+      //  val cellsToTake = (cellCount - 1).coerceAtLeast(0)
         val valuesList = values.toList()
         valuesList.forEach {value->
-
-            if(value::class == typeToken.kClass){
-                val render = render(value as T, rowOptions)
+            val casted = value.safeCast(typeToken)
+            if(casted != null){
+                val render = render(casted, opts)
                 resultList.add(render)
             }else{
                 val prettyCells = cells.filterIsInstance<PrettyCell>()
@@ -168,22 +186,27 @@ class PrettyRow<T: Any>(
     fun renderAny(vararg values: Any, rowOptions: CommonRowOptions? = null): String{
         return render(values.toList(), rowOptions)
     }
+    fun applyOptions(opt: CommonRowOptions?): PrettyRow<T>{
+        if(opt != null){
+            options = when(opt){
+                is RowOptions -> opt
+                is RowPresets -> PrettyHelper.toRowOptions(opt)
+            }
+        }
+        return this
+    }
 
     fun setCells(newCells: List<PrettyCellBase>){
-        cellsBacking.clear()
-        newCells.forEachIndexed { index, cell->
-            cell.index = index
-            cellsBacking.add(cell)
+        if(newCells.isNotEmpty()){
+            cellsBacking.clear()
+            newCells.forEachIndexed { index, cell->
+                cell.row = this
+                cell.index = index
+                cellsBacking.add(cell)
+            }
         }
     }
-
-    fun applyOptions(opt: CommonRowOptions? ){
-        opt?.let {
-            it
-        }
-    }
-
-    fun setCells(cell:  PrettyCellBase,  vararg newCells: PrettyCellBase): Unit{
+    fun setCells(cell:  PrettyCellBase,  vararg newCells: PrettyCellBase){
         val newList = buildList {
             add(cell)
             addAll(newCells.toList())
@@ -191,33 +214,34 @@ class PrettyRow<T: Any>(
         setCells(newList)
     }
 
-
-    fun setRowOptions(newOptions: RowOptions?):PrettyRow<T>{
-        if(newOptions!= null){
-            options = newOptions
-        }
-        return this
+    fun beforeRowRender(callback: (RowParams<T>) -> Unit){
+        beforeRowRender.onSignal(callback)
     }
 
-    override fun setIndex(index: Int, ofSize: Int) {
-        myIndex = index
-        ofCount = ofSize
+    override fun toString(): String {
+        val static = "Static: ${staticCells.size}"
+        val keyed = "Keyed: ${keyedCells.size}"
+        val computed = "Computed: ${computedCells.size}"
+        val pretty = "Pretty: ${prettyCells.size}"
+        return "PrettyRow[Total: ${cells.size}, $static, $keyed, $computed, $pretty]"
     }
 
     companion object{
-        operator fun invoke(vararg cells: PrettyCellBase):PrettyRow<String>{
+
+        operator fun invoke(cells: List<PrettyCellBase>, options: RowOptions? = null):PrettyRow<String>{
             val  typeToken: TypeToken<String> = TypeToken.create()
-            return PrettyRow(typeToken, cells.toList())
+            val row = PrettyRow(typeToken, initialCells = cells)
+            return  row.applyOptions(options)
         }
 
-        operator fun invoke(cells: List<PrettyCellBase>):PrettyRow<String>{
-            val  typeToken: TypeToken<String> = TypeToken.create()
-            return PrettyRow(typeToken, cells)
+        operator fun invoke(vararg cells: PrettyCellBase,  options: RowOptions? = null):PrettyRow<String>{
+            return invoke(cells.toList(), options)
         }
 
-        inline operator fun <reified T: Any> invoke(vararg cells: KeyedCell<T>):PrettyRow<T>{
+        inline operator fun <reified T: Any> invoke(vararg cells: KeyedCell<T>,  options: RowOptions? = null):PrettyRow<T>{
             val  typeToken: TypeToken<T> = TypeToken.create()
-            return PrettyRow(typeToken, cells.toList())
+            val row = PrettyRow(typeToken, initialCells = cells.toList())
+            return row.applyOptions(options)
         }
     }
 }

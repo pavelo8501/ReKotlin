@@ -2,71 +2,101 @@ package po.misc.exceptions
 
 import po.misc.context.tracable.TraceableContext
 import po.misc.coroutines.CoroutineInfo
-import po.misc.debugging.ClassResolver
-import po.misc.debugging.models.InstanceInfo
-import po.misc.exceptions.models.CTXResolutionFlag
-import po.misc.exceptions.stack_trace.ExceptionTrace
-import po.misc.exceptions.stack_trace.extractTrace
-import po.misc.exceptions.trackable.TrackableException
+import po.misc.coroutines.coroutineInfo
+import po.misc.debugging.classifier.PackageClassifier
+import po.misc.debugging.stack_tracer.TraceOptions
+import po.misc.debugging.stack_tracer.ExceptionTrace
+import po.misc.debugging.stack_tracer.extractTrace
 import java.time.Instant
+import kotlin.coroutines.CoroutineContext
 import kotlin.reflect.KClass
-import kotlin.reflect.KFunction
 
 
-open class ContextTracer(
-    val context: TraceableContext,
-    val flag: CTXResolutionFlag = CTXResolutionFlag.Resolvable,
-    override val message: String? = null
-): Throwable("TraceableContext${message}"), TrackableException {
+/**
+ * Base contract for exceptions that can be traced and resolved in a structured way.
+ *
+ * Unlike plain [Throwable], this interface introduces:
+ * - [exceptionTrace] – a structured trace of the exception’s origin,
+ * - [self] – a strongly typed reference to the implementing throwable,
+ * - [contextClass] – the class that provides contextual information for this exception.
+ *
+ * ### Why `self`?
+ * Since `Throwable` is a class (not an interface), we can’t directly inherit it
+ * and keep everything generic.
+ * The `self` reference makes it possible to safely use the concrete throwable
+ * type in generic resolution/utility functions without unsafe casts.
+ *
+ * ### Example
+ * ```kotlin
+ * class ContextTracer(
+ *     val context: TraceableContext,
+ *     val flag: CTXResolutionFlag,
+ *     override val message: String? = null
+ * ) : Throwable("TraceableContext${message}"), TrackableException {
+ *
+ *     override val self: ContextTracer = this
+ *     override val contextClass: KClass<*> = context::class
+ *     override val exceptionTrace: ExceptionTrace = metaFrameTrace(contextClass, 3)
+ * }
+ * ```
+ */
+interface TraceException{
+    val trace: ExceptionTrace
+    var coroutineInfo: CoroutineInfo?
+}
 
-    override val self: ContextTracer = this
-    override val contextClass: KClass<*> = context::class
+abstract class ContextTracer(
+    message: String = "",
+    val options: TraceOptions = TraceOptions.Default,
+): Throwable("TraceableContext${message}"), TraceException {
+
+    val created: Instant = Instant.now()
+    val firstElement : StackTraceElement get() = stackTrace.first()
+
     override var coroutineInfo: CoroutineInfo? = null
-    override val exceptionTrace: ExceptionTrace = extractTrace()
+    override var trace : ExceptionTrace  = extractTrace()
+
+    fun createTrace(options: TraceOptions, classifier: PackageClassifier? = null):ExceptionTrace{
+        val exTrace =  this.extractTrace(options, analyzeDepth = 50,  classifier)
+        trace =  exTrace
+        return exTrace
+    }
+
 }
 
 open class Tracer(
-    override val message: String = "",
-    var printImmediately: Boolean = true,
-): Throwable() {
-    val created: Instant = Instant.now()
+     message: String,
+     options: TraceOptions = TraceOptions.Default,
+     val classifier: PackageClassifier? = null
+): ContextTracer(message, options){
 
-    val firstTraceElement : StackTraceElement get() = stackTrace.first()
+    constructor(
+        options: TraceOptions = TraceOptions.Default,
+        classifier: PackageClassifier? = null
+    ):this(message = "", options = options, classifier = classifier)
 
-    fun resolveTrace(context: TraceableContext):ExceptionTrace = extractTrace()
-}
-
-interface TracerOptions{
-    object Trace : TracerOptions
-    object InstanceInfo : TracerOptions
-}
-
-
-fun TraceableContext.trace():  ExceptionTrace{
-    return Tracer().extractTrace()
-}
-
-fun TraceableContext.trace(options: TraceOptions):  ExceptionTrace{
-    val tracer = Tracer()
-   val trace = when(options){
-        is TraceCallSite ->{
-
-            tracer.extractTrace(options)
-        }
-    }
-    return trace
+    override var trace : ExceptionTrace = extractTrace(options)
 }
 
 
-fun TraceableContext.trace(classInfo: TracerOptions.InstanceInfo): InstanceInfo{
-    val tracer =  Tracer()
-    val trace =  tracer.resolveTrace(this)
-    val instanceInfo = ClassResolver.resolveInstance(this).addTraceInfo(trace)
-    return instanceInfo
+fun TraceableContext.extractTrace(
+    options: TraceOptions = TraceOptions.Default,
+    classifier: PackageClassifier? = null
+):  ExceptionTrace{
+    return Tracer(options =   options, classifier =  classifier).trace
 }
 
-fun TraceableContext.trace(throwable: Throwable): ExceptionTrace{
-    return throwable.extractTrace()
-}
+fun TraceableContext.extractTrace(
+    throwable: Throwable,
+    options: TraceOptions = TraceOptions.Default
+): ExceptionTrace = throwable.extractTrace(options)
+
+
+fun <T: ContextTracer> T.provideContext(methodName: String, contextClass:  KClass<*>, context: CoroutineContext):T
+        = apply { coroutineInfo = context.coroutineInfo(contextClass, methodName)  }
+
+fun <T: ContextTracer> T.provideContext(context: CoroutineContext):T
+        = apply { coroutineInfo = context.coroutineInfo() }
+
 
 

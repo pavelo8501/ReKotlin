@@ -9,7 +9,6 @@ import po.misc.data.pretty_print.formatters.text_modifiers.StaticModifiers
 import po.misc.data.pretty_print.formatters.text_modifiers.TextModifier
 import po.misc.data.pretty_print.parts.CellOptions
 import po.misc.data.pretty_print.parts.CommonCellOptions
-import po.misc.data.pretty_print.parts.Options
 import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.parts.PrettyBorders
 import po.misc.data.pretty_print.parts.PrettyHelper
@@ -23,15 +22,16 @@ sealed class PrettyCellBase(
     open var row: PrettyRow<*>?
 ){
 
+    private val cellsCount: Int get() = row?.size?:1
+
     var index: Int = 0
         internal set
 
-    val staticModifiers : StaticModifiers = StaticModifiers()
+    val orientation: Orientation get() = row?.orientation?: Orientation.Horizontal
     var postfix: String? = null
 
-    val borders : PrettyBorders = PrettyBorders('|', '|')
-
-    private val cellsCount: Int get()  = row?.size?:1
+    val staticModifiers: StaticModifiers = StaticModifiers()
+    val borders: PrettyBorders = PrettyBorders('|', '|')
 
     val textFormatter: DynamicTextFormatter = DynamicTextFormatter{ text, cell, ->
         if(postfix != null){
@@ -70,34 +70,30 @@ sealed class PrettyCellBase(
         }
     }
     protected fun justifyText(text: String, renderOptions: CellOptions): String {
-        val useWidth =  calculateEffectiveWidth(renderOptions)
+        val useWidth = calculateEffectiveWidth(renderOptions)
         val useAlignment = cellOptions.alignment
         val useFiller = cellOptions.spaceFiller
-
-        val aligned =  if(renderOptions.orientation == Orientation.Vertical){
+        return if (orientation == Orientation.Vertical) {
             text
-        }else{
-            when (useAlignment) {
-                Align.LEFT -> {
-                    text.padEnd(useWidth, useFiller)
-                }
-                Align.RIGHT -> {
-                    text.padStart(useWidth, useFiller)
-                }
+        } else {
+            val aligned = when (useAlignment) {
+                Align.LEFT -> text.padEnd(useWidth, useFiller)
+                Align.RIGHT -> text.padStart(useWidth, useFiller)
                 Align.CENTER -> {
                     val fillerString = useFiller.toString()
                     val diff = useWidth - text.length
-                    val left =  (diff / 2).coerceAtLeast(0)
+                    val left = (diff / 2).coerceAtLeast(0)
                     val right = (diff - left).coerceAtLeast(0)
                     fillerString.repeat(left) + text + fillerString.repeat(right)
                 }
             }
+            borders.render(aligned, this, cellsCount)
         }
-        return if(cellsCount > 1){
-            borders.render(aligned, renderOptions)
-        }else{
-            aligned
-        }
+    }
+
+    internal fun setRow(prettyRow: PrettyRow<*>): PrettyCellBase{
+        row = prettyRow
+        return this
     }
 
     open fun applyOptions(opt: CommonCellOptions?): PrettyCellBase{
@@ -183,8 +179,9 @@ sealed class PrettyCellBase(
         val final = justifyText(formatted,  cellOptions)
         return final
     }
-
     open fun render(formatted: FormattedPair, commonOptions: CommonCellOptions?): String {
+        applyOptions(commonOptions)
+
         val usePlain = true
         val options = PrettyHelper.toOptions(commonOptions, PrettyHelper.toOptions(cellOptions))
         val usedText = if(usePlain){ formatted.text } else { formatted.formatedText }
@@ -194,15 +191,7 @@ sealed class PrettyCellBase(
         return final
     }
 
-  //  fun render(content: String): String = render(content, Options(Orientation.Horizontal))
-
     companion object {
 
-        fun <T:PrettyCellBase> copyParameters(source:T, target :T):T{
-            target.staticModifiers.clear()
-            target.staticModifiers.addModifiers(source.staticModifiers.modifiers)
-            target.cellOptions = source.cellOptions
-            return target
-        }
     }
 }

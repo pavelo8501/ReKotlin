@@ -2,18 +2,26 @@ package po.test.misc.data.pretty_print.setup
 
 import po.misc.collections.repeatBuild
 import po.misc.data.PrettyPrint
+import po.misc.data.pretty_print.Templated
 import po.misc.data.strings.appendGroup
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 
-abstract class PrettyTestBase {
+abstract class PrettyTestBase : Templated {
 
-    enum class Template { Template1, Template2 }
-    enum class CellTemplate { Cell1, Cell2 }
+    enum class Cell { Cell1, Cell2, Cell3, Cell4 }
+    enum class Row { Row1, Row2,  SubTemplateRow }
+    enum class Grid { Grid1, Grid2, SubTemplateGrid }
+
+    protected val headerText1: String = "header_text_1"
+    protected val headerText2: String = "header_text_2"
+
+    protected val templateHeaderText1 = "template_header_text_1"
+    protected val templateHeaderText2 = "template_header_text_2"
 
     class PrintableElement(
         val elementName: String,
-    )
+    ):Templated
 
     class PrintableRecordSubClass(
         val subName: String = "PrintableRecordSubClass",
@@ -37,7 +45,7 @@ abstract class PrettyTestBase {
         val description: String = "Some description of the component",
         val subClass: PrintableRecordSubClass = PrintableRecordSubClass(),
         var elements: List<PrintableElement> = emptyList()
-    ){
+    ): Templated {
         init {
             if(elements.isEmpty()) {
                 elements = listOf(PrintableElement("Element 1"), PrintableElement("Element 2"))
@@ -51,8 +59,6 @@ abstract class PrettyTestBase {
         }
        return PrintableRecord(elements = elements)
     }
-
-
     fun createRecord():PrintableRecord{
         return PrintableRecord()
     }

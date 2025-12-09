@@ -22,6 +22,13 @@ fun <T: Any> T?.asList(): List<T>{
 }
 
 
+fun MutableList<String>.addNotBlank(string: String){
+    if(string.isNotBlank()){
+        add(string)
+    }
+}
+
+
 /**
  * Attempts to insert the given [value] under [key] if the key is not already present.
  *

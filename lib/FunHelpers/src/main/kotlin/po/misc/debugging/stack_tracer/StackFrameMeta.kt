@@ -1,11 +1,14 @@
 package po.misc.debugging.stack_tracer
 
 import po.misc.data.PrettyFormatted
+import po.misc.data.output.output
+import po.misc.data.pretty_print.grid.PrettyGrid
 import po.misc.data.pretty_print.grid.buildPrettyGrid
+import po.misc.data.pretty_print.grid.buildRow
 import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.parts.RowOptions
+import po.misc.data.strings.appendGroup
 import po.misc.debugging.classifier.PackageClassifier
-import po.misc.types.k_class.simpleOrAnon
 
 data class StackFrameMeta(
     val fileName: String,
@@ -22,49 +25,35 @@ data class StackFrameMeta(
     val stackTraceElement: StackTraceElement? = null
 ): PrettyFormatted {
 
-    enum class Template { Short,  ConsoleLink }
-
-    private var reportRender = frameMetaTemplate.render(this, RowOptions(Template.Short))
+    enum class Template { ConsoleLink }
 
     val isHelperMethod: Boolean get() = packageRole == PackageClassifier.PackageRole.Helper
     val isUserCode: Boolean get() = packageRole != PackageClassifier.PackageRole.System
     val consoleLink: String get() = "$classPackage.$simpleClassName.$methodName($fileName:$lineNumber)"
+
     val formattedString: String get() {
-       return reportRender
+       return frameTemplate.render(this){
+           exclude(Template.ConsoleLink)
+       }
     }
-
-    private fun reRender(sections: List<Enum<*>>):String{
-        if(sections.isNotEmpty()){
-            reportRender = frameMetaTemplate.render(this, RowOptions().renderOnly(sections))
-        }
-       return reportRender
-    }
-
-    override fun formatted(sections: Collection<Enum<*>>?): String {
-        return if(sections != null){
-           val list = buildList {
-                add(Template.Short)
-                addAll(sections)
-            }
-            reRender(list)
-        }else{
-            reRender(emptyList())
+    override fun formatted(renderOnly: List<Enum<*>>?): String {
+        return frameTemplate.render(this){
+            renderOnly(renderOnly)
         }
     }
-
     override fun toString(): String {
-        val name = this::class.simpleOrAnon
-        return "$name [Method name: $methodName,  Class name: $simpleClassName, Method name: $methodName,  Is helper: $isHelperMethod]"
+        return buildString {
+            appendGroup("StackFrameMeta[", "]", ::methodName, ::simpleClassName, ::methodName, ::isHelperMethod)
+        }
     }
 
     companion object {
 
-        val frameMetaTemplate = buildPrettyGrid<StackFrameMeta> {
-
-            buildRow(RowOptions(Orientation.Vertical,  Template.Short)){
-               // addCells(StackFrameMeta::methodName, StackFrameMeta::lineNumber, StackFrameMeta::simpleClassName)
+        val frameTemplate: PrettyGrid<StackFrameMeta> = buildPrettyGrid<StackFrameMeta>(Orientation.Vertical) {
+            buildRow(Orientation.Vertical){
+                addCells(StackFrameMeta::methodName, StackFrameMeta::lineNumber, StackFrameMeta::simpleClassName)
             }
-            buildRow(RowOptions(Orientation.Vertical,  Template.ConsoleLink)) {
+            buildRow(Template.ConsoleLink, Orientation.Vertical){
                 addCell(StackFrameMeta::consoleLink)
             }
         }

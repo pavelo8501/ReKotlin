@@ -27,13 +27,6 @@ class StaticCell(
         }
     }
 
-    override fun applyOptions(opt: CommonCellOptions?): StaticCell {
-        opt?.let {
-            cellOptions = PrettyHelper.toOptions(it)
-        }
-        return this
-    }
-
     fun changeContent(newContent: Any):StaticCell{
         content = newContent
         return this
@@ -46,9 +39,16 @@ class StaticCell(
         content = textProvider()
         return this
     }
+
     fun buildText(builderAction: StringBuilder.() -> Unit):StaticCell{
         val result = buildString(builderAction)
         content = result
+        return this
+    }
+    override fun applyOptions(opt: CommonCellOptions?): StaticCell {
+        opt?.let {
+            cellOptions = PrettyHelper.toOptions(it)
+        }
         return this
     }
 
@@ -66,7 +66,6 @@ class StaticCell(
         return final
     }
     fun render(): String = render(Options(Orientation.Horizontal))
-
     override fun render(content: String, commonOptions: CommonCellOptions?): String {
         val options = PrettyHelper.toOptions(commonOptions, cellOptions as Options)
         val entry = content.stringify()
@@ -89,5 +88,6 @@ class StaticCell(
             append(::lockContent)
         }
     }
+
     companion object
 }

@@ -13,15 +13,15 @@ import kotlin.test.assertTrue
 class TestPackageClassifier {
 
     private fun firstTraceElement(): StackTraceElement{
-        return Tracer().firstTraceElement
+        return Tracer().firstElement
     }
 
     private fun firstElementAsHelper(): StackTraceElement{
-        return Tracer().firstTraceElement
+        return Tracer().firstElement
     }
 
     private fun elementByMethodNotMentioned(): StackTraceElement{
-        return Tracer().firstTraceElement
+        return Tracer().firstElement
     }
 
     @Test

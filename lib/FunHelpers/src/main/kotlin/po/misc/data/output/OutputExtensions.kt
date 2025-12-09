@@ -3,16 +3,15 @@ package po.misc.data.output
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.strings.ifNotBlank
 import po.misc.data.strings.stringify
-import po.misc.data.styles.Colorizer
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
 import po.misc.debugging.stack_tracer.StackFrameMeta
 import po.misc.debugging.toFrameMeta
+import po.misc.exceptions.TraceException
 import po.misc.exceptions.Tracer
-import po.misc.exceptions.stack_trace.ExceptionTrace
+import po.misc.debugging.stack_tracer.ExceptionTrace
 import po.misc.exceptions.throwableToText
-import po.misc.exceptions.trackable.TrackableException
 import po.misc.time.TimeHelper
 
 class OutputHelper<T>(
@@ -29,7 +28,7 @@ class OutputHelper<T>(
 internal fun checkDispatcher(){
 
     if(OutputDispatcher.identifyOutput){
-        val frame : StackFrameMeta = Tracer().firstTraceElement.toFrameMeta()
+        val frame : StackFrameMeta = Tracer().firstElement.toFrameMeta()
         println(frame.consoleLink)
     }
 }
@@ -110,8 +109,8 @@ fun Throwable.output(){
         }
     }
     val text =  when(this){
-        is TrackableException->{
-            val trace =  exceptionTraceToFormated(exceptionTrace)
+        is TraceException->{
+            val trace =  exceptionTraceToFormated(trace)
             val coroutineString = coroutineInfo?.output()
             buildString {
                 appendLine(trace)

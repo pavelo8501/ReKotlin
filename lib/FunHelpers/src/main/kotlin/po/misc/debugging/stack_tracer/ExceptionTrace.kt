@@ -1,23 +1,21 @@
-package po.misc.exceptions.stack_trace
+package po.misc.debugging.stack_tracer
 
 import po.misc.data.PrettyPrint
 import po.misc.data.output.output
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.debugging.classifier.PackageClassifier
-import po.misc.debugging.stack_tracer.StackFrameMeta
-import po.misc.exceptions.TraceOptions
+import po.misc.debugging.stack_tracer.reports.CallSiteReport
 import po.misc.exceptions.throwableToText
 import java.time.Instant
 import kotlin.reflect.KClass
-import kotlin.text.appendLine
 
-data class ExceptionTrace(
+class ExceptionTrace(
     val exceptionName: String,
-    val frameMetas: List<StackFrameMeta>,
+    frameMetas: List<StackFrameMeta>,
     val kClass: KClass<*>? = null,
     val type:  TraceOptions.TraceType = TraceOptions.TraceType.Default
-): PrettyPrint{
+): PrettyPrint {
 
     constructor(
         exceptionName: String,
@@ -38,13 +36,17 @@ data class ExceptionTrace(
         contextClass
     )
 
+    var frameMetas: List<StackFrameMeta> = frameMetas
+        internal set
+
     val created: Instant = Instant.now()
 
     var isReliable: Boolean = true
         internal set
+
     var bestPick: StackFrameMeta = frameMetas.first()
 
-    override val formattedString: String =  exceptionName.colorize(Colour.Red).newLine {
+    override val formattedString: String get() = exceptionName.colorize(Colour.Red).newLine {
         bestPick.formattedString
     }
 
@@ -53,11 +55,6 @@ data class ExceptionTrace(
         if(!isReliable){
             "Created ExceptionTrace is considered to be unreliable".output(Colour.Yellow)
         }
-    }
-
-    internal fun setBestPick(frameMeta : StackFrameMeta):ExceptionTrace{
-        bestPick = frameMeta
-        return this
     }
 
     override fun toString(): String {
@@ -78,7 +75,7 @@ data class ExceptionTrace(
             !frame.isThreadEntry &&
             !frame.isCoroutineInternal
         }
-        fun callSiteReport(exceptionTrace: ExceptionTrace):CallSiteReport{
+        fun callSiteReport(exceptionTrace: ExceptionTrace): CallSiteReport {
            return when {
                 exceptionTrace.frameMetas.size <=2 ->{
                     CallSiteReport(exceptionTrace.frameMetas.last(), exceptionTrace.frameMetas.first())

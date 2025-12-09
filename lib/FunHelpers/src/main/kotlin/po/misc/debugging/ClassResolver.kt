@@ -6,12 +6,13 @@ import po.misc.context.component.ComponentID
 import po.misc.context.tracable.TraceableContext
 import po.misc.debugging.models.ClassInfo
 import po.misc.debugging.models.InstanceInfo
-import po.misc.exceptions.trace
+import po.misc.exceptions.extractTrace
 import po.misc.types.k_class.simpleOrAnon
 import kotlin.reflect.KClass
 
 
 interface ClassResolver {
+
     companion object {
 
         fun instanceName(receiver: Any): String {
@@ -48,7 +49,7 @@ interface ClassResolver {
                 else -> classInfo(kClass)
             }
             if(resolveTrace){
-                val bestPickMeta = receiver.trace().bestPick
+                val bestPickMeta = receiver.extractTrace().bestPick
                 classInfo.addTraceInfo(bestPickMeta)
             }
             return classInfo

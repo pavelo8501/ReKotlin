@@ -27,13 +27,24 @@ class PrettyCell(
     row: PrettyRow<*>? = null
 ): PrettyCellBase(prettyCellOptions, row){
 
-    
     constructor(presets: CellPresets):this(){
         applyOptions( presets.toOptions())
     }
-
     constructor(width: Int,  row: PrettyRow<*>? = null):this(row){
         applyOptions(Options(width))
+    }
+
+    fun render(content: Any, commonOptions: CellOptions? = null): String {
+        applyOptions(commonOptions)
+        val text = if(cellOptions.usePlain){
+            content.toString()
+        }else{
+            content.stringify().formatedString
+        }
+        val modified =  staticModifiers.modify(text)
+        val formatted =  compositeFormatter.format(modified, this)
+        val final = justifyText(formatted,  cellOptions)
+        return final
     }
 
     override fun applyOptions(opt: CommonCellOptions?): PrettyCell{
@@ -42,22 +53,6 @@ class PrettyCell(
         }
         return this
     }
-
-    fun render(content: Any, commonOptions: CellOptions? = null): String {
-
-        applyOptions(commonOptions)
-        val text = if(cellOptions.usePlain){
-            content.toString()
-        }else{
-            content.stringify().formatedString
-        }
-
-        val modified =  staticModifiers.modify(text)
-        val formatted =  compositeFormatter.format(modified, this)
-        val final = justifyText(formatted,  cellOptions)
-        return final
-    }
-
     override fun toString(): String {
        return buildString {
            append("PrettyCell")
@@ -65,8 +60,8 @@ class PrettyCell(
            append("width", cellOptions.width)
         }
     }
-    companion object{
 
+    companion object {
         val prettyCellOptions: Options = Options().build {
             usePlain = false
         }

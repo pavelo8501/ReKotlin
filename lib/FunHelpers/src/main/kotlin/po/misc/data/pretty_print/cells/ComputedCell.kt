@@ -5,8 +5,6 @@ import po.misc.data.pretty_print.parts.PrettyHelper
 import po.misc.data.pretty_print.parts.Options
 import po.misc.data.pretty_print.parts.ValueLoader
 import po.misc.data.pretty_print.rows.PrettyRow
-import po.misc.data.strings.append
-import po.misc.data.strings.appendLineParam
 import po.misc.data.strings.appendParam
 import po.misc.data.strings.stringify
 import po.misc.functions.Throwing
@@ -52,7 +50,6 @@ class ComputedCell<T: Any, V: Any>(
         }
         return this
     }
-
     override fun render(receiver: T, commonOptions: CommonCellOptions?): String {
         val value = singleLoader.resolveValue(receiver, Throwing)
         val computed = lambda.invoke(this, value)
@@ -67,7 +64,6 @@ class ComputedCell<T: Any, V: Any>(
         val final = justifyText(formatted, options)
         return final
     }
-
     override fun toString(): String {
         return buildString {
             append("ComputedCell")

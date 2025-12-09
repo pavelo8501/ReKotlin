@@ -6,7 +6,7 @@ import po.misc.data.logging.StructuredLoggable
 import po.misc.data.logging.models.LogMessage
 import po.misc.debugging.classifier.HelperRecord
 import po.misc.debugging.stack_tracer.TraceResolver
-import po.misc.exceptions.stack_trace.CallSiteReport
+import po.misc.debugging.stack_tracer.reports.CallSiteReport
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

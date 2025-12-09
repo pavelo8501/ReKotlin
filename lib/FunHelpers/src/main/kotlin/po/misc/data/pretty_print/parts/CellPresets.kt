@@ -28,37 +28,37 @@ interface CellPresets: CommonCellOptions{
 
     object KotlinClass : CellPresets {
         override val align: Align = Align.LEFT
-        override val styleOptions: TextStyleOptions = TextStyleOptions(TextStyle.Bold, Colour.Green)
+        override val styleOptions: TextStyleOptions get() = TextStyleOptions(TextStyle.Bold, Colour.Green)
         override val postfix: String? = null
     }
 
     object Key: CellPresets{
         override val align: Align = Align.RIGHT
-        override val styleOptions: TextStyleOptions = TextStyleOptions(TextStyle.Italic, Colour.Gray)
+        override val styleOptions: TextStyleOptions get() = TextStyleOptions(TextStyle.Italic, Colour.Gray)
         override val postfix: String = SpecialChars.RIGHT_SEMICOLON
     }
 
     object Value: CellPresets{
         override val align: Align = Align.LEFT
-        override val styleOptions: TextStyleOptions = TextStyleOptions(TextStyle.Regular, Colour.CyanBright)
+        override val styleOptions: TextStyleOptions get() = TextStyleOptions(TextStyle.Regular, Colour.CyanBright)
         override val postfix: String? = null
     }
 
     object Info : CellPresets {
         override val align: Align = Align.LEFT
-        override val styleOptions: TextStyleOptions = TextStyleOptions(TextStyle.Italic, Colour.GrayLight)
+        override val styleOptions: TextStyleOptions get() = TextStyleOptions(TextStyle.Italic, Colour.GrayLight)
         override val postfix: String? = null
     }
 
     object Success : CellPresets {
         override val align: Align = Align.LEFT
-        override val styleOptions: TextStyleOptions = TextStyleOptions(TextStyle.Bold, Colour.GreenBright)
+        override val styleOptions: TextStyleOptions get() = TextStyleOptions(TextStyle.Bold, Colour.GreenBright)
         override val postfix: String? = null
     }
 
     object Header : CellPresets {
         override val align: Align = Align.CENTER
-        override val styleOptions: TextStyleOptions = TextStyleOptions(TextStyle.Bold, Colour.BlackBright, BGColour.Cyan)
+        override val styleOptions: TextStyleOptions get() = TextStyleOptions(TextStyle.Bold, Colour.BlackBright, BGColour.Cyan)
         override val postfix: String? = null
     }
 }
@@ -78,8 +78,8 @@ interface KeyedPresets : CommonCellOptions{
     }
     object Property: KeyedPresets{
         override val align: Align = Align.LEFT
-        override val keyStyleOptions: TextStyleOptions = TextStyleOptions(TextStyle.Italic, Colour.Magenta)
-        override val styleOptions: TextStyleOptions = TextStyleOptions(TextStyle.Regular, Colour.GreenBright)
+        override val keyStyleOptions: TextStyleOptions get() =  TextStyleOptions(TextStyle.Italic, Colour.Magenta)
+        override val styleOptions: TextStyleOptions get() =  TextStyleOptions(TextStyle.Regular, Colour.GreenBright)
         override val postfix: String? = null
     }
 }

@@ -1,8 +1,7 @@
 package po.misc.exceptions
 
 import po.misc.data.logging.ContextAware
-import po.misc.exceptions.stack_trace.ExceptionTrace
-import po.misc.exceptions.trackable.TrackableException
+import po.misc.debugging.stack_tracer.ExceptionTrace
 
 
 /**
@@ -91,10 +90,10 @@ fun ContextAware.raiseManagedException(
 
 inline fun <reified TH> ContextAware.raiseException(
     message: String
-) where TH: TrackableException, TH: Throwable {
+) where TH: TraceException, TH: Throwable {
     ExceptionLocator.raiseException<TH>(this,  message)
 }
 
 inline fun <reified TH> ContextAware.registerExceptionBuilder(
     noinline provider:(String)->TH
-): Unit where TH: TrackableException, TH: Throwable = ExceptionLocator.registerExceptionBuilder(provider)
+): Unit where TH: TraceException, TH: Throwable = ExceptionLocator.registerExceptionBuilder(provider)

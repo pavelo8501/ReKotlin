@@ -6,10 +6,8 @@ import po.misc.context.component.Component
 import po.misc.context.tracable.TraceableContext
 import po.misc.coroutines.CoroutineInfo
 import po.misc.data.output.output
-import po.misc.exceptions.stack_trace.ExceptionTrace
-import po.misc.exceptions.stack_trace.extractTrace
-import po.misc.exceptions.trackable.TrackableException
-import kotlin.reflect.KClass
+import po.misc.debugging.stack_tracer.ExceptionTrace
+import po.misc.debugging.stack_tracer.extractTrace
 
 enum class HandlerType(val value: Int) {
     SkipSelf(1),
@@ -48,7 +46,7 @@ open class ManagedException(
     override val message: String,
     open val code: Enum<*>? = null,
     override val  cause : Throwable? = null
-) : Throwable(message, cause), TrackableException {
+) : Throwable(message, cause), TraceException {
 
     enum class ExceptionEvent{
         Thrown,
@@ -57,11 +55,7 @@ open class ManagedException(
         Executed
     }
 
-    override val contextClass: KClass<*> = context::class
     override var coroutineInfo: CoroutineInfo? = null
-
-    override val self: Throwable
-        get() = this
 
     private var payloadBacking: ThrowableCallSitePayload? = null
 
@@ -71,7 +65,7 @@ open class ManagedException(
     open var handler: HandlerType = HandlerType.CancelAll
         internal set
 
-    override var exceptionTrace: ExceptionTrace = extractTrace()
+    override var trace: ExceptionTrace = extractTrace()
 
     constructor(managedPayload: ThrowableCallSitePayload):
             this(
@@ -84,7 +78,7 @@ open class ManagedException(
     }
 
     protected fun initFromPayload(managedPayload: ThrowableCallSitePayload){
-        exceptionTrace = extractTrace(managedPayload)
+        trace = extractTrace(managedPayload)
     }
 
     fun setHandler(handlerType: HandlerType, producer: CTX): ManagedException {
@@ -102,7 +96,7 @@ open class ManagedException(
 fun <T:TraceableContext> T.managedException(message: String, code: Enum<*>? = null, immediateOutput: Boolean = true): ManagedException{
     val managed =  ManagedException(this, message, code, null)
     if(immediateOutput){
-        managed.exceptionTrace.output()
+        managed.trace.output()
     }
     return  managed
 }
@@ -111,7 +105,7 @@ fun <T:TraceableContext, TH: Throwable> T.managedException(cause: TH, immediateO
     val message = cause.message?:""
     val managed =  ManagedException(this, message, null, cause)
     if(immediateOutput){
-        managed.exceptionTrace.output()
+        managed.trace.output()
     }
     return  managed
 }

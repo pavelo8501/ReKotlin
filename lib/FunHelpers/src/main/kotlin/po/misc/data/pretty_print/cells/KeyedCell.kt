@@ -79,7 +79,6 @@ class KeyedCell<T: Any>(
         val final = justifyText(formatted,  options)
         return final
     }
-
     override fun render(content: String, commonOptions: CommonCellOptions?): String {
         val options = PrettyHelper.toKeyedOptions(commonOptions, keyedOptions)
         val modified = staticModifiers.modify(content)
@@ -87,7 +86,6 @@ class KeyedCell<T: Any>(
         val final = justifyText(formatted,  options)
         return final
     }
-
     override fun render(receiver: T, commonOptions: CommonCellOptions?): String {
         val value = property?.get(receiver).toString()
         val options = PrettyHelper.toKeyedOptions(commonOptions, keyedOptions)

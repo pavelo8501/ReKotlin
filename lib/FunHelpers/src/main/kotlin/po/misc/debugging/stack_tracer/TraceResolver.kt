@@ -8,8 +8,9 @@ import po.misc.data.output.output
 import po.misc.debugging.classifier.HelperRecord
 import po.misc.debugging.classifier.KnownHelpers
 import po.misc.debugging.classifier.SimplePackageClassifier
-import po.misc.exceptions.stack_trace.CallSiteReport
-import po.misc.exceptions.stack_trace.ExceptionTrace
+import po.misc.debugging.stack_tracer.reports.CallSiteReport
+import po.misc.debugging.stack_tracer.ExceptionTrace
+import po.misc.types.k_class.simpleOrAnon
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 
@@ -54,8 +55,8 @@ class TraceResolver(
         }
     }
 
-    private fun resolve(print: Boolean,  methodName: String?){
-        val trace =  tracer.traceCallSite(hostClass, methodName, classifier)
+    private fun resolve(methodName: String, print: Boolean = true){
+        val trace =  tracer.traceCallSite(methodName , hostClass.simpleOrAnon,  classifier)
         beforeReportCallback?.invoke(trace)
         val callSite = ExceptionTrace.callSiteReport(trace)
         if(print){
@@ -67,10 +68,7 @@ class TraceResolver(
     private fun checkIfResolve(topic: NotificationTopic, code: Int){
         val found = conditions.firstOrNull { it.topic == topic && it.code == code }
         if(found != null){
-           val trace =tracer.traceCallSite(hostClass, null, classifier)
-            beforeReportCallback?.invoke(trace)
-            val callSite = ExceptionTrace.callSiteReport(trace)
-            traceResolvedCallback?.invoke(callSite)
+            resolve("checkIfResolve", true)
         }
     }
 
@@ -90,13 +88,13 @@ class TraceResolver(
     }
 
     override fun resolveTrace(){
-        resolve(true, null)
+        resolve("resolveTrace")
     }
     override fun resolveTrace(methodName: String){
-        resolve(true,  methodName)
+        resolve(methodName)
     }
     override fun resolveTrace(method: KFunction<*>){
-        resolve(true,  method.name)
+        resolve(method.name)
     }
 
     fun process(message: Loggable){

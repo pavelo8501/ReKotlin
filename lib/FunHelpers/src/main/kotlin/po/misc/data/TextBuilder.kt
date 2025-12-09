@@ -5,6 +5,8 @@ import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
 
+
+
 interface TextBuilder: Colorizer {
 
     fun String.concat(colour: Colour? = null, lineBuilder: ()-> String): String{

@@ -7,7 +7,7 @@ import po.misc.debugging.classifier.PackageClassifier
 import po.misc.debugging.classifier.SimplePackageClassifier
 import po.misc.exceptions.ExceptionPayload
 import po.misc.debugging.stack_tracer.StackFrameMeta
-import po.misc.exceptions.stack_trace.extractTrace
+import po.misc.debugging.stack_tracer.extractTrace
 import po.misc.reflection.anotations.HelperFunction
 import po.misc.reflection.anotations.hasAnnotation
 
