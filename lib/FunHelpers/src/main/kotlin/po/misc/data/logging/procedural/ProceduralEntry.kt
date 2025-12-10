@@ -9,7 +9,7 @@ import po.misc.data.logging.LoggableTemplate
 import po.misc.data.logging.StructuredLoggable
 import po.misc.data.output.output
 import po.misc.data.pretty_print.cells.PrettyCell
-import po.misc.data.pretty_print.rows.PrettyRow
+import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.strings.IndentOptions
 import po.misc.data.styles.SpecialChars
 import po.misc.types.token.TypeToken

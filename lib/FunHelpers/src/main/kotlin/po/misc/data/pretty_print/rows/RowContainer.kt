@@ -1,5 +1,6 @@
 package po.misc.data.pretty_print.rows
 
+import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.cells.ComputedCell
 import po.misc.data.pretty_print.cells.PrettyCell
 import po.misc.data.pretty_print.parts.CommonCellOptions

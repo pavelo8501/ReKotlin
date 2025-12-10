@@ -1,6 +1,8 @@
 package po.test.misc.counters
 
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 import po.misc.counters.LogJournal
 import po.misc.counters.LogWriter
 import po.misc.counters.comment
@@ -9,10 +11,16 @@ import po.misc.data.output.output
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
-
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestLogJournal : LogWriter {
 
-    override val journal : LogJournal =  LogJournal(this,  RecordType.Entry)
+    override val journal : LogJournal =  LogJournal(this, RecordType.Entry)
+
+
+    @BeforeAll
+    fun clearLog(){
+        journal.clear()
+    }
 
     @Test
     fun `Log journal convenience methods`(){
@@ -35,23 +43,23 @@ class TestLogJournal : LogWriter {
 
     @Test
     fun `LogJournal comments creation logic`(){
-        journal.clear()
         startWrite(RecordType.OK) {
-            addRecord("Some message"){ comment("Some comment")
-            } comment "Some infix comment :)" comment "Another one :)))))"
+            addRecord("Some message")
         }
-
         assertNotNull(journal.logRecords.firstOrNull()){record->
-            assertEquals(3,  record.comments.size)
+            assertEquals(3, record.comments.size)
         }
         journal.output()
     }
 
     @Test
-    fun `Log journal templating work`(){
-        val record = journal.addRecord("Message")
-        record.output()
-    }
+    fun `LogJournal recording`(){
 
+        journal.startWrite(this, RecordType.OK) {
+            addRecord("Some message")
+
+        }
+
+    }
 
 }

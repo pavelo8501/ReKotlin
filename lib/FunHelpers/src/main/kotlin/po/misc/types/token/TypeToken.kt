@@ -91,14 +91,15 @@ import kotlin.reflect.typeOf
 class TypeToken<T>  @PublishedApi internal constructor(
     override val kClass: KClass<T & Any>,
     val kType: KType,
-    val options:  CreateOptions? = null
+    val options:  Options? = null
 ): ClassAware<T>, TraceableContext {
 
-
-    data class CreateOptions(
+    data class Options(
         var scanHierarchyDepth: Int = 0,
-        var scanBeforeClass: KClass<*> = Any::class
+        var scanBeforeClass: KClass<*> = Any::class,
+        val isCollection: Boolean = false,
     )
+
 
     private val formatedTypeString: String
         get() {
@@ -113,6 +114,7 @@ class TypeToken<T>  @PublishedApi internal constructor(
 
     var verbosity: Verbosity = Verbosity.Warnings
 
+    val isCollection: Boolean = options?.isCollection ?: false
     val isNullable: Boolean get() = kType.isMarkedNullable
     val typeSlots: List<TypeSlot> = tryResolveImmediately(kClass.typeParameters)
     val inlinedParameters: List<KClass<*>> = typeSlots.map { it.genericInfo.classInfo.kClass }.sortedBy { simpleName }
@@ -324,8 +326,7 @@ class TypeToken<T>  @PublishedApi internal constructor(
         val errMsg : (KClass<*>) -> String = {
             "Impossible to create token for type ${it.simpleName}. KClass<T> should be non nullable"
         }
-
-        inline operator fun <reified T> invoke(options: CreateOptions? = null): TypeToken<T>{
+        inline operator fun <reified T> invoke(options: Options? = null): TypeToken<T>{
             val casted = T::class.safeCast<KClass<T & Any>>()
             if (casted != null) {
                 return TypeToken(casted, typeOf<T>(), options = options)
@@ -334,7 +335,17 @@ class TypeToken<T>  @PublishedApi internal constructor(
             }
         }
 
-        inline fun <reified T> create(options: CreateOptions? = null): TypeToken<T> {
+        inline operator fun <reified T> invoke(tokenOptions: TokenOptions): TypeToken<T> {
+            val casted = T::class.safeCast<KClass<T & Any>>() ?: throw IllegalArgumentException(errMsg(T::class))
+            val options = when (tokenOptions) {
+                is TokenOptions.ListType -> {
+                    Options(isCollection = true)
+                }
+            }
+            return TypeToken(casted, typeOf<T>(), options)
+        }
+
+        inline fun <reified T> create(options: Options? = null): TypeToken<T> {
             val casted = T::class.safeCast<KClass<T & Any>>()
             if (casted != null) {
                 return TypeToken(casted, typeOf<T>(), options = options)
@@ -344,7 +355,7 @@ class TypeToken<T>  @PublishedApi internal constructor(
         }
         inline fun <T, reified GT : T?> create(
             baseClass: KClass<T & Any>,
-            options: CreateOptions? = null
+            options: Options? = null
         ): TypeToken<T> {
             return TypeToken(baseClass, typeOf<GT>(), options = options)
         }

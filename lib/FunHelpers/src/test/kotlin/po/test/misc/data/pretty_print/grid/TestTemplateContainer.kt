@@ -3,13 +3,13 @@ package po.test.misc.data.pretty_print.grid
 
 import po.misc.data.pretty_print.cells.KeyedCell
 import po.misc.data.pretty_print.cells.StaticCell
-import po.misc.data.pretty_print.grid.PrettyGrid
-import po.misc.data.pretty_print.grid.PrettyValueGrid
+import po.misc.data.pretty_print.PrettyGrid
+import po.misc.data.pretty_print.PrettyValueGrid
 import po.misc.data.pretty_print.grid.addHeadedRow
 import po.misc.data.pretty_print.grid.buildPrettyGrid
 import po.misc.data.pretty_print.grid.buildRow
 import po.misc.data.pretty_print.parts.Orientation
-import po.misc.data.pretty_print.rows.PrettyRow
+import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.rows.buildPrettyRow
 import po.misc.data.pretty_print.rows.buildRowContainer
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
@@ -20,10 +20,10 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class TestTemplateContainer : PrettyTestBase() {
+
+
     private val record = createRecord()
-    fun getRecord(): PrintableRecord {
-        return record
-    }
+
     private val subClassGrid: PrettyGrid<PrintableRecordSubClass> = buildPrettyGrid<PrintableRecordSubClass>() {
         buildRow(Row.SubTemplateRow) {
             addCells(PrintableRecordSubClass::subName, PrintableRecordSubClass::subComponent)
@@ -40,6 +40,7 @@ class TestTemplateContainer : PrettyTestBase() {
     private val elementsRow = record.elements.buildRowContainer {
         addCell(PrintableElement::elementName)
     }
+
 
     @Test
     fun `Exactly one render block produced`() {
@@ -162,13 +163,19 @@ class TestTemplateContainer : PrettyTestBase() {
     fun `Template by rowContainer is created as expected`() {
 
         val grid = buildPrettyGrid<PrintableRecord>(Grid.Grid1) {
+
+
+            buildRow(PrintableRecord::elements){
+
+            }
+
             useTemplate(elementsRow) {
                 addHeadedRow(headerText1, Row.Row1)
             }
         }
         val template = assertIs<PrettyGrid<PrintableElement>>(grid.gridMap.values.firstOrNull())
-        val firstRow =  assertNotNull(template.rows.firstOrNull())
-        val secondRow =  assertNotNull(template.rows.getOrNull(1))
+        val firstRow = assertNotNull(template.rows.firstOrNull())
+        val secondRow = assertNotNull(template.rows.getOrNull(1))
         assertIs<KeyedCell<PrintableElement>>(firstRow.cells.firstOrNull())
         assertEquals(1, firstRow.cells.size)
         assertIs<StaticCell>(secondRow.cells.firstOrNull())

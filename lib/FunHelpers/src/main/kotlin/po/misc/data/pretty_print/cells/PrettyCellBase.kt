@@ -12,7 +12,7 @@ import po.misc.data.pretty_print.parts.CommonCellOptions
 import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.parts.PrettyBorders
 import po.misc.data.pretty_print.parts.PrettyHelper
-import po.misc.data.pretty_print.rows.PrettyRow
+import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.strings.FormattedPair
 import po.misc.data.styles.TextStyler
 

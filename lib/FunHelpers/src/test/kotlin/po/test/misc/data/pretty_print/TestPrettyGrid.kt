@@ -1,8 +1,7 @@
-package po.test.misc.data.pretty_print.grid
+package po.test.misc.data.pretty_print
 
 import org.junit.jupiter.api.Test
 import po.misc.data.pretty_print.grid.buildPrettyGrid
-import po.misc.data.pretty_print.parts.CellOptions
 import po.misc.data.pretty_print.parts.Options
 import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.parts.RowOptions
@@ -25,13 +24,14 @@ class TestPrettyGrid : PrettyTestBase() {
                 addCell(cell1Text)
                 addCell(cell2Text)
             }
-            buildRow(RowOptions(Grid.Grid2, Orientation.Horizontal)){
+            buildRow(RowOptions(Grid.Grid2, Orientation.Horizontal)) {
                 addCell(cell3Text)
             }
         }
         val record = createRecord()
         var render = prettyGrid.render(record, RowOptions(Grid.Grid1))
-        assertTrue {  render.contains(cell1Text) && render.contains(cell2Text) }
+
+        assertTrue { render.contains(cell1Text) && render.contains(cell2Text) }
         assertFalse { render.contains(cell3Text) }
 
         prettyGrid = buildPrettyGrid<PrintableRecord> {
@@ -39,7 +39,7 @@ class TestPrettyGrid : PrettyTestBase() {
                 addCell(cell1Text)
                 addCell(cell2Text, Options(Grid.Grid2))
             }
-            buildRow(RowOptions(Grid.Grid2, Orientation.Horizontal)){
+            buildRow(RowOptions(Grid.Grid2, Orientation.Horizontal)) {
                 addCell(cell3Text)
             }
         }

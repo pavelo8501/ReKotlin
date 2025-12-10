@@ -2,10 +2,10 @@ package po.test.misc.data.pretty_print.grid
 
 import po.misc.data.pretty_print.Templated
 import po.misc.data.pretty_print.cells.KeyedCell
-import po.misc.data.pretty_print.grid.PrettyValueGrid
+import po.misc.data.pretty_print.PrettyValueGrid
 import po.misc.data.pretty_print.grid.buildPrettyGrid
 import po.misc.data.pretty_print.grid.buildPrettyGridList
-import po.misc.data.pretty_print.rows.PrettyRow
+import po.misc.data.pretty_print.PrettyRow
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -95,7 +95,7 @@ class TestGridContainer : PrettyTestBase(), Templated {
             buildRow {
                 addCell(PrintableRecord::name)
             }
-            buildRowList(PrintableRecord::elements){
+            buildListRow(PrintableRecord::elements){
                 addCell(PrintableElement::elementName)
             }
         }

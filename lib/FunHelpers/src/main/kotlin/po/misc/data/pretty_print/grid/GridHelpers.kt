@@ -1,26 +1,28 @@
 package po.misc.data.pretty_print.grid
 
+import po.misc.data.pretty_print.PrettyGrid
+import po.misc.data.pretty_print.PrettyGridBase
+import po.misc.data.pretty_print.PrettyValueGrid
 import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.rows.copyRow
 import po.misc.types.castOrThrow
-import po.misc.types.safeCast
 import po.misc.types.token.TypeToken
 import kotlin.reflect.KProperty1
 
 
 
 private fun <T: Any, V: Any> toValueGridConverter(
-   grid: PrettyGrid<V>,
-   hostTypeToken: TypeToken<T>,
-   opt: RowOptions? = null,
-   property: KProperty1<T, V>? = null,
-   listProperty: KProperty1<T, List<V>>? = null,
-   provider: (() -> V)? = null,
-   listProvider:  (() -> List<V>)? = null,
-): PrettyValueGrid<T, V>{
+    grid: PrettyGrid<V>,
+    hostTypeToken: TypeToken<T>,
+    opt: RowOptions? = null,
+    property: KProperty1<T, V>? = null,
+    listProperty: KProperty1<T, List<V>>? = null,
+    provider: (() -> V)? = null,
+    listProvider:  (() -> List<V>)? = null,
+): PrettyValueGrid<T, V> {
 
     val copied = grid.rows.map { it.copyRow(grid.type) }
-    val valueGrid = PrettyValueGrid(hostTypeToken, grid.type, opt?:grid.options)
+    val valueGrid = PrettyValueGrid(hostTypeToken, grid.type, opt ?: grid.options)
     valueGrid.addRows(copied)
     if(property != null){
         valueGrid.singleLoader.setProperty(property)
@@ -48,7 +50,7 @@ fun <T: Any, V: Any> PrettyGrid<V>.toValueGridList(
     hostTypeToken: TypeToken<T>,
     property: KProperty1<T, List<V>>,
     opt: RowOptions? = null
-): PrettyValueGrid<T, V>  = toValueGridConverter(this, hostTypeToken, opt, listProperty = property)
+): PrettyValueGrid<T, V> = toValueGridConverter(this, hostTypeToken, opt, listProperty = property)
 
 fun <T: Any, V: Any> PrettyGrid<V>.toValueGrid(
     hostTypeToken: TypeToken<T>,
@@ -61,14 +63,14 @@ fun <T: Any, V: Any> PrettyGrid<V>.toValueGridList(
     hostTypeToken: TypeToken<T>,
     provider: () -> List<V>,
     opt: RowOptions? = null
-): PrettyValueGrid<T, V>  = toValueGridConverter(this, hostTypeToken, opt, listProvider = provider)
+): PrettyValueGrid<T, V> = toValueGridConverter(this, hostTypeToken, opt, listProvider = provider)
 
 
 
 fun <T: Any, V: Any> PrettyValueGrid<T, V>.copy(
     opt: RowOptions? = null
 ): PrettyValueGrid<T, V> {
-    val newGrid = PrettyValueGrid(hostType, type, opt?:options)
+    val newGrid = PrettyValueGrid(hostType, type, opt ?: options)
     newGrid.singleLoader.initFrom(singleLoader)
     newGrid.listLoader.initFrom(listLoader)
     newGrid.addRows(rows)
@@ -79,10 +81,10 @@ fun <T: Any, V: Any> PrettyValueGrid<T, V>.copy(
 fun <T: Any, V: Any> PrettyGrid<V>.copy(
     hostTypeToken: TypeToken<T>,
     opt: RowOptions? = null
-):PrettyValueGrid<T, V>{
+): PrettyValueGrid<T, V> {
    val casted = castOrThrow<PrettyGridBase<T, V>>()
    return with(casted){
-        val newGrid = PrettyValueGrid(hostTypeToken, type, opt?:options)
+        val newGrid = PrettyValueGrid(hostTypeToken, type, opt ?: options)
         newGrid.singleLoader.initFrom(singleLoader)
         newGrid.listLoader.initFrom(listLoader)
         newGrid.addRows(rows)
@@ -93,8 +95,8 @@ fun <T: Any, V: Any> PrettyGrid<V>.copy(
 fun <T: Any, V: Any> PrettyValueGrid<T, V>.copy(
     companion: PrettyGrid.Companion,
     opt: RowOptions? = null
-):PrettyGrid<V>{
-    val newGrid = PrettyGrid(type, opt?:options)
+): PrettyGrid<V> {
+    val newGrid = PrettyGrid(type, opt ?: options)
     newGrid.singleLoader.initValueFrom(singleLoader)
     newGrid.listLoader.initValueFrom(listLoader)
     newGrid.addRows(rows)

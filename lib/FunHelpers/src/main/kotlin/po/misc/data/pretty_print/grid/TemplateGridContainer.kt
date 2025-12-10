@@ -1,10 +1,13 @@
 package po.misc.data.pretty_print.grid
 
+import po.misc.data.pretty_print.PrettyGrid
+import po.misc.data.pretty_print.PrettyGridBase
 import po.misc.data.pretty_print.parts.GridKey
 import po.misc.data.pretty_print.parts.GridSource
 import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.parts.RowOptionsEditor
-import po.misc.data.pretty_print.rows.PrettyRow
+import po.misc.data.pretty_print.PrettyRow
+import po.misc.data.pretty_print.PrettyValueGrid
 import po.misc.data.pretty_print.rows.RowContainer
 import po.misc.data.pretty_print.rows.copyRow
 import po.misc.types.token.TypeToken
@@ -38,7 +41,7 @@ class TemplateGridContainer<T: Any, V: Any>(
         return result
     }
 
-    internal fun createGrid():PrettyGrid<V> {
+    internal fun createGrid(): PrettyGrid<V> {
         val useOptions =  options.takeIf { options.edited }
         useOptions?.noEdit()
         @Suppress("DuplicatedCode")
@@ -51,7 +54,7 @@ class TemplateGridContainer<T: Any, V: Any>(
         return grid
     }
 
-    internal fun createValueGrid():PrettyValueGrid<T, V> {
+    internal fun createValueGrid(): PrettyValueGrid<T, V> {
         val useOptions =  options.takeIf { options.edited }
         useOptions?.noEdit()
         @Suppress("DuplicatedCode")

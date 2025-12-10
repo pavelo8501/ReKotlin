@@ -1,6 +1,6 @@
 package po.misc.data.pretty_print.parts
 
-import po.misc.data.pretty_print.rows.PrettyRow
+import po.misc.data.pretty_print.PrettyRow
 
 sealed class CommonRenderOptions(
     val usePlain: Boolean = false,

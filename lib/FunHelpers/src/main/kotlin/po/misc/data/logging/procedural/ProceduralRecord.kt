@@ -21,7 +21,7 @@ import po.misc.data.logging.processor.parts.StructuredProperty
 import po.misc.data.logging.processor.parts.structuredProperty
 import po.misc.data.output.output
 import po.misc.data.pretty_print.cells.PrettyCell
-import po.misc.data.pretty_print.rows.PrettyRow
+import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.strings.IndentOptions
 import po.misc.data.strings.stringify
 import po.misc.data.styles.Colour

@@ -8,7 +8,7 @@ import po.misc.data.pretty_print.PrettyBuilder
 import po.misc.data.pretty_print.cells.StaticCell
 import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.parts.RowPresets
-import po.misc.data.pretty_print.rows.PrettyRow
+import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.rows.buildPrettyRow
 import po.misc.data.splitLines
 import po.misc.data.styles.SpecialChars

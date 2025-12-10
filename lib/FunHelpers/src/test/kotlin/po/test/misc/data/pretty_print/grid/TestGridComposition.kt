@@ -1,12 +1,12 @@
 package po.test.misc.data.pretty_print.grid
 
-import po.misc.data.pretty_print.grid.PrettyGrid
-import po.misc.data.pretty_print.grid.PrettyValueGrid
+import po.misc.data.pretty_print.PrettyGrid
+import po.misc.data.pretty_print.PrettyValueGrid
 import po.misc.data.pretty_print.grid.addHeadedRow
 import po.misc.data.pretty_print.grid.buildPrettyGrid
 import po.misc.data.pretty_print.grid.buildPrettyGridList
 import po.misc.data.pretty_print.parts.GridSource
-import po.misc.data.pretty_print.rows.PrettyRow
+import po.misc.data.pretty_print.PrettyRow
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
 import kotlin.test.Test
 import kotlin.test.assertEquals

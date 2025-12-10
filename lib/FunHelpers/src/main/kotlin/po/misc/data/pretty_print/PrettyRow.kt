@@ -1,13 +1,8 @@
-package po.misc.data.pretty_print.rows
+package po.misc.data.pretty_print
 
 import po.misc.callbacks.signal.Signal
 import po.misc.callbacks.signal.signalOf
-import po.misc.collections.asList
-import po.misc.collections.indexed.Indexed
-import po.misc.collections.reactive_list.ReactiveList
 import po.misc.context.tracable.TraceableContext
-import po.misc.counters.LogJournal
-import po.misc.data.pretty_print.RenderableElement
 import po.misc.data.pretty_print.cells.ComputedCell
 import po.misc.data.pretty_print.cells.KeyedCell
 import po.misc.data.pretty_print.cells.PrettyCell
@@ -16,19 +11,18 @@ import po.misc.data.pretty_print.cells.ReceiverAwareCell
 import po.misc.data.pretty_print.cells.StaticCell
 import po.misc.data.pretty_print.parts.CellOptions
 import po.misc.data.pretty_print.parts.CommonRowOptions
-import po.misc.data.pretty_print.parts.Options
 import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.parts.PrettyHelper
 import po.misc.data.pretty_print.parts.RenderDefaults
 import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.parts.RowPresets
 import po.misc.data.pretty_print.parts.rows.RowParams
+import po.misc.data.pretty_print.rows.RowContainerBase
 import po.misc.data.strings.stringify
 import po.misc.data.styles.SpecialChars
 import po.misc.types.safeCast
 import po.misc.types.token.TypeToken
 import po.misc.types.token.safeCast
-
 
 /**
  * A standard pretty-printing row.
@@ -43,7 +37,7 @@ class PrettyRow<T: Any>(
     val typeToken: TypeToken<T>,
     override var options: RowOptions = RowOptions(RenderDefaults.Console220),
     initialCells: List<PrettyCellBase> = emptyList(),
-): RenderableElement<T>, TraceableContext{
+): RenderableElement<T>, TraceableContext {
 
     constructor(container: RowContainerBase<T, T>):this(container.type, container.options,  container.cells)
 
@@ -88,7 +82,6 @@ class PrettyRow<T: Any>(
         }
     }
 
-
     /**
      * Renders this row using a typed receiver.
      *
@@ -103,14 +96,13 @@ class PrettyRow<T: Any>(
         receiver: T,
         opts: CommonRowOptions? = null,
         optionsBuilder: (RowOptions.()-> Unit)? = null
-    ):String{
+    ): String {
 
         val resultList = mutableListOf<String>()
         val useOptions = PrettyHelper.toRowOptions(options, opts)
         optionsBuilder?.invoke(useOptions)
         orientation = useOptions.orientation
 
-     //   val cellOptions = PrettyHelper.toOptions(useOptions)
         val cellsToRender = cells
         val cellCount = cellsToRender.size
         val cellsToTake = (cellCount - 1).coerceAtLeast(0)
@@ -139,7 +131,7 @@ class PrettyRow<T: Any>(
         receiverList: List<T>,
         opts: CommonRowOptions? = null,
         optionsBuilder: (RowOptions.()-> Unit)? = null
-    ):String{
+    ): String {
         val useOptions = PrettyHelper.toRowOptions(opts, options)
         optionsBuilder?.invoke(useOptions)
         orientation = useOptions.orientation
@@ -189,7 +181,7 @@ class PrettyRow<T: Any>(
         if(opt != null){
             options = when(opt){
                 is RowOptions -> opt
-                is RowPresets -> PrettyHelper.toRowOptions(opt)
+                is RowPresets -> PrettyHelper.Companion.toRowOptions(opt)
             }
         }
         return this
@@ -205,7 +197,7 @@ class PrettyRow<T: Any>(
             }
         }
     }
-    fun setCells(cell:  PrettyCellBase,  vararg newCells: PrettyCellBase){
+    fun setCells(cell: PrettyCellBase, vararg newCells: PrettyCellBase){
         val newList = buildList {
             add(cell)
             addAll(newCells.toList())
@@ -225,20 +217,17 @@ class PrettyRow<T: Any>(
         return "PrettyRow[Total: ${cells.size}, $static, $keyed, $computed, $pretty]"
     }
 
-    companion object{
-
+    companion object {
         operator fun invoke(cells: List<PrettyCellBase>, options: RowOptions? = null):PrettyRow<String>{
-            val  typeToken: TypeToken<String> = TypeToken.create()
+            val  typeToken: TypeToken<String> = TypeToken.Companion.create()
             val row = PrettyRow(typeToken, initialCells = cells)
             return  row.applyOptions(options)
         }
-
-        operator fun invoke(vararg cells: PrettyCellBase,  options: RowOptions? = null):PrettyRow<String>{
+        operator fun invoke(vararg cells: PrettyCellBase, options: RowOptions? = null):PrettyRow<String>{
             return invoke(cells.toList(), options)
         }
-
-        inline operator fun <reified T: Any> invoke(vararg cells: KeyedCell<T>,  options: RowOptions? = null):PrettyRow<T>{
-            val  typeToken: TypeToken<T> = TypeToken.create()
+        inline operator fun <reified T: Any> invoke(vararg cells: KeyedCell<T>, options: RowOptions? = null):PrettyRow<T>{
+            val  typeToken: TypeToken<T> = TypeToken.Companion.create()
             val row = PrettyRow(typeToken, initialCells = cells.toList())
             return row.applyOptions(options)
         }

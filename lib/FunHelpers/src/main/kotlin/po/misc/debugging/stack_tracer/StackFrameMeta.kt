@@ -1,12 +1,10 @@
 package po.misc.debugging.stack_tracer
 
 import po.misc.data.PrettyFormatted
-import po.misc.data.output.output
-import po.misc.data.pretty_print.grid.PrettyGrid
+import po.misc.data.pretty_print.PrettyGrid
 import po.misc.data.pretty_print.grid.buildPrettyGrid
 import po.misc.data.pretty_print.grid.buildRow
 import po.misc.data.pretty_print.parts.Orientation
-import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.strings.appendGroup
 import po.misc.debugging.classifier.PackageClassifier
 

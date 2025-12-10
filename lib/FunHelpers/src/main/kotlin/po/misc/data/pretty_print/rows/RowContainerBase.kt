@@ -2,14 +2,10 @@ package po.misc.data.pretty_print.rows
 
 import po.misc.callbacks.signal.Signal
 import po.misc.callbacks.signal.signalOf
-import po.misc.data.pretty_print.cells.ComputedCell
+import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.cells.PrettyCellBase
 import po.misc.data.pretty_print.cells.KeyedCell
-import po.misc.data.pretty_print.cells.PrettyCell
 import po.misc.data.pretty_print.cells.StaticCell
-import po.misc.data.pretty_print.grid.GridContainer
-import po.misc.data.pretty_print.grid.PrettyGrid
-import po.misc.data.pretty_print.grid.PrettyValueGrid
 import po.misc.data.pretty_print.parts.CommonCellOptions
 import po.misc.data.pretty_print.parts.KeyedPresets
 import po.misc.data.pretty_print.parts.ListValueLoader
@@ -65,7 +61,7 @@ sealed class RowContainerBase<T: Any, V: Any>(
         listLoader.setProperty(property)
     }
 
-    fun createRow():PrettyRow<V> {
+    fun createRow(): PrettyRow<V> {
         val row = PrettyRow(type, options)
         cells.forEach {
             it.setRow(row)

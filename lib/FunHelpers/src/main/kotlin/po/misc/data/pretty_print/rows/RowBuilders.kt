@@ -1,10 +1,8 @@
 package po.misc.data.pretty_print.rows
 
+import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.Templated
-import po.misc.data.pretty_print.grid.GridValueContainer
-import po.misc.data.pretty_print.grid.PrettyValueGrid
 import po.misc.data.pretty_print.parts.CommonRowOptions
-import po.misc.data.pretty_print.parts.ListValueLoader
 import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.parts.PrettyHelper
 import po.misc.data.pretty_print.parts.RowOptions
@@ -36,7 +34,7 @@ fun <T: Any> createPrettyRow(
     commonOptions: CommonRowOptions? = null,
 ): PrettyRow<T> {
     val options = PrettyHelper.toRowOptions(commonOptions)
-    return  PrettyRow<T>(typeToken,  options)
+    return PrettyRow<T>(typeToken, options)
 }
 
 
@@ -83,7 +81,7 @@ fun <T: Any, V: Any> buildPrettyRow(
     valueToken: TypeToken<V>,
     rowOptions: CommonRowOptions? = null,
     builder: RowValueContainer<T, V>.()-> Unit
-):  PrettyRow<V>{
+): PrettyRow<V> {
     val options = PrettyHelper.toRowOptions(rowOptions)
     val rowContainer = createRowValueContainer(typeToken, valueToken, options)
     rowContainer.singleLoader.setProperty(property)
@@ -96,13 +94,13 @@ inline fun <T: Any, reified V: Any> buildPrettyRow(
     property: KProperty1<T, V>,
     rowOptions: CommonRowOptions? = null,
     noinline builder: RowValueContainer<T, V>.()-> Unit
-):  PrettyRow<V> = buildPrettyRow(property, typeToken, TypeToken.create<V>(), rowOptions, builder)
+): PrettyRow<V> = buildPrettyRow(property, typeToken, TypeToken.create<V>(), rowOptions, builder)
 
 inline fun <reified T: Any, reified V: Any> buildPrettyRow(
     property: KProperty1<T, V>,
     rowOptions: CommonRowOptions? = null,
     noinline builder: RowValueContainer<T, V>.()-> Unit
-):  PrettyRow<V> = buildPrettyRow(property, TypeToken.create<T>(), TypeToken.create<V>(), rowOptions, builder)
+): PrettyRow<V> = buildPrettyRow(property, TypeToken.create<T>(), TypeToken.create<V>(), rowOptions, builder)
 
 
 

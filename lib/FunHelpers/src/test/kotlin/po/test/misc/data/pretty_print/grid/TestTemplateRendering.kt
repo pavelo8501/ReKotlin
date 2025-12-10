@@ -1,7 +1,7 @@
 package po.test.misc.data.pretty_print.grid
 
 import po.misc.data.output.output
-import po.misc.data.pretty_print.grid.PrettyValueGrid
+import po.misc.data.pretty_print.PrettyValueGrid
 import po.misc.data.pretty_print.grid.addHeadedRow
 import po.misc.data.pretty_print.grid.buildPrettyGrid
 import po.misc.data.pretty_print.parts.Orientation
@@ -15,7 +15,6 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 
 class TestTemplateRendering : PrettyTestBase() {
-
 
     private val entryRow = buildPrettyRow<PrintableElement> {
         addCells(PrintableElement::elementName, PrintableElement::parameter, PrintableElement::value)
@@ -43,10 +42,12 @@ class TestTemplateRendering : PrettyTestBase() {
                 addCell(footerText.colorize(Colour.Blue))
             }
         }
+
         val templatePart = grid.renderBlocks.getOrNull(2)
         assertIs< PrettyValueGrid<PrintableRecord, PrintableElement>>(templatePart)
         assertNotNull(templatePart.options)
         assertEquals(Orientation.Vertical, templatePart.options.orientation)
         grid.render(record).output()
+
     }
 }

@@ -16,14 +16,14 @@ class TestTypeTokenFeatures: TokenFactory {
     @Test
     fun `HierarchyMap integration and usage`(){
 
-        val token =  tokenOf<LogMessage>(TypeToken.CreateOptions(5))
+        val token =  tokenOf<LogMessage>(TypeToken.Options(5))
         assertEquals(5, token.classHierarchyMap.hierarchyCache.size)
         with(token.classHierarchyMap.hierarchyCache){
             assertEquals(LogMessage::class,  first())
             assertEquals(Printable::class,  last())
         }
 
-        val token2 =  tokenOf<LogMessage>(TypeToken.CreateOptions(5, scanBeforeClass = Printable::class))
+        val token2 =  tokenOf<LogMessage>(TypeToken.Options(5, scanBeforeClass = Printable::class))
         assertEquals(4,  token2.classHierarchyMap.hierarchyCache.size)
         with(token2.classHierarchyMap.hierarchyCache){
             assertEquals(LogMessage::class,  first())

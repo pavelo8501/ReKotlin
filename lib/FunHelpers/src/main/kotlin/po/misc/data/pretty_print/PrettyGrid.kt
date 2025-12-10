@@ -1,11 +1,9 @@
-package po.misc.data.pretty_print.grid
+package po.misc.data.pretty_print
 
 import po.misc.callbacks.signal.Signal
 import po.misc.callbacks.signal.signalOf
 import po.misc.collections.addNotBlank
 import po.misc.data.output.output
-import po.misc.data.pretty_print.RenderableElement
-import po.misc.data.pretty_print.cells.PrettyCellBase
 import po.misc.data.pretty_print.parts.CommonRowOptions
 import po.misc.data.pretty_print.parts.GridKey
 import po.misc.data.pretty_print.parts.GridSource
@@ -15,8 +13,6 @@ import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.parts.ValueLoader
 import po.misc.data.pretty_print.parts.grid.GridParams
 import po.misc.data.pretty_print.parts.rows.RowParams
-import po.misc.data.pretty_print.rows.PrettyRow
-import po.misc.data.pretty_print.rows.createPrettyRow
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.functions.Throwing
@@ -132,11 +128,6 @@ class PrettyGrid<T: Any>(
        return  when (element) {
             is PrettyRow<*> -> element.renderOnHost(receiver, useOptions)
             is PrettyValueGrid<T, *> -> element.renderOnHost(receiver, useOptions)
-            else ->{
-                val notSupportedText = "${receiver::class} not supported any more"
-                notSupportedText.output(Colour.Yellow)
-                SpecialChars.EMPTY
-            }
         }
     }
 
@@ -183,7 +174,6 @@ class PrettyGrid<T: Any>(
     }
 
     companion object
-
 }
 
 class PrettyValueGrid<T: Any, V: Any>(
@@ -231,8 +221,7 @@ class PrettyValueGrid<T: Any, V: Any>(
         return SpecialChars.EMPTY
     }
 
-    override fun renderOnHost(host: T, opts: CommonRowOptions?): String =
-        render(host, opts)
+    override fun renderOnHost(host: T, opts: CommonRowOptions?): String = render(host, opts)
 
     override fun addRows(rows: List<PrettyRow<V>>): PrettyValueGrid<T, V>{
         rows.forEach { addRow(it) }

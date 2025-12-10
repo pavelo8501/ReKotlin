@@ -6,7 +6,7 @@ import po.misc.data.pretty_print.cells.StaticCell
 import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.parts.RowPresets
-import po.misc.data.pretty_print.rows.PrettyRow
+import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.rows.RowContainer
 
 

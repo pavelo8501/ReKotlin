@@ -5,7 +5,7 @@ import po.misc.data.pretty_print.parts.KeyedOptions
 import po.misc.data.pretty_print.parts.PrettyHelper
 import po.misc.data.pretty_print.parts.KeyedPresets
 import po.misc.data.pretty_print.parts.TextStyleOptions
-import po.misc.data.pretty_print.rows.PrettyRow
+import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.strings.FormattedPair
 import po.misc.data.strings.appendParam
 import po.misc.data.styles.TextStyler

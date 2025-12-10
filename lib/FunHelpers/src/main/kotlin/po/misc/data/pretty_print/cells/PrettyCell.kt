@@ -6,7 +6,7 @@ import po.misc.data.pretty_print.parts.CellPresets
 import po.misc.data.pretty_print.parts.CommonCellOptions
 import po.misc.data.pretty_print.parts.Options
 import po.misc.data.pretty_print.parts.PrettyHelper
-import po.misc.data.pretty_print.rows.PrettyRow
+import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.strings.stringify
 import kotlin.text.append
 

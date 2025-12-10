@@ -2,43 +2,38 @@ package po.misc.data.pretty_print.grid
 
 import po.misc.callbacks.signal.Signal
 import po.misc.callbacks.signal.signalOf
-import po.misc.data.output.output
+import po.misc.context.tracable.TraceableContext
+import po.misc.data.pretty_print.PrettyGrid
 import po.misc.data.pretty_print.RenderableElement
-import po.misc.data.pretty_print.cells.PrettyCellBase
 import po.misc.data.pretty_print.parts.CommonRowOptions
 import po.misc.data.pretty_print.parts.GridKey
 import po.misc.data.pretty_print.parts.GridSource
 import po.misc.data.pretty_print.parts.ListValueLoader
-import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.parts.PrettyHelper
-import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.parts.ValueLoader
 import po.misc.data.pretty_print.parts.grid.GridParams
 import po.misc.data.pretty_print.parts.rows.RowParams
-import po.misc.data.pretty_print.rows.PrettyRow
+import po.misc.data.pretty_print.PrettyRow
+import po.misc.data.pretty_print.PrettyValueGrid
 import po.misc.data.pretty_print.rows.RowContainer
-import po.misc.data.pretty_print.rows.RowValueContainer
-import po.misc.data.pretty_print.rows.buildPrettyRow
 import po.misc.data.pretty_print.rows.copyRow
 import po.misc.data.pretty_print.rows.createRowContainer
-import po.misc.data.pretty_print.rows.createRowValueContainer
 import po.misc.functions.NoResult
 import po.misc.functions.Throwing
-import po.misc.types.castOrThrow
 import po.misc.types.token.TokenFactory
 import po.misc.types.token.TypeToken
-import po.misc.types.token.tokenOf
-import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
 
-
-abstract class GridContainerBase<T: Any, V: Any>(
+sealed class GridContainerBase<T: Any, V: Any>(
     val hostType: TypeToken<T>,
     val type: TypeToken<V>,
-): TokenFactory{
+): TokenFactory, TraceableContext{
+
+
 
     val singleLoader: ValueLoader<T, V> = ValueLoader("GridContainerBase", hostType, type)
     val listLoader: ListValueLoader<T, V> = ListValueLoader("GridContainerBase", hostType, type)
+
 
     internal val gridMap: MutableMap<GridKey, PrettyGrid<*>> = mutableMapOf()
 
@@ -51,24 +46,7 @@ abstract class GridContainerBase<T: Any, V: Any>(
     val renderCount: Int get() = renderMapBacking.size
     val size: Int get() = gridsCount + renderCount + rowsSize
 
-    @PublishedApi
-    internal fun insertRenderable(element: RenderableElement<T>, key: GridKey){
-        val entries  = renderMapBacking.entries
-        val newMap: MutableMap<GridKey, RenderableElement<T>> = mutableMapOf()
-        val indexOfSame = entries.indexOfFirst { it.key.order ==  key.order}
-        var sameOrder = entries.toList().getOrNull(indexOfSame)?.key?.order?:0
 
-        entries.take(sameOrder).forEach {
-            newMap.entries.add(it)
-        }
-        newMap[key] = element
-        for(entry in entries.drop(sameOrder)){
-            sameOrder += 1
-            val newKey = GridKey(order = sameOrder,  entry.key.source)
-            newMap[newKey] = entry.value
-        }
-        renderMapBacking = newMap
-    }
     @PublishedApi
     internal fun addRenderBlock(newRenderBlock: RenderableElement<T>):GridKey{
         val key =  GridKey(size, GridSource.Renderable)
@@ -80,6 +58,12 @@ abstract class GridContainerBase<T: Any, V: Any>(
         val key =  GridKey(size, GridSource.Grid)
         gridMap[key] = newRenderBlock
         return key
+    }
+
+    fun addContainer(rowContainer: RowContainer<V>){
+        singleLoader.initValueFrom(rowContainer.singleLoader)
+        listLoader.initValueFrom(rowContainer.listLoader)
+        addRow(rowContainer.createRow())
     }
 
     open fun addRow(row: PrettyRow<V>): GridKey?{
@@ -96,6 +80,7 @@ abstract class GridContainerBase<T: Any, V: Any>(
 
     @PublishedApi
     internal fun setProperty(property: KProperty1<T, V>){
+
         singleLoader.setProperty(property)
     }
 
@@ -116,6 +101,18 @@ abstract class GridContainerBase<T: Any, V: Any>(
     fun beforeRowRender(callback: (RowParams<V>) -> Unit): Unit = beforeRowRender.onSignal(callback)
     fun beforeGridRender(callback: (GridParams<T, V>) -> Unit): Unit =  beforeGridRender.onSignal(callback)
     fun onTemplateResolved(callback: (PrettyValueGrid<T, *>) -> Unit): Unit =  templateResolved.onSignal(callback)
+
+    fun setProviders(
+        provider: (()-> V)? = null,
+        listProvider: (()-> List<V>)? = null,
+    ){
+        if(provider != null){
+            singleLoader.setProvider(provider)
+        }
+        if(listProvider != null){
+            listLoader.setProvider(listProvider)
+        }
+    }
 
     fun useTemplate(row: PrettyRow<V>){
         addRow(row)
@@ -146,9 +143,4 @@ abstract class GridContainerBase<T: Any, V: Any>(
         val row =  container.applyParametrizedBuilder(valueLoader.getValue(Throwing),  builder)
         addRow(row)
     }
-
 }
-
-
-
-

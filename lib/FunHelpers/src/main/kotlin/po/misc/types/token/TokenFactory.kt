@@ -1,7 +1,6 @@
 package po.misc.types.token
 
 import po.misc.context.tracable.TraceableContext
-import po.misc.types.token.TypeToken.CreateOptions
 import kotlin.reflect.KClass
 
 interface TokenFactory
@@ -15,7 +14,7 @@ interface TokenFactory
  *
  * @return a new [TypeToken] representing type [T].
  */
-inline fun <reified T> TokenFactory.tokenOf(options:  CreateOptions? = null): TypeToken<T>{
+inline fun <reified T> TokenFactory.tokenOf(options:  TypeToken.Options? = null): TypeToken<T>{
     return TypeToken.create<T>(options)
 }
 
@@ -34,7 +33,7 @@ inline fun <reified T> TokenFactory.tokenOf(options:  CreateOptions? = null): Ty
  * @param baseClass the declared upper type that the resulting token should represent.
  * @return a new [TypeToken] representing [T], backed by concrete type [GT].
  */
-inline fun <T, reified GT: T> TokenFactory.tokenOf(baseClass: KClass<T & Any>, options:  CreateOptions? = null): TypeToken<T>{
+inline fun <T, reified GT: T> TokenFactory.tokenOf(baseClass: KClass<T & Any>, options:  TypeToken.Options? = null): TypeToken<T>{
   return TypeToken.create<T, GT>(baseClass, options)
 }
 

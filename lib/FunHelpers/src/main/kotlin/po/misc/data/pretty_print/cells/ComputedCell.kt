@@ -4,7 +4,7 @@ import po.misc.data.pretty_print.parts.CommonCellOptions
 import po.misc.data.pretty_print.parts.PrettyHelper
 import po.misc.data.pretty_print.parts.Options
 import po.misc.data.pretty_print.parts.ValueLoader
-import po.misc.data.pretty_print.rows.PrettyRow
+import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.strings.appendParam
 import po.misc.data.strings.stringify
 import po.misc.functions.Throwing
