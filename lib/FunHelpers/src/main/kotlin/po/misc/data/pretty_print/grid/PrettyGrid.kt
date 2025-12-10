@@ -24,27 +24,25 @@ import po.misc.types.token.TokenFactory
 import po.misc.types.token.TypeToken
 
 sealed class PrettyGridBase<T: Any, V: Any>(
-    val hostTypeToken: TypeToken<T>,
-    val typeToken :TypeToken<V>,
+    val hostType: TypeToken<T>,
+    val type :TypeToken<V>,
     var options: RowOptions,
 ): TokenFactory
 {
 
-    internal val gridMap: MutableMap<GridKey, PrettyGrid<*>> = mutableMapOf()
-    protected val rowsBacking: MutableList<PrettyRow<V>> = mutableListOf()
+    internal var rowsBacking: MutableList<PrettyRow<V>> = mutableListOf()
     internal var renderMapBacking: MutableMap<GridKey, RenderableElement<T>> = mutableMapOf()
     val renderBlocks: List<RenderableElement<T>>  get() = renderMapBacking.values.toList()
-
-    val gridsCount: Int get() = gridMap.size
     val renderCount: Int get() = renderMapBacking.size
-    val size: Int get() = gridsCount + renderCount + rowsSize
 
     val id: Enum<*>? get() = options.rowId
     val rows: List<PrettyRow<V>> get() = rowsBacking
-    val rowsSize : Int get() = rows.size
 
-    val singleLoader: ValueLoader<T, V> = ValueLoader("ReceiverGrid", hostTypeToken, typeToken)
-    val listLoader: ListValueLoader<T, V> = ListValueLoader("ReceiverGrid", hostTypeToken, typeToken)
+    val rowsSize : Int get() = rows.size
+    abstract val size: Int
+
+    val singleLoader: ValueLoader<T, V> = ValueLoader("ReceiverGrid", hostType, type)
+    val listLoader: ListValueLoader<T, V> = ListValueLoader("ReceiverGrid", hostType, type)
 
     val beforeGridRender: Signal<GridParams<T, V>, Unit> = signalOf<GridParams<T,V>, Unit>()
     val beforeRowRender: Signal<RowParams<V>, Unit> = signalOf<RowParams<V>, Unit>()
@@ -77,11 +75,6 @@ sealed class PrettyGridBase<T: Any, V: Any>(
         rows.forEach { addRow(it) }
         return this
     }
-
-    fun insertRows(position: Int,   rows: List<PrettyRow<V>>):PrettyGridBase<T, V>{
-        rowsBacking.addAll(position, rows)
-        return this
-    }
     fun getRow(rowId: Enum<*>): PrettyRow<V>{
         return rows.first { rowId == it.id }
     }
@@ -90,8 +83,14 @@ sealed class PrettyGridBase<T: Any, V: Any>(
     }
 
     fun applyOptions(opts: RowOptions?){
-        opts?.let {
-            options = it
+        if(opts != null){
+            options = opts
+            rows.forEach {row->
+                if(row.options.orientation != opts.orientation){
+                    row.options.orientation = opts.orientation
+                }
+            }
+
         }
     }
 }
@@ -103,11 +102,16 @@ class PrettyGrid<T: Any>(
 {
     constructor(typeToken :TypeToken<T>):this(typeToken, RowOptions())
 
+    internal var gridMap: MutableMap<GridKey, PrettyGrid<*>> = mutableMapOf()
     val renderMap : Map<GridKey, RenderableElement<T>> get() = renderMapBacking
+
+    val gridsCount: Int get() = gridMap.size
+    override val size: Int get() = gridsCount + renderCount + rowsSize
 
     private fun renderGrid(grid: PrettyGrid<*>?, opts: CommonRowOptions?): String{
         if(grid != null){
-            return grid.render(opts)
+            val render = grid.render(opts)
+            return render
         }
         return ""
     }
@@ -138,8 +142,6 @@ class PrettyGrid<T: Any>(
 
     fun render(receiver: T, opts: CommonRowOptions? = null, optionBuilder: (RowOptions.()-> Unit)? = null): String {
         val resultList = mutableListOf<String>()
-//        val useOptions = PrettyHelper.toRowOptions(opts, options)
-//        optionBuilder?.invoke(useOptions)
         val rowOptions = PrettyHelper.toRowOptionsOrNull(opts)
         val keys = (renderMap.keys + gridMap.keys).sortedBy{  it.order }
         for (gridKey in keys) {
@@ -173,6 +175,10 @@ class PrettyGrid<T: Any>(
         if(value != null){
             return render(value, useOptions)
         }
+        val listValue = listLoader.resolveProvider()
+        if(listValue != null){
+           return render(listValue, useOptions)
+        }
         return ""
     }
 
@@ -186,6 +192,8 @@ class PrettyValueGrid<T: Any, V: Any>(
     options: CommonRowOptions = RowOptions(),
 ) : PrettyGridBase<T, V>(hostTypeToken,  typeToken, PrettyHelper.toRowOptions(options)), RenderableElement<T>
 {
+
+    override val size: Int get() = renderCount + rowsSize
 
     fun render(receiver: V, opts: CommonRowOptions? = null, optionsBuilder: (RowOptions.()-> Unit)? = null): String {
         val resultList = mutableListOf<String>()

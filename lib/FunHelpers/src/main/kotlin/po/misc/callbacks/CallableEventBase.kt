@@ -33,7 +33,9 @@ import kotlin.collections.component2
  */
 abstract class CallableEventBase <T: Any, R>(): Component {
 
-    internal val listeners: LambdaMap<T, R> = LambdaMap(this)
+    var listeners: LambdaMap<T, R> = LambdaMap(this)
+        internal set
+
     internal var validator: ReactiveValidator<T>? = null
 
     protected val subjectKey: String = "Key overwritten"

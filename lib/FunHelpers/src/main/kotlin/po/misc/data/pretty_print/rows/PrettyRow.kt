@@ -27,6 +27,7 @@ import po.misc.data.strings.stringify
 import po.misc.data.styles.SpecialChars
 import po.misc.types.safeCast
 import po.misc.types.token.TypeToken
+import po.misc.types.token.safeCast
 
 
 /**
@@ -44,7 +45,7 @@ class PrettyRow<T: Any>(
     initialCells: List<PrettyCellBase> = emptyList(),
 ): RenderableElement<T>, TraceableContext{
 
-    constructor(container: RowContainerBase<T, T>):this(container.typeToken, container.options,  container.cells)
+    constructor(container: RowContainerBase<T, T>):this(container.type, container.options,  container.cells)
 
     private val cellsBacking: MutableList<PrettyCellBase> = mutableListOf()
 
@@ -163,9 +164,7 @@ class PrettyRow<T: Any>(
         }
         val resultList = mutableListOf<String>()
         val options = PrettyHelper.toOptionsOrNull(opts)
-       // val cellsToRender = cells
-       // val cellCount = cellsToRender.size
-      //  val cellsToTake = (cellCount - 1).coerceAtLeast(0)
+
         val valuesList = values.toList()
         valuesList.forEach {value->
             val casted = value.safeCast(typeToken)

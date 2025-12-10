@@ -13,13 +13,11 @@ import po.misc.types.token.TypeToken
 import kotlin.reflect.KProperty1
 
 
-
-
-
-sealed class ReceiverLoaderBase<T: Any,  V: Any>(
-   val hostName: String,
-   val typeToken: TypeToken<T>,
-): TraceableContext, TextBuilder {
+class ValueLoader2<T: Any, V: Any>(
+    val hostName: String,
+    val typeToken: TypeToken<T>,
+    val valueToken: TypeToken<V>,
+): TraceableContext, TextBuilder{
 
     internal var propertyBacking: KProperty1<T, V>? = null
     val property: KProperty1<T, V> get() {
@@ -31,12 +29,16 @@ sealed class ReceiverLoaderBase<T: Any,  V: Any>(
     val provider: () -> V get() {
         return providerBacking.getOrThrow(this)
     }
-    val hasProvider: Boolean get() = providerBacking != null
-    abstract val canLoadValue: Boolean
 
-    val resolved: Signal<ReceiverLoaderBase<T, V>, Unit> = signalOf(NoResult)
+    val resolved: Signal<ValueLoader2<T, V>, Unit> = signalOf(NoResult)
     var lastValue: V? = null
-        protected set
+        private set
+
+    val valueResolved: Signal<V, Unit> = signalOf<V>(valueToken, NoResult)
+
+    val hasProvider: Boolean get() = providerBacking != null
+
+    val canLoadValue: Boolean get() = hasProvider || hasProperty
 
     internal inline fun <reified TH: Throwable> makeThrow(message: String): Nothing{
         val throwableClass = TH::class
@@ -46,7 +48,6 @@ sealed class ReceiverLoaderBase<T: Any,  V: Any>(
             else -> throw IllegalStateException(msg)
         }
     }
-    protected abstract fun  valueResolved(value: V)
 
     fun getValue():V? = lastValue
     fun getValue(throwing: Throwing):V{
@@ -94,36 +95,7 @@ sealed class ReceiverLoaderBase<T: Any,  V: Any>(
         makeThrow<IllegalStateException>(message)
     }
 
-    fun initFrom(other: ReceiverLoaderBase<T, V>){
-        if( other.hasProperty){
-            propertyBacking = other.propertyBacking
-        }
-        if(other.hasProvider){
-            providerBacking = other.providerBacking
-        }
-    }
-    fun initValueFrom(other: ReceiverLoaderBase<*, V>) {
-        if(other.typeToken == typeToken && other.hasProperty){
-            val castedProperty = other.propertyBacking?.safeCast<KProperty1<T, V>>()
-            propertyBacking = castedProperty
-        }
-        if(other.typeToken == typeToken && other.hasProvider){
-            val castedProvider = other.providerBacking?.safeCast<() -> V>()
-            providerBacking = castedProvider
-        }
-    }
-}
-
-class ValueLoader<T: Any, V: Any>(
-    hostName: String,
-    typeToken: TypeToken<T>,
-    val valueToken: TypeToken<V>,
-):ReceiverLoaderBase<T, V>(hostName, typeToken){
-
-    val valueResolved: Signal<V, Unit> = signalOf<V>(valueToken, NoResult)
-    override val canLoadValue: Boolean get() = hasProperty || hasProvider
-
-    override fun valueResolved(value: V){
+    fun valueResolved(value: V){
         valueResolved.trigger(value)
     }
     fun setProperty(property: KProperty1<T, V>){
@@ -150,45 +122,23 @@ class ValueLoader<T: Any, V: Any>(
         }
         makeThrow<IllegalStateException>(message)
     }
-}
 
-class ListValueLoader<T: Any, V: Any>(
-    hostName: String,
-    typeToken: TypeToken<T>,
-    val valueToken: TypeToken<V>,
-): ReceiverLoaderBase<T, List<V>>(hostName, typeToken) {
-
-    val valueResolved: Signal<List<V>, Unit> = signalOf<List<V>, Unit>()
-    override val canLoadValue: Boolean get() = hasProperty || hasProvider
-
-    override fun valueResolved(value: List<V>){
-        valueResolved.trigger(value)
-    }
-
-    fun setProperty(property: KProperty1<T, List<V>>){
-        propertyBacking = property
-    }
-    fun setProvider(provider: ()-> List<V>){
-        providerBacking = provider
-    }
-
-    fun resolveValue(receiver:T):List<V>{
-        if(hasProvider){
-            return provider.invoke()
+    fun initFrom(other: ValueLoader2<T, V>){
+        if( other.hasProperty){
+            propertyBacking = other.propertyBacking
         }
-        if(hasProperty){
-            return property.get(receiver)
+        if(other.hasProvider){
+            providerBacking = other.providerBacking
         }
-        return emptyList()
     }
-    fun resolveValue(receiver:T, throwing: Throwing):List<V>{
-        if(hasProvider){
-            return provider.invoke()
+    fun initValueFrom(other: ValueLoader2<*, V>) {
+        if(other.typeToken == typeToken && other.hasProperty){
+            val castedProperty = other.propertyBacking?.safeCast<KProperty1<T, V>>()
+            propertyBacking = castedProperty
         }
-        if(hasProperty){
-            return property.get(receiver)
+        if(other.typeToken == typeToken && other.hasProvider){
+            val castedProvider = other.providerBacking?.safeCast<() -> V>()
+            providerBacking = castedProvider
         }
-        val message = "Impossible to resolve value of receiver type ${typeToken.simpleName}"
-        makeThrow<IllegalStateException>(message)
     }
 }

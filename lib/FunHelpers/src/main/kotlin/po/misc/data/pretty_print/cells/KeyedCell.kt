@@ -18,7 +18,7 @@ class KeyedCell<T: Any>(
     override val typeToken: TypeToken<T>,
     val cellName: String,
     row: PrettyRow<T>? = null
-): PrettyCellBase(KeyedOptions(KeyedPresets.Property), row), ReceiverAwareCell<T> {
+): PrettyCellBase(KeyedOptions(KeyedPresets.Property)), ReceiverAwareCell<T> {
 
     constructor(
         typeToken: TypeToken<T>,

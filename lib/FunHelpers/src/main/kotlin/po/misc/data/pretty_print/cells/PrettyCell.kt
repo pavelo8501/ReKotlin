@@ -25,7 +25,7 @@ import kotlin.text.append
  */
 class PrettyCell(
     row: PrettyRow<*>? = null
-): PrettyCellBase(prettyCellOptions, row){
+): PrettyCellBase(prettyCellOptions){
 
     constructor(presets: CellPresets):this(){
         applyOptions( presets.toOptions())

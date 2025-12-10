@@ -47,7 +47,6 @@ fun <T: Any> Any.safeCast(
     }
 }
 
-fun <T> Any.safeCast(token: TypeToken<T>):T? = safeCast(token.kClass)
 
 
 /**

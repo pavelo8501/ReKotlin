@@ -77,9 +77,6 @@ inline fun <reified T: Templated> T.buildRowForContext(
 }
 
 
-
-
-
 fun <T: Any, V: Any> buildPrettyRow(
     property: KProperty1<T, V>,
     typeToken: TypeToken<T>,
@@ -88,10 +85,9 @@ fun <T: Any, V: Any> buildPrettyRow(
     builder: RowValueContainer<T, V>.()-> Unit
 ):  PrettyRow<V>{
     val options = PrettyHelper.toRowOptions(rowOptions)
-    val container = GridValueContainer(typeToken, valueToken, options)
-    val valueContainer = createRowValueContainer(typeToken, valueToken, options)
-    builder.invoke(valueContainer)
-    return container.addRowContainer(valueContainer, property).prettyRow
+    val rowContainer = createRowValueContainer(typeToken, valueToken, options)
+    rowContainer.singleLoader.setProperty(property)
+    return rowContainer.applyBuilder(builder)
 }
 
 

@@ -19,8 +19,9 @@ import po.misc.data.styles.TextStyler
 
 sealed class PrettyCellBase(
     var cellOptions : CellOptions,
-    open var row: PrettyRow<*>?
 ){
+
+    open var row: PrettyRow<*>? = null
 
     private val cellsCount: Int get() = row?.size?:1
 

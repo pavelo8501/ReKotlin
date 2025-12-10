@@ -1,6 +1,7 @@
 package po.test.misc.data.pretty_print.grid
 
-import po.misc.data.output.output
+
+import po.misc.data.pretty_print.cells.KeyedCell
 import po.misc.data.pretty_print.cells.StaticCell
 import po.misc.data.pretty_print.grid.PrettyGrid
 import po.misc.data.pretty_print.grid.PrettyValueGrid
@@ -19,106 +20,114 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class TestTemplateContainer : PrettyTestBase() {
-
     private val record = createRecord()
-
-    fun getRecord(): PrintableRecord{
+    fun getRecord(): PrintableRecord {
         return record
     }
-   private  val subClassGrid: PrettyGrid<PrintableRecordSubClass> = buildPrettyGrid<PrintableRecordSubClass>(){
+    private val subClassGrid: PrettyGrid<PrintableRecordSubClass> = buildPrettyGrid<PrintableRecordSubClass>() {
         buildRow(Row.SubTemplateRow) {
             addCells(PrintableRecordSubClass::subName, PrintableRecordSubClass::subComponent)
         }
     }
-   private val elementGrid: PrettyGrid<PrintableElement> = buildPrettyGrid{
+    private val elementGrid: PrettyGrid<PrintableElement> = buildPrettyGrid {
         buildRow(Row.SubTemplateRow) {
             addCell(PrintableElement::elementName)
         }
     }
-
     private val subClassRow = buildPrettyRow<PrintableRecordSubClass>(Row.SubTemplateRow) {
         addCells(PrintableRecordSubClass::subName, PrintableRecordSubClass::subComponent)
     }
-
     private val elementsRow = record.elements.buildRowContainer {
         addCell(PrintableElement::elementName)
     }
+
     @Test
-    fun `Template is inserted as first if renderHere function not called`(){
-        val grid = buildPrettyGrid<PrintableRecord>(Grid.Grid1){
-            useTemplate(subClassGrid, PrintableRecord::subClass){
-                buildRow {
-                    addCell(headerText1)
-                }
-            }
-        }
+    fun `Exactly one render block produced`() {
 
-        assertNotNull(grid.renderBlocks.firstOrNull()){element->
-           val valueGrid = assertIs<PrettyValueGrid<PrintableRecord, PrintableRecordSubClass>>(element)
-           assertEquals(PrintableRecord::class, valueGrid.hostTypeToken.kClass)
-           assertEquals(PrintableRecordSubClass::class, valueGrid.typeToken.kClass)
-
-            assertNotNull(valueGrid.rows.firstOrNull()){row->
-                val prettyRow = assertIs<PrettyRow<PrintableRecordSubClass>>(row)
-                assertEquals(PrintableRecordSubClass::class, prettyRow.typeToken.kClass)
-                assertEquals(2, prettyRow.cells.size)
-                assertEquals(Row.SubTemplateRow, row.id)
-            }
-            assertNotNull(valueGrid.rows.getOrNull(1)){row->
-                val prettyRow = assertIs<PrettyRow<PrintableRecordSubClass>>(row)
-                assertEquals(PrintableRecordSubClass::class, prettyRow.typeToken.kClass)
-                val cell =  assertNotNull(prettyRow.cells.firstOrNull())
-                assertIs<StaticCell>(cell)
-                assertEquals(headerText1, cell.text)
+        val grid = buildPrettyGrid<PrintableRecord>(Grid.Grid1) {
+            useTemplate(subClassGrid, PrintableRecord::subClass) {
+                addHeadedRow(headerText1)
             }
         }
         assertEquals(1, grid.renderBlocks.size)
     }
 
     @Test
-    fun `Template is inserted to a specific position`(){
-        val grid = buildPrettyGrid<PrintableRecord>(Grid.Grid1){
-            useTemplate(subClassGrid, PrintableRecord::subClass){
+    fun `Template is inserted as first if renderHere function not called`() {
+        val grid = buildPrettyGrid<PrintableRecord>(Grid.Grid1) {
+            useTemplate(subClassGrid, PrintableRecord::subClass) {
+                buildRow {
+                    addCell(headerText1)
+                }
+            }
+        }
+        assertNotNull(grid.renderBlocks.firstOrNull()) { valueGrid ->
+            assertIs<PrettyValueGrid<PrintableRecord, PrintableRecordSubClass>>(valueGrid)
+            assertEquals(PrintableRecord::class, valueGrid.hostType.kClass)
+            assertEquals(PrintableRecordSubClass::class, valueGrid.type.kClass)
+
+            assertNotNull(valueGrid.rows.firstOrNull()) { prettyRow ->
+               assertIs<PrettyRow<PrintableRecordSubClass>>(prettyRow)
+               assertEquals(PrintableRecordSubClass::class, prettyRow.typeToken.kClass)
+               assertEquals(2, prettyRow.cells.size)
+               assertEquals(Row.SubTemplateRow, prettyRow.id)
+            }
+            assertNotNull(valueGrid.rows.getOrNull(1)) { prettyRow ->
+                assertIs<PrettyRow<PrintableRecordSubClass>>(prettyRow)
+                assertEquals(PrintableRecordSubClass::class, prettyRow.typeToken.kClass)
+                assertNotNull(prettyRow.cells.firstOrNull()){cell->
+                   assertIs<StaticCell>(cell)
+                   assertEquals(headerText1, cell.text)
+               }
+            }
+        }
+        assertEquals(1, grid.renderBlocks.size)
+    }
+
+    @Test
+    fun `Template is inserted to a specific position`() {
+        val grid = buildPrettyGrid<PrintableRecord>(Grid.Grid1) {
+            useTemplate(subClassGrid, PrintableRecord::subClass) {
                 addHeadedRow(headerText1, Row.Row1)
                 renderHere()
                 addHeadedRow(headerText2, Row.Row2)
             }
         }
         val template = assertIs<PrettyValueGrid<PrintableRecord, PrintableRecordSubClass>>(grid.renderBlocks.first())
-        assertNotNull(template.rows.firstOrNull()){
-               assertEquals(Row.Row1, it.id)
+        assertNotNull(template.rows.firstOrNull()) {
+            assertEquals(Row.Row1, it.id)
         }
-        assertNotNull(template.rows.getOrNull(1)){row->
-            val prettyRow = assertIs<PrettyRow<PrintableRecordSubClass>>(row)
-            assertEquals(PrintableRecordSubClass::class, prettyRow.typeToken.kClass)
-            assertEquals(2, prettyRow.cells.size)
+        assertNotNull(template.rows.getOrNull(1)) { row ->
+            assertIs<PrettyRow<PrintableRecordSubClass>>(row)
+            assertEquals(PrintableRecordSubClass::class, row.typeToken.kClass)
+            assertEquals(2, row.cells.size)
             assertEquals(Row.SubTemplateRow, row.id)
         }
-        assertNotNull(template.rows.getOrNull(2)){
+        assertNotNull(template.rows.getOrNull(2)) {
             assertEquals(Row.Row2, it.id)
         }
     }
 
     @Test
-    fun `List type template is created`(){
-        val grid = buildPrettyGrid<PrintableRecord>(Grid.Grid1){
-            useTemplateList(elementGrid, PrintableRecord::elements){
+    fun `List type template is created`() {
+        val grid = buildPrettyGrid<PrintableRecord>(Grid.Grid1) {
+            useListTemplate(elementGrid, PrintableRecord::elements) {
                 addHeadedRow(headerText1, Row.Row1)
                 renderHere()
             }
         }
         val template = assertIs<PrettyValueGrid<PrintableRecord, PrintableRecordSubClass>>(grid.renderBlocks.first())
         assertTrue(template.listLoader.hasProperty)
-        assertNotNull(template.rows.getOrNull(1)){row->
-            val prettyRow = assertIs<PrettyRow<PrintableElement>>(row)
-            assertEquals(PrintableElement::class, prettyRow.typeToken.kClass)
+        assertNotNull(template.rows.getOrNull(1)) { row ->
+            assertIs<PrettyRow<PrintableElement>>(row)
+            assertEquals(PrintableElement::class, row.typeToken.kClass)
         }
     }
 
     @Test
-    fun `Template builder additional features work as expected`(){
-        val grid = buildPrettyGrid<PrintableRecord>{
-            useTemplateList(elementGrid, PrintableRecord::elements){
+    fun `Template builder additional features work as expected`() {
+        val grid = buildPrettyGrid<PrintableRecord> {
+            useListTemplate(elementGrid, PrintableRecord::elements) {
                 useId(Grid.SubTemplateGrid)
                 orientation = Orientation.Vertical
                 exclude(Cell.Cell1, Cell.Cell2, Cell.Cell3, Cell.Cell4)
@@ -133,29 +142,38 @@ class TestTemplateContainer : PrettyTestBase() {
     }
 
     @Test
-    fun `Template by prettyRow is created as expected`(){
+    fun `Template by prettyRow is created as expected`() {
 
-        val grid = buildPrettyGrid<PrintableRecord>(Grid.Grid1){
-            useTemplate(subClassRow, PrintableRecord::subClass){
+        val grid = buildPrettyGrid<PrintableRecord>(Grid.Grid1) {
+            useTemplate(subClassRow, PrintableRecord::subClass) {
                 addHeadedRow(headerText1, Row.Row1)
             }
         }
         val template = assertIs<PrettyValueGrid<PrintableRecord, PrintableRecordSubClass>>(grid.renderBlocks.first())
-        assertNotNull(template.rows.firstOrNull()){
+        assertNotNull(template.rows.firstOrNull()) {
             assertEquals(Row.SubTemplateRow, it.id)
         }
-        assertNotNull(template.rows.getOrNull(1)){
+        assertNotNull(template.rows.getOrNull(1)) {
             assertEquals(Row.Row1, it.id)
         }
     }
+
     @Test
-    fun `Template by rowContainer is created as expected`(){
-        val grid = buildPrettyGrid<PrintableRecord>(Grid.Grid1){
-            useTemplate(elementsRow){
+    fun `Template by rowContainer is created as expected`() {
+
+        val grid = buildPrettyGrid<PrintableRecord>(Grid.Grid1) {
+            useTemplate(elementsRow) {
                 addHeadedRow(headerText1, Row.Row1)
             }
         }
-        assertNotNull(grid.gridMap.values.firstOrNull())
-        grid.render(record).output()
+        val template = assertIs<PrettyGrid<PrintableElement>>(grid.gridMap.values.firstOrNull())
+        val firstRow =  assertNotNull(template.rows.firstOrNull())
+        val secondRow =  assertNotNull(template.rows.getOrNull(1))
+        assertIs<KeyedCell<PrintableElement>>(firstRow.cells.firstOrNull())
+        assertEquals(1, firstRow.cells.size)
+        assertIs<StaticCell>(secondRow.cells.firstOrNull())
+        assertEquals(1, secondRow.cells.size)
+        assertEquals(2, template.rows.size)
+        assertEquals(1, elementsRow.cells.size)
     }
 }

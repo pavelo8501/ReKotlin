@@ -19,8 +19,12 @@ abstract class PrettyTestBase : Templated {
     protected val templateHeaderText1 = "template_header_text_1"
     protected val templateHeaderText2 = "template_header_text_2"
 
+    protected val footerText = "Templates footer"
+
     class PrintableElement(
         val elementName: String,
+        val parameter: String = "Parameter",
+        val value: Int = 1,
     ):Templated
 
     class PrintableRecordSubClass(
@@ -46,16 +50,20 @@ abstract class PrettyTestBase : Templated {
         val subClass: PrintableRecordSubClass = PrintableRecordSubClass(),
         var elements: List<PrintableElement> = emptyList()
     ): Templated {
+
         init {
             if(elements.isEmpty()) {
-                elements = listOf(PrintableElement("Element 1"), PrintableElement("Element 2"))
+                elements =  buildList {
+                    add(PrintableElement("Element 1", "Parameter_1"))
+                    add(PrintableElement("Element 2", "Parameter_2"))
+                }
             }
         }
     }
 
     fun createRecord(elementsCount : Int):PrintableRecord{
        val elements =  elementsCount.repeatBuild {
-            PrintableElement("Element $it")
+            PrintableElement("Element $it", "Parameter_$it", it)
         }
        return PrintableRecord(elements = elements)
     }

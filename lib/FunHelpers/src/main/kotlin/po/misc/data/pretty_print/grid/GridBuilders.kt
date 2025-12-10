@@ -18,11 +18,13 @@ internal fun <T: Any> buildGrid(
 ): PrettyGrid<T>{
     val options = PrettyHelper.toRowOptions(rowOptions)
     val container = GridContainer(token, options)
-    return when {
-        provider != null ->  container.applyBuilder(provider, builder)
-        listProvider != null ->  container.applyBuilder(listProvider, builder)
-        else -> container.applyBuilder(builder)
+    if(provider != null){
+        container.singleLoader.setProvider(provider)
     }
+    if(listProvider != null){
+        container.listLoader.setProvider(listProvider)
+    }
+    return container.applyBuilder(builder)
 }
 
 inline fun <reified T: Any> buildPrettyGrid(
@@ -48,8 +50,6 @@ inline fun <reified T: Templated> T.buildGridForContext(
 ):PrettyGrid<T> = buildGrid(TypeToken.create<T>(), rowOptions, provider = { this }, builder =  builder)
 
 
-
-
 inline fun <reified T: Templated>  List<T>.buildGridForContext(
     rowOptions: CommonRowOptions? = null,
     noinline builder: GridContainer<T>.() -> Unit
@@ -64,16 +64,25 @@ internal fun <T: Any, V: Any> buildValueGrid(
     property: KProperty1<T, V>? = null,
     listProperty: KProperty1<T, List<V>>? = null,
     provider: (() -> V)? = null,
+    listProvider: (() -> List<V>)? = null,
     builder: GridValueContainer<T, V>.() -> Unit
 ): PrettyValueGrid<T, V>{
     val options = PrettyHelper.toRowOptions(rowOptions)
     val container = GridValueContainer(hostTypeToken, token, options)
-    return when {
-        property != null ->  container.applyBuilder(property, builder)
-        listProperty != null -> container.applyBuilder(listProperty, builder)
-        provider != null ->  container.applyBuilder(provider, builder)
-        else ->  throw IllegalStateException("Either property, listProperty or provider should be present in buildValueGrid parameters")
+    if(property != null){
+        container.singleLoader.setProperty(property)
     }
+    if(listProperty != null){
+        container.listLoader.setProperty(listProperty)
+    }
+    if(provider != null){
+        container.singleLoader.setProvider(provider)
+    }
+    if(listProvider != null){
+        container.listLoader.setProvider(listProvider)
+    }
+    return  container.applyBuilder(builder)
+
 }
 
 inline fun <reified T: Any, reified V: Any> buildPrettyGrid(

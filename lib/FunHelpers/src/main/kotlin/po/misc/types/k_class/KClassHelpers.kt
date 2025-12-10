@@ -1,7 +1,12 @@
 package po.misc.types.k_class
 
 
+import po.misc.debugging.ClassResolver
+import po.misc.types.token.GenericInfo
+import po.misc.types.token.TypeSlot
 import kotlin.reflect.KClass
+import kotlin.reflect.KTypeParameter
+import kotlin.reflect.typeOf
 
 data class KClassParam(
     val simpleName : String,
@@ -72,3 +77,22 @@ fun KClass<*>.computeHierarchy(
     return result
 }
 
+
+@PublishedApi
+internal inline fun <reified T: Any> KClass<T>.typeSlots():List<TypeSlot>{
+
+    val result = mutableListOf<TypeSlot>()
+    val kType = typeOf<T>()
+    val typeParameters = T::class.typeParameters
+    kType.arguments.forEachIndexed { index, arg ->
+        val parameter =  typeParameters.getOrNull(index)?: return@forEachIndexed
+        arg.type?.let { argType ->
+            (argType.classifier as? KClass<*>)?.let { klass ->
+                val genericParam = GenericInfo(parameter.name, argType,  ClassResolver.classInfo(klass))
+                val typeSlot = TypeSlot(genericParam, parameter)
+                result.add(typeSlot)
+            }
+        }
+    }
+    return result
+}

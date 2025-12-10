@@ -15,10 +15,9 @@ import kotlin.reflect.KProperty1
 class ComputedCell<T: Any, V: Any>(
     override val typeToken: TypeToken<T>,
     valueToken: TypeToken<V>,
-    row: PrettyRow<*>? = null,
     property: KProperty1<T, V>?,
     val lambda: ComputedCell<T, V>.(V)-> Any
-): PrettyCellBase(Options(), row), ReceiverAwareCell<T> {
+): PrettyCellBase(Options()), ReceiverAwareCell<T> {
 
     constructor(
         typeToken: TypeToken<T>,
@@ -26,7 +25,7 @@ class ComputedCell<T: Any, V: Any>(
         row: PrettyRow<*>? = null,
         provider: () -> V,
         lambda: ComputedCell<T, V>.(V) -> Any
-    ) : this(typeToken, valueToken, row, property = null, lambda = lambda) {
+    ) : this(typeToken, valueToken, property = null, lambda = lambda) {
         singleLoader.setProvider(provider)
     }
 
@@ -40,7 +39,7 @@ class ComputedCell<T: Any, V: Any>(
 
     init {
         property?.let {
-            singleLoader.setReadOnlyProperty(it)
+            singleLoader.setProperty(it)
         }
     }
 

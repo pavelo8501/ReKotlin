@@ -16,6 +16,7 @@ interface RowOptionsEditor{
     fun useId(id: Enum<*>):RowOptions
     fun exclude(vararg excludeId: Enum<*>, includeUnnamed: Boolean = true): RowOptions
     fun renderOnly(vararg renderOnlyId: Enum<*>, includeUnnamed: Boolean = true): RowOptions
+    fun noEdit(noEdit: Boolean = true):RowOptions
 }
 
 
@@ -66,7 +67,7 @@ class RowOptions(
     override var cellOptions: CellOptions? = null
 
 
-    fun setNoEdit(noEdit: Boolean = true):RowOptions{
+    override fun noEdit(noEdit: Boolean):RowOptions{
         useNoEdit = noEdit
         return this
     }

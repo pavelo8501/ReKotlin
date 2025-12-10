@@ -13,10 +13,10 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-class TestRowContainer : PrettyTestBase(), Templated {
+class TestGridContainer : PrettyTestBase(), Templated {
 
     @Test
-    fun `Row container's grid builder work as expected`() {
+    fun `GridContainer's grid builder work as expected`() {
         val grid = buildPrettyGrid<PrintableRecord> {
             buildRow {
                 addCell(PrintableRecord::name)
@@ -34,7 +34,7 @@ class TestRowContainer : PrettyTestBase(), Templated {
     }
 
     @Test
-    fun `Row container's with receiver grid builder work as expected`(){
+    fun `GridContainer's with receiver grid builder work as expected`(){
         val grid = buildPrettyGrid(PrintableRecord::subClass){
             buildRow {
                 addCell(PrintableRecordSubClass::subName)
@@ -52,7 +52,7 @@ class TestRowContainer : PrettyTestBase(), Templated {
     }
 
     @Test
-    fun `Row container's with receiver grid builder correctly work with lists`(){
+    fun `GridContainer's with receiver grid builder correctly work with lists`(){
         val grid = buildPrettyGridList(PrintableRecord::elements){
             buildRow{
                 addCell(PrintableElement::elementName)
@@ -62,7 +62,7 @@ class TestRowContainer : PrettyTestBase(), Templated {
     }
 
     @Test
-    fun ` RowContainer's build row correctly creates nested row with transition`(){
+    fun `GridContainer's build row correctly creates nested row with transition`(){
         val grid = buildPrettyGrid<PrintableRecord> {
             buildRow {
                 addCell(PrintableRecord::name)
@@ -90,7 +90,7 @@ class TestRowContainer : PrettyTestBase(), Templated {
     }
 
     @Test
-    fun ` RowContainer's buildRowList correctly creates nested row with transition`(){
+    fun `GridContainer's buildRowList correctly creates nested row with transition`(){
         val grid = buildPrettyGrid<PrintableRecord> {
             buildRow {
                 addCell(PrintableRecord::name)

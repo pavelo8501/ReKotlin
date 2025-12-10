@@ -272,6 +272,10 @@ class Signal<T: Any, R>(
         return logMessage
     }
 
+    fun initializeBy(other: Signal<T, R>){
+        listeners = other.listeners
+    }
+
     override fun toString(): String = signalName
 
 }

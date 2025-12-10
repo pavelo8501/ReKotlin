@@ -83,7 +83,7 @@ class TestGridComposition : PrettyTestBase(){
         }
         assertNotNull(grid.renderBlocks.firstOrNull()) { renderBlock ->
             assertIs<PrettyValueGrid<PrintableRecord, PrintableRecordSubClass>>(renderBlock)
-            assertEquals(PrintableRecordSubClass::class, renderBlock.typeToken.kClass)
+            assertEquals(PrintableRecordSubClass::class, renderBlock.type.kClass)
             assertNotNull(renderBlock.singleLoader.propertyBacking)
             assertEquals(1, renderBlock.rows.size)
         }
@@ -115,7 +115,7 @@ class TestGridComposition : PrettyTestBase(){
             assertEquals(GridSource.Grid, usedGridEntry.key.source)
             assertEquals(1, usedGridEntry.key.order)
             val testGrid = assertIs<PrettyGrid<TestGridComposition>>(usedGridEntry.value)
-            assertEquals(TestGridComposition::class, testGrid.typeToken.kClass)
+            assertEquals(TestGridComposition::class, testGrid.type.kClass)
             assertEquals(2,  testGrid.size)
         }
     }

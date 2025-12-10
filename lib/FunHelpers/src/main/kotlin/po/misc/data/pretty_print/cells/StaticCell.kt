@@ -12,9 +12,8 @@ import kotlin.text.append
 
 
 class StaticCell(
-    var content: Any? = null,
-    row: PrettyRow<*>? = null
-): PrettyCellBase(Options(), row){
+    var content: Any? = null
+): PrettyCellBase(Options()){
 
     val text: String get() = content.stringify().toString()
 

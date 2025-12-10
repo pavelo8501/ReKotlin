@@ -153,7 +153,7 @@ class TestGridRendering : PrettyTestBase(){
 
         val grid = buildPrettyGrid<PrintableRecord>{
             useTemplate(header)
-            useListTemplate(elementRow, PrintableRecord::elements)
+            useTemplate(elementRow, PrintableRecord::elements)
         }
         assertEquals(2, grid.rows.size)
         assertEquals(3, grid.renderBlocks.size)
@@ -161,8 +161,8 @@ class TestGridRendering : PrettyTestBase(){
         assertEquals(2, grid.rows[1].cells.size)
 
         val elementGrid = assertIs<PrettyValueGrid<PrintableRecord, PrintableElement>>(grid.renderBlocks.last())
-        assertEquals(PrintableElement::class, elementGrid.typeToken.kClass)
-        assertEquals(PrintableRecord::class, elementGrid.hostTypeToken.kClass)
+        assertEquals(PrintableElement::class, elementGrid.type.kClass)
+        assertEquals(PrintableRecord::class, elementGrid.hostType.kClass)
 
         val record = createRecord()
         val render =  grid.render(record)

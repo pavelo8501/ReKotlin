@@ -12,52 +12,65 @@ import po.misc.data.pretty_print.rows.RowContainer
 
 inline fun <T: Any, reified V: Any> GridContainerBase<T, V>.addHeadedRow(
     text: String,
+    id: Enum<*>? = null,
     rowPreset: RowPresets = RowPresets.HeadedHorizontal,
 ): PrettyRow<V> {
-    val options = rowPreset.asRowOptions()
+    val options = rowPreset.asRowOptions{
+        if(id != null){
+            useId(id)
+        }
+    }
     val cell =  StaticCell(text).applyOptions(options.cellOptions)
-    return createRow(options, cell.asList())
+    val row =  PrettyRow<V>(type, options, cell.asList())
+    when(this){
+        is GridContainer<*> -> { addRow(row) }
+        else -> { addRow(row) }
+    }
+    return row
 }
+
 
 inline fun <T: Any, reified V: Any> GridContainerBase<T, V>.addHeadedRow(
     text: String,
-    id: Enum<*>,
     rowPreset: RowPresets = RowPresets.HeadedHorizontal,
-): PrettyRow<V> {
-    val options =   rowPreset.asRowOptions(){
-        useId(id)
+): PrettyRow<V> = addHeadedRow(text, null, rowPreset)
+
+fun <T: Any, V: Any> GridContainerBase<T, V>.createRow(
+    rowId: Enum<*>,
+    orientation: Orientation? = null,
+    vararg cells: PrettyCellBase
+):  PrettyRow<V>{
+
+    val opts =  RowOptions(rowId, orientation)
+    val row =  PrettyRow<V>(type, opts, cells.toList())
+    when(this){
+        is  GridContainer<*> -> {
+            addRow(row)
+        }
+        else -> {
+            addRow(row)
+        }
     }
-    val cell = StaticCell(text).applyOptions(options.cellOptions)
-    return createRow(options, cell.asList())
+    return row
 }
 
 fun <T: Any, V: Any> GridContainerBase<T, V>.createRow(
-    orientation: Orientation,
-    vararg cells: PrettyCellBase
-):  PrettyRow<V> = createRow(RowOptions(orientation), cells.toList())
-
-fun <T: Any, V: Any> GridContainerBase<T, V>.createRow(
     rowId: Enum<*>,
     vararg cells: PrettyCellBase
-):  PrettyRow<V> = createRow(RowOptions(rowId), cells.toList())
+):  PrettyRow<V>  = createRow(rowId, *cells)
 
-fun <T: Any, V: Any> GridContainerBase<T, V>.createRow(
-    rowId: Enum<*>,
-    orientation: Orientation = Orientation.Horizontal
-):  PrettyRow<V> = createRow(RowOptions(orientation, rowId))
 
 fun <T: Any> GridContainer<T>.buildRow(
     orientation: Orientation,
     builder: RowContainer<T>.() -> Unit
 ): Unit = buildRow(RowOptions(orientation), builder)
 
-
 fun <T: Any> GridContainer<T>.buildRow(
     rowId: Enum<*>,
     orientation: Orientation = Orientation.Horizontal,
     builder: RowContainer<T>.() -> Unit
 ): Unit {
-    val opts = RowOptions(orientation, rowId).setNoEdit()
+    val opts = RowOptions(orientation, rowId).noEdit()
     buildRow(opts, builder)
 }
 
