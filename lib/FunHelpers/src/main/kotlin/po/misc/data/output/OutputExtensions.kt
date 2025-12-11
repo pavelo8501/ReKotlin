@@ -24,9 +24,7 @@ class OutputHelper<T>(
     }
 }
 
-
 internal fun checkDispatcher(){
-
     if(OutputDispatcher.identifyOutput){
         val frame : StackFrameMeta = Tracer().firstElement.toFrameMeta()
         println(frame.consoleLink)

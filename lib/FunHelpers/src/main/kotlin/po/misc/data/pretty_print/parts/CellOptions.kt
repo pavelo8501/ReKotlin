@@ -119,13 +119,17 @@ data class KeyedOptions(
     constructor(preset: KeyedPresets, id: Enum<*>? = null):this(width = 0, preset.align, preset.styleOptions, preset.keyStyleOptions, id = id)
     constructor(cellOptions: CellOptions):this(cellOptions.width, cellOptions.alignment, cellOptions.styleOptions){
         usePlain = cellOptions.usePlain
-
     }
-
     override val spaceFiller: Char get() = emptySpaceFiller.orDefault()
     override var usePlain: Boolean = false
     override var renderLeftBorder: Boolean = true
     override var renderRightBorder: Boolean = true
+
+
+    fun usePlainValue(usePlain:Boolean): KeyedOptions{
+        this.usePlain = usePlain
+        return this
+    }
 
     override fun asOptions(): Options = Options(this)
 }

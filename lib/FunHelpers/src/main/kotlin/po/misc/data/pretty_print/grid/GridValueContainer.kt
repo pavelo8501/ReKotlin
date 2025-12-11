@@ -3,13 +3,19 @@ package po.misc.data.pretty_print.grid
 import po.misc.data.pretty_print.PrettyGrid
 import po.misc.data.pretty_print.PrettyGridBase
 import po.misc.data.pretty_print.PrettyValueGrid
+import po.misc.data.pretty_print.parts.CommonRowOptions
+import po.misc.data.pretty_print.parts.PrettyHelper
 import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.rows.RowContainer
 import po.misc.data.pretty_print.rows.RowValueContainer
+import po.misc.data.pretty_print.rows.createRowContainer
+import po.misc.data.pretty_print.rows.createRowValueContainer
 import po.misc.properties.checkType
 import po.misc.properties.isReturnTypeList
 import po.misc.types.token.TypeToken
+import po.misc.types.token.asList
 import po.misc.types.token.safeParametrizedCast
+import java.util.Collections.list
 import kotlin.reflect.KProperty1
 
 
@@ -19,18 +25,19 @@ class GridValueContainer<T: Any, V: Any>(
     var options: RowOptions? = null
 ): GridContainerBase<T, V>(hostType, type){
 
+    constructor(
+        hostType: TypeToken<T>,
+        type: TypeToken<V>,
+        property: KProperty1<T, V>? = null,
+        listProperty: KProperty1<T, List<V>>? = null,
+        options: RowOptions? = null,
+    ):this(hostType, type, options){
 
-    constructor(hostType: TypeToken<T>, type: TypeToken<V>, property: KProperty1<T, V>):this(hostType, type){
-        if(type.isCollection){
-            if(!property.isReturnTypeList){
-                throw IllegalStateException("Something went wrong. Type token isCollection = true but property isReturnTypeList = false")
-            }
-
-            val checked = property.checkType(hostType, type)
-
-            listLoader.setProperty(property)
-        }else{
-            singleLoader.setProperty(property)
+        if(property != null){
+            setProperty(property)
+        }
+        if(listProperty != null){
+            listLoader.setProperty(listProperty)
         }
     }
 
@@ -41,9 +48,6 @@ class GridValueContainer<T: Any, V: Any>(
     constructor(grid: PrettyGridBase<T, V>):this(grid.hostType, grid.type){
         initializeByGrid(grid)
     }
-
-
-
 
     @PublishedApi
     internal fun createValueGrid(opts: RowOptions? = null): PrettyValueGrid<T, V> {
@@ -80,17 +84,15 @@ class GridValueContainer<T: Any, V: Any>(
         addRow(container.createRow())
     }
 
-
-    fun setProperties(
-        property:  KProperty1<T, V>? = null,
-        listProperty: KProperty1<T, List<V>>? = null
+    fun buildRow(
+        rowOptions: CommonRowOptions? = null,
+        builder: RowValueContainer<T, V>.() -> Unit
     ){
-        if(property != null){
-            singleLoader.setProperty(property)
-        }
-        if(listProperty != null){
-            listLoader.setProperty(listProperty)
-        }
+        val options = PrettyHelper.toRowOptionsOrNull(rowOptions)
+        options?.noEdit()
+        val container = createRowValueContainer(hostType, type, options)
+        val row =  container.applyBuilder(builder)
+        addRow(row)
     }
 
 
@@ -152,5 +154,4 @@ class GridValueContainer<T: Any, V: Any>(
             return gridContainer.createValueGrid(opts)
         }
     }
-
 }

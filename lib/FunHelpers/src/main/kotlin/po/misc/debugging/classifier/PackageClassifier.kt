@@ -54,17 +54,18 @@ interface PackageClassifier{
  * @constructor provides an optional initial list of helper class records
  */
 open class SimplePackageClassifier(
-    vararg helperClass: HelperRecord
+   initialRecords : List<HelperRecord> = KnownHelpers.classRecords
 ):PackageClassifier {
 
     /**
      * Secondary constructor that accepts a [HelperClassList].
      */
-    constructor(helpersList:  HelperClassList):this(){
-        helperClassRecords = helpersList.classRecords.toMutableList()
+    constructor(helperList: HelperClassList = KnownHelpers, vararg helperRecord: HelperRecord):this(helperList.classRecords){
+        recordsBacking.addAll(helperRecord.toList())
     }
 
-    private var helperClassRecords : MutableList<HelperRecord> = helperClass.toMutableList()
+    private val recordsBacking : MutableList<HelperRecord> = initialRecords.toMutableList()
+    val records : List<HelperRecord>  = recordsBacking
 
     override var ktPostfixAsHelper: Boolean = true
 
@@ -91,7 +92,7 @@ open class SimplePackageClassifier(
                 return PackageRole.Helper
             }
         }
-        val helperClassNames = helperClassRecords.filter { it.helperMethodNames.isEmpty() }.map { it.helperClassName }
+        val helperClassNames = records.filter { it.helperMethodNames.isEmpty() }.map { it.helperClassName }
         if(className in helperClassNames){
             return PackageRole.Helper
         }
@@ -105,7 +106,7 @@ open class SimplePackageClassifier(
 
     private fun checkByMethodName(element: StackTraceElement, roleByPreviousCheck: PackageRole = PackageRole.Unknown): PackageRole{
         val methodName = element.normalizedMethodName()
-        for(helperRecord in helperClassRecords){
+        for(helperRecord in records){
             if(helperRecord.methodNameListed(methodName)){
                 return PackageRole.Helper
             }
@@ -114,7 +115,9 @@ open class SimplePackageClassifier(
     }
 
     fun addHelperRecord(record: HelperRecord):SimplePackageClassifier{
-        helperClassRecords.add(record)
+        if(!recordsBacking.any { it.helperClassName == record.helperClassName }){
+            recordsBacking.add(record)
+        }
         return this
     }
 
@@ -133,5 +136,8 @@ open class SimplePackageClassifier(
             return checkByMethodName(element, roleByClass)
         }
         return roleByClass
+    }
+    operator fun get(className: String): HelperRecord? {
+       return records.firstOrNull{ it.helperClassName == className }
     }
 }

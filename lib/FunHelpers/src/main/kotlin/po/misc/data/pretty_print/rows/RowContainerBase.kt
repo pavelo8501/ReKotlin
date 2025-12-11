@@ -87,11 +87,14 @@ sealed class RowContainerBase<T: Any, V: Any>(
         return storeCell(cell)
     }
 
-    fun addCell(property: KProperty1<V, Any>, options: CommonCellOptions? = null): KeyedCell<V> {
-        val cellOptions = PrettyHelper.toKeyedOptionsOrNull(options)
-        val cell = KeyedCell(type, property).applyOptions(cellOptions)
-        return storeCell(cell)
-    }
+//    fun addCell(
+//        property: KProperty1<V, Any>,
+//        options: CommonCellOptions? = null
+//    ): KeyedCell<V> {
+//        val cellOptions = PrettyHelper.toKeyedOptionsOrNull(options)
+//        val cell = KeyedCell(type, property).applyOptions(cellOptions)
+//        return storeCell(cell)
+//    }
 
     fun addCells(
         firstProperty: KProperty1<V, Any>,

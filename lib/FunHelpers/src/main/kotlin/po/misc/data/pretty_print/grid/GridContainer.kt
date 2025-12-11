@@ -9,19 +9,22 @@ import po.misc.data.pretty_print.parts.PrettyHelper
 import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.PrettyValueGrid
+import po.misc.data.pretty_print.parts.PrettyDSL
+import po.misc.data.pretty_print.rows.RowBuilderScope
 import po.misc.data.pretty_print.rows.RowContainer
 import po.misc.data.pretty_print.rows.RowValueContainer
 import po.misc.data.pretty_print.rows.copyRow
+import po.misc.data.pretty_print.rows.createRowContainer
 import po.misc.types.castOrThrow
 import po.misc.types.token.TypeToken
 import kotlin.reflect.KProperty1
 
 
+
 class GridContainer<T: Any>(
     type: TypeToken<T>,
     var options: RowOptions? = null
-): GridContainerBase<T, T>(type, type){
-
+): GridContainerBase<T, T>(type, type), RowBuilderScope<T>{
 
     internal fun createGrid(opts: RowOptions? = null): PrettyGrid<T> {
         val grid = PrettyGrid(type)
@@ -46,6 +49,7 @@ class GridContainer<T: Any>(
         return addRenderBlock(row)
     }
 
+    @PrettyDSL
     inline fun <reified V: Any> buildRow(
         property: KProperty1<T, V>,
         rowOptions: CommonRowOptions? = null,
@@ -61,7 +65,19 @@ class GridContainer<T: Any>(
         addRenderBlock(grid)
     }
 
+    @PrettyDSL
+    fun buildRow(
+        rowOptions: CommonRowOptions? = null,
+        builder: RowContainer<T>.() -> Unit
+    ){
+        val options = PrettyHelper.toRowOptionsOrNull(rowOptions)
+        options?.noEdit()
+        val container = createRowContainer(type, options)
+        val row =  container.applyBuilder(builder)
+        addRow(row)
+    }
 
+    @PrettyDSL
     inline fun <reified V: Any> buildListRow(
         property: KProperty1<T, List<V>>,
         rowOptions: CommonRowOptions? = null,
@@ -76,6 +92,7 @@ class GridContainer<T: Any>(
         val grid = container.createValueGrid(null)
         addRenderBlock(grid)
     }
+
 
     fun <V: Any> useTemplate(
         grid: PrettyGridBase<*, V>,
@@ -172,9 +189,12 @@ class GridContainer<T: Any>(
         row: PrettyRow<V>,
         property: KProperty1<T, V>? = null,
         listProperty: KProperty1<T, List<V>>? = null,
+        opts: RowOptions? = null,
     ){
-        val copy = row.options.copy()
-        val grid = PrettyValueGrid(hostType, row.typeToken, copy)
+        val useOptions = opts?: row.options.copy()
+        val grid = PrettyValueGrid(hostType, row.typeToken, useOptions)
+        val copied =  row.copyRow(row.typeToken)
+        grid.addRow(copied)
         if(property != null){
             grid.singleLoader.setProperty(property)
         }
@@ -193,14 +213,21 @@ class GridContainer<T: Any>(
     fun <V: Any> useTemplate(
         row: PrettyRow<V>,
         property: KProperty1<T, List<V>>,
-    ) = useRowTemplate(row, property = null, listProperty = property)
+        orientation: Orientation? = null,
+    ) {
+      return  if(orientation != null){
+            useRowTemplate(row, property = null, listProperty = property,  RowOptions(orientation).noEdit())
+        }else{
+            useRowTemplate(row, property = null, listProperty = property)
+        }
+    }
 
 
     private fun <V: Any> buildByGridTemplate(
         grid: PrettyGridBase<*, V>,
         property: KProperty1<T, V>? = null,
         listProperty: KProperty1<T, List<V>>? = null,
-        builder:  TemplateGridContainer<T, V>.()-> Unit
+        builder:  TemplateBuilderScope<T, V>.()-> Unit
     ): PrettyValueGrid<T, V> {
         val container = TemplateGridContainer(hostType, grid.type)
         container.initializeByGrid(grid)
@@ -210,22 +237,26 @@ class GridContainer<T: Any>(
         if(listProperty != null){
             container.setProperty(listProperty)
         }
-        val valueGrid = container.buildValueGrid(builder)
+        builder.invoke(container)
+        val valueGrid = container.createValueGrid()
         addRenderBlock(valueGrid)
         templateResolved.trigger(valueGrid)
         return valueGrid
     }
 
+    @PrettyDSL
     fun <V: Any> useTemplate(
         grid: PrettyGridBase<*, V>,
         property: KProperty1<T, V>,
-        builder:  TemplateGridContainer<T, V>.()-> Unit
+        builder:  TemplateBuilderScope<T, V>.()-> Unit
     ): PrettyValueGrid<T, V> = buildByGridTemplate(grid, property, listProperty = null, builder)
+
+
 
     fun <V: Any> useListTemplate(
         grid: PrettyGridBase<*, V>,
         property: KProperty1<T, List<V>>,
-        builder:  TemplateGridContainer<T, V>.()-> Unit
+        builder:  TemplateBuilderScope<T, V>.()-> Unit
     ): PrettyValueGrid<T, V> = buildByGridTemplate(grid, property = null, listProperty = property, builder)
 
 
@@ -244,7 +275,8 @@ class GridContainer<T: Any>(
         if(listProperty != null){
             container.setProperty(listProperty)
         }
-        val valueGrid = container.buildValueGrid(builder)
+        builder.invoke(container)
+        val valueGrid = container.createValueGrid()
         addRenderBlock(valueGrid)
         templateResolved.trigger(valueGrid)
         return valueGrid
@@ -268,9 +300,10 @@ class GridContainer<T: Any>(
         rowContainer: RowContainer<V>,
         builder:  TemplateGridContainer<T, V>.()-> Unit
     ): PrettyGrid<V> {
-        val template = TemplateGridContainer(hostType, rowContainer.type)
-        template.initializeByContainer(rowContainer)
-        val grid = template.buildGrid(builder)
+        val container = TemplateGridContainer(hostType, rowContainer.type)
+        container.initializeByContainer(rowContainer)
+        builder.invoke(container)
+        val grid = container.createGrid()
         addGridBlock(grid)
         return grid
     }

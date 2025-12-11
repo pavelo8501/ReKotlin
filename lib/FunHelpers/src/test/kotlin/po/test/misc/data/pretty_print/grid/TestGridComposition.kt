@@ -1,12 +1,9 @@
 package po.test.misc.data.pretty_print.grid
 
-import po.misc.data.pretty_print.PrettyGrid
 import po.misc.data.pretty_print.PrettyValueGrid
-import po.misc.data.pretty_print.grid.addHeadedRow
 import po.misc.data.pretty_print.grid.buildPrettyGrid
-import po.misc.data.pretty_print.grid.buildPrettyGridList
-import po.misc.data.pretty_print.parts.GridSource
 import po.misc.data.pretty_print.PrettyRow
+import po.misc.data.pretty_print.grid.buildPrettyListGrid
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -16,15 +13,13 @@ import kotlin.test.assertNotNull
 class TestGridComposition : PrettyTestBase(){
 
     private val headerText: String = "Header"
-    private val testGridRenderingString = "TestGridRendering"
-    private val testGridInt = 10
 
     private val subGrid = buildPrettyGrid(PrintableRecord::subClass){
         buildRow {
             addCell(PrintableRecordSubClass::subName)
         }
     }
-    private val elementsGrid = buildPrettyGridList(PrintableRecord::elements){
+    private val elementsGrid = buildPrettyListGrid(PrintableRecord::elements){
         buildRow {
             addCell(PrintableElement::elementName)
         }
@@ -43,17 +38,8 @@ class TestGridComposition : PrettyTestBase(){
         }
     }
 
-    private val thisGrid = buildPrettyGrid<TestGridComposition>{
-        addHeadedRow(headerText)
-        buildRow {
-            addCell(TestGridComposition::testGridRenderingString)
-            addCell(TestGridComposition::testGridInt)
-        }
-    }
-
     @Test
     fun `Grid accepts another  PrettyValueGrid as template if transition property provided`(){
-
         val grid = buildPrettyGrid<PrintableRecord> {
             buildRow {
                 addCell(PrintableRecord::name)
@@ -77,7 +63,6 @@ class TestGridComposition : PrettyTestBase(){
 
     @Test
     fun `Grid accepts another  PrettyGrid as template if transition property provided`(){
-
         val grid = buildPrettyGrid<PrintableRecord> {
             useTemplate(subClassGrid, PrintableRecord::subClass)
         }
@@ -100,24 +85,4 @@ class TestGridComposition : PrettyTestBase(){
             assertEquals(2, renderBlock.rows.size)
         }
     }
-
-    @Test
-    fun `Foreign grid rendered as expected`(){
-        val grid = buildPrettyGrid<PrintableRecord>{
-            buildRow {
-                addCell(PrintableRecord::name)
-            }
-            useTemplate(thisGrid){
-                this@TestGridComposition
-            }
-        }
-        assertNotNull(grid.gridMap.entries.firstOrNull()){usedGridEntry->
-            assertEquals(GridSource.Grid, usedGridEntry.key.source)
-            assertEquals(1, usedGridEntry.key.order)
-            val testGrid = assertIs<PrettyGrid<TestGridComposition>>(usedGridEntry.value)
-            assertEquals(TestGridComposition::class, testGrid.type.kClass)
-            assertEquals(2,  testGrid.size)
-        }
-    }
-
 }

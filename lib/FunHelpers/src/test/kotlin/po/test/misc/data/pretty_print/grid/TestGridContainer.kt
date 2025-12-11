@@ -4,8 +4,8 @@ import po.misc.data.pretty_print.Templated
 import po.misc.data.pretty_print.cells.KeyedCell
 import po.misc.data.pretty_print.PrettyValueGrid
 import po.misc.data.pretty_print.grid.buildPrettyGrid
-import po.misc.data.pretty_print.grid.buildPrettyGridList
 import po.misc.data.pretty_print.PrettyRow
+import po.misc.data.pretty_print.grid.buildPrettyListGrid
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -53,7 +53,7 @@ class TestGridContainer : PrettyTestBase(), Templated {
 
     @Test
     fun `GridContainer's with receiver grid builder correctly work with lists`(){
-        val grid = buildPrettyGridList(PrintableRecord::elements){
+        val grid = buildPrettyListGrid(PrintableRecord::elements){
             buildRow{
                 addCell(PrintableElement::elementName)
             }

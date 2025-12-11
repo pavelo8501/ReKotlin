@@ -7,14 +7,9 @@ import po.misc.data.output.output
 import po.misc.types.castOrThrow
 import po.misc.types.token.TokenFactory
 import po.misc.types.token.TypeToken
-import po.misc.types.token.nullable
 import po.misc.types.token.tokenOf
-import po.test.misc.types.token.TestTypeToken.GenericClass
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertIs
-import kotlin.test.assertTrue
-import kotlin.time.Duration
 
 
 class TestTokenNullability: TokenFactory {
@@ -27,23 +22,6 @@ class TestTokenNullability: TokenFactory {
     ): TraceableContext
 
 
-    @Test
-    fun `Nullable type token creation`(){
-        val token = TypeToken.create<String>().nullable()
-        assertTrue {
-            token.isNullable
-        }
-        assertTrue {
-            token.equals(String::class)
-        }
-        val stringType: String = ""
-        val erasedType = (stringType   as Any)
-        val restored = assertDoesNotThrow {
-            erasedType.castOrThrow(token.kClass)
-        }
-        assertIs<String>(restored)
-        token.typeName.output()
-    }
 
     @Test
     fun `Tokens  respects generic param nullability`(){

@@ -1,5 +1,7 @@
 package po.misc.data.pretty_print.parts
 
+import po.misc.data.strings.appendGroup
+
 
 enum class Orientation{ Horizontal, Vertical }
 
@@ -13,7 +15,7 @@ sealed interface CommonRowOptions: PrettyOptions{
 interface RowOptionsEditor{
     val edited: Boolean
     var orientation: Orientation
-    fun useId(id: Enum<*>):RowOptions
+    fun useId(rowId: Enum<*>?):RowOptions
     fun exclude(vararg excludeId: Enum<*>, includeUnnamed: Boolean = true): RowOptions
     fun renderOnly(vararg renderOnlyId: Enum<*>, includeUnnamed: Boolean = true): RowOptions
     fun noEdit(noEdit: Boolean = true):RowOptions
@@ -21,28 +23,44 @@ interface RowOptionsEditor{
 
 
 class RowOptions(
-    orientation : Orientation = Orientation.Horizontal,
-    rowId: Enum<*>? = null
+
 ): CommonRowOptions, RowOptionsEditor {
 
-    constructor(id: Enum<*>, orientation: Orientation? = null) : this(orientation?:Orientation.Horizontal, id)
-
+    constructor(orientation : Orientation):this(){
+        this.orientation = orientation
+    }
+    constructor(rowId: Enum<*>):this(){
+        this.rowId = rowId
+    }
+    constructor(id: Enum<*>, orientation: Orientation? = null):this(){
+        this.rowId = id
+        orientation?.let {
+            this.orientation = it
+        }
+    }
+    constructor(orientation: Orientation, id: Enum<*>? = null):this(){
+        this.orientation = orientation
+        useId(id)
+    }
     constructor(
         id: Enum<*>,
         opts: CellOptions,
         orientation: Orientation? = null
-    ) : this(orientation?: Orientation.Horizontal) {
+    ) : this() {
         rowId = id
+        orientation?.let {
+            this.orientation = it
+        }
         cellOptions = opts
     }
 
-    override var orientation: Orientation = orientation
+    override var orientation: Orientation = Orientation.Horizontal
         set(value) {
             field = value
             edited = true
         }
 
-    var rowId: Enum<*>? = rowId
+    var rowId: Enum<*>? = null
         internal set
 
     var renderOnlyList: List<Enum<*>> = listOf()
@@ -72,9 +90,11 @@ class RowOptions(
         return this
     }
 
-    override fun useId(id: Enum<*>):RowOptions{
-        rowId = id
-        edited = true
+    override fun useId(rowId: Enum<*>?):RowOptions{
+        if(rowId != null){
+            this.rowId = rowId
+            edited = true
+        }
         return this
     }
 
@@ -89,7 +109,8 @@ class RowOptions(
         excludeFromRenderList = list ?: emptyList()
         renderUnnamed = includeUnnamed
         renderOnlyList = emptyList()
-        edited =true
+        edited = true
+        useNoEdit = true
         return this
     }
 
@@ -101,6 +122,7 @@ class RowOptions(
         renderUnnamed = includeUnnamed
         excludeFromRenderList = emptyList()
         edited = true
+        useNoEdit = true
         return this
     }
 
@@ -112,7 +134,7 @@ class RowOptions(
     override fun asRowOptions(): RowOptions = this
 
     fun copy(noEdit: Boolean = false): RowOptions {
-        return RowOptions(orientation).also {
+        return RowOptions().also {
             it.useNoEdit = noEdit
             it.rowId = rowId
             it.orientation = orientation
@@ -124,11 +146,10 @@ class RowOptions(
         }
     }
 
-    fun copy(newOrientation: Orientation, noEdit: Boolean? = null): RowOptions {
+    fun copy(orientation: Orientation, noEdit: Boolean? = null): RowOptions {
         return RowOptions(orientation).also {
             it.useNoEdit = noEdit?: useNoEdit
             it.rowId = rowId
-            it.orientation = newOrientation
             it.renderOnlyList = renderOnlyList
             it.excludeFromRenderList = excludeFromRenderList
             it.renderUnnamed = renderUnnamed
@@ -137,16 +158,20 @@ class RowOptions(
         }
     }
 
-    fun copy(newRowId: Enum<*>, newOrientation: Orientation? = null,  noEdit: Boolean? = null): RowOptions {
-        return RowOptions(orientation).also {
+    fun copy(rowId: Enum<*>, orientation: Orientation? = null,  noEdit: Boolean? = null): RowOptions {
+        return RowOptions(rowId, orientation).also {
             it.useNoEdit =  noEdit?: useNoEdit
-            it.rowId = newRowId
-            it.orientation = newOrientation?:orientation
             it.renderOnlyList = renderOnlyList
             it.excludeFromRenderList = excludeFromRenderList
             it.renderUnnamed = renderUnnamed
             it.usePlain = usePlain
             it.render = render
+        }
+    }
+
+    override fun toString(): String {
+      return  buildString {
+            appendGroup("RowOptions[", "]", ::rowId, ::orientation, ::useNoEdit, ::edited)
         }
     }
 }

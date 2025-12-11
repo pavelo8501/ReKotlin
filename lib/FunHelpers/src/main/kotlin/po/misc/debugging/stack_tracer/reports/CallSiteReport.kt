@@ -7,11 +7,12 @@ import po.misc.data.pretty_print.grid.buildPrettyGrid
 import po.misc.data.pretty_print.parts.CellPresets
 import po.misc.data.pretty_print.parts.Orientation
 import po.misc.debugging.stack_tracer.StackFrameMeta
+import po.misc.debugging.stack_tracer.StackFrameMeta.Template
 import po.misc.debugging.stack_tracer.TraceOptions
 
 data class CallSiteReport(
-    val callerTraceMeta: StackFrameMeta,
-    val registrationTraceMeta: StackFrameMeta,
+    val callerFrame: StackFrameMeta,
+    val registrationFrame: StackFrameMeta,
     var hopFrames: List<StackFrameMeta> = emptyList(),
     val reportType:  TraceOptions.TraceType = TraceOptions.TraceType.CallSite
 ): PrettyPrint {
@@ -22,19 +23,19 @@ data class CallSiteReport(
 
         val callSiteReport: PrettyGrid<CallSiteReport> = buildPrettyGrid(TraceOptions.TraceType.CallSite) {
             addHeadedRow("Call site trace report")
-
             buildRow{
                addCell("Caller trace snapshot", CellPresets.Info)
             }
-            useTemplate(StackFrameMeta.frameTemplate, CallSiteReport::callerTraceMeta)
-
+            useTemplate(StackFrameMeta.frameTemplate, CallSiteReport::callerFrame)
             addHeadedRow("Registered hops")
-            useListTemplate(StackFrameMeta.frameTemplate, CallSiteReport::hopFrames, Orientation.Horizontal)
-
+            useListTemplate(StackFrameMeta.frameTemplate, CallSiteReport::hopFrames){
+                 orientation = Orientation.Horizontal
+                 exclude(Template.ConsoleLink)
+            }
             buildRow {
                 addCell("Registration place snapshot", CellPresets.Info)
             }
-            useTemplate(StackFrameMeta.frameTemplate, CallSiteReport::registrationTraceMeta)
+            useTemplate(StackFrameMeta.frameTemplate, CallSiteReport::registrationFrame)
         }
     }
 }

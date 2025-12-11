@@ -4,6 +4,8 @@ import po.misc.data.PrettyFormatted
 import po.misc.data.pretty_print.PrettyGrid
 import po.misc.data.pretty_print.grid.buildPrettyGrid
 import po.misc.data.pretty_print.grid.buildRow
+import po.misc.data.pretty_print.parts.KeyedOptions
+import po.misc.data.pretty_print.parts.KeyedPresets
 import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.strings.appendGroup
 import po.misc.debugging.classifier.PackageClassifier
@@ -47,12 +49,13 @@ data class StackFrameMeta(
 
     companion object {
 
+        private  val linkOptions = KeyedOptions(KeyedPresets.Property).usePlainValue(true)
         val frameTemplate: PrettyGrid<StackFrameMeta> = buildPrettyGrid<StackFrameMeta>(Orientation.Vertical) {
             buildRow(Orientation.Vertical){
                 addCells(StackFrameMeta::methodName, StackFrameMeta::lineNumber, StackFrameMeta::simpleClassName)
             }
             buildRow(Template.ConsoleLink, Orientation.Vertical){
-                addCell(StackFrameMeta::consoleLink)
+                addCell(StackFrameMeta::consoleLink, linkOptions)
             }
         }
     }

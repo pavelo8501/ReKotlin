@@ -15,13 +15,19 @@ import po.misc.data.pretty_print.parts.grid.GridParams
 import po.misc.data.pretty_print.parts.rows.RowParams
 import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.PrettyValueGrid
+import po.misc.data.pretty_print.parts.PrettyDSL
+import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.rows.RowContainer
+import po.misc.data.pretty_print.rows.RowValueContainer
 import po.misc.data.pretty_print.rows.copyRow
 import po.misc.data.pretty_print.rows.createRowContainer
 import po.misc.functions.NoResult
 import po.misc.functions.Throwing
+import po.misc.properties.checkType
+import po.misc.properties.isReturnTypeList
 import po.misc.types.token.TokenFactory
 import po.misc.types.token.TypeToken
+import po.misc.types.token.asList
 import kotlin.reflect.KProperty1
 
 sealed class GridContainerBase<T: Any, V: Any>(
@@ -29,11 +35,8 @@ sealed class GridContainerBase<T: Any, V: Any>(
     val type: TypeToken<V>,
 ): TokenFactory, TraceableContext{
 
-
-
     val singleLoader: ValueLoader<T, V> = ValueLoader("GridContainerBase", hostType, type)
     val listLoader: ListValueLoader<T, V> = ListValueLoader("GridContainerBase", hostType, type)
-
 
     internal val gridMap: MutableMap<GridKey, PrettyGrid<*>> = mutableMapOf()
 
@@ -46,6 +49,10 @@ sealed class GridContainerBase<T: Any, V: Any>(
     val renderCount: Int get() = renderMapBacking.size
     val size: Int get() = gridsCount + renderCount + rowsSize
 
+
+    protected fun makeThrow(message: String): Nothing{
+        throw IllegalStateException(message)
+    }
 
     @PublishedApi
     internal fun addRenderBlock(newRenderBlock: RenderableElement<T>):GridKey{
@@ -78,10 +85,19 @@ sealed class GridContainerBase<T: Any, V: Any>(
         }
     }
 
-    @PublishedApi
-    internal fun setProperty(property: KProperty1<T, V>){
-
-        singleLoader.setProperty(property)
+    fun setProperty(property: KProperty1<T, V>){
+        if(type.isCollection){
+            if(!property.isReturnTypeList){
+                makeThrow("Something went wrong. Type token isCollection = true but property isReturnTypeList = false")
+            }
+            property.checkType(hostType, type.asList())?.let {
+                listLoader.setProperty(it)
+            }?:run {
+                makeThrow("Failed to resolve property to KProperty<T, List<V>")
+            }
+        }else{
+            singleLoader.setProperty(property)
+        }
     }
 
     @PublishedApi
@@ -105,13 +121,14 @@ sealed class GridContainerBase<T: Any, V: Any>(
     fun setProviders(
         provider: (()-> V)? = null,
         listProvider: (()-> List<V>)? = null,
-    ){
+    ): GridContainerBase<T, V>{
         if(provider != null){
             singleLoader.setProvider(provider)
         }
         if(listProvider != null){
             listLoader.setProvider(listProvider)
         }
+        return this
     }
 
     fun useTemplate(row: PrettyRow<V>){
@@ -123,16 +140,18 @@ sealed class GridContainerBase<T: Any, V: Any>(
         addRows(converted)
     }
 
-    open fun buildRow(
-        rowOptions: CommonRowOptions? = null,
-        builder: RowContainer<V>.() -> Unit
-    ){
-        val options = PrettyHelper.toRowOptionsOrNull(rowOptions)
-        options?.noEdit()
-        val container = createRowContainer(type, options)
-        val row =  container.applyBuilder(builder)
-        addRow(row)
-    }
+//    open fun buildRow(
+//        rowOptions: CommonRowOptions? = null,
+//        builder: RowContainer<V>.() -> Unit
+//    ){
+//        val options = PrettyHelper.toRowOptionsOrNull(rowOptions)
+//        options?.noEdit()
+//        val container = createRowContainer(type, options)
+//        val row =  container.applyBuilder(builder)
+//        addRow(row)
+//    }
+
+
 
     fun buildRow(
         valueLoader: ValueLoader<T, V>,

@@ -7,33 +7,51 @@ import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.parts.RowPresets
 import po.misc.data.pretty_print.PrettyRow
+import po.misc.data.pretty_print.rows.RowBuilderScope
 import po.misc.data.pretty_print.rows.RowContainer
 
 
-inline fun <T: Any, reified V: Any> GridContainerBase<T, V>.addHeadedRow(
+//inline fun <T: Any, reified V: Any> GridContainerBase<T, V>.addHeadedRow(
+//    text: String,
+//    id: Enum<*>? = null,
+//    rowPreset: RowPresets = RowPresets.HeadedHorizontal,
+//): PrettyRow<V> {
+//    val options = rowPreset.asRowOptions{
+//        if(id != null){
+//            useId(id)
+//        }
+//    }
+//    val cell =  StaticCell(text).applyOptions(options.cellOptions)
+//    val row =  PrettyRow<V>(type, options, cell.asList())
+//    when(this){
+//        is GridContainer<*> -> { addRow(row) }
+//        else -> { addRow(row) }
+//    }
+//    return row
+//}
+
+inline fun <reified V: Any> RowBuilderScope<V>.addHeadedRow(
     text: String,
     id: Enum<*>? = null,
     rowPreset: RowPresets = RowPresets.HeadedHorizontal,
 ): PrettyRow<V> {
-    val options = rowPreset.asRowOptions{
-        if(id != null){
-            useId(id)
-        }
-    }
+
+    val options = rowPreset.asRowOptions().useId(id)
     val cell =  StaticCell(text).applyOptions(options.cellOptions)
     val row =  PrettyRow<V>(type, options, cell.asList())
-    when(this){
-        is GridContainer<*> -> { addRow(row) }
-        else -> { addRow(row) }
-    }
+    addRow(row)
     return row
 }
 
-
-inline fun <T: Any, reified V: Any> GridContainerBase<T, V>.addHeadedRow(
+inline fun <reified V: Any> RowBuilderScope<V>.addHeadedRow(
     text: String,
     rowPreset: RowPresets = RowPresets.HeadedHorizontal,
 ): PrettyRow<V> = addHeadedRow(text, null, rowPreset)
+
+//inline fun <T: Any, reified V: Any> GridContainerBase<T, V>.addHeadedRow(
+//    text: String,
+//    rowPreset: RowPresets = RowPresets.HeadedHorizontal,
+//): PrettyRow<V> = addHeadedRow(text, null, rowPreset)
 
 fun <T: Any, V: Any> GridContainerBase<T, V>.createRow(
     rowId: Enum<*>,

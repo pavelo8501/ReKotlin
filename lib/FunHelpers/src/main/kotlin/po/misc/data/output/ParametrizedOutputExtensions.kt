@@ -55,6 +55,11 @@ fun Any.output(
         is Timestamp -> {
           println(refactorNotImpl)
         }
+        is HighLight -> {
+            println(ownPrefix)
+            println(stringify().formatedString)
+            println("------Output complete----".colorize(Colour.Blue))
+        }
     }
 }
 

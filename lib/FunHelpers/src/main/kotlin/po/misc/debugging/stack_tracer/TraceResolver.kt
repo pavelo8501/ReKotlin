@@ -27,78 +27,94 @@ interface StackResolver{
 
 class TraceResolver(
     val host: Component,
+    val records: List<HelperRecord> = listOf(),
     onTraceResolved: ((CallSiteReport)-> Unit)? = null
-): StackResolver{
+): StackResolver {
 
     constructor(
         host: Component,
-        vararg helperRecords : HelperRecord,
-        onTraceResolved: ((CallSiteReport)-> Unit)? = null
-    ):this(host,  onTraceResolved){
-        classifier = SimplePackageClassifier(KnownHelpers).addHelperRecords(helperRecords.toList())
-    }
+        vararg helperRecords: HelperRecord,
+        onTraceResolved: ((CallSiteReport) -> Unit)? = null
+    ) : this(host, helperRecords.toList(), onTraceResolved)
 
-    private val tracer = StackTracerClass()
 
-    private val hostClass: KClass<out  TraceableContext> =  host::class
-    private var classifier = SimplePackageClassifier(KnownHelpers)
+    private val hostClass: KClass<out TraceableContext> = host::class
 
-    private var beforeReportCallback : ((ExceptionTrace) -> Unit)? = null
-    private var traceResolvedCallback : ((CallSiteReport) -> Unit)? = null
+    internal val classifier = SimplePackageClassifier(KnownHelpers.classRecords + records)
+    internal val stackTracer = StackTracerClass(classifier)
+
+    private var beforeCallback: ((ExceptionTrace) -> Unit)? = null
+    private var resolvedCallback: ((CallSiteReport) -> Unit)? = null
 
     internal val conditions = mutableListOf<NotificationCondition>()
     internal val methodConditions = mutableListOf<KFunction<*>>()
 
     init {
-        if(onTraceResolved != null){
-            traceResolvedCallback = onTraceResolved
+        if (onTraceResolved != null) {
+            resolvedCallback = onTraceResolved
         }
     }
 
-    private fun resolve(methodName: String, print: Boolean = true){
-        val trace =  tracer.traceCallSite(methodName , hostClass.simpleOrAnon,  classifier)
-        beforeReportCallback?.invoke(trace)
+    private fun resolve(methodName: String, print: Boolean = true) {
+        val trace = stackTracer.traceCallSite(methodName, hostClass.simpleOrAnon)
+        beforeCallback?.invoke(trace)
         val callSite = ExceptionTrace.callSiteReport(trace)
-        if(print){
+        if (print) {
             callSite.output()
         }
-        traceResolvedCallback?.invoke(callSite)
+        resolvedCallback?.invoke(callSite)
     }
 
-    private fun checkIfResolve(topic: NotificationTopic, code: Int){
+    private fun checkIfResolve(topic: NotificationTopic, code: Int) {
         val found = conditions.firstOrNull { it.topic == topic && it.code == code }
-        if(found != null){
+        if (found != null) {
             resolve("checkIfResolve", true)
         }
     }
 
-    fun beforeReport(callback: (ExceptionTrace) -> Unit){
-        beforeReportCallback = callback
+    private fun shouldResolve(topic: NotificationTopic): Boolean {
+        return conditions.any { it.topic == topic }
     }
 
-    fun traceResolved(callback: (CallSiteReport) -> Unit){
-        traceResolvedCallback = callback
+    fun beforeReport(callback: (ExceptionTrace) -> Unit) {
+        beforeCallback = callback
     }
 
-    fun resolveTraceWhen(topic: NotificationTopic, code: Int = 0){
+    fun traceResolved(callback: (CallSiteReport) -> Unit) {
+        resolvedCallback = callback
+    }
+
+    fun resolveTraceWhen(topic: NotificationTopic, code: Int = 0) {
         conditions.add(NotificationCondition(topic, code))
     }
-    fun resolveTraceWhen(method: KFunction<*>){
+
+    fun resolveTraceWhen(method: KFunction<*>) {
         methodConditions.add(method)
     }
 
-    override fun resolveTrace(){
+    override fun resolveTrace() {
         resolve("resolveTrace")
     }
-    override fun resolveTrace(methodName: String){
+
+    override fun resolveTrace(methodName: String) {
         resolve(methodName)
     }
-    override fun resolveTrace(method: KFunction<*>){
+
+    override fun resolveTrace(method: KFunction<*>) {
         resolve(method.name)
     }
 
-    fun process(message: Loggable){
-        checkIfResolve(message.topic, 0)
+    fun processMsg(message: Loggable, print: Boolean = true): CallSiteReport? {
+        if (shouldResolve(message.topic)) {
+            val trace = stackTracer.traceCallSite("processMsg")
+            beforeCallback?.invoke(trace)
+            val callSite = ExceptionTrace.callSiteReport(trace)
+            if (print) {
+                callSite.output()
+            }
+            resolvedCallback?.invoke(callSite)
+            return callSite
+        }
+        return null
     }
-
 }

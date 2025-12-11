@@ -2,8 +2,10 @@ package po.misc.data.pretty_print.rows
 
 import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.cells.ComputedCell
+import po.misc.data.pretty_print.cells.KeyedCell
 import po.misc.data.pretty_print.cells.PrettyCell
 import po.misc.data.pretty_print.parts.CommonCellOptions
+import po.misc.data.pretty_print.parts.PrettyDSL
 import po.misc.data.pretty_print.parts.PrettyHelper
 import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.types.token.TypeToken
@@ -11,13 +13,10 @@ import po.misc.types.token.tokenOf
 import kotlin.reflect.KProperty1
 
 
-
 class RowContainer<T: Any>(
     type: TypeToken<T>,
     options: RowOptions
 ): RowContainerBase<T, T>(type, type, options) {
-
-
 
     @PublishedApi
     internal fun applyBuilder(builder: RowContainer<T>.() -> Unit): PrettyRow<T> {
@@ -32,6 +31,15 @@ class RowContainer<T: Any>(
     ): PrettyRow<T> {
         builder.invoke(this, parameter)
         return  createRow()
+    }
+
+    fun addCell(
+        property: KProperty1<T, Any>,
+        opt: CommonCellOptions? = null,
+    ): KeyedCell<T>{
+        val cellOptions = PrettyHelper.toKeyedOptionsOrNull(opt)
+        val cell = KeyedCell(type, property).applyOptions(cellOptions)
+        return storeCell(cell)
     }
 
     inline fun <reified V : Any> addCell(

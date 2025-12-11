@@ -63,7 +63,9 @@ sealed class StringFormatter(var string: String){
                             it.overflowPrevention = true
                         }
                     }
-                    is PrettyPrint -> FormatedEntry(targetAsString, target.formattedString)
+                    is PrettyPrint -> {
+                        FormatedEntry(targetAsString, target.formattedString)
+                    }
                     is CTX -> FormatedEntry(targetAsString,  target.identifiedByName)
                     is Enum<*> -> {
                         if(target is TextContaining){

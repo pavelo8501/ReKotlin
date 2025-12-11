@@ -13,6 +13,7 @@ import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.parts.ValueLoader
 import po.misc.data.pretty_print.parts.grid.GridParams
 import po.misc.data.pretty_print.parts.rows.RowParams
+import po.misc.data.strings.appendGroup
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.functions.Throwing
@@ -226,6 +227,12 @@ class PrettyValueGrid<T: Any, V: Any>(
     override fun addRows(rows: List<PrettyRow<V>>): PrettyValueGrid<T, V>{
         rows.forEach { addRow(it) }
         return this
+    }
+
+    override fun toString(): String {
+       return buildString {
+            appendGroup("ValueGrid<${hostType.typeName}, ${type.typeName}>[", "]",::id, ::size)
+        }
     }
 
 }

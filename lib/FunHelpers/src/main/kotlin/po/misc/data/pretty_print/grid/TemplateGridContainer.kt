@@ -8,8 +8,13 @@ import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.parts.RowOptionsEditor
 import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.PrettyValueGrid
+import po.misc.data.pretty_print.parts.CommonRowOptions
+import po.misc.data.pretty_print.parts.PrettyDSL
+import po.misc.data.pretty_print.parts.PrettyHelper
 import po.misc.data.pretty_print.rows.RowContainer
+import po.misc.data.pretty_print.rows.RowValueContainer
 import po.misc.data.pretty_print.rows.copyRow
+import po.misc.data.pretty_print.rows.createRowContainer
 import po.misc.types.token.TypeToken
 
 
@@ -17,7 +22,7 @@ class TemplateGridContainer<T: Any, V: Any>(
     hostType: TypeToken<T>,
     type: TypeToken<V>,
     var options: RowOptionsEditor = RowOptions()
-): GridContainerBase<T, V>(hostType, type), RowOptionsEditor by options{
+): GridContainerBase<T, V>(hostType, type), TemplateBuilderScope<T, V>, RowOptionsEditor by options{
 
     constructor(grid: PrettyGridBase<T, V>):this(grid.hostType, grid.type){
         initializeByGrid(grid)
@@ -67,18 +72,29 @@ class TemplateGridContainer<T: Any, V: Any>(
         return valueGrid
     }
 
-    @PublishedApi
-    internal fun buildValueGrid(builder: TemplateGridContainer<T, V>.()-> Unit): PrettyValueGrid<T, V> {
-        builder.invoke(this)
-        val grid = createValueGrid()
-        return grid
-    }
-
-    @PublishedApi
-    internal fun buildGrid(builder: TemplateGridContainer<T, V>.()-> Unit): PrettyGrid<V> {
-        builder.invoke(this)
-        val grid = createGrid()
-        return grid
+//    @PublishedApi
+//    internal fun buildValueGrid(builder: TemplateGridContainer<T, V>.()-> Unit): PrettyValueGrid<T, V> {
+//        builder.invoke(this)
+//        val grid = createValueGrid()
+//        return grid
+//    }
+//
+//    @PublishedApi
+//    internal fun buildGrid(builder: TemplateGridContainer<T, V>.()-> Unit): PrettyGrid<V> {
+//        builder.invoke(this)
+//        val grid = createGrid()
+//        return grid
+//    }
+//
+    override fun buildRow(
+        rowOptions: CommonRowOptions?,
+        builder: RowValueContainer<T, V>.() -> Unit
+    ){
+        val options = PrettyHelper.toRowOptions(rowOptions, options as RowOptions)
+        options.noEdit()
+        val container = RowValueContainer(hostType, type, options)
+        val row =  container.applyBuilder(builder)
+        addRow(row)
     }
 
     fun initializeByContainer(rowContainer: RowContainer<V>){
@@ -102,7 +118,7 @@ class TemplateGridContainer<T: Any, V: Any>(
         tempRows.addAll(ownRows)
     }
 
-    fun renderHere(){
+    override fun renderHere(){
         if(pluggedKey == null){
             val insertToIndex = rows.lastIndex + 1
             pluggedKey =  GridKey(insertToIndex, GridSource.Renderable)

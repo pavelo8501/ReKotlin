@@ -48,34 +48,31 @@ interface TraceException{
 abstract class ContextTracer(
     message: String = "",
     val options: TraceOptions = TraceOptions.Default,
+    val classifier: PackageClassifier? = null
 ): Throwable("TraceableContext${message}"), TraceException {
 
     val created: Instant = Instant.now()
     val firstElement : StackTraceElement get() = stackTrace.first()
 
     override var coroutineInfo: CoroutineInfo? = null
-    override var trace : ExceptionTrace  = extractTrace()
 
+    override var trace : ExceptionTrace  = extractTrace(options, analyzeDepth = 30, classifier)
     fun createTrace(options: TraceOptions, classifier: PackageClassifier? = null):ExceptionTrace{
         val exTrace =  this.extractTrace(options, analyzeDepth = 50,  classifier)
         trace =  exTrace
         return exTrace
     }
-
 }
 
 open class Tracer(
      message: String,
      options: TraceOptions = TraceOptions.Default,
-     val classifier: PackageClassifier? = null
-): ContextTracer(message, options){
-
+     classifier: PackageClassifier? = null
+): ContextTracer(message, options, classifier){
     constructor(
         options: TraceOptions = TraceOptions.Default,
         classifier: PackageClassifier? = null
-    ):this(message = "", options = options, classifier = classifier)
-
-    override var trace : ExceptionTrace = extractTrace(options)
+    ):this("",  options, classifier)
 }
 
 
@@ -83,7 +80,7 @@ fun TraceableContext.extractTrace(
     options: TraceOptions = TraceOptions.Default,
     classifier: PackageClassifier? = null
 ):  ExceptionTrace{
-    return Tracer(options =   options, classifier =  classifier).trace
+    return Tracer(options, classifier).trace
 }
 
 fun TraceableContext.extractTrace(
