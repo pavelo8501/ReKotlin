@@ -17,12 +17,16 @@ class PrettyBorders(
     fun renderRight(content: String, postfixRight: String = " "): String{
         return "$content$right$postfixRight"
     }
-
     fun render(content: String): String{
         return "$left$content$right"
     }
-    fun render(content: String, cell: PrettyCellBase, cellsCount: Int): String{
+    fun render(content: String, cell: PrettyCellBase): String{
+        val cellsCount = cell.row?.size?:1
         val options = cell.cellOptions
+        val renderBorders = cell.row?.options?.renderBorders?:true
+        if(!renderBorders){
+            return "$content "
+        }
         return when {
             cell.orientation == Orientation.Vertical -> content
             cellsCount == 1 -> content

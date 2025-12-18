@@ -39,16 +39,16 @@ kotlin {
     }
 }
 
-//publishing {
-//    publications {
-//        create<MavenPublication>("mavenJava") {
-//            from(components["java"]) // This publishes the main Java/Kotlin component
-//            groupId = "po.lognotify"
-//            artifactId = "lognotify"
-//            version = logNotifyVersion
-//        }
-//    }
-//}
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            from(components["java"])
+            groupId = "po.lognotify"
+            artifactId = "lognotify"
+            version = logNotifyVersion
+        }
+    }
+}
 
 tasks.withType<Test> {
     useJUnitPlatform()

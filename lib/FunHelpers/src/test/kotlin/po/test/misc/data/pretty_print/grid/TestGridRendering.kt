@@ -2,12 +2,10 @@ package po.test.misc.data.pretty_print.grid
 
 import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.PrettyValueGrid
-import po.misc.data.pretty_print.grid.addHeadedRow
 import po.misc.data.pretty_print.grid.buildPrettyGrid
 import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.parts.RowPresets
 import po.misc.data.pretty_print.rows.buildPrettyRow
-import po.misc.data.splitLines
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -18,32 +16,32 @@ import kotlin.test.assertTrue
 class TestGridRendering : PrettyTestBase(){
 
     private val header = buildPrettyGrid<PrintableRecord>{
-        addHeadedRow(templateHeaderText1)
+        headedRow(templateHeaderText1)
         buildRow {
-            addCell(PrintableRecord::name)
-            addCell(PrintableRecord::description)
+            add(PrintableRecord::name)
+            add(PrintableRecord::description)
         }
     }
     private val elementRow = buildPrettyRow<PrintableElement>(RowPresets.Horizontal){
-        addCell(PrintableElement::elementName)
+        add(PrintableElement::elementName)
     }
     private val subGrid = buildPrettyGrid<PrintableRecordSubClass>{
         buildRow {
-            addCells(PrintableRecordSubClass::subName, PrintableRecordSubClass::subComponent)
+            addAll(PrintableRecordSubClass::subName, PrintableRecordSubClass::subComponent)
         }
     }
     private val verticalSubGrid = buildPrettyGrid<PrintableRecordSubClass>(Orientation.Vertical){
         buildRow {
-            addCells(PrintableRecordSubClass::subName, PrintableRecordSubClass::subComponent)
+            addAll(PrintableRecordSubClass::subName, PrintableRecordSubClass::subComponent)
         }
     }
     private val record = createRecord()
     private val elementGrid = buildPrettyGrid<PrintableElement>{
         buildRow {
-            addCell(templateHeaderText1)
+            add(templateHeaderText1)
         }
         buildRow {
-            addCell(PrintableElement::elementName)
+            add(PrintableElement::elementName)
         }
     }
 
@@ -51,8 +49,8 @@ class TestGridRendering : PrettyTestBase(){
     fun `Grid renders rows as expected`(){
         val grid = buildPrettyGrid<PrintableRecord>{
             buildRow {
-                addCell(headerText1)
-                addCell(PrintableRecord::name)
+                add(headerText1)
+                add(PrintableRecord::name)
             }
         }
         val record = createRecord()
@@ -76,7 +74,7 @@ class TestGridRendering : PrettyTestBase(){
         }
 
         val render = grid.render(record)
-        val lineSplit = render.splitLines()
+        val lineSplit = render.lines()
         assertEquals(2, lineSplit.size)
 
     }
@@ -84,7 +82,7 @@ class TestGridRendering : PrettyTestBase(){
     fun `Grid composition renders rows as expected`(){
         val grid = buildPrettyGrid<PrintableRecord>{
             buildRow {
-                addCell(headerText1)
+                add(headerText1)
             }
             useTemplate(subGrid, PrintableRecord::subClass)
         }
@@ -98,9 +96,9 @@ class TestGridRendering : PrettyTestBase(){
     fun `Grid composition with list property renders rows as expected`(){
         val grid = buildPrettyGrid<PrintableRecord>{
             buildRow {
-                addCell(headerText1)
+                add(headerText1)
             }
-            useListTemplate(elementGrid, PrintableRecord::elements)
+            useTemplate(elementGrid, PrintableRecord::elements)
         }
         val record = createRecord()
         val elementName = record.elements.first().elementName
@@ -137,7 +135,7 @@ class TestGridRendering : PrettyTestBase(){
         assertEquals(PrintableRecord::class, elementGrid.hostType.kClass)
 
         val render =  grid.render(record)
-        val lineSplit = render.splitLines()
+        val lineSplit = render.lines()
         assertTrue { lineSplit.first().contains(headerText1) }
         assertTrue { lineSplit[1].contains("Name")  && lineSplit[1].contains(record.name) }
         assertTrue { lineSplit[1].contains("Description")  && lineSplit[1].contains(record.description) }
@@ -149,5 +147,6 @@ class TestGridRendering : PrettyTestBase(){
         }
         assertEquals(4, lineSplit.size)
     }
+
 
 }

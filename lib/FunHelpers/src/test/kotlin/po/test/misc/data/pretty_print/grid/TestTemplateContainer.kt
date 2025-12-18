@@ -4,7 +4,6 @@ import po.misc.data.pretty_print.cells.KeyedCell
 import po.misc.data.pretty_print.cells.StaticCell
 import po.misc.data.pretty_print.PrettyGrid
 import po.misc.data.pretty_print.PrettyValueGrid
-import po.misc.data.pretty_print.grid.addHeadedRow
 import po.misc.data.pretty_print.grid.buildPrettyGrid
 import po.misc.data.pretty_print.grid.buildRow
 import po.misc.data.pretty_print.parts.Orientation
@@ -24,19 +23,19 @@ class TestTemplateContainer : PrettyTestBase() {
 
     private val subClassGrid: PrettyGrid<PrintableRecordSubClass> = buildPrettyGrid<PrintableRecordSubClass>() {
         buildRow(Row.SubTemplateRow) {
-            addCells(PrintableRecordSubClass::subName, PrintableRecordSubClass::subComponent)
+            addAll(PrintableRecordSubClass::subName, PrintableRecordSubClass::subComponent)
         }
     }
     private val elementGrid: PrettyGrid<PrintableElement> = buildPrettyGrid {
         buildRow(Row.SubTemplateRow) {
-            addCell(PrintableElement::elementName)
+            add(PrintableElement::elementName)
         }
     }
     private val subClassRow = buildPrettyRow<PrintableRecordSubClass>(Row.SubTemplateRow) {
-        addCells(PrintableRecordSubClass::subName, PrintableRecordSubClass::subComponent)
+        addAll(PrintableRecordSubClass::subName, PrintableRecordSubClass::subComponent)
     }
     private val elementsRow = record.elements.buildRowContainer {
-        addCell(PrintableElement::elementName)
+        add(PrintableElement::elementName)
     }
 
     @Test
@@ -44,7 +43,7 @@ class TestTemplateContainer : PrettyTestBase() {
 
         val grid = buildPrettyGrid<PrintableRecord>(Grid.Grid1) {
             useTemplate(subClassRow, PrintableRecord::subClass) {
-                addHeadedRow(headerText1, Row.Row1)
+                headedRow(headerText1, Row.Row1)
             }
         }
         val template = assertIs<PrettyValueGrid<PrintableRecord, PrintableRecordSubClass>>(grid.renderBlocks.first())
@@ -64,7 +63,7 @@ class TestTemplateContainer : PrettyTestBase() {
 
             }
             useTemplate(elementsRow) {
-                addHeadedRow(headerText1, Row.Row1)
+                headedRow(headerText1, Row.Row1)
             }
         }
         val template = assertIs<PrettyGrid<PrintableElement>>(grid.gridMap.values.firstOrNull())
@@ -82,7 +81,7 @@ class TestTemplateContainer : PrettyTestBase() {
     fun `Exactly one render block produced`() {
         val grid = buildPrettyGrid<PrintableRecord>(Grid.Grid1) {
             useTemplate(subClassGrid, PrintableRecord::subClass) {
-                addHeadedRow(headerText1)
+                headedRow(headerText1)
             }
         }
         assertEquals(1, grid.renderBlocks.size)
@@ -93,7 +92,7 @@ class TestTemplateContainer : PrettyTestBase() {
         val grid = buildPrettyGrid<PrintableRecord>(Grid.Grid1) {
             useTemplate(subClassGrid, PrintableRecord::subClass) {
                 buildRow {
-                    addCell(headerText1)
+                    add(headerText1)
                 }
             }
         }
@@ -115,9 +114,9 @@ class TestTemplateContainer : PrettyTestBase() {
     fun `Template is inserted to a specific position`() {
         val grid = buildPrettyGrid<PrintableRecord>(Grid.Grid1) {
             useTemplate(subClassGrid, PrintableRecord::subClass) {
-                addHeadedRow(headerText1, Row.Row1)
+                headedRow(headerText1, Row.Row1)
                 renderHere()
-                addHeadedRow(headerText2, Row.Row2)
+                headedRow(headerText2, Row.Row2)
             }
         }
         val template = assertIs<PrettyValueGrid<PrintableRecord, PrintableRecordSubClass>>(grid.renderBlocks.first())
@@ -139,7 +138,7 @@ class TestTemplateContainer : PrettyTestBase() {
     fun `Base template is inserted even if block is empty`() {
         val grid = buildPrettyGrid<PrintableRecord>(Grid.Grid1) {
             useTemplate(subClassGrid, PrintableRecord::subClass) {
-                useTemplate(subClassGrid, PrintableRecord::subClass)
+
             }
         }
         val template = assertIs<PrettyValueGrid<PrintableRecord, PrintableRecordSubClass>>(grid.renderBlocks.first())
@@ -151,8 +150,8 @@ class TestTemplateContainer : PrettyTestBase() {
     @Test
     fun `List type template is created`() {
         val grid = buildPrettyGrid<PrintableRecord>(Grid.Grid1) {
-            useListTemplate(elementGrid, PrintableRecord::elements) {
-                addHeadedRow(headerText1, Row.Row1)
+            useTemplate(elementGrid, PrintableRecord::elements) {
+                headedRow(headerText1, Row.Row1)
                 renderHere()
             }
         }
@@ -167,11 +166,11 @@ class TestTemplateContainer : PrettyTestBase() {
     @Test
     fun `Template builder additional features work as expected`() {
         val grid = buildPrettyGrid<PrintableRecord> {
-            useListTemplate(elementGrid, PrintableRecord::elements) {
+            useTemplate(elementGrid, PrintableRecord::elements) {
                 useId(Grid.SubTemplateGrid)
                 orientation = Orientation.Vertical
                 exclude(Cell.Cell1, Cell.Cell2, Cell.Cell3, Cell.Cell4)
-                addHeadedRow(headerText1, Row.Row1)
+                headedRow(headerText1, Row.Row1)
             }
         }
         val template = assertIs<PrettyValueGrid<PrintableRecord, PrintableRecordSubClass>>(grid.renderBlocks.first())

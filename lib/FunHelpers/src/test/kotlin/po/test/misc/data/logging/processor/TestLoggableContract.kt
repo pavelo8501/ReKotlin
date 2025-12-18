@@ -61,7 +61,7 @@ class TestLoggableContract : LoggerTestBase(), Component {
         val foreignInitialMessage = component1.generateMessage(value =  5)
         templater.processRecord(foreignInitialMessage)
 
-        val newProceduralMessage = assertNotNull(procedural.proceduralEntries.lastOrNull()?.proceduralRecords?.lastOrNull())
+        val newProceduralMessage = assertNotNull(procedural.proceduralEntries.lastOrNull()?.records?.lastOrNull())
         assertEquals(foreignInitialMessage.text, newProceduralMessage.text)
         assertSame(foreignInitialMessage, newProceduralMessage.logRecord)
 
@@ -95,7 +95,7 @@ class TestLoggableContract : LoggerTestBase(), Component {
         val foreignInitialMessage = component1.generateMessage(value =  5)
         flow.processRecord(foreignInitialMessage)
 
-        val newProceduralMessage = assertNotNull(procedural.proceduralEntries.lastOrNull()?.proceduralRecords?.lastOrNull())
+        val newProceduralMessage = assertNotNull(procedural.proceduralEntries.lastOrNull()?.records?.lastOrNull())
         assertEquals(foreignInitialMessage.text, newProceduralMessage.text)
         assertSame(foreignInitialMessage, newProceduralMessage.logRecord)
 

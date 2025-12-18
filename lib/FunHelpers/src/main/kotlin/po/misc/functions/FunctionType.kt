@@ -10,11 +10,11 @@ package po.misc.functions
  * Its sole purpose is to disambiguate overloads between regular and
  * suspending listeners.
  */
-sealed interface LambdaType{
-    object Suspended
-}
+sealed interface LambdaType
 
-object Suspending: LambdaType
+object Sync: LambdaType
+object Suspended: LambdaType
+
 
 
 /**
@@ -67,26 +67,20 @@ sealed interface SuspendedOptions: CallableOptions{
  */
 sealed interface LambdaOptions: CallableOptions{
 
-    val name: String?
-
     /**
      * The listener remains registered after being invoked.
      */
-    object Listen : LambdaOptions{
-        override var name: String? = null
-    }
+    object Listen : LambdaOptions
+    object Promise : LambdaOptions
+
+    open class NamedListen(var name: String) : LambdaOptions
 
     /**
      * The listener is automatically removed after the first successful
      * invocation. Useful for "single-shot" coroutine callbacks.
      */
-    object Promise : LambdaOptions{
-        override var name: String? = null
-        fun applyName(name: String):Promise{
-            this.name = name
-            return this
-        }
-    }
+    open class NamedPromise(var name: String) : LambdaOptions
+
 }
 
 /**
@@ -134,3 +128,8 @@ object NoResult: FunctionResultType
  * (e.g., it always throws or suspends forever).
  */
 object NoReturn: FunctionResultType
+
+
+interface  FunctionKind
+object NoParam: FunctionKind
+

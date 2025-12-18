@@ -16,7 +16,7 @@ import po.misc.data.logging.LoggableTemplate
 import po.misc.data.logging.log_subject.WarningSubject
 import po.misc.data.logging.processor.LogHandler
 import po.misc.data.logging.processor.LogProcessor
-import po.misc.functions.Suspending
+import po.misc.functions.Suspended
 import po.misc.types.k_class.simpleOrAnon
 import kotlin.reflect.KClass
 
@@ -77,7 +77,7 @@ class ProceduralFlow<H: Component>(
         tolerance: Collection<StepTolerance> = emptyList(),
         crossinline block: H.(ProcFlowHandler<H>) -> R
     ): Pair<StepResult, R> {
-        val entry: ProceduralEntry =  createEntry(proceduralRecord, stepName, badge)
+        val entry: ProceduralEntry =  createEntry(stepName, badge)
         proceduralRecord.registerEntry(entry)
         val result =  block.invoke(host, this)
         val stepResult =  toStepResult(entry, result, tolerance)
@@ -92,7 +92,7 @@ class ProceduralFlow<H: Component>(
         tolerance: Collection<StepTolerance>,
         crossinline block: suspend H.(ProcFlowHandler<H>) -> R
     ): Pair<StepResult, R> {
-        val entry: ProceduralEntry =  createEntry(proceduralRecord,  stepName, badge)
+        val entry: ProceduralEntry =  createEntry(stepName, badge)
         val result =  block.invoke(host, this)
         val stepResult =  toStepResult(entry, result, tolerance)
         entry.stepResult = stepResult
@@ -108,7 +108,7 @@ class ProceduralFlow<H: Component>(
         stepName: String,
         badge: Badge? = null
     ): ProceduralEntry {
-        val entry: ProceduralEntry = createEntry(proceduralRecord, stepName, badge)
+        val entry: ProceduralEntry = createEntry(stepName, badge)
         proceduralRecord.addEntry(entry)
         return entry
     }
@@ -146,7 +146,7 @@ class ProceduralFlow<H: Component>(
     ): R  = processStep(stepName, badge, tolerance.toList(), block = block).second
 
     suspend inline fun <R> step(
-        suspending: Suspending,
+        suspending: Suspended,
         stepName: String,
         badge: Badge,
         vararg tolerance: StepTolerance,
@@ -173,26 +173,25 @@ class ProceduralFlow<H: Component>(
 
     companion object {
 
-        fun createEntry(record: ProceduralRecord, structured: StructuredLoggable) : ProceduralEntry {
+        fun createEntry(structured: StructuredLoggable) : ProceduralEntry {
 
             return when (structured.topic) {
                 NotificationTopic.Warning -> {
                     val resultWarning = StepResult.Warning(structured.asList())
-                    ProceduralEntry(WarningSubject.Warning, structured.subject, resultWarning, record)
+                    ProceduralEntry(WarningSubject.Warning, structured.subject, resultWarning)
                 }
-                else -> ProceduralEntry(Badge.Process, structured.subject, record)
+                else -> ProceduralEntry(Badge.Process, structured.subject)
             }
         }
-        fun createEntry(record: ProceduralRecord, text: String, badge: Badge? = null): ProceduralEntry{
+        fun createEntry(text: String, badge: Badge? = null): ProceduralEntry{
             val badge = badge?: Badge.Process
-            return ProceduralEntry(badge, text, record)
+            return ProceduralEntry(badge, text)
         }
         fun createEntry(
-            parentProcedural: LoggableTemplate,
-            record: StructuredLoggable,
+            loggable: StructuredLoggable,
             badge: Badge? = null
         ): ProceduralEntry{
-            val entry = ProceduralEntry(record, parentProcedural, result = null, stepBadge =  badge)
+            val entry = ProceduralEntry(loggable, result = null, stepBadge =  badge)
             val result = toStepResult(entry, Unit)
             entry.stepResult = result
             return entry

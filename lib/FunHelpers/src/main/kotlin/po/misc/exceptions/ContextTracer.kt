@@ -57,6 +57,7 @@ abstract class ContextTracer(
     override var coroutineInfo: CoroutineInfo? = null
 
     override var trace : ExceptionTrace  = extractTrace(options, analyzeDepth = 30, classifier)
+
     fun createTrace(options: TraceOptions, classifier: PackageClassifier? = null):ExceptionTrace{
         val exTrace =  this.extractTrace(options, analyzeDepth = 50,  classifier)
         trace =  exTrace

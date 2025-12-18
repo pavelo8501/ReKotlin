@@ -66,14 +66,14 @@ class TestKPropertyHelpers: TokenFactory {
         }
         val lookupReport = assertNotNull(report)
         assertFalse(lookupReport.result)
-        assertNotNull(report.messages.firstOrNull { it.type == DataRecord.MessageType.Info })
-        assertNotNull(report.messages.firstOrNull { it.type == DataRecord.MessageType.Failure })
+        assertNotNull(report.messages.firstOrNull { it.recordType == DataRecord.MessageType.Info })
+        assertNotNull(report.messages.firstOrNull { it.recordType == DataRecord.MessageType.Failure })
 
         listStringProp.checkType(token.asList()){
             report = it
         }
         assertTrue(report.result)
-        assertNotNull(report.messages.firstOrNull { it.type == DataRecord.MessageType.Success })
+        assertNotNull(report.messages.firstOrNull { it.recordType == DataRecord.MessageType.Success })
         report.output()
     }
 

@@ -9,6 +9,7 @@ import po.misc.data.pretty_print.parts.GridKey
 import po.misc.data.pretty_print.parts.GridSource
 import po.misc.data.pretty_print.parts.ListValueLoader
 import po.misc.data.pretty_print.parts.PrettyHelper
+import po.misc.data.pretty_print.parts.RowID
 import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.parts.ValueLoader
 import po.misc.data.pretty_print.parts.grid.GridParams
@@ -32,7 +33,7 @@ sealed class PrettyGridBase<T: Any, V: Any>(
     val renderBlocks: List<RenderableElement<T>>  get() = renderMapBacking.values.toList()
     val renderCount: Int get() = renderMapBacking.size
 
-    val id: Enum<*>? get() = options.rowId
+    val id: RowID? get() = options.rowId
     val rows: List<PrettyRow<V>> get() = rowsBacking
 
     val rowsSize : Int get() = rows.size
@@ -41,7 +42,7 @@ sealed class PrettyGridBase<T: Any, V: Any>(
     val singleLoader: ValueLoader<T, V> = ValueLoader("ReceiverGrid", hostType, type)
     val listLoader: ListValueLoader<T, V> = ListValueLoader("ReceiverGrid", hostType, type)
 
-    val beforeGridRender: Signal<GridParams<T, V>, Unit> = signalOf<GridParams<T,V>, Unit>()
+    val beforeGridRender: Signal<GridParams, Unit> = signalOf<GridParams, Unit>()
     val beforeRowRender: Signal<RowParams<V>, Unit> = signalOf<RowParams<V>, Unit>()
 
     protected fun checkShouldRender(row: RenderableElement<*>, opt: RowOptions?): Boolean {
@@ -103,10 +104,11 @@ class PrettyGrid<T: Any>(
     val renderMap : Map<GridKey, RenderableElement<T>> get() = renderMapBacking
 
     val gridsCount: Int get() = gridMap.size
-    override val size: Int get() = gridsCount + renderCount + rowsSize
+    override val size: Int get() = gridsCount + renderCount
 
     private fun renderGrid(grid: PrettyGrid<*>?, opts: CommonRowOptions?): String{
         if(grid != null){
+            beforeGridRender.trigger(GridParams(grid, opts))
             val render = grid.render(opts)
             return render
         }
@@ -119,7 +121,7 @@ class PrettyGrid<T: Any>(
         opts: RowOptions?,
         optionBuilder: (RowOptions.()-> Unit)?
     ): String{
-        val useOptions = if(element.options.useNoEdit){
+        val useOptions = if(element.options.sealed){
             element.options
         }else{
             opts?:options
@@ -133,6 +135,7 @@ class PrettyGrid<T: Any>(
     }
 
     fun render(receiver: T, opts: CommonRowOptions? = null, optionBuilder: (RowOptions.()-> Unit)? = null): String {
+        singleLoader.valueResolved.trigger(receiver)
         val resultList = mutableListOf<String>()
         val rowOptions = PrettyHelper.toRowOptionsOrNull(opts)
         val keys = (renderMap.keys + gridMap.keys).sortedBy{  it.order }

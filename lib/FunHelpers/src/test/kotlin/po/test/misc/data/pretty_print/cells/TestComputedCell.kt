@@ -22,7 +22,7 @@ class TestComputedCell : PrettyTestBase() {
     @Test
     fun `Computed Cell default render is toString method of an instance`(){
         val row = buildPrettyRow<PrintableRecord> {
-            addCell(PrintableRecord::subClass){subClass->
+            computed(PrintableRecord::subClass){subClass->
                 subClass
             }
         }
@@ -37,8 +37,8 @@ class TestComputedCell : PrettyTestBase() {
     @Test
     fun `Computed Cell respects usePlain modifier respectively printing formattedString of a class`(){
         val row = buildPrettyRow<PrintableRecord> {
-            addCell(PrintableRecord::subClass){ subClass->
-                usePlain = false
+            computed(PrintableRecord::subClass){ subClass->
+                options.plainText = false
                 subClass
             }
         }
@@ -53,8 +53,8 @@ class TestComputedCell : PrettyTestBase() {
     @Test
     fun `Computed Cell passing itself to render would not create overflow`(){
         val row = buildPrettyRow<PrintableRecord> {
-            addCell(PrintableRecord::subClass){
-                this@addCell
+            computed(PrintableRecord::subClass){
+                this@computed
             }
         }
         val cell = assertIs<ComputedCell<PrintableRecord, PrintableRecordSubClass>>(row.cells.first())

@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test
 import po.misc.collections.asList
 import po.misc.data.output.output
 import po.misc.data.pretty_print.Templated
-import po.misc.data.pretty_print.grid.addHeadedRow
 import po.misc.data.pretty_print.grid.buildGridForContext
 import po.misc.data.pretty_print.grid.buildPrettyGrid
 import po.misc.data.pretty_print.grid.buildRow
@@ -16,7 +15,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-class TestNamedRows  : PrettyTestBase(), Templated {
+class TestNamedRows  : PrettyTestBase(){
 
 
     private val printableRecord = PrintableRecord()
@@ -34,10 +33,10 @@ class TestNamedRows  : PrettyTestBase(), Templated {
                 beforeRowRender {
                     usedOptions = it.usedOptions
                 }
-                addCell(header1)
+                add(header1)
             }
             buildRow(RowOptions(Row.Row2)) {
-                addCell(header2)
+                add(header2)
             }
         }
         assertNotNull(grid.rows.firstOrNull()){row->
@@ -61,16 +60,16 @@ class TestNamedRows  : PrettyTestBase(), Templated {
     @Test
     fun `Named grids-templates can be excluded from render`(){
         val headerGrid = buildPrettyGrid<PrintableRecord>(RowOptions(Grid.Grid1)){
-            addHeadedRow(header1)
+            headedRow(header1)
         }
         val recordGrid = buildPrettyGrid<PrintableRecord>(RowOptions(Grid.Grid2)){
             buildRow {
-                addCell(PrintableRecord::name)
+                add(PrintableRecord::name)
             }
         }
         val grid = buildGridForContext {
-            useTemplate(headerGrid){ printableRecord }
-            useTemplate(recordGrid){ printableRecord }
+            useTemplateProviding(headerGrid){ printableRecord }
+            useTemplateProviding(recordGrid){ printableRecord }
         }
         val render = grid.render(this){
             exclude(Grid.Grid1)
@@ -89,10 +88,10 @@ class TestNamedRows  : PrettyTestBase(), Templated {
     fun `Exclude row logic work as expected`() {
         val template = buildPrettyGrid<PrintableRecord> {
             buildRow(Orientation.Vertical) {
-                addCells(PrintableRecord::name, PrintableRecord::description)
+                addAll(PrintableRecord::name, PrintableRecord::description)
             }
             buildRow(Row.Row1) {
-                addCell(header2)
+                add(header2)
             }
         }
         val render = template.render(record) {
@@ -106,13 +105,13 @@ class TestNamedRows  : PrettyTestBase(), Templated {
     fun `RenderOnly logic work as expected`() {
         val template = buildPrettyGrid<PrintableRecord> {
             buildRow(Orientation.Vertical) {
-                addCells(PrintableRecord::name, PrintableRecord::description)
+                addAll(PrintableRecord::name, PrintableRecord::description)
             }
             buildRow(Row.Row1) {
-                addCell(header1)
+                add(header1)
             }
             buildRow(Row.Row2) {
-                addCell(header2)
+                add(header2)
             }
         }
         val render = template.render(record) {
@@ -128,14 +127,14 @@ class TestNamedRows  : PrettyTestBase(), Templated {
     fun `RenderOnly list does not affect rows with no id`(){
 
         val grid = buildPrettyGrid<PrintableRecord>{
-            addHeadedRow(header1)
+            headedRow(header1)
             buildRow{
                 rowId = Row.Row1
-                addCell(header2)
+                add(header2)
             }
             buildRow{
                 rowId = Row.Row2
-                addCell(header3)
+                add(header3)
             }
         }
         assertEquals(3, grid.rows.size)

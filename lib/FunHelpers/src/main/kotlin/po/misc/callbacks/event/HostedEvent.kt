@@ -3,7 +3,10 @@ package po.misc.callbacks.event
 import po.misc.callbacks.CallableEventBase
 import po.misc.callbacks.common.EventHost
 import po.misc.callbacks.common.EventLogRecord
+import po.misc.callbacks.common.ListenerResult
 import po.misc.callbacks.validator.ReactiveValidator
+import po.misc.collections.lambda_map.LambdaWithReceiver
+import po.misc.collections.lambda_map.SuspendingLambdaWithReceiver
 import po.misc.collections.lambda_map.toCallable
 import po.misc.context.component.Component
 import po.misc.context.component.ComponentID
@@ -16,7 +19,9 @@ import po.misc.data.logging.processor.LogProcessor
 import po.misc.data.logging.processor.createLogProcessor
 import po.misc.functions.LambdaOptions
 import po.misc.functions.LambdaType
+import po.misc.functions.Suspended
 import po.misc.functions.SuspendedOptions
+import po.misc.functions.Sync
 import po.misc.types.token.TypeToken
 
 
@@ -73,31 +78,28 @@ import po.misc.types.token.TypeToken
  * @param T the type of value delivered to listeners
  * @param R the type of value returned by listeners
  */
-sealed interface HostedEventBuilder<H : EventHost, T: Any, R> {
+sealed interface HostedEventBuilder<H : EventHost, T, R> {
 
     private val event  get() = this as HostedEvent<H, T, R>
 
     fun eventName(name: String):ComponentID{
-
         val id =  ComponentID(event, verbosity = Verbosity.Info, nameProvider = { name } )
-
-       // id.classInfo.genericInfoBacking.addAll(event.componentID.classInfo.genericInfoBacking)
         event.componentID = id
         return id
     }
+    var eventName: String
 
     fun onEvent(callback: H.(T) -> R)
     fun onEvent(listener: TraceableContext, callback: H.(T) -> R)
     fun onEvent(listener: TraceableContext, options: LambdaOptions, callback: H.(T) -> R)
 
-    fun onEvent(suspended: LambdaType.Suspended, callback: suspend H.(T) -> R)
-    fun onEvent(listener: TraceableContext, suspended: LambdaType.Suspended, callback: suspend H.(T) -> R)
+    fun onEvent(suspended: Suspended, callback: suspend H.(T) -> R)
+    fun onEvent(listener: TraceableContext, suspended: Suspended, callback: suspend H.(T) -> R)
     fun onEvent(listener: TraceableContext, options: SuspendedOptions, callback: suspend H.(T) -> R)
 
     fun withValidation(predicate: (T)-> Boolean):ReactiveValidator<T>{
-        return with(event){
-            registerValidator(ReactiveValidator(predicate))
-        }
+        val validator = ReactiveValidator(predicate)
+        return event.registerValidator(validator)
     }
 }
 
@@ -119,24 +121,40 @@ sealed interface HostedEventBuilder<H : EventHost, T: Any, R> {
  * @property eventSuspended Returns true if there are any suspended event listeners
  *
  */
-class HostedEvent<H: EventHost, T : Any, R>(
+class HostedEvent<H: EventHost, T, R>(
     internal val host: H,
     paramType: TypeToken<T>,
     resultType: TypeToken<R>
-): CallableEventBase<T, R>(),  HostedEventBuilder<H, T, R>, LogProvider {
+): CallableEventBase<H, T, R>(),  HostedEventBuilder<H, T, R>, LogProvider {
+
+    override var eventName: String = "HostedEvent"
 
     override var componentID: ComponentID =
         componentID("HostedEvent", Verbosity.Warnings).addParamInfo("T", paramType).addParamInfo("R", resultType)
 
     override val logProcessor: LogProcessor<HostedEvent<H, T, R>, LogMessage> = createLogProcessor()
-    
 
-    val event: Boolean get() = listeners.values.any { !it.isSuspended }
-    val eventSuspended: Boolean get() = listeners.values.any { it.isSuspended }
+    var event: Boolean = false
+    var eventSuspended: Boolean =false
 
     init {
-        listeners.onKeyOverwritten = {
+        listenersMap.onKeyOverwritten = {
             warn(subjectKey, messageKey(it))
+        }
+    }
+
+    private fun toCallable(options: LambdaOptions, callback: H.(T) -> R):LambdaWithReceiver<H, T, R>{
+        return LambdaWithReceiver<H, T, R>(host, options, callback)
+    }
+
+    private fun toCallable(options: SuspendedOptions, callback: suspend H.(T) -> R):SuspendingLambdaWithReceiver<H, T, R>{
+        return SuspendingLambdaWithReceiver<H, T, R>(host, options, callback)
+    }
+
+    override fun listenersApplied(lambdaType: LambdaType) {
+        when(lambdaType){
+            is Sync -> event = true
+            is Suspended -> eventSuspended = true
         }
     }
 
@@ -154,9 +172,9 @@ class HostedEvent<H: EventHost, T : Any, R>(
         options: LambdaOptions,
         callback: H.(T) -> R
     ) {
-
+        event = true
         debug(subjectListen, messageReg("Lambda", listener))
-        listeners[listener] = callback.toCallable(host, options)
+        listenersMap[listener] = toCallable(options, callback)
     }
 
     /**
@@ -192,7 +210,7 @@ class HostedEvent<H: EventHost, T : Any, R>(
         callback: suspend H.(T) -> R
     ) {
         debug(subjectListen, messageReg("Suspending lambda", listener))
-        listeners[listener] = host.toCallable(options, callback)
+        listenersMap[listener] = toCallable(options, callback)
     }
 
     /**
@@ -204,7 +222,7 @@ class HostedEvent<H: EventHost, T : Any, R>(
      */
     override fun onEvent(
         listener: TraceableContext,
-        suspended: LambdaType.Suspended,
+        suspended: Suspended,
         callback: suspend H.(T) -> R
     ): Unit = onEvent(listener, SuspendedOptions.Listen, callback)
 
@@ -215,8 +233,15 @@ class HostedEvent<H: EventHost, T : Any, R>(
      * @param callback The suspending event handler function
      */
     override fun onEvent(
-        suspended: LambdaType.Suspended,
+        suspended: Suspended,
         callback: suspend H.(T) -> R
     ): Unit = onEvent(this, SuspendedOptions.Listen, callback)
+
+
+    fun trigger(parameter: T): List<ListenerResult<R>> = super.trigger(host, parameter)
+    fun trigger(listener: TraceableContext,  parameter: T): R? = super.trigger(listener, host,  parameter)
+
+    suspend fun trigger(parameter: T, suspended: Suspended): List<ListenerResult<R>> = super.trigger(host, parameter, suspended)
+
 
 }

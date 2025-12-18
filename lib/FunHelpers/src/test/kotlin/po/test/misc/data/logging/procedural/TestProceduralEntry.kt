@@ -16,7 +16,7 @@ class TestProceduralEntry: Component {
 
 
     private val record = ProceduralFlow.toProceduralRecord(info("Subject", "Text").toLogMessage())
-    private val entry = ProceduralEntry(Badge.Init, "step", record)
+    private val entry = ProceduralEntry(Badge.Init, "step")
 
     @Test
     fun `Step result correctly analyzed`(){

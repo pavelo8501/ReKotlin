@@ -1,6 +1,7 @@
 package po.test.misc.data
 
 import org.junit.jupiter.api.Test
+import po.misc.data.NameValue
 import po.misc.data.printable.PrintableBase
 import po.misc.data.styles.colorize
 import po.misc.data.processors.DataProcessor
@@ -8,7 +9,6 @@ import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.text
 import po.misc.data.printable.companion.PartsTemplate
-import po.misc.interfaces.ValueBased
 import kotlin.test.assertTrue
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.printable.PrintableGroup
@@ -20,7 +20,7 @@ import kotlin.test.assertNotEquals
 
 class TestPrintableBase: TimeHelper {
 
-    enum class Events(override val value: Int) : ValueBased{
+    enum class Events(override val value: Int) : NameValue{
         Info(1),
         Warn(2)
     }

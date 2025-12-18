@@ -4,12 +4,13 @@ import kotlin.reflect.KClass
 
 
 class StaticModifiers(){
+
     internal val modifiersBacking: MutableList<TextModifier> = mutableListOf()
     val modifiers : List<TextModifier> get() = modifiersBacking
 
     fun addModifiers(textModifiers: List<TextModifier>){
         modifiersBacking.clear()
-        val sorted = textModifiers.sortedBy { it.priority }
+        val sorted = textModifiers.sortedBy { it.formatter.value }
         modifiersBacking.addAll( sorted )
     }
 
@@ -19,15 +20,15 @@ class StaticModifiers(){
     fun isModifierPresent(modifierClass: KClass<out  TextModifier>): Boolean{
         return modifierClass in modifiers.map { it::class }
     }
+
     fun getModifier(modifierClass: KClass<out  TextModifier>):TextModifier?{
         return modifiers.firstOrNull { it::class == modifierClass }
     }
+
     fun modify(content: String): String{
         var modified = content
         for (modifier in modifiers){
-           if(modifier.match(content)){
-               modified =  modifier.modify(content)
-           }
+
         }
         return modified
     }

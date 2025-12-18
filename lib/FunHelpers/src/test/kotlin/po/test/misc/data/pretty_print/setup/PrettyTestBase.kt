@@ -3,15 +3,21 @@ package po.test.misc.data.pretty_print.setup
 import po.misc.collections.repeatBuild
 import po.misc.data.PrettyPrint
 import po.misc.data.pretty_print.Templated
+import po.misc.data.pretty_print.parts.RowID
 import po.misc.data.strings.appendGroup
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
+import po.misc.types.token.TokenFactory
+import po.misc.types.token.TypeToken
+import po.misc.types.token.tokenOf
 
-abstract class PrettyTestBase : Templated {
+abstract class PrettyTestBase : Templated<PrettyTestBase>, TokenFactory {
 
-    enum class Cell { Cell1, Cell2, Cell3, Cell4 }
-    enum class Row { Row1, Row2,  SubTemplateRow }
-    enum class Grid { Grid1, Grid2, SubTemplateGrid }
+    override val valueType: TypeToken<PrettyTestBase> = tokenOf()
+    
+    enum class Cell: RowID { Cell1, Cell2, Cell3, Cell4 }
+    enum class Row: RowID { Row1, Row2,  SubTemplateRow }
+    enum class Grid: RowID { Grid1, Grid2, SubTemplateGrid }
 
     protected val headerText1: String = "header_text_1"
     protected val headerText2: String = "header_text_2"
@@ -25,7 +31,10 @@ abstract class PrettyTestBase : Templated {
         val elementName: String,
         val parameter: String = "Parameter",
         val value: Int = 1,
-    ):Templated
+    ):Templated<PrintableElement>{
+
+        override val valueType: TypeToken<PrintableElement> = tokenOf()
+    }
 
     class PrintableRecordSubClass(
         val subName: String = "PrintableRecordSubClass",
@@ -44,13 +53,14 @@ abstract class PrettyTestBase : Templated {
     }
 
     class PrintableRecord(
-        val name: String = "PersonalName",
-        val component: String = "Component name",
-        val description: String = "Some description of the component",
+        var name: String = "Personal",
+        var component: String = "Component name",
+        val description: String = "Some string of the component",
         val subClass: PrintableRecordSubClass = PrintableRecordSubClass(),
         var elements: List<PrintableElement> = emptyList()
-    ): Templated {
+    ): Templated<PrintableRecord> {
 
+        override val valueType: TypeToken<PrintableRecord> = tokenOf()
         init {
             if(elements.isEmpty()) {
                 elements =  buildList {

@@ -11,6 +11,8 @@ import po.misc.debugging.toFrameMeta
 import po.misc.exceptions.TraceException
 import po.misc.exceptions.Tracer
 import po.misc.debugging.stack_tracer.ExceptionTrace
+import po.misc.debugging.stack_tracer.Methods
+import po.misc.debugging.stack_tracer.TraceOptions
 import po.misc.exceptions.throwableToText
 import po.misc.time.TimeHelper
 
@@ -18,30 +20,17 @@ class OutputHelper<T>(
     val receiver: T,
     val receiverClosure: OutputHelper<T>.(T)-> Unit
 ): TimeHelper, ClassResolver{
-
     init {
         receiverClosure.invoke(this, receiver)
     }
 }
-
-internal fun checkDispatcher(){
-    if(OutputDispatcher.identifyOutput){
-        val frame : StackFrameMeta = Tracer().firstElement.toFrameMeta()
-        println(frame.consoleLink)
-    }
-}
-
-fun outputDispatcher(block: OutputDispatcher.()-> Unit){
-    block.invoke(OutputDispatcher)
-}
-
 
 @PublishedApi
 internal fun outputInternal(
     receiver: Any?,
     prefix: String = "",
     colour: Colour? = null
-) {
+){
     checkDispatcher()
     val effectivePrefix = prefix.ifNotBlank {"$it "}
     if (receiver != null) {
@@ -85,39 +74,10 @@ internal fun outputInternal(
 
 fun Any?.output(colour: Colour? = null): Unit = outputInternal(this, colour = colour)
 fun Any?.output(prefix: String, colour: Colour? = null): Unit = outputInternal(this, prefix = prefix,  colour)
-
 fun Any?.output(context: TraceableContext, colour: Colour? = null): Unit = outputInternal(context = context, receiver = this, colour =  colour)
 
 fun <T: Any> T.output(prefix: String = "", transform: (T)-> Any){
      val result = transform.invoke(this)
      val formatted =  result.stringify()
      println(formatted.addPrefix(prefix).formatedString)
-}
-
-fun Throwable.output(){
-    fun exceptionTraceToFormated(exceptionTrace : ExceptionTrace): String{
-        return  exceptionTrace.bestPick.let {
-            buildString {
-                appendLine(throwableToText().colorize(Colour.RedBright))
-                appendLine("Thrown in".colorize(Colour.YellowBright))
-                appendLine("ClassName: ${it.simpleClassName}".colorize(Colour.YellowBright))
-                appendLine("Method Name: ${it.methodName}".colorize(Colour.YellowBright))
-                appendLine("Line nr: ${it.lineNumber}".colorize(Colour.YellowBright))
-            }
-        }
-    }
-    val text =  when(this){
-        is TraceException->{
-            val trace =  exceptionTraceToFormated(trace)
-            val coroutineString = coroutineInfo?.output()
-            buildString {
-                appendLine(trace)
-                appendLine(coroutineString)
-            }
-        }
-        else -> {
-            throwableToText()
-        }
-    }
-    println(text)
 }

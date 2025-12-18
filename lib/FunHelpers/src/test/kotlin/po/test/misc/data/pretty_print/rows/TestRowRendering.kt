@@ -5,16 +5,13 @@ import po.misc.data.output.output
 import po.misc.data.pretty_print.cells.ComputedCell
 import po.misc.data.pretty_print.cells.KeyedCell
 import po.misc.data.pretty_print.cells.StaticCell
-import po.misc.data.pretty_print.grid.buildPrettyGrid
-import po.misc.data.pretty_print.grid.buildRow
-import po.misc.data.pretty_print.parts.KeyedPresets
+import po.misc.data.pretty_print.parts.CellPresets
 import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.rows.buildPrettyRow
 import po.misc.data.pretty_print.rows.buildRowForContext
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
-import po.misc.debugging.stack_tracer.StackFrameMeta
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -37,7 +34,7 @@ class TestRowRendering : PrettyTestBase(){
     fun `Row renders keyed cells`(){
 
         val row = record.buildRowForContext{
-            addCells(PrintableRecord::name, PrintableRecord::description, PrintableRecord::component)
+            addAll(PrintableRecord::name, PrintableRecord::description, PrintableRecord::component)
         }
         val render = row.render(record)
         render.output()
@@ -46,8 +43,8 @@ class TestRowRendering : PrettyTestBase(){
     @Test
     fun `Row renders  static cell + keyed cell as expected`(){
         val row = buildPrettyRow<PrintableRecord> {
-            addCell(headerText1)
-            addCell(PrintableRecord::name)
+            add(headerText1)
+            add(PrintableRecord::name)
         }
         assertNotNull(row.cells.firstOrNull()){firstCell->
             assertIs<StaticCell>(firstCell)
@@ -70,9 +67,9 @@ class TestRowRendering : PrettyTestBase(){
     @Test
     fun `Row renders  static cell + keyed cell + computed cell as expected`(){
         val row = buildPrettyRow<PrintableRecord> {
-            addCell(headerText1)
-            addCell(PrintableRecord::name)
-            addCell(PrintableRecord::component){
+            add(headerText1)
+            add(PrintableRecord::name)
+            computed(PrintableRecord::component){
                 "${it}_Computed"
             }
         }
@@ -105,8 +102,8 @@ class TestRowRendering : PrettyTestBase(){
     @Test
     fun `Builder correctly distinguish static cells from pretty cells`(){
         val row = buildPrettyRow<PrintableRecord> {
-            addCell(headerText1)
-            addCell(PrintableRecord::name)
+            add(headerText1)
+            add(PrintableRecord::name)
             addCell()
         }
         val record = createRecord()
@@ -120,29 +117,29 @@ class TestRowRendering : PrettyTestBase(){
     @Test
     fun `Multiple cell builder correctly apply options`(){
 
-        val keyStyle = KeyedPresets.Property.keyStyleOptions
-        val valueStyle = KeyedPresets.Property.styleOptions
+        val keyStyle = CellPresets.Property.keyStyle
+        val valueStyle = CellPresets.Property.style
 
         val row = buildPrettyRow<PrintableRecord> {
-            addCells(PrintableRecord::name, PrintableRecord::description)
+            addAll(PrintableRecord::name, PrintableRecord::description)
         }
         val render = row.render(record)
         render.output()
         assertEquals(2, row.cells.size)
         assertNotNull(row.cells.firstOrNull()){cell->
             assertIs<KeyedCell<PrintableRecord>>(cell)
-            assertEquals(keyStyle.style, cell.keyedOptions.keyStyleOptions.style)
-            assertEquals(keyStyle.colour, cell.keyedOptions.keyStyleOptions.colour)
-            assertEquals(valueStyle.style, cell.keyedOptions.styleOptions.style)
-            assertEquals(valueStyle.colour, cell.keyedOptions.styleOptions.colour)
+            assertEquals(keyStyle.textStyle, cell.cellOptions.keyStyle.textStyle)
+            assertEquals(keyStyle.colour, cell.cellOptions.keyStyle.colour)
+            assertEquals(valueStyle.textStyle, cell.cellOptions.style.textStyle)
+            assertEquals(valueStyle.colour, cell.cellOptions.style.colour)
 
         }
         assertNotNull(row.cells.getOrNull(1)){cell->
             assertIs<KeyedCell<PrintableRecord>>(cell)
-            assertEquals(keyStyle.style, cell.keyedOptions.keyStyleOptions.style)
-            assertEquals(keyStyle.colour, cell.keyedOptions.keyStyleOptions.colour)
-            assertEquals(valueStyle.style, cell.keyedOptions.styleOptions.style)
-            assertEquals(valueStyle.colour, cell.keyedOptions.styleOptions.colour)
+            assertEquals(keyStyle.textStyle, cell.cellOptions.keyStyle.textStyle)
+            assertEquals(keyStyle.colour, cell.cellOptions.keyStyle.colour)
+            assertEquals(valueStyle.textStyle, cell.cellOptions.style.textStyle)
+            assertEquals(valueStyle.colour, cell.cellOptions.style.colour)
         }
     }
 
@@ -151,7 +148,7 @@ class TestRowRendering : PrettyTestBase(){
 
         val row = buildPrettyRow<PrintableRecord> {
             orientation = Orientation.Vertical
-            addCells(PrintableRecord::name, PrintableRecord::description)
+            addAll(PrintableRecord::name, PrintableRecord::description)
             beforeRowRender {
 
             }

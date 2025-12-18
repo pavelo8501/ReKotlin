@@ -4,6 +4,7 @@ import po.misc.callbacks.common.EventHost
 import po.misc.context.tracable.TraceableContext
 import po.misc.functions.LambdaOptions
 import po.misc.functions.LambdaType
+import po.misc.functions.Suspended
 import po.misc.functions.SuspendedOptions
 
 
@@ -91,7 +92,7 @@ fun <H: EventHost, T: Any, R> TraceableContext.listen(
  * @param suspended Marker parameter to explicitly indicate suspending function type
  * @param callback The suspending event handler function to be called when the event is triggered
  *
- * @see LambdaType.Suspended
+ * @see Suspended
  *
  * @example
  * ```kotlin
@@ -103,7 +104,7 @@ fun <H: EventHost, T: Any, R> TraceableContext.listen(
  */
 fun <H: EventHost, T: Any, R> TraceableContext.listen(
     event: HostedEvent<H, T, R>,
-    suspended: LambdaType.Suspended,
+    suspended: Suspended,
     callback: suspend H.(T) -> R
 ): Unit = event.onEvent(this, suspended, callback)
 

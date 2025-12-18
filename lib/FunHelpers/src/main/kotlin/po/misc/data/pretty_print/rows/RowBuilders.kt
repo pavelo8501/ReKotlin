@@ -5,10 +5,10 @@ import po.misc.data.pretty_print.Templated
 import po.misc.data.pretty_print.parts.CommonRowOptions
 import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.parts.PrettyHelper
+import po.misc.data.pretty_print.parts.RowID
 import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.types.token.TypeToken
 import kotlin.reflect.KProperty1
-
 
 
 @PublishedApi
@@ -58,22 +58,26 @@ inline fun <reified T: Any> buildPrettyRow(
     noinline builder: RowContainer<T>.()-> Unit
 ): PrettyRow<T> = buildPrettyRow(TypeToken.create<T>(), commonOptions, builder)
 
+
 inline fun <reified T: Any> buildPrettyRow(
-    rowId: Enum<*>,
+    rowId: RowID,
     orientation: Orientation? = null,
     noinline builder: RowContainer<T>.()-> Unit
 ): PrettyRow<T> = buildPrettyRow(TypeToken.create<T>(), RowOptions(rowId, orientation), builder)
 
+inline fun <reified T: Any> buildPrettyRow(
+    orientation: Orientation,
+    noinline builder: RowContainer<T>.()-> Unit
+): PrettyRow<T> = buildPrettyRow(TypeToken.create<T>(), RowOptions(orientation), builder)
 
 
-inline fun <reified T: Templated> T.buildRowForContext(
+inline fun <reified T: Templated<T>> T.buildRowForContext(
     rowOptions: CommonRowOptions? = null,
     noinline builder: RowContainer<T>.()-> Unit
 ): PrettyRow<T> {
     val container = RowContainer<T>(TypeToken.create<T>(), PrettyHelper.toRowOptions(rowOptions))
     return container.applyBuilder(builder)
 }
-
 
 fun <T: Any, V: Any> buildPrettyRow(
     property: KProperty1<T, V>,

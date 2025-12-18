@@ -4,10 +4,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.TestInstance
 import po.misc.context.component.Component
 import po.misc.data.logging.NotificationTopic
-import po.misc.data.logging.StructuredLoggable
 import po.misc.data.logging.models.LogMessage
-import po.misc.data.logging.parts.DebugMethod.methodName
-import po.misc.data.output.output
 import po.misc.debugging.classifier.HelperRecord
 import po.misc.debugging.stack_tracer.TraceResolver
 import po.misc.debugging.stack_tracer.reports.CallSiteReport
@@ -19,7 +16,6 @@ import kotlin.test.assertNotNull
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestTraceResolver : Component {
-
 
     private var callSiteReport: CallSiteReport? = null
     private var resolver = TraceResolver(this, HelperRecord("TestTraceResolver", "debug")) {

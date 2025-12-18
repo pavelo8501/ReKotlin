@@ -68,11 +68,19 @@ interface ClassResolver {
             return ClassInfo(kClass)
         }
 
-        fun resolveInstance(context: TraceableContext): InstanceInfo{
+        fun resolveInstance(context: Any): InstanceInfo{
             val name = instanceName(context)
             val classInfo = classInfo(context)
             return InstanceInfo(name, context.hashCode(), classInfo)
         }
+
+//        fun resolveInstance(context: TraceableContext): InstanceInfo{
+//            val name = instanceName(context)
+//            val classInfo = classInfo(context)
+//            return InstanceInfo(name, context.hashCode(), classInfo)
+//        }
+
+
     }
 }
 

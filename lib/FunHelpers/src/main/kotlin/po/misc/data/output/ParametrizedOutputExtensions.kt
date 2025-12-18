@@ -9,6 +9,7 @@ import po.misc.data.strings.stringify
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
+import po.misc.debugging.models.InstanceInfo
 import po.misc.debugging.stack_tracer.StackFrameMeta
 import po.misc.types.k_class.KClassParam
 import po.misc.types.k_class.toKeyParams
@@ -33,6 +34,10 @@ fun <T: Any> T.output(debugProvider: DebugProvider): KClassParam{
     return params
 }
 
+fun output(locate:  LocateOutputs){
+    OutputDispatcher.locateOutputs()
+}
+
 
 fun Any.output(
     behaviour: OutputBehaviour,
@@ -50,7 +55,9 @@ fun Any.output(
             println(resultStr)
         }
         is Identify -> {
-            println(refactorNotImpl)
+            val info : InstanceInfo =  ClassResolver.resolveInstance(this)
+            println(info.formattedString)
+            println()
         }
         is Timestamp -> {
           println(refactorNotImpl)
@@ -72,12 +79,12 @@ fun <T: Any, R> T.output(pass:Pass,  colour: Colour? = null, selector: T.() ->R)
     return selector(this)
 }
 
-fun PrettyFormatted.output(vararg section: Enum<*>){
-    checkDispatcher()
-    val formated =  if(section.isNotEmpty()){
-        formatted(section.toList())
-    }else{
-        formatted()
-    }
-    println(formated)
-}
+//fun PrettyFormatted.output(vararg section: Enum<*>){
+//    checkDispatcher()
+//    val formated =  if(section.isNotEmpty()){
+//        formatted(section.toList())
+//    }else{
+//        formatted()
+//    }
+//    println(formated)
+//}

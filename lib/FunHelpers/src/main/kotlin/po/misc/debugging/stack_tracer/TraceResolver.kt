@@ -58,7 +58,7 @@ class TraceResolver(
     private fun resolve(methodName: String, print: Boolean = true) {
         val trace = stackTracer.traceCallSite(methodName, hostClass.simpleOrAnon)
         beforeCallback?.invoke(trace)
-        val callSite = ExceptionTrace.callSiteReport(trace)
+        val callSite = trace.callSite()
         if (print) {
             callSite.output()
         }
@@ -108,7 +108,7 @@ class TraceResolver(
         if (shouldResolve(message.topic)) {
             val trace = stackTracer.traceCallSite("processMsg")
             beforeCallback?.invoke(trace)
-            val callSite = ExceptionTrace.callSiteReport(trace)
+            val callSite = trace.callSite()
             if (print) {
                 callSite.output()
             }

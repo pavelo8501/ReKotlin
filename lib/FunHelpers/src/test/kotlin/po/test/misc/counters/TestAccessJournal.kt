@@ -8,15 +8,20 @@ import po.misc.counters.createAccessJournal
 import po.misc.counters.createRecord
 import po.misc.data.output.output
 import po.misc.data.pretty_print.Templated
-import po.misc.data.pretty_print.parts.KeyedOptions
+import po.misc.data.pretty_print.parts.Options
 import po.misc.data.pretty_print.rows.buildPrettyRow
 import po.misc.debugging.ClassResolver
+import po.misc.types.token.TypeToken
+import po.misc.types.token.tokenOf
+import po.test.misc.counters.TestAccessJournal.TestAccess
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class TestAccessJournal: Component, Templated {
+class TestAccessJournal: Component, Templated<AccessRecord<TestAccess>> {
 
-    private enum class TestAccess { Access, Read, Fail }
+    enum class TestAccess { Access, Read, Fail }
+
+    override val valueType: TypeToken<AccessRecord<TestAccess>> = tokenOf()
 
     interface InstanceInterface
 
@@ -36,17 +41,19 @@ class TestAccessJournal: Component, Templated {
         val accessJournal = createAccessJournal(TestAccess.Access)
         val instance1 = Instance1()
         val record: AccessRecord<TestAccess> = instance1.createRecord(accessJournal)
-        val noKeyOption = KeyedOptions(showKey = false)
+        val noKeyOption = Options(renderKey = false)
         val prettyRow = buildPrettyRow<AccessRecord<TestAccess>> {
-            addCell(AccessRecord<TestAccess>::formatedTime, noKeyOption)
-            addCell(AccessRecord<TestAccess>::message)
-            addCell(AccessRecord<TestAccess>::hostName)
-            addCell(AccessRecord<TestAccess>::entryType, noKeyOption)
+            add(AccessRecord<TestAccess>::formatedTime, noKeyOption)
+            add(AccessRecord<TestAccess>::message)
+            add(AccessRecord<TestAccess>::hostName)
+            add(AccessRecord<TestAccess>::entryType, noKeyOption)
         }
         assertEquals(4, prettyRow.cells.size)
         val result = prettyRow.renderAny(record)
         result.output()
-        assertTrue { result.contains(record.message) }
+        assertTrue {
+            result.contains(record.message)
+        }
     }
 
     @Test

@@ -26,7 +26,7 @@ internal fun <T: Any, R> createSignal(
  * Creates a standalone [Signal] without an owner (unbound event).
  *
  * This factory is used when you need an event-like callback channel
- * that is not tied to any [po.misc.callbacks.events.EventHost] or component instance.
+ * that is not tied to any [po.misc.callbacks.common.EventHost] or component instance.
  *
  * @param typeToken type information for the input payload [T].
  * @return a new [Signal] instance that can register listeners and dispatch payloads.
@@ -94,7 +94,7 @@ inline fun <reified T: Any> signalOf(
  * ```
  *
  * @param typeToken type information for the input payload [T].
- * @param builder configuration block for registering listeners via [EventBuilder].
+ * @param builder configuration block for registering listeners via [SignalBuilder].
  */
 fun <T: Any, R> signal(
     typeToken: TypeToken<T>,

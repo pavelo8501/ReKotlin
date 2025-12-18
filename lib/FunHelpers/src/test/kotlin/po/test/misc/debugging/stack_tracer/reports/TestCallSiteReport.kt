@@ -16,11 +16,11 @@ class TestCallSiteReport {
     @Test
     fun `Call site report`(){
 
-        val metas = trace.frameMetas.filter { it.isUserCode  && it.packageRole != PackageClassifier.PackageRole.Helper }.take(5)
+        val metas = trace.frameMetas.filter { it.isUserCode && it.packageRole != PackageClassifier.PackageRole.Helper }.take(5)
         trace.frameMetas = metas
-        val report = ExceptionTrace.callSiteReport(trace)
+        val report = trace.callSite()
         assertEquals(3, report.hopFrames.size)
-        val render = CallSiteReport.callSiteReport.render(report)
+        val render = CallSiteReport.callSiteTemplate.render(report)
         render.output()
     }
 

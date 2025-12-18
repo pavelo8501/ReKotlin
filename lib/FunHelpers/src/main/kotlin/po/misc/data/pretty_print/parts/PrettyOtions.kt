@@ -9,7 +9,7 @@ package po.misc.data.pretty_print.parts
  * it simply identifies a type as belonging to the PrettyGrid options system.
  */
 sealed interface PrettyOptions{
-    fun asOptions(): Options
+    fun asOptions(width: Int = 0): Options
 }
 
 
@@ -21,6 +21,6 @@ sealed interface PrettyOptions{
  * logical grouping for cell styling and behaviour.
  */
 sealed interface CommonCellOptions : PrettyOptions{
-
-    val styleOptions: TextStyleOptions
+    val style: Style
+    val keyStyle : Style
 }

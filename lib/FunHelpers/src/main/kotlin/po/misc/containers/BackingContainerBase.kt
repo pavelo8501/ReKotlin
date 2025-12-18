@@ -49,9 +49,6 @@ abstract class BackingContainerBase<T : Any>(
             }
         }
 
-
-
-
     protected val valueProvided: Signal<T, Unit> = signalOf(NoResult)
 
 
@@ -138,7 +135,7 @@ abstract class BackingContainerBase<T : Any>(
     }
 
     fun forget(listener: TraceableContext){
-        valueProvided.listeners.remove(listener)
+        valueProvided.listenersMap.remove(listener)
     }
 
     fun getWithFallback(fallback: ()-> T):T{
@@ -164,7 +161,7 @@ abstract class BackingContainerBase<T : Any>(
     override fun provideValue(type : EmissionType, valueProvider:() ->T):BackingContainerBase<T>{
         emissionType = type
         provider = valueProvider
-        if(valueProvided.listeners.isNotEmpty()){
+        if(valueProvided.listenersMap.listeners.isNotEmpty()){
            val value =  prepareValue()
            if(value != null){
                valueProvided.trigger(value)
@@ -190,6 +187,6 @@ abstract class BackingContainerBase<T : Any>(
      */
     fun reset() {
         valueBacking = null
-        valueProvided.listeners.clear()
+        valueProvided.listenersMap.clear()
     }
 }

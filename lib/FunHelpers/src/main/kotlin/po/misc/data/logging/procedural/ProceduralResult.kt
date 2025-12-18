@@ -15,28 +15,23 @@ enum class ProceduralResult(){
 }
 
 sealed interface StepResult: PrettyPrint{
+
     val text: String
     val ok: Boolean
-    override val formattedString: String get() {
-       return when(this){
-            is OK -> text.colorize(Colour.Green)
-            is Fail -> text.colorize(Colour.Red)
-            is Warning -> text.colorize(Colour.Yellow)
-        }
-    }
 
-    class OK(): StepResult{
+    class OK: StepResult{
         override val ok: Boolean = true
         override val text: String = "OK"
+        override val formattedString: String get() = text.colorize(Colour.Green)
     }
 
-    class Fail(
-    ): StepResult{
+    class Fail: StepResult{
         override val ok: Boolean = false
         override val text: String = "Fail"
+        override val formattedString: String get() = text.colorize(Colour.Red)
     }
 
-    data class Warning(val warnings: List<Loggable>): StepResult{
+    class Warning(val warnings: List<Loggable>): StepResult{
 
         private val warningText : String get() {
            return if(warnings.size > 1){
@@ -49,6 +44,11 @@ sealed interface StepResult: PrettyPrint{
         }
         override val ok: Boolean = false
         override val text: String = "Warning [ $warningText ]"
+        
+        override val formattedString: String get() = "W[${warnings.size}]".colorize(Colour.Yellow)
+
+        override fun toString(): String = "StepResult<Warning>"
+
     }
 
 }

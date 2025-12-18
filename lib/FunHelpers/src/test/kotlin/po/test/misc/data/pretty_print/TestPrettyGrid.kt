@@ -21,11 +21,11 @@ class TestPrettyGrid : PrettyTestBase() {
 
         var prettyGrid = buildPrettyGrid<PrintableRecord> {
             buildRow(RowOptions(Grid.Grid1, Orientation.Horizontal)) {
-                addCell(cell1Text)
-                addCell(cell2Text)
+                add(cell1Text)
+                add(cell2Text)
             }
             buildRow(RowOptions(Grid.Grid2, Orientation.Horizontal)) {
-                addCell(cell3Text)
+                add(cell3Text)
             }
         }
         val record = createRecord()
@@ -36,11 +36,11 @@ class TestPrettyGrid : PrettyTestBase() {
 
         prettyGrid = buildPrettyGrid<PrintableRecord> {
             buildRow(RowOptions(Grid.Grid1, Orientation.Horizontal)) {
-                addCell(cell1Text)
-                addCell(cell2Text, Options(Grid.Grid2))
+                add(cell1Text)
+                add(cell2Text, Options(Grid.Grid2))
             }
             buildRow(RowOptions(Grid.Grid2, Orientation.Horizontal)) {
-                addCell(cell3Text)
+                add(cell3Text)
             }
         }
 //        render = prettyGrid.render(record, RowOptions(CellTemplate.Cell2, Template.Template1))

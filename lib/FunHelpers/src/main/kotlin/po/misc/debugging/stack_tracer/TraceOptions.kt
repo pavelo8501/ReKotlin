@@ -1,12 +1,13 @@
 package po.misc.debugging.stack_tracer
 
+import po.misc.data.pretty_print.parts.RowID
 import po.misc.debugging.stack_tracer.TraceOptions.TraceType
 import po.misc.types.k_function.receiverClasName
 import kotlin.reflect.KFunction
 
 
 sealed interface TraceOptions{
-    enum class TraceType{ Default, CallSite }
+    enum class TraceType : RowID{ Default, CallSite, Methods }
     val type:TraceType
     val printImmediately: Boolean
 
@@ -31,4 +32,10 @@ open class CallSite(
         methodName = name
         return this
     }
+}
+
+open class Methods(val methodName:String) : TraceOptions{
+
+    override val type:TraceType = TraceType.Methods
+    override var printImmediately: Boolean = false
 }

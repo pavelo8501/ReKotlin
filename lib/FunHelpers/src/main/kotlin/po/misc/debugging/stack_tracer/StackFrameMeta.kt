@@ -3,10 +3,11 @@ package po.misc.debugging.stack_tracer
 import po.misc.data.PrettyFormatted
 import po.misc.data.pretty_print.PrettyGrid
 import po.misc.data.pretty_print.grid.buildPrettyGrid
-import po.misc.data.pretty_print.grid.buildRow
-import po.misc.data.pretty_print.parts.KeyedOptions
-import po.misc.data.pretty_print.parts.KeyedPresets
+import po.misc.data.pretty_print.parts.CellPresets
+import po.misc.data.pretty_print.parts.Options
 import po.misc.data.pretty_print.parts.Orientation
+import po.misc.data.pretty_print.parts.RowID
+import po.misc.data.pretty_print.rows.buildPrettyRow
 import po.misc.data.strings.appendGroup
 import po.misc.debugging.classifier.PackageClassifier
 
@@ -25,7 +26,7 @@ data class StackFrameMeta(
     val stackTraceElement: StackTraceElement? = null
 ): PrettyFormatted {
 
-    enum class Template { ConsoleLink }
+    enum class Template: RowID { ConsoleLink }
 
     val isHelperMethod: Boolean get() = packageRole == PackageClassifier.PackageRole.Helper
     val isUserCode: Boolean get() = packageRole != PackageClassifier.PackageRole.System
@@ -36,7 +37,7 @@ data class StackFrameMeta(
            exclude(Template.ConsoleLink)
        }
     }
-    override fun formatted(renderOnly: List<Enum<*>>?): String {
+    override fun formatted(renderOnly: List<RowID>?): String {
         return frameTemplate.render(this){
             renderOnly(renderOnly)
         }
@@ -49,13 +50,18 @@ data class StackFrameMeta(
 
     companion object {
 
-        private  val linkOptions = KeyedOptions(KeyedPresets.Property).usePlainValue(true)
+        private  val linkOptions = Options(CellPresets.Property).usePlainValue(true)
+
+        val linkTemplate =  buildPrettyRow(Template.ConsoleLink, Orientation.Vertical){
+            add(StackFrameMeta::consoleLink, linkOptions)
+        }
+
         val frameTemplate: PrettyGrid<StackFrameMeta> = buildPrettyGrid<StackFrameMeta>(Orientation.Vertical) {
             buildRow(Orientation.Vertical){
-                addCells(StackFrameMeta::methodName, StackFrameMeta::lineNumber, StackFrameMeta::simpleClassName)
+                addAll(StackFrameMeta::methodName, StackFrameMeta::lineNumber, StackFrameMeta::simpleClassName)
             }
             buildRow(Template.ConsoleLink, Orientation.Vertical){
-                addCell(StackFrameMeta::consoleLink, linkOptions)
+                add(StackFrameMeta::consoleLink, linkOptions)
             }
         }
     }

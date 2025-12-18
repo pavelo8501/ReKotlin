@@ -91,6 +91,11 @@ fun Throwable.extractTrace(
                 ExceptionTrace(throwableToText(), frames, reliable = false, type = options.type)
             }
         }
+       is Methods -> {
+           val frames =  stackTrace.take(depth).toFrameMeta(null)
+           val filteredByName = frames.filter { it.methodName ==  options.methodName}
+           ExceptionTrace(throwableToText(), filteredByName, reliable = true, type = options.type)
+       }
     }
 }
 

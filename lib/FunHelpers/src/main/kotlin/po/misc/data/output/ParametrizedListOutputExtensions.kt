@@ -17,7 +17,6 @@ fun Collection<Any>.output(
     println(joinedString)
 }
 
-
 fun Collection<Any>.output(
     behaviour: OutputBehaviour,
     prefix: String? = null

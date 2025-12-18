@@ -9,11 +9,13 @@ import po.misc.data.pretty_print.cells.PrettyCell
 import po.misc.data.pretty_print.cells.PrettyCellBase
 import po.misc.data.pretty_print.cells.ReceiverAwareCell
 import po.misc.data.pretty_print.cells.StaticCell
+import po.misc.data.pretty_print.cells.StaticRender
 import po.misc.data.pretty_print.parts.CellOptions
 import po.misc.data.pretty_print.parts.CommonRowOptions
 import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.parts.PrettyHelper
 import po.misc.data.pretty_print.parts.RenderDefaults
+import po.misc.data.pretty_print.parts.RowID
 import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.parts.RowPresets
 import po.misc.data.pretty_print.parts.rows.RowParams
@@ -35,7 +37,7 @@ import po.misc.types.token.safeCast
  */
 class PrettyRow<T: Any>(
     val typeToken: TypeToken<T>,
-    override var options: RowOptions = RowOptions(RenderDefaults.Console220),
+    override var options: RowOptions = RowOptions(),
     initialCells: List<PrettyCellBase> = emptyList(),
 ): RenderableElement<T>, TraceableContext {
 
@@ -43,16 +45,10 @@ class PrettyRow<T: Any>(
 
     private val cellsBacking: MutableList<PrettyCellBase> = mutableListOf()
 
-    override var id : Enum<*>?
+    override var id : RowID?
         get() = options.rowId
         set(value) {
             options.rowId = value
-        }
-
-    var orientation: Orientation
-        get() =  options.orientation
-        set(value) {
-            options.orientation = value
         }
 
     val prettyCells: List<PrettyCell> get() = cellsBacking.filterIsInstance<PrettyCell>()
@@ -67,18 +63,23 @@ class PrettyRow<T: Any>(
     val beforeRowRender: Signal<RowParams<T>, Unit> = signalOf<RowParams<T>, Unit>()
     val afterRowRender: Signal<RowParams<T>, Unit> = signalOf<RowParams<T>, Unit>()
 
-    init {
-        setCells(initialCells)
-    }
+    init { setCells(initialCells) }
 
-    private fun renderSelection(receiver:T, cell: PrettyCellBase, cellOptions: CellOptions?): String {
+    private fun renderSelection(receiver:T, cell: PrettyCellBase): String {
         return when (cell) {
             is ReceiverAwareCell<*> -> {
                 val casted = cell.safeCast<ReceiverAwareCell<T>>()
-                casted?.render(receiver, cellOptions) ?: ""
+                casted?.render(receiver) ?: ""
             }
-            is StaticCell -> cell.render(cellOptions)
-            else -> cell.render(receiver.stringify().formatedText, cellOptions)
+            is StaticCell -> cell.render()
+            else -> cell.render(receiver.stringify().formatedText)
+        }
+    }
+    private fun applyRenderOptions(opts: CommonRowOptions? = null){
+        PrettyHelper.toRowOptionsOrNull(opts)?.let {
+            options.orientation = it.orientation
+            options.plainKey = it.plainKey
+            options.plainText = it.plainText
         }
     }
 
@@ -92,30 +93,25 @@ class PrettyRow<T: Any>(
      * @param opts optional preset controlling styling and layout
      * @return the rendered row text
      */
-    fun render(
-        receiver: T,
-        opts: CommonRowOptions? = null,
-        optionsBuilder: (RowOptions.()-> Unit)? = null
-    ): String {
-
+    fun render(receiver: T, opts: CommonRowOptions? = null, optionsBuilder: (RowOptions.()-> Unit)? = null): String {
         val resultList = mutableListOf<String>()
         val useOptions = PrettyHelper.toRowOptions(options, opts)
         optionsBuilder?.invoke(useOptions)
-        orientation = useOptions.orientation
+        options.orientation = useOptions.orientation
 
         val cellsToRender = cells
         val cellCount = cellsToRender.size
         val cellsToTake = (cellCount - 1).coerceAtLeast(0)
         beforeRowRender.trigger(RowParams(this, useOptions))
         cellsToRender.take(cellsToTake).forEach {cell->
-            val render =  renderSelection(receiver, cell, null)
+            val render =  renderSelection(receiver, cell)
             resultList.add(render)
         }
         cellsToRender.lastOrNull()?.let {lastCell->
-            val render = renderSelection(receiver, lastCell, null)
+            val render = renderSelection(receiver, lastCell)
             resultList.add(render)
         }
-        val render = if(orientation == Orientation.Vertical){
+        val render = if(options.orientation == Orientation.Vertical){
             resultList.joinToString(separator = SpecialChars.NEW_LINE)
         }else{
             resultList.joinToString(separator = SpecialChars.EMPTY)
@@ -126,15 +122,10 @@ class PrettyRow<T: Any>(
     override fun renderOnHost(host: T, opts: CommonRowOptions?): String {
         return render(host, opts)
     }
-
-    fun render(
-        receiverList: List<T>,
-        opts: CommonRowOptions? = null,
-        optionsBuilder: (RowOptions.()-> Unit)? = null
-    ): String {
+    fun render(receiverList: List<T>, opts: CommonRowOptions? = null, optionsBuilder: (RowOptions.()-> Unit)? = null): String {
         val useOptions = PrettyHelper.toRowOptions(opts, options)
         optionsBuilder?.invoke(useOptions)
-        orientation = useOptions.orientation
+        options.orientation = useOptions.orientation
 
         val resultList =  receiverList.map { render(it, null) }
         return resultList.joinToString(separator = SpecialChars.NEW_LINE)
@@ -173,10 +164,29 @@ class PrettyRow<T: Any>(
         }
         return  resultList.joinToString(separator = SpecialChars.NEW_LINE)
     }
-
     fun renderAny(vararg values: Any, rowOptions: CommonRowOptions? = null): String{
         return render(values.toList(), rowOptions)
     }
+
+    /**
+     * Render overload for cells capable to render without input source i.e [StaticCell], [KeyedCell]
+     */
+    fun render(opt: CommonRowOptions? = null):String {
+        applyRenderOptions(opt)
+        val staticRenderers = cells.filterIsInstance<StaticRender>()
+        val separator = if (options.orientation == Orientation.Horizontal) {
+            SpecialChars.EMPTY
+        } else {
+            SpecialChars.NEW_LINE
+        }
+        return staticRenderers.joinToString(separator = separator) { it.render() }
+    }
+    fun renderPlain(orientation: Orientation = options.orientation):String {
+        options.usePlain = true
+        options.orientation = orientation
+        return render()
+    }
+
     fun applyOptions(opt: CommonRowOptions?): PrettyRow<T>{
         if(opt != null){
             options = when(opt){
@@ -186,7 +196,6 @@ class PrettyRow<T: Any>(
         }
         return this
     }
-
     fun setCells(newCells: List<PrettyCellBase>){
         if(newCells.isNotEmpty()){
             cellsBacking.clear()

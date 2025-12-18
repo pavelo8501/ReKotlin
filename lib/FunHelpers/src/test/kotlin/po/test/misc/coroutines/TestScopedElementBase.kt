@@ -18,7 +18,7 @@ import kotlin.test.assertNotNull
 
 class TestScopedElementBase {
 
-    class TestElement() : ScopedElementBase<TestElement>() {
+    class TestElement: ScopedElementBase<TestElement>() {
 
         override val identity: CTXIdentity<TestElement> = asIdentity()
 
@@ -30,7 +30,6 @@ class TestScopedElementBase {
         override val key: CoroutineContext.Key<TestElement> get() = Key
         companion object Key : CoroutineContext.Key<TestElement>
     }
-
 
     @Test
     fun `Coroutine  async launcher `() = runTest{

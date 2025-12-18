@@ -1,6 +1,6 @@
 package po.misc.data
 
-
+import po.misc.data.pretty_print.parts.RowID
 
 
 interface PrettyPrint: TextBuilder {
@@ -9,8 +9,8 @@ interface PrettyPrint: TextBuilder {
 
 interface PrettyFormatted {
 
-    fun formatted(renderOnly: List<Enum<*>>? = null): String
-    fun formatted(vararg renderOnly: Enum<*>): String = formatted(renderOnly.toList())
+    fun formatted(renderOnly: List<RowID>? = null): String
+    fun formatted(vararg renderOnly: RowID): String = formatted(renderOnly.toList())
 }
 
 

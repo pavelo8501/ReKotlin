@@ -10,12 +10,15 @@ import po.misc.data.pretty_print.rows.buildPrettyRow
 import po.misc.data.styles.Colour
 import po.misc.data.styles.TextStyle
 import po.misc.data.styles.colorize
+import po.misc.types.token.TypeToken
+import po.misc.types.token.tokenOf
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
+import po.test.misc.data.pretty_print.setup.PrettyTestBase.PrintableRecord
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
-class TestStaticCell : PrettyTestBase(), Templated{
+class TestStaticCell : PrettyTestBase(){
 
     private val text1 = "Text_1"
     private val text2 = "Text_2"
@@ -26,7 +29,7 @@ class TestStaticCell : PrettyTestBase(), Templated{
     fun `StaticCell string builder work as expected`(){
 
         val row = buildPrettyRow<PrintableRecord> {
-            buildCell{
+            build{
                 append(text1.colorize(Colour.Green))
                 append(" ",  additionalText)
             }
@@ -56,8 +59,8 @@ class TestStaticCell : PrettyTestBase(), Templated{
         val cell = StaticCell(text1)
         cell.applyOptions(CellPresets.Success)
         assertEquals(Align.LEFT, cell.cellOptions.alignment)
-        assertEquals(TextStyle.Bold, cell.cellOptions.styleOptions.style)
-        assertEquals(Colour.GreenBright, cell.cellOptions.styleOptions.colour)
+        assertEquals(TextStyle.Bold, cell.cellOptions.style.textStyle)
+        assertEquals(Colour.GreenBright, cell.cellOptions.style.colour)
     }
 
 }

@@ -1,8 +1,9 @@
 package po.misc.callbacks.validator
 
 import po.misc.functions.LambdaType
+import po.misc.functions.Suspended
 
-class ReactiveValidator<T: Any>(
+class ReactiveValidator<T>(
     val predicate: (T)-> Boolean
 ): ValidationProvider<T>{
 
@@ -21,7 +22,7 @@ class ReactiveValidator<T: Any>(
         return result
     }
 
-    override suspend fun validate(data: T, suspending: LambdaType.Suspended): Boolean{
+    override suspend fun validate(data: T, suspending: Suspended): Boolean{
         val result = predicate(data)
         if(result){
             onSuccessSuspending?.invoke(data)
@@ -34,14 +35,14 @@ class ReactiveValidator<T: Any>(
     fun onSuccess(block: (T)-> Unit){
         onSuccess = block
     }
-    fun onSuccess(suspending: LambdaType.Suspended, block:suspend (T)-> Unit){
+    fun onSuccess(suspending: Suspended, block:suspend (T)-> Unit){
         onSuccessSuspending = block
     }
 
     fun onFailure(block: (T)-> Unit){
         onFailure = block
     }
-    fun onFailure(suspending: LambdaType.Suspended, block:suspend (T)-> Unit){
+    fun onFailure(suspending: Suspended, block:suspend (T)-> Unit){
         onFailureSuspending = block
     }
 

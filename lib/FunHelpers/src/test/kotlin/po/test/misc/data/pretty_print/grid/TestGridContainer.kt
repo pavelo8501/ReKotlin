@@ -13,13 +13,13 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-class TestGridContainer : PrettyTestBase(), Templated {
+class TestGridContainer : PrettyTestBase(){
 
     @Test
     fun `GridContainer's grid builder work as expected`() {
         val grid = buildPrettyGrid<PrintableRecord> {
             buildRow {
-                addCell(PrintableRecord::name)
+                add(PrintableRecord::name)
             }
         }
         assertNotNull(grid.rows.firstOrNull()) { firstRow ->
@@ -37,7 +37,7 @@ class TestGridContainer : PrettyTestBase(), Templated {
     fun `GridContainer's with receiver grid builder work as expected`(){
         val grid = buildPrettyGrid(PrintableRecord::subClass){
             buildRow {
-                addCell(PrintableRecordSubClass::subName)
+                add(PrintableRecordSubClass::subName)
             }
         }
         assertNotNull(grid.rows.firstOrNull()){firstRow->
@@ -55,7 +55,7 @@ class TestGridContainer : PrettyTestBase(), Templated {
     fun `GridContainer's with receiver grid builder correctly work with lists`(){
         val grid = buildPrettyListGrid(PrintableRecord::elements){
             buildRow{
-                addCell(PrintableElement::elementName)
+                add(PrintableElement::elementName)
             }
         }
         assertTrue{ grid.listLoader.hasProperty }
@@ -65,10 +65,10 @@ class TestGridContainer : PrettyTestBase(), Templated {
     fun `GridContainer's build row correctly creates nested row with transition`(){
         val grid = buildPrettyGrid<PrintableRecord> {
             buildRow {
-                addCell(PrintableRecord::name)
+                add(PrintableRecord::name)
             }
             buildRow(PrintableRecord::subClass){
-                addCell(PrintableRecordSubClass::subName)
+                add(PrintableRecordSubClass::subName)
             }
         }
         assertNotNull(grid.rows.firstOrNull()) { firstRow ->
@@ -93,10 +93,10 @@ class TestGridContainer : PrettyTestBase(), Templated {
     fun `GridContainer's buildRowList correctly creates nested row with transition`(){
         val grid = buildPrettyGrid<PrintableRecord> {
             buildRow {
-                addCell(PrintableRecord::name)
+                add(PrintableRecord::name)
             }
             buildListRow(PrintableRecord::elements){
-                addCell(PrintableElement::elementName)
+                add(PrintableElement::elementName)
             }
         }
         assertNotNull(grid.rows.firstOrNull()) { firstRow ->

@@ -18,15 +18,19 @@ import po.misc.data.pretty_print.rows.createRowContainer
 import po.misc.types.token.TypeToken
 
 
+
 class TemplateGridContainer<T: Any, V: Any>(
-    hostType: TypeToken<T>,
-    type: TypeToken<V>,
+    override val hostType: TypeToken<T>,
+    override val type: TypeToken<V>,
     var options: RowOptionsEditor = RowOptions()
-): GridContainerBase<T, V>(hostType, type), TemplateBuilderScope<T, V>, RowOptionsEditor by options{
+): TemplateBuilderScope<T, V>, RowOptionsEditor by options{
 
     constructor(grid: PrettyGridBase<T, V>):this(grid.hostType, grid.type){
         initializeByGrid(grid)
     }
+
+
+    val source: GridValueContainer<T, V> = GridValueContainer(hostType, type)
 
     private var ownHostTypeInit:Boolean = true
     private val tempRows = mutableListOf<PrettyRow<V>>()
@@ -37,11 +41,11 @@ class TemplateGridContainer<T: Any, V: Any>(
         val result = mutableListOf<PrettyRow<V>>()
         val key = pluggedKey
         if (key != null) {
-            result.addAll(rows)
+            result.addAll(source.rows)
             result.addAll(key.order, tempRows)
         }else{
             result.addAll(tempRows)
-            result.addAll(rows)
+            result.addAll(source.rows)
         }
         return result
     }
@@ -50,7 +54,7 @@ class TemplateGridContainer<T: Any, V: Any>(
         val useOptions =  options.takeIf { options.edited }
         useOptions?.noEdit()
         @Suppress("DuplicatedCode")
-        val grid =  GridContainer.buildGridCopying(this, useOptions as RowOptions?){grid->
+        val grid =  GridContainer.buildGridCopying<T, V>(source, useOptions as RowOptions?){grid->
             val rowsToAdd = assembleRows()
             rowsToAdd.forEach {
                 grid.addRow(it)
@@ -63,7 +67,7 @@ class TemplateGridContainer<T: Any, V: Any>(
         val useOptions =  options.takeIf { options.edited }
         useOptions?.noEdit()
         @Suppress("DuplicatedCode")
-        val valueGrid =   GridValueContainer.buildGridCopying(this, useOptions as RowOptions?){grid->
+        val valueGrid =   GridValueContainer.buildGridCopying(source, useOptions as RowOptions?){grid->
             val rowsToAdd = assembleRows()
             rowsToAdd.forEach {
                 grid.addRow(it)
@@ -71,6 +75,8 @@ class TemplateGridContainer<T: Any, V: Any>(
         }
         return valueGrid
     }
+
+    override fun addRow(row: PrettyRow<V>): GridKey? = source.addRow(row)
 
 //    @PublishedApi
 //    internal fun buildValueGrid(builder: TemplateGridContainer<T, V>.()-> Unit): PrettyValueGrid<T, V> {
@@ -99,28 +105,28 @@ class TemplateGridContainer<T: Any, V: Any>(
 
     fun initializeByContainer(rowContainer: RowContainer<V>){
         ownHostTypeInit = rowContainer.hostType == hostType
-        if(rowContainer.options.useNoEdit){
+        if(rowContainer.options.sealed){
             options = rowContainer.options
         }
-        singleLoader.initValueFrom(rowContainer.singleLoader)
-        listLoader.initValueFrom(rowContainer.listLoader)
+        source.singleLoader.initValueFrom(rowContainer.singleLoader)
+        source.listLoader.initValueFrom(rowContainer.listLoader)
         tempRows.add(rowContainer.createRow())
     }
 
     fun initializeByGrid(grid: PrettyGridBase<*, V>){
         ownHostTypeInit = grid.hostType == hostType
-        if(grid.options.useNoEdit){
+        if(grid.options.sealed){
             options = grid.options
         }
-        singleLoader.initValueFrom(grid.singleLoader)
-        listLoader.initValueFrom(grid.listLoader)
+        source.singleLoader.initValueFrom(grid.singleLoader)
+        source.listLoader.initValueFrom(grid.listLoader)
         val ownRows = grid.rows.map { it.copyRow(type) }
         tempRows.addAll(ownRows)
     }
 
     override fun renderHere(){
         if(pluggedKey == null){
-            val insertToIndex = rows.lastIndex + 1
+            val insertToIndex = source.rows.lastIndex + 1
             pluggedKey =  GridKey(insertToIndex, GridSource.Renderable)
         }
     }

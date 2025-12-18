@@ -4,26 +4,30 @@ import po.misc.counters.JournalBase
 import po.misc.data.PrettyPrint
 import po.misc.data.pretty_print.Templated
 import po.misc.data.pretty_print.formatters.text_modifiers.ColorModifier
-import po.misc.data.pretty_print.parts.KeyedOptions
+import po.misc.data.pretty_print.parts.Options
 
 import po.misc.data.styles.Colour
 import po.misc.time.TimeHelper
+import po.misc.types.token.tokenOf
 import java.time.Instant
+import kotlin.reflect.typeOf
 
 data class AccessRecord <E: Enum<E>>(
     override val message: String,
     val journal : JournalBase<E>,
-): JournalEntry<E>, PrettyPrint, TimeHelper, Templated {
+): JournalEntry<E>, PrettyPrint, TimeHelper, Templated<AccessRecord<*>> {
+
+    override val valueType = tokenOf<AccessRecord<*>>()
 
     val hostName : String get() =  journal.hostInstanceInfo.instanceName
 
     val accessTime: Instant = Instant.now()
     val formatedTime: String = accessTime.toLocalTime()
 
-
     private var recordSuccess: Boolean = false
 
-    private val noKeyOption = KeyedOptions(showKey = false)
+    private val noKeyOption = Options(renderKey = false)
+
     private val success = ColorModifier.ColourCondition("Success", Colour.GreenBright)
     private val failure = ColorModifier.ColourCondition("Failure", Colour.RedBright)
     private val dynamicCondition = ColorModifier {
@@ -49,7 +53,6 @@ data class AccessRecord <E: Enum<E>>(
 
     var active: Boolean = true
         private set
-
 
     fun changeRecordType(type: E): AccessRecord<E>{
         entryType = type

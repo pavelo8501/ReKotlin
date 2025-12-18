@@ -6,7 +6,6 @@ pluginManagement {
         id("org.gradle.toolchains.foojay-resolver-convention") version(
             providers.gradleProperty("fooJayResolverVersion")
         )
-      //  id("io.gitlab.arturbosch.detekt") version(providers.gradleProperty("detektVersion").get())
         kotlin("plugin.serialization")  version(providers.gradleProperty("kotlinVersion").get()) apply false
         kotlin("jvm") version (providers.gradleProperty("kotlinVersion").get()) apply false
     }
@@ -74,5 +73,3 @@ project(":lib:FunHelpers").also {
 }
 
 include("MedTest")
-//include("lib:AuthCore")
-//findProject(":lib:AuthCore")?.name = "AuthCore"

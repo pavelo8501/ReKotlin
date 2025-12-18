@@ -2,6 +2,7 @@ package po.misc.io
 
 import po.misc.functions.LambdaType
 import po.misc.functions.Nullable
+import po.misc.functions.Suspended
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
 
@@ -55,7 +56,7 @@ inline fun <reified R: Any?> captureOutput(
 
 
 suspend inline fun <reified R : Any> captureOutput(
-    suspend: LambdaType.Suspended,
+    suspend: Suspended,
     crossinline  captureLambda: suspend () -> R
 ): OutputResult<R> {
     val originalOut = System.out

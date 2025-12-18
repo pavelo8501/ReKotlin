@@ -15,8 +15,8 @@ class TestPrettyRowBuilder : PrettyTestBase() {
     @Test
     fun `Row container's grid builder correctly creates cells `() {
         val row = buildPrettyRow<PrintableRecord> {
-            addCell(headerText)
-            addCells(PrintableRecord::name, PrintableRecord::description)
+            add(headerText)
+            addAll(PrintableRecord::name, PrintableRecord::description)
         }
         assertEquals(3, row.cells.size)
     }
@@ -24,8 +24,8 @@ class TestPrettyRowBuilder : PrettyTestBase() {
     @Test
     fun `buildPrettyRow correctly creates multiple cells`() {
         val row = buildPrettyRow<PrintableRecordSubClass>{
-            addCell(headerText)
-            addCells(PrintableRecordSubClass::subName, PrintableRecordSubClass::subComponent)
+            add(headerText)
+            addAll(PrintableRecordSubClass::subName, PrintableRecordSubClass::subComponent)
         }
         assertEquals(3, row.cells.size)
         assertIs<StaticCell>(row.cells.first())

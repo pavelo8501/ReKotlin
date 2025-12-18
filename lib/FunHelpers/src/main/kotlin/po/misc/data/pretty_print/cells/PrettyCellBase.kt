@@ -13,26 +13,32 @@ import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.parts.PrettyBorders
 import po.misc.data.pretty_print.parts.PrettyHelper
 import po.misc.data.pretty_print.PrettyRow
+import po.misc.data.pretty_print.formatters.TextFormatter
+import po.misc.data.pretty_print.formatters.text_modifiers.CellFormatter
+import po.misc.data.pretty_print.formatters.text_modifiers.CellStyler
+import po.misc.data.pretty_print.formatters.text_modifiers.ColourCondition
+import po.misc.data.pretty_print.parts.Options
 import po.misc.data.strings.FormattedPair
 import po.misc.data.styles.TextStyler
 
-
 sealed class PrettyCellBase(
-    var cellOptions : CellOptions,
+    var cellOptions: Options,
 ){
 
     open var row: PrettyRow<*>? = null
-
     private val cellsCount: Int get() = row?.size?:1
-
     var index: Int = 0
         internal set
 
-    val orientation: Orientation get() = row?.orientation?: Orientation.Horizontal
-    var postfix: String? = null
+    val orientation: Orientation get() = row?.options?.orientation?: Orientation.Horizontal
+    val plainText: Boolean get() = row?.options?.plainText?: cellOptions.plainText
 
+    var postfix: String? = null
     val staticModifiers: StaticModifiers = StaticModifiers()
     val borders: PrettyBorders = PrettyBorders('|', '|')
+    val styler : CellStyler = CellStyler(this)
+    val cellFormatter: CellFormatter = CellFormatter(this)
+    val textFormatter2: TextFormatter = TextFormatter(styler, cellFormatter)
 
     val textFormatter: DynamicTextFormatter = DynamicTextFormatter{ text, cell, ->
         if(postfix != null){
@@ -42,9 +48,9 @@ sealed class PrettyCellBase(
         }
     }
     val dynamicTextStyler: DynamicTextStyler = DynamicTextStyler{ text, cell, ->
-        val useStyle = cellOptions.styleOptions.style
-        val useColour = cellOptions.styleOptions.colour
-        val useBackgroundColour = cellOptions.styleOptions.backgroundColour
+        val useStyle = cellOptions.style.textStyle
+        val useColour = cellOptions.style.colour
+        val useBackgroundColour = cellOptions.style.backgroundColour
         TextStyler.style(text, applyColourIfExists = false, useStyle, useColour, useBackgroundColour)
     }
     val compositeFormatter: CompositeFormatter = CompositeFormatter(textFormatter, dynamicTextStyler)
@@ -59,17 +65,12 @@ sealed class PrettyCellBase(
             return cellWidth
         }
         return  when {
-            align == Align.CENTER ->{
-                cellAverageWidth
-            }
-            align != Align.CENTER  ->{
-                0
-            }
-            else ->  {
-                0
-            }
+            align == Align.CENTER -> cellAverageWidth
+            align != Align.CENTER -> 0
+            else -> 0
         }
     }
+
     protected fun justifyText(text: String, renderOptions: CellOptions): String {
         val useWidth = calculateEffectiveWidth(renderOptions)
         val useAlignment = cellOptions.alignment
@@ -88,7 +89,7 @@ sealed class PrettyCellBase(
                     fillerString.repeat(left) + text + fillerString.repeat(right)
                 }
             }
-            borders.render(aligned, this, cellsCount)
+            borders.render(aligned, this)
         }
     }
 
@@ -97,9 +98,10 @@ sealed class PrettyCellBase(
         return this
     }
 
-    open fun applyOptions(opt: CommonCellOptions?): PrettyCellBase{
-        opt?.let {
-            cellOptions = PrettyHelper.toOptions(it)
+    open fun applyOptions(commonOpt: CommonCellOptions?): PrettyCellBase{
+        val options = PrettyHelper.toOptionsOrNull(commonOpt)
+        if(options != null){
+            cellOptions = options
         }
         return this
     }
@@ -147,16 +149,17 @@ sealed class PrettyCellBase(
      * @param builder DSL block used to configure the dynamic colour modifier.
      * @return this cell for fluent chaining.
      */
-    fun colourConditions(builder: DynamicColourModifier.()-> Unit):PrettyCellBase{
-        val dynamicColourModifier = DynamicColourModifier()
+    fun colourConditions(builder: DynamicColourModifier<String>.()-> Unit):PrettyCellBase{
+        val dynamicColourModifier = DynamicColourModifier<String>()
         dynamicColourModifier.builder()
         staticModifiers.addModifier(dynamicColourModifier)
+        textFormatter2.addFormatter(dynamicColourModifier)
         return this
     }
 
     /**
      * Adds a [DynamicColourModifier] created from one or more pre-built
-     * [DynamicColourModifier.DynamicColourCondition] objects.
+     * [ColourCondition] objects.
      *
      * This overload is useful when conditions are constructed elsewhere and reused:
      *
@@ -168,21 +171,20 @@ sealed class PrettyCellBase(
      * ```
      * @param conditions the dynamic colour conditions to attach
      */
-    fun colourConditions(vararg  conditions : DynamicColourModifier.DynamicColourCondition){
+    fun colourConditions(vararg  conditions : ColourCondition<String>){
         val dynamicColourModifier = DynamicColourModifier(*conditions)
         staticModifiers.addModifier(dynamicColourModifier)
     }
 
     open fun render(content: String, commonOptions: CommonCellOptions? = null): String {
-        applyOptions(commonOptions)
+        applyOptions(PrettyHelper.toOptionsOrNull(commonOptions))
         val modified =  staticModifiers.modify(content)
         val formatted =  compositeFormatter.format(modified, this)
         val final = justifyText(formatted,  cellOptions)
         return final
     }
     open fun render(formatted: FormattedPair, commonOptions: CommonCellOptions?): String {
-        applyOptions(commonOptions)
-
+        applyOptions(PrettyHelper.toOptionsOrNull(commonOptions))
         val usePlain = true
         val options = PrettyHelper.toOptions(commonOptions, PrettyHelper.toOptions(cellOptions))
         val usedText = if(usePlain){ formatted.text } else { formatted.formatedText }
@@ -192,7 +194,5 @@ sealed class PrettyCellBase(
         return final
     }
 
-    companion object {
-
-    }
+    companion object
 }

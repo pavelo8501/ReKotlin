@@ -1,44 +1,36 @@
 package po.misc.debugging.models
 
 import po.misc.data.PrettyPrint
+import po.misc.data.pretty_print.PrettyRow
+import po.misc.data.pretty_print.parts.Orientation
+import po.misc.data.pretty_print.parts.RowOptions
+import po.misc.data.pretty_print.parts.RowPresets
+import po.misc.data.pretty_print.rows.buildPrettyRow
 import po.misc.debugging.stack_tracer.ExceptionTrace
 import po.misc.debugging.stack_tracer.StackFrameMeta
 import po.misc.time.TimeHelper
 
 
 class InstanceInfo(
-    name: String,
-    val instanceHash: Int,
+    val instanceName: String,
+    val hash: Int,
     val classInfo: ClassInfo,
-): PrettyPrint, TimeHelper {
+): PrettyPrint{
 
-
-    val className: String get() = classInfo.simpleName
-    val instanceName: String = "$name # $instanceHash"
-
-    internal  val traces = mutableListOf<ExceptionTrace>()
-    override val formattedString: String get() = buildString {
-       if(traces.isEmpty()){
-           append("${classInfo.formattedString} # $instanceHash")
-       }else{
-           appendLine("${classInfo.formattedString} # $instanceHash")
-            val traceStr =  traces.joinToString {
-               val time = it.created.toLocalTime()
-               appendLine("Stack Trace @ $time")
-               it.bestPick.formattedString
-           }
-           append(traceStr)
-       }
+    val className: String = classInfo.simpleName
+    override val formattedString: String get(){
+        return template.render(this)
     }
+    override fun toString(): String = template.render(this, RowPresets.VerticalPlain)
 
-    val latestFrameMeta: StackFrameMeta? get() =  traces.lastOrNull()?.bestPick
+    companion object{
 
-    fun addTraceInfo(trace : ExceptionTrace): InstanceInfo{
-        traces.add(trace)
-        return this
+        val template: PrettyRow<InstanceInfo> = buildPrettyRow(Orientation.Vertical){
+            add(InstanceInfo::instanceName)
+            add(InstanceInfo::className)
+            add(InstanceInfo::hash)
+        }
     }
-
-    override fun toString(): String = instanceName
 
 }
 

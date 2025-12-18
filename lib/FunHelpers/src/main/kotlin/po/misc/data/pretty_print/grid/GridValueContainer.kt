@@ -95,7 +95,6 @@ class GridValueContainer<T: Any, V: Any>(
         addRow(row)
     }
 
-
     fun initializeByGrid(property: KProperty1<T, V>, grid: PrettyGrid<V>): PrettyValueGrid<T, V> {
         val valueGrid = createValueGrid()
         valueGrid.singleLoader.setProperty(property)

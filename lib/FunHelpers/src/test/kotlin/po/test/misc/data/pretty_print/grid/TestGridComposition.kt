@@ -16,25 +16,25 @@ class TestGridComposition : PrettyTestBase(){
 
     private val subGrid = buildPrettyGrid(PrintableRecord::subClass){
         buildRow {
-            addCell(PrintableRecordSubClass::subName)
+            add(PrintableRecordSubClass::subName)
         }
     }
     private val elementsGrid = buildPrettyListGrid(PrintableRecord::elements){
         buildRow {
-            addCell(PrintableElement::elementName)
+            add(PrintableElement::elementName)
         }
     }
     private val elementGrid = buildPrettyGrid<PrintableElement>{
         buildRow {
-            addCell(headerText)
+            add(headerText)
         }
         buildRow {
-            addCell(PrintableElement::elementName)
+            add(PrintableElement::elementName)
         }
     }
     private val subClassGrid = buildPrettyGrid<PrintableRecordSubClass>{
         buildRow {
-            addCell(PrintableRecordSubClass::subName)
+            add(PrintableRecordSubClass::subName)
         }
     }
 
@@ -42,10 +42,10 @@ class TestGridComposition : PrettyTestBase(){
     fun `Grid accepts another  PrettyValueGrid as template if transition property provided`(){
         val grid = buildPrettyGrid<PrintableRecord> {
             buildRow {
-                addCell(PrintableRecord::name)
+                add(PrintableRecord::name)
             }
             useTemplate(subGrid, PrintableRecord::subClass)
-            useListTemplate(elementsGrid, PrintableRecord::elements)
+            useTemplate(elementsGrid, PrintableRecord::elements)
         }
 
         assertNotNull(grid.renderBlocks.firstOrNull()) { renderBlock ->
@@ -77,7 +77,7 @@ class TestGridComposition : PrettyTestBase(){
     @Test
     fun `Grid as list style template`(){
         val grid = buildPrettyGrid<PrintableRecord> {
-            useListTemplate(elementGrid, PrintableRecord::elements)
+            useTemplate(elementGrid, PrintableRecord::elements)
         }
         assertNotNull(grid.renderBlocks.firstOrNull()) { renderBlock ->
             assertIs<PrettyValueGrid<PrintableRecord, PrintableElement>>(renderBlock)

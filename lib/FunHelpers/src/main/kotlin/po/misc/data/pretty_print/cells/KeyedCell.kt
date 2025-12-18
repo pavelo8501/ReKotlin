@@ -1,43 +1,49 @@
 package po.misc.data.pretty_print.cells
 
 import po.misc.data.pretty_print.parts.CommonCellOptions
-import po.misc.data.pretty_print.parts.KeyedOptions
 import po.misc.data.pretty_print.parts.PrettyHelper
-import po.misc.data.pretty_print.parts.KeyedPresets
-import po.misc.data.pretty_print.parts.TextStyleOptions
-import po.misc.data.pretty_print.PrettyRow
+import po.misc.data.pretty_print.parts.CellPresets
+import po.misc.data.pretty_print.parts.Options
+import po.misc.data.pretty_print.parts.Style
 import po.misc.data.strings.FormattedPair
 import po.misc.data.strings.appendParam
+import po.misc.data.strings.stringify
+import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.TextStyler
 import po.misc.reflection.displayName
 import po.misc.types.token.TypeToken
+import kotlin.reflect.KProperty0
 import kotlin.reflect.KProperty1
 
 
 class KeyedCell<T: Any>(
     override val typeToken: TypeToken<T>,
-    val cellName: String,
-    row: PrettyRow<T>? = null
-): PrettyCellBase(KeyedOptions(KeyedPresets.Property)), ReceiverAwareCell<T> {
+    options: Options? = null,
+): PrettyCellBase(options?:propertyOption), ReceiverAwareCell<T>, StaticRender {
 
     constructor(
         typeToken: TypeToken<T>,
-        kProperty: KProperty1<T, Any>,
-        row: PrettyRow<T>? = null
-    ) : this(typeToken, kProperty.displayName, row) {
+        kProperty: KProperty1<T, Any?>,
+        options: Options? = null
+    ) : this(typeToken, options) {
         property = kProperty
+        keyText =  kProperty.displayName
     }
 
-    var property: KProperty1<T, Any>? = null
+    val plainKey: Boolean get() = row?.options?.plainKey?: cellOptions.plainKey
+    val valueStyle: Style get() = cellOptions.style
+    val keyStyle: Style get() = cellOptions.keyStyle
 
-    var keyedOptions: KeyedOptions
-        get() = cellOptions as KeyedOptions
-        set(value) {
-          cellOptions = value
-        }
+    var keyText: String = ""
+        internal set
 
-    val valueStyle: TextStyleOptions get() = keyedOptions.styleOptions
-    val keyStyle: TextStyleOptions get() = keyedOptions.keyStyleOptions
+    private var useOwnSource:Boolean = false
+
+    var property0: KProperty0<*>? = null
+        internal set
+    var property: KProperty1<T, Any?>? = null
+
+
 
     init {
         textFormatter.formatter = { text, _ ->
@@ -45,33 +51,59 @@ class KeyedCell<T: Any>(
         }
         dynamicTextStyler.formatter = { text, _, ->
             var keyText = ""
-            if(keyedOptions.showKey){
-                keyText = colorizeKey()
+            if(cellOptions.renderKey){
+                keyText = styleKey()
             }
-            val useStyle = keyedOptions.styleOptions.style
-            val useColour = keyedOptions.styleOptions.colour
-            val useBackgroundColour = keyedOptions.styleOptions.backgroundColour
+            val useStyle = valueStyle.textStyle
+            val useColour = valueStyle.colour
+            val useBackgroundColour = valueStyle.backgroundColour
             val valueStyle = TextStyler.style(text, applyColourIfExists = false, useStyle, useColour, useBackgroundColour)
             "$keyText $valueStyle"
         }
     }
 
-    private fun colorizeKey(): String {
-        val useStyle = keyedOptions.keyStyleOptions.style
-        val useColour = keyedOptions.keyStyleOptions.colour
-        val useBackgroundColour = keyedOptions.keyStyleOptions.backgroundColour
-        return TextStyler.style(cellName, useStyle, useColour, useBackgroundColour)
+    private fun styleKey(): String {
+        if(!cellOptions.renderKey){
+            return ""
+        }
+        val useForKey = cellOptions.useForKey
+        val textToUse = useForKey ?: "$keyText :"
+        if(!cellOptions.plainKey){
+            return styler.modify(textToUse, cellOptions.keyStyle)
+        }
+        return textToUse
     }
 
-    override fun applyOptions(opt: CommonCellOptions?): KeyedCell<T>{
-        opt?.let {
-            keyedOptions = PrettyHelper.toKeyedOptions(it)
+    fun setSource(property: KProperty0<*>):KeyedCell<T> {
+        property0 = property
+        keyText = property.displayName
+        useOwnSource = true
+        return this
+    }
+
+    override fun applyOptions(commonOpt: CommonCellOptions?): KeyedCell<T>{
+        val options = PrettyHelper.toOptionsOrNull(commonOpt)
+        if(options != null){
+            cellOptions = options
         }
         return this
     }
 
+    override fun render(): String{
+        val keyText = styleKey()
+        val valueText = if(plainText){
+            property0?.get()?.toString() ?: SpecialChars.EMPTY
+        }else{
+           val formated = property0?.get().stringify().formatedText
+           styler.modify(formated)
+        }
+        val kevValueText = "$keyText $valueText"
+        val final = justifyText(kevValueText,  cellOptions)
+        return final
+    }
+
     override fun render(formatted: FormattedPair, commonOptions: CommonCellOptions?): String{
-        val options = PrettyHelper.toKeyedOptions(commonOptions, keyedOptions)
+        val options = PrettyHelper.toOptions(commonOptions, cellOptions)
         val usedText = formatted.formatedText
         val modified = staticModifiers.modify(usedText)
         val formatted = compositeFormatter.format(modified, this)
@@ -79,33 +111,48 @@ class KeyedCell<T: Any>(
         return final
     }
     override fun render(content: String, commonOptions: CommonCellOptions?): String {
-        val options = PrettyHelper.toKeyedOptions(commonOptions, keyedOptions)
+        val options = PrettyHelper.toOptions(commonOptions, cellOptions)
         val modified = staticModifiers.modify(content)
         val formatted = compositeFormatter.format(modified, this)
         val final = justifyText(formatted,  options)
         return final
     }
+
     override fun render(receiver: T, commonOptions: CommonCellOptions?): String {
-        val usePlain = keyedOptions.usePlain
-        val text = property?.get(receiver).toString()
-        val modified =  if(usePlain){
-            text
-        }else{
-           val byStatic = staticModifiers.modify(text)
-           compositeFormatter.format(byStatic, this)
+        val keyText = styleKey()
+        val valueText = if (plainText) {
+            property?.get(receiver).toString()
+        } else {
+            if(cellOptions.useSourceFormatting){
+                property?.get(receiver).stringify().formatedText
+            }else{
+                textFormatter2.style(property?.get(receiver).stringify().text)
+            }
         }
-        val final = justifyText(modified,  keyedOptions)
+        val text = if (cellOptions.renderKey) {
+            "$keyText $valueText"
+        } else {
+            valueText
+        }
+        val final = justifyText(text, cellOptions)
         return final
     }
 
     override fun toString(): String =
          buildString {
             append("KeyedCell<${typeToken.simpleName}>")
-            appendParam("Id", keyedOptions.id)
-            appendParam("Width", keyedOptions.width)
-            append(::cellName)
+            appendParam("Id", cellOptions.id)
+            appendParam("Width", cellOptions.width)
+            append(::keyText)
         }
 
-    companion object
+    companion object{
+
+        private val propertyOption = Options(CellPresets.Property)
+
+        private val propertyNoKey: Options = Options(CellPresets.Property).also {
+            it.renderKey = false
+        }
+    }
 
 }

@@ -1,17 +1,13 @@
 package po.test.misc.registries
 
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertAll
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
-import po.misc.interfaces.ValueBased
-import po.misc.registries.callback.TypedCallbackRegistry
-import kotlin.test.assertEquals
+import po.misc.data.NameValue
 
 class TestCallbackRegistry {
 
-    enum class CallbackType(override val value: Int) :  ValueBased{
+    enum class CallbackType(override val value: Int) : NameValue{
         ON_START(1),
         ON_FINISH(2);
     }

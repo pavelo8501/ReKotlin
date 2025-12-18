@@ -4,12 +4,15 @@ import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.cells.ComputedCell
 import po.misc.data.pretty_print.cells.KeyedCell
 import po.misc.data.pretty_print.cells.PrettyCell
+import po.misc.data.pretty_print.parts.CellPresets
 import po.misc.data.pretty_print.parts.CommonCellOptions
-import po.misc.data.pretty_print.parts.PrettyDSL
+import po.misc.data.pretty_print.parts.Options
 import po.misc.data.pretty_print.parts.PrettyHelper
 import po.misc.data.pretty_print.parts.RowOptions
+import po.misc.data.strings.appendGroup
 import po.misc.types.token.TypeToken
 import po.misc.types.token.tokenOf
+import kotlin.reflect.KProperty0
 import kotlin.reflect.KProperty1
 
 
@@ -33,26 +36,15 @@ class RowContainer<T: Any>(
         return  createRow()
     }
 
-    fun addCell(
-        property: KProperty1<T, Any>,
-        opt: CommonCellOptions? = null,
+    fun addKeyless(
+        prop: KProperty1<T, Any>,
+        commonOpt: CommonCellOptions? = null
     ): KeyedCell<T>{
-        val cellOptions = PrettyHelper.toKeyedOptionsOrNull(opt)
-        val cell = KeyedCell(type, property).applyOptions(cellOptions)
+        val cellOptions =  Options(CellPresets.KeylessProperty)
+        cellOptions.applyChanges(options.cellOptions)
+        cellOptions.applyChanges(PrettyHelper.toOptionsOrNull(commonOpt))
+        val cell = KeyedCell(type, prop, cellOptions)
         return storeCell(cell)
-    }
-
-    inline fun <reified V : Any> addCell(
-        property: KProperty1<T, V>,
-        opt: CommonCellOptions? = null,
-        noinline action: ComputedCell<T, V>.(V) -> Any,
-    ): ComputedCell<T, V> {
-        val options = PrettyHelper.toOptionsOrNull(opt)
-        val valueToken = tokenOf<V>()
-        val computedCell = ComputedCell(type, valueToken, property, action)
-
-        computedCell.applyOptions(options)
-        return storeCell(computedCell)
     }
 
     fun addCell(opt: CommonCellOptions? = null): PrettyCell {
@@ -60,6 +52,18 @@ class RowContainer<T: Any>(
         val cell = PrettyCell().applyOptions(options)
         return storeCell(cell)
     }
+
+    fun addCells(vararg property: KProperty0<*>):List<KeyedCell<T>> {
+        val cells = property.map { storeCell( KeyedCell(type).setSource(it) ) }
+        return cells
+    }
+
+    override fun toString(): String {
+       return buildString {
+            appendGroup("RowContainer[", "]", ::rowId)
+        }
+    }
+
 
     companion object
 }

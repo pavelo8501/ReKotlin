@@ -12,6 +12,7 @@ interface Formatter{
     fun format(text: String, cell: PrettyCellBase): String
 }
 
+
 class CompositeFormatter(vararg formatter : Formatter){
 
   private val formatters = mutableMapOf<String, Formatter>()
@@ -36,7 +37,6 @@ class DynamicTextFormatter(
 ): Formatter, TextStyler {
 
     override val formatterName: String = "DynamicTextFormatter"
-
     override var formatter: (String, PrettyCellBase) -> String = { text, cell ->
         if(cell.postfix != null){
             "$text ${cell.postfix}"
@@ -62,9 +62,9 @@ class DynamicTextStyler(
     override val formatterName: String = "DynamicTextStyler"
 
     override var formatter: (String, PrettyCellBase) -> String = { text, cell->
-        val useTextStyle = cell.cellOptions.styleOptions.style
-        val useColour: Colour? = cell.cellOptions.styleOptions.colour
-        val useBackgroundColour: BGColour? =  cell.cellOptions.styleOptions.backgroundColour
+        val useTextStyle = cell.cellOptions.style.textStyle
+        val useColour: Colour? = cell.cellOptions.style.colour
+        val useBackgroundColour: BGColour? =  cell.cellOptions.style.backgroundColour
         TextStyler.style(text, useTextStyle, useColour, useBackgroundColour)
     }
 

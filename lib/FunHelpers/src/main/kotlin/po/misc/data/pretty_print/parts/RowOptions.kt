@@ -7,90 +7,103 @@ enum class Orientation{ Horizontal, Vertical }
 
 sealed interface CommonRowOptions: PrettyOptions{
     val orientation : Orientation
+    val renderBorders: Boolean
     val cellOptions: CommonCellOptions?
-
     fun asRowOptions():RowOptions
 }
 
 interface RowOptionsEditor{
     val edited: Boolean
     var orientation: Orientation
-    fun useId(rowId: Enum<*>?):RowOptions
-    fun exclude(vararg excludeId: Enum<*>, includeUnnamed: Boolean = true): RowOptions
-    fun renderOnly(vararg renderOnlyId: Enum<*>, includeUnnamed: Boolean = true): RowOptions
+    fun useId(rowId: RowID?):RowOptions
+    fun exclude(vararg excludeId:RowID, includeUnnamed: Boolean = true): RowOptions
+    fun renderOnly(vararg renderOnlyId: RowID, includeUnnamed: Boolean = true): RowOptions
     fun noEdit(noEdit: Boolean = true):RowOptions
 }
 
 
-class RowOptions(
-
-): CommonRowOptions, RowOptionsEditor {
+class RowOptions(): CommonRowOptions, RowOptionsEditor {
 
     constructor(orientation : Orientation):this(){
         this.orientation = orientation
     }
-    constructor(rowId: Enum<*>):this(){
+    constructor(rowId: RowID):this(){
         this.rowId = rowId
     }
-    constructor(id: Enum<*>, orientation: Orientation? = null):this(){
+    constructor(id: RowID, orientation: Orientation? = null):this(){
         this.rowId = id
         orientation?.let {
             this.orientation = it
         }
     }
-    constructor(orientation: Orientation, id: Enum<*>? = null):this(){
+    constructor(orientation: Orientation, id: RowID? = null):this(){
         this.orientation = orientation
         useId(id)
     }
-    constructor(
-        id: Enum<*>,
-        opts: CellOptions,
-        orientation: Orientation? = null
-    ) : this() {
+    constructor(id: RowID, opts: CellOptions, orientation: Orientation? = null) : this() {
         rowId = id
         orientation?.let {
             this.orientation = it
         }
-        cellOptions = opts
+        cellOptions =  PrettyHelper.toOptions(opts)
     }
+
+    constructor(rowPreset: RowPresets) : this() {
+        orientation =  rowPreset.orientation
+        renderBorders = rowPreset.renderBorders
+        cellOptions = PrettyHelper.toOptions(rowPreset.cellOptions)
+    }
+
 
     override var orientation: Orientation = Orientation.Horizontal
         set(value) {
-            field = value
             edited = true
+            field = value
         }
 
-    var rowId: Enum<*>? = null
+    var rowId: RowID? = null
         internal set
 
-    var renderOnlyList: List<Enum<*>> = listOf()
+    var renderOnlyList: List<RowID> = listOf()
         internal set
-    var excludeFromRenderList: List<Enum<*>> = listOf()
+    var excludeFromRenderList: List<RowID> = listOf()
         internal set
 
     var renderUnnamed: Boolean = true
         internal set
 
-    var usePlain: Boolean = false
+    var plainKey: Boolean = false
         internal set
+
+    var plainText: Boolean = false
+        internal set
+
+    var usePlain: Boolean = false
+        set(value) {
+            plainKey = value
+            plainText = value
+            field = value
+        }
+
     var render: RenderDefaults = Console220
         internal set
 
-    var useNoEdit: Boolean = false
+    var sealed: Boolean = false
         internal set
 
     override var edited: Boolean = false
         internal set
 
-    override var cellOptions: CellOptions? = null
+    override var renderBorders: Boolean = true
 
+    override var cellOptions: Options? = null
 
     override fun noEdit(noEdit: Boolean):RowOptions{
-        useNoEdit = noEdit
+        sealed = noEdit
         return this
     }
 
-    override fun useId(rowId: Enum<*>?):RowOptions{
+    override fun useId(rowId: RowID?):RowOptions{
         if(rowId != null){
             this.rowId = rowId
             edited = true
@@ -100,42 +113,44 @@ class RowOptions(
 
     fun applyCellOptions(options : CellOptions?): RowOptions{
         if(options != null){
-            cellOptions = options
+            cellOptions = PrettyHelper.toOptions(options)
         }
         return this
     }
 
-    fun exclude(list: List<Enum<*>>?, includeUnnamed: Boolean = true): RowOptions {
+    fun exclude(list: List<RowID>?, includeUnnamed: Boolean = true): RowOptions {
         excludeFromRenderList = list ?: emptyList()
         renderUnnamed = includeUnnamed
         renderOnlyList = emptyList()
         edited = true
-        useNoEdit = true
+        sealed = true
         return this
     }
 
-    override fun exclude(vararg excludeId: Enum<*>, includeUnnamed: Boolean): RowOptions =
+    override fun exclude(vararg excludeId: RowID, includeUnnamed: Boolean): RowOptions =
         exclude(excludeId.toList(), includeUnnamed)
 
-    fun renderOnly(list: List<Enum<*>>?, includeUnnamed: Boolean = true): RowOptions {
+    fun renderOnly(list: List<RowID>?, includeUnnamed: Boolean = true): RowOptions {
         renderOnlyList = list ?: emptyList()
         renderUnnamed = includeUnnamed
         excludeFromRenderList = emptyList()
         edited = true
-        useNoEdit = true
+        sealed = true
         return this
     }
 
-    override fun renderOnly(vararg renderOnlyId: Enum<*>, includeUnnamed: Boolean): RowOptions =
-        renderOnly(renderOnlyId.toList(), includeUnnamed)
+    override fun renderOnly(
+        vararg renderOnlyId: RowID,
+        includeUnnamed: Boolean
+    ): RowOptions = renderOnly(renderOnlyId.toList(), includeUnnamed)
 
-    override fun asOptions(): Options = Options(this)
+    override fun asOptions(width: Int): Options = Options(this)
 
     override fun asRowOptions(): RowOptions = this
 
-    fun copy(noEdit: Boolean = false): RowOptions {
+    private fun copyKeyed():RowOptions{
         return RowOptions().also {
-            it.useNoEdit = noEdit
+            it.sealed = sealed
             it.rowId = rowId
             it.orientation = orientation
             it.renderOnlyList = renderOnlyList
@@ -143,35 +158,47 @@ class RowOptions(
             it.renderUnnamed = renderUnnamed
             it.usePlain = usePlain
             it.render = render
+            it.renderBorders = renderBorders
         }
     }
 
-    fun copy(orientation: Orientation, noEdit: Boolean? = null): RowOptions {
-        return RowOptions(orientation).also {
-            it.useNoEdit = noEdit?: useNoEdit
-            it.rowId = rowId
-            it.renderOnlyList = renderOnlyList
-            it.excludeFromRenderList = excludeFromRenderList
-            it.renderUnnamed = renderUnnamed
-            it.usePlain = usePlain
-            it.render = render
-        }
+    fun copy(noEdit: Boolean = false): RowOptions {
+        val opt = copyKeyed()
+        opt.sealed = noEdit
+        return opt
+    }
+    fun copy(rowOrientation: Orientation, noEdit: Boolean = sealed): RowOptions {
+        val opt = copyKeyed()
+        opt.orientation = rowOrientation
+        opt.sealed = noEdit
+        return opt
+    }
+    fun copy(rowId: RowID, rowOrientation: Orientation = orientation,  noEdit: Boolean = sealed): RowOptions {
+        val opt = copyKeyed()
+        opt.rowId = rowId
+        opt.orientation = rowOrientation
+        opt.sealed = noEdit
+        return opt
     }
 
-    fun copy(rowId: Enum<*>, orientation: Orientation? = null,  noEdit: Boolean? = null): RowOptions {
-        return RowOptions(rowId, orientation).also {
-            it.useNoEdit =  noEdit?: useNoEdit
-            it.renderOnlyList = renderOnlyList
-            it.excludeFromRenderList = excludeFromRenderList
-            it.renderUnnamed = renderUnnamed
-            it.usePlain = usePlain
-            it.render = render
+    fun applyChanges(other: RowOptions){
+        rowId = other.rowId
+        cellOptions = other.cellOptions
+        renderUnnamed = other.renderUnnamed
+        usePlain = other.usePlain
+        render = other.render
+        renderBorders = other.renderBorders
+        if(other.cellOptions != null) {
+            cellOptions = other.cellOptions
         }
+
     }
 
     override fun toString(): String {
       return  buildString {
-            appendGroup("RowOptions[", "]", ::rowId, ::orientation, ::useNoEdit, ::edited)
+            appendGroup("RowOptions[", "]", ::rowId, ::orientation, ::sealed, ::edited)
         }
     }
+
+    companion object
 }

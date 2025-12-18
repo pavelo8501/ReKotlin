@@ -7,6 +7,7 @@ import po.misc.data.pretty_print.parts.CommonRowOptions
 import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.parts.PrettyDSL
 import po.misc.data.pretty_print.parts.PrettyHelper
+import po.misc.data.pretty_print.parts.RowID
 import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.properties.isReturnTypeList
 import po.misc.types.token.TokenOptions
@@ -36,7 +37,7 @@ inline fun <reified T: Any> buildPrettyGrid(
 
 
 inline fun <reified T: Any> buildPrettyGrid(
-    rowId: Enum<*>? = null,
+    rowId: RowID? = null,
     noinline builder: GridContainer<T>.() -> Unit
 ): PrettyGrid<T> {
     val container = GridContainer(TypeToken.create<T>(), RowOptions().useId(rowId) )
@@ -45,17 +46,18 @@ inline fun <reified T: Any> buildPrettyGrid(
 
 inline fun <reified T: Any> buildPrettyGrid(
     orientation: Orientation,
-    rowId: Enum<*>? = null,
+    rowId: RowID? = null,
     noinline builder: GridContainer<T>.() -> Unit
 ): PrettyGrid<T> = buildGrid(TypeToken.create<T>(), RowOptions(orientation, rowId), builder = builder)
 
-inline fun <reified T: Templated> T.buildGridForContext(
+
+inline fun <reified T: Templated<T>> T.buildGridForContext(
     rowOptions: CommonRowOptions? = null,
     noinline builder: GridContainer<T>.() -> Unit
 ): PrettyGrid<T> = buildGrid(TypeToken.create<T>(), rowOptions, provider = { this }, builder =  builder)
 
 
-inline fun <reified T: Templated>  List<T>.buildGridForContext(
+inline fun <reified T: Templated<T>>  List<T>.buildGridForContext(
     rowOptions: CommonRowOptions? = null,
     noinline builder: GridContainer<T>.() -> Unit
 ): PrettyGrid<T> = buildGrid(TypeToken.create<T>(), rowOptions, listProvider = { this }, builder = builder)
@@ -108,7 +110,7 @@ inline fun <reified T: Any, reified V: Any> buildPrettyListGrid(
 }
 
 
-inline fun <reified T: Templated, reified V: Any> T.buildGridForContext(
+inline fun <reified T: Templated<T>, reified V: Any> T.buildGridForContext(
     noinline provider: ()-> V,
     noinline builder: GridValueContainer<T, V>.() -> Unit
 ): PrettyValueGrid<T, V> {

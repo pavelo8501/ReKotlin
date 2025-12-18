@@ -69,6 +69,7 @@ fun <T: TraceableContext> List<T>.output(provider: OutputProvider = SyncPrint, o
                 lines.add(result)
                 println(result)
             }
+            is LocateOutputs -> OutputDispatcher.locateOutputs()
         }
     }
     if(provider == PrintOnComplete){

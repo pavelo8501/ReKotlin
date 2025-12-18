@@ -26,17 +26,17 @@ class TestNewTemplateNode: LoggerTestBase() {
         val secondMessage = infoMsg("Second", "second message")
         newNode.addRecord(secondMessage)
         val firstEntry = assertNotNull(procedural.proceduralEntries.firstOrNull())
-        assertEquals(0, firstEntry.proceduralRecords.size)
+        assertEquals(0, firstEntry.records.size)
 
         val foreignMessage = foreignContext.generateMessage(1)
         newNode.addRecord(foreignMessage)
-        assertEquals(1, firstEntry.proceduralRecords.size)
+        assertEquals(1, firstEntry.records.size)
 
         val messages = foreignContext.generateMessages("sub message", 2)
         messages.forEach {
             newNode.addRecord(it)
         }
-        val firstSubProcedural = assertNotNull(firstEntry.proceduralRecords.firstOrNull())
+        val firstSubProcedural = assertNotNull(firstEntry.records.firstOrNull())
         firstSubProcedural.proceduralEntries.size
         assertEquals(2, firstSubProcedural.proceduralEntries.size)
 
@@ -63,7 +63,7 @@ class TestNewTemplateNode: LoggerTestBase() {
         newNode.addRecords(warnings)
 
         val lastEntry = assertNotNull(procedural.proceduralEntries.lastOrNull())
-        val firstSubProcedural = assertNotNull(lastEntry.proceduralRecords.firstOrNull())
+        val firstSubProcedural = assertNotNull(lastEntry.records.firstOrNull())
         assertEquals(2, firstSubProcedural.proceduralEntries.size)
 
         assertIs<StepResult.Warning>( firstSubProcedural.proceduralEntries.first().stepResult)

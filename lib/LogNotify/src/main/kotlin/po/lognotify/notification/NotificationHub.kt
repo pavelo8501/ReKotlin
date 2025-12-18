@@ -10,7 +10,7 @@ import po.misc.context.CTX
 import po.misc.data.printable.PrintableBase
 import po.misc.data.processors.DataProcessorBase
 import po.misc.context.asIdentity
-import po.misc.interfaces.ValueBased
+import po.misc.data.NameValue
 import po.misc.registries.callback.TypedCallbackRegistry
 
 
@@ -18,7 +18,7 @@ class NotifierHub(
     val sharedConfig : NotifyConfig = NotifyConfig()
 ): DataProcessorBase<LogData>(null), CTX {
 
-    enum class Event(override val value: Int): ValueBased{
+    enum class Event(override val value: Int): NameValue{
         DataReceived(1)
     }
 

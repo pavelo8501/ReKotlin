@@ -6,6 +6,7 @@ import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.debugging.classifier.PackageClassifier
 import po.misc.debugging.stack_tracer.reports.CallSiteReport
+import po.misc.debugging.stack_tracer.reports.MethodLocations
 import po.misc.exceptions.throwableToText
 import java.time.Instant
 import kotlin.reflect.KClass
@@ -26,11 +27,7 @@ class ExceptionTrace(
         isReliable = reliable
     }
 
-    constructor(
-        exception: Throwable,
-        stackFrames: List<StackFrameMeta>,
-        contextClass: KClass<*>? = null
-    ): this(
+    constructor(exception: Throwable, stackFrames: List<StackFrameMeta>, contextClass: KClass<*>? = null): this(
         exception.throwableToText(),
         stackFrames,
         contextClass
@@ -57,6 +54,33 @@ class ExceptionTrace(
         }
     }
 
+    fun callSite(): CallSiteReport {
+        return when {
+            frameMetas.size <=2 ->{
+                CallSiteReport(frameMetas.last(), frameMetas.first())
+            }
+            frameMetas.size > 2 ->{
+                val first = frameMetas.first()
+                val last = frameMetas.last()
+                val takeSize = (frameMetas.size - 2).coerceAtLeast(0)
+                val sublist = frameMetas.drop(1).take(takeSize)
+                val filtered = sublist.filter { it.packageRole != PackageClassifier.PackageRole.Helper }
+                CallSiteReport(last, first, filtered.asReversed())
+            }
+            else -> {
+                val msg = "callSiteReport creation failure." +
+                        "exceptionTrace.stackFrames count ${frameMetas.size}"
+                throw IllegalArgumentException(msg)
+            }
+        }
+    }
+
+    fun methodLocations(methodName:String, header: String = ""): MethodLocations {
+        val framesByMethod =  frameMetas.filter { it.methodName == methodName }
+        return  MethodLocations(header,  methodName, framesByMethod)
+    }
+
+
     override fun toString(): String {
         return buildString {
             appendLine(exceptionName)
@@ -66,6 +90,7 @@ class ExceptionTrace(
     }
 
     companion object {
+
         val harshFilter : (StackFrameMeta)-> Boolean = { frame->
             frame.isUserCode &&
             !frame.isHelperMethod &&
@@ -74,26 +99,6 @@ class ExceptionTrace(
             !frame.isReflection &&
             !frame.isThreadEntry &&
             !frame.isCoroutineInternal
-        }
-        fun callSiteReport(exceptionTrace: ExceptionTrace): CallSiteReport {
-           return when {
-                exceptionTrace.frameMetas.size <=2 ->{
-                    CallSiteReport(exceptionTrace.frameMetas.last(), exceptionTrace.frameMetas.first())
-                }
-                exceptionTrace.frameMetas.size > 2 ->{
-                    val first = exceptionTrace.frameMetas.first()
-                    val last = exceptionTrace.frameMetas.last()
-                    val takeSize = (exceptionTrace.frameMetas.size - 2).coerceAtLeast(0)
-                    val sublist = exceptionTrace.frameMetas.drop(1).take(takeSize)
-                    val filtered = sublist.filter { it.packageRole != PackageClassifier.PackageRole.Helper }
-                    CallSiteReport(last, first, filtered.asReversed())
-                }
-                else -> {
-                    val msg = "callSiteReport creation failure." +
-                            "exceptionTrace.stackFrames count ${exceptionTrace.frameMetas.size}"
-                    throw IllegalArgumentException(msg)
-                }
-            }
         }
     }
 }

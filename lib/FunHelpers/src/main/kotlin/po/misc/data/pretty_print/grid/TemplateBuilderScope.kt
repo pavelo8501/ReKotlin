@@ -7,7 +7,7 @@ import po.misc.data.pretty_print.rows.RowBuilderScope
 import po.misc.data.pretty_print.rows.RowValueContainer
 import po.misc.types.token.TypeToken
 
-@PrettyDSL
+
 sealed interface TemplateBuilderScope<T: Any, V: Any> : RowBuilderScope<V>, RowOptionsEditor{
     val hostType: TypeToken<T>
     override val type: TypeToken<V>
@@ -15,5 +15,4 @@ sealed interface TemplateBuilderScope<T: Any, V: Any> : RowBuilderScope<V>, RowO
     @PrettyDSL
     fun buildRow(rowOptions: CommonRowOptions? = null, builder: RowValueContainer<T, V>.() -> Unit)
     fun renderHere()
-
 }

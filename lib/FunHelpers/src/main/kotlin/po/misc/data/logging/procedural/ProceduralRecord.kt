@@ -22,6 +22,7 @@ import po.misc.data.logging.processor.parts.structuredProperty
 import po.misc.data.output.output
 import po.misc.data.pretty_print.cells.PrettyCell
 import po.misc.data.pretty_print.PrettyRow
+import po.misc.data.pretty_print.parts.RowID
 import po.misc.data.strings.IndentOptions
 import po.misc.data.strings.stringify
 import po.misc.data.styles.Colour
@@ -61,13 +62,14 @@ import java.time.Instant
  * @see StructuredLoggable
  * @see ProceduralEntry
  * @see ProceduralFlow
- * @see po.misc.data.logging.processor.LogProcessor.logScope
  */
 
 class ProceduralRecord(
     override val logRecord: LogMessage,
     private val topNode: Boolean = true
 ): PrintableBase<ProceduralRecord>(this), ProceduralData,  LoggableTemplate{
+
+    enum class ProceduralTemplate: RowID { Record, Entry,  }
 
     constructor(logRecord: StructuredLoggable, topNode: Boolean = true): this(logRecord.toLogMessage(), topNode)
 
@@ -98,20 +100,18 @@ class ProceduralRecord(
         }
     }
 
-
     internal val structuredOptions = StructuredOptions(this){loggable->
         val lastEntry = proceduralEntries.lastOrNull()
         if(lastEntry != null){
             lastEntry.addRecord(loggable)
         }else{
-            val entry = ProceduralFlow.createEntry(this@ProceduralRecord, loggable)
+            val entry = ProceduralFlow.createEntry(loggable)
             entry.logRecords.add(loggable)
             proceduralEntries.add(entry)
         }
         logRecord.addRecord(loggable)
     }
     val logRecords: MutableList<StructuredLoggable> by structuredProperty(structuredOptions)
-
 
 
 //    val logRecords: MutableList<StructuredLoggable> by printableProperty{loggable->
@@ -177,7 +177,7 @@ class ProceduralRecord(
     }
 
     fun calculateResult(): ProceduralResult {
-        proceduralEntries.flatMap { it.proceduralRecords }.forEach {
+        proceduralEntries.flatMap { it.records }.forEach {
             it.calculateResult()
         }
         if(proceduralEntries.any { it.stepResult is StepResult.Fail }){
@@ -199,14 +199,14 @@ class ProceduralRecord(
             logRecord.addRecord(templateRecord.logRecord)
             lastEntry.addEntry(templateRecord)
         }else{
-            val newEntry = ProceduralFlow.createEntry(this, templateRecord.subject, Badge.Init)
+            val newEntry = ProceduralFlow.createEntry(templateRecord.subject, Badge.Init)
             newEntry.logRecords.add(templateRecord.logRecord)
             newEntry.addEntry(templateRecord)
             proceduralEntries.add(newEntry)
         }
     }
     override fun getRecords(): List<LoggableTemplate>{
-        val result =  proceduralEntries.flatMap { it.proceduralRecords }
+        val result =  proceduralEntries.flatMap { it.records }
         return result
     }
     override fun getRecord(action : TemplateActions):LoggableTemplate{
@@ -235,6 +235,8 @@ class ProceduralRecord(
     override fun toString(): String = "ProceduralRecord [Source message: ${text}]"
 
     companion object: PrintableCompanion<ProceduralRecord>(TypeToken.create()){
+
+
         val Start: Template<ProceduralRecord> = createTemplate {
             nextLine {
                 val name =  ClassResolver.instanceName(context)

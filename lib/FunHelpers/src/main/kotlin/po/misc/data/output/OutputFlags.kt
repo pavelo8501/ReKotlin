@@ -16,10 +16,11 @@ object Pass : OutputResultBehaviour
 sealed interface OutputProvider
 object SyncPrint :OutputProvider
 object PrintOnComplete :OutputProvider
+object LocateOutputs : OutputProvider
+
 
 
 sealed interface DebugProvider
-object IdentifyIt :DebugProvider
 
 
 

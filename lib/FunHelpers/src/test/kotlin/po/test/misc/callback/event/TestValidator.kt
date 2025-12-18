@@ -6,6 +6,7 @@ import po.misc.callbacks.common.EventHost
 import po.misc.callbacks.event.event
 import po.misc.functions.LambdaType
 import po.misc.functions.NoResult
+import po.misc.functions.Suspended
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -69,13 +70,13 @@ class TestValidator: EventHost {
         val validatableEvent = event<TestValidator, ClassToBeValidated>(NoResult) {
             withValidation {
                 it.parameter == "Param1"
-            }.onSuccess(LambdaType.Suspended){
+            }.onSuccess(Suspended){
                 success = true
             }
         }
         assertNotNull(validatableEvent.validator)
         val valid = ClassToBeValidated()
-        validatableEvent.trigger(valid, LambdaType.Suspended)
+        validatableEvent.trigger(valid, Suspended)
         assertTrue { success?:false }
     }
 
@@ -89,13 +90,13 @@ class TestValidator: EventHost {
         val validatableEvent = event<TestValidator, ClassToBeValidated>(NoResult) {
             withValidation {
                 it.parameter == "Param"
-            }.onFailure(LambdaType.Suspended) {
+            }.onFailure(Suspended) {
                 failure = it
             }
         }
         assertNotNull(validatableEvent.validator)
         val valid = ClassToBeValidated()
-        validatableEvent.trigger(valid, LambdaType.Suspended)
+        validatableEvent.trigger(valid, Suspended)
         assertNull(success)
         assertIs<ClassToBeValidated>(failure)
     }

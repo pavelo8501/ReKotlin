@@ -2,7 +2,6 @@ package po.test.misc.data.pretty_print.grid
 
 import po.misc.data.output.output
 import po.misc.data.pretty_print.PrettyValueGrid
-import po.misc.data.pretty_print.grid.addHeadedRow
 import po.misc.data.pretty_print.grid.buildPrettyGrid
 import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.rows.buildPrettyRow
@@ -17,7 +16,7 @@ import kotlin.test.assertNotNull
 class TestTemplateRendering : PrettyTestBase() {
 
     private val entryRow = buildPrettyRow<PrintableElement> {
-        addCells(PrintableElement::elementName, PrintableElement::parameter, PrintableElement::value)
+        addAll(PrintableElement::elementName, PrintableElement::parameter, PrintableElement::value)
     }
 
     private val record = createRecord()
@@ -25,21 +24,18 @@ class TestTemplateRendering : PrettyTestBase() {
     @Test
     fun `Multi composed grid rendered as expected`() {
         val grid = buildPrettyGrid<PrintableRecord> {
-            addHeadedRow(headerText1)
+            headedRow(headerText1)
             buildRow{
-                addCell(PrintableRecord::name)
-                addCell(PrintableRecord::description)
+                add(PrintableRecord::name)
+                add(PrintableRecord::description)
             }
             useTemplate(entryRow, PrintableRecord::elements){
-                addHeadedRow("Sub header")
+                headedRow("Sub header")
                 orientation = Orientation.Vertical
                 renderHere()
             }
-            onValueResolved {
-
-            }
             buildRow{
-                addCell(footerText.colorize(Colour.Blue))
+                add(footerText.colorize(Colour.Blue))
             }
         }
 

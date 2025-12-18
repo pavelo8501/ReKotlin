@@ -22,14 +22,16 @@ class RowValueContainer<T: Any, V: Any>(
         return createRow()
     }
 
-    fun addCell(
-        property: KProperty1<V, Any>,
-        opt: CommonCellOptions? = null,
-    ): KeyedCell<V> {
-        val cellOptions = PrettyHelper.toKeyedOptionsOrNull(opt)
-        val cell = KeyedCell(type, property).applyOptions(cellOptions)
-        return storeCell(cell)
-    }
+//    fun addCell(
+//        property: KProperty1<V, Any>,
+//        opt: CommonCellOptions? = null,
+//    ): KeyedCell<V> {
+//        val cellOptions = PrettyHelper.toKeyedOptionsOrNull(opt)
+//        val cell = KeyedCell(type, property).applyOptions(cellOptions)
+//        return storeCell(cell)
+//    }
+
+
 
     companion object
 }

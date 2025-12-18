@@ -8,11 +8,10 @@ internal interface PrettyHelper {
         fun toRowOptions(input: CommonRowOptions): RowOptions =
             when (input) {
                 is RowOptions -> input
-                is RowPresets -> input.asRowOptions()
+                is RowPresets ->{ RowOptions(input) }
             }
 
         fun toRowOptions(input: CommonRowOptions?, default : CommonRowOptions? = null): RowOptions {
-
           val options =  if(default == null){
                 input?.let(::toRowOptions) ?: run {
                     RowOptions()
@@ -20,7 +19,7 @@ internal interface PrettyHelper {
             }else{
                 when(default){
                     is RowOptions ->{
-                        if(default.useNoEdit){
+                        if(default.sealed){
                             default
                         }else{
                             input?.let(::toRowOptions) ?: run { default }
@@ -43,15 +42,23 @@ internal interface PrettyHelper {
            return toRowOptions(input)
         }
 
-
         fun toOptions(input: PrettyOptions): Options =
              when (input) {
                 is Options->  input
                 else -> input.asOptions()
             }
 
-        fun toOptions(input: PrettyOptions?, default: Options = Options()): Options =
-            input?.let(::toOptions) ?: default
+
+        fun toOptions(input: PrettyOptions?, default: CellOptions? = null): Options{
+            if(input != null){
+               return toOptions(input)
+            }
+            if(default != null){
+               return toOptions(default)
+            }
+            return Options()
+        }
+
 
         fun toOptionsOrNull(input: PrettyOptions?): Options? {
             if(input == null){
@@ -59,22 +66,21 @@ internal interface PrettyHelper {
             }
             return toOptions(input)
         }
-        fun toKeyedOptions(input: CommonCellOptions): KeyedOptions =
-            when (input) {
-                is KeyedOptions -> input
-                is KeyedPresets -> input.toOptions()
-                is CellPresets -> KeyedOptions(input.toOptions())
-                is CellOptions -> KeyedOptions(input)
-            }
-        fun toKeyedOptions(input: CommonCellOptions?, default: KeyedOptions = KeyedOptions()): KeyedOptions =
-            input?.let(::toKeyedOptions) ?: default
-
-        fun toKeyedOptionsOrNull(commonCellOptions: CommonCellOptions?): KeyedOptions? {
-            if(commonCellOptions == null){
-                return null
-            }
-            return toKeyedOptions(commonCellOptions)
-        }
-
+//        fun toKeyedOptions(input: CommonCellOptions): KeyedOptions =
+//            when (input) {
+//                is KeyedOptions -> input
+//                is KeyedPresets -> input.toOptions()
+//                is CellPresets -> KeyedOptions(input.toOptions())
+//                is CellOptions -> KeyedOptions(input)
+//            }
+//        fun toKeyedOptions(input: CommonCellOptions?, default: KeyedOptions = KeyedOptions()): KeyedOptions =
+//            input?.let(::toKeyedOptions) ?: default
+//
+//        fun toKeyedOptionsOrNull(commonCellOptions: CommonCellOptions?): KeyedOptions? {
+//            if(commonCellOptions == null){
+//                return null
+//            }
+//            return toKeyedOptions(commonCellOptions)
+//        }
     }
 }

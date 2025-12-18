@@ -35,7 +35,7 @@ class TestStackTraceReports {
         val registeredFunName = SubClass::createTrace.name
         val subClass = SubClass()
         val trace = subClass.createTrace()
-        val report: CallSiteReport = ExceptionTrace.callSiteReport(trace)
+        val report: CallSiteReport = trace.callSite()
         val render = report.formattedString
         assertTrue { render.contains(registeredFunName) && render.contains(thisFunName) }
     }
@@ -44,7 +44,7 @@ class TestStackTraceReports {
     fun `Call site report render hops as expected`() {
         val stackTrace = intermediaryMethod(300)
         assertNotNull(stackTrace)
-        val report = ExceptionTrace.callSiteReport(stackTrace)
+        val report = stackTrace.callSite()
         val reportRender = report.formattedString
         assertEquals(1, report.hopFrames.size)
     }
@@ -53,7 +53,7 @@ class TestStackTraceReports {
     fun `Call site report render multiple hops as expected`() {
         val stackTrace = intermediaryMethod2(300)
         assertNotNull(stackTrace)
-        val report = ExceptionTrace.callSiteReport(stackTrace)
+        val report = stackTrace.callSite()
         val reportRender = report.formattedString
         assertEquals(2, report.hopFrames.size)
         reportRender.output()

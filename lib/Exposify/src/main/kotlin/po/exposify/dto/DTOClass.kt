@@ -26,10 +26,10 @@ import po.lognotify.TasksManaged
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
+import po.misc.data.NameValue
 import po.misc.data.processors.SeverityLevel
 import po.misc.functions.registries.NotifierRegistry
 import po.misc.functions.registries.builders.notifierRegistryOf
-import po.misc.interfaces.ValueBased
 import po.misc.validators.models.CheckStatus
 
 sealed class DTOBase<DTO: ModelDTO, D: DataModel, E: LongEntity>(
@@ -39,7 +39,7 @@ sealed class DTOBase<DTO: ModelDTO, D: DataModel, E: LongEntity>(
 
     enum class Events(
         override val value: Int,
-    ) : ValueBased {
+    ) : NameValue {
         Initialized(1),
         StatusChanged(2),
         NewHierarchyMember(3),

@@ -6,7 +6,7 @@ import po.misc.data.pretty_print.parts.PrettyHelper
 import po.misc.types.token.TypeToken
 
 
-inline fun <reified T: Templated> T.buildRowContainer(
+inline fun <reified T: Templated<T>> T.buildRowContainer(
     rowOptions: CommonRowOptions? = null,
     builder: RowContainer<T>.()-> Unit
 ): RowContainer<T> {
@@ -19,7 +19,7 @@ inline fun <reified T: Templated> T.buildRowContainer(
     return container
 }
 
-inline fun <reified T: Templated> List<T>.buildRowContainer(
+inline fun <reified T: Templated<T>> List<T>.buildRowContainer(
     rowOptions: CommonRowOptions? = null,
     builder: RowContainer<T>.()-> Unit
 ): RowContainer<T> {

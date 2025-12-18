@@ -3,13 +3,11 @@ package po.test.misc.data.logging
 import po.misc.context.component.Component
 import po.misc.context.component.ComponentID
 import po.misc.context.component.componentID
-import po.misc.data.logging.Loggable
 import po.misc.data.logging.NotificationTopic
 import po.misc.data.logging.factory.toLogMessage
 import po.misc.data.logging.models.LogMessage
 import po.misc.data.logging.parts.LogTracker
 import po.misc.data.logging.processor.LogProcessor
-import po.misc.data.logging.processor.createLogProcessor
 import po.misc.data.logging.processor.createLogProcessor
 
 abstract class LoggerTestBase: Component {

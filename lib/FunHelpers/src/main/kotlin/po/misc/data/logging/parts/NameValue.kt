@@ -1,14 +1,15 @@
 package po.misc.data.logging.parts
 
-import po.misc.data.HasKeyValuePair
+
+import po.misc.data.HasValue
+import po.misc.data.KeyedValue
+import po.misc.data.NameValue
 import po.misc.reflection.getAnnotated
 import po.misc.types.getOrManaged
 import po.misc.types.safeCast
 import po.misc.types.token.TokenFactory
 import po.misc.types.token.TypeToken
-import kotlin.collections.get
-import kotlin.reflect.KClass
-import kotlin.reflect.KMutableProperty
+
 import kotlin.reflect.KProperty
 import kotlin.reflect.KProperty1
 
@@ -16,12 +17,12 @@ import kotlin.reflect.KProperty1
 class KeyValue(
     override val name: String,
     override val value: String
-): HasKeyValuePair {
+): KeyedValue {
     override fun toString(): String  = pairStr
 }
 
-class NameValueTable(vararg val pairs: HasKeyValuePair){
-    val pairsList = mutableListOf<HasKeyValuePair>()
+class NameValueTable(vararg val pairs: KeyedValue){
+    val pairsList = mutableListOf<KeyedValue>()
 
     init {
         val list = pairs.toList()
@@ -43,7 +44,7 @@ class PropertyValue(
         val result = property.safeCast<KProperty1<Any, *>>()?.let { casted ->
             casted.get(receiver).toString()
         } ?: "N/A"
-        return KeyValue(property.name, result.toString())
+        return KeyValue(property.name, result)
 
     }
 }

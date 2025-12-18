@@ -3,6 +3,7 @@ package po.misc.collections.lambda_map
 import po.misc.context.tracable.TraceableContext
 import po.misc.functions.LambdaOptions
 import po.misc.functions.SuspendedOptions
+import po.misc.types.token.TypeToken
 
 
 fun <T : Any, R> Function1<T, R>.toCallable(
@@ -23,20 +24,26 @@ fun <T : Any, R> TraceableContext.toCallable(
 ):SuspendingLambda<T, R> =  SuspendingLambda(options, function)
 
 
-fun <H : TraceableContext, T : Any, R> Function2<H, T, R>.toCallable(
+fun <H, T, R> Function2<H, T, R>.toCallable(
     receiver:H,
     options: LambdaOptions
 ):LambdaWithReceiver<H, T, R> = LambdaWithReceiver(receiver, options, this)
 
-fun <H : TraceableContext, T : Any, R> Function2<H, T, R>.toCallable(
+fun <H, T, R> Function2<H, T, R>.toCallable(
     receiver:H,
 ):LambdaWithReceiver<H, T, R> = LambdaWithReceiver(receiver, LambdaOptions.Listen, this)
+
+fun <H, T, R> Function2<H, T, R>.toCallable(
+    options: LambdaOptions = LambdaOptions.Listen,
+):LambdaWithReceiver<H, T, R> = LambdaWithReceiver(options, this)
 
 
 fun <H : TraceableContext, T : Any, R>  H.toCallable(
     options: SuspendedOptions,
     function: suspend H.(T) -> R
 ):SuspendingLambdaWithReceiver<H, T, R> = SuspendingLambdaWithReceiver(this, options, function)
+
+
 
 fun <H : TraceableContext, T : Any, R>  H.toCallable(
     function: suspend H.(T) -> R

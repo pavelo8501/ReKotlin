@@ -9,6 +9,9 @@ open class ColorModifier(
     vararg val conditions: ColourCondition
 ): TextModifier {
 
+
+    override val formatter : Formatter = Formatter.ColorModifier
+
     var provider: (()-> Colour?)? = null
 
     constructor(colourProvider: ()-> Colour?):this()
@@ -20,7 +23,7 @@ open class ColorModifier(
     ){
         enum class Match{Partially, Exactly}
     }
-    override val priority: Int = 1
+
     private val conditionsList: MutableList<ColourCondition> = mutableListOf()
 
     init {
@@ -57,11 +60,6 @@ open class ColorModifier(
         }else{
             modifyByConditions(text, conditionsList)
         }
-    }
-
-    override fun match(text: String): Boolean {
-       val result = conditionsList.any { it.match == text}
-       return result
     }
 }
 

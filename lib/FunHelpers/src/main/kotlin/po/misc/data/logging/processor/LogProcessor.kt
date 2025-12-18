@@ -11,10 +11,9 @@ import po.misc.data.logging.procedural.ProceduralRecord
 import po.misc.data.logging.processor.parts.ProcessorLoader
 import po.misc.data.logging.processor.settings.StateSnapshot
 import po.misc.data.styles.Colour
-import po.misc.functions.Suspending
+import po.misc.functions.Suspended
 import po.misc.functions.Throwing
 import po.misc.types.castOrThrow
-import po.misc.types.safeCast
 import po.misc.types.token.TypeToken
 
 
@@ -138,7 +137,7 @@ class LogProcessor <H: Component, T: StructuredLoggable>(
     }
 
     suspend fun <R> proceduralScope(
-        suspending: Suspending,
+        suspending: Suspended,
         record: T,
         block: suspend ProceduralFlow<H>.(ProceduralRecord) -> R
     ): R {

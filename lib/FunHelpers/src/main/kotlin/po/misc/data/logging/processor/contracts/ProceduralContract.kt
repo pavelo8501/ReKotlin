@@ -32,7 +32,7 @@ class ProceduralContract(val templateRecord: LoggableTemplate) {
     }
 
     private fun recordCreatesEntry(parentProcedural: LoggableTemplate,  record: StructuredLoggable): ProceduralEntry{
-        return ProceduralFlow.createEntry(parentProcedural, record)
+        return ProceduralFlow.createEntry(record)
     }
 
     fun addRecord(data: StructuredLoggable): StructuredLoggable {

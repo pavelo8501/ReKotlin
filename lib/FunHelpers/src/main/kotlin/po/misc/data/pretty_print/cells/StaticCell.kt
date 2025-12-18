@@ -13,7 +13,7 @@ import kotlin.text.append
 
 class StaticCell(
     var content: Any? = null
-): PrettyCellBase(Options()){
+): PrettyCellBase(Options()), StaticRender{
 
     val text: String get() = content.stringify().toString()
 
@@ -44,17 +44,20 @@ class StaticCell(
         content = result
         return this
     }
-    override fun applyOptions(opt: CommonCellOptions?): StaticCell {
-        opt?.let {
-            cellOptions = PrettyHelper.toOptions(it)
+
+    override fun applyOptions(commonOpt: CommonCellOptions?): StaticCell{
+        val options = PrettyHelper.toOptionsOrNull(commonOpt)
+        if(options != null){
+            cellOptions = options
         }
         return this
     }
 
+
     fun render(renderOptions: CellOptions? = null): String {
         val useOptions = renderOptions?:cellOptions
         val entry = content.stringify()
-        val usedText = if(useOptions.usePlain){
+        val usedText = if(plainText){
             entry.text
         } else {
             entry.formatedText
@@ -64,11 +67,11 @@ class StaticCell(
         val final = justifyText(formatted,  useOptions)
         return final
     }
-    fun render(): String = render(Options(Orientation.Horizontal))
+    override fun render(): String = render(Options(Orientation.Horizontal))
     override fun render(content: String, commonOptions: CommonCellOptions?): String {
         val options = PrettyHelper.toOptions(commonOptions, cellOptions as Options)
         val entry = content.stringify()
-        val usedText = if(options.usePlain){
+        val usedText = if(plainText){
             entry.text
         } else {
             entry.formatedText

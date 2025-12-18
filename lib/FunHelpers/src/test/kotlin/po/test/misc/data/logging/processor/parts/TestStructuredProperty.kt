@@ -26,7 +26,7 @@ class TestStructuredProperty: LoggerTestBase() {
         procedural.logRecords.add(foreignMessage)
 
         assertNotNull(procedural.proceduralEntries.firstOrNull()){entry->
-            assertEquals(1, entry.proceduralRecords.size)
+            assertEquals(1, entry.records.size)
         }
     }
 

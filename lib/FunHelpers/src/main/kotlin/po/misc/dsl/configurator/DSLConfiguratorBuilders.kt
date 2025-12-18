@@ -1,7 +1,7 @@
 package po.misc.dsl.configurator
 
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.HasNameValue
+import po.misc.data.NameValue
 import kotlin.enums.enumEntries
 
 
@@ -20,15 +20,15 @@ fun <T: TraceableContext> dslConfigFromGroups(
  * Creates a DSLConfigurator with priority groups derived from an enum type.
  *
  * This inline function uses reified generics to automatically create configuration groups
- * for each entry in the specified enum class. The enum must implement [HasNameValue].
+ * for each entry in the specified enum class. The enum must implement [NameValue].
  *
  * @param T The traceable context type that configurations will be applied to
- * @param E The enum type that defines the priority groups and implements [HasNameValue]
+ * @param E The enum type that defines the priority groups and implements [NameValue]
  * @return A DSLConfigurator instance with groups for each enum entry
  *
  *
  * @see dslConfigurator with explicit Class parameter for non-inline usage
- * @see HasNameValue interface for priority contract
+ * @see NameValue interface for priority contract
  *
  * @example
  * ```
@@ -36,7 +36,7 @@ fun <T: TraceableContext> dslConfigFromGroups(
  * val configurator = dslConfigurator<Configurable, ConfigPriority>()
  * ```
  */
-inline fun <T: TraceableContext, reified  E> dslConfigFromEnum(): DSLConfigurator<T> where E : HasNameValue, E : Enum<E>{
+inline fun <T: TraceableContext, reified  E> dslConfigFromEnum(): DSLConfigurator<T> where E : NameValue, E : Enum<E>{
    val groups  = enumEntries<E>().map {
         DSLGroup<T>(it)
     }

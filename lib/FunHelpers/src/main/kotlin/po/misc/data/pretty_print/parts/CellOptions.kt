@@ -20,7 +20,13 @@ sealed interface CellOptions: CommonCellOptions{
     val alignment: Align
     val id: Enum<*>?
 
-    var usePlain: Boolean
+    val renderKey:Boolean
+    var plainText: Boolean
+    var plainKey: Boolean
+    val useForKey: String?
+
+    val useSourceFormatting: Boolean
+
     val renderLeftBorder: Boolean
     val renderRightBorder: Boolean
 }
@@ -32,8 +38,8 @@ sealed interface CellOptions: CommonCellOptions{
  * @property colour Foreground text colour, or `null` to use default terminal colour.
  * @property backgroundColour Background fill colour, or `null` if not applied.
  */
-data class TextStyleOptions(
-    var style: TextStyle = TextStyle.Regular,
+data class Style(
+    var textStyle: TextStyle = TextStyle.Regular,
     var colour: Colour? = null,
     var backgroundColour: BGColour? = null,
 )
@@ -53,45 +59,84 @@ data class TextStyleOptions(
 class Options(
     override var width: Int = 0,
     override var alignment: Align = Align.LEFT,
-    override var styleOptions: TextStyleOptions = TextStyleOptions(),
+    override var style: Style = Style(),
+    override var keyStyle : Style = Style(),
+    override var renderKey:Boolean = true,
     private  val emptySpaceFiller: Char? = null,
     override var id: Enum<*>? = null
 ): CellOptions {
 
     constructor(alignment: Align):this(width =0, alignment)
     constructor(id: Enum<*>, alignment: Align = Align.LEFT):this(width =0, alignment, id = id)
-    constructor(alignment: Align, colour: Colour):this(width = 0, alignment, TextStyleOptions(colour = colour))
-    constructor(keyedOptions: KeyedOptions):this(
-        keyedOptions.width,
-        keyedOptions.alignment,
-        keyedOptions.styleOptions,
-        id = keyedOptions.id
+    constructor(alignment: Align, colour: Colour):this(width = 0, alignment, Style(colour = colour))
+
+    constructor(
+        preset: CellPresets
+    ):this(
+        width =  0,
+        alignment =  preset.align,
+        style =  preset.style,
+        keyStyle =  preset.keyStyle,
+        renderKey = preset.renderKey,
     )
-    constructor(rowOptions: RowOptions): this(){
+
+    constructor(
+        rowOptions: RowOptions
+    ): this(){
         val cellOptions = rowOptions.cellOptions
         if(cellOptions != null){
             width = cellOptions.width
             alignment = cellOptions.alignment
-            styleOptions = cellOptions.styleOptions
+            style = cellOptions.style
+            keyStyle = cellOptions.keyStyle
             id = cellOptions.id
         }
-        usePlain = rowOptions.usePlain
+        plainText = rowOptions.plainText
     }
 
-    override var usePlain: Boolean = true
+    override var plainText: Boolean = true
+
+
+    override var plainKey: Boolean = false
+    override var useForKey: String? = null
     override val spaceFiller: Char get() = emptySpaceFiller.orDefault()
 
-    var cellsCount: Int = 1
+    override var useSourceFormatting: Boolean = false
     override var renderLeftBorder: Boolean = true
     override var renderRightBorder: Boolean = true
 
-    override fun asOptions(): Options = this
+    override fun asOptions(width: Int): Options = this
+
+    fun style(textStyle: TextStyle, colour: Colour, backgroundColour: BGColour? = null){
+        style = Style(textStyle, colour, backgroundColour)
+    }
+
+    fun keyStyle(textStyle: TextStyle, colour: Colour, backgroundColour: BGColour? = null){
+        keyStyle = Style(textStyle, colour, backgroundColour)
+    }
 
     fun build(builder: Options.()-> Unit):Options{
         builder.invoke(this)
         return this
     }
 
+    fun applyChanges(other: CellOptions?):Options{
+        if(other != null){
+            plainText = other.plainText
+            plainKey = other.plainKey
+            renderKey = other.renderKey
+            useSourceFormatting = other.useSourceFormatting
+            useForKey = other.useForKey
+        }
+        return this
+    }
+
+    fun usePlainValue(usePlain:Boolean): Options{
+        plainText = usePlain
+        return this
+    }
+
+    companion object
 }
 
 /**
@@ -102,34 +147,58 @@ class Options(
  *     Name: John Doe
  *
  * @property keyStyleOptions Separate styling applied to the key portion.
- * @property showKey Whether the key should be rendered.
- * @property useKeyName Optional override for the displayed key label.
+ * @property renderKey Whether the key should be rendered.
+ * @property useForKey Optional override for the displayed key label.
  */
-data class KeyedOptions(
-    override val width: Int = 0,
-    override val alignment: Align = Align.LEFT,
-    override val styleOptions: TextStyleOptions = TextStyleOptions(),
-    val keyStyleOptions : TextStyleOptions = TextStyleOptions(),
-    val showKey: Boolean = true,
-    val useKeyName: String? = null,
-    private val emptySpaceFiller: Char? = null,
-    override val id: Enum<*>? = null
-): CellOptions {
-
-    constructor(preset: KeyedPresets, id: Enum<*>? = null):this(width = 0, preset.align, preset.styleOptions, preset.keyStyleOptions, id = id)
-    constructor(cellOptions: CellOptions):this(cellOptions.width, cellOptions.alignment, cellOptions.styleOptions){
-        usePlain = cellOptions.usePlain
-    }
-    override val spaceFiller: Char get() = emptySpaceFiller.orDefault()
-    override var usePlain: Boolean = false
-    override var renderLeftBorder: Boolean = true
-    override var renderRightBorder: Boolean = true
-
-
-    fun usePlainValue(usePlain:Boolean): KeyedOptions{
-        this.usePlain = usePlain
-        return this
-    }
-
-    override fun asOptions(): Options = Options(this)
-}
+//data class KeyedOptions(
+//    override val width: Int = 0,
+//    override var alignment: Align = Align.LEFT,
+//    override var styleOptions: TextStyleOptions = TextStyleOptions(),
+//    override var keyStyleOptions : TextStyleOptions = TextStyleOptions(),
+//    override var renderKey: Boolean = true,
+//    override var useForKey: String? = null,
+//    private val emptySpaceFiller: Char? = null,
+//    override val id: Enum<*>? = null
+//): CellOptions {
+//
+//    constructor(
+//        preset: KeyedPresets,
+//        id: Enum<*>? = null
+//    ):this(
+//        width = 0,
+//        preset.align,
+//        preset.styleOptions,
+//        preset.keyStyleOptions,
+//        preset.renderKey,
+//        id = id
+//    )
+//    constructor(cellOptions: CellOptions):this(cellOptions.width, cellOptions.alignment, cellOptions.styleOptions){
+//        plainText = cellOptions.plainText
+//    }
+//    override val spaceFiller: Char get() = emptySpaceFiller.orDefault()
+//    override var plainText: Boolean = false
+//
+//    override var plainKey: Boolean = false
+//
+//    override var renderLeftBorder: Boolean = true
+//    override var renderRightBorder: Boolean = true
+//
+//
+//    override var useSourceFormatting: Boolean = false
+//
+//    fun usePlainValue(usePlain:Boolean): KeyedOptions{
+//        plainText = usePlain
+//        return this
+//    }
+//
+//    fun applyChanges(other: KeyedOptions){
+//        plainText = other.plainText
+//        plainKey = other.plainKey
+//        renderKey = other.renderKey
+//        useSourceFormatting = other.useSourceFormatting
+//        useForKey = other.useForKey
+//    }
+//    override fun asOptions(): Options = Options(this)
+//
+//    companion object
+//}

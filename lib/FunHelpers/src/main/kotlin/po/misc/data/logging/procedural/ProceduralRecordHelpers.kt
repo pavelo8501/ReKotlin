@@ -27,7 +27,7 @@ fun ProceduralRecord.printProceduralTree(
     }
     proceduralEntries.forEach {
         val thisLevel = nestingLevel + 1
-        it.proceduralRecords.forEach { procedural->
+        it.records.forEach { procedural->
             procedural.printProceduralTree(includeMessages, thisLevel)
         }
     }

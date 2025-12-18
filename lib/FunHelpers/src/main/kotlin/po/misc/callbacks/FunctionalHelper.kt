@@ -12,7 +12,7 @@ interface FunctionalHelper {
     ):LambdaConfigurator<H, Unit>{
         val unitToken = TypeToken.create<Unit>()
        return optionalName?.let {
-            LambdaConfigurator(unitToken, LambdaOptions.Promise.applyName(it), this)
+            LambdaConfigurator(unitToken, LambdaOptions.NamedPromise(it), this)
         }?:run {
             LambdaConfigurator(unitToken, LambdaOptions.Promise, this)
         }
@@ -23,7 +23,7 @@ interface FunctionalHelper {
         optionalName: String? = null,
     ):LambdaConfigurator<H, T>{
         return optionalName?.let {
-            LambdaConfigurator(parameterType, LambdaOptions.Promise.applyName(it), this)
+            LambdaConfigurator(parameterType, LambdaOptions.NamedPromise(it), this)
         }?:run {
             LambdaConfigurator(parameterType, LambdaOptions.Promise, this)
         }
