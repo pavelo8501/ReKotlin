@@ -21,34 +21,34 @@ class TestProceduralEntry: Component {
     @Test
     fun `Step result correctly analyzed`(){
         val stringList = listOf("String1", "string2")
-        var listResult = ProceduralFlow.toStepResult(entry,  stringList)
+        var listResult = ProceduralFlow.toStepResult(stringList)
         assertIs<StepResult.OK>(listResult)
 
-        listResult = ProceduralFlow.toStepResult(entry, result =  emptyList<String>(), tolerances = emptyList())
+        listResult = ProceduralFlow.toStepResult(result =  emptyList<String>(), tolerances = emptyList())
         assertIs<StepResult.Fail>(listResult)
 
-        var booleanResult = ProceduralFlow.toStepResult(entry, true)
+        var booleanResult = ProceduralFlow.toStepResult(true)
         assertIs<StepResult.OK>(booleanResult)
 
-        booleanResult = ProceduralFlow.toStepResult(entry,false)
+        booleanResult = ProceduralFlow.toStepResult(false)
         assertIs<StepResult.Fail>(booleanResult)
 
-        val nullResult = ProceduralFlow.toStepResult(entry,null)
+        val nullResult = ProceduralFlow.toStepResult(null)
         assertIs<StepResult.Fail>(nullResult)
 
-        val unitResult = ProceduralFlow.toStepResult(entry,Unit)
+        val unitResult = ProceduralFlow.toStepResult(Unit)
         assertIs<StepResult.OK>(unitResult)
     }
 
     @Test
     fun `Step result tolerance work as expected`(){
-        val listResult = ProceduralFlow.toStepResult(entry,emptyList<String>(), StepTolerance.ALLOW_EMPTY_LIST)
+        val listResult = ProceduralFlow.toStepResult(emptyList<String>(), StepTolerance.ALLOW_EMPTY_LIST)
         assertIs<StepResult.OK>(listResult)
 
-        val booleanResult = ProceduralFlow.toStepResult(entry,false, StepTolerance.ALLOW_FALSE)
+        val booleanResult = ProceduralFlow.toStepResult(false, StepTolerance.ALLOW_FALSE)
         assertIs<StepResult.OK>(booleanResult)
 
-        val nullResult = ProceduralFlow.toStepResult(entry,null, StepTolerance.ALLOW_NULL)
+        val nullResult = ProceduralFlow.toStepResult(null, StepTolerance.ALLOW_NULL)
         assertIs<StepResult.OK>(nullResult)
     }
 

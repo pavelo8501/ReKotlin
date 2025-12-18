@@ -28,12 +28,11 @@ class TextFormatter(
         return textModifier
     }
 
+    fun addFormatters(textModifiers: List<TextModifier>){
+        formattersBacking.addAll(textModifiers)
+    }
+
     fun style(text: String, styleOption: Style? = null): String {
-//        val modifier = formatters.firstOrNull { it.formatter == Formatter.ColorModifier }
-//        if (modifier != null) {
-//            val modified = modifier.modify(text)
-//            return modified
-//        }
         val styler = formatters.firstOrNull { it.formatter == Formatter.TextStyler }
         if(styleOption != null && styler is CellStyler) {
             val styled =   styler.modify(text, styleOption)

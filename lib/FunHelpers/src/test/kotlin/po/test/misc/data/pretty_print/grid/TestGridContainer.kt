@@ -7,6 +7,9 @@ import po.misc.data.pretty_print.grid.buildPrettyGrid
 import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.grid.buildPrettyListGrid
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
+import po.test.misc.data.pretty_print.setup.PrintableElement
+import po.test.misc.data.pretty_print.setup.PrintableRecord
+import po.test.misc.data.pretty_print.setup.PrintableRecordSubClass
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -24,7 +27,7 @@ class TestGridContainer : PrettyTestBase(){
         }
         assertNotNull(grid.rows.firstOrNull()) { firstRow ->
             val prettyRow = assertIs<PrettyRow<PrintableRecord>>(firstRow)
-            assertEquals(PrintableRecord::class, firstRow.typeToken.kClass)
+            assertEquals(PrintableRecord::class, firstRow.hostType.kClass)
             assertNotNull(prettyRow.cells.firstOrNull()) { firstCell ->
                 val keyedCell = assertIs<KeyedCell<PrintableRecord>>(firstCell)
                 assertEquals(PrintableRecord::class, keyedCell.typeToken.kClass)
@@ -42,7 +45,7 @@ class TestGridContainer : PrettyTestBase(){
         }
         assertNotNull(grid.rows.firstOrNull()){firstRow->
             val prettyRow = assertIs<PrettyRow<PrintableRecordSubClass>>(firstRow)
-            assertEquals(PrintableRecordSubClass::class, prettyRow.typeToken.kClass)
+            assertEquals(PrintableRecordSubClass::class, prettyRow.hostType.kClass)
             assertNotNull(prettyRow.cells.firstOrNull()){firstCell->
                 val keyedCell = assertIs<KeyedCell<PrintableRecordSubClass>>(firstCell)
                 assertEquals(PrintableRecordSubClass::class, keyedCell.typeToken.kClass)
@@ -78,7 +81,7 @@ class TestGridContainer : PrettyTestBase(){
             assertEquals(PrintableRecord::class, firstCell.typeToken.kClass)
         }
         assertEquals(1, grid.rows.size)
-        assertNotNull(grid.renderBlocks.getOrNull(1)) { renderBlock ->
+        assertNotNull(grid.renderMap.renderables.getOrNull(1)) { renderBlock ->
             val prettyGrid = assertIs<PrettyValueGrid<PrintableRecord, PrintableRecordSubClass>>(renderBlock)
             assertNotNull(prettyGrid.singleLoader.propertyBacking)
             assertNotNull(prettyGrid.rows.firstOrNull()){prettyRow->
@@ -106,7 +109,7 @@ class TestGridContainer : PrettyTestBase(){
             assertEquals(PrintableRecord::class, firstCell.typeToken.kClass)
         }
         assertEquals(1, grid.rows.size)
-        assertNotNull(grid.renderBlocks.getOrNull(1)) { renderBlock ->
+        assertNotNull(grid.renderMap.renderables.getOrNull(1)) { renderBlock ->
             val prettyGrid = assertIs<PrettyValueGrid<PrintableRecord, PrintableElement>>(renderBlock)
             assertNotNull(prettyGrid.listLoader.propertyBacking)
             assertNotNull(prettyGrid.rows.firstOrNull()){prettyRow->

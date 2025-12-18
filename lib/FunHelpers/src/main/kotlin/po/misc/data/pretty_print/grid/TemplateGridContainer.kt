@@ -2,19 +2,17 @@ package po.misc.data.pretty_print.grid
 
 import po.misc.data.pretty_print.PrettyGrid
 import po.misc.data.pretty_print.PrettyGridBase
-import po.misc.data.pretty_print.parts.GridKey
-import po.misc.data.pretty_print.parts.GridSource
+import po.misc.data.pretty_print.parts.grid.GridKey
 import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.parts.RowOptionsEditor
 import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.PrettyValueGrid
 import po.misc.data.pretty_print.parts.CommonRowOptions
-import po.misc.data.pretty_print.parts.PrettyDSL
 import po.misc.data.pretty_print.parts.PrettyHelper
+import po.misc.data.pretty_print.parts.grid.RenderableType
 import po.misc.data.pretty_print.rows.RowContainer
 import po.misc.data.pretty_print.rows.RowValueContainer
 import po.misc.data.pretty_print.rows.copyRow
-import po.misc.data.pretty_print.rows.createRowContainer
 import po.misc.types.token.TypeToken
 
 
@@ -99,7 +97,8 @@ class TemplateGridContainer<T: Any, V: Any>(
         val options = PrettyHelper.toRowOptions(rowOptions, options as RowOptions)
         options.noEdit()
         val container = RowValueContainer(hostType, type, options)
-        val row =  container.applyBuilder(builder)
+        builder.invoke(container)
+        val row =  container.initRow()
         addRow(row)
     }
 
@@ -110,7 +109,7 @@ class TemplateGridContainer<T: Any, V: Any>(
         }
         source.singleLoader.initValueFrom(rowContainer.singleLoader)
         source.listLoader.initValueFrom(rowContainer.listLoader)
-        tempRows.add(rowContainer.createRow())
+        tempRows.add(rowContainer.initRow())
     }
 
     fun initializeByGrid(grid: PrettyGridBase<*, V>){
@@ -127,7 +126,7 @@ class TemplateGridContainer<T: Any, V: Any>(
     override fun renderHere(){
         if(pluggedKey == null){
             val insertToIndex = source.rows.lastIndex + 1
-            pluggedKey =  GridKey(insertToIndex, GridSource.Renderable)
+            pluggedKey =  GridKey(insertToIndex, RenderableType.Row)
         }
     }
 

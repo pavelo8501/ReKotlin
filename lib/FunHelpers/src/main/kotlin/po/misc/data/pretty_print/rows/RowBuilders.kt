@@ -50,7 +50,8 @@ fun <T: Any> buildPrettyRow(
 ): PrettyRow<T> {
     val options = PrettyHelper.toRowOptions(commonOptions)
     val container = createRowContainer(typeToken, options)
-    return container.applyBuilder(builder)
+    builder.invoke(container)
+    return container.initRow()
 }
 
 inline fun <reified T: Any> buildPrettyRow(
@@ -76,7 +77,9 @@ inline fun <reified T: Templated<T>> T.buildRowForContext(
     noinline builder: RowContainer<T>.()-> Unit
 ): PrettyRow<T> {
     val container = RowContainer<T>(TypeToken.create<T>(), PrettyHelper.toRowOptions(rowOptions))
-    return container.applyBuilder(builder)
+    builder.invoke(container)
+
+    return container.initRow()
 }
 
 fun <T: Any, V: Any> buildPrettyRow(
@@ -87,11 +90,11 @@ fun <T: Any, V: Any> buildPrettyRow(
     builder: RowValueContainer<T, V>.()-> Unit
 ): PrettyRow<V> {
     val options = PrettyHelper.toRowOptions(rowOptions)
-    val rowContainer = createRowValueContainer(typeToken, valueToken, options)
-    rowContainer.singleLoader.setProperty(property)
-    return rowContainer.applyBuilder(builder)
+    val container = createRowValueContainer(typeToken, valueToken, options)
+    container.singleLoader.setProperty(property)
+    builder.invoke(container)
+    return container.initRow()
 }
-
 
 inline fun <T: Any, reified V: Any> buildPrettyRow(
     typeToken: TypeToken<T>,

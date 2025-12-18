@@ -62,8 +62,9 @@ class StaticCell(
         } else {
             entry.formatedText
         }
-        val modified =  staticModifiers.modify(usedText)
-        val formatted =  compositeFormatter.format(modified, this)
+//        val modified =  staticModifiers.modify(usedText)
+//        val formatted =  compositeFormatter.format(modified, this)
+        val formatted = textFormatter.style(usedText)
         val final = justifyText(formatted,  useOptions)
         return final
     }
@@ -76,8 +77,9 @@ class StaticCell(
         } else {
             entry.formatedText
         }
-        val modified =  staticModifiers.modify(usedText)
-        val formatted =  compositeFormatter.format(modified, this)
+//        val modified =  staticModifiers.modify(usedText)
+//        val formatted =  compositeFormatter.format(modified, this)
+        val formatted = textFormatter.style(usedText)
         val final = justifyText(formatted,  options)
         return final
     }

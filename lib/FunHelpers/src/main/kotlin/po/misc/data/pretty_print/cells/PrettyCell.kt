@@ -41,8 +41,10 @@ class PrettyCell(
         }else{
             content.stringify().formatedString
         }
-        val modified =  staticModifiers.modify(text)
-        val formatted =  compositeFormatter.format(modified, this)
+
+//        val modified =  staticModifiers.modify(text)
+//        val formatted =  compositeFormatter.format(modified, this)
+        val formatted = textFormatter.style(text)
         val final = justifyText(formatted,  cellOptions)
         return final
     }

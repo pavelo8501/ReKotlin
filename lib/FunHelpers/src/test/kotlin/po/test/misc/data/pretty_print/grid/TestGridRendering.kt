@@ -7,6 +7,9 @@ import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.parts.RowPresets
 import po.misc.data.pretty_print.rows.buildPrettyRow
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
+import po.test.misc.data.pretty_print.setup.PrintableElement
+import po.test.misc.data.pretty_print.setup.PrintableRecord
+import po.test.misc.data.pretty_print.setup.PrintableRecordSubClass
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -114,23 +117,23 @@ class TestGridRendering : PrettyTestBase(){
             useTemplate(elementRow, PrintableRecord::elements, Orientation.Vertical)
         }
         assertEquals(2, grid.rows.size)
-        assertEquals(3, grid.renderBlocks.size)
+        assertEquals(3, grid.renderMap.renderables.size)
         assertEquals(1, grid.rows.first().cells.size)
         assertEquals(2, grid.rows[1].cells.size)
 
-        assertNotNull(grid.renderBlocks.firstOrNull()){firstBlock->
+        assertNotNull(grid.renderMap.renderables.firstOrNull()){firstBlock->
             assertIs<PrettyRow<PrintableRecord>>(firstBlock)
             assertEquals(header.rows[0].size, firstBlock.size)
         }
-        assertNotNull(grid.renderBlocks.getOrNull(1)){secondBlock->
+        assertNotNull(grid.renderMap.renderables.getOrNull(1)){secondBlock->
             assertIs<PrettyRow<PrintableRecord>>(secondBlock)
             assertEquals(header.rows[1].size, secondBlock.size)
         }
-        assertNotNull(grid.renderBlocks.getOrNull(2)) { thirdBlock ->
+        assertNotNull(grid.renderMap.renderables.getOrNull(2)) { thirdBlock ->
             assertIs<PrettyValueGrid<PrintableRecord, PrintableElement>>(thirdBlock)
             assertNotNull(thirdBlock.listLoader.propertyBacking)
         }
-        val elementGrid = assertIs<PrettyValueGrid<PrintableRecord, PrintableElement>>(grid.renderBlocks.last())
+        val elementGrid = assertIs<PrettyValueGrid<PrintableRecord, PrintableElement>>(grid.renderMap.renderables.last())
         assertEquals(PrintableElement::class, elementGrid.type.kClass)
         assertEquals(PrintableRecord::class, elementGrid.hostType.kClass)
 

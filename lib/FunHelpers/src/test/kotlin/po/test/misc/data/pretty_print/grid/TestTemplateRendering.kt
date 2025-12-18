@@ -8,6 +8,8 @@ import po.misc.data.pretty_print.rows.buildPrettyRow
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
+import po.test.misc.data.pretty_print.setup.PrintableElement
+import po.test.misc.data.pretty_print.setup.PrintableRecord
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -39,7 +41,7 @@ class TestTemplateRendering : PrettyTestBase() {
             }
         }
 
-        val templatePart = grid.renderBlocks.getOrNull(2)
+        val templatePart = grid.renderMap.elements.getOrNull(2)
         assertIs< PrettyValueGrid<PrintableRecord, PrintableElement>>(templatePart)
         assertNotNull(templatePart.options)
         assertEquals(Orientation.Vertical, templatePart.options.orientation)

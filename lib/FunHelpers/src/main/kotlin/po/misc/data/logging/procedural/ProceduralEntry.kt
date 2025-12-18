@@ -58,7 +58,6 @@ class ProceduralEntry(
 
     val created: Instant = Instant.now()
 
-
     val result: Boolean get() = stepResult?.ok?:false
     val logRecords: MutableList<StructuredLoggable> = mutableListOf()
     private val warnings get() = logRecords.filter { it.topic == NotificationTopic.Warning }
@@ -85,6 +84,10 @@ class ProceduralEntry(
                 appendLine(it.getStatistics())
             }
         }
+    }
+
+    fun setResult(result: StepResult){
+        stepResult = result
     }
 
     fun extractMessage(): List<StructuredLoggable>{
@@ -124,17 +127,18 @@ class ProceduralEntry(
     }
 
     companion object : Templated<ProceduralEntry>{
-
-        override val valueType: TypeToken<ProceduralEntry> = tokenOf<ProceduralEntry>()
         val defaultBadge : Badge = Badge.Init
 
-        private val entryOptions= buildOption(RowOptions){
+        override val valueType: TypeToken<ProceduralEntry> = tokenOf<ProceduralEntry>()
+
+        private val entryOptions = buildOption(RowOptions){
             renderBorders = false
             useId(ProceduralRecord.ProceduralTemplate.Entry)
         }
 
         private val resultOption = buildOption(Options){
             useSourceFormatting = true
+            useForKey = "Result :"
         }
 
         val template: PrettyGrid<ProceduralEntry> = buildGrid  {
@@ -149,6 +153,7 @@ class ProceduralEntry(
                 add(ProceduralEntry::stepResult, resultOption)
             }
             buildListRow(ProceduralEntry::logRecords, RowPresets.BulletList){
+
                 computed(StructuredLoggable::text){
                     it.colorize(Colour.YellowBright)
                 }

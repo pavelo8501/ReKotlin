@@ -38,7 +38,8 @@ interface Templated<T : Any> : PrettyBuilder, TokenFactory{
         builder: GridContainer<T>.() -> Unit
     ): PrettyGrid<T> {
         val container = GridContainer(valueType, RowOptions().useId(rowId) )
-        return container.applyBuilder(builder)
+        builder.invoke(container)
+        return container.initGrid()
     }
 
     fun buildRow(
@@ -46,7 +47,8 @@ interface Templated<T : Any> : PrettyBuilder, TokenFactory{
         builder: RowContainer<T>.()-> Unit
     ): PrettyRow<T> {
         val container = RowContainer<T>(valueType, PrettyHelper.toRowOptions(rowOptions))
-        return container.applyBuilder(builder)
+        builder.invoke(container)
+        return container.initRow()
     }
 }
 
@@ -55,6 +57,7 @@ inline fun <reified T: Any> Templated<T>.buildRow(
     noinline builder: RowContainer<T>.()-> Unit
 ): PrettyRow<T> {
     val container = RowContainer<T>(TypeToken.create<T>(), PrettyHelper.toRowOptions(rowOptions))
-    return container.applyBuilder(builder)
+    builder.invoke(container)
+    return container.initRow()
 }
 

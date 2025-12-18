@@ -4,8 +4,10 @@ import po.misc.callbacks.CallableEventBase
 import po.misc.callbacks.context_signal.ContextSignal
 import po.misc.callbacks.context_signal.contextSignalOf
 import po.misc.callbacks.signal.Signal
+import po.misc.callbacks.signal.SignalOptions
 import po.misc.callbacks.signal.signalOf
 import po.misc.context.tracable.TraceableContext
+import po.misc.data.PrettyPrint
 import po.misc.data.TextBuilder
 import po.misc.functions.NoResult
 import po.misc.functions.Throwing
@@ -21,6 +23,21 @@ sealed class ReceiverLoaderBase<T: Any,  V: Any>(
    val hostName: String,
    val typeToken: TypeToken<T>,
 ): TraceableContext, TextBuilder {
+
+    class ReceiverLoaderData(
+        private val loader: ReceiverLoaderBase<*, *>
+    ): PrettyPrint {
+        val name: String = loader.hostName
+        val hostResolvedData: Signal.SignalData = loader.hostResolved.info()
+
+        override val formattedString: String
+            get() = buildString {
+                appendLine(name)
+                appendLine(hostResolvedData.formattedString)
+            }
+
+        override fun toString(): String = "ReceiverLoaderData[$loader]"
+    }
 
     internal var propertyBacking: KProperty1<T, V>? = null
     val property: KProperty1<T, V> get() {
@@ -41,6 +58,7 @@ sealed class ReceiverLoaderBase<T: Any,  V: Any>(
         protected set
 
     abstract val valueResolved: ContextSignal<V, Unit, Unit>
+    abstract val hostResolved: Signal<T, Unit>
 
     internal inline fun <reified TH: Throwable> makeThrow(message: String): Nothing{
         val throwableClass = TH::class
@@ -105,6 +123,7 @@ sealed class ReceiverLoaderBase<T: Any,  V: Any>(
         if(other.hasProvider){
             providerBacking = other.providerBacking
         }
+        other.hostResolved.relay(hostResolved, CallableEventBase.RelayStrategy.COPY)
     }
 
     fun initValueFrom(other: ReceiverLoaderBase<*, V>) {
@@ -113,10 +132,18 @@ sealed class ReceiverLoaderBase<T: Any,  V: Any>(
             propertyBacking = castedProperty
         }
         if(other.typeToken == typeToken && other.hasProvider){
-            val castedProvider = other.providerBacking?.safeCast<() -> V>()
-            providerBacking = castedProvider
+           other.safeCast<ReceiverLoaderBase<T, V>>()?.let {castedOther->
+               providerBacking = castedOther.providerBacking
+               castedOther.hostResolved.relay(hostResolved, CallableEventBase.RelayStrategy.COPY)
+           }
+           // val castedProvider = other.providerBacking?.safeCast<() -> V>()
+           // providerBacking = castedProvider
         }
         other.valueResolved.relay(valueResolved, CallableEventBase.RelayStrategy.COPY)
+    }
+
+    fun info():ReceiverLoaderData{
+        return ReceiverLoaderData(this)
     }
 }
 
@@ -127,12 +154,18 @@ class ValueLoader<T: Any, V: Any>(
 ):ReceiverLoaderBase<T, V>(hostName, typeToken){
 
     override val valueResolved: ContextSignal<V, Unit, Unit> = contextSignalOf(valueToken)
+    override val hostResolved: Signal<T, Unit> = signalOf(typeToken, NoResult, SignalOptions("ValueLoader of $hostName", this))
 
     override val canLoadValue: Boolean get() = hasProperty || hasProvider
 
     override fun valueResolved(value: V){
         valueResolved.trigger(value)
     }
+
+    fun notifyResolved(receiver:T){
+        hostResolved.trigger(receiver)
+    }
+
     fun setProperty(property: KProperty1<T, V>){
         propertyBacking = property
     }
@@ -141,12 +174,14 @@ class ValueLoader<T: Any, V: Any>(
     }
 
     fun resolveValue(receiver:T):V?{
+        notifyResolved(receiver)
         val value = resolveProvider()
         if(value != null){
             return value
         }
         return resolveProperty(receiver)
     }
+
     fun resolveValue(receiver:T, throwing: Throwing):V{
         val value = resolveValue(receiver)
         if(value != null){
@@ -166,6 +201,8 @@ class ListValueLoader<T: Any, V: Any>(
 ): ReceiverLoaderBase<T, List<V>>(hostName, typeToken) {
     
     override val valueResolved: ContextSignal<List<V>, Unit, Unit> = contextSignalOf(valueToken.asList())
+    override val hostResolved: Signal<T, Unit> = signalOf(typeToken, NoResult)
+
     override val canLoadValue: Boolean get() = hasProperty || hasProvider
     override fun valueResolved(value: List<V>){
         valueResolved.trigger(value)
@@ -178,21 +215,26 @@ class ListValueLoader<T: Any, V: Any>(
         providerBacking = provider
     }
 
-    fun resolveValue(receiver:T):List<V>{
+    private fun resolveValueOrNull(receiver:T):List<V>?{
+        hostResolved.trigger(receiver)
         if(hasProvider){
             return provider.invoke()
         }
         if(hasProperty){
             return property.get(receiver)
         }
-        return emptyList()
+        return null
     }
+
+    fun resolveValue(receiver:T):List<V>{
+        val value = resolveValueOrNull(receiver)
+        return value?: emptyList()
+    }
+
     fun resolveValue(receiver:T, throwing: Throwing):List<V>{
-        if(hasProvider){
-            return provider.invoke()
-        }
-        if(hasProperty){
-            return property.get(receiver)
+        val value =  resolveValueOrNull(receiver)
+        if(value != null){
+            return value
         }
         val message = "Impossible to resolve value of receiver type ${typeToken.simpleName}"
         makeThrow<IllegalStateException>(message)

@@ -1,20 +1,19 @@
 package po.misc.data.pretty_print.grid
 
-import po.misc.callbacks.context_signal.ContextSignal
-import po.misc.callbacks.context_signal.contextSignalOf
 import po.misc.callbacks.signal.Signal
 import po.misc.callbacks.signal.signalOf
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.pretty_print.PrettyGrid
+import po.misc.data.pretty_print.PrettyGridBase
 import po.misc.data.pretty_print.RenderableElement
-import po.misc.data.pretty_print.parts.GridKey
-import po.misc.data.pretty_print.parts.GridSource
+import po.misc.data.pretty_print.parts.grid.GridKey
 import po.misc.data.pretty_print.parts.ListValueLoader
 import po.misc.data.pretty_print.parts.ValueLoader
 import po.misc.data.pretty_print.parts.grid.GridParams
 import po.misc.data.pretty_print.parts.rows.RowParams
 import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.PrettyValueGrid
+import po.misc.data.pretty_print.parts.grid.RenderableMap
 import po.misc.data.pretty_print.rows.RowContainer
 import po.misc.data.pretty_print.rows.copyRow
 import po.misc.functions.LambdaOptions
@@ -30,33 +29,37 @@ sealed class GridContainerBase<T: Any, V: Any>(
     val type: TypeToken<V>,
 ): TokenFactory, TraceableContext{
 
-    val singleLoader: ValueLoader<T, V> = ValueLoader("GridContainerBase", hostType, type)
-    val listLoader: ListValueLoader<T, V> = ListValueLoader("GridContainerBase", hostType, type)
 
-    internal val gridMap: MutableMap<GridKey, PrettyGrid<*>> = mutableMapOf()
+    protected abstract val grid : PrettyGridBase<T, V>
 
-    protected val rowsBacking: MutableList<PrettyRow<V>> = mutableListOf()
-    protected var renderMapBacking: MutableMap<GridKey, RenderableElement<T>> = mutableMapOf()
-    val rows: List<PrettyRow<V>> get() = rowsBacking
-    val rowsSize : Int get() = rows.size
+    val singleLoader: ValueLoader<T, V> get() = grid.singleLoader
+    val listLoader: ListValueLoader<T, V> get() = grid.listLoader
 
-    val gridsCount: Int get() = gridMap.size
-    val renderCount: Int get() = renderMapBacking.size
-    val size: Int get() = gridsCount + renderCount + rowsSize
 
-    @PublishedApi
-    internal fun addRenderBlock(newRenderBlock: RenderableElement<T>):GridKey{
-        val key =  GridKey(size, GridSource.Renderable)
-        renderMapBacking[key] = newRenderBlock
-        return key
-    }
+  //  internal val gridMap: MutableMap<GridKey, PrettyGrid<*>> = mutableMapOf()
+   // protected val rowsBacking: MutableList<PrettyRow<V>> = mutableListOf()
+    //protected var renderMapBacking: MutableMap<GridKey, RenderableElement<T>> = mutableMapOf()
+    abstract val rows: List<PrettyRow<V>>
+   // val gridsCount: Int get() = gridMap.size
+   // val renderCount: Int get() = renderMapBacking.size
+    val rowSize: Int get() = rows.size
 
-    @PublishedApi
-    internal fun <T2: Any> addGridBlock(newRenderBlock: PrettyGrid<T2>):GridKey{
-        val key =  GridKey(size, GridSource.Grid)
-        gridMap[key] = newRenderBlock
-        return key
-    }
+
+//    @PublishedApi
+//    internal fun addRenderBlock(newRenderBlock: RenderableElement<T>):GridKey{
+//        val key =  GridKey(size, GridSource.Renderable)
+//        renderMapBacking[key] = newRenderBlock
+//        return key
+//    }
+
+//    @PublishedApi
+//    internal fun <T2: Any> addGridBlock(newRenderBlock: PrettyGrid<T2>):GridKey{
+//        val key =  GridKey(size, GridSource.Grid)
+//        gridMap[key] = newRenderBlock
+//        return key
+//    }
+
+    abstract fun addRow(row: PrettyRow<V>): GridKey?
 
     @PublishedApi
     internal fun addRows(rows: List<PrettyRow<V>>){
@@ -87,16 +90,6 @@ sealed class GridContainerBase<T: Any, V: Any>(
     fun beforeGridRender(callback: (GridParams) -> Unit): Unit =  beforeGridRender.onSignal(callback)
     fun onTemplateResolved(callback: (PrettyValueGrid<T, *>) -> Unit): Unit =  templateResolved.onSignal(callback)
 
-    fun addContainer(rowContainer: RowContainer<V>){
-        singleLoader.initValueFrom(rowContainer.singleLoader)
-        listLoader.initValueFrom(rowContainer.listLoader)
-        addRow(rowContainer.createRow())
-    }
-
-    open fun addRow(row: PrettyRow<V>): GridKey?{
-        rowsBacking.add(row)
-        return null
-    }
     fun setProperty(property: KProperty1<T, V>){
         if(type.isCollection){
             if(!property.isReturnTypeList){

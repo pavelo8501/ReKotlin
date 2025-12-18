@@ -10,10 +10,8 @@ import po.misc.data.pretty_print.rows.buildPrettyRow
 import po.misc.data.styles.Colour
 import po.misc.data.styles.TextStyle
 import po.misc.data.styles.colorize
-import po.misc.types.token.TypeToken
-import po.misc.types.token.tokenOf
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
-import po.test.misc.data.pretty_print.setup.PrettyTestBase.PrintableRecord
+import po.test.misc.data.pretty_print.setup.PrintableRecord
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue

@@ -25,7 +25,9 @@ sealed interface StepResult: PrettyPrint{
         override val formattedString: String get() = text.colorize(Colour.Green)
     }
 
-    class Fail: StepResult{
+    class Fail(
+        val reason: String? = null,
+    ): StepResult{
         override val ok: Boolean = false
         override val text: String = "Fail"
         override val formattedString: String get() = text.colorize(Colour.Red)
@@ -42,11 +44,11 @@ sealed interface StepResult: PrettyPrint{
                 warnings.firstOrNull()?.formattedString?:""
             }
         }
+
+
         override val ok: Boolean = false
         override val text: String = "Warning [ $warningText ]"
-        
-        override val formattedString: String get() = "W[${warnings.size}]".colorize(Colour.Yellow)
-
+        override val formattedString: String get() = "Warning[${warnings.size}]".colorize(Colour.YellowBright)
         override fun toString(): String = "StepResult<Warning>"
 
     }

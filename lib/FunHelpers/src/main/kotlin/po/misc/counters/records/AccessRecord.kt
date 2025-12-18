@@ -30,6 +30,7 @@ data class AccessRecord <E: Enum<E>>(
 
     private val success = ColorModifier.ColourCondition("Success", Colour.GreenBright)
     private val failure = ColorModifier.ColourCondition("Failure", Colour.RedBright)
+
     private val dynamicCondition = ColorModifier {
         if (recordSuccess) Colour.GreenBright
         else Colour.RedBright

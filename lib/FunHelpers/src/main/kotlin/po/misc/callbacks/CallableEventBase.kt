@@ -48,7 +48,7 @@ abstract class CallableEventBase<T, T1,  R>(): Component {
     protected open var eventName:String = "CallableEventBase"
         set(value) {
             field = value
-            journal.journalName = "${value.firstCharUppercase()} Event journal"
+            journal.updateName(value.firstCharUppercase())
         }
 
     var listenersMap: LambdaMap<T, T1, R> = LambdaMap(this)

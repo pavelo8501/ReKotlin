@@ -9,6 +9,7 @@ import po.misc.data.pretty_print.parts.CommonCellOptions
 import po.misc.data.pretty_print.parts.Options
 import po.misc.data.pretty_print.parts.PrettyHelper
 import po.misc.data.pretty_print.parts.RowOptions
+import po.misc.data.pretty_print.parts.ValueLoader
 import po.misc.data.strings.appendGroup
 import po.misc.types.token.TypeToken
 import po.misc.types.token.tokenOf
@@ -21,20 +22,33 @@ class RowContainer<T: Any>(
     options: RowOptions
 ): RowContainerBase<T, T>(type, type, options) {
 
-    @PublishedApi
-    internal fun applyBuilder(builder: RowContainer<T>.() -> Unit): PrettyRow<T> {
-        builder.invoke(this)
-        return  createRow()
+    override val prettyRow: PrettyRow<T> = PrettyRow(type, options)
+
+
+//    @PublishedApi
+//    internal fun applyBuilder(builder: RowContainer<T>.() -> Unit): PrettyRow<T> {
+//        builder.invoke(this)
+//        return  initRow()
+//    }
+
+//    @PublishedApi
+//    internal fun applyParametrizedBuilder(
+//        parameter: T,
+//        builder: RowContainer<T>.(T) -> Unit
+//    ): PrettyRow<T> {
+//        builder.invoke(this, parameter)
+//        return  initRow()
+//    }
+
+    internal fun initSignals(singleLoader: ValueLoader<T, T>){
+        singleLoader.valueResolved.onSignal(this){
+            if(renderConditions.isNotEmpty()){
+               val result = renderConditions.first().validate(this)
+               prettyRow.enabled = result
+            }
+        }
     }
 
-    @PublishedApi
-    internal fun applyParametrizedBuilder(
-        parameter: T,
-        builder: RowContainer<T>.(T) -> Unit
-    ): PrettyRow<T> {
-        builder.invoke(this, parameter)
-        return  createRow()
-    }
 
     fun addKeyless(
         prop: KProperty1<T, Any>,

@@ -9,7 +9,6 @@ open class ColorModifier(
     vararg val conditions: ColourCondition
 ): TextModifier {
 
-
     override val formatter : Formatter = Formatter.ColorModifier
 
     var provider: (()-> Colour?)? = null

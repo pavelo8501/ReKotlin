@@ -7,9 +7,12 @@ import po.misc.collections.lambda_map.toCallable
 import po.misc.context.component.Component
 import po.misc.context.tracable.TraceableContext
 import po.misc.context.component.ComponentID
+import po.misc.counters.DataRecord
+import po.misc.data.PrettyPrint
 import po.misc.data.logging.models.LogMessage
 import po.misc.data.logging.processor.LogProcessor
 import po.misc.data.logging.processor.createLogProcessor
+import po.misc.data.strings.appendGroup
 import po.misc.functions.LambdaOptions
 import po.misc.functions.LambdaType
 import po.misc.functions.Suspended
@@ -157,10 +160,30 @@ class Signal<T: Any, R>(
    val options: SignalOptions? = null
 ): CallableEventBase<T, Unit,  R>(), SignalBuilder<T, R>{
 
+    class SignalData(
+        private val signal :Signal<*, *>
+    ): PrettyPrint{
+        val name : String = signal.signalName
+
+        val signalsCount: Int = signal.listenersMap.lambdaMap.size
+        val suspendedCount : Int = signal.listenersMap.suspendedMap.size
+        val subscriptionsCount : Int = signalsCount + suspendedCount
+        val journalRecords : List<DataRecord> = signal.journal.records
+
+        override val formattedString: String
+            get() = buildString {
+                appendGroup("SignalData[$name", "]", ::signalsCount, ::suspendedCount, ::subscriptionsCount)
+            }
+
+        override fun toString(): String  = "SignalData[$name]"
+
+    }
+
     override var signalName:String = "Signal"
         set(value) {
-            field = value
-            eventName = value
+            val signalName = "Signal of $value"
+            field = signalName
+            eventName = signalName
         }
 
     override var componentID: ComponentID = ComponentID(this, setName =  signalName)
@@ -294,5 +317,10 @@ class Signal<T: Any, R>(
     fun initializeBy(other: Signal<T, R>){
         listenersMap = other.listenersMap
     }
+
+    fun info(): SignalData{
+        return SignalData(this)
+    }
+
     override fun toString(): String = signalName
 }

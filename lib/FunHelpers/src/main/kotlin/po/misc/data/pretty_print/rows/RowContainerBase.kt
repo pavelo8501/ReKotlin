@@ -2,6 +2,8 @@ package po.misc.data.pretty_print.rows
 
 import po.misc.callbacks.signal.Signal
 import po.misc.callbacks.signal.signalOf
+import po.misc.callbacks.validator.ValidityCondition
+import po.misc.context.tracable.TraceableContext
 import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.cells.ComputedCell
 import po.misc.data.pretty_print.cells.PrettyCellBase
@@ -27,10 +29,13 @@ sealed class RowContainerBase<T: Any, V: Any>(
     val hostType: TypeToken<T>,
     val type: TypeToken<V>,
     val options: RowOptions
-): TokenFactory{
+): TokenFactory, TraceableContext{
+
+    protected abstract val prettyRow: PrettyRow<V>
 
     internal val prettyCellsBacking = mutableListOf<PrettyCellBase>()
     internal val cells : List<PrettyCellBase> get() = prettyCellsBacking
+    internal val renderConditions = mutableListOf<ValidityCondition<T>>()
 
     val singleLoader: ValueLoader<T, V> = ValueLoader("RowContainer", hostType, type)
     val listLoader: ListValueLoader<T, V> = ListValueLoader("RowContainer", hostType, type)
@@ -64,16 +69,14 @@ sealed class RowContainerBase<T: Any, V: Any>(
         listLoader.setProperty(property)
     }
 
-    fun createRow(): PrettyRow<V> {
-        val row = PrettyRow(type, options)
-
+    fun initRow(): PrettyRow<V> {
         cells.forEach {
-            it.setRow(row)
+            it.setRow(prettyRow)
         }
-        row.setCells(cells)
-        row.beforeRowRender.initializeBy(beforeRowRender)
-
-        return row
+        prettyRow.setCells(cells)
+        prettyRow.renderConditions.addAll(renderConditions.toList())
+        prettyRow.beforeRowRender.initializeBy(beforeRowRender)
+        return prettyRow
     }
 
     fun add(
@@ -127,8 +130,6 @@ sealed class RowContainerBase<T: Any, V: Any>(
         val cell = StaticCell().applyOptions(options).buildText(builderAction)
         return storeCell(cell)
     }
-
-
 
     fun beforeRowRender(callback: (RowParams<V>) -> Unit): Unit = beforeRowRender.onSignal(callback)
 

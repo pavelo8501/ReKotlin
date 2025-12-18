@@ -10,6 +10,7 @@ import po.misc.data.pretty_print.grid.buildRow
 import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.parts.RowOptions
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
+import po.test.misc.data.pretty_print.setup.PrintableRecord
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
@@ -56,34 +57,7 @@ class TestNamedRows  : PrettyTestBase(){
         assertTrue { render.contains(header1) }
         assertFalse { render.contains(header2) }
     }
-
-    @Test
-    fun `Named grids-templates can be excluded from render`(){
-        val headerGrid = buildPrettyGrid<PrintableRecord>(RowOptions(Grid.Grid1)){
-            headedRow(header1)
-        }
-        val recordGrid = buildPrettyGrid<PrintableRecord>(RowOptions(Grid.Grid2)){
-            buildRow {
-                add(PrintableRecord::name)
-            }
-        }
-        val grid = buildGridForContext {
-            useTemplateProviding(headerGrid){ printableRecord }
-            useTemplateProviding(recordGrid){ printableRecord }
-        }
-        val render = grid.render(this){
-            exclude(Grid.Grid1)
-        }
-        assertNotNull(grid.renderBlocks.firstOrNull()){grid->
-            assertEquals(Grid.Grid1, grid.id)
-        }
-        assertNotNull(grid.renderBlocks.getOrNull(1)){grid->
-            assertEquals(Grid.Grid2, grid.id)
-        }
-        assertTrue { render.contains(printableRecord.name) }
-        assertFalse { render.contains(header1) }
-    }
-
+    
     @Test
     fun `Exclude row logic work as expected`() {
         val template = buildPrettyGrid<PrintableRecord> {

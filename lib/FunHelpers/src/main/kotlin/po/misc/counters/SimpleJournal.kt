@@ -5,8 +5,11 @@ import po.misc.data.styles.SpecialChars
 import po.misc.exceptions.throwableToText
 
 class SimpleJournal(
-    var journalName :String,
+    private var hostName :String
 ) : PrettyPrint {
+
+
+    val journalName :String = "Journal of $hostName"
 
     val errors: MutableList<Throwable> get() = mutableListOf()
     internal val messagesBacking: MutableList<DataRecord> = mutableListOf()
@@ -16,21 +19,23 @@ class SimpleJournal(
 
     override val formattedString: String get() = "$journalName${SpecialChars.NEW_LINE}${formattedRecords}"
 
-    fun add(record: DataRecord):SimpleJournal {
+    fun add(record: DataRecord):DataRecord {
         messagesBacking.add(record)
-        return this
+        return record
     }
 
-    fun record(message: String, type: DataRecord.MessageType):SimpleJournal = add(DataRecord(message, type))
+    fun record(message: String, type: DataRecord.MessageType):DataRecord = add(DataRecord(message, type))
 
-    fun info(message: String):SimpleJournal = add(DataRecord(message, DataRecord.MessageType.Info))
-    fun success(message: String):SimpleJournal =  add(DataRecord(message, DataRecord.MessageType.Success))
-    fun warning(message: String):SimpleJournal =  add(DataRecord(message, DataRecord.MessageType.Warning))
-    fun register(th : Throwable): SimpleJournal{
-        messagesBacking.add(DataRecord(th.throwableToText(), DataRecord.MessageType.Failure))
+    fun info(message: String):DataRecord = add(DataRecord(message, DataRecord.MessageType.Info))
+    fun success(message: String):DataRecord =  add(DataRecord(message, DataRecord.MessageType.Success))
+    fun warning(message: String):DataRecord =  add(DataRecord(message, DataRecord.MessageType.Warning))
+    fun register(th : Throwable): DataRecord{
+        val record = DataRecord(th.throwableToText(), DataRecord.MessageType.Failure)
+        messagesBacking.add(record)
         errors.add(th)
-        return this
+        return record
     }
+
     fun submit(result: Boolean, message: String? = null): SimpleJournal{
         if(message != null){
             if(result){
@@ -39,6 +44,11 @@ class SimpleJournal(
                 record(message, DataRecord.MessageType.Failure)
             }
         }
+        return this
+    }
+
+    fun updateName(name:String):SimpleJournal{
+        hostName = name
         return this
     }
 

@@ -33,7 +33,6 @@ class ComputedCell<T: Any, V: Any>(
         singleLoader.setProvider(provider)
     }
 
-
     val plainKey: Boolean get() = row?.options?.plainKey?: cellOptions.plainKey
     var keyText: String = ""
         internal set
@@ -72,13 +71,13 @@ class ComputedCell<T: Any, V: Any>(
 
     fun Colour.buildCondition(condition : T.()-> Boolean):DynamicColourModifier<T>{
         val colourCondition = ColourCondition<T>(this, condition)
-        val dynamicColour =  textFormatter2[Formatter.ColorModifier]?.safeCast<DynamicColourModifier<T>>()
+        val dynamicColour =  textFormatter[Formatter.ColorModifier]?.safeCast<DynamicColourModifier<T>>()
         return if(dynamicColour != null){
             dynamicColour.addCondition(colourCondition)
         }else{
             val dynamicColour = DynamicColourModifier<T>(typeToken)
             dynamicColour.addCondition(colourCondition)
-            textFormatter2.addFormatter(dynamicColour)
+            textFormatter.addFormatter(dynamicColour)
             dynamicColour
         }
     }
@@ -89,11 +88,11 @@ class ComputedCell<T: Any, V: Any>(
         }else{
            resolved.stringify().formatedString
        }
-       return textFormatter2.style(text)
+       return textFormatter.style(text)
     }
 
     private fun renderValue(resolved: V, receiver:T):String{
-        val modified = textFormatter2.conditionalStyle(resolved.toString(), receiver, typeToken)
+        val modified = textFormatter.conditionalStyle(resolved.toString(), receiver, typeToken)
         if(modified != null){
             return modified
         }
@@ -102,7 +101,7 @@ class ComputedCell<T: Any, V: Any>(
         }else{
             resolved.stringify().formatedString
         }
-        return textFormatter2.style(text)
+        return textFormatter.style(text)
     }
 
     private fun reasonRenderValue(receiver:T, resolved: V, builderResult: Any):String{

@@ -43,25 +43,6 @@ class KeyedCell<T: Any>(
         internal set
     var property: KProperty1<T, Any?>? = null
 
-
-
-    init {
-        textFormatter.formatter = { text, _ ->
-            text
-        }
-        dynamicTextStyler.formatter = { text, _, ->
-            var keyText = ""
-            if(cellOptions.renderKey){
-                keyText = styleKey()
-            }
-            val useStyle = valueStyle.textStyle
-            val useColour = valueStyle.colour
-            val useBackgroundColour = valueStyle.backgroundColour
-            val valueStyle = TextStyler.style(text, applyColourIfExists = false, useStyle, useColour, useBackgroundColour)
-            "$keyText $valueStyle"
-        }
-    }
-
     private fun styleKey(): String {
         if(!cellOptions.renderKey){
             return ""
@@ -105,15 +86,17 @@ class KeyedCell<T: Any>(
     override fun render(formatted: FormattedPair, commonOptions: CommonCellOptions?): String{
         val options = PrettyHelper.toOptions(commonOptions, cellOptions)
         val usedText = formatted.formatedText
-        val modified = staticModifiers.modify(usedText)
-        val formatted = compositeFormatter.format(modified, this)
+//        val modified = staticModifiers.modify(usedText)
+//        val formatted = compositeFormatter.format(modified, this)
+        val formatted =   textFormatter.style(usedText)
         val final = justifyText(formatted,  options)
         return final
     }
     override fun render(content: String, commonOptions: CommonCellOptions?): String {
         val options = PrettyHelper.toOptions(commonOptions, cellOptions)
-        val modified = staticModifiers.modify(content)
-        val formatted = compositeFormatter.format(modified, this)
+//        val modified = staticModifiers.modify(content)
+//        val formatted = compositeFormatter.format(modified, this)
+        val formatted =   textFormatter.style(content)
         val final = justifyText(formatted,  options)
         return final
     }
@@ -126,7 +109,7 @@ class KeyedCell<T: Any>(
             if(cellOptions.useSourceFormatting){
                 property?.get(receiver).stringify().formatedText
             }else{
-                textFormatter2.style(property?.get(receiver).stringify().text)
+                textFormatter.style(property?.get(receiver).stringify().text)
             }
         }
         val text = if (cellOptions.renderKey) {

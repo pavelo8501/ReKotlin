@@ -5,23 +5,6 @@ import po.misc.data.styles.applyColour
 import po.misc.types.token.TypeToken
 
 
-interface Condition<T>{
-    val colour: Colour
-    fun check(value:T):Boolean
-}
-
-
-//class DynamicColourCondition(
-//    override val colour: Colour,
-//    val condition : String.()-> Boolean
-//): Condition<String>{
-//
-//    override fun check(value:String):Boolean{
-//        return condition.invoke(value)
-//    }
-//}
-
-
 /**
  * A single dynamic colour rule used by [DynamicColourModifier].
  *
@@ -37,10 +20,10 @@ interface Condition<T>{
  * ```
  */
 class ColourCondition<T>(
-    override val colour: Colour,
+    val colour: Colour,
     val condition : T.()-> Boolean
-): Condition<T>{
-    override fun check(value:T):Boolean{
+){
+    fun check(value:T):Boolean{
         return condition.invoke(value)
     }
 }

@@ -6,6 +6,7 @@ import po.misc.data.pretty_print.parts.Options
 import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.parts.RowOptions
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
+import po.test.misc.data.pretty_print.setup.PrintableRecord
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 

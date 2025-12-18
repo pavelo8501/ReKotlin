@@ -16,6 +16,7 @@ import po.misc.data.logging.LoggableTemplate
 import po.misc.data.logging.log_subject.WarningSubject
 import po.misc.data.logging.processor.LogHandler
 import po.misc.data.logging.processor.LogProcessor
+import po.misc.exceptions.throwableToText
 import po.misc.functions.Suspended
 import po.misc.types.k_class.simpleOrAnon
 import kotlin.reflect.KClass
@@ -80,7 +81,7 @@ class ProceduralFlow<H: Component>(
         val entry: ProceduralEntry =  createEntry(stepName, badge)
         proceduralRecord.registerEntry(entry)
         val result =  block.invoke(host, this)
-        val stepResult =  toStepResult(entry, result, tolerance)
+        val stepResult =  toStepResult(result, tolerance)
         entry.stepResult = stepResult
         return Pair(stepResult, result)
     }
@@ -94,7 +95,7 @@ class ProceduralFlow<H: Component>(
     ): Pair<StepResult, R> {
         val entry: ProceduralEntry =  createEntry(stepName, badge)
         val result =  block.invoke(host, this)
-        val stepResult =  toStepResult(entry, result, tolerance)
+        val stepResult =  toStepResult(result, tolerance)
         entry.stepResult = stepResult
         return Pair(stepResult, result)
     }
@@ -118,7 +119,7 @@ class ProceduralFlow<H: Component>(
         result: R? = null,
         vararg tolerance: StepTolerance
     ): Boolean {
-        val stepResult = toStepResult(entry, result)
+        val stepResult = toStepResult(result)
         entry.stepResult = stepResult
         return true
     }
@@ -130,7 +131,7 @@ class ProceduralFlow<H: Component>(
     ): Boolean {
         val found =  findStep(name)
         if(found != null){
-            val stepResult = toStepResult(found, result)
+            val stepResult = toStepResult(result)
             found.stepResult = stepResult
             return true
         }else{
@@ -192,7 +193,7 @@ class ProceduralFlow<H: Component>(
             badge: Badge? = null
         ): ProceduralEntry{
             val entry = ProceduralEntry(loggable, result = null, stepBadge =  badge)
-            val result = toStepResult(entry, Unit)
+            val result = toStepResult(Unit)
             entry.stepResult = result
             return entry
         }
@@ -227,54 +228,45 @@ class ProceduralFlow<H: Component>(
                 null
             }
         }
-        private fun boolResult(result: Boolean, tolerances: Collection<StepTolerance>, warnings: List<Loggable>?): StepResult{
+
+        private val failReason: (String)-> String = {
+            "Step resulted with $it. Not allowed by tolerance list"
+        }
+
+        private fun boolResult(result: Boolean, tolerances: Collection<StepTolerance>): StepResult{
             val allowed = result || StepTolerance.ALLOW_FALSE in tolerances
             return if (allowed) {
-                if(warnings != null){
-                    StepResult.Warning(warnings)
-                }else{
-                    StepResult.OK()
-                }
+                StepResult.OK()
             }
-            else StepResult.Fail()
+            else StepResult.Fail(failReason("false"))
         }
-        private fun nullResult(tolerances: Collection<StepTolerance>, warnings: List<Loggable>?): StepResult{
+        private fun nullResult(tolerances: Collection<StepTolerance>): StepResult{
             return if(StepTolerance.ALLOW_NULL in tolerances) {
-                if(warnings != null){
-                    StepResult.Warning(warnings)
-                }else{
-                    StepResult.OK()
-                }
+                StepResult.OK()
             }
-            else StepResult.Fail()
+            else StepResult.Fail(failReason("null"))
         }
-        private fun listResult(result: List<*>, tolerances: Collection<StepTolerance>, warnings: List<Loggable>?):StepResult{
+        private fun listResult(result: List<*>, tolerances: Collection<StepTolerance>):StepResult{
            val allowed = result.isNotEmpty() || StepTolerance.ALLOW_EMPTY_LIST in tolerances
            return if (allowed) {
-                if(warnings != null){
-                    StepResult.Warning(warnings)
-                }else{
-                    StepResult.OK()
-                }
+               StepResult.OK()
             }
-            else StepResult.Fail()
+            else StepResult.Fail(failReason("empty list"))
         }
 
-        fun <R> toStepResult(entry: ProceduralEntry, result: R, tolerances: Collection<StepTolerance>): StepResult {
-            val warnings = containsWarnings(entry)
+        fun <R> toStepResult(result: R, tolerances: Collection<StepTolerance>): StepResult {
+
             return when (result) {
-                is List<*> -> listResult(result, tolerances, warnings)
-                is Boolean -> boolResult(result, tolerances, warnings)
-                null -> nullResult(tolerances, warnings)
-                else -> {
-                    if(warnings != null) StepResult.Warning(warnings)
-                    else StepResult.OK()
-                }
+                is List<*> -> listResult(result, tolerances)
+                is Boolean -> boolResult(result, tolerances)
+                is Throwable -> StepResult.Fail(result.throwableToText())
+                null -> nullResult(tolerances)
+                else -> StepResult.OK()
             }
         }
 
-        fun <R> toStepResult(entry: ProceduralEntry, result: R, vararg tolerances: StepTolerance): StepResult =
-            toStepResult(entry, result, tolerances.toList())
+        fun <R> toStepResult(result: R, vararg tolerances: StepTolerance): StepResult =
+            toStepResult(result, tolerances.toList())
     }
 }
 

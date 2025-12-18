@@ -3,11 +3,9 @@ package po.misc.data.pretty_print.rows
 import po.misc.collections.asList
 import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.cells.StaticCell
-import po.misc.data.pretty_print.parts.CommonRowOptions
-import po.misc.data.pretty_print.parts.GridKey
+import po.misc.data.pretty_print.parts.grid.GridKey
 import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.parts.PrettyDSL
-import po.misc.data.pretty_print.parts.PrettyHelper
 import po.misc.data.pretty_print.parts.RowID
 import po.misc.data.pretty_print.parts.RowOptions
 import po.misc.data.pretty_print.parts.RowPresets
@@ -44,7 +42,8 @@ interface RowBuilderScope<V: Any> {
         builder: RowContainer<V>.() -> Unit
     ){
         val container = createRowContainer(type, RowOptions(rowId, orientation))
-        val row =  container.applyBuilder(builder)
+        builder.invoke(container)
+        val row =  container.initRow()
         addRow(row)
     }
 
@@ -54,7 +53,8 @@ interface RowBuilderScope<V: Any> {
         builder: RowContainer<V>.() -> Unit
     ){
         val container = createRowContainer(type, RowOptions(orientation))
-        val row =  container.applyBuilder(builder)
+        builder.invoke(container)
+        val row =  container.initRow()
         addRow(row)
     }
 }

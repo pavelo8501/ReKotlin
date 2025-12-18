@@ -28,6 +28,14 @@ fun MutableList<String>.addNotBlank(string: String){
     }
 }
 
+fun MutableList<String>.addNotBlank(string: String, ifBlank: () -> Unit){
+    if(string.isNotBlank()){
+        add(string)
+    }else{
+        ifBlank.invoke()
+    }
+}
+
 
 /**
  * Attempts to insert the given [value] under [key] if the key is not already present.
@@ -57,6 +65,15 @@ fun <K: Any, V: Any>  MutableMap<K, V>.putIfAbsentOr(key: K, value:V, failureAct
     } else {
 
         return failureAction.invoke(existentValue)
+    }
+}
+
+
+fun <K: Any, V: Any>  MutableMap<K, V>.putOverwriting(key: K, value:V, overwrittenAction: (V)-> Unit){
+    val existentValue = get(key)
+    put(key, value)
+    if (existentValue != null) {
+        overwrittenAction.invoke(existentValue)
     }
 }
 

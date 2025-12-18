@@ -8,6 +8,8 @@ import po.misc.data.pretty_print.parts.grid.GridParams
 import po.misc.data.pretty_print.rows.buildPrettyRow
 import po.test.misc.data.TestPrintableTemplate
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
+import po.test.misc.data.pretty_print.setup.PrintableElement
+import po.test.misc.data.pretty_print.setup.PrintableRecord
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

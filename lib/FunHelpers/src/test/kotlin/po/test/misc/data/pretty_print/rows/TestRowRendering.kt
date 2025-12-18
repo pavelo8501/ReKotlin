@@ -13,6 +13,7 @@ import po.misc.data.pretty_print.rows.buildRowForContext
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
+import po.test.misc.data.pretty_print.setup.PrintableRecord
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs

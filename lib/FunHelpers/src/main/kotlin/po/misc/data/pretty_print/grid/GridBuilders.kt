@@ -26,7 +26,8 @@ internal fun <T: Any> buildGrid(
     val options = PrettyHelper.toRowOptions(rowOptions)
     val container = GridContainer(token, options)
     container.setProviders(provider, listProvider)
-    val grid = container.applyBuilder(builder)
+    builder.invoke(container)
+    val grid =  container.initGrid()
     return grid
 }
 
@@ -41,7 +42,9 @@ inline fun <reified T: Any> buildPrettyGrid(
     noinline builder: GridContainer<T>.() -> Unit
 ): PrettyGrid<T> {
     val container = GridContainer(TypeToken.create<T>(), RowOptions().useId(rowId) )
-    return container.applyBuilder(builder)
+    builder.invoke(container)
+     return container.initGrid()
+
 }
 
 inline fun <reified T: Any> buildPrettyGrid(
@@ -80,7 +83,8 @@ internal fun <T: Any, V: Any> buildValueGrid(
         val cont =   GridValueContainer(hostTypeToken, token, options)
         cont.setProviders(provider, listProvider) as GridValueContainer
     }
-    return  container.applyBuilder(builder)
+    builder.invoke(container)
+    return  container.initGrid()
 }
 
 
@@ -106,7 +110,8 @@ inline fun <reified T: Any, reified V: Any> buildPrettyListGrid(
     val type = TypeToken<V>(TokenOptions.ListType)
     val options = PrettyHelper.toRowOptions(rowOptions)
     val container = GridValueContainer(TypeToken.create<T>(), type, listProperty =  propertyList, options =  options)
-    return  container.applyBuilder(builder)
+    builder.invoke(container)
+    return  container.initGrid()
 }
 
 

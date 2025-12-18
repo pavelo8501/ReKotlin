@@ -5,6 +5,9 @@ import po.misc.data.pretty_print.grid.buildPrettyGrid
 import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.grid.buildPrettyListGrid
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
+import po.test.misc.data.pretty_print.setup.PrintableElement
+import po.test.misc.data.pretty_print.setup.PrintableRecord
+import po.test.misc.data.pretty_print.setup.PrintableRecordSubClass
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -48,14 +51,14 @@ class TestGridComposition : PrettyTestBase(){
             useTemplate(elementsGrid, PrintableRecord::elements)
         }
 
-        assertNotNull(grid.renderBlocks.firstOrNull()) { renderBlock ->
+        assertNotNull(grid.renderMap.renderables.firstOrNull()) { renderBlock ->
             assertIs<PrettyRow<PrintableRecord>>(renderBlock)
         }
-        assertNotNull(grid.renderBlocks.getOrNull(1)) { renderBlock ->
+        assertNotNull(grid.renderMap.renderables.getOrNull(1)) { renderBlock ->
             assertIs<PrettyValueGrid<PrintableRecord, PrintableRecordSubClass>>(renderBlock)
             assertNotNull(renderBlock.singleLoader.propertyBacking)
         }
-        assertNotNull(grid.renderBlocks.getOrNull(2)) { renderBlock ->
+        assertNotNull(grid.renderMap.renderables.getOrNull(2)) { renderBlock ->
             assertIs<PrettyValueGrid<PrintableRecord, PrintableElement>>(renderBlock)
             assertNotNull(renderBlock.listLoader.propertyBacking)
         }
@@ -66,7 +69,7 @@ class TestGridComposition : PrettyTestBase(){
         val grid = buildPrettyGrid<PrintableRecord> {
             useTemplate(subClassGrid, PrintableRecord::subClass)
         }
-        assertNotNull(grid.renderBlocks.firstOrNull()) { renderBlock ->
+        assertNotNull(grid.renderMap.renderables.firstOrNull()) { renderBlock ->
             assertIs<PrettyValueGrid<PrintableRecord, PrintableRecordSubClass>>(renderBlock)
             assertEquals(PrintableRecordSubClass::class, renderBlock.type.kClass)
             assertNotNull(renderBlock.singleLoader.propertyBacking)
@@ -79,7 +82,7 @@ class TestGridComposition : PrettyTestBase(){
         val grid = buildPrettyGrid<PrintableRecord> {
             useTemplate(elementGrid, PrintableRecord::elements)
         }
-        assertNotNull(grid.renderBlocks.firstOrNull()) { renderBlock ->
+        assertNotNull(grid.renderMap.renderables.firstOrNull()) { renderBlock ->
             assertIs<PrettyValueGrid<PrintableRecord, PrintableElement>>(renderBlock)
             assertNotNull(renderBlock.listLoader.propertyBacking)
             assertEquals(2, renderBlock.rows.size)

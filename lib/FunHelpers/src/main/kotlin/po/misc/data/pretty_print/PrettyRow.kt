@@ -2,6 +2,7 @@ package po.misc.data.pretty_print
 
 import po.misc.callbacks.signal.Signal
 import po.misc.callbacks.signal.signalOf
+import po.misc.callbacks.validator.ValidityCondition
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.pretty_print.cells.ComputedCell
 import po.misc.data.pretty_print.cells.KeyedCell
@@ -36,7 +37,7 @@ import po.misc.types.token.safeCast
  * @param id optional identifier for selective rendering
  */
 class PrettyRow<T: Any>(
-    val typeToken: TypeToken<T>,
+    override val hostType: TypeToken<T>,
     override var options: RowOptions = RowOptions(),
     initialCells: List<PrettyCellBase> = emptyList(),
 ): RenderableElement<T>, TraceableContext {
@@ -50,6 +51,11 @@ class PrettyRow<T: Any>(
         set(value) {
             options.rowId = value
         }
+
+    internal val renderConditions = mutableListOf<ValidityCondition<*>>()
+
+    override var enabled: Boolean = true
+    internal set
 
     val prettyCells: List<PrettyCell> get() = cellsBacking.filterIsInstance<PrettyCell>()
     val staticCells: List<StaticCell> get() = cellsBacking.filterIsInstance<StaticCell>()
@@ -150,7 +156,7 @@ class PrettyRow<T: Any>(
 
         val valuesList = values.toList()
         valuesList.forEach {value->
-            val casted = value.safeCast(typeToken)
+            val casted = value.safeCast(hostType)
             if(casted != null){
                 val render = render(casted, opts)
                 resultList.add(render)

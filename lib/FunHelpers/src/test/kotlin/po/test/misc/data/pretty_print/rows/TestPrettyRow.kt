@@ -9,6 +9,7 @@ import po.misc.data.pretty_print.parts.RowPresets
 import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.rows.buildPrettyRow
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
+import po.test.misc.data.pretty_print.setup.PrintableRecord
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 

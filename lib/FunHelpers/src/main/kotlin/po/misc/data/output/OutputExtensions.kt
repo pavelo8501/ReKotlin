@@ -33,10 +33,15 @@ internal fun outputInternal(
 ){
     checkDispatcher()
     val effectivePrefix = prefix.ifNotBlank {"$it "}
-    if (receiver != null) {
-         if(receiver is List<*>){
-             receiver.output(prefix = prefix, colour = colour)
-        }else{
+
+    when(receiver){
+        is List<*>->{
+           // receiver.output(prefix = prefix, colour = colour)
+            println(effectivePrefix)
+            val result =  receiver.stringify(effectivePrefix, colour)
+            println(result.formatedText)
+        }
+        else -> {
             val result = receiver.stringify(effectivePrefix, colour)
             println(result.formatedText)
         }

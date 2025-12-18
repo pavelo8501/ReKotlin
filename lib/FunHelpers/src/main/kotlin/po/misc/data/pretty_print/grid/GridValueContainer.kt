@@ -1,28 +1,22 @@
 package po.misc.data.pretty_print.grid
 
-import po.misc.data.pretty_print.PrettyGrid
 import po.misc.data.pretty_print.PrettyGridBase
+import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.PrettyValueGrid
 import po.misc.data.pretty_print.parts.CommonRowOptions
 import po.misc.data.pretty_print.parts.PrettyHelper
 import po.misc.data.pretty_print.parts.RowOptions
-import po.misc.data.pretty_print.rows.RowContainer
+import po.misc.data.pretty_print.parts.grid.GridKey
 import po.misc.data.pretty_print.rows.RowValueContainer
-import po.misc.data.pretty_print.rows.createRowContainer
 import po.misc.data.pretty_print.rows.createRowValueContainer
-import po.misc.properties.checkType
-import po.misc.properties.isReturnTypeList
 import po.misc.types.token.TypeToken
-import po.misc.types.token.asList
-import po.misc.types.token.safeParametrizedCast
-import java.util.Collections.list
 import kotlin.reflect.KProperty1
 
 
 class GridValueContainer<T: Any, V: Any>(
     hostType: TypeToken<T>,
     type: TypeToken<V>,
-    var options: RowOptions? = null
+    var options: RowOptions = RowOptions()
 ): GridContainerBase<T, V>(hostType, type){
 
     constructor(
@@ -30,7 +24,7 @@ class GridValueContainer<T: Any, V: Any>(
         type: TypeToken<V>,
         property: KProperty1<T, V>? = null,
         listProperty: KProperty1<T, List<V>>? = null,
-        options: RowOptions? = null,
+        options: RowOptions = RowOptions()
     ):this(hostType, type, options){
 
         if(property != null){
@@ -49,39 +43,30 @@ class GridValueContainer<T: Any, V: Any>(
         initializeByGrid(grid)
     }
 
-    @PublishedApi
-    internal fun createValueGrid(opts: RowOptions? = null): PrettyValueGrid<T, V> {
-        val valueGrid = PrettyValueGrid(hostType, type)
-        valueGrid.rowsBacking = rowsBacking
-        valueGrid.renderMapBacking = renderMapBacking
-        valueGrid.singleLoader.initValueFrom(singleLoader)
-        valueGrid.listLoader.initValueFrom(listLoader)
-        valueGrid.applyOptions(opts)
-        return valueGrid
-    }
+    override val grid: PrettyValueGrid<T, V> = PrettyValueGrid(hostType, type, options)
 
+    private val rowsBacking = mutableListOf<PrettyRow<V>>()
+    override val rows : List<PrettyRow<V>> = rowsBacking
 
     @PublishedApi
-    internal fun applyBuilder(
-        buildr: GridValueContainer<T, V>.()-> Unit
-    ): PrettyValueGrid<T, V> {
-        buildr.invoke(this)
-        val valueGrid = createValueGrid()
-        return valueGrid
-    }
-
-    @PublishedApi
-    internal fun applyBuilder(provider: ()-> V, builder: GridValueContainer<T, V>. ()-> Unit): PrettyValueGrid<T, V> {
-        val valueGrid = applyBuilder(builder)
-        valueGrid.singleLoader.setProvider(provider)
-        return valueGrid
+    internal fun initGrid(opts: RowOptions? = null):PrettyValueGrid<T, V>{
+        grid.addRows(rows)
+        if(opts != null){
+            grid.applyOptions(opts)
+        }
+        return grid
     }
 
     @PublishedApi
     internal fun addRowContainer(container: RowValueContainer<T, V>){
         singleLoader.initFrom(container.singleLoader)
         listLoader.initFrom(container.listLoader)
-        addRow(container.createRow())
+        addRow(container.initRow())
+    }
+
+    override fun addRow(row: PrettyRow<V>): GridKey?{
+        rowsBacking.add(row)
+        return null
     }
 
     fun buildRow(
@@ -91,56 +76,27 @@ class GridValueContainer<T: Any, V: Any>(
         val options = PrettyHelper.toRowOptionsOrNull(rowOptions)
         options?.noEdit()
         val container = createRowValueContainer(hostType, type, options)
-        val row =  container.applyBuilder(builder)
+        builder.invoke(container)
+        container.initByGridContainer(this)
+        val row = container.initRow()
         addRow(row)
-    }
-
-    fun initializeByGrid(property: KProperty1<T, V>, grid: PrettyGrid<V>): PrettyValueGrid<T, V> {
-        val valueGrid = createValueGrid()
-        valueGrid.singleLoader.setProperty(property)
-        grid.rows.forEach {
-            it.applyOptions(grid.options)
-            valueGrid.addRow(it)
-        }
-        return valueGrid
-    }
-
-    fun initializeByGrid(hostType: TypeToken<T>,  grid: PrettyGridBase<*, V>){
-        val casted = grid.safeParametrizedCast<PrettyGridBase<T, V>>(hostType)
-        if(casted != null){
-            singleLoader.initFrom(casted.singleLoader)
-            listLoader.initFrom(casted.listLoader)
-            options = casted.options
-            addRows(casted.rows)
-            renderMapBacking = casted.renderMapBacking
-        }
     }
 
     fun initializeByGrid(grid: PrettyGridBase<T, V>){
         singleLoader.initFrom(grid.singleLoader)
         listLoader.initFrom(grid.listLoader)
         options = grid.options
-
         addRows(grid.rows)
-        renderMapBacking = grid.renderMapBacking
     }
 
     fun initializeByContainer(container: RowValueContainer<T, V>){
         singleLoader.initFrom(container.singleLoader)
         listLoader.initFrom(container.listLoader)
         options = container.options
-        addRow(container.createRow())
-    }
-
-    fun consumeRowContainer(rowContainer: RowContainer<V>){
-        addRow(rowContainer.createRow())
-        options = rowContainer.options
-        listLoader.initValueFrom(rowContainer.listLoader)
-        singleLoader.initValueFrom(rowContainer.singleLoader)
+        addRow(container.initRow())
     }
 
     companion object{
-
         fun <T: Any, V: Any> buildGridCopying(
             container: GridContainerBase<T, V>,
             opts: RowOptions? = null,
@@ -150,7 +106,7 @@ class GridValueContainer<T: Any, V: Any>(
             gridContainer.singleLoader.initValueFrom(container.singleLoader)
             gridContainer.listLoader.initValueFrom(container.listLoader)
             builder.invoke(gridContainer)
-            return gridContainer.createValueGrid(opts)
+            return gridContainer.grid
         }
     }
 }

@@ -57,7 +57,12 @@ fun StringBuilder.appendLine(property: KProperty0<*>): StringBuilder{
     return appendLine("${property.displayName}: $valueStr")
 }
 
-fun StringBuilder.appendGroup(prefix: String, postfix: String, vararg props:  KProperty0<*>):StringBuilder{
-    val propStr = props.toList().joinToString { "${it.name}: ${it.get().toString()}" }
+fun StringBuilder.appendGroup(prefix: String, postfix: String, vararg props: KProperty0<*>?):StringBuilder{
+
+    val propStr = props.toList().joinToString {
+        val name = it?.name?:"N/A"
+        val value = it?.get().toString()?:"N/A"
+        "${name}: $value"
+    }
     return append("$prefix$propStr$postfix")
 }
