@@ -1,19 +1,13 @@
 package po.test.misc.data.pretty_print.rows
 
 import org.junit.jupiter.api.Test
-import po.misc.collections.asList
 import po.misc.data.output.output
-import po.misc.data.pretty_print.Templated
-import po.misc.data.pretty_print.grid.buildGridForContext
 import po.misc.data.pretty_print.grid.buildPrettyGrid
-import po.misc.data.pretty_print.grid.buildRow
-import po.misc.data.pretty_print.parts.Orientation
-import po.misc.data.pretty_print.parts.RowOptions
+import po.misc.data.pretty_print.parts.options.Orientation
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
 import po.test.misc.data.pretty_print.setup.PrintableRecord
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class TestNamedRows  : PrettyTestBase(){
@@ -26,51 +20,20 @@ class TestNamedRows  : PrettyTestBase(){
 
     private val record = createRecord()
 
-    @Test
-    fun `Named rows can be excluded from render`(){
-        var usedOptions: RowOptions? = null
-        val grid = printableRecord.buildGridForContext {
-            buildRow(RowOptions(Row.Row1, Orientation.Horizontal)) {
-                beforeRowRender {
-                    usedOptions = it.usedOptions
-                }
-                add(header1)
-            }
-            buildRow(RowOptions(Row.Row2)) {
-                add(header2)
-            }
-        }
-        assertNotNull(grid.rows.firstOrNull()){row->
-            assertEquals(Row.Row1, row.options.rowId)
-            assertEquals(0, row.options.renderOnlyList.size)
-        }
-        assertNotNull(grid.rows.getOrNull(1)){row->
-            assertEquals(Row.Row2, row.options.rowId)
-            assertEquals(0, row.options.renderOnlyList.size)
-        }
-        val render = grid.render(printableRecord){
-            exclude(Row.Row2)
-        }
-        assertNotNull(usedOptions){
-            assertEquals(1, it.excludeFromRenderList.size)
-        }
-        assertTrue { render.contains(header1) }
-        assertFalse { render.contains(header2) }
-    }
-    
+
+
     @Test
     fun `Exclude row logic work as expected`() {
         val template = buildPrettyGrid<PrintableRecord> {
-            buildRow(Orientation.Vertical) {
+            buildRow() {
+                orientation = Orientation.Vertical
                 addAll(PrintableRecord::name, PrintableRecord::description)
             }
             buildRow(Row.Row1) {
                 add(header2)
             }
         }
-        val render = template.render(record) {
-            exclude(Row.Row1)
-        }
+        val render = template.render(record)
         assertTrue { render.contains(record.name) }
         assertFalse { render.contains(header2)  }
     }
@@ -78,7 +41,8 @@ class TestNamedRows  : PrettyTestBase(){
     @Test
     fun `RenderOnly logic work as expected`() {
         val template = buildPrettyGrid<PrintableRecord> {
-            buildRow(Orientation.Vertical) {
+            buildRow {
+                orientation = Orientation.Vertical
                 addAll(PrintableRecord::name, PrintableRecord::description)
             }
             buildRow(Row.Row1) {
@@ -88,9 +52,7 @@ class TestNamedRows  : PrettyTestBase(){
                 add(header2)
             }
         }
-        val render = template.render(record) {
-            renderOnly(Row.Row1.asList())
-        }
+        val render = template.render(record)
         assertTrue { render.contains(record.name) }
         assertTrue { render.contains(header1) }
         assertFalse { render.contains(header2)  }
@@ -102,19 +64,15 @@ class TestNamedRows  : PrettyTestBase(){
 
         val grid = buildPrettyGrid<PrintableRecord>{
             headedRow(header1)
-            buildRow{
-                rowId = Row.Row1
+            buildRow(Row.Row1){
                 add(header2)
             }
-            buildRow{
-                rowId = Row.Row2
+            buildRow(Row.Row2){
                 add(header3)
             }
         }
         assertEquals(3, grid.rows.size)
-        val render = grid.render(record){
-            renderOnly(Row.Row2)
-        }
+        val render = grid.render(record)
         assertTrue { render.contains(header1) }
         assertFalse { render.contains(header2)  }
         assertTrue { render.contains(header3) }

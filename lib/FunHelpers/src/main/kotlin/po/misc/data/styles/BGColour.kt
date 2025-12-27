@@ -1,7 +1,10 @@
 package po.misc.data.styles
 
-enum class BGColour(val code: String) {
-    NONE(""),
+
+
+enum class BGColour(override val code: String) : StyleCode {
+    Default(""),
+    Black("\u001B[40m"),
     Red("\u001B[41m"),
     Green("\u001B[42m"),
     Yellow("\u001B[43m"),
@@ -10,5 +13,5 @@ enum class BGColour(val code: String) {
     Cyan("\u001B[46m"),
     White("\u001B[47m"),
     RESET("\u001B[0m");
-
 }
+

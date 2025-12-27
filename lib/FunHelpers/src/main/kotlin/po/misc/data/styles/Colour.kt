@@ -1,7 +1,7 @@
 package po.misc.data.styles
 
 
-enum class Colour(val code: String) {
+enum class Colour(override val code: String) : StyleCode {
     Default(""),
     Red("\u001B[31m"),
     Yellow("\u001B[33m"),

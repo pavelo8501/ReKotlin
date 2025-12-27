@@ -14,7 +14,7 @@ fun ProceduralRecord.printProceduralTree(
     fun outputMessages(level: Int){
            val indention = "--".repeat(level)
            logRecords.output("$indention Messages: ", Colour.Blue){
-               it.stringify(indention,  Colour.Cyan).returnFormated()
+               it.stringify(indention,  Colour.Cyan).toString()
            }
     }
     if(nestingLevel == 0){
@@ -32,17 +32,6 @@ fun ProceduralRecord.printProceduralTree(
         }
     }
 }
-
-fun ProceduralRecord.printProceduralTree2(
-    includeMessages: Boolean = false,
-){
-    val records = proceduralRecords
-    "PrintProceduralTree2".output(Colour.MagentaBright)
-    val resultingEntry = stringify(ProceduralRecord::proceduralRecords, Colour.Cyan)
-    val resultText = resultingEntry.joinFormattedWithIndent("-".colorize(Colour.Cyan))
-    println(resultText)
-}
-
 
 
 fun StructuredLoggable.printStructuredTree(

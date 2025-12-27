@@ -11,11 +11,8 @@ import po.misc.data.pretty_print.PrettyGrid
 import po.misc.data.pretty_print.cells.PrettyCell
 import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.Templated
-import po.misc.data.pretty_print.parts.CellPresets
-import po.misc.data.pretty_print.parts.Options
-import po.misc.data.pretty_print.parts.RowOptions
-import po.misc.data.pretty_print.parts.RowPresets
-import po.misc.data.strings.IndentOptions
+import po.misc.data.pretty_print.parts.options.CellPresets
+import po.misc.data.pretty_print.parts.options.RowPresets
 import po.misc.data.strings.appendGroup
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
@@ -116,7 +113,7 @@ class ProceduralEntry(
     }
 
     fun outputEntry(indentionLevel: Int){
-        formattedString.output(IndentOptions(indentionLevel, " "))
+        formattedString.output()
         records.forEach {
             it.outputRecord(indentionLevel + 2)
         }
@@ -127,22 +124,20 @@ class ProceduralEntry(
     }
 
     companion object : Templated<ProceduralEntry>{
+
         val defaultBadge : Badge = Badge.Init
-
-        override val valueType: TypeToken<ProceduralEntry> = tokenOf<ProceduralEntry>()
-
-        private val entryOptions = buildOption(RowOptions){
+        override val type: TypeToken<ProceduralEntry> = tokenOf<ProceduralEntry>()
+        private val entryOptions = buildRowOption(){
             renderBorders = false
             useId(ProceduralRecord.ProceduralTemplate.Entry)
         }
-
-        private val resultOption = buildOption(Options){
+        private val resultOption = buildOption(){
             useSourceFormatting = true
-            useForKey = "Result :"
+            keyText = "Result :"
         }
 
         val template: PrettyGrid<ProceduralEntry> = buildGrid  {
-            buildRow(entryOptions) {
+            buildRow {
                 add(ProceduralEntry::badge, CellPresets.KeylessProperty)
                 computed(ProceduralEntry::stepName){
                     applyOptions(CellPresets.KeylessProperty)
@@ -152,8 +147,8 @@ class ProceduralEntry(
                 }
                 add(ProceduralEntry::stepResult, resultOption)
             }
-            buildListRow(ProceduralEntry::logRecords, RowPresets.BulletList){
-
+            buildListRow(ProceduralEntry::logRecords){
+                applyOptions(RowPresets.BulletList)
                 computed(StructuredLoggable::text){
                     it.colorize(Colour.YellowBright)
                 }

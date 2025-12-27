@@ -1,18 +1,52 @@
 package po.misc.types
 
 import po.misc.context.tracable.TraceableContext
+import po.misc.debugging.stack_tracer.CallSite
+import po.misc.debugging.stack_tracer.TraceOptions
 import po.misc.exceptions.ExceptionPayload
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.ManagedPayload
+import po.misc.exceptions.error
 import po.misc.types.k_class.simpleOrAnon
 import po.misc.types.token.TypeToken
 import java.time.LocalDateTime
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 import kotlin.reflect.KClass
 
 
 inline fun <T1 : Any, R : Any> safeLet(p1: T1?, block: (T1) -> R?): R? {
     return if (p1 != null) block(p1) else null
 }
+
+inline fun <reified T> T?.requireNotNull():T {
+    if(this == null){
+        val className = T::class.simpleOrAnon
+        val traceOption = CallSite("requireNotNull", beforeThisMethod = true)
+        error<IllegalArgumentException>("$className should not be null", traceOption)
+    }else{
+        return this
+    }
+}
+
+
+@OptIn(ExperimentalContracts::class)
+inline fun <reified T> T?.requireNotNull(lazyMessage: () -> Any):T {
+
+    contract {
+        returns() implies (this@requireNotNull != null)
+    }
+    if(this == null){
+        val className = T::class.simpleOrAnon
+        val message = lazyMessage.invoke()
+        val traceOption = CallSite("requireNotNull", beforeThisMethod = true)
+        error<IllegalArgumentException>(message, traceOption)
+    }else{
+        return this
+    }
+}
+
+
 
 /**
 * Ensures that a nullable receiver is not `null`, otherwise throws a custom exception.
@@ -53,9 +87,6 @@ fun <T: Any> T?.getOrThrow(
         return this
     }
 }
-
-
-
 
 fun <T: Any> T?.getOrThrow(
     expectedClass: KClass<*>? = null,
@@ -136,13 +167,7 @@ inline fun <reified T> T?.getOrManaged(
 ):T = getOrManaged(this,  callingContext, T::class)
 
 
-fun Any?.isNull(): Boolean{
-    return this == null
-}
 
-fun Any?.isNotNull(): Boolean{
-    return this != null
-}
 
 fun <T: Any> TypeToken<T>.getDefaultForType(): T? {
     val result = when (this.kType.classifier) {

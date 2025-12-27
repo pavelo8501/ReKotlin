@@ -1,12 +1,28 @@
 package po.test.misc.types.k_class
 
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
 import po.misc.data.logging.models.LogMessage
+import po.misc.data.output.output
 import po.misc.data.printable.Printable
+import po.misc.types.k_class.asDefinitelyNotNull
 import po.misc.types.k_class.computeHierarchy
 import kotlin.test.assertEquals
 
 class TestKClassHelpers {
+
+
+    @Test
+    fun `Definitely not null helper`(){
+
+
+       val result = assertDoesNotThrow {
+            String::class.asDefinitelyNotNull<String>()
+       }
+        result.output()
+
+    }
+
 
     @Test
     fun `ClassHierarchyMap resolves hierarchy and tops precisely by depth`(){

@@ -1,11 +1,10 @@
 package po.misc.data.pretty_print.formatters
 
-import po.misc.collections.asList
 import po.misc.data.pretty_print.formatters.text_modifiers.CellStyler
 import po.misc.data.pretty_print.formatters.text_modifiers.ConditionalTextModifier
 import po.misc.data.pretty_print.formatters.text_modifiers.Formatter
 import po.misc.data.pretty_print.formatters.text_modifiers.TextModifier
-import po.misc.data.pretty_print.parts.Style
+import po.misc.data.pretty_print.parts.options.Style
 import po.misc.types.castOrThrow
 import po.misc.types.token.TypeToken
 
@@ -13,10 +12,10 @@ import po.misc.types.token.TypeToken
 class TextFormatter(
     vararg formatter: TextModifier
 ) {
-
     private val formattersBacking = mutableListOf(*formatter)
-
     val formatters:List<TextModifier> get() =  formattersBacking.sortedByDescending { it.priority }
+
+    val hasDynamic: Boolean get() = formatters.any { it.dynamic }
 
     @PublishedApi
     internal val conditionalFormatters:List<ConditionalTextModifier<*>> get() =
@@ -31,7 +30,6 @@ class TextFormatter(
     fun addFormatters(textModifiers: List<TextModifier>){
         formattersBacking.addAll(textModifiers)
     }
-
     fun style(text: String, styleOption: Style? = null): String {
         val styler = formatters.firstOrNull { it.formatter == Formatter.TextStyler }
         if(styleOption != null && styler is CellStyler) {
@@ -46,6 +44,7 @@ class TextFormatter(
     }
 
     fun <T> conditionalStyle(text: String, parameter:T, typeToken: TypeToken<T>): String? {
+
         val filtered =  conditionalFormatters.filter { it.type == typeToken }
         var result :String? = null
         for(formatter in filtered){

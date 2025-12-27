@@ -4,7 +4,6 @@ import po.misc.context.tracable.TraceableContext
 import po.misc.exceptions.ManagedException
 import po.misc.types.getOrThrow
 
-
 inline fun <R> String?.whenIsLong(action:(Long)->R):R?{
     if(this != null){
      return  toLongOrNull()?.let {

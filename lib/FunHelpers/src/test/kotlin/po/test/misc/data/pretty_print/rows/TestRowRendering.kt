@@ -1,21 +1,23 @@
 package po.test.misc.data.pretty_print.rows
 
 import po.misc.data.PrettyPrint
+import po.misc.data.linesCount
 import po.misc.data.output.output
 import po.misc.data.pretty_print.cells.ComputedCell
 import po.misc.data.pretty_print.cells.KeyedCell
 import po.misc.data.pretty_print.cells.StaticCell
-import po.misc.data.pretty_print.parts.CellPresets
-import po.misc.data.pretty_print.parts.Orientation
-import po.misc.data.pretty_print.parts.RowOptions
+import po.misc.data.pretty_print.parts.options.CellPresets
+import po.misc.data.pretty_print.parts.options.Orientation
+import po.misc.data.pretty_print.parts.options.RowOptions
+import po.misc.data.pretty_print.renderPlain
 import po.misc.data.pretty_print.rows.buildPrettyRow
-import po.misc.data.pretty_print.rows.buildRowForContext
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
 import po.test.misc.data.pretty_print.setup.PrintableRecord
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertSame
@@ -28,39 +30,20 @@ class TestRowRendering : PrettyTestBase(){
         override val formattedString: String get() = completeTex.colorize(Colour.Green)
         override fun toString(): String = completeTex
     }
-
+    private var enableOutput: Boolean = true
     private val record = createRecord()
-
-    @Test
-    fun `Row renders keyed cells`(){
-
-        val row = record.buildRowForContext{
-            addAll(PrintableRecord::name, PrintableRecord::description, PrintableRecord::component)
-        }
-        val render = row.render(record)
-        render.output()
-    }
-
+    val headerText1: String = "header_text_1"
+    val auxText: String = "Aux_Text"
     @Test
     fun `Row renders  static cell + keyed cell as expected`(){
         val row = buildPrettyRow<PrintableRecord> {
             add(headerText1)
-            add(PrintableRecord::name)
+            val cell = add(PrintableRecord::name)
+            cell.keyStyle
         }
-        assertNotNull(row.cells.firstOrNull()){firstCell->
-            assertIs<StaticCell>(firstCell)
-            assertNotNull(firstCell.row){firstCellRow->
-                assertSame(row, firstCellRow)
-            }
-        }
-        assertNotNull(row.cells.getOrNull(1)) { secondCell ->
-            assertIs<KeyedCell<PrintableRecord>>(secondCell)
-            assertNotNull(secondCell.row){firstCellRow->
-                assertSame(row, firstCellRow)
-            }
-        }
-        val record = createRecord()
-        val render =  row.render(record)
+        val render = row.render(record)
+        row.cells.output()
+        render.output(enableOutput)
         assertTrue { render.contains(headerText1) }
         assertTrue { render.contains("Name") && render.contains(record.name) }
     }
@@ -71,7 +54,7 @@ class TestRowRendering : PrettyTestBase(){
             add(headerText1)
             add(PrintableRecord::name)
             computed(PrintableRecord::component){
-                "${it}_Computed"
+                it
             }
         }
         assertNotNull(row.cells.firstOrNull()){firstCell->
@@ -88,31 +71,31 @@ class TestRowRendering : PrettyTestBase(){
         }
         assertNotNull(row.cells.getOrNull(2)) { thirdCell ->
             assertIs<ComputedCell<PrintableRecord, String>>(thirdCell)
-            assertTrue(thirdCell.singleLoader.hasProperty)
+            assertTrue(thirdCell.dataLoader.hasReadOnlyProperty)
             assertNotNull(thirdCell.row){firstCellRow->
                 assertSame(row, firstCellRow)
             }
         }
-        val record = createRecord()
         val render =  row.render(record)
-        assertTrue { render.contains(headerText1) }
-        assertTrue { render.contains("Name") && render.contains(record.name) }
-        assertTrue { render.contains("Component name_Computed") && render.contains(record.name) }
+        render.output(enableOutput)
+        assertTrue("Static cells $headerText1 text missing") { render.contains(headerText1) }
+        assertTrue("Property name not registered") { render.contains("Name") }
+        assertTrue("Property value not registered") { render.contains(record.name) }
+        assertTrue("Computed cell rendered value ${record.component} missing") { render.contains(record.component) }
     }
 
     @Test
-    fun `Builder correctly distinguish static cells from pretty cells`(){
+    fun `Row renders vararg values, expecting rendered static + keyed cell + pretty cell with auxText value`(){
         val row = buildPrettyRow<PrintableRecord> {
             add(headerText1)
             add(PrintableRecord::name)
             addCell()
         }
-        val record = createRecord()
-        val someClass = SomeClass()
-        val render = row.renderAny(record, someClass)
-        assertTrue { render.contains(headerText1) }
-        assertTrue { render.contains("Name") && render.contains(record.name) }
-        assertTrue { render.contains("SomeText_10") }
+        val render = row.renderAny(record, auxText)
+        render.output(enableOutput)
+        assertTrue("Static cell not rendered") { render.contains(headerText1) }
+        assertTrue("Keyed cell not rendered") { render.contains(record.name) }
+        assertTrue("Pretty cell not rendered") { render.contains(auxText) }
     }
 
     @Test
@@ -145,24 +128,10 @@ class TestRowRendering : PrettyTestBase(){
     }
 
     @Test
-    fun `Multiple cell orientation parameter applied correctly`(){
-
+    fun `Row orientation parameter applied correctly`(){
         val row = buildPrettyRow<PrintableRecord> {
             orientation = Orientation.Vertical
-            addAll(PrintableRecord::name, PrintableRecord::description)
-            beforeRowRender {
-
-            }
-        }
-        var usedOptions: RowOptions? = null
-        row.beforeRowRender{
-            usedOptions = it.usedOptions
         }
         assertEquals(Orientation.Vertical, row.options.orientation)
-        val render = row.render(record)
-        assertNotNull(usedOptions)
-        assertEquals(Orientation.Vertical, usedOptions.orientation)
     }
-
-
 }

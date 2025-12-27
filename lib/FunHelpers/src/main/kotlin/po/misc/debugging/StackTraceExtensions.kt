@@ -1,5 +1,6 @@
 package po.misc.debugging
 
+import po.misc.data.logging.parts.DebugMethod.methodName
 import po.misc.data.output.output
 import po.misc.data.styles.Colour
 import po.misc.debugging.classifier.KnownHelpers
@@ -7,6 +8,7 @@ import po.misc.debugging.classifier.PackageClassifier
 import po.misc.debugging.classifier.SimplePackageClassifier
 import po.misc.exceptions.ExceptionPayload
 import po.misc.debugging.stack_tracer.StackFrameMeta
+import po.misc.debugging.stack_tracer.TraceOptions
 import po.misc.debugging.stack_tracer.extractTrace
 import po.misc.reflection.anotations.HelperFunction
 import po.misc.reflection.anotations.hasAnnotation
@@ -70,9 +72,7 @@ fun StackTraceElement.checkIfHelperFunctionAnnotated(): Boolean {
 
 fun StackTraceElement.toFrameMeta(classifier: PackageClassifier? = null): StackFrameMeta{
 
-
     val useClassifier = try {
-
         classifier?:run {
             SimplePackageClassifier(KnownHelpers)
         }
@@ -80,13 +80,11 @@ fun StackTraceElement.toFrameMeta(classifier: PackageClassifier? = null): StackF
         th.output()
         throw th
     }
-
     val className = className
     val simpleClasName = className.substringAfterLast('.')
     val normalizedName = normalizedMethodName()
     val classPackage = className.substringBeforeLast('.', missingDelimiterValue = "")
     val packageRole = useClassifier.resolvePackageRole(this)
-
 
     val meta = try {
         StackFrameMeta(
@@ -108,8 +106,8 @@ fun StackTraceElement.toFrameMeta(classifier: PackageClassifier? = null): StackF
         throw th
     }
     return meta
-
 }
+
 
 fun Collection<StackTraceElement>.toFrameMeta(classifier: PackageClassifier?): List<StackFrameMeta>{
     val result = mutableListOf<StackFrameMeta>()
@@ -119,6 +117,52 @@ fun Collection<StackTraceElement>.toFrameMeta(classifier: PackageClassifier?): L
         result.add(rawFrameMeta)
     }
     return result
+}
+
+fun Collection<StackTraceElement>.thisMethod(
+    options: TraceOptions,
+    classifier: PackageClassifier? = null
+): StackFrameMeta?{
+
+    val method = options.methodName
+    if(method == null){
+        return null
+    }
+   return when(options){
+        is TraceOptions.ThisMethod -> {
+            firstOrNull { it.toFrameMeta(classifier).methodName == method }?.toFrameMeta()
+        }
+        is TraceOptions.PreviousMethod -> {
+            val list = this.toList()
+            val methodIndex =  indexOfFirst { it.toFrameMeta(classifier).methodName == method }
+            if(methodIndex != -1){
+                for(i in methodIndex .. size ){
+                    val meta =  list[i].toFrameMeta(classifier)
+                    if(meta.packageRole != PackageClassifier.PackageRole.System  && meta.packageRole != PackageClassifier.PackageRole.Helper){
+                        return meta
+                    }
+                }
+            }
+            null
+        }
+        else -> {
+           null
+        }
+    }
+
+
+
+//    firstOrNull { it.toFrameMeta(classifier).methodName == options.methodName }
+//
+//    val elements = this.toList()
+//    for(i in 0..size){
+//        if(i == 0){ continue }
+//        val meta =  elements[i].toFrameMeta(classifier)
+//        if(meta.isUserCode){
+//            return meta
+//        }
+//    }
+//    return null
 }
 
 fun Array<StackTraceElement>.toFrameMeta(classifier: PackageClassifier?): List<StackFrameMeta>{

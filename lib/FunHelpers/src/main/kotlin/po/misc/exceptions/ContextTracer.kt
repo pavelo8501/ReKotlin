@@ -58,22 +58,30 @@ abstract class ContextTracer(
 
     override var trace : ExceptionTrace  = extractTrace(options, analyzeDepth = 30, classifier)
 
-    fun createTrace(options: TraceOptions, classifier: PackageClassifier? = null):ExceptionTrace{
+    open  fun createTrace(options: TraceOptions, classifier: PackageClassifier? = null):ExceptionTrace{
         val exTrace =  this.extractTrace(options, analyzeDepth = 50,  classifier)
         trace =  exTrace
         return exTrace
     }
 }
 
+
 open class Tracer(
      message: String,
      options: TraceOptions = TraceOptions.Default,
      classifier: PackageClassifier? = null
 ): ContextTracer(message, options, classifier){
+
     constructor(
         options: TraceOptions = TraceOptions.Default,
         classifier: PackageClassifier? = null
     ):this("",  options, classifier)
+
+    override fun createTrace(options: TraceOptions, classifier: PackageClassifier?):ExceptionTrace{
+        val exTrace =  this.extractTrace(options, analyzeDepth = 50,  classifier)
+        trace =  exTrace
+        return exTrace
+    }
 }
 
 

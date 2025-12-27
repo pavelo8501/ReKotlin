@@ -1,11 +1,13 @@
 package po.test.misc.data.pretty_print.rows
 
 import org.junit.jupiter.api.Test
+import po.misc.collections.asList
 import po.misc.collections.repeatBuild
+import po.misc.data.output.output
 import po.misc.data.pretty_print.PrettyBuilder
 import po.misc.data.pretty_print.cells.StaticCell
-import po.misc.data.pretty_print.parts.Orientation
-import po.misc.data.pretty_print.parts.RowPresets
+import po.misc.data.pretty_print.parts.options.Orientation
+import po.misc.data.pretty_print.parts.options.RowPresets
 import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.rows.buildPrettyRow
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
@@ -38,41 +40,11 @@ class TestPrettyRow : PrettyTestBase(),  PrettyBuilder{
     }
 
     @Test
-    fun `Horizontal render with 2 cells work as expected`(){
-        val static = noGapsText1.toStatic()
-        val static2 = noGapsText2.toStatic()
-        val record = PrintableRecord()
-        val prettyRow = PrettyRow(static, static2)
-//        val render =  prettyRow.render(record)
-//        val lines = render.splitLines()
-//        assertEquals(1, lines.size)
-//        assertEquals(1, render.count{ it == '|' }, "Two cell render should have 1 separator" )
-//        assertEquals(2,  render.count(SpecialChars.WHITESPACE), "Two cell render should have 2 spaces")
-    }
-
-    @Test
-    fun `Horizontal render with multiple cells work as expected`(){
-
-        val static : StaticCell = noGapsText1.toStatic()
-        val static2 = noGapsText2.toStatic()
-        val static3 = noGapsText3.toStatic()
-
-        val record = PrintableRecord()
-        val prettyRow = PrettyRow(static, static2, static3)
-//        val render =  prettyRow.render(record)
-//        val lines = render.splitLines()
-//        render.output()
-//        assertEquals(1, lines.size)
-//        assertEquals(2, render.count{ it == '|' }, "3 cell render should have 2 separator" )
-//        assertEquals(4,  render.count(SpecialChars.WHITESPACE), "3 cell render should have 4 spaces")
-    }
-
-    @Test
     fun `Row vararg renderer  work as expected`(){
         var staticCells = 4.repeatBuild {
             StaticCell()
         }
-        val prettyRow = PrettyRow(staticCells)
+        val prettyRow = PrettyRow<String>(staticCells)
         val render = prettyRow.renderAny(cell1Text, cell2Text)
         assertTrue { render.contains(cell1Text) && render.contains(cell2Text) }
 
@@ -121,9 +93,9 @@ class TestPrettyRow : PrettyTestBase(),  PrettyBuilder{
         val  staticCells = 2.repeatBuild {
             StaticCell(printableRecord.name)
         }
-//        val prettyRow = PrettyRow(staticCells)
-//        val render = prettyRow.render(printableRecord)
-//        assertTrue { render.contains(printableRecord.name) }
+        val prettyRow = PrettyRow<PrintableRecord>(staticCells)
+        val render = prettyRow.render(printableRecord)
+          assertTrue { render.contains(printableRecord.name) }
     }
 
     @Test
@@ -132,8 +104,11 @@ class TestPrettyRow : PrettyTestBase(),  PrettyBuilder{
         val cell2Text = "Cell 2 text"
         val cell1 = StaticCell(cell1Text)
         val cell2 = StaticCell(cell2Text)
-        val row = PrettyRow(cell1, cell2)
+        val listOfRows = listOf(cell1, cell2)
+        val row =  PrettyRow(listOfRows)
+        assertEquals(2, row.size)
         val renderedText = row.renderAny(cell1Text, cell2Text)
+        renderedText.output()
         assertTrue { renderedText.contains(cell1Text) && renderedText.contains(cell2Text) }
         val bordersCount = renderedText.count{ it == '|' }
         assertEquals(1, bordersCount)

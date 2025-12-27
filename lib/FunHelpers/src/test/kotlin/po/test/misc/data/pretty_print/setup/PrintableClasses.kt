@@ -13,18 +13,31 @@ class PrintableElement(
     val parameter: String = "Parameter",
     val value: Int = 1,
 ):Templated<PrintableElement>{
-    override val valueType: TypeToken<PrintableElement> = tokenOf()
+    override val type: TypeToken<PrintableElement> = tokenOf()
+}
+
+
+
+class PrintableNested(
+    val nested: String = "PrintableSecondNested",
+): PrettyPrint{
+
+    override val formattedString: String get() = nested.colorize(Colour.Blue)
+
+    override fun toString(): String = "PrintableSecondNested"
+
 }
 
 class PrintableRecordSubClass(
-    val subName: String = "PrintableRecordSubClass",
+    val subName: String = "Printable record sub name",
     val subComponent: String = "PrintableRecordSubClass component",
+    val nested : PrintableNested = PrintableNested()
 ): PrettyPrint{
+
     private val string: String =  buildString {
         appendGroup("[", "]", ::subName, ::subComponent)
     }
-    override val formattedString: String
-        get() = string.colorize(Colour.Blue)
+    override val formattedString: String get() = string.colorize(Colour.Blue)
 
     override fun toString(): String =
         string
@@ -38,7 +51,7 @@ class PrintableRecord(
     var elements: List<PrintableElement> = emptyList()
 ): Templated<PrintableRecord> {
 
-    override val valueType: TypeToken<PrintableRecord> = tokenOf()
+    override val type: TypeToken<PrintableRecord> = tokenOf()
 
     init {
         if(elements.isEmpty()) {

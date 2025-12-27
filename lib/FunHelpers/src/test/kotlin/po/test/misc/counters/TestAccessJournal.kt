@@ -8,7 +8,7 @@ import po.misc.counters.createAccessJournal
 import po.misc.counters.createRecord
 import po.misc.data.output.output
 import po.misc.data.pretty_print.Templated
-import po.misc.data.pretty_print.parts.Options
+import po.misc.data.pretty_print.parts.options.Options
 import po.misc.data.pretty_print.rows.buildPrettyRow
 import po.misc.debugging.ClassResolver
 import po.misc.types.token.TypeToken
@@ -21,7 +21,7 @@ class TestAccessJournal: Component, Templated<AccessRecord<TestAccess>> {
 
     enum class TestAccess { Access, Read, Fail }
 
-    override val valueType: TypeToken<AccessRecord<TestAccess>> = tokenOf()
+    override val type: TypeToken<AccessRecord<TestAccess>> = tokenOf()
 
     interface InstanceInterface
 

@@ -1,7 +1,6 @@
 package po.test.misc.data.logging.procedural
 
 import po.misc.data.logging.Loggable
-import po.misc.data.logging.StructuredBase
 import po.misc.data.logging.procedural.ProceduralEntry
 import po.misc.data.logging.procedural.ProceduralFlow
 import po.misc.data.logging.procedural.StepResult
@@ -37,11 +36,11 @@ class TestProceduralTemplating : ProceduralTestBase(){
         record.logRecords.add(warning2)
 
         assertIs<StepResult.Warning>(record.stepResult)
-        assertNotNull(ProceduralEntry.template.renderMap.renderables.lastOrNull()) { valueGrid ->
+        assertNotNull(ProceduralEntry.template.renderPlan.renderables.lastOrNull()) { valueGrid ->
             assertIs<PrettyValueGrid<ProceduralEntry, Loggable>>(valueGrid)
             assertNotNull(valueGrid.rows.lastOrNull()) { row ->
                 assertNotNull(row.computedCells.firstOrNull()) { computed ->
-                    assertEquals("*", computed.cellOptions.useForKey)
+                    assertEquals("*", computed.cellOptions.keyText)
                 }
             }
         }

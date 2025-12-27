@@ -6,6 +6,7 @@ class CellFormatter(
    val cell:  PrettyCellBase
 ) :TextModifier{
 
+    override val dynamic: Boolean = false
     override val formatter : Formatter = Formatter.CellFormatter
 
     fun modify(cell: PrettyCellBase,  text: String): String {

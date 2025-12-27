@@ -34,7 +34,7 @@ class TestGridSignals : PrettyTestBase(){
             }
             useTemplate(subRow, PrintableRecord::elements)
         }
-        grid.beforeGridRender.onSignal {params->
+        grid.beforeGridRender{params->
             result.add(params)
         }
         grid.render(record)
@@ -53,7 +53,7 @@ class TestGridSignals : PrettyTestBase(){
                 }
             }
         }
-        assertEquals(true, grid.singleLoader.valueResolved.signal)
+        assertEquals(true, grid.dataLoader.valueResolved.signal)
         assertEquals(0, resolvedTriggered)
         val render = grid.render(record)
         render.output()

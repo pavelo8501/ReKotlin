@@ -11,6 +11,9 @@ import po.misc.data.logging.log_subject.DebugSubject
 import po.misc.data.logging.log_subject.InfoSubject
 import po.misc.data.logging.log_subject.LogSubject
 import po.misc.data.logging.parts.LogTracker
+import po.misc.data.strings.stringify
+import po.misc.data.styles.Colour
+import po.misc.data.styles.colorize
 import po.misc.exceptions.throwableToText
 
 
@@ -141,10 +144,13 @@ interface Component : TraceableContext {
        return message(subject, throwable.throwableToText(), NotificationTopic.Warning, tracker)
     }
 
-    companion object {
-
-
-
+    fun output(msg: String, colour: Colour? = null) {
+        if (colour != null) {
+            println("${componentName.colorize(Colour.Blue)} -> ${msg.colorize(colour)}")
+        } else {
+            println("${componentName.colorize(Colour.Blue)} -> $msg")
+        }
     }
+    companion object
 }
 

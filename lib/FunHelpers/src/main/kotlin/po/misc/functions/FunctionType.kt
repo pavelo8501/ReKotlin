@@ -1,5 +1,9 @@
 package po.misc.functions
 
+import po.misc.types.token.TypeToken
+import kotlin.reflect.KMutableProperty1
+import kotlin.reflect.KProperty1
+
 /**
  * Marker type used to indicate that a signal listener expects a suspending
  * callback function.
@@ -14,7 +18,6 @@ sealed interface LambdaType
 
 object Sync: LambdaType
 object Suspended: LambdaType
-
 
 
 /**
@@ -119,7 +122,9 @@ object Nullable: FunctionResultType
  * Used in DSL overloads where `Unit` should be treated as a separate
  * semantic result category, distinct from nullable or non-nullable values.
  */
-object NoResult: FunctionResultType
+object NoResult: FunctionResultType{
+    val token : TypeToken<Unit> = TypeToken<Unit>()
+}
 
 /**
  * Indicates that a function returns `Nothing`.
@@ -129,7 +134,19 @@ object NoResult: FunctionResultType
  */
 object NoReturn: FunctionResultType
 
+interface FunctionKind
+object NoParam: FunctionKind{
+    val token : TypeToken<Unit> = TypeToken<Unit>()
+}
 
-interface  FunctionKind
-object NoParam: FunctionKind
 
+/**
+ * Represents the kind of Kotlin property being resolved using reflection.
+ *
+ * `ReadOnlyProperty` corresponds to [KProperty1],
+ * `MutableProperty` corresponds to [KMutableProperty1].
+ */
+sealed interface PropertyKind : CallableOptions
+
+object Readonly: PropertyKind
+object Mutable  :PropertyKind

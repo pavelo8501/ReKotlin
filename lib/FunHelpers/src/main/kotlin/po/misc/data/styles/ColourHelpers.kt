@@ -3,7 +3,9 @@ package po.misc.data.styles
 import po.misc.data.HasText
 import po.misc.data.styles.Colour.RESET
 
-fun String.colorize(colour: Colour): String = Colorizer.colour(text =  this, colour = colour)
+
+
+fun String.colorize(colour: Colour): String = Colorizer.colour(text = this, colour)
 
 fun String.colorize(bgColour: BGColour): String = Colorizer.colour(this, bgColour)
 fun String.colorize(bgColour: BGColour, colour: Colour): String = Colorizer.colour(this, colour, bgColour)
@@ -33,7 +35,7 @@ fun  String.colorizeIf(colour: Colour, negativeCaseColour: Colour? = null,   pre
     }
 }
 
-fun  HasText.colorizeIf(
+fun HasText.colorizeIf(
     colour: Colour,
     negativeCaseColour: Colour? = null,
     predicate: ()-> Boolean

@@ -9,8 +9,8 @@ open class ColorModifier(
     vararg val conditions: ColourCondition
 ): TextModifier {
 
+    override val dynamic: Boolean = false
     override val formatter : Formatter = Formatter.ColorModifier
-
     var provider: (()-> Colour?)? = null
 
     constructor(colourProvider: ()-> Colour?):this()

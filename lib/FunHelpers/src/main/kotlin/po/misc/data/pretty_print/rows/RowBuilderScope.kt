@@ -3,59 +3,55 @@ package po.misc.data.pretty_print.rows
 import po.misc.collections.asList
 import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.cells.StaticCell
-import po.misc.data.pretty_print.parts.grid.GridKey
-import po.misc.data.pretty_print.parts.Orientation
-import po.misc.data.pretty_print.parts.PrettyDSL
-import po.misc.data.pretty_print.parts.RowID
-import po.misc.data.pretty_print.parts.RowOptions
-import po.misc.data.pretty_print.parts.RowPresets
+import po.misc.data.pretty_print.dsl.BuilderScope
+import po.misc.data.pretty_print.parts.options.Orientation
+import po.misc.data.pretty_print.parts.dsl.PrettyDSL
+import po.misc.data.pretty_print.parts.options.RowOptions
+import po.misc.data.pretty_print.parts.options.RowPresets
+import po.misc.data.pretty_print.parts.grid.RenderKey
+import po.misc.data.pretty_print.parts.template.GridID
+import po.misc.data.pretty_print.parts.template.RowID
 import po.misc.types.token.TypeToken
 
-interface RowBuilderScope<V: Any> {
 
-    val type: TypeToken<V>
+interface RowBuilderScope<T>{
 
-    fun addRow(row: PrettyRow<V>): GridKey?
+    val type: TypeToken<T>
+    val options: RowOptions?
+    fun addRow(row: PrettyRow<T>): PrettyRow<T>
+    fun exclude(vararg id: RowID) = options?.exclude(id.toList())
+    fun useId(id: GridID){
 
-    fun  RowBuilderScope<V>.headedRow(
+    }
+    
+   fun  RowBuilderScope<T>.headedRow(
         text: String,
         id: RowID? = null,
         rowPreset: RowPresets = RowPresets.HorizontalHeaded,
-    ): PrettyRow<V> {
+    ): PrettyRow<T> {
         val options = rowPreset.asRowOptions().useId(id)
-        val cell =  StaticCell(text).applyOptions(options.cellOptions)
-        val row =  PrettyRow<V>(type, options, cell.asList())
+        val cell = StaticCell(text).applyOptions(options.cellOptions)
+        val row =  PrettyRow<T>(cell.asList(), type, options)
         addRow(row)
         return row
     }
 
-    fun RowBuilderScope<V>.headedRow(
+    fun RowBuilderScope<T>.headedRow(
         text: String,
         rowPreset: RowPresets = RowPresets.HorizontalHeaded,
-    ): PrettyRow<V> = headedRow(text, null, rowPreset)
+    ): PrettyRow<T> = headedRow(text, null, rowPreset)
 
 
     @PrettyDSL
     fun buildRow(
-        rowId:RowID,
-        orientation: Orientation = Orientation.Horizontal,
-        builder: RowContainer<V>.() -> Unit
+        rowId:RowID? = null,
+        builder: RowBuilder<T>.() -> Unit
     ){
-        val container = createRowContainer(type, RowOptions(rowId, orientation))
+        val container = createRowContainer(type, rowId)
         builder.invoke(container)
-        val row =  container.initRow()
+        val row =  container.finalizeRow()
         addRow(row)
     }
 
-    @PrettyDSL
-    fun buildRow(
-        orientation: Orientation,
-        builder: RowContainer<V>.() -> Unit
-    ){
-        val container = createRowContainer(type, RowOptions(orientation))
-        builder.invoke(container)
-        val row =  container.initRow()
-        addRow(row)
-    }
 }
 

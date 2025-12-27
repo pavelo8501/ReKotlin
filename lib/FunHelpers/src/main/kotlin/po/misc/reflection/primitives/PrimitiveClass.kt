@@ -52,6 +52,11 @@ object StringClass: PrimitiveClass<String>{
     val kClass: KClass<String> = typeToken.kClass
 }
 
+object CollectionClass: PrimitiveClass<Collection<Any>>{
+    override val typeToken: TypeToken<Collection<Any>> = tokenOf()
+    val kClass: KClass<Collection<Any>> = typeToken.kClass
+}
+
 object IntClass: PrimitiveClass<Int>{
     override val typeToken: TypeToken<Int> = tokenOf()
     val kClass: KClass<Int> = typeToken.kClass

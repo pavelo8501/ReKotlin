@@ -2,6 +2,8 @@ package po.misc.reflection
 
 import po.misc.data.toDisplayName
 import po.misc.exceptions.throwableToText
+import po.misc.functions.Mutable
+import po.misc.functions.Readonly
 import po.misc.types.ClassAware
 import po.misc.types.castOrThrow
 import po.misc.types.memberProperties
@@ -62,18 +64,6 @@ inline fun <reified T: Any> KProperty0<*>.tryResolveToMutable(): KMutablePropert
 
     return kClass.memberProperties.firstOrNull { it.name == this.name }?.safeCast<KMutableProperty1<T, *>>()
 }
-
-
-/**
- * Represents the kind of Kotlin property being resolved using reflection.
- *
- * `ReadOnlyProperty` corresponds to [KProperty1],
- * `MutableProperty` corresponds to [KMutableProperty1].
- */
-sealed interface PropertyKind
-
-object Readonly  : PropertyKind
-object Mutable  :PropertyKind
 
 
 

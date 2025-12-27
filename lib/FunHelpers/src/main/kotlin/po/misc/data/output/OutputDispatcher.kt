@@ -1,6 +1,6 @@
 package po.misc.data.output
 
-import po.misc.debugging.stack_tracer.Methods
+import po.misc.debugging.stack_tracer.TraceOptions
 import po.misc.exceptions.Tracer
 
 object OutputDispatcher {
@@ -8,7 +8,7 @@ object OutputDispatcher {
     var identifyOutput: Boolean = false
 
     fun locateOutputs(){
-        val trace =   Tracer().createTrace(Methods("output"))
+        val trace =   Tracer().createTrace(TraceOptions.Method("output"))
         val report =  trace.methodLocations("output")
         println(report)
     }

@@ -3,8 +3,8 @@ package po.misc.counters.records
 import po.misc.counters.LogJournal
 import po.misc.counters.records.LogJournalEntry.RecordType
 import po.misc.data.pretty_print.PrettyRow
-import po.misc.data.pretty_print.parts.Options
-import po.misc.data.pretty_print.parts.Style
+import po.misc.data.pretty_print.parts.options.Options
+import po.misc.data.pretty_print.parts.options.Style
 import po.misc.data.pretty_print.rows.buildPrettyRow
 import po.misc.data.styles.Colour
 import po.misc.time.TimeHelper

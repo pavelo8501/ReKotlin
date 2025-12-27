@@ -9,7 +9,7 @@ import kotlin.test.assertEquals
 class TestTextHelpers {
 
     fun someFunction(param: Int, vararg parts: Any) : String = messageAssembler(parts){
-        it.formatedString
+        it.formatted
     }
 
     fun otherFunction(
@@ -18,8 +18,7 @@ class TestTextHelpers {
         article: String,
         count: String
     ) : String = messageAssembler(first, message, article, count){
-
-        it.formatedString
+        it.formatted
     }
 
     @Test

@@ -14,10 +14,9 @@ interface TokenFactory
  *
  * @return a new [TypeToken] representing type [T].
  */
-inline fun <reified T> TokenFactory.tokenOf(options:  TypeToken.Options? = null): TypeToken<T>{
-
+inline fun <reified T> TokenFactory.tokenOf(options:  TokenOptions? = null): TypeToken<T>{
    return  TypeToken<T>()
-   // return TypeToken.create<T>(options)
+
 }
 
 /**
@@ -35,7 +34,7 @@ inline fun <reified T> TokenFactory.tokenOf(options:  TypeToken.Options? = null)
  * @param baseClass the declared upper type that the resulting token should represent.
  * @return a new [TypeToken] representing [T], backed by concrete type [GT].
  */
-inline fun <T, reified GT: T> TokenFactory.tokenOf(baseClass: KClass<T & Any>, options:  TypeToken.Options? = null): TypeToken<T>{
+inline fun <T, reified GT: T> TokenFactory.tokenOf(baseClass: KClass<T & Any>, options: TokenOptions? = null): TypeToken<T>{
   return TypeToken.create<T, GT>(baseClass, options)
 }
 

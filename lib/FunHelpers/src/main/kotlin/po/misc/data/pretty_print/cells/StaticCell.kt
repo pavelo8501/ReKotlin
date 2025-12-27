@@ -1,97 +1,100 @@
 package po.misc.data.pretty_print.cells
 
-import po.misc.data.pretty_print.parts.CellOptions
-import po.misc.data.pretty_print.parts.CommonCellOptions
-import po.misc.data.pretty_print.parts.Options
-import po.misc.data.pretty_print.parts.Orientation
-import po.misc.data.pretty_print.parts.PrettyHelper
-import po.misc.data.pretty_print.PrettyRow
+import po.misc.data.isNotNull
+import po.misc.data.pretty_print.parts.options.CellPresets
+import po.misc.data.pretty_print.parts.options.CommonCellOptions
+import po.misc.data.pretty_print.parts.options.Options
+import po.misc.data.pretty_print.parts.options.PrettyHelper
+import po.misc.data.strings.appendLineParam
+import po.misc.data.strings.appendParam
 import po.misc.data.strings.stringify
-import po.misc.types.isNotNull
+import po.misc.data.styles.TextStyler
 import kotlin.text.append
 
 
 class StaticCell(
-    var content: Any? = null
-): PrettyCellBase(Options()), StaticRender{
+    var sourceContent: Any? = null,
+    options:Options = defaultOptions
+): PrettyCellBase(options), StaticRender, TextStyler {
 
-    val text: String get() = content.stringify().toString()
+    private val sourceContentAsString: String? get() = sourceContent?.toString()
+
+    private var assignedContent: String = "null"
+    var text: String
+        get() {
+            return sourceContent?.toString() ?: assignedContent
+        }
+        set(value) {
+            assignedContent = value
+        }
+    private val hasContent: Boolean get() = sourceContent != null
 
     var lockContent: Boolean = false
         internal set
 
     init {
-        if(content.isNotNull()){
+        if (sourceContent.isNotNull()) {
             lockContent = true
         }
     }
-
-    fun changeContent(newContent: Any):StaticCell{
-        content = newContent
-        return this
-    }
-    fun changeText(text: String):StaticCell{
-        content = text
-        return this
-    }
-    fun applyText(textProvider: ()-> String ):StaticCell{
-        content = textProvider()
-        return this
-    }
-
-    fun buildText(builderAction: StringBuilder.() -> Unit):StaticCell{
+    fun buildText(builderAction: StringBuilder.() -> Unit): StaticCell {
         val result = buildString(builderAction)
-        content = result
+        sourceContent = result
         return this
     }
 
-    override fun applyOptions(commonOpt: CommonCellOptions?): StaticCell{
+    override fun applyOptions(commonOpt: CommonCellOptions?): StaticCell {
         val options = PrettyHelper.toOptionsOrNull(commonOpt)
-        if(options != null){
+        if (options != null) {
             cellOptions = options
         }
         return this
     }
-
-
-    fun render(renderOptions: CellOptions? = null): String {
-        val useOptions = renderOptions?:cellOptions
-        val entry = content.stringify()
-        val usedText = if(plainText){
-            entry.text
-        } else {
-            entry.formatedText
-        }
-//        val modified =  staticModifiers.modify(usedText)
-//        val formatted =  compositeFormatter.format(modified, this)
-        val formatted = textFormatter.style(usedText)
-        val final = justifyText(formatted,  useOptions)
-        return final
-    }
-    override fun render(): String = render(Options(Orientation.Horizontal))
     override fun render(content: String, commonOptions: CommonCellOptions?): String {
         val options = PrettyHelper.toOptions(commonOptions, cellOptions as Options)
         val entry = content.stringify()
-        val usedText = if(plainText){
-            entry.text
+        val usedText = if (plainText) {
+            entry.plain
         } else {
-            entry.formatedText
+            entry.formatted
         }
-//        val modified =  staticModifiers.modify(usedText)
-//        val formatted =  compositeFormatter.format(modified, this)
         val formatted = textFormatter.style(usedText)
-        val final = justifyText(formatted,  options)
+        val final = justifyText(formatted)
         return final
     }
+    override fun render(commonOptions: CommonCellOptions?): String {
+        val useOptions = PrettyHelper.toOptions(commonOptions)
+        val entry =  sourceContent.stringify()
+        val usedText = if (plainText) {
+            entry.plain
+        } else {
+            entry.formatted
+        }
+        val formatted = textFormatter.style(usedText)
+        val final = justifyText(formatted)
+        return final
+    }
+    override fun render(content: Any, commonOptions: CommonCellOptions?): String {
+        applyOptions(PrettyHelper.toOptionsOrNull(commonOptions))
+        if (hasContent) { return text }
+        if (plainText) { return content.toString() }
+        if (cellOptions.useSourceFormatting) { return  justifyText(content.stringify().formatted ) }
+        val styled = textFormatter.style(text)
+        return justifyText(styled)
+    }
 
+    override fun copy(): StaticCell{
+       return StaticCell(sourceContent, cellOptions.copy())
+    }
     override fun toString(): String {
         return buildString {
             appendLine("StaticCell")
-            append("id", cellOptions.id)
-            append("width", cellOptions.width)
-            append(::lockContent)
+            appendLineParam("Width", cellOptions.width)
+            appendLineParam(::lockContent)
         }
     }
 
-    companion object
+    companion object {
+        val defaultOptions: Options = Options(CellPresets.PlainText)
+    }
 }

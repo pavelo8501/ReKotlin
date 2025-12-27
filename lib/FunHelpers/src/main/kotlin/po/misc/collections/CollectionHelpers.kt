@@ -13,7 +13,6 @@ fun <T: Any> List<T>.exactlyOneOrThrow(exceptionProvider:()-> Throwable):T{
 }
 
 fun <T: Any> T?.asList(): List<T>{
-
    return if (this != null){
         listOf(this)
     }else{
@@ -28,8 +27,8 @@ fun MutableList<String>.addNotBlank(string: String){
     }
 }
 
-fun MutableList<String>.addNotBlank(string: String, ifBlank: () -> Unit){
-    if(string.isNotBlank()){
+fun MutableList<String>.addNotBlank(string: String?, ifBlank: () -> Unit){
+    if(!string.isNullOrBlank()){
         add(string)
     }else{
         ifBlank.invoke()

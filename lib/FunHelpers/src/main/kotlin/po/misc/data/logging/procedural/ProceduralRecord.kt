@@ -1,7 +1,6 @@
 package po.misc.data.logging.procedural
 
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.PrettyPrint
 import po.misc.data.logging.Loggable
 import po.misc.data.logging.LoggableTemplate
 import po.misc.data.logging.NotificationTopic
@@ -12,21 +11,14 @@ import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.printable.companion.Template
 import po.misc.data.printable.companion.nextLine
-import po.misc.data.printable.grouping.printableProperty
 import po.misc.data.badges.Badge
-import po.misc.data.helpers.replaceIfNull
 import po.misc.data.logging.processor.contracts.TemplateActions
 import po.misc.data.logging.processor.parts.StructuredOptions
-import po.misc.data.logging.processor.parts.StructuredProperty
 import po.misc.data.logging.processor.parts.structuredProperty
-import po.misc.data.output.output
-import po.misc.data.pretty_print.cells.PrettyCell
-import po.misc.data.pretty_print.PrettyRow
-import po.misc.data.pretty_print.parts.RowID
-import po.misc.data.strings.IndentOptions
+import po.misc.data.pretty_print.parts.template.RowID
+import po.misc.data.strings.StringifyOptions
 import po.misc.data.strings.stringify
 import po.misc.data.styles.Colour
-import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
 import po.misc.types.token.TypeToken
@@ -241,9 +233,9 @@ class ProceduralRecord(
             nextLine {
                 val name =  ClassResolver.instanceName(context)
                 val resultingText = "[${name} @ ${created.hoursFormated(3)}] [$subject]".colorize(Colour.Blue).newLine {
-                    text.stringify(IndentOptions(currentIndentLevel, " ", colour = Colour.BlackBright)).formatedString
+                    text.stringify().toString()
                 }
-                resultingText.stringify(IndentOptions(currentIndentLevel, " ")).formatedString
+                resultingText.stringify().toString()
             }
         }
         val Result: Template<ProceduralRecord> = createTemplate {
@@ -253,7 +245,7 @@ class ProceduralRecord(
                     ProceduralResult.Warning -> "$resultText ${"Warning $resultPostfix".colorize(Colour.Yellow)}"
                     ProceduralResult.Fail -> "$resultText ${"Fail $resultPostfix".colorize(Colour.Red)}"
                 }
-                resultingText.stringify(IndentOptions(currentIndentLevel, " ")).formatedString
+                resultingText.stringify().toString()
             }
         }
     }

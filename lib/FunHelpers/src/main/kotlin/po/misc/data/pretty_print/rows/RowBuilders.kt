@@ -1,32 +1,20 @@
 package po.misc.data.pretty_print.rows
 
 import po.misc.data.pretty_print.PrettyRow
-import po.misc.data.pretty_print.Templated
-import po.misc.data.pretty_print.parts.CommonRowOptions
-import po.misc.data.pretty_print.parts.Orientation
-import po.misc.data.pretty_print.parts.PrettyHelper
-import po.misc.data.pretty_print.parts.RowID
-import po.misc.data.pretty_print.parts.RowOptions
+import po.misc.data.pretty_print.parts.options.CommonRowOptions
+import po.misc.data.pretty_print.parts.options.PrettyHelper
+import po.misc.data.pretty_print.parts.template.RowID
+import po.misc.data.pretty_print.toProvider
 import po.misc.types.token.TypeToken
 import kotlin.reflect.KProperty1
 
 
 @PublishedApi
-internal fun <T: Any> createRowContainer(
+internal fun <T> createRowContainer(
     typeToken : TypeToken<T>,
-    commonOptions: CommonRowOptions? = null,
-): RowContainer<T> {
-    val options = PrettyHelper.toRowOptions(commonOptions)
-    return RowContainer(typeToken,  options =  options)
-}
-
-internal fun <T: Any, V: Any> createRowValueContainer(
-    hostTypeToken : TypeToken<T>,
-    typeToken : TypeToken<V>,
-    commonOptions: CommonRowOptions? = null,
-): RowValueContainer<T, V> {
-    val options = PrettyHelper.toRowOptions(commonOptions)
-    return RowValueContainer(hostTypeToken, typeToken,   options =  options)
+    rowId: RowID? = null,
+): RowBuilder<T> {
+    return RowBuilder(typeToken, rowId)
 }
 
 fun <T: Any> createPrettyRow(
@@ -34,83 +22,43 @@ fun <T: Any> createPrettyRow(
     commonOptions: CommonRowOptions? = null,
 ): PrettyRow<T> {
     val options = PrettyHelper.toRowOptions(commonOptions)
-    return PrettyRow<T>(typeToken, options)
+    return PrettyRow.createEmpty<T>(typeToken, options)
 }
-
-
-inline fun <reified T: Any> createPrettyRow(
-    commonOptions: CommonRowOptions? = null,
-): PrettyRow<T> = createPrettyRow(TypeToken.create<T>(),  commonOptions)
 
 
 fun <T: Any> buildPrettyRow(
     typeToken : TypeToken<T>,
-    commonOptions: CommonRowOptions? = null,
-    builder: RowContainer<T>.()-> Unit
+    rowId: RowID? = null,
+    builder: RowBuilder<T>.()-> Unit
 ): PrettyRow<T> {
-    val options = PrettyHelper.toRowOptions(commonOptions)
-    val container = createRowContainer(typeToken, options)
+    val container = createRowContainer(typeToken,  rowId)
     builder.invoke(container)
-    return container.initRow()
+    return container.finalizeRow()
+}
+
+inline fun <reified T, reified V> prepareRow(
+    property: KProperty1<T, V>,
+    rowID: RowID? = null,
+    noinline  builder: ValueRowBuilder<T, V>.() -> Unit
+): ValueRowBuilder<T, V> {
+
+    val provider = property.toProvider<T, V>()
+    val container = ValueRowBuilder(
+        provider,
+        rowID
+    )
+    container.preSaveBuilder(builder)
+    return container
 }
 
 inline fun <reified T: Any> buildPrettyRow(
-    commonOptions: CommonRowOptions? = null,
-    noinline builder: RowContainer<T>.()-> Unit
-): PrettyRow<T> = buildPrettyRow(TypeToken.create<T>(), commonOptions, builder)
-
-
-inline fun <reified T: Any> buildPrettyRow(
-    rowId: RowID,
-    orientation: Orientation? = null,
-    noinline builder: RowContainer<T>.()-> Unit
-): PrettyRow<T> = buildPrettyRow(TypeToken.create<T>(), RowOptions(rowId, orientation), builder)
-
-inline fun <reified T: Any> buildPrettyRow(
-    orientation: Orientation,
-    noinline builder: RowContainer<T>.()-> Unit
-): PrettyRow<T> = buildPrettyRow(TypeToken.create<T>(), RowOptions(orientation), builder)
-
-
-inline fun <reified T: Templated<T>> T.buildRowForContext(
-    rowOptions: CommonRowOptions? = null,
-    noinline builder: RowContainer<T>.()-> Unit
+    rowId: RowID? = null,
+    builder: RowBuilder<T>.()-> Unit
 ): PrettyRow<T> {
-    val container = RowContainer<T>(TypeToken.create<T>(), PrettyHelper.toRowOptions(rowOptions))
+    val container = RowBuilder<T>(rowId)
     builder.invoke(container)
-
-    return container.initRow()
+    return container.finalizeRow()
 }
-
-fun <T: Any, V: Any> buildPrettyRow(
-    property: KProperty1<T, V>,
-    typeToken: TypeToken<T>,
-    valueToken: TypeToken<V>,
-    rowOptions: CommonRowOptions? = null,
-    builder: RowValueContainer<T, V>.()-> Unit
-): PrettyRow<V> {
-    val options = PrettyHelper.toRowOptions(rowOptions)
-    val container = createRowValueContainer(typeToken, valueToken, options)
-    container.singleLoader.setProperty(property)
-    builder.invoke(container)
-    return container.initRow()
-}
-
-inline fun <T: Any, reified V: Any> buildPrettyRow(
-    typeToken: TypeToken<T>,
-    property: KProperty1<T, V>,
-    rowOptions: CommonRowOptions? = null,
-    noinline builder: RowValueContainer<T, V>.()-> Unit
-): PrettyRow<V> = buildPrettyRow(property, typeToken, TypeToken.create<V>(), rowOptions, builder)
-
-inline fun <reified T: Any, reified V: Any> buildPrettyRow(
-    property: KProperty1<T, V>,
-    rowOptions: CommonRowOptions? = null,
-    noinline builder: RowValueContainer<T, V>.()-> Unit
-): PrettyRow<V> = buildPrettyRow(property, TypeToken.create<T>(), TypeToken.create<V>(), rowOptions, builder)
-
-
-
 
 
 

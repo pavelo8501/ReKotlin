@@ -129,7 +129,7 @@ abstract class CallableEventBase<T, T1,  R>(): Component {
             return emptyList()
         }
         listenersMap.lambdaMap.forEach { (listener, callable) ->
-            val callResult = callable.invoke(value, parameter)
+            val callResult = callable.call(value, parameter)
             checkRemoval(listener, callable)?.let {
                 forRemoval.add(it)
             }
@@ -156,7 +156,7 @@ abstract class CallableEventBase<T, T1,  R>(): Component {
             return null
         }
         return listenersMap.lambdaMap[listener]?.let { callable ->
-            val result = callable.invoke(value, parameter)
+            val result = callable.call(value, parameter)
             checkRemoval(listener, callable)?.let {
                 listenersMap.removeLambda(it)
             }

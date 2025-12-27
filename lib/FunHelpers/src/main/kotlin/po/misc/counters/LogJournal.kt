@@ -74,7 +74,7 @@ class LogJournal(
 }
 
 infix fun  LogJournalEntry.comment(text: Any):LogJournalEntry{
-    addComment(text.stringify().formatedString)
+    addComment(text.stringify().toString())
    return this
 }
 

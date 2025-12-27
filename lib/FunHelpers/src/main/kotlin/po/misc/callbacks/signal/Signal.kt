@@ -72,9 +72,11 @@ import po.misc.types.token.TypeToken
  * @param T the type of value delivered to listeners
  * @param R the type of value returned by listeners
  */
-sealed interface SignalBuilder<T: Any, R>{
+sealed interface SignalBuilder<T, R>{
 
     private val signal: Signal<T, R> get() = this as Signal
+
+    var signalName:String
 
     /**
      * Assigns a human-readable name to this signal.
@@ -94,7 +96,6 @@ sealed interface SignalBuilder<T: Any, R>{
         return componentID
     }
 
-    var signalName:String
 
     /**
      * Registers a synchronous listener associated with the signal itself
@@ -154,7 +155,7 @@ sealed interface SignalBuilder<T: Any, R>{
  * @param T the payload type passed to listeners when the signal is triggered
  * @param R the result type returned by each listener
  */
-class Signal<T: Any, R>(
+class Signal<T, R>(
    paramType: TypeToken<T>,
    resultType: TypeToken<R>,
    val options: SignalOptions? = null
@@ -164,19 +165,14 @@ class Signal<T: Any, R>(
         private val signal :Signal<*, *>
     ): PrettyPrint{
         val name : String = signal.signalName
-
         val signalsCount: Int = signal.listenersMap.lambdaMap.size
         val suspendedCount : Int = signal.listenersMap.suspendedMap.size
         val subscriptionsCount : Int = signalsCount + suspendedCount
         val journalRecords : List<DataRecord> = signal.journal.records
-
-        override val formattedString: String
-            get() = buildString {
-                appendGroup("SignalData[$name", "]", ::signalsCount, ::suspendedCount, ::subscriptionsCount)
-            }
-
+        override val formattedString: String get() = buildString {
+            appendGroup("SignalData[$name", "]", ::signalsCount, ::suspendedCount, ::subscriptionsCount)
+        }
         override fun toString(): String  = "SignalData[$name]"
-
     }
 
     override var signalName:String = "Signal"

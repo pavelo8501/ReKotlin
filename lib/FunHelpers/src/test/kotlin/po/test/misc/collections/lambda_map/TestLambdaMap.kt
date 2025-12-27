@@ -1,8 +1,6 @@
 package po.test.misc.collections.lambda_map
 
-import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
-import po.misc.collections.lambda_map.CallableWrapper
 import po.misc.collections.lambda_map.Lambda
 import po.misc.collections.lambda_map.LambdaMap
 import po.misc.collections.lambda_map.LambdaWithReceiver
@@ -11,10 +9,7 @@ import po.misc.collections.lambda_map.toCallable
 import po.misc.context.component.Component
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.output.output
-import po.misc.functions.SuspendedOptions
-import po.misc.types.safeCast
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertSame
@@ -83,7 +78,7 @@ class TestLambdaMap: Component {
             lambdaMap.lambdaMap.toList().get(index)?.let {
                 collectedListeners.add(it)
             }
-            mapValue.invoke("${msg}_$index", Unit)
+            mapValue.call("${msg}_$index", Unit)
         }
         assertEquals(10, collectedListeners.size)
         collectedListeners.forEachIndexed {index, listener->
@@ -107,7 +102,7 @@ class TestLambdaMap: Component {
         assertEquals(10, selected.size)
         selected.forEach {
             if(it is LambdaWrapper){
-                it.invoke("value", Unit)
+                it.call("value", Unit)
             }
         }
         lambdaMap.listenerEntries.forEach {

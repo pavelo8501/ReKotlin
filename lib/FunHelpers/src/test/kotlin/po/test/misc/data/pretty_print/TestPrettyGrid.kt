@@ -1,56 +1,42 @@
 package po.test.misc.data.pretty_print
 
 import org.junit.jupiter.api.Test
+import po.misc.data.output.output
+import po.misc.data.pretty_print.cells.KeyedCell
 import po.misc.data.pretty_print.grid.buildPrettyGrid
-import po.misc.data.pretty_print.parts.Options
-import po.misc.data.pretty_print.parts.Orientation
-import po.misc.data.pretty_print.parts.RowOptions
+import po.misc.data.pretty_print.parts.cells.cellDelete
+import po.misc.data.styles.Colour
+import po.misc.data.styles.colorize
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
-import po.test.misc.data.pretty_print.setup.PrintableRecord
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
+import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 
 class TestPrettyGrid : PrettyTestBase() {
+
+    val intProperty: Int = 100
+    val boolProperty: Boolean = true
+    val textProperty: (TestPrettyGrid) ->  String = {receiver->
+       "Resolved!!!!!".colorize(Colour.Green)
+    }
 
 
     @Test
     fun `Using specific template id to control render`(){
+        val grid = buildPrettyGrid<TestPrettyGrid> {
+            buildRow {
+                addCells(::textProperty, ::intProperty, ::boolProperty)
 
-        val cell1Text = "Static cell 1 on first row"
-        val cell2Text = "Second Static cell on first row"
-        val cell3Text = "First Static cell on second row"
-
-        var prettyGrid = buildPrettyGrid<PrintableRecord> {
-            buildRow(RowOptions(Grid.Grid1, Orientation.Horizontal)) {
-                add(cell1Text)
-                add(cell2Text)
-            }
-            buildRow(RowOptions(Grid.Grid2, Orientation.Horizontal)) {
-                add(cell3Text)
+                add(textProperty)
+                cellDelete(textProperty)
             }
         }
-        val record = createRecord()
-        var render = prettyGrid.render(record, RowOptions(Grid.Grid1))
+        grid.render(this).output()
 
-        assertTrue { render.contains(cell1Text) && render.contains(cell2Text) }
-        assertFalse { render.contains(cell3Text) }
-
-        prettyGrid = buildPrettyGrid<PrintableRecord> {
-            buildRow(RowOptions(Grid.Grid1, Orientation.Horizontal)) {
-                add(cell1Text)
-                add(cell2Text, Options(Grid.Grid2))
-            }
-            buildRow(RowOptions(Grid.Grid2, Orientation.Horizontal)) {
-                add(cell3Text)
+        assertNotNull(grid.rows.firstOrNull()){
+            assertNotNull(it.cells.firstOrNull()){cell->
+                assertIs<KeyedCell<TestPrettyGrid>>(cell)
+                cell.keyText.output("Cell ->  ")
             }
         }
-//        render = prettyGrid.render(record, RowOptions(CellTemplate.Cell2, Template.Template1))
-//
-//        assertTrue {  render.contains(cell1Text) && render.contains(cell2Text) }
-//        assertFalse { render.contains(cell3Text) }
-//
-//        render = prettyGrid.render(record, RowOptions(Template.Template1))
-//        assertTrue {  render.contains(cell1Text) }
-//        assertFalse { render.contains(cell2Text) && render.contains(cell3Text) }
     }
 }

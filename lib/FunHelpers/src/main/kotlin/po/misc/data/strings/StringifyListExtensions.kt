@@ -4,56 +4,33 @@ import po.misc.data.styles.Colour
 
 
 @PublishedApi
-internal fun stringifyListInternal(
-    list: List<Any>,
-    colour: Colour?,
-):SimpleFormatter {
-    return if(list.isNotEmpty()) {
-        val stringFormater =  list.first().stringify(prefix = "", colour)
-        list.drop(1).forEach {
-        }
-        SimpleFormatter(stringFormater.text, stringFormater.formatedText)
-
-    }else{
-        SimpleFormatter("empty", "empty")
-    }
-}
-
-
-@PublishedApi
 internal fun buildStringCollection(
     list: Collection<Any?>,
     colour: Colour?,
-):FormatedEntry {
+): FormattedPair {
 
    return if(list.isNotEmpty()){
-        val rootEntry = list.first().stringify(colour)
+        val rootEntry = list.first().stringify(colour) as FormattedText
         list.drop(1).forEach {
-           val result =  it.stringify(colour)
-            rootEntry.addFormated(result)
+           val result =  it.stringify(colour) as FormattedText
+            rootEntry.add(result)
         }
         rootEntry
     }else{
-        FormatedEntry("Empty")
+       FormattedText("Empty")
     }
 }
 
-
 fun Collection<*>.stringify(
     colour: Colour? = null
-):FormatedEntry = buildStringCollection(this, colour = colour)
-
-
-fun Collection<*>.stringifyList(
-    colour: Colour? = null
-):FormatedEntry = buildStringCollection(this, colour = colour)
+):FormattedPair = buildStringCollection(this, colour = colour)
 
 
 fun Array<*>.stringify(
     colour: Colour? = null
-):FormatedEntry = buildStringCollection(this.toList(), colour = colour)
+):FormattedPair = buildStringCollection(this.toList(), colour = colour)
 
 fun Array<*>.stringifyList(
     colour: Colour? = null
-):FormatedEntry = buildStringCollection(this.toList(), colour = colour)
+):FormattedPair = buildStringCollection(this.toList(), colour = colour)
 

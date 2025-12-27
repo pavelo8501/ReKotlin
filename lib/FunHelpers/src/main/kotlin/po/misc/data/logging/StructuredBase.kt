@@ -4,8 +4,8 @@ import po.misc.context.tracable.TraceableContext
 import po.misc.data.PrettyPrint
 import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.Templated
-import po.misc.data.pretty_print.parts.CellPresets
-import po.misc.data.pretty_print.parts.RowPresets
+import po.misc.data.pretty_print.parts.options.CellPresets
+import po.misc.data.pretty_print.parts.options.RowPresets
 import po.misc.data.styles.Colour
 import po.misc.data.styles.TextStyle
 import po.misc.data.styles.colorize
@@ -49,11 +49,11 @@ abstract class StructuredBase(
         }
 
     companion object : Templated<StructuredBase> {
-        override val valueType: TypeToken<StructuredBase> = tokenOf<StructuredBase>()
+        override val type: TypeToken<StructuredBase> = tokenOf<StructuredBase>()
         private val nameOptions =  buildOption(CellPresets.KeylessProperty){
             style(TextStyle.Regular, Colour.Blue)
         }
-        val template: PrettyRow<StructuredBase> = buildRow(RowPresets.HorizontalBorderless) {
+        val template: PrettyRow<StructuredBase> = buildRow {
             add(StructuredBase::contextName, nameOptions)
             add(StructuredBase::localTime, nameOptions)
             computed(StructuredBase::subject){subject->

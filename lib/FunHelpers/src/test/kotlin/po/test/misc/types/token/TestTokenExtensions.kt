@@ -4,8 +4,8 @@ import org.junit.jupiter.api.assertDoesNotThrow
 import po.misc.data.output.output
 import po.misc.types.token.TokenOptions
 import po.misc.types.token.TypeToken
-import po.misc.types.token.asElement
-import po.misc.types.token.asList
+import po.misc.types.token.asElementType
+import po.misc.types.token.asListType
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -21,7 +21,7 @@ class TestTokenExtensions: TokenTestBase() {
 
         val token = TypeToken<SomeClass>()
         val listToken = assertDoesNotThrow {
-            token.asList()
+            token.asListType()
         }
         assertIs<TypeToken<List<SomeClass>>>(listToken)
         assertNotNull(listToken.typeSlots.firstOrNull()){typeSlot->
@@ -34,7 +34,7 @@ class TestTokenExtensions: TokenTestBase() {
     fun `Type token conversion from List to Element`(){
         val token = TypeToken<List<SomeClass>>()
         val elementToken = assertDoesNotThrow {
-            token.asElement()
+            token.asElementType()
         }
         assertIs<TypeToken<SomeClass>>(elementToken)
         assertEquals(0,elementToken.typeSlots.size)

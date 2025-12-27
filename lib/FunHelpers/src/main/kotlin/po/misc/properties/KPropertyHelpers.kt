@@ -6,6 +6,7 @@ import po.misc.types.TypeHolder
 import po.misc.types.safeCast
 import po.misc.types.token.TypeToken
 import kotlin.reflect.KClass
+import kotlin.reflect.KProperty
 import kotlin.reflect.KProperty1
 import kotlin.reflect.KType
 import kotlin.reflect.full.isSubtypeOf
@@ -33,13 +34,12 @@ import kotlin.reflect.typeOf
  * @return `KProperty1<T, V>` if the property's return type is compatible; otherwise `null`.
  */
 @PublishedApi
-internal fun <T: Any, V> checkPropertyType(
-    property: KProperty1<*, *>,
+internal fun <T, V> checkPropertyType(
+    property: KProperty<*>,
     expectedType: KType,
     lookupReporting: ((ReflectiveLookup) -> Unit)? = null
 ):KProperty1<T, V>?
 {
-
     val lookup = if(lookupReporting != null) {
         ReflectiveLookup()
     }else{
@@ -90,7 +90,7 @@ internal fun <T: Any, V> checkPropertyType(
  * @param lookupReporting Optional reflective debugging collector.
  */
 @JvmName("checkTypeReifiedT")
-inline fun <reified T: Any, V> KProperty1<*, *>.checkType(
+inline fun <reified T, V> KProperty<*>.checkType(
     returnType: TypeHolder<V>,
     noinline lookupReporting: ((ReflectiveLookup) -> Unit)? = null
 ): KProperty1<T, V>? = checkPropertyType<T, V>(this,  returnType.kType, lookupReporting)
@@ -108,7 +108,7 @@ inline fun <reified T: Any, V> KProperty1<*, *>.checkType(
  * @param returnType Type descriptor for the expected return value.
  * @param lookupReporting Optional reflective debugging collector.
  */
-fun <T: Any, V> KProperty1<T, *>.checkType(
+fun <T, V> KProperty1<T, *>.checkType(
     returnType: TypeHolder<V>,
     lookupReporting: ((ReflectiveLookup) -> Unit)? = null
 ): KProperty1<T, V>? = checkPropertyType<T, V>(this,  returnType.kType, lookupReporting)
@@ -137,7 +137,7 @@ fun <T: Any, V> KProperty1<T, *>.checkType(
  * @return A safely cast property on success, or `null` on mismatch.
  */
 @JvmName("checkTypeFullReified")
-inline fun <reified T: Any, reified V> KProperty1<*, *>.checkType(
+inline fun <reified T, reified V> KProperty<*>.checkType(
     noinline lookupReporting: ((ReflectiveLookup) -> Unit)? = null
 ): KProperty1<T, V>? = checkPropertyType<T, V>(this,  typeOf<V>(), lookupReporting)
 
@@ -162,7 +162,7 @@ inline fun <reified T: Any, reified V> KProperty1<*, *>.checkType(
  * @param returnType Runtime descriptor for the expected return type [V].
  * @param lookupReporting Optional reflective debugging collector.
  */
-fun <T: Any, V> KProperty1<*, *>.checkType(
+fun <T, V> KProperty<*>.checkType(
     kClass: ClassAware<T>,
     returnType: TypeHolder<V>,
     lookupReporting: ((ReflectiveLookup) -> Unit)? = null

@@ -1,29 +1,16 @@
 package po.misc.data.output
 
-import po.misc.data.PrettyFormatted
 import po.misc.data.helpers.orDefault
-import po.misc.data.strings.IndentOptions
-import po.misc.data.strings.ListDirection
-import po.misc.data.strings.StringFormatter
 import po.misc.data.strings.stringify
 import po.misc.data.styles.Colour
+import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
 import po.misc.debugging.models.InstanceInfo
-import po.misc.debugging.stack_tracer.StackFrameMeta
+import po.misc.debugging.stack_tracer.TraceOptions
+import po.misc.debugging.stack_tracer.trace
 import po.misc.types.k_class.KClassParam
 import po.misc.types.k_class.toKeyParams
-
-
-fun Any.output(
-    option: IndentOptions
-){
-    checkDispatcher()
-    val result = stringify(option)
-    result.formatedString
-    //val joinedString = result.joinFormated(direction)
-    println(result.formatedString)
-}
 
 
 fun <T: Any> T.output(debugProvider: DebugProvider): KClassParam{
@@ -44,6 +31,17 @@ fun Any.output(
     prefix: String? = null
 ){
     checkDispatcher()
+
+    fun stringifyReceiver(receiver: Any):String{
+       return when (receiver) {
+            is List<*> -> {
+                receiver.stringify().formatted
+            }
+            else -> {
+                receiver.stringify().formatted
+            }
+        }
+    }
     val ownPrefix = "Output -> ".colorize(Colour.Blue)
     val prefixStr = prefix.orDefault { "$it " }
     val receiver = this
@@ -63,9 +61,23 @@ fun Any.output(
           println(refactorNotImpl)
         }
         is HighLight -> {
-            println(ownPrefix)
-            println(stringify().formatedString)
-            println("------Output complete----".colorize(Colour.Blue))
+            val lines = mutableListOf<String>()
+            val method = TraceOptions.PreviousMethod
+            method.methodName = "output"
+            val result = trace(method)
+            val str = stringifyReceiver(this)
+            val console = result.bestPick.consoleLink
+            lines.add("")
+            if(prefix != null){
+                lines.add(prefix)
+            }
+            lines.add("Highlight output -> ".colorize(Colour.Blue))
+            lines.add(console)
+            lines.add(str)
+            lines.add("End of output".colorize(Colour.Blue))
+            lines.add("")
+            val report =  lines.joinToString(SpecialChars.NEW_LINE)
+            println(report)
         }
     }
 }
@@ -78,13 +90,3 @@ fun <T: Any, R> T.output(pass:Pass,  colour: Colour? = null, selector: T.() ->R)
     outputInternal(this, colour = colour)
     return selector(this)
 }
-
-//fun PrettyFormatted.output(vararg section: Enum<*>){
-//    checkDispatcher()
-//    val formated =  if(section.isNotEmpty()){
-//        formatted(section.toList())
-//    }else{
-//        formatted()
-//    }
-//    println(formated)
-//}

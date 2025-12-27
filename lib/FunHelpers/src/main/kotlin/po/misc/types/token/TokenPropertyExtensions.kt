@@ -1,13 +1,11 @@
 package po.misc.types.token
 
-import po.misc.reflection.Readonly
+import po.misc.functions.Readonly
 import po.misc.types.ClassAware
 import po.misc.types.safeCast
 import kotlin.reflect.KProperty
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.memberProperties
-
-
 
 
 fun <T: Any> TypeToken<T>.resolveProperty(

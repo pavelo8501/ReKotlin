@@ -1,13 +1,22 @@
 package po.misc.data.strings
 
 import po.misc.context.CTX
+import po.misc.data.HasText
 import po.misc.data.HasValue
 import po.misc.data.PrettyFormatted
 import po.misc.data.PrettyPrint
 import po.misc.data.TextContaining
+import po.misc.data.containsAnyOf
+import po.misc.data.isUnset
+import po.misc.data.output.output
+import po.misc.data.strings.StringifyOptions
 import po.misc.data.styles.Colorizer
 import po.misc.data.styles.Colour
+import po.misc.data.styles.Colour.RESET
 import po.misc.data.styles.SpecialChars
+import po.misc.data.styles.StyleCode
+import po.misc.data.styles.TextStyle
+import po.misc.data.styles.TextStyler
 import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
 import po.misc.exceptions.throwableToText
@@ -16,220 +25,149 @@ import kotlin.collections.first
 import kotlin.collections.isNotEmpty
 import kotlin.reflect.KClass
 
+interface FormattedPair{
+    val plain: String
+    val formatted: String
+}
 
-sealed class StringFormatter(var string: String){
-    open var formatedString: String = string
-    internal val subFormatters = mutableListOf<StringFormatter>()
-    fun output(){
-        println(formatedString)
-        subFormatters.forEach {
-            it.output()
-        }
+class FormattedText(
+    override var plain: String = "",
+    override var formatted: String = plain,
+):FormattedPair, TextStyler{
+
+    constructor(hasText: HasText,  formatted: String = hasText.value): this(hasText.value, formatted)
+
+    var overflowPrevention: Boolean = false
+    private var subEntries = mutableListOf<FormattedPair>()
+
+    @PublishedApi
+    internal fun applyText(plainText:String, formattedText: String, separator:String):FormattedText{
+        plain = "$plain${separator}$plainText"
+        formatted = "$formatted${separator}$formattedText"
+        return this
     }
 
-    fun returnFormated(): String {
-        val resultingString = subFormatters.joinToString(prefix = formatedString) {
-            it.returnFormated()
+    fun applyFormatted(formatted :FormattedPair, parameters: StringifyOptions):FormattedText{
+        applyText(formatted.plain, formatted.formatted, parameters.separator)
+        return this
+    }
+    fun applyFormatted(formatted : List<FormattedPair>, parameters: StringifyOptions):FormattedText{
+        formatted.forEach {
+            applyFormatted(it, parameters)
         }
-        return resultingString
+        return this
     }
 
-    override fun toString(): String {
+    fun style(styleCode: StyleCode? = null):FormattedText{
+        formatted = style(formatted,  styleCode)
+        return this
+    }
+    fun add(subEntry: FormattedPair):FormattedText{
+        subEntries.add(subEntry)
+        return this
+    }
+    fun addAll(subEntries: List<FormattedPair>) : FormattedText {
+        subEntries.forEach { add(it) }
+        return this
+    }
 
-        return if (subFormatters.isNotEmpty()) {
-            val subResult = subFormatters.joinToString(prefix = string, postfix = SpecialChars.NEW_LINE , separator = SpecialChars.NEW_LINE) {
-                it.toString()
+    private fun joinRecursively(rootEntry:FormattedText, parameters: StringifyOptions.ListOptions, level: Int){
+        for(entry in subEntries){
+            val indentation = parameters.indentWith.repeat(level)
+            rootEntry.applyText("${indentation}${entry.plain}", "${indentation}${entry.formatted}", parameters.separator)
+            if(entry is FormattedText){
+                entry.joinRecursively(rootEntry, parameters, level + 1)
             }
-            "${string}${SpecialChars.NEW_LINE}${subResult}"
-        } else {
-            string
         }
     }
+    fun joinSubEntries(parameters: StringifyOptions.ListOptions):FormattedText {
+        val rootEntry = FormattedText(plain, formatted)
+        joinRecursively(rootEntry, parameters, parameters.indent)
+        return rootEntry
+    }
+    fun applyPrefix(prefix:String?, style: StyleCode? = null):FormattedText{
+        if(prefix != null){
 
+            plain = "${style(prefix, style)}$plain"
+            formatted =   if(style != null){
+                "${style(prefix, style)}$formatted"
+            }else{
+                "${prefix}$formatted"
+            }
+        }
+        return this
+    }
+    override fun toString(): String = formatted
+}
+
+
+interface StringFormatter{
+    fun formatKnownTypes(receiver: Any?): FormattedText = Companion.formatKnownTypes(receiver)
     companion object{
-
-
-
-        fun formatKnownTypes2(target: Any?): FormatedEntry {
-            return if(target != null){
-                val targetAsString = target.toString()
-                when(target){
+        private val ANSI_REGEX = Regex("\\u001B\\[[;\\d]*m")
+        fun isStyled(text:String):Boolean {
+            return text.contains(RESET.code)
+        }
+        fun stripAnsiIfAny(text:String):String {
+            if(isStyled(text)){
+                stripAnsi(text)
+            }
+            return text
+        }
+        fun stripAnsi(text: String): String = text.replace(ANSI_REGEX, "")
+        fun hasStyles(text: String): Boolean{
+            return text.containsAnyOf(TextStyle.Reset.code)
+        }
+        fun style(text: String, styleCode: StyleCode?): String {
+            if(styleCode != null){
+                if(hasStyles(text)){
+                    stripAnsi(text)
+                }
+                return "${styleCode.code}$text${TextStyle.Reset.code}"
+            }else{
+                return text
+            }
+        }
+        fun formatKnownTypes(receiver: Any?): FormattedText {
+            return if(receiver != null){
+                val targetAsString = receiver.toString()
+                when(receiver){
                     is KClass<*> -> {
-                       val info = ClassResolver.classInfo(target)
-                        FormatedEntry(info.simpleName, info.formattedClassName)
+                        val info = ClassResolver.classInfo(receiver)
+                        FormattedText(info.simpleName, info.formattedClassName)
                     }
                     is PrettyFormatted -> {
-                        FormatedEntry(targetAsString).also {
+                        FormattedText(targetAsString).also {
                             it.overflowPrevention = true
                         }
                     }
                     is PrettyPrint -> {
-                        FormatedEntry(targetAsString, target.formattedString)
+                        FormattedText(targetAsString, receiver.formattedString)
                     }
-                    is CTX -> FormatedEntry(targetAsString,  target.identifiedByName)
+                    is CTX -> FormattedText(targetAsString,  receiver.identifiedByName)
                     is Enum<*> -> {
-                        if(target is TextContaining){
-                            FormatedEntry(targetAsString, "${target.name}: ${target.asText()}")
+                        if(receiver is TextContaining){
+                            FormattedText(targetAsString, "${receiver.name}: ${receiver.asText()}")
                         }else{
-                            FormatedEntry(targetAsString)
+                            FormattedText(targetAsString)
                         }
                     }
                     is Throwable ->{
-                        FormatedEntry(target.message?:"N/A", target.throwableToText())
+                        FormattedText(receiver.message?:"", receiver.throwableToText())
                     }
-                    is String -> FormatedEntry(targetAsString)
-                    else -> FormatedEntry(targetAsString)
+                    is String -> FormattedText(targetAsString)
+                    is Boolean -> {
+                        if(receiver){
+                            FormattedText("true",  "True".colorize(Colour.Green))
+                        }else{
+                            FormattedText("false",  "False".colorize(Colour.Red))
+                        }
+                    }
+                    else -> FormattedText(targetAsString)
                 }
             }else{
-                FormatedEntry("null")
-            }
-        }
-
-        fun formatKnownTypes(target: Any?): String {
-            return when(target){
-                is PrettyPrint -> {
-                    target.formattedString
-                }
-                is CTX -> { target.identifiedByName }
-                is Enum<*> -> {
-                    if(target is TextContaining){
-                        "${target.name}: ${target.asText()}"
-                    }else{
-                        target.name
-                    }
-                }
-                is String -> target
-                else -> target.toString()
+                FormattedText("null", "null".colorize(Colour.Yellow))
             }
         }
     }
-}
-
-
-class SimpleFormatter(
-    string: String,
-    override var formatedString: String = string
-): StringFormatter(string) {
-
-    fun addSubStringFormater(stringFormater: StringFormatter): SimpleFormatter {
-        subFormatters.add(stringFormater)
-        return this
-    }
-}
-
-class DSLFormatter(string: String): StringFormatter(string){
-
-    private var firstIteration: Boolean = true
-    private fun appendLine(receiver: Any,  colour: Colour): DSLFormatter{
-        val formatedText = formatKnownTypes(receiver)
-        val dsl =  DSLFormatter(formatedText)
-        dsl.formatedString = Colorizer.applyColour(formatedText, colour)
-        return dsl
-    }
-
-    fun Any.stringify(colour: Colour){
-        val formater = appendLine(this@stringify, colour)
-        if(firstIteration){
-            string = formater.string
-            formatedString = formater.formatedString
-            firstIteration = false
-        }else{
-            subFormatters.add(formater)
-        }
-    }
-}
-
-@PublishedApi
-internal inline fun stringifyInternal(
-    receiver: Any,
-    colour: Colour?,
-    transform: (String)-> String
-):SimpleFormatter {
-
-    val lambdaResult = transform(StringFormatter.formatKnownTypes(receiver))
-    return colour?.let {
-        SimpleFormatter(lambdaResult, Colorizer.applyColour(lambdaResult, it))
-    } ?: SimpleFormatter(lambdaResult)
-}
-
-
-@PublishedApi
-internal fun stringifyInternal(
-    receiver: Any?,
-    prefix: String = "",
-    colour: Colour?
-): FormatedEntry {
-    return if (receiver != null) {
-        val formated = StringFormatter.formatKnownTypes2(receiver)
-        formated.addPrefix(prefix)
-        formated.colour(colour)
-    } else {
-        FormatedEntry("$prefix null")
-    }
-}
-
-
-inline fun Any.stringify(
-    colour: Colour? = null,
-    transform: (String)-> String
-):SimpleFormatter = stringifyInternal(this, colour, transform)
-
-
-@PublishedApi
-internal inline fun stringifyListInternal(
-    list: List<Any>,
-    colour: Colour?,
-    transform: (String)-> String
-):SimpleFormatter {
-
-    return if(list.isNotEmpty()) {
-        val stringFormater =  list.first().stringify(colour, transform)
-        list.drop(1).forEach {
-            stringFormater.addSubStringFormater(it.stringify(colour, transform))
-        }
-        stringFormater
-    }else{
-        SimpleFormatter("empty", "empty")
-    }
-}
-
-
-
-
-
-
-inline fun List<Any>.stringify(
-    colour: Colour,
-    transform: (String)-> String
-):SimpleFormatter {
-   return if(isNotEmpty()) {
-        val stringFormater =  first().stringify(colour, transform)
-        drop(1).forEach {
-            stringFormater.addSubStringFormater( it.stringify(colour, transform))
-        }
-       stringFormater
-    }else{
-       SimpleFormatter("empty", "empty")
-    }
-}
-
-fun List<Any>.stringify(
-    colour: Colour
-):SimpleFormatter{
-  return  if(isNotEmpty()){
-        val first = first()
-        val stringFormater = first.stringify(prefix = "", colour)
-        drop(1).forEach {
-
-        }
-      SimpleFormatter(stringFormater.text, stringFormater.formatedText)
-    }else{
-      SimpleFormatter("empty", "empty".colorize(colour))
-    }
-}
-
-inline fun <reified T: Any> T.stringifyThis(transform: DSLFormatter.(T)-> Unit):DSLFormatter {
-    val formater = DSLFormatter(StringFormatter.formatKnownTypes(this))
-    formater.transform(this)
-    return formater
 }

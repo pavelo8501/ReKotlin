@@ -2,24 +2,23 @@ package po.test.misc.data.pretty_print.cells
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
+import po.misc.data.contains
 import po.misc.data.output.output
 import po.misc.data.pretty_print.cells.ComputedCell
-import po.misc.data.pretty_print.cells.KeyedCell
-import po.misc.data.pretty_print.parts.Orientation
 import po.misc.data.pretty_print.rows.buildPrettyRow
 import po.misc.data.styles.Colour
-import po.misc.data.styles.TextStyle
+import po.misc.data.styles.contains
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
 import po.test.misc.data.pretty_print.setup.PrintableRecord
 import po.test.misc.data.pretty_print.setup.PrintableRecordSubClass
-import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
-import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.text.contains
 
 class TestComputedCell : PrettyTestBase() {
+
+    private var outputEnabled:Boolean = true
 
     @Test
     fun `Computed Cell default render is toString method of an instance`(){
@@ -32,15 +31,16 @@ class TestComputedCell : PrettyTestBase() {
         val record = createRecord()
         val subClassToString = record.subClass.toString()
         val render = cell.render(record)
+        render.output(outputEnabled)
         assertTrue { render.contains(subClassToString) }
-        assertFalse { render.contains(Colour.RESET.code)   }
+        assertTrue { render.contains(Colour.RESET)   }
     }
 
     @Test
     fun `Computed Cell respects usePlain modifier respectively printing formattedString of a class`(){
         val row = buildPrettyRow<PrintableRecord> {
             computed(PrintableRecord::subClass){ subClass->
-                options.plainText = false
+                options?.plainText = false
                 subClass
             }
         }
@@ -53,7 +53,7 @@ class TestComputedCell : PrettyTestBase() {
     }
 
     @Test
-    fun `Computed Cell passing itself to render would not create overflow`(){
+    fun `Computed Cell passing itself to render would not lead to overflow`(){
         val row = buildPrettyRow<PrintableRecord> {
             computed(PrintableRecord::subClass){
                 this@computed

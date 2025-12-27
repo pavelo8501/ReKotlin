@@ -1,78 +1,75 @@
 package po.misc.data.pretty_print.cells
 
-import po.misc.data.pretty_print.parts.Align
+import po.misc.data.pretty_print.parts.options.Align
 import po.misc.data.pretty_print.formatters.text_modifiers.DynamicColourModifier
 import po.misc.data.pretty_print.formatters.text_modifiers.TextModifier
-import po.misc.data.pretty_print.parts.CellOptions
-import po.misc.data.pretty_print.parts.CommonCellOptions
-import po.misc.data.pretty_print.parts.Orientation
-import po.misc.data.pretty_print.parts.PrettyBorders
-import po.misc.data.pretty_print.parts.PrettyHelper
+import po.misc.data.pretty_print.parts.options.CellOptions
+import po.misc.data.pretty_print.parts.options.CommonCellOptions
+import po.misc.data.pretty_print.parts.options.Orientation
+import po.misc.data.pretty_print.parts.cells.PrettyBorders
+import po.misc.data.pretty_print.parts.options.PrettyHelper
 import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.formatters.TextFormatter
 import po.misc.data.pretty_print.formatters.text_modifiers.CellFormatter
 import po.misc.data.pretty_print.formatters.text_modifiers.CellStyler
 import po.misc.data.pretty_print.formatters.text_modifiers.ColourCondition
-import po.misc.data.pretty_print.parts.Options
+import po.misc.data.pretty_print.parts.options.Options
+import po.misc.data.pretty_print.parts.options.PrettyOptions
 import po.misc.data.strings.FormattedPair
-import po.misc.data.styles.TextStyler
+import po.misc.data.styles.SpecialChars
 
-sealed class PrettyCellBase(
-    var cellOptions: Options,
-){
 
-    open var row: PrettyRow<*>? = null
-    private val cellsCount: Int get() = row?.size?:1
+sealed class PrettyCellBase(var cellOptions: Options){
+
+    var row: PrettyRow<*>? = null
     var index: Int = 0
         internal set
 
-    val orientation: Orientation get() = row?.options?.orientation?: Orientation.Horizontal
-    val plainText: Boolean get() = row?.options?.plainText?: cellOptions.plainText
+    var keyText: String  = ""
+    protected  set(value) {
+            if(field.isBlank()) {
+                field = value
+            }
+        }
+
+    private val prettyOptions: PrettyOptions get() =  row?.currentRenderOpt?:cellOptions
+    val plainKey: Boolean = prettyOptions.plainKey
+    val plainText: Boolean get() =  cellOptions.plainText
+    internal val orientation: Orientation get() = row?.currentRenderOpt?.orientation?:Orientation.Horizontal
+    internal val renderBorders: Boolean get() = row?.currentRenderOpt?.renderBorders?:false
+    internal val cellsCount: Int get() = row?.cells?.size?:1
 
     var postfix: String? = null
 
-    //val staticModifiers: StaticModifiers = StaticModifiers()
-
-    val borders: PrettyBorders = PrettyBorders('|', '|')
+    val borders: PrettyBorders = PrettyBorders()
     val styler : CellStyler = CellStyler(this)
     val cellFormatter: CellFormatter = CellFormatter(this)
     val textFormatter: TextFormatter = TextFormatter(styler, cellFormatter)
 
-//    val textFormatter: DynamicTextFormatter = DynamicTextFormatter{ text, cell, ->
-//        if(postfix != null){
-//            "$text$postfix"
-//        }else{
-//            text
-//        }
-//    }
-
-//    val dynamicTextStyler: DynamicTextStyler = DynamicTextStyler{ text, cell, ->
-//        val useStyle = cellOptions.style.textStyle
-//        val useColour = cellOptions.style.colour
-//        val useBackgroundColour = cellOptions.style.backgroundColour
-//        TextStyler.style(text, applyColourIfExists = false, useStyle, useColour, useBackgroundColour)
-//    }
-
-   // val compositeFormatter: CompositeFormatter = CompositeFormatter(textFormatter, dynamicTextStyler)
-
-    private fun calculateEffectiveWidth(renderOptions: CellOptions): Int{
-        val cellWidth = cellOptions.width
-
-        val rowMaxWidth = row?.rowMaxWidth?: cellWidth
-        val align = cellOptions.alignment
-        val cellAverageWidth: Int = rowMaxWidth / cellsCount
-        if(cellWidth != 0 ){
-            return cellWidth
+    protected fun calculateEffectiveWidth(text: String): Int {
+        if (cellOptions.width == 0) {
+            return text.length
         }
-        return  when {
-            align == Align.CENTER -> cellAverageWidth
-            align != Align.CENTER -> 0
-            else -> 0
+        val cellWidth = cellOptions.width
+        val textLength = text.length
+        val align = cellOptions.alignment
+        return when(align) {
+            Align.CENTER -> {
+               (cellWidth - textLength) / 2
+            }
+            Align.LEFT, Align.RIGHT -> {
+                if(textLength > cellWidth){
+                    textLength
+                }else{
+                    cellWidth
+                }
+            }
         }
     }
 
-    protected fun justifyText(text: String, renderOptions: CellOptions): String {
-        val useWidth = calculateEffectiveWidth(renderOptions)
+    abstract fun copy():PrettyCellBase
+    protected fun justifyText(text: String): String {
+        val useWidth = calculateEffectiveWidth(text)
         val useAlignment = cellOptions.alignment
         val useFiller = cellOptions.spaceFiller
         return if (orientation == Orientation.Vertical) {
@@ -93,11 +90,20 @@ sealed class PrettyCellBase(
         }
     }
 
+    protected fun styleKey(): String {
+        if(!cellOptions.renderKey){
+            return SpecialChars.EMPTY
+        }
+        if(!cellOptions.plainKey){
+            return styler.modify(keyText, cellOptions.keyStyle)
+        }
+        return keyText
+    }
+
     internal fun setRow(prettyRow: PrettyRow<*>): PrettyCellBase{
         row = prettyRow
         return this
     }
-
     open fun applyOptions(commonOpt: CommonCellOptions?): PrettyCellBase{
         val options = PrettyHelper.toOptionsOrNull(commonOpt)
         if(options != null){
@@ -177,21 +183,16 @@ sealed class PrettyCellBase(
 
     open fun render(content: String, commonOptions: CommonCellOptions? = null): String {
         applyOptions(PrettyHelper.toOptionsOrNull(commonOptions))
-       // val modified =  staticModifiers.modify(content)
-       // val formatted =  compositeFormatter.format(modified, this)
         val formatted = textFormatter.style(content)
-        val final = justifyText(formatted,  cellOptions)
+        val final = justifyText(formatted)
         return final
     }
     open fun render(formatted: FormattedPair, commonOptions: CommonCellOptions?): String {
         applyOptions(PrettyHelper.toOptionsOrNull(commonOptions))
         val usePlain = true
-        val options = PrettyHelper.toOptions(commonOptions, PrettyHelper.toOptions(cellOptions))
-        val usedText = if(usePlain){ formatted.text } else { formatted.formatedText }
-       // val modified =  staticModifiers.modify(usedText)
-       // val formatted =  compositeFormatter.format(modified, this)
+        val usedText = if(usePlain){ formatted.plain.toString() } else { formatted.formatted }
         val formatted = textFormatter.style(usedText)
-        val final = justifyText(formatted,  options)
+        val final = justifyText(formatted)
         return final
     }
 

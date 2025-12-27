@@ -1,7 +1,9 @@
 package po.misc.data.pretty_print.formatters.text_modifiers
 
+import po.misc.data.output.output
 import po.misc.data.styles.Colour
 import po.misc.data.styles.applyColour
+import po.misc.data.styles.colorize
 import po.misc.types.token.TypeToken
 
 
@@ -141,12 +143,11 @@ class DynamicColourModifier<T>(
         for (dynamicCondition in conditionsList){
             val match: Boolean = dynamicCondition.check(parameter)
             if(match){
-                return text.applyColour(dynamicCondition.colour)
+                return text.colorize(dynamicCondition.colour)
             }
         }
         return text
     }
-
     companion object{
         inline operator fun <reified T> invoke(vararg conditions: ColourCondition<T>): DynamicColourModifier<T> {
            return DynamicColourModifier(TypeToken<T>(), *conditions)

@@ -1,12 +1,12 @@
 package po.misc.data
 
-import po.misc.data.strings.FormatedEntry
+import po.misc.data.strings.FormattedPair
 import po.misc.data.strings.stringify
 import po.misc.data.strings.stringifyList
 
-inline fun <T: Any, R> T.messageAssembler(vararg parts: Any,  block: T.(FormatedEntry) -> R):R{
+inline fun <T: Any, R> T.messageAssembler(vararg parts: Any,  block: T.(FormattedPair) -> R):R{
    val asList = parts.toList()
-    var resultEntry : FormatedEntry? = null
+    var resultEntry : FormattedPair? = null
     if(asList.size == 1){
         val first = asList.first()
         resultEntry = if(first is Array<*>){

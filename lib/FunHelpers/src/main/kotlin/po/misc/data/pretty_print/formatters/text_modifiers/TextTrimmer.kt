@@ -6,6 +6,7 @@ open class TextTrimmer(
     val applyText: String
 ): TextModifier {
 
+    override val dynamic: Boolean = false
     override val formatter : Formatter = Formatter.TextTrimmer
 
     override fun modify(text: String): String {

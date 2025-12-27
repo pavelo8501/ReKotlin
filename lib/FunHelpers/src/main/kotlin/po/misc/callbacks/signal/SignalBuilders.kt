@@ -6,7 +6,7 @@ import po.misc.types.token.Tokenized
 import po.misc.types.token.TypeToken
 
 @PublishedApi
-internal fun <T: Any> createSignal(
+internal fun <T> createSignal(
     typeToken: TypeToken<T>,
     options: SignalOptions? = null
 ): Signal<T, Unit> {
@@ -14,7 +14,7 @@ internal fun <T: Any> createSignal(
 }
 
 @PublishedApi
-internal fun <T: Any, R> createSignal(
+internal fun <T, R> createSignal(
     typeToken: TypeToken<T>,
     resultToken: TypeToken<R>,
     options: SignalOptions? = null
@@ -33,7 +33,7 @@ internal fun <T: Any, R> createSignal(
  *
  * @see signal for the DSL builder variant with configuration block.
  */
-fun <T: Any, R> signalOf(
+fun <T, R> signalOf(
     typeToken: TypeToken<T>,
     resultToken: TypeToken<R>,
     options: SignalOptions? = null
@@ -47,7 +47,7 @@ fun <T: Any, R> signalOf(
  *
  * @param typeToken type information for the input payload [T].
  */
-fun <T: Any> signalOf(
+fun <T> signalOf(
     typeToken: TypeToken<T>,
     result: NoResult,
     options: SignalOptions? = null
@@ -96,7 +96,7 @@ inline fun <reified T: Any> signalOf(
  * @param typeToken type information for the input payload [T].
  * @param builder configuration block for registering listeners via [SignalBuilder].
  */
-fun <T: Any, R> signal(
+fun <T, R> signal(
     typeToken: TypeToken<T>,
     resultType: TypeToken<R>,
     builder: SignalBuilder<T, R>.() -> Unit
@@ -114,7 +114,7 @@ fun <T: Any, R> signal(
  * @param result marker [NoResult] indicating `Unit` return type.
  * @param builder configuration block for this signal.
  */
-fun <T: Any> signal(
+fun <T> signal(
     typeToken: TypeToken<T>,
     result: NoResult,
     builder: SignalBuilder<T, Unit>.() -> Unit
@@ -127,14 +127,14 @@ fun <T: Any> signal(
 /**
  * Inline reified DSL builder for [Signal] with payload [T] and return [R].
  */
-inline fun <reified T: Any, reified R> signal(
+inline fun <reified T, reified R> signal(
    noinline builder: SignalBuilder<T, R>.() -> Unit
 ): Signal<T, R> = signal(TypeToken.create<T>(), TypeToken.create<R>(), builder)
 
 /**
  * Inline reified DSL builder for [Signal] with no return (`Unit`).
  */
-inline fun <reified T: Any> signal(
+inline fun <reified T> signal(
     result: NoResult,
     noinline builder: SignalBuilder<T, Unit>.() -> Unit
 ): Signal<T, Unit> = signal(TypeToken.create<T>(), result, builder)

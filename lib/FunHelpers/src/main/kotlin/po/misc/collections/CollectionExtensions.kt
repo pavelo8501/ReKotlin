@@ -1,7 +1,6 @@
 package po.misc.collections
 
 
-
 /**
  * Builds a list by invoking the given [builder] function for each index from `0` until this value.
  *
@@ -22,7 +21,6 @@ package po.misc.collections
 inline fun <T: Any> Int.repeatBuild(builder: (Int)-> T): List<T>{
     val result = mutableListOf<T>()
     val thisSize = this
-
     for (i in 0..<thisSize){
         val built = builder(i)
         result.add(built)

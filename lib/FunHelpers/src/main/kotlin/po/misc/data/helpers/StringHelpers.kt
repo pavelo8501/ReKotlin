@@ -55,12 +55,9 @@ fun <T> T?.orDefault(replacementText: String = "", transform: (T) -> String ): S
     }
 }
 
-
 fun Char?.orDefault(replacementChar: Char = ' '): Char{
     return this ?: replacementChar
 }
-
-
 
 fun String.wrapByDelimiter(
     delimiter: String,
@@ -104,22 +101,6 @@ fun <T: Any> T?.toStringIfNotNull(textIfNull: String? = null , builder:(T)-> Str
 }
 
 fun String.stripAfter(char: Char): String = substringBefore(char)
-
-
-fun <T> Iterable<T>.joinWithIndent(
-    count: Int,
-    indentChar: CharSequence = " ",
-    separator: CharSequence = ", ",
-    prefix: CharSequence = "",
-    postfix: CharSequence = "",
-    limit: Int = -1,
-    truncated: CharSequence = "...",
-    transform: ((T) -> CharSequence)? = null
-): String {
-   return joinToString(separator, prefix, postfix, limit, truncated, transform).withIndent(count, indentChar)
-}
-
-
 
 fun String.firstCharUppercase(): String{
     return replaceFirstChar { it.uppercase() }

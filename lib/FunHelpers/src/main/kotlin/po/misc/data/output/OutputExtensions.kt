@@ -1,19 +1,11 @@
 package po.misc.data.output
 
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.strings.ifNotBlank
+import po.misc.data.ifNotBlank
+import po.misc.data.strings.FormattedPair
 import po.misc.data.strings.stringify
 import po.misc.data.styles.Colour
-import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
-import po.misc.debugging.stack_tracer.StackFrameMeta
-import po.misc.debugging.toFrameMeta
-import po.misc.exceptions.TraceException
-import po.misc.exceptions.Tracer
-import po.misc.debugging.stack_tracer.ExceptionTrace
-import po.misc.debugging.stack_tracer.Methods
-import po.misc.debugging.stack_tracer.TraceOptions
-import po.misc.exceptions.throwableToText
 import po.misc.time.TimeHelper
 
 class OutputHelper<T>(
@@ -36,14 +28,15 @@ internal fun outputInternal(
 
     when(receiver){
         is List<*>->{
-           // receiver.output(prefix = prefix, colour = colour)
-            println(effectivePrefix)
             val result =  receiver.stringify(effectivePrefix, colour)
-            println(result.formatedText)
+            println(result.formatted)
+        }
+        is FormattedPair -> {
+            println(receiver.formatted)
         }
         else -> {
             val result = receiver.stringify(effectivePrefix, colour)
-            println(result.formatedText)
+            println(result.formatted)
         }
     }
 }
@@ -54,25 +47,25 @@ internal fun outputInternal(
     receiver: Any?,
     prefix: String = "",
     colour: Colour? = null
-){
+) {
     checkDispatcher()
     val info = ClassResolver.instanceInfo(context)
-    if(receiver != null){
-         when(receiver){
+    if (receiver != null) {
+        when (receiver) {
             is List<*> -> {
                 println(info.formattedString)
                 receiver.output(prefix = prefix, colour = colour)
             }
-            else ->  {
+            is FormattedPair -> {
+                println(receiver.formatted)
+            }
+            else -> {
                 println(info.formattedString)
-                val formattedEntry = receiver.stringify()
-                if(prefix.isNotBlank()){
-                    formattedEntry.addPrefix("$prefix ")
-                }
-                println(formattedEntry.formatedString)
+                val formattedEntry = receiver.stringify(prefix)
+                println(formattedEntry.formatted)
             }
         }
-    }else{
+    } else {
         println("${info.formattedString} output null")
     }
 }
@@ -81,8 +74,13 @@ fun Any?.output(colour: Colour? = null): Unit = outputInternal(this, colour = co
 fun Any?.output(prefix: String, colour: Colour? = null): Unit = outputInternal(this, prefix = prefix,  colour)
 fun Any?.output(context: TraceableContext, colour: Colour? = null): Unit = outputInternal(context = context, receiver = this, colour =  colour)
 
+internal fun Any?.output(enabled: Boolean, colour: Colour? = null): Unit {
+    if(enabled){ output(colour = colour) }
+    return
+}
+
 fun <T: Any> T.output(prefix: String = "", transform: (T)-> Any){
      val result = transform.invoke(this)
-     val formatted =  result.stringify()
-     println(formatted.addPrefix(prefix).formatedString)
+     val formatted =  result.stringify(prefix)
+     println(formatted.toString())
 }

@@ -4,20 +4,19 @@ import po.misc.counters.JournalBase
 import po.misc.data.PrettyPrint
 import po.misc.data.pretty_print.Templated
 import po.misc.data.pretty_print.formatters.text_modifiers.ColorModifier
-import po.misc.data.pretty_print.parts.Options
+import po.misc.data.pretty_print.parts.options.Options
 
 import po.misc.data.styles.Colour
 import po.misc.time.TimeHelper
 import po.misc.types.token.tokenOf
 import java.time.Instant
-import kotlin.reflect.typeOf
 
 data class AccessRecord <E: Enum<E>>(
     override val message: String,
     val journal : JournalBase<E>,
 ): JournalEntry<E>, PrettyPrint, TimeHelper, Templated<AccessRecord<*>> {
 
-    override val valueType = tokenOf<AccessRecord<*>>()
+    override val type = tokenOf<AccessRecord<*>>()
 
     val hostName : String get() =  journal.hostInstanceInfo.instanceName
 

@@ -1,7 +1,8 @@
 package po.misc.data.styles
 
 
-enum class TextStyle (val code: String) {
+
+enum class TextStyle (override val code: String) : StyleCode {
     Regular(""),
     Bold("\u001B[1m"),
     Italic("\u001B[3m"),

@@ -7,6 +7,7 @@ import po.misc.data.styles.Colour
 import po.misc.debugging.stack_tracer.StackResolver
 import po.misc.debugging.stack_tracer.TraceResolver
 
+
 class LambdaMap<T, T1, R>(
     val host: Component,
     val resolver: StackResolver = TraceResolver(host)
@@ -25,11 +26,8 @@ class LambdaMap<T, T1, R>(
         }
     }
 
-
     var onKeyOverwritten: ((Any) -> Unit)? = null
-
     val size: Int get() =  lambdaBacking.size + suspendedBacking.size
-
     private fun putLambda(key: TraceableContext, value: LambdaWrapper<T, T1, R>):LambdaWrapper<T, T1, R>?{
         val hasKey = lambdaBacking.containsKey(key)
         if(hasKey){
@@ -89,7 +87,6 @@ class LambdaMap<T, T1, R>(
     fun clearLambdas(){
         lambdaBacking.clear()
     }
-
     fun clear(){
         clearLambdas()
         clearSuspended()

@@ -3,7 +3,7 @@ package po.misc.data.logging.processor.settings
 import po.misc.data.PrettyPrint
 import po.misc.data.logging.processor.LogProcessor
 import po.misc.data.pretty_print.cells.PrettyCell
-import po.misc.data.pretty_print.parts.CellPresets
+import po.misc.data.pretty_print.parts.options.CellPresets
 import po.misc.data.pretty_print.PrettyRow
 import kotlin.reflect.KClass
 

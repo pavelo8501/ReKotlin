@@ -5,9 +5,8 @@ import po.misc.data.output.output
 import po.misc.properties.checkType
 import po.misc.types.ReflectiveLookup
 import po.misc.types.token.TokenFactory
-import po.misc.types.token.asList
+import po.misc.types.token.asListType
 import po.misc.types.token.tokenOf
-import kotlin.reflect.KProperty
 import kotlin.reflect.KProperty1
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -50,7 +49,7 @@ class TestKPropertyHelpers: TokenFactory {
         val token = tokenOf<String>()
         val failedResult = propertyAsAny.checkType(token)
         assertNull(failedResult)
-        val result = propertyAsAny.checkType(token.asList())
+        val result = propertyAsAny.checkType(token.asListType())
         assertNotNull(result){
             val receivedList = it.get(this)
             assertEquals(3, receivedList.size)
@@ -69,7 +68,7 @@ class TestKPropertyHelpers: TokenFactory {
         assertNotNull(report.messages.firstOrNull { it.recordType == DataRecord.MessageType.Info })
         assertNotNull(report.messages.firstOrNull { it.recordType == DataRecord.MessageType.Failure })
 
-        listStringProp.checkType(token.asList()){
+        listStringProp.checkType(token.asListType()){
             report = it
         }
         assertTrue(report.result)

@@ -1,7 +1,6 @@
 package po.misc.data.output
 
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.strings.FormatedEntry
 import po.misc.data.strings.StringFormatter
 import po.misc.data.strings.stringify
 import po.misc.data.styles.Colorizer
@@ -19,8 +18,8 @@ fun List<*>.output(prefix: String = "", colour: Colour? = null){
         }
     }
     val result = joinToString(separator = SpecialChars.NEW_LINE) { element ->
-        val formatedEntry : FormatedEntry = StringFormatter.formatKnownTypes2(element).colour(colour)
-        formatedEntry.formatedString
+        val formatedEntry = StringFormatter.formatKnownTypes(element)
+        formatedEntry.formatted
     }
     println(result)
 }
@@ -46,7 +45,7 @@ fun <T: Any> List<T>.output(
         val builder = StringBuilder()
         val result = transform.invoke(builder, entry)
         val resultString = builder.toString()
-        println(resultString.stringify(colour).formatedString)
+        println(resultString.stringify(colour).formatted)
     }
 }
 

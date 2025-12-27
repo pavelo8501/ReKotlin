@@ -12,9 +12,9 @@ import kotlin.reflect.KClass
 
 
 data class ClassInfo(
-    internal val kClass: KClass<*>,
+    val kClass: KClass<*>,
+    val token:TypeToken<*>? = null,
 ): PrettyPrint{
-
 
     private val genericParamsFormatted: String get() =
         if(genericInfo.isNotEmpty()){
@@ -29,8 +29,6 @@ data class ClassInfo(
                 it.parameterName
             }
         }else { "" }
-
-
 
     internal val genericInfoBacking = mutableListOf<GenericInfo>()
 
@@ -79,9 +77,6 @@ data class ClassInfo(
         functionName = parts.getOrNull(1) ?: parts[0]
     }
 
-
-
-    
     val formattedClassName: String = "${simpleName.colorize(Colour.Yellow)}$genericParamsFormatted"
 
     override val formattedString: String get() = formattedClassName
@@ -104,8 +99,6 @@ data class ClassInfo(
     }
 
     fun addParamInfo(typeToken: TypeToken<*>): ClassInfo{
-        val genericsList = typeToken.typeSlots.map { it.genericInfo }
-        genericInfoBacking.addAll(genericsList)
         return this
     }
 

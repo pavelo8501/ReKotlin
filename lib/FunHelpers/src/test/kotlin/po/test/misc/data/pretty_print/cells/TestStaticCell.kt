@@ -2,10 +2,9 @@ package po.test.misc.data.pretty_print.cells
 
 import org.junit.jupiter.api.Test
 import po.misc.data.output.output
-import po.misc.data.pretty_print.Templated
 import po.misc.data.pretty_print.cells.StaticCell
-import po.misc.data.pretty_print.parts.Align
-import po.misc.data.pretty_print.parts.CellPresets
+import po.misc.data.pretty_print.parts.options.Align
+import po.misc.data.pretty_print.parts.options.CellPresets
 import po.misc.data.pretty_print.rows.buildPrettyRow
 import po.misc.data.styles.Colour
 import po.misc.data.styles.TextStyle

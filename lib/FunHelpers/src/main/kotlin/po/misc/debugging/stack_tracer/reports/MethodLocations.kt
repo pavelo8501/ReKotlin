@@ -19,7 +19,9 @@ data class MethodLocations(
 
         val template: PrettyGrid<MethodLocations> = buildPrettyGrid{
             onResolved {
-                headedRow(header)
+                buildRow {
+                    add(header)
+                }
                 buildRow {
                     add(methodName)
                 }

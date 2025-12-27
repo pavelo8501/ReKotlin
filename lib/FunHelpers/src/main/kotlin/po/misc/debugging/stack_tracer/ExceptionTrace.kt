@@ -15,14 +15,13 @@ class ExceptionTrace(
     val exceptionName: String,
     frameMetas: List<StackFrameMeta>,
     val kClass: KClass<*>? = null,
-    val type:  TraceOptions.TraceType = TraceOptions.TraceType.Default
+    val type:  TraceOptions = TraceOptions.Default,
 ): PrettyPrint {
-
     constructor(
         exceptionName: String,
         stackFrames: List<StackFrameMeta>,
         reliable: Boolean,
-        type:  TraceOptions.TraceType = TraceOptions.TraceType.Default
+        type:  TraceOptions = TraceOptions.Default,
     ):this(exceptionName, stackFrames, type = type){
         isReliable = reliable
     }

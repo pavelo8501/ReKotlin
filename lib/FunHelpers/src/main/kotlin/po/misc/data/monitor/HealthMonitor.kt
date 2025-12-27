@@ -7,12 +7,11 @@ import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
 import po.misc.context.CTX
 import po.misc.data.helpers.orDefault
-import po.misc.data.helpers.replaceIfNull
+import po.misc.data.isNotNull
 import po.misc.data.styles.Colorizer
 import po.misc.functions.dsl.helpers.nextBlock
 import po.misc.reflection.anotations.ManagedProperty
 import po.misc.reflection.properties.takePropertySnapshot
-import po.misc.types.isNotNull
 import po.misc.types.token.TypeToken
 import java.time.LocalTime
 
@@ -93,7 +92,7 @@ class HealthMonitor<T: CTX>(
         addRecord(record)
     }
 
-    fun <T: Any?> action(parameter: String, value: String, evaluator:()->T):T {
+    fun <T> action(parameter: String, value: String, evaluator:()->T):T {
         val record =  prebuildRecord(MonitorAction.Action, parameter).also {
             it.value = value
         }

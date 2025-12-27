@@ -1,11 +1,14 @@
 package po.misc.debugging.stack_tracer
 
+import po.misc.collections.asList
 import po.misc.collections.takeFromMatch
 import po.misc.context.tracable.TraceableContext
 import po.misc.debugging.classifier.PackageClassifier
 import po.misc.debugging.toFrameMeta
 import po.misc.exceptions.ThrowableCallSitePayload
 import po.misc.debugging.stack_tracer.ExceptionTrace
+import po.misc.debugging.thisMethod
+import po.misc.exceptions.Tracer
 import po.misc.exceptions.throwableToText
 import po.misc.types.k_class.simpleOrAnon
 import kotlin.reflect.full.isSubclassOf
@@ -74,7 +77,9 @@ fun Throwable.extractTrace(
 ): ExceptionTrace {
     val depth = analyzeDepth.coerceAtLeast(30)
    return when(options){
-        is TraceOptions.Default -> extractTrace(depth)
+        is TraceOptions.Default -> {
+            extractTrace(depth)
+        }
         is CallSite -> {
             val frames =  stackTrace.take(depth).toFrameMeta(classifier)
             val methodName = options.methodName
@@ -86,17 +91,48 @@ fun Throwable.extractTrace(
                 ExceptionTrace.harshFilter(userFramesMeta)
             }
             if(filtered.isNotEmpty()){
-                ExceptionTrace(throwableToText(), filtered, reliable = true, type = options.type)
+                ExceptionTrace(throwableToText(), filtered, reliable = true, type = options)
             }else{
-                ExceptionTrace(throwableToText(), frames, reliable = false, type = options.type)
+                ExceptionTrace(throwableToText(), frames, reliable = false, type = options)
             }
         }
-       is Methods -> {
+       is Method -> {
            val frames =  stackTrace.take(depth).toFrameMeta(null)
            val filteredByName = frames.filter { it.methodName ==  options.methodName}
-           ExceptionTrace(throwableToText(), filteredByName, reliable = true, type = options.type)
+           ExceptionTrace(throwableToText(), filteredByName, reliable = true, type = options)
+       }
+       is TraceOptions.ThisMethod -> {
+           val list = stackTrace.toList()
+           val meta =  list.thisMethod(options)
+           if(meta != null){
+               ExceptionTrace(throwableToText(), meta.asList(), reliable = true, type = options)
+           }else{
+               val firstMeta = list.first().toFrameMeta(classifier)
+               ExceptionTrace(throwableToText(), firstMeta.asList(), reliable = false, type = options)
+           }
+       }
+       is TraceOptions.PreviousMethod -> {
+           val list =  stackTrace.toList()
+           val meta =  list.thisMethod(options, classifier)
+           if(meta != null){
+               ExceptionTrace(throwableToText(), meta.asList(), reliable = true, type = options)
+           }else{
+               val firstMeta = list.first().toFrameMeta(classifier)
+               ExceptionTrace(throwableToText(), firstMeta.asList(), reliable = false, type = options)
+           }
        }
     }
 }
+
+
+
+internal fun trace(options: TraceOptions, classifier: PackageClassifier? = null):ExceptionTrace{
+
+    val trace = Tracer(options, classifier).extractTrace(options, classifier =  classifier)
+
+   return  Tracer(options, classifier).trace
+}
+
+
 
 

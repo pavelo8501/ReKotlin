@@ -1,80 +1,141 @@
 package po.misc.data.styles
 
-import po.misc.data.containsAnyOf
+import po.misc.data.styles.Colorizer.Companion.colour
+import po.misc.data.styles.Colorizer.Companion.isStyled
+import po.misc.data.styles.Colour.RESET
+import kotlin.text.contains
 
-open class StringStyler(){
+open class StyleHelper{
 
-    fun style(text: String, style: TextStyle): String{
-        return "${style.code}$text${Colour.RESET.code}"
-    }
+    data class AnsiColorSegment(
+        val start: Int,    // index of color code
+        val end: Int,      // index where it is reset
+        val code: String   // the actual ANSI start code like \u001B[31m
+    )
 
-    fun style(text: String, style: TextStyle, colour: Colour): String{
-        return "${colour.code}${style.code}$text${Colour.RESET.code}"
-    }
+    val ANSI_COLOR_REGEX: Regex = Regex("\\u001B\\[(?!0m)[0-9;]*m")
+    val ANSI_START_REGEX: Regex = Regex("\u001B\\[(?!0m)[0-9;]*m")
+    val ANSI_RESET_REGEX: Regex = Regex("\u001B\\[0m")
 
-    fun style(
-        text: String,
-        style: TextStyle? = null,
-        color: Colour? = null,
-        background: BGColour? = null
-    ): String {
-        val codes = buildString {
-            if (style != null) append(style.code)
-            if (color != null) append(color.code)
-            if (background != null) append(background.code)
+    private val ANSI_REGEX = Regex("\\u001B\\[[;\\d]*m")
+
+    protected fun stripAnsiIfAny(text:String):String {
+        if(isTextStyled(text)){
+            return  stripAnsi(text)
         }
-        return if (codes.isEmpty()) text else "$codes$text${Colour.RESET.code}"
+        return text
+    }
+    protected fun stripAnsi(text: String): String = text.replace(ANSI_REGEX, "")
+
+    protected  fun isTextStyled(text:String):Boolean {
+        return text.contains(RESET.code)
     }
 
-
-    fun style(
-        text: String,
-        applyColourIfExists: Boolean,
-        style: TextStyle = TextStyle.Regular,
-        colour: Colour? = null,
-        background: BGColour? = null
-    ): String {
-
-        val colorized = if (colour != null) {
-            Colorizer.applyColour(text, colour, background, applyColourIfExists)
-        } else if (background != null) {
-            Colorizer.applyColour(text, background, applyColourIfExists)
-        } else {
-            text
+    protected fun extractColorSegments(text: String): List<AnsiColorSegment> {
+        val segments = mutableListOf<AnsiColorSegment>()
+        val starts = ANSI_START_REGEX.findAll(text).toList()
+        val resets = ANSI_RESET_REGEX.findAll(text).toList()
+        for (startMatch in starts) {
+            val resetMatch = resets.firstOrNull { it.range.first > startMatch.range.first }
+            if (resetMatch != null) {
+                segments.add(
+                    AnsiColorSegment(
+                        start = startMatch.range.first,
+                        end = resetMatch.range.last + 1,
+                        code = startMatch.value
+                    )
+                )
+            } else {
+                segments.add(
+                    AnsiColorSegment(
+                        start = startMatch.range.first,
+                        end = text.length,
+                        code = startMatch.value
+                    )
+                )
+            }
         }
-        return "${style.code}$colorized"
+        return segments
     }
 
-    fun style(
-        text: String,
-        style: TextStyle = TextStyle.Regular,
-        color: Colour,
-        applyColourIfExists: Boolean = false
-    ): String {
-        val text =  Colorizer.applyColour(text, color, applyColourIfExists)
-        return "${style.code}$text"
-    }
 
-    fun style(
-        text: String,
-        style: TextStyle = TextStyle.Regular,
-        color: Colour,
-        background: BGColour,
-        applyColourIfExists: Boolean = false
-    ): String {
-        val text =  Colorizer.applyColour(text, color, background, applyColourIfExists)
-        return "${style.code}$text"
+    /**
+     * Applies the given [colour] **only to unstyled text segments** while
+     * preserving all existing ANSI-styled regions intact.
+     *
+     * ### Safety-first behavior
+     * This function is intentionally **non-destructive**:
+     * - Already colorized (ANSI-styled) segments are **never modified**
+     * - Only plain (unstyled) gaps between styled segments are recolored
+     *
+     * This prevents accidental overwriting, nesting, or corruption of
+     * previously applied terminal styles.
+     *
+     * ### Why this exists
+     * Reapplying colour blindly to a partially styled string can:
+     * - Break existing colour boundaries
+     * - Introduce invalid RESET sequences
+     * - Produce unreadable or inconsistent terminal output
+     *
+     * This function avoids those issues by:
+     * 1. Detecting existing ANSI colour segments
+     * 2. Preserving them verbatim
+     * 3. Re-colouring only the unstyled parts
+     *
+     * ### Important
+     * This is **not** a "force recolour" function.
+     * If you need to override all colours, use colour(text: String, colour: Colour)
+     *
+     * @param text the input string which may contain ANSI-styled segments
+     * @param colour the colour to apply to unstyled segments only
+     * @return a safely colourized string with existing styles preserved
+     */
+    fun applyStyleCode(text: String, styleCode: StyleCode): String {
+        val segments = extractColorSegments(text)
+        val result = StringBuilder()
+        var lastIndex = 0
+        segments.forEach { segment ->
+            if (segment.start > lastIndex) {
+                val before = text.substring(lastIndex, segment.start)
+                if(!isTextStyled(before)){
+                    val stripped = stripAnsi(before)
+                    val reColorized = colour(stripped, styleCode)
+                    result.append(reColorized)
+                }
+            }
+            val subtext = text.substring(segment.start, segment.end)
+            result.append(subtext)
+            lastIndex = segment.end
+        }
+        if (lastIndex < text.length) {
+            val tail = text.substring(lastIndex)
+            if(!isTextStyled(tail)){
+                val strippedTail = stripAnsi(tail)
+                val reColorizedTail = colour(strippedTail, styleCode)
+                result.append(reColorizedTail)
+            }
+        }
+        return result.toString()
     }
-
-    fun hasStyles(text: String): Boolean{
-        return text.containsAnyOf(TextStyle.Reset.code)
+    fun overwriteStyle(text: String, styleCode: StyleCode):String{
+        return "${styleCode.code}$text${TextStyle.Reset.code}"
     }
 }
 
-interface TextStyler {
+interface TextStyler{
 
-    companion object :  StringStyler()
+    fun isStyled(text:String):Boolean = isTextStyled(text)
+
+    fun style(text: String, style: StyleCode?): String  = overwriteStyle(text, style?:TextStyle.Regular)
+
+    fun style(text: String, style: TextStyle, color: Colour): String = overwriteStyle(text,  StyleTheme(style, color, BGColour.Default))
+    fun style(text: String, style: TextStyle, color: Colour, background: BGColour): String =
+        overwriteStyle(text,  StyleTheme(style, color, background))
+
+    fun applyStyle(text: String, style: TextStyle, color: Colour, background: BGColour): String =
+        applyStyleCode(text,  StyleTheme(style, color, background))
+
+
+    companion object: StyleHelper()
 
 }
-
-fun style(text: String, style: TextStyle): String = TextStyler.style(text, style)

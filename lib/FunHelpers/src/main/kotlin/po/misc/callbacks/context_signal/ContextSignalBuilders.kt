@@ -34,26 +34,27 @@ inline fun <reified T, reified R> contextSignalOf(
 inline fun <reified T, reified T1> contextSignalOf(
     noResult: NoResult,
     options: CTXSignalOpt? = null,
-): ContextSignal<T, T1, Unit> = createContextSignal(TypeToken<T>(), TypeToken<T1>(), TypeToken<Unit>(), options)
+): ContextSignal<T, T1, Unit> = createContextSignal(TypeToken<T>(), TypeToken<T1>(), noResult.token, options)
 
 fun <T, T1> contextSignalOf(
     type: TypeToken<T>,
     parameterType:TypeToken<T1>,
+    noResult: NoResult,
     options: CTXSignalOpt? = null,
-): ContextSignal<T, T1, Unit> = createContextSignal(type, parameterType, TypeToken<Unit>(), options)
+): ContextSignal<T, T1, Unit> = createContextSignal(type, parameterType, noResult.token, options)
 
 
 inline fun <reified T> contextSignalOf(
     noParam : NoParam,
     noResult: NoResult,
     options: CTXSignalOpt? = null,
-): ContextSignal<T, Unit, Unit> = createContextSignal(TypeToken<T>(), TypeToken<Unit>(), TypeToken<Unit>(), options)
+): ContextSignal<T, Unit, Unit> = createContextSignal(TypeToken<T>(), noParam.token, noResult.token, options)
 
 
 fun <T> contextSignalOf(
     type: TypeToken<T>,
     options: CTXSignalOpt? = null,
-): ContextSignal<T, Unit, Unit> = createContextSignal(type, TypeToken<Unit>(), TypeToken<Unit>(), options)
+): ContextSignal<T, Unit, Unit> = createContextSignal(type, NoParam.token, NoResult.token, options)
 
 
 
