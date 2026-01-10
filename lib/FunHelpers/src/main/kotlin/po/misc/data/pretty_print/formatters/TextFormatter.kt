@@ -1,67 +1,57 @@
 package po.misc.data.pretty_print.formatters
 
-import po.misc.data.pretty_print.formatters.text_modifiers.CellStyler
-import po.misc.data.pretty_print.formatters.text_modifiers.ConditionalTextModifier
-import po.misc.data.pretty_print.formatters.text_modifiers.Formatter
-import po.misc.data.pretty_print.formatters.text_modifiers.TextModifier
-import po.misc.data.pretty_print.parts.options.Style
-import po.misc.types.castOrThrow
+import po.misc.data.pretty_print.parts.cells.RenderRecord
+import po.misc.data.pretty_print.parts.rendering.RenderParameters
+import po.misc.data.pretty_print.parts.rendering.StyleParameters
+import po.misc.data.strings.EditablePair
 import po.misc.types.token.TypeToken
+import po.misc.types.token.safeTypedCast
+
 
 
 class TextFormatter(
-    vararg formatter: TextModifier
-) {
-    private val formattersBacking = mutableListOf(*formatter)
-    val formatters:List<TextModifier> get() =  formattersBacking.sortedByDescending { it.priority }
+    private val pluginsBacking : MutableList<FormatterPlugin> = mutableListOf()
+){
+    constructor(vararg formatter: FormatterPlugin): this(formatter.toMutableList())
 
-    val hasDynamic: Boolean get() = formatters.any { it.dynamic }
+    val plugins:List<FormatterPlugin> get() =  pluginsBacking
+    val hasDynamic: Boolean get() = plugins.any { it.dynamic }
+    val size:Int get() = plugins.size
 
-    @PublishedApi
-    internal val conditionalFormatters:List<ConditionalTextModifier<*>> get() =
-        formattersBacking.filterIsInstance<ConditionalTextModifier<*>>()
-
-
-    fun <F:TextModifier> addFormatter(textModifier: F):F{
-        formattersBacking.add(textModifier)
+    fun <F:FormatterPlugin> addFormatter(textModifier: F):F{
+        pluginsBacking.add(textModifier)
         return textModifier
     }
 
-    fun addFormatters(textModifiers: List<TextModifier>){
-        formattersBacking.addAll(textModifiers)
-    }
-    fun style(text: String, styleOption: Style? = null): String {
-        val styler = formatters.firstOrNull { it.formatter == Formatter.TextStyler }
-        if(styleOption != null && styler is CellStyler) {
-            val styled =   styler.modify(text, styleOption)
-            return styled
-        }
-        if (styler != null) {
-            val styled = styler.modify(text)
-            return styled
-        }
-        return text
+    fun addFormatters(textModifiers: List<FormatterPlugin>){
+        pluginsBacking.addAll(textModifiers)
     }
 
-    fun <T> conditionalStyle(text: String, parameter:T, typeToken: TypeToken<T>): String? {
-
-        val filtered =  conditionalFormatters.filter { it.type == typeToken }
-        var result :String? = null
-        for(formatter in filtered){
-            val casted = formatter.castOrThrow<ConditionalTextModifier<T>>()
-            val modified = casted.modify(text, parameter)
-            if (modified != null){
-                result = modified
-            }
+    fun format(record: RenderRecord, styleParameters : RenderParameters){
+        plugins.filterIsInstance<LayoutFormatter>().forEach {plugin->
+            plugin.modify(record, styleParameters)
         }
-        return result
     }
 
-    inline fun <reified T> conditionalStyle(text: String, parameter:T): String?  =
-        conditionalStyle(text, parameter, TypeToken<T>())
+    fun format(record: RenderRecord, styleParameters : StyleParameters){
+        plugins.filterIsInstance<StyleFormatter>().forEach {plugin->
+            plugin.modify(record, styleParameters)
+       }
+    }
 
-    operator fun get(formatter: Formatter): TextModifier? {
-       return  formatters.firstOrNull { it.formatter == formatter }
+    fun <T> format(formattedPair: EditablePair, parameter:T, typeToken: TypeToken<T>){
+        plugins.filterIsInstance<DynamicStyleFormatter<*>>().forEach { plugin ->
+            val casted = plugin.safeTypedCast<DynamicStyleFormatter<T>,T>(typeToken)
+            casted?.modify(formattedPair, parameter)
+        }
+    }
+
+    fun getOrNull(tag: FormatterTag): FormatterPlugin? {
+        return  plugins.firstOrNull { it.tag == tag }
+    }
+
+    operator fun get(tag: FormatterTag): FormatterPlugin {
+       return  plugins.first { it.tag == tag }
     }
 
 }

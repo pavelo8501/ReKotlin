@@ -8,7 +8,7 @@ import po.misc.data.styles.colorize
 import po.misc.context.CTX
 import po.misc.data.helpers.orDefault
 import po.misc.data.isNotNull
-import po.misc.data.styles.Colorizer
+import po.misc.data.styles.TextStyler
 import po.misc.functions.dsl.helpers.nextBlock
 import po.misc.reflection.anotations.ManagedProperty
 import po.misc.reflection.properties.takePropertySnapshot
@@ -131,14 +131,13 @@ class HealthMonitor<T: CTX>(
         val phases =  healthJournal.keys.joinToString(separator = SpecialChars.NEW_LINE.repeat(2)) {
             phaseReport(it)
         }
-        val report = "${Colorizer.colour("Activity report", Colour.Blue)} for (${source.completeName}) ${SpecialChars.NEW_LINE}$phases"
+        val report = "${TextStyler.style("Activity report", Colour.Blue)} for (${source.completeName}) ${SpecialChars.NEW_LINE}$phases"
         return  report
     }
 
     fun print(){
        println(report())
     }
-
 
     fun ifWillCrash(parameter: String, predicate:T.()-> Boolean){
         val result = predicate.invoke(source)

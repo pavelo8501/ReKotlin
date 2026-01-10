@@ -2,16 +2,8 @@ package po.misc.data.strings
 
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.StyleCode
+import po.misc.data.styles.TextStyler
 import kotlin.reflect.KProperty1
-
-
-internal fun <T, R> T?.doIf(fallback:R,  block: (T) ->R):R{
-    return  if(this != null){
-        block.invoke(this)
-    }else{
-        fallback
-    }
-}
 
 sealed interface StringifyOptions {
     val prefix:String
@@ -43,14 +35,20 @@ sealed interface StringifyOptions {
 
     }
     class ElementOptions(
-        override val prefix:String = "",
         override val styleCode: StyleCode? = null,
+        override val prefix:String = "",
     ):StringifyOptions{
-        override val separator:String = SpecialChars.COMA
+
+        constructor(separatorString:String):this(prefix = "", styleCode = null){
+            separator = separatorString
+        }
+
+        override var separator:String = SpecialChars.COMA
         override val indent: Int = 0
     }
 
     companion object{
+
         val defaultIndention: ListOptions = ListOptions(indentWith = " ", indent = 1)
         val noIndention: ListOptions get() =  ListOptions(indentWith = "", indent = 0)
 
@@ -69,7 +67,7 @@ sealed interface StringifyOptions {
         }
 
         fun elementOptions(prefix:String = "", styleCode: StyleCode? = null): ElementOptions{
-            return ElementOptions(prefix, styleCode)
+            return ElementOptions(styleCode, prefix)
         }
         fun createForReceiver(receiver:Any?, prefix: String?, styleCode: StyleCode?):StringifyOptions{
            return if(receiver is List<*>){
@@ -85,28 +83,33 @@ sealed interface StringifyOptions {
     }
 }
 
-
 @PublishedApi
 internal fun  stringification(
     receiver: Any?,
     opts: StringifyOptions,
 ): FormattedPair{
     return when(receiver){
-
         is List<*>-> {
             val formatted = if(opts is StringifyOptions.ListOptions){
-                val header = opts.header
-                FormattedText(header).style(opts.styleCode)
+                FormattedText(opts.header).styleFormatted(opts.styleCode)
             }else{
                 FormattedText()
             }
             for (entry in receiver) {
-
-                formatted.add(StringFormatter.formatKnownTypes(entry)).applyPrefix(opts.normalizedPrefix(), opts.styleCode)
+                formatted.add(TextStyler.formatKnownTypes(entry)).prepend(opts.normalizedPrefix(), opts.styleCode)
             }
+            if(opts is StringifyOptions.ListOptions){
+                formatted.joinSubEntries(opts)
+            }else{
+                formatted
+            }
+        }
+        else -> {
+            val formatted = TextStyler.formatKnownTypes(receiver)
+            formatted.styleFormatted(opts.styleCode)
+            formatted.prepend(opts.normalizedPrefix(), opts.styleCode)
             formatted
         }
-        else -> StringFormatter.formatKnownTypes(receiver).applyPrefix(opts.normalizedPrefix()).style(opts.styleCode)
     }
 }
 
@@ -125,11 +128,11 @@ inline fun <reified T: Any> List<T>.stringify(
         if(index == 0){
             configAction.invoke(options, item)
             val header = options.header
-            initialRecord.applyText(header, StringFormatter.style(header, options.styleCode), SpecialChars.NEW_LINE)
-            initialRecord.applyFormatted(stringification(item, options), options)
+            initialRecord.append(header, TextStyler.style(header, options.styleCode), SpecialChars.NEW_LINE)
+            initialRecord.append(stringification(item, options), options)
         }else{
             configAction.invoke(options, item)
-            initialRecord.applyFormatted(stringification(item, options),options)
+            initialRecord.append(stringification(item, options),options)
         }
     }
     return initialRecord
@@ -144,14 +147,14 @@ fun <T: Any> T.stringifyTree(
     fun recursiveRun(initialRecord:FormattedText, receiver :T, property: KProperty1<T, Collection<T>>, styleCode: StyleCode?){
         val records = property.get(receiver)
         records.forEach { record ->
-            val formatedEntry = StringFormatter.formatKnownTypes(record)
-            formatedEntry.style(styleCode)
+            val formatedEntry = TextStyler.formatKnownTypes(record)
+            formatedEntry.styleFormatted(styleCode)
             initialRecord.add(formatedEntry)
             recursiveRun(formatedEntry, record, property, styleCode)
         }
     }
-    val rootEntry = StringFormatter.formatKnownTypes(this)
-    rootEntry.style(useOptions.styleCode)
+    val rootEntry = TextStyler.formatKnownTypes(this)
+    rootEntry.styleFormatted(useOptions.styleCode)
     recursiveRun(rootEntry, this, property, useOptions.styleCode)
     val result = rootEntry.joinSubEntries(useOptions)
     return result

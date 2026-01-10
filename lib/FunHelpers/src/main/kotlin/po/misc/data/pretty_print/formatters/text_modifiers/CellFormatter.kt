@@ -1,15 +1,18 @@
 package po.misc.data.pretty_print.formatters.text_modifiers
 
 import po.misc.data.pretty_print.cells.PrettyCellBase
+import po.misc.data.pretty_print.formatters.FormatterTag
+import po.misc.data.pretty_print.formatters.LayoutFormatter
+import po.misc.data.pretty_print.parts.cells.RenderRecord
+import po.misc.data.pretty_print.parts.rendering.RenderParameters
+import po.misc.data.strings.EditablePair
 
-class CellFormatter(
-   val cell:  PrettyCellBase
-) :TextModifier{
+class CellFormatter() : LayoutFormatter {
 
     override val dynamic: Boolean = false
-    override val formatter : Formatter = Formatter.CellFormatter
+    override val tag : FormatterTag = FormatterTag.CellFormatter
 
-    fun modify(cell: PrettyCellBase,  text: String): String {
+    fun modify(cell: PrettyCellBase<*>,  text: String): String {
         val postfix = cell.postfix
          return  if(postfix != null){
             "$text$postfix"
@@ -18,8 +21,13 @@ class CellFormatter(
         }
     }
 
-    override fun modify(text: String): String {
-        return modify(cell, text)
+    override fun modify(pair: EditablePair, parameters: RenderParameters) {
+        TODO("Not yet implemented")
+    }
+
+    override fun modify(record: RenderRecord, parameters: RenderParameters){
+
+        TODO("Not yet implemented")
     }
 
 }

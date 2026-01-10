@@ -2,7 +2,7 @@ package po.test.misc.data.pretty_print.rows
 
 import po.misc.data.pretty_print.cells.KeyedCell
 import po.misc.data.pretty_print.cells.StaticCell
-import po.misc.data.pretty_print.rows.buildPrettyRow
+import po.misc.data.pretty_print.buildPrettyRow
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
 import po.test.misc.data.pretty_print.setup.PrintableRecord
 import po.test.misc.data.pretty_print.setup.PrintableRecordSubClass

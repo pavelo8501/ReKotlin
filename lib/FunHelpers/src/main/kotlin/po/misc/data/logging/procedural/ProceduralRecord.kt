@@ -15,8 +15,7 @@ import po.misc.data.badges.Badge
 import po.misc.data.logging.processor.contracts.TemplateActions
 import po.misc.data.logging.processor.parts.StructuredOptions
 import po.misc.data.logging.processor.parts.structuredProperty
-import po.misc.data.pretty_print.parts.template.RowID
-import po.misc.data.strings.StringifyOptions
+import po.misc.data.pretty_print.parts.options.RowID
 import po.misc.data.strings.stringify
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize

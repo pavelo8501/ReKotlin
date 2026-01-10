@@ -16,16 +16,12 @@ class PrintableElement(
     override val type: TypeToken<PrintableElement> = tokenOf()
 }
 
-
-
 class PrintableNested(
     val nested: String = "PrintableSecondNested",
 ): PrettyPrint{
 
     override val formattedString: String get() = nested.colorize(Colour.Blue)
-
     override fun toString(): String = "PrintableSecondNested"
-
 }
 
 class PrintableRecordSubClass(

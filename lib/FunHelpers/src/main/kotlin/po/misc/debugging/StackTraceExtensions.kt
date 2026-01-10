@@ -1,5 +1,6 @@
 package po.misc.debugging
 
+import po.misc.collections.asList
 import po.misc.data.logging.parts.DebugMethod.methodName
 import po.misc.data.output.output
 import po.misc.data.styles.Colour
@@ -14,19 +15,19 @@ import po.misc.reflection.anotations.HelperFunction
 import po.misc.reflection.anotations.hasAnnotation
 
 
-fun StackTraceElement.normalizedMethodName(): String {
+internal fun normalizedMethodName(element:  StackTraceElement): String {
 
     fun nameFromParts(parts: List<String>): String{
         return when{
             parts.size >= 4 ->{
                 val owner = parts[parts.size - 3].replace("_", " ")
                 val lambdaName = parts[parts.size - 2]
-                return "Lambda -> $lambdaName on $owner"
+                "Lambda -> $lambdaName on $owner"
             }
             parts.size >= 3 ->{
                 val owner = parts.first().replace("_", " ")
                 val lambdaIndex = parts[parts.size - 1]
-                return "Lambda -> Anonymous # $lambdaIndex on $owner"
+                "Lambda -> Anonymous # $lambdaIndex on $owner"
             }
             parts.isEmpty() -> {
                 "Lambda -> ${parts.first()}"
@@ -37,23 +38,22 @@ fun StackTraceElement.normalizedMethodName(): String {
 
     val lambdaRegex = Regex("""lambda\$(.*?)\$\d+""")
 
-    lambdaRegex.find(methodName)?.let { match ->
+    lambdaRegex.find(element.methodName)?.let { match ->
         val owner = match.groupValues[1].replace("_", " ")
-        return "Lambda -> ${methodName.substringAfterLast('$')} on $owner"
+        return "Lambda -> ${element.methodName.substringAfterLast('$')} on $owner"
     }
-
-    if( methodName.contains("lambda")){
-        val parts = methodName.split("$")
+    if( element.methodName.contains("lambda")){
+        val parts = element.methodName.split("$")
         return nameFromParts(parts)
     }
-    if (methodName == "invoke" || methodName == "invokeSuspend") {
-        val parts = className.split("$")
+    if (element.methodName == "invoke" || element.methodName == "invokeSuspend") {
+        val parts = element.className.split("$")
         return nameFromParts(parts)
     }
-    if (methodName.startsWith("access$")) {
-        return "Synthetic -> ${methodName.substringAfter("access$")}"
+    if (element.methodName.startsWith("access$")) {
+        return "Synthetic -> ${element.methodName.substringAfter("access$")}"
     }
-    return methodName.substringAfterLast('$')
+    return element.methodName.substringAfterLast('$')
 }
 
 fun StackTraceElement.checkIfHelperFunctionAnnotated(): Boolean {
@@ -70,7 +70,7 @@ fun StackTraceElement.checkIfHelperFunctionAnnotated(): Boolean {
     }
 }
 
-fun StackTraceElement.toFrameMeta(classifier: PackageClassifier? = null): StackFrameMeta{
+fun StackTraceElement.toFrameMeta(  classifier: PackageClassifier? = null): StackFrameMeta{
 
     val useClassifier = try {
         classifier?:run {
@@ -82,15 +82,16 @@ fun StackTraceElement.toFrameMeta(classifier: PackageClassifier? = null): StackF
     }
     val className = className
     val simpleClasName = className.substringAfterLast('.')
-    val normalizedName = normalizedMethodName()
+    val parts : List<String> =  methodName.substringAfterLast('.').split('$')
+
+    val displayMethodName = normalizedMethodName(this)
     val classPackage = className.substringBeforeLast('.', missingDelimiterValue = "")
     val packageRole = useClassifier.resolvePackageRole(this)
-
     val meta = try {
         StackFrameMeta(
             fileName = fileName?:"N/A",
             simpleClassName = simpleClasName,
-            methodName = normalizedName,
+            displayMethodName = displayMethodName,
             lineNumber = lineNumber,
             classPackage = classPackage,
             packageRole = packageRole,
@@ -99,6 +100,8 @@ fun StackTraceElement.toFrameMeta(classifier: PackageClassifier? = null): StackF
             isCoroutineInternal = className.startsWith("kotlinx.coroutines"),
             isInline =  methodName.contains($$"$inline$") || className.contains($$"$inlined$"),
             isLambda =  methodName.contains($$"$lambda") || className.contains($$"$Lambda$"),
+            methodName= parts.getOrNull(1)?:parts[0],
+            index = 0,
             stackTraceElement = this
         )
     }catch (th: Throwable){
@@ -119,50 +122,37 @@ fun Collection<StackTraceElement>.toFrameMeta(classifier: PackageClassifier?): L
     return result
 }
 
-fun Collection<StackTraceElement>.thisMethod(
+internal fun lookupByMethod(
+    frames:  List<StackFrameMeta>,
     options: TraceOptions,
     classifier: PackageClassifier? = null
-): StackFrameMeta?{
-
+): List<StackFrameMeta>{
     val method = options.methodName
-    if(method == null){
-        return null
-    }
-   return when(options){
-        is TraceOptions.ThisMethod -> {
-            firstOrNull { it.toFrameMeta(classifier).methodName == method }?.toFrameMeta()
+    val selection: MutableList<StackFrameMeta> =mutableListOf()
+    return when{
+
+        options.lookup == TraceOptions.Lookup.ThisMethod -> {
+            frames.firstOrNull { it.methodName == method }?.asList()?:emptyList()
         }
-        is TraceOptions.PreviousMethod -> {
-            val list = this.toList()
-            val methodIndex =  indexOfFirst { it.toFrameMeta(classifier).methodName == method }
-            if(methodIndex != -1){
-                for(i in methodIndex .. size ){
-                    val meta =  list[i].toFrameMeta(classifier)
-                    if(meta.packageRole != PackageClassifier.PackageRole.System  && meta.packageRole != PackageClassifier.PackageRole.Helper){
-                        return meta
-                    }
-                }
+        options.lookup == TraceOptions.Lookup.BeforeThis -> {
+
+            val methodIndex = frames.indexOfFirst {
+                val name =  it.stackTraceElement?.methodName?: it.methodName
+                name.contains(method)
             }
-            null
+            if (methodIndex == -1) {
+                return emptyList()
+            }
+            for (i in methodIndex downTo  0) {
+                val meta =  frames[i].setIndex(i)
+                selection.add(meta)
+            }
+            selection
         }
         else -> {
-           null
+           emptyList()
         }
     }
-
-
-
-//    firstOrNull { it.toFrameMeta(classifier).methodName == options.methodName }
-//
-//    val elements = this.toList()
-//    for(i in 0..size){
-//        if(i == 0){ continue }
-//        val meta =  elements[i].toFrameMeta(classifier)
-//        if(meta.isUserCode){
-//            return meta
-//        }
-//    }
-//    return null
 }
 
 fun Array<StackTraceElement>.toFrameMeta(classifier: PackageClassifier?): List<StackFrameMeta>{

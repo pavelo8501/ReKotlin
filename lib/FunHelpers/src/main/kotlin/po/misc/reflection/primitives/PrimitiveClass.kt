@@ -26,6 +26,11 @@ sealed interface PrimitiveClass<T>: TraceableContext, TokenFactory{
 
         fun ofClass(kClass: KClass<*>?): PrimitiveClass<*>? = byClass[kClass]
     }
+
+    object UnitClass: PrimitiveClass<Unit>{
+        override val typeToken: TypeToken<Unit> = tokenOf()
+        val kClass: KClass<Unit> = typeToken.kClass
+    }
 }
 
 inline fun <reified T: Any> PrimitiveClass.Companion.lookupPrimitive():PrimitiveClass<T>{
@@ -38,14 +43,12 @@ inline fun <reified T: Any> PrimitiveClass.Companion.lookupPrimitive():Primitive
 
 abstract class WildCardClass<T>(
     override val typeToken: TypeToken<T>
-): PrimitiveClass<T>{
-
-
-}
+): PrimitiveClass<T>
 
 object NullClass{
     val kClass: KClass<NullClass> = NullClass::class
 }
+
 
 object StringClass: PrimitiveClass<String>{
     override val typeToken: TypeToken<String> = tokenOf()

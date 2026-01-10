@@ -2,6 +2,7 @@ package po.misc.data.pretty_print.parts.options
 
 import po.misc.data.PrettyPrint
 import po.misc.data.output.output
+import po.misc.data.pretty_print.parts.rendering.StyleParameters
 import po.misc.data.strings.appendGroup
 import po.misc.data.styles.BGColour
 import po.misc.data.styles.Colour
@@ -9,29 +10,6 @@ import po.misc.data.styles.ColourStyle
 import po.misc.data.styles.StyleCode
 import po.misc.data.styles.TextStyle
 
-/**
- * Full configuration set for a single rendered cell.
- *
- * Implementations specify layout rules (e.g., width, alignment),
- * appearance (style and colours), and rendering flags (orientation,
- * borders, plain rendering). These options are consumed during grid
- * construction to determine how a cell should be displayed.
- */
-sealed interface CellOptions: CommonCellOptions {
-    val width: Int
-    val spaceFiller: Char
-    val alignment: Align
-
-    val renderKey:Boolean
-    var plainText: Boolean
-    override var plainKey: Boolean
-    val keyText: String?
-
-    val useSourceFormatting: Boolean
-
-    val renderLeftBorder: Boolean
-    val renderRightBorder: Boolean
-}
 
 /**
  * Visual styling options for cell content.
@@ -106,13 +84,12 @@ data class Theme(
  * - constructing from row-level options such as [CommonRowOptions].
  */
 class Options(
-    override var width: Int = 0,
-    override var alignment: Align = Align.LEFT,
+    var width: Int = 0,
+    override var align: Align = Align.Left,
     override var style: Style = Style(),
     override var keyStyle : Style = Style(),
-    override var renderKey:Boolean = true,
     private  val emptySpaceFiller: Char? = null
-): CellOptions, PrettyPrint {
+): CellOptions, PrettyPrint, StyleParameters {
 
     constructor(alignment: Align):this(width =0, alignment)
     constructor(alignment: Align, colour: Colour):this(width = 0, alignment, Style(colour = colour))
@@ -121,11 +98,12 @@ class Options(
         preset: CellPresets
     ):this(
         width =  0,
-        alignment =  preset.align,
+        align =  preset.align,
         style =  preset.style,
         keyStyle =  preset.keyStyle,
-        renderKey = preset.renderKey,
-    )
+    ){
+        renderKey = preset.renderKey
+    }
 
     constructor(
         rowOptions: RowOptions
@@ -133,72 +111,118 @@ class Options(
         val cellOptions = rowOptions.cellOptions
         if(cellOptions != null){
             width = cellOptions.width
-            alignment = cellOptions.alignment
+            align = cellOptions.align
             style = cellOptions.style
             keyStyle = cellOptions.keyStyle
         }
-        plainText = rowOptions.plainText
     }
 
-    override var plainText: Boolean = false
+    var plainText: Boolean = false
+        set(value) {
+            field = value
+            if(value){
+                sourceFormat = false
+            }
+            notifYModified()
+        }
+
+    var sourceFormat: Boolean = false
+        set(value) {
+            field = value
+            if(value){
+                plainText = false
+            }
+            notifYModified()
+        }
+
     override var plainKey: Boolean = false
-    override var keyText: String? = null
-    var keyValueSeparator: Char = ':'
+    var keyText: String? = null
 
-    override var spaceFiller: Char = ' '
+    var trimSubstitution: String = "..."
 
-    override var useSourceFormatting: Boolean = false
-    override var renderLeftBorder: Boolean = true
-    override var renderRightBorder: Boolean = true
+    var keySeparator: Separator = Separator(':')
 
+    override var renderKey:Boolean = false
+        set(value) {
+            field = value
+            keySeparator.enabled = value
+        }
 
+    var spaceFiller: Char = ' '
+    var renderLeftBorder: Boolean = true
+    var renderRightBorder: Boolean = true
+
+    private var onUserModified: (() -> Unit)? = null
+
+    private fun initByPreset(preset: CellPresets): Options{
+        align =  preset.align
+        style =  preset.style
+        keyStyle =  preset.keyStyle
+        renderKey = preset.renderKey
+        return this
+    }
+
+    private fun notifYModified(){
+        onUserModified?.let {
+            it.invoke()
+            onUserModified = null
+        }
+    }
+
+    internal fun onUserModified(callback: () -> Unit): Options{
+        onUserModified = callback
+        return this
+    }
 
     override fun asOptions(width: Int): Options = this
 
     fun style(textStyle: TextStyle, colour: Colour, backgroundColour: BGColour? = null){
         style = Style(textStyle, colour, backgroundColour)
     }
-
-
     fun keyStyle(textStyle: TextStyle, colour: Colour, backgroundColour: BGColour? = null){
         keyStyle = Style(textStyle, colour, backgroundColour)
     }
-    fun build(builder: Options.()-> Unit):Options{
-        builder.invoke(this)
-        return this
-    }
+
     fun applyChanges(other: CellOptions?):Options{
-        if(other != null){
-            plainText = other.plainText
-            plainKey = other.plainKey
-            renderKey = other.renderKey
-            useSourceFormatting = other.useSourceFormatting
-            keyText = other.keyText
-        }
+         if(other == null){
+             return this
+         }
+         when(other){
+             is Options -> {
+                 plainText = other.plainText
+                 plainKey = other.plainKey
+                 renderKey = other.renderKey
+                 sourceFormat = other.sourceFormat
+                 keyText = other.keyText
+             }
+             is CellPresets-> {
+                 initByPreset(other)
+             }
+         }
         return this
     }
     fun usePlainValue(usePlain:Boolean): Options{
         plainText = usePlain
         return this
     }
+
     fun copy(): Options{
        return Options(
             width = this.width,
-            alignment = this.alignment,
+            align = this.align,
             style = this.style.copy(),
             keyStyle = this.keyStyle.copy(),
-            renderKey = this.renderKey,
             emptySpaceFiller = this.emptySpaceFiller,
         ).also {
             it.plainText = this.plainText
             it.plainKey = this.plainKey
             it.keyText = this.keyText
-            it.keyValueSeparator = this.keyValueSeparator
+            it.keySeparator = this.keySeparator.copy()
             it.spaceFiller = this.spaceFiller
-            it.useSourceFormatting  = this.useSourceFormatting
+            it.sourceFormat  = this.sourceFormat
+            it.renderKey = this.renderKey
             it.renderLeftBorder = this.renderLeftBorder
             it.renderRightBorder = this.renderRightBorder
-            it.keyValueSeparator = this.keyValueSeparator
         }
     }
 
@@ -208,7 +232,7 @@ class Options(
         if(other.plainKey != plainKey) return false
         if(other.renderKey != renderKey) return false
         if(other.keyText != keyText) return false
-        if(other.useSourceFormatting != useSourceFormatting) return false
+        if(other.sourceFormat != sourceFormat) return false
         if(other.renderLeftBorder != renderLeftBorder) return false
         if(other.renderRightBorder != renderRightBorder) return false
         if(other.width != width) return false
@@ -223,10 +247,10 @@ class Options(
         result = 31 * result + plainText.hashCode()
         result = 31 * result + plainKey.hashCode()
         result = 31 * result + spaceFiller.hashCode()
-        result = 31 * result + useSourceFormatting.hashCode()
+        result = 31 * result + sourceFormat.hashCode()
         result = 31 * result + renderLeftBorder.hashCode()
         result = 31 * result + renderRightBorder.hashCode()
-        result = 31 * result + alignment.hashCode()
+        result = 31 * result + align.hashCode()
         result = 31 * result + style.hashCode()
         result = 31 * result + keyStyle.hashCode()
         result = 31 * result + (keyText?.hashCode() ?: 0)

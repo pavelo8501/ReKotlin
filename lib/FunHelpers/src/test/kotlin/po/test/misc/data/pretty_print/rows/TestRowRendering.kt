@@ -1,23 +1,20 @@
 package po.test.misc.data.pretty_print.rows
 
 import po.misc.data.PrettyPrint
-import po.misc.data.linesCount
 import po.misc.data.output.output
+import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.cells.ComputedCell
 import po.misc.data.pretty_print.cells.KeyedCell
 import po.misc.data.pretty_print.cells.StaticCell
 import po.misc.data.pretty_print.parts.options.CellPresets
 import po.misc.data.pretty_print.parts.options.Orientation
-import po.misc.data.pretty_print.parts.options.RowOptions
-import po.misc.data.pretty_print.renderPlain
-import po.misc.data.pretty_print.rows.buildPrettyRow
+import po.misc.data.pretty_print.buildPrettyRow
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
 import po.test.misc.data.pretty_print.setup.PrintableRecord
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertSame
@@ -30,10 +27,11 @@ class TestRowRendering : PrettyTestBase(){
         override val formattedString: String get() = completeTex.colorize(Colour.Green)
         override fun toString(): String = completeTex
     }
-    private var enableOutput: Boolean = true
+
     private val record = createRecord()
     val headerText1: String = "header_text_1"
     val auxText: String = "Aux_Text"
+
     @Test
     fun `Row renders  static cell + keyed cell as expected`(){
         val row = buildPrettyRow<PrintableRecord> {
@@ -53,28 +51,19 @@ class TestRowRendering : PrettyTestBase(){
         val row = buildPrettyRow<PrintableRecord> {
             add(headerText1)
             add(PrintableRecord::name)
-            computed(PrintableRecord::component){
+            add(PrintableRecord::component){
                 it
             }
         }
         assertNotNull(row.cells.firstOrNull()){firstCell->
             assertIs<StaticCell>(firstCell)
-            assertNotNull(firstCell.row){firstCellRow->
-                assertSame(row, firstCellRow)
-            }
         }
         assertNotNull(row.cells.getOrNull(1)) { secondCell ->
             assertIs<KeyedCell<PrintableRecord>>(secondCell)
-            assertNotNull(secondCell.row){firstCellRow->
-                assertSame(row, firstCellRow)
-            }
         }
         assertNotNull(row.cells.getOrNull(2)) { thirdCell ->
             assertIs<ComputedCell<PrintableRecord, String>>(thirdCell)
-            assertTrue(thirdCell.dataLoader.hasReadOnlyProperty)
-            assertNotNull(thirdCell.row){firstCellRow->
-                assertSame(row, firstCellRow)
-            }
+            assertTrue(thirdCell.dataLoader.hasProperty)
         }
         val render =  row.render(record)
         render.output(enableOutput)
@@ -133,5 +122,20 @@ class TestRowRendering : PrettyTestBase(){
             orientation = Orientation.Vertical
         }
         assertEquals(Orientation.Vertical, row.options.orientation)
+    }
+
+    @Test
+    fun `Row rendering with builder Keyed cell + static cell`(){
+        val row = buildRow {
+            add(PrintableRecord::name)
+            add("Static")
+        }
+        val render = row.render(record)
+        render.output(enableOutput)
+        val lines = render.lines()
+        assertEquals(1, lines.size)
+        assertTrue { lines.first().contains("Static") }
+        assertTrue { lines.first().contains(record.name) }
+
     }
 }

@@ -2,14 +2,11 @@ package po.test.misc.data.pretty_print.rows
 
 import po.misc.data.output.output
 import po.misc.data.pretty_print.PrettyRow
-import po.misc.data.pretty_print.grid.buildPrettyGrid
-import po.misc.data.pretty_print.rows.buildPrettyRow
+import po.misc.data.pretty_print.buildPrettyRow
 import po.misc.data.styles.Colour
-import po.test.misc.data.TestPrintableTemplate
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
 import kotlin.String
 import kotlin.test.Test
-import kotlin.test.assertEquals
 
 class TestComputedRowRender : PrettyTestBase() {
 
@@ -22,7 +19,7 @@ class TestComputedRowRender : PrettyTestBase() {
     @Test
     fun `Key and values rendered correctly`() {
         val template: PrettyRow<Record> = buildPrettyRow {
-            computed(Record::recordType) {
+            add(Record::recordType) {
                 colourConditions {
                     Colour.Blue.buildCondition { contains(Record.Type.Info.name) }
                     Colour.Green.buildCondition { contains(Record.Type.Success.name) }

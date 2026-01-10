@@ -1,20 +1,24 @@
 package po.misc.data.pretty_print.cells
 
+import po.misc.callbacks.callable.CallableCollection
+import po.misc.callbacks.callable.ProviderProperty
 import po.misc.collections.asList
-import po.misc.collections.lambda_map.CallableDescriptor
+import po.misc.data.pretty_print.parts.cells.RenderRecord
 import po.misc.data.pretty_print.parts.loader.DataLoader
-import po.misc.data.pretty_print.parts.loader.DataProvider
-import po.misc.data.pretty_print.parts.options.CommonCellOptions
+import po.misc.data.pretty_print.parts.loader.ElementProvider
+import po.misc.data.pretty_print.parts.loader.toElementProvider
+import po.misc.data.pretty_print.parts.options.CellOptions
 import po.misc.data.pretty_print.parts.options.PrettyHelper
 import po.misc.data.pretty_print.parts.options.CellPresets
 import po.misc.data.pretty_print.parts.options.Options
 import po.misc.data.pretty_print.parts.options.Style
-import po.misc.data.pretty_print.toProvider
-import po.misc.data.strings.FormattedPair
-import po.misc.data.strings.appendLineParam
+import po.misc.data.strings.FormattedText
+import po.misc.data.strings.StringifyOptions
+import po.misc.data.strings.appendParam
 import po.misc.data.strings.stringify
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.TextStyler
+import po.misc.functions.CallableKey
 import po.misc.reflection.displayName
 import po.misc.types.token.TokenFactory
 import po.misc.types.token.TypeToken
@@ -23,179 +27,106 @@ import kotlin.reflect.KProperty0
 import kotlin.reflect.KProperty1
 
 class KeyedCell<T>(
-    override val receiverType: TypeToken<T>,
-    opt: CommonCellOptions? = null,
-): PrettyCellBase(PrettyHelper.toOptions(opt, keyedOption)), ReceiverAwareCell<T>, TextStyler{
+    callable: CallableCollection<T, Any?>,
+    opt: CellOptions? = null,
+): PrettyCellBase<T>(PrettyHelper.toOptions(opt, keyedOption), callable.parameterType), SourceAwareCell<T>, PrettyHelper{
 
-    constructor(
-        provider: DataProvider<T, Any?>,
-        opt: CommonCellOptions? = null,
-    ) : this(provider.receiverType, opt) {
-        dataLoader.applyCallables(provider)
-        provider[CallableDescriptor.CallableKey.ReadOnlyProperty]?.let {
+    constructor(loader:  DataLoader<T, Any?>, opt: CellOptions? = null):this(loader.elementRepository, opt){
+        dataLoader.listRepository.apply(loader.listRepository)
+    }
+    override val sourceType: TypeToken<T> = callable.parameterType
+    val receiverType: TypeToken<Any?> = callable.resultType
+    val dataLoader: DataLoader<T, Any?> = DataLoader("KeyedCell loader", sourceType, receiverType)
+    val valueStyle: Style get() = cellOptions.style
+    val keyStyle: Style get() = cellOptions.keyStyle
+
+
+    init {
+        dataLoader.apply(callable)
+        dataLoader[CallableKey.Property]?.let {
             keyText = it.displayName
         }
     }
 
-    val dataLoader: DataLoader<T, Any?> = DataLoader("KeyedCell loader", receiverType, valueType)
-
-    val valueStyle: Style get() = cellOptions.style
-    val keyStyle: Style get() = cellOptions.keyStyle
-
-    private val keySeparator : String get() {
-       return if(cellOptions.renderKey){
-            cellOptions.keyValueSeparator.toString()
-        }else{
-            SpecialChars.EMPTY
-        }
-    }
-    private var useOwnSource:Boolean = false
-
-    var property0: KProperty0<*>? = null
-        private set(value) {
-            value?.let {
-                field = it
-                keyText = it.name
-            }
-        }
-
     private fun resolveValues(receiver:T):List<Any?> {
-        val values = dataLoader.resolveList(receiver)
-        if(values.isNotEmpty()){
-            return values
+        if(!dataLoader.canResolve){
+            warn("Unable to resolve values. All data sources are empty")
         }
-       return property0?.get()?.asList()?:emptyList()
-    }
-    private fun renderFormating(receiver:T): String{
-        val valueList = resolveValues(receiver)
-        return  valueList.joinToString{  textFormatter.style(it.stringify().formatted) }
-    }
-    private fun renderWithSourceFormatting(receiver:T): String{
-        val valueList =  resolveValues(receiver)
-        return  valueList.joinToString{  it.stringify().formatted }
-    }
-    private fun renderPlainText(receiver:T): String{
-        val valueList =  resolveValues(receiver)
-        return  valueList.joinToString{  it.toString() }
+        return dataLoader.resolveList(receiver)
     }
 
-    fun render(): String{
-        val keyText = styleKey()
-        val valueText = if(plainText){
-            property0?.get()?.toString() ?: SpecialChars.EMPTY
-        }else{
-           val formated = property0?.get().stringify().formatted
-           styler.modify(formated)
+    override fun render(source: T, opts: CellOptions?): String {
+        if(!areOptionsExplicit){
+            currentRenderOpts = toOptions(opts, currentRenderOpts)
         }
-        val kevValueText = "$keyText $valueText"
-        val final = justifyText(kevValueText)
-        return final
-    }
-    override fun render(formatted: FormattedPair, commonOptions: CommonCellOptions?): String{
-        val options = PrettyHelper.toOptions(commonOptions, cellOptions)
-        val usedText = formatted.formatted
-        val formatted =   textFormatter.style(usedText)
-        val final = justifyText(formatted)
-        return final
-    }
-    override fun render(content: String, commonOptions: CommonCellOptions?): String {
-        val options = PrettyHelper.toOptions(commonOptions, cellOptions)
-        val formatted =   textFormatter.style(content)
-        val final = justifyText(formatted)
-        return final
-    }
-    override fun render(receiver: T, commonOptions: CommonCellOptions?): String {
-        val keyText = styleKey()
-        val valueText = if (plainText) {
-            renderPlainText(receiver)
-        } else {
-            if(cellOptions.useSourceFormatting){
-                renderWithSourceFormatting(receiver)
-            }else{
-                renderFormating(receiver)
-            }
+        val valueList =  resolveValues(source)
+        val formatted =  FormattedText()
+        valueList.forEach{
+           val pair = it.stringify()
+           formatted.add(pair)
         }
-        val text = "$keyText${keySeparator} $valueText".trim()
-        val final = justifyText(text)
-        return final
+        val result = formatted.joinSubEntries(StringifyOptions.ElementOptions(SpecialChars.EMPTY))
+        return finalizeRender(RenderRecord(result))
     }
 
-    fun provideProperty(prop: KProperty0<Any?>){
-        property0 = prop
-        keyText = prop.displayName
+
+    fun render(source:T, optionBuilder: (Options) -> Unit): String{
+        optionBuilder.invoke(currentRenderOpts)
+        areOptionsExplicit = true
+        return render(source)
     }
-    fun setSource(property: KProperty0<*>):KeyedCell<T> {
-        property0 = property
-        keyText = property.displayName
-        useOwnSource = true
-        return this
-    }
-    override fun applyOptions(commonOpt: CommonCellOptions?): KeyedCell<T>{
-        val options = PrettyHelper.toOptionsOrNull(commonOpt)
+
+    override fun applyOptions(opts: CellOptions?): KeyedCell<T>{
+        val options = PrettyHelper.toOptionsOrNull(opts)
         if(options != null){
-            cellOptions = options
+            setOptions(options)
         }
         return this
     }
     override fun copy(): KeyedCell<T>{
-        val optCopy = cellOptions.copy()
-        val keyedCellCopy = KeyedCell(receiverType)
-        keyedCellCopy.keyText = keyText
-        keyedCellCopy.applyOptions(optCopy)
-        property0?.let {
-            keyedCellCopy.provideProperty(it)
+        return KeyedCell(dataLoader.copy(),  cellOptions.copy()).also {
+            it.keyText = keyText
         }
-        return keyedCellCopy
-    }
-    override fun equals(other: Any?): Boolean {
-        if(other !is KeyedCell<*>) return false
-        if(other.receiverType != receiverType) return false
-        if(other.cellOptions != cellOptions) return false
-        if(other.property0 != property0) return false
-        return true
-    }
-    override fun hashCode(): Int {
-        var result = receiverType.hashCode()
-        result = 31 * result + (property0?.hashCode() ?: 0)
-        result = 31 * result + cellOptions.hashCode()
-        return result
     }
     override fun toString(): String = buildString {
-        appendLine("KeyedCell<${receiverType.simpleName}>")
-        appendLineParam("Width", cellOptions.width)
-        appendLineParam(::keyText)
+        append("KeyedCell<${sourceType.simpleName}> ")
+        appendParam(" Width", cellOptions.width)
+        appendParam(::keyText)
     }
 
     companion object : TokenFactory{
-
         val valueType : TypeToken<Any?> = TypeToken<Any?>()
         val keyedOption: Options = Options(CellPresets.Property)
-
         inline operator fun <reified T> invoke(
             property: KProperty1<T, *>,
-            options: CommonCellOptions? = null
+            opts: CellOptions? = null
         ): KeyedCell<T>{
-            val token = tokenOf<T>()
-            return KeyedCell(property.toProvider(token), options)
+            return KeyedCell(property.toElementProvider(), opts)
         }
+        operator fun <T> invoke(
+            receiverType:TypeToken<T>,
+            property: KProperty1<T, *>,
+            opts: CellOptions? = null
+        ): KeyedCell<T>{
+            return KeyedCell(property.toElementProvider(receiverType), opts)
+        }
+
+        operator fun <T> invoke(
+            receiverType:TypeToken<T>,
+            property: KProperty0<Any?>,
+            opts: CellOptions? = null
+        ): KeyedCell<T> = KeyedCell(ProviderProperty(receiverType, property), opts)
+
         inline operator fun <reified T> invoke(
             receiver:T,
             property: KProperty0<Any?>,
-            options: Options = keyedOption
-        ): KeyedCell<T>{
-            val token = TypeToken<T>()
-            val cell = KeyedCell(token, options)
-            cell.provideProperty(property)
-            return cell
-        }
+            opts: CellOptions? = null
+        ): KeyedCell<T> = KeyedCell(ProviderProperty(TypeToken<T>(), property), opts)
 
         inline operator fun <reified T> invoke(
             property: KProperty0<Any?>,
-            options: Options = keyedOption
-        ): KeyedCell<T>{
-            val cell = KeyedCell(tokenOf<T>(), options)
-            cell.provideProperty(property)
-            return cell
-        }
+            opts: CellOptions? = null
+        ): KeyedCell<T> = KeyedCell(ProviderProperty(TypeToken<T>(), property), opts)
+
     }
 }

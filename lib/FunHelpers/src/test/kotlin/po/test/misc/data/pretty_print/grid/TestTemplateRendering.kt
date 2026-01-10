@@ -2,9 +2,9 @@ package po.test.misc.data.pretty_print.grid
 
 import po.misc.data.output.output
 import po.misc.data.pretty_print.PrettyValueGrid
-import po.misc.data.pretty_print.grid.buildPrettyGrid
+import po.misc.data.pretty_print.buildPrettyGrid
 import po.misc.data.pretty_print.parts.options.Orientation
-import po.misc.data.pretty_print.rows.buildPrettyRow
+import po.misc.data.pretty_print.buildPrettyRow
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
@@ -31,7 +31,7 @@ class TestTemplateRendering : PrettyTestBase() {
                 add(PrintableRecord::name)
                 add(PrintableRecord::description)
             }
-            useTemplate(entryRow, PrintableRecord::elements){
+            useRow(entryRow, PrintableRecord::elements){
                 headedRow("Sub header")
                 orientation = Orientation.Vertical
                 renderSourceHere()
@@ -40,12 +40,9 @@ class TestTemplateRendering : PrettyTestBase() {
                 add(footerText.colorize(Colour.Blue))
             }
         }
-
-        val templatePart = grid.renderPlan.renderables.getOrNull(2)
+        val templatePart = assertNotNull(grid.renderPlan.renderNodes.getOrNull(2)?.element)
         assertIs<PrettyValueGrid<PrintableRecord, PrintableElement>>(templatePart)
         assertNotNull(templatePart.options)
         assertEquals(Orientation.Vertical, templatePart.options.orientation)
-        grid.render(record).output()
-
     }
 }

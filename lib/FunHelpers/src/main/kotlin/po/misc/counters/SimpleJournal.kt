@@ -1,7 +1,9 @@
 package po.misc.counters
 
+import po.misc.counters.records.LogJournalEntry
 import po.misc.data.PrettyPrint
 import po.misc.data.helpers.orDefault
+import po.misc.data.logging.Verbosity
 import po.misc.data.output.output
 import po.misc.data.styles.SpecialChars
 import po.misc.exceptions.throwableToText
@@ -11,10 +13,13 @@ import kotlin.reflect.KClass
 
 class SimpleJournal(
     var hostName :String,
-    var immediateOutput:Boolean = false
+    var verbosity: Verbosity = Verbosity.Warnings
 ): PrettyPrint {
 
-    constructor(hostClass: KClass<*>, immediateOutput:Boolean = false):this(hostClass.simpleOrAnon, immediateOutput)
+    constructor(
+        hostClass: KClass<*>,
+        verbosity: Verbosity = Verbosity.Warnings
+    ):this(hostClass.simpleOrAnon, verbosity)
 
     val journalName :String = "Journal of $hostName"
     val errors: MutableList<Throwable> get() = mutableListOf()
@@ -32,7 +37,8 @@ class SimpleJournal(
 
     fun add(record: DataRecord):DataRecord {
         messagesBacking.add(record)
-        if(immediateOutput){
+        val isFailOrWarn = record.recordType ==  DataRecord.MessageType.Failure || record.recordType ==  DataRecord.MessageType.Warning
+        if(isFailOrWarn || verbosity == Verbosity.Debug){
             outputRecord(record)
         }
         return record
@@ -63,8 +69,8 @@ class SimpleJournal(
         return  add(data)
     }
 
-    fun method(methodName: String, track: Boolean):DataRecord{
-        immediateOutput = track
+    fun method(methodName: String, verbosity: Verbosity):DataRecord{
+        this.verbosity = verbosity
         val methodRec = MethodRec(methodName){
             outputRecord(it)
         }

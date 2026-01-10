@@ -1,14 +1,16 @@
 package po.misc.data.pretty_print.parts.options
 
-import po.misc.data.pretty_print.parts.options.PrettyHelper
 import po.misc.data.pretty_print.parts.rows.RowLayout
 
-interface RowPresets : CommonRowOptions {
 
-    override val orientation : Orientation
-    override val cellOptions: CommonCellOptions?
-    override val plainKey: Boolean get() = false
+
+interface RowPresets: CommonRowOptions {
+
     val layout: RowLayout
+    override val orientation : Orientation
+    override val cellOptions: CellOptions?
+    override val plainKey: Boolean get() = false
+    override val viewport: ViewPortSize get() = ViewPortSize.Console220
 
     override fun asOptions(width: Int): Options {
         val opt = PrettyHelper.Companion.toOptionsOrNull(cellOptions)
@@ -63,21 +65,21 @@ interface RowPresets : CommonRowOptions {
         override val layout: RowLayout = RowLayout.Compact
         override val orientation : Orientation = Orientation.Vertical
         override val renderBorders: Boolean = true
-        override val cellOptions: CommonCellOptions = CellPresets.PlainText
+        override val cellOptions: CellOptions = CellPresets.PlainText
     }
 
     object HorizontalPlain : RowPresets {
         override val layout: RowLayout = RowLayout.Compact
         override val orientation : Orientation = Orientation.Vertical
         override val renderBorders: Boolean = true
-        override val cellOptions: CommonCellOptions = CellPresets.PlainText
+        override val cellOptions: CellOptions = CellPresets.PlainText
     }
 
     object BulletList : RowPresets {
         override val layout: RowLayout = RowLayout.Compact
         override val orientation : Orientation = Orientation.Vertical
         override val renderBorders: Boolean = false
-        override val cellOptions: CommonCellOptions
+        override val cellOptions: CellOptions
             get() {
             val opt = Options()
             opt.keyText = "*"

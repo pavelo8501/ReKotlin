@@ -20,21 +20,27 @@ fun <T: Any> T?.asList(): List<T>{
     }
 }
 
-
-fun MutableList<String>.addNotBlank(string: String){
-    if(string.isNotBlank()){
-        add(string)
+fun <T> Array<out T>.toList(element:T): List<T> {
+    return buildList {
+        add(element)
+        addAll(this@toList)
     }
 }
 
-fun MutableList<String>.addNotBlank(string: String?, ifBlank: () -> Unit){
-    if(!string.isNullOrBlank()){
+fun <T> MutableList<T>.addNotNull(element:T?){
+    if(element != null){
+        this.add(element)
+    }
+}
+
+fun MutableList<String>.addNotBlank(string: String?, ifBlank: (() -> Unit)? = null): Boolean{
+  return if(!string.isNullOrBlank()){
         add(string)
     }else{
-        ifBlank.invoke()
+        ifBlank?.invoke()
+        false
     }
 }
-
 
 /**
  * Attempts to insert the given [value] under [key] if the key is not already present.
@@ -67,14 +73,15 @@ fun <K: Any, V: Any>  MutableMap<K, V>.putIfAbsentOr(key: K, value:V, failureAct
     }
 }
 
-
 fun <K: Any, V: Any>  MutableMap<K, V>.putOverwriting(key: K, value:V, overwrittenAction: (V)-> Unit){
     val existentValue = get(key)
     put(key, value)
-    if (existentValue != null) {
-        overwrittenAction.invoke(existentValue)
-    }
+      if (existentValue != null) {
+          overwrittenAction.invoke(existentValue)
+      }
 }
+
+
 
 
 

@@ -1,8 +1,10 @@
 package po.misc.data.pretty_print.formatters.text_modifiers
 
 import po.misc.data.output.output
+import po.misc.data.pretty_print.formatters.DynamicStyleFormatter
+import po.misc.data.pretty_print.formatters.FormatterTag
+import po.misc.data.strings.EditablePair
 import po.misc.data.styles.Colour
-import po.misc.data.styles.applyColour
 import po.misc.data.styles.colorize
 import po.misc.types.token.TypeToken
 
@@ -65,13 +67,10 @@ class ColourCondition<T>(
  */
 class DynamicColourModifier<T>(
     override val type: TypeToken<T>,
-    vararg val conditions: ColourCondition<T>
-): ConditionalTextModifier<T> {
-
-    override val formatter : Formatter = Formatter.ColorModifier
-
-    private val conditionsList: MutableList<ColourCondition<T>> = mutableListOf()
-    init { conditionsList.addAll(conditions.toList()) }
+): DynamicStyleFormatter<T> {
+    override val tag : FormatterTag = FormatterTag.ColorModifier
+    private val conditionsBacking: MutableList<ColourCondition<T>> = mutableListOf()
+    val conditions : List<ColourCondition<T>> get() =  conditionsBacking
 
     /**
      * Adds a new colour condition.
@@ -87,8 +86,13 @@ class DynamicColourModifier<T>(
      * }
      * ```
      */
-    fun  addCondition(colour: Colour, condition : T.()-> Boolean):DynamicColourModifier<T>{
-        conditionsList.add(ColourCondition<T>(colour, condition))
+    fun  add(colour: Colour, condition : T.()-> Boolean):DynamicColourModifier<T>{
+        conditionsBacking.add(ColourCondition<T>(colour, condition))
+        return this
+    }
+
+    fun  addAll(conditions: List<ColourCondition<T>>):DynamicColourModifier<T>{
+        conditionsBacking.addAll(conditions)
         return this
     }
 
@@ -96,11 +100,10 @@ class DynamicColourModifier<T>(
      * Adds a previously constructed [ColourCondition].
      * @return This modifier for chaining.
      */
-    fun addCondition(condition: ColourCondition<T>):DynamicColourModifier<T>{
-        conditionsList.add(condition)
+    fun add(condition: ColourCondition<T>):DynamicColourModifier<T>{
+        conditionsBacking.add(condition)
         return this
     }
-
 
     /**
      * DSL builder used to attach a new [ColourCondition] to the modifier.
@@ -122,10 +125,9 @@ class DynamicColourModifier<T>(
      * @return This modifier (not a new one), enabling fluent chaining.
      */
     fun  Colour.buildCondition(condition : T.()-> Boolean):DynamicColourModifier<T>{
-        conditionsList.add(ColourCondition(this, condition))
+        conditionsBacking.add(ColourCondition(this, condition))
         return this@DynamicColourModifier
     }
-
 
     /**
      * Applies the first matching colour condition to the given text.
@@ -135,12 +137,8 @@ class DynamicColourModifier<T>(
      * @param text The input text.
      * @return Coloured text if a condition matched; original text otherwise.
      */
-    override fun modify(text: String): String {
-        return text
-    }
-
     override fun modify(text: String, parameter: T): String {
-        for (dynamicCondition in conditionsList){
+        for (dynamicCondition in conditions){
             val match: Boolean = dynamicCondition.check(parameter)
             if(match){
                 return text.colorize(dynamicCondition.colour)
@@ -148,9 +146,18 @@ class DynamicColourModifier<T>(
         }
         return text
     }
+    override fun modify(formattedPair: EditablePair, parameter: T) {
+        for (dynamicCondition in conditions){
+            val match: Boolean = dynamicCondition.check(parameter)
+            if(match){
+                 val colorized =  formattedPair.plain.colorize(dynamicCondition.colour)
+                 formattedPair.writeFormatted(colorized)
+            }
+        }
+    }
     companion object{
         inline operator fun <reified T> invoke(vararg conditions: ColourCondition<T>): DynamicColourModifier<T> {
-           return DynamicColourModifier(TypeToken<T>(), *conditions)
+           return DynamicColourModifier(TypeToken<T>()).addAll(conditions.toList())
         }
     }
 }

@@ -2,10 +2,7 @@ package po.misc.debugging.models
 
 import po.misc.data.PrettyPrint
 import po.misc.data.pretty_print.PrettyRow
-import po.misc.data.pretty_print.parts.options.Orientation
-import po.misc.data.pretty_print.parts.options.RowPresets
-import po.misc.data.pretty_print.rows.buildPrettyRow
-import po.misc.data.strings.appendGroup
+import po.misc.data.pretty_print.buildPrettyRow
 
 
 class InstanceInfo(
@@ -15,8 +12,10 @@ class InstanceInfo(
 ): PrettyPrint{
 
     val className: String = classInfo.simpleName
-    override val formattedString: String get(){
-        return template.render(this)
+    override val formattedString: String get() = buildString {
+        append("Instance Name: $instanceName ")
+        append("ClassName: $className ")
+        append("Hash: #${hash}")
     }
     override fun toString(): String = buildString {
         if(instanceName == className){
@@ -25,15 +24,5 @@ class InstanceInfo(
             append(instanceName, "#${hash}", className)
         }
     }
-
-
-    companion object{
-        val template: PrettyRow<InstanceInfo> = buildPrettyRow{
-            add(InstanceInfo::instanceName)
-            add(InstanceInfo::className)
-            add(InstanceInfo::hash)
-        }
-    }
-
 }
 

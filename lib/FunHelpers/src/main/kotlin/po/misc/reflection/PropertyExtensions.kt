@@ -2,10 +2,8 @@ package po.misc.reflection
 
 import po.misc.data.toDisplayName
 import po.misc.exceptions.throwableToText
-import po.misc.functions.Mutable
-import po.misc.functions.Readonly
+import po.misc.functions.PropertyKind
 import po.misc.types.ClassAware
-import po.misc.types.castOrThrow
 import po.misc.types.memberProperties
 import po.misc.types.safeCast
 import po.misc.types.token.TypeToken
@@ -70,12 +68,12 @@ inline fun <reified T: Any> KProperty0<*>.tryResolveToMutable(): KMutablePropert
 /**
  * Attempts to resolve a member property of this object as a read-only [KProperty1].
  *
- * @param kind requires [Readonly] to match function overload.
+ * @param kind requires [PropertyKind.Readonly] to match function overload.
  * @param property the reflective property reference, typically obtained from `::myProp`.
  * @return the resolved [KProperty1] if the property exists and is read-only, otherwise `null`.
  */
 fun <T: Any> T.resolveProperty(
-    kind: Readonly,
+    kind: PropertyKind.Readonly,
     property: KProperty<*> ,
 ): KProperty1<T, *>? {
     val kClass = this::class
@@ -83,7 +81,7 @@ fun <T: Any> T.resolveProperty(
 }
 
 fun <T: Any> resolveProperty(
-    kind: Readonly,
+    kind:  PropertyKind.Readonly,
     kClass: KClass<T>,
     property: KProperty<*>,
 ): KProperty1<T, *>? {
@@ -91,7 +89,7 @@ fun <T: Any> resolveProperty(
 }
 
 fun <T: Any> resolveProperty(
-    kind: Readonly,
+    kind: PropertyKind.Readonly,
     classAware: ClassAware<T>,
     property: KProperty<*>,
 ): KProperty1<T, *>? = resolveProperty(kind, classAware.kClass, property)
@@ -100,7 +98,7 @@ fun <T: Any> resolveProperty(
 
 
 fun <T: Any, V: Any> KProperty<*>.resolveTypedProperty(
-    kind: Readonly,
+    kind: PropertyKind.Readonly,
     receiverClass: KClass<T>,
     returnType: ClassAware<V>,
 ): KProperty1<T, V>?{
@@ -114,7 +112,7 @@ fun <T: Any, V: Any> KProperty<*>.resolveTypedProperty(
 }
 
 fun <T: Any, V: Any> KProperty<*>.resolveTypedProperty(
-    kind: Readonly,
+    kind: PropertyKind.Readonly,
     receiverClass: ClassAware<T>,
     returnType: ClassAware<V>,
 ): KProperty1<T, V>?{
@@ -128,16 +126,15 @@ fun <T: Any, V: Any> KProperty<*>.resolveTypedProperty(
 }
 
 
-
 /**
  * Attempts to resolve a member property of this object as a mutable [KMutableProperty1].
  *
- * @param kind requires [Mutable] to match function overload.
+ * @param kind requires [PropertyKind.Mutable] to match function overload.
  * @param property the reflective property reference, typically obtained from `::myProp`.
  * @return the resolved [KMutableProperty1] if the property exists and is mutable, otherwise `null`.
  */
 fun <T: Any> T.resolveProperty(
-    kind: Mutable ,
+    kind: PropertyKind.Mutable ,
     property: KProperty<*>,
 ): KMutableProperty1<T, *>? {
     val kClass = this::class
@@ -169,7 +166,7 @@ fun <T: Any> T.resolveProperty(
  *         or `null` if the property does not exist or is not type-compatible.
  */
 inline fun <reified T: Any, reified V: Any> resolveTypedProperty(
-    kind: Readonly,
+    kind:  PropertyKind.Readonly,
     kClass: KClass<*>,
     property: KProperty<V>,
 ): KProperty1<T, V>? {
@@ -192,14 +189,14 @@ inline fun <reified T: Any, reified V: Any> resolveTypedProperty(
  * @return A safely casted `KProperty1<T, V>` or `null`.
  */
 inline fun <reified T: Any, reified V: Any> resolveTypedProperty(
-    kind: Readonly,
+    kind: PropertyKind.Readonly,
     classAware: ClassAware<*>,
     property: KProperty<V>,
 ): KProperty1<T, V>? = resolveTypedProperty(kind, classAware.kClass, property)
 
 
 inline fun <reified T: Any, V: Any> resolveTypedProperty(
-    kind: Readonly,
+    kind: PropertyKind.Readonly,
     property: KProperty<V>,
     kClass: KClass<*>,
     typeToken: TypeToken<V>,

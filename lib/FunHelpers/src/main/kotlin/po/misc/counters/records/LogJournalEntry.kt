@@ -2,11 +2,6 @@ package po.misc.counters.records
 
 import po.misc.counters.LogJournal
 import po.misc.counters.records.LogJournalEntry.RecordType
-import po.misc.data.pretty_print.PrettyRow
-import po.misc.data.pretty_print.parts.options.Options
-import po.misc.data.pretty_print.parts.options.Style
-import po.misc.data.pretty_print.rows.buildPrettyRow
-import po.misc.data.styles.Colour
 import po.misc.time.TimeHelper
 import java.time.Instant
 
@@ -23,7 +18,7 @@ class LogJournalEntry(
     val hostName: String = logJournal.hostInstanceInfo.instanceName
     val formatedTime: String = created.hoursFormated(2)
 
-    override val formattedString: String get() = entryTemplate.render(this)
+    override val formattedString: String get() = message
     val comments: MutableList<Comment> = mutableListOf()
 
     override fun resultOK(successType: RecordType, message: String?) {
@@ -39,9 +34,9 @@ class LogJournalEntry(
 
     companion object{
 
-        private val timeStyle = Options(renderKey = false, style = Style(colour = Colour.Blue))
-        val entryTemplate : PrettyRow<LogJournalEntry> = buildPrettyRow {
-            addAll(LogJournalEntry::formatedTime, LogJournalEntry::entryType,LogJournalEntry::message, LogJournalEntry::hostName)
-        }
+//        private val timeStyle = Options(renderKey = false, style = Style(colour = Colour.Blue))
+//        val entryTemplate : PrettyRow<LogJournalEntry> = buildPrettyRow {
+//            addAll(LogJournalEntry::formatedTime, LogJournalEntry::entryType,LogJournalEntry::message, LogJournalEntry::hostName)
+//        }
     }
 }

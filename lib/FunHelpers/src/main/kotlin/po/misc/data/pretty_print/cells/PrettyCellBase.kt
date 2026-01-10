@@ -1,119 +1,244 @@
 package po.misc.data.pretty_print.cells
 
+import po.misc.data.Named
+import po.misc.data.NamedComponent
+import po.misc.data.logging.Verbosity
+import po.misc.data.pretty_print.formatters.FormatterPlugin
 import po.misc.data.pretty_print.parts.options.Align
 import po.misc.data.pretty_print.formatters.text_modifiers.DynamicColourModifier
-import po.misc.data.pretty_print.formatters.text_modifiers.TextModifier
-import po.misc.data.pretty_print.parts.options.CellOptions
-import po.misc.data.pretty_print.parts.options.CommonCellOptions
 import po.misc.data.pretty_print.parts.options.Orientation
-import po.misc.data.pretty_print.parts.cells.PrettyBorders
 import po.misc.data.pretty_print.parts.options.PrettyHelper
-import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.formatters.TextFormatter
-import po.misc.data.pretty_print.formatters.text_modifiers.CellFormatter
 import po.misc.data.pretty_print.formatters.text_modifiers.CellStyler
 import po.misc.data.pretty_print.formatters.text_modifiers.ColourCondition
+import po.misc.data.pretty_print.formatters.text_modifiers.TextTrimmer
+import po.misc.data.pretty_print.parts.cells.RenderRecord
+import po.misc.data.pretty_print.parts.options.CellOptions
 import po.misc.data.pretty_print.parts.options.Options
-import po.misc.data.pretty_print.parts.options.PrettyOptions
-import po.misc.data.strings.FormattedPair
-import po.misc.data.styles.SpecialChars
+import po.misc.data.pretty_print.parts.rendering.CellRenderNode
+import po.misc.data.pretty_print.parts.rendering.CellRenderParameters
+import po.misc.data.pretty_print.parts.rendering.RenderParameters
+import po.misc.data.pretty_print.parts.rows.RowLayout
+import po.misc.data.strings.EditablePair
+import po.misc.data.strings.FormattedText
+import po.misc.data.strings.createFormatted
+import po.misc.data.styles.Colour
+import po.misc.data.styles.TextStyler
+import po.misc.types.token.TypeToken
 
 
-sealed class PrettyCellBase(var cellOptions: Options){
+data class Padding(
+    val left: Int,
+    val right: Int,
+){
+    val totalPadding:Int get() = left + right
+}
 
-    var row: PrettyRow<*>? = null
-    var index: Int = 0
-        internal set
+sealed class PrettyCellBase<T>(
+    var cellOptions: Options,
+    internal val type: TypeToken<T>
+): RenderableCell<T>, TextStyler,  NamedComponent {
 
-    var keyText: String  = ""
-    protected  set(value) {
-            if(field.isBlank()) {
+    enum class KeyValueTags : Named{ Key, Value }
+
+    var areOptionsExplicit: Boolean = false
+        protected set
+
+    override var currentRenderOpts: Options = cellOptions
+        protected set
+
+    protected open val dynamicColour: DynamicColourModifier<*> = DynamicColourModifier(type)
+    protected val trimmer: TextTrimmer = TextTrimmer("...")
+    protected val styler: CellStyler = CellStyler()
+
+    override var keyText: String? = null
+        protected set(value) {
+            if (field == null) {
                 field = value
             }
         }
 
-    private val prettyOptions: PrettyOptions get() =  row?.currentRenderOpt?:cellOptions
-    val plainKey: Boolean = prettyOptions.plainKey
-    val plainText: Boolean get() =  cellOptions.plainText
-    internal val orientation: Orientation get() = row?.currentRenderOpt?.orientation?:Orientation.Horizontal
-    internal val renderBorders: Boolean get() = row?.currentRenderOpt?.renderBorders?:false
-    internal val cellsCount: Int get() = row?.cells?.size?:1
+    override val name: String
+        get() = when (this) {
+            is StaticCell -> "StaticCell"
+            is PrettyCell -> "PrettyCell"
+            is KeyedCell<*> -> "KeyedCell"
+            is ComputedCell<*, *> -> "ComputedCell"
+        }
 
     var postfix: String? = null
 
-    val borders: PrettyBorders = PrettyBorders()
-    val styler : CellStyler = CellStyler(this)
-    val cellFormatter: CellFormatter = CellFormatter(this)
-    val textFormatter: TextFormatter = TextFormatter(styler, cellFormatter)
 
-    protected fun calculateEffectiveWidth(text: String): Int {
-        if (cellOptions.width == 0) {
-            return text.length
+    var parameters: CellRenderParameters? = null
+
+    val orientation: Orientation get() = parameters?.orientation?: Orientation.Horizontal
+
+    val textFormatter: TextFormatter = TextFormatter(styler, trimmer)
+    var verbosity: Verbosity = Verbosity.Warnings
+
+    private val shouldStyle: Boolean get() {
+        return !(this is ComputedCell<*, *> && textFormatter.hasDynamic)
+    }
+
+    init {
+        cellOptions.onUserModified {
+            areOptionsExplicit = true
         }
-        val cellWidth = cellOptions.width
-        val textLength = text.length
-        val align = cellOptions.alignment
-        return when(align) {
-            Align.CENTER -> {
-               (cellWidth - textLength) / 2
+    }
+
+    private fun calculateEffectiveWidth(record: RenderRecord): Padding {
+        val useWidth = if(currentRenderOpts.width != 0){
+            currentRenderOpts.width
+        }else{
+            record.totalPlainLength
+        }
+       return when (currentRenderOpts.align) {
+            Align.Center ->{
+                val diff = useWidth - record.totalPlainLength - keySegmentSize
+                val leftPadding = (diff / 2  + keySegmentSize).coerceAtLeast(0)
+                val rightPadding = (diff - leftPadding).coerceAtLeast(0)
+                Padding(leftPadding, rightPadding)
             }
-            Align.LEFT, Align.RIGHT -> {
-                if(textLength > cellWidth){
-                    textLength
-                }else{
-                    cellWidth
-                }
+            Align.Left ->{
+                Padding(left = 0, right = useWidth - record.totalPlainLength - keySegmentSize)
+            }
+            Align.Right ->{
+                Padding(left = useWidth - record.totalPlainLength - keySegmentSize, right = 0)
             }
         }
     }
 
-    abstract fun copy():PrettyCellBase
-    protected fun justifyText(text: String): String {
-        val useWidth = calculateEffectiveWidth(text)
-        val useAlignment = cellOptions.alignment
-        val useFiller = cellOptions.spaceFiller
-        return if (orientation == Orientation.Vertical) {
-            text
+    private fun calculateEffectiveWidth(record: RenderRecord, parameters: RenderParameters): Padding {
+        return if (parameters.layout == RowLayout.Stretch) {
+
+            val occupied = record.totalPlainLength + (parameters.projectedSize - keySegmentSize)
+            val free = (parameters.width - occupied).coerceAtLeast(0)
+            when (currentRenderOpts.align) {
+                Align.Center -> {
+                    val left = free / 2
+                    val right = free - left
+                    Padding(left, right)
+                }
+                Align.Left -> Padding(left = 0, right = free)
+                Align.Right -> Padding(left = free, right = 0)
+            }
         } else {
-            val aligned = when (useAlignment) {
-                Align.LEFT -> text.padEnd(useWidth, useFiller)
-                Align.RIGHT -> text.padStart(useWidth, useFiller)
-                Align.CENTER -> {
-                    val fillerString = useFiller.toString()
-                    val diff = useWidth - text.length
-                    val left = (diff / 2).coerceAtLeast(0)
-                    val right = (diff - left).coerceAtLeast(0)
-                    fillerString.repeat(left) + text + fillerString.repeat(right)
+            Padding(0, 0)
+        }
+    }
+
+    protected fun warn(text: String) {
+        text.output(Colour.YellowBright)
+    }
+    abstract fun applyOptions(opts: CellOptions?): PrettyCellBase<T>
+    abstract fun copy(): PrettyCellBase<T>
+
+    protected fun justify(record: RenderRecord) {
+        if (orientation == Orientation.Vertical){
+            return
+        }
+        val renderParameters = parameters
+        val padding = if(renderParameters != null){
+            calculateEffectiveWidth(record, renderParameters)
+        }else{
+            calculateEffectiveWidth(record)
+        }
+        if(padding.totalPadding == 0){ return }
+
+        val useAlignment = cellOptions.align
+        val useFiller = cellOptions.spaceFiller
+        when (useAlignment) {
+            Align.Left ->{
+                val padding = useFiller.toString().repeat(padding.right)
+                record.append(padding)
+            }
+            Align.Right -> {
+                val padding = useFiller.toString().repeat(padding.left)
+                record.prepend(padding)
+            }
+            Align.Center -> {
+                val paddingLeft = useFiller.toString().repeat(padding.left)
+                val paddingRight = useFiller.toString().repeat(padding.right)
+                record.prepend(paddingLeft)
+                record.append(paddingRight)
+            }
+        }
+    }
+
+    private fun renderWithParameters(renderRec: RenderRecord, parameters: CellRenderParameters):String{
+        val key = keyText
+        if (key != null) {
+            renderRec.addKey(KeyValueTags.Key.createFormatted(key), currentRenderOpts.keySeparator)
+        }
+        return  when {
+            currentRenderOpts.plainText -> {
+                parameters.renderComplete(renderRec)
+                justify(renderRec)
+                renderRec.plain
+            }
+            currentRenderOpts.sourceFormat -> {
+                parameters.renderComplete(renderRec)
+                justify(renderRec)
+                renderRec.formatted
+            }
+            else->{
+                parameters.measureWidth(renderRec)
+                if(shouldStyle){ textFormatter.format(renderRec, currentRenderOpts) }
+                textFormatter.format(renderRec, parameters)
+                justify(renderRec)
+                parameters.renderComplete(renderRec)
+                renderRec.formatted
+            }
+        }
+    }
+
+    private fun renderNoParameters(renderRec: RenderRecord):String{
+        val key = keyText
+        if (key != null) {
+            renderRec.addKey(KeyValueTags.Key.createFormatted(key), currentRenderOpts.keySeparator)
+        }
+        return with(renderRec){
+            when {
+                currentRenderOpts.plainText -> {
+                    justify(renderRec)
+                    plain
+                }
+                currentRenderOpts.sourceFormat -> {
+                    justify(renderRec)
+                    formatted
+                }
+                else ->{
+                    if(shouldStyle) {
+                        if(shouldStyle){ textFormatter.format(renderRec, currentRenderOpts) }
+                        justify(renderRec)
+                        textFormatter.format(this, currentRenderOpts)
+                    }
+                    formatted
                 }
             }
-            borders.render(aligned, this)
+        }
+    }
+    internal fun finalizeRender(renderRec: RenderRecord): String {
+        val renderParameters = parameters
+        return if(renderParameters != null){
+            renderWithParameters(renderRec, renderParameters)
+        }else{
+            renderNoParameters(renderRec)
         }
     }
 
-    protected fun styleKey(): String {
-        if(!cellOptions.renderKey){
-            return SpecialChars.EMPTY
-        }
-        if(!cellOptions.plainKey){
-            return styler.modify(keyText, cellOptions.keyStyle)
-        }
-        return keyText
+    override fun parametrizeRender(renderParameters: CellRenderParameters) {
+        parameters = renderParameters
     }
 
-    internal fun setRow(prettyRow: PrettyRow<*>): PrettyCellBase{
-        row = prettyRow
-        return this
-    }
-    open fun applyOptions(commonOpt: CommonCellOptions?): PrettyCellBase{
-        val options = PrettyHelper.toOptionsOrNull(commonOpt)
-        if(options != null){
-            cellOptions = options
-        }
-        return this
+    protected fun setOptions(opts: Options) {
+        cellOptions = opts
+        areOptionsExplicit = true
+        currentRenderOpts = opts
     }
 
     /**
-     * Adds one or more static [TextModifier] instances to this cell.
+     * Adds one or more static [FormatterPlugin] instances to this cell.
      *
      * These modifiers are always applied during rendering, regardless of the
      * cell’s content. They are appended to the internal modifier list in the
@@ -128,7 +253,7 @@ sealed class PrettyCellBase(var cellOptions: Options){
      * ```
      * @param modifiers modifiers to attach to this cell
      */
-    fun addModifiers(vararg modifiers: TextModifier){
+    fun addModifiers(vararg modifiers: FormatterPlugin) {
         textFormatter.addFormatters(modifiers.toList())
     }
 
@@ -155,7 +280,7 @@ sealed class PrettyCellBase(var cellOptions: Options){
      * @param builder DSL block used to configure the dynamic colour modifier.
      * @return this cell for fluent chaining.
      */
-    fun colourConditions(builder: DynamicColourModifier<String>.()-> Unit):PrettyCellBase{
+    fun colourConditions(builder: DynamicColourModifier<String>.() -> Unit): PrettyCellBase<T> {
         val dynamicColourModifier = DynamicColourModifier<String>()
         dynamicColourModifier.builder()
         textFormatter.addFormatter(dynamicColourModifier)
@@ -176,24 +301,15 @@ sealed class PrettyCellBase(var cellOptions: Options){
      * ```
      * @param conditions the dynamic colour conditions to attach
      */
-    fun colourConditions(vararg  conditions : ColourCondition<String>){
+    fun colourConditions(vararg conditions: ColourCondition<String>) {
         val dynamicColourModifier = DynamicColourModifier(*conditions)
         textFormatter.addFormatter(dynamicColourModifier)
     }
 
-    open fun render(content: String, commonOptions: CommonCellOptions? = null): String {
-        applyOptions(PrettyHelper.toOptionsOrNull(commonOptions))
-        val formatted = textFormatter.style(content)
-        val final = justifyText(formatted)
-        return final
-    }
-    open fun render(formatted: FormattedPair, commonOptions: CommonCellOptions?): String {
-        applyOptions(PrettyHelper.toOptionsOrNull(commonOptions))
-        val usePlain = true
-        val usedText = if(usePlain){ formatted.plain.toString() } else { formatted.formatted }
-        val formatted = textFormatter.style(usedText)
-        val final = justifyText(formatted)
-        return final
+    open fun render(content: String, opts: CellOptions? = null): String {
+        applyOptions(PrettyHelper.toOptionsOrNull(opts))
+        val rec =  RenderRecord(FormattedText(content))
+        return renderNoParameters(rec)
     }
 
     companion object

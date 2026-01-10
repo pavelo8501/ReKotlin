@@ -6,6 +6,7 @@ import po.misc.data.logging.procedural.ProceduralFlow
 import po.misc.data.logging.procedural.StepResult
 import po.misc.data.output.output
 import po.misc.data.pretty_print.PrettyValueGrid
+import po.misc.data.pretty_print.cells.ComputedCell
 import po.misc.data.styles.Colour
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -36,10 +37,12 @@ class TestProceduralTemplating : ProceduralTestBase(){
         record.logRecords.add(warning2)
 
         assertIs<StepResult.Warning>(record.stepResult)
-        assertNotNull(ProceduralEntry.template.renderPlan.renderables.lastOrNull()) { valueGrid ->
+        assertNotNull(ProceduralEntry.template.renderPlan.renderNodes.lastOrNull()) { valueGrid ->
             assertIs<PrettyValueGrid<ProceduralEntry, Loggable>>(valueGrid)
+
             assertNotNull(valueGrid.rows.lastOrNull()) { row ->
-                assertNotNull(row.computedCells.firstOrNull()) { computed ->
+
+                assertNotNull(row.cellsOf<ComputedCell<*, *>>().firstOrNull()) { computed ->
                     assertEquals("*", computed.cellOptions.keyText)
                 }
             }

@@ -67,19 +67,9 @@ abstract class LogProcessorBase<T: StructuredLoggable>(
     }
 
     private fun storeData(data: T, tryHandle: Boolean = true){
-
         logRecordsBacking.add(data)
         activeRecord = data
 
-//        if(tryHandle){
-//            if(!handleStructured(data) ){
-//                logRecordsBacking.add(data)
-//                activeRecord = data
-//            }
-//        }else{
-//            logRecordsBacking.add(data)
-//            activeRecord = data
-//        }
     }
 
     private fun handleStructured(loggable: StructuredLoggable): Boolean{

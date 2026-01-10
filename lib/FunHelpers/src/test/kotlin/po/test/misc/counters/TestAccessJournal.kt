@@ -9,7 +9,7 @@ import po.misc.counters.createRecord
 import po.misc.data.output.output
 import po.misc.data.pretty_print.Templated
 import po.misc.data.pretty_print.parts.options.Options
-import po.misc.data.pretty_print.rows.buildPrettyRow
+import po.misc.data.pretty_print.buildPrettyRow
 import po.misc.debugging.ClassResolver
 import po.misc.types.token.TypeToken
 import po.misc.types.token.tokenOf
@@ -41,7 +41,7 @@ class TestAccessJournal: Component, Templated<AccessRecord<TestAccess>> {
         val accessJournal = createAccessJournal(TestAccess.Access)
         val instance1 = Instance1()
         val record: AccessRecord<TestAccess> = instance1.createRecord(accessJournal)
-        val noKeyOption = Options(renderKey = false)
+        val noKeyOption = Options()
         val prettyRow = buildPrettyRow<AccessRecord<TestAccess>> {
             add(AccessRecord<TestAccess>::formatedTime, noKeyOption)
             add(AccessRecord<TestAccess>::message)
@@ -49,7 +49,7 @@ class TestAccessJournal: Component, Templated<AccessRecord<TestAccess>> {
             add(AccessRecord<TestAccess>::entryType, noKeyOption)
         }
         assertEquals(4, prettyRow.cells.size)
-        val result = prettyRow.renderAny(record)
+        val result = prettyRow.render(record)
         result.output()
         assertTrue {
             result.contains(record.message)

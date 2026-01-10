@@ -4,6 +4,15 @@ import po.misc.types.token.TypeToken
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
 
+
+
+enum class CallableKey { Property, Resolver, Provider }
+
+
+sealed interface CallableType{
+    val callableKey : CallableKey
+}
+
 /**
  * Marker type used to indicate that a signal listener expects a suspending
  * callback function.
@@ -14,10 +23,17 @@ import kotlin.reflect.KProperty1
  * Its sole purpose is to disambiguate overloads between regular and
  * suspending listeners.
  */
-sealed interface LambdaType
+sealed interface LambdaType : CallableType{
+    override val callableKey: CallableKey
+}
 
-object Sync: LambdaType
-object Suspended: LambdaType
+object Sync: LambdaType{
+    override val callableKey: CallableKey =  CallableKey.Resolver
+}
+object Suspended: LambdaType{
+    override val callableKey: CallableKey = CallableKey.Resolver
+}
+
 
 
 /**
@@ -146,7 +162,15 @@ object NoParam: FunctionKind{
  * `ReadOnlyProperty` corresponds to [KProperty1],
  * `MutableProperty` corresponds to [KMutableProperty1].
  */
-sealed interface PropertyKind : CallableOptions
+sealed interface PropertyKind : CallableType{
 
-object Readonly: PropertyKind
-object Mutable  :PropertyKind
+    object Readonly: PropertyKind{
+        override val callableKey: CallableKey = CallableKey.Property
+    }
+    object Mutable :PropertyKind{
+        override val callableKey: CallableKey =  CallableKey.Property
+    }
+}
+
+
+

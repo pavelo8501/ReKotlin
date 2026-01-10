@@ -1,8 +1,8 @@
 package po.misc.data.pretty_print.parts.cells
 
 import po.misc.data.output.output
+import po.misc.data.pretty_print.parts.loader.toElementProvider
 import po.misc.data.pretty_print.rows.RowBuilder
-import po.misc.data.pretty_print.toProvider
 import po.misc.data.styles.Colour
 import po.misc.types.token.TypeToken
 import kotlin.reflect.KProperty
@@ -18,7 +18,7 @@ class CellDelegate<T>(
     }
 
     fun register(thisRef: RowBuilder<T>,  property: KProperty<*>) {
-       textProperty.toProvider(receiverToken, stringToken).let {
+       textProperty.toElementProvider(receiverToken, stringToken).let {
           // val cell = thisRef.add(it)
          //  "Registered ${cell.keyText}".output(Colour.Magenta)
        }

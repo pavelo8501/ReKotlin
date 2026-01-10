@@ -170,7 +170,6 @@ class LogProcessor <H: Component, T: StructuredLoggable>(
         return  logForwarder.getHandler(LH::class).castOrThrow<LH>()
     }
 
-
     fun forwardOutputTo(logProcessor: LogProcessor<out Component, out StructuredLoggable>){
         val myDataClass = messageTypeToken.kClass
         //logProcessor.logForwarder.dataHandlers.keys.firstOrNull{ myDataClass.isSubclassOf(it) }

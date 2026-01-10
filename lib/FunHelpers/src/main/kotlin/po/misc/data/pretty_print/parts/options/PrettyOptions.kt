@@ -13,7 +13,6 @@ sealed interface PrettyOptions{
     fun asOptions(width: Int = 0): Options
 }
 
-
 /**
  * Base marker interface for cell-related options.
  *
@@ -21,7 +20,9 @@ sealed interface PrettyOptions{
  * cell-option types. It does not define any properties but serves as a
  * logical grouping for cell styling and behaviour.
  */
-sealed interface CommonCellOptions : PrettyOptions{
+sealed interface CellOptions : PrettyOptions{
     val style: Style
     val keyStyle : Style
+    val align: Align
+    val renderKey:Boolean
 }

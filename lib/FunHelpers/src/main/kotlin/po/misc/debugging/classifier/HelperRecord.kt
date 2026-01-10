@@ -1,6 +1,8 @@
 package po.misc.debugging.classifier
 
 import po.misc.data.strings.appendGroup
+import po.misc.types.k_class.simpleOrAnon
+import kotlin.reflect.KClass
 
 /**
  * Describes a helper class and optionally specific method names inside it.
@@ -17,9 +19,7 @@ class HelperRecord(
 ){
 
     constructor(helperClassName: String, vararg helperMethodName : String):this(helperClassName, helperMethodName.toList())
-
-
-  //  val helperMethodNames: List<String> = helperMethodName.toList()
+    constructor(helperClass: KClass<*> , vararg helperMethodName : String):this(helperClass.simpleOrAnon, helperMethodName.toList())
 
     /**
      * Returns `true` if the given [methodName] matches one of this helper’s method names.

@@ -1,16 +1,13 @@
 package po.misc.data
 
-import po.misc.data.pretty_print.parts.template.RowID
-import po.misc.data.strings.StringFormatter
+import po.misc.data.pretty_print.parts.options.RowID
+import po.misc.data.styles.StringFormatter
 import po.misc.types.k_class.readAllProperties
 
 
 interface PrettyPrint: TextBuilder {
     val formattedString: String
-
-    companion object:  StringFormatter {
-
-    }
+    companion object:  StringFormatter()
 }
 
 interface PrettyFormatted {

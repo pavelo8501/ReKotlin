@@ -12,6 +12,7 @@ import po.misc.types.k_class.simpleOrAnon
 import po.misc.types.safeCast
 import kotlin.reflect.KClass
 import kotlin.reflect.cast
+import kotlin.reflect.full.isSubclassOf
 
 
 class CastResult<T> @PublishedApi internal constructor(
@@ -36,31 +37,45 @@ internal fun <T>  KClass<*>.asTAndAny(): KClass<T & Any>{
     }
 }
 
-//@PublishedApi
-//internal fun <T: Any, P> safeCastByTokens(
-//    instance: Any,
-//    baseClass: KClass<T>,
-//    parameterToken: TypeToken<P>
-//):T?{
-//    return instance.safeCast<T>(baseClass)?.let {casted->
-//        if(   token.partialEquality(parameterToken)){
-//            casted
-//        }else{
-//            null
-//        }
-//    }
-//}
-
 fun <T> Any.safeCast(
-    token: TypeToken<T>,
-):T? =  safeCast<T>(token.kClass)
+    classAware: ClassAware<T>,
+):T? =  safeCast<T>(classAware.kClass)
 
 
 fun <T> Any.castOrThrow(
-    token: TypeToken<T>,
+    classAware: ClassAware<T>
 ):T {
-    return safeCast<T>(token.kClass)?:run {
-        val msg = "Unable to cast ${this::class.simpleOrAnon} to class registered in token $token"
+    return safeCast<T>(classAware.kClass)?:run {
+        val msg = "Unable to cast ${this::class.simpleOrAnon} to class  ${classAware.kClass.simpleName}"
+        error(msg, TraceOptions.PreviousMethod)
+    }
+}
+
+
+inline fun <reified T: Tokenized<TT>, TT> Tokenized<*>.safeCast(
+    typeToken: TypeToken<TT>
+):T?{
+    val casted = safeCast<T>() ?: return null
+    return if(casted.typeToken == typeToken){
+        casted
+    }else{
+        null
+    }
+}
+
+
+inline fun <reified T: Tokenized<TT>, TT> Tokenized<*>.castOrThrow(
+    typeToken: TypeToken<TT>
+):T{
+  return safeCast<T>()?.let {casted->
+        if(casted.typeToken == typeToken){
+           casted
+        }else{
+            val msg = "Provided token $typeToken does not match receivers token ${casted.typeToken}"
+            error(msg, TraceOptions.PreviousMethod)
+        }
+    }?:run {
+        val msg = "Unable to cast ${this::class.simpleOrAnon} to class ${T::class.simpleName}"
         error(msg, TraceOptions.PreviousMethod)
     }
 }
@@ -69,7 +84,6 @@ fun <T> Any.castOrThrow(
 inline fun <reified T: Any, P> Any.safeTypedCast(
     typeToken: TypeToken<P>
 ):T? {
-
     val newToken = TypeToken<T>()
     if(newToken.partialEquality(typeToken)){
        return  safeCast<T>()
@@ -77,27 +91,6 @@ inline fun <reified T: Any, P> Any.safeTypedCast(
     return null
 }
 
-
-
-///**
-// * Attempts to safely cast this value to type [T] using a runtime [TypeToken].
-// *
-// * This function is intended for cases where the generic type information
-// * of the instance has been erased (e.g. the value is typed as [Any]),
-// * but the expected generic parameter type is known at runtime.
-// *
-// * The cast succeeds only if:
-// * - this instance is assignable to [T], and
-// * - the generic parameter of [T] is compatible with [typeToken]
-// *
-// * No unchecked casts are exposed to the caller.
-// *
-// * @param typeToken runtime token describing the expected generic parameter
-// * @return the casted value if both class and generic token match, or `null` otherwise
-// */
-//inline fun <reified T: Any, P> Any.safeCast(
-//    typeToken: TypeToken<P>
-//):T? =  safeCastByTokens(this, TypeToken<T>(), typeToken)
 
 /**
  * Attempts to cast this [TokenHolder] to type [T] by validating its contained
@@ -119,7 +112,7 @@ inline fun <reified T: Any, P> Any.safeTypedCast(
 inline fun <reified T: TokenHolder> TokenHolder.safeCast(
     typeToken: TypeToken<*>
 ):T?{
-    return safeCast<T>()?.let {casted->
+    return safeCast<T>()?.let { casted->
         if(casted.types.any { it ==  typeToken}){
             casted
         }else{
@@ -127,6 +120,34 @@ inline fun <reified T: TokenHolder> TokenHolder.safeCast(
         }
     }
 }
+
+
+inline fun <reified T: TokenHolder> TokenHolder.safeCast(
+   parameterProvider: ()-> Any?
+):T?{
+    return safeCast<T>()?.let { casted->
+        when(val parameter =  parameterProvider()){
+            is TypeToken<*> -> {
+               if(casted.typeToken == parameter){
+                  return casted
+               }
+            }
+            else-> {
+                if(parameter != null){
+                    val paramClass = parameter::class
+                    val isSubClass = paramClass.isSubclassOf(casted.typeToken.kClass)
+                    if(isSubClass) {
+                        return casted
+                    }
+                }else{
+                    return null
+                }
+            }
+        }
+        return null
+    }
+}
+
 
 /**
  * Attempts to cast this [Tokenized] instance to type [T] using an explicit

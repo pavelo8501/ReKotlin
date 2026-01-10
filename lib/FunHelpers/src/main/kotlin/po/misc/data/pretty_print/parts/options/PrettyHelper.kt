@@ -1,11 +1,7 @@
 package po.misc.data.pretty_print.parts.options
 
 import po.misc.data.pretty_print.parts.grid.RenderableType
-import po.misc.data.pretty_print.parts.loader.DataProvider
-import po.misc.data.pretty_print.parts.template.DefaultID
-import po.misc.data.pretty_print.parts.template.GridID
-import po.misc.data.pretty_print.parts.template.RowID
-import po.misc.data.pretty_print.parts.template.TemplateData
+import po.misc.data.styles.SpecialChars
 import po.misc.types.token.TypeToken
 import java.util.UUID
 
@@ -13,19 +9,71 @@ import java.util.UUID
 @PublishedApi
 internal interface PrettyHelper {
 
-
-    fun generateRowID(type: TypeToken<*>,  hashCode: Int?): DefaultID = Companion.generateRowID(type, hashCode)
+    fun generateRowID(type: TypeToken<*>,  hashCode: Int?): DefaultRowID = Companion.generateRowID(type, hashCode)
     fun toRowOptions(input: CommonRowOptions?): RowOptions = Companion.toRowOptions(input)
     fun toRowOptions(input: CommonRowOptions?, default : CommonRowOptions? = null): RowOptions = Companion.toRowOptions(input, default)
     fun toRowOptionsOrNull(input: CommonRowOptions?): RowOptions? = Companion.toRowOptionsOrNull(input)
 
     fun toOptions(input: PrettyOptions?, default: CellOptions? = null): Options = Companion.toOptions(input, default)
     fun toOptionsOrNull(input: PrettyOptions?): Options? = Companion.toOptionsOrNull(input)
-    fun createTemplateData(gridID: RowID?, receiverType: TypeToken<*>): TemplateData =
-        Companion.createTemplateData(gridID, receiverType)
 
-    fun createTemplateData(gridID: GridID?, dataProvider: DataProvider<*, *>, type: RenderableType): TemplateData =
-        Companion.createTemplateData(gridID, dataProvider, type)
+    fun createRowData(renderableType: RenderableType,rowID: RowID?,  sourceType: TypeToken<*>, receiverType: TypeToken<*>?, ): TemplateData =
+        Companion.createRowData(renderableType, rowID, sourceType, receiverType)
+    fun createRowData(compositionTrace: CompositionTrace): TemplateData = Companion.createRowData(compositionTrace)
+    fun createGridData(compositionTrace: CompositionTrace): TemplateData = Companion.createGridData(compositionTrace)
+
+    fun List<String>.joinRender(orientation: Orientation):String {
+        return if(orientation == Orientation.Horizontal){
+            joinToString(separator = SpecialChars.EMPTY)
+        }else{
+            joinToString(separator = SpecialChars.NEW_LINE)
+        }
+    }
+
+    fun Array<*>.flattenVarargs(): List<Any> {
+        val flattened  = mutableListOf<Any>()
+        fun checkNullMakeString(element: Any?): Any {
+            return element ?: "null" as Any
+        }
+        for (i in 0 until size) {
+            val element = get(i)
+            if(element is List<*>){
+                val result =  element.map {
+                    checkNullMakeString(it)
+                }
+                flattened.addAll(result)
+            }else {
+                flattened.add(checkNullMakeString(element))
+            }
+        }
+        return flattened
+    }
+    fun Array<*>.flattenVarargs(firstValue: Any): List<Any> {
+        val flattened  = mutableListOf(firstValue)
+        fun checkNullMakeString(element: Any?): Any {
+            return element ?: "null" as Any
+        }
+        for (i in 0 until size) {
+            val element = get(i)
+            if(element is List<*>){
+                val result =  element.map {
+                    checkNullMakeString(it)
+                }
+                flattened.addAll(result)
+            }else {
+                flattened.add(checkNullMakeString(element))
+            }
+        }
+        return flattened
+    }
+
+    fun String.repeat(times: Int): String {
+        val result = mutableListOf<String>()
+        for(i in 0 until times) {
+            result.add(this)
+        }
+        return result.joinToString(separator = SpecialChars.EMPTY)
+    }
 
     companion object : PrettyHelperClass()
 }
@@ -74,6 +122,7 @@ open class PrettyHelperClass{
             is Options ->  input
             else -> input.asOptions()
         }
+
     fun toOptions(input: PrettyOptions?, default: CellOptions? = null): Options {
         if(input != null){
             return toOptions(input)
@@ -89,46 +138,36 @@ open class PrettyHelperClass{
         }
         return toOptions(input)
     }
-
-    internal fun generateRowID(receiverType: TypeToken<*>, hashCode: Int?): DefaultID{
+    internal fun generateRowID(receiverType: TypeToken<*>, hashCode: Int?): DefaultRowID{
         val useHash = hashCode?:UUID.randomUUID().hashCode()
-        return DefaultID(receiverType.typeName, RenderableType.Row, useHash)
+        return DefaultRowID(receiverType.typeName, useHash)
     }
 
-    internal fun generateGridID(dataProvider: DataProvider<*, *>, type: RenderableType): DefaultID{
-        return DefaultID("${dataProvider.typeToken.typeName},${dataProvider.valueType}",type, dataProvider.hashCode())
-    }
-
-    internal fun generateGridID(receiverType: TypeToken<*>, hashCode: Int?): DefaultID{
+    internal fun generateRowID(typeString: String, hashCode: Int?): DefaultRowID{
         val useHash = hashCode?:UUID.randomUUID().hashCode()
-        return DefaultID(receiverType.typeName, RenderableType.Grid, useHash)
+        return DefaultRowID(typeString, useHash)
     }
 
-    internal fun createTemplateData(rowID: RowID?, receiverType: TypeToken<*>): TemplateData{
+    internal fun generateGridID(renderableType: RenderableType,  typeString: String): DefaultGridID{
+        val useHash = UUID.randomUUID().hashCode()
+        return DefaultGridID(renderableType, typeString,  useHash)
+    }
+
+    internal fun createRowData(renderableType: RenderableType,rowID: RowID?,  sourceType: TypeToken<*>, receiverType: TypeToken<*>?, ): TemplateData{
+        val composition = CompositionTrace.createFrom(sourceType, receiverType, renderableType, rowID)
         return rowID?.let {
-            TemplateData(it, receiverType.typeName)
+            TemplateData(it, composition)
         }?:run {
-           val genericRowID =  generateRowID(receiverType, null)
-           TemplateData(genericRowID)
+           val genericRowID = generateRowID(composition.typeString, null)
+           TemplateData(genericRowID, composition)
         }
     }
-
-    internal fun createTemplateData(gridID: GridID?, dataProvider: DataProvider<*, *>, type: RenderableType): TemplateData{
-        return gridID?.let {
-            TemplateData(it, "${dataProvider.typeToken.typeName},${dataProvider.valueType}")
-        }?:run {
-            val genericGridID =  generateGridID(dataProvider, type)
-            TemplateData(genericGridID)
-        }
+    internal fun createRowData(compositionTrace: CompositionTrace): TemplateData{
+        val templateID = compositionTrace.templateID
+        return TemplateData(templateID,  compositionTrace)
     }
-
-    internal fun createGridData(gridID: GridID?, receiverType: TypeToken<*>, hashCode: Int? = null): TemplateData{
-        return gridID?.let {
-            TemplateData(it, receiverType.typeName)
-        }?:run {
-            val genericGridID =  generateGridID(receiverType, hashCode)
-            TemplateData(genericGridID)
-        }
+    internal fun createGridData(compositionTrace: CompositionTrace): TemplateData{
+        val templateID = compositionTrace.templateID
+        return TemplateData(templateID,  compositionTrace)
     }
-
 }

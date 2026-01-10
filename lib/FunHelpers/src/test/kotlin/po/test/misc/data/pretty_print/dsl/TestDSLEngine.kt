@@ -1,5 +1,6 @@
 package po.test.misc.data.pretty_print.dsl
 
+import po.misc.data.pretty_print.buildGrid
 import po.misc.data.pretty_print.dsl.DSLEngine
 import po.misc.data.pretty_print.parts.options.Orientation
 import po.misc.data.pretty_print.parts.options.RowOptions
@@ -12,16 +13,14 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertSame
 
 class TestDSLEngine : PrettyTestBase(){
-
-
+    
     private val record: PrintableRecord = createRecord()
-    private val dslEngine = DSLEngine()
 
     @Test
     fun `DSLEngine correctly creates Grid`() {
-        val dslEngine = DSLEngine()
         val options = RowOptions(Orientation.Horizontal)
-        val grid = dslEngine.buildGrid<PrintableRecord>() {}
+
+        val grid = buildGrid<PrintableRecord>() {}
         assertSame(options, grid.options)
     }
 

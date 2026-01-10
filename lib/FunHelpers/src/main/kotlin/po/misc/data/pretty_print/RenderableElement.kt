@@ -1,22 +1,34 @@
 package po.misc.data.pretty_print
 
+import po.misc.callbacks.callable.ReceiverCallable
 import po.misc.data.pretty_print.parts.grid.RenderPlan
 import po.misc.data.pretty_print.parts.grid.RenderableType
-import po.misc.data.pretty_print.parts.loader.DataProvider
+import po.misc.data.pretty_print.parts.loader.DataLoader
+import po.misc.data.pretty_print.parts.loader.ElementProvider
 import po.misc.data.pretty_print.parts.options.CommonRowOptions
 import po.misc.data.pretty_print.parts.options.RowOptions
-import po.misc.data.pretty_print.parts.template.NamedTemplate
+import po.misc.data.pretty_print.parts.options.NamedTemplate
 import po.misc.data.pretty_print.templates.TemplateCompanion
+import po.misc.types.token.Tokenized
 import po.misc.types.token.TokenizedResolver
 import po.misc.types.token.TypeToken
+import kotlin.reflect.KClass
 
-sealed interface TemplatePart<T, V>: TokenizedResolver<T, V>{
+sealed interface TemplatePart<T>: Tokenized<T>{
     val enabled: Boolean
-    val id: NamedTemplate
+    val templateID: NamedTemplate
     val renderableType : RenderableType
 
-    fun resolve(receiverList: List<T>): List<V>
-    fun copy(usingOptions: CommonRowOptions? = null):TemplatePart<T, V>
+    val receiverType:TypeToken<T>
+
+    override val typeToken: TypeToken<T>
+        get() = receiverType
+
+    fun copy(usingOptions: CommonRowOptions? = null):TemplatePart<T>
+
+    fun shouldRender():Boolean{
+        return enabled
+    }
 }
 
 /**
@@ -30,25 +42,25 @@ sealed interface TemplatePart<T, V>: TokenizedResolver<T, V>{
  * Implementations are expected to degrade gracefully when rendering
  * conditions are not met.
  */
-sealed interface RenderableElement<T, V> : TemplatePart<T, V>{
+sealed interface RenderableElement<S, T> : TemplatePart<T>, TokenizedResolver<S, T>{
     val options: RowOptions
-    /**
-     * Renders the placeholder on the given [receiverList] using the resolved delegate.
-     * If the placeholder has not been resolved, an empty string is returned.
-     */
-    fun render(receiverList: List<T>, opts: CommonRowOptions? = null): String
-    override fun copy(usingOptions: CommonRowOptions? ):RenderableElement<T, V>
 
-    fun shouldRender():Boolean{
-        return enabled
-    }
+    override val sourceType: TypeToken<S>
+    override val receiverType:TypeToken<T>
+
+    override val typeToken: TypeToken<T> get() = receiverType
+    fun renderFromSource(source:S, opts: CommonRowOptions? = null):String
 }
 
-interface TemplateHost<T, V>: TemplatePart<T, V>{
-    val renderPlan : RenderPlan<T, V>
-    override fun copy(usingOptions: CommonRowOptions? ): TemplateHost<T, V>
+interface TemplateHost<S, V>: TemplatePart<V>, TokenizedResolver<S, V>{
+    val options: RowOptions
+    val renderPlan : RenderPlan<S, V>
+    val dataLoader: DataLoader<S, V>
 
-    fun render(receiverList: List<T>, opts: CommonRowOptions? = null): String
+    override val receiverType:TypeToken<V>
+    override val typeToken: TypeToken<V> get() = receiverType
+    override fun copy(usingOptions: CommonRowOptions? ):TemplateHost<S, V>
+    fun renderFromSource(source:S, opts: CommonRowOptions? = null):String
 }
 
 /**
@@ -66,10 +78,10 @@ interface TemplateHost<T, V>: TemplatePart<T, V>{
 interface Placeholder<T> : TemplateHost<T, T> {
 
     override val renderPlan : RenderPlan<T, T>
-    fun initLoader(provider: DataProvider<T, T>)
-    fun provideRenderable(element: RenderableElement<T, T>, provider: DataProvider<T, T>? = null)
+    fun initLoader(provider: ElementProvider<T, T>)
+    fun provideRenderable(element: TemplateHost<T, T>, provider: ReceiverCallable<T, T>? = null):Placeholder<T>
     fun render(opts: CommonRowOptions? = null): String
-    override fun copy(usingOptions: CommonRowOptions? ):Placeholder<T>
+    override fun copy(usingOptions: CommonRowOptions?):Placeholder<T>
     /**
      * Companion object used for semantic lookup in [po.misc.data.pretty_print.parts.grid.RenderPlan].
      *
@@ -78,6 +90,9 @@ interface Placeholder<T> : TemplateHost<T, T> {
      * val placeholders = grid.templateMap[Placeholder]
      * ```
      */
-    companion object : TemplateCompanion
+    companion object : TemplateCompanion<Placeholder<*>>{
+        override val templateClass: KClass<Placeholder<*>> = Placeholder::class
+        override val renderType: RenderableType = RenderableType.Placeholder
+    }
 }
 

@@ -11,18 +11,15 @@ data class RenderPlanSnapshot (
 ): PrettyPrint{
 
     val displayName: String = renderPlan.displayName
-
-    private val rowSize = renderPlan[PrettyRow::class].size
-
+    private val rowSize = renderPlan[PrettyRow].size
     val rowsCount: String get() = "${PrettyRow.prettyName}: $rowSize"
-    val valueGridsSize :Int = renderPlan[PrettyValueGrid::class].size
+    val valueGridsSize :Int = renderPlan[PrettyValueGrid].size
     val valueGridsCount: String get() = "${PrettyValueGrid.prettyName}: $valueGridsSize"
     val allRenderables: String get() {
         return  renderPlan.getNodesOrdered().joinToString(SpecialChars.NEW_LINE) {
             it.toString()
         }
     }
-
     override val formattedString: String get(){
         return buildString {
             appendLine(displayName)
@@ -30,7 +27,6 @@ data class RenderPlanSnapshot (
             appendLine(valueGridsCount)
             appendLine(allRenderables)
         }
-
     }
     override fun toString(): String = buildString {
         appendLine(displayName)

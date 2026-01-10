@@ -28,7 +28,7 @@ class LogJournal(
     override val formattedString: String
         get() {
            return logRecords.joinToString {
-                LogJournalEntry.entryTemplate.render(it)
+               it.formattedString
             }
         }
 

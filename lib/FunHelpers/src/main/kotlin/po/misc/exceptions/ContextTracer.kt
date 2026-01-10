@@ -7,6 +7,7 @@ import po.misc.debugging.classifier.PackageClassifier
 import po.misc.debugging.stack_tracer.TraceOptions
 import po.misc.debugging.stack_tracer.ExceptionTrace
 import po.misc.debugging.stack_tracer.extractTrace
+import po.misc.debugging.stack_tracer.reports.CallSiteReport
 import java.time.Instant
 import kotlin.coroutines.CoroutineContext
 import kotlin.reflect.KClass
@@ -82,6 +83,11 @@ open class Tracer(
         trace =  exTrace
         return exTrace
     }
+
+    fun callSiteReport(): CallSiteReport{
+        return trace.callSite()
+    }
+
 }
 
 

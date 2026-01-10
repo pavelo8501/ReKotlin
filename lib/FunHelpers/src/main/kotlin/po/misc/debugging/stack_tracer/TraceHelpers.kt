@@ -4,10 +4,9 @@ import po.misc.collections.asList
 import po.misc.collections.takeFromMatch
 import po.misc.context.tracable.TraceableContext
 import po.misc.debugging.classifier.PackageClassifier
+import po.misc.debugging.lookupByMethod
 import po.misc.debugging.toFrameMeta
 import po.misc.exceptions.ThrowableCallSitePayload
-import po.misc.debugging.stack_tracer.ExceptionTrace
-import po.misc.debugging.thisMethod
 import po.misc.exceptions.Tracer
 import po.misc.exceptions.throwableToText
 import po.misc.types.k_class.simpleOrAnon
@@ -76,6 +75,7 @@ fun Throwable.extractTrace(
     classifier:  PackageClassifier? = null
 ): ExceptionTrace {
     val depth = analyzeDepth.coerceAtLeast(30)
+    val pickedList  =   stackTrace.take(depth).toFrameMeta(classifier)
    return when(options){
         is TraceOptions.Default -> {
             extractTrace(depth)
@@ -83,7 +83,12 @@ fun Throwable.extractTrace(
         is CallSite -> {
             val frames =  stackTrace.take(depth).toFrameMeta(classifier)
             val methodName = options.methodName
-            val index = frames.indexOfFirst { it.methodName.contains(methodName) }.coerceAtLeast(0)
+
+            val index = frames.indexOfFirst {
+                val name =  it.stackTraceElement?.methodName?: it.methodName
+                name.contains(methodName)
+            }.coerceAtLeast(0)
+
             val userCodeMetas =  frames.drop(index).takeWhile { frameMeta ->
                 frameMeta.isUserCode
             }
@@ -96,29 +101,20 @@ fun Throwable.extractTrace(
                 ExceptionTrace(throwableToText(), frames, reliable = false, type = options)
             }
         }
-       is Method -> {
-           val frames =  stackTrace.take(depth).toFrameMeta(null)
-           val filteredByName = frames.filter { it.methodName ==  options.methodName}
-           ExceptionTrace(throwableToText(), filteredByName, reliable = true, type = options)
-       }
-       is TraceOptions.ThisMethod -> {
-           val list = stackTrace.toList()
-           val meta =  list.thisMethod(options)
-           if(meta != null){
-               ExceptionTrace(throwableToText(), meta.asList(), reliable = true, type = options)
+       is Method , is ThisMethod -> {
+           val res = lookupByMethod(pickedList, options, classifier)
+           if(res.isNotEmpty()){
+               ExceptionTrace(throwableToText(), res, reliable = true, type = options)
            }else{
-               val firstMeta = list.first().toFrameMeta(classifier)
-               ExceptionTrace(throwableToText(), firstMeta.asList(), reliable = false, type = options)
+               ExceptionTrace(throwableToText(), pickedList, reliable = false, type = options)
            }
        }
        is TraceOptions.PreviousMethod -> {
-           val list =  stackTrace.toList()
-           val meta =  list.thisMethod(options, classifier)
-           if(meta != null){
-               ExceptionTrace(throwableToText(), meta.asList(), reliable = true, type = options)
+           val res =  lookupByMethod(pickedList ,options, classifier)
+           if(res.isNotEmpty()){
+               ExceptionTrace(throwableToText(), res, reliable = true, type = options)
            }else{
-               val firstMeta = list.first().toFrameMeta(classifier)
-               ExceptionTrace(throwableToText(), firstMeta.asList(), reliable = false, type = options)
+               ExceptionTrace(throwableToText(),  pickedList, reliable = false, type = options)
            }
        }
     }

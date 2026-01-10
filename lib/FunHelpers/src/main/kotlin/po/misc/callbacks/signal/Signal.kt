@@ -3,6 +3,8 @@ package po.misc.callbacks.signal
 import po.misc.callbacks.CallableEventBase
 import po.misc.callbacks.common.ListenerResult
 import po.misc.callbacks.validator.ReactiveValidator
+import po.misc.collections.lambda_map.Lambda
+import po.misc.collections.lambda_map.LambdaWrapper
 import po.misc.collections.lambda_map.toCallable
 import po.misc.context.component.Component
 import po.misc.context.tracable.TraceableContext
@@ -218,7 +220,7 @@ class Signal<T, R>(
     ){
         signal = true
         debug(subjectListen, messageReg("Lambda", listener) )
-        listenersMap[listener] = callback.toCallable(options)
+        listenersMap[listener] = Lambda(options, callback)
     }
 
     /**

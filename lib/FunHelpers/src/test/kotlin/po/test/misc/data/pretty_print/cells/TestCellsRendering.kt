@@ -71,7 +71,7 @@ class TestCellsRendering {
         assertFalse { render.contains(CellPresets.Property.style.colour) }
 
         var options = Options(CellPresets.Property)
-        options.useSourceFormatting = true
+        options.sourceFormat = true
         cell.applyOptions(options)
         render = cell.render(this)
         assertTrue { render.contains(TestCellsRendering::formatted.displayName) }
@@ -81,7 +81,7 @@ class TestCellsRendering {
 
         options = Options()
         options.plainKey = true
-        options.useSourceFormatting = true
+        options.sourceFormat = true
         cell.applyOptions(options)
         render = cell.render(this)
         assertTrue { render.contains(TestCellsRendering::formatted.displayName) }
@@ -112,15 +112,9 @@ class TestCellsRendering {
         render = row.render(this)
         split = render.lines()
         assertEquals(2, split.size)
-        assertFalse { render.contains(rowOpt.borderSeparator) }
+        assertFalse { render.contains(rowOpt.cellSeparator.toString()) }
     }
 
-    @Test
-    fun `Computed cells render null if no property no result from lambda`(){
-        val cell = ComputedCell(TypeToken<TestCellsRendering>(), TypeToken<FormattedClass>()){}
-        val render = cell.render(this)
-        assertTrue{ render.contains("null")}
-    }
 
     @Test
     fun `Computed cells render default value received by property provided`(){
@@ -152,29 +146,7 @@ class TestCellsRendering {
         assertTrue("formattedString not rendered") { render.contains(formatted.formattedString) }
     }
 
-    @Test
-    fun `Computed cell builder works as expected`(){
-        val cell = ComputedCell(TestCellsRendering::formatted){
-            Colour.Blue.buildCondition {
-                it.text ==  "Blue_text"
-            }
-            Colour.Green.buildCondition {
-                this.parameter == "Host_text"
-            }
-            Colour.Green.buildCondition {
-                it.text ==  "Green_text"
-            }
-        }
-        formatted.text = "Blue_text"
-        var render = cell.render(this)
-        assertTrue { render.contains(Colour.Blue) }
 
-        formatted.text = "Not blue"
-        parameter = "Host_text"
-        render = cell.render(this)
-        assertTrue { render.contains("Not blue") }
-        assertTrue { render.contains(Colour.Green) }
-    }
 
     @Test
     fun `Computed cells rendered correctly inside the row`(){

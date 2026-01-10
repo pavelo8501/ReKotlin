@@ -96,11 +96,9 @@ class TypeToken<T>  @PublishedApi internal constructor(
     override val kType: KType,
 ): TypeHolder<T>, TraceableContext, PrettyPrint {
 
-
     override val isCollection: Boolean get() = kType.classifier == List::class
     private val nullabilitySign get() = if (isNullable) "?" else ""
-    private val slotsText: String
-        get() {
+    private val slotsText: String get() {
             return if (typeSlots.isNotEmpty()) {
                 typeSlots.joinToString(prefix = "<", postfix = ">", separator = ", ") {
                     it.toString()
@@ -110,21 +108,21 @@ class TypeToken<T>  @PublishedApi internal constructor(
             }
         }
 
-    private val slotsFormattedText: String
-        get() =
-            if (typeSlots.isNotEmpty()) {
-                typeSlots.joinToString(prefix = "<", postfix = ">", separator = ", ") {
-                    it.formattedString
-                }
-            } else {
-                SpecialChars.EMPTY
+    private val slotsFormattedText: String get() =
+        if (typeSlots.isNotEmpty()) {
+            typeSlots.joinToString(prefix = "<", postfix = ">", separator = ", ") {
+                it.formattedString
             }
+        } else {
+            SpecialChars.EMPTY
+        }
 
     var verbosity: Verbosity = Verbosity.Warnings
 
     val isNullable: Boolean get() = kType.isMarkedNullable
     val typeSlots: List<TypeSlot> = tryResolveImmediately()
     val inlinedParameters: List<KClass<*>> = typeSlots.mapNotNull { it.kClass }.sortedBy { simpleName }
+    var isElementOfCollection: Boolean = false
 
     val hashCode: Int = kClass.hashCode()
 
@@ -146,11 +144,23 @@ class TypeToken<T>  @PublishedApi internal constructor(
                 "TypeToken of $simpleName"
             }
         }
-    val typeName: String get() = "$simpleName$slotsText"
+    
+    override val types: List<TypeToken<*>> get() = typeSlots.mapNotNull { it.token }
+
+    override val typeName: String get() = "$simpleName$slotsText"
     override val formattedString: String
         get() {
             return tokenFormattedName
         }
+
+    val effectiveClass: KClass<*> get() {
+        return if(isCollection){
+            typeSlots.firstOrNull()?.kClass ?:kClass
+        }else{
+            kClass
+        }
+    }
+
     private fun tryResolveImmediately(): List<TypeSlot> {
         val result: MutableList<TypeSlot> = mutableListOf()
         val typeParameters: List<KTypeParameter> = kClass.typeParameters
@@ -160,7 +170,11 @@ class TypeToken<T>  @PublishedApi internal constructor(
             arg.type?.let { argType ->
                 when (val classifier = argType.classifier) {
                     is KClass<*> ->{
-                        hostSlot.resolve(TypeToken(classifier, argType))
+                        val token =  TypeToken(classifier, argType)
+                        if(isCollection){
+                            token.isElementOfCollection = true
+                        }
+                        hostSlot.resolve(token)
                     }
                     is KTypeParameter ->{
                        val typeSlot = TypeSlot(classifier)
@@ -172,12 +186,8 @@ class TypeToken<T>  @PublishedApi internal constructor(
         }
         return result
     }
-    private fun warnKClassDifferent(other: KClass<*>, methodName: String) {
-        val line1 = kClass.toKeyParams()
-        val line2 = other.toKeyParams()
-        val warnMsg = "Comparison failed when comparing own" + SpecialChars.NEW_LINE + "$line1 to " + "$line2"
-        notify(warnMsg, methodName, NotificationTopic.Warning)
-    }
+
+
 
     fun effectiveClassIs(other: KClass<*>): Boolean {
        return if(isCollection){
@@ -188,6 +198,27 @@ class TypeToken<T>  @PublishedApi internal constructor(
             equals(other)
         }
     }
+
+    fun effectiveClassIs(otherToken: TypeToken<*>): Boolean {
+       val result = this.effectiveClass == otherToken.effectiveClass
+       return result
+    }
+
+    fun compareEffectiveClass(otherToken: TypeToken<*>):Boolean {
+
+        if(isCollection){
+            if(effectiveClass == otherToken.effectiveClass){
+                return true
+            }
+        }
+        if(otherToken.isCollection){
+            if(otherToken.effectiveClass == kClass){
+                return true
+            }
+        }
+        return false
+    }
+
     override fun hashCode(): Int =  kType.hashCode()
 
     override fun equals(other: Any?): Boolean {
@@ -203,7 +234,6 @@ class TypeToken<T>  @PublishedApi internal constructor(
 
     private fun makeStrictEquality(otherClass: KClass<*>, parameters: List<Pair<KClass<*>, Boolean?>>): Boolean {
         if (kClass != otherClass) {
-            warnKClassDifferent(otherClass, "stricterEquality")
             return false
         }
         if (typeSlots.size != parameters.size) {
@@ -221,6 +251,8 @@ class TypeToken<T>  @PublishedApi internal constructor(
     private fun slotsContainClass(otherClass: KClass<*>): Boolean {
        return typeSlots.any { it.kClass == otherClass }
     }
+
+
 
     /**
      * Performs a strict equality check between this [TypeToken] and another type.
@@ -317,7 +349,6 @@ class TypeToken<T>  @PublishedApi internal constructor(
 
     fun partialEquality(token: TypeToken<*>): Boolean = slotsContainClass(token.kClass) || this == token
 
-
     fun typeSlotMatch(litera: TypeLitera, kClass: KClass<*>): Boolean {
         return typeSlots.firstOrNull { it.typeLitera == litera }?.let {
             it.kClass == kClass
@@ -344,27 +375,10 @@ class TypeToken<T>  @PublishedApi internal constructor(
         }
     }
 
-
     companion object {
         val errMsg: (KClass<*>) -> String = {
             "Impossible to create token for type ${it.simpleName}. KClass<T> should be non nullable"
         }
-//        @PublishedApi
-//        internal fun buildSlotTree(
-//            type: KType,
-//            parameter: KTypeParameter? = null
-//        ): TypeSlot {
-//
-//            val kClass = type.classifier as? KClass<*>
-//                ?: error("Unsupported classifier: $type")
-//            val params = kClass.typeParameters
-//            val slots = type.arguments.mapIndexedNotNull { index, arg ->
-//                val argType = arg.type ?: return@mapIndexedNotNull null
-//                val param = params.getOrNull(index)
-//                buildSlotTree(argType, param)
-//            }
-//            return TypeSlot(type, kClass, parameter, slots)
-//        }
 
         inline operator fun <reified T> invoke(tokenOptions: TokenOptions? = null): TypeToken<T> {
             val casted = T::class.safeCast<KClass<T & Any>>()

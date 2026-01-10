@@ -1,25 +1,22 @@
 package po.misc.data.pretty_print.templates
 
-import po.misc.collections.asList
+import po.misc.callbacks.callable.ReceiverCallable
 import po.misc.data.output.output
 import po.misc.data.pretty_print.Placeholder
-import po.misc.data.pretty_print.PrettyRow
+import po.misc.data.pretty_print.PrettyGridBase
 import po.misc.data.pretty_print.RenderableElement
 import po.misc.data.pretty_print.TemplateHost
-import po.misc.data.pretty_print.dsl.BuilderScope
 import po.misc.data.pretty_print.parts.grid.RenderPlan
 import po.misc.data.pretty_print.parts.grid.RenderableType
-import po.misc.data.pretty_print.parts.loader.DataProvider
 import po.misc.data.pretty_print.parts.options.CommonRowOptions
 import po.misc.data.pretty_print.parts.options.RowOptions
 import po.misc.data.pretty_print.parts.loader.DataLoader
+import po.misc.data.pretty_print.parts.loader.ElementProvider
 import po.misc.data.pretty_print.parts.options.Orientation
 import po.misc.data.pretty_print.parts.options.PrettyHelper
-import po.misc.data.pretty_print.parts.template.NamedTemplate
+import po.misc.data.pretty_print.parts.options.NamedTemplate
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
-import po.misc.functions.Throwing
-import po.misc.types.safeCast
 import po.misc.types.token.TypeToken
 
 /**
@@ -29,7 +26,7 @@ import po.misc.types.token.TypeToken
  * Lifecycle policies control whether placeholders are **single-assignment**
  * or **re-bindable** during subsequent render passes.
  */
-enum class PlaceholderLifecycle {
+enum class Lifecycle {
     /**
      * The placeholder may be resolved only once.
      *
@@ -55,48 +52,50 @@ enum class PlaceholderLifecycle {
 
 /**
  * A renderable placeholder that delegates its rendering logic to another
- * [po.misc.data.pretty_print.RenderableElement] provided at runtime.
+ * [RenderableElement] provided at runtime.
  *
  * `TemplatePlaceholder` allows templates to be declared ahead of time and
  * resolved later during rendering, without treating missing or replaced
  * bindings as fatal errors.
  *
  * The behavior of re-binding is controlled by [lifecycle]:
- * - [PlaceholderLifecycle.SingleUse] prevents overwriting once resolved
- * - [PlaceholderLifecycle.Reusable] allows re-binding on subsequent renders
+ * - [Lifecycle.SingleUse] prevents overwriting once resolved
+ * - [Lifecycle.Reusable] allows re-binding on subsequent renders
  *
  * This class is designed for **soft-failure rendering pipelines**, where
  * incomplete or partially resolved templates should degrade gracefully
  * rather than interrupt execution.
  *
  * @param lifecycle defines how the placeholder behaves when reassigned
- * @param hostingBuilder the builder scope that owns this placeholder
+ * @param hostingGrid the builder scope that owns this placeholder
  * @param typeToken the expected host type used during rendering
  */
 class TemplatePlaceholder<T: Any>(
-    val lifecycle: PlaceholderLifecycle,
-    val hostingBuilder: BuilderScope<*>,
+    val lifecycle: Lifecycle,
+    val hostingGrid: PrettyGridBase<*>,
     override val receiverType: TypeToken<T>,
 ): Placeholder<T>, PrettyHelper {
 
-    var options: RowOptions = RowOptions(Orientation.Horizontal)
+    override val sourceType:TypeToken<T> = receiverType
+    override var options: RowOptions = RowOptions(Orientation.Horizontal)
     override val typeToken: TypeToken<T> = receiverType
-    override val valueType: TypeToken<T> get() = receiverType
+    //override val valueType: TypeToken<T> get() = receiverType
 
     /**
      * The currently assigned renderable responsible for actual rendering.
      * May be `null` if the placeholder has not yet been resolved.
      */
-    var delegate: RenderableElement<T, T>? = null
+    var delegate: TemplateHost<T, T>? = null
 
     override val renderableType: RenderableType = RenderableType.Row
 
-
     override var enabled: Boolean = false
-    override val renderPlan: RenderPlan<T, T> = RenderPlan(this)
-    var dataLoader: DataLoader<T, T>? = null
+    override var renderPlan: RenderPlan<T, T> = RenderPlan(this)
+    override val dataLoader: DataLoader<T, T> = DataLoader("TemplatePlaceholder", receiverType, receiverType)
 
-    override val id: NamedTemplate get() = delegate!!.id
+    override val templateID: NamedTemplate get() = delegate?.templateID?:run {
+        generateRowID(receiverType, hostingGrid.hashCode() + hashCode())
+    }
 
     private fun cleanup(){
         enabled = false
@@ -104,30 +103,32 @@ class TemplatePlaceholder<T: Any>(
         options =  RowOptions(Orientation.Horizontal)
     }
 
-    private fun setLoader(loader: DataLoader<T, T>?) {
-        if(loader != null){
-            dataLoader = loader
-        }
+    private fun applyProvider(provider: ReceiverCallable<T, T>) {
+        dataLoader.add(provider)
     }
-    private fun attachDelegate(element: RenderableElement<T, T>) {
+    private fun attachDelegate(element: TemplateHost<T, T>, dataProvider: ReceiverCallable<T, T>?) {
         delegate = element
         options = element.options
-
-        when(element){
-            is PrettyRow<*> -> {
-                val casted = element.safeCast<PrettyRow<T>>()
-                setLoader(casted?.dataLoader)
-            }
+        renderPlan = RenderPlan(element)
+        if (dataProvider != null) {
+            dataLoader.add(dataProvider)
+        } else {
+            dataLoader.apply(element.dataLoader.elementRepository).apply(element.dataLoader.listRepository)
         }
     }
-
-    fun render(receiver: T, opts: RowOptions): String {
-        return delegate?.render(receiver.asList(), opts) ?:run { SpecialChars.EMPTY }
+    fun render(receiver: T, opts: CommonRowOptions?): String {
+        return delegate?.renderFromSource(receiver, opts) ?:run { SpecialChars.EMPTY }
     }
+    override fun renderFromSource(source: T, opts: CommonRowOptions? ) = render(receiver =  source, opts)
 
-    override fun render(receiverList: List<T>, opts: CommonRowOptions?): String {
-       val useOptions = toRowOptions(opts, options)
-       return renderPlan.renderList(receiverList, useOptions)
+    fun render(receiverList: List<T>, opts: CommonRowOptions?): String {
+        val rendered = mutableListOf<String>()
+        val useOptions = toRowOptions(opts, options)
+        receiverList.forEach { receiver ->
+            val render = renderPlan.render(receiver, useOptions)
+            rendered.add(render)
+        }
+        return rendered.joinToString(SpecialChars.NEW_LINE)
     }
 
     /**
@@ -143,14 +144,16 @@ class TemplatePlaceholder<T: Any>(
      * @return rendered output or an empty string if unresolved
      */
     override fun render(opts: CommonRowOptions?): String {
-        val loader = dataLoader?.safeCast<DataLoader<T, T>>()
-        val rowOptions = PrettyHelper.toRowOptionsOrNull(opts)
-        if(loader != null && loader.canResolve){
-           val host = loader.resolveValue(Throwing)
-           val render = render(host, rowOptions?:options)
-           return render
+        if(!dataLoader.canResolve){
+            return SpecialChars.EMPTY
         }
-        return SpecialChars.EMPTY
+        val resolved = dataLoader.resolveList()
+        val render = if(resolved.isNotEmpty()){
+              render(resolved, toRowOptions(opts, options))
+        }else{
+            SpecialChars.EMPTY
+        }
+        return render
     }
 
     /**
@@ -170,37 +173,45 @@ class TemplatePlaceholder<T: Any>(
      *
      * @param element the renderable to associate with this placeholder
      */
-    override fun provideRenderable(element: RenderableElement<T, T>, provider: DataProvider<T, T>?) {
+    override fun provideRenderable(
+        element: TemplateHost<T, T>,
+        provider: ReceiverCallable<T, T>?
+    ): TemplatePlaceholder<T> {
         if(delegate != element && delegate != null){
-            if(lifecycle == PlaceholderLifecycle.SingleUse){
+            if(lifecycle == Lifecycle.SingleUse){
                 "TemplatePlaceholder<$typeToken> is being overwritten".output(Colour.Yellow)
-                return
+                return this
             }
         }
-        attachDelegate(element)
-        if(provider != null){
-            initLoader(provider)
-        }
+        attachDelegate(element, provider)
         enabled = true
+        return this
     }
 
-    override fun initLoader(provider: DataProvider<T, T>) {
-        dataLoader?.applyCallables(provider)
+    override fun initLoader(provider: ElementProvider<T, T>): Unit{
+        dataLoader.apply(provider)
     }
-
+    fun initLoader(provider: ReceiverCallable<T, T>) {
+        dataLoader.add(provider)
+    }
     override fun copy(usingOptions: CommonRowOptions?): TemplatePlaceholder<T> {
+       return delegate?.let {element->
+            TemplatePlaceholder(lifecycle, hostingGrid, typeToken).also {placeholder->
+                val renderable = element.copy(usingOptions)
 
-        val copy = TemplatePlaceholder(lifecycle, hostingBuilder, typeToken)
-        val delegateToCopy = delegate
-        if (delegateToCopy != null) {
-            val delegateCopy = delegateToCopy.copy(usingOptions)
-            copy.delegate = delegateCopy
+                dataLoader.elementRepository.callables.values.forEach {
+                    placeholder.provideRenderable(renderable, it)
+                }
+            }
+        }?:run {
+            TemplatePlaceholder(lifecycle, hostingGrid, typeToken).also {
+                it.dataLoader.apply(dataLoader.copy())
+            }
         }
-        return copy
     }
 
-    override fun resolve(receiverList: List<T>): List<T> {
-        TODO("Not yet implemented")
+    fun resolve(receiverList: List<T>): List<T> {
+       return dataLoader.resolveList(receiverList)
     }
 
     override fun toString(): String = "Placeholder<${typeToken.typeName}>($lifecycle)"

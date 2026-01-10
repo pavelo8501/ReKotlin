@@ -1,104 +1,107 @@
 package po.misc.data.pretty_print.cells
 
-import po.misc.collections.lambda_map.CallableDescriptor
-import po.misc.collections.reactive_list.ReactiveList
-import po.misc.data.output.output
-import po.misc.data.pretty_print.cells.KeyedCell
+import po.misc.callbacks.callable.CallableCollection
+import po.misc.callbacks.callable.FunctionCallable
+import po.misc.callbacks.callable.FunctionCallable.Companion.invoke
+import po.misc.callbacks.callable.asFunCallable
+import po.misc.data.pretty_print.formatters.DynamicStyleFormatter
 import po.misc.data.pretty_print.formatters.text_modifiers.ColourCondition
-import po.misc.data.pretty_print.formatters.text_modifiers.ConditionalTextModifier
 import po.misc.data.pretty_print.formatters.text_modifiers.DynamicColourModifier
-import po.misc.data.pretty_print.formatters.text_modifiers.Formatter
-import po.misc.data.pretty_print.parts.options.CommonCellOptions
+import po.misc.data.pretty_print.parts.cells.RenderRecord
 import po.misc.data.pretty_print.parts.options.PrettyHelper
 import po.misc.data.pretty_print.parts.options.Options
 import po.misc.data.pretty_print.parts.loader.DataLoader
-import po.misc.data.pretty_print.parts.loader.DataProvider
+import po.misc.data.pretty_print.parts.loader.ElementProvider
+import po.misc.data.pretty_print.parts.loader.toElementProvider
+import po.misc.data.pretty_print.parts.options.CellOptions
 import po.misc.data.pretty_print.parts.options.CellPresets
-import po.misc.data.pretty_print.parts.options.CommonRowOptions
-import po.misc.data.pretty_print.toProvider
+import po.misc.data.strings.EditablePair
+import po.misc.data.strings.FormattedText
 import po.misc.data.strings.appendParam
 import po.misc.data.strings.stringify
 import po.misc.data.styles.Colour
-import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.TextStyler
-import po.misc.functions.Throwing
-import po.misc.reflection.displayName
-import po.misc.types.safeCast
+import po.misc.functions.CallableKey
+import po.misc.types.token.TokenFactory
 import po.misc.types.token.TypeToken
 import kotlin.reflect.KProperty1
 
 
-class ComputedCell<T, V>(
-    override val receiverType: TypeToken<T>,
-    val valueType: TypeToken<V>,
-    opts: CommonCellOptions? = null,
-    val builder: ComputedCell<T, V>.(V)-> Any
-): PrettyCellBase(toOptions(opts,  keyless)), ReceiverAwareCell<T>, TextStyler, PrettyHelper {
+class ComputedCell<S, T>(
+    callable: CallableCollection<S, T>,
+    opts: CellOptions? = null,
+    val builder: ComputedCell<S, T>.(T)-> Any
+): PrettyCellBase<S>(toOptions(opts,  keyless), callable.parameterType), SourceAwareCell<S>, TextStyler, PrettyHelper {
 
-    constructor(
-        provider: DataProvider<T, V>,
-        opts: CommonCellOptions? = null,
-        builder: ComputedCell<T, V>.(V) -> Any
-    ) : this(provider.receiverType, provider.valueType, opts, builder) {
-        dataLoader.applyCallables(provider)
-        provider[CallableDescriptor.CallableKey.ReadOnlyProperty]?.let {
+    override val sourceType: TypeToken<S> = callable.parameterType
+    val  receiverType: TypeToken<T> = callable.resultType
+
+    val dataLoader: DataLoader<S, T> = DataLoader("ComputedCell", sourceType, receiverType)
+    private var dynamicAttached: Boolean = false
+
+    override val dynamicColour: DynamicColourModifier<T> = DynamicColourModifier<T>(receiverType)
+
+    init {
+        dataLoader.apply(callable)
+        dataLoader[CallableKey.Provider]?.let {
             keyText = it.displayName
         }
     }
-    val dataLoader: DataLoader<T, V> = DataLoader("ComputedCell", receiverType, valueType)
-    override fun applyOptions(commonOpt: CommonCellOptions?): ComputedCell<T, V>{
-        val options = PrettyHelper.toOptionsOrNull(commonOpt)
+
+    override fun applyOptions(opts: CellOptions?): ComputedCell<S, T>{
+        val options = PrettyHelper.toOptionsOrNull(opts)
         if(options != null){
-            cellOptions = options
+            setOptions(options)
         }
         return this
     }
 
-    fun Colour.buildCondition(condition: T.()-> Boolean):DynamicColourModifier<T>{
+    fun Colour.buildCondition(condition: T.()-> Boolean): DynamicColourModifier<T>{
         val colourCondition = ColourCondition<T>(this, condition)
-        val dynamicColour =  textFormatter[Formatter.ColorModifier]?.safeCast<DynamicColourModifier<T>>()
-        return if(dynamicColour != null){
-            dynamicColour.addCondition(colourCondition)
-        }else{
-            val dynamicColour = DynamicColourModifier<T>(receiverType)
-            dynamicColour.addCondition(colourCondition)
+        dynamicColour.add(colourCondition)
+        if(!dynamicAttached){
             textFormatter.addFormatter(dynamicColour)
-            dynamicColour
+            dynamicAttached = true
         }
+        return dynamicColour
     }
 
-    private fun renderValue(resolved: V, receiver:T):String{
-        val fromBuilder = builder.invoke(this, resolved)
-        val preformatted = resolved.stringify().formatted
-        val formattedFromBuilder = fromBuilder.stringify().formatted
-         if(fromBuilder is Unit || fromBuilder  is PrettyCellBase || fromBuilder is ConditionalTextModifier<*> ){
-           return textFormatter.conditionalStyle(preformatted, receiver, receiverType)?:preformatted
-
-        }else{
-            return textFormatter.conditionalStyle(formattedFromBuilder, receiver, receiverType)?:formattedFromBuilder
-        }
+    private fun checkIfPositiveResult(builderResult: Any):Boolean{
+        return !(builderResult is Unit || builderResult is PrettyCellBase<*> || builderResult is  DynamicStyleFormatter<*>)
     }
-    private fun justify(keyText:String, valueText:String):String{
-        if(keyText.isNotBlank()){
-            return justifyText("$keyText${cellOptions.keyValueSeparator} $valueText")
-        }
-        return justifyText(valueText)
-    }
-    override fun render(receiver: T, commonOptions: CommonCellOptions?): String {
-        val key = styleKey()
-        val value = dataLoader.resolveValue(receiver)
-        if (value == null) {
 
-            return justify(key, "null")
-        } else {
-            val rendered =  renderValue(value, receiver)
-            return justify(key, rendered)
+    private fun runDynamicConditions(pair: EditablePair,  value:T):EditablePair{
+        dynamicColour.modify(pair, value)
+        return pair
+    }
+
+    override fun render(source: S, opts: CellOptions?): String {
+        val formattedPair = dataLoader.resolveValue(source)?.let { value ->
+            val builderResult = builder.invoke(this, value)
+            if (checkIfPositiveResult(builderResult)) {
+                val formatted = builderResult.stringify() as EditablePair
+                runDynamicConditions(formatted, value)
+            } else {
+                val formatted = builderResult.stringify() as EditablePair
+                runDynamicConditions(formatted, value)
+            }
+        } ?: run {
+            source.stringify()  as EditablePair
         }
+        if (!areOptionsExplicit) {
+            currentRenderOpts = toOptions(opts, currentRenderOpts)
+        }
+        return finalizeRender(RenderRecord(formattedPair))
+    }
+    fun render(source:S, optionBuilder: (Options) -> Unit): String{
+        val value = dataLoader.resolveValue(source)
+        optionBuilder.invoke(currentRenderOpts)
+        return finalizeRender( RenderRecord(value.stringify()))
     }
 
     override fun hashCode(): Int {
-        var result = receiverType.hashCode()
-        result = 31 * result + valueType.hashCode()
+        var result = sourceType.hashCode()
+        result = 31 * result + sourceType.hashCode()
         result = 31 * result + builder.hashCode()
         result = 31 * result + dataLoader.hashCode()
         result = 31 * result + cellOptions.hashCode()
@@ -106,15 +109,14 @@ class ComputedCell<T, V>(
     }
     override fun equals(other: Any?): Boolean {
         if(other !is ComputedCell<*, *>) return false
-        if(other.receiverType != receiverType) return false
-        if(other.valueType != valueType) return false
+        if(other.sourceType != sourceType) return false
         if(other.builder != builder) return false
         if(other.dataLoader != dataLoader) return false
         if(other.cellOptions != cellOptions) return false
         return true
     }
-    override fun copy(): ComputedCell<T, V>{
-        return ComputedCell(receiverType, valueType, cellOptions.copy(), builder)
+    override fun copy(): ComputedCell<S, T>{
+        return ComputedCell(dataLoader.elementRepository.copy(), cellOptions.copy(), builder)
     }
     override fun toString(): String {
         return buildString {
@@ -123,14 +125,33 @@ class ComputedCell<T, V>(
         }
     }
 
-    companion object : PrettyHelper{
+
+    companion object : PrettyHelper, TokenFactory{
+
         val keyless : Options =  Options(CellPresets.KeylessProperty)
-        inline operator fun <reified T, reified V> invoke(
-            property: KProperty1<T, V>,
-            opts: CommonCellOptions? = null,
-            noinline builder: ComputedCell<T, V>.(V)-> Any
-        ): ComputedCell<T, V>{
-           return ComputedCell(property.toProvider(), opts, builder = builder)
+        inline operator fun <reified S, reified T> invoke(
+            property: KProperty1<S, T>,
+            opts: CellOptions? = null,
+            noinline builder: ComputedCell<S, T>.(T)-> Any
+        ): ComputedCell<S, T>{
+           return ComputedCell(property.toElementProvider(), opts, builder = builder)
+        }
+
+        inline operator fun <S, reified T> invoke(
+            sourceType: TypeToken<S>,
+            property: KProperty1<S, T>,
+            opts: CellOptions? = null,
+            noinline builder: ComputedCell<S, T>.(T)-> Any
+        ): ComputedCell<S, T>{
+            return ComputedCell(property.toElementProvider(sourceType), opts, builder = builder)
+        }
+
+        inline operator fun <reified S, reified T> invoke(
+            noinline function: Function1<S, T>,
+            opts: CellOptions? = null,
+            noinline builder: ComputedCell<S, T>.(T)-> Any
+        ): ComputedCell<S, T>{
+            return ComputedCell(FunctionCallable<S, T>(function), opts, builder = builder)
         }
     }
 }

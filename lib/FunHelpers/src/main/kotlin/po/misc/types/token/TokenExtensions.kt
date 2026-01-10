@@ -41,7 +41,10 @@ fun <T> TypeToken<T>.asEffectiveListType(): TypeToken<List<T>>{
 
 @Suppress("UNCHECKED_CAST")
 fun <T> TypeToken<List<T>>.asElementType(): TypeToken<T> {
+    typeSlots.firstOrNull()
+    
     return typeSlots.firstOrNull()?.token?.castOrThrow<TypeToken<T>>()?:run {
+
         error("List token has no generic type slot")
     }
 }

@@ -15,8 +15,8 @@ class TestPrettyCellBase {
         val cell1Text2 = "Cell 2 text"
         val cell1 = StaticCell(cell1Text)
         cell1.colourConditions {
-            addCondition(Colour.Blue) { contains(cell1Text) }
-            addCondition(Colour.Cyan) { contains(cell1Text2) }
+            add(Colour.Blue) { contains(cell1Text) }
+            add(Colour.Cyan) { contains(cell1Text2) }
         }
         val rendered = cell1.render(cell1Text)
         rendered.output()

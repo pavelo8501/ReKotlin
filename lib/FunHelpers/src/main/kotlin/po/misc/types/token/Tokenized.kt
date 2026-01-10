@@ -6,9 +6,17 @@ import kotlin.reflect.KType
 import kotlin.reflect.typeOf
 
 
-interface TokenHolder{
+interface TypeProvider{
+    val types: List<TypeToken<*>>
+
+    val typeName:String get() = types.joinToString(prefix = "<", separator = ",", postfix = ">") {
+        it.typeName
+    }
+}
+
+interface TokenHolder: TypeProvider{
     val typeToken: TypeToken<*>
-    val types: List<TypeToken<*>> get() = listOf(typeToken)
+    override val types: List<TypeToken<*>> get() = listOf(typeToken)
 }
 
 /**
@@ -39,11 +47,12 @@ interface Tokenized<T> : TokenHolder, TokenFactory{
  * @param T the receiver type this resolver operates on
  * @param V the resolved value type produced from the receiver
  */
-interface TokenizedResolver<T, V> : Tokenized<T>{
-    val receiverType: TypeToken<T>
-    val valueType: TypeToken<V>
-    override val typeToken: TypeToken<T> get() = receiverType
-    override val types: List<TypeToken<*>> get() = listOf(receiverType, valueType)
+interface TokenizedResolver<T, V> : Tokenized<V>{
+    val sourceType: TypeToken<T>
+    val receiverType: TypeToken<V>
+
+    override val typeToken: TypeToken<V> get() = receiverType
+    override val types: List<TypeToken<*>> get() = listOf(sourceType, receiverType)
 
     /**
      * Determines whether this resolver can accept the given receiver class.
@@ -65,10 +74,10 @@ interface TokenizedResolver<T, V> : Tokenized<T>{
      * effective (runtime) type semantics.
      */
     fun resolvesValue(receiverClass: KClass<*>):Boolean{
-        return valueType.effectiveClassIs(receiverClass)
+        return sourceType.effectiveClassIs(receiverClass)
     }
     fun resolvesValue(kType: KType):Boolean{
-        return valueType.kType == kType
+        return receiverType.kType == kType
     }
 
 }
@@ -87,9 +96,4 @@ inline fun <reified T> TokenizedResolver<*, *>.acceptsReceiverOf(): Boolean =
 inline fun <reified V> TokenizedResolver<*, *>.resolvesValueOf(): Boolean =
     resolvesValue(typeOf<V>())
 
-
-fun Tokenized<*>.typeName(): String{
-   val className = ClassResolver.classInfo(this, typeToken)
-   return className.completeName
-}
 

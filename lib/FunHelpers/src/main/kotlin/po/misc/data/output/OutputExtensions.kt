@@ -1,19 +1,19 @@
 package po.misc.data.output
 
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.ifNotBlank
 import po.misc.data.strings.FormattedPair
+import po.misc.data.strings.StringifyOptions
+import po.misc.data.strings.stringification
 import po.misc.data.strings.stringify
 import po.misc.data.styles.Colour
 import po.misc.debugging.ClassResolver
-import po.misc.time.TimeHelper
 
-class OutputHelper<T>(
-    val receiver: T,
-    val receiverClosure: OutputHelper<T>.(T)-> Unit
-): TimeHelper, ClassResolver{
-    init {
-        receiverClosure.invoke(this, receiver)
+interface OutputHelper {
+    class OutputParameters(
+        val simpleName:String,
+    ){
+        val size:Int = simpleName.length
+        override fun toString(): String = "$simpleName ->"
     }
 }
 
@@ -21,23 +21,26 @@ class OutputHelper<T>(
 internal fun outputInternal(
     receiver: Any?,
     prefix: String = "",
-    colour: Colour? = null
+    colour: Colour? = null,
+    params: OutputHelper.OutputParameters? = null,
 ){
     checkDispatcher()
-    val effectivePrefix = prefix.ifNotBlank {"$it "}
 
-    when(receiver){
-        is List<*>->{
-            val result =  receiver.stringify(effectivePrefix, colour)
+   val usePrefix = if(prefix.isNotBlank()){
+        "$prefix -> "
+    }else{
+        prefix
+   }
+    val result = receiver.stringify(usePrefix, colour)
+    if(params != null){
+        if(params.size + result.formatted.length > 140){
+            println(params)
             println(result.formatted)
+        }else{
+            println("$params ${result.formatted}")
         }
-        is FormattedPair -> {
-            println(receiver.formatted)
-        }
-        else -> {
-            val result = receiver.stringify(effectivePrefix, colour)
-            println(result.formatted)
-        }
+    }else{
+        println(result.formatted)
     }
 }
 
@@ -70,17 +73,22 @@ internal fun outputInternal(
     }
 }
 
+fun Any?.output(caller: OutputHelper.OutputParameters,  colour: Colour? = null): Unit =
+    outputInternal(this, colour = colour,  params =  caller)
+
 fun Any?.output(colour: Colour? = null): Unit = outputInternal(this, colour = colour)
 fun Any?.output(prefix: String, colour: Colour? = null): Unit = outputInternal(this, prefix = prefix,  colour)
 fun Any?.output(context: TraceableContext, colour: Colour? = null): Unit = outputInternal(context = context, receiver = this, colour =  colour)
 
-internal fun Any?.output(enabled: Boolean, colour: Colour? = null): Unit {
+internal fun Any?.output(enabled: Boolean, colour: Colour? = null){
     if(enabled){ output(colour = colour) }
     return
 }
 
-fun <T: Any> T.output(prefix: String = "", transform: (T)-> Any){
-     val result = transform.invoke(this)
-     val formatted =  result.stringify(prefix)
+inline fun <reified T: Any> T.output(prefix: String,  noinline configAction: StringifyOptions.ListOptions.(T) -> Unit){
+     val options = StringifyOptions.ListOptions()
+     options.header = prefix
+     configAction.invoke(options, this)
+     val formatted = stringification(this, options)
      println(formatted.toString())
 }

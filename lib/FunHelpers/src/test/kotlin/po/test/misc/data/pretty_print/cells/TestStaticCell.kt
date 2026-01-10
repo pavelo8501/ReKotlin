@@ -5,7 +5,7 @@ import po.misc.data.output.output
 import po.misc.data.pretty_print.cells.StaticCell
 import po.misc.data.pretty_print.parts.options.Align
 import po.misc.data.pretty_print.parts.options.CellPresets
-import po.misc.data.pretty_print.rows.buildPrettyRow
+import po.misc.data.pretty_print.buildPrettyRow
 import po.misc.data.styles.Colour
 import po.misc.data.styles.TextStyle
 import po.misc.data.styles.colorize
@@ -55,7 +55,7 @@ class TestStaticCell : PrettyTestBase(){
     fun `StaticCell presets applied correctly`(){
         val cell = StaticCell(text1)
         cell.applyOptions(CellPresets.Success)
-        assertEquals(Align.LEFT, cell.cellOptions.alignment)
+        assertEquals(Align.Left, cell.cellOptions.align)
         assertEquals(TextStyle.Bold, cell.cellOptions.style.textStyle)
         assertEquals(Colour.GreenBright, cell.cellOptions.style.colour)
     }

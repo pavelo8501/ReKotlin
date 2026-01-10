@@ -4,7 +4,6 @@ import po.misc.data.PrettyPrint
 import po.misc.data.pretty_print.PrettyGrid
 import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.PrettyValueGrid
-import po.misc.data.pretty_print.TransitionGrid
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 
@@ -15,11 +14,14 @@ enum class RenderableType(override val formattedString:String) : PrettyPrint{
     Grid(PrettyGrid.prettyName),
     ValueGrid(PrettyValueGrid.prettyName),
     Row(PrettyRow.prettyName),
-    Placeholder("Placeholder".colorize(Colour.Cyan)),
-    Transition(TransitionGrid.prettyName);
+    ValueRow(PrettyRow.prettyName),
+    Placeholder("Placeholder".colorize(Colour.Cyan));
 }
 
 class RenderKey(val order: Int, val renderableType: RenderableType){
+    internal fun isOfSameTypeChain(): Boolean{
+        return renderableType != RenderableType.Placeholder
+    }
     fun copy(): RenderKey = RenderKey(order, renderableType)
     override fun equals(other: Any?): Boolean {
         if(other !is RenderKey) return false

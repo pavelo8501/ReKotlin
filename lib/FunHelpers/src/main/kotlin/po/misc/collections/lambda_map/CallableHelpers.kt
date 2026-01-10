@@ -5,19 +5,19 @@ import po.misc.functions.LambdaOptions
 import po.misc.functions.SuspendedOptions
 import po.misc.types.token.TypeToken
 
-
-fun <T, R> Function1<T, R>.toCallable(
-    options: LambdaOptions
-):Lambda<T, R> = Lambda( options, this )
-
-fun <T, R> Function1<T, R>.toCallable(
-):Lambda<T, R> = Lambda( LambdaOptions.Listen, this )
-
-
-fun <T, R> TraceableContext.toCallable(
-    function: suspend (T) -> R
-):SuspendingLambda<T, R> =  SuspendingLambda(SuspendedOptions.Listen, function)
-
+//
+//fun <T, R> Function1<T, R>.toCallable(
+//    options: LambdaOptions
+//):Lambda<T, R> = Lambda( options, this )
+//
+//fun <T, R> Function1<T, R>.toCallable(
+//):Lambda<T, R> = Lambda( LambdaOptions.Listen, this )
+//
+//
+//fun <T, R> TraceableContext.toCallable(
+//    function: suspend (T) -> R
+//):SuspendingLambda<T, R> =  SuspendingLambda(SuspendedOptions.Listen, function)
+//
 
 
 fun <T, R> TraceableContext.toCallable(

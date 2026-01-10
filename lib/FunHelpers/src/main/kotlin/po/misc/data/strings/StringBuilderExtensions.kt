@@ -1,8 +1,12 @@
 package po.misc.data.strings
 
+import po.misc.collections.toList
 import po.misc.data.helpers.firstCharUppercase
 import po.misc.data.helpers.orDefault
+import po.misc.data.pretty_print.parts.options.Orientation
 import po.misc.data.styles.SpecialChars
+import po.misc.data.styles.TextStyler
+import po.misc.data.toDisplayName
 import po.misc.debugging.ClassResolver
 import po.misc.reflection.displayName
 import kotlin.reflect.KClass
@@ -16,25 +20,10 @@ fun StringBuilder.className(kClass: KClass<*>): StringBuilder{
     return appendLine(className)
 }
 
-fun StringBuilder.appendLine(firstString: String,  vararg strings: String): StringBuilder{
-    val result = mutableListOf<String>(firstString)
-    val varargStrings = strings.toList()
-    result.addAll(varargStrings)
-    append(result.joinToString(SpecialChars.NEW_LINE))
-    return this
-}
-
-fun StringBuilder.append(firstString: String, vararg strings: String): StringBuilder{
-    val result = mutableListOf<String>(firstString)
-    val varargStrings = strings.toList()
-    result.addAll(varargStrings)
-    append(result.joinToString())
-    return this
-}
 
 fun StringBuilder.appendParam(parameterName: String, value: Any?): StringBuilder{
     if(value != null){
-        val string = "$parameterName: $value"
+        val string = "$parameterName: $value "
         return append(string)
     }else{
         return this
@@ -54,7 +43,7 @@ fun StringBuilder.appendParam(vararg props: KProperty0<*>): StringBuilder{
     val propStr = props.toList().joinToString() {property->
         "${property.displayName}: ${property.get().toString()}"
     }
-    append(propStr)
+    append("$propStr ")
     return this
 }
 
@@ -68,28 +57,35 @@ fun StringBuilder.appendLine(properties: List<KProperty0<*>>): StringBuilder{
 
 fun StringBuilder.appendLineParam(vararg  props: KProperty0<*>): StringBuilder = appendLine(props.toList())
 
+fun StringBuilder.appendGroup(prefix: String, postfix: String = "", vararg props: KProperty0<*>):StringBuilder{
 
-fun StringBuilder.appendVertical(header: String, vararg props: KProperty0<*>, footer: String? = null):StringBuilder{
-    val lines = mutableListOf<String>()
-    lines.add(header.firstCharUppercase())
-    val propStr = props.toList().joinToString(separator = SpecialChars.NEW_LINE) {property->
-        "${property.name}: ${property.get().toString()}"
+    val propStr = props.toList().joinToString(separator= ", ") {property->
+        val name = property.name.toDisplayName()
+        val value =  property.get()
+        val formated = TextStyler.formatKnownTypes(value)
+        "${name}: $formated"
     }
-    lines.add(propStr)
-    if(footer != null){
-        lines.add(footer)
+    return append("$prefix$propStr$postfix ")
+}
+
+fun StringBuilder.appendVertical(header: String, footer: String,  vararg props: KProperty0<*>):StringBuilder{
+    val propStr = props.toList().joinToString(separator = SpecialChars.NEW_LINE) { property->
+        val name = property.name.toDisplayName()
+        val value =  property.get()
+        val formated = TextStyler.formatKnownTypes(value)
+        "${name}: $formated "
     }
-    val text = lines.joinToString(separator = SpecialChars.NEW_LINE)
-    append(text)
+    appendLine("$header $propStr $footer?:")
     return this
 }
 
-
-fun StringBuilder.appendGroup(prefix: String, postfix: String, vararg props: KProperty0<*>):StringBuilder{
-    val propStr = props.toList().joinToString {property->
-        val name = property.name?:"N/A"
-        val value = property.get().toString()?:"N/A"
-        "${name}: $value"
+fun StringBuilder.appendVertical(header: String, vararg props: KProperty0<*>):StringBuilder{
+    val propStr = props.toList().joinToString(separator = SpecialChars.NEW_LINE) { property->
+        val name = property.name.toDisplayName()
+        val value =  property.get()
+        val formated = TextStyler.formatKnownTypes(value)
+        "${name}: $formated "
     }
-    return append("$prefix$propStr$postfix")
+    appendLine("$header $propStr")
+    return this
 }

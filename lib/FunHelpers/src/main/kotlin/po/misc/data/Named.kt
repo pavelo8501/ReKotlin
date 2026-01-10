@@ -1,10 +1,19 @@
 package po.misc.data
 
-import po.misc.data.styles.StyleCode
+import po.misc.data.output.OutputHelper
+import po.misc.data.output.output
+import po.misc.data.styles.Colour
+import po.misc.data.styles.colorize
 
 
-interface Named {
+interface Named{
     val name: String
+}
+
+
+interface NamedComponent: Named {
+    val displayName: String get() = name.colorize(Colour.Blue)
+    fun Any?.output(colour: Colour? = null): Unit = output(OutputHelper.OutputParameters(displayName), colour)
 }
 
 interface TextContaining {

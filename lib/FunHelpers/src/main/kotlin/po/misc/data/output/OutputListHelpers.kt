@@ -1,11 +1,10 @@
 package po.misc.data.output
 
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.strings.StringFormatter
 import po.misc.data.strings.stringify
-import po.misc.data.styles.Colorizer
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
+import po.misc.data.styles.TextStyler
 import po.misc.data.styles.colorize
 
 
@@ -18,7 +17,7 @@ fun List<*>.output(prefix: String = "", colour: Colour? = null){
         }
     }
     val result = joinToString(separator = SpecialChars.NEW_LINE) { element ->
-        val formatedEntry = StringFormatter.formatKnownTypes(element)
+        val formatedEntry = TextStyler.formatKnownTypes(element)
         formatedEntry.formatted
     }
     println(result)
@@ -36,7 +35,7 @@ fun <T: Any> List<T>.output(
     checkDispatcher()
     if (prefix.isNotBlank()) {
         if (colour != null) {
-            println(Colorizer.colour(prefix, colour))
+            println(TextStyler.colour(prefix, colour))
         } else {
             println(prefix)
         }

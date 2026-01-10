@@ -2,7 +2,6 @@ package po.misc.callbacks.context_signal
 
 import po.misc.callbacks.CallableEventBase
 import po.misc.callbacks.common.ListenerResult
-import po.misc.collections.lambda_map.Lambda
 import po.misc.collections.lambda_map.toCallable
 import po.misc.context.tracable.TraceableContext
 import po.misc.functions.LambdaOptions
@@ -69,10 +68,5 @@ class ContextSignal<T, T1, R>(
         throw IllegalStateException(unsupportedMsg)
     }
 
-//    companion object{
-//        inline operator fun <reified T, reified T1, reified R> invoke():ContextSignal<T, T1, R>{
-//           return ContextSignal(TypeToken<T>(), TypeToken<T1>(), TypeToken<R>())
-//        }
-//    }
 }
 

@@ -56,7 +56,7 @@ abstract class StructuredBase(
         val template: PrettyRow<StructuredBase> = buildRow {
             add(StructuredBase::contextName, nameOptions)
             add(StructuredBase::localTime, nameOptions)
-            computed(StructuredBase::subject){subject->
+            add(StructuredBase::subject){subject->
                 "[${subject}]".colorize(Colour.Blue)
             }
             add(StructuredBase::colorizedText, CellPresets.KeylessProperty)

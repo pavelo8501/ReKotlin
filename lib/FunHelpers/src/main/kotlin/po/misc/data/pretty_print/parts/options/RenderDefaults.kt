@@ -5,11 +5,11 @@ package po.misc.data.pretty_print.parts.options
  */
 enum class Align {
     /** Align text to the left edge of the cell. */
-    LEFT,
+    Left,
     /** Align text to the right edge of the cell. */
-    RIGHT,
+    Right,
     /** Center text horizontally inside the cell. */
-    CENTER
+    Center
 }
 
 /**
@@ -17,20 +17,26 @@ enum class Align {
 *
 * Implementations define constraints such as maximum renderable width.
 */
-enum class RenderDefaults(val value: Int) {
+enum class ViewPortSize(val size: Int) {
+
     /**
-     * A safe default environment for output with reduced width (80 chars).
-     * Suitable for older terminals or compact console views.
+     * A wide console environment (220 chars).
+     * Suitable for modern terminals with more available horizontal space.
      */
-    Console80(80),
+    Console220(220),
+
     /**
      * A wide console environment (120 chars).
      * Suitable for modern terminals with more available horizontal space.
      */
     Console120(120),
+
     /**
-     * A wide console environment (220 chars).
-     * Suitable for modern terminals with more available horizontal space.
+     * A safe default environment for output with reduced width (80 chars).
+     * Suitable for older terminals or compact console views.
      */
-    Console220(220)
+    Console80(80),
+
+    Console40(40),
+
 }

@@ -1,45 +1,43 @@
 package po.misc.data.pretty_print.parts.loader
 
+
+import po.misc.callbacks.callable.CallableCollection
+import po.misc.callbacks.callable.ProviderCallable
 import po.misc.callbacks.context_signal.ContextSignal
 import po.misc.callbacks.context_signal.contextSignalOf
 import po.misc.callbacks.signal.Signal
 import po.misc.callbacks.signal.SignalOptions
 import po.misc.callbacks.signal.signalOf
-import po.misc.collections.lambda_map.CallableDescriptor
-import po.misc.collections.lambda_map.CallableRepository
-import po.misc.collections.lambda_map.CallableStorage
-import po.misc.collections.lambda_map.PropertyCallable
+import po.misc.callbacks.callable.CallableRepositoryBase
+import po.misc.callbacks.callable.CallableRepositoryHub
+import po.misc.callbacks.callable.CallableStorage
+import po.misc.callbacks.callable.ReceiverCallable
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.PrettyPrint
 import po.misc.data.TextBuilder
 import po.misc.data.snapshot
 import po.misc.data.styles.SpecialChars
-import po.misc.exceptions.error
+import po.misc.functions.CallableKey
 import po.misc.functions.NoResult
-import po.misc.functions.Throwing
-import po.misc.types.getOrThrow
-import po.misc.types.k_class.simpleOrAnon
 import po.misc.types.token.TypeToken
+import po.misc.types.token.asElementType
 import po.misc.types.token.asListType
 import kotlin.reflect.KProperty
-import kotlin.reflect.KProperty1
 
-class DataLoader<T, V>(
+class DataLoader<S, T>(
     val hostName: String,
+    override val sourceType: TypeToken<S>,
     override val receiverType: TypeToken<T>,
-    val valueToken: TypeToken<V>,
-    val storage: CallableStorage<T, V> = CallableRepository(receiverType, valueToken)
-): TraceableContext, TextBuilder, CallableStorage<T, V> by storage {
+): TraceableContext, TextBuilder, CallableRepositoryHub<S, T> {
+
+
 
     class DataLoaderData(
         private val loader: DataLoader<*, *>
-    ): PrettyPrint
-    {
+    ): PrettyPrint {
         val name: String = "${loader.hostName} snapshot"
-        val hasProperty: String get() = loader.hasReadOnlyProperty.toFormatted()
-        val hasListProperty: String = loader.hasListProperty.toFormatted()
-        val hasProvider: String = loader.hasProvider.toFormatted()
-        val hasListProvider: String = loader.hasListProvider.toFormatted()
+        val hasProperty: String get() = loader.elementRepository.hasProperty.toFormatted()
+        val hasProvider: String = loader.elementRepository.hasProvider.toFormatted()
         val hostResolvedSignalText: String get() = loader.hostResolved.info().formattedString
         val snapshot: String = snapshot().joinToString(SpecialChars.NEW_LINE)
         override val formattedString: String get() = buildString {
@@ -51,194 +49,134 @@ class DataLoader<T, V>(
 
     constructor(
         hostName: String,
-        dataProvider: DataProvider<T, V>
-    ):this(hostName, dataProvider.receiverType, dataProvider.valueType){
-        storage.applyCallables(dataProvider)
+        listProvider: ListProvider<S, T>
+    ):this(hostName, listProvider.sourceType, listProvider.receiverType.asElementType()){
+        listRepository.apply(listProvider)
     }
+    constructor(
+        hostName: String,
+        dataProvider: CallableRepositoryBase<S, T>
+    ):this(hostName, dataProvider.sourceType, dataProvider.receiverType){
+        elementRepository.apply(dataProvider)
+    }
+
+    override val elementRepository: ElementProvider<S, T> = ElementProvider(sourceType, receiverType)
+    override val listRepository: ListProvider<S, T> = ListProvider<S, T>(sourceType, receiverType.asListType())
 
     val propertyReady : Signal<KProperty<*>, Unit> = signalOf()
-    val dataSourceReady : Signal<CallableStorage<T, V>, Unit> = signalOf()
-    val valueResolved: ContextSignal<V, Unit, Unit> = contextSignalOf(valueToken)
-    val listValueResolved: ContextSignal<List<V>, Unit, Unit> = contextSignalOf(valueToken.asListType())
-    val hostResolved: Signal<T, Unit> = signalOf(typeToken, NoResult, SignalOptions("DataLoader of $hostName", this))
-    val canResolve: Boolean get() = hasReadOnlyProperty || hasResolver || hasProvider
+    val dataSourceReady : Signal<CallableStorage<S, T>, Unit> = signalOf()
+    val valueResolved: ContextSignal<T, Unit, Unit> = contextSignalOf(receiverType)
+    val hostResolved: Signal<S, Unit> = signalOf(sourceType, NoResult, SignalOptions("DataLoader of $hostName", this))
+    val resolved: Signal<DataLoader<S, T>, Unit> = signalOf(NoResult)
 
-    internal var listPropertyBacking: KProperty1<T, List<V>>? = null
-    val listProperty: KProperty1<T, List<V>> get() {
-        return listPropertyBacking.getOrThrow(KProperty1::class)
+    private var lastValue: T? = null
+
+    fun add(callable: ReceiverCallable<S, T>): Boolean = elementRepository.add(callable)
+    @JvmName("addListTypeCallable")
+    fun add(listCallable:ReceiverCallable<S, List<T>>): Boolean = listRepository.add(listCallable)
+
+    fun apply(elementCollection: CallableCollection<S, T>): DataLoader<S, T>{
+        elementRepository.apply(elementCollection)
+        dataSourceReady.trigger(this, elementRepository)
+        return this
     }
-    val hasListProperty: Boolean get() = listPropertyBacking != null
-
-    internal var providerBacking: (() -> V)? = null
-    val provider: () -> V get() {
-        return providerBacking.getOrThrow(this)
+    @JvmName("applyListTypeCallableStorage")
+    fun apply(callableStorage: CallableCollection<S, List<T>>): DataLoader<S, T>{
+        listRepository.apply(callableStorage)
+        return this
     }
-    val hasProvider: Boolean get() = providerBacking != null
-
-    internal var listProviderBacking: (() ->  List<V>)? = null
-    val listProvider: () ->  List<V> get() {
-        return listProviderBacking.getOrThrow(this)
+    fun apply(listProvider: ListProvider<S, T>): DataLoader<S, T>{
+        listRepository.apply(listProvider)
+        dataSourceReady.trigger(this, elementRepository)
+        return this
     }
-    val hasListProvider: Boolean get() = listProviderBacking != null
-
-    internal var resolverBacking: ((T) -> V)? = null
-    val resolver: (T) -> V get() {
-        return resolverBacking.getOrThrow(this)
+    fun apply(provider: ElementProvider<S, T>): DataLoader<S,T> {
+        elementRepository.apply(provider)
+        return this
     }
-
-    val resolved: Signal<DataLoader<T, V>, Unit> = signalOf(NoResult)
-
-    var lastValue: V? = null
-        private set
-
-    override fun applyCallables(callableStorage: CallableStorage<T, V>){
-        storage.addAll(callableStorage.callables)
-        dataSourceReady.trigger(this, callableStorage)
+    fun apply(dataLoader: DataLoader<S, T>): DataLoader<S, T> {
+        elementRepository.apply(dataLoader.elementRepository)
+        listRepository.apply(dataLoader.listRepository)
+        return this
     }
-    fun notifyResolved(receiver:T){
+    fun notifyResolved(receiver:S){
         hostResolved.trigger(receiver)
     }
-
-    fun setProperty(property: KProperty1<T, V>){
-        storage.add(PropertyCallable(receiverType, valueToken,  property))
-        propertyReady.trigger(property)
-    }
-    @JvmName("setPropertyList")
-    fun setProperty(property: KProperty1<T, List<V>>){
-        listPropertyBacking = property
-        propertyReady.trigger(property)
-    }
-    fun setProvider(provider: ()-> V){
-        providerBacking = provider
-    }
-    fun setListProvider(provider: ()->  List<V>){
-        listProviderBacking = provider
-    }
-    fun valueResolved(value: V){
+    fun valueResolved(value: T){
         valueResolved.trigger(value)
     }
-
-    fun getValue():V? = lastValue
-    fun getValue(throwing: Throwing):V{
-        val value = lastValue
-        if(value != null){
-            return value
-        }
-        val msg = "Unable to get last resolved value"
-        error(msg)
+    fun resolveValue():T?{
+        return elementRepository.getCallable<ProviderCallable<S, T>>()?.call()
     }
-
-    fun resolveValue():V?{
-        if(hasProvider){
-            val value = provider.invoke()
-            valueResolved(value)
-            return value
+    fun resolveValue(receiver:S):T?{
+        val valueByProperty = mutableListOf<T>()
+        elementRepository[CallableKey.Property]?.let {callable->
+            val values = callable.call(receiver)
+            valueByProperty.add(values)
+        }
+        if(valueByProperty.isNotEmpty()){
+           return valueByProperty.firstOrNull()
+        }
+        val valueByResolver =  elementRepository[CallableKey.Resolver]?.call(receiver)
+        if(valueByResolver != null){
+            valueResolved(valueByResolver)
+            return valueByResolver
+        }
+        val valueByProvider = elementRepository.getCallable<ProviderCallable<S, T>>()?.call()
+        if(valueByProvider != null){
+            valueResolved(valueByProvider)
+            return valueByProvider
         }
         return null
     }
-    fun resolveValue(receiver:T):V?{
-        val value =  storage[CallableDescriptor.CallableKey.ReadOnlyProperty]?.call(receiver)
-        if(value != null){
-            return value
-        }
-        if(hasProvider){
-            val value =  provider.invoke()
-            valueResolved(value)
-            return value
-        }
-        if(hasResolver){
-            val value =  resolver.invoke(receiver)
-            valueResolved(value)
-            return value
-        }
-        return null
-    }
-    fun resolveValue(receiver:T, throwing: Throwing):V{
+    fun resolveValue(receiver:S, failureAction:(DataLoaderData)-> Nothing):T{
         val value = resolveValue(receiver)
         if(value != null){
             return value
         }
-        val message = "Impossible to resolve value of receiver type ${receiver!!::class.simpleOrAnon}"
-        error(message)
+        failureAction.invoke(DataLoaderData(this))
     }
-    fun resolveValue(throwing: Throwing):V{
-        val value = resolveValue()
-        if(value != null){
-            return value
-        }
-        val message = "Impossible to resolve by provider. HasProvider: $hasProvider"
-        error(message, DataLoaderData(this))
-    }
-
-    fun resolveList():List<V>{
-        val result = mutableListOf<V>()
-        if(hasListProvider){
-            result.addAll(listProvider.invoke())
-        }
-        if(hasProvider){
-            result.add(provider.invoke())
+    fun resolveList():List<T>{
+        val result = mutableListOf<T>()
+        if(listRepository.canLoad){
+           val values = listRepository.getCallable<ProviderCallable<S, List<T>>>()?.call()
+           if(values?.isEmpty()?: false){
+               result.addAll(values)
+           }
         }
         return result
     }
-    fun resolveList(receiver:T):List<V>{
-        return  storage.callables.map { it.call(receiver) }
+    fun resolveList(receiver:S):List<T>{
+        val values =  resolveAll(receiver)
+        return values
     }
-    fun resolveList(receiver:T, throwing: Throwing):List<V>{
-        val result =  storage.callables.map { it.call(receiver) }
-        if(result.isEmpty() && ! canResolve){
-            val message = "Impossible to resolve value of receiver type ${receiver!!::class.simpleOrAnon}"
-            error(message, DataLoaderData(this))
-        }
-        return result
-    }
-    fun resolveListOrNull(receiver:T):List<V>?{
-        val result =  storage.callables.map { it.call(receiver) }
-        if(result.isEmpty()) return null
-        return result
-    }
-    fun resolveList(receiverList: List<T>):List<V>{
-        val result = mutableListOf<V>()
+    fun resolveList(receiverList: List<S>):List<T>{
+        val result = mutableListOf<T>()
         receiverList.forEach {
             result.addAll(resolveList(it))
         }
         return result
     }
-
-    fun createDataProvider(): DataProvider<T, V>{
-       return DataProvider(typeToken, valueToken).also {
-            if(hasListProperty){
-                it.resolveListTypeProperty(listProperty)
-            }
-        }
-    }
-
     fun info(): DataLoaderData {
         return DataLoaderData(this)
     }
-    fun copy():DataLoader<T, V>{
-        return DataLoader(hostName, typeToken, valueToken).also {
-            it.providerBacking = providerBacking
-            it.listPropertyBacking = listPropertyBacking
-            it.listProviderBacking = listProviderBacking
-        }
+    fun copy():DataLoader<S, T>{
+        val loaderCopy = DataLoader(hostName, sourceType, receiverType)
+        loaderCopy.apply(elementRepository)
+        loaderCopy.apply(listRepository)
+        return loaderCopy
     }
     override fun equals(other: Any?): Boolean {
         if(other !is DataLoader<*, *>) return false
         if(other.hostName != hostName) return false
-        if(other.typeToken != typeToken) return false
-        if(other.valueToken != valueToken) return false
-        if(other.providerBacking != providerBacking) return false
-        if(other.listPropertyBacking != listPropertyBacking) return false
-        if(other.listProviderBacking != listProviderBacking) return false
+        if(other.sourceType != sourceType) return false
+        if(other.receiverType != receiverType) return false
         return true
     }
     override fun hashCode(): Int {
         var result = hostName.hashCode()
-        result = 31 * result + typeToken.hashCode()
-        result = 31 * result + valueToken.hashCode()
-        result = 31 * result + providerBacking.hashCode()
-        result = 31 * result + listPropertyBacking.hashCode()
-        result = 31 * result + listProviderBacking.hashCode()
+        result = 31 * result + sourceType.hashCode()
+        result = 31 * result + receiverType.hashCode()
         return result
     }
 }

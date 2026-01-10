@@ -7,9 +7,9 @@ import po.misc.data.printable.companion.Template
 import po.misc.data.printable.companion.nextLine
 import po.misc.data.processors.SeverityLevel
 import po.misc.data.styles.BGColour
-import po.misc.data.styles.Colorizer
 import po.misc.data.styles.Colour
 import po.misc.data.styles.Emoji
+import po.misc.data.styles.TextStyler
 import po.misc.data.styles.colorize
 import po.misc.functions.dsl.helpers.nextBlock
 import po.misc.types.token.TypeToken
@@ -20,7 +20,7 @@ class ContextMessage(
     val subject: String,
     val message: String,
     val severityLevel: SeverityLevel,
-) : PrintableBase<ContextMessage>(this), Colorizer{
+) : PrintableBase<ContextMessage>(this){
 
     override val self: ContextMessage get() = this
 
@@ -34,9 +34,7 @@ class ContextMessage(
             }
         }
 
-//    val badge: String = BGColour.makeOfColour(BGColour.Yellow, Colour.BlackBright, "DEBUG")
-
-    companion object : PrintableCompanion<ContextMessage>(TypeToken.create()) {
+    companion object : PrintableCompanion<ContextMessage>(TypeToken.create()), TextStyler {
 
         val Message: Template<ContextMessage> = createTemplate {
             nextBlock {
@@ -57,13 +55,13 @@ class ContextMessage(
                 debugBadge + " [$contextName @ ${nowLocalDateTime()}]".colorize(Colour.Blue)
             }
             nextLine {
-               "${colour("Method:", Colour.Cyan)}  $methodName"
+               "${"Method:".style(Colour.Cyan)}  $methodName"
             }
             nextLine {
-               "${colour("Topic:", Colour.Cyan)} $subject"
+               "${"Topic:".style(Colour.Cyan)} $subject"
             }
             nextLine {
-                "${colour("Message:", Colour.Cyan)} $colorizedMessage"
+                "${"Message:".style(Colour.Cyan)} $colorizedMessage"
             }
         }
     }

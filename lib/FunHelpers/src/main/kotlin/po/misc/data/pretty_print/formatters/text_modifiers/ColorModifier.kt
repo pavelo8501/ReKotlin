@@ -1,16 +1,20 @@
 package po.misc.data.pretty_print.formatters.text_modifiers
 
-
+import po.misc.data.pretty_print.formatters.FormatterTag
+import po.misc.data.pretty_print.formatters.StyleFormatter
+import po.misc.data.pretty_print.parts.cells.RenderRecord
+import po.misc.data.pretty_print.parts.rendering.StyleParameters
+import po.misc.data.strings.EditablePair
 import po.misc.data.styles.Colour
 import po.misc.data.styles.applyColour
 
 
 open class ColorModifier(
     vararg val conditions: ColourCondition
-): TextModifier {
+): StyleFormatter {
 
     override val dynamic: Boolean = false
-    override val formatter : Formatter = Formatter.ColorModifier
+    override val tag : FormatterTag = FormatterTag.ColorModifier
     var provider: (()-> Colour?)? = null
 
     constructor(colourProvider: ()-> Colour?):this()
@@ -52,13 +56,22 @@ open class ColorModifier(
         }
         return text
     }
-    override fun modify(text: String): String {
+
+    fun modify(text: String): String {
         val useProvider = provider
         return if(useProvider != null){
             modifyWithProvider(text, useProvider)
         }else{
             modifyByConditions(text, conditionsList)
         }
+    }
+    override fun modify(formattedPair: EditablePair, styleParameters: StyleParameters) {
+        val modified =  modify(formattedPair.plain)
+        formattedPair.writeFormatted(modified)
+    }
+
+    override fun modify(record: RenderRecord, styleParameters: StyleParameters) {
+        TODO("Not yet implemented")
     }
 }
 

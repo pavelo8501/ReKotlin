@@ -79,14 +79,14 @@ class ReflectiveTable< T: Any >(
     }
 }
 
-inline fun <reified T: Any> T.reflectiveTable(
-    builder: ReflectiveTable<T>.(T)-> Unit
-): ReflectiveTable<T>{
-   val table =  ReflectiveTable<T>(TypeToken.create())
-   builder.invoke(table, this)
-   return table
-}
-
+//inline fun <reified T: Any> T.reflectiveTable(
+//    builder: ReflectiveTable<T>.(T)-> Unit
+//): ReflectiveTable<T>{
+//   val table =  ReflectiveTable<T>(TypeToken.create())
+//   builder.invoke(table, this)
+//   return table
+//}
+//
 
 
 

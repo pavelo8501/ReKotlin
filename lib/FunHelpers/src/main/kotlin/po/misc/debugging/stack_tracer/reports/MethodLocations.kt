@@ -2,7 +2,7 @@ package po.misc.debugging.stack_tracer.reports
 
 import po.misc.data.PrettyPrint
 import po.misc.data.pretty_print.PrettyGrid
-import po.misc.data.pretty_print.grid.buildPrettyGrid
+import po.misc.data.pretty_print.buildPrettyGrid
 import po.misc.debugging.stack_tracer.StackFrameMeta
 
 data class MethodLocations(
@@ -16,17 +16,8 @@ data class MethodLocations(
         get() = ""
 
     companion object{
-
         val template: PrettyGrid<MethodLocations> = buildPrettyGrid{
-            onResolved {
-                buildRow {
-                    add(header)
-                }
-                buildRow {
-                    add(methodName)
-                }
-            }
-            useTemplate(StackFrameMeta.linkTemplate, MethodLocations::frames)
+            useRow(StackFrameMeta.linkTemplate, MethodLocations::frames)
         }
     }
 }

@@ -1,13 +1,13 @@
 package po.misc.data
 
-import po.misc.data.strings.StringFormatter
-import po.misc.data.styles.Colorizer
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
+import po.misc.data.styles.StringFormatter
+import po.misc.data.styles.TextStyler
 import po.misc.data.styles.colorize
 
 
-interface TextBuilder: Colorizer,  StringFormatter {
+interface TextBuilder: TextStyler{
 
     fun String.concat(colour: Colour? = null, lineBuilder: ()-> String): String{
         return if(colour != null){
@@ -27,5 +27,6 @@ interface TextBuilder: Colorizer,  StringFormatter {
         return formatKnownTypes(this).formatted
     }
 
+    companion object:  StringFormatter()
 
 }

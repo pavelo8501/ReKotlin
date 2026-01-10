@@ -1,14 +1,12 @@
 package po.test.misc.data.pretty_print.grid
 
-import po.misc.collections.lambda_map.CallableDescriptor
 import po.misc.data.output.output
 import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.PrettyValueGrid
-import po.misc.data.pretty_print.TransitionGrid
-import po.misc.data.pretty_print.grid.buildPrettyGrid
+import po.misc.data.pretty_print.buildPrettyGrid
 import po.misc.data.pretty_print.parts.options.Orientation
-import po.misc.data.pretty_print.parts.options.RowPresets
-import po.misc.data.pretty_print.rows.buildPrettyRow
+import po.misc.data.pretty_print.buildPrettyRow
+import po.misc.functions.CallableKey
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
 import po.test.misc.data.pretty_print.setup.PrintableElement
 import po.test.misc.data.pretty_print.setup.PrintableRecord
@@ -73,7 +71,7 @@ class TestGridRendering : PrettyTestBase(){
     fun `Grid composition grid + verticalSubGrid render`(){
         var builtGrid : PrettyValueGrid<PrintableRecord, PrintableRecordSubClass>? = null
         val grid = buildPrettyGrid<PrintableRecord>{
-            builtGrid = useTemplate(verticalSubGrid, PrintableRecord::subClass)
+            builtGrid = useGrid(verticalSubGrid, PrintableRecord::subClass)
         }
         assertNotNull(builtGrid){valueGrid->
             assertEquals(Orientation.Vertical, valueGrid.options.orientation)
@@ -93,7 +91,7 @@ class TestGridRendering : PrettyTestBase(){
             buildRow {
                 add(headerText1)
             }
-            useTemplate(subGrid, PrintableRecord::subClass)
+            useGrid(subGrid, PrintableRecord::subClass)
         }
         val record = createRecord()
         val subName = record.subClass.subName
@@ -107,7 +105,7 @@ class TestGridRendering : PrettyTestBase(){
             buildRow {
                 add(headerText1)
             }
-            useTemplate(elementGrid, PrintableRecord::elements)
+            useGrid(elementGrid, PrintableRecord::elements)
         }
         val record = createRecord()
         val elementName = record.elements.first().elementName
@@ -119,28 +117,28 @@ class TestGridRendering : PrettyTestBase(){
     @Test
     fun `Multi part grid rendered as expected`(){
         val grid = buildPrettyGrid<PrintableRecord>{
-            useTemplate(header)
-            useTemplate(elementRow, PrintableRecord::elements, Orientation.Vertical)
+            useGrid(header)
+            useRow(elementRow, PrintableRecord::elements, Orientation.Vertical)
         }
         assertEquals(2, grid.rows.size)
-        assertEquals(3, grid.renderPlan.renderables.size)
+        assertEquals(3, grid.renderPlan.renderNodes.size)
         assertEquals(1, grid.rows.first().cells.size)
         assertEquals(2, grid.rows[1].cells.size)
-        assertNotNull(grid.renderPlan.renderables.firstOrNull()){ firstBlock->
+        assertNotNull(grid.renderPlan.renderNodes.firstOrNull()){ firstBlock->
             assertIs<PrettyRow<PrintableRecord>>(firstBlock)
             assertEquals(header.rows[0].size, firstBlock.size)
         }
-        assertNotNull(grid.renderPlan.renderables.getOrNull(1)){ secondBlock->
+        assertNotNull(grid.renderPlan.renderNodes.getOrNull(1)){ secondBlock->
             assertIs<PrettyRow<PrintableRecord>>(secondBlock)
             assertEquals(header.rows[1].size, secondBlock.size)
         }
-        assertNotNull(grid.renderPlan.renderables.getOrNull(2)) { thirdBlock ->
+        assertNotNull(grid.renderPlan.renderNodes.getOrNull(2)) { thirdBlock ->
             assertIs<PrettyValueGrid<PrintableRecord, PrintableElement>>(thirdBlock)
-            assertNotNull(thirdBlock.dataLoader.storage[CallableDescriptor.CallableKey.ReadOnlyProperty])
+            assertNotNull(thirdBlock.dataLoader[CallableKey.Property])
         }
-        val elementGrid = assertIs<PrettyValueGrid<PrintableRecord, PrintableElement>>(grid.renderPlan.renderables.last())
-        assertEquals(PrintableElement::class, elementGrid.valueType.kClass)
-        assertEquals(PrintableRecord::class, elementGrid.hostType.kClass)
+        val elementGrid = assertIs<PrettyValueGrid<PrintableRecord, PrintableElement>>(grid.renderPlan.renderNodes.last())
+        assertEquals(PrintableElement::class, elementGrid.receiverType.kClass)
+        assertEquals(PrintableRecord::class, elementGrid.sourceType.kClass)
         val render =  grid.render(record)
         val lineSplit = render.lines()
         assertTrue { lineSplit.first().contains(headerText1) }

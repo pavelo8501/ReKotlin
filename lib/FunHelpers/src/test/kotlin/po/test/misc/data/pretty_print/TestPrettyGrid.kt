@@ -3,7 +3,7 @@ package po.test.misc.data.pretty_print
 import org.junit.jupiter.api.Test
 import po.misc.data.output.output
 import po.misc.data.pretty_print.cells.KeyedCell
-import po.misc.data.pretty_print.grid.buildPrettyGrid
+import po.misc.data.pretty_print.buildPrettyGrid
 import po.misc.data.pretty_print.parts.cells.cellDelete
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
@@ -18,8 +18,6 @@ class TestPrettyGrid : PrettyTestBase() {
     val textProperty: (TestPrettyGrid) ->  String = {receiver->
        "Resolved!!!!!".colorize(Colour.Green)
     }
-
-
     @Test
     fun `Using specific template id to control render`(){
         val grid = buildPrettyGrid<TestPrettyGrid> {

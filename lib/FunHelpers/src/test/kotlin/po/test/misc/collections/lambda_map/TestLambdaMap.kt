@@ -70,7 +70,7 @@ class TestLambdaMap: Component {
         val lambdaMap = LambdaMap<String, Unit, Unit>(this)
         for(i in 1..10){
             val listener = Listener()
-            lambdaMap[listener] = listener.function.toCallable()
+            lambdaMap[listener] =  Lambda(listener.function)
         }
         val collectedListeners = mutableListOf<Any>()
         val msg = "Message"
@@ -96,7 +96,7 @@ class TestLambdaMap: Component {
 
         for(i in 1..10){
             val listener = Listener()
-            lambdaMap[listener] = listener.function.toCallable()
+            lambdaMap[listener] =   Lambda(listener.function)
         }
         val selected = lambdaMap.getCallables<String, Unit>()
         assertEquals(10, selected.size)

@@ -26,7 +26,7 @@ class TestPrettyCell: Component {
             }
         }
         assertIs<PrettyCell>(cell)
-        assertEquals(1, cell.textFormatter.formatters.size)
+        assertEquals(1, cell.textFormatter.size)
         var render = cell.render(text1)
         assertTrue { render.contains(text1) }
         assertTrue{ render.contains(Colour.Green.code) }

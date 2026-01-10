@@ -1,11 +1,10 @@
 package po.test.misc.data.pretty_print.parts
 
 import po.misc.data.pretty_print.cells.KeyedCell
+import po.misc.data.pretty_print.parts.loader.toElementProvider
 import po.misc.data.pretty_print.parts.options.CellPresets
 import po.misc.data.pretty_print.parts.options.Options
-import po.misc.data.pretty_print.toProvider
 import po.misc.data.styles.Colour
-import po.misc.types.token.tokenOf
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
 import po.test.misc.data.pretty_print.setup.PrintableRecord
 import kotlin.test.Test
@@ -19,9 +18,9 @@ class TestOptions : PrettyTestBase(){
     @Test
     fun `Cells rendered correctly with presets applied`(){
 
-        PrintableRecord::name.toProvider()
+        PrintableRecord::name.toElementProvider()
 
-        val keyedCell = KeyedCell(PrintableRecord::name.toProvider(), CellPresets.KeylessProperty)
+        val keyedCell = KeyedCell(PrintableRecord::name.toElementProvider(), CellPresets.KeylessProperty)
         val render = keyedCell.render(record)
         assertTrue  { render.contains(Colour.GreenBright.code) }
         assertFalse { render.contains("Name") }

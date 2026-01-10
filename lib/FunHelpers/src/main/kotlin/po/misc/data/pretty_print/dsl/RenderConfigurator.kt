@@ -1,12 +1,14 @@
 package po.misc.data.pretty_print.dsl
 
+import po.misc.callbacks.callable.ReceiverCallable
+import po.misc.callbacks.callable.asProvider
 import po.misc.data.pretty_print.Placeholder
 import po.misc.data.pretty_print.PrettyGrid
-import po.misc.data.pretty_print.RenderableElement
-import po.misc.data.pretty_print.parts.grid.RenderableType
+import po.misc.data.pretty_print.PrettyRow
+import po.misc.data.pretty_print.TemplateHost
 import po.misc.data.pretty_print.templates.TemplatePlaceholder
-import po.misc.data.pretty_print.parts.loader.DataProvider
 import po.misc.types.token.filterTokenized
+
 
 /**
  * Collects and resolves external templates against placeholders declared
@@ -52,8 +54,8 @@ class RenderConfigurator(){
      * @param provider the data provider supplying values for rendering
      */
     class ExternalTemplate<T : Any>(
-       val providedTemplate: RenderableElement<T, T>,
-       val provider: DataProvider<T, T>
+       val providedTemplate: TemplateHost<T, T>,
+       val provider: ReceiverCallable<T, T>
     ){
         /**
          * Resolves this external template against all compatible placeholders
@@ -71,7 +73,7 @@ class RenderConfigurator(){
          * @return the list of placeholders that were resolved
          */
         fun resolveTemplate(grid: PrettyGrid<*>): List<Placeholder<T>> {
-            val placeholders = grid.renderPlan[RenderableType.Placeholder]
+            val placeholders = grid.renderPlan[Placeholder]
             val filtered = placeholders.filterTokenized<Placeholder<T>, T>(providedTemplate.typeToken)
             filtered.forEach {
                 it.provideRenderable(providedTemplate, provider)
@@ -79,6 +81,8 @@ class RenderConfigurator(){
             return filtered
         }
     }
+
+
 
     @PublishedApi
     internal val templatesBacking: MutableList<ExternalTemplate<*>> = mutableListOf<ExternalTemplate<*>>()
@@ -108,8 +112,14 @@ class RenderConfigurator(){
      * @param template the renderable template to bind
      * @param provider the data provider supplying rendering values
      */
-    fun <T : Any> renderWith(template: RenderableElement<T, T>, provider: DataProvider<T, T>){
+    fun <T : Any> renderWith(template: TemplateHost<T, T>, provider: ReceiverCallable<T, T>){
         templatesBacking.add( ExternalTemplate(template, provider))
+    }
+
+    fun <T : Any> renderWith(prettyRow: PrettyRow<T>, provider: ReceiverCallable<T, T>){
+        val grid =  PrettyGrid(prettyRow.receiverType)
+        grid.addRow(prettyRow)
+        templatesBacking.add(ExternalTemplate(grid, provider))
     }
 
     /**
@@ -119,8 +129,11 @@ class RenderConfigurator(){
      * @param template the renderable template to bind
      * @param receiver the concrete object used for rendering
      */
-    inline fun <reified T: Any> renderWith(template: RenderableElement<T, T>, receiver:T) {
-        val provider =  DataProvider<T, T>({ receiver } )
-        renderWith(template, provider)
+    inline fun <reified T: Any> renderWith(template: TemplateHost<T, T>, receiver:T) {
+        renderWith(template, receiver.asProvider())
+    }
+
+    inline fun <reified T: Any> renderWith(prettyRow: PrettyRow<T>, receiver:T) {
+        renderWith(prettyRow,   receiver.asProvider())
     }
 }

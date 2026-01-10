@@ -1,18 +1,15 @@
 package po.test.misc.data.pretty_print
 
 import po.misc.data.linesCount
-import po.misc.data.output.output
 import po.misc.data.pretty_print.Templated
 import po.misc.data.pretty_print.parts.options.Orientation
 import po.misc.data.pretty_print.parts.options.RowOptions
-import po.misc.data.pretty_print.renderPlain
 import po.misc.data.styles.Colour
 import po.misc.types.token.TypeToken
 import po.misc.types.token.tokenOf
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class TestTemplated : Templated<TestTemplated> {
@@ -29,7 +26,6 @@ class TestTemplated : Templated<TestTemplated> {
         }
         val render = row.render(this)
         assertEquals(2, row.size)
-        assertNotNull(row.cells.first().row)
         assertTrue { render.contains(stringProperty) }
         assertTrue { render.contains(intProperty.toString()) }
         assertEquals(1, render.linesCount)
@@ -49,20 +45,7 @@ class TestTemplated : Templated<TestTemplated> {
 
         val plainTextOption = RowOptions(Orientation.Horizontal)
         plainTextOption.orientation = Orientation.Vertical
-        plainTextOption.usePlain = true
         render = row.render(plainTextOption)
         assertFalse { render.contains(Colour.GreenBright.code) }
-    }
-
-    @Test
-    fun `Row rendering by render overload`(){
-        val row = buildRow {
-            addCells(::intProperty, ::stringProperty)
-        }
-        val render = row.renderPlain(this)
-        assertTrue { render.contains(stringProperty) }
-        assertTrue { render.contains(intProperty.toString()) }
-        assertEquals(1, render.linesCount)
-
     }
 }

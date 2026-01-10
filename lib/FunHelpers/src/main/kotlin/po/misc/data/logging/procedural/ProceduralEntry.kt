@@ -45,7 +45,6 @@ class ProceduralEntry(
 
     private val badgeCell = PrettyCell(width =  5)
     private val stepNameCell =  PrettyCell(20)
-
     private val resultCell = PrettyCell(width = 2)
     private val outputRow = PrettyRow(badgeCell, stepNameCell, resultCell)
 
@@ -132,25 +131,24 @@ class ProceduralEntry(
             useId(ProceduralRecord.ProceduralTemplate.Entry)
         }
         private val resultOption = buildOption(){
-            useSourceFormatting = true
+            sourceFormat = true
             keyText = "Result :"
         }
 
         val template: PrettyGrid<ProceduralEntry> = buildGrid  {
             buildRow {
                 add(ProceduralEntry::badge, CellPresets.KeylessProperty)
-                computed(ProceduralEntry::stepName){
+                add(ProceduralEntry::stepName){
                     applyOptions(CellPresets.KeylessProperty)
-                    Colour.YellowBright.buildCondition {
-                        warnings.any()
-                    }
                 }
                 add(ProceduralEntry::stepResult, resultOption)
             }
-            buildListRow(ProceduralEntry::logRecords){
-                applyOptions(RowPresets.BulletList)
-                computed(StructuredLoggable::text){
-                    it.colorize(Colour.YellowBright)
+            buildListGrid(ProceduralEntry::logRecords){
+                buildRow {
+                    applyOptions(RowPresets.BulletList)
+                    add(StructuredLoggable::text){
+                        it.colorize(Colour.YellowBright)
+                    }
                 }
             }
         }

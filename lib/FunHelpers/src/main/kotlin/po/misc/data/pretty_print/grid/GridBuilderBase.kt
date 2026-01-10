@@ -1,56 +1,54 @@
 package po.misc.data.pretty_print.grid
 
-import po.misc.callbacks.signal.Signal
-import po.misc.callbacks.signal.signalOf
+import po.misc.callbacks.callable.asPropertyCallable
 import po.misc.collections.asList
 import po.misc.context.tracable.TraceableContext
 import po.misc.counters.SimpleJournal
 import po.misc.data.logging.Verbosity
-import po.misc.data.pretty_print.templates.PlaceholderLifecycle
 import po.misc.data.pretty_print.PrettyGrid
 import po.misc.data.pretty_print.PrettyGridBase
-import po.misc.data.pretty_print.parts.loader.DataLoader
-import po.misc.data.pretty_print.parts.grid.GridParams
-import po.misc.data.pretty_print.parts.rows.RowParams
 import po.misc.data.pretty_print.PrettyRow
+import po.misc.data.pretty_print.PrettyRowBase
 import po.misc.data.pretty_print.PrettyValueGrid
-import po.misc.data.pretty_print.cells.PrettyCellBase
+import po.misc.data.pretty_print.PrettyValueRow
 import po.misc.data.pretty_print.cells.StaticCell
+import po.misc.data.pretty_print.parts.dsl.PrettyDSL
 import po.misc.data.pretty_print.parts.grid.RenderKey
+import po.misc.data.pretty_print.parts.loader.toElementProvider
 import po.misc.data.pretty_print.parts.options.CommonRowOptions
 import po.misc.data.pretty_print.parts.options.Orientation
 import po.misc.data.pretty_print.parts.options.PrettyHelper
 import po.misc.data.pretty_print.parts.options.RowOptions
 import po.misc.data.pretty_print.parts.options.RowPresets
-import po.misc.data.pretty_print.parts.template.RowID
-import po.misc.functions.LambdaOptions
+import po.misc.data.pretty_print.parts.options.RowID
+import po.misc.data.pretty_print.rows.RowBuilder
+import po.misc.data.pretty_print.rows.ValueRowBuilder
+import po.misc.data.pretty_print.templates.Lifecycle
+import po.misc.data.pretty_print.templates.TemplatePlaceholder
 import po.misc.types.token.TokenFactory
 import po.misc.types.token.TypeToken
-import kotlin.reflect.KClass
+import kotlin.reflect.KProperty1
 
 
-sealed class GridBuilderBase<T, V>(
-    val hostType: TypeToken<T>,
-    val type: TypeToken<V>,
-): TokenFactory, TraceableContext,  PrettyHelper {
+sealed class GridBuilderBase<T>(
+   val receiverType: TypeToken<T>
+): TokenFactory, TraceableContext, PrettyHelper {
 
-    abstract val prettyGrid: PrettyGridBase<T, V>
     internal var renderKey: RenderKey? = null
-    var options: RowOptions? = null
-        protected set
-
     internal val journal = SimpleJournal(ValueGridBuilder::class)
-    val builderName: String = "GridBuilderBase<${hostType.typeName}, ${type.typeName}>"
+    abstract val prettyGrid: PrettyGridBase<T>
+    val builderName: String = "GridBuilderBase<${receiverType.typeName}>"
 
-    var orientation : Orientation
-        get() = options?.orientation?:Orientation.Horizontal
+    var options : RowOptions get() =  prettyGrid.options
         set(value) {
-            options?.let { it.orientation = value }?:run {
-                options = RowOptions(value)
-            }
+            prettyGrid.options = value
         }
 
-    abstract val dataLoader: DataLoader<T, V>
+    var orientation : Orientation
+        get() = options.orientation
+        set(value) {
+           options.orientation = value
+        }
 
     var verbosity: Verbosity
         get() =  prettyGrid.verbosity
@@ -58,71 +56,115 @@ sealed class GridBuilderBase<T, V>(
             prettyGrid.verbosity = value
         }
 
-    protected val beforeRowRender: Signal<RowParams<V>, Unit> = signalOf()
-    protected val beforeGridRender: Signal<GridParams, Unit> = signalOf()
-    protected val templateResolved: Signal<PrettyValueGrid<T, *>, Unit> = signalOf()
+    protected var gridFinalized: Boolean = false
 
-    abstract  fun addRow(row: PrettyRow<V>): PrettyRow<V>
+    open fun addRow(row: PrettyRow<T>): PrettyRow<T> = prettyGrid.addRow(row)
+    open fun addRow(row: PrettyValueRow<T, *>): PrettyValueRow<T, *> = prettyGrid.addValueRow(row)
 
+    open fun finalizeGrid(upperGrid: PrettyGridBase<*>): PrettyGridBase<T>{
+        prettyGrid.verbosity = verbosity
+        gridFinalized = true
+        return prettyGrid
+    }
     fun applyOptions(opt: CommonRowOptions): RowOptions {
-        val created =  toRowOptions(opt)
-        options = created
+        val created = toRowOptions(opt)
+        prettyGrid.options = created
         return created
     }
-    fun headedRow(
-        text: String,
-        id: RowID? = null,
-        rowPreset: RowPresets = RowPresets.HorizontalHeaded,
-    ): PrettyRow<V> {
+    fun headedRow(text: String, id: RowID? = null, rowPreset: RowPresets = RowPresets.HorizontalHeaded): PrettyRow<T> {
         val options = rowPreset.asRowOptions().useId(id)
         val cell = StaticCell(text).applyOptions(options.cellOptions)
-        val row =  PrettyRow(type,  cell.asList(),  options, id)
+        val row =  PrettyRow(receiverType, id, options, cell.asList())
         addRow(row)
         return row
     }
-    fun onResolved(callback: V.(Unit) -> Unit): Unit {
-        dataLoader.valueResolved.onSignal(LambdaOptions.Promise, callback = callback)
+
+    @PrettyDSL
+    fun buildRow(rowID: RowID? = null, builder: RowBuilder<T>.() -> Unit):PrettyRow<T>{
+        val container = RowBuilder(receiverType, rowID)
+        builder.invoke(container)
+        val row = container.finalizeRow(this)
+        return addRow(row)
     }
-    fun createRow(rowID: RowID, vararg cells: PrettyCellBase){
-        val cells = cells.toList()
-        val row = PrettyRow(cells, type, options = RowOptions(Orientation.Horizontal) , rowID)
-        addRow(row)
+
+    @PrettyDSL
+    inline fun <reified  V> buildRow(
+        property: KProperty1<T, V>,
+        rowID: RowID? = null,
+        builderAction: ValueRowBuilder<T, V>.() -> Unit
+    ): PrettyValueRow<T, V>{
+        val provider = property.asPropertyCallable(receiverType)
+        val valueRowBuilder =  ValueRowBuilder(receiverType, provider.receiverType,  rowID)
+        builderAction.invoke(valueRowBuilder)
+        val valueRow =  valueRowBuilder.finalizeRow(this)
+        prettyGrid.renderPlan.add(valueRow)
+        return valueRow
     }
-    fun setProviders(
-        provider: (() -> V)? = null,
-        listProvider: (() -> List<V>)? = null,
-    ): GridBuilderBase<T, V> {
-        if (provider != null) {
-            dataLoader.setProvider(provider)
+
+    @PrettyDSL
+    fun useRow(
+        row: PrettyRow<T>,
+        builderAction: (RowBuilder<T>.() -> Unit)? = null
+    ): PrettyRow<T>{
+        val rowBuilder = RowBuilder(row.copy())
+        builderAction?.invoke(rowBuilder)
+        return rowBuilder.finalizeRow()
+    }
+
+
+    @PrettyDSL
+    inline fun <reified V> useRow(
+        row: PrettyRow<V>,
+        property: KProperty1<T, V>,
+        parameter: Any? = null,
+    ):PrettyValueGrid<T, V>{
+        val valueGridBuilder = ValueGridBuilder(receiverType, row.receiverType)
+        when{
+            parameter != null && parameter is Orientation  -> { valueGridBuilder.prettyGrid.options.orientation = parameter }
+            parameter != null && parameter is CommonRowOptions  -> { valueGridBuilder.applyOptions(parameter) }
+            parameter != null && parameter is RowID  -> {}
         }
-        if (listProvider != null) {
-            dataLoader.setListProvider(listProvider)
-        }
-        return this
+        val provider = property.toElementProvider(receiverType)
+        valueGridBuilder.addRow(row.copy())
+        return valueGridBuilder.finalizeGrid(provider, prettyGrid)
     }
+
+    @JvmName("useRowList")
+    @PrettyDSL
+    inline fun <reified V> useRow(
+        row: PrettyRow<V>,
+        property: KProperty1<T, List<V>>,
+        parameter: Any? = null,
+    ):PrettyValueGrid<T, V>{
+
+        val valueGridBuilder = ValueGridBuilder(receiverType, row.receiverType)
+        when{
+            parameter != null && parameter is Orientation  -> { valueGridBuilder.prettyGrid.options.orientation = parameter }
+            parameter != null && parameter is CommonRowOptions  -> { valueGridBuilder.applyOptions(parameter) }
+            parameter != null && parameter is RowID  -> {}
+        }
+        val provider = property.toElementProvider(receiverType)
+        valueGridBuilder.addRow(row.copy())
+        return valueGridBuilder.finalizeGrid(provider, prettyGrid)
+    }
+
+
+   fun useGrid(grid: PrettyGrid<T>) {
+        grid.copy().rows.forEach { row ->
+            prettyGrid.addRowChecking(row)
+        }
+    }
+
 
     @PublishedApi
-    internal fun addRows(rows: List<PrettyRow<V>>) {
-        rows.forEach { row ->
-            addRow(row)
+    internal fun <T2> addRowsChecking(token: TypeToken<T2>,rows: List<PrettyRowBase<T, *>>){
+        rows.forEach {
+            prettyGrid.addRowChecking(token, it)
         }
     }
-    fun useTemplate(row: PrettyRow<V>) {
-        addRow(row.copy())
-    }
 
-    fun useTemplate(grid: PrettyGrid<V>) {
-        val gridCopy = grid.copy()
-        addRows(gridCopy.rows)
-    }
-
-    inline fun <reified T2 : Any> createPlaceholder(
-        expectedClass: KClass<out T2>,
-        lifecycle: PlaceholderLifecycle
-    ) {
-//       val template = TemplatePlaceholder(lifecycle,  this, TypeToken<T2>())
-//       if(this is GridContainer<*>){
-//           renderPlan.add(template)
-//       }
+    inline fun <reified T2 : Any> createPlaceholder(lc: Lifecycle = Lifecycle.Reusable) {
+        val template = TemplatePlaceholder(lc, prettyGrid, TypeToken<T2>())
+        prettyGrid.renderPlan.add(template)
     }
 }

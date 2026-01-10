@@ -25,7 +25,7 @@ data class AccessRecord <E: Enum<E>>(
 
     private var recordSuccess: Boolean = false
 
-    private val noKeyOption = Options(renderKey = false)
+    private val noKeyOption = Options()
 
     private val success = ColorModifier.ColourCondition("Success", Colour.GreenBright)
     private val failure = ColorModifier.ColourCondition("Failure", Colour.RedBright)

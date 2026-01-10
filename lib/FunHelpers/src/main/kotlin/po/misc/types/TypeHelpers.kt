@@ -13,6 +13,7 @@ import java.time.LocalDateTime
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import kotlin.reflect.KClass
+import kotlin.reflect.full.isSubclassOf
 
 
 inline fun <T1 : Any, R : Any> safeLet(p1: T1?, block: (T1) -> R?): R? {
@@ -167,8 +168,6 @@ inline fun <reified T> T?.getOrManaged(
 ):T = getOrManaged(this,  callingContext, T::class)
 
 
-
-
 fun <T: Any> TypeToken<T>.getDefaultForType(): T? {
     val result = when (this.kType.classifier) {
         Int::class -> -1
@@ -181,4 +180,17 @@ fun <T: Any> TypeToken<T>.getDefaultForType(): T? {
         else -> null
     }
     return result?.safeCast(this.kClass)
+}
+
+inline fun <reified T, reified P> Iterable<*>.typedFilter(parameterProvider: (T)-> Any): List<T> {
+    val result = mutableListOf<T>()
+    for (element in this) {
+        if (element is T){
+           val parameter =  parameterProvider.invoke(element)
+            if(parameter::class.isSubclassOf(P::class)) {
+                result.add(element)
+            }
+        }
+    }
+    return result
 }

@@ -3,7 +3,7 @@ package po.test.misc.data.pretty_print.cells
 import org.junit.jupiter.api.Test
 import po.misc.data.pretty_print.cells.KeyedCell
 import po.misc.data.pretty_print.parts.options.CellPresets
-import po.misc.data.pretty_print.rows.buildPrettyRow
+import po.misc.data.pretty_print.buildPrettyRow
 import po.misc.data.styles.Colour
 import po.misc.data.styles.TextStyle
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
@@ -25,8 +25,6 @@ class TestKeyedCell: PrettyTestBase() {
         assertEquals(TextStyle.Italic, cell.keyStyle.textStyle)
         assertEquals(Colour.Magenta, cell.keyStyle.colour)
         assertEquals(Colour.GreenBright, cell.valueStyle.colour)
-        assertNotNull(cell.row)
-
         val render = cell.render(createRecord())
         assertTrue { render.contains(TextStyle.Italic.code)  }
         assertTrue { render.contains(Colour.Magenta.code)  }

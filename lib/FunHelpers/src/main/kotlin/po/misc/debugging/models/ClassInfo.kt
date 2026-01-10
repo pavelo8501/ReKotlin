@@ -52,6 +52,7 @@ data class ClassInfo(
     val packageName: String = kClass.java.packageName
 
     var functionName : String? = null
+
     val normalizedName : String get() {
        return if(isLambda){
             "${suspendTag}fun $functionName $receiveTag in Package : $packageName"

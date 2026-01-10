@@ -52,6 +52,8 @@ data class StyleTheme(
     private val bgColour: BGColour,
 ):StyleCode{
 
+    internal constructor(color: Colour, bgColour: BGColour):this(TextStyle.Regular, color, bgColour)
+
     override val ordinal: Int get() =  style.ordinal + color.ordinal + bgColour.ordinal
     override val code: String get() {
         var styleCode =  ""

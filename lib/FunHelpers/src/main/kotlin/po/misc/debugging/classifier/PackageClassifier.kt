@@ -2,6 +2,7 @@ package po.misc.debugging.classifier
 
 import po.misc.debugging.classifier.PackageClassifier.PackageRole
 import po.misc.debugging.normalizedMethodName
+import po.misc.debugging.stack_tracer.StackFrameMeta
 
 /**
  * Classifies stack trace elements into semantic package roles such as:
@@ -35,6 +36,12 @@ interface PackageClassifier{
      * @return the identified [PackageRole] based on package, class, or method heuristics
      */
     fun resolvePackageRole(element: StackTraceElement):PackageRole
+
+    companion object{
+        fun isUserOrUnknow(meta: StackFrameMeta): Boolean{
+           return meta.packageRole != PackageRole.System && meta.packageRole != PackageRole.Helper
+        }
+    }
 }
 
 /**
@@ -105,7 +112,7 @@ open class SimplePackageClassifier(
     }
 
     private fun checkByMethodName(element: StackTraceElement, roleByPreviousCheck: PackageRole = PackageRole.Unknown): PackageRole{
-        val methodName = element.normalizedMethodName()
+        val methodName = normalizedMethodName(element)
         for(helperRecord in records){
             if(helperRecord.methodNameListed(methodName)){
                 return PackageRole.Helper
